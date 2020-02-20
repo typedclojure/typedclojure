@@ -15,7 +15,7 @@
   </licenses>
 
   <parent>
-    <groupId>org.clojure.typed</groupId>
+    <groupId>typed</groupId>
     <artifactId>pom</artifactId>
     <version>1.0.1-SNAPSHOT</version>
     <relativePath>../..</relativePath>
@@ -38,11 +38,11 @@
       <artifactId>clojure</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.clojure.typed</groupId>
+      <groupId>typed</groupId>
       <artifactId>analyzer.jvm</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.clojure.typed</groupId>
+      <groupId>typed</groupId>
       <artifactId>lib.clojure</artifactId>
     </dependency>
     <dependency>
@@ -50,7 +50,7 @@
       <artifactId>tools.namespace</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.clojure.typed</groupId>
+      <groupId>typed</groupId>
       <artifactId>runtime.jvm</artifactId>
     </dependency>
     <dependency>
@@ -62,7 +62,7 @@
       <artifactId>tools.reader</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.clojure.typed</groupId>
+      <groupId>typed</groupId>
       <artifactId>lang.jvm</artifactId>
     </dependency>
     <dependency>

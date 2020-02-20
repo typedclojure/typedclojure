@@ -15,8 +15,8 @@ time, and the runtime dependencies in production.
 In Clojure CLI's `deps.edn`, this will look something like this:
 
 ```clojure
-{:deps {org.clojure.typed/runtime.jvm {:mvn/version "1.0.0"}}
- :aliases {:dev {:extra-deps {org.clojure.typed/checker.jvm {:mvn/version "1.0.0"}}}}}
+{:deps {typed/runtime.jvm {:mvn/version "1.0.0"}}
+ :aliases {:dev {:extra-deps {typed/checker.jvm {:mvn/version "1.0.0"}}}}}
 ```
 
 You can then start a dev repl with `clj -A:dev`.
@@ -25,8 +25,8 @@ In Leiningen's `project.clj`, something like this:
 
 ```clojure
 (defproject a-project "0.0.1-SNAPSHOT"
-  :dependencies [[org.clojure.typed/runtime.jvm "1.0.0"]]
-  :profiles {:dev {:dependencies [[org.clojure.typed/checker.jvm "1.0.0"]]}})
+  :dependencies [[typed/runtime.jvm "1.0.0"]]
+  :profiles {:dev {:dependencies [[typed/checker.jvm "1.0.0"]]}})
 ```
 
 Then, `lein repl` will automatically activate the `:dev` profile. Verify the type

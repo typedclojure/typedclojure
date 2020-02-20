@@ -19,7 +19,7 @@ Latest stable release is 0.7.2.
 - Note: use `clj -Sresolve` to resolve the `:tag` to a `:sha`
 
 ```clj
-  org.clojure.typed/lib.core.async {:git/url "https://github.com/clojure/core.typed"
+  typed/lib.core.async {:git/url "https://github.com/clojure/core.typed"
                                     :deps/root "typed/lib.core.async"
                                     :tag "0.7.2"}
 ```

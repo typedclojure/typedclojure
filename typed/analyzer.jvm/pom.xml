@@ -15,7 +15,7 @@
   </licenses>
 
   <parent>
-    <groupId>org.clojure.typed</groupId>
+    <groupId>typed</groupId>
     <artifactId>pom</artifactId>
     <version>1.0.1-SNAPSHOT</version>
     <relativePath>../..</relativePath>
@@ -23,7 +23,7 @@
 
   <dependencies>
     <dependency>
-      <groupId>org.clojure.typed</groupId>
+      <groupId>typed</groupId>
       <artifactId>analyzer.common</artifactId>
     </dependency>
     <dependency>

@@ -15,7 +15,7 @@
   </licenses>
 
   <parent>
-    <groupId>org.clojure.typed</groupId>
+    <groupId>typed</groupId>
     <artifactId>pom</artifactId>
     <version>1.0.1-SNAPSHOT</version>
     <relativePath>../..</relativePath>
@@ -31,7 +31,7 @@
       <artifactId>core.async</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.clojure.typed</groupId>
+      <groupId>typed</groupId>
       <artifactId>runtime.jvm</artifactId>
     </dependency>
   </dependencies>

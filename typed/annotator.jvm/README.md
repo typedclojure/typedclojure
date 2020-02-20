@@ -13,7 +13,7 @@ Latest stable release is 1.0.0.
 [deps.edn](https://clojure.org/reference/deps_and_cli) JAR dependency information:
 
 ```clj
-  org.clojure.typed/annotator.jvm {:mvn/version "1.0.0"}
+  typed/annotator.jvm {:mvn/version "1.0.0"}
  ```
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) Git dependency information:
@@ -21,7 +21,7 @@ Latest stable release is 1.0.0.
 - Note: use `clj -Sresolve` to resolve the `:tag` to a `:sha`
 
 ```clj
-  org.clojure.typed/annotator.jvm {:git/url "https://github.com/clojure/core.typed"
+  typed/annotator.jvm {:git/url "https://github.com/clojure/core.typed"
                                    :deps/root "typed/annotator.jvm"
                                    :tag "1.0.0"}
 ```
@@ -29,7 +29,7 @@ Latest stable release is 1.0.0.
 [Leiningen](https://github.com/technomancy/leiningen) dependency information:
 
 ```clojure
-[org.clojure.typed/annotator.jvm "1.0.0"]
+[typed/annotator.jvm "1.0.0"]
 ```
 
 [Maven](https://maven.apache.org/) dependency information:

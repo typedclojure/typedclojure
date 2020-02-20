@@ -19,7 +19,7 @@ Latest stable release is 1.0.0.
 - Note: use `clj -Sresolve` to resolve the `:tag` to a `:sha`
 
 ```clj
-  org.clojure.typed/lang.jvm {:git/url "https://github.com/clojure/core.typed"
+  typed/lang.jvm {:git/url "https://github.com/clojure/core.typed"
                               :deps/root "typed/lang.jvm"
                               :tag "1.0.0"}
 ```

@@ -13,7 +13,7 @@ Latest stable release is 0.7.2.
 [deps.edn](https://clojure.org/reference/deps_and_cli) JAR dependency information:
 
 ```clj
-  org.clojure.typed/analyzer.common {:mvn/version "0.7.2"}
+  typed/analyzer.common {:mvn/version "0.7.2"}
 ```
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) Git dependency information:
@@ -21,7 +21,7 @@ Latest stable release is 0.7.2.
 - Note: use `clj -Sresolve` to resolve the `:tag` to a `:sha`
 
 ```clj
-  org.clojure.typed/analyzer.common {:git/url "https://github.com/clojure/core.typed"
+  typed/analyzer.common {:git/url "https://github.com/clojure/core.typed"
                                      :deps/root "typed/analyzer.common"
                                      :tag "0.7.2"}
 ```
@@ -29,7 +29,7 @@ Latest stable release is 0.7.2.
 [Leiningen](https://github.com/technomancy/leiningen) dependency information:
 
 ```clojure
-[org.clojure.typed/analyzer.common "0.7.2"]
+[typed/analyzer.common "0.7.2"]
 ```
 
 [Maven](https://maven.apache.org/) dependency information:

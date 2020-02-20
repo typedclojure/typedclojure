@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>org.clojure.typed</groupId>
+  <groupId>typed</groupId>
   <artifactId>pom</artifactId>
   <version>1.0.1-SNAPSHOT</version>
   <name>pom</name>
@@ -100,52 +100,52 @@
         <version>1.10.597</version>
       </dependency>
       <dependency>
-        <groupId>org.clojure.typed</groupId>
+        <groupId>typed</groupId>
         <artifactId>analyzer.common</artifactId>
         <version>1.0.1-SNAPSHOT</version>
       </dependency>
       <dependency>
-        <groupId>org.clojure.typed</groupId>
+        <groupId>typed</groupId>
         <artifactId>analyzer.js</artifactId>
         <version>1.0.1-SNAPSHOT</version>
       </dependency>
       <dependency>
-        <groupId>org.clojure.typed</groupId>
+        <groupId>typed</groupId>
         <artifactId>analyzer.jvm</artifactId>
         <version>1.0.1-SNAPSHOT</version>
       </dependency>
       <dependency>
-        <groupId>org.clojure.typed</groupId>
+        <groupId>typed</groupId>
         <artifactId>checker.js</artifactId>
         <version>1.0.1-SNAPSHOT</version>
       </dependency>
       <dependency>
-        <groupId>org.clojure.typed</groupId>
+        <groupId>typed</groupId>
         <artifactId>checker.jvm</artifactId>
         <version>1.0.1-SNAPSHOT</version>
       </dependency>
       <dependency>
-        <groupId>org.clojure.typed</groupId>
+        <groupId>typed</groupId>
         <artifactId>runtime.jvm</artifactId>
         <version>1.0.1-SNAPSHOT</version>
       </dependency>
       <dependency>
-        <groupId>org.clojure.typed</groupId>
+        <groupId>typed</groupId>
         <artifactId>lib.clojure</artifactId>
         <version>1.0.1-SNAPSHOT</version>
       </dependency>
       <dependency>
-        <groupId>org.clojure.typed</groupId>
+        <groupId>typed</groupId>
         <artifactId>lib.core.async</artifactId>
         <version>1.0.1-SNAPSHOT</version>
       </dependency>
       <dependency>
-        <groupId>org.clojure.typed</groupId>
+        <groupId>typed</groupId>
         <artifactId>annotator.jvm</artifactId>
         <version>1.0.1-SNAPSHOT</version>
       </dependency>
       <dependency>
-        <groupId>org.clojure.typed</groupId>
+        <groupId>typed</groupId>
         <artifactId>lang.jvm</artifactId>
         <version>1.0.1-SNAPSHOT</version>
       </dependency>
