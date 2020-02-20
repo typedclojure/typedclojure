@@ -29,6 +29,13 @@
     <clojure.testSource.dir>test</clojure.testSource.dir>
   </properties>
 
+  <distributionManagement>
+    <snapshotRepository>
+      <id>clojars</id>
+      <url>https://repo.clojars.org</url>
+    </snapshotRepository>
+  </distributionManagement>
+
   <build>
     <sourceDirectory>java-src</sourceDirectory>
     <scriptSourceDirectory>scripts-src</scriptSourceDirectory>
@@ -220,7 +227,7 @@
       <url>https://oss.sonatype.org/content/groups/public/</url>
     </repository>
     <repository>
-      <id>clojars.org</id>
+      <id>clojars</id>
       <url>http://clojars.org/repo</url>
     </repository>
   </repositories>
