@@ -23,7 +23,6 @@
   </parent>
 
   <properties>
-    <skipNexusStagingDeployMojo>true</skipNexusStagingDeployMojo>
     <clojure.warnOnReflection>true</clojure.warnOnReflection>
     <clojure.version>1.10.1</clojure.version>
     <clojure.source.dir>src</clojure.source.dir>
@@ -33,7 +32,8 @@
   <distributionManagement>
     <snapshotRepository>
       <id>clojars</id>
-      <url>https://repo.clojars.org</url>
+      <name>Clojars repository</name>
+      <url>https://clojars.org/repo</url>
     </snapshotRepository>
     <repository>
       <id>clojars</id>
@@ -86,8 +86,12 @@
         <groupId>org.sonatype.plugins</groupId>
         <artifactId>nexus-staging-maven-plugin</artifactId>
         <version>1.6.8</version>
+        <extensions>true</extensions>
         <configuration>
-          <skip>true</skip>
+          <!-- The server "id" element from settings to use authentication from -->
+          <serverId>clojars</serverId>
+          <nexusUrl>https://clojars.org/repo</nexusUrl>
+          <autoReleaseAfterClose>true</autoReleaseAfterClose>
         </configuration>
       </plugin>
     </plugins>
