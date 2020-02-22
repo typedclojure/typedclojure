@@ -16,11 +16,13 @@
     </license>
   </licenses>
 
+  <!--
   <parent>
     <groupId>org.clojure</groupId>
     <artifactId>pom.contrib</artifactId>
     <version>0.3.0</version>
   </parent>
+  -->
 
   <properties>
     <clojure.warnOnReflection>true</clojure.warnOnReflection>
@@ -80,18 +82,6 @@
         <configuration>
           <autoVersionSubmodules>true</autoVersionSubmodules>
           <tagNameFormat>@{project.version}</tagNameFormat>
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.sonatype.plugins</groupId>
-        <artifactId>nexus-staging-maven-plugin</artifactId>
-        <version>1.6.8</version>
-        <extensions>true</extensions>
-        <configuration>
-          <!-- The server "id" element from settings to use authentication from -->
-          <serverId>clojars</serverId>
-          <nexusUrl>https://clojars.org/repo</nexusUrl>
-          <autoReleaseAfterClose>true</autoReleaseAfterClose>
         </configuration>
       </plugin>
     </plugins>
