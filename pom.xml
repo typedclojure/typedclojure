@@ -81,6 +81,14 @@
           <tagNameFormat>@{project.version}</tagNameFormat>
         </configuration>
       </plugin>
+      <plugin>
+        <groupId>org.sonatype.plugins</groupId>
+        <artifactId>nexus-staging-maven-plugin</artifactId>
+        <version>1.6.8</version>
+        <configuration>
+          <skip>true</skip>
+        </configuration>
+      </plugin>
     </plugins>
 
   </build>
