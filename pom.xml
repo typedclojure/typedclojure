@@ -34,6 +34,11 @@
       <id>clojars</id>
       <url>https://repo.clojars.org</url>
     </snapshotRepository>
+    <repository>
+      <id>clojars</id>
+      <name>Clojars repository</name>
+      <url>https://clojars.org/repo</url>
+    </repository>
   </distributionManagement>
 
   <build>
