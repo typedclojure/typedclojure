@@ -5,6 +5,7 @@ use https://clojars.org/ as your repository.
 
 New homes for each package:
 
+```
 https://clojars.org/typed/analyzer.common
 https://clojars.org/typed/analyzer.js
 https://clojars.org/typed/analyzer.jvm
@@ -16,3 +17,4 @@ https://clojars.org/typed/lib.clojure
 https://clojars.org/typed/lib.core.async
 https://clojars.org/typed/pom
 https://clojars.org/typed/runtime.jvm
+```
