@@ -23,6 +23,7 @@
   </parent>
 
   <properties>
+    <skipNexusStagingDeployMojo>true</skipNexusStagingDeployMojo>
     <clojure.warnOnReflection>true</clojure.warnOnReflection>
     <clojure.version>1.10.1</clojure.version>
     <clojure.source.dir>src</clojure.source.dir>
