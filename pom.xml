@@ -82,6 +82,9 @@
         <configuration>
           <autoVersionSubmodules>true</autoVersionSubmodules>
           <tagNameFormat>@{project.version}</tagNameFormat>
+          <!-- allow local cleanup if deploy fails -->
+          <pushChanges>false</pushChanges>
+          <localCheckout>true</localCheckout>
         </configuration>
       </plugin>
     </plugins>
