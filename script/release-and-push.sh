@@ -7,7 +7,11 @@
 # eg., to cut version 1.0.0 and then move to 1.0.1-SNAPSHOT,
 # call this script like so:
 #
-# ./script/release-and-push.sh 1.0.0 1.0.1-SNAPSHOT
+#   ./script/release-and-push.sh 1.0.0 1.0.1-SNAPSHOT
+#
+# and then push the resulting commit to the master branch.
+# GitHub Actions will automatically deploy a 1.0.0 release and
+# update the dev version to 1.0.1-SNAPSHOT.
 
 set -e
 
