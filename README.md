@@ -15,8 +15,8 @@ time, and the runtime dependencies in production.
 In Clojure CLI's `deps.edn`, this will look something like this:
 
 ```clojure
-{:deps {typed/runtime.jvm {:mvn/version "1.0.2"}}
- :aliases {:dev {:extra-deps {typed/checker.jvm {:mvn/version "1.0.2"}}}}}
+{:deps {typed/runtime.jvm {:mvn/version "1.0.5"}}
+ :aliases {:dev {:extra-deps {typed/checker.jvm {:mvn/version "1.0.5"}}}}}
 ```
 
 You can then start a dev repl with `clj -A:dev`.
@@ -25,8 +25,8 @@ In Leiningen's `project.clj`, something like this:
 
 ```clojure
 (defproject a-project "0.0.1-SNAPSHOT"
-  :dependencies [[typed/runtime.jvm "1.0.2"]]
-  :profiles {:dev {:dependencies [[typed/checker.jvm "1.0.2"]]}})
+  :dependencies [[typed/runtime.jvm "1.0.5"]]
+  :profiles {:dev {:dependencies [[typed/checker.jvm "1.0.5"]]}})
 ```
 
 Then, `lein repl` will automatically activate the `:dev` profile. Verify the type
@@ -34,7 +34,7 @@ checker is not included in uberjars with `lein with-profile uberjar deps :tree`.
 
 ## Releases and Dependency Information
 
-Latest stable release is 1.0.2.
+Latest stable release is 1.0.5.
 
 See modules for specific version coordinates:
 
