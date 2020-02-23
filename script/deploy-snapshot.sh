@@ -2,6 +2,11 @@
 
 set -e
 
+if [[ "$GITHUB_ACTIONS" == 'true' && "$GITHUB_REPOSITORY" != 'typedclojure/typedclojure' ]]; then
+  echo "Can only deploy snapshot in GitHub Actions from 'typedclojure/typed', in: ${GITHUB_REPOSITORY}"
+  exit 0
+fi
+
 TYPED_VERSION=$(mvn -q \
   -Dexec.executable="echo" \
   -Dexec.args='${project.version}' \

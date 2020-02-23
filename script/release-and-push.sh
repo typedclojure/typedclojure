@@ -22,13 +22,13 @@ if [[ `git symbolic-ref --short HEAD` != 'master' ]]; then
 fi
 
 if [[ "$GITHUB_ACTOR" != "frenchy64" ]]; then
-  echo "Only maintainers may deploy a release."
-  exit 1
+  echo "Only maintainers may deploy a release. Doing nothing."
+  exit 0
 fi
 
 if [[ "$GITHUB_REPOSITORY" != "typedclojure/typedclojure" ]]; then
-  echo "Releases only allowed from typedclojure/typedclojure"
-  exit 1
+  echo "Releases only allowed from typedclojure/typedclojure. Doing nothing."
+  exit 0
 fi
 
 git config --local user.email "abonnairesergeant@gmail.com"
