@@ -59,6 +59,9 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 11
+      - uses: DeLaGuardo/setup-clojure@2.0
+        with:
+          tools-deps: latest
       - name: Configure settings.xml
         run: |
           mkdir -p ~/.m2
