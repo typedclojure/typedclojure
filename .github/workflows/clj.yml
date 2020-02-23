@@ -65,5 +65,4 @@ jobs:
           echo "<settings><servers><server><id>clojars</id><username>typedclojure-clojars</username><password>${{ secrets.ClojarsPassword }}</password></server></servers></settings>" > ~/.m2/settings.xml
 
       - name: Deploy
-        # TODO change to ./script/deploy-actions.sh when snapshot deployment works
-        run: ./script/deploy-snapshot.sh
+        run: ./script/deploy-actions.sh
