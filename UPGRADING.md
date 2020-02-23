@@ -1,6 +1,6 @@
 # From core.typed 1.0.0 to typedclojure 1.0.1
 
-Change group ID from `org.clojure` to `typed`, and
+Change group ID from `org.clojure.typed` to `typed`, and
 use https://clojars.org/ as your repository.
 
 New homes for each package:
