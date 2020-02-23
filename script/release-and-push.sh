@@ -17,8 +17,8 @@ if [[ "$GITHUB_ACTIONS" != 'true' ]]; then
 fi
 
 if [[ `git symbolic-ref --short HEAD` != 'master' ]]; then
-  echo "Must release on the master branch only."
-  exit 1
+  echo "Releases only triggered on the master branch. Doing nothing."
+  exit 0
 fi
 
 if [[ "$GITHUB_ACTOR" != "frenchy64" ]]; then
