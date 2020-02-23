@@ -34,8 +34,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
       - name: Check Clojure CA
-          if: github.actor != 'frenchy64'
-          run: ./script/check-clojure-ca.sh ${{ github.event.pusher.name }}
+        if: github.actor != 'frenchy64'
+        run: ./script/check-clojure-ca.sh ${{ github.event.pusher.name }}
       - name: Set up JDK ${{ matrix.jdk }}
         uses: actions/setup-java@v1
         with:
