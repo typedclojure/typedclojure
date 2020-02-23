@@ -18,7 +18,9 @@ fi
 COMMIT_MSG=$(git log --format=%B -n 1 "${GITHUB_SHA}")
 
 if [[ "$COMMIT_MSG" == "[typedclojure-release]*" ]]; then
-  ./script/release-and-push.sh
+  #https://stackoverflow.com/a/9294015
+  COMMIT_MSG_ARRAY=($COMMIT_MSG)
+  ./script/release-and-push.sh "${COMMIT_MSG_ARRAY[1]}" "${COMMIT_MSG_ARRAY[2]}"
 else
   ./script/deploy-snapshot.sh
 fi
