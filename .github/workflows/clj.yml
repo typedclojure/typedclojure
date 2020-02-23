@@ -61,7 +61,7 @@ jobs:
           java-version: 11
       - name: Configure settings.xml
         run: |
-          mkdir ~/.m2
+          mkdir -p ~/.m2
           echo "<settings><servers><server><id>clojars</id><username>typedclojure-clojars</username><password>${{ secrets.ClojarsPassword }}</password></server></servers></settings>" > ~/.m2/settings.xml
 
       - name: Deploy
