@@ -20,12 +20,12 @@ if [[ "$TYPED_VERSION" == *-SNAPSHOT ]]; then
   #https://stackoverflow.com/a/125340
   DEFAULT_RELEASE_VERSION="${TYPED_VERSION%-SNAPSHOT}"
   #https://stackoverflow.com/a/2642592 (bash 3 compatible)
-  read -p "Choose release version [${DEFAULT_RELEASE_VERSION}]:" RELEASE_VERSION
+  read -p "Choose release version [${DEFAULT_RELEASE_VERSION}]: " RELEASE_VERSION
   RELEASE_VERSION=${RELEASE_VERSION:-${DEFAULT_RELEASE_VERSION}}
 
   # default: increment patch
   DEFAULT_DEV_VERSION=$(printf "%s-SNAPSHOT" $(./script/increment-semversion.sh -p ${RELEASE_VERSION}))
-  read -p "Choose next dev version [${DEFAULT_DEV_VERSION}]:" DEV_VERSION
+  read -p "Choose next dev version [${DEFAULT_DEV_VERSION}]: " DEV_VERSION
   DEV_VERSION=${DEV_VERSION:-${DEFAULT_DEV_VERSION}}
 
   git commit --allow-empty -m "$(printf "[typedclojure-release] %s %s" "${RELEASE_VERSION}" "${DEV_VERSION}")"
