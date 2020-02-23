@@ -1,6 +1,6 @@
 name: Check Clojure CA
 
-on: [pull_request]
+on: [pull_request, push]
 
 jobs:
   build:
@@ -8,7 +8,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Check Clojure CA
-        if: github.event.pusher.name != 'frenchy64'
+        #if: github.event.pusher.name != 'frenchy64'
         run: ./script/check-clojure-ca.sh ${{ github.event.pusher.name }}
       - name: Set up JDK ${{ matrix.jdk }}
         uses: actions/setup-java@v1
