@@ -26,9 +26,9 @@ if [[ "$TYPED_VERSION" == *-SNAPSHOT ]]; then
   # default: increment patch
   DEFAULT_DEV_VERSION=$(printf "%s-SNAPSHOT" $(./script/increment-semversion.sh -p ${RELEASE_VERSION}))
   read -p "Choose next dev version [${DEFAULT_DEV_VERSION}]:" DEV_VERSION
+  DEV_VERSION=${DEV_VERSION:-${DEFAULT_DEV_VERSION}}
 
-  RELEASE_COMMIT_MSG=$(printf "[typedclojure-release] %s %s" "${RELEASE_VERSION}" "${DEV_VERSION}")
-  git commit --allow-empty -m "${RELEASE_COMMIT_MSG}"
+  git commit --allow-empty -m $(printf "[typedclojure-release] %s %s" "${RELEASE_VERSION}" "${DEV_VERSION}")
 else
   echo "Can only prep a release from a SNAPSHOT version, found $TYPED_VERSION"
   exit 1
