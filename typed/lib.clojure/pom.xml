@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <artifactId>lib.clojure</artifactId>
+  <groupId>typed.lib</groupId>
+  <artifactId>clojure</artifactId>
   <description>Type annotations and macros for the base Clojure distribution.</description>
   <name>typed.lib.clojure</name>
   <version>1.0.3-SNAPSHOT</version>

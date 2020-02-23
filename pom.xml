@@ -149,13 +149,13 @@
         <version>1.0.3-SNAPSHOT</version>
       </dependency>
       <dependency>
-        <groupId>typed</groupId>
-        <artifactId>lib.clojure</artifactId>
+        <groupId>typed.lib</groupId>
+        <artifactId>clojure</artifactId>
         <version>1.0.3-SNAPSHOT</version>
       </dependency>
       <dependency>
-        <groupId>typed</groupId>
-        <artifactId>lib.core.async</artifactId>
+        <groupId>typed.lib</groupId>
+        <artifactId>core.async</artifactId>
         <version>1.0.3-SNAPSHOT</version>
       </dependency>
       <dependency>
