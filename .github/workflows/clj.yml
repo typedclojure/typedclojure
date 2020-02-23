@@ -62,4 +62,5 @@ jobs:
         with:
           tools-deps: latest
       - name: Deploy
-        run: mvn deploy
+        # TODO change to ./script/deploy-actions.sh when snapshot deployment works
+        run: ./script/deploy-snapshot.sh
