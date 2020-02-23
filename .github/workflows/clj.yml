@@ -33,6 +33,9 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-maven-
+      - name: Check Clojure CA
+          if: github.event.pusher.name != frenchy64
+          run: ./script/check-clojure-ca.sh ${{ github.event.pusher.name }}
       - name: Set up JDK ${{ matrix.jdk }}
         uses: actions/setup-java@v1
         with:
