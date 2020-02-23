@@ -1,11 +1,65 @@
 #!/bin/sh
+#
+# Cuts a release of typedclojure. Requires two arguments:
+# - the release version to use
+# - the development SNAPSHOT version to use
+#
+# eg., to cut version 1.0.0 and then move to 1.0.1-SNAPSHOT,
+# call this script like so:
+#
+# ./script/release-and-push.sh 1.0.0 1.0.1-SNAPSHOT
 
 set -e
+
+if [[ "$GITHUB_ACTIONS" != 'true' ]]; then
+  echo "Must release on GitHub Actions only."
+  exit 1
+fi
 
 if [[ `git symbolic-ref --short HEAD` != 'master' ]]; then
   echo "Must release on the master branch only."
   exit 1
 fi
 
-mvn release:prepare release:perform
-git push tc --tags
+if [[ "$GITHUB_ACTOR" != "frenchy64" ]]; then
+  echo "Only maintainers may deploy a release."
+  exit 1
+fi
+
+if [[ "$GITHUB_REPOSITORY" != "typedclojure/typedclojure" ]]; then
+  echo "Releases only allowed from typedclojure/typedclojure"
+  exit 1
+fi
+
+git config --local user.email "abonnairesergeant@gmail.com"
+git config --local user.name "Ambrose Bonnaire-Sergeant"
+
+RELEASE_VERSION=$1
+DEVELOPMENT_VERSION=$2
+
+if [[ -z "$RELEASE_VERSION" ]];
+  echo "Must specify release version"
+  exit 1
+fi
+
+if [[ -z "$DEVELOPMENT_VERSION" ]];
+  echo "Must specify development version"
+  exit 1
+fi
+
+# there's a chance this can fail and we have a partial
+# release to Clojars. We minimize the damage by avoiding
+# pushing back to master, but there's a chance the version
+# was partially deployed. The correct fix (wrt clojars) is to simply
+# deploy a new version (eg., if 1.0.0 fails, try 1.0.1 next).
+mvn release:prepare release:perform \
+  -DreleaseVersion="$RELEASE_VERSION" \
+  -Dtag="$RELEASE_VERSION" \
+  -DdevelopmentVersion="$DEVELOPMENT_VERSION"
+
+./script/bump-readme-version "$RELEASE_VERSION"
+
+git add .
+git commit -m "Bump README versions for $RELEASE_VERSION"
+
+git push git@github.com:typedclojure/typedclojure.git master --ff-only --tags

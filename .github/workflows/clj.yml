@@ -1,4 +1,4 @@
-name: Run tests with clj
+name: Test and deploy
 
 on: [push]
 
@@ -61,3 +61,5 @@ jobs:
       - uses: DeLaGuardo/setup-clojure@2.0
         with:
           tools-deps: latest
+      - name: Deploy
+        run: mvn deploy
