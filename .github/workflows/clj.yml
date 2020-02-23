@@ -58,6 +58,12 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 11
+      - name: Configure settings.xml
+        run: |
+          mkdir ~/.m2
+          echo "<settings><servers><server><id>clojars</id><username>typedclojure-clojars</username><password>${{ secrets.ClojarsPassword }}</password></server></servers></settings>" > ~/.m2/settings.xml
+
       - name: Deploy
         # TODO change to ./script/deploy-actions.sh when snapshot deployment works
+
         run: ./script/deploy-snapshot.sh
