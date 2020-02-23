@@ -3,8 +3,8 @@ name: Check Clojure CA
 on: [pull_request, push]
 
 jobs:
-  if: github.event.pusher.name != 'frenchy64'
   build:
+    if: github.event.pusher.name != 'frenchy64'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
