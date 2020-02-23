@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # Cuts a release of typedclojure. Requires two arguments:
 # - the release version to use
