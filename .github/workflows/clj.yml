@@ -45,6 +45,7 @@ jobs:
         working-directory: ${{ matrix.submodule }}
   deploy:
     needs: test
+    if: github.ref == 'master' && github.repository == 'typedclojure/typedclojure'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -65,5 +66,4 @@ jobs:
 
       - name: Deploy
         # TODO change to ./script/deploy-actions.sh when snapshot deployment works
-
         run: ./script/deploy-snapshot.sh
