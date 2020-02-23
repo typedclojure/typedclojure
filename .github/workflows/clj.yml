@@ -58,9 +58,6 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 11
-      - uses: DeLaGuardo/setup-clojure@2.0
-        with:
-          tools-deps: latest
       - name: Deploy
         # TODO change to ./script/deploy-actions.sh when snapshot deployment works
         run: ./script/deploy-snapshot.sh

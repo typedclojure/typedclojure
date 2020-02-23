@@ -2,9 +2,13 @@
 
 set -e
 
-TYPED_VERSION=$(mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version)
+TYPED_VERSION=$(mvn -q \
+  -Dexec.executable="echo" \
+  -Dexec.args='${project.version}' \
+  --non-recursive \
+  org.codehaus.mojo:exec-maven-plugin:1.6.0:exec)
 
-if [[ "$TYPED_VERSION" == "*-SNAPSHOT" ]]; then
+if [[ "$TYPED_VERSION" == *-SNAPSHOT ]]; then
   echo "Deploying snapshot"
   mvn deploy
 else
