@@ -31,7 +31,7 @@
     (if (contains? all-signed user)
       (println (str "GitHub user " user " has signed the Clojure CA"))
       (throw
-        (ex-info (str "GitHub user " user " has not signed the Clojure CA")
+        (ex-info (str "GitHub user " user " has not signed the Clojure CA. Please see CONTRIBUTING.md in this repository.")
                  {:signed all-signed
                   :user user})))))
 

@@ -1,0 +1,22 @@
+name: Check Clojure CA
+
+on: [pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Check Clojure CA
+        if: github.event.pusher.name != 'frenchy64'
+        run: ./script/check-clojure-ca.sh ${{ github.event.pusher.name }}
+      - name: Set up JDK ${{ matrix.jdk }}
+        uses: actions/setup-java@v1
+        with:
+          java-version: ${{ matrix.jdk }}
+      - uses: DeLaGuardo/setup-clojure@2.0
+        with:
+          tools-deps: latest
+      - name: Check Clojure CA
+        if: github.event.pusher.name != 'frenchy64'
+        run: ./script/check-clojure-ca.sh ${{ github.event.pusher.name }}
