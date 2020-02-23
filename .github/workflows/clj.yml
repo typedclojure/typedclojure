@@ -3,7 +3,7 @@ name: Run tests with clj
 on: [push]
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -44,6 +44,7 @@ jobs:
         run: ./script/test -Sdeps '{:deps {org.clojure/clojure {:mvn/version "${{ matrix.clojure }}"}}}'
         working-directory: ${{ matrix.submodule }}
   deploy-snapshot:
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
