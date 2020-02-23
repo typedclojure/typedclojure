@@ -10,7 +10,7 @@ if [[ "$GITHUB_ACTIONS" != 'true' ]];
   exit 1
 fi 
 
-if [[ "$GITHUB_REPOSITORY:" != 'typedclojure/typedclojure' ]];
+if [[ "$GITHUB_REPOSITORY" != 'typedclojure/typedclojure' ]];
   echo "This script only deploys in typedclojure/typedclojure, not $GITHUB_REPOSITORY. Doing nothing."
   exit 0
 fi
