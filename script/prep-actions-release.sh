@@ -28,7 +28,7 @@ if [[ "$TYPED_VERSION" == *-SNAPSHOT ]]; then
   read -p "Choose next dev version [${DEFAULT_DEV_VERSION}]:" DEV_VERSION
   DEV_VERSION=${DEV_VERSION:-${DEFAULT_DEV_VERSION}}
 
-  git commit --allow-empty -m $(printf "[typedclojure-release] %s %s" "${RELEASE_VERSION}" "${DEV_VERSION}")
+  git commit --allow-empty -m "$(printf "[typedclojure-release] %s %s" "${RELEASE_VERSION}" "${DEV_VERSION}")"
 else
   echo "Can only prep a release from a SNAPSHOT version, found $TYPED_VERSION"
   exit 1
