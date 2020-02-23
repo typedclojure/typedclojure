@@ -62,4 +62,4 @@ mvn release:prepare release:perform \
 git add .
 git commit -m "Bump README versions for $RELEASE_VERSION"
 
-git push "https://frenchy64:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" master --ff-only --tags
+git push "https://${GITHUB_ACTOR}:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" master --ff-only --tags
