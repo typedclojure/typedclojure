@@ -7,9 +7,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Check Clojure CA
-        #if: github.event.pusher.name != 'frenchy64'
-        run: ./script/check-clojure-ca.sh ${{ github.event.pusher.name }}
       - name: Set up JDK ${{ matrix.jdk }}
         uses: actions/setup-java@v1
         with:
@@ -18,5 +15,5 @@ jobs:
         with:
           tools-deps: latest
       - name: Check Clojure CA
-        if: github.event.pusher.name != 'frenchy64'
+        #if: github.event.pusher.name != 'frenchy64'
         run: ./script/check-clojure-ca.sh ${{ github.event.pusher.name }}
