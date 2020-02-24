@@ -24,8 +24,8 @@
 
   <dependencies>
     <dependency>
-      <groupId>typed</groupId>
-      <artifactId>runtime.jvm</artifactId>
+      <groupId>typed.clj</groupId>
+      <artifactId>runtime</artifactId>
     </dependency>
   </dependencies>
 </project>

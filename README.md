@@ -40,9 +40,9 @@ See modules for specific version coordinates:
 
 ### Core type system
 
-* [checker.jvm](typed/checker.jvm/README.md): The JVM type checker
-* [runtime.jvm](typed/runtime.jvm/README.md): JVM Runtime dependencies
-* [analyzer.jvm](typed/analyzer.jvm/README.md): Analyzer for JVM Clojure
+* [clj.checker](typed/clj.checker/README.md): The JVM type checker
+* [clj.runtime](typed/clj.runtime/README.md): JVM Runtime dependencies
+* [clj.analyzer](typed/clj.analyzer/README.md): Analyzer for JVM Clojure
 * [analyzer.js](typed/analyzer.js/README.md): Analyzer for JS Clojure (unreleased)
 * [checker.js](typed/checker.js/README.md): The JS type checker (unreleased)
 * [analyzer.common](typed/analyzer.common/README.md): Implementation-agnostic base for Clojure analyzers

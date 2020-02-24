@@ -17,10 +17,10 @@ jobs:
         submodule:
           - typed/analyzer.common
           - typed/analyzer.js
-          - typed/analyzer.jvm
+          - typed/clj.analyzer
           #- typed/checker.js
-          - typed/checker.jvm
-          - typed/runtime.jvm
+          - typed/clj.checker
+          - typed/clj.runtime
           - typed/annotator.jvm
           - typed/lang.jvm
           - typed/lib.clojure
@@ -45,7 +45,7 @@ jobs:
         working-directory: ${{ matrix.submodule }}
   deploy:
     needs: test
-    #if: github.ref == 'master' && github.repository == 'typedclojure/typedclojure'
+    if: github.ref == 'master' && github.repository == 'typedclojure/typedclojure'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2

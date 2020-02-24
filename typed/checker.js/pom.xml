@@ -15,8 +15,8 @@
 
   <dependencies>
     <dependency>
-      <groupId>typed</groupId>
-      <artifactId>checker.jvm</artifactId>
+      <groupId>typed.clj</groupId>
+      <artifactId>checker</artifactId>
     </dependency>
     <dependency>
       <groupId>org.clojure</groupId>

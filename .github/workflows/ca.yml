@@ -4,7 +4,7 @@ on: [pull_request]
 
 jobs:
   build:
-    if: github.event.pusher.name != 'frenchy64'
+    if: github.actor != 'frenchy64' && github.repository == 'typedclojure/typedclojure'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -22,4 +22,4 @@ jobs:
         with:
           tools-deps: latest
       - name: Check Clojure CA
-        run: ./script/check-clojure-ca.sh ${{ github.event.pusher.name }}
+        run: ./script/check-clojure-ca.sh ${{ github.actor }}

@@ -1,19 +1,19 @@
-# core.typed.checker.jvm
+# typed.clj.runtime
 
 <a href='http://typedclojure.org'><img src='images/part-of-typed-clojure-project.png'></a>
 
-Type checker for Typed Clojure, for JVM Clojure.
+Runtime dependency needed to annotate Typed Clojure code in JVM Clojure.
 
 ## Releases and Dependency Information
 
 Latest stable release is 1.0.5.
 
-* [All Released Versions](https://search.maven.org/search?q=g:org.clojure%20AND%20a:core.typed.checker.jvm)
+* [All Released Versions](https://clojars.org/typed.clj/runtime)
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) JAR dependency information:
 
 ```clj
-  typed/checker.jvm {:mvn/version "1.0.5"}
+  typed.clj/runtime {:mvn/version "1.0.5"}
  ```
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) Git dependency information:
@@ -21,23 +21,23 @@ Latest stable release is 1.0.5.
 - Note: use `clj -Sresolve` to resolve the `:tag` to a `:sha`
 
 ```clj
-  typed/checker.jvm {:git/url "https://github.com/clojure/core.typed"
-                                      :deps/root "core/checker.jvm"
-                                      :tag "1.0.5"}
+  typed.clj/runtime {:git/url "https://github.com/clojure/core.typed"
+                     :deps/root "typed/clj.runtime"
+                     :tag "1.0.5"}
 ```
 
 [Leiningen](https://github.com/technomancy/leiningen) dependency information:
 
 ```clojure
-[typed/checker.jvm "1.0.5"]
+[typed.clj/runtime "1.0.5"]
 ```
 
 [Maven](https://maven.apache.org/) dependency information:
 
 ```XML
 <dependency>
-  <groupId>org.clojure</groupId>
-  <artifactId>core.typed.checker.jvm</artifactId>
+  <groupId>typed.clj</groupId>
+  <artifactId>runtime</artifactId>
   <version>1.0.5</version>
 </dependency>
 ```

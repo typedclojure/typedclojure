@@ -27,12 +27,12 @@
       <artifactId>clojure</artifactId>
     </dependency>
     <dependency>
-      <groupId>typed</groupId>
-      <artifactId>runtime.jvm</artifactId>
+      <groupId>typed.clj</groupId>
+      <artifactId>runtime</artifactId>
     </dependency>
     <dependency>
-      <groupId>typed</groupId>
-      <artifactId>analyzer.jvm</artifactId>
+      <groupId>typed.clj</groupId>
+      <artifactId>analyzer</artifactId>
     </dependency>
     <dependency>
       <groupId>org.clojure</groupId>

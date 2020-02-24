@@ -150,10 +150,10 @@
   <modules>
     <module>typed/analyzer.common</module>
     <module>typed/analyzer.js</module>
-    <module>typed/analyzer.jvm</module>
+    <module>typed/clj.analyzer</module>
     <module>typed/checker.js</module>
-    <module>typed/checker.jvm</module>
-    <module>typed/runtime.jvm</module>
+    <module>typed/clj.checker</module>
+    <module>typed/clj.runtime</module>
 
     <module>typed/lib.clojure</module>
     <module>typed/lib.core.async</module>
@@ -185,8 +185,8 @@
         <version>1.0.6-SNAPSHOT</version>
       </dependency>
       <dependency>
-        <groupId>typed</groupId>
-        <artifactId>analyzer.jvm</artifactId>
+        <groupId>typed.clj</groupId>
+        <artifactId>analyzer</artifactId>
         <version>1.0.6-SNAPSHOT</version>
       </dependency>
       <dependency>
@@ -195,8 +195,8 @@
         <version>1.0.6-SNAPSHOT</version>
       </dependency>
       <dependency>
-        <groupId>typed</groupId>
-        <artifactId>checker.jvm</artifactId>
+        <groupId>typed.clj</groupId>
+        <artifactId>checker</artifactId>
         <version>1.0.6-SNAPSHOT</version>
       </dependency>
       <dependency>

@@ -8,14 +8,14 @@
              cider/piggieback {:mvn/version "0.3.8"}}
             :main-opts ["-m" "nrepl.cmdline"
                         "--interactive"]}
-           :test {:extra-deps {typed/checker.jvm {:local/root "../checker.jvm"
-                                                              :deps/manifest :deps}
-                               typed/runtime.jvm {:local/root "../runtime.jvm"
-                                                              :deps/manifest :deps}
+           :test {:extra-deps {typed.clj/checker {:local/root "../clj.checker"
+                                                  :deps/manifest :deps}
+                               typed.clj/runtime {:local/root "../clj.runtime"
+                                                  :deps/manifest :deps}
                                typed/analyzer.common {:local/root "../analyzer.common"
                                                                   :deps/manifest :deps}
-                               typed/analyzer.jvm {:local/root "../analyzer.jvm"
-                                                               :deps/manifest :deps}}
+                               typed.clj/analyzer {:local/root "../clj.analyzer"
+                                                   :deps/manifest :deps}}
                   :extra-paths ["test"]}
            :runner
            {:extra-deps

@@ -10,11 +10,10 @@
                         "--interactive"]}
            :test {:extra-deps {org.clojure/clojure {:mvn/version "1.10.1"}
                                org.clojure/core.async {:mvn/version "0.3.465"}
-                               typed/runtime.jvm {:local/root "../runtime.jvm"
-                                                              :deps/manifest :deps}
-                               typed/checker.jvm {:local/root "../checker.jvm"
-                                                              :deps/manifest :deps}
-                               }
+                               typed.clj/runtime {:local/root "../clj.runtime"
+                                                  :deps/manifest :deps}
+                               typed.clj/checker {:local/root "../clj.checker"
+                                                  :deps/manifest :deps}}
                   :extra-paths ["test"]}
            :runner
            {:extra-deps
