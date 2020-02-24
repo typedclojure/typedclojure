@@ -7,6 +7,11 @@ if [[ "$GITHUB_ACTIONS" == 'true' && "$GITHUB_REPOSITORY" != 'typedclojure/typed
   exit 0
 fi
 
+if [[ "$GITHUB_REF" != 'master' ]]; then
+  echo "Only deploy snapshots from master branch, not ${GITHUB_REF}. Doing nothing."
+  exit 0
+fi
+
 TYPED_VERSION=$(mvn -q \
   -Dexec.executable="echo" \
   -Dexec.args='${project.version}' \
