@@ -200,8 +200,8 @@
         <version>1.0.6-SNAPSHOT</version>
       </dependency>
       <dependency>
-        <groupId>typed</groupId>
-        <artifactId>runtime.jvm</artifactId>
+        <groupId>typed.clj</groupId>
+        <artifactId>runtime</artifactId>
         <version>1.0.6-SNAPSHOT</version>
       </dependency>
       <dependency>
