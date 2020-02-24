@@ -45,7 +45,8 @@ jobs:
         working-directory: ${{ matrix.submodule }}
   deploy:
     needs: test
-    if: github.ref == 'master' && github.repository == 'typedclojure/typedclojure'
+    #if: github.ref == 'master' && github.repository == 'typedclojure/typedclojure'
+    if: github.ref == 'master'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
