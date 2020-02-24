@@ -1,5 +1,7 @@
 # Tutorial on Type Inference
 
+Author: Di Xu (https://www.google-melange.com/archive/gsoc/2014/orgs/clojure/projects/xudifsd.html)
+
 This tutorial is written for someone who might be interested in the
 implementation of type inference in Typed Clojure.
 

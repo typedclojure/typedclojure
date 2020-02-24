@@ -1,5 +1,7 @@
 # Implementation detail of type inference
 
+Author: Di Xu (https://www.google-melange.com/archive/gsoc/2014/orgs/clojure/projects/xudifsd.html)
+
 This documentation describes implementation detail of function type inference.
 
 ## infer-prest
