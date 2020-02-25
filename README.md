@@ -38,18 +38,20 @@ Latest stable release is 1.0.7.
 
 See modules for specific version coordinates:
 
-### Clojure type system
+### Clojure implementation
 
 * [typed.clj/checker](typed/clj.checker/README.md): The JVM type checker
 * [typed.clj/runtime](typed/clj.runtime/README.md): JVM Runtime dependencies
 * [typed.clj/analyzer](typed/clj.analyzer/README.md): Analyzer for JVM Clojure
+* [annotator.jvm](typed/annotator.jvm/README.md): Automatic annotator
+* [lang.jvm](typed/lang.jvm/README.md): Extensible languages
 
-### ClojureScript type system (Work in progress)
+### ClojureScript implementation (Work in progress)
 
 * [typed/analyzer.js](typed/analyzer.js/README.md): Analyzer for JS Clojure (unreleased)
 * [typed/checker.js](typed/checker.js/README.md): The JS type checker (unreleased)
 
-### Implementation-agnostic projects
+### Implementation-agnostic
 
 * [typed.cljc/analyzer](typed/cljc.analyzer/README.md): Implementation-agnostic base for Clojure analyzers
 
@@ -57,11 +59,6 @@ See modules for specific version coordinates:
 
 * [lib.clojure](typed/lib.clojure/README.md): Base type annotations
 * [lib.core.async](typed/lib.core.async/README.md): Annotations for core.async
-
-### Utility libraries
-
-* [annotator.jvm](typed/annotator.jvm/README.md): Automatic annotator
-* [lang.jvm](typed/lang.jvm/README.md): Extensible languages
 
 ## Compatibility
 
