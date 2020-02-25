@@ -63,8 +63,8 @@
       <artifactId>tools.reader</artifactId>
     </dependency>
     <dependency>
-      <groupId>typed</groupId>
-      <artifactId>lang.jvm</artifactId>
+      <groupId>typed.clj</groupId>
+      <artifactId>lang</artifactId>
     </dependency>
     <dependency>
       <groupId>org.clojure</groupId>

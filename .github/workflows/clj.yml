@@ -22,7 +22,7 @@ jobs:
           - typed/clj.checker
           - typed/clj.runtime
           - typed/clj.annotator
-          - typed/lang.jvm
+          - typed/clj.lang
           - typed/lib.clojure
           - typed/lib.core.async
     steps:

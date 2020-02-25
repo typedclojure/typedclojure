@@ -159,7 +159,7 @@
     <module>typed/lib.core.async</module>
 
     <module>typed/clj.annotator</module>
-    <module>typed/lang.jvm</module>
+    <module>typed/clj.lang</module>
   </modules>
 
   <dependencyManagement>
@@ -220,8 +220,8 @@
         <version>1.0.9-SNAPSHOT</version>
       </dependency>
       <dependency>
-        <groupId>typed</groupId>
-        <artifactId>lang.jvm</artifactId>
+        <groupId>typed.clj</groupId>
+        <artifactId>lang</artifactId>
         <version>1.0.9-SNAPSHOT</version>
       </dependency>
       <dependency>

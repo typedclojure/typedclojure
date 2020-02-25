@@ -1,4 +1,4 @@
-# core.typed.lang.jvm
+# typed.clj/lang
 
 <a href='http://typedclojure.org'><img src='images/part-of-typed-clojure-project.png'></a>
 
@@ -8,10 +8,12 @@ Extensible languages in Clojure, a la Racket's #lang.
 
 Latest stable release is 1.0.8.
 
+* [All Released Versions](https://clojars.org/typed.clj/lang)
+
 [deps.edn](https://clojure.org/reference/deps_and_cli) JAR dependency information:
 
 ```clj
-  org.typedclojure/core.typed.lang.jvm {:mvn/version "1.0.8"}
+  typed.clj/lang {:mvn/version "1.0.8"}
  ```
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) Git dependency information:
@@ -19,23 +21,23 @@ Latest stable release is 1.0.8.
 - Note: use `clj -Sresolve` to resolve the `:tag` to a `:sha`
 
 ```clj
-  typed/lang.jvm {:git/url "https://github.com/clojure/core.typed"
-                              :deps/root "typed/lang.jvm"
-                              :tag "1.0.8"}
+  typed.clj/lang {:git/url "https://github.com/typedclojure/typedclojure"
+                  :deps/root "typed/clj.lang"
+                  :tag "1.0.8"}
 ```
 
 [Leiningen](https://github.com/technomancy/leiningen) dependency information:
 
 ```clojure
-[org.typedclojure/core.typed.lang.jvm "1.0.8"]
+[typed.clj/lang "1.0.8"]
 ```
 
 [Maven](https://maven.apache.org/) dependency information:
 
 ```XML
 <dependency>
-  <groupId>org.typedclojure</groupId>
-  <artifactId>core.typed.jvm</artifactId>
+  <groupId>typed.clj</groupId>
+  <artifactId>lang</artifactId>
   <version>1.0.8</version>
 </dependency>
 ```
