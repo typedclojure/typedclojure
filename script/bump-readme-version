@@ -12,7 +12,7 @@ if [ -z "$VERSION" ]
 fi
 
 ./script/bump-readme-version.clj "$VERSION" README.md \
-  typed/annotator.jvm/README.md \
+  typed/clj.annotator/README.md \
   typed/clj.analyzer/README.md \
   typed/clj.checker/README.md \
   typed/clj.runtime/README.md \

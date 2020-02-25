@@ -21,7 +21,7 @@ jobs:
           #- typed/checker.js
           - typed/clj.checker
           - typed/clj.runtime
-          - typed/annotator.jvm
+          - typed/clj.annotator
           - typed/lang.jvm
           - typed/lib.clojure
           - typed/lib.core.async

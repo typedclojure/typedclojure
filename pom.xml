@@ -158,7 +158,7 @@
     <module>typed/lib.clojure</module>
     <module>typed/lib.core.async</module>
 
-    <module>typed/annotator.jvm</module>
+    <module>typed/clj.annotator</module>
     <module>typed/lang.jvm</module>
   </modules>
 
@@ -215,8 +215,8 @@
         <version>1.0.8-SNAPSHOT</version>
       </dependency>
       <dependency>
-        <groupId>typed</groupId>
-        <artifactId>annotator.jvm</artifactId>
+        <groupId>typed.clj</groupId>
+        <artifactId>annotator</artifactId>
         <version>1.0.8-SNAPSHOT</version>
       </dependency>
       <dependency>

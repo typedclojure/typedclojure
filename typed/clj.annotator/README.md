@@ -1,4 +1,4 @@
-# core.typed.annotator.jvm
+# typed.clj/annotator
 
 <a href='http://typedclojure.org'><img src='images/part-of-typed-clojure-project.png'></a>
 
@@ -8,12 +8,12 @@ Automatic annotator for Typed Clojure and clojure.spec annotations, for JVM Cloj
 
 Latest stable release is 1.0.7.
 
-* [All Released Versions](https://search.maven.org/search?q=g:org.clojure%20AND%20a:core.typed.annotator.jvm)
+* [All Released Versions](https://clojars.org/typed.clj/annotator)
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) JAR dependency information:
 
 ```clj
-  typed/annotator.jvm {:mvn/version "1.0.7"}
+  typed.clj/annotator {:mvn/version "1.0.7"}
  ```
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) Git dependency information:
@@ -21,23 +21,23 @@ Latest stable release is 1.0.7.
 - Note: use `clj -Sresolve` to resolve the `:tag` to a `:sha`
 
 ```clj
-  typed/annotator.jvm {:git/url "https://github.com/clojure/core.typed"
-                                   :deps/root "typed/annotator.jvm"
-                                   :tag "1.0.7"}
+  typed.clj/annotator {:git/url "https://github.com/typedclojure/typedclojure"
+                       :deps/root "typed/clj.annotator"
+                       :tag "1.0.7"}
 ```
 
 [Leiningen](https://github.com/technomancy/leiningen) dependency information:
 
 ```clojure
-[typed/annotator.jvm "1.0.7"]
+[typed.clj/annotator "1.0.7"]
 ```
 
 [Maven](https://maven.apache.org/) dependency information:
 
 ```XML
 <dependency>
-  <groupId>org.clojure</groupId>
-  <artifactId>core.typed.annotator.jvm</artifactId>
+  <groupId>typed.clj</groupId>
+  <artifactId>annotator</artifactId>
   <version>1.0.7</version>
 </dependency>
 ```

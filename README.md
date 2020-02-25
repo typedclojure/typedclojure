@@ -43,7 +43,7 @@ See modules for specific version coordinates:
 * [typed.clj/checker](typed/clj.checker/README.md): The JVM type checker
 * [typed.clj/runtime](typed/clj.runtime/README.md): JVM Runtime dependencies
 * [typed.clj/analyzer](typed/clj.analyzer/README.md): Analyzer for JVM Clojure
-* [annotator.jvm](typed/annotator.jvm/README.md): Automatic annotator
+* [typed.clj/annotator.](typed/clj.annotator/README.md): Automatic annotator
 * [lang.jvm](typed/lang.jvm/README.md): Extensible languages
 
 ### ClojureScript implementation (Work in progress)
