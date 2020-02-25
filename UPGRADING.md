@@ -1,3 +1,13 @@
+# From typedclojure 1.0.7 to typedclojure 1.0.10
+
+Change the following coordinates:
+
+```
+typed/analyzer.js => typed.cljs/analyzer
+typed/annotator.jvm => typed.clj/annotator
+typed/lang.jvm => typed.clj/lang
+```
+
 # From typedclojure 1.0.3 to typedclojure 1.0.7
 
 Change the following coordinates:
