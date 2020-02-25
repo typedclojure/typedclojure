@@ -2,16 +2,20 @@
 
 Change the following coordinates:
 
-`typed/runtime.jvm` => `typed.clj/runtime`
-`typed/checker.jvm` => `typed.clj/checker`
-`typed/analyzer.jvm` => `typed.clj/analyzer`
+```
+typed/runtime.jvm => typed.clj/runtime
+typed/checker.jvm => typed.clj/checker
+typed/analyzer.jvm => typed.clj/analyzer
+```
 
 # From typedclojure 1.0.2 to typedclojure 1.0.3
 
 Change the following coordinates:
 
-`typed/lib.clojure` => `typed.lib/clojure`
-`typed/lib.core.async` => `typed.lib/core.async`
+```
+typed/lib.clojure => typed.lib/clojure
+typed/lib.core.async => typed.lib/core.async
+```
 
 # From core.typed 1.0.0 to typedclojure 1.0.1
 
