@@ -44,7 +44,7 @@ See modules for specific version coordinates:
 * [typed.clj/runtime](typed/clj.runtime/README.md): JVM Runtime dependencies
 * [typed.clj/analyzer](typed/clj.analyzer/README.md): Analyzer for JVM Clojure
 
-### ClojureScript type system
+### ClojureScript type system (Work in progress)
 
 * [typed/analyzer.js](typed/analyzer.js/README.md): Analyzer for JS Clojure (unreleased)
 * [typed/checker.js](typed/checker.js/README.md): The JS type checker (unreleased)
