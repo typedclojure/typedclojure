@@ -296,6 +296,11 @@
         <version>0.2.13</version>
       </dependency>
     </dependencies>
+    <dependency>
+      <groupId>org.clojure</groupId>
+      <artifactId>test.check</artifactId>
+      <version>1.0.0</version>
+    </dependency>
   </dependencyManagement>
 
   <developers>

@@ -27,5 +27,10 @@
       <groupId>org.clojure</groupId>
       <artifactId>alpha.spec</artifactId>
     </dependency>
+    <dependency>
+      <groupId>org.clojure</groupId>
+      <artifactId>test.check</artifactId>
+      <scope>provided</scope>
+    </dependency>
   </dependencies>
 </project>

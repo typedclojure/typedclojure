@@ -1,3 +1,11 @@
+;;   Copyright (c) Ambrose Bonnaire-Sergeant, Rich Hickey & contributors.
+;;   The use and distribution terms for this software are covered by the
+;;   Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0.php)
+;;   which can be found in the file epl-v10.html at the root of this distribution.
+;;   By using this software in any fashion, you are agreeing to be bound by
+;;   the terms of this license.
+;;   You must not remove this notice, or any other, from this software.
+
 (ns typed.clj.spec
   "Pre-alpha"
   (:require [clojure.alpha.spec :as s]
@@ -24,6 +32,7 @@
                 [el])))
           coll))
 
+; modified from clojure.walk
 (defn walk
   "Traverses form, an arbitrary data structure.  inner and outer are
   functions.  Applies inner to each element of form, building up a
@@ -45,6 +54,7 @@
      (coll? form) (outer (into (empty form) (mapcat-spliced inner form)))
      :else (outer form))))
 
+; modified from clojure.walk
 (defn prewalk
   "Like postwalk, but does pre-order traversal. Short-circuits on Reduced."
   {:added "1.1"}
