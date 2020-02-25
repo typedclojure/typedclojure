@@ -149,7 +149,7 @@
 
   <modules>
     <module>typed/cljc.analyzer</module>
-    <module>typed/analyzer.js</module>
+    <module>typed/cljs.analyzer</module>
     <module>typed/clj.analyzer</module>
     <module>typed/checker.js</module>
     <module>typed/clj.checker</module>
@@ -180,8 +180,8 @@
         <version>1.0.10-SNAPSHOT</version>
       </dependency>
       <dependency>
-        <groupId>typed</groupId>
-        <artifactId>analyzer.js</artifactId>
+        <groupId>typed.cljs</groupId>
+        <artifactId>analyzer</artifactId>
         <version>1.0.10-SNAPSHOT</version>
       </dependency>
       <dependency>

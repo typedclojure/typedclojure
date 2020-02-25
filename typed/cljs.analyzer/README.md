@@ -1,4 +1,4 @@
-# core.typed.analyzer.js
+# typed.cljs/analyzer
 
 <a href='https://typedclojure.org'><img src='images/part-of-typed-clojure-project.png'></a>
 
@@ -6,14 +6,14 @@ Analyzer for JS Clojure, tuned for consumption by an optional type checker.
 
 ## Releases and Dependency Information
 
-Latest stable release is 0.7.2.
+Latest stable release is 1.0.9.
 
-* [All Released Versions](https://search.maven.org/search?q=g:org.clojure%20AND%20a:core.typed.analyzer.js)
+* [All Released Versions](https://clojars.org/typed.cljs/analyzer)
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) JAR dependency information:
 
 ```clj
-  typed/analyzer.js {:mvn/version "0.7.2"}
+  typed.cljs/analyzer {:mvn/version "1.0.9"}
 ```
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) Git dependency information:
@@ -21,24 +21,24 @@ Latest stable release is 0.7.2.
 - Note: use `clj -Sresolve` to resolve the `:tag` to a `:sha`
 
 ```clj
-  typed/analyzer.js {:git/url "https://github.com/clojure/core.typed"
-                                 :deps/root "typed/analyzer.js"
-                                 :tag "0.7.2"}
+  typed.cljs/analyzer {:git/url "https://github.com/typedclojure/typedclojure"
+                       :deps/root "typed/cljs.analyzer"
+                       :tag "1.0.9"}
 ```
 
 [Leiningen](https://github.com/technomancy/leiningen) dependency information:
 
 ```clojure
-[typed/analyzer.js "0.7.2"]
+[typed.cljs/analyzer "1.0.9"]
 ```
 
 [Maven](https://maven.apache.org/) dependency information:
 
 ```XML
 <dependency>
-  <groupId>org.clojure</groupId>
-  <artifactId>core.typed.analyzer.js</artifactId>
-  <version>0.7.2</version>
+  <groupId>typed.cljs</groupId>
+  <artifactId>analyzer</artifactId>
+  <version>1.0.9</version>
 </dependency>
 ```
 
