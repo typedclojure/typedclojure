@@ -12,8 +12,8 @@
                                                   :deps/manifest :deps}
                                typed.clj/runtime {:local/root "../clj.runtime"
                                                   :deps/manifest :deps}
-                               typed/analyzer.common {:local/root "../analyzer.common"
-                                                                  :deps/manifest :deps}
+                               typed.cljc/analyzer {:local/root "../cljc.analyzer"
+                                                    :deps/manifest :deps}
                                typed.clj/analyzer {:local/root "../clj.analyzer"
                                                    :deps/manifest :deps}}
                   :extra-paths ["test"]}
@@ -23,5 +23,4 @@
                                         :sha "028a6d41ac9ac5d5c405dfc38e4da6b4cc1255d5"}}
             :main-opts ["-m" "cognitect.test-runner"
                         "-d" "test"
-                        "-r" ".*"
-                        ]}}}
+                        "-r" ".*"]}}}

@@ -148,7 +148,7 @@
   </build>
 
   <modules>
-    <module>typed/analyzer.common</module>
+    <module>typed/cljc.analyzer</module>
     <module>typed/analyzer.js</module>
     <module>typed/clj.analyzer</module>
     <module>typed/checker.js</module>
@@ -175,8 +175,8 @@
         <version>1.10.597</version>
       </dependency>
       <dependency>
-        <groupId>typed</groupId>
-        <artifactId>analyzer.common</artifactId>
+        <groupId>typed.cljc</groupId>
+        <artifactId>analyzer</artifactId>
         <version>1.0.8-SNAPSHOT</version>
       </dependency>
       <dependency>

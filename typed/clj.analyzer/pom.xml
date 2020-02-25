@@ -24,8 +24,8 @@
 
   <dependencies>
     <dependency>
-      <groupId>typed</groupId>
-      <artifactId>analyzer.common</artifactId>
+      <groupId>typed.cljc</groupId>
+      <artifactId>analyzer</artifactId>
     </dependency>
     <dependency>
       <groupId>org.clojure</groupId>

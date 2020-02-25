@@ -38,14 +38,20 @@ Latest stable release is 1.0.7.
 
 See modules for specific version coordinates:
 
-### Core type system
+### Clojure type system
 
-* [clj.checker](typed/clj.checker/README.md): The JVM type checker
-* [clj.runtime](typed/clj.runtime/README.md): JVM Runtime dependencies
-* [clj.analyzer](typed/clj.analyzer/README.md): Analyzer for JVM Clojure
-* [analyzer.js](typed/analyzer.js/README.md): Analyzer for JS Clojure (unreleased)
-* [checker.js](typed/checker.js/README.md): The JS type checker (unreleased)
-* [analyzer.common](typed/analyzer.common/README.md): Implementation-agnostic base for Clojure analyzers
+* [typed.clj/checker](typed/clj.checker/README.md): The JVM type checker
+* [typed.clj/runtime](typed/clj.runtime/README.md): JVM Runtime dependencies
+* [typed.clj/analyzer](typed/clj.analyzer/README.md): Analyzer for JVM Clojure
+
+### ClojureScript type system
+
+* [typed/analyzer.js](typed/analyzer.js/README.md): Analyzer for JS Clojure (unreleased)
+* [typed/checker.js](typed/checker.js/README.md): The JS type checker (unreleased)
+
+### Implementation-agnostic projects
+
+* [typed.cljc/analyzer](typed/cljc.analyzer/README.md): Implementation-agnostic base for Clojure analyzers
 
 ### Library Annotations
 
