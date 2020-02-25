@@ -11,4 +11,11 @@ if [ -z "$VERSION" ]
     exit 1
 fi
 
-./script/bump-readme-version.clj "$VERSION" README.md typed/clj.analyzer/README.md typed/annotator.jvm/README.md typed/clj.checker/README.md typed/lang.jvm/README.md typed/lib.clojure/README.md typed/clj.runtime/README.md
+./script/bump-readme-version.clj "$VERSION" README.md \
+  typed/annotator.jvm/README.md \
+  typed/clj.analyzer/README.md \
+  typed/clj.checker/README.md \
+  typed/clj.runtime/README.md \
+  typed/cljc.analyzer/README.md \
+  typed/lang.jvm/README.md \
+  typed/lib.clojure/README.md

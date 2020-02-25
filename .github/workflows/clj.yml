@@ -15,7 +15,7 @@ jobs:
           #- 1.11
           - 1.13
         submodule:
-          - typed/analyzer.common
+          - typed/cljc.analyzer
           - typed/analyzer.js
           - typed/clj.analyzer
           #- typed/checker.js
