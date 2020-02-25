@@ -18,7 +18,7 @@ jobs:
           - typed/cljc.analyzer
           - typed/cljs.analyzer
           - typed/clj.analyzer
-          #- typed/checker.js
+          #- typed/cljs.checker
           - typed/clj.checker
           - typed/clj.runtime
           - typed/clj.annotator

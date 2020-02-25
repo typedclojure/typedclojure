@@ -148,18 +148,21 @@
   </build>
 
   <modules>
+    <module>typed/clj.analyzer</module>
     <module>typed/cljc.analyzer</module>
     <module>typed/cljs.analyzer</module>
-    <module>typed/clj.analyzer</module>
-    <module>typed/checker.js</module>
+
     <module>typed/clj.checker</module>
+    <module>typed/cljs.checker</module>
+
     <module>typed/clj.runtime</module>
+
+    <module>typed/clj.annotator</module>
+
+    <module>typed/clj.lang</module>
 
     <module>typed/lib.clojure</module>
     <module>typed/lib.core.async</module>
-
-    <module>typed/clj.annotator</module>
-    <module>typed/clj.lang</module>
   </modules>
 
   <dependencyManagement>
@@ -190,8 +193,8 @@
         <version>1.0.11-SNAPSHOT</version>
       </dependency>
       <dependency>
-        <groupId>typed</groupId>
-        <artifactId>checker.js</artifactId>
+        <groupId>typed.cljs</groupId>
+        <artifactId>checker</artifactId>
         <version>1.0.11-SNAPSHOT</version>
       </dependency>
       <dependency>
