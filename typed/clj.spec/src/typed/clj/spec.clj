@@ -72,12 +72,12 @@
   (inst* [this arg-map]))
 
 (defmacro tfn
-  "(tfn {:x {:sub (s/or)
-             :super any?
+  "(tfn [:x {:lower (s/or)
+             :upper any?
              :variance :covariant}
-         :y {:sub (s/or)
-             :super any?
-             :variance :covariant}}
+         :y {:lower (s/or)
+             :upper any?
+             :variance :covariant}]
         (map-of (tvar :x) (tvar :y)))
   "
   [binder body]
@@ -338,6 +338,15 @@
   (s/tuple (tvar... :y (tvar :y)))
   )
 
+; assumes lower <: upper for the moment
+(defn- generator-between [lower upper]
+  (let [g (gensym)]
+    (if (s/valid? (s/resolve-spec upper) g)
+      (gen/return #{g})
+      (throw (ex-info "Limitation: can only instantiate type variable with symbol currently"
+                      {:lower lower
+                       :upper upper})))))
+
 ; all unresolved
 (defn- tvar-spec-impl
   [position lower upper dotted gfn]
@@ -359,15 +368,7 @@
         (prn "generating tvar-spec" gfn)
         (if gfn
           (gfn)
-          (cond-> (gen/one-of
-                    (map (fn [spc]
-                           (assert nil "TODO")
-                           #_
-                           (->> spc
-                                s/resolve-spec
-                                s/gen
-                                (gen/fmap identical-spec)))
-                         [lower upper]))
+          (cond-> (generator-between lower upper)
             dotted gen/vector)))
       (with-gen* [_ gfn]
         (tvar-spec-impl position lower upper dotted gfn))
