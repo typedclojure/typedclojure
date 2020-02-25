@@ -9,14 +9,14 @@ Optional typing in Clojure, as a library.
 
 ## Usage Overview
 
-core.typed is separated into modules. You'll want the full type checker at development
+Typed Clojure is separated into modules. You'll want the full type checker at development
 time, and the runtime dependencies in production.
 
 In Clojure CLI's `deps.edn`, this will look something like this:
 
 ```clojure
-{:deps {typed/runtime.jvm {:mvn/version "1.0.7"}}
- :aliases {:dev {:extra-deps {typed/checker.jvm {:mvn/version "1.0.7"}}}}}
+{:deps {typed.clj/runtime {:mvn/version "1.0.7"}}
+ :aliases {:dev {:extra-deps {typed.clj/checker {:mvn/version "1.0.7"}}}}}
 ```
 
 You can then start a dev repl with `clj -A:dev`.
@@ -25,8 +25,8 @@ In Leiningen's `project.clj`, something like this:
 
 ```clojure
 (defproject a-project "0.0.1-SNAPSHOT"
-  :dependencies [[typed/runtime.jvm "1.0.7"]]
-  :profiles {:dev {:dependencies [[typed/checker.jvm "1.0.7"]]}})
+  :dependencies [[typed.clj/runtime "1.0.7"]]
+  :profiles {:dev {:dependencies [[typed.clj/checker "1.0.7"]]}})
 ```
 
 Then, `lein repl` will automatically activate the `:dev` profile. Verify the type
@@ -59,7 +59,7 @@ See modules for specific version coordinates:
 
 ## Compatibility
 
-`core.typed` supports Clojure 1.10.1 and JDK 1.8+.
+Typed Clojure supports Clojure 1.10.1 and JDK 1.8+.
 
 ## Mailing List and IRC
 
@@ -93,10 +93,6 @@ See [wiki](https://github.com/clojure/core.typed/wiki).
 
 - [Typed Clojure Contributor Code of Conduct](CODE_OF_CONDUCT.md)
 - [Contributing guidelines](CONTRIBUTING.md)
-- [GitHub Project](https://github.com/clojure/core.typed)
-- [Bug Tracker](https://dev.clojure.org/jira/browse/CTYP)
-- [Continuous Integration](https://build.clojure.org/job/core.typed/)
-- [Compatibility Test Matrix](https://build.clojure.org/job/core.typed-test-matrix/)
 
 <!---
 ## Future work
