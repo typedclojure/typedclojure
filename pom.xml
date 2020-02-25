@@ -178,6 +178,12 @@
         <version>1.10.597</version>
       </dependency>
       <dependency>
+        <groupId>org.clojure</groupId>
+        <artifactId>alpha.spec</artifactId>
+        <!-- sha: fd8b61f3b79d89e9906a74446137e5446bfc5256 -->
+        <version>0.2.177-20200223.070829-15</version>
+      </dependency>
+      <dependency>
         <groupId>typed.cljc</groupId>
         <artifactId>analyzer</artifactId>
         <version>1.0.11-SNAPSHOT</version>
