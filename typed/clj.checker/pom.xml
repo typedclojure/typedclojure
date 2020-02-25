@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>typed.clj</groupId>
   <artifactId>checker</artifactId>
-  <name>typed.clj.checker</name>
+  <name>typed.clj/checker</name>
   <description>An optional type system for Clojure — full system for annotating and type-checking.</description>
   <version>1.0.8-SNAPSHOT</version>
 

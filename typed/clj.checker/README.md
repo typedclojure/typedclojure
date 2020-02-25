@@ -1,4 +1,4 @@
-# typed.clj.checker
+# typed.clj/checker
 
 <a href='http://typedclojure.org'><img src='images/part-of-typed-clojure-project.png'></a>
 

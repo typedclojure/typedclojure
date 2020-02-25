@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>typed.lib</groupId>
   <artifactId>core.async</artifactId>
-  <name>typed.lib.core.async</name>
+  <name>typed.lib/core.async</name>
   <description>Type annotations and macros for core.async.</description>
   <version>1.0.8-SNAPSHOT</version>
 

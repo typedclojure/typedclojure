@@ -4,7 +4,7 @@
   <groupId>typed.clj</groupId>
   <artifactId>analyzer</artifactId>
   <description>A variant of tools.analyzer.jvm.</description>
-  <name>typed.clj.analyzer</name>
+  <name>typed.clj/analyzer</name>
   <version>1.0.8-SNAPSHOT</version>
 
   <licenses>

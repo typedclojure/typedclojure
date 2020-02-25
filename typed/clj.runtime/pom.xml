@@ -4,7 +4,7 @@
   <groupId>typed.clj</groupId>
   <artifactId>runtime</artifactId>
   <description>An optional type system for Clojure — zero-dependency artifact for annotations only.</description>
-  <name>typed.clj.runtime</name>
+  <name>typed.clj/runtime</name>
   <version>1.0.8-SNAPSHOT</version>
 
   <licenses>

@@ -1,4 +1,4 @@
-# typed.clj.analyzer
+# typed.clj/analyzer
 
 <a href='https://typedclojure.org'><img src='images/part-of-typed-clojure-project.png'></a>
 
