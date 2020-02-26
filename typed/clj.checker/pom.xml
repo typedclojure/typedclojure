@@ -5,7 +5,7 @@
   <artifactId>checker</artifactId>
   <name>typed.clj/checker</name>
   <description>An optional type system for Clojure — full system for annotating and type-checking.</description>
-  <version>1.0.9</version>
+  <version>1.0.10-SNAPSHOT</version>
 
   <licenses>
     <license>
@@ -18,7 +18,7 @@
   <parent>
     <groupId>typed</groupId>
     <artifactId>pom</artifactId>
-    <version>1.0.9</version>
+    <version>1.0.10-SNAPSHOT</version>
     <relativePath>../..</relativePath>
   </parent>
 
