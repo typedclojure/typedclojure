@@ -21,16 +21,6 @@
 (set! *warn-on-reflection* true)
 
 (deftype Reduced [val])
-(deftype Splice [vals])
-
-(defn- mapcat-spliced [f coll]
-  (mapcat (fn [el]
-            (map
-              f
-              (if (instance? Splice el)
-                (:vals el)
-                [el])))
-          coll))
 
 ; modified from clojure.walk
 (defn walk
@@ -44,14 +34,13 @@
   (let [inner #(inner config %)]
     (cond
      (instance? Reduced form) (outer (.val ^Reduced form))
-     (instance? Splice form) (->Splice (mapcat-spliced inner (.vals ^Splice form)))
-     (list? form) (outer (apply list (mapcat-spliced inner form)))
+     (list? form) (outer (apply list (map inner form)))
      (instance? clojure.lang.IMapEntry form)
      (outer (clojure.lang.MapEntry/create (inner (key form)) (inner (val form))))
-     (seq? form) (outer (doall (mapcat-spliced inner form)))
+     (seq? form) (outer (doall (map inner form)))
      (instance? clojure.lang.IRecord form)
        (outer (reduce (fn [r x] (conj r (inner x))) form form))
-     (coll? form) (outer (into (empty form) (mapcat-spliced inner form)))
+     (coll? form) (outer (into (empty form) (map inner form)))
      :else (outer form))))
 
 ; modified from clojure.walk
@@ -84,12 +73,12 @@
   `(s/resolve-spec '~(s/explicate (ns-name *ns*) `(tfn ~binder ~body))))
 
 (defmacro all
-  "(all {:x {:sub (s/or)
-             :super any?
-             :variance :covariant}
-         :y {:sub (s/or)
-             :super any?
-             :variance :covariant}}
+  "(all [:x (tvar-spec :lower (s/or)
+                       :upper any?
+                       :position #{:output})
+         :y (tvar-spec :lower (s/or)
+                       :upper any?
+                       :position #{:output})]
         (map-of (tvar :x) (tvar :y)))
   "
   [binder body]
@@ -109,15 +98,41 @@
 
 (defmacro tvar
   "(tvar :a)
+
+  An uninstantiated type variable. Acts as a placeholder and must be
+  substituted away before use.
   "
   [tv]
   {:pre [(simple-keyword? tv)]}
   `(s/resolve-spec '~(s/explicate (ns-name *ns*) `(tvar ~tv))))
 
+(defmacro dotted-pretype
+  "(dotted-pretype (coll-of (tvar :a)) :a)
+
+  An uninstantied dotted pretype. (dotted-pretype t k) stands for a sequence of types.
+  Given kts, a sequence of instantiations of k, stands for [t[kts\\k] ...].
+  "
+  [pretype tv]
+  {:pre [(simple-keyword? tv)]}
+  `(s/resolve-spec '~(s/explicate (ns-name *ns*) `(dotted-pretype ~pretype ~tv))))
+
 (defmacro tvar-spec
-  "(tvar :variance :covariant
-         :lower (s/or)
-         :upper any?)
+  "(tvar-spec :position #{:input :output}
+              :lower (s/or)
+              :upper any?
+              :dotted true
+              :regex (fn [s] `(s/+ ~s)))
+
+  A template for all the instantiations of a type variable.
+  If :dotted true, uses :regex to generate the sequence of instantions
+  of tvar.
+
+  Defaults:
+  - :position #{:input :output}
+  - :lower    (s/or)
+  - :upper    any?
+  - :dotted   false
+  - :regex    (fn [s] `(s/* ~s))
   "
   [& args]
   `(s/resolve-spec '~(s/explicate (ns-name *ns*) `(tvar-spec ~@args))))
@@ -166,18 +181,21 @@
 
                (and (seq? spec)
                     (#{`tvar} (first spec)))
-               (let [[_ tv & {dotted :...}] spec
+               (let [[_ tv] spec]
+                 (assert (simple-keyword? tv))
+                 {:config sbst
+                  :form (->Reduced
+                          (or (sbst tv) spec))})
+
+               (and (seq? spec)
+                    (#{`dotted-pretype} (first spec)))
+               (let [[_ pretype tv] spec
                      sval (sbst tv)]
                  (assert (simple-keyword? tv))
-                 (assert (if dotted (vector? sval) true))
-                 (prn "tvar" spec sval)
-                 (if dotted
-                   {:config sbst
-                    :form (->Splice
-                            (map #(subst-tvar dotted (assoc sbst tv %)) sval))}
-                   {:config sbst
-                    :form (->Reduced
-                            (or sval spec))}))
+                 (assert ((some-fn nil? vector?) sval))
+                 {:config sbst
+                  :form (->Reduced
+                          (or sval spec))})
 
                :else
                {:config sbst
@@ -349,20 +367,22 @@
 
 ; all unresolved
 (defn- tvar-spec-impl
-  [position lower upper dotted gfn]
+  [position lower upper dotted regex-fn gfn]
   (let []
     (reify
       Spec
       (conform* [_ x settings-key settings]
+        (assert nil "TODO")
+        #_
         (conform* (s/resolve-spec upper)
                   x
                   settings-key
                   settings))
       (unform* [_ x]
-        (assert nil)
+        (assert nil "TODO")
         )
       (explain* [_ path via in x settings-key settings]
-        (assert nil)
+        (assert nil "TODO")
         )
       (gen* [_ overrides path rmap]
         (prn "generating tvar-spec" gfn)
@@ -375,7 +395,9 @@
       (describe* [_]
         `(tvar-spec :position ~position
                     :lower ~lower
-                    :upper ~upper)))))
+                    :upper ~upper
+                    :dotted ~dotted
+                    :regex ~regex-fn)))))
 
 (defn- all-impl
   [binder body gfn]
@@ -422,7 +444,7 @@
         `(all ~binder ~body)))))
 
 (defn- tvar-impl
-  [tv dotted]
+  [tv]
   (reify
     Spec
     (conform* [_ x settings-key settings]
@@ -436,7 +458,28 @@
     (with-gen* [_ gfn]
       (assert nil "with-gen*"))
     (describe* [_]
-      `(tvar ~tv ~@(some->> dotted (vector :...))))))
+      `(tvar ~tv))))
+
+;Notes:
+; - reread doc/infer-detail.md to remind myself about splicing dotted and a starred pretypes
+; - they're more general than dotted pretypes and the deeper abstraction I'm looking for
+;   to generate dotted-pretype is probably easier to find with a spliced-dotted-pretype op
+(defn- dotted-pretype-impl
+  [pretype tv]
+  (reify
+    Spec
+    (conform* [_ x settings-key settings]
+      (assert nil "conform"))
+    (unform* [_ x]
+      (assert nil "unform"))
+    (explain* [_ path via in x settings-key settings]
+      (assert nil "explain*"))
+    (gen* [_ overrides path rmap]
+      (assert nil "gen*"))
+    (with-gen* [_ gfn]
+      (assert nil "with-gen*"))
+    (describe* [_]
+      `(dotted-pretype ~pretype ~tv))))
 
 (defmethod s/expand-spec `tfn
   [[_ binder body & more]]
@@ -452,11 +495,14 @@
   (tfn-impl binder body))
 
 (defmethod s/expand-spec `tvar-spec
-  [[_ & {:keys [position lower upper dotted]
+  [[_ & {:keys [position lower upper dotted regex-fn]
          :or {position #{:input :output}
               lower `(s/or)
               upper `any?
-              dotted false}
+              dotted false
+              ; only makes sense with :dotted true
+              regex-fn `(fn [~'s]
+                          (s/* ~'s))}
          :as opt}]]
   {:pre [(set? position)
          lower
@@ -466,11 +512,12 @@
    :position position
    :lower lower
    :upper upper
-   :dotted dotted})
+   :dotted dotted
+   :regex-fn regex-fn})
 
 (defmethod s/create-spec `tvar-spec
-  [{:keys [position lower upper dotted]}]
-  (tvar-spec-impl position lower upper dotted nil))
+  [{:keys [position lower upper dotted regex-fn]}]
+  (tvar-spec-impl position lower upper dotted regex-fn nil))
 
 (defmethod s/expand-spec `all
   [[_ binder body & more]]
@@ -514,12 +561,23 @@
              args-map))
 
 (defmethod s/expand-spec `tvar
-  [[_ tv & {dotted :...}]]
-  {:pre [(simple-keyword? tv)]}
+  [[_ tv & more]]
+  {:pre [(simple-keyword? tv)
+         (not more)]}
   {:clojure.spec/op `tvar
-   :tv tv
-   :dotted dotted})
+   :tv tv})
 
 (defmethod s/create-spec `tvar
-  [{:keys [tv dotted]}]
-  (tvar-impl tv dotted))
+  [{:keys [tv]}]
+  (tvar-impl tv))
+
+(defmethod s/expand-spec `dotted-pretype
+  [[_ pretype tv]]
+  {:pre [(simple-keyword? tv)]}
+  {:clojure.spec/op `dotted-pretype
+   :pretype pretype
+   :tv tv})
+
+(defmethod s/create-spec `dotted-pretype
+  [{:keys [pretype tv]}]
+  (dotted-pretype-impl pretype tv))

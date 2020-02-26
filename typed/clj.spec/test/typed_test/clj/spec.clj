@@ -47,9 +47,29 @@
                              :coll (s/coll-of (tvar :x)))
                 :ret (s/coll-of (tvar :y)))))
 
+(s/register
+  ::map
+  (all [:y (tvar-spec :position #{:input :output}
+                      :lower (s/or)
+                      :upper any?)
+        :x (tvar-spec :dotted true
+                      :regex (fn [s]
+                               `(s/+ ~s)))]
+       (s/fspec :args (s/cat :fn (s/fspec :args (s/cat :xs (dotted-pretype (tvar :x)
+                                                                           :x))
+                                          :ret (tvar :y))
+                             :colls (dotted-pretype (s/coll-of (tvar :x))
+                                                    :x))
+                :ret (s/coll-of (tvar :y)))))
+
 (deftest all-conform-test
   (is (s/valid? ::map1 map))
-  (is (not (s/valid? ::map1 (fn [a b] nil)))))
+  (is (not (s/valid? ::map1 (fn [a b] nil))))
+  ;TODO
+  #_
+  (is (not (s/valid? ::map1 (comp reverse map))))
+  
+  (is (s/valid? ::map map)))
 
 (comment
 (s/def ::coll-of-tfn
