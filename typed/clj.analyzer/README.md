@@ -6,14 +6,14 @@ Analyzer for JVM Clojure, tuned for consumption by an optional type checker.
 
 ## Releases and Dependency Information
 
-Latest stable release is 1.0.8.
+Latest stable release is 1.0.9.
 
 * [All Released Versions](https://clojars.org/typed.clj/analyzer)
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) JAR dependency information:
 
 ```clj
-  typed.clj/analyzer {:mvn/version "1.0.8"}
+  typed.clj/analyzer {:mvn/version "1.0.9"}
 ```
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) Git dependency information:
@@ -23,13 +23,13 @@ Latest stable release is 1.0.8.
 ```clj
   typed.clj/analyzer {:git/url "https://github.com/typedclojure/typedclojure"
                       :deps/root "typed/clj.analyzer"
-                      :tag "1.0.8"}
+                      :tag "1.0.9"}
 ```
 
 [Leiningen](https://github.com/technomancy/leiningen) dependency information:
 
 ```clojure
-[typed.clj/analyzer "1.0.8"]
+[typed.clj/analyzer "1.0.9"]
 ```
 
 [Maven](https://maven.apache.org/) dependency information:
@@ -38,7 +38,7 @@ Latest stable release is 1.0.8.
 <dependency>
   <groupId>typed.clj</groupId>
   <artifactId>analyzer</artifactId>
-  <version>1.0.8</version>
+  <version>1.0.9</version>
 </dependency>
 ```
 
