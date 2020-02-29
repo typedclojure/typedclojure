@@ -73,16 +73,25 @@
   `(s/resolve-spec '~(s/explicate (ns-name *ns*) `(tfn ~binder ~body))))
 
 (defmacro all
-  "(all [:x (tvar-spec :lower (s/or)
-                       :upper any?
-                       :position #{:output})
-         :y (tvar-spec :lower (s/or)
-                       :upper any?
-                       :position #{:output})]
+  "(all :binder
+        (binder
+          :x (tvar-spec)
+          :y (tvar-spec))
+        :body
         (map-of (tvar :x) (tvar :y)))
   "
-  [binder body]
-  `(s/resolve-spec '~(s/explicate (ns-name *ns*) `(all ~binder ~body))))
+  [& args]
+  `(s/resolve-spec '~(s/explicate (ns-name *ns*) `(all ~@args))))
+
+(defmacro binder
+  "(binder
+     :x (tvar-spec :kind ::any-spec?
+                   :position #{:output})
+     :y (tvar-spec :kind ::any-spec?
+                   :position #{:output}))
+  "
+  [& args]
+  `(s/resolve-spec '~(s/explicate (ns-name *ns*) `(binder ~@args))))
 
 (defmacro tapp
   "(tapp tfn {:x int? :y boolean?})
@@ -91,48 +100,85 @@
   `(s/resolve-spec '~(s/explicate (ns-name *ns*) `(tapp ~tfn ~args-map))))
 
 (defmacro inst
-  "(inst poly {:x int? :y boolean?})
+  "(inst poly
+         :tvars {:x int? :y boolean?}
+         :dotted-tvars {:z [{:tvars {:z int?}}
+                            {:tvars {:z boolean?}}
+                            {:tvars {:z number?}}]})
   "
   [poly args-map]
   `(s/resolve-spec '~(s/explicate (ns-name *ns*) `(inst ~poly ~args-map))))
 
 (defmacro tvar
-  "(tvar :a)
+  "(tvar :a
+         :wrap identity)
 
   An uninstantiated type variable. Acts as a placeholder and must be
   substituted away before use.
+
+  Optionally takes a function that wraps the type variable after instantiation,
+  which defaults to `clojure.core/identity`.
   "
-  [tv]
+  [tv & opt]
   {:pre [(simple-keyword? tv)]}
-  `(s/resolve-spec '~(s/explicate (ns-name *ns*) `(tvar ~tv))))
+  `(s/resolve-spec '~(s/explicate (ns-name *ns*) `(tvar ~tv ~@opt))))
+
+(defn coerce-dotted-cat [tv xs]
+  {:pre [(simple-keyword? tv)]}
+  `(s/cat ~@(mapcat (fn [i x]
+                      [(keyword nil (str (name tv) i)) x])
+                    (range)
+                    xs)))
+
+(comment
+  (coerce-dotted-cat :a `[integer? boolean?])
+  )
 
 (defmacro dotted-pretype
   "(dotted-pretype (coll-of (tvar :a)) :a)
 
-  An uninstantied dotted pretype. (dotted-pretype t k) stands for a sequence of types.
-  Given kts, a sequence of instantiations of k, stands for [t[kts\\k] ...].
+  Takes a pretype and type variable name tv.
+
+  When tv is instantiated to a sequence of instantiations,
+  instantiates a vector a pretype's using the instantiations pairwise,
+  and then returns the result of passing that vector to :wrap
+
+  (All [x y]
+    [x Kw & :optional {:regex [(Vec x) -> y]} -> Any])
+
+  Defaults:
+  - :wrap  (fn [xs]
+             (coerce-dotted-cat tv xs))
   "
-  [pretype tv]
+  [pretype tv & opt]
   {:pre [(simple-keyword? tv)]}
-  `(s/resolve-spec '~(s/explicate (ns-name *ns*) `(dotted-pretype ~pretype ~tv))))
+  `(s/resolve-spec '~(s/explicate (ns-name *ns*) `(dotted-pretype ~pretype ~tv ~@opt))))
+
+(defmacro spec-between
+  "(spec-between :lower lower :upper upper)
+
+  Accepts symbolic spec between specs lower and upper.
+  "
+  [& args]
+  `(s/resolve-spec '~(s/explicate (ns-name *ns*) `(spec-between ~@args))))
 
 (defmacro tvar-spec
-  "(tvar-spec :position #{:input :output}
-              :lower (s/or)
-              :upper any?
-              :dotted true
-              :regex (fn [s] `(s/+ ~s)))
+  "(tvar-spec :name :x
+              :kind ::any-spec?)
 
   A template for all the instantiations of a type variable.
   If :dotted true, uses :regex to generate the sequence of instantions
   of tvar.
 
+  :name enables self-recursion.
+
+  :kind represents the set of possible values to instantiate
+  the type variable with. By default this is the set of all
+  specs `s/spec?`.
+
   Defaults:
-  - :position #{:input :output}
-  - :lower    (s/or)
-  - :upper    any?
-  - :dotted   false
-  - :regex    (fn [s] `(s/* ~s))
+  - :kind     ::any-spec?
+  - :gen      nil
   "
   [& args]
   `(s/resolve-spec '~(s/explicate (ns-name *ns*) `(tvar-spec ~@args))))
@@ -176,26 +222,48 @@
                ;TODO update to new vector binder syntax
                (and (seq? spec)
                     (`#{tfn all} (first spec)))
+               ; TODO traverse :binder and :body correctly
                {:config (apply dissoc sbst (keys (second spec)))
                 :form spec}
 
                (and (seq? spec)
                     (#{`tvar} (first spec)))
-               (let [[_ tv] spec]
-                 (assert (simple-keyword? tv))
+               (let [[_ tv & {:keys [wrap]
+                              :or {wrap `identity}}]
+                     spec
+                     _ (assert (simple-keyword? tv))
+                     wrap (eval wrap)
+                     sval (sbst tv)]
                  {:config sbst
                   :form (->Reduced
-                          (or (sbst tv) spec))})
+                          (if sval
+                            (wrap sval)
+                            spec))})
 
                (and (seq? spec)
                     (#{`dotted-pretype} (first spec)))
-               (let [[_ pretype tv] spec
-                     sval (sbst tv)]
-                 (assert (simple-keyword? tv))
-                 (assert ((some-fn nil? vector?) sval))
-                 {:config sbst
-                  :form (->Reduced
-                          (or sval spec))})
+               (let [[_ pretype tv & {:keys [wrap]}] spec
+                     wrap (if wrap
+                            (eval wrap)
+                            #(coerce-dotted-cat tv %))
+                     sval (sbst tv)
+                     _ (assert (simple-keyword? tv))
+                     _ (assert ((some-fn nil? sequential?) sval)
+                               sval)]
+                 (if sval
+                   (let [;_ (prn "substituting dotted-pretype" sval)
+                         ; returns a vector for fast indexing
+                         spretypes (mapv ; vars bound by dotted variable shadow others
+                                         #(subst-tvar pretype (merge sbst %))
+                                         sval)
+                         ;_ (prn "spretypes" spretypes)
+                         wrapped (wrap spretypes)
+                         ;_ (prn "wrapped" wrapped)
+                         ]
+                     {:config sbst
+                      :form (->Reduced wrapped)})
+                   {:config sbst
+                    :form (->Reduced spec)}))
 
                :else
                {:config sbst
@@ -204,6 +272,8 @@
            spec))
 
 (comment
+  (subst-tvar `(list (tvar :x :... (tvar :x)))
+              {:x [1 2 3]})
   (subst-tvar `(list (tvar :x :... (tvar :x)))
               {:x [1 2 3]})
   )
@@ -357,6 +427,7 @@
   )
 
 ; assumes lower <: upper for the moment
+; takes unresolved spec forms
 (defn- generator-between [lower upper]
   (let [g (gensym)]
     (if (s/valid? (s/resolve-spec upper) g)
@@ -367,14 +438,12 @@
 
 ; all unresolved
 (defn- tvar-spec-impl
-  [position lower upper dotted regex-fn gfn]
+  [tv position kind gen gfn]
   (let []
     (reify
       Spec
       (conform* [_ x settings-key settings]
-        (assert nil "TODO")
-        #_
-        (conform* (s/resolve-spec upper)
+        (conform* (s/resolve-spec kind)
                   x
                   settings-key
                   settings))
@@ -385,53 +454,59 @@
         (assert nil "TODO")
         )
       (gen* [_ overrides path rmap]
-        (prn "generating tvar-spec" gfn)
         (if gfn
           (gfn)
-          (cond-> (generator-between lower upper)
-            dotted gen/vector)))
+          (if gen
+            ((eval gen))
+            (-> kind s/resolve-spec s/gen))))
       (with-gen* [_ gfn]
-        (tvar-spec-impl position lower upper dotted gfn))
+        (tvar-spec-impl tv position kind nil gfn))
       (describe* [_]
-        `(tvar-spec :position ~position
-                    :lower ~lower
-                    :upper ~upper
-                    :dotted ~dotted
-                    :regex ~regex-fn)))))
+        `(tvar-spec :name ~tv
+                    :position ~position
+                    :kind ~kind
+                    :gen ~gen)))))
+
+(def ^:dynamic *all-iterations* 10)
+
+;based on clojure.alpha.spec.impl/validate-fn
+(defn- validate-all
+  "returns x if valid, else smallest"
+  [x binder body iters]
+  (let [g (-> binder s/resolve-spec s/gen)
+        prop (gen/for-all* [g] #(let [rbody (-> body (subst-tvar %) s/resolve-spec)]
+                                  ;(prn "subst" %)
+                                  ;(prn "before body" (-> body s/resolve-spec s/describe))
+                                  ;(prn "body" (s/describe rbody))
+                                  (s/valid? rbody x)))]
+    (let [ret (gen/quick-check iters prop)]
+      (if-let [[smallest] (-> ret :shrunk :smallest)]
+        smallest
+        x))))
 
 (defn- all-impl
   [binder body gfn]
-  {:pre [(vector? binder)
-         (even? (count binder))]}
   (let []
     (reify
       IPoly
       (inst* [_ subst-map]
-        (-> body
-            (subst-tvar subst-map)
-            s/resolve-spec))
+        (let [sbst (s/conform (s/resolve-spec binder) subst-map)]
+          (if (s/invalid? sbst)
+            (throw (ex-info "Invalid substitution"
+                            {:binder binder
+                             :subst-map subst-map}))
+            (-> body
+                (subst-tvar sbst)
+                s/resolve-spec))))
 
       Spec
       (conform* [_ x settings-key settings]
-        (let [smap (reduce (fn [smap [b v]]
-                             (prn "all-impl v" v)
-                             (let [sspec (subst-tvar v smap)
-                                   _ (prn "sspec" sspec)
-                                   res (s/resolve-spec sspec)]
-                               (prn "res" res)
-                               (assoc smap b (-> res
-                                                 s/gen
-                                                 gen/generate))))
-                           {}
-                           (partition 2 binder))
-              _ (prn "smap" smap)
-              spc (-> (subst-tvar body smap)
-                      s/resolve-spec)]
-          (prn "spc" (s/describe spc))
-          (conform* spc
-                    x
-                    settings-key
-                    settings)))
+        (if (and binder body)
+          (if (identical? x (validate-all x binder body *all-iterations*))
+            x
+            ::s/invalid)
+          (throw (ex-info "Can only conform 'all' with binder and body"
+                          {}))))
       (unform* [_ x]
         x)
       (explain* [_ path via in x settings-key settings]
@@ -443,8 +518,104 @@
       (describe* [_]
         `(all ~binder ~body)))))
 
+(defn- binder-impl
+  [tvs gfn]
+  (let []
+    (reify
+      Spec
+      ; (conform (binder :x (tvar-spec))
+      ;          `{:x integer?})
+      ; => `{:x integer?}
+      (conform* [_ x settings-key settings]
+        ;note: doesn't blow up if x has extra entries
+        (if (not (map? x))
+          ::s/invalid
+          (reduce (fn [smap [b v]]
+                    (let [rsspec (s/resolve-spec (subst-tvar v smap))]
+                      (if-let [[_ i] (find x b)]
+                        (let [ic (conform* rsspec
+                                           i
+                                           settings-key
+                                           settings)]
+                          (if (s/invalid? ic)
+                            (reduced ic)
+                            (assoc smap b ic)))
+                        ; infer missing entries
+                        (assoc smap b (-> rsspec s/gen gen/generate)))))
+                  {}
+                  (partition 2 tvs))))
+      (unform* [_ x]
+        (assert nil))
+      (explain* [_ path via in x settings-key settings]
+        (assert nil))
+      (gen* [_ overrides path rmap]
+        (let [; (s/coll-of (s/tuple Kw Spec)) (s/map-of Kw Spec) -> Generator
+              bgen (fn bgen [tvs gvs]
+                     (if (empty? tvs)
+                       (gen/return gvs)
+                       (let [[[b v] & tvs] tvs]
+                         (gen/bind (-> v
+                                       (subst-tvar gvs)
+                                       s/resolve-spec
+                                       (gen* overrides path rmap))
+                                   (fn [gv]
+                                     (bgen tvs (assoc gvs b gv)))))))]
+          ; allows the first gen* to be chosen multiple times
+          (gen/bind (gen/return nil)
+                    (fn [_]
+                      (bgen (partition 2 tvs) {})))))
+      (with-gen* [_ gfn]
+        (binder-impl tvs gfn))
+      (describe* [_]
+        `(binder ~@tvs)))))
+
+(comment
+  (s/conform (binder :x (tvar-spec))
+             {:x #{(gensym)}})
+  (s/conform (binder :x (tvar-spec)
+                     :y (tvar-spec))
+             {:x #{(gensym)}})
+  (s/conform (binder :x (tvar-spec :kind nat-int?)
+                     :y (tvar-spec :kind nat-int?))
+             {:x 24})
+  (s/conform (binder :x (tvar-spec :kind nat-int?)
+                     :y (tvar-spec :kind nat-int?))
+             {:x 24
+              :y 42})
+  (s/conform (binder :x (tvar-spec :kind nat-int?)
+                     :y (tvar-spec :kind (s/int-in 0 (tvar :x))))
+             {:x 2})
+  (s/conform (binder :x (tvar-spec :kind (s/int-in 0 5))
+                     :y (tvar-spec :kind (s/coll-of integer?
+                                                    :count (tvar :x))))
+             {:x 4})
+  (gen/sample
+    (s/gen (binder :x (tvar-spec)
+                   :y (tvar-spec))))
+  (gen/sample
+    (s/gen (binder :x (tvar-spec :kind nat-int?)
+                   :y (tvar-spec :kind nat-int?))))
+
+  (gen/sample
+    (gen/keyword))
+
+  (gen/sample
+    (s/gen (binder)))
+
+  (s/conform (all :binder (binder :x (tvar-spec))
+                  :body (tvar :x))
+             1)
+
+  (s/conform (all :binder (binder :x (tvar-spec))
+                  :body (s/fspec :args (s/cat :x (tvar :x))
+                                 :ret (tvar :x)))
+             (fn [a]
+               (prn a)
+               a))
+  )
+
 (defn- tvar-impl
-  [tv]
+  [tv wrap]
   (reify
     Spec
     (conform* [_ x settings-key settings]
@@ -458,14 +629,14 @@
     (with-gen* [_ gfn]
       (assert nil "with-gen*"))
     (describe* [_]
-      `(tvar ~tv))))
+      `(tvar ~tv ~@(some-> wrap (vector :wrap))))))
 
 ;Notes:
 ; - reread doc/infer-detail.md to remind myself about splicing dotted and a starred pretypes
 ; - they're more general than dotted pretypes and the deeper abstraction I'm looking for
 ;   to generate dotted-pretype is probably easier to find with a spliced-dotted-pretype op
 (defn- dotted-pretype-impl
-  [pretype tv]
+  [pretype tv wrap]
   (reify
     Spec
     (conform* [_ x settings-key settings]
@@ -479,7 +650,34 @@
     (with-gen* [_ gfn]
       (assert nil "with-gen*"))
     (describe* [_]
-      `(dotted-pretype ~pretype ~tv))))
+      `(dotted-pretype ~pretype ~tv :wrap ~wrap))))
+
+(defn- spec-between-impl
+  [lower upper gfn]
+  (reify
+    Spec
+    (conform* [_ x settings-key settings]
+      (if (set? x)
+        (into #{}
+              (map #(conform* (s/resolve-spec upper)
+                              %
+                              settings-key
+                              settings))
+              x)
+        (assert nil (str "spec-between-impl conform: " (pr-str x)))))
+    (unform* [_ x]
+      (assert nil "unform"))
+    (explain* [_ path via in x settings-key settings]
+      (assert nil "explain*"))
+    (gen* [_ overrides path rmap]
+      (if gfn
+        (gfn)
+        (generator-between lower upper)))
+    (with-gen* [_ gfn]
+      (spec-between-impl lower upper gfn))
+    (describe* [_]
+      `(spec-between :lower ~lower
+                     :upper ~upper))))
 
 (defmethod s/expand-spec `tfn
   [[_ binder body & more]]
@@ -495,35 +693,28 @@
   (tfn-impl binder body))
 
 (defmethod s/expand-spec `tvar-spec
-  [[_ & {:keys [position lower upper dotted regex-fn]
+  [[_ & {tv :name
+         :keys [position kind gen]
          :or {position #{:input :output}
-              lower `(s/or)
-              upper `any?
-              dotted false
-              ; only makes sense with :dotted true
-              regex-fn `(fn [~'s]
-                          (s/* ~'s))}
+              kind ::any-spec?}
          :as opt}]]
   {:pre [(set? position)
-         lower
-         upper
-         (empty? (apply dissoc opt [:position :lower :upper :dotted]))]}
+         ((some-fn nil? simple-keyword?) tv)
+         (empty? (apply dissoc opt [:name :position :kind :gen]))]}
   {:clojure.spec/op `tvar-spec
+   :tv tv
    :position position
-   :lower lower
-   :upper upper
-   :dotted dotted
-   :regex-fn regex-fn})
+   :kind kind
+   :gen gen})
 
 (defmethod s/create-spec `tvar-spec
-  [{:keys [position lower upper dotted regex-fn]}]
-  (tvar-spec-impl position lower upper dotted regex-fn nil))
+  [{:keys [tv position kind gen]}]
+  (tvar-spec-impl tv position kind gen nil))
 
 (defmethod s/expand-spec `all
-  [[_ binder body & more]]
+  [[_ & {:keys [binder body]}]]
   {:pre [binder
-         body
-         (not more)]}
+         body]}
   {:clojure.spec/op `all
    :binder binder
    :body body})
@@ -531,6 +722,16 @@
 (defmethod s/create-spec `all
   [{:keys [binder body]}]
   (all-impl binder body nil))
+
+(defmethod s/expand-spec `binder
+  [[_ & tvs]]
+  {:pre []}
+  {:clojure.spec/op `binder
+   :tvs tvs})
+
+(defmethod s/create-spec `binder
+  [{:keys [tvs]}]
+  (binder-impl tvs nil))
 
 (defmethod s/expand-spec `tapp
   [[_ tfn args-map & more]]
@@ -561,23 +762,43 @@
              args-map))
 
 (defmethod s/expand-spec `tvar
-  [[_ tv & more]]
+  [[_ tv & {:keys [wrap] :as opt}]]
   {:pre [(simple-keyword? tv)
-         (not more)]}
+         (empty? (dissoc opt :wrap))]}
   {:clojure.spec/op `tvar
-   :tv tv})
+   :tv tv
+   :wrap wrap})
 
 (defmethod s/create-spec `tvar
-  [{:keys [tv]}]
-  (tvar-impl tv))
+  [{:keys [tv wrap]}]
+  (tvar-impl tv wrap))
 
 (defmethod s/expand-spec `dotted-pretype
-  [[_ pretype tv]]
+  [[_ pretype tv & opt]]
   {:pre [(simple-keyword? tv)]}
-  {:clojure.spec/op `dotted-pretype
-   :pretype pretype
-   :tv tv})
+  (let [{:keys [wrap]
+         :or {wrap `(fn [xs#]
+                      (coerce-dotted-cat ~tv xs#))}}
+        opt]
+    {:clojure.spec/op `dotted-pretype
+     :pretype pretype
+     :tv tv
+     :wrap wrap}))
 
 (defmethod s/create-spec `dotted-pretype
-  [{:keys [pretype tv]}]
-  (dotted-pretype-impl pretype tv))
+  [{:keys [pretype tv wrap]}]
+  (dotted-pretype-impl pretype tv wrap))
+
+(defmethod s/expand-spec `spec-between
+  [[_ & {:keys [upper lower]
+         :or {upper `any?
+              lower `(s/or)}}]]
+  {:clojure.spec/op `spec-between
+   :lower lower
+   :upper upper})
+
+(defmethod s/create-spec `spec-between
+  [{:keys [lower upper]}]
+  (spec-between-impl lower upper nil))
+
+(s/def ::any-spec? (spec-between))

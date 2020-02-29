@@ -6,7 +6,8 @@
                      Select]]
             [clojure.alpha.spec.gen :as gen]
             [clojure.alpha.spec.test :as stest]
-            [typed.clj.spec :refer :all]
+            [clojure.test.check.generators :as tcg]
+            [typed.clj.spec :refer :all :as t]
             [clojure.test :refer :all]))
 
 (deftest prewalk-test
@@ -32,44 +33,21 @@
                      {:x 1})))
   (is (= `(vector 1)
          (subst-tvar `(vector (tvar :x))
-                     {:x 1}))))
-
-(s/register
-  ::map1
-  (all [:x (tvar-spec :position #{:input :output}
-                      :lower (s/or)
-                      :upper any?)
-        :y (tvar-spec :position #{:input :output}
-                      :lower (s/or)
-                      :upper any?)]
-       (s/fspec :args (s/cat :fn (s/fspec :args (s/cat :x (tvar :x))
-                                          :ret (tvar :y))
-                             :coll (s/coll-of (tvar :x)))
-                :ret (s/coll-of (tvar :y)))))
-
-(s/register
-  ::map
-  (all [:y (tvar-spec :position #{:input :output}
-                      :lower (s/or)
-                      :upper any?)
-        :x (tvar-spec :dotted true
-                      :regex (fn [s]
-                               `(s/+ ~s)))]
-       (s/fspec :args (s/cat :fn (s/fspec :args (s/cat :xs (dotted-pretype (tvar :x)
-                                                                           :x))
-                                          :ret (tvar :y))
-                             :colls (dotted-pretype (s/coll-of (tvar :x))
-                                                    :x))
-                :ret (s/coll-of (tvar :y)))))
-
-(deftest all-conform-test
-  (is (s/valid? ::map1 map))
-  (is (not (s/valid? ::map1 (fn [a b] nil))))
-  ;TODO
-  #_
-  (is (not (s/valid? ::map1 (comp reverse map))))
-  
-  (is (s/valid? ::map map)))
+                     {:x 1})))
+  (is (= `(s/fspec :args (s/cat :xs integer?)
+                   :ret integer?)
+         (subst-tvar `(s/fspec :args (s/cat :xs (tvar :x))
+                               :ret (tvar :x))
+                     {:x `integer?})))
+  (is (= `(s/fspec :args (s/cat :xs (s/cat :x0 integer?))
+                   :ret (s/every integer?
+                                 :count 0))
+         (subst-tvar `(s/fspec :args (s/cat :xs (dotted-pretype (tvar :x) :x))
+                               :ret (s/every integer?
+                                             :count (dotted-pretype (tvar :N) :x
+                                                                    :wrap #(apply min %))))
+                     `{:x [{:N 0 :x integer?}]})))
+  )
 
 (comment
 (s/def ::coll-of-tfn
@@ -90,29 +68,6 @@
 
 (s/conform (tapp ::coll-of-tfn {:x integer?}) [nil])
 
-(s/def ::poly-map
-  (all [:a {:variance :invariant}
-        :b {:variance :invariant}]
-       (s/fspec
-         :args (s/cat :fn (s/fspec :args (s/cat :a (tvar :a))
-                                   :ret (tvar :b))
-                      :coll (s/coll-of (tvar :a)))
-         :ret (s/coll-of (tvar :b)))))
-
-(s/describe (inst ::poly-map {:a int? :b boolean?}))
-
-(s/def ::integer?
-  (s/fspec
-    :args (s/cat :n any?)
-    :fn (fn [{{:keys [n]} :args :keys [ret]}]
-          (= ret
-             (or (instance? Integer n)
-                 (instance? Long n)
-                 (instance? clojure.lang.BigInt n)
-                 (instance? BigInteger n)
-                 (instance? Short n)
-                 (instance? Byte n))))
-    :ret boolean?))
 
 (s/def ::symbol?
   (s/fspec
@@ -138,13 +93,6 @@
              (:a m)))
     :ret any?))
 
-(s/def ::identity
-  (s/fspec
-    :args (s/cat :x any?)
-    :fn (fn [{{:keys [x]} :args :keys [ret]}]
-          (identical? ret x))
-    :ret any?))
-
 ;clojure.core/gensym (IFn [-> t/Symbol]
 ;                        [(U t/Symbol String) -> t/Symbol])
 
@@ -153,21 +101,6 @@
           (s/fspec :args (s/cat :sym-or-str (s/or symbol? string?))
                    :ret symbol?)))
 
-;clojure.core/memoize (All [x y ...]
-;                            [[y ... y -> x] -> [y ... y -> x]])
-
-#_
-(s/def ::memoize
-  (poly {:x {:variance :invariant}
-         :y {:dotted true
-             :variance :invariant}}
-        (s/fspec :args (s/cat :fn
-                              (s/fspec :args
-                                       (s/* (... (t/tvar :y) (t/tvar :y)))
-                                       :ret
-                                       (t/tvar :x)))
-                 :ret (s/fspec :args (s/* (... (t/tvar :y) (t/tvar :y)))
-                               :ret (t/tvar :x)))))
 
 ;clojure.core/sorted-set (All [x] [x * -> (PersistentTreeSet x)])
 
