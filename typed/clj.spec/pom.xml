@@ -24,7 +24,7 @@
 
   <dependencies>
     <dependency>
-      <groupId>org.clojure</groupId>
+      <groupId>org.clojars.typedclojure-clojars</groupId>
       <artifactId>alpha.spec</artifactId>
     </dependency>
     <dependency>
