@@ -17,6 +17,7 @@ fi
   typed/clj.checker/README.md \
   typed/clj.lang/README.md \
   typed/clj.runtime/README.md \
+  typed/clj.spec/README.md \
   typed/cljc.analyzer/README.md \
   typed/lib.clojure/README.md \
   typed/lib.core.async/README.md
