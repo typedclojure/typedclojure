@@ -11,19 +11,24 @@ Type-like specs.
 
 ## Rationale
 
-Higher-order functions are used frequently in Clojure programs, however
-it is often a difficult and ad-hoc process to specify and generatively
-test them using Clojure spec.
+Higher-order functions often contain fine-grained dependencies between
+their arguments and return values. For example, the identity function requires
+its output to exactly match its input.
 
-Typed Clojure has an established syntax for specifying many kinds
-of higher-order functions. It was achieved by:
+`typed.clj/spec` enhances the expressivity of spec by giving you
+the tools to specify such dependencies directly.
+This spec _metalanguage_ treats these
+kinds of dependencies as first-class concepts, so you can
+specify and generatively test your favourite higher-order functions.
 
-1. determining the primitive concepts used in Clojure (like `Int`, `Any`, `Bool`)
-2. providing a metalanguage to manipulate these concepts (like `All`, `TFn`)
+The aim of this library is to combine the expressive power of a type-like syntax
+with the pragmatism and versatility of spec.
+I'm really excited about the possibilities of bringing together
+the advantages of both worlds.
 
-Clojure spec already provides similar primitives. The novelty of
-`typed.clj/spec` is providing a _metalanguage_ for specs to
-enable richer specifications.
+I hope you enjoy using `typed.clj/spec`!
+
+- Ambrose
 
 ## Quickstart
 
