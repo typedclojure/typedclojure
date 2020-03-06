@@ -26,6 +26,12 @@
     <dependency>
       <groupId>typed.clj</groupId>
       <artifactId>runtime</artifactId>
+      <provided>true</provided>
+    </dependency>
+    <dependency>
+      <groupId>typed.clj</groupId>
+      <artifactId>spec</artifactId>
+      <provided>true</provided>
     </dependency>
   </dependencies>
 </project>

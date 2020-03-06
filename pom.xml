@@ -300,6 +300,11 @@
         <artifactId>test.check</artifactId>
         <version>1.0.0</version>
       </dependency>
+      <dependency>
+        <groupId>org.clojure</groupId>
+        <artifactId>core.logic</artifactId>
+        <version>1.0.0</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 

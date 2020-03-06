@@ -32,5 +32,15 @@
       <artifactId>test.check</artifactId>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+      <groupId>org.clojure</groupId>
+      <artifactId>core.logic</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.clojure</groupId>
+      <artifactId>math.combinatorics</artifactId>
+      <scope>provided</scope>
+    </dependency>
   </dependencies>
 </project>

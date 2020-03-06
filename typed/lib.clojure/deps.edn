@@ -10,6 +10,8 @@
                         "--interactive"]}
            :test {:extra-deps {typed.clj/checker {:local/root "../clj.checker"
                                                   :deps/manifest :deps}
+                               typed.clj/spec {:local/root "../clj.spec"
+                                               :deps/manifest :deps}
                                typed.clj/runtime {:local/root "../clj.runtime"
                                                   :deps/manifest :deps}
                                typed.cljc/analyzer {:local/root "../cljc.analyzer"

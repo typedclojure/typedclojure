@@ -7,7 +7,8 @@
             [clojure.alpha.spec.gen :as gen]
             [clojure.alpha.spec.test :as stest]
             [clojure.test.check.generators :as tcg]
-            [typed.clj.spec :refer :all :as t]
+            [typed.clj.spec :as t]
+            [typed-test.clj.spec.test-utils :as tu]
             [clojure.test :refer :all]))
 
 (s/def
@@ -16,9 +17,9 @@
            :ret any?))
 
 (deftest identity-mono-test
-  (is (s/valid? ::identity-mono identity))
+  (tu/is-valid ::identity-mono identity)
   ; no dependency of input to output
-  (is (s/valid? ::identity-mono (fn [x] nil))))
+  (tu/is-valid ::identity-mono (fn [x] nil)))
 
 (s/def ::identity-fspec-fn
   (s/fspec
@@ -28,17 +29,19 @@
     :ret any?))
 
 (deftest identity-fspec-fn-test
-  ; this test might be flaky?
-  (is (s/valid? ::identity-fspec-fn identity))
-  (is (not (s/valid? ::identity-fspec-fn (fn [x] nil)))))
+  (tu/is-valid ::identity-fspec-fn identity)
+  (tu/is-invalid ::identity-fspec-fn (fn [x] nil)))
 
 (s/def
   ::identity-poly
-  (all :binder (binder :x (tvar-spec))
-       :body
-       (s/fspec :args (s/cat :x (tvar :x))
-                :ret (tvar :x))))
+  (t/all :binder (t/binder :x (t/bind-tv))
+         :body
+         (s/fspec :args (s/cat :x (t/tv :x))
+                  :ret (t/tv :x))))
 
 (deftest identity-poly-test
-  (is (s/valid? ::identity-poly identity))
-  (is (not (s/valid? ::identity-poly (fn [x] nil)))))
+  (tu/is-valid ::identity-poly identity)
+  (tu/is-valid ::identity-poly (comp first
+                                     (juxt identity identity)
+                                     (fn [x] x)))
+  (tu/is-invalid ::identity-poly (fn [x] nil)))

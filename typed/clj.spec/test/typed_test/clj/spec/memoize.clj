@@ -8,6 +8,7 @@
             [clojure.alpha.spec.test :as stest]
             [clojure.test.check.generators :as tcg]
             [typed.clj.spec :refer :all :as t]
+            [typed-test.clj.spec.test-utils :as tu]
             [clojure.test :refer :all]))
 
 ;clojure.core/memoize (All [x y ...]
@@ -16,17 +17,22 @@
 (s/def ::memoize
   (all :binder
        (binder
-         :x (tvar-spec)
-         :y (tvar-spec :kind (s/* (binder
-                                    :y (tvar-spec)))))
+         :x (bind-tv)
+         :y (bind-tv :kind (s/* (binder
+                                    :y (bind-tv)))))
        :body
        (s/fspec :args (s/cat :fn
-                             (s/fspec :args (dotted-pretype (tvar :y) :y)
-                                      :ret (tvar :x)))
-                :ret (s/fspec :args (dotted-pretype (tvar :y) :y)
-                              :ret (tvar :x)))))
+                             (s/fspec :args (fold-binders (tv :y) :y)
+                                      :ret (tv :x)))
+                :ret (s/fspec :args (fold-binders (tv :y) :y)
+                              :ret (tv :x)))))
 
 (deftest memoize-test
-  (is (s/valid? ::memoize memoize))
+  (tu/is-valid ::memoize memoize)
+  (tu/is-invalid ::memoize +)
   ; a slightly less thorough memoize function..
-  (is (s/valid? ::memoize identity)))
+  (tu/is-valid ::memoize identity))
+
+(comment
+  (s/explain ::memoize memoize)
+  )

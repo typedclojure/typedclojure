@@ -7,86 +7,127 @@
             [clojure.alpha.spec.gen :as gen]
             [clojure.alpha.spec.test :as stest]
             [clojure.test.check.generators :as tcg]
-            [typed.clj.spec :refer :all :as t]
+            [typed.clj.spec :as t]
+            [typed-test.clj.spec.test-utils :as tu]
             [clojure.test :refer :all]))
 
+; best-effort attempt to get this to work without type variables
+(s/def ::comp-fspec-fn
+  (s/fspec :args (s/cat :f (s/fspec :args (s/cat :x any?)
+                                    :ret any?)
+                        :g (s/fspec :args (s/cat :x any?)
+                                    :ret any?))
+           :fn (fn [{{:keys [f g]} :args, :keys [ret]}]
+                 (-> (gen/for-all* [(gen/any)]
+                                   #(= (ret %)
+                                       (f (g %))))
+                     gen/quick-check
+                     :pass?))
+           :ret (s/fspec :args (s/cat :x any?)
+                         :ret any?)))
+
+;doesn't work at all
+(deftest comp-fspec-fn-test
+  (tu/is-invalid ::comp-fspec-fn comp)
+  (tu/is-invalid ::comp-fspec-fn (fn [f g] #(f (g %)))))
+
+; simulate the gensym strategy
+(s/def ::comp-fspec-fn-gensym
+  (s/fspec :args (s/cat :f (s/fspec :args (s/cat :x #{G2})
+                                    :ret #{G3})
+                        :g (s/fspec :args (s/cat :x #{G1})
+                                    :ret #{G2}))
+           :ret (s/fspec :args (s/cat :x #{G1})
+                         :ret #{G3})))
+
+; works but tests exactly one case
+(deftest comp-fspec-fn-test
+  (tu/is-valid ::comp-fspec-fn-gensym comp)
+  (tu/is-valid ::comp-fspec-fn-gensym (fn [f g]
+                                        #(f (g %))))
+  (tu/is-invalid ::comp-fspec-fn-gensym (fn [f g] #(g (f %)))))
+
 (s/def ::comp2
-  (all :binder (binder
-                 :a (tvar-spec)
-                 :b (tvar-spec)
-                 :c (tvar-spec))
-       :body
-       (s/fspec :args (s/cat :f (s/fspec :args (s/cat :b (tvar :b))
-                                         :ret (tvar :c))
-                             :g (s/fspec :args (s/cat :a (tvar :a))
-                                         :ret (tvar :b)))
-                :ret (s/fspec :args (s/cat :a (tvar :a))
-                              :ret (tvar :c)))))
+  (t/all :binder (t/binder
+                   :a (t/bind-tv)
+                   :b (t/bind-tv)
+                   :c (t/bind-tv))
+         :body
+         (s/fspec :args (s/cat :f (s/fspec :args (s/cat :b (t/tv :b))
+                                           :ret (t/tv :c))
+                               :g (s/fspec :args (s/cat :a (t/tv :a))
+                                           :ret (t/tv :b)))
+                  :ret (s/fspec :args (s/cat :a (t/tv :a))
+                                :ret (t/tv :c)))))
 
 (deftest comp2-test
-  (is (s/valid? ::comp2 comp))
-  (is (s/valid? ::comp2 (fn [f g] #(f (g %)))))
-  (is (not (s/valid? ::comp2 (fn [f g] #(g (f %)))))))
+  (tu/is-valid ::comp2 comp)
+  (tu/is-valid ::comp2 (fn [f g] #(f (g %))))
+  (tu/is-invalid ::comp2 (fn [f g] #(g (f %)))))
 
 (s/def ::comp2-varargs
-  (all :binder (binder
-                 :a (tvar-spec :kind (s/* (binder
-                                            :a (tvar-spec))))
-                 :b (tvar-spec)
-                 :c (tvar-spec))
-       :body
-       (s/fspec :args (s/cat :f (s/fspec :args (s/cat :b (tvar :b))
-                                         :ret (tvar :c))
-                             :g (s/fspec :args (s/cat :as (dotted-pretype (tvar :a) :a))
-                                         :ret (tvar :b)))
-                :ret (s/fspec :args (s/cat :as (dotted-pretype (tvar :a) :a))
-                              :ret (tvar :c)))))
+  (t/all :binder (t/binder
+                   :a (t/bind-tv :kind (s/* (t/binder
+                                              :a (t/bind-tv))))
+                   :b (t/bind-tv)
+                   :c (t/bind-tv))
+         :body
+         (s/fspec :args (s/cat :f (s/fspec :args (s/cat :b (t/tv :b))
+                                           :ret (t/tv :c))
+                               :g (s/fspec :args (s/cat :as (t/fold-binders (t/tv :a) :a))
+                                           :ret (t/tv :b)))
+                  :ret (s/fspec :args (s/cat :as (t/fold-binders (t/tv :a) :a))
+                                :ret (t/tv :c)))))
 
 (deftest comp2-varargs-test
-  (is (s/valid? ::comp2-varargs comp))
-  (is (s/valid? ::comp2-varargs (fn [f g]
-                                  (fn [& args]
-                                    #_(prn "args" args)
-                                    (f (apply g args)))))))
+  (is (s/describe (t/inst ::comp2-varargs {:a []})))
+  (tu/is-valid ::comp2-varargs comp)
+  (tu/is-valid (t/inst ::comp2-varargs {:a []}) comp)
+  (tu/is-valid (t/inst ::comp2-varargs {:a [{:a integer?}]}) comp)
+  (tu/is-valid (t/inst ::comp2-varargs {:a [{:a integer?} {:a boolean?}]}) comp)
+  (tu/is-valid ::comp2-varargs (fn [f g]
+                                 (fn [& args]
+                                   #_(prn "args" args)
+                                   (f (apply g args))))))
 
 (s/def ::comp0
-  (all :binder (binder
-                 :a (tvar-spec))
-       :body
-       (s/fspec :args (s/cat)
-                :ret (s/fspec :args (s/cat :a (tvar :a))
-                              :ret (tvar :a)))))
+  (t/all :binder (t/binder
+                   :a (t/bind-tv))
+         :body
+         (s/fspec :args (s/cat)
+                  :ret (s/fspec :args (s/cat :a (t/tv :a))
+                                :ret (t/tv :a)))))
 
 (deftest comp0-test
-  (is (s/valid? ::comp0 comp))
-  (is (s/valid? ::comp0 (fn []
-                          (fn [x]
-                            #_(prn "x" x)
-                            x)))))
+  (tu/is-valid ::comp0 comp)
+  (tu/is-valid ::comp0 (fn []
+                         (fn [x]
+                           #_(prn "x" x)
+                           x))))
 
 (s/def ::comp3-varargs
-  (all :binder (binder
-                 :a (tvar-spec :kind (s/* (binder
-                                            :a (tvar-spec))))
-                 :b (tvar-spec)
-                 :c (tvar-spec)
-                 :d (tvar-spec))
-       :body
-       (s/fspec :args (s/cat :f2 (s/fspec :args (s/cat :c (tvar :c))
-                                          :ret (tvar :d))
-                             :f1 (s/fspec :args (s/cat :b (tvar :b))
-                                          :ret (tvar :c))
-                             :f0 (s/fspec :args (s/cat :as (dotted-pretype (tvar :a) :a))
-                                         :ret (tvar :b)))
-                :ret (s/fspec :args (s/cat :as (dotted-pretype (tvar :a) :a))
-                              :ret (tvar :d)))))
+  (t/all :binder (t/binder
+                   :a (t/bind-tv :kind (s/* (t/binder
+                                              :a (t/bind-tv))))
+                   :b (t/bind-tv)
+                   :c (t/bind-tv)
+                   :d (t/bind-tv))
+         :body
+         (s/fspec :args (s/cat :f2 (s/fspec :args (s/cat :c (t/tv :c))
+                                            :ret (t/tv :d))
+                               :f1 (s/fspec :args (s/cat :b (t/tv :b))
+                                            :ret (t/tv :c))
+                               :f0 (s/fspec :args (s/cat :as (t/fold-binders (t/tv :a) :a))
+                                            :ret (t/tv :b)))
+                  :ret (s/fspec :args (s/cat :as (t/fold-binders (t/tv :a) :a))
+                                :ret (t/tv :d)))))
 
 (deftest comp3-varargs-test
-  (is (s/valid? ::comp3-varargs comp))
-  (is (s/valid? ::comp3-varargs (fn [f2 f1 f0]
-                                  (fn [& args]
-                                    #_(prn "args" args)
-                                    (f2 (f1 (apply f0 args))))))))
+  (tu/is-valid ::comp3-varargs comp)
+  (tu/is-valid ::comp3-varargs (fn [f2 f1 f0]
+                                 (fn [& args]
+                                   #_(prn "args" args)
+                                   (f2 (f1 (apply f0 args)))))))
 
 (defn comp-fs-wrap [bs]
   `(s/cat
@@ -121,33 +162,43 @@
             (s/fspec :args (s/cat :b0 0) :ret 1))
          (comp-fs-wrap (range 5)))))
 
-; doesn't handle (comp) (but handles all other args!)
 (s/def ::compN-varargs
-  (all :binder (binder
-                 :a (tvar-spec :kind (s/* (binder
-                                            :a (tvar-spec))))
-                 :b (tvar-spec :kind (s/+ (binder
-                                            :b (tvar-spec)))))
-       :body
-       (s/fspec :args (s/cat :fs (dotted-pretype
-                                   (tvar :b) :b
-                                   :wrap comp-fs-wrap)
-                             :g (s/fspec :args (s/cat :as (dotted-pretype (tvar :a) :a))
-                                         :ret (dotted-pretype (tvar :b) :b
-                                                              :wrap first)))
-                :ret (s/fspec :args (s/cat :as (dotted-pretype (tvar :a) :a))
-                              :ret (dotted-pretype (tvar :b) :b
-                                                   :wrap peek)))))
+  (t/all :binder (t/binder
+                   :x (t/bind-tv)
+                   :a (t/bind-tv :kind (s/* (t/binder
+                                              :a (t/bind-tv))))
+                   :b (t/bind-tv :kind (s/+ (t/binder
+                                              :b (t/bind-tv)))))
+         :body
+         (t/fcase
+           0 (s/fspec :args (s/cat)
+                      :ret (s/fspec :args (s/cat :x (t/tv :x))
+                                    :ret (t/tv :x)))
+           (s/fspec :args (s/cat :fs (t/fold-binders
+                                       (t/tv :b) :b
+                                       :wrap comp-fs-wrap)
+                                 :g (s/fspec :args (s/cat :as (t/fold-binders (t/tv :a) :a))
+                                             :ret (t/fold-binders (t/tv :b) :b
+                                                                  :wrap first)))
+                    :ret (s/fspec :args (s/cat :as (t/fold-binders (t/tv :a) :a))
+                                  :ret (t/fold-binders (t/tv :b) :b
+                                                       :wrap peek))))))
 
 (deftest compN-varargs-test
-  (is (s/valid? ::compN-varargs comp))
-  (is (not (s/valid? ::compN-varargs (fn [& fs]
-                                       #_(prn "fs" fs)
-                                       ))))
-  (is (not (s/valid? ::compN-varargs (fn [f3 f2 f1 f0]
-                                       (fn [& args]
-                                         #_(prn "args" args)
-                                         (f3 (f2 (f1 (apply f0 args))))))))))
+  (testing "comp 0-arity"
+    (tu/is-invalid
+      ::compN-varargs
+      (fn
+        ([] nil)
+        ([& args] (apply comp args)))))
+  (tu/is-valid ::compN-varargs comp)
+  (tu/is-invalid ::compN-varargs (fn [& fs]
+                                   #_(prn "fs" fs)
+                                   ))
+  (tu/is-invalid ::compN-varargs (fn [f3 f2 f1 f0]
+                                   (fn [& args]
+                                     #_(prn "args" args)
+                                     (f3 (f2 (f1 (apply f0 args))))))))
 
 (comment
 (gen/generate

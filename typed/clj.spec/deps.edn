@@ -1,12 +1,19 @@
 {:paths ["src"]
  :deps {org.clojure/clojure {:mvn/version "1.10.1"}
+        org.clojure/alpha.spec 
         ;8498f9cb352135579b6d3a0a5d15c40e5c2647ce
-        org.clojure/alpha.spec {:mvn/version "0.2.177-20200227.024029-16"}}
+        #_{:mvn/version "0.2.177-20200227.024029-16"}
+        {:git/url "https://github.com/frenchy64/spec-alpha2.git" 
+         ;frenchy64-dev branch
+         ;contains fixes for CLJ-2561 + CLJ-2562
+         :sha "0ecf47d1553bad3fff49e4845ceac19b03e1f983"}}
  :mvn/repos {"sonatype-oss-public"
              {:url "https://oss.sonatype.org/content/groups/public/"}}
  :aliases {:test
            {:extra-paths ["test"]
-            :extra-deps {org.clojure/test.check {:mvn/version "1.0.0"}}}
+            :extra-deps {org.clojure/test.check {:mvn/version "1.0.0"}
+                         org.clojure/core.logic {:mvn/version "1.0.0"}
+                         org.clojure/math.combinatorics {:mvn/version "0.1.4"}}}
            :nREPL
            {:extra-deps
             {nrepl/nrepl {:mvn/version "0.6.0"}
