@@ -28,8 +28,6 @@ the advantages of both worlds.
 
 I hope you enjoy using `typed.clj/spec`!
 
-- Ambrose
-
 ## Quickstart
 
 Either:
