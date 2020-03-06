@@ -35,6 +35,10 @@ Either:
 2. Clone this repository and run `./script/repl`
    in the `typed/clj.spec` directory to follow along.
 
+To use the generative testing features of `typed.clj/spec`,
+also add an explicit dependency to `[org.clojure/test.check "1.0.0"]`
+(automatic if cloning this repository).
+
 ```clojure
 ;; require these namespaces
 (require '[clojure.alpha.spec :as s]

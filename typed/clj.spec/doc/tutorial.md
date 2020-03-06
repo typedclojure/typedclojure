@@ -7,7 +7,9 @@ It's a lot of fun to play around with, but also packs a punch -- enjoy!
 
 ## Preliminaries
 
-This tutorial assumes these namespaces are loaded:
+Follow the [Quickstart](../README.md#quickstart) to get a REPL running.
+
+This tutorial also assumes these namespaces are loaded:
 
 ```clojure
 (require '[clojure.alpha.spec :as s]
