@@ -27,9 +27,13 @@ enable richer specifications.
 
 ## Quickstart
 
-Note: `typed.clj/spec` currently depends on a (git) fork
-spec-alpha2 (fixing CLJ-2561 and CLJ-2562). See `deps.edn`
-for details.
+Either:
+
+1. Add a dependency to `typed.clj/spec` using your favourite
+   build tool (see [Releases and Dependency Information](#releases-and-dependency-information).
+
+2. Clone this repository and run `./script/repl`
+   in the `typed/clj.spec` directory to follow along.
 
 ```clojure
 ;; require these namespaces
