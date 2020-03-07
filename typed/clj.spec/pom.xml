@@ -5,7 +5,7 @@
   <artifactId>spec</artifactId>
   <description>Type-like specs.</description>
   <name>typed.clj/spec</name>
-  <version>1.0.11-SNAPSHOT</version>
+  <version>1.0.11</version>
 
   <licenses>
     <license>
@@ -18,7 +18,7 @@
   <parent>
     <groupId>typed</groupId>
     <artifactId>pom</artifactId>
-    <version>1.0.11-SNAPSHOT</version>
+    <version>1.0.11</version>
     <relativePath>../..</relativePath>
   </parent>
 

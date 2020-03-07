@@ -5,7 +5,7 @@
   <artifactId>clojure</artifactId>
   <description>Type annotations and macros for the base Clojure distribution.</description>
   <name>typed.lib/clojure</name>
-  <version>1.0.11-SNAPSHOT</version>
+  <version>1.0.11</version>
 
   <licenses>
     <license>
@@ -18,7 +18,7 @@
   <parent>
     <groupId>typed</groupId>
     <artifactId>pom</artifactId>
-    <version>1.0.11-SNAPSHOT</version>
+    <version>1.0.11</version>
     <relativePath>../..</relativePath>
   </parent>
 
