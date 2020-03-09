@@ -1,5 +1,7 @@
-(ns typed-test.clj.spec.test-utils
-  (:require [clojure.alpha.spec]
+(ns typed.clj.spec.test-utils
+  "Helpers for unit testing typed.clj.spec definitions
+  with clojure.test."
+  (:require [clojure.alpha.spec :as s]
             [clojure.test :as test]))
 
 (defmacro is-valid [s v]

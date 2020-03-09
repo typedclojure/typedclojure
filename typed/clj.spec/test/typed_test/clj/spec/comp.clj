@@ -8,7 +8,7 @@
             [clojure.alpha.spec.test :as stest]
             [clojure.test.check.generators :as tcg]
             [typed.clj.spec :as t]
-            [typed-test.clj.spec.test-utils :as tu]
+            [typed.clj.spec.test-utils :as tu]
             [clojure.test :refer :all]))
 
 ; best-effort attempt to get this to work without type variables

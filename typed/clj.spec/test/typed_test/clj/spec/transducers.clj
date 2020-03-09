@@ -8,7 +8,7 @@
             [clojure.alpha.spec.test :as stest]
             [clojure.test.check.generators :as tcg]
             [typed.clj.spec :refer :all :as t]
-            [typed-test.clj.spec.test-utils :as tu]
+            [typed.clj.spec.test-utils :as tu]
             [clojure.test :refer :all]))
 
 (s/def

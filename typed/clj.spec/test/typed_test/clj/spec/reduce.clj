@@ -9,7 +9,7 @@
             [clojure.test.check.generators :as tcg]
             [typed.clj.spec :as t]
             [clojure.test :refer :all]
-            [typed-test.clj.spec.test-utils :as tu]
+            [typed.clj.spec.test-utils :as tu]
             [typed-test.clj.spec.transducers :as x]))
 
 (s/def ::reduce3

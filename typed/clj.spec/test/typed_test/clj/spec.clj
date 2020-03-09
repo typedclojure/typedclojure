@@ -4,7 +4,7 @@
             [clojure.alpha.spec.test :as stest]
             [clojure.test.check.generators :as tcg]
             [typed.clj.spec :refer :all :as t]
-            [typed-test.clj.spec.test-utils :as tu]
+            [typed.clj.spec.test-utils :as tu]
             [clojure.test :refer :all]))
 
 (deftest tapp-test
@@ -164,7 +164,7 @@
                       :ret (s/tuple (fold-binders (tv :x) :xs))))
         {:xs []}))))
 
-(deftest reduced-of-test
+(deftest ^:deprecated reduced-of-test
   (is (every? #(and (reduced? %)
                     (integer? @%))
               (gen/sample

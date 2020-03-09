@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.clj.spec
-  "Public API for typed.clj.spec"
+  "Public API"
   (:require [clojure.alpha.spec :as s]))
 
 (defmacro tfn
@@ -158,12 +158,10 @@
   [& args]
   `(s/resolve-spec '~(s/explicate (ns-name *ns*) `(fcase ~@args))))
 
-(defmacro reduced-of
-  "(reduced-of integer?)
-  
-  Spec that conforms the result of (clojure.core/reduced x) where x
-  is a value of spec s."
+(defmacro ^{:deprecated "1.0.12"} reduced-of
+  "Deprecated: Use `typed.spec.clojure.core/reduced-spec` as a direct replacement."
   [s]
+  (println (str "DEPRECATED: " `reduced-of ", use typed.spec.clojure.core/reduced-spec"))
   `(s/resolve-spec '~(s/explicate (ns-name *ns*) `(reduced-of ~s))))
 
 ; load typed spec implementations
