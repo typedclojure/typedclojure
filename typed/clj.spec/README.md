@@ -33,7 +33,7 @@ I hope you enjoy using `typed.clj/spec`!
 Either:
 
 1. Add a dependency to `typed.clj/spec` using your favourite
-   build tool (see [Releases and Dependency Information](#releases-and-dependency-information).
+   build tool (see [Releases and Dependency Information](#releases-and-dependency-information)).
 
 2. Clone this repository and run `./script/repl`
    in the `typed/clj.spec` directory to follow along.
