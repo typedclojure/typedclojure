@@ -6,57 +6,155 @@
             [typed.clj.analyzer.passes.emit-form :as emit-form]
             [clojure.test :refer :all]))
 
+;; An example type system written with typed.clj.analyzer.
+;; Able to type check intermediate steps in macroexpansion,
+;; and manully preserve evaluation order of top-level forms
+;; in such cases.
+
 (declare check-expr)
 
-(defmulti -check :op)
+;; =================
+;; example Type system stuff
+
+;; Type syntax:
+;; t ::= :any
+
+(def type? keyword?)
+
+(defn subtype?
+  "Returns true iff t1 <: t2"
+  [t1 t2]
+  {:pre [(every? type? [t1 t2])]
+   :post [(boolean? %)]}
+  (= t1 t2))
+
+(defn verify-expected
+  "Checks if actual <: expected"
+  [actual expected]
+  {:pre [((some-fn nil? type?) expected)
+         (type? actual)]
+   :post [(type? %)]}
+  (if (or (nil? expected)
+          (subtype? actual expected))
+    (or expected actual)
+    (throw (ex-info "Type error" {:expected expected :actual actual}))))
+
+;; =================
+;; AST traversal
+
+;; a multimethod that knows how to type check each kind
+;; of (fully expanded) AST node.
+;; 
+;; See clojure.core.typed.checker.jvm.check/-check for a real example.
+(defmulti -check ::ana2/op)
+
+(defn type-for-val [v] :any)
+
+;; type checking constants (eg., symbols, keywords, numbers)
+(defmethod -check ::ana2/const [expr expected]
+  (-> expr
+      (assoc ::type (-> (type-for-val (:val expr))
+                        (verify-expected expected)))))
+
+;; type check function calls
+(defmethod -check ::ana2/invoke [expr expected]
+  (let [check-fcall (fn [cexpr ftype argtypes]
+                      ;; subtyping checks or inference goes here
+                      (let [inferred :any]
+                        (-> cexpr
+                            (assoc ::type (verify-expected inferred expected)))))
+        cexpr (-> expr
+                  (update :fn check-expr)
+                  (update :args #(mapv check-expr %)))]
+    (check-fcall cexpr
+                 (-> cexpr :fn ::type)
+                 (->> cexpr :args (mapv ::type)))))
+
+;; in real implementations, this catch-all case should be type error
 (defmethod -check :default [expr expected]
-  (ast/update-children expr #(check-expr % nil)))
+  (-> expr
+      ;; blindly expand and type check everything.
+      ;; just here for demonstration purposes, should handle
+      ;; individually each AST op using -check.
+      (ast/update-children #(check-expr % nil))
+      (assoc ::type (verify-expected :any expected))))
 
 (def ^:dynamic *intermediate-forms* nil)
 (def ^:dynamic *found-defns* nil)
 
-(defn check-expr [expr expected]
-  (let [expr (assoc-in expr [:env :ns] (ns-name *ns*))]
-    (case (:op expr)
-      :unanalyzed (let [{:keys [form env]} expr
-                        ;_ (prn "found form" form)
-                        ;_ (prn "*ns*" (ns-name *ns*))
-                        _ (when *intermediate-forms*
-                            (swap! *intermediate-forms* conj form))]
-                    (case (jana2/resolve-op-sym form env)
-                      typed.clj.analyzer.gilardi-test/my-body
-                      (let [arg-forms (rest form)
-                            ; Note: if top-level, must check args in evaluation order
-                            cargs (mapv (if (ana2/top-level? expr)
-                                          #(check-expr (ana2/unanalyzed-top-level % env) nil)
-                                          #(check-expr (ana2/unanalyzed % env) nil))
-                                        arg-forms)
-                            cexpr (-> expr
-                                      (assoc :form (list* (first form) (map emit-form/emit-form cargs))))
-                            ; returns nil on no args
-                            final-result (get (peek cargs) :result nil)]
-                        (-> cexpr
-                            ana2/unmark-top-level
-                            (assoc :result final-result)))
-                      clojure.core/defn (do (some-> *found-defns*
-                                                    (swap! update (second form) (fnil inc 0)))
-                                            (recur (ana2/analyze-outer expr) expected))
-                      clojure.core/ns
-                      (let [;_ (prn "old ns:" *ns*)
-                            expr (ana2/run-passes expr)]
-                        ;(prn "new ns:" *ns*)
-                        expr)
-                      #_:else
-                      (recur (ana2/analyze-outer expr) expected)))
-      (-> expr
-          ana2/run-pre-passes
-          (-check expected)
-          ana2/run-post-passes
-          ana2/eval-top-level))))
+(defn check-expr
+  ([expr] (check-expr expr nil))
+  ([expr expected]
+   (let [;; important to save ns pre-expansion, as arbitrary effects
+         ;; may happen during macroexpansion.
+         expr (assoc-in expr [:env :ns] (ns-name *ns*))]
+     ;; ::ana2/op maps to qualified keys, prefer over :op (the old tools.analyzer-style)
+     (case (::ana2/op expr)
+       ;; unanalyzed nodes are specially handled outside of -check.
+       ;; this gives us full control over its expansion and evaluation.
+       ;; if you don't care about type checking macros pre-expansion,
+       ;; you can delete this branch and ana2/run-pre-passes will automatically
+       ;; expand them. In both cases, -check does not have an :unanalyzed case.
+       ::ana2/unanalyzed
+       (let [{:keys [form env]} expr
+             ;_ (prn "found form" form)
+             ;_ (prn "*ns*" (ns-name *ns*))
+             _ (when *intermediate-forms*
+                 (swap! *intermediate-forms* conj form))]
+         (case (jana2/resolve-op-sym form env)
+           ;; example of type checking a macro that relies on top-level 'do'
+           ;; evaluation order, so the results of evaluating previous expressions
+           ;; can be used to macroexpand subsequent ones.
+           typed.clj.analyzer.gilardi-test/my-body
+           (let [arg-forms (vec (rest form))
+                 tl? (ana2/top-level? expr)
+                 ; Note: if top-level, must check args in evaluation order
+                 cargs (into []
+                             (map-indexed
+                               (fn [i form]
+                                 (let [unanalyzed (if tl? ana2/unanalyzed-top-level ana2/unanalyzed)
+                                       expected (when (= (inc i) (count arg-forms))
+                                                  expected)]
+                                   (-> form
+                                       (unanalyzed env)
+                                       (check-expr expected)))))
+                             arg-forms)
+                 cexpr (-> expr
+                           (assoc :form (list* (first form) (map emit-form/emit-form cargs))))
+                 ; returns nil on no args
+                 final-result (get (peek cargs) :result nil)]
+             (-> cexpr
+                 ;; we've taken evaluation into our own hands, this says
+                 ;; don't reevaluate implicitly via ana2/eval-top-level
+                 ana2/unmark-top-level
+                 (assoc :result final-result
+                        ::type (if (seq cargs)
+                                 (::type (peek cargs))
+                                 (verify-expected :any expected)))))
+           ;; we can interrupt macroexpansion for whatever reason and resume it
+           ;; by recurring with ana2/analyze-outer.
+           clojure.core/defn (do (some-> *found-defns*
+                                         (swap! update (second form) (fnil inc 0)))
+                                 (recur (ana2/analyze-outer expr) expected))
+           ;; completely expand this without type checking it via ana2/run-passes.
+           clojure.core/ns
+           (let [;_ (prn "old ns:" *ns*)
+                 expr (ana2/run-passes expr)]
+             ;(prn "new ns:" *ns*)
+             (-> expr
+                 (assoc ::type :any)))
+           #_:else
+           (recur (ana2/analyze-outer expr) expected)))
+       (-> expr
+           ana2/run-pre-passes
+           (-check expected)
+           ana2/run-post-passes
+           ana2/eval-top-level)))))
 
 (defn check-top-level
   ([form expected] (check-top-level form expected {}))
   ([form expected {:keys [env] :as opts}]
+   {:post [(-> % ::type type?)]}
    (let [env (or env (jana2/empty-env))]
      (with-bindings (jana2/default-thread-bindings env)
        (env/ensure (jana2/global-env)
@@ -77,7 +175,7 @@
 (defn chk [& args]
   (apply check-top-level-fresh-ns args))
 
-(def this-ns *ns*)
+(def this-ns (ns-name *ns*))
 
 ;; example macros for typing rules
 
@@ -258,8 +356,8 @@
   ; var is interned under let*
   (is (= 1 (:result (chk '(let* [] (def a 1) a) nil))))
   ; locals shadowing (eval in current namespace)
-  (is (binding [*ns* this-ns]
+  (is (binding [*ns* (the-ns this-ns)]
         (= {:result 1} (select-keys (check-top-level `(let [~'my-body (constantly 1)] (~'my-body)) nil) [:result]))))
-  (is (binding [*ns* this-ns]
+  (is (binding [*ns* (the-ns this-ns)]
         (= {:result nil} (select-keys (check-top-level `(let [my-body# (constantly 1)] (~'my-body)) nil) [:result]))))
   )
