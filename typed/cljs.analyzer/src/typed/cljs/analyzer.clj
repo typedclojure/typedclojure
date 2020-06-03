@@ -10,15 +10,15 @@
 (ns typed.cljs.analyzer
   "Analyzer for clojurescript code, extends tools.analyzer with JS specific passes/forms"
   (:refer-clojure :exclude [macroexpand-1 var? ns-resolve])
-  (:require [clojure.core.typed.analyzer.common :as ana]
-            [clojure.core.typed.analyzer.common :as common]
-            [clojure.core.typed.analyzer.common.ast :refer [prewalk postwalk]]
-            [clojure.core.typed.analyzer.common.env :as env]
-            [clojure.core.typed.analyzer.common.passes :as passes]
-            [clojure.core.typed.analyzer.common.passes.source-info :refer [source-info]]
-            [clojure.core.typed.analyzer.common.passes.elide-meta :refer [elide-meta elides]]
-            [clojure.core.typed.analyzer.common.passes.uniquify :as uniquify2]
-            [clojure.core.typed.analyzer.common.utils :refer [ctx -source-info dissoc-env mmerge update-vals] :as u]
+  (:require [typed.cljc.analyzer :as ana]
+            [typed.cljc.analyzer :as common]
+            [typed.cljc.analyzer.ast :refer [prewalk postwalk]]
+            [typed.cljc.analyzer.env :as env]
+            [typed.cljc.analyzer.passes :as passes]
+            [typed.cljc.analyzer.passes.source-info :refer [source-info]]
+            [typed.cljc.analyzer.passes.elide-meta :refer [elide-meta elides]]
+            [typed.cljc.analyzer.passes.uniquify :as uniquify2]
+            [typed.cljc.analyzer.utils :refer [ctx -source-info dissoc-env mmerge update-vals] :as u]
             [typed.cljs.analyzer.passes.infer-tag :refer [infer-tag]]
             [typed.cljs.analyzer.passes.validate :refer [validate]]
             [typed.cljs.analyzer.utils

@@ -7,9 +7,9 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 ;copied from clojure.tools.analyzer.passes.constant-lifter
-(ns clojure.core.typed.analyzer.common.passes.constant-lifter
-  (:require [clojure.core.typed.analyzer.common :as common]
-            [clojure.core.typed.analyzer.common.utils :refer [const-val]]))
+(ns typed.cljc.analyzer.passes.constant-lifter
+  (:require [typed.cljc.analyzer :as common]
+            [typed.cljc.analyzer.utils :refer [const-val]]))
 
 (defmulti constant-lift
   "If the node represents a collection with no metadata, and every item of that

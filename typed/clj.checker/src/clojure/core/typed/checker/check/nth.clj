@@ -8,7 +8,7 @@
 
 (ns ^:skip-wiki clojure.core.typed.checker.check.nth
   (:require [clojure.core.typed :as t] 
-            [clojure.core.typed.analyzer.common :as ana2]
+            [typed.cljc.analyzer :as ana2]
             [clojure.core.typed.checker.check-below :as below]
             [clojure.core.typed.checker.type-ctors :as c]
             [clojure.core.typed.checker.type-rep :as r]

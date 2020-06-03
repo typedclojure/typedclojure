@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns clojure.core.typed.checker.check.jvm.host-interop
-  (:require [clojure.core.typed.analyzer.common :as ana2]
+  (:require [typed.cljc.analyzer :as ana2]
             [typed.clj.analyzer.passes.analyze-host-expr :as ana-host]
             [typed.clj.analyzer.passes.validate :as validate]
             [clojure.core.typed.checker.check.jvm.field :as field]

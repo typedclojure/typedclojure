@@ -8,7 +8,7 @@
 
 ;copied from clojure.tools.analyzer.passes.jvm.fix-case-test
 (ns typed.clj.analyzer.passes.fix-case-test
-  (:require [clojure.core.typed.analyzer.common.passes.add-binding-atom :as add-binding-atom]))
+  (:require [typed.cljc.analyzer.passes.add-binding-atom :as add-binding-atom]))
 
 (defn fix-case-test
   "If the node is a :case-test, annotates in the atom shared

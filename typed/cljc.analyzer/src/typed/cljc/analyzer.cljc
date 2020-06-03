@@ -7,10 +7,10 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 ;; adapted from clojure.tools.analyzer
-(ns clojure.core.typed.analyzer.common
+(ns typed.cljc.analyzer
   (:refer-clojure :exclude [macroexpand-1 var?])
-  (:require [clojure.core.typed.analyzer.common.ast :as ast]
-            [clojure.core.typed.analyzer.common.utils :as u])
+  (:require [typed.cljc.analyzer.ast :as ast]
+            [typed.cljc.analyzer.utils :as u])
   #?(:clj (:import (clojure.lang IType))))
 
 (def ^{:dynamic  true

@@ -7,9 +7,9 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 ;copied from clojure.tools.analyzer.passes.elide-meta
-(ns clojure.core.typed.analyzer.common.passes.elide-meta
-  (:require [clojure.core.typed.analyzer.common :as common]
-            [clojure.core.typed.analyzer.common.passes.source-info :refer [source-info]]))
+(ns typed.cljc.analyzer.passes.elide-meta
+  (:require [typed.cljc.analyzer :as common]
+            [typed.cljc.analyzer.passes.source-info :refer [source-info]]))
 
 (def ^:dynamic elides
   "A map of op keywords to predicate IFns.

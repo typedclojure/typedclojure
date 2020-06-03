@@ -6,10 +6,10 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns clojure.core.typed.analyzer.common.passes.uniquify
-  (:require [clojure.core.typed.analyzer.common.ast :refer [update-children children]]
-            [clojure.core.typed.analyzer.common.utils :refer [update-vals]]
-            [clojure.core.typed.analyzer.common.env :as env]))
+(ns typed.cljc.analyzer.passes.uniquify
+  (:require [typed.cljc.analyzer.ast :refer [update-children children]]
+            [typed.cljc.analyzer.utils :refer [update-vals]]
+            [typed.cljc.analyzer.env :as env]))
 
 (def ^:dynamic *locals-counter*) ;; global counter, map sym -> count
 (def ^:dynamic *locals-frame*)   ;; holds the id for the locals in the current frame

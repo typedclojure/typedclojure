@@ -1,7 +1,7 @@
 (ns typed-test.clj.analyzer.gilardi-test
-  (:require [clojure.core.typed.analyzer.common :as ana2]
-            [clojure.core.typed.analyzer.common.ast :as ast]
-            [clojure.core.typed.analyzer.common.env :as env]
+  (:require [typed.cljc.analyzer :as ana2]
+            [typed.cljc.analyzer.ast :as ast]
+            [typed.cljc.analyzer.env :as env]
             [typed.clj.analyzer :as jana2]
             [typed.clj.analyzer.passes.emit-form :as emit-form]
             [clojure.test :refer :all]))

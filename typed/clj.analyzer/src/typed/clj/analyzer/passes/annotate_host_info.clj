@@ -8,11 +8,11 @@
 
 ;copied from clojure.tools.analyzer.passes.jvm.annotate-host-info
 (ns typed.clj.analyzer.passes.annotate-host-info
-  (:require [clojure.core.typed.analyzer.common :as ana]
-            [clojure.core.typed.analyzer.common.ast :as ast]
-            [clojure.core.typed.analyzer.common.passes.cleanup :as cleanup]
-            [clojure.core.typed.analyzer.common.passes.elide-meta :as elide-meta]
-            [clojure.core.typed.analyzer.common.utils :as cu]
+  (:require [typed.cljc.analyzer :as ana]
+            [typed.cljc.analyzer.ast :as ast]
+            [typed.cljc.analyzer.passes.cleanup :as cleanup]
+            [typed.cljc.analyzer.passes.elide-meta :as elide-meta]
+            [typed.cljc.analyzer.utils :as cu]
             [typed.clj.analyzer.utils :as ju]))
 
 (defn annotate-host-info

@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 ;copied from clojure.tools.analyzer.passes.cleanup
-(ns clojure.core.typed.analyzer.common.passes.cleanup)
+(ns typed.cljc.analyzer.passes.cleanup)
 
 (defn cleanup
   {:pass-info {:walk :any :depends #{}}}

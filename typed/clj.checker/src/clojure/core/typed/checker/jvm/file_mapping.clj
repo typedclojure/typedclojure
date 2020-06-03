@@ -8,7 +8,7 @@
 
 (ns clojure.core.typed.checker.jvm.file-mapping
   (:require [clojure.core.typed :as t]
-            [clojure.core.typed.analyzer.common.ast :as ast]
+            [typed.cljc.analyzer.ast :as ast]
             [clojure.core.typed.checker.check.utils :as cu]
             [clojure.core.typed.checker.jvm.parse-unparse :as prs]
             [clojure.core.typed.checker.type-rep :as r]

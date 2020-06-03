@@ -8,8 +8,8 @@
 
 ;copied from clojure.tools.analyzer.passes.jvm.classify-invoke
 (ns typed.clj.analyzer.passes.classify-invoke
-  (:require [clojure.core.typed.analyzer.common :as common]
-            [clojure.core.typed.analyzer.common.utils :as cu]
+  (:require [typed.cljc.analyzer :as common]
+            [typed.cljc.analyzer.utils :as cu]
             [typed.clj.analyzer.utils :as ju]
             [typed.clj.analyzer.passes.validate :as validate]))
 
@@ -17,7 +17,7 @@
 (alias 'jvm 'typed.clj.analyzer)
 
 ;;important that this pass depends our `uniquify-locals`
-;; (clojure.core.typed.analyzer.common.passes.uniquify), not the taj pass
+;; (typed.cljc.analyzer.passes.uniquify), not the taj pass
 (defn classify-invoke
   "If the AST node is an :invoke, check the node in function position,
    * if it is a keyword, transform the node in a :keyword-invoke node;

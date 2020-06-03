@@ -9,9 +9,9 @@
 ; copied from tools.analyzer.jvm
 ; - replace calls to `maybe-class-literal`
 (ns typed.clj.analyzer.passes.analyze-host-expr
-  (:require [clojure.core.typed.analyzer.common :as ana]
-            [clojure.core.typed.analyzer.common :as common]
-            [clojure.core.typed.analyzer.common.utils :refer [ctx source-info merge']]
+  (:require [typed.cljc.analyzer :as ana]
+            [typed.cljc.analyzer :as common]
+            [typed.cljc.analyzer.utils :refer [ctx source-info merge']]
             [typed.clj.analyzer.utils :as u]))
 
 (create-ns 'typed.clj.analyzer)

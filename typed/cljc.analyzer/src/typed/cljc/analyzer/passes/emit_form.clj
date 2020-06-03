@@ -7,8 +7,8 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 ;copied from clojure.tools.analyzer.passes.emit-form
-(ns clojure.core.typed.analyzer.common.passes.emit-form
-  (:require [clojure.core.typed.analyzer.common.passes.uniquify :refer [uniquify-locals]]))
+(ns typed.cljc.analyzer.passes.emit-form
+  (:require [typed.cljc.analyzer.passes.uniquify :refer [uniquify-locals]]))
 
 (defmulti -emit-form (fn [{:keys [op]} _] op))
 

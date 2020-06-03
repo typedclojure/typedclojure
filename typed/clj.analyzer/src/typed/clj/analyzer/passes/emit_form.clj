@@ -8,8 +8,8 @@
 
 ; copied from clojure.tools.analyzer.jvm.passes.emit-form
 (ns typed.clj.analyzer.passes.emit-form
-  (:require [clojure.core.typed.analyzer.common.passes.emit-form :as default]
-            [clojure.core.typed.analyzer.common.passes.uniquify :refer [uniquify-locals]]))
+  (:require [typed.cljc.analyzer.passes.emit-form :as default]
+            [typed.cljc.analyzer.passes.uniquify :refer [uniquify-locals]]))
 
 (defmulti -emit-form (fn [{:keys [op]} _] op))
 

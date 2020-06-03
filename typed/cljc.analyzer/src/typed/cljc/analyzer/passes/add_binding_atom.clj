@@ -7,9 +7,9 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 ;; copied from clojure.tools.analyzer.passes.add-binding-atom
-(ns clojure.core.typed.analyzer.common.passes.add-binding-atom
-  (:require [clojure.core.typed.analyzer.common.ast :refer [prewalk]]
-            [clojure.core.typed.analyzer.common.passes.uniquify :refer [uniquify-locals]]))
+(ns typed.cljc.analyzer.passes.add-binding-atom
+  (:require [typed.cljc.analyzer.ast :refer [prewalk]]
+            [typed.cljc.analyzer.passes.uniquify :refer [uniquify-locals]]))
 
 (defn add-binding-atom
   "Adds an atom-backed-map to every local binding,the same

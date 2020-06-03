@@ -8,9 +8,9 @@
 
 ;copied from tools.analyzer.js
 (ns typed.cljs.analyzer.passes.analyze-host-expr
-  (:require [clojure.core.typed.analyzer.common :as common]
-            [clojure.core.typed.analyzer.common.env :as env]
-            [clojure.core.typed.analyzer.common.js :as anajs]))
+  (:require [typed.cljc.analyzer :as common]
+            [typed.cljc.analyzer.env :as env]
+            [typed.cljc.analyzer.js :as anajs]))
 
 (defmulti analyze-host-expr
   "Transform :host-interop nodes into :host-call, transform

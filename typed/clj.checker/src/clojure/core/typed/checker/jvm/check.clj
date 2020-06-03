@@ -9,8 +9,8 @@
 (ns clojure.core.typed.checker.jvm.check
   {:skip-wiki true}
   (:require [clojure.core.typed :as t]
-            [clojure.core.typed.analyzer.common :as ana2]
-            [clojure.core.typed.analyzer.common.env :as env]
+            [typed.cljc.analyzer :as ana2]
+            [typed.cljc.analyzer.env :as env]
             [typed.clj.analyzer :as jana2]
             [typed.clj.analyzer.passes.beta-reduce :as beta-reduce]
             [typed.clj.analyzer.passes.emit-form :as emit-form]

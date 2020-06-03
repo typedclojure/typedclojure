@@ -16,7 +16,7 @@
             [clojure.core.typed.checker.filter-ops :as fo]
             [clojure.core.typed.checker.check-below :as below]
             [clojure.core.typed.util-vars :as vs]
-            [clojure.core.typed.analyzer.common :as ana2]))
+            [typed.cljc.analyzer :as ana2]))
 
 (defuspecial 'clojure.core/ns
   [expr expected]

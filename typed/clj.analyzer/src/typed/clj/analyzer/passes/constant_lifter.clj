@@ -8,10 +8,10 @@
 
 ; copied from clojure.tools.analyzer.passes.jvm.constant-lifter
 (ns typed.clj.analyzer.passes.constant-lifter
-  (:require [clojure.core.typed.analyzer.common :as ana2]
-            [clojure.core.typed.analyzer.common.passes.constant-lifter :as orig]
-            [clojure.core.typed.analyzer.common.passes.elide-meta :as elide-meta]
-            [clojure.core.typed.analyzer.common.utils :as cu]
+  (:require [typed.cljc.analyzer :as ana2]
+            [typed.cljc.analyzer.passes.constant-lifter :as orig]
+            [typed.cljc.analyzer.passes.elide-meta :as elide-meta]
+            [typed.cljc.analyzer.utils :as cu]
             [typed.clj.analyzer.passes.analyze-host-expr :as analyze-host-expr]))
 
 (defn constant-lift*
@@ -26,7 +26,7 @@
     (orig/constant-lift ast)))
 
 (defn constant-lift
-  "Like clojure.core.typed.analyzer.common.passes.constant-lifter/constant-lift but
+  "Like typed.cljc.analyzer.passes.constant-lifter/constant-lift but
    transforms also :var nodes where the var has :const in the metadata
    into :const nodes and preserves tag info"
   {:pass-info {:walk :post :depends #{} :after #{#'elide-meta/elide-meta #'analyze-host-expr/analyze-host-expr}}}

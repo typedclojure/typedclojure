@@ -9,7 +9,7 @@
 (ns ^:skip-wiki clojure.core.typed.load1
   "Implementation of clojure.core.typed.load."
   (:require [clojure.core.typed :as t]
-            [clojure.core.typed.analyzer.common.env :as env]
+            [typed.cljc.analyzer.env :as env]
             [typed.clj.analyzer :as jana2]
             [clojure.core.typed.checker.check-form-common2 :as chk-frm]
             [clojure.core.typed.checker.jvm.check-form-clj :as chk-frm-clj]

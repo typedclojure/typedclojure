@@ -7,10 +7,10 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 ; copied from clojure.tools.analyzer.ast
-(ns clojure.core.typed.analyzer.common.ast
+(ns typed.cljc.analyzer.ast
   "Utilities for AST walking/updating"
   (:refer-clojure :exclude [unreduced])
-  (:require [clojure.core.typed.analyzer.common.utils :refer [into! rseqv mapv']]))
+  (:require [typed.cljc.analyzer.utils :refer [into! rseqv mapv']]))
 
 (defn cycling
   "Combine the given passes in a single pass that will be applieed repeatedly

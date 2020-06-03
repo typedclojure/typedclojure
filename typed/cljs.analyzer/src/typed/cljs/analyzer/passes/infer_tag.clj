@@ -10,7 +10,7 @@
 (ns clojure.core.typed.analyzer.passes.js.infer-tag
   (:require [clojure.tools.analyzer.env :as env]
             [clojure.tools.analyzer.utils :refer [arglist-for-arity]]
-            [clojure.core.typed.analyzer.common.passes.add-binding-atom :refer [add-binding-atom]]
+            [typed.cljc.analyzer.passes.add-binding-atom :refer [add-binding-atom]]
             [typed.cljs.analyzer.passes.annotate-tag :refer [annotate-tag]]
             [typed.cljs.analyzer.passes.analyze-host-expr :refer [analyze-host-expr]]))
 

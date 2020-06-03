@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns clojure.core.typed.checker.check.invoke
-  (:require [clojure.core.typed.analyzer.common :as ana2]
+  (:require [typed.cljc.analyzer :as ana2]
             [clojure.core.typed.checker.utils :as u]
             [clojure.core.typed.checker.check.funapp :as funapp]
             [clojure.core.typed.checker.check.invoke-kw :as invoke-kw]

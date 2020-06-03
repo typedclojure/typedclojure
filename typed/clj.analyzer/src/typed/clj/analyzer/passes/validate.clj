@@ -13,11 +13,11 @@
 ; - use typed.clj.analyzer.passes.analyze-host-expr
 ; - remove clojure.tools.analyzer.passes.jvm.validate-recur
 (ns typed.clj.analyzer.passes.validate
-  (:require [clojure.core.typed.analyzer.common :as ana2]
-            [clojure.core.typed.analyzer.common.ast :as ast]
-            [clojure.core.typed.analyzer.common.env :as env]
-            [clojure.core.typed.analyzer.common.passes.cleanup :as cleanup]
-            [clojure.core.typed.analyzer.common.utils :as cu]
+  (:require [typed.cljc.analyzer :as ana2]
+            [typed.cljc.analyzer.ast :as ast]
+            [typed.cljc.analyzer.env :as env]
+            [typed.cljc.analyzer.passes.cleanup :as cleanup]
+            [typed.cljc.analyzer.utils :as cu]
             [typed.clj.analyzer.passes.analyze-host-expr :as analyze-host-expr]
             [typed.clj.analyzer.passes.infer-tag :as infer-tag]
             [typed.clj.analyzer.utils :as ju])
@@ -243,7 +243,7 @@
                                (cu/source-info env))))))))
 
 ;;important that this pass depends our `uniquify-locals`
-;; (clojure.core.typed.analyzer.common.passes.uniquify), not the taj pass
+;; (typed.cljc.analyzer.passes.uniquify), not the taj pass
 ;; - remove validate-recur
 ;; - replace infer-tag
 ;; - replace analyze-host-expr

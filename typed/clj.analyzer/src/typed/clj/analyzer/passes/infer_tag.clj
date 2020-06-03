@@ -10,8 +10,8 @@
 ; - changed :pass-info for `infer-tag`
 ; - use analyzer.env
 (ns typed.clj.analyzer.passes.infer-tag
-  (:require [clojure.core.typed.analyzer.common.env :as env]
-            [clojure.core.typed.analyzer.common.utils :as cu]
+  (:require [typed.cljc.analyzer.env :as env]
+            [typed.cljc.analyzer.utils :as cu]
             [typed.clj.analyzer.passes.analyze-host-expr :as analyze-host-expr]
             [typed.clj.analyzer.passes.annotate-host-info :as annotate-host-info]
             [typed.clj.analyzer.passes.annotate-tag :as annotate-tag]

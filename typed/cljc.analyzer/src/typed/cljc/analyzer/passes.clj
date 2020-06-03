@@ -8,9 +8,9 @@
 
 ;; adapted from clojure.core.tools.analyzer
 ;TODO port tests from clojure.tools.analyzer.passes-test
-(ns clojure.core.typed.analyzer.common.passes
-  (:require [clojure.core.typed.analyzer.common :as ana]
-            [clojure.core.typed.analyzer.common.utils :as u]))
+(ns typed.cljc.analyzer.passes
+  (:require [typed.cljc.analyzer :as ana]
+            [typed.cljc.analyzer.utils :as u]))
 
 (defn ^:private has-deps?
   "Returns true if the pass has any dependencies"

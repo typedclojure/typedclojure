@@ -9,11 +9,11 @@
 ;copied from tools.analyzer.js
 ; - use ana2/resolve-{sym,ns}
 (ns typed.cljs.analyzer.passes.validate
-  (:require [clojure.core.typed.analyzer.common :as ana2]
-            [clojure.core.typed.analyzer.common.ast :as ast]
-            [clojure.core.typed.analyzer.common.passes.cleanup :as cleanup]
+  (:require [typed.cljc.analyzer :as ana2]
+            [typed.cljc.analyzer.ast :as ast]
+            [typed.cljc.analyzer.passes.cleanup :as cleanup]
             [typed.cljs.analyzer.passes.infer-tag :refer [infer-tag]]
-            [clojure.core.typed.analyzer.common.utils :as cu]))
+            [typed.cljc.analyzer.utils :as cu]))
 
 (defmulti -validate :op)
 (defmethod -validate :default [ast] ast)

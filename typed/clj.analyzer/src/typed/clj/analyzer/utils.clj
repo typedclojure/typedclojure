@@ -8,8 +8,8 @@
 
 ;copied from clojure.tools.analyzer.jvm.utils
 (ns typed.clj.analyzer.utils
-  (:require [clojure.core.typed.analyzer.common.utils :as u]
-            [clojure.core.typed.analyzer.common :as ana2]
+  (:require [typed.cljc.analyzer.utils :as u]
+            [typed.cljc.analyzer :as ana2]
             [clojure.reflect :as reflect]
             [clojure.string :as s]
             [clojure.core.memoize :refer [lru]]

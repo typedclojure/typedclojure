@@ -31,7 +31,7 @@
             [clojure.core.typed.checker.check.utils :as cu]
             [clojure.core.typed.checker.jvm.parse-unparse :as prs]
             [clojure.core.typed.checker.jvm.analyze-clj :as ana-clj]
-            [clojure.core.typed.analyzer.common :as ana]
+            [typed.cljc.analyzer :as ana]
             [typed.clj.analyzer.passes.beta-reduce :as beta-reduce]))
 
 ;check method is under a particular Function, and return inferred Function
