@@ -128,8 +128,8 @@
                       [clojure.tools.reader.reader-types :as rdrt]
                       [clojure.java.io :as io]
                       [clojure.core.typed.ast-utils :as ast]
-                      [clojure.core.typed.analyzer.jvm.passes.emit-form :as emit-form]
-                      [clojure.core.typed.analyzer.jvm :as jana2]
+                      [typed.clj.analyzer.passes.emit-form :as emit-form]
+                      [typed.clj.analyzer :as jana2]
                       [clojure.core.typed.annotator.insert :as insert
                        :refer [replace-generated-annotations]]
                       [clojure.core.typed.coerce-utils :as coerce]])))

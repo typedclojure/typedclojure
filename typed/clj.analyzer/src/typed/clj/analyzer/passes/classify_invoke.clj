@@ -7,14 +7,14 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 ;copied from clojure.tools.analyzer.passes.jvm.classify-invoke
-(ns clojure.core.typed.analyzer.jvm.passes.classify-invoke
+(ns typed.clj.analyzer.passes.classify-invoke
   (:require [clojure.core.typed.analyzer.common :as common]
             [clojure.core.typed.analyzer.common.utils :as cu]
-            [clojure.core.typed.analyzer.jvm.utils :as ju]
-            [clojure.core.typed.analyzer.jvm.passes.validate :as validate]))
+            [typed.clj.analyzer.utils :as ju]
+            [typed.clj.analyzer.passes.validate :as validate]))
 
-(create-ns 'clojure.core.typed.analyzer.jvm)
-(alias 'jvm 'clojure.core.typed.analyzer.jvm)
+(create-ns 'typed.clj.analyzer)
+(alias 'jvm 'typed.clj.analyzer)
 
 ;;important that this pass depends our `uniquify-locals`
 ;; (clojure.core.typed.analyzer.common.passes.uniquify), not the taj pass

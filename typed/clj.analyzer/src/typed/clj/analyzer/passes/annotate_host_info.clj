@@ -7,13 +7,13 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 ;copied from clojure.tools.analyzer.passes.jvm.annotate-host-info
-(ns clojure.core.typed.analyzer.jvm.passes.annotate-host-info
+(ns typed.clj.analyzer.passes.annotate-host-info
   (:require [clojure.core.typed.analyzer.common :as ana]
             [clojure.core.typed.analyzer.common.ast :as ast]
             [clojure.core.typed.analyzer.common.passes.cleanup :as cleanup]
             [clojure.core.typed.analyzer.common.passes.elide-meta :as elide-meta]
             [clojure.core.typed.analyzer.common.utils :as cu]
-            [clojure.core.typed.analyzer.jvm.utils :as ju]))
+            [typed.clj.analyzer.utils :as ju]))
 
 (defn annotate-host-info
   "Adds a :methods key to reify/deftype :methods info representing

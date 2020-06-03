@@ -9,14 +9,14 @@
 ;copied from tools.analyzer.jvm
 ; - changed :pass-info for `infer-tag`
 ; - use analyzer.env
-(ns clojure.core.typed.analyzer.jvm.passes.infer-tag
+(ns typed.clj.analyzer.passes.infer-tag
   (:require [clojure.core.typed.analyzer.common.env :as env]
             [clojure.core.typed.analyzer.common.utils :as cu]
-            [clojure.core.typed.analyzer.jvm.passes.analyze-host-expr :as analyze-host-expr]
-            [clojure.core.typed.analyzer.jvm.passes.annotate-host-info :as annotate-host-info]
-            [clojure.core.typed.analyzer.jvm.passes.annotate-tag :as annotate-tag]
-            [clojure.core.typed.analyzer.jvm.passes.fix-case-test :as fix-case-test]
-            [clojure.core.typed.analyzer.jvm.utils :as ju]
+            [typed.clj.analyzer.passes.analyze-host-expr :as analyze-host-expr]
+            [typed.clj.analyzer.passes.annotate-host-info :as annotate-host-info]
+            [typed.clj.analyzer.passes.annotate-tag :as annotate-tag]
+            [typed.clj.analyzer.passes.fix-case-test :as fix-case-test]
+            [typed.clj.analyzer.utils :as ju]
             [clojure.set :as set]))
 
 (defmulti -infer-tag :op)

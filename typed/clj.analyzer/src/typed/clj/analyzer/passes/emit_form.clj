@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 ; copied from clojure.tools.analyzer.jvm.passes.emit-form
-(ns clojure.core.typed.analyzer.jvm.passes.emit-form
+(ns typed.clj.analyzer.passes.emit-form
   (:require [clojure.core.typed.analyzer.common.passes.emit-form :as default]
             [clojure.core.typed.analyzer.common.passes.uniquify :refer [uniquify-locals]]))
 

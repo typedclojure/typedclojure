@@ -7,9 +7,9 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 ; copied from clojure.tools.analyzer.passes.jvm.annotate-tag
-(ns clojure.core.typed.analyzer.jvm.passes.annotate-tag
-  (:require [clojure.core.typed.analyzer.jvm.utils :as ju]
-            [clojure.core.typed.analyzer.jvm.passes.constant-lifter :as constant-lift :refer [constant-lift]])
+(ns typed.clj.analyzer.passes.annotate-tag
+  (:require [typed.clj.analyzer.utils :as ju]
+            [typed.clj.analyzer.passes.constant-lifter :as constant-lift :refer [constant-lift]])
   (:import (clojure.lang ISeq Var AFunction)))
 
 (defmulti -annotate-tag :op)

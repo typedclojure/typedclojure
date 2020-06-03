@@ -9,18 +9,18 @@
 ; copied from tools.analyzer.jvm
 ; - changed :pass-info for `validate`
 ; - use ana2/resolve-{sym,ns} instead of u/resolve-{sym,ns}
-; - use clojure.core.typed.analyzer.jvm.passes.infer-tag
-; - use clojure.core.typed.analyzer.jvm.passes.analyze-host-expr
+; - use typed.clj.analyzer.passes.infer-tag
+; - use typed.clj.analyzer.passes.analyze-host-expr
 ; - remove clojure.tools.analyzer.passes.jvm.validate-recur
-(ns clojure.core.typed.analyzer.jvm.passes.validate
+(ns typed.clj.analyzer.passes.validate
   (:require [clojure.core.typed.analyzer.common :as ana2]
             [clojure.core.typed.analyzer.common.ast :as ast]
             [clojure.core.typed.analyzer.common.env :as env]
             [clojure.core.typed.analyzer.common.passes.cleanup :as cleanup]
             [clojure.core.typed.analyzer.common.utils :as cu]
-            [clojure.core.typed.analyzer.jvm.passes.analyze-host-expr :as analyze-host-expr]
-            [clojure.core.typed.analyzer.jvm.passes.infer-tag :as infer-tag]
-            [clojure.core.typed.analyzer.jvm.utils :as ju])
+            [typed.clj.analyzer.passes.analyze-host-expr :as analyze-host-expr]
+            [typed.clj.analyzer.passes.infer-tag :as infer-tag]
+            [typed.clj.analyzer.utils :as ju])
   (:import (clojure.lang IFn)))
 
 (defmulti -validate :op)

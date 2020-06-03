@@ -3,8 +3,8 @@
     ; this loads the type system, must go first
     [clojure.core.typed.test.test-utils :as tu]
     [clojure.core.typed :as t]
-    [clojure.core.typed.analyzer.jvm :as ana]
-    [clojure.core.typed.analyzer.jvm.passes.emit-form :refer [emit-form]]
+    [typed.clj.analyzer :as ana]
+    [typed.clj.analyzer.passes.emit-form :refer [emit-form]]
     [clojure.core.typed.checker.jvm.analyze-clj :as ana-clj]
     [clojure.test :refer :all]))
 

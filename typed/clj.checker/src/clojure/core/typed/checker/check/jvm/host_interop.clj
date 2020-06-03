@@ -8,8 +8,8 @@
 
 (ns clojure.core.typed.checker.check.jvm.host-interop
   (:require [clojure.core.typed.analyzer.common :as ana2]
-            [clojure.core.typed.analyzer.jvm.passes.analyze-host-expr :as ana-host]
-            [clojure.core.typed.analyzer.jvm.passes.validate :as validate]
+            [typed.clj.analyzer.passes.analyze-host-expr :as ana-host]
+            [typed.clj.analyzer.passes.validate :as validate]
             [clojure.core.typed.checker.check.jvm.field :as field]
             [clojure.core.typed.checker.check.jvm.method :as method]
             [clojure.core.typed.checker.check.jvm.type-hints :as type-hints]
@@ -29,7 +29,7 @@
   [x]
   (instance? clojure.lang.IObj x))
 
-;; from clojure.core.typed.analyzer.jvm.passes.emit-form
+;; from typed.clj.analyzer.passes.emit-form
 (defn- class->sym [class]
   (if (symbol? class)
     class

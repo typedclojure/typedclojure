@@ -7,12 +7,12 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 ; copied from clojure.tools.analyzer.passes.jvm.constant-lifter
-(ns clojure.core.typed.analyzer.jvm.passes.constant-lifter
+(ns typed.clj.analyzer.passes.constant-lifter
   (:require [clojure.core.typed.analyzer.common :as ana2]
             [clojure.core.typed.analyzer.common.passes.constant-lifter :as orig]
             [clojure.core.typed.analyzer.common.passes.elide-meta :as elide-meta]
             [clojure.core.typed.analyzer.common.utils :as cu]
-            [clojure.core.typed.analyzer.jvm.passes.analyze-host-expr :as analyze-host-expr]))
+            [typed.clj.analyzer.passes.analyze-host-expr :as analyze-host-expr]))
 
 (defn constant-lift*
   [ast]

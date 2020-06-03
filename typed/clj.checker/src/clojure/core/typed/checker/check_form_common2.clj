@@ -20,7 +20,7 @@
             [clojure.core.typed.errors :as err]
             [clojure.repl :as repl]
             [clojure.core.typed.analyzer.common :as ana]
-            [clojure.core.typed.analyzer.jvm.passes.beta-reduce :as beta-reduce]
+            [typed.clj.analyzer.passes.beta-reduce :as beta-reduce]
             [clojure.core.typed.runtime.jvm.configs :as configs]
             [clojure.core.typed.checker.jvm.parse-unparse :as prs])
   (:import (clojure.lang ExceptionInfo)))

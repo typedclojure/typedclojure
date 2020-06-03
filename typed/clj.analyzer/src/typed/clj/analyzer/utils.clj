@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 ;copied from clojure.tools.analyzer.jvm.utils
-(ns clojure.core.typed.analyzer.jvm.utils
+(ns typed.clj.analyzer.utils
   (:require [clojure.core.typed.analyzer.common.utils :as u]
             [clojure.core.typed.analyzer.common :as ana2]
             [clojure.reflect :as reflect]

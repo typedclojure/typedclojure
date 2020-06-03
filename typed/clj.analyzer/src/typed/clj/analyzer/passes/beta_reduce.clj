@@ -6,14 +6,14 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns clojure.core.typed.analyzer.jvm.passes.beta-reduce
+(ns typed.clj.analyzer.passes.beta-reduce
   (:require [clojure.core.typed.analyzer.common :as ana]
             [clojure.core.typed.analyzer.common.ast :as ast]
             [clojure.core.typed.analyzer.common.passes.uniquify :as uniquify]
-            [clojure.core.typed.analyzer.jvm.passes.analyze-host-expr :as analyze-host-expr]
-            [clojure.core.typed.analyzer.jvm.passes.annotate-tag :as annotate-tag]
-            [clojure.core.typed.analyzer.jvm.passes.classify-invoke :as classify-invoke]
-            [clojure.core.typed.analyzer.jvm.passes.emit-form :as emit-form]))
+            [typed.clj.analyzer.passes.analyze-host-expr :as analyze-host-expr]
+            [typed.clj.analyzer.passes.annotate-tag :as annotate-tag]
+            [typed.clj.analyzer.passes.classify-invoke :as classify-invoke]
+            [typed.clj.analyzer.passes.emit-form :as emit-form]))
 
 (def beta-limit 500)
 

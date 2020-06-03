@@ -10,7 +10,7 @@
             [clojure.core.typed :as t]
             [clojure.core.typed.analyzer.common :as ana2]
             [clojure.tools.analyzer.jvm :as taj]
-            [clojure.core.typed.analyzer.jvm :as jana2]
+            [typed.clj.analyzer :as jana2]
             [clojure.core.typed.runtime-infer :refer :all :as infer]
             [clojure.core.typed.coerce-utils :as coerce]
             [clojure.core.typed.annotator.pprint :refer [pprint]] 

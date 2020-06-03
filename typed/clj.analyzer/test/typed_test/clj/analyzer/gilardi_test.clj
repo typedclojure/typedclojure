@@ -1,9 +1,9 @@
-(ns clojure.core.typed.analyzer.jvm.gilardi-test
+(ns typed-test.clj.analyzer.gilardi-test
   (:require [clojure.core.typed.analyzer.common :as ana2]
             [clojure.core.typed.analyzer.common.ast :as ast]
             [clojure.core.typed.analyzer.common.env :as env]
-            [clojure.core.typed.analyzer.jvm :as jana2]
-            [clojure.core.typed.analyzer.jvm.passes.emit-form :as emit-form]
+            [typed.clj.analyzer :as jana2]
+            [typed.clj.analyzer.passes.emit-form :as emit-form]
             [clojure.test :refer :all]))
 
 (declare check-expr)
@@ -24,7 +24,7 @@
                         _ (when *intermediate-forms*
                             (swap! *intermediate-forms* conj form))]
                     (case (jana2/resolve-op-sym form env)
-                      clojure.core.typed.analyzer.jvm.gilardi-test/my-body
+                      typed.clj.analyzer.gilardi-test/my-body
                       (let [arg-forms (rest form)
                             ; Note: if top-level, must check args in evaluation order
                             cargs (mapv (if (ana2/top-level? expr)

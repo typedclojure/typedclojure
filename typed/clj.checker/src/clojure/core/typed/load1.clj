@@ -10,7 +10,7 @@
   "Implementation of clojure.core.typed.load."
   (:require [clojure.core.typed :as t]
             [clojure.core.typed.analyzer.common.env :as env]
-            [clojure.core.typed.analyzer.jvm :as jana2]
+            [typed.clj.analyzer :as jana2]
             [clojure.core.typed.checker.check-form-common2 :as chk-frm]
             [clojure.core.typed.checker.jvm.check-form-clj :as chk-frm-clj]
             [clojure.core.typed.checker.ns-deps-utils :as ns-utils]

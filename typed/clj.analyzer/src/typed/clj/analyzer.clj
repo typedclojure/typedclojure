@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 ;; adapted from tools.analyzer.jvm
-(ns clojure.core.typed.analyzer.jvm
+(ns typed.clj.analyzer
   (:refer-clojure :exclude [macroexpand-1])
   (:require [clojure.core.memoize :as memo]
             [clojure.core.typed.analyzer.common :as ana]
@@ -19,12 +19,12 @@
             [clojure.core.typed.analyzer.common.passes.source-info :as source-info]
             [clojure.core.typed.analyzer.common.passes.uniquify :as uniquify2]
             [clojure.core.typed.analyzer.common.utils :as u]
-            [clojure.core.typed.analyzer.jvm.passes.analyze-host-expr :as analyze-host-expr]
-            [clojure.core.typed.analyzer.jvm.passes.classify-invoke :as classify-invoke]
-            [clojure.core.typed.analyzer.jvm.passes.emit-form :as emit-form]
-            [clojure.core.typed.analyzer.jvm.passes.infer-tag :as infer-tag]
-            [clojure.core.typed.analyzer.jvm.passes.validate :as validate]
-            [clojure.core.typed.analyzer.jvm.utils :as ju])
+            [typed.clj.analyzer.passes.analyze-host-expr :as analyze-host-expr]
+            [typed.clj.analyzer.passes.classify-invoke :as classify-invoke]
+            [typed.clj.analyzer.passes.emit-form :as emit-form]
+            [typed.clj.analyzer.passes.infer-tag :as infer-tag]
+            [typed.clj.analyzer.passes.validate :as validate]
+            [typed.clj.analyzer.utils :as ju])
   (:import [clojure.lang IObj RT Var]))
 
 (def specials
