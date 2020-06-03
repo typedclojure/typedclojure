@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 ;; adapted from tools.analyzer.js
-(ns clojure.core.typed.analyzer.js
+(ns typed.cljs.analyzer
   "Analyzer for clojurescript code, extends tools.analyzer with JS specific passes/forms"
   (:refer-clojure :exclude [macroexpand-1 var? ns-resolve])
   (:require [clojure.core.typed.analyzer.common :as ana]
@@ -19,9 +19,9 @@
             [clojure.core.typed.analyzer.common.passes.elide-meta :refer [elide-meta elides]]
             [clojure.core.typed.analyzer.common.passes.uniquify :as uniquify2]
             [clojure.core.typed.analyzer.common.utils :refer [ctx -source-info dissoc-env mmerge update-vals] :as u]
-            [clojure.core.typed.analyzer.js.passes.infer-tag :refer [infer-tag]]
-            [clojure.core.typed.analyzer.js.passes.validate :refer [validate]]
-            [clojure.core.typed.analyzer.js.utils
+            [typed.cljs.analyzer.passes.infer-tag :refer [infer-tag]]
+            [typed.cljs.analyzer.passes.validate :refer [validate]]
+            [typed.cljs.analyzer.utils
              :refer [desugar-ns-specs validate-ns-specs ns-resource ns->relpath res-path]]
             [cljs.env :as cljs-env]
             [cljs.js-deps :as deps]
@@ -313,7 +313,7 @@
                     (assoc env :locals (zipmap fields (map dissoc-env fields-expr))))]
 
     {:op        op
-     ::common/op (keyword "clojure.core.typed.analyzer.js" (name op))
+     ::common/op (keyword "typed.cljs.analyzer" (name op))
      :env       env
      :form      form
      :name      name
