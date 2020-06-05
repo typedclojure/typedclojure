@@ -39,6 +39,8 @@
                                         JSNominal Protocol GetType HSequential
                                         HSet AssocType TypeOf)))
 
+(set! *warn-on-reflection* true)
+
 (t/ann ^:no-check with-original-names [r/Type (t/U t/Sym (t/Seqable t/Sym)) -> r/Type])
 (defn- with-original-names [t names]
   (vary-meta t assoc ::names names))
@@ -209,12 +211,12 @@
 (t/ann complete-hmap? [HeterogeneousMap -> Boolean])
 (defn complete-hmap? [^HeterogeneousMap hmap]
   {:pre [(r/HeterogeneousMap? hmap)]}
-  (not (.other-keys? hmap)))
+  (not (:other-keys? hmap)))
 
 (t/ann partial-hmap? [HeterogeneousMap -> Boolean])
 (defn partial-hmap? [^HeterogeneousMap hmap]
   {:pre [(r/HeterogeneousMap? hmap)]}
-  (.other-keys? hmap))
+  (:other-keys? hmap))
 
 (t/ann ^:no-check upcast-hset [HSet -> r/Type])
 (defn upcast-hset [{:keys [fixed complete?] :as hset}]
@@ -509,7 +511,7 @@
           (every? r/Bounds? bnds)
           (symbol? name)]
     :post [(r/Type? %)]}
-   ;; FIXME most of this are placeholders
+   ;; FIXME most of these are placeholders
    (let [p (r/JSNominal-maker (seq variances) :class (seq poly?) name nil {} {})]
      (if (seq variances)
        (TypeFn* names variances bnds p)
@@ -1405,10 +1407,14 @@
 
 ;; Utils
 
-(t/ann Value->Class [Value -> Class])
+(t/ann Value->Class [Value -> (t/Option Class)])
 (defn ^Class Value->Class [tval]
-  {:post [(class? %)]}
-  (class (:val tval)))
+  {:post [(t/tc-ignore
+            (or (class? %)
+                (nil? %)))]}
+  ;; workaround bug with paths
+  ((-> class (t/ann-form [t/Any :-> (t/Option Class)]))
+   (:val tval)))
 
 (t/ann keyword-value? [t/Any -> t/Any])
 (defn keyword-value? [val]
@@ -2096,11 +2102,11 @@
 
 (t/ann KeywordValue->Fn [Value -> r/Type])
 (defn KeywordValue->Fn [{:keys [val] :as t}]
-  {:pre [(keyword-value? t)
-         ;redundant test for core.typed
-         (keyword? val)]}
+  {:pre [(keyword-value? t)]}
   (impl/assert-clojure)
-  (keyword->Fn val))
+  (keyword->Fn
+    ;; workaround occurrence typing failing to propagate types
+    (t/cast t/Keyword val)))
 
 ;; Extends
 
