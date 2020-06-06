@@ -1,18 +1,22 @@
-<a href='https://typedclojure.org'>
-  <img src="doc/images/typed-clojure-an-optional-type-system-letterbox.png"
-       alt="Typed Clojure">
-</a>
+<div>
+  <a href='https://typedclojure.org'>
+    <img src="doc/images/typed-clojure-an-optional-type-system-letterbox.png"
+         alt="Typed Clojure">
+  </a>
+</div>
 
-<p>
-  <a href="https://www.patreon.com/ambrosebs">
-    <img src="doc/images/become_a_patron_button.png"
-         alt="Become a patron">
-  </a>
-  <a href="https://opencollective.com/typedclojure">
-    <img src="doc/images/donate-to-our-collective.png"
-         alt="Donate to your OpenCollective">
-  </a>
-</p>
+<div>
+  <p>
+    <a href="https://www.patreon.com/ambrosebs">
+      <img src="doc/images/become_a_patron_button.png"
+           alt="Become a patron">
+    </a>
+    <a href="https://opencollective.com/typedclojure">
+      <img src="doc/images/donate-to-our-collective.png"
+           alt="Donate to your OpenCollective">
+    </a>
+  </p>
+</div>
 
 Optional typing in Clojure, as a library.
 
