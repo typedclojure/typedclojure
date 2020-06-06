@@ -1,7 +1,5 @@
-# Typed Clojure
-
 <div>
-  <a href="https://typedclojure.org">
+  <a href='https://typedclojure.org'>
     <img src="doc/images/typed-clojure-an-optional-type-system-letterbox.png"
          alt="Typed Clojure">
   </a>
