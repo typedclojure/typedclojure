@@ -338,28 +338,28 @@
 
 (comment
 (t/cf
-  (let [c (chan )]
-    (go (a/>! c "hello"))
-    (prn (a/<!! (go :- t/Str (a/<! c))))
-    (a/close! c)))
+  (let [c (chan)]
+    (async/go (async/>! c "hello"))
+    (prn (async/<!! (go (async/<! c))))
+    (async/close! c)))
 
 (t/cf
   (let [c1 (chan :- t/Str)
         c2 (chan :- t/Str)]
-    (a/thread (while true
-                (let [[v ch] (a/alts!! [c1 c2])]
-                  (println "Read" v "from" ch))))
-    (a/>!! c1 "hi")
-    (a/>!! c2 "there")))
+    (async/thread (while true
+                    (let [[v ch] (async/alts!! [c1 c2])]
+                      (println "Read" v "from" ch))))
+    (async/>!! c1 "hi")
+    (async/>!! c2 "there")))
 
 (t/cf
   (let [c1 (chan)
         c2 (chan :- t/Str)]
-    (go (while true
-          (let [[v ch] (a/alts! [c1 c2])]
-            (println "Read" v "from" ch))))
-    (go (a/>! c1 "hi"))
-    (go (a/>! c2 "there"))))
+    (async/go (while true
+                (let [[v ch] (async/alts! [c1 c2])]
+                  (println "Read" v "from" ch))))
+    (async/go (async/>! c1 "hi"))
+    (async/go (async/>! c2 "there"))))
 
 )
 

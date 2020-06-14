@@ -102,7 +102,7 @@
   (or (when-some [expr (-host-call-special expr expected)]
         (let [expr (-> expr
                        ana2/run-post-passes
-                       (merge (select-keys expr [u/expr-type])))]
+                       (assoc u/expr-type (u/expr-type expr)))]
           (case (:op expr)
             (:static-call :instance-call) expr
             :host-call
@@ -121,8 +121,8 @@
   {:pre [(#{:maybe-host-form} (:op expr))]
    :post [(-> % u/expr-type r/TCResult?)]}
   (let [expr (ana2/run-pre-passes expr)]
-    (if (#{:maybe-host-form} (:op expr))
+    (if (= :maybe-host-form (:op expr))
       (err/tc-delayed-error (str "Unresolved host interop: " (:form expr)
                                  "\n\nHint: use *warn-on-reflection* to identify reflective calls")
-                            :return (assoc expr u/expr-type r/-error))
+                            :return (assoc expr u/expr-type (r/ret r/-error)))
       (check-expr expr expected))))

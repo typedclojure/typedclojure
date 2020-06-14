@@ -4753,3 +4753,12 @@
 
 (deftest check-form-info-result-test
   (is (= 1 (:result (check-form-info '(do (do (do 1))))))))
+
+;; here instead of typed.clj.analyzer to ensure they don't throw type errors
+(deftest validate-pass-test
+  (is (thrown? ExceptionInfo
+               #"No such namespace: asdfds"
+               (tc-e asdfds/s)))
+  (is (thrown? ExceptionInfo
+               #"No such var: clojure.core"
+               (tc-e clojure.core/asdf))))
