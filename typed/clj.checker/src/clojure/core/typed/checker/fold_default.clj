@@ -260,7 +260,7 @@
                                assoced
                                fallback-r)))))
 
-(def ret-first (fn [a & rest] a))
+(def ret-first (fn [a _] a))
 
 (add-default-fold-case CountRange ret-first)
 (add-default-fold-case Name ret-first)

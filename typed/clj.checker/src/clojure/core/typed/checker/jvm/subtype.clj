@@ -157,7 +157,8 @@
           (r/Unchecked? s)
           (r/Unchecked? t)
           ;TCError is top and bottom
-          (some r/TCError? [s t]))
+          (r/TCError? s)
+          (r/TCError? t))
     A
     (binding [*sub-current-seen* (conj A [s t])]
       (cond
