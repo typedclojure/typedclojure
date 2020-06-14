@@ -465,39 +465,3 @@
                                           (= (:path f1) (:path f2))
                                           (subtype? (:type f1) (:type f2)))
         :else false))))
-
-(defmulti opposite-filter class)
-
-(def negate opposite-filter)
-
-(defmethod opposite-filter TypeFilter
-  [{:keys [type id path]}]
-  (-not-filter type id path))
-
-(defmethod opposite-filter NotTypeFilter
-  [{:keys [type id path]}]
-  (-filter type id path))
-
-(defmethod opposite-filter AndFilter
-  [{:keys [fs]}]
-  (apply -or (map opposite-filter fs)))
-
-(defmethod opposite-filter OrFilter
-  [{:keys [fs]}]
-  (apply -and (map opposite-filter fs)))
-
-(defmethod opposite-filter BotFilter
-  [_]
-  fr/-top)
-
-(defmethod opposite-filter TopFilter
-  [_]
-  fr/-bot)
-
-(defmethod opposite-filter ImpFilter
-  [f]
-  f)
-
-(defmethod opposite-filter NoFilter
-  [f]
-  f)

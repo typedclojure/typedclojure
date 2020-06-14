@@ -57,11 +57,14 @@
   "A map of free names (symbols) to their variances"
   (t/Map t/Sym r/Variance))
 
-(defprotocol IFrees
+(defprotocol ^:private IFrees
   (^:private ^FreesResult frees [t]))
 
 (t/ann ^:no-check variance-map? (t/Pred VarianceMap))
 (def variance-map? (con/hash-c? symbol? r/variance?))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Exposed interface
 
 (t/ann fv-variances [r/AnyType -> VarianceMap])
 (defn fv-variances 
@@ -91,29 +94,6 @@
   {:post [((con/set-c? symbol?) %)]}
   (set (keys (idx-variances t))))
 
-(t/ann flip-variances [FreesResult -> FreesResult])
-(defn ^FreesResult flip-variances [^FreesResult fr]
-  {:pre [(instance? FreesResult fr)]
-   :post [(instance? FreesResult %)]}
-  (let [flp (fn [vs]
-              (zipmap (keys vs) 
-                      (map (t/fn [vari :- r/Variance]
-                             (case vari
-                               :covariant :contravariant
-                               :contravariant :covariant
-                               vari))
-                           (vals vs))))]
-    (FreesResult. (flp (.frees fr))
-                  (flp (.idxs fr)))))
-
-(defn ^FreesResult invariant-variances [^FreesResult fr]
-  {:pre [(instance? FreesResult fr)]
-   :post [(instance? FreesResult %)]}
-  (let [inv (fn [vs]
-              (zipmap (keys vs) (repeat :invariant)))]
-    (FreesResult. (inv (.frees fr))
-                  (inv (.idxs fr)))))
-
 (t/ann combine-frees [VarianceMap * -> VarianceMap])
 (defn combine-frees [& frees]
   {:post [(map? %)]}
@@ -128,6 +108,32 @@
                           :else :invariant))
            frees)
     {}))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Implementation 
+
+(t/ann flip-variances [FreesResult -> FreesResult])
+(defn ^FreesResult ^:private flip-variances [^FreesResult fr]
+  {:pre [(instance? FreesResult fr)]
+   :post [(instance? FreesResult %)]}
+  (let [flp (fn [vs]
+              (zipmap (keys vs) 
+                      (map (t/fn [vari :- r/Variance]
+                             (case vari
+                               :covariant :contravariant
+                               :contravariant :covariant
+                               vari))
+                           (vals vs))))]
+    (FreesResult. (flp (.frees fr))
+                  (flp (.idxs fr)))))
+
+(defn ^FreesResult ^:private invariant-variances [^FreesResult fr]
+  {:pre [(instance? FreesResult fr)]
+   :post [(instance? FreesResult %)]}
+  (let [inv (fn [vs]
+              (zipmap (keys vs) (repeat :invariant)))]
+    (FreesResult. (inv (.frees fr))
+                  (inv (.idxs fr)))))
 
 (t/ann combine-freesresults [FreesResult * -> FreesResult])
 (defn ^FreesResult ^:private combine-freesresults [& frees]
