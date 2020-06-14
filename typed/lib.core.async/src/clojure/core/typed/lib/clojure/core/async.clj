@@ -11,9 +11,6 @@
     "This namespace contains annotations and helper macros for type
     checking core.async code.
     
-    go
-      use go
-
     chan
       use chan
 
@@ -304,6 +301,8 @@
     [t? t args]))
 )
 
+;; use async/go
+#_
 (defmacro go
   "Like go but with optional annotations. Channel annotation defaults to Any.
 
@@ -337,6 +336,8 @@
                      (ioc/run-state-machine-wrapped state#)))))
        c#)))
 
+;; use async/go-loop
+#_
 (defmacro go-loop
   "Like (go (t/loop ...))"
   [& body]

@@ -40,7 +40,7 @@
   "Create a named player and return a channel to report moves."
   [name]
   (let [out (ta/chan :- PlayerMove)]
-    (ta/go (while true (a/>! out [name (rand-nth MOVES)])))
+    (a/go (while true (a/>! out [name (rand-nth MOVES)])))
     out))
 
 (t/ann winner [PlayerMove PlayerMove -> PlayerName])
@@ -58,7 +58,7 @@
   output channel to report the results of each match as [move1 move2 winner]."
   [p1 p2]
   (let [out (ta/chan :- RPSResult)]
-    (ta/go
+    (a/go
       (while true
         (let [m1 (a/<! p1)
               m2 (a/<! p2)]

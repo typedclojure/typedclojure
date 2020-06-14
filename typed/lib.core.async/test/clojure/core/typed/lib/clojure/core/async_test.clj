@@ -9,11 +9,11 @@
 (deftest async-test
   (is-tc-e 
     #(let [c (chan :- t/Str)]
-       (go (a/>! c "hello"))
-       (prn (a/<!! (go :- Str (a/<! c))))
+       (a/go (a/>! c "hello"))
+       (prn (a/<!! (a/go (a/<! c))))
        (a/close! c))
     :requires [[clojure.core.async :as a]
-               [clojure.core.typed.lib.clojure.core.async :refer [go chan]]])
+               [clojure.core.typed.lib.clojure.core.async :refer [chan]]])
   (is-tc-e 
     #(let [c1 (chan :- t/Str)
            c2 (chan :- t/Str)]
@@ -23,7 +23,7 @@
        (a/>!! c1 "hi")
        (a/>!! c2 "there"))
     :requires [[clojure.core.async :as a]
-               [clojure.core.typed.lib.clojure.core.async :as ta :refer [go chan]]])
+               [clojure.core.typed.lib.clojure.core.async :as ta :refer [chan]]])
   (is-tc-e 
     #(a/alts!! [(a/chan) (a/chan)] :priority true)
     :requires [[clojure.core.async :as a]
@@ -34,7 +34,7 @@
       (defn lift-chan [function]
         (fn [in :- (Chan x)]
           (let [out (chan :- y)]
-            (go
+            (a/go
               (loop []
                 (let [rcv (<! in)]
                   (when rcv
@@ -48,10 +48,36 @@
       (def upcase (lift-chan upper-case))
       (upcase (chan :- Str)))
     :requires [[clojure.core.async :as a :refer [<! >!]]
-               [clojure.core.typed.lib.clojure.core.async :refer [chan go Chan]]]))
+               [clojure.core.typed.lib.clojure.core.async :refer [chan Chan]]]))
 
 (deftest rps-async-test
   (is (t/check-ns 'clojure.core.typed.lib.clojure.core.async.rps-async-test)))
+
+(deftest go-rule-test
+  (is-tc-e 
+    #(let [c (chan :- t/Str)]
+       (a/go (a/>! c "hello"))
+       (prn (a/<!! (a/go (a/<! c))))
+       (a/close! c))
+    :requires [[clojure.core.async :as a]
+               [clojure.core.typed.lib.clojure.core.async :refer [chan]]])
+  (is-tc-err
+    #(let [c (chan :- t/Str)]
+       (a/go (a/>! c 123))
+       (prn (a/<!! (a/go (a/<! c))))
+       (a/close! c))
+    :requires [[clojure.core.async :as a]
+               [clojure.core.typed.lib.clojure.core.async :refer [chan]]])
+  (is-tc-e
+    (t/ann-form #(a/<!! (a/go "hello"))
+                [:-> (t/Nilable t/Str)])
+    :requires [[clojure.core.async :as a]
+               [clojure.core.typed.lib.clojure.core.async :refer [chan]]])
+  (is-tc-err
+    (t/ann-form #(a/<!! (a/go 123))
+                [:-> (t/Nilable t/Str)])
+    :requires [[clojure.core.async :as a]
+               [clojure.core.typed.lib.clojure.core.async :refer [chan]]]))
 
 ;(let [c1 (chan)
 ;      c2 (chan :- t/Str)]
