@@ -133,12 +133,12 @@
                                         (obj/-path (seq (concat p* p)) i*)))
                       t))))
 
-(fold/def-derived-fold ISubstType subst-type*)
+(fold/def-derived-fold ISubstType subst-type* [st k o polarity])
 
 (fold/add-fold-case
   ISubstType subst-type*
   Function
-  (fn [{:keys [dom rng rest drest kws prest pdot] :as ty} {{:keys [st k o polarity]} :locals}]
+  (fn [{:keys [dom rng rest drest kws prest pdot] :as ty} st k o polarity]
     ;; here we have to increment the count for the domain, where the new bindings are in scope
     (let [arg-count (+ (count dom) (if rest 1 0) (if drest 1 0) (count (:mandatory kws)) (count (:optional kws)))
           st* (if (integer? k)
@@ -179,12 +179,12 @@
              :post [((some-fn fl/FilterSet? r/FlowSet?) %)]}
             ((if (fl/FilterSet? fs) subst-filter-set subst-flow-set) 
              fs k o polarity))]
-    (subst-type*
+    (call-subst-type*
       t
       {:type-rec st
        :filter-rec sf
        :object-rec (fn [f] (subst-object f k o polarity))
-       :locals {:st st
-                :k k
-                :o o
-                :polarity polarity}})))
+       :st st
+       :k k
+       :o o
+       :polarity polarity})))

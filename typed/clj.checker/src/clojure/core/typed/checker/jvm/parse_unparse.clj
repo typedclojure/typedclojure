@@ -1404,6 +1404,10 @@
 
 (indu/add-indirection ind/parse-type parse-type)
 
+(comment
+  (parse-clj `(t/All [s#] [s# :-> s#]))
+  )
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Unparse
 

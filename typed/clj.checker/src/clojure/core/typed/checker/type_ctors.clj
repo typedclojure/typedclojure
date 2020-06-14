@@ -1752,12 +1752,12 @@
   (map vector (iterate dec (dec (count c))) c))
 
 (t/tc-ignore
-(f/def-derived-fold IAbstractMany abstract-many*)
+(f/def-derived-fold IAbstractMany ^:private abstract-many* [name count outer sb name-to])
 
 (f/add-fold-case
   IAbstractMany abstract-many*
   F
-  (fn [{name* :name :as t} {{:keys [name count outer sb]} :locals}]
+  (fn [{name* :name :as t} name count outer sb name-to]
     (if (= name name*)
       (r/B-maker (+ count outer))
       t)))
@@ -1765,7 +1765,7 @@
 (f/add-fold-case
   IAbstractMany abstract-many*
   Function
-  (fn [{:keys [dom rng rest drest kws prest pdot] :as ty} {{:keys [name count outer sb]} :locals}]
+  (fn [{:keys [dom rng rest drest kws prest pdot] :as ty} name count outer sb name-to]
    (r/Function-maker (doall (map sb dom))
                  (sb rng)
                  (when rest (sb rest))
@@ -1795,7 +1795,7 @@
 (f/add-fold-case
   IAbstractMany abstract-many*
   HSequential
-  (fn [ty {{:keys [name count outer sb]} :locals}]
+  (fn [ty name count outer sb name-to]
     (r/-hsequential 
       (mapv sb (:types ty))
       :filters (mapv sb (:fs ty))
@@ -1814,7 +1814,7 @@
 (f/add-fold-case
   IAbstractMany abstract-many*
   AssocType
-  (fn [{:keys [target entries dentries]} {{:keys [name count outer sb]} :locals}]
+  (fn [{:keys [target entries dentries]} name count outer sb name-to]
    (r/AssocType-maker (sb target)
                       (mapv (fn [[k v]] [(sb k) (sb v)]) entries)
                       (when dentries
@@ -1827,19 +1827,19 @@
 (f/add-fold-case
   IAbstractMany abstract-many*
   Mu
-  (fn [{:keys [scope] :as mu} {{:keys [name count type outer name-to]} :locals}]
+  (fn [{:keys [scope] :as mu} name count outer sb name-to]
    (let [body (remove-scopes 1 scope)]
-     (r/Mu-maker (r/Scope-maker (name-to name count type (inc outer) body))
+     (r/Mu-maker (r/Scope-maker (name-to name count (inc outer) body))
                  (meta mu)))))
 
 (f/add-fold-case
   IAbstractMany abstract-many*
   PolyDots
-  (fn [{:keys [named] bbnds* :bbnds n :nbound body* :scope :as ty} {{:keys [name count type outer name-to]} :locals}]
+  (fn [{:keys [named] bbnds* :bbnds n :nbound body* :scope :as ty} name count outer sb name-to]
    (let [rs #(remove-scopes n %)
          body (rs body*)
          bbnds (mapv #(r/visit-bounds % rs) bbnds*)
-         as #(add-scopes n (name-to name count type (+ n outer) %))]
+         as #(add-scopes n (name-to name count (+ n outer) %))]
      (r/PolyDots-maker n 
                        (mapv #(r/visit-bounds % as) bbnds)
                        (as body)
@@ -1849,11 +1849,11 @@
 (f/add-fold-case
   IAbstractMany abstract-many*
   Poly
-  (fn [{:keys [named] bbnds* :bbnds n :nbound body* :scope :as poly} {{:keys [name count type outer name-to]} :locals}]
+  (fn [{:keys [named] bbnds* :bbnds n :nbound body* :scope :as poly} name count outer sb name-to]
    (let [rs #(remove-scopes n %)
          body (rs body*)
          bbnds (mapv #(r/visit-bounds % rs) bbnds*)
-         as #(add-scopes n (name-to name count type (+ n outer) %))]
+         as #(add-scopes n (name-to name count (+ n outer) %))]
      (r/Poly-maker n 
                    (mapv #(r/visit-bounds % as) bbnds)
                    (as body)
@@ -1864,11 +1864,11 @@
   IAbstractMany abstract-many*
   TypeFn
   (fn [{bbnds* :bbnds n :nbound body* :scope :keys [variances] :as t}
-       {{:keys [name count type outer name-to]} :locals}]
+       name count outer sb name-to]
   (let [rs #(remove-scopes n %)
         body (rs body*)
         bbnds (mapv #(r/visit-bounds % rs) bbnds*)
-        as #(add-scopes n (name-to name count type (+ n outer) %))]
+        as #(add-scopes n (name-to name count (+ n outer) %))]
      (r/TypeFn-maker n 
                      variances
                      (mapv #(r/visit-bounds % as) bbnds)
@@ -1882,19 +1882,19 @@
   {:pre [(every? symbol? names)
          ((some-fn r/Type? r/TypeFn?) ty)]}
   (letfn [(name-to 
-            ([name count type] (name-to name count type 0 type))
-            ([name count type outer ty]
-             (letfn [(sb [t] (name-to name count type outer t))]
-               (abstract-many*
+            ([name count type] (name-to name count 0 type))
+            ([name count outer ty]
+             (letfn [(sb [t] (name-to name count outer t))]
+               (call-abstract-many*
                  ty
                  {:type-rec sb
-                  :filter-rec (f/sub-f sb abstract-many*)
-                  :object-rec (f/sub-o sb abstract-many*)
-                  :locals {:name name
-                           :count count
-                           :outer outer
-                           :sb sb
-                           :name-to name-to}}))))]
+                  :filter-rec (f/sub-f sb `call-abstract-many*)
+                  :object-rec (f/sub-o sb `call-abstract-many*)
+                  :name name
+                  :count count
+                  :outer outer
+                  :sb sb
+                  :name-to name-to}))))]
     (if (empty? names)
       ty
       (let [n (count names)]
@@ -1907,12 +1907,12 @@
                    (next names)
                    (dec count))))))))
 
-(f/def-derived-fold IInstantiateMany instantiate-many*)
+(f/def-derived-fold IInstantiateMany instantiate-many* [count outer image sb replace])
 
 (f/add-fold-case
   IInstantiateMany instantiate-many*
                B
-               (fn [{:keys [idx] :as t} {{:keys [count outer image sb]} :locals}]
+               (fn [{:keys [idx] :as t} count outer image sb replace]
                  (if (= (+ count outer) idx)
                    (r/F-maker image)
                    t)))
@@ -1920,7 +1920,7 @@
 (f/add-fold-case
   IInstantiateMany instantiate-many*
                Function
-               (fn [{:keys [dom rng rest drest kws prest pdot]} {{:keys [count outer image sb]} :locals}]
+               (fn [{:keys [dom rng rest drest kws prest pdot]} count outer image sb replace]
                  (r/Function-maker (map sb dom)
                              (sb rng)
                              (when rest
@@ -1954,7 +1954,7 @@
 (f/add-fold-case
   IInstantiateMany instantiate-many*
                  HSequential
-                 (fn [ty {{:keys [count outer image sb]} :locals}]
+                 (fn [ty count outer image sb replace]
                    (r/-hsequential 
                      (mapv sb (:types ty))
                      :filters (mapv sb (:fs ty))
@@ -1973,7 +1973,7 @@
 (f/add-fold-case
   IInstantiateMany instantiate-many*
                  AssocType
-                 (fn [{:keys [target entries dentries]} {{:keys [count outer image sb]} :locals}]
+                 (fn [{:keys [target entries dentries]} count outer image sb replace]
                    (r/AssocType-maker (sb target)
                                       (map (fn [[k v]] [(sb k) (sb v)]) entries)
                                       (when dentries
@@ -1986,19 +1986,19 @@
 (f/add-fold-case
   IInstantiateMany instantiate-many*
                Mu
-               (fn [{:keys [scope] :as mu} {{:keys [replace count outer image sb type]} :locals}]
+               (fn [{:keys [scope] :as mu} count outer image sb replace]
                  (let [body (remove-scopes 1 scope)]
-                   (r/Mu-maker (r/Scope-maker (replace image count type (inc outer) body))
+                   (r/Mu-maker (r/Scope-maker (replace image count (inc outer) body))
                                (meta mu)))))
 
 (f/add-fold-case
   IInstantiateMany instantiate-many*
                PolyDots
-               (fn [{:keys [named] bbnds* :bbnds n :nbound body* :scope :as ty} {{:keys [replace count outer image sb type]} :locals}]
+               (fn [{:keys [named] bbnds* :bbnds n :nbound body* :scope :as ty} count outer image sb replace]
                  (let [rs #(remove-scopes n %)
                        body (rs body*)
                        bbnds (mapv #(r/visit-bounds % rs) bbnds*)
-                       as #(add-scopes n (replace image count type (+ n outer) %))]
+                       as #(add-scopes n (replace image count (+ n outer) %))]
                    (r/PolyDots-maker n 
                                      (mapv #(r/visit-bounds % as) bbnds)
                                      (as body)
@@ -2009,11 +2009,11 @@
   IInstantiateMany instantiate-many*
                  Poly
                  (fn [{:keys [named] bbnds* :bbnds n :nbound body* :scope :as poly} 
-                      {{:keys [replace count outer image sb type]} :locals}]
+                      count outer image sb replace]
                    (let [rs #(remove-scopes n %)
                          body (rs body*)
                          bbnds (mapv #(r/visit-bounds % rs) bbnds*)
-                         as #(add-scopes n (replace image count type (+ n outer) %))]
+                         as #(add-scopes n (replace image count (+ n outer) %))]
                      (r/Poly-maker n 
                                    (mapv #(r/visit-bounds % as) bbnds)
                                    (as body)
@@ -2024,11 +2024,11 @@
   IInstantiateMany instantiate-many*
                  TypeFn
                  (fn [{bbnds* :bbnds n :nbound body* :scope :keys [variances] :as t} 
-                      {{:keys [replace count outer image sb type]} :locals}]
+                      count outer image sb replace]
                    (let [rs #(remove-scopes n %)
                          body (rs body*)
                          bbnds (mapv #(r/visit-bounds % rs) bbnds*)
-                         as #(add-scopes n (replace image count type (+ n outer) %))]
+                         as #(add-scopes n (replace image count (+ n outer) %))]
                      (r/TypeFn-maker n 
                                      variances
                                      (mapv #(r/visit-bounds % as) bbnds)
@@ -2047,21 +2047,20 @@
              (empty? images))]
    :post [((some-fn r/Type? r/TypeFn?) %)]}
   (letfn [(replace 
-            ([image count type] (replace image count type 0 type))
-            ([image count type outer ty]
-             (letfn [(sb [t] (replace image count type outer t))]
-               (let [sf (f/sub-f sb instantiate-many*)]
-                 (instantiate-many*
+            ([image count type] (replace image count 0 type))
+            ([image count outer ty]
+             (letfn [(sb [t] (replace image count outer t))]
+               (let [sf (f/sub-f sb `call-instantiate-many*)]
+                 (call-instantiate-many*
                    ty
                    {:type-rec sb 
                     :filter-rec sf 
-                    :object-rec (f/sub-o sb instantiate-many*)
-                    :locals {:count count
-                             :outer outer
-                             :image image
-                             :sb sb
-                             :type type
-                             :replace replace}})))))]
+                    :object-rec (f/sub-o sb `call-instantiate-many*)
+                    :count count
+                    :outer outer
+                    :image image
+                    :sb sb
+                    :replace replace})))))]
     (if (empty? images)
       sc
       (let [n (count images)]

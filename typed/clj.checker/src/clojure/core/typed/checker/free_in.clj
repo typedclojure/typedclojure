@@ -16,16 +16,19 @@
            (clojure.core.typed.checker.type_rep Function)))
 
 (fold/def-derived-fold IFreeInForObject
-  free-in-for-object)
+  free-in-for-object
+  [k free-in?])
 (fold/def-derived-fold IFreeInForFilter
-  free-in-for-filter)
+  free-in-for-filter
+  [k free-in?])
 (fold/def-derived-fold IFreeInForType
-  free-in-for-type)
+  free-in-for-type
+  [k free-in? for-type])
 
 (fold/add-fold-case
   IFreeInForObject free-in-for-object
   Path
-  (fn [{p :path i :id :as o} {{:keys [free-in? k]} :locals}]
+  (fn [{p :path i :id :as o} k free-in?]
     (if (= i k)
       (reset! free-in? true)
       o)))
@@ -33,7 +36,7 @@
 (fold/add-fold-case
   IFreeInForFilter free-in-for-filter
   NotTypeFilter
-  (fn [{t :type p :path i :id :as t} {{:keys [k free-in?]} :locals}]
+  (fn [{t :type p :path i :id :as t} k free-in?]
     (if (= i k)
       (reset! free-in? true)
       t)))
@@ -41,7 +44,7 @@
 (fold/add-fold-case
   IFreeInForFilter free-in-for-filter
   TypeFilter
-  (fn [{t :type p :path i :id :as t} {{:keys [k free-in?]} :locals}]
+  (fn [{t :type p :path i :id :as t} k free-in?]
     (if (= i k)
       (reset! free-in? true)
       t)))
@@ -51,7 +54,7 @@
 (fold/add-fold-case
   IFreeInForType free-in-for-type
   Function
-  (fn [{:keys [dom rng rest drest kws]} {{:keys [k free-in? for-type]} :locals}]
+  (fn [{:keys [dom rng rest drest kws]} k free-in? for-type]
     ;; here we have to increment the count for the domain, where the new bindings are in scope
     (let [arg-count (+ (count dom) (if rest 1 0) (if drest 1 0) (count (concat (:mandatory kws)
                                                                                (:optional kws))))
@@ -71,26 +74,26 @@
 (defn index-free-in? [k type]
   (let [free-in? (atom false :validator boolean?)]
     (letfn [(for-object [o]
-              (free-in-for-object
+              (call-free-in-for-object
                 o
                 {:type-rec for-type
-                 :locals {:free-in? free-in?
-                          :k k}}))
+                 :free-in? free-in?
+                 :k k}))
             (for-filter [o]
-              (free-in-for-filter
+              (call-free-in-for-filter
                 o
                 {:type-rec for-type
                  :filter-rec for-filter
-                 :locals {:free-in? free-in?
-                          :k k}}))
+                 :free-in? free-in?
+                 :k k}))
             (for-type [t]
-              (free-in-for-type
+              (call-free-in-for-type
                 t
                 {:type-rec for-type
                  :filter-rec for-filter
                  :object-rec for-object
-                 :locals {:free-in? free-in?
-                          :k k
-                          :for-type for-type}}))]
+                 :free-in? free-in?
+                 :k k
+                 :for-type for-type}))]
       (for-type type)
       @free-in?)))

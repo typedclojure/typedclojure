@@ -22,12 +22,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Variable substitution
 
-(f/def-derived-fold ISubstitute substitute*)
+(f/def-derived-fold ISubstitute substitute* [name image])
 
 (f/add-fold-case
   ISubstitute substitute*
   F
-  (fn [{name* :name :as f} {{:keys [name image]} :locals}]
+  (fn [{name* :name :as f} name image]
     (if (= name* name)
       image
       f)))
@@ -38,10 +38,10 @@
          (symbol? name)
          (r/AnyType? target)]
    :post [(r/AnyType? %)]}
-  (substitute*
+  (call-substitute*
     target
-    {:locals {:name name
-              :image image}}))
+    {:name name
+     :image image}))
 
 (t/ann ^:no-check substitute-many [r/Type (t/U nil (t/Seqable r/Type)) (t/U nil (t/Seqable t/Sym))
                                  -> r/Type])
@@ -70,12 +70,12 @@
 
 ;; Substitute dots
 
-(f/def-derived-fold ISubstituteDots substitute-dots*)
+(f/def-derived-fold ISubstituteDots substitute-dots* [name sb images rimage])
 
 (f/add-fold-case 
   ISubstituteDots substitute-dots*
   Function
-  (fn [{:keys [dom rng rest drest kws prest pdot] :as ftype} {{:keys [name sb images rimage]} :locals}]
+  (fn [{:keys [dom rng rest drest kws prest pdot] :as ftype} name sb images rimage]
    (when kws (err/nyi-error "substitute keyword args"))
    (if (and (or drest pdot)
             (= name (:name (or drest pdot))))
@@ -112,7 +112,7 @@
 (f/add-fold-case
   ISubstituteDots substitute-dots*
   AssocType
-  (fn [{:keys [target entries dentries] :as atype} {{:keys [name sb images rimage]} :locals}]
+  (fn [{:keys [target entries dentries] :as atype} name sb images rimage]
     (let [sb-target (sb target)
           sb-entries (map (fn [ent]
                             [(sb (first ent)) (sb (second ent))])
@@ -138,7 +138,7 @@
 (f/add-fold-case
   ISubstituteDots substitute-dots*
   HSequential
-  (fn [{:keys [types fs objects rest drest kind] :as ftype} {{:keys [name sb images rimage]} :locals}]
+  (fn [{:keys [types fs objects rest drest kind] :as ftype} name sb images rimage]
     (if (and drest
              (= name (:name drest)))
       (r/-hsequential
@@ -171,22 +171,22 @@
   (letfn [(sb [t] (substitute-dots images rimage name t))]
     (if (or ((frees/fi target) name)
             ((frees/fv target) name))
-      (substitute-dots*
+      (call-substitute-dots*
         target
         {:type-rec sb
-         :filter-rec (f/sub-f sb substitute-dots*)
-         :locals {:name name
-                  :sb sb
-                  :images images
-                  :rimage rimage}})
+         :filter-rec (f/sub-f sb `call-substitute-dots*)
+         :name name
+         :sb sb
+         :images images
+         :rimage rimage})
       target)))
 
 
-(f/def-derived-fold ISubstituteDotted substitute-dotted*)
+(f/def-derived-fold ISubstituteDotted substitute-dotted* [sb name image])
 (f/add-fold-case
   ISubstituteDotted substitute-dotted*
   F
-  (fn [{name* :name :as t} {{:keys [name image]} :locals}]
+  (fn [{name* :name :as t} sb name image]
    (if (= name* name)
      image
      t)))
@@ -194,7 +194,7 @@
 (f/add-fold-case
   ISubstituteDotted substitute-dotted*
   Function
-  (fn [{:keys [dom rng rest drest kws prest pdot]} {{:keys [sb name image]} :locals}]
+  (fn [{:keys [dom rng rest drest kws prest pdot]} sb name image]
    (when kws (err/nyi-error "substitute-dotted with kw arguments"))
    (r/Function-maker (doall (map sb dom))
                      (sb rng)
@@ -212,7 +212,7 @@
 (f/add-fold-case
   ISubstituteDotted substitute-dotted*
   AssocType
-  (fn [{:keys [target entries dentries]} {{:keys [sb name image]} :locals}]
+  (fn [{:keys [target entries dentries]} sb name image]
    (r/AssocType-maker (sb target)
                       (into {} (map (fn [ent]
                                       [(sb (first ent)) (sb (second ent))])
@@ -226,7 +226,7 @@
 (f/add-fold-case
   ISubstituteDotted substitute-dotted*
   HSequential
-  (fn [{:keys [types fs objects rest drest kind] :as ftype} {{:keys [sb name image]} :locals}]
+  (fn [{:keys [types fs objects rest drest kind] :as ftype} sb name image]
     (r/-hsequential
       (mapv sb types)
       :filters (mapv sb fs))
@@ -252,9 +252,9 @@
   (letfn [(sb [t] (substitute-dotted image image-bound name t))]
     (cond-> target
       ((frees/fi target) name)
-      (substitute-dotted*
+      (call-substitute-dotted*
         {:type-rec sb 
-         :filter-rec (f/sub-f sb substitute-dotted*)
-         :locals {:name name
-                  :sb sb
-                  :image image}}))))
+         :filter-rec (f/sub-f sb `call-substitute-dotted*)
+         :name name
+         :sb sb
+         :image image}))))

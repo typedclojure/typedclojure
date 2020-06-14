@@ -140,6 +140,7 @@
 (defn simplify-In [t]
   {:pre [(r/Intersection? t)]}
   (:types t)
+  ;; very slow
   #_
   (let [mi (apply c/In (:types t))]
     (if (r/Intersection? mi)

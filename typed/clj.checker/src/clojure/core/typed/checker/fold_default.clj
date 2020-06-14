@@ -31,44 +31,44 @@
            (clojure.core.typed.checker.path_rep KeyPE KeysPE ValsPE ClassPE NthPE CountPE KeywordPE)))
 
 (add-default-fold-case NotType
-                       (fn [ty _]
+                       (fn [ty]
                          (-> ty
                            (update-in [:type] type-rec))))
 
 (add-default-fold-case DifferenceType
-                       (fn [ty _]
+                       (fn [ty]
                          (-> ty
                            (update-in [:type] type-rec)
                            (update-in [:without] #(mapv type-rec %)))))
 
 (add-default-fold-case Intersection
-                       (fn [ty _]
+                       (fn [ty]
                          ;(prn "fold-default Intersection" ty)
                          (let [ts (mapv type-rec (:types ty))]
                            ; don't simplify types in case some types aren't defined yet
                            (c/make-Intersection ts))))
 
 (add-default-fold-case Union 
-                       (fn [ty _]
+                       (fn [ty]
                          ;(prn "union default" (clojure.core.typed.checker.jvm.parse-unparse/unparse-type ty))
                          (apply c/Un (mapv type-rec (:types ty)))))
 
 (add-default-fold-case FnIntersection
-                       (fn [ty _]
+                       (fn [ty]
                          (-> ty
                            (update-in [:types] #(mapv type-rec %)))))
 
 (add-default-fold-case Bounds
-                       (fn [ty _]
+                       (fn [ty]
                          (r/visit-bounds ty type-rec)))
 
 (add-default-fold-case DottedPretype
-                       (fn [ty _]
+                       (fn [ty]
                          (-> ty
                            (update-in [:pre-type] type-rec))))
 
 (add-default-fold-case Function
-                       (fn [ty _]
+                       (fn [ty]
                          ;(prn "fold Function" ty)
                          (-> ty
                            (update-in [:dom] #(mapv type-rec %))
@@ -87,13 +87,13 @@
                                                       t)))))))
 
 (add-default-fold-case JSNominal
-                       (fn [ty _]
+                       (fn [ty]
                          (-> ty
                            (update-in [:poly?] #(when %
                                                   (mapv type-rec %))))))
 
 (add-default-fold-case RClass 
-                       (fn [ty _]
+                       (fn [ty]
                          (-> ty
                            (update-in [:poly?] #(when %
                                                   (mapv type-rec %)))
@@ -104,25 +104,25 @@
                                                                 set)))))
 
 (add-default-fold-case App
-                       (fn [ty _]
+                       (fn [ty]
                          (-> ty
                            (update-in [:rator] type-rec)
                            (update-in [:rands] #(mapv type-rec %)))))
 
 (add-default-fold-case TApp
-                       (fn [ty _]
+                       (fn [ty]
                          (-> ty
                            (update-in [:rator] type-rec)
                            (update-in [:rands] #(mapv type-rec %)))))
 
 (add-default-fold-case PrimitiveArray
-                       (fn [ty _]
+                       (fn [ty]
                          (-> ty
                            (update-in [:input-type] type-rec)
                            (update-in [:output-type] type-rec))))
 
 (add-default-fold-case DataType
-                       (fn [ty _]
+                       (fn [ty]
                          ;(prn "datatype default" (clojure.core.typed.checker.jvm.parse-unparse/unparse-type ty))
                          (-> ty
                            (update-in [:poly?] #(when %
@@ -134,7 +134,7 @@
                                                                   [k (type-rec v)]))))))))
 
 (add-default-fold-case Protocol
-                       (fn [ty _]
+                       (fn [ty]
                          (-> ty
                            (update-in [:poly?] #(when %
                                                   (mapv type-rec %)))
@@ -146,7 +146,7 @@
                                                            [k (type-rec v)])))))))
 
 (add-default-fold-case TypeFn
-                       (fn [ty _]
+                       (fn [ty]
                          (let [names (c/TypeFn-fresh-symbols* ty)
                                body (c/TypeFn-body* names ty)
                                bbnds (c/TypeFn-bbnds* names ty)
@@ -160,7 +160,7 @@
 
 
 (add-default-fold-case Poly
-                       (fn [ty _]
+                       (fn [ty]
                          (let [names (c/Poly-fresh-symbols* ty)
                                body (c/Poly-body* names ty)
                                bbnds (c/Poly-bbnds* names ty)
@@ -173,7 +173,7 @@
                                     :named (:named ty)))))
 
 (add-default-fold-case PolyDots
-                       (fn [ty _]
+                       (fn [ty]
                          (let [names (c/PolyDots-fresh-symbols* ty)
                                body (c/PolyDots-body* names ty)
                                bbnds (c/PolyDots-bbnds* names ty)
@@ -187,13 +187,13 @@
                                         :named (:named ty)))))
 
 (add-default-fold-case Mu
-                       (fn [ty _]
+                       (fn [ty]
                          (let [name (c/Mu-fresh-symbol* ty)
                                body (c/Mu-body* name ty)]
                            (c/Mu* name (type-rec body)))))
 
 (add-default-fold-case HSequential 
-                       (fn [{:keys [types rest drest repeat kind] :as ty} _]
+                       (fn [{:keys [types rest drest repeat kind] :as ty}]
                          (r/-hsequential
                            (mapv type-rec (:types ty))
                            :filters (mapv filter-rec (:fs ty))
@@ -204,7 +204,7 @@
                            :kind kind)))
 
 (add-default-fold-case HSet
-                       (fn [{:keys [fixed] :as ty} _]
+                       (fn [{:keys [fixed] :as ty}]
                          (r/-hset (set (map type-rec fixed)))))
 
 (defn visit-type-map [m f]
@@ -212,30 +212,30 @@
              [(f k) (f v)])))
 
 (add-default-fold-case HeterogeneousMap
-                       (fn [ty _]
+                       (fn [ty]
                          (-> ty 
                            (update-in [:types] visit-type-map type-rec)
                            (update-in [:optional] visit-type-map type-rec))))
 
 (add-default-fold-case JSObj
-                       (fn [ty _]
+                       (fn [ty]
                          (-> ty 
                            (update-in [:types] #(zipmap (keys %) (map type-rec (vals %)))))))
 
 (add-default-fold-case KwArgsSeq
-                       (fn [ty _]
+                       (fn [ty]
                          (-> ty 
                            (update-in [:mandatory] visit-type-map type-rec)
                            (update-in [:optional] visit-type-map type-rec))))
 
 (add-default-fold-case Extends
-                       (fn [{:keys [extends without] :as ty} _]
+                       (fn [{:keys [extends without] :as ty}]
                          (c/-extends
                            (doall (map type-rec extends))
                            :without (doall (mapv type-rec without)))))
 
 (add-default-fold-case GetType
-                       (fn [ty _]
+                       (fn [ty]
                          (-> ty
                            (update-in [:target] type-rec)
                            (update-in [:key] type-rec)
@@ -244,7 +244,7 @@
                            (update-in [:target-object] object-rec))))
 
 (add-default-fold-case AssocType
-                       (fn [{:keys [target entries dentries] :as ty} _]
+                       (fn [{:keys [target entries dentries] :as ty}]
                          (let [s-target (type-rec target)
                                s-entries (doall
                                            (for [[k v] entries]
@@ -260,7 +260,7 @@
                                assoced
                                fallback-r)))))
 
-(def ret-first (fn [a _] a))
+(def ret-first identity)
 
 (add-default-fold-case CountRange ret-first)
 (add-default-fold-case Name ret-first)
@@ -275,12 +275,29 @@
 (add-default-fold-case SymbolicClosure ret-first)
 
 (add-default-fold-case Result 
-                       (fn [ty _]
+                       (fn [ty]
                          (-> ty
                            (update-in [:t] type-rec)
                            (update-in [:fl] filter-rec)
                            (update-in [:o] object-rec)
                            (update-in [:flow] filter-rec))))
+
+(comment
+  (repeatedly)
+  (cycle)
+  (->
+    (iterate
+      macroexpand-1
+      '(add-default-fold-case Result 
+                              (fn [ty]
+                                (-> ty
+                                    (update-in [:t] type-rec)
+                                    (update-in [:fl] filter-rec)
+                                    (update-in [:o] object-rec)
+                                    (update-in [:flow] filter-rec)))))
+    (nth 2)
+    clojure.pprint/pprint)
+)
 
 (defmacro ret-first-many [& cls]
   `(do ~@(map #(list `add-default-fold-case % `ret-first) cls)))
@@ -291,7 +308,7 @@
                 JSNull JSSymbol)
 
 (add-default-fold-case ArrayCLJS
-                       (fn [ty _]
+                       (fn [ty]
                          (-> ty
                            (update-in [:input-type] type-rec)
                            (update-in [:output-type] type-rec))))
@@ -303,48 +320,48 @@
 (add-default-fold-case BotFilter ret-first)
 
 (add-default-fold-case TypeFilter
-                       (fn [ty _]
+                       (fn [ty]
                          (-> ty
                            (update-in [:type] type-rec)
                            (update-in [:path] #(seq (doall (map pathelem-rec %)))))))
 
 (add-default-fold-case NotTypeFilter
-                       (fn [ty _]
+                       (fn [ty]
                          (-> ty
                            (update-in [:type] type-rec)
                            (update-in [:path] #(seq (doall (map pathelem-rec %)))))))
 
 (add-default-fold-case ImpFilter
-                       (fn [ty _]
+                       (fn [ty]
                          (-> ty
                            (update-in [:a] filter-rec)
                            (update-in [:c] filter-rec))))
 
 (add-default-fold-case AndFilter
-                       (fn [^AndFilter ty _]
+                       (fn [^AndFilter ty]
                          (apply fops/-and
                                 (map filter-rec (.fs ty)))))
 
 (add-default-fold-case OrFilter
-                       (fn [^OrFilter ty _]
+                       (fn [^OrFilter ty]
                          (apply fops/-or
                                 (map filter-rec (.fs ty)))))
 
 (add-default-fold-case FilterSet
-                       (fn [^FilterSet ty _]
+                       (fn [^FilterSet ty]
                          (fops/-FS
                            (filter-rec (.then ty))
                            (filter-rec (.else ty)))))
 
 (add-default-fold-case FlowSet
-                       (fn [^FlowSet ty _]
+                       (fn [^FlowSet ty]
                          (r/-flow (filter-rec (.normal ty)))))
 
 
 ;objects
 (add-default-fold-case EmptyObject ret-first)
 (add-default-fold-case Path
-                       (fn [ty _]
+                       (fn [ty]
                          (-> ty
                            (update-in [:path] #(when %
                                                  (mapv pathelem-rec %))))))
@@ -363,7 +380,7 @@
 ;TCResult
 
 (add-default-fold-case TCResult
-                       (fn [ty _]
+                       (fn [ty]
                          (-> ty
                            (update-in [:t] type-rec)
                            (update-in [:fl] filter-rec)

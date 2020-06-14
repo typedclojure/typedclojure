@@ -18,7 +18,8 @@
 (declare abstract-object abstract-type abo)
 
 (fold/def-derived-fold IAboFold
-  abo-fold*)
+  abo-fold*
+  [lookup])
 
 ;[Type (Seqable t/Sym) -> Type]
 (defn abstract-type [ids keys t]
@@ -30,7 +31,7 @@
   (letfn [(sb-t [t] (abstract-type ids keys t))
           (sb-f [f] (abo ids keys f))
           (sb-o [o] (abstract-object ids keys o))]
-    (abo-fold*
+    (call-abo-fold*
       t
       {:type-rec sb-t
        :filter-rec sb-f
@@ -89,7 +90,7 @@
 
 (fold/add-fold-case IAboFold abo-fold*
   TypeFilter
-  (fn [{:keys [type path id] :as fl} {{:keys [lookup]} :locals}]
+  (fn [{:keys [type path id] :as fl} lookup]
     ;if variable goes out of scope, replace filter with fl/-top
     (if-let [scoped (lookup id)]
       (fo/-filter type scoped path)
@@ -97,7 +98,7 @@
 
 (fold/add-fold-case IAboFold abo-fold*
   NotTypeFilter
-  (fn [{:keys [type path id] :as fl} {{:keys [lookup]} :locals}]
+  (fn [{:keys [type path id] :as fl} lookup]
     ;if variable goes out of scope, replace filter with fl/-top
     (if-let [scoped (lookup id)]
       (fo/-not-filter type scoped path)
@@ -127,11 +128,11 @@
                   (map vector xs idxs)))
           (rec [f] (abo xs idxs f))
           (sb-t [t] (abstract-type xs idxs t))]
-    (abo-fold*
+    (call-abo-fold*
       f
       {:type-rec sb-t 
        :filter-rec rec
-       :locals {:lookup lookup}})))
+       :lookup lookup})))
 
 ; Difference from Typed Racket
 ;
