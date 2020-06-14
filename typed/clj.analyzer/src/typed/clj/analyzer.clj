@@ -25,7 +25,7 @@
             [typed.clj.analyzer.passes.infer-tag :as infer-tag]
             [typed.clj.analyzer.passes.validate :as validate]
             [typed.clj.analyzer.utils :as ju])
-  (:import [clojure.lang IObj RT Var]))
+  (:import [clojure.lang IObj RT Var Compiler$LocalBinding]))
 
 (def specials
   "Set of the special forms for clojure in the JVM"
@@ -87,6 +87,9 @@
    :locals     {}
    :ns         (ns-name *ns*)})
 
+;; Note: typed.clj currently uses clojure.core.typed.checker.jvm.analyze-clj/macroexpand-1.
+;; This function is not compatible with core.async, since &env looks slightly like tools.analyzer,
+;; but not close enough to compile.
 (defn macroexpand-1
   "If form represents a macro form or an inlineable function, returns its expansion,
    else returns form."

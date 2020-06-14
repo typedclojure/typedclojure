@@ -12,7 +12,7 @@
 (defn cleanup
   {:pass-info {:walk :any :depends #{}}}
   [ast]
-  (-> ast
-    (update-in [:env] dissoc :loop-locals-casts)
-    (update-in [:env :locals] #(reduce-kv (fn [m k l] (assoc m k (dissoc l :env :init))) {} %))
-    (dissoc :atom)))
+  (cond-> (-> ast
+              (update-in [:env] dissoc :loop-locals-casts)
+              (update-in [:env :locals] #(reduce-kv (fn [m k l] (assoc m k (dissoc l :env :init))) {} %)))
+    (:atom ast) (assoc (:atom ast) nil)))

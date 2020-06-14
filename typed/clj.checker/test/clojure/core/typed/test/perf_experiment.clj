@@ -188,7 +188,7 @@
         (.stopCPUProfiling yk)
         nil))
     (defmacro with-cpu-profiling [mode & body]
-      `(yk-cpu-profile-fn ~mode (fn [] ~@body))))
+      `(yk-cpu-profile-fn ~mode (fn [] (do ~@body)))))
 
 
   ;; 1384 ms

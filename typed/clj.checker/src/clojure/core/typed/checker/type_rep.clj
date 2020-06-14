@@ -164,7 +164,11 @@
                       higher-kind :- nil])
 (u/def-type Bounds [upper-bound lower-bound higher-kind]
   "A type bound or higher-kind bound on a variable"
-  [(every? (some-fn Type? Scope?) [upper-bound lower-bound])
+  [;; verbose for performance
+   (or (Type? upper-bound)
+       (Scope? upper-bound))
+   (or (Type? lower-bound)
+       (Scope? lower-bound))
    ;deprecated/unused
    (nil? higher-kind)])
 
@@ -217,7 +221,8 @@
 (u/ann-record Scope [body :- MaybeScopedType])
 (u/def-type Scope [body]
   "A scope that contains one bound variable, can be nested. Not used directly"
-  [((some-fn Type? Scope?) body)]
+  [(or (Type? body)
+       (Scope? body))]
   :methods
   [p/IScope
    (scope-body [this] body)])

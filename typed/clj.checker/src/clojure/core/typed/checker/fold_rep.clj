@@ -27,6 +27,7 @@
          Object ;; TODO replace with AnyType
          (~mname [ty# options#]
            ;(prn "default case of in" '~mname (class ty#))
+           ;; TODO this zipmap is pretty slow, think of a better solution
            (let [default-options# (zipmap [:type-rec :filter-rec :object-rec :pathelem-rec]
                                           (repeat (fn [ty#]
                                                     (~mname ty# options#))))]

@@ -910,6 +910,7 @@
 
 (t/ann ^:no-check supers-cache (t/Atom1 (t/Map Number (t/SortedSet r/Type))))
 (defonce ^:private supers-cache (atom {}
+                                      #_#_
                                       :validator (con/hash-c? r/RClass?
                                                               (con/sorted-set-c? r/Type?))))
 
@@ -934,7 +935,7 @@
             replacements (RClass-replacements* rcls)
             ;_ (prn "replacements" (map ind/unparse-type (vals replacements)))
             ;set of symbols of Classes we haven't explicitly replaced
-            java-supers (set (map coerce/Class->symbol (-> the-class coerce/symbol->Class supers)))
+            java-supers (into #{} (map coerce/Class->symbol) (-> the-class coerce/symbol->Class supers))
             replace-keys (set (keys replacements))
             not-replaced (set/difference java-supers
                                          replace-keys)

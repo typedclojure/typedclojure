@@ -29,7 +29,8 @@
   (t/Map t/Sym F))
 
 (t/ann ^:no-check tvar-env? (t/Pred TVarEnv))
-(def tvar-env? (con/hash-c? symbol? r/F?))
+;; slow
+(def tvar-env? map? #_(con/hash-c? symbol? r/F?))
 
 (t/ann initial-tvar-env TVarEnv)
 (def initial-tvar-env {})

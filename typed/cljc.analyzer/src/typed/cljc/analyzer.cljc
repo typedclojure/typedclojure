@@ -610,7 +610,7 @@
 
 (declare ^:private update-ifexpr-children)
 
-(defexpr IfExpr [op env form test then else children top-level]
+(defexpr IfExpr [op env form test then else children top-level tag o-tag]
   ast/IASTWalk
   (ast/children-of* [_] [test then else])
   (ast/update-children* [this f] (update-ifexpr-children this f)))
@@ -820,6 +820,18 @@
                    [:local f]
                    [:body f])))
 
+;; NOTE: the clojure.tools.analyzer.passes.jvm.annotate-tag pass (in tools.analyzer, not typed.clj.analyzer)
+;; assumes that :atom is a non-nilable field. Since records 
+(defexpr BindingExpr [op env form name init local arg-id variadic? children atom]
+  ast/IASTWalk
+  (ast/children-of* [_] (if (some #(= % :init) children)
+                          [init]
+                          []))
+  (ast/update-children* [this f]
+    (cond-> this
+      (some #(= % :init) children)
+      (u/update-record-child :init f))))
+
 (defn parse-catch
   [[_ etype ename & body :as form] env]
   (when-not (valid-binding-symbol? ename)
@@ -828,12 +840,13 @@
                             :form form}
                            (u/-source-info form env)))))
   (let [env (dissoc env :in-try)
-        local {:op    :binding
-               ::op   ::binding
-               :env   env
-               :form  ename
-               :name  ename
-               :local :catch}]
+        local (-> {:op    :binding
+                   ::op   ::binding
+                   :env   env
+                   :form  ename
+                   :name  ename
+                   :local :catch}
+                  (create-expr BindingExpr))]
     (->
       {:op          :catch
        ::op         ::catch
@@ -935,16 +948,6 @@
          :body     body
          :children [:bindings :body]}
         (create-expr LetFnExpr)))))
-
-(defexpr BindingExpr [op env form name init local arg-id variadic? children]
-  ast/IASTWalk
-  (ast/children-of* [_] (if (some #(= % :init) children)
-                          [init]
-                          []))
-  (ast/update-children* [this f]
-    (cond-> this
-      (some #(= % :init) children)
-      (u/update-record-child :init f))))
 
 (defn analyze-let
   [[op bindings & body :as form] {:keys [context loop-id] :as env}]

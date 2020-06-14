@@ -54,7 +54,7 @@
       (assoc ast :o-tag t :tag t))))
 
 (defmethod -annotate-tag :binding
-  [{:keys [form tag atom o-tag init local name variadic?] :as ast}]
+  [{:keys [form tag o-tag init local name variadic?] :as ast}]
   (let [o-tag (or (:tag init) ;; should defer to infer-tag?
                   (and (= :fn local) AFunction)
                   (and (= :arg local) variadic? ISeq)
@@ -80,9 +80,12 @@
   "If the AST node type is a constant object or contains :tag metadata,
    attach the appropriate :tag and :o-tag to the node."
   {:pass-info {:walk :post :depends #{} :after #{#'constant-lift/constant-lift}}}
-  [{:keys [op tag o-tag atom] :as ast}]
-  (let [ast (if (and atom (:case-test @atom))
-              (update-in ast [:form] vary-meta dissoc :tag)
+  [{:keys [op atom tag o-tag] :as ast}]
+  (let [;atom (when (#{:local :binding} op)
+        ;       (assert (:atom ast) (:atom ast))
+        ;       (:atom ast))
+        ast (if (and atom (:case-test @atom))
+              (update ast :form vary-meta dissoc :tag)
               ast)
         ast
         (if (and o-tag tag)
@@ -93,5 +96,6 @@
             (assoc (-annotate-tag ast) :tag tag)
             (-annotate-tag ast)))]
     (when (= op :binding)
+      (assert atom)
       (swap! atom assoc :tag (:tag ast)))
     ast))

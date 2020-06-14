@@ -32,7 +32,8 @@
             [clojure.core.typed.util-vars :as vs]
             [clojure.pprint :as pp]
             [clojure.reflect :as reflect]
-            [clojure.string :as str]))
+            [clojure.string :as str])
+  (:import [clojure.lang Compiler$LocalBinding]))
 
 ; Updated for Clojure 1.8
 ;  https://github.com/clojure/clojure/commit/7f79ac9ee85fe305e4d9cbb76badf3a8bad24ea0
@@ -190,7 +191,24 @@
               (cond
 
                 macro?
-                (let [res (apply (typed-macro-lookup v env) form (:locals env) (rest form))] ; (m &form &env & args)
+                (let [locals (cond->> (:locals env)
+                               ;; fake Compiler.java's locals so tools.analyzer doesn't think there's a recursive go macro
+                               ('#{clojure.core.async/go
+                                   clojure.core.typed.lib.clojure.core.async/go}
+                                 (symbol v))
+                               (into {}
+                                     (map (fn [[sym e]]
+                                            {:pre [(symbol? sym)]}
+                                            (let [tag (-> e :tag)]
+                                              [sym (Compiler$LocalBinding.
+                                                     0
+                                                     sym
+                                                     tag
+                                                     nil ;; init
+                                                     false ;; isArg
+                                                     nil ;; clearPathRoot
+                                                     )])))))
+                      res (apply (typed-macro-lookup v env) form locals (rest form))] ; (m &form &env & args)
                   (if (ta-utils/obj? res)
                     (vary-meta res merge (meta form))
                     res))

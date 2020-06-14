@@ -60,7 +60,8 @@
   (when-let [f (free-in-scope name)]
     (bnds/lookup-tvar-bnds (:name f))))
 
-(def frees-map? (con/hash-c? symbol? (con/hmap-c? :F r/F? :bnds r/Bounds?)))
+;; slow
+(def frees-map? map? #_(con/hash-c? symbol? (con/hmap-c? :F r/F? :bnds r/Bounds?)))
 
 ; we used to have scopes and bounds in the same map. To avoid changing the interface,
 ; with-free-mappings now handles frees-map to do scoping and bounds in separate bindings.

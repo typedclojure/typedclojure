@@ -285,30 +285,6 @@
 
 (def ^:private *register-exts (delay (configs/register-config-exts)))
 
-;; TODO turn into loop/recur
-(defn check-unanalyzed
-  "Type checks the :unanalyzed expr at expected type.
-
-  The return expr will be fully expanded, analyzed, evaluated (if top-level),
-  with a u/expr-type entry for the TCResult of the entire expression."
-  [{:keys [env] :as expr} expected]
-  {:pre [(#{:unanalyzed} (:op expr))
-         ((some-fn nil? r/TCResult?) expected)]
-   :post [((some-fn nil?
-                    (every-pred map?
-                                #(contains? % u/expr-type)))
-           %)]}
-  (let [;register typing rules (ie., implementations of -unanalyzed-top-level
-        ; and -unanalyzed-special)
-        _ @*register-exts]
-    (binding [vs/*current-env* (if (:line env) env vs/*current-env*)
-              vs/*current-expr* expr]
-      (or (-unanalyzed-special expr expected)
-          (-> expr
-              ana2/analyze-outer
-              (check-expr expected))))))
-
-
 (defmethod -unanalyzed-special :default [expr expected])
 
 (defn check-expr
@@ -316,30 +292,46 @@
   
   The return expr will be fully expanded, analyzed, evaluated (via ana2/eval-top-level),
   with a u/expr-type entry giving the TCResult of the whole expression."
-  [expr & [expected]]
+  ([expr] (check-expr expr nil))
+  ([expr expected]
   {:pre [(map? expr)
          ((some-fn nil? r/TCResult?) expected)]
    :post [(r/TCResult? (u/expr-type %))
           (not (#{:unanalyzed} (:op %)))]}
   ;(prn "check-expr" op)
   ;(clojure.pprint/pprint (emit-form/emit-form expr))
-  (assert (not (u/expr-type expr))
-          (str "Expression already has type information when passed to check-expr"))
-  (let [; update namespace, as it might have changed when evaluating a previous
-        ; subexpression during type checking
-        {:keys [env] :as expr} (assoc-in expr [:env :ns] (ns-name *ns*))]
-    (when vs/*trace-checker*
-      (println "Checking line:" (:line env))
-      (flush))
-    (case (:op expr)
-      :unanalyzed (check-unanalyzed expr expected)
-      (binding [vs/*current-env* (if (:line env) env vs/*current-env*)
-                vs/*current-expr* expr]
-        (-> expr
-            ana2/run-pre-passes
-            (-check expected)
-            ana2/run-post-passes
-            ana2/eval-top-level)))))
+  ;; to keep :post condition
+  (loop [expr expr
+         expected expected]
+    (assert (not (u/expr-type expr))
+            (str "Expression already has type information when passed to check-expr"))
+    (let [; update namespace, as it might have changed when evaluating a previous
+          ; subexpression during type checking
+          {:keys [env] :as expr} (assoc-in expr [:env :ns] (ns-name *ns*))]
+      (when vs/*trace-checker*
+        (println "Checking line:" (:line env))
+        (flush))
+      (if (= :unanalyzed (:op expr))
+        #_"Type checks the :unanalyzed expr at expected type.
+
+          The return expr will be fully expanded, analyzed, evaluated (if top-level),
+          with a u/expr-type entry for the TCResult of the entire expression."
+        (let [;register typing rules (ie., implementations of -unanalyzed-top-level
+              ; and -unanalyzed-special)
+              _ @*register-exts]
+          (or (binding [vs/*current-env* (if (:line env) env vs/*current-env*)
+                        vs/*current-expr* expr]
+                (-unanalyzed-special expr expected))
+              (-> expr
+                  ana2/analyze-outer
+                  (recur expected))))
+        (binding [vs/*current-env* (if (:line env) env vs/*current-env*)
+                  vs/*current-expr* expr]
+          (-> expr
+              ana2/run-pre-passes
+              (-check expected)
+              ana2/run-post-passes
+              ana2/eval-top-level)))))))
 
 (defn check-top-level
   "Type check a top-level form at an expected type, returning a

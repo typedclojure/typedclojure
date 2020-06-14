@@ -88,6 +88,7 @@
   (reset! subtype-cache {})
   nil)
 
+
 ;[Type Type -> Boolean]
 (defn subtype? [s t]
   {:post [(boolean? %)]}
@@ -95,12 +96,14 @@
             (boolean
               (handle-failure
                 (subtype s t))))]
-    (if-let [[_ res] (find @subtype-cache [s t])]
-      res
-      (let [res (do-subtype)]
-        (when-not (currently-subtyping?)
-          (swap! subtype-cache assoc [s t] res))
-        res))))
+    (if true ;; true == disable cache
+      (do-subtype)
+      (if-let [[_ res] (find @subtype-cache [s t])]
+        res
+        (let [res (do-subtype)]
+          (when-not (currently-subtyping?)
+            (swap! subtype-cache assoc [s t] res))
+          res)))))
 
 (declare subtypeA*)
 
@@ -613,38 +616,35 @@
                        false)
                      true)
                    ; all absent keys in t should be absent in s
-                   (every? identity
-                           (for [rabsent-key rabsent]
+                   (every? (fn [rabsent-key]
                              ; Subtyping is good if rabsent-key is:
                              ; 1. Absent in s
                              ; 2. Not present in s, but s is complete
                              (or ((set labsent) rabsent-key)
                                  (when (c/complete-hmap? s)
-                                   (not ((set (keys ltypes)) rabsent-key))))))
+                                   (not ((set (keys ltypes)) rabsent-key)))))
+                           rabsent)
                    ; all present keys in t should be present in s
-                   (every? identity
-                           (map (fn [[k v]]
-                                  (when-let [t (get ltypes k)]
-                                    (subtype? t v)))
-                                rtypes))
+                   (every? (fn [[k v]]
+                             (when-let [t (get ltypes k)]
+                               (subtype? t v)))
+                           rtypes)
                    ; all optional keys in t should match optional/mandatory entries in s
-                   (every? identity
-                           (map (fn [[k v]]
-                                  (let [matches-entry?
-                                        (if-let [actual-v 
-                                                 ((merge-with c/In
-                                                    (:types s)
-                                                    (:optional s))
-                                                  k)]
-                                          (subtype? actual-v v)
-                                          (c/complete-hmap? s))]
-                                  (cond
-                                    (c/partial-hmap? s)
-                                      (or (contains? (:absent-keys s) k)
-                                          matches-entry?)
-                                    :else matches-entry?)))
-                                (:optional t)))
-                   )
+                   (every? (fn [[k v]]
+                             (let [matches-entry?
+                                   (if-let [actual-v 
+                                            ((merge-with c/In
+                                                         (:types s)
+                                                         (:optional s))
+                                             k)]
+                                     (subtype? actual-v v)
+                                     (c/complete-hmap? s))]
+                               (cond
+                                 (c/partial-hmap? s)
+                                 (or (contains? (:absent-keys s) k)
+                                     matches-entry?)
+                                 :else matches-entry?)))
+                           (:optional t)))
             *sub-current-seen*
             (report-not-subtypes s t)))
 
