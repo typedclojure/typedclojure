@@ -43,11 +43,19 @@
            (clojure.core.typed.checker.path_rep KeyPE CountPE ClassPE KeysPE ValsPE NthPE KeywordPE)
            (clojure.lang Cons IPersistentList Symbol IPersistentVector)))
 
+(defprotocol IUnparseType 
+  (unparse-type* [t]))
+(defprotocol IUnparseObject
+  (unparse-object [o]))
+(defprotocol IUnparsePathElem
+  (unparse-path-elem [p]))
+(defprotocol IUnparseFilter
+  (unparse-filter* [fl]))
+
 (defonce ^:dynamic *parse-type-in-ns* nil)
 (set-validator! #'*parse-type-in-ns* (some-fn nil? symbol? con/namespace?))
 
-(declare unparse-type unparse-filter unparse-filter-set unparse-flow-set unparse-object
-         unparse-path-elem)
+(declare unparse-type unparse-filter unparse-filter-set unparse-flow-set)
 
 ; Types print by unparsing them
 (do (defmethod print-method clojure.core.typed.checker.impl_protocols.TCType [s writer]
@@ -1419,14 +1427,14 @@
      ~@body))
 
 (defn alias-in-ns
-  "Returns an alias for namespace sym in ns, or nil if none."
-  [nsym ns]
-  {:pre [(string? nsym)
+  "Returns an alias for namespace string in ns, or nil if none."
+  [nstr ns]
+  {:pre [(string? nstr)
          (con/namespace? ns)]
    :post [((some-fn nil? symbol?) %)]}
   (impl/assert-clojure)
   (some (fn [[alias ans]]
-          (when (= (str nsym) (str (ns-name ans)))
+          (when (= nstr (str (ns-name ans)))
             alias))
         (ns-aliases ns)))
 
@@ -1484,9 +1492,6 @@
       :cljs sym
       :unknown sym)
     sym))
-
-(defprotocol IUnparseType 
-  (unparse-type* [t]))
 
 (defn unparse-type [t]
   ; quick way of giving a Name that the user is familiar with
@@ -1950,11 +1955,6 @@
 
 ; Objects
 
-(defprotocol IUnparseObject
-  (unparse-object [o]))
-(defprotocol IUnparsePathElem
-  (unparse-path-elem [p]))
-
 (extend-protocol IUnparseObject
   EmptyObject 
   (unparse-object [_] 'empty)
@@ -1982,9 +1982,6 @@
   (unparse-path-elem [t] 'Keyword))
 
 ; Filters
-
-(defprotocol IUnparseFilter
-  (unparse-filter* [fl]))
 
 (defn unparse-filter [f]
   (unparse-filter* f))
