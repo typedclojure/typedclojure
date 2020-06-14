@@ -33,9 +33,9 @@
                   check-expr)]
     (-> expr
         ;; put expanded body back into go call
-        (update :form (fn [form]
-                        (with-meta (list `async/go (emit-form/emit-form cbody))
-                                   (meta form))))
+        (update :form #(-> (list (first %)
+                                 (emit-form/emit-form cbody))
+                           (with-meta (meta %))))
         ;; evaluate partially expanded go call if top-level
         ana2/eval-top-level
         ;; use checked body to populate return type and check against expected
