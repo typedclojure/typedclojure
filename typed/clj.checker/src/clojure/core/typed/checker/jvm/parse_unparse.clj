@@ -1447,7 +1447,7 @@
 (defn var-symbol-intern 
   "Returns a symbol interned in ns for var symbol, or nil if none.
 
-  (var-symbol-intern 'symbol (find-ns 'clojure.core))
+  (var-symbol-intern 'clojure.core/symbol (find-ns 'clojure.core))
   ;=> 'symbol
   (var-symbol-intern 'bar (find-ns 'clojure.core))
   ;=> nil"
@@ -1456,10 +1456,10 @@
          (con/namespace? ns)]
    :post [((some-fn nil? symbol?) %)]}
   (some (fn [[isym var]]
-          (when (= (str sym) (str (coerce/var->symbol var)))
-            isym))
-        (merge (ns-interns ns)
-               (ns-refers ns))))
+          (when (var? var)
+            (when (= sym (symbol var))
+              isym)))
+        (ns-map ns)))
 
 (defn unparse-Name-symbol-in-ns [sym]
   {:pre [(symbol? sym)]
@@ -1485,7 +1485,8 @@
       :unknown sym)
     sym))
 
-(declare unparse-type*)
+(defprotocol IUnparseType 
+  (unparse-type* [t]))
 
 (defn unparse-type [t]
   ; quick way of giving a Name that the user is familiar with
@@ -1494,111 +1495,127 @@
     nsym
     (unparse-type* t)))
 
-(defmulti unparse-type* class)
 (defn unp [t] (prn (unparse-type t)))
 
-(defmethod unparse-type* Top [_] (unparse-Name-symbol-in-ns `t/Any))
+(extend-protocol IUnparseType
+  Top 
+  (unparse-type* [_] (unparse-Name-symbol-in-ns `t/Any))
 ;; TODO qualify vsym in current ns
-(defmethod unparse-type* TypeOf [{:keys [vsym] :as t}] (list (unparse-Name-symbol-in-ns `t/TypeOf) vsym))
-(defmethod unparse-type* Unchecked [{:keys [vsym] :as t}]
-  (if vsym
-    (list 'Unchecked vsym)
+  TypeOf 
+  (unparse-type* [{:keys [vsym] :as t}] (list (unparse-Name-symbol-in-ns `t/TypeOf) vsym))
+  Unchecked 
+  (unparse-type* [{:keys [vsym] :as t}]
+    (if vsym
+      (list 'Unchecked vsym)
     'Unchecked))
-(defmethod unparse-type* TCError [_] (unparse-Name-symbol-in-ns `t/TCError))
-(defmethod unparse-type* Name [{:keys [id]}] (unparse-Name-symbol-in-ns id))
-(defmethod unparse-type* AnyValue [_] (unparse-Name-symbol-in-ns `t/AnyValue))
+  TCError 
+  (unparse-type* [_] (unparse-Name-symbol-in-ns `t/TCError))
+  Name 
+  (unparse-type* [{:keys [id]}] (unparse-Name-symbol-in-ns id))
+  AnyValue 
+  (unparse-type* [_] (unparse-Name-symbol-in-ns `t/AnyValue))
 
-(defmethod unparse-type* DottedPretype
-  [{:keys [pre-type name]}]
-  (list 'DottedPretype (unparse-type pre-type) (if (symbol? name)
-                                                 (-> name r/make-F r/F-original-name)
-                                                 name)))
+  DottedPretype
+  (unparse-type* 
+    [{:keys [pre-type name]}]
+    (list 'DottedPretype (unparse-type pre-type) (if (symbol? name)
+                                                   (-> name r/make-F r/F-original-name)
+                                                   name)))
 
-(defmethod unparse-type* CountRange [{:keys [lower upper]}]
-  (cond
-    (= lower upper) (list (unparse-Name-symbol-in-ns `t/ExactCount)
-                          lower)
-    :else (list* (unparse-Name-symbol-in-ns `t/CountRange)
-                 lower
-                 (when upper [upper]))))
+  CountRange 
+  (unparse-type* [{:keys [lower upper]}]
+    (cond
+      (= lower upper) (list (unparse-Name-symbol-in-ns `t/ExactCount)
+                            lower)
+      :else (list* (unparse-Name-symbol-in-ns `t/CountRange)
+                   lower
+                   (when upper [upper]))))
 
-(defmethod unparse-type* App 
-  [{:keys [rator rands]}]
-  (list* (unparse-type rator) (mapv unparse-type rands)))
+  App 
+  (unparse-type* [{:keys [rator rands]}]
+    (list* (unparse-type rator) (mapv unparse-type rands)))
 
-(defmethod unparse-type* TApp 
-  [{:keys [rator rands] :as tapp}]
-  (cond 
-    ;perform substitution if obvious
-    ;(TypeFn? rator) (unparse-type (resolve-tapp tapp))
-    :else
+  TApp 
+  (unparse-type* [{:keys [rator rands] :as tapp}]
+    (cond 
+      ;perform substitution if obvious
+      ;(TypeFn? rator) (unparse-type (resolve-tapp tapp))
+      :else
     (list* (unparse-type rator) (mapv unparse-type rands))))
 
-(defmethod unparse-type* Result
-  [{:keys [t]}]
-  (unparse-type t))
+  Result
+  (unparse-type* [{:keys [t]}] (unparse-type t))
 
-(defmethod unparse-type* F
-  [{:keys [] :as f}]
-  ; Note: don't print f here, results in infinite recursion
-  ;(prn (-> f :name) (-> f :name meta))
-  (r/F-original-name f))
+  F
+  (unparse-type* 
+    [{:keys [] :as f}]
+    ; Note: don't print f here, results in infinite recursion
+    ;(prn (-> f :name) (-> f :name meta))
+    (r/F-original-name f))
 
-(defmethod unparse-type* PrimitiveArray
-  [{:keys [jtype input-type output-type]}]
-  (cond 
-    (and (= input-type output-type)
-         (= Object jtype))
-    (list 'Array (unparse-type input-type))
+  PrimitiveArray
+  (unparse-type* 
+    [{:keys [jtype input-type output-type]}]
+    (cond 
+      (and (= input-type output-type)
+           (= Object jtype))
+      (list 'Array (unparse-type input-type))
 
-    (= Object jtype)
-    (list 'Array2 (unparse-type input-type) (unparse-type output-type))
+      (= Object jtype)
+      (list 'Array2 (unparse-type input-type) (unparse-type output-type))
 
-    :else
-    (list 'Array3 (coerce/Class->symbol jtype)
-          (unparse-type input-type) (unparse-type output-type))))
+      :else
+      (list 'Array3 (coerce/Class->symbol jtype)
+            (unparse-type input-type) (unparse-type output-type))))
 
-(defmethod unparse-type* B
-  [{:keys [idx]}]
-  (list 'B idx))
+  B
+  (unparse-type* 
+    [{:keys [idx]}]
+    (list 'B idx))
 
-(defmethod unparse-type* Union
-  [{types :types :as u}]
-  (cond
-    ; Prefer the user provided Name for this type. Needs more thinking?
-    ;(-> u meta :from-name) (-> u meta :from-name)
-    (seq types) (list* (unparse-Name-symbol-in-ns `t/U)
-                       (doall (map unparse-type types)))
-    :else (unparse-Name-symbol-in-ns `t/Nothing)))
+  Union
+  (unparse-type* 
+    [{types :types :as u}]
+    (cond
+      ; Prefer the user provided Name for this type. Needs more thinking?
+      ;(-> u meta :from-name) (-> u meta :from-name)
+      (seq types) (list* (unparse-Name-symbol-in-ns `t/U)
+                         (doall (map unparse-type types)))
+      :else (unparse-Name-symbol-in-ns `t/Nothing)))
 
-(defmethod unparse-type* FnIntersection
-  [{types :types}]
-  (cond
-    ; use vector sugar where appropriate
-    (and (not vs/*verbose-types*)
-         (== 1 (count types)))
-    (unparse-type (first types))
+  FnIntersection
+  (unparse-type* 
+    [{types :types}]
+    (cond
+      ; use vector sugar where appropriate
+      (and (not vs/*verbose-types*)
+           (== 1 (count types)))
+      (unparse-type (first types))
 
-    :else
-    (list* (unparse-Name-symbol-in-ns `t/IFn)
-           (doall (map unparse-type types)))))
+      :else
+      (list* (unparse-Name-symbol-in-ns `t/IFn)
+             (doall (map unparse-type types)))))
 
-(defmethod unparse-type* Intersection
-  [{types :types}]
-  (list* (unparse-Name-symbol-in-ns `t/I)
-         (doall (map unparse-type types))))
+  Intersection
+  (unparse-type* 
+    [{types :types}]
+    (list* (unparse-Name-symbol-in-ns `t/I)
+           (doall (map unparse-type types))))
 
-(defmethod unparse-type* DifferenceType
-  [{:keys [type without]}]
-  (list* (unparse-Name-symbol-in-ns `t/Difference)
-         (unparse-type* type)
-         (doall (map unparse-type without))))
+  DifferenceType
+  (unparse-type* 
+    [{:keys [type without]}]
+    (list* (unparse-Name-symbol-in-ns `t/Difference)
+           (unparse-type* type)
+           (doall (map unparse-type without))))
 
-(defmethod unparse-type* NotType
-  [{:keys [type]}]
-  (list 'Not (unparse-type type)))
+  NotType
+  (unparse-type* 
+    [{:keys [type]}]
+    (list 'Not (unparse-type type)))
 
-(defmethod unparse-type* TopFunction [_] 'AnyFunction)
+  TopFunction 
+  (unparse-type* [_] 'AnyFunction))
 
 (defn- unparse-kw-map [m]
   {:pre [((con/hash-c? r/Value? r/Type?) m)]}
@@ -1621,66 +1638,74 @@
     (-> name r/make-F r/F-original-name)
     `(~'B ~name)))
 
-(defmethod unparse-type* SymbolicClosure
-  [{:keys [fexpr env]}]
-  (list 'SymbolicClosure))
+(extend-protocol IUnparseType
+  SymbolicClosure
+  (unparse-type* 
+    [{:keys [fexpr env]}]
+    (list 'SymbolicClosure))
 
-(defmethod unparse-type* Function
-  [{:keys [dom rng kws rest drest prest pdot]}]
-  (vec (concat (doall (map unparse-type dom))
-               (when rest
-                 [(unparse-type rest) '*])
-               (when drest
-                 (let [{:keys [pre-type name]} drest]
-                   [(unparse-type pre-type)
-                    '...
-                    (unparse-bound name)]))
-               (when kws
-                 (let [{:keys [optional mandatory]} kws]
-                   (list* '&
-                          (concat
-                            (when (seq mandatory)
-                              [:mandatory (unparse-kw-map mandatory)])
-                            (when (seq optional)
-                              [:optional (unparse-kw-map optional)])))))
-               (when prest
-                 [(unparse-type prest) '<*])
-               (when pdot
-                 (let [{:keys [pre-type name]} pdot]
-                   [(unparse-type pre-type)
-                    '<...
-                    (unparse-bound name)]))
-               ['->]
-               (unparse-result rng))))
+  Function
+  (unparse-type* 
+    [{:keys [dom rng kws rest drest prest pdot]}]
+    (vec (concat (doall (map unparse-type dom))
+                 (when rest
+                   [(unparse-type rest) '*])
+                 (when drest
+                   (let [{:keys [pre-type name]} drest]
+                     [(unparse-type pre-type)
+                      '...
+                      (unparse-bound name)]))
+                 (when kws
+                   (let [{:keys [optional mandatory]} kws]
+                     (list* '&
+                            (concat
+                              (when (seq mandatory)
+                                [:mandatory (unparse-kw-map mandatory)])
+                              (when (seq optional)
+                                [:optional (unparse-kw-map optional)])))))
+                 (when prest
+                   [(unparse-type prest) '<*])
+                 (when pdot
+                   (let [{:keys [pre-type name]} pdot]
+                     [(unparse-type pre-type)
+                      '<...
+                      (unparse-bound name)]))
+                 ['->]
+                 (unparse-result rng)))))
 
 (defn unparse-flow-set [flow]
   {:pre [(r/FlowSet? flow)]}
   (unparse-filter (r/flow-normal flow)))
 
-(defmethod unparse-type* Protocol
-  [{:keys [the-var poly?]}]
-  (let [s (unparse-Name-symbol-in-ns the-var)]
+(extend-protocol IUnparseType
+  Protocol
+  (unparse-type* 
+    [{:keys [the-var poly?]}]
+    (let [s (unparse-Name-symbol-in-ns the-var)]
+      (if poly?
+        (list* s (mapv unparse-type poly?))
+        s)))
+
+  DataType
+  (unparse-type* 
+    [{:keys [the-class poly?]}]
     (if poly?
-      (list* s (mapv unparse-type poly?))
-      s)))
+      (list* (unparse-Name-symbol-in-ns the-class) (mapv unparse-type poly?))
+      (unparse-Name-symbol-in-ns the-class)))
 
-(defmethod unparse-type* DataType
-  [{:keys [the-class poly?]}]
-  (if poly?
-    (list* (unparse-Name-symbol-in-ns the-class) (mapv unparse-type poly?))
-    (unparse-Name-symbol-in-ns the-class)))
+  RClass
+  (unparse-type* 
+    [{:keys [the-class poly?] :as r}]
+    (if (empty? poly?)
+      (unparse-Name-symbol-in-ns the-class)
+      (list* (unparse-Name-symbol-in-ns the-class) (doall (map unparse-type poly?)))))
 
-(defmethod unparse-type* RClass
-  [{:keys [the-class poly?] :as r}]
-  (if (empty? poly?)
-    (unparse-Name-symbol-in-ns the-class)
-    (list* (unparse-Name-symbol-in-ns the-class) (doall (map unparse-type poly?)))))
-
-(defmethod unparse-type* Mu
-  [m]
-  (let [nme (-> (c/Mu-fresh-symbol* m) r/make-F r/F-original-name)
-        body (c/Mu-body* nme m)]
-    (list (unparse-Name-symbol-in-ns `t/Rec) [nme] (unparse-type body))))
+  Mu
+  (unparse-type* 
+    [m]
+    (let [nme (-> (c/Mu-fresh-symbol* m) r/make-F r/F-original-name)
+          body (c/Mu-body* nme m)]
+      (list (unparse-Name-symbol-in-ns `t/Rec) [nme] (unparse-type body)))))
 
 (defn unparse-poly-bounds-entry [name {:keys [upper-bound lower-bound higher-kind] :as bnds}]
   (let [name (-> name r/make-F r/F-original-name)
@@ -1727,29 +1752,33 @@
                          [:named (mapv unp-inb named-inb)])))]
     binder))
 
-(defmethod unparse-type* PolyDots
-  [{:keys [nbound named] :as p}]
-  (let [free-names (vec (c/PolyDots-fresh-symbols* p))
-        bbnds (c/PolyDots-bbnds* free-names p)
-        binder (unparse-poly-binder true free-names bbnds named)
-        body (c/PolyDots-body* free-names p)]
-    (list (unparse-Name-symbol-in-ns `t/All) binder (unparse-type body))))
+(extend-protocol IUnparseType
+  PolyDots
+  (unparse-type* 
+    [{:keys [nbound named] :as p}]
+    (let [free-names (vec (c/PolyDots-fresh-symbols* p))
+          bbnds (c/PolyDots-bbnds* free-names p)
+          binder (unparse-poly-binder true free-names bbnds named)
+          body (c/PolyDots-body* free-names p)]
+      (list (unparse-Name-symbol-in-ns `t/All) binder (unparse-type body))))
 
-(defmethod unparse-type* Extends
-  [{:keys [extends without]}]
-  (list* 'Extends
-         (mapv unparse-type extends)
-         (when (seq without)
-           [:without (mapv unparse-type without)])))
+  Extends
+  (unparse-type* 
+    [{:keys [extends without]}]
+    (list* 'Extends
+           (mapv unparse-type extends)
+           (when (seq without)
+             [:without (mapv unparse-type without)])))
 
-(defmethod unparse-type* Poly
-  [{:keys [nbound named] :as p}]
-  (let [free-names (c/Poly-fresh-symbols* p)
-        ;_ (prn "Poly unparse" free-names (map meta free-names))
-        bbnds (c/Poly-bbnds* free-names p)
-        binder (unparse-poly-binder false free-names bbnds named)
-        body (c/Poly-body* free-names p)]
-    (list (unparse-Name-symbol-in-ns `t/All) binder (unparse-type body))))
+  Poly
+  (unparse-type* 
+    [{:keys [nbound named] :as p}]
+    (let [free-names (c/Poly-fresh-symbols* p)
+          ;_ (prn "Poly unparse" free-names (map meta free-names))
+          bbnds (c/Poly-bbnds* free-names p)
+          binder (unparse-poly-binder false free-names bbnds named)
+          body (c/Poly-body* free-names p)]
+      (list (unparse-Name-symbol-in-ns `t/All) binder (unparse-type body)))))
 
 ;(ann unparse-typefn-bounds-entry [t/Sym Bounds Variance -> Any])
 (defn unparse-typefn-bounds-entry [name {:keys [upper-bound lower-bound higher-kind]} v]
@@ -1770,19 +1799,22 @@
           [name :variance v :> l])
         [name :variance v])))
 
-(defmethod unparse-type* TypeFn
-  [{:keys [nbound] :as p}]
-  (let [free-names (c/TypeFn-fresh-symbols* p)
-        bbnds (c/TypeFn-bbnds* free-names p)
-        binder (mapv unparse-typefn-bounds-entry free-names bbnds (:variances p))
-        body (c/TypeFn-body* free-names p)]
-    (list (unparse-Name-symbol-in-ns `t/TFn) binder (unparse-type body))))
+(extend-protocol IUnparseType
+  TypeFn
+  (unparse-type* 
+    [{:keys [nbound] :as p}]
+    (let [free-names (c/TypeFn-fresh-symbols* p)
+          bbnds (c/TypeFn-bbnds* free-names p)
+          binder (mapv unparse-typefn-bounds-entry free-names bbnds (:variances p))
+          body (c/TypeFn-body* free-names p)]
+      (list (unparse-Name-symbol-in-ns `t/TFn) binder (unparse-type body))))
 
-(defmethod unparse-type* Value
-  [v]
-  (if ((some-fn r/Nil? r/True? r/False?) v)
-    (:val v)
-    (list (unparse-Name-symbol-in-ns `t/Val) (:val v))))
+  Value
+  (unparse-type* 
+    [v]
+    (if ((some-fn r/Nil? r/True? r/False?) v)
+      (:val v)
+      (list (unparse-Name-symbol-in-ns `t/Val) (:val v)))))
 
 (defn- unparse-map-of-types [m]
   (into {} (map (fn [[k v]]
@@ -1790,23 +1822,25 @@
                   (vector (:val k) (unparse-type v)))
                 m)))
 
-(defmethod unparse-type* HeterogeneousMap
-  [^HeterogeneousMap v]
-  (list* (unparse-Name-symbol-in-ns `t/HMap)
-         (concat
-           ; only elide if other information is present
-           (when (or (seq (:types v))
-                     (not (or (seq (:optional v))
-                              (seq (:absent-keys v))
-                              (c/complete-hmap? v))))
-             [:mandatory (unparse-map-of-types (.types v))])
-           (when (seq (:optional v))
-             [:optional (unparse-map-of-types (:optional v))])
-           (when-let [ks (and (not (c/complete-hmap? v))
-                              (seq (.absent-keys v)))]
-             [:absent-keys (set (map :val ks))])
-           (when (c/complete-hmap? v)
-             [:complete? true]))))
+(extend-protocol IUnparseType
+  HeterogeneousMap
+  (unparse-type* 
+    [^HeterogeneousMap v]
+    (list* (unparse-Name-symbol-in-ns `t/HMap)
+           (concat
+             ; only elide if other information is present
+             (when (or (seq (:types v))
+                       (not (or (seq (:optional v))
+                                (seq (:absent-keys v))
+                                (c/complete-hmap? v))))
+               [:mandatory (unparse-map-of-types (.types v))])
+             (when (seq (:optional v))
+               [:optional (unparse-map-of-types (:optional v))])
+             (when-let [ks (and (not (c/complete-hmap? v))
+                                (seq (.absent-keys v)))]
+               [:absent-keys (set (map :val ks))])
+             (when (c/complete-hmap? v)
+               [:complete? true])))))
 
 (defn unparse-heterogeneous* [sym {:keys [types rest drest fs objects repeat] :as v}]
   (let [first-part (concat
@@ -1825,136 +1859,172 @@
              (when-not (every? #{orep/-empty} objects)
                [:objects (mapv unparse-object objects)])))))
 
-(defmethod unparse-type* HSequential [v]
-  (unparse-heterogeneous*
-    (case (:kind v)
-      :list (unparse-Name-symbol-in-ns `t/HList)
-      :vector (unparse-Name-symbol-in-ns `t/HVec)
-      :seq (unparse-Name-symbol-in-ns `t/HSeq)
-      :sequential (unparse-Name-symbol-in-ns `t/HSequential))
-    v))
+(extend-protocol IUnparseType
+  HSequential 
+  (unparse-type* [v]
+    (unparse-heterogeneous*
+      (case (:kind v)
+        :list (unparse-Name-symbol-in-ns `t/HList)
+        :vector (unparse-Name-symbol-in-ns `t/HVec)
+        :seq (unparse-Name-symbol-in-ns `t/HSeq)
+        :sequential (unparse-Name-symbol-in-ns `t/HSequential))
+      v))
 
-(defmethod unparse-type* HSet
-  [{:keys [fixed] :as v}]
-  {:pre [(every? r/Value? fixed)]}
-  (list (unparse-Name-symbol-in-ns `t/HSet) (set (map :val fixed))))
+  HSet
+  (unparse-type* 
+    [{:keys [fixed] :as v}]
+    {:pre [(every? r/Value? fixed)]}
+    (list (unparse-Name-symbol-in-ns `t/HSet) (set (map :val fixed))))
 
-(defmethod unparse-type* KwArgsSeq
-  [^KwArgsSeq v]
-  (list* 'KwArgsSeq 
-         (concat
-           (when (seq (.optional v))
-             [:optional (unparse-map-of-types (.optional v))])
-           (when (seq (.mandatory v))
-             [:mandatory (unparse-map-of-types (.mandatory v))])
-           (when (:complete? v)
-             [:complete? (:complete? v)])
-           (when (:nilable-non-empty? v)
-             [:nilable-non-empty? (:nilable-non-empty? v)]))))
+  KwArgsSeq
+  (unparse-type* 
+    [^KwArgsSeq v]
+    (list* 'KwArgsSeq 
+           (concat
+             (when (seq (.optional v))
+               [:optional (unparse-map-of-types (.optional v))])
+             (when (seq (.mandatory v))
+               [:mandatory (unparse-map-of-types (.mandatory v))])
+             (when (:complete? v)
+               [:complete? (:complete? v)])
+             (when (:nilable-non-empty? v)
+               [:nilable-non-empty? (:nilable-non-empty? v)]))))
 
-(defmethod unparse-type* AssocType
-  [{:keys [target entries dentries]}]
-  (list* (unparse-Name-symbol-in-ns `t/Assoc)
-         (unparse-type target)
-         (concat
-           (doall (map unparse-type (apply concat entries)))
-           (when dentries [(unparse-type (:pre-type dentries))
-                           '...
-                           (unparse-bound (:name dentries))]))))
+  AssocType
+  (unparse-type* 
+    [{:keys [target entries dentries]}]
+    (list* (unparse-Name-symbol-in-ns `t/Assoc)
+           (unparse-type target)
+           (concat
+             (doall (map unparse-type (apply concat entries)))
+             (when dentries [(unparse-type (:pre-type dentries))
+                             '...
+                             (unparse-bound (:name dentries))]))))
 
-(defmethod unparse-type* GetType
-  [{:keys [target key not-found]}]
-  (list* (unparse-Name-symbol-in-ns `t/Get)
-         (unparse-type target)
-         (unparse-type key)
-         (when (not= r/-nil not-found)
-           [(unparse-type not-found)])))
+  GetType
+  (unparse-type* 
+    [{:keys [target key not-found]}]
+    (list* (unparse-Name-symbol-in-ns `t/Get)
+           (unparse-type target)
+           (unparse-type key)
+           (when (not= r/-nil not-found)
+             [(unparse-type not-found)])))
 
 ; CLJS Types
 
-(defmethod unparse-type* JSNumber [_] (unparse-Name-symbol-in-ns 'cljs.core.typed/JSNumber))
-(defmethod unparse-type* JSBoolean [_] (unparse-Name-symbol-in-ns 'cljs.core.typed/JSBoolean))
-(defmethod unparse-type* JSObject [_] (unparse-Name-symbol-in-ns 'cljs.core.typed/JSObject))
-(defmethod unparse-type* CLJSInteger [_] (unparse-Name-symbol-in-ns 'cljs.core.typed/CLJSInteger))
-(defmethod unparse-type* JSString [_] (unparse-Name-symbol-in-ns 'cljs.core.typed/JSString))
-(defmethod unparse-type* JSSymbol [_] (unparse-Name-symbol-in-ns 'cljs.core.typed/JSSymbol))
-(defmethod unparse-type* JSUndefined [_] (unparse-Name-symbol-in-ns 'cljs.core.typed/JSUndefined))
-(defmethod unparse-type* JSNull [_] (unparse-Name-symbol-in-ns 'cljs.core.typed/JSNull))
-(defmethod unparse-type* JSObj [t] (list (unparse-Name-symbol-in-ns 'cljs.core.typed/JSObj)
-                                         (zipmap (keys (:types t))
-                                                 (map unparse-type (vals (:types t))))))
+  JSNumber 
+  (unparse-type* [_] (unparse-Name-symbol-in-ns 'cljs.core.typed/JSNumber))
+  JSBoolean 
+  (unparse-type* [_] (unparse-Name-symbol-in-ns 'cljs.core.typed/JSBoolean))
+  JSObject 
+  (unparse-type* [_] (unparse-Name-symbol-in-ns 'cljs.core.typed/JSObject))
+  CLJSInteger 
+  (unparse-type* [_] (unparse-Name-symbol-in-ns 'cljs.core.typed/CLJSInteger))
+  JSString 
+  (unparse-type* [_] (unparse-Name-symbol-in-ns 'cljs.core.typed/JSString))
+  JSSymbol 
+  (unparse-type* [_] (unparse-Name-symbol-in-ns 'cljs.core.typed/JSSymbol))
+  JSUndefined 
+  (unparse-type* [_] (unparse-Name-symbol-in-ns 'cljs.core.typed/JSUndefined))
+  JSNull 
+  (unparse-type* [_] (unparse-Name-symbol-in-ns 'cljs.core.typed/JSNull))
+  JSObj 
+  (unparse-type* [t] (list (unparse-Name-symbol-in-ns 'cljs.core.typed/JSObj)
+                                           (zipmap (keys (:types t))
+                                                   (map unparse-type (vals (:types t))))))
 
-(defmethod unparse-type* ArrayCLJS
-  [{:keys [input-type output-type]}]
-  (cond 
-    (= input-type output-type) (list 'Array (unparse-type input-type))
-    :else (list 'Array2 (unparse-type input-type) (unparse-type output-type))))
+  ArrayCLJS
+  (unparse-type* 
+    [{:keys [input-type output-type]}]
+    (cond 
+      (= input-type output-type) (list 'Array (unparse-type input-type))
+      :else (list 'Array2 (unparse-type input-type) (unparse-type output-type))))
 
-(defmethod unparse-type* JSNominal
-  [{:keys [name poly?]}]
-  (let [sym (symbol name)]
-    (if (seq poly?)
-      (list* sym (map unparse-type poly?))
-      sym)))
+  JSNominal
+  (unparse-type* 
+    [{:keys [name poly?]}]
+    (let [sym (symbol name)]
+      (if (seq poly?)
+        (list* sym (map unparse-type poly?))
+        sym))))
 
 ; Objects
 
-(declare unparse-path-elem)
+(defprotocol IUnparseObject
+  (unparse-object [o]))
+(defprotocol IUnparsePathElem
+  (unparse-path-elem [p]))
 
-(defmulti unparse-object class)
-(defmethod unparse-object EmptyObject [_] 'empty)
-(defmethod unparse-object NoObject [_] 'no-object)
-(defmethod unparse-object Path [{:keys [path id]}] (conj {:id id} (when (seq path) [:path (mapv unparse-path-elem path)])))
+(extend-protocol IUnparseObject
+  EmptyObject 
+  (unparse-object [_] 'empty)
+  NoObject 
+  (unparse-object [_] 'no-object)
+  Path 
+  (unparse-object [{:keys [path id]}] (conj {:id id} (when (seq path) [:path (mapv unparse-path-elem path)]))))
 
 ; Path elems
 
-(defmulti unparse-path-elem class)
-(defmethod unparse-path-elem KeyPE [t] (list 'Key (:val t)))
-(defmethod unparse-path-elem CountPE [t] 'Count)
-(defmethod unparse-path-elem ClassPE [t] 'Class)
-(defmethod unparse-path-elem NthPE [t] (list 'Nth (:idx t)))
-(defmethod unparse-path-elem KeysPE [t] 'Keys)
-(defmethod unparse-path-elem ValsPE [t] 'Vals)
-(defmethod unparse-path-elem KeywordPE [t] 'Keyword)
+(extend-protocol IUnparsePathElem
+  KeyPE 
+  (unparse-path-elem [t] (list 'Key (:val t)))
+  CountPE 
+  (unparse-path-elem [t] 'Count)
+  ClassPE 
+  (unparse-path-elem [t] 'Class)
+  NthPE 
+  (unparse-path-elem [t] (list 'Nth (:idx t)))
+  KeysPE 
+  (unparse-path-elem [t] 'Keys)
+  ValsPE 
+  (unparse-path-elem [t] 'Vals)
+  KeywordPE 
+  (unparse-path-elem [t] 'Keyword))
 
 ; Filters
 
-(defmulti unparse-filter* class)
+(defprotocol IUnparseFilter
+  (unparse-filter* [fl]))
 
-(declare unparse-filter)
+(defn unparse-filter [f]
+  (unparse-filter* f))
 
 (defn unparse-filter-set [{:keys [then else] :as fs}]
   {:pre [(f/FilterSet? fs)]}
   {:then (unparse-filter then)
    :else (unparse-filter else)})
 
-(defn unparse-filter [f]
-  (unparse-filter* f))
+(extend-protocol IUnparseFilter
+  TopFilter 
+  (unparse-filter* [f] 'tt)
+  BotFilter 
+  (unparse-filter* [f] 'ff)
+  NoFilter 
+  (unparse-filter* [f] 'no-filter)
 
-(defmethod unparse-filter* TopFilter [f] 'tt)
-(defmethod unparse-filter* BotFilter [f] 'ff)
-(defmethod unparse-filter* NoFilter [f] 'no-filter)
+  TypeFilter
+  (unparse-filter* 
+    [{:keys [type path id]}]
+    (concat (list 'is (unparse-type type) id)
+            (when (seq path)
+              [(mapv unparse-path-elem path)])))
 
-(declare unparse-type)
+  NotTypeFilter
+  (unparse-filter* 
+    [{:keys [type path id]}]
+    (concat (list '! (unparse-type type) id)
+            (when (seq path)
+              [(mapv unparse-path-elem path)])))
 
-(defmethod unparse-filter* TypeFilter
-  [{:keys [type path id]}]
-  (concat (list 'is (unparse-type type) id)
-          (when (seq path)
-            [(mapv unparse-path-elem path)])))
+  AndFilter 
+  (unparse-filter* [{:keys [fs]}] (apply list '& (map unparse-filter fs)))
+  OrFilter 
+  (unparse-filter* [{:keys [fs]}] (apply list '| (map unparse-filter fs)))
 
-(defmethod unparse-filter* NotTypeFilter
-  [{:keys [type path id]}]
-  (concat (list '! (unparse-type type) id)
-          (when (seq path)
-            [(mapv unparse-path-elem path)])))
-
-(defmethod unparse-filter* AndFilter [{:keys [fs]}] (apply list '& (map unparse-filter fs)))
-(defmethod unparse-filter* OrFilter [{:keys [fs]}] (apply list '| (map unparse-filter fs)))
-
-(defmethod unparse-filter* ImpFilter
-  [{:keys [a c]}]
-  (list 'when (unparse-filter a) (unparse-filter c)))
+  ImpFilter
+  (unparse-filter* 
+    [{:keys [a c]}]
+    (list 'when (unparse-filter a) (unparse-filter c))))
 
 ;[TCResult -> Any]
 (defn unparse-TCResult [r]
@@ -1975,8 +2045,8 @@
                                    (ns-name ns))]
     (unparse-TCResult r)))
 
-(defmethod unparse-type* TCResult
-  [v]
-  (unparse-TCResult v))
+(extend-protocol IUnparseType
+  TCResult
+  (unparse-type* [v] (unparse-TCResult v)))
 
 (indu/add-indirection ind/unparse-type unparse-type)
