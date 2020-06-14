@@ -1934,8 +1934,11 @@
                              (when kws
                                (letfn [(instantiate-kw-map [m]
                                          {:pre [(map? m)]}
-                                         (into {} (for [[k v] m]
-                                                    [k (sb v)])))]
+                                         (into {}
+                                               (map 
+                                                 (fn [[k v]]
+                                                   [k (sb v)]))
+                                               m))]
                                  (-> kws
                                    (update-in [:mandatory] instantiate-kw-map)
                                    (update-in [:optional] instantiate-kw-map))))
