@@ -180,11 +180,11 @@
             ((if (fl/FilterSet? fs) subst-filter-set subst-flow-set) 
              fs k o polarity))]
     (subst-type*
+      t
       {:type-rec st
        :filter-rec sf
        :object-rec (fn [f] (subst-object f k o polarity))
        :locals {:st st
                 :k k
                 :o o
-                :polarity polarity}}
-      t)))
+                :polarity polarity}})))

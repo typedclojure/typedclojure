@@ -2044,7 +2044,7 @@
             ([image count type] (replace image count type 0 type))
             ([image count type outer ty]
              (letfn [(sb [t] (replace image count type outer t))]
-               (let [sf (f/sub-f sb ::instantiate-many)]
+               (let [sf (f/sub-f sb instantiate-many*)]
                  (instantiate-many*
                    ty
                    {:type-rec sb 

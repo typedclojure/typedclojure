@@ -136,7 +136,7 @@
          true)))
 
 (defmacro is-clj [& args]
-  `(is (clj ~@args)))
+  `(clj (is ~@args)))
 
 (defmacro cljs [& body]
   `(impl/with-cljs-impl ~@body))
