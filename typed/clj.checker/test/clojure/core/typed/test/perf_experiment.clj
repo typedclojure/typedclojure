@@ -198,4 +198,7 @@
   ;; after removing fail!: 844ms (40% speedup)
   (with-cpu-profiling :trace
     (t/check-ns 'clojure.core.typed.test.mm))
+
+  (with-cpu-profiling :trace
+    (t/check-ns 'clojure.core.typed.type-ctors))
   )

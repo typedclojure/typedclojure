@@ -1751,6 +1751,7 @@
   [c]
   (map vector (iterate dec (dec (count c))) c))
 
+(t/tc-ignore
 (f/def-derived-fold IAbstractMany abstract-many*)
 
 (f/add-fold-case
@@ -2030,6 +2031,7 @@
                                      (mapv #(r/visit-bounds % as) bbnds)
                                      (as body)
                                      :meta (meta t)))))
+)
 
 (t/ann ^:no-check instantiate-many [(t/Seqable t/Sym) p/IScope -> r/Type])
 (defn instantiate-many 

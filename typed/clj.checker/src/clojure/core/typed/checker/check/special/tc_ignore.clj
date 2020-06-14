@@ -17,11 +17,20 @@
 (defn check-tc-ignore [check {:keys [statements] :as expr} expected]
   {:pre [(#{3} (count statements))]}
   (binding [vs/*current-expr* expr]
-    (let [expr (-> expr
-                   ana2/run-passes
-                   ; ensure the main checking loop doesn't reevaluate this tc-ignore,
-                   ; since run-passes has already if this is top-level.
-                   ana2/unmark-eval-top-level)]
+    (let [_ (if (ana2/top-level? expr)
+              (prn "ignoring tc-ignore" (ana2/top-level? expr))
+              (prn "not ignoring tc-ignore"
+                   (:op expr)
+                   (ana2/top-level? expr)))
+          expr (if (ana2/top-level? expr)
+                 (-> expr
+                     ana2/eval-ast
+                     ana2/unmark-eval-top-level)
+                 (-> expr
+                     ana2/run-passes
+                     ; ensure the main checking loop doesn't reevaluate this tc-ignore,
+                     ; since run-passes has already if this is top-level.
+                     ana2/unmark-eval-top-level))]
       (assoc expr
              ::t/tc-ignore true
              u/expr-type (below/maybe-check-below
