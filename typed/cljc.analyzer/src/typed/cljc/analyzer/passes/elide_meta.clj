@@ -22,7 +22,7 @@
 
 (defn replace-meta [meta new-meta]
   (if (= :const (:op meta))
-    (assoc meta :val  new-meta)
+    (assoc meta :val new-meta)
     (let [meta-map (mapv (fn [k v]
                            (when-not (elides (:form k))
                              [k v]))
@@ -54,17 +54,17 @@
       (if (or (not meta)
               (= new-meta (:form meta)))
         ast
-        (if (not (empty? new-meta))
+        (if (seq new-meta)
           (assoc-in ast [:meta :val] new-meta)
           (-> ast
-            (update-in [:val] with-meta nil)
-            (dissoc :children :meta))))
+            (update :val with-meta nil)
+            (assoc :children nil :meta nil))))
       :with-meta
-      (if (not (empty? new-meta))
+      (if (seq new-meta)
         (if (= new-meta (:form meta))
           ast
           (assoc ast :meta (replace-meta meta new-meta)))
-        (merge (dissoc ast :meta :expr)
+        (merge (assoc ast :meta nil :expr nil)
                {:op         :do
                 ::common/op ::common/do
                 :body?      true
@@ -72,11 +72,13 @@
                 :statements []
                 :children   [:statements :ret]}))
       :def
-      (if (not (empty? new-meta))
+      (if (seq new-meta)
         (if (= new-meta (:form meta))
           ast
           (assoc ast :meta (replace-meta meta new-meta)))
-        (assoc (dissoc ast :meta) :children [:init]))
+        (assoc (dissoc ast :meta)
+               :children (not-empty (into [] (remove #{:meta})
+                                          (:children ast)))))
       ast)))
 
 (defn elide-meta

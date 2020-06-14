@@ -1290,10 +1290,10 @@
        :name sym
        :var  var
        :meta meta-expr
-       :children (not-empty children)}
-      (create-expr DefExpr)
-      ;;TODO inline
-      (into args))))
+       :children (not-empty children)
+       :doc (:doc args)
+       :init (:init args)}
+      (create-expr DefExpr))))
 
 (declare ^:private update-hostcallexpr-children)
 

@@ -86,3 +86,10 @@
              sym)
            (-> ret :body :ret :body :ret :name)))
     (is (not= 'a (-> ret :body :ret :body :ret :name)))))
+
+(deftest def-children-test
+  (binding [*ns* (create-ns (gensym 'test))]
+    (let [def-ast (ast' (def a))]
+      (is (= :def (:op def-ast)))
+      (is (nil? (:init def-ast)))
+      (is (= [:meta] (:children def-ast))))))
