@@ -20,7 +20,7 @@
 
 (defmacro handle-subtype-failure [& body]
   `(try
-     ~@body
+     (do ~@body)
      (catch Exception e#
        (if (identical? subtype-exn e#)
          false
@@ -28,7 +28,7 @@
 
 (defmacro handle-cs-gen-failure [& body]
   `(try
-     ~@body
+     (do ~@body)
      (catch Exception e#
        (if (identical? cs-gen-exn e#)
          false

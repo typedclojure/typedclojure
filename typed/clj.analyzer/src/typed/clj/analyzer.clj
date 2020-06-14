@@ -238,19 +238,17 @@
 
 ; copied from clojure.tools.analyzer.jvm
 ; - remove usage of *env*
+; - removed slow call to ns-interns
 (defn create-var
   "Creates a Var for sym and returns it.
    The Var gets interned in the env namespace."
   [sym {:keys [ns]}]
-  (let [v (get (ns-interns ns) (symbol (name sym)))]
-    (if (and v (or (class? v)
-                   (= ns (ns-name (.ns ^Var v) ))))
-      v
-      (let [meta (dissoc (meta sym) :inline :inline-arities :macro)
-            meta (if-let [arglists (:arglists meta)]
-                   (assoc meta :arglists (qualify-arglists arglists))
-                   meta)]
-       (intern ns (with-meta sym meta))))))
+  {:post [(var? %)]}
+  (let [meta (dissoc (meta sym) :inline :inline-arities :macro)
+        meta (if-let [arglists (:arglists meta)]
+               (assoc meta :arglists (qualify-arglists arglists))
+               meta)]
+    (intern ns (with-meta sym meta))))
 
 ; no global namespaces tracking (since resolve-{sym,ns} is now platform dependent),
 ; mostly used for passes configuration.

@@ -45,6 +45,10 @@
 (defn fail! [s t]
   (throw u/subtype-exn))
 
+;[Type Type -> nil]
+(defmacro ^:private report-not-subtypes [s t]
+  nil)
+
 ;keeps track of currently seen subtype relations for recursive types.
 ;(Set [Type Type])
 (defonce ^:dynamic *sub-current-seen* #{})
@@ -59,16 +63,16 @@
   "True if argtys are under dom"
   [argtys dom rst kws]
   (handle-failure
-    (subtypes*-varargs #{} argtys dom rst kws)
-    true))
+    (boolean (subtypes*-varargs #{} argtys dom rst kws))))
 
 (defn subtypes-prest? [argtys dom prest]
   "True if argtys are under dom and prest"
   (let [dom-count (count dom)
         [argtys-dom argtys-rest] (split-at dom-count argtys)]
     (handle-failure
-      (subtypes*-varargs #{} argtys-dom dom nil nil)
-      (subtype? (r/-hvec (vec argtys-rest)) prest))))
+      (boolean
+        (and (subtypes*-varargs #{} argtys-dom dom nil nil)
+             (subtype? (r/-hvec (vec argtys-rest)) prest))))))
 
 ;subtype and subtype? use *sub-current-seen* for remembering types (for Rec)
 ;subtypeA* takes an extra argument (the current-seen subtypes), called by subtype
@@ -102,8 +106,9 @@
 
 ;[(t/Set '[Type Type]) Type Type -> Boolean]
 (defn subtypeA*? [A s t]
-  (handle-failure
-    (subtypeA* A s t)))
+  (boolean
+    (handle-failure
+      (subtypeA* A s t))))
 
 (declare supertype-of-one-arr)
 
@@ -127,7 +132,7 @@
            (:complete? s)
            (:complete? t))
     *sub-current-seen*
-    (fail! s t)))
+    (report-not-subtypes s t)))
 
 (defn simplify-In [t]
   {:pre [(r/Intersection? t)]}
@@ -141,7 +146,7 @@
 (defn subtypeA* [A s t]
   {:pre [(r/AnyType? s)
          (r/AnyType? t)]
-   :post [(set? %)]}
+   :post [(or (set? %) (nil? %))]}
   ;(prn "subtypeA*" s t)
   (if (or (contains? A [s t])
           (= s t)
@@ -189,7 +194,7 @@
         (and (r/Value? s)
              (r/Value? t))
         ;already (not= s t)
-        (fail! s t)
+        (report-not-subtypes s t)
 
         (and (r/Poly? s)
              (r/Poly? t)
@@ -204,7 +209,7 @@
                    (free-ops/with-bounded-frees (zipmap (map r/F-maker names) bbnds1)
                      (subtype? b1 b2)))
             *sub-current-seen*
-            (fail! s t)))
+            (report-not-subtypes s t)))
 
         ;use unification to see if we can use the Poly type here
         (and (r/Poly? s)
@@ -236,7 +241,7 @@
               b (c/Poly-body* names t)]
           (if (subtype? s b)
             *sub-current-seen*
-            (fail! s t)))
+            (report-not-subtypes s t)))
 
         (r/Name? s)
         (subtypeA* *sub-current-seen* (c/resolve-Name s) t)
@@ -257,7 +262,7 @@
         (subtypeA* *sub-current-seen* s (c/resolve-App t))
 
         (r/Bottom? t)
-        (fail! s t)
+        (report-not-subtypes s t)
 
         (and (r/TApp? s)
              (r/TApp? t)
@@ -270,7 +275,7 @@
         (let [{:keys [rands]} s
               rator (c/fully-resolve-type (:rator s))]
           (cond
-            (r/F? rator) (fail! s t)
+            (r/F? rator) (report-not-subtypes s t)
 
             (r/TypeFn? rator)
             (let [names (c/TypeFn-fresh-symbols* rator)
@@ -278,7 +283,7 @@
                   res (c/instantiate-typefn rator rands :names names)]
               (if (subtypeA*? (conj *sub-current-seen* [s t]) res t)
                 *sub-current-seen*
-                (fail! s t)))
+                (report-not-subtypes s t)))
 
             :else (err/int-error (str "First argument to TApp must be TFn, actual: " (prs/unparse-type rator)))))
 
@@ -287,28 +292,27 @@
         (let [{:keys [rands]} t
               rator (c/fully-resolve-type (:rator t))]
           (cond
-            (r/F? rator) (fail! s t)
+            (r/F? rator) (report-not-subtypes s t)
 
             (r/TypeFn? rator)
             (let [names (c/TypeFn-fresh-symbols* rator)
                   res (c/instantiate-typefn rator rands :names names)]
               (if (subtypeA*? (conj *sub-current-seen* [s t]) s res)
                 *sub-current-seen*
-                (fail! s t)))
+                (report-not-subtypes s t)))
 
             :else (err/int-error (str "First argument to TApp must be TFn, actual: " (prs/unparse-type rator)))))
 
         (r/Union? s)
-        ;use subtypeA*, throws error
         (if (every? (fn union-left [s] (subtypeA* *sub-current-seen* s t)) (:types s))
           *sub-current-seen*
-          (fail! s t))
+          (report-not-subtypes s t))
 
         ;use subtypeA*?, boolean result
         (r/Union? t)
-        (if (some (fn union-right [t] (subtypeA*? *sub-current-seen* s t)) (:types t))
+        (if (some (fn union-right [t] (subtypeA* *sub-current-seen* s t)) (:types t))
           *sub-current-seen*
-          (fail! s t))
+          (report-not-subtypes s t))
 
         (and (r/FnIntersection? s)
              (r/FnIntersection? t))
@@ -319,20 +323,20 @@
               A*
               (if-let [A (supertype-of-one-arr A* (first arr2) arr1)]
                 (recur A (next arr2))
-                (fail! s t)))))
+                (report-not-subtypes s t)))))
 
 ;does it matter what order the Intersection cases are?
         (r/Intersection? t)
         (let [ts (simplify-In t)]
           (if (every? #(subtype? s %) ts)
             *sub-current-seen*
-            (fail! s t)))
+            (report-not-subtypes s t)))
 
         (r/Intersection? s)
         (let [ss (simplify-In s)]
           (if (some #(subtype? % t) ss)
             *sub-current-seen*
-            (fail! s t)))
+            (report-not-subtypes s t)))
 
         (and (r/Extends? s)
              (r/Extends? t))
@@ -352,13 +356,13 @@
                            (some #(subtype? % not-t*) (:without s)))
                          (:without t)))
           *sub-current-seen*
-          (fail! s t))
+          (report-not-subtypes s t))
 
         (r/Extends? s)
         (if (and (some #(subtype? % t) (:extends s))
                  (not-any? #(subtype? % t) (:without s)))
           *sub-current-seen*
-          (fail! s t))
+          (report-not-subtypes s t))
 
         (r/Extends? t)
         (if (and (every? identity 
@@ -367,7 +371,7 @@
                              (subtype? s e))))
                  (not-any? #(subtype? s %) (:without t)))
           *sub-current-seen*
-          (fail! s t))
+          (report-not-subtypes s t))
 
         (and (r/TopFunction? t)
              (r/FnIntersection? s))
@@ -379,7 +383,7 @@
         (every? r/NotType? [s t])
         (if (subtype? (:type t) (:type s))
           *sub-current-seen*
-          (fail! s t))
+          (report-not-subtypes s t))
 
         ;  A <!: B  A is not free  B is not free
         ;________________________________________
@@ -389,7 +393,7 @@
         (if (and (not-any? (some-fn r/B? r/F?) [s (:type t)])
                  (not (subtype? s (:type t))))
           *sub-current-seen*
-          (fail! s t))
+          (report-not-subtypes s t))
 
 ; delegate to NotType
         (r/DifferenceType? s)
@@ -422,7 +426,7 @@
                    (every? identity (map subtype? entries-keys (repeat (first poly?))))
                    (every? identity (map subtype? entries-vals (repeat (second poly?)))))
             *sub-current-seen*
-            (fail! s t)))
+            (report-not-subtypes s t)))
 
         (and (r/AssocType? s)
              (r/AssocType? t)
@@ -433,7 +437,7 @@
                  (subtype? (apply assoc-u/assoc-pairs-noret (c/-complete-hmap {}) (:entries s))
                            (apply assoc-u/assoc-pairs-noret (c/-complete-hmap {}) (:entries t))))
           *sub-current-seen*
-          (fail! s t))
+          (report-not-subtypes s t))
 
         (and (r/AssocType? s)
              (r/F? (:target s))
@@ -445,7 +449,7 @@
                    (subtype? (apply assoc-u/assoc-pairs-noret (c/-complete-hmap {}) (:entries s))
                              t))
             *sub-current-seen*
-            (fail! s t)))
+            (report-not-subtypes s t)))
       
         ; avoids infinite expansion because associng an F is a fixed point
         (and (r/AssocType? s)
@@ -453,7 +457,7 @@
         (let [s-or-n (apply assoc-u/assoc-pairs-noret (:target s) (:entries s))]
           (if (and s-or-n (subtype? s-or-n t))
             *sub-current-seen*
-            (fail! s t)))
+            (report-not-subtypes s t)))
 
         ; avoids infinite expansion because associng an F is a fixed point
         (and (r/AssocType? t)
@@ -461,7 +465,7 @@
         (let [t-or-n (apply assoc-u/assoc-pairs-noret (:target t) (:entries t))]
           (if (and t-or-n (subtype? s t-or-n))
             *sub-current-seen*
-            (fail! s t)))
+            (report-not-subtypes s t)))
 
         (and (r/HSequential? s)
              (r/HSequential? t)
@@ -570,7 +574,7 @@
                                                  (= o1 o2)))
                          (map vector (:objects s) (:objects t))))
           *sub-current-seen*
-          (fail! s t))
+          (report-not-subtypes s t))
 
         ; repeat Heterogeneous* can always accept nil
         (and (r/Nil? s)
@@ -641,7 +645,7 @@
                                 (:optional t)))
                    )
             *sub-current-seen*
-            (fail! s t)))
+            (report-not-subtypes s t)))
 
         (r/HeterogeneousMap? s)
         (subtype (c/upcast-hmap s) t)
@@ -658,7 +662,7 @@
                             (subtype? lt rt))))
                       rtypes)
             *sub-current-seen*
-            (fail! s t)))
+            (report-not-subtypes s t)))
 
         (and (r/HSet? s)
              (r/HSet? t))
@@ -716,7 +720,7 @@
                                                (subtypeA* *sub-current-seen* r l))))
                            (map vector variances* poly1 poly2)))
             *sub-current-seen*
-            (fail! s t)))
+            (report-not-subtypes s t)))
 
         (and (r/DataType? s)
              (r/DataType? t))
@@ -726,7 +730,7 @@
              (r/Protocol? t))
         (if (subtype-datatype-and-protocol s t)
           *sub-current-seen*
-          (fail! s t))
+          (report-not-subtypes s t))
 
         (and (r/RClass? s)
              (r/Protocol? t))
@@ -737,7 +741,7 @@
              (impl/checking-clojure?))
         (if (contains? (c/Protocol-normal-extenders t) nil)
           *sub-current-seen*
-          (fail! s t))
+          (report-not-subtypes s t))
 
         ((some-fn r/JSNull? r/JSUndefined?) s)
         (subtypeA* *sub-current-seen* r/-nil t)
@@ -748,7 +752,7 @@
           (impl/impl-case
             :clojure (cond 
                        ; this is after the nil <: Protocol case, so we fail
-                       (nil? sval) (fail! s t)
+                       (nil? sval) (report-not-subtypes s t)
                        ; this is a faster path than the final case
                        (r/RClass? t) (let [cls (let [cls (coerce/symbol->Class (:the-class t))]
                                                  (or (boxed-primitives cls)
@@ -757,14 +761,14 @@
                                          (#{Integer Long} cls) (if (or (instance? Integer sval)
                                                                        (instance? Long sval))
                                                                  *sub-current-seen*
-                                                                 (fail! s t))
+                                                                 (report-not-subtypes s t))
                                          ;handle string-as-seqable
                                          (string? sval) (if (subtype? (c/RClass-of String) t)
                                                           *sub-current-seen*
-                                                          (fail! s t))
+                                                          (report-not-subtypes s t))
                                          :else (if (instance? cls sval) 
                                                  *sub-current-seen*
-                                                 (fail! s t))))
+                                                 (report-not-subtypes s t))))
                        :else (subtype (apply c/In (c/RClass-of (class sval))
                                              (cond
                                                ;keyword values are functions
@@ -779,7 +783,7 @@
                     (boolean? sval) (subtype (r/JSBoolean-maker) t)
                     (symbol? sval) (subtype (c/DataType-of 'cljs.core/Symbol) t)
                     (keyword? sval) (subtype (c/DataType-of 'cljs.core/Keyword) t)
-                    :else (fail! s t))))
+                    :else (report-not-subtypes s t))))
 
         (and (r/Result? s)
              (r/Result? t))
@@ -818,13 +822,13 @@
                            "given " (count (:poly? s)))))]
             (if (subtype? read-type t)
               *sub-current-seen*
-              (fail! s t)))
+              (report-not-subtypes s t)))
 
           :else (if (some #(when (r/FnIntersection? %)
                              (subtype? % t))
                           (map c/fully-resolve-type (c/RClass-supers* s)))
                   *sub-current-seen*
-                  (fail! s t)))
+                  (report-not-subtypes s t)))
 
         ; handles classes with heterogeneous vector ancestors (eg. IMapEntry)
         (and (r/RClass? s)
@@ -833,7 +837,7 @@
                      (subtype? % t))
                   (map c/fully-resolve-type (c/RClass-supers* s)))
           *sub-current-seen*
-          (fail! s t))
+          (report-not-subtypes s t))
 
         ; hack for FnIntersection <: clojure.lang.IFn
         (when (r/FnIntersection? s)
@@ -862,11 +866,11 @@
                    (free-ops/with-bounded-frees (zipmap (map r/F-maker names) bbnds1)
                      (subtype? b1 b2)))
             *sub-current-seen*
-            (fail! s t)))
+            (report-not-subtypes s t)))
 
         ; TODO if s is (All [r x ...] [x ... x -> r]) and t is (All [r x] [x * -> r]) then we should say yes?
 
-        :else (fail! s t)))))
+        :else (report-not-subtypes s t)))))
 
 (let [analyze-qualified-symbol (delay (impl/dynaload 'clojure.core.typed.checker.jvm.analyze-cljs/analyze-qualified-symbol))]
   (defn resolve-JS-reference [sym]
@@ -899,7 +903,7 @@
 
 ;[Type Type -> (IPersistentSet '[Type Type])]
 (defn- subtype [s t]
-  {:post [(set? %)]}
+  {:post [((some-fn set? nil?) %)]}
   #_(prn "subtype")
 ;  (if-let [hit (@subtype-cache (set [s t]))]
 ;    (do #_(prn "subtype hit")
@@ -912,7 +916,8 @@
 ;  -> (IPersistentSet '[Type Type])]
 (defn subtypes*-varargs [A0 argtys dom rst kws]
   {:pre [((some-fn nil? r/Type?) rst)
-         ((some-fn nil? r/KwArgs?) kws)]}
+         ((some-fn nil? r/KwArgs?) kws)]
+   :post [((some-fn set? nil?) %)]}
   (letfn [(all-mandatory-kws? [found-kws]
             {:pre [(set? found-kws)]}
             (empty? (set/difference (set (keys (:mandatory kws)))
@@ -925,14 +930,14 @@
         (and (empty? dom) (empty? argtys)) 
         (if (all-mandatory-kws? found-kws)
           A
-          (fail! argtys dom))
+          (report-not-subtypes argtys dom))
 
-        (empty? argtys) (fail! argtys dom)
+        (empty? argtys) (report-not-subtypes argtys dom)
 
         (and (empty? dom) rst)
         (if-let [A (subtypeA* A (first argtys) rst)]
           (recur dom (next argtys) A found-kws)
-          (fail! (first argtys) rst))
+          (report-not-subtypes (first argtys) rst))
 
         (and (empty? dom) (<= 2 (count argtys)) kws)
         (let [kw (c/fully-resolve-type (first argtys))
@@ -941,13 +946,13 @@
                             kw)]
           (if (and expected-val (subtype? val expected-val))
             (recur dom (drop 2 argtys) A (conj found-kws kw))
-            (fail! (take 2 argtys) kws)))
+            (report-not-subtypes (take 2 argtys) kws)))
 
-        (empty? dom) (fail! argtys dom)
+        (empty? dom) (report-not-subtypes argtys dom)
         :else
         (if-let [A (subtypeA* A0 (first argtys) (first dom))]
           (recur (next dom) (next argtys) A found-kws)
-          (fail! (first argtys) (first dom)))))))
+          (report-not-subtypes (first argtys) (first dom)))))))
 
 ;FIXME
 (defn subtype-kwargs* [s t]
@@ -969,115 +974,121 @@
     ;; the really simple case
     (and (not ((some-fn :rest :drest :kws :prest) s))
          (not ((some-fn :rest :drest :kws :prest) t)))
-    (do
-      (when-not (= (count (:dom s))
-                   (count (:dom t)))
-        (fail! s t))
-      (-> *sub-current-seen*
-        ((fn [A0]
-           (reduce (fn [A* [s t]]
-                     (subtypeA* A* s t))
-                   A0
-                   (map vector (:dom t) (:dom s)))))
-        (subtypeA* (:rng s) (:rng t))))
+    (if (and (= (count (:dom s))
+                (count (:dom t)))
+             (some-> (reduce (fn [A* [s t]]
+                               (cond-> (subtypeA* A* s t)
+                                 nil? reduced))
+                             *sub-current-seen*
+                             (map vector (:dom t) (:dom s)))
+                     (subtypeA* (:rng s) (:rng t))))
+      *sub-current-seen*
+      (report-not-subtypes s t))
 
     (and (:prest s)
          (:prest t))
     (if (and (= (count (:dom s))
                 (count (:dom t)))
-             (-> *sub-current-seen*
-               ((fn [A0]
-                  (reduce (fn [A* [s t]]
-                            (subtypeA* A* s t))
-                          A0
-                          (map vector (:dom t) (:dom s)))))
-               (subtypeA* (:rng s) (:rng t)))
+             (some-> (reduce (fn [A* [s t]]
+                               (cond-> (subtypeA* A* s t)
+                                 nil? reduced))
+                             *sub-current-seen*
+                             (map vector (:dom t) (:dom s)))
+                     (subtypeA* (:rng s) (:rng t)))
              (subtype (:prest s) (:prest t)))
       *sub-current-seen*
-      (fail! s t))
+      (report-not-subtypes s t))
 
     (and (:rest s)
          (:prest t))
-    (let [_ (subtypeA* *sub-current-seen* (:rng s) (:rng t))
-          subtype-list (fn [s t]
-                         (for [s s
-                               t t]
-                           (subtypeA* *sub-current-seen* s t)))
+    (let [subtype-list? (fn [s t]
+                          (every? identity
+                                  (for [s s
+                                        t t]
+                                    (subtypeA* *sub-current-seen* s t))))
           s-dom (:dom s)
           s-dom-count (count s-dom)
           t-dom (:dom t)
           t-dom-count (count t-dom)
           s-rest (:rest s)
           t-prest-types (-> t :prest :types)
-          t-prest-types-count (count t-prest-types)
-          _ (subtype-list (repeat t-prest-types-count s-rest) t-prest-types)]
-      (if (> s-dom-count t-dom-count)
-        ; hard mode
-        (let [[s-dom-short s-dom-rest] (split-at t-dom-count s-dom)
-              _ (subtype-list t-dom s-dom-short)
-              remain-repeat-count (rem (count s-dom-rest) t-prest-types-count)
-              ceiling (fn [up low]
-                        {:pre [(every? integer? [up low])]}
-                        (let [result (quot up low)]
-                          (if (zero? (rem up low))
-                            result
-                            (inc result))))
-              repeat-times (if (empty? s-dom-rest)
-                             0
-                             (ceiling (count s-dom-rest) t-prest-types-count))
-              _ (subtype-list (concat s-dom-rest (repeat remain-repeat-count s-rest))
-                              (gen-repeat repeat-times t-prest-types))]
-          *sub-current-seen*)
-        ; easy mode
-        (let [[t-dom-short t-dom-rest] (split-at s-dom-count t-dom)
-              _ (subtype-list t-dom-short s-dom)
-              _ (subtype-list t-dom-rest (repeat (count t-dom-rest) s-rest))]
-          *sub-current-seen*)))
+          t-prest-types-count (count t-prest-types)]
+      (if-not (and (subtypeA* *sub-current-seen* (:rng s) (:rng t))
+                   (subtype-list? (repeat t-prest-types-count s-rest) t-prest-types))
+        (report-not-subtypes s t)
+        (if (> s-dom-count t-dom-count)
+          ; hard mode
+          (let [[s-dom-short s-dom-rest] (split-at t-dom-count s-dom)]
+            (if-not (subtype-list? t-dom s-dom-short)
+              (report-not-subtypes s t)
+              (let [remain-repeat-count (rem (count s-dom-rest) t-prest-types-count)
+                    ceiling (fn [up low]
+                              {:pre [(every? integer? [up low])]}
+                              (let [result (quot up low)]
+                                (if (zero? (rem up low))
+                                  result
+                                  (inc result))))
+                    repeat-times (if (empty? s-dom-rest)
+                                   0
+                                   (ceiling (count s-dom-rest) t-prest-types-count))
+                    _ (subtype-list? (concat s-dom-rest (repeat remain-repeat-count s-rest))
+                                     (gen-repeat repeat-times t-prest-types))]
+                *sub-current-seen*)))
+          ; easy mode
+          (let [[t-dom-short t-dom-rest] (split-at s-dom-count t-dom)]
+            (if (and (subtype-list? t-dom-short s-dom)
+                     (subtype-list? t-dom-rest (repeat (count t-dom-rest) s-rest)))
+              *sub-current-seen*
+              (report-not-subtypes s t))))))
 
     ;kw args
     (and (:kws s)
          (:kws t))
-    (do
-      (mapv subtype (:dom t) (:dom s))
-      (subtype (:rng s) (:rng t))
-      (subtype-kwargs* (:kws t) (:kws s)))
+    (if (and (every? subtype (:dom t) (:dom s))
+             (subtype (:rng s) (:rng t))
+             (subtype-kwargs* (:kws t) (:kws s)))
+      *sub-current-seen*
+      (report-not-subtypes s t))
 
     (and (:rest s)
          (not ((some-fn :rest :drest :kws :prest) t)))
-    (-> *sub-current-seen*
-      (subtypes*-varargs (:dom t) (:dom s) (:rest s) nil)
-      (subtypeA* (:rng s) (:rng t)))
+    (if (some-> *sub-current-seen*
+                (subtypes*-varargs (:dom t) (:dom s) (:rest s) nil)
+                (subtypeA* (:rng s) (:rng t)))
+      *sub-current-seen*
+      (report-not-subtypes s t))
 
     (and (not ((some-fn :rest :drest :kws :prest) s))
          (:rest t))
-    (fail! s t)
+    (report-not-subtypes s t)
 
     (and (:rest s)
          (:rest t))
-    (-> *sub-current-seen*
-      (subtypes*-varargs (:dom t) (:dom s) (:rest s) nil)
-      (subtypeA* (:rest t) (:rest s))
-      (subtypeA* (:rng s) (:rng t)))
+    (if (some-> *sub-current-seen*
+                (subtypes*-varargs (:dom t) (:dom s) (:rest s) nil)
+                (subtypeA* (:rest t) (:rest s))
+                (subtypeA* (:rng s) (:rng t)))
+      *sub-current-seen*
+      (report-not-subtypes s t))
 
     ;; handle ... varargs when the bounds are the same
     (and (:drest s)
          (:drest t)
          (= (-> s :drest :name)
             (-> t :drest :name)))
-    (-> *sub-current-seen*
-      (subtypeA* (-> t :drest :pre-type) (-> s :drest :pre-type))
-      ((fn [A0] 
-         (reduce (fn [A* [s t]]
-                   (subtypeA* A* s t))
-                 A0 (map vector (:dom t) (:dom s)))))
-      (subtypeA* (:rng s) (:rng t)))
-    :else (fail! s t)))
+    (if (and (subtypeA* (-> t :drest :pre-type) (-> s :drest :pre-type))
+             (some-> (reduce (fn [A* [s t]]
+                               (cond-> (subtypeA* A* s t)
+                                 nil? reduced))
+                             *sub-current-seen* (map vector (:dom t) (:dom s)))
+                     (subtypeA* (:rng s) (:rng t))))
+      *sub-current-seen*
+      (report-not-subtypes s t))
+    :else (report-not-subtypes s t)))
 
 ;[(IPersistentSet '[Type Type]) Function (t/Seqable Function) -> (Option (IPersistentSet '[Type Type]))]
 (defn supertype-of-one-arr [A s ts]
-  (some #(handle-failure 
-           (arr-subtype A % s))
-        ts))
+  (some #(arr-subtype A % s) ts))
 
 (defn fully-resolve-filter [fl]
   {:pre [(fr/Filter? fl)]
@@ -1235,9 +1246,9 @@
     (let [f1-tf (first (filter fr/TypeFilter? (:fs (:then f1))))]
       (if (= f1-tf (:then f2))
         (subtype t1 t2)
-        (fail! t1 t2)))
+        (report-not-subtypes t1 t2)))
 
-    :else (fail! t1 t2)))
+    :else (report-not-subtypes t1 t2)))
 
 (defn subtype-TCResult-ignore-type?
   [{f1 :fl o1 :o flow1 :flow :as s}
@@ -1312,7 +1323,7 @@
                   (if (and (r/TypeFn? upper-bound)
                            (subtype-TypeFn-rands? upper-bound (:rands s) (:rands t)))
                     *sub-current-seen*
-                    (fail! s t)))))
+                    (report-not-subtypes s t)))))
       (r/TypeFn? (:rator s))
       (let [rator (:rator s)
             variances (:variances rator)
@@ -1334,8 +1345,8 @@
                                                        (subtype? t s)))))
                               variances bbnds (:rands s) (:rands t))))
           *sub-current-seen*
-          (fail! s t)))
-      :else (fail! s t))))
+          (report-not-subtypes s t)))
+      :else (report-not-subtypes s t))))
 
 (defn subtype-TypeFn
   [S T]
@@ -1358,7 +1369,7 @@
                           sbnds tbnds))
              (subtype? sbody tbody))
       *sub-current-seen*
-      (fail! S T))))
+      (report-not-subtypes S T))))
 
 (defn subtype-PrimitiveArray
   [s t]
@@ -1370,7 +1381,7 @@
            (subtype? (:output-type s)
                      (:output-type t)))
     *sub-current-seen*
-    (fail! s t)))
+    (report-not-subtypes s t)))
 
 (defn datatype-ancestors 
   "Returns a set of Types which are ancestors of this datatype.
@@ -1439,8 +1450,8 @@
                                          (c/RClass-of-with-unknown-params (:the-class s)))]
         (if (subtype? s relevant-protocol-extender)
           *sub-current-seen*
-          (fail! s t)))
-      :else (fail! s t))))
+          (report-not-subtypes s t)))
+      :else (report-not-subtypes s t))))
 
 ;(t/ann subtype-datatype-rclass [DataType RClass -> Seen])
 (defn ^:private subtype-datatype-rclass
@@ -1456,7 +1467,7 @@
     (if (and relevant-datatype-ancestor
              (subtype? s relevant-datatype-ancestor))
       *sub-current-seen*
-      (fail! s t))))
+      (report-not-subtypes s t))))
 
 ;(t/ann subtype-datatype-and-protocol [DataType Protocol -> Seen])
 (defn ^:private subtype-datatype-and-protocol
@@ -1482,8 +1493,8 @@
                                                     (c/DataType-with-unknown-params (:the-class s)))]
                    (if (subtype? s relevant-protocol-extender)
                      *sub-current-seen*
-                     (fail! s t)))
-                 :else (fail! s t)))
+                     (report-not-subtypes s t)))
+                 :else (report-not-subtypes s t)))
 
     :cljs (assert nil "FIXME")))
 
@@ -1500,7 +1511,7 @@
                                        (subtypeA* *sub-current-seen* r l))))
                    (map vector (:variances s) poly1 poly2)))
     *sub-current-seen*
-    (fail! s t)))
+    (report-not-subtypes s t)))
 
 ; does this really help?
 (defn class-isa? 
@@ -1521,14 +1532,14 @@
              (and (seq polyl?)
                   (seq polyr?)
                   (every? identity
-                          (doall (map #(case %1
-                                         :covariant (subtype? %2 %3)
-                                         :contravariant (subtype? %3 %2)
-                                         (and (subtype? %2 %3)
-                                              (subtype? %3 %2)))
-                                      variances
-                                      polyl?
-                                      polyr?))))))))
+                          (map #(case %1
+                                  :covariant (subtype? %2 %3)
+                                  :contravariant (subtype? %3 %2)
+                                  (and (subtype? %2 %3)
+                                       (subtype? %3 %2)))
+                               variances
+                               polyl?
+                               polyr?)))))))
 
 ;(IPersistentMap Class Class)
 (def boxed-primitives
@@ -1593,7 +1604,7 @@
 
       ;try each ancestor
 
-      :else (fail! s t))))
+      :else (report-not-subtypes s t))))
 
 ;subtype if t includes all of s. 
 ;tl <= sl, su <= tu
@@ -1605,7 +1616,7 @@
              (and supper (<= supper tupper))
              true))
     *sub-current-seen*
-    (fail! s t)))
+    (report-not-subtypes s t)))
 
 (defmacro sub-clj? [s t]
   `(impl/with-clojure-impl

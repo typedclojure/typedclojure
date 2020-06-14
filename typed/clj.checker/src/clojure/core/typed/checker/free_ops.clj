@@ -80,7 +80,8 @@
        (bnds/with-extended-bnds fresh-names# bndss#
          ~@body))))
 
-(def bounded-frees? (con/hash-c? r/F? r/Bounds?))
+;; extremely slow
+(def bounded-frees? map? #_(con/hash-c? r/F? r/Bounds?))
 
 (defn with-bounded-frees* [bfrees bfn]
   (let [_ (assert (bounded-frees? bfrees) bfrees)]

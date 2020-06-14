@@ -1922,26 +1922,24 @@
     ;; constraint explosion.
     (cons
       (cr/empty-cset X Y)
-      (let [vector' (t/inst vector t/Any r/Type r/Type)]
-        (doall 
-          (t/for [[s t] :- '[r/Type r/Type], (map vector' S T)] 
-            :- cset
-            (let [c (cs-gen V X Y s t)
-                  ;_ (prn "csgen-list 1")
-                  ;_ (prn "V" V)
-                  ;_ (prn "X" X)
-                  ;_ (prn "Y" Y)
-                  ;_ (prn "s" (prs/unparse-type s))
-                  ;_ (prn "t" (prs/unparse-type t))
-                  ;_ (prn "c")
-                  ;_ (clojure.pprint/pprint c)
-                  ;_ (flush)
-                  ;_ (prn "expected cset" expected-cset)
-                  m (cset-meet c expected-cset)]
-              ;(prn "meet:")
-              ;(clojure.pprint/pprint m)
-              ;(flush)
-              m)))))))
+      (map (fn [s t]
+             (let [c (cs-gen V X Y s t)
+                   ;_ (prn "csgen-list 1")
+                   ;_ (prn "V" V)
+                   ;_ (prn "X" X)
+                   ;_ (prn "Y" Y)
+                   ;_ (prn "s" (prs/unparse-type s))
+                   ;_ (prn "t" (prs/unparse-type t))
+                   ;_ (prn "c")
+                   ;_ (clojure.pprint/pprint c)
+                   ;_ (flush)
+                   ;_ (prn "expected cset" expected-cset)
+                   m (cset-meet c expected-cset)]
+               ;(prn "meet:")
+               ;(clojure.pprint/pprint m)
+               ;(flush)
+               m))
+           S T))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Infer
