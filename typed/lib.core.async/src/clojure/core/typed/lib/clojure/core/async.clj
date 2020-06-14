@@ -202,13 +202,6 @@
                        [Throwable :-> (t/U nil p)])
                   :-> (Chan2 p t)])))
 
-(ann ^:no-check clojure.core.async.impl.ioc-macros/aget-object [AtomicReferenceArray t/Int :-> t/Any])
-(ann ^:no-check clojure.core.async.impl.ioc-macros/aset-object [AtomicReferenceArray t/Any :-> nil])
-(ann ^:no-check clojure.core.async.impl.ioc-macros/run-state-machine [AtomicReferenceArray :-> t/Any])
-
-;FIXME what is 2nd arg?
-(ann ^:no-check clojure.core.async.impl.ioc-macros/put! (t/All [x] [t/Int t/Any (Chan x) x :-> t/Any]))
-(ann ^:no-check clojure.core.async.impl.ioc-macros/return-chan (t/All [x] [AtomicReferenceArray x :-> (Chan x)]))
 
 (ann ^:no-check clojure.core.async/<!! (t/All [t] [(Port2 t/Nothing t) :-> (t/U nil t)]))
 ; should this use Port's?
@@ -228,9 +221,6 @@
   ^:no-check clojure.core.async/alts!)
 
 (ann ^:no-check clojure.core.async/close! [impl/Channel :-> nil])
-
-(ann ^:no-check clojure.core.async.impl.dispatch/run [[:-> (ReadOnlyChan t/Any)] :-> Executor])
-;(ann clojure.core.async.impl.ioc-macros/async-chan-wrapper kV
 
 (ann ^:no-check clojure.core.async/put!
      (t/All [p]
