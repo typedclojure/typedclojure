@@ -117,7 +117,7 @@
                              expected))))))
 
 (defn defmacro-or-declare? 
-  "Returns true if this :def AST originally a defmacro or declare."
+  "Returns true if this :def AST was originally a defmacro or declare."
   [{:keys [^Var var] :as expr}]
   (or (.isMacro var)
       (not (init-provided? expr))))

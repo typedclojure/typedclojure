@@ -55,21 +55,7 @@
             (with-meta (meta &form)))))
 
 (t/tc-ignore
-;(t/ann next-sequence-number (t/Atom1 SeqNumber))
-(defonce ^:private 
-  ^{:doc "The next number to use for sequence hashing"}
-  next-sequence-number 
-  (atom 0))
-
-(defn inc-sequence-number []
-  (swap! next-sequence-number inc))
-
-(defn get-and-inc-id []
-  (let [id @next-sequence-number
-        _ (inc-sequence-number)]
-    id))
-
-(def default-xor 1)
+(def ^:const default-xor 1)
 
 (defn ^:private inner-deftype [fields hash-field meta-field that name-sym type-hash gs
                                maker methods*]
@@ -99,7 +85,7 @@
 
      clojure.lang.IObj
      (meta [this#] ~meta-field)
-     (withMeta [this# ~gs] (~maker ~@fields :meta ~gs))
+     (withMeta [this# ~gs] (~maker ~@fields ~gs))
 
 
      clojure.lang.ILookup
@@ -132,7 +118,7 @@
      (assoc [this# k# ~gs]
        (condp identical? k#
          ~@(mapcat (fn [fld]
-                     [(keyword fld) `(~maker ~@(replace {fld gs} fields) :meta ~meta-field)])
+                     [(keyword fld) `(~maker ~@(replace {fld gs} fields) ~meta-field)])
                    fields)
          (throw (UnsupportedOperationException. (str "assoc on " '~name-sym " " k#)))))
      (entryAt [this# k#] (throw (UnsupportedOperationException. (str "entryAt on " '~name-sym " " k#))))
@@ -191,12 +177,13 @@
          (instance? ~name-sym a#))
 
        ; (Atom1 (Map t/Any Number))
-       (defn ~maker [~@fields & {meta# :meta :as opt#}]
-         {:pre ~invariants}
-         (let [extra# (set/difference (set (keys opt#)) #{:meta})]
-           (assert (empty? extra#) (str "Extra arguments:" extra#)))
-         ; ~@fields are in scope above
-         (~->ctor ~@fields nil meta#)))))
+       (defn ~maker
+         ([~@fields]
+          {:pre ~invariants}
+          (~->ctor ~@fields nil nil))
+         ([~@fields meta#]
+          {:pre ~invariants}
+          (~->ctor ~@fields nil meta#))))))
 
 (defmacro mk [original-ns def-kind name-sym fields invariants & {:keys [methods]}]
   (when-not (resolve name-sym)

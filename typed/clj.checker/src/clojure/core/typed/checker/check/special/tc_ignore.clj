@@ -17,12 +17,10 @@
 (defn check-tc-ignore [check {:keys [statements] :as expr} expected]
   {:pre [(#{3} (count statements))]}
   (binding [vs/*current-expr* expr]
-    (let [_ (if (ana2/top-level? expr)
-              (prn "ignoring tc-ignore" (ana2/top-level? expr))
-              (prn "not ignoring tc-ignore"
-                   (:op expr)
-                   (ana2/top-level? expr)))
-          expr (if (ana2/top-level? expr)
+    (let [expr (if (ana2/top-level? expr)
+                 ;; if this is a top-level form, there's no need to (re)traverse it with
+                 ;; typed.clj.analyzer, since it's just for tag propagation (and top-levels
+                 ;; don't propagate tags). send straight to the compiler for evaluation.
                  (-> expr
                      ana2/eval-ast
                      ana2/unmark-eval-top-level)

@@ -199,6 +199,9 @@
   (with-cpu-profiling :trace
     (t/check-ns 'clojure.core.typed.test.mm))
 
-  (with-cpu-profiling :trace
-    (t/check-ns 'clojure.core.typed.type-ctors))
+  (with-cpu-profiling :sample
+    (t/check-ns2 'clojure.core.typed.checker.type-ctors))
+
+  (with-cpu-profiling :sample
+    (t/check-ns 'clojure.core.typed.lib.clojure.core.async.rps-async-test))
   )

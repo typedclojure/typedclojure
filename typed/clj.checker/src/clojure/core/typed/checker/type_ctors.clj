@@ -1008,7 +1008,7 @@
                                 (for [bnd bbnds]
                                   (r/visit-bounds bnd #(abstract-many names %))))
                               (abstract-many names body)
-                              :meta meta)]
+                              meta)]
         (with-original-names t original-names))))))
 
 ;only set to true if throwing an error and need to print a TypeFn
@@ -1830,7 +1830,7 @@
   (fn [{:keys [scope] :as mu} {{:keys [name count type outer name-to]} :locals}]
    (let [body (remove-scopes 1 scope)]
      (r/Mu-maker (r/Scope-maker (name-to name count type (inc outer) body))
-                 :meta (meta mu)))))
+                 (meta mu)))))
 
 (f/add-fold-case
   IAbstractMany abstract-many*
@@ -1844,7 +1844,7 @@
                        (mapv #(r/visit-bounds % as) bbnds)
                        (as body)
                        named
-                       :meta (meta ty)))))
+                       (meta ty)))))
 
 (f/add-fold-case
   IAbstractMany abstract-many*
@@ -1858,7 +1858,7 @@
                    (mapv #(r/visit-bounds % as) bbnds)
                    (as body)
                    named
-                   :meta (meta poly)))))
+                   (meta poly)))))
 
 (f/add-fold-case
   IAbstractMany abstract-many*
@@ -1873,7 +1873,7 @@
                      variances
                      (mapv #(r/visit-bounds % as) bbnds)
                      (as body)
-                     :meta (meta t)))))
+                     (meta t)))))
 
 (t/ann ^:no-check abstract-many [(t/Seqable t/Sym) r/Type -> (t/U r/Type Scope)])
 (defn abstract-many 
@@ -1986,7 +1986,7 @@
                (fn [{:keys [scope] :as mu} {{:keys [replace count outer image sb type]} :locals}]
                  (let [body (remove-scopes 1 scope)]
                    (r/Mu-maker (r/Scope-maker (replace image count type (inc outer) body))
-                               :meta (meta mu)))))
+                               (meta mu)))))
 
 (f/add-fold-case
   IInstantiateMany instantiate-many*
@@ -2000,7 +2000,7 @@
                                      (mapv #(r/visit-bounds % as) bbnds)
                                      (as body)
                                      named
-                                     :meta (meta ty)))))
+                                     (meta ty)))))
 
 (f/add-fold-case
   IInstantiateMany instantiate-many*
@@ -2015,7 +2015,7 @@
                                    (mapv #(r/visit-bounds % as) bbnds)
                                    (as body)
                                    named
-                                   :meta (meta poly)))))
+                                   (meta poly)))))
 
 (f/add-fold-case
   IInstantiateMany instantiate-many*
@@ -2030,7 +2030,7 @@
                                      variances
                                      (mapv #(r/visit-bounds % as) bbnds)
                                      (as body)
-                                     :meta (meta t)))))
+                                     (meta t)))))
 )
 
 (t/ann ^:no-check instantiate-many [(t/Seqable t/Sym) p/IScope -> r/Type])
