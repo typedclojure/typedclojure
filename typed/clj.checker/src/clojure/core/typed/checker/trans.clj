@@ -19,17 +19,17 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Dotted pre-type expansion
 
-(derive ::trans-dots fold/fold-rhs-default)
+(fold/def-derived-fold ITransDots trans-dots*)
 
 ;tdr from Practical Variable-Arity Polymorphism paper
 ; Expand out dotted pretypes to fixed domain, using types bm, if (:name bound) = b
 (defn trans-dots [t b bm]
-  (fold/fold-rhs ::trans-dots
-                 {:type-rec #(trans-dots % b bm)
-                  :locals {:b b :bm bm}}
-                 t))
+  (trans-dots* t
+               {:type-rec #(trans-dots % b bm)
+                :locals {:b b :bm bm}}))
 
-(fold/add-fold-case ::trans-dots
+(fold/add-fold-case
+  ITransDots trans-dots*
   HSequential
   (fn [{:keys [kind] :as t} {{:keys [b bm]} :locals}]
     (let [tfn #(trans-dots % b bm)]
@@ -78,7 +78,8 @@
                         :repeat (:repeat t)
                         :kind kind)))))
 
-(fold/add-fold-case ::trans-dots
+(fold/add-fold-case
+  ITransDots trans-dots*
   AssocType
   (fn [{:keys [target entries dentries]} {{:keys [b bm]} :locals}]
     (let [tfn #(trans-dots % b bm)
@@ -103,7 +104,8 @@
                            (when dentries
                              (update-in dentries [:pre-type] tfn)))))))
 
-(fold/add-fold-case ::trans-dots
+(fold/add-fold-case
+  ITransDots trans-dots*
   Function
   (fn 
     [t {{:keys [b bm]} :locals}]

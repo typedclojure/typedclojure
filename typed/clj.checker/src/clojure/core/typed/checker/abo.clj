@@ -17,6 +17,9 @@
 
 (declare abstract-object abstract-type abo)
 
+(fold/def-derived-fold IAboFold
+  abo-fold*)
+
 ;[Type (Seqable t/Sym) -> Type]
 (defn abstract-type [ids keys t]
   {:pre [(every? symbol? ids)
@@ -27,11 +30,11 @@
   (letfn [(sb-t [t] (abstract-type ids keys t))
           (sb-f [f] (abo ids keys f))
           (sb-o [o] (abstract-object ids keys o))]
-    (fold/fold-rhs ::abo
-       {:type-rec sb-t
-        :filter-rec sb-f
-        :object-rec sb-o}
-      t)))
+    (abo-fold*
+      t
+      {:type-rec sb-t
+       :filter-rec sb-f
+       :object-rec sb-o})))
 
 ;[(Seqable t/Sym) (Seqable AnyInteger) RObject -> RObject]
 (defn abstract-object [ids keys o]
@@ -84,23 +87,21 @@
    :post [(r/FlowSet? %)]}
   (r/FlowSet-maker (abo ids keys (:normal fs))))
 
-(fold/derive-default ::abo)
+(fold/add-fold-case IAboFold abo-fold*
+  TypeFilter
+  (fn [{:keys [type path id] :as fl} {{:keys [lookup]} :locals}]
+    ;if variable goes out of scope, replace filter with fl/-top
+    (if-let [scoped (lookup id)]
+      (fo/-filter type scoped path)
+      fl/-top)))
 
-(fold/add-fold-case ::abo
-                    TypeFilter
-                    (fn [{:keys [type path id] :as fl} {{:keys [lookup]} :locals}]
-                      ;if variable goes out of scope, replace filter with fl/-top
-                      (if-let [scoped (lookup id)]
-                        (fo/-filter type scoped path)
-                        fl/-top)))
-
-(fold/add-fold-case ::abo
-                    NotTypeFilter
-                    (fn [{:keys [type path id] :as fl} {{:keys [lookup]} :locals}]
-                      ;if variable goes out of scope, replace filter with fl/-top
-                      (if-let [scoped (lookup id)]
-                        (fo/-not-filter type scoped path)
-                        fl/-top)))
+(fold/add-fold-case IAboFold abo-fold*
+  NotTypeFilter
+  (fn [{:keys [type path id] :as fl} {{:keys [lookup]} :locals}]
+    ;if variable goes out of scope, replace filter with fl/-top
+    (if-let [scoped (lookup id)]
+      (fo/-not-filter type scoped path)
+      fl/-top)))
 
 ;[(Seqable t/Sym) (Seqable AnyInteger) Filter -> Filter]
 (defn abo [xs idxs f]
@@ -126,11 +127,11 @@
                   (map vector xs idxs)))
           (rec [f] (abo xs idxs f))
           (sb-t [t] (abstract-type xs idxs t))]
-    (fold/fold-rhs ::abo
+    (abo-fold*
+      f
       {:type-rec sb-t 
        :filter-rec rec
-       :locals {:lookup lookup}}
-      f)))
+       :locals {:lookup lookup}})))
 
 ; Difference from Typed Racket
 ;

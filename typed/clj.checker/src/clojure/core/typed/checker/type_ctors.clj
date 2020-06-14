@@ -1750,122 +1750,128 @@
   [c]
   (map vector (iterate dec (dec (count c))) c))
 
-(t/tc-ignore
-(derive ::abstract-many f/fold-rhs-default)
+(f/def-derived-fold IAbstractMany abstract-many*)
 
-(f/add-fold-case ::abstract-many
-                 F
-                 (fn [{name* :name :as t} {{:keys [name count outer sb]} :locals}]
-                   (if (= name name*)
-                     (r/B-maker (+ count outer))
-                     t)))
+(f/add-fold-case
+  IAbstractMany abstract-many*
+  F
+  (fn [{name* :name :as t} {{:keys [name count outer sb]} :locals}]
+    (if (= name name*)
+      (r/B-maker (+ count outer))
+      t)))
 
-(f/add-fold-case ::abstract-many
-                 Function
-                 (fn [{:keys [dom rng rest drest kws prest pdot] :as ty} {{:keys [name count outer sb]} :locals}]
-                   (r/Function-maker (doall (map sb dom))
-                                 (sb rng)
-                                 (when rest (sb rest))
-                                 (when drest
-                                   (-> drest
-                                       (update-in [:pre-type] sb)
-                                       (update-in [:name] #(if (= % name)
-                                                             (+ count outer)
-                                                             %))))
-                                 (when kws
-                                   (letfn [(abstract-kw-map [m]
-                                             {:pre [(map? m)]}
-                                             (into {} (for [[k v] m]
-                                                        [k (sb v)])))]
-                                     (-> kws
-                                       (update-in [:mandatory] abstract-kw-map)
-                                       (update-in [:optional] abstract-kw-map))))
-                                 (when prest
-                                   (sb prest))
-                                 (when pdot
-                                   (-> pdot
-                                       (update-in [:pre-type] sb)
-                                       (update-in [:name] #(if (= % name)
-                                                             (+ count outer)
-                                                             %)))))))
+(f/add-fold-case
+  IAbstractMany abstract-many*
+  Function
+  (fn [{:keys [dom rng rest drest kws prest pdot] :as ty} {{:keys [name count outer sb]} :locals}]
+   (r/Function-maker (doall (map sb dom))
+                 (sb rng)
+                 (when rest (sb rest))
+                 (when drest
+                   (-> drest
+                       (update-in [:pre-type] sb)
+                       (update-in [:name] #(if (= % name)
+                                             (+ count outer)
+                                             %))))
+                 (when kws
+                   (letfn [(abstract-kw-map [m]
+                             {:pre [(map? m)]}
+                             (into {} (for [[k v] m]
+                                        [k (sb v)])))]
+                     (-> kws
+                       (update-in [:mandatory] abstract-kw-map)
+                       (update-in [:optional] abstract-kw-map))))
+                 (when prest
+                   (sb prest))
+                 (when pdot
+                   (-> pdot
+                       (update-in [:pre-type] sb)
+                       (update-in [:name] #(if (= % name)
+                                             (+ count outer)
+                                             %)))))))
 
-(f/add-fold-case ::abstract-many
-                 HSequential
-                 (fn [ty {{:keys [name count outer sb]} :locals}]
-                   (r/-hsequential 
-                     (mapv sb (:types ty))
-                     :filters (mapv sb (:fs ty))
-                     :objects (mapv sb (:objects ty))
-                     :rest (when-let [rest (:rest ty)]
-                             (sb rest))
-                     :drest (when-let [drest (:drest ty)]
-                              (-> drest
-                                  (update-in [:pre-type] sb)
-                                  (update-in [:name] #(if (= % name)
-                                                        (+ count outer)
-                                                        %))))
-                     :repeat (:repeat ty)
-                     :kind (:kind ty))))
+(f/add-fold-case
+  IAbstractMany abstract-many*
+  HSequential
+  (fn [ty {{:keys [name count outer sb]} :locals}]
+    (r/-hsequential 
+      (mapv sb (:types ty))
+      :filters (mapv sb (:fs ty))
+      :objects (mapv sb (:objects ty))
+      :rest (when-let [rest (:rest ty)]
+             (sb rest))
+      :drest (when-let [drest (:drest ty)]
+              (-> drest
+                  (update-in [:pre-type] sb)
+                  (update-in [:name] #(if (= % name)
+                                        (+ count outer)
+                                        %))))
+      :repeat (:repeat ty)
+      :kind (:kind ty))))
 
-(f/add-fold-case ::abstract-many
-                 AssocType
-                 (fn [{:keys [target entries dentries]} {{:keys [name count outer sb]} :locals}]
-                   (r/AssocType-maker (sb target)
-                                      (mapv (fn [[k v]] [(sb k) (sb v)]) entries)
-                                      (when dentries
-                                        (-> dentries
-                                          (update-in [:pre-type] sb)
-                                          (update-in [:name] #(if (= % name)
-                                                                (+ count outer)
-                                                                %)))))))
+(f/add-fold-case
+  IAbstractMany abstract-many*
+  AssocType
+  (fn [{:keys [target entries dentries]} {{:keys [name count outer sb]} :locals}]
+   (r/AssocType-maker (sb target)
+                      (mapv (fn [[k v]] [(sb k) (sb v)]) entries)
+                      (when dentries
+                        (-> dentries
+                          (update-in [:pre-type] sb)
+                          (update-in [:name] #(if (= % name)
+                                                (+ count outer)
+                                                %)))))))
 
-(f/add-fold-case ::abstract-many
-                 Mu
-                 (fn [{:keys [scope] :as mu} {{:keys [name count type outer name-to]} :locals}]
-                   (let [body (remove-scopes 1 scope)]
-                     (r/Mu-maker (r/Scope-maker (name-to name count type (inc outer) body))
-                                 :meta (meta mu)))))
+(f/add-fold-case
+  IAbstractMany abstract-many*
+  Mu
+  (fn [{:keys [scope] :as mu} {{:keys [name count type outer name-to]} :locals}]
+   (let [body (remove-scopes 1 scope)]
+     (r/Mu-maker (r/Scope-maker (name-to name count type (inc outer) body))
+                 :meta (meta mu)))))
 
-(f/add-fold-case ::abstract-many
-                 PolyDots
-                 (fn [{:keys [named] bbnds* :bbnds n :nbound body* :scope :as ty} {{:keys [name count type outer name-to]} :locals}]
-                   (let [rs #(remove-scopes n %)
-                         body (rs body*)
-                         bbnds (mapv #(r/visit-bounds % rs) bbnds*)
-                         as #(add-scopes n (name-to name count type (+ n outer) %))]
-                     (r/PolyDots-maker n 
-                                       (mapv #(r/visit-bounds % as) bbnds)
-                                       (as body)
-                                       named
-                                       :meta (meta ty)))))
+(f/add-fold-case
+  IAbstractMany abstract-many*
+  PolyDots
+  (fn [{:keys [named] bbnds* :bbnds n :nbound body* :scope :as ty} {{:keys [name count type outer name-to]} :locals}]
+   (let [rs #(remove-scopes n %)
+         body (rs body*)
+         bbnds (mapv #(r/visit-bounds % rs) bbnds*)
+         as #(add-scopes n (name-to name count type (+ n outer) %))]
+     (r/PolyDots-maker n 
+                       (mapv #(r/visit-bounds % as) bbnds)
+                       (as body)
+                       named
+                       :meta (meta ty)))))
 
-(f/add-fold-case ::abstract-many
-                 Poly
-                 (fn [{:keys [named] bbnds* :bbnds n :nbound body* :scope :as poly} {{:keys [name count type outer name-to]} :locals}]
-                   (let [rs #(remove-scopes n %)
-                         body (rs body*)
-                         bbnds (mapv #(r/visit-bounds % rs) bbnds*)
-                         as #(add-scopes n (name-to name count type (+ n outer) %))]
-                     (r/Poly-maker n 
-                                   (mapv #(r/visit-bounds % as) bbnds)
-                                   (as body)
-                                   named
-                                   :meta (meta poly)))))
+(f/add-fold-case
+  IAbstractMany abstract-many*
+  Poly
+  (fn [{:keys [named] bbnds* :bbnds n :nbound body* :scope :as poly} {{:keys [name count type outer name-to]} :locals}]
+   (let [rs #(remove-scopes n %)
+         body (rs body*)
+         bbnds (mapv #(r/visit-bounds % rs) bbnds*)
+         as #(add-scopes n (name-to name count type (+ n outer) %))]
+     (r/Poly-maker n 
+                   (mapv #(r/visit-bounds % as) bbnds)
+                   (as body)
+                   named
+                   :meta (meta poly)))))
 
-(f/add-fold-case ::abstract-many
-                 TypeFn
-                 (fn [{bbnds* :bbnds n :nbound body* :scope :keys [variances] :as t}
-                      {{:keys [name count type outer name-to]} :locals}]
-                   (let [rs #(remove-scopes n %)
-                         body (rs body*)
-                         bbnds (mapv #(r/visit-bounds % rs) bbnds*)
-                         as #(add-scopes n (name-to name count type (+ n outer) %))]
-                     (r/TypeFn-maker n 
-                                     variances
-                                     (mapv #(r/visit-bounds % as) bbnds)
-                                     (as body)
-                                     :meta (meta t)))))
-  )
+(f/add-fold-case
+  IAbstractMany abstract-many*
+  TypeFn
+  (fn [{bbnds* :bbnds n :nbound body* :scope :keys [variances] :as t}
+       {{:keys [name count type outer name-to]} :locals}]
+  (let [rs #(remove-scopes n %)
+        body (rs body*)
+        bbnds (mapv #(r/visit-bounds % rs) bbnds*)
+        as #(add-scopes n (name-to name count type (+ n outer) %))]
+     (r/TypeFn-maker n 
+                     variances
+                     (mapv #(r/visit-bounds % as) bbnds)
+                     (as body)
+                     :meta (meta t)))))
 
 (t/ann ^:no-check abstract-many [(t/Seqable t/Sym) r/Type -> (t/U r/Type Scope)])
 (defn abstract-many 
@@ -1877,16 +1883,16 @@
             ([name count type] (name-to name count type 0 type))
             ([name count type outer ty]
              (letfn [(sb [t] (name-to name count type outer t))]
-               (f/fold-rhs ::abstract-many
+               (abstract-many*
+                 ty
                  {:type-rec sb
-                  :filter-rec (f/sub-f sb ::abstract-many)
-                  :object-rec (f/sub-o sb ::abstract-many)
+                  :filter-rec (f/sub-f sb abstract-many*)
+                  :object-rec (f/sub-o sb abstract-many*)
                   :locals {:name name
                            :count count
                            :outer outer
                            :sb sb
-                           :name-to name-to}}
-                 ty))))]
+                           :name-to name-to}}))))]
     (if (empty? names)
       ty
       (let [n (count names)]
@@ -1899,17 +1905,18 @@
                    (next names)
                    (dec count))))))))
 
-(t/tc-ignore
-(derive ::instantiate-many f/fold-rhs-default)
+(f/def-derived-fold IInstantiateMany instantiate-many*)
 
-(f/add-fold-case ::instantiate-many
+(f/add-fold-case
+  IInstantiateMany instantiate-many*
                B
                (fn [{:keys [idx] :as t} {{:keys [count outer image sb]} :locals}]
                  (if (= (+ count outer) idx)
                    (r/F-maker image)
                    t)))
 
-(f/add-fold-case ::instantiate-many
+(f/add-fold-case
+  IInstantiateMany instantiate-many*
                Function
                (fn [{:keys [dom rng rest drest kws prest pdot]} {{:keys [count outer image sb]} :locals}]
                  (r/Function-maker (map sb dom)
@@ -1939,7 +1946,8 @@
                                                        image
                                                        %)))))))
 
-(f/add-fold-case ::instantiate-many
+(f/add-fold-case
+  IInstantiateMany instantiate-many*
                  HSequential
                  (fn [ty {{:keys [count outer image sb]} :locals}]
                    (r/-hsequential 
@@ -1957,7 +1965,8 @@
                      :repeat (:repeat ty)
                      :kind (:kind ty))))
 
-(f/add-fold-case ::instantiate-many
+(f/add-fold-case
+  IInstantiateMany instantiate-many*
                  AssocType
                  (fn [{:keys [target entries dentries]} {{:keys [count outer image sb]} :locals}]
                    (r/AssocType-maker (sb target)
@@ -1969,14 +1978,16 @@
                                                                 image
                                                                 %)))))))
 
-(f/add-fold-case ::instantiate-many
+(f/add-fold-case
+  IInstantiateMany instantiate-many*
                Mu
                (fn [{:keys [scope] :as mu} {{:keys [replace count outer image sb type]} :locals}]
                  (let [body (remove-scopes 1 scope)]
                    (r/Mu-maker (r/Scope-maker (replace image count type (inc outer) body))
                                :meta (meta mu)))))
 
-(f/add-fold-case ::instantiate-many
+(f/add-fold-case
+  IInstantiateMany instantiate-many*
                PolyDots
                (fn [{:keys [named] bbnds* :bbnds n :nbound body* :scope :as ty} {{:keys [replace count outer image sb type]} :locals}]
                  (let [rs #(remove-scopes n %)
@@ -1989,7 +2000,8 @@
                                      named
                                      :meta (meta ty)))))
 
-(f/add-fold-case ::instantiate-many
+(f/add-fold-case
+  IInstantiateMany instantiate-many*
                  Poly
                  (fn [{:keys [named] bbnds* :bbnds n :nbound body* :scope :as poly} 
                       {{:keys [replace count outer image sb type]} :locals}]
@@ -2003,7 +2015,8 @@
                                    named
                                    :meta (meta poly)))))
 
-(f/add-fold-case ::instantiate-many
+(f/add-fold-case
+  IInstantiateMany instantiate-many*
                  TypeFn
                  (fn [{bbnds* :bbnds n :nbound body* :scope :keys [variances] :as t} 
                       {{:keys [replace count outer image sb type]} :locals}]
@@ -2016,7 +2029,6 @@
                                      (mapv #(r/visit-bounds % as) bbnds)
                                      (as body)
                                      :meta (meta t)))))
-  )
 
 (t/ann ^:no-check instantiate-many [(t/Seqable t/Sym) p/IScope -> r/Type])
 (defn instantiate-many 
@@ -2033,17 +2045,17 @@
             ([image count type outer ty]
              (letfn [(sb [t] (replace image count type outer t))]
                (let [sf (f/sub-f sb ::instantiate-many)]
-                 (f/fold-rhs ::instantiate-many
+                 (instantiate-many*
+                   ty
                    {:type-rec sb 
                     :filter-rec sf 
-                    :object-rec (f/sub-o sb ::instantiate-many)
+                    :object-rec (f/sub-o sb instantiate-many*)
                     :locals {:count count
                              :outer outer
                              :image image
                              :sb sb
                              :type type
-                             :replace replace}}
-                   ty)))))]
+                             :replace replace}})))))]
     (if (empty? images)
       sc
       (let [n (count images)]

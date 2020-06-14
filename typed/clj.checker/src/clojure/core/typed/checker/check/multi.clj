@@ -13,20 +13,19 @@
 
 ;; Multimethod definition
 
-(def ExpectedDispatchType ::expected-dispatch-type)
+(fold/def-derived-fold IExpectedDispatchType
+  expected-dispatch-type*)
 
-(fold/derive-default ExpectedDispatchType)
-
-(fold/add-fold-case ExpectedDispatchType
-                    Function
-                    (fn [ty _]
-                      (assoc ty :rng (r/make-Result r/-any))))
+(fold/add-fold-case IExpectedDispatchType expected-dispatch-type*
+  Function
+  (fn [ty _]
+    (assoc ty :rng (r/make-Result r/-any))))
 
 ;return the expected type for the dispatch fn of the given multimethod's expected type
 ;[Type -> Type]
 (defn expected-dispatch-type [mm-type]
   {:pre [(r/AnyType? mm-type)]
    :post [(r/AnyType? %)]}
-  (fold/fold-rhs ExpectedDispatchType
-                 {:type-rec expected-dispatch-type}
-                 mm-type))
+  (expected-dispatch-type*
+    mm-type
+    {:type-rec expected-dispatch-type}))

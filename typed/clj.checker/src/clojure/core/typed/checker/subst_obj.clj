@@ -133,34 +133,35 @@
                                         (obj/-path (seq (concat p* p)) i*)))
                       t))))
 
-(derive ::subst-type fold/fold-rhs-default)
+(fold/def-derived-fold ISubstType subst-type*)
 
-(fold/add-fold-case ::subst-type
-                    Function
-                    (fn [{:keys [dom rng rest drest kws prest pdot] :as ty} {{:keys [st k o polarity]} :locals}]
-                      ;; here we have to increment the count for the domain, where the new bindings are in scope
-                      (let [arg-count (+ (count dom) (if rest 1 0) (if drest 1 0) (count (:mandatory kws)) (count (:optional kws)))
-                            st* (if (integer? k)
-                                  (fn [t] 
-                                    {:pre [(r/AnyType? t)]}
-                                    (subst-type t (if (number? k) (+ arg-count k) k) o polarity))
-                                  st)]
-                        (r/Function-maker (map st dom)
-                                      (st* rng)
-                                      (and rest (st rest))
-                                      (when drest
-                                        (-> drest
-                                            (update-in [:pre-type] st)))
-                                      (when kws
-                                        (-> kws
-                                            (update-in [:mandatory] #(into {} (for [[k v] %]
-                                                                                [(st k) (st v)])))
-                                            (update-in [:optional] #(into {} (for [[k v] %]
-                                                                               [(st k) (st v)])))))
-                                      (and prest (st prest))
-                                      (when pdot
-                                        (-> pdot
-                                            (update-in [:pre-type] st)))))))
+(fold/add-fold-case
+  ISubstType subst-type*
+  Function
+  (fn [{:keys [dom rng rest drest kws prest pdot] :as ty} {{:keys [st k o polarity]} :locals}]
+    ;; here we have to increment the count for the domain, where the new bindings are in scope
+    (let [arg-count (+ (count dom) (if rest 1 0) (if drest 1 0) (count (:mandatory kws)) (count (:optional kws)))
+          st* (if (integer? k)
+                (fn [t] 
+                  {:pre [(r/AnyType? t)]}
+                  (subst-type t (if (number? k) (+ arg-count k) k) o polarity))
+                st)]
+      (r/Function-maker (map st dom)
+                        (st* rng)
+                        (and rest (st rest))
+                        (when drest
+                          (-> drest
+                              (update-in [:pre-type] st)))
+                        (when kws
+                          (-> kws
+                              (update-in [:mandatory] #(into {} (for [[k v] %]
+                                                                  [(st k) (st v)])))
+                              (update-in [:optional] #(into {} (for [[k v] %]
+                                                                 [(st k) (st v)])))))
+                        (and prest (st prest))
+                        (when pdot
+                          (-> pdot
+                              (update-in [:pre-type] st)))))))
 
 
 ;[Type (U t/Sym Number) RObject Boolean -> Type]
@@ -178,7 +179,7 @@
              :post [((some-fn fl/FilterSet? r/FlowSet?) %)]}
             ((if (fl/FilterSet? fs) subst-filter-set subst-flow-set) 
              fs k o polarity))]
-    (fold/fold-rhs ::subst-type
+    (subst-type*
       {:type-rec st
        :filter-rec sf
        :object-rec (fn [f] (subst-object f k o polarity))
