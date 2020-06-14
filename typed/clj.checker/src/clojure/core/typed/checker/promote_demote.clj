@@ -29,8 +29,16 @@
            (clojure.core.typed.checker.filter_rep TopFilter BotFilter TypeFilter NotTypeFilter AndFilter OrFilter
                                           ImpFilter)))
 
-;FIXME use fold!
 ;TODO automatically check for completeness
+
+(comment
+(defn completeness-check []
+  (let [vs (-> IPromoteDemote :impls keys set)
+        expecteds (set (map resolve @u/all-types))
+        missing (set/difference expecteds vs)]
+    (when (seq missing)
+      {:missing missing})))
+)
 
 ;; Note: paths and path elements are currently ignored because they cannot contain variables.
 ;; FIXME this should probably consider filters too.
@@ -43,7 +51,11 @@
   or demotion."
   (t/Set clojure.lang.Symbol))
 
-(declare promote demote)
+;(t/ann ^:no-check promote [r/AnyType ElimVars -> r/AnyType])
+;(t/ann ^:no-check demote [r/AnyType ElimVars -> r/AnyType])
+(defprotocol IPromoteDemote
+  (promote [T V] "Eliminate all variables V in t by promotion")
+  (demote [T V] "Eliminate all variables V in T by demotion"))
 
 (t/ann promote-var [r/AnyType ElimVars -> r/AnyType])
 (defn promote-var [T V]
@@ -61,45 +73,19 @@
    :post [(r/AnyType? %)]}
   (demote T V))
 
-;no-check because of update-in
-(t/ann ^:no-check promote [r/AnyType ElimVars -> r/AnyType])
-(defmulti promote 
-  "Eliminate all variables V in t by promotion"
-  (fn [T V] 
-    {:pre [(r/AnyType? T)
-           (set? V)
-           (every? symbol? V)]}
-    (class T)))
-
-;no-check because of update-in
-(t/ann ^:no-check demote [r/AnyType ElimVars -> r/AnyType])
-(defmulti demote 
-  "Eliminate all variables V in T by demotion"
-  (fn [T V]
-    {:pre [(r/AnyType? T)
-           (set? V)
-           (every? symbol? V)]}
-    (class T)))
-
-(defn completeness-check []
-  (let [vs (set (keys (methods promote)))
-        expecteds (set (map resolve @u/all-types))
-        missing (set/difference expecteds vs)]
-    (when (seq missing)
-      {:missing missing
-       :mm 'promote})))
-
 (defmacro promote-demote [cls & fbody]
-  `(do (defmethod promote ~cls [T# V#] 
-         (let [~'promote promote
-               ~'demote demote
-               f# (fn ~@fbody)]
-           (f# T# V#)))
-       (defmethod demote ~cls [T# V#] 
-         (let [~'promote demote
-               ~'demote promote
-               f# (fn ~@fbody)]
-           (f# T# V#)))))
+  `(extend-type ~cls
+     IPromoteDemote
+     (promote [T# V#] 
+       (let [~'promote promote
+             ~'demote demote
+             f# (fn ~@fbody)]
+         (f# T# V#)))
+     (demote [T# V#] 
+       (let [~'promote demote
+             ~'demote promote
+             f# (fn ~@fbody)]
+         (f# T# V#)))))
 
 (promote-demote ArrayCLJS 
   [T V]
@@ -113,17 +99,17 @@
     (update-in [:input-type] #(demote % V))
     (update-in [:output-type] #(promote % V))))
 
-(defmethod promote F
-  [{:keys [name] :as T} V]
-  (if (V name)
-    r/-any
-    T))
-
-(defmethod demote F
-  [{:keys [name] :as T} V]
-  (if (V name)
-    (r/Bottom)
-    T))
+(extend-type F
+  IPromoteDemote
+  (promote [{:keys [name] :as T} V]
+    (if (V name)
+      r/-any
+      T))
+  (demote
+    [{:keys [name] :as T} V]
+    (if (V name)
+      (r/Bottom)
+      T)))
 
 (defn handle-kw-map [m p-or-d-fn V]
   (into {}
@@ -268,15 +254,14 @@
 
 ; FIXME is this correct? Promoting NotType should make the inner type smaller,
 ; and demoting should make inner type bigger?
-(defmethod promote NotType
-  [T V] 
-  (-> T
-    (update-in [:type] #(demote % V))))
-
-(defmethod demote NotType
-  [T V] 
-  (-> T
-    (update-in [:type] #(promote % V))))
+(extend-type NotType
+  IPromoteDemote
+  (promote [T V] 
+    (-> T
+        (update :type demote V)))
+  (demote [T V] 
+    (-> T
+        (update :type promote V))))
 
 (promote-demote Extends
   [T V] 
@@ -337,84 +322,85 @@
     (c/Mu* name (promote body V))))
 
 ;; Note: ignores path elements
-(defmethod promote Function
-  [{:keys [dom rng rest drest kws] :as T} V]
-  (let [pmt #(promote % V)
-        dmt #(demote % V)
-        dmt-kw #(into {} (for [[k v] %]
-                           [k (dmt v)]))
-        latent-filter-vs (let [f (r/Result-filter* rng)]
-                           (set/intersection (frees/fv f)
-                                             (frees/fi f)))]
-    (cond 
-      ;if filter contains V, give up
-      (seq (set/intersection V latent-filter-vs)) (r/TopFunction-maker)
+(extend-type Function
+  IPromoteDemote
+  (promote
+    [{:keys [dom rng rest drest kws] :as T} V]
+    (let [pmt #(promote % V)
+          dmt #(demote % V)
+          dmt-kw #(into {} (for [[k v] %]
+                             [k (dmt v)]))
+          latent-filter-vs (let [f (r/Result-filter* rng)]
+                             (set/intersection (frees/fv f)
+                                               (frees/fi f)))]
+      (cond 
+        ;if filter contains V, give up
+        (seq (set/intersection V latent-filter-vs)) (r/TopFunction-maker)
 
-      ;if dotted bound is in V, transfer to rest args
-      (and drest (V (:name drest)))
-      (-> T
-        (update-in [:dom] #(mapv dmt %))
-        (update-in [:rng] pmt)
-        (assoc :rest (dmt (:pre-type drest)))
-        (assoc :drest nil)
-        (assoc :kws (when kws
-                      (-> kws
-                        (update-in [:mandatory] dmt-kw)
-                        (update-in [:optional] dmt-kw)))))
+        ;if dotted bound is in V, transfer to rest args
+        (and drest (V (:name drest)))
+        (-> T
+          (update-in [:dom] #(mapv dmt %))
+          (update-in [:rng] pmt)
+          (assoc :rest (dmt (:pre-type drest)))
+          (assoc :drest nil)
+          (assoc :kws (when kws
+                        (-> kws
+                          (update-in [:mandatory] dmt-kw)
+                          (update-in [:optional] dmt-kw)))))
 
-      :else
-      (-> T
-        (update-in [:dom] #(mapv dmt %))
-        ;we know no filters contain V
-        (update-in [:rng] #(-> %
-                             (update-in [:t] pmt)))
-        (update-in [:rest] #(when %
-                              (dmt %)))
-        (update-in [:drest] #(when %
+        :else
+        (-> T
+          (update-in [:dom] #(mapv dmt %))
+          ;we know no filters contain V
+          (update-in [:rng] #(-> %
+                               (update-in [:t] pmt)))
+          (update-in [:rest] #(when %
+                                (dmt %)))
+          (update-in [:drest] #(when %
+                                 (-> %
+                                   (update-in [:pre-type] dmt))))
+          (update-in [:kws] #(when %
                                (-> %
-                                 (update-in [:pre-type] dmt))))
-        (update-in [:kws] #(when %
-                             (-> %
-                               (update-in [:mandatory] dmt-kw)
-                               (update-in [:optional] dmt-kw))))))))
+                                 (update-in [:mandatory] dmt-kw)
+                                 (update-in [:optional] dmt-kw))))))))
 
-(defmethod demote Function
-  [{:keys [dom rng rest drest kws] :as T} V]
-  (let [pmt #(promote % V)
-        dmt #(demote % V)
-        pmt-kw #(into {} (for [[k v] %]
-                           [k (pmt v)]))
-        latent-filter-vs (let [f (r/Result-filter* rng)]
-                           (set/intersection (frees/fv f)
-                                             (frees/fi f)))]
-    (cond 
-      ;if filter contains V, give up
-      (seq (set/intersection V latent-filter-vs)) (r/TopFunction-maker)
+  (demote [{:keys [dom rng rest drest kws] :as T} V]
+    (let [pmt #(promote % V)
+          dmt #(demote % V)
+          pmt-kw #(into {} (for [[k v] %]
+                             [k (pmt v)]))
+          latent-filter-vs (let [f (r/Result-filter* rng)]
+                             (set/intersection (frees/fv f)
+                                               (frees/fi f)))]
+      (cond 
+        ;if filter contains V, give up
+        (seq (set/intersection V latent-filter-vs)) (r/TopFunction-maker)
 
-      ;if dotted bound is in V, transfer to rest args
-      (and drest (V (:name drest)))
-      (-> T
-        (update-in [:dom] #(mapv pmt %))
-        (update-in [:rng] dmt)
-        (assoc :rest (pmt (:pre-type drest)))
-        (assoc :drest nil)
-        (assoc :kws (when kws
-                      (-> kws
-                        (update-in [:mandatory] pmt-kw)
-                        (update-in [:optional] pmt-kw)))))
+        ;if dotted bound is in V, transfer to rest args
+        (and drest (V (:name drest)))
+        (-> T
+          (update-in [:dom] #(mapv pmt %))
+          (update-in [:rng] dmt)
+          (assoc :rest (pmt (:pre-type drest)))
+          (assoc :drest nil)
+          (assoc :kws (when kws
+                        (-> kws
+                          (update-in [:mandatory] pmt-kw)
+                          (update-in [:optional] pmt-kw)))))
 
-      :else
-      (-> T
-        (update-in [:dom] #(mapv pmt %))
-        ;we know no filters contain V
-        (update-in [:rng] #(-> %
-                             (update-in [:t] pmt)))
-        (update-in [:rest] #(when %
-                              (pmt %)))
-        (update-in [:drest] #(when %
+        :else
+        (-> T
+          (update-in [:dom] #(mapv pmt %))
+          ;we know no filters contain V
+          (update-in [:rng] #(-> %
+                               (update-in [:t] pmt)))
+          (update-in [:rest] #(when %
+                                (pmt %)))
+          (update-in [:drest] #(when %
+                                 (-> %
+                                   (update-in [:pre-type] pmt))))
+          (update-in [:kws] #(when %
                                (-> %
-                                 (update-in [:pre-type] pmt))))
-        (update-in [:kws] #(when %
-                             (-> %
-                               (update-in [:mandatory] pmt-kw)
-                               (update-in [:optional] pmt-kw))))))))
+                                 (update-in [:mandatory] pmt-kw)
+                                 (update-in [:optional] pmt-kw)))))))))

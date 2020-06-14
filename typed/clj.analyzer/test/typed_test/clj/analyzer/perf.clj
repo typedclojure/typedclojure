@@ -155,6 +155,12 @@
         (taj/analyze+eval
           (first forms1)))
       nil))
+
+  (do (require '[clojure.core.typed :as t])
+      (with-cpu-profiling :trace
+
+        (time
+          (t/check-ns2 'clojure.core.typed.checker.type-ctors))))
   )
 
 

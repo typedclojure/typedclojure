@@ -768,7 +768,8 @@
   "A function arity, must be part of an intersection"
   [(or (nil? dom)
        (sequential? dom))
-   (every? Type? dom)
+   ;; Expensive
+   #_(every? Type? dom)
    (Result? rng)
    ;at most one of rest drest kws prest or pdot can be provided
    (#{0 1} (count (filter identity [rest drest kws prest pdot])))
@@ -1053,7 +1054,7 @@
   "Apply f to each element of bounds"
   [ty f]
   {:pre [(Bounds? ty)]
-   :post [(Bounds? ty)]}
+   :post [(Bounds? %)]}
   (-> ty
     (update-in [:upper-bound] #(when %
                                  (f %)))
