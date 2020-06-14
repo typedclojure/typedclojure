@@ -8,6 +8,7 @@
 
 ;copied from clojure.tools.analyzer.jvm.utils
 (ns typed.clj.analyzer.utils
+  (:refer-clojure :exclude [munge])
   (:require [typed.cljc.analyzer.utils :as u]
             [typed.cljc.analyzer :as ana2]
             [clojure.reflect :as reflect]
@@ -16,6 +17,8 @@
             [clojure.java.io :as io])
   (:import (clojure.lang RT Symbol Var)
            org.objectweb.asm.Type))
+
+(set! *warn-on-reflection* true)
 
 (defn ^:private type-reflect
   [typeref & options]
@@ -242,6 +245,35 @@
               (not (primitive? wider)))
       wider)))
 
+(defmacro ^:private munge-dispatch [ch]
+  `(let [ch# (char ~ch)]
+     (case ch#
+       ~@(mapcat (fn [[k v]]
+                   {:pre [(char? k)
+                          (string? v)]}
+                   [k v])
+                 clojure.lang.Compiler/CHAR_MAP)
+       ch#)))
+
+;; clojure.core/munge's use of CHAR_MAP in implementation is very slow
+(def munge 
+  (lru
+    (fn [^String nme]
+      (let [ar (.toCharArray nme)]
+        (str
+          (areduce ar i sb
+                   (StringBuilder.)
+                   (.append sb (munge-dispatch (aget ar i)))))))))
+
+(comment
+  (time
+    (dotimes [_ 1000000]
+      (munge "as389!?._-")))
+  (time
+    (dotimes [_ 1000000]
+      (clojure.core/munge "as389!?._-")))
+  )
+
 (defn name-matches?
   [member]
   (let [member-name (str member)
@@ -249,13 +281,15 @@
         member-name* (when (pos? i)
                        (str (s/replace (subs member-name 0 i) "-" "_") (subs member-name i)))
         member-name** (s/replace member-name "-" "_")
-        member-name*** (munge member-name)]
+        ;; calls to `munge` are a performance bottleneck, avoid them
+        ;; if possible.
+        member-name*** (delay (munge member-name))]
     (fn [name]
       (let [name (str name)]
         (or (= member-name name)
             (= member-name* name)
             (= member-name** name)
-            (= member-name*** name))))))
+            (= @member-name*** name))))))
 
 (def object-members
   (:members (type-reflect Object)))
@@ -277,9 +311,10 @@
 (defn members
   ([class] (members* class))
   ([class member]
-     (when-let [members (filter #((name-matches? member) (:name %))
+   (let [nm? (name-matches? member)]
+     (when-let [members (filter #(nm? (:name %))
                                 (members* class))]
-       members)))
+       members))))
 
 (defn static-members [class f]
   (when-let [members (members class f)]

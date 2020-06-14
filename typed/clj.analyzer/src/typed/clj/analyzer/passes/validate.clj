@@ -232,7 +232,7 @@
 (defmethod -validate :default [ast] ast)
 
 (defn validate-tag [t {:keys [env] :as ast}]
-  (let [tag (ast t)]
+  (let [tag (get ast t)]
     (if-let [the-class (ju/maybe-class tag)]
       {t the-class}
       (if-let [handle (-> (env/deref-env) :passes-opts :validate/wrong-tag-handler)]

@@ -24,7 +24,7 @@
   (:import (clojure.lang Var)))
 
 (defn init-provided? [expr]
-  (contains? expr :init))
+  (some? (:init expr)))
 
 ;[Expr (Option TCResult) -> Expr]
 (defn check-normal-def

@@ -23,6 +23,7 @@
 
 (defn check-cast
   [check expr expected]
+  (assert (#{:do} (:op expr)))
   (let [{[_ _ texpr :as statements] :statements :keys [env] frm :ret :as expr}
         (-> expr 
             ; don't need to check these statements because it's just metadata
@@ -35,7 +36,7 @@
         _ (impl/impl-case
             :clojure (assert (and (seq? tsyn-quoted)
                                   ('#{quote} (first tsyn-quoted)))
-                             tsyn-quoted)
+                             (pr-str tsyn-quoted))
             :cljs nil)
         tsyn (impl/impl-case
                :clojure (second tsyn-quoted)

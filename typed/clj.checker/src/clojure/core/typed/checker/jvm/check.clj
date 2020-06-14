@@ -285,6 +285,7 @@
 
 (def ^:private *register-exts (delay (configs/register-config-exts)))
 
+;; TODO turn into loop/recur
 (defn check-unanalyzed
   "Type checks the :unanalyzed expr at expected type.
 

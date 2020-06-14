@@ -13,8 +13,15 @@
              cider/piggieback {:mvn/version "0.3.8"}}
             :main-opts ["-m" "nrepl.cmdline"
                         "--interactive"]}
+           :perf
+           {:extra-paths ["/Applications/YourKit-Java-Profiler-2019.8.app/Contents/Resources/lib/yjp-controller-api-redist.jar"]
+            :jvm-opts ["-agentpath:/Applications/YourKit-Java-Profiler-2019.8.app/Contents/Resources/bin/mac/libyjpagent.dylib"]}
+
            :test
-           {:extra-paths ["test"]}
+           {:extra-paths ["test"]
+            :extra-deps
+            {org.clojure/tools.analyzer.jvm {:mvn/version "1.0.0"}
+             criterium {:mvn/version "0.4.5"}}}
            :runner
            {:extra-deps {com.cognitect/test-runner
                          {:git/url "https://github.com/cognitect-labs/test-runner"

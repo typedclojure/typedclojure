@@ -209,3 +209,17 @@
 (def mmerge
   "Same as (fn [m1 m2] (merge-with merge m2 m1))"
   #(merge-with merge' %2 %1))
+
+(defmacro update-record-child
+  "Equivalent to (update this field f)"
+  [this field f]
+  (assert (simple-keyword? field))
+  `(let [this# ~this]
+     (assoc this# ~field (~f (~(symbol (str ".-" (name field))) this#)))))
+
+(defmacro update-record-children 
+  "Equivalent to (update this field #(mapv f %))"
+  [this field f]
+  (assert (simple-keyword? field))
+  `(let [this# ~this]
+     (assoc this# ~field (mapv ~f (~(symbol (str ".-" (name field))) this#)))))

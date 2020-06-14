@@ -10,7 +10,10 @@
 (def ^String everything-root "../typed")
 (def ^String relative-projects-root ".")
 (def aliases
-  '{:nREPL
+  '{:perf
+    {:extra-paths ["/Applications/YourKit-Java-Profiler-2019.8.app/Contents/Resources/lib/yjp-controller-api-redist.jar"]
+     :jvm-opts ["-agentpath:/Applications/YourKit-Java-Profiler-2019.8.app/Contents/Resources/bin/mac/libyjpagent.dylib"]}
+    :nREPL
     {:extra-deps
      {nrepl/nrepl {:mvn/version "0.6.0"}
       cider/cider-nrepl {:mvn/version "0.22.4"}

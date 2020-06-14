@@ -36,9 +36,13 @@
                                   (let [name (:name ast)
                                         argc (count (:params ast))]
                                     (assoc ast :methods
-                                           (filter #(and ((ju/name-matches? name) (:name %))
-                                                         (= argc (count (:parameter-types %))))
-                                                   all-methods)))) methods)))
+                                           (if (empty? all-methods)
+                                             ()
+                                             (let [nm? (ju/name-matches? name)]
+                                               (filter #(and (= argc (count (:parameter-types %)))
+                                                             (nm? (:name %)))
+                                                       all-methods))))))
+                                methods)))
 
 
     :catch

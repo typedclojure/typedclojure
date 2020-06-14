@@ -9,20 +9,13 @@
 ; copied from clojure.tools.analyzer.ast
 (ns typed.cljc.analyzer.ast
   "Utilities for AST walking/updating"
-  (:refer-clojure :exclude [unreduced])
   (:require [typed.cljc.analyzer.utils :refer [into! rseqv mapv']]))
 
-(defn cycling
-  "Combine the given passes in a single pass that will be applieed repeatedly
-   to the AST until applying it another time will have no effect"
-  [& fns*]
-  (let [fns (cycle fns*)]
-    (fn [ast]
-      (loop [[f & fns] fns ast ast res (zipmap fns* (repeat nil))]
-        (let [ast* (f ast)]
-          (if (= ast* (res f))
-            ast
-            (recur fns ast* (assoc res f ast*))))))))
+(set! *warn-on-reflection* true)
+
+(defprotocol IASTWalk
+  (children-of* [this])
+  (update-children* [this f]))
 
 (defn children*
   "Return a vector of vectors of the children node key and the children expression
@@ -56,22 +49,40 @@
             (transient ast)
             (fix (children* ast)))))
 
+;; return ast or reduced holding ast
+(defn ^:private -update-children-no-transient
+  [ast f r?]
+  (let [fix (if r? rseqv identity)]
+    (reduce (fn [ast [k v]]
+              (let [multi (vector? v)
+                    val (if multi (mapv' f (fix v)) (f v))]
+                (if (reduced? val)
+                  (reduced (reduced (assoc ast k (if multi (fix @val) @val))))
+                  (assoc ast k (if multi (fix val) val)))))
+            ast
+            (fix (children* ast)))))
+
 (defn update-children-reduced
   "Like update-children but returns a reduced holding the AST if f short-circuited."
   ([ast f] (update-children-reduced ast f false))
   ([ast f reversed?]
      (if (and (not (reduced? ast))
               (:children ast))
-       (let [ret (-update-children ast f reversed?)]
-         (if (reduced? ret)
-           (reduced (persistent! @ret))
-           (persistent! ret)))
+       (if (instance? typed.cljc.analyzer.ast.IASTWalk ast)
+         (let [_ (assert (not reversed?) "Reversed? not supported")
+               ret (.update-children* ^typed.cljc.analyzer.ast.IASTWalk ast f)]
+           (assert (not (reduced? ret)) "Not supported")
+           ret)
+         (if (instance? clojure.lang.IEditableCollection ast)
+           (let [ret (-update-children ast f reversed?)]
+             (if (reduced? ret)
+               (reduced (persistent! @ret))
+               (persistent! ret)))
+           (let [ret (-update-children-no-transient ast f reversed?)]
+             (if (reduced? ret)
+               (reduced @ret)
+               ret))))
        ast)))
-
-(defn ^:private unreduced [x]
-  (if (reduced? x)
-    @x
-    x))
 
 (defn update-children
   "Applies `f` to each AST children node, replacing it with the returned value.
