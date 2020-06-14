@@ -23,16 +23,16 @@
 (defmacro def-derived-fold [pname mname]
   `(do (defprotocol ~pname
          (~mname [~'ty ~'options]))
-         (extend-protocol ~pname
-           Object ;; TODO replace with AnyType
-           (~mname [ty# options#]
-             ;(prn "default case of in" '~mname (class ty#))
-             (let [default-options# (zipmap [:type-rec :filter-rec :object-rec :pathelem-rec]
-                                            (repeat (fn [ty#]
-                                                      (~mname ty# options#))))]
-               (fold-default*
-                 ty# 
-                 (into default-options# options#)))))))
+       (extend-protocol ~pname
+         Object ;; TODO replace with AnyType
+         (~mname [ty# options#]
+           ;(prn "default case of in" '~mname (class ty#))
+           (let [default-options# (zipmap [:type-rec :filter-rec :object-rec :pathelem-rec]
+                                          (repeat (fn [ty#]
+                                                    (~mname ty# options#))))]
+             (fold-default*
+               ty# 
+               (into default-options# options#)))))))
 
 ; fld-fn has type-rec, filter-rec and object-rec in scope
 (defmacro add-fold-case [pname mname ty fld-fn]
