@@ -1490,16 +1490,16 @@ for checking namespaces, cf for checking individual forms."}
       (throw (Exception. ":instrument not yet implemented")))
     :ok))
 
-(core/let [rfrsh (delay (dynaload 'clojure.core.typed.runtime-infer/refresh-runtime-infer))]
+(core/let [rfrsh (delay (dynaload 'typed.clj.annotator/refresh-runtime-infer))]
   (core/defn refresh-runtime-infer 
     "Clean the current state of runtime inference.
     Will forget the results of any tests on instrumented code."
     []
     (load-if-needed)
-    (require '[clojure.core.typed.runtime-infer])
+    (require '[typed.clj.annotator])
     (@rfrsh)))
 
-(core/let [rti (delay (dynaload 'clojure.core.typed.runtime-infer/runtime-infer))
+(core/let [rti (delay (dynaload 'typed.clj.annotator/runtime-infer))
       deprecated-warn (delay (dynaload 'clojure.core.typed.errors/deprecated-warn))]
   (core/defn runtime-infer 
     "Infer and insert annotations for a given namespace.
@@ -1560,7 +1560,7 @@ for checking namespaces, cf for checking individual forms."}
     "
     ([& kws]
      (load-if-needed)
-     (require '[clojure.core.typed.runtime-infer])
+     (require '[typed.clj.annotator])
      (core/let [m (-> (if (= 1 (count kws))
                         (do
                           (@deprecated-warn
@@ -1570,7 +1570,7 @@ for checking namespaces, cf for checking individual forms."}
                       (update :ns #(or % *ns*)))]
        (@rti m)))))
 
-(core/let [spci (delay (dynaload 'clojure.core.typed.runtime-infer/spec-infer))
+(core/let [spci (delay (dynaload 'typed.clj.annotator/spec-infer))
            deprecated-warn (delay (dynaload 'clojure.core.typed.errors/deprecated-warn))]
   (core/defn spec-infer 
     "Infer and insert specs for a given namespace.
@@ -1635,7 +1635,7 @@ for checking namespaces, cf for checking individual forms."}
     "
     ([& kws]
      (load-if-needed)
-     (require '[clojure.core.typed.runtime-infer])
+     (require '[typed.clj.annotator])
      (core/let [m (-> (if (= 1 (count kws))
                         (do
                           (@deprecated-warn

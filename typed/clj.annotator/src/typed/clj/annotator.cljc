@@ -6,10 +6,10 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns clojure.core.typed.runtime-infer
+(ns typed.clj.annotator
   (:refer-clojure :exclude [any? #?(:cljs -val)])
   #?(:cljs
-     (:require-macros [clojure.core.typed.runtime-infer
+     (:require-macros [typed.clj.annotator
                        :refer [debug-output
                                debug-output-when
                                when-fuel]]))

@@ -16,7 +16,7 @@
             [clojure.core.typed.current-impl :as impl]))
 
 (def ^:private runtime-infer-expr
-  (delay (impl/dynaload 'clojure.core.typed.runtime-infer/runtime-infer-expr)))
+  (delay (impl/dynaload 'typed.clj.annotator/runtime-infer-expr)))
 
 (def version 2)
 
