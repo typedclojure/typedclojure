@@ -16,7 +16,7 @@
             [typed.cljc.checker.ns-deps-utils :as ns-utils]
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.errors :as err]
-            [clojure.core.typed.lang.jvm :as lang]
+            [typed.clj.lang :as lang]
             [clojure.core.typed.util-vars :as vs]
             [clojure.java.io :as io]
             [clojure.tools.reader :as reader]
