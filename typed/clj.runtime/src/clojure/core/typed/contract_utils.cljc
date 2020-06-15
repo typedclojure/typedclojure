@@ -43,8 +43,7 @@
 
 (defn array-map-c? [ks-c? vs-c?]
   (every-pred #(instance? PersistentArrayMap %)
-              #(every? ks-c? (keys %))
-              #(every? vs-c? (vals %))))
+              (every-c? (hvector-c? ks-c? vs-c?))))
 
 (defrecord OptionalKey [k])
 
@@ -69,8 +68,7 @@
 
 (defn hash-c? [ks-c? vs-c?]
   (every-pred map?
-              #(every? ks-c? (keys %))
-              #(every? vs-c? (vals %))))
+              (every-c? (hvector-c? ks-c? vs-c?))))
 
 (defn set-c? [c?]
   (every-pred set?
