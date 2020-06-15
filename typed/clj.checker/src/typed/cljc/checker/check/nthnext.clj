@@ -8,15 +8,15 @@
 
 (ns ^:skip-wiki typed.cljc.checker.check.nthnext
   (:require [clojure.core.typed :as t]
-            [clojure.core.typed.checker.check-below :as below]
+            [typed.cljc.checker.check-below :as below]
             [typed.cljc.checker.check.utils :as cu]
-            [clojure.core.typed.checker.cs-gen :as cgen]
-            [clojure.core.typed.checker.filter-ops :as fo]
-            [clojure.core.typed.checker.indirect-ops :as ind]
-            [clojure.core.typed.checker.object-rep :as orep]
-            [clojure.core.typed.checker.type-ctors :as c]
-            [clojure.core.typed.checker.type-rep :as r]
-            [clojure.core.typed.checker.utils :as u]
+            [typed.cljc.checker.cs-gen :as cgen]
+            [typed.cljc.checker.filter-ops :as fo]
+            [typed.cljc.checker.indirect-ops :as ind]
+            [typed.cljc.checker.object-rep :as orep]
+            [typed.cljc.checker.type-ctors :as c]
+            [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.checker.utils :as u]
             [clojure.core.typed.errors :as err]))
 
 (defn drop-HSequential

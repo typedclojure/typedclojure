@@ -200,7 +200,7 @@
     (t/check-ns 'clojure.core.typed.test.mm))
 
   (with-cpu-profiling :sample
-    (t/check-ns2 'clojure.core.typed.checker.type-ctors))
+    (t/check-ns2 'typed.cljc.checker.type-ctors))
 
   (with-cpu-profiling :trace
     (t/check-ns 'clojure.core.typed.lib.clojure.core.async.rps-async-test))

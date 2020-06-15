@@ -7,9 +7,9 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns clojure.core.typed.check.dot-cljs
-  (:require [clojure.core.typed.checker.type-rep :as r]
-            [clojure.core.typed.checker.utils :as u]
-            [clojure.core.typed.checker.type-ctors :as c]
+  (:require [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.checker.utils :as u]
+            [typed.cljc.checker.type-ctors :as c]
             [clojure.core.typed.jsnominal-env :as jsnom]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.cljc.checker.check.funapp :as funapp]

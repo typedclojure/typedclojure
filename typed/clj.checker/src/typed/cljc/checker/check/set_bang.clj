@@ -8,9 +8,9 @@
 
 (ns typed.cljc.checker.check.set-bang
   (:require [clojure.core.typed.util-vars :as vs]
-            [clojure.core.typed.checker.utils :as u]
+            [typed.cljc.checker.utils :as u]
             [typed.cljc.checker.check.utils :as cu]
-            [clojure.core.typed.checker.type-rep :as r]
+            [typed.cljc.checker.type-rep :as r]
             [typed.clj.checker.parse-unparse :as prs]
             [clojure.core.typed.errors :as err]
             [typed.clj.checker.subtype :as sub]))

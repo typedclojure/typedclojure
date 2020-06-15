@@ -9,12 +9,12 @@
 (ns ^:skip-wiki clojure.core.typed.ext.clojure.core
   "Typing rules for base Clojure distribution."
   (:require [typed.clj.checker.check :refer [defuspecial -unanalyzed-special]]
-            [clojure.core.typed.checker.utils :as u]
+            [typed.cljc.checker.utils :as u]
             [clojure.core.typed :as t]
-            [clojure.core.typed.checker.type-rep :as r]
-            [clojure.core.typed.checker.filter-rep :as fl]
-            [clojure.core.typed.checker.filter-ops :as fo]
-            [clojure.core.typed.checker.check-below :as below]
+            [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.checker.filter-rep :as fl]
+            [typed.cljc.checker.filter-ops :as fo]
+            [typed.cljc.checker.check-below :as below]
             [clojure.core.typed.util-vars :as vs]
             [typed.cljc.analyzer :as ana2]))
 

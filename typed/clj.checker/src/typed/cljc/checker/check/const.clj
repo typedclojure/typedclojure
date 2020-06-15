@@ -7,13 +7,13 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.cljc.checker.check.const
-  (:require [clojure.core.typed.checker.object-rep :as obj]
-            [clojure.core.typed.checker.lex-env :as lex]
-            [clojure.core.typed.checker.utils :as u]
-            [clojure.core.typed.checker.filter-rep :as fl]
-            [clojure.core.typed.checker.filter-ops :as fo]
-            [clojure.core.typed.checker.check-below :as below]
-            [clojure.core.typed.checker.type-rep :as r]))
+  (:require [typed.cljc.checker.object-rep :as obj]
+            [typed.cljc.checker.lex-env :as lex]
+            [typed.cljc.checker.utils :as u]
+            [typed.cljc.checker.filter-rep :as fl]
+            [typed.cljc.checker.filter-ops :as fo]
+            [typed.cljc.checker.check-below :as below]
+            [typed.cljc.checker.type-rep :as r]))
 
 (defn flow-for-value []
   (let [props (:props (lex/lexical-env))

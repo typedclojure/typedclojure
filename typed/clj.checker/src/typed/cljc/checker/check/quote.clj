@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.cljc.checker.check.quote
-  (:require [clojure.core.typed.checker.utils :as u]
+  (:require [typed.cljc.checker.utils :as u]
             [typed.cljc.checker.check.const :as const]))
 
 (defn check-quote [check constant-type {:keys [expr] :as quote-expr} expected]

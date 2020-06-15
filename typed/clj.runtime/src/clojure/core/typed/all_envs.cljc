@@ -13,7 +13,7 @@
 
 (def ^:private unparse-type (delay (impl/dynaload 'typed.clj.checker.parse-unparse/unparse-type)))
 
-(let [nme-env (delay (impl/dynaload 'clojure.core.typed.checker.name-env/name-env))]
+(let [nme-env (delay (impl/dynaload 'typed.cljc.checker.name-env/name-env))]
   (defn name-env []
     (load-if-needed)
     (binding [vs/*verbose-types* true]
@@ -22,7 +22,7 @@
               (when-not (keyword? v)
                 [k (@unparse-type v)]))))))
 
-(let [venv (delay (impl/dynaload 'clojure.core.typed.checker.var-env/var-annotations))]
+(let [venv (delay (impl/dynaload 'typed.cljc.checker.var-env/var-annotations))]
   (defn var-env []
     (load-if-needed)
       (assert var-env)

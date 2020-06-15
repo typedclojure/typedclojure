@@ -8,17 +8,17 @@
 
 ; support for assoc/merge/conj
 (ns typed.clj.checker.assoc-utils
-  (:require [clojure.core.typed.checker.type-rep :as r]
-            [clojure.core.typed.checker.type-ctors :as c]
-            [clojure.core.typed.checker.indirect-ops :as ind]
-            [clojure.core.typed.checker.indirect-utils :as ind-u]
-            [clojure.core.typed.checker.utils :as u]
-            [clojure.core.typed.checker.free-ops :as free-ops]
+  (:require [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.checker.type-ctors :as c]
+            [typed.cljc.checker.indirect-ops :as ind]
+            [typed.cljc.checker.indirect-utils :as ind-u]
+            [typed.cljc.checker.utils :as u]
+            [typed.cljc.checker.free-ops :as free-ops]
             [clojure.core.typed.errors :as err]
-            [clojure.core.typed.checker.tvar-bnds :as bnds]
+            [typed.cljc.checker.tvar-bnds :as bnds]
             [clojure.set :as set]
             [clojure.core.typed.current-impl :as impl])
-  (:import (clojure.core.typed.checker.type_rep HeterogeneousMap Value Intersection F RClass DataType HSequential)
+  (:import (typed.cljc.checker.type_rep HeterogeneousMap Value Intersection F RClass DataType HSequential)
            (clojure.lang IPersistentMap IPersistentVector)))
 
 ;supporting assoc functionality

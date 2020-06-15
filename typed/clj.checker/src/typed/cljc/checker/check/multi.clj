@@ -7,9 +7,9 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.cljc.checker.check.multi
-  (:require [clojure.core.typed.checker.fold-rep :as fold]
-            [clojure.core.typed.checker.type-rep :as r])
-  (:import (clojure.core.typed.checker.type_rep Function)))
+  (:require [typed.cljc.checker.fold-rep :as fold]
+            [typed.cljc.checker.type-rep :as r])
+  (:import (typed.cljc.checker.type_rep Function)))
 
 ;; Multimethod definition
 

@@ -7,13 +7,13 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.cljc.checker.check.app-error
-  (:require [clojure.core.typed.checker.type-rep :as r]
+  (:require [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.check.utils :as cu]
             [typed.clj.checker.parse-unparse :as prs]
             [clojure.core.typed.util-vars :as vs]
             [clojure.core.typed.errors :as err]
             [clojure.core.typed.ast-utils :as ast-u]
-            [clojure.core.typed.checker.type-ctors :as c]
+            [typed.cljc.checker.type-ctors :as c]
             [typed.clj.checker.subtype :as sub]
             [clojure.string :as str]))
 

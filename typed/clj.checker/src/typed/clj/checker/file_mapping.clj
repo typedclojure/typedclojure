@@ -11,8 +11,8 @@
             [typed.cljc.analyzer.ast :as ast]
             [typed.cljc.checker.check.utils :as cu]
             [typed.clj.checker.parse-unparse :as prs]
-            [clojure.core.typed.checker.type-rep :as r]
-            [clojure.core.typed.checker.utils :as u]))
+            [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.checker.utils :as u]))
 
 ; (Vec '{:ftype Type :fn-expr Expr})
 (def ^:private ^:dynamic *fn-stack* [])

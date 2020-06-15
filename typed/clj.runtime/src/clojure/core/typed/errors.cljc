@@ -97,7 +97,7 @@
     {:parse-type @parse-type}))
 
 (let [unparse-type (delay (impl/dynaload 'typed.clj.checker.parse-unparse/unparse-type))
-      -error (delay (impl/dynaload 'clojure.core.typed.checker.type-rep/-error))]
+      -error (delay (impl/dynaload 'typed.cljc.checker.type-rep/-error))]
   (defn tc-delayed-error [msg & {:keys [return form expected] :as opt}]
     (let [form (cond
                  (contains? (:opts expected) :blame-form) (-> expected :opts :blame-form)

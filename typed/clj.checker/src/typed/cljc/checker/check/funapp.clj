@@ -7,33 +7,33 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:skip-wiki typed.cljc.checker.check.funapp
-  (:require [clojure.core.typed.checker.type-rep :as r]
-            [clojure.core.typed.checker.check-below :as below]
+  (:require [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.checker.check-below :as below]
             [clojure.core.typed.current-impl :as impl]
             [typed.clj.checker.subtype :as sub]
             [clojure.core.typed.coerce-utils :as coerce]
-            [clojure.core.typed.checker.type-ctors :as c]
+            [typed.cljc.checker.type-ctors :as c]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.cljc.checker.check.utils :as cu]
             [clojure.core.typed.errors :as err]
             [typed.cljc.checker.check.invoke-kw :as invoke-kw]
             [typed.cljc.checker.check.funapp-one :as funapp1]
             [typed.cljc.checker.check.app-error :as app-err]
-            [clojure.core.typed.checker.cs-gen :as cgen]
-            [clojure.core.typed.checker.free-ops :as free-ops]
+            [typed.cljc.checker.cs-gen :as cgen]
+            [typed.cljc.checker.free-ops :as free-ops]
             [clojure.core.typed.contract-utils :as con]
-            [clojure.core.typed.checker.indirect-utils :as ind-u]
-            [clojure.core.typed.checker.indirect-ops :as ind]
-            [clojure.core.typed.checker.filter-ops :as fops]
+            [typed.cljc.checker.indirect-utils :as ind-u]
+            [typed.cljc.checker.indirect-ops :as ind]
+            [typed.cljc.checker.filter-ops :as fops]
             [clojure.core.typed.util-vars :as vs]
             [clojure.core.typed.env :as env]
-            [clojure.core.typed.checker.utils :as u]
+            [typed.cljc.checker.utils :as u]
             [clojure.set :as set]
             [clojure.core.typed :as t]
-            [clojure.core.typed.checker.subst :as subst]
-            [clojure.core.typed.checker.frees :as frees]
+            [typed.cljc.checker.subst :as subst]
+            [typed.cljc.checker.frees :as frees]
             [typed.clj.checker.experimental.infer-vars :as infer-vars]
-            [clojure.core.typed.checker.hset-utils :as hset]))
+            [typed.cljc.checker.hset-utils :as hset]))
 
 (def ^:private nth-type (delay (impl/dynaload 'typed.cljc.checker.check.nth/nth-type)))
 

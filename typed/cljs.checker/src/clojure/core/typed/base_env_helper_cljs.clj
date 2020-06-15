@@ -8,15 +8,15 @@
 
 (ns clojure.core.typed.base-env-helper-cljs
   (:refer-clojure :exclude [type])
-  (:require [clojure.core.typed.checker.type-rep :as r]
+  (:require [typed.cljc.checker.type-rep :as r]
             [typed.clj.checker.parse-unparse :as prs]
-            [clojure.core.typed.checker.free-ops :as free-ops]
-            [clojure.core.typed.checker.type-ctors :as c]
-            [clojure.core.typed.checker.declared-kind-env :as decl-env]
+            [typed.cljc.checker.free-ops :as free-ops]
+            [typed.cljc.checker.type-ctors :as c]
+            [typed.cljc.checker.declared-kind-env :as decl-env]
             [clojure.core.typed.current-impl :as impl]
-            [clojure.core.typed.checker.name-env :as nme-env]
+            [typed.cljc.checker.name-env :as nme-env]
             [clojure.core.typed.jsnominal-env :as jsnom]
-            [clojure.core.typed.checker.datatype-env :as dtenv]
+            [typed.cljc.checker.datatype-env :as dtenv]
             ;[clojure.core.typed.util-cljs :as ucljs]
             ;[cljs.analyzer :as ana]
             ;[cljs.compiler :as comp]

@@ -1,10 +1,10 @@
 (ns clojure.core.typed.test.ctyp-255
   (:require [clojure.test :refer :all]
             [typed.clj.checker.parse-unparse :refer :all]
-            [clojure.core.typed.checker.type-rep :as r]
-            [clojure.core.typed.checker.type-ctors :as c]
+            [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.checker.type-ctors :as c]
             [clojure.core.typed :as t]
-            [clojure.core.typed.checker.init :as init]
+            [typed.cljc.checker.init :as init]
             [clojure.core.typed.test.test-utils :refer :all]))
 
 (deftest ctyp-255-test

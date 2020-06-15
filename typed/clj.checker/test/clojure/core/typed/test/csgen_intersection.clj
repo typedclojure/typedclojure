@@ -1,7 +1,7 @@
 (ns clojure.core.typed.test.csgen-intersection
   (:require [clojure.core.typed.test.test-utils :refer :all]
             [clojure.test :refer :all]
-            [clojure.core.typed.checker.cs-gen :as cgen]
+            [typed.cljc.checker.cs-gen :as cgen]
             ))
 
 (deftest csgen-intersect

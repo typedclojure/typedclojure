@@ -383,47 +383,47 @@
 #?(:clj
 (def ^:private with-parse-ns* (delay (dynaload 'typed.clj.checker.parse-unparse/with-parse-ns*))))
 #?(:clj
-(def ^:private with-bounded-frees* (delay (dynaload 'clojure.core.typed.checker.free-ops/with-bounded-frees*))))
+(def ^:private with-bounded-frees* (delay (dynaload 'typed.cljc.checker.free-ops/with-bounded-frees*))))
 #?(:clj
 (def ^:private unparse-type (delay (dynaload 'typed.clj.checker.parse-unparse/unparse-type))))
 #?(:clj
 (def ^:private parse-type (delay (dynaload 'typed.clj.checker.parse-unparse/parse-type))))
 #?(:clj
-(def ^:private fully-resolve-type (delay (dynaload 'clojure.core.typed.checker.type-ctors/fully-resolve-type))))
+(def ^:private fully-resolve-type (delay (dynaload 'typed.cljc.checker.type-ctors/fully-resolve-type))))
 #?(:clj
-(def ^:private Poly? (delay (dynaload 'clojure.core.typed.checker.type-rep/Poly?))))
+(def ^:private Poly? (delay (dynaload 'typed.cljc.checker.type-rep/Poly?))))
 #?(:clj
-(def ^:private Poly-fresh-symbols* (delay (dynaload 'clojure.core.typed.checker.type-ctors/Poly-fresh-symbols*))))
+(def ^:private Poly-fresh-symbols* (delay (dynaload 'typed.cljc.checker.type-ctors/Poly-fresh-symbols*))))
 #?(:clj
-(def ^:private Poly-body* (delay (dynaload 'clojure.core.typed.checker.type-ctors/Poly-body*))))
+(def ^:private Poly-body* (delay (dynaload 'typed.cljc.checker.type-ctors/Poly-body*))))
 #?(:clj
-(def ^:private PolyDots? (delay (dynaload 'clojure.core.typed.checker.type-rep/PolyDots?))))
+(def ^:private PolyDots? (delay (dynaload 'typed.cljc.checker.type-rep/PolyDots?))))
 #?(:clj
-(def ^:private PolyDots-fresh-symbols* (delay (dynaload 'clojure.core.typed.checker.type-ctors/PolyDots-fresh-symbols*))))
+(def ^:private PolyDots-fresh-symbols* (delay (dynaload 'typed.cljc.checker.type-ctors/PolyDots-fresh-symbols*))))
 #?(:clj
-(def ^:private PolyDots-body* (delay (dynaload 'clojure.core.typed.checker.type-ctors/PolyDots-body*))))
+(def ^:private PolyDots-body* (delay (dynaload 'typed.cljc.checker.type-ctors/PolyDots-body*))))
 #?(:clj
-(def ^:private FnIntersection? (delay (dynaload 'clojure.core.typed.checker.type-rep/FnIntersection?))))
+(def ^:private FnIntersection? (delay (dynaload 'typed.cljc.checker.type-rep/FnIntersection?))))
 #?(:clj
-(def ^:private Protocol* (delay (dynaload 'clojure.core.typed.checker.type-ctors/Protocol*))))
+(def ^:private Protocol* (delay (dynaload 'typed.cljc.checker.type-ctors/Protocol*))))
 #?(:clj
-(def ^:private Protocol-var->on-class (delay (dynaload 'clojure.core.typed.checker.type-ctors/Protocol-var->on-class))))
+(def ^:private Protocol-var->on-class (delay (dynaload 'typed.cljc.checker.type-ctors/Protocol-var->on-class))))
 #?(:clj
-(def ^:private -any (delay (dynaload 'clojure.core.typed.checker.type-rep/-any))))
+(def ^:private -any (delay (dynaload 'typed.cljc.checker.type-rep/-any))))
 #?(:clj
-(def ^:private protocol-method-var-ann (delay (dynaload 'clojure.core.typed.checker.collect-utils/protocol-method-var-ann))))
+(def ^:private protocol-method-var-ann (delay (dynaload 'typed.cljc.checker.collect-utils/protocol-method-var-ann))))
 #?(:clj
-(def ^:private make-F (delay (dynaload 'clojure.core.typed.checker.type-rep/make-F))))
+(def ^:private make-F (delay (dynaload 'typed.cljc.checker.type-rep/make-F))))
 #?(:clj
-(def ^:private DataType* (delay (dynaload 'clojure.core.typed.checker.type-ctors/DataType*))))
+(def ^:private DataType* (delay (dynaload 'typed.cljc.checker.type-ctors/DataType*))))
 #?(:clj
-(def ^:private Poly* (delay (dynaload 'clojure.core.typed.checker.type-ctors/Poly*))))
+(def ^:private Poly* (delay (dynaload 'typed.cljc.checker.type-ctors/Poly*))))
 #?(:clj
-(def ^:private make-FnIntersection (delay (dynaload 'clojure.core.typed.checker.type-rep/make-FnIntersection))))
+(def ^:private make-FnIntersection (delay (dynaload 'typed.cljc.checker.type-rep/make-FnIntersection))))
 #?(:clj
-(def ^:private make-Function (delay (dynaload 'clojure.core.typed.checker.type-rep/make-Function))))
+(def ^:private make-Function (delay (dynaload 'typed.cljc.checker.type-rep/make-Function))))
 #?(:clj
-(def ^:private DataType-of (delay (dynaload 'clojure.core.typed.checker.type-ctors/DataType-of))))
+(def ^:private DataType-of (delay (dynaload 'typed.cljc.checker.type-ctors/DataType-of))))
 #?(:clj
 (def ^:private subtype? (delay (dynaload 'typed.clj.checker.subtype/subtype?))))
 
@@ -526,19 +526,19 @@
 #?(:clj
 (def ^:private demunge (delay (dynaload 'clojure.repl/demunge))))
 #?(:clj
-(def ^:private abstract-many (delay (dynaload 'clojure.core.typed.checker.type-ctors/abstract-many))))
+(def ^:private abstract-many (delay (dynaload 'typed.cljc.checker.type-ctors/abstract-many))))
 #?(:clj
-(def ^:private with-frees* (delay (dynaload 'clojure.core.typed.checker.free-ops/with-frees*))))
+(def ^:private with-frees* (delay (dynaload 'typed.cljc.checker.free-ops/with-frees*))))
 #?(:clj
-(def ^:private -val (delay (dynaload 'clojure.core.typed.checker.type-rep/-val))))
+(def ^:private -val (delay (dynaload 'typed.cljc.checker.type-rep/-val))))
 #?(:clj
-(def ^:private -nil (delay (dynaload 'clojure.core.typed.checker.type-rep/-nil))))
+(def ^:private -nil (delay (dynaload 'typed.cljc.checker.type-rep/-nil))))
 #?(:clj
-(def ^:private fv (delay (dynaload 'clojure.core.typed.checker.frees/fv))))
+(def ^:private fv (delay (dynaload 'typed.cljc.checker.frees/fv))))
 #?(:clj
-(def ^:private fi (delay (dynaload 'clojure.core.typed.checker.frees/fi))))
+(def ^:private fi (delay (dynaload 'typed.cljc.checker.frees/fi))))
 #?(:clj
-(def ^:private make-HMap (delay (dynaload 'clojure.core.typed.checker.type-ctors/make-HMap))))
+(def ^:private make-HMap (delay (dynaload 'typed.cljc.checker.type-ctors/make-HMap))))
 
 #?(:clj
 (defn gen-datatype* [current-env current-ns provided-name fields vbnd opt record?]

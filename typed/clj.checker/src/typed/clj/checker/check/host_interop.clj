@@ -14,8 +14,8 @@
             [typed.clj.checker.check.method :as method]
             [typed.clj.checker.check.type-hints :as type-hints]
             [typed.cljc.checker.check.utils :as cu]
-            [clojure.core.typed.checker.type-rep :as r]
-            [clojure.core.typed.checker.utils :as u]
+            [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.checker.utils :as u]
             [clojure.core.typed.errors :as err]))
 
 (defn try-resolve-reflection [ast]

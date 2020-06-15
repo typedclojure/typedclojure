@@ -7,16 +7,16 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:skip-wiki typed.cljc.checker.check.if
-  (:require [clojure.core.typed.checker.type-rep :as r]
-            [clojure.core.typed.checker.type-ctors :as c]
-            [clojure.core.typed.checker.utils :as u]
-            [clojure.core.typed.checker.filter-ops :as fo]
-            [clojure.core.typed.checker.filter-rep :as fl]
-            [clojure.core.typed.checker.object-rep :as obj]
-            [clojure.core.typed.checker.update :as update]
-            [clojure.core.typed.checker.lex-env :as lex]
+  (:require [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.checker.type-ctors :as c]
+            [typed.cljc.checker.utils :as u]
+            [typed.cljc.checker.filter-ops :as fo]
+            [typed.cljc.checker.filter-rep :as fl]
+            [typed.cljc.checker.object-rep :as obj]
+            [typed.cljc.checker.update :as update]
+            [typed.cljc.checker.lex-env :as lex]
             [clojure.core.typed.util-vars :as vs]
-            [clojure.core.typed.checker.var-env :as var-env]))
+            [typed.cljc.checker.var-env :as var-env]))
 
 (defn update-lex+reachable [fs]
   (let [reachable (atom true :validator boolean?)

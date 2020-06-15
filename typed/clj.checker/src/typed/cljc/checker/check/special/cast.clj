@@ -9,17 +9,17 @@
 (ns typed.cljc.checker.check.special.cast
   (:require [clojure.core.typed.util-vars :as vs]
             [clojure.core.typed.ast-utils :as ast-u]
-            [clojure.core.typed.checker.object-rep :as obj]
+            [typed.cljc.checker.object-rep :as obj]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.cljc.checker.check.utils :as cu]
-            [clojure.core.typed.checker.type-rep :as r]
-            [clojure.core.typed.checker.utils :as u]
-            [clojure.core.typed.checker.check-below :as below]
+            [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.checker.utils :as u]
+            [typed.cljc.checker.check-below :as below]
             [typed.clj.checker.subtype :as sub]
-            [clojure.core.typed.checker.filter-ops :as fo]
+            [typed.cljc.checker.filter-ops :as fo]
             [clojure.core.typed.current-impl :as impl]
             [typed.cljc.analyzer :as ana2]
-            [clojure.core.typed.checker.filter-rep :as fl]))
+            [typed.cljc.checker.filter-rep :as fl]))
 
 (defn check-cast
   [check expr expected]

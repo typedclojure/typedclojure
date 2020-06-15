@@ -7,12 +7,12 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.clj.checker.constant-type
-  (:require [clojure.core.typed.checker.type-rep :as r :refer [ret]]
-            [clojure.core.typed.checker.type-ctors :as c]
+  (:require [typed.cljc.checker.type-rep :as r :refer [ret]]
+            [typed.cljc.checker.type-ctors :as c]
             [clojure.core.typed :as t]
             [clojure.core.typed.current-impl :as impl]
-            [clojure.core.typed.checker.hset-utils :as hset]
-            [clojure.core.typed.checker.filter-ops :as fo])
+            [typed.cljc.checker.hset-utils :as hset]
+            [typed.cljc.checker.filter-ops :as fo])
   (:import (clojure.lang IPersistentList IPersistentVector Symbol Cons ISeq
                          IFn IPersistentStack Associative IPersistentSet IPersistentMap IMapEntry
                          Keyword Atom PersistentList IMeta PersistentArrayMap Compiler Named

@@ -1,9 +1,9 @@
 (ns clojure.core.typed.test.filter-unit-tests
   (:require [clojure.core.typed.test.test-utils :refer :all]
             [clojure.test :refer :all]
-            [clojure.core.typed.checker.filter-ops :refer :all]
-            [clojure.core.typed.checker.path-rep :refer :all]
-            [clojure.core.typed.checker.type-ctors :refer :all]))
+            [typed.cljc.checker.filter-ops :refer :all]
+            [typed.cljc.checker.path-rep :refer :all]
+            [typed.cljc.checker.type-ctors :refer :all]))
 
 (deftest refine-branch-test
   (is-tc-e (do

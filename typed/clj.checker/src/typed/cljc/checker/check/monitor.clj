@@ -7,14 +7,14 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.cljc.checker.check.monitor
-  (:require [clojure.core.typed.checker.utils :as u]
+  (:require [typed.cljc.checker.utils :as u]
             [clojure.core.typed.util-vars :as vs]
-            [clojure.core.typed.checker.type-rep :as r]
-            [clojure.core.typed.checker.type-ctors :as c]
+            [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.checker.type-ctors :as c]
             [typed.clj.checker.subtype :as sub]
             [typed.cljc.checker.check.utils :as cu]
-            [clojure.core.typed.checker.filter-ops :as fo]
-            [clojure.core.typed.checker.check-below :as below]))
+            [typed.cljc.checker.filter-ops :as fo]
+            [typed.cljc.checker.check-below :as below]))
 
 (defn check-monitor
   "monitor-enter and monitor-exit both take any object and return nil"

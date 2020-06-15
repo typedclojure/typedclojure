@@ -3,9 +3,9 @@
     ; this loads the type system, must go first
     [clojure.core.typed.test.test-utils :refer :all]
     [clojure.core.typed :as t]
-    [clojure.core.typed.checker.filter-ops :refer [-and -filter -not-filter -or]]
-    [clojure.core.typed.checker.filter-rep :refer [-top make-AndFilter make-OrFilter -bot]]
-    [clojure.core.typed.checker.type-rep :refer []]
+    [typed.cljc.checker.filter-ops :refer [-and -filter -not-filter -or]]
+    [typed.cljc.checker.filter-rep :refer [-top make-AndFilter make-OrFilter -bot]]
+    [typed.cljc.checker.type-rep :refer []]
     [typed.clj.checker.parse-unparse :refer [parse-type]]
     [typed.clj.checker.subtype :refer [subtype-type-filter?]]
             [clojure.test :refer :all]))
@@ -57,7 +57,7 @@
                                  (-filter (parse-type nil) r)))))))
 
 
-;(clojure.core.typed.checker.filter-ops/-and                                                                                         
+;(typed.cljc.checker.filter-ops/-and                                                                                         
 ;  (! (U nil false) and__3941__auto____#0)
 ;  (is (U nil false) v2__#1)
 ;  (! (U nil false) and__3941__auto____#0)
@@ -98,7 +98,7 @@
 ;  (is (U nil false) v2__#1)
 ;  (is (U clojure.core.typed/EmptyCount nil) v2__#0)))
 ;
-;(clojure.core.typed.checker.filter-ops/-or
+;(typed.cljc.checker.filter-ops/-or
 ; (&
 ;  (! (U nil false) v2__#1)
 ;  (! (U nil false) and__3941__auto____#0)

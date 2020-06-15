@@ -8,11 +8,11 @@
 
 (ns typed.cljc.checker.check.invoke
   (:require [typed.cljc.analyzer :as ana2]
-            [clojure.core.typed.checker.utils :as u]
+            [typed.cljc.checker.utils :as u]
             [typed.cljc.checker.check.funapp :as funapp]
             [typed.cljc.checker.check.invoke-kw :as invoke-kw]
-            [clojure.core.typed.checker.type-ctors :as c]
-            [clojure.core.typed.checker.type-rep :as r]))
+            [typed.cljc.checker.type-ctors :as c]
+            [typed.cljc.checker.type-rep :as r]))
 
 (defn normal-invoke [check-fn expr fexpr args expected & {:keys [cfexpr cargs]}]
   (let [cfexpr (or cfexpr (check-fn fexpr))

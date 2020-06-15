@@ -1,11 +1,11 @@
 (ns clojure.core.typed.test.difference
   (:require [clojure.core.typed :as tc :refer []]
             [clojure.core.typed.test.test-utils :refer :all]
-            [clojure.core.typed.checker.type-rep :refer :all]
-            [clojure.core.typed.checker.type-ctors :refer :all]
-            [clojure.core.typed.checker.cs-gen :refer :all]
-            [clojure.core.typed.checker.cs-rep :refer :all]
-            [clojure.core.typed.checker.subst :refer [subst-all]]
+            [typed.cljc.checker.type-rep :refer :all]
+            [typed.cljc.checker.type-ctors :refer :all]
+            [typed.cljc.checker.cs-gen :refer :all]
+            [typed.cljc.checker.cs-rep :refer :all]
+            [typed.cljc.checker.subst :refer [subst-all]]
             [clojure.test :refer :all]))
 
 ;; When Difference is ready, uncomment tests at the bottom

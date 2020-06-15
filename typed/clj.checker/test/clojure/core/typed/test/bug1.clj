@@ -1,7 +1,7 @@
 (ns clojure.core.typed.test.bug1
   (:require [clojure.core.typed :as t]
-            [clojure.core.typed.checker.type_rep])
-  (:import [clojure.core.typed.checker.type_rep Result]
+            [typed.cljc.checker.type_rep])
+  (:import [typed.cljc.checker.type_rep Result]
            [clojure.lang Keyword]))
 
 (t/ann *frees-mode* (t/U nil t/Kw))

@@ -22,7 +22,7 @@
             [typed.clj.analyzer.passes.emit-form :as emit-form]
             [typed.clj.analyzer.passes.validate :as validate]
             [typed.clj.analyzer.utils :as taj-utils]
-            [clojure.core.typed.checker.utils :as u]
+            [typed.cljc.checker.utils :as u]
             [clojure.core.typed.coerce-utils :as coerce]
             [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.errors :as err]

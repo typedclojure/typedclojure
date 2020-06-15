@@ -7,20 +7,20 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.cljc.checker.check.fn-methods
-  (:require [clojure.core.typed.checker.type-rep :as r]
+  (:require [typed.cljc.checker.type-rep :as r]
             [clojure.core.typed.util-vars :as vs]
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.ast-utils :as ast-u]
-            [clojure.core.typed.checker.type-ctors :as c]
-            [clojure.core.typed.checker.utils :as u]
+            [typed.cljc.checker.type-ctors :as c]
+            [typed.cljc.checker.utils :as u]
             [typed.cljc.checker.check.utils :as cu]
             [clojure.core.typed.errors :as err]
             [typed.clj.checker.parse-unparse :as prs]
-            [clojure.core.typed.checker.lex-env :as lex]
-            [clojure.core.typed.checker.free-ops :as free-ops]
+            [typed.cljc.checker.lex-env :as lex]
+            [typed.cljc.checker.free-ops :as free-ops]
             [typed.cljc.checker.check.fn-method-one :as fn-method1]
-            [clojure.core.typed.checker.dvar-env :as dvar-env]))
+            [typed.cljc.checker.dvar-env :as dvar-env]))
 
 (def function-type? (some-fn (every-pred r/Poly?
                                          (comp r/FnIntersection? r/Poly-body-unsafe*))

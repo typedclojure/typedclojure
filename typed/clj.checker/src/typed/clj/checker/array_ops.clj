@@ -7,8 +7,8 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.clj.checker.array-ops
-  (:require [clojure.core.typed.checker.type-rep :as r]
-            [clojure.core.typed.checker.type-ctors :as c]))
+  (:require [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.checker.type-ctors :as c]))
 
 ;Return a Class that generalises what this Clojure type will look like from Java,
 ;suitable  for use as a Java primitive array member type.

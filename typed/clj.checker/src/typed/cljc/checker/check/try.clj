@@ -7,13 +7,13 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.cljc.checker.check.try
-  (:require [clojure.core.typed.checker.utils :as u]
+  (:require [typed.cljc.checker.utils :as u]
             [clojure.core.typed.util-vars :as vs]
-            [clojure.core.typed.checker.type-rep :as r]
-            [clojure.core.typed.checker.check-below :as below]
-            [clojure.core.typed.checker.filter-ops :as fo]
-            [clojure.core.typed.checker.object-rep :as o]
-            [clojure.core.typed.checker.type-ctors :as c]))
+            [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.checker.check-below :as below]
+            [typed.cljc.checker.filter-ops :as fo]
+            [typed.cljc.checker.object-rep :as o]
+            [typed.cljc.checker.type-ctors :as c]))
 
 (defn combine-rets [rs]
   {:pre [(seq rs)

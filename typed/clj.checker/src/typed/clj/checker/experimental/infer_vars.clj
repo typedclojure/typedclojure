@@ -8,8 +8,8 @@
 
 (ns typed.clj.checker.experimental.infer-vars
   (:require 
-    [clojure.core.typed.checker.type-rep :as r]
-    [clojure.core.typed.checker.type-ctors :as c]
+    [typed.cljc.checker.type-rep :as r]
+    [typed.cljc.checker.type-ctors :as c]
     [typed.clj.checker.parse-unparse :as prs]
     [clojure.core.typed.current-impl :as impl]
     [clojure.core.typed.env :as env]))

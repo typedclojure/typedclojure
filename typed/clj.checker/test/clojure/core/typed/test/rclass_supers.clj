@@ -3,8 +3,8 @@
             [clojure.test :refer :all]
             [clojure.core.typed :as t]
             [clojure.core.typed.util-vars :as vs]
-            [clojure.core.typed.checker.type-rep :refer :all]
-            [clojure.core.typed.checker.type-ctors :refer :all]
+            [typed.cljc.checker.type-rep :refer :all]
+            [typed.cljc.checker.type-ctors :refer :all]
             [typed.clj.checker.parse-unparse :refer [unparse-type]]
             [clojure.set :as set])
   (:import (clojure.lang Seqable IPersistentVector IPersistentCollection

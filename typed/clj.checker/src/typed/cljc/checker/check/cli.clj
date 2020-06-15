@@ -8,14 +8,14 @@
 
 (ns typed.cljc.checker.check.cli
   (:require [clojure.core.typed.ast-utils :as ast-u]
-            [clojure.core.typed.checker.utils :as u]
-            [clojure.core.typed.checker.type-rep :as r]
+            [typed.cljc.checker.utils :as u]
+            [typed.cljc.checker.type-rep :as r]
             [clojure.string :as str]
-            [clojure.core.typed.checker.cs-gen :as cgen]
-            [clojure.core.typed.checker.free-ops :as free-ops]
+            [typed.cljc.checker.cs-gen :as cgen]
+            [typed.cljc.checker.free-ops :as free-ops]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.clj.checker.constant-type :as const]
-            [clojure.core.typed.checker.type-ctors :as c]))
+            [typed.cljc.checker.type-ctors :as c]))
 
 (defn parse-fn-return-type [parse-fn-type]
   (let [subst-in (free-ops/with-free-symbols 

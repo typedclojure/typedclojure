@@ -7,12 +7,12 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.cljc.checker.check.vector
-  (:require [clojure.core.typed.checker.type-rep :as r]
-            [clojure.core.typed.checker.check-below :as below]
-            [clojure.core.typed.checker.utils :as u]
+  (:require [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.checker.check-below :as below]
+            [typed.cljc.checker.utils :as u]
             [typed.clj.checker.subtype :as sub]
             [typed.cljc.checker.check.utils :as cu]
-            [clojure.core.typed.checker.filter-ops :as fo]))
+            [typed.cljc.checker.filter-ops :as fo]))
 
 (defn check-vector [check {:keys [items] :as expr} expected]
   {:post [(-> % u/expr-type r/TCResult?)

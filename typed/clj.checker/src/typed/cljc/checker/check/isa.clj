@@ -7,18 +7,18 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:skip-wiki typed.cljc.checker.check.isa
-  (:require [clojure.core.typed.checker.type-rep :as r]
+  (:require [typed.cljc.checker.type-rep :as r]
             [clojure.core.typed :as t]
-            [clojure.core.typed.checker.check-below :as below]
-            [clojure.core.typed.checker.filter-ops :as fo]
+            [typed.cljc.checker.check-below :as below]
+            [typed.cljc.checker.filter-ops :as fo]
             [clojure.core.typed.contract-utils :as con]
-            [clojure.core.typed.checker.filter-rep :as fl]
+            [typed.cljc.checker.filter-rep :as fl]
             [typed.cljc.checker.check.utils :as cu]
-            [clojure.core.typed.checker.type-ctors :as c]
-            [clojure.core.typed.checker.object-rep :as obj]
-            [clojure.core.typed.checker.path-rep :as path]
+            [typed.cljc.checker.type-ctors :as c]
+            [typed.cljc.checker.object-rep :as obj]
+            [typed.cljc.checker.path-rep :as path]
             [typed.clj.checker.tc-equiv :as equiv])
-  (:import (clojure.core.typed.checker.type_rep TCResult)))
+  (:import (typed.cljc.checker.type_rep TCResult)))
 
 ;(t/ann tc-isa? [TCResult TCResult -> TCResult])
 (defn tc-isa? 

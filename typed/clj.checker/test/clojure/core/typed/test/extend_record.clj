@@ -42,7 +42,7 @@
 ;(ancestors SpecialNumber)
 ;(prs/parse-clj 'PMaths)
 ;(impl/with-clojure-impl
-;  (clojure.core.typed.checker.datatype-ancestor-env/get-datatype-ancestors  (prs/parse-clj 'SpecialNumber)))
+;  (typed.cljc.checker.datatype-ancestor-env/get-datatype-ancestors  (prs/parse-clj 'SpecialNumber)))
 
 ;(sub/sub-clj? SpecialNumber PMathsExtend)
 ;(not (sub/sub-clj? PMathsExtend SpecialNumber))

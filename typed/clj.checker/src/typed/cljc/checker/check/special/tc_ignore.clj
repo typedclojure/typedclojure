@@ -8,11 +8,11 @@
 
 (ns typed.cljc.checker.check.special.tc-ignore
   (:require [clojure.core.typed :as t]
-            [clojure.core.typed.checker.check-below :as below]
+            [typed.cljc.checker.check-below :as below]
             [clojure.core.typed.util-vars :as vs]
-            [clojure.core.typed.checker.utils :as u]
+            [typed.cljc.checker.utils :as u]
             [typed.cljc.analyzer :as ana2]
-            [clojure.core.typed.checker.type-rep :as r]))
+            [typed.cljc.checker.type-rep :as r]))
 
 (defn check-tc-ignore [check {:keys [statements] :as expr} expected]
   {:pre [(#{3} (count statements))]}

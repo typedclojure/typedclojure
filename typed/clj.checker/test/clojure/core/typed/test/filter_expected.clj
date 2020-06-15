@@ -3,12 +3,12 @@
   (:require 
     ; this loads the type system, must go first
     [clojure.core.typed.test.test-utils :refer :all]
-            [clojure.core.typed.checker.type-rep :refer :all]
+            [typed.cljc.checker.type-rep :refer :all]
             [typed.clj.checker.parse-unparse :refer :all]
-            [clojure.core.typed.checker.filter-rep :refer :all]
-            [clojure.core.typed.checker.filter-ops :refer :all]
-            [clojure.core.typed.checker.object-rep :refer :all]
-            [clojure.core.typed.checker.path-rep :refer :all]
+            [typed.cljc.checker.filter-rep :refer :all]
+            [typed.cljc.checker.filter-ops :refer :all]
+            [typed.cljc.checker.object-rep :refer :all]
+            [typed.cljc.checker.path-rep :refer :all]
             [clojure.test :refer :all])
   (:use [clojure.core.typed :as tc :exclude [Seqable loop fn defprotocol let dotimes
                                              for doseq def remove filter defn atom ref]]))

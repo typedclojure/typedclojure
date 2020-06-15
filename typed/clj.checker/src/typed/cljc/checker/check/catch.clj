@@ -9,9 +9,9 @@
 (ns typed.cljc.checker.check.catch
   (:require [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.errors :as err]
-            [clojure.core.typed.checker.utils :as u]
-            [clojure.core.typed.checker.type-ctors :as c]
-            [clojure.core.typed.checker.lex-env :as lex]
+            [typed.cljc.checker.utils :as u]
+            [typed.cljc.checker.type-ctors :as c]
+            [typed.cljc.checker.lex-env :as lex]
             [typed.cljc.analyzer :as ana2]
             [clojure.core.typed.ast-utils :as ast-u]))
 

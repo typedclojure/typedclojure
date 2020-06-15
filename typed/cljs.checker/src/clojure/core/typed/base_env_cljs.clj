@@ -8,7 +8,7 @@
 
 (ns clojure.core.typed.base-env-cljs
   (:require [clojure.core.typed.base-env-helper-cljs :as h]
-            [clojure.core.typed.checker.base-env-common :refer [delay-and-cache-env]
+            [typed.cljc.checker.base-env-common :refer [delay-and-cache-env]
              :as common]
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.bootstrap-cljs :as boot]
@@ -79,7 +79,7 @@ cljs.core/INamed [[]]
 cljs.core/Reduced [[[x :variance :covariant]]]
 ))
 
-(let [rst! (delay (impl/dynaload 'clojure.core.typed.checker.protocol-env/reset-protocol-env!))]
+(let [rst! (delay (impl/dynaload 'typed.cljc.checker.protocol-env/reset-protocol-env!))]
   (defn reset-protocol-env! []
     (impl/with-cljs-impl
       (@rst! (init-protocol-env)))))
@@ -484,7 +484,7 @@ cljs.core.typed/Reversible
         (cljs.core/IReversible x))))
 
 
-(let [rst! (delay (impl/dynaload 'clojure.core.typed.checker.name-env/reset-name-env!))]
+(let [rst! (delay (impl/dynaload 'typed.cljc.checker.name-env/reset-name-env!))]
   (defn reset-alias-env! []
     (let [alias-env (init-alias-env)]
       ; Ensure init-alias-env agrees with the -base-aliases
@@ -518,10 +518,10 @@ cljs.core/Reduced [[[x :variance :covariant]]]
     ))
 )
 
-(let [reset-var-type-env! (delay (impl/dynaload 'clojure.core.typed.checker.var-env/reset-var-type-env!))
-      reset-jsvar-type-env! (delay (impl/dynaload 'clojure.core.typed.checker.var-env/reset-jsvar-type-env!))
-      reset-declared-kinds! (delay (impl/dynaload 'clojure.core.typed.checker.declared-kind-env/reset-declared-kinds!))
-      reset-datatype-env! (delay (impl/dynaload 'clojure.core.typed.checker.datatype-env/reset-datatype-env!))]
+(let [reset-var-type-env! (delay (impl/dynaload 'typed.cljc.checker.var-env/reset-var-type-env!))
+      reset-jsvar-type-env! (delay (impl/dynaload 'typed.cljc.checker.var-env/reset-jsvar-type-env!))
+      reset-declared-kinds! (delay (impl/dynaload 'typed.cljc.checker.declared-kind-env/reset-declared-kinds!))
+      reset-datatype-env! (delay (impl/dynaload 'typed.cljc.checker.datatype-env/reset-datatype-env!))]
   (defn reset-cljs-envs! []
     (ucljs/with-cljs-typed-env
       (impl/with-cljs-impl

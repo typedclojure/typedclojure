@@ -7,11 +7,11 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.clj.checker.tc-equiv
-  (:require [clojure.core.typed.checker.type-rep :as r]
-            [clojure.core.typed.checker.type-ctors :as c]
-            [clojure.core.typed.checker.filter-rep :as fl]
-            [clojure.core.typed.checker.filter-ops :as fo]
-            [clojure.core.typed.checker.check-below :as below]
+  (:require [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.checker.type-ctors :as c]
+            [typed.cljc.checker.filter-rep :as fl]
+            [typed.cljc.checker.filter-ops :as fo]
+            [typed.cljc.checker.check-below :as below]
             [clojure.math.combinatorics :as comb]
             [clojure.core.typed.current-impl :as impl]))
 

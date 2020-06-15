@@ -7,9 +7,9 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.cljc.checker.check.with-meta
-  (:require [clojure.core.typed.checker.type-rep :as r]
+  (:require [typed.cljc.checker.type-rep :as r]
             [clojure.core.typed.errors :as err]
-            [clojure.core.typed.checker.utils :as u]))
+            [typed.cljc.checker.utils :as u]))
 
 (defn visit-tail-pos [ast f]
   (let [rec #(visit-tail-pos % f)]

@@ -7,9 +7,9 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.cljc.checker.check.print-env
-  (:require [clojure.core.typed.checker.lex-env :as lex]
-            [clojure.core.typed.checker.tvar-env :as tvar-env]
-            [clojure.core.typed.checker.tvar-bnds :as tvar-bnds]
+  (:require [typed.cljc.checker.lex-env :as lex]
+            [typed.cljc.checker.tvar-env :as tvar-env]
+            [typed.cljc.checker.tvar-bnds :as tvar-bnds]
             [typed.clj.checker.parse-unparse :as prs]))
 
 (defn print-env*

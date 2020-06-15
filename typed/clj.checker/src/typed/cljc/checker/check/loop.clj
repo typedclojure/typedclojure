@@ -9,7 +9,7 @@
 (ns typed.cljc.checker.check.loop
   (:require [typed.cljc.checker.check.let :as let]
             [clojure.core.typed.errors :as err]
-            [clojure.core.typed.checker.type-rep :as r]
+            [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.check.special.ann-form :as ann-form]
             [typed.cljc.checker.check.recur-utils :as recur-u]))
 

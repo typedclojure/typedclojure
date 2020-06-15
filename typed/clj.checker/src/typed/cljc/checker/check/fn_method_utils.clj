@@ -7,10 +7,10 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:skip-wiki typed.cljc.checker.check.fn-method-utils
-  (:require [clojure.core.typed.checker.utils :as u]
-            [clojure.core.typed.checker.type-rep :as r]
+  (:require [typed.cljc.checker.utils :as u]
+            [typed.cljc.checker.type-rep :as r]
             [clojure.core.typed.contract-utils :as con]
-            [clojure.core.typed.checker.abo :as abo]))
+            [typed.cljc.checker.abo :as abo]))
 
 (alter-meta! *ns* assoc :skip-wiki true)
 

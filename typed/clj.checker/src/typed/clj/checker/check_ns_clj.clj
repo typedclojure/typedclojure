@@ -9,7 +9,7 @@
 (ns typed.clj.checker.check-ns-clj
   (:require [clojure.core.typed.errors :as err]
             [clojure.core.typed.current-impl :as impl]
-            [clojure.core.typed.checker.check-ns-common :as chk-ns]))
+            [typed.cljc.checker.check-ns-common :as chk-ns]))
 
 (defn check-ns-info
   "Same as check-ns, but returns a map of results from type checking the

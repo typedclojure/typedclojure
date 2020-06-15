@@ -7,8 +7,8 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.cljc.checker.check.seq-ops
-  (:require [clojure.core.typed.checker.type-rep :as r]
-            [clojure.core.typed.checker.type-ctors :as c]
+  (:require [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.checker.type-ctors :as c]
             [clojure.core.typed :as t]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.clj.checker.subtype :as sub]

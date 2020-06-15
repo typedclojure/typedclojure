@@ -8,8 +8,8 @@
 
 (ns ^:skip-wiki typed.clj.checker.reset-caches
   (:require [typed.clj.checker.subtype :as sub]
-            [clojure.core.typed.checker.type-ctors :as c]
-            [clojure.core.typed.checker.cs-gen :as cgen]))
+            [typed.cljc.checker.type-ctors :as c]
+            [typed.cljc.checker.cs-gen :as cgen]))
 
 (defn reset-caches 
   "Reset internal type caches."

@@ -7,8 +7,8 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:skip-wiki typed.cljc.checker.check.recur-utils
-  (:require [clojure.core.typed.checker.utils :as u]
-            [clojure.core.typed.checker.type-rep :as r]))
+  (:require [typed.cljc.checker.utils :as u]
+            [typed.cljc.checker.type-rep :as r]))
 
 (u/def-type RecurTarget [dom rest drest kws]
   "A target for recur"

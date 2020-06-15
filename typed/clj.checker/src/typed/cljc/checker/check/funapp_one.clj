@@ -7,13 +7,13 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:skip-wiki typed.cljc.checker.check.funapp-one
-  (:require [clojure.core.typed.checker.type-rep :as r]
+  (:require [typed.cljc.checker.type-rep :as r]
             [typed.clj.checker.parse-unparse :as prs]
-            [clojure.core.typed.checker.check-below :as below]
+            [typed.cljc.checker.check-below :as below]
             [clojure.core.typed.errors :as err]
-            [clojure.core.typed.checker.type-ctors :as c]
-            [clojure.core.typed.checker.object-rep :as obj]
-            [clojure.core.typed.checker.open-result :as open-result]
+            [typed.cljc.checker.type-ctors :as c]
+            [typed.cljc.checker.object-rep :as obj]
+            [typed.cljc.checker.open-result :as open-result]
             [clojure.set :as set]))
 
 ;Function TCResult^n (or nil TCResult) -> TCResult

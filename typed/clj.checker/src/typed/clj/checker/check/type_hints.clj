@@ -7,8 +7,8 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.clj.checker.check.type-hints
-  (:require [clojure.core.typed.checker.type-rep :as r]
-            [clojure.core.typed.checker.type-ctors :as c]
+  (:require [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.check.utils :as cu]
             [clojure.core.typed.coerce-utils :as coerce]
             [typed.clj.checker.reflect-utils :as reflect-u]))

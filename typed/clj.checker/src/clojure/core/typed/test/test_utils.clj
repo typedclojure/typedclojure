@@ -10,12 +10,12 @@
 (when-not *compile-files*
   (t/load-if-needed))
 
-(require '[clojure.core.typed.checker.utils :as u]
+(require '[typed.cljc.checker.utils :as u]
          '[clojure.core.typed.errors :as err]
          '[typed.clj.checker.parse-unparse :refer [parse-type]]
          '[clojure.core.typed.current-impl :as impl]
-         '[clojure.core.typed.checker.type-ctors :as c]
-         '[clojure.core.typed.checker.type-rep :as r]
+         '[typed.cljc.checker.type-ctors :as c]
+         '[typed.cljc.checker.type-rep :as r]
          '[typed.clj.checker.check :as chk]
          '[typed.clj.checker.subtype :as sub])
 

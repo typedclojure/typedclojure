@@ -8,27 +8,27 @@
 
 (ns ^:skip-wiki typed.clj.checker.parse-unparse
   (:require [clojure.core.typed :as t]
-            [clojure.core.typed.checker.type-rep :as r]
-            [clojure.core.typed.checker.type-ctors :as c]
-            [clojure.core.typed.checker.name-env :as nme-env]
-            [clojure.core.typed.checker.object-rep :as orep]
-            [clojure.core.typed.checker.path-rep :as pthrep]
+            [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.checker.type-ctors :as c]
+            [typed.cljc.checker.name-env :as nme-env]
+            [typed.cljc.checker.object-rep :as orep]
+            [typed.cljc.checker.path-rep :as pthrep]
             [clojure.core.typed.coerce-utils :as coerce]
             [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.errors :as err]
             [clojure.core.typed.util-vars :as vs]
-            [clojure.core.typed.checker.dvar-env :as dvar]
-            [clojure.core.typed.checker.filter-rep :as f]
-            [clojure.core.typed.checker.filter-ops :as fl]
+            [typed.cljc.checker.dvar-env :as dvar]
+            [typed.cljc.checker.filter-rep :as f]
+            [typed.cljc.checker.filter-ops :as fl]
             [typed.clj.checker.constant-type :as const]
-            [clojure.core.typed.checker.free-ops :as free-ops]
-            [clojure.core.typed.checker.indirect-utils :as indu]
-            [clojure.core.typed.checker.indirect-ops :as ind]
+            [typed.cljc.checker.free-ops :as free-ops]
+            [typed.cljc.checker.indirect-utils :as indu]
+            [typed.cljc.checker.indirect-ops :as ind]
             [clojure.core.typed.current-impl :as impl]
-            [clojure.core.typed.checker.hset-utils :as hset]
+            [typed.cljc.checker.hset-utils :as hset]
             [clojure.set :as set]
             [clojure.math.combinatorics :as comb])
-  (:import (clojure.core.typed.checker.type_rep NotType DifferenceType Intersection Union FnIntersection
+  (:import (typed.cljc.checker.type_rep NotType DifferenceType Intersection Union FnIntersection
                                         DottedPretype Function RClass App TApp
                                         PrimitiveArray DataType Protocol TypeFn Poly PolyDots
                                         Mu HeterogeneousMap
@@ -37,10 +37,10 @@
                                         CLJSInteger ArrayCLJS JSNominal JSString TCResult AssocType
                                         GetType HSequential HSet JSUndefined JSNull JSSymbol JSObject
                                         JSObj)
-           (clojure.core.typed.checker.filter_rep TopFilter BotFilter TypeFilter NotTypeFilter AndFilter OrFilter
+           (typed.cljc.checker.filter_rep TopFilter BotFilter TypeFilter NotTypeFilter AndFilter OrFilter
                                           ImpFilter NoFilter)
-           (clojure.core.typed.checker.object_rep NoObject EmptyObject Path)
-           (clojure.core.typed.checker.path_rep KeyPE CountPE ClassPE KeysPE ValsPE NthPE KeywordPE)
+           (typed.cljc.checker.object_rep NoObject EmptyObject Path)
+           (typed.cljc.checker.path_rep KeyPE CountPE ClassPE KeysPE ValsPE NthPE KeywordPE)
            (clojure.lang Cons IPersistentList Symbol IPersistentVector)))
 
 (defprotocol IUnparseType 
@@ -58,38 +58,38 @@
 (declare unparse-type unparse-filter unparse-filter-set unparse-flow-set)
 
 ; Types print by unparsing them
-(do (defmethod print-method clojure.core.typed.checker.impl_protocols.TCType [s writer]
+(do (defmethod print-method typed.cljc.checker.impl_protocols.TCType [s writer]
       (print-method (unparse-type s) writer))
-    (prefer-method print-method clojure.core.typed.checker.impl_protocols.TCType clojure.lang.IRecord)
-    (prefer-method print-method clojure.core.typed.checker.impl_protocols.TCType java.util.Map)
-    (prefer-method print-method clojure.core.typed.checker.impl_protocols.TCType clojure.lang.IPersistentMap)
+    (prefer-method print-method typed.cljc.checker.impl_protocols.TCType clojure.lang.IRecord)
+    (prefer-method print-method typed.cljc.checker.impl_protocols.TCType java.util.Map)
+    (prefer-method print-method typed.cljc.checker.impl_protocols.TCType clojure.lang.IPersistentMap)
 
-    (defmethod print-method clojure.core.typed.checker.impl_protocols.TCAnyType [s writer]
+    (defmethod print-method typed.cljc.checker.impl_protocols.TCAnyType [s writer]
       (print-method (unparse-type s) writer))
-    (prefer-method print-method clojure.core.typed.checker.impl_protocols.TCAnyType clojure.lang.IRecord)
-    (prefer-method print-method clojure.core.typed.checker.impl_protocols.TCAnyType java.util.Map)
-    (prefer-method print-method clojure.core.typed.checker.impl_protocols.TCAnyType clojure.lang.IPersistentMap)
+    (prefer-method print-method typed.cljc.checker.impl_protocols.TCAnyType clojure.lang.IRecord)
+    (prefer-method print-method typed.cljc.checker.impl_protocols.TCAnyType java.util.Map)
+    (prefer-method print-method typed.cljc.checker.impl_protocols.TCAnyType clojure.lang.IPersistentMap)
 
-    (defmethod print-method clojure.core.typed.checker.impl_protocols.IFilter [s writer]
+    (defmethod print-method typed.cljc.checker.impl_protocols.IFilter [s writer]
       (cond 
         (f/FilterSet? s) (print-method (unparse-filter-set s) writer)
         (r/FlowSet? s) (print-method (unparse-flow-set s) writer)
         :else (print-method (unparse-filter s) writer)))
-    (prefer-method print-method clojure.core.typed.checker.impl_protocols.IFilter clojure.lang.IRecord)
-    (prefer-method print-method clojure.core.typed.checker.impl_protocols.IFilter java.util.Map)
-    (prefer-method print-method clojure.core.typed.checker.impl_protocols.IFilter clojure.lang.IPersistentMap)
+    (prefer-method print-method typed.cljc.checker.impl_protocols.IFilter clojure.lang.IRecord)
+    (prefer-method print-method typed.cljc.checker.impl_protocols.IFilter java.util.Map)
+    (prefer-method print-method typed.cljc.checker.impl_protocols.IFilter clojure.lang.IPersistentMap)
 
-    (defmethod print-method clojure.core.typed.checker.impl_protocols.IRObject [s writer]
+    (defmethod print-method typed.cljc.checker.impl_protocols.IRObject [s writer]
       (print-method (unparse-object s) writer))
-    (prefer-method print-method clojure.core.typed.checker.impl_protocols.IRObject clojure.lang.IRecord)
-    (prefer-method print-method clojure.core.typed.checker.impl_protocols.IRObject java.util.Map)
-    (prefer-method print-method clojure.core.typed.checker.impl_protocols.IRObject clojure.lang.IPersistentMap)
+    (prefer-method print-method typed.cljc.checker.impl_protocols.IRObject clojure.lang.IRecord)
+    (prefer-method print-method typed.cljc.checker.impl_protocols.IRObject java.util.Map)
+    (prefer-method print-method typed.cljc.checker.impl_protocols.IRObject clojure.lang.IPersistentMap)
 
-    (defmethod print-method clojure.core.typed.checker.path_rep.IPathElem [s writer]
+    (defmethod print-method typed.cljc.checker.path_rep.IPathElem [s writer]
       (print-method (unparse-path-elem s) writer))
-    (prefer-method print-method clojure.core.typed.checker.path_rep.IPathElem clojure.lang.IRecord)
-    (prefer-method print-method clojure.core.typed.checker.path_rep.IPathElem java.util.Map)
-    (prefer-method print-method clojure.core.typed.checker.path_rep.IPathElem clojure.lang.IPersistentMap)
+    (prefer-method print-method typed.cljc.checker.path_rep.IPathElem clojure.lang.IRecord)
+    (prefer-method print-method typed.cljc.checker.path_rep.IPathElem java.util.Map)
+    (prefer-method print-method typed.cljc.checker.path_rep.IPathElem clojure.lang.IPersistentMap)
     )
 
 (defmacro with-parse-ns [sym & body]
@@ -203,7 +203,7 @@
       (err/int-error (str "Recursive type not allowed here")))))
 
 (defn- Mu*-var []
-  (let [v (ns-resolve (find-ns 'clojure.core.typed.checker.type-ctors) 'Mu*)]
+  (let [v (ns-resolve (find-ns 'typed.cljc.checker.type-ctors) 'Mu*)]
     (assert (var? v) "Mu* unbound")
     v))
 
@@ -282,7 +282,7 @@
 (defmethod parse-type-list 'cljs.core.typed/ExactCount [t] (parse-ExactCount t))
 
 (defn- RClass-of-var []
-  (let [v (ns-resolve (find-ns 'clojure.core.typed.checker.type-ctors) 'RClass-of)]
+  (let [v (ns-resolve (find-ns 'typed.cljc.checker.type-ctors) 'RClass-of)]
     (assert (var? v) "RClass-of unbound")
     v))
 

@@ -7,18 +7,18 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.clj.checker.check.field
-  (:require [clojure.core.typed.checker.check-below :as below]
+  (:require [typed.cljc.checker.check-below :as below]
             [typed.cljc.checker.check.utils :as cu]
-            [clojure.core.typed.checker.type-rep :as r]
-            [clojure.core.typed.checker.utils :as u]
+            [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.checker.utils :as u]
             [clojure.core.typed.errors :as err]
             [typed.clj.checker.check.type-hints :as type-hints]
             [clojure.core.typed.ast-utils :as ast-u]
-            [clojure.core.typed.checker.type-ctors :as c]
+            [typed.cljc.checker.type-ctors :as c]
             [clojure.core.typed.coerce-utils :as coerce]
             [typed.clj.checker.subtype :as sub]
             [typed.clj.checker.parse-unparse :as prs]
-            [clojure.core.typed.checker.datatype-env :as dt-env]
+            [typed.cljc.checker.datatype-env :as dt-env]
             [clojure.repl :as repl]
             [clojure.core.typed.util-vars :as vs]))
 

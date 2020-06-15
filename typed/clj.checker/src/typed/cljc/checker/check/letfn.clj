@@ -12,11 +12,11 @@
             [typed.cljc.checker.check.utils :as cu]
             [clojure.core.typed.ast-utils :as ast-u]
             [clojure.core.typed.errors :as err]
-            [clojure.core.typed.checker.utils :as u]
-            [clojure.core.typed.checker.lex-env :as lex]
+            [typed.cljc.checker.utils :as u]
+            [typed.cljc.checker.lex-env :as lex]
             [typed.cljc.analyzer :as ana2]
             [typed.cljc.checker.check.let :as let]
-            [clojure.core.typed.checker.type-rep :as r]))
+            [typed.cljc.checker.type-rep :as r]))
 
 ; annotations are in the first expression of the body (a :do)
 (defn check-letfn [bindings body letfn-expr expected check]

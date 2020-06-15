@@ -1,17 +1,17 @@
 (ns clojure.core.typed.test.cljs
   (:require [clojure.core.typed.test.cljs-utils :refer :all]
             [clojure.test :refer :all]
-            [clojure.core.typed.checker.type-rep :as r]
+            [typed.cljc.checker.type-rep :as r]
             [typed.clj.checker.subtype :as sub]
             [cljs.core.typed :as t]
             [clojure.core.typed.util-cljs :as ucljs]
             [clojure.core.typed.current-impl :as impl]
-            [clojure.core.typed.checker.type-ctors :as c]
+            [typed.cljc.checker.type-ctors :as c]
             [typed.clj.checker.parse-unparse :as prs]
 
-            [clojure.core.typed.checker.base-env-common :refer [delay-and-cache-env]
+            [typed.cljc.checker.base-env-common :refer [delay-and-cache-env]
              :as common]
-            [clojure.core.typed.checker.var-env :as var-env]
+            [typed.cljc.checker.var-env :as var-env]
             [clojure.core.typed.test.cljs-core :as core-test]
             [clojure.core.typed.analyzer-api-intercept :as fake-ana-api]))
 

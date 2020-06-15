@@ -8,11 +8,11 @@
 
 (ns ^:skip-wiki typed.cljc.checker.check.fn
   (:require [clojure.core.typed :as t]
-            [clojure.core.typed.checker.type-rep :as r]
-            [clojure.core.typed.checker.utils :as u]
-            [clojure.core.typed.checker.filter-ops :as fo]
-            [clojure.core.typed.checker.filter-rep :as fl]
-            [clojure.core.typed.checker.object-rep :as obj]
+            [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.checker.utils :as u]
+            [typed.cljc.checker.filter-ops :as fo]
+            [typed.cljc.checker.filter-rep :as fl]
+            [typed.cljc.checker.object-rep :as obj]
             [typed.cljc.checker.check.fn-methods :as fn-methods]
             [typed.cljc.checker.check.utils :as cu]))
 

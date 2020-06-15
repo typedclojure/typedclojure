@@ -8,16 +8,16 @@
 
 (ns typed.cljc.checker.check.apply
   (:require [clojure.core.typed.util-vars :as vs]
-            [clojure.core.typed.checker.type-rep :as r]
-            [clojure.core.typed.checker.utils :as u]
+            [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.checker.utils :as u]
             [clojure.core.typed.errors :as err]
             [typed.clj.checker.parse-unparse :as prs]
             [clojure.string :as str]
             [typed.cljc.checker.check.utils :as cu]
             [typed.clj.checker.subtype :as sub]
-            [clojure.core.typed.checker.type-ctors :as c]
-            [clojure.core.typed.checker.cs-gen :as cgen]
-            [clojure.core.typed.checker.subst :as subst])
+            [typed.cljc.checker.type-ctors :as c]
+            [typed.cljc.checker.cs-gen :as cgen]
+            [typed.cljc.checker.subst :as subst])
   (:import (clojure.lang Seqable)))
 
 ; we should be able to remove check-apply completely, but we should also instantiate all poly function in test case

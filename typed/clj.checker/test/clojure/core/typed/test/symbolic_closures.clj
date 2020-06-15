@@ -1,7 +1,7 @@
 (ns clojure.core.typed.test.symbolic-closures
   (:require 
     [clojure.core.typed.test.test-utils :refer :all]
-    [clojure.core.typed.checker.type-rep :as r]
+    [typed.cljc.checker.type-rep :as r]
     [clojure.test :refer :all]))
 
 (when r/enable-symbolic-closures?

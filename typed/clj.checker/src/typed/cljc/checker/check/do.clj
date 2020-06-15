@@ -7,17 +7,17 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.cljc.checker.check.do
-  (:require [clojure.core.typed.checker.utils :as u]
+  (:require [typed.cljc.checker.utils :as u]
             [typed.cljc.checker.check.utils :as cu]
-            [clojure.core.typed.checker.filter-rep :as fl]
-            [clojure.core.typed.checker.filter-ops :as fo]
-            [clojure.core.typed.checker.object-rep :as orep]
+            [typed.cljc.checker.filter-rep :as fl]
+            [typed.cljc.checker.filter-ops :as fo]
+            [typed.cljc.checker.object-rep :as orep]
             [clojure.core.typed.errors :as err]
-            [clojure.core.typed.checker.lex-env :as lex]
+            [typed.cljc.checker.lex-env :as lex]
             [clojure.core.typed.util-vars :as vs]
-            [clojure.core.typed.checker.var-env :as var-env]
-            [clojure.core.typed.checker.type-rep :as r]
-            [clojure.core.typed.checker.update :as update]
+            [typed.cljc.checker.var-env :as var-env]
+            [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.checker.update :as update]
             [clojure.core.typed.special-form :as spec]
             [clojure.core.typed.ast-utils :as ast-u]
             [clojure.core.typed.contract-utils :as con]))

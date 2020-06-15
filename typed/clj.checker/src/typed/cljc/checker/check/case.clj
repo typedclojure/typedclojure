@@ -7,13 +7,13 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.cljc.checker.check.case
-  (:require [clojure.core.typed.checker.type-rep :as r]
-            [clojure.core.typed.checker.utils :as u]
+  (:require [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.checker.utils :as u]
             [clojure.core.typed.util-vars :as vs]
             [clojure.core.typed.contract-utils :as con]
-            [clojure.core.typed.checker.var-env :as var-env]
-            [clojure.core.typed.checker.lex-env :as lex]
-            [clojure.core.typed.checker.update :as update]
+            [typed.cljc.checker.var-env :as var-env]
+            [typed.cljc.checker.lex-env :as lex]
+            [typed.cljc.checker.update :as update]
             [typed.clj.checker.tc-equiv :as equiv]))
 
 (defn check-case-thens [check-fn target-ret tst-rets case-thens expected]

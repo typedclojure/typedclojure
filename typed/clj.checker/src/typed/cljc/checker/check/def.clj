@@ -8,19 +8,19 @@
 
 (ns typed.cljc.checker.check.def
   (:require [clojure.core.typed.coerce-utils :as coerce]
-            [clojure.core.typed.checker.ns-options :as ns-opts]
+            [typed.cljc.checker.ns-options :as ns-opts]
             [clojure.core.typed :as T]
             [clojure.core.typed.current-impl :as impl]
             [typed.cljc.checker.check.utils :as cu]
-            [clojure.core.typed.checker.var-env :as var-env]
-            [clojure.core.typed.checker.type-rep :as r]
+            [typed.cljc.checker.var-env :as var-env]
+            [typed.cljc.checker.type-rep :as r]
             [typed.clj.checker.subtype :as sub]
-            [clojure.core.typed.checker.utils :as u]
+            [typed.cljc.checker.utils :as u]
             [clojure.core.typed.ast-utils :as ast-u]
             [clojure.core.typed.util-vars :as vs]
-            [clojure.core.typed.checker.filter-ops :as fo]
-            [clojure.core.typed.checker.check-below :as below]
-            [clojure.core.typed.checker.type-ctors :as c])
+            [typed.cljc.checker.filter-ops :as fo]
+            [typed.cljc.checker.check-below :as below]
+            [typed.cljc.checker.type-ctors :as c])
   (:import (clojure.lang Var)))
 
 (defn init-provided? [expr]

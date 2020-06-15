@@ -8,7 +8,7 @@
 
 (ns ^:skip-wiki typed.clj.checker.rclass-env
   (:require [clojure.core.typed.contract-utils :as con]
-            [clojure.core.typed.checker.type-rep :as r]))
+            [typed.cljc.checker.type-rep :as r]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Restricted Class

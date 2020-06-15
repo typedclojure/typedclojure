@@ -9,21 +9,21 @@
 (ns ^:skip-wiki typed.cljc.checker.check.nth
   (:require [clojure.core.typed :as t] 
             [typed.cljc.analyzer :as ana2]
-            [clojure.core.typed.checker.check-below :as below]
-            [clojure.core.typed.checker.type-ctors :as c]
-            [clojure.core.typed.checker.type-rep :as r]
-            [clojure.core.typed.checker.object-rep :as obj]
-            [clojure.core.typed.checker.utils :as u]
+            [typed.cljc.checker.check-below :as below]
+            [typed.cljc.checker.type-ctors :as c]
+            [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.checker.object-rep :as obj]
+            [typed.cljc.checker.utils :as u]
             [clojure.core.typed.errors :as err]
             [typed.clj.checker.parse-unparse :as prs]
-            [clojure.core.typed.checker.filter-ops :as fo]
-            [clojure.core.typed.checker.filter-rep :as fl]
-            [clojure.core.typed.checker.path-rep :as pe]
-            [clojure.core.typed.checker.object-rep :as obj]
+            [typed.cljc.checker.filter-ops :as fo]
+            [typed.cljc.checker.filter-rep :as fl]
+            [typed.cljc.checker.path-rep :as pe]
+            [typed.cljc.checker.object-rep :as obj]
             [clojure.core.typed.current-impl :as impl]
             [typed.clj.checker.check.method :as method]
             [typed.cljc.checker.check.utils :as cu]
-            [clojure.core.typed.checker.indirect-ops :as ind])
+            [typed.cljc.checker.indirect-ops :as ind])
   (:import (clojure.lang ISeq Seqable)))
 
 (defn ^:private expr->type [expr]

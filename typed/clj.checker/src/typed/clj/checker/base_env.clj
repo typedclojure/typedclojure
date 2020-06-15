@@ -14,17 +14,17 @@
                          ILookup Indexed Associative
                          IRef Reduced)
            (java.util Comparator Collection))
-  (:require [clojure.core.typed.checker.base-env-helper :as h]
+  (:require [typed.cljc.checker.base-env-helper :as h]
             [typed.clj.checker.base-env-clj-rclass :as base-rclass]
-            [clojure.core.typed.checker.base-env-common :refer [delay-and-cache-env]
+            [typed.cljc.checker.base-env-common :refer [delay-and-cache-env]
              :as common]
             [typed.clj.checker.parse-unparse :as prs]
-            [clojure.core.typed.checker.type-rep :as r]
-            [clojure.core.typed.checker.path-rep :as pe]
-            [clojure.core.typed.checker.object-rep :as obj]
-            [clojure.core.typed.checker.fold-default]
-            [clojure.core.typed.checker.name-env :as nme-env]
-            [clojure.core.typed.checker.subst]
+            [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.checker.path-rep :as pe]
+            [typed.cljc.checker.object-rep :as obj]
+            [typed.cljc.checker.fold-default]
+            [typed.cljc.checker.name-env :as nme-env]
+            [typed.cljc.checker.subst]
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed :refer [Any Nothing TFn Rec
                                         Pred U I All IFn
@@ -2060,16 +2060,16 @@ clojure.lang.Delay (All [x]
 ;; not added in refresh
 (delay-and-cache-env ^:private init-datatype-ancestor-env {})
 
-(let [reset-var-type-env! (delay (impl/dynaload 'clojure.core.typed.checker.var-env/reset-var-type-env!))
+(let [reset-var-type-env! (delay (impl/dynaload 'typed.cljc.checker.var-env/reset-var-type-env!))
       reset-nonnilable-method-return-env!
       (delay (impl/dynaload 'typed.clj.checker.method-return-nilables/reset-nonnilable-method-return-env!))
       reset-method-nilable-param-env! (delay (impl/dynaload 'typed.clj.checker.method-param-nilables/reset-method-nilable-param-env!))
       reset-method-override-env! (delay (impl/dynaload 'typed.clj.checker.method-override-env/reset-method-override-env!))
       reset-constructor-override-env! (delay (impl/dynaload 'typed.clj.checker.ctor-override-env/reset-constructor-override-env!))
-      reset-protocol-env! (delay (impl/dynaload 'clojure.core.typed.checker.protocol-env/reset-protocol-env!))
-      reset-declared-kinds! (delay (impl/dynaload 'clojure.core.typed.checker.declared-kind-env/reset-declared-kinds!))
-      reset-datatype-env! (delay (impl/dynaload 'clojure.core.typed.checker.datatype-env/reset-datatype-env!))
-      reset-datatype-ancestors! (delay (impl/dynaload 'clojure.core.typed.checker.datatype-ancestor-env/reset-datatype-ancestors!))]
+      reset-protocol-env! (delay (impl/dynaload 'typed.cljc.checker.protocol-env/reset-protocol-env!))
+      reset-declared-kinds! (delay (impl/dynaload 'typed.cljc.checker.declared-kind-env/reset-declared-kinds!))
+      reset-datatype-env! (delay (impl/dynaload 'typed.cljc.checker.datatype-env/reset-datatype-env!))
+      reset-datatype-ancestors! (delay (impl/dynaload 'typed.cljc.checker.datatype-ancestor-env/reset-datatype-ancestors!))]
   (defn reset-clojure-envs! []
     (impl/with-clojure-impl
       ;(reset-alias-env!)
@@ -2085,8 +2085,8 @@ clojure.lang.Delay (All [x]
       (@reset-datatype-ancestors! (init-datatype-ancestor-env)))
     nil))
 
-(let [merge-protocol-env! (delay (impl/dynaload 'clojure.core.typed.checker.protocol-env/merge-protocol-env!))
-      refresh-var-type-env! (delay (impl/dynaload 'clojure.core.typed.checker.var-env/refresh-var-type-env!))
+(let [merge-protocol-env! (delay (impl/dynaload 'typed.cljc.checker.protocol-env/merge-protocol-env!))
+      refresh-var-type-env! (delay (impl/dynaload 'typed.cljc.checker.var-env/refresh-var-type-env!))
       merge-method-nilable-param-env! (delay (impl/dynaload 'typed.clj.checker.method-param-nilables/merge-method-nilable-param-env!))
       merge-nonnilable-method-return-env! (delay (impl/dynaload 'typed.clj.checker.method-return-nilables/merge-nonnilable-method-return-env!))
       merge-method-override-env! (delay (impl/dynaload 'typed.clj.checker.method-override-env/merge-method-override-env!))

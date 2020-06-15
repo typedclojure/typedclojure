@@ -7,10 +7,10 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.clj.checker.statistics
-  (:require [clojure.core.typed.checker.var-env :as var-env]
+  (:require [typed.cljc.checker.var-env :as var-env]
             [typed.clj.checker.check-ns-clj :as chk-ns-clj]
             [clojure.core.typed.contract-utils :as con]
-            [clojure.core.typed.checker.var-env :as var-env]
+            [typed.cljc.checker.var-env :as var-env]
             [typed.clj.checker.parse-unparse :as prs]
             [clojure.core.typed.util-vars :as vs]
             [clojure.set :as set]))

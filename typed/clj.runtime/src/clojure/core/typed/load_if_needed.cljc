@@ -18,11 +18,11 @@
   ([cljs?]
   (when-not vs/*currently-loading*
     (binding [vs/*currently-loading* true]
-      (when-not (io/resource "clojure/core/typed/checker/init.clj")
-        (err/int-error "core.typed checker is not found on classpath"))
-      (when-not (find-ns 'clojure.core.typed.checker.init)
-        (require 'clojure.core.typed.checker.init))
-      (let [init-ns (find-ns 'clojure.core.typed.checker.init)]
+      (when-not (io/resource "typed/cljc/checker/init.clj")
+        (err/int-error "typed.clj/checker is not found on classpath"))
+      (when-not (find-ns 'typed.cljc.checker.init)
+        (require 'typed.cljc.checker.init))
+      (let [init-ns (find-ns 'typed.cljc.checker.init)]
         (assert init-ns)
         (when (or (not (@(ns-resolve init-ns 'loaded?)))
                   (and cljs?
