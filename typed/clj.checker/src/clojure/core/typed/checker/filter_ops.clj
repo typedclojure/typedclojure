@@ -428,10 +428,14 @@
      a)))
 
 ; functions to get around compilation issues
-(defn -true-filter [] (-FS fr/-top fr/-bot))
-(defn -false-filter [] (-FS fr/-bot fr/-top))
-(defn -simple-filter [] (-FS fr/-top fr/-top))
-(defn -unreachable-filter [] (-FS fr/-bot fr/-bot))
+(let [f (delay (-FS fr/-top fr/-bot))]
+  (defn -true-filter [] @f))
+(let [f (delay (-FS fr/-bot fr/-top))]
+  (defn -false-filter [] @f))
+(let [f (delay (-FS fr/-top fr/-top))]
+  (defn -simple-filter [] @f))
+(let [f (delay (-FS fr/-bot fr/-bot))]
+  (defn -unreachable-filter [] @f))
 
 ;; true if f1 is implied by f2
 ;; (implied-atomic? (is Number 0) (is Integer 0)) ;=> true

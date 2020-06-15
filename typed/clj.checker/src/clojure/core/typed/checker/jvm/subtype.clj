@@ -1149,7 +1149,7 @@
          (fr/FilterSet? f2)]
    :post [(or (nil? %) (set? %))]}
   ;(prn `subtype-filter-set* f1 f2)
-  (if (= f2 (fops/-FS fr/-top fr/-top))
+  (if (= f2 (fops/-simple-filter))
     A
     (letfn [(sub-helper [f1 f2 pred field subf]
               (let [fld1 (field f1)
