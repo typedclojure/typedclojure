@@ -4,7 +4,7 @@
     ; this loads the type system, must go first
     [clojure.core.typed.test.test-utils :refer :all]
             [clojure.core.typed.checker.type-rep :refer :all]
-            [clojure.core.typed.checker.jvm.parse-unparse :refer :all]
+            [typed.clj.checker.parse-unparse :refer :all]
             [clojure.core.typed.checker.filter-rep :refer :all]
             [clojure.core.typed.checker.filter-ops :refer :all]
             [clojure.core.typed.checker.object-rep :refer :all]

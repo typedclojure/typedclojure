@@ -13,12 +13,12 @@
             [clojure.core.typed.checker.utils :as u]
             [clojure.core.typed.checker.type-ctors :as c]
             [clojure.core.typed.checker.path-rep :as pe]
-            [clojure.core.typed.checker.jvm.subtype :as sub]
+            [typed.clj.checker.subtype :as sub]
             [clojure.core.typed.checker.check.utils :as cu]
             [clojure.core.typed.checker.filter-rep :as fl]
             [clojure.core.typed.checker.filter-ops :as fo]
             [clojure.core.typed.checker.object-rep :as obj]
-            [clojure.core.typed.checker.jvm.parse-unparse :as prs]
+            [typed.clj.checker.parse-unparse :as prs]
             [clojure.core.typed.errors :as err]))
 
 ;[(U nil Expr) TCResult TCResult (Option TCResult) (Option TCResult) -> TCResult]

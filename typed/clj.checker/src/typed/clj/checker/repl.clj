@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:skip-wiki clojure.core.typed.checker.jvm.repl
+(ns ^:skip-wiki typed.clj.checker.repl
   (:require [clojure.tools.nrepl.middleware :as mid]
             [clojure.tools.nrepl.transport :as transport]
             [clojure.tools.nrepl.misc :as misc]
@@ -14,7 +14,7 @@
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.checker.ns-deps-utils :as ns-utils]
             ;[clojure.core.typed.load :as load]
-            [clojure.core.typed.checker.jvm.analyze-clj :as ana-clj]
+            [typed.clj.checker.analyze-clj :as ana-clj]
             [clojure.tools.reader :as rd]
             [clojure.tools.reader.reader-types :as readers]
             [clojure.main :as main])

@@ -1,6 +1,6 @@
 (ns clojure.core.typed.test.ctyp-255
   (:require [clojure.test :refer :all]
-            [clojure.core.typed.checker.jvm.parse-unparse :refer :all]
+            [typed.clj.checker.parse-unparse :refer :all]
             [clojure.core.typed.checker.type-rep :as r]
             [clojure.core.typed.checker.type-ctors :as c]
             [clojure.core.typed :as t]

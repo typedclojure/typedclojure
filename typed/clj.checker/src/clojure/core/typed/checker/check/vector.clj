@@ -10,7 +10,7 @@
   (:require [clojure.core.typed.checker.type-rep :as r]
             [clojure.core.typed.checker.check-below :as below]
             [clojure.core.typed.checker.utils :as u]
-            [clojure.core.typed.checker.jvm.subtype :as sub]
+            [typed.clj.checker.subtype :as sub]
             [clojure.core.typed.checker.check.utils :as cu]
             [clojure.core.typed.checker.filter-ops :as fo]))
 

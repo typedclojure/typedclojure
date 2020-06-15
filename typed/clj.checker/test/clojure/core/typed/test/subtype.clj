@@ -4,7 +4,7 @@
             [clojure.core.typed.test.test-utils :refer :all]
             [clojure.core.typed.checker.type-ctors :refer :all]
             [clojure.core.typed.checker.type-rep :refer :all]
-            [clojure.core.typed.checker.jvm.parse-unparse :refer [parse-type]]
+            [typed.clj.checker.parse-unparse :refer [parse-type]]
             [clojure.test :refer :all])
   (:import (clojure.lang Seqable)))
 

@@ -66,7 +66,7 @@ for checking namespaces, cf for checking individual forms."}
     []
     (@lin)))
 
-(core/let [rset (delay (dynaload 'clojure.core.typed.checker.jvm.reset-caches/reset-caches))]
+(core/let [rset (delay (dynaload 'typed.clj.checker.reset-caches/reset-caches))]
   (core/defn reset-caches
     "Reset internal type caches."
     []
@@ -76,8 +76,8 @@ for checking namespaces, cf for checking individual forms."}
 
 ;(ann method-type [Symbol -> nil])
 (core/let [type-reflect (delay (dynaload 'clojure.reflect/type-reflect))
-           Method->Type (delay (dynaload 'clojure.core.typed.checker.jvm.check/Method->Type))
-           unparse-type (delay (dynaload 'clojure.core.typed.checker.jvm.parse-unparse/unparse-type))]
+           Method->Type (delay (dynaload 'typed.clj.checker.check/Method->Type))
+           unparse-type (delay (dynaload 'typed.clj.checker.parse-unparse/unparse-type))]
   (core/defn method-type
     "Given a method symbol, print the core.typed types assigned to it.
     Intended for use at the REPL."
@@ -373,8 +373,8 @@ for checking namespaces, cf for checking individual forms."}
        ~@body)))
 
 (def ^:private parse-clj-rt (delay (dynaload 'clojure.core.typed.parse-ast/parse-clj)))
-(def ^:private parse-clj-tc (delay (dynaload 'clojure.core.typed.checker.jvm.parse-unparse/parse-clj)))
-(def ^:private with-parse-ns* (delay (dynaload 'clojure.core.typed.checker.jvm.parse-unparse/with-parse-ns*)))
+(def ^:private parse-clj-tc (delay (dynaload 'typed.clj.checker.parse-unparse/parse-clj)))
+(def ^:private with-parse-ns* (delay (dynaload 'typed.clj.checker.parse-unparse/with-parse-ns*)))
 
 (defmacro ^:private delay-rt-parse
   "We can type check c.c.t/parse-ast if we replace all instances
@@ -406,9 +406,9 @@ for checking namespaces, cf for checking individual forms."}
           (delay-rt-parse t))))
     nil))
 
-(core/let [subtype? (delay (dynaload 'clojure.core.typed.checker.jvm.subtype/subtype?))
+(core/let [subtype? (delay (dynaload 'typed.clj.checker.subtype/subtype?))
            declared-kind-or-nil (delay (dynaload 'clojure.core.typed.checker.declared-kind-env/declared-kind-or-nil))
-           unparse-type (delay (dynaload 'clojure.core.typed.checker.jvm.parse-unparse/unparse-type))
+           unparse-type (delay (dynaload 'typed.clj.checker.parse-unparse/unparse-type))
            int-error (delay (dynaload 'clojure.core.typed.errors/int-error))
            add-tc-type-name* (delay (dynaload 'clojure.core.typed.current-impl/add-tc-type-name))]
   (core/defn ^:skip-wiki add-tc-type-name [form qsym t]
@@ -653,8 +653,8 @@ for checking namespaces, cf for checking individual forms."}
 
 ;(ann into-array>* [Any Any -> Any])
 (core/let
-     [parse-type (delay (dynaload 'clojure.core.typed.checker.jvm.parse-unparse/parse-type))
-      Type->array-member-Class (delay (dynaload 'clojure.core.typed.checker.jvm.array-ops/Type->array-member-Class))]
+     [parse-type (delay (dynaload 'typed.clj.checker.parse-unparse/parse-type))
+      Type->array-member-Class (delay (dynaload 'typed.clj.checker.array-ops/Type->array-member-Class))]
   (core/defn ^:skip-wiki
     into-array>*
     "Internal use only. Use into-array>."
@@ -1230,7 +1230,7 @@ for checking namespaces, cf for checking individual forms."}
    :unannotated-multi :error
    #_#_:unannotated-arg :any})
 
-(core/let [chkfi (delay (dynaload 'clojure.core.typed.checker.jvm.check-form-clj/check-form-info))]
+(core/let [chkfi (delay (dynaload 'typed.clj.checker.check-form-clj/check-form-info))]
   (core/defn check-form-info 
     "Function that type checks a form and returns a map of results from type checking the
     form.
@@ -1265,7 +1265,7 @@ for checking namespaces, cf for checking individual forms."}
     (core/let [opt (update opt :check-config #(merge (default-check-config) %))]
       (apply @chkfi form (apply concat opt)))))
 
-(core/let [chkf* (delay (dynaload 'clojure.core.typed.checker.jvm.check-form-clj/check-form*))]
+(core/let [chkf* (delay (dynaload 'typed.clj.checker.check-form-clj/check-form*))]
   (core/defn check-form*
     "Function that takes a form and optional expected type syntax and
     type checks the form. If expected is provided, type-provided?
@@ -1305,7 +1305,7 @@ for checking namespaces, cf for checking individual forms."}
    ([form] `(check-form* '~form))
    ([form expected] `(check-form* '~form '~expected)))
 
-(core/let [chknsi (delay (dynaload 'clojure.core.typed.checker.jvm.check-ns-clj/check-ns-info))]
+(core/let [chknsi (delay (dynaload 'typed.clj.checker.check-ns-clj/check-ns-info))]
   (core/defn check-ns-info
     "Same as check-ns, but returns a map of results from type checking the
     namespace.
@@ -1329,7 +1329,7 @@ for checking namespaces, cf for checking individual forms."}
      (core/let [opt (update opt :check-config #(merge (default-check-config) %))]
        (@chknsi ns-or-syms opt)))))
 
-(def ^:private chk-ns-clj (delay (dynaload 'clojure.core.typed.checker.jvm.check-ns-clj/check-ns)))
+(def ^:private chk-ns-clj (delay (dynaload 'typed.clj.checker.check-ns-clj/check-ns)))
 
 (core/defn check-ns
   "Type check a namespace/s (a symbol or Namespace, or collection).
@@ -1414,7 +1414,7 @@ for checking namespaces, cf for checking individual forms."}
      (@chk-ns-clj ns-or-syms opt))))
 
 ;(ann statistics [(Coll Symbol) -> (Map Symbol Stats)])
-(core/let [stt (delay (dynaload 'clojure.core.typed.checker.jvm.statistics/statistics))]
+(core/let [stt (delay (dynaload 'typed.clj.checker.statistics/statistics))]
   (core/defn statistics 
     "Takes a collection of namespace symbols and returns a map mapping the namespace
     symbols to a map of data"
@@ -1423,7 +1423,7 @@ for checking namespaces, cf for checking individual forms."}
     (@stt nsyms)))
 
 ; (ann var-coverage [(Coll Symbol) -> nil])
-(core/let [vrc (delay (dynaload 'clojure.core.typed.checker.jvm.statistics/var-coverage))]
+(core/let [vrc (delay (dynaload 'typed.clj.checker.statistics/var-coverage))]
   (core/defn var-coverage 
     "Summarises annotated var coverage statistics to *out*
     for namespaces nsyms, a collection of symbols or a symbol/namespace.

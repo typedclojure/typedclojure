@@ -12,12 +12,12 @@
 
 (require '[clojure.core.typed.checker.utils :as u]
          '[clojure.core.typed.errors :as err]
-         '[clojure.core.typed.checker.jvm.parse-unparse :refer [parse-type]]
+         '[typed.clj.checker.parse-unparse :refer [parse-type]]
          '[clojure.core.typed.current-impl :as impl]
          '[clojure.core.typed.checker.type-ctors :as c]
          '[clojure.core.typed.checker.type-rep :as r]
-         '[clojure.core.typed.checker.jvm.check :as chk]
-         '[clojure.core.typed.checker.jvm.subtype :as sub])
+         '[typed.clj.checker.check :as chk]
+         '[typed.clj.checker.subtype :as sub])
 
 
 (defn check-opt [opt]

@@ -9,9 +9,9 @@
 (ns clojure.core.typed.checker.check-ns-common
   (:require [clojure.core.cache :as cache]
             [clojure.core.typed :as t]
-            [clojure.core.typed.checker.jvm.check :as chk-clj]
-            [clojure.core.typed.checker.jvm.file-mapping :as file-map]
-            [clojure.core.typed.checker.jvm.reset-caches :as reset-caches]
+            [typed.clj.checker.check :as chk-clj]
+            [typed.clj.checker.file-mapping :as file-map]
+            [typed.clj.checker.reset-caches :as reset-caches]
             [clojure.core.typed.checker.lex-env :as lex-env]
             [clojure.core.typed.checker.ns-deps-utils :as ns-deps-u]
             [clojure.core.typed.checker.reset-env :as reset-env]

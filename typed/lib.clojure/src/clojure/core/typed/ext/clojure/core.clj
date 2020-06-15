@@ -8,7 +8,7 @@
 
 (ns ^:skip-wiki clojure.core.typed.ext.clojure.core
   "Typing rules for base Clojure distribution."
-  (:require [clojure.core.typed.checker.jvm.check :refer [defuspecial -unanalyzed-special]]
+  (:require [typed.clj.checker.check :refer [defuspecial -unanalyzed-special]]
             [clojure.core.typed.checker.utils :as u]
             [clojure.core.typed :as t]
             [clojure.core.typed.checker.type-rep :as r]

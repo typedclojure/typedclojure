@@ -87,7 +87,7 @@
    :locals     {}
    :ns         (ns-name *ns*)})
 
-;; Note: typed.clj currently uses clojure.core.typed.checker.jvm.analyze-clj/macroexpand-1.
+;; Note: typed.clj currently uses typed.clj.checker.analyze-clj/macroexpand-1.
 ;; This function is not compatible with core.async, since &env looks slightly like tools.analyzer,
 ;; but not close enough to compile.
 (defn macroexpand-1

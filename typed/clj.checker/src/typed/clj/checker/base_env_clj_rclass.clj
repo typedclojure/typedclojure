@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns clojure.core.typed.checker.jvm.base-env-clj-rclass
+(ns typed.clj.checker.base-env-clj-rclass
   (:import (clojure.lang Named IMapEntry AMapEntry Seqable
                          LazySeq PersistentHashSet PersistentTreeSet PersistentTreeMap PersistentList APersistentVector
                          APersistentSet IPersistentSet IPersistentMap IPersistentVector
@@ -19,7 +19,7 @@
   (:require [clojure.core.typed.checker.base-env-helper :as h]
             [clojure.core.typed.checker.base-env-common :refer [delay-and-cache-env]]
             [clojure.core.typed.checker.fold-default]
-            [clojure.core.typed.checker.jvm.rclass-env :as rcls]
+            [typed.clj.checker.rclass-env :as rcls]
             [clojure.core.typed :refer [Any Nothing TFn Rec
                                         Pred U I All IFn
                                         HVec HSequential]

@@ -2,9 +2,9 @@
   (:require 
     ; this loads the type system, must go first
     [clojure.core.typed.test.test-utils :refer [check clj]]
-    [clojure.core.typed.checker.jvm.analyze-clj :as ana]
+    [typed.clj.checker.analyze-clj :as ana]
     [clojure.core.typed :as t]
-    [clojure.core.typed.checker.jvm.check :as chk]))
+    [typed.clj.checker.check :as chk]))
 
 #_(-> (ana/ast-for-form '(let [a (+ 1 2)] a)) :env ((juxt :line :column)))
 

@@ -8,7 +8,7 @@
 
 (ns clojure.core.typed.checker.check.letfn
   (:require [clojure.core.typed.current-impl :as impl]
-            [clojure.core.typed.checker.jvm.parse-unparse :as prs]
+            [typed.clj.checker.parse-unparse :as prs]
             [clojure.core.typed.checker.check.utils :as cu]
             [clojure.core.typed.ast-utils :as ast-u]
             [clojure.core.typed.errors :as err]

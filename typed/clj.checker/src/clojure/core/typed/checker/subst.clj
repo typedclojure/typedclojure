@@ -16,7 +16,7 @@
             [clojure.core.typed.checker.filter-rep :as fl]
             [clojure.core.typed.checker.filter-ops :as fo]
             [clojure.core.typed.checker.object-rep :as orep]
-            [clojure.core.typed.checker.jvm.assoc-utils :as assoc-u])
+            [typed.clj.checker.assoc-utils :as assoc-u])
   (:import (clojure.core.typed.checker.type_rep F Function HSequential AssocType)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

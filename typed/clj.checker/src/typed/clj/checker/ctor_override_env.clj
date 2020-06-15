@@ -6,32 +6,30 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns clojure.core.typed.checker.jvm.method-override-env
-  (:require [clojure.core.typed.env :as env]
+(ns typed.clj.checker.ctor-override-env
+  (:require [clojure.core.typed.contract-utils :as con]
+            [clojure.core.typed.env :as env]
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.checker.type-rep :as r]))
 
-; Should only override a method with a more specific type
-; eg. 
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Method Override Env
+;; Constructor Override Env
 
-(def add-method-override impl/add-method-override)
+(def add-constructor-override impl/add-constructor-override)
 
-(defn reset-method-override-env! [m]
-  (env/swap-checker! assoc impl/method-override-env-kw m)
+(defn reset-constructor-override-env! [m]
+  (env/swap-checker! assoc impl/constructor-override-env-kw m)
   nil)
 
-(defn merge-method-override-env! [m]
+(defn merge-constructor-override-env! [m]
   {:pre [(map? m)]}
-  (env/swap-checker! update impl/method-override-env-kw merge m)
+  (env/swap-checker! update impl/constructor-override-env-kw merge m)
   nil)
 
-(defn method-override-env []
+(defn constructor-override-env []
   {:post [(map? %)]}
-  (get (env/deref-checker) impl/method-override-env-kw {}))
+  (get (env/deref-checker) impl/constructor-override-env-kw {}))
 
-(defn get-method-override [m]
-  {:post [((some-fn r/Poly? r/FnIntersection? nil?) %)]}
-  (force (get (method-override-env) m)))
+(defn get-constructor-override [sym]
+  {:post [((some-fn nil? r/Type?) %)]}
+  (force (get (constructor-override-env) sym)))

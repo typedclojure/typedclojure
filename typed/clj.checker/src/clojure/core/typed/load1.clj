@@ -12,7 +12,7 @@
             [typed.cljc.analyzer.env :as env]
             [typed.clj.analyzer :as jana2]
             [clojure.core.typed.checker.check-form-common2 :as chk-frm]
-            [clojure.core.typed.checker.jvm.check-form-clj :as chk-frm-clj]
+            [typed.clj.checker.check-form-clj :as chk-frm-clj]
             [clojure.core.typed.checker.ns-deps-utils :as ns-utils]
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.errors :as err]

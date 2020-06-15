@@ -10,7 +10,7 @@
   (:require [clojure.core.typed.checker.lex-env :as lex]
             [clojure.core.typed.checker.tvar-env :as tvar-env]
             [clojure.core.typed.checker.tvar-bnds :as tvar-bnds]
-            [clojure.core.typed.checker.jvm.parse-unparse :as prs]))
+            [typed.clj.checker.parse-unparse :as prs]))
 
 (defn print-env*
   ([] (print-env* (lex/lexical-env)))

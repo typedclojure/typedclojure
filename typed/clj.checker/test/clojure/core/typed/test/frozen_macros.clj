@@ -5,7 +5,7 @@
     [clojure.core.typed :as t]
     [typed.clj.analyzer :as ana]
     [typed.clj.analyzer.passes.emit-form :refer [emit-form]]
-    [clojure.core.typed.checker.jvm.analyze-clj :as ana-clj]
+    [typed.clj.checker.analyze-clj :as ana-clj]
     [clojure.test :refer :all]))
 
 (def tc-config

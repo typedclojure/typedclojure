@@ -18,7 +18,7 @@
             [clojure.core.typed.checker.type-rep :as r :refer [ret-t]]
             [clojure.core.typed.checker.object-rep :as or]
             [clojure.core.typed.checker.path-rep :as path]
-            [clojure.core.typed.checker.jvm.rclass-env :as rcls]
+            [typed.clj.checker.rclass-env :as rcls]
             [clojure.core.typed.checker.cs-rep :as crep]
             [clojure.core.typed.util-vars :as vs]
             [clojure.core.typed.checker.fold-rep :as f]
@@ -270,7 +270,7 @@
 
 ;; Unions
 
-(def ^:private subtype? (delay (impl/dynaload 'clojure.core.typed.checker.jvm.subtype/subtype?)))
+(def ^:private subtype? (delay (impl/dynaload 'typed.clj.checker.subtype/subtype?)))
 
 (t/defalias TypeCache 
   (t/Map (t/Set r/Type) r/Type))
@@ -661,8 +661,8 @@
   (t/IFn [(t/Seqable t/Sym) (t/Seqable r/Variance) (t/Seqable r/Type) t/Sym (t/Map t/Sym r/Type) -> r/Type]
       [(t/Seqable t/Sym) (t/Seqable r/Variance) (t/Seqable r/Type) t/Sym 
        (t/Map t/Sym r/Type) (t/Set r/Type) -> r/Type]))
-(let [add-rclass-replacements (delay (impl/dynaload 'clojure.core.typed.checker.jvm.rclass-ancestor-env/add-rclass-replacements))
-      add-rclass-ancestors (delay (impl/dynaload 'clojure.core.typed.checker.jvm.rclass-ancestor-env/add-rclass-ancestors))]
+(let [add-rclass-replacements (delay (impl/dynaload 'typed.clj.checker.rclass-ancestor-env/add-rclass-replacements))
+      add-rclass-ancestors (delay (impl/dynaload 'typed.clj.checker.rclass-ancestor-env/add-rclass-ancestors))]
   (defn RClass* 
     ([names variances poly? the-class replacements]
      (RClass* names variances poly? the-class replacements #{}))
@@ -892,7 +892,7 @@
     (subst-all subst t)))
 
 (t/ann ^:no-check RClass-replacements* [RClass -> (t/Map t/Sym r/Type)])
-(let [rclass-replacements (delay (impl/dynaload 'clojure.core.typed.checker.jvm.rclass-ancestor-env/rclass-replacements))]
+(let [rclass-replacements (delay (impl/dynaload 'typed.clj.checker.rclass-ancestor-env/rclass-replacements))]
   (defn RClass-replacements*
     "Return the replacements map for the RClass"
     [rcls]
@@ -901,7 +901,7 @@
     (@rclass-replacements rcls)))
 
 (t/ann ^:no-check RClass-unchecked-ancestors* [RClass -> (t/SortedSet r/Type)])
-(let [rclass-ancestors (delay (impl/dynaload 'clojure.core.typed.checker.jvm.rclass-ancestor-env/rclass-ancestors))]
+(let [rclass-ancestors (delay (impl/dynaload 'typed.clj.checker.rclass-ancestor-env/rclass-ancestors))]
   (defn RClass-unchecked-ancestors*
     [rcls]
     {:pre [(r/RClass? rcls)]

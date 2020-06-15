@@ -1,6 +1,6 @@
 (ns clojure.core.typed.test.CTYP-144
   (:require [clojure.core.typed.test.test-utils :refer :all]
-            [clojure.core.typed.checker.jvm.analyze-clj :as ana]
+            [typed.clj.checker.analyze-clj :as ana]
             [clojure.test :refer :all]))
 
 (deftest instance-method-test

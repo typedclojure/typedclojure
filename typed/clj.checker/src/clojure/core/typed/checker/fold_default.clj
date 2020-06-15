@@ -14,7 +14,7 @@
             [clojure.core.typed.checker.filter-ops :as fops]
             [clojure.core.typed.checker.object-rep]
             [clojure.core.typed.checker.free-ops :as free-ops]
-            [clojure.core.typed.checker.jvm.assoc-utils :as assoc-u]
+            [typed.clj.checker.assoc-utils :as assoc-u]
             [clojure.core.typed.checker.path-rep])
   (:import (clojure.core.typed.checker.type_rep NotType DifferenceType Intersection Union FnIntersection Bounds
                                         DottedPretype Function RClass JSNominal App TApp
@@ -50,7 +50,7 @@
 
 (add-default-fold-case Union 
                        (fn [ty]
-                         ;(prn "union default" (clojure.core.typed.checker.jvm.parse-unparse/unparse-type ty))
+                         ;(prn "union default" (typed.clj.checker.parse-unparse/unparse-type ty))
                          (apply c/Un (mapv type-rec (:types ty)))))
 
 (add-default-fold-case FnIntersection
@@ -123,7 +123,7 @@
 
 (add-default-fold-case DataType
                        (fn [ty]
-                         ;(prn "datatype default" (clojure.core.typed.checker.jvm.parse-unparse/unparse-type ty))
+                         ;(prn "datatype default" (typed.clj.checker.parse-unparse/unparse-type ty))
                          (-> ty
                            (update-in [:poly?] #(when %
                                                   (mapv type-rec %)))

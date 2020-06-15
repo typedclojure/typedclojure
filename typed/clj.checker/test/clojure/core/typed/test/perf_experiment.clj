@@ -209,5 +209,5 @@
     (t/load-if-needed))
 
   (with-cpu-profiling :trace
-    (require 'clojure.core.typed.checker.jvm.parse-unparse :reload))
+    (require 'typed.clj.checker.parse-unparse :reload))
   )

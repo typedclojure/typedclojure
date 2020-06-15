@@ -8,7 +8,7 @@
 
 (ns ^:skip-wiki clojure.core.typed.ext.clojure.core.async
   "Typing rules for core.async"
-  (:require [clojure.core.typed.checker.jvm.check :refer [defuspecial -unanalyzed-special check-expr]]
+  (:require [typed.clj.checker.check :refer [defuspecial -unanalyzed-special check-expr]]
             [clojure.core.typed.checker.utils :as u]
             [clojure.core.typed :as t]
             [clojure.core.typed.checker.type-rep :as r]

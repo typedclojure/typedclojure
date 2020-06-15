@@ -33,7 +33,7 @@
 
 (set! *warn-on-reflection* true)
 
-(def ^:private unparse-type (delay (impl/dynaload 'clojure.core.typed.checker.jvm.parse-unparse/unparse-type)))
+(def ^:private unparse-type (delay (impl/dynaload 'typed.clj.checker.parse-unparse/unparse-type)))
 
 ;; private to this namespace, for performance
 ; frees : VarianceMap

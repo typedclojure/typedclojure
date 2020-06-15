@@ -13,8 +13,8 @@
             [clojure.string :as str]
             [clojure.core.typed.checker.cs-gen :as cgen]
             [clojure.core.typed.checker.free-ops :as free-ops]
-            [clojure.core.typed.checker.jvm.parse-unparse :as prs]
-            [clojure.core.typed.checker.jvm.constant-type :as const]
+            [typed.clj.checker.parse-unparse :as prs]
+            [typed.clj.checker.constant-type :as const]
             [clojure.core.typed.checker.type-ctors :as c]))
 
 (defn parse-fn-return-type [parse-fn-type]

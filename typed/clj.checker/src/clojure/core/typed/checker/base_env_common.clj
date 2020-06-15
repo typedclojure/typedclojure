@@ -8,7 +8,7 @@
 
 (ns clojure.core.typed.checker.base-env-common
   "Utilities for all implementations of the type checker"
-  (:require [clojure.core.typed.checker.jvm.parse-unparse :as prs]
+  (:require [typed.clj.checker.parse-unparse :as prs]
             [clojure.tools.reader :as rdr]
             [clojure.tools.reader.reader-types :as rdrs]))
 

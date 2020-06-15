@@ -7,10 +7,10 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:skip-wiki clojure.core.typed.checker.reset-env
-  (:require [clojure.core.typed.checker.jvm.base-env :as bse-clj]
+  (:require [typed.clj.checker.base-env :as bse-clj]
             [clojure.core.typed.checker.ns-options :as ns-opts]
             [clojure.core.typed.current-impl :as impl]
-            [clojure.core.typed.checker.jvm.mm-env :as mmenv]))
+            [typed.clj.checker.mm-env :as mmenv]))
 
 (def ^:private reset-cljs-envs! (delay (impl/dynaload 'clojure.core.typed.base-env-cljs/reset-cljs-envs!)))
 

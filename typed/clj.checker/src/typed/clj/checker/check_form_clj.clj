@@ -6,11 +6,11 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:skip-wiki clojure.core.typed.checker.jvm.check-form-clj
+(ns ^:skip-wiki typed.clj.checker.check-form-clj
   (:require [clojure.core.typed.checker.check-form-common :as chk-form]
             [clojure.core.typed.checker.check-form-common2 :as chk-form2]
-            [clojure.core.typed.checker.jvm.analyze-clj :as ana-clj]
-            [clojure.core.typed.checker.jvm.check :as chk-clj]
+            [typed.clj.checker.analyze-clj :as ana-clj]
+            [typed.clj.checker.check :as chk-clj]
             [clojure.core.typed.ast-utils :as ast-u]
             [clojure.core.typed.checker.runtime-check :as rt-chk]
             [clojure.core.typed.current-impl :as impl]))

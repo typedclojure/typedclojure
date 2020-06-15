@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns clojure.core.typed.checker.jvm.base-env
+(ns typed.clj.checker.base-env
   (:import (clojure.lang Named IMapEntry AMapEntry Seqable
                          LazySeq PersistentHashSet PersistentTreeSet PersistentList
                          IPersistentSet IPersistentMap IPersistentVector
@@ -15,10 +15,10 @@
                          IRef Reduced)
            (java.util Comparator Collection))
   (:require [clojure.core.typed.checker.base-env-helper :as h]
-            [clojure.core.typed.checker.jvm.base-env-clj-rclass :as base-rclass]
+            [typed.clj.checker.base-env-clj-rclass :as base-rclass]
             [clojure.core.typed.checker.base-env-common :refer [delay-and-cache-env]
              :as common]
-            [clojure.core.typed.checker.jvm.parse-unparse :as prs]
+            [typed.clj.checker.parse-unparse :as prs]
             [clojure.core.typed.checker.type-rep :as r]
             [clojure.core.typed.checker.path-rep :as pe]
             [clojure.core.typed.checker.object-rep :as obj]
@@ -2062,10 +2062,10 @@ clojure.lang.Delay (All [x]
 
 (let [reset-var-type-env! (delay (impl/dynaload 'clojure.core.typed.checker.var-env/reset-var-type-env!))
       reset-nonnilable-method-return-env!
-      (delay (impl/dynaload 'clojure.core.typed.checker.jvm.method-return-nilables/reset-nonnilable-method-return-env!))
-      reset-method-nilable-param-env! (delay (impl/dynaload 'clojure.core.typed.checker.jvm.method-param-nilables/reset-method-nilable-param-env!))
-      reset-method-override-env! (delay (impl/dynaload 'clojure.core.typed.checker.jvm.method-override-env/reset-method-override-env!))
-      reset-constructor-override-env! (delay (impl/dynaload 'clojure.core.typed.checker.jvm.ctor-override-env/reset-constructor-override-env!))
+      (delay (impl/dynaload 'typed.clj.checker.method-return-nilables/reset-nonnilable-method-return-env!))
+      reset-method-nilable-param-env! (delay (impl/dynaload 'typed.clj.checker.method-param-nilables/reset-method-nilable-param-env!))
+      reset-method-override-env! (delay (impl/dynaload 'typed.clj.checker.method-override-env/reset-method-override-env!))
+      reset-constructor-override-env! (delay (impl/dynaload 'typed.clj.checker.ctor-override-env/reset-constructor-override-env!))
       reset-protocol-env! (delay (impl/dynaload 'clojure.core.typed.checker.protocol-env/reset-protocol-env!))
       reset-declared-kinds! (delay (impl/dynaload 'clojure.core.typed.checker.declared-kind-env/reset-declared-kinds!))
       reset-datatype-env! (delay (impl/dynaload 'clojure.core.typed.checker.datatype-env/reset-datatype-env!))
@@ -2087,10 +2087,10 @@ clojure.lang.Delay (All [x]
 
 (let [merge-protocol-env! (delay (impl/dynaload 'clojure.core.typed.checker.protocol-env/merge-protocol-env!))
       refresh-var-type-env! (delay (impl/dynaload 'clojure.core.typed.checker.var-env/refresh-var-type-env!))
-      merge-method-nilable-param-env! (delay (impl/dynaload 'clojure.core.typed.checker.jvm.method-param-nilables/merge-method-nilable-param-env!))
-      merge-nonnilable-method-return-env! (delay (impl/dynaload 'clojure.core.typed.checker.jvm.method-return-nilables/merge-nonnilable-method-return-env!))
-      merge-method-override-env! (delay (impl/dynaload 'clojure.core.typed.checker.jvm.method-override-env/merge-method-override-env!))
-      merge-constructor-override-env! (delay (impl/dynaload 'clojure.core.typed.checker.jvm.ctor-override-env/merge-constructor-override-env!))]
+      merge-method-nilable-param-env! (delay (impl/dynaload 'typed.clj.checker.method-param-nilables/merge-method-nilable-param-env!))
+      merge-nonnilable-method-return-env! (delay (impl/dynaload 'typed.clj.checker.method-return-nilables/merge-nonnilable-method-return-env!))
+      merge-method-override-env! (delay (impl/dynaload 'typed.clj.checker.method-override-env/merge-method-override-env!))
+      merge-constructor-override-env! (delay (impl/dynaload 'typed.clj.checker.ctor-override-env/merge-constructor-override-env!))]
   (defn refresh-core-clojure-envs! []
     (impl/with-clojure-impl
       ;(refresh-core-alias-env!)

@@ -8,7 +8,7 @@
 
 (ns ^:skip-wiki clojure.core.typed.checker.remove
   (:require [clojure.core.typed.checker.type-ctors :as c]
-            [clojure.core.typed.checker.jvm.subtype :as sub]
+            [typed.clj.checker.subtype :as sub]
             [clojure.core.typed.checker.type-rep :as r]))
 
 ;; also not yet correct

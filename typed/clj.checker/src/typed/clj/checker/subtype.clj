@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:skip-wiki clojure.core.typed.checker.jvm.subtype
+(ns ^:skip-wiki typed.clj.checker.subtype
   "Use [[subtype?]] to check if s <: t, and [[subtype-filter?]] for filters."
   (:require [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.checker.type-rep :as r]
@@ -14,7 +14,7 @@
             [clojure.core.typed.checker.utils :as u]
             [clojure.core.typed.coerce-utils :as coerce]
             [clojure.core.typed.errors :as err]
-            [clojure.core.typed.checker.jvm.parse-unparse :as prs]
+            [typed.clj.checker.parse-unparse :as prs]
             [clojure.core.typed.checker.filter-rep :as fr]
             [clojure.core.typed.checker.filter-ops :as fops]
             [clojure.core.typed.checker.object-rep :as orep]
@@ -24,7 +24,7 @@
             [clojure.core.typed.checker.path-rep :as pth-rep]
             [clojure.core.typed.checker.indirect-ops :as ind]
             [clojure.core.typed.checker.indirect-utils :as ind-u]
-            [clojure.core.typed.checker.jvm.assoc-utils :as assoc-u]
+            [typed.clj.checker.assoc-utils :as assoc-u]
             [clojure.set :as set])
   (:import (clojure.lang ASeq)))
 
@@ -874,7 +874,7 @@
 
         :else (report-not-subtypes s t)))))
 
-(let [analyze-qualified-symbol (delay (impl/dynaload 'clojure.core.typed.checker.jvm.analyze-cljs/analyze-qualified-symbol))]
+(let [analyze-qualified-symbol (delay (impl/dynaload 'typed.clj.checker.analyze-cljs/analyze-qualified-symbol))]
   (defn ^:private resolve-JS-reference [sym]
     (impl/assert-cljs)
     (cond
@@ -885,7 +885,7 @@
                 (c/DataType-with-unknown-params name))))))
 
 
-(let [cljs-extenders (delay (impl/dynaload 'clojure.core.typed.checker.jvm.analyze-cljs/extenders))]
+(let [cljs-extenders (delay (impl/dynaload 'typed.clj.checker.analyze-cljs/extenders))]
   (defn protocol-extenders [p]
     {:pre [(r/Protocol? p)]
      :post [(every? r/Type? %)]}

@@ -6,11 +6,11 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns clojure.core.typed.checker.jvm.file-mapping
+(ns typed.clj.checker.file-mapping
   (:require [clojure.core.typed :as t]
             [typed.cljc.analyzer.ast :as ast]
             [clojure.core.typed.checker.check.utils :as cu]
-            [clojure.core.typed.checker.jvm.parse-unparse :as prs]
+            [typed.clj.checker.parse-unparse :as prs]
             [clojure.core.typed.checker.type-rep :as r]
             [clojure.core.typed.checker.utils :as u]))
 

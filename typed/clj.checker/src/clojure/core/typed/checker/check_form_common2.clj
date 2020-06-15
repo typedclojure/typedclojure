@@ -7,12 +7,12 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:skip-wiki clojure.core.typed.checker.check-form-common2
-  (:require [clojure.core.typed.checker.jvm.check :as chk]
+  (:require [typed.clj.checker.check :as chk]
             [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.checker.utils :as u]
-            [clojure.core.typed.checker.jvm.reset-caches :as reset-caches]
+            [typed.clj.checker.reset-caches :as reset-caches]
             [clojure.core.cache :as cache]
-            [clojure.core.typed.checker.jvm.file-mapping :as file-map]
+            [typed.clj.checker.file-mapping :as file-map]
             [clojure.core.typed.checker.type-rep :as r]
             [clojure.core.typed.util-vars :as vs]
             [clojure.core.typed.current-impl :as impl]
@@ -22,7 +22,7 @@
             [typed.cljc.analyzer :as ana]
             [typed.clj.analyzer.passes.beta-reduce :as beta-reduce]
             [clojure.core.typed.runtime.jvm.configs :as configs]
-            [clojure.core.typed.checker.jvm.parse-unparse :as prs])
+            [typed.clj.checker.parse-unparse :as prs])
   (:import (clojure.lang ExceptionInfo)))
 
 (def *register-anns (delay (configs/register-config-anns)))

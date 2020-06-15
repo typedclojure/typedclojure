@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns clojure.core.typed.checker.jvm.check
+(ns typed.clj.checker.check
   {:skip-wiki true}
   (:require [clojure.core.typed :as t]
             [typed.cljc.analyzer :as ana2]
@@ -75,17 +75,17 @@
             [clojure.core.typed.checker.free-ops :as free-ops]
             [clojure.core.typed.checker.frees :as frees]
             [clojure.core.typed.checker.inst :as inst]
-            [clojure.core.typed.checker.jvm.analyze-clj :as ana-clj]
-            [clojure.core.typed.checker.jvm.array-ops :as arr-ops]
-            [clojure.core.typed.checker.jvm.assoc-utils :as assoc-u]
-            [clojure.core.typed.checker.jvm.constant-type :as constant-type]
-            [clojure.core.typed.checker.jvm.ctor-override-env :as ctor-override]
-            [clojure.core.typed.checker.jvm.mm-env :as mm]
-            [clojure.core.typed.checker.jvm.parse-unparse :as prs]
-            [clojure.core.typed.checker.jvm.rclass-env :as rcls]
-            [clojure.core.typed.checker.jvm.reflect-utils :as reflect-u]
-            [clojure.core.typed.checker.jvm.subtype :as sub]
-            [clojure.core.typed.checker.jvm.tc-equiv :as equiv]
+            [typed.clj.checker.analyze-clj :as ana-clj]
+            [typed.clj.checker.array-ops :as arr-ops]
+            [typed.clj.checker.assoc-utils :as assoc-u]
+            [typed.clj.checker.constant-type :as constant-type]
+            [typed.clj.checker.ctor-override-env :as ctor-override]
+            [typed.clj.checker.mm-env :as mm]
+            [typed.clj.checker.parse-unparse :as prs]
+            [typed.clj.checker.rclass-env :as rcls]
+            [typed.clj.checker.reflect-utils :as reflect-u]
+            [typed.clj.checker.subtype :as sub]
+            [typed.clj.checker.tc-equiv :as equiv]
             [clojure.core.typed.checker.lex-env :as lex]
             [clojure.core.typed.checker.ns-deps-utils :as ns-depsu]
             [clojure.core.typed.checker.ns-options :as ns-opts]
@@ -117,7 +117,7 @@
             [clojure.tools.reader.reader-types :as readers])
   (:import (clojure.lang IPersistentMap Var Seqable)))
 
-(t/ann ^:no-check clojure.core.typed.checker.jvm.parse-unparse/*unparse-type-in-ns* (t/U nil t/Sym))
+(t/ann ^:no-check typed.clj.checker.parse-unparse/*unparse-type-in-ns* (t/U nil t/Sym))
 (t/ann ^:no-check clojure.core.typed.util-vars/*already-checked* (t/U nil (t/Atom1 (t/Set t/Sym))))
 
 ;==========================================================

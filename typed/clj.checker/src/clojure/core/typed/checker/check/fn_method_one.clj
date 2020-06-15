@@ -27,10 +27,10 @@
             [clojure.core.typed.checker.var-env :as var-env]
             [clojure.core.typed.checker.check.recur-utils :as recur-u]
             [clojure.core.typed.util-vars :as vs]
-            [clojure.core.typed.checker.jvm.subtype :as sub]
+            [typed.clj.checker.subtype :as sub]
             [clojure.core.typed.checker.check.utils :as cu]
-            [clojure.core.typed.checker.jvm.parse-unparse :as prs]
-            [clojure.core.typed.checker.jvm.analyze-clj :as ana-clj]
+            [typed.clj.checker.parse-unparse :as prs]
+            [typed.clj.checker.analyze-clj :as ana-clj]
             [typed.cljc.analyzer :as ana]
             [typed.clj.analyzer.passes.beta-reduce :as beta-reduce]))
 

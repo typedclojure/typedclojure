@@ -14,7 +14,7 @@
             [clojure.core.typed.errors :as err]
             [clojure.core.typed.checker.check.utils :as cu]
             [clojure.core.typed.checker.filter-ops :as fo]
-            [clojure.core.typed.checker.jvm.parse-unparse :as prs]
+            [typed.clj.checker.parse-unparse :as prs]
             [clojure.core.typed.checker.free-ops :as free-ops]
             [clojure.core.typed.checker.cs-gen :as cgen]
             [clojure.core.typed.checker.cs-rep :as crep]
@@ -22,7 +22,7 @@
             [clojure.core.typed.checker.type-rep :as r]
             [clojure.core.typed.checker.path-rep :as pr]
             [clojure.core.typed.checker.lex-env :as lex]
-            [clojure.core.typed.checker.jvm.subtype :as sub]
+            [typed.clj.checker.subtype :as sub]
             [clojure.core.typed.checker.remove :as remove]
             [clojure.set :as set])
   (:import (clojure.lang IPersistentMap Keyword)))

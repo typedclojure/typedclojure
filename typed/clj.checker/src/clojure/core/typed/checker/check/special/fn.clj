@@ -8,7 +8,7 @@
 
 (ns ^:skip-wiki clojure.core.typed.checker.check.special.fn
   (:require [clojure.core.typed :as t]
-            [clojure.core.typed.checker.jvm.parse-unparse :as prs]
+            [typed.clj.checker.parse-unparse :as prs]
             [clojure.core.typed.checker.filter-ops :as fo]
             [clojure.core.typed.checker.object-rep :as or]
             [clojure.core.typed.checker.filter-rep :as fl]

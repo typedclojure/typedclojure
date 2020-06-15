@@ -11,9 +11,9 @@
             [clojure.core.typed.checker.utils :as u]
             [clojure.core.typed.checker.check.utils :as cu]
             [clojure.core.typed.checker.type-rep :as r]
-            [clojure.core.typed.checker.jvm.parse-unparse :as prs]
+            [typed.clj.checker.parse-unparse :as prs]
             [clojure.core.typed.errors :as err]
-            [clojure.core.typed.checker.jvm.subtype :as sub]))
+            [typed.clj.checker.subtype :as sub]))
 
 (defn check-set! [check {:keys [target val env] :as expr} expected]
   (binding [vs/*current-expr* expr

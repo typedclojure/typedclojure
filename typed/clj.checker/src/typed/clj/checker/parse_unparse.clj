@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:skip-wiki clojure.core.typed.checker.jvm.parse-unparse
+(ns ^:skip-wiki typed.clj.checker.parse-unparse
   (:require [clojure.core.typed :as t]
             [clojure.core.typed.checker.type-rep :as r]
             [clojure.core.typed.checker.type-ctors :as c]
@@ -20,7 +20,7 @@
             [clojure.core.typed.checker.dvar-env :as dvar]
             [clojure.core.typed.checker.filter-rep :as f]
             [clojure.core.typed.checker.filter-ops :as fl]
-            [clojure.core.typed.checker.jvm.constant-type :as const]
+            [typed.clj.checker.constant-type :as const]
             [clojure.core.typed.checker.free-ops :as free-ops]
             [clojure.core.typed.checker.indirect-utils :as indu]
             [clojure.core.typed.checker.indirect-ops :as ind]

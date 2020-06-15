@@ -89,6 +89,6 @@
 
 (comment
   (require '[clojure.core.typed.current-impl :as impl]
-           '[clojure.core.typed.checker.jvm.analyze-clj :as ana]
+           '[typed.clj.checker.analyze-clj :as ana]
            '[clojure.core.typed.util-vars :as vs])
   )

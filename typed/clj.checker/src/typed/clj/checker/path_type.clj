@@ -6,14 +6,14 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:skip-wiki clojure.core.typed.checker.jvm.path-type
+(ns ^:skip-wiki typed.clj.checker.path-type
   (:require [clojure.core.typed.checker.type-rep :as r]
             [clojure.core.typed.checker.path-rep :as pe]
             [clojure.core.typed.checker.check.utils :as cu]
             [clojure.core.typed.checker.path-rep :as pr]
             [clojure.core.typed.checker.type-ctors :as c]
             [clojure.core.typed.contract-utils :as con]
-            [clojure.core.typed.checker.jvm.subtype :as sub]
+            [typed.clj.checker.subtype :as sub]
             [clojure.core.typed :as t]
             [clojure.core.typed.errors :as err])
   (:import (clojure.lang Keyword Symbol)))

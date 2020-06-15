@@ -11,10 +11,10 @@
             [clojure.core.typed.checker.type-rep :as r]
             [clojure.core.typed.checker.utils :as u]
             [clojure.core.typed.errors :as err]
-            [clojure.core.typed.checker.jvm.parse-unparse :as prs]
+            [typed.clj.checker.parse-unparse :as prs]
             [clojure.string :as str]
             [clojure.core.typed.checker.check.utils :as cu]
-            [clojure.core.typed.checker.jvm.subtype :as sub]
+            [typed.clj.checker.subtype :as sub]
             [clojure.core.typed.checker.type-ctors :as c]
             [clojure.core.typed.checker.cs-gen :as cgen]
             [clojure.core.typed.checker.subst :as subst])

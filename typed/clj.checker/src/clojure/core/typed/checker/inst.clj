@@ -8,11 +8,11 @@
 
 (ns ^:skip-wiki clojure.core.typed.checker.inst
   (:require [clojure.core.typed.errors :as err]
-            [clojure.core.typed.checker.jvm.parse-unparse :as prs]
+            [typed.clj.checker.parse-unparse :as prs]
             [clojure.core.typed.checker.type-rep :as r]
             [clojure.core.typed.checker.type-ctors :as c]
             [clojure.core.typed.checker.free-ops :as free-ops]
-            [clojure.core.typed.checker.jvm.subtype :as sub]
+            [typed.clj.checker.subtype :as sub]
             [clojure.core.typed.checker.subst :as subst]
             [clojure.core.typed.checker.trans :as trans]
             [clojure.string :as string]))

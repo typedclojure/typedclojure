@@ -9,14 +9,14 @@
 (ns clojure.core.typed.checker.base-env-helper
   (:refer-clojure :exclude [type])
   (:require [clojure.core.typed.checker.type-rep :as r]
-            [clojure.core.typed.checker.jvm.parse-unparse :as prs]
+            [typed.clj.checker.parse-unparse :as prs]
             [clojure.core.typed.checker.utils :as u]
             [clojure.core.typed.coerce-utils :as coerce]
             [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.checker.free-ops :as free-ops]
             [clojure.core.typed.checker.type-ctors :as c]
             [clojure.core.typed.checker.declared-kind-env :as decl-env]
-            [clojure.core.typed.checker.jvm.rclass-env :as rcls]
+            [typed.clj.checker.rclass-env :as rcls]
             [clojure.core.typed.current-impl :as impl]
             [clojure.pprint :as pprint]))
 

@@ -45,7 +45,7 @@
 ;; a multimethod that knows how to type check each kind
 ;; of (fully expanded) AST node.
 ;; 
-;; See clojure.core.typed.checker.jvm.check/-check for a real example.
+;; See typed.clj.checker.check/-check for a real example.
 (defmulti -check ::ana2/op)
 
 (defn type-for-val [v] :any)

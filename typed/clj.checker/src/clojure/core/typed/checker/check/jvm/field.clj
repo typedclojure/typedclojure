@@ -16,8 +16,8 @@
             [clojure.core.typed.ast-utils :as ast-u]
             [clojure.core.typed.checker.type-ctors :as c]
             [clojure.core.typed.coerce-utils :as coerce]
-            [clojure.core.typed.checker.jvm.subtype :as sub]
-            [clojure.core.typed.checker.jvm.parse-unparse :as prs]
+            [typed.clj.checker.subtype :as sub]
+            [typed.clj.checker.parse-unparse :as prs]
             [clojure.core.typed.checker.datatype-env :as dt-env]
             [clojure.repl :as repl]
             [clojure.core.typed.util-vars :as vs]))

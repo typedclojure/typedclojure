@@ -28,7 +28,7 @@
   []
   (load/load-if-needed true))
 
-(let [rc (delay (impl/dynaload 'clojure.core.typed.checker.jvm.reset-caches/reset-caches))]
+(let [rc (delay (impl/dynaload 'typed.clj.checker.reset-caches/reset-caches))]
   (defn reset-caches
     "Reset internal type caches."
     []
@@ -38,9 +38,9 @@
 ; many of these macros resolve to CLJS functions in 
 ; the CLJS ns cljs.core.typed
 
-(def ^:private parse-cljs (delay (impl/dynaload 'clojure.core.typed.checker.jvm.parse-unparse/parse-cljs)))
+(def ^:private parse-cljs (delay (impl/dynaload 'typed.clj.checker.parse-unparse/parse-cljs)))
 (def ^:private cljs-ns (delay (impl/dynaload 'clojure.core.typed.util-cljs/cljs-ns)))
-(def ^:private with-parse-ns* (delay (impl/dynaload 'clojure.core.typed.checker.jvm.parse-unparse/with-parse-ns*)))
+(def ^:private with-parse-ns* (delay (impl/dynaload 'typed.clj.checker.parse-unparse/with-parse-ns*)))
 
 (defmacro ^:private delay-tc-parse
   [t]
