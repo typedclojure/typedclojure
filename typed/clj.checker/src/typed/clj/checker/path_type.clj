@@ -9,7 +9,7 @@
 (ns ^:skip-wiki typed.clj.checker.path-type
   (:require [clojure.core.typed.checker.type-rep :as r]
             [clojure.core.typed.checker.path-rep :as pe]
-            [clojure.core.typed.checker.check.utils :as cu]
+            [typed.cljc.checker.check.utils :as cu]
             [clojure.core.typed.checker.path-rep :as pr]
             [clojure.core.typed.checker.type-ctors :as c]
             [clojure.core.typed.contract-utils :as con]

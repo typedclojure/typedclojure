@@ -13,7 +13,7 @@
             [typed.clj.checker.check.field :as field]
             [typed.clj.checker.check.method :as method]
             [typed.clj.checker.check.type-hints :as type-hints]
-            [clojure.core.typed.checker.check.utils :as cu]
+            [typed.cljc.checker.check.utils :as cu]
             [clojure.core.typed.checker.type-rep :as r]
             [clojure.core.typed.checker.utils :as u]
             [clojure.core.typed.errors :as err]))

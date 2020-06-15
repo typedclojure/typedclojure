@@ -12,7 +12,7 @@
             [clojure.core.typed.checker.path-rep :as pe]
             [clojure.core.typed.checker.utils :as u]
             [clojure.core.typed.errors :as err]
-            [clojure.core.typed.checker.check.utils :as cu]
+            [typed.cljc.checker.check.utils :as cu]
             [clojure.core.typed.checker.filter-ops :as fo]
             [typed.clj.checker.parse-unparse :as prs]
             [clojure.core.typed.checker.free-ops :as free-ops]

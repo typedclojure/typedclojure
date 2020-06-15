@@ -9,7 +9,7 @@
 (ns typed.clj.checker.check.type-hints
   (:require [clojure.core.typed.checker.type-rep :as r]
             [clojure.core.typed.checker.type-ctors :as c]
-            [clojure.core.typed.checker.check.utils :as cu]
+            [typed.cljc.checker.check.utils :as cu]
             [clojure.core.typed.coerce-utils :as coerce]
             [typed.clj.checker.reflect-utils :as reflect-u]))
 

@@ -12,7 +12,7 @@
             [clojure.core.typed.checker.type-ctors :as c]
             [clojure.core.typed.jsnominal-env :as jsnom]
             [typed.clj.checker.parse-unparse :as prs]
-            [clojure.core.typed.checker.check.funapp :as funapp]
+            [typed.cljc.checker.check.funapp :as funapp]
             [clojure.core.typed.errors :as err]))
 
 (defn check-dot [check {:keys [target field method args] :as dot-expr} expected]

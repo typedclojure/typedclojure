@@ -9,10 +9,10 @@
 (ns clojure.core.typed.checker.runtime-check
   "Adds runtime checks where annotations are instead of type checking"
   (:require [clojure.core.typed :as t]
-            [clojure.core.typed.checker.check.do :as do]
+            [typed.cljc.checker.check.do :as do]
             [clojure.core.typed.checker.utils :as u]
-            [clojure.core.typed.checker.check.special.ann-form :as ann-form]
-            [clojure.core.typed.checker.check.def :as def]
+            [typed.cljc.checker.check.special.ann-form :as ann-form]
+            [typed.cljc.checker.check.def :as def]
             [clojure.core.typed.ast-utils :as ast]))
 
 (defn check

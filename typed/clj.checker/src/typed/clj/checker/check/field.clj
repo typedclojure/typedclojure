@@ -8,7 +8,7 @@
 
 (ns typed.clj.checker.check.field
   (:require [clojure.core.typed.checker.check-below :as below]
-            [clojure.core.typed.checker.check.utils :as cu]
+            [typed.cljc.checker.check.utils :as cu]
             [clojure.core.typed.checker.type-rep :as r]
             [clojure.core.typed.checker.utils :as u]
             [clojure.core.typed.errors :as err]

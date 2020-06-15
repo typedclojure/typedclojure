@@ -16,8 +16,8 @@
             [typed.clj.checker.subtype :as sub]
             [clojure.core.typed.checker.type-ctors :as c]
             [typed.clj.checker.parse-unparse :as prs]
-            [clojure.core.typed.checker.check.funapp :as funapp]
-            [clojure.core.typed.checker.check.utils :as cu]
+            [typed.cljc.checker.check.funapp :as funapp]
+            [typed.cljc.checker.check.utils :as cu]
             [typed.clj.checker.method-override-env :as mth-override]))
 
 ;[MethodExpr Type Any -> Expr]
