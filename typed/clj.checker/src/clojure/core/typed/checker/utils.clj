@@ -13,18 +13,8 @@
             [clojure.repl :as repl]
             [clojure.set :as set]))
 
-(t/ann subtype-exn Exception)
-(def subtype-exn (Exception. "Subtyping failed."))
 (t/ann cs-gen-exn Exception)
 (def cs-gen-exn (Exception. "Constraint generation failed."))
-
-(defmacro handle-subtype-failure [& body]
-  `(try
-     (do ~@body)
-     (catch Exception e#
-       (if (identical? subtype-exn e#)
-         false
-         (throw e#)))))
 
 (defmacro handle-cs-gen-failure [& body]
   `(try
