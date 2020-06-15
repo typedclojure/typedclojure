@@ -30,6 +30,10 @@
                                         (update-in [:dependants] disj pass))))
                     #{} (vals (dissoc passes pass)))))
 
+;; performance optimization
+;; set to false to develop/debug passes while avoiding recompilation
+(def ^:const direct-link true)
+
 ;modified from tools.analyzer
 (defn compile-passes [pre-passes post-passes info]
   (let [with-state (filter (comp :state info) (concat pre-passes post-passes))
@@ -39,14 +43,16 @@
         pfns-fn    (fn [passes]
                      (reduce (fn [f pass]
                                (let [i (info pass)
+                                     pass-fn (cond-> pass
+                                               direct-link deref)
                                      pass (cond
                                             ;; passes with :state meta take 2 arguments: state and ast
                                             (:state i)
                                             (fn [ast]
                                               (let [pass-state (-> ast :env ::ana/state (get pass))]
-                                                (pass pass-state ast)))
+                                                (pass-fn pass-state ast)))
                                             ;; otherwise, a pass just takes ast
-                                            :else pass)]
+                                            :else pass-fn)]
                                  #(pass (f %))))
                              (fn [ast] ast)
                              passes))
