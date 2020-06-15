@@ -8,6 +8,8 @@
              cider/piggieback {:mvn/version "0.3.8"}}
             :main-opts ["-m" "nrepl.cmdline"
                         "--interactive"]}
+           :spec-skip-macros
+           {:jvm-opts ["-Dclojure.spec.skip-macros=true"]}
            :test {:extra-deps {org.clojure/clojure {:mvn/version "1.10.1"}
                                org.clojure/core.async {:mvn/version "1.0.567"}
                                typed.clj/runtime {:local/root "../clj.runtime"

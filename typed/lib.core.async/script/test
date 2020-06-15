@@ -1,3 +1,5 @@
 #!/bin/sh
 
-clojure -A:test:runner "$@"
+set -ex
+
+clojure -A:test:runner:spec-skip-macros "$@"

@@ -18,7 +18,7 @@
             [typed.cljc.checker.check-below :as below]
             [clojure.core.typed.util-vars :as vs]
             [clojure.core.async :as async]
-            [clojure.core.typed.lib.clojure.core.async :as tasync]
+            [typed.lib.clojure.core.async :as tasync]
             [typed.clj.analyzer.passes.emit-form :as emit-form]
             [typed.cljc.analyzer :as ana2]))
 

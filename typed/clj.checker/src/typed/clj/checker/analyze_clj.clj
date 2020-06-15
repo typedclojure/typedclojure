@@ -195,7 +195,7 @@
                                ;; fake Compiler.java's locals so tools.analyzer doesn't think there's a recursive go macro,
                                ;; and because typed.clj.analyzer AST's are incompatible with tools.analyzer's.
                                ('#{clojure.core.async/go
-                                   clojure.core.typed.lib.clojure.core.async/go}
+                                   typed.lib.clojure.core.async/go}
                                  (symbol v))
                                (into {}
                                      (map (fn [[sym e]]
