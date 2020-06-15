@@ -6,13 +6,13 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns clojure.core.typed.checker.check.jvm.host-interop
+(ns typed.clj.checker.check.host-interop
   (:require [typed.cljc.analyzer :as ana2]
             [typed.clj.analyzer.passes.analyze-host-expr :as ana-host]
             [typed.clj.analyzer.passes.validate :as validate]
-            [clojure.core.typed.checker.check.jvm.field :as field]
-            [clojure.core.typed.checker.check.jvm.method :as method]
-            [clojure.core.typed.checker.check.jvm.type-hints :as type-hints]
+            [typed.clj.checker.check.field :as field]
+            [typed.clj.checker.check.method :as method]
+            [typed.clj.checker.check.type-hints :as type-hints]
             [clojure.core.typed.checker.check.utils :as cu]
             [clojure.core.typed.checker.type-rep :as r]
             [clojure.core.typed.checker.utils :as u]

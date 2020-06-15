@@ -21,7 +21,7 @@
             [clojure.core.typed.checker.path-rep :as pe]
             [clojure.core.typed.checker.object-rep :as obj]
             [clojure.core.typed.current-impl :as impl]
-            [clojure.core.typed.checker.check.jvm.method :as method]
+            [typed.clj.checker.check.method :as method]
             [clojure.core.typed.checker.check.utils :as cu]
             [clojure.core.typed.checker.indirect-ops :as ind])
   (:import (clojure.lang ISeq Seqable)))

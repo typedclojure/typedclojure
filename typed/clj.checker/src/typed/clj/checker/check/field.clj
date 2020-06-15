@@ -6,13 +6,13 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns clojure.core.typed.checker.check.jvm.field
+(ns typed.clj.checker.check.field
   (:require [clojure.core.typed.checker.check-below :as below]
             [clojure.core.typed.checker.check.utils :as cu]
             [clojure.core.typed.checker.type-rep :as r]
             [clojure.core.typed.checker.utils :as u]
             [clojure.core.typed.errors :as err]
-            [clojure.core.typed.checker.check.jvm.type-hints :as type-hints]
+            [typed.clj.checker.check.type-hints :as type-hints]
             [clojure.core.typed.ast-utils :as ast-u]
             [clojure.core.typed.checker.type-ctors :as c]
             [clojure.core.typed.coerce-utils :as coerce]

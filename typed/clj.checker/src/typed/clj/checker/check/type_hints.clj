@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns clojure.core.typed.checker.check.jvm.type-hints
+(ns typed.clj.checker.check.type-hints
   (:require [clojure.core.typed.checker.type-rep :as r]
             [clojure.core.typed.checker.type-ctors :as c]
             [clojure.core.typed.checker.check.utils :as cu]
