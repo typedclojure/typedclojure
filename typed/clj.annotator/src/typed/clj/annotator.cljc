@@ -15,7 +15,7 @@
                                when-fuel]]))
   (:require [#?(:clj clojure.pprint :cljs cljs.pprint) :as pp]
             [#?(:clj clojure.core :cljs cljs.core) :as core]
-            [clojure.core.typed.annotator.rep :refer [-val key-path map-vals-path
+            [typed.clj.annotator.rep :refer [-val key-path map-vals-path
                                                       infer-result infer-results
                                                       -class type? -any fn-dom-path
                                                       fn-rng-path -nothing
@@ -31,7 +31,7 @@
                                                       HVec?
                                                       union?
                                                       nothing?]]
-            [clojure.core.typed.annotator.track :refer [track-var'
+            [typed.clj.annotator.track :refer [track-var'
                                                         track-def-init
                                                         gen-track-config
                                                         track-local-fn
@@ -40,7 +40,7 @@
                                                         *root-results*
                                                         local-fn-symbol?
                                                         loop-var-symbol?]]
-            [clojure.core.typed.annotator.join :refer [make-Union
+            [typed.clj.annotator.join :refer [make-Union
                                                        flatten-unions
                                                        flatten-union
                                                        merge-HMaps
@@ -49,10 +49,10 @@
                                                        join*
                                                        join
                                                        join-IFn1]]
-            [clojure.core.typed.annotator.env :refer [results-atom
+            [typed.clj.annotator.env :refer [results-atom
                                                       initial-results
                                                       infer-results?]]
-            [clojure.core.typed.annotator.frontend.spec
+            [typed.clj.annotator.frontend.spec
              :refer [def-spec or-spec unparse-spec unparse-spec'
                      alias-matches-key-for-spec-keys?
                      alias->spec-kw
@@ -62,7 +62,7 @@
                      register-unique-alias-for-spec-keys
                      envs-to-specs
                      ]]
-            [clojure.core.typed.annotator.debug-macros
+            [typed.clj.annotator.debug-macros
              :refer [debug-flat
                      debug-when
                      time-if-slow
@@ -74,7 +74,7 @@
             [clojure.core.typed.current-impl :as impl]
             [clojure.math.combinatorics :as comb]
             [clojure.core.typed.contract-utils :as con]
-            [clojure.core.typed.annotator.util :refer [unparse-type spec-ns core-specs-ns
+            [typed.clj.annotator.util :refer [unparse-type spec-ns core-specs-ns
                                                        qualify-typed-symbol
                                                        qualify-spec-symbol
                                                        qualify-core-symbol
@@ -120,9 +120,9 @@
                                                        register-alias
                                                        top-level-self-reference?
                                                        ]]
-            [clojure.core.typed.annotator.pprint :refer [pprint pprint-str-no-line
+            [typed.clj.annotator.pprint :refer [pprint pprint-str-no-line
                                                          unp-str]]
-            [clojure.core.typed.annotator.parse :refer [parse-type prs]]
+            [typed.clj.annotator.parse :refer [parse-type prs]]
             [clojure.walk :as walk]
             #?@(:clj [[clojure.tools.namespace.parse :as nprs]
                       [clojure.tools.reader.reader-types :as rdrt]
@@ -130,7 +130,7 @@
                       [clojure.core.typed.ast-utils :as ast]
                       [typed.clj.analyzer.passes.emit-form :as emit-form]
                       [typed.clj.analyzer :as jana2]
-                      [clojure.core.typed.annotator.insert :as insert
+                      [typed.clj.annotator.insert :as insert
                        :refer [replace-generated-annotations]]
                       [clojure.core.typed.coerce-utils :as coerce]])))
 
@@ -141,9 +141,9 @@
      (HMap
        :mandatory
        {:op :HMap 
-        :clojure.core.typed.annotator.rep/HMap-req (Map Kw Type)}
+        :typed.clj.annotator.rep/HMap-req (Map Kw Type)}
        :optional
-       {:clojure.core.typed.annotator.rep/HMap-opt (Map Kw Type)})
+       {:typed.clj.annotator.rep/HMap-opt (Map Kw Type)})
 
      '{:op :HVec :vec (Vec Type)}
      '{:op :union :types (Set Type)}
@@ -151,7 +151,7 @@
        ::class-string String
        :args (Vec Type)}
      '{:op :class 
-       :clojure.core.typed.annotator.rep/class-instance (U Keyword String)
+       :typed.clj.annotator.rep/class-instance (U Keyword String)
        :args (Vec Type)}
      '{:op :IFn
        :arities (Vec (HMap
@@ -333,8 +333,8 @@
 (defn HMap-req-opt-keysets [t]
   {:pre [(HMap? t)]
    :post [(set? %)]}
-  #{{:req-keyset (map-key-set (:clojure.core.typed.annotator.rep/HMap-req t))
-     :opt-keyset (map-key-set (:clojure.core.typed.annotator.rep/HMap-opt t))}})
+  #{{:req-keyset (map-key-set (:typed.clj.annotator.rep/HMap-req t))
+     :opt-keyset (map-key-set (:typed.clj.annotator.rep/HMap-opt t))}})
 
 ; gather-HMap-info : (All [a] [Env Type [HMap -> (Set a)] (Set Type) -> (Set a)])
 (defn gather-HMap-info
@@ -369,7 +369,7 @@
    :post [(set? %)
           (every? map? %)]}
   (gather-HMap-info env t (fn [m]
-                            #{(:clojure.core.typed.annotator.rep/HMap-req m)})))
+                            #{(:typed.clj.annotator.rep/HMap-req m)})))
 
 (defn subst-alias [t old new]
   {:pre [(type? t)
@@ -436,7 +436,7 @@
 (declare register-just-in-time-alias)
 
 (defn HMap-has-tag-key? [m k]
-  (kw-val? (get (:clojure.core.typed.annotator.rep/HMap-req m) k)))
+  (kw-val? (get (:typed.clj.annotator.rep/HMap-req m) k)))
 
 
 
@@ -469,7 +469,7 @@
                    ts (if (and k (every? #(HMap-has-tag-key? % k) ts))
                         (sort-by (fn [m]
                                    {:post [(keyword? %)]}
-                                   (:val (get (:clojure.core.typed.annotator.rep/HMap-req m) k)))
+                                   (:val (get (:typed.clj.annotator.rep/HMap-req m) k)))
                                  ts)
                         ts)
                    ts (distinct (mapv unparse-type ts))]
@@ -488,7 +488,7 @@
                  (list* (qualify-typed-symbol 'U) 
                         ts))))
     :HVec `'~(mapv unparse-type (:vec m))
-    :HMap (let [{:keys [:clojure.core.typed.annotator.rep/HMap-req :clojure.core.typed.annotator.rep/HMap-opt]} m
+    :HMap (let [{:keys [:typed.clj.annotator.rep/HMap-req :typed.clj.annotator.rep/HMap-opt]} m
                 unp-map (fn [m]
                           (into {}
                                 (map (fn [[k v]]
@@ -590,7 +590,7 @@
                        (if (seq args)
                          (list*-force cls (map unparse-type args))
                          cls)))]
-             (unparse-class (:clojure.core.typed.annotator.rep/class-instance m) (:args m)))
+             (unparse-class (:typed.clj.annotator.rep/class-instance m) (:args m)))
     :Top (qualify-typed-symbol 'Any)
     :unknown (cond 
                *preserve-unknown* '?
@@ -629,12 +629,12 @@
                               _ (when (and spec? forbidden-aliases)
                                   (swap! forbidden-aliases into (map kw->sym (cons key keys))))]
                           {:op :HMap
-                           :clojure.core.typed.annotator.rep/HMap-req (merge (zipmap keys (repeat {:op :unknown}))
+                           :typed.clj.annotator.rep/HMap-req (merge (zipmap keys (repeat {:op :unknown}))
                                              ;; immediately associate kw->kw entries
                                              ;; to distinguish in merging algorithm
                                              kw-entries
                                              {key type})
-                           :clojure.core.typed.annotator.rep/HMap-opt {}})
+                           :typed.clj.annotator.rep/HMap-opt {}})
                    :set-entry (-class :set [type])
                    :seq-entry (-class :seq [type])
                    :vec-entry (-class :vector [type])
@@ -727,8 +727,8 @@
                        {}
                        m))]
             (-> v
-                (update :clojure.core.typed.annotator.rep/HMap-req up)
-                (update :clojure.core.typed.annotator.rep/HMap-opt up)))
+                (update :typed.clj.annotator.rep/HMap-req up)
+                (update :typed.clj.annotator.rep/HMap-opt up)))
     (:class :unresolved-class)
            (update v :args (fn [m]
                              (reduce-kv
@@ -826,7 +826,7 @@
   [t]
   {:pre [(HMap? t)]
    :post [((some-fn nil? vector?) %)]}
-  (let [singles (into {} (filter (comp kw-vals? val) (:clojure.core.typed.annotator.rep/HMap-req t)))]
+  (let [singles (into {} (filter (comp kw-vals? val) (:typed.clj.annotator.rep/HMap-req t)))]
     (when-let [[k t] (or
                        ;; TODO extensible hints
                        (when-let [e (or (find singles :op)
@@ -878,10 +878,10 @@
                                       (first
                                         (filter (fn [[k v]]
                                                   (kw-vals? v))
-                                                (:clojure.core.typed.annotator.rep/HMap-req t)))
+                                                (:typed.clj.annotator.rep/HMap-req t)))
                                       ;; information from a union takes precedence
                                       [k v] (or (when-let [upper-k (::union-likely-tag (meta t))]
-                                                  (let [e (find (:clojure.core.typed.annotator.rep/HMap-req t) upper-k)]
+                                                  (let [e (find (:typed.clj.annotator.rep/HMap-req t) upper-k)]
                                                     (when (kw-vals? (val e))
                                                       e)))
                                                 [k v])]
@@ -892,18 +892,18 @@
                                                 ;(prn "kw-vals" k v)
                                                 (str (name k) "-" (kw-vals->str v)))
                                               ;; for small number of keys, spell out the keys
-                                              (when (<= (+ (count (:clojure.core.typed.annotator.rep/HMap-req t))
-                                                           (count (:clojure.core.typed.annotator.rep/HMap-opt t)))
+                                              (when (<= (+ (count (:typed.clj.annotator.rep/HMap-req t))
+                                                           (count (:typed.clj.annotator.rep/HMap-opt t)))
                                                         2)
-                                                (apply str (interpose "-" (map name (concat (keys (:clojure.core.typed.annotator.rep/HMap-req t))
-                                                                                            (keys (:clojure.core.typed.annotator.rep/HMap-opt t)))))))
+                                                (apply str (interpose "-" (map name (concat (keys (:typed.clj.annotator.rep/HMap-req t))
+                                                                                            (keys (:typed.clj.annotator.rep/HMap-opt t)))))))
                                               ;; otherwise give abbreviated keys
                                               (apply str (interpose "-" 
                                                                     (map (fn [k]
                                                                            (apply str (take 3 (name k))))
                                                                          (concat
-                                                                           (keys (:clojure.core.typed.annotator.rep/HMap-req t))
-                                                                           (keys (:clojure.core.typed.annotator.rep/HMap-opt t)))))))))
+                                                                           (keys (:typed.clj.annotator.rep/HMap-req t))
+                                                                           (keys (:typed.clj.annotator.rep/HMap-opt t)))))))))
                           t)))]
               [t @env-atom]))]
     (let [env (reduce
@@ -954,8 +954,8 @@
                                                      (if-let [likely-tag
                                                               (when existing-t
                                                                 (HMap-likely-tag-key [existing-t t]))]
-                                                       (= (get-in existing-t [:clojure.core.typed.annotator.rep/HMap-req likely-tag])
-                                                          (get-in t [:clojure.core.typed.annotator.rep/HMap-req likely-tag]))
+                                                       (= (get-in existing-t [:typed.clj.annotator.rep/HMap-req likely-tag])
+                                                          (get-in t [:typed.clj.annotator.rep/HMap-req likely-tag]))
                                                        true))
                                    compatible-alias-entry 
                                    (first (filter compatible-tag?
@@ -1065,7 +1065,7 @@
                                       t (reduce (fn [t k]
                                                   (update t k #(into {} (map update-entry) %)))
                                                 t
-                                                [:clojure.core.typed.annotator.rep/HMap-req :clojure.core.typed.annotator.rep/HMap-opt])]
+                                                [:typed.clj.annotator.rep/HMap-req :typed.clj.annotator.rep/HMap-opt])]
                                   t)
                                 t)
                         t)
@@ -1076,13 +1076,13 @@
                                            [(fully-resolve-alias @env-atom t)])]
                                   (when (every? HMap? ts)
                                     (let [common-keys (intersection-or-empty
-                                                        (map (comp set keys :clojure.core.typed.annotator.rep/HMap-req) ts))
+                                                        (map (comp set keys :typed.clj.annotator.rep/HMap-req) ts))
                                           common-tag (first
                                                        (filter
                                                          (fn [k]
                                                            (every? (fn [m]
                                                                      {:pre [(HMap? m)]}
-                                                                     (kw-val? (get (:clojure.core.typed.annotator.rep/HMap-req m) k)))
+                                                                     (kw-val? (get (:typed.clj.annotator.rep/HMap-req m) k)))
                                                                    ts))
                                                          common-keys))]
                                       (when common-tag
@@ -1093,7 +1093,7 @@
                                                                   (map (comp name
                                                                              :val
                                                                              common-tag 
-                                                                             :clojure.core.typed.annotator.rep/HMap-req)
+                                                                             :typed.clj.annotator.rep/HMap-req)
                                                                        ts))
                                                             ["alias"])))))))
                                 "alias"))
@@ -2125,8 +2125,8 @@
                                                              {:pre [(HMap? hmap)]}
                                                              (set
                                                                (filter namespace
-                                                                       (concat (keys (:clojure.core.typed.annotator.rep/HMap-req hmap))
-                                                                               (keys (:clojure.core.typed.annotator.rep/HMap-opt hmap))))))
+                                                                       (concat (keys (:typed.clj.annotator.rep/HMap-req hmap))
+                                                                               (keys (:typed.clj.annotator.rep/HMap-opt hmap))))))
                                                 ]
                                           (case (:op t)
                                             :HMap (map (fn [qkey]
@@ -2172,7 +2172,7 @@
                                                 %)]}
                                        (when (kw-val? t)
                                          [k (:val t)]))
-                                     (:clojure.core.typed.annotator.rep/HMap-req t)))]))
+                                     (:typed.clj.annotator.rep/HMap-req t)))]))
                 (filter (comp seq second)))
               hmap-aliases)
         all-tags (mapcat (fn [ts]
@@ -2334,9 +2334,9 @@
                                                        camel-case
                                                        (concat
                                                          (sort
-                                                           (map name (keys (:clojure.core.typed.annotator.rep/HMap-req t))))
+                                                           (map name (keys (:typed.clj.annotator.rep/HMap-req t))))
                                                          (sort
-                                                           (map name (keys (:clojure.core.typed.annotator.rep/HMap-opt t))))))
+                                                           (map name (keys (:typed.clj.annotator.rep/HMap-opt t))))))
                                       a-new (gen-unique-alias-name
                                               env config
                                               (symbol
@@ -2723,7 +2723,7 @@
   "Return the bag of constraints in the current results-atom
   for the given fully qualified var.
   
-  eg. (var-constraints 'clojure.core.typed.annotator.test.mini-occ/parse-exp)
+  eg. (var-constraints 'typed.clj.annotator.test.mini-occ/parse-exp)
   "
 
   [vsym]
@@ -2784,13 +2784,13 @@
                                                                               (fn [c]
                                                                                 (cond
                                                                                   (when (= :class (:op c))
-                                                                                    (let [^Class inst (:clojure.core.typed.annotator.rep/class-instance c)
+                                                                                    (let [^Class inst (:typed.clj.annotator.rep/class-instance c)
                                                                                           _ (assert (class? inst))
                                                                                           nme (.getName inst)]
                                                                                       (and (not (.startsWith nme "clojure.lang"))
                                                                                            (not (.startsWith nme "java.lang")))))
                                                                                   {:op :unresolved-class
-                                                                                   ::class-string (let [^Class inst (:clojure.core.typed.annotator.rep/class-instance c)]
+                                                                                   ::class-string (let [^Class inst (:typed.clj.annotator.rep/class-instance c)]
                                                                                                     (.getName inst))
                                                                                    :args (:args c)}
                                                                                   :else c)))))))
@@ -2911,7 +2911,7 @@
 
 (comment
 
-  (binding [*ns* (the-ns 'clojure.core.typed.annotator.test.mini-occ)]
+  (binding [*ns* (the-ns 'typed.clj.annotator.test.mini-occ)]
     (-> (generate-tenv (init-env) (init-config) @results-atom)
         (envs-to-annotations (init-config))
         pprint)
