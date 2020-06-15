@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns clojure.core.typed.checker.experimental.infer-vars
+(ns typed.clj.checker.experimental.infer-vars
   (:require 
     [clojure.core.typed.checker.type-rep :as r]
     [clojure.core.typed.checker.type-ctors :as c]

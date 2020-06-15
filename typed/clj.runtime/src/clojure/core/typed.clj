@@ -1739,7 +1739,7 @@ for checking namespaces, cf for checking individual forms."}
                                   @Compiler/COLUMN))))))
          ~x))))
 
-(core/let [infuv (delay (dynaload 'clojure.core.typed.checker.experimental.infer-vars/infer-unannotated-vars))]
+(core/let [infuv (delay (dynaload 'typed.clj.checker.experimental.infer-vars/infer-unannotated-vars))]
   (core/defn infer-unannotated-vars
     "EXPERIMENTAL
 
