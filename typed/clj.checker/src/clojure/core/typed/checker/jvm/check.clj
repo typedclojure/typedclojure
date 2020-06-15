@@ -275,10 +275,13 @@
   The return expression is implicitly evaluated (via ana2/eval-top-level)
   after control is returned to the type checker.
   Use -unanalyzed-special if this requirement is too strict."
-  [op & body]
+  [op args & body]
+  (assert (vector? args))
+  (assert (= 2 (count args))
+          "must provide bindings for expr and expected")
   `(defmethod -unanalyzed-special ~op
-     [& args#]
-     (some-> (apply (fn ~@body) args#)
+     ~args
+     (some-> (do ~@body)
              run-passes+propagate-expr-type)))
 
 (declare check-expr)
@@ -291,13 +294,16 @@
   "Type checks expr at optional expected type. expr must not have a u/expr-type entry.
   
   The return expr will be fully expanded, analyzed, evaluated (via ana2/eval-top-level),
-  with a u/expr-type entry giving the TCResult of the whole expression."
+  with a u/expr-type entry giving the TCResult of the whole expression.
+
+  As an exception, an :unanalyzed node may be returned from this function. It will have a :tag,
+  and :result (if top-level). If not top-level, the node will be expanded and evaluated as part
+  of its enclosing top-level expression."
   ([expr] (check-expr expr nil))
   ([expr expected]
   {:pre [(map? expr)
          ((some-fn nil? r/TCResult?) expected)]
-   :post [(r/TCResult? (u/expr-type %))
-          (not (#{:unanalyzed} (:op %)))]}
+   :post [(r/TCResult? (u/expr-type %))]}
   ;(prn "check-expr" op)
   ;(clojure.pprint/pprint (emit-form/emit-form expr))
   ;; to keep :post condition
