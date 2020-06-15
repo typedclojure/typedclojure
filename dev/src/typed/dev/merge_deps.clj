@@ -13,6 +13,8 @@
   '{:perf
     {:extra-paths ["/Applications/YourKit-Java-Profiler-2019.8.app/Contents/Resources/lib/yjp-controller-api-redist.jar"]
      :jvm-opts ["-agentpath:/Applications/YourKit-Java-Profiler-2019.8.app/Contents/Resources/bin/mac/libyjpagent.dylib"]}
+    :spec-skip-macros
+    {:jvm-opts ["-Dclojure.spec.skip-macros=true"]}
     :nREPL
     {:extra-deps
      {nrepl/nrepl {:mvn/version "0.6.0"}

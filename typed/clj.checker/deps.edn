@@ -26,6 +26,8 @@
                  defined classes in type-rep."
                "--middleware" "[cider.nrepl/wrap-complete]"
                ]},
+  :spec-skip-macros
+  {:jvm-opts ["-Dclojure.spec.skip-macros=true"]}
   :test
   {:extra-paths ["test" "resources"],
    :extra-deps
