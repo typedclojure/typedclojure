@@ -26,7 +26,7 @@
   (symbol (namespace k)
           (name k)))
 
-;; https://github.com/r0man/inflections-clj/blob/master/src/inflections/core.cljc
+;; https://github.com/r0man/inflections-clj/blob/af3aa93ed360507c357734b5a664987248a93aee/src/inflections/core.cljc
 (defn str-name
   "Same as `clojure.core/name`, but keeps the namespace for keywords
   and symbols."

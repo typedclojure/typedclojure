@@ -9,7 +9,7 @@
 #
 #   ./script/release-and-push.sh 1.0.0 1.0.1-SNAPSHOT
 #
-# and then push the resulting commit to the master branch.
+# and then push the resulting commit to the main branch.
 # GitHub Actions will automatically deploy a 1.0.0 release and
 # update the dev version to 1.0.1-SNAPSHOT.
 
@@ -20,8 +20,8 @@ if [[ "$GITHUB_ACTIONS" != 'true' ]]; then
   exit 1
 fi
 
-if [[ `git symbolic-ref --short HEAD` != 'master' ]]; then
-  echo "Releases only triggered on the master branch. Doing nothing."
+if [[ `git symbolic-ref --short HEAD` != 'main' ]]; then
+  echo "Releases only triggered on the main branch. Doing nothing."
   exit 0
 fi
 
@@ -53,7 +53,7 @@ fi
 
 # there's a chance this can fail and we have a partial
 # release to Clojars. We minimize the damage by avoiding
-# pushing back to master, but there's a chance the version
+# pushing back to main, but there's a chance the version
 # was partially deployed. The correct fix (wrt clojars) is to simply
 # deploy a new version (eg., if 1.0.0 fails, try 1.0.1 next).
 ( set -x;
@@ -71,4 +71,4 @@ git add .
 git commit -m "Bump README versions for $RELEASE_VERSION"
 
 # DON'T PRINT HERE
-git push "https://${GITHUB_ACTOR}:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" master --tags
+git push "https://${GITHUB_ACTOR}:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" main --tags

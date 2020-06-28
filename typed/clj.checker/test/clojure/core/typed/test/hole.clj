@@ -11,7 +11,7 @@
 ;
 ; See: http://matthew.brecknell.net/posts/2013/02/26/hole-driven-haskell/
 ;
-; This file roughly follows the video cast with the equivalent core.typed code. Note: master branch has better error msgs for these cases, as of 0.1.7
+; This file roughly follows the video cast with the equivalent core.typed code. Note: main branch has better error msgs for these cases, as of 0.1.7
 
 ;; ## Compose
 

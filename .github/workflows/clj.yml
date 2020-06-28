@@ -47,7 +47,7 @@ jobs:
   deploy:
     needs: test
     # this doesn't work
-    #if: github.ref == 'master' && github.repository == 'typedclojure/typedclojure'
+    #if: github.ref == 'main' && github.repository == 'typedclojure/typedclojure'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2

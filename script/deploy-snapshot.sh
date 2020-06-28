@@ -7,8 +7,8 @@ if [[ "$GITHUB_ACTIONS" == 'true' && "$GITHUB_REPOSITORY" != 'typedclojure/typed
   exit 0
 fi
 
-if [[ `git symbolic-ref --short HEAD` != 'master' ]]; then
-  echo "Snapshots only deployed on the master branch. Doing nothing."
+if [[ `git symbolic-ref --short HEAD` != 'main' ]]; then
+  echo "Snapshots only deployed on the main branch. Doing nothing."
   exit 0
 fi
 

@@ -12,7 +12,7 @@ clone () {
     git clone git@github.com:typedclojure/$ARTIFACTID.git --origin typedclojure
   fi
   cd $ARTIFACTID
-  git branch --set-upstream-to typedclojure/master
+  git branch --set-upstream-to typedclojure/main
   if [ "$GROUPID" == "org.clojure" ]; then
     git remote add clojure git@github.com:clojure/$ARTIFACTID.git
   fi

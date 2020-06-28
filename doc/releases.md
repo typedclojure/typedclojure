@@ -8,7 +8,7 @@ and follow the instructions:
 ```
 
 Then push the resulting commit to `typedclojure/typedclojure` on the
-master branch.
+`main` branch.
 
 GitHub Actions will automatically deploy the release to Clojars and
 bump the pom.xml version and README.md versions.
