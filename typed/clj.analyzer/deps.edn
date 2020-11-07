@@ -21,7 +21,7 @@
            {:extra-paths ["test"]
             :extra-deps
             {org.clojure/tools.analyzer.jvm {:mvn/version "1.0.0"}
-             criterium {:mvn/version "0.4.5"}}}
+             criterium/criterium {:mvn/version "0.4.5"}}}
            :runner
            {:extra-deps {com.cognitect/test-runner
                          {:git/url "https://github.com/cognitect-labs/test-runner"

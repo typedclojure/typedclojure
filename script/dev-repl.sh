@@ -3,6 +3,6 @@
 set -e
 
 cd dev
-clj -A:merge-deps
+clj -M:merge-deps
 cd ../typed
-clj -A:nREPL:spec-skip-macros "$@"
+clj -M:nREPL:spec-skip-macros "$@"
