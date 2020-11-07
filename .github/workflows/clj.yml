@@ -31,7 +31,7 @@ jobs:
           - typed/lib.core.async
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/cache@v1
+      - uses: actions/cache@v2
         with:
           path: |
             ~/.m2/repository
@@ -61,7 +61,7 @@ jobs:
       DEPLOY_JDK: 11
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/cache@v1
+      - uses: actions/cache@v2
         with:
           path: |
             ~/.m2/repository
