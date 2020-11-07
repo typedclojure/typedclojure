@@ -10,4 +10,4 @@ if [[ -z "$PUSHER_NAME" ]]; then
 fi
 
 cd dev
-clojure -A:check-ca -m typed.dev.check-ca $PUSHER_NAME
+clojure -M:check-ca -m typed.dev.check-ca $PUSHER_NAME
