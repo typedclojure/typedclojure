@@ -1,3 +1,3 @@
 #!/bin/sh
 
-clj -Acodox:test
+clj -M:codox:test
