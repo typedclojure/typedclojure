@@ -1,7 +1,7 @@
 {:paths ["src"],
  :deps
  {org.clojure/clojure {:mvn/version "1.10.1"},
-  org.clojure/core.cache {:mvn/version "0.8.2"},
+  org.clojure/core.cache {:mvn/version "1.0.207"},
   typed.clj/analyzer {:local/root "../clj.analyzer" :deps/manifest :deps},
   typed.clj/lang {:local/root "../clj.lang" :deps/manifest :deps},
   typed.lib/clojure {:local/root "../lib.clojure" :deps/manifest :deps},
@@ -31,11 +31,13 @@
   :test
   {:extra-paths ["test" "resources"],
    :extra-deps
-   {org.clojure/tools.nrepl
+   {org.clojure/test.check
+    {:mvn/version "1.0.0"}
+    org.clojure/tools.nrepl
     {:mvn/version "0.2.6", :exclusions [org.clojure/clojure]}
     com.clojure-goes-fast/clj-java-decompiler {:mvn/version "0.3.0"}}},
   :kaocha
-  {:extra-deps {lambdaisland/kaocha {:mvn/version "0.0-590"}}}
+  {:extra-deps {lambdaisland/kaocha {:mvn/version "1.0.700"}}}
   :runner
   {:extra-deps
    {org.typedclojure/test-runner

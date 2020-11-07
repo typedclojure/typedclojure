@@ -2,7 +2,7 @@
 
 set -x
 
-#clojure -A:test:runner "$@"
+#clojure -M:test:runner "$@"
 
 #TODO figure out how to pass extra args to kaocha
-clojure -A:test:kaocha:spec-skip-macros "$@" -m kaocha.runner
+clojure -M:test:kaocha:spec-skip-macros "$@" -m kaocha.runner
