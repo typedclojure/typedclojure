@@ -57,6 +57,8 @@ jobs:
     # this doesn't work
     #if: github.ref == 'main' && github.repository == 'typedclojure/typedclojure'
     runs-on: ubuntu-18.04
+    env:
+      DEPLOY_JDK: 11
     steps:
       - uses: actions/checkout@v2
       - uses: actions/cache@v1
@@ -70,10 +72,10 @@ jobs:
             ${{ runner.os }}-deploy-deps-${{ matrix.submodule }}-${{ hashFiles('**/pom.xml') }}-
             ${{ runner.os }}-deploy-deps-${{ matrix.submodule }}-
             ${{ runner.os }}-deploy-deps-
-      - name: Set up JDK ${{ matrix.jdk }}
+      - name: Set up JDK ${{ env.DEPLOY_JDK }}
         uses: actions/setup-java@v1
         with:
-          java-version: ${{ matrix.jdk }}
+          java-version: ${{ env.DEPLOY_JDK }}
       - uses: DeLaGuardo/setup-clojure@e73bf2b
         with:
           cli: ${{ env.CLOJURE_CLI_VERSION }}
