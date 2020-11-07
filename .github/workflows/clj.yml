@@ -2,9 +2,12 @@ name: Test and deploy
 
 on: [push]
 
+env:
+  CLOJURE_CLI_VERSION: 1.10.1.727
+
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     strategy:
       matrix:
         clojure: 
@@ -38,9 +41,9 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: ${{ matrix.jdk }}
-      - uses: DeLaGuardo/setup-clojure@2.0
+      - uses: DeLaGuardo/setup-clojure@e73bf2b
         with:
-          tools-deps: latest
+          cli: ${{ env.CLOJURE_CLI_VERSION }} 
       - name: Run ${{ matrix.submodule }} tests
         run: ./script/test -Sdeps '{:deps {org.clojure/clojure {:mvn/version "${{ matrix.clojure }}"}}}'
         working-directory: ${{ matrix.submodule }}
@@ -48,7 +51,7 @@ jobs:
     needs: test
     # this doesn't work
     #if: github.ref == 'main' && github.repository == 'typedclojure/typedclojure'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
       - uses: actions/cache@v1
@@ -61,9 +64,9 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 11
-      - uses: DeLaGuardo/setup-clojure@2.0
+      - uses: DeLaGuardo/setup-clojure@e73bf2b
         with:
-          tools-deps: latest
+          cli: ${{ env.CLOJURE_CLI_VERSION }}
       - name: Configure settings.xml
         run: |
           mkdir -p ~/.m2
