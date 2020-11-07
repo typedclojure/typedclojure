@@ -243,7 +243,7 @@
       <dependency>
         <groupId>org.clojure</groupId>
         <artifactId>core.memoize</artifactId>
-        <version>0.8.2</version>
+        <version>1.0.236</version>
       </dependency>
       <dependency>
         <groupId>org.clojure</groupId>
