@@ -267,17 +267,19 @@
   [rdr _ opts]
   (let [[start-line start-column] (starting-line-col-info rdr)
         forms (read-delimited :list \) rdr opts)
-        [end-line end-column] (ending-line-col-info rdr)]
+        [end-line end-column] (ending-line-col-info rdr)
+        meta-info (when start-line
+                    (into
+                      {:line start-line
+                       :column start-column
+                       :end-line end-line
+                       :end-column end-column}
+                      (when-let [file (get-file-name rdr)]
+                        {:file file})))]
     {:op ::list
+     :pos meta-info
      :val (with-meta (forms->list forms)
-                     (when start-line
-                       (into
-                         {:line start-line
-                          :column start-column
-                          :end-line end-line
-                          :end-column end-column}
-                         (when-let [file (get-file-name rdr)]
-                           {:file file}))))
+                     meta-info)
      :forms forms}))
 
 (defn- read-vector
