@@ -23,6 +23,7 @@ jobs:
           - typed/clj.analyzer
           #- typed/cljs.checker
           - typed/clj.checker
+          - typed/clj.reader
           - typed/clj.runtime
           - typed/clj.annotator
           - typed/clj.lang
