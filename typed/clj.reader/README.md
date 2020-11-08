@@ -1,6 +1,11 @@
 # typed.clj/reader
 
-<a href='https://typedclojure.org'><img src='images/part-of-typed-clojure-project.png'></a>
+<a href='https://typedclojure.org'><img src='../../doc/images/part-of-typed-clojure-project.png'></a>
+
+<p>
+  <a href='https://www.patreon.com/ambrosebs'><img src='../../doc/images/become_a_patron_button.png'></a>
+  <a href='https://opencollective.com/typedclojure'><img src='../../doc/images/donate-to-our-collective.png'></a>
+</p>
 
 Reader for JVM Clojure.
 

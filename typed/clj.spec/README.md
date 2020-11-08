@@ -1,6 +1,6 @@
 # typed.clj/spec
 
-<a href='http://typedclojure.org'><img src='images/part-of-typed-clojure-project.png'></a>
+<a href='http://typedclojure.org'><img src='../../doc/images/part-of-typed-clojure-project.png'></a>
 
 <p>
   <a href='https://www.patreon.com/ambrosebs'><img src='../../doc/images/become_a_patron_button.png'></a>
