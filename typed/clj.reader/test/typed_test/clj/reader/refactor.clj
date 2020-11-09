@@ -23,9 +23,11 @@
   (is (= (reverse-vector "[1 #_1.5 2 3]")
          "[3 2 #_1.5 1]"))
   (is (= (reverse-vector "[1    2 3 4 5]")
-         "[5    4 3 2 1]"))
+         "[5 4 3 2    1]"))
+  ;; interesting, newline is part of comment so the preceding
+  ;; newline is swapped
   (is (= (reverse-vector "[1\n;comment\n2]")
-         "[2\n;comment\n1]")))
+         "[2;comment\n\n1]")))
 
 (defn lt->gt [s]
   (let [ast (read-string+ast s)]
@@ -98,7 +100,6 @@
                                          column end-column]} (:pos ast)]
                              (assert (= 2 (count args-poss))
                                      [forms args-poss])
-                             (prn (:pos ast))
                              {:op ::ast/list
                               :forms (into
                                        [{:op ::ast/symbol

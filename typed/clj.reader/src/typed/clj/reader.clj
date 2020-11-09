@@ -276,11 +276,11 @@
                        :end-column end-column}
                       (when-let [file (get-file-name rdr)]
                         {:file file})))]
-    {:op ::list
-     :pos meta-info
-     :val (with-meta (forms->list forms)
-                     meta-info)
-     :forms forms}))
+    (cond-> {:op ::list
+             :val (with-meta (forms->list forms)
+                             meta-info)
+             :forms forms}
+      meta-info (assoc :pos meta-info))))
 
 (defn- read-vector
   "Read in a vector, including its location if the reader is an indexing reader"
