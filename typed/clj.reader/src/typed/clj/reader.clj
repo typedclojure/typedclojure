@@ -157,7 +157,10 @@
          length (long length)]
      (loop [i 1
             uc (long (Character/digit (int initch) (int base)))
-            all (doto (StringBuilder.) (.append (str \\ prefix-no-base initch)))]
+            all (doto (StringBuilder.)
+                  (.append \\)
+                  (.append prefix-no-base)
+                  (.append initch))]
        (if (== uc -1)
          (err/throw-invalid-unicode-digit rdr initch)
          (if-not (== i length)
