@@ -51,6 +51,23 @@ Latest stable release is 1.0.12.
 
 TODO
 
+### Related work
+
+@borkdude on #core-typed
+```
+I've also been doing something like this in edamame (also based on tools.reader), which is powering sci. Although it doesn't output an AST, it can include the original source string, so you can match on this in grasp:
+https://github.com/borkdude/grasp#matching-on-source-string
+It's basically read+string but also for all the inner nodes (edited) 
+5:32
+I've been considering outputting an AST, which could be useful for sci, but currently it doesn't need one really. And whitespace hasn't really been a concern.
+5:34
+Someone commented at the sci repo that with a tools.analyzer-like AST there could be some optimizations but I currently don't see how an AST instead of sexpr adds more information to do optimizations. I'll be keeping an eye on this to learn more. Thanks!
+5:34
+Currently you can output as AST-like thing with edamame using the :postprocess hook which allows you to wrap the node (and source string and location) into a container to preserve more info (like saving locations for keywords) (edited) 
+5:37
+Another interesting rewrite-clj alternative is https://github.com/carocad/parcera which is based on ANTLR (edited) 
+```
+
 ## License
 
 Copyright © Ambrose Bonnaire-Sergeant, Rich Hickey & contributors.
