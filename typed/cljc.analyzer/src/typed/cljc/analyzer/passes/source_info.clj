@@ -12,7 +12,7 @@
 
 (defn -merge-source-info [source-info]
   (fn [ast]
-    (update-in ast [:env] merge' source-info)))
+    (update ast :env merge' source-info)))
 
 (defn source-info
   "Adds (when available) :line, :column, :end-line, :end-column and :file info to the AST :env"
