@@ -91,11 +91,15 @@
                           (refactor-form* rdr-ast opt))))
     @file-map-atom))
 
-(defn- fq-rdr-ast [rdr-ast file-map]
-  (let [fq-forms (fn [forms]
-                   (mapv #(fq-rdr-ast % file-map) forms))]
+(defn- fq-rdr-ast [rdr-ast file-map opt]
+  (let [fq-forms (fn fq-forms
+                   ([forms] (fq-forms forms opt))
+                   ([forms opt]
+                    (mapv #(fq-rdr-ast % file-map opt) forms)))]
     (case (:op rdr-ast)
-      (::rdr/whitespace ::rdr/number ::rdr/keyword ::rdr/syntax-quote) rdr-ast
+      (::rdr/whitespace ::rdr/number ::rdr/keyword) rdr-ast
+      ::rdr/syntax-quote (update rdr-ast :forms fq-forms (assoc opt :syntax-quote true))
+      ::rdr/unquote (update rdr-ast :forms fq-forms (dissoc opt :syntax-quote))
       (::rdr/list ::rdr/vector ::rdr/map) (update rdr-ast :forms fq-forms)
       ::rdr/symbol (let [{:keys [val]} rdr-ast]
                      (if-let [mapped (file-map (select-keys (meta val) [:line :column
@@ -114,7 +118,7 @@
                       (indexing-push-back-reader 1 "example.clj"))]
     (let [{form :val :as rdr-ast} (rdr/read+ast rdr)
           fm (file-map form rdr-ast opt)
-          fq-string (rdr/ast->string (fq-rdr-ast rdr-ast fm))]
+          fq-string (rdr/ast->string (fq-rdr-ast rdr-ast fm {}))]
       fq-string)))
 
 (comment
@@ -125,6 +129,9 @@
   (refactor-form-string "(merge {+ 1 :b 2} {:c 3 :d 4})" {})
   (refactor-form-string "(fn [])" {})
   (refactor-form-string "(fn [a] (a))" {})
+  (refactor-form-string "(fn [a] (+ a 3))" {})
+  (refactor-form-string "(defn foo [a] (+ a 3))" {})
+  (refactor-form-string "(defmacro foo [a] `(+ ~a 3))" {})
   (refactor-form-string "(str (fn []))" {})
   (refactor-form-string "`fn" {})
   )
