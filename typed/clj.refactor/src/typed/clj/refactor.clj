@@ -99,7 +99,7 @@
     (case (:op rdr-ast)
       (::rdr/whitespace ::rdr/number ::rdr/keyword) rdr-ast
       ::rdr/syntax-quote (update rdr-ast :forms fq-forms (assoc opt :syntax-quote true))
-      ::rdr/unquote (update rdr-ast :forms fq-forms (dissoc opt :syntax-quote))
+      (::rdr/unquote ::rdr/unquote-splicing) (update rdr-ast :forms fq-forms (dissoc opt :syntax-quote))
       (::rdr/list ::rdr/vector ::rdr/map) (update rdr-ast :forms fq-forms)
       ::rdr/symbol (let [{:keys [val]} rdr-ast]
                      (if-let [mapped (file-map (select-keys (meta val) [:line :column
@@ -132,6 +132,7 @@
   (refactor-form-string "(fn [a] (+ a 3))" {})
   (refactor-form-string "(defn foo [a] (+ a 3))" {})
   (refactor-form-string "(defmacro foo [a] `(+ ~a 3))" {})
+  (refactor-form-string "(defmacro foo [a] `(+ ~@a 3))" {})
   (refactor-form-string "(str (fn []))" {})
   (refactor-form-string "`fn" {})
   )
