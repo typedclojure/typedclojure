@@ -46,7 +46,7 @@
 ;; of (fully expanded) AST node.
 ;; 
 ;; See typed.clj.checker.check/-check for a real example.
-(defmulti -check ::ana2/op)
+(defmulti -check (fn [expr expected] (::ana2/op expr)))
 
 (defn type-for-val [v] :any)
 
