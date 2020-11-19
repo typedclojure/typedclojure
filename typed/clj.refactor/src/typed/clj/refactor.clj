@@ -172,6 +172,7 @@
       (::rdr/whitespace ::rdr/number ::rdr/keyword) rdr-ast
       ::rdr/syntax-quote (update rdr-ast :forms fq-forms (assoc opt :syntax-quote true))
       (::rdr/unquote ::rdr/unquote-splicing) (update rdr-ast :forms fq-forms (dissoc opt :syntax-quote))
+      ;; TODO lookup :vector-destructure and :map-destructure in file map
       (::rdr/list ::rdr/vector ::rdr/map) (update rdr-ast :forms fq-forms)
       ::rdr/symbol (let [{:keys [val]} rdr-ast]
                      (if-let [mapped (file-map (select-keys (meta val) [:line :column
