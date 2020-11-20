@@ -78,7 +78,7 @@
                                          :end-line :end-column
                                          :file])
                            [:vector-destructure b]))
-                  (run! #(destructure-keys->explicit % file-map-atom) b))
+                  (run! #(record-destructuring % file-map-atom) b))
     (map? b) (do
                (when (seq (meta b))
                  (swap! file-map-atom assoc
