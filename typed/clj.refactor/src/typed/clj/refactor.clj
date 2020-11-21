@@ -190,38 +190,62 @@
     @file-map-atom))
 
 ;; pre pass
-(defn fq-rdr-ast [rdr-ast file-map opt]
-  (case (:op rdr-ast)
-    ::rdr/symbol (let [{:keys [val]} rdr-ast]
-                   (if-let [mapped (file-map (select-keys (meta val) [:line :column
-                                                                      :end-line :end-column
-                                                                      :file]))]
-                     (case (first mapped)
-                       :var (assoc rdr-ast :string (str (:sym (second mapped))))
-                       (:local :binding) (let [info (second mapped)
-                                               wrap-discard (fn [sym-ast]
-                                                              {:op ::rdr/forms
-                                                               :forms [{:op ::rdr/discard
-                                                                        :forms [{:op ::rdr/keyword
-                                                                                 :string (str (symbol (:local info)))
-                                                                                 :val (keyword (:local info))}]}
-                                                                       {:op ::rdr/whitespace
-                                                                        :string " "}
-                                                                       sym-ast]})
-                                               sym-ast (cond-> (assoc rdr-ast :string (-> info :name str))
-                                                         (:add-local-origin opt)
-                                                         wrap-discard)]
-                                           (if-some [tag (:inferred-tag info)]
-                                             {:op ::rdr/meta
-                                              :val (vary-meta (:val sym-ast) assoc :tag tag)
-                                              :forms [{:op ::rdr/symbol
-                                                       :string (str tag)
-                                                       :val tag}
+(defn fq-rdr-ast [rdr-ast opt]
+  (let [file-map (if (:top-level rdr-ast)
+                   (file-map (:val rdr-ast) rdr-ast opt)
+                   (::file-map rdr-ast))
+        _ (prn file-map)
+        _ (assert (map? file-map) [((juxt :op :string) rdr-ast)
+                                   file-map])
+        assoc-file-map #(assoc % ::file-map file-map)
+        rdr-ast (case (:op rdr-ast)
+                  ::rdr/symbol
+                  (let [{:keys [val]} rdr-ast]
+                    (if-let [mapped (file-map (select-keys (meta val) [:line :column
+                                                                       :end-line :end-column
+                                                                       :file]))]
+                      (case (first mapped)
+                        :var (-> rdr-ast
+                                 (assoc :string (str (:sym (second mapped))))
+                                 assoc-file-map)
+                        (:local :binding)
+                        (let [info (second mapped)
+                              wrap-discard (fn [sym-ast]
+                                             {:op ::rdr/forms
+                                              :forms [{:op ::rdr/discard
+                                                       ::file-map file-map
+                                                       :forms [{:op ::rdr/keyword
+                                                                ::file-map file-map
+                                                                :string (str (symbol (:local info)))
+                                                                :val (keyword (:local info))}]}
                                                       {:op ::rdr/whitespace
+                                                       ::file-map file-map
                                                        :string " "}
-                                                      sym-ast]}
-                                             sym-ast)))
-                     rdr-ast))
+                                                      sym-ast]})
+                              sym-ast (cond-> (assoc rdr-ast
+                                                     :string (-> info :name str)
+                                                     ::file-map file-map)
+                                        (:add-local-origin opt)
+                                        wrap-discard)]
+                          (if-some [tag (:inferred-tag info)]
+                            {:op ::rdr/meta
+                             ::file-map file-map
+                             :val (vary-meta (:val sym-ast) assoc :tag tag)
+                             :forms [{:op ::rdr/symbol
+                                      ::file-map file-map
+                                      :string (str tag)
+                                      :val tag}
+                                     {:op ::rdr/whitespace
+                                      ::file-map file-map
+                                      :string " "}
+                                     sym-ast]}
+                            sym-ast)))
+                      (-> rdr-ast
+                          assoc-file-map
+                          (update-rdr-children #(assoc % ::file-map file-map)))))
+                  (-> rdr-ast
+                      assoc-file-map
+                      (update-rdr-children #(assoc % ::file-map file-map))))]
     rdr-ast))
 
 ;; pre pass
@@ -308,10 +332,7 @@
                  (not (:file-map-atom opt)) (assoc :file-map-atom (atom {})))
            ;; left-to-right order
            pre-passes (filterv identity
-                               [(fn [{form :val :as rdr-ast}]
-                                  (fq-rdr-ast rdr-ast
-                                              (file-map form rdr-ast opt)
-                                              opt))
+                               [#(fq-rdr-ast % opt)
                                 (when (:delete-discard opt)
                                   delete-discard)
                                 (when (:indent-by opt)
@@ -383,5 +404,6 @@
   (println
     (refactor-form-string "(map #(\n+ 1 2))"
                           {:reformat true}))
-  (refactor-form-string "1 2 3")
+  (println
+    (refactor-form-string "1\n2\n3"))
   )
