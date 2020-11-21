@@ -379,7 +379,10 @@
    (indexing-push-back-reader s-or-rdr buf-len nil))
   ([s-or-rdr buf-len file-name]
    (IndexingPushbackReader.
-    (to-pbr s-or-rdr buf-len) 1 1 true nil 0 file-name false)))
+    (to-pbr s-or-rdr buf-len) 1 1 true nil 0 file-name false))
+  ([s-or-rdr buf-len file-name {:keys [line column] :or {line 1 column 1}}]
+   (IndexingPushbackReader.
+    (to-pbr s-or-rdr buf-len) line column (= 1 column) nil (dec column) file-name false)))
 
 (defn ^Closeable source-logging-push-back-reader
   "Creates a SourceLoggingPushbackReader from a given string or PushbackReader"

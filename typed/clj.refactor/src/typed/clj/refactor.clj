@@ -254,7 +254,13 @@
                                        ;; actual place in file
                                        :forms (:forms rdr-ast)}
                                       rdr/ast->string
-                                      rdr/read-string)
+                                      (indexing-push-back-reader
+                                        1
+                                        "example.clj"
+                                        (select-keys
+                                          (meta (-> rdr-ast :forms first :val))
+                                          [:line :column]))
+                                      rdr/read)
                              fm (file-map form
                                           rdr-ast
                                           opt)]
