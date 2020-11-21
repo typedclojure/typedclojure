@@ -189,95 +189,104 @@
                           (refactor-form* rdr-ast opt))))
     @file-map-atom))
 
-(defn- fq-rdr-ast [rdr-ast file-map opt]
-  (let [fq-form (fn
-                   ([form]     (fq-rdr-ast form file-map opt))
-                   ([form opt] (fq-rdr-ast form file-map opt)))]
-    (case (:op rdr-ast)
-      ::rdr/discard (if (:delete-discard opt)
-                      {:op ::rdr/forms
-                       ::delete-preceding-whitespace true
-                       :forms []}
-                      (update-rdr-children rdr-ast fq-form))
-      ::rdr/symbol (let [{:keys [val]} rdr-ast]
-                     (if-let [mapped (file-map (select-keys (meta val) [:line :column
-                                                                        :end-line :end-column
-                                                                        :file]))]
-                       (case (first mapped)
-                         :var (assoc rdr-ast :string (str (:sym (second mapped))))
-                         (:local :binding) (let [info (second mapped)
-                                                 wrap-discard (fn [sym-ast]
-                                                                {:op ::rdr/forms
-                                                                 :forms [{:op ::rdr/discard
-                                                                          :forms [{:op ::rdr/keyword
-                                                                                   :string (str (symbol (:local info)))
-                                                                                   :val (keyword (:local info))}]}
-                                                                         {:op ::rdr/whitespace
-                                                                          :string " "}
-                                                                         sym-ast]})
-                                                 sym-ast (cond-> (assoc rdr-ast :string (-> info :name str))
-                                                           (:add-local-origin opt)
-                                                           wrap-discard)]
-                                             (if-some [tag (:inferred-tag info)]
-                                               {:op ::rdr/meta
-                                                :val (vary-meta (:val sym-ast) assoc :tag tag)
-                                                :forms [{:op ::rdr/symbol
-                                                         :string (str tag)
-                                                         :val tag}
-                                                        {:op ::rdr/whitespace
-                                                         :string " "}
-                                                        sym-ast]}
-                                               sym-ast)))
-                       rdr-ast))
-      (update-rdr-children rdr-ast fq-form))))
+;; pre pass
+(defn fq-rdr-ast [rdr-ast file-map opt]
+  (case (:op rdr-ast)
+    ::rdr/symbol (let [{:keys [val]} rdr-ast]
+                   (if-let [mapped (file-map (select-keys (meta val) [:line :column
+                                                                      :end-line :end-column
+                                                                      :file]))]
+                     (case (first mapped)
+                       :var (assoc rdr-ast :string (str (:sym (second mapped))))
+                       (:local :binding) (let [info (second mapped)
+                                               wrap-discard (fn [sym-ast]
+                                                              {:op ::rdr/forms
+                                                               :forms [{:op ::rdr/discard
+                                                                        :forms [{:op ::rdr/keyword
+                                                                                 :string (str (symbol (:local info)))
+                                                                                 :val (keyword (:local info))}]}
+                                                                       {:op ::rdr/whitespace
+                                                                        :string " "}
+                                                                       sym-ast]})
+                                               sym-ast (cond-> (assoc rdr-ast :string (-> info :name str))
+                                                         (:add-local-origin opt)
+                                                         wrap-discard)]
+                                           (if-some [tag (:inferred-tag info)]
+                                             {:op ::rdr/meta
+                                              :val (vary-meta (:val sym-ast) assoc :tag tag)
+                                              :forms [{:op ::rdr/symbol
+                                                       :string (str tag)
+                                                       :val tag}
+                                                      {:op ::rdr/whitespace
+                                                       :string " "}
+                                                      sym-ast]}
+                                             sym-ast)))
+                     rdr-ast))
+    rdr-ast))
 
 ;; pre pass
-(defn indent-by [rdr-ast indent top-level?]
-  (let [indent-by (fn
-                    ([rdr-ast] (indent-by rdr-ast indent false)))]
-    (case (:op rdr-ast)
-      ::rdr/whitespace (update rdr-ast :string
-                               str/replace "\n" (str "\n" (apply str (repeat indent \space))))
-      (let [do-rdr-ast #(update-rdr-children rdr-ast indent-by)]
-        (if top-level?
-          {:op ::rdr/forms
-           :forms [{:op ::rdr/whitespace
-                    :string (apply str (repeat indent \space))}
-                   (do-rdr-ast)]}
-          (do-rdr-ast))))))
+(defn indent-by [{:keys [top-level] :as rdr-ast} indent]
+  (case (:op rdr-ast)
+    ::rdr/whitespace (update rdr-ast :string
+                             str/replace "\n" (str "\n" (apply str (repeat indent \space))))
+    (cond-> rdr-ast
+      top-level
+      #(do {:op ::rdr/forms
+            :forms [{:op ::rdr/whitespace
+                     :string (apply str (repeat indent \space))}
+                    %]}))))
+
+;; pre-pass
+;; - must be followed by delete-orphan-whitespace
+(defn delete-discard [rdr-ast]
+  (case (:op rdr-ast)
+    ::rdr/discard {:op ::rdr/forms
+                   ::delete-preceding-whitespace true
+                   :forms []}
+    rdr-ast))
+
+(defn compile-passes [pre post]
+  (fn r [rdr-ast]
+    (-> rdr-ast
+        pre
+        (update-rdr-children r)
+        post)))
 
 ;; post pass
-;; - depends on fq-rdr-ast
-(defn delete-orphan-whitespace [rdr-ast]
-  (if-not (seq (:forms rdr-ast))
-    rdr-ast
-    (let [{:keys [forms] :as rdr-ast} (update-rdr-children rdr-ast delete-orphan-whitespace)
-          forms (reduce (fn [forms i]
-                          (if (zero? i)
-                            ;; propagate up to parent
-                            forms
-                            (cond-> forms
-                              (::delete-preceding-whitespace (nth forms i))
-                              (-> (update i dissoc ::delete-preceding-whitespace)
-                                  (update (dec i)
-                                          (fn [maybe-ws]
-                                            (prn `delete-orphan-whitespace (:op maybe-ws))
-                                            (case (:op maybe-ws)
-                                              ::rdr/whitespace
-                                              (update maybe-ws :string
-                                                      ;; TODO review docs to see if this does the
-                                                      ;; right thing
-                                                      (fn [s]
-                                                        (prn 's s (str/trimr s))
-                                                        (str/trimr s)))
-                                              ;; no preceding whitespace
-                                              maybe-ws)))))))
-                        forms
-                        (range (count forms)))]
-      (cond-> (assoc rdr-ast :forms forms)
-        (-> forms (nth 0) ::delete-preceding-whitespace)
-        (-> (assoc ::delete-preceding-whitespace true)
-            (update-in [:forms 0] dissoc ::delete-preceding-whitespace))))))
+;; - depends on delete-discard
+(defn delete-orphan-whitespace [{:keys [forms] :as rdr-ast}]
+  (let [forms (reduce (fn [forms i]
+                        (if (zero? i)
+                          ;; propagate up to parent
+                          forms
+                          (cond-> forms
+                            (::delete-preceding-whitespace (nth forms i))
+                            (-> (update i dissoc ::delete-preceding-whitespace)
+                                (update (dec i)
+                                        (fn [maybe-ws]
+                                          (case (:op maybe-ws)
+                                            ::rdr/whitespace
+                                            (update maybe-ws :string
+                                                    ;; TODO review docs to see if this does the
+                                                    ;; right thing
+                                                    (fn [s]
+                                                      (prn 's s (str/trimr s))
+                                                      (str/trimr s)))
+                                            ;; no preceding whitespace
+                                            maybe-ws)))))))
+                      forms
+                      (range (count forms)))]
+    (cond-> (assoc rdr-ast :forms forms)
+      (and (pos? (count forms))
+           (-> forms (nth 0) ::delete-preceding-whitespace))
+      (-> (assoc ::delete-preceding-whitespace true)
+          (update-in [:forms 0] dissoc ::delete-preceding-whitespace)))))
+
+(defn reformat-rdr-ast-pre [rdr-ast opt]
+  rdr-ast)
+
+(defn reformat-rdr-ast-post [rdr-ast opt]
+  rdr-ast)
 
 (defn refactor-form-string [s opt]
   {:pre [(string? s)]}
@@ -291,13 +300,24 @@
           opt (cond-> opt
                 (not (:file-map-atom opt)) (assoc :file-map-atom (atom {})))
           fm (file-map form rdr-ast opt)
-          passes (apply comp 
-                        (keep identity
-                              [(when (:delete-discard opt)
-                                 delete-orphan-whitespace)
+          ;; left-to-right order
+          pre-passes (filterv identity
+                              [#(fq-rdr-ast % fm opt)
+                               (when (:delete-discard opt)
+                                 delete-discard)
                                (when (:indent-by opt)
-                                 #(indent-by % 2 true))
-                               #(fq-rdr-ast % fm opt)]))
+                                 #(indent-by % 2))
+                               (when (:reformat opt)
+                                 #(reformat-rdr-ast-pre % opt))])
+          ;; left-to-right order
+          post-passes (filterv identity
+                               [(when (:delete-discard opt)
+                                  delete-orphan-whitespace)
+                                (when (:reformat opt)
+                                  #(reformat-rdr-ast-post % opt))])
+          passes (compile-passes (apply comp (rseq pre-passes))
+                                 (apply comp (rseq post-passes)))
+                              
           fq-string (rdr/ast->string (passes rdr-ast))]
       fq-string)))
 
@@ -349,5 +369,5 @@
                           {:indent-by true}))
   (println
     (refactor-form-string "(map #(\n+ 1 2))"
-                          {}))
+                          {:reformat true}))
   )

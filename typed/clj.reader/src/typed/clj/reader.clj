@@ -41,7 +41,7 @@
          ^:dynamic *suppress-read*
          default-data-readers)
 
-(defn- forms-ast [forms]
+(defn- top-level-forms-ast [forms]
   {:pre [(vector? forms)
          (not= 0 (count forms))]
    :post [(or (and (map? %)
@@ -49,14 +49,15 @@
                    (or (contains? % :val)
                        (:eof %)))
               (assert nil (pr-str %)))]}
-  (if (= 1 (count forms))
-    (nth forms 0)
-    (into {:op ::forms
-           :forms (into [] (map (fn [m]
-                                  ;(assert (not (#{::forms} (:op m))) m)
-                                  (dissoc m :read-finished)))
-                        forms)}
-          (select-keys (peek forms) [:val :eof :read-finished]))))
+  (-> (if (= 1 (count forms))
+        (nth forms 0)
+        (into {:op ::forms
+               :forms (into [] (map (fn [m]
+                                      ;(assert (not (#{::forms} (:op m))) m)
+                                      (dissoc m :read-finished)))
+                            forms)}
+              (select-keys (peek forms) [:val :eof :read-finished])))
+      (assoc :top-level true)))
 
 (defn- ^PersistentVector forms->vals [forms]
   {:pre [(vector? forms)]
@@ -1264,7 +1265,7 @@
    (when (source-logging-reader? reader)
      (let [^StringBuilder buf (:buffer @(.source-log-frames ^SourceLoggingPushbackReader reader))]
        (.setLength buf 0)))
-   (forms-ast
+   (top-level-forms-ast
      (read* reader eof-error? opts))))
 
 (defn read
