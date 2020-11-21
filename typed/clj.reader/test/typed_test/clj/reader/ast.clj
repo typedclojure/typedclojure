@@ -29,10 +29,12 @@
 
 (deftest read-forms
   (is (= {:op ::ast/symbol,
+          :top-level true
           :string "a",
           :val 'a}
          (read-string+ast "a b")))
   (is (= {:op ::ast/forms,
+          :top-level true
           :val 'a
           :forms [{:op ::ast/whitespace,
                    :string " "}
@@ -43,40 +45,49 @@
 
 (deftest read-keyword
   (is (= {:op ::ast/keyword
+          :top-level true
           :string "foo-bar"
           :val :foo-bar}
          (read-string+ast ":foo-bar")))
   (is (= {:op ::ast/keyword
+          :top-level true
           :string "foo/bar"
           :val :foo/bar}
          (read-string+ast ":foo/bar")))
   (is (= {:op ::ast/auto-keyword
+          :top-level true
           :string "foo-bar"
           :val :user/foo-bar}
          (binding [*ns* (the-ns 'user)]
            (read-string+ast "::foo-bar"))))
   (is (= {:op ::ast/auto-keyword
+          :top-level true
           :string "core/foo-bar"
           :val :clojure.core/foo-bar}
          (do (alias 'core 'clojure.core)
              (read-string+ast "::core/foo-bar"))))
   (is (= {:op ::ast/keyword
+          :top-level true
           :string "*+!-_?"
           :val :*+!-_?}
          (read-string+ast ":*+!-_?")))
   (is (= {:op ::ast/keyword
+          :top-level true
           :string "abc:def:ghi"
           :val :abc:def:ghi}
          (read-string+ast ":abc:def:ghi")))
   (is (= {:op ::ast/keyword
+          :top-level true
           :string "abc.def/ghi"
           :val :abc.def/ghi}
          (read-string+ast ":abc.def/ghi")))
   (is (= {:op ::ast/keyword
+          :top-level true
           :string "abc/def.ghi"
           :val :abc/def.ghi}
          (read-string+ast ":abc/def.ghi")))
   (is (= {:op ::ast/keyword
+          :top-level true
           :string "abc:def/ghi:jkl.mno"
           :val :abc:def/ghi:jkl.mno}
          (read-string+ast ":abc:def/ghi:jkl.mno")))
@@ -85,6 +96,7 @@
 (defn number-test-case [v string]
   (let [m (read-string+ast string)]
     (is (= {:op ::ast/number
+            :top-level true
             :string string
             :val v}
            m))
@@ -279,6 +291,7 @@
 (defn symbol-test-case [v string]
   (let [m (read-string+ast string)]
     (is (= {:op ::ast/symbol
+            :top-level true
             :string string
             :val v}
            m))
@@ -287,6 +300,7 @@
 (defn symbolic-value-test-case [v string]
   (let [m (read-string+ast string)]
     (is (= {:op ::ast/symbolic-value
+            :top-level true
             :string (subs string 2)
             :val v}
            m))
@@ -305,6 +319,7 @@
   ;; workaround NaN equality
   (let [m (read-string+ast "##NaN")]
     (is (= {:op ::ast/symbolic-value
+            :top-level true
             :string "NaN"}
            (dissoc m :val)))
     (is (Double/isNaN (:val m))))
@@ -314,13 +329,16 @@
 
 (deftest read-specials
   (is (= {:op ::ast/nil
+          :top-level true
           :val nil}
          (read-string+ast "nil")))
   (is (= {:op ::ast/boolean
+          :top-level true
           :string "false"
           :val false}
          (read-string+ast "false")))
   (is (= {:op ::ast/boolean
+          :top-level true
           :string "true"
           :val true}
          (read-string+ast "true"))))
@@ -328,6 +346,7 @@
 (defn character-test-case [v string]
   (let [m (read-string+ast string)]
     (is (= {:op ::ast/character
+            :top-level true
             :string (subs string 1)
             :val v}
            m))
@@ -356,6 +375,7 @@
 (defn string-test-case [v string]
   (let [m (read-string+ast string)]
     (is (= {:op ::ast/string
+            :top-level true
             :string (subs string 1 (dec (count string)))
             :val v}
            m))
@@ -374,11 +394,13 @@
 
 (deftest read-list
   (is (= {:op ::ast/list
+          :top-level true
           :val '()
           :forms []}
          (read-string+ast "()")))
   (is (seq? (:val (read-string+ast "()"))))
   (is (= {:op ::ast/list,
+          :top-level true
           :val '(foo bar)
           :forms [{:op ::ast/symbol,
                    :string "foo",
@@ -390,6 +412,7 @@
                    :val 'bar}]}
          (read-string+ast "(foo bar)")))
   (is (= {:op ::ast/list,
+          :top-level true
           :val '(foo (bar) baz)
           :forms [{:op ::ast/symbol,
                    :string "foo",
@@ -410,11 +433,13 @@
 
 (deftest read-vector
   (is (= {:op ::ast/vector
+          :top-level true
           :val '[]
           :forms []}
          (read-string+ast "[]")))
   (is (vector? (:val (read-string+ast "[]"))))
   (is (= {:op ::ast/vector,
+          :top-level true
           :val '[foo bar]
           :forms [{:op ::ast/symbol,
                    :string "foo",
@@ -426,6 +451,7 @@
                    :val 'bar}]}
          (read-string+ast "[foo bar]")))
   (is (= {:op ::ast/vector,
+          :top-level true
           :val '[foo [bar] baz]
           :forms [{:op ::ast/symbol,
                    :string "foo",
@@ -446,10 +472,12 @@
 
 (deftest read-map
   (is (= {:op ::ast/map
+          :top-level true
           :val '{}
           :forms []}
          (read-string+ast "{}")))
   (is (= {:op ::ast/map
+          :top-level true
           :val '{foo bar}
           :forms [{:op ::ast/symbol,
                    :string "foo",
@@ -461,6 +489,7 @@
                    :val 'bar}]}
          (read-string+ast "{foo bar}")))
   (is (= {:op ::ast/map,
+          :top-level true
           :val '{foo {bar baz}}
           :forms [{:op ::ast/symbol,
                    :string "foo",
@@ -481,10 +510,12 @@
 
 (deftest read-set
   (is (= {:op ::ast/set
+          :top-level true
           :val '#{}
           :forms []}
          (read-string+ast "#{}")))
   (is (= {:op ::ast/set
+          :top-level true
           :val '#{foo bar}
           :forms [{:op ::ast/symbol,
                    :string "foo",
@@ -496,6 +527,7 @@
                    :val 'bar}]}
          (read-string+ast "#{foo bar}")))
   (is (= {:op ::ast/set
+          :top-level true
           :val '#{foo #{bar} baz}
           :forms [{:op ::ast/symbol,
                    :string "foo",
@@ -516,6 +548,7 @@
 
 (deftest read-metadata
   (is (= {:op ::ast/meta
+          :top-level true
           :forms [{:op ::ast/keyword,
                    :string "foo",
                    :val :foo}
@@ -530,6 +563,7 @@
          (read-string+ast "^:foo 'bar")))
   (is (= {:foo true} (meta (:val (read-string+ast "^:foo 'bar")))))
   (is (= {:op ::ast/meta
+          :top-level true
           :forms [{:op ::ast/map,
                    :forms [{:op ::ast/keyword
                             :string "foo"
@@ -551,6 +585,7 @@
          (read-string+ast "^{:foo bar} 'baz")))
   (is (= {:foo 'bar} (meta (:val (read-string+ast "^{:foo bar} 'baz")))))
   (is (= {:op ::ast/meta
+          :top-level true
           :forms [{:op ::ast/string
                    :string "foo"
                    :val "foo"}
@@ -565,6 +600,7 @@
          (read-string+ast "^\"foo\" 'bar")))
   (is (= {:tag "foo"} (meta (:val (read-string+ast "^\"foo\" 'bar")))))
   (is (= {:op ::ast/meta
+          :top-level true
           :forms [{:op ::ast/symbol
                    :string "String"
                    :val 'String}
@@ -581,6 +617,7 @@
 
 (deftest read-namespaced-map
   (is (= {:op ::ast/namespaced-map
+          :top-level true
           :forms [{:op ::ast/symbol :string "foo" :val 'foo}
                   {:op ::ast/map
                    :forms [{:op ::ast/keyword
@@ -600,6 +637,7 @@
           :val {:foo/bar 1, :baz 2}}
         (read-string+ast "#:foo{:bar 1 :_/baz 2}")))
   (is (= {:op ::ast/namespaced-map
+          :top-level true
           :forms [{:op ::ast/symbol :string "foo" :val 'foo}
                   {:op ::ast/whitespace, :string " "}
                   {:op ::ast/map
@@ -620,6 +658,7 @@
           :val {:foo/bar 1, :baz 2}}
         (read-string+ast "#:foo {:bar 1 :_/baz 2}")))
   (is (= {:op ::ast/namespaced-map
+          :top-level true
           :forms [{:op ::ast/symbol :string "foo" :val 'foo}
                   {:op ::ast/whitespace, :string ",,"}
                   {:op ::ast/map
@@ -640,6 +679,7 @@
           :val '{foo/bar 1, :baz 2}}
          (read-string+ast "#:foo,,{bar 1 :_/baz 2}")))
   (is (= {:op ::ast/auto-namespaced-map
+          :top-level true
           :forms [{:op ::ast/map
                    :forms [{:op ::ast/symbol
                             :string "bar"
@@ -659,6 +699,7 @@
          (binding [*ns* (the-ns 'user)]
            (read-string+ast "#::{bar 1 :_/baz 2}"))))
   (is (= {:op ::ast/auto-namespaced-map
+          :top-level true
           :forms [{:op ::ast/symbol
                    :string "core"
                    :val 'clojure.core}
@@ -684,10 +725,12 @@
 
 (deftest read-comment
   (is (= {:op ::ast/comment
+          :top-level true
           :string "asdf"
           :eof true}
          (read-string+ast {} false ";asdf")))
   (is (= {:op ::ast/forms
+          :top-level true
           :eof true
           :forms [{:op ::ast/comment
                    :string "asdf\n"}
@@ -696,10 +739,12 @@
                    :forms []}]}
          (read-string+ast {} false ";asdf\n")))
   (is (= {:op ::ast/comment
+          :top-level true
           :eof true
           :string "asdf\\n"}
          (read-string+ast {} false ";asdf\\n")))
   (is (= {:op ::ast/forms
+          :top-level true
           :eof true
           :forms [{:op ::ast/comment
                    :string "asdf\n"}
@@ -708,6 +753,7 @@
                    :eof true}]}
          (read-string+ast {} false ";asdf\n\n")))
   (is (= {:op ::ast/vector
+          :top-level true
           :forms [{:op ::ast/whitespace
                    :string " "}
                   {:op ::ast/comment
@@ -720,6 +766,7 @@
 
 (deftest read-discard-test
   (is (= {:op ::ast/forms
+          :top-level true
           :forms [{:op ::ast/discard
                    :forms [{:op ::ast/whitespace, :string " "}
                            {:op ::ast/number
@@ -732,6 +779,7 @@
           :val 2}
          (read-string+ast "#_ 1 2")))
   (is (= {:op ::ast/forms
+          :top-level true
           :forms [{:op ::ast/discard
                    :forms [{:op ::ast/number
                             :string "1"
@@ -744,6 +792,7 @@
 
 (deftest read-syntax-quote-test
   (is (= {:op ::ast/syntax-quote
+          :top-level true
           :forms [{:op ::ast/symbol
                    :string "a"
                    :val 'a}]
@@ -751,6 +800,7 @@
          (binding [*ns* (the-ns 'user)]
            (read-string+ast "`a"))))
   (is (= {:op ::ast/syntax-quote
+          :top-level true
           :forms [{:op ::ast/list
                    :forms [{:op ::ast/unquote-splicing
                             :forms [{:op ::ast/vector
@@ -782,10 +832,12 @@
 
 (deftest read-regex-test
   (regex-test-case {:op ::ast/regex
+                    :top-level true
                     :string "a"
                     :val #"a"}
                    "#\"a\"")
   (regex-test-case {:op ::ast/regex
+                    :top-level true
                     :string "a \n \n"
                     :val #"a"}
                    "#\"a \n \n\""))
@@ -799,6 +851,7 @@
 (deftest read-cond-test
   (cond-test-case {:read-cond :allow :features #{:clj}}
                   {:op ::ast/cond
+                   :top-level true
                    :forms [{:op ::ast/list
                             :val '(:clj 1)
                             :forms [{:op ::ast/keyword
@@ -812,6 +865,7 @@
                   "#?(:clj 1)")
   (cond-test-case {:read-cond :allow :features #{:clj}}
                   {:op ::ast/cond
+                   :top-level true
                    :forms [{:op ::ast/whitespace :string " "}
                            {:op ::ast/list
                             :val '(:clj 1)
@@ -826,6 +880,7 @@
                   "#? (:clj 1)")
   (cond-test-case {:read-cond :allow :features #{:clj}}
                   {:op ::ast/list
+                   :top-level true
                    :forms [{:op ::ast/cond-splicing
                             :forms [{:op ::ast/whitespace
                                      :string " "}

@@ -283,7 +283,10 @@
           (update-in [:forms 0] dissoc ::delete-preceding-whitespace)))))
 
 (defn reformat-rdr-ast-pre [rdr-ast opt]
-  rdr-ast)
+  (case (:op rdr-ast)
+    ::rdr/whitespace {:op ::rdr/forms
+                      :forms []}
+    rdr-ast))
 
 (defn reformat-rdr-ast-post [rdr-ast opt]
   rdr-ast)
