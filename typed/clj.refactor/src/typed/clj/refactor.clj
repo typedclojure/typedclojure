@@ -86,6 +86,17 @@
              [:var {:sym (symbol var)}])))
   expr)
 
+(defmethod -refactor-form* ::ana-cljc/the-var
+  [{:keys [form var] :as expr} rdr-ast {:keys [file-map-atom] :as opt}]
+  (let [mta (meta (second form))]
+    (when ((every-pred :line :column) mta)
+      (swap! file-map-atom assoc
+             (select-keys mta [:line :column
+                               :end-line :end-column
+                               :file])
+             [:var {:sym (symbol var)}])))
+  expr)
+
 (defmethod -refactor-form* ::ana-cljc/binding
   [{:keys [form local env] sym :name :as expr} rdr-ast {:keys [file-map-atom] :as opt}]
   (let [mta (meta form)]
@@ -228,12 +239,12 @@
 
 ;; pre pass
 (defn fq-rdr-ast [rdr-ast opt]
-  (assert (contains? rdr-ast :val))
-  (let [file-map (if (:top-level rdr-ast)
-                   (file-map (:val rdr-ast) rdr-ast opt)
-                   (::file-map rdr-ast))
-        _ (assert (map? file-map) [((juxt :op :string) rdr-ast)
-                                   file-map])
+  (let [file-map (or
+                   (if (and (:top-level rdr-ast)
+                            (some? (:val rdr-ast)))
+                     (file-map (:val rdr-ast) rdr-ast opt)
+                     (::file-map rdr-ast))
+                   {})
         assoc-file-map #(assoc % ::file-map file-map)
         rdr-ast (kw-case (:op rdr-ast)
                   ::rdr/symbol
@@ -251,6 +262,7 @@
                               wrap-discard (fn [sym-ast]
                                              {:op ::rdr/forms
                                               ::file-map file-map
+                                              :val (:val sym-ast)
                                               :forms [{:op ::rdr/discard
                                                        ::file-map file-map
                                                        :forms [{:op ::rdr/keyword
@@ -393,12 +405,16 @@
              (str sb)
              (recur (read-next)))))))))
 
-(comment
+(comment (scratch-buffer))
+
+(defn scratch-buffer []
   (refactor-form-string "(map identity [1 2 3])" {})
   ;=> "(sequence (map identity) [1 2 3])"
   (refactor-form-string "(merge {:a 1 :b 2} {:c 3 :d 4})" {})
   ;=> "(into {:a 1 :b 2} {:c 3 :d 4})"
   (refactor-form-string "(merge {+ 1 :b 2} {:c 3 :d 4})" {})
+  (refactor-form-string "(merge {#'+ 1 :b 2} {:c 3 :d 4})" {})
+  (refactor-form-string "#'+")
   (refactor-form-string "(fn [])" {})
   (refactor-form-string "(fn [a] (a))" {})
   (refactor-form-string "(fn [a] (+ a 3))" {})

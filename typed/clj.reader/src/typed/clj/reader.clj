@@ -1456,6 +1456,8 @@
                  ::ctor (do (append "#")
                             (append (str (:tag-sym ast)))
                             (forms->string (:forms ast)))
+                 ::var (do (append "#'")
+                           (forms->string (:forms ast)))
 
                  ::nil (append "nil")
                  (throw (ex-info (str "Unknown AST " (pr-str (:op ast)))

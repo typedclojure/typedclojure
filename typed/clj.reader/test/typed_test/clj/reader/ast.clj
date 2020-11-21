@@ -972,4 +972,5 @@
   (roundtrip "#inst \"2010-11-12T13:14:15.666-00:00\"")
   (do (alias 'core 'clojure.core)
       (roundtrip "#::core{:a 1 :_/b 2}"))
+  (roundtrip "#'a")
   )
