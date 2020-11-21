@@ -195,8 +195,8 @@
                    ([form opt] (fq-rdr-ast form file-map opt)))]
     (case (:op rdr-ast)
       ::rdr/discard (if (:delete-discard opt)
-                      ;; TODO go up a level and delete preceding whitespace. zippers?
                       {:op ::rdr/forms
+                       ::delete-preceding-whitespace true
                        :forms []}
                       (update-rdr-children rdr-ast fq-form))
       ::rdr/symbol (let [{:keys [val]} rdr-ast]
@@ -231,19 +231,50 @@
                        rdr-ast))
       (update-rdr-children rdr-ast fq-form))))
 
+;; pre pass
 (defn indent-by [rdr-ast indent top-level?]
   (let [indent-by (fn
                     ([rdr-ast] (indent-by rdr-ast indent false)))]
     (case (:op rdr-ast)
       ::rdr/whitespace (update rdr-ast :string
                                str/replace "\n" (str "\n" (apply str (repeat indent \space))))
-      (let [rdr-ast (update-rdr-children rdr-ast indent-by)]
+      (let [do-rdr-ast #(update-rdr-children rdr-ast indent-by)]
         (if top-level?
           {:op ::rdr/forms
            :forms [{:op ::rdr/whitespace
                     :string (apply str (repeat indent \space))}
-                   rdr-ast]}
-          rdr-ast)))))
+                   (do-rdr-ast)]}
+          (do-rdr-ast))))))
+
+;; post pass
+;; - depends on fq-rdr-ast
+(defn delete-orphan-whitespace [rdr-ast]
+  (if-not (seq (:forms rdr-ast))
+    rdr-ast
+    (let [{:keys [forms] :as rdr-ast} (update-rdr-children rdr-ast delete-orphan-whitespace)
+          forms (reduce (fn [forms i]
+                          (if (zero? i)
+                            ;; propagate up to parent
+                            forms
+                            (cond-> forms
+                              (::delete-preceding-whitespace (nth forms i))
+                              (-> (update i dissoc ::delete-preceding-whitespace)
+                                  (update (dec i)
+                                          (fn [maybe-ws]
+                                            (case (:op maybe-ws)
+                                              ::rdr/whitespace
+                                              (update maybe-ws :string
+                                                      ;; TODO review docs to see if this does the
+                                                      ;; right thing
+                                                      str/trimr)
+                                              ;; no preceding whitespace
+                                              maybe-ws)))))))
+                        forms
+                        (range (count forms)))]
+      (cond-> (assoc rdr-ast :forms forms)
+        (-> forms (nth 0) ::delete-preceding-whitespace)
+        (-> (assoc ::delete-preceding-whitespace true)
+            (update-in [:forms 0] dissoc ::delete-preceding-whitespace))))))
 
 (defn refactor-form-string [s opt]
   {:pre [(string? s)]}
@@ -257,8 +288,10 @@
           opt (cond-> opt
                 (not (:file-map-atom opt)) (assoc :file-map-atom (atom {})))
           fm (file-map form rdr-ast opt)
-          passes (comp #(indent-by % 2 true)
-                       #(fq-rdr-ast % fm opt))
+          passes (comp 
+                   delete-orphan-whitespace
+                   #(indent-by % 2 true)
+                   #(fq-rdr-ast % fm opt))
           fq-string (rdr/ast->string (passes rdr-ast))]
       fq-string)))
 
@@ -306,4 +339,7 @@
   (println
     (refactor-form-string "(map identity\n)"
                           {:delete-discard true}))
+  (println
+    (refactor-form-string "(map #(\n+ 1 2))"
+                          {}))
   )
