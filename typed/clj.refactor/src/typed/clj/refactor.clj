@@ -261,6 +261,8 @@
                          #_(prn "read-eval" form fm)
                          fm)
 
+                       ;; TODO cond/cond-splicing
+
                        :else (::file-map rdr-ast))
                      {})
           assoc-file-map #(assoc % ::file-map file-map)
@@ -502,4 +504,7 @@
   ;; FIXME #= should preserve line/column numbers when reanalyzing (see fq-rdr-ast)
   (println
     (refactor-form-string "(let [a #=(let [b 1] b)] a)"))
+  ;; TODO cond/cond-splicing
+  (println
+    (refactor-form-string "(let [a #?(:clj (let [b 1] b))] a)"))
   )
