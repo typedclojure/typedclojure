@@ -331,6 +331,7 @@
 (deftest read-specials
   (is (= {:op ::ast/nil
           :top-level true
+          :string "nil"
           :val nil}
          (read-string+ast "nil")))
   (is (= {:op ::ast/boolean

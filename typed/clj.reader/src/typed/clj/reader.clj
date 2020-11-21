@@ -404,6 +404,7 @@
 
         ;; special symbols
         "nil" {:op ::nil
+               :string "nil"
                :val nil}
         "true" {:op ::boolean
                 :string token
@@ -1421,7 +1422,7 @@
                  ::syntax-quote (do (append \`)
                                     (forms->string (:forms ast)))
 
-                 (::symbol ::number ::whitespace ::boolean) (append (:string ast))
+                 (::nil ::symbol ::number ::whitespace ::boolean) (append (:string ast))
 
                  ::string (do (append \")
                               (append (:string ast))
@@ -1437,7 +1438,9 @@
                             (forms->string (:forms ast)))
                  ::cond-splicing (do (append "#?@")
                                      (forms->string (:forms ast)))
-                 ::shebang (do (append "#!")
+                 ::shebang (do (append \#)
+                               ;; vim doesn't like shebangs here
+                               (append \!)
                                (append (:string ast)))
                  ::comment (do (append \;)
                                (append (:string ast)))
@@ -1461,7 +1464,6 @@
                  ::var (do (append "#'")
                            (forms->string (:forms ast)))
 
-                 ::nil (append "nil")
                  (throw (ex-info (str "Unknown AST " (pr-str (:op ast)))
                                  {}))))]
        (ast->StringBuilder ast)
