@@ -29,6 +29,18 @@
 
 (set! *warn-on-reflection* true)
 
+
+;; TODO
+;; - avoid (contains? m :val) for distinguishing values from whitespace
+;;   - it narrows potential optimisations
+;;   - eg., if :op ::forms is a defrecord, it sometimes has a val,
+;;     sometimes not. but if you dissoc :val from a record, it loses
+;;     its type.
+;;   - perhaps :type #{:ws :val}?
+;;     - Q: is ::discard whitespace?
+;;     - Q: what about ::cond-splicing, we can't always be sure
+;;          how many values it has with *suppress-read*
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; helpers
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

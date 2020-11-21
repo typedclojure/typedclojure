@@ -228,6 +228,7 @@
 
 ;; pre pass
 (defn fq-rdr-ast [rdr-ast opt]
+  (assert (contains? rdr-ast :val))
   (let [file-map (if (:top-level rdr-ast)
                    (file-map (:val rdr-ast) rdr-ast opt)
                    (::file-map rdr-ast))
@@ -288,15 +289,18 @@
 
 ;; pre pass
 (defn indent-by [{:keys [top-level] :as rdr-ast} indent]
+  {:post [(:op %)]}
+  (prn `indent-by (:op rdr-ast))
   (kw-case (:op rdr-ast)
     ::rdr/whitespace (update rdr-ast :string
                              str/replace "\n" (str "\n" (apply str (repeat indent \space))))
-    (cond-> rdr-ast
-      top-level
-      #(do {:op ::rdr/forms
-            :forms [{:op ::rdr/whitespace
-                     :string (apply str (repeat indent \space))}
-                    %]}))))
+    (let [indent-top-level #(do {:op ::rdr/forms
+                                 :forms [{:op ::rdr/whitespace
+                                          :string (apply str (repeat indent \space))}
+                                         %]})]
+      (cond-> rdr-ast
+        top-level
+        indent-top-level))))
 
 ;; pre-pass
 ;; - must be followed by delete-orphan-whitespace
@@ -351,7 +355,8 @@
 (defn refactor-form-string
   ([s] (refactor-form-string s {}))
   ([s opt]
-   {:pre [(string? s)]}
+   {:pre [(string? s)]
+    :post [(string? %)]}
    (with-open [rdr (-> s
                        StringReader.
                        LineNumberingPushbackReader.
