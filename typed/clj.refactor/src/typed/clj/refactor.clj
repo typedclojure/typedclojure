@@ -18,6 +18,40 @@
     (assoc ast :forms (mapv f forms))
     ast))
 
+(defmacro kw-case [kw & args]
+  (assert args)
+  (let [gop (gensym 'op)]
+    `(let [~gop ~kw]
+       (cond
+         ~@(mapcat (fn [c]
+                     (if (= 1 (count c))
+                       [:else (first c)]
+                       (let [[k-or-ks r] c
+                             ks (if (keyword? k-or-ks)
+                                  [k-or-ks]
+                                  (do
+                                    (assert (seq? k-or-ks))
+                                    k-or-ks))
+                             _ (assert (seq ks))
+                             _ (assert (every? keyword? ks) ks)
+                             ks-conds (mapv (fn [k]
+                                              `(identical? ~gop ~k))
+                                            ks)]
+                         [(if (= 1 (count ks-conds))
+                            (first ks-conds)
+                            `(or ~@ks-conds))
+                          r])))
+                   (partition-all 2 args))
+         ~@(when (even? (count args))
+             [:else `(throw (ex-info (str "No case for: " ~gop)))])))))
+
+(comment
+  (macroexpand `(kw-case 1 :a 2 3))
+  (macroexpand `(kw-case 1 :a 2 :b 3))
+  (macroexpand `(kw-case 1 :a 2 :b 3 4))
+  (macroexpand `(kw-case 1 :a 2 (:b :c) 3 4))
+  )
+
 (declare ^:private refactor-form*)
 
 (defmulti ^:private -refactor-form* (fn [expr rdr-ast opt] (::ana-cljc/op expr)))
@@ -155,7 +189,7 @@
 
 (defn- refactor-form* [expr rdr-ast {:keys [file-map-atom] :as opt}]
   (let [refactor-form* (fn [expr]
-                         (case (::ana-cljc/op expr)
+                         (kw-case (::ana-cljc/op expr)
                            ::ana-cljc/unanalyzed (let [{:keys [form env]} expr
                                                        op-sym (ana/resolve-op-sym form env)]
                                                    (when op-sym
@@ -198,20 +232,22 @@
         _ (assert (map? file-map) [((juxt :op :string) rdr-ast)
                                    file-map])
         assoc-file-map #(assoc % ::file-map file-map)
-        rdr-ast (case (:op rdr-ast)
+        rdr-ast (kw-case (:op rdr-ast)
                   ::rdr/symbol
                   (let [{:keys [val]} rdr-ast]
                     (if-let [mapped (file-map (select-keys (meta val) [:line :column
                                                                        :end-line :end-column
                                                                        :file]))]
-                      (case (first mapped)
+                      (kw-case (first mapped)
                         :var (-> rdr-ast
                                  (assoc :string (str (:sym (second mapped))))
                                  assoc-file-map)
                         (:local :binding)
+                        ;; TODO tag rewriting cases as "seen" so fq-rdr-ast doesn't reprocess them
                         (let [info (second mapped)
                               wrap-discard (fn [sym-ast]
                                              {:op ::rdr/forms
+                                              ::file-map file-map
                                               :forms [{:op ::rdr/discard
                                                        ::file-map file-map
                                                        :forms [{:op ::rdr/keyword
@@ -250,7 +286,7 @@
 
 ;; pre pass
 (defn indent-by [{:keys [top-level] :as rdr-ast} indent]
-  (case (:op rdr-ast)
+  (kw-case (:op rdr-ast)
     ::rdr/whitespace (update rdr-ast :string
                              str/replace "\n" (str "\n" (apply str (repeat indent \space))))
     (cond-> rdr-ast
@@ -263,7 +299,7 @@
 ;; pre-pass
 ;; - must be followed by delete-orphan-whitespace
 (defn delete-discard [rdr-ast]
-  (case (:op rdr-ast)
+  (kw-case (:op rdr-ast)
     ::rdr/discard {:op ::rdr/forms
                    ::delete-preceding-whitespace true
                    :forms []}
@@ -288,7 +324,7 @@
                             (-> (update i dissoc ::delete-preceding-whitespace)
                                 (update (dec i)
                                         (fn [maybe-ws]
-                                          (case (:op maybe-ws)
+                                          (kw-case (:op maybe-ws)
                                             ::rdr/whitespace
                                             (update maybe-ws :string
                                                     ;; TODO review docs to see if this does the
@@ -307,7 +343,7 @@
           (update-in [:forms 0] dissoc ::delete-preceding-whitespace)))))
 
 (defn reformat-rdr-ast-pre [rdr-ast opt]
-  (case (:op rdr-ast)
+  (kw-case (:op rdr-ast)
     ::rdr/whitespace {:op ::rdr/forms
                       :forms []}
     rdr-ast))
