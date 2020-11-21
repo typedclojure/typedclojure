@@ -291,38 +291,48 @@
 (defn reformat-rdr-ast-post [rdr-ast opt]
   rdr-ast)
 
-(defn refactor-form-string [s opt]
-  {:pre [(string? s)]}
-  (with-open [rdr (-> s
-                      StringReader.
-                      LineNumberingPushbackReader.
-                      (indexing-push-back-reader 1 "example.clj"))]
-    (let [{form :val :as rdr-ast} (rdr/read+ast {:read-cond :allow
-                                                 :features #{:clj}}
-                                                rdr)
-          opt (cond-> opt
-                (not (:file-map-atom opt)) (assoc :file-map-atom (atom {})))
-          fm (file-map form rdr-ast opt)
-          ;; left-to-right order
-          pre-passes (filterv identity
-                              [#(fq-rdr-ast % fm opt)
-                               (when (:delete-discard opt)
-                                 delete-discard)
-                               (when (:indent-by opt)
-                                 #(indent-by % 2))
-                               (when (:reformat opt)
-                                 #(reformat-rdr-ast-pre % opt))])
-          ;; left-to-right order
-          post-passes (filterv identity
-                               [(when (:delete-discard opt)
-                                  delete-orphan-whitespace)
+(defn refactor-form-string
+  ([s] (refactor-form-string s {}))
+  ([s opt]
+   {:pre [(string? s)]}
+   (with-open [rdr (-> s
+                       StringReader.
+                       LineNumberingPushbackReader.
+                       (indexing-push-back-reader 1 "example.clj"))]
+     (let [read-next #(rdr/read+ast {:read-cond :allow
+                                     :features #{:clj}}
+                                    ;; eof-error
+                                    false
+                                    rdr)
+           opt (cond-> opt
+                 (not (:file-map-atom opt)) (assoc :file-map-atom (atom {})))
+           ;; left-to-right order
+           pre-passes (filterv identity
+                               [(fn [{form :val :as rdr-ast}]
+                                  (fq-rdr-ast rdr-ast
+                                              (file-map form rdr-ast opt)
+                                              opt))
+                                (when (:delete-discard opt)
+                                  delete-discard)
+                                (when (:indent-by opt)
+                                  #(indent-by % 2))
                                 (when (:reformat opt)
-                                  #(reformat-rdr-ast-post % opt))])
-          passes (compile-passes (apply comp (rseq pre-passes))
-                                 (apply comp (rseq post-passes)))
-                              
-          fq-string (rdr/ast->string (passes rdr-ast))]
-      fq-string)))
+                                  #(reformat-rdr-ast-pre % opt))])
+           ;; left-to-right order
+           post-passes (filterv identity
+                                [(when (:delete-discard opt)
+                                   delete-orphan-whitespace)
+                                 (when (:reformat opt)
+                                   #(reformat-rdr-ast-post % opt))])
+           passes (compile-passes (apply comp (rseq pre-passes))
+                                  (apply comp (rseq post-passes)))
+           sb (StringBuilder.)]
+       (loop [{:keys [eof] form :val :as rdr-ast} (read-next)]
+         (let [rdr-ast (passes rdr-ast)
+               _ (rdr/ast->StringBuilder rdr-ast sb)]
+           (if eof
+             (str sb)
+             (recur (read-next)))))))))
 
 (comment
   (refactor-form-string "(map identity [1 2 3])" {})
@@ -373,4 +383,5 @@
   (println
     (refactor-form-string "(map #(\n+ 1 2))"
                           {:reformat true}))
+  (refactor-form-string "1 2 3")
   )
