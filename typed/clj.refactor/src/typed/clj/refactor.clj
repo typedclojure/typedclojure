@@ -17,16 +17,19 @@
 (defmulti ^:private -refactor-form* (fn [expr rdr-ast opt] (::ana-cljc/op expr)))
 
 (defmethod -refactor-form* ::ana-cljc/local
-  [{:keys [form] sym :name :as expr} rdr-ast {:keys [file-map-atom] :as opt}]
+  [{:keys [tag form] sym :name :as expr} rdr-ast {:keys [file-map-atom] :as opt}]
   (let [mta (meta form)]
     (when ((every-pred :line :column) mta)
       (swap! file-map-atom assoc
              (select-keys mta [:line :column
                                :end-line :end-column
                                :file])
-             [:local {:local sym
-                      :name sym
-                      :form form}])))
+             [:local (cond->
+                       {:local (:local expr)
+                        :name sym
+                        :form form}
+                       (and (not (:tag form)) tag)
+                       (assoc :inferred-tag tag))])))
   expr)
 
 (defmethod -refactor-form* ::ana-cljc/var
@@ -37,7 +40,7 @@
              (select-keys mta [:line :column
                                :end-line :end-column
                                :file])
-             [:var (symbol var)])))
+             [:var {:sym (symbol var)}])))
   expr)
 
 (defmethod -refactor-form* ::ana-cljc/binding
@@ -55,6 +58,7 @@
 
 (defmethod -refactor-form* :default
   [expr rdr-ast opt]
+  ;(prn (::ana-cljc/op expr))
   (-> expr
       (ast/update-children #(refactor-form* % rdr-ast opt))))
 
@@ -77,7 +81,7 @@
                                         [:line :column
                                          :end-line :end-column
                                          :file])
-                           [:vector-destructure b]))
+                           [:vector-destructure {:binding b}]))
                   (run! #(record-destructuring % file-map-atom) b))
     (map? b) (do
                (when (seq (meta b))
@@ -86,7 +90,7 @@
                                      [:line :column
                                       :end-line :end-column
                                       :file])
-                        [:map-destructure b]))
+                        [:map-destructure {:binding b}]))
                (->> b
                     (run! (fn [[bi v :as orig]]
                             (cond
@@ -100,7 +104,7 @@
                                                             [:line :column
                                                              :end-line :end-column
                                                              :file])
-                                               [:map-destructure-keys-enty bk])))
+                                               [:map-destructure-keys-enty {:binding bk}])))
                                     v)
                               ;;TODO namespaced keywords, :syms :strs
                               (keyword? bi) nil
@@ -119,7 +123,7 @@
   (let [bindings (second form)]
     (when (and (vector? bindings)
                (even? (count bindings)))
-      (let [_ (doseq [[b _] (partition 2 bindings)]
+      (let [_ (doseq [[b v] (partition 2 bindings)]
                 (record-destructuring b file-map-atom))]
         (-> expr
             ana-cljc/analyze-outer
@@ -127,12 +131,27 @@
 
 (defmethod -refactor-special :default [_ _ _ _] nil)
 
+(defmulti ^:private -post-refactor-form* (fn [expr rdr-ast opt] (::ana-cljc/op expr)))
+
+(defmethod -post-refactor-form* ::ana/instance-call
+  [expr _ _]
+  (prn `-post-refactor-form* ::ana/instance-call
+       (:tag expr)
+       (:class expr)
+       (:method expr)
+       (count (:args expr))
+       (:children expr)
+       (-> expr :instance :tag))
+  expr)
+
+(defmethod -post-refactor-form* :default [expr  _ _]
+  expr)
+
 (defn- refactor-form* [expr rdr-ast {:keys [file-map-atom] :as opt}]
   (let [refactor-form* (fn [expr]
                          (case (::ana-cljc/op expr)
                            ::ana-cljc/unanalyzed (let [{:keys [form env]} expr
                                                        op-sym (ana/resolve-op-sym form env)]
-                                                   (prn op-sym)
                                                    (when op-sym
                                                      (let [mta (meta (first form))]
                                                        (when ((every-pred :line :column) mta)
@@ -140,14 +159,15 @@
                                                                 (select-keys mta [:line :column
                                                                                   :end-line :end-column
                                                                                   :file])
-                                                                [:var op-sym]))))
+                                                                [:var {:sym op-sym}]))))
                                                    (or (some-> op-sym (-refactor-special expr rdr-ast opt))
                                                        (recur (ana-cljc/analyze-outer expr))))
                            (-> expr
                                ana-cljc/run-pre-passes
                                (-refactor-form* rdr-ast opt)
                                ana-cljc/run-post-passes
-                               ana-cljc/eval-top-level)))
+                               ana-cljc/eval-top-level
+                               (-post-refactor-form* rdr-ast opt))))
         expr (refactor-form* expr)]
     expr))
 
@@ -169,18 +189,49 @@
                    ([forms opt]
                     (mapv #(fq-rdr-ast % file-map opt) forms)))]
     (case (:op rdr-ast)
-      (::rdr/whitespace ::rdr/number ::rdr/keyword) rdr-ast
-      ::rdr/syntax-quote (update rdr-ast :forms fq-forms (assoc opt :syntax-quote true))
-      (::rdr/unquote ::rdr/unquote-splicing) (update rdr-ast :forms fq-forms (dissoc opt :syntax-quote))
+      (::rdr/whitespace ::rdr/number ::rdr/keyword ::rdr/fn-arg) rdr-ast
+      ::rdr/syntax-quote (update rdr-ast :forms fq-forms opt)
+      (::rdr/unquote ::rdr/unquote-splicing) (update rdr-ast :forms fq-forms opt)
       ;; TODO lookup :vector-destructure and :map-destructure in file map
-      (::rdr/list ::rdr/vector ::rdr/map) (update rdr-ast :forms fq-forms)
+      (::rdr/list ::rdr/vector ::rdr/map ::rdr/fn
+       ::rdr/cond ::rdr/cond-splicing ::rdr/meta) (update rdr-ast :forms fq-forms)
+      ::rdr/discard (do
+                      (prn "discard" opt)
+                      (if (:delete-discard opt)
+                        ;; TODO go up a level and delete preceding whitespace. zippers?
+                        {:op ::rdr/forms
+                         :forms []}
+                        (update rdr-ast :forms fq-forms)))
       ::rdr/symbol (let [{:keys [val]} rdr-ast]
                      (if-let [mapped (file-map (select-keys (meta val) [:line :column
                                                                         :end-line :end-column
                                                                         :file]))]
                        (case (first mapped)
-                         :var (assoc rdr-ast :string (str (second mapped)))
-                         (:local :binding) (assoc rdr-ast :string (-> mapped second :name str)))
+                         :var (assoc rdr-ast :string (str (:sym (second mapped))))
+                         (:local :binding) (let [info (second mapped)
+                                                 wrap-discard (fn [sym-ast]
+                                                                {:op ::rdr/forms
+                                                                 :forms [{:op ::rdr/discard
+                                                                          :forms [{:op ::rdr/keyword
+                                                                                   :string (str (symbol (:local info)))
+                                                                                   :val (keyword (:local info))}]}
+                                                                         {:op ::rdr/whitespace
+                                                                          :string " "}
+                                                                         sym-ast]})
+                                                 sym-ast (cond-> (assoc rdr-ast :string (-> info :name str))
+                                                           (:add-local-origin opt)
+                                                           wrap-discard)]
+                                             (prn info)
+                                             (if-some [tag (:inferred-tag info)]
+                                               {:op ::rdr/meta
+                                                :val (vary-meta (:val sym-ast) assoc :tag tag)
+                                                :forms [{:op ::rdr/symbol
+                                                         :string (str tag)
+                                                         :val tag}
+                                                        {:op ::rdr/whitespace
+                                                         :string " "}
+                                                        sym-ast]}
+                                               sym-ast)))
                        rdr-ast)))))
 
 (defn refactor-form-string [s opt]
@@ -189,11 +240,13 @@
                       StringReader.
                       LineNumberingPushbackReader.
                       (indexing-push-back-reader 1 "example.clj"))]
-    (let [{form :val :as rdr-ast} (rdr/read+ast rdr)
+    (let [{form :val :as rdr-ast} (rdr/read+ast {:read-cond :allow
+                                                 :features #{:clj}}
+                                                rdr)
           opt (cond-> opt
                 (not (:file-map-atom opt)) (assoc :file-map-atom (atom {})))
           fm (file-map form rdr-ast opt)
-          fq-string (rdr/ast->string (fq-rdr-ast rdr-ast fm {}))]
+          fq-string (rdr/ast->string (fq-rdr-ast rdr-ast fm opt))]
       fq-string)))
 
 (comment
@@ -219,4 +272,19 @@
     (refactor-form-string "(fn [{:keys [a]}] a)"
                           {:file-map-atom a})
     @a)
+  (refactor-form-string "#(.string 1)" {})
+  (refactor-form-string "#(.string %)" {})
+  (refactor-form-string "#(.string (identity []))" {})
+  (refactor-form-string "#(.string #?(:clj 1) (identity []))" {})
+  (refactor-form-string "(let [^Long a {}] a)" {})
+  (refactor-form-string "(let [^Long a {} b a] b)" {})
+  (refactor-form-string "(let [^Long a {} b a c b] b)" {})
+  ;; idea: trim redundant tag
+  (refactor-form-string "(let [^Long a {} ^Long b a] b)"
+                        {})
+  (refactor-form-string "(let [^Long a {} ^Long b a] b)"
+                        {:add-local-origin true})
+  (refactor-form-string "(do #_1)" {})
+  (refactor-form-string "(do #_1)"
+                        {:delete-discard true})
   )
