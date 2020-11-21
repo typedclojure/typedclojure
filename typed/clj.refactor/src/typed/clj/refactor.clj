@@ -18,10 +18,13 @@
     (assoc ast :forms (mapv f forms))
     ast))
 
-(defmacro kw-case [kw & args]
+(defmacro ^:private kw-case
+  "case syntax compiling to a cond using identical?."
+  [kw & args]
   (assert args)
   (let [gop (gensym 'op)]
-    `(let [~gop ~kw]
+    `(let [~gop ~kw
+           _# (assert (keyword? ~gop))]
        (cond
          ~@(mapcat (fn [c]
                      (if (= 1 (count c))
@@ -228,7 +231,6 @@
   (let [file-map (if (:top-level rdr-ast)
                    (file-map (:val rdr-ast) rdr-ast opt)
                    (::file-map rdr-ast))
-        _ (prn file-map)
         _ (assert (map? file-map) [((juxt :op :string) rdr-ast)
                                    file-map])
         assoc-file-map #(assoc % ::file-map file-map)
@@ -326,12 +328,7 @@
                                         (fn [maybe-ws]
                                           (kw-case (:op maybe-ws)
                                             ::rdr/whitespace
-                                            (update maybe-ws :string
-                                                    ;; TODO review docs to see if this does the
-                                                    ;; right thing
-                                                    (fn [s]
-                                                      (prn 's s (str/trimr s))
-                                                      (str/trimr s)))
+                                            (update maybe-ws :string str/trimr)
                                             ;; no preceding whitespace
                                             maybe-ws)))))))
                       forms

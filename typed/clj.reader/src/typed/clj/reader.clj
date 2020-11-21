@@ -1370,7 +1370,7 @@
 ;;       - don't read ahead
 (defn ast->StringBuilder
   "Appends the string representation of ast to StringBuilder sb."
-  ([ast] (ast->StringBuilder (StringBuilder.)))
+  ([ast] (ast->StringBuilder ast (StringBuilder.)))
   ([ast ^StringBuilder sb]
    (let [append #(.append sb %)]
      (letfn [(forms->string [forms]
