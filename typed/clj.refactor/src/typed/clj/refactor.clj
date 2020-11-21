@@ -242,6 +242,19 @@
   (if (::skip-fq-rdr-ast rdr-ast)
     rdr-ast
     (let [;_ (prn `fq-rdr-ast (:op rdr-ast))
+          reanalyze (fn [forms]
+                      (assert (vector? forms))
+                      (assert (seq forms))
+                      (-> {:op ::rdr/forms
+                           :forms forms}
+                          rdr/ast->string
+                          (indexing-push-back-reader
+                            1
+                            "example.clj"
+                            (select-keys
+                              (meta (-> forms first :val))
+                              [:line :column]))
+                          rdr/read))
           file-map (or
                      (cond
                        (and (:top-level rdr-ast)
@@ -249,25 +262,28 @@
                        (file-map (:val rdr-ast) rdr-ast opt)
 
                        (identical? ::rdr/read-eval (:op rdr-ast))
-                       (let [form (-> {:op ::rdr/forms
-                                       ;; FIXME prepend whitespace to simulate
-                                       ;; actual place in file
-                                       :forms (:forms rdr-ast)}
-                                      rdr/ast->string
-                                      (indexing-push-back-reader
-                                        1
-                                        "example.clj"
-                                        (select-keys
-                                          (meta (-> rdr-ast :forms first :val))
-                                          [:line :column]))
-                                      rdr/read)
+                       (let [form (reanalyze (:forms rdr-ast))
                              fm (file-map form
                                           rdr-ast
                                           opt)]
-                         #_(prn "read-eval" form fm)
                          fm)
 
-                       ;; TODO cond/cond-splicing
+                       (or (identical? ::rdr/cond (:op rdr-ast))
+                           (identical? ::rdr/cond-splicing (:op rdr-ast)))
+                       (let [_ (assert (= 1 (count (:forms rdr-ast))))
+                             lst-form (first (:forms rdr-ast))
+                             _ (assert (= ::rdr/list (:op lst-form)))]
+                         ;; there's probably some case where no features are matched
+                         ;; but we still want to read the form.
+                         (when-some [matched-val (some (fn [f]
+                                                         (when (:matched-feature-val f)
+                                                           f))
+                                                       (:forms lst-form))]
+                           (let [form (reanalyze [matched-val])
+                                 fm (file-map form
+                                              rdr-ast
+                                              opt)]
+                             fm)))
 
                        :else (::file-map rdr-ast))
                      {})
@@ -510,7 +526,13 @@
   ;; FIXME #= should preserve line/column numbers when reanalyzing (see fq-rdr-ast)
   (println
     (refactor-form-string "(let [a #=(let [b 1] b)] a)"))
-  ;; TODO cond/cond-splicing
   (println
     (refactor-form-string "(let [a #?(:clj (let [b 1] b))] a)"))
+  (println
+    (refactor-form-string "(let [a #?@(:clj [(let [b 1] b)])] a)"))
+  (println
+    (refactor-form-string "(let [a #?@(:default [(let [b 1] b)])] a)"))
+  ;; only expands matched feature
+  (println
+    (refactor-form-string "(let [a #?@(:clj [(let [b 1] b)] :default [(let [b 1] b)])] a)"))
   )

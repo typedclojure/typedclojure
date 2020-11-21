@@ -632,8 +632,12 @@
                                finished? (:read-finished (peek feature))
                                _ (assert (not (and rhs finished?))
                                          "Feature only finishes read if rhs is not available")
-                               all (into all (concat (update feature (dec (count feature)) dissoc :read-finished)
-                                                     rhs))]
+                               all (-> all
+                                       (into (update feature (dec (count feature))
+                                                     #(-> %
+                                                          (dissoc :read-finished)
+                                                          (assoc :matched-feature-key true))))
+                                       (into (assoc-in rhs [(dec (count rhs)) :matched-feature-val] true)))]
                            (if finished?
                              [(subvec all 0 (dec (count all))) ;; remove :read-finished placeholder form
                               matched]
