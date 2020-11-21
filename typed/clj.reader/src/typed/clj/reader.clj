@@ -1437,6 +1437,8 @@
                             (forms->string (:forms ast)))
                  ::cond-splicing (do (append "#?@")
                                      (forms->string (:forms ast)))
+                 ::shebang (do (append "#!")
+                               (append (:string ast)))
                  ::comment (do (append \;)
                                (append (:string ast)))
                  ::keyword (do (append \:)

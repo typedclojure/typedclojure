@@ -415,6 +415,7 @@
   (refactor-form-string "(merge {+ 1 :b 2} {:c 3 :d 4})" {})
   (refactor-form-string "(merge {#'+ 1 :b 2} {:c 3 :d 4})" {})
   (refactor-form-string "#'+")
+  (refactor-form-string "1 #!a")
   (refactor-form-string "(fn [])" {})
   (refactor-form-string "(fn [a] (a))" {})
   (refactor-form-string "(fn [a] (+ a 3))" {})

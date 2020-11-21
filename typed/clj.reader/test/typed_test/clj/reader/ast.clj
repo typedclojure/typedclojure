@@ -973,4 +973,6 @@
   (do (alias 'core 'clojure.core)
       (roundtrip "#::core{:a 1 :_/b 2}"))
   (roundtrip "#'a")
+  ;; shebang
+  (roundtrip "[1 #!\n2]")
   )
