@@ -1,7 +1,8 @@
 (ns typed.clj.refactor
   "Alpha"
   (:refer-clojure :exclude [run!])
-  (:require [typed.clj.analyzer :as ana]
+  (:require [clojure.string :as str]
+            [typed.clj.analyzer :as ana]
             [typed.cljc.analyzer :as ana-cljc]
             [typed.cljc.analyzer.ast :as ast]
             [typed.cljc.analyzer.env :as ana-env]
@@ -11,6 +12,11 @@
            [clojure.lang LineNumberingPushbackReader]))
 
 (set! *warn-on-reflection* true)
+
+(defn update-rdr-children [ast f]
+  (if-some [forms (:forms ast)]
+    (assoc ast :forms (mapv f forms))
+    ast))
 
 (declare ^:private refactor-form*)
 
@@ -58,7 +64,6 @@
 
 (defmethod -refactor-form* :default
   [expr rdr-ast opt]
-  ;(prn (::ana-cljc/op expr))
   (-> expr
       (ast/update-children #(refactor-form* % rdr-ast opt))))
 
@@ -135,6 +140,7 @@
 
 (defmethod -post-refactor-form* ::ana/instance-call
   [expr _ _]
+  #_
   (prn `-post-refactor-form* ::ana/instance-call
        (:tag expr)
        (:class expr)
@@ -184,24 +190,15 @@
     @file-map-atom))
 
 (defn- fq-rdr-ast [rdr-ast file-map opt]
-  (let [fq-forms (fn fq-forms
-                   ([forms] (fq-forms forms opt))
-                   ([forms opt]
-                    (mapv #(fq-rdr-ast % file-map opt) forms)))]
+  (let [fq-form (fn
+                   ([form]     (fq-rdr-ast form file-map opt))
+                   ([form opt] (fq-rdr-ast form file-map opt)))]
     (case (:op rdr-ast)
-      (::rdr/whitespace ::rdr/number ::rdr/keyword ::rdr/fn-arg) rdr-ast
-      ::rdr/syntax-quote (update rdr-ast :forms fq-forms opt)
-      (::rdr/unquote ::rdr/unquote-splicing) (update rdr-ast :forms fq-forms opt)
-      ;; TODO lookup :vector-destructure and :map-destructure in file map
-      (::rdr/list ::rdr/vector ::rdr/map ::rdr/fn
-       ::rdr/cond ::rdr/cond-splicing ::rdr/meta) (update rdr-ast :forms fq-forms)
-      ::rdr/discard (do
-                      (prn "discard" opt)
-                      (if (:delete-discard opt)
-                        ;; TODO go up a level and delete preceding whitespace. zippers?
-                        {:op ::rdr/forms
-                         :forms []}
-                        (update rdr-ast :forms fq-forms)))
+      ::rdr/discard (if (:delete-discard opt)
+                      ;; TODO go up a level and delete preceding whitespace. zippers?
+                      {:op ::rdr/forms
+                       :forms []}
+                      (update-rdr-children rdr-ast fq-form))
       ::rdr/symbol (let [{:keys [val]} rdr-ast]
                      (if-let [mapped (file-map (select-keys (meta val) [:line :column
                                                                         :end-line :end-column
@@ -221,7 +218,6 @@
                                                  sym-ast (cond-> (assoc rdr-ast :string (-> info :name str))
                                                            (:add-local-origin opt)
                                                            wrap-discard)]
-                                             (prn info)
                                              (if-some [tag (:inferred-tag info)]
                                                {:op ::rdr/meta
                                                 :val (vary-meta (:val sym-ast) assoc :tag tag)
@@ -232,7 +228,22 @@
                                                          :string " "}
                                                         sym-ast]}
                                                sym-ast)))
-                       rdr-ast)))))
+                       rdr-ast))
+      (update-rdr-children rdr-ast fq-form))))
+
+(defn indent-by [rdr-ast indent top-level?]
+  (let [indent-by (fn
+                    ([rdr-ast] (indent-by rdr-ast indent false)))]
+    (case (:op rdr-ast)
+      ::rdr/whitespace (update rdr-ast :string
+                               str/replace "\n" (str "\n" (apply str (repeat indent \space))))
+      (let [rdr-ast (update-rdr-children rdr-ast indent-by)]
+        (if top-level?
+          {:op ::rdr/forms
+           :forms [{:op ::rdr/whitespace
+                    :string (apply str (repeat indent \space))}
+                   rdr-ast]}
+          rdr-ast)))))
 
 (defn refactor-form-string [s opt]
   {:pre [(string? s)]}
@@ -246,7 +257,9 @@
           opt (cond-> opt
                 (not (:file-map-atom opt)) (assoc :file-map-atom (atom {})))
           fm (file-map form rdr-ast opt)
-          fq-string (rdr/ast->string (fq-rdr-ast rdr-ast fm opt))]
+          passes (comp #(indent-by % 2 true)
+                       #(fq-rdr-ast % fm opt))
+          fq-string (rdr/ast->string (passes rdr-ast))]
       fq-string)))
 
 (comment
@@ -287,4 +300,10 @@
   (refactor-form-string "(do #_1)" {})
   (refactor-form-string "(do #_1)"
                         {:delete-discard true})
+  (println
+    (refactor-form-string "(do \n\n#_1)"
+                          {:delete-discard true}))
+  (println
+    (refactor-form-string "(map identity\n)"
+                          {:delete-discard true}))
   )

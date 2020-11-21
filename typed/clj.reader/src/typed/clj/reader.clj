@@ -1150,6 +1150,7 @@
   {'inst #'data-readers/read-instant-date
    'uuid #'data-readers/default-uuid-reader})
 
+;; TODO :top-level flag in AST
 (defn ^:private read*
   ([reader eof-error? opts] (read* reader eof-error? nil opts))
   ([reader eof-error? return-on opts]
@@ -1161,17 +1162,17 @@
                     ;; some acrobatics to avoid recurring over try (via log-source).
                     ;; we need log-source to wrap around the initial read-char that
                     ;; starts a form.
-                    (let [continue? (promise)
+                    (let [continue? (volatile! nil)
                           ws-or-done
                           ;; promise so log-source's return value is the form
                           (log-source reader
                             (let [ch (read-char reader)]
                               (cond
                                 (whitespace? ch)
-                                (do (deliver continue? true)
+                                (do (vreset! continue? true)
                                     (.append ws ch))
                                 :else
-                                (let [_ (deliver continue? false)
+                                (let [_ (vreset! continue? false)
                                       ws (str ws)
                                       prefix-form (when (pos? (count ws))
                                                     {:op ::whitespace
@@ -1199,8 +1200,10 @@
                                     :else (wrap-prefix-form
                                             (if-let [f (macros ch)]
                                               (f reader ch opts)
-                                              (read-symbol reader ch))))))))]
-                      (if @continue?
+                                              (read-symbol reader ch))))))))
+                          continue? @continue?
+                          _ (assert (boolean? continue?))]
+                      (if continue?
                         (recur ws-or-done)
                         ws-or-done)))
                _ (assert (vector? ms))
