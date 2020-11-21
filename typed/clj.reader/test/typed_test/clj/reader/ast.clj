@@ -19,6 +19,7 @@
                    [identity
                     #(str \space %)
                     #(str ";comment\n" %)
+                    #(str "#!shebang\n" %)
                     ;; don't quote if expecting eof
                     (when eof-error?
                       #(str \' %))
