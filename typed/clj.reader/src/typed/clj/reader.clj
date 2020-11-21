@@ -1465,7 +1465,7 @@
                            (forms->string (:forms ast)))
 
                  (throw (ex-info (str "Unknown AST " (pr-str (:op ast)))
-                                 {}))))]
+                                 {:op (:op ast)}))))]
        (ast->StringBuilder ast)
        sb))))
 

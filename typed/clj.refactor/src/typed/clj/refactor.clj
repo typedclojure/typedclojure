@@ -14,7 +14,7 @@
 (set! *warn-on-reflection* true)
 
 (defn update-rdr-children [ast f]
-  (if-some [forms (:forms ast)]
+  (if-some [forms (not-empty (:forms ast))]
     (assoc ast :forms (mapv f forms))
     ast))
 
@@ -239,80 +239,86 @@
 
 ;; pre pass
 (defn fq-rdr-ast [rdr-ast opt]
-  (let [file-map (or
-                   (if (and (:top-level rdr-ast)
-                            (some? (:val rdr-ast)))
-                     (file-map (:val rdr-ast) rdr-ast opt)
-                     (::file-map rdr-ast))
-                   {})
-        assoc-file-map #(assoc % ::file-map file-map)
-        rdr-ast (kw-case (:op rdr-ast)
-                  ::rdr/symbol
-                  (let [{:keys [val]} rdr-ast]
-                    (if-let [mapped (file-map (select-keys (meta val) [:line :column
-                                                                       :end-line :end-column
-                                                                       :file]))]
-                      (kw-case (first mapped)
-                        :var (-> rdr-ast
-                                 (assoc :string (str (:sym (second mapped))))
-                                 assoc-file-map)
-                        (:local :binding)
-                        ;; TODO tag rewriting cases as "seen" so fq-rdr-ast doesn't reprocess them
-                        (let [info (second mapped)
-                              wrap-discard (fn [sym-ast]
-                                             {:op ::rdr/forms
-                                              ::file-map file-map
-                                              :val (:val sym-ast)
-                                              :forms [{:op ::rdr/discard
-                                                       ::file-map file-map
-                                                       :forms [{:op ::rdr/keyword
-                                                                ::file-map file-map
-                                                                :string (str (symbol (:local info)))
-                                                                :val (keyword (:local info))}]}
-                                                      {:op ::rdr/whitespace
-                                                       ::file-map file-map
-                                                       :string " "}
-                                                      sym-ast]})
-                              sym-ast (cond-> (assoc rdr-ast
-                                                     :string (-> info :name str)
-                                                     ::file-map file-map)
-                                        (:add-local-origin opt)
-                                        wrap-discard)]
-                          (if-some [tag (:inferred-tag info)]
-                            {:op ::rdr/meta
-                             ::file-map file-map
-                             :val (vary-meta (:val sym-ast) assoc :tag tag)
-                             :forms [{:op ::rdr/symbol
-                                      ::file-map file-map
-                                      :string (str tag)
-                                      :val tag}
-                                     {:op ::rdr/whitespace
-                                      ::file-map file-map
-                                      :string " "}
-                                     sym-ast]}
-                            sym-ast)))
-                      (-> rdr-ast
-                          assoc-file-map
-                          (update-rdr-children #(assoc % ::file-map file-map)))))
-                  (-> rdr-ast
-                      assoc-file-map
-                      (update-rdr-children #(assoc % ::file-map file-map))))]
-    rdr-ast))
+  (if (::skip-fq-rdr-ast rdr-ast)
+    rdr-ast
+    (let [file-map (or
+                     (if (and (:top-level rdr-ast)
+                              (some? (:val rdr-ast)))
+                       (file-map (:val rdr-ast) rdr-ast opt)
+                       (::file-map rdr-ast))
+                     {})
+          assoc-file-map #(assoc % ::file-map file-map)
+          rdr-ast (kw-case (:op rdr-ast)
+                    ::rdr/symbol
+                    (let [{:keys [val]} rdr-ast]
+                      (if-let [mapped (file-map (select-keys (meta val) [:line :column
+                                                                         :end-line :end-column
+                                                                         :file]))]
+                        (kw-case (first mapped)
+                          :var (-> rdr-ast
+                                   (assoc :string (str (:sym (second mapped))))
+                                   assoc-file-map)
+                          (:local :binding)
+                          ;; TODO tag rewriting cases as "seen" so fq-rdr-ast doesn't reprocess them
+                          (let [info (second mapped)
+                                wrap-discard (fn [sym-ast]
+                                               {:op ::rdr/forms
+                                                ::file-map file-map
+                                                :val (:val sym-ast)
+                                                :forms [{:op ::rdr/discard
+                                                         ::file-map file-map
+                                                         :forms [{:op ::rdr/keyword
+                                                                  ::file-map file-map
+                                                                  :string (str (symbol (:local info)))
+                                                                  :val (keyword (:local info))}]}
+                                                        {:op ::rdr/whitespace
+                                                         ::file-map file-map
+                                                         :string " "}
+                                                        (assoc sym-ast
+                                                               ::skip-fq-rdr-ast true)]})
+                                sym-ast (cond-> (assoc rdr-ast
+                                                       :string (-> info :name str)
+                                                       ::file-map file-map)
+                                          (:add-local-origin opt)
+                                          wrap-discard)]
+                            (if-some [tag (:inferred-tag info)]
+                              {:op ::rdr/meta
+                               ::file-map file-map
+                               :val (vary-meta (:val sym-ast) assoc :tag tag)
+                               :forms [{:op ::rdr/symbol
+                                        ::file-map file-map
+                                        :string (str tag)
+                                        :val tag}
+                                       {:op ::rdr/whitespace
+                                        ::file-map file-map
+                                        :string " "}
+                                       (assoc sym-ast
+                                              ::skip-fq-rdr-ast true)]}
+                              sym-ast)))
+                        (-> rdr-ast
+                            assoc-file-map
+                            (update-rdr-children #(assoc % ::file-map file-map)))))
+                    (-> rdr-ast
+                        assoc-file-map
+                        (update-rdr-children #(assoc % ::file-map file-map))))]
+      rdr-ast)))
 
 ;; pre pass
 (defn indent-by [{:keys [top-level] :as rdr-ast} indent]
   {:post [(:op %)]}
-  (prn `indent-by (:op rdr-ast))
-  (kw-case (:op rdr-ast)
-    ::rdr/whitespace (update rdr-ast :string
-                             str/replace "\n" (str "\n" (apply str (repeat indent \space))))
-    (let [indent-top-level #(do {:op ::rdr/forms
-                                 :forms [{:op ::rdr/whitespace
-                                          :string (apply str (repeat indent \space))}
-                                         %]})]
-      (cond-> rdr-ast
-        top-level
-        indent-top-level))))
+  (if (::skip-indent-by rdr-ast)
+    rdr-ast
+    (kw-case (:op rdr-ast)
+      ::rdr/whitespace (update rdr-ast :string
+                               str/replace "\n" (str "\n" (apply str (repeat indent \space))))
+      (let [indent-top-level #(do {:op ::rdr/forms
+                                   :forms [{:op ::rdr/whitespace
+                                            ::skip-indent-by true
+                                            :string (apply str (repeat indent \space))}
+                                           (assoc % ::skip-indent-by true)]})]
+        (cond-> rdr-ast
+          top-level
+          indent-top-level)))))
 
 ;; pre-pass
 ;; - must be followed by delete-orphan-whitespace
@@ -357,6 +363,7 @@
 
 (defn reformat-rdr-ast-pre [rdr-ast opt]
   (kw-case (:op rdr-ast)
+    ;; TODO propagate top-level
     ::rdr/whitespace {:op ::rdr/forms
                       :forms []}
     rdr-ast))
@@ -461,4 +468,6 @@
                           {:reformat true}))
   (println
     (refactor-form-string "1\n2\n3"))
+  (println
+    (refactor-form-string "   "))
   )
