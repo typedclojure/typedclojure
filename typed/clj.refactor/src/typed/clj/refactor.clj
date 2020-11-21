@@ -261,12 +261,15 @@
                               (-> (update i dissoc ::delete-preceding-whitespace)
                                   (update (dec i)
                                           (fn [maybe-ws]
+                                            (prn `delete-orphan-whitespace (:op maybe-ws))
                                             (case (:op maybe-ws)
                                               ::rdr/whitespace
                                               (update maybe-ws :string
                                                       ;; TODO review docs to see if this does the
                                                       ;; right thing
-                                                      str/trimr)
+                                                      (fn [s]
+                                                        (prn 's s (str/trimr s))
+                                                        (str/trimr s)))
                                               ;; no preceding whitespace
                                               maybe-ws)))))))
                         forms
@@ -288,10 +291,13 @@
           opt (cond-> opt
                 (not (:file-map-atom opt)) (assoc :file-map-atom (atom {})))
           fm (file-map form rdr-ast opt)
-          passes (comp 
-                   delete-orphan-whitespace
-                   #(indent-by % 2 true)
-                   #(fq-rdr-ast % fm opt))
+          passes (apply comp 
+                        (keep identity
+                              [(when (:delete-discard opt)
+                                 delete-orphan-whitespace)
+                               (when (:indent-by opt)
+                                 #(indent-by % 2 true))
+                               #(fq-rdr-ast % fm opt)]))
           fq-string (rdr/ast->string (passes rdr-ast))]
       fq-string)))
 
@@ -333,12 +339,14 @@
   (refactor-form-string "(do #_1)" {})
   (refactor-form-string "(do #_1)"
                         {:delete-discard true})
+  (refactor-form-string " #_1 1"
+                        {:delete-discard true})
   (println
     (refactor-form-string "(do \n\n#_1)"
                           {:delete-discard true}))
   (println
     (refactor-form-string "(map identity\n)"
-                          {:delete-discard true}))
+                          {:indent-by true}))
   (println
     (refactor-form-string "(map #(\n+ 1 2))"
                           {}))
