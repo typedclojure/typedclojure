@@ -241,16 +241,41 @@
 (defn fq-rdr-ast [rdr-ast opt]
   (if (::skip-fq-rdr-ast rdr-ast)
     rdr-ast
-    (let [file-map (or
-                     (if (and (:top-level rdr-ast)
-                              (some? (:val rdr-ast)))
+    (let [;_ (prn `fq-rdr-ast (:op rdr-ast))
+          file-map (or
+                     (cond
+                       (and (:top-level rdr-ast)
+                            (some? (:val rdr-ast)))
                        (file-map (:val rdr-ast) rdr-ast opt)
-                       (::file-map rdr-ast))
+
+                       (identical? ::rdr/read-eval (:op rdr-ast))
+                       (let [form (-> {:op ::rdr/forms
+                                       ;; FIXME prepend whitespace to simulate
+                                       ;; actual place in file
+                                       :forms (:forms rdr-ast)}
+                                      rdr/ast->string
+                                      rdr/read-string)
+                             fm (file-map form
+                                          rdr-ast
+                                          opt)]
+                         #_(prn "read-eval" form fm)
+                         fm)
+
+                       :else (::file-map rdr-ast))
                      {})
           assoc-file-map #(assoc % ::file-map file-map)
           rdr-ast (kw-case (:op rdr-ast)
                     ::rdr/symbol
                     (let [{:keys [val]} rdr-ast]
+                      #_
+                      (prn "symbol case" val
+                           (select-keys (meta val) [:line :column
+                                                    :end-line :end-column
+                                                    :file])
+                           (file-map (select-keys (meta val) [:line :column
+                                                              :end-line :end-column
+                                                              :file]))
+                           file-map)
                       (if-let [mapped (file-map (select-keys (meta val) [:line :column
                                                                          :end-line :end-column
                                                                          :file]))]
@@ -470,4 +495,11 @@
     (refactor-form-string "1\n2\n3"))
   (println
     (refactor-form-string "   "))
+
+  ;; FIXME print distinct bindings
+  (println
+    (refactor-form-string "(let [a #=(let [a 1] a)] a)"))
+  ;; FIXME #= should preserve line/column numbers when reanalyzing (see fq-rdr-ast)
+  (println
+    (refactor-form-string "(let [a #=(let [b 1] b)] a)"))
   )
