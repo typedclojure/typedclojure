@@ -360,6 +360,8 @@
 
 ;; pre-pass
 ;; - must be followed by delete-orphan-whitespace
+;; FIXME probably better to move to post pass? then we can delete
+;; the discard form entirely.
 (defn delete-discard [rdr-ast]
   (kw-case (:op rdr-ast)
     ::rdr/discard {:op ::rdr/forms
@@ -416,6 +418,7 @@
                                                 (let [rdr-ast (nth forms i)]
                                                   (kw-case (:op rdr-ast)
                                                     ::rdr/whitespace (do
+                                                                       ;; ignoring ::rdr/forms in between ws for now...
                                                                        (assert (not= ::rdr/whitespace (:op (nth forms (dec i) nil)))
                                                                                "Didn't expect adjacent whitespace")
                                                                        (update-in forms [i :string]
@@ -431,10 +434,14 @@
                                               (:forms rdr-ast)
                                               (range (count (:forms rdr-ast))))]
                             (assoc rdr-ast :forms forms))
+    ;; TODO top-level whitespace
     ::rdr/forms (cond-> rdr-ast
                   (or (:top-level rdr-ast)
                       (::reformat-top-level rdr-ast))
-                  (update-rdr-children #(assoc % ::reformat-top-level true)))
+                  (update-rdr-children (fn [ast]
+                                         (when (= ::rdr/forms (:op ast))
+                                           (assert (empty? (:forms rdr-ast))))
+                                         (assoc ast ::reformat-top-level true))))
     rdr-ast))
 
 (defn reformat-rdr-ast-post [rdr-ast opt]
@@ -505,13 +512,18 @@
                          :add-local-origin true})
   (refactor-form-string "(fn [a] (+ a 3))" {})
 
-  (refactor-form-string "+" {})
+  (refactor-form-string "+" {:fully-qualify true})
   ;=> "clojure.core/+"
   (refactor-form-string "(defn foo [a] (+ a 3))" {})
   ;=> "(clojure.core/defn foo [a__#0] (clojure.core/+ a__#0 3))"
-  (refactor-form-string "(defmacro foo [a] `(+ ~a 3))" {})
+  ;; TODO expand `+ => `clojure.core/+
+  (refactor-form-string "`+" {:fully-qualify true})
+  (refactor-form-string "(defmacro foo [a] `(+ ~a 3))"
+                        {:fully-qualify true
+                         :hygienic-locals true})
   ;=> "(clojure.core/defmacro foo [a__#0] `(+ ~a__#0 3))"
-  (refactor-form-string "(defmacro foo [a] `(+ ~@a 3))" {})
+  (refactor-form-string "(defmacro foo [a] `(+ ~@a 3))"
+                        {:hygienic-locals true})
   (refactor-form-string "(str (fn []))" {})
   ;;FIXME macro vars don't expand?
   (refactor-form-string "`fn" {:fully-qualify true})
@@ -544,6 +556,12 @@
                           {:indent-by true}))
   (println
     (refactor-form-string "(map     #(\n+ 1 2))"
+                          {:reformat true}))
+  (println
+    (refactor-form-string " (  map     #(\n+ 1 2))"
+                          {:reformat true}))
+  (println
+    (refactor-form-string " (;asdf\n map     #(\n+ 1 2))"
                           {:reformat true}))
   (println
     (refactor-form-string "1\n2\n3"))
