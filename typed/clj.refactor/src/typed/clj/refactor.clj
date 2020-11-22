@@ -290,24 +290,14 @@
           rdr-ast (kw-case (:op rdr-ast)
                     ::rdr/symbol
                     (let [{:keys [val]} rdr-ast]
-                      #_
-                      (prn "symbol case" val
-                           (select-keys (meta val) [:line :column
-                                                    :end-line :end-column
-                                                    :file])
-                           (file-map (select-keys (meta val) [:line :column
-                                                              :end-line :end-column
-                                                              :file]))
-                           file-map)
                       (if-let [mapped (file-map (select-keys (meta val) [:line :column
                                                                          :end-line :end-column
                                                                          :file]))]
                         (kw-case (first mapped)
-                          :var (-> rdr-ast
-                                   (assoc :string (str (:sym (second mapped))))
-                                   assoc-file-map)
+                          :var (cond-> rdr-ast
+                                 true assoc-file-map
+                                 (:fully-qualify opt) (assoc :string (str (:sym (second mapped)))))
                           (:local :binding)
-                          ;; TODO tag rewriting cases as "seen" so fq-rdr-ast doesn't reprocess them
                           (let [info (second mapped)
                                 wrap-discard (fn [sym-ast]
                                                {:op ::rdr/forms
@@ -324,12 +314,12 @@
                                                          :string " "}
                                                         (assoc sym-ast
                                                                ::skip-fq-rdr-ast true)]})
-                                sym-ast (cond-> (assoc rdr-ast
-                                                       :string (-> info :name str)
-                                                       ::file-map file-map)
-                                          (:add-local-origin opt)
-                                          wrap-discard)]
-                            (if-some [tag (:inferred-tag info)]
+                                sym-ast (cond-> rdr-ast
+                                          true assoc-file-map
+                                          (:hygienic-locals opt) (assoc :string (-> info :name str))
+                                          (:add-local-origin opt) wrap-discard)]
+                            (if-some [tag (when (:add-inferred-tag opt)
+                                            (:inferred-tag info))]
                               {:op ::rdr/meta
                                ::file-map file-map
                                :val (vary-meta (:val sym-ast) assoc :tag tag)
@@ -345,10 +335,10 @@
                               sym-ast)))
                         (-> rdr-ast
                             assoc-file-map
-                            (update-rdr-children #(assoc % ::file-map file-map)))))
+                            (update-rdr-children assoc-file-map))))
                     (-> rdr-ast
                         assoc-file-map
-                        (update-rdr-children #(assoc % ::file-map file-map))))]
+                        (update-rdr-children assoc-file-map)))]
       rdr-ast)))
 
 ;; pre pass
@@ -463,16 +453,25 @@
 (comment (scratch-buffer))
 
 (defn scratch-buffer []
-  (refactor-form-string "(map identity [1 2 3])" {})
+  (refactor-form-string "(map identity [1 2 3])"
+                        {:fully-qualify true})
   ;=> "(sequence (map identity) [1 2 3])"
   (refactor-form-string "(merge {:a 1 :b 2} {:c 3 :d 4})" {})
   ;=> "(into {:a 1 :b 2} {:c 3 :d 4})"
   (refactor-form-string "(merge {+ 1 :b 2} {:c 3 :d 4})" {})
   (refactor-form-string "(merge {#'+ 1 :b 2} {:c 3 :d 4})" {})
   (refactor-form-string "#'+")
+  (refactor-form-string "#'+" {:fully-qualify true})
   (refactor-form-string "1 #!a\n;a")
   (refactor-form-string "(fn [])" {})
-  (refactor-form-string "(fn [a] (a))" {})
+  (refactor-form-string "(fn [a] (a))" {:hygienic-locals true
+                                        :add-local-origin true})
+  (refactor-form-string "(letfn [(a [])] (a))" {:hygienic-locals true
+                                                :add-local-origin true})
+  ;; FIXME :right overwrites :left, but has no info
+  (refactor-form-string "#(letfn [(a [] (prn :left)) (a [] (prn :right))] (a))"
+                        {:hygienic-locals true
+                         :add-local-origin true})
   (refactor-form-string "(fn [a] (+ a 3))" {})
 
   (refactor-form-string "+" {})
@@ -483,7 +482,8 @@
   ;=> "(clojure.core/defmacro foo [a__#0] `(+ ~a__#0 3))"
   (refactor-form-string "(defmacro foo [a] `(+ ~@a 3))" {})
   (refactor-form-string "(str (fn []))" {})
-  (refactor-form-string "`fn" {})
+  ;;FIXME macro vars don't expand?
+  (refactor-form-string "`fn" {:fully-qualify true})
   (let [a (atom {})]
     (refactor-form-string "(fn [{:keys [a]}] a)"
                           {:file-map-atom a})
@@ -536,4 +536,17 @@
     (refactor-form-string "(let [a #?@(:clj [(let [b 1] b)] :default [(let [b 1] b)])] a)"))
   (println
     (refactor-form-string "(let [a #?@ (:clj [(let [b 1] b)] :default [(let [b 1] b)])] a)"))
+
+  ;; types as comments
+  (println
+    (refactor-form-string
+      (str/join "\n"
+                (vector "(let [; :typed.clj t/Str"
+                        "      ; :typed.cljs t/Str"
+                        "      a (str 1)]"
+                        "  a)"))))
+  (println
+    (refactor-form-string
+      "#(let [f (java.io.File. \"a\")] f)"
+      {:add-inferred-tag true}))
   )
