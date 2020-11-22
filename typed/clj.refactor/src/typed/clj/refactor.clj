@@ -270,8 +270,7 @@
 
                        (or (identical? ::rdr/cond (:op rdr-ast))
                            (identical? ::rdr/cond-splicing (:op rdr-ast)))
-                       (let [_ (assert (= 1 (count (:forms rdr-ast))))
-                             lst-form (first (:forms rdr-ast))
+                       (let [lst-form (peek (:forms rdr-ast))
                              _ (assert (= ::rdr/list (:op lst-form)))]
                          ;; there's probably some case where no features are matched
                          ;; but we still want to read the form.
@@ -535,4 +534,6 @@
   ;; only expands matched feature
   (println
     (refactor-form-string "(let [a #?@(:clj [(let [b 1] b)] :default [(let [b 1] b)])] a)"))
+  (println
+    (refactor-form-string "(let [a #?@ (:clj [(let [b 1] b)] :default [(let [b 1] b)])] a)"))
   )

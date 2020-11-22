@@ -857,10 +857,12 @@
                    :forms [{:op ::ast/list
                             :val '(:clj 1)
                             :forms [{:op ::ast/keyword
+                                     :matched-feature-key true
                                      :string "clj"
                                      :val :clj}
                                     {:op ::ast/whitespace :string " "}
                                     {:op ::ast/number
+                                     :matched-feature-val true
                                      :string "1"
                                      :val 1}]}]
                    :val 1}
@@ -868,14 +870,40 @@
   (cond-test-case {:read-cond :allow :features #{:clj}}
                   {:op ::ast/cond
                    :top-level true
-                   :forms [{:op ::ast/whitespace :string " "}
-                           {:op ::ast/list
-                            :val '(:clj 1)
+                   :forms [{:op ::ast/list
+                            :val '(:foo 2 :clj 1)
                             :forms [{:op ::ast/keyword
+                                     :string "foo"
+                                     :val :foo}
+                                    {:op ::ast/whitespace :string " "}
+                                    {:op ::ast/number
+                                     :string "2"
+                                     :val 2}
+                                    {:op ::ast/whitespace :string " "}
+                                    {:op ::ast/keyword
+                                     :matched-feature-key true
                                      :string "clj"
                                      :val :clj}
                                     {:op ::ast/whitespace :string " "}
                                     {:op ::ast/number
+                                     :matched-feature-val true
+                                     :string "1"
+                                     :val 1}]}]
+                   :val 1}
+                  "#?(:foo 2 :clj 1)")
+  (cond-test-case {:read-cond :allow :features #{:clj}}
+                  {:op ::ast/cond
+                   :top-level true
+                   :forms [{:op ::ast/whitespace :string " "}
+                           {:op ::ast/list
+                            :val '(:clj 1)
+                            :forms [{:op ::ast/keyword
+                                     :matched-feature-key true
+                                     :string "clj"
+                                     :val :clj}
+                                    {:op ::ast/whitespace :string " "}
+                                    {:op ::ast/number
+                                     :matched-feature-val true
                                      :string "1"
                                      :val 1}]}]
                    :val 1}
@@ -888,10 +916,12 @@
                                      :string " "}
                                     {:op ::ast/list
                                      :forms [{:op ::ast/keyword
+                                              :matched-feature-key true
                                               :string "clj"
                                               :val :clj}
                                              {:op ::ast/whitespace :string " "}
                                              {:op ::ast/vector
+                                              :matched-feature-val true
                                               :val [1]
                                               :forms [{:op ::ast/number
                                                        :string "1"

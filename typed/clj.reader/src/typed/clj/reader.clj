@@ -634,10 +634,11 @@
                                          "Feature only finishes read if rhs is not available")
                                all (-> all
                                        (into (update feature (dec (count feature))
-                                                     #(-> %
-                                                          (dissoc :read-finished)
-                                                          (assoc :matched-feature-key true))))
-                                       (into (assoc-in rhs [(dec (count rhs)) :matched-feature-val] true)))]
+                                                     #(cond-> %
+                                                        true (dissoc :read-finished)
+                                                        found-match (assoc :matched-feature-key true))))
+                                       (into (cond-> rhs
+                                               found-match (assoc-in [(dec (count rhs)) :matched-feature-val] true))))]
                            (if finished?
                              [(subvec all 0 (dec (count all))) ;; remove :read-finished placeholder form
                               matched]
