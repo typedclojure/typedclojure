@@ -17,16 +17,16 @@
     {:jvm-opts ["-Dclojure.spec.skip-macros=true"]}
     :nREPL
     {:extra-deps
-     {nrepl/nrepl {:mvn/version "0.6.0"}
-      cider/cider-nrepl {:mvn/version "0.22.4"}
-      cider/piggieback {:mvn/version "0.3.8"}}
+     {nrepl/nrepl {:mvn/version "0.8.3"}
+      cider/cider-nrepl {:mvn/version "0.25.3"}
+      cider/piggieback {:mvn/version "0.5.2"}}
      :main-opts ["-m" "nrepl.cmdline" "--interactive"
                  #_"
                  Note:
                    introducing other middleware makes vim-fireplace choose
                    fipp for pprint, which doesn't play well with the delicately
                    defined classes in type-rep."
-                 "--middleware" "[cider.nrepl/wrap-complete]"
+                 "--middleware" "[cider.nrepl/wrap-complete,cider.nrepl/wrap-info]"
                  ]}})
 
 (defn -main [& args]
