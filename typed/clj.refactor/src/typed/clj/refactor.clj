@@ -157,7 +157,7 @@
                                                             [:line :column
                                                              :end-line :end-column
                                                              :file])
-                                               [:map-destructure-keys-enty {:binding bk}])))
+                                               [:map-destructure-keys-entry {:binding bk}])))
                                     v)
                               ;;TODO namespaced keywords, :syms :strs
                               (keyword? bi) nil
@@ -399,11 +399,42 @@
       (-> (assoc ::delete-preceding-whitespace true)
           (update-in [:forms 0] dissoc ::delete-preceding-whitespace)))))
 
+;; TODO reformat based on macro's args
+;; - [foo & body] => case/with-open/cond-> indentation
+;;   - exceptions: ->
+;; - [& args] => cond indentation
+;; TODO how to detect macros like cond-> use even numbered args?
+;; TODO check macro's expansion to inherit indentation (eg., thin wrapper around threading macro)
+;; TODO detect if something is a kv binding form and indent like let's binding form
+;; TODO reformat function calls to (f arg1
+;;                                    arg2)
+;; TODO prefer update/update-in path on different line to function if newline needed
 (defn reformat-rdr-ast-pre [rdr-ast opt]
+  (prn (:op rdr-ast))
   (kw-case (:op rdr-ast)
-    ;; TODO propagate top-level
-    ::rdr/whitespace {:op ::rdr/forms
-                      :forms []}
+    (::rdr/list ::rdr/fn) (let [forms (reduce (fn [forms i]
+                                                (let [rdr-ast (nth forms i)]
+                                                  (kw-case (:op rdr-ast)
+                                                    ::rdr/whitespace (do
+                                                                       (assert (not= ::rdr/whitespace (:op (nth forms (dec i) nil)))
+                                                                               "Didn't expect adjacent whitespace")
+                                                                       (update-in forms [i :string]
+                                                                                  (fn [s]
+                                                                                    (str
+                                                                                      (str/trim s)
+                                                                                      (when (< 0 i (dec (count forms)))
+                                                                                        " ")))))
+                                                    ::rdr/forms (do (assert (empty? (:form rdr-ast))
+                                                                            "More thinking required if this happens")
+                                                                    forms)
+                                                    forms)))
+                                              (:forms rdr-ast)
+                                              (range (count (:forms rdr-ast))))]
+                            (assoc rdr-ast :forms forms))
+    ::rdr/forms (cond-> rdr-ast
+                  (or (:top-level rdr-ast)
+                      (::reformat-top-level rdr-ast))
+                  (update-rdr-children #(assoc % ::reformat-top-level true)))
     rdr-ast))
 
 (defn reformat-rdr-ast-post [rdr-ast opt]
@@ -512,7 +543,7 @@
     (refactor-form-string "(map identity\n)"
                           {:indent-by true}))
   (println
-    (refactor-form-string "(map #(\n+ 1 2))"
+    (refactor-form-string "(map     #(\n+ 1 2))"
                           {:reformat true}))
   (println
     (refactor-form-string "1\n2\n3"))

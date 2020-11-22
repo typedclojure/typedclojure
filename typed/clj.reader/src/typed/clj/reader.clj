@@ -1478,3 +1478,7 @@
   "Returns the string representation of an AST."
   [ast]
   (str (ast->StringBuilder ast)))
+
+;; TODO add explicit field for this
+(defn has-val? [ast]
+  (contains? ast :val))
