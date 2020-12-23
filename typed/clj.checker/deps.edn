@@ -38,6 +38,10 @@
     com.clojure-goes-fast/clj-java-decompiler {:mvn/version "0.3.0"}}},
   :kaocha
   {:extra-deps {lambdaisland/kaocha {:mvn/version "1.0.700"}}}
+  :codox
+  {:extra-deps {codox/codox {:mvn/version "0.10.7"}}
+   :extra-paths ["script"]
+   :main-opts ["-m" "gen-doc"]}
   :runner
   {:extra-deps
    {org.typedclojure/test-runner

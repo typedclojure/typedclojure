@@ -15,6 +15,10 @@
                         "--interactive"]}
            :test
            {:extra-paths ["test"]}
+           :codox
+           {:extra-deps {codox/codox {:mvn/version "0.10.7"}}
+            :extra-paths ["script"]
+            :main-opts ["-m" "gen-doc"]}
            :runner
            {:extra-deps {com.cognitect/test-runner
                          {:git/url "https://github.com/cognitect-labs/test-runner"

@@ -3,5 +3,8 @@
 
 (defn -main [& args]
   (codox/generate-docs
-    {:source-paths ["src/main/clojure"]
-     :output-path "target/doc"}))
+    {:language :clojure
+     :source-uri "https://github.com/typedclojure/typedclojure/blob/{git-commit}/typed/clj.spec/{filepath}#L{line}"
+     :output-path "target/codox"})
+  (shutdown-agents)
+  (System/exit 0))

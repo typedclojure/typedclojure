@@ -7,7 +7,7 @@
 ;   You must not remove this notice, or any other, from this software.
 
 ; mostly copied from clojure.core's data-reader discovery impl
-(ns ^:skip-wiki clojure.core.typed.runtime.jvm.configs
+(ns ^:no-doc clojure.core.typed.runtime.jvm.configs
   "Alpha - wip, subject to change"
   (:import [clojure.lang LineNumberingPushbackReader]
            [java.io InputStreamReader]
