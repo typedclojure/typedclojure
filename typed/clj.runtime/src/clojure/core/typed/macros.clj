@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:skip-wiki clojure.core.typed.macros
+(ns ^:no-doc clojure.core.typed.macros
   (:refer-clojure :exclude [type defprotocol fn loop dotimes let for doseq
                             defn atom ref])
   (:require [clojure.core :as core]

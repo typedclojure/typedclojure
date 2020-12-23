@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:skip-wiki clojure.core.typed.analyze-cljs
+(ns ^:no-doc clojure.core.typed.analyze-cljs
   (:refer-clojure :exclude [extenders])
   (:require [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.util-cljs :as uc]

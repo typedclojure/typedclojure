@@ -53,7 +53,7 @@
              (@cljs-ns)
              #(@parse-cljs t#)))))))
 
-(defmacro ^:skip-wiki with-current-location
+(defmacro ^:no-doc with-current-location
   [{:keys [form env]} & body]
   `(let [form# ~form
          env# ~env]
@@ -65,7 +65,7 @@
                                              (:column env#)))}]
        ~@body)))
 
-(defn ^:skip-wiki
+(defn ^:no-doc
   ann*-macro-time
   "Internal use only. Use ann."
   [qsym typesyn check? form env]

@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:skip-wiki typed.cljc.checker.coerce-ann
+(ns ^:no-doc typed.cljc.checker.coerce-ann
   (:require [clojure.core.typed :as t]
             clojure.core.typed.coerce-utils))
 

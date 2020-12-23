@@ -6,10 +6,10 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:skip-wiki clojure.core.typed.unsafe)
+(ns ^:no-doc clojure.core.typed.unsafe)
 
 ;(ann ignore-with-unchecked-cast* [Any Any -> Any])
-(defn ^:skip-wiki ignore-with-unchecked-cast* [form ty]
+(defn ^:no-doc ignore-with-unchecked-cast* [form ty]
   form)
 
 (defmacro ignore-with-unchecked-cast

@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:skip-wiki typed.cljc.checker.check-form-common2
+(ns ^:no-doc typed.cljc.checker.check-form-common2
   (:require [typed.clj.checker.check :as chk]
             [clojure.core.typed.contract-utils :as con]
             [typed.cljc.checker.utils :as u]

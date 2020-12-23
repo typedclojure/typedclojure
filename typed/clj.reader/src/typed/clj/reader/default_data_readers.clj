@@ -10,7 +10,7 @@
 
 ;; based on clojure.tools.reader.default-data-readers
 
-(ns ^:skip-wiki typed.clj.reader.default-data-readers
+(ns ^:no-doc typed.clj.reader.default-data-readers
   (:import [java.util Calendar Date GregorianCalendar TimeZone]
            [java.sql Timestamp]))
 

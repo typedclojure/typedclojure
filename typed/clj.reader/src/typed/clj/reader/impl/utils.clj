@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 ;; based on clojure.tools.reader.impl.utils
-(ns ^:skip-wiki typed.clj.reader.impl.utils
+(ns ^:no-doc typed.clj.reader.impl.utils
   (:refer-clojure :exclude [char reader-conditional tagged-literal]))
 
 (defn char [x]

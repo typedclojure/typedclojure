@@ -12,43 +12,43 @@
   (:require-macros 
     [clojure.core.typed.bootstrap-cljs :as boot]))
 
-(defn ^:skip-wiki
+(defn ^:no-doc
   ann* 
   "Internal use only. Use ann."
   [qsym typesyn check? form]
   nil)
 
-(defn ^:skip-wiki
+(defn ^:no-doc
   ann-protocol* 
   "Internal use only. Use ann-protocol."
   [vbnd varsym mth]
   nil)
 
-(defn ^:skip-wiki
+(defn ^:no-doc
   ann-datatype*
   "Internal use only. Use ann-datatype."
   [vbnd dname fields opts]
   nil)
 
-(defn ^:skip-wiki
+(defn ^:no-doc
   def-alias* 
   "Internal use only. Use defalias."
   [sym type]
   nil)
 
-(defn ^:skip-wiki
+(defn ^:no-doc
   inst-poly 
   "Internal use only. Use inst."
   [inst-of types-syn]
   inst-of)
 
-(defn ^:skip-wiki
+(defn ^:no-doc
   loop>-ann 
   "Internal use only. Use loop>"
   [loop-of bnding-types]
   loop-of)
 
-(defn ^:skip-wiki
+(defn ^:no-doc
   typed-deps* 
   "Internal use only. Use typed-deps."
   [args]

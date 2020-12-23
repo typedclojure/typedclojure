@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:skip-wiki clojure.core.typed.bootstrap-cljs
+(ns ^:no-doc clojure.core.typed.bootstrap-cljs
   (:require [clojure.set :as set]))
 
 (def -base-aliases

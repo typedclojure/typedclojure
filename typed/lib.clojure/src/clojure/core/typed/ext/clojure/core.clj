@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:skip-wiki clojure.core.typed.ext.clojure.core
+(ns ^:no-doc clojure.core.typed.ext.clojure.core
   "Typing rules for base Clojure distribution."
   (:require [typed.clj.checker.check :refer [defuspecial -unanalyzed-special]]
             [typed.cljc.checker.utils :as u]

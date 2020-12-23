@@ -282,7 +282,7 @@
 ;; Typed wrappers
 
 (t/tc-ignore
-(defn ^:skip-wiki maybe-annotation [args]
+(defn ^:no-doc maybe-annotation [args]
   (let [t? (#{:-} (first args))
         t (when t? (second args))
         args (if t? 

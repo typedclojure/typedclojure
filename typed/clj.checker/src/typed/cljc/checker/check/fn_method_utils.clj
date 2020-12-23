@@ -6,13 +6,13 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:skip-wiki typed.cljc.checker.check.fn-method-utils
+(ns ^:no-doc typed.cljc.checker.check.fn-method-utils
   (:require [typed.cljc.checker.utils :as u]
             [typed.cljc.checker.type-rep :as r]
             [clojure.core.typed.contract-utils :as con]
             [typed.cljc.checker.abo :as abo]))
 
-(alter-meta! *ns* assoc :skip-wiki true)
+(alter-meta! *ns* assoc :no-doc true)
 
 (defonce ^:dynamic *check-fn-method1-checkfn* nil)
 ; [(U nil Type) (U nil DottedPretype) -> Type]

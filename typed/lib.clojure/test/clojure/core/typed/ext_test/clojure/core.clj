@@ -1,4 +1,4 @@
-(ns ^:skip-wiki clojure.core.typed.ext-test.clojure.core
+(ns ^:no-doc clojure.core.typed.ext-test.clojure.core
   (:require [clojure.test :refer [deftest is]]
             [clojure.core.typed :as t]))
 

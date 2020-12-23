@@ -8,11 +8,11 @@
 
 (ns clojure.core.typed.util-vars)
 
-(defonce ^:skip-wiki registered-ann-ns (atom {:register? false :namespaces #{}}))
+(defonce ^:no-doc registered-ann-ns (atom {:register? false :namespaces #{}}))
 
-(defonce ^:skip-wiki ^:dynamic *current-env* nil)
-(defonce ^:skip-wiki ^:dynamic *current-expr* nil)
-(defonce ^:skip-wiki ^:dynamic *in-check-form* nil)
+(defonce ^:no-doc ^:dynamic *current-env* nil)
+(defonce ^:no-doc ^:dynamic *current-expr* nil)
+(defonce ^:no-doc ^:dynamic *in-check-form* nil)
 
 (defonce ^:dynamic 
   ^{:doc 
@@ -44,19 +44,19 @@
   *trace-checker*
   nil)
 
-(def ^:skip-wiki ^:dynamic *currently-loading* false)
-(defonce ^{:doc "Internal use only"} ^:skip-wiki ^:dynamic *already-checked* nil)
-(defonce ^{:doc "Internal use only"} ^:skip-wiki ^:dynamic *delayed-errors* nil)
-(defonce ^{:doc "Internal use only"} ^:skip-wiki ^:dynamic *analyze-ns-cache* nil)
-(defonce ^{:doc "Internal use only"} ^:skip-wiki ^:dynamic *checked-asts* nil)
-(defonce ^{:doc "Internal use only"} ^:skip-wiki ^:dynamic *lexical-env* nil)
-(defonce ^{:doc "Internal use only"} ^:skip-wiki ^:dynamic *can-rewrite* nil)
-(defonce ^{:doc "Internal use only"} ^:skip-wiki ^:dynamic *in-typed-load* nil)
+(def ^:no-doc ^:dynamic *currently-loading* false)
+(defonce ^{:doc "Internal use only"} ^:no-doc ^:dynamic *already-checked* nil)
+(defonce ^{:doc "Internal use only"} ^:no-doc ^:dynamic *delayed-errors* nil)
+(defonce ^{:doc "Internal use only"} ^:no-doc ^:dynamic *analyze-ns-cache* nil)
+(defonce ^{:doc "Internal use only"} ^:no-doc ^:dynamic *checked-asts* nil)
+(defonce ^{:doc "Internal use only"} ^:no-doc ^:dynamic *lexical-env* nil)
+(defonce ^{:doc "Internal use only"} ^:no-doc ^:dynamic *can-rewrite* nil)
+(defonce ^{:doc "Internal use only"} ^:no-doc ^:dynamic *in-typed-load* nil)
 ;; keep track of state throughout a `load`
-(defonce ^{:doc "Internal use only"} ^:skip-wiki ^:dynamic *typed-load-atom* nil)
-(defonce ^{:doc "Internal use only"} ^:skip-wiki ^:dynamic *prepare-infer-ns* nil)
-(defonce ^{:doc "Internal use only"} ^:skip-wiki ^:dynamic *instrument-infer-config* nil)
-(defonce ^{:doc "Internal use only"} ^:skip-wiki ^:dynamic *check-config* nil)
-(defonce ^{:doc "Internal use only"} ^:skip-wiki ^:dynamic *custom-expansions* nil)
+(defonce ^{:doc "Internal use only"} ^:no-doc ^:dynamic *typed-load-atom* nil)
+(defonce ^{:doc "Internal use only"} ^:no-doc ^:dynamic *prepare-infer-ns* nil)
+(defonce ^{:doc "Internal use only"} ^:no-doc ^:dynamic *instrument-infer-config* nil)
+(defonce ^{:doc "Internal use only"} ^:no-doc ^:dynamic *check-config* nil)
+(defonce ^{:doc "Internal use only"} ^:no-doc ^:dynamic *custom-expansions* nil)
 ;;TODO replace with pass state
-(defonce ^{:doc "Internal use only"} ^:skip-wiki ^:dynamic *beta-count* nil)
+(defonce ^{:doc "Internal use only"} ^:no-doc ^:dynamic *beta-count* nil)

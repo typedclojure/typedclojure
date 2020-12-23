@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:skip-wiki clojure.core.typed.jsnominal-env
+(ns ^:no-doc clojure.core.typed.jsnominal-env
   (:refer-clojure :exclude [get-method])
   (:require [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.type-ctors :as c]

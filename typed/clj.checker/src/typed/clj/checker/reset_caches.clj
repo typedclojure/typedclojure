@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:skip-wiki typed.clj.checker.reset-caches
+(ns ^:no-doc typed.clj.checker.reset-caches
   (:require [typed.clj.checker.subtype :as sub]
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.cs-gen :as cgen]))

@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:skip-wiki typed.cljc.checker.check.funapp
+(ns ^:no-doc typed.cljc.checker.check.funapp
   (:require [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.check-below :as below]
             [clojure.core.typed.current-impl :as impl]

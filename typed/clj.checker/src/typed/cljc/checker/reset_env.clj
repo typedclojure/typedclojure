@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:skip-wiki typed.cljc.checker.reset-env
+(ns ^:no-doc typed.cljc.checker.reset-env
   (:require [typed.clj.checker.base-env :as bse-clj]
             [typed.cljc.checker.ns-options :as ns-opts]
             [clojure.core.typed.current-impl :as impl]

@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:skip-wiki typed.cljc.checker.promote-demote
+(ns ^:no-doc typed.cljc.checker.promote-demote
   (:require [typed.cljc.checker.utils :as u]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.type-ctors :as c]

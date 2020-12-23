@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:skip-wiki clojure.core.typed.load1
+(ns ^:no-doc clojure.core.typed.load1
   "Implementation of clojure.core.typed.load."
   (:require [clojure.core.typed :as t]
             [typed.cljc.analyzer.env :as env]

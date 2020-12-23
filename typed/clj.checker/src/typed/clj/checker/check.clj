@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.clj.checker.check
-  {:skip-wiki true}
+  {:no-doc true}
   (:require [clojure.core.typed :as t]
             [typed.cljc.analyzer :as ana2]
             [typed.cljc.analyzer.env :as env]

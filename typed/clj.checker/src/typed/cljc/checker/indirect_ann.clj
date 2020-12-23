@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:skip-wiki typed.cljc.checker.indirect-ann
+(ns ^:no-doc typed.cljc.checker.indirect-ann
   (:require [clojure.core.typed :as t]
             [typed.cljc.checker.type-rep :as r]
             typed.cljc.checker.indirect-ops))

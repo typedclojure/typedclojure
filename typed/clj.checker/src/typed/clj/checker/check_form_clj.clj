@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:skip-wiki typed.clj.checker.check-form-clj
+(ns ^:no-doc typed.clj.checker.check-form-clj
   (:require [typed.cljc.checker.check-form-common :as chk-form]
             [typed.cljc.checker.check-form-common2 :as chk-form2]
             [typed.clj.checker.analyze-clj :as ana-clj]

@@ -133,13 +133,13 @@ for checking namespaces, cf for checking individual forms."}
   [debug-string frm]
   frm)
 
-(core/defn ^:skip-wiki
+(core/defn ^:no-doc
   inst-poly 
   "Internal use only. Use inst."
   [inst-of types-syn]
   inst-of)
 
-(core/defn ^:skip-wiki
+(core/defn ^:no-doc
   inst-poly-ctor 
   "Internal use only. Use inst-ctor"
   [inst-of types-syn]
@@ -292,7 +292,7 @@ for checking namespaces, cf for checking individual forms."}
        ~@(or body [nil]))))
 
 (core/let [declare-datatype* (delay (dynaload 'clojure.core.typed.current-impl/declare-datatype*))]
-  (core/defn ^:skip-wiki
+  (core/defn ^:no-doc
     declare-datatypes* 
     "Internal use only. Use declare-datatypes."
     [syms nsym]
@@ -310,7 +310,7 @@ for checking namespaces, cf for checking individual forms."}
   [& syms]
   `(tc-ignore (declare-datatypes* '~syms '~(ns-name *ns*))))
 
-(core/defn ^:skip-wiki
+(core/defn ^:no-doc
   declare-protocols* 
   "Internal use only. Use declare-protocols."
   [syms]
@@ -321,7 +321,7 @@ for checking namespaces, cf for checking individual forms."}
   [& syms]
   `(tc-ignore (declare-protocols* '~syms)))
 
-(core/defn ^:skip-wiki
+(core/defn ^:no-doc
   declare-alias-kind* 
   "Internal use only. Use declare-alias-kind."
   [sym ty]
@@ -335,7 +335,7 @@ for checking namespaces, cf for checking individual forms."}
      (declare-alias-kind* '~sym '~ty)))
 
 (core/let [declare-name* (delay (dynaload 'clojure.core.typed.current-impl/declare-name*))]
-  (core/defn ^:skip-wiki
+  (core/defn ^:no-doc
     declare-names* 
     "Internal use only. Use declare-names."
     [syms]
@@ -353,7 +353,7 @@ for checking namespaces, cf for checking individual forms."}
 
 (declare add-to-rt-alias-env add-tc-type-name)
 
-(core/defn ^:skip-wiki
+(core/defn ^:no-doc
   defalias* 
   "Internal use only. Use defalias."
   [qsym t form]
@@ -361,7 +361,7 @@ for checking namespaces, cf for checking individual forms."}
   (add-tc-type-name form qsym t)
   nil)
 
-(defmacro ^:skip-wiki with-current-location
+(defmacro ^:no-doc with-current-location
   [form & body]
   `(core/let [form# ~form]
      (binding [vs/*current-env* {:ns {:name (ns-name *ns*)}
@@ -398,7 +398,7 @@ for checking namespaces, cf for checking individual forms."}
              #(@parse-clj-tc t#)))))))
 
 (core/let [add-alias-env (delay (dynaload 'clojure.core.typed.current-impl/add-alias-env))]
-  (core/defn ^:skip-wiki add-to-rt-alias-env [form qsym t]
+  (core/defn ^:no-doc add-to-rt-alias-env [form qsym t]
     (with-clojure-impl
       (@add-alias-env
         qsym
@@ -411,7 +411,7 @@ for checking namespaces, cf for checking individual forms."}
            unparse-type (delay (dynaload 'typed.clj.checker.parse-unparse/unparse-type))
            int-error (delay (dynaload 'clojure.core.typed.errors/int-error))
            add-tc-type-name* (delay (dynaload 'clojure.core.typed.current-impl/add-tc-type-name))]
-  (core/defn ^:skip-wiki add-tc-type-name [form qsym t]
+  (core/defn ^:no-doc add-tc-type-name [form qsym t]
     (with-clojure-impl
       (core/let
            [;; preserve *ns*
@@ -638,13 +638,13 @@ for checking namespaces, cf for checking individual forms."}
 (core/let
      [add-rclass-env (delay (dynaload 'clojure.core.typed.current-impl/add-rclass-env))
       Class->symbol (delay (dynaload 'clojure.core.typed.current-impl/Class->symbol))]
-  (core/defn ^:skip-wiki rclass-pred
+  (core/defn ^:no-doc rclass-pred
     "Do not use"
     [rcls opts]
     (with-clojure-impl
       (@add-rclass-env (@Class->symbol rcls) opts))))
 
-(defmacro ^:skip-wiki rclass-preds 
+(defmacro ^:no-doc rclass-preds 
   "Do not use"
   [& args]
   `(do
@@ -655,7 +655,7 @@ for checking namespaces, cf for checking individual forms."}
 (core/let
      [parse-type (delay (dynaload 'typed.clj.checker.parse-unparse/parse-type))
       Type->array-member-Class (delay (dynaload 'typed.clj.checker.array-ops/Type->array-member-Class))]
-  (core/defn ^:skip-wiki
+  (core/defn ^:no-doc
     into-array>*
     "Internal use only. Use into-array>."
     ([cljt coll]
@@ -688,7 +688,7 @@ for checking namespaces, cf for checking individual forms."}
 
 
 (core/let [add-nonnilable-method-return (delay (dynaload 'clojure.core.typed.current-impl/add-nonnilable-method-return))]
-  (core/defn ^:skip-wiki
+  (core/defn ^:no-doc
     non-nil-return* 
     "Internal use only. Use non-nil-return."
     [msym arities]
@@ -708,7 +708,7 @@ for checking namespaces, cf for checking individual forms."}
   `(tc-ignore (non-nil-return* '~msym '~arities)))
 
 (core/let [add-method-nilable-param (delay (dynaload 'clojure.core.typed.current-impl/add-method-nilable-param))]
-  (core/defn ^:skip-wiki
+  (core/defn ^:no-doc
     nilable-param* 
     "Internal use only. Use nilable-param."
     [msym mmap]
@@ -738,7 +738,7 @@ for checking namespaces, cf for checking individual forms."}
 
 (core/let [var->symbol (delay (dynaload 'clojure.core.typed.coerce-utils/var->symbol))
            add-untyped-var (delay (dynaload 'clojure.core.typed.current-impl/add-untyped-var))]
-  (core/defn ^:skip-wiki
+  (core/defn ^:no-doc
     untyped-var* 
     "Internal use only. Use untyped-var."
     [varsym typesyn prs-ns form]
@@ -770,7 +770,7 @@ for checking namespaces, cf for checking individual forms."}
            check-var? (delay (dynaload 'clojure.core.typed.current-impl/check-var?))
            remove-nocheck-var (delay (dynaload 'clojure.core.typed.current-impl/remove-nocheck-var))
            add-nocheck-var (delay (dynaload 'clojure.core.typed.current-impl/add-nocheck-var))]
-  (core/defn ^:skip-wiki
+  (core/defn ^:no-doc
     ann* 
     "Internal use only. Use ann."
     [qsym typesyn check? form]
@@ -830,7 +830,7 @@ for checking namespaces, cf for checking individual forms."}
 
 (core/let [add-datatype-env (delay (dynaload 'clojure.core.typed.current-impl/add-datatype-env))
            gen-datatype* (delay (dynaload 'clojure.core.typed.current-impl/gen-datatype*))]
-  (core/defn ^:skip-wiki
+  (core/defn ^:no-doc
     ann-datatype*
     "Internal use only. Use ann-datatype."
     [vbnd dname fields opts form]
@@ -909,7 +909,7 @@ for checking namespaces, cf for checking individual forms."}
 
 (core/let [add-datatype-env (delay (dynaload 'clojure.core.typed.current-impl/add-datatype-env))
            gen-datatype* (delay (dynaload 'clojure.core.typed.current-impl/gen-datatype*))]
-  (core/defn ^:skip-wiki
+  (core/defn ^:no-doc
     ann-record* 
     "Internal use only. Use ann-record"
     [vbnd dname fields opt form]
@@ -985,7 +985,7 @@ for checking namespaces, cf for checking individual forms."}
 
 (core/let [add-protocol-env (delay (dynaload 'clojure.core.typed.current-impl/add-protocol-env))
            gen-protocol* (delay (dynaload 'clojure.core.typed.current-impl/gen-protocol*))]
-  (core/defn ^:skip-wiki
+  (core/defn ^:no-doc
     ann-protocol* 
     "Internal use only. Use ann-protocol."
     [vbnd varsym mth form]
@@ -1056,7 +1056,7 @@ for checking namespaces, cf for checking individual forms."}
           {:as mth} mth]
       `(tc-ignore (ann-protocol* '~vbnd '~varsym '~mth '~&form)))))
 
-(core/defn ^:skip-wiki
+(core/defn ^:no-doc
   ann-interface* 
   "Internal use only. Use ann-interface."
   [vbnd clsym mth]
@@ -1114,7 +1114,7 @@ for checking namespaces, cf for checking individual forms."}
       `(tc-ignore (ann-interface* '~vbnd '~clsym '~mth)))))
 
 (core/let [add-constructor-override (delay (dynaload 'clojure.core.typed.current-impl/add-constructor-override))]
-  (core/defn ^:skip-wiki
+  (core/defn ^:no-doc
     override-constructor* 
     "Internal use only. Use override-constructor."
     [ctorsym typesyn form]
@@ -1131,7 +1131,7 @@ for checking namespaces, cf for checking individual forms."}
   `(tc-ignore (override-constructor* '~ctorsym '~typesyn '~&form)))
 
 (core/let [add-method-override (delay (dynaload 'clojure.core.typed.current-impl/add-method-override))]
-  (core/defn ^:skip-wiki
+  (core/defn ^:no-doc
     override-method* 
     "Internal use only. Use override-method."
     [methodsym typesyn form]
@@ -1168,7 +1168,7 @@ for checking namespaces, cf for checking individual forms."}
 (core/let [ns->URL (delay (dynaload 'clojure.core.typed.coerce-utils/ns->URL))
            int-error (delay (dynaload 'clojure.core.typed.errors/int-error))
            add-ns-deps (delay (dynaload 'clojure.core.typed.current-impl/add-ns-deps))]
-  (core/defn ^:skip-wiki
+  (core/defn ^:no-doc
     typed-deps* 
     "Internal use only. Use typed-deps."
     [args form]
@@ -1191,7 +1191,7 @@ for checking namespaces, cf for checking individual forms."}
   `(tc-ignore (typed-deps* '~args '~&form)))
 
 (core/let [the-var (delay (dynaload 'clojure.core.typed.current-impl/the-var))]
-  (core/defn ^:skip-wiki var>* [sym]
+  (core/defn ^:no-doc var>* [sym]
     (@the-var sym)))
 
 (defmacro var>
@@ -1203,7 +1203,7 @@ for checking namespaces, cf for checking individual forms."}
   `(var>* '~sym))
 
 (core/let [register-warn-on-unannotated-vars (delay (dynaload 'clojure.core.typed.current-impl/register-warn-on-unannotated-vars))]
-  (core/defn ^:skip-wiki
+  (core/defn ^:no-doc
     warn-on-unannotated-vars*
     "Internal use only. Use allow-unannotated-vars"
     [nsym]
