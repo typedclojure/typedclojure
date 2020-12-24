@@ -12,7 +12,7 @@ fi
 
 if [[ "$GITHUB_REPOSITORY" != 'typedclojure/typedclojure' ]]; then
   echo "This script only deploys in typedclojure/typedclojure, not $GITHUB_REPOSITORY. Doing nothing."
-  exit 0
+  exit 1
 fi
 
 COMMIT_MSG=$(git log --format=%B -n 1 "${GITHUB_SHA}")
