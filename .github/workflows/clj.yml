@@ -73,6 +73,12 @@ jobs:
             ${{ runner.os }}-deploy-deps-${{ matrix.submodule }}-${{ hashFiles('**/pom.xml') }}-
             ${{ runner.os }}-deploy-deps-${{ matrix.submodule }}-
             ${{ runner.os }}-deploy-deps-
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
       - name: Set up JDK ${{ env.DEPLOY_JDK }}
         uses: actions/setup-java@v1
         with:
@@ -86,4 +92,6 @@ jobs:
           echo "<settings><servers><server><id>clojars</id><username>typedclojure-clojars</username><password>${{ secrets.ClojarsPassword }}</password></server></servers></settings>" > ~/.m2/settings.xml
 
       - name: Deploy
-        run: ./script/deploy-actions.sh
+        run: ./script/deploy-actions.sh 
+        env:
+          AWS_BUCKET: ${{ secrets.AWS_BUCKET }}

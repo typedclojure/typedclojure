@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /usr/bin/env bash
 # Deploys either a snapshot or release in GitHub Actions.
 # If the commit message is of the form:
 #   [typedclojure-release] <release-version> <new-dev-version>
@@ -21,6 +21,7 @@ if [[ "$COMMIT_MSG" =~ ^\[typedclojure-release\] ]]; then
   #https://stackoverflow.com/a/9294015
   COMMIT_MSG_ARRAY=($COMMIT_MSG)
   ./script/release-and-push.sh "${COMMIT_MSG_ARRAY[1]}" "${COMMIT_MSG_ARRAY[2]}"
+  ./script/build-and-upload-docs.sh
 else
   ./script/deploy-snapshot.sh
 fi

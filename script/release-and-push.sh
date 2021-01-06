@@ -22,17 +22,17 @@ fi
 
 if [[ `git symbolic-ref --short HEAD` != 'main' ]]; then
   echo "Releases only triggered on the main branch. Doing nothing."
-  exit 0
+  exit 1
 fi
 
 if [[ "$GITHUB_ACTOR" != "frenchy64" ]]; then
   echo "Only maintainers may deploy a release. Doing nothing."
-  exit 0
+  exit 1
 fi
 
 if [[ "$GITHUB_REPOSITORY" != "typedclojure/typedclojure" ]]; then
   echo "Releases only allowed from typedclojure/typedclojure. Doing nothing."
-  exit 0
+  exit 1
 fi
 
 git config --local user.email "abonnairesergeant@gmail.com"
