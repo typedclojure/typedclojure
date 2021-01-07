@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>typed</groupId>
   <artifactId>pom</artifactId>
-  <version>1.0.13-SNAPSHOT</version>
+  <version>1.0.13</version>
   <name>pom</name>
   <description>An optional type system for Clojure</description>
   <packaging>pom</packaging>
@@ -188,57 +188,57 @@
       <dependency>
         <groupId>typed.cljc</groupId>
         <artifactId>analyzer</artifactId>
-        <version>1.0.13-SNAPSHOT</version>
+        <version>1.0.13</version>
       </dependency>
       <dependency>
         <groupId>typed.cljs</groupId>
         <artifactId>analyzer</artifactId>
-        <version>1.0.13-SNAPSHOT</version>
+        <version>1.0.13</version>
       </dependency>
       <dependency>
         <groupId>typed.clj</groupId>
         <artifactId>analyzer</artifactId>
-        <version>1.0.13-SNAPSHOT</version>
+        <version>1.0.13</version>
       </dependency>
       <dependency>
         <groupId>typed.cljs</groupId>
         <artifactId>checker</artifactId>
-        <version>1.0.13-SNAPSHOT</version>
+        <version>1.0.13</version>
       </dependency>
       <dependency>
         <groupId>typed.clj</groupId>
         <artifactId>checker</artifactId>
-        <version>1.0.13-SNAPSHOT</version>
+        <version>1.0.13</version>
       </dependency>
       <dependency>
         <groupId>typed.clj</groupId>
         <artifactId>runtime</artifactId>
-        <version>1.0.13-SNAPSHOT</version>
+        <version>1.0.13</version>
       </dependency>
       <dependency>
         <groupId>typed.lib</groupId>
         <artifactId>clojure</artifactId>
-        <version>1.0.13-SNAPSHOT</version>
+        <version>1.0.13</version>
       </dependency>
       <dependency>
         <groupId>typed.lib</groupId>
         <artifactId>core.async</artifactId>
-        <version>1.0.13-SNAPSHOT</version>
+        <version>1.0.13</version>
       </dependency>
       <dependency>
         <groupId>typed.clj</groupId>
         <artifactId>annotator</artifactId>
-        <version>1.0.13-SNAPSHOT</version>
+        <version>1.0.13</version>
       </dependency>
       <dependency>
         <groupId>typed.clj</groupId>
         <artifactId>lang</artifactId>
-        <version>1.0.13-SNAPSHOT</version>
+        <version>1.0.13</version>
       </dependency>
       <dependency>
         <groupId>typed.clj</groupId>
         <artifactId>spec</artifactId>
-        <version>1.0.13-SNAPSHOT</version>
+        <version>1.0.13</version>
       </dependency>
       <dependency>
         <groupId>org.clojure</groupId>
@@ -330,6 +330,6 @@
     <connection>scm:git:git://github.com/clojure/core.typed.git</connection>
     <developerConnection>scm:git:git://github.com/clojure/core.typed.git</developerConnection>
     <url>http://github.com/clojure/core.typed</url>
-    <tag>HEAD</tag>
+    <tag>1.0.13</tag>
   </scm>
 </project>
