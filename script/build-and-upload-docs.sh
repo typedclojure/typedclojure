@@ -21,4 +21,4 @@ fi
 
 echo "Uploading API documentation..."
 
-aws s3 sync target/codox "s3://${AWS_BUCKET}/latest"
+aws s3 sync --acl public-read --follow-symlinks --delete target/codox "s3://${AWS_BUCKET}/latest"
