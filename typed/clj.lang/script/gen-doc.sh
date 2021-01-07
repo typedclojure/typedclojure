@@ -1,3 +1,3 @@
 #!/bin/sh
 
-clj -M:codox:test
+clojure -M:codox:test
