@@ -13,7 +13,9 @@ fi
 
 echo "Building API documentation..."
 
-rm -r target/codox
+if [[ -d "target/codox" ]]; then
+  rm -r target/codox
+fi
 
 ./script/gen-doc.sh
 

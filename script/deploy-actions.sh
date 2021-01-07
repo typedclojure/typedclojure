@@ -24,4 +24,6 @@ if [[ "$COMMIT_MSG" =~ ^\[typedclojure-release\] ]]; then
   ./script/build-and-upload-docs.sh
 else
   ./script/deploy-snapshot.sh
+  # temporary
+  ./script/build-and-upload-docs.sh
 fi
