@@ -94,9 +94,9 @@ Use the core.typed [mailing list](https://groups.google.com/forum/?fromgroups#!f
 
 See [wiki](https://github.com/clojure/core.typed/wiki).
 
-[API Reference](https://clojure.github.io/core.typed/)
+[API Reference](https://api.typedclojure.org/latest/typed.clj.runtime/index.html)
 
-[Ambrose's blog](https://frenchy64.github.io/)
+[Ambrose's blog](https://blog.ambrosebs.com)
 
 ## Leiningen Plugin
 

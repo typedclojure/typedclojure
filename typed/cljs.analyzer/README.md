@@ -42,6 +42,10 @@ Latest stable release is 1.0.9.
 </dependency>
 ```
 
+## Documentation
+
+[API Reference](https://api.typedclojure.org/latest/typed.cljs.analyzer/index.html)
+
 ## Differences from tools.analyzer
 
 core.typed.analyzer.js is a heavily modified variant of tools.analyzer.

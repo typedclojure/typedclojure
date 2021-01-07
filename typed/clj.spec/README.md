@@ -135,6 +135,10 @@ Latest stable release is 1.0.14.
 </dependency>
 ```
 
+## Documentation
+
+[API Reference](https://api.typedclojure.org/latest/typed.clj.spec/index.html)
+
 ## License
 
 Copyright © Ambrose Bonnaire-Sergeant, Rich Hickey & contributors.

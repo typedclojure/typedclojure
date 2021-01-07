@@ -47,6 +47,10 @@ Latest stable release is 1.0.12.
 </dependency>
 ```
 
+## Documentation
+
+[API Reference](https://api.typedclojure.org/latest/typed.clj.refactor/index.html)
+
 ## License
 
 Copyright © Ambrose Bonnaire-Sergeant, Rich Hickey & contributors.

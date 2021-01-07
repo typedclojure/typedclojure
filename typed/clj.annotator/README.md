@@ -42,6 +42,10 @@ Latest stable release is 1.0.14.
 </dependency>
 ```
 
+## Documentation
+
+[API Reference](https://api.typedclojure.org/latest/typed.clj.annotator/index.html)
+
 ## YourKit
 
 YourKit is kindly supporting core.typed and other open source projects with its full-featured Java Profiler.

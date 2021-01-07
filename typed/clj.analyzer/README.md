@@ -42,6 +42,10 @@ Latest stable release is 1.0.14.
 </dependency>
 ```
 
+## Documentation
+
+[API Reference](https://api.typedclojure.org/latest/typed.clj.analyzer/index.html)
+
 ## Differences from tools.analyzer.jvm
 
 core.typed.analyzer.jvm is a heavily modified variant of tools.analyzer.jvm.

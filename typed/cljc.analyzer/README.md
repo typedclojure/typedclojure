@@ -42,6 +42,10 @@ Latest stable release is 1.0.14.
 </dependency>
 ```
 
+## Documentation
+
+[API Reference](https://api.typedclojure.org/latest/typed.cljc.analyzer/index.html)
+
 ## Differences from tools.analyzer
 
 core.typed.analyzer.common is a heavily modified variant of tools.analyzer.

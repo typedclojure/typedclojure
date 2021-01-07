@@ -4,6 +4,10 @@
 
 Type checker for Typed Clojure, for ClojureScript on JS.
 
+## Documentation
+
+[API Reference](https://api.typedclojure.org/latest/typed.cljs.checker/index.html)
+
 ## YourKit
 
 YourKit is kindly supporting core.typed and other open source projects with its full-featured Java Profiler.
