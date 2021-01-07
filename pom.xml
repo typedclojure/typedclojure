@@ -322,14 +322,14 @@
     </repository>
     <repository>
       <id>clojars</id>
-      <url>http://clojars.org/repo</url>
+      <url>https://clojars.org/repo</url>
     </repository>
   </repositories>
 
   <scm>
-    <connection>scm:git:git://github.com/clojure/core.typed.git</connection>
-    <developerConnection>scm:git:git://github.com/clojure/core.typed.git</developerConnection>
-    <url>http://github.com/clojure/core.typed</url>
+    <connection>scm:git:git://github.com/typedclojure/typedclojure.git</connection>
+    <developerConnection>scm:git:git://github.com/typedclojure/typedclojure.git</developerConnection>
+    <url>https://github.com/typedclojure/typedclojure</url>
     <tag>HEAD</tag>
   </scm>
 </project>
