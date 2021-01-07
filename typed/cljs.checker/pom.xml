@@ -5,12 +5,12 @@
   <artifactId>checker</artifactId>
   <name>typed.cljs/checker</name>
   <description>An optional type system for ClojureScript — full system for annotating and type-checking.</description>
-  <version>1.0.14-SNAPSHOT</version>
+  <version>1.0.14</version>
 
   <parent>
     <groupId>typed</groupId>
     <artifactId>pom</artifactId>
-    <version>1.0.14-SNAPSHOT</version>
+    <version>1.0.14</version>
     <relativePath>../..</relativePath>
   </parent>
 
