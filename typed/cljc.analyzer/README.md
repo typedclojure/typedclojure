@@ -6,14 +6,14 @@ A common base for Clojure analyzers, tuned for consumption by an optional type c
 
 ## Releases and Dependency Information
 
-Latest stable release is 1.0.13.
+Latest stable release is 1.0.14.
 
 * [All Released Versions](https://search.maven.org/search?q=g:org.clojure%20AND%20a:core.typed.analyzer.common)
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) JAR dependency information:
 
 ```clj
-  typed.cljc/analyzer {:mvn/version "1.0.13"}
+  typed.cljc/analyzer {:mvn/version "1.0.14"}
 ```
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) Git dependency information:
@@ -23,13 +23,13 @@ Latest stable release is 1.0.13.
 ```clj
   typed.cljc/analyzer {:git/url "https://github.com/typedclojure/typedclojure"
                        :deps/root "typed/cljc.analyzer"
-                       :tag "1.0.13"}
+                       :tag "1.0.14"}
 ```
 
 [Leiningen](https://github.com/technomancy/leiningen) dependency information:
 
 ```clojure
-[typed.cljc/analyzer "1.0.13"]
+[typed.cljc/analyzer "1.0.14"]
 ```
 
 [Maven](https://maven.apache.org/) dependency information:
@@ -38,7 +38,7 @@ Latest stable release is 1.0.13.
 <dependency>
   <groupId>typed.cljc</groupId>
   <artifactId>analyzer</artifactId>
-  <version>1.0.13</version>
+  <version>1.0.14</version>
 </dependency>
 ```
 
