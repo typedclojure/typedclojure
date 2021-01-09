@@ -10,13 +10,16 @@
   "Typing rules for Typed Clojure ops."
   (:require [clojure.core.typed :as t]
             [clojure.core.typed.util-vars :as vs]
-            [typed.clj.checker.check :refer [defuspecial -unanalyzed-special]]
+            [typed.clj.checker.check :refer [check-expr defuspecial -unanalyzed-special]]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.cljc.analyzer :as ana2]
             [typed.cljc.checker.check-below :as below]
             [typed.cljc.checker.check.utils :as cu]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.utils :as u]))
+
+;; ============================
+;; clojure.core.typed/tc-ignore
 
 (defuspecial 'clojure.core.typed/tc-ignore
   [expr expected]
@@ -26,15 +29,24 @@
                       (r/ret r/-any)
                       expected))))
 
-;FIXME should propagate actual annotation into body like the special ann-form op does
-#_
-(defmethod -check-macro 'clojure.core.typed/ann-form
+;; ============================
+;; clojure.core.typed/ann-form
+
+(defmethod -unanalyzed-special 'clojure.core.typed/ann-form
   [{[_ body tsyn :as form] :form :keys [env] :as expr} expected]
   (assert (#{3} (count form))
           (str "Incorrect number of arguments to ann-form: " form))
-  (-> body
-      (ana2/unanalyzed env)
-      (check-expr (below/maybe-check-below
-                    (r/ret (binding [prs/*parse-type-in-ns* (cu/expr-ns expr)]
-                             (prs/parse-type tsyn)))
-                    expected))))
+  (let [parsed-t (binding [prs/*parse-type-in-ns* (cu/expr-ns expr)]
+                   (prs/parse-type tsyn))
+        ;; TODO let users add expected filters etc
+        this-expected (or (some-> expected (assoc :t parsed-t))
+                          (r/ret parsed-t))
+        _ (below/maybe-check-below
+            this-expected
+            expected)
+        cret (-> body
+                 (ana2/unanalyzed env)
+                 (ana2/inherit-top-level expr)
+                 ;; TODO backend agnostic
+                 (check-expr this-expected))]
+    cret))

@@ -287,7 +287,10 @@
   [form env]
   (mark-top-level (unanalyzed form env)))
 
-(defn inherit-top-level [new-expr old-expr]
+(defn inherit-top-level
+  "Return new-expr with equivalent top-level status
+  as old-expr."
+  [new-expr old-expr]
   (cond-> new-expr
     (top-level? old-expr) mark-top-level
     (eval-top-level? old-expr) mark-eval-top-level))

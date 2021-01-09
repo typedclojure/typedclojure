@@ -11,13 +11,11 @@
   (:require [clojure.core.typed :as t]
             [typed.cljc.checker.check.do :as do]
             [typed.cljc.checker.utils :as u]
-            [typed.cljc.checker.check.special.ann-form :as ann-form]
             [typed.cljc.checker.check.def :as def]
             [clojure.core.typed.ast-utils :as ast]))
 
 (defn check
-  "Add runtime checks to the output AST, propagating just enough types
-  for immediate ann-form expressions to propagate to fn expected types.
+  "Add runtime checks to the output AST.
 
   Static checking is disabled, outside ill-formed types.
   
@@ -38,12 +36,6 @@
 
              (if (do/internal-form? expr)
                (case (u/internal-dispatch-val expr)
-                 (::t/ann-form) 
-                 (ann-form/add-checks-ann-form check expr expected)
-
-                 (::t/tc-ignore) 
-                 expr
-
                  ;; could be an error or another special form, 
                  ;; but we'll let it slide in runtime checking mode.
                  expr)

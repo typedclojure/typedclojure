@@ -36,6 +36,7 @@
             [typed.cljc.checker.check.vector :as vec]
             [typed.cljc.checker.check.with-meta :as with-meta]
             [typed.cljc.checker.check.special.fn :as special-fn]
+            ;; TODO migrate to extensible type rules
             [typed.cljc.checker.check.special.ann-form :as ann-form]
             [typed.cljc.checker.check.special.tc-ignore :as tc-ignore]
             [typed.cljc.checker.check.special.loop :as special-loop]

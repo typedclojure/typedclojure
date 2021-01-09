@@ -7,11 +7,21 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.cljc.checker.check.loop
-  (:require [typed.cljc.checker.check.let :as let]
-            [clojure.core.typed.errors :as err]
-            [typed.cljc.checker.type-rep :as r]
-            [typed.cljc.checker.check.special.ann-form :as ann-form]
-            [typed.cljc.checker.check.recur-utils :as recur-u]))
+  (:require [clojure.core.typed.errors :as err]
+            [clojure.core.typed.util-vars :as vs]
+            [typed.clj.checker.parse-unparse :as prs]
+            [typed.cljc.checker.check.let :as let]
+            [typed.cljc.checker.check.recur-utils :as recur-u]
+            [typed.cljc.checker.check.utils :as cu]
+            [typed.cljc.checker.type-rep :as r]))
+
+(defn parse-annotation
+  "Parse the raw type annotation tsyn in the context of expr"
+  [tsyn {:keys [env] :as expr}]
+  (let [parsed-t (binding [vs/*current-env* env
+                           prs/*parse-type-in-ns* (cu/expr-ns expr)]
+                   (prs/parse-type tsyn))]
+    parsed-t))
 
 (defn inline-annotations [expr]
   {:pre [(= :loop (:op expr))]
@@ -24,13 +34,12 @@
         maybe-anns (map (comp (fn [m]
                                 ;(prn "meta" m)
                                 (when-let [[_ tsyn] (find m :clojure.core.typed/ann)]
-                                  (ann-form/parse-annotation tsyn expr)))
+                                  (parse-annotation tsyn expr)))
                               meta)
                         names)
         normalize (when (some identity maybe-anns)
                     ;; annotate unannotated vars with Any
-                    (seq (map (fn [t] (or t r/-any)) maybe-anns)))
-                    ]
+                    (seq (map (fn [t] (or t r/-any)) maybe-anns)))]
     normalize))
 
 ;; `recur-u/*loop-bnd-anns*` is populated in `typed.cljc.checker.check.special.loop`
@@ -43,5 +52,5 @@
         anns (or loop-bnd-anns inlines)]
     (binding [recur-u/*loop-bnd-anns* nil]
       (let/check-let check expr expected 
-               {:expected-bnds anns
-                :loop? true}))))
+                     {:expected-bnds anns
+                      :loop? true}))))
