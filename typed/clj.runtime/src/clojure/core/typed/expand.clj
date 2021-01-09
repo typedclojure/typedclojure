@@ -620,18 +620,6 @@
 (defmethod -expand-macro `t/ann-form [& args] (apply expand-ann-form args))
 (defmethod -expand-macro 'clojure.core.typed.macros/ann-form [& args] (apply expand-ann-form args))
 
-(defn expand-tc-ignore [[_ & body :as form] _]
-  `(do ~spc/special-form
-       ::t/tc-ignore
-       '{:form ~form
-         :outer-check-expected {:msg-fn (fn [_#]
-                                          "The surrounding context of this 'tc-ignore' expression expects a more specific type than Any.")
-                                :blame-form ~form}}
-       (do ~@(or body [nil]))))
-
-(defmethod -expand-macro `t/tc-ignore [& args] (apply expand-tc-ignore args))
-(defmethod -expand-macro 'clojure.core.typed.macros/tc-ignore [& args] (apply expand-tc-ignore args))
-
 (defmacro require-expected [expr opts]
   {:pre [(map? opts)]}
   `(do ~spc/special-form

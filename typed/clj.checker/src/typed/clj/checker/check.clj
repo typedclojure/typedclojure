@@ -58,7 +58,6 @@
             [typed.cljc.checker.check.special.cast :as cast]
             [typed.cljc.checker.check.special.fn :as special-fn]
             [typed.cljc.checker.check.special.loop :as special-loop]
-            [typed.cljc.checker.check.special.tc-ignore :as tc-ignore]
             [typed.cljc.checker.check.throw :as throw]
             [typed.cljc.checker.check.try :as try]
             [typed.cljc.checker.check.utils :as cu]
@@ -1757,10 +1756,6 @@
 
 ;(ann internal-special-form [Expr (U nil TCResult) -> Expr])
 (u/special-do-op spec/special-form internal-special-form)
-
-(defmethod internal-special-form ::t/tc-ignore
-  [expr expected]
-  (tc-ignore/check-tc-ignore check-expr expr expected))
 
 (defmethod internal-special-form ::t/fn
   [{[_ _ {{fn-anns :ann} :val} :as statements] :statements fexpr :ret :keys [env] :as expr} expected]
