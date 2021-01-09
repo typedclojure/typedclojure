@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc clojure.core.typed.ann.clojure
+(ns ^:no-doc typed.ann.clojure
   "Type annotations for the base Clojure distribution."
   (:require [#?(:clj clojure.core.typed
                 :cljs cljs.core.typed)
