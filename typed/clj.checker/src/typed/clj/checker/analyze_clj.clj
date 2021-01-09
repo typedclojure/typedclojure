@@ -39,48 +39,7 @@
 ;  https://github.com/clojure/clojure/commit/7f79ac9ee85fe305e4d9cbb76badf3a8bad24ea0
 (T/ann ^:no-check *typed-macros* (T/Map T/Any T/Any))
 (def ^:dynamic *typed-macros*
-  {#'clojure.core/ns 
-   (fn [&form &env name & references]
-     (let [process-reference
-           (fn [[kname & args]]
-             `(~(symbol "clojure.core" (clojure.core/name kname))
-                        ~@(map #(list 'quote %) args)))
-           docstring  (when (string? (first references)) (first references))
-           references (if docstring (next references) references)
-           name (if docstring
-                  (vary-meta name assoc :doc docstring)
-                  name)
-           metadata   (when (map? (first references)) (first references))
-           references (if metadata (next references) references)
-           name (if metadata
-                  (vary-meta name merge metadata)
-                  name)
-           gen-class-clause (first (filter #(= :gen-class (first %)) references))
-           gen-class-call
-           (when gen-class-clause
-             (list* `gen-class :name (.replace (str name) \- \_) :impl-ns name :main true (next gen-class-clause)))
-           references (remove #(= :gen-class (first %)) references)
-           ;ns-effect (clojure.core/in-ns name)
-           name-metadata (meta name)]
-       `(do
-          ::T/special-collect
-          ::core/ns
-          {:form '~&form}
-          (T/tc-ignore
-            (clojure.core/in-ns '~name)
-            ~@(when name-metadata
-                `((.resetMeta (clojure.lang.Namespace/find '~name) ~name-metadata)))
-            (with-loading-context
-              ~@(when gen-class-call (list gen-class-call))
-              ~@(when (and (not= name 'clojure.core) (not-any? #(= :refer-clojure (first %)) references))
-                  `((clojure.core/refer '~'clojure.core)))
-              ~@(map process-reference references))
-            (if (.equals '~name 'clojure.core) 
-              nil
-              (do (dosync (commute @#'clojure.core/*loaded-libs* (T/inst conj T/Symbol T/Any) '~name)) nil)))
-          ;; so core.typed knows `ns` always returns nil
-          nil)))
-   ;; add positional information for destructured bindings
+  {;; add positional information for destructured bindings
    #'clojure.core/loop
    (fn [&form &env bindings & body]
      (@#'clojure.core/assert-args
