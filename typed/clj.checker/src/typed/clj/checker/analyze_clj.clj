@@ -108,13 +108,6 @@
                      (let ~(vec (interleave bs gs))
                        ~@body)))))))
 
-   ;; setting the :macro metadata on a var is a runtime side effect that
-   ;; core.typed cannot see. Here, we tc-ignore the body of macros manually.
-   #'clojure.core/defmacro
-   (fn [&form &env & args]
-     `(T/tc-ignore
-        ~(apply @#'core/defmacro &form &env args)))
-
    #'clojure.core/for
    (fn [&form &env seq-exprs body-expr]
      (@#'T/for &form &env seq-exprs body-expr))})

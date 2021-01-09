@@ -57,3 +57,13 @@
                              :expected 't/Str
                              :type-provided? true))
         )
+
+;;==================
+;; clojure.core/defmacro
+
+(defuspecial 'clojure.core/defmacro
+  [expr expected]
+  (assoc expr
+         u/expr-type (below/maybe-check-below
+                       (r/ret r/-any)
+                       expected)))
