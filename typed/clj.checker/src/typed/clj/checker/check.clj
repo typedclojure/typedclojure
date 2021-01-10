@@ -343,20 +343,21 @@
   with a u/expr-type entry giving its TCResult type, and a :result entry
   holding its evaluation result."
   ([form expected] (check-top-level form expected {}))
-  ([form expected {:keys [env]
-                   :as opts}]
-  ;(prn "check-top-level" form)
-  ;(prn "*ns*" *ns*)
-  (with-bindings (dissoc (ana-clj/thread-bindings) #'*ns*) ; *ns* is managed by higher-level ops like check-ns1
-    (env/ensure (jana2/global-env)
-      (-> form
-          (ana2/unanalyzed-top-level (or env (jana2/empty-env)))
-          (check-expr expected))))))
+  ([form expected {:keys [env] :as opts}]
+   ;(prn "check-top-level" form)
+   ;(prn "*ns*" *ns*)
+   (with-bindings (dissoc (ana-clj/thread-bindings) #'*ns*) ; *ns* is managed by higher-level ops like check-ns1
+     (env/ensure (jana2/global-env)
+       (-> form
+           (ana2/unanalyzed-top-level (or env (jana2/empty-env)))
+           (check-expr expected))))))
 
-(defmethod -check :const [expr expected]
+(defmethod -check :const
+  [expr expected]
   (const/check-const constant-type/constant-type false expr expected))
 
-(defmethod -check :quote [expr expected]
+(defmethod -check :quote
+  [expr expected]
   (quote/check-quote check-expr constant-type/constant-type expr expected))
 
 (defmethod -check :map
