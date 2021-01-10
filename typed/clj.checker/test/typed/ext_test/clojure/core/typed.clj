@@ -82,6 +82,7 @@
   ;; top level
   (let [form `(t/ann-form (do (defmacro ~'foo [] 1) (~'foo)) t/Int)
         res (eval-in-ns #(t/check-form-info form))]
+    (is (= 1 (eval-in-ns #(eval form))))
     (is
       (= [:result 1]
          (-> res

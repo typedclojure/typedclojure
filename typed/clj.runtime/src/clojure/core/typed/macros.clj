@@ -67,7 +67,7 @@
                                 (when docstring
                                   {:doc docstring})))
          ~(if provided?
-            `(ann-form ~body ~t)
+            `(clojure.core.typed/ann-form ~body ~t)
             body)))))
 
 (core/let [parse-fn* (delay (dynaload 'clojure.core.typed.internal/parse-fn*))]
@@ -150,10 +150,7 @@
 (defmacro ann-form
   "Annotate a form with an expected type."
   [form ty]
-  `(do ~spec/special-form
-       ~(core-kw :ann-form)
-       {:type '~ty}
-       ~form))
+  form)
 
 (core/let [parse-defprotocol* (delay (dynaload 'clojure.core.typed.internal/parse-defprotocol*))]
   (defmacro defprotocol
@@ -225,7 +222,7 @@
   (core/let [[provided? t args] (parse-colon args 'atom)
              [init & args] args]
     `(core/atom ~(if provided?
-                   `(ann-form ~init ~t)
+                   `(clojure.core.typed/ann-form ~init ~t)
                    init)
                 ~@args)))
 
@@ -240,7 +237,7 @@
   (core/let [[provided? t args] (parse-colon args 'ref)
              [init & args] args]
     `(core/ref ~(if provided?
-                  `(ann-form ~init ~t)
+                  `(clojure.core.typed/ann-form ~init ~t)
                   init)
                ~@args)))
 

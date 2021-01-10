@@ -54,9 +54,11 @@
             [typed.cljc.checker.check.recur-utils :as recur-u]
             [typed.cljc.checker.check.set :as set]
             [typed.cljc.checker.check.set-bang :as set!]
+            [typed.cljc.checker.check.special.ann-form :as ann-form]
             [typed.cljc.checker.check.special.cast :as cast]
             [typed.cljc.checker.check.special.fn :as special-fn]
             [typed.cljc.checker.check.special.loop :as special-loop]
+            [typed.cljc.checker.check.special.tc-ignore :as tc-ignore]
             [typed.cljc.checker.check.throw :as throw]
             [typed.cljc.checker.check.try :as try]
             [typed.cljc.checker.check.utils :as cu]
@@ -1756,11 +1758,16 @@
 ;(ann internal-special-form [Expr (U nil TCResult) -> Expr])
 (u/special-do-op spec/special-form internal-special-form)
 
+
 (defmethod internal-special-form ::t/fn
   [{[_ _ {{fn-anns :ann} :val} :as statements] :statements fexpr :ret :keys [env] :as expr} expected]
   ;(prn "check special :fn" expected)
   (prepare-check-fn env expr
     (special-fn/check-special-fn check-expr expr expected)))
+
+(defmethod internal-special-form ::t/ann-form
+  [expr expected]
+  (ann-form/check-ann-form check-expr expr expected))
 
 (defmethod internal-special-form ::t/cast
   [{[_ _ {{tsyn :type} :val} :as statements] :statements frm :ret, :keys [env], :as expr} expected]
