@@ -57,7 +57,6 @@
             [typed.cljc.checker.check.special.cast :as cast]
             [typed.cljc.checker.check.special.fn :as special-fn]
             [typed.cljc.checker.check.special.loop :as special-loop]
-            [typed.cljc.checker.check.special.tc-ignore :as tc-ignore]
             [typed.cljc.checker.check.throw :as throw]
             [typed.cljc.checker.check.try :as try]
             [typed.cljc.checker.check.utils :as cu]
