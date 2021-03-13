@@ -1,5 +1,5 @@
 {:paths ["src"]
- :deps {org.clojure/clojure {:mvn/version "1.10.1"}
+ :deps {org.clojure/clojure {:mvn/version "1.10.3"}
         org.clojure/core.memoize {:mvn/version "1.0.236"}
         org.ow2.asm/asm {:mvn/version "5.2"}
         typed.cljc/analyzer {:local/root "../cljc.analyzer"

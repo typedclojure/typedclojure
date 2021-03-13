@@ -1,5 +1,5 @@
 {:paths ["src"]
- :deps {org.clojure/clojure {:mvn/version "1.10.1"}
+ :deps {org.clojure/clojure {:mvn/version "1.10.3"}
         ;contains fixes for CLJ-2561 + CLJ-2562
         org.clojars.typedclojure-clojars/alpha.spec 
         {:mvn/version "0.2.177-typedclojure-1"}}

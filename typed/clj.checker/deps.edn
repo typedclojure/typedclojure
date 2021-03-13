@@ -1,6 +1,6 @@
 {:paths ["src"],
  :deps
- {org.clojure/clojure {:mvn/version "1.10.1"},
+ {org.clojure/clojure {:mvn/version "1.10.3"},
   org.clojure/core.cache {:mvn/version "1.0.207"},
   typed.clj/analyzer {:local/root "../clj.analyzer" :deps/manifest :deps},
   typed.clj/lang {:local/root "../clj.lang" :deps/manifest :deps},
