@@ -11,7 +11,7 @@ jobs:
     strategy:
       matrix:
         clojure: 
-          - 1.10.1
+          - 1.10.3
           #- 1.11.0-master-SNAPSHOT
         jdk: 
           - 1.8
@@ -48,7 +48,7 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: ${{ matrix.jdk }}
-      - uses: DeLaGuardo/setup-clojure@e73bf2b
+      - uses: DeLaGuardo/setup-clojure@91054c3b9dc15fdc6a2f45be47405d891e672ef0
         with:
           cli: ${{ env.CLOJURE_CLI_VERSION }} 
       - name: Run ${{ matrix.submodule }} tests
@@ -83,7 +83,7 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: ${{ env.DEPLOY_JDK }}
-      - uses: DeLaGuardo/setup-clojure@e73bf2b
+      - uses: DeLaGuardo/setup-clojure@91054c3b9dc15fdc6a2f45be47405d891e672ef0
         with:
           cli: ${{ env.CLOJURE_CLI_VERSION }}
       - name: Configure settings.xml
