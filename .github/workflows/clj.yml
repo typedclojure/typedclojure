@@ -7,7 +7,7 @@ on:
     # Every Monday at 1PM UTC (9AM EST)
     #- cron: "0 13 * * 1"
     # test
-    - cron: "0 10 * * *"
+    - cron: "10 18 * * *"
 
 env:
   CLOJURE_CLI_VERSION: 1.10.3.822
