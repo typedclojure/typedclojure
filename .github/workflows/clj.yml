@@ -23,6 +23,7 @@ jobs:
           babashka-version: 0.3.8
       - run: bb --version
       - name: Print test matrix
+        id: set-matrix
         run: ./script/print-actions-matrix.clj
   test:
     needs: setup
