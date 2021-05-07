@@ -3,17 +3,17 @@ name: Test and deploy
 on:
   pull_request:
   push:
-    #schedule:
+  schedule:
     # Every Monday and Friday at 1PM UTC (9AM EST)
-    #- cron: "0 13 * * 1,5"
+    - cron: "0 13 * * 1,5"
 
 env:
   CLOJURE_CLI_VERSION: 1.10.3.822
 
 jobs:
   setup:
-    # delegate self-pull-requests to push jobs
-    if: ${{ !(github.repository == 'typedclojure/typedclojure' && github.event_name == 'pull_request') }}
+    # delegate self-pull-requests to push jobs and run cron only in main repo
+    if: ${{ !(github.repository == 'typedclojure/typedclojure' && github.event_name == 'pull_request') && (github.repository == 'typedclojure/typedclojure' || github.event_name != 'schedule') }}
     runs-on: ubuntu-20.04
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
@@ -28,8 +28,8 @@ jobs:
         id: set-matrix
         run: ./script/print-actions-matrix.clj
   test:
-    # delegate self-pull-requests to push jobs
-    if: ${{ !(github.repository == 'typedclojure/typedclojure' && github.event_name == 'pull_request') }}
+    # delegate self-pull-requests to push jobs and run cron only in main repo
+    if: ${{ !(github.repository == 'typedclojure/typedclojure' && github.event_name == 'pull_request') && (github.repository == 'typedclojure/typedclojure' || github.event_name != 'schedule') }}
     needs: setup
     runs-on: ubuntu-20.04
     strategy:
