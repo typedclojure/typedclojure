@@ -3,7 +3,7 @@ name: Test and deploy
 on: [push]
 
 env:
-  CLOJURE_CLI_VERSION: 1.10.1.727
+  CLOJURE_CLI_VERSION: 1.10.3.822
 
 jobs:
   test:
@@ -16,7 +16,7 @@ jobs:
         jdk: 
           - 1.8
           #- 1.11
-          - 1.14
+          - 1.15
         submodule:
           - typed/cljc.analyzer
           - typed/cljs.analyzer
