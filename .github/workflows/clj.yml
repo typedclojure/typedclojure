@@ -13,6 +13,8 @@ env:
   CLOJURE_CLI_VERSION: 1.10.3.822
 
 jobs:
+  # delegate self-pull-requests to push jobs
+  if: !(github.repository == 'typedclojure/typedclojure' && github.event_name == 'pull_request')
   setup:
     runs-on: ubuntu-20.04
     outputs:
@@ -57,7 +59,7 @@ jobs:
         working-directory: ${{ matrix.submodule }}
   deploy:
     needs: test
-    if: github.ref == 'refs/heads/main' && github.repository == 'typedclojure/typedclojure'
+    if: github.ref == 'refs/heads/main' && github.repository == 'typedclojure/typedclojure' && github.event_name == 'push'
     runs-on: ubuntu-20.04
     env:
       DEPLOY_JDK: 11
