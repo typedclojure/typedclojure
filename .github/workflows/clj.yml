@@ -17,10 +17,10 @@ jobs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
       - uses: actions/checkout@v2
+      - name: Install bb
+        run: bash < <(curl -s https://raw.githubusercontent.com/babashka/babashka/master/install)
       - name: Print test matrix
-        uses: tzafrirben/babashka-docker-action@v1
-        with:
-          bb_src: './script/print-actions-matrix.clj'
+        run: ./script/print-actions-matrix.clj
   test:
     needs: setup
     runs-on: ubuntu-20.04
