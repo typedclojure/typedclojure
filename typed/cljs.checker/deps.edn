@@ -43,9 +43,9 @@
             :extra-paths ["script"]
             :main-opts ["-m" "gen-doc"]}
            :runner
-           {:extra-deps {org.typedclojure/test-runner
-                         {:git/url "https://github.com/typedclojure/test-runner"
-                          :sha "2d7af465ac90b2d083753daf251bdb4a09ae97cd"}}
+           {:extra-deps {io.github.cognitect-labs/test-runner
+                         {:git/url "https://github.com/cognitect-labs/test-runner"
+                          :sha "5557e92c932f024127762ec6007d849bec869c8f"}}
             :main-opts ["-m" "cognitect.test-runner"
                         "-d" "test/clojure/core/typed/test"
                         "-r" ".*"
