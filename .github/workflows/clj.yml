@@ -17,8 +17,10 @@ jobs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
       - uses: actions/checkout@v2
-      - name: Install bb
-        run: bash < <(curl -s https://raw.githubusercontent.com/babashka/babashka/master/install)
+      - name: Setup Babashka
+        uses: turtlequeue/setup-babashka@v1.3.0
+        with:
+          babashka-version: 0.3.8
       - name: Print test matrix
         run: ./script/print-actions-matrix.clj
   test:
