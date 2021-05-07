@@ -14,7 +14,7 @@ env:
 
 jobs:
   # delegate self-pull-requests to push jobs
-  if: !(github.repository == 'typedclojure/typedclojure' && github.event_name == 'pull_request')
+  if: ${{ !(github.repository == 'typedclojure/typedclojure' && github.event_name == 'pull_request') }}
   setup:
     runs-on: ubuntu-20.04
     outputs:
