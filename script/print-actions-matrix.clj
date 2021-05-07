@@ -21,23 +21,23 @@
 (def clojure-next "1.11.0-master-SNAPSHOT")
 
 (defn push-matrix []
-  (for [submodule all-submodules
-        clojure [clojure-stable]
-        jdk ["1.11"]]
-    {:submodule submodule
-     :clojure clojure
-     :jdk jdk}))
+  {:include (for [submodule all-submodules
+                  clojure [clojure-stable]
+                  jdk ["1.11"]]
+              {:submodule submodule
+               :clojure clojure
+               :jdk jdk}) })
 
 (defn schedule-matrix []
-  (for [submodule all-submodules
-        clojure [clojure-stable
-                 clojure-next]
-        jdk ["1.8"
-             "1.11"
-             "1.15"]]
-    {:submodule submodule
-     :clojure clojure
-     :jdk jdk}))
+  {:include (for [submodule all-submodules
+                  clojure [clojure-stable
+                           clojure-next]
+                  jdk ["1.8"
+                       "1.11"
+                       "1.15"]]
+              {:submodule submodule
+               :clojure clojure
+               :jdk jdk})})
 
 (defn matrix []
   (if (= "schedule" (System/getenv "GITHUB_EVENT_NAME"))
