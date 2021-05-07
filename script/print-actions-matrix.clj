@@ -23,8 +23,7 @@
 (defn push-matrix []
   (for [submodule all-submodules
         clojure [clojure-stable]
-        jdk ["1.8"
-             "1.15"]]
+        jdk ["1.11"]]
     {:submodule submodule
      :clojure clojure
      :jdk jdk}))

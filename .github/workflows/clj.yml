@@ -1,6 +1,11 @@
 name: Test and deploy
 
-on: [push]
+on:
+  pull_request:
+  push:
+  schedule:
+    # Every Monday at 1PM UTC (9AM EST)
+    - cron: "0 13 * * 1"
 
 env:
   CLOJURE_CLI_VERSION: 1.10.3.822
