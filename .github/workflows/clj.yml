@@ -5,7 +5,9 @@ on:
   push:
   schedule:
     # Every Monday at 1PM UTC (9AM EST)
-    - cron: "0 13 * * 1"
+    #- cron: "0 13 * * 1"
+    # test
+    - cron: "54 9 * * *"
 
 env:
   CLOJURE_CLI_VERSION: 1.10.3.822
