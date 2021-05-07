@@ -6,10 +6,19 @@ env:
   CLOJURE_CLI_VERSION: 1.10.3.822
 
 jobs:
+  setup:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - name: Print test matrix
+        uses: tzafrirben/babashka-docker-action@v1
+        with:
+          bb_src: './script/print-actions-matrix.clj'
   test:
-    runs-on: ubuntu-18.04
+    needs: setup
+    runs-on: ubuntu-20.04
     strategy:
-      matrix:
+      matrix: ${{fromJson(needs.setup.outputs.matrix)}}
         clojure: 
           - 1.10.3
           #- 1.11.0-master-SNAPSHOT
@@ -48,7 +57,7 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: ${{ matrix.jdk }}
-      - uses: DeLaGuardo/setup-clojure@91054c3b9dc15fdc6a2f45be47405d891e672ef0
+      - uses: DeLaGuardo/setup-clojure@3e7b376abc1efded98dda248b5a8fb3d7ae04a04
         with:
           cli: ${{ env.CLOJURE_CLI_VERSION }} 
       - name: Run ${{ matrix.submodule }} tests
@@ -57,7 +66,7 @@ jobs:
   deploy:
     needs: test
     if: github.ref == 'refs/heads/main' && github.repository == 'typedclojure/typedclojure'
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     env:
       DEPLOY_JDK: 11
     steps:
@@ -83,7 +92,7 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: ${{ env.DEPLOY_JDK }}
-      - uses: DeLaGuardo/setup-clojure@91054c3b9dc15fdc6a2f45be47405d891e672ef0
+      - uses: DeLaGuardo/setup-clojure@3e7b376abc1efded98dda248b5a8fb3d7ae04a04
         with:
           cli: ${{ env.CLOJURE_CLI_VERSION }}
       - name: Configure settings.xml
