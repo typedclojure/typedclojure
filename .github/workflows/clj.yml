@@ -8,6 +8,8 @@ env:
 jobs:
   setup:
     runs-on: ubuntu-20.04
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
       - uses: actions/checkout@v2
       - name: Print test matrix
@@ -18,28 +20,7 @@ jobs:
     needs: setup
     runs-on: ubuntu-20.04
     strategy:
-      matrix: ${{fromJson(needs.setup.outputs.matrix)}}
-        clojure: 
-          - 1.10.3
-          #- 1.11.0-master-SNAPSHOT
-        jdk: 
-          - 1.8
-          #- 1.11
-          - 1.15
-        submodule:
-          - typed/cljc.analyzer
-          - typed/cljs.analyzer
-          - typed/clj.analyzer
-          #- typed/cljs.checker
-          - typed/clj.checker
-          - typed/clj.reader
-          - typed/clj.refactor
-          - typed/clj.runtime
-          - typed/clj.annotator
-          - typed/clj.lang
-          - typed/clj.spec
-          - typed/lib.clojure
-          - typed/lib.core.async
+      matrix: ${{ fromJson(needs.setup.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v2
       - uses: actions/cache@v2
