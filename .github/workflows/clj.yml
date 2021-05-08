@@ -3,9 +3,9 @@ name: Test and deploy
 on:
   pull_request:
   push:
-  schedule:
+    #schedule:
     # Every Monday and Friday at 1PM UTC (9AM EST)
-    - cron: "0 13 * * 1,5"
+    #- cron: "0 13 * * 1,5"
 
 env:
   CLOJURE_CLI_VERSION: 1.10.3.822
@@ -55,7 +55,7 @@ jobs:
         with:
           cli: ${{ env.CLOJURE_CLI_VERSION }} 
       - name: Run ${{ matrix.submodule }} tests
-        run: ./script/test -Sdeps '{:deps {org.clojure/clojure {:mvn/version "${{ matrix.clojure }}"}}}'
+        run: ./script/test -Sdeps '{:deps {org.clojure/clojure {:mvn/version "${{ matrix.clojure }}"}} :mvn/repos {"sonatype-oss-public" {:url "https://oss.sonatype.org/content/groups/public/"}}}'
         working-directory: ${{ matrix.submodule }}
   deploy:
     needs: test
