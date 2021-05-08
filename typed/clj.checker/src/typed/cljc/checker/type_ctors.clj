@@ -83,7 +83,7 @@
     :complete? true))
 
 (t/ann -partial-hmap (t/IFn [(t/Map r/Type r/Type) -> r/Type]
-                         [(t/Map r/Type r/Type) (t/Set r/Type) -> r/Type]))
+                            [(t/Map r/Type r/Type) (t/Set r/Type) -> r/Type]))
 (defn -partial-hmap 
   ([types] (-partial-hmap types #{}))
   ([types absent-keys] (make-HMap 
@@ -402,17 +402,17 @@
 
               (and (r/HeterogeneousMap? t1)
                    (r/HeterogeneousMap? t2))
-                (intersect-HMap t1 t2)
+              (intersect-HMap t1 t2)
 
               ;RClass's with the same base, intersect args pairwise
               (and (r/RClass? t1)
                    (r/RClass? t2)
                    (= (:the-class t1) (:the-class t2)))
-              (let [args (doall (map intersect (:poly? t1) (:poly? t2)))]
+              (let [args (map intersect (:poly? t1) (:poly? t2))]
                 ; if a new arg is bottom when none of the old args are bottom,
                 ; reduce type to bottom
                 (if (some (fn [[new [old1 old2]]]
-                            (and (every? (complement #{(Un)}) [old1 old2])
+                            (and (not-any? #{(Un)} [old1 old2])
                                  (#{(Un)} new)))
                           (map vector args (map vector (:poly? t1) (:poly? t2))))
                   (Un)
@@ -450,10 +450,10 @@
            result :- (t/Seqable r/Type), []]
     (if (empty? work)
       result
-      (let [resolved (doall (map fully-resolve-non-rec-type work))
+      (let [resolved (map fully-resolve-non-rec-type work)
             {unions true non-unions false} (group-by r/Union? resolved)]
-        (recur (doall (mapcat :types unions))
-               (doall (concat result non-unions)))))))
+        (recur (mapcat :types unions)
+               (into result non-unions))))))
 
 (t/ann ^:no-check In [r/Type * -> r/Type])
 (defn In [& types]
@@ -522,7 +522,7 @@
 (def ^:private get-jsnominal (delay (impl/dynaload 'clojure.core.typed.jsnominal-env/get-jsnominal)))
 
 (t/ann ^:no-check JSNominal-of (t/IFn [t/Sym -> r/Type]
-                                   [t/Sym (t/U nil (t/Seqable r/Type)) -> r/Type]))
+                                      [t/Sym (t/U nil (t/Seqable r/Type)) -> r/Type]))
 (defn JSNominal-of
   ([sym] (JSNominal-of sym nil))
   ([sym args]
@@ -558,7 +558,7 @@
       p)))
 
 (t/ann ^:no-check DataType-of (t/IFn [t/Sym -> r/Type]
-                                  [t/Sym (t/U nil (t/Seqable r/Type)) -> r/Type]))
+                                     [t/Sym (t/U nil (t/Seqable r/Type)) -> r/Type]))
 (defn DataType-of
   ([sym] (DataType-of sym nil))
   ([sym args]
@@ -2137,7 +2137,8 @@
   {:pre [(r/KwArgsSeq? kws)]
    :post [(r/Type? %)]}
   (make-HMap :mandatory (:mandatory kws) 
-             :optional (:optional kws)))
+             :optional (:optional kws)
+             :complete? (:complete? kws)))
 
 (t/ann HMap->KwArgsSeq [HeterogeneousMap Boolean -> r/Type])
 (defn HMap->KwArgsSeq [kws nilable-non-empty?]
@@ -2147,7 +2148,7 @@
                   :optional (:optional kws)
                   :nilable-non-empty? nilable-non-empty?
                   :complete? (complete-hmap? kws)
-                  :or-map-singleton? false))
+                  :or-single-map? false))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Heterogeneous type ops
