@@ -979,14 +979,6 @@
 (defn -bounds [u l]
   (Bounds-maker u l nil))
 
-;unused
-(t/tc-ignore
-(defonce ^:dynamic *mutated-bindings* #{})
-
-(defn is-var-mutated? [id]
-  (contains? *mutated-bindings* id))
-  )
-
 (u/def-type FlowSet [normal]
   "The filter that is true when an expression returns normally ie. not an exception."
   [(p/IFilter? normal)]
@@ -1010,9 +1002,9 @@
 
 (t/ann ^:no-check ret
        (t/IFn [Type -> TCResult]
-           [Type p/IFilterSet -> TCResult]
-           [Type p/IFilterSet p/IRObject -> TCResult]
-           [Type p/IFilterSet p/IRObject FlowSet -> TCResult]))
+              [Type p/IFilterSet -> TCResult]
+              [Type p/IFilterSet p/IRObject -> TCResult]
+              [Type p/IFilterSet p/IRObject FlowSet -> TCResult]))
 (defn ret
   "Convenience function for returning the type of an expression"
   ([t] 
