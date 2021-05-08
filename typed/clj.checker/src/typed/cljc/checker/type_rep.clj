@@ -721,19 +721,19 @@
                          optional  :- (t/Map Type Type)
                          non-empty? :- Boolean
                          complete? :- Boolean
-                         or-single-map? :- Boolean])
-(u/def-type KwArgsSeq [mandatory optional non-empty? complete? or-single-map?]
+                         maybe-trailing-conjable? :- Boolean])
+(u/def-type KwArgsSeq [mandatory optional non-empty? complete? maybe-trailing-conjable?]
   "A sequential seq representing a flattened map (for keyword arguments).
   If non-empty? is true, represents a non-empty sequence (eg., for rest-arguments).
   If non-empty? is false, type is a possibly empty sequence (eg., for `(apply concat {})`).
-  If or-single-map? is true, may also repesent a singleton list with a map
-  of the described shape."
+  If maybe-trailing-conjable? is true, represents a list that can be passed to
+  `seq-to-map-for-destructuring` and returns a value of the desired shape."
   [(every? (con/hash-c? Value? Type?) [mandatory optional])
    (= #{} (set/intersection (set (keys mandatory)) 
                             (set (keys optional))))
    (boolean? non-empty?)
    (boolean? complete?)
-   (boolean? or-single-map?)]
+   (boolean? maybe-trailing-conjable?)]
   :methods
   [p/TCType])
 
@@ -749,19 +749,19 @@
                                   :optional (t/Map Type Type)
                                   :non-empty? Boolean
                                   :complete? Boolean
-                                  :or-single-map? Boolean}
+                                  :maybe-trailing-conjable? Boolean}
                      -> KwArgsSeq])
 (defn -kw-args-seq [& {:keys [mandatory optional non-empty? complete?
-                              or-single-map?]
+                              maybe-trailing-conjable?]
                        :or {mandatory {} optional {} complete? false
                             non-empty? false
-                            or-single-map? false}}]
+                            maybe-trailing-conjable? false}}]
   {:post [(KwArgsSeq? %)]}
   (KwArgsSeq-maker mandatory
                    optional
                    non-empty?
                    complete?
-                   or-single-map?))
+                   maybe-trailing-conjable?))
 
 ; must go before Result
 (u/ann-record FlowSet [normal :- p/IFilter])

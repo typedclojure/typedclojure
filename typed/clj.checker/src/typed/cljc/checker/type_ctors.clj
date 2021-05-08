@@ -2151,7 +2151,7 @@
                   :optional (:optional kws)
                   :non-empty? (boolean (seq (:types kws)))
                   :complete? (complete-hmap? kws)
-                  :or-single-map? false))
+                  :maybe-trailing-conjable? false))
 
 (defn upcast-kw-args-seq [kws]
   {:pre [(r/KwArgsSeq? kws)]
