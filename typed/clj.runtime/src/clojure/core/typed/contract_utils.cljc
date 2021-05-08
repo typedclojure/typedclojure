@@ -7,8 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc clojure.core.typed.contract-utils
-  {:no-doc true
-   :core.typed {:collect-only true}}
+  {:core.typed {:collect-only true}}
   (:require [clojure.set :as set])
   #?(:clj (:import (clojure.lang PersistentArrayMap))))
 
@@ -18,7 +17,7 @@
 (defn every-c? [c]
   #(every? c %))
 
-(def nne-seq? (some-fn nil? (every-pred seq seq?)))
+(def nne-seq? (some-fn nil? (every-pred seq? seq)))
 
 #?(:clj
 (def namespace? #(instance? clojure.lang.Namespace %)))
@@ -86,7 +85,7 @@
   (every-pred sequential?
               (every-c? c?)))
 
-(def local-sym? (every-pred symbol? (complement namespace)))
+(def local-sym? simple-symbol?)
 
 ;; FIXME when 1.7 is released, change to IAtom
-(defn atom? [v] (instance? #?(:clj clojure.lang.IAtom :cljs Atom) v))
+(defn atom? [v] (instance? #?(:clj clojure.lang.IAtom2 :cljs Atom) v))

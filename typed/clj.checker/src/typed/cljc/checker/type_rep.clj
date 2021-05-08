@@ -722,14 +722,20 @@
 (u/ann-record KwArgsSeq [mandatory :- (t/Map Type Type)
                          optional  :- (t/Map Type Type)
                          nilable-non-empty? :- Boolean
-                         complete? :- Boolean])
+                         complete? :- Boolean
+                         or-map-singleton :- Boolean])
 (u/def-type KwArgsSeq [mandatory optional nilable-non-empty? complete?]
-  "A sequential seq representing a flattened map (for keyword arguments)."
+  "A sequential seq representing a flattened map (for keyword arguments).
+  If nilable-non-empty? is true, type is either nil or a non-empty sequence (for rest-arguments).
+  If nilable-non-empty? is false, type is a possibly empty sequence (eg., for `(apply concat {})`).
+  If or-map-singleton? is true, may also repesent a singleton list with a map
+  of the described shape."
   [(every? (con/hash-c? Value? Type?) [mandatory optional])
    (= #{} (set/intersection (set (keys mandatory)) 
                             (set (keys optional))))
    (boolean? nilable-non-empty?)
-   (boolean? complete?)]
+   (boolean? complete?)
+   (boolean? or-map-singleton?)]
   :methods
   [p/TCType])
 
@@ -744,13 +750,16 @@
 (t/ann -kw-args-seq [& :optional {:mandatory (t/Map Type Type)
                                   :optional (t/Map Type Type)
                                   :nilable-non-empty? Boolean
-                                  :complete? Boolean}
+                                  :complete? Boolean
+                                  :or-map-singleton? Boolean}
                      -> KwArgsSeq])
-(defn -kw-args-seq [& {:keys [mandatory optional nilable-non-empty? complete?]
+(defn -kw-args-seq [& {:keys [mandatory optional nilable-non-empty? complete?
+                              or-map-singleton?]
                        :or {mandatory {} optional {} complete? false
-                            nilable-non-empty? false}}]
+                            nilable-non-empty? false
+                            or-map-singleton? false}}]
   {:post [(KwArgsSeq? %)]}
-  (KwArgsSeq-maker mandatory optional nilable-non-empty? complete?))
+  (KwArgsSeq-maker mandatory optional nilable-non-empty? complete? or-map-singleton?))
 
 ; must go before Result
 (u/ann-record FlowSet [normal :- p/IFilter])
