@@ -718,6 +718,7 @@
    (= #{} (set/intersection (set (keys mandatory)) 
                             (set (keys optional))))])
 
+;; TODO support clojure 1.11 kw args format
 (u/ann-record KwArgsSeq [mandatory :- (t/Map Type Type)
                          optional  :- (t/Map Type Type)
                          nilable-non-empty? :- Boolean
