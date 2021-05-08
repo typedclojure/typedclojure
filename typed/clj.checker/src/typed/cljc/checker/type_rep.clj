@@ -723,14 +723,17 @@
                          complete? :- Boolean
                          maybe-trailing-conjable? :- Boolean])
 (u/def-type KwArgsSeq [mandatory optional non-empty? complete? maybe-trailing-conjable?]
-  "A sequential seq representing a flattened map (for keyword arguments).
+  "A sequential seq representing a flattened map.
+
   If non-empty? is true, represents a non-empty sequence (eg., for rest-arguments).
+
   If non-empty? is false, type is a possibly empty sequence (eg., for `(apply concat {})`).
+
   If maybe-trailing-conjable? is true, represents a list that can be passed to
   `seq-to-map-for-destructuring` and returns a value of the desired shape."
   [(every? (con/hash-c? Value? Type?) [mandatory optional])
-   (= #{} (set/intersection (set (keys mandatory)) 
-                            (set (keys optional))))
+   (empty? (set/intersection (set (keys mandatory)) 
+                             (set (keys optional))))
    (boolean? non-empty?)
    (boolean? complete?)
    (boolean? maybe-trailing-conjable?)]
