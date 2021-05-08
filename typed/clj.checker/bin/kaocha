@@ -3,4 +3,4 @@
 set -x
 
 #TODO figure out how to pass extra args to `clojure`
-clojure -A:test:kaocha -m kaocha.runner "$@"
+clojure -M:test:kaocha -m kaocha.runner "$@"

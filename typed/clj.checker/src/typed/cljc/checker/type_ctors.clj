@@ -2128,11 +2128,12 @@
   {:pre [(r/KwArgs? kws)]
    :post [(r/Type? %)]}
   (impl/assert-clojure)
-  (Un r/-nil
-      (r/-kw-args-seq :mandatory (:mandatory kws)
-                      :optional (:optional kws)
-                      :non-empty? true
-                      :complete? false)))
+  (let [nilable-non-empty? (empty? (:mandatory kws))]
+    (cond-> (r/-kw-args-seq :mandatory (:mandatory kws)
+                            :optional (:optional kws)
+                            :non-empty? true
+                            :complete? false)
+      nilable-non-empty? (Un r/-nil))))
 
 (t/ann KwArgsSeq->HMap [KwArgsSeq -> r/Type])
 (defn KwArgsSeq->HMap [kws]
@@ -2148,7 +2149,7 @@
    :post [(r/Type? %)]}
   (r/-kw-args-seq :mandatory (:types kws)
                   :optional (:optional kws)
-                  :non-empty? false
+                  :non-empty? (boolean (seq (:types kws)))
                   :complete? (complete-hmap? kws)
                   :or-single-map? false))
 
@@ -2171,13 +2172,12 @@
                            0)
                          (+ (* 2 (count (:mandatory kws)))
                             (* 2 (count (:optional kws))))))]
-    (if (and max-count (< max-count min-count))
-      ;; contradiction between :non-empty? and number of keys
-      (Un)
-      (In (r/make-CountRange min-count max-count)
-          (impl/impl-case
-            :clojure (RClass-of ASeq [ss])
-            :cljs (Protocol-of 'cljs.core/ISeq [ss]))))))
+    (when max-count
+      (assert (<= min-count max-count)))
+    (In (r/make-CountRange min-count max-count)
+        (impl/impl-case
+          :clojure (RClass-of ASeq [ss])
+          :cljs (Protocol-of 'cljs.core/ISeq [ss])))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Heterogeneous type ops

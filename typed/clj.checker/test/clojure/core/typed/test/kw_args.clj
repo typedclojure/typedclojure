@@ -23,7 +23,8 @@
 
 (ann poly-foo-kw (t/All [x]
                       [& :optional {:a x} -> (t/U nil x)]))
-(defn poly-foo-kw [& {:keys [a]}]
+(defn poly-foo-kw [& {:keys [a] :as kw-map}]
+  (ann-form kw-map (t/Option (t/HMap :optional {:a x})))
   a)
 
 (ann-form (poly-foo-kw :a 1)
@@ -33,7 +34,8 @@
 
 (ann poly-foo-mandatory-kw (t/All [x]
                              [& :mandatory {:a x} -> x]))
-(defn poly-foo-mandatory-kw [& {:keys [a]}]
+(defn poly-foo-mandatory-kw [& {:keys [a] :as kw-map}]
+  (ann-form kw-map '{:a x})
   a)
 
 (ann-form (poly-foo-mandatory-kw :a 'a)
