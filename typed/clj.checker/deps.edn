@@ -37,7 +37,7 @@
     {:mvn/version "0.2.6", :exclusions [org.clojure/clojure]}
     com.clojure-goes-fast/clj-java-decompiler {:mvn/version "0.3.0"}}},
   :kaocha
-  {:extra-deps {lambdaisland/kaocha {:mvn/version "1.0.700"}}}
+  {:extra-deps {lambdaisland/kaocha {:mvn/version "1.0.829"}}}
   :codox
   {:extra-deps {codox/codox {:mvn/version "0.10.7"}}
    :extra-paths ["script"]
