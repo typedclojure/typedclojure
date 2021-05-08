@@ -33,7 +33,8 @@
             [clojure.reflect :as reflect]
             [clojure.repl :as repl]
             [clojure.core.cache :as cache])
-  (:import (typed.cljc.checker.type_rep HeterogeneousMap Poly TypeFn PolyDots TApp App Value
+  (:import (clojure.lang ASeq)
+           (typed.cljc.checker.type_rep HeterogeneousMap Poly TypeFn PolyDots TApp App Value
                                         Union Intersection F Function Mu B KwArgs KwArgsSeq RClass
                                         Bounds Name Scope CountRange Intersection DataType Extends
                                         JSNominal Protocol GetType HSequential
@@ -2127,10 +2128,11 @@
   {:pre [(r/KwArgs? kws)]
    :post [(r/Type? %)]}
   (impl/assert-clojure)
-  (r/-kw-args-seq :mandatory (:mandatory kws)
-                  :optional (:optional kws)
-                  :nilable-non-empty? true
-                  :complete? false))
+  (Un r/-nil
+      (r/-kw-args-seq :mandatory (:mandatory kws)
+                      :optional (:optional kws)
+                      :non-empty? true
+                      :complete? false)))
 
 (t/ann KwArgsSeq->HMap [KwArgsSeq -> r/Type])
 (defn KwArgsSeq->HMap [kws]
@@ -2141,14 +2143,41 @@
              :complete? (:complete? kws)))
 
 (t/ann HMap->KwArgsSeq [HeterogeneousMap Boolean -> r/Type])
-(defn HMap->KwArgsSeq [kws nilable-non-empty?]
+(defn HMap->KwArgsSeq [kws]
   {:pre [(r/HeterogeneousMap? kws)]
    :post [(r/Type? %)]}
   (r/-kw-args-seq :mandatory (:types kws)
                   :optional (:optional kws)
-                  :nilable-non-empty? nilable-non-empty?
+                  :non-empty? false
                   :complete? (complete-hmap? kws)
                   :or-single-map? false))
+
+(defn upcast-kw-args-seq [kws]
+  {:pre [(r/KwArgsSeq? kws)]
+   :post [(r/Type? %)]}
+  (let [ss (if (:complete? kws)
+             (apply Un
+                    (concat
+                      (apply concat (:mandatory kws))
+                      (apply concat (:optional kws))))
+             r/-any)
+        min-count (max (if (:non-empty? kws)
+                         2
+                         0)
+                       (* 2 (count (:mandatory kws))))
+        max-count (when (:complete? kws)
+                    (max (if (:non-empty? kws)
+                           2
+                           0)
+                         (+ (* 2 (count (:mandatory kws)))
+                            (* 2 (count (:optional kws))))))]
+    (if (and max-count (< max-count min-count))
+      ;; contradiction between :non-empty? and number of keys
+      (Un)
+      (In (r/make-CountRange min-count max-count)
+          (impl/impl-case
+            :clojure (RClass-of ASeq [ss])
+            :cljs (Protocol-of 'cljs.core/ISeq [ss]))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Heterogeneous type ops

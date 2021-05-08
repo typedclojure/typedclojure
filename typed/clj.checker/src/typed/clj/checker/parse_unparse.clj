@@ -1896,8 +1896,8 @@
                [:mandatory (unparse-map-of-types (.mandatory v))])
              (when (:complete? v)
                [:complete? (:complete? v)])
-             (when (:nilable-non-empty? v)
-               [:nilable-non-empty? (:nilable-non-empty? v)]))))
+             (when (:non-empty? v)
+               [:non-empty? (:non-empty? v)]))))
 
   AssocType
   (unparse-type* 

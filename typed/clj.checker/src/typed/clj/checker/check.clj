@@ -613,29 +613,21 @@
 
 ; ignore some keyword argument related intersections
 (defmethod -invoke-special 'clojure.core/seq?
-  [{fexpr :fn :keys [args] :as expr} expected]
+  [{:keys [args] :as expr} expected]
   {:post [(or (nil? %)
               (and (r/TCResult? (u/expr-type %))
                    (vector? (:args %))))]}
   (when (#{1} (count args))
-    (let [{[ctarget] :args :as expr}
+    (let [{[ctarget] :args :as cexpr}
           (-> expr
               (update :fn check-expr)
-              (update :args #(mapv check-expr %)))]
+              (update :args #(mapv check-expr %)))
+          targett (-> ctarget u/expr-type r/ret-t c/fully-resolve-type)]
       (cond 
-        ; handle keyword args macroexpansion
-        ((every-pred r/KwArgsSeq?
-                     ; KwArgsSeq's can be nilable
-                     #(not (sub/subtype? r/-nil %)))
-         (-> ctarget u/expr-type r/ret-t))
-        (assoc expr
-               u/expr-type (below/maybe-check-below
-                             (r/ret r/-true (fo/-true-filter))
-                             expected))
-
         ; records never extend ISeq
-        (r/Record? (-> ctarget u/expr-type r/ret-t c/fully-resolve-type))
-        (assoc expr
+        ;; TODO move this to subtyping
+        (r/Record? targett)
+        (assoc cexpr
                u/expr-type (below/maybe-check-below
                              (r/ret r/-false (fo/-false-filter))
                              expected))))))
@@ -1296,7 +1288,7 @@
                (c/fully-resolve-type (r/ret-t (u/expr-type (last cargs)))))]
     (binding [vs/*current-expr* expr]
       (when (r/HeterogeneousMap? tmap)
-        (let [r (c/HMap->KwArgsSeq tmap false)]
+        (let [r (c/HMap->KwArgsSeq tmap)]
           (-> expr
               (update :fn check-expr)
               (assoc u/expr-type (below/maybe-check-below

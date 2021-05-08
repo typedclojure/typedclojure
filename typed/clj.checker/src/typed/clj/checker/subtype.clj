@@ -25,14 +25,10 @@
             [typed.cljc.checker.indirect-ops :as ind]
             [typed.cljc.checker.indirect-utils :as ind-u]
             [typed.clj.checker.assoc-utils :as assoc-u]
-            [clojure.set :as set])
-  (:import (clojure.lang ASeq)))
+            [clojure.set :as set]))
 
 (defn ^:private gen-repeat [times repeated]
-  (reduce (fn [acc cur]
-            (concat acc cur))
-          []
-          (repeat times repeated)))
+  (reduce into [] (repeat times repeated)))
 
 ;(defalias Seen Any)
 
@@ -518,7 +514,8 @@
                          (every? identity (map (partial subtypeA* A)
                                                s-types
                                                (gen-repeat (/ (count s-types)
-                                                              (count t-types)) t-types)))
+                                                              (count t-types))
+                                                           t-types)))
                          false)
 
                        ; nothing on right
@@ -548,7 +545,8 @@
                               (every? identity (map (partial subtypeA* A)
                                                     s-types
                                                     (gen-repeat (/ s-types-count
-                                                                   t-types-count) t-types)))
+                                                                   t-types-count)
+                                                                t-types)))
                               false))))
 
                    ; rest on right
@@ -682,32 +680,7 @@
         (recur A (c/upcast-hset s) t)
 
         (r/KwArgsSeq? s)
-        (let [ss (if (:complete? s)
-                   (apply c/Un
-                          (concat
-                            (apply concat (:mandatory s))
-                            (apply concat (:optional s))))
-                   r/-any)
-              min-count (* 2 (count (:mandatory s)))
-              max-count (when (:complete? s)
-                          (+ min-count
-                             (* 2 (count (:optional s)))))]
-          (recur A
-                 (apply c/Un 
-                        (concat
-                          (when (and (:nilable-non-empty? s)
-                                     (not (zero? min-count)))
-                            [r/-nil])
-                          [(c/In (r/make-CountRange 
-                                   (max (if (:nilable-non-empty? s) 
-                                          2 
-                                          0)
-                                        min-count) 
-                                   max-count)
-                                 (impl/impl-case
-                                   :clojure (c/RClass-of ASeq [ss])
-                                   :cljs (c/Protocol-of 'cljs.core/ISeq [ss])))]))
-                 t))
+        (recur A (c/upcast-kw-args-seq s) t)
 
         ; TODO add repeat support
         (r/HSequential? s)
@@ -1481,7 +1454,7 @@
     (report-not-subtypes s t)))
 
 ; does this really help?
-(defn class-isa? 
+(defn class-isa?
   "A faster version of isa?, both parameters must be classes"
   [s ^Class t]
   (.isAssignableFrom t s))

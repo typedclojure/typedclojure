@@ -6,9 +6,22 @@
 (let [{:keys [b] :or {b 3}} {}]
   (ann-form b Number))
 
+;; clojure <=1.10 kv destructuring
 (let* [map__65083 {} 
        map__65083 (if (seq? map__65083) 
                     (clojure.lang.PersistentHashMap/create (clojure.core/seq map__65083)) 
+                    map__65083) 
+       b (get map__65083 :b 3)] 
+  (ann-form b Number))
+
+;; clojure >=1.11 kv destructuring
+(let* [map__65083 {} 
+       map__65083 (if (seq? map__65083) 
+                    (if (next ^clojure.lang.Seq map__65083)
+                      (clojure.lang.PersistentArrayMap/createAsIfByAssoc (to-array ^clojure.lang.Seq map__65083))
+                      (if (seq ^clojure.lang.Seq map__65083)
+                        (first ^clojure.lang.Seq map__65083)
+                        clojure.lang.PersistentArrayMap/EMPTY)) 
                     map__65083) 
        b (get map__65083 :b 3)] 
   (ann-form b Number))
@@ -19,10 +32,9 @@
 (let [{:as c} nil]
   (ann-form c nil))
 
-;FIXME
-;(let [{:strs [str] :syms [symb]} (ann-form {} (Extends [(APersistentMap Any String)] :without [(clojure.lang.ISeq Any)]))]
-;  (ann-form symb (U nil String))
-;  (ann-form str (U nil String)))
+(let [{:strs [str] :syms [symb]} (ann-form {} (Extends [(APersistentMap t/Any String)] :without [(clojure.lang.ISeq t/Any)]))]
+  (ann-form symb (t/U nil String))
+  (ann-form str (t/U nil String)))
 
 ;; vector destructuring
 (let [[a b & c :as d] (ann-form [] (APersistentVector Number))]
@@ -53,9 +65,7 @@
 
 ;lists
 (let [[a b c & d :as e] '(1 2 3 4 5 6 7)]
-  ; FIXME stopped working with 1.9.0
-  ; to fix, start adding HList to `AnySequential?` predicate
-  ;(ann-form [a b c] (t/Seqable Number))
+  (ann-form [a b c] (t/Seqable Number))
   (ann-form d (t/U nil (t/Seqable Number)))
   (ann-form e (t/Seqable Number)))
 

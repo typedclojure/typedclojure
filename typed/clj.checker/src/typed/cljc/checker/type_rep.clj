@@ -719,19 +719,19 @@
 ;; TODO support clojure 1.11 kw args format
 (u/ann-record KwArgsSeq [mandatory :- (t/Map Type Type)
                          optional  :- (t/Map Type Type)
-                         nilable-non-empty? :- Boolean
+                         non-empty? :- Boolean
                          complete? :- Boolean
                          or-single-map? :- Boolean])
-(u/def-type KwArgsSeq [mandatory optional nilable-non-empty? complete? or-single-map?]
+(u/def-type KwArgsSeq [mandatory optional non-empty? complete? or-single-map?]
   "A sequential seq representing a flattened map (for keyword arguments).
-  If nilable-non-empty? is true, type is either nil or a non-empty sequence (for rest-arguments).
-  If nilable-non-empty? is false, type is a possibly empty sequence (eg., for `(apply concat {})`).
+  If non-empty? is true, represents a non-empty sequence (eg., for rest-arguments).
+  If non-empty? is false, type is a possibly empty sequence (eg., for `(apply concat {})`).
   If or-single-map? is true, may also repesent a singleton list with a map
   of the described shape."
   [(every? (con/hash-c? Value? Type?) [mandatory optional])
    (= #{} (set/intersection (set (keys mandatory)) 
                             (set (keys optional))))
-   (boolean? nilable-non-empty?)
+   (boolean? non-empty?)
    (boolean? complete?)
    (boolean? or-single-map?)]
   :methods
@@ -747,19 +747,19 @@
 
 (t/ann -kw-args-seq [& :optional {:mandatory (t/Map Type Type)
                                   :optional (t/Map Type Type)
-                                  :nilable-non-empty? Boolean
+                                  :non-empty? Boolean
                                   :complete? Boolean
                                   :or-single-map? Boolean}
                      -> KwArgsSeq])
-(defn -kw-args-seq [& {:keys [mandatory optional nilable-non-empty? complete?
+(defn -kw-args-seq [& {:keys [mandatory optional non-empty? complete?
                               or-single-map?]
                        :or {mandatory {} optional {} complete? false
-                            nilable-non-empty? false
+                            non-empty? false
                             or-single-map? false}}]
   {:post [(KwArgsSeq? %)]}
   (KwArgsSeq-maker mandatory
                    optional
-                   nilable-non-empty?
+                   non-empty?
                    complete?
                    or-single-map?))
 
