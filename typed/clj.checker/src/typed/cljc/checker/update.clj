@@ -209,13 +209,15 @@
                 old-type (or ((:optional t) fpth) r/-any)]
             (if update-to-mandatory?
               (c/make-HMap 
-                :mandatory (assoc-in (:types t) [fpth] (update-inner old-type))
+                :mandatory (-> (:types t)
+                               (assoc fpth (update-inner old-type)))
                 :optional (dissoc (:optional t) fpth)
                 :absent-keys (:absent-keys t)
                 :complete? (c/complete-hmap? t))
               (c/make-HMap 
                 :mandatory (:types t)
-                :optional (assoc-in (:optional t) [fpth] (update-inner old-type))
+                :optional (-> (:optional t)
+                              (assoc fpth (update-inner old-type)))
                 :absent-keys (:absent-keys t)
                 :complete? (c/complete-hmap? t))))))
 

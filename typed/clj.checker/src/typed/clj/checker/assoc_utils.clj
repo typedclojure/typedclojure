@@ -89,7 +89,8 @@
    (let [rkt (-> kt :t c/fully-resolve-type)]
      (if (c/keyword-value? rkt)
        (c/make-HMap
-         :mandatory (assoc-in (:types hmap) [rkt] (:t vt))
+         :mandatory (-> (:types hmap)
+                        (assoc rkt (:t vt)))
          :optional (:optional hmap)
          :absent-keys (-> (:absent-keys hmap) 
                           (disj rkt))
