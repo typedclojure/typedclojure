@@ -32,7 +32,7 @@
           (t/U nil clojure.lang.Symbol))
 
 (ann poly-foo-mandatory-kw (t/All [x]
-                                [& :mandatory {:a x} -> x]))
+                             [& :mandatory {:a x} -> x]))
 (defn poly-foo-mandatory-kw [& {:keys [a]}]
   a)
 

@@ -15,16 +15,17 @@
   (ann-form b Number))
 
 ;; clojure >=1.11 kv destructuring
-(let* [map__65083 {} 
-       map__65083 (if (seq? map__65083) 
-                    (if (next ^clojure.lang.Seq map__65083)
-                      (clojure.lang.PersistentArrayMap/createAsIfByAssoc (to-array ^clojure.lang.Seq map__65083))
-                      (if (seq ^clojure.lang.Seq map__65083)
-                        (first ^clojure.lang.Seq map__65083)
-                        clojure.lang.PersistentArrayMap/EMPTY)) 
-                    map__65083) 
-       b (get map__65083 :b 3)] 
-  (ann-form b Number))
+;; TODO
+;; (let* [map__65083 {} 
+;;        map__65083 (if (seq? map__65083) 
+;;                     (if (next ^clojure.lang.Seq map__65083)
+;;                       (clojure.lang.PersistentArrayMap/createAsIfByAssoc (to-array ^clojure.lang.Seq map__65083))
+;;                       (if (seq ^clojure.lang.Seq map__65083)
+;;                         (first ^clojure.lang.Seq map__65083)
+;;                         clojure.lang.PersistentArrayMap/EMPTY)) 
+;;                     map__65083) 
+;;        b (get map__65083 :b 3)] 
+;;   (ann-form b Number))
 
 (let [{:as c} {}]
   (ann-form c '{}))
