@@ -21,17 +21,20 @@
             [clojure.pprint :as pprint]))
 
 (defn qualify-in-cct [as]
-  (for [[k v] (partition 2 as)]
-    [(-> (symbol "clojure.core.typed" (name k))
-         (with-meta (meta k)))
-     v]))
+  (for [[k v :as kv] (partition-all 2 as)]
+    (do
+      (assert (= 2 (count kv)) (str "Uneven args: " kv))
+      [(-> (symbol "clojure.core.typed" (name k))
+           (with-meta (meta k)))
+       v])))
 
 (defmacro alias-mappings [& args]
   `(impl/with-clojure-impl
      (let [ts# (qualify-in-cct '~args)]
        (into {}
-             (doall
-               (for [[s# t#] ts#]
+             (map 
+               (fn [[s# t# :as kv#]]
+                 (assert (= 2 (count kv#)) (print-str "Uneven args:" kv#))
                  (let [meta# (-> s# meta)
                        desc# (:doc meta#)
                        doc# (str #_"Type Alias\n\n"
@@ -43,98 +46,118 @@
                                   "Need fully qualified symbol")
                        v# (intern (find-ns (symbol (namespace s#))) (symbol (name s#)))
                        _# (alter-meta! v# merge (assoc meta# :doc doc#))]
-                   [(with-meta s# nil) (prs/parse-type t#)])))))))
+                   [(with-meta s# nil) (prs/parse-type t#)])))
+             ts#))))
 
 (defmacro var-mappings [this-ns & args]
   `(impl/with-clojure-impl
      (let [this-ns# ~this-ns
            _# (assert (instance? clojure.lang.Namespace this-ns#))
-           ts# (partition 2 '~args)
+           ts# (partition-all 2 '~args)
            conveyed-parse# (fn [s#]
                              (binding [prs/*parse-type-in-ns* (ns-name this-ns#)]
                                (prs/parse-type s#)))]
        (into {}
-             (doall
-               (for [[s# t#] ts#]
-                 (do
-                   (assert (and (symbol? s#)
-                                (namespace s#))
-                           "Need fully qualified symbol")
-                   [s# (delay (conveyed-parse# t#))])))))))
+             (map (fn [[s# t# :as kv#]]
+                    (assert (= 2 (count kv#))
+                            (print-str "Uneven args to var-mappings:" kv#))
+                    (assert (and (symbol? s#)
+                                 (namespace s#))
+                            "Need fully qualified symbol")
+                    [s# (delay (conveyed-parse# t#))]))
+             ts#))))
 
 (defmacro method-nonnilable-return-mappings [& args]
   `(impl/with-clojure-impl
-     (let [ts# (partition 2 '~args)]
+     (let [ts# (partition-all 2 '~args)]
        (into {}
-             (doall
-               (for [[s# t#] ts#]
-                 (do
-                   (assert (and (symbol? s#)
-                                (namespace s#))
-                           "Need fully qualified symbol")
-                   [s# t#])))))))
+             (map
+               (fn [[s# t# :as kv#]]
+                 (assert (= 2 (count kv#))
+                         (print-str "Uneven args to method-nonnilable-return-mappings:"
+                                    kv#))
+                 (assert (and (symbol? s#)
+                              (namespace s#))
+                         "Need fully qualified symbol")
+                 [s# t#]))
+             ts#))))
 
 (defmacro method-nilable-param-mappings [& args]
   `(impl/with-clojure-impl
-     (let [ts# (partition 2 '~args)]
+     (let [ts# (partition-all 2 '~args)]
        (into {}
-             (doall
-               (for [[s# t#] ts#]
-                 (do
-                   (assert (and (symbol? s#)
-                                (namespace s#))
-                           "Need fully qualified symbol")
-                   [s# t#])))))))
+             (map
+               (fn [[s# t# :as kv#]]
+                 (assert (= 2 (count kv#))
+                         (print-str "Uneven args to method-nilable-param-mappings:"
+                                    kv#))
+                 (assert (and (symbol? s#)
+                              (namespace s#))
+                         "Need fully qualified symbol")
+                 [s# t#]))
+             ts#))))
 
 (defmacro method-override-mappings [& args]
   `(impl/with-clojure-impl
-     (let [ts# (partition 2 '~args)]
+     (let [ts# (partition-all 2 '~args)]
        (into {}
-             (doall
-               (for [[s# t#] ts#]
-                 (do
-                   (assert (and (symbol? s#)
-                                (namespace s#))
-                           "Need fully qualified symbol")
-                   [s# (prs/parse-type t#)])))))))
+             (map
+               (fn [[s# t# :as kv#]]
+                 (assert (= 2 (count kv#))
+                         (print-str "Uneven args to method-override-mappings:"
+                                    kv#))
+                 (assert (and (symbol? s#)
+                              (namespace s#))
+                         "Need fully qualified symbol")
+                 [s# (prs/parse-type t#)]))
+             ts#))))
+
+(defmacro field-override-mappings [& args]
+  `(impl/with-clojure-impl
+     (let [ts# (partition-all 2 '~args)]
+       (into {}
+             (map
+               (fn [[s# t# :as kv#]]
+                 (assert (= 2 (count kv#))
+                         (print-str "Uneven args to field-override-mappings:"
+                                    kv#))
+                 (assert (and (symbol? s#)
+                              (namespace s#))
+                         "Need fully qualified symbol")
+                 [s# (prs/parse-type t#)]))
+             ts#))))
 
 (defmacro ctor-override-mappings [& args]
   `(impl/with-clojure-impl
-     (let [ts# (partition 2 '~args)]
+     (let [ts# (partition-all 2 '~args)]
        (into {}
-             (doall
-               (for [[s# t#] ts#]
-                 (do
-                   (assert (and (symbol? s#)
-                                (not (namespace s#)))
-                           "Need unqualified symbol")
-                   [s# (prs/parse-type t#)])))))))
-
-;(defmacro protocol-mappings [& args]
-;  `(impl/with-clojure-impl
-;     (let [ts# (partition 2 '~args)]
-;       (into {}
-;             (doall
-;               (for [[s# [argsyn# {msyns# :methods}]] ts#]
-;                 (let [ms# (into {}
-;                                 (for [[msym# t#] msyns#]
-;                                   [msym# (prs/parse-type t#)]))
-;                       args# ]
-;                   (assert (and (symbol? s#)
-;                                (namespace s#))
-;                           "Need qualified symbol")
-;                   [s# ])))))))
+             (map
+               (fn [[s# t# :as kv#]]
+                 (assert (= 2 (count kv#))
+                         (print-str "Uneven args to ctor-override-mappings:"
+                                    kv#))
+                 (assert (and (symbol? s#)
+                              (not (namespace s#)))
+                         "Need unqualified symbol")
+                 [s# (prs/parse-type t#)]))
+             ts#))))
 
 ;; Alter class
 
 (defn- build-replacement-syntax [m]
-  `(impl/with-clojure-impl
-     (into {} (doall
-                (for [[k# v#] ~m]
-                  [(if-let [c# (resolve k#)] 
-                     (and (class? c#) (coerce/Class->symbol c#))
-                     k#)
-                   (prs/parse-type v#)])))))
+  `(let [m# ~m]
+     (impl/with-clojure-impl
+       (into {}
+             (map
+               (fn [[k# v# :as kv#]]
+                 (assert (= 2 (count kv#))
+                         kv#)
+                 [(if-let [c# (resolve k#)] 
+                    (do (assert (class? c#) (pr-str c#))
+                        (coerce/Class->symbol c#))
+                    k#)
+                  (prs/parse-type v#)]))
+             m#))))
 
 (defn resolve-class-symbol [the-class]
   `(impl/with-clojure-impl
@@ -187,10 +210,13 @@
         opts (gensym 'opts)
         s (gensym 's)]
     `(impl/with-clojure-impl
-       (let [ts# (partition 2 '~args)]
+       (let [ts# (partition-all 2 '~args)]
          (into {}
-               (doall
-                 (for [[~s [~fields & ~opts]] ts#]
+               (map
+                 (fn [[~s [~fields & ~opts] :as kv#]]
+                   (assert (= 2 (count kv#))
+                           (print-str "Uneven args passed to `alters`:"
+                                      kv#))
                    (let [sym# ~(resolve-class-symbol s)
                          decl-kind# (declared-kind-for-rclass ~fields)
                          _# (when (r/TypeFn? decl-kind#)
@@ -199,4 +225,5 @@
                      ;accumulate altered classes in initial env
                      (rcls/alter-class* sym# rcls#)
                      (decl-env/remove-declared-kind sym#)
-                     [sym# rcls#]))))))))
+                     [sym# rcls#])))
+               ts#)))))

@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 ; untyped, clojure.core.typed depends on this namespace
-(ns ^:no-doc ^:no-doc clojure.core.typed.current-impl
+(ns ^:no-doc clojure.core.typed.current-impl
   #?(:cljs (:refer-clojure :exclude [-val]))
   (:require [clojure.set :as set]
             [clojure.core.typed.env :as env]
@@ -27,6 +27,7 @@
 (def method-return-nonnilable-env-kw ::method-return-nonnilable-env)
 (def method-param-nilable-env-kw ::method-param-nilable-env)
 (def method-override-env-kw ::method-override-env)
+(def field-override-env-kw ::field-override-env)
 (def constructor-override-env-kw ::constructor-override-env)
 (def protocol-name-type ::protocol-name)
 (def current-protocol-env-kw ::current-protocol-env)
@@ -117,6 +118,15 @@
          ((some-fn delay? r/Poly? r/FnIntersection?)
           t)]}
   (env/swap-checker! assoc-in [method-override-env-kw sym] t)
+  nil)
+
+(defn add-field-override [sym t]
+  {:pre [((every-pred symbol? namespace) sym)
+         ;; checked by `get-field-override`
+         #_
+         ((some-fn delay? r/Type?)
+          t)]}
+  (env/swap-checker! assoc-in [field-override-env-kw sym] t)
   nil)
 
 (defn add-constructor-override [sym t]

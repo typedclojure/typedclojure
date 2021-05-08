@@ -2041,6 +2041,11 @@ clojure.lang.Numbers/num   [Number -> Number]
                                  [[a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 a18 a19 arest * -> r] a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 a18 a19 (Seqable arest) -> r]
                                  )))
 
+(delay-and-cache-env ^:private init-field-override-env
+  (h/field-override-mappings
+clojure.lang.PersistentArrayMap/EMPTY (t/HMap :complete? true)
+))
+
 (delay-and-cache-env ^:private init-ctor-override-env
   ;(reset-alias-env!)
   (h/ctor-override-mappings
@@ -2065,6 +2070,7 @@ clojure.lang.Delay (All [x]
       (delay (impl/dynaload 'typed.clj.checker.method-return-nilables/reset-nonnilable-method-return-env!))
       reset-method-nilable-param-env! (delay (impl/dynaload 'typed.clj.checker.method-param-nilables/reset-method-nilable-param-env!))
       reset-method-override-env! (delay (impl/dynaload 'typed.clj.checker.method-override-env/reset-method-override-env!))
+      reset-field-override-env! (delay (impl/dynaload 'typed.clj.checker.field-override-env/reset-field-override-env!))
       reset-constructor-override-env! (delay (impl/dynaload 'typed.clj.checker.ctor-override-env/reset-constructor-override-env!))
       reset-protocol-env! (delay (impl/dynaload 'typed.cljc.checker.protocol-env/reset-protocol-env!))
       reset-declared-kinds! (delay (impl/dynaload 'typed.cljc.checker.declared-kind-env/reset-declared-kinds!))
@@ -2078,6 +2084,7 @@ clojure.lang.Delay (All [x]
       (@reset-nonnilable-method-return-env! (init-method-nonnilable-return-env))
       (@reset-method-nilable-param-env! (init-method-nilable-param-env))
       (@reset-method-override-env! (init-method-override-env))
+      (@reset-field-override-env! (init-field-override-env))
       (@reset-constructor-override-env! (init-ctor-override-env))
       (@reset-protocol-env! (init-protocol-env))
       (@reset-declared-kinds! (init-declared-kinds))
@@ -2090,6 +2097,7 @@ clojure.lang.Delay (All [x]
       merge-method-nilable-param-env! (delay (impl/dynaload 'typed.clj.checker.method-param-nilables/merge-method-nilable-param-env!))
       merge-nonnilable-method-return-env! (delay (impl/dynaload 'typed.clj.checker.method-return-nilables/merge-nonnilable-method-return-env!))
       merge-method-override-env! (delay (impl/dynaload 'typed.clj.checker.method-override-env/merge-method-override-env!))
+      merge-field-override-env! (delay (impl/dynaload 'typed.clj.checker.field-override-env/merge-field-override-env!))
       merge-constructor-override-env! (delay (impl/dynaload 'typed.clj.checker.ctor-override-env/merge-constructor-override-env!))]
   (defn refresh-core-clojure-envs! []
     (impl/with-clojure-impl
@@ -2100,5 +2108,6 @@ clojure.lang.Delay (All [x]
       (@merge-method-nilable-param-env! (init-method-nilable-param-env))
       (@merge-nonnilable-method-return-env! (init-method-nonnilable-return-env))
       (@merge-method-override-env! (init-method-override-env))
+      (@merge-field-override-env! (init-field-override-env))
       (@merge-constructor-override-env! (init-ctor-override-env)))
     nil))

@@ -64,6 +64,16 @@
     (assert (symbol? method))
     (symbol (str (coerce/Class->symbol c)) (str method))))
 
+;[FieldExpr -> (U nil NamespacedSymbol)]
+(defn FieldExpr->qualsym [{c :class :keys [op field] :as expr}]
+  {:pre [(#{:static-field :instance-field} op)]
+   :post [((some-fn nil? symbol?) %)]}
+  (when c
+    (assert (class? c))
+    (assert (symbol? field))
+    (symbol (str (coerce/Class->symbol c)) (str field))))
+
+
 ;(t/ann expected-error [r/Type r/TCResult -> nil])
 (defn expected-error [actual expected & opt]
   {:pre [(r/Type? actual)
@@ -178,7 +188,6 @@
                       _ (assert (class? c) s-nosuffix)]
                   c)]
           (r/PrimitiveArray-maker c t t))))))
-
 
 ;[clojure.reflect.Field - Type]
 (defn Field->Type [{:keys [type flags] :as field}]

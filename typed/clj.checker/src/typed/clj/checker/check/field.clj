@@ -20,18 +20,21 @@
             [typed.clj.checker.parse-unparse :as prs]
             [typed.cljc.checker.datatype-env :as dt-env]
             [clojure.repl :as repl]
-            [clojure.core.typed.util-vars :as vs]))
+            [clojure.core.typed.util-vars :as vs]
+            [typed.clj.checker.field-override-env :as fld-override]))
 
 (defn check-static-field
   [expr expected]
   {:pre [(#{:static-field} (:op expr))]
    :post [(-> % u/expr-type r/TCResult?)]}
   (binding [vs/*current-expr* expr]
-    (let [field (cu/FieldExpr->Field expr)]
-      (assert field)
+    (let [field (cu/FieldExpr->Field expr)
+          fsym (cu/FieldExpr->qualsym expr)
+          ftype (or (some-> fsym fld-override/get-field-override)
+                    (cu/Field->Type field))]
       (assoc expr
              u/expr-type (below/maybe-check-below
-                           (r/ret (cu/Field->Type field))
+                           (r/ret ftype)
                            expected)))))
 
 (defn check-instance-field

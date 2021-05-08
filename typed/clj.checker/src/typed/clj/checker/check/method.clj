@@ -36,10 +36,8 @@
           method (cu/MethodExpr->Method expr)
           msym (cu/MethodExpr->qualsym expr)
           rfin-type (or method-override
-                        (when msym
-                          (mth-override/get-method-override msym))
-                        (when method
-                          (cu/Method->Type method)))
+                        (some-> msym mth-override/get-method-override)
+                        (some-> method cu/Method->Type))
           _ (assert ((some-fn nil? r/Type?) rfin-type))
           ctarget (:instance expr)]
       (if-not rfin-type
