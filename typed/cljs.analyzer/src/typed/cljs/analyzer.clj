@@ -276,8 +276,8 @@
                             #'ana/parse         parse
                             #'ana/var?          var?
                             #'elides            (-> elides
-                                                  (update-in [:all] into #{:line :column :end-line :end-column :file :source})
-                                                  (assoc-in [:fn] #{:cljs.analyzer/type :cljs.analyzer/protocol-impl :cljs.analyzer/protocol-inline}))}
+                                                    (update :all into #{:line :column :end-line :end-column :file :source})
+                                                    (assoc :fn #{:cljs.analyzer/type :cljs.analyzer/protocol-impl :cljs.analyzer/protocol-inline}))}
                            (when-not (thread-bound? #'*cljs-ns*)
                              {#'*cljs-ns* *cljs-ns*})
                            (:bindings opts))

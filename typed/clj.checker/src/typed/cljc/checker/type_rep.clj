@@ -713,8 +713,8 @@
 (u/def-type KwArgs [mandatory optional]
   "A set of mandatory and optional keywords"
   [(every? (con/hash-c? Value? Type?) [mandatory optional])
-   (= #{} (set/intersection (set (keys mandatory)) 
-                            (set (keys optional))))])
+   (empty? (set/intersection (set (keys mandatory)) 
+                             (set (keys optional))))])
 
 ;; TODO support clojure 1.11 kw args format
 (u/ann-record KwArgsSeq [mandatory :- (t/Map Type Type)

@@ -70,7 +70,7 @@
 ;  (assert (r/Type? type)
 ;          (str "JS nominal" csym " not a type: " type))
 ;  ; remove old fields etc.
-;  (swap! JSNOMINAL-ENV assoc-in [csym] (init-jsnominal-entry type))
+;  (swap! JSNOMINAL-ENV assoc csym (init-jsnominal-entry type))
 ;  nil)
 ;
 ;(t/ann add-method [t/Sym JSNominal (t/U Scope r/Type) -> nil])
