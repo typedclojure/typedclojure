@@ -153,10 +153,10 @@
 
         env (let [env (-> (lex/lexical-env)
                           ;add mm-filter
-                          (assoc-in [:props] (set (concat props (when mm-filter [mm-filter]))))
+                          (assoc :props (set (concat props (when mm-filter [mm-filter]))))
                           ;add parameters to scope
                           ;IF UNHYGIENIC order important, (fn [a a & a]) prefers rightmost name
-                          (update-in [:l] merge (into {} fixed-entry) (into {} rest-entry)))
+                          (update :l merge (into {} fixed-entry) (into {} rest-entry)))
                   flag (atom true :validator boolean?)
                   env (if mm-filter
                         (let [t (update/env+ env [mm-filter] flag)]

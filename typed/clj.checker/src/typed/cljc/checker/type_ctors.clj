@@ -2158,7 +2158,8 @@
   (r/-kw-args-seq :mandatory (:types kws)
                   :optional (:optional kws)
                   :nilable-non-empty? nilable-non-empty?
-                  :complete? (complete-hmap? kws)))
+                  :complete? (complete-hmap? kws)
+                  :or-map-singleton? false))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Heterogeneous type ops

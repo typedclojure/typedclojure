@@ -61,7 +61,7 @@
                                        (fo/-filter r/-falsy id-hm (concat path-hm [this-pelem]))) ; this map has a false kwt key
                                fl/-top))
                      (if (and (obj/Path? o) (= r/-nil defaultt))
-                       (update-in o [:path] #(seq (concat % [this-pelem])))
+                       (update o :path #(seq (concat % [this-pelem])))
                        obj/-empty))
               (do (u/tc-warning (str "Keyword lookup gave bottom type: "
                                      (:val kwt) " " (prs/unparse-type targett)))

@@ -723,8 +723,8 @@
                          optional  :- (t/Map Type Type)
                          nilable-non-empty? :- Boolean
                          complete? :- Boolean
-                         or-map-singleton :- Boolean])
-(u/def-type KwArgsSeq [mandatory optional nilable-non-empty? complete?]
+                         or-map-singleton? :- Boolean])
+(u/def-type KwArgsSeq [mandatory optional nilable-non-empty? complete? or-map-singleton?]
   "A sequential seq representing a flattened map (for keyword arguments).
   If nilable-non-empty? is true, type is either nil or a non-empty sequence (for rest-arguments).
   If nilable-non-empty? is false, type is a possibly empty sequence (eg., for `(apply concat {})`).
@@ -1071,12 +1071,9 @@
   {:pre [(Bounds? ty)]
    :post [(Bounds? %)]}
   (-> ty
-    (update-in [:upper-bound] #(when %
-                                 (f %)))
-    (update-in [:lower-bound] #(when %
-                                 (f %)))
-    (update-in [:higher-kind] #(when %
-                                 (f %)))))
+      (update :upper-bound #(some-> % f))
+      (update :lower-bound #(some-> % f))
+      (update :higher-kind #(some-> % f))))
 
 (t/ann ^:no-check make-Result
        (t/IFn [Type -> Result]

@@ -90,14 +90,14 @@
 (promote-demote ArrayCLJS 
   [T V]
   (-> T
-    (update-in [:input-type] #(demote % V))
-    (update-in [:output-type] #(promote % V))))
+    (update :input-type #(demote % V))
+    (update :output-type #(promote % V))))
 
 (promote-demote PrimitiveArray
   [T V]
   (-> T
-    (update-in [:input-type] #(demote % V))
-    (update-in [:output-type] #(promote % V))))
+    (update :input-type #(demote % V))
+    (update :output-type #(promote % V))))
 
 (extend-type F
   IPromoteDemote
@@ -119,19 +119,19 @@
 (promote-demote KwArgsSeq
   [T V]
   (-> T
-    (update-in [:mandatory] handle-kw-map promote V)
-    (update-in [:optional] handle-kw-map promote V)))
+    (update :mandatory handle-kw-map promote V)
+    (update :optional handle-kw-map promote V)))
 
 (promote-demote HeterogeneousMap
   [T V]
   (-> T
-    (update-in [:types] handle-kw-map promote V)
-    (update-in [:optional] handle-kw-map promote V)))
+    (update :types handle-kw-map promote V)
+    (update :optional handle-kw-map promote V)))
 
 (promote-demote JSObj
   [T V]
   (-> T
-    (update-in [:types] handle-kw-map promote V)))
+    (update :types handle-kw-map promote V)))
 
 (promote-demote HSequential
   [T V]
@@ -161,10 +161,10 @@
                       ; we know no filters contain V
                       :filters (:fs T)
                       :objects (:objects T)
-                      :rest (when-let [rest (:rest T)]
-                              (pmt rest))
-                      :drest (when-let [drest (:drest T)]
-                               (update-in drest [:pre-type] pmt))
+                      :rest (some-> (:rest T)
+                                    pmt)
+                      :drest (some-> (:drest T)
+                                     (update :pre-type pmt))
                       :repeat (:repeat T)
                       :kind (:kind T)))))
 
@@ -183,17 +183,17 @@
 
 (promote-demote JSNominal [T V]
   (-> T
-    (update-in [:poly?] #(when %
-                           (mapv promote % (repeat V))))))
+      (update :poly? #(when %
+                        (mapv promote % (repeat V))))))
 
 (promote-demote DataType [T V]
   (-> T
-    (update-in [:poly?] #(when %
-                           (mapv promote % (repeat V))))
-    #_(update-in [:fields] #(apply array-map
-                                 (apply concat
-                                        (for [[k v] %]
-                                          [k (promote v V)]))))))
+      (update :poly? #(when %
+                        (mapv promote % (repeat V))))
+      #_(update :fields #(apply array-map
+                                (apply concat
+                                       (for [[k v] %]
+                                         [k (promote v V)]))))))
 
 (defmacro promote-demote-id [& cs]
   `(do ~@(map (fn [c]
@@ -209,44 +209,44 @@
   [T V]
   (let [pmt #(promote % V)]
     (-> T
-        (update-in [:target] pmt)
-        (update-in [:key] pmt)
-        (update-in [:not-found] pmt)
-        (update-in [:target-fs] pmt)
-        (update-in [:target-object] pmt))))
+        (update :target pmt)
+        (update :key pmt)
+        (update :not-found pmt)
+        (update :target-fs pmt)
+        (update :target-object pmt))))
 
 (promote-demote AssocType
   [T V]
   (let [pmt #(promote % V)]
     (-> T
-        (update-in [:target] pmt)
-        (update-in [:entries] (fn [entries] (mapv #(mapv pmt %) entries)))
-        (update-in [:dentries] #(some-> % (update-in [:pre-type] pmt))))))
+        (update :target pmt)
+        (update :entries (fn [entries] (mapv #(mapv pmt %) entries)))
+        (update :dentries #(some-> % (update :pre-type pmt))))))
 
 (promote-demote DissocType
   [T V]
   (let [pmt #(promote % V)]
     (-> T
-        (update-in [:target] pmt)
-        (update-in [:keys] (fn [keys] (mapv pmt keys)))
-        (update-in [:dkeys] #(some-> % (update-in [:pre-type] pmt))))))
+        (update :target pmt)
+        (update :keys (fn [keys] (mapv pmt keys)))
+        (update :dkeys #(some-> % (update :pre-type pmt))))))
 
 (promote-demote Scope
   [T V]
   (-> T
-    (update-in [:body] #(promote % V))))
+      (update :body #(promote % V))))
 
 (promote-demote TApp
   [T V]
   (-> T
-    (update-in [:rator] #(promote % V))
-    (update-in [:rands] (fn [rands] (mapv #(promote % V) rands)))))
+      (update :rator #(promote % V))
+      (update :rands (fn [rands] (mapv #(promote % V) rands)))))
 
 (promote-demote App
   [T V]
   (-> T
-    (update-in [:rator] #(promote % V))
-    (update-in [:rands] (fn [rands] (mapv #(promote % V) rands)))))
+      (update :rator #(promote % V))
+      (update :rands (fn [rands] (mapv #(promote % V) rands)))))
 
 (promote-demote Union 
   [T V]
@@ -276,27 +276,28 @@
 (promote-demote FnIntersection
   [T V] 
   (-> T
-    (update-in [:types] #(mapv promote % (repeat V)))))
+      (update :types #(mapv promote % (repeat V)))))
 
 (promote-demote Protocol
   [T V]
   (let [pmt #(promote % V)]
     (-> T
-        (update-in [:poly?] #(when %
-                               (mapv pmt %)))
-        (update-in [:methods] (fn [ms]
-                                (into {}
-                                      (for [[k v] ms]
-                                        [k (pmt v)])))))))
+        (update :poly? #(some->> % (mapv pmt)))
+        (update :methods (fn [ms]
+                           (into {}
+                                 (map (fn [[k v]]
+                                        [k (pmt v)]))
+                                 ms))))))
 
 (promote-demote RClass
   [T V]
   (let [pmt #(promote % V)]
     (-> T
-      (update-in [:poly?] #(when %
-                             (mapv pmt %)))
-      #_(update-in [:replacements] #(into {} (for [[k v] %]
-                                             [k (pmt v)]))))))
+      (update :poly? #(some->> % (mapv pmt)))
+      #_(update :replacements #(into {}
+                                     (map (fn [[k v]]
+                                            [k (pmt v)]))
+                                     %)))))
 
 (promote-demote TypeFn
   [{:keys [variances] :as T} V]
@@ -340,30 +341,25 @@
         ;if dotted bound is in V, transfer to rest args
         (and drest (V (:name drest)))
         (-> T
-          (update-in [:dom] #(mapv dmt %))
-          (update-in [:rng] pmt)
+          (update :dom #(mapv dmt %))
+          (update :rng pmt)
           (assoc :rest (dmt (:pre-type drest)))
           (assoc :drest nil)
-          (assoc :kws (when kws
-                        (-> kws
-                          (update-in [:mandatory] dmt-kw)
-                          (update-in [:optional] dmt-kw)))))
+          (assoc :kws (some-> kws
+                              (update :mandatory dmt-kw)
+                              (update :optional dmt-kw))))
 
         :else
         (-> T
-          (update-in [:dom] #(mapv dmt %))
-          ;we know no filters contain V
-          (update-in [:rng] #(-> %
-                               (update-in [:t] pmt)))
-          (update-in [:rest] #(when %
-                                (dmt %)))
-          (update-in [:drest] #(when %
-                                 (-> %
-                                   (update-in [:pre-type] dmt))))
-          (update-in [:kws] #(when %
-                               (-> %
-                                 (update-in [:mandatory] dmt-kw)
-                                 (update-in [:optional] dmt-kw))))))))
+            (update :dom #(mapv dmt %))
+            ;we know no filters contain V
+            (update :rng #(-> %
+                              (update :t pmt)))
+            (update :rest #(some-> % dmt))
+            (update :drest #(some-> % (update :pre-type dmt)))
+            (update :kws #(some-> %
+                                  (update :mandatory dmt-kw)
+                                  (update :optional dmt-kw)))))))
 
   (demote [{:keys [dom rng rest drest kws] :as T} V]
     (let [pmt #(promote % V)
@@ -380,27 +376,23 @@
         ;if dotted bound is in V, transfer to rest args
         (and drest (V (:name drest)))
         (-> T
-          (update-in [:dom] #(mapv pmt %))
-          (update-in [:rng] dmt)
+          (update :dom #(mapv pmt %))
+          (update :rng dmt)
           (assoc :rest (pmt (:pre-type drest)))
           (assoc :drest nil)
-          (assoc :kws (when kws
-                        (-> kws
-                          (update-in [:mandatory] pmt-kw)
-                          (update-in [:optional] pmt-kw)))))
+          (assoc :kws (some-> kws
+                              (update :mandatory pmt-kw)
+                              (update :optional pmt-kw))))
 
         :else
         (-> T
-          (update-in [:dom] #(mapv pmt %))
-          ;we know no filters contain V
-          (update-in [:rng] #(-> %
-                               (update-in [:t] pmt)))
-          (update-in [:rest] #(when %
-                                (pmt %)))
-          (update-in [:drest] #(when %
-                                 (-> %
-                                   (update-in [:pre-type] pmt))))
-          (update-in [:kws] #(when %
-                               (-> %
-                                 (update-in [:mandatory] pmt-kw)
-                                 (update-in [:optional] pmt-kw)))))))))
+            (update :dom #(mapv pmt %))
+            ;we know no filters contain V
+            (update :rng #(-> %
+                              (update :t pmt)))
+            (update :rest #(some-> % pmt))
+            (update :drest #(some-> %
+                                    (update :pre-type pmt)))
+            (update :kws #(some-> %
+                                  (update :mandatory pmt-kw)
+                                  (update :optional pmt-kw))))))))

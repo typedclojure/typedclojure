@@ -70,7 +70,7 @@
 (defn without-final-elem [o]
   {:pre [(Path? o)]
    :post [(Path? %)]}
-  (update-in o [:path] (comp seq butlast)))
+  (update o :path (comp seq butlast)))
 
 (t/ann-record NoObject [])
 (u/def-object NoObject []

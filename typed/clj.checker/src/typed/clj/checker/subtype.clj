@@ -1085,13 +1085,13 @@
   {:pre [(fr/Filter? fl)]
    :post [(fr/Filter? %)]}
   (cond
-    (fr/TypeFilter? fl) (update-in fl [:type] c/fully-resolve-type)
-    (fr/NotTypeFilter? fl) (update-in fl [:type] c/fully-resolve-type)
-    (fr/AndFilter? fl) (update-in fl [:fs] #(set (map fully-resolve-filter %)))
-    (fr/OrFilter? fl) (update-in fl [:fs] #(set (map fully-resolve-filter %)))
+    (fr/TypeFilter? fl) (update fl :type c/fully-resolve-type)
+    (fr/NotTypeFilter? fl) (update fl :type c/fully-resolve-type)
+    (fr/AndFilter? fl) (update fl :fs #(set (map fully-resolve-filter %)))
+    (fr/OrFilter? fl) (update fl :fs #(set (map fully-resolve-filter %)))
     (fr/ImpFilter? fl) (-> fl
-                           (update-in [:a] fully-resolve-filter)
-                           (update-in [:c] fully-resolve-filter))
+                           (update :a fully-resolve-filter)
+                           (update :c fully-resolve-filter))
     :else fl))
 
 (defn simplify-type-filter [f]

@@ -149,19 +149,20 @@
       (r/Function-maker (map st dom)
                         (st* rng)
                         (and rest (st rest))
-                        (when drest
-                          (-> drest
-                              (update-in [:pre-type] st)))
-                        (when kws
-                          (-> kws
-                              (update-in [:mandatory] #(into {} (for [[k v] %]
-                                                                  [(st k) (st v)])))
-                              (update-in [:optional] #(into {} (for [[k v] %]
-                                                                 [(st k) (st v)])))))
+                        (some-> drest
+                                (update :pre-type st))
+                        (some-> kws
+                                (update :mandatory #(into {}
+                                                          (map (fn [[k v]]
+                                                                 [(st k) (st v)]))
+                                                          %))
+                                (update :optional #(into {}
+                                                         (map (fn [[k v]]
+                                                                [(st k) (st v)]))
+                                                         %)))
                         (and prest (st prest))
-                        (when pdot
-                          (-> pdot
-                              (update-in [:pre-type] st)))))))
+                        (some-> pdot
+                                (update :pre-type st))))))
 
 
 ;[Type (U t/Sym Number) RObject Boolean -> Type]

@@ -102,12 +102,12 @@
         (cond
           (and or? (fr/TypeFilter? (first props)))
           (let [{t1 :type f1 :path x :id :as p} (first props)]
-            (swap! tf-map (fn [m] (update-in m [[f1 x]] #(if %
-                                                           (if (fr/TypeFilter? %)
-                                                             (let [t2 (:type %)]
-                                                               (-filter (c/Un t1 t2) x f1))
-                                                             (throw (Exception. (str "got something that isn't a type filter" p))))
-                                                           p))))
+            (swap! tf-map (fn [m] (update m [f1 x] #(if %
+                                                      (if (fr/TypeFilter? %)
+                                                        (let [t2 (:type %)]
+                                                          (-filter (c/Un t1 t2) x f1))
+                                                        (throw (Exception. (str "got something that isn't a type filter" p))))
+                                                      p))))
             (recur (rest props) others))
 
           (and (not or?) (fr/TypeFilter? (first props)))
@@ -131,14 +131,14 @@
           (and (not or?) 
                (fr/NotTypeFilter? (first props)))
           (let [{t1 :type f1 :path x :id :as p} (first props)]
-            (swap! ntf-map (fn [m] (update-in m [[f1 x]]
-                                              (fn [n]
-                                                (if n
-                                                  (if (fr/NotTypeFilter? n)
-                                                    (let [t2 (:type n)]
-                                                      (-not-filter (c/Un t1 t2) x f1))
-                                                    (throw (Exception. (str "got something that isn't a nottypefilter" p))))
-                                                  p)))))
+            (swap! ntf-map (fn [m] (update m [f1 x]
+                                           (fn [n]
+                                             (if n
+                                               (if (fr/NotTypeFilter? n)
+                                                 (let [t2 (:type n)]
+                                                   (-not-filter (c/Un t1 t2) x f1))
+                                                 (throw (Exception. (str "got something that isn't a nottypefilter" p))))
+                                               p)))))
             (recur (next props) others))
           :else
           (let [p (first props)]

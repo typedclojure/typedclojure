@@ -61,7 +61,7 @@
                   (map vector ids keys)))]
     (cond
       (and (obj/Path? o)
-           (lookup (:id o))) (update-in o [:id] lookup)
+           (lookup (:id o))) (update o :id lookup)
       :else obj/-empty)))
 
 ;[(Seqable t/Sym) (Seqable AnyInteger) (U NoFilter FilterSet) 

@@ -82,7 +82,7 @@
   {:pre [(PropEnv? env)]
    :post [(PropEnv? %)]}
   (-> env
-      (update-in [:l] merge new)))
+      (update :l merge new)))
 
 (defmacro with-locals [locals & body]
   `(binding [vs/*lexical-env* (merge-locals (lexical-env) ~locals)]

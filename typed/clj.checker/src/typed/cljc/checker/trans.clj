@@ -67,16 +67,14 @@
             (r/-hsequential (mapv tfn (:types t))
                             :filters (mapv tfn (:fs t))
                             :objects (mapv tfn (:objects t))
-                            :drest (when-let [drest (:drest t)]
-                                     (-> drest
-                                         (update-in [:pre-type] tfn))) ;translate pre-type
+                            :drest (some-> (:drest t)
+                                           (update :pre-type tfn)) ;translate pre-type
                             :kind kind)))
         :else
         (r/-hsequential (mapv tfn (:types t))
                         :filters (mapv tfn (:fs t))
                         :objects (mapv tfn (:objects t))
-                        :rest (when-let [r (:rest t)]
-                                (tfn r))
+                        :rest (some-> (:rest t) tfn)
                         :repeat (:repeat t)
                         :kind kind)))))
 
@@ -103,8 +101,8 @@
                            nil)
         (r/AssocType-maker t-target
                            t-entries
-                           (when dentries
-                             (update-in dentries [:pre-type] tfn)))))))
+                           (some-> dentries
+                                   (update :pre-type tfn)))))))
 
 (fold/add-fold-case
   ITransDots trans-dots*
@@ -134,17 +132,14 @@
                                 nil
                                 nil))
             (-> t
-                (update-in [:dom] #(doall (map tfn %)))
-                (update-in [:rng] tfn)
-                (update-in [:drest] (fn [drest]
-                                      (when drest
-                                        (-> drest
-                                            (update-in [:pre-type] tfn)))))))) ;translate pre-type
+                (update :dom #(doall (map tfn %)))
+                (update :rng tfn)
+                (update :drest (fn [drest]
+                                 (some-> drest
+                                         (update :pre-type tfn))))))) ;translate pre-type
         :else
         (-> t
-            (update-in [:dom] #(doall (map tfn %)))
-            (update-in [:rng] tfn)
-            (update-in [:rest] #(when %
-                                  (tfn %)))
-            (update-in [:prest] #(when %
-                                   (tfn %))))))))
+            (update :dom #(doall (map tfn %)))
+            (update :rng tfn)
+            (update :rest #(some-> % tfn))
+            (update :prest #(some-> % tfn)))))))

@@ -356,7 +356,7 @@
                             ;; TODO like analyze-seq, perhaps we can reuse the implemenation
                             (ana/run-passes
                               (-> (ana/analyze-form mform env)
-                                  (update-in [:raw-forms] (fnil conj ())
-                                             (vary-meta form assoc ::ana/resolved-op (ana/resolve-sym (first form) env)))))))))))
+                                  (update :raw-forms (fnil conj ())
+                                          (vary-meta form assoc ::ana/resolved-op (ana/resolve-sym (first form) env)))))))))))
       ast)))
 

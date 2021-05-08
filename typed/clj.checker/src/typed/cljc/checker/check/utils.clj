@@ -225,14 +225,14 @@
   (cond
     (r/FnIntersection? expected)
     (-> expected
-        (update-in [:types] 
-                   #(vec
-                      (for [ftype %]
-                        (do
-                          (assert (<= 1 (count (:dom ftype))))
-                          (-> ftype
-                              (update-in [:dom] (fn [dom] 
-                                                  (update-in (vec dom) [0] (partial c/In target-type))))))))))
+        (update :types 
+                #(vec
+                   (for [ftype %]
+                     (do
+                       (assert (<= 1 (count (:dom ftype))))
+                       (-> ftype
+                           (update-in [:dom] (fn [dom] 
+                                               (update (vec dom) 0 (partial c/In target-type))))))))))
 
     (r/Poly? expected)
     (let [names (c/Poly-fresh-symbols* expected)

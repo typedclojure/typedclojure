@@ -486,8 +486,8 @@
                   (ensure-within-beta-limit)
                   (let [cred (-> mform
                                  (ana2/analyze-form env)
-                                 (update-in [:raw-forms] (fnil conj ())
-                                            (vary-meta form assoc ::ana2/resolved-op (ana2/resolve-sym (first form) env)))
+                                 (update :raw-forms (fnil conj ())
+                                         (vary-meta form assoc ::ana2/resolved-op (ana2/resolve-sym (first form) env)))
                                  ana2/run-passes
                                  (check-expr (::invoke-expected expr)))]
                     (set-erase-atoms expr cred)
@@ -582,7 +582,7 @@
         (let [v-t (-> (check-expr (second args)) u/expr-type r/ret-t)
               t (c/In v-t (c/Un r/-nil (c/RClass-of-with-unknown-params (:val ct))))]
           (-> expr
-              (update-in [:fn] check-expr)
+              (update :fn check-expr)
               (assoc :args cargs
                      u/expr-type (below/maybe-check-below
                                    (r/ret t)
@@ -606,7 +606,7 @@
             (err/tc-delayed-error (str "Unannotated var: " sym)))]
     (-> expr
         ; var>* is internal, don't check
-        #_(update-in [:fn] check-expr)
+        #_(update :fn check-expr)
         (assoc u/expr-type (below/maybe-check-below
                              (r/ret (or t (r/TCError-maker)))
                              expected)))))
@@ -653,7 +653,7 @@
             (update-in [:args 0] check-expr))
         expr (-> expr
                  ; don't check extend
-                 ;(update-in [:fn] check-expr)
+                 ;(update :fn check-expr)
                  (assoc u/expr-type (below/maybe-check-below
                                       (r/ret r/-nil (fo/-false-filter))
                                       expected)))
@@ -739,7 +739,7 @@
         ccoll (check-expr coll-expr (r/ret (c/Un r/-nil (c/RClass-of Seqable [cljt]))))]
     (-> expr
         ; into-array>* is internal, don't check it
-        #_(update-in [:fn] check-expr)
+        #_(update :fn check-expr)
         ; the coll is always last
         (assoc :args (-> args pop (conj ccoll))
                u/expr-type (below/maybe-check-below
@@ -896,7 +896,7 @@
                                [cvar-expr cexpr]))))))]]
     (-> expr
         ; push-thread-bindings is unannotated
-        #_(update-in [:fn] check-expr)
+        #_(update :fn check-expr)
         (assoc :args cargs
                u/expr-type (below/maybe-check-below
                              (r/ret r/-nil)
@@ -1049,7 +1049,7 @@
           (-> % u/expr-type r/TCResult?)]}
   (let [cargs (mapv check-expr args)]
     (-> expr
-        (update-in [:fn] check-expr)
+        (update :fn check-expr)
         (assoc :args cargs
                u/expr-type (equiv/tc-equiv := (map u/expr-type cargs) expected)))))
 
@@ -1083,7 +1083,7 @@
   (when (#{2} (count args))
     (let [[cchild-expr cparent-expr :as cargs] (mapv check-expr args)]
       (-> expr
-          (update-in [:fn] check-expr)
+          (update :fn check-expr)
           (assoc :args cargs
                  u/expr-type (isa/tc-isa? (u/expr-type cchild-expr)
                                           (u/expr-type cparent-expr)
@@ -1276,7 +1276,7 @@
           (vector? (:args %))]}
   (let [cargs (mapv check-expr args)]
     (-> expr
-        (update-in [:fn] check-expr)
+        (update :fn check-expr)
         (assoc 
           :args cargs
           u/expr-type (below/maybe-check-below
@@ -1298,7 +1298,7 @@
       (when (r/HeterogeneousMap? tmap)
         (let [r (c/HMap->KwArgsSeq tmap false)]
           (-> expr
-              (update-in [:fn] check-expr)
+              (update :fn check-expr)
               (assoc u/expr-type (below/maybe-check-below
                                    (r/ret r (fo/-true-filter))
                                    expected))))))))
@@ -1445,7 +1445,7 @@
         cargs (into [ctarget] ckeyvals)]
     (if-let [new-hmaps (apply assoc-u/assoc-type-pairs targetun keypair-types)]
       (-> expr
-        (update-in [:fn] check-expr)
+        (update :fn check-expr)
         (assoc
           :args cargs
           u/expr-type (below/maybe-check-below
@@ -1460,7 +1460,7 @@
                             ;; first argument is to blame, gather any blame information from there
                             :expected (u/expr-type ctarget)
                             :return (-> expr
-                                        (update-in [:fn] check-expr)
+                                        (update :fn check-expr)
                                         (assoc
                                           :args cargs
                                           u/expr-type (cu/error-ret expected)))))))
@@ -1494,7 +1494,7 @@
         targs (map u/expr-type cmerge-args)]
     (when-let [merged (apply assoc-u/merge-types basemap targs)]
       (-> expr
-          (update-in [:fn] check-expr)
+          (update :fn check-expr)
           (assoc :args cargs
                  u/expr-type (below/maybe-check-below
                                (r/ret merged
