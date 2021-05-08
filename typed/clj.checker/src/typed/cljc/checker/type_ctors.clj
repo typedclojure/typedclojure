@@ -1768,29 +1768,27 @@
   (fn [{:keys [dom rng rest drest kws prest pdot] :as ty} name count outer sb name-to]
    (r/Function-maker (doall (map sb dom))
                  (sb rng)
-                 (when rest (sb rest))
-                 (when drest
-                   (-> drest
-                       (update-in [:pre-type] sb)
-                       (update-in [:name] #(if (= % name)
-                                             (+ count outer)
-                                             %))))
-                 (when kws
-                   (letfn [(abstract-kw-map [m]
-                             {:pre [(map? m)]}
-                             (into {} (for [[k v] m]
-                                        [k (sb v)])))]
-                     (-> kws
-                       (update-in [:mandatory] abstract-kw-map)
-                       (update-in [:optional] abstract-kw-map))))
-                 (when prest
-                   (sb prest))
-                 (when pdot
-                   (-> pdot
-                       (update-in [:pre-type] sb)
-                       (update-in [:name] #(if (= % name)
-                                             (+ count outer)
-                                             %)))))))
+                 (some-> rest sb)
+                 (some-> drest
+                         (update :pre-type sb)
+                         (update :name #(if (= % name)
+                                          (+ count outer)
+                                          %)))
+                 (letfn [(abstract-kw-map [m]
+                           {:pre [(map? m)]}
+                           (into {}
+                                 (map (fn [[k v]]
+                                        [k (sb v)]))
+                                 m))]
+                   (some-> kws
+                     (update :mandatory abstract-kw-map)
+                     (update :optional abstract-kw-map)))
+                 (some-> prest sb)
+                 (some-> pdot
+                         (update :pre-type sb)
+                         (update :name #(if (= % name)
+                                          (+ count outer)
+                                          %))))))
 
 (f/add-fold-case
   IAbstractMany abstract-many*
@@ -1800,14 +1798,12 @@
       (mapv sb (:types ty))
       :filters (mapv sb (:fs ty))
       :objects (mapv sb (:objects ty))
-      :rest (when-let [rest (:rest ty)]
-             (sb rest))
-      :drest (when-let [drest (:drest ty)]
-              (-> drest
-                  (update-in [:pre-type] sb)
-                  (update-in [:name] #(if (= % name)
-                                        (+ count outer)
-                                        %))))
+      :rest (some-> (:rest ty) sb)
+      :drest (some-> (:drest ty)
+                     (update :pre-type sb)
+                     (update :name #(if (= % name)
+                                      (+ count outer)
+                                      %)))
       :repeat (:repeat ty)
       :kind (:kind ty))))
 
@@ -1817,12 +1813,11 @@
   (fn [{:keys [target entries dentries]} name count outer sb name-to]
    (r/AssocType-maker (sb target)
                       (mapv (fn [[k v]] [(sb k) (sb v)]) entries)
-                      (when dentries
-                        (-> dentries
-                          (update-in [:pre-type] sb)
-                          (update-in [:name] #(if (= % name)
-                                                (+ count outer)
-                                                %)))))))
+                      (some-> dentries
+                              (update :pre-type sb)
+                              (update :name #(if (= % name)
+                                               (+ count outer)
+                                               %))))))
 
 (f/add-fold-case
   IAbstractMany abstract-many*
@@ -1911,45 +1906,41 @@
 
 (f/add-fold-case
   IInstantiateMany instantiate-many*
-               B
-               (fn [{:keys [idx] :as t} count outer image sb replace]
-                 (if (= (+ count outer) idx)
-                   (r/F-maker image)
-                   t)))
+  B
+  (fn [{:keys [idx] :as t} count outer image sb replace]
+    (if (= (+ count outer) idx)
+      (r/F-maker image)
+      t)))
 
 (f/add-fold-case
   IInstantiateMany instantiate-many*
-               Function
-               (fn [{:keys [dom rng rest drest kws prest pdot]} count outer image sb replace]
-                 (r/Function-maker (map sb dom)
-                             (sb rng)
-                             (when rest
-                               (sb rest))
-                             (when drest
-                               (-> drest
-                                 (update-in [:pre-type] sb)
-                                 (update-in [:name] #(if (= (+ count outer) %)
-                                                       image
-                                                       %))))
-                             (when kws
-                               (letfn [(instantiate-kw-map [m]
-                                         {:pre [(map? m)]}
-                                         (into {}
-                                               (map 
-                                                 (fn [[k v]]
-                                                   [k (sb v)]))
-                                               m))]
-                                 (-> kws
-                                   (update-in [:mandatory] instantiate-kw-map)
-                                   (update-in [:optional] instantiate-kw-map))))
-                             (when prest
-                               (sb prest))
-                             (when pdot
-                               (-> pdot
-                                 (update-in [:pre-type] sb)
-                                 (update-in [:name] #(if (= (+ count outer) %)
-                                                       image
-                                                       %)))))))
+  Function
+  (fn [{:keys [dom rng rest drest kws prest pdot]} count outer image sb replace]
+    (r/Function-maker
+      (map sb dom)
+      (sb rng)
+      (some-> rest sb)
+      (some-> drest
+              (update :pre-type sb)
+              (update :name #(if (= (+ count outer) %)
+                               image
+                               %)))
+      (letfn [(instantiate-kw-map [m]
+                {:pre [(map? m)]}
+                (into {}
+                      (map 
+                        (fn [[k v]]
+                          [k (sb v)]))
+                      m))]
+        (some-> kws
+          (update :mandatory instantiate-kw-map)
+          (update :optional instantiate-kw-map)))
+      (some-> prest sb)
+      (some-> pdot
+              (update :pre-type sb)
+              (update :name #(if (= (+ count outer) %)
+                               image
+                               %))))))
 
 (f/add-fold-case
   IInstantiateMany instantiate-many*
@@ -1959,81 +1950,78 @@
                      (mapv sb (:types ty))
                      :filters (mapv sb (:fs ty))
                      :objects (mapv sb (:objects ty))
-                     :rest (when-let [rest (:rest ty)]
-                             (sb rest))
-                     :drest (when-let [drest (:drest ty)]
-                              (-> drest
-                                  (update-in [:pre-type] sb)
-                                  (update-in [:name] #(if (= (+ count outer) %)
-                                                        image
-                                                        %))))
+                     :rest (some-> (:rest ty) sb)
+                     :drest (some-> (:drest ty)
+                                    (update :pre-type sb)
+                                    (update :name #(if (= (+ count outer) %)
+                                                     image
+                                                     %)))
                      :repeat (:repeat ty)
                      :kind (:kind ty))))
 
 (f/add-fold-case
   IInstantiateMany instantiate-many*
-                 AssocType
-                 (fn [{:keys [target entries dentries]} count outer image sb replace]
-                   (r/AssocType-maker (sb target)
-                                      (map (fn [[k v]] [(sb k) (sb v)]) entries)
-                                      (when dentries
-                                        (-> dentries
-                                          (update-in [:pre-type] sb)
-                                          (update-in [:name] #(if (= (+ count outer) %)
-                                                                image
-                                                                %)))))))
+  AssocType
+  (fn [{:keys [target entries dentries]} count outer image sb replace]
+    (r/AssocType-maker (sb target)
+                       (map (fn [[k v]] [(sb k) (sb v)]) entries)
+                       (some-> dentries
+                               (update :pre-type sb)
+                               (update :name #(if (= (+ count outer) %)
+                                                image
+                                                %))))))
 
 (f/add-fold-case
   IInstantiateMany instantiate-many*
-               Mu
-               (fn [{:keys [scope] :as mu} count outer image sb replace]
-                 (let [body (remove-scopes 1 scope)]
-                   (r/Mu-maker (r/Scope-maker (replace image count (inc outer) body))
-                               (meta mu)))))
+  Mu
+  (fn [{:keys [scope] :as mu} count outer image sb replace]
+    (let [body (remove-scopes 1 scope)]
+      (r/Mu-maker (r/Scope-maker (replace image count (inc outer) body))
+                  (meta mu)))))
 
 (f/add-fold-case
   IInstantiateMany instantiate-many*
-               PolyDots
-               (fn [{:keys [named] bbnds* :bbnds n :nbound body* :scope :as ty} count outer image sb replace]
-                 (let [rs #(remove-scopes n %)
-                       body (rs body*)
-                       bbnds (mapv #(r/visit-bounds % rs) bbnds*)
-                       as #(add-scopes n (replace image count (+ n outer) %))]
-                   (r/PolyDots-maker n 
-                                     (mapv #(r/visit-bounds % as) bbnds)
-                                     (as body)
-                                     named
-                                     (meta ty)))))
+  PolyDots
+  (fn [{:keys [named] bbnds* :bbnds n :nbound body* :scope :as ty} count outer image sb replace]
+    (let [rs #(remove-scopes n %)
+          body (rs body*)
+          bbnds (mapv #(r/visit-bounds % rs) bbnds*)
+          as #(add-scopes n (replace image count (+ n outer) %))]
+      (r/PolyDots-maker n 
+                        (mapv #(r/visit-bounds % as) bbnds)
+                        (as body)
+                        named
+                        (meta ty)))))
 
 (f/add-fold-case
   IInstantiateMany instantiate-many*
-                 Poly
-                 (fn [{:keys [named] bbnds* :bbnds n :nbound body* :scope :as poly} 
-                      count outer image sb replace]
-                   (let [rs #(remove-scopes n %)
-                         body (rs body*)
-                         bbnds (mapv #(r/visit-bounds % rs) bbnds*)
-                         as #(add-scopes n (replace image count (+ n outer) %))]
-                     (r/Poly-maker n 
-                                   (mapv #(r/visit-bounds % as) bbnds)
-                                   (as body)
-                                   named
-                                   (meta poly)))))
+  Poly
+  (fn [{:keys [named] bbnds* :bbnds n :nbound body* :scope :as poly} 
+       count outer image sb replace]
+    (let [rs #(remove-scopes n %)
+          body (rs body*)
+          bbnds (mapv #(r/visit-bounds % rs) bbnds*)
+          as #(add-scopes n (replace image count (+ n outer) %))]
+      (r/Poly-maker n 
+                    (mapv #(r/visit-bounds % as) bbnds)
+                    (as body)
+                    named
+                    (meta poly)))))
 
 (f/add-fold-case
   IInstantiateMany instantiate-many*
-                 TypeFn
-                 (fn [{bbnds* :bbnds n :nbound body* :scope :keys [variances] :as t} 
-                      count outer image sb replace]
-                   (let [rs #(remove-scopes n %)
-                         body (rs body*)
-                         bbnds (mapv #(r/visit-bounds % rs) bbnds*)
-                         as #(add-scopes n (replace image count (+ n outer) %))]
-                     (r/TypeFn-maker n 
-                                     variances
-                                     (mapv #(r/visit-bounds % as) bbnds)
-                                     (as body)
-                                     (meta t)))))
+  TypeFn
+  (fn [{bbnds* :bbnds n :nbound body* :scope :keys [variances] :as t} 
+       count outer image sb replace]
+    (let [rs #(remove-scopes n %)
+          body (rs body*)
+          bbnds (mapv #(r/visit-bounds % rs) bbnds*)
+          as #(add-scopes n (replace image count (+ n outer) %))]
+      (r/TypeFn-maker n 
+                      variances
+                      (mapv #(r/visit-bounds % as) bbnds)
+                      (as body)
+                      (meta t)))))
 )
 
 (t/ann ^:no-check instantiate-many [(t/Seqable t/Sym) p/IScope -> r/Type])
