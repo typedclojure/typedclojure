@@ -1270,9 +1270,9 @@
     (instantiate-typefn rator rands)))
 
 (t/ann ^:no-check resolve-App [App -> r/Type])
-(defn resolve-App [^App app]
+(defn resolve-App [app]
   {:pre [(r/App? app)]}
-  (resolve-app* (.rator app) (.rands app)))
+  (resolve-app* (:rator app) (:rands app)))
 
 (t/ann ^:no-check resolve-app* [r/Type (t/Seqable r/Type) -> r/Type])
 (defn resolve-app* [rator rands]
@@ -1321,7 +1321,7 @@
   (or (r/Name? ty)
       (r/App? ty)
       (and (r/TApp? ty)
-           (not (r/F? (fully-resolve-type (.rator ^TApp ty)))))
+           (not (r/F? (fully-resolve-type (:rator ty)))))
       (and (r/GetType? ty)
            (not (r/F? (fully-resolve-type (:target ty)))))
       (r/Mu? ty)))
@@ -1604,14 +1604,14 @@
                 :else true)))
 
         (some r/Extends? [t1 t2])
-        (let [[^Extends the-extends other-type] (if (r/Extends? t1)
-                                                  [t1 t2]
-                                                  [t2 t1])]
+        (let [[the-extends other-type] (if (r/Extends? t1)
+                                         [t1 t2]
+                                         [t2 t1])]
           ; returns true if at least one +ve type overlaps, and if
           ; no negative types overlap, else false
           (boolean
-            (and (some (fn [pos] (overlap pos other-type)) (.extends the-extends))
-                 (not-any? (fn [neg] (overlap neg other-type)) (.without the-extends)))))
+            (and (some (fn [pos] (overlap pos other-type)) (:extends the-extends))
+                 (not-any? (fn [neg] (overlap neg other-type)) (:without the-extends)))))
 
         (and (impl/checking-clojurescript?)
              (or (and (r/JSNull? t1)
