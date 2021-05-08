@@ -653,8 +653,6 @@
 
 ;; Heterogeneous ops
 
-(declare DottedPretype?)
-
 (u/ann-record AssocType [target :- Type,
                          entries :- (t/Coll '[Type Type])
                          dentries :- (t/U nil DottedPretype)])
@@ -774,8 +772,6 @@
                       o :- p/IRObject
                       flow :- FlowSet])
 
-(declare HSequential? DottedPretype?)
-
 (u/ann-record Function [dom :- (t/U nil (t/Seqable Type)),
                         rng :- Result,
                         rest :- (U nil Type)
@@ -868,8 +864,6 @@
 (defn make-ExactCountRange [c]
   {:pre [(nat-int? c)]}
   (make-CountRange c c))
-
-(declare Result-maker)
 
 (t/ann ^:no-check make-FnIntersection [Function * -> FnIntersection])
 (defn make-FnIntersection [& fns]
@@ -1112,10 +1106,15 @@
   and EmptyObject"
   [dom rng & {:keys [rest drest prest pdot filter object mandatory-kws optional-kws flow] :as opt}]
   {:pre [(every? keyword? (keys opt))]}
-  (Function-maker dom (make-Result rng filter object flow)
-                  rest drest (when (or mandatory-kws optional-kws)
-                               (-kw-args :mandatory (or mandatory-kws {})
-                                         :optional (or optional-kws {}))) prest pdot))
+  (Function-maker dom
+                  (make-Result rng filter object flow)
+                  rest
+                  drest
+                  (when (or mandatory-kws optional-kws)
+                    (-kw-args :mandatory (or mandatory-kws {})
+                              :optional (or optional-kws {})))
+                  prest
+                  pdot))
 
 ;; Symbolic closures
 
