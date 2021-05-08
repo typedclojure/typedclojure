@@ -719,6 +719,7 @@
 ;; TODO support clojure 1.11 kw args format
 (u/ann-record KwArgsSeq [mandatory :- (t/Map Type Type)
                          optional  :- (t/Map Type Type)
+                         ;; TODO can we remove this field and replace with a non-empty count type?
                          non-empty? :- Boolean
                          complete? :- Boolean
                          maybe-trailing-conjable? :- Boolean])
