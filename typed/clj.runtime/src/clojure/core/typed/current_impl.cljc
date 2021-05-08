@@ -68,14 +68,12 @@
 (def declared-name-type ::declared-name)
 
 (defn declare-name* [sym]
-  {:pre [(symbol? sym)
-         (namespace sym)]}
+  {:pre [(qualified-symbol? sym)]}
   (add-tc-type-name sym declared-name-type)
   nil)
 
 (defn declare-protocol* [sym]
-  {:pre [(symbol? sym)
-         (namespace sym)]}
+  {:pre [(qualified-symbol? sym)]}
   (add-tc-type-name sym protocol-name-type)
   nil)
 
@@ -96,15 +94,15 @@
   nil)
 
 (defn add-nonnilable-method-return [sym m]
-  {:pre [((every-pred namespace symbol?) sym)
-         ((some-fn #(= :all %)
+  {:pre [(qualified-symbol? sym)
+         ((some-fn #{:all}
                    (con/set-c? nat-int?))
           m)]}
   (env/swap-checker! assoc-in [method-return-nonnilable-env-kw sym] m)
   nil)
 
 (defn add-method-nilable-param [sym a]
-  {:pre [((every-pred namespace symbol?) sym)
+  {:pre [(qualified-symbol? sym)
          ((con/hash-c? (some-fn #{:all} nat-int?)
                        (some-fn #{:all} (con/set-c? nat-int?)))
           a)]}
@@ -112,7 +110,7 @@
   nil)
 
 (defn add-method-override [sym t]
-  {:pre [((every-pred symbol? namespace) sym)
+  {:pre [(qualified-symbol? sym)
          ;; checked at `get-method-override`
          #_
          ((some-fn delay? r/Poly? r/FnIntersection?)
@@ -121,7 +119,7 @@
   nil)
 
 (defn add-field-override [sym t]
-  {:pre [((every-pred symbol? namespace) sym)
+  {:pre [(qualified-symbol? sym)
          ;; checked by `get-field-override`
          #_
          ((some-fn delay? r/Type?)
@@ -130,14 +128,14 @@
   nil)
 
 (defn add-constructor-override [sym t]
-  {:pre [(symbol? sym)
+  {:pre [(simple-symbol? sym)
          ;; checked at `get-constructor-override`
          #_((some-fn delay? r/Type?) t)]}
   (env/swap-checker! assoc-in [constructor-override-env-kw sym] t)
   nil)
 
 (defn add-protocol [sym t]
-  {:pre [(symbol? sym)
+  {:pre [(qualified-symbol? sym)
          ;; checked in get-protocol
          #_
          ((some-fn delay? r/Type?) t)]}
@@ -145,7 +143,7 @@
   nil)
 
 (defn add-datatype [sym t]
-  {:pre [((every-pred symbol?
+  {:pre [((every-pred simple-symbol?
                       (fn [k] (some #{\.} (str k))))
           sym)
          ;; checked in get-datatype
@@ -156,7 +154,7 @@
   nil)
 
 (defn add-ns-deps [nsym deps]
-  {:pre [(symbol? nsym)
+  {:pre [(simple-symbol? nsym)
          ((con/set-c? symbol?) deps)]
    :post [(nil? %)]}
   (env/swap-checker! update-in [current-deps-kw nsym] (fnil set/union #{}) deps)
@@ -171,8 +169,7 @@
   "For name n, creates defs for {n}, {n}-kw, add-{n},
   and reset-{n}!"
   [n]
-  {:pre [(symbol? n)
-         (not (namespace n))]}
+  {:pre [(simple-symbol? n)]}
   (let [kw-def (symbol (str n "-kw"))
         add-def (symbol (str "add-" n))
         reset-def (symbol (str "reset-" n "!"))]
@@ -211,16 +208,14 @@
   (let [ns (namespace s)]
     (assert ns)
     (require (symbol ns))
-    (let [v (resolve s)]
-      (if v
-        @v
-        (throw (RuntimeException. (str "Var " s " is not on the classpath"))))))))
+    (if-let [v (resolve s)]
+      @v
+      (throw (RuntimeException. (str "Var " s " is not on the classpath")))))))
 
 
 #?(:clj
 (defn v [vsym]
-  {:pre [(symbol? vsym)
-         (namespace vsym)]}
+  {:pre [(qualified-symbol? vsym)]}
   (let [ns (find-ns (symbol (namespace vsym)))
         _ (assert ns (str "Cannot find namespace: " (namespace vsym)))
         var (ns-resolve ns (symbol (name vsym)))]
@@ -229,8 +224,7 @@
 
 #?(:clj
 (defn the-var [vsym]
-  {:pre [(symbol? vsym)
-         (namespace vsym)]
+  {:pre [(qualified-symbol? vsym)]
    :post [(var? %)]}
   (let [ns (find-ns (symbol (namespace vsym)))
         _ (assert ns (str "Cannot find namespace: " (namespace vsym)))
@@ -249,9 +243,10 @@
 (def current-impl-kw ::current-impl)
 
 (defn current-impl []
-  {:post [(keyword? %)]}
+  {:post [(qualified-keyword? %)]}
   (get (some-> (env/checker-or-nil) deref)
-       current-impl-kw unknown))
+       current-impl-kw
+       unknown))
 
 (declare bindings-for-impl)
 
@@ -310,7 +305,7 @@
      ~@body)))
 
 (defn implementation-specified? []
-  ((complement #{unknown}) (current-impl)))
+  (not= unknown (current-impl)))
 
 (defn ensure-impl-specified []
   (assert (implementation-specified?) "No implementation specified"))
@@ -349,14 +344,14 @@
 #?(:clj
 (defn var->symbol [^clojure.lang.Var var]
   {:pre [(var? var)]
-   :post [((every-pred symbol? namespace) %)]}
+   :post [(qualified-symbol? %)]}
   (symbol (str (ns-name (.ns var)))
           (str (.sym var)))))
 
 #?(:clj
 (defn Class->symbol [^Class cls]
   {:pre [(class? cls)]
-   :post [(symbol? %)]}
+   :post [(simple-symbol? %)]}
   (symbol (.getName cls))))
 
 ; for type-contract
@@ -364,7 +359,7 @@
   (every-pred map?
               #(cond
                  complete? (set/subset? (set (keys %))
-                                        (set (mapcat keys [mandatory optional])))
+                                        (into #{} (mapcat keys) [mandatory optional]))
                  :else
                  (let [actual-ks (set (keys %))]
                    (and 
@@ -377,14 +372,14 @@
                        (set/intersection
                          absent-keys
                          actual-ks)))))
-              #(every? identity 
-                       (for [[k vc] mandatory]
+              #(every? (fn [[k vc]]
                          (and (contains? % k)
-                              (vc (get % k)))))
-              #(every? identity 
-                       (for [[k vc] optional]
+                              (vc (get % k))))
+                       mandatory)
+              #(every? (fn [[k vc]]
                          (or (not (contains? % k))
-                             (vc (get % k)))))))
+                             (vc (get % k))))
+                       optional)))
 
 #?(:clj
 (def ^:private int-error (delay (dynaload 'clojure.core.typed.errors/int-error))))
