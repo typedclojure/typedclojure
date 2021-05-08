@@ -167,8 +167,8 @@
   (assert (not (contains? (:deps *deps-map*) ns))
           (str "Circular dependency detected :" (conj (:path *deps-map*) ns)))
   (binding [*deps-map* (-> *deps-map*
-                         (update-in [:path] conj ns)
-                         (update-in [:deps] conj ns))]
+                           (update :path conj ns)
+                           (update :deps conj ns))]
     (let [namespaces (-> (env/deref-env) :namespaces)]
       (or (and (get namespaces ns)
                (not (get-in namespaces [ns :js-namespace])))

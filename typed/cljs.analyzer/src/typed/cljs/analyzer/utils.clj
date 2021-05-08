@@ -19,19 +19,20 @@
     (reduce-kv (fn [ns-opts ns opts]
                  (if (seq (select-keys opts sugar-keys))
                    (-> ns-opts
-                     (update-in [:require] assoc ns (apply dissoc opts sugar-keys))
-                     (update-in [:require-macros] assoc ns (select-keys opts #{:refer-macros :as})))
+                       (assoc-in [:require ns] (apply dissoc opts sugar-keys))
+                       (assoc-in [:require-macros ns] (select-keys opts #{:refer-macros :as})))
                    ns-opts))
-               ns-opts require)))
+               ns-opts
+               require)))
 
 ;;TODO: assumes the libspecs are valid, crashes otherwise
 ;; needs to validate them
 (defn desugar-use [{:keys [use use-macros] :as ns-opts}]
   (let [ns-opts (reduce (fn [ns-opts [lib only syms]]
-                          (update-in ns-opts [:require] assoc lib {:refer syms}))
+                          (assoc-in ns-opts [:require lib] {:refer syms}))
                         ns-opts use)]
     (reduce (fn [ns-opts [lib only syms]]
-              (update-in ns-opts [:require-macros] assoc lib {:refer syms}))
+              (assoc-in ns-opts [:require-macros lib] {:refer syms}))
             ns-opts use)))
 
 (defn desugar-import [imports]

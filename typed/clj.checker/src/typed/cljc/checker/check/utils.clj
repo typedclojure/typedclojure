@@ -226,13 +226,13 @@
     (r/FnIntersection? expected)
     (-> expected
         (update :types 
-                #(vec
-                   (for [ftype %]
-                     (do
-                       (assert (<= 1 (count (:dom ftype))))
-                       (-> ftype
-                           (update-in [:dom] (fn [dom] 
-                                               (update (vec dom) 0 (partial c/In target-type))))))))))
+                #(mapv
+                   (fn [ftype]
+                     (assert (<= 1 (count (:dom ftype))))
+                     (-> ftype
+                         (update :dom (fn [dom] 
+                                        (update (vec dom) 0 (partial c/In target-type))))))
+                   %)))
 
     (r/Poly? expected)
     (let [names (c/Poly-fresh-symbols* expected)
@@ -544,9 +544,7 @@
             (-> pred-expr :ret :args count))
     (assert (= :const (-> pred-expr :ret :args first :op))
             (-> pred-expr :ret :args first :op))
-    (update-in pred-expr
-               [:ret :args 0]
-               (constantly expr))))
+    (assoc-in pred-expr [:ret :args 0] expr)))
 
 (defn TCResult->map [ret]
   {:pre [(r/TCResult? ret)]

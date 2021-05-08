@@ -26,8 +26,9 @@
   "Takes a set of pass-infos and a pass, and removes the pass from the set of
    pass-infos, updating :dependencies and :dependants as well."
   [passes pass]
-  (indicize (reduce (fn [m p] (conj m (-> p (update-in [:dependencies] disj pass)
-                                        (update-in [:dependants] disj pass))))
+  (indicize (reduce (fn [m p] (conj m (-> p
+                                          (update :dependencies disj pass)
+                                          (update :dependants disj pass))))
                     #{} (vals (dissoc passes pass)))))
 
 ;; performance optimization
@@ -94,22 +95,22 @@
     m
     (reduce (fn [m dep]
               (let [m (calc-deps m dep (get-in passes [dep :depends]) passes)]
-                (update-in m [k] into (conj (or (m dep) #{}) dep))))
+                (update m k into (conj (or (m dep) #{}) dep))))
             (assoc m k deps) deps)))
 
 (defn calculate-deps
   "Takes a map of pass-name -> pass-info and adds to each pass-info :dependencies and
-   :dependants info, which also contains the transitive dependencies"
+  :dependants info, which also contains the transitive dependencies"
   [passes]
   (let [passes (desugar-deps passes)
         dependencies (reduce-kv (fn [deps pname {:keys [depends]}]
                                   (calc-deps deps pname depends passes))
                                 {} passes)
-        dependants   (reduce-kv (fn [m k v] (reduce (fn [m v] (update-in m [v] (fnil conj #{}) k))
-                                                   (update-in m [k] (fnil into #{}) nil) v))
-                                {} dependencies)]
+        dependants (reduce-kv (fn [m k v] (reduce (fn [m v] (update m v (fnil conj #{}) k))
+                                                  (update m k (fnil into #{}) nil) v))
+                              {} dependencies)]
     (reduce-kv (fn [m k v] (assoc m k (merge (dissoc (passes k) :depends)
-                                            {:dependencies (set v) :dependants (set (dependants k))})))
+                                             {:dependencies (set v) :dependants (set (dependants k))})))
                {} dependencies)))
 
 (defn group

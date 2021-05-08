@@ -51,7 +51,7 @@
   [ast]
   (let [ast (if (-> (env/deref-env) :passes-opts :uniquify/uniquify-env)
               (update-in ast [:env :locals]
-                         update-vals #(update-in % [:name] normalize))
+                         update-vals #(update % :name normalize))
               ast)]
    (-uniquify-locals ast)))
 

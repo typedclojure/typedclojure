@@ -209,7 +209,7 @@
           (-> % u/expr-type r/TCResult?)]}
   (let [cargs (mapv check args)]
     (-> expr
-        (update-in [:fn] check)
+        (update :fn check)
         (assoc :args cargs
                u/expr-type (equiv/tc-equiv := (map u/expr-type cargs) expected)))))
 

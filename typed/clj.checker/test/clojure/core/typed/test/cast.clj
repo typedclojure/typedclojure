@@ -1,10 +1,9 @@
 (ns clojure.core.typed.test.cast
-  (:refer-clojure :exclude [update cast])
+  (:refer-clojure :exclude [cast])
   (:require 
     [clojure.core.typed.test.test-utils :refer :all]
     [clojure.test :refer :all]
-    [clojure.core.typed :as tc :refer [Int cast]]
-    ))
+    [clojure.core.typed :as tc :refer [Int cast]]))
 
 (deftest typed-cast-test
   (is-tc-e (cast Int 1) Int)

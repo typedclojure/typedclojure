@@ -7,7 +7,6 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.cljc.checker.update
-  (:refer-clojure :exclude [update])
   (:require [typed.cljc.checker.filter-rep :as fl]
             [typed.cljc.checker.path-rep :as pe]
             [typed.cljc.checker.utils :as u]
@@ -186,7 +185,7 @@
           present?
             ; -hmap simplifies to bottom if an entry is bottom
             (c/make-HMap
-              :mandatory (update-in (:types t) [fpth] update-inner)
+              :mandatory (update (:types t) fpth update-inner)
               :optional (:optional t)
               :absent-keys (:absent-keys t)
               :complete? (c/complete-hmap? t))
@@ -396,7 +395,7 @@
 
       :else (err/int-error (str "update along ill-typed path " (pr-str (prs/unparse-type t)) " " (mapv prs/unparse-path-elem lo))))))
 
-(defn update [t lo]
+(defn update-with-filter [t lo]
   {:pre [((some-fn fl/TypeFilter? fl/NotTypeFilter?) lo)]
    :post [(r/Type? %)]}
   (update* t (:type lo) (fl/TypeFilter? lo) (fl/filter-path lo)))
@@ -419,9 +418,9 @@
               (cond
                 (fl/BotFilter? f) (do ;(prn "Bot filter found in env+")
                                       (reset! flag false)
-                                      (update-in env [:l] (fn [l] 
-                                                            (zipmap (keys l)
-                                                                    (repeat r/-nothing)))))
+                                      (update env :l (fn [l] 
+                                                       (zipmap (keys l)
+                                                               (repeat r/-nothing)))))
                 ((some-fn fl/TypeFilter? fl/NotTypeFilter?) f)
                 (let [;_ (prn "Update filter" f)
                       new-env (update-in env [:l (:id f)]
@@ -429,7 +428,7 @@
                                            (when-not t
                                              (err/int-error (str "Updating local not in scope: " (:id f)
                                                                  " " (keys (get env :l)))))
-                                           (update t f)))]
+                                           (update-with-filter t f)))]
                   ; update flag if a variable is now bottom
                   (when-let [bs (seq (filter (comp #{(c/Un)} val) (:l new-env)))]
                     ;(prn "Variables now bottom:" (keys bs))
@@ -446,7 +445,7 @@
                                            (when-not t
                                              (err/int-error (str "Updating local not in scope: " (:id f))))
                                            (apply c/Un
-                                                  (map (fn [f] (update t f)) 
+                                                  (map (fn [f] (update-with-filter t f)) 
                                                        (:fs f)))))]
                   ; update flag if a variable is now bottom
                   (when-let [bs (seq (filter (comp #{(c/Un)} val) (:l new-env)))]

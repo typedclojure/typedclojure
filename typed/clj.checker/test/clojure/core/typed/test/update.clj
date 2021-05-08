@@ -1,19 +1,18 @@
 (ns clojure.core.typed.test.update
-  (:refer-clojure :exclude [update])
   (:require 
     ; this loads the type system, must go first
     [clojure.core.typed.test.test-utils :refer :all]
-            [typed.clj.checker.parse-unparse :refer [parse-clj]]
-            [clojure.core.typed :as t]
-            [clojure.test :refer :all]
-            [typed.cljc.checker.lex-env :refer [-PropEnv]]
-            [typed.cljc.checker.type-rep :refer [-nil -false make-CountRange]]
-            [typed.cljc.checker.type-ctors :refer [Un In RClass-of -name]]
-            [typed.cljc.checker.update :as update :refer [env+ update]]
-            [typed.cljc.checker.filter-rep :refer [-top]]
-            [clojure.data :refer [diff]]
-            [clojure.pprint :refer [pprint]]
-            [typed.cljc.checker.filter-ops :refer [-imp -not-filter -filter]]))
+    [typed.clj.checker.parse-unparse :refer [parse-clj]]
+    [clojure.core.typed :as t]
+    [clojure.test :refer :all]
+    [typed.cljc.checker.lex-env :refer [-PropEnv]]
+    [typed.cljc.checker.type-rep :refer [-nil -false make-CountRange]]
+    [typed.cljc.checker.type-ctors :refer [Un In RClass-of -name]]
+    [typed.cljc.checker.update :as update :refer [env+ update-with-filter]]
+    [typed.cljc.checker.filter-rep :refer [-top]]
+    [clojure.data :refer [diff]]
+    [clojure.pprint :refer [pprint]]
+    [typed.cljc.checker.filter-ops :refer [-imp -not-filter -filter]]))
 
 (defmacro with-validator [v & body]
   `(let [~v (atom true :validator (constantly true))

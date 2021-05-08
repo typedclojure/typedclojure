@@ -87,8 +87,8 @@
   `(case* ~(-emit-form* test opts)
           ~@(reduce (fn [acc {:keys [tests then]}]
                       (-> acc
-                        (update-in [0] conj (mapv #(-emit-form* % opts) tests))
-                        (update-in [1] conj (-emit-form* then opts))))
+                          (update 0 conj (mapv #(-emit-form* % opts) tests))
+                          (update 1 conj (-emit-form* then opts))))
                     [[] []] nodes)
           ~(-emit-form* default opts)))
 

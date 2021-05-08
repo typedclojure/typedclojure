@@ -36,7 +36,7 @@
                         (cond 
                           ;needs resolving
                           (#{:Name} (:op rator))
-                          (gen-inner (update-in t [:rator] ops/resolve-Name) arg)
+                          (gen-inner (update t :rator ops/resolve-Name) arg)
                           ;polymorphic class
                           (#{:Class} (:op rator))
                             (let [{:keys [args pred] :as rcls} (get (impl/rclass-env) (:name rator))
@@ -169,7 +169,7 @@
                         (cond 
                           ;needs resolving
                           (#{:Name} (:op rator))
-                          (gen-inner (update-in t [:rator] ops/resolve-Name) arg)
+                          (gen-inner (update t :rator ops/resolve-Name) arg)
                           ;polymorphic class
                           ;(#{:Class} (:op rator))
                           ;  (let [{:keys [args pred] :as rcls} (get (impl/rclass-env) (:name rator))
