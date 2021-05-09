@@ -60,6 +60,16 @@
    :post [(r/Type? %)]}
   (drop-HSequential n t))
 
+(defn nthnext-kw-args-seq [t n]
+  {:pre [(r/KwArgsSeq? t)
+         (nat-int? n)]
+   :post [(r/Type? %)]}
+  (if (zero? n)
+    (c/Un r/-nil
+          (c/In t
+                (r/make-CountRange 1)))
+    (c/-name `t/NilableNonEmptyASeq t/Any)))
+
 (defn nthrest-type [t n]
   {:pre [(r/Type? t)
          (nat-int? n)]
@@ -95,6 +105,7 @@
                             (apply c/In ts))
       (r/Nil? t) r/-nil
       (r/HSequential? t) (nthnext-hsequential t n)
+      (r/KwArgsSeq? t) (nthnext-kw-args-seq t n)
       :else (when-let [res (cgen/unify-or-nil
                              {:fresh [x]
                               :out x}
@@ -188,25 +199,7 @@
    :post [(or (nil? %)
               (-> % u/expr-type r/TCResult?))]}
   (when (#{1} (count args))
-    (let [[ccoll :as cargs] (mapv check-fn args)
-          ccoll-t (r/ret-t (u/expr-type ccoll))
-          ;; might have to simplify via c/In, but this is a hot path..
-          ccoll-ts (if (r/Intersection? ccoll-t)
-                     (:types ccoll-t)
-                     [ccoll-t])]
-      (cond
-        ;; TODO can this be folded into `check-specific-next`?
-        ; for `(apply hash-map (seq kws))` macroexpansion of keyword args
-        (some r/KwArgsSeq? ccoll-ts)
-        (-> expr
-            (assoc :args cargs
-                   u/expr-type (below/maybe-check-below
-                                 (r/ret (c/Un r/-nil
-                                              (c/In ccoll-t
-                                                    (r/make-CountRange 1))))
-                                 expected)))
-
-        :else (check-specific-next check-fn 0 expr expected)))))
+    (check-specific-next check-fn 0 expr expected)))
 
 (defn check-rest [check-fn {:keys [args] :as expr} expected]
   {:pre [(every? (comp #{:unanalyzed} :op) args)]

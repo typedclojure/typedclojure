@@ -1158,11 +1158,11 @@ clojure.core/butlast
 clojure.core/next
      (All [x]
           (IFn [(t/Option (t/Coll x)) -> (t/Option (t/NonEmptyASeq x))
-               :filters {:then (& (is (CountRange 2) 0)
-                                  (! nil 0))
-                         :else (| (is (CountRange 0 1) 0)
-                                  (is nil 0))}]
-              [(t/Option (Seqable x)) -> (t/Option (t/NonEmptyASeq x))]))
+                :filters {:then (& (is (CountRange 2) 0)
+                                   (! nil 0))
+                          :else (| (is (CountRange 0 1) 0)
+                                   (is nil 0))}]
+               [(t/Option (Seqable x)) -> (t/Option (t/NonEmptyASeq x))]))
 
 clojure.core/into
       (All [x y :named [a]]
