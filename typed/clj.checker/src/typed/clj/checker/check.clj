@@ -783,7 +783,7 @@
     (binding [vs/*current-expr* expr]
       (let [{[target] :args :as expr} (-> expr
                                           (update :args #(mapv check-expr %)))
-            targett (-> target u/expr-type r/ret-t c/fully-resolve-type)]
+            targett (-> target u/expr-type r/ret-t)]
         (cond
           (and (sub/subtype? targett (c/Un r/-nil r/-any-kw-args-seq))
                (not (sub/subtype? targett r/-nil)))
@@ -793,6 +793,10 @@
                                                                  %)
                                                                 (print-str "TODO" (class %)))
                                                         (when (r/KwArgsSeq? %)
+                                                          (when (:maybe-trailing-conjable? %)
+                                                            (err/tc-delayed-error
+                                                              (str "Cannot pass KwArgsSeq to clojure.lang.PersistentHashMap/create "
+                                                                   "when :maybe-trailing-conjable? is true.")))
                                                           (c/KwArgsSeq->HMap %)))
                                                    (c/flatten-intersections [union-t])))]
                                 (c/Un t (apply c/In intersection-ts))
