@@ -1661,7 +1661,7 @@
    :post [(r/Type? %)]}
   (cond
     (or rest drest
-        (zero? (count (filter identity [rest drest kws prest pdot]))))
+        (not-any? identity [rest drest kws prest pdot]))
     ; rest argument is always a nilable non-empty seq. Could
     ; be slightly more clever here if we have a `rest`, but what about
     ; `drest`?
@@ -2032,8 +2032,7 @@
 
 (defmethod -check :deftype
   [{:keys [fields methods env] :as expr} expected]
-  {:pre []
-   :post [(-> % u/expr-type r/TCResult?)]}
+  {:post [(-> % u/expr-type r/TCResult?)]}
   ;TODO check fields match, handle extra fields in records
   (binding [vs/*current-env* env]
     (let [compiled-class (:class-name expr)

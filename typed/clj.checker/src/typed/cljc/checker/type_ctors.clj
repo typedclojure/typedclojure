@@ -2133,6 +2133,7 @@
                             :optional (:optional kws)
                             :non-empty? true
                             :complete? false)
+      nilable-non-empty? (In (r/make-CountRange 1))
       nilable-non-empty? (Un r/-nil))))
 
 (t/ann KwArgsSeq->HMap [KwArgsSeq -> r/Type])
@@ -2167,11 +2168,12 @@
                          0)
                        (* 2 (count (:mandatory kws))))
         max-count (when (:complete? kws)
-                    (max (if (:non-empty? kws)
-                           2
-                           0)
-                         (+ (* 2 (count (:mandatory kws)))
-                            (* 2 (count (:optional kws))))))]
+                    (cond-> (max (if (:non-empty? kws)
+                                   2
+                                   0)
+                                 (+ (* 2 (count (:mandatory kws)))
+                                    (* 2 (count (:optional kws)))))
+                      (:maybe-trailing-conjable? kws) inc))]
     (when max-count
       (assert (<= min-count max-count)))
     (In (r/make-CountRange min-count max-count)
