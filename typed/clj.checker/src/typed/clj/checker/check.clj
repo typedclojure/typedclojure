@@ -827,8 +827,10 @@
 
 (defmethod -check :prim-invoke
   [expr expected]
-  (assoc (check-expr (assoc expr :op :invoke))
-         :op :prim-invoke))
+  (-> expr
+      (assoc :op :invoke)
+      check-expr 
+      (assoc :op :prim-invoke)))
 
 (defmethod -check :keyword-invoke
   [{kw :keyword :keys [target] :as expr} expected]
@@ -853,8 +855,8 @@
         ctarget (check-fn target)
         cargs (mapv check-fn args)
         ftype (u/expr-type cprotocol-fn)
-        argtys (map u/expr-type (concat [ctarget] cargs))
-        actual (funapp/check-funapp cprotocol-fn (concat [ctarget] cargs) ftype argtys expected)]
+        argtys (map u/expr-type (cons ctarget cargs))
+        actual (funapp/check-funapp cprotocol-fn (cons ctarget cargs) ftype argtys expected)]
     (assoc expr
            :target ctarget
            :protocol-fn cprotocol-fn
@@ -875,9 +877,9 @@
   (when-not (= 1 (count args))
     (err/int-error (str "push-thread-bindings expected one argument, given " (count args))))
   (let [bindings-expr (ana2/run-pre-passes (ana2/analyze-outer-root bindings-expr))
-        bindings-expr (if (#{:invoke} (-> bindings-expr :op))
-                        (update bindings-expr :fn ana2/run-passes)
-                        bindings-expr)
+        bindings-expr (cond-> bindings-expr 
+                        (#{:invoke} (-> bindings-expr :op))
+                        (update :fn ana2/run-passes))
         ; only support (push-thread-bindings (hash-map @~[var bnd ...]))
         ; like `binding`s expansion
         _ (when-not (and (#{:invoke} (-> bindings-expr :op))
