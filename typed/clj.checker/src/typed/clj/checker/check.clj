@@ -680,9 +680,11 @@
                             expected-mmap (c/make-HMap ;get all combinations
                                                        :optional
                                                        (into {}
-                                                             (for [[msym mtype] (:methods protocol)]
-                                                               [(r/-val (keyword (name msym))) 
-                                                                (cu/extend-method-expected target-type mtype)])))]
+                                                             (map
+                                                               (fn [[msym mtype]]
+                                                                 [(r/-val (keyword (name msym))) 
+                                                                  (cu/extend-method-expected target-type mtype)]))
+                                                             (:methods protocol)))]
                         {:expected-hmap expected-mmap
                          :prcl-expr prcl-expr
                          :mmap-expr mmap-expr}))

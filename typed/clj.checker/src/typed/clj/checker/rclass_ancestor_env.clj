@@ -57,8 +57,10 @@
   {:pre [(r/RClass? rcls)]
    :post [((con/hash-c? symbol? r/Type?) %)]}
   (let [abstract-repls (get-in @RCLASS-ANCESTORS-ENV [rsym :replacements])]
-    (into {} (for [[k v] abstract-repls]
-               [k (c/inst-and-subst v poly)]))))
+    (into {}
+          (map (fn [[k v]]
+                 [k (c/inst-and-subst v poly)]))
+          abstract-repls)))
 
 (t/ann ^:no-check add-rclass-ancestors [RClass (t/Seqable r/Type) -> nil])
 (defn add-rclass-ancestors [rsym names as]
@@ -79,8 +81,9 @@
 (defn add-rclass-replacements [rsym names as]
   {:pre [(symbol? rsym)]}
   (let [nrp (into {}
-                  (for [[k v] as]
-                    [k (c/abstract-many names v)]))]
+                  (map (fn [[k v]]
+                         [k (c/abstract-many names v)]))
+                  as)]
     (swap! RCLASS-ANCESTORS-ENV
            (fn [e]
              (if (contains? e rsym)

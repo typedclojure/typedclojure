@@ -377,9 +377,7 @@
           (report-not-subtypes s t))
 
         (r/Extends? t)
-        (if (and (every? identity 
-                         (for [e (:extends t)]
-                           (subtypeA* A s e)))
+        (if (and (every? #(subtypeA* A s %) (:extends t))
                  (not-any? #(subtypeA* A s %) (:without t)))
           A
           (report-not-subtypes s t))

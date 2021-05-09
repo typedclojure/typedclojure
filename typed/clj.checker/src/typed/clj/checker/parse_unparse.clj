@@ -805,9 +805,11 @@
     (when-not (map? optional)
       (err/int-error (str "Optional entries to HMap must be a map: " optional))))
   (letfn [(mapt [m]
-            (into {} (for [[k v] m]
-                       [(r/-val k)
-                        (parse-type v)])))]
+            (into {}
+                  (map (fn [[k v]]
+                         [(r/-val k)
+                          (parse-type v)]))
+                  m))]
     (let [_ (when-not (every? empty? [(set/intersection (set (keys mandatory))
                                                         (set (keys optional)))
                                       (set/intersection (set (keys mandatory))
@@ -991,18 +993,22 @@
     (err/int-error (str "Optional and mandatory keyword arguments should be disjoint: "
                       (set/intersection (set (keys optional))
                                         (set (keys mandatory))))))
-  (let [optional (into {} (for [[k v] optional]
-                            (do (when-not (keyword? k) (err/int-error (str "Keyword argument keys must be keywords: " (pr-str k))))
-                              [(r/-val k) (parse-type v)])))
-        mandatory (into {} (for [[k v] mandatory]
-                             (do (when-not (keyword? k) (err/int-error (str "Keyword argument keys must be keywords: " (pr-str k))))
-                               [(r/-val k) (parse-type v)])))]
-    (apply c/Un (apply concat
-                     (for [opts (map #(into {} %) (comb/subsets optional))]
-                       (let [m (merge mandatory opts)
-                             kss (comb/permutations (keys m))]
-                         (for [ks kss]
-                           (r/-hseq (mapcat #(find m %) ks)))))))))
+  (let [optional (into {}
+                       (map (fn [[k v]]
+                              (do (when-not (keyword? k) (err/int-error (str "Keyword argument keys must be keywords: " (pr-str k))))
+                                  [(r/-val k) (parse-type v)])))
+                       optional)
+        mandatory (into {}
+                        (map (fn [[k v]]
+                               (do (when-not (keyword? k) (err/int-error (str "Keyword argument keys must be keywords: " (pr-str k))))
+                                   [(r/-val k) (parse-type v)])))
+                        mandatory)]
+    (apply c/Un (for [opts (map #(into {} %) (comb/subsets optional))
+                      :let [m (into mandatory opts)
+                            kss (comb/permutations (keys m))]
+                      ks kss
+                      k (r/-hseq (mapcat #(find m %) ks))]
+                  k))))
 
 (declare unparse-type deprecated-list)
 
@@ -1269,8 +1275,10 @@
 
 (defn- parse-kw-map [m]
   {:post [((con/hash-c? r/Value? r/Type?) %)]}
-  (into {} (for [[k v] m]
-             [(r/-val k) (parse-type v)])))
+  (into {}
+        (map (fn [[k v]]
+               [(r/-val k) (parse-type v)]))
+        m))
 
 (defn parse-function [f]
   {:post [(r/Function? %)]}
@@ -1628,8 +1636,10 @@
 
 (defn- unparse-kw-map [m]
   {:pre [((con/hash-c? r/Value? r/Type?) m)]}
-  (into {} (for [[^Value k v] m] 
-             [(.val k) (unparse-type v)])))
+  (into {}
+        (map (fn [[k v]]
+               [(:val k) (unparse-type v)]))
+        m))
 
 (defn unparse-result [{:keys [t fl o flow] :as rng}]
   {:pre [(r/Result? rng)]}

@@ -80,28 +80,28 @@
 
 ;[InfoMap -> MsgMap]
 (defn info-map->msg-map [info-map]
-  (into {} (for [[k v] info-map]
-             (let [msg (if (< 1 (count v))
-                         (let [ms (seq
-                                    (filter identity
-                                            (map (fn [{:keys [expr fn-stack]}]
-                                                   (let [r (u/expr-type expr)]
-                                                     (when (r/TCResult? r)
-                                                       (prs/with-unparse-ns (cu/expr-ns expr)
-                                                         (str
-                                                           "In context size " (count fn-stack) ":\n\t"
-                                                           (pr-str (prs/unparse-type (r/ret-t r)))
-                                                           "\n")))))
-                                                 v)))]
-                           (when ms
-                             (apply str ms)))
-                         (let [{:keys [expr]} (first v)
-                               r (u/expr-type expr)]
-                           (prs/with-unparse-ns (cu/expr-ns expr)
-                             (when (r/TCResult? r)
-                               (pr-str (prs/unparse-type (r/ret-t r)))))))]
-               (when msg
-                 [k msg])))))
+  (into {}
+        (map
+          (fn [[k v]]
+            (when-some [msg (if (< 1 (count v))
+                              (when-some [ms (seq
+                                               (keep (fn [{:keys [expr fn-stack]}]
+                                                       (let [r (u/expr-type expr)]
+                                                         (when (r/TCResult? r)
+                                                           (prs/with-unparse-ns (cu/expr-ns expr)
+                                                             (str
+                                                               "In context size " (count fn-stack) ":\n\t"
+                                                               (pr-str (prs/unparse-type (r/ret-t r)))
+                                                               "\n")))))
+                                                     v))]
+                                (apply str ms))
+                              (let [{:keys [expr]} (first v)
+                                    r (u/expr-type expr)]
+                                (prs/with-unparse-ns (cu/expr-ns expr)
+                                  (when (r/TCResult? r)
+                                    (pr-str (prs/unparse-type (r/ret-t r)))))))]
+              [k msg])))
+        info-map))
 
 (defn ast->file-mapping [ast]
   (-> ast ast->info-map info-map->msg-map))
