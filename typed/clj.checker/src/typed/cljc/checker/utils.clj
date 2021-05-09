@@ -21,6 +21,7 @@
      (do ~@body)
      (catch Exception e#
        (if (identical? cs-gen-exn e#)
+         ;; TODO return nil instead to use keep
          false
          (throw e#)))))
 
