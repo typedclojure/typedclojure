@@ -97,8 +97,8 @@
          :complete? (c/complete-hmap? hmap))
        ; devolve the map
        ;; todo: probably some machinery I can reuse here?
-       (let [ks (apply c/Un (concat [rkt] (mapcat keys [(:types hmap) (:optional hmap)])))
-             vs (apply c/Un (concat [(:t vt)] (mapcat vals [(:types hmap) (:optional hmap)])))]
+       (let [ks (apply c/Un (cons rkt (mapcat keys [(:types hmap) (:optional hmap)])))
+             vs (apply c/Un (cons (:t vt) (mapcat vals [(:types hmap) (:optional hmap)])))]
          (impl/impl-case
            :clojure (c/RClass-of IPersistentMap [ks vs])
            :cljs (c/Protocol-of 'cljs.core/IMap [ks vs]))))))
@@ -121,9 +121,9 @@
    [dt [kt vt]]
    (let [rkt (-> kt :t c/fully-resolve-type)]
      (when (and (r/Record? dt) (c/keyword-value? rkt))
-       (let [^Value kt rkt
+       (let [kt rkt
              field-type (when (c/keyword-value? kt)
-                          (get (.fields dt) (symbol (name (.val kt)))))]
+                          (get (:fields dt) (symbol (name (:val kt)))))]
          (when (and field-type (ind/subtype? (:t vt) field-type))
            dt))))))
 

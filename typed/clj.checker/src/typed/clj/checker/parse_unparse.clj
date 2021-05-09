@@ -1905,9 +1905,7 @@
              (when (seq (.mandatory v))
                [:mandatory (unparse-map-of-types (.mandatory v))])
              (when (:complete? v)
-               [:complete? (:complete? v)])
-             (when (:non-empty? v)
-               [:non-empty? (:non-empty? v)]))))
+               [:complete? (:complete? v)]))))
 
   AssocType
   (unparse-type* 

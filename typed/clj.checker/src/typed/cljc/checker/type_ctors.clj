@@ -438,10 +438,10 @@
            result :- (t/Seqable r/Type), []]
     (if (empty? work)
       result
-      (let [resolved (doall (map fully-resolve-type work))
-            {intersections true non-intersections false} (group-by r/Intersection? resolved)]
-        (recur (doall (mapcat :types intersections))
-               (doall (concat result non-intersections)))))))
+      (let [{intersections true non-intersections false} (group-by r/Intersection?
+                                                                   (map fully-resolve-type work))]
+        (recur (mapcat :types intersections)
+               (into result non-intersections))))))
 
 (t/ann ^:no-check flatten-unions [(t/U nil (t/Seqable r/Type)) -> (t/Seqable r/Type)])
 (defn flatten-unions [types]
@@ -451,8 +451,8 @@
            result :- (t/Seqable r/Type), []]
     (if (empty? work)
       result
-      (let [resolved (map fully-resolve-non-rec-type work)
-            {unions true non-unions false} (group-by r/Union? resolved)]
+      (let [{unions true non-unions false} (group-by r/Union?
+                                                     (map fully-resolve-non-rec-type work))]
         (recur (mapcat :types unions)
                (into result non-unions))))))
 
@@ -2131,7 +2131,6 @@
   (let [nilable-non-empty? (empty? (:mandatory kws))]
     (cond-> (r/-kw-args-seq :mandatory (:mandatory kws)
                             :optional (:optional kws)
-                            :non-empty? true
                             :complete? false)
       nilable-non-empty? (In (r/make-CountRange 1))
       nilable-non-empty? (Un r/-nil))))
@@ -2150,7 +2149,6 @@
    :post [(r/Type? %)]}
   (r/-kw-args-seq :mandatory (:types kws)
                   :optional (:optional kws)
-                  :non-empty? (boolean (seq (:types kws)))
                   :complete? (complete-hmap? kws)
                   :maybe-trailing-conjable? false))
 
@@ -2163,16 +2161,10 @@
                       (apply concat (:mandatory kws))
                       (apply concat (:optional kws))))
              r/-any)
-        min-count (max (if (:non-empty? kws)
-                         2
-                         0)
-                       (* 2 (count (:mandatory kws))))
+        min-count (* 2 (count (:mandatory kws)))
         max-count (when (:complete? kws)
-                    (cond-> (max (if (:non-empty? kws)
-                                   2
-                                   0)
-                                 (+ (* 2 (count (:mandatory kws)))
-                                    (* 2 (count (:optional kws)))))
+                    (cond-> (+ (* 2 (count (:mandatory kws)))
+                               (* 2 (count (:optional kws))))
                       (:maybe-trailing-conjable? kws) inc))]
     (when max-count
       (assert (<= min-count max-count)))

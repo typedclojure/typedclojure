@@ -188,14 +188,22 @@
    :post [(or (nil? %)
               (-> % u/expr-type r/TCResult?))]}
   (when (#{1} (count args))
-    (let [[ccoll :as cargs] (mapv check-fn args)]
+    (let [[ccoll :as cargs] (mapv check-fn args)
+          ccoll-t (r/ret-t (u/expr-type ccoll))
+          ;; might have to simplify via c/In, but this is a hot path..
+          ccoll-ts (if (r/Intersection? ccoll-t)
+                     (:types ccoll-t)
+                     [ccoll-t])]
       (cond
+        ;; TODO can this be folded into `check-specific-next`?
         ; for `(apply hash-map (seq kws))` macroexpansion of keyword args
-        (r/KwArgsSeq? (r/ret-t (u/expr-type ccoll)))
+        (some r/KwArgsSeq? ccoll-ts)
         (-> expr
             (assoc :args cargs
                    u/expr-type (below/maybe-check-below
-                                 (u/expr-type ccoll)
+                                 (r/ret (c/Un r/-nil
+                                              (c/In ccoll-t
+                                                    (r/make-CountRange 1))))
                                  expected)))
 
         :else (check-specific-next check-fn 0 expr expected)))))

@@ -1843,6 +1843,7 @@
   (is (err/top-level-error-thrown? 
         (check-ns 'clojure.core.typed.test.fail.CTYP-45))))
 
+;; FIXME this doesn't seem to test what it claims
 (deftest HMap-absent-key-update-test
   ;ensure absent keys are preserved when passed through occurrence typing's `update-with-filter`
   (is-tc-e

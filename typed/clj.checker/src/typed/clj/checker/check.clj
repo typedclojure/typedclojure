@@ -775,7 +775,7 @@
 (defmethod -host-call-special '[:static-call clojure.lang.PersistentHashMap/create]
   [expr expected]
   {:pre [(#{:host-call} (:op expr))
-         (every? #{:unanalyzed} (map :op (:args expr)))]
+         (every? (comp #{:unanalyzed} :op) (:args expr))]
    :post [(or (nil? %)
               (and (-> % u/expr-type r/TCResult?)
                    (-> % :target u/expr-type r/TCResult?)))]}
@@ -783,30 +783,43 @@
     (binding [vs/*current-expr* expr]
       (let [{[target] :args :as expr} (-> expr
                                           (update :args #(mapv check-expr %)))
-            targett (-> target u/expr-type r/ret-t)]
+            targett (-> target u/expr-type r/ret-t c/fully-resolve-type)]
         (cond
-          (r/KwArgsSeq? targett)
-          (-> expr
-              (update :target check-expr)
-              (assoc 
-                u/expr-type (below/maybe-check-below
-                              (r/ret (c/KwArgsSeq->HMap targett))
-                              expected)))
-          (r/HeterogeneousSeq? targett)
-          (let [res (reduce (fn [t [kt vt]]
-                              {:pre [(r/Type? t)]}
-                              ;preserve bottom
-                              (if (= (c/Un) vt)
-                                vt
-                                (do (assert (r/HeterogeneousMap? t))
-                                    (assoc-in t [:types kt] vt))))
-                            (c/-complete-hmap {}) (:types targett))]
+          (and (sub/subtype? targett (c/Un r/-nil r/-any-kw-args-seq))
+               (not (sub/subtype? targett r/-nil)))
+          (let [res (reduce (fn [t union-t]
+                              (if-some [intersection-ts
+                                        (seq (keep #(do (assert ((some-fn r/KwArgsSeq? r/Nil? r/CountRange?)
+                                                                 %)
+                                                                (print-str "TODO" (class %)))
+                                                        (when (r/KwArgsSeq? %)
+                                                          (c/KwArgsSeq->HMap %)))
+                                                   (c/flatten-intersections [union-t])))]
+                                (c/Un t (apply c/In intersection-ts))
+                                t))
+                            (c/Un)
+                            (c/flatten-unions [targett]))
+                _ (assert (not (sub/subtype? res (c/Un)))
+                          targett)]
             (-> expr
                 (update :target check-expr)
-                (assoc 
-                  u/expr-type (below/maybe-check-below
-                                (r/ret res)
-                                expected)))))))))
+                (assoc u/expr-type (below/maybe-check-below
+                                     (r/ret res)
+                                     expected))))
+          (r/HeterogeneousSeq? targett)
+          (let [res (reduce (fn [t [kt vt]]
+                              {:pre [(r/HeterogeneousMap? t)]}
+                              (if (= (c/Un) vt)
+                                ;preserve bottom
+                                (reduced vt)
+                                (assoc-in t [:types kt] vt)))
+                            (c/-complete-hmap {})
+                            (:types targett))]
+            (-> expr
+                (update :target check-expr)
+                (assoc u/expr-type (below/maybe-check-below
+                                     (r/ret res)
+                                     expected)))))))))
 
 (defmethod -check :prim-invoke
   [expr expected]

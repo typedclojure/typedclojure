@@ -719,27 +719,27 @@
 ;; TODO support clojure 1.11 kw args format
 (u/ann-record KwArgsSeq [mandatory :- (t/Map Type Type)
                          optional  :- (t/Map Type Type)
-                         ;; TODO can we remove this field and replace with a non-empty count type?
-                         non-empty? :- Boolean
                          complete? :- Boolean
                          maybe-trailing-conjable? :- Boolean])
-(u/def-type KwArgsSeq [mandatory optional non-empty? complete? maybe-trailing-conjable?]
+(u/def-type KwArgsSeq [mandatory optional complete? maybe-trailing-conjable?]
   "A sequential seq representing a flattened map.
-
-  If non-empty? is true, represents a non-empty sequence (eg., for rest-arguments).
-
-  If non-empty? is false, type is a possibly empty sequence (eg., for `(apply concat {})`).
 
   If maybe-trailing-conjable? is true, represents a list that can be passed to
   `seq-to-map-for-destructuring` and returns a value of the desired shape."
   [(every? (con/hash-c? Value? Type?) [mandatory optional])
    (empty? (set/intersection (set (keys mandatory)) 
                              (set (keys optional))))
-   (boolean? non-empty?)
    (boolean? complete?)
    (boolean? maybe-trailing-conjable?)]
   :methods
   [p/TCType])
+
+(u/def-type TopKwArgsSeq []
+  "Supertype of all KwArgsSeq's."
+  []
+  :methods [p/TCType])
+
+(def -any-kw-args-seq (TopKwArgsSeq-maker))
 
 (t/ann -kw-args [& :optional {:mandatory (t/Map Type Type)
                               :optional (t/Map Type Type)}
@@ -751,19 +751,16 @@
 
 (t/ann -kw-args-seq [& :optional {:mandatory (t/Map Type Type)
                                   :optional (t/Map Type Type)
-                                  :non-empty? Boolean
                                   :complete? Boolean
                                   :maybe-trailing-conjable? Boolean}
                      -> KwArgsSeq])
-(defn -kw-args-seq [& {:keys [mandatory optional non-empty? complete?
+(defn -kw-args-seq [& {:keys [mandatory optional complete?
                               maybe-trailing-conjable?]
                        :or {mandatory {} optional {} complete? false
-                            non-empty? false
                             maybe-trailing-conjable? false}}]
   {:post [(KwArgsSeq? %)]}
   (KwArgsSeq-maker mandatory
                    optional
-                   non-empty?
                    complete?
                    maybe-trailing-conjable?))
 

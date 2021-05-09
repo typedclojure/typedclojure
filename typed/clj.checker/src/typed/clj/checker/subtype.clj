@@ -678,7 +678,9 @@
         (recur A (c/upcast-hset s) t)
 
         (r/KwArgsSeq? s)
-        (recur A (c/upcast-kw-args-seq s) t)
+        (if (r/TopKwArgsSeq? t)
+          A
+          (recur A (c/upcast-kw-args-seq s) t))
 
         ; TODO add repeat support
         (r/HSequential? s)
