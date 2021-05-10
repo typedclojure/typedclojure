@@ -22,3 +22,17 @@
                  map__65083))
              [& :optional {:foo t/Str} -> (t/HMap :optional {:foo t/Str})])
   )
+
+(deftest clojure-1-11-kv-destructure-test
+  (is-tc-e (fn [& args]
+             (let* [map__65083 args
+                    map__65083 (if (seq? map__65083) 
+                                 (if (next map__65083)
+                                   ;; TODO
+                                   (throw (ex-info "" {}))
+                                   (if (seq map__65083)
+                                     (first map__65083)
+                                     )) 
+                                 map__65083)] 
+               map__65083))
+           [& :optional {:foo t/Str} -> (t/HMap :optional {:foo t/Str})]))

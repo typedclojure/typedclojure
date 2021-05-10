@@ -35,8 +35,8 @@
             [clojure.core.cache :as cache])
   (:import (clojure.lang ASeq)
            (typed.cljc.checker.type_rep HeterogeneousMap Poly TypeFn PolyDots TApp App Value
-                                        Union Intersection F Function Mu B KwArgs KwArgsSeq RClass
-                                        Bounds Name Scope CountRange Intersection DataType Extends
+                                        Union Intersection F Function Mu B KwArgs KwArgsSeq KwArgsArray
+                                        RClass Bounds Name Scope CountRange Intersection DataType Extends
                                         JSNominal Protocol GetType HSequential
                                         HSet AssocType TypeOf)))
 
@@ -79,17 +79,15 @@
 
 (t/ann -complete-hmap [(t/Map r/Type r/Type) -> r/Type])
 (defn -complete-hmap [types]
-  (make-HMap
-    :mandatory types 
-    :complete? true))
+  (make-HMap :mandatory types 
+             :complete? true))
 
 (t/ann -partial-hmap (t/IFn [(t/Map r/Type r/Type) -> r/Type]
                             [(t/Map r/Type r/Type) (t/Set r/Type) -> r/Type]))
 (defn -partial-hmap 
   ([types] (-partial-hmap types #{}))
-  ([types absent-keys] (make-HMap 
-                         :mandatory types 
-                         :absent-keys absent-keys)))
+  ([types absent-keys] (make-HMap :mandatory types 
+                                  :absent-keys absent-keys)))
 
 (t/defalias TypeMap
   "A regular map with types as keys and vals."
@@ -375,15 +373,10 @@
          (HMap-with-Value-keys? t1 t2)]
    :post [(r/Type? %)]}
   ; make-HMap handles duplicates
-  (make-HMap
-    :mandatory
-      (apply merge-with In (map :types [t1 t2]))
-    :optional
-      (apply merge-with In (map :optional [t1 t2]))
-    :absent-keys
-      (apply set/union (map :absent-keys [t1 t2]))
-    :complete?
-      (not-any? :other-keys? [t1 t2])))
+  (make-HMap :mandatory (apply merge-with In (map :types [t1 t2]))
+             :optional (apply merge-with In (map :optional [t1 t2]))
+             :absent-keys (apply set/union (map :absent-keys [t1 t2]))
+             :complete? (not-any? :other-keys? [t1 t2])))
 
 (t/ann ^:no-check intersect [r/Type r/Type -> r/Type])
 (defn intersect [t1 t2]
@@ -2135,13 +2128,25 @@
       nilable-non-empty? (In (r/make-CountRange 1))
       nilable-non-empty? (Un r/-nil))))
 
-(t/ann KwArgsSeq->HMap [KwArgsSeq -> r/Type])
-(defn KwArgsSeq->HMap [kws]
-  {:pre [(r/KwArgsSeq? kws)]
+(t/ann KwArgs->HMap [KwArgs -> r/Type])
+(defn KwArgs->HMap [kws]
+  {:pre [(r/KwArgs? kws)]
    :post [(r/Type? %)]}
   (make-HMap :mandatory (:mandatory kws) 
              :optional (:optional kws)
              :complete? (:complete? kws)))
+
+(t/ann KwArgsSeq->HMap [KwArgsSeq -> r/Type])
+(defn KwArgsSeq->HMap [kws]
+  {:pre [(r/KwArgsSeq? kws)]
+   :post [(r/Type? %)]}
+  (KwArgs->HMap (:kw-args-regex kws)))
+
+(t/ann KwArgsArray->HMap [KwArgsArray -> r/Type])
+(defn KwArgsArray->HMap [kws]
+  {:pre [(r/KwArgsArray? kws)]
+   :post [(r/Type? %)]}
+  (KwArgs->HMap (:kw-args-regex kws)))
 
 (t/ann HMap->KwArgsSeq [HeterogeneousMap Boolean -> r/Type])
 (defn HMap->KwArgsSeq [kws]
@@ -2150,12 +2155,14 @@
   (r/-kw-args-seq :mandatory (:types kws)
                   :optional (:optional kws)
                   :complete? (complete-hmap? kws)
-                  :maybe-trailing-conjable? false))
+                  :maybe-trailing-nilable-non-empty-map? false))
 
-(defn upcast-kw-args-seq [kws]
-  {:pre [(r/KwArgsSeq? kws)]
+(defn upcast-kw-args-seq [{kws :kw-args-regex
+                           :as kwseq}]
+  {:pre [(r/KwArgsSeq? kwseq)]
    :post [(r/Type? %)]}
-  (let [ss (if (:complete? kws)
+  (let [ss (if (and (:complete? kws)
+                    (not (:maybe-trailing-nilable-non-empty-map? kws)))
              (apply Un
                     (concat
                       (apply concat (:mandatory kws))
@@ -2165,7 +2172,7 @@
         max-count (when (:complete? kws)
                     (cond-> (+ (* 2 (count (:mandatory kws)))
                                (* 2 (count (:optional kws))))
-                      (:maybe-trailing-conjable? kws) inc))]
+                      (:maybe-trailing-nilable-non-empty-map? kws) inc))]
     (when max-count
       (assert (<= min-count max-count)))
     (In (r/make-CountRange min-count max-count)

@@ -708,29 +708,28 @@
                  (or target-object (ind/-empty-fn))))
 
 ;not a type, see KwArgsSeq
-(u/ann-record KwArgs [mandatory :- (t/Map Type Type)
-                      optional  :- (t/Map Type Type)])
-(u/def-type KwArgs [mandatory optional]
-  "A set of mandatory and optional keywords"
-  [(every? (con/hash-c? Value? Type?) [mandatory optional])
-   (empty? (set/intersection (set (keys mandatory)) 
-                             (set (keys optional))))])
-
 ;; TODO support clojure 1.11 kw args format
-(u/ann-record KwArgsSeq [mandatory :- (t/Map Type Type)
-                         optional  :- (t/Map Type Type)
-                         complete? :- Boolean
-                         maybe-trailing-conjable? :- Boolean])
-(u/def-type KwArgsSeq [mandatory optional complete? maybe-trailing-conjable?]
-  "A sequential seq representing a flattened map.
-
-  If maybe-trailing-conjable? is true, represents a list that can be passed to
-  `seq-to-map-for-destructuring` and returns a value of the desired shape."
+(u/ann-record KwArgs [mandatory :- (t/Map Type Type)
+                      optional  :- (t/Map Type Type)
+                      complete? :- Boolean
+                      ;; TODO make nilable but possibly-empty
+                      maybe-trailing-nilable-non-empty-map? :- Boolean])
+(u/def-type KwArgs [mandatory
+                    optional
+                    complete?
+                    maybe-trailing-nilable-non-empty-map?]
+  "Represents a flattened map as a regex op like clojure.spec/keys*.
+  A set of mandatory and optional keywords"
   [(every? (con/hash-c? Value? Type?) [mandatory optional])
    (empty? (set/intersection (set (keys mandatory)) 
                              (set (keys optional))))
    (boolean? complete?)
-   (boolean? maybe-trailing-conjable?)]
+   (boolean? maybe-trailing-nilable-non-empty-map?)])
+
+(u/ann-record KwArgsSeq [kw-args-regex :- KwArgs])
+(u/def-type KwArgsSeq [kw-args-regex]
+  "A sequential seq representing a flattened map."
+  [(KwArgs? kw-args-regex)]
   :methods
   [p/TCType])
 
@@ -741,28 +740,42 @@
 
 (def -any-kw-args-seq (TopKwArgsSeq-maker))
 
+(u/ann-record KwArgsArray [kw-args-regex :- KwArgs])
+(u/def-type KwArgsArray [kw-args-regex]
+  "A Java array representing a flattened map."
+  [(KwArgs? kw-args-regex)]
+  :methods
+  [p/TCType])
+
 (t/ann -kw-args [& :optional {:mandatory (t/Map Type Type)
-                              :optional (t/Map Type Type)}
+                              :optional (t/Map Type Type)
+                              :complete? Boolean
+                              :maybe-trailing-nilable-non-empty-map? Boolean}
                  -> KwArgs])
-(defn -kw-args [& {:keys [mandatory optional]
-                   :or {mandatory {} optional {}}}]
+(defn -kw-args [& {:keys [mandatory optional
+                          complete? maybe-trailing-nilable-non-empty-map?]
+                   :or {mandatory {} optional {}
+                        complete? false maybe-trailing-nilable-non-empty-map? false}}]
   {:post [(KwArgs? %)]}
-  (KwArgs-maker mandatory optional))
+  (KwArgs-maker mandatory optional complete? maybe-trailing-nilable-non-empty-map?))
 
 (t/ann -kw-args-seq [& :optional {:mandatory (t/Map Type Type)
                                   :optional (t/Map Type Type)
                                   :complete? Boolean
-                                  :maybe-trailing-conjable? Boolean}
+                                  :maybe-trailing-nilable-non-empty-map? Boolean}
                      -> KwArgsSeq])
-(defn -kw-args-seq [& {:keys [mandatory optional complete?
-                              maybe-trailing-conjable?]
-                       :or {mandatory {} optional {} complete? false
-                            maybe-trailing-conjable? false}}]
+(defn -kw-args-seq [& opt]
   {:post [(KwArgsSeq? %)]}
-  (KwArgsSeq-maker mandatory
-                   optional
-                   complete?
-                   maybe-trailing-conjable?))
+  (KwArgsSeq-maker (apply -kw-args opt)))
+
+(t/ann -kw-args-array [& :optional {:mandatory (t/Map Type Type)
+                                    :optional (t/Map Type Type)
+                                    :complete? Boolean
+                                    :maybe-trailing-nilable-non-empty-map? Boolean}
+                       -> KwArgsArray])
+(defn -kw-args-array [& opt]
+  {:post [(KwArgsArray? %)]}
+  (KwArgsArray-maker (apply -kw-args opt)))
 
 ; must go before Result
 (u/ann-record FlowSet [normal :- p/IFilter])

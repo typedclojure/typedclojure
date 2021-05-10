@@ -1310,7 +1310,7 @@
 
         asterix-pos (or asterix-pos kw-asterix-pos)
 
-        _ (when-let [ks (seq (remove #{:filters :object :flow} (keys opts)))]
+        _ (when-some [ks (seq (remove #{:filters :object :flow} (keys opts)))]
             (err/int-error (str "Invalid function keyword option/s: " ks)))
 
         filters (when-let [[_ fsyn] (find opts :filters)]
@@ -1347,7 +1347,10 @@
             (err/int-error "push dotted rest entry must be 3 entries"))
         _ (when-not (or (not push-dot-pos) (symbol? pdot-bnd))
             (err/int-error "push dotted bound must be symbol"))
-        [& {optional-kws :optional mandatory-kws :mandatory} :as kws-seq]
+        [& {optional-kws :optional
+            mandatory-kws :mandatory
+            :as kw-opts}
+         :as kws-seq]
         (let [kwsyn (when ampersand-pos
                       (drop (inc ampersand-pos) all-dom))]
           ; support deprecated syntax [& {} -> ] to be equivalent to [& :optional {} -> ]
@@ -1357,6 +1360,9 @@
                 (cons :optional kwsyn))
             kwsyn))
 
+        _ (when-some [extra (seq (remove #{:mandatory :optional} (keys kw-opts)))]
+            (err/int-error (str "Unknown t/IFn options for keyword arguments: "
+                                (vec extra))))
         _ (when-not (or (not ampersand-pos) (seq kws-seq))
             (err/int-error "Must provide syntax after &"))
 
@@ -1394,14 +1400,12 @@
                      :filter filters
                      :object object
                      :flow flow
-                     :optional-kws (when optional-kws
-                                     (parse-kw-map optional-kws))
-                     :mandatory-kws (when mandatory-kws
-                                      (parse-kw-map mandatory-kws)))))
+                     :optional-kws (some-> optional-kws parse-kw-map)
+                     :mandatory-kws (some-> mandatory-kws parse-kw-map))))
 
 (defmethod parse-type* IPersistentVector
   [f]
-  (apply r/make-FnIntersection [(parse-function f)]))
+  (r/make-FnIntersection (parse-function f)))
 
 (defmethod parse-type* :default
   [k]
@@ -1897,13 +1901,13 @@
 
   KwArgsSeq
   (unparse-type* 
-    [^KwArgsSeq v]
+    [{v :kw-args-regex}]
     (list* 'KwArgsSeq 
            (concat
-             (when (seq (.optional v))
-               [:optional (unparse-map-of-types (.optional v))])
-             (when (seq (.mandatory v))
-               [:mandatory (unparse-map-of-types (.mandatory v))])
+             (when (seq (:optional v))
+               [:optional (unparse-map-of-types (:optional v))])
+             (when (seq (:mandatory v))
+               [:mandatory (unparse-map-of-types (:mandatory v))])
              (when (:complete? v)
                [:complete? (:complete? v)]))))
 

@@ -793,10 +793,10 @@
                                                                  %)
                                                                 (print-str "TODO" (class %)))
                                                         (when (r/KwArgsSeq? %)
-                                                          (when (:maybe-trailing-conjable? %)
+                                                          (when (-> % :kw-args-regex :maybe-trailing-nilable-non-empty-map?)
                                                             (err/tc-delayed-error
                                                               (str "Cannot pass KwArgsSeq to clojure.lang.PersistentHashMap/create "
-                                                                   "when :maybe-trailing-conjable? is true.")))
+                                                                   "when :maybe-trailing-nilable-non-empty-map? is true.")))
                                                           (c/KwArgsSeq->HMap %)))
                                                    (c/flatten-intersections [union-t])))]
                                 (c/Un t (apply c/In intersection-ts))

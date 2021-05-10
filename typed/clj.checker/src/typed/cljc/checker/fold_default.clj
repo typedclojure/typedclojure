@@ -23,7 +23,7 @@
                                         CountRange Name Value Top Unchecked TopFunction B F Result
                                         TCResult TCError FlowSet Extends
                                         JSNumber CLJSInteger JSObject JSString ArrayCLJS
-                                        JSBoolean AssocType GetType KwArgsSeq HSequential HSet
+                                        JSBoolean AssocType GetType KwArgsSeq KwArgs HSequential HSet
                                         JSUndefined JSNull JSSymbol JSObj TypeOf SymbolicClosure)
            (typed.cljc.checker.filter_rep NoFilter TopFilter BotFilter TypeFilter NotTypeFilter
                                           ImpFilter AndFilter OrFilter FilterSet)
@@ -225,11 +225,17 @@
                          (-> ty 
                            (update :types #(zipmap (keys %) (map type-rec (vals %)))))))
 
+(add-default-fold-case KwArgs
+                       (fn [ty]
+                         (-> ty 
+                             (update :mandatory visit-type-map type-rec)
+                             (update :optional visit-type-map type-rec))))
+
+
 (add-default-fold-case KwArgsSeq
                        (fn [ty]
                          (-> ty 
-                           (update :mandatory visit-type-map type-rec)
-                           (update :optional visit-type-map type-rec))))
+                             (update :kw-args-regex type-rec))))
 
 (add-default-fold-case Extends
                        (fn [{:keys [extends without] :as ty}]
