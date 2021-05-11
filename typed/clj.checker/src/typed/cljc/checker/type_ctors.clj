@@ -1670,12 +1670,12 @@
           (cond 
             ; if there is an intersection in the mandatory keys
             ; each entry in common should overlap
-            (not (empty? common-mkeys))
-            (every? identity
-                    (for [[k1 v1] (select-keys (:types t1) common-mkeys)]
+            (seq common-mkeys)
+            (every? (fn [[k1 v1]]
                       (let [v2 ((:types t2) k1)]
                         (assert v2)
-                        (overlap v1 v2))))
+                        (overlap v1 v2)))
+                    (select-keys (:types t1) common-mkeys))
             ;TODO more cases. incorporate completeness
             :else true))
 
