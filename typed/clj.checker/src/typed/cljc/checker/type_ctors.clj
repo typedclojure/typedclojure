@@ -174,6 +174,9 @@
     (or (seq (set/intersection (set (keys mandatory))
                                (set absent-keys)))
         (some #{bottom} (concat (vals mandatory)
+                                ;; FIXME optional entries mapping to bottom
+                                ;; should be promoted to absent, not cause
+                                ;; the entire type to be bottom!
                                 (vals optional))))
       bottom
 
