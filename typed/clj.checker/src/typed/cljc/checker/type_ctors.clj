@@ -409,8 +409,7 @@
   {:pre [(r/CountRange? t1)
          (r/CountRange? t2)]
    :post [(r/Type? %)]}
-  (prn "intersect-CountRange"
-       t1 t2)
+  ;(prn "intersect-CountRange" t1 t2)
   (let [lower (max (:lower t1)
                    (:lower t2))
         upper (if-some [upper1 (:upper t1)]
@@ -1573,7 +1572,7 @@
   {:pre [(r/CountRange? cr)
          (r/KwArgsSeq? kws)]
    :post [(boolean? %)]}
-  (prn "overlap-CountRange-KwArgsSeq?" kws cr)
+  ;(prn "overlap-CountRange-KwArgsSeq?" kws cr)
   (if (not (overlap (upcast-kw-args-seq kws) cr))
     false
     ;; seq has even numbered count without trailing map
