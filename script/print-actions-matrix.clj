@@ -18,12 +18,13 @@
    "typed/lib.core.async"])
 
 (def clojure-stable "1.10.3")
-(def clojure-next "1.11.0-master-SNAPSHOT")
+(def clojure-next-alpha "1.11.0-alpha1")
+(def clojure-next-snapshot "1.11.0-master-SNAPSHOT")
 
 (defn push-matrix []
   {:include (for [submodule all-submodules
                   clojure [clojure-stable
-                           clojure-next]
+                           clojure-next-alpha]
                   jdk ["1.11"]]
               {:submodule submodule
                :clojure clojure
@@ -32,7 +33,7 @@
 (defn schedule-matrix []
   {:include (for [submodule all-submodules
                   clojure [clojure-stable
-                           clojure-next]
+                           clojure-next-snapshot]
                   jdk ["1.8"
                        "1.11"
                        "1.15"]]
