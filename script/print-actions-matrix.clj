@@ -22,11 +22,8 @@
 
 (defn push-matrix []
   {:include (for [submodule all-submodules
-                  clojure (cond-> [clojure-stable]
-                            ;; FIXME uncomment when 1.11 support is merged
-                            (not= "typedclojure/typedclojure"
-                                  (System/getenv "GITHUB_REPOSITORY"))
-                            (conj clojure-next))
+                  clojure [clojure-stable
+                           clojure-next]
                   jdk ["1.11"]]
               {:submodule submodule
                :clojure clojure
