@@ -35,7 +35,6 @@
                                      (t/ann-form map__65083 (t/CountRange 0 1))
                                      (if (seq map__65083)
                                        (t/ann-form :unreachable (t/Un))
-                                       ;; TODO
                                        (do (t/ann-form map__65083 (t/ExactCount 0))
                                            clojure.lang.PersistentArrayMap/EMPTY)))) 
                                  map__65083)] 
