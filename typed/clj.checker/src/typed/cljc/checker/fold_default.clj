@@ -44,14 +44,12 @@
 (add-default-fold-case Intersection
                        (fn [ty]
                          ;(prn "fold-default Intersection" ty)
-                         (let [ts (mapv type-rec (:types ty))]
-                           ; don't simplify types in case some types aren't defined yet
-                           (c/make-Intersection ts))))
+                         (apply c/In (map type-rec (:types ty)))))
 
 (add-default-fold-case Union 
                        (fn [ty]
                          ;(prn "union default" (typed.clj.checker.parse-unparse/unparse-type ty))
-                         (apply c/Un (mapv type-rec (:types ty)))))
+                         (apply c/Un (map type-rec (:types ty)))))
 
 (add-default-fold-case FnIntersection
                        (fn [ty]
@@ -74,7 +72,7 @@
                            (update :dom #(mapv type-rec %))
                            (update :rng type-rec)
                            (update :rest #(when %
-                                                 (type-rec %)))
+                                            (type-rec %)))
                            (update :drest #(when %
                                              (-> %
                                                  (update :pre-type type-rec))))

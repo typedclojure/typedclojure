@@ -62,11 +62,9 @@
   (is-clj (not (subtype? (RClass-of Integer) (NotType-maker (RClass-of Number)))))
   (is-clj (not (subtype? (NotType-maker -nil) (RClass-of Number))))
 
-  (is-clj (= (let [i (subst-all {'x (t-subst-maker (Un (RClass-of Number) -nil) no-bounds) 
-                                 'y (t-subst-maker -nil no-bounds)} 
-                                (In (make-F 'x) (NotType-maker (make-F 'y))))
-                   _ (assert (Intersection? i))]
-               (apply In (:types i)))
+  (is-clj (= (subst-all {'x (t-subst-maker (Un (RClass-of Number) -nil) no-bounds) 
+                         'y (t-subst-maker -nil no-bounds)} 
+                        (In (make-F 'x) (NotType-maker (make-F 'y))))
              (RClass-of Number)))
 
   (is-clj (overlap (make-F 'x)

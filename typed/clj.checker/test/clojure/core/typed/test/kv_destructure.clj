@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.field-override
+(ns clojure.core.typed.test.kv-destructure
   (:require 
     [clojure.core.typed.test.test-utils :refer :all]
     [clojure.test :refer :all]
@@ -30,9 +30,13 @@
                                  (if (next map__65083)
                                    ;; TODO
                                    (throw (ex-info "" {}))
-                                   (if (seq map__65083)
-                                     (first map__65083)
-                                     )) 
+                                   (do
+                                     (t/ann-form map__65083 (t/CountRange 0 1))
+                                     (if (seq map__65083)
+                                       (t/ann-form :unreachable (t/Un))
+                                       ;; TODO
+                                       (do (t/ann-form map__65083 (t/ExactCount 0))
+                                           clojure.lang.PersistentArrayMap/EMPTY)))) 
                                  map__65083)] 
                map__65083))
-           [& :optional {:foo t/Str} -> (t/HMap :optional {:foo t/Str})]))
+           [& :optional {:foo t/Str} -> (t/Option (t/HMap :optional {:foo t/Str}))]))

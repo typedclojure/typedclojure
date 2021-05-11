@@ -539,7 +539,7 @@
 ; don't do any simplification of the intersection because some types might
 ; not be resolved
 (defn parse-intersection-type [[i & types]]
-  (c/make-Intersection (doall (map parse-type types))))
+  (c/make-Intersection (map parse-type types)))
 
 (defmethod parse-type-list 'I [syn] 
   (err/deprecated-plain-op 'I)

@@ -56,22 +56,20 @@
    :post [(symbol? %)]}
   (with-meta (gensym s) {:original-name s}))
 
-(declare Un make-Union fully-resolve-type fully-resolve-non-rec-type)
+(declare Un make-Union fully-resolve-type fully-resolve-non-rec-type flatten-unions)
+
+(t/ann bottom r/Type)
+(def ^:private bottom (r/Union-maker (sorted-set-by u/type-comparator)))
 
 (t/ann ^:no-check make-Union [(t/U nil (t/Seqable r/Type)) -> r/Type])
 (defn make-Union
-  "Arguments should not overlap or be unions"
+  "Does not resolve types."
   [args]
-  (cond
-    (= 1 (count args)) (first args)
-    :else 
-    (let [{unions true non-unions false} (group-by r/Union? args)]
-      (r/Union-maker (r/sorted-type-set 
-                       (concat (mapcat :types unions)
-                               non-unions))))))
-
-(t/ann bottom r/Type)
-(def ^:private bottom (make-Union []))
+  (let [ts (flatten-unions args)]
+    (case (count ts)
+      0 bottom
+      1 (first ts)
+      (r/Union-maker ts))))
 
 ;; Heterogeneous maps
 
@@ -173,38 +171,40 @@
           (pr-str complete?))
   ; simplifies to bottom with contradictory keys
   (cond 
-    (or (seq (set/intersection (set (keys mandatory))
-                               (set absent-keys)))
-        (some #{bottom} (concat (vals mandatory)
-                                (vals optional))))
-      bottom
-
-    (not
-      (every? allowed-hmap-key?
-              (concat (keys mandatory)
-                      (keys optional)
-                      absent-keys)))
-      (upcast-hmap* mandatory optional absent-keys complete?)
+    (not-every? allowed-hmap-key?
+                (concat (keys mandatory)
+                        (keys optional)
+                        absent-keys))
+    (upcast-hmap* mandatory optional absent-keys complete?)
 
     :else
-      (let [optional-now-mandatory (set/intersection
-                                     (set (keys optional))
-                                     (set (keys mandatory)))
-            optional-now-absent (set/intersection
-                                  (set (keys optional))
-                                  absent-keys)
-            _ (assert (empty? 
-                        (set/intersection optional-now-mandatory
-                                          optional-now-absent)))]
-        (r/HeterogeneousMap-maker 
-          (merge-with In mandatory (select-keys optional optional-now-mandatory))
-          (apply dissoc optional (set/union optional-now-absent
-                                            optional-now-mandatory))
+    (let [optional-now-mandatory (set/intersection
+                                   (set (keys optional))
+                                   (set (keys mandatory)))
+          optional-now-absent (set/intersection
+                                (set (keys optional))
+                                absent-keys)
+          _ (assert (empty? 
+                      (set/intersection optional-now-mandatory
+                                        optional-now-absent)))
+          mandatory (merge-with In mandatory (select-keys optional optional-now-mandatory))
+          optional (apply dissoc optional (set/union optional-now-absent
+                                                     optional-now-mandatory))
           ; throw away absents if complete
-          (if complete?
-            #{}
-            (set/union absent-keys optional-now-absent))
-          (not complete?)))))
+          absent (if complete?
+                   #{}
+                   (set/union absent-keys optional-now-absent))]
+      (cond
+        (or (seq (set/intersection (set (keys mandatory))
+                                   (set absent-keys)))
+            (some #{bottom} (vals mandatory)))
+        bottom
+
+        :else (r/HeterogeneousMap-maker 
+                mandatory
+                optional
+                absent
+                (not complete?))))))
 
 ;TODO to type check this, need to un-munge instance field names
 (t/ann complete-hmap? [HeterogeneousMap -> Boolean])
@@ -285,16 +285,16 @@
   (reset! Un-cache initial-Un-cache)
   nil)
 
-(declare flatten-unions)
+(declare flatten-intersections)
 
 (t/ann ^:no-check Un [r/Type * -> r/Type])
 (defn Un [& types]
   {:pre [(every? r/Type? types)]
    :post [(r/Type? %)]}
-  (if-let [hit (get @Un-cache (set types))]
-    hit
-    (let [res (let []
-                (letfn [;; a is a Type (not a union type)
+  (let [cache-key (set types)]
+    (if-let [hit (get @Un-cache cache-key)]
+      hit
+      (let [res (letfn [;; a is a Type (not a union type)
                         ;; b is a Set[Type] (non overlapping, non Union-types)
                         ;; The output is a non overlapping list of non Union types.
                         (merge-type [a b]
@@ -313,21 +313,22 @@
                                       (some (some-fn r/Name? r/TApp?) (conj b a)) (conj b a)
                                       (@subtype? a b*) b
                                       (@subtype? b* a) #{a}
-                                      :else (set (cons a 
-                                                       (remove #(@subtype? % a) b))))]
+                                      :else (into #{a}
+                                                  (remove #(@subtype? % a))
+                                                  b))]
                             ;(prn "res" res)
                             res))]
-                  (let [types (set types)]
+                  (let [types (flatten-unions (map fully-resolve-non-rec-type types))]
                     (cond
                       (empty? types) r/empty-union
                       (= 1 (count types)) (first types)
                       :else 
                       (make-Union
                         (reduce (fn [acc t] (merge-type t acc))
-                                #{}
-                                (set (flatten-unions types))))))))]
-      (swap! Un-cache assoc (set types) res)
-      res)))
+                                (sorted-set-by u/type-comparator)
+                                types)))))]
+        (swap! Un-cache assoc cache-key res)
+        res))))
 
 ;; Intersections
 
@@ -346,12 +347,14 @@
   nil)
 
 (t/ann ^:no-check make-Intersection [(t/U nil (t/Seqable r/Type)) -> r/Type])
-(defn make-Intersection [types]
-  (let [cnt (count types)]
-    (cond
-      (= 0 cnt) r/-any
-      (= 1 cnt) (first types)
-      :else (r/Intersection-maker (apply sorted-set-by u/type-comparator types)))))
+(defn make-Intersection
+  "Does not resolve types."
+  [types]
+  (let [ts (flatten-intersections types)]
+    (case (count ts)
+      0 r/-any
+      1 (first ts)
+      (r/Intersection-maker ts))))
 
 (declare RClass-of)
 
@@ -378,6 +381,23 @@
              :absent-keys (apply set/union (map :absent-keys [t1 t2]))
              :complete? (not-any? :other-keys? [t1 t2])))
 
+(defn intersect-CountRange
+  [t1 t2]
+  {:pre [(r/CountRange? t1)
+         (r/CountRange? t2)]
+   :post [(r/Type? %)]}
+  (let [lower (max (:lower t1)
+                   (:lower t2))
+        upper (if-some [upper1 (:upper t1)]
+                (if-some [upper2 (:upper t2)]
+                  (min upper1
+                       upper2)
+                  upper1)
+                (:upper t2))]
+    (if (and upper (< upper lower))
+      bottom
+      (r/make-CountRange lower upper))))
+
 (t/ann ^:no-check intersect [r/Type r/Type -> r/Type])
 (defn intersect [t1 t2]
   {:pre [(r/Type? t1)
@@ -385,67 +405,80 @@
          #_(not (r/Union? t1))
          #_(not (r/Union? t2))]
    :post [(r/Type? %)]}
-  (if-let [hit (@intersect-cache (set [t1 t2]))]
-    hit
-    (let [t (cond
-              ; Unchecked is "sticky" even though it's a subtype/supertype
-              ; of everything
-              (or (and (r/Unchecked? t1) (not (r/Unchecked? t2)))
-                  (and (not (r/Unchecked? t1)) (r/Unchecked? t2)))
-              (make-Intersection [t1 t2])
+  (let [cache-key (hash-set t1 t2)]
+    (if-let [hit (@intersect-cache cache-key)]
+      hit
+      (let [t (cond
+                ; Unchecked is "sticky" even though it's a subtype/supertype
+                ; of everything
+                (or (and (r/Unchecked? t1) (not (r/Unchecked? t2)))
+                    (and (not (r/Unchecked? t1)) (r/Unchecked? t2)))
+                (make-Intersection [t1 t2])
 
-              (and (r/HeterogeneousMap? t1)
-                   (r/HeterogeneousMap? t2))
-              (intersect-HMap t1 t2)
+                (and (r/HeterogeneousMap? t1)
+                     (r/HeterogeneousMap? t2))
+                (intersect-HMap t1 t2)
 
-              ;RClass's with the same base, intersect args pairwise
-              (and (r/RClass? t1)
-                   (r/RClass? t2)
-                   (= (:the-class t1) (:the-class t2)))
-              (let [args (map intersect (:poly? t1) (:poly? t2))]
-                ; if a new arg is bottom when none of the old args are bottom,
-                ; reduce type to bottom
-                (if (some (fn [[new [old1 old2]]]
-                            (and (not-any? #{(Un)} [old1 old2])
-                                 (#{(Un)} new)))
-                          (map vector args (map vector (:poly? t1) (:poly? t2))))
-                  (Un)
-                  (RClass-of (:the-class t1) args)))
+                ;RClass's with the same base, intersect args pairwise
+                (and (r/RClass? t1)
+                     (r/RClass? t2)
+                     (= (:the-class t1) (:the-class t2)))
+                (let [args (map intersect (:poly? t1) (:poly? t2))]
+                  ; if a new arg is bottom when none of the old args are bottom,
+                  ; reduce type to bottom 
+                  ;; FIXME is this sound? eg., (ISeq Num) ^ (ISeq Bool) = (ISeq Nothing)
+                  ;; but is not equivalent to Nothing. perhaps variance has influence here?
+                  (if (some (fn [[new old1 old2]]
+                              (and (not-any? #{bottom} [old1 old2])
+                                   (#{bottom} new)))
+                            (map vector args (:poly? t1) (:poly? t2)))
+                    (Un)
+                    (RClass-of (:the-class t1) args)))
 
-              (not (overlap t1 t2)) bottom
+                (and (r/CountRange? t1)
+                     (r/CountRange? t2))
+                (intersect-CountRange t1 t2)
 
-              (@subtype? t1 t2) t1
-              (@subtype? t2 t1) t2
-              :else (do
-                      #_(prn "failed to eliminate intersection" (make-Intersection [t1 t2]))
-                      (make-Intersection [t1 t2])))]
-      (swap! intersect-cache assoc (set [t1 t2]) t)
-      ;(prn "intersect miss" (ind/unparse-type t))
-      t)))
+                (not (overlap t1 t2)) bottom
 
-(t/ann ^:no-check flatten-intersections [(t/U nil (t/Seqable r/Type)) -> (t/Seqable r/Type)])
-(defn flatten-intersections [types]
+                (@subtype? t1 t2) t1
+                (@subtype? t2 t1) t2
+                :else (do
+                        #_(prn "failed to eliminate intersection" (make-Intersection [t1 t2]))
+                        (make-Intersection [t1 t2])))]
+        (swap! intersect-cache assoc cache-key t)
+        ;(prn "intersect miss" (ind/unparse-type t))
+        t))))
+
+(t/ann ^:no-check flatten-intersections [(t/U nil (t/Seqable r/Type)) -> (t/Set r/Type)])
+(defn flatten-intersections
+  "Does not resolve types."
+  [types]
   {:pre [(every? r/Type? types)]
-   :post [(every? r/Type? %)]}
-  (t/loop [work :- (t/Seqable r/Type), types
-           result :- (t/Seqable r/Type), []]
+   :post [(set? %)
+          (sorted? %)
+          (every? r/Type? %)]}
+  (loop [work types
+         result (sorted-set-by u/type-comparator)]
     (if (empty? work)
       result
-      (let [{intersections true non-intersections false} (group-by r/Intersection?
-                                                                   (map fully-resolve-type work))]
+      (let [{intersections true non-intersections false} (group-by r/Intersection? work)]
         (recur (mapcat :types intersections)
                (into result non-intersections))))))
 
-(t/ann ^:no-check flatten-unions [(t/U nil (t/Seqable r/Type)) -> (t/Seqable r/Type)])
-(defn flatten-unions [types]
+(t/ann ^:no-check flatten-unions [(t/U nil (t/Seqable r/Type)) -> (t/Set r/Type)])
+(defn flatten-unions
+  "Does not resolve types."
+  [types]
   {:pre [(every? r/Type? types)]
-   :post [(every? (every-pred r/Type? (complement r/Union?)) %)]}
-  (t/loop [work :- (t/Seqable r/Type), types
-           result :- (t/Seqable r/Type), []]
+   :post [(set? %)
+          (sorted? %)
+          (every? (every-pred r/Type? (complement r/Union?)) %)]}
+  (loop [work types
+         result (sorted-set-by u/type-comparator)]
     (if (empty? work)
       result
-      (let [{unions true non-unions false} (group-by r/Union?
-                                                     (map fully-resolve-non-rec-type work))]
+      (let [{unions true non-unions false} (group-by r/Union? work)]
         (recur (mapcat :types unions)
                (into result non-unions))))))
 
@@ -453,7 +486,7 @@
 (defn In [& types]
   {:pre [(every? r/Type? types)]
    :post [(r/Type? %)]}
-  (let [res (let [ts (set (flatten-intersections types))]
+  (let [res (let [ts (flatten-intersections (map fully-resolve-type types))]
               (cond
                 ; empty intersection is Top
                 (empty? ts) r/-any
@@ -464,16 +497,31 @@
                 (= 1 (count ts)) (first ts)
 
                 ; normalise (I t1 t2 (t/U t3 t4))
-                ; to (t/U (I t1 t2) (I t1 t2 t3) (t/U t1 t2 t4))
-                :else (let [{unions true non-unions false} (group-by r/Union? ts)
+                ; to (t/U (I t1 t2) (I t1 t2 t3) (t/I t1 t2 t4))
+                :else (let [{:keys [unions count-ranges hmaps non-unions]}
+                            (group-by (fn [t]
+                                        {:pre [(not (r/Intersection? t))]}
+                                        (cond
+                                          (r/Union? t) :unions
+                                          (r/CountRange? t) :count-ranges
+                                          (r/HeterogeneousMap? t) :hmaps
+                                          :else :non-unions))
+                                      ts)
+                            non-unions (concat non-unions
+                                               (some->> (seq count-ranges)
+                                                        (reduce intersect-CountRange)
+                                                        list)
+                                               (some->> (seq hmaps)
+                                                        (reduce intersect-HMap)
+                                                        list))
                             ;_ (prn "unions" (map ind/unparse-type unions))
                             ;_ (prn "non-unions" (map ind/unparse-type non-unions))
                             ;intersect all the non-unions to get a possibly-nil type
-                            intersect-non-unions (when (seq non-unions)
-                                                   (reduce intersect non-unions))
+                            intersect-non-unions (some->> (seq non-unions)
+                                                          (reduce intersect))
                             ;if we have an intersection above, use it to update each
                             ;member of the unions we're intersecting
-                            flat-unions (set (flatten-unions unions))
+                            flat-unions (flatten-unions unions)
                             intersect-union-ts (cond 
                                                  intersect-non-unions
                                                  (if (seq flat-unions)
@@ -488,13 +536,13 @@
                         (apply Un intersect-union-ts))))]
     res))
 
-(declare TypeFn* instantiate-poly instantiate-typefn abstract-many instantiate-many)
+(declare TypeFn* instantiate-typefn abstract-many instantiate-many)
 
 ;; JS Nominal
 
 (t/ann ^:no-check JSNominal*
   (t/IFn [t/Sym -> r/Type]
-      [(t/Seqable t/Sym) (t/Seqable r/Variance) (t/Seqable r/Type) t/Sym (t/Seqable Bounds) -> r/Type]))
+         [(t/Seqable t/Sym) (t/Seqable r/Variance) (t/Seqable r/Type) t/Sym (t/Seqable Bounds) -> r/Type]))
 (defn JSNominal* 
   ([name] (JSNominal* nil nil nil name nil))
   ([names variances poly? name bnds]
@@ -1494,6 +1542,15 @@
 
 (def ^:dynamic *overlap-seen* #{})
 
+(defn overlap-CountRange-KwArgsSeq?
+  [{:keys [lower upper] :as cr} kws]
+  {:pre [(r/CountRange? cr)
+         (r/KwArgsSeq? kws)]}
+  (or (-> kws :kw-args-regex :maybe-trailing-nilable-non-empty-map?)
+      (not= lower upper)
+      ;; an odd exact count without a trailing map derives a contradiction
+      (even? lower)))
+
 ;true if types t1 and t2 overlap (NYI)
 (t/ann ^:no-check overlap [r/Type r/Type -> t/Any])
 (defn overlap 
@@ -1624,6 +1681,13 @@
              (r/CountRange? t2)) 
         (countrange-overlap? t1 t2)
 
+        (and (r/CountRange? t1)
+             (r/KwArgsSeq? t2))
+        (overlap-CountRange-KwArgsSeq? t1 t2)
+        (and (r/CountRange? t2)
+             (r/KwArgsSeq? t1))
+        (overlap-CountRange-KwArgsSeq? t2 t1)
+
         (and (r/HeterogeneousMap? t1)
              (r/HeterogeneousMap? t2)) 
         (let [common-mkeys (set/intersection 
@@ -1632,12 +1696,12 @@
           (cond 
             ; if there is an intersection in the mandatory keys
             ; each entry in common should overlap
-            (not (empty? common-mkeys))
-            (every? identity
-                    (for [[k1 v1] (select-keys (:types t1) common-mkeys)]
+            (seq common-mkeys)
+            (every? (fn [[k1 v1]]
                       (let [v2 ((:types t2) k1)]
                         (assert v2)
-                        (overlap v1 v2))))
+                        (overlap v1 v2)))
+                    (select-keys (:types t1) common-mkeys))
             ;TODO more cases. incorporate completeness
             :else true))
 
@@ -2370,11 +2434,11 @@
       (r/Record? t) (find-val-type (Record->HMap t) k default)
 
       (r/Intersection? t) (apply In 
-                               (for [t* (:types t)]
-                                 (find-val-type t* k default)))
+                                 (for [t* (:types t)]
+                                   (find-val-type t* k default)))
       (r/Union? t) (apply Un
-                        (for [t* (:types t)]
-                          (find-val-type t* k default)))
+                          (for [t* (:types t)]
+                            (find-val-type t* k default)))
       (r/RClass? t)
       (->
         (ind/check-funapp nil nil (r/ret (ind/parse-type 
