@@ -508,6 +508,7 @@
                                           :else :non-unions))
                                       ts)
                             non-unions (concat non-unions
+                                               ;; FIXME hmm some of these can return unions... 
                                                (some->> (seq count-ranges)
                                                         (reduce intersect-CountRange)
                                                         list)
@@ -2211,6 +2212,12 @@
   {:pre [(r/KwArgsArray? kws)]
    :post [(r/Type? %)]}
   (KwArgs->HMap (:kw-args-regex kws)))
+
+(t/ann KwArgsSeq->KwArgsArray [KwArgsSeq :-> KwArgsArray])
+(defn KwArgsSeq->KwArgsArray [kws]
+  {:pre [(r/KwArgsSeq? kws)]
+   :post [(r/KwArgsArray? %)]}
+  (r/KwArgsArray-maker (:kw-args-regex kws)))
 
 (t/ann HMap->KwArgsSeq [HeterogeneousMap Boolean -> r/Type])
 (defn HMap->KwArgsSeq [kws]

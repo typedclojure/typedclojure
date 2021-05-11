@@ -758,6 +758,38 @@
                                   obj/-empty)
                            expected)))))
 
+;to-array
+(defmethod -invoke-special 'clojure.core/to-array
+  [{:keys [args] :as expr} expected]
+  {:post [(or (nil? %)
+              (and (-> % u/expr-type r/TCResult?)
+                   (vector? (:args %))))]}
+  (when (#{1} (count args)) 
+    (let [[ctarget :as cargs] (mapv check-expr args)
+          targett (-> ctarget u/expr-type r/ret-t)]
+      (cond
+        ;; handle seq-to-map-for-destructuring expansion introduced in Clojure 1.11
+        (sub/subtype? targett r/-any-kw-args-seq)
+        (let [res (reduce (fn [t union-t]
+                            (if-some [intersection-ts
+                                      (seq (keep #(do (assert ((some-fn r/KwArgsSeq? r/CountRange?)
+                                                               %)
+                                                              (print-str "TODO" (class %)))
+                                                      (when (r/KwArgsSeq? %)
+                                                        (c/KwArgsSeq->KwArgsArray %)))
+                                                 (c/flatten-intersections [union-t])))]
+                              (c/Un t (apply c/In intersection-ts))
+                              t))
+                          (c/Un)
+                          (c/flatten-unions [targett]))
+              _ (assert (not (sub/subtype? res (c/Un)))
+                        targett)]
+          (assoc expr
+                 :args cargs
+                 u/expr-type (below/maybe-check-below
+                               (r/ret res)
+                               expected)))))))
+
 ;get
 (defmethod -invoke-special 'clojure.core/get
   [{fexpr :fn :keys [args] :as expr} expected]
@@ -783,7 +815,7 @@
     (binding [vs/*current-expr* expr]
       (let [{[target] :args :as expr} (-> expr
                                           (update :args #(mapv check-expr %)))
-            targett (-> target u/expr-type r/ret-t)]
+            targett (-> target u/expr-type r/ret-t c/fully-resolve-type)]
         (cond
           (and (sub/subtype? targett (c/Un r/-nil r/-any-kw-args-seq))
                (not (sub/subtype? targett r/-nil)))
@@ -824,6 +856,29 @@
                 (assoc u/expr-type (below/maybe-check-below
                                      (r/ret res)
                                      expected)))))))))
+
+(defmethod -host-call-special '[:static-call clojure.lang.PersistentArrayMap/createAsIfByAssoc]
+  [expr expected]
+  {:pre [(#{:host-call} (:op expr))
+         (every? (comp #{:unanalyzed} :op) (:args expr))]
+   :post [(or (nil? %)
+              (and (-> % u/expr-type r/TCResult?)
+                   (-> % :target u/expr-type r/TCResult?)))]}
+  (when (#{1} (count (:args expr)))
+    (binding [vs/*current-expr* expr]
+      (let [{[target] :args :as expr} (-> expr
+                                          (update :args #(mapv check-expr %)))
+            targett (-> target u/expr-type r/ret-t c/fully-resolve-type)]
+        (cond
+          ;; handle seq-to-map-for-destructuring expansion, which always passes
+          ;; the result of to-array
+          (r/KwArgsArray? targett)
+          (-> expr
+              (update :target check-expr)
+              (assoc u/expr-type (below/maybe-check-below
+                                   (r/ret (c/KwArgsArray->HMap targett)
+                                          (fo/-true-filter))
+                                   expected))))))))
 
 (defmethod -check :prim-invoke
   [expr expected]

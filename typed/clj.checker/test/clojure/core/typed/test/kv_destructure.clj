@@ -28,8 +28,9 @@
              (let* [map__65083 args
                     map__65083 (if (seq? map__65083) 
                                  (if (next map__65083)
-                                   ;; TODO
-                                   (throw (ex-info "" {}))
+                                   (do
+                                     (t/ann-form map__65083 (t/CountRange 1))
+                                     (clojure.lang.PersistentArrayMap/createAsIfByAssoc (to-array map__65083)))
                                    (do
                                      (t/ann-form map__65083 (t/CountRange 0 1))
                                      (if (seq map__65083)

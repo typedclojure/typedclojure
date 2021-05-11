@@ -33,7 +33,7 @@
                                         PrimitiveArray DataType Protocol TypeFn Poly PolyDots
                                         Mu HeterogeneousMap
                                         CountRange Name Value Top TypeOf Unchecked TopFunction B F Result AnyValue
-                                        KwArgsSeq TCError Extends JSNumber JSBoolean SymbolicClosure
+                                        KwArgsSeq KwArgsArray TCError Extends JSNumber JSBoolean SymbolicClosure
                                         CLJSInteger ArrayCLJS JSNominal JSString TCResult AssocType
                                         GetType HSequential HSet JSUndefined JSNull JSSymbol JSObject
                                         JSObj)
@@ -1865,6 +1865,16 @@
              (when (c/complete-hmap? v)
                [:complete? true])))))
 
+(defn unparse-KwArgs-trailing [v]
+  {:pre [(r/KwArgs? v)]}
+  (concat
+    (when (seq (:optional v))
+      [:optional (unparse-map-of-types (:optional v))])
+    (when (seq (:mandatory v))
+      [:mandatory (unparse-map-of-types (:mandatory v))])
+    (when (:complete? v)
+      [:complete? (:complete? v)])))
+
 (defn unparse-heterogeneous* [sym {:keys [types rest drest fs objects repeat] :as v}]
   (let [first-part (concat
                      (map unparse-type (:types v))
@@ -1899,17 +1909,15 @@
     {:pre [(every? r/Value? fixed)]}
     (list (unparse-Name-symbol-in-ns `t/HSet) (set (map :val fixed))))
 
+  KwArgsArray
+  (unparse-type* 
+    [{v :kw-args-regex}]
+    (list* 'KwArgsArray (unparse-KwArgs-trailing v)))
+
   KwArgsSeq
   (unparse-type* 
     [{v :kw-args-regex}]
-    (list* 'KwArgsSeq 
-           (concat
-             (when (seq (:optional v))
-               [:optional (unparse-map-of-types (:optional v))])
-             (when (seq (:mandatory v))
-               [:mandatory (unparse-map-of-types (:mandatory v))])
-             (when (:complete? v)
-               [:complete? (:complete? v)]))))
+    (list* 'KwArgsSeq (unparse-KwArgs-trailing v)))
 
   AssocType
   (unparse-type* 
