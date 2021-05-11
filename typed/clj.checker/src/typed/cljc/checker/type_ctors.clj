@@ -171,41 +171,40 @@
           (pr-str complete?))
   ; simplifies to bottom with contradictory keys
   (cond 
-    (or (seq (set/intersection (set (keys mandatory))
-                               (set absent-keys)))
-        (some #{bottom} (concat (vals mandatory)
-                                ;; FIXME optional entries mapping to bottom
-                                ;; should be promoted to absent, not cause
-                                ;; the entire type to be bottom!
-                                (vals optional))))
-      bottom
-
-    (not
-      (every? allowed-hmap-key?
-              (concat (keys mandatory)
-                      (keys optional)
-                      absent-keys)))
-      (upcast-hmap* mandatory optional absent-keys complete?)
+    (not-every? allowed-hmap-key?
+                (concat (keys mandatory)
+                        (keys optional)
+                        absent-keys))
+    (upcast-hmap* mandatory optional absent-keys complete?)
 
     :else
-      (let [optional-now-mandatory (set/intersection
-                                     (set (keys optional))
-                                     (set (keys mandatory)))
-            optional-now-absent (set/intersection
-                                  (set (keys optional))
-                                  absent-keys)
-            _ (assert (empty? 
-                        (set/intersection optional-now-mandatory
-                                          optional-now-absent)))]
-        (r/HeterogeneousMap-maker 
-          (merge-with In mandatory (select-keys optional optional-now-mandatory))
-          (apply dissoc optional (set/union optional-now-absent
-                                            optional-now-mandatory))
+    (let [optional-now-mandatory (set/intersection
+                                   (set (keys optional))
+                                   (set (keys mandatory)))
+          optional-now-absent (set/intersection
+                                (set (keys optional))
+                                absent-keys)
+          _ (assert (empty? 
+                      (set/intersection optional-now-mandatory
+                                        optional-now-absent)))
+          mandatory (merge-with In mandatory (select-keys optional optional-now-mandatory))
+          optional (apply dissoc optional (set/union optional-now-absent
+                                                     optional-now-mandatory))
           ; throw away absents if complete
-          (if complete?
-            #{}
-            (set/union absent-keys optional-now-absent))
-          (not complete?)))))
+          absent (if complete?
+                   #{}
+                   (set/union absent-keys optional-now-absent))]
+      (cond
+        (or (seq (set/intersection (set (keys mandatory))
+                                   (set absent-keys)))
+            (some #{bottom} (vals mandatory)))
+        bottom
+
+        :else (r/HeterogeneousMap-maker 
+                mandatory
+                optional
+                absent
+                (not complete?))))))
 
 ;TODO to type check this, need to un-munge instance field names
 (t/ann complete-hmap? [HeterogeneousMap -> Boolean])
