@@ -68,7 +68,7 @@
     (c/Un r/-nil
           (c/In t
                 (r/make-CountRange 1)))
-    (c/-name `t/NilableNonEmptyASeq t/Any)))
+    (c/-name `t/NilableNonEmptyASeq r/-any)))
 
 (defn nthrest-type [t n]
   {:pre [(r/Type? t)
@@ -143,35 +143,29 @@
       (let [res (r/ret t
                        (if (ind/subtype? t (c/Un r/-nil (c/-name `t/Coll r/-any)))
                          (cond
-                           ; persistent clojure.core/seq arities
-                           (= nnexts 0) (cond
-                                          ; first arity of `seq
-                                          ;[(NonEmptyColl x) -> (NonEmptyASeq x) :filters {:then tt :else ff}]
-                                          (ind/subtype? t (c/-name `t/NonEmptyColl r/-any)) (fo/-true-filter)
+                           ; first arity of `seq
+                           ;[(NonEmptyColl x) -> (NonEmptyASeq x) :filters {:then tt :else ff}]
+                           (ind/subtype? t (r/make-CountRange (inc nnexts))) (fo/-true-filter)
 
-                                          ; handle empty collection with no object
-                                          (and (= orep/-empty (:o target-ret))
-                                               (ind/subtype? t (c/Un r/-nil (c/-name `t/EmptyCount))))
-                                          (fo/-false-filter)
+                           ; handle empty collection with no object
+                           (and (= orep/-empty (:o target-ret))
+                                (ind/subtype? t (c/Un r/-nil (r/make-CountRange 0 nnexts))))
+                           (fo/-false-filter)
 
-                                          ; second arity of `seq
-                                          ;[(Option (Coll x)) -> (Option (NonEmptyASeq x))
-                                          ; :filters {:then (& (is NonEmptyCount 0)
-                                          ;                    (! nil 0))
-                                          ;           :else (| (is nil 0)
-                                          ;                    (is EmptyCount 0))}]
-                                          :else (fo/-FS (fo/-and (fo/-filter-at (c/-name `t/NonEmptyCount)
-                                                                                (:o target-ret))
-                                                                 (fo/-not-filter-at r/-nil
-                                                                                    (:o target-ret)))
-                                                        (fo/-or (fo/-filter-at r/-nil
-                                                                               (:o target-ret))
-                                                                (fo/-filter-at (c/-name `t/EmptyCount)
-                                                                               (:o target-ret)))))
-                           ;; TODO generalize above special cases to all nnexts
-                           (ind/subtype? t r/-nil) (fo/-false-filter)
-                           (not (ind/subtype? r/-nil t)) (fo/-true-filter)
-                           :else (fo/-simple-filter))
+                           ; second arity of `seq
+                           ;[(Option (Coll x)) -> (Option (NonEmptyASeq x))
+                           ; :filters {:then (& (is NonEmptyCount 0)
+                           ;                    (! nil 0))
+                           ;           :else (| (is nil 0)
+                           ;                    (is EmptyCount 0))}]
+                           :else (fo/-FS (fo/-and (fo/-filter-at (r/make-CountRange (inc nnexts))
+                                                                 (:o target-ret))
+                                                  (fo/-not-filter-at r/-nil
+                                                                     (:o target-ret)))
+                                         (fo/-or (fo/-filter-at r/-nil
+                                                                (:o target-ret))
+                                                 (fo/-filter-at (r/make-CountRange 0 nnexts)
+                                                                (:o target-ret)))))
                          (fo/-simple-filter)))]
       (-> expr
           (update :fn check-fn)

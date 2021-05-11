@@ -11,7 +11,9 @@
        (ann-form body (HSeq [Long])))))
 
   (is-tc-e
-   (ann-form (nthnext nil 1) nil)))
+   (ann-form (nthnext nil 1) nil))
+
+  )
 
 (deftest nthnext-test-input-types
   (testing "HVec"
@@ -123,3 +125,43 @@
      (fn [stmt :- '[Any Long *]]
        (let [[_ & body] stmt]
          (ann-form body (t/Option (HSeq [Long *]))))))))
+
+(deftest nthnext-update-test
+  (is-tc-e
+    (fn [c :- (t/Seq t/Num)]
+      (if (seq c)
+        (do (t/ann-form c (t/CountRange 1))
+            (t/ann-form (first c) t/Num))
+        (do (t/ann-form c (t/ExactCount 0))
+            (t/ann-form (first c) nil)))))
+  (is-tc-e
+    (fn [c :- nil]
+      (when (seq c)
+        (t/ann-form :unreachable (t/U)))))
+  (is-tc-e
+    (fn [c :- nil]
+      (when (next c)
+        (t/ann-form :unreachable (t/U)))))
+  (is-tc-e
+    (fn [c :- (t/Seq t/Num)]
+      (if (next c)
+        (do (t/ann-form c (t/CountRange 2))
+            (t/ann-form (first c) t/Num))
+        (do (t/ann-form c (t/CountRange 0 1))
+            (t/ann-form (first c) (t/U nil t/Num))))))
+  (is-tc-e
+    (fn [c :- (t/Seq t/Num)]
+      (if (nthnext c 1)
+        (do (t/ann-form c (t/CountRange 2))
+            (t/ann-form (first c) t/Num))
+        (do (t/ann-form c (t/CountRange 0 1))
+            (t/ann-form (first c) (t/U nil t/Num))))))
+  (is-tc-e
+    (fn [c :- (t/Seq t/Num)]
+      (if (next c)
+        (t/ann-form c (t/CountRange 2))
+        (do
+          (t/ann-form c (t/CountRange 0 1))
+          (if (seq c)
+            (t/ann-form c (t/ExactCount 1))
+            (t/ann-form c (t/ExactCount 0))))))))
