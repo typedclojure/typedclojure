@@ -3,7 +3,7 @@
  {org.clojure/clojure {:mvn/version "1.10.3"},
   org.clojure/core.cache {:mvn/version "1.0.207"},
   org.typedclojure/typed.clj.analyzer {:local/root "../clj.analyzer" :deps/manifest :deps},
-  typed.clj/lang {:local/root "../clj.lang" :deps/manifest :deps},
+  org.typedclojure/typed.clj.lang {:local/root "../clj.lang" :deps/manifest :deps},
   typed.lib/clojure {:local/root "../lib.clojure" :deps/manifest :deps},
   org.typedclojure/typed.clj.runtime {:local/root "../clj.runtime" :deps/manifest :deps},
   org.clojure/math.combinatorics {:mvn/version "0.1.6", :exclusions [org.clojure/clojure]},
