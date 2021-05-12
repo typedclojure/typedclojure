@@ -65,7 +65,7 @@ See modules for specific version coordinates:
 ### ClojureScript implementation (Work in progress)
 
 * [typed.cljs.analyzer](typed/cljs.analyzer/README.md): Analyzer for JS Clojure (unreleased)
-* [typed.cljs/checker](typed/cljs.checker/README.md): The JS type checker (unreleased)
+* [typed.cljs.checker](typed/cljs.checker/README.md): The JS type checker (unreleased)
 
 ### Implementation-agnostic
 

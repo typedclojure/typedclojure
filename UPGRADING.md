@@ -13,6 +13,7 @@ typed.clj/lang => org.typedclojure/typed.clj.lang
 typed.clj/spec => org.typedclojure/typed.clj.spec
 
 typed.cljs/analyzer => org.typedclojure/typed.cljs.analyzer
+typed.cljs/checker => org.typedclojure/typed.cljs.checker
 ```
 
 # From typedclojure 1.0.7 to typedclojure 1.0.10
