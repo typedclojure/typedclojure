@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>typed.clj</groupId>
-  <artifactId>checker</artifactId>
-  <name>typed.clj/checker</name>
+  <groupId>org.typedclojure</groupId>
+  <artifactId>typed.clj.checker</artifactId>
+  <name>typed.clj.checker</name>
   <description>An optional type system for Clojure — full system for annotating and type-checking.</description>
   <version>1.0.15-SNAPSHOT</version>
 

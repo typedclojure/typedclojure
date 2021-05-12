@@ -14,8 +14,9 @@
                                org.clojure/core.async {:mvn/version "1.3.610"}
                                typed.clj/runtime {:local/root "../clj.runtime"
                                                   :deps/manifest :deps}
-                               typed.clj/checker {:local/root "../clj.checker"
-                                                  :deps/manifest :deps}}
+                               org.typedclojure/typed.clj.checker
+                               {:local/root "../clj.checker"
+                                :deps/manifest :deps}}
                   :extra-paths ["test"]}
            :codox
            {:extra-deps {codox/codox {:mvn/version "0.10.7"}}

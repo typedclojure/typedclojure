@@ -14,7 +14,7 @@ Change the following coordinates:
 
 ```
 typed/runtime.jvm => typed.clj/runtime
-typed/checker.jvm => typed.clj/checker
+typed/checker.jvm => org.typedclojure/typed.clj.checker
 typed/analyzer.jvm => typed.clj/analyzer
 ```
 

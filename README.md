@@ -29,7 +29,7 @@ In Clojure CLI's `deps.edn`, this will look something like this:
 
 ```clojure
 {:deps {typed.clj/runtime {:mvn/version "1.0.14"}}
- :aliases {:dev {:extra-deps {typed.clj/checker {:mvn/version "1.0.14"}}}}}
+ :aliases {:dev {:extra-deps {org.typedclojure/typed.clj.checker {:mvn/version "1.0.14"}}}}}
 ```
 
 You can then start a dev repl with `clj -A:dev`.
@@ -39,7 +39,7 @@ In Leiningen's `project.clj`, something like this:
 ```clojure
 (defproject a-project "0.0.1-SNAPSHOT"
   :dependencies [[typed.clj/runtime "1.0.14"]]
-  :profiles {:dev {:dependencies [[typed.clj/checker "1.0.14"]]}})
+  :profiles {:dev {:dependencies [[org.typedclojure/typed.clj.checker "1.0.14"]]}})
 ```
 
 Then, `lein repl` will automatically activate the `:dev` profile. Verify the type
@@ -53,7 +53,7 @@ See modules for specific version coordinates:
 
 ### Clojure implementation
 
-* [typed.clj/checker](typed/clj.checker/README.md): The JVM type checker
+* [typed.clj.checker](typed/clj.checker/README.md): The JVM type checker
 * [typed.clj/runtime](typed/clj.runtime/README.md): JVM Runtime dependencies
 * [typed.clj/analyzer](typed/clj.analyzer/README.md): Analyzer for JVM Clojure
 * [typed.clj/annotator](typed/clj.annotator/README.md): Automatic annotator
