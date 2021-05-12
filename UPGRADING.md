@@ -16,6 +16,7 @@ typed.cljs/analyzer => org.typedclojure/typed.cljs.analyzer
 typed.cljs/checker => org.typedclojure/typed.cljs.checker
 
 typed.lib/clojure => org.typedclojure/typed.lib.clojure
+typed.lib/core.async => org.typedclojure/typed.lib.core.async
 ```
 
 # From typedclojure 1.0.7 to typedclojure 1.0.10
