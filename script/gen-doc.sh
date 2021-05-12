@@ -5,8 +5,8 @@ set -e
 mkdir -p target/codox
 
 for d in typed/* ; do
-  echo "$d"
   if [ -d "$d" ]; then
+    echo "$d"
     cd $d
     ./script/gen-doc.sh
     cd ../..

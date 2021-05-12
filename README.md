@@ -28,7 +28,7 @@ time, and the runtime dependencies in production.
 In Clojure CLI's `deps.edn`, this will look something like this:
 
 ```clojure
-{:deps {typed.clj/runtime {:mvn/version "1.0.15"}}
+{:deps {org.typedclojure/typed.clj.runtime {:mvn/version "1.0.15"}}
  :aliases {:dev {:extra-deps {org.typedclojure/typed.clj.checker {:mvn/version "1.0.15"}}}}}
 ```
 
@@ -38,7 +38,7 @@ In Leiningen's `project.clj`, something like this:
 
 ```clojure
 (defproject a-project "0.0.1-SNAPSHOT"
-  :dependencies [[typed.clj/runtime "1.0.15"]]
+  :dependencies [[org.typedclojure/typed.clj.runtime "1.0.15"]]
   :profiles {:dev {:dependencies [[org.typedclojure/typed.clj.checker "1.0.15"]]}})
 ```
 
