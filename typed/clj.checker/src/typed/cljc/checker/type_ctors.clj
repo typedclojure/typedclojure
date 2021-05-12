@@ -230,7 +230,7 @@
                    (Protocol-of 'cljs.core/ICollection [tp])
                    (Protocol-of 'cljs.core/ISeqable [tp])))))
 
-; Should update this with prest
+; TODO Should update this with prest
 (t/ann ^:no-check upcast-HSequential [HSequential -> r/Type])
 (defn upcast-HSequential [{:keys [types rest drest kind] :as hsequential}]
   {:pre [(r/HSequential? hsequential)]
@@ -1568,6 +1568,21 @@
 
 (def ^:dynamic *overlap-seen* #{})
 
+(defn overlap-CountRange-KwArgsSeq?
+  [A {:keys [lower upper] :as cr} kws]
+  {:pre [(r/CountRange? cr)
+         (r/KwArgsSeq? kws)]
+   :post [(boolean? %)]}
+  (prn "overlap-CountRange-KwArgsSeq?" kws cr)
+  (if (not (overlap (upcast-kw-args-seq kws) cr))
+    false
+    ;; seq has even numbered count without trailing map
+    (or (-> kws :kw-args-regex :maybe-trailing-nilable-non-empty-map? boolean)
+        (not= lower upper)
+        (let [exact-count lower]
+          ;; an odd exact count without a trailing map derives a contradiction
+          (even? exact-count)))))
+
 ;true if types t1 and t2 overlap (NYI)
 (t/ann ^:no-check overlap [r/Type r/Type -> t/Any])
 (defn overlap 
@@ -1698,11 +1713,12 @@
              (r/CountRange? t2)) 
         (countrange-overlap? t1 t2)
 
-        (r/KwArgsSeq? t1)
-        (overlap (upcast-kw-args-seq t1) t2)
-
-        (r/KwArgsSeq? t2)
-        (overlap t1 (upcast-kw-args-seq t2))
+        (and (r/CountRange? t1)
+             (r/KwArgsSeq? t2))
+        (overlap-CountRange-KwArgsSeq? A t1 t2)
+        (and (r/CountRange? t2)
+             (r/KwArgsSeq? t1))
+        (overlap-CountRange-KwArgsSeq? A t2 t1)
 
         (and (r/HeterogeneousMap? t1)
              (r/HeterogeneousMap? t2)) 

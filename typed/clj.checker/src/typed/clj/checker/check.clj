@@ -767,7 +767,7 @@
   (when (#{1} (count args)) 
     (let [[ctarget :as cargs] (mapv check-expr args)
           targett (-> ctarget u/expr-type r/ret-t)]
-      (prn "to-array" targett)
+      ;(prn "to-array" targett)
       (cond
         ;; handle seq-to-map-for-destructuring expansion introduced in Clojure 1.11
         (sub/subtype? targett r/-any-kw-args-seq)

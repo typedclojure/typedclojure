@@ -144,8 +144,20 @@
   (is-clj (overlap (make-F 'b)
                    (make-F 'a))))
 
+;; TODO add tests for trailing map arg :maybe-trailing-nilable-non-empty-map?
 (deftest overlap-CountRange-KwArgsSeq-test
+  ;; (I (KwArgsSeq :mandatory {:foo Any}) (CountRange 1))
+  ;; simplifies to (KwArgsSeq :mandatory {:foo Any})--because
+  ;; it already has (CountRange 2) implicitly--so types like
+  ;; this must not overlap as it's equivalent to (I (CountRange 0 1) (CountRange 2))
   (is-clj (not
             (overlap
               (make-CountRange 0 1)
-              (-kw-args-seq :mandatory {(-val :foo) -any})))))
+              (-kw-args-seq :mandatory {(-val :foo) -any}))))
+  ;; optional entries only, so knows nothing about its count except it's
+  ;; even. this needs to be manually handled since there are currently
+  ;; no types representing even-counted collections.
+  (is-clj (not
+            (overlap
+              (make-CountRange 1 1)
+              (-kw-args-seq :optional {(-val :foo) -any})))))
