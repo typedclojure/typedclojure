@@ -226,8 +226,8 @@
         <version>1.0.15-SNAPSHOT</version>
       </dependency>
       <dependency>
-        <groupId>typed.clj</groupId>
-        <artifactId>annotator</artifactId>
+        <groupId>org.typedclojure</groupId>
+        <artifactId>typed.clj.annotator</artifactId>
         <version>1.0.15-SNAPSHOT</version>
       </dependency>
       <dependency>

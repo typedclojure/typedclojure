@@ -6,6 +6,7 @@ Change the following coordinates:
 typed.clj/checker => org.typedclojure/typed.clj.checker
 typed.clj/runtime => org.typedclojure/typed.clj.runtime
 typed.clj/analyzer => org.typedclojure/typed.clj.analyzer
+typed.clj/annotator => org.typedclojure/typed.clj.annotator
 ```
 
 # From typedclojure 1.0.7 to typedclojure 1.0.10
