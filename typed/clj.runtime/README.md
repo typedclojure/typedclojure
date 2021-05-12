@@ -8,12 +8,12 @@ Runtime dependency needed to annotate Typed Clojure code in JVM Clojure.
 
 Latest stable release is 1.0.14.
 
-* [All Released Versions](https://clojars.org/typed.clj/runtime)
+* [All Released Versions](https://clojars.org/org.typedclojure/typed.clj.runtime)
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) JAR dependency information:
 
 ```clj
-  typed.clj/runtime {:mvn/version "1.0.14"}
+  org.typedclojure/typed.clj.runtime {:mvn/version "1.0.14"}
  ```
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) Git dependency information:
@@ -21,23 +21,24 @@ Latest stable release is 1.0.14.
 - Note: use `clj -Sresolve` to resolve the `:tag` to a `:sha`
 
 ```clj
-  typed.clj/runtime {:git/url "https://github.com/clojure/core.typed"
-                     :deps/root "typed/clj.runtime"
-                     :tag "1.0.14"}
+  org.typedclojure/typed.clj.runtime
+  {:git/url "https://github.com/typedclojure/typedclojure"
+   :deps/root "typed/clj.runtime"
+   :tag "1.0.14"}
 ```
 
 [Leiningen](https://github.com/technomancy/leiningen) dependency information:
 
 ```clojure
-[typed.clj/runtime "1.0.14"]
+[org.typedclojure/typed.clj.runtime "1.0.14"]
 ```
 
 [Maven](https://maven.apache.org/) dependency information:
 
 ```XML
 <dependency>
-  <groupId>typed.clj</groupId>
-  <artifactId>runtime</artifactId>
+  <groupId>org.typedclojure</groupId>
+  <artifactId>typed.clj.runtime</artifactId>
   <version>1.0.14</version>
 </dependency>
 ```

@@ -14,8 +14,9 @@
                                typed.clj/spec {:local/root "../clj.spec"
                                                :deps/manifest :deps}
                                org.clojure/test.check {:mvn/version "1.0.0"}
-                               typed.clj/runtime {:local/root "../clj.runtime"
-                                                  :deps/manifest :deps}
+                               org.typedclojure/typed.clj.runtime
+                               {:local/root "../clj.runtime"
+                                :deps/manifest :deps}
                                typed.cljc/analyzer {:local/root "../cljc.analyzer"
                                                     :deps/manifest :deps}
                                typed.clj/analyzer {:local/root "../clj.analyzer"

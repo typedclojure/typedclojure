@@ -2,8 +2,8 @@
  :deps {org.clojure/clojure {:mvn/version "1.10.3"}
         org.typedclojure/typed.clj.checker {:local/root "../clj.checker"
                                             :deps/manifest :deps}
-        typed.clj/runtime {:local/root "../clj.runtime"
-                           :deps/manifest :deps}
+        org.typedclojure/typed.clj.runtime {:local/root "../clj.runtime"
+                                            :deps/manifest :deps}
         org.clojure/clojurescript {:mvn/version "1.10.764"}}
  :aliases {:nREPL
            {:extra-paths ["script"]

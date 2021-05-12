@@ -24,8 +24,8 @@
 
   <dependencies>
     <dependency>
-      <groupId>typed.clj</groupId>
-      <artifactId>runtime</artifactId>
+      <groupId>org.typedclojure</groupId>
+      <artifactId>typed.clj.runtime</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>

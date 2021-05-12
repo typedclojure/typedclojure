@@ -1,3 +1,12 @@
+# From typedclojure 1.0.14 to typedclojure 1.0.15
+
+Change the following coordinates:
+
+```
+typed.clj/checker => org.typedclojure/typed.clj.checker
+typed.clj/runtime => org.typedclojure/typed.clj.runtime
+```
+
 # From typedclojure 1.0.7 to typedclojure 1.0.10
 
 Change the following coordinates:
@@ -14,7 +23,7 @@ Change the following coordinates:
 
 ```
 typed/runtime.jvm => typed.clj/runtime
-typed/checker.jvm => org.typedclojure/typed.clj.checker
+typed/checker.jvm => typed.clj/checker
 typed/analyzer.jvm => typed.clj/analyzer
 ```
 

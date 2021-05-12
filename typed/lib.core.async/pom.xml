@@ -32,8 +32,8 @@
       <artifactId>core.async</artifactId>
     </dependency>
     <dependency>
-      <groupId>typed.clj</groupId>
-      <artifactId>runtime</artifactId>
+      <groupId>org.typedclojure</groupId>
+      <artifactId>typed.clj.runtime</artifactId>
     </dependency>
   </dependencies>
 </project>

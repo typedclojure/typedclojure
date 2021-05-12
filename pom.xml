@@ -206,13 +206,13 @@
         <version>1.0.15-SNAPSHOT</version>
       </dependency>
       <dependency>
-        <groupId>typed.clj</groupId>
-        <artifactId>checker</artifactId>
+        <groupId>org.typedclojure</groupId>
+        <artifactId>typed.clj.checker</artifactId>
         <version>1.0.15-SNAPSHOT</version>
       </dependency>
       <dependency>
-        <groupId>typed.clj</groupId>
-        <artifactId>runtime</artifactId>
+        <groupId>org.typedclojure</groupId>
+        <artifactId>typed.clj.runtime</artifactId>
         <version>1.0.15-SNAPSHOT</version>
       </dependency>
       <dependency>
