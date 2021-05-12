@@ -68,7 +68,3 @@
   (ann-form [a b c] (t/Seqable Number))
   (ann-form d (t/U nil (t/Seqable Number)))
   (ann-form e (t/Seqable Number)))
-
-;flexible map destructing
-(let [{:keys [a]} (ann-form '() (t/U nil (t/Seq t/Any)))]
-  a)

@@ -1310,10 +1310,14 @@
   (is-tc-e
     (seq '(1 2 3))
     (HSeq [Num Num Num]))
-  ;; FIXME
   (is-tc-e
     (let [[a b c & d :as e] '(1 2 3 4 5 6 7)]
-      (ann-form d (t/Seqable Number))))
+      (ann-form a (t/Val 1))
+      (ann-form b (t/Val 2))
+      (ann-form c (t/Val 3))
+      (ann-form d (t/HSeq [(t/Val 4) (t/Val 5) (t/Val 6) (t/Val 7)]))
+      (ann-form e (t/HSeq [(t/Val 1) (t/Val 2) (t/Val 3)
+                           (t/Val 4) (t/Val 5) (t/Val 6) (t/Val 7)]))))
 
   (is (check-ns 'clojure.core.typed.test.destructure)))
 
