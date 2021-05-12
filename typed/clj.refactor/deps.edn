@@ -2,7 +2,8 @@
  :deps {org.clojure/clojure {:mvn/version "1.10.3"}
         org.typedclojure/typed.clj.analyzer {:local/root "../clj.analyzer"
                                              :deps/manifest :deps}
-        typed.clj/reader {:local/root "../clj.reader" :deps/manifest :deps}}
+        org.typedclojure/typed.clj.reader {:local/root "../clj.reader"
+                                           :deps/manifest :deps}}
  :aliases {:nREPL
            {:extra-deps
             {nrepl/nrepl {:mvn/version "0.8.3"}
