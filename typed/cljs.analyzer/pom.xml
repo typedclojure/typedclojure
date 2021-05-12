@@ -16,8 +16,8 @@
   </licenses>
 
   <parent>
-    <groupId>typed</groupId>
-    <artifactId>pom</artifactId>
+    <groupId>org.typedclojure</groupId>
+    <artifactId>pom.typed</artifactId>
     <version>1.0.15-SNAPSHOT</version>
     <relativePath>../..</relativePath>
   </parent>
