@@ -1,4 +1,4 @@
-# typed.clj/runtime
+# typed.clj.runtime
 
 <a href='http://typedclojure.org'><img src='images/part-of-typed-clojure-project.png'></a>
 

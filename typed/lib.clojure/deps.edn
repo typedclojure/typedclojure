@@ -19,8 +19,8 @@
                                 :deps/manifest :deps}
                                typed.cljc/analyzer {:local/root "../cljc.analyzer"
                                                     :deps/manifest :deps}
-                               typed.clj/analyzer {:local/root "../clj.analyzer"
-                                                   :deps/manifest :deps}}
+                               org.typedclojure/typed.clj.analyzer {:local/root "../clj.analyzer"
+                                                                    :deps/manifest :deps}}
                   :extra-paths ["test"]}
            :codox
            {:extra-deps {codox/codox {:mvn/version "0.10.7"}}
