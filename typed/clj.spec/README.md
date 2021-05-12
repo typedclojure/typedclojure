@@ -1,4 +1,4 @@
-# typed.clj/spec
+# typed.clj.spec
 
 <a href='http://typedclojure.org'><img src='../../doc/images/part-of-typed-clojure-project.png'></a>
 
@@ -15,7 +15,7 @@ Higher-order functions often contain fine-grained dependencies between
 their arguments and return values. For example, the identity function requires
 its output to exactly match its input.
 
-`typed.clj/spec` enhances the expressivity of spec by giving you
+`typed.clj.spec` enhances the expressivity of spec by giving you
 the tools to specify such dependencies directly.
 This spec _metalanguage_ treats these
 kinds of dependencies as first-class concepts, so you can
@@ -26,19 +26,19 @@ with the pragmatism and versatility of spec.
 I'm really excited about the possibilities of bringing together
 the advantages of both worlds.
 
-I hope you enjoy using `typed.clj/spec`!
+I hope you enjoy using `typed.clj.spec`!
 
 ## Quickstart
 
 Either:
 
-1. Add a dependency to `typed.clj/spec` using your favourite
+1. Add a dependency to `typed.clj.spec` using your favourite
    build tool (see [Releases and Dependency Information](#releases-and-dependency-information)).
 
 2. Clone this repository and run `./script/repl`
    in the `typed/clj.spec` directory to follow along.
 
-To use the generative testing features of `typed.clj/spec`,
+To use the generative testing features of `typed.clj.spec`,
 also add an explicit dependency to `[org.clojure/test.check "1.0.0"]`
 (automatic if cloning this repository).
 
@@ -101,12 +101,12 @@ See tests for more examples:
 
 Latest stable release is 1.0.14.
 
-* [All Released Versions](https://clojars.org/typed.clj/spec)
+* [All Released Versions](https://clojars.org/org.typedclojure/typed.clj.spec)
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) JAR dependency information:
 
 ```clj
-  typed.clj/spec {:mvn/version "1.0.14"}
+  org.typedclojure/typed.clj.spec {:mvn/version "1.0.14"}
  ```
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) Git dependency information:
@@ -114,23 +114,24 @@ Latest stable release is 1.0.14.
 - Note: use `clj -Sresolve` to resolve the `:tag` to a `:sha`
 
 ```clj
-  typed.clj/spec {:git/url "https://github.com/typedclojure/typedclojure"
-                  :deps/root "typed/clj.spec"
-                  :tag "1.0.14"}
+  org.typedclojure/typed.clj.spec
+  {:git/url "https://github.com/typedclojure/typedclojure"
+   :deps/root "typed/clj.spec"
+   :tag "1.0.14"}
 ```
 
 [Leiningen](https://github.com/technomancy/leiningen) dependency information:
 
 ```clojure
-[typed.clj/spec "1.0.14"]
+[org.typedclojure/typed.clj.spec "1.0.14"]
 ```
 
 [Maven](https://maven.apache.org/) dependency information:
 
 ```XML
 <dependency>
-  <groupId>typed.clj</groupId>
-  <artifactId>spec</artifactId>
+  <groupId>org.typedclojure</groupId>
+  <artifactId>typed.clj.spec</artifactId>
   <version>1.0.14</version>
 </dependency>
 ```

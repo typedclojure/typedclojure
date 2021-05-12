@@ -236,8 +236,8 @@
         <version>1.0.15-SNAPSHOT</version>
       </dependency>
       <dependency>
-        <groupId>typed.clj</groupId>
-        <artifactId>spec</artifactId>
+        <groupId>org.typedclojure</groupId>
+        <artifactId>typed.clj.spec</artifactId>
         <version>1.0.15-SNAPSHOT</version>
       </dependency>
       <dependency>

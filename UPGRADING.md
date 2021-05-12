@@ -10,6 +10,7 @@ typed.clj/annotator => org.typedclojure/typed.clj.annotator
 typed.clj/refactor => org.typedclojure/typed.clj.refactor
 typed.clj/reader => org.typedclojure/typed.clj.reader
 typed.clj/lang => org.typedclojure/typed.clj.lang
+typed.clj/spec => org.typedclojure/typed.clj.spec
 ```
 
 # From typedclojure 1.0.7 to typedclojure 1.0.10

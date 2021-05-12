@@ -60,7 +60,7 @@ See modules for specific version coordinates:
 * [typed.clj.refactor](typed/clj.refactor/README.md): Refactoring for JVM Clojure (unreleased)
 * [typed.clj.reader](typed/clj.reader/README.md): Reader for JVM Clojure (unreleased)
 * [typed.clj.lang](typed/clj.lang/README.md): Extensible languages
-* [typed.clj/spec](typed/clj.spec/README.md): Type-like specs.
+* [typed.clj.spec](typed/clj.spec/README.md): Type-like specs.
 
 ### ClojureScript implementation (Work in progress)
 

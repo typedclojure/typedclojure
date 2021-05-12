@@ -1,6 +1,6 @@
-# Tutorial for typed.clj/spec
+# Tutorial for typed.clj.spec
 
-Welcome! typed.clj/spec is a library that provides generative-testing for
+Welcome! typed.clj.spec is a library that provides generative-testing for
 static types.
 
 It's a lot of fun to play around with, but also packs a punch -- enjoy!
@@ -19,7 +19,7 @@ This tutorial also assumes these namespaces are loaded:
 
 ## Spec Preliminary: Function specs
 
-Function types in typed.clj/spec are mostly provided by spec's `s/fspec`,
+Function types in typed.clj.spec are mostly provided by spec's `s/fspec`,
 so let's review how to use it.
 
 Say you want to generatively test a function that takes integers and
@@ -80,7 +80,7 @@ via `s/*fspec-iterations*`.
 nil
 ```
 
-typed.clj/spec provides other function types, but you probably won't need them
+typed.clj.spec provides other function types, but you probably won't need them
 when you're starting out. We'll cover them later (see `t/fcase` if you're curious).
 
 ## Parameteric Polymorphism ("for all" types)
@@ -126,7 +126,7 @@ over these types.
 The previous type (in Typed Clojure syntax) reads: "for all types x, is a function from x to x".
 
 Like a function, polymorphic types need to be applied (_instantiated_)
-to be useful. Let's see how to write a polymorphic type in typed.clj/spec,
+to be useful. Let's see how to write a polymorphic type in typed.clj.spec,
 and then how to instantiate one.
 
 ### Writing polymorphic specs
@@ -151,7 +151,7 @@ Compare this to the same type in Typed Clojure:
 ```
 
 Notice that the binder `[x]` is replaced with a `t/binder` call, and type variable
-occurrences `x` are now `(t/tv :x)`. typed.clj/spec uses simple keywords
+occurrences `x` are now `(t/tv :x)`. typed.clj.spec uses simple keywords
 to refer to type variables.
 
 Let's jump to the fun part: generating example calls!

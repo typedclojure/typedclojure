@@ -1,14 +1,14 @@
-# Generative testing and instrumentation for polymorphic functions with typed.clj/spec
+# Generative testing and instrumentation for polymorphic functions with typed.clj.spec
 
 Usually spec does not support polymorphic types, so library functions like `map` and `filter` are usually ascribed imprecise monomorphic types. For example, if `map` is `((a->b)a*->b*)` in a static type system, then it becomes `((any?->any?)any?*->any?*)` in spec.
 
 While the second type is great for *instrumentation*, it's not helpful for generative testing.
 
-[typed.clj/spec](https://github.com/typedclojure/typedclojure/blob/main/typed/clj.spec/README.md) attempts to bring together both worlds by enhancing spec with polymorphic types that can be used for generative testing, and tools to instantiate them to also instrument from the same types.
+[typed.clj.spec](https://github.com/typedclojure/typedclojure/blob/main/typed/clj.spec/README.md) attempts to bring together both worlds by enhancing spec with polymorphic types that can be used for generative testing, and tools to instantiate them to also instrument from the same types.
 
 ## Preliminaries
 
-We'll need typed.clj/spec and the typedclojure fork of spec2.
+We'll need typed.clj.spec and the typedclojure fork of spec2.
 
 ```edn no-exec id=ffcf0396-b3f9-40e6-a0c2-654401879781
 {:deps {org.clojure/clojure {:mvn/version "1.10.1"}
@@ -16,9 +16,10 @@ We'll need typed.clj/spec and the typedclojure fork of spec2.
         org.clojure/test.check {:mvn/version "1.1.0"}
         org.clojure/alpha.spec {:git/url "https://github.com/typedclojure/spec-alpha2.git" 
                                 :sha "1eb3bd75edca223e9af6c2201617702f88fa76f3"}
-        typed.clj/spec {:git/url "https://github.com/typedclojure/typedclojure"
-                        :deps/root "typed/clj.spec"
-                        :sha "d9ee00ce05a32691a67e99f14a21cc70481f6dab"}}}
+        org.typedclojure/typed.clj.spec
+        {:git/url "https://github.com/typedclojure/typedclojure"
+         :deps/root "typed/clj.spec"
+         :sha "d9ee00ce05a32691a67e99f14a21cc70481f6dab"}}}
 ```
 
 Let's use the following requires.
