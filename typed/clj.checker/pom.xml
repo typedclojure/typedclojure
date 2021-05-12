@@ -43,8 +43,8 @@
       <artifactId>typed.clj.analyzer</artifactId>
     </dependency>
     <dependency>
-      <groupId>typed.lib</groupId>
-      <artifactId>clojure</artifactId>
+      <groupId>org.typedclojure</groupId>
+      <artifactId>typed.lib.clojure</artifactId>
     </dependency>
     <dependency>
       <groupId>org.clojure</groupId>

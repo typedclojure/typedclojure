@@ -216,8 +216,8 @@
         <version>1.0.15-SNAPSHOT</version>
       </dependency>
       <dependency>
-        <groupId>typed.lib</groupId>
-        <artifactId>clojure</artifactId>
+        <groupId>org.typedclojure</groupId>
+        <artifactId>typed.lib.clojure</artifactId>
         <version>1.0.15-SNAPSHOT</version>
       </dependency>
       <dependency>
