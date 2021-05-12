@@ -19,6 +19,8 @@ jobs:
             &&
             (github.repository == 'typedclojure/typedclojure' ||
              github.event_name != 'schedule')
+            &&
+            !contains(github.event.head_commit.message, 'skip ci')
          }}
     runs-on: ubuntu-20.04
     outputs:
@@ -41,6 +43,8 @@ jobs:
             &&
             (github.repository == 'typedclojure/typedclojure' ||
              github.event_name != 'schedule')
+            &&
+            !contains(github.event.head_commit.message, 'skip ci')
          }}
     needs: setup
     runs-on: ubuntu-20.04
@@ -71,7 +75,11 @@ jobs:
         working-directory: ${{ matrix.submodule }}
   deploy:
     needs: test
-    if: github.ref == 'refs/heads/main' && github.repository == 'typedclojure/typedclojure' && github.event_name == 'push'
+    if: ${{ github.ref == 'refs/heads/main'
+            && github.repository == 'typedclojure/typedclojure'
+            && github.event_name == 'push'
+            && !contains(github.event.head_commit.message, 'skip ci')
+         }}
     runs-on: ubuntu-20.04
     env:
       DEPLOY_JDK: 11
