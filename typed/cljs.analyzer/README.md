@@ -1,4 +1,4 @@
-# typed.cljs/analyzer
+# typed.cljs.analyzer
 
 <a href='https://typedclojure.org'><img src='images/part-of-typed-clojure-project.png'></a>
 
@@ -8,12 +8,12 @@ Analyzer for JS Clojure, tuned for consumption by an optional type checker.
 
 Latest stable release is 1.0.9.
 
-* [All Released Versions](https://clojars.org/typed.cljs/analyzer)
+* [All Released Versions](https://clojars.org/org.typedclojure/typed.cljs.analyzer)
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) JAR dependency information:
 
 ```clj
-  typed.cljs/analyzer {:mvn/version "1.0.9"}
+  org.typedclojure/typed.cljs.analyzer {:mvn/version "1.0.9"}
 ```
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) Git dependency information:
@@ -21,23 +21,24 @@ Latest stable release is 1.0.9.
 - Note: use `clj -Sresolve` to resolve the `:tag` to a `:sha`
 
 ```clj
-  typed.cljs/analyzer {:git/url "https://github.com/typedclojure/typedclojure"
-                       :deps/root "typed/cljs.analyzer"
-                       :tag "1.0.9"}
+  org.typedclojure/typed.cljs.analyzer
+  {:git/url "https://github.com/typedclojure/typedclojure"
+   :deps/root "typed/cljs.analyzer"
+   :tag "1.0.9"}
 ```
 
 [Leiningen](https://github.com/technomancy/leiningen) dependency information:
 
 ```clojure
-[typed.cljs/analyzer "1.0.9"]
+[org.typedclojure/typed.cljs.analyzer "1.0.9"]
 ```
 
 [Maven](https://maven.apache.org/) dependency information:
 
 ```XML
 <dependency>
-  <groupId>typed.cljs</groupId>
-  <artifactId>analyzer</artifactId>
+  <groupId>org.typedclojure</groupId>
+  <artifactId>typed.cljs.analyzer</artifactId>
   <version>1.0.9</version>
 </dependency>
 ```
@@ -48,7 +49,7 @@ Latest stable release is 1.0.9.
 
 ## Differences from tools.analyzer
 
-core.typed.analyzer.js is a heavily modified variant of tools.analyzer.
+typed.cljs.analyzer is a heavily modified variant of tools.analyzer.
 If you're familiar with the latter, here's what this library does differently.
 
 - Adds an `:unanalyzed` AST node that just holds a `:form` and `:env`.
