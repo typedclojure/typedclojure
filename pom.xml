@@ -186,13 +186,13 @@
         <version>0.2.177-typedclojure-1</version>
       </dependency>
       <dependency>
-        <groupId>typed.cljc</groupId>
-        <artifactId>analyzer</artifactId>
+        <groupId>org.typedclojure</groupId>
+        <artifactId>typed.cljc.analyzer</artifactId>
         <version>1.0.15-SNAPSHOT</version>
       </dependency>
       <dependency>
-        <groupId>typed.cljs</groupId>
-        <artifactId>analyzer</artifactId>
+        <groupId>org.typedclojure</groupId>
+        <artifactId>typed.cljs.analyzer</artifactId>
         <version>1.0.15-SNAPSHOT</version>
       </dependency>
       <dependency>
@@ -201,8 +201,8 @@
         <version>1.0.15-SNAPSHOT</version>
       </dependency>
       <dependency>
-        <groupId>typed.cljs</groupId>
-        <artifactId>checker</artifactId>
+        <groupId>org.typedclojure</groupId>
+        <artifactId>typed.cljs.checker</artifactId>
         <version>1.0.15-SNAPSHOT</version>
       </dependency>
       <dependency>

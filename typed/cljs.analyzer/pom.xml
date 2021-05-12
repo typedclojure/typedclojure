@@ -28,8 +28,8 @@
       <artifactId>clojure</artifactId>
     </dependency>
     <dependency>
-      <groupId>typed.cljc</groupId>
-      <artifactId>analyzer</artifactId>
+      <groupId>org.typedclojure</groupId>
+      <artifactId>typed.cljc.analyzer</artifactId>
     </dependency>
     <dependency>
       <groupId>org.clojure</groupId>

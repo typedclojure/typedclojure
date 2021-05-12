@@ -14,8 +14,9 @@
 
            :codox
            {:extra-deps {codox/codox {:mvn/version "0.10.7"}
-                         typed.cljc/analyzer {:local/root "../cljc.analyzer"
-                                              :deps/manifest :deps}}
+                         org.typedclojure/typed.cljc.analyzer
+                         {:local/root "../cljc.analyzer"
+                          :deps/manifest :deps}}
             :extra-paths ["script"]
             :main-opts ["-m" "gen-doc"]}
 

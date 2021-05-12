@@ -69,7 +69,7 @@ See modules for specific version coordinates:
 
 ### Implementation-agnostic
 
-* [typed.cljc/analyzer](typed/cljc.analyzer/README.md): Implementation-agnostic base for Clojure analyzers
+* [typed.cljc.analyzer](typed/cljc.analyzer/README.md): Implementation-agnostic base for Clojure analyzers
 
 ### Library Annotations
 
