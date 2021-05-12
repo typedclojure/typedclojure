@@ -267,6 +267,29 @@
            (when-not rest
              (count types)))]))))
 
+(defn upcast-kw-args-seq [{kws :kw-args-regex
+                           :as kwseq}]
+  {:pre [(r/KwArgsSeq? kwseq)]
+   :post [(r/Type? %)]}
+  (let [ss (if (and (:complete? kws)
+                    (not (:maybe-trailing-nilable-non-empty-map? kws)))
+             (apply Un
+                    (concat
+                      (apply concat (:mandatory kws))
+                      (apply concat (:optional kws))))
+             r/-any)
+        min-count (* 2 (count (:mandatory kws)))
+        max-count (when (:complete? kws)
+                    (cond-> (+ (* 2 (count (:mandatory kws)))
+                               (* 2 (count (:optional kws))))
+                      (:maybe-trailing-nilable-non-empty-map? kws) inc))]
+    (when max-count
+      (assert (<= min-count max-count)))
+    (In (r/make-CountRange min-count max-count)
+        (impl/impl-case
+          :clojure (RClass-of ASeq [ss])
+          :cljs (Protocol-of 'cljs.core/ISeq [ss])))))
+
 ;; Unions
 
 (def ^:private subtype? (delay (impl/dynaload 'typed.clj.checker.subtype/subtype?)))
@@ -386,6 +409,8 @@
   {:pre [(r/CountRange? t1)
          (r/CountRange? t2)]
    :post [(r/Type? %)]}
+  (prn "intersect-CountRange"
+       t1 t2)
   (let [lower (max (:lower t1)
                    (:lower t2))
         upper (if-some [upper1 (:upper t1)]
@@ -1543,15 +1568,6 @@
 
 (def ^:dynamic *overlap-seen* #{})
 
-(defn overlap-CountRange-KwArgsSeq?
-  [{:keys [lower upper] :as cr} kws]
-  {:pre [(r/CountRange? cr)
-         (r/KwArgsSeq? kws)]}
-  (or (-> kws :kw-args-regex :maybe-trailing-nilable-non-empty-map?)
-      (not= lower upper)
-      ;; an odd exact count without a trailing map derives a contradiction
-      (even? lower)))
-
 ;true if types t1 and t2 overlap (NYI)
 (t/ann ^:no-check overlap [r/Type r/Type -> t/Any])
 (defn overlap 
@@ -1682,12 +1698,11 @@
              (r/CountRange? t2)) 
         (countrange-overlap? t1 t2)
 
-        (and (r/CountRange? t1)
-             (r/KwArgsSeq? t2))
-        (overlap-CountRange-KwArgsSeq? t1 t2)
-        (and (r/CountRange? t2)
-             (r/KwArgsSeq? t1))
-        (overlap-CountRange-KwArgsSeq? t2 t1)
+        (r/KwArgsSeq? t1)
+        (overlap (upcast-kw-args-seq t1) t2)
+
+        (r/KwArgsSeq? t2)
+        (overlap t1 (upcast-kw-args-seq t2))
 
         (and (r/HeterogeneousMap? t1)
              (r/HeterogeneousMap? t2)) 
@@ -2227,29 +2242,6 @@
                   :optional (:optional kws)
                   :complete? (complete-hmap? kws)
                   :maybe-trailing-nilable-non-empty-map? false))
-
-(defn upcast-kw-args-seq [{kws :kw-args-regex
-                           :as kwseq}]
-  {:pre [(r/KwArgsSeq? kwseq)]
-   :post [(r/Type? %)]}
-  (let [ss (if (and (:complete? kws)
-                    (not (:maybe-trailing-nilable-non-empty-map? kws)))
-             (apply Un
-                    (concat
-                      (apply concat (:mandatory kws))
-                      (apply concat (:optional kws))))
-             r/-any)
-        min-count (* 2 (count (:mandatory kws)))
-        max-count (when (:complete? kws)
-                    (cond-> (+ (* 2 (count (:mandatory kws)))
-                               (* 2 (count (:optional kws))))
-                      (:maybe-trailing-nilable-non-empty-map? kws) inc))]
-    (when max-count
-      (assert (<= min-count max-count)))
-    (In (r/make-CountRange min-count max-count)
-        (impl/impl-case
-          :clojure (RClass-of ASeq [ss])
-          :cljs (Protocol-of 'cljs.core/ISeq [ss])))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Heterogeneous type ops

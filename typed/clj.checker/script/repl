@@ -3,4 +3,6 @@
 # ./script/repl -Sdeps '{:deps {org.clojure/clojure {:mvn/version "1.11.0-alpha1"}}}' 
 # ./script/repl -Sdeps '{:deps {org.clojure/clojure {:mvn/version "1.11.0-master-SNAPSHOT"}} :mvn/repos {"sonatype-oss-public" {:url "https://oss.sonatype.org/content/groups/public/" }}}' 
 
+set -x
+
 clj "$@" -M:test:nREPL:spec-skip-macros

@@ -143,3 +143,9 @@
                    (make-F 'a)))
   (is-clj (overlap (make-F 'b)
                    (make-F 'a))))
+
+(deftest overlap-CountRange-KwArgsSeq-test
+  (is-clj (not
+            (overlap
+              (make-CountRange 0 1)
+              (-kw-args-seq :mandatory {(-val :foo) -any})))))

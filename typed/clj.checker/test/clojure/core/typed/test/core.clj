@@ -4776,3 +4776,12 @@
   (is (thrown? ExceptionInfo
                #"No such var: clojure.core"
                (tc-e clojure.core/asdf))))
+
+(deftest intersect-CountRange-test
+  (is-clj (= (intersect-CountRange
+               (make-CountRange 0 1)
+               (make-CountRange 1))
+             (intersect-CountRange
+               (make-CountRange 1)
+               (make-CountRange 0 1))
+             (make-CountRange 1 1))))
