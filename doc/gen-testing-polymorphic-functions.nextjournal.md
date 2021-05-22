@@ -15,7 +15,7 @@ We'll need typed.clj.spec and the typedclojure fork of spec2.
         org.clojure/data.csv {:mvn/version "1.0.0"}
         org.clojure/test.check {:mvn/version "1.1.0"}
         org.clojure/alpha.spec {:git/url "https://github.com/typedclojure/spec-alpha2.git" 
-                                :sha "1eb3bd75edca223e9af6c2201617702f88fa76f3"}
+                                :sha "9da58ec60f5a4a3bfc61fa19f54bf1d160b49dfc"}
         org.typedclojure/typed.clj.spec
         {:git/url "https://github.com/typedclojure/typedclojure"
          :deps/root "typed/clj.spec"

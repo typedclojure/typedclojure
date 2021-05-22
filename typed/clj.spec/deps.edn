@@ -2,7 +2,7 @@
  :deps {org.clojure/clojure {:mvn/version "1.10.3"}
         ;contains fixes for CLJ-2561 + CLJ-2562
         org.clojars.typedclojure-clojars/alpha.spec 
-        {:mvn/version "0.2.177-typedclojure-1"}}
+        {:mvn/version "0.2.177-typedclojure-2"}}
  :mvn/repos {"sonatype-oss-public"
              {:url "https://oss.sonatype.org/content/groups/public/"}}
  :aliases {:test
