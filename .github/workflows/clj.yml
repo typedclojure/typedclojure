@@ -30,6 +30,7 @@ jobs:
         with:
           babashka-version: ${{env.BABASHKA_VERSION}}
       - run: bb --version
+      - run: ./script-test/test_runner.clj
       - name: Print test matrix
         id: set-matrix
         run: ./script/print-actions-matrix.clj
@@ -78,6 +79,8 @@ jobs:
       - uses: turtlequeue/setup-babashka@v1.3.0
         with:
           babashka-version: ${{env.BABASHKA_VERSION}}
+      - run: bb --version
+      - run: ./script-test/test_runner.clj
       - run: ./script/check_docs.clj
   deploy:
     needs: test
