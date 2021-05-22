@@ -8,7 +8,8 @@ on:
     - cron: "0 13 * * 1,5"
 
 env:
-  CLOJURE_CLI_VERSION: 1.10.3.849
+  CLOJURE_CLI_VERSION: "1.10.3.849"
+  BABASHKA_VERSION: "0.4.3"
 
 jobs:
   setup:
@@ -19,18 +20,15 @@ jobs:
             &&
             (github.repository == 'typedclojure/typedclojure' ||
              github.event_name != 'schedule')
-            &&
-            !contains(github.event.head_commit.message, 'skip ci')
          }}
     runs-on: ubuntu-20.04
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
       - uses: actions/checkout@v2
-      - name: Setup Babashka
-        uses: turtlequeue/setup-babashka@v1.3.0
+      - uses: turtlequeue/setup-babashka@v1.3.0
         with:
-          babashka-version: 0.3.8
+          babashka-version: ${{env.BABASHKA_VERSION}}
       - run: bb --version
       - name: Print test matrix
         id: set-matrix
@@ -43,8 +41,6 @@ jobs:
             &&
             (github.repository == 'typedclojure/typedclojure' ||
              github.event_name != 'schedule')
-            &&
-            !contains(github.event.head_commit.message, 'skip ci')
          }}
     needs: setup
     runs-on: ubuntu-20.04
@@ -74,12 +70,20 @@ jobs:
       - name: Run ${{ matrix.submodule }} tests
         run: ./script/test -Sdeps '{:deps {org.clojure/clojure {:mvn/version "${{ matrix.clojure }}"}} :mvn/repos {"sonatype-oss-public" {:url "https://oss.sonatype.org/content/groups/public/"}}}'
         working-directory: ${{ matrix.submodule }}
+  check-docs:
+    if: ${{ github.repository == 'typedclojure/typedclojure'
+            && github.event_name == 'schedule'
+         }}
+    steps:
+      - uses: turtlequeue/setup-babashka@v1.3.0
+        with:
+          babashka-version: ${{env.BABASHKA_VERSION}}
+      - run: ./script/check_docs.clj
   deploy:
     needs: test
     if: ${{ github.ref == 'refs/heads/main'
             && github.repository == 'typedclojure/typedclojure'
             && github.event_name == 'push'
-            && !contains(github.event.head_commit.message, 'skip ci')
          }}
     runs-on: ubuntu-20.04
     env:
