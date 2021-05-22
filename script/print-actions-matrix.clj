@@ -25,7 +25,7 @@
   {:include (for [submodule all-submodules
                   clojure [clojure-stable
                            clojure-next-alpha]
-                  jdk ["1.11"]]
+                  jdk ["11"]]
               {:submodule submodule
                :clojure clojure
                :jdk jdk})})
@@ -34,9 +34,9 @@
   {:include (for [submodule all-submodules
                   clojure [clojure-stable
                            clojure-next-snapshot]
-                  jdk ["1.8"
-                       "1.11"
-                       "1.15"]]
+                  jdk ["8"
+                       "11"
+                       "16"]]
               {:submodule submodule
                :clojure clojure
                :jdk jdk})})
