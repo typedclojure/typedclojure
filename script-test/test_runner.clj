@@ -9,8 +9,9 @@
   '{"script-test/check_docs_test.clj" check-docs-test})
 
 (let [fs (into #{}
-               (comp (filter #(.isFile ^File %))
-                     (map #(.getPath ^File %)))
+               (keep (fn [^File f]
+                       (when (.isFile f)
+                         (.getPath f))))
                (file-seq (File. "script-test")))
       exclusions #{"script-test/test_runner.clj"}
       missing (set/difference fs (into exclusions (keys test-namespaces)))]
