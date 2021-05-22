@@ -177,7 +177,7 @@
       <dependency>
         <groupId>org.clojure</groupId>
         <artifactId>clojurescript</artifactId>
-        <version>1.10.764</version>
+        <version>0.0-1896</version>
       </dependency>
       <dependency>
         <groupId>org.clojars.typedclojure-clojars</groupId>
@@ -298,7 +298,7 @@
       <dependency>
         <groupId>org.clojure</groupId>
         <artifactId>test.check</artifactId>
-        <version>1.0.0</version>
+        <version>1.1.0</version>
       </dependency>
       <dependency>
         <groupId>org.clojure</groupId>
