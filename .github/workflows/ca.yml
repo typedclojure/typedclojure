@@ -18,7 +18,7 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 1.11
-      - uses: DeLaGuardo/setup-clojure@91054c3b9dc15fdc6a2f45be47405d891e672ef0
+      - uses: DeLaGuardo/setup-clojure@38cb63c34a5d5d18e2b450cbb42432dbb1fb8612
         with:
           tools-deps: latest
       - name: Check Clojure CA

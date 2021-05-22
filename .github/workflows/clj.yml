@@ -68,7 +68,7 @@ jobs:
         with:
           distribution: 'adopt'
           java-version: ${{ matrix.jdk }}
-      - uses: DeLaGuardo/setup-clojure@3e7b376abc1efded98dda248b5a8fb3d7ae04a04
+      - uses: DeLaGuardo/setup-clojure@38cb63c34a5d5d18e2b450cbb42432dbb1fb8612
         with:
           cli: ${{ env.CLOJURE_CLI_VERSION }} 
       - name: Run ${{ matrix.submodule }} tests
@@ -108,7 +108,7 @@ jobs:
         with:
           distribution: 'adopt'
           java-version: ${{ env.DEPLOY_JDK }}
-      - uses: DeLaGuardo/setup-clojure@3e7b376abc1efded98dda248b5a8fb3d7ae04a04
+      - uses: DeLaGuardo/setup-clojure@38cb63c34a5d5d18e2b450cbb42432dbb1fb8612
         with:
           cli: ${{ env.CLOJURE_CLI_VERSION }}
       - name: Configure settings.xml
