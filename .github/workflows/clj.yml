@@ -72,6 +72,7 @@ jobs:
         run: ./script/test -Sdeps '{:deps {org.clojure/clojure {:mvn/version "${{ matrix.clojure }}"}} :mvn/repos {"sonatype-oss-public" {:url "https://oss.sonatype.org/content/groups/public/"}}}'
         working-directory: ${{ matrix.submodule }}
   check-docs:
+    runs-on: ubuntu-20.04
     if: ${{ github.repository == 'typedclojure/typedclojure'
             && github.event_name == 'schedule'
          }}
