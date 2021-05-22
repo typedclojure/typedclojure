@@ -19,7 +19,7 @@
           (str "Don't forget to add these namespaces to script-test/test_runner.clj! "
                (pr-str missing))))
 
-(apply require (vals test-namespaces))                  
+(apply require (vals test-namespaces))
 
 (def test-results
   (apply t/run-tests (vals test-namespaces)))
