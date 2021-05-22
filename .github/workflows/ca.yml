@@ -1,10 +1,10 @@
 name: Check Clojure CA
 
-on: [pull_request]
+on: pull_request
 
 jobs:
   build:
-    if: github.actor != 'frenchy64' && github.repository == 'typedclojure/typedclojure'
+    if: (github.actor != 'frenchy64' || github.actor != 'dependabot') && github.repository == 'typedclojure/typedclojure'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
