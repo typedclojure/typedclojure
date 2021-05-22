@@ -1,14 +1,27 @@
 #!/usr/bin/env bb
 
-(require '[clojure.test :as t])
+(ns test-runner
+  (:require [clojure.test :as t]
+            [clojure.set :as set])
+  (:import [java.io File]))
 
 (def test-namespaces
-  '[check-docs-test])
+  '{"script-test/check_docs_test.clj" check-docs-test})
 
-(apply require test-namespaces)                  
+(let [fs (into #{}
+               (comp (filter #(.isFile ^File %))
+                     (map #(.getPath ^File %)))
+               (file-seq (File. "script-test")))
+      exclusions #{"script-test/test_runner.clj"}
+      missing (set/difference fs (into exclusions (keys test-namespaces)))]
+  (assert (empty? missing)
+          (str "Don't forget to add these namespaces to script-test/test_runner.clj! "
+               (pr-str missing))))
+
+(apply require (vals test-namespaces))                  
 
 (def test-results
-  (apply t/run-tests test-namespaces))
+  (apply t/run-tests (vals test-namespaces)))
 
 (def failures-and-errors
   (let [{:keys [fail error]} test-results]
