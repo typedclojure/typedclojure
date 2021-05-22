@@ -52,7 +52,7 @@ jobs:
       matrix: ${{ fromJson(needs.setup.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/cache@v2
+      - uses: actions/cache@v2.1.5
         with:
           path: |
             ~/.m2/repository
@@ -85,7 +85,7 @@ jobs:
       DEPLOY_JDK: 11
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/cache@v2
+      - uses: actions/cache@v2.1.5
         with:
           path: |
             ~/.m2/repository
