@@ -4,14 +4,8 @@
 # https://help.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
 
 version: 2
-registries:
-  clojars:
-    type: maven-repository
-    url: http://clojars.org/repo/
 updates:
   - package-ecosystem: "maven"
     directory: "/"
-    registries:
-      - maven-github
     schedule:
       interval: "weekly"
