@@ -14,7 +14,7 @@
                                org.typedclojure/typed.clj.spec
                                {:local/root "../clj.spec"
                                 :deps/manifest :deps}
-                               org.clojure/test.check {:mvn/version "1.0.0"}
+                               org.clojure/test.check {:mvn/version "1.1.0"}
                                org.typedclojure/typed.clj.runtime
                                {:local/root "../clj.runtime"
                                 :deps/manifest :deps}
