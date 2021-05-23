@@ -1,6 +1,10 @@
 #!/usr/bin/env bb
 
-(require '[cheshire.core :as json])
+;; GITHUB_EVENT_NAME=schedule ./script/print-actions-matrix.clj
+;; GITHUB_EVENT_NAME=push ./script/print-actions-matrix.clj
+
+(require '[cheshire.core :as json]
+         '[clojure.core.typed.contract-utils :as con])
 
 (def all-submodules
   ["typed/cljc.analyzer"
@@ -21,7 +25,13 @@
 (def clojure-next-alpha "1.11.0-alpha1")
 (def clojure-next-snapshot "1.11.0-master-SNAPSHOT")
 
+(def matrix? (con/hmap-c? :include (con/every-c? (con/hmap-c?
+                                                   :submodule string?
+                                                   :clojure string?
+                                                   :jdk string?))))
+
 (defn push-matrix []
+  {:post [(matrix? %)]}
   {:include (for [submodule all-submodules
                   clojure [clojure-stable
                            clojure-next-alpha]
@@ -31,6 +41,7 @@
                :jdk jdk})})
 
 (defn schedule-matrix []
+  {:post [(matrix? %)]}
   {:include (for [submodule all-submodules
                   clojure [clojure-stable
                            clojure-next-snapshot]
@@ -42,6 +53,7 @@
                :jdk jdk})})
 
 (defn matrix []
+  {:post [(matrix? %)]}
   (if (= "schedule" (System/getenv "GITHUB_EVENT_NAME"))
     (schedule-matrix)
     (push-matrix)))

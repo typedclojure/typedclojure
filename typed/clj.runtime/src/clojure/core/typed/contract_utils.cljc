@@ -19,8 +19,8 @@
 
 (def nne-seq? (some-fn nil? (every-pred seq? seq)))
 
-#?(:clj
-(def namespace? #(instance? clojure.lang.Namespace %)))
+#?(:bb nil
+   :clj (def namespace? #(instance? clojure.lang.Namespace %)))
 
 (defn =-c? [& as]
   #(apply = (concat as %&)))
