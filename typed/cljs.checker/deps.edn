@@ -4,7 +4,7 @@
                                             :deps/manifest :deps}
         org.typedclojure/typed.clj.runtime {:local/root "../clj.runtime"
                                             :deps/manifest :deps}
-        org.clojure/clojurescript {:mvn/version "1.10.764"}}
+        org.clojure/clojurescript {:mvn/version "1.10.866"}}
  :aliases {:nREPL
            {:extra-paths ["script"]
             :extra-deps
