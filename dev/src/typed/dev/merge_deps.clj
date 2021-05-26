@@ -43,19 +43,21 @@
                        (into {}))
         expand-deps (juxt identity
                           (comp :test :aliases))
+        maps-to-merge (->> (vals deps-maps)
+                           (mapcat expand-deps)
+                           (mapcat (fn [d]
+                                     {:pre [(map? d)]}
+                                     (concat (some-> d :deps vector)
+                                             (some-> d :extra-deps vector)))))
         everything-deps {:deps (apply merge-with
                                       (fn [v1 v2]
                                         (if (= v1 v2)
                                           v2
                                           (throw (ex-info (str "Version conflict: "
                                                                v1 " " v2)
-                                                          {:versions [v1 v2]}))))
-                                      (->> (vals deps-maps)
-                                           (mapcat expand-deps)
-                                           (mapcat (fn [d]
-                                                     {:pre [(map? d)]}
-                                                     (concat (some-> d :deps vector)
-                                                             (some-> d :extra-deps vector))))))
+                                                          {:versions [v1 v2]
+                                                           :maps-to-merge maps-to-merge}))))
+                                      maps-to-merge)
                          :paths (vec (mapcat
                                        (fn [[^String fname d]]
                                          (let [path->relative #(str (-> relative-projects-root
