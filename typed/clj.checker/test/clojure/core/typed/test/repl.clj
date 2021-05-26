@@ -26,17 +26,17 @@
   (is (= "blah"
          (:ns 
            (with-open [^java.io.Closeable server (server/start-server
-                                :handler (server/default-handler
-                                           #'repl/wrap-clj-repl))]
-             (with-open [^java.io.Closeable transport (connect :port (:port server))]
-               (let [cl (client transport Long/MAX_VALUE)
-                     ses (client-session cl)]
-                 (combine-responses
-                   (message ses
-                            {:op :eval :code "(ns blah)"}))
-                 (combine-responses
-                   (message ses
-                            {:op :eval :code "*ns*"})))))))))
+                                                   :handler (server/default-handler
+                                                              #'repl/wrap-clj-repl))]
+             (with-open [^java.io.Closeable transport (nrepl/connect :port (:port server))]
+               (let [cl (nrepl/client transport Long/MAX_VALUE)
+                     ses (nrepl/client-session cl)]
+                 (nrepl/combine-responses
+                   (nrepl/message ses
+                                  {:op :eval :code "(ns blah)"}))
+                 (nrepl/combine-responses
+                   (nrepl/message ses
+                                  {:op :eval :code "*ns*"})))))))))
 
 (deftest load-file-test
   (is (= ["42"]
@@ -44,19 +44,19 @@
            (with-open [^java.io.Closeable server (server/start-server
                                                    :handler (server/default-handler
                                                               #'repl/wrap-clj-repl))]
-             (with-open [^java.io.Closeable transport (connect :port (:port server))]
-               (let [cl (client transport Long/MAX_VALUE)
-                     ses (client-session cl)]
-                 (combine-responses
-                   (message ses
-                            {:op :load-file 
-                             :file "(ns ^:core.typed foo.bar
-                                     (:require [clojure.core.typed :as t]))
-                                    (t/ann a t/Sym)
-                                    (def a 'a)
-                                    42"
-                             :file-path "foo/bar.clj"
-                             :file-name "bar.clj"}))))))))
+             (with-open [^java.io.Closeable transport (nrepl/connect :port (:port server))]
+               (let [cl (nrepl/client transport Long/MAX_VALUE)
+                     ses (nrepl/client-session cl)]
+                 (nrepl/combine-responses
+                   (nrepl/message ses
+                                  {:op :load-file 
+                                   :file "(ns ^:core.typed foo.bar
+                                         (:require [clojure.core.typed :as t]))
+                                         (t/ann a t/Sym)
+                                         (def a 'a)
+                                         42"
+                                   :file-path "foo/bar.clj"
+                                   :file-name "bar.clj"}))))))))
   ;;FIXME broke after re-throwing exception in check-form-common
   #_
   (testing "runtime error"
@@ -65,19 +65,19 @@
              (with-open [^java.io.Closeable server (server/start-server
                                                      :handler (server/default-handler
                                                                 #'repl/wrap-clj-repl))]
-               (with-open [^java.io.Closeable transport (connect :port (:port server))]
-                 (let [cl (client transport Long/MAX_VALUE)
-                       ses (client-session cl)]
-                   (combine-responses
-                     (message ses
-                              {:op :load-file 
-                               :file "(ns ^:core.typed foo.bar
-                                     (:require [clojure.core.typed :as t]))
-                                     (t/ann a t/Sym)
-                                     (def a 'a)
-                                     (/ 1 0)"
-                               :file-path "foo/bar.clj"
-                               :file-name "bar.clj"})))))))))
+               (with-open [^java.io.Closeable transport (nrepl/connect :port (:port server))]
+                 (let [cl (nrepl/client transport Long/MAX_VALUE)
+                       ses (nrepl/client-session cl)]
+                   (nrepl/combine-responses
+                     (nrepl/message ses
+                                    {:op :load-file 
+                                     :file "(ns ^:core.typed foo.bar
+                                           (:require [clojure.core.typed :as t]))
+                                           (t/ann a t/Sym)
+                                           (def a 'a)
+                                           (/ 1 0)"
+                                     :file-path "foo/bar.clj"
+                                     :file-name "bar.clj"})))))))))
   ;; FIXME
   #_
   (testing "fireplace test"
@@ -86,58 +86,58 @@
              (with-open [^java.io.Closeable server (server/start-server
                                                      :handler (server/default-handler
                                                                 #'repl/wrap-clj-repl))]
-               (with-open [^java.io.Closeable transport (connect :port (:port server))]
-                 (let [cl (client transport Long/MAX_VALUE)
-                       ses (client-session cl)]
-                   (combine-responses
-                     (message ses
-                              {:op :load-file 
-                               :file "(ns ^:core.typed baz.boo)"
-                               :file-path "baz/boo.clj"
-                               :file-name "boo.clj"}))
-                   (combine-responses
-                     (message ses
-                              {:op :load-file 
-                               :file "(in-ns 'baz.boo)
-                                      (inc 'a)"
-                               :file-path "baz/boo.clj"
-                               :file-name "boo.clj"})))))))))
+               (with-open [^java.io.Closeable transport (nrepl/connect :port (:port server))]
+                 (let [cl (nrepl/client transport Long/MAX_VALUE)
+                       ses (nrepl/client-session cl)]
+                   (nrepl/combine-responses
+                     (nrepl/message ses
+                                    {:op :load-file 
+                                     :file "(ns ^:core.typed baz.boo)"
+                                     :file-path "baz/boo.clj"
+                                     :file-name "boo.clj"}))
+                   (nrepl/combine-responses
+                     (nrepl/message ses
+                                    {:op :load-file 
+                                     :file "(in-ns 'baz.boo)
+                                           (inc 'a)"
+                                     :file-path "baz/boo.clj"
+                                     :file-name "boo.clj"})))))))))
   )
 
 ;(with-open [^java.io.Closeable server (server/start-server)]
-;  (with-open [transport (connect :port (:port server))]
-;    (message (client transport Long/MAX_VALUE)
-;             {:op :eval :code "1"})))
+;  (with-open [transport (nrepl/connect :port (:port server))]
+;    (nrepl/message (nrepl/client transport Long/MAX_VALUE)
+;                   {:op :eval :code "1"})))
 
 (defmacro repl-test
   [& body]
   `(repl-server-fixture
-     #(with-open [~(with-meta 'transport {:tag 'java.io.Closeable}) (connect :port (:port *server*))]
+     #(with-open [~(with-meta 'transport {:tag 'java.io.Closeable}) (nrepl/connect :port (:port *server*))]
         ~@body)))
 
 ;(repl-test
-;  (combine-responses
-;    (message (client transport Long/MAX_VALUE)
-;             {:op :eval :code "(ns ^:core.typed foo)"})))
+;  (nrepl/combine-responses
+;    (nrepl/message (nrepl/client transport Long/MAX_VALUE)
+;                   {:op :eval :code "(ns ^:core.typed foo)"})))
 ;
 ;(repl-test
-;  (combine-responses
-;    (message (client transport Long/MAX_VALUE)
-;             {:op :eval :code "(new java.io.File \"a\")"})))
+;  (nrepl/combine-responses
+;    (nrepl/message (nrepl/client transport Long/MAX_VALUE)
+;                   {:op :eval :code "(new java.io.File \"a\")"})))
 ;
 ;(deftest tst-pkt
 ;  (repl-test
-;    (combine-responses
-;      (message (client transport Long/MAX_VALUE)
-;               {:op :eval :code "(ns ^:core.typed foo)"}))))
+;    (nrepl/combine-responses
+;      (nrepl/message (nrepl/client transport Long/MAX_VALUE)
+;                     {:op :eval :code "(ns ^:core.typed foo)"}))))
 
 (defn eval-msg [transport c]
-  (message (client transport Long/MAX_VALUE)
-           {:op :eval :code c}))
+  (nrepl/message (nrepl/client transport Long/MAX_VALUE)
+                 {:op :eval :code c}))
 
 (defn eval-val [transport c]
   (-> (eval-msg transport c)
-      combine-responses
+      nrepl/combine-responses
       (select-keys [:value])))
 
 ;(deftest core-typed-test
