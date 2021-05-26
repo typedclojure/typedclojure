@@ -6,7 +6,7 @@
   <artifactId>typed.cljs.analyzer</artifactId>
   <description>A variant of tools.analyzer.js.</description>
   <name>typed.cljs.analyzer</name>
-  <version>1.0.16-SNAPSHOT</version>
+  <version>1.0.16</version>
 
   <licenses>
     <license>
@@ -19,7 +19,7 @@
   <parent>
     <groupId>org.typedclojure</groupId>
     <artifactId>pom.typed</artifactId>
-    <version>1.0.16-SNAPSHOT</version>
+    <version>1.0.16</version>
     <relativePath>../..</relativePath>
   </parent>
 
