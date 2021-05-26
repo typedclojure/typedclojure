@@ -35,7 +35,7 @@
    {org.clojure/test.check
     {:mvn/version "1.1.0"}
     org.clojure/tools.nrepl
-    {:mvn/version "0.2.13", :exclusions [org.clojure/clojure]}
+    {:mvn/version "0.2.6", :exclusions [org.clojure/clojure]}
     com.clojure-goes-fast/clj-java-decompiler {:mvn/version "0.3.0"}}},
   :kaocha
   {:extra-deps {lambdaisland/kaocha {:git/url "https://github.com/lambdaisland/kaocha.git"

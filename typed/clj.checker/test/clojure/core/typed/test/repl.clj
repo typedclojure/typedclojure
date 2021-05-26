@@ -1,9 +1,9 @@
 (ns clojure.core.typed.test.repl
-  (:use clojure.test
-        [clojure.tools.nrepl :as nrepl])
-  (:require (clojure.tools.nrepl [transport :as transport]
-                                 [server :as server]
-                                 [ack :as ack])
+  (:require [clojure.test :refer [deftest is]]
+            [clojure.tools.nrepl :as nrepl]
+            [clojure.tools.nrepl.transport :as transport]
+            [clojure.tools.nrepl.server :as server]
+            [clojure.tools.nrepl.ack :as ack]
             [clojure.set :as set]
             [typed.clj.checker.repl :as repl]))
 

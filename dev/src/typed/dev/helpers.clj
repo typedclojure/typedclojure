@@ -33,7 +33,8 @@
    :tools-reader-mvn-version "1.3.5"
    :core-cache-mvn-version "1.0.207"
    :core-async-mvn-version "1.3.618"
-   :tools-nrepl-mvn-version "0.2.13"
+   ;; FIXME clj.checker fails on higher
+   :tools-nrepl-mvn-version "0.2.6"
    :test-check-mvn-version "1.1.0"
    :core-logic-mvn-version "1.0.0"
    :cognitect-test-runner-coordinates "io.github.cognitect-labs/test-runner"
