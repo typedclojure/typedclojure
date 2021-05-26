@@ -100,14 +100,14 @@ See tests for more examples:
 
 ## Releases and Dependency Information
 
-Latest stable release is 1.0.15.
+Latest stable release is 1.0.16.
 
 * [All Released Versions](https://clojars.org/org.typedclojure/typed.clj.spec)
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) JAR dependency information:
 
 ```clj
-  org.typedclojure/typed.clj.spec {:mvn/version "1.0.15"}
+  org.typedclojure/typed.clj.spec {:mvn/version "1.0.16"}
  ```
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) Git dependency information:
@@ -118,13 +118,13 @@ Latest stable release is 1.0.15.
   org.typedclojure/typed.clj.spec
   {:git/url "https://github.com/typedclojure/typedclojure"
    :deps/root "typed/clj.spec"
-   :tag "1.0.15"}
+   :tag "1.0.16"}
 ```
 
 [Leiningen](https://github.com/technomancy/leiningen) dependency information:
 
 ```clojure
-[org.typedclojure/typed.clj.spec "1.0.15"]
+[org.typedclojure/typed.clj.spec "1.0.16"]
 ```
 
 [Maven](https://maven.apache.org/) dependency information:
@@ -133,7 +133,7 @@ Latest stable release is 1.0.15.
 <dependency>
   <groupId>org.typedclojure</groupId>
   <artifactId>typed.clj.spec</artifactId>
-  <version>1.0.15</version>
+  <version>1.0.16</version>
 </dependency>
 ```
 
