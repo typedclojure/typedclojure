@@ -6,7 +6,7 @@
   <artifactId>typed.lib.core.async</artifactId>
   <name>typed.lib.core.async</name>
   <description>Type annotations and macros for core.async.</description>
-  <version>{◊typedclojure-current-mvn-version◊}4</version>
+  <version>{◊typedclojure-current-mvn-version◊}</version>
 
   <licenses>
     <license>

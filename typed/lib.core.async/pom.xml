@@ -6,7 +6,7 @@
   <artifactId>typed.lib.core.async</artifactId>
   <name>typed.lib.core.async</name>
   <description>Type annotations and macros for core.async.</description>
-  <version>1.0.17-SNAPSHOT4</version>
+  <version>1.0.17-SNAPSHOT</version>
 
   <licenses>
     <license>
