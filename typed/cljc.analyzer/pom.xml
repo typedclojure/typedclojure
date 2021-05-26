@@ -6,7 +6,7 @@
   <artifactId>typed.cljc.analyzer</artifactId>
   <description>A variant of tools.analyzer.</description>
   <name>typed.cljc.analyzer</name>
-  <version>1.0.17-SNAPSHOT4</version>
+  <version>1.0.17-SNAPSHOT</version>
 
   <licenses>
     <license>

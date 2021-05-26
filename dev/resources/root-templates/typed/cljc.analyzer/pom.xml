@@ -6,7 +6,7 @@
   <artifactId>typed.cljc.analyzer</artifactId>
   <description>A variant of tools.analyzer.</description>
   <name>typed.cljc.analyzer</name>
-  <version>{◊typedclojure-current-mvn-version◊}4</version>
+  <version>{◊typedclojure-current-mvn-version◊}</version>
 
   <licenses>
     <license>
