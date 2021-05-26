@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -ex
 
 if [[ "$GITHUB_ACTIONS" == 'true' && "$GITHUB_REPOSITORY" != 'typedclojure/typedclojure' ]]; then
   echo "Can only deploy snapshot in GitHub Actions from 'typedclojure/typed', in: ${GITHUB_REPOSITORY}"
