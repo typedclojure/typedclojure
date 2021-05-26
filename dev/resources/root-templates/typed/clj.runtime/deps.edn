@@ -1,0 +1,31 @@
+{% do-not-edit-edn-comment %}
+{:paths ["src"]
+ :deps {org.clojure/clojure {:mvn/version "{◊clojure-mvn-version◊}"}}
+ :aliases {:test
+           {:extra-paths ["test"]
+            :extra-deps {org.clojure/clojurescript {:mvn/version "{◊clojurescript-mvn-version◊}"}}}
+           :nREPL
+           {:extra-deps
+            {nrepl/nrepl {:mvn/version "{◊nrepl-mvn-version◊}"}
+             cider/cider-nrepl {:mvn/version "0.25.3"}},
+            :main-opts ["-m" "nrepl.cmdline"
+                        "--interactive"
+                        "--middleware" "[\"cider.nrepl/cider-middleware\"]"
+                        ]}
+
+           :codox
+           {:extra-deps {codox/codox {:mvn/version "{◊codox-mvn-version◊}"}
+                         {◊typedclojure-group-id◊}/typed.cljc.analyzer
+                         {:local/root "../cljc.analyzer"
+                          :deps/manifest :deps}}
+            :extra-paths ["script"]
+            :main-opts ["-m" "gen-doc"]}
+
+           :runner
+           {:extra-deps {{◊cognitect-test-runner-coordinates◊}
+                         {:git/url "{◊cognitect-test-runner-git-url◊}"
+                          :sha "{◊cognitect-test-runner-sha◊}"}}
+            :main-opts ["-m" "cognitect.test-runner"
+                        "-d" "test"
+                        "-r" ".*"
+                        ]}}}

@@ -1,23 +1,24 @@
 (ns typed.dev.merge-deps
   (:require [clojure.java.io :as io]
             [clojure.pprint :as pp]
-            [clojure.set :as set])
+            [clojure.set :as set]
+            [typed.dev.helpers :as h])
   (:import java.io.File)
   (:gen-class))
 
 (set! *warn-on-reflection* true)
 
-(def ^String everything-root "../typed")
+(def ^String everything-root (str h/repo-root "/typed"))
 (def ^String relative-projects-root ".")
-(def aliases
-  '{:perf
+(defn aliases []
+  `{:perf
     {:extra-paths ["/Applications/YourKit-Java-Profiler-2019.8.app/Contents/Resources/lib/yjp-controller-api-redist.jar"]
      :jvm-opts ["-agentpath:/Applications/YourKit-Java-Profiler-2019.8.app/Contents/Resources/bin/mac/libyjpagent.dylib"]}
     :spec-skip-macros
     {:jvm-opts ["-Dclojure.spec.skip-macros=true"]}
     :nREPL
     {:extra-deps
-     {nrepl/nrepl {:mvn/version "0.8.3"}
+     {nrepl/nrepl {:mvn/version ~(:nrepl-mvn-version h/selmer-input-map)}
       cider/cider-nrepl {:mvn/version "0.25.3"}
       cider/piggieback {:mvn/version "0.5.2"}}
      :main-opts ["-m" "nrepl.cmdline" "--interactive"
@@ -67,7 +68,7 @@
                                                        (map path->relative all-paths)))
                                                    (expand-deps d))))
                                        deps-maps))
-                         :aliases aliases}]
+                         :aliases (aliases)}]
     (spit (str (File. everything-root "deps.edn"))
           (with-out-str
             (binding [*print-length* nil

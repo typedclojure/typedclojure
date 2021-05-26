@@ -1,3 +1,4 @@
+<!-- DO NOT EDIT! Instead, edit `dev/resources/root-templates/typed/clj.analyzer/README.md` and run `./script/regen-selmer.sh` -->
 # typed.clj.analyzer
 
 <a href='https://typedclojure.org'><img src='images/part-of-typed-clojure-project.png'></a>
@@ -13,7 +14,7 @@ Latest stable release is 1.0.15.
 [deps.edn](https://clojure.org/reference/deps_and_cli) JAR dependency information:
 
 ```clj
-  org.typedclojure.typed.clj.analyzer {:mvn/version "1.0.15"}
+  org.typedclojure/typed.clj.analyzer {:mvn/version "1.0.15"}
 ```
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) Git dependency information:

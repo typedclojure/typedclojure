@@ -1,3 +1,4 @@
+;; DO NOT EDIT! Instead, edit `dev/resources/root-templates/typed/clj.checker/deps.edn` and run `./script/regen-selmer.sh`
 {:paths ["src"],
  :deps
  {org.clojure/clojure {:mvn/version "1.10.3"},
@@ -34,7 +35,7 @@
    {org.clojure/test.check
     {:mvn/version "1.1.0"}
     org.clojure/tools.nrepl
-    {:mvn/version "0.2.6", :exclusions [org.clojure/clojure]}
+    {:mvn/version "0.2.13", :exclusions [org.clojure/clojure]}
     com.clojure-goes-fast/clj-java-decompiler {:mvn/version "0.3.0"}}},
   :kaocha
   {:extra-deps {lambdaisland/kaocha {:git/url "https://github.com/lambdaisland/kaocha.git"

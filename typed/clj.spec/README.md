@@ -1,6 +1,7 @@
+<!-- DO NOT EDIT! Instead, edit `dev/resources/root-templates/typed/clj.spec/README.md` and run `./script/regen-selmer.sh` -->
 # typed.clj.spec
 
-<a href='http://typedclojure.org'><img src='../../doc/images/part-of-typed-clojure-project.png'></a>
+<a href='https://typedclojure.org'><img src='../../doc/images/part-of-typed-clojure-project.png'></a>
 
 <p>
   <a href='https://www.patreon.com/ambrosebs'><img src='../../doc/images/become_a_patron_button.png'></a>

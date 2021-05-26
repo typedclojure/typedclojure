@@ -1,0 +1,24 @@
+{% do-not-edit-edn-comment %}
+{:paths ["src"]
+ :deps {org.clojure/clojure {:mvn/version "1.10.1"}}
+ :aliases {:nREPL
+           {:extra-deps
+            {nrepl/nrepl {:mvn/version "{◊nrepl-mvn-version◊}"}
+             cider/cider-nrepl {:mvn/version "0.22.4"}},
+            :main-opts ["-m" "nrepl.cmdline" "--interactive"
+                        #_"
+                        Note:
+                          introducing other middleware makes vim-fireplace choose
+                          fipp for pprint, which doesn't play well with the delicately
+                          defined classes in type-rep."
+                        "--middleware" "[cider.nrepl/wrap-info,cider.nrepl/wrap-complete]"
+                        ]},
+
+           :merge-deps 
+           {:main-opts ["-m" "typed.dev.merge-deps"]}
+           :dev-repl 
+           {:main-opts ["-m" "typed.dev.repl"]}
+           :check-ca 
+           {;:main-opts ["-m" "typed.dev.check-ca"]
+            :extra-deps {hickory/hickory {:mvn/version "0.7.1"}}}
+           }}

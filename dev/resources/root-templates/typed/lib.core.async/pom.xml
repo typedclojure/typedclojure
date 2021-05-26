@@ -1,0 +1,40 @@
+{% do-not-edit-xml-comment %}
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>{◊typedclojure-group-id◊}</groupId>
+  <artifactId>typed.lib.core.async</artifactId>
+  <name>typed.lib.core.async</name>
+  <description>Type annotations and macros for core.async.</description>
+  <version>1.0.16-SNAPSHOT</version>
+
+  <licenses>
+    <license>
+      <name>Eclipse Public License 1.0</name>
+      <url>http://opensource.org/licenses/eclipse-1.0.php</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <parent>
+    <groupId>{◊typedclojure-group-id◊}</groupId>
+    <artifactId>pom.typed</artifactId>
+    <version>1.0.16-SNAPSHOT</version>
+    <relativePath>../..</relativePath>
+  </parent>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.clojure</groupId>
+      <artifactId>clojure</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.clojure</groupId>
+      <artifactId>core.async</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>{◊typedclojure-group-id◊}</groupId>
+      <artifactId>typed.clj.runtime</artifactId>
+    </dependency>
+  </dependencies>
+</project>

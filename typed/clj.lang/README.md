@@ -1,6 +1,7 @@
+<!-- DO NOT EDIT! Instead, edit `dev/resources/root-templates/typed/clj.lang/README.md` and run `./script/regen-selmer.sh` -->
 # typed.clj.lang
 
-<a href='http://typedclojure.org'><img src='images/part-of-typed-clojure-project.png'></a>
+<a href='https://typedclojure.org'><img src='images/part-of-typed-clojure-project.png'></a>
 
 Extensible languages in Clojure, a la Racket's #lang.
 

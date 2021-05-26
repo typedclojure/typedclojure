@@ -1,6 +1,7 @@
+<!-- DO NOT EDIT! Instead, edit `dev/resources/root-templates/typed/clj.runtime/README.md` and run `./script/regen-selmer.sh` -->
 # typed.clj.runtime
 
-<a href='http://typedclojure.org'><img src='images/part-of-typed-clojure-project.png'></a>
+<a href='https://typedclojure.org'><img src='images/part-of-typed-clojure-project.png'></a>
 
 Runtime dependency needed to annotate Typed Clojure code in JVM Clojure.
 

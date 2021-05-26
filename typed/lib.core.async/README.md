@@ -1,6 +1,7 @@
+<!-- DO NOT EDIT! Instead, edit `dev/resources/root-templates/typed/lib.core.async/README.md` and run `./script/regen-selmer.sh` -->
 # typed.lib.core.async
 
-<a href='http://typedclojure.org'><img src='images/part-of-typed-clojure-project.png'></a>
+<a href='https://typedclojure.org'><img src='images/part-of-typed-clojure-project.png'></a>
 
 Type annotations and macros for core.async.
 

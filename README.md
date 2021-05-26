@@ -1,3 +1,4 @@
+<!-- DO NOT EDIT! Instead, edit `dev/resources/root-templates/README.md` and run `./script/regen-selmer.sh` -->
 <div>
   <a href='https://typedclojure.org'>
     <img src="doc/images/typed-clojure-an-optional-type-system-letterbox.png"

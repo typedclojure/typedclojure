@@ -1,0 +1,36 @@
+{% do-not-edit-edn-comment %}
+{:paths ["src"]
+ :deps {org.clojure/clojure {:mvn/version "{◊clojure-mvn-version◊}"}
+        org.clojure/core.memoize {:mvn/version "{◊core-memoize-mvn-version◊}"}
+        org.ow2.asm/asm {:mvn/version "{◊asm-mvn-version◊}"}
+        {◊typedclojure-group-id◊}/typed.cljc.analyzer {:local/root "../cljc.analyzer"
+                                              :deps/manifest :deps}}
+ :mvn/repos
+ {"sonatype-oss-public"
+  {:url "{◊sonatype-oss-public-url◊}"}},
+ :aliases {:nREPL
+           {:extra-deps
+            {nrepl/nrepl {:mvn/version "{◊nrepl-mvn-version◊}"}
+             cider/piggieback {:mvn/version "0.5.2"}}
+            :main-opts ["-m" "nrepl.cmdline"
+                        "--interactive"]}
+           :perf
+           {:extra-paths ["/Applications/YourKit-Java-Profiler-2019.8.app/Contents/Resources/lib/yjp-controller-api-redist.jar"]
+            :jvm-opts ["-agentpath:/Applications/YourKit-Java-Profiler-2019.8.app/Contents/Resources/bin/mac/libyjpagent.dylib"]}
+
+           :test
+           {:extra-paths ["test"]
+            :extra-deps
+            {org.clojure/tools.analyzer.jvm {:mvn/version "{◊tools-analyzer-jvm-mvn-version◊}"}
+             criterium/criterium {:mvn/version "0.4.5"}}}
+           :codox
+           {:extra-deps {codox/codox {:mvn/version "{◊codox-mvn-version◊}"}}
+            :extra-paths ["script"]
+            :main-opts ["-m" "gen-doc"]}
+           :runner
+           {:extra-deps {{◊cognitect-test-runner-coordinates◊}
+                         {:git/url "{◊cognitect-test-runner-git-url◊}"
+                          :sha "{◊cognitect-test-runner-sha◊}"}}
+            :main-opts ["-m" "cognitect.test-runner"
+                        "-r" ".*"
+                        "-d" "test"]}}}

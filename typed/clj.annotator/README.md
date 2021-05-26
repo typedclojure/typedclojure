@@ -1,6 +1,7 @@
+<!-- DO NOT EDIT! Instead, edit `dev/resources/root-templates/typed/clj.annotator/README.md` and run `./script/regen-selmer.sh` -->
 # typed.clj.annotator
 
-<a href='http://typedclojure.org'><img src='images/part-of-typed-clojure-project.png'></a>
+<a href='https://typedclojure.org'><img src='images/part-of-typed-clojure-project.png'></a>
 
 Automatic annotator for Typed Clojure and clojure.spec annotations, for JVM Clojure.
 

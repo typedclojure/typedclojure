@@ -1,3 +1,4 @@
+<!-- DO NOT EDIT! Instead, edit `dev/resources/root-templates/typed/cljs.analyzer/README.md` and run `./script/regen-selmer.sh` -->
 # typed.cljs.analyzer
 
 <a href='https://typedclojure.org'><img src='images/part-of-typed-clojure-project.png'></a>

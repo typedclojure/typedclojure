@@ -1,3 +1,4 @@
+<!-- DO NOT EDIT! Instead, edit `dev/resources/root-templates/typed/clj.refactor/README.md` and run `./script/regen-selmer.sh` -->
 # typed.clj.refactor
 
 <a href='https://typedclojure.org'><img src='../../doc/images/part-of-typed-clojure-project.png'></a>

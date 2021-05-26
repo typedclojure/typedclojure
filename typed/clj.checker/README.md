@@ -1,6 +1,7 @@
+<!-- DO NOT EDIT! Instead, edit `dev/resources/root-templates/typed/clj.checker/README.md` and run `./script/regen-selmer.sh` -->
 # typed.clj.checker
 
-<a href='http://typedclojure.org'><img src='images/part-of-typed-clojure-project.png'></a>
+<a href='https://typedclojure.org'><img src='images/part-of-typed-clojure-project.png'></a>
 
 Type checker for Typed Clojure, for JVM Clojure.
 

@@ -1,0 +1,59 @@
+{% do-not-edit-edn-comment %}
+{:paths ["src"],
+ :deps
+ {org.clojure/clojure {:mvn/version "{◊clojure-mvn-version◊}"},
+  org.clojure/core.cache {:mvn/version "{◊core-cache-mvn-version◊}"},
+  {◊typedclojure-group-id◊}/typed.clj.analyzer {:local/root "../clj.analyzer" :deps/manifest :deps},
+  {◊typedclojure-group-id◊}/typed.clj.lang {:local/root "../clj.lang" :deps/manifest :deps},
+  {◊typedclojure-group-id◊}/typed.lib.clojure {:local/root "../lib.clojure" :deps/manifest :deps},
+  {◊typedclojure-group-id◊}/typed.clj.runtime {:local/root "../clj.runtime" :deps/manifest :deps},
+  org.clojure/math.combinatorics {:mvn/version "{◊math-combinatorics-mvn-version◊}", :exclusions [org.clojure/clojure]},
+  org.clojure/tools.namespace {:mvn/version "{◊tools-namespace-mvn-version◊}"},
+  org.clojure/tools.reader {:mvn/version "{◊tools-reader-mvn-version◊}"}},
+ :mvn/repos
+ {"sonatype-oss-public"
+  {:url "{◊sonatype-oss-public-url◊}"}},
+ :aliases
+ {:script {:extra-paths ["script"]},
+  :nREPL
+  {:extra-deps
+   {nrepl/nrepl {:mvn/version "{◊nrepl-mvn-version◊}"}
+    cider/cider-nrepl {:mvn/version "0.25.3"}},
+   :main-opts ["-m" "nrepl.cmdline" "--interactive"
+               #_"
+               Note:
+                 introducing other middleware makes vim-fireplace choose
+                 fipp for pprint, which doesn't play well with the delicately
+                 defined classes in type-rep."
+               "--middleware" "[cider.nrepl/wrap-complete]"
+               ]},
+  :spec-skip-macros
+  {:jvm-opts ["-Dclojure.spec.skip-macros=true"]}
+  :test
+  {:extra-paths ["test" "resources"],
+   :extra-deps
+   {org.clojure/test.check
+    {:mvn/version "{◊test-check-mvn-version◊}"}
+    org.clojure/tools.nrepl
+    {:mvn/version "{◊tools-nrepl-mvn-version◊}", :exclusions [org.clojure/clojure]}
+    com.clojure-goes-fast/clj-java-decompiler {:mvn/version "0.3.0"}}},
+  :kaocha
+  {:extra-deps {lambdaisland/kaocha {:git/url "{◊kaocha-git-url◊}"
+                                     ;; https://github.com/lambdaisland/kaocha/issues/208#issuecomment-822844384
+                                     :sha "{◊kaocha-sha◊}"}}}
+  :codox
+  {:extra-deps {codox/codox {:mvn/version "{◊codox-mvn-version◊}"}}
+   :extra-paths ["script"]
+   :main-opts ["-m" "gen-doc"]}
+  :runner
+  {:extra-deps
+   {{◊cognitect-test-runner-coordinates◊}
+    {:git/url "{◊cognitect-test-runner-git-url◊}"
+     :sha "{◊cognitect-test-runner-sha◊}"}}
+   :main-opts
+   ["-m"
+    "cognitect.test-runner"
+    "-d"
+    "test/clojure/core/typed/test"
+    "-r"
+    ".*"]}}}
