@@ -7,12 +7,15 @@
 
 echo "Determining current version..."
 
+## via mvn
 TYPED_VERSION=$(mvn -q \
   -Dexec.executable="echo" \
   -Dexec.args='${project.version}' \
   --non-recursive \
   org.codehaus.mojo:exec-maven-plugin:1.6.0:exec)
 
+# via current-version file
+#TYPED_VERSION=$(bb -e '(-> "current-version" slurp str/trim print)')
 
 if [[ "$TYPED_VERSION" == *-SNAPSHOT ]]; then
   echo "Current version: ${TYPED_VERSION}"
