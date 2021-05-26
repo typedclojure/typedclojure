@@ -8,11 +8,11 @@
   `(let [s# ~s
          v# ~v
          valid# (s/valid? s# v#)]
-     (test/testing ~(str (list 's/valid s v))
+     (test/testing ~(str (list 's/valid? s v))
        (test/is
          valid#
          (when-not valid#
-           (str "Not valid: " ~(str (list 's/valid s v)) "\n"
+           (str "Not valid: " ~(str (list 's/valid? s v)) "\n"
                 "Explain:\n"
                 (with-out-str
                   (s/explain s# v#))))))))

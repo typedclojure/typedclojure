@@ -8,7 +8,8 @@
 
 (ns typed.clj.spec
   "Public API"
-  (:require [clojure.alpha.spec :as s]))
+  (:require [clojure.alpha.spec :as s]
+            typed.clj.spec.impl))
 
 (defmacro tfn
   "(tfn :binder
@@ -163,6 +164,3 @@
   [s]
   (println (str "DEPRECATED: " `reduced-of ", use typed.spec.clojure.core/reduced-spec"))
   `(s/resolve-spec '~(s/explicate (ns-name *ns*) `(reduced-of ~s))))
-
-; load typed spec implementations
-(load "/typed/clj/spec/impl")
