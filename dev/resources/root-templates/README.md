@@ -35,10 +35,10 @@ In Clojure CLI's `deps.edn`, this will look something like this:
 
 You can then start a dev repl with `clj -A:dev`.
 
-In Leiningen's `project.clj`, something like this:
+In Leiningen's `project.clj`, it will look something like this:
 
 ```clojure
-(defproject a-project "0.0.1-SNAPSHOT"
+(defproject com.my-domain/a-project "1.0.0-SNAPSHOT"
   :dependencies [[{◊typedclojure-group-id◊}/typed.clj.runtime "{◊typedclojure-stable-mvn-version◊}"]]
   :profiles {:dev {:dependencies [[{◊typedclojure-group-id◊}/typed.clj.checker "{◊typedclojure-stable-mvn-version◊}"]]}})
 ```
@@ -79,7 +79,7 @@ See modules for specific version coordinates:
 
 ## Compatibility
 
-Typed Clojure supports Clojure 1.10.1 and JDK 1.8+.
+Typed Clojure supports Clojure {◊clojure-mvn-version◊} and JDK 1.8+.
 
 ## Mailing List and Chat
 
