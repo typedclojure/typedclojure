@@ -3,7 +3,7 @@
 # If the commit message is of the form:
 #   [typedclojure-release] <release-version> <new-dev-version>
 
-set -e
+set -ex
 
 if [[ "$GITHUB_ACTIONS" != 'true' ]]; then
   echo "Only call this script in GitHub Actions"

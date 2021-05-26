@@ -120,6 +120,10 @@ jobs:
       - uses: DeLaGuardo/setup-clojure@38cb63c34a5d5d18e2b450cbb42432dbb1fb8612
         with:
           cli: ${{ env.CLOJURE_CLI_VERSION }}
+      - uses: turtlequeue/setup-babashka@v1.3.0
+        with:
+          babashka-version: ${{env.BABASHKA_VERSION}}
+      - run: bb --version
       - name: Configure settings.xml
         run: |
           mkdir -p ~/.m2

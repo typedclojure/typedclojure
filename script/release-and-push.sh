@@ -63,12 +63,10 @@ mvn release:prepare release:perform \
   -DdevelopmentVersion="$DEVELOPMENT_VERSION"
   )
 
-( set -x;
-./script/bump-readme-version "$RELEASE_VERSION"
-)
-
 echo $RELEASE_VERSION > stable-version
 echo $DEVELOPMENT_VERSION > current-version
+
+./script/regen-selmer.sh
 
 git add .
 git commit -m "Bump README versions for $RELEASE_VERSION"
