@@ -133,3 +133,4 @@ jobs:
         run: ./script/deploy-actions.sh 
         env:
           AWS_BUCKET: ${{ secrets.AWS_BUCKET }}
+      - run: rm -f ~/.m2/settings.xml
