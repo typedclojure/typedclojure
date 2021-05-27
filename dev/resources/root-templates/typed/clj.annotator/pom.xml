@@ -6,7 +6,7 @@
   <artifactId>typed.clj.annotator</artifactId>
   <name>typed.clj.annotator</name>
   <description>Runtime type inference algorithm for core.typed and clojure.spec.</description>
-  <version>1.0.16-SNAPSHOT</version>
+  <version>{◊typedclojure-current-mvn-version◊}</version>
 
   <licenses>
     <license>
@@ -19,7 +19,7 @@
   <parent>
     <groupId>{◊typedclojure-group-id◊}</groupId>
     <artifactId>pom.typed</artifactId>
-    <version>1.0.16-SNAPSHOT</version>
+    <version>{◊typedclojure-current-mvn-version◊}</version>
     <relativePath>../..</relativePath>
   </parent>
 
