@@ -4,6 +4,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
+;; TODO migrate these ideas to -unanalyzed-special
 (ns clojure.core.typed.rules
   (:require [clojure.core.typed :as t]
             [clojure.core.typed.internal :as internal]
@@ -336,7 +337,7 @@
     (assoc expr ::expr-type {:type `t/TCError})))
 
 (defmethod typing-rule 'clojure.core.typed.expand/with-post-blame-context
-  [{:keys [expr opts env expected check]} ]
+  [{:keys [expr opts env expected check]}]
   (let [ce (check expr expected)]
     (update-in ce [::expr-type :opts]
                ;; earlier messages override later ones
@@ -344,7 +345,9 @@
                   (select-keys opts [:blame-form :msg-fn])
                   %))))
 
+;; now handled in typed.clj.ext.clojure.core.typed
 ;; FIXME use check-below!!
+#_
 (defn ann-form-typing-rule 
   [{:keys [expr opts expected check subtype? expected-error]}]
   {:pre [(map? opts)]}
@@ -363,9 +366,11 @@
     (check expr (update-expected-with-check-expected-opts
                   (merge expected {:type ty}) inner-check-expected))))
 
-(defmethod typing-rule `t/ann-form [& args] (apply ann-form-typing-rule args))
-(defmethod typing-rule 'clojure.core.typed.macros/ann-form [& args] (apply ann-form-typing-rule args))
+;(defmethod typing-rule `t/ann-form [& args] (apply ann-form-typing-rule args))
+;(defmethod typing-rule 'clojure.core.typed.macros/ann-form [& args] (apply ann-form-typing-rule args))
 
+;; now handled in typed.clj.ext.clojure.core.typed
+#_
 (defn tc-ignore-typing-rule 
   [{:keys [expr opts expected maybe-check-expected]}]
   {:pre [(map? opts)]}
@@ -383,8 +388,8 @@
                          (update-expected-with-check-expected-opts
                            expected (:outer-check-expected opts))))))
 
-(defmethod typing-rule `t/tc-ignore [& args] (apply tc-ignore-typing-rule args))
-(defmethod typing-rule 'clojure.core.typed.macros/tc-ignore [& args] (apply tc-ignore-typing-rule args))
+;(defmethod typing-rule `t/tc-ignore [& args] (apply tc-ignore-typing-rule args))
+;(defmethod typing-rule 'clojure.core.typed.macros/tc-ignore [& args] (apply tc-ignore-typing-rule args))
 
 (defmethod typing-rule 'clojure.core.typed.expand/ignore-expected-if
   [{[_ ignore? body :as form] :form, :keys [expected check]}]
