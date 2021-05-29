@@ -129,38 +129,6 @@
 (defmacro check-let-destructure [{:keys [expression]}] expression)
 (defmacro check-let-destructure-no-op [_] nil)
 
-;; handled in typed.ext.clojure.core
-#_
-(defmethod -expand-macro 'clojure.core/ns
-  [[_ name & references :as form] _]
-  (let [process-reference
-        (fn [[kname & args]]
-          `(~(symbol "clojure.core" (clojure.core/name kname))
-             ~@(map #(list 'quote %) args)))
-        docstring  (when (string? (first references)) (first references))
-        references (if docstring (next references) references)
-        name (if docstring
-               (vary-meta name assoc :doc docstring)
-               name)
-        metadata   (when (map? (first references)) (first references))
-        references (if metadata (next references) references)
-        name (if metadata
-               (vary-meta name merge metadata)
-               name)
-        name-metadata (meta name)]
-    `(do
-       nil ;in-ns call
-       ~@(when name-metadata
-           `(nil)) ;reset-meta call
-       nil ;with-loading-context call
-       ; a top-level form
-       (let* []
-         (check-expected
-           nil
-           {:msg-fn (fn [_#]
-                      "This 'ns' expression returns nil, which does not agree with the expected type.")
-            :blame-form ~form})))))
-
 (defmacro check-if-empty-body
   "If e is a non-empty do form, this check it with the given options.
 
@@ -606,6 +574,9 @@
                     "The return type of this 'update-in' expression does not agree with the expected type.")
           :blame-form ~form}))))
 
+;; now handled in typed.clj.ext.clojure.core.typed
+;; left here because :inner-check-expected etc., has not been ported yet
+#_
 (defn expand-ann-form [form _]
   (let [[_ frm ty] form]
     ; coincide with top-level `do` macroexpansion of the actual `ann-form` macro
@@ -620,8 +591,8 @@
                                   :blame-form ~form}}
          ~frm)))
 
-(defmethod -expand-macro `t/ann-form [& args] (apply expand-ann-form args))
-(defmethod -expand-macro 'clojure.core.typed.macros/ann-form [& args] (apply expand-ann-form args))
+;(defmethod -expand-macro `t/ann-form [& args] (apply expand-ann-form args))
+;(defmethod -expand-macro 'clojure.core.typed.macros/ann-form [& args] (apply expand-ann-form args))
 
 (defmacro require-expected [expr opts]
   {:pre [(map? opts)]}

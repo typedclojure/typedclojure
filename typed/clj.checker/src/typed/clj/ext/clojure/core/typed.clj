@@ -21,6 +21,7 @@
 ;; ============================
 ;; clojure.core.typed/tc-ignore
 
+;; TODO clojure.core.typed.expand/tc-ignore-typing-rule has ideas on improving error msgs
 (defuspecial 'clojure.core.typed/tc-ignore
   [expr expected]
   (-> expr
@@ -32,6 +33,7 @@
 ;; ============================
 ;; clojure.core.typed/ann-form
 
+;; TODO clojure.core.typed.expand/expand-ann-form has ideas on improving error msgs
 (defmethod -unanalyzed-special 'clojure.core.typed/ann-form
   [{[_ body tsyn :as form] :form :keys [env] :as expr} expected]
   (assert (#{3} (count form))

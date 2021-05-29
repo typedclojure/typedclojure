@@ -370,6 +370,7 @@
 ;(defmethod typing-rule 'clojure.core.typed.macros/ann-form [& args] (apply ann-form-typing-rule args))
 
 ;; now handled in typed.clj.ext.clojure.core.typed
+;; left here for hints on how to improve error messages
 #_
 (defn tc-ignore-typing-rule 
   [{:keys [expr opts expected maybe-check-expected]}]
