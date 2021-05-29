@@ -129,6 +129,8 @@
 (defmacro check-let-destructure [{:keys [expression]}] expression)
 (defmacro check-let-destructure-no-op [_] nil)
 
+;; handled in typed.ext.clojure.core
+#_
 (defmethod -expand-macro 'clojure.core/ns
   [[_ name & references :as form] _]
   (let [process-reference
