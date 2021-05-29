@@ -38,6 +38,12 @@
 ;; Delegates (possible) expansion and evaluation to Compiler.java.
 ;; Always returns nil.
 
+;; TODO could improve error messages. old c.c.t.expand approach used:
+;; (check-expected
+;;   nil
+;;   {:msg-fn (fn [_#]
+;;              "This 'ns' expression returns nil, which does not agree with the expected type.")
+;;    :blame-form ~&form})
 (defmethod -unanalyzed-special 'clojure.core/ns
   [expr expected]
   (-> expr
