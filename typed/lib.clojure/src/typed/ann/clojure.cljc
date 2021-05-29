@@ -6,6 +6,8 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
+;; FIXME should this be split into typed.clj{,c,s}.ann.{clojure,cljs}?
+;; unclear what the file extensions should be, needs more thought.
 (ns ^:no-doc typed.ann.clojure
   "Type annotations for the base Clojure distribution."
   (:require [#?(:clj clojure.core.typed
@@ -84,20 +86,22 @@
   #?(:clj clojure.lang.Namespace
      :cljs cljs.core/Namespace))
 
-(defalias
-  ^{:doc "An atom that can write type w and read type r."
-    :forms '[(Atom2 t)]}
-  t/Atom2
-  (t/TFn [[w :variance :contravariant]
-          [r :variance :covariant]] 
-         (clojure.lang.Atom w r)))
+#?(:clj
+   (defalias
+     ^{:doc "An atom that can write type w and read type r."
+       :forms '[(Atom2 t)]}
+     t/Atom2
+     (t/TFn [[w :variance :contravariant]
+             [r :variance :covariant]] 
+            (clojure.lang.Atom w r))))
 
-(defalias
-  ^{:doc "An atom that can read and write type x."
-    :forms '[(Atom1 t)]}
-  t/Atom1
-  (t/TFn [[x :variance :invariant]]
-         (t/Atom2 x x)))
+#?(:clj
+   (defalias
+     ^{:doc "An atom that can read and write type x."
+       :forms '[(Atom1 t)]}
+     t/Atom1
+     (t/TFn [[x :variance :invariant]]
+            (t/Atom2 x x))))
 
 (defalias
   ^{:doc "An var that can write type w and read type r."
@@ -383,6 +387,7 @@
                 (t/I (t/Deref x)
                      (clojure.lang.IBlockingDeref x)
                      clojure.lang.IPending
+                     ;; FIXME I think this might be an implementation detail.
                      [x -> (t/U nil p)]))))
 
 (defalias
@@ -518,110 +523,111 @@
 
 ;; Predicate support for common classes
 
-(t/rclass-preds
-;  clojure.lang.Seqable 
-;  {:pred (fn [this a?]
-;           (cond 
-;             (string? this) (every? a? this)
-;             (coll? this) (every? a? this)))}
-  clojure.lang.IPersistentCollection
-  {:args #{1}
-   :pred (fn [this a?] 
-           `(every? ~a? ~this))}
-  clojure.lang.ISeq
-  {:args #{1}
-   :pred (fn [this a?] 
-           `(every? ~a? ~this))}
-  clojure.lang.IPersistentSet
-  {:args #{1}
-   :pred (fn [this a?] 
-           `(every? ~a? ~this))}
-  clojure.lang.APersistentSet
-  {:args #{1}
-   :pred (fn [this a?] 
-           `(every? ~a? ~this))}
-  clojure.lang.PersistentHashSet
-  {:args #{1}
-   :pred (fn [this a?] 
-           `(every? ~a? ~this))}
-  clojure.lang.PersistentTreeSet
-  {:args #{1}
-   :pred (fn [this a?] 
-           `(every? ~a? ~this))}
-  clojure.lang.Associative
-  {:args #{2}
-   :pred (fn [this a? b?]
-           `(cond
-              (vector? ~this) (and (every? ~a? (range (count ~this)))
-                                   (every? ~b? ~this))
-              (map? ~this) (and (every? ~a? (keys ~this))
-                                (every? ~b? (vals ~this)))))}
-  clojure.lang.IPersistentStack
-  {:args #{1}
-   :pred (fn [this a?] 
-           `(every? ~a? ~this))}
-  clojure.lang.IPersistentVector
-  {:args #{1}
-   :pred (fn [this a?] 
-           `(every? ~a? ~this))}
-  clojure.lang.APersistentVector
-  {:args #{1}
-   :pred (fn [this a?] 
-           `(every? ~a? ~this))}
-  clojure.lang.PersistentVector
-  {:args #{1}
-   :pred (fn [this a?] 
-           `(every? ~a? ~this))}
-  clojure.lang.IMapEntry
-  {:args #{2}
-   :pred (fn [this a? b?] 
-           `(and (~a? (key ~this)) (~b? (val ~this))))}
-  clojure.lang.AMapEntry
-  {:args #{2}
-   :pred (fn [this a? b?] 
-           `(and (~a? (key ~this)) (~b? (val ~this))))}
-  clojure.lang.MapEntry
-  {:args #{2}
-   :pred (fn [this a? b?] 
-           `(and (~a? (key ~this)) (~b? (val ~this))))}
-  clojure.lang.IPersistentMap
-  {:args #{2}
-   :pred (fn [this a? b?] 
-           `(and (every? ~a? (keys ~this))
-                 (every? ~b? (vals ~this))))}
-  clojure.lang.ASeq
-  {:args #{1}
-   :pred (fn [this a?] 
-           `(every? ~a? ~this))}
-  clojure.lang.APersistentMap
-  {:args #{2}
-   :pred (fn [this a? b?] 
-           `(and (every? ~a? (keys ~this))
-                 (every? ~b? (vals ~this))))}
-  clojure.lang.PersistentHashMap
-  {:args #{2}
-   :pred (fn [this a? b?] 
-           `(and (every? ~a? (keys ~this))
-                 (every? ~b? (vals ~this))))}
-  clojure.lang.Cons
-  {:args #{1}
-   :pred (fn [this a?] 
-           `(every? ~a? ~this))}
-  clojure.lang.IPersistentList
-  {:args #{1}
-   :pred (fn [this a?] 
-           `(every? ~a? ~this))}
-  clojure.lang.PersistentList
-  {:args #{1}
-   :pred (fn [this a?] 
-           `(every? ~a? ~this))}
-  clojure.lang.LazySeq
-  {:args #{1}
-   :pred (fn [this a?] 
-           `(every? ~a? ~this))}
-  clojure.lang.Reduced
-  {:args #{1}
-   :pred (fn [this a?] 
-           `(~a? (deref ~this)))})
+#?(:clj
+   (t/rclass-preds
+     ;  clojure.lang.Seqable 
+     ;  {:pred (fn [this a?]
+     ;           (cond 
+     ;             (string? this) (every? a? this)
+     ;             (coll? this) (every? a? this)))}
+     clojure.lang.IPersistentCollection
+     {:args #{1}
+      :pred (fn [this a?] 
+              `(every? ~a? ~this))}
+     clojure.lang.ISeq
+     {:args #{1}
+      :pred (fn [this a?] 
+              `(every? ~a? ~this))}
+     clojure.lang.IPersistentSet
+     {:args #{1}
+      :pred (fn [this a?] 
+              `(every? ~a? ~this))}
+     clojure.lang.APersistentSet
+     {:args #{1}
+      :pred (fn [this a?] 
+              `(every? ~a? ~this))}
+     clojure.lang.PersistentHashSet
+     {:args #{1}
+      :pred (fn [this a?] 
+              `(every? ~a? ~this))}
+     clojure.lang.PersistentTreeSet
+     {:args #{1}
+      :pred (fn [this a?] 
+              `(every? ~a? ~this))}
+     clojure.lang.Associative
+     {:args #{2}
+      :pred (fn [this a? b?]
+              `(cond
+                 (vector? ~this) (and (every? ~a? (range (count ~this)))
+                                      (every? ~b? ~this))
+                 (map? ~this) (and (every? ~a? (keys ~this))
+                                   (every? ~b? (vals ~this)))))}
+     clojure.lang.IPersistentStack
+     {:args #{1}
+      :pred (fn [this a?] 
+              `(every? ~a? ~this))}
+     clojure.lang.IPersistentVector
+     {:args #{1}
+      :pred (fn [this a?] 
+              `(every? ~a? ~this))}
+     clojure.lang.APersistentVector
+     {:args #{1}
+      :pred (fn [this a?] 
+              `(every? ~a? ~this))}
+     clojure.lang.PersistentVector
+     {:args #{1}
+      :pred (fn [this a?] 
+              `(every? ~a? ~this))}
+     clojure.lang.IMapEntry
+     {:args #{2}
+      :pred (fn [this a? b?] 
+              `(and (~a? (key ~this)) (~b? (val ~this))))}
+     clojure.lang.AMapEntry
+     {:args #{2}
+      :pred (fn [this a? b?] 
+              `(and (~a? (key ~this)) (~b? (val ~this))))}
+     clojure.lang.MapEntry
+     {:args #{2}
+      :pred (fn [this a? b?] 
+              `(and (~a? (key ~this)) (~b? (val ~this))))}
+     clojure.lang.IPersistentMap
+     {:args #{2}
+      :pred (fn [this a? b?] 
+              `(and (every? ~a? (keys ~this))
+                    (every? ~b? (vals ~this))))}
+     clojure.lang.ASeq
+     {:args #{1}
+      :pred (fn [this a?] 
+              `(every? ~a? ~this))}
+     clojure.lang.APersistentMap
+     {:args #{2}
+      :pred (fn [this a? b?] 
+              `(and (every? ~a? (keys ~this))
+                    (every? ~b? (vals ~this))))}
+     clojure.lang.PersistentHashMap
+     {:args #{2}
+      :pred (fn [this a? b?] 
+              `(and (every? ~a? (keys ~this))
+                    (every? ~b? (vals ~this))))}
+     clojure.lang.Cons
+     {:args #{1}
+      :pred (fn [this a?] 
+              `(every? ~a? ~this))}
+     clojure.lang.IPersistentList
+     {:args #{1}
+      :pred (fn [this a?] 
+              `(every? ~a? ~this))}
+     clojure.lang.PersistentList
+     {:args #{1}
+      :pred (fn [this a?] 
+              `(every? ~a? ~this))}
+     clojure.lang.LazySeq
+     {:args #{1}
+      :pred (fn [this a?] 
+              `(every? ~a? ~this))}
+     clojure.lang.Reduced
+     {:args #{1}
+      :pred (fn [this a?] 
+              `(~a? (deref ~this)))}))
 
 ;; Var annotations
