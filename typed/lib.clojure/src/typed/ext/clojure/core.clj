@@ -343,9 +343,7 @@
         kvs (partition 2 args-syn)]
     ;; TODO destructuring, kw opts
     (when (every? (comp simple-symbol? first) kvs)
-      (let [;; TODO short circuit on unreachable
-            is-reachable (atom true)
-            ;; TODO return expanded args
+      (let [is-reachable (atom true)
             {:keys [new-syms expanded-bindings prop-env ana-env]}
             (reduce (fn [{:keys [new-syms expanded-bindings prop-env ana-env]} [k v]]
                       {:pre [(vector? expanded-bindings)
