@@ -1,6 +1,8 @@
 (ns ^:no-doc clojure.core.typed.ext-test.clojure.core
   (:require [clojure.test :refer [deftest is]]
-            [clojure.core.typed :as t]))
+            [clojure.core.typed :as t]
+            [typed.clj.checker.parse-unparse :as prs]
+            [clojure.core.typed.test.test-utils :refer :all]))
 
 (defn eval-in-ns [form]
   (binding [*ns* *ns*]
@@ -79,3 +81,29 @@
           (= [:result 1]
              (-> res
                  (find :result))))))))
+
+(deftest for-test
+  ; type checked
+  (is-tc-e (cc/for [a (range 3)] a)
+           (t/Seq t/Int))
+  (is-tc-err (cc/for [a (range 3)] a)
+             (t/Seq t/Bool))
+  ; no expected
+  (let [{:keys [t]} (tc-e (cc/for [a (range 3)] a))]
+    (is (subtype? (prs/parse-clj `(t/ASeq Long)) t))
+    (is (subtype? t (prs/parse-clj `(t/Seq t/Int)))))
+  ;; multiple clauses
+  ; type checked
+  (is-tc-e (cc/for [a (range 3)
+                    b (repeat 10 (inc a))]
+             (str (+ a b)))
+           (t/Seq t/Str))
+  (is-tc-err (cc/for [a (range 3)
+                      b (repeat 10 (str (inc a)))]
+               ;; b is Str, so type error
+               (str (+ a b)))
+             (t/Seq t/Str))
+  ;; non-seqable clause
+  (is-tc-err (cc/for [a 1] a))
+  )
+

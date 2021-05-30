@@ -30,9 +30,9 @@
 
 (defn update-env [env sym {:keys [t fl flow o] :as r} is-reachable]
   {:pre [(lex/PropEnv? env)
-         (symbol? sym)
+         (simple-symbol? sym)
          (r/TCResult? r)
-         (instance? clojure.lang.IAtom is-reachable)]
+         (instance? clojure.lang.IAtom2 is-reachable)]
    :post [(lex/PropEnv? %)]}
   (let [{:keys [then else]} fl
         p* (cond
@@ -64,12 +64,12 @@
 ;erase references to any bindings this scope introduces
 ;FIXME is this needed in the presence of hygiene?
 (defn erase-objects [syms ret]
-  {:pre [(every? symbol? syms)
+  {:pre [(every? simple-symbol? syms)
          (r/TCResult? ret)]
    :post [(r/TCResult? %)]}
   (reduce (fn [ty sym]
             {:pre [(r/TCResult? ty)
-                   (symbol? sym)]}
+                   (simple-symbol? sym)]}
             (-> ty
                 (update :t subst-obj/subst-type sym obj/-empty true)
                 (update :fl subst-obj/subst-filter-set sym obj/-empty true)

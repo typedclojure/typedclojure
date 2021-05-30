@@ -316,10 +316,9 @@
         (println "Checking line:" (:line env))
         (flush))
       (if (= :unanalyzed (:op expr))
-        #_"Type checks the :unanalyzed expr at expected type.
-
-          The return expr will be fully expanded, analyzed, evaluated (if top-level),
-          with a u/expr-type entry for the TCResult of the entire expression."
+        ;; Type checks the :unanalyzed expr at expected type.
+        ;; The return expr will be fully expanded, analyzed, evaluated (if top-level),
+        ;; with a u/expr-type entry for the TCResult of the entire expression."
         (let [;register typing rules (ie., implementations of -unanalyzed-top-level
               ; and -unanalyzed-special)
               _ @*register-exts]
@@ -947,22 +946,22 @@
         cargs
         [(assoc bindings-expr
                 :args
-                (vec
-                  (apply concat
-                         (for [[var-expr bnd-expr] new-bindings-exprs]
-                           (let [{:keys [op var] :as var-expr} (ana2/run-pre-passes (ana2/analyze-outer-root var-expr))]
-                             (when-not (#{:the-var} op)
-                               (err/int-error (str "push-thread-bindings must have var literals for keys")))
-                             (let [expected (var-env/type-of (coerce/var->symbol var))
-                                   cvar-expr (check-expr var-expr)
-                                   cexpr (check-expr bnd-expr (r/ret expected))
-                                   actual (-> cexpr u/expr-type r/ret-t)]
-                               (when (not (sub/subtype? actual expected))
-                                 (err/tc-delayed-error (str "Expected binding for "
-                                                          (coerce/var->symbol var)
-                                                          " to be: " (prs/unparse-type expected)
-                                                          ", Actual: " (prs/unparse-type actual))))
-                               [cvar-expr cexpr]))))))]]
+                (into []
+                      (mapcat (fn [[var-expr bnd-expr]]
+                                (let [{:keys [op var] :as var-expr} (ana2/run-pre-passes (ana2/analyze-outer-root var-expr))]
+                                  (when-not (#{:the-var} op)
+                                    (err/int-error (str "push-thread-bindings must have var literals for keys")))
+                                  (let [expected (var-env/type-of (coerce/var->symbol var))
+                                        cvar-expr (check-expr var-expr)
+                                        cexpr (check-expr bnd-expr (r/ret expected))
+                                        actual (-> cexpr u/expr-type r/ret-t)]
+                                    (when (not (sub/subtype? actual expected))
+                                      (err/tc-delayed-error (str "Expected binding for "
+                                                                 (coerce/var->symbol var)
+                                                                 " to be: " (prs/unparse-type expected)
+                                                                 ", Actual: " (prs/unparse-type actual))))
+                                    [cvar-expr cexpr]))))
+                      new-bindings-exprs))]]
     (-> expr
         ; push-thread-bindings is unannotated
         #_(update :fn check-expr)
@@ -1106,8 +1105,8 @@
         {out-expr-type ::rules/expr-type :as cexpr} (rules/typing-rule rule-args)
         out-tcresult (cu/map->TCResult out-expr-type)]
     (-> expr
-        (assoc u/expr-type out-tcresult)
-        (assoc typing-rule-expr-kw (-> cexpr
+        (assoc u/expr-type out-tcresult
+               typing-rule-expr-kw (-> cexpr
                                        (dissoc ::rules/expr-type)
                                        (assoc u/expr-type out-tcresult))))))
 

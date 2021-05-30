@@ -104,11 +104,11 @@
                  (contains? opt :blame-form) (:blame-form opt)
                  (contains? opt :form) form
                  :else (ast-u/emit-form-fn uvs/*current-expr*))
-          msg (str (when-let [msg-fn (some-> (or (-> expected :opts :msg-fn)
-                                                 (:msg-fn opt))
-                                             eval)]
+          msg (str (when-some [msg-fn (some-> (or (-> expected :opts :msg-fn)
+                                                  (:msg-fn opt))
+                                              eval)]
                      (str (msg-fn (merge (msg-fn-opts)
-                                         (when-let [[_ actual] (find opt :actual)]
+                                         (when-some [[_ actual] (find opt :actual)]
                                            {:actual (@unparse-type actual)})))
                           (when msg
                             (str

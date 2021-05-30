@@ -108,9 +108,9 @@
          (nat-int? idx)]
    :post [(obj/RObject? %)]}
   (let [target-o (expr->object target-expr)]
-    (if (obj/Path? target-o)
-      (update target-o :path concat [(pe/NthPE-maker idx)])
-      target-o)))
+    (cond-> target-o 
+      (obj/Path? target-o)
+      (update :path concat [(pe/NthPE-maker idx)]))))
 
 (def nat-value? (every-pred r/Value? (comp nat-int? :val)))
 

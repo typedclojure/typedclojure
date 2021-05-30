@@ -34,7 +34,8 @@
                               #_def #_filter #_remove defn atom ref cast])
            (:require ~@'[[clojure.core.typed :refer :all :as t]
                          [clojure.core.typed.unsafe :as unsafe]
-                         [clojure.core :as core]]
+                         [clojure.core :as core]
+                         [clojure.core :as cc]]
                      ~@requires))]
     `(let [expected-ret# ~expected-ret
            check-config# ~check-config]
@@ -112,9 +113,9 @@
      (subtype? (parse-type ~s)
                (parse-type ~t))))
 
-(defn subtype? [& rs]
+(defn subtype? [s t]
   (impl/with-clojure-impl
-    (apply sub/subtype? rs)))
+    (sub/subtype? s t)))
 
 (defn both-subtype? [s t]
   (and (not= r/-error s)

@@ -1416,17 +1416,6 @@
           (swap!' DOTTED-VAR-STORE assoc' key all))
         all))))
 
-(defn pad-right
-  "Returns a sequence of length cnt that is s padded to the right with copies
-  of v."
-  [^long cnt s v]
-  {:pre [(integer? cnt)
-         (<= (count s) cnt)]
-   ;careful not to shadow cnt here
-   :post [(== cnt (count %))]}
-  (concat s
-          (repeat (- cnt (count s)) v)))
-
 (defn cs-gen-Function-just-rests [V X Y S T]
   ;just a rest arg, no drest, no keywords, no prest
   {:pre [(and (some-fn :rest [S T])
@@ -1434,11 +1423,16 @@
   (let [arg-mapping (cond
                       ;both rest args are present, so make them the same length
                       (and (:rest S) (:rest T))
-                      (cs-gen-list V X Y 
-                                   (cons (:rest T) (u/pad-right (count (:dom S)) (:dom T) (:rest T)))
-                                   (cons (:rest S) (u/pad-right (count (:dom T)) (:dom S) (:rest S))))
-                      ;no rest arg on the right, so just pad left and forget the rest arg
-                      (and (:rest S) (not (:rest T)))
+                      (let [max-fixed (max (count (:dom S))
+                                           (count (:dom T)))]
+                        (cs-gen-list V X Y 
+                                     (cons (:rest T) (u/pad-right max-fixed (:dom T) (:rest T)))
+                                     (cons (:rest S) (u/pad-right max-fixed (:dom S) (:rest S)))))
+                      ;rest arg only on left, and left fixed args can be padded to fit right fixed
+                      (and (:rest S)
+                           (not (:rest T))
+                           (<= (count (:dom S))
+                               (count (:dom T))))
                       (let [new-S (u/pad-right (count (:dom T)) (:dom S) (:rest S))]
                         ;                            (prn "infer rest arg on left")
                         ;                            (prn "left dom" (map prs/unparse-type (:dom S)))
@@ -1882,12 +1876,10 @@
                       (not (subtype? lower-bound inferred))
                       (fail! lower-bound inferred)))))]
         ;; verify that we got all the important variables
-        (when-let [r (and (every? identity
-                                  (map
-                                    (fn [v]
-                                      (let [entry (subst v)]
-                                        (and entry (cr/t-subst? entry))))
-                                    (frees/fv R)))
+        (when-let [r (and (every? (fn [v]
+                                    (let [entry (subst v)]
+                                      (and entry (cr/t-subst? entry))))
+                                  (frees/fv R))
                           (extend-idxs subst))]
           r)))))
 
@@ -2186,10 +2178,10 @@
   (assert (some #{out} fresh))
   (let [fresh-names (map (juxt identity gensym) fresh)
         name-lookup (into {} fresh-names)]
-    `(let [[lhs# rhs#] (let ~(vec
-                               (mapcat (fn [[fresh name]]
-                                         [fresh `(r/make-F '~name)])
-                                       fresh-names))
+    `(let [[lhs# rhs#] (let ~(into []
+                                   (mapcat (fn [[fresh name]]
+                                             [fresh `(r/make-F '~name)]))
+                                   fresh-names)
                          [~s ~t])
            _# (assert (r/Type? lhs#))
            _# (assert (r/Type? rhs#))
@@ -2206,6 +2198,39 @@
                     (:type s#)))
            _# (assert ((some-fn nil? r/Type?) res#))]
        res#)))
+
+(defn solve [t query]
+  {:pre [(r/TCResult? t)
+         (r/Type? query)]
+   :post [((some-fn nil? r/TCResult?) %)]}
+  (let [;; atm only support query = (All [x+] [in :-> out])
+        _ (assert (r/Poly? query))
+        names (c/Poly-fresh-symbols* query)
+        bbnds (c/Poly-bbnds* names query)
+        body (c/Poly-body* names query)
+        _ (assert (r/FnIntersection? body))
+        _ (assert (= 1 (count (:types body))))
+        arity (first (:types body))
+        _ (assert (r/Function? arity))
+        _ (assert (= 1 (count (:dom arity))))
+        _ (assert (not-any? #(% arity) [:rest :drest :kws :prest :pdot]))
+        _ (assert (= (fo/-simple-filter) (:fl (:rng arity))))
+        _ (assert (= or/-empty (:o (:rng arity))))
+        _ (assert (= (r/-flow fr/-top) (:flow (:rng arity))))
+
+        lhs (:t t)
+        rhs (first (:dom arity))
+        ;; TODO incorporate filter/object
+        out (:t (:rng arity))
+        substitution (handle-failure
+                       (infer
+                         (zipmap names bbnds)
+                         {}
+                         [lhs]
+                         [rhs]
+                         out))]
+    (when substitution
+      (r/ret (subst/subst-all substitution out)))))
 
 (comment
   (impl/with-clojure-impl
