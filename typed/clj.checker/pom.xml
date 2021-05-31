@@ -74,7 +74,7 @@
     <dependency>
       <groupId>org.clojure</groupId>
       <artifactId>tools.nrepl</artifactId>
-      <version>0.2.6</version>
+      <version>0.2.13</version>
       <scope>provided</scope>
     </dependency>
   </dependencies>
