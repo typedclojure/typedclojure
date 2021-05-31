@@ -35,21 +35,35 @@
 (defn ^:private expression? [expr]
   (r/TCResult? (u/expr-type expr)))
 
+;; TODO try and replace with cgen + intersection
+;; (All [x] [(I x AnyHSequential) -> x])
+(defn ^:private find-hsequential [t]
+  {:pre [(r/Type? t)]
+   :post [(r/HSequential? %)]}
+  (or (c/find-hsequential-in-non-union t)
+      (err/int-error (str "Cannot find HSequential ancestor: "
+                          (prs/unparse-type t)))))
+
 (defn nth-type [types idx default-t]
   {:pre [(every? r/Type? types)
          (nat-int? idx)
          ((some-fn nil? r/Type?) default-t)]
    :post [(r/Type? %)]}
   (apply c/Un
-         (doall
-           (for [t types]
-             (if-let [res-t (cond
-                              (ind/subtype? t r/-nil) (or default-t r/-nil)
-                              ;; nil on out-of-bounds and no default-t
-                              :else (nth (:types t) idx default-t))]
-               res-t
-               (err/int-error (str "Cannot get index " idx
-                                   " from type " (prs/unparse-type t))))))))
+         (for [t types]
+           (if-some [res-t (cond
+                             ;; (nth nil ...) returns default (if any), otherwise nil
+                             (ind/subtype? t r/-nil) (or default-t r/-nil)
+                             :else (-> t
+                                       find-hsequential
+                                       ;; TODO handle other HSequential fields like :rest
+                                       :types
+                                       ;; when default-t is nil and idx is out of bounds,
+                                       ;; this returns nil, executing the err/tc-delayed-error
+                                       (nth idx default-t)))]
+             res-t
+             (err/tc-delayed-error (str "Cannot get index " idx
+                                        " from type " (prs/unparse-type t)))))))
 
 (defn ^:private nth-positive-filter-default-truthy [target-o default-o]
   {:pre [(obj/RObject? target-o)
@@ -152,15 +166,16 @@
                                         (update :target check-fn))
           types (let [ts (c/fully-resolve-type (expr->type te))]
                   (if (r/Union? ts)
-                    (map c/fully-resolve-type (:types ts))
+                    (:types ts)
                     [ts]))
           num-t (expr->type ne)
           default-t (expr->type de)]
+      ;(prn "nth" types)
       (cond
         (and (nat-value? num-t)
-             (every? (some-fn r/HSequential?
-                              #(ind/subtype? % r/-nil))
-                     types))
+             (let [super (c/Un r/-nil r/-any-hsequential)]
+               (every? #(ind/subtype? % super)
+                       types)))
         (let [idx (:val num-t)]
           (-> expr
               (assoc

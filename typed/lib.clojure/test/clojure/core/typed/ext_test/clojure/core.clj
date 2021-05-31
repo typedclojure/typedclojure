@@ -88,6 +88,8 @@
            (t/Seq t/Int))
   (is-tc-err (cc/for [a (range 3)] a)
              (t/Seq t/Bool))
+  (is-tc-e (cc/for [e {1 2 3 4}] e)
+           (t/Seq '[t/Int t/Int]))
   ; no expected
   (let [{:keys [t]} (tc-e (cc/for [a (range 3)] a))]
     (is (subtype? (prs/parse-clj `(t/ASeq Long)) t))
@@ -105,5 +107,15 @@
              (t/Seq t/Str))
   ;; non-seqable clause
   (is-tc-err (cc/for [a 1] a))
+  ;; destructuring
+  (is-tc-e (cc/for [[:as e] {1 2 3 4}]
+             e)
+           (t/Seq '[t/Int t/Int]))
+  (is-tc-e (cc/for [[a] {1 2 3 4}]
+             a)
+           (t/Seq t/Int))
+  (is-tc-e (cc/for [[a b] {1 2 3 4}]
+             [a b])
+           (t/Seq '[t/Int t/Int]))
   )
 

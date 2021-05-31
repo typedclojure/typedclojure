@@ -101,8 +101,9 @@
        (path-type (c/Un r/-nil (c/RClass-of Class)) (next ps))
 
        (and (pe/NthPE? (first ps))
-            (r/HSequential? t))
-       (let [idx (:idx (first ps))]
+            (sub/subtype? t r/-any-hsequential))
+       (let [t (c/find-hsequential-in-non-union t)
+             idx (:idx (first ps))]
          (path-type
            (or (nth (:types t) idx nil)
                (:rest t)
@@ -113,6 +114,9 @@
             (sub/subtype? t r/-nil))
        ;; we don't know the default value, so could return anything
        (path-type r/-any (next ps))
+
+       ;; TODO (and (pe/NthPE? (first ps))
+       ;;           (sub/subtype? t (c/Un r/-nil r/-any-hsequential)))
 
        (pe/KeywordPE? (first ps))
        (path-type

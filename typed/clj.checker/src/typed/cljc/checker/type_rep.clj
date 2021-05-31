@@ -568,6 +568,13 @@
   :methods
   [p/TCType])
 
+(u/def-type TopHSequential []
+  "Supertype of all HSequentials's."
+  []
+  :methods [p/TCType])
+
+(def -any-hsequential (TopHSequential-maker))
+
 (t/ann ^:no-check -hsequential
        [(Seqable Type) & :optional {:filters (Seqable p/IFilterSet) :objects (Seqable p/IRObject)
                                   :rest (U nil Type) :drest (U nil DottedPretype) :repeat Boolean} -> Type])

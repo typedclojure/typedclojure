@@ -1032,12 +1032,13 @@
           (err/int-error 
             (str "Found more than one function supertype for RClass " (ind/unparse-type rcls) ": \n"
                  (mapv ind/unparse-type (filter (some-fn r/FnIntersection? r/Poly? r/PolyDots?) res))
-                 "\nReplacements:" (into {} (map (t/fn [[k v] :- '[t/Any r/Type]] [k (ind/unparse-type v)])
-                                                 replacements))
+                 "\nReplacements:" (into {}
+                                         (map (t/fn [[k v] :- '[t/Any r/Type]] [k (ind/unparse-type v)]))
+                                         replacements)
                  "\nNot replaced:" not-replaced
                  (try (throw (Exception. ""))
                       (catch Exception e
-                        (with-out-str (clojure.repl/pst e 40)))))))
+                        (with-out-str (repl/pst e 40)))))))
         (t/tc-ignore
           (swap! supers-cache assoc cache-key res))
         res))))
@@ -1113,14 +1114,14 @@
       body)))
 
 (t/ann ^:no-check TypeFn-bbnds* [(t/Seqable t/Sym) TypeFn -> (t/Seqable Bounds)])
-(defn TypeFn-bbnds* [names ^TypeFn typefn]
+(defn TypeFn-bbnds* [names typefn]
   {:pre [(every? symbol? names)
          (r/TypeFn? typefn)]
    :post [(every? r/Bounds? %)]}
-  (assert (= (.nbound typefn) (count names)) "Wrong number of names")
+  (assert (= (:nbound typefn) (count names)) "Wrong number of names")
   (mapv (fn [b]
           (r/visit-bounds b #(instantiate-many names %)))
-        (.bbnds typefn)))
+        (:bbnds typefn)))
 
 (t/ann ^:no-check TypeFn-free-names* [TypeFn -> (t/Seqable t/Sym)])
 (defn ^:private TypeFn-free-names* [tfn]
@@ -1190,13 +1191,13 @@
                         (repeatedly (:nbound poly) #(gensym "Poly-fresh-sym")))))
 
 (t/ann ^:no-check Poly-bbnds* [(t/Seqable t/Sym) Poly -> (t/Seqable Bounds)])
-(defn Poly-bbnds* [names ^Poly poly]
+(defn Poly-bbnds* [names poly]
   {:pre [(every? symbol? names)
          (r/Poly? poly)]}
-  (assert (= (.nbound poly) (count names)) "Wrong number of names")
+  (assert (= (:nbound poly) (count names)) "Wrong number of names")
   (mapv (fn [b]
           (r/visit-bounds b #(instantiate-many names %)))
-        (.bbnds poly)))
+        (:bbnds poly)))
 
 ;smart destructor
 (t/ann ^:no-check Poly-body* [(t/Seqable t/Sym) Poly -> r/Type])
@@ -1242,13 +1243,13 @@
   (instantiate-many names (.scope poly)))
 
 (t/ann ^:no-check PolyDots-bbnds* [(t/Seqable t/Sym) PolyDots -> (t/Seqable Bounds)])
-(defn PolyDots-bbnds* [names ^PolyDots poly]
+(defn PolyDots-bbnds* [names poly]
   {:pre [(every? symbol? names)
          (r/PolyDots? poly)]}
-  (assert (= (.nbound poly) (count names)) "Wrong number of names")
+  (assert (= (:nbound poly) (count names)) "Wrong number of names")
   (mapv (fn [b]
           (r/visit-bounds b #(instantiate-many names %)))
-        (.bbnds poly)))
+        (:bbnds poly)))
 
 (t/ann ^:no-check PolyDots-free-names* [Poly -> (t/U nil (t/Seqable t/Sym))])
 (defn ^:private PolyDots-free-names* [poly]
@@ -1273,8 +1274,10 @@
          (every? r/Type? ts)
          (= (count vs)
             (count ts))]}
-  (into {} (for [[v t] (map vector vs ts)]
-             [v (crep/t-subst-maker t r/no-bounds)])))
+  (into {}
+        (map (fn [[v t]]
+               [v (crep/t-subst-maker t r/no-bounds)]))
+        (map vector vs ts)))
 
 (t/ann ^:no-check instantiate-typefn [TypeFn (t/Seqable r/Type) -> r/Type])
 (defn instantiate-typefn [t types & {:keys [names]
@@ -2468,6 +2471,20 @@
                       [(r/ret t) (r/ret k) (r/ret default)] nil)
         r/ret-t)
       :else r/-any))))
+
+(defn find-hsequential-in-non-union [t]
+  {:post [((some-fn nil? r/HSequential?) %)]}
+  (let [t (fully-resolve-type t)]
+    (assert (not (r/Union? t)) t)
+    (cond
+      (r/HSequential? t) t
+      ;; TODO we just pick the first HSequential we find, perhaps 
+      ;; there's a better strategy (eg., return a list of them)
+      (r/RClass? t) (some find-hsequential-in-non-union
+                          (disj (RClass-supers* t)
+                                ;; stop at top of class hierarchy to prevent
+                                ;; infinite recursion
+                                (RClass-of Object))))))
 
 (defn -tapp [op & rands]
   (r/TApp-maker op (seq rands)))

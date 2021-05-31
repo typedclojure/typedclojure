@@ -147,6 +147,117 @@
     A
     (report-not-subtypes s t)))
 
+(defn subtype-compatible-HSequential [A s t]
+  {:pre [(r/HSequential? s)
+         (r/HSequential? t)
+         (r/compatible-HSequential-kind? (:kind s) (:kind t))]}
+  (if (and (cond
+             ; simple case, no rest, drest, repeat types
+             (and (not-any? :rest [s t])
+                  (not-any? :drest [s t])
+                  (not-any? :repeat [s t]))
+             (let []
+               (and (= (count (:types s))
+                       (count (:types t)))
+                    (every? identity (map (partial subtypeA* A) (:types s) (:types t)))))
+
+             ; repeat on left
+             (and (:repeat s)
+                  (not (:drest t)))
+             (let [s-types (:types s)
+                   t-types (:types t)
+                   s-types-count (count s-types)
+                   t-types-count (count t-types)]
+               (cond
+                 (:rest t)
+                 (and (= 1 s-types-count)
+                      (every? identity (map (partial subtypeA* A)
+                                            (repeat (first s-types))
+                                            t-types))
+                      (subtypeA* A (first s-types) (:rest t)))
+
+                 ; both s & t have :repeat
+                 (:repeat t)
+                 (if (and (<= t-types-count
+                              s-types-count)
+                          (zero? (rem s-types-count
+                                      t-types-count)))
+                   (every? identity (map (partial subtypeA* A)
+                                         s-types
+                                         (gen-repeat (/ (count s-types)
+                                                        (count t-types))
+                                                     t-types)))
+                   false)
+
+                 ; nothing on right
+                 :else
+                 false))
+
+             ; repeat on right
+             (and (:repeat t)
+                  (not (:drest s)))
+             (let [s-types (:types s)
+                   t-types (:types t)
+                   s-types-count (count s-types)
+                   t-types-count (count t-types)]
+               (if (:rest s)
+                 (and (= 1 t-types-count)
+                      (every? identity (map (partial subtypeA* A)
+                                            s-types
+                                            (repeat (first t-types))))
+                      (subtypeA* A (:rest s) (first t-types)))
+
+                 ; nothing on left
+                 (and (or (zero? s-types-count)
+                          (<= t-types-count
+                              s-types-count))
+                      (if (zero? (rem s-types-count
+                                      t-types-count))
+                        (every? identity (map (partial subtypeA* A)
+                                              s-types
+                                              (gen-repeat (/ s-types-count
+                                                             t-types-count)
+                                                          t-types)))
+                        false))))
+
+             ; rest on right
+             (and (:rest t)
+                  (not ((some-fn :drest :repeat) s)))
+             (and (>= (count (:types s))
+                      (count (:types t)))
+                  (if (:rest s)
+                    (subtypeA* A (:rest s) (:rest t))
+                    true)
+                  ;pad t to the right
+                  (every? identity (map (partial subtypeA* A)
+                                        (:types s)
+                                        (concat (:types t)
+                                                (repeat (- (count (:types s)) (count (:types t)))
+                                                        (:rest t))))))
+
+             (and (:drest s)
+                  (:rest t))
+             (and
+               (every? identity (map (partial subtypeA* A)
+                                     (:types s)
+                                     (concat (:types t)
+                                             (repeat (- (count (:types s)) (count (:types t)))
+                                                     (:rest t)))))
+               (r/Top? (:rest t)))
+
+             ;TODO other cases
+             :else nil)
+           ; ignore interesting results
+           (every? (fn hvec1 [[f1 f2]] (or (= (fops/-FS fr/-top fr/-top) f2)
+                                           (= f1 f2)))
+                   (map vector (:fs s) (:fs t)))
+           ; ignore interesting results
+           (every? (fn hvec2 [[o1 o2]] (or (orep/EmptyObject? o2)
+                                           (= o1 o2)))
+                   (map vector (:objects s) (:objects t))))
+    A
+    (report-not-subtypes s t)))
+
 (defn simplify-In [t]
   {:pre [(r/Intersection? t)]}
   (:types t)
@@ -478,119 +589,17 @@
         (and (r/HSequential? s)
              (r/HSequential? t)
              (r/compatible-HSequential-kind? (:kind s) (:kind t)))
-        (if (and (cond
-                   ; simple case, no rest, drest, repeat types
-                   (and (not-any? :rest [s t])
-                        (not-any? :drest [s t])
-                        (not-any? :repeat [s t]))
-                   (let []
-                     (and (= (count (:types s))
-                             (count (:types t)))
-                          (every? identity (map (partial subtypeA* A) (:types s) (:types t)))))
-
-                   ; repeat on left
-                   (and (:repeat s)
-                        (not (:drest t)))
-                   (let [s-types (:types s)
-                         t-types (:types t)
-                         s-types-count (count s-types)
-                         t-types-count (count t-types)]
-                     (cond
-                       (:rest t)
-                       (and (= 1 s-types-count)
-                            (every? identity (map (partial subtypeA* A)
-                                                  (repeat (first s-types))
-                                                  t-types))
-                            (subtypeA* A (first s-types) (:rest t)))
-
-                       ; both s & t have :repeat
-                       (:repeat t)
-                       (if (and (<= t-types-count
-                                    s-types-count)
-                                (zero? (rem s-types-count
-                                            t-types-count)))
-                         (every? identity (map (partial subtypeA* A)
-                                               s-types
-                                               (gen-repeat (/ (count s-types)
-                                                              (count t-types))
-                                                           t-types)))
-                         false)
-
-                       ; nothing on right
-                       :else
-                       false))
-
-                   ; repeat on right
-                   (and (:repeat t)
-                        (not (:drest s)))
-                   (let [s-types (:types s)
-                         t-types (:types t)
-                         s-types-count (count s-types)
-                         t-types-count (count t-types)]
-                     (if (:rest s)
-                       (and (= 1 t-types-count)
-                            (every? identity (map (partial subtypeA* A)
-                                                  s-types
-                                                  (repeat (first t-types))))
-                            (subtypeA* A (:rest s) (first t-types)))
-
-                       ; nothing on left
-                       (and (or (zero? s-types-count)
-                                (<= t-types-count
-                                    s-types-count))
-                            (if (zero? (rem s-types-count
-                                            t-types-count))
-                              (every? identity (map (partial subtypeA* A)
-                                                    s-types
-                                                    (gen-repeat (/ s-types-count
-                                                                   t-types-count)
-                                                                t-types)))
-                              false))))
-
-                   ; rest on right
-                   (and (:rest t)
-                        (not ((some-fn :drest :repeat) s)))
-                   (and (>= (count (:types s))
-                            (count (:types t)))
-                        (if (:rest s)
-                          (subtypeA* A (:rest s) (:rest t))
-                          true)
-                        ;pad t to the right
-                        (every? identity (map (partial subtypeA* A)
-                                              (:types s)
-                                              (concat (:types t)
-                                                      (repeat (- (count (:types s)) (count (:types t)))
-                                                              (:rest t))))))
-
-                   (and (:drest s)
-                        (:rest t))
-                   (and
-                     (every? identity (map (partial subtypeA* A)
-                                           (:types s)
-                                           (concat (:types t)
-                                                   (repeat (- (count (:types s)) (count (:types t)))
-                                                           (:rest t)))))
-                     (r/Top? (:rest t)))
-
-                   ;TODO other cases
-                   :else nil
-                   )
-                 ; ignore interesting results
-                 (every? (fn hvec1 [[f1 f2]] (or (= (fops/-FS fr/-top fr/-top) f2)
-                                                 (= f1 f2)))
-                         (map vector (:fs s) (:fs t)))
-                 ; ignore interesting results
-                 (every? (fn hvec2 [[o1 o2]] (or (orep/EmptyObject? o2)
-                                                 (= o1 o2)))
-                         (map vector (:objects s) (:objects t))))
-          A
-          (report-not-subtypes s t))
+        (subtype-compatible-HSequential A s t)
 
         ; repeat Heterogeneous* can always accept nil
         (and (r/Nil? s)
              (r/HSequential? t)
              (:repeat t))
-          A
+        A
+
+        (and (r/HSequential? s)
+             (r/TopHSequential? t))
+        A
 
         ;every rtype entry must be in ltypes
         ;eg. {:a 1, :b 2, :c 3} <: {:a 1, :b 2}
@@ -809,7 +818,9 @@
 
         ; handles classes with heterogeneous vector ancestors (eg. IMapEntry)
         (and (r/RClass? s)
-             (r/HSequential? t))
+             ((some-fn r/HSequential?
+                       r/TopHSequential?)
+              t))
         (some #(when (r/HSequential? %)
                  (subtypeA* A % t))
               (map c/fully-resolve-type (c/RClass-supers* s)))
@@ -843,7 +854,7 @@
             A
             (report-not-subtypes s t)))
 
-        ; TODO if s is (All [r x ...] [x ... x -> r]) and t is (All [r x] [x * -> r]) then we should say yes?
+        ; TODO (All [r x ...] [x ... x -> r]) <: (All [r x] [x * -> r]) ?
 
         :else (report-not-subtypes s t)))))
 
@@ -1060,8 +1071,8 @@
   (cond
     (fr/TypeFilter? fl) (update fl :type c/fully-resolve-type)
     (fr/NotTypeFilter? fl) (update fl :type c/fully-resolve-type)
-    (fr/AndFilter? fl) (update fl :fs #(set (map fully-resolve-filter %)))
-    (fr/OrFilter? fl) (update fl :fs #(set (map fully-resolve-filter %)))
+    (fr/AndFilter? fl) (update fl :fs #(into #{} (map fully-resolve-filter) %))
+    (fr/OrFilter? fl) (update fl :fs #(into #{} (map fully-resolve-filter) %))
     (fr/ImpFilter? fl) (-> fl
                            (update :a fully-resolve-filter)
                            (update :c fully-resolve-filter))

@@ -107,6 +107,13 @@
           (when (= :params (first stmt))
             (ann-form stmt StatementA))))))
 
+  (testing "MapEntry"
+    (is-tc-e
+      (-> {:a 1}
+          first
+          (nth 0)
+          (ann-form ':a))))
+
   (testing "a mixture of types"
     (is-tc-e
       (do
