@@ -536,5 +536,6 @@
                                        (with-meta (meta form))))))]
             (assoc expr
                    u/expr-type (below/maybe-check-below
-                                 (r/ret (c/-name `t/ASeq (r/ret-t unshadowed-ret)))
+                                 (r/ret (c/-name `t/ASeq (r/ret-t unshadowed-ret))
+                                        (fo/-true-filter))
                                  expected))))))

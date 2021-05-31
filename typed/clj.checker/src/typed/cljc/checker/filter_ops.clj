@@ -89,60 +89,72 @@
 ;  (prn "compact")
 ;  (prn "props" (map typed.clj.checker.parse-unparse/unparse-filter props))
 ;  (prn "or?" or?)
-  (let [tf-map (atom {})
-        ntf-map (atom {})]
-    ;; props: the propositions we're processing
-    ;; others: props that are neither TF or NTF
-    (loop [props props
-           others nil]
-      (if (empty? props)
-        (concat others
-                (vals @tf-map)
-                (vals @ntf-map))
-        (cond
-          (and or? (fr/TypeFilter? (first props)))
-          (let [{t1 :type f1 :path x :id :as p} (first props)]
-            (swap! tf-map (fn [m] (update m [f1 x] #(if %
-                                                      (if (fr/TypeFilter? %)
-                                                        (let [t2 (:type %)]
-                                                          (-filter (c/Un t1 t2) x f1))
-                                                        (throw (Exception. (str "got something that isn't a type filter" p))))
-                                                      p))))
-            (recur (rest props) others))
+  ;; props: the propositions we're processing
+  ;; others: props that are neither TF or NTF
+  (loop [props props
+         others nil
+         tf-map {}
+         ntf-map {}]
+    (if (empty? props)
+      (concat others
+              (vals tf-map)
+              (vals ntf-map))
+      (cond
+        (and or? (fr/TypeFilter? (first props)))
+        (let [{t1 :type f1 :path x :id :as p} (first props)]
+          (recur (next props)
+                 others
+                 (-> tf-map
+                     (update [f1 x]
+                             #(if %
+                                (if (fr/TypeFilter? %)
+                                  (let [t2 (:type %)]
+                                    (-filter (c/Un t1 t2) x f1))
+                                  (throw (Exception. (str "got something that isn't a type filter" p))))
+                                p)))
+                 ntf-map))
 
-          (and (not or?) (fr/TypeFilter? (first props)))
-          (let [{t1 :type f1 :path x :id} (first props)
-                fl (@tf-map [f1 x])]
-            (cond
-              (and (fr/TypeFilter? fl)
-                   (let [t2 (:type fl)]
-                     (not (c/overlap t1 (:type fl)))))
-              ;; we're in an And, and we got two types for the same path that do not overlap
-              [fr/-bot]
-              (fr/TypeFilter? fl)
-              (let [t2 (:type fl)]
-                (swap! tf-map (fn [m] (assoc m [f1 x] (-filter (c/restrict t1 t2) x f1))))
-                (recur (next props) others))
-              :else
-              (do 
-                (swap! tf-map (fn [m] (assoc m [f1 x] (-filter t1 x f1))))
-                (recur (next props) others))))
+        (and (not or?) (fr/TypeFilter? (first props)))
+        (let [{t1 :type f1 :path x :id} (first props)
+              fl (tf-map [f1 x])]
+          (cond
+            (and (fr/TypeFilter? fl)
+                 (not (c/overlap t1 (:type fl))))
+            ;; we're in an And, and we got two types for the same path that do not overlap
+            [fr/-bot]
 
-          (and (not or?) 
-               (fr/NotTypeFilter? (first props)))
-          (let [{t1 :type f1 :path x :id :as p} (first props)]
-            (swap! ntf-map (fn [m] (update m [f1 x]
-                                           (fn [n]
-                                             (if n
-                                               (if (fr/NotTypeFilter? n)
-                                                 (let [t2 (:type n)]
-                                                   (-not-filter (c/Un t1 t2) x f1))
-                                                 (throw (Exception. (str "got something that isn't a nottypefilter" p))))
-                                               p)))))
-            (recur (next props) others))
-          :else
-          (let [p (first props)]
-            (recur (next props) (cons p others))))))))
+            (fr/TypeFilter? fl)
+            (recur (next props)
+                   others
+                   (-> tf-map
+                       (assoc [f1 x] (-filter (c/restrict t1 (:type fl)) x f1)))
+                   ntf-map)
+
+            :else
+            (recur (next props)
+                   others
+                   (-> tf-map
+                       (assoc [f1 x] (-filter t1 x f1)))
+                   ntf-map)))
+
+        (and (not or?) 
+             (fr/NotTypeFilter? (first props)))
+        (let [{t1 :type f1 :path x :id :as p} (first props)]
+          (recur (next props)
+                 others
+                 tf-map
+                 (-> ntf-map
+                     (update [f1 x]
+                             (fn [n]
+                               (if n
+                                 (if (fr/NotTypeFilter? n)
+                                   (let [t2 (:type n)]
+                                     (-not-filter (c/Un t1 t2) x f1))
+                                   (throw (Exception. (str "got something that isn't a nottypefilter" p))))
+                                 p))))))
+        :else
+        (let [p (first props)]
+          (recur (next props) (cons p others) tf-map ntf-map))))))
 
 
 (declare -and)
@@ -422,9 +434,11 @@
 (defn atomic-filter? [a]
   {;TODO :pre [(fr/Filter? a)]
    :post [(boolean? %)]}
-  (boolean 
+  ;; Note: some-fn returns logical-false if no preds match
+  ;; see https://clojure.atlassian.net/browse/CLJ-2634
+  (boolean
     ((some-fn fr/TypeFilter? fr/NotTypeFilter?
-              fr/TopFilter? fr/BotFilter?) 
+              fr/TopFilter? fr/BotFilter?)
      a)))
 
 ; functions to get around compilation issues
@@ -453,7 +467,7 @@
         (and (fr/TopFilter? f1)
              ((some-fn fr/TypeFilter? fr/NotTypeFilter?) f2)) true
 
-        ; we don't learn anything intesting if everything on the right
+        ; we don't learn anything interesting if everything on the right
         ; appears on the left
         (and (fr/OrFilter? f1)
              (fr/OrFilter? f2))
