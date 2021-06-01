@@ -87,152 +87,6 @@
 ;;==================
 ;; clojure.core/let
 
-#_
-(defn destructure-env [env bindings target-result]
-  {:pre [(lex/PropEnv? env)
-         (even? (count bindings))
-         (r/TCResult? target-result)]}
-  (let [bents (partition 2 bindings)
-        pb (fn pb [bvec b v]
-             (let [pvec
-                   (fn [bvec b val]
-                     (let [gvec (gensym "vec__")
-                           gseq (gensym "seq__")
-                           gfirst (gensym "first__")
-                           has-rest (some #{'&} b)]
-                       (loop [ret (let [ret (conj bvec gvec val)]
-                                    (if has-rest
-                                      (conj ret gseq (list `seq gvec))
-                                      ret))
-                              n 0
-                              bs b
-                              seen-rest? false]
-                         (if (seq bs)
-                           (let [firstb (first bs)]
-                             (cond
-                               (= firstb '&) (recur (pb ret (second bs) gseq)
-                                                    n
-                                                    (nnext bs)
-                                                    true)
-                               (= firstb :as) (pb ret (second bs) gvec)
-                               :else (if seen-rest?
-                                       (throw (new Exception "Unsupported binding form, only :as can follow & parameter"))
-                                       (recur (pb (if has-rest
-                                                    (conj ret
-                                                          gfirst `(first ~gseq)
-                                                          gseq `(next ~gseq))
-                                                    ret)
-                                                  firstb
-                                                  (if has-rest
-                                                    gfirst
-                                                    (list `nth gvec n nil)))
-                                              (inc n)
-                                              (next bs)
-                                              seen-rest?))))
-                           ret))))
-                   pmap
-                   (fn [bvec b v]
-                     (let [gmap (gensym "map__")
-                           gmapseq (with-meta gmap {:tag 'clojure.lang.ISeq})
-                           defaults (:or b)]
-                       (loop [ret (-> bvec (conj gmap) (conj v)
-                                      (conj gmap) (conj `(if (seq? ~gmap) (clojure.lang.PersistentHashMap/create (seq ~gmapseq)) ~gmap))
-                                      ((fn [ret]
-                                         (if (:as b)
-                                           (conj ret (:as b) gmap)
-                                           ret))))
-                              bes (let [transforms
-                                        (reduce1
-                                          (fn [transforms mk]
-                                            (if (keyword? mk)
-                                              (let [mkns (namespace mk)
-                                                    mkn (name mk)]
-                                                (cond (= mkn "keys") (assoc transforms mk #(keyword (or mkns (namespace %)) (name %)))
-                                                      (= mkn "syms") (assoc transforms mk #(list `quote (symbol (or mkns (namespace %)) (name %))))
-                                                      (= mkn "strs") (assoc transforms mk str)
-                                                      :else transforms))
-                                              transforms))
-                                          {}
-                                          (keys b))]
-                                    (reduce1
-                                      (fn [bes entry]
-                                        (reduce1 #(assoc %1 %2 ((val entry) %2))
-                                                 (dissoc bes (key entry))
-                                                 ((key entry) bes)))
-                                      (dissoc b :as :or)
-                                      transforms))]
-                         (if (seq bes)
-                           (let [bb (key (first bes))
-                                 bk (val (first bes))
-                                 local (if (instance? clojure.lang.Named bb) (with-meta (symbol nil (name bb)) (meta bb)) bb)
-                                 bv (if (contains? defaults local)
-                                      (list `get gmap bk (defaults local))
-                                      (list `get gmap bk))]
-                             (recur (if (ident? bb)
-                                      (-> ret (conj local bv))
-                                      (pb ret bb bv))
-                                    (next bes)))
-                           ret))))]
-               (cond
-                 (symbol? b) (-> bvec (conj b) (conj v))
-                 (vector? b) (pvec bvec b v)
-                 (map? b) (pmap bvec b v)
-                 :else (throw (new Exception (str "Unsupported binding form: " b))))))
-        process-entry (fn [bvec b] (pb bvec (first b) (second b)))]
-    (if (every? symbol? (map first bents))
-      bindings
-      (reduce1 process-entry [] bents))))
-
-;; TODO need to recur into destructuring with `get-in`-like path
-;; for destructuring and types for each stage.
-;; {:op :root :type }
-#_
-(let [[{:keys [a b] :as bar} :as foo] [{:a 1 :b 2}]])
-#_
-(let* [vec__0 [{:a 1 :b 2}]
-       #_{:original-expr-type {:type (HVec [(HMap :mandatory {:a s/Int :b s/Int})])
-                               :object ...}
-          :original-destructure '[{:keys [a b] :as bar} :as foo]
-          :path-so-far '[]
-          :to-destructure '[{:keys [a b] :as bar} :as foo]
-          :target {:op :local
-                   :sym 'foo
-                   :expr-type {:type (HVec [(HMap :mandatory {:a s/Int :b s/Int})])
-                               :object 'foo}}
-          :path []}
-       foo vec__0
-       #_{:original-expr-type {:type (HVec [(HMap :mandatory {:a s/Int :b s/Int})])
-                               :object ...}
-          :original-destructure '[{:keys [a b] :as bar} :as foo]
-          :path-so-far '[]
-          :to-destructure '[{:keys [a b] :as bar} :as foo]
-          :target {:op :local
-                   :sym 'foo
-                   :expr-type {:type (HVec [(HMap :mandatory {:a s/Int :b s/Int})])
-                               :object 'foo}}
-          :path []}
-       bar (nth foo 0 nil)
-       ;#_{:original-rhs-cexpr {:op ..
-       ;                        :expr-type (HVec [(HMap :mandatory {:a s/Int :b s/Int})])
-       ;                        :form '[{:a 1 :b 2}]}
-       ;   :original-destructure '[{:keys [a b] :as bar} :as foo]
-       ;   :path-so-far [(->NthPE 0)]
-       ;   :to-destructure '[{:keys [a b] :as bar} :as foo]
-       ;   :type (HMap :mandatory {:a s/Int :b s/Int})
-       ;   }
-       ;; rhs expr: [{:a 1 :b 2}]
-       ;; rhs type: (HVec [(HMap :mandatory {:a s/Int :b s/Int}])])
-       ;; path: [0 :a]
-       ;; type: s/Int
-       a (get bar :a)
-       ;; rhs expr: [{:a 1 :b 2}]
-       ;; rhs type: (HVec [(HMap :mandatory {:a s/Int :b s/Int}])])
-       ;; path: [0 :b]
-       ;; type: s/Int
-       b (get bar :b)]
-  )
-
-
 (def ^:private combined-env? (con/hmap-c? :prop-env lex/PropEnv? :ana-env map? :new-syms set?))
 
 (defn ^:private update-destructure-env [prop-env ana-env lhs rhs-ret is-reachable]
@@ -367,7 +221,71 @@
                                                                          (next bs)
                                                                          seen-rest?)))))
                                                     combined-env)))
-                                :else (assert nil (pr-str "TODO update-destructure-env" lhs))))]
+                                (map? lhs)
+                                (let [gmap (gensym "map__")
+                                      gmapseq (with-meta gmap {:tag 'clojure.lang.ISeq})
+                                      defaults (:or lhs)]
+                                  (loop [combined-env (let [combined-env (upd-combined-env
+                                                                           combined-env
+                                                                           gmap
+                                                                           rhs-ret)
+                                                            ccreate (chk-form combined-env
+                                                                              ;; TODO clojure 1.11 expansion
+                                                                              `(if (seq? ~gmap)
+                                                                                 (clojure.lang.PersistentHashMap/create (seq ~gmapseq))
+                                                                                 ~gmap)
+                                                                              nil)
+                                                            combined-env (upd-combined-env
+                                                                           combined-env
+                                                                           gmap
+                                                                           (u/expr-type ccreate))]
+                                                        (cond-> combined-env
+                                                          (:as lhs) (upd-combined-env
+                                                                      (:as lhs)
+                                                                      gmap)))
+                                         bes (let [transforms
+                                                   (reduce
+                                                     (fn [transforms mk]
+                                                       (if (keyword? mk)
+                                                         (let [mkns (namespace mk)
+                                                               mkn (name mk)]
+                                                           (cond (= mkn "keys") (assoc transforms mk #(keyword (or mkns (namespace %)) (name %)))
+                                                                 (= mkn "syms") (assoc transforms mk #(list `quote (symbol (or mkns (namespace %)) (name %))))
+                                                                 (= mkn "strs") (assoc transforms mk str)
+                                                                 :else transforms))
+                                                         transforms))
+                                                     {}
+                                                     (keys lhs))]
+                                               (reduce
+                                                 (fn [bes entry]
+                                                   (reduce #(assoc %1 %2 ((val entry) %2))
+                                                           (dissoc bes (key entry))
+                                                           ((key entry) bes)))
+                                                 (dissoc lhs :as :or)
+                                                 transforms))]
+                                    (if (seq bes)
+                                      (let [bb (key (first bes))
+                                            bk (val (first bes))
+                                            local (if (instance? clojure.lang.Named bb)
+                                                    (with-meta (symbol nil (name bb)) (meta bb))
+                                                    bb)
+                                            cbv (chk-form combined-env
+                                                          (if (contains? defaults local)
+                                                            (list `get gmap bk (defaults local))
+                                                            (list `get gmap bk))
+                                                          nil)]
+                                        (recur (if (ident? bb)
+                                                 (upd-combined-env
+                                                   combined-env
+                                                   local
+                                                   (u/expr-type cbv))
+                                                 (upd-destructure-env
+                                                   combined-env
+                                                   bb
+                                                   (u/expr-type cbv)))
+                                               (next bes)))
+                                      combined-env)))
+                                :else (throw (new Exception (str "Unsupported binding form: " lhs)))))]
     (upd-destructure-env
       {:prop-env prop-env
        :ana-env ana-env
@@ -389,6 +307,7 @@
        (count p))
     (into (subvec p (count v)))))
 
+;; TODO
 #_
 (defuspecial 'clojure.core/let
   [{ana-env :env :keys [form] :as expr} expected]

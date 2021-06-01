@@ -117,5 +117,27 @@
   (is-tc-e (cc/for [[a b] {1 2 3 4}]
              [a b])
            (t/Seq '[t/Int t/Int]))
+  (is-tc-e (cc/for [{:keys [a]} [{:a 1}
+                                 {:a 2}]]
+             a)
+           (t/Seq t/Int))
+  (is-tc-e (cc/for [[{:keys [a]}] [[{:a 1}]
+                                   [{:a 2}]]]
+             a)
+           (t/Seq t/Int))
+  (is-tc-err (cc/for [[{:keys [a]}] [[{:a 1}]
+                                     [{:a 2}]]]
+               a)
+             (t/Seq t/Bool))
+  (is-tc-e (cc/for [{:keys [a b]} (concat (repeat 20 {:a 1})
+                                          (repeat 20 {:b 2}))]
+             [a b])
+           (t/Seq '[(t/Option t/Int) 
+                    (t/Option t/Int)]))
+  (is-tc-err (cc/for [{:keys [a b]} (concat (repeat 20 {:a 1})
+                                            (repeat 20 {:b 2}))]
+               [a b])
+             (t/Seq '[t/Int 
+                      t/Int]))
   )
 
