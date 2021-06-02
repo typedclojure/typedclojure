@@ -1,5 +1,0 @@
-- 1.0.12
- - deprecated `typed.clj.spec/reduced-of`
-  - use `typed.spec.clojure.core/reduced-spec` instead in `typed.lib/clojure`
-- 1.0.11
- - Initial release
