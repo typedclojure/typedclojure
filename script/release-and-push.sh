@@ -67,6 +67,7 @@ echo $RELEASE_VERSION > stable-version
 echo $DEVELOPMENT_VERSION > current-version
 
 ./script/regen-selmer.sh
+./script/update_release_notes.clj
 
 git add .
 git commit -m "Bump README versions for $RELEASE_VERSION"

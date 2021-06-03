@@ -1,5 +1,0 @@
-# 1.0.17-SNAPSHOT
-
-- move ext.c.c.t typing rules from runtime jar to checker
-- add spec{1,2} shim to prepare for spec1 support in typed.clj.spec
-- add `clojure.core/for` typing rule with destructuring
