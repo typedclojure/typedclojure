@@ -377,7 +377,7 @@
   {:pre [(= 3 (count form))]}
   body)
 
-;; see more recent attempt in typed.ext.clojure.core
+;; see more recent attempt in typed.clj.ext.clojure.core
 (defmethod -expand-macro 'clojure.core/for
   [[_ seq-forms body-form :as form] _]
   (let [expg (gensym 'expected)

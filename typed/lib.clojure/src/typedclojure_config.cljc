@@ -1,2 +1,2 @@
 {:ann [typed.ann.clojure]
- :ext [typed.ext.clojure.core]}
+ :ext [typed.clj.ext.clojure.core]}

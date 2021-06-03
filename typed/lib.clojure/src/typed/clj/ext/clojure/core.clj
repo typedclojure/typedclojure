@@ -6,8 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-;; TODO rename typed.clj.ext.clojure.core
-(ns ^:no-doc typed.ext.clojure.core
+(ns ^:no-doc typed.clj.ext.clojure.core
   "Typing rules for base Clojure distribution."
   (:require [clojure.core.typed :as t]
             [clojure.core.typed.contract-utils :as con]
