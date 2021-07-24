@@ -870,8 +870,8 @@
     ret))
 
 (defn- syntax-quote-coll [type coll]
-  ;; We use sequence rather than seq here to fix http://dev.clojure.org/jira/browse/CLJ-1444
-  ;; But because of http://dev.clojure.org/jira/browse/CLJ-1586 we still need to call seq on the form
+  ;; We use sequence rather than seq here to fix https://clojure.atlassian.net/browse/CLJ-1444
+  ;; But because of https://clojure.atlassian.net/browse/CLJ-1586 we still need to call seq on the form
   (let [res (list 'clojure.core/sequence
                   (list 'clojure.core/seq
                         (cons 'clojure.core/concat
@@ -950,7 +950,8 @@
 
 (defn- read-namespaced-map
   [rdr _ opts]
-  (let [token (read-token rdr :namespaced-map (read-char rdr))
+  (let [[start-line start-column] (starting-line-col-info rdr)
+        token (read-token rdr :namespaced-map (read-char rdr))
         auto? (= \: (first token))
         self? (= token ":")]
     (if-let [ns (cond
@@ -966,12 +967,22 @@
       (let [[skipped-ws ch] (read-past+skipped whitespace? rdr)]
         (if (identical? ch \{)
           (let [forms (read-delimited :namespaced-map \} rdr opts)
-                items (forms->vals forms)]
+                items (forms->vals forms)
+                [end-line end-column] (ending-line-col-info rdr)]
             (when (odd? (count items))
               (err/throw-odd-map rdr nil nil items))
             (let [keys (take-nth 2 items)
                   vals (take-nth 2 (rest items))
-                  v (RT/map (to-array (mapcat list (namespace-keys (str ns) keys) vals)))]
+                  v (with-meta
+                      (RT/map (to-array (mapcat list (namespace-keys (str ns) keys) vals)))
+                      (when start-line
+                        (assoc
+                          (when-let [file (get-file-name rdr)]
+                            {:file file})
+                          :line start-line
+                          :column start-column
+                          :end-line end-line
+                          :end-column end-column)))]
               {:op (if auto? ::auto-namespaced-map ::namespaced-map)
                :forms (into []
                             (filter identity)
@@ -1072,7 +1083,7 @@
            :val (loop [i 0]
                   (if (>= i ctors-num)
                     (err/reader-error rdr "Unexpected number of constructor arguments to " (str class)
-                                      ": got" numargs)
+                                      ": got " numargs)
                     (if (== (count (.getParameterTypes ^Constructor (aget all-ctors i)))
                             numargs)
                       (Reflector/invokeConstructor class entries)
@@ -1261,7 +1272,7 @@
 (defn read+ast
   "Reads the first object from an IPushbackReader or a java.io.PushbackReader.
    Returns the AST representing the object read. If EOF, throws if eof-error? is true.
-   Otherwise returns AST. If no stream is providen, *in* will be used.
+   Otherwise returns AST. If no stream is provided, *in* will be used.
 
    Opts is a persistent map with valid keys:
     :read-cond - :allow to process reader conditionals, or
@@ -1289,7 +1300,7 @@
 (defn read
   "Reads the first object from an IPushbackReader or a java.io.PushbackReader.
    Returns the object read. If EOF, throws if eof-error? is true.
-   Otherwise returns sentinel. If no stream is providen, *in* will be used.
+   Otherwise returns sentinel. If no stream is provided, *in* will be used.
 
    Opts is a persistent map with valid keys:
     :read-cond - :allow to process reader conditionals, or
