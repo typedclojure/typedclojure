@@ -23,7 +23,7 @@
       details)))
 
 (defn ^:private throw-ex
-  [rdr ex-type  & msg]
+  [rdr ex-type & msg]
   (let [details (location-details rdr ex-type)
         file (:file details)
         line (:line details)
@@ -85,7 +85,7 @@
 (defn throw-invalid-unicode-literal [rdr token]
   (throw
    (illegal-arg-error rdr
-                      (str "Invalid unicode literal: \\" token "."))))
+                      "Invalid unicode literal: \\" token ".")))
 
 (defn throw-invalid-unicode-escape [rdr ch]
   (reader-error
@@ -119,53 +119,52 @@
 (defn throw-no-dispatch [rdr ch]
   (throw-bad-dispatch rdr ch))
 
-(defn throw-invalid-unicode-char[rdr token]
+(defn throw-invalid-unicode-char [rdr token]
   (throw
    (illegal-arg-error rdr
-                      (str "Invalid unicode character \\" token "."))))
+                      "Invalid unicode character \\" token ".")))
 
 (defn throw-invalid-unicode-digit-in-token [rdr ch token]
   (throw
    (illegal-arg-error rdr
-                      (str "Invalid digit " ch " in unicode character \\" token "."))))
+                      "Invalid digit " ch " in unicode character \\" token ".")))
 
-(defn throw-invalid-unicode-digit[rdr ch]
+(defn throw-invalid-unicode-digit [rdr ch]
   (throw
    (illegal-arg-error rdr
-                      (str "Invalid digit " ch " in unicode character."))))
+                      "Invalid digit " ch " in unicode character.")))
 
-(defn throw-invalid-unicode-len[rdr actual expected]
+(defn throw-invalid-unicode-len [rdr actual expected]
   (throw
    (illegal-arg-error rdr
-                      (str
-                       "Invalid unicode literal. Unicode literals should be "
-                       expected
-                       "characters long.  "
-                       "value suppled is "
-                       actual
-                       "characters long."))))
+                      "Invalid unicode literal. Unicode literals should be "
+                      expected
+                      " characters long. "
+                      "Value suppled is "
+                      actual
+                      "characters long.")))
 
-(defn throw-invalid-character-literal[rdr token]
+(defn throw-invalid-character-literal [rdr token]
   (reader-error rdr "Invalid character literal \\u" token "."))
 
-(defn throw-invalid-octal-len[rdr token]
+(defn throw-invalid-octal-len [rdr token]
   (reader-error
    rdr
-   "Invalid octal escape sequence in a character literal:"
+   "Invalid octal escape sequence in a character literal: "
    token
    ". Octal escape sequences must be 3 or fewer digits."))
 
 (defn throw-bad-octal-number [rdr]
   (reader-error rdr "Octal escape sequence must be in range [0, 377]."))
 
-(defn throw-unsupported-character[rdr token]
+(defn throw-unsupported-character [rdr token]
   (reader-error
    rdr
    "Unsupported character: "
    token
    "."))
 
-(defn throw-eof-in-character[rdr]
+(defn throw-eof-in-character [rdr]
   (eof-error rdr "Unexpected EOF while reading character."))
 
 (defn throw-bad-escape-char [rdr ch]
@@ -194,7 +193,7 @@
    rdr
    "Feature cannot be "
    (i/inspect feature)
-   " Features must be keywords."))
+   ". Features must be keywords."))
 
 (defn throw-ns-map-no-map [rdr ns-name]
   (reader-error rdr "Namespaced map with namespace " ns-name " does not specify a map."))
