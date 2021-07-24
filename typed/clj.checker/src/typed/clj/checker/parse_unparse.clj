@@ -8,6 +8,7 @@
 
 (ns ^:no-doc typed.clj.checker.parse-unparse
   (:require [clojure.core.typed :as t]
+            [typed.cljc.analyzer.passes.uniquify :as uniquify]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.name-env :as nme-env]
@@ -248,7 +249,7 @@
 (declare resolve-type-clj)
 
 (defn uniquify-local [sym]
-  (get-in vs/*current-expr* [:env :typed.cljc.analyzer.passes.uniquify/locals-frame-val sym]))
+  (get-in vs/*current-expr* [:env ::uniquify/locals-frame-val sym]))
 
 (defmethod parse-type-list 'clojure.core.typed/TypeOf [[_ sym :as t]]
   (impl/assert-clojure)
@@ -300,7 +301,6 @@
     (err/int-error "Wrong arguments to predicate"))
   (predicate-for (parse-type t-syn)))
 
-; possibly should be called Pred
 (defmethod parse-type-list 'predicate [t] 
   (err/deprecated-plain-op 'predicate 'Pred)
   (parse-Pred t))
@@ -355,10 +355,11 @@
         _ (when-not (or (not ellipsis-pos) (symbol? drest-bnd))
             (err/int-error "Dotted bound must be symbol"))]
   (r/AssocType-maker (parse-type tsyn)
-                     (doall (->> entries
-                                 (map parse-type)
-                                 (partition 2)
-                                 (map vec)))
+                     (into []
+                           (comp (map parse-type)
+                                 (partition-all 2)
+                                 (map vec))
+                           entries)
                      (when ellipsis-pos
                        (let [bnd (dvar/*dotted-scope* drest-bnd)
                              _ (when-not bnd
@@ -416,7 +417,9 @@
                                   {:pre [(vector? fs)]
                                    :post [(every? (con/hvector-c? symbol? r/Bounds?) %)]}
                                   (conj fs
-                                        (free-ops/with-bounded-frees (into {} (map (fn [[n bnd]] [(r/make-F n) bnd]) fs))
+                                        (free-ops/with-bounded-frees (into {}
+                                                                           (map (fn [[n bnd]] [(r/make-F n) bnd]))
+                                                                           fs)
                                           (parse-free fsyn))))
                                 [] (-> bnds pop pop))
         dvar (parse-free (-> bnds pop peek))]
@@ -428,7 +431,9 @@
                   {:pre [(vector? fs)]
                    :post [(every? (con/hvector-c? symbol? r/Bounds?) %)]}
                   (conj fs
-                        (free-ops/with-bounded-frees (into {} (map (fn [[n bnd]] [(r/make-F n) bnd]) fs))
+                        (free-ops/with-bounded-frees (into {}
+                                                           (map (fn [[n bnd]] [(r/make-F n) bnd]))
+                                                           fs)
                           (parse-free fsyn))))
                 [] bnds)]
     [frees-with-bnds nil]))
@@ -460,23 +465,24 @@
               (err/int-error (str ":named keyword argument to All must be a vector of symbols, given: " (pr-str named)))))
         dotted? (= '... (peek positional))
         bnds* (if named
-                (let [positional-no-dotted (if dotted?
-                                             (pop (pop positional))
-                                             positional)
+                (let [positional-no-dotted (cond-> positional
+                                             dotted? (-> pop pop))
                       ;; fit :named variables between positional and dotted variable, because 
                       ;; PolyDots expects the dotted variable last.
-                      bnds* (vec (concat positional-no-dotted named
-                                         (when dotted?
-                                           (subvec positional (- (count positional) 2)))))]
+                      bnds* (-> positional-no-dotted
+                                (into named)
+                                (into (when dotted?
+                                        (subvec positional (- (count positional) 2)))))]
                   bnds*)
                 positional)
-        no-dots (if dotted?
-                  (pop bnds*)
-                  bnds*)
+        no-dots (cond-> bnds*
+                  dotted? pop)
         _ (when (seq no-dots)
             (when-not (apply distinct? no-dots)
               (err/int-error (str "Variables bound by All must be unique, given: " no-dots))))
-        named-map (let [sym-to-pos (into {} (map-indexed #(vector %2 %1)) no-dots)]
+        named-map (let [sym-to-pos (into {}
+                                         (map-indexed #(vector %2 %1))
+                                         no-dots)]
                     (select-keys sym-to-pos named))
         ;; TODO 
         ;; update usages of parse-unknown-binder to use parse-All-binder
@@ -492,7 +498,9 @@
 (defn parse-all-type [bnds type]
   (let [_ (assert (vector? bnds))
         {:keys [frees-with-bnds dvar named]} (parse-All-binder bnds)
-        bfs (into {} (map (fn [[n bnd]] [(r/make-F n) bnd]) frees-with-bnds))]
+        bfs (into {}
+                  (map (fn [[n bnd]] [(r/make-F n) bnd]))
+                  frees-with-bnds)]
     (if dvar
       (free-ops/with-bounded-frees bfs
         (c/PolyDots* (map first (concat frees-with-bnds [dvar]))
@@ -670,8 +678,8 @@
                                                    binder)
                     (mapv parse-tfn-binder binder))
         bodyt (free-ops/with-bounded-frees (into {}
-                                                 (map (fn [{:keys [nme bound]}] [(r/make-F nme) bound])
-                                                      free-maps))
+                                                 (map (fn [{:keys [nme bound]}] [(r/make-F nme) bound]))
+                                                 free-maps)
                 (parse-type bodysyn))
         ; We check variances lazily in TypeFn-body*. This avoids any weird issues with calculating
         ; variances with potentially partially defined types.
@@ -684,8 +692,10 @@
         ;        (err/int-error (str "Type variable " nme " appears in " (name actual-v) " position "
         ;                          "when declared " (name variance))))))
         ]
-    (c/TypeFn* (map :nme free-maps) (map :variance free-maps)
-               (map :bound free-maps) bodyt
+    (c/TypeFn* (map :nme free-maps)
+               (map :variance free-maps)
+               (map :bound free-maps)
+               bodyt
                {:meta {:env vs/*current-env*}})))
 
 (defmethod parse-type-list 'TFn [syn] 
@@ -792,7 +802,10 @@
   (let [bad (seq (remove hset/valid-fixed? ts))]
     (when bad
       (err/int-error (str "Bad arguments to HSet: " (pr-str bad))))
-    (r/-hset (set (map r/-val ts)) :complete? complete?)))
+    (r/-hset (into #{}
+                   (map r/-val)
+                   ts)
+             :complete? complete?)))
 
 (defmethod parse-type-list 'clojure.core.typed/HSet [t] (parse-HSet t))
 (defmethod parse-type-list 'cljs.core.typed/HSet [t] (parse-HSet t))
@@ -849,12 +862,9 @@
   "Like frequencies, but only returns frequencies greater
   than one"
   [coll]
-  (->> coll
-       frequencies
-       (filter (fn [[k freq]]
-                 (when (< 1 freq)
-                   true)))
-       (into {})))
+  (into {}
+        (filter (fn [[_ freq]] (< 1 freq)))
+        (frequencies coll)))
 
 (defn parse-HMap [[_HMap_ & flat-opts :as all]]
   (let [supported-options #{:optional :mandatory :absent-keys :complete?}
@@ -863,14 +873,14 @@
                                (err/deprecated-warn
                                  "(HMap {}) syntax has changed, use (HMap :mandatory {})")
                                (first flat-opts))
-        flat-opts (if deprecated-mandatory
-                    (next flat-opts)
-                    flat-opts)
+        flat-opts (cond-> flat-opts
+                    deprecated-mandatory next)
         _ (when-not (even? (count flat-opts))
             (err/int-error (str "Uneven keyword arguments to HMap: " (pr-str all))))
-        flat-keys (->> flat-opts
-                       (partition 2)
-                       (map first))
+        flat-keys (sequence
+                    (comp (partition-all 2)
+                          (map first))
+                    flat-opts)
         _ (when-not (every? keyword? flat-keys)
             (err/int-error (str "HMap requires keyword arguments, given " (pr-str (first flat-keys))
                               #_#_" in: " (pr-str all))))
@@ -1133,32 +1143,31 @@
                               (var? res)   (coerce/var->symbol res)
                               ;; name doesn't resolve, try declared protocol or datatype
                               ;; in the current namespace
-                              :else (let [ns (parse-in-ns)
-                                          dprotocol (if (namespace sym)
-                                                      sym
-                                                      (symbol (str ns) (str sym)))
-                                          ddatatype (if (some #{\.} (str sym))
-                                                      sym
-                                                      (symbol (str (munge ns)) (str sym)))
-                                          nmesym (resolve-alias-clj sym)]
-                                      (cond
-                                        nmesym nmesym
-                                        (nme-env/declared-protocol? dprotocol) dprotocol
-                                        (nme-env/declared-datatype? ddatatype) ddatatype))))
+                              :else (or (resolve-alias-clj sym)
+                                        (let [ns (parse-in-ns)
+                                              dprotocol (if (namespace sym)
+                                                          sym
+                                                          (symbol (str ns) (str sym)))
+                                              ddatatype (if (some #{\.} (str sym))
+                                                          sym
+                                                          (symbol (str (munge ns)) (str sym)))]
+                                          (cond
+                                            (nme-env/declared-protocol? dprotocol) dprotocol
+                                            (nme-env/declared-datatype? ddatatype) ddatatype)))))
                  :cljs (when (symbol? sym)
                          (resolve-type-cljs sym))))
         _ (assert ((some-fn symbol? nil?) rsym))]
-    (cond
-      free free
-      (primitives sym) (primitives sym)
-      rsym ((some-fn deprecated-symbol r/Name-maker) rsym)
-      :else (let [menv (let [m (meta sym)]
-                         (when ((every-pred :line :column :file) m)
-                           m))]
-              (binding [vs/*current-env* (or menv vs/*current-env*)]
-                (err/int-error (str "Cannot resolve type: " (pr-str sym)
-                                    "\nHint: Is " (pr-str sym) " in scope?")
-                               {:use-current-env true}))))))
+    (or free
+        (primitives sym)
+        (cond
+          rsym ((some-fn deprecated-symbol r/Name-maker) rsym)
+          :else (let [menv (let [m (meta sym)]
+                             (when ((every-pred :line :column :file) m)
+                               m))]
+                  (binding [vs/*current-env* (or menv vs/*current-env*)]
+                    (err/int-error (str "Cannot resolve type: " (pr-str sym)
+                                        "\nHint: Is " (pr-str sym) " in scope?")
+                                   {:use-current-env true})))))))
 
 (defmethod parse-type-symbol :default
   [sym]
@@ -1192,9 +1201,8 @@
 (defn parse-filter-set [{:keys [then else] :as fsyn}]
   (when-not (map? fsyn)
     (err/int-error "Filter set must be a map"))
-  (let [extra (set/difference (set (keys fsyn)) #{:then :else})]
-    (when-not (empty? extra)
-      (err/int-error (str "Invalid filter set option: " (first extra)))))
+  (when-some [extra (not-empty (set/difference (set (keys fsyn)) #{:then :else}))]
+    (err/int-error (str "Invalid filter set options: " extra)))
   (fl/-FS (if (contains? fsyn :then)
             (parse-filter then)
             f/-top)
@@ -1313,13 +1321,13 @@
         _ (when-some [ks (seq (remove #{:filters :object :flow} (keys opts)))]
             (err/int-error (str "Invalid function keyword option/s: " ks)))
 
-        filters (when-let [[_ fsyn] (find opts :filters)]
+        filters (when-some [[_ fsyn] (find opts :filters)]
                   (parse-filter-set fsyn))
 
-        object (when-let [[_ obj] (find opts :object)]
+        object (when-some [[_ obj] (find opts :object)]
                  (parse-object obj))
 
-        flow (when-let [[_ obj] (find opts :flow)]
+        flow (when-some [[_ obj] (find opts :flow)]
                (r/-flow (parse-filter obj)))
 
         fixed-dom (cond

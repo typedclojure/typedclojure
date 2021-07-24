@@ -9,12 +9,15 @@
 (ns ^:no-doc typed.clj.ext.clojure.core
   "Typing rules for base Clojure distribution."
   (:require [clojure.core.typed :as t]
+            [clojure.core.typed.coerce-utils :as coerce]
             [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.errors :as err]
             [clojure.core.typed.util-vars :as vs]
             [typed.clj.checker.check :refer [check-expr defuspecial -unanalyzed-special]]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.clj.analyzer.passes.emit-form :as emit-form]
+            [typed.clj.analyzer.utils :as ana-utils]
+            [typed.cljc.analyzer.passes.uniquify :as uniquify]
             [typed.cljc.analyzer :as ana2]
             [typed.cljc.checker.check.let :as let]
             [typed.cljc.checker.check-below :as below]
@@ -88,211 +91,217 @@
 
 (def ^:private combined-env? (con/hmap-c? :prop-env lex/PropEnv? :ana-env map? :new-syms set?))
 
-(defn ^:private update-destructure-env [prop-env ana-env lhs rhs-ret is-reachable]
+(defn ^:private update-destructure-env [prop-env ana-env lhs maybe-rhs-expr rhs-ret is-reachable]
   {:pre [(lex/PropEnv? prop-env)
          (map? ana-env)
+         ((some-fn nil? map?) maybe-rhs-expr)
          (r/TCResult? rhs-ret)
          (instance? clojure.lang.IAtom2 is-reachable)]
    :post [(combined-env? %)]}
-  (let [upd-prop-env (fn [prop-env lhs rhs-ret]
-                       {:pre [(lex/PropEnv? prop-env)
-                              (simple-symbol? lhs)
-                              (r/TCResult? rhs-ret)]
-                        :post [(lex/PropEnv? %)]}
-                       (-> prop-env
-                           (let/update-env lhs rhs-ret is-reachable)))
-        upd-ana-env (fn [ana-env lhs]
-                      {:pre [(map? ana-env)
-                             (simple-symbol? lhs)]
-                       :post [(map? %)]}
-                      (-> ana-env
-                          (assoc-in [:locals lhs]
-                                    ;; no :env in :locals
-                                    {:op :binding
+  (letfn [(upd-prop-env [prop-env uniquified-lhs rhs-ret]
+            {:pre [(lex/PropEnv? prop-env)
+                   (map? ana-env)
+                   (simple-symbol? uniquified-lhs)
+                   (r/TCResult? rhs-ret)]
+             :post [(lex/PropEnv? %)]}
+            (-> prop-env
+                (let/update-env uniquified-lhs rhs-ret is-reachable)))
+          (upd-ana-env [ana-env lhs]
+            {:pre [(map? ana-env)
+                   (simple-symbol? lhs)]
+             :post [(map? %)]}
+            (let [_uniquified-lhs (uniquify/uniquify! lhs ana-env)
+                  tag (-> lhs meta :tag)]
+              (-> ana-env
+                  (assoc-in [:locals lhs]
+                            ;; no :env in :locals
+                            (cond-> {:op :binding
                                      ::ana2/op ::ana2/binding
+                                     ;; TODO simulate :uniquify/uniquify-env analyzer pass when enabled
                                      :name lhs
                                      ;:init cexpr
                                      :form lhs
                                      ;:children [:init]
-                                     :local :fn})))
-        upd-combined-env (fn [combined-env lhs rhs-ret]
-                           {:pre [(combined-env? combined-env)
-                                  (simple-symbol? lhs)
-                                  (r/TCResult? rhs-ret)]
-                            :post [(combined-env? %)]}
-                           (-> combined-env
-                               (update :prop-env upd-prop-env lhs rhs-ret)
-                               (update :ana-env upd-ana-env lhs)
-                               (update :new-syms conj lhs)))
-        chk-form (fn [{:keys [ana-env prop-env] :as combined-env}
-                      form
-                      expected]
-                   {:pre [(combined-env? combined-env)
-                          ((some-fn nil? r/TCResult?) expected)]
-                    :post [(map? %)]}
-                   (var-env/with-lexical-env prop-env
-                     (-> form
-                         (ana2/unanalyzed ana-env)
-                         (check-expr expected))))
-        upd-destructure-env (fn upd-destructure-env 
-                              [combined-env lhs rhs-ret]
-                              {:pre [(combined-env? combined-env)
-                                     (r/TCResult? rhs-ret)]
-                               :post [(combined-env? %)]}
-                              (cond
-                                (simple-symbol? lhs) (upd-combined-env
+                                     :local :arg}
+                              ;; TODO :o-tag ?
+                              tag (assoc :tag ((some-fn ana-utils/maybe-class identity) tag)))))))
+        ;; this is similar to analyzing a :fn :binding expr.
+        ;; must uniquify! and normalize 
+        (upd-combined-env [combined-env lhs rhs-ret]
+          {:pre [(combined-env? combined-env)
+                 (simple-symbol? lhs)
+                 (r/TCResult? rhs-ret)]
+           :post [(combined-env? %)]}
+          (let [ana-env (upd-ana-env (:ana-env combined-env) lhs)
+                uniquified-lhs (uniquify/normalize lhs ana-env)]
+            (-> combined-env
+                (assoc :ana-env ana-env)
+                (update :prop-env upd-prop-env uniquified-lhs rhs-ret)
+                (update :new-syms conj uniquified-lhs))))
+        (chk-form
+          ([combined-env form] (chk-form combined-env form nil))
+          ([{:keys [ana-env prop-env] :as combined-env}
+            form
+            expected]
+           {:pre [(combined-env? combined-env)
+                  ((some-fn nil? r/TCResult?) expected)]
+            :post [(map? %)]}
+           (var-env/with-lexical-env prop-env
+             (-> form
+                 (ana2/unanalyzed ana-env)
+                 (check-expr expected)))))
+        (upd-combined-env-from-init-form [combined-env lhs init-form]
+          {:pre [(combined-env? combined-env)
+                 (simple-symbol? lhs) ]
+           :post [(combined-env? %)]}
+          (upd-combined-env combined-env
+                            lhs
+                            (u/expr-type
+                              (chk-form combined-env
+                                        init-form))))
+        (upd-destructure-env-from-init-form
+          [combined-env lhs init-form]
+          {:pre [(combined-env? combined-env)]
+           :post [(combined-env? %)]}
+          (upd-destructure-env
+            combined-env
+            lhs
+            (u/expr-type (chk-form combined-env
+                                   init-form))))
+        (upd-destructure-env 
+          [combined-env lhs rhs-ret]
+          {:pre [(combined-env? combined-env)
+                 (r/TCResult? rhs-ret)]
+           :post [(combined-env? %)]}
+          (cond
+            (simple-symbol? lhs) (upd-combined-env
+                                   combined-env
+                                   lhs
+                                   rhs-ret)
+            (vector? lhs) (let [gvec (gensym "vec__")
+                                gseq (gensym "seq__")
+                                gfirst (gensym "first__")
+                                has-rest (some #{'&} lhs)]
+                            (loop [combined-env (let [combined-env (upd-combined-env
+                                                                     combined-env
+                                                                     gvec
+                                                                     rhs-ret)]
+                                                  (if has-rest
+                                                    (let [;; TODO wrap with destructuring related error handling
+                                                          cseq (chk-form combined-env
+                                                                         (list `seq gvec))]
+                                                      (upd-combined-env
+                                                        combined-env
+                                                        gseq
+                                                        (u/expr-type cseq)))
+                                                    combined-env))
+                                   n 0
+                                   bs lhs
+                                   seen-rest? false]
+                              (if (seq bs)
+                                (let [firstb (first bs)]
+                                  (cond
+                                    (= firstb '&) (recur (upd-destructure-env-from-init-form
+                                                           combined-env
+                                                           (second bs)
+                                                           gseq)
+                                                         n
+                                                         (nnext bs)
+                                                         true)
+                                    (= firstb :as) (upd-destructure-env-from-init-form
+                                                     combined-env
+                                                     (second bs)
+                                                     gvec)
+                                    :else (if seen-rest?
+                                            (throw (new Exception "Unsupported binding form, only :as can follow & parameter"))
+                                            (let [combined-env
+                                                  (cond-> combined-env
+                                                    has-rest (-> (upd-combined-env-from-init-form
+                                                                   gfirst
+                                                                   `(first ~gseq))
+                                                                 (upd-combined-env-from-init-form
+                                                                   gseq
+                                                                   `(next ~gseq))))]
+                                              (recur (upd-destructure-env
                                                        combined-env
-                                                       lhs
-                                                       rhs-ret)
-                                (vector? lhs) (let [gvec (gensym "vec__")
-                                                    gseq (gensym "seq__")
-                                                    gfirst (gensym "first__")
-                                                    has-rest (some #{'&} lhs)]
-                                                (loop [combined-env (let [combined-env (upd-combined-env
-                                                                                         combined-env
-                                                                                         gvec
-                                                                                         rhs-ret)]
-                                                                      (if has-rest
-                                                                        (let [;; TODO wrap with destructuring related error handling
-                                                                              cseq (chk-form combined-env
-                                                                                             (list `seq gvec)
-                                                                                             nil)]
-                                                                          (upd-combined-env
-                                                                            combined-env
-                                                                            gseq
-                                                                            (u/expr-type cseq)))
-                                                                        combined-env))
-                                                       n 0
-                                                       bs lhs
-                                                       seen-rest? false]
-                                                  (if (seq bs)
-                                                    (let [firstb (first bs)]
-                                                      (cond
-                                                        (= firstb '&) (recur (let [cseq (chk-form combined-env
-                                                                                                  gseq
-                                                                                                  nil)]
-                                                                               (upd-destructure-env
-                                                                                 combined-env
-                                                                                 (second bs)
-                                                                                 (u/expr-type cseq)))
-                                                                             n
-                                                                             (nnext bs)
-                                                                             true)
-                                                        (= firstb :as) (let [cvec (chk-form combined-env
-                                                                                            gvec
-                                                                                            nil)]
-                                                                         (upd-destructure-env
-                                                                           combined-env
-                                                                           (second bs)
-                                                                           (u/expr-type cvec)))
-                                                        :else (if seen-rest?
-                                                                (throw (new Exception "Unsupported binding form, only :as can follow & parameter"))
-                                                                (let [combined-env
-                                                                      (if has-rest
-                                                                        (let [cfirst (chk-form combined-env
-                                                                                               `(first ~gseq)
-                                                                                               nil)
-                                                                              cnext (chk-form combined-env
-                                                                                              `(next ~gseq)
-                                                                                              nil)]
-                                                                          (-> combined-env
-                                                                              (upd-combined-env
-                                                                                gfirst
-                                                                                (u/expr-type cfirst))
-                                                                              (upd-combined-env
-                                                                                gseq
-                                                                                (u/expr-type cnext))))
-                                                                        combined-env)]
-                                                                  (recur (upd-destructure-env
-                                                                           combined-env
-                                                                           firstb
-                                                                           (if has-rest
-                                                                             (-> (chk-form combined-env
-                                                                                           gfirst
-                                                                                           nil)
-                                                                                 u/expr-type)
-                                                                             ;; FIXME error handling
-                                                                             (-> (chk-form combined-env
-                                                                                           (list `nth gvec n nil)
-                                                                                           nil)
-                                                                                 u/expr-type)))
-                                                                         (inc n)
-                                                                         (next bs)
-                                                                         seen-rest?)))))
-                                                    combined-env)))
-                                (map? lhs)
-                                (let [gmap (gensym "map__")
-                                      gmapseq (with-meta gmap {:tag 'clojure.lang.ISeq})
-                                      defaults (:or lhs)]
-                                  (loop [combined-env (let [combined-env (upd-combined-env
-                                                                           combined-env
-                                                                           gmap
-                                                                           rhs-ret)
-                                                            ccreate (chk-form combined-env
-                                                                              ;; TODO clojure 1.11 expansion
-                                                                              `(if (seq? ~gmap)
-                                                                                 (clojure.lang.PersistentHashMap/create (seq ~gmapseq))
-                                                                                 ~gmap)
-                                                                              nil)
-                                                            combined-env (upd-combined-env
-                                                                           combined-env
-                                                                           gmap
-                                                                           (u/expr-type ccreate))]
-                                                        (cond-> combined-env
-                                                          (:as lhs) (upd-combined-env
-                                                                      (:as lhs)
-                                                                      gmap)))
-                                         bes (let [transforms
-                                                   (reduce
-                                                     (fn [transforms mk]
-                                                       (if (keyword? mk)
-                                                         (let [mkns (namespace mk)
-                                                               mkn (name mk)]
-                                                           (cond (= mkn "keys") (assoc transforms mk #(keyword (or mkns (namespace %)) (name %)))
-                                                                 (= mkn "syms") (assoc transforms mk #(list `quote (symbol (or mkns (namespace %)) (name %))))
-                                                                 (= mkn "strs") (assoc transforms mk str)
-                                                                 :else transforms))
-                                                         transforms))
-                                                     {}
-                                                     (keys lhs))]
-                                               (reduce
-                                                 (fn [bes entry]
-                                                   (reduce #(assoc %1 %2 ((val entry) %2))
-                                                           (dissoc bes (key entry))
-                                                           ((key entry) bes)))
-                                                 (dissoc lhs :as :or)
-                                                 transforms))]
-                                    (if (seq bes)
-                                      (let [bb (key (first bes))
-                                            bk (val (first bes))
-                                            local (if (instance? clojure.lang.Named bb)
-                                                    (with-meta (symbol nil (name bb)) (meta bb))
-                                                    bb)
-                                            cbv (chk-form combined-env
-                                                          (if (contains? defaults local)
-                                                            (list `get gmap bk (defaults local))
-                                                            (list `get gmap bk))
-                                                          nil)]
-                                        (recur (if (ident? bb)
-                                                 (upd-combined-env
-                                                   combined-env
-                                                   local
-                                                   (u/expr-type cbv))
-                                                 (upd-destructure-env
-                                                   combined-env
-                                                   bb
-                                                   (u/expr-type cbv)))
-                                               (next bes)))
-                                      combined-env)))
-                                :else (throw (new Exception (str "Unsupported binding form: " lhs)))))]
+                                                       firstb
+                                                       (u/expr-type
+                                                         (if has-rest
+                                                           (chk-form combined-env
+                                                                     gfirst)
+                                                           ;; FIXME type error handling
+                                                           (chk-form combined-env
+                                                                     (list `nth gvec n nil)))))
+                                                     (inc n)
+                                                     (next bs)
+                                                     seen-rest?)))))
+                                combined-env)))
+            (map? lhs)
+            (let [gmap (gensym "map__")
+                  gmapseq (with-meta gmap {:tag 'clojure.lang.ISeq})
+                  defaults (:or lhs)]
+              (loop [combined-env (-> combined-env
+                                      (upd-combined-env gmap rhs-ret)
+                                      (upd-combined-env-from-init-form
+                                        gmap
+                                        ;; TODO clojure 1.11 expansion
+                                        `(if (seq? ~gmap)
+                                           (clojure.lang.PersistentHashMap/create (seq ~gmapseq))
+                                           ~gmap))
+                                      (cond->
+                                        ;; TODO unit test
+                                        (:as lhs) (upd-combined-env-from-init-form
+                                                    (:as lhs)
+                                                    gmap)))
+                     bes (let [transforms
+                               (reduce
+                                 (fn [transforms mk]
+                                   (if (keyword? mk)
+                                     (let [mkns (namespace mk)
+                                           mkn (name mk)]
+                                       (cond (= mkn "keys") (assoc transforms mk #(keyword (or mkns (namespace %)) (name %)))
+                                             (= mkn "syms") (assoc transforms mk #(list `quote (symbol (or mkns (namespace %)) (name %))))
+                                             (= mkn "strs") (assoc transforms mk str)
+                                             :else transforms))
+                                     transforms))
+                                 {}
+                                 (keys lhs))]
+                           (reduce
+                             (fn [bes entry]
+                               (reduce #(assoc %1 %2 ((val entry) %2))
+                                       (dissoc bes (key entry))
+                                       ((key entry) bes)))
+                             (dissoc lhs :as :or)
+                             transforms))]
+                (if (seq bes)
+                  (let [bb (key (first bes))
+                        bk (val (first bes))
+                        local (if (instance? clojure.lang.Named bb)
+                                (with-meta (symbol nil (name bb)) (meta bb))
+                                bb)
+                        rhs (if (contains? defaults local)
+                              (list `get gmap bk (defaults local))
+                              (list `get gmap bk))]
+                    (recur (if (ident? bb)
+                             (upd-combined-env-from-init-form
+                               combined-env
+                               local
+                               rhs)
+                             (upd-destructure-env-from-init-form
+                               combined-env
+                               bb
+                               rhs))
+                           (next bes)))
+                  combined-env)))
+            :else (throw (new Exception (str "Unsupported binding form: " (pr-str lhs))))))]
     (upd-destructure-env
       {:prop-env prop-env
-       :ana-env ana-env
+       :ana-env (uniquify/push-new-locals-frame ana-env)
        :new-syms #{}}
       lhs
       rhs-ret)))
 
-(defn pad-vector
+(defn ^:private pad-vector
   [v p]
   {:pre [(vector? v)
          (vector? p)
@@ -307,34 +316,51 @@
     (into (subvec p (count v)))))
 
 ;; TODO
-#_
 (defuspecial 'clojure.core/let
   [{ana-env :env :keys [form] :as expr} expected]
-  (let [_ (assert (< 1 (count form)) form)
+  (let [_ (assert (< 1 (count form))
+                  (str "Expected 1 or more arguments to clojure.core/let: " form))
         [bvec & body-syns] (next form)
-        _ (assert (vector? bvec) bvec)
-        _ (assert (even? (count bvec)) bvec)
+        _ (assert (vector? bvec)
+                  (str "Expected binding vector as first argument of clojure.core/let:" (pr-str bvec)))
+        _ (assert (even? (count bvec))
+                  (str "Uneven binding vector passed to clojure.core/let: " bvec))
         is-reachable (atom true)
-        [env ana-env cbindings syms]
+        {:keys [prop-env ana-env cbindings new-syms]}
         (reduce
-          (fn [[env ana-env cbindings syms] [lhs rhs]]
+          (fn [{:keys [new-syms prop-env ana-env expanded-bindings]} [lhs rhs]]
             {:pre [@is-reachable
-                   (lex/PropEnv? env)
+                   (set? new-syms)
+                   (lex/PropEnv? prop-env)
                    (map? ana-env)]
-             :post [((con/maybe-reduced-c? (con/hvector-c? lex/PropEnv? map? vector?)) %)]}
+             :post [((con/maybe-reduced-c?
+                       (con/hmap-c? :prop-env lex/PropEnv? :ana-env map? :new-syms set?
+                                    :expanded-bindings vector?))
+                     %)]}
             (let [; check rhs
-                  cexpr (var-env/with-lexical-env env
+                  cexpr (var-env/with-lexical-env prop-env
                           (-> rhs
                               (ana2/unanalyzed ana-env)
                               check-expr))
-                  {:keys [prop-env ana-env new-syms]} (update-destructure-env env ana-env lhs (u/expr-type cexpr) is-reachable)
+                  inferred-tag (let [tag (:tag cexpr)]
+                                 (cond-> tag
+                                   (class? tag) coerce/Class->symbol))
+                  ; propagate inferred tag when useful
+                  lhs (cond-> lhs
+                        (and (simple-symbol? lhs)
+                             inferred-tag)
+                        (vary-meta update :tag #(or % inferred-tag)))
+                  updated-context (update-destructure-env prop-env ana-env lhs cexpr (u/expr-type cexpr) is-reachable)
+                  ;; must go after update-destructure-env
                   maybe-reduced (if @is-reachable identity reduced)]
-              (maybe-reduced
-                [prop-env
-                 ana-env
-                 (conj cbindings [lhs cexpr])
-                 (into syms new-syms)])))
-          [(lex/lexical-env) ana-env [] #{}]
+              (-> updated-context
+                  (assoc :expanded-bindings (conj expanded-bindings lhs (emit-form/emit-form cexpr)))
+                  (update :new-syms #(into new-syms %))
+                  maybe-reduced)))
+          {:expanded-bindings []
+           :new-syms #{}
+           :prop-env (lex/lexical-env)
+           :ana-env ana-env}
           (partition 2 bvec))
         bvec-out-form (-> (pad-vector (into []
                                             (mapcat (fn [[lhs expr]]
@@ -351,13 +377,13 @@
                                                   body-syns)
                                            (with-meta (meta form)))
                                  u/expr-type (or expected (r/ret (c/Un))))
-      :else (let [cbody (var-env/with-lexical-env env
+      :else (let [cbody (var-env/with-lexical-env prop-env
                           (let [body (-> `(do ~@body-syns)
                                          (ana2/unanalyzed ana-env))]
                             (binding [vs/*current-expr* body]
                               (-> body
                                   (check-expr expected)))))
-                  unshadowed-ret (let/erase-objects syms (u/expr-type cbody))]
+                  unshadowed-ret (let/erase-objects new-syms (u/expr-type cbody))]
               (assoc expr
                      :form (-> (list (first form)
                                      bvec-out-form
@@ -409,7 +435,7 @@
                                                 (str "Right hand side of 'for' clause must be seqable: "
                                                      (-> cv u/expr-type :t prs/unparse-type))
                                                 :form v)))
-                            updated-context (update-destructure-env prop-env ana-env k binding-ret is-reachable)
+                            updated-context (update-destructure-env prop-env ana-env k nil binding-ret is-reachable)
                             ;; must go after update-destructure-env
                             maybe-reduced (if @is-reachable identity reduced)]
                         (-> updated-context

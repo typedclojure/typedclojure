@@ -314,9 +314,8 @@
   {:pre [(:op ast)]}
   (cond-> ast
     (and (= :do (:op ast))
-         (get-in ast [::config :top-level])
-         (contains? (:ret ast) :result))
-    (assoc :result (:result (:ret ast)))))
+         (get-in ast [::config :top-level]))
+    (into (select-keys (:ret ast) [:result]))))
 
 (defn eval-top-level
   "Evaluate `eval-top-level?` nodes and unanalyzed `top-level?` nodes.
@@ -918,11 +917,11 @@
   (validate-bindings form env)
   (let [bindings (apply array-map bindings) ;; pick only one local with the same name, if more are present.
         fns      (keys bindings)]
-    (when-let [[sym] (seq (remove valid-binding-symbol? fns))]
+    (when-some [[sym] (seq (remove valid-binding-symbol? fns))]
       (throw (ex-info (str "Bad binding form: " sym)
-                      (merge {:form form
-                              :sym  sym}
-                             (u/-source-info form env)))))
+                      (into {:form form
+                             :sym  sym}
+                            (u/-source-info form env)))))
     (let [binds (reduce (fn [binds name]
                           (assoc binds name
                                  {:op    :binding
@@ -935,10 +934,10 @@
           e (update env :locals merge binds) ;; pre-seed locals
           binds (reduce-kv (fn [binds name bind]
                              (assoc binds name
-                                    (merge bind
-                                           {:init     (unanalyzed (bindings name)
-                                                                         (u/ctx e :ctx/expr))
-                                            :children [:init]})))
+                                    (assoc bind
+                                           :init (unanalyzed (bindings name)
+                                                             (u/ctx e :ctx/expr))
+                                           :children [:init])))
                            {} binds)
           e (update env :locals merge (u/update-vals binds u/dissoc-env))
           body (analyze-body body e)]
@@ -959,12 +958,12 @@
     (loop [bindings bindings
            env (u/ctx env :ctx/expr)
            binds []]
-      (if-let [[name init & bindings] (seq bindings)]
+      (if-some [[name init & bindings] (seq bindings)]
         (if (not (valid-binding-symbol? name))
           (throw (ex-info (str "Bad binding form: " name)
-                          (merge {:form form
-                                  :sym  name}
-                                 (u/-source-info form env))))
+                          (into {:form form
+                                 :sym  name}
+                                (u/-source-info form env))))
           (let [init-expr (unanalyzed init env)
                 bind-expr (->
                             {:op       :binding
@@ -980,10 +979,9 @@
                    (assoc-in env [:locals name] (u/dissoc-env bind-expr))
                    (conj binds bind-expr))))
         (let [body-env (assoc env :context (if loop? :ctx/return context))
-              body (analyze-body body (merge body-env
-                                             (when loop?
-                                               {:loop-id     loop-id
-                                                :loop-locals (count binds)})))]
+              body (analyze-body body (cond-> body-env
+                                        loop? (assoc :loop-id loop-id
+                                                     :loop-locals (count binds))))]
           {:body     body
            :bindings binds
            :children [:bindings :body]})))))
@@ -1106,7 +1104,8 @@
                            (u/-source-info form env)
                            (u/-source-info params env))))) ;; more specific
   (let [variadic? (boolean (some '#{&} params))
-        params-names (if variadic? (conj (pop (pop params)) (peek params)) params)
+        params-names (cond-> params
+                       variadic? (-> pop pop (conj (peek params))))
         env (dissoc env :local)
         arity (count params-names)
         params-expr (mapv (fn [name id]
@@ -1122,31 +1121,30 @@
                                :local     :arg}
                               (create-expr BindingExpr)))
                           params-names (range))
-        fixed-arity (if variadic?
-                      (dec arity)
-                      arity)
+        fixed-arity (cond-> arity 
+                      variadic? dec)
         loop-id (gensym "loop_")
-        body-env (into (update env :locals
-                               merge (zipmap params-names (map u/dissoc-env params-expr)))
-                       {:context     :ctx/return
-                        :loop-id     loop-id
-                        :loop-locals (count params-expr)})
+        body-env (-> env
+                     (update :locals merge (zipmap params-names (map u/dissoc-env params-expr)))
+                     (assoc :context     :ctx/return
+                            :loop-id     loop-id
+                            :loop-locals (count params-expr)))
         body (analyze-body body body-env)]
     (when variadic?
       (let [x (drop-while #(not= % '&) params)]
         (when (contains? #{nil '&} (second x))
           (throw (ex-info "Invalid parameter list"
-                          (merge {:params params
-                                  :form   form}
-                                 (u/-source-info form env)
-                                 (u/-source-info params env)))))
+                          (-> {:params params
+                               :form form}
+                              (into (u/-source-info form env))
+                              (into (u/-source-info params env))))))
         (when (not= 2 (count x))
           (throw (ex-info (str "Unexpected parameter: " (first (drop 2 x))
                                " after variadic parameter: " (second x))
-                          (merge {:params params
-                                  :form   form}
-                                 (u/-source-info form env)
-                                 (u/-source-info params env)))))))
+                          (-> {:params params
+                               :form form}
+                              (into (u/-source-info form env))
+                              (into (u/-source-info params env))))))))
       (->
         {:op          :fn-method
          ::op         ::fn-method
@@ -1190,31 +1188,40 @@
                       :local :fn
                       :name  n}
                      (create-expr BindingExpr))
-         e (if n (assoc (assoc-in env [:locals n] (u/dissoc-env name-expr)) :local name-expr) env)
+         e (cond-> env
+             n (-> (assoc-in [:locals n] (u/dissoc-env name-expr))
+                   (assoc :local name-expr)))
          once? (-> op meta :once boolean)
-         menv (assoc (dissoc e :in-try) :once once?)
-         meths (if (vector? (first meths)) (list meths) meths) ;;turn (fn [] ...) into (fn ([]...))
+         menv (-> e 
+                  (dissoc :in-try)
+                  (assoc :once once?))
+         ;;turn (fn [] ...) into (fn ([]...))
+         meths (cond-> meths
+                 (vector? (first meths)) list)
          methods-exprs (mapv #(analyze-fn-method % menv) meths)
          variadic (seq (filter :variadic? methods-exprs))
          variadic? (boolean variadic)
-         fixed-arities (seq (map :fixed-arity (remove :variadic? methods-exprs)))
+         fixed-arities (seq (sequence
+                              (comp (remove :variadic?)
+                                    (map :fixed-arity))
+                              methods-exprs))
          max-fixed-arity (when fixed-arities (apply max fixed-arities))]
      (when (>= (count variadic) 2)
        (throw (ex-info "Can't have more than 1 variadic overload"
-                       (merge {:variadics (mapv :form variadic)
-                               :form      form}
-                              (u/-source-info form env)))))
+                       (into {:variadics (mapv :form variadic)
+                              :form      form}
+                             (u/-source-info form env)))))
      (when (not= (seq (distinct fixed-arities)) fixed-arities)
        (throw (ex-info "Can't have 2 or more overloads with the same arity"
-                       (merge {:form form}
-                              (u/-source-info form env)))))
+                       (into {:form form}
+                             (u/-source-info form env)))))
      (when (and variadic?
                 (not-every? #(<= (:fixed-arity %)
-                           (:fixed-arity (first variadic)))
-                       (remove :variadic? methods-exprs)))
+                                 (:fixed-arity (first variadic)))
+                            (remove :variadic? methods-exprs)))
        (throw (ex-info "Can't have fixed arity overload with more params than variadic overload"
-                       (merge {:form form}
-                              (u/-source-info form env)))))
+                       (into {:form form}
+                             (u/-source-info form env)))))
      (->
        {:op              :fn
         ::op             ::fn
@@ -1246,14 +1253,14 @@
   [[_ sym & expr :as form] {:keys [ns] :as env}]
   (when (not (symbol? sym))
     (throw (ex-info (str "First argument to def must be a symbol, had: " (#?(:cljs type :default class) sym))
-                    (merge {:form form}
-                           (u/-source-info form env)))))
+                    (into {:form form}
+                          (u/-source-info form env)))))
   (when (and (namespace sym)
              (not= *ns* (find-ns (symbol (namespace sym)))))
     (throw (ex-info "Cannot def namespace qualified symbol"
-                    (merge {:form form
-                            :sym sym}
-                           (u/-source-info form env)))))
+                    (into {:form form
+                           :sym sym}
+                          (u/-source-info form env)))))
   (let [pfn (fn
               ([])
               ([init]
@@ -1267,7 +1274,8 @@
         arglists (when-let [arglists (:arglists (meta sym))]
                    (second arglists)) ;; drop quote
 
-        sym (with-meta (symbol (name sym))
+        sym (with-meta
+              (symbol (name sym))
               (merge (meta sym)
                      (when arglists
                        {:arglists arglists})
@@ -1286,8 +1294,9 @@
         args (when-let [[_ init] (find args :init)]
                (assoc args :init (unanalyzed init (u/ctx env :ctx/expr))))
         init? (:init args)
-        children (into (into [] (when meta [:meta]))
-                       (when init? [:init]))]
+        children (cond-> [] 
+                   meta (conj :meta)
+                   init? (conj :init))]
     (->
       {:op   :def
        ::op  ::def
@@ -1343,8 +1352,8 @@
   [[_ target & [m-or-f & args] :as form] env]
   (when-not (>= (count form) 3)
     (throw (ex-info (str "Wrong number of args to ., had: " (dec (count form)))
-                    (merge {:form form}
-                           (u/-source-info form env)))))
+                    (into {:form form}
+                          (u/-source-info form env)))))
   (let [[m-or-f field?] (if (and (symbol? m-or-f)
                                  (= \- (first (name m-or-f))))
                           [(-> m-or-f name (subs 1) symbol) true]
@@ -1354,9 +1363,9 @@
 
     (when (and call? (not (symbol? (first m-or-f))))
       (throw (ex-info (str "Method name must be a symbol, had: " (#?(:cljs type :default class) (first m-or-f)))
-                      (merge {:form   form
-                              :method m-or-f}
-                             (u/-source-info form env)))))
+                      (into {:form   form
+                             :method m-or-f}
+                            (u/-source-info form env)))))
     (cond
       call?
       (->
@@ -1438,8 +1447,8 @@
   [[_ var :as form] env]
   (when-not (= 2 (count form))
     (throw (ex-info (str "Wrong number of args to var, had: " (dec (count form)))
-                    (merge {:form form}
-                           (u/-source-info form env)))))
+                    (into {:form form}
+                          (u/-source-info form env)))))
   (if-let [var (resolve-sym var env)]
     (->
       {:op   :the-var

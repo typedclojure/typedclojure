@@ -1249,23 +1249,6 @@
       (doseq [a :- (U AnyInteger nil), [1 nil 2 3]]
         (inc a)))))
 
-(deftest for-test
-  (is (check-ns 'clojure.core.typed.test.for))
-  (is-tc-e
-    (for
-      [a :- (U nil Number), [1 nil 2 3]
-       b :- Number, [1 2 3]
-       :when a]
-      :- Number
-      (+ a b))
-    (Seq Number))
-  (is-tc-err
-    (for
-      [a :- (U Symbol nil Number), [1 nil 2 3]
-       b :- Number, [1 2 3]]
-      :- Number
-      (+ a b))))
-
 (deftest dotimes-test
   (is-tc-e (dotimes [i 100] (inc i)) nil)
   (is-tc-e (dotimes [i :- Num 100] (inc i)) nil)
@@ -1287,39 +1270,6 @@
 (deftest string-methods-test
   (is-tc-e (.toUpperCase "a") 
            String))
-
-(deftest common-destructuring-test
-  ;; 1.9.0 vector destructuring 
-  (is-tc-e (let [[a b & c] [1 2 3]]
-             (ann-form b Number)))
-  (is-tc-e (let [[a b c d e & r :as all] [1 2 3 4 5 6 7]]
-             (ann-form b Number)
-             (ann-form c Number)
-             (ann-form d Number)
-             (ann-form e Number)
-             (ann-form r (Seqable Number))
-             (ann-form all (Seqable Number))))
-  (is-tc-e (seq [1 2 3])
-           (HSeq [Num Num Num]))
-  (is-tc-e
-    '(1 2 3)
-    (HSeq [Num Num Num]))
-  (is-tc-e
-    '(1 2 3)
-    (HList [Num Num Num]))
-  (is-tc-e
-    (seq '(1 2 3))
-    (HSeq [Num Num Num]))
-  (is-tc-e
-    (let [[a b c & d :as e] '(1 2 3 4 5 6 7)]
-      (ann-form a (t/Val 1))
-      (ann-form b (t/Val 2))
-      (ann-form c (t/Val 3))
-      (ann-form d (t/HSeq [(t/Val 4) (t/Val 5) (t/Val 6) (t/Val 7)]))
-      (ann-form e (t/HSeq [(t/Val 1) (t/Val 2) (t/Val 3)
-                           (t/Val 4) (t/Val 5) (t/Val 6) (t/Val 7)]))))
-
-  (is (check-ns 'clojure.core.typed.test.destructure)))
 
 (deftest loop-errors-test
   (is (caught-top-level-errors #{1}
@@ -2868,7 +2818,7 @@
 
 (deftest profile-fail-test
   ; ensure check-ns still runs even if timbre isn't loaded
-  (is (check-ns-info 'clojure.core.typed.test.destructure
+  (is (check-ns-info 'clojure.core.typed.test.trampoline
                      :profile true)))
 
 ; CTYP-105
@@ -3264,7 +3214,22 @@
                (b a))
            Symbol))
 
-(deftest for-test
+(deftest typed-for-test
+  (is (check-ns 'clojure.core.typed.test.for))
+  (is-tc-e
+    (for
+      [a :- (U nil Number), [1 nil 2 3]
+       b :- Number, [1 2 3]
+       :when a]
+      :- Number
+      (+ a b))
+    (Seq Number))
+  (is-tc-err
+    (for
+      [a :- (U Symbol nil Number), [1 nil 2 3]
+       b :- Number, [1 2 3]]
+      :- Number
+      (+ a b)))
   (is-tc-e (for [a :- Num [1 2 3]]
              (inc a))
            (Seq Any))
@@ -4620,93 +4585,6 @@
                ;(ann-form f Nothing)
                (defmethod f :foo [a]
                  1))))
-
-(deftest let-occurrence-typing-test
-  ;; unreachable branches
-  (is-tc-e #(let [a (ann-form 'a Any)
-                  _ (assert (symbol? a))
-                  _ (assert (not (symbol? a)))]
-              (/ nil nil)))
-  (is-tc-e #(let [a (ann-form 'a Any)
-                  _ (assert (and (symbol? a) (not (symbol? a))))]
-              (/ nil nil)))
-  (is-tc-e #(let [a (ann-form 'a Any)
-                  _ (assert (and (symbol? a) (not (symbol? a))))
-                  _ (/ nil nil)]))
-  (is-tc-err #(let [a (ann-form 'a Any)
-                    _ (/ nil nil)
-                    _ (assert (and (symbol? a) (not (symbol? a))))]))
-  ;; propagating objects
-  (is-tc-e #(let [a (ann-form 1 Any)]
-              (let [b a]
-                (assert (number? b)))
-              (ann-form a Number)))
-  (is-tc-e #(let [a (ann-form 1 Any)]
-              (let [b a]
-                (assert (number? a)))
-              (ann-form a Number)))
-  (is-tc-e #(let [a (ann-form 1 Any)
-                  _ (let [b a]
-                      (assert (number? b)))]
-              (ann-form a Number)))
-  (is-tc-e #(let [a (ann-form 1 Any)
-                  _ (let [b a]
-                      (assert (number? a)))]
-              (ann-form a Number)))
-  (is-tc-err #(let [a (ann-form 1 Any)]
-                (let [b a]
-                  (assert (not (number? b))))
-                (ann-form a Number)))
-  (is-tc-err #(let [a (ann-form 1 Any)
-                    _ (let [b a]
-                        (assert (not (number? b))))]
-                (ann-form a Number)))
-  ;; propagating complicated objects
-  (is-tc-e #(let [m {:a (ann-form 1 Any)}]
-              (let [b (:a m)]
-                (assert (number? b)))
-              (ann-form (:a m) Number)))
-  (is-tc-e #(let [m {:a (ann-form 1 Any)}
-                  _ (let [b (:a m)]
-                      (assert (number? b)))]
-              (ann-form (:a m) Number)))
-  (is-tc-err #(let [m {:a (ann-form 1 Any)}]
-                (let [b (:a m)]
-                  (assert (not (number? b))))
-                (ann-form (:a m) Number)))
-  (is-tc-err #(let [m {:a (ann-form 1 Any)}
-                    _ (let [b (:a m)]
-                        (assert (not (number? b))))]
-                (ann-form (:a m) Number)))
-  ;; erased/uniquified shadowed bindings
-  (is-tc-err #(let [a (ann-form 1 Any)
-                    _ (let [a (ann-form 1 Number)]
-                        a)]
-                (ann-form a Number)))
-  (is-tc-e #(let [; test if aliasing gets confused
-                  m {:a (ann-form 1 Any)}
-                  a (:a m)
-                  m {:a (ann-form 1 Any)}
-                  _ (assert (number? a))]
-              (ann-form a Number)))
-  (is-tc-err #(let [m {:a (ann-form 1 Any)}
-                    a (:a m)
-                    m {:a (ann-form 1 Any)}
-                    _ (assert (number? a))]
-                (ann-form (:a m) Number)))
-  ;; uniquify let+do (gilardi scenario)
-  (is-tc-err (do (let [m (ann-form 1 Any)]
-                   (assert (number? m))
-                   m)
-                 (let [m (ann-form 1 Any)]
-                   (ann-form m Number))))
-  ;; uniquify let+do (non-gilardi scenario)
-  (is-tc-err #(do (let [m (ann-form 1 Any)]
-                    (assert (number? m))
-                    m)
-                  (let [m (ann-form 1 Any)]
-                    (ann-form m Number))))
-)
 
 (deftest typed-fn-return-empty-body
   (is (= ((clojure.core.typed/fn [] :-)) :-))

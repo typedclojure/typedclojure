@@ -16,20 +16,14 @@
 
 (defmethod -annotate-tag :default [ast] ast)
 
-(defmethod -annotate-tag :map
+(defn tag-via-val-or-form
   [{:keys [val form] :as ast}]
   (let [t (class (or val form))]
     (assoc ast :o-tag t :tag t)))
 
-(defmethod -annotate-tag :set
-  [{:keys [val form] :as ast}]
-  (let [t (class (or val form))]
-    (assoc ast :o-tag t :tag t)))
-
-(defmethod -annotate-tag :vector
-  [{:keys [val form] :as ast}]
-  (let [t (class (or val form))]
-    (assoc ast :o-tag t :tag t)))
+(defmethod -annotate-tag :map [ast] (tag-via-val-or-form ast))
+(defmethod -annotate-tag :set [ast] (tag-via-val-or-form ast))
+(defmethod -annotate-tag :vector [ast] (tag-via-val-or-form ast))
 
 (defmethod -annotate-tag :the-var
   [ast]
@@ -64,10 +58,10 @@
                 Object
                 o-tag)]
     (if-let [tag (or (:tag (meta form)) tag)]
-      (let [ast (assoc ast :tag tag :o-tag tag)]
-        (if init
-          (assoc-in ast [:init :tag] (ju/maybe-class tag))
-          ast))
+      (-> ast
+          (assoc :tag tag :o-tag tag)
+          (cond->
+            init (assoc-in [:init :tag] (ju/maybe-class tag))))
       (assoc ast :tag o-tag :o-tag o-tag))))
 
 (defmethod -annotate-tag :local
@@ -81,20 +75,17 @@
    attach the appropriate :tag and :o-tag to the node."
   {:pass-info {:walk :post :depends #{} :after #{#'constant-lift/constant-lift}}}
   [{:keys [op atom tag o-tag] :as ast}]
-  (let [;atom (when (#{:local :binding} op)
-        ;       (assert (:atom ast) (:atom ast))
-        ;       (:atom ast))
-        ast (if (and atom (:case-test @atom))
-              (update ast :form vary-meta dissoc :tag)
-              ast)
-        ast
-        (if (and o-tag tag)
-          ast
-          (if-let [tag (or tag
-                           (-> ast :val meta :tag)
-                           (-> ast :form meta :tag))]
-            (assoc (-annotate-tag ast) :tag tag)
-            (-annotate-tag ast)))]
+  (let [ast (cond-> ast
+              (and atom (:case-test @atom))
+              (update :form vary-meta dissoc :tag))
+
+        ast (cond-> ast
+              (not (and o-tag tag))
+              (-> -annotate-tag
+                  (into (when-let [tag (or tag
+                                           (-> ast :val meta :tag)
+                                           (-> ast :form meta :tag))]
+                          {:tag tag}))))]
     (when (= op :binding)
       (assert atom)
       (swap! atom assoc :tag (:tag ast)))

@@ -1,12 +1,11 @@
 (ns clojure.core.typed.test.testnew
   (:require [clojure.core.typed :as t] 
             [clojure.test :refer :all]                
-            [clojure.core.typed.test.test-utils :refer :all]
-            [clojure.core.typed.test.destructure]))
+            [clojure.core.typed.test.test-utils :refer :all]))
 
 (deftest function?-test
   (is-tc-e (function? function?) Boolean
-             :requires [[clojure.test :refer [function?]]])
+           :requires [[clojure.test :refer [function?]]])
   (is-tc-err (function? function?) String
              :requires [[clojure.test :refer [function?]]]))
   
@@ -57,7 +56,7 @@
              :requires [[clojure.test :refer [testing-contexts-str]]]))
 
 (deftest test-ns-test
-  (is-tc-e #(test-ns 'clojure.core.typed.test.destructure) [-> (Map Any Any)]
+  (is-tc-e #(test-ns 'some-namespace-symbol) [-> (Map Any Any)]
            :requires [[clojure.test :refer [test-ns]]])
   (is-tc-e #(test-ns *ns*) [-> (Map Any Any)]
            :requires [[clojure.test :refer [test-ns]]]))

@@ -70,7 +70,7 @@
     nil))
 
 (defmulti ^Class maybe-class
-  "Takes a Symbol, String or Class and tires to resolve to a matching Class"
+  "Takes a Symbol, String or Class and tries to resolve to a matching Class"
   class)
 
 (defn array-class [element-type]

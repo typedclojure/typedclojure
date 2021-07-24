@@ -35,32 +35,33 @@
               (do (err/tc-delayed-error "letfn requires each binding be annotated")
                   nil)
               (into {}
-                    (for [[nme type-syn] (mapv vector (map :name bindings) (-> body :statements first :expr :val))]
+                    (for [[nme type-syn] (map vector (map :name bindings) (-> body :statements first :expr :val))]
                       [nme (binding [prs/*parse-type-in-ns* (cu/expr-ns letfn-expr)]
                              (prs/parse-type type-syn))])))))]
     (if-not inits-expected
       (err/tc-delayed-error (str "letfn requires annotation, see: "
-                               (impl/impl-case :clojure 'clojure :cljs 'cljs) ".core.typed/letfn>")
-                          :return (assoc letfn-expr
-                                         u/expr-type (cu/error-ret expected)))
+                                 (impl/impl-case :clojure 'clojure :cljs 'cljs) ".core.typed/letfn>")
+                            :return (assoc letfn-expr
+                                           u/expr-type (cu/error-ret expected)))
 
       (let [cbindings
             (lex/with-locals inits-expected
-              (vec
-                (for [{:keys [name init] :as b} bindings]
+              (mapv
+                (fn [{:keys [name init] :as b}]
                   (let [expected-fn (inits-expected name)
                         _ (assert expected-fn (str "No expected type for " name
-                                                   " " (keys inits-expected)))
+                                                   " " (vec (keys inits-expected))))
                         ; we already uniquified bindings above, so I don't think
                         ; we want to check the :binding node
                         cinit (check init (r/ret expected-fn))]
                     (assoc b
                            :init cinit
-                           u/expr-type (u/expr-type cinit))))))
+                           u/expr-type (u/expr-type cinit))))
+                bindings))
 
             cbody (lex/with-locals inits-expected
                     (check body expected))
-            unshadowed-ret (let/erase-objects (map :name cbindings) (u/expr-type cbody))]
+            unshadowed-ret (let/erase-objects (into #{} (map :name) cbindings) (u/expr-type cbody))]
         (assoc letfn-expr
                :bindings cbindings
                :body cbody

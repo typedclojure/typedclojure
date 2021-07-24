@@ -33,8 +33,10 @@
 (defn push-matrix []
   {:post [(matrix? %)]}
   {:include (for [submodule all-submodules
-                  clojure [clojure-stable
-                           clojure-next-alpha]
+                  clojure (cond-> [clojure-stable]
+                            (= "typedclojure/typedclojure"
+                               (System/getenv "GITHUB_REPOSITORY"))
+                            (conj clojure-next-alpha))
                   jdk ["11"]]
               {:submodule submodule
                :clojure clojure

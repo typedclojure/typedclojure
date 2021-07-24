@@ -12,10 +12,10 @@
             [typed.cljc.analyzer.passes.uniquify :refer [uniquify-locals]]))
 
 (defn add-binding-atom
-  "Adds an atom-backed-map to every local binding,the same
-   atom will be shared between all occurences of that local.
+  "Adds a map-containing-atom to every local binding--the same
+   atom will be shared between all occurrences of that local.
 
-   The atom is put in the :atom field of the node."
+   The atom is added as the :atom field of the node."
   {:pass-info {:walk :pre :depends #{#'uniquify-locals} :state (fn [] (atom {}))}}
   ([ast] (prewalk ast (partial add-binding-atom (atom {}))))
   ([state ast]
@@ -25,7 +25,7 @@
          (swap! state assoc (:name ast) a)
          (assoc ast :atom a))
        :local
-       (if-let [a (@state (:name ast))]
+       (if-some [a (@state (:name ast))]
          (assoc ast :atom a)
          ;; handle injected locals
          (let [a (or (get-in ast [:env :locals (:name ast) :atom])

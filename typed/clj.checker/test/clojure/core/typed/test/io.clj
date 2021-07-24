@@ -1,8 +1,7 @@
 (ns clojure.core.typed.test.io
-  (:require  [clojure.core.typed :as t] 
-             [clojure.test :refer :all]                
-             [clojure.core.typed.test.test-utils :refer :all]
-             [clojure.core.typed.test.destructure]))
+  (:require [clojure.core.typed :as t] 
+            [clojure.test :refer :all]                
+            [clojure.core.typed.test.test-utils :refer :all]))
 
 (deftest delete-file-test
   (is-tc-e #(delete-file "abc") [-> Any]

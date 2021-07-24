@@ -427,7 +427,7 @@
                                          (fn [t]
                                            (when-not t
                                              (err/int-error (str "Updating local not in scope: " (:id f)
-                                                                 " " (keys (get env :l)))))
+                                                                 " " (-> env :l keys vec))))
                                            (update-with-filter t f)))]
                   ; update flag if a variable is now bottom
                   (when-let [bs (seq (filter (comp #{(c/Un)} val) (:l new-env)))]
@@ -453,5 +453,5 @@
                     (reset! flag false))
                   new-env)
                 :else env))
-            (assoc env :props (set (concat atoms props)))
+            (assoc env :props (into (set atoms) props))
             (concat atoms props))))

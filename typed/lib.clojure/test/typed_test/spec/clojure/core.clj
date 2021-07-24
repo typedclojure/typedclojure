@@ -8,10 +8,10 @@
             [clojure.test :refer :all]))
 
 (deftest reduced-spec-test
-  (is (every? #(and (reduced? %)
-                    (integer? @%))
-              (gen/sample
-                (s/gen (api/reduced-spec integer?)))))
+  (doseq [v (gen/sample
+              (s/gen (api/reduced-spec integer?)))]
+    (assert (reduced? v) v)
+    (is (integer? @v) v))
   (tu/is-valid (api/reduced-spec integer?) (reduced 1))
   (tu/is-invalid (api/reduced-spec symbol?) (reduced 1))
   (tu/is-valid (s/or :reduced (api/reduced-spec integer?)
@@ -21,11 +21,4 @@
                        :integer integer?)
                  (gensym))
   (tu/is-invalid (api/reduced-spec integer?)
-                 (gensym))
-  (is (apply
-        (every-pred
-          reduced?
-          (comp integer? deref))
-        (gen/sample
-          (s/gen (api/reduced-spec integer?)))))
-  )
+                 (gensym)))

@@ -21,16 +21,16 @@
 (defmethod -validate :maybe-class [{:keys [class form env] :as ast}]
   (when-not (:analyzer/allow-undefined (meta form))
     (throw (ex-info (str "Cannot resolve: " class)
-                    (merge {:sym class
-                            :ast (ast/prewalk ast cleanup/cleanup)}
-                           (cu/source-info env))))) )
+                    (into {:sym class
+                           :ast (ast/prewalk ast cleanup/cleanup)}
+                          (cu/source-info env))))) )
 
 (defmethod -validate :maybe-host-form [{:keys [form env] :as ast}]
   (when-not (:analyzer/allow-undefined (meta form))
     (throw (ex-info (str "Cannot resolve: " form)
-                    (merge {:sym form
-                            :ast (ast/prewalk ast cleanup/cleanup)}
-                           (cu/source-info env))))) )
+                    (into {:sym form
+                           :ast (ast/prewalk ast cleanup/cleanup)}
+                          (cu/source-info env))))) )
 
 (defn validate-tag [t {:keys [env] :as ast}]
   (let [tag (ast t)]
@@ -41,31 +41,28 @@
                 (:protocol (meta var)))
           (symbol (str (:ns var)) (str (:name var)))
           (throw (ex-info (str "Not type/protocol var used as a tag: " tag)
-                          (merge {:var var
-                                  :ast (ast/prewalk ast cleanup/cleanup)}
-                                 (cu/source-info env)))))
+                          (into {:var var
+                                 :ast (ast/prewalk ast cleanup/cleanup)}
+                                (cu/source-info env)))))
         tag
         #_(if (or ('#{boolean string number clj-nil any function object array} tag)
                 (and (namespace tag)
                      (not (ana2/resolve-ns (symbol (namespace tag)) env))))
           tag
           (throw (ex-info (str "Cannot resolve: " tag)
-                          (merge {:sym tag
-                                  :ast (ast/prewalk ast cleanup/cleanup)}
-                                 (cu/source-info env))))))
+                          (into {:sym tag
+                                 :ast (ast/prewalk ast cleanup/cleanup)}
+                                (cu/source-info env))))))
       (throw (ex-info (str "Invalid tag: " tag)
-                      (merge {:tag tag
-                              :ast (ast/prewalk ast cleanup/cleanup)}
-                             (cu/source-info env)))))))
+                      (into {:tag tag
+                             :ast (ast/prewalk ast cleanup/cleanup)}
+                            (cu/source-info env)))))))
 
 (defn validate
   "Validate tags and symbols.
    Throws exceptions when invalid forms are encountered"
   {:pass-info {:walk :any :depends #{#'infer-tag}}}
   [ast]
-  (merge (-validate ast)
-         (when (:tag ast)
-           {:tag (validate-tag :tag ast)})
-         (when (:return-tag ast)
-           {:return-tag (validate-tag :return-tag ast)})))
-
+  (cond-> (-validate ast)
+    (:tag ast) (assoc :tag (validate-tag :tag ast))
+    (:return-tag ast) (assoc :return-tag (validate-tag :return-tag ast))))

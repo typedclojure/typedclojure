@@ -1,8 +1,7 @@
 (ns clojure.core.typed.test.reflect
   (:require [clojure.core.typed :as t] 
             [clojure.test :refer :all]                
-            [clojure.core.typed.test.test-utils :refer :all]
-            [clojure.core.typed.test.destructure]))
+            [clojure.core.typed.test.test-utils :refer :all]))
 
 (deftest type-reflect-test
   (is-tc-e #(reflect 1) [-> (Map Any Any)]

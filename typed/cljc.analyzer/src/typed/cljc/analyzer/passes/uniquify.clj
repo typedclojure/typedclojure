@@ -11,23 +11,39 @@
             [typed.cljc.analyzer.utils :refer [update-vals]]
             [typed.cljc.analyzer.env :as env]))
 
+(defn push-new-locals-frame
+  "Binding expressions like let/loop need to create
+  a new locals frame before descending into the body
+  to ensure any uniquified locals are not leaked outside
+  the expression that introduces them."
+  [{::keys [locals-counter locals-frame locals-frame-val] :as env}]
+  ;; initialize ::locals-frame etc., when passed the env of an unanalyzed top-level ast
+  (let [locals-frame (atom (if locals-frame @locals-frame {}))]
+    (-> env
+        (assoc ::locals-frame locals-frame)
+        (cond->
+          (not locals-counter) (assoc ::locals-counter (atom {}))
+          ;; immutable copy for type resolution later
+          (not locals-frame-val) (assoc ::locals-frame-val @locals-frame)))))
+
 (defn normalize
-  "Returns the uniquified binding for name, if any."
+  "Returns the uniquified binding for name in the current
+  locals frame, if any."
   [name
    {::keys [locals-frame] :as _env}]
   {:pre [(symbol? name)]
    :post [(symbol? %)]}
-  (or (@locals-frame name) name))
+  (@locals-frame name name))
 
 (defn uniquify!
-  "Assigns a uniquified binding for name and returns the uniquified binding."
+  "Assigns a uniquified binding for name in the current
+  locals frame and returns the uniquified binding."
   [name
    {::keys [locals-counter locals-frame] :as _env}]
   {:pre [(symbol? name)]
    :post [(symbol? %)
           (not= % name)]}
-  (let [_ (swap! locals-counter update name (fnil inc -1))
-        uniquified (symbol (str
+  (let [uniquified (symbol (str
                              ;; Add extra gensym so bindings
                              ;; don't get clobbered when they
                              ;; travel between `do` expressions.
@@ -43,11 +59,11 @@
                              ;; safe than sorry.
                              ;; - Ambrose
                              (identity #_gensym name)
-                             "__#" (@locals-counter name)))
-        _ (swap! locals-frame assoc name uniquified)]
-    ;; a local is only uniquified once per locals-frame (I think?), so no need to
-    ;; retrieve from atom
-    uniquified))
+                             "__#"
+                             (-> (swap! locals-counter update name (fnil inc -1))
+                                 (get name))))]
+    (-> (swap! locals-frame assoc name uniquified)
+        (get name))))
 
 (defmulti -uniquify-locals :op)
 
@@ -117,7 +133,7 @@
         ;; if some expr that introduces new bindings
         (some #(= :binding (:op %)) (children ast))
         ;; then set up frame so locals won't leak
-        (update-in [:env ::locals-frame] (comp atom deref)))
+        (update :env push-new-locals-frame))
       uniquify-locals*))
 
 (defn uniquify-locals

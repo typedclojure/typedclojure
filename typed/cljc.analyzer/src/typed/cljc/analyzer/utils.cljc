@@ -47,17 +47,26 @@
 (defn update-vals
   "Applies f to all the vals in the map"
   [m f]
-  (reduce-kv (fn [m k v] (assoc m k (f v))) {} (or m {})))
+  (into {}
+        (map (fn [[k v]]
+               [k (f v)]))
+        m))
 
 (defn update-keys
   "Applies f to all the keys in the map"
   [m f]
-  (reduce-kv (fn [m k v] (assoc m (f k) v)) {} (or m {})))
+  (into {}
+        (map (fn [[k v]]
+               [(f k) v]))
+        m))
 
 (defn update-kv
   "Applies f to all the keys and vals in the map"
   [m f]
-  (reduce-kv (fn [m k v] (assoc m (f k) (f v))) {} (or m {})))
+  (into {}
+        (map (fn [[k v]]
+               [(f k) (f v)]))
+        m))
 
 (do
   #?@(:cljs []
@@ -148,12 +157,12 @@
   "Takes a fn node and an argc and returns the matching arglist"
   [fn argc]
   (let [arglists (->> fn :arglists (sort-by count))
-        arglist (->> arglists (filter #(= argc (count %))) first)
-        last-arglist (last arglists)]
+        arglist (->> arglists (filter #(= argc (count %))) first)]
     (or arglist
-        (when (and (some '#{&} last-arglist)
-                   (>= argc (- (count last-arglist) 2)))
-          last-arglist))))
+        (let [last-arglist (last arglists)]
+          (when (and (some '#{&} last-arglist)
+                     (>= argc (- (count last-arglist) 2)))
+            last-arglist)))))
 
 (defn select-keys'
   "Like clojure.core/select-keys, but uses transients and doesn't preserve meta"

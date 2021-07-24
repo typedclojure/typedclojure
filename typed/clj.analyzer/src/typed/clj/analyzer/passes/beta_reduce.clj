@@ -9,7 +9,6 @@
 (ns typed.clj.analyzer.passes.beta-reduce
   (:require [typed.cljc.analyzer :as ana]
             [typed.cljc.analyzer.ast :as ast]
-            [typed.cljc.analyzer.passes.uniquify :as uniquify]
             [typed.clj.analyzer.passes.analyze-host-expr :as analyze-host-expr]
             [typed.clj.analyzer.passes.annotate-tag :as annotate-tag]
             [typed.clj.analyzer.passes.classify-invoke :as classify-invoke]

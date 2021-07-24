@@ -64,7 +64,7 @@
 ;erase references to any bindings this scope introduces
 ;FIXME is this needed in the presence of hygiene?
 (defn erase-objects [syms ret]
-  {:pre [(every? simple-symbol? syms)
+  {:pre [((con/set-c? simple-symbol?) syms)
          (r/TCResult? ret)]
    :post [(r/TCResult? %)]}
   (reduce (fn [ty sym]
@@ -124,7 +124,7 @@
                           (check body expected))
                         (binding [vs/*current-expr* body]
                           (check body expected))))
-             unshadowed-ret (erase-objects (map :name cbindings) (u/expr-type cbody))]
+             unshadowed-ret (erase-objects (into #{} (map :name) cbindings) (u/expr-type cbody))]
           (assoc expr
                  :body cbody
                  :bindings cbindings

@@ -40,20 +40,20 @@
                            (when (seq ctors)
                              (str "\n\nSuggested constructors:\n"
                                   (apply str
-                                           (map 
-                                             (fn [{ctor-name :name 
-                                                   :keys [parameter-types flags] :as field}]
-                                               (str "\n  "
-                                                    (apply str (interpose " " (map name flags)))
-                                                    (when (seq flags) " ")
-                                                    (reflect-u/pprint-reflection-sym ctor-name)
-                                                    "("
-                                                    (apply str 
-                                                           (interpose 
-                                                             ", " 
-                                                             (map reflect-u/pprint-reflection-sym parameter-types)))
-                                                    ")"))
-                                             ctors))))
+                                         (map 
+                                           (fn [{ctor-name :name 
+                                                 :keys [parameter-types flags] :as field}]
+                                             (str "\n  "
+                                                  (apply str (interpose " " (map name flags)))
+                                                  (when (seq flags) " ")
+                                                  (reflect-u/pprint-reflection-sym ctor-name)
+                                                  "("
+                                                  (apply str 
+                                                         (interpose 
+                                                           ", " 
+                                                           (map reflect-u/pprint-reflection-sym parameter-types)))
+                                                  ")"))
+                                           ctors))))
                              (when (seq fields)
                                (str "\n\nSuggested fields:\n"
                                     (apply str

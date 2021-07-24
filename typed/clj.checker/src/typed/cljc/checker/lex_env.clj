@@ -35,11 +35,10 @@
   ([l props]
    (-PropEnv l props {}))
   ([l props aliases]
-   (PropEnv-maker l 
-              (if (set? props)
-                props
-                (into #{} props))
-              aliases)))
+   (PropEnv-maker
+     l 
+     (set props)
+     aliases)))
 
 (defn init-lexical-env []
   (-PropEnv))
@@ -75,14 +74,14 @@
         _ (assert (fr/name-ref? alias-id))
         lt (get-in (lexical-env) [:l alias-id])]
     ;(prn "lex-env" (lexical-env))
-    (when lt
-      (path-type/path-type lt alias-path))))
+    (some-> lt
+            (path-type/path-type alias-path))))
 
 (defn merge-locals [env new]
   {:pre [(PropEnv? env)]
    :post [(PropEnv? %)]}
   (-> env
-      (update :l merge new)))
+      (update :l into new)))
 
 (defmacro with-locals [locals & body]
   `(binding [vs/*lexical-env* (merge-locals (lexical-env) ~locals)]
@@ -103,15 +102,12 @@
         (assoc-in [:l id] t))
 
     (obj/Path? o)
-    (if (seq (:path o))
-      (-> env
-          (assoc-in [:aliases id] o))
-      ; if we have an empty path, add a "normal" entry to our
-      ; type environment. Not sure why this is needed, Andrew K added
-      ; it to TR because tests were failing.
-      (-> env
-          (assoc-in [:l (:id o)] t)
-          (assoc-in [:aliases id] o))
-      )))
+    (-> env
+        (assoc-in [:aliases id] o)
+        ; if we have an empty path, add a "normal" entry to our
+        ; type environment. Not sure why this is needed, Andrew K added
+        ; it to TR because tests were failing.
+        (cond-> (empty? (:path o)) (assoc-in [:l (:id o)] t)))
+    :else (err/int-error (str "what is this?" (pr-str o)))))
 
 (indu/add-indirection ind/PropEnv? PropEnv?)

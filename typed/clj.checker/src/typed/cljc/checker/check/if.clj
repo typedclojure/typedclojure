@@ -20,7 +20,8 @@
 
 (defn update-lex+reachable [fs]
   (let [reachable (atom true :validator boolean?)
-        env (update/env+ (lex/lexical-env) [fs] reachable)]
+        current-env (lex/lexical-env)
+        env (update/env+ current-env [fs] reachable)]
     [env @reachable]))
 
 (defn combine-rets [{fs+ :then fs- :else :as tst-ret}
@@ -65,8 +66,7 @@
                (not else-reachable?) flow2
                :else
                (r/-flow (fo/-or (:normal flow2)
-                                (:normal flow3))))
-        ]
+                                (:normal flow3))))]
     (r/ret type filter object flow)))
 
 (defn unreachable-ret []
@@ -76,6 +76,7 @@
          (r/-flow fl/-bot)))
 
 (defn check-if-reachable [check-fn expr lex-env reachable? expected]
+  {:pre [(boolean? reachable?)]}
   (if (not reachable?)
     (assoc expr 
            u/expr-type (unreachable-ret))
