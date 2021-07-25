@@ -18,7 +18,7 @@
            :runner
            {:extra-deps {io.github.cognitect-labs/test-runner
                          {:git/url "https://github.com/cognitect-labs/test-runner"
-                          :sha "5557e92c932f024127762ec6007d849bec869c8f"}}
+                          :sha "4e7e1c0dfd5291fa2134df052443dc29695d8cbe"}}
             :main-opts ["-m" "cognitect.test-runner"
                         "-d" "test"
                         "-r" ".*"

@@ -40,7 +40,7 @@
   :kaocha
   {:extra-deps {lambdaisland/kaocha {:git/url "https://github.com/lambdaisland/kaocha.git"
                                      ;; https://github.com/lambdaisland/kaocha/issues/208#issuecomment-822844384
-                                     :sha "3d834940d420d6490a2290f809526fff07ef7775"}}}
+                                     :sha "58d7870e65b925de5ddf029eb95b699d4fe77a78"}}}
   :codox
   {:extra-deps {codox/codox {:mvn/version "0.10.7"}}
    :extra-paths ["script"]
@@ -49,7 +49,7 @@
   {:extra-deps
    {io.github.cognitect-labs/test-runner
     {:git/url "https://github.com/cognitect-labs/test-runner"
-     :sha "5557e92c932f024127762ec6007d849bec869c8f"}}
+     :sha "4e7e1c0dfd5291fa2134df052443dc29695d8cbe"}}
    :main-opts
    ["-m"
     "cognitect.test-runner"

@@ -39,10 +39,9 @@
    :core-logic-mvn-version "1.0.0"
    :cognitect-test-runner-coordinates "io.github.cognitect-labs/test-runner"
    :cognitect-test-runner-git-url "https://github.com/cognitect-labs/test-runner"
-   :cognitect-test-runner-sha "5557e92c932f024127762ec6007d849bec869c8f"
+   :cognitect-test-runner-sha "4e7e1c0dfd5291fa2134df052443dc29695d8cbe"
    :codox-mvn-version "0.10.7"
    :kaocha-git-url "https://github.com/lambdaisland/kaocha.git"
-   ;; https://github.com/lambdaisland/kaocha/issues/208#issuecomment-822844384
-   :kaocha-sha "3d834940d420d6490a2290f809526fff07ef7775"
+   :kaocha-sha "58d7870e65b925de5ddf029eb95b699d4fe77a78"
    :typedclojure-homepage "https://typedclojure.org"
    })
