@@ -806,22 +806,22 @@
                    (case (int spec-version)
                      2 (if (not (map? x))
                          [{:path path :pred `map? :val x :via (conj via binder-op) :in in}]
-                         (let [problem (atom nil)]
-                           (reduce (fn [smap [b v]]
-                                     (let [rsspec (shim/resolve-spec (subst-tv v smap version-info)
-                                                                     version-info)]
-                                       (if-let [[_ i] (find x b)]
-                                         (let [ic (protocols2/conform* rsspec
-                                                                       i
-                                                                       settings-key
-                                                                       settings)]
-                                           (if (s/invalid? ic)
-                                             (reduced (reset! problem (protocols2/explain* rsspec (conj path b) (conj via binder-op) in i settings-key settings)))
-                                             (assoc smap b ic)))
-                                         ; infer missing entries
-                                         (assoc smap b (-> rsspec (shim/gen version-info) gen2/generate)))))
-                                   {}
-                                   (partition 2 tvs))
+                         (let [problem (atom nil)
+                               _ (reduce (fn [smap [b v]]
+                                           (let [rsspec (shim/resolve-spec (subst-tv v smap version-info)
+                                                                           version-info)]
+                                             (if-let [[_ i] (find x b)]
+                                               (let [ic (protocols2/conform* rsspec
+                                                                             i
+                                                                             settings-key
+                                                                             settings)]
+                                                 (if (s/invalid? ic)
+                                                   (reduced (reset! problem (protocols2/explain* rsspec (conj path b) (conj via binder-op) in i settings-key settings)))
+                                                   (assoc smap b ic)))
+                                               ; infer missing entries
+                                               (assoc smap b (-> rsspec (shim/gen version-info) gen2/generate)))))
+                                         {}
+                                         (partition 2 tvs))]
                            @problem))))
        :gen* (fn [gen*-args]
                (let [; (s/coll-of (s/tuple Kw Spec)) (s/map-of Kw Spec) -> Generator

@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.cljc.checker.type-ctors
-  (:refer-clojure :exclude [defrecord])
+  (:refer-clojure :exclude [defrecord replace])
   (:require [clojure.core.typed :as t]
             [typed.cljc.checker.utils :as u]
             [clojure.core.typed.contract-utils :as con]

@@ -1293,9 +1293,9 @@
   (let [is-arrow '#{-> :->}
         all-dom (take-while (complement is-arrow) f)
         [the-arrow rng & opts-flat :as chk] (drop-while (complement is-arrow) f) ;opts aren't used yet
-        _ (when ('#{->} the-arrow)
-            ;TODO deprecate
-            )
+        ;TODO deprecate
+        ;_ (when ('#{->} the-arrow)
+        ;    )
         _ (when-not (<= 2 (count chk))
             (err/int-error (str "Incorrect function syntax: " f)))
 

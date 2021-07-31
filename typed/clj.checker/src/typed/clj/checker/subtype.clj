@@ -69,8 +69,9 @@
     (do-top-level-subtype-using
       subtypes*-varargs argtys dom rst kws)))
 
-(defn subtypes-prest? [argtys dom prest]
+(defn subtypes-prest?
   "True if argtys are under dom and prest"
+  [argtys dom prest]
   (let [dom-count (count dom)
         [argtys-dom argtys-rest] (split-at dom-count argtys)]
     (boolean
@@ -1046,12 +1047,13 @@
       A0
       (report-not-subtypes s t))
 
+    ;; TODO unit test
     ;; handle ... varargs when the bounds are the same
     (and (:drest s)
          (:drest t)
          (= (-> s :drest :name)
             (-> t :drest :name)))
-    (if (and (subtypeA* (-> t :drest :pre-type) (-> s :drest :pre-type))
+    (if (and (subtypeA* A* (-> t :drest :pre-type) (-> s :drest :pre-type))
              (some-> (reduce (fn [A* [s t]]
                                (cond-> (subtypeA* A* s t)
                                  nil? reduced))

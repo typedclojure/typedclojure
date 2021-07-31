@@ -29,25 +29,25 @@
   IFreeInForObject free-in-for-object
   Path
   (fn [{p :path i :id :as o} k free-in?]
-    (if (= i k)
-      (reset! free-in? true)
-      o)))
+    (when (= i k)
+      (reset! free-in? true))
+    o))
 
 (fold/add-fold-case
   IFreeInForFilter free-in-for-filter
   NotTypeFilter
-  (fn [{t :type p :path i :id :as t} k free-in?]
-    (if (= i k)
-      (reset! free-in? true)
-      t)))
+  (fn [{t :type p :path i :id :as f} k free-in?]
+    (when (= i k)
+      (reset! free-in? true))
+    f))
 
 (fold/add-fold-case
   IFreeInForFilter free-in-for-filter
   TypeFilter
-  (fn [{t :type p :path i :id :as t} k free-in?]
-    (if (= i k)
-      (reset! free-in? true)
-      t)))
+  (fn [{t :type p :path i :id :as f} k free-in?]
+    (when (= i k)
+      (reset! free-in? true))
+    f))
 
 (declare index-free-in?)
 

@@ -1672,7 +1672,7 @@
 
       (and (:rest S)
            (:prest T))
-      (cs-gen-Function-just-rests cg V X Y S T)
+      (cs-gen-Function-just-rests V X Y S T)
 
       ; prest on left, nothing on right
       (and (:prest S)
