@@ -1053,7 +1053,7 @@
          (:drest t)
          (= (-> s :drest :name)
             (-> t :drest :name)))
-    (if (and (subtypeA* A* (-> t :drest :pre-type) (-> s :drest :pre-type))
+    (if (and (subtypeA* A0 (-> t :drest :pre-type) (-> s :drest :pre-type))
              (some-> (reduce (fn [A* [s t]]
                                (cond-> (subtypeA* A* s t)
                                  nil? reduced))
