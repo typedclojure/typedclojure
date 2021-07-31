@@ -34,7 +34,7 @@
   (assert (and (coll? nsyms) (every? symbol? nsyms))
           "Must pass a collection of symbols to statistics")
   (reduce (fn [stats nsym]
-            (let [_ (chk-ns-clj/check-ns nsym :collect-only true)
+            (let [_ (chk-ns-clj/check-ns nsym {:collect-only true})
                   ns (find-ns nsym)
                   _ (assert ns (str "Namespace " nsym " not found"))]
               (conj stats

@@ -20,18 +20,14 @@
     (binding [vs/*currently-loading* true]
       (when-not (io/resource "typed/cljc/checker/init.clj")
         (err/int-error "typed.clj/checker is not found on classpath"))
-      (when-not (find-ns 'typed.cljc.checker.init)
-        (require 'typed.cljc.checker.init))
-      (let [init-ns (find-ns 'typed.cljc.checker.init)]
-        (assert init-ns)
-        (when (or (not (@(ns-resolve init-ns 'loaded?)))
-                  (and cljs?
-                       (not (@(ns-resolve init-ns 'has-cljs-loaded?)))))
-          (println "Initializing core.typed ...")
-          (flush)
-          (time (@(ns-resolve init-ns 'load-impl) cljs?))
-          (println "core.typed initialized.")
-          (flush)))))))
+      (when (or (not (@(requiring-resolve 'typed.cljc.checker.init/loaded?)))
+                (and cljs?
+                     (not (@(requiring-resolve 'typed.cljc.checker.init/has-cljs-loaded?)))))
+        (println "Initializing core.typed ...")
+        (flush)
+        (time (@(requiring-resolve 'typed.cljc.checker.init/load-impl) cljs?))
+        (println "core.typed initialized.")
+        (flush))))))
   :cljs
 (defn load-if-needed 
   "Load and initialize all of core.typed if not already"

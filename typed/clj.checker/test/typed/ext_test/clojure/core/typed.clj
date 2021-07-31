@@ -1,4 +1,4 @@
-(ns ^:no-doc typed.ext-test.clojure.core
+(ns ^:no-doc typed.ext-test.clojure.core.typed
   (:require [clojure.test :refer [deftest is]]
             [clojure.core.typed :as t]))
 

@@ -36,7 +36,9 @@
     {:mvn/version "1.1.0"}
     org.clojure/tools.nrepl
     {:mvn/version "0.2.6", :exclusions [org.clojure/clojure]}
-    com.clojure-goes-fast/clj-java-decompiler {:mvn/version "0.3.0"}}},
+    com.clojure-goes-fast/clj-java-decompiler {:mvn/version "0.3.0"}
+    ;; optional typed.lib.clojure dep
+    org.typedclojure/typed.clj.spec {:local/root "../clj.spec" :deps/manifest :deps}}},
   :kaocha
   {:extra-deps {lambdaisland/kaocha {:git/url "https://github.com/lambdaisland/kaocha.git"
                                      ;; https://github.com/lambdaisland/kaocha/issues/208#issuecomment-822844384
@@ -45,6 +47,9 @@
   {:extra-deps {codox/codox {:mvn/version "0.10.7"}}
    :extra-paths ["script"]
    :main-opts ["-m" "gen-doc"]}
+  :eastwood
+  {:main-opts ["-m" "eastwood.lint" {}]
+   :extra-deps {jonase/eastwood {:mvn/version "0.9.4"}}}
   :runner
   {:extra-deps
    {io.github.cognitect-labs/test-runner

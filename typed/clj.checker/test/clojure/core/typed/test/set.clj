@@ -6,9 +6,10 @@
 (ann bubble-max-key (t/All [x]
                       [[x -> Number] (t/I (t/Seqable x) (t/CountRange 2)) -> (t/Seqable x)]))
 (tc-ignore
-(defn- bubble-max-key [k coll]
+(defn- bubble-max-key
   "Move a maximal element of coll according to fn k (which returns a number) 
    to the front of coll."
+  [k coll]
   (let [max (apply max-key k coll)]
     (cons max (remove #(identical? max %) coll))))
   )

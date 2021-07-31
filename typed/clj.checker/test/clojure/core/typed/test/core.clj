@@ -54,9 +54,9 @@
                          ExceptionInfo Var Seqable)))
 
 ;Aliases used in unit tests
-(defmacro is-with-aliases [& body]
-  `(is-clj (do (check-ns '~'clojure.core.typed.test.util-aliases)
-               ~@body)))
+(defmacro is-with-aliases [tst]
+  `(do (check-ns '~'clojure.core.typed.test.util-aliases)
+       (is-clj ~tst)))
 
 (defmacro is-tc-e-with-aliases [& body]
   `(is-clj (do (check-ns '~'clojure.core.typed.test.util-aliases)
@@ -502,29 +502,43 @@
                 (-PropEnv {'a (make-HMap :mandatory {(-val :op) (-val :var)})} props))
              @flag)))
   ;test impfilter
-  (is-clj (let [{:keys [l props]}
-            (env+ (-PropEnv {'a (Un -false -true) 'b (Un -nil -true)}
+  (clj (let [{:keys [l props]}
+             (env+ (-PropEnv {'a (Un -false -true) 'b (Un -nil -true)}
                              [(ImpFilter-maker (-not-filter -false 'a)
-                                           (-filter -true 'b))])
-                  [(-not-filter (Un -nil -false) 'a)]
-                  (atom true))]
-        (and (= l {'a -true, 'b -true})
-             (= (set props)
+                                               (-filter -true 'b))])
+                   [(-not-filter (Un -nil -false) 'a)]
+                   (atom true))]
+         (is (= l {'a -true, 'b -true}))
+         (is (= (set props)
                 #{(-not-filter (Un -nil -false) 'a)
                   (-filter -true 'b)}))))
   ; more complex impfilter
-  (is-with-aliases (= (env+ (-PropEnv {'and1 (Un -false -true)
-                                       'tmap (Name-maker 'clojure.core.typed.test.util-aliases/UnionName)}
-                                      [(ImpFilter-maker (-filter (Un -nil -false) 'and1)
-                                                    (-not-filter (-val :MapStruct1)
-                                                                 'tmap
-                                                                 [(-kpe :type)]))
-                                       (ImpFilter-maker (-not-filter (Un -nil -false) 'and1)
-                                                    (-filter (-val :MapStruct1)
-                                                             'tmap
-                                                             [(-kpe :type)]))])
-                            [(-filter (Un -nil -false) 'and1)]
-                            (atom true))))
+  (is-with-aliases
+    (=
+     (-PropEnv {'and1 -false
+                'tmap (make-HMap :mandatory {(-val :type) (-val :MapStruct2)
+                                             (-val :b) (Name-maker 'clojure.core.typed.test.util-aliases/MyName)})}
+               #{(-not-filter (-val :MapStruct1)
+                              'tmap
+                              [(-kpe :type)])
+                 (-filter (Un -false -nil)
+                          'and1)
+                 (ImpFilter-maker (-not-filter (Un -nil -false) 'and1)
+                                  (-filter (-val :MapStruct1)
+                                           'tmap
+                                           [(-kpe :type)]))})
+     (env+ (-PropEnv {'and1 (Un -false -true)
+                      'tmap (Name-maker 'clojure.core.typed.test.util-aliases/UnionName)}
+                     [(ImpFilter-maker (-filter (Un -nil -false) 'and1)
+                                       (-not-filter (-val :MapStruct1)
+                                                    'tmap
+                                                    [(-kpe :type)]))
+                      (ImpFilter-maker (-not-filter (Un -nil -false) 'and1)
+                                       (-filter (-val :MapStruct1)
+                                                'tmap
+                                                [(-kpe :type)]))])
+           [(-filter (Un -nil -false) 'and1)]
+           (atom true))))
   ; refine a subtype
   (is-clj (= (:l (env+ (-PropEnv {'and1 (RClass-of Seqable [-any])} [])
                        [(-filter (RClass-of IPersistentVector [-any]) 'and1)]
@@ -532,8 +546,8 @@
              {'and1 (RClass-of IPersistentVector [-any])}))
   ; bottom preserved
   (is-clj (let [a (atom true)]
-        (env+ (-PropEnv {'foo -any} []) [-bot] a)
-        (false? @a))))
+            (env+ (-PropEnv {'foo -any} []) [-bot] a)
+            (false? @a))))
 
 ;FIXME all these tests relate to CTYP-24
 (deftest destructuring-special-ops
@@ -547,7 +561,7 @@
                          (apply (clojure.core.typed/inst hash-map Keyword Number) a)
                          a)))
                ret-t)
-         (-complete-hmap {(-val :a) (-val 1)})))
+             (-complete-hmap {(-val :a) (-val 1)})))
   (is-clj (= (tc-t (fn [{a :a} :- (HMap :mandatory {:a (Value 1)})]
                      a))
              (ret (make-FnIntersection 
@@ -571,9 +585,9 @@
                          nil nil nil nil nil))))
   (is-clj (= (tc-t (let [{a :a} {:a 1}]
                  a))
-         (ret (-val 1) 
-              (-true-filter)
-              -empty)))
+             (ret (-val 1) 
+                  (-true-filter)
+                  -empty)))
   ;FIXME should be (-FS -bot (! ISeq 0))
   #_(is-clj (= (tc-t (clojure.core.typed/fn [a :- (HMap :mandatory {:a (Value 1)})]
                                (seq? a)))

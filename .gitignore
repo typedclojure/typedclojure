@@ -1,6 +1,7 @@
 target
 *jar
 /classes/
+.eastwood
 .lein*
 *.swp
 *.swo

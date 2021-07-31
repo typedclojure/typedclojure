@@ -12,7 +12,6 @@
             [clojure.spec.alpha :as s1]
             [clojure.alpha.spec.gen :as gen2]
             [clojure.alpha.spec.protocols :as protocols2]
-            [typed.clj.spec.impl.shim :as shim]
             [typed.clj.spec1.util :as u1]))
 
 (defn resolve-spec

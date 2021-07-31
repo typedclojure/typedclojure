@@ -21,6 +21,7 @@
             [clojure.java.io :as io]
             [clojure.pprint :as pprint]
             [clojure.set :as cljset]
+            [clojure.string :as str]
             [clojure.tools.reader :as reader]
             [clojure.tools.reader.reader-types :as readers]
             [typed.clj.analyzer :as jana2]
@@ -1524,7 +1525,7 @@
       ;; to do: improve this error message
       (err/tc-delayed-error (str "A call to assoc failed to type check with target expression of type:\n\t" (prs/unparse-type targetun)
                                  "\nand key/value pairs of types: \n\t"
-                                 (clojure.string/join " " (map (comp pr-str prs/unparse-type :t u/expr-type) ckeyvals)))
+                                 (str/join " " (map (comp pr-str prs/unparse-type :t u/expr-type) ckeyvals)))
                             ;; first argument is to blame, gather any blame information from there
                             :expected (u/expr-type ctarget)
                             :return (-> expr
@@ -2031,9 +2032,9 @@
                                   (cu/Constructor->Function ctor))))))
               ;; check a non-reflective constructor
               check-validated (fn [expr]
-                                (let [ifn (-> (if inst-types
-                                                (inst/manual-inst (ctor-fn expr) inst-types)
-                                                (ctor-fn expr))
+                                (let [ifn (-> (ctor-fn expr)
+                                              (cond-> inst-types
+                                                (inst/manual-inst inst-types {}))
                                               r/ret)
                                       ;_ (prn "Expected constructor" (prs/unparse-type (r/ret-t ifn)))
                                       res-type (funapp/check-funapp expr (:args expr) ifn (map u/expr-type (:args expr)) expected)]

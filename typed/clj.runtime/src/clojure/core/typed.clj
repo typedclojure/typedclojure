@@ -743,15 +743,14 @@ for checking namespaces, cf for checking individual forms."}
     "Internal use only. Use untyped-var."
     [varsym typesyn prs-ns form]
     (core/let
-         [var (resolve varsym)
-          _ (assert (var? var) (str varsym " must resolve to a var."))
-          qsym (@var->symbol var)
-          expected-type (with-current-location form
-                          (delay-tc-parse typesyn))
-          _ (with-clojure-impl
-              (@add-untyped-var prs-ns qsym expected-type))]
-      )
-    nil))
+      [var (resolve varsym)
+       _ (assert (var? var) (str varsym " must resolve to a var."))
+       qsym (@var->symbol var)
+       expected-type (with-current-location form
+                       (delay-tc-parse typesyn))
+       _ (with-clojure-impl
+           (@add-untyped-var prs-ns qsym expected-type))]
+      nil)))
 
 (defmacro untyped-var
   "Check a given var has the specified type at runtime."
