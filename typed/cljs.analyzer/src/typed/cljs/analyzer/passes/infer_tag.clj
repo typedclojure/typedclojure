@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 ;copied from tools.analyzer.js
-(ns clojure.core.typed.analyzer.passes.js.infer-tag
+(ns typed.cljs.analyzer.passes.infer-tag
   (:require [clojure.tools.analyzer.env :as env]
             [clojure.tools.analyzer.utils :refer [arglist-for-arity]]
             [typed.cljc.analyzer.passes.add-binding-atom :refer [add-binding-atom]]

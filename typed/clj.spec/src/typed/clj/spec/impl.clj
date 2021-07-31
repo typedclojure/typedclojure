@@ -92,7 +92,7 @@
    spec-version]
   `(s1/Specize
      (s1/specize* [this#] this#)
-     (s1/specize* [this# _] this#)
+     (s1/specize* [this# _#] this#)
 
     s1/Spec
      (s1/conform*

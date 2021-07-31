@@ -9,8 +9,12 @@
 ;copied from tools.analyzer.js
 (ns typed.cljs.analyzer.passes.analyze-host-expr
   (:require [typed.cljc.analyzer :as common]
-            [typed.cljc.analyzer.env :as env]
-            [typed.cljc.analyzer.js :as anajs]))
+            [typed.cljc.analyzer.env :as env]))
+
+;;FIXME what do we want to prefix js ::common/op's with?
+;; using this namespace for now
+(create-ns 'typed.cljc.analyzer.js)
+(alias 'ana-js 'typed.cljc.analyzer.js)
 
 (defmulti analyze-host-expr
   "Transform :host-interop nodes into :host-call, transform

@@ -16,6 +16,11 @@
      :jvm-opts ["-agentpath:/Applications/YourKit-Java-Profiler-2019.8.app/Contents/Resources/bin/mac/libyjpagent.dylib"]}
     :spec-skip-macros
     {:jvm-opts ["-Dclojure.spec.skip-macros=true"]}
+    :eastwood
+    {:main-opts ["-m" "eastwood.lint" {}]
+     :extra-deps {jonase/eastwood {:git/url "https://github.com/jonase/eastwood.git"
+                                   :tag "Release-0.9.4"
+                                   :sha "06363d3e78e9163bb1f5590b365bb7a991083988"}}}
     :nREPL
     {:extra-deps
      {nrepl/nrepl {:mvn/version ~(:nrepl-mvn-version h/selmer-input-map)}
