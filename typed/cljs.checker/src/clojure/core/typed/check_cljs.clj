@@ -36,9 +36,6 @@
             [typed.cljc.checker.check.vector :as vec]
             [typed.cljc.checker.check.with-meta :as with-meta]
             [typed.cljc.checker.check.special.fn :as special-fn]
-            ;; TODO migrate to extensible type rules
-            [typed.cljc.checker.check.special.ann-form :as ann-form]
-            [typed.cljc.checker.check.special.tc-ignore :as tc-ignore]
             [typed.cljc.checker.check.special.loop :as special-loop]
             [clojure.core.typed.errors :as err]
             [typed.cljc.checker.check.utils :as cu]
@@ -248,7 +245,9 @@
 
 (defmethod internal-special-form ::t/tc-ignore
   [expr expected]
-  (tc-ignore/check-tc-ignore check expr expected))
+  ;; TODO migrate to extensible type rules
+  (err/nyi-error "cljs tc-ignore")
+  #_(tc-ignore/check-tc-ignore check expr expected))
 
 (defn check-fn-rest [remain-dom & {:keys [rest drest kws prest]}]
   {:pre [(or (r/Type? rest)
@@ -282,7 +281,9 @@
 
 (defmethod internal-special-form ::t/ann-form
   [{[_ _ {{tsyn :type} :val} :as statements] :statements frm :ret, :keys [env], :as expr} expected]
-  (ann-form/check-ann-form check expr expected))
+  ;; TODO migrate to extensible type rules
+  (err/nyi-error "cljs ann-form")
+  #_(ann-form/check-ann-form check expr expected))
 
 (defmethod internal-special-form ::t/loop
   [{[_ _ {{tsyns :ann} :val} :as statements] :statements frm :ret, :keys [env], :as expr} expected]

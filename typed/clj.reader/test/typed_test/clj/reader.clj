@@ -240,8 +240,9 @@
   (is (= "foo\u0194bar" (read-string "\"foo\\u0194bar\"")))
   (is (= "foo\123bar" (read-string "\"foo\\123bar\"")))
   (is (= "\060" (read-string "\"\\060\"")))
-  (is (= "\340" (read-string "\"\\340\"")))
-  (is (= "\377" (read-string "\"\\377\""))))
+  ;; workaround https://github.com/jonase/eastwood/issues/413
+  (is (= (str \o340) (read-string "\"\\340\"")))
+  (is (= (str \o377) (read-string "\"\\377\""))))
 
 (deftest read-list
   (is (= '() (read-string "()")))

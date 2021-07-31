@@ -72,7 +72,8 @@
       var)))
 
 (defn resolve-sym [sym env]
-  (or (u/resolve-sym sym env)
+  (or (do (throw (ex-info "FIXME u/resolve-sym is unimplemented"))
+          #_(u/resolve-sym sym env))
       (get-in env [:locals sym])))
 
 (defn dotted-symbol? [form env]
