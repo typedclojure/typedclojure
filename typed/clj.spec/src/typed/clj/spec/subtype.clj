@@ -17,6 +17,7 @@
     For heterogeneous ops like collections and regexes,
     see `direct-sub-op`.")
 
+(create-ns 'clojure.alpha.spec)
 (alias 's 'clojure.alpha.spec)
 
 ;; database rep
@@ -366,7 +367,6 @@
        ;`(s/cat :single ~t)
        `(s/? ~tsub)])
     [t]))
-
 
 (defmethod direct-sub-op `s/*
   [[_ t :as spec] {:keys [direct-subtypes]}]
