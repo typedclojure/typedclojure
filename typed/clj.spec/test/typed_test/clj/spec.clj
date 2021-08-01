@@ -92,9 +92,8 @@
     :a)
   (is (= (::s/problems
            (s/explain-data (bind-tv :kind integer?)
-                           :a)
+                           :a))
          `[{:path [:kind], :pred integer?, :val :a, :via [bind-tv], :in []}])))
-  )
 
 (comment
   (s/explain (s/* integer?) [1 :a])
@@ -119,13 +118,12 @@
     `{:x :b})
   (is (= (::s/problems
            (s/explain-data (binder :x (bind-tv :kind integer?))
-                           `{:x :b})
-           `[{:path [:x :kind]
-              :pred integer?
-              :val :b
-              :via [binder bind-tv]
-              :in []}])))
-  )
+                           `{:x :b}))
+         `[{:path [:x :kind]
+            :pred integer?
+            :val :b
+            :via [binder bind-tv]
+            :in []}])))
 
 (deftest inst-test
   (is (=
