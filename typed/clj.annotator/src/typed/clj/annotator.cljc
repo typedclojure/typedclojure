@@ -2406,7 +2406,7 @@
         ;; is still the set of reachable aliases after this line.
         env (reduce (fn [env as]
                       (let [env (merge-aliases env as)]
-                        (when (seq (next as))
+                        (when (next as)
                           (debug-output-when :squash-horizontally
                                              (str "Merged aliases " (vec (rest as))
                                                   " into " (first as))
@@ -2419,7 +2419,7 @@
         asets (group-HMap-aliases-by-likely-tag env as)
         env (reduce (fn [env as]
                       (let [env (merge-aliases env as)]
-                        (when (seq (next as))
+                        (when (next as)
                           (debug-output-when :squash-horizontally
                                              (str "Merged aliases " (vec (rest as))
                                                   " into " (first as)
@@ -2437,7 +2437,7 @@
         asets (group-aliases-by-likely-tag-key env as)
         env (reduce (fn [env as]
                       (let [env (merge-aliases env as)]
-                        (when (seq (next as))
+                        (when (next as)
                           (debug-output-when :squash-horizontally
                                              (str "Merged aliases " (vec (rest as))
                                                   " into " (first as)
