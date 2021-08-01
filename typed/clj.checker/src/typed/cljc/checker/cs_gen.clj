@@ -57,14 +57,12 @@
   {:pre [(zero? (rem (count lst) n))]}
   (let [lst-count (count lst)
         keep-rem-of (t/fn keep-rem-of [i :- Number]
-                        (keep-indexed (t/fn [index :- Number
-                                             item :- a]
-                                        (when (= (rem index n) i)
-                                          item))
-                                      lst))]
-    (t/for [i :- Number, (range n)]
-      :- (t/Seq a)
-      (keep-rem-of i))))
+                      (keep-indexed (t/fn [index :- Number
+                                           item :- a]
+                                      (when (= (rem index n) i)
+                                        item))
+                                    lst))]
+    (map keep-rem-of (range n))))
 
 (t/ann subtype? [r/AnyType r/AnyType -> Boolean])
 (defn ^:private subtype? [s t]

@@ -391,7 +391,6 @@
   (string-test-case "foo\u0194bar" "\"foo\\u0194bar\"")
   (string-test-case "foo\123bar" "\"foo\\123bar\"")
   (string-test-case "\060" "\"\\060\"")
-  ;; workaround https://github.com/jonase/eastwood/issues/413
   (string-test-case "\340" "\"\\340\"")
   (string-test-case "\377" "\"\\377\""))
 
