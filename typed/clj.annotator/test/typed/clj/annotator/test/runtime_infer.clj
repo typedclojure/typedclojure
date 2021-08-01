@@ -272,9 +272,9 @@
                               (fn-dom-path 1 0)
                               (fn-rng-path 1)]
                              (prs Long))])]
-    (is (= (update-path' (init-env) infers))
-        {'use-map
-         (prs ['{:f [[? :-> Long] :-> ?], :a java.lang.Long} :-> '{:b ?, :f clojure.lang.IFn, :a ?}])}))
+    (is (= (update-path' (init-env) infers)
+           {'use-map
+            (prs ['{:f [[? :-> Long] :-> ?], :a java.lang.Long} :-> '{:b ?, :f clojure.lang.IFn, :a ?}])})))
   (checking
     "function dom rng"
     10

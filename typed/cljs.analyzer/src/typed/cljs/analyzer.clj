@@ -72,7 +72,7 @@
       var)))
 
 (defn resolve-sym [sym env]
-  (or (do (throw (ex-info "FIXME u/resolve-sym is unimplemented"))
+  (or (do (throw (ex-info "FIXME u/resolve-sym is unimplemented" {}))
           #_(u/resolve-sym sym env))
       (get-in env [:locals sym])))
 
@@ -126,8 +126,9 @@
        :else (list* op expr)))
     form))
 
-(defn macroexpand-1 [form env]
+(defn macroexpand-1
   "If form represents a macro form returns its expansion, else returns form."
+  [form env]
   (env/ensure (global-env)
     (if (seq? form)
       (let [op (first form)]
