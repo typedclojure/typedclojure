@@ -90,7 +90,7 @@
   (tu/is-invalid
     (bind-tv :kind integer?)
     :a)
-  (is (= (::s/problems
+  (is (= (:clojure.spec.alpha/problems
            (s/explain-data (bind-tv :kind integer?)
                            :a))
          `[{:path [:kind], :pred integer?, :val :a, :via [bind-tv], :in []}])))
@@ -116,7 +116,7 @@
   (tu/is-invalid
     (binder :x (bind-tv :kind integer?))
     `{:x :b})
-  (is (= (::s/problems
+  (is (= (:clojure.spec.alpha/problems
            (s/explain-data (binder :x (bind-tv :kind integer?))
                            `{:x :b}))
          `[{:path [:x :kind]

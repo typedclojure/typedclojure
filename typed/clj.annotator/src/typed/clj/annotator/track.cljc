@@ -593,13 +593,13 @@
 #?(:clj
 (def prim-invoke-interfaces
   (into #{}
-        (->>
-          (map (fn [ss] (apply str ss))
-               (apply concat
-                      (for [n (range 1 6)]
-                        (apply comb/cartesian-product (repeat n [\D \O \L])))))
+        (comp
+          (mapcat (fn [n]
+                    (apply comb/cartesian-product (repeat n [\D \O \L]))))
+          (map (fn [ss] (apply str ss)))
           (remove (fn [ss]
-                    (every? #{\O} ss)))))))
+                    (every? #{\O} ss))))
+        (range 1 6))))
 
 #?(:clj
 (defn char->tag [c]
