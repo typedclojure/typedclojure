@@ -158,7 +158,7 @@
 (defmacro caught-top-level-errors [nfn & body]
   `(err/with-ex-info-handlers
      [err/top-level-error? (fn [data# _#]
-                           (~nfn (count (:errors data#))))]
+                             (~nfn (count (:errors data#))))]
      ~@body
      false))
 
@@ -219,4 +219,4 @@
   `(do
      (load/install-typed-load)
      (with-redefs [load #'lang/extensible-load]
-     ~@body)))
+       ~@body)))

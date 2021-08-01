@@ -113,7 +113,7 @@
                               (r/make-Function
                                 (-> t2 :types first :dom)
                                 x)))]
-                (prn "rng-t" rng-t)
+                ;(prn "rng-t" rng-t)
                 (if rng-t
                   (assoc-in t2 [:types 0 :rng :t] rng-t)
                   t2))

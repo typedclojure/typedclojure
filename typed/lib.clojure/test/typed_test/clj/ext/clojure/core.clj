@@ -1,7 +1,9 @@
 (ns ^:no-doc typed-test.clj.ext.clojure.core
   (:require [clojure.test :refer [deftest is]]
             [clojure.core.typed :as t]
+            [clojure.string :as str]
             [typed.clj.checker.parse-unparse :as prs]
+            [typed.clj.ext.clojure.core :as extcc]
             [clojure.core.typed.test.test-utils :refer :all]))
 
 (defn eval-in-ns [form]
@@ -138,8 +140,7 @@
                                             (repeat 20 {:b 2}))]
                [a b])
              (t/Seq '[t/Int 
-                      t/Int]))
-  )
+                      t/Int])))
 
 (deftest let-test
   (is-tc-e (let [a 1] a) t/Int)
@@ -324,5 +325,31 @@
                     (assert (number? m))
                     m)
                   (let [m (ann-form 1 Any)]
-                    (ann-form m Number))))
-)
+                    (ann-form m Number)))))
+
+(defn extract-error-messages [tc-err-res]
+  (some-> tc-err-res
+          (update :ex (comp #(map (juxt ex-message
+                                        (comp (fn [d] (dissoc d :env)) ex-data))
+                                  %)
+                            :errors ex-data))))
+
+(deftest let-error-msg-test
+  (is (= (extract-error-messages
+           (tc-err #(let [[a] #{1}]
+                      a)))
+         {:delayed-errors []
+          :ex [[(extcc/bad-vector-destructure-error-msg
+                  "(HSet #{1})"
+                  "[a]")
+                {:type-error :clojure.core.typed.errors/tc-error-parent
+                 :form '(clojure.core/let [[a] #{1}] a)}]]}))
+  (is (= (extract-error-messages
+           (tc-err #(let [{[a] :foo} {:foo #{1}}]
+                      a)))
+         {:delayed-errors []
+          :ex [[(extcc/bad-vector-destructure-error-msg
+                  "(HSet #{1})"
+                  "[a]")
+                {:type-error :clojure.core.typed.errors/tc-error-parent
+                 :form '(clojure.core/let [{[a] :foo} {:foo #{1}}] a)}]]})))

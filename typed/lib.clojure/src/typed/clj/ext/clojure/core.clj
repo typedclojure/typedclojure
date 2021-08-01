@@ -13,6 +13,7 @@
             [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.errors :as err]
             [clojure.core.typed.util-vars :as vs]
+            [typed.cljc.checker.check.nth :as nth]
             [typed.clj.checker.check :refer [check-expr defuspecial -unanalyzed-special]]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.clj.analyzer.passes.emit-form :as emit-form]
@@ -90,6 +91,20 @@
 ;; clojure.core/let
 
 (def ^:private combined-env? (con/hmap-c? :prop-env lex/PropEnv? :ana-env map? :new-syms set?))
+
+(defn bad-vector-destructure-error-msg
+  "Error message when destructuring a non-sequential type.
+  
+  t is the string representation of the type being destructured
+  and dform is the string representation of the destructuring syntax."
+  [t dform]
+  {:pre [(string? t)
+         (string? dform)]
+   :post [(string? %)]}
+  (format (str "The type `%s` cannot be destructured via syntax `%s` "
+               "because the type cannot be passed as the first argument of `nth`.`")
+          t
+          dform))
 
 (defn ^:private update-destructure-env [prop-env ana-env lhs maybe-rhs-expr rhs-ret is-reachable]
   {:pre [(lex/PropEnv? prop-env)
@@ -221,17 +236,29 @@
                                                                    `(first ~gseq))
                                                                  (upd-combined-env-from-init-form
                                                                    gseq
-                                                                   `(next ~gseq))))]
+                                                                   `(next ~gseq))))
+                                                  gvec-type (-> (chk-form combined-env
+                                                                          gvec)
+                                                                u/expr-type
+                                                                :t)
+                                                  firstb-res (if has-rest
+                                                               (u/expr-type
+                                                                 (chk-form combined-env
+                                                                           gfirst))
+                                                               (if (nth/valid-first-arg-for-3-arity-nth?
+                                                                     gvec-type)
+                                                                 (u/expr-type
+                                                                   (chk-form combined-env
+                                                                             (list `nth gvec n nil)))
+                                                                 (r/ret
+                                                                   (err/tc-delayed-error
+                                                                     (bad-vector-destructure-error-msg
+                                                                       (pr-str gvec-type)
+                                                                       (pr-str lhs))))))]
                                               (recur (upd-destructure-env
                                                        combined-env
                                                        firstb
-                                                       (u/expr-type
-                                                         (if has-rest
-                                                           (chk-form combined-env
-                                                                     gfirst)
-                                                           ;; FIXME type error handling
-                                                           (chk-form combined-env
-                                                                     (list `nth gvec n nil)))))
+                                                       firstb-res)
                                                      (inc n)
                                                      (next bs)
                                                      seen-rest?)))))
@@ -315,7 +342,6 @@
        (count p))
     (into (subvec p (count v)))))
 
-;; TODO
 (defuspecial 'clojure.core/let
   [{ana-env :env :keys [form] :as expr} expected]
   (let [_ (assert (< 1 (count form))
@@ -394,7 +420,7 @@
 ;;==================
 ;; clojure.core/for
 
-(def ^:private -seqable-elem-query
+(defn ^:private -seqable-elem-query []
   (prs/parse-clj
     `(t/All [a#] [(t/U nil (t/Seqable a#)) :-> a#])))
 
@@ -429,7 +455,7 @@
                                      check-expr))
                             binding-ret (or (cgen/solve
                                               (u/expr-type cv)
-                                              -seqable-elem-query)
+                                              (-seqable-elem-query))
                                             (r/ret
                                               (err/tc-delayed-error
                                                 (str "Right hand side of 'for' clause must be seqable: "
@@ -464,7 +490,7 @@
                                (r/ret (c/-name `t/ASeq r/-nothing))
                                expected))
           (let [body-expected (some-> expected
-                                      (cgen/solve -seqable-elem-query))
+                                      (cgen/solve (-seqable-elem-query)))
                 cbody (var-env/with-lexical-env prop-env
                         (-> body-syn
                             (ana2/unanalyzed ana-env)

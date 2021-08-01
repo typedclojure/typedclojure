@@ -50,20 +50,21 @@
          ((some-fn nil? r/Type?) default-t)]
    :post [(r/Type? %)]}
   (apply c/Un
-         (for [t types]
-           (if-some [res-t (cond
-                             ;; (nth nil ...) returns default (if any), otherwise nil
-                             (ind/subtype? t r/-nil) (or default-t r/-nil)
-                             :else (-> t
-                                       find-hsequential
-                                       ;; TODO handle other HSequential fields like :rest
-                                       :types
-                                       ;; when default-t is nil and idx is out of bounds,
-                                       ;; this returns nil, executing the err/tc-delayed-error
-                                       (nth idx default-t)))]
-             res-t
-             (err/tc-delayed-error (str "Cannot get index " idx
-                                        " from type " (prs/unparse-type t)))))))
+         (doall
+           (for [t types]
+             (if-some [res-t (cond
+                               ;; (nth nil ...) returns default (if any), otherwise nil
+                               (ind/subtype? t r/-nil) (or default-t r/-nil)
+                               :else (-> t
+                                         find-hsequential
+                                         ;; TODO handle other HSequential fields like :rest
+                                         :types
+                                         ;; when default-t is nil and idx is out of bounds,
+                                         ;; this returns nil, executing the err/tc-delayed-error
+                                         (nth idx default-t)))]
+               res-t
+               (err/tc-delayed-error (str "Cannot get index " idx
+                                          " from type " (prs/unparse-type t))))))))
 
 (defn ^:private nth-positive-filter-default-truthy [target-o default-o]
   {:pre [(obj/RObject? target-o)
@@ -144,6 +145,16 @@
              (t/Val ~n) t/Any :-> ~x]
             [(t/U (clojure.lang.Indexed ~x) (t/SequentialSeqable ~x) nil) t/Int ~y :-> (t/U ~x ~y)]
             [(t/U (clojure.lang.Indexed ~x) (t/SequentialSeqable ~x) nil) t/Int :-> (t/U ~x nil)]))))))
+
+(defn valid-first-arg-for-3-arity-nth? [t]
+  {:pre [(r/Type? t)]
+   :post [(boolean? %)]}
+  (ind/subtype? t
+                (impl/with-clojure-impl
+                  (prs/parse-type
+                    `(t/U (clojure.lang.Indexed t/Any)
+                          (t/SequentialSeqable t/Any)
+                          nil)))))
 
 (defn invoke-nth [check-fn expr expected]
   {:pre [(#{:host-call :invoke} (:op expr))

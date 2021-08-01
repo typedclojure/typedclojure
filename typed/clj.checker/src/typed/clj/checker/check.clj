@@ -138,14 +138,14 @@
 (declare check-ns-and-deps)
 
 (defn check-deps
-  ([nsym]
-   (when (= :recheck (some-> vs/*check-config* deref :check-ns-dep))
-     (checked-ns! nsym)
-     ;check normal dependencies
-     (doseq [dep (ns-depsu/deps-for-ns nsym)]
-       ;; ensure namespace actually exists
-       (when (ns-depsu/should-check-ns? nsym)
-         (check-ns-and-deps dep))))))
+  [nsym]
+  (when (= :recheck (some-> vs/*check-config* deref :check-ns-dep))
+    (checked-ns! nsym)
+    ;check normal dependencies
+    (doseq [dep (ns-depsu/deps-for-ns nsym)]
+      ;; ensure namespace actually exists
+      (when (ns-depsu/should-check-ns? nsym)
+        (check-ns-and-deps dep)))))
 
 (declare check-top-level)
 
@@ -153,62 +153,58 @@
   "Type checks an entire namespace."
   ([ns] (check-ns1 ns (jana2/empty-env)))
   ([ns env]
-     (env/ensure (jana2/global-env)
-       (let [^java.net.URL res (jtau/ns-url ns)]
-         (assert res (str "Can't find " ns " in classpath"))
-         (let [filename (str res)
-               path     (.getPath res)]
-           (binding [*ns*   *ns*
-                     *file* filename]
-             (with-open [rdr (io/reader res)]
-               (let [pbr (readers/indexing-push-back-reader
-                           (java.io.PushbackReader. rdr) 1 filename)
-                     eof (Object.)
-                     read-opts {:eof eof :features #{:clj}}
-                     read-opts (if (.endsWith filename "cljc")
-                                 (assoc read-opts :read-cond :allow)
-                                 read-opts)]
-                 (loop []
-                   (let [form (reader/read read-opts pbr)]
-                     (when-not (identical? form eof)
-                       (check-top-level form nil {:env (assoc env :ns (ns-name *ns*))})
-                       (recur))))))))))))
+   (env/ensure (jana2/global-env)
+     (let [^java.net.URL res (jtau/ns-url ns)]
+       (assert res (str "Can't find " ns " in classpath"))
+       (let [filename (str res)
+             path     (.getPath res)]
+         (binding [*ns*   *ns*
+                   *file* filename]
+           (with-open [rdr (io/reader res)]
+             (let [pbr (readers/indexing-push-back-reader
+                         (java.io.PushbackReader. rdr) 1 filename)
+                   eof (Object.)
+                   read-opts (cond-> {:eof eof :features #{:clj}}
+                               (.endsWith filename "cljc") (assoc :read-cond :allow))]
+               (loop []
+                 (let [form (reader/read read-opts pbr)]
+                   (when-not (identical? form eof)
+                     (check-top-level form nil {:env (assoc env :ns (ns-name *ns*))})
+                     (recur))))))))))))
 
 
 (t/ann check-ns-and-deps [t/Sym -> nil])
 (defn check-ns-and-deps
   "Type check a namespace and its dependencies."
-  ([nsym]
-   {:pre [(symbol? nsym)]
-    :post [(nil? %)]}
-   (let []
-     (cond 
-       (already-checked? nsym) (do
-                                 ;(println (str "Already checked " nsym ", skipping"))
-                                 ;(flush)
-                                 nil)
-       :else
-       ; check deps
-       (let [_ (check-deps nsym)]
-         ; ignore ns declaration
-         (let [ns-form (ns-depsu/ns-form-for-ns nsym)
-               check? (boolean (some-> ns-form ns-depsu/should-check-ns-form?))]
-           (if-not check?
-             (when-not (#{'clojure.core.typed 'cljs.core.typed 'clojure.core 'cljs.core} nsym)
-               (println (str "Not checking " nsym 
-                             (cond
-                               (not ns-form) " (ns form missing)"
-                               (ns-depsu/collect-only-ns? ns-form) " (tagged :collect-only in ns metadata)"
-                               (not (ns-depsu/requires-tc? ns-form)) " (does not depend on clojure.core.typed)")))
-               (flush))
-             (let [start (. System (nanoTime))
-                   _ (println "Start checking" nsym)
-                   _ (flush)
-                   _ (check-ns1 nsym)
-                   _ (println "Checked" nsym "in" (/ (double (- (. System (nanoTime)) start)) 1000000.0) "msecs")
-                   _ (flush)
-                   ]
-         nil))))))))
+  [nsym]
+  {:pre [(symbol? nsym)]
+   :post [(nil? %)]}
+  (cond 
+    (already-checked? nsym) (do
+                              ;(println (str "Already checked " nsym ", skipping"))
+                              ;(flush)
+                              nil)
+    :else
+    ; check deps
+    (let [_ (check-deps nsym)
+          ; ignore ns declaration
+          ns-form (ns-depsu/ns-form-for-ns nsym)
+          check? (some-> ns-form ns-depsu/should-check-ns-form?)]
+      (if-not check?
+        (when-not ('#{clojure.core.typed cljs.core.typed clojure.core cljs.core} nsym)
+          (println (str "Not checking " nsym 
+                        (cond
+                          (not ns-form) " (ns form missing)"
+                          (ns-depsu/collect-only-ns? ns-form) " (tagged :collect-only in ns metadata)"
+                          (not (ns-depsu/requires-tc? ns-form)) " (does not depend on clojure.core.typed)")))
+          (flush))
+        (let [start (. System (nanoTime))
+              _ (println "Start checking" nsym)
+              _ (flush)
+              _ (check-ns1 nsym)
+              _ (println "Checked" nsym "in" (/ (double (- (. System (nanoTime)) start)) 1000000.0) "msecs")
+              _ (flush)]
+          nil)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Checker
@@ -246,13 +242,14 @@
     {:pre [(#{:unanalyzed} op)]
      :post [((some-fn nil? qualified-symbol?) %)]}
     (when (seq? form)
-      (-> (ana2/resolve-sym (first form) env)
+      (-> (first form)
+          (ana2/resolve-sym env)
           ana2/var->sym))))
 
 (defn run-passes+propagate-expr-type [expr]
   (-> expr
       ana2/run-passes
-      (merge (select-keys expr [u/expr-type]))))
+      (into (select-keys expr [u/expr-type]))))
 
 (defmacro defuspecial
   "Extension point for special typing rules for unanalyzed AST nodes.
@@ -386,7 +383,7 @@
     (let [id (coerce/var->symbol var)
           _ (when-not (var-env/used-var? id)
               (var-env/add-used-var id))
-          vsym (coerce/var->symbol var)
+          vsym id
           ut (var-env/get-untyped-var (cu/expr-ns expr) vsym)
           t (var-env/lookup-Var-nofail vsym)]
       ;(prn " annotation" t)
@@ -525,7 +522,8 @@
                             {:pre [(#{:invoke} (:op expr))
                                    (#{:unanalyzed} (:op fexpr))]
                              :post [((some-fn nil? symbol?) %)]}
-                            (-> (ana2/resolve-sym form env)
+                            (-> form
+                                (ana2/resolve-sym env)
                                 ana2/var->sym)))
 
 (defmulti -invoke-apply (fn [{[{:keys [op form env] :as fexpr} :as args] :args :as expr} expected]
@@ -533,7 +531,8 @@
                            :post [((some-fn nil? symbol?) %)]}
                           (when (seq args)
                             (assert (#{:unanalyzed} op))
-                            (-> (ana2/resolve-sym form env)
+                            (-> form
+                                (ana2/resolve-sym env)
                                 ana2/var->sym))))
 
 (defn host-call-qname [{:keys [target] :as expr} _]
@@ -551,14 +550,12 @@
                                (:form target))]
             [:static-call (symbol
                             (name
-                              (if (symbol? csym)
-                                csym
-                                (coerce/Class->symbol csym)))
+                              (cond-> csym
+                                (not (symbol? csym)) coerce/Class->symbol))
                             (str (:method expr)))])
           (when-let [tag (:tag target)]
-            (let [tag (if (class? tag)
-                        (coerce/Class->symbol tag)
-                        tag)]
+            (let [tag (cond-> tag
+                        (class? tag) coerce/Class->symbol)]
               (when (symbol? tag)
                 (let [sym (symbol (str tag) (str (:method expr)))]
                   [:instance-call sym]))))))))
@@ -688,14 +685,13 @@
                         {:expected-hmap expected-mmap
                          :prcl-expr prcl-expr
                          :mmap-expr mmap-expr}))
-            cargs (vec
-                    (cons catype
-                          (mapcat
-                            (fn [{:keys [mmap-expr expected-hmap prcl-expr]}]
-                              (let [cprcl-expr (check-expr prcl-expr)
-                                    cmmap-expr (check-expr mmap-expr (r/ret expected-hmap))]
-                                [cprcl-expr cmmap-expr]))
-                            extends)))
+            cargs (into [catype]
+                        (mapcat
+                          (fn [{:keys [mmap-expr expected-hmap prcl-expr]}]
+                            (let [cprcl-expr (check-expr prcl-expr)
+                                  cmmap-expr (check-expr mmap-expr (r/ret expected-hmap))]
+                              [cprcl-expr cmmap-expr])))
+                        extends)
             _ (assert (== (count cargs)
                           (count args)))]
         (assoc expr
@@ -1045,14 +1041,18 @@
                                   r/-any))]
                           (when substitution
                             (into {}
-                                  (comp (filter (comp crep/t-subst? val))
+                                  (comp (filter (every-pred (comp (set gvs) key)
+                                                            (comp crep/t-subst? val)))
                                         (map (fn [[k v]]
                                                [(gvs->vs k)
                                                 (unparse-type-verbose (:type v))])))
-                                  (select-keys substitution gvs)))))
+                                  substitution))))
         with-updated-locals (fn [locals f]
-                              (let [locals (zipmap (map prs/uniquify-local (keys locals))
-                                                   (map prs/parse-type (vals locals)))]
+                              (let [locals (into {}
+                                                 (map (fn [[k v]]
+                                                        [(prs/uniquify-local k)
+                                                         (prs/parse-type v)]))
+                                                 locals)]
                                 (lex/with-locals locals
                                   (f))))
         rule-args {:vsym vsym
@@ -1087,10 +1087,11 @@
                                         (binding [vs/*verbose-types* false]
                                           (prs/unparse-type m))))
                    :delayed-error (fn [s opts]
-                                    (let [opts (update opts :expected cu/maybe-map->TCResult)
-                                          opts (if (contains? opts :actual)
-                                                 (update opts :actual prs/parse-type)
-                                                 opts)]
+                                    (let [opts (-> opts
+                                                   (update :expected cu/maybe-map->TCResult)
+                                                   (cond->
+                                                     (contains? opts :actual)
+                                                     (update :actual prs/parse-type)))]
                                       (apply err/tc-delayed-error s (apply concat opts))))
                    :expected-error (fn [s t opts]
                                      (let [s (prs/parse-type s)
@@ -1100,7 +1101,8 @@
                                        (apply cu/expected-error s t (apply concat opts))))
                    :internal-error (fn [s opts]
                                      ;; TODO args
-                                     (let [opts (update opts :expected cu/maybe-map->TCResult)]
+                                     (let [opts (-> opts
+                                                    (update :expected cu/maybe-map->TCResult))]
                                        (apply err/int-error s (apply concat opts))))}
 
         {out-expr-type ::rules/expr-type :as cexpr} (rules/typing-rule rule-args)
@@ -1693,8 +1695,9 @@
       :else
       (let [{[dispatch-val-expr method-expr] :args :as expr}
             (-> expr
-                (update-in [:args 0] check-expr)
-                (update-in [:args 1] (comp ana2/run-pre-passes ana2/analyze-outer-root)))
+                (update :args #(-> %
+                                   (update 0 check-expr)
+                                   (update 1 (comp ana2/run-pre-passes ana2/analyze-outer-root)))))
             _ (assert (#{:var} (:op target)))
             _ (when-not (#{:fn} (:op method-expr))
                 (err/int-error (str "Method must be a fn")))

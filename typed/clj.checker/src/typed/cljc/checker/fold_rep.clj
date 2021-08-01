@@ -94,7 +94,9 @@
   ;; map arg into positional
   (assert (.startsWith (name f) "call-") f)
   (let [{:syms [sub-pe sub-f sub-o] :as m}
-        (into {} (map (juxt identity gensym) '[sub-pe sub-f sub-o]))
+        (into {}
+              (map (juxt identity gensym))
+              '[sub-pe sub-f sub-o])
         gsym (get m sym)
         _ (assert (symbol? gsym))]
     `(letfn [(~sub-pe [st#]
