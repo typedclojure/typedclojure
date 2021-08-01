@@ -13,9 +13,7 @@
            (java.io StringReader BufferedReader)
            clojure.lang.LineNumberingPushbackReader))
 
-;; copied common_tests from tools.reader
-;; here, instead of `load`ing the file, we inline it
-;; to please eastwood.
+;; copied common_tests from tools.reader for more detailed eastwood linting
 ;(load "common_tests")
 ;; -- Start common_tests
 
@@ -240,9 +238,8 @@
   (is (= "foo\u0194bar" (read-string "\"foo\\u0194bar\"")))
   (is (= "foo\123bar" (read-string "\"foo\\123bar\"")))
   (is (= "\060" (read-string "\"\\060\"")))
-  ;; workaround https://github.com/jonase/eastwood/issues/413
-  (is (= (str \o340) (read-string "\"\\340\"")))
-  (is (= (str \o377) (read-string "\"\\377\""))))
+  (is (= "\340" (read-string "\"\\340\"")))
+  (is (= "\377" (read-string "\"\\377\""))))
 
 (deftest read-list
   (is (= '() (read-string "()")))

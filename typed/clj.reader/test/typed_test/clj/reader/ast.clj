@@ -392,8 +392,8 @@
   (string-test-case "foo\123bar" "\"foo\\123bar\"")
   (string-test-case "\060" "\"\\060\"")
   ;; workaround https://github.com/jonase/eastwood/issues/413
-  (string-test-case (str \o340) "\"\\340\"")
-  (string-test-case (str \o377) "\"\\377\""))
+  (string-test-case "\340" "\"\\340\"")
+  (string-test-case "\377" "\"\\377\""))
 
 (deftest read-list
   (is (= {:op ::ast/list

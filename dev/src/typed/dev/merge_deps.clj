@@ -19,8 +19,8 @@
     :eastwood
     {:main-opts ["-m" "eastwood.lint" {}]
      :extra-deps {jonase/eastwood {:git/url "https://github.com/jonase/eastwood.git"
-                                   :git/tag "Release-0.9.4"
-                                   :git/sha "06363d3e78e9163bb1f5590b365bb7a991083988"}}}
+                                   :git/tag "Release-0.9.6"
+                                   :git/sha "0130b5ec15a09458407ccf774ed76e22e08794d1"}}}
     :nREPL
     {:extra-deps
      {nrepl/nrepl {:mvn/version ~(:nrepl-mvn-version h/selmer-input-map)}
