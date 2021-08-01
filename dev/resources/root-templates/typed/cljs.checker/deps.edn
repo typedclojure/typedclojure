@@ -37,7 +37,7 @@
                          ;org.clojure/tools.trace {:mvn/version "0.7.5"
                          ;                         :exclusions [org.clojure/clojure]}
                          org.clojure/test.check {:mvn/version "{◊test-check-mvn-version◊}"}
-                         com.gfredericks/test.chuck {:mvn/version "0.2.6"}}}
+                         com.gfredericks/test.chuck {:mvn/version "{◊test-chuck-mvn-version◊}"}}}
            :codox
            {:extra-deps {codox/codox {:mvn/version "{◊codox-mvn-version◊}"}}
             :extra-paths ["script"]

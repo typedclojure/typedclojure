@@ -9,6 +9,7 @@
         org.clojure/math.combinatorics {:mvn/version "0.1.6"
                                         :exclusions [org.clojure/clojure]}
         org.clojure/tools.analyzer.jvm {:mvn/version "1.1.0"}
+        ;; TODO revisit this now that Clojure CLI can compile java sources
         ;; can't vendor this as it includes Java sources that need to be compiled.
         ;; perhaps we can make it optional in the future.
         potemkin/potemkin {:mvn/version "0.4.5"}}
@@ -16,7 +17,7 @@
  :aliases {:test
            {:extra-paths ["test"]
             :extra-deps {org.clojure/test.check {:mvn/version "1.1.0"}
-                         com.gfredericks/test.chuck {:mvn/version "0.2.6"}}}
+                         com.gfredericks/test.chuck {:mvn/version "0.2.11"}}}
            :script {:extra-paths ["script"]}
            :nREPL
            {:extra-deps

@@ -36,6 +36,7 @@
    ;; FIXME clj.checker fails on higher
    :tools-nrepl-mvn-version "0.2.6"
    :test-check-mvn-version "1.1.0"
+   :test-chuck-mvn-version "0.2.11"
    :core-logic-mvn-version "1.0.0"
    :cognitect-test-runner-coordinates "io.github.cognitect-labs/test-runner"
    :cognitect-test-runner-git-url "https://github.com/cognitect-labs/test-runner"

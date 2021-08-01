@@ -5,10 +5,11 @@
         {◊typedclojure-group-id◊}/typed.clj.analyzer {:local/root "../clj.analyzer"
                                              :deps/manifest :deps}
         org.clojure/tools.reader {:mvn/version "{◊tools-reader-mvn-version◊}"}
-        org.clojure/tools.namespace {:mvn/version "1.1.0"}
-        org.clojure/math.combinatorics {:mvn/version "0.1.6"
+        org.clojure/tools.namespace {:mvn/version "{◊tools-namespace-mvn-version◊}"}
+        org.clojure/math.combinatorics {:mvn/version "{◊math-combinatorics-mvn-version◊}"
                                         :exclusions [org.clojure/clojure]}
         org.clojure/tools.analyzer.jvm {:mvn/version "{◊tools-analyzer-jvm-mvn-version◊}"}
+        ;; TODO revisit this now that Clojure CLI can compile java sources
         ;; can't vendor this as it includes Java sources that need to be compiled.
         ;; perhaps we can make it optional in the future.
         potemkin/potemkin {:mvn/version "{◊potemkin-mvn-version◊}"}}
@@ -16,7 +17,7 @@
  :aliases {:test
            {:extra-paths ["test"]
             :extra-deps {org.clojure/test.check {:mvn/version "{◊test-check-mvn-version◊}"}
-                         com.gfredericks/test.chuck {:mvn/version "0.2.6"}}}
+                         com.gfredericks/test.chuck {:mvn/version "{◊test-chuck-mvn-version◊}"}}}
            :script {:extra-paths ["script"]}
            :nREPL
            {:extra-deps

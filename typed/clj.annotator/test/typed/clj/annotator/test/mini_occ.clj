@@ -1,4 +1,3 @@
-;; FIXME this file is in module-check because it's used by typed.clj.annotator.test.runtime-infer
 (ns typed.clj.annotator.test.mini-occ
   #_{:lang :core.typed
    :core.typed {:features #{:runtime-infer}
@@ -324,7 +323,7 @@
   #_(is (= false
          (tc [] '(lambda (x :- Num) (add1 x))))))
 
-;; suprise identity function to mess up inference.
+;; surprise identity function to mess up inference.
 (defn id [x] x)
 
 (deftest id-test

@@ -272,9 +272,11 @@
                               (fn-dom-path 1 0)
                               (fn-rng-path 1)]
                              (prs Long))])]
-    (is (= (update-path' (init-env) infers)
-           {'use-map
-            (prs ['{:f [[? :-> Long] :-> ?], :a java.lang.Long} :-> '{:b ?, :f clojure.lang.IFn, :a ?}])})))
+    (is (=
+         (update-path' (init-env) infers)
+         {'use-map
+          (-> (prs ['{:f [[? :-> Long] :-> ?], :a java.lang.Long} :-> '{:b ?, :f clojure.lang.IFn, :a ?}])
+              (assoc :top-level-def 'use-map))})))
   (checking
     "function dom rng"
     10
@@ -283,16 +285,18 @@
                              (parse-type 'Long))
                (infer-result [(var-path 'foo) (fn-dom-path 1 0)]
                              (parse-type 'Long))])]
-    (is (= (update (update-path' (init-env) infers) 'foo dissoc :top-level-def)
-           {'foo (prs [Long :-> Long])})))
+    (is (= (update-path' (init-env) infers)
+           {'foo (-> (prs [Long :-> Long])
+                     (assoc :top-level-def 'foo))})))
   (checking
     "unknown with function"
     10
     [infers (gen/shuffle
               [(infer-result [(var-path 'foo)] (prs ?))
                (infer-result [(var-path 'foo)] (prs [Long :-> ?]))])]
-    (is (= (update (update-path' (init-env) infers) 'foo dissoc :top-level-def)
-           {'foo (prs [java.lang.Long :-> ?])})))
+    (is (= (update-path' (init-env) infers)
+           {'foo (-> (prs [java.lang.Long :-> ?])
+                     (assoc :top-level-def 'foo))})))
 
   (checking
     "combine functions"
