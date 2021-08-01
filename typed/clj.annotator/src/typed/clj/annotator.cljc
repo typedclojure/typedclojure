@@ -2153,28 +2153,30 @@
                ))
            %)]}
   (let [as (set as)
-        hmap-aliases (->> (select-keys (alias-env env) as)
-                          (filter (fn [[k t]]
-                                    (HMap? t))))
         ;; map of aliases to sets of possible tag key/val pairs
         possible-tag-keys ;; :- (Map Alias (Set '[Kw Kw]))
         (into {}
-              (comp
-                (map (fn [[a t]]
-                       {:pre [(HMap? t)]
-                        :post [((con/hvector-c?
+              (map (fn [[a t]]
+                     {:post [((some-fn
+                                nil?
+                                (con/hvector-c?
                                   symbol?
                                   (con/set-c?
-                                    (con/hvector-c? keyword? keyword?)))
-                                %)]}
-                       [a (set (keep (fn [[k t]]
-                                       {:post [((some-fn nil? (con/hvector-c? keyword? keyword?))
-                                                %)]}
-                                       (when (kw-val? t)
-                                         [k (:val t)]))
-                                     (:typed.clj.annotator.rep/HMap-req t)))]))
-                (filter (comp seq second)))
-              hmap-aliases)
+                                    (con/hvector-c? keyword? keyword?))))
+                              %)]}
+                     (when (and (as a)
+                                (HMap? t))
+                       (when-some [ks
+                                   (not-empty
+                                     (into #{}
+                                           (keep (fn [[k t]]
+                                                   {:post [((some-fn nil? (con/hvector-c? keyword? keyword?))
+                                                            %)]}
+                                                   (when (kw-val? t)
+                                                     [k (:val t)])))
+                                           (:typed.clj.annotator.rep/HMap-req t)))]
+                         [a ks]))))
+              (alias-env env))
         all-tags (mapcat (fn [ts]
                            {:pre [((con/set-c?
                                     (con/hvector-c? keyword? keyword?))
