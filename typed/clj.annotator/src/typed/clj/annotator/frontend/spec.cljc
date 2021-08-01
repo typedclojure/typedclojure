@@ -514,11 +514,11 @@
                                            (when (and (seq? s)
                                                       (>= (count s) 3)
                                                       (let [[c1 c2 c3] s]
-                                                        (= c1 (qualify-spec-symbol 'and))
-                                                        (#{(qualify-core-symbol 'empty?)} c2)
-                                                        (#{(qualify-core-symbol 'coll?)
-                                                           (qualify-core-symbol 'map?)}
-                                                                                c3)))
+                                                        (and (= c1 (qualify-spec-symbol 'and))
+                                                             (#{(qualify-core-symbol 'empty?)} c2)
+                                                             (#{(qualify-core-symbol 'coll?)
+                                                                (qualify-core-symbol 'map?)}
+                                                               c3))))
                                              (keyword (str "empty"
                                                            (case (symbol (name (nth s 2)))
                                                              coll? (or (let [[_ _ _ & args] s]

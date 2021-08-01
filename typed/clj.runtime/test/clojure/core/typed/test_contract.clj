@@ -136,7 +136,8 @@
     (testing "missing entry"
       (testing "flat"
         (is (= (contract (hmap-c :optional {:a int-c})
-                         {}))))
+                         {})
+               {})))
       (testing "higher-order"
         (is (= (contract (hmap-c :optional {:a (ifn-c [int-c] int-c)})
                          {})
