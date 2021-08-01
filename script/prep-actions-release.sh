@@ -5,6 +5,8 @@
 # the release version and bump the repo to the next dev
 # version.
 
+set -e
+
 echo "Determining current version..."
 
 ## via mvn
