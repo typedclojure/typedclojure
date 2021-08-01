@@ -35,8 +35,8 @@
             [typed.cljc.checker.frees :refer :all]
             [typed.cljc.checker.free-ops :refer :all]
             [typed.cljc.checker.dvar-env :refer :all]
-            [typed.cljc.checker.cs-gen :refer :all]
-            [typed.cljc.checker.cs-rep :refer :all]
+            [typed.cljc.checker.cs-gen :as cgen :refer :all]
+            [typed.cljc.checker.cs-rep :as crep :refer :all]
             [typed.cljc.checker.subst :refer [subst-all] :as subst]
             [clojure.core.typed.test.rbt]
             [clojure.core.typed.test.person]
@@ -891,30 +891,35 @@
             'y (t-subst-maker (Un) no-bounds)}))))
 
 (deftest infer-test
-  (is-clj (clj
-        (= (infer (zipmap '[x y] (repeat no-bounds)) ;tv env
-                  {}
-                  [(-val 1) (-val 2)] ;actual
-                  [(make-F 'x) (make-F 'y)] ;expected
-                  (make-F 'x))))) ;result
-  (is-clj (clj 
-        (= (infer {'x no-bounds} ;tv env
-                  {}
-                  [(RClass-of IPersistentVector [(Un (-val 1) (-val 2) (-val 3))])] ;actual
-                  [(RClass-of Seqable [(make-F 'x)])] ;expected
-                  (RClass-of clojure.lang.ASeq [(make-F 'x)]))))) ;result
-  (is-clj (clj
-        (= (infer {'x no-bounds} ;tv env
-                  {}
-                  [(-hvec [(-val 1) (-val 2) (-val 3)])] ;actual
-                  [(RClass-of Seqable [(make-F 'x)])] ;expected
-                  (RClass-of clojure.lang.ASeq [(make-F 'x)])))))) ;result
+  (is-clj (= (cgen/infer (zipmap '[x y] (repeat no-bounds)) ;tv env
+                         {}
+                         [(-val 1) (-val 2)] ;actual
+                         [(make-F 'x) (make-F 'y)] ;expected
+                         (make-F 'x)) ;result
+             {'x (crep/t-subst-maker (-val 1)
+                                     no-bounds)
+              'y (crep/t-subst-maker (-val 2)
+                                     no-bounds)}))
+  (is-clj (= (cgen/infer {'x no-bounds} ;tv env
+                         {}
+                         [(RClass-of IPersistentVector [(Un (-val 1) (-val 2) (-val 3))])] ;actual
+                         [(RClass-of Seqable [(make-F 'x)])] ;expected
+                         (RClass-of clojure.lang.ASeq [(make-F 'x)])) ;result
+             {'x (crep/t-subst-maker (Un (-val 1) (-val 2) (-val 3))
+                                     no-bounds)})) 
+  (is-clj (= (cgen/infer {'x no-bounds} ;tv env
+                         {}
+                         [(-hvec [(-val 1) (-val 2) (-val 3)])] ;actual
+                         [(RClass-of Seqable [(make-F 'x)])] ;expected
+                         (RClass-of clojure.lang.ASeq [(make-F 'x)])) ;result
+             {'x (crep/t-subst-maker (Un (-val 1) (-val 2) (-val 3))
+                                     no-bounds)})))
 
 (deftest arith-test
   (is-clj (subtype? (:t (tc-t (+)))
-                (RClass-of Number)))
+                    (RClass-of Number)))
   (is-clj (subtype? (:t (tc-t (+ 1 2)))
-                (RClass-of Number)))
+                    (RClass-of Number)))
   ;wrap in thunks to prevent evaluation
   (is (err/top-level-error-thrown? (cf (fn [] (+ 1 2 "a")))))
   (is (err/top-level-error-thrown? (cf (fn [] (-)))))
@@ -4662,12 +4667,12 @@
 
 ;; here instead of typed.clj.analyzer to ensure they don't throw type errors
 (deftest validate-pass-test
-  (is (thrown? ExceptionInfo
-               #"No such namespace: asdfds"
-               (tc-e asdfds/s)))
-  (is (thrown? ExceptionInfo
-               #"No such var: clojure.core"
-               (tc-e clojure.core/asdf))))
+  (is (thrown-with-msg? ExceptionInfo
+                        #"No such namespace: asdfds"
+                        (tc-e asdfds/s)))
+  (is (thrown-with-msg? ExceptionInfo
+                        #"No such var: clojure.core"
+                        (tc-e clojure.core/asdf))))
 
 (deftest intersect-CountRange-test
   (is-clj (= (intersect-CountRange
