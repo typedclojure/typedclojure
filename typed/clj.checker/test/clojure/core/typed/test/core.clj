@@ -1072,6 +1072,15 @@
 (deftest hmap-subtype
   (is-tc-e {} (clojure.lang.APersistentMap Any Any)))
 
+;; `do` is special at the top level, tc-ignore should expand out to `do`
+;; THIS IS A TOP-LEVEL TEST, DON'T REMOVE
+(tc-ignore
+ (defprotocol some-proto (some-proto-method [_]))
+ ;; if tc-ignore did not expand to a `do`, this would fail with some-proto-method
+ ;; being undefined
+ some-proto-method)
+;; END TOP-LEVEL TEST
+
 (deftest class-pathelem-test
   (is-clj (= (-> (ety #(class %))
                  :types first :rng Result-object*)
