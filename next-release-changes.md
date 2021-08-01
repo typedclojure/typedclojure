@@ -3,3 +3,4 @@
 - add `clojure.core/for` typing rule with destructuring
 - remove dynamic vars from uniquify analyzer pass
 - add `clojure.core/let` typing rule
+- add custom error message for vector destructuring
