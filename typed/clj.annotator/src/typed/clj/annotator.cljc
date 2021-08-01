@@ -2230,9 +2230,9 @@
         ;_ (prn "tagk->tagv->HMap-as" tagk->tagv->HMap-as)
         coll-of-tagv->HMap-as (vals (group-HMap-aliases-by-likely-tag* env as))
         ;_ (prn "coll-of-tagv->HMap-as" coll-of-tagv->HMap-as)
-        HMap-as (mapcat vals coll-of-tagv->HMap-as)]
+        HMap-as (into [] (mapcat vals) coll-of-tagv->HMap-as)]
     ;(prn "HMap-as" HMap-as)
-    (vec HMap-as)))
+    HMap-as))
 
 ;; group all aliases by their likely tag key.
 (defn group-aliases-by-likely-tag-key [env as]
@@ -2365,9 +2365,10 @@
                             aenv))))
 
 (defn alias-env-diff-removed [oldaenv newaenv] 
-  (into #{} (filter namespace)
-        (set/difference (set (keys (alias-env oldaenv)))
-                        (set (keys (alias-env newaenv))))))
+  (into #{}
+        (comp (remove (set (keys (alias-env newaenv))))
+              (filter namespace))
+        (keys (alias-env oldaenv))))
 
 ; Env Config -> Env
 (defn squash-horizonally
@@ -2480,9 +2481,9 @@
 
 
 (defn dec-fuel [env]
-  (if (contains? env :fuel)
-    (update env :fuel dec)
-    env))
+  (cond-> env
+    (contains? env :fuel)
+    (update :fuel dec)))
 
 (defn enough-fuel? [env]
   (if (contains? env :fuel)
@@ -2639,54 +2640,54 @@
                           :cljs 'declare)
                        (sort (map (comp symbol name) as))))
               (unp-anns [tenv]
-                (vec
-                  (mapcat (fn [[k v]]
-                            (concat
-                              [(list (qualify-typed-symbol 'ann)
-                                     (if (= (namespace k)
-                                            (str (ns-name (current-ns))))
-                                       ;; defs
-                                       (symbol (name k))
-                                       ;; imports
-                                       k)
-                                     (unparse-type
-                                       (assoc v :top-level-def k)))]
-                              (when polymorphic?
-                                (prn "polymorphic?" polymorphic? k)
-                                (let [call-ids (get call-flows k)]
-                                  ;(prn "count path-hashes" (count path-hashes))
-                                  (apply concat 
-                                    (for [[_ {:keys [:path-hashes :hash-occurrences]}] call-ids
-                                          [path hs] path-hashes]
-                                      (let [related-paths (apply concat (vals (select-keys hash-occurrences hs)))
-                                            paths (into #{path} related-paths)]
-                                        (prn "paths" (count paths))
-                                        (when (< 1 (count paths))
-                                          (let [x 'x
-                                                infer-results (map #(infer-result % {:op :free :name x}) paths)
-                                                by-path (group-by-path infer-results)
-                                                v (->
-                                                    (binding [*preserve-unknown* true]
-                                                      (as-> (init-env) env 
-                                                        (update-env env assoc :type-env 
-                                                                    (grouped-paths-to-env env config by-path))))
-                                                    type-env
-                                                    (get k))
-                                                _ (assert (type? v))]
-                                            [(list 
-                                               (qualify-core-symbol 'comment)
-                                               (list (qualify-typed-symbol 'ann)
-                                                     (if (= (namespace k)
-                                                            (str (ns-name (current-ns))))
-                                                       ;; defs
-                                                       (symbol (name k))
-                                                       ;; imports
-                                                       k)
-                                                     (list (qualify-typed-symbol 'All)
-                                                           [x]
-                                                           (binding [*preserve-unknown* true]
-                                                             (unparse-type (assoc v :top-level-def k))))))])))))))))
-                          (sort-by first tenv))))]
+                (into []
+                      (mapcat (fn [[k v]]
+                                (concat
+                                  [(list (qualify-typed-symbol 'ann)
+                                         (if (= (namespace k)
+                                                (str (ns-name (current-ns))))
+                                           ;; defs
+                                           (symbol (name k))
+                                           ;; imports
+                                           k)
+                                         (unparse-type
+                                           (assoc v :top-level-def k)))]
+                                  (when polymorphic?
+                                    (prn "polymorphic?" polymorphic? k)
+                                    (let [call-ids (get call-flows k)]
+                                      ;(prn "count path-hashes" (count path-hashes))
+                                      (apply concat 
+                                             (for [[_ {:keys [:path-hashes :hash-occurrences]}] call-ids
+                                                   [path hs] path-hashes]
+                                               (let [related-paths (apply concat (vals (select-keys hash-occurrences hs)))
+                                                     paths (into #{path} related-paths)]
+                                                 (prn "paths" (count paths))
+                                                 (when (< 1 (count paths))
+                                                   (let [x 'x
+                                                         infer-results (map #(infer-result % {:op :free :name x}) paths)
+                                                         by-path (group-by-path infer-results)
+                                                         v (->
+                                                             (binding [*preserve-unknown* true]
+                                                               (as-> (init-env) env 
+                                                                 (update-env env assoc :type-env 
+                                                                             (grouped-paths-to-env env config by-path))))
+                                                             type-env
+                                                             (get k))
+                                                         _ (assert (type? v))]
+                                                     [(list 
+                                                        (qualify-core-symbol 'comment)
+                                                        (list (qualify-typed-symbol 'ann)
+                                                              (if (= (namespace k)
+                                                                     (str (ns-name (current-ns))))
+                                                                ;; defs
+                                                                (symbol (name k))
+                                                                ;; imports
+                                                                k)
+                                                              (list (qualify-typed-symbol 'All)
+                                                                    [x]
+                                                                    (binding [*preserve-unknown* true]
+                                                                      (unparse-type (assoc v :top-level-def k))))))]))))))))))
+                      (sort-by first tenv)))]
         (let [used-aliases-in-anns (atom #{})
               anns (binding [*used-aliases* used-aliases-in-anns]
                      (unp-anns tenv))
