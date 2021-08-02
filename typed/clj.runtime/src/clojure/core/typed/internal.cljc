@@ -195,11 +195,11 @@
 
 (defn parse-defn* [args]
   (let [[flatopt args] (parse-keyword-flat-map args)
-        [name & args] args
-        _ (assert (symbol? name) "defn name should be a symbol")
+        [nme & args] args
+        _ (assert (symbol? nme) "defn name should be a symbol")
         [docstring args] (take-when string? args)
         [attr-map args] (take-when map? args)]
-    {:name (vary-meta name merge
+    {:name (vary-meta nme merge
                       {:arglists
                        (list 'quote
                              (if (vector? (first args)) ; arity = 1
