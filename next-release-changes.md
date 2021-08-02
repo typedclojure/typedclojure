@@ -1,0 +1,3 @@
+- improve destructuring error messages for:
+  - clojure.core/fn
+  - clojure.core.typed/fn
