@@ -327,40 +327,53 @@
                   (let [m (ann-form 1 Any)]
                     (ann-form m Number)))))
 
-(defn extract-error-messages [tc-err-res]
-  (some-> tc-err-res
-          (update :ex (comp #(map (juxt ex-message
-                                        (comp (fn [d] (dissoc d :env)) ex-data))
-                                  %)
-                            :errors ex-data))))
-
 (deftest vector-destructure-error-msg-test
-  (doseq [{:keys [input error-form error-type-str]}
-          [{:input '(let [[a] #{1}]
-                      a)
-            :error-form '(clojure.core/let [[a] #{1}]
-                           a)}
-           {:input '(let [{[a] :foo} {:foo #{1}}]
-                      a)
-            :error-form '(clojure.core/let [{[a] :foo} {:foo #{1}}]
-                           a)}
-           {:input '(cc/for [[a] [#{1}]]
-                       a)}
-           {:input '(cc/for [{[a] :foo} [{:foo #{1}}]]
-                       a)}
-           ;; TODO fix gensym
-           #_
-           {:input '(fn [[a] :- (t/Set t/Any)])
-            :error-type-str "(IPersistentSet Any)"
-            :error-form '(clojure.core/let [[a] p__46657])}]]
-    (testing input
-      (is (= (extract-error-messages
-               (eval
-                 `(tc-err (fn []
-                            ~input))))
-             {:delayed-errors []
-              :ex [[(extcc/bad-vector-destructure-error-msg
-                      (or error-type-str "(HSet #{1})")
-                      "[a]")
-                    {:type-error :clojure.core.typed.errors/tc-error-parent
-                     :form (or error-form input)}]]})))))
+  (is (= (is-tc-err-messages
+           #(let [[a] #{1}]
+              a))
+         {:ex [[(extcc/bad-vector-destructure-error-msg
+                  "(HSet #{1})"
+                  "[a]")
+                {:type-error :clojure.core.typed.errors/tc-error-parent
+                 :form '(clojure.core/let [[a] #{1}]
+                          a)}]]}))
+  (is (= (is-tc-err-messages
+           #(let [{[a] :foo} {:foo #{1}}]
+              a))
+         {:ex [[(extcc/bad-vector-destructure-error-msg
+                  "(HSet #{1})"
+                  "[a]")
+                {:type-error :clojure.core.typed.errors/tc-error-parent
+                 :form '(clojure.core/let [{[a] :foo} {:foo #{1}}]
+                          a)}]]}))
+  (is (= (is-tc-err-messages
+           #(cc/for [[a] [#{1}]]
+              a))
+         {:ex [[(extcc/bad-vector-destructure-error-msg
+                  "(HSet #{1})"
+                  "[a]")
+                {:type-error :clojure.core.typed.errors/tc-error-parent
+                 :form '(cc/for [[a] [#{1}]]
+                          a)}]]}))
+  (is (= (is-tc-err-messages
+           #(cc/for [{[a] :foo} [{:foo #{1}}]]
+              a))
+         {:ex [[(extcc/bad-vector-destructure-error-msg
+                  "(HSet #{1})"
+                  "[a]")
+                {:type-error :clojure.core.typed.errors/tc-error-parent
+                 :form '(cc/for [{[a] :foo} [{:foo #{1}}]]
+                          a)}]]}))
+  (let [msgs (is-tc-err-messages
+               #(fn [[a] :- (t/Set t/Any)]))
+        ;; grab the gensym (let [[a] >here<])
+        p-gensym (-> msgs :ex first second :form second second)]
+    (is (simple-symbol? p-gensym))
+    (is (some-> p-gensym name (.startsWith "p")))
+    (is (= msgs
+           {:ex [[(extcc/bad-vector-destructure-error-msg
+                    "(IPersistentSet Any)"
+                    "[a]")
+                  {:type-error :clojure.core.typed.errors/tc-error-parent
+                   :form `(clojure.core/let [[~'a] ~p-gensym])}]]})))
+  )

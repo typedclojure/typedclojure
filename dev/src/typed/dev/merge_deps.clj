@@ -23,7 +23,8 @@
                                    :git/tag "Release-0.9.6"
                                    :git/sha "0130b5ec15a09458407ccf774ed76e22e08794d1"}}}
     :nREPL
-    {:extra-deps
+    {:jvm-opts ["-XX:-OmitStackTraceInFastThrow"]
+     :extra-deps
      {nrepl/nrepl {:mvn/version ~(:nrepl-mvn-version h/selmer-input-map)}
       cider/cider-nrepl {:mvn/version "0.25.3"}
       cider/piggieback {:mvn/version "0.5.2"}}

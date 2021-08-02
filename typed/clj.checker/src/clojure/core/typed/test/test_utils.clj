@@ -94,8 +94,29 @@
   `(test/is (do (tc-e ~@body)
                 true)))
 
-(defmacro is-tc-err [& body]
-  `(test/is (tc-err ~@body)))
+(defmacro is-tc-err
+  "Returns the result of the tc-err call"
+  [& body]
+  (let [frm `(tc-err ~@body)]
+    `(let [res# ~frm]
+       (test/is res# (str '~frm))
+       res#)))
+
+(defn extract-error-messages [tc-err-res]
+  (some-> tc-err-res
+          (update :ex (comp #(map (juxt ex-message
+                                        (comp (fn [d] (dissoc d :env)) ex-data))
+                                  %)
+                            :errors ex-data))
+          (cond-> 
+            (empty? (:delayed-errors tc-err-res))
+            (dissoc :delayed-errors))))
+
+(defmacro is-tc-err-messages
+  "Performs an is-tc-err and returns error messages"
+  [& body]
+  `(extract-error-messages
+     (is-tc-err ~@body)))
 
 (defmacro throws-tc-error? [& body]
   `(err/with-ex-info-handlers
