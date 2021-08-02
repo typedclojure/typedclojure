@@ -1,5 +1,5 @@
 (ns ^:no-doc typed-test.clj.ext.clojure.core
-  (:require [clojure.test :refer [deftest is]]
+  (:require [clojure.test :refer [deftest is testing]]
             [clojure.core.typed :as t]
             [clojure.string :as str]
             [typed.clj.checker.parse-unparse :as prs]
@@ -334,22 +334,33 @@
                                   %)
                             :errors ex-data))))
 
-(deftest let-error-msg-test
-  (is (= (extract-error-messages
-           (tc-err #(let [[a] #{1}]
-                      a)))
-         {:delayed-errors []
-          :ex [[(extcc/bad-vector-destructure-error-msg
-                  "(HSet #{1})"
-                  "[a]")
-                {:type-error :clojure.core.typed.errors/tc-error-parent
-                 :form '(clojure.core/let [[a] #{1}] a)}]]}))
-  (is (= (extract-error-messages
-           (tc-err #(let [{[a] :foo} {:foo #{1}}]
-                      a)))
-         {:delayed-errors []
-          :ex [[(extcc/bad-vector-destructure-error-msg
-                  "(HSet #{1})"
-                  "[a]")
-                {:type-error :clojure.core.typed.errors/tc-error-parent
-                 :form '(clojure.core/let [{[a] :foo} {:foo #{1}}] a)}]]})))
+(deftest vector-destructure-error-msg-test
+  (doseq [{:keys [input error-form error-type-str]}
+          [{:input '(let [[a] #{1}]
+                      a)
+            :error-form '(clojure.core/let [[a] #{1}]
+                           a)}
+           {:input '(let [{[a] :foo} {:foo #{1}}]
+                      a)
+            :error-form '(clojure.core/let [{[a] :foo} {:foo #{1}}]
+                           a)}
+           {:input '(cc/for [[a] [#{1}]]
+                       a)}
+           {:input '(cc/for [{[a] :foo} [{:foo #{1}}]]
+                       a)}
+           ;; TODO fix gensym
+           #_
+           {:input '(fn [[a] :- (t/Set t/Any)])
+            :error-type-str "(IPersistentSet Any)"
+            :error-form '(clojure.core/let [[a] p__46657])}]]
+    (testing input
+      (is (= (extract-error-messages
+               (eval
+                 `(tc-err (fn []
+                            ~input))))
+             {:delayed-errors []
+              :ex [[(extcc/bad-vector-destructure-error-msg
+                      (or error-type-str "(HSet #{1})")
+                      "[a]")
+                    {:type-error :clojure.core.typed.errors/tc-error-parent
+                     :form (or error-form input)}]]})))))
