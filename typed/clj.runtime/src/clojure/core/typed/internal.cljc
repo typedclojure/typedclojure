@@ -211,7 +211,7 @@
 
 (defn parse-loop*
   [forms]
-  (let [parsed-loop (merge
+  (let [parsed-loop (assoc
                       (loop [ann-params (first forms)
                              pvec []
                              ann-info []]
@@ -231,7 +231,7 @@
                                      (conj pvec p init)
                                      (conj ann-info {:type 'clojure.core.typed/Any
                                                      :default true}))))))
-                      {:body (next forms)})]
+                      :body (next forms))]
     {:loop `(clojure.core/loop ~(:pvec parsed-loop) ~@(:body parsed-loop))
      :ann (:ann parsed-loop)}))
 
@@ -249,8 +249,7 @@
                     `(~name ~@(binder-names binder))
                     name)]
   `(clojure.core.typed/ann-protocol 
-     ~@(when binder
-         [binder])
+     ~@(some-> binder list)
      ~name
      ~@(mapcat (fn [{:keys [name arities poly]}]
                  (let [localtvars (set (binder-names poly))
@@ -265,13 +264,12 @@
                                                  actual-this (if (:default provided-this)
                                                                this-type
                                                                (:type provided-this))]
-                                             `[~@(concat [actual-this] (map :type argts)) ~'-> ~(:type ret)]))
+                                             `[~actual-this ~@(map :type argts) ~'-> ~(:type ret)]))
                                          arities))]
                    [name (if poly
                            `(clojure.core.typed/All ~poly ~fn-type)
                            fn-type)]))
                methods))))
-
 
 (defn parse-defprotocol*
   [forms]

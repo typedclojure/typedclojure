@@ -327,6 +327,7 @@
                   (let [m (ann-form 1 Any)]
                     (ann-form m Number)))))
 
+;; tests for clojure.core.typed macros in typed-test.clj.ext.clojure.core.typed
 (deftest vector-destructure-error-msg-test
   (is (= (is-tc-err-messages
            #(let [[a] #{1}]
@@ -364,14 +365,6 @@
                 {:type-error :clojure.core.typed.errors/tc-error-parent
                  :form '(cc/for [{[a] :foo} [{:foo #{1}}]]
                           a)}]]}))
-  (is (= (is-tc-err-messages
-           #(fn [[a] :- (t/Set t/Any)]))
-         {:ex [[(extcc/bad-vector-destructure-error-msg
-                  "(IPersistentSet Any)"
-                  "[a]")
-                {:type-error :clojure.core.typed.errors/tc-error-parent
-                 ;; FIXME even better form
-                 :form '(clojure.core/fn ([[a]]))}]]}))
   (is (= (is-tc-err-messages
            (ann-form (cc/fn [[a]])
                      [(t/Set t/Any) -> t/Any]))
