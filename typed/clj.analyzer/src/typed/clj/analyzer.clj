@@ -278,8 +278,8 @@
   [[_ target :as form] env]
   (when-not (= 2 (count form))
     (throw (ex-info (str "Wrong number of args to monitor-enter, had: " (dec (count form)))
-                    (merge {:form form}
-                           (u/-source-info form env)))))
+                    (into {:form form}
+                          (u/-source-info form env)))))
   {:op       :monitor-enter
    ::common/op ::monitor-enter
    :env      env
@@ -291,8 +291,8 @@
   [[_ target :as form] env]
   (when-not (= 2 (count form))
     (throw (ex-info (str "Wrong number of args to monitor-exit, had: " (dec (count form)))
-                    (merge {:form form}
-                           (u/-source-info form env)))))
+                    (into {:form form}
+                          (u/-source-info form env)))))
   {:op       :monitor-exit
    ::common/op ::monitor-exit
    :env      env
@@ -560,7 +560,7 @@
         result (try (eval frm) ;; eval the emitted form rather than directly the form to avoid double macroexpansion
                     (catch Exception e
                       (handle-evaluation-exception (ExceptionThrown. e a))))]
-    (merge a {:result result})))
+    (assoc a :result result)))
 
 (defn analyze+eval
   "Like analyze but evals the form after the analysis and attaches the

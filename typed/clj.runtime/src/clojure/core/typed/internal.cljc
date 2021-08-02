@@ -6,9 +6,11 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc ^:no-doc clojure.core.typed.internal
+(ns ^:no-doc clojure.core.typed.internal
   (:require [clojure.set :as set]
-            [clojure.core.typed.contract-utils :as con]))
+            [clojure.walk :as walk]
+            [clojure.core.typed.contract-utils :as con])
+  (:import [clojure.lang IObj]))
 
 (defn take-when
   "When pred is true of the head of seq, return [head tail]. Otherwise
@@ -35,6 +37,58 @@
   (let [[flatopts forms] (parse-keyword-flat-map forms)]
     [(apply hash-map flatopts) forms]))
 
+(defn add-destructure-blame-form
+  "Recursively annotate destructuring form dform with blame form."
+  [dform blame-form]
+  (walk/postwalk (fn [dform]
+                   (cond-> dform
+                     (instance? IObj dform)
+                     (vary-meta update :typed.clj.ext.clojure.core/destructure-blame-form
+                                #(or % blame-form))))
+                 dform))
+
+(defn visit-fn-destructuring
+  "Call visitor on all destructuring forms in first arg, a clojure.core/fn form."
+  [[op & forms :as form] visitor]
+  {:pre [(#{"fn"} (name op))]}
+  ;(prn "visit-fn-destructuring" form)
+  (let [[nme forms] (take-when symbol? forms)
+        single-arity-syntax? (vector? (first forms))
+        methods (cond-> forms
+                  single-arity-syntax? list)
+        visited-methods (-> (map (fn [arity]
+                                   (assert (seq arity))
+                                   (-> (map-indexed 
+                                         (fn [i form]
+                                           (case (int i)
+                                             0 (do (assert (vector? form))
+                                                   (into (empty form)
+                                                         (map (fn [maybe-destructuring]
+                                                                (cond-> maybe-destructuring
+                                                                  (not= '& maybe-destructuring) visitor)))
+                                                         form))
+                                             form))
+                                         arity)
+                                       doall
+                                       (with-meta (meta arity))))
+                                 methods)
+                            doall
+                            (with-meta (meta methods)))
+        form (-> (list* op
+                        (concat
+                          (some-> nme list)
+                          (cond-> visited-methods
+                            single-arity-syntax? first)))
+                 (with-meta (meta form)))]
+    ;(prn "visit-fn-destructuring" form)
+    form))
+
+(defn add-fn-destructure-blame-form
+  "Add destructuring blame forms to the provided clojure.core/fn form."
+  [fn-form]
+  (-> fn-form
+      (visit-fn-destructuring #(add-destructure-blame-form % fn-form))))
+
 (defn parse-fn*
   "(fn name? [[param :- type]* & [param :- type *]?] :- type? exprs*)
   (fn name? ([[param :- type]* & [param :- type *]?] :- type? exprs*)+)"
@@ -45,9 +99,8 @@
         [name forms] (take-when symbol? forms)
         _ (assert (not (keyword? (first forms))))
         single-arity-syntax? (vector? (first forms))
-        methods (if single-arity-syntax?
-                  (list forms)
-                  forms)
+        methods (cond-> forms
+                  single-arity-syntax? list)
         parsed-methods   (for [method methods]
                            (merge-with merge
                              (let [ann-params (first method)]
@@ -118,7 +171,12 @@
                                  {:body body
                                   :ann {:rng {:type 'clojure.core.typed/Any
                                               :default true}}}))))
-        final-ann (mapv :ann parsed-methods)]
+        final-ann (mapv :ann parsed-methods)
+        fn-form `(fn ~@(concat
+                         (when name
+                           [name])
+                         (for [{:keys [body pvec]} parsed-methods]
+                           (apply list pvec body))))]
     #_(assert ((con/vec-c?
                (con/hmap-c?
                  :dom (con/every-c? (con/hmap-c? :type (constantly true)))
@@ -127,11 +185,12 @@
                                (con/hmap-c? :type (constantly true)))))
              final-ann)
             final-ann)
-    {:fn `(fn ~@(concat
-                  (when name
-                    [name])
-                  (for [{:keys [body pvec]} parsed-methods]
-                    (apply list pvec body))))
+    {:fn (-> `(fn ~@(concat
+                      (when name
+                        [name])
+                      (for [{:keys [body pvec]} parsed-methods]
+                        (apply list pvec body))))
+             add-fn-destructure-blame-form)
      :ann final-ann
      :poly poly
      :parsed-methods parsed-methods

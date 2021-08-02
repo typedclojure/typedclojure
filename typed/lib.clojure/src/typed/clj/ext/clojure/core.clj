@@ -8,7 +8,9 @@
 
 (ns ^:no-doc typed.clj.ext.clojure.core
   "Typing rules for base Clojure distribution."
-  (:require [clojure.core.typed :as t]
+  (:require [clojure.walk :as walk]
+            [clojure.core.typed :as t]
+            [clojure.core.typed.internal :as internal]
             [clojure.core.typed.coerce-utils :as coerce]
             [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.errors :as err]
@@ -29,7 +31,8 @@
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.cs-gen :as cgen]
-            [typed.cljc.checker.utils :as u]))
+            [typed.cljc.checker.utils :as u])
+  (:import [clojure.lang IObj]))
 
 ;;==================
 ;; clojure.core/ns
@@ -254,7 +257,10 @@
                                                                    (err/tc-delayed-error
                                                                      (bad-vector-destructure-error-msg
                                                                        (pr-str gvec-type)
-                                                                       (pr-str lhs))))))]
+                                                                       (pr-str lhs))
+                                                                     (cond-> {}
+                                                                       (contains? (meta lhs) ::destructure-blame-form)
+                                                                       (assoc :blame-form (-> lhs meta ::destructure-blame-form)))))))]
                                               (recur (upd-destructure-env
                                                        combined-env
                                                        firstb
@@ -476,13 +482,13 @@
         expr (-> expr
                  (update :form
                          (fn [form]
-                           (-> form
-                               vec
-                               (update 1
-                                       (fn [args-syn]
-                                         ;; add back short-circuited args
-                                         (pad-vector expanded-bindings args-syn)))
-                               list*
+                           (-> (map-indexed
+                                 (fn [i args-syn]
+                                   ;; add back short-circuited args
+                                   (case i
+                                     1 (pad-vector expanded-bindings args-syn)
+                                     args-syn))
+                                 form)
                                (with-meta (meta form))))))]
         (if-not @is-reachable
           (assoc expr
@@ -513,3 +519,10 @@
 
 ;; ============================
 ;; clojure.core/fn
+
+(defuspecial 'clojure.core/fn
+  [expr expected]
+  (-> expr
+      (update :form internal/add-fn-destructure-blame-form)
+      ana2/analyze-outer
+      (check-expr expected)))

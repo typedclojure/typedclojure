@@ -98,47 +98,49 @@
 
 (let [unparse-type (delay (impl/dynaload 'typed.clj.checker.parse-unparse/unparse-type))
       -error (delay (impl/dynaload 'typed.cljc.checker.type-rep/-error))]
-  (defn tc-delayed-error [msg & {:keys [return form expected] :as opt}]
-    (let [form (cond
-                 (contains? (:opts expected) :blame-form) (-> expected :opts :blame-form)
-                 (contains? opt :blame-form) (:blame-form opt)
-                 (contains? opt :form) form
-                 :else (ast-u/emit-form-fn uvs/*current-expr*))
-          msg (str (when-some [msg-fn (some-> (or (-> expected :opts :msg-fn)
-                                                  (:msg-fn opt))
-                                              eval)]
-                     (str (msg-fn (merge (msg-fn-opts)
-                                         (when-some [[_ actual] (find opt :actual)]
-                                           {:actual (@unparse-type actual)})))
-                          (when msg
-                            (str
-                              "\n\n"
-                              "====================\n"
-                              "  More information  \n"
-                              "====================\n\n"))))
-                   msg)
-          e (ex-info msg (merge {:type-error tc-error-parent}
-                                (when (or (contains? opt :form)
-                                          uvs/*current-expr*)
-                                  {:form form})
-                                {:env (env-for-error
-                                        (merge (or (:env uvs/*current-expr*)
-                                                   *current-env*)
-                                               (when (contains? (:opts expected) :blame-form)
-                                                 (meta (-> expected :opts :blame-form)))))}))]
-      (cond
-        ;can't delay here
-        (not uvs/*delayed-errors*)
-        (throw e)
+  (defn tc-delayed-error
+    "Supports kw args or single optional map."
+    ([msg] (tc-delayed-error msg {}))
+    ([msg k1 v1 & {:as opt}] (tc-delayed-error msg (into {k1 v1} opt)))
+    ([msg {:keys [return form expected] :as opt}]
+     (let [form (cond
+                  (contains? (:opts expected) :blame-form) (-> expected :opts :blame-form)
+                  (contains? opt :blame-form) (:blame-form opt)
+                  (contains? opt :form) form
+                  :else (ast-u/emit-form-fn uvs/*current-expr*))
+           msg (str (when-some [msg-fn (some-> (or (-> expected :opts :msg-fn)
+                                                   (:msg-fn opt))
+                                               eval)]
+                      (str (msg-fn (merge (msg-fn-opts)
+                                          (when-some [[_ actual] (find opt :actual)]
+                                            {:actual (@unparse-type actual)})))
+                           (when msg
+                             (str
+                               "\n\n"
+                               "====================\n"
+                               "  More information  \n"
+                               "====================\n\n"))))
+                    msg)
+           e (ex-info msg {:type-error tc-error-parent
+                           :env (env-for-error
+                                  (merge (or (:env uvs/*current-expr*)
+                                             *current-env*)
+                                         (when (contains? (:opts expected) :blame-form)
+                                           (meta (-> expected :opts :blame-form)))))
+                           :form form})]
+       (cond
+         ;can't delay here
+         (not uvs/*delayed-errors*)
+         (throw e)
 
-        :else
-        (do
-          (if-let [delayed-errors uvs/*delayed-errors*]
-            (swap! delayed-errors conj e)
-            (throw (Exception. (str "*delayed-errors* not rebound"))))
-          (or (when (contains? opt :return)
-                return)
-              @-error))))))
+         :else
+         (do
+           (if-let [delayed-errors uvs/*delayed-errors*]
+             (swap! delayed-errors conj e)
+             (throw (Exception. (str "*delayed-errors* not rebound"))))
+           (or (when (contains? opt :return)
+                 return)
+               @-error)))))))
 
 (defn tc-error
   [estr]

@@ -364,17 +364,12 @@
                 {:type-error :clojure.core.typed.errors/tc-error-parent
                  :form '(cc/for [{[a] :foo} [{:foo #{1}}]]
                           a)}]]}))
-  (let [msgs (is-tc-err-messages
-               #(fn [[a] :- (t/Set t/Any)]))
-        ;; grab the gensym (let [[a] >here<])
-        p-gensym (-> msgs :ex first second :form second second)]
-    (is (simple-symbol? p-gensym))
-    (is (some-> p-gensym name (.startsWith "p_")))
-    (is (= msgs
-           {:ex [[(extcc/bad-vector-destructure-error-msg
-                    "(IPersistentSet Any)"
-                    "[a]")
-                  {:type-error :clojure.core.typed.errors/tc-error-parent
-                   ;; FIXME better form
-                   :form `(clojure.core/let [[~'a] ~p-gensym])}]]})))
+  (is (= (is-tc-err-messages
+           #(fn [[a] :- (t/Set t/Any)]))
+         {:ex [[(extcc/bad-vector-destructure-error-msg
+                  "(IPersistentSet Any)"
+                  "[a]")
+                {:type-error :clojure.core.typed.errors/tc-error-parent
+                 ;; FIXME even better form
+                 :form '(clojure.core/fn ([[a]]))}]]}))
   )
