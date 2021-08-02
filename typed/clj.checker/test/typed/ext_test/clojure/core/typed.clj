@@ -1,6 +1,9 @@
 (ns ^:no-doc typed.ext-test.clojure.core.typed
   (:require [clojure.test :refer [deftest is]]
-            [clojure.core.typed :as t]))
+            typed.clj.ext.clojure.core.typed ;; load
+            [typed.clj.ext.clojure.core :as extcc]
+            [clojure.core.typed :as t]
+            [clojure.core.typed.test.test-utils :refer :all]))
 
 (defn eval-in-ns [form]
   (binding [*ns* *ns*]
@@ -87,3 +90,14 @@
       (= [:result 1]
          (-> res
              (find :result))))))
+
+(deftest fn-vector-destructure-error-msg-test
+  (is (= (is-tc-err-messages
+           (fn [[a] :- (t/Set t/Any)]))
+         {:delayed-errors [[(extcc/bad-vector-destructure-error-msg
+                              "(IPersistentSet Any)"
+                              "[a]")
+                            {:type-error :clojure.core.typed.errors/tc-error-parent
+                             ;; FIXME better form
+                             :form '(clojure.core/fn ([[a]]))}]]}))
+  )

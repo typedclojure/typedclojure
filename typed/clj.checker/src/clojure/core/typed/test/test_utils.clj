@@ -103,14 +103,21 @@
        res#)))
 
 (defn extract-error-messages [tc-err-res]
-  (some-> tc-err-res
-          (update :ex (comp #(map (juxt ex-message
-                                        (comp (fn [d] (dissoc d :env)) ex-data))
-                                  %)
-                            :errors ex-data))
-          (cond-> 
-            (empty? (:delayed-errors tc-err-res))
-            (dissoc :delayed-errors))))
+  (let [extract-errors (fn [errors]
+                         (mapv (juxt ex-message
+                                     (comp #(dissoc % :env) ex-data))
+                               errors))]
+    (some-> tc-err-res
+            (update :ex (comp extract-errors
+                              :errors
+                              ex-data))
+            (update :delayed-errors extract-errors)
+            (cond-> 
+              (nil? (:ex tc-err-res))
+              (dissoc :ex)
+
+              (empty? (:delayed-errors tc-err-res))
+              (dissoc :delayed-errors)))))
 
 (defmacro is-tc-err-messages
   "Performs an is-tc-err and returns error messages"
