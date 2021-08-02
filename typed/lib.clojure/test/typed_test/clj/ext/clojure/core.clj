@@ -372,4 +372,12 @@
                 {:type-error :clojure.core.typed.errors/tc-error-parent
                  ;; FIXME even better form
                  :form '(clojure.core/fn ([[a]]))}]]}))
+  (is (= (is-tc-err-messages
+           (ann-form (cc/fn [[a]])
+                     [(t/Set t/Any) -> t/Any]))
+         {:ex [[(extcc/bad-vector-destructure-error-msg
+                  "(IPersistentSet Any)"
+                  "[a]")
+                {:type-error :clojure.core.typed.errors/tc-error-parent
+                 :form '(cc/fn [[a]])}]]}))
   )
