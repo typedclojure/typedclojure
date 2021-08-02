@@ -344,7 +344,7 @@
 
 (defuspecial 'clojure.core/let
   [{ana-env :env :keys [form] :as expr} expected]
-  (let [_ (assert (nnext form)
+  (let [_ (assert (next form)
                   (str "Expected 1 or more arguments to clojure.core/let: " form))
         [bvec & body-syns] (next form)
         _ (assert (vector? bvec)
