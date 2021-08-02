@@ -369,11 +369,12 @@
         ;; grab the gensym (let [[a] >here<])
         p-gensym (-> msgs :ex first second :form second second)]
     (is (simple-symbol? p-gensym))
-    (is (some-> p-gensym name (.startsWith "p")))
+    (is (some-> p-gensym name (.startsWith "p_")))
     (is (= msgs
            {:ex [[(extcc/bad-vector-destructure-error-msg
                     "(IPersistentSet Any)"
                     "[a]")
                   {:type-error :clojure.core.typed.errors/tc-error-parent
+                   ;; FIXME better form
                    :form `(clojure.core/let [[~'a] ~p-gensym])}]]})))
   )
