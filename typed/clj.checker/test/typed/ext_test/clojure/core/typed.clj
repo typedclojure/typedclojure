@@ -98,6 +98,5 @@
                               "(IPersistentSet Any)"
                               "[a]")
                             {:type-error :clojure.core.typed.errors/tc-error-parent
-                             ;; FIXME better form
-                             :form '(clojure.core/fn ([[a]]))}]]}))
+                             :form '(fn [[a] :- (t/Set t/Any)])}]]}))
   )

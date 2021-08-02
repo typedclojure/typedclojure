@@ -85,9 +85,10 @@
 
 (defn add-fn-destructure-blame-form
   "Add destructuring blame forms to the provided clojure.core/fn form."
-  [fn-form]
-  (-> fn-form
-      (visit-fn-destructuring #(add-destructure-blame-form % fn-form))))
+  ([fn-form] (add-fn-destructure-blame-form fn-form fn-form))
+  ([fn-form blame-form]
+   (-> fn-form
+       (visit-fn-destructuring #(add-destructure-blame-form % blame-form)))))
 
 (defn parse-fn*
   "(fn name? [[param :- type]* & [param :- type *]?] :- type? exprs*)
@@ -103,94 +104,89 @@
                   single-arity-syntax? list)
         parsed-methods   (for [method methods]
                            (merge-with merge
-                             (let [ann-params (first method)]
-                               (assert (vector? ann-params))
-                               {:ann-params ann-params
-                                :original-method (vary-meta method #(merge (meta form)
-                                                                           (meta ann-params)
-                                                                           %))})
-                             (loop [ann-params (first method)
-                                    pvec (empty (first method)) ; an empty param vector with same metadata
-                                    ann-info []]
-                               (cond
-                                 (empty? ann-params)
-                                 (let [[dom [amp rst]] (split-with (complement #{'&}) ann-info)]
-                                   {:pvec pvec
-                                    :ann (merge
-                                           {:dom dom}
-                                           (when (:rest rst)
-                                             {:rest (:rest rst)})
-                                           (when (:drest rst)
-                                             {:drest (:drest rst)}))})
+                                       (let [ann-params (first method)]
+                                         (assert (vector? ann-params))
+                                         {:ann-params ann-params
+                                          :original-method (vary-meta method #(merge (meta form)
+                                                                                     (meta ann-params)
+                                                                                     %))})
+                                       (loop [ann-params (first method)
+                                              pvec (empty (first method)) ; an empty param vector with same metadata
+                                              ann-info []]
+                                         (cond
+                                           (empty? ann-params)
+                                           (let [[dom [amp rst]] (split-with (complement #{'&}) ann-info)]
+                                             {:pvec pvec
+                                              :ann (merge
+                                                     {:dom dom}
+                                                     (when (:rest rst)
+                                                       {:rest (:rest rst)})
+                                                     (when (:drest rst)
+                                                       {:drest (:drest rst)}))})
 
-                                 ;rest param
-                                 (#{'&} (first ann-params))
-                                 (let [[amp & ann-params] ann-params]
-                                   (if (#{:-} (second ann-params))
-                                     (let [[p colon & rst-params] ann-params]
-                                       (cond
-                                         (#{'*} (second rst-params))
-                                         (let [[t star & after-rst] rst-params]
-                                           (recur after-rst
-                                                  (conj pvec amp p)
-                                                  (conj ann-info amp {:rest {:type t}})))
+                                           ;rest param
+                                           (#{'&} (first ann-params))
+                                           (let [[amp & ann-params] ann-params]
+                                             (if (#{:-} (second ann-params))
+                                               (let [[p colon & rst-params] ann-params]
+                                                 (cond
+                                                   (#{'*} (second rst-params))
+                                                   (let [[t star & after-rst] rst-params]
+                                                     (recur after-rst
+                                                            (conj pvec amp p)
+                                                            (conj ann-info amp {:rest {:type t}})))
 
-                                         (#{'...} (second rst-params))
-                                         (let [[pretype dots bound & after-rst] rst-params]
-                                           (recur after-rst
-                                                  (conj pvec amp p)
-                                                  (conj ann-info amp {:drest {:pretype {:type pretype}
-                                                                              :bound bound}})))
+                                                   (#{'...} (second rst-params))
+                                                   (let [[pretype dots bound & after-rst] rst-params]
+                                                     (recur after-rst
+                                                            (conj pvec amp p)
+                                                            (conj ann-info amp {:drest {:pretype {:type pretype}
+                                                                                        :bound bound}})))
 
-                                         :else
-                                         (throw (ex-info "Rest annotation must be followed with * or ..." {:form method}))))
-                                     (let [[p & after-rst] ann-params]
-                                       (recur after-rst
-                                              (conj pvec amp p)
-                                              (conj ann-info amp {:rest {:type 'clojure.core.typed/Any
-                                                                         :default true}})))))
+                                                   :else
+                                                   (throw (ex-info "Rest annotation must be followed with * or ..." {:form method}))))
+                                               (let [[p & after-rst] ann-params]
+                                                 (recur after-rst
+                                                        (conj pvec amp p)
+                                                        (conj ann-info amp {:rest {:type 'clojure.core.typed/Any
+                                                                                   :default true}})))))
 
-                                 ;fixed param
-                                 :else
-                                 (if (#{:-} (second ann-params))
-                                   (let [[p colon t & rest-params] ann-params]
-                                     (recur rest-params
-                                            (conj pvec p)
-                                            (conj ann-info {:type t})))
-                                   (let [[p & rest-params] ann-params]
-                                     (recur rest-params
-                                            (conj pvec p)
-                                            (conj ann-info {:type 'clojure.core.typed/Any
-                                                            :default true}))))))
-                             (if (and (#{:-} (second method))
-                                      (<= 3 (count method)))
-                               (let [[param colon t & body] method]
-                                 {:body body
-                                  :ann {:rng {:type t}}})
-                               (let [[param & body] method]
-                                 {:body body
-                                  :ann {:rng {:type 'clojure.core.typed/Any
-                                              :default true}}}))))
+                                           ;fixed param
+                                           :else
+                                           (if (#{:-} (second ann-params))
+                                             (let [[p colon t & rest-params] ann-params]
+                                               (recur rest-params
+                                                      (conj pvec p)
+                                                      (conj ann-info {:type t})))
+                                             (let [[p & rest-params] ann-params]
+                                               (recur rest-params
+                                                      (conj pvec p)
+                                                      (conj ann-info {:type 'clojure.core.typed/Any
+                                                                      :default true}))))))
+                                       (if (and (#{:-} (second method))
+                                                (<= 3 (count method)))
+                                         (let [[param colon t & body] method]
+                                           {:body body
+                                            :ann {:rng {:type t}}})
+                                         (let [[param & body] method]
+                                           {:body body
+                                            :ann {:rng {:type 'clojure.core.typed/Any
+                                                        :default true}}}))))
         final-ann (mapv :ann parsed-methods)
-        fn-form `(fn ~@(concat
-                         (when name
-                           [name])
-                         (for [{:keys [body pvec]} parsed-methods]
-                           (apply list pvec body))))]
-    #_(assert ((con/vec-c?
-               (con/hmap-c?
-                 :dom (con/every-c? (con/hmap-c? :type (constantly true)))
-                 (con/optional :rest) (con/hmap-c? :type (constantly true))
-                 :rng (some-fn (con/hmap-c? :default #{true})
-                               (con/hmap-c? :type (constantly true)))))
-             final-ann)
-            final-ann)
+        #_#_
+        _ (assert ((con/vec-c?
+                     (con/hmap-c?
+                       :dom (con/every-c? (con/hmap-c? :type (constantly true)))
+                       (con/optional :rest) (con/hmap-c? :type (constantly true))
+                       :rng (some-fn (con/hmap-c? :default #{true})
+                                     (con/hmap-c? :type (constantly true)))))
+                   final-ann)
+                  final-ann)]
     {:fn (-> `(fn ~@(concat
-                      (when name
-                        [name])
+                      (some-> name list)
                       (for [{:keys [body pvec]} parsed-methods]
                         (apply list pvec body))))
-             add-fn-destructure-blame-form)
+             (add-fn-destructure-blame-form form))
      :ann final-ann
      :poly poly
      :parsed-methods parsed-methods
