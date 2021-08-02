@@ -1,6 +1,0 @@
-- move ext.c.c.t typing rules from runtime jar to checker
-- add spec{1,2} shim to prepare for spec1 support in typed.clj.spec
-- add `clojure.core/for` typing rule with destructuring
-- remove dynamic vars from uniquify analyzer pass
-- add `clojure.core/let` typing rule
-- add custom error message for vector destructuring
