@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.clj.ext.clojure.core.typed
+(ns ^:no-doc typed.clj.ext.clojure.core.typed
   "Typing rules for core.typed ops."
   (:require [clojure.core.typed :as t]
             [clojure.core.typed.util-vars :as vs]

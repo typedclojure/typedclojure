@@ -11,13 +11,13 @@
             [clojure.core.typed.contract-utils :as con]))
 
 (defn take-when
-  "When pred is true of the head of seq, return [head tail]. Otherwise
-  [nil seq]. Used as a helper for parsing optinal typed elements out
+  "When pred is true of the head of coll, return [head tail]. Otherwise
+  [nil coll]. Used as a helper for parsing optional typed elements out
   of sequences. Say docstrings out of argument seqs."
-  [pred seq]
-  (if (pred (first seq))
-    ((juxt first rest) seq)
-    [nil seq]))
+  [pred coll]
+  (if (pred (first coll))
+    ((juxt first rest) coll)
+    [nil coll]))
 
 (defn parse-keyword-flat-map [forms]
   (loop [opts []
@@ -39,85 +39,82 @@
   "(fn name? [[param :- type]* & [param :- type *]?] :- type? exprs*)
   (fn name? ([[param :- type]* & [param :- type *]?] :- type? exprs*)+)"
   [[_fn_ & forms :as form]]
-  {:pre [(symbol? _fn_)
-         #_(= "fn" (name _fn_))]}
+  {:pre [(symbol? _fn_)]}
   (let [[{poly :forall :as opts} forms] (parse-keyword-map forms)
-        [name forms] (take-when symbol? forms)
+        [nme forms] (take-when symbol? forms)
         _ (assert (not (keyword? (first forms))))
         single-arity-syntax? (vector? (first forms))
-        methods (if single-arity-syntax?
-                  (list forms)
-                  forms)
-        parsed-methods   (for [method methods]
-                           (merge-with merge
-                             (let [ann-params (first method)]
-                               (assert (vector? ann-params))
-                               {:ann-params ann-params
-                                :original-method (vary-meta method #(merge (meta form)
-                                                                           (meta ann-params)
-                                                                           %))})
-                             (loop [ann-params (first method)
-                                    pvec (empty (first method)) ; an empty param vector with same metadata
-                                    ann-info []]
-                               (cond
-                                 (empty? ann-params)
-                                 (let [[dom [amp rst]] (split-with (complement #{'&}) ann-info)]
-                                   {:pvec pvec
-                                    :ann (merge
-                                           {:dom dom}
-                                           (when (:rest rst)
-                                             {:rest (:rest rst)})
-                                           (when (:drest rst)
-                                             {:drest (:drest rst)}))})
+        methods (cond-> forms
+                  single-arity-syntax? list)
+        parsed-methods (for [method methods]
+                         (merge-with merge
+                           (let [ann-params (first method)]
+                             (assert (vector? ann-params))
+                             {:ann-params ann-params
+                              :original-method (vary-meta method #(merge (meta form)
+                                                                         (meta ann-params)
+                                                                         %))})
+                           (loop [ann-params (first method)
+                                  pvec (empty (first method)) ; an empty param vector with same metadata
+                                  ann-info []]
+                             (cond
+                               (empty? ann-params)
+                               (let [[dom [amp rst]] (split-with (complement #{'&}) ann-info)]
+                                 {:pvec pvec
+                                  :ann (merge
+                                         {:dom dom}
+                                         (when (:rest rst)
+                                           {:rest (:rest rst)})
+                                         (when (:drest rst)
+                                           {:drest (:drest rst)}))})
 
-                                 ;rest param
-                                 (#{'&} (first ann-params))
-                                 (let [[amp & ann-params] ann-params]
-                                   (if (#{:-} (second ann-params))
-                                     (let [[p colon & rst-params] ann-params]
-                                       (cond
-                                         (#{'*} (second rst-params))
-                                         (let [[t star & after-rst] rst-params]
-                                           (recur after-rst
-                                                  (conj pvec amp p)
-                                                  (conj ann-info amp {:rest {:type t}})))
-
-                                         (#{'...} (second rst-params))
-                                         (let [[pretype dots bound & after-rst] rst-params]
-                                           (recur after-rst
-                                                  (conj pvec amp p)
-                                                  (conj ann-info amp {:drest {:pretype {:type pretype}
-                                                                              :bound bound}})))
-
-                                         :else
-                                         (throw (ex-info "Rest annotation must be followed with * or ..." {:form method}))))
-                                     (let [[p & after-rst] ann-params]
-                                       (recur after-rst
-                                              (conj pvec amp p)
-                                              (conj ann-info amp {:rest {:type 'clojure.core.typed/Any
-                                                                         :default true}})))))
-
-                                 ;fixed param
-                                 :else
+                               ;rest param
+                               (#{'&} (first ann-params))
+                               (let [[amp & ann-params] ann-params]
                                  (if (#{:-} (second ann-params))
-                                   (let [[p colon t & rest-params] ann-params]
-                                     (recur rest-params
-                                            (conj pvec p)
-                                            (conj ann-info {:type t})))
-                                   (let [[p & rest-params] ann-params]
-                                     (recur rest-params
-                                            (conj pvec p)
-                                            (conj ann-info {:type 'clojure.core.typed/Any
-                                                            :default true}))))))
-                             (if (and (#{:-} (second method))
-                                      (<= 3 (count method)))
-                               (let [[param colon t & body] method]
-                                 {:body body
-                                  :ann {:rng {:type t}}})
-                               (let [[param & body] method]
-                                 {:body body
-                                  :ann {:rng {:type 'clojure.core.typed/Any
-                                              :default true}}}))))
+                                   (let [[p colon & rst-params] ann-params]
+                                     (case (second rst-params)
+                                       *
+                                       (let [[t star & after-rst] rst-params]
+                                         (recur after-rst
+                                                (conj pvec amp p)
+                                                (conj ann-info amp {:rest {:type t}})))
+
+                                       ...
+                                       (let [[pretype dots bound & after-rst] rst-params]
+                                         (recur after-rst
+                                                (conj pvec amp p)
+                                                (conj ann-info amp {:drest {:pretype {:type pretype}
+                                                                            :bound bound}})))
+
+                                       (throw (ex-info "Rest annotation must be followed by * or ..." {:form method}))))
+                                   (let [[p & after-rst] ann-params]
+                                     (recur after-rst
+                                            (conj pvec amp p)
+                                            (conj ann-info amp {:rest {:type 'clojure.core.typed/Any
+                                                                       :default true}})))))
+
+                               ;fixed param
+                               :else
+                               (if (#{:-} (second ann-params))
+                                 (let [[p colon t & rest-params] ann-params]
+                                   (recur rest-params
+                                          (conj pvec p)
+                                          (conj ann-info {:type t})))
+                                 (let [[p & rest-params] ann-params]
+                                   (recur rest-params
+                                          (conj pvec p)
+                                          (conj ann-info {:type 'clojure.core.typed/Any
+                                                          :default true}))))))
+                           (if (and (#{:-} (second method))
+                                    (<= 3 (count method)))
+                             (let [[param colon t & body] method]
+                               {:body body
+                                :ann {:rng {:type t}}})
+                             (let [[param & body] method]
+                               {:body body
+                                :ann {:rng {:type 'clojure.core.typed/Any
+                                            :default true}}}))))
         final-ann (mapv :ann parsed-methods)]
     #_(assert ((con/vec-c?
                (con/hmap-c?
@@ -127,24 +124,22 @@
                                (con/hmap-c? :type (constantly true)))))
              final-ann)
             final-ann)
-    {:fn `(fn ~@(concat
-                  (when name
-                    [name])
-                  (for [{:keys [body pvec]} parsed-methods]
-                    (apply list pvec body))))
+    {:fn `(fn ~@(some-> nme list)
+            ~@(for [{:keys [body pvec]} parsed-methods]
+                (apply list pvec body)))
      :ann final-ann
      :poly poly
      :parsed-methods parsed-methods
-     :name name
+     :name nme
      :single-arity-syntax? single-arity-syntax?}))
 
 (defn parse-defn* [args]
   (let [[flatopt args] (parse-keyword-flat-map args)
-        [name & args] args
-        _ (assert (symbol? name) "defn name should be a symbol")
+        [nme & args] args
+        _ (assert (symbol? nme) "defn name should be a symbol")
         [docstring args] (take-when string? args)
         [attr-map args] (take-when map? args)]
-    {:name (vary-meta name merge
+    {:name (vary-meta nme merge
                       {:arglists
                        (list 'quote
                              (if (vector? (first args)) ; arity = 1
@@ -188,16 +183,16 @@
            v))
        binder))
 
-(defn gen-ann-protocol [{:keys [name methods binder] :as dp-ann}]
+(defn gen-ann-protocol [{nme :name :keys [methods binder] :as dp-ann}]
   (let [tvars (set (binder-names binder))
         this-type (if binder
-                    `(~name ~@(binder-names binder))
-                    name)]
+                    `(~nme ~@(binder-names binder))
+                    nme)]
   `(clojure.core.typed/ann-protocol 
      ~@(when binder
          [binder])
-     ~name
-     ~@(mapcat (fn [{:keys [name arities poly]}]
+     ~nme
+     ~@(mapcat (fn [{nme :name :keys [arities poly]}]
                  (let [localtvars (set (binder-names poly))
                        _ (assert (empty? (set/intersection localtvars
                                                            tvars))
@@ -212,9 +207,9 @@
                                                                (:type provided-this))]
                                              `[~@(concat [actual-this] (map :type argts)) ~'-> ~(:type ret)]))
                                          arities))]
-                   [name (if poly
-                           `(clojure.core.typed/All ~poly ~fn-type)
-                           fn-type)]))
+                   [nme (if poly
+                          `(clojure.core.typed/All ~poly ~fn-type)
+                          fn-type)]))
                methods))))
 
 
@@ -249,18 +244,18 @@
                                                         :default true})))))))
         actual-decl-methods (for [m typed-decl-methods]
                               (let [[poly rst] (take-when vector? m)
-                                    [name & dvecs] rst]
-                                (assert (symbol? name) (str "defprotocol method name must be a symbol: " pname))
+                                    [nme & dvecs] rst]
+                                (assert (symbol? nme) (str "defprotocol method name must be a symbol: " pname))
                                 (loop [dvecs dvecs
                                        arities []]
                                   (cond 
                                     (or (empty? dvecs)
                                         (string? (first dvecs)))
-                                    (merge {:poly poly
-                                            :name name
-                                            :arities arities}
-                                           (when (string? (first dvecs))
-                                             {:doc (first dvecs)}))
+                                    (into {:poly poly
+                                           :name nme
+                                           :arities arities}
+                                          (when (string? (first dvecs))
+                                            {:doc (first dvecs)}))
 
                                     :else (if (#{:-} (second dvecs))
                                             (let [_ (assert (#{3} (count (take 3 dvecs)))
@@ -285,17 +280,17 @@
     {:defprotocol `(clojure.core/defprotocol 
                      ~pname 
                      ~@(when pdoc [pdoc])
-                     ~@(map (fn [{:keys [name arities doc]}] 
-                              `(~name ~@(concat ; prefer left-most arities if grouped duplicates
-                                                (reduce
-                                                  (fn [ret current]
-                                                    (if (= (count current) (count (last ret)))
-                                                      ret
-                                                      (conj ret current)))
-                                                  []
-                                                  (map :actual arities))
-                                                (when doc
-                                                  [doc]))))
+                     ~@(map (fn [{nme :name :keys [nme arities doc]}] 
+                              `(~nme ~@(concat ; prefer left-most arities if grouped duplicates
+                                               (reduce
+                                                 (fn [ret current]
+                                                   (if (= (count current) (count (last ret)))
+                                                     ret
+                                                     (conj ret current)))
+                                                 []
+                                                 (map :actual arities))
+                                               (when doc
+                                                 [doc]))))
                             actual-decl-methods))
      :ann-protocol (gen-ann-protocol ann)}))
 
