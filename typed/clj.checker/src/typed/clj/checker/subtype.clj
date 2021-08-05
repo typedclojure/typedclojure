@@ -49,8 +49,13 @@
      (or (not (and s1 s2 s3))
          (and (boolean (f (first s1) (first s2) (first s3)))
               (recur (next s1) (next s2) (next s3))))))
-  ([f c1 c2 c3 & colls]
-   (loop [ss (list* (seq c1) (seq c2) (seq c3) (map seq colls))]
+  ([f c1 c2 c3 c4]
+   (loop [s1 (seq c1) s2 (seq c2) s3 (seq c3) s4 (seq c4)]
+     (or (not (and s1 s2 s3 s4))
+         (and (boolean (f (first s1) (first s2) (first s3) (first s4)))
+              (recur (next s1) (next s2) (next s3) (next s4))))))
+  ([f c1 c2 c3 c4 & colls]
+   (loop [ss (list* (seq c1) (seq c2) (seq c3) (seq c4) (map seq colls))]
      (or (not (every?' identity ss))
          (and (boolean (apply f (map first ss)))
               (recur (map next ss)))))))
