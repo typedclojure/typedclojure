@@ -30,6 +30,31 @@
 (defn ^:private gen-repeat [times repeated]
   (reduce into [] (repeat times repeated)))
 
+(defn ^:private every?'
+  "Like `every?`, but supports varargs."
+  ([f coll]
+   (reduce (fn [acc e]
+             (if (f e)
+               true
+               (reduced false)))
+           true
+           coll))
+  ([f c1 c2]
+   (loop [s1 (seq c1) s2 (seq c2)]
+     (or (not (and s1 s2))
+         (and (boolean (f (first s1) (first s2)))
+              (recur (next s1) (next s2))))))
+  ([f c1 c2 c3]
+   (loop [s1 (seq c1) s2 (seq c2) s3 (seq c3)]
+     (or (not (and s1 s2 s3))
+         (and (boolean (f (first s1) (first s2) (first s3)))
+              (recur (next s1) (next s2) (next s3))))))
+  ([f c1 c2 c3 & colls]
+   (loop [ss (list* (seq c1) (seq c2) (seq c3) (map seq colls))]
+     (or (not (every?' identity ss))
+         (and (boolean (apply f (map first ss)))
+              (recur (map next ss)))))))
+
 ;(defalias Seen Any)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -159,7 +184,7 @@
              (let []
                (and (= (count (:types s))
                        (count (:types t)))
-                    (every? identity (map (partial subtypeA* A) (:types s) (:types t)))))
+                    (every?' (partial subtypeA* A) (:types s) (:types t))))
 
              ; repeat on left
              (and (:repeat s)
@@ -171,9 +196,9 @@
                (cond
                  (:rest t)
                  (and (= 1 s-types-count)
-                      (every? identity (map (partial subtypeA* A)
-                                            (repeat (first s-types))
-                                            t-types))
+                      (every?' (partial subtypeA* A)
+                               (repeat (first s-types))
+                               t-types)
                       (subtypeA* A (first s-types) (:rest t)))
 
                  ; both s & t have :repeat
@@ -182,11 +207,11 @@
                               s-types-count)
                           (zero? (rem s-types-count
                                       t-types-count)))
-                   (every? identity (map (partial subtypeA* A)
-                                         s-types
-                                         (gen-repeat (/ (count s-types)
-                                                        (count t-types))
-                                                     t-types)))
+                   (every?' (partial subtypeA* A)
+                            s-types
+                            (gen-repeat (/ (count s-types)
+                                           (count t-types))
+                                        t-types))
                    false)
 
                  ; nothing on right
@@ -202,9 +227,9 @@
                    t-types-count (count t-types)]
                (if (:rest s)
                  (and (= 1 t-types-count)
-                      (every? identity (map (partial subtypeA* A)
-                                            s-types
-                                            (repeat (first t-types))))
+                      (every?' (partial subtypeA* A)
+                               s-types
+                               (repeat (first t-types)))
                       (subtypeA* A (:rest s) (first t-types)))
 
                  ; nothing on left
@@ -213,11 +238,11 @@
                               s-types-count))
                       (if (zero? (rem s-types-count
                                       t-types-count))
-                        (every? identity (map (partial subtypeA* A)
-                                              s-types
-                                              (gen-repeat (/ s-types-count
-                                                             t-types-count)
-                                                          t-types)))
+                        (every?' (partial subtypeA* A)
+                                 s-types
+                                 (gen-repeat (/ s-types-count
+                                                t-types-count)
+                                             t-types))
                         false))))
 
              ; rest on right
@@ -228,32 +253,34 @@
                   (or (not (:rest s))
                       (subtypeA* A (:rest s) (:rest t)))
                   ;pad t to the right
-                  (every? identity (map (partial subtypeA* A)
-                                        (:types s)
-                                        (concat (:types t)
-                                                (repeat (- (count (:types s)) (count (:types t)))
-                                                        (:rest t))))))
+                  (every?' (partial subtypeA* A)
+                           (:types s)
+                           (concat (:types t)
+                                   (repeat (- (count (:types s)) (count (:types t)))
+                                           (:rest t)))))
 
              (and (:drest s)
                   (:rest t))
              (and
-               (every? identity (map (partial subtypeA* A)
-                                     (:types s)
-                                     (concat (:types t)
-                                             (repeat (- (count (:types s)) (count (:types t)))
-                                                     (:rest t)))))
+               (every?' (partial subtypeA* A)
+                        (:types s)
+                        (concat (:types t)
+                                (repeat (- (count (:types s)) (count (:types t)))
+                                        (:rest t))))
                (r/Top? (:rest t)))
 
              ;TODO other cases
              :else nil)
            ; ignore interesting results
-           (every? (fn hvec1 [[f1 f2]] (or (= (fops/-FS fr/-top fr/-top) f2)
-                                           (= f1 f2)))
-                   (map vector (:fs s) (:fs t)))
+           (every?' (fn _hvec1 [f1 f2]
+                      (or (= (fops/-FS fr/-top fr/-top) f2)
+                          (= f1 f2)))
+                    (:fs s) (:fs t))
            ; ignore interesting results
-           (every? (fn hvec2 [[o1 o2]] (or (orep/EmptyObject? o2)
-                                           (= o1 o2)))
-                   (map vector (:objects s) (:objects t))))
+           (every?' (fn _hvec2 [o1 o2]
+                      (or (orep/EmptyObject? o2)
+                          (= o1 o2)))
+                    (:objects s) (:objects t)))
     A
     (report-not-subtypes s t)))
 
@@ -464,7 +491,7 @@
              (r/Extends? t))
         (if (and ;all positive information matches.
                  ; Each t should occur in at least one s.
-                 (every? (fn extends-t [t*]
+                 (every? (fn _extends-t [t*]
                            (some #(subtypeA* A % t*) (:extends s)))
                          (:extends t))
                  ;lhs does not explicitly implement any forbidden types.
@@ -474,7 +501,7 @@
                            (:without t))
                  ;lhs explicitly disallows same types as rhs
                  ; Each negative t should be a supertype of some negative s
-                 (every? (fn extends-without-t [not-t*]
+                 (every? (fn _extends-without-t [not-t*]
                            (some #(subtypeA* A % not-t*) (:without s)))
                          (:without t)))
           A
@@ -543,8 +570,8 @@
               entries-keys (map first entries)
               entries-vals (map second entries)]
           (if (and (subtypeA* A target t)
-                   (every? identity (map (partial subtypeA* A) entries-keys (repeat (first poly?))))
-                   (every? identity (map (partial subtypeA* A) entries-vals (repeat (second poly?)))))
+                   (every?' (partial subtypeA* A) entries-keys (repeat (first poly?)))
+                   (every?' (partial subtypeA* A) entries-vals (repeat (second poly?))))
             A
             (report-not-subtypes s t)))
 
@@ -704,14 +731,13 @@
               {var2 :the-var poly2 :poly?} t]
           ;(prn "protocols subtype" s t)
           (if (and (= var1 var2)
-                   (every? identity
-                           (map (fn _prcol-variance [v l r]
-                                  (case v
-                                    :covariant (subtypeA* A l r)
-                                    :contravariant (subtypeA* A r l)
-                                    :invariant (and (subtypeA* A l r)
-                                                    (subtypeA* A r l))))
-                                variances* poly1 poly2)))
+                   (every?' (fn _prcol-variance [v l r]
+                              (case v
+                                :covariant (subtypeA* A l r)
+                                :contravariant (subtypeA* A r l)
+                                :invariant (and (subtypeA* A l r)
+                                                (subtypeA* A r l))))
+                            variances* poly1 poly2))
             A
             (report-not-subtypes s t)))
 
@@ -1015,7 +1041,7 @@
     ;kw args
     (and (:kws s)
          (:kws t))
-    (if (and (every? (partial subtypeA* A0) (:dom t) (:dom s))
+    (if (and (every?' (partial subtypeA* A0) (:dom t) (:dom s))
              (subtypeA* A0 (:rng s) (:rng t))
              (subtype-kwargs* A0 (:kws t) (:kws s)))
       A0
@@ -1243,17 +1269,17 @@
   (if (and (== (count rands1)
                (count rands2)
                (count (:variances tfn)))
-           (every? (fn [[v l r]]
-                     {:pre [(r/variance? v)
-                            (r/Type? l)
-                            (r/Type? r)]}
-                     (case v
-                       (:covariant) (subtypeA* A l r)
-                       (:contravariant) (subtypeA* A r l)
-                       (:invariant) (and (subtypeA* A l r)
-                                         (subtypeA* A r l))
-                       (err/int-error (str "Unknown variance: " v))))
-                   (map vector (:variances tfn) rands1 rands2)))
+           (every?' (fn [v l r]
+                      {:pre [(r/variance? v)
+                             (r/Type? l)
+                             (r/Type? r)]}
+                      (case v
+                        (:covariant) (subtypeA* A l r)
+                        (:contravariant) (subtypeA* A r l)
+                        (:invariant) (and (subtypeA* A l r)
+                                          (subtypeA* A r l))
+                        (err/int-error (str "Unknown variance: " v))))
+                    (:variances tfn) rands1 rands2))
     A
     (report-not-subtypes rands1 rands2)))
 
@@ -1280,18 +1306,17 @@
         (if (and (= (count variances)
                     (count (:rands s))
                     (count (:rands t)))
-                 (every? identity
-                         (map (fn [variance {:keys [lower-bound upper-bound]} s t]
-                                (and (subtypeA* A lower-bound s)
-                                     (subtypeA* A lower-bound t)
-                                     (subtypeA* A s upper-bound)
-                                     (subtypeA* A t upper-bound)
-                                     (case variance
-                                       :covariant (subtypeA* A s t)
-                                       :contravariant (subtypeA* A t s)
-                                       :invariant (and (subtypeA* A s t)
-                                                       (subtypeA* A t s)))))
-                              variances bbnds (:rands s) (:rands t))))
+                 (every?' (fn [variance {:keys [lower-bound upper-bound]} s t]
+                            (and (subtypeA* A lower-bound s)
+                                 (subtypeA* A lower-bound t)
+                                 (subtypeA* A s upper-bound)
+                                 (subtypeA* A t upper-bound)
+                                 (case variance
+                                   :covariant (subtypeA* A s t)
+                                   :contravariant (subtypeA* A t s)
+                                   :invariant (and (subtypeA* A s t)
+                                                   (subtypeA* A t s)))))
+                          variances bbnds (:rands s) (:rands t)))
           A
           (report-not-subtypes s t)))
       :else (report-not-subtypes s t))))
@@ -1308,13 +1333,12 @@
         tbody (c/TypeFn-body* names T)]
     (if (and (= (:nbound S) (:nbound T))
              (= (:variances S) (:variances T))
-             (every? identity
-                     (map (fn [lbnd rbnd]
-                            (and (subtypeA* A (:upper-bound lbnd) (:upper-bound rbnd))
-                                 (subtypeA* A (:lower-bound rbnd) (:lower-bound lbnd))
-                                 (subtypeA* A (:lower-bound lbnd) (:upper-bound lbnd))
-                                 (subtypeA* A (:lower-bound rbnd) (:upper-bound rbnd))))
-                          sbnds tbnds)))
+             (every?' (fn [lbnd rbnd]
+                        (and (subtypeA* A (:upper-bound lbnd) (:upper-bound rbnd))
+                             (subtypeA* A (:lower-bound rbnd) (:lower-bound lbnd))
+                             (subtypeA* A (:lower-bound lbnd) (:upper-bound lbnd))
+                             (subtypeA* A (:lower-bound rbnd) (:upper-bound rbnd))))
+                      sbnds tbnds))
       (subtypeA* A sbody tbody)
       (report-not-subtypes S T))))
 
@@ -1437,15 +1461,13 @@
    {cls2 :the-class poly2 :poly? :as t}]
   {:pre [(every? r/DataType? [s t])]}
   (if (and (= cls1 cls2)
-           ;; TODO create varargs `every?`
-           (every? identity
-                   (map (fn [v l r]
-                          (case v
-                            :covariant (subtypeA* A l r)
-                            :contravariant (subtypeA* A r l)
-                            :invariant (and (subtypeA* A l r)
-                                            (subtypeA* A r l))))
-                        (:variances s) poly1 poly2)))
+           (every?' (fn [v l r]
+                      (case v
+                        :covariant (subtypeA* A l r)
+                        :contravariant (subtypeA* A r l)
+                        :invariant (and (subtypeA* A l r)
+                                        (subtypeA* A r l))))
+                    (:variances s) poly1 poly2))
     A
     (report-not-subtypes s t)))
 
@@ -1468,15 +1490,14 @@
          (or (and (empty? polyl?) (empty? polyr?))
              (and (seq polyl?)
                   (seq polyr?)
-                  (every? identity
-                          (map #(case %1
-                                  :covariant (subtypeA* A %2 %3)
-                                  :contravariant (subtypeA* A %3 %2)
-                                  (and (subtypeA* A %2 %3)
-                                       (subtypeA* A %3 %2)))
-                               variances
-                               polyl?
-                               polyr?)))))))
+                  (every?' #(case %1
+                              :covariant (subtypeA* A %2 %3)
+                              :contravariant (subtypeA* A %3 %2)
+                              (and (subtypeA* A %2 %3)
+                                   (subtypeA* A %3 %2)))
+                           variances
+                           polyl?
+                           polyr?))))))
 
 ;(IPersistentMap Class Class)
 (def boxed-primitives
