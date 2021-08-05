@@ -135,7 +135,7 @@
 
 (declare protocol-extenders
          subtype-datatypes-or-records subtype-Result subtype-PrimitiveArray
-         subtype-CountRange subtype-TypeFn subtype-RClass
+         subtype-CountRange subtype-TypeFn subtype-RClass subtype-rclass-or-datatype-with-protocol
          boxed-primitives subtype-datatype-rclass subtype-TApp)
 
 (defn subtype-HSet [A s t]
@@ -704,13 +704,14 @@
               {var2 :the-var poly2 :poly?} t]
           ;(prn "protocols subtype" s t)
           (if (and (= var1 var2)
-                   (every? (fn prcol-variance [[v l r]]
-                             (case v
-                               :covariant (subtypeA* A l r)
-                               :contravariant (subtypeA* A r l)
-                               :invariant (and (subtypeA* A l r)
-                                               (subtypeA* A r l))))
-                           (map vector variances* poly1 poly2)))
+                   (every? identity
+                           (map (fn _prcol-variance [v l r]
+                                  (case v
+                                    :covariant (subtypeA* A l r)
+                                    :contravariant (subtypeA* A r l)
+                                    :invariant (and (subtypeA* A l r)
+                                                    (subtypeA* A r l))))
+                                variances* poly1 poly2)))
             A
             (report-not-subtypes s t)))
 
