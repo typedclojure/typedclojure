@@ -136,7 +136,6 @@
 (declare protocol-extenders
          subtype-datatypes-or-records subtype-Result subtype-PrimitiveArray
          subtype-CountRange subtype-TypeFn subtype-RClass
-         subtype-datatype-and-protocol subtype-rclass-protocol
          boxed-primitives subtype-datatype-rclass subtype-TApp)
 
 (defn subtype-HSet [A s t]
@@ -226,9 +225,8 @@
                   (not ((some-fn :drest :repeat) s)))
              (and (>= (count (:types s))
                       (count (:types t)))
-                  (if (:rest s)
-                    (subtypeA* A (:rest s) (:rest t))
-                    true)
+                  (or (not (:rest s))
+                      (subtypeA* A (:rest s) (:rest t)))
                   ;pad t to the right
                   (every? identity (map (partial subtypeA* A)
                                         (:types s)
@@ -720,13 +718,9 @@
              (r/DataType? t))
         (subtype-datatypes-or-records A s t)
 
-        (and (r/DataType? s)
+        (and ((some-fn r/RClass? r/DataType?) s)
              (r/Protocol? t))
-        (subtype-datatype-and-protocol A s t)
-
-        (and (r/RClass? s)
-             (r/Protocol? t))
-        (subtype-rclass-protocol A s t)
+        (subtype-rclass-or-datatype-with-protocol A s t)
 
         (and (r/Nil? s)
              (r/Protocol? t)
@@ -1381,27 +1375,43 @@
                                 (c/RClass-of-with-unknown-params sym))))))]
     post-override))
 
-(defn ^:private subtype-rclass-protocol
+(defn ^:private subtype-rclass-or-datatype-with-protocol
   [A s t]
-  {:pre [(r/RClass? s)
-         (r/Protocol? t)]}
+  {:pre [((some-fn r/RClass? r/DataType?) s)
+         (r/Protocol? t)]
+   :post [(or (set? %) (nil? %))]}
   (impl/assert-clojure)
-  (let [;first try and find the datatype in the protocol's extenders
-        p-cls-extenders (map coerce/Class->symbol (filter class? (c/Protocol-normal-extenders t)))
-        in-protocol-extenders? (some #{(:the-class s)} p-cls-extenders)
-        relevant-rclass-ancestor (some (fn [p] 
-                                         (when (and (r/Protocol? p)
-                                                    (= (:the-var p) (:the-var t)))
-                                           p))
-                                       (c/RClass-supers* s))]
+  (let [s-kind (cond
+                 (r/RClass? s) :RClass
+                 (r/DataType? s) :DataType
+                 :else (err/int-error (str "what is this?" s)))
+        ;first try and find the datatype in the protocol's extenders
+        in-protocol-extenders? (boolean
+                                 (seq
+                                   (sequence
+                                     (comp (filter class?)
+                                           (map coerce/Class->symbol)
+                                           (filter #{(:the-class s)}))
+                                     (c/Protocol-normal-extenders t))))
+        relevant-ancestor (some (fn [p] 
+                                  (let [p (c/fully-resolve-type p)]
+                                    (when (and (r/Protocol? p)
+                                               (= (:the-var p) (:the-var t)))
+                                      p)))
+                                ((case s-kind
+                                   :RClass c/RClass-supers*
+                                   :DataType datatype-ancestors)
+                                 s))]
     (cond 
       ; the extension is via the protocol
       (or in-protocol-extenders?
           ; extension via the protocol's interface, or explicitly overriden
-          relevant-rclass-ancestor)
-      (let [relevant-protocol-extender (if relevant-rclass-ancestor
-                                         relevant-rclass-ancestor
-                                         (c/RClass-of-with-unknown-params (:the-class s)))]
+          relevant-ancestor)
+      (let [relevant-protocol-extender (or relevant-ancestor
+                                           ((case s-kind
+                                              :RClass c/RClass-of-with-unknown-params
+                                              :DataType c/DataType-with-unknown-params)
+                                            (:the-class s)))]
         (subtypeA* A s relevant-protocol-extender))
       :else (report-not-subtypes s t))))
 
@@ -1411,7 +1421,7 @@
   {:pre [(r/DataType? s)
          (r/RClass? t)]}
   (impl/assert-clojure)
-  (if-some [relevant-datatype-ancestor (some (fn [p] 
+  (if-some [relevant-datatype-ancestor (some (fn [p]
                                                (let [p (c/fully-resolve-type p)]
                                                  (when (and (r/RClass? p)
                                                             (= (:the-class p) (:the-class t)))
@@ -1419,40 +1429,6 @@
                                              (datatype-ancestors s))]
     (subtypeA* A s relevant-datatype-ancestor)
     (report-not-subtypes s t)))
-
-;(t/ann subtype-datatype-and-protocol [DataType Protocol -> (U nil Seen)])
-(defn ^:private subtype-datatype-and-protocol
-  [A s t]
-  {:pre [(r/DataType? s)
-         (r/Protocol? t)]
-   :post [(or (set? %) (nil? %))]}
-  (impl/impl-case
-    :clojure (let [;first try and find the datatype in the protocol's extenders
-                   in-protocol-extenders? (seq
-                                            (sequence
-                                              (comp (filter class?)
-                                                    (map coerce/Class->symbol)
-                                                    (filter #{(:the-class s)}))
-                                              p-cls-extenders))
-                   relevant-datatype-ancestor (some (fn [p] 
-                                                      (let [p (c/fully-resolve-type p)]
-                                                        (when (and (r/Protocol? p)
-                                                                   (= (:the-var p) (:the-var t)))
-                                                          p)))
-                                                    (datatype-ancestors s))]
-               (cond 
-                 ; the extension is via the protocol
-                 (or in-protocol-extenders?
-                     ; extension via the protocol's interface, or explicitly overriden
-                     relevant-datatype-ancestor)
-                 (let [relevant-protocol-extender (or relevant-datatype-ancestor
-                                                      (c/DataType-with-unknown-params (:the-class s)))]
-                   (if (subtypeA* A s relevant-protocol-extender)
-                     A
-                     (report-not-subtypes s t)))
-                 :else (report-not-subtypes s t)))
-
-    :cljs (assert nil "FIXME")))
 
 (defn- subtype-datatypes-or-records
   [A
