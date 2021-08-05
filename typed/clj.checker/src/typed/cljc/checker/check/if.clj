@@ -18,10 +18,10 @@
             [clojure.core.typed.util-vars :as vs]
             [typed.cljc.checker.var-env :as var-env]))
 
-(defn update-lex+reachable [fs]
+(defn update-lex+reachable [lex-env fs]
+  {:pre [(lex/PropEnv? lex-env)]}
   (let [reachable (atom true :validator boolean?)
-        current-env (lex/lexical-env)
-        env (update/env+ current-env [fs] reachable)]
+        env (update/env+ lex-env [fs] reachable)]
     [env @reachable]))
 
 (defn combine-rets [{fs+ :then fs- :else :as tst-ret}
@@ -76,7 +76,8 @@
          (r/-flow fl/-bot)))
 
 (defn check-if-reachable [check-fn expr lex-env reachable? expected]
-  {:pre [(boolean? reachable?)]}
+  {:pre [(lex/PropEnv? lex-env)
+         (boolean? reachable?)]}
   (if (not reachable?)
     (assoc expr 
            u/expr-type (unreachable-ret))
@@ -91,8 +92,9 @@
         tst (u/expr-type ctest)
         {fs+ :then fs- :else :as tst-f} (r/ret-f tst)
 
-        [env-thn reachable+] (update-lex+reachable fs+)
-        [env-els reachable-] (update-lex+reachable fs-)
+        lex-env (lex/lexical-env)
+        [env-thn reachable+] (update-lex+reachable lex-env fs+)
+        [env-els reachable-] (update-lex+reachable lex-env fs-)
 
         cthen (check-if-reachable check-fn then env-thn reachable+ expected)
         then-ret (u/expr-type cthen)

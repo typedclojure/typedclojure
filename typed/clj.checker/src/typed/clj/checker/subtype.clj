@@ -1411,14 +1411,14 @@
   {:pre [(r/DataType? s)
          (r/RClass? t)]}
   (impl/assert-clojure)
-  (let [relevant-datatype-ancestor (some (fn [p] 
-                                           (when (and (r/RClass? p)
-                                                      (= (:the-class p) (:the-class t)))
-                                             p))
-                                         (map c/fully-resolve-type (datatype-ancestors s)))]
-    (if relevant-datatype-ancestor
-      (subtypeA* A s relevant-datatype-ancestor)
-      (report-not-subtypes s t))))
+  (if-some [relevant-datatype-ancestor (some (fn [p] 
+                                               (let [p (c/fully-resolve-type p)]
+                                                 (when (and (r/RClass? p)
+                                                            (= (:the-class p) (:the-class t)))
+                                                   p)))
+                                             (datatype-ancestors s))]
+    (subtypeA* A s relevant-datatype-ancestor)
+    (report-not-subtypes s t)))
 
 ;(t/ann subtype-datatype-and-protocol [DataType Protocol -> (U nil Seen)])
 (defn ^:private subtype-datatype-and-protocol
@@ -1428,21 +1428,25 @@
    :post [(or (set? %) (nil? %))]}
   (impl/impl-case
     :clojure (let [;first try and find the datatype in the protocol's extenders
-                   p-cls-extenders (map coerce/Class->symbol (filter class? (c/Protocol-normal-extenders t)))
-                   in-protocol-extenders? (some #{(:the-class s)} p-cls-extenders)
+                   in-protocol-extenders? (seq
+                                            (sequence
+                                              (comp (filter class?)
+                                                    (map coerce/Class->symbol)
+                                                    (filter #{(:the-class s)}))
+                                              p-cls-extenders))
                    relevant-datatype-ancestor (some (fn [p] 
-                                                      (when (and (r/Protocol? p)
-                                                                 (= (:the-var p) (:the-var t)))
-                                                        p))
-                                                    (map c/fully-resolve-type (datatype-ancestors s)))]
+                                                      (let [p (c/fully-resolve-type p)]
+                                                        (when (and (r/Protocol? p)
+                                                                   (= (:the-var p) (:the-var t)))
+                                                          p)))
+                                                    (datatype-ancestors s))]
                (cond 
                  ; the extension is via the protocol
                  (or in-protocol-extenders?
                      ; extension via the protocol's interface, or explicitly overriden
                      relevant-datatype-ancestor)
-                 (let [relevant-protocol-extender (if relevant-datatype-ancestor
-                                                    relevant-datatype-ancestor
-                                                    (c/DataType-with-unknown-params (:the-class s)))]
+                 (let [relevant-protocol-extender (or relevant-datatype-ancestor
+                                                      (c/DataType-with-unknown-params (:the-class s)))]
                    (if (subtypeA* A s relevant-protocol-extender)
                      A
                      (report-not-subtypes s t)))
@@ -1456,13 +1460,15 @@
    {cls2 :the-class poly2 :poly? :as t}]
   {:pre [(every? r/DataType? [s t])]}
   (if (and (= cls1 cls2)
-           (every? (fn [[v l r]]
-                     (case v
-                       :covariant (subtypeA* A l r)
-                       :contravariant (subtypeA* A r l)
-                       :invariant (and (subtypeA* A l r)
-                                       (subtypeA* A r l))))
-                   (map vector (:variances s) poly1 poly2)))
+           ;; TODO create varargs `every?`
+           (every? identity
+                   (map (fn [v l r]
+                          (case v
+                            :covariant (subtypeA* A l r)
+                            :contravariant (subtypeA* A r l)
+                            :invariant (and (subtypeA* A l r)
+                                            (subtypeA* A r l))))
+                        (:variances s) poly1 poly2)))
     A
     (report-not-subtypes s t)))
 
@@ -1568,9 +1574,8 @@
    {supper :upper slower :lower :as s}
    {tupper :upper tlower :lower :as t}]
   (if (and (<= tlower slower)
-           (if tupper
-             (and supper (<= supper tupper))
-             true))
+           (or (not tupper)
+               (and supper (<= supper tupper))))
     A
     (report-not-subtypes s t)))
 

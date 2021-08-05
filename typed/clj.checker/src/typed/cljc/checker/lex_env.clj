@@ -25,7 +25,7 @@
 (def alias-env? (con/hash-c? con/local-sym? obj/RObject?))
 
 (u/def-type PropEnv [l props aliases]
-  "A lexical environment l, props is a list of known propositions"
+  "A lexical environment l, props is a set of known propositions"
   [(lex-env? l)
    (prop-set? props)
    (alias-env? aliases)])
