@@ -43,7 +43,6 @@
    :cognitect-test-runner-sha "4e7e1c0dfd5291fa2134df052443dc29695d8cbe"
    :codox-mvn-version "0.10.7"
    :kaocha-git-url "https://github.com/lambdaisland/kaocha.git"
-   :kaocha-sha "6b9f64007e2008559863c7673adc5a002f41da25"
-   :kaocha-tag "v1.0.861"
+   :kaocha-sha "58d7870e65b925de5ddf029eb95b699d4fe77a78"
    :typedclojure-homepage "https://typedclojure.org"
    })

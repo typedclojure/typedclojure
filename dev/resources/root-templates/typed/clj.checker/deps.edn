@@ -41,8 +41,8 @@
     {◊typedclojure-group-id◊}/typed.clj.spec {:local/root "../clj.spec" :deps/manifest :deps}}},
   :kaocha
   {:extra-deps {lambdaisland/kaocha {:git/url "{◊kaocha-git-url◊}"
-                                     :sha "{◊kaocha-sha◊}"
-                                     :tag "{◊kaocha-tag◊}"}}}
+                                     ;; https://github.com/lambdaisland/kaocha/issues/208#issuecomment-822844384
+                                     :sha "{◊kaocha-sha◊}"}}}
   :codox
   {:extra-deps {codox/codox {:mvn/version "{◊codox-mvn-version◊}"}}
    :extra-paths ["script"]
