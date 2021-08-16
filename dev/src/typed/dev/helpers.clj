@@ -22,7 +22,7 @@
    :typedclojure-git-https-url "https://github.com/typedclojure/typedclojure"
    :typedclojure-alpha-spec-git-sha "9da58ec60f5a4a3bfc61fa19f54bf1d160b49dfc"
    :typedclojure-group-id "org.typedclojure"
-   :core-memoize-mvn-version "1.0.236"
+   :core-memoize-mvn-version "1.0.250"
    :nrepl-mvn-version "0.8.3"
    :tools-namespace-mvn-version "1.1.0"
    :asm-mvn-version "5.2"
@@ -31,7 +31,7 @@
    :potemkin-mvn-version "0.4.5"
    :math-combinatorics-mvn-version "0.1.6"
    :tools-reader-mvn-version "1.3.6"
-   :core-cache-mvn-version "1.0.207"
+   :core-cache-mvn-version "1.0.217"
    :core-async-mvn-version "1.3.618"
    ;; FIXME clj.checker fails on higher
    :tools-nrepl-mvn-version "0.2.6"
