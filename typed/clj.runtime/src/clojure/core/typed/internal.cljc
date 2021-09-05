@@ -47,33 +47,40 @@
                                 #(or % blame-form))))
                  dform))
 
+(defn visit-fn-methods-destructuring
+  [methods visitor]
+  (-> (map (fn [arity]
+             (assert (seq arity))
+             (-> (map-indexed 
+                   (fn [i form]
+                     (case (int i)
+                       0 (do (assert (vector? form))
+                             (into (empty form)
+                                   (map (fn [maybe-destructuring]
+                                          (cond-> maybe-destructuring
+                                            (not= '& maybe-destructuring) visitor)))
+                                   form))
+                       form))
+                   arity)
+                 doall
+                 (with-meta (meta arity))))
+           methods)
+      doall
+      (with-meta (meta methods))))
+
 (defn visit-fn-destructuring
   "Call visitor on all destructuring forms in first arg, a clojure.core/fn form."
   [[op & forms :as form] visitor]
-  {:pre [(#{"fn"} (name op))]}
+  {:pre [(#{"fn"} (name op))]
+   :post [(= % form)]}
   ;(prn "visit-fn-destructuring" form)
   (let [[nme forms] (take-when symbol? forms)
         single-arity-syntax? (vector? (first forms))
         methods (cond-> forms
                   single-arity-syntax? list)
-        visited-methods (-> (map (fn [arity]
-                                   (assert (seq arity))
-                                   (-> (map-indexed 
-                                         (fn [i form]
-                                           (case (int i)
-                                             0 (do (assert (vector? form))
-                                                   (into (empty form)
-                                                         (map (fn [maybe-destructuring]
-                                                                (cond-> maybe-destructuring
-                                                                  (not= '& maybe-destructuring) visitor)))
-                                                         form))
-                                             form))
-                                         arity)
-                                       doall
-                                       (with-meta (meta arity))))
-                                 methods)
-                            doall
-                            (with-meta (meta methods)))
+        visited-methods (visit-fn-methods-destructuring
+                          methods
+                          visitor)
         form (-> (list* op
                         (concat
                           (some-> nme list)
@@ -83,12 +90,49 @@
     ;(prn "visit-fn-destructuring" form)
     form))
 
+(defn visit-defn-destructuring
+  "Call visitor on all destructuring forms in first arg, a clojure.core/defn form."
+  [[op & forms :as form] visitor]
+  {:pre [(#{"defn"} (name op))]
+   :post [(= % form)]}
+  ;(prn "visit-fn-destructuring" form)
+  (let [[nme forms] (take-when symbol? forms)
+        _ (assert (symbol? nme) (str "Missing name symbol in defn: " form))
+        [doc forms] (take-when string? forms)
+        single-arity-syntax? (vector? (first forms))
+        [trailing-map forms] (let [trailing-map (last forms)]
+                               (if (map? trailing-map)
+                                 [trailing-map (butlast forms)]
+                                 [nil forms]))
+        methods (cond-> forms
+                  single-arity-syntax? list)
+        visited-methods (visit-fn-methods-destructuring
+                          methods
+                          visitor)
+        form (-> (list* op
+                        (concat
+                          (some-> nme list)
+                          (some-> doc list)
+                          (cond-> visited-methods
+                            single-arity-syntax? first)
+                          (some-> trailing-map list)))
+                 (with-meta (meta form)))]
+    ;(prn "visit-defn-destructuring" form)
+    form))
+
 (defn add-fn-destructure-blame-form
   "Add destructuring blame forms to the provided clojure.core/fn form."
   ([fn-form] (add-fn-destructure-blame-form fn-form fn-form))
   ([fn-form blame-form]
    (-> fn-form
        (visit-fn-destructuring #(add-destructure-blame-form % blame-form)))))
+
+(defn add-defn-destructure-blame-form
+  "Add destructuring blame forms to the provided clojure.core/defn form."
+  ([defn-form] (add-defn-destructure-blame-form defn-form defn-form))
+  ([defn-form blame-form]
+   (-> defn-form
+       (visit-defn-destructuring #(add-destructure-blame-form % blame-form)))))
 
 (defn parse-fn*
   "(fn name? [[param :- type]* & [param :- type *]?] :- type? exprs*)

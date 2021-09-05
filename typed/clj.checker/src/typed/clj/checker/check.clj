@@ -2097,18 +2097,18 @@
 
 (defmethod -check :def
   [{:keys [var env] :as expr} expected]
-  ; annotation side effect
-  (let [prs-ns (cu/expr-ns expr)]
-    (let [mvar (meta var)
-          qsym (coerce/var->symbol var)]
-      (when-let [[_ tsyn] (find mvar :ann)]
-        (let [ann-type (binding [vs/*current-env* env
-                                 prs/*parse-type-in-ns* prs-ns]
-                         (prs/parse-type tsyn))]
-          (var-env/add-var-type qsym ann-type)))
-      (when (:no-check mvar)
-        (var-env/add-nocheck-var qsym))))
-  (def/check-def check-expr expr expected))
+  (let [prs-ns (cu/expr-ns expr)
+        mvar (meta var)
+        qsym (coerce/var->symbol var)]
+    ; annotation side effect
+    (when-let [[_ tsyn] (find mvar :ann)]
+      (let [ann-type (binding [vs/*current-env* env
+                               prs/*parse-type-in-ns* prs-ns]
+                       (prs/parse-type tsyn))]
+        (var-env/add-var-type qsym ann-type)))
+    (when (:no-check mvar)
+      (var-env/add-nocheck-var qsym))
+    (def/check-def check-expr expr expected)))
 
 (defmethod -check :deftype
   [{:keys [fields methods env] :as expr} expected]

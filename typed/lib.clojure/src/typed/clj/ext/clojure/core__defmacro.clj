@@ -13,7 +13,7 @@
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.utils :as u]))
 
-;;==================
+;;======================
 ;; clojure.core/defmacro
 
 (defn defuspecial__defmacro
