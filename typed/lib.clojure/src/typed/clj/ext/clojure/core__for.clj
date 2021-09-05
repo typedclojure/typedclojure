@@ -35,17 +35,21 @@
   (prs/parse-clj
     `(t/All [a#] [(t/U nil (t/Seqable a#)) :-> a#])))
 
-;; see also clojure.core.typed.expand
-(defn defuspecial__for
-  "defuspecial implementation for clojure.core/for"
-  [{ana-env :env :keys [form] :as expr} expected]
-  (let [_ (assert (= 3 (count form)) form)
-        [args-syn body-syn] (next form)
-        _ (assert (vector? args-syn) args-syn)
-        _ (assert (seq args-syn))
-        _ (assert (even? (count args-syn)) args-syn)
+(defn check-list-comprehension-binder
+  [{:keys [form args-syn ana-env prop-env]}]
+  {:pre [(seq? form)
+         (seq form)
+         (symbol? (first form))
+         (map? ana-env)
+         (lex/PropEnv? prop-env)]
+   :post [((con/hmap-c? :prop-env lex/PropEnv? :ana-env map? :new-syms set?
+                        :expanded-bindings vector? :reachable boolean?)
+           %)]}
+  (let [_ (assert (vector? args-syn) (str "List comprehension binder must be vector: " form))
+        _ (assert (seq args-syn) (str "List comprehension binder must be non-empty: " form))
+        _ (assert (even? (count args-syn)) (str "List comprehension binder must have even count: " form))
         kvs (partition 2 args-syn)
-        {:keys [new-syms expanded-bindings prop-env ana-env reachable]}
+        {:keys [new-syms expanded-bindings prop-env ana-env reachable] :as res}
         (reduce (fn [{:keys [new-syms expanded-bindings prop-env ana-env reachable] :as context} [k v]]
                   {:pre [(vector? expanded-bindings)
                          (set? new-syms)
@@ -75,9 +79,9 @@
                                          maybe-reduced))
                     :let (let [bvec v
                                _ (assert (vector? bvec)
-                                         (str "Expected binding vector as :let argument of clojure.core/for:" (pr-str bvec)))
+                                         (str "Expected binding vector as :let argument: " form))
                                _ (assert (even? (count bvec))
-                                         (str "Uneven binding vector passed to :let in clojure.core/for: " bvec))
+                                         (str "Uneven binding vector passed to :let: " form))
                                {:keys [new-syms prop-env ana-env expanded-bindings reachable] :as lb-res}
                                (ext-let/check-let-bindings
                                  (select-keys context #{:new-syms :prop-env :ana-env})
@@ -90,7 +94,7 @@
                                (update :expanded-bindings conj k expanded-bindings)
                                maybe-reduced))
                     (if (keyword? k)
-                      (throw (Exception. (str "Invalid 'for' keyword: " k)))
+                      (throw (Exception. (format "Invalid '%s' keyword: %s" (first form) k)))
                       (let [cv (var-env/with-lexical-env prop-env
                                  (-> v
                                      (ana2/unanalyzed ana-env)
@@ -100,8 +104,9 @@
                                               (-seqable-elem-query))
                                             (r/ret
                                               (err/tc-delayed-error
-                                                (str "Right hand side of 'for' clause must be seqable: "
-                                                     (-> cv u/expr-type :t prs/unparse-type))
+                                                (format "Right hand side of '%s' clause must be seqable: %s"
+                                                        (first form)
+                                                        (-> cv u/expr-type :t prs/unparse-type))
                                                 :form v)))
                             is-reachable (atom reachable)
                             updated-context (ext-let/update-destructure-env prop-env ana-env k nil binding-ret is-reachable)
@@ -115,10 +120,25 @@
                             maybe-reduced)))))
                 {:expanded-bindings []
                  :new-syms #{}
-                 :prop-env (lex/lexical-env)
+                 :prop-env prop-env
                  :ana-env ana-env
                  :reachable true}
-                kvs)
+                kvs)]
+    (-> res
+        (update :expanded-bindings ext-let/pad-vector args-syn))))
+
+;; see also clojure.core.typed.expand
+(defn defuspecial__for
+  "defuspecial implementation for clojure.core/for"
+  [{ana-env :env :keys [form] :as expr} expected]
+  (let [_ (assert (= 3 (count form)) form)
+        [args-syn body-syn] (next form)
+        {:keys [new-syms expanded-bindings prop-env ana-env reachable]}
+        (check-list-comprehension-binder 
+          {:form form
+           :args-syn args-syn
+           :ana-env ana-env
+           :prop-env (lex/lexical-env)})
         expr (-> expr
                  (update :form
                          (fn [form]
@@ -126,14 +146,15 @@
                                  (fn [i args-syn]
                                    ;; add back short-circuited args
                                    (case i
-                                     1 (ext-let/pad-vector expanded-bindings args-syn)
+                                     1 expanded-bindings
                                      args-syn))
                                  form)
                                (with-meta (meta form))))))]
         (if-not reachable
           (assoc expr
                  u/expr-type (below/maybe-check-below
-                               (r/ret (c/-name `t/ASeq r/-nothing))
+                               (r/ret (c/-name `t/ASeq r/-nothing)
+                                      (fo/-true-filter))
                                expected))
           (let [body-expected (some-> expected
                                       (cgen/solve (-seqable-elem-query)))
@@ -155,5 +176,3 @@
                                  (r/ret (c/-name `t/ASeq (r/ret-t unshadowed-ret))
                                         (fo/-true-filter))
                                  expected))))))
-
-

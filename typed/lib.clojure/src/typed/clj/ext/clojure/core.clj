@@ -8,28 +8,19 @@
 
 (ns ^:no-doc typed.clj.ext.clojure.core
   "Typing rules for base Clojure distribution."
-  (:require [clojure.core.typed.internal :as internal]
-            [typed.clj.checker.check :refer [check-expr defuspecial -unanalyzed-special]]
-            [typed.cljc.analyzer :as ana2]))
+  (:require [typed.clj.checker.check :as chk]))
 
 (defmacro install-unanalyzed-special [v impl]
   {:pre [(qualified-symbol? impl)]}
-  `(defmethod -unanalyzed-special ~v
+  `(defmethod chk/-unanalyzed-special ~v
      [expr# expected#]
      ((requiring-resolve '~impl) expr# expected#)))
 
 (defmacro install-defuspecial [v impl]
   {:pre [(qualified-symbol? impl)]}
-  `(defuspecial ~v
+  `(chk/defuspecial ~v
      [expr# expected#]
      ((requiring-resolve '~impl) expr# expected#)))
-
-;;==================
-;; clojure.core/ns
-
-(install-unanalyzed-special
-  'clojure.core/ns
-  typed.clj.ext.clojure.core__ns/-unanalyzed-special__ns)
 
 ;;==================
 ;; clojure.core/defmacro
@@ -39,11 +30,18 @@
   typed.clj.ext.clojure.core__defmacro/defuspecial__defmacro)
 
 ;;==================
-;; clojure.core/let
+;; clojure.core/doseq
 
 (install-defuspecial
-  'clojure.core/let
-  typed.clj.ext.clojure.core__let/defuspecial__let)
+  'clojure.core/doseq
+  typed.clj.ext.clojure.core__doseq/defuspecial__doseq)
+
+;; ============================
+;; clojure.core/fn
+
+(install-defuspecial
+  'clojure.core/fn
+  typed.clj.ext.clojure.core__fn/defuspecial__fn)
 
 ;;==================
 ;; clojure.core/for
@@ -52,12 +50,16 @@
   'clojure.core/for
   typed.clj.ext.clojure.core__for/defuspecial__for)
 
-;; ============================
-;; clojure.core/fn
+;;==================
+;; clojure.core/let
 
-(defuspecial 'clojure.core/fn
-  [expr expected]
-  (-> expr
-      (update :form internal/add-fn-destructure-blame-form)
-      ana2/analyze-outer
-      (check-expr expected)))
+(install-defuspecial
+  'clojure.core/let
+  typed.clj.ext.clojure.core__let/defuspecial__let)
+
+;;==================
+;; clojure.core/ns
+
+(install-unanalyzed-special
+  'clojure.core/ns
+  typed.clj.ext.clojure.core__ns/-unanalyzed-special__ns)
