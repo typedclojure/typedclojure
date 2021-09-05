@@ -152,4 +152,13 @@
                     "[a]")
                   {:type-error :clojure.core.typed.errors/tc-error-parent
                    :form '(cc/fn [[a]])}]]})))
+  (testing "defn"
+    (is (= (is-tc-err-messages
+             (do (t/ann foo [(t/Set t/Any) :-> t/Any])
+                 (cc/defn foo [[a]])))
+           {:ex [[(ext-let/bad-vector-destructure-error-msg
+                    "(IPersistentSet Any)"
+                    "[a]")
+                  {:type-error :clojure.core.typed.errors/tc-error-parent
+                   :form '(cc/defn foo [[a]])}]]})))
   )
