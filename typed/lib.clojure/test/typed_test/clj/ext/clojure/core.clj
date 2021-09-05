@@ -3,7 +3,7 @@
             [clojure.core.typed :as t]
             [clojure.string :as str]
             [typed.clj.checker.parse-unparse :as prs]
-            [typed.clj.ext.clojure.core :as extcc]
+            [typed.clj.ext.clojure.core__let :as ext-let]
             [clojure.core.typed.test.test-utils :refer :all]))
 
 (defn eval-in-ns [form]
@@ -140,7 +140,76 @@
                                             (repeat 20 {:b 2}))]
                [a b])
              (t/Seq '[t/Int 
-                      t/Int])))
+                      t/Int]))
+  ;; :when
+  (is-tc-e (cc/for [{:keys [a b] :as c} (cons nil
+                                              (concat (repeat 20 {:a 1})
+                                                      (repeat 20 {:b 2})))
+                    :when 1]
+             [a b])
+           (t/Seq '[(t/Option t/Int) 
+                    (t/Option t/Int)]))
+  (is-tc-e (cc/for [{:keys [a b] :as c} (cons nil
+                                              (concat (repeat 20 {:a 1})
+                                                      (repeat 20 {:b 2})))
+                    ;; FIXME occurrence typing enhancemnet: `:when c` should be sufficient
+                    :when (and a b c)]
+             [a b])
+           (t/Seq '[t/Int 
+                    t/Int]))
+  (is-tc-e (cc/for [[a b] [[1 2] [:a :b]]
+                    :when (false? :a)]
+             [a b])
+           (t/Seq '[t/Int 
+                    t/Int]))
+  ;; :while
+  (is-tc-e (cc/for [{:keys [a b] :as c} (cons nil
+                                              (concat (repeat 20 {:a 1})
+                                                      (repeat 20 {:b 2})))
+                    :while 1]
+             [a b])
+           (t/Seq '[(t/Option t/Int) 
+                    (t/Option t/Int)]))
+  (is-tc-e (cc/for [{:keys [a b] :as c} (cons nil
+                                              (concat (repeat 20 {:a 1})
+                                                      (repeat 20 {:b 2})))
+                    ;; FIXME occurrence typing enhancemnet: `:when c` should be sufficient
+                    :while (and a b c)]
+             [a b])
+           (t/Seq '[t/Int 
+                    t/Int]))
+  (is-tc-e (cc/for [[a b] [[1 2] [:a :b]]
+                    :while (false? :a)]
+             [a b])
+           (t/Seq '[t/Int 
+                    t/Int]))
+  ;; :let
+  (is-tc-e (cc/for [[a b] [[1 2]]
+                    :let [a-old a
+                          a b
+                          b a-old]]
+             [a b])
+           (t/Seq '[(t/Val 2) 
+                    (t/Val 1)]))
+  #_ ;;FIXME
+  (is-tc-e (cc/for [[a b] [nil]
+                    :let [_ (assert (= 42 a))]]
+             [a b])
+           (t/Seq '[(t/Val 42) 
+                    nil]))
+  #_ ;;FIXME
+  (is-tc-e (cc/for [[a b] [nil]
+                    :let [a (or a 42)]]
+             [a b])
+           (t/Seq '[(t/Val 42) 
+                    nil]))
+  #_ ;;FIXME
+  (is-tc-e (cc/for [[a b] [[1 2]]
+                    :let [a (or a 42)]]
+             [a b])
+           (t/Seq '[(t/Val 42) 
+                    nil]))
+  )
 
 (deftest let-test
   (is-tc-e (let [a 1] a) t/Int)
@@ -205,13 +274,27 @@
       (tc-ignore (assert (seq? e) (pr-str e))
                  (assert (= [1 2 3 4 5 6 7] e) (pr-str e)))))
 
-  (is (t/check-ns 'typed-test.clj.ext.clojure.core.succeed.destructure)))
+  (is (t/check-ns 'typed-test.clj.ext.clojure.core.succeed.destructure))
+  ;;TODO improve inference
+  #_
+  (is-tc-e (let [[a b] nil] [a b])
+           '[nil nil])
+  #_ ;;FIXME
+  (is-tc-e (let [;; erase object
+                 [a b] (t/ann-form nil nil)
+                 a (or a 42)]
+             a)
+           (t/Val 42)))
 
 (deftest let-tag-test
   (is-tc-e (let [a "a"]
              (.startsWith a "b")))
   (is-tc-e (let [a (let [foo 1] "a")]
-             (.startsWith a "b"))))
+             (.startsWith a "b")))
+  ;; ensure inferred :tag is not propagated to final expansion.
+  ;; this would otherwise fail to expand, complaining about primitive
+  ;; type hints on locals.
+  (is-tc-e (let [foo 1])))
 
 (deftest defmulti-expansion-test
   (is-tc-e (let [v (def some-var)]
@@ -332,7 +415,7 @@
   (is (= (is-tc-err-messages
            #(let [[a] #{1}]
               a))
-         {:ex [[(extcc/bad-vector-destructure-error-msg
+         {:ex [[(ext-let/bad-vector-destructure-error-msg
                   "(HSet #{1})"
                   "[a]")
                 {:type-error :clojure.core.typed.errors/tc-error-parent
@@ -341,7 +424,7 @@
   (is (= (is-tc-err-messages
            #(let [{[a] :foo} {:foo #{1}}]
               a))
-         {:ex [[(extcc/bad-vector-destructure-error-msg
+         {:ex [[(ext-let/bad-vector-destructure-error-msg
                   "(HSet #{1})"
                   "[a]")
                 {:type-error :clojure.core.typed.errors/tc-error-parent
@@ -350,7 +433,7 @@
   (is (= (is-tc-err-messages
            #(cc/for [[a] [#{1}]]
               a))
-         {:ex [[(extcc/bad-vector-destructure-error-msg
+         {:ex [[(ext-let/bad-vector-destructure-error-msg
                   "(HSet #{1})"
                   "[a]")
                 {:type-error :clojure.core.typed.errors/tc-error-parent
@@ -359,7 +442,7 @@
   (is (= (is-tc-err-messages
            #(cc/for [{[a] :foo} [{:foo #{1}}]]
               a))
-         {:ex [[(extcc/bad-vector-destructure-error-msg
+         {:ex [[(ext-let/bad-vector-destructure-error-msg
                   "(HSet #{1})"
                   "[a]")
                 {:type-error :clojure.core.typed.errors/tc-error-parent
@@ -368,7 +451,7 @@
   (is (= (is-tc-err-messages
            (ann-form (cc/fn [[a]])
                      [(t/Set t/Any) -> t/Any]))
-         {:ex [[(extcc/bad-vector-destructure-error-msg
+         {:ex [[(ext-let/bad-vector-destructure-error-msg
                   "(IPersistentSet Any)"
                   "[a]")
                 {:type-error :clojure.core.typed.errors/tc-error-parent

@@ -1,3 +1,4 @@
 - improve destructuring error messages for:
   - clojure.core/fn
   - clojure.core.typed/fn
+- support :when/:while/:let in clojure.core/for typing rule

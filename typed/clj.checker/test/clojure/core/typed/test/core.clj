@@ -53,11 +53,6 @@
   (:import (clojure.lang ISeq IPersistentVector Atom IPersistentMap
                          ExceptionInfo Var Seqable)))
 
-;Aliases used in unit tests
-(defmacro is-with-aliases [tst]
-  `(do (check-ns '~'clojure.core.typed.test.util-aliases)
-       (is-clj ~tst)))
-
 (defmacro is-tc-e-with-aliases [& body]
   `(is-clj (do (check-ns '~'clojure.core.typed.test.util-aliases)
                (tc-e ~@body)
@@ -732,32 +727,6 @@
                       :filter (-true-filter)))
                   (-true-filter) -empty))))
 
-(deftest update-with-filter-test
-  (is-clj (= (update-with-filter
-               (Un (make-HMap :mandatory {(-val :type) (-val :Map1)})
-                   (make-HMap :mandatory {(-val :type) (-val :Map2)}))
-               (-filter (-val :Map1) 'tmap [(-kpe :type)]))
-             (make-HMap :mandatory {(-val :type) (-val :Map1)})))
-  ;test that update-with-filter resolves Names properly
-  (is-with-aliases (= (update-with-filter
-                        (Name-maker 'clojure.core.typed.test.util-aliases/MapStruct2)
-                        (-filter (-val :MapStruct1) 'tmap [(-kpe :type)]))
-                      (Un)))
-  ;test that update-with-filter resolves Names properly
-  ; here we refine the type of tmap with the equivalent of following the then branch 
-  ; with test (= :MapStruct1 (:type tmap))
-  (is-with-aliases (= (update-with-filter
-                        (Name-maker 'clojure.core.typed.test.util-aliases/UnionName)
-                        (-filter (-val :MapStruct1) 'tmap [(-kpe :type)]))
-                      (make-HMap :mandatory {(-val :type) (-val :MapStruct1) 
-                                             (-val :a) (Name-maker 'clojure.core.typed.test.util-aliases/MyName)})))
-  (is-with-aliases (= (update-with-filter
-                        (Name-maker 'clojure.core.typed.test.util-aliases/UnionName)
-                        (-not-filter (-val :MapStruct1) 'tmap [(-kpe :type)]))
-                      (make-HMap :mandatory {(-val :type) (-val :MapStruct2) 
-                                             (-val :b) (Name-maker 'clojure.core.typed.test.util-aliases/MyName)})))
-  (is-clj (= (update-with-filter (Un -true -false) (-filter (Un -false -nil) 'a nil)) 
-             -false)))
 
 (deftest assoc-test
   (is-clj (= (tc-t (assoc {} :a :b))
@@ -1376,31 +1345,6 @@
 ;             (-filter (RClass-of String) 'id2 [(-kpe :a) (-kpe :b)]))))
   )
 
-(deftest or-filter-update-with-filter-test
-  (is-clj (= (update-with-filter
-               -any
-               (-or (-filter (RClass-of clojure.lang.Symbol) 'id)
-                    (-filter (RClass-of String) 'id)))
-             (Un (RClass-of clojure.lang.Symbol)
-                 (RClass-of String)))))
-
-(deftest path-update-test
-  (is-clj 
-    (both-subtype? (update-with-filter
-                     (Un -nil (make-HMap :mandatory {(-val :foo) (RClass-of Number)}))
-                     (-filter (Un -false -nil) 'id [(-kpe :foo)]))
-                   -nil))
-  (is-clj 
-    (both-subtype? (update-with-filter
-                     (Un -nil (make-HMap :mandatory {(-val :foo) (RClass-of Number)}))
-                     (-not-filter (Un -false -nil) 'id [(-kpe :foo)]))
-                   (make-HMap :mandatory {(-val :foo) (RClass-of Number)})))
-  ; if (:foo a) is nil, either a has a :foo entry with nil, or no :foo entry
-  (is-clj (both-subtype? (update-with-filter
-                           (make-HMap)
-                           (-filter -nil 'id [(-kpe :foo)]))
-                         (make-HMap :optional {(-val :foo) -nil}))))
-
 (deftest instance-field-test
   (is-tc-e (.ns ^clojure.lang.Var #'clojure.core/map))
   (is-tc-err (fn [] (.ns ^clojure.lang.Var 'a))))
@@ -1521,38 +1465,6 @@
              as))
   )
 
-(deftest keys-vals-update-test
-  (is-clj (both-subtype? 
-            (update-with-filter
-              (RClass-of IPersistentMap [-any -any])
-              (-filter (RClass-of Seqable [(RClass-of Number)])
-                       'a [(KeysPE-maker)]))
-            (RClass-of IPersistentMap [(RClass-of Number) -any])))
-  ; test with = instead of subtype to catch erroneous downcast to (IPersistentMap clojure.core.typed/Nothing clojure.core.typed/Any)
-  (is-clj (both-subtype?
-            (-> 
-              (tc-t (let [m (clojure.core.typed/ann-form {} (clojure.lang.IPersistentMap clojure.core.typed/Any clojure.core.typed/Any))]
-                      (assert (every? number? (keys m)))
-                      m))
-              ret-t)
-            (parse-type `(clojure.lang.IPersistentMap Number Any))))
-  (is-clj (both-subtype? 
-            (-> (tc-t (let [m (clojure.core.typed/ann-form {} (clojure.lang.IPersistentMap clojure.core.typed/Any clojure.core.typed/Any))]
-                        (assert (every? number? (keys m)))
-                        (assert (every? number? (vals m)))
-                        m))
-                ret-t)
-            (parse-type `(clojure.lang.IPersistentMap Number Number))))
-  (is-cf (fn [m]
-            {:pre [(every? number? (vals m))]}
-            m)
-          [(clojure.lang.IPersistentMap clojure.core.typed/Any clojure.core.typed/Any) -> (clojure.lang.IPersistentMap clojure.core.typed/Any Number)])
-  (is-cf (fn [m]
-            {:pre [(every? symbol? (keys m))
-                   (every? number? (vals m))]}
-            m)
-          [(clojure.lang.IPersistentMap clojure.core.typed/Any clojure.core.typed/Any) -> (clojure.lang.IPersistentMap clojure.lang.Symbol Number)]))
-
 ; a sanity test for intersection cache collisions
 (deftest intersect-cache-test
   (is-clj (=
@@ -1562,7 +1474,6 @@
                 [no-bounds no-bounds]
                 (In (make-F 'x) (make-F 'y))))
        (In (make-F 'foo1) (make-F 'foo2)))))
-
 
 (deftest CTYP-27-nth-inline-test
   (is-tc-e (fn [s] (clojure.lang.RT/nth s 0 nil))
@@ -2388,11 +2299,6 @@
 ;  (ret (-hvec [-any] :filters [(-FS (-filter (parse-clj 'Number) 'a) -top)] :objects [(-path nil 'a)])
 ;       (-FS (-filter (parse-clj 'Number) 'a) -top))
 ;  ['a])
-;
-;(ety (fn [a] [a]))
-;
-;(impl/with-clojure-impl
-;  (update-with-filter -any (-filter (-val clojure.core.typed.test.mm.FooRec) 'arg [(->ClassPE)])))
 
 
 ;TODO support (some #{...} coll)
@@ -2403,55 +2309,6 @@
   (is (check-ns 'clojure.core.typed.test.def-arrow))
   (is-tc-e (clojure.core.typed/def a :- Num 1)
            (Var1 Num)))
-
-(deftest nested-keyword-update-test
-  ; ordinary IPersistentMap does not get updated
-  (is-tc-e (fn []
-             (let [a :- (Map Any Any) {}]
-               (if (number? (-> a :a :b))
-                 a
-                 (assert nil))))
-           [-> (Map Any Any)])
-  ; HMaps can gain "one level" of known entries.
-  (is-tc-e (fn []
-             (let [a :- '{} {}]
-               (if (number? (-> a :a :b))
-                 a
-                 (assert nil))))
-           [-> (HMap :optional {:a Any})])
-  ; update-with-filter a (HMap) with (is clojure.core.typed/Any a [(Key :a) (Key :b)])
-  ; returns a (HMap :optional {:a clojure.core.typed/Any})
-  ; Only one level is updated, we can't say any more about the inner
-  ; :b key.
-  (is-clj  (let [t (parse-clj '(HMap))
-                 path [(-kpe :a) (-kpe :b)]
-                 lo+ (-filter (parse-clj 'Number) 'a path)
-                 lo- (-not-filter (parse-clj 'Number) 'a path)
-                 expected+ (parse-clj `(HMap :optional {:a Any}))
-                 expected- (parse-clj `(HMap :optional {:a Any}))]
-             (and (both-subtype? (update-with-filter t lo+) expected+)
-                  (both-subtype? (update-with-filter t lo-) expected+))))
-  ; negative absent keys. The absent entry :a is not a Number (KeyPE does not support defaults), so we
-  ; just return the original type
-  (is-clj (let [t (parse-type `(HMap :absent-keys #{:a}))]
-            (= t
-               (update-with-filter t (-not-filter (RClass-of Number) 'a [(-kpe :a) (-kpe :b)])))))
-
-  ; When we update-with-filter a (HMap) that has no information about an :a key, sometimes we can prove
-  ; the updated type always has an :a key.
-  ;
-  ; Here we restrict to a '{:a Number} because the path is a Number, which is never nil. We assume
-  ; nil is the not-found type.
-  (is-clj (let [t (parse-type `(HMap))]
-            (both-subtype? (parse-type `(HMap :mandatory {:a Num}))
-                           (update-with-filter t (-filter (RClass-of Number) 'a [(-kpe :a)])))))
-
-  ; We restrict (HMap) to (HMap :optional {:a clojure.core.typed/Any}), which is slightly less accurate, because
-  ; we can't prove that the HMap :a entry is never nil. 
-  (is-clj (let [t (parse-type '(HMap))]
-            (both-subtype? (parse-type `(HMap :optional {:a Any}))
-                           (update-with-filter t (-not-filter (RClass-of Number) 'a [(-kpe :a)]))))))
-
 
 (deftest poly-inst-scoping-test
   (is-tc-e (fn [a] (inst identity foo))

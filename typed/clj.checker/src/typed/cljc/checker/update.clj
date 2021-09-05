@@ -154,8 +154,8 @@
 
       ; unwrap unions and intersections to update their members
 
-      (or (r/Union? t)        
-          (r/Intersection? t)) 
+      (or (r/Union? t)
+          (r/Intersection? t))
       (apply (if (r/Union? t) c/Un c/In)
              (map #(update* % ft pos? lo) (:types t)))
 
@@ -183,7 +183,7 @@
         ; 3. the key is not declared present, and is not declared absent
         (cond
           present?
-            ; -hmap simplifies to bottom if an entry is bottom
+            ; make-HMap simplifies to bottom if a mandatory entry is bottom
             (c/make-HMap
               :mandatory (update (:types t) fpth update-inner)
               :optional (:optional t)
@@ -223,7 +223,7 @@
       ; nil returns nil on keyword lookups
       (and (not pos?)
            (pe/KeyPE? (first lo))
-           (sub/subtype? t r/-nil))
+           (r/Nil? t))
       (update* r/-nil ft pos? (next lo))
 
       ; update count information based on a call to `count`

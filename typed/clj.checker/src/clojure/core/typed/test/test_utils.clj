@@ -248,3 +248,8 @@
      (load/install-typed-load)
      (with-redefs [load #'lang/extensible-load]
        ~@body)))
+
+;Aliases used in unit tests
+(defmacro is-with-aliases [tst]
+  `(do (t/check-ns '~'clojure.core.typed.test.util-aliases)
+       (is-clj ~tst)))

@@ -43,7 +43,7 @@
   (walk/postwalk (fn [dform]
                    (cond-> dform
                      (instance? IObj dform)
-                     (vary-meta update :typed.clj.ext.clojure.core/destructure-blame-form
+                     (vary-meta update ::destructure-blame-form
                                 #(or % blame-form))))
                  dform))
 
