@@ -6,19 +6,19 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc typed.clj.ext.clojure.core__defn
-  "Typing rules for clojure.core/defn"
+(ns ^:no-doc typed.clj.ext.clojure.core__defmethod
+  "Typing rules for clojure.core/defmethod"
   (:require [clojure.core.typed.internal :as internal]
             [typed.clj.checker.check :as chk]
             [typed.cljc.analyzer :as ana2]))
 
 ;;==================
-;; clojure.core/defn
+;; clojure.core/defmethod
 
-(defn defuspecial__defn
-  "defuspecial implementation for clojure.core/defn"
+(defn defuspecial__defmethod
+  "defuspecial implementation for clojure.core/defmethod"
   [{:keys [form] :as expr} expected]
   (-> expr
-      (update :form internal/add-defn-destructure-blame-form)
+      (update :form internal/add-defmethod-destructure-blame-form)
       ana2/analyze-outer
       (chk/check-expr expected)))

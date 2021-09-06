@@ -4,3 +4,4 @@
 - support :when/:while/:let in clojure.core/for typing rule
 - create type rule for clojure.core/doseq with destructuring and support for all options
 - create type rule for clojure.core/defn with improved destructuring error messages
+- create type rule for clojure.core/defmethod with improved destructuring error messages

@@ -30,6 +30,13 @@
   typed.clj.ext.clojure.core__defmacro/defuspecial__defmacro)
 
 ;;==================
+;; clojure.core/defmethod
+
+(install-defuspecial
+  'clojure.core/defmethod
+  typed.clj.ext.clojure.core__defmethod/defuspecial__defmethod)
+
+;;==================
 ;; clojure.core/defn
 
 (install-defuspecial

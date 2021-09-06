@@ -161,4 +161,14 @@
                     "[a]")
                   {:type-error :clojure.core.typed.errors/tc-error-parent
                    :form '(cc/defn foo [[a]])}]]})))
+  (testing "defmethod"
+    (is (= (is-tc-err-messages
+             (do (t/ann f [(t/Set t/Any) -> Any])
+                 (defmulti f (fn [_] nil))
+                 (defmethod f nil [[a]])))
+           {:ex [[(ext-let/bad-vector-destructure-error-msg
+                    "(IPersistentSet Any)"
+                    "[a]")
+                  {:type-error :clojure.core.typed.errors/tc-error-parent
+                   :form '(defmethod f nil [[a]])}]]})))
   )
