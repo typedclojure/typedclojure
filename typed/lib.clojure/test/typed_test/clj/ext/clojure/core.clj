@@ -1,5 +1,6 @@
 (ns ^:no-doc typed-test.clj.ext.clojure.core
   (:require [clojure.test :refer [deftest is testing]]
+            [clojure.template :refer [do-template]]
             [clojure.core.typed :as t]
             [clojure.string :as str]
             [typed.clj.checker.parse-unparse :as prs]
@@ -172,3 +173,158 @@
                   {:type-error :clojure.core.typed.errors/tc-error-parent
                    :form '(defmethod f nil [[a]])}]]})))
   )
+
+(deftest inlined-nth-error-msg-test
+  (is (= '(clojure.core/nth :a :a)
+         ;; top-level
+         (-> (is-tc-err-messages (clojure.core/nth :a :a))
+             :ex
+             first
+             second
+             :form)))
+  (is (= '(clojure.core/nth :a :a)
+         ;; non top-level
+         (-> (is-tc-err-messages (let [x (clojure.core/nth :a :a)]
+                                   x))
+             :ex
+             first
+             second
+             :form)))
+  (is (= '(cc/nth (and :a :b) :a)
+         ;; top-level
+         (-> (is-tc-err-messages
+               (do (alias 'cc 'clojure.core)
+                   (cc/nth (and :a :b) :a)))
+             :ex
+             first
+             second
+             :form))))
+
+;; note: the following fns intentionally omitted as they are annotated to accept all arguments
+;; - clojure.core/get 
+(deftest misc-inline-error-msg-test
+  (testing "annotated inlined fns"
+    (do-template [FORM] (testing 'FORM
+                          (let [res (is-tc-err-messages
+                                      (do (alias 'cc 'clojure.core)
+                                          (fn [] FORM)))]
+                            (is (= 'FORM
+                                   (-> res
+                                       :delayed-errors
+                                       first
+                                       second
+                                       :form))
+                                (pr-str res))))
+                 (cc/zero? :a)
+                 (cc/count :a)
+                 (cc/int :a)
+                 (cc/< :a :a)
+                 (cc/inc :a)
+                 (cc/inc' :a)
+                 (cc/+ :a :a)
+                 (cc/+' :a :a)
+                 (cc/+ :a :a :a :a)
+                 (cc/+' :a :a :a :a)
+                 (cc/* :a :a)
+                 (cc/*' :a :a)
+                 (cc/* :a :a :a :a)
+                 (cc/*' :a :a :a :a)
+                 (cc// :a :a)
+                 (cc// :a :a :a :a)
+                 (cc/- :a :a)
+                 (cc/-' :a :a)
+                 (cc/- :a :a :a :a)
+                 (cc/-' :a :a :a :a)
+                 (cc/<= :a :a)
+                 (cc/> :a :a)
+                 (cc/>= :a :a)
+                 (cc/== :a :a)
+                 (cc/max :a :a)
+                 (cc/max :a :a :a :a)
+                 (cc/min :a :a)
+                 (cc/min :a :a :a :a)
+                 (cc/dec :a)
+                 (cc/dec' :a)
+                 (cc/unchecked-inc-int :a)
+                 (cc/unchecked-inc :a)
+                 (cc/unchecked-dec-int :a)
+                 (cc/unchecked-dec :a)
+                 (cc/unchecked-negate-int :a)
+                 (cc/unchecked-negate :a)
+                 (cc/unchecked-add-int :a :a)
+                 (cc/unchecked-add :a :a)
+                 (cc/unchecked-subtract-int :a :a)
+                 (cc/unchecked-subtract :a :a)
+                 (cc/unchecked-multiply-int :a :a)
+                 (cc/unchecked-multiply :a :a)
+                 (cc/unchecked-divide-int :a :a)
+                 (cc/unchecked-remainder-int :a :a)
+                 (cc/pos? :a)
+                 (cc/neg? :a)
+                 (cc/quot :a :a)
+                 (cc/rem :a :a)
+                 (cc/bit-not :a)
+                 (cc/bit-and :a :a)
+                 (cc/bit-and :a :a :a :a)
+                 (cc/bit-or :a :a)
+                 (cc/bit-or :a :a :a :a)
+                 (cc/bit-xor :a :a)
+                 (cc/bit-xor :a :a :a :a)
+                 (cc/bit-and-not :a :a)
+                 (cc/bit-and-not :a :a :a :a)
+                 (cc/bit-shift-left :a :a)
+                 (cc/bit-shift-right :a :a)
+                 (cc/unsigned-bit-shift-right :a :a)
+                 (cc/num :a)
+                 (cc/long :a)
+                 (cc/double :a)
+                 (cc/char :a)
+                 (cc/alength :a)
+                 (cc/aclone :a)
+                 (cc/aget :a :a)
+                 (cc/aset :a :a)
+                 (cc/byte-array :a)
+                 (cc/byte-array :a :a)
+                 (cc/char-array :a)
+                 (cc/char-array :a :a)
+                 (cc/short-array :a)
+                 (cc/short-array :a :a)
+                 (cc/double-array :a)
+                 (cc/double-array :a :a)
+                 (cc/int-array :a)
+                 (cc/int-array :a :a)
+                 (cc/boolean-array :a)
+                 (cc/boolean-array :a :a)))
+  (testing "unannotated inlined fns"
+    (do-template [FORM] (testing 'FORM
+                          (let [res (is-tc-err-messages
+                                      (do (alias 'cc 'clojure.core)
+                                          (fn [] FORM)))]
+                            (is (= (first 'FORM)
+                                   (-> res
+                                       :delayed-errors
+                                       first
+                                       second
+                                       :form))
+                                (pr-str res))))
+                 (cc/unchecked-char :a)
+                 (cc/unchecked-short :a)
+                 (cc/unchecked-double :a)
+                 (cc/unchecked-byte :a)
+                 (cc/unchecked-long :a)
+                 (cc/unchecked-float :a)
+                 (cc/unchecked-int :a)
+                 (cc/float-array :a)
+                 (cc/float-array :a :a)
+                 (cc/object-array :a)
+                 (cc/object-array :a :a)
+                 (cc/long-array :a)
+                 (cc/long-array :a :a)
+                 (cc/booleans :a)
+                 (cc/bytes :a)
+                 (cc/chars :a)
+                 (cc/shorts :a)
+                 (cc/floats :a)
+                 (cc/ints :a)
+                 (cc/doubles :a)
+                 (cc/longs :a))))

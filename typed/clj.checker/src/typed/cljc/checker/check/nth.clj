@@ -9,6 +9,7 @@
 (ns ^:no-doc typed.cljc.checker.check.nth
   (:require [clojure.core.typed :as t] 
             [typed.cljc.analyzer :as ana2]
+            [typed.cljc.checker.check.invoke :as invoke]
             [typed.cljc.checker.check-below :as below]
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.type-rep :as r]
@@ -198,6 +199,18 @@
 
         ; rewrite nth type to be more useful when we have an exact (and interesting) index.
         (nat-value? num-t)
-        (method/check-invoke-method
-          (ana2/run-post-passes expr) expected
-          :method-override (nth-function-type (-> num-t :val)))))))
+        (let [ft (nth-function-type (-> num-t :val))
+              expr (ana2/run-post-passes expr)]
+          (case (:op expr)
+            :invoke (invoke/normal-invoke
+                      check-fn
+                      expr
+                      (:fn expr)
+                      (:args expr)
+                      expected
+                      :cfexpr (assoc (:fn expr) u/expr-type (r/ret ft))
+                      :cargs (:args expr))
+            :static-call
+            (method/check-invoke-method
+              expr expected
+              :method-override (nth-function-type (-> num-t :val)))))))))

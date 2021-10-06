@@ -286,6 +286,39 @@
 
 (defmethod -unanalyzed-special :default [expr expected])
 
+(defn maybe-check-inlineable [{:keys [op form env] :as expr} expected]
+  {:pre [(#{:unanalyzed} op)]}
+  (when (seq? form)
+    (let [v (-> (first form)
+                (ana2/resolve-sym env))]
+      (when (var? v)
+        (let [m (meta v)]
+          (when (and (:inline m)
+                     (let [inline-arities-f (:inline-arities m)]
+                       (or (not inline-arities-f)
+                           (inline-arities-f (count (rest form))))))
+            ;; TODO unit test (lack of) double expand/eval
+            (let [expr-noinline (binding [ana2/macroexpand-1 (fn [form _] form)]
+                                  ;; could pull out the ana2/unmark-top-level to here.
+                                  ;; probably would avoid the need for ana2/unmark-eval-top-level.
+                                  (ana2/analyze-outer expr))]
+              (when (= :invoke (:op expr-noinline))
+                (let [{cargs :args
+                       res u/expr-type} (-> expr-noinline
+                                            ;; defer eval to inlining -- would rather an bad type check than a botched eval
+                                            ana2/unmark-top-level
+                                            ana2/unmark-eval-top-level
+                                            (check-expr expected))]
+                  (-> expr
+                      (assoc :form (with-meta (cons (first form)
+                                                    ;; technically we just need the :tag of these
+                                                    ;; args, could infer from checked expr-noinline.
+                                                    (map emit-form/emit-form cargs))
+                                              (meta form)))
+                      ana2/analyze-outer-root
+                      ana2/run-passes
+                      (assoc u/expr-type res)))))))))))
+
 (defn check-expr
   "Type checks expr at optional expected type. expr must not have a u/expr-type entry.
   
@@ -322,7 +355,8 @@
               _ @*register-exts]
           (or (binding [vs/*current-env* (if (:line env) env vs/*current-env*)
                         vs/*current-expr* expr]
-                (-unanalyzed-special expr expected))
+                (or (-unanalyzed-special expr expected)
+                    (maybe-check-inlineable expr expected)))
               (-> expr
                   ana2/analyze-outer
                   (recur expected))))

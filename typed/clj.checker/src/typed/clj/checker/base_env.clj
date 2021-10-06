@@ -11,7 +11,7 @@
                          LazySeq PersistentHashSet PersistentTreeSet PersistentList
                          IPersistentSet IPersistentMap IPersistentVector
                          APersistentMap ISeq IPersistentCollection
-                         ILookup Indexed Associative
+                         ILookup Indexed Associative #_ITransientSet
                          IRef Reduced)
            (java.util Comparator Collection))
   (:require [typed.cljc.checker.base-env-helper :as h]
@@ -103,6 +103,50 @@ clojure.java.io/IOFactory
               [(U (Indexed x) (t/SequentialSeqable x)) t/AnyInteger -> x]
               [(U (Indexed x) (t/SequentialSeqable x) nil) t/AnyInteger y -> (U x y)]
               [(U (Indexed x) (t/SequentialSeqable x) nil) t/AnyInteger -> (U x nil)])))))
+
+;; public -- used in type-ctors via requiring-resolve
+(defn get-type []
+  (impl/with-clojure-impl
+    (prs/parse-type
+      (let [x 'x
+            y 'y]
+        `(t/All [~x ~y]
+                (t/IFn 
+                  ;no default
+                  [(t/Option (ILookup t/Any ~x)) t/Any :-> (t/Option ~x)]
+                  [nil t/Any :-> nil]
+                  [(t/Option java.util.Map) t/Any :-> (t/Option t/Any)]
+                  [(t/Option (t/Set ~x)) t/Any :-> (t/Option ~x)]
+                  [(t/Option String) t/Any :-> (t/Option Character)]
+                  [(t/Option (~'ReadOnlyArray ~x)) t/Any :-> (t/Option ~x)]
+                  ;;[(t/Option (ITransientSet ~x)) t/Any :-> (t/Option ~x)] ;;TODO transients nyi
+                  [t/Any t/Any :-> t/Any]
+                  ;default
+                  [(t/Option (ILookup t/Any ~x)) t/Any ~y :-> (U ~x ~y)]
+                  [nil t/Any ~y :-> ~y]
+                  [(t/Option java.util.Map) t/Any t/Any :-> t/Any]
+                  [(t/Option (t/Set ~x)) t/Any ~y :-> (U ~x ~y)]
+                  [(t/Option String) t/Any ~y :-> (U Character ~y)]
+                  [(t/Option (~'ReadOnlyArray ~x)) t/Any ~y :-> (U ~x ~y)]
+                  ;;[(t/Option (ITransientSet ~x)) t/Any ~y :-> (U ~x ~y)] ;;TODO transients nyi
+                  [t/Any t/Any t/Any :-> t/Any]))))))
+
+(defn ^:private reduced?-type []
+  (impl/with-clojure-impl
+    (prs/parse-type
+      `(Pred (Reduced Any)))))
+
+(defn ^:private zero?-type []
+  (impl/with-clojure-impl
+    (prs/parse-type
+      `[Number :-> Boolean
+        :filters {:then (~'is (t/Value 0) 0)
+                  :else (~'!  (t/Value 0) 0)}])))
+
+(defn ^:private compare-type []
+  (impl/with-clojure-impl
+    (prs/parse-type
+      `[t/Any t/Any :-> Number])))
 
 (def this-ns *ns*)
 
@@ -672,9 +716,6 @@ clojure.core/vector? (Pred (t/Vec Any))
 clojure.core/nil? (Pred nil)
 clojure.core/false? (Pred false)
 clojure.core/true? (Pred true)
-clojure.core/zero?  [Number -> Boolean
-                     :filters {:then (is (Value 0) 0)
-                               :else (!  (Value 0) 0)}]
 clojure.core/symbol? (Pred t/Symbol)
 clojure.core/keyword? (Pred t/Keyword)
 clojure.core/map? (Pred (t/Map Any Any))
@@ -1070,7 +1111,6 @@ clojure.core/reduce-kv
       [[a k v -> (U (Reduced a) a)] a (t/Option (Associative Any k v)) -> a])
 
 clojure.core/reduced (All [x] [x -> (Reduced x)])
-clojure.core/reduced? (Pred (Reduced Any))
 
 #_(comment
   clojure.core/reduce
@@ -1224,19 +1264,6 @@ clojure.core/find
      (All [x y]
           [(U nil (clojure.lang.Associative Any x y)) Any -> (U nil (HVec [x y]))])
 
-; same as clojure.lang.RT/get
-clojure.core/get
-     (All [x y]
-          (IFn 
-            ;no default
-            [(U nil (t/Set x) (ILookup Any x)) Any -> (t/Option x)]
-            [(t/Option java.util.Map) Any -> Any]
-            [(t/Option String) Any -> (t/Option Character)]
-            ;default
-            [(U nil (t/Set x) (ILookup Any x)) Any y -> (U y x)]
-            [(t/Option java.util.Map) Any y -> (U y Any)]
-            [(t/Option String) Any y -> (U y Character)]
-            ))
 )
     (h/var-mappings
       this-ns
@@ -1525,14 +1552,20 @@ clojure.core/double-array (IFn [(U nil Number (Seqable Number)) -> (Array double
                                    [Number (U nil Number (Seqable Number)) -> (Array double)])
 
 ;cast to java array
-clojure.core/booleans [Any -> (Array boolean)]
-clojure.core/bytes [Any -> (Array byte)]
-clojure.core/chars [Any -> (Array char)]
-clojure.core/shorts [Any -> (Array short)]
-clojure.core/ints [Any -> (Array int)]
-clojure.core/longs [Any -> (Array long)]
-clojure.core/floats [Any -> (Array float)]
-clojure.core/doubles [Any -> (Array double)]
+;; TODO rethink input and output types. eg.,
+;;      clojure.core/booleans [(ReadyOnlyArray boolean) -> (U nil (Array boolean))]
+;; TODO objects??
+;;      clojure.core/objects [(ReadyOnlyArray Object) -> (U nil (ReadyOnlyArray Object))]
+;;                                  
+;; TODO propagate to Numbers/booleans etc
+;clojure.core/booleans [Any -> (U nil (Array boolean))]
+;clojure.core/bytes [Any -> (U nil (Array byte))]
+;clojure.core/chars [Any -> (U nil (Array char))]
+;clojure.core/shorts [Any -> (U nil (Array short))]
+;clojure.core/ints [Any -> (U nil (Array int))]
+;clojure.core/longs [Any -> (U nil (Array long))]
+;clojure.core/floats [Any -> (U nil (Array float))]
+;clojure.core/doubles [Any -> (U nil (Array double))]
 
 clojure.core/max-key (All [x] 
                           [[x -> Number] x x x * -> x])
@@ -1679,6 +1712,10 @@ complete.core/completions
      'clojure.core/aset-float (aset-*-type 'float)
      'clojure.core/aset-double (aset-*-type 'double)
      'clojure.core/nth (nth-type)
+     'clojure.core/get (get-type)
+     'clojure.core/reduced? (reduced?-type)
+     'clojure.core/zero? (zero?-type)
+     'clojure.core/compare (compare-type)
      }
 ))
 
@@ -1816,10 +1853,12 @@ java.lang.String/toUpperCase :all
 (delay-and-cache-env ^:private init-method-override-env
   ;(reset-alias-env!)
   (merge
-    {'clojure.lang.RT/nth (nth-type)}
+    {'clojure.lang.RT/nth (nth-type)
+     'clojure.lang.RT/isReduced (reduced?-type)
+     'clojure.lang.RT/isZero (zero?-type)
+     'clojure.lang.Util/compare (compare-type)
+     }
     (h/method-override-mappings
-
-clojure.lang.RT/isReduced (Pred (Reduced Any))
 
 clojure.lang.Indexed/nth
   (All [x y]
@@ -1861,23 +1900,6 @@ clojure.lang.RT/aget (All [o]
 
 clojure.lang.RT/aset (All [i o]
                           [(Array2 i o) t/AnyInteger i -> o])
-
-;get
-;same as clojure.core/get
-clojure.lang.RT/get (All [x y]
-                         (IFn 
-                           ;no default
-                           [(IPersistentSet x) Any -> (t/Option x)]
-                           [nil Any -> nil]
-                           [(t/Option (ILookup Any x)) Any -> (t/Option x)]
-                           [java.util.Map Any -> (t/Option Any)]
-                           [String Any -> (t/Option Character)]
-                           ;default
-                           [(IPersistentSet x) Any y -> (U y x)]
-                           [nil Any y -> y]
-                           [(t/Option (ILookup Any x)) Any y -> (U y x)]
-                           [java.util.Map Any y -> (U y Any)]
-                           [String Any y -> (U y Character)]))
 
 ;numbers
 clojure.lang.Numbers/add (IFn [Long Long -> Long]
@@ -1984,13 +2006,8 @@ clojure.lang.Numbers/lte [Number Number -> Boolean]
 clojure.lang.Numbers/gt [Number Number -> Boolean]
 clojure.lang.Numbers/gte [Number Number -> Boolean]
 
-clojure.lang.Numbers/isZero [Number -> Boolean
-                             :filters {:then (is (Value 0) 0)
-                                       :else (!  (Value 0) 0)}]
 clojure.lang.Numbers/isNeg [Number -> Boolean]
 clojure.lang.Numbers/isPos [Number -> Boolean]
-
-clojure.lang.Util/compare [Any Any -> Number]
 
 ; this is overloaded in interesting ways, but this is good enough for destructuring purposes
 clojure.lang.PersistentHashMap/create [(U nil (ISeq Any) java.util.Map (ReadOnlyArray Object)) -> (t/Map Any Any)]
@@ -2013,6 +2030,7 @@ clojure.lang.RT/uncheckedShortCast  [(U Character Number) -> Short]
 clojure.lang.Numbers/num   [Number -> Number]
     )
     {'clojure.lang.RT/count (count-type)
+     'clojure.lang.RT/get (get-type)
      }))
 
 (comment

@@ -2457,19 +2457,12 @@
                           (for [t* (:types t)]
                             (find-val-type t* k default)))
       (r/RClass? t)
-      (->
-        (ind/check-funapp nil nil (r/ret (ind/parse-type 
-                                     ;same as clojure.core/get
-                                     `(t/All [x# y#]
-                                           (t/IFn 
-                                             [(t/Set x#) t/Any y# :-> (t/U y# x#)]
-                                             [nil t/Any y# :-> y#]
-                                             [(t/U nil (clojure.lang.ILookup t/Any x#)) t/Any y# :-> (t/U y# x#)]
-                                             [java.util.Map t/Any y# :-> (t/U y# t/Any)]
-                                             [String t/Any y# :-> (t/U y# Character)]
-                                             ))))
-                      [(r/ret t) (r/ret k) (r/ret default)] nil)
-        r/ret-t)
+      (r/ret-t
+        (ind/check-funapp nil
+                          nil
+                          (r/ret ((requiring-resolve 'typed.clj.checker.base-env/get-type)))
+                          [(r/ret t) (r/ret k) (r/ret default)]
+                          nil))
       :else r/-any))))
 
 (defn find-hsequential-in-non-union [t]

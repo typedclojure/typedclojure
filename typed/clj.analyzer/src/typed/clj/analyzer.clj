@@ -104,12 +104,12 @@
             (let [v (ana/resolve-sym op env)
                   m (meta v)
                   local? (-> env :locals (get op))
-                  macro? (and (not local?) (:macro m)) ;; locals shadow macros
-                  inline-arities-f (:inline-arities m)
-                  inline? (and (not local?)
-                               (or (not inline-arities-f)
-                                   (inline-arities-f (count args)))
-                               (:inline m))
+                  macro? (when-not local? (:macro m)) ;; locals shadow macros
+                  inline? (when (and (not local?)
+                                     (let [inline-arities-f (:inline-arities m)]
+                                       (or (not inline-arities-f)
+                                           (inline-arities-f (count args)))))
+                            (:inline m))
                   t (:tag m)]
               (cond
 

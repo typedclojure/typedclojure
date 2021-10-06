@@ -166,19 +166,6 @@
                                 [(ASeq x) x x * -> (ASeq x)]
                                 ;[nil x x * -> (clojure.lang.PersistentList x)]
                                 [(Coll Any) Any Any * -> (Coll Any)]))
-    clojure.core/get (All [x y]
-                          (IFn
-                           ;;no default
-                           [(U nil (Set x) (ILookup Any x)) Any -> (Option x)]
-                           ;[(Option String) Any -> (Option Character)]
-                           ;;default
-                           [(U nil (Set x) (ILookup Any x)) Any y -> (U y x)]
-                           [(Option (Map x y)) x -> (Option y)]
-                           [(Option (Map x y)) x y -> y]
-                           [(Option (Map Any Any)) Any -> (Option Any)]
-                           [(Option (Map Any Any)) Any y -> (U y Any)]
-                           ;[(Option String) Any y -> (U y Character)]
-                           ))
     clojure.core/assoc (All [b c d]
                             (IFn [(Map b c) b c -> (Map b c)]
                                  [(Vec d) AnyInteger d -> (Vec d)]))
@@ -259,8 +246,6 @@
     clojure.core/int (IFn [Number -> Integer]
                           ;[Character -> Integer]
                           )
-    clojure.core/booleans [Any -> (Array boolean)]
-    clojure.core/ints [Any -> (Array int)]
     clojure.core/mod (IFn [AnyInteger AnyInteger -> AnyInteger]
                           [Number Number -> Number])
     clojure.core/rand (IFn [-> Number]
