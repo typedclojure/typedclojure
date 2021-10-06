@@ -5,3 +5,5 @@
 - create type rule for clojure.core/doseq with destructuring and support for all options
 - create type rule for clojure.core/defn with improved destructuring error messages
 - create type rule for clojure.core/defmethod with improved destructuring error messages
+- check inlines before expansion to improve error messages
+  - eg., now `clojure.core/inc` is appears in error messages instead of `clojure.lang.RT/inc`
