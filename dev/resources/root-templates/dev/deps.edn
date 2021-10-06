@@ -1,6 +1,10 @@
 {% do-not-edit-edn-comment %}
 {:paths ["src"]
- :deps {org.clojure/clojure {:mvn/version "1.10.1"}}
+ :deps {org.clojure/clojure {:mvn/version "1.10.3"}
+        org.clojure/tools.cli {:mvn/version "1.0.206"}
+        selmer/selmer {:mvn/version "1.12.44"}
+        hickory/hickory {:mvn/version "0.7.1"}}
+ :resource-paths ["resources"]
  :aliases {:nREPL
            {:extra-deps
             {nrepl/nrepl {:mvn/version "{◊nrepl-mvn-version◊}"}
@@ -20,5 +24,7 @@
            {:main-opts ["-m" "typed.dev.repl"]}
            :check-ca 
            {;:main-opts ["-m" "typed.dev.check-ca"]
-            :extra-deps {hickory/hickory {:mvn/version "0.7.1"}}}
+            }
+           :new-module 
+           {:main-opts ["-m" "typed.dev.new-module"]}
            }}

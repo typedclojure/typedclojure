@@ -2,6 +2,7 @@
   (:require [selmer.parser :as sp :refer [render render-file]]
             [selmer.util :as su]
             [typed.dev.helpers :as h]
+            [clojure.java.io :as io]
             [clojure.string :as str])
   (:import [java.io File]))
 
@@ -59,65 +60,26 @@
      "  <a href='https://opencollective.com/typedclojure'><img src='/doc/images/donate-to-our-collective.png'></a>"
      "</p>"]))
 
-#_
-(defn version+doc-info [{:keys [:deps/root coordinate] :as m}]
-  (eval-common/bind-env
-    (-> (eval-common/get-env)
-        (update :prose.alpha.document/input merge m))
-    ;; TODO how to trim str/trim start of file?
-    ;; overriding slurp/eval fns is too early.
-    (lib/require-doc "templates/version-info.md.prose")))
-
-
-(def transforms
-  "Key is relative to dev/resources/root-templates, val is relative to repo root."
-  (into {}
-        (map (juxt identity identity))
-        ;; TODO generate list of relative paths under dev/resources/root-templates/
-        #{"README.md"
-          "pom.xml"
-          "typed/clj.analyzer/README.md"
-          "typed/clj.analyzer/deps.edn"
-          "typed/clj.analyzer/pom.xml"
-          "typed/clj.annotator/README.md"
-          "typed/clj.annotator/deps.edn"
-          "typed/clj.annotator/pom.xml"
-          "typed/clj.checker/README.md"
-          "typed/clj.checker/deps.edn"
-          "typed/clj.checker/pom.xml"
-          "typed/clj.lang/README.md"
-          "typed/clj.lang/deps.edn"
-          "typed/clj.lang/pom.xml"
-          "typed/clj.reader/README.md"
-          "typed/clj.reader/deps.edn"
-          "typed/clj.reader/pom.xml"
-          "typed/clj.refactor/README.md"
-          "typed/clj.refactor/deps.edn"
-          "typed/clj.refactor/pom.xml"
-          "typed/clj.runtime/README.md"
-          "typed/clj.runtime/deps.edn"
-          "typed/clj.runtime/pom.xml"
-          "typed/clj.spec/README.md"
-          "typed/clj.spec/deps.edn"
-          "typed/clj.spec/pom.xml"
-          "typed/cljc.analyzer/README.md"
-          "typed/cljc.analyzer/deps.edn"
-          "typed/cljc.analyzer/pom.xml"
-          "typed/cljs.analyzer/README.md"
-          "typed/cljs.analyzer/deps.edn"
-          "typed/cljs.analyzer/pom.xml"
-          "typed/cljs.checker/README.md"
-          "typed/cljs.checker/deps.edn"
-          "typed/cljs.checker/pom.xml"
-          "typed/lib.clojure/README.md"
-          "typed/lib.clojure/deps.edn"
-          "typed/lib.clojure/pom.xml"
-          "typed/lib.core.async/README.md"
-          "typed/lib.core.async/deps.edn"
-          "typed/lib.core.async/pom.xml"}))
+(defn transforms
+  "Returns a map from template file to output location.
+  Key is relative to dev/resources/root-templates, val is relative to repo root."
+  []
+  {:post [(seq %)]}
+  (let [;; relative to dev directory, which is the directory this program is run from
+        relative-to "resources/root-templates"]
+    (into {}
+          (map (fn [^java.io.File f]
+                 (when-not (.isDirectory f)
+                   (let [p (.getPath f)
+                         _ (assert (.startsWith p (str relative-to "/")))
+                         p (subs p (count (str relative-to "/")))]
+                     (assert (seq p))
+                     ;; repo root and dev/resources/root-templates have same structure
+                     [p p]))))
+          (file-seq (io/file relative-to)))))
 
 (defn -main [& args]
-  (doseq [[src dest] transforms]
+  (doseq [[src dest] (transforms)]
     (spit (str "../" dest)
           (render-file
             (str "root-templates/" src)

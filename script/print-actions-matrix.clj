@@ -4,22 +4,21 @@
 ;; GITHUB_EVENT_NAME=push ./script/print-actions-matrix.clj
 
 (require '[cheshire.core :as json]
-         '[clojure.core.typed.contract-utils :as con])
+         '[clojure.core.typed.contract-utils :as con]
+         '[clojure.java.io :as io])
 
-(def all-submodules
-  ["typed/cljc.analyzer"
-   "typed/cljs.analyzer"
-   "typed/clj.analyzer"
-   #_"typed/cljs.checker"
-   "typed/clj.checker"
-   "typed/clj.reader"
-   "typed/clj.refactor"
-   "typed/clj.runtime"
-   "typed/clj.annotator"
-   "typed/clj.lang"
-   "typed/clj.spec"
-   "typed/lib.clojure"
-   "typed/lib.core.async"])
+(def all-testable-submodules
+  (let [all-submodules (into #{}
+                             (keep (fn [^java.io.File f]
+                                     (when (.isDirectory f)
+                                       (.getPath f))))
+                             (.listFiles (io/file "typed")))]
+    (-> all-submodules
+        (disj 
+          ;; don't test these modules
+          "typed/cljs.checker")
+        sort
+        vec)))
 
 (def clojure-stable "1.10.3")
 (def clojure-next-alpha "1.11.0-alpha1")
@@ -32,7 +31,7 @@
 
 (defn push-matrix []
   {:post [(matrix? %)]}
-  {:include (for [submodule all-submodules
+  {:include (for [submodule all-testable-submodules
                   clojure (cond-> [clojure-stable]
                             (= "typedclojure/typedclojure"
                                (System/getenv "GITHUB_REPOSITORY"))
@@ -44,7 +43,7 @@
 
 (defn schedule-matrix []
   {:post [(matrix? %)]}
-  {:include (for [submodule all-submodules
+  {:include (for [submodule all-testable-submodules
                   clojure [clojure-stable
                            clojure-next-snapshot]
                   jdk ["8"
