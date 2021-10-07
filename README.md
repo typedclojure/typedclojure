@@ -62,6 +62,7 @@ See modules for specific version coordinates:
 * [typed.clj.reader](typed/clj.reader/README.md): Reader for JVM Clojure (unreleased)
 * [typed.clj.lang](typed/clj.lang/README.md): Extensible languages
 * [typed.clj.spec](typed/clj.spec/README.md): Type-like specs.
+* [typed.clj.malli](typed/clj.malli/README.md): Malli integration.
 
 ### ClojureScript implementation (Work in progress)
 

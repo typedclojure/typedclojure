@@ -3,9 +3,9 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>{◊typedclojure-group-id◊}</groupId>
-  <artifactId>{&module-artifact-id&}</artifactId>
-  <description>FIXME</description>
-  <name>{&module-artifact-id&}</name>
+  <artifactId>typed.clj.malli</artifactId>
+  <description>Malli integration</description>
+  <name>typed.clj.malli</name>
   <version>{◊typedclojure-current-mvn-version◊}</version>
 
   <licenses>
@@ -22,4 +22,15 @@
     <version>{◊typedclojure-current-mvn-version◊}</version>
     <relativePath>../..</relativePath>
   </parent>
+
+  <dependencies>
+    <dependency>
+      <groupId>metosin</groupId>
+      <artifactId>malli</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>{◊typedclojure-group-id◊}</groupId>
+      <artifactId>typed.clj.runtime</artifactId>
+    </dependency>
+  </dependencies>
 </project>

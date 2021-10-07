@@ -62,7 +62,7 @@
   (assert (seq vs))
   (let [[then-equivable else-equivable]
         (case comparator
-          := [equivable equivable]
+          (:= :not=) [equivable equivable]
           :identical? [#(identicalable :then %)
                        #(identicalable :else %)])
         ; TODO sequence behaviour is subtle
@@ -95,7 +95,9 @@
                              (when (< 1 (count vs))
                                [fl/-top])))
         ;_ (prn "else" else-filter)
-        ]
+        [then-filter else-filter]  (case comparator
+                                     :not= [else-filter then-filter]
+                                     (:= :identical?) [then-filter else-filter])]
     (below/maybe-check-below
       (r/ret (apply c/Un (concat (when (not= then-filter fl/-bot)
                                    [r/-true])

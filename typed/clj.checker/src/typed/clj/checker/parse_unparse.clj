@@ -720,19 +720,21 @@
 ;; so we reuse them
 (defn parse-types-with-rest-drest [err-msg]
   (fn [syns]
-    (let [rest? (#{'*} (last syns))
-          dotted? (#{'...} (-> syns butlast last))
+    (let [syns (vec syns)
+          rest? (#{:* '*} (peek syns))
+          dotted? (and (#{:... '...} (some-> (not-empty syns) pop peek))
+                       (<= 3 (count syns)))
           _ (when (and rest? dotted?)
               (err/int-error (str err-msg syns)))
           {:keys [fixed rest drest]}
           (cond
             rest?
-            (let [fixed (mapv parse-type (drop-last 2 syns))
-                  rest (parse-type (-> syns butlast last))]
+            (let [fixed (mapv parse-type (-> syns pop pop))
+                  rest (parse-type (-> syns pop peek))]
               {:fixed fixed
                :rest rest})
             dotted?
-            (let [fixed (mapv parse-type (drop-last 3 syns))
+            (let [fixed (mapv parse-type (-> syns pop pop pop))
                   [drest-type _dots_ drest-bnd :as dot-syntax] (take-last 3 syns)
                   ; should never fail, if the logic changes above it's probably
                   ; useful to keep around.

@@ -108,7 +108,7 @@ Latest stable release is 1.0.17.
 
 ```clj
   org.typedclojure/typed.clj.spec {:mvn/version "1.0.17"}
- ```
+```
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) Git dependency information:
 

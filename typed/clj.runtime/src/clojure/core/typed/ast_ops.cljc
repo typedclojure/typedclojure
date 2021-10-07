@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc ^:no-doc clojure.core.typed.ast-ops
+(ns ^:no-doc clojure.core.typed.ast-ops
   (:require [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.errors :as err]))
 
@@ -100,3 +100,17 @@
   (let [names (map :name binder)]
     (replace-frees body
                    (zipmap names args))))
+
+(defn fully-resolve-type [t]
+  (loop [t t
+         seen #{}]
+    (assert (not (seen t)) (str "Unhandled infinite type " t))
+    (let [seen (conj seen t)]
+      (case (:op t)
+        :Name (recur (resolve-Name t)
+                     seen)
+        :TFn (recur (instantiate-TFn t)
+                    seen)
+        :Rec (recur (unwrap-rec t)
+                    seen)
+        t))))

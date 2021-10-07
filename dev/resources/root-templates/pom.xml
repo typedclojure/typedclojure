@@ -162,6 +162,7 @@
 
     <module>typed/clj.lang</module>
 
+    <module>typed/clj.malli</module>
     <module>typed/clj.spec</module>
 
     <module>typed/lib.clojure</module>
@@ -242,6 +243,11 @@
         <version>{◊typedclojure-current-mvn-version◊}</version>
       </dependency>
       <dependency>
+        <groupId>{◊typedclojure-group-id◊}</groupId>
+        <artifactId>typed.clj.malli</artifactId>
+        <version>{◊typedclojure-current-mvn-version◊}</version>
+      </dependency>
+      <dependency>
         <groupId>org.clojure</groupId>
         <artifactId>core.memoize</artifactId>
         <version>{◊core-memoize-mvn-version◊}</version>
@@ -305,6 +311,11 @@
         <groupId>org.clojure</groupId>
         <artifactId>core.logic</artifactId>
         <version>{◊core-logic-mvn-version◊}</version>
+      </dependency>
+      <dependency>
+        <groupId>metosin</groupId>
+        <artifactId>malli</artifactId>
+        <version>{◊malli-mvn-version◊}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

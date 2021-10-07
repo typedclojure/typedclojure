@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- DO NOT EDIT! Instead, edit `dev/resources/root-templates/typed/clj.malli/pom.xml` and run `./script/regen-selmer.sh` -->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>org.typedclojure</groupId>
+  <artifactId>typed.clj.malli</artifactId>
+  <description>Malli integration</description>
+  <name>typed.clj.malli</name>
+  <version>1.0.18-SNAPSHOT</version>
+
+  <licenses>
+    <license>
+      <name>Eclipse Public License 1.0</name>
+      <url>http://opensource.org/licenses/eclipse-1.0.php</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <parent>
+    <groupId>org.typedclojure</groupId>
+    <artifactId>pom.typed</artifactId>
+    <version>1.0.18-SNAPSHOT</version>
+    <relativePath>../..</relativePath>
+  </parent>
+
+  <dependencies>
+    <dependency>
+      <groupId>metosin</groupId>
+      <artifactId>malli</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.typedclojure</groupId>
+      <artifactId>typed.clj.runtime</artifactId>
+    </dependency>
+  </dependencies>
+</project>

@@ -1,4 +1,4 @@
-{&do-not-edit-comment-template&}
+{% do-not-edit-xml-comment %}
 # {&module-artifact-id&}
 
 <a href='{◊typedclojure-homepage◊}'><img src='../../doc/images/part-of-typed-clojure-project.png'></a>

@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc ^:no-doc clojure.core.typed.parse-ast
+(ns ^:no-doc clojure.core.typed.parse-ast
   (:require [clojure.core.typed :as t]
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.errors :as err]
@@ -283,19 +283,21 @@
 
 (t/ann parse-with-rest-drest [t/Str (t/Seq t/Any) -> RestDrest])
 (defn parse-with-rest-drest [msg syns]
-  (let [rest? (#{'*} (last syns))
-        dotted? (#{'...} (-> syns butlast last))
+  (let [syns (vec syns)
+        rest? (#{:* '*} (peek syns))
+        dotted? (and (#{:... '...} (some-> (not-empty syns) pop peek))
+                     (<= 3 (count syns)))
         _ (when (and rest? dotted?)
             (err/int-error (str msg syns)))
         {:keys [types rest drest]}
         (cond
           rest?
-          (let [fixed (mapv parse (drop-last 2 syns))
-                rest (parse (-> syns butlast last))]
+          (let [fixed (mapv parse (-> syns pop pop))
+                rest (parse (-> syns pop peek))]
             {:types fixed
              :rest rest})
           dotted?
-          (let [fixed (mapv parse (drop-last 3 syns))
+          (let [fixed (mapv parse (-> syns pop pop pop))
                 [drest-type _dots_ drest-bnd :as dot-syntax] (take-last 3 syns)
                 ; should never fail, if the logic changes above it's probably
                 ; useful to keep around.
@@ -319,8 +321,6 @@
     {:types types
      :rest rest
      :drest drest}))
-
-(t/tc-ignore
 
 (defn parse-h* [op msg]
   (fn [[_ fixed & {:keys [filter-sets objects repeat]}]]
@@ -1129,21 +1129,22 @@
                          (cond 
                            (class? res) (let [csym (coerce/Class->symbol res)
                                               dt? (contains? (impl/datatype-env) csym)]
-                                          {:op (if dt? :DataType :Class) :name csym})
+                                          {:op (if dt? :DataType :Class) :name csym
+                                           :form sym})
                            (var? res) (let [vsym (coerce/var->symbol res)]
                                         (if (contains? (impl/alias-env) vsym)
-                                          {:op :Name :name vsym}
-                                          {:op :Protocol :name vsym}))
+                                          {:op :Name :name vsym :form sym}
+                                          {:op :Protocol :name vsym :form sym}))
                            (symbol? sym)
                            (if-let [qsym (resolve-alias-clj sym)]
                              ; a type alias without an interned var
-                             {:op :Name :name qsym}
+                             {:op :Name :name qsym :form sym}
                              ;an annotated datatype that hasn't been defined yet
                              ; assume it's in the current namespace
                                       ; do we want to munge the sym also?
                              (let [qname (symbol (str (namespace-munge (parse-in-ns)) "." sym))]
                                (when (contains? (impl/datatype-env) qname)
-                                 {:op :DataType :name qname})))))
+                                 {:op :DataType :name qname :form sym})))))
               :cljs (assert nil)
                #_(when-let [res (when (symbol? sym)
                                       (resolve-type-cljs sym))]
@@ -1156,7 +1157,10 @@
 (defn parse-symbol [s]
   (parse-symbol* s))
 
+(def ^:private register! (delay (t/register!)))
+
 (defn parse [syn]
+  @register!
   (binding [vs/*current-env* (let [ne (when-let [m (meta syn)]
                                         (select-keys m [:file :line :column :end-line :end-column]))]
                                (or (when ((every-pred :file :line :column) ne)
@@ -1181,6 +1185,7 @@
     (parse syn)))
 
 (comment
+  (parse-clj `'[String ~'* t/Any])
   (= (parse 'nil)
      {:op :singleton
       :val nil
@@ -1199,4 +1204,3 @@
   (impl/with-impl impl/clojure
     (parse 'a))
   )
-)

@@ -1158,6 +1158,17 @@
         (assoc :args cargs
                u/expr-type (equiv/tc-equiv := (map u/expr-type cargs) expected)))))
 
+;not=
+(defmethod -invoke-special 'clojure.core/not=
+  [{:keys [args] :as expr} expected]
+  {:post [(vector? (:args %))
+          (-> % u/expr-type r/TCResult?)]}
+  (let [cargs (mapv check-expr args)]
+    (-> expr
+        (update :fn check-expr)
+        (assoc :args cargs
+               u/expr-type (equiv/tc-equiv :not= (map u/expr-type cargs) expected)))))
+
 ;identical
 (defmethod -host-call-special '[:static-call clojure.lang.Util/identical]
   [expr expected]
@@ -1323,24 +1334,6 @@
     (assoc expr
            :args cargs
            u/expr-type t)))
-
-;unchecked casting
-(defmethod -invoke-special 'clojure.core.typed.unsafe/ignore-with-unchecked-cast*
-  [expr expected]
-  {:post [(-> % u/expr-type r/TCResult?)]}
-  (when-not (#{2} (count (:args expr)))
-    (err/int-error (str "Wrong arguments to ignore-with-unchecked-cast Expected 2, found " (count (:args expr)))))
-  (let [{[_frm_ quote-expr] :args, :keys [env], :as expr} (-> expr
-                                                              ;; all args are ignored by type checker
-                                                              (update :args #(mapv ana2/run-passes %)))
-        tsyn (ast-u/quote-expr-val quote-expr)
-        parsed-ty (binding [vs/*current-env* env
-                            prs/*parse-type-in-ns* (cu/expr-ns expr)]
-                    (prs/parse-type tsyn))]
-    (assoc expr
-           u/expr-type (below/maybe-check-below
-                         (r/ret parsed-ty)
-                         expected))))
 
 ;pred
 (defmethod -invoke-special 'clojure.core.typed/pred*

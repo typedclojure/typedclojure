@@ -59,6 +59,12 @@
        [1 2 3]
        [1 2 3 4 5 6 6 7 4 2 1]))
   (is ((every-pred 
+         (t/pred 
+           '[Number Number Number :*]))
+       [1 2]
+       [1 2 3]
+       [1 2 3 4 5 6 6 7 4 2 1]))
+  (is ((every-pred 
          (complement
            (t/pred 
              '[Number Number Number *])))

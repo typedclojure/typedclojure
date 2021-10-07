@@ -108,7 +108,7 @@ Latest stable release is {◊typedclojure-stable-mvn-version◊}.
 
 ```clj
   {◊typedclojure-group-id◊}/typed.clj.spec {:mvn/version "{◊typedclojure-stable-mvn-version◊}"}
- ```
+```
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) Git dependency information:
 

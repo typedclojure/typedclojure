@@ -2717,12 +2717,6 @@
                  (parse-type
                    '(clojure.core.typed/All [a b ...])))))))
 
-(deftest ignore-unsafe-cast-test
-  (is-tc-e (unsafe/ignore-with-unchecked-cast
-             (fn [] (+ 'a 1))
-             String)
-           String))
-
 (deftest Get-test
   ;resolve
   (is-clj (= (fully-resolve-type (parse-clj `(Get '{:a Number} ':a)))

@@ -6,10 +6,10 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc clojure.core.typed.unsafe)
+(ns typed.clj.malli.swagger
+  "Public API for typed `malli.swagger` ops."
+  (:require [malli.swagger :as msw]))
 
-(defmacro ignore-with-unchecked-cast
-  "Assumes the form is well typed and annotates it with the provided
-  type without verifying."
-  [form ty]
-  form)
+(defmacro transform [t]
+  `(msw/transform
+    ~((requiring-resolve 'typed.clj.malli.parse-type/type-syntax->malli-syntax) t)))
