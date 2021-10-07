@@ -204,7 +204,6 @@
     ;clojure.core/sequential? (Pred clojure.lang.Sequential)
                                         ;clojure.core/sorted? (Pred Sorted)
     clojure.core/map? (Pred (Map Any Any))
-    clojure.core/boolean? (Pred Boolean)
     clojure.core/vector? (Pred (Vec Any))
     clojure.core/chunked-seq? [Any -> Any]
     clojure.core/false? (Pred false)

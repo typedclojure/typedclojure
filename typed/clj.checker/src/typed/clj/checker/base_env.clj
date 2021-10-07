@@ -719,6 +719,7 @@ clojure.core/true? (Pred true)
 clojure.core/symbol? (Pred t/Symbol)
 clojure.core/keyword? (Pred t/Keyword)
 clojure.core/map? (Pred (t/Map Any Any))
+clojure.core/boolean? (Pred Boolean)
 
 ; would be nice
 ; (Pred (Not nil))
