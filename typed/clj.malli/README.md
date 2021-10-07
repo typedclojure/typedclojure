@@ -55,6 +55,18 @@ Latest stable release is 1.0.18.
 
 ## Usage
 
+Note: the following assumes you have the Clojure core type annotations and full type checker on your classpath.
+Here is a quick way to create a REPL to follow this tutorial with:
+
+```clojure
+clj -Sdeps '{:deps {org.typedclojure/typed.clj.malli {:mvn/version "1.0.18"}
+                    ;; only needed if omitting typed.clj.checker
+                    org.typedclojure/typed.lib.clojure {:mvn/version "1.0.18"}
+                    org.typedclojure/typed.clj.checker {:mvn/version "1.0.18"}}}'
+```
+
+Now you can execute each form by copying it into this REPL.
+
 ```clojure
 (require '[malli.core :as m]
          '[typed.clj.malli :as tm]

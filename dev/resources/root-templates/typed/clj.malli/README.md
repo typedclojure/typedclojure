@@ -55,6 +55,18 @@ Latest stable release is {◊typedclojure-stable-mvn-version◊}.
 
 ## Usage
 
+Note: the following assumes you have the Clojure core type annotations and full type checker on your classpath.
+Here is a quick way to create a REPL to follow this tutorial with:
+
+```clojure
+clj -Sdeps '{:deps {{◊typedclojure-group-id◊}/typed.clj.malli {:mvn/version "{◊typedclojure-stable-mvn-version◊}"}
+                    ;; only needed if omitting typed.clj.checker
+                    {◊typedclojure-group-id◊}/typed.lib.clojure {:mvn/version "{◊typedclojure-stable-mvn-version◊}"}
+                    {◊typedclojure-group-id◊}/typed.clj.checker {:mvn/version "{◊typedclojure-stable-mvn-version◊}"}}}'
+```
+
+Now you can execute each form by copying it into this REPL.
+
 ```clojure
 (require '[malli.core :as m]
          '[typed.clj.malli :as tm]
