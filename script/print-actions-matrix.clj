@@ -21,7 +21,7 @@
         vec)))
 
 (def clojure-stable "1.10.3")
-(def clojure-next-alpha "1.11.0-alpha1")
+(def clojure-next-alpha "1.11.0-alpha2")
 (def clojure-next-snapshot "1.11.0-master-SNAPSHOT")
 
 (def matrix? (con/hmap-c? :include (con/every-c? (con/hmap-c?
