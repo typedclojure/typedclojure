@@ -12,14 +12,14 @@ Malli integration.
 
 ## Releases and Dependency Information
 
-Latest stable release is 1.0.17.
+Latest stable release is 1.0.18.
 
 * [All Released Versions](https://clojars.org/org.typedclojure/typed.clj.malli)
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) JAR dependency information:
 
 ```clj
-  org.typedclojure/typed.clj.malli {:mvn/version "1.0.17"}
+  org.typedclojure/typed.clj.malli {:mvn/version "1.0.18"}
 ```
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) Git dependency information:
@@ -30,13 +30,13 @@ Latest stable release is 1.0.17.
   org.typedclojure/typed.clj.malli
   {:git/url "https://github.com/typedclojure/typedclojure"
    :deps/root "typed/clj.malli"
-   :tag "1.0.17"}
+   :tag "1.0.18"}
 ```
 
 [Leiningen](https://github.com/technomancy/leiningen) dependency information:
 
 ```clojure
-[org.typedclojure/typed.clj.malli "1.0.17"]
+[org.typedclojure/typed.clj.malli "1.0.18"]
 ```
 
 [Maven](https://maven.apache.org/) dependency information:
@@ -45,7 +45,7 @@ Latest stable release is 1.0.17.
 <dependency>
   <groupId>org.typedclojure</groupId>
   <artifactId>typed.clj.malli</artifactId>
-  <version>1.0.17</version>
+  <version>1.0.18</version>
 </dependency>
 ```
 
