@@ -4,7 +4,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.typedclojure</groupId>
   <artifactId>pom.typed</artifactId>
-  <version>1.0.19-SNAPSHOT</version>
+  <version>1.0.19</version>
   <name>pom</name>
   <description>An optional type system for Clojure</description>
   <packaging>pom</packaging>
@@ -190,62 +190,62 @@
       <dependency>
         <groupId>org.typedclojure</groupId>
         <artifactId>typed.cljc.analyzer</artifactId>
-        <version>1.0.19-SNAPSHOT</version>
+        <version>1.0.19</version>
       </dependency>
       <dependency>
         <groupId>org.typedclojure</groupId>
         <artifactId>typed.cljs.analyzer</artifactId>
-        <version>1.0.19-SNAPSHOT</version>
+        <version>1.0.19</version>
       </dependency>
       <dependency>
         <groupId>org.typedclojure</groupId>
         <artifactId>typed.clj.analyzer</artifactId>
-        <version>1.0.19-SNAPSHOT</version>
+        <version>1.0.19</version>
       </dependency>
       <dependency>
         <groupId>org.typedclojure</groupId>
         <artifactId>typed.cljs.checker</artifactId>
-        <version>1.0.19-SNAPSHOT</version>
+        <version>1.0.19</version>
       </dependency>
       <dependency>
         <groupId>org.typedclojure</groupId>
         <artifactId>typed.clj.checker</artifactId>
-        <version>1.0.19-SNAPSHOT</version>
+        <version>1.0.19</version>
       </dependency>
       <dependency>
         <groupId>org.typedclojure</groupId>
         <artifactId>typed.clj.runtime</artifactId>
-        <version>1.0.19-SNAPSHOT</version>
+        <version>1.0.19</version>
       </dependency>
       <dependency>
         <groupId>org.typedclojure</groupId>
         <artifactId>typed.lib.clojure</artifactId>
-        <version>1.0.19-SNAPSHOT</version>
+        <version>1.0.19</version>
       </dependency>
       <dependency>
         <groupId>org.typedclojure</groupId>
         <artifactId>typed.lib.core.async</artifactId>
-        <version>1.0.19-SNAPSHOT</version>
+        <version>1.0.19</version>
       </dependency>
       <dependency>
         <groupId>org.typedclojure</groupId>
         <artifactId>typed.clj.annotator</artifactId>
-        <version>1.0.19-SNAPSHOT</version>
+        <version>1.0.19</version>
       </dependency>
       <dependency>
         <groupId>org.typedclojure</groupId>
         <artifactId>typed.clj.lang</artifactId>
-        <version>1.0.19-SNAPSHOT</version>
+        <version>1.0.19</version>
       </dependency>
       <dependency>
         <groupId>org.typedclojure</groupId>
         <artifactId>typed.clj.spec</artifactId>
-        <version>1.0.19-SNAPSHOT</version>
+        <version>1.0.19</version>
       </dependency>
       <dependency>
         <groupId>org.typedclojure</groupId>
         <artifactId>typed.clj.malli</artifactId>
-        <version>1.0.19-SNAPSHOT</version>
+        <version>1.0.19</version>
       </dependency>
       <dependency>
         <groupId>org.clojure</groupId>
@@ -342,6 +342,6 @@
     <connection>scm:git:git://github.com/typedclojure/typedclojure.git</connection>
     <developerConnection>scm:git:git://github.com/typedclojure/typedclojure.git</developerConnection>
     <url>https://github.com/typedclojure/typedclojure</url>
-    <tag>HEAD</tag>
+    <tag>1.0.19</tag>
   </scm>
 </project>
