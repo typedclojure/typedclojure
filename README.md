@@ -29,8 +29,8 @@ time, and the runtime dependencies in production.
 In Clojure CLI's `deps.edn`, this will look something like this:
 
 ```clojure
-{:deps {org.typedclojure/typed.clj.runtime {:mvn/version "1.0.18"}}
- :aliases {:dev {:extra-deps {org.typedclojure/typed.clj.checker {:mvn/version "1.0.18"}}}}}
+{:deps {org.typedclojure/typed.clj.runtime {:mvn/version "1.0.19"}}
+ :aliases {:dev {:extra-deps {org.typedclojure/typed.clj.checker {:mvn/version "1.0.19"}}}}}
 ```
 
 You can then start a dev repl with `clj -A:dev`.
@@ -39,8 +39,8 @@ In Leiningen's `project.clj`, it will look something like this:
 
 ```clojure
 (defproject com.my-domain/a-project "1.0.0-SNAPSHOT"
-  :dependencies [[org.typedclojure/typed.clj.runtime "1.0.18"]]
-  :profiles {:dev {:dependencies [[org.typedclojure/typed.clj.checker "1.0.18"]]}})
+  :dependencies [[org.typedclojure/typed.clj.runtime "1.0.19"]]
+  :profiles {:dev {:dependencies [[org.typedclojure/typed.clj.checker "1.0.19"]]}})
 ```
 
 Then, `lein repl` will automatically activate the `:dev` profile. Verify the type
@@ -48,7 +48,7 @@ checker is not included in uberjars with `lein with-profile uberjar deps :tree`.
 
 ## Releases and Dependency Information
 
-Latest stable release is 1.0.18.
+Latest stable release is 1.0.19.
 
 See modules for specific version coordinates:
 

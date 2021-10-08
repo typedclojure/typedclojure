@@ -1,3 +1,7 @@
+# 1.0.19
+
+- fix bad `clojure.core/boolean?` annotation
+
 # 1.0.18
 
 - improve destructuring error messages for:

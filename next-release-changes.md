@@ -1,1 +1,0 @@
-- fix bad `clojure.core/boolean?` annotation
