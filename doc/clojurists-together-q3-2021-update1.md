@@ -11,10 +11,12 @@ In the first half of the project, I have concentrated on three main areas:
 
 ## Increase direct support for problematic clojure.core macros
 
-**Problem**: Typed Clojure expands macros that it does not have special rules for. The
-this works well when the expansion is simple (eg., `binding`, `future`, or `delay`). But this strategy
-backfires horribly for complex macros like `doseq`. For example, for historical reasons `doseq`
-does not have direct support:
+**Problem**: Typed Clojure expands macros that it does not have special rules for. This
+works well when the expansion is simple (eg., `binding`, `future`, or `delay`), but this strategy
+backfires horribly for complex macros like `doseq`.
+
+For example, `doseq` does not have direct support in Typed Clojure `1.0.17` and any usage of it results
+in an incomprehensible error message (note: `t/cf` type [c]hecks a [f]orm):
 
 ```clojure
 $ clj -Sdeps '{:deps {org.typedclojure/typed.clj.checker {:mvn/version "1.0.17"}}}}'
@@ -117,10 +119,10 @@ Type Checker: Found 1 error
 
 ## Improve error messages for inlining functions
 
-**Problem**: inline functions are an experimental (and relativley obscure) Clojure feature, where the compiler can treat
-a var as a macro in operator position or a function in higher-order contexts. To help infer `:tag` information, Typed Clojure
-also expands inline functions. If a type error occurs in the inlined expansion, the original form is lost and the expansion
-is blamed, leading to an unhelpful error message.
+**Problem**: inline functions are an experimental Clojure feature that enables the compiler to treat
+a var as a macro in operator position and a function in higher-order contexts. Typed Clojure
+expands inline functions for `:tag` inference purposes, but if a type error occurs in the inlined expansion, the original form is lost and the expansion
+is blamed. This results in an unhelpful error message.
 
 For example, `inc` blames its expansion `clojure.lang.Numbers/inc`:
 ```clojure
@@ -207,14 +209,14 @@ Type Checker: Found 1 error
 
 ## Identify classes of implementation defects in core Clojure macros to prepare for potential typing rules
 
-**Problem**: Usually, to improve static type error messages for a macro, a custom typing rule is needed.
+**Problem**: To improve static type error messages for a macro, a custom typing rule is needed.
 However, typing rules for macros need to simulate the macro expansion of the original macro accurately in order to be sound.
 Some macros in clojure.core are known to [leak implementation details](https://clojure.atlassian.net/browse/CLJ-2573)--this would
 influence how typing rules are written, so we need to investigate similar issues for other macros.
 
 **Approach**: Study the definition of macros and try and break them.
 
-**Results**: I found 3 classes of implementation leakage in core Clojure macros.
+**Results**: I found 5 classes of implementation leakage in core Clojure macros.
 1. In macros that wrap try/finally around a body, `catch` syntax is leaked to the user.
 ```clojure
 $ clj
