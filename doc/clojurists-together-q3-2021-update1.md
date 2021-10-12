@@ -7,7 +7,7 @@ specifically to replace expanded code in error messages with surface-level synta
 In the first half of the project, I have concentrated on three main areas:
 1. Increase direct support for problematic clojure.core macros
 2. Improve error messages for inlining functions
-3. Identify classes of implementation defects in core Clojure macros to prepare for potential typing rules
+3. Identify classes of implementation quirks in core Clojure macros to prepare for potential typing rules
 
 ## Increase direct support for problematic clojure.core macros
 
@@ -212,7 +212,7 @@ Type Checker: Found 1 error
 **Commits**
 - [check inlines before expansion to improve error msg](https://github.com/typedclojure/typedclojure/commit/2b3ba3bbfcf615b5d4e92b4e7bae7a356100c772)
 
-## Identify classes of implementation defects in core Clojure macros to prepare for potential typing rules
+## Identify classes of implementation quirks in core Clojure macros to prepare for potential typing rules
 
 **Problem**: To improve static type error messages for a macro, a custom typing rule is needed.
 However, typing rules for macros need to simulate the macro expansion of the original macro accurately in order to be sound.
