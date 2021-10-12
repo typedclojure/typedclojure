@@ -219,6 +219,9 @@ However, typing rules for macros need to simulate the macro expansion of the ori
 Some macros in clojure.core are known to [leak implementation details](https://clojure.atlassian.net/browse/CLJ-2573)--this would
 influence how typing rules are written, so we need to investigate similar issues for other macros.
 
+**Prior work**:
+- https://clojure.atlassian.net/browse/CLJ-2573
+
 **Approach**: Study the definition of macros and try and break them.
 
 **Results**: I found 5 classes of implementation leakage in core Clojure macros.
@@ -273,7 +276,7 @@ Reflection warning, NO_SOURCE_PATH:1:1 - call to method reset can't be resolved 
 1
 ```
 
-As a result of this work, the following macros are now known to leak implementation details in some combination of the aforementioned ways and need special
+As a result of this (and some prior) work, the following macros are now known to leak implementation details in some combination of the aforementioned ways and need special
 handling in potential typing rules:
 - `locking` ([upstream report](https://clojure.atlassian.net/browse/CLJ-2573)), `binding`, `with-bindings`, `sync`, `with-local-vars`, `with-in-str`, `dosync`, `with-precision`, `with-loading-context`, `with-redefs`, `delay`, `vswap!`, `lazy-seq`, `lazy-cat`, `future`, `pvalues`, `clojure.test/{deftest,deftest-,testing,with-test,with-test-out}`, `clojure.java.shell/with-sh-{dir,env}`, `clojure.test.tap/with-tap-output`, `clojure.pprint/with-pprint-dispatch`, `clojure.core.async/thread`, `clojure.core.logic.pldb/with-{db,dbs}`, `clojure.tools.trace/dotrace`, `clojure.test.check.properties/for-all`, `clojure.test.check.generators/let`, `clojure.java.jmx/with-connection`, `clojure.core.match.debug/with-recur`
 
