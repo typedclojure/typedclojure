@@ -241,6 +241,9 @@ nil
 ```
 $ clj
 Clojure 1.10.3
+user=> (with-bindings [] {:pre [false]} 1)
+Execution error (AssertionError) at user/eval164$fn (REPL:1).
+Assert failed: false
 ```
 4. Double macro expansion and evaluation.
 ```clojure
