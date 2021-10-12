@@ -238,7 +238,7 @@ nil
 )
 ```
 3. In macros that wrap fn around a body, pre/post syntax is leaked to the user.
-```
+```clojure
 $ clj
 Clojure 1.10.3
 user=> (with-bindings [] {:pre [false]} 1)
