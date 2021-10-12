@@ -165,9 +165,11 @@ Type Checker: Found 1 error
 helped marginally as the expanded code was still checked, and the inlining was not always easy to infer (eg., different order
 of arguments).
 
+A briefly considered approach was define a custom typing rule for each of the ~80 clojure.core inline functions. This was
+discarded in favor of the following once-and-for-all solution.
+
 **Approach**: Check inlining _before_ expansion, and propagate tag information after type checking. This is not possible
 if using tools.analyzer (as Typed Clojure did pre-2019), but is relatively straightforward with [typed.clj.analyzer](https://github.com/typedclojure/typedclojure/blob/main/typed/clj.analyzer/README.md) (see [maybe-check-inlineable](https://github.com/typedclojure/typedclojure/commit/2b3ba3bbfcf615b5d4e92b4e7bae7a356100c772#diff-a4006cf0fe797e50023948e873f147c6f37a8af7b354509709fdf29377c8954fR289) for the required juggling).
-
 
 **Results**
 This change improved error messages for [around 78 functions](https://github.com/typedclojure/typedclojure/commit/2b3ba3bbfcf615b5d4e92b4e7bae7a356100c772#diff-c32ff2e4f53b6e6da9e2a1b3f79e1f3f6cf7d080d7b59f9b1b682116c47c0e9dR205) in `clojure.core`. Now inline functions never blame their expansions and unsupported inline functions consistently throw type errors in first- and higher-order contexts
