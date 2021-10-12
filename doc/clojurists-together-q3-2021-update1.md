@@ -79,8 +79,7 @@ This macro had some downsides:
 1. all bindings required annotations.
 2. it had poor discoverability as `doseq`'s error message makes no mention of this alternative.
 
-**Approach**: Create typing rule for `doseq` and several other `clojure.core` macros, and develop `:let/:while/:when` support
-for list comprehension rules.
+**Approach**: Create typing rule for `doseq` and create or enhance other typing rules for problematic `clojure.core` macros.
 
 **Results**:
 
