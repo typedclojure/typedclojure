@@ -70,8 +70,11 @@ Execution error (ExceptionInfo) at clojure.core.typed.errors/print-errors! (erro
 Type Checker: Found 1 error
 ```
 
-**Prior work**: `clojure.core/for` typing rule without support for `:let/:while/:when` options was already developed. Most
-of the infrastructure for supporting `doseq` was already developed.
+We need explicit support for `doseq` and similar macros to both improve inference and error messages.
+
+**Prior work**: `clojure.core.typed/doseq` is a wrapper macro that requires annotations for all bindings.
+Besides the onerous task of local annotations, this was inadequate because `doseq`'s error message (above)
+makes no mention of this alternative.
 
 **Approach**: Create typing rule for `doseq` and several other `clojure.core` macros, and develop `:let/:while/:when` support
 for list comprehension rules.
