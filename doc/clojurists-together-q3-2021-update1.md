@@ -2,7 +2,7 @@
 
 The goal of [this project funded by Clojurists Together](https://www.clojuriststogether.org/news/q3-2021-funding-announcement/) is to
 improve static type error messages in [Typed Clojure](https://github.com/typedclojure/typedclojure),
-specifically to replace expanded code in error message with surface-level syntax.
+specifically to replace expanded code in error messages with surface-level syntax.
 
 In the first half of the project, I have concentrated on three main areas:
 1. Increase direct support for problematic clojure.core macros
