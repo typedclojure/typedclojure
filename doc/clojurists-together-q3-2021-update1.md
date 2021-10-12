@@ -255,6 +255,8 @@ user=> (vswap! (do (prn "created") (volatile! 0)) inc)
 ```clojure
 $ clj
 Clojure 1.10.3
+user=> (set! *warn-on-reflection* true)
+true
 user=> (defmacro id [a] a)
 #'user/id
 user=> (vswap! (id (identity (volatile! 0))) inc)
