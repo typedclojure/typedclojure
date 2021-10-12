@@ -233,6 +233,8 @@ user=> (binding [] (catch Exception e :foo))
 nil
 user=> (locking 1 (catch Exception e :foo))
 nil
+user=> (with-in-str "a" (catch Exception e :foo))
+nil
 ```
 2. In macros that wrap fn around a body, a recur target is available (also plays poorly with `:once` fns).
 ```clojure
@@ -240,6 +242,8 @@ $ clj
 Clojure 1.10.3
 user=> (delay (recur))
 #object[clojure.lang.Delay 0x3d7fa3ae {:status :pending, :val nil}]
+user=> (future (recur))
+#object[clojure.core$future_call$reify__8477 0x5f462e3b {:status :pending, :val nil}]
 user=> (do (lazy-seq (recur)) nil)
 nil
 user=> (let [a (Object.)] (lazy-seq (prn a) (when a (recur))))
