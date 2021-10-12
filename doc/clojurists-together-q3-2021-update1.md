@@ -240,10 +240,14 @@ $ clj
 Clojure 1.10.3
 user=> (delay (recur))
 #object[clojure.lang.Delay 0x3d7fa3ae {:status :pending, :val nil}]
+user=> (do (lazy-seq (recur)) nil)
+nil
 user=> (let [a (Object.)] (lazy-seq (prn a) (when a (recur))))
 (#object[java.lang.Object 0x1a411233 "java.lang.Object@1a411233"]
 nil
 )
+user=> (let [a (Object.)] @(delay (or a (recur))))
+#object[java.lang.Object 0x3068b369 "java.lang.Object@3068b369"]
 ```
 3. In macros that wrap fn around a body, pre/post syntax is leaked to the user.
 ```clojure
