@@ -165,7 +165,7 @@ Type Checker: Found 1 error
 helped marginally as the expanded code was still checked, and the inlining was not always easy to infer (eg., different order
 of arguments).
 
-A briefly considered approach was define a custom typing rule for each of the ~80 clojure.core inline functions. This was
+A briefly considered approach in fixing this problem was to define a custom typing rule for each of the ~80 clojure.core inline functions. This was
 discarded in favor of the following once-and-for-all solution.
 
 **Approach**: Check inlining _before_ expansion, and propagate tag information after type checking. This is not possible
