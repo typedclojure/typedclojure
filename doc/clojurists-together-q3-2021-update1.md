@@ -72,9 +72,12 @@ Type Checker: Found 1 error
 
 We need explicit support for `doseq` and similar macros to both improve inference and error messages.
 
-**Prior work**: `clojure.core.typed/doseq` is a wrapper macro that requires annotations for all bindings.
-Besides the onerous task of local annotations, this was inadequate because `doseq`'s error message (above)
-makes no mention of this alternative.
+**Prior work**: Before custom typing rules were possible in Typed Clojure, an alternative macro `clojure.core.typed/doseq`
+was provided for compatibility with the type checker. For example, instead of `(doseq [a [1]] ..)` you would write `(t/doseq [a :- Int, [1]] ...)`.
+
+This macro had some downsides:
+1. all bindings required annotations.
+2. it had poor discoverability as `doseq`'s error message makes no mention of this alternative.
 
 **Approach**: Create typing rule for `doseq` and several other `clojure.core` macros, and develop `:let/:while/:when` support
 for list comprehension rules.
