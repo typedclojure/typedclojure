@@ -79,7 +79,7 @@ This macro had some downsides:
 1. all bindings required annotations.
 2. it had poor discoverability as `doseq`'s error message makes no mention of this alternative.
 
-**Approach**: Create typing rule for `doseq` and create or enhance other typing rules for problematic `clojure.core` macros.
+**Approach**: Create typing rule for `doseq` and create or enhance typing rules for other  problematic `clojure.core` macros.
 
 **Results**:
 
@@ -228,6 +228,8 @@ influence how typing rules are written, so we need to investigate similar issues
 
 **Results**: I found 5 classes of implementation leakage in core Clojure macros.
 1. In macros that wrap try/finally around a body, `catch` syntax is leaked to the user.
+The following macros expand to `(try (catch Exception e :foo) (finally ...))`. In all
+of these cases, `catch` is not bound so we might expect an error instead of the below behavior.
 ```clojure
 $ clj
 Clojure 1.10.3
@@ -235,10 +237,11 @@ user=> (binding [] (catch Exception e :foo))
 nil
 user=> (locking 1 (catch Exception e :foo))
 nil
-user=> (with-in-str "a" (catch Exception e :foo))
+user=> (with-in-str "a" (catch Exception e :foo)) 
 nil
 ```
-2. In macros that wrap fn around a body, a recur target is available (also plays poorly with `:once` fns).
+2. In macros that wrap `fn` around a body, a `recur` target is available. In all of these
+cases, a compilation error might be more appropriate. (also plays poorly with `:once` fns).
 ```clojure
 $ clj
 Clojure 1.10.3
@@ -248,14 +251,12 @@ user=> (future (recur))
 #object[clojure.core$future_call$reify__8477 0x5f462e3b {:status :pending, :val nil}]
 user=> (do (lazy-seq (recur)) nil)
 nil
-user=> (let [a (Object.)] (lazy-seq (prn a) (when a (recur))))
-(#object[java.lang.Object 0x1a411233 "java.lang.Object@1a411233"]
+user=> (let [a (Object.)] @(delay (when a (recur)))) ;; infinite loop? no: `^:once fn*` clears bindings.
 nil
-)
-user=> (let [a (Object.)] @(delay (or a (recur))))
-#object[java.lang.Object 0x3068b369 "java.lang.Object@3068b369"]
+user=> (let [a (Object.)] (lazy-seq (when a (recur))))
+()
 ```
-3. In macros that wrap fn around a body, pre/post syntax is leaked to the user.
+3. In macros that wrap `fn` around a body, `:pre`/`:post` syntax is leaked to the user.
 ```clojure
 $ clj
 Clojure 1.10.3
