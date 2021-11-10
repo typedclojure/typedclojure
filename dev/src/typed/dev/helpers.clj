@@ -40,7 +40,7 @@
    :core-logic-mvn-version "1.0.0"
    :cognitect-test-runner-coordinates "io.github.cognitect-labs/test-runner"
    :cognitect-test-runner-git-url "https://github.com/cognitect-labs/test-runner"
-   :cognitect-test-runner-sha "4e7e1c0dfd5291fa2134df052443dc29695d8cbe"
+   :cognitect-test-runner-sha "dd6da11611eeb87f08780a30ac8ea6012d4c05ce"
    :codox-mvn-version "0.10.7"
    :kaocha-git-url "https://github.com/lambdaisland/kaocha.git"
    :kaocha-sha "58d7870e65b925de5ddf029eb95b699d4fe77a78"
