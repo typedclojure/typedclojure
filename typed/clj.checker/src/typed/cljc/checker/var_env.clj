@@ -176,9 +176,7 @@
     t
     (err/int-error (str (when vs/*current-env*
                           (str (:line vs/*current-env*) ": "))
-                        "Reference to untyped binding: " sym
-                        "\nHint: Add the annotation for " sym
-                        " via check-ns or cf"))))
+                        "Missing type for binding: " (pr-str sym)))))
 
 (defn get-untyped-var [nsym sym]
   {:pre [(symbol? nsym)

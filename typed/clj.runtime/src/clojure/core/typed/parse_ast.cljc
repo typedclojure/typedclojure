@@ -1149,10 +1149,7 @@
                #_(when-let [res (when (symbol? sym)
                                       (resolve-type-cljs sym))]
                        (:name res)))
-            (err/int-error (str "Cannot resolve type: " (pr-str sym)
-                                "\nHint: Is " (pr-str sym) " in scope?"
-                                "\nHint: Has " (pr-str sym) "'s annotation been"
-                                " found via check-ns, cf or typed-deps?"))))))
+            (err/int-error (str "Cannot resolve type: " (pr-str sym)))))))
 
 (defn parse-symbol [s]
   (parse-symbol* s))

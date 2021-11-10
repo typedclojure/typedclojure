@@ -470,9 +470,7 @@
 
         :else
         (err/tc-delayed-error
-          (str "Unannotated var " id
-               "\nHint: Add the annotation for " id
-               " via check-ns or cf")
+          (str "Unannotated var " id)
           :return (assoc expr
                          u/expr-type (cu/error-ret expected)))))))
 
@@ -540,11 +538,9 @@
             ;; :infer-vars are enabled for this namespace, this
             ;; var object is the dynamic type
             (should-infer-vars? expr) (r/-unchecked id)
-            :else (err/tc-delayed-error (str "Untyped var reference: " id
-                                           "\nHint: Add the annotation for " id
-                                           " via check-ns or cf")
-                                      :form (ast-u/emit-form-fn expr)
-                                      :return (r/TCError-maker)))]
+            :else (err/tc-delayed-error (str "Unannotated var reference: " id)
+                                        :form (ast-u/emit-form-fn expr)
+                                        :return (r/TCError-maker)))]
     (assoc expr
            u/expr-type (binding [vs/*current-expr* expr]
                          (below/maybe-check-below
