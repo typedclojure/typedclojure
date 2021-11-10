@@ -48,6 +48,10 @@
       <artifactId>typed.lib.clojure</artifactId>
     </dependency>
     <dependency>
+      <groupId>{◊typedclojure-group-id◊}</groupId>
+      <artifactId>typed.lib.spec.alpha</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.clojure</groupId>
       <artifactId>tools.namespace</artifactId>
     </dependency>

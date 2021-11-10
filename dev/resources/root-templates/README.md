@@ -77,6 +77,7 @@ See modules for specific version coordinates:
 
 * [typed.lib.clojure](typed/lib.clojure/README.md): Base type annotations
 * [typed.lib.core.async](typed/lib.core.async/README.md): Annotations for core.async
+* [typed.lib.spec.alpha](typed/lib.spec.alpha/README.md): Annotations for spec.alpha
 
 ## Compatibility
 

@@ -69,7 +69,8 @@
   (su/set-missing-value-formatter! missing-value-fn)
   (let [artifact-id (first args)
         context-map (assoc (module-info artifact-id)
-                           :do-not-edit-comment-template "{% do-not-edit-edn-comment %}")]
+                           :do-not-edit-edn-comment-template "{% do-not-edit-edn-comment %}"
+                           :do-not-edit-xml-comment-template "{% do-not-edit-xml-comment %}")]
     (doseq [[src dest] (create-template-plan artifact-id)]
       (io/make-parents (str "../" dest))
       (spit (str "../" dest)

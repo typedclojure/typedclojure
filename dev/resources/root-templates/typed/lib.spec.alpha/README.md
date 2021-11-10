@@ -1,5 +1,5 @@
-{&do-not-edit-xml-comment-template&}
-# {&module-artifact-id&}
+{% do-not-edit-xml-comment %}
+# typed.lib.spec.alpha
 
 <a href='{◊typedclojure-homepage◊}'><img src='../../doc/images/part-of-typed-clojure-project.png'></a>
 
@@ -8,18 +8,18 @@
   <a href='https://opencollective.com/typedclojure'><img src='../../doc/images/donate-to-our-collective.png'></a>
 </p>
 
-FIXME
+Annotations and type rules for spec.alpha.
 
 ## Releases and Dependency Information
 
 Latest stable release is {◊typedclojure-stable-mvn-version◊}.
 
-* [All Released Versions](https://clojars.org/{◊typedclojure-group-id◊}/{&module-artifact-id&})
+* [All Released Versions](https://clojars.org/{◊typedclojure-group-id◊}/typed.lib.spec.alpha)
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) JAR dependency information:
 
 ```clj
-  {◊typedclojure-group-id◊}/{&module-artifact-id&} {:mvn/version "{◊typedclojure-stable-mvn-version◊}"}
+  {◊typedclojure-group-id◊}/typed.lib.spec.alpha {:mvn/version "{◊typedclojure-stable-mvn-version◊}"}
 ```
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) Git dependency information:
@@ -27,16 +27,16 @@ Latest stable release is {◊typedclojure-stable-mvn-version◊}.
 - Note: use `clj -Sresolve` to resolve the `:tag` to a `:sha`
 
 ```clj
-  {◊typedclojure-group-id◊}/{&module-artifact-id&}
+  {◊typedclojure-group-id◊}/typed.lib.spec.alpha
   {:git/url "{◊typedclojure-git-https-url◊}"
-   :deps/root "{&module-dir&}"
+   :deps/root "typed/lib.spec.alpha"
    :tag "{◊typedclojure-stable-mvn-version◊}"}
 ```
 
 [Leiningen](https://github.com/technomancy/leiningen) dependency information:
 
 ```clojure
-[{◊typedclojure-group-id◊}/{&module-artifact-id&} "{◊typedclojure-stable-mvn-version◊}"]
+[{◊typedclojure-group-id◊}/typed.lib.spec.alpha "{◊typedclojure-stable-mvn-version◊}"]
 ```
 
 [Maven](https://maven.apache.org/) dependency information:
@@ -44,14 +44,14 @@ Latest stable release is {◊typedclojure-stable-mvn-version◊}.
 ```XML
 <dependency>
   <groupId>{◊typedclojure-group-id◊}</groupId>
-  <artifactId>{&module-artifact-id&}</artifactId>
+  <artifactId>typed.lib.spec.alpha</artifactId>
   <version>{◊typedclojure-stable-mvn-version◊}</version>
 </dependency>
 ```
 
 ## Documentation
 
-[API Reference](https://api.typedclojure.org/latest/{&module-artifact-id&}/index.html)
+[API Reference](https://api.typedclojure.org/latest/typed.lib.spec.alpha/index.html)
 
 ## License
 

@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-{&do-not-edit-xml-comment-template&}
+{% do-not-edit-xml-comment %}
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>{◊typedclojure-group-id◊}</groupId>
-  <artifactId>{&module-artifact-id&}</artifactId>
+  <artifactId>typed.lib.spec.alpha</artifactId>
   <description>FIXME</description>
-  <name>{&module-artifact-id&}</name>
+  <name>typed.lib.spec.alpha</name>
   <version>{◊typedclojure-current-mvn-version◊}</version>
 
   <licenses>

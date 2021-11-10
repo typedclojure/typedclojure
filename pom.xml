@@ -167,6 +167,7 @@
 
     <module>typed/lib.clojure</module>
     <module>typed/lib.core.async</module>
+    <module>typed/lib.spec.alpha</module>
   </modules>
 
   <dependencyManagement>

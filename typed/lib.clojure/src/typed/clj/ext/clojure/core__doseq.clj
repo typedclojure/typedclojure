@@ -79,5 +79,3 @@
                                  (r/ret r/-nil
                                         (fo/-false-filter))
                                  expected))))))
-
-
