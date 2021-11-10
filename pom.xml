@@ -230,6 +230,11 @@
       </dependency>
       <dependency>
         <groupId>org.typedclojure</groupId>
+        <artifactId>typed.lib.spec.alpha</artifactId>
+        <version>1.0.20-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.typedclojure</groupId>
         <artifactId>typed.clj.annotator</artifactId>
         <version>1.0.20-SNAPSHOT</version>
       </dependency>

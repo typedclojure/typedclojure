@@ -230,6 +230,11 @@
       </dependency>
       <dependency>
         <groupId>{◊typedclojure-group-id◊}</groupId>
+        <artifactId>typed.lib.spec.alpha</artifactId>
+        <version>{◊typedclojure-current-mvn-version◊}</version>
+      </dependency>
+      <dependency>
+        <groupId>{◊typedclojure-group-id◊}</groupId>
         <artifactId>typed.clj.annotator</artifactId>
         <version>{◊typedclojure-current-mvn-version◊}</version>
       </dependency>
