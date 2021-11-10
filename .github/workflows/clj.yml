@@ -8,8 +8,8 @@ on:
     - cron: "0 13 * * 1,5"
 
 env:
-  CLOJURE_CLI_VERSION: "1.10.3.943"
-  BABASHKA_VERSION: "0.5.1"
+  CLOJURE_CLI_VERSION: "1.10.3.1020"
+  BABASHKA_VERSION: "0.6.4"
 
 jobs:
   setup:
@@ -63,7 +63,7 @@ jobs:
       - name: Set up JDK ${{ matrix.jdk }}
         uses: actions/setup-java@v2
         with:
-          distribution: 'adopt'
+          distribution: 'temurin'
           java-version: ${{ matrix.jdk }}
       - uses: DeLaGuardo/setup-clojure@5042876523f30f5efcf1d6feaa48bd1498d7814f
         with:

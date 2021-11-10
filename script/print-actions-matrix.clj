@@ -48,7 +48,7 @@
                            clojure-next-snapshot]
                   jdk ["8"
                        "11"
-                       "16"]]
+                       "17"]]
               {:submodule submodule
                :clojure clojure
                :jdk jdk})})
