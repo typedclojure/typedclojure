@@ -25,7 +25,7 @@
   (:import (clojure.lang ExceptionInfo)))
 
 (def ^:private ns->relpath (delay (impl/dynaload 'cljs.util/ns->relpath)))
-(def ^:private check-cljs-ns (delay (impl/dynaload 'clojure.core.typed.check-cljs/check-ns)))
+(def ^:private check-cljs-ns-and-deps (delay (impl/dynaload 'clojure.core.typed.check-cljs/check-ns-and-deps)))
 
 (defn cljs-reader [nsym]
   (let [f (@ns->relpath nsym)
@@ -76,7 +76,7 @@
                   (let [check-ns (impl/impl-case
                                    :clojure #(binding [vs/*check-config* (atom check-config)]
                                                (chk-clj/check-ns-and-deps %))
-                                   :cljs    @check-cljs-ns)]
+                                   :cljs    @check-cljs-ns-and-deps)]
                     (doseq [nsym nsym-coll]
                       (check-ns nsym))))
                 (catch ExceptionInfo e

@@ -95,4 +95,3 @@
   (if (instance? File res)
     (.getPath ^File res)
     (.getPath ^URL res)))
-

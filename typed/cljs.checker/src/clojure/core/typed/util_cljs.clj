@@ -17,7 +17,7 @@
 
 (defmacro with-cljs-typed-env [& body]
   `(env/with-compiler-env (or env/*compiler* default-env)
-     ~@body))
+     (do ~@body)))
 
 (defn var-exists? [env prefix suffix]
   (let [compiler env/*compiler*
@@ -32,6 +32,7 @@
             (binding [ana/*cljs-ns* nsym]
               (comp/with-core-cljs
                 nil
+                ;; TODO use cljs.analyzer.api/ns-resolve
                 #(ana/resolve-var (ana/empty-env) sym
                                   (fn [env ns sym]
                                     (when-not (var-exists? env ns sym)

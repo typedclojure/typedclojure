@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc ^:no-doc clojure.core.typed.ast-utils
+(ns ^:no-doc clojure.core.typed.ast-utils
   (:require [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.coerce-utils :as coerce]))

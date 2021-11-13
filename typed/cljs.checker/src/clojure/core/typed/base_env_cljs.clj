@@ -371,14 +371,14 @@ cljs.core.typed/NonEmptySeq (TFn [[x :variance :covariant]]
 with count 0."
     :forms [(EmptySeqable t)]}
 cljs.core.typed/EmptySeqable (TFn [[x :variance :covariant]]
-                                  (I (cljs.core.typed/Seqable x) (ExactCount 0)))
+                                  (I (cljs.core/ISeqable x) (ExactCount 0)))
 
    ^{:doc "A type that can be used to create a sequence of member type x
 with count greater than 0."
      :forms [(NonEmptySeqable t)]}
 cljs.core.typed/NonEmptySeqable
     (TFn [[x :variance :covariant]]
-         (I (cljs.core.typed/Seqable x) (CountRange 1)))
+         (I (cljs.core/ISeqable x) (CountRange 1)))
 
     ;;Option
   ^{:doc "A union of x and nil."
@@ -429,7 +429,7 @@ cljs.core.typed/Nilable (TFn [[x :variance :covariant]] (U nil x))
   ^{:doc "A persistent vector returned from clojure.core/vector (and others)"
     :forms [(AVec t)]}
 cljs.core.typed/AVec (TFn [[x :variance :covariant]]
-                             (I (IPersistentVector x)
+                             (I (IVector x)
                                 ;(java.lang.Iterable x)
                                 (ICollection x)
                                 (IList x)
@@ -439,7 +439,7 @@ cljs.core.typed/AVec (TFn [[x :variance :covariant]]
   ^{:doc "A persistent vector returned from clojure.core/vector (and others) and count greater than 0."
     :forms [(NonEmptyAVec t)]}
 cljs.core.typed/NonEmptyAVec (TFn [[x :variance :covariant]]
-                                        (I (IPersistentVector x)
+                                        (I (IVector x)
                                            ;(java.lang.Iterable x)
                                            (ICollection x)
                                            (IList x)

@@ -274,5 +274,6 @@
 
 
 
-(deftest cljs-core-fns-refined-test
-    (run-core-tests))
+;;TODO uncomment
+;(deftest cljs-core-fns-refined-test
+;    (run-core-tests))

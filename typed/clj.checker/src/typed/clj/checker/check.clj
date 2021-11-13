@@ -336,8 +336,7 @@
   ;(prn "check-expr" op)
   ;(clojure.pprint/pprint (emit-form/emit-form expr))
   ;; to keep :post condition
-  (loop [expr expr
-         expected expected]
+  (loop [expr expr]
     (assert (not (u/expr-type expr))
             (str "Expression already has type information when passed to check-expr"))
     (let [; update namespace, as it might have changed when evaluating a previous
@@ -359,7 +358,7 @@
                     (maybe-check-inlineable expr expected)))
               (-> expr
                   ana2/analyze-outer
-                  (recur expected))))
+                  recur)))
         (binding [vs/*current-env* (if (:line env) env vs/*current-env*)
                   vs/*current-expr* expr]
           (-> expr

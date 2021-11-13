@@ -108,7 +108,7 @@
             :clojure (RClass-of 'clojure.lang.APersistentMap [ks vs])
             :cljs (In (Protocol-of 'cljs.core/IMap [ks vs])
                       (Protocol-of 'cljs.core/ICollection [r/-any])
-                      (Protocol-of 'cljs.core/IAssociative [ks vs])
+                      (Protocol-of 'cljs.core/IAssociative [r/-any ks vs])
                       (Protocol-of 'cljs.core/ISeqable [r/-any]))))
         (r/make-CountRange 
           ; assume all optional entries are absent
@@ -255,7 +255,7 @@
                                (Protocol-of 'cljs.core/ICollection [tp])
                                (Protocol-of 'cljs.core/ISeqable [tp])
                                (Protocol-of 'cljs.core/IStack [tp])
-                               (Protocol-of 'cljs.core/IAssociative [r/-integer-cljs tp])
+                               (Protocol-of 'cljs.core/IAssociative [r/-any r/-integer-cljs tp])
                                (Protocol-of 'cljs.core/IReversible [tp]))
                    :seq (Protocol-of 'cljs.core/ISeq [tp])
                    :list (Protocol-of 'cljs.core/IList [tp])

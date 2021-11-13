@@ -1,4 +1,4 @@
-;;   Copyright (c) Nicola Mometto, Rich Hickey & contributors.
+;;   Copyright (c) Ambrose Bonnaire-Sergeant, Rich Hickey & contributors.
 ;;   The use and distribution terms for this software are covered by the
 ;;   Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0.php)
 ;;   which can be found in the file epl-v10.html at the root of this distribution.
@@ -6,463 +6,291 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-;; adapted from tools.analyzer.js
 (ns typed.cljs.analyzer
-  "Analyzer for clojurescript code, extends tools.analyzer with JS specific passes/forms"
-  (:refer-clojure :exclude [macroexpand-1 var? ns-resolve])
-  (:require [typed.cljc.analyzer :as ana]
-            [typed.cljc.analyzer :as common]
-            [typed.cljc.analyzer.ast :refer [prewalk postwalk]]
-            [typed.cljc.analyzer.env :as env]
-            [typed.cljc.analyzer.passes :as passes]
-            [typed.cljc.analyzer.passes.source-info :refer [source-info]]
-            [typed.cljc.analyzer.passes.elide-meta :refer [elide-meta elides]]
-            [typed.cljc.analyzer.passes.uniquify :as uniquify2]
-            [typed.cljc.analyzer.utils :refer [ctx -source-info dissoc-env mmerge update-vals] :as u]
-            [typed.cljs.analyzer.passes.infer-tag :refer [infer-tag]]
-            [typed.cljs.analyzer.passes.validate :refer [validate]]
-            [typed.cljs.analyzer.utils
-             :refer [desugar-ns-specs validate-ns-specs ns-resource ns->relpath res-path]]
-            [cljs.env :as cljs-env]
-            [cljs.js-deps :as deps]
-            [clojure.core :as core]
-            cljs.tagged-literals)
-  (:import cljs.tagged_literals.JSValue))
+  "Analyzer for clojurescript code."
+  (:require [cljs.env :as env]
+            [cljs.analyzer :as ana-cljs']
+            [cljs.analyzer.api :as ana-api]
+            [typed.cljc.analyzer :as ana]
+            [clojure.java.io :as io]
+            [clojure.string :as str]
+            [clojure.tools.reader :as reader]
+            [clojure.tools.reader.reader-types :as readers]))
 
-(def specials
-  "Set of the special forms for ClojureScript"
-  (into ana/specials '#{ns deftype* defrecord* js* case*}))
+(def instrumented-analyzer-ns (doto 'typed.cljs.analyzer.wrapped.cljs.analyzer
+                                create-ns))
+(alias 'ana-cljs instrumented-analyzer-ns)
 
-(def ^:dynamic *cljs-ns* 'cljs.user)
+;;https://clojure.atlassian.net/browse/CLJ-2568
+(defn walk+meta
+  "Traverses form, an arbitrary data structure.  inner and outer are
+  functions.  Applies inner to each element of form, building up a
+  data structure of the same type, then applies outer to the result.
+  Recognizes all Clojure data structures. Consumes seqs as with doall."
 
-(defonce core-env (atom {}))
+  {:added "1.1"}
+  [inner outer form]
+  (let [restore-meta #(if-let [fm (meta form)]
+                        (with-meta %
+                                   (merge fm (meta %)))
+                        %)]
+    (cond
+      (list? form) (outer (restore-meta (apply list (map inner form))))
+      (instance? clojure.lang.IMapEntry form)
+      (outer (clojure.lang.MapEntry/create (inner (key form)) (inner (val form))))
+      (seq? form) (outer (restore-meta (doall (map inner form))))
+      (instance? clojure.lang.IRecord form)
+      (outer (restore-meta (reduce (fn [r x] (conj r (inner x))) form form)))
+      (coll? form) (outer (restore-meta (into (empty form) (map inner form))))
+      :else (outer form))))
 
-(defn global-env []
-  (atom (merge (and cljs-env/*compiler* @cljs-env/*compiler*)
-               {:namespaces          (merge '{goog {:mappings {}, :js-namespace true, :ns goog}
-                                              Math {:mappings {}, :js-namespace true, :ns Math}}
-                                            @core-env)
-                :js-dependency-index (deps/js-dependency-index {})})))
+;;https://clojure.atlassian.net/browse/CLJ-2568
+(defn postwalk+meta
+  "Performs a depth-first, post-order traversal of form.  Calls f on
+  each sub-form, uses f's return value in place of the original.
+  Recognizes all Clojure data structures. Consumes seqs as with doall."
+  {:added "1.1"}
+  [f form]
+  (walk+meta (partial postwalk+meta f) f form))
 
-(defn empty-env
-  "Returns an empty env map"
-  []
-  {:context    :ctx/statement
-   :locals     {}
-   :ns         *cljs-ns*})
+;;https://clojure.atlassian.net/browse/CLJ-2568
+(defn prewalk+meta
+  "Like postwalk, but does pre-order traversal."
+  {:added "1.1"}
+  [f form]
+  (walk+meta (partial prewalk+meta f) identity (f form)))
 
-(defn ns-resolve [ns sym]
-  (let [ns (if (string? ns)
-             (symbol ns)
-             ns)
-        sym (if (string? sym)
-              (symbol sym)
-              sym)]
-    (and (find-ns ns)
-         (core/ns-resolve ns sym))))
+(defn instrument-cljs-analyzer-source []
+  (let [filename "cljs/analyzer.cljc"]
+    (with-open [rdr (io/reader (io/resource filename))]
+      (let [pbr (readers/indexing-push-back-reader
+                  (java.io.PushbackReader. rdr) 1 filename)
+            eof (Object.)
+            read-opts {:eof eof :features #{:clj}}
+            read-opts (if (.endsWith filename "cljc")
+                        (assoc read-opts :read-cond :allow)
+                        read-opts)]
+        (binding [*ns* *ns*
+                  *file* filename]
+          (loop [forms []]
+            (let [form (reader/read read-opts pbr)]
+              (if (identical? form eof)
+                forms
+                (let [form (postwalk+meta
+                             (fn [form]
+                               (cond
+                                 ;; rename ::keywords to cljs.analyzer namespace
+                                 (and (keyword? form)
+                                      (= (str instrumented-analyzer-ns)
+                                         (namespace form)))
+                                 (keyword "cljs.analyzer" (name form))
 
-(defn maybe-macro [sym {:keys [ns]}]
-  (let [var (if-let [sym-ns (namespace sym)]
-              (if-let [full-ns (get-in (env/deref-env)
-                                       [:namespaces ns :macro-aliases (symbol sym-ns)])]
-                (ns-resolve full-ns (name sym))
-                (ns-resolve sym-ns (name sym)))
-              (get-in (env/deref-env) [:namespaces ns :macro-mappings sym]))]
-    (when (:macro (meta var))
-      var)))
+                                 :else form))
+                             form)
+                      form (cond
+                             (empty? forms) (do (assert (and (seq? form)
+                                                             (= 'ns (first form))
+                                                             (= 'cljs.analyzer (second form)))
+                                                        (str "Incompatible cljs.analyzer version, must use exact version depended on by org.typedclojure/typed.cljs.analyzer: "
+                                                             "first form was not an ns form " (pr-str form)))
+                                                (with-meta
+                                                  (apply list
+                                                         (-> form
+                                                             vec
+                                                             (assoc 1 instrumented-analyzer-ns)))
+                                                  (meta form)))
 
-(defn resolve-sym [sym env]
-  (or (do (throw (ex-info "FIXME u/resolve-sym is unimplemented" {}))
-          #_(u/resolve-sym sym env))
-      (get-in env [:locals sym])))
+                             ;; make `analyze` and `parse` dynamic
+                             (or (and (seq? form)
+                                      (= 'declare (first form))
+                                      (= 'analyze (second form)))
+                                 (and (seq? form)
+                                      (= 'defn (first form))
+                                      (= 'analyze (second form)))
+                                 (and (seq? form)
+                                      (= 'defmulti (first form))
+                                      (= 'parse (second form))))
+                             (with-meta
+                               (apply list
+                                      (-> form
+                                          vec
+                                          (update 1 vary-meta assoc :dynamic true)))
+                               (meta form))
 
-(defn dotted-symbol? [form env]
-  (let [n (name form)
-        ns (namespace form)
-        idx (.indexOf n ".")
-        sym (and (pos? idx)
-                 (symbol ns (.substring n 0 idx)))]
-    (and (not= idx -1)
-         (not (resolve-sym form env))
-         (not= sym form)
-         (resolve-sym sym env))))
-
-(defn desugar-symbol [form env]
-  (let [ns (namespace form)
-        n (name form)
-        form (symbol ns n)]
-    (if (dotted-symbol? form env)
-      (let [idx (.indexOf n ".")
-            sym (symbol ns (.substring n 0 idx))]
-        (list '. sym (symbol (str "-" (.substring n (inc idx) (count n))))))
-
-      form)))
-
-(defn desugar-host-expr [form env]
-  (if (symbol? (first form))
-    (let [[op & expr] form
-          opname (name op)
-          opns   (namespace op)]
-      (cond
-
-       ;; (.foo bar ..) -> (. bar foo ..)
-       (= (first opname) \.)
-       (let [[target & args] expr
-             args (list* (symbol (subs opname 1)) args)]
-         (list '. target (if (= 1 (count args))
-                           (first args) args)))
-
-       ;; (foo. ..) -> (new foo ..)
-       (= (last opname) \.)
-       (let [op-s (str op)]
-         (list* 'new (symbol (subs op-s 0 (dec (count op-s)))) expr))
-
-       ;; (var.foo ..) -> (. var foo ..)
-       (dotted-symbol? op env)
-       (let [idx (.indexOf opname ".")
-             sym (symbol opns (.substring opname 0 idx))]
-         (list '. sym (list* (symbol (.substring opname (inc idx) (count opname))) expr)))
-
-       :else (list* op expr)))
-    form))
-
-(defn macroexpand-1
-  "If form represents a macro form returns its expansion, else returns form."
-  [form env]
-  (env/ensure (global-env)
-    (if (seq? form)
-      (let [op (first form)]
-        (if (or (not (symbol? op))
-                (specials op))
-          form
-          (if-let [clj-macro (and (not (-> env :locals (get op)))
-                                  (maybe-macro op env))]
-            (with-bindings (merge {#'*ns* (create-ns *cljs-ns*)}
-                                  (when-not (thread-bound? #'*cljs-ns*)
-                                    {#'*cljs-ns* *cljs-ns*}))
-              (let [ret (apply clj-macro form env (rest form))] ; (m &form &env & args)
-                (if (and (seq? ret)
-                         (= 'js* (first ret)))
-                  (vary-meta ret merge
-                             (when (-> clj-macro meta :cljs.analyzer/numeric)
-                               {:tag 'number}))
-                  ret)))
-            (with-meta (desugar-host-expr form env) (meta form)))))
-      (with-meta (desugar-symbol form env) (meta form)))))
-
-(defn create-var
-  "Creates a var map for sym and returns it."
-  [sym {:keys [ns]}]
-  (with-meta {:op   :var
-              ::common/op ::var
-              :name sym
-              :ns   ns}
-    (meta sym)))
-
-(defn var? [x]
-  (= :var (:op x)))
-
-(def ^:private ^:dynamic *deps-map* {:path [] :deps #{}})
-(declare analyze-ns)
-
-(defn ensure-loaded [ns {:keys [refer]}]
-  (assert (not (contains? (:deps *deps-map*) ns))
-          (str "Circular dependency detected :" (conj (:path *deps-map*) ns)))
-  (binding [*deps-map* (-> *deps-map*
-                           (update :path conj ns)
-                           (update :deps conj ns))]
-    (let [namespaces (-> (env/deref-env) :namespaces)]
-      (or (and (get namespaces ns)
-               (not (get-in namespaces [ns :js-namespace])))
-          (and (get-in (env/deref-env) [:js-dependency-index (name ns)])
-               (swap! env/*env* update-in [:namespaces ns] merge
-                      {:ns           ns
-                       :js-namespace true})
-               (swap! env/*env* update-in [:namespaces ns :mappings] merge
-                      (reduce (fn [m k] (assoc m k {:op   :js-var
-                                                    ::common/op ::js-var
-                                                    :name k
-                                                    :ns   ns}))
-                              {} refer)))
-          (analyze-ns ns)))))
-
-(defn core-macros []
-  (reduce-kv (fn [m k v]
-               (if (:macro (meta v))
-                 (assoc m k v)
-                 m))
-             {} (ns-interns 'clojure.tools.analyzer.js.cljs.core)))
-
-(defn populate-env
-  [{:keys [import require require-macros refer-clojure]} ns-name env]
-  (let [imports (reduce-kv (fn [m prefix suffixes]
-                             (merge m (into {} (mapv (fn [s] [s {:op   :js-var
-                                                                 ::common/op ::js-var
-                                                                 :ns   prefix
-                                                                 :name s}]) suffixes)))) {} import)
-        require-aliases (reduce (fn [m [ns {:keys [as]}]]
-                                  (if as
-                                    (assoc m as ns)
-                                    m)) {} require)
-        require-mappings (reduce (fn [m [ns {:keys [refer] :as spec}]]
-                                   (ensure-loaded ns spec)
-                                   (reduce #(assoc %1 %2 (get-in (env/deref-env)
-                                                                 [:namespaces ns :mappings %2])) m refer))
-                                 {} require)
-        core-mappings (apply dissoc (get-in (env/deref-env) [:namespaces 'cljs.core :mappings]) (:exclude refer-clojure))
-        macro-aliases (reduce (fn [m [ns {:keys [as]}]]
-                                (if as
-                                  (assoc m as ns)
-                                  m)) {} require-macros)
-        core-macro-mappings (apply dissoc (core-macros) (:exclude refer-clojure))
-        macro-mappings (reduce (fn [m [ns {:keys [refer]}]]
-                                 (core/require ns)
-                                 (reduce #(let [m (ns-resolve ns (name %2))]
-                                            (if (:macro (meta m))
-                                              (assoc %1 %2 m)
-                                              %1)) m refer))
-                               {} require-macros)]
-
-    (swap! env/*env* assoc-in [:namespaces ns-name]
-           {:ns             ns-name
-            :mappings       (merge core-mappings require-mappings imports)
-            :aliases        require-aliases
-            :macro-mappings (merge core-macro-mappings macro-mappings)
-            :macro-aliases  macro-aliases})))
-
-(def default-passes
-  "Set of passes that will be run by default on the AST by #'run-passes"
-  #{#'uniquify2/uniquify-locals
-
-    #'source-info
-    #'elide-meta
-
-    #'validate
-    #'infer-tag})
-
-(def scheduled-default-passes
-  (delay
-    (passes/schedule default-passes)))
+                             ;; don't redefine existing dynamic vars
+                             (or (and (seq? form)
+                                      (= 'declare (first form))
+                                      (= 'parse-ns (second form)))
+                                 (and (seq? form)
+                                      ('#{def defn} (first form))
+                                      (-> (second form) meta :dynamic)))
+                             `(require '~['cljs.analyzer :refer [(second form)]])
+                             :else form)]
+                  ;(binding [#_#_*print-meta* true] (prn "evaling" form))
+                  (eval form)
+                  (recur (conj forms form)))))))))))
 
 (comment
-  (clojure.pprint/pprint
-    (passes/schedule default-passes
-                     {:debug? true}))
-  )
+  (do (instrument-cljs-analyzer-source)
+      nil))
 
-(declare parse)
+(defonce _create-instrumented-analyzer-ns
+  (instrument-cljs-analyzer-source))
 
-(defn analyze
-  "Returns an AST for the form.
+;; use analyzer's dynamic vars
+(assert (= #'ana-cljs'/*cljs-ns* (ns-resolve instrumented-analyzer-ns '*cljs-ns*)))
 
-   Binds tools.analyzer/{macroexpand-1,create-var,parse} to
-   tools.analyzer.js/{macroexpand-1,create-var,parse} and analyzes the form.
+(def inner-parse ana-cljs/parse)
+(def inner-analyze ana-cljs/analyze)
 
-   If provided, opts should be a map of options to analyze, currently the only valid
-   options are :bindings and :passes-opts.
-   If provided, :bindings should be a map of Var->value pairs that will be merged into the
-   default bindings for tools.analyzer, useful to provide custom extension points.
-   If provided, :passes-opts should be a map of pass-name-kw->pass-config-map pairs that
-   can be used to configure the behaviour of each pass.
+(declare analyze-outer-root)
 
-   E.g.
-   (analyze form env {:bindings  {#'ana/macroexpand-1 my-mexpand-1}})
+(defmulti parse (fn [op env form nme opts] op))
 
-   Calls `run-passes` on the AST."
-  ([form] (analyze form (empty-env) {}))
-  ([form env] (analyze form env {}))
-  ([form env opts]
-     (with-bindings (merge {#'ana/macroexpand-1 macroexpand-1
-                            #'ana/create-var    create-var
-                            #'ana/scheduled-passes    @scheduled-default-passes
-                            #'ana/parse         parse
-                            #'ana/var?          var?
-                            #'elides            (-> elides
-                                                    (update :all into #{:line :column :end-line :end-column :file :source})
-                                                    (assoc :fn #{:cljs.analyzer/type :cljs.analyzer/protocol-impl :cljs.analyzer/protocol-inline}))}
-                           (when-not (thread-bound? #'*cljs-ns*)
-                             {#'*cljs-ns* *cljs-ns*})
-                           (:bindings opts))
-       (env/ensure (global-env)
-         (swap! env/*env* mmerge {:passes-opts (:passes-opts opts)})
-         (ana/run-passes (ana/unanalyzed form env))))))
+(defmethod parse 'def
+  [op env form nme opts]
+  (let [inner (inner-parse op env form nme opts)]
+    (update inner :var
+            (fn [expr]
+              ;; completely analyze this:
+              ;; :var (assoc
+              ;;        (analyze
+              ;;          (-> env (dissoc :locals)
+              ;;            (assoc :context :expr)
+              ;;            (assoc :def-var true))
+              ;;          sym)
+              ;;        :op :var)
+              (assert (= :var (:op expr))
+                      (pr-str (:op expr) (vec (keys expr))))
+              (assert (symbol? (:form expr)))
+              (-> expr
+                  (assoc :op :unanalyzed)
+                  analyze-outer-root)))))
 
-; (U ':deftype ':defrecord) Any Config -> AST
-(defn parse-type
-  [op [_ name fields pmasks body :as form] {:keys [ns] :as env}]
-  (let [fields-expr (mapv (fn [name]
-                            {:env     env
-                             :form    name
-                             :name    name
-                             :mutable (:mutable (meta name))
-                             :local   :field
-                             :op      :binding
-                             ::common/op ::common/binding})
-                          fields)
-        protocols (-> name meta :protocols)
-
-        _ (swap! env/*env* assoc-in [:namespaces ns :mappings name]
-                 {:op        :var
-                  ::common/op ::common/var
-                  :type      true
-                  :name      name
-                  :ns        ns
-                  :fields    fields
-                  :protocols protocols})
-
-        body-expr (ana/unanalyzed
-                    body
-                    (assoc env :locals (zipmap fields (map dissoc-env fields-expr))))]
-
-    {:op        op
-     ::common/op (keyword "typed.cljs.analyzer" (name op))
-     :env       env
-     :form      form
-     :name      name
-     :fields    fields-expr
-     :body      body-expr
-     :pmasks    pmasks
-     :protocols protocols
-     :children  [:fields :body]}))
-
-;; no ~{foo} support since cljs itself doesn't use it anywhere
-(defn parse-js*
-  [[_ jsform & args :as form] env]
-  (when-not (string? jsform)
-    (throw (ex-info "Invalid js* form"
-                    (merge {:form form}
-                           (-source-info form env)))))
-  (let [segs  (loop [segs [] ^String s jsform]
-                (let [idx (.indexOf s "~{")]
-                  (if (= -1 idx)
-                    (conj segs s)
-                    (recur (conj segs (subs s 0 idx))
-                           (subs s (inc (.indexOf s "}" idx)))))))
-        exprs (mapv #(ana/unanalyzed % (ctx env :ctx/expr)) args)]
-    (merge
-     {:op       :js
-      ::common/op ::js
-      :env      env
-      :form     form
-      :segs     segs}
-     (when args
-       {:args     exprs
-        :children [:args]}))))
-
-(defn parse-case*
-  [[_ test tests thens default :as form] env]
-  (assert (symbol? test) "case* must switch on symbol")
+(defmethod parse 'case*
+  [op env [_ sym tests thens default :as form] name _]
+  (assert (symbol? sym) "case* must switch on symbol")
   (assert (every? vector? tests) "case* tests must be grouped in vectors")
-  (let [expr-env (ctx env :expr)
-        test-expr (ana/unanalyzed test expr-env)
-        nodes (mapv (fn [tests then]
-                      {:op       :case-node
-                       ::common/op  ::case-node
-                       ;; no :form, this is a synthetic grouping node
-                       :env      env
-                       :tests    (mapv (fn [test]
-                                         {:op       :case-test
-                                          ::common/op ::case-test
-                                          :form     test
-                                          :env      expr-env
-                                          :test     (ana/unanalyzed test expr-env)
+  (let [expr-env (assoc env :context :expr)
+        v        (ana-cljs/disallowing-recur (ana-cljs/analyze expr-env sym))
+        tests    (mapv #(mapv (fn [t] (analyze-outer-root (ana-cljs/analyze expr-env t))) %) tests)
+        thens    (mapv #(ana-cljs/analyze env %) thens)
+        nodes    (mapv (fn [tests then]
+                         {:op :case-node
+                          ;synthetic node, no :form
+                          :env env
+                          :tests (mapv (fn [test]
+                                         {:op :case-test
+                                          :form (:form test)
+                                          :env expr-env
+                                          :test test
                                           :children [:test]})
                                        tests)
-                       :then     {:op       :case-then
-                                  ::common/op ::case-then
-                                  :form     test
-                                  :env      env
-                                  :then     (ana/unanalyzed then env)
-                                  :children [:then]}
-                       :children [:tests :then]})
-                    tests thens)
-        default-expr (ana/unanalyzed default env)]
-    (assert (every? (fn [t] (and (= :const (-> t :test :op))
-                           ((some-fn number? string?) (:form t))))
-               (mapcat :tests nodes))
-            "case* tests must be numbers or strings")
-    {:op       :case
-     ::common/op ::case
-     :form     form
-     :env      env
-     :test     (assoc test-expr :case-test true)
-     :nodes    nodes
-     :default  default-expr
+                          :then {:op :case-then
+                                 :form (:form then)
+                                 :env env
+                                 :then then
+                                 :children [:then]}
+                          :children [:tests :then]})
+                       tests
+                       thens)
+        default  (ana-cljs/analyze env default)]
+    (assert (every? (fn [t]
+                      (or
+                        (-> t :info :const)
+                        (and (= :const (:op t))
+                             ((some-fn number? string? char?) (:form t)))))
+              (apply concat tests))
+      "case* tests must be numbers, strings, or constants")
+    {:env env :op :case :form form
+     :test v :nodes nodes :default default
      :children [:test :nodes :default]}))
 
-(defn parse-ns
-  [[_ name & args :as form] env]
-  (when-not (symbol? name)
-    (throw (ex-info (str "Namespaces must be named by a symbol, had: "
-                         (.getName ^Class (class name)))
-                    (merge {:form form}
-                           (-source-info form env)))))
-  (let [[docstring & args] (if (string? (first args))
-                             args
-                             (cons nil args))
-        [metadata & args]  (if (map? (first args))
-                             args
-                             (cons {} args))
-        name (vary-meta name merge metadata)
-        ns-opts (doto (desugar-ns-specs args form env)
-                  (validate-ns-specs form env)
-                  (populate-env name env))]
-    (set! *cljs-ns* name)
-    (merge
-     {:op      :ns
-      ::common/op ::ns
-      :env     env
-      :form    form
-      :name    name
-      :depends (set (keys (:require ns-opts)))}
-     (when docstring
-       {:doc docstring})
-     (when metadata
-       {:meta metadata}))))
+(defmethod parse :default
+  [op env form nme opts]
+  (inner-parse op env form nme opts))
 
-(defn parse-def
-  [[_ sym & rest :as form] env]
-  (let [ks #{:ns :name :doc :arglists :file :line :column}
-        meta (meta sym)
-        m (merge {}
-                 (update-vals (select-keys meta ks) (fn [x] (list 'quote x)))
-                 (when (:test meta)
-                   {:test `(.-cljs$lang$test ~sym)}))]
-    (ana/analyze-form (with-meta `(def ~(with-meta sym m) ~@rest) (meta form)) env)))
+(defn analyze
+  ([env form] (analyze env form nil))
+  ([env form name]
+   (analyze env form name
+            (when env/*compiler*
+              (:options @env/*compiler*))))
+  ([env form name opts]
+   (inner-analyze env form name opts)))
 
-;; can it be :literal ?
-(defn parse-js-value
+(comment
+  (env/with-compiler-env (ana-api/empty-state)
+    (analyze (ana-api/empty-env)
+             (list '+ 1 2)))
+  (clojure.repl/pst)
+  )
+
+(defn unanalyzed-env-first
+  ([env form] (unanalyzed-env-first env form nil))
+  ([env form name] (unanalyzed-env-first
+                     env form name (when env/*compiler*
+                                     (:options @env/*compiler*))))
+  ([env form name opts]
+   {:pre [(map? env)]}
+   {:op :unanalyzed
+    :env env
+    :form form
+    :name name
+    :opts opts
+    :bindings (select-keys (get-thread-bindings)
+                           [#'ana-cljs'/*recur-frames*
+                            #'ana-cljs'/*loop-lets*
+                            #'ana-cljs'/*allow-redef*
+                            #'ana-cljs'/*allow-ns*
+                            ])}))
+
+(defn unanalyzed [form env]
+  {:pre [(map? env)]}
+  (unanalyzed-env-first env form))
+
+(defn analyze-outer [ast]
+  (case (:op ast)
+    :unanalyzed (with-bindings (:bindings ast)
+                    (cond-> (analyze (:env ast)
+                                     (:form ast)
+                                     (:name ast)
+                                     (:opts ast))
+                      (:body? ast) (assoc :body? true)))
+    ast))
+
+(defn analyze-outer-root [ast]
+  (let [ast' (analyze-outer ast)]
+    (if (identical? ast ast')
+      ast'
+      (recur ast'))))
+
+(comment
+  (select-keys
+    (-> (env/with-compiler-env
+          (ana-api/empty-state)
+          (unanalyzed
+            (ana-api/empty-env)
+            (list '+ (list '- 1) 2)))
+        analyze-outer)
+    [:form :op])
+  )
+
+(defn default-thread-bindings [env]
+  {#'ana-cljs/parse parse
+   #'ana-cljs/analyze unanalyzed-env-first
+   #'ana/scheduled-passes {:pre identity
+                           :post identity
+                           :init-ast identity}})
+
+(defn resolve-op-sym
   [form env]
-  (let [val (.val ^JSValue form)
-        items-env (ctx env :expr)]
-    (if (map? val)
-      ;; keys should always be symbols/kewords, do we really need to analyze them?
-      {:op       :js-object
-       ::common/op ::js-object
-       :env      env
-       :keys     (mapv (ana/unanalyzed-in-env items-env) (keys val))
-       :vals     (mapv (ana/unanalyzed-in-env items-env) (vals val))
-       :form     form
-       :children [:keys :vals]}
-      {:op       :js-array
-       ::common/op ::js-array
-       :env      env
-       :items    (mapv (ana/unanalyzed-in-env items-env) val)
-       :form     form
-       :children [:items]})))
-
-(defn parse
-  "Extension to clojure.core.typed.analyzer/-parse for JS special forms"
-  [form env]
-  (cond
-    (instance? JSValue form) (parse-js-value form env)
-    :else
-    ((case (first form)
-       deftype*   #(parse-type :deftype %1 %2)
-       defrecord* #(parse-type :defrecord %1 %2)
-       case*      parse-case*
-       ns         parse-ns
-       def        parse-def
-       js*        parse-js*
-       #_:else    ana/-parse)
-     form env)))
+  (when (seq? form)
+    (let [op (first form)]
+      (when (and (symbol? op)
+                 (not (ana-cljs'/specials op))
+                 (not (get (:locals env) op)))
+        (when-some [{:keys [op] :as expr} (ana-api/resolve env op)]
+          (case op
+            :var (:name expr)
+            (throw (ex-info (str `resolve-op-sym " unsupported op: " op)))))))))

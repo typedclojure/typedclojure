@@ -180,7 +180,7 @@
       <dependency>
         <groupId>org.clojure</groupId>
         <artifactId>clojurescript</artifactId>
-        <version>1.10.866</version>
+        <version>1.10.891</version>
       </dependency>
       <dependency>
         <groupId>org.clojars.typedclojure-clojars</groupId>

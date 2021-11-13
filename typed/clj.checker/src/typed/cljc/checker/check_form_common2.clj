@@ -7,22 +7,22 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.cljc.checker.check-form-common2
-  (:require [typed.clj.checker.check :as chk]
+  (:require [clojure.core.cache :as cache]
             [clojure.core.typed.contract-utils :as con]
-            [typed.cljc.checker.utils :as u]
-            [typed.clj.checker.reset-caches :as reset-caches]
-            [clojure.core.cache :as cache]
-            [typed.clj.checker.file-mapping :as file-map]
-            [typed.cljc.checker.type-rep :as r]
-            [clojure.core.typed.util-vars :as vs]
             [clojure.core.typed.current-impl :as impl]
-            [typed.cljc.checker.lex-env :as lex-env]
             [clojure.core.typed.errors :as err]
-            [clojure.repl :as repl]
-            [typed.cljc.analyzer :as ana]
-            [typed.clj.analyzer.passes.beta-reduce :as beta-reduce]
             [clojure.core.typed.runtime.jvm.configs :as configs]
-            [typed.clj.checker.parse-unparse :as prs])
+            [clojure.core.typed.util-vars :as vs]
+            [clojure.repl :as repl]
+            [typed.clj.analyzer.passes.beta-reduce :as beta-reduce]
+            [typed.clj.checker.check :as chk]
+            [typed.clj.checker.file-mapping :as file-map]
+            [typed.clj.checker.parse-unparse :as prs]
+            [typed.clj.checker.reset-caches :as reset-caches]
+            [typed.cljc.analyzer :as ana]
+            [typed.cljc.checker.lex-env :as lex-env]
+            [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.checker.utils :as u])
   (:import (clojure.lang ExceptionInfo)))
 
 (def *register-anns (delay (configs/register-config-anns)))
@@ -189,3 +189,18 @@
       (if ex
         (throw ex)
         (prs/unparse-TCResult-in-ns ret unparse-ns)))))
+
+(defn check-form-info-with-config
+  [config form opt]
+  {:pre [(map? config)
+         (not (map? opt))]}
+  (impl/with-full-impl (:impl config)
+    (apply (:check-form-info config) config
+           form opt)))
+
+(defn check-form*-with-config
+  [config form expected type-provided? opt]
+  {:pre [(map? opt)]}
+  (impl/with-full-impl (:impl config)
+    ((:check-form* config) config
+     form expected type-provided? opt)))

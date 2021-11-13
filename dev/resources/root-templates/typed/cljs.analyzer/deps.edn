@@ -1,11 +1,10 @@
 {% do-not-edit-edn-comment %}
 {:paths ["src"]
  :deps {org.clojure/clojure {:mvn/version "{◊clojure-mvn-version◊}"}
-        org.clojure/tools.analyzer {:mvn/version "1.0.0"}
         org.clojure/clojurescript {:mvn/version "{◊clojurescript-mvn-version◊}"}
-        {◊typedclojure-group-id◊}/typed.cljc.analyzer
-        {:local/root "../cljc.analyzer"
-         :deps/manifest :deps}}
+        org.clojure/tools.reader {:mvn/version "{◊tools-reader-mvn-version◊}"}
+        {◊typedclojure-group-id◊}/typed.cljc.analyzer {:local/root "../cljc.analyzer"
+                                              :deps/manifest :deps}}
  :mvn/repos
  {"sonatype-oss-public"
   {:url "{◊sonatype-oss-public-url◊}"}},
@@ -16,7 +15,9 @@
             :main-opts ["-m" "nrepl.cmdline"
                         "--interactive"]}
            :test
-           {:extra-paths ["test"]}
+           {:extra-paths ["test"]
+            :extra-deps {{◊typedclojure-group-id◊}/typed.clj.analyzer {:local/root "../clj.analyzer"
+                                              :deps/manifest :deps}}}
            :codox
            {:extra-deps {codox/codox {:mvn/version "{◊codox-mvn-version◊}"}}
             :extra-paths ["script"]

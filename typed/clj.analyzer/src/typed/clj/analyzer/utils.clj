@@ -417,4 +417,3 @@
   (let [f (ns->relpath ns)]
     (or (io/resource f)
         (io/resource (str f "c")))))
-

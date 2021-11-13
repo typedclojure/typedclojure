@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc ^:no-doc clojure.core.typed.coerce-utils
+(ns ^:no-doc clojure.core.typed.coerce-utils
   (:require [clojure.string :as str]
             [clojure.java.io :as io]
             [clojure.core.typed.current-impl :as impl])
@@ -73,7 +73,7 @@
          p (if (.startsWith p "/") (subs p 1) p)]
      p)))
 
-(defn ns->URL [nsym]
+(defn ^java.net.URL ns->URL [nsym]
   {:pre [(symbol? nsym)]
    :post [((some-fn #(instance? java.net.URL %)
                     nil?) 

@@ -7,7 +7,10 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns clojure.core.typed.check-form-cljs
-  (:require [typed.cljc.checker.check-form-common :as chk-form] ;;TODO use check-form-common2
+  (:require [clojure.core.typed.ast-utils :as ast-u]
+            [typed.cljc.checker.check-form-common :as chk-form] ;;TODO use check-form-common2
+            [typed.cljc.checker.check-form-common2 :as chk-form2]
+            [typed.cljc.checker.runtime-check :as rt-chk] ;;TODO untested
             [clojure.core.typed.analyze-cljs :as ana-cljs]
             [clojure.core.typed.check-cljs :as chk-cljs]
             [clojure.core.typed.util-cljs :as ucljs]
@@ -23,12 +26,26 @@
    :analyze-bindings-fn #(hash-map)
    :check-expr chk-cljs/check-expr})
 
+(defn config-map2 []
+  {:impl impl/clojurescript
+   :check-top-level chk-cljs/check-top-level  #_chk-clj/check-top-level
+   :unparse-ns (ucljs/cljs-ns)
+   ;:runtime-check-expr rt-chk/runtime-check-expr
+   ;:runtime-infer-expr (fn [& args]
+   ;                      (apply @runtime-infer-expr args))
+   :eval-out-ast (fn eval-out-ast
+                   ([ast] (eval-out-ast ast {}))
+                   ([ast opts] (prn "TODO eval cljs") nil #_(ana-clj/eval-ast ast opts)))
+   :custom-expansions? true
+   :emit-form ast-u/emit-form-fn
+   :check-form-info chk-form2/check-form-info
+   :check-form* chk-form2/check-form*
+   })
+
 (defn check-form-info
   [form & opt]
-  (let [config (config-map)]
-    (impl/with-full-impl (:impl config)
-      (apply chk-form/check-form-info config
-             form opt))))
+  (chk-form2/check-form-info-with-config
+    (config-map2) form opt))
 
 (defn check-form-cljs
   "Check a single form with an optional expected type.

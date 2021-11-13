@@ -29,16 +29,12 @@
       <artifactId>clojure</artifactId>
     </dependency>
     <dependency>
-      <groupId>{◊typedclojure-group-id◊}</groupId>
-      <artifactId>typed.cljc.analyzer</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.clojure</groupId>
-      <artifactId>tools.analyzer</artifactId>
-    </dependency>
-    <dependency>
       <groupId>org.clojure</groupId>
       <artifactId>clojurescript</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.clojure</groupId>
+      <artifactId>tools.reader</artifactId>
     </dependency>
   </dependencies>
 </project>

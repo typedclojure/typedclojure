@@ -7,14 +7,14 @@ Analyzer for JS Clojure, tuned for consumption by an optional type checker.
 
 ## Releases and Dependency Information
 
-Latest stable release is 1.0.9.
+Latest stable release is {◊typedclojure-stable-mvn-version◊}.
 
 * [All Released Versions](https://clojars.org/{◊typedclojure-group-id◊}/typed.cljs.analyzer)
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) JAR dependency information:
 
 ```clj
-  {◊typedclojure-group-id◊}/typed.cljs.analyzer {:mvn/version "1.0.9"}
+  {◊typedclojure-group-id◊}/typed.cljs.analyzer {:mvn/version "{◊typedclojure-stable-mvn-version◊}"}
 ```
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) Git dependency information:
@@ -25,13 +25,13 @@ Latest stable release is 1.0.9.
   {◊typedclojure-group-id◊}/typed.cljs.analyzer
   {:git/url "{◊typedclojure-git-https-url◊}"
    :deps/root "typed/cljs.analyzer"
-   :tag "1.0.9"}
+   :tag "{◊typedclojure-stable-mvn-version◊}"}
 ```
 
 [Leiningen](https://github.com/technomancy/leiningen) dependency information:
 
 ```clojure
-[{◊typedclojure-group-id◊}/typed.cljs.analyzer "1.0.9"]
+[org.typedclojure/typed.cljs.analyzer "{◊typedclojure-stable-mvn-version◊}"]
 ```
 
 [Maven](https://maven.apache.org/) dependency information:
@@ -40,7 +40,7 @@ Latest stable release is 1.0.9.
 <dependency>
   <groupId>{◊typedclojure-group-id◊}</groupId>
   <artifactId>typed.cljs.analyzer</artifactId>
-  <version>1.0.9</version>
+  <version>{◊typedclojure-stable-mvn-version◊}</version>
 </dependency>
 ```
 

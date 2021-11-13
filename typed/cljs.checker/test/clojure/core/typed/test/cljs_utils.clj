@@ -7,8 +7,7 @@
             [clojure.core.typed.errors :as err]
             [clojure.set :as set]))
 
-;;FIXME this is needed to run the tests when this project is resurrected
-#_(cljs-t/load-if-needed)
+(cljs-t/load-if-needed)
 
 (require '[clojure.test :refer :all :as test]
          '[cljs.core.typed :as t]
@@ -20,7 +19,6 @@
          '[clojure.core.typed.util-cljs :as ucljs]
          '[clojure.core.typed.coerce-utils :as coerce]
          '[clojure.core.typed.test.common-utils :as common-test]
-         '[clojure.core.typed.check-form-cljs :as chk-frm-cljs]
          '[cljs.env :as env])
 
 (defmacro cljs [& body]

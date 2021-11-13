@@ -14,9 +14,6 @@
                                        (.getPath f))))
                              (.listFiles (io/file "typed")))]
     (-> all-submodules
-        (disj 
-          ;; don't test these modules
-          "typed/cljs.checker")
         sort
         vec)))
 

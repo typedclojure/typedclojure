@@ -1,9 +1,12 @@
 {% do-not-edit-edn-comment %}
 {:paths ["src"]
  :deps {org.clojure/clojure {:mvn/version "{◊clojure-mvn-version◊}"}
+        org.clojure/tools.analyzer.jvm {:mvn/version "{◊tools-analyzer-jvm-mvn-version◊}"}
         {◊typedclojure-group-id◊}/typed.clj.checker {:local/root "../clj.checker"
                                             :deps/manifest :deps}
         {◊typedclojure-group-id◊}/typed.clj.runtime {:local/root "../clj.runtime"
+                                            :deps/manifest :deps}
+        {◊typedclojure-group-id◊}/typed.cljs.analyzer {:local/root "../cljs.analyzer"
                                             :deps/manifest :deps}
         org.clojure/clojurescript {:mvn/version "{◊clojurescript-mvn-version◊}"}}
  :aliases {:nREPL
@@ -26,10 +29,7 @@
             :main-opts ["-m" "start-repl"]}
 
            :test
-           {:extra-paths ["test"
-                          ; for clojure.core.typed.test.common-utils
-                          "../checker.jvm/test"
-                          "../checker.jvm/test"]
+           {:extra-paths ["test"]
             :extra-deps {;org.clojure/tools.nrepl {:mvn/version "{◊tools-nrepl-mvn-version◊}"
                          ;                         :exclusions [org.clojure/clojure]}
                          ;org.clojure/core.async {:mvn/version "{◊core-async-mvn-version◊}"

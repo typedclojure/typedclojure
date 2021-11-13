@@ -1,3 +1,4 @@
 - add `lib.spec.alpha` lib for spec.alpha annotations
   - includes no-op typing rules for `s/def` and `s/fdef`
 - remove outdated hints on type errors
+- add :unanalyzed to `typed.cljs.analyzer`

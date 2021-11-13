@@ -14,7 +14,6 @@
             [cljs.analyzer :as ana]
             [clojure.tools.reader :as reader]
             [clojure.java.io :as io]
-            [cljs.env :as env]
             [cljs.util :as cljsu]))
 
 (declare ast-for-form)

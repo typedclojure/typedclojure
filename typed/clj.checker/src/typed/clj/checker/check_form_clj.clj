@@ -7,13 +7,13 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.clj.checker.check-form-clj
-  (:require [typed.cljc.checker.check-form-common :as chk-form]
-            [typed.cljc.checker.check-form-common2 :as chk-form2]
+  (:require [clojure.core.typed.ast-utils :as ast-u]
+            [clojure.core.typed.current-impl :as impl]
             [typed.clj.checker.analyze-clj :as ana-clj]
             [typed.clj.checker.check :as chk-clj]
-            [clojure.core.typed.ast-utils :as ast-u]
-            [typed.cljc.checker.runtime-check :as rt-chk]
-            [clojure.core.typed.current-impl :as impl]))
+            [typed.cljc.checker.check-form-common :as chk-form]
+            [typed.cljc.checker.check-form-common2 :as chk-form2]
+            [typed.cljc.checker.runtime-check :as rt-chk]))
 
 (def ^:private runtime-infer-expr
   (delay (impl/dynaload 'typed.clj.annotator/runtime-infer-expr)))
@@ -67,17 +67,8 @@
   (let [config (case (int version)
                  1 (config-map)
                  2 (config-map2))]
-    (impl/with-full-impl (:impl config)
-      (apply (:check-form-info config) config
-             form opt))))
-
-(defn check-form-info-with-config
-  [form config opt]
-  {:pre [(map? config)
-         (not (map? opt))]}
-  (impl/with-full-impl (:impl config)
-    (apply (:check-form-info config) config
-           form opt)))
+    (chk-form2/check-form-info-with-config
+      config form opt)))
 
 (defn check-form*
   [form expected type-provided? opt]
@@ -85,6 +76,5 @@
   (let [config (case (int version)
                  1 (config-map)
                  2 (config-map2))]
-    (impl/with-full-impl (:impl config)
-      ((:check-form* config) config
-        form expected type-provided? opt))))
+    (chk-form2/check-form*-with-config
+      config form expected type-provided? opt)))
