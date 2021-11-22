@@ -20,8 +20,8 @@
     {:main-opts ["-m" "eastwood.lint" {:exclude-linters #{:def-in-def
                                                           :unlimited-use}}]
      :extra-deps {jonase/eastwood {:git/url "https://github.com/jonase/eastwood.git"
-                                   :git/tag "Release-0.9.6"
-                                   :git/sha "0130b5ec15a09458407ccf774ed76e22e08794d1"}}}
+                                   :git/tag "Release-0.9.9"
+                                   :git/sha "bbe8610"}}}
     :nREPL
     {:jvm-opts ["-XX:-OmitStackTraceInFastThrow"]
      :extra-deps
