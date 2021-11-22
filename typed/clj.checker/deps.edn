@@ -50,7 +50,7 @@
    :main-opts ["-m" "gen-doc"]}
   :eastwood
   {:main-opts ["-m" "eastwood.lint" {}]
-   :extra-deps {jonase/eastwood {:mvn/version "0.9.4"}}}
+   :extra-deps {jonase/eastwood {:mvn/version "0.9.9"}}}
   :runner
   {:extra-deps
    {io.github.cognitect-labs/test-runner
