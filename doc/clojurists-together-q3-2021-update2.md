@@ -10,14 +10,14 @@ In the first half of the project (last update), I concentrated on three main are
 3. Identify classes of implementation quirks in core Clojure macros to prepare for potential typing rules
 
 In the second half (this update), I:
-1. Improved the experience of mixing clojure.spec and Typed Clojure
+- Improved the experience of mixing clojure.spec and Typed Clojure
   - Typed Clojure no longer complains about the expansion of `s/def` `s/fdef`
   - Approach: implemented custom typing rules for both macros that ignores the body
   - [Commit](https://github.com/typedclojure/typedclojure/commit/2c423fb3daacaeb120b54a390c315588bba531a5)
-2. Trimmed error messages
+- Trimmed error messages
   - Some hints in error messages have become irrelevant noise.
   - [Commit](https://github.com/typedclojure/typedclojure/commit/613691ff176d05dd886a5d387979868a5f5ab2bb)
-3. Created a proof-of-concept cljs.analyzer variant that can partially macroexpand
+- Created a proof-of-concept cljs.analyzer variant that can partially macroexpand
   - inspired by the inlining work from the first half of this project
   - Problem: CLJS uses lots of macros. Typed Clojure errors are even worse in CLJS.
     - eg., (+ 1 2) => (js* "(~{})" 1)
