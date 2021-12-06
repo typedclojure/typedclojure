@@ -21,7 +21,7 @@ jobs:
         with:
           distribution: "adopt"
           java-version: 1.11
-      - uses: DeLaGuardo/setup-clojure@5042876523f30f5efcf1d6feaa48bd1498d7814f
+      - uses: DeLaGuardo/setup-clojure@0fe110ad5aab7de04967d0f573267f7009aa0609
         with:
           cli: 1.10.3.849
       - name: Check Clojure CA
