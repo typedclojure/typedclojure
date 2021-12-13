@@ -296,7 +296,7 @@
       <dependency>
         <groupId>org.clojure</groupId>
         <artifactId>core.cache</artifactId>
-        <version>1.0.217</version>
+        <version>1.0.225</version>
       </dependency>
       <dependency>
         <groupId>org.clojure</groupId>
