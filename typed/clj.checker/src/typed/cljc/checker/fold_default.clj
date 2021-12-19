@@ -209,14 +209,19 @@
                          (r/-hset (set (map type-rec fixed)))))
 
 (defn visit-type-map [m f]
-  (into {} (for [[k v] m]
-             [(f k) (f v)])))
+  (into {}
+        (map (fn [[k v]]
+               [(f k) (f v)]))
+        m))
 
 (add-default-fold-case HeterogeneousMap
                        (fn [ty]
-                         (-> ty 
-                           (update :types visit-type-map type-rec)
-                           (update :optional visit-type-map type-rec))))
+                         (let [mandatory (visit-type-map (:types ty) type-rec)]
+                           (if (some #{r/-nothing} (apply concat mandatory))
+                             r/-nothing
+                             (-> ty 
+                                 (assoc :types mandatory)
+                                 (update :optional visit-type-map type-rec))))))
 
 (add-default-fold-case JSObj
                        (fn [ty]

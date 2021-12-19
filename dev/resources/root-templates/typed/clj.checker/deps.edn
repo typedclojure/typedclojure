@@ -33,8 +33,11 @@
   :test
   {:extra-paths ["test" "resources"],
    :extra-deps
-   {org.clojure/test.check
+   {;; for typed.clj.generate
+    org.clojure/test.check
     {:mvn/version "{◊test-check-mvn-version◊}"}
+    com.gfredericks/test.chuck
+    {:mvn/version "{◊test-chuck-mvn-version◊}"}
     org.clojure/tools.nrepl
     {:mvn/version "{◊tools-nrepl-mvn-version◊}", :exclusions [org.clojure/clojure]}
     com.clojure-goes-fast/clj-java-decompiler {:mvn/version "0.3.0"}

@@ -1,7 +1,7 @@
 (ns ^:no-doc typed-test.ext.clojure.core.typed
   (:require [clojure.test :refer [deftest is]]
             typed.clj.ext.clojure.core.typed ;; load
-            [typed.clj.ext.clojure.core :as extcc]
+            [typed.clj.ext.clojure.core__let :as extcc__let]
             [clojure.core.typed :as t]
             [clojure.core.typed.test.test-utils :refer :all]))
 
@@ -59,7 +59,8 @@
         res (t/check-form-info form
                                :expected expected
                                :type-provided? true)]
-    (is (seq (:delayed-errors res))
+    (is (or (seq (:delayed-errors res))
+            (:ex res))
         res))
   ;; expected type not a supertype of ascribed type
   (let [form `(t/ann-form 1 t/Int)
@@ -68,11 +69,18 @@
                                :expected expected
                                :type-provided? true)]
     (is (= form
-           (some-> res
-                   :delayed-errors
-                   first
-                   ex-data
-                   :form))
+           (or (some-> res
+                       :delayed-errors
+                       first
+                       ex-data
+                       :form)
+               (some-> res
+                       :ex
+                       ex-data
+                       :errors
+                       first
+                       ex-data
+                       :form)))
         res))
   ; eval
   (let [form `(t/ann-form 1 t/Int)
@@ -94,7 +102,7 @@
 (deftest fn-vector-destructure-error-msg-test
   (is (= (is-tc-err-messages
            (fn [[a] :- (t/Set t/Any)]))
-         {:delayed-errors [[(extcc/bad-vector-destructure-error-msg
+         {:delayed-errors [[(extcc__let/bad-vector-destructure-error-msg
                               "(IPersistentSet Any)"
                               "[a]")
                             {:type-error :clojure.core.typed.errors/tc-error-parent

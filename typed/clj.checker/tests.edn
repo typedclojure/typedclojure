@@ -1,7 +1,7 @@
 {:kaocha/tests [{:kaocha.testable/type :kaocha.type/clojure.test
                  :kaocha.testable/id   :unit
-                 :kaocha/ns-patterns   ["clojure.core.typed.test.*"]
-                 :kaocha/source-paths  []
+                 :kaocha/ns-patterns   [".*"]
+                 :kaocha/source-paths  ["src"]
                  :kaocha/test-paths    ["test"]}]
  :kaocha/fail-fast? true
  :kaocha/color? true

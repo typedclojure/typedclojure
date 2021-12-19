@@ -208,16 +208,15 @@
 
                  ; both s & t have :repeat
                  (:repeat t)
-                 (if (and (<= t-types-count
-                              s-types-count)
-                          (zero? (rem s-types-count
-                                      t-types-count)))
-                   (every?' (partial subtypeA* A)
-                            s-types
-                            (gen-repeat (/ (count s-types)
-                                           (count t-types))
-                                        t-types))
-                   false)
+                 (and (<= t-types-count
+                          s-types-count)
+                      (zero? (rem s-types-count
+                                  t-types-count))
+                      (every?' (partial subtypeA* A)
+                               s-types
+                               (gen-repeat (/ (count s-types)
+                                              (count t-types))
+                                           t-types)))
 
                  ; nothing on right
                  :else

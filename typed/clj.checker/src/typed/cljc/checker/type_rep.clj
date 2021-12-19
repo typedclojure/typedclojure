@@ -372,7 +372,7 @@
   `named` is a map of free variable names to de Bruijn indices (range nbound)"
   [(nat-int? nbound)
    (every? Bounds? bbnds)
-   (apply = nbound (map count [bbnds]))
+   (= nbound (count bbnds))
    (scope-depth? scope nbound)
    (Scope? scope)
    (map? named)

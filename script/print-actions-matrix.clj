@@ -5,20 +5,23 @@
 
 (require '[cheshire.core :as json]
          '[clojure.core.typed.contract-utils :as con]
-         '[clojure.java.io :as io])
+         '[clojure.java.io :as io]
+         '[clojure.set :as set])
 
 (def all-testable-submodules
-  (let [all-submodules (into #{}
+  (let [all-submodules (into (sorted-set)
                              (keep (fn [^java.io.File f]
                                      (when (.isDirectory f)
                                        (.getPath f))))
-                             (.listFiles (io/file "typed")))]
-    (-> all-submodules
-        sort
-        vec)))
+                             (.listFiles (io/file "typed")))
+        exclusions #{;; wip
+                     "typed/cljs.checker"}]
+    (set/difference
+      all-submodules
+      exclusions)))
 
 (def clojure-stable "1.10.3")
-(def clojure-next-alpha "1.11.0-alpha2")
+(def clojure-next-alpha "1.11.0-alpha3")
 (def clojure-next-snapshot "1.11.0-master-SNAPSHOT")
 
 (def matrix? (con/hmap-c? :include (con/every-c? (con/hmap-c?

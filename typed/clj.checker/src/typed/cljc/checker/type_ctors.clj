@@ -56,7 +56,7 @@
    :post [(symbol? %)]}
   (with-meta (gensym s) {:original-name s}))
 
-(declare Un make-Union fully-resolve-type fully-resolve-non-rec-type flatten-unions)
+(declare Un make-Union make-Intersection fully-resolve-type fully-resolve-non-rec-type flatten-unions)
 
 (t/ann bottom r/Type)
 (def ^:private bottom (r/Union-maker (sorted-set-by u/type-comparator)))
@@ -235,37 +235,39 @@
 (defn upcast-HSequential [{:keys [types rest drest kind] :as hsequential}]
   {:pre [(r/HSequential? hsequential)]
    :post [(r/Type? %)]}
+  ;; Note: make-Union and make-Intersection used to be Un and In,
+  ;; but something funny happened with Ping/Pong.
+  ;; See typed-test.cljc.name-utils/find-recursive-names-test.
   (let [tp (if-not drest
-             (apply Un 
-                    (concat types
-                            (when rest
-                              [rest])))
+             (make-Union
+               (concat types
+                       (when rest
+                         [rest])))
              r/-any)]
-    (apply
-      In 
-      (impl/impl-case
-        :clojure (case kind
-                   :vector (RClass-of clojure.lang.APersistentVector [tp])
-                   :seq (RClass-of clojure.lang.ASeq [tp])
-                   :list (RClass-of clojure.lang.PersistentList [tp])
-                   :sequential (In (RClass-of clojure.lang.IPersistentCollection [tp])
-                                   (RClass-of clojure.lang.Sequential)))
-        :cljs    (case kind
-                   :vector (In (Protocol-of 'cljs.core/IVector [tp])
-                               (Protocol-of 'cljs.core/ICollection [tp])
-                               (Protocol-of 'cljs.core/ISeqable [tp])
-                               (Protocol-of 'cljs.core/IStack [tp])
-                               (Protocol-of 'cljs.core/IAssociative [r/-any r/-integer-cljs tp])
-                               (Protocol-of 'cljs.core/IReversible [tp]))
-                   :seq (Protocol-of 'cljs.core/ISeq [tp])
-                   :list (Protocol-of 'cljs.core/IList [tp])
-                   :sequential (In (Protocol-of 'cljs.core/ICollection [tp])
-                                   (Protocol-of 'cljs.core/ISequential))))
-      (when-not drest
-        [(r/make-CountRange
-           (count types)
-           (when-not rest
-             (count types)))]))))
+    (make-Intersection
+      (cond->
+        [(impl/impl-case
+           :clojure (case kind
+                      :vector (RClass-of clojure.lang.APersistentVector [tp])
+                      :seq (RClass-of clojure.lang.ASeq [tp])
+                      :list (RClass-of clojure.lang.PersistentList [tp])
+                      :sequential (In (RClass-of clojure.lang.IPersistentCollection [tp])
+                                      (RClass-of clojure.lang.Sequential)))
+           :cljs    (case kind
+                      :vector (In (Protocol-of 'cljs.core/IVector [tp])
+                                  (Protocol-of 'cljs.core/ICollection [tp])
+                                  (Protocol-of 'cljs.core/ISeqable [tp])
+                                  (Protocol-of 'cljs.core/IStack [tp])
+                                  (Protocol-of 'cljs.core/IAssociative [r/-integer-cljs tp])
+                                  (Protocol-of 'cljs.core/IReversible [tp]))
+                      :seq (Protocol-of 'cljs.core/ISeq [tp])
+                      :list (Protocol-of 'cljs.core/IList [tp])
+                      :sequential (In (Protocol-of 'cljs.core/ICollection [tp])
+                                      (Protocol-of 'cljs.core/ISequential))))]
+        (not drest) (conj (r/make-CountRange
+                            (count types)
+                            (when-not rest
+                              (count types))))))))
 
 (defn upcast-kw-args-seq [{kws :kw-args-regex
                            :as kwseq}]
@@ -1301,11 +1303,11 @@
     (cond
       (r/Poly? t) (let [_ (when-not (= (:nbound t) (count types)) 
                             (err/int-error 
-                              (str "Wrong number of arguments (" (count types) 
-                                   ") passed to polymorphic type: "
+                              (str "Wrong number of types (" (count types) 
+                                   ") used to instantiate polymorphic type: "
                                    (ind/unparse-type t)
-                                   (when (bound? #'*current-RClass-super*)
-                                     (str " when checking ancestors of " *current-RClass-super*)))))
+                                   (when-some [current-RClass-super *current-RClass-super*]
+                                     (str " when checking ancestors of " current-RClass-super)))))
                         nms (Poly-fresh-symbols* t)
                         bbnds (Poly-bbnds* nms t)
                         body (Poly-body* nms t)]
@@ -1467,14 +1469,20 @@
     v))
   )
 
-(t/ann ^:no-check unfold [Mu -> r/Type])
-(defn unfold [t]
+(t/ann ^:no-check unfold-Mu-with [Mu r/Type -> r/Type])
+(defn unfold-Mu-with [t tsubst]
   {:pre [(r/Mu? t)]
    :post [(r/Type? %)]}
   (let [substitute @(substitute-var)
         sym (Mu-fresh-symbol* t)
         body (Mu-body* sym t)]
-    (substitute t sym body)))
+    (substitute tsubst sym body)))
+
+(t/ann ^:no-check unfold [Mu -> r/Type])
+(defn unfold [t]
+  {:pre [(r/Mu? t)]
+   :post [(r/Type? %)]}
+  (unfold-Mu-with t t))
 
 ;; Utils
 

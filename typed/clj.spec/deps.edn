@@ -8,7 +8,7 @@
              {:url "https://oss.sonatype.org/content/groups/public/"}}
  :aliases {:test
            {:extra-paths ["test"]
-            :extra-deps {org.clojure/test.check {:mvn/version "1.1.0"}
+            :extra-deps {org.clojure/test.check {:mvn/version "1.1.1"}
                          org.clojure/core.logic {:mvn/version "1.0.0"}
                          org.clojure/math.combinatorics {:mvn/version "0.1.6"
                                                          :exclusions [org.clojure/clojure]}}}

@@ -33,8 +33,11 @@
   :test
   {:extra-paths ["test" "resources"],
    :extra-deps
-   {org.clojure/test.check
-    {:mvn/version "1.1.0"}
+   {;; for typed.clj.generate
+    org.clojure/test.check
+    {:mvn/version "1.1.1"}
+    com.gfredericks/test.chuck
+    {:mvn/version "0.2.12"}
     org.clojure/tools.nrepl
     {:mvn/version "0.2.6", :exclusions [org.clojure/clojure]}
     com.clojure-goes-fast/clj-java-decompiler {:mvn/version "0.3.0"}
@@ -43,14 +46,14 @@
   :kaocha
   {:extra-deps {lambdaisland/kaocha {:git/url "https://github.com/lambdaisland/kaocha.git"
                                      ;; https://github.com/lambdaisland/kaocha/issues/208#issuecomment-822844384
-                                     :sha "58d7870e65b925de5ddf029eb95b699d4fe77a78"}}}
+                                     :sha "23d7bf426c8bc2027d0da2fc2a5420f5c6474740"}}}
   :codox
   {:extra-deps {codox/codox {:mvn/version "0.10.7"}}
    :extra-paths ["script"]
    :main-opts ["-m" "gen-doc"]}
   :eastwood
   {:main-opts ["-m" "eastwood.lint" {}]
-   :extra-deps {jonase/eastwood {:mvn/version "0.9.9"}}}
+   :extra-deps {jonase/eastwood {:mvn/version "0.9.4"}}}
   :runner
   {:extra-deps
    {io.github.cognitect-labs/test-runner

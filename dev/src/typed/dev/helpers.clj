@@ -35,15 +35,16 @@
    :core-async-mvn-version "1.4.627"
    ;; FIXME clj.checker fails on higher
    :tools-nrepl-mvn-version "0.2.6"
-   :test-check-mvn-version "1.1.0"
-   :test-chuck-mvn-version "0.2.11"
+   :test-check-mvn-version "1.1.1"
+   :test-chuck-mvn-version "0.2.12"
    :core-logic-mvn-version "1.0.0"
    :cognitect-test-runner-coordinates "io.github.cognitect-labs/test-runner"
    :cognitect-test-runner-git-url "https://github.com/cognitect-labs/test-runner"
    :cognitect-test-runner-sha "dd6da11611eeb87f08780a30ac8ea6012d4c05ce"
    :codox-mvn-version "0.10.7"
    :kaocha-git-url "https://github.com/lambdaisland/kaocha.git"
-   :kaocha-sha "58d7870e65b925de5ddf029eb95b699d4fe77a78"
+   ;; 1.60.972
+   :kaocha-sha "23d7bf426c8bc2027d0da2fc2a5420f5c6474740"
    :typedclojure-homepage "https://typedclojure.org"
    :malli-mvn-version "0.6.2"
    })

@@ -23,3 +23,4 @@
 - remove dynamic vars from uniquify analyzer pass
 - add `clojure.core/let` typing rule
 - add custom error message for vector destructuring
+- add in-development `typed.clj.generators` namespace to typed.clj.checker

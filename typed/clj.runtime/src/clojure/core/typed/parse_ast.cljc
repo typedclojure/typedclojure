@@ -6,6 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
+;; TODO unparse functionality
 (ns ^:no-doc clojure.core.typed.parse-ast
   (:require [clojure.core.typed :as t]
             [clojure.core.typed.current-impl :as impl]
@@ -571,7 +572,7 @@
       (with-dfrees (if dvar 
                      {dvar-plain-name (:name dvar)}
                      {})
-        {:op (if dotted? :Poly :PolyDots)
+        {:op (if dotted? :PolyDots :Poly)
          :binder (concat frees-with-bnds
                          (when dotted?
                            [dvar]))
