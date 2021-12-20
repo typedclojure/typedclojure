@@ -46,5 +46,5 @@
    ;; 1.60.972
    :kaocha-sha "23d7bf426c8bc2027d0da2fc2a5420f5c6474740"
    :typedclojure-homepage "https://typedclojure.org"
-   :malli-mvn-version "0.6.2"
+   :malli-mvn-version "0.7.5"
    })
