@@ -32,7 +32,7 @@
            {:extra-paths ["test"]
             :extra-deps {;org.clojure/tools.nrepl {:mvn/version "0.2.6"
                          ;                         :exclusions [org.clojure/clojure]}
-                         ;org.clojure/core.async {:mvn/version "1.4.627"
+                         ;org.clojure/core.async {:mvn/version "1.5.648"
                          ;                        :exclusions [org.clojure/tools.analyzer.jvm]}
                          ;org.clojure/tools.trace {:mvn/version "0.7.5"
                          ;                         :exclusions [org.clojure/clojure]}

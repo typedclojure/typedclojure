@@ -256,12 +256,12 @@
       <dependency>
         <groupId>org.clojure</groupId>
         <artifactId>core.memoize</artifactId>
-        <version>1.0.250</version>
+        <version>1.0.253</version>
       </dependency>
       <dependency>
         <groupId>org.clojure</groupId>
         <artifactId>tools.namespace</artifactId>
-        <version>1.1.0</version>
+        <version>1.2.0</version>
       </dependency>
       <dependency>
         <groupId>org.ow2.asm</groupId>
@@ -296,12 +296,12 @@
       <dependency>
         <groupId>org.clojure</groupId>
         <artifactId>core.cache</artifactId>
-        <version>1.0.217</version>
+        <version>1.0.225</version>
       </dependency>
       <dependency>
         <groupId>org.clojure</groupId>
         <artifactId>core.async</artifactId>
-        <version>1.4.627</version>
+        <version>1.5.648</version>
       </dependency>
       <dependency>
         <groupId>org.clojure</groupId>

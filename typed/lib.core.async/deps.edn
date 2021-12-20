@@ -11,7 +11,7 @@
            :spec-skip-macros
            {:jvm-opts ["-Dclojure.spec.skip-macros=true"]}
            :test {:extra-deps {org.clojure/clojure {:mvn/version "1.10.3"}
-                               org.clojure/core.async {:mvn/version "1.4.627"}
+                               org.clojure/core.async {:mvn/version "1.5.648"}
                                org.typedclojure/typed.clj.runtime
                                {:local/root "../clj.runtime"
                                 :deps/manifest :deps}
