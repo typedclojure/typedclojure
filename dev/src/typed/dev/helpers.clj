@@ -27,7 +27,7 @@
    :tools-namespace-mvn-version "1.2.0"
    :asm-mvn-version "5.2"
    :tools-analyzer-mvn-version "1.1.0"
-   :tools-analyzer-jvm-mvn-version "1.2.0"
+   :tools-analyzer-jvm-mvn-version "1.2.2"
    :potemkin-mvn-version "0.4.5"
    :math-combinatorics-mvn-version "0.1.6"
    :tools-reader-mvn-version "1.3.6"

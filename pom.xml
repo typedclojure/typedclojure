@@ -276,7 +276,7 @@
       <dependency>
         <groupId>org.clojure</groupId>
         <artifactId>tools.analyzer.jvm</artifactId>
-        <version>1.2.0</version>
+        <version>1.2.2</version>
       </dependency>
       <dependency>
         <groupId>potemkin</groupId>
