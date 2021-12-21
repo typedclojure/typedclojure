@@ -2,7 +2,7 @@
 {:paths ["src"]
  :deps {org.clojure/clojure {:mvn/version "1.10.3"}
         org.clojure/core.memoize {:mvn/version "1.0.253"}
-        org.ow2.asm/asm {:mvn/version "5.2"}
+        org.ow2.asm/asm {:mvn/version "9.2"}
         org.typedclojure/typed.cljc.analyzer {:local/root "../cljc.analyzer"
                                               :deps/manifest :deps}}
  :mvn/repos
