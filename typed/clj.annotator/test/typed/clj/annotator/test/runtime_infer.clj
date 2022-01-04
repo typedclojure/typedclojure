@@ -198,6 +198,7 @@
     (is (= (apply join ts)
            (prs '{:f [[java.lang.Long :-> java.lang.Long] :-> java.lang.Long]})))))
 
+  #_
 (deftest squash-test
   #_
   (let [config (init-config)

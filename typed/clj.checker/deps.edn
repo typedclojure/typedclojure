@@ -31,7 +31,7 @@
   :spec-skip-macros
   {:jvm-opts ["-Dclojure.spec.skip-macros=true"]}
   :test
-  {:extra-paths ["test" "resources"],
+  {:extra-paths ["test" "test-resources"],
    :extra-deps
    {;; for typed.clj.generate
     org.clojure/test.check

@@ -222,7 +222,7 @@
           [k :variance :covariant]
           [v :variance :covariant]]
          #?(:clj (clojure.lang.Associative m k v)
-            :cljs (t/I (cljs.core/IAssociative k v)
+            :cljs (t/I (cljs.core/IAssociative m k v)
                        (t/Coll m)
                        (cljs.core/ILookup k v)))))
 

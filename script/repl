@@ -1,5 +1,6 @@
-#!/bin/sh
+#!/bin/bash
 
 set -e
 
-./script/repl-in core.typed/checker.jvm "$ARGS"
+./script/gen-dev-project
+clj -M:nREPL:test:spec-skip-macros "$@"

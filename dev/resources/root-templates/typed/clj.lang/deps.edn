@@ -1,7 +1,7 @@
 {% do-not-edit-edn-comment %}
 {:paths ["src"]
  :deps {org.clojure/clojure {:mvn/version "{◊clojure-mvn-version◊}"}
-        org.clojure/tools.namespace {:mvn/version "1.1.0"}}
+        org.clojure/tools.namespace {:mvn/version "{◊tools-namespace-mvn-version◊}"}}
  :aliases {:nREPL
            {:extra-paths ["script"]
             :extra-deps

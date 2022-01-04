@@ -1,86 +1,179 @@
+#!/usr/bin/env bb
+
 (ns typed.dev.merge-deps
   (:require [clojure.java.io :as io]
             [clojure.pprint :as pp]
             [clojure.set :as set]
+            [clojure.string :as str]
             [typed.dev.helpers :as h])
-  (:import java.io.File)
-  (:gen-class))
+  (:import java.io.File))
 
 (set! *warn-on-reflection* true)
 
-(def ^String everything-root (str h/repo-root "/typed"))
+(def ^String subprojects-dir "typed")
+(def ^String everything-root (str (File. h/repo-root subprojects-dir)))
 (def ^String relative-projects-root ".")
 (defn aliases []
-  `{:perf
-    {:extra-paths ["/Applications/YourKit-Java-Profiler-2019.8.app/Contents/Resources/lib/yjp-controller-api-redist.jar"]
-     :jvm-opts ["-agentpath:/Applications/YourKit-Java-Profiler-2019.8.app/Contents/Resources/bin/mac/libyjpagent.dylib"]}
+  (sorted-map
+    :perf
+    (sorted-map
+      :extra-paths ["/Applications/YourKit-Java-Profiler-2019.8.app/Contents/Resources/lib/yjp-controller-api-redist.jar"]
+      :jvm-opts ["-agentpath:/Applications/YourKit-Java-Profiler-2019.8.app/Contents/Resources/bin/mac/libyjpagent.dylib"])
     :spec-skip-macros
     {:jvm-opts ["-Dclojure.spec.skip-macros=true"]}
+    :kaocha
+    {:extra-deps {'lambdaisland/kaocha (sorted-map
+                                         :git/url (:kaocha-git-url h/selmer-input-map)
+                                         :git/sha (:kaocha-sha h/selmer-input-map))}}
     :eastwood
-    {:main-opts ["-m" "eastwood.lint" {:exclude-linters #{:def-in-def
-                                                          :unlimited-use}}]
-     :extra-deps {jonase/eastwood {:git/url "https://github.com/jonase/eastwood.git"
-                                   :git/tag "Release-0.9.9"
-                                   :git/sha "bbe8610"}}}
+    (sorted-map
+      :main-opts ["-m" "eastwood.lint" {:exclude-linters (sorted-set
+                                                           :def-in-def
+                                                           :unlimited-use)}]
+      :extra-deps (sorted-map 'jonase/eastwood
+                              (sorted-map
+                                :git/url "https://github.com/jonase/eastwood.git"
+                                :git/tag "Release-0.9.9"
+                                :git/sha "bbe8610")))
     :nREPL
-    {:jvm-opts ["-XX:-OmitStackTraceInFastThrow"]
-     :extra-deps
-     {nrepl/nrepl {:mvn/version ~(:nrepl-mvn-version h/selmer-input-map)}
-      cider/cider-nrepl {:mvn/version "0.25.3"}
-      cider/piggieback {:mvn/version "0.5.2"}}
-     :main-opts ["-m" "nrepl.cmdline" "--interactive"
-                 #_"
-                 Note:
-                   introducing other middleware makes vim-fireplace choose
-                   fipp for pprint, which doesn't play well with the delicately
-                   defined classes in type-rep."
-                 "--middleware" "[cider.nrepl/wrap-complete,cider.nrepl/wrap-info]"
-                 ]}})
+    (sorted-map
+      :jvm-opts ["-XX:-OmitStackTraceInFastThrow"]
+      :extra-deps
+      (sorted-map
+        'nrepl/nrepl {:mvn/version (:nrepl-mvn-version h/selmer-input-map)}
+        'cider/cider-nrepl {:mvn/version "0.25.3"}
+        'cider/piggieback {:mvn/version "0.5.2"})
+      :main-opts ["-m" "nrepl.cmdline" "--interactive"
+                  #_"
+                  Note:
+                    introducing other middleware makes vim-fireplace choose
+                    fipp for pprint, which doesn't play well with the delicately
+                    defined classes in type-rep."
+                  "--middleware" "[cider.nrepl/wrap-complete,cider.nrepl/wrap-info]"
+                  ])))
+
+(def subproject-dirs
+  (->> (File. everything-root relative-projects-root)
+       .listFiles
+       (filter #(let [f (File. (str %) "deps.edn")]
+                  (.exists f)))))
+
+(def subproject-base-deps
+  (into {}
+        (map (fn [^File f]
+               (let [project-name-suffix (.getName f)]
+                 (assert project-name-suffix)
+                 ;; FIXME grab project name from relative pom.xml
+                 {(symbol "org.typedclojure" (str "typed." project-name-suffix))
+                  (sorted-map
+                    :local/root (str (File. "typed" project-name-suffix))
+                    :deps/manifest :deps)})))
+        subproject-dirs))
+
+(def deps-maps
+  (into {}
+        (keep #(let [f (File. (str %) "deps.edn")]
+                 (assert (.exists f))
+                 [(.getName ^File %)
+                  (-> f
+                      str
+                      slurp
+                      read-string)]))
+        subproject-dirs))
+
+(defn src-paths []
+  (vec (sort
+         (mapcat
+           (fn [[^String fname d]]
+             (let [path->relative #(str (-> subprojects-dir
+                                            (File. fname)
+                                            str
+                                            (File. ^String %)))
+                   all-paths (concat (:paths d)
+                                     (:extra-paths d))]
+               (map path->relative all-paths)))
+           deps-maps))))
+
+(defn test-paths []
+  (vec (sort
+         (mapcat
+           (fn [[^String fname d]]
+             (let [path->relative #(str (-> subprojects-dir
+                                            (File. fname)
+                                            str
+                                            (File. ^String %)))
+                   d (-> d :aliases :test)
+                   all-paths (concat (:paths d)
+                                     (:extra-paths d))]
+               (map path->relative all-paths)))
+           deps-maps))))
+
+(defn kaocha-config []
+  {:kaocha/tests                       [{:kaocha.testable/type :kaocha.type/clojure.test
+                                         :kaocha.testable/id   :unit
+                                         :kaocha/ns-patterns   [".*"]
+                                         :kaocha/source-paths  (src-paths)
+                                         :kaocha.filter/skip-meta [:typed/skip-from-repo-root]
+                                         :kaocha/test-paths    (filterv
+                                                                 (fn [^String p]
+                                                                   ;; TODO generalize pattern, perhaps via deps.edn alias convention
+                                                                   ;; don't reload test resources
+                                                                   (not= "test-resources" (.getName (File. p))))
+                                                                 (test-paths))}]
+   :kaocha/fail-fast?                  true
+   :kaocha/color?                      true
+   :kaocha/reporter                    ['kaocha.report/dots]
+   ;:kaocha/reporter                    ['kaocha.report/documentation]
+   :kaocha/plugins                     [:kaocha.plugin/randomize
+                                        :kaocha.plugin/filter
+                                        :kaocha.plugin/capture-output
+                                        :kaocha.plugin/profiling]
+   :kaocha.plugin.randomize/seed       950716166
+   :kaocha.plugin.randomize/randomize? true
+   :kaocha.plugin.profiling/count      3
+   :kaocha.plugin.profiling/profiling? true})
 
 (defn -main [& args]
-  (let [deps-maps (->> (File. everything-root relative-projects-root)
-                       .listFiles 
-                       (keep #(let [f (File. (str %) "deps.edn")]
-                               (when (.exists f)
-                                 [(.getName ^File %)
-                                  (-> f
-                                      str
-                                      slurp
-                                      read-string)])))
-                       (into {}))
-        expand-deps (juxt identity
-                          (comp :test :aliases))
-        maps-to-merge (->> (vals deps-maps)
-                           (mapcat expand-deps)
-                           (mapcat (fn [d]
-                                     {:pre [(map? d)]}
-                                     (concat (some-> d :deps vector)
-                                             (some-> d :extra-deps vector)))))
-        everything-deps {:deps (apply merge-with
-                                      (fn [v1 v2]
-                                        (if (= v1 v2)
-                                          v2
-                                          (throw (ex-info (str "Version conflict: "
-                                                               v1 " " v2)
-                                                          {:versions [v1 v2]
-                                                           :maps-to-merge maps-to-merge}))))
-                                      maps-to-merge)
-                         :paths (vec (mapcat
-                                       (fn [[^String fname d]]
-                                         (let [path->relative #(str (-> relative-projects-root
-                                                                        (File. fname)
-                                                                        str
-                                                                        (File. ^String %)))]
-                                           (mapcat (fn [d]
-                                                     (let [all-paths (concat (:paths d)
-                                                                             (:extra-paths d))]
-                                                       (map path->relative all-paths)))
-                                                   (expand-deps d))))
-                                       deps-maps))
-                         :aliases (aliases)}]
-    (spit (str (File. everything-root "deps.edn"))
+  (let [test-maps-to-merge (->> (vals deps-maps)
+                                (map (comp :test :aliases))
+                                (mapcat (fn [d]
+                                          {:pre [(map? d)]}
+                                          (concat (some-> d :deps vector)
+                                                  (some-> d :extra-deps vector)))))
+        test-deps (into (sorted-map)
+                        (map (fn [[k v]] [k (into (sorted-map) v)]))
+                        (apply dissoc (apply merge-with
+                                             (fn [v1 v2]
+                                               (if (= v1 v2)
+                                                 v2
+                                                 (throw (ex-info (str "Version conflict: "
+                                                                      v1 " " v2)
+                                                                 {:versions [v1 v2]
+                                                                  :maps-to-merge test-maps-to-merge}))))
+                                             test-maps-to-merge)
+                               (keys subproject-base-deps)))
+        everything-deps (sorted-map
+                          :deps subproject-base-deps
+                          ;:paths (src-paths)
+                          :aliases (assoc (aliases)
+                                          :test (sorted-map
+                                                  :extra-deps test-deps
+                                                  :extra-paths (test-paths))))
+        preamble (str ";; AUTOGENERATED FOR LOCAL DEV ONLY!!\n"
+                      ";; edit via dev/src/typed/dev/merge_deps.clj")]
+    (spit (str (File. h/repo-root "deps.edn"))
           (with-out-str
+            (println preamble)
             (binding [*print-length* nil
                       *print-level* nil
                       *print-namespace-maps* nil]
-              (pp/pprint everything-deps))))))
+              (pp/pprint everything-deps))))
+    (spit (str (File. h/repo-root "tests.edn"))
+          (with-out-str
+            (println preamble)
+            (binding [*print-length* nil
+                      *print-level* nil
+                      *print-namespace-maps* nil]
+              (pp/pprint (kaocha-config)))))))
+
+(when (= *file* (System/getProperty "babashka.file")) (-main))

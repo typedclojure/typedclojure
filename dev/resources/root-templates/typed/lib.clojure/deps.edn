@@ -19,7 +19,7 @@
                                {◊typedclojure-group-id◊}/typed.clj.runtime
                                {:local/root "../clj.runtime"
                                 :deps/manifest :deps}
-                               {◊typedclojure-group-id◊}/typed.cljc/analyzer
+                               {◊typedclojure-group-id◊}/typed.cljc.analyzer
                                {:local/root "../cljc.analyzer"
                                 :deps/manifest :deps}
                                {◊typedclojure-group-id◊}/typed.clj.analyzer

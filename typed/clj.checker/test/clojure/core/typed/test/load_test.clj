@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.load-test
+(ns ^:typed/skip-from-repo-root clojure.core.typed.test.load-test
   (:require [clojure.core.typed.load :as load]
             [clojure.test :refer :all]))
 

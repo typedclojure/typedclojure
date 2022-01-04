@@ -1,7 +1,7 @@
 (ns typed.dev.helpers
   (:require [clojure.string :as str]))
 
-(def repo-root "..")
+(def ^String repo-root "..")
 
 (defn typedclojure-stable-version []
   (-> (str repo-root "/stable-version")

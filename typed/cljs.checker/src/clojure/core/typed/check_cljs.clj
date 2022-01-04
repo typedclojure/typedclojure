@@ -79,13 +79,13 @@
           fuel 1000]
      (when (neg? fuel) (prn `check-expr "infinite loop"))
      (if (= :unanalyzed (:op expr))
-       (recur (tana2/analyze-outer expr) (dec fuel))
+       (recur (tana2/analyze-outer expr) (max -1 (dec fuel)))
        (binding [vs/*current-env* (if (:line env) env vs/*current-env*)
                  vs/*current-expr* expr]
          (-check expr expected))))))
 
 (defn unanalyzed-top-level [form env]
-  (tana2/unanalyzed env form))
+  (tana2/unanalyzed form env))
 
 (defn check-top-level
   "Type check a top-level form at an expected type, returning a

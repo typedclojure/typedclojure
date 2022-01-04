@@ -8,7 +8,7 @@
 (deftest typed-clojure-loaded
   (is (nil? (require 'clojure.core.typed))))
 
-(deftest checking-ops
+(deftest ^:typed/skip-from-repo-root checking-ops
   (is (err/tc-error-thrown?
         (t/load-if-needed)))
   (is (err/tc-error-thrown?
@@ -45,7 +45,7 @@
             (err/tc-error-thrown?
               (throw (.getCause e#)))))))
 
-(deftest checking-cljs-ops
+(deftest ^:typed/skip-from-repo-root checking-cljs-ops
   (is (err/tc-error-thrown?
         (tcljs/load-if-needed)))
   (is (err/tc-error-thrown?

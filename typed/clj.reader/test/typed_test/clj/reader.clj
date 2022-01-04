@@ -343,7 +343,7 @@
 (defrecord bar [baz buz])
 
 ;; TODO roundtrip
-(deftest read-record
+(deftest ^:typed/skip-from-repo-root read-record
   (is (= (foo.) (read-string "#typed_test.clj.reader.foo[]")))
   (is (= (foo.) (read-string "#typed_test.clj.reader.foo []"))) ;; not valid in clojure
   (is (= (foo.) (read-string "#typed_test.clj.reader.foo{}")))

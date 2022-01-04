@@ -38,6 +38,10 @@
                          ;                         :exclusions [org.clojure/clojure]}
                          org.clojure/test.check {:mvn/version "1.1.1"}
                          com.gfredericks/test.chuck {:mvn/version "0.2.12"}}}
+           :kaocha
+           {:extra-deps {lambdaisland/kaocha {:git/url "https://github.com/lambdaisland/kaocha.git"
+                                              ;; https://github.com/lambdaisland/kaocha/issues/208#issuecomment-822844384
+                                              :sha "23d7bf426c8bc2027d0da2fc2a5420f5c6474740"}}}
            :codox
            {:extra-deps {codox/codox {:mvn/version "0.10.7"}}
             :extra-paths ["script"]
