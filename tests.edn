@@ -57,7 +57,28 @@
     "typed/lib.core.async/src"
     "typed/lib.spec.alpha/src"],
    :kaocha/test-paths
-   ["typed/cljs.analyzer/test" "typed/cljs.checker/test"]}],
+   ["typed/cljs.analyzer/test" "typed/cljs.checker/test"]}
+  {:kaocha.testable/type :kaocha.type/clojure.test,
+   :kaocha.testable/id :checker,
+   :kaocha/ns-patterns [".*"],
+   :kaocha/source-paths
+   ["typed/clj.analyzer/src"
+    "typed/clj.annotator/src"
+    "typed/clj.checker/src"
+    "typed/clj.lang/src"
+    "typed/clj.malli/src"
+    "typed/clj.reader/src"
+    "typed/clj.refactor/src"
+    "typed/clj.runtime/src"
+    "typed/clj.spec/src"
+    "typed/cljc.analyzer/src"
+    "typed/cljs.analyzer/src"
+    "typed/cljs.checker/src"
+    "typed/lib.clojure/src"
+    "typed/lib.core.async/src"
+    "typed/lib.spec.alpha/src"],
+   :kaocha/test-paths
+   ["typed/clj.checker/test" "typed/cljs.checker/test"]}],
  :kaocha.plugin.profiling/count 3,
  :kaocha.plugin.profiling/profiling? true,
  :kaocha/fail-fast? true,

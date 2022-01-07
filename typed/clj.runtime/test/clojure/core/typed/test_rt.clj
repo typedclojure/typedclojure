@@ -9,27 +9,27 @@
   (is (nil? (require 'clojure.core.typed))))
 
 (deftest ^:typed/skip-from-repo-root checking-ops
-  (is (err/tc-error-thrown?
+  (is (thrown? java.io.FileNotFoundException
         (t/load-if-needed)))
-  (is (err/tc-error-thrown?
+  (is (thrown? java.io.FileNotFoundException
         (t/reset-caches)))
-  (is (err/tc-error-thrown?
+  (is (thrown? java.io.FileNotFoundException
         (t/method-type 'foo)))
-  (is (err/tc-error-thrown?
+  (is (thrown? java.io.FileNotFoundException
         (t/into-array> 'foo 'bar [1])))
-  (is (err/tc-error-thrown?
+  (is (thrown? java.io.FileNotFoundException
         (t/cf 1)))
-  (is (err/tc-error-thrown?
+  (is (thrown? java.io.FileNotFoundException
         (t/check-form* 1)))
-  (is (err/tc-error-thrown?
+  (is (thrown? java.io.FileNotFoundException
         (t/check-form-info 1)))
-  (is (err/tc-error-thrown?
+  (is (thrown? java.io.FileNotFoundException
         (t/check-ns 'foo)))
-  (is (err/tc-error-thrown?
+  (is (thrown? java.io.FileNotFoundException
         (t/check-ns-info 'foo)))
-  (is (err/tc-error-thrown?
+  (is (thrown? java.io.FileNotFoundException
         (t/statistics ['foo])))
-  (is (err/tc-error-thrown?
+  (is (thrown? java.io.FileNotFoundException
         (t/var-coverage))))
 
 (defmacro catch-compiler-exception
@@ -46,22 +46,22 @@
               (throw (.getCause e#)))))))
 
 (deftest ^:typed/skip-from-repo-root checking-cljs-ops
-  (is (err/tc-error-thrown?
+  (is (thrown? java.io.FileNotFoundException
         (tcljs/load-if-needed)))
-  (is (err/tc-error-thrown?
+  (is (thrown? java.io.FileNotFoundException
         (tcljs/reset-caches)))
-  (is (err/tc-error-thrown?
+  (is (thrown? java.io.FileNotFoundException
         (tcljs/cf* 1 nil nil)))
-  (is (err/tc-error-thrown?
+  (is (thrown? java.io.FileNotFoundException
         (tcljs/cf 1)))
-  (is (err/tc-error-thrown?
+  (is (thrown? java.io.FileNotFoundException
         (tcljs/check-ns*)))
-  (is (err/tc-error-thrown?
+  (is (thrown? java.io.FileNotFoundException
         (tcljs/check-ns* 'foo)))
   ; these throw at macroexpansion time
-  (is (catch-compiler-exception
+  (is (thrown? Exception
         (eval '(cljs.core.typed/check-ns))))
-  (is (catch-compiler-exception
+  (is (thrown? Exception
         (eval '(cljs.core.typed/check-ns foo)))))
 
 (defmacro thrown-blame? [& e]

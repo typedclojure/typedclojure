@@ -44,7 +44,6 @@
   *trace-checker*
   nil)
 
-(def ^:no-doc ^:dynamic *currently-loading* false)
 (defonce ^{:doc "Internal use only"} ^:no-doc ^:dynamic *already-checked* nil)
 (defonce ^{:doc "Internal use only"} ^:no-doc ^:dynamic *delayed-errors* nil)
 (defonce ^{:doc "Internal use only"} ^:no-doc ^:dynamic *analyze-ns-cache* nil)

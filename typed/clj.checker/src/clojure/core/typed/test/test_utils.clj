@@ -26,8 +26,9 @@
 
 (defn tc-common* [frm {{:keys [syn provided?]} :expected-syntax :keys [expected-ret requires ns-meta check-config] :as opt}]
   (check-opt opt)
-  (let [ns-form 
-        `(ns ~(gensym 'clojure.core.typed.test.temp)
+  (let [nsym (gensym 'clojure.core.typed.test.temp)
+        ns-form 
+        `(ns ~nsym
            ~@(when ns-meta [ns-meta])
            (:refer-clojure :exclude 
                            ~'[type defprotocol #_letfn fn loop dotimes let for doseq
@@ -37,19 +38,21 @@
                          [clojure.core :as core]
                          [clojure.core :as cc]]
                      ~@requires))]
-    `(let [expected-ret# ~expected-ret
-           check-config# ~check-config]
-       (binding [*ns* *ns*
-                 *file* *file*]
-         (let [{ex# :ex} (t/check-form-info '~ns-form
-                                            :check-config check-config#)]
-           (assert (nil? ex#) ex#))
-         (t/check-form-info 
-           '~frm
-           :expected-ret expected-ret#
-           :expected '~syn
-           :type-provided? ~provided?
-           :check-config check-config#)))))
+    `(binding [*ns* *ns*
+               *file* *file*]
+       (let [expected-ret# ~expected-ret
+             check-config# ~check-config
+             {ex# :ex} (t/check-form-info '~ns-form
+                                          :check-config check-config#)
+             _# (assert (nil? ex#) ex#)
+             res# (t/check-form-info 
+                    '~frm
+                    :expected-ret expected-ret#
+                    :expected '~syn
+                    :type-provided? ~provided?
+                    :check-config check-config#)]
+         (remove-ns '~nsym)
+         res#))))
 
 (defmacro tc-e 
   "Type check an an expression in namespace that :refer's

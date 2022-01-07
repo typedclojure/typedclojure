@@ -19,6 +19,16 @@
             [typed.cljc.checker.base-env-common :refer [delay-and-cache-env]
              :as common]
             [typed.clj.checker.parse-unparse :as prs]
+            [typed.cljc.checker.var-env :as var-env]
+            [typed.cljc.checker.protocol-env :as protocol-env]
+            [typed.clj.checker.method-return-nilables :as method-return-nilables]
+            [typed.clj.checker.method-param-nilables :as method-param-nilables]
+            [typed.clj.checker.method-override-env :as method-override-env]
+            [typed.clj.checker.field-override-env :as field-override-env]
+            [typed.clj.checker.ctor-override-env :as ctor-override-env]
+            [typed.cljc.checker.declared-kind-env :as declared-kind-env]
+            [typed.cljc.checker.datatype-env :as datatype-env]
+            [typed.cljc.checker.datatype-ancestor-env :as datatype-ancestor-env]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.path-rep :as pe]
             [typed.cljc.checker.object-rep :as obj]
@@ -2085,48 +2095,30 @@ clojure.lang.Delay (All [x]
 (delay-and-cache-env ^:private init-datatype-ancestor-env {})
 
 (defn reset-clojure-envs! []
-  (let [reset-var-type-env! (requiring-resolve 'typed.cljc.checker.var-env/reset-var-type-env!)
-        reset-nonnilable-method-return-env!
-        (requiring-resolve 'typed.clj.checker.method-return-nilables/reset-nonnilable-method-return-env!)
-        reset-method-nilable-param-env! (requiring-resolve 'typed.clj.checker.method-param-nilables/reset-method-nilable-param-env!)
-        reset-method-override-env! (requiring-resolve 'typed.clj.checker.method-override-env/reset-method-override-env!)
-        reset-field-override-env! (requiring-resolve 'typed.clj.checker.field-override-env/reset-field-override-env!)
-        reset-constructor-override-env! (requiring-resolve 'typed.clj.checker.ctor-override-env/reset-constructor-override-env!)
-        reset-protocol-env! (requiring-resolve 'typed.cljc.checker.protocol-env/reset-protocol-env!)
-        reset-declared-kinds! (requiring-resolve 'typed.cljc.checker.declared-kind-env/reset-declared-kinds!)
-        reset-datatype-env! (requiring-resolve 'typed.cljc.checker.datatype-env/reset-datatype-env!)
-        reset-datatype-ancestors! (requiring-resolve 'typed.cljc.checker.datatype-ancestor-env/reset-datatype-ancestors!)]
-    (impl/with-clojure-impl
-      ;(reset-alias-env!)
-      (base-rclass/reset-rclass-env!)
-      (reset-var-type-env! (init-var-env) (init-var-nochecks))
-      (reset-nonnilable-method-return-env! (init-method-nonnilable-return-env))
-      (reset-method-nilable-param-env! (init-method-nilable-param-env))
-      (reset-method-override-env! (init-method-override-env))
-      (reset-field-override-env! (init-field-override-env))
-      (reset-constructor-override-env! (init-ctor-override-env))
-      (reset-protocol-env! (init-protocol-env))
-      (reset-declared-kinds! (init-declared-kinds))
-      (reset-datatype-env! (init-datatype-env))
-      (reset-datatype-ancestors! (init-datatype-ancestor-env)))
-    nil))
+  (impl/with-clojure-impl
+    ;(reset-alias-env!)
+    (base-rclass/reset-rclass-env!)
+    (var-env/reset-var-type-env! (init-var-env) (init-var-nochecks))
+    (method-return-nilables/reset-nonnilable-method-return-env! (init-method-nonnilable-return-env))
+    (method-param-nilables/reset-method-nilable-param-env! (init-method-nilable-param-env))
+    (method-override-env/reset-method-override-env! (init-method-override-env))
+    (field-override-env/reset-field-override-env! (init-field-override-env))
+    (ctor-override-env/reset-constructor-override-env! (init-ctor-override-env))
+    (protocol-env/reset-protocol-env! (init-protocol-env))
+    (declared-kind-env/reset-declared-kinds! (init-declared-kinds))
+    (datatype-env/reset-datatype-env! (init-datatype-env))
+    (datatype-ancestor-env/reset-datatype-ancestors! (init-datatype-ancestor-env)))
+  nil)
 
 (defn refresh-core-clojure-envs! []
-  (let [merge-protocol-env! (requiring-resolve 'typed.cljc.checker.protocol-env/merge-protocol-env!)
-        refresh-var-type-env! (requiring-resolve 'typed.cljc.checker.var-env/refresh-var-type-env!)
-        merge-method-nilable-param-env! (requiring-resolve 'typed.clj.checker.method-param-nilables/merge-method-nilable-param-env!)
-        merge-nonnilable-method-return-env! (requiring-resolve 'typed.clj.checker.method-return-nilables/merge-nonnilable-method-return-env!)
-        merge-method-override-env! (requiring-resolve 'typed.clj.checker.method-override-env/merge-method-override-env!)
-        merge-field-override-env! (requiring-resolve 'typed.clj.checker.field-override-env/merge-field-override-env!)
-        merge-constructor-override-env! (requiring-resolve 'typed.clj.checker.ctor-override-env/merge-constructor-override-env!)]
-    (impl/with-clojure-impl
-      ;(refresh-core-alias-env!)
-      (base-rclass/reset-rclass-env!)
-      (merge-protocol-env! (init-protocol-env))
-      (refresh-var-type-env! (init-var-env) (init-var-nochecks))
-      (merge-method-nilable-param-env! (init-method-nilable-param-env))
-      (merge-nonnilable-method-return-env! (init-method-nonnilable-return-env))
-      (merge-method-override-env! (init-method-override-env))
-      (merge-field-override-env! (init-field-override-env))
-      (merge-constructor-override-env! (init-ctor-override-env)))
-    nil))
+  (impl/with-clojure-impl
+    ;(refresh-core-alias-env!)
+    (base-rclass/reset-rclass-env!)
+    (protocol-env/merge-protocol-env! (init-protocol-env))
+    (var-env/refresh-var-type-env! (init-var-env) (init-var-nochecks))
+    (method-param-nilables/merge-method-nilable-param-env! (init-method-nilable-param-env))
+    (method-return-nilables/merge-nonnilable-method-return-env! (init-method-nonnilable-return-env))
+    (method-override-env/merge-method-override-env! (init-method-override-env))
+    (field-override-env/merge-field-override-env! (init-field-override-env))
+    (ctor-override-env/merge-constructor-override-env! (init-ctor-override-env)))
+  nil)

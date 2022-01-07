@@ -1,25 +1,25 @@
 (ns clojure.core.typed.test.cljs-utils
-  (:require [clojure.core.typed :as clj-t]
+  (:require [cljs.analyzer :as ana]
+            [cljs.analyzer.api :as ana-api]
             [cljs.core.typed :as cljs-t]
+            [cljs.core.typed :as t]
+            [cljs.env :as env]
             [cljs.repl :as repl]
-            [cljs.analyzer :as ana]
+            [clojure.core.typed :as clj-t]
             [clojure.core.typed.analyze-cljs :as ana-cljs]
+            [clojure.core.typed.coerce-utils :as coerce]
+            [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.errors :as err]
-            [clojure.set :as set]))
+            [clojure.core.typed.test.common-utils :as common-test]
+            [clojure.core.typed.util-cljs :as ucljs]
+            [clojure.set :as set]
+            [clojure.test :refer :all :as test]
+            [typed.clj.checker.parse-unparse :as prs]
+            [typed.clj.checker.subtype :as sub]
+            [typed.cljc.checker.type-ctors :as c]
+            [typed.cljc.checker.type-rep :as r]))
 
 (cljs-t/load-if-needed)
-
-(require '[clojure.test :refer :all :as test]
-         '[cljs.core.typed :as t]
-         '[typed.cljc.checker.type-ctors :as c]
-         '[typed.cljc.checker.type-rep :as r]
-         '[clojure.core.typed.current-impl :as impl]
-         '[typed.clj.checker.parse-unparse :as prs]
-         '[typed.clj.checker.subtype :as sub]
-         '[clojure.core.typed.util-cljs :as ucljs]
-         '[clojure.core.typed.coerce-utils :as coerce]
-         '[clojure.core.typed.test.common-utils :as common-test]
-         '[cljs.env :as env])
 
 (defmacro cljs [& body]
   `(impl/with-cljs-impl
@@ -40,6 +40,7 @@
   (let [nsym (gensym 'clojure.core.typed.test.temp)]
     (check-opt opt)
     `(binding [ana/*cljs-ns* ana/*cljs-ns*]
+       (cljs-t/load-if-needed)
        (ucljs/with-cljs-typed-env
          (let [expected-ret# ~expected-ret
                ; first element of this list must be the symbol ns
@@ -47,12 +48,15 @@
                            ;~'(:refer-clojure :exclude [fn])
                            ~'(:require [cljs.core.typed :as t :include-macros true]
                                        [cljs.core :as core]))
-               _# (ana/analyze (ana/empty-env) ns-form#)]
-           (t/check-form-info 
-             '~frm
-             :expected-ret expected-ret#
-             :expected '~syn
-             :type-provided? ~provided?))))))
+               ;; use cljs.analyzer just for side effects
+               _# (ana-api/analyze (ana-api/empty-env) ns-form#)
+               res# (t/check-form-info 
+                      '~frm
+                      :expected-ret expected-ret#
+                      :expected '~syn
+                      :type-provided? ~provided?)]
+           (ana-api/remove-ns '~nsym)
+           res#)))))
 
 (defmacro tc-e 
   "Type check an an expression in namespace that :refer's

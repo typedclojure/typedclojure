@@ -15,6 +15,7 @@
             [typed.cljc.checker.utils :as u]
             [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.errors :as err]
+            [typed.clj.checker.parse-unparse :as prs]
             [typed.cljc.checker.filter-rep :as fr]
             [typed.cljc.checker.free-ops :as free-ops]
             [typed.cljc.checker.name-env :as nmenv]
@@ -278,7 +279,7 @@
                                              (recur (c/resolve-Name rator))))
                          (r/TypeFn? rator) rator
                          :else (err/int-error (str "Invalid operator to type application: "
-                                                 ((requiring-resolve 'typed.clj.checker.parse-unparse/unparse-type) tapp)))))
+                                                   (prs/unparse-type tapp)))))
                  _ (when-not (r/TypeFn? tfn) 
                      (err/int-error (str "First argument to TApp must be TypeFn")))]
              (map (fn [v ^FreesResult fr]

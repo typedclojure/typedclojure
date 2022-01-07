@@ -15,12 +15,18 @@
             [cljs.analyzer :as ana]
             [clojure.core.typed.util-cljs :as ucljs]
             [cljs.env :as env]
+            [clojure.core.typed.jsnominal-env :as jsnominal]
+            [typed.cljc.checker.datatype-env :as datatype-env]
+            [typed.cljc.checker.declared-kind-env :as declared-kind-env]
+            [typed.cljc.checker.protocol-env :as protocol-env]
+            [typed.cljc.checker.name-env :as name-env]
+            [typed.cljc.checker.var-env :as var-env]
             [clojure.set :as set]))
 
 (ucljs/with-cljs-typed-env
 (ucljs/with-core-cljs-typed
 (binding [ana/*cljs-ns* 'cljs.core.typed]
-(delay-and-cache-env ^:private init-protocol-env 
+(delay-and-cache-env ^:private init-protocol-env
   (h/protocol-mappings
     
 cljs.core/Fn [[]]
@@ -81,8 +87,7 @@ cljs.core/Reduced [[[x :variance :covariant]]]
 
 (defn reset-protocol-env! []
   (impl/with-cljs-impl
-    ((requiring-resolve 'typed.cljc.checker.protocol-env/reset-protocol-env!)
-     (init-protocol-env))))
+    (protocol-env/reset-protocol-env! (init-protocol-env))))
 
 #_
 (ann-jsclass js/Document
@@ -131,7 +136,7 @@ goog.events.EventTarget [[]]
 
 (defn reset-jsnominal-env! []
   (impl/with-cljs-impl
-    ((requiring-resolve 'clojure.core.typed.jsnominal-env/reset-jsnominal!)
+    (jsnominal/reset-jsnominal!
      (init-jsnominals))))
 
 ;;; vars specific to cljs
@@ -499,7 +504,7 @@ cljs.core.typed/Reversible
                  (set/difference (set (map #(symbol "cljs.core.typed" (str %))
                                            boot/-base-aliases))
                                  (set (keys alias-env)))))
-    ((requiring-resolve 'typed.cljc.checker.name-env/reset-name-env!) alias-env)))
+    (name-env/reset-name-env! alias-env)))
 
 (delay-and-cache-env init-declared-kinds {})
 
@@ -518,18 +523,17 @@ cljs.core/Reduced [[[x :variance :covariant]]]
 )
 
 (defn reset-cljs-envs! []
-  (let [reset-var-type-env! (requiring-resolve 'typed.cljc.checker.var-env/reset-var-type-env!)
-        reset-jsvar-type-env! (requiring-resolve 'typed.cljc.checker.var-env/reset-jsvar-type-env!)
-        reset-declared-kinds! (requiring-resolve 'typed.cljc.checker.declared-kind-env/reset-declared-kinds!)
-        reset-datatype-env! (requiring-resolve 'typed.cljc.checker.datatype-env/reset-datatype-env!)]
-    (ucljs/with-cljs-typed-env
-      (impl/with-cljs-impl
-        (reset-alias-env!)
-        (reset-var-type-env! (init-var-env) (init-var-nochecks))
-        (reset-jsvar-type-env! (init-jsvar-env))
-        (reset-protocol-env!)
-        (reset-declared-kinds! (init-declared-kinds))
-        (reset-jsnominal-env!)
-        (reset-datatype-env! (init-datatype-env))))
-    nil))
+  (ucljs/with-cljs-typed-env
+    (impl/with-cljs-impl
+      (reset-alias-env!)
+      (var-env/reset-var-type-env! (init-var-env) (init-var-nochecks))
+      (var-env/reset-jsvar-type-env! (init-jsvar-env))
+      (reset-protocol-env!)
+      (declared-kind-env/reset-declared-kinds! (init-declared-kinds))
+      (reset-jsnominal-env!)
+      (datatype-env/reset-datatype-env! (init-datatype-env))))
+  nil)
 ))
+
+;;FIXME hack
+(reset-cljs-envs!)

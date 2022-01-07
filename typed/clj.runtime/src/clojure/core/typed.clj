@@ -15,6 +15,7 @@ for checking namespaces, cf for checking individual forms."}
                             defn atom ref cast
                             #_filter #_remove])
   (:require [clojure.core :as core]
+            [clojure.reflect :as reflect]
             [clojure.core.typed.util-vars :as vs]
             [clojure.core.typed.special-form :as spec]
             [clojure.core.typed.import-macros :as import-m]
@@ -68,7 +69,8 @@ for checking namespaces, cf for checking individual forms."}
   Intended for use at the REPL."
   [mname]
   (load-if-needed)
-  (core/let [ms (->> ((requiring-resolve 'clojure.reflect/type-reflect) (Class/forName (namespace mname)))
+  (core/let [ms (->> (Class/forName (namespace mname))
+                     reflect/type-reflect
                      :members
                      (core/filter #(and (instance? clojure.reflect.Method %)
                                         (= (str (:name %)) (name mname))))
@@ -1189,11 +1191,7 @@ for checking namespaces, cf for checking individual forms."}
   `(tc-ignore (warn-on-unannotated-vars* '~(ns-name *ns*))))
 
 (core/defn default-check-config []
-  {:check-ns-dep :recheck
-   :unannotated-def :infer
-   :unannotated-var :error
-   :unannotated-multi :error
-   #_#_:unannotated-arg :any})
+  ((requiring-resolve 'typed.clj.checker/default-check-config)))
 
 (core/defn check-form-info 
   "Function that type checks a form and returns a map of results from type checking the
@@ -1224,10 +1222,8 @@ for checking namespaces, cf for checking individual forms."}
   - :delayed-errors  A sequence of delayed errors (ex-info instances)
   - :profile         Use Timbre to profile the type checker. Timbre must be
                      added as a dependency. Must use the \"slim\" JAR."
-  [form & {:as opt}]
-  (load-if-needed)
-  (core/let [opt (update opt :check-config #(merge (default-check-config) %))]
-    (apply (requiring-resolve 'typed.clj.checker.check-form-clj/check-form-info) form (apply concat opt))))
+  [form & opt]
+  (apply (requiring-resolve 'typed.clj.checker/check-form-info) form opt))
 
 (core/defn check-form*
   "Function that takes a form and optional expected type syntax and
@@ -1237,12 +1233,10 @@ for checking namespaces, cf for checking individual forms."}
   Takes same options as check-form-info, except 2nd argument is :expected,
   3rd argument is :type-provided?, and subsequent keys in opt will be merged over
   them."
-  ([form] (check-form* form nil nil))
-  ([form expected] (check-form* form expected true))
-  ([form expected type-provided? & {:as opt}]
-   (load-if-needed)
-   (core/let [opt (update opt :check-config #(merge (default-check-config) %))]
-     ((requiring-resolve 'typed.clj.checker.check-form-clj/check-form*) form expected type-provided? opt))))
+  ([form] ((requiring-resolve 'typed.clj.checker/check-form*) form))
+  ([form expected] ((requiring-resolve 'typed.clj.checker/check-form*) form expected))
+  ([form expected type-provided? & opt]
+   (apply (requiring-resolve 'typed.clj.checker/check-form*) form expected type-provided? opt)))
 
 ; cf can pollute current type environment to allow REPL experimentation
 (defmacro cf
@@ -1285,11 +1279,9 @@ for checking namespaces, cf for checking individual forms."}
 
   Default return map
   - :delayed-errors  A sequence of delayed errors (ex-info instances)"
-  ([] (check-ns-info *ns*))
-  ([ns-or-syms & {:as opt}]
-   (load-if-needed)
-   (core/let [opt (update opt :check-config #(merge (default-check-config) %))]
-     ((requiring-resolve 'typed.clj.checker.check-ns-clj/check-ns-info) ns-or-syms opt))))
+  ([] ((requiring-resolve 'typed.clj.checker/check-ns-info)))
+  ([ns-or-syms & opt]
+   (apply (requiring-resolve 'typed.clj.checker/check-ns-info) ns-or-syms opt)))
 
 (core/defn check-ns
   "Type check a namespace/s (a symbol or Namespace, or collection).
@@ -1355,23 +1347,14 @@ for checking namespaces, cf for checking individual forms."}
   
       ; collect but don't check the current namespace
       (check-ns *ns* :collect-only true)"
-  ([] (check-ns *ns*))
-  ([ns-or-syms & {:as opt}]
-   (load-if-needed)
-   (core/let [opt (update opt :check-config #(merge (default-check-config) %))]
-     ((requiring-resolve 'typed.clj.checker.check-ns-clj/check-ns) ns-or-syms opt))))
+  ([] ((requiring-resolve 'typed.clj.checker/check-ns)))
+  ([ns-or-syms & opt]
+   (apply (requiring-resolve 'typed.clj.checker/check-ns) ns-or-syms opt)))
 
 (core/defn check-ns2 
-  ([] (check-ns2 *ns*))
-  ([ns-or-syms & {:as opt}]
-   (load-if-needed)
-   (core/let [opt (update opt :check-config
-                          #(merge {:check-ns-dep :never
-                                   :unannotated-def :unchecked
-                                   :unannotated-var :unchecked
-                                   :unannotated-arg :unchecked}
-                                  %))]
-     ((requiring-resolve 'typed.clj.checker.check-ns-clj/check-ns) ns-or-syms opt))))
+  ([] ((requiring-resolve 'typed.clj.checker/check-ns2)))
+  ([ns-or-syms & opt]
+   (apply (requiring-resolve 'typed.clj.checker/check-ns2) ns-or-syms opt)))
 
 ;(ann statistics [(Coll Symbol) -> (Map Symbol Stats)])
 (core/defn statistics 

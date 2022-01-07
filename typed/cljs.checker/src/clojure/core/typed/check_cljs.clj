@@ -80,8 +80,7 @@
      (when (neg? fuel) (prn `check-expr "infinite loop"))
      (prn `check-expr "op" (:op expr))
      (if (= :unanalyzed (:op expr))
-       (do (prn `check-expr "expand")
-           (recur (tana2/analyze-outer expr) (max -1 (dec fuel))))
+       (recur (tana2/analyze-outer expr) (max -1 (dec fuel)))
        (binding [vs/*current-env* (if (:line env) env vs/*current-env*)
                  vs/*current-expr* expr]
          (-check expr expected))))))
@@ -418,6 +417,7 @@
 
 (defmethod -check :fn
   [{:keys [methods] :as expr} expected]
+  ;(prn `-check :fn (mapv (comp :op :ret :body) methods))
   (prepare-check-fn
     (if expected
       (fn/check-fn expr expected)
