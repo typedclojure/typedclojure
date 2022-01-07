@@ -11,36 +11,8 @@
             [clojure.core.typed.current-impl :as impl]
             [typed.clj.checker.analyze-clj :as ana-clj]
             [typed.clj.checker.check :as chk-clj]
-            [typed.cljc.checker.check-form-common :as chk-form]
             [typed.cljc.checker.check-form-common2 :as chk-form2]
             [typed.cljc.checker.runtime-check :as rt-chk]))
-
-(def ^:private runtime-infer-expr
-  (delay (impl/dynaload 'typed.clj.annotator/runtime-infer-expr)))
-
-(def version 2)
-
-(defn config-map []
-  {:impl impl/clojure
-   :ast-for-form ana-clj/ast-for-form
-   :unparse-ns (ns-name *ns*)
-   :check-expr chk-clj/check-expr
-   :runtime-check-expr rt-chk/runtime-check-expr
-   :runtime-infer-expr (fn [& args]
-                         (apply @runtime-infer-expr args))
-   :eval-out-ast (fn eval-out-ast
-                   ([ast] (eval-out-ast ast {}))
-                   ([ast opts] (ana-clj/eval-ast ast opts)))
-   :custom-expansions? (-> *ns*
-                           meta
-                           :core.typed
-                           :experimental
-                           (contains? :custom-expansions))
-   :emit-form ast-u/emit-form-fn
-   :analyze-bindings-fn ana-clj/thread-bindings
-   :check-form-info chk-form/check-form-info
-   :check-form* chk-form/check-form*
-   })
 
 (defn config-map2 []
   {:impl impl/clojure
@@ -48,7 +20,7 @@
    :unparse-ns (ns-name *ns*)
    :runtime-check-expr rt-chk/runtime-check-expr
    :runtime-infer-expr (fn [& args]
-                         (apply @runtime-infer-expr args))
+                         (apply (requiring-resolve 'typed.clj.annotator/runtime-infer-expr) args))
    :eval-out-ast (fn eval-out-ast
                    ([ast] (eval-out-ast ast {}))
                    ([ast opts] (ana-clj/eval-ast ast opts)))
@@ -64,17 +36,13 @@
 
 (defn check-form-info
   [form & opt]
-  (let [config (case (int version)
-                 1 (config-map)
-                 2 (config-map2))]
+  (let [config (config-map2)]
     (chk-form2/check-form-info-with-config
       config form opt)))
 
 (defn check-form*
   [form expected type-provided? opt]
   {:pre [(map? opt)]}
-  (let [config (case (int version)
-                 1 (config-map)
-                 2 (config-map2))]
+  (let [config (config-map2)]
     (chk-form2/check-form*-with-config
       config form expected type-provided? opt)))

@@ -201,18 +201,6 @@
 #?(:clj 
 (create-env jsnominal-env))
 
-; copied from clojure.spec.gen.alpha
-#?(:clj
-(defn dynaload
-  [s]
-  (let [ns (namespace s)]
-    (assert ns)
-    (require (symbol ns))
-    (if-let [v (resolve s)]
-      @v
-      (throw (RuntimeException. (str "Var " s " is not on the classpath")))))))
-
-
 #?(:clj
 (defn v [vsym]
   {:pre [(qualified-symbol? vsym)]}
@@ -382,55 +370,55 @@
                        optional)))
 
 #?(:clj
-(def ^:private int-error (delay (dynaload 'clojure.core.typed.errors/int-error))))
+(def ^:private int-error #(apply (requiring-resolve 'clojure.core.typed.errors/int-error) %&)))
 #?(:clj
-(def ^:private parse-free-binder-with-variance (delay (dynaload 'typed.clj.checker.parse-unparse/parse-free-binder-with-variance))))
+(def ^:private parse-free-binder-with-variance #((requiring-resolve 'typed.clj.checker.parse-unparse/parse-free-binder-with-variance) %)))
 #?(:clj
-(def ^:private with-parse-ns* (delay (dynaload 'typed.clj.checker.parse-unparse/with-parse-ns*))))
+(def ^:private with-parse-ns* #((requiring-resolve 'typed.clj.checker.parse-unparse/with-parse-ns*) %1 %2)))
 #?(:clj
-(def ^:private with-bounded-frees* (delay (dynaload 'typed.cljc.checker.free-ops/with-bounded-frees*))))
+(def ^:private with-bounded-frees* #((requiring-resolve 'typed.cljc.checker.free-ops/with-bounded-frees*) %1 %2)))
 #?(:clj
-(def ^:private unparse-type (delay (dynaload 'typed.clj.checker.parse-unparse/unparse-type))))
+(def ^:private unparse-type #((requiring-resolve 'typed.clj.checker.parse-unparse/unparse-type) %)))
 #?(:clj
-(def ^:private parse-type (delay (dynaload 'typed.clj.checker.parse-unparse/parse-type))))
+(def ^:private parse-type #((requiring-resolve 'typed.clj.checker.parse-unparse/parse-type) %)))
 #?(:clj
-(def ^:private fully-resolve-type (delay (dynaload 'typed.cljc.checker.type-ctors/fully-resolve-type))))
+(def ^:private fully-resolve-type #((requiring-resolve 'typed.cljc.checker.type-ctors/fully-resolve-type) %)))
 #?(:clj
-(def ^:private Poly? (delay (dynaload 'typed.cljc.checker.type-rep/Poly?))))
+(def ^:private Poly? #((requiring-resolve 'typed.cljc.checker.type-rep/Poly?) %)))
 #?(:clj
-(def ^:private Poly-fresh-symbols* (delay (dynaload 'typed.cljc.checker.type-ctors/Poly-fresh-symbols*))))
+(def ^:private Poly-fresh-symbols* #((requiring-resolve 'typed.cljc.checker.type-ctors/Poly-fresh-symbols*) %)))
 #?(:clj
-(def ^:private Poly-body* (delay (dynaload 'typed.cljc.checker.type-ctors/Poly-body*))))
+(def ^:private Poly-body* #((requiring-resolve 'typed.cljc.checker.type-ctors/Poly-body*) %)))
 #?(:clj
-(def ^:private PolyDots? (delay (dynaload 'typed.cljc.checker.type-rep/PolyDots?))))
+(def ^:private PolyDots? #((requiring-resolve 'typed.cljc.checker.type-rep/PolyDots?) %)))
 #?(:clj
-(def ^:private PolyDots-fresh-symbols* (delay (dynaload 'typed.cljc.checker.type-ctors/PolyDots-fresh-symbols*))))
+(def ^:private PolyDots-fresh-symbols* #((requiring-resolve 'typed.cljc.checker.type-ctors/PolyDots-fresh-symbols*) %)))
 #?(:clj
-(def ^:private PolyDots-body* (delay (dynaload 'typed.cljc.checker.type-ctors/PolyDots-body*))))
+(def ^:private PolyDots-body* #((requiring-resolve 'typed.cljc.checker.type-ctors/PolyDots-body*) %)))
 #?(:clj
-(def ^:private FnIntersection? (delay (dynaload 'typed.cljc.checker.type-rep/FnIntersection?))))
+(def ^:private FnIntersection? #((requiring-resolve 'typed.cljc.checker.type-rep/FnIntersection?) %)))
 #?(:clj
-(def ^:private Protocol* (delay (dynaload 'typed.cljc.checker.type-ctors/Protocol*))))
+(def ^:private Protocol* #(apply (requiring-resolve 'typed.cljc.checker.type-ctors/Protocol*) %&)))
 #?(:clj
-(def ^:private Protocol-var->on-class (delay (dynaload 'typed.cljc.checker.type-ctors/Protocol-var->on-class))))
+(def ^:private Protocol-var->on-class #((requiring-resolve 'typed.cljc.checker.type-ctors/Protocol-var->on-class) %)))
 #?(:clj
-(def ^:private -any (delay (dynaload 'typed.cljc.checker.type-rep/-any))))
+(def ^:private -any #(deref (requiring-resolve 'typed.cljc.checker.type-rep/-any))))
 #?(:clj
-(def ^:private protocol-method-var-ann (delay (dynaload 'typed.cljc.checker.collect-utils/protocol-method-var-ann))))
+(def ^:private protocol-method-var-ann #(apply (requiring-resolve 'typed.cljc.checker.collect-utils/protocol-method-var-ann) %&)))
 #?(:clj
-(def ^:private make-F (delay (dynaload 'typed.cljc.checker.type-rep/make-F))))
+(def ^:private make-F #((requiring-resolve 'typed.cljc.checker.type-rep/make-F) %)))
 #?(:clj
-(def ^:private DataType* (delay (dynaload 'typed.cljc.checker.type-ctors/DataType*))))
+(def ^:private DataType* #(apply (requiring-resolve 'typed.cljc.checker.type-ctors/DataType*) %&)))
 #?(:clj
-(def ^:private Poly* (delay (dynaload 'typed.cljc.checker.type-ctors/Poly*))))
+(def ^:private Poly* #(apply (requiring-resolve 'typed.cljc.checker.type-ctors/Poly*) %&)))
 #?(:clj
-(def ^:private make-FnIntersection (delay (dynaload 'typed.cljc.checker.type-rep/make-FnIntersection))))
+(def ^:private make-FnIntersection #((requiring-resolve 'typed.cljc.checker.type-rep/make-FnIntersection) %)))
 #?(:clj
-(def ^:private make-Function (delay (dynaload 'typed.cljc.checker.type-rep/make-Function))))
+(def ^:private make-Function #(apply (requiring-resolve 'typed.cljc.checker.type-rep/make-Function) %&)))
 #?(:clj
-(def ^:private DataType-of (delay (dynaload 'typed.cljc.checker.type-ctors/DataType-of))))
+(def ^:private DataType-of #(apply (requiring-resolve 'typed.cljc.checker.type-ctors/DataType-of) %&)))
 #?(:clj
-(def ^:private subtype? (delay (dynaload 'typed.clj.checker.subtype/subtype?))))
+(def ^:private subtype? #((requiring-resolve 'typed.clj.checker.subtype/subtype?) %1 %2)))
 
 
 #?(:clj
@@ -438,81 +426,81 @@
   {:pre [(symbol? current-ns)
          ((some-fn nil? map?) mths)]}
   (let [_ (when-not (symbol? vsym)
-            (@int-error
+            (int-error
               (str "First argument to ann-protocol must be a symbol: " vsym)))
         s (if (namespace vsym)
             (symbol vsym)
             (symbol (str current-ns) (name vsym)))
         protocol-defined-in-nstr (namespace s)
         _ (when-let [[m] (seq (remove symbol? (keys mths)))]
-            (@int-error (str "Method names to ann-protocol must be symbols, found: " (pr-str m))))
+            (int-error (str "Method names to ann-protocol must be symbols, found: " (pr-str m))))
         _ (doseq [n1 (keys mths)
                   n2 (keys mths)]
             (when (and (not= n1 n2)
                        (= (munge n1) (munge n2)))
-              (@int-error 
+              (int-error 
                 (str "Protocol methods for " vsym " must have distinct representations: "
                      "both " n1 " and " n2 " compile to " (munge n1)))))
         ; add a Name so the methods can be parsed
         _ (declare-protocol* s)
         parsed-binder (when binder 
                         (delay
-                          (@with-parse-ns* current-ns
-                            #(@parse-free-binder-with-variance binder))))
+                          (with-parse-ns* current-ns
+                            #(parse-free-binder-with-variance binder))))
         fs (when parsed-binder
              (delay 
-               (map (comp @make-F :fname) (force parsed-binder))))
+               (map (comp make-F :fname) (force parsed-binder))))
         bnds (when parsed-binder
                (delay (map :bnd (force parsed-binder))))
         ms (into {} (for [[knq v*] mths]
                       (let [_ (when (namespace knq)
-                                (@int-error "Protocol method should be unqualified"))
+                                (int-error "Protocol method should be unqualified"))
                             mtype 
                             (delay
-                              (let [mtype (@with-bounded-frees* (zipmap (force fs) (force bnds))
+                              (let [mtype (with-bounded-frees* (zipmap (force fs) (force bnds))
                                             #(binding [vs/*current-env* current-env]
-                                               (@with-parse-ns* current-ns
+                                               (with-parse-ns* current-ns
                                                  (fn []
-                                                   (@parse-type v*)))))
-                                    _ (let [rt (@fully-resolve-type mtype)
+                                                   (parse-type v*)))))
+                                    _ (let [rt (fully-resolve-type mtype)
                                             fin? (fn [f]
-                                                   (let [f (@fully-resolve-type f)]
+                                                   (let [f (fully-resolve-type f)]
                                                      (boolean
-                                                       (when (@FnIntersection? f)
+                                                       (when (FnIntersection? f)
                                                          (every? seq (map :dom (:types f)))))))]
                                         (when-not 
                                           (or
                                             (fin? rt)
-                                            (when (@Poly? rt) 
-                                              (let [names (@Poly-fresh-symbols* rt)]
-                                                (fin? (@Poly-body* names rt))))
-                                            (when (@PolyDots? rt) 
-                                              (let [names (@PolyDots-fresh-symbols* rt)]
-                                                (fin? (@PolyDots-body* names rt)))))
+                                            (when (Poly? rt) 
+                                              (let [names (Poly-fresh-symbols* rt)]
+                                                (fin? (Poly-body* names rt))))
+                                            (when (PolyDots? rt) 
+                                              (let [names (PolyDots-fresh-symbols* rt)]
+                                                (fin? (PolyDots-body* names rt)))))
                                           ;(prn "throwing method type")
-                                          (@int-error (str "Protocol method " knq " should be a possibly-polymorphic function intersection"
-                                                              " taking at least one fixed argument: "
-                                                              (@unparse-type mtype)))))]
+                                          (int-error (str "Protocol method " knq " should be a possibly-polymorphic function intersection"
+                                                          " taking at least one fixed argument: "
+                                                          (unparse-type mtype)))))]
                                 mtype))]
                          [knq mtype])))
         ;_ (prn "collect protocol methods" (into {} ms))
         t (delay
-            (@Protocol* (map :name (force fs)) (map :variance (force parsed-binder) )
-                        (force fs) s (@Protocol-var->on-class s) 
-                        (into {} (map (fn [[k v]] [k (force v)])) ms) 
-                        (map :bnd (force parsed-binder))))]
+            (Protocol* (map :name (force fs)) (map :variance (force parsed-binder) )
+                       (force fs) s (Protocol-var->on-class s) 
+                       (into {} (map (fn [[k v]] [k (force v)])) ms) 
+                       (map :bnd (force parsed-binder))))]
     ;(prn "Adding protocol" s t)
     (add-protocol s t)
     ; annotate protocol var as Any
     (add-nocheck-var s)
-    (add-tc-var-type s (delay @-any))
+    (add-tc-var-type s (delay (-any)))
     (doseq [[kuq mt] ms]
       (assert (not (namespace kuq))
               "Protocol method names should be unqualified")
       ;qualify method names when adding methods as vars
       (let [kq (symbol protocol-defined-in-nstr (name kuq))
             mt-ann (delay 
-                     (@protocol-method-var-ann (force mt) (map :name (force fs)) (force bnds)))]
+                     (protocol-method-var-ann (force mt) (map :name (force fs)) (force bnds)))]
         (add-nocheck-var kq)
         (add-tc-var-type kq mt-ann)))
     ;(prn "end gen-protocol" s)
@@ -529,21 +517,21 @@
   nil)
 
 #?(:clj
-(def ^:private demunge (delay (dynaload 'clojure.repl/demunge))))
+(def ^:private demunge #((requiring-resolve 'clojure.repl/demunge) %)))
 #?(:clj
-(def ^:private abstract-many (delay (dynaload 'typed.cljc.checker.type-ctors/abstract-many))))
+(def ^:private abstract-many #((requiring-resolve 'typed.cljc.checker.type-ctors/abstract-many) %1 %2)))
 #?(:clj
-(def ^:private with-frees* (delay (dynaload 'typed.cljc.checker.free-ops/with-frees*))))
+(def ^:private with-frees* #((requiring-resolve 'typed.cljc.checker.free-ops/with-frees*) %1 %2)))
 #?(:clj
-(def ^:private -val (delay (dynaload 'typed.cljc.checker.type-rep/-val))))
+(def ^:private -val #((requiring-resolve 'typed.cljc.checker.type-rep/-val) %1)))
 #?(:clj
-(def ^:private -nil (delay (dynaload 'typed.cljc.checker.type-rep/-nil))))
+(def ^:private -nil #(deref (requiring-resolve 'typed.cljc.checker.type-rep/-nil))))
 #?(:clj
-(def ^:private fv (delay (dynaload 'typed.cljc.checker.frees/fv))))
+(def ^:private fv #((requiring-resolve 'typed.cljc.checker.frees/fv) %)))
 #?(:clj
-(def ^:private fi (delay (dynaload 'typed.cljc.checker.frees/fi))))
+(def ^:private fi #((requiring-resolve 'typed.cljc.checker.frees/fi) %)))
 #?(:clj
-(def ^:private make-HMap (delay (dynaload 'typed.cljc.checker.type-ctors/make-HMap))))
+(def ^:private make-HMap #(apply (requiring-resolve 'typed.cljc.checker.type-ctors/make-HMap) %&)))
 
 #?(:clj
 (defn gen-datatype* [current-env current-ns provided-name fields vbnd opt record?]
@@ -553,8 +541,8 @@
           ancests (or ancests (:extends opt))
           parsed-binders (when vbnd
                            (delay
-                             (@with-parse-ns* current-ns
-                               #(@parse-free-binder-with-variance vbnd))))
+                             (with-parse-ns* current-ns
+                               #(parse-free-binder-with-variance vbnd))))
           ;variances
           vs (when parsed-binders
                (delay (seq (map :variance (force parsed-binders)))))
@@ -568,7 +556,7 @@
                             (apply str (butlast (apply concat (butlast (partition-by #(= \. %) provided-name-str)))))
                             (str (munge current-ns)))
             ;_ (prn "munged-ns-str" munged-ns-str)
-            demunged-ns-str (str (@demunge munged-ns-str))
+            demunged-ns-str (str (demunge munged-ns-str))
             ;_ (prn "demunged-ns-str" demunged-ns-str)
             local-name (if (some #(= \. %) provided-name-str)
                          (symbol (apply str (last (partition-by #(= \. %) (str provided-name-str)))))
@@ -576,54 +564,54 @@
             ;_ (prn "local-name" local-name)
             s (symbol (str munged-ns-str \. local-name))
             fs (delay
-                 (let [parse-field (fn [[n _ t]] [n (@parse-type t)])]
-                   (apply array-map (apply concat (@with-frees* (mapv @make-F (force args))
+                 (let [parse-field (fn [[n _ t]] [n (parse-type t)])]
+                   (apply array-map (apply concat (with-frees* (mapv make-F (force args))
                                                     (fn []
                                                       (binding [vs/*current-env* current-env]
-                                                        (@with-parse-ns* current-ns
+                                                        (with-parse-ns* current-ns
                                                           #(mapv parse-field (partition 3 fields))))))))))
             as (into {}
                      (map
                        (fn [an]
                          [an (delay
-                               (@with-frees* (mapv @make-F (force args))
+                               (with-frees* (mapv make-F (force args))
                                  (fn []
                                    (binding [vs/*current-env* current-env]
-                                     (@with-parse-ns* current-ns
-                                       #(let [t (@parse-type an)]
-                                          (@abstract-many (force args) t)))))))]))
+                                     (with-parse-ns* current-ns
+                                       #(let [t (parse-type an)]
+                                          (abstract-many (force args) t)))))))]))
                      ancests)
             ;_ (prn "collected ancestors" as)
             _ (add-datatype-ancestors s as)
             pos-ctor-name (symbol demunged-ns-str (str "->" local-name))
             map-ctor-name (symbol demunged-ns-str (str "map->" local-name))
             dt (delay 
-                 (@DataType* (force args) (force vs) (map @make-F (force args)) s (force bnds) (force fs) record?))
+                 (DataType* (force args) (force vs) (map make-F (force args)) s (force bnds) (force fs) record?))
             _ (add-datatype s dt)
             pos-ctor (delay
                        (if args
-                         (@Poly* (force args) (force bnds)
-                                 (@make-FnIntersection
-                                   (@make-Function (vec (vals (force fs))) (@DataType-of s (map @make-F (force args))))))
-                         (@make-FnIntersection
-                           (@make-Function (vec (vals (force fs))) (@DataType-of s)))))
+                         (Poly* (force args) (force bnds)
+                                (make-FnIntersection
+                                  (make-Function (vec (vals (force fs))) (DataType-of s (map make-F (force args))))))
+                         (make-FnIntersection
+                           (make-Function (vec (vals (force fs))) (DataType-of s)))))
             map-ctor (delay
                        (when record?
                          (let [hmap-arg ; allow omission of keys if nil is allowed and field is monomorphic
                                (let [{optional true mandatory false} 
-                                     (group-by (fn [[_ t]] (and (empty? (@fv t))
-                                                                (empty? (@fi t))
-                                                                (@subtype? @-nil t)))
-                                               (zipmap (map (comp @-val keyword) (keys (force fs)))
+                                     (group-by (fn [[_ t]] (and (empty? (fv t))
+                                                                (empty? (fi t))
+                                                                (subtype? (-nil) t)))
+                                               (zipmap (map (comp -val keyword) (keys (force fs)))
                                                        (vals (force fs))))]
-                                 (@make-HMap :optional (into {} optional)
-                                             :mandatory (into {} mandatory)))]
+                                 (make-HMap :optional (into {} optional)
+                                            :mandatory (into {} mandatory)))]
                            (if args
-                             (@Poly* (force args) (force bnds)
-                                     (@make-FnIntersection
-                                       (@make-Function [hmap-arg] (@DataType-of s (map @make-F (force args))))))
-                             (@make-FnIntersection
-                               (@make-Function [hmap-arg] (@DataType-of s)))))))]
+                             (Poly* (force args) (force bnds)
+                                    (make-FnIntersection
+                                      (make-Function [hmap-arg] (DataType-of s (map make-F (force args))))))
+                             (make-FnIntersection
+                               (make-Function [hmap-arg] (DataType-of s)))))))]
         (do 
           ;(when vs
           ;  (let [f (mapv r/make-F (repeatedly (count vs) gensym))]

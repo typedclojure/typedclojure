@@ -19,25 +19,15 @@ for checking namespaces, cf for checking individual forms."}
             [clojure.core.typed.special-form :as spec]
             [clojure.core.typed.import-macros :as import-m]
             [clojure.core.typed.contract :as contract]
+            [clojure.string :as str]
             ; for `pred` and `contract`
             ;clojure.core.typed.type-contract
             ; for `import-macros` below
             clojure.core.typed.macros)
   (:import (clojure.lang Compiler)))
 
-(core/defn- dynaload
-  [s]
-  (core/let [ns (namespace s)]
-    (assert ns)
-    (require (symbol ns))
-    (core/let [v (resolve s)]
-      (if v
-        @v
-        (throw (RuntimeException. (str "Var " s " is not on the classpath")))))))
-
-(def ^:private with-clojure-impl* (delay (dynaload 'clojure.core.typed.current-impl/with-clojure-impl*)))
 (defmacro ^:private with-clojure-impl [& body]
-  `(@with-clojure-impl* (core/fn [] (do ~@body))))
+  `((requiring-resolve 'clojure.core.typed.current-impl/with-clojure-impl*) (core/fn [] (do ~@body))))
 
 ;=============================================================
 ; # core.typed
@@ -60,65 +50,59 @@ for checking namespaces, cf for checking individual forms."}
 ; c.c.typed.cs-gen
 ;   Polymorphic local type inference algorithm.
 
-(core/let [lin (delay (dynaload 'clojure.core.typed.load-if-needed/load-if-needed))]
-  (core/defn load-if-needed
-    "Load and initialize all of core.typed if not already"
-    []
-    (@lin)))
+(core/defn load-if-needed
+  "Load and initialize all of core.typed if not already"
+  []
+  ((requiring-resolve 'clojure.core.typed.load-if-needed/load-if-needed)))
 
-(core/let [rset (delay (dynaload 'typed.clj.checker.reset-caches/reset-caches))]
-  (core/defn reset-caches
-    "Reset internal type caches."
-    []
-    (load-if-needed)
-    (@rset)
-    nil))
+(core/defn reset-caches
+  "Reset internal type caches."
+  []
+  (load-if-needed)
+  ((requiring-resolve 'typed.clj.checker.reset-caches/reset-caches))
+  nil)
 
 ;(ann method-type [Symbol -> nil])
-(core/let [type-reflect (delay (dynaload 'clojure.reflect/type-reflect))
-           Method->Type (delay (dynaload 'typed.clj.checker.check/Method->Type))
-           unparse-type (delay (dynaload 'typed.clj.checker.parse-unparse/unparse-type))]
-  (core/defn method-type
-    "Given a method symbol, print the core.typed types assigned to it.
-    Intended for use at the REPL."
-    [mname]
-    (load-if-needed)
-    (core/let [ms (->> (@type-reflect (Class/forName (namespace mname)))
-                       :members
-                       (core/filter #(and (instance? clojure.reflect.Method %)
-                                          (= (str (:name %)) (name mname))))
-                       set)
-               _ (assert (seq ms) (str "Method " mname " not found"))]
-      (println "Method name:" mname)
-      (flush)
-      (core/doseq [m ms]
-        (println (@unparse-type
-                   (@Method->Type m)))
-        (flush)))))
+(core/defn method-type
+  "Given a method symbol, print the core.typed types assigned to it.
+  Intended for use at the REPL."
+  [mname]
+  (load-if-needed)
+  (core/let [ms (->> ((requiring-resolve 'clojure.reflect/type-reflect) (Class/forName (namespace mname)))
+                     :members
+                     (core/filter #(and (instance? clojure.reflect.Method %)
+                                        (= (str (:name %)) (name mname))))
+                     set)
+             _ (assert (seq ms) (str "Method " mname " not found"))]
+    (println "Method name:" mname)
+    (flush)
+    (core/doseq [m ms]
+      (println ((requiring-resolve 'typed.clj.checker.parse-unparse/unparse-type)
+                ((requiring-resolve 'typed.clj.checker.check/Method->Type) m)))
+      (flush))))
 
-(core/let [tl-install (delay (dynaload 'clojure.core.typed.load/install))]
-  (core/defn install
-    "Install the :core.typed :lang. Takes an optional set of features
-    to install, defaults to `:all`, which is equivalent to the set of
-    all features.
+(core/defn install
+  "Install the :core.typed :lang. Takes an optional set of features
+  to install, defaults to `:all`, which is equivalent to the set of
+  all features.
 
-    Features:
-      - :load    Installs typed `load` over `clojure.core/load`, which type checks files
-                 on the presence of a {:lang :core.typed} metadata entry in the `ns` form.
-                 The metadata must be inserted in the actual `ns` form saved to disk,
-                 as it is read directly from the file instead of the current Namespace
-                 metadata.
-      - :eval    Installs typed `eval` over `clojure.core/eval`.
-                 If `(= :core.typed (:lang (meta *ns*)))` is true, the form will be implicitly
-                 type checked. The syntax save to disk is ignored however.
+  Features:
+    - :load    Installs typed `load` over `clojure.core/load`, which type checks files
+               on the presence of a {:lang :core.typed} metadata entry in the `ns` form.
+               The metadata must be inserted in the actual `ns` form saved to disk,
+               as it is read directly from the file instead of the current Namespace
+               metadata.
+    - :eval    Installs typed `eval` over `clojure.core/eval`.
+               If `(= :core.typed (:lang (meta *ns*)))` is true, the form will be implicitly
+               type checked. The syntax save to disk is ignored however.
 
-    eg. (install)            ; installs `load` and `eval`
-    eg. (install :all)       ; installs `load` and `eval`
-    eg. (install #{:eval})   ; installs `eval`
-    eg. (install #{:load})   ; installs `load`"
-    ([] (install :all))
-    ([features]
-     (@tl-install features))))
+  eg. (install)            ; installs `load` and `eval`
+  eg. (install :all)       ; installs `load` and `eval`
+  eg. (install #{:eval})   ; installs `eval`
+  eg. (install #{:load})   ; installs `load`"
+  ([] (install :all))
+  ([features]
+   ((requiring-resolve 'clojure.core.typed.load/install) features)))
 
 ;=============================================================
 ; Special functions
@@ -291,19 +275,18 @@ for checking namespaces, cf for checking individual forms."}
        ;preserve letfn empty body
        ~@(or body [nil]))))
 
-(core/let [declare-datatype* (delay (dynaload 'clojure.core.typed.current-impl/declare-datatype*))]
-  (core/defn ^:no-doc
-    declare-datatypes* 
-    "Internal use only. Use declare-datatypes."
-    [syms nsym]
-    (with-clojure-impl
-      (core/doseq [sym syms]
-        (assert (not (or (some #(= \. %) (str sym))
-                         (namespace sym)))
-                (str "Cannot declare qualified datatype: " sym))
-        (core/let [qsym (symbol (str (munge (name nsym)) \. (name sym)))]
-          (@declare-datatype* qsym))))
-    nil))
+(core/defn ^:no-doc
+  declare-datatypes* 
+  "Internal use only. Use declare-datatypes."
+  [syms nsym]
+  (with-clojure-impl
+    (core/doseq [sym syms]
+      (assert (not (or (some #(= \. %) (str sym))
+                       (namespace sym)))
+              (str "Cannot declare qualified datatype: " sym))
+      (core/let [qsym (symbol (str (munge (name nsym)) \. (name sym)))]
+        ((requiring-resolve 'clojure.core.typed.current-impl/declare-datatype*) qsym))))
+  nil)
 
 (defmacro declare-datatypes 
   "Declare datatypes, similar to declare but on the type level."
@@ -334,15 +317,14 @@ for checking namespaces, cf for checking individual forms."}
      (declare ~sym)
      (declare-alias-kind* '~sym '~ty)))
 
-(core/let [declare-name* (delay (dynaload 'clojure.core.typed.current-impl/declare-name*))]
-  (core/defn ^:no-doc
-    declare-names* 
-    "Internal use only. Use declare-names."
-    [syms]
-    (core/let [nsym (ns-name *ns*)]
-      (core/doseq [sym syms]
-        (@declare-name* (symbol (str nsym) (str sym)))))
-    nil))
+(core/defn ^:no-doc
+  declare-names* 
+  "Internal use only. Use declare-names."
+  [syms]
+  (core/let [nsym (ns-name *ns*)]
+    (core/doseq [sym syms]
+      ((requiring-resolve 'clojure.core.typed.current-impl/declare-name*) (symbol (str nsym) (str sym)))))
+  nil)
 
 (defmacro declare-names 
   "Declare names, similar to declare but on the type level."
@@ -372,10 +354,6 @@ for checking namespaces, cf for checking individual forms."}
                                              @Compiler/COLUMN)}]
        ~@body)))
 
-(def ^:private parse-clj-rt (delay (dynaload 'clojure.core.typed.parse-ast/parse-clj)))
-(def ^:private parse-clj-tc (delay (dynaload 'typed.clj.checker.parse-unparse/parse-clj)))
-(def ^:private with-parse-ns* (delay (dynaload 'typed.clj.checker.parse-unparse/with-parse-ns*)))
-
 (defmacro ^:private delay-rt-parse
   "We can type check c.c.t/parse-ast if we replace all instances
   of parse-ast in clojure.core.typed with delay-parse. Otherwise
@@ -384,7 +362,7 @@ for checking namespaces, cf for checking individual forms."}
   `(core/let [t# ~t
               app-outer-context# (bound-fn [f# t#] (f# t#))]
      (delay
-       (app-outer-context# @parse-clj-rt t#))))
+       (app-outer-context# (requiring-resolve 'clojure.core.typed.parse-ast/parse-clj) t#))))
 
 (defmacro ^:private delay-tc-parse
   [t]
@@ -393,42 +371,40 @@ for checking namespaces, cf for checking individual forms."}
      (delay
        (app-outer-context#
          (core/fn []
-           (@with-parse-ns*
+           ((requiring-resolve 'typed.clj.checker.parse-unparse/with-parse-ns*)
              (ns-name *ns*)
-             #(@parse-clj-tc t#)))))))
+             #((requiring-resolve 'typed.clj.checker.parse-unparse/parse-clj) t#)))))))
 
-(core/let [add-alias-env (delay (dynaload 'clojure.core.typed.current-impl/add-alias-env))]
-  (core/defn ^:no-doc add-to-rt-alias-env [form qsym t]
-    (with-clojure-impl
-      (@add-alias-env
-        qsym
-        (with-current-location form
-          (delay-rt-parse t))))
-    nil))
+(core/defn ^:no-doc add-to-rt-alias-env [form qsym t]
+  (with-clojure-impl
+    ((requiring-resolve 'clojure.core.typed.current-impl/add-alias-env)
+     qsym
+     (with-current-location form
+       (delay-rt-parse t))))
+  nil)
 
-(core/let [subtype? (delay (dynaload 'typed.clj.checker.subtype/subtype?))
-           declared-kind-or-nil (delay (dynaload 'typed.cljc.checker.declared-kind-env/declared-kind-or-nil))
-           unparse-type (delay (dynaload 'typed.clj.checker.parse-unparse/unparse-type))
-           int-error (delay (dynaload 'clojure.core.typed.errors/int-error))
-           add-tc-type-name* (delay (dynaload 'clojure.core.typed.current-impl/add-tc-type-name))]
-  (core/defn ^:no-doc add-tc-type-name [form qsym t]
-    (with-clojure-impl
-      (core/let
-           [;; preserve *ns*
-            bfn (bound-fn [f] (f))
-            t (delay
-                (core/let
-                     [t (bfn
-                          #(with-current-location form
-                             @(delay-tc-parse t)))
-                      _ (with-clojure-impl
-                          (when-let [tfn (@declared-kind-or-nil qsym)]
-                            (when-not (@subtype? t tfn)
-                              (@int-error (str "Declared kind " (@unparse-type tfn)
-                                               " does not match actual kind " (@unparse-type t))))))]
-                  t))]
-        (@add-tc-type-name* qsym t)))
-    nil))
+
+(def ^:private int-error #(apply (requiring-resolve 'clojure.core.typed.errors/int-error) %&)) 
+
+(core/defn ^:no-doc add-tc-type-name [form qsym t]
+  (with-clojure-impl
+    (core/let
+      [;; preserve *ns*
+       bfn (bound-fn [f] (f))
+       t (delay
+           (core/let
+             [unparse-type (requiring-resolve 'typed.clj.checker.parse-unparse/unparse-type)
+              t (bfn
+                  #(with-current-location form
+                     @(delay-tc-parse t)))
+              _ (with-clojure-impl
+                  (when-let [tfn ((requiring-resolve 'typed.cljc.checker.declared-kind-env/declared-kind-or-nil) qsym)]
+                    (when-not ((requiring-resolve 'typed.clj.checker.subtype/subtype?) t tfn)
+                      (int-error (str "Declared kind " (unparse-type tfn)
+                                      " does not match actual kind " (unparse-type t))))))]
+             t))]
+      ((requiring-resolve 'clojure.core.typed.current-impl/add-tc-type-name) qsym t)))
+  nil)
 
 (defmacro defalias 
   "Define a recursive type alias on a qualified symbol. Takes an optional doc-string as a second
@@ -635,14 +611,14 @@ for checking namespaces, cf for checking individual forms."}
 ;       ::special-type true}
 ;  Array)
 
-(core/let
-     [add-rclass-env (delay (dynaload 'clojure.core.typed.current-impl/add-rclass-env))
-      Class->symbol (delay (dynaload 'clojure.core.typed.current-impl/Class->symbol))]
-  (core/defn ^:no-doc rclass-pred
-    "Do not use"
-    [rcls opts]
+(core/defn ^:no-doc rclass-pred
+  "Do not use"
+  [rcls opts]
+  (core/let
+    [add-rclass-env (requiring-resolve 'clojure.core.typed.current-impl/add-rclass-env)
+     Class->symbol (requiring-resolve 'clojure.core.typed.current-impl/Class->symbol)]
     (with-clojure-impl
-      (@add-rclass-env (@Class->symbol rcls) opts))))
+      (add-rclass-env (Class->symbol rcls) opts))))
 
 (defmacro ^:no-doc rclass-preds 
   "Do not use"
@@ -652,23 +628,22 @@ for checking namespaces, cf for checking individual forms."}
          `(rclass-pred ~k ~v))))
 
 ;(ann into-array>* [Any Any -> Any])
-(core/let
-     [parse-type (delay (dynaload 'typed.clj.checker.parse-unparse/parse-type))
-      Type->array-member-Class (delay (dynaload 'typed.clj.checker.array-ops/Type->array-member-Class))]
-  (core/defn ^:no-doc
-    into-array>*
-    "Internal use only. Use into-array>."
-    ([cljt coll]
-     (load-if-needed)
-     (with-clojure-impl
-       (into-array (@Type->array-member-Class (@parse-type cljt)) coll)))
-    ([javat cljt coll]
-     (load-if-needed)
-     (with-clojure-impl
-       (into-array (@Type->array-member-Class (@parse-type javat)) coll)))
-    ;this is the hacky case to prevent full core.typed from loading
-    ([into-array-syn javat cljt coll]
-     (into-array (resolve into-array-syn) coll))))
+(core/defn ^:no-doc
+  into-array>*
+  "Internal use only. Use into-array>."
+  ([cljt coll]
+   (load-if-needed)
+   (with-clojure-impl
+     (into-array ((requiring-resolve 'typed.clj.checker.array-ops/Type->array-member-Class)
+                  ((requiring-resolve 'typed.clj.checker.parse-unparse/parse-type) cljt)) coll)))
+  ([javat cljt coll]
+   (load-if-needed)
+   (with-clojure-impl
+     (into-array ((requiring-resolve 'typed.clj.checker.array-ops/Type->array-member-Class)
+                  ((requiring-resolve 'typed.clj.checker.parse-unparse/parse-type) javat)) coll)))
+  ;this is the hacky case to prevent full core.typed from loading
+  ([into-array-syn javat cljt coll]
+   (into-array (resolve into-array-syn) coll)))
 
 ;FIXME hacky 4-arity version to prevent full type system from loading
 (defmacro into-array> 
@@ -687,14 +662,13 @@ for checking namespaces, cf for checking individual forms."}
    `(into-array>* '~javat '~cljt ~coll)))
 
 
-(core/let [add-nonnilable-method-return (delay (dynaload 'clojure.core.typed.current-impl/add-nonnilable-method-return))]
-  (core/defn ^:no-doc
-    non-nil-return* 
-    "Internal use only. Use non-nil-return."
-    [msym arities]
-    (with-clojure-impl
-      (@add-nonnilable-method-return msym arities))
-    nil))
+(core/defn ^:no-doc
+  non-nil-return* 
+  "Internal use only. Use non-nil-return."
+  [msym arities]
+  (with-clojure-impl
+    ((requiring-resolve 'clojure.core.typed.current-impl/add-nonnilable-method-return) msym arities))
+  nil)
 
 (defmacro non-nil-return 
   "Override the return type of fully qualified method msym to be non-nil.
@@ -707,14 +681,13 @@ for checking namespaces, cf for checking individual forms."}
   [msym arities]
   `(tc-ignore (non-nil-return* '~msym '~arities)))
 
-(core/let [add-method-nilable-param (delay (dynaload 'clojure.core.typed.current-impl/add-method-nilable-param))]
-  (core/defn ^:no-doc
-    nilable-param* 
-    "Internal use only. Use nilable-param."
-    [msym mmap]
-    (with-clojure-impl
-      (@add-method-nilable-param msym mmap))
-    nil))
+(core/defn ^:no-doc
+  nilable-param* 
+  "Internal use only. Use nilable-param."
+  [msym mmap]
+  (with-clojure-impl
+    ((requiring-resolve 'clojure.core.typed.current-impl/add-method-nilable-param) msym mmap))
+  nil)
 
 (defmacro nilable-param 
   "Override which parameters in qualified method msym may accept
@@ -736,21 +709,19 @@ for checking namespaces, cf for checking individual forms."}
   [debug-str]
   nil)
 
-(core/let [var->symbol (delay (dynaload 'clojure.core.typed.coerce-utils/var->symbol))
-           add-untyped-var (delay (dynaload 'clojure.core.typed.current-impl/add-untyped-var))]
-  (core/defn ^:no-doc
-    untyped-var* 
-    "Internal use only. Use untyped-var."
-    [varsym typesyn prs-ns form]
-    (core/let
-      [var (resolve varsym)
-       _ (assert (var? var) (str varsym " must resolve to a var."))
-       qsym (@var->symbol var)
-       expected-type (with-current-location form
-                       (delay-tc-parse typesyn))
-       _ (with-clojure-impl
-           (@add-untyped-var prs-ns qsym expected-type))]
-      nil)))
+(core/defn ^:no-doc
+  untyped-var* 
+  "Internal use only. Use untyped-var."
+  [varsym typesyn prs-ns form]
+  (core/let
+    [var (resolve varsym)
+     _ (assert (var? var) (str varsym " must resolve to a var."))
+     qsym ((requiring-resolve 'clojure.core.typed.coerce-utils/var->symbol) var)
+     expected-type (with-current-location form
+                     (delay-tc-parse typesyn))
+     _ (with-clojure-impl
+         ((requiring-resolve 'clojure.core.typed.current-impl/add-untyped-var) prs-ns qsym expected-type))]
+    nil))
 
 (defmacro untyped-var
   "Check a given var has the specified type at runtime."
@@ -762,36 +733,36 @@ for checking namespaces, cf for checking individual forms."}
                (symbol (str prs-ns) (str varsym)))]
     `(tc-ignore (untyped-var* '~qsym '~typesyn '~prs-ns '~&form))))
 
-(core/let [warn (delay (dynaload 'clojure.core.typed.errors/warn))
-           var-env (delay (dynaload 'clojure.core.typed.current-impl/var-env))
-           add-var-env (delay (dynaload 'clojure.core.typed.current-impl/add-var-env))
-           add-tc-var-type (delay (dynaload 'clojure.core.typed.current-impl/add-tc-var-type))
-           check-var? (delay (dynaload 'clojure.core.typed.current-impl/check-var?))
-           remove-nocheck-var (delay (dynaload 'clojure.core.typed.current-impl/remove-nocheck-var))
-           add-nocheck-var (delay (dynaload 'clojure.core.typed.current-impl/add-nocheck-var))]
-  (core/defn ^:no-doc
-    ann* 
-    "Internal use only. Use ann."
-    [qsym typesyn check? form]
-    (core/let
-         [_ (with-clojure-impl
-              (when (and (contains? (@var-env) qsym)
-                         (not (@check-var? qsym))
-                         check?)
-                (@warn (str "Removing :no-check from var " qsym))
-                (@remove-nocheck-var qsym)))
-          _ (with-clojure-impl
-              (when-not check?
-                (@add-nocheck-var qsym)))
-          ast (with-current-location form
-                (delay-rt-parse typesyn))
-          tc-type (with-current-location form
-                    (delay-tc-parse typesyn))]
-      (with-clojure-impl
-        (@add-var-env qsym ast))
-      (with-clojure-impl
-        (@add-tc-var-type qsym tc-type)))
-    nil))
+(core/defn ^:no-doc
+  ann* 
+  "Internal use only. Use ann."
+  [qsym typesyn check? form]
+  (core/let
+    [warn (requiring-resolve 'clojure.core.typed.errors/warn)
+     var-env (requiring-resolve 'clojure.core.typed.current-impl/var-env)
+     add-var-env (requiring-resolve 'clojure.core.typed.current-impl/add-var-env)
+     add-tc-var-type (requiring-resolve 'clojure.core.typed.current-impl/add-tc-var-type)
+     check-var? (requiring-resolve 'clojure.core.typed.current-impl/check-var?)
+     remove-nocheck-var (requiring-resolve 'clojure.core.typed.current-impl/remove-nocheck-var)
+     add-nocheck-var (requiring-resolve 'clojure.core.typed.current-impl/add-nocheck-var)
+     _ (with-clojure-impl
+         (when (and (contains? (var-env) qsym)
+                    (not (check-var? qsym))
+                    check?)
+           (warn (str "Removing :no-check from var " qsym))
+           (remove-nocheck-var qsym)))
+     _ (with-clojure-impl
+         (when-not check?
+           (add-nocheck-var qsym)))
+     ast (with-current-location form
+           (delay-rt-parse typesyn))
+     tc-type (with-current-location form
+               (delay-tc-parse typesyn))]
+    (with-clojure-impl
+      (add-var-env qsym ast))
+    (with-clojure-impl
+      (add-tc-var-type qsym tc-type)))
+  nil)
 
 (defmacro ann 
   "Annotate varsym with type. If unqualified, qualify in the current namespace.
@@ -827,25 +798,25 @@ for checking namespaces, cf for checking individual forms."}
   [t & vs]
   `(do ~@(map #(list `ann % t) vs)))
 
-(core/let [add-datatype-env (delay (dynaload 'clojure.core.typed.current-impl/add-datatype-env))
-           gen-datatype* (delay (dynaload 'clojure.core.typed.current-impl/gen-datatype*))]
-  (core/defn ^:no-doc
-    ann-datatype*
-    "Internal use only. Use ann-datatype."
-    [vbnd dname fields opts form]
-    (core/let [qname (if (some #{\.} (str dname))
-                       dname
-                       (symbol (str (namespace-munge *ns*) "." dname)))]
-      (with-clojure-impl
-        (@add-datatype-env 
-          qname
-          {:record? false
-           :name qname
-           :fields fields
-           :bnd vbnd})))
+(core/defn ^:no-doc
+  ann-datatype*
+  "Internal use only. Use ann-datatype."
+  [vbnd dname fields opts form]
+  (core/let [add-datatype-env (requiring-resolve 'clojure.core.typed.current-impl/add-datatype-env)
+             gen-datatype* (requiring-resolve 'clojure.core.typed.current-impl/gen-datatype*)
+             qname (if (some #{\.} (str dname))
+                     dname
+                     (symbol (str (namespace-munge *ns*) "." dname)))]
+    (with-clojure-impl
+      (add-datatype-env 
+        qname
+        {:record? false
+         :name qname
+         :fields fields
+         :bnd vbnd}))
     (with-current-location form
       (with-clojure-impl
-        (@gen-datatype* vs/*current-env* (ns-name *ns*) dname fields vbnd opts false)))
+        (gen-datatype* vs/*current-env* (ns-name *ns*) dname fields vbnd opts false)))
     nil))
 
 (defmacro
@@ -906,25 +877,25 @@ for checking namespaces, cf for checking individual forms."}
             (str "Must provide name symbol: " dname))
     `(tc-ignore (ann-datatype* '~vbnd '~dname '~fields '~opts '~&form))))
 
-(core/let [add-datatype-env (delay (dynaload 'clojure.core.typed.current-impl/add-datatype-env))
-           gen-datatype* (delay (dynaload 'clojure.core.typed.current-impl/gen-datatype*))]
-  (core/defn ^:no-doc
-    ann-record* 
-    "Internal use only. Use ann-record"
-    [vbnd dname fields opt form]
-    (core/let [qname (if (some #{\.} (str dname))
-                       dname
-                       (symbol (str (namespace-munge *ns*) "." dname)))]
-      (with-clojure-impl
-        (@add-datatype-env 
-          qname
-          {:record? true
-           :name qname
-           :fields fields
-           :bnd vbnd})))
+(core/defn ^:no-doc
+  ann-record* 
+  "Internal use only. Use ann-record"
+  [vbnd dname fields opt form]
+  (core/let [add-datatype-env (requiring-resolve 'clojure.core.typed.current-impl/add-datatype-env)
+             gen-datatype* (requiring-resolve 'clojure.core.typed.current-impl/gen-datatype*)
+             qname (if (some #{\.} (str dname))
+                     dname
+                     (symbol (str (namespace-munge *ns*) "." dname)))]
+    (with-clojure-impl
+      (add-datatype-env 
+        qname
+        {:record? true
+         :name qname
+         :fields fields
+         :bnd vbnd}))
     (with-current-location form
       (with-clojure-impl
-        (@gen-datatype* vs/*current-env* (ns-name *ns*) dname fields vbnd opt true)))
+        (gen-datatype* vs/*current-env* (ns-name *ns*) dname fields vbnd opt true)))
     nil))
 
 (defmacro 
@@ -982,78 +953,77 @@ for checking namespaces, cf for checking individual forms."}
           args)]
     `(tc-ignore (ann-record* '~vbnd '~dname '~fields '~opt '~&form))))
 
-(core/let [add-protocol-env (delay (dynaload 'clojure.core.typed.current-impl/add-protocol-env))
-           gen-protocol* (delay (dynaload 'clojure.core.typed.current-impl/gen-protocol*))]
-  (core/defn ^:no-doc
-    ann-protocol* 
-    "Internal use only. Use ann-protocol."
-    [vbnd varsym mth form]
-    (core/let [qualsym (if (namespace varsym)
-                         varsym
-                         (symbol (str (ns-name *ns*)) (name varsym)))]
-      (with-clojure-impl
-        (@add-protocol-env
-          qualsym
-          {:name qualsym
-           :methods mth
-           :bnds vbnd}))
-      (with-clojure-impl
-        (with-current-location form
-          (@gen-protocol*
-            vs/*current-env*
-            (ns-name *ns*)
-            varsym
-            vbnd
-            mth))))
-    nil))
+(core/defn ^:no-doc
+  ann-protocol* 
+  "Internal use only. Use ann-protocol."
+  [vbnd varsym mth form]
+  (core/let [add-protocol-env (requiring-resolve 'clojure.core.typed.current-impl/add-protocol-env)
+             gen-protocol* (requiring-resolve 'clojure.core.typed.current-impl/gen-protocol*)
+             qualsym (if (namespace varsym)
+                       varsym
+                       (symbol (str (ns-name *ns*)) (name varsym)))]
+    (with-clojure-impl
+      (add-protocol-env
+        qualsym
+        {:name qualsym
+         :methods mth
+         :bnds vbnd}))
+    (with-clojure-impl
+      (with-current-location form
+        (gen-protocol*
+          vs/*current-env*
+          (ns-name *ns*)
+          varsym
+          vbnd
+          mth))))
+  nil)
 
-(core/let [str-join (delay (dynaload 'clojure.string/join))]
-  (defmacro 
-    ^{:forms '[(ann-protocol vbnd varsym & methods)
-               (ann-protocol varsym & methods)]}
-    ann-protocol 
-    "Annotate a possibly polymorphic protocol var with method types.
-    
-    eg. (ann-protocol IFoo
-          bar
-          (IFn [IFoo -> Any]
-               [IFoo Number Symbol -> Any])
-          baz
-          [IFoo Number -> Number])
-        (t/tc-ignore
-          (defprotocol IFoo
-            (bar [this] [this n s])
-            (baz [this n])))
+(defmacro 
+  ^{:forms '[(ann-protocol vbnd varsym & methods)
+             (ann-protocol varsym & methods)]}
+  ann-protocol 
+  "Annotate a possibly polymorphic protocol var with method types.
+  
+  eg. (ann-protocol IFoo
+        bar
+        (IFn [IFoo -> Any]
+             [IFoo Number Symbol -> Any])
+        baz
+        [IFoo Number -> Number])
+      (t/tc-ignore
+        (defprotocol IFoo
+          (bar [this] [this n s])
+          (baz [this n])))
 
-        ; polymorphic protocol
-        ; x is scoped in the methods
-        (ann-protocol [[x :variance :covariant]]
-          IFooPoly
-          bar
-          (IFn [(IFooPoly x) -> Any]
-               [(IFooPoly x) Number Symbol -> Any])
-          baz
-          [(IFooPoly x) Number -> Number])
-        (t/tc-ignore
-          (defprotocol IFooPoly
-            (bar [this] [this n s])
-            (baz [this n])))"
-    [& args]
-    (core/let
-         [bnd-provided? (vector? (first args))
-          vbnd (when bnd-provided?
-                 (first args))
-          [varsym & mth] (if bnd-provided?
-                           (next args)
-                           args)
-          _ (core/let [fs (frequencies (map first (partition 2 mth)))]
-              (when-let [dups (seq (filter (core/fn [[_ freq]] (< 1 freq)) fs))]
-                (println (str "WARNING: Duplicate method annotations in ann-protocol (" varsym 
-                              "): " (@str-join ", " (map first dups))))
-                (flush)))
-          ; duplicates are checked above.
-          {:as mth} mth]
-      `(tc-ignore (ann-protocol* '~vbnd '~varsym '~mth '~&form)))))
+      ; polymorphic protocol
+      ; x is scoped in the methods
+      (ann-protocol [[x :variance :covariant]]
+        IFooPoly
+        bar
+        (IFn [(IFooPoly x) -> Any]
+             [(IFooPoly x) Number Symbol -> Any])
+        baz
+        [(IFooPoly x) Number -> Number])
+      (t/tc-ignore
+        (defprotocol IFooPoly
+          (bar [this] [this n s])
+          (baz [this n])))"
+  [& args]
+  (core/let
+       [bnd-provided? (vector? (first args))
+        vbnd (when bnd-provided?
+               (first args))
+        [varsym & mth] (if bnd-provided?
+                         (next args)
+                         args)
+        _ (core/let [fs (frequencies (map first (partition 2 mth)))]
+            (when-let [dups (seq (filter (core/fn [[_ freq]] (< 1 freq)) fs))]
+              (println (str "WARNING: Duplicate method annotations in ann-protocol (" varsym 
+                            "): " (str/join ", " (map first dups))))
+              (flush)))
+        ; duplicates are checked above.
+        {:as mth} mth]
+    `(tc-ignore (ann-protocol* '~vbnd '~varsym '~mth '~&form))))
 
 (core/defn ^:no-doc
   ann-interface* 
@@ -1061,64 +1031,63 @@ for checking namespaces, cf for checking individual forms."}
   [vbnd clsym mth]
   nil)
 
-(core/let [str-join (delay (dynaload 'clojure.string/join))]
-  (defmacro 
-    ^{:forms '[(ann-interface vbnd varsym & methods)
-               (ann-interface varsym & methods)]}
-    ann-interface 
-    "Annotate a possibly polymorphic interface (created with definterface) with method types.
+(defmacro 
+  ^{:forms '[(ann-interface vbnd varsym & methods)
+             (ann-interface varsym & methods)]}
+  ann-interface 
+  "Annotate a possibly polymorphic interface (created with definterface) with method types.
 
-    Note: Unlike ann-protocol, omit the target ('this') argument in the method signatures.
-    
-    eg. (ann-interface IFoo
-          bar
-          (Fn [-> Any]
-              [Number Symbol -> Any])
-          baz
-          [Number -> Number])
-        (definterface IFoo
-          (bar [] [n s])
-          (baz [n]))
+  Note: Unlike ann-protocol, omit the target ('this') argument in the method signatures.
+  
+  eg. (ann-interface IFoo
+        bar
+        (Fn [-> Any]
+            [Number Symbol -> Any])
+        baz
+        [Number -> Number])
+      (definterface IFoo
+        (bar [] [n s])
+        (baz [n]))
 
-        ; polymorphic protocol
-        ; x is scoped in the methods
-        (ann-protocol [[x :variance :covariant]]
-          IFooPoly
-          bar
-          (Fn [-> Any]
-              [Number Symbol -> Any])
-          baz
-          [Number -> Number])
-        (definterface IFooPoly
-          (bar [] [n s])
-          (baz [n]))"
-    [& args]
-    (core/let
-         [bnd-provided? (vector? (first args))
-          vbnd (when bnd-provided?
-                 (first args))
-          [clsym & mth] (if bnd-provided?
-                           (next args)
-                           args)
-          _ (core/let [fs (frequencies (map first (partition 2 mth)))]
-              (when-let [dups (seq (filter (core/fn [[_ freq]] (< 1 freq)) fs))]
-                (println (str "WARNING: Duplicate method annotations in ann-interface (" clsym 
-                              "): " (@str-join ", " (map first dups))))
-                (flush)))
-          ; duplicates are checked above.
-          {:as mth} mth
-          qualsym (if (namespace clsym)
-                    clsym
-                    (symbol (munge (str (ns-name *ns*))) (name clsym)))]
-      `(tc-ignore (ann-interface* '~vbnd '~clsym '~mth)))))
+      ; polymorphic protocol
+      ; x is scoped in the methods
+      (ann-protocol [[x :variance :covariant]]
+        IFooPoly
+        bar
+        (Fn [-> Any]
+            [Number Symbol -> Any])
+        baz
+        [Number -> Number])
+      (definterface IFooPoly
+        (bar [] [n s])
+        (baz [n]))"
+  [& args]
+  (core/let
+       [bnd-provided? (vector? (first args))
+        vbnd (when bnd-provided?
+               (first args))
+        [clsym & mth] (if bnd-provided?
+                         (next args)
+                         args)
+        _ (core/let [fs (frequencies (map first (partition 2 mth)))]
+            (when-let [dups (seq (filter (core/fn [[_ freq]] (< 1 freq)) fs))]
+              (println (str "WARNING: Duplicate method annotations in ann-interface (" clsym 
+                            "): " (str/join ", " (map first dups))))
+              (flush)))
+        ; duplicates are checked above.
+        {:as mth} mth
+        qualsym (if (namespace clsym)
+                  clsym
+                  (symbol (munge (str (ns-name *ns*))) (name clsym)))]
+    `(tc-ignore (ann-interface* '~vbnd '~clsym '~mth))))
 
-(core/let [add-constructor-override (delay (dynaload 'clojure.core.typed.current-impl/add-constructor-override))]
-  (core/defn ^:no-doc
-    override-constructor* 
-    "Internal use only. Use override-constructor."
-    [ctorsym typesyn form]
+(core/defn ^:no-doc
+  override-constructor* 
+  "Internal use only. Use override-constructor."
+  [ctorsym typesyn form]
+  (core/let [add-constructor-override (requiring-resolve 'clojure.core.typed.current-impl/add-constructor-override)]
     (with-clojure-impl
-      (@add-constructor-override 
+      (add-constructor-override 
         ctorsym
         (with-current-location form
           (delay-tc-parse typesyn))))
@@ -1129,13 +1098,13 @@ for checking namespaces, cf for checking individual forms."}
   [ctorsym typesyn]
   `(tc-ignore (override-constructor* '~ctorsym '~typesyn '~&form)))
 
-(core/let [add-method-override (delay (dynaload 'clojure.core.typed.current-impl/add-method-override))]
-  (core/defn ^:no-doc
-    override-method* 
-    "Internal use only. Use override-method."
-    [methodsym typesyn form]
+(core/defn ^:no-doc
+  override-method* 
+  "Internal use only. Use override-method."
+  [methodsym typesyn form]
+  (core/let [add-method-override (requiring-resolve 'clojure.core.typed.current-impl/add-method-override)]
     (with-clojure-impl
-      (@add-method-override 
+      (add-method-override 
         methodsym
         (with-current-location form
           (delay-tc-parse typesyn))))
@@ -1164,20 +1133,19 @@ for checking namespaces, cf for checking individual forms."}
   (assert ((every-pred symbol? namespace) methodsym) "Method symbol must be a qualified symbol")
   `(tc-ignore (override-method* '~methodsym '~typesyn '~&form)))
 
-(core/let [ns->URL (delay (dynaload 'clojure.core.typed.coerce-utils/ns->URL))
-           int-error (delay (dynaload 'clojure.core.typed.errors/int-error))
-           add-ns-deps (delay (dynaload 'clojure.core.typed.current-impl/add-ns-deps))]
-  (core/defn ^:no-doc
-    typed-deps* 
-    "Internal use only. Use typed-deps."
-    [args form]
+(core/defn ^:no-doc
+  typed-deps* 
+  "Internal use only. Use typed-deps."
+  [args form]
+  (core/let [ns->URL (requiring-resolve 'clojure.core.typed.coerce-utils/ns->URL)
+             add-ns-deps (requiring-resolve 'clojure.core.typed.current-impl/add-ns-deps)]
     (with-current-location form
       (with-clojure-impl
         (core/doseq [dep args]
-          (when-not (@ns->URL dep)
-            (@int-error (str "Cannot find dependency declared with typed-deps: " dep)))))
+          (when-not (ns->URL dep)
+            (int-error (str "Cannot find dependency declared with typed-deps: " dep)))))
       (with-clojure-impl
-        (@add-ns-deps (ns-name *ns*) (set args))))
+        (add-ns-deps (ns-name *ns*) (set args))))
     nil))
 
 (defmacro typed-deps 
@@ -1189,9 +1157,8 @@ for checking namespaces, cf for checking individual forms."}
   [& args]
   `(tc-ignore (typed-deps* '~args '~&form)))
 
-(core/let [the-var (delay (dynaload 'clojure.core.typed.current-impl/the-var))]
-  (core/defn ^:no-doc var>* [sym]
-    (@the-var sym)))
+(core/defn ^:no-doc var>* [sym]
+  ((requiring-resolve 'clojure.core.typed.current-impl/the-var) sym))
 
 (defmacro var>
   "Like var, but resolves at runtime like ns-resolve and is understood by
@@ -1201,14 +1168,13 @@ for checking namespaces, cf for checking individual forms."}
   [sym]
   `(var>* '~sym))
 
-(core/let [register-warn-on-unannotated-vars (delay (dynaload 'clojure.core.typed.current-impl/register-warn-on-unannotated-vars))]
-  (core/defn ^:no-doc
-    warn-on-unannotated-vars*
-    "Internal use only. Use allow-unannotated-vars"
-    [nsym]
-    (with-clojure-impl
-      (@register-warn-on-unannotated-vars nsym))
-    nil))
+(core/defn ^:no-doc
+  warn-on-unannotated-vars*
+  "Internal use only. Use allow-unannotated-vars"
+  [nsym]
+  (with-clojure-impl
+    ((requiring-resolve 'clojure.core.typed.current-impl/register-warn-on-unannotated-vars) nsym))
+  nil)
 
 (defmacro warn-on-unannotated-vars
   "Allow unannotated vars in the current namespace. 
@@ -1229,56 +1195,54 @@ for checking namespaces, cf for checking individual forms."}
    :unannotated-multi :error
    #_#_:unannotated-arg :any})
 
-(core/let [chkfi (delay (dynaload 'typed.clj.checker.check-form-clj/check-form-info))]
-  (core/defn check-form-info 
-    "Function that type checks a form and returns a map of results from type checking the
-    form.
-    
-    Options
-    - :expected        Type syntax representing the expected type for this form
-                       type-provided? option must be true to utilise the type.
-    - :type-provided?  If true, use the expected type to check the form.
-    - :file-mapping    If true, return map provides entry :file-mapping, a hash-map
-                       of (Map '{:line Int :column Int :file Str} Str).
-    - :checked-ast     Returns the entire AST for the given form as the :checked-ast entry,
-                       annotated with the static types inferred after checking.
-                       If a fatal error occurs, mapped to nil.
-    - :no-eval         If true, don't evaluate :out-form. Removes :result return value.
-                       It is highly recommended to evaluate :out-form manually.
-    - :beta-limit      A natural integer which denotes the maximum number of beta reductions
-                       the type system can perform on a single top-level form (post Gilardi-scenario).
-    - :check-config    Configuration map for the type checker. (See corresponding option for `check-ns`)
-    
-    Default return map
-    - :ret             TCResult inferred for the current form
-    - :out-form        The macroexpanded result of type-checking, if successful. 
-    - :result          The evaluated result of :out-form, unless :no-eval is provided.
-    - :ex              If an exception was thrown during evaluation, this key will be present
-                       with the exception as the value.
-    DEPRECATED
-    - :delayed-errors  A sequence of delayed errors (ex-info instances)
-    - :profile         Use Timbre to profile the type checker. Timbre must be
-                       added as a dependency. Must use the \"slim\" JAR."
-    [form & {:as opt}]
-    (load-if-needed)
-    (core/let [opt (update opt :check-config #(merge (default-check-config) %))]
-      (apply @chkfi form (apply concat opt)))))
+(core/defn check-form-info 
+  "Function that type checks a form and returns a map of results from type checking the
+  form.
+  
+  Options
+  - :expected        Type syntax representing the expected type for this form
+                     type-provided? option must be true to utilise the type.
+  - :type-provided?  If true, use the expected type to check the form.
+  - :file-mapping    If true, return map provides entry :file-mapping, a hash-map
+                     of (Map '{:line Int :column Int :file Str} Str).
+  - :checked-ast     Returns the entire AST for the given form as the :checked-ast entry,
+                     annotated with the static types inferred after checking.
+                     If a fatal error occurs, mapped to nil.
+  - :no-eval         If true, don't evaluate :out-form. Removes :result return value.
+                     It is highly recommended to evaluate :out-form manually.
+  - :beta-limit      A natural integer which denotes the maximum number of beta reductions
+                     the type system can perform on a single top-level form (post Gilardi-scenario).
+  - :check-config    Configuration map for the type checker. (See corresponding option for `check-ns`)
+  
+  Default return map
+  - :ret             TCResult inferred for the current form
+  - :out-form        The macroexpanded result of type-checking, if successful. 
+  - :result          The evaluated result of :out-form, unless :no-eval is provided.
+  - :ex              If an exception was thrown during evaluation, this key will be present
+                     with the exception as the value.
+  DEPRECATED
+  - :delayed-errors  A sequence of delayed errors (ex-info instances)
+  - :profile         Use Timbre to profile the type checker. Timbre must be
+                     added as a dependency. Must use the \"slim\" JAR."
+  [form & {:as opt}]
+  (load-if-needed)
+  (core/let [opt (update opt :check-config #(merge (default-check-config) %))]
+    (apply (requiring-resolve 'typed.clj.checker.check-form-clj/check-form-info) form (apply concat opt))))
 
-(core/let [chkf* (delay (dynaload 'typed.clj.checker.check-form-clj/check-form*))]
-  (core/defn check-form*
-    "Function that takes a form and optional expected type syntax and
-    type checks the form. If expected is provided, type-provided?
-    must be true.
-    
-    Takes same options as check-form-info, except 2nd argument is :expected,
-    3rd argument is :type-provided?, and subsequent keys in opt will be merged over
-    them."
-    ([form] (check-form* form nil nil))
-    ([form expected] (check-form* form expected true))
-    ([form expected type-provided? & {:as opt}]
-     (load-if-needed)
-     (core/let [opt (update opt :check-config #(merge (default-check-config) %))]
-       (@chkf* form expected type-provided? opt)))))
+(core/defn check-form*
+  "Function that takes a form and optional expected type syntax and
+  type checks the form. If expected is provided, type-provided?
+  must be true.
+  
+  Takes same options as check-form-info, except 2nd argument is :expected,
+  3rd argument is :type-provided?, and subsequent keys in opt will be merged over
+  them."
+  ([form] (check-form* form nil nil))
+  ([form expected] (check-form* form expected true))
+  ([form expected type-provided? & {:as opt}]
+   (load-if-needed)
+   (core/let [opt (update opt :check-config #(merge (default-check-config) %))]
+     ((requiring-resolve 'typed.clj.checker.check-form-clj/check-form*) form expected type-provided? opt))))
 
 ; cf can pollute current type environment to allow REPL experimentation
 (defmacro cf
@@ -1304,31 +1268,28 @@ for checking namespaces, cf for checking individual forms."}
    ([form] `(check-form* '~form))
    ([form expected] `(check-form* '~form '~expected)))
 
-(core/let [chknsi (delay (dynaload 'typed.clj.checker.check-ns-clj/check-ns-info))]
-  (core/defn check-ns-info
-    "Same as check-ns, but returns a map of results from type checking the
-    namespace.
+(core/defn check-ns-info
+  "Same as check-ns, but returns a map of results from type checking the
+  namespace.
 
-    Options
-    - :collect-only    Don't type check the given namespace/s, but collect the 
-    top level type annotations like ann, ann-record.
-    - :type-provided?  If true, use the expected type to check the form
-    - :profile         Use Timbre to profile the type checker. Timbre must be
-    added as a dependency. Must use the \"slim\" JAR.
-    - :file-mapping    If true, return map provides entry :file-mapping, a hash-map
-    of (Map '{:line Int :column Int :file Str} Str).
-    - :check-deps      If true, recursively type check namespace dependencies.
-    Default: true
+  Options
+  - :collect-only    Don't type check the given namespace/s, but collect the 
+  top level type annotations like ann, ann-record.
+  - :type-provided?  If true, use the expected type to check the form
+  - :profile         Use Timbre to profile the type checker. Timbre must be
+  added as a dependency. Must use the \"slim\" JAR.
+  - :file-mapping    If true, return map provides entry :file-mapping, a hash-map
+  of (Map '{:line Int :column Int :file Str} Str).
+  - :check-deps      If true, recursively type check namespace dependencies.
+  Default: true
 
-    Default return map
-    - :delayed-errors  A sequence of delayed errors (ex-info instances)"
-    ([] (check-ns-info *ns*))
-    ([ns-or-syms & {:as opt}]
-     (load-if-needed)
-     (core/let [opt (update opt :check-config #(merge (default-check-config) %))]
-       (@chknsi ns-or-syms opt)))))
-
-(def ^:private chk-ns-clj (delay (dynaload 'typed.clj.checker.check-ns-clj/check-ns)))
+  Default return map
+  - :delayed-errors  A sequence of delayed errors (ex-info instances)"
+  ([] (check-ns-info *ns*))
+  ([ns-or-syms & {:as opt}]
+   (load-if-needed)
+   (core/let [opt (update opt :check-config #(merge (default-check-config) %))]
+     ((requiring-resolve 'typed.clj.checker.check-ns-clj/check-ns-info) ns-or-syms opt))))
 
 (core/defn check-ns
   "Type check a namespace/s (a symbol or Namespace, or collection).
@@ -1398,7 +1359,7 @@ for checking namespaces, cf for checking individual forms."}
   ([ns-or-syms & {:as opt}]
    (load-if-needed)
    (core/let [opt (update opt :check-config #(merge (default-check-config) %))]
-     (@chk-ns-clj ns-or-syms opt))))
+     ((requiring-resolve 'typed.clj.checker.check-ns-clj/check-ns) ns-or-syms opt))))
 
 (core/defn check-ns2 
   ([] (check-ns2 *ns*))
@@ -1410,251 +1371,234 @@ for checking namespaces, cf for checking individual forms."}
                                    :unannotated-var :unchecked
                                    :unannotated-arg :unchecked}
                                   %))]
-     (@chk-ns-clj ns-or-syms opt))))
+     ((requiring-resolve 'typed.clj.checker.check-ns-clj/check-ns) ns-or-syms opt))))
 
 ;(ann statistics [(Coll Symbol) -> (Map Symbol Stats)])
-(core/let [stt (delay (dynaload 'typed.clj.checker.statistics/statistics))]
-  (core/defn statistics 
-    "Takes a collection of namespace symbols and returns a map mapping the namespace
-    symbols to a map of data"
-    [nsyms]
-    (load-if-needed)
-    (@stt nsyms)))
+(core/defn statistics 
+  "Takes a collection of namespace symbols and returns a map mapping the namespace
+  symbols to a map of data"
+  [nsyms]
+  (load-if-needed)
+  ((requiring-resolve 'typed.clj.checker.statistics/statistics) nsyms))
 
 ; (ann var-coverage [(Coll Symbol) -> nil])
-(core/let [vrc (delay (dynaload 'typed.clj.checker.statistics/var-coverage))]
-  (core/defn var-coverage 
-    "Summarises annotated var coverage statistics to *out*
-    for namespaces nsyms, a collection of symbols or a symbol/namespace.
-    Defaults to the current namespace if no argument provided."
-    ([] (var-coverage *ns*))
-    ([nsyms-or-nsym]
-     (load-if-needed)
-     (@vrc nsyms-or-nsym))))
+(core/defn var-coverage 
+  "Summarises annotated var coverage statistics to *out*
+  for namespaces nsyms, a collection of symbols or a symbol/namespace.
+  Defaults to the current namespace if no argument provided."
+  ([] (var-coverage *ns*))
+  ([nsyms-or-nsym]
+   (load-if-needed)
+   ((requiring-resolve 'typed.clj.checker.statistics/var-coverage) nsyms-or-nsym)))
 
-(core/let [all-envs-clj (delay (dynaload 'clojure.core.typed.all-envs/all-envs-clj))]
-  (core/defn envs
-    "Returns a map of type environments, according to the current state of the
-    type checker.
-    
-    Output map:
-    - :vars      map from var symbols to their verbosely printed types
-    - :aliases   map from alias var symbols (made with defalias) to their verbosely printed types
-    - :special-types  a set of Vars that are special to the type checker (like Any, U, I)
-    "
-    []
-    (load-if-needed)
-    (merge (@all-envs-clj)
-           {:special-types (set (->> (ns-publics 'clojure.core.typed)
-                                  vals
-                                  (filter (core/fn [v]
-                                            (when (var? v)
-                                              (-> v meta ::special-type))))))})))
+(core/defn envs
+  "Returns a map of type environments, according to the current state of the
+  type checker.
 
-(core/let [load-typed-file (delay (dynaload 'clojure.core.typed.load/load-typed-file))]
-  (core/defn prepare-infer-ns
-    "Instruments the current namespace to prepare for runtime type
-    or spec inference.
+  Output map:
+  - :vars      map from var symbols to their verbosely printed types
+  - :aliases   map from alias var symbols (made with defalias) to their verbosely printed types
+  - :special-types  a set of Vars that are special to the type checker (like Any, U, I)"
+  []
+  (load-if-needed)
+  (merge ((requiring-resolve 'clojure.core.typed.all-envs/all-envs-clj))
+         {:special-types (set (->> (ns-publics 'clojure.core.typed)
+                                   vals
+                                   (filter (core/fn [v]
+                                             (when (var? v)
+                                               (-> v meta ::special-type))))))}))
 
-    Optional keys:
-      :ns     The namespace to infer types for. (Symbol/Namespace)
-              Default: *ns*
-      :strategy  Choose which inference preparation strategy to use.
-                 - :compile      recompile the namespace and wrap at compilation-time.
-                                 Supports local annotation inference. Source is analyzed
-                                 via core.typed's custom analyzer.
-                 - :instrument   wrap top-level vars without recompilation.
-                                 No support for local annotations, but the default
-                                 Clojure analyzer is used.
-                 Default: :compile
-      :track-strategy  Choose which track strategy to use.
-                       - :lazy    wrap hash maps and possibly other data structures, and
-                                  lazily track values as they are used.
-                       - :eager   eagerly walk over all values, a la clojure.spec checking.
-                       Default: :lazy
-    "
-    [& {:keys [ns strategy] :as config
-        :or {strategy :compile
-             ns *ns*}}]
-    (load-if-needed)
-    (case strategy
-      :compile
-      (with-clojure-impl
-        (binding [vs/*prepare-infer-ns* true
-                  vs/*instrument-infer-config* (-> config
-                                                   (dissoc :ns))]
-          (@load-typed-file 
-            (subs (@#'clojure.core/root-resource (if (symbol? ns) ns (ns-name ns))) 1))))
-      :instrument
-      (throw (Exception. ":instrument not yet implemented")))
-    :ok))
+(core/defn prepare-infer-ns
+  "Instruments the current namespace to prepare for runtime type
+  or spec inference.
 
-(core/let [rfrsh (delay (dynaload 'typed.clj.annotator/refresh-runtime-infer))]
-  (core/defn refresh-runtime-infer 
-    "Clean the current state of runtime inference.
-    Will forget the results of any tests on instrumented code."
-    []
-    (load-if-needed)
-    (require '[typed.clj.annotator])
-    (@rfrsh)))
+  Optional keys:
+    :ns     The namespace to infer types for. (Symbol/Namespace)
+            Default: *ns*
+    :strategy  Choose which inference preparation strategy to use.
+               - :compile      recompile the namespace and wrap at compilation-time.
+                               Supports local annotation inference. Source is analyzed
+                               via core.typed's custom analyzer.
+               - :instrument   wrap top-level vars without recompilation.
+                               No support for local annotations, but the default
+                               Clojure analyzer is used.
+               Default: :compile
+    :track-strategy  Choose which track strategy to use.
+                     - :lazy    wrap hash maps and possibly other data structures, and
+                                lazily track values as they are used.
+                     - :eager   eagerly walk over all values, a la clojure.spec checking.
+                     Default: :lazy
+  "
+  [& {:keys [ns strategy] :as config
+      :or {strategy :compile
+           ns *ns*}}]
+  (load-if-needed)
+  (case strategy
+    :compile
+    (with-clojure-impl
+      (binding [vs/*prepare-infer-ns* true
+                vs/*instrument-infer-config* (-> config
+                                                 (dissoc :ns))]
+        ((requiring-resolve 'clojure.core.typed.load/load-typed-file) 
+          (subs (@#'clojure.core/root-resource (if (symbol? ns) ns (ns-name ns))) 1))))
+    :instrument
+    (throw (Exception. ":instrument not yet implemented")))
+  :ok)
 
-(core/let [rti (delay (dynaload 'typed.clj.annotator/runtime-infer))
-      deprecated-warn (delay (dynaload 'clojure.core.typed.errors/deprecated-warn))]
-  (core/defn runtime-infer 
-    "Infer and insert annotations for a given namespace.
+(core/defn refresh-runtime-infer 
+  "Clean the current state of runtime inference.
+  Will forget the results of any tests on instrumented code."
+  []
+  (load-if-needed)
+  ((requiring-resolve 'typed.clj.annotator/refresh-runtime-infer)))
 
-    There are two ways to instrument your namespace.
+(core/defn runtime-infer 
+  "Infer and insert annotations for a given namespace.
 
-    Call `prepare-infer-ns` function on the namespace
-    of your choosing.
+  There are two ways to instrument your namespace.
 
-    Alternatively, use the :runtime-infer
-    feature in your namespace metadata. Note: core.typed
-    must be installed via `clojure.core.typed/install`.
+  Call `prepare-infer-ns` function on the namespace
+  of your choosing.
 
-    eg. (ns my-ns
-          {:lang :core.typed
-           :core.typed {:features #{:runtime-infer}}}
-          (:require [clojure.core.typed :as t]))
+  Alternatively, use the :runtime-infer
+  feature in your namespace metadata. Note: core.typed
+  must be installed via `clojure.core.typed/install`.
 
-    After your namespace is instrumented, run your tests
-    and/or exercise the functions in your namespace.
+  eg. (ns my-ns
+        {:lang :core.typed
+         :core.typed {:features #{:runtime-infer}}}
+        (:require [clojure.core.typed :as t]))
 
-    Then call `runtime-infer` to populate the namespace's
-    corresponding file with these generated annotations.
+  After your namespace is instrumented, run your tests
+  and/or exercise the functions in your namespace.
 
-    Optional keys:
-      :ns     The namespace to infer types for. (Symbol/Namespace)
-              Default: *ns*
-      :fuel   Number of iterations to perform in inference algorithm
-              (integer)
-              Default: nil (don't restrict iterations)
-      :debug  Perform print debugging. (:all/:iterations/nil)
-              Default: nil
-      :track-depth   Maximum nesting depth data will be tracked.
-                     Default: nil (don't restrict nestings)
-      :track-count   Maximum number of elements of a single collection
-                     will be tracked.
-                     Default: nil (don't restrict elements)
-      :root-results  Maximum number of inference results collected per top-level
-                     root form, from the perspective of the tracker (eg. vars, local functions).
-                     Default: nil (don't restrict)
-      :preserve-unknown  If true, output the symbol `?` where inference was cut off
-                         or never reached.
-                         Default: nil (convert to unknown to `clojure.core.typed/Any`)
-      :out-dir       A classpath-relative directory (string) to which to dump changes to files,
-                     instead of modifying the original file.
-                     Default: nil (modify original file)
-      :no-squash-vertically     If true, disable the `squash-vertically` pass.
-                                Default: nil
+  Then call `runtime-infer` to populate the namespace's
+  corresponding file with these generated annotations.
 
-    eg. (runtime-infer) ; infer for *ns*
+  Optional keys:
+    :ns     The namespace to infer types for. (Symbol/Namespace)
+            Default: *ns*
+    :fuel   Number of iterations to perform in inference algorithm
+            (integer)
+            Default: nil (don't restrict iterations)
+    :debug  Perform print debugging. (:all/:iterations/nil)
+            Default: nil
+    :track-depth   Maximum nesting depth data will be tracked.
+                   Default: nil (don't restrict nestings)
+    :track-count   Maximum number of elements of a single collection
+                   will be tracked.
+                   Default: nil (don't restrict elements)
+    :root-results  Maximum number of inference results collected per top-level
+                   root form, from the perspective of the tracker (eg. vars, local functions).
+                   Default: nil (don't restrict)
+    :preserve-unknown  If true, output the symbol `?` where inference was cut off
+                       or never reached.
+                       Default: nil (convert to unknown to `clojure.core.typed/Any`)
+    :out-dir       A classpath-relative directory (string) to which to dump changes to files,
+                   instead of modifying the original file.
+                   Default: nil (modify original file)
+    :no-squash-vertically     If true, disable the `squash-vertically` pass.
+                              Default: nil
 
-        (runtime-infer :ns 'my-ns) ; infer for my-ns
+  eg. (runtime-infer) ; infer for *ns*
 
-        (runtime-infer :fuel 0) ; iterations in type inference algorithm
-                                ; (higher = smaller types + more recursive)
+      (runtime-infer :ns 'my-ns) ; infer for my-ns
 
-        (runtime-infer :debug :iterations) ; enable iteration debugging
-    "
-    ([& kws]
-     (load-if-needed)
-     (require '[typed.clj.annotator])
-     (core/let [m (-> (if (= 1 (count kws))
-                        (do
-                          (@deprecated-warn
-                            "runtime-infer with 1 arg: use {:ns <ns>}")
-                          {:ns (first kws)})
-                        (apply hash-map kws))
-                      (update :ns #(or % *ns*)))]
-       (@rti m)))))
+      (runtime-infer :fuel 0) ; iterations in type inference algorithm
+                              ; (higher = smaller types + more recursive)
 
-(core/let [spci (delay (dynaload 'typed.clj.annotator/spec-infer))
-           deprecated-warn (delay (dynaload 'clojure.core.typed.errors/deprecated-warn))]
-  (core/defn spec-infer 
-    "Infer and insert specs for a given namespace.
+      (runtime-infer :debug :iterations) ; enable iteration debugging"
+  [& kws]
+  (load-if-needed)
+  (core/let [m (-> (if (= 1 (count kws))
+                     (do
+                       ((requiring-resolve 'clojure.core.typed.errors/deprecated-warn)
+                        "runtime-infer with 1 arg: use {:ns <ns>}")
+                       {:ns (first kws)})
+                     (apply hash-map kws))
+                   (update :ns #(or % *ns*)))]
+    ((requiring-resolve 'typed.clj.annotator/runtime-infer) m)))
 
-    There are two ways to instrument your namespace.
+(core/defn spec-infer 
+  "Infer and insert specs for a given namespace.
 
-    Call `prepare-infer-ns` function on the namespace
-    of your choosing.
+  There are two ways to instrument your namespace.
 
-    Alternatively, use the :runtime-infer
-    feature in your namespace metadata. Note: core.typed
-    must be installed via `clojure.core.typed/install`.
+  Call `prepare-infer-ns` function on the namespace
+  of your choosing.
 
-    eg. (ns my-ns
-          {:lang :core.typed
-           :core.typed {:features #{:runtime-infer}}}
-          (:require [clojure.core.typed :as t]))
+  Alternatively, use the :runtime-infer
+  feature in your namespace metadata. Note: core.typed
+  must be installed via `clojure.core.typed/install`.
 
-    After your namespace is instrumented, run your tests
-    and/or exercise the functions in your namespace.
+  eg. (ns my-ns
+        {:lang :core.typed
+         :core.typed {:features #{:runtime-infer}}}
+        (:require [clojure.core.typed :as t]))
 
-    Then call `spec-infer` to populate the namespace's
-    corresponding file with these generated specs.
+  After your namespace is instrumented, run your tests
+  and/or exercise the functions in your namespace.
 
-    Optional keys:
-      :ns     The namespace to infer specs for. (Symbol/Namespace)
-              Default: *ns*
-      :fuel   Number of iterations to perform in inference algorithm
-              (integer)
-              Default: nil (don't restrict iterations)
-      :debug  Perform print debugging. (:all/:iterations/nil)
-              Default: nil
-      :track-depth   Maximum nesting depth data will be tracked.
-                     Default: nil (don't restrict nestings)
-      :track-count   Maximum number of elements of a single collection
-                     will be tracked.
-                     Default: nil (don't restrict elements)
-      :root-results  Maximum number of inference results collected per top-level
-                     root form, from the perspective of the tracker (eg. vars, local functions).
-                     Default: nil (don't restrict)
-      :preserve-unknown  If true, output the symbol `?` where inference was cut off
-                         or never reached.
-                         Default: nil (convert to unknown to `clojure.core/any?`)
-      :higher-order-fspec   If true, generate higher-order fspecs.
-                            Default: false
-      :out-dir       A classpath-relative directory (string) to which to dump changes to files,
-                     instead of modifying the original file.
-                     Default: nil (modify original file)
-      :no-squash-vertically     If true, disable the `squash-vertically` pass.
-                                Default: nil
-      :spec-macros   If true, output specs for macros.
-                     Default: nil (elide macro specs)
+  Then call `spec-infer` to populate the namespace's
+  corresponding file with these generated specs.
 
-    eg. (spec-infer) ; infer for *ns*
+  Optional keys:
+    :ns     The namespace to infer specs for. (Symbol/Namespace)
+            Default: *ns*
+    :fuel   Number of iterations to perform in inference algorithm
+            (integer)
+            Default: nil (don't restrict iterations)
+    :debug  Perform print debugging. (:all/:iterations/nil)
+            Default: nil
+    :track-depth   Maximum nesting depth data will be tracked.
+                   Default: nil (don't restrict nestings)
+    :track-count   Maximum number of elements of a single collection
+                   will be tracked.
+                   Default: nil (don't restrict elements)
+    :root-results  Maximum number of inference results collected per top-level
+                   root form, from the perspective of the tracker (eg. vars, local functions).
+                   Default: nil (don't restrict)
+    :preserve-unknown  If true, output the symbol `?` where inference was cut off
+                       or never reached.
+                       Default: nil (convert to unknown to `clojure.core/any?`)
+    :higher-order-fspec   If true, generate higher-order fspecs.
+                          Default: false
+    :out-dir       A classpath-relative directory (string) to which to dump changes to files,
+                   instead of modifying the original file.
+                   Default: nil (modify original file)
+    :no-squash-vertically     If true, disable the `squash-vertically` pass.
+                              Default: nil
+    :spec-macros   If true, output specs for macros.
+                   Default: nil (elide macro specs)
 
-        (spec-infer :ns 'my-ns) ; infer for my-ns
+  eg. (spec-infer) ; infer for *ns*
 
-        (spec-infer :fuel 0) ; iterations in spec inference algorithm
-                             ; (higher = smaller specs + more recursive)
+      (spec-infer :ns 'my-ns) ; infer for my-ns
 
-        (spec-infer :debug :iterations) ; enable iteration debugging
-    "
-    ([& kws]
-     (load-if-needed)
-     (require '[typed.clj.annotator])
-     (core/let [m (-> (if (= 1 (count kws))
-                        (do
-                          (@deprecated-warn
-                            "runtime-infer with 1 arg: use {:ns <ns>}")
-                          {:ns (first kws)})
-                        (apply hash-map kws))
-                      (update :ns #(or % *ns*)))]
-       (@spci m)))))
+      (spec-infer :fuel 0) ; iterations in spec inference algorithm
+                           ; (higher = smaller specs + more recursive)
+
+      (spec-infer :debug :iterations) ; enable iteration debugging
+  "
+  [& kws]
+  (load-if-needed)
+  (require '[typed.clj.annotator])
+  (core/let [m (-> (if (= 1 (count kws))
+                     (do
+                       ((requiring-resolve 'clojure.core.typed.errors/deprecated-warn)
+                        "runtime-infer with 1 arg: use {:ns <ns>}")
+                       {:ns (first kws)})
+                     (apply hash-map kws))
+                   (update :ns #(or % *ns*)))]
+    ((requiring-resolve 'typed.clj.annotator/spec-infer) m)))
 
 (core/defn pred* [tsyn nsym pred]
   pred)
 
-(core/let [reg! (delay (dynaload 'clojure.core.typed.current-impl/register!))]
-  (core/defn register!
-    "Internal -- Do not use"
-    []
-    (@reg!)))
-
-(def ^:private type-syntax->pred (delay (dynaload 'clojure.core.typed.type-contract/type-syntax->pred)))
-(def ^:private type-syntax->contract (delay (dynaload 'clojure.core.typed.type-contract/type-syntax->contract)))
+(core/defn register!
+  "Internal -- Do not use"
+  []
+  ((requiring-resolve 'clojure.core.typed.current-impl/register!)))
 
 (defmacro pred 
   "Generate a flat (runtime) predicate for type that returns true if the
@@ -1669,7 +1613,7 @@ for checking namespaces, cf for checking individual forms."}
   (with-current-location &form
     `(pred* '~t
             '~(ns-name *ns*)
-            ~(@type-syntax->pred t))))
+            ~((requiring-resolve 'clojure.core.typed.type-contract/type-syntax->pred) t))))
 
 (defmacro cast
   "Cast a value to a type. Returns a new value that conforms
@@ -1720,7 +1664,8 @@ for checking namespaces, cf for checking individual forms."}
         ((core/fn [x#]
            (contract/contract
              ~(with-current-location &form
-                (@type-syntax->contract t))
+                ((requiring-resolve 'clojure.core.typed.type-contract/type-syntax->contract)
+                 t))
              x#
              (core/let [opt# ~opt]
                (contract/make-blame
@@ -1738,35 +1683,34 @@ for checking namespaces, cf for checking individual forms."}
                                   @Compiler/COLUMN))))))
          ~x))))
 
-(core/let [infuv (delay (dynaload 'typed.clj.checker.experimental.infer-vars/infer-unannotated-vars))]
-  (core/defn infer-unannotated-vars
-    "EXPERIMENTAL
+(core/defn infer-unannotated-vars
+  "EXPERIMENTAL
 
-    Return a vector of potential var annotations in the given
-    namespace, or the current namespace.
+  Return a vector of potential var annotations in the given
+  namespace, or the current namespace.
 
-    To enable for the current namespace, add the :infer-vars
-    :experimental feature to the ns metadata like so:
+  To enable for the current namespace, add the :infer-vars
+  :experimental feature to the ns metadata like so:
 
-      (ns infer-me
-        {:lang :core.typed
-         :core.typed {:experimental #{:infer-vars
-                                      :infer-locals}}}
-        ...)
+    (ns infer-me
+      {:lang :core.typed
+       :core.typed {:experimental #{:infer-vars
+                                    :infer-locals}}}
+      ...)
 
-    Then run check-ns like usual, and infer-unannotated-vars
-    will return the inferred vars without annotations.
+  Then run check-ns like usual, and infer-unannotated-vars
+  will return the inferred vars without annotations.
 
-    (t/infer-unannotated-vars)
-    => [(t/ann u/bar t/Int)
-        (t/ann u/foo (t/U [t/Any -> t/Any] Int))]
-                                  "
+  (t/infer-unannotated-vars)
+  => [(t/ann u/bar t/Int)
+      (t/ann u/foo (t/U [t/Any -> t/Any] Int))]
+                                "
 
-    ([] (infer-unannotated-vars (ns-name *ns*)))
-    ([nsym-or-ns]
-     (load-if-needed)
-     (with-clojure-impl
-       (@infuv (ns-name nsym-or-ns))))))
+  ([] (infer-unannotated-vars (ns-name *ns*)))
+  ([nsym-or-ns]
+   (load-if-needed)
+   (with-clojure-impl
+     ((requiring-resolve 'typed.clj.checker.experimental.infer-vars/infer-unannotated-vars) (ns-name nsym-or-ns)))))
 
 ;============================================================
 ; Define clojure.core typed wrappers below here to ensure we don't use them above

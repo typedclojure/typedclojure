@@ -884,34 +884,32 @@
 
         :else (report-not-subtypes s t)))))
 
-(let [analyze-qualified-symbol (delay (impl/dynaload 'typed.clj.checker.analyze-cljs/analyze-qualified-symbol))]
-  (defn ^:private resolve-JS-reference [sym]
-    (impl/assert-cljs)
-    (cond
-      (= "js" (namespace sym)) (c/JSNominal-with-unknown-params sym)
-      :else (let [{{:keys [protocol-symbol name]} :info} (@analyze-qualified-symbol sym)]
-              (if protocol-symbol
-                (c/Protocol-with-unknown-params name)
-                (c/DataType-with-unknown-params name))))))
+(defn ^:private resolve-JS-reference [sym]
+  (impl/assert-cljs)
+  (cond
+    (= "js" (namespace sym)) (c/JSNominal-with-unknown-params sym)
+    :else (let [{{:keys [protocol-symbol name]} :info} ((requiring-resolve 'typed.clj.checker.analyze-cljs/analyze-qualified-symbol) sym)]
+            (if protocol-symbol
+              (c/Protocol-with-unknown-params name)
+              (c/DataType-with-unknown-params name)))))
 
 
-(let [cljs-extenders (delay (impl/dynaload 'typed.clj.checker.analyze-cljs/extenders))]
-  (defn protocol-extenders [p]
-    {:pre [(r/Protocol? p)]
-     :post [(every? r/Type? %)]}
-    (impl/impl-case
-      :clojure (let [exts (c/Protocol-normal-extenders p)]
-                 (for [ext exts]
-                   (cond
-                     (class? ext) (c/RClass-of-with-unknown-params ext)
-                     (nil? ext) r/-nil
-                     :else (throw (Exception. (str "What is this?" ext))))))
-      :cljs (let [exts (@cljs-extenders (:the-var p))]
-              (for [ext exts]
-                (cond
-                  (symbol? ext) (resolve-JS-reference ext)
-                  (nil? ext) r/-nil
-                  :else (throw (Exception. (str "What is this?" ext)))))))))
+(defn protocol-extenders [p]
+  {:pre [(r/Protocol? p)]
+   :post [(every? r/Type? %)]}
+  (impl/impl-case
+    :clojure (let [exts (c/Protocol-normal-extenders p)]
+               (for [ext exts]
+                 (cond
+                   (class? ext) (c/RClass-of-with-unknown-params ext)
+                   (nil? ext) r/-nil
+                   :else (throw (Exception. (str "What is this?" ext))))))
+    :cljs (let [exts ((requiring-resolve 'typed.clj.checker.analyze-cljs/extenders) (:the-var p))]
+            (for [ext exts]
+              (cond
+                (symbol? ext) (resolve-JS-reference ext)
+                (nil? ext) r/-nil
+                :else (throw (Exception. (str "What is this?" ext))))))))
 
 ;[(IPersistentSet '[Type Type]) (t/Seqable Type) (t/Seqable Type) (Option Type)
 ;  -> (IPersistentSet '[Type Type])]

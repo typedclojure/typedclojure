@@ -48,14 +48,17 @@
       (println "Building core.typed base environments ...")
       (flush)
       ;(impl/with-clojure-impl
-      ;  ((impl/dynaload 'typed.cljc.checker.reset-env/reset-envs!)))
+      ;  ((requiring-resolve 'typed.cljc.checker.reset-env/reset-envs!)))
       (impl/register!)
       (impl/with-clojure-impl
-        ((impl/dynaload 'typed.cljc.checker.reset-env/load-core-envs!)))
+        ((requiring-resolve 'typed.cljc.checker.reset-env/load-core-envs!)))
       (when cljs?
         (impl/with-cljs-impl
           ;; FIXME should be load-core-envs!
-          ((impl/dynaload 'typed.cljc.checker.reset-env/reset-envs!) cljs?)))
+          ((requiring-resolve 'typed.cljc.checker.reset-env/reset-envs!) cljs?))
+        ;; note: don't do below, need to move the reset-envs! call instead
+        ;(reset! cljs-loaded? true)
+        )
       (println "Finished building base environments")
       (flush)
       nil))))

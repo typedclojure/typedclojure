@@ -17,78 +17,72 @@
 ;; (IFn [String -> nil]
 ;;      [String ToolsAnalyzerEnv -> nil]
 ;;      [String ToolsAnalyzerEnv ToolsReaderOpts -> nil])
-(let [ltf (delay (impl/dynaload 'clojure.core.typed.load1/load-typed-file))]
+(let [ltf #((requiring-resolve 'clojure.core.typed.load1/load-typed-file) %)]
   (defn load-typed-file
     "Loads a whole typed namespace, returns nil. Assumes the file is typed."
     ([filename]
      (load-if-needed)
-     (@ltf filename))
+     (ltf filename))
     ([filename env]
      (load-if-needed)
-     (@ltf filename env))
+     (ltf filename env))
     ([filename env opts]
      {:pre [(string? filename)]
       :post [(nil? %)]}
      (load-if-needed)
-     (@ltf filename env opts))))
+     (ltf filename env opts))))
 
-(let [tl1 (delay (impl/dynaload 'clojure.core.typed.load1/typed-load1))]
-  (defn typed-load1
-    "For each path, checks if the given file is typed, and loads it with core.typed if so,
-    otherwise with clojure.core/load"
-    [& base-resource-paths]
-    {:pre [(every? string? base-resource-paths)]
-     :post [(nil? %)]}
-    (load-if-needed)
-    (apply @tl1 base-resource-paths)))
+(defn typed-load1
+  "For each path, checks if the given file is typed, and loads it with core.typed if so,
+  otherwise with clojure.core/load"
+  [& base-resource-paths]
+  {:pre [(every? string? base-resource-paths)]
+   :post [(nil? %)]}
+  (load-if-needed)
+  (apply (requiring-resolve 'clojure.core.typed.load1/typed-load1) base-resource-paths))
 
-(let [te (delay (impl/dynaload 'clojure.core.typed.load1/typed-eval))]
-  (defn typed-eval [form]
-    (load-if-needed)
-    (@te form)))
+(defn typed-eval [form]
+  (load-if-needed)
+  ((requiring-resolve 'clojure.core.typed.load1/typed-eval) form))
 
-(let [itl (delay (impl/dynaload 'clojure.core.typed.load1/install-typed-load))]
-  (defn install-typed-load
-    "Extend the :lang dispatch table with the :core.typed language"
-    []
-    {:post [(nil? %)]}
-    (load-if-needed)
-    (@itl)))
+(defn install-typed-load
+  "Extend the :lang dispatch table with the :core.typed language"
+  []
+  {:post [(nil? %)]}
+  (load-if-needed)
+  ((requiring-resolve 'clojure.core.typed.load1/install-typed-load)))
 
-(let [mptl (delay (impl/dynaload 'clojure.core.typed.load1/monkey-patch-typed-load))]
-  (defn monkey-patch-typed-load
-    "Install the :core.typed :lang, and monkey patch `load`"
-    []
-    {:post [(nil? %)]}
-    (load-if-needed)
-    (@mptl)))
+(defn monkey-patch-typed-load
+  "Install the :core.typed :lang, and monkey patch `load`"
+  []
+  {:post [(nil? %)]}
+  (load-if-needed)
+  ((requiring-resolve 'clojure.core.typed.load1/monkey-patch-typed-load)))
 
-(let [mpte (delay (impl/dynaload 'clojure.core.typed.load1/monkey-patch-typed-eval))]
-  (defn monkey-patch-typed-eval
-    "Install the :core.typed :lang, and monkey patch `eval`"
-    []
-    {:post [(nil? %)]}
-    (load-if-needed)
-    (@mpte)))
+(defn monkey-patch-typed-eval
+  "Install the :core.typed :lang, and monkey patch `eval`"
+  []
+  {:post [(nil? %)]}
+  (load-if-needed)
+  ((requiring-resolve 'clojure.core.typed.load1/monkey-patch-typed-eval)))
 
-(let [intl (delay (impl/dynaload 'clojure.core.typed.load1/install))]
-  (defn install
-    "Install the :core.typed :lang. Takes an optional set of features
-    to install, defaults to #{:load :eval}.
+(defn install
+  "Install the :core.typed :lang. Takes an optional set of features
+  to install, defaults to #{:load :eval}.
 
-    Features:
-      - :load    Installs typed `load` over `clojure.core/load`
-      - :eval    Installs typed `eval` over `clojure.core/eval`
+  Features:
+    - :load    Installs typed `load` over `clojure.core/load`
+    - :eval    Installs typed `eval` over `clojure.core/eval`
 
-    eg. (install)            ; installs `load` and `eval`
-    eg. (install #{:eval})   ; installs `eval`
-    eg. (install #{:load})   ; installs `load`"
-    ([] (install :all))
-    ([features]
-     {:pre [((some-fn set? #{:all}) features)]
-      :post [(nil? %)]}
-     (load-if-needed)
-     (@intl features))))
+  eg. (install)            ; installs `load` and `eval`
+  eg. (install #{:eval})   ; installs `eval`
+  eg. (install #{:load})   ; installs `load`"
+  ([] (install :all))
+  ([features]
+   {:pre [((some-fn set? #{:all}) features)]
+    :post [(nil? %)]}
+   (load-if-needed)
+   ((requiring-resolve 'clojure.core.typed.load1/install) features)))
 
 (comment (find-resource "clojure/core/typed/test/load_file.clj")
          (typed-load "/clojure/core/typed/test/load_file.clj")

@@ -3,7 +3,7 @@
 set -e
 
 cd dev
-clj -M:merge-deps
-cd ../typed
+./src/typed/dev/merge_deps.clj
+cd ..
 # work around problem reading typed-test.clj.common-tests, copied from tools.reader
-clj -M:eastwood
+clj -M:test:eastwood

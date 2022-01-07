@@ -1,4 +1,6 @@
-{:paths ["script"
+{:paths ["dev/src"
+         "dev/resources"
+         "script"
          "script-test"
          ;for clojure.core.typed.contract-utils
          "typed/clj.runtime/src"]}

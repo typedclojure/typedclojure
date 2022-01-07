@@ -3,4 +3,4 @@
 set -e
 
 ./script/gen-dev-project
-clj -M:nREPL:test:spec-skip-macros "$@"
+clj -M:nREPL:nREPL-runner:test:spec-skip-macros "$@"

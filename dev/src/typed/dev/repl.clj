@@ -1,5 +1,10 @@
 (ns typed.dev.repl
-  (:gen-class))
+  (:require [clojure.main :as m]))
 
 (defn -main [& args]
-  (prn "hello"))
+  (m/repl
+    :init (fn []
+            (apply require m/repl-requires)
+            (doto 'typed.dev
+              require
+              in-ns))))

@@ -3,4 +3,4 @@
 set -e
 
 cd dev
-clojure -M:merge-deps
+bb -m typed.dev.merge-deps

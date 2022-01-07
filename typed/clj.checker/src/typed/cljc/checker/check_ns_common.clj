@@ -24,11 +24,8 @@
             [clojure.java.io :as io])
   (:import (clojure.lang ExceptionInfo)))
 
-(def ^:private ns->relpath (delay (impl/dynaload 'cljs.util/ns->relpath)))
-(def ^:private check-cljs-ns-and-deps (delay (impl/dynaload 'clojure.core.typed.check-cljs/check-ns-and-deps)))
-
 (defn cljs-reader [nsym]
-  (let [f (@ns->relpath nsym)
+  (let [f ((requiring-resolve 'cljs.util/ns->relpath) nsym)
         res (if (re-find #"^file://" f) (java.net.URL. f) (io/resource f))]
     (assert res (str "Can't find " f " in classpath"))
     (io/reader res)))
@@ -76,7 +73,7 @@
                   (let [check-ns (impl/impl-case
                                    :clojure #(binding [vs/*check-config* (atom check-config)]
                                                (chk-clj/check-ns-and-deps %))
-                                   :cljs    @check-cljs-ns-and-deps)]
+                                   :cljs    (requiring-resolve 'clojure.core.typed.check-cljs/check-ns-and-deps))]
                     (doseq [nsym nsym-coll]
                       (check-ns nsym))))
                 (catch ExceptionInfo e

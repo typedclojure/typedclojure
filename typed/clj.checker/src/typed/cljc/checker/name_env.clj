@@ -94,8 +94,6 @@
 (defn declared-datatype? [sym]
   (= impl/datatype-name-type (get-type-name sym)))
 
-(def ^:private get-jsnominal (delay (impl/dynaload 'clojure.core.typed.jsnominal-env/get-jsnominal)))
-
 (t/ann ^:no-check resolve-name* [t/Sym -> r/Type])
 (defn resolve-name* [sym]
   {:pre [(symbol? sym)]
@@ -106,7 +104,7 @@
                       (impl/impl-case :clojure #(or (rcls/get-rclass %)
                                                     (when (class? (resolve %))
                                                       (c/RClass-of-with-unknown-params %)))
-                                      :cljs @get-jsnominal)
+                                      :cljs (requiring-resolve 'clojure.core.typed.jsnominal-env/get-jsnominal))
                       ; during the definition of RClass's that reference
                       ; themselves in their definition, a temporary TFn is
                       ; added to the declared kind env which is enough to determine

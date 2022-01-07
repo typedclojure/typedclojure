@@ -78,8 +78,10 @@
    (loop [expr expr
           fuel 1000]
      (when (neg? fuel) (prn `check-expr "infinite loop"))
+     (prn `check-expr "op" (:op expr))
      (if (= :unanalyzed (:op expr))
-       (recur (tana2/analyze-outer expr) (max -1 (dec fuel)))
+       (do (prn `check-expr "expand")
+           (recur (tana2/analyze-outer expr) (max -1 (dec fuel))))
        (binding [vs/*current-env* (if (:line env) env vs/*current-env*)
                  vs/*current-expr* expr]
          (-check expr expected))))))
@@ -94,7 +96,7 @@
   holding its evaluation result."
   ([form expected] (check-top-level form expected {}))
   ([form expected {:keys [env] :as opts}]
-   ;(prn "check-top-level" form)
+   (prn "check-top-level" form)
    ;(prn "*ns*" *ns*)
    ;; TODO any bindings needed to be pinned here?
    (binding [ana2/scheduled-passes {:pre identity

@@ -28,19 +28,18 @@
   []
   (load/load-if-needed true))
 
-(let [rc (delay (impl/dynaload 'typed.clj.checker.reset-caches/reset-caches))]
+(let [rc #((requiring-resolve 'typed.clj.checker.reset-caches/reset-caches))]
   (defn reset-caches
     "Reset internal type caches."
     []
     (load-if-needed)
-    (@rc)))
+    (rc)))
 
 ; many of these macros resolve to CLJS functions in 
 ; the CLJS ns cljs.core.typed
 
-(def ^:private parse-cljs (delay (impl/dynaload 'typed.clj.checker.parse-unparse/parse-cljs)))
-(def ^:private cljs-ns (delay (impl/dynaload 'clojure.core.typed.util-cljs/cljs-ns)))
-(def ^:private with-parse-ns* (delay (impl/dynaload 'typed.clj.checker.parse-unparse/with-parse-ns*)))
+(def ^:private cljs-ns #((requiring-resolve 'clojure.core.typed.util-cljs/cljs-ns)))
+(def ^:private with-parse-ns* #(apply (requiring-resolve 'typed.clj.checker.parse-unparse/with-parse-ns*) %&))
 
 (defmacro ^:private delay-tc-parse
   [t]
@@ -49,16 +48,16 @@
      (delay
        (app-outer-context#
          (fn []
-           (@with-parse-ns*
-             (@cljs-ns)
-             #(@parse-cljs t#)))))))
+           (with-parse-ns*
+             (cljs-ns)
+             #((requiring-resolve 'typed.clj.checker.parse-unparse/parse-cljs) t#)))))))
 
 (defmacro ^:no-doc with-current-location
   [{:keys [form env]} & body]
   `(let [form# ~form
          env# ~env]
      (binding [vs/*current-env* {:ns (or (:ns env#)
-                                         {:name (@cljs-ns)})
+                                         {:name (cljs-ns)})
                                  :line (or (-> form# meta :line)
                                            (:line env#)
                                  :column (or (-> form# meta :column)
@@ -88,26 +87,25 @@
       (impl/add-tc-var-type qsym tc-type)))
   nil)
 
-(let [cljs-resolve (delay (impl/dynaload 'cljs.analyzer.api/resolve))]
-  (defmacro ann 
-    "Annotate varsym with type. If unqualified, qualify in the current namespace.
-    If varsym has metadata {:no-check true}, ignore definitions of varsym while type checking.
-    
-    eg. ; annotate the var foo in this namespace
-        (ann foo [Number -> Number])
-    
-        ; annotate a var in another namespace
-        (ann another.ns/bar [-> nil])
-     
-        ; don't check this var
-        (ann ^:no-check foobar [Integer -> String])"
-    [varsym typesyn]
-    (let [{:keys [name]} (@cljs-resolve &env varsym)
-          qsym name 
-          opts (meta varsym)
-          check? (not (:no-check opts))]
-      (ann*-macro-time qsym typesyn check? &form &env)
-      `(tc-ignore (ann* '~qsym '~typesyn '~check? '~&form)))))
+(defmacro ann 
+  "Annotate varsym with type. If unqualified, qualify in the current namespace.
+  If varsym has metadata {:no-check true}, ignore definitions of varsym while type checking.
+
+  eg. ; annotate the var foo in this namespace
+  (ann foo [Number -> Number])
+
+  ; annotate a var in another namespace
+  (ann another.ns/bar [-> nil])
+
+  ; don't check this var
+  (ann ^:no-check foobar [Integer -> String])"
+  [varsym typesyn]
+  (let [{:keys [name]} ((requiring-resolve 'cljs.analyzer.api/resolve) &env varsym)
+        qsym name 
+        opts (meta varsym)
+        check? (not (:no-check opts))]
+    (ann*-macro-time qsym typesyn check? &form &env)
+    `(tc-ignore (ann* '~qsym '~typesyn '~check? '~&form))))
 
 (defmacro 
   ^{:forms '[(ann-protocol vbnd varsym & methods)
@@ -300,51 +298,47 @@
    :unannotated-multi :error
    #_#_:unannotated-arg :any})
 
-(let [check-form-cljs (delay (impl/dynaload 'clojure.core.typed.check-form-cljs/check-form-cljs))]
-  (defn cf* 
-    "Check a single form with an optional expected type.
-    Intended to be called from Clojure. For evaluation at the Clojurescript
-    REPL see cf."
-    [form expected expected-provided? & {:as opt}]
-    (load-if-needed)
-    (core/let [opt (update opt :check-config #(merge (default-check-config) %))]
-      (@check-form-cljs form expected expected-provided? opt))))
+(defn cf* 
+  "Check a single form with an optional expected type.
+  Intended to be called from Clojure. For evaluation at the Clojurescript
+  REPL see cf."
+  [form expected expected-provided? & {:as opt}]
+  (load-if-needed)
+  (core/let [opt (update opt :check-config #(merge (default-check-config) %))]
+    ((requiring-resolve 'clojure.core.typed.check-form-cljs/check-form-cljs) form expected expected-provided? opt)))
 
-(let [chkfi (delay (impl/dynaload 'clojure.core.typed.check-form-cljs/check-form-info))]
-  (defn check-form-info 
-    [form & {:as opt}]
-    (load-if-needed)
-    (core/let [opt (update opt :check-config #(merge (default-check-config) %))]
-      (apply @chkfi form (apply concat opt)))))
+(defn check-form-info 
+  [form & {:as opt}]
+  (load-if-needed)
+  (core/let [opt (update opt :check-config #(merge (default-check-config) %))]
+    (apply (requiring-resolve 'clojure.core.typed.check-form-cljs/check-form-info) form (apply concat opt))))
 
 (defmacro cf
   "Check a single form with an optional expected type."
   ([form] `(cf* '~form nil nil))
   ([form expected] `(cf* '~form '~expected true)))
 
-(let [chkni (delay (impl/dynaload 'clojure.core.typed.check-ns-cljs/check-ns-info))]
-  (defn check-ns-info
-    "Check a Clojurescript namespace, or the current namespace.
-    Intended to be called from Clojure. For evaluation at the Clojurescript
-    REPL see check-ns."
-    ([]
-     (load-if-needed)
-     (check-ns-info (@cljs-ns)))
-    ([ns-or-syms & {:as opt}]
-     (load-if-needed)
-     (@chkni ns-or-syms opt))))
+(defn check-ns-info
+  "Check a Clojurescript namespace, or the current namespace.
+  Intended to be called from Clojure. For evaluation at the Clojurescript
+  REPL see check-ns."
+  ([]
+   (load-if-needed)
+   (check-ns-info (cljs-ns)))
+  ([ns-or-syms & {:as opt}]
+   (load-if-needed)
+   ((requiring-resolve 'clojure.core.typed.check-ns-cljs/check-ns-info) ns-or-syms opt)))
 
-(let [chkns (delay (impl/dynaload 'clojure.core.typed.check-ns-cljs/check-ns))]
-  (defn check-ns*
-    "Check a Clojurescript namespace, or the current namespace.
-    Intended to be called from Clojure. For evaluation at the Clojurescript
-    REPL see check-ns."
-    ([] 
-     (load-if-needed)
-     (check-ns* (@cljs-ns)))
-    ([ns-or-syms & {:as opt}]
-     (load-if-needed)
-     (@chkns ns-or-syms opt))))
+(defn check-ns*
+  "Check a Clojurescript namespace, or the current namespace.
+  Intended to be called from Clojure. For evaluation at the Clojurescript
+  REPL see check-ns."
+  ([] 
+   (load-if-needed)
+   (check-ns* (cljs-ns)))
+  ([ns-or-syms & {:as opt}]
+   (load-if-needed)
+   ((requiring-resolve 'clojure.core.typed.check-ns-cljs/check-ns) ns-or-syms opt)))
 
 (defmacro check-ns
   "Check a Clojurescript namespace, or the current namespace. This macro
@@ -362,6 +356,6 @@
                       (#{'quote} (first ns-or-syms)))
              (err/int-error "check-ns is a macro, do not quote the first argument"))
          ns-or-syms (if ('#{*ns* clojure.core/*ns*} ns-or-syms)
-                      (@cljs-ns)
+                      (cljs-ns)
                       ns-or-syms)]
      `~(apply check-ns* ns-or-syms args))))

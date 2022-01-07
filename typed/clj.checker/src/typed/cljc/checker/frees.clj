@@ -33,8 +33,6 @@
 
 (set! *warn-on-reflection* true)
 
-(def ^:private unparse-type (delay (impl/dynaload 'typed.clj.checker.parse-unparse/unparse-type)))
-
 ;; private to this namespace, for performance
 ; frees : VarianceMap
 ; idxs : VarianceMap
@@ -280,7 +278,7 @@
                                              (recur (c/resolve-Name rator))))
                          (r/TypeFn? rator) rator
                          :else (err/int-error (str "Invalid operator to type application: "
-                                                 (@unparse-type tapp)))))
+                                                 ((requiring-resolve 'typed.clj.checker.parse-unparse/unparse-type) tapp)))))
                  _ (when-not (r/TypeFn? tfn) 
                      (err/int-error (str "First argument to TApp must be TypeFn")))]
              (map (fn [v ^FreesResult fr]

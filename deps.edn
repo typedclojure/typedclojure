@@ -21,8 +21,9 @@
    {cider/cider-nrepl {:mvn/version "0.25.3"},
     cider/piggieback {:mvn/version "0.5.2"},
     nrepl/nrepl {:mvn/version "0.8.3"}},
-   :jvm-opts ["-XX:-OmitStackTraceInFastThrow"],
-   :main-opts
+   :jvm-opts ["-XX:-OmitStackTraceInFastThrow"]},
+  :nREPL-runner
+  {:main-opts
    ["-m"
     "nrepl.cmdline"
     "--interactive"
@@ -96,4 +97,5 @@
   org.typedclojure/typed.cljs.checker
   {:deps/manifest :deps, :local/root "typed/cljs.checker"},
   org.typedclojure/typed.clj.runtime
-  {:deps/manifest :deps, :local/root "typed/clj.runtime"}}}
+  {:deps/manifest :deps, :local/root "typed/clj.runtime"}},
+ :paths ["dev/src"]}

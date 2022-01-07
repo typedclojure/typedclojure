@@ -63,8 +63,8 @@
                   _ (assert expecteds)]
               ;(prn "dom" (count dom))
               ;(prn "method args" (-> method ast-u/method-required-params count))
-              (fn-method-one/check-fn-method1 
-                method 
+              (fn-method-one/check-fn-method1
+                method
                 (r/make-Function dom (or (when (r/Result? rng)
                                            (r/Result-type* rng))
                                          r/-any) 

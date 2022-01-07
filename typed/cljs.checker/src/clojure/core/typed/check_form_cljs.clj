@@ -8,27 +8,17 @@
 
 (ns clojure.core.typed.check-form-cljs
   (:require [clojure.core.typed.ast-utils :as ast-u]
-            [typed.cljc.checker.check-form-common :as chk-form] ;;TODO use check-form-common2
             [typed.cljc.checker.check-form-common2 :as chk-form2]
             [typed.cljc.checker.runtime-check :as rt-chk] ;;TODO untested
-            [clojure.core.typed.analyze-cljs :as ana-cljs]
             [clojure.core.typed.check-cljs :as chk-cljs]
             [clojure.core.typed.util-cljs :as ucljs]
             [cljs.env :as env]
             [cljs.compiler :as comp]
             [clojure.core.typed.current-impl :as impl]))
 
-(defn config-map []
-  {:impl impl/clojurescript 
-   :unparse-ns (ucljs/cljs-ns)
-   :ast-for-form ana-cljs/ast-for-form
-   ;; TODO
-   :analyze-bindings-fn #(hash-map)
-   :check-expr chk-cljs/check-expr})
-
 (defn config-map2 []
   {:impl impl/clojurescript
-   :check-top-level chk-cljs/check-top-level  #_chk-clj/check-top-level
+   :check-top-level chk-cljs/check-top-level
    :unparse-ns (ucljs/cljs-ns)
    ;:runtime-check-expr rt-chk/runtime-check-expr
    ;:runtime-infer-expr (fn [& args]
@@ -55,7 +45,5 @@
   (ucljs/with-cljs-typed-env
     (comp/with-core-cljs
       nil
-      #(let [config (config-map)]
-         (impl/with-full-impl (:impl config)
-           (chk-form/check-form* config
-              form expected expected-provided?))))))
+      #(chk-form2/check-form*-with-config
+         (config-map2) form expected expected-provided? opt))))

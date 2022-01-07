@@ -35,7 +35,7 @@
             [typed.clj.checker.experimental.infer-vars :as infer-vars]
             [typed.cljc.checker.hset-utils :as hset]))
 
-(def ^:private nth-type (delay (impl/dynaload 'typed.cljc.checker.check.nth/nth-type)))
+(def ^:private nth-type #((requiring-resolve 'typed.cljc.checker.check.nth/nth-type) %1 %2 %3))
 
 ; Expr Expr^n TCResult TCResult^n (U nil TCResult) -> TCResult
 ;TODO HeterogeneousMap case
@@ -161,7 +161,7 @@
                   (integer? (:val i)))))
       (below/maybe-check-below
         ;; FIXME replace with path-type?
-        (r/ret (@nth-type [fexpr-type] (:val (first arg-types)) (second arg-types)))
+        (r/ret (nth-type [fexpr-type] (:val (first arg-types)) (second arg-types)))
         expected)
 
       (r/HSet? fexpr-type)

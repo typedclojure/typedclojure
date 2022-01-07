@@ -6,30 +6,29 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc ^:no-doc clojure.core.typed.all-envs
+(ns ^:no-doc clojure.core.typed.all-envs
   (:require [clojure.core.typed.util-vars :as vs]
             [clojure.core.typed.current-impl :as impl]
-            [clojure.core.typed.load-if-needed :refer [load-if-needed]]))
+            [clojure.core.typed.load-if-needed :refer [load-if-needed]]
+            [typed.clj.checker.parse-unparse :refer [unparse-type]]
+            [typed.cljc.checker.name-env :as nme-env]
+            [typed.cljc.checker.var-env :refer [var-annotations]]))
 
-(def ^:private unparse-type (delay (impl/dynaload 'typed.clj.checker.parse-unparse/unparse-type)))
+(defn name-env []
+  (load-if-needed)
+  (binding [vs/*verbose-types* true]
+    (into {}
+          (for [[k v] (nme-env/name-env)]
+            (when-not (keyword? v)
+              [k (unparse-type v)])))))
 
-(let [nme-env (delay (impl/dynaload 'typed.cljc.checker.name-env/name-env))]
-  (defn name-env []
-    (load-if-needed)
-    (binding [vs/*verbose-types* true]
-      (into {}
-            (for [[k v] (@nme-env)]
-              (when-not (keyword? v)
-                [k (@unparse-type v)]))))))
-
-(let [venv (delay (impl/dynaload 'typed.cljc.checker.var-env/var-annotations))]
-  (defn var-env []
-    (load-if-needed)
-      (assert var-env)
-      (binding [vs/*verbose-types* true]
-        (into {}
-              (for [[k v] (@venv)]
-                [k (@unparse-type (force v))])))))
+(defn var-env []
+  (load-if-needed)
+  (assert var-env)
+  (binding [vs/*verbose-types* true]
+    (into {}
+          (for [[k v] (var-annotations)]
+            [k (unparse-type (force v))]))))
 
 (defn all-envs-clj []
   (impl/with-clojure-impl

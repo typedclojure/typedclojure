@@ -35,6 +35,15 @@
                                 :git/url "https://github.com/jonase/eastwood.git"
                                 :git/tag "Release-0.9.9"
                                 :git/sha "bbe8610")))
+    :nREPL-runner
+    {:main-opts ["-m" "nrepl.cmdline" "--interactive"
+                 #_"
+                 Note:
+                   introducing other middleware makes vim-fireplace choose
+                   fipp for pprint, which doesn't play well with the delicately
+                   defined classes in type-rep."
+                 "--middleware" "[cider.nrepl/wrap-complete,cider.nrepl/wrap-info]"
+                 ]}
     :nREPL
     (sorted-map
       :jvm-opts ["-XX:-OmitStackTraceInFastThrow"]
@@ -42,15 +51,7 @@
       (sorted-map
         'nrepl/nrepl {:mvn/version (:nrepl-mvn-version h/selmer-input-map)}
         'cider/cider-nrepl {:mvn/version "0.25.3"}
-        'cider/piggieback {:mvn/version "0.5.2"})
-      :main-opts ["-m" "nrepl.cmdline" "--interactive"
-                  #_"
-                  Note:
-                    introducing other middleware makes vim-fireplace choose
-                    fipp for pprint, which doesn't play well with the delicately
-                    defined classes in type-rep."
-                  "--middleware" "[cider.nrepl/wrap-complete,cider.nrepl/wrap-info]"
-                  ])))
+        'cider/piggieback {:mvn/version "0.5.2"}))))
 
 (def subproject-dirs
   (->> (File. everything-root relative-projects-root)
@@ -119,11 +120,21 @@
                                                                    ;; TODO generalize pattern, perhaps via deps.edn alias convention
                                                                    ;; don't reload test resources
                                                                    (not= "test-resources" (.getName (File. p))))
+                                                                 (test-paths))}
+                                        {:kaocha.testable/type :kaocha.type/clojure.test
+                                         :kaocha.testable/id   :cljs
+                                         :kaocha/ns-patterns   [".*"]
+                                         :kaocha/source-paths  (src-paths)
+                                         ;:kaocha.filter/skip-meta [:typed/skip-from-repo-root]
+                                         :kaocha/test-paths    (filterv
+                                                                 (fn [^String p]
+                                                                   ;; FIXME make less hacky
+                                                                   (.startsWith p "typed/cljs."))
                                                                  (test-paths))}]
    :kaocha/fail-fast?                  true
    :kaocha/color?                      true
-   :kaocha/reporter                    ['kaocha.report/dots]
-   ;:kaocha/reporter                    ['kaocha.report/documentation]
+   ;:kaocha/reporter                    ['kaocha.report/dots]
+   :kaocha/reporter                    ['kaocha.report/documentation]
    :kaocha/plugins                     [:kaocha.plugin/randomize
                                         :kaocha.plugin/filter
                                         :kaocha.plugin/capture-output
@@ -154,7 +165,7 @@
                                (keys subproject-base-deps)))
         everything-deps (sorted-map
                           :deps subproject-base-deps
-                          ;:paths (src-paths)
+                          :paths ["dev/src"]
                           :aliases (assoc (aliases)
                                           :test (sorted-map
                                                   :extra-deps test-deps
