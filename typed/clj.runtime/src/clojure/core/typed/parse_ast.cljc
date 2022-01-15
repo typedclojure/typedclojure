@@ -27,7 +27,7 @@
   (or *parse-type-in-ns* 
       (impl/impl-case
         :clojure (ns-name *ns*)
-        :cljs (t/tc-ignore ((requiring-resolve 'clojure.core.typed.util-cljs/cljs-ns))))))
+        :cljs (t/tc-ignore ((requiring-resolve 'typed.cljs.checker.util/cljs-ns))))))
 
 (t/ann ^:no-check clojure.core.typed.current-impl/assert-clojure
        (t/IFn [-> nil]

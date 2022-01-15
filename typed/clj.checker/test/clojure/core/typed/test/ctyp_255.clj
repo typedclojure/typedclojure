@@ -5,7 +5,7 @@
             [typed.cljc.checker.type-ctors :as c]
             [clojure.core.typed :as t]
             [typed.cljc.checker.init :as init]
-            [clojure.core.typed.test.test-utils :refer :all]))
+            [typed.clj.checker.test-utils :refer :all]))
 
 (deftest ctyp-255-test
   (testing "unknown implementation of unparse uses clojure.core.typed

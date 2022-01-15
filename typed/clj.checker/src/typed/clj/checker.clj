@@ -9,8 +9,8 @@
 (ns typed.clj.checker
   (:require [clojure.core :as core]
             [clojure.core.typed.load-if-needed :refer [load-if-needed]]
-            [typed.clj.checker.check-form-clj :as check-form-clj]
-            [typed.clj.checker.check-ns-clj :as check-ns-clj]))
+            [typed.clj.checker.check-form :as check-form-clj]
+            [typed.clj.checker.check-ns :as check-ns-clj]))
 
 (core/defn default-check-config []
   {:check-ns-dep :recheck

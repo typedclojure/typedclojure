@@ -1,7 +1,7 @@
 (ns clojure.core.typed.test.cljs-core
     (:require [cljs.core.typed :as t]
               [cljs.core :as core]
-              [clojure.core.typed.test.cljs-utils :refer [is-tc-e tc-e]]
+              [typed.cljs.checker.test-utils :refer [is-tc-e tc-e]]
               [clojure.test :refer :all]))
 
 ;;; defining tests this way should help estimate the coverage

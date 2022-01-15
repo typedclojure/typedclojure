@@ -1,7 +1,7 @@
 (ns clojure.core.typed.test.pprint
   (:require  [clojure.core.typed :as t] 
              [clojure.test :refer :all]                
-             [clojure.core.typed.test.test-utils :refer :all]))
+             [typed.clj.checker.test-utils :refer :all]))
 
 (deftest cl-format-test
   (is-tc-e #(cl-format nil "abc")

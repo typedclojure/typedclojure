@@ -2,7 +2,7 @@
   (:refer-clojure :exclude [cast])
   (:require 
     ; this loads the type system, must go first
-    [clojure.core.typed.test.test-utils :refer :all]
+    [typed.clj.checker.test-utils :refer :all]
     [typed.cljc.checker.type-rep :refer :all]
     [typed.clj.checker.parse-unparse :refer :all]
     [typed.cljc.checker.filter-rep :refer :all]

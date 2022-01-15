@@ -1,5 +1,5 @@
 (ns clojure.core.typed.test.rclass-supers
-  (:require [clojure.core.typed.test.test-utils :refer :all]
+  (:require [typed.clj.checker.test-utils :refer :all]
             [clojure.test :refer :all]
             [clojure.core.typed :as t]
             [clojure.core.typed.util-vars :as vs]

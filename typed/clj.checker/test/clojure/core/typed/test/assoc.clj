@@ -1,6 +1,6 @@
 (ns clojure.core.typed.test.assoc
   (:require 
-    [clojure.core.typed.test.test-utils :refer :all]
+    [typed.clj.checker.test-utils :refer :all]
     [clojure.core.typed :refer [ann-form check-ns] :as t]
     [clojure.test :refer :all])
   (:import (clojure.lang Symbol)))

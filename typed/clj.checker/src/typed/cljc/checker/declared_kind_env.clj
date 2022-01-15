@@ -10,7 +10,7 @@
   (:require [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.errors :as err]
             [typed.cljc.checker.type-rep :as r]
-            [clojure.core.typed.env :as env]))
+            [typed.cljc.runtime.env :as env]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Declared kind Env

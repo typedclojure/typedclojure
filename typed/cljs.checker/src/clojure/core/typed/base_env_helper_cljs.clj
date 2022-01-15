@@ -15,9 +15,9 @@
             [typed.cljc.checker.declared-kind-env :as decl-env]
             [clojure.core.typed.current-impl :as impl]
             [typed.cljc.checker.name-env :as nme-env]
-            [clojure.core.typed.jsnominal-env :as jsnom]
+            [typed.cljs.checker.jsnominal-env :as jsnom]
             [typed.cljc.checker.datatype-env :as dtenv]
-            ;[clojure.core.typed.util-cljs :as ucljs]
+            ;[typed.cljs.checker.util :as ucljs]
             ;[cljs.analyzer :as ana]
             ;[cljs.compiler :as comp]
             [clojure.pprint :as pprint]))

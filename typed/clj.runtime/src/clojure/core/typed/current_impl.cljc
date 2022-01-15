@@ -9,11 +9,11 @@
 ; untyped, clojure.core.typed depends on this namespace
 (ns ^:no-doc clojure.core.typed.current-impl
   #?(:cljs (:refer-clojure :exclude [-val]))
-  (:require [clojure.set :as set]
-            [clojure.core.typed.env :as env]
-            [clojure.core.typed.contract-utils :as con]
+  (:require [clojure.core.typed.contract-utils :as con]
+            [clojure.core.typed.runtime.jvm.configs :as configs]
             [clojure.core.typed.util-vars :as vs]
-            [clojure.core.typed.runtime.jvm.configs :as configs]))
+            [clojure.set :as set]
+            [typed.cljc.runtime.env :as env]))
 
 (def register! configs/register-config-anns)
 

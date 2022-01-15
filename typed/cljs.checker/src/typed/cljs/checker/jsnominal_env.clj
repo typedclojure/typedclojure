@@ -6,14 +6,14 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc clojure.core.typed.jsnominal-env
+(ns ^:no-doc typed.cljs.checker.jsnominal-env
   (:refer-clojure :exclude [get-method])
   (:require [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.type-ctors :as c]
             [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed :as t]
             [clojure.core.typed.current-impl :as impl]
-            [clojure.core.typed.env :as env])
+            [typed.cljc.runtime.env :as env])
   (:import (typed.cljc.checker.type_rep Scope)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

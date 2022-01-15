@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc clojure.core.typed.util-cljs
+(ns ^:no-doc typed.cljs.checker.util
   (:require [clojure.core.typed.current-impl :as impl]
             [cljs.analyzer :as ana]
             [clojure.core.typed.emit-form-cljs :as emit-form]

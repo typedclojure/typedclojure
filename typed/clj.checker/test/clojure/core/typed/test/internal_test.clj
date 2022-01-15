@@ -1,7 +1,7 @@
 (ns clojure.core.typed.test.internal-test
   "Tests for c.c.t.internal"
   (:require [clojure.test :refer :all]
-            [clojure.core.typed.test.test-utils :refer :all]
+            [typed.clj.checker.test-utils :refer :all]
             [clojure.core.typed.internal :as internal]))
 
 (deftest parse-fn-test

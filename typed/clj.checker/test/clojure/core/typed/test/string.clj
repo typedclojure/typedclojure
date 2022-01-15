@@ -1,7 +1,7 @@
 (ns clojure.core.typed.test.string
   (:require [clojure.core.typed :as t] 
             [clojure.test :refer :all]                
-            [clojure.core.typed.test.test-utils :refer :all]))
+            [typed.clj.checker.test-utils :refer :all]))
 
 (deftest escape-test
   (is-tc-e (escape "I want 1 < 2 as HTML, & other good things."

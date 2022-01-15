@@ -8,16 +8,14 @@
 
 (ns ^:no-doc typed.cljc.checker.var-env
   (:require [clojure.core.typed.contract-utils :as con]
-            [clojure.core.typed.errors :as err]
-            [typed.cljc.checker.type-rep :as r]
-            [typed.cljc.checker.lex-env :as lex]
-            [clojure.core.typed.util-vars :as vs]
             [clojure.core.typed.current-impl :as impl]
-            [typed.cljc.checker.indirect-utils :as indu]
-            [typed.cljc.checker.indirect-ops :as ind]
-            [clojure.core.typed.env :as env]
+            [clojure.core.typed.errors :as err]
+            [clojure.core.typed.util-vars :as vs]
+            [clojure.set :as set]
+            [typed.cljc.checker.lex-env :as lex]
             [typed.cljc.checker.name-env :as name-env]
-            [clojure.set :as set]))
+            [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.runtime.env :as env]))
 
 (defn clj-var-annotations []
   (get @(impl/clj-checker) impl/current-var-annotations-kw {}))
@@ -166,8 +164,6 @@
                  (not-any? #{\.} (str sym)))
         (lex/lookup-local sym))
       (lookup-Var-nofail sym)))
-
-(indu/add-indirection ind/type-of-nofail type-of-nofail)
 
 (defn type-of [sym]
   {:pre [(symbol? sym)]

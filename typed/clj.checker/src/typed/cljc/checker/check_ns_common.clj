@@ -73,7 +73,7 @@
                   (let [check-ns (impl/impl-case
                                    :clojure #(binding [vs/*check-config* (atom check-config)]
                                                (chk-clj/check-ns-and-deps %))
-                                   :cljs    (requiring-resolve 'clojure.core.typed.check-cljs/check-ns-and-deps))]
+                                   :cljs    (requiring-resolve 'typed.cljs.checker.check/check-ns-and-deps))]
                     (doseq [nsym nsym-coll]
                       (check-ns nsym))))
                 (catch ExceptionInfo e

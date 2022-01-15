@@ -13,7 +13,7 @@
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.subst :as subst]
             [clojure.core.typed :as t]
-            [clojure.core.typed.env :as env]
+            [typed.cljc.runtime.env :as env]
             [typed.cljc.checker.nilsafe-utils :as nilsafe]
             [clojure.core.typed.current-impl :as impl]
             [clojure.set :as set])

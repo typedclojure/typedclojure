@@ -1,24 +1,22 @@
-(ns clojure.core.typed.test.test-utils
+(ns typed.clj.checker.test-utils
   {:core.typed {:collect-only true}}
   (:require [clojure.core.typed :as t]
+            [clojure.core.typed.current-impl :as impl]
+            [clojure.core.typed.errors :as err]
+            [clojure.core.typed.load :as load]
             [clojure.set :as set]
             [clojure.test :as test :refer [is]]
+            [typed.clj.checker.check :as chk]
+            [typed.clj.checker.parse-unparse :refer [parse-type]]
+            [typed.clj.checker.subtype :as sub]
             [typed.clj.lang :as lang]
-            [clojure.core.typed.load :as load]
-            [clojure.core.typed.test.common-utils :as common-test]))
+            [typed.cljc.checker.test-utils :as common-test]
+            [typed.cljc.checker.type-ctors :as c]
+            [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.checker.utils :as u]))
 
 (when-not *compile-files*
   (t/load-if-needed))
-
-(require '[typed.cljc.checker.utils :as u]
-         '[clojure.core.typed.errors :as err]
-         '[typed.clj.checker.parse-unparse :refer [parse-type]]
-         '[clojure.core.typed.current-impl :as impl]
-         '[typed.cljc.checker.type-ctors :as c]
-         '[typed.cljc.checker.type-rep :as r]
-         '[typed.clj.checker.check :as chk]
-         '[typed.clj.checker.subtype :as sub])
-
 
 (defn check-opt [opt]
   #_(assert (empty? (set/difference (set (keys opt))

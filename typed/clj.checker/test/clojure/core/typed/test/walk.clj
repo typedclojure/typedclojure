@@ -1,7 +1,7 @@
 (ns clojure.core.typed.test.walk
   (:require [clojure.core.typed :as t] 
             [clojure.test :refer :all]                
-            [clojure.core.typed.test.test-utils :refer :all]))
+            [typed.clj.checker.test-utils :refer :all]))
 
 (deftest keywordize-keys-test
   (is-tc-e #(keywordize-keys {"a" 1 "b" 2})

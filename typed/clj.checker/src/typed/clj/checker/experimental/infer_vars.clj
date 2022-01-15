@@ -12,7 +12,7 @@
     [typed.cljc.checker.type-ctors :as c]
     [typed.clj.checker.parse-unparse :as prs]
     [clojure.core.typed.current-impl :as impl]
-    [clojure.core.typed.env :as env]))
+    [typed.cljc.runtime.env :as env]))
 
 (defn add-inferred-type 
   "Add type t to the pool of inferred types of var vsym in namespace ns."

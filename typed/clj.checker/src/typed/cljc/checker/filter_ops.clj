@@ -7,15 +7,13 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.cljc.checker.filter-ops
-  (:require [typed.cljc.checker.type-rep :as r] 
-            [typed.cljc.checker.type-ctors :as c]
-            [typed.cljc.checker.utils :as u]
+  (:require [clojure.set :as set]
             [typed.cljc.checker.filter-rep :as fr]
-            [typed.cljc.checker.path-rep :as pr]
             [typed.cljc.checker.object-rep :as or]
-            [typed.cljc.checker.indirect-utils :as ind-u]
-            [typed.cljc.checker.indirect-ops :as ind]
-            [clojure.set :as set])
+            [typed.cljc.checker.path-rep :as pr]
+            [typed.cljc.checker.type-ctors :as c]
+            [typed.cljc.checker.type-rep :as r] 
+            [typed.cljc.checker.utils :as u])
   (:import (typed.cljc.checker.filter_rep BotFilter TopFilter NoFilter AndFilter 
                                           OrFilter TypeFilter NotTypeFilter ImpFilter)))
 
@@ -334,8 +332,6 @@
                     :else
                     (recur (next fs) (cons t result)))))))))
 
-(ind-u/add-indirection ind/-or -or)
-
 (defn -imp [a c]
   {:pre [(fr/Filter? a)
          (fr/Filter? c)]
@@ -421,15 +417,11 @@
                       :else
                       (recur (rest fs) (cons t result))))))))))
 
-(ind-u/add-indirection ind/-and -and)
-
 (defn -FS [+ -]
   {:pre [(fr/Filter? +)
          (fr/Filter? -)]
    :post [(fr/FilterSet? %)]}
   (fr/FilterSet-maker + -))
-
-(ind-u/add-indirection ind/-FS -FS)
 
 (defn atomic-filter? [a]
   {;TODO :pre [(fr/Filter? a)]

@@ -1,5 +1,5 @@
 (ns clojure.core.typed.test.multimethods
-  (:require [clojure.core.typed.test.test-utils :refer :all]
+  (:require [typed.clj.checker.test-utils :refer :all]
             [clojure.core.typed :refer [check-ns]]
             [clojure.test :refer :all]))
 

@@ -7,20 +7,20 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.cljc.checker.check.do
-  (:require [typed.cljc.checker.utils :as u]
-            [typed.cljc.checker.check.utils :as cu]
-            [typed.cljc.checker.filter-rep :as fl]
-            [typed.cljc.checker.filter-ops :as fo]
-            [typed.cljc.checker.object-rep :as orep]
+  (:require [clojure.core.typed.ast-utils :as ast-u]
+            [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.errors :as err]
-            [typed.cljc.checker.lex-env :as lex]
+            [clojure.core.typed.special-form :as spec]
             [clojure.core.typed.util-vars :as vs]
-            [typed.cljc.checker.var-env :as var-env]
+            [typed.cljc.checker.check.utils :as cu]
+            [typed.cljc.checker.filter-ops :as fo]
+            [typed.cljc.checker.filter-rep :as fl]
+            [typed.cljc.checker.lex-env :as lex]
+            [typed.cljc.checker.object-rep :as orep]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.update :as update]
-            [clojure.core.typed.special-form :as spec]
-            [clojure.core.typed.ast-utils :as ast-u]
-            [clojure.core.typed.contract-utils :as con]))
+            [typed.cljc.checker.utils :as u]
+            [typed.cljc.checker.var-env :as var-env]))
 
 (defn internal-form? [expr]
   (u/internal-form? expr spec/special-form))

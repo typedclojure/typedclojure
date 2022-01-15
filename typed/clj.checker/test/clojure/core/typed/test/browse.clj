@@ -1,7 +1,7 @@
 (ns clojure.core.typed.test.browse
   (:require [clojure.core.typed :as t] 
             [clojure.test :refer :all]                
-            [clojure.core.typed.test.test-utils :refer :all]))
+            [typed.clj.checker.test-utils :refer :all]))
 
 (deftest browse-url-test
   (is-tc-e #(browse-url "www.typedclojure.org") [-> Any]

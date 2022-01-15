@@ -69,6 +69,14 @@
        :doc      "If given a var, returns the fully qualified symbol for that var, otherwise nil."}
   var->sym)
 
+(def ^{:dynamic  true
+       :doc      "If ast is :unanalyzed, then call analyze-form on it, otherwise returns ast."}
+  analyze-outer)
+
+(def ^{:dynamic  true
+       :doc      "Create an AST node for a form without expanding it."}
+  unanalyzed)
+
 (declare analyze-outer-root)
 
 (defn run-pre-passes
@@ -211,51 +219,8 @@
                                                   extcases))
                  lookup-extmap))))))
 
-(comment
-  (assert
-    (= (-> (map->UnanalyzedExpr {:form 1 :asdf 2})
-           (update-expr UnanalyzedExpr
-                        [:form + 2]
-                        [:asdf inc]))
-       (-> (map->UnanalyzedExpr {:form 1 :asdf 2})
-           (update :form + 2)
-           (update :asdf inc))
-       (map->UnanalyzedExpr {:form 3 :asdf 3})))
-  (let [^UnanalyzedExpr m (map->UnanalyzedExpr {:form 1 :asdf 2})
-        f #(update-expr m UnanalyzedExpr [:form + 2] [:asdf inc])]
-    (time
-      (dotimes [_ 1000000]
-        (f))))
-  (let [m (map->UnanalyzedExpr {:form 1 :asdf 2})]
-    (time
-      (dotimes [_ 1000000]
-        (-> m
-            (update :form + 2)
-            (update :asdf inc)))))
-  )
-
 (defn ^:private f->fs [f] #(mapv f %))
 (defn ^:private f->maybe-f [f] #(some-> % f))
-
-(defexpr UnanalyzedExpr [op form env top-level children raw-forms]
-  ast/IASTWalk
-  (ast/children-of* [_] [])
-  (ast/update-children* [this f] this))
-
-(defn unanalyzed
-  [form env]
-  (let [init-ast (:init-ast scheduled-passes)
-        _ (assert init-ast "scheduled-passes must bind :init-ast")]
-    (->
-      {:op :unanalyzed
-       ::op ::unanalyzed
-       :form form
-       :env (u/merge' env (u/-source-info form env))
-       ;; ::config will be inherited by whatever node
-       ;; this :unanalyzed node becomes when analyzed
-       ::config {}}
-      (create-expr UnanalyzedExpr)
-      init-ast)))
 
 (defn mark-top-level
   [ast]
@@ -327,20 +292,6 @@
                (= :unanalyzed (:op ast))))
     (eval-ast ast)
     (propagate-result ast)))
-
-(defn analyze-outer
-  "If ast is :unanalyzed, then call analyze-form on it, otherwise returns ast."
-  [ast]
-  (case (:op ast)
-    :unanalyzed (let [{:keys [form env ::config]} ast
-                      ast (-> form
-                              (analyze-form env)
-                              ;TODO rename to ::inherited
-                              (assoc ::config config)
-                              propagate-top-level
-                              (assoc-in [:env :ns] (current-ns-name env)))]
-                    ast)
-    ast))
 
 (defn analyze-outer-root
   "Repeatedly call analyze-outer to a fixed point."

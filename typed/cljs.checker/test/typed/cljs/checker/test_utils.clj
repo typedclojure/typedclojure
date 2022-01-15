@@ -1,23 +1,16 @@
-(ns clojure.core.typed.test.cljs-utils
+(ns typed.cljs.checker.test-utils
   (:require [cljs.analyzer :as ana]
             [cljs.analyzer.api :as ana-api]
             [cljs.core.typed :as cljs-t]
             [cljs.core.typed :as t]
-            [cljs.env :as env]
-            [cljs.repl :as repl]
             [clojure.core.typed :as clj-t]
-            [clojure.core.typed.analyze-cljs :as ana-cljs]
-            [clojure.core.typed.coerce-utils :as coerce]
             [clojure.core.typed.current-impl :as impl]
-            [clojure.core.typed.errors :as err]
-            [clojure.core.typed.test.common-utils :as common-test]
-            [clojure.core.typed.util-cljs :as ucljs]
             [clojure.set :as set]
-            [clojure.test :refer :all :as test]
+            [clojure.test :as test]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.clj.checker.subtype :as sub]
-            [typed.cljc.checker.type-ctors :as c]
-            [typed.cljc.checker.type-rep :as r]))
+            [typed.cljc.checker.test-utils :as common-test]
+            [typed.cljs.checker.util :as ucljs]))
 
 (cljs-t/load-if-needed)
 
@@ -27,7 +20,7 @@
        ~@body)))
 
 (defmacro is-cljs [& body]
-  `(is (cljs ~@body)))
+  `(test/is (cljs ~@body)))
 
 (defmacro is-cf [& body]
   `(is-cljs (t/cf ~@body) true))

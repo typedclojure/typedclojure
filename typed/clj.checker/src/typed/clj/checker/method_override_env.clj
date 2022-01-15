@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.clj.checker.method-override-env
-  (:require [clojure.core.typed.env :as env]
+  (:require [typed.cljc.runtime.env :as env]
             [clojure.core.typed.current-impl :as impl]
             [typed.cljc.checker.type-rep :as r]))
 

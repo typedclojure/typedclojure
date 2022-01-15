@@ -5,7 +5,7 @@
             [clojure.string :as str]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.clj.ext.clojure.core__let :as ext-let]
-            [clojure.core.typed.test.test-utils :refer :all]))
+            [typed.clj.checker.test-utils :refer :all]))
 
 (defn eval-in-ns [form]
   (binding [*ns* *ns*]

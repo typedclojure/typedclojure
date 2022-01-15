@@ -1,6 +1,6 @@
 (ns typed-test.lib.clojure.core.async
   (:require 
-    [clojure.core.typed.test.test-utils :refer :all]
+    [typed.clj.checker.test-utils :refer :all]
     [clojure.test :refer :all]
     [clojure.core.typed :as t]))
 

@@ -6,11 +6,11 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns clojure.core.typed.check-ns-cljs
+(ns typed.cljs.checker.check-ns
   (:require [cljs.compiler :as comp]
             [clojure.core.typed.current-impl :as impl]
             [cljs.env :as env]
-            [clojure.core.typed.util-cljs :as ucljs]
+            [typed.cljs.checker.util :as ucljs]
             [typed.cljc.checker.check-ns-common :as chk-ns]))
 
 (defn check-ns-info

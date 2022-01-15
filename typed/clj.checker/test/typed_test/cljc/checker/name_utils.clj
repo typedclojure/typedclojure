@@ -4,7 +4,7 @@
             [typed.cljc.checker.name-utils :refer [erase-names]]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.type-ctors :as c]
-            [clojure.core.typed.test.test-utils :refer [is-clj clj]]
+            [typed.clj.checker.test-utils :refer [is-clj clj]]
             [typed.clj.checker.parse-unparse :as prs])
   (:import [clojure.lang IPersistentSet Symbol IPersistentVector]))
 

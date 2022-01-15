@@ -2,7 +2,7 @@
   (:require [clojure.test :refer [deftest is]]
             [clojure.core.typed :as t]
             [typed.clj.malli :as sut] ;:as tm
-            [clojure.core.typed.test.test-utils :refer [is-tc-e is-tc-err]]
+            [typed.clj.checker.test-utils :refer [is-tc-e is-tc-err]]
             [malli.core :as m]))
 
 (t/load-if-needed)

@@ -3,7 +3,7 @@
             [typed.cljc.checker.type-rep :refer :all]
             [typed.cljc.checker.filter-rep :refer :all]
             [typed.cljc.checker.filter-ops :refer :all]
-            [clojure.core.typed.test.test-utils :refer :all]))
+            [typed.clj.checker.test-utils :refer :all]))
 
 (deftest ctyp-258-test
   (testing "(is Any ..) = tt"

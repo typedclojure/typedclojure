@@ -2,7 +2,7 @@
   (:require [clojure.test :refer :all]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.type-ctors :as c]
-            [clojure.core.typed.test.test-utils :refer :all]))
+            [typed.clj.checker.test-utils :refer :all]))
 
 (deftest empty-intersection-test
   (testing "empty intersection should be Top, not Bottom"

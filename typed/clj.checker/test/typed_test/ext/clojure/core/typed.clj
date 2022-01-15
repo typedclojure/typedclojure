@@ -3,7 +3,7 @@
             typed.clj.ext.clojure.core.typed ;; load
             [typed.clj.ext.clojure.core__let :as extcc__let]
             [clojure.core.typed :as t]
-            [clojure.core.typed.test.test-utils :refer :all]))
+            [typed.clj.checker.test-utils :refer :all]))
 
 (defn eval-in-ns [form]
   (binding [*ns* *ns*]

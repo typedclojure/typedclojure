@@ -7,7 +7,7 @@
             [clojure.test :refer :all]
             [clojure.tools.analyzer.jvm :as taj]
             [criterium.core :as bench])
-  (:import [typed.cljc.analyzer UnanalyzedExpr]))
+  (:import [typed.clj.analyzer UnanalyzedExpr]))
 
 (defn run! [f coll]
   (clojure.core/run! (fn [e]

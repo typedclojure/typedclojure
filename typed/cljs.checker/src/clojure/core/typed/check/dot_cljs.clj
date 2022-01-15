@@ -10,7 +10,7 @@
   (:require [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.utils :as u]
             [typed.cljc.checker.type-ctors :as c]
-            [clojure.core.typed.jsnominal-env :as jsnom]
+            [typed.cljs.checker.jsnominal-env :as jsnom]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.cljc.checker.check.funapp :as funapp]
             [clojure.core.typed.errors :as err]))

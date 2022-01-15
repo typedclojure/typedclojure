@@ -9,13 +9,11 @@
 (ns ^:no-doc typed.cljc.checker.object-rep
   (:refer-clojure :exclude [defrecord])
   (:require [clojure.core.typed :as t]
-            [typed.cljc.checker.impl-protocols :as p]
-            [typed.cljc.checker.type-rep :as r]
-            [typed.cljc.checker.path-rep :as pr]
             [typed.cljc.checker.filter-rep :as fr]
-            [typed.cljc.checker.utils :as u]
-            [typed.cljc.checker.indirect-utils :as ind-u]
-            [typed.cljc.checker.indirect-ops :as ind]))
+            [typed.cljc.checker.impl-protocols :as p]
+            [typed.cljc.checker.path-rep :as pr]
+            [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.checker.utils :as u]))
 
 (t/defalias RObject
   "An object with a path."
@@ -40,10 +38,6 @@
 
 (defn -empty-fn []
   -empty)
-
-(t/tc-ignore
-(ind-u/add-indirection ind/-empty-fn -empty-fn)
-)
 
 (t/ann-record Path [path :- (t/Seqable p/IRObject)
                     id :- fr/NameRef])

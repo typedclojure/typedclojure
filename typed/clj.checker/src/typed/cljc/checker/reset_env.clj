@@ -12,7 +12,7 @@
             [clojure.core.typed.current-impl :as impl]
             [typed.clj.checker.mm-env :as mmenv]))
 
-(def ^:private reset-cljs-envs! #(requiring-resolve 'clojure.core.typed.base-env-cljs/reset-cljs-envs!))
+(def ^:private reset-cljs-envs! #(requiring-resolve 'typed.cljs.checker.base-env/reset-envs!))
 
 (defn reset-envs!
   "Reset all environments for the current implementation."

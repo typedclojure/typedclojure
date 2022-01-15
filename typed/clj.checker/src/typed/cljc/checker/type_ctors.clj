@@ -588,7 +588,7 @@
 
 (declare TypeFn-fresh-symbols*)
 
-(def ^:private get-jsnominal #((requiring-resolve 'clojure.core.typed.jsnominal-env/get-jsnominal)
+(def ^:private get-jsnominal #((requiring-resolve 'typed.cljs.checker.jsnominal-env/get-jsnominal)
                                %))
 
 (t/ann ^:no-check JSNominal-of (t/IFn [t/Sym -> r/Type]
@@ -888,7 +888,7 @@
   {:pre [(r/JSNominal? jsnom)
          (symbol? msym)]
    :post [(r/Type? %)]}
-  (if-let [t ((requiring-resolve 'clojure.core.typed.jsnominal-env/get-method) name poly? msym)]
+  (if-let [t ((requiring-resolve 'typed.cljs.checker.jsnominal-env/get-method) name poly? msym)]
     t
     (assert nil (str "JS nominal type " name " does not have method " msym))))
 
@@ -898,7 +898,7 @@
   {:pre [(r/JSNominal? jsnom)
          (symbol? fsym)]
    :post [(r/Type? %)]}
-  (if-let [t ((requiring-resolve 'clojure.core.typed.jsnominal-env/get-field) name poly? fsym)]
+  (if-let [t ((requiring-resolve 'typed.cljs.checker.jsnominal-env/get-field) name poly? fsym)]
     t
     (assert nil (str "JS nominal type " name " does not have field " fsym))))
 
@@ -907,7 +907,7 @@
   [{:keys [name poly?] :as jsnom}]
   {:pre [(r/JSNominal? jsnom)]
    :post [(r/Type? %)]}
-  (if-let [t ((requiring-resolve 'clojure.core.typed.jsnominal-env/get-ctor) name poly?)]
+  (if-let [t ((requiring-resolve 'typed.cljs.checker.jsnominal-env/get-ctor) name poly?)]
     t
     (assert nil (str "JS nominal type " name " does not have a constructor."))))
 

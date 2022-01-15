@@ -1,7 +1,7 @@
 (ns clojure.core.typed.test.edn
   (:require [clojure.core.typed :as t] 
             [clojure.test :refer :all]                
-            [clojure.core.typed.test.test-utils :refer :all]))
+            [typed.clj.checker.test-utils :refer :all]))
 
 (deftest read-string-test
   (is-tc-e #(edn/read-string "abc")

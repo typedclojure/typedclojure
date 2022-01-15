@@ -1,53 +1,20 @@
 (ns
   ;;FIXME
   ^:typed/skip-from-repo-root
-  clojure.core.typed.test.cljs
-  (:require [clojure.core.typed.test.cljs-utils :refer :all]
-            [clojure.test :refer :all]
-            [typed.cljc.checker.type-rep :as r]
-            [typed.clj.checker.subtype :as sub]
-            [cljs.core.typed :as t]
-            [clojure.core.typed.util-cljs :as ucljs]
+  typed-test.cljs.checker.check
+  (:require [cljs.core.typed :as t]
+            [clojure.core.typed.analyzer-api-intercept :as fake-ana-api]
             [clojure.core.typed.current-impl :as impl]
-            [typed.cljc.checker.type-ctors :as c]
-            [typed.clj.checker.parse-unparse :as prs]
-            [typed.cljc.checker.base-env-common :refer [delay-and-cache-env]
-             :as common]
-            [typed.cljc.checker.var-env :as var-env]
             [clojure.core.typed.test.cljs-core :as core-test]
-            [clojure.core.typed.analyzer-api-intercept :as fake-ana-api]))
-
-(deftest parse-prims-cljs-test
-  (is-cljs (= (prs/parse-cljs 'cljs.core.typed/JSNumber)
-              (r/JSNumber-maker)))
-  (is-cljs (= (prs/parse-cljs 'cljs.core.typed/CLJSInteger)
-              (r/CLJSInteger-maker)))
-  (is-cljs (= (prs/parse-cljs 'cljs.core.typed/JSBoolean)
-              (r/JSBoolean-maker)))
-  (is-cljs (= (prs/parse-cljs 'cljs.core.typed/JSObject)
-              (r/JSObject-maker)))
-  (is-cljs (= (prs/parse-cljs 'cljs.core.typed/JSString)
-              (r/JSString-maker))))
-
-(deftest parse-array-cljs-test
-  (is-cljs (= (prs/parse-cljs '(Array cljs.core.typed/JSNumber))
-              (r/ArrayCLJS-maker (prs/parse-cljs 'cljs.core.typed/JSNumber)
-                                 (prs/parse-cljs 'cljs.core.typed/JSNumber)))))
-
-(deftest unparse-prims-cljs-test
-  (is-cljs (= 'cljs.core.typed/JSNumber
-              (prs/unparse-type (prs/parse-cljs 'cljs.core.typed/JSNumber))))
-  (is-cljs (= 'cljs.core.typed/JSBoolean
-              (prs/unparse-type (prs/parse-cljs 'cljs.core.typed/JSBoolean))))
-  (is-cljs (= 'cljs.core.typed/CLJSInteger
-              (prs/unparse-type (prs/parse-cljs 'cljs.core.typed/CLJSInteger))))
-  (is-cljs (= '(Array cljs.core.typed/JSNumber)
-              (prs/unparse-type (prs/parse-cljs '(Array cljs.core.typed/JSNumber)))))
-  (is-cljs (= '(Array2 cljs.core.typed/JSNumber cljs.core.typed/JSBoolean)
-              (prs/unparse-type (prs/parse-cljs '(Array2 cljs.core.typed/JSNumber cljs.core.typed/JSBoolean))))))
-
-(deftest subtype-prims-cljs-test
-  (is-cljs (sub/subtype? (r/-val 1) (prs/parse-cljs 'cljs.core.typed/JSNumber))))
+            [clojure.test :refer :all]
+            [typed.clj.checker.parse-unparse :as prs]
+            [typed.clj.checker.subtype :as sub]
+            [typed.cljc.checker.base-env-common :refer [delay-and-cache-env] :as common]
+            [typed.cljc.checker.type-ctors :as c]
+            [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.checker.var-env :as var-env]
+            [typed.cljs.checker.test-utils :refer :all]
+            [typed.cljs.checker.util :as ucljs]))
 
 ;FIXME
 #_
@@ -108,6 +75,7 @@
 #_(deftest async-test
   (is-cljs (t/check-ns* 'cljs.core.typed.async)))
 
+#_
 (deftest inline-annotation-test
   ; code from David Nolen's blog
   ;FIXME

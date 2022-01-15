@@ -8,24 +8,23 @@
 
 (ns ^:no-doc typed.clj.checker.subtype
   "Use [[subtype?]] to check if s <: t, and [[subtype-filter?]] for filters."
-  (:require [clojure.core.typed.current-impl :as impl]
-            [typed.cljc.checker.type-rep :as r]
-            [typed.cljc.checker.type-ctors :as c]
-            [typed.cljc.checker.utils :as u]
-            [clojure.core.typed.coerce-utils :as coerce]
+  (:require [clojure.core.typed.coerce-utils :as coerce]
+            [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.errors :as err]
-            [typed.clj.checker.parse-unparse :as prs]
-            [typed.cljc.checker.filter-rep :as fr]
-            [typed.cljc.checker.filter-ops :as fops]
-            [typed.cljc.checker.object-rep :as orep]
-            [typed.cljc.checker.frees :as frees]
-            [typed.cljc.checker.free-ops :as free-ops]
-            [typed.cljc.checker.datatype-ancestor-env :as ancest]
-            [typed.cljc.checker.path-rep :as pth-rep]
-            [typed.cljc.checker.indirect-ops :as ind]
-            [typed.cljc.checker.indirect-utils :as ind-u]
+            [clojure.set :as set]
             [typed.clj.checker.assoc-utils :as assoc-u]
-            [clojure.set :as set]))
+            [typed.clj.checker.parse-unparse :as prs]
+            [typed.cljc.checker.datatype-ancestor-env :as ancest]
+            [typed.cljc.checker.filter-ops :as fops]
+            [typed.cljc.checker.filter-rep :as fr]
+            [typed.cljc.checker.free-ops :as free-ops]
+            [typed.cljc.checker.frees :as frees]
+            [typed.cljc.checker.indirect-ops :as ind]
+            [typed.cljc.checker.object-rep :as orep]
+            [typed.cljc.checker.path-rep :as pth-rep]
+            [typed.cljc.checker.type-ctors :as c]
+            [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.checker.utils :as u]))
 
 (defn ^:private gen-repeat [times repeated]
   (reduce into [] (repeat times repeated)))
@@ -888,7 +887,8 @@
   (impl/assert-cljs)
   (cond
     (= "js" (namespace sym)) (c/JSNominal-with-unknown-params sym)
-    :else (let [{{:keys [protocol-symbol name]} :info} ((requiring-resolve 'typed.clj.checker.analyze-cljs/analyze-qualified-symbol) sym)]
+    :else (let [_ (assert nil "FIXME typed.clj.checker.analyze-cljs/analyze-qualified-symbol has been deleted")
+                {{:keys [protocol-symbol name]} :info} ((requiring-resolve 'typed.clj.checker.analyze-cljs/analyze-qualified-symbol) sym)]
             (if protocol-symbol
               (c/Protocol-with-unknown-params name)
               (c/DataType-with-unknown-params name)))))
@@ -1583,5 +1583,3 @@
   `(impl/with-clojure-impl
      (subtype? (prs/parse-type '~s)
                (prs/parse-type '~t))))
-
-(ind-u/add-indirection ind/subtype? subtype?)

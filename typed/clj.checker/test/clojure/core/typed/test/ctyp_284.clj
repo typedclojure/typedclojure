@@ -1,6 +1,6 @@
 (ns clojure.core.typed.test.ctyp-284
   (:require [clojure.test :refer :all]
-            [clojure.core.typed.test.test-utils :refer :all]))
+            [typed.clj.checker.test-utils :refer :all]))
 
 (deftest transitive-no-reload
   (is 

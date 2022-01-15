@@ -6,28 +6,25 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns clojure.core.typed.check-cljs
-  (:require [cljs.analyzer.api :as ana-api]
-            [cljs.analyzer :as cljs-ana]
-            [clojure.java.io :as io]
+(ns typed.cljs.checker.check
+  (:require [cljs.analyzer :as cljs-ana]
+            [cljs.analyzer.api :as ana-api]
             [clojure.core.typed :as t]
-            [clojure.core.typed.analyze-cljs :as ana]
-            [clojure.core.typed.coerce-utils :as coerce]
             [clojure.core.typed.ast-utils :as ast-u]
             [clojure.core.typed.check.dot-cljs :as dot]
+            [clojure.core.typed.coerce-utils :as coerce]
             [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.errors :as err]
-            [clojure.core.typed.jsnominal-env :as jsnom]
-            [clojure.tools.reader.reader-types :as readers]
-            [clojure.core.typed.util-cljs :as uc]
             [clojure.core.typed.util-vars :as vs]
-            [clojure.tools.reader :as reader]
+            [clojure.java.io :as io]
             [clojure.string :as c-str]
+            [clojure.tools.reader :as reader]
+            [clojure.tools.reader.reader-types :as readers]
             [typed.clj.checker.constant-type :as constant-type]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.clj.checker.subtype :as sub]
             [typed.clj.checker.tc-equiv :as equiv]
-            [typed.cljc.checker.ns-deps-utils :as ns-depsu]
+            [typed.cljc.analyzer :as ana2]
             [typed.cljc.checker.check-below :as below]
             [typed.cljc.checker.check.binding :as binding]
             [typed.cljc.checker.check.const :as const]
@@ -60,14 +57,16 @@
             [typed.cljc.checker.inst :as inst]
             [typed.cljc.checker.lex-env :as lex]
             [typed.cljc.checker.local-result :as local-result]
+            [typed.cljc.checker.ns-deps-utils :as ns-depsu]
             [typed.cljc.checker.object-rep :a obj]
             [typed.cljc.checker.object-rep :as o]
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.type-rep :as r :refer [ret ret-t ret-o]]
             [typed.cljc.checker.utils :as u :refer [expr-type]]
             [typed.cljc.checker.var-env :as var-env]
-            [typed.cljc.analyzer :as ana2]
-            [typed.cljs.analyzer :as tana2]))
+            [typed.cljs.analyzer :as tana2]
+            [typed.cljs.checker.jsnominal-env :as jsnom]
+            [typed.cljs.checker.util :as uc]))
 
 (defmulti -check (fn [expr expected]
                    (:op expr)))
@@ -108,16 +107,6 @@
 
 (defn check-asts [asts]
   (mapv check-expr asts))
-
-#_
-(defn check-ns [nsym]
-  {:pre [(symbol? nsym)]
-   :post [(nil? %)]}
-  (cu/check-ns-and-deps*
-    nsym
-    {:ast-for-ns ana/ast-for-ns
-     :check-asts check-asts
-     :check-ns check-ns}))
 
 (t/ann ^:no-check checked-ns! [t/Sym -> nil])
 (defn- checked-ns! [nsym]
@@ -417,7 +406,7 @@
 
 (defmethod -check :fn
   [{:keys [methods] :as expr} expected]
-  ;(prn `-check :fn (mapv (comp :op :ret :body) methods))
+  (prn `-check :fn (mapv (comp :op :ret :body) methods))
   (prepare-check-fn
     (if expected
       (fn/check-fn expr expected)
@@ -536,6 +525,7 @@
   [{:keys [method target args] :as expr} expected]
   (let [ctarget (check-expr target)
         cargs (mapv check-expr args)]
+    #_(dot/check-dot ...)
     (u/tc-warning (str "`.` special form is Unchecked"))
     (assoc expr 
            :target ctarget
@@ -549,6 +539,7 @@
 (defmethod -check :host-field
   [{:keys [target] :as expr} expected]
   (let [ctarget (check-expr target)]
+    #_(dot/check-dot ...)
     (u/tc-warning (str "`.` special form is Unchecked"))
     (assoc expr 
            :target ctarget
@@ -560,6 +551,7 @@
 (defmethod -check :js-array
   [{:keys [items] :as expr} expected]
   (let [citems (mapv check-expr items)]
+    #_(dot/check-dot ...)
     (u/tc-warning (str "`#js []` special form is Unchecked"))
     (assoc expr 
            :items citems

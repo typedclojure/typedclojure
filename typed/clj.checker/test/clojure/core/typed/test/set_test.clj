@@ -1,5 +1,5 @@
 (ns clojure.core.typed.test.set-test
-  (:require [clojure.core.typed.test.test-utils :refer :all]
+  (:require [typed.clj.checker.test-utils :refer :all]
             [clojure.test :refer :all]))
 
 (deftest construct-hset

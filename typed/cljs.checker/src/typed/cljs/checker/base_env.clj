@@ -6,22 +6,21 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns clojure.core.typed.base-env-cljs
-  (:require [clojure.core.typed.base-env-helper-cljs :as h]
-            [typed.cljc.checker.base-env-common :refer [delay-and-cache-env]
-             :as common]
-            [clojure.core.typed.current-impl :as impl]
-            [clojure.core.typed.bootstrap-cljs :as boot]
-            [cljs.analyzer :as ana]
-            [clojure.core.typed.util-cljs :as ucljs]
+(ns typed.cljs.checker.base-env
+  (:require [cljs.analyzer :as ana]
             [cljs.env :as env]
-            [clojure.core.typed.jsnominal-env :as jsnominal]
+            [clojure.core.typed.base-env-helper-cljs :as h]
+            [clojure.core.typed.bootstrap-cljs :as boot]
+            [clojure.core.typed.current-impl :as impl]
+            [clojure.set :as set]
+            [typed.cljc.checker.base-env-common :refer [delay-and-cache-env] :as common]
             [typed.cljc.checker.datatype-env :as datatype-env]
             [typed.cljc.checker.declared-kind-env :as declared-kind-env]
-            [typed.cljc.checker.protocol-env :as protocol-env]
             [typed.cljc.checker.name-env :as name-env]
+            [typed.cljc.checker.protocol-env :as protocol-env]
             [typed.cljc.checker.var-env :as var-env]
-            [clojure.set :as set]))
+            [typed.cljs.checker.jsnominal-env :as jsnominal]
+            [typed.cljs.checker.util :as ucljs]))
 
 (ucljs/with-cljs-typed-env
 (ucljs/with-core-cljs-typed
@@ -522,7 +521,7 @@ cljs.core/Reduced [[[x :variance :covariant]]]
     ))
 )
 
-(defn reset-cljs-envs! []
+(defn reset-envs! []
   (ucljs/with-cljs-typed-env
     (impl/with-cljs-impl
       (reset-alias-env!)
@@ -536,4 +535,4 @@ cljs.core/Reduced [[[x :variance :covariant]]]
 ))
 
 ;;FIXME hack
-(reset-cljs-envs!)
+(reset-envs!)

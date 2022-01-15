@@ -1,5 +1,6 @@
 (ns typed-test.cljs.analyzer
   (:require [clojure.test :refer [is deftest testing]]
+            [typed.cljc.analyzer :as ana]
             [typed.cljs.analyzer :as jsana2]
             [cljs.analyzer.api :as ana-api]
             [cljs.env :as env]
@@ -26,13 +27,26 @@
          ~@body))))
 
 (defn analyze1 [form]
-  (-> (jsana2/unanalyzed
-        form
-        (ana-api/empty-env))
-      jsana2/analyze-outer-root))
+  (with-bindings (jsana2/default-thread-bindings (ana-api/empty-env))
+    (-> (ana/unanalyzed
+          form
+          (ana-api/empty-env))
+        ana/analyze-outer-root)))
+
+(defn analyze-outer-root
+  "cljs helper"
+  [ast]
+  (with-bindings (jsana2/default-thread-bindings (ana-api/empty-env))
+    (ana/analyze-outer-root ast)))
 
 (defn trim-unanalyzed [ast]
-  (select-keys ast [:op :form]))
+  (select-keys ast [:op :form :body?]))
+
+(defn trim-do-body [ast]
+  (-> ast
+      (select-keys [:op :form :statements :ret :body?])
+      (update :statements #(mapv trim-unanalyzed %))
+      (update :ret trim-unanalyzed)))
 
 ;;TODO preanalyze :body? true nodes
 (deftest analyze-outer-test
@@ -55,7 +69,14 @@
                         (select-keys [:op :name :init])
                         (update :init trim-unanalyzed))
                    (:bindings expr))))
-      (is (= {:op :unanalyzed :form '(do (inc 42) (+ a))} (-> expr :body trim-unanalyzed)))))
+      (is (= {:op :do
+              :form '(do (inc 42) (+ a))
+              :statements [{:op :unanalyzed
+                            :form '(inc 42)}]
+              :ret {:op :unanalyzed
+                    :form '(+ a)}
+              :body? true}
+             (-> expr :body trim-do-body)))))
   (testing :loop
     (let [expr (wrap (analyze1 '(loop [a 1] (inc 42) (+ a))))]
       (is (= :loop (:op expr)))
@@ -67,13 +88,20 @@
                         (select-keys [:op :name :init])
                         (update :init trim-unanalyzed))
                    (:bindings expr))))
-      (is (= {:op :unanalyzed :form '(do (inc 42) (+ a))} (-> expr :body trim-unanalyzed)))))
+      (is (= {:op :do
+              :form '(do (inc 42) (+ a))
+              :body? true
+              :statements [{:op :unanalyzed
+                            :form '(inc 42)}]
+              :ret {:op :unanalyzed
+                    :form '(+ a)}}
+             (-> expr :body trim-do-body)))))
   (testing :recur
     (let [expr (wrap (-> (analyze1 '(loop [a 1] (recur (+ a))))
                          :body
-                         jsana2/analyze-outer-root
+                         analyze-outer-root
                          :ret
-                         jsana2/analyze-outer-root))]
+                         analyze-outer-root))]
       (is (= :recur (:op expr)))
       (is (= [{:op :unanalyzed :form '(+ a)}] (->> expr :exprs (mapv trim-unanalyzed))))))
   (testing :the-var
@@ -102,9 +130,9 @@
     (let [expr (wrap
                  (-> (analyze1 '(let [a 1] a))
                      :body
-                     jsana2/analyze-outer-root
+                     analyze-outer-root
                      :ret
-                     jsana2/analyze-outer-root))]
+                     analyze-outer-root))]
       (is (= :local (:op expr)))
       ;FIXME probably should be analyzed
       (is (= {:op :unanalyzed
@@ -120,9 +148,9 @@
     (let [expr (wrap
                  (-> (analyze1 '(case 1 2 3 4))
                      :body
-                     jsana2/analyze-outer-root
+                     analyze-outer-root
                      :ret
-                     jsana2/analyze-outer-root))]
+                     analyze-outer-root))]
       (is (= :case (:op expr)))
       (is (= :unanalyzed (-> expr :test :op)))
       ;; (case* sym ...)
@@ -157,11 +185,29 @@
                  (-> (analyze1 '(try 1
                                      (catch :default e (inc e))
                                      (finally 3)))
-                     (update :catch jsana2/analyze-outer-root)))]
+                     (update :catch analyze-outer-root)))]
       (is (= :try (:op expr)))
-      (is (= {:op :unanalyzed :form '(do 1)} (-> expr :body trim-unanalyzed)))
-      (is (= {:op :unanalyzed :form '(do (inc e))} (-> expr :catch :body trim-unanalyzed)))
-      (is (= {:op :unanalyzed :form '(do 3)} (-> expr :finally trim-unanalyzed)))))
+      (is (= {:op :do
+              :statements []
+              :ret {:op :unanalyzed
+                    :form 1}
+              :form '(do 1)
+              :body? true}
+             (-> expr :body trim-do-body)))
+      (is (= {:op :do
+              :body? true
+              :statements []
+              :ret {:op :unanalyzed
+                    :form '(inc e)}
+              :form '(do (inc e))}
+             (-> expr :catch :body trim-do-body)))
+      (is (= {:op :do
+              :statements []
+              :ret {:op :unanalyzed
+                    :form 3}
+              :form '(do 3)
+              :body? true}
+             (-> expr :finally trim-do-body)))))
   (testing :def
     (let [expr (wrap
                  (analyze1 '(def a 1)))]
@@ -173,18 +219,21 @@
       (is (= {:op :unanalyzed :form '1} (-> expr :init trim-unanalyzed)))))
   (testing :fn
     (let [expr (wrap
-                 (analyze1 '(fn* [a] (+ a 2))))]
+                 (analyze1 '(fn* [a] 1 (+ a 2))))]
       (is (= :fn (:op expr)))
       (is (= [{:op :fn-method
-               :body {:op :unanalyzed
-                      :form '(do (+ a 2))}}]
+               :body {:op :do
+                      :form '(do 1 (+ a 2))
+                      :body? true
+                      :statements [{:form '1, :op :unanalyzed}]
+                      :ret {:form '(+ a 2), :op :unanalyzed}}}]
              (->> expr :methods
                   (mapv (fn [method]
                           (-> method (select-keys [:op :body])
-                              (update :body trim-unanalyzed)))))))))
+                              (update :body trim-do-body)))))))))
   (testing :letfn
     (let [expr (wrap
-                 (analyze1 '(letfn [(f [a] (inc a))] (f 1))))]
+                 (analyze1 '(letfn [(f [a] (inc a))] 1 (f 1))))]
       (is (= :letfn (:op expr)))
       (is (= [{:op :binding
                :init {:op :unanalyzed
@@ -193,9 +242,12 @@
                   (mapv (fn [binding]
                           (-> binding (select-keys [:op :init])
                               (update :init trim-unanalyzed)))))))
-      (is (= {:op :unanalyzed
-              :form '(do (f 1))}
-             (-> expr :body trim-unanalyzed)))))
+      (is (= {:op :do
+              :form '(do 1 (f 1))
+              :body? true
+              :statements [{:form 1, :op :unanalyzed}]
+              :ret {:form '(f 1), :op :unanalyzed}}
+             (-> expr :body trim-do-body)))))
   (testing :quote
     (let [expr (wrap
                  (analyze1 ''1))]
@@ -244,8 +296,8 @@
                                   (toString [this] (str a))))
                      :statements
                      first
-                     jsana2/analyze-outer-root
-                     (update :body jsana2/analyze-outer-root)))]
+                     analyze-outer-root
+                     (update :body analyze-outer-root)))]
       (is (= :deftype (:op expr)))))
   (testing :defrecord
     (let [expr (wrap
@@ -253,13 +305,12 @@
                                   Object
                                   (toString [this] (str a))))
                      :body
-                     jsana2/analyze-outer-root
+                     analyze-outer-root
                      :statements
                      first
-                     jsana2/analyze-outer-root
+                     analyze-outer-root
                      :ret
-                     jsana2/analyze-outer-root
-                     ))]
+                     analyze-outer-root))]
       (is (= :defrecord (:op expr)))))
   (testing :invoke
     (let [expr (wrap

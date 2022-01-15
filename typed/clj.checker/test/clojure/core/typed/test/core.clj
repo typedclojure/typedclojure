@@ -2,7 +2,7 @@
   (:refer-clojure :exclude [cast])
   (:require 
     ; this loads the type system, must go first
-    [clojure.core.typed.test.test-utils :refer :all]
+    [typed.clj.checker.test-utils :refer :all]
             [clojure.test :refer :all]
             [typed.clj.checker.analyze-clj :as ana]
             ;[typed.clj.analyzer.passes.emit-form :as emit-form]

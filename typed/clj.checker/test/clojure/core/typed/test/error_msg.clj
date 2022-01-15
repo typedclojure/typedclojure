@@ -1,7 +1,7 @@
 (ns clojure.core.typed.test.error-msg
   (:require
     ; this loads the type system, must go first
-    [clojure.core.typed.test.test-utils :refer :all]
+    [typed.clj.checker.test-utils :refer :all]
     [clojure.test :refer :all]
     [clojure.core.typed :as t :refer [check-ns
                                       check-ns-info]]))

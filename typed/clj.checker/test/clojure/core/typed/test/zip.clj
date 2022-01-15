@@ -1,7 +1,7 @@
 (ns clojure.core.typed.test.zip
   (:require [clojure.core.typed :as t] 
             [clojure.test :refer :all]                
-            [clojure.core.typed.test.test-utils :refer :all]))
+            [typed.clj.checker.test-utils :refer :all]))
 
 (deftest zipper-test
   (is-tc-e #(zipper vector? seq (fn [_ c] c) "abc")

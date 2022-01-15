@@ -2,7 +2,7 @@
   (:require [clojure.test :refer [deftest is]]
             typed.clj.ext.clojure.core.typed.unsafe ;; load
             [clojure.core.typed :as t]
-            [clojure.core.typed.test.test-utils :refer :all]))
+            [typed.clj.checker.test-utils :refer :all]))
 
 (deftest ignore-unsafe-cast-test
   (is-tc-e (unsafe/ignore-with-unchecked-cast

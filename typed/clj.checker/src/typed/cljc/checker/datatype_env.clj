@@ -12,7 +12,7 @@
             [typed.cljc.checker.type-rep :as r]
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed :as t]
-            [clojure.core.typed.env :as env]))
+            [typed.cljc.runtime.env :as env]))
 
 (t/ann ^:no-check clojure.core.typed.errors/deprecated-warn [String -> nil])
 (t/ann ^:no-check clojure.core.typed.errors/int-error [String -> t/Nothing])

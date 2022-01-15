@@ -6,19 +6,28 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.cljc.checker.indirect-ops
-  (:require [typed.cljc.checker.indirect-utils :as in]))
+(ns typed.cljc.checker.indirect-ops)
 
-(in/make-indirection unparse-type
-                     parse-type
-                     check-funapp
-                     assoc-pairs-noret
-                     subtype?
-                     -FS
-                     -top-fn
-                     -empty-fn
-                     infer
-                     PropEnv?
-                     -or
-                     -and
-                     type-of-nofail)
+(defmacro ^:private make-indirection [& vs]
+  (assert (apply distinct? (map name vs)) (vec vs))
+  `(do 
+     ~@(map (fn [v]
+              `(defn ~(-> v name symbol)
+                 [& args#]
+                 (apply (requiring-resolve '~v) args#)))
+            vs)))
+
+(make-indirection
+  typed.clj.checker.parse-unparse/unparse-type
+  typed.clj.checker.parse-unparse/parse-type
+  typed.cljc.checker.check.funapp/check-funapp
+  typed.clj.checker.assoc-utils/assoc-pairs-noret
+  typed.clj.checker.subtype/subtype?
+  typed.cljc.checker.filter-ops/-FS
+  typed.cljc.checker.filter-rep/-top-fn
+  typed.cljc.checker.object-rep/-empty-fn
+  typed.cljc.checker.cs-gen/infer
+  typed.cljc.checker.lex-env/PropEnv?
+  typed.cljc.checker.filter-ops/-or
+  typed.cljc.checker.filter-ops/-and
+  typed.cljc.checker.var-env/type-of-nofail)

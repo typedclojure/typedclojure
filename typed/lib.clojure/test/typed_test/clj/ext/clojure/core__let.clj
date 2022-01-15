@@ -2,7 +2,7 @@
   (:require [clojure.test :refer [deftest is testing]]
             [clojure.core.typed :as t]
             [typed.clj.checker.parse-unparse :as prs]
-            [clojure.core.typed.test.test-utils :refer :all]))
+            [typed.clj.checker.test-utils :refer :all]))
 
 (deftest let-test
   (is-tc-e (let [a 1] a) t/Int)

@@ -8,7 +8,7 @@
 
 (ns typed.clj.checker.ctor-override-env
   (:require [clojure.core.typed.contract-utils :as con]
-            [clojure.core.typed.env :as env]
+            [typed.cljc.runtime.env :as env]
             [clojure.core.typed.current-impl :as impl]
             [typed.cljc.checker.type-rep :as r]))
 

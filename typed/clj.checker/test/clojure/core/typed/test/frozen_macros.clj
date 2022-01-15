@@ -1,7 +1,7 @@
 (ns clojure.core.typed.test.frozen-macros
   (:require 
     ; this loads the type system, must go first
-    [clojure.core.typed.test.test-utils :as tu]
+    [typed.clj.checker.test-utils :as tu]
     [clojure.core.typed :as t]
     [typed.clj.analyzer :as ana]
     [typed.clj.analyzer.passes.emit-form :refer [emit-form]]

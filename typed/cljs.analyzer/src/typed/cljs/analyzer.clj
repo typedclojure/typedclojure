@@ -143,8 +143,6 @@
 (def inner-parse ana-cljs/parse)
 (def inner-analyze ana-cljs/analyze)
 
-(declare analyze-outer-root)
-
 (defmulti parse (fn [op env form nme opts] op))
 
 (defmethod parse 'def
@@ -165,7 +163,40 @@
               (assert (symbol? (:form expr)))
               (-> expr
                   (assoc :op :unanalyzed)
-                  analyze-outer-root)))))
+                  ana/analyze-outer-root)))))
+
+(declare analyze-outer)
+
+(defn parse-let [op env form nme opts]
+  (-> (inner-parse op env form nme opts)
+      (update :body analyze-outer)))
+
+(defmethod parse 'let*
+  [op env form nme opts]
+  (parse-let op env form nme opts))
+
+(defmethod parse 'loop*
+  [op env form nme opts]
+  (parse-let op env form nme opts))
+
+(defmethod parse 'try
+  [op env form nme opts]
+  (let [ast (-> (inner-parse op env form nme opts)
+                (update :body analyze-outer))]
+    (cond-> ast
+      (:catch ast) (update :catch analyze-outer)
+      (:finally ast) (update :finally analyze-outer))))
+
+(defmethod parse 'fn*
+  [op env form nme opts]
+  (-> (inner-parse op env form nme opts)
+      (update :methods (fn [methods]
+                         (mapv #(update % :body analyze-outer) methods)))))
+
+(defmethod parse 'letfn*
+  [op env form nme opts]
+  (-> (inner-parse op env form nme opts)
+      (update :body analyze-outer)))
 
 (defmethod parse 'case*
   [op env [_ sym tests thens default :as form] name _]
@@ -173,7 +204,7 @@
   (assert (every? vector? tests) "case* tests must be grouped in vectors")
   (let [expr-env (assoc env :context :expr)
         v        (ana-cljs/disallowing-recur (ana-cljs/analyze expr-env sym))
-        tests    (mapv #(mapv (fn [t] (analyze-outer-root (ana-cljs/analyze expr-env t))) %) tests)
+        tests    (mapv #(mapv (fn [t] (ana/analyze-outer-root (ana-cljs/analyze expr-env t))) %) tests)
         thens    (mapv #(ana-cljs/analyze env %) thens)
         nodes    (mapv (fn [tests then]
                          {:op :case-node
@@ -252,18 +283,12 @@
 (defn analyze-outer [ast]
   (case (:op ast)
     :unanalyzed (with-bindings (:bindings ast)
-                    (cond-> (analyze (:env ast)
-                                     (:form ast)
-                                     (:name ast)
-                                     (:opts ast))
-                      (:body? ast) (assoc :body? true)))
+                  (cond-> (analyze (:env ast)
+                                   (:form ast)
+                                   (:name ast)
+                                   (:opts ast))
+                    (:body? ast) (assoc :body? true)))
     ast))
-
-(defn analyze-outer-root [ast]
-  (let [ast' (analyze-outer ast)]
-    (if (identical? ast ast')
-      ast'
-      (recur ast'))))
 
 (comment
   (select-keys
@@ -279,6 +304,9 @@
 (defn default-thread-bindings [env]
   {#'ana-cljs/parse parse
    #'ana-cljs/analyze unanalyzed-env-first
+   #'ana/parse (fn [form env] (parse (first form) env form nil nil))
+   #'ana/analyze-outer analyze-outer
+   #'ana/unanalyzed unanalyzed
    #'ana/scheduled-passes {:pre identity
                            :post identity
                            :init-ast identity}})

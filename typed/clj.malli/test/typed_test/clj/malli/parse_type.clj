@@ -6,7 +6,7 @@
             [typed.clj.checker.parse-unparse :as prs]
             [typed.clj.checker.subtype :as sub]
             [clojure.core.typed.type-contract :as tcon]
-            [clojure.core.typed.test.test-utils :refer [clj is-clj subtype? both-subtype? tc-e tc-err is-tc-e is-tc-err]]
+            [typed.clj.checker.test-utils :refer [clj is-clj subtype? both-subtype? tc-e tc-err is-tc-e is-tc-err]]
             [malli.core :as m]))
 
 (t/load-if-needed)

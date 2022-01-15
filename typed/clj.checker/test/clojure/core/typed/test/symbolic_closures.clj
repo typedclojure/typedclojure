@@ -1,6 +1,6 @@
 (ns clojure.core.typed.test.symbolic-closures
   (:require 
-    [clojure.core.typed.test.test-utils :refer :all]
+    [typed.clj.checker.test-utils :refer :all]
     [typed.cljc.checker.type-rep :as r]
     [clojure.test :refer :all]))
 

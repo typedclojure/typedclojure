@@ -7,13 +7,13 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.clj.checker.statistics
-  (:require [typed.cljc.checker.var-env :as var-env]
-            [typed.clj.checker.check-ns-clj :as chk-ns-clj]
-            [clojure.core.typed.contract-utils :as con]
-            [typed.cljc.checker.var-env :as var-env]
-            [typed.clj.checker.parse-unparse :as prs]
+  (:require [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.util-vars :as vs]
-            [clojure.set :as set]))
+            [clojure.set :as set]
+            [typed.clj.checker.check-ns :as chk-ns-clj]
+            [typed.clj.checker.parse-unparse :as prs]
+            [typed.cljc.checker.var-env :as var-env]
+            [typed.cljc.checker.var-env :as var-env]))
 
 ; (ann all-defs-in-ns [Namespace -> (Set Symbol)])
 (defn ^:no-wiki 

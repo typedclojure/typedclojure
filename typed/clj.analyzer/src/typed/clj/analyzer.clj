@@ -11,6 +11,7 @@
   (:refer-clojure :exclude [macroexpand-1])
   (:require [clojure.core.memoize :as memo]
             [typed.cljc.analyzer :as ana]
+            [typed.cljc.analyzer.ast :as ast]
             [typed.cljc.analyzer :as common]
             [typed.cljc.analyzer.env :as env]
             [typed.cljc.analyzer.passes :as passes]
@@ -481,6 +482,64 @@
 
 (declare parse)
 
+(ana/defexpr UnanalyzedExpr [op form env top-level children raw-forms]
+  ast/IASTWalk
+  (ast/children-of* [_] [])
+  (ast/update-children* [this f] this))
+
+(defn unanalyzed
+  [form env]
+  (let [init-ast (:init-ast ana/scheduled-passes)
+        _ (assert init-ast "scheduled-passes must bind :init-ast")]
+    (->
+      {:op :unanalyzed
+       ::ana/op ::ana/unanalyzed
+       :form form
+       :env (u/merge' env (u/-source-info form env))
+       ;; ::ana/config will be inherited by whatever node
+       ;; this :unanalyzed node becomes when analyzed
+       ::ana/config {}}
+      (ana/create-expr UnanalyzedExpr)
+      init-ast)))
+
+(comment
+  (assert
+    (= (-> (map->UnanalyzedExpr {:form 1 :asdf 2})
+           (update-expr UnanalyzedExpr
+                        [:form + 2]
+                        [:asdf inc]))
+       (-> (map->UnanalyzedExpr {:form 1 :asdf 2})
+           (update :form + 2)
+           (update :asdf inc))
+       (map->UnanalyzedExpr {:form 3 :asdf 3})))
+  (let [^UnanalyzedExpr m (map->UnanalyzedExpr {:form 1 :asdf 2})
+        f #(update-expr m UnanalyzedExpr [:form + 2] [:asdf inc])]
+    (time
+      (dotimes [_ 1000000]
+        (f))))
+  (let [m (map->UnanalyzedExpr {:form 1 :asdf 2})]
+    (time
+      (dotimes [_ 1000000]
+        (-> m
+            (update :form + 2)
+            (update :asdf inc)))))
+  )
+
+(defn analyze-outer
+  "If ast is :unanalyzed, then call analyze-form on it, otherwise returns ast."
+  [ast]
+  (case (:op ast)
+    :unanalyzed (let [{:keys [form env ::ana/config]} ast
+                      ast (-> form
+                              (ana/analyze-form env)
+                              ;TODO rename to ::inherited
+                              (assoc ::ana/config config)
+                              ana/propagate-top-level
+                              (assoc-in [:env :ns] (ana/current-ns-name env)))]
+                    ast)
+    ast))
+
+
 (defn analyze
   "Analyzes a clojure form using tools.analyzer augmented with the JVM specific special ops
    and returns its AST, after running #'run-passes on it.
@@ -501,18 +560,20 @@
   ([form] (analyze form (empty-env) {}))
   ([form env] (analyze form env {}))
   ([form env opts]
-     (with-bindings (merge {Compiler/LOADER     (RT/makeClassLoader)
-                            #'ana/macroexpand-1 macroexpand-1
-                            #'ana/create-var    create-var
-                            #'ana/scheduled-passes    @scheduled-default-passes
-                            #'ana/parse         parse
-                            #'ana/var?          var?
-                            #'ana/resolve-ns    resolve-ns
-                            #'ana/resolve-sym   resolve-sym
-                            #'ana/current-ns-name current-ns-name
-                            ;#'*ns*              (the-ns (:ns env))
-                            }
-                           (:bindings opts))
+   (with-bindings (into {Compiler/LOADER     (RT/makeClassLoader)
+                         #'ana/macroexpand-1 macroexpand-1
+                         #'ana/create-var    create-var
+                         #'ana/scheduled-passes    @scheduled-default-passes
+                         #'ana/parse         parse
+                         #'ana/var?          var?
+                         #'ana/resolve-ns    resolve-ns
+                         #'ana/resolve-sym   resolve-sym
+                         #'ana/unanalyzed unanalyzed
+                         #'ana/analyze-outer analyze-outer
+                         #'ana/current-ns-name current-ns-name
+                         ;#'*ns*              (the-ns (:ns env))
+                         }
+                        (:bindings opts))
        (env/ensure (global-env)
          (env/with-env (u/mmerge (env/deref-env) {:passes-opts (get opts :passes-opts default-passes-opts)})
            (ana/run-passes (ana/unanalyzed form env)))))))
@@ -541,6 +602,8 @@
    #'ana/var->sym      var->sym
    #'ana/eval-ast      eval-ast2
    #'ana/current-ns-name current-ns-name
+   #'ana/analyze-outer analyze-outer
+   #'ana/unanalyzed unanalyzed
    ;#'*ns*              (the-ns (:ns env))
    })
 

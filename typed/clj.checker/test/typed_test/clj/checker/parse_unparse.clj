@@ -1,17 +1,16 @@
-(ns clojure.core.typed.test.parse-unparse-test
-  (:require 
-    [clojure.core.typed.test.test-utils :refer :all]
-    [clojure.test :refer :all]
-    [typed.clj.checker.parse-unparse :refer :all]
-    [clojure.core.typed :as t]))
+(ns typed-test.clj.checker.parse-unparse
+  (:require [clojure.core.typed :as t]
+            [clojure.test :refer :all]
+            [typed.clj.checker.parse-unparse :as prs]
+            [typed.clj.checker.test-utils :refer :all]))
 
 (deftest unparse-free-scoping-test
   (is-clj (= (second
-               (unparse-type 
-                 (parse-type 
+               (prs/unparse-type
+                 (prs/parse-type 
                    `(t/All ~'[a b] [t/Any t/Any :-> t/Any]))))
              '[a b]))
-  (is-clj (= (rest (unparse-type (parse-type `(t/TFn ~'[[a :variance :covariant]] ~'a))))
+  (is-clj (= (rest (prs/unparse-type (prs/parse-type `(t/TFn ~'[[a :variance :covariant]] ~'a))))
              '([[a :variance :covariant]] a)))
   (is-clj (= (do
                '([a b] [a b -> [a b -> nil :filters {:then ff :else tt}]
@@ -24,45 +23,45 @@
                      [x :- a
                       y :- b])))
                :t
-               unparse-type
+               prs/unparse-type
                rest))))
 
 (deftest bad-dots-Poly-test
   ;; no dots in variable
   (is (throws-tc-error?
-        (parse-clj '(clojure.core.typed/All [... a] [a -> a]))))
+        (prs/parse-clj '(clojure.core.typed/All [... a] [a -> a]))))
   (is (throws-tc-error?
-        (parse-clj '(clojure.core.typed/All [. a] [a -> a]))))
+        (prs/parse-clj '(clojure.core.typed/All [. a] [a -> a]))))
   (is (throws-tc-error?
-        (parse-clj '(clojure.core.typed/All [. a] [a -> a]))))
+        (prs/parse-clj '(clojure.core.typed/All [. a] [a -> a]))))
   ; no nil/true/false
   (is (throws-tc-error?
-        (parse-clj `(clojure.core.typed/All [~(symbol "nil")] [nil :-> nil]))))
+        (prs/parse-clj `(clojure.core.typed/All [~(symbol "nil")] [nil :-> nil]))))
   (is (throws-tc-error?
-        (parse-clj `(clojure.core.typed/All [~(symbol "true")] [nil :-> nil]))))
+        (prs/parse-clj `(clojure.core.typed/All [~(symbol "true")] [nil :-> nil]))))
   (is (throws-tc-error?
-        (parse-clj `(clojure.core.typed/All [~(symbol "false")] [nil :-> nil]))))
+        (prs/parse-clj `(clojure.core.typed/All [~(symbol "false")] [nil :-> nil]))))
   ; no ns qualified
   (is (throws-tc-error?
-        (parse-clj `(clojure.core.typed/All [a/b] [nil :-> nil]))))
+        (prs/parse-clj `(clojure.core.typed/All [a/b] [nil :-> nil]))))
   ; non-symbol
   (is (throws-tc-error?
-        (parse-clj `(clojure.core.typed/All [:a] [nil :-> nil]))))
+        (prs/parse-clj `(clojure.core.typed/All [:a] [nil :-> nil]))))
   ; bad kw args
   (is (throws-tc-error?
-        (parse-clj `(clojure.core.typed/All [:a :b] [nil :-> nil])))))
+        (prs/parse-clj `(clojure.core.typed/All [:a :b] [nil :-> nil])))))
 
 (deftest poly-named-test
-  (is (= (unparse-type
-           (parse-clj 
+  (is (= (prs/unparse-type
+           (prs/parse-clj 
              '(clojure.core.typed/All [:named [a b]] [a -> b])))
          '(clojure.core.typed/All [:named [a b]] [a -> b])))
-  (is (= (unparse-type
-           (parse-clj 
+  (is (= (prs/unparse-type
+           (prs/parse-clj 
              '(clojure.core.typed/All [:named [a b]] [a -> b])))
          '(clojure.core.typed/All [:named [a b]] [a -> b])))
-  (is (= (unparse-type
-           (parse-clj 
+  (is (= (prs/unparse-type
+           (prs/parse-clj 
              '(clojure.core.typed/All [a ... :named [b c]]
                                       [c b a ... a -> b])))
          '(clojure.core.typed/All [a ... :named [b c]]

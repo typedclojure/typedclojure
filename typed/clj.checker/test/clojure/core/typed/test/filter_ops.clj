@@ -1,7 +1,7 @@
 (ns clojure.core.typed.test.filter-ops
   (:require 
     ; this loads the type system, must go first
-    [clojure.core.typed.test.test-utils :refer :all]
+    [typed.clj.checker.test-utils :refer :all]
     [clojure.core.typed :as t]
     [typed.cljc.checker.filter-ops :refer [-and -filter -not-filter -or]]
     [typed.cljc.checker.filter-rep :refer [-top make-AndFilter make-OrFilter -bot]]

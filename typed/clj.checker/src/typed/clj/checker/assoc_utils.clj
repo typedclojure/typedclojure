@@ -11,7 +11,6 @@
   (:require [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.indirect-ops :as ind]
-            [typed.cljc.checker.indirect-utils :as ind-u]
             [typed.cljc.checker.utils :as u]
             [typed.cljc.checker.free-ops :as free-ops]
             [clojure.core.typed.errors :as err]
@@ -147,8 +146,6 @@
                  pairs)]
    :post [((some-fn nil? r/Type?) %)]}
   (apply assoc-type-pairs t (map (fn [[k v]] [(r/ret k) (r/ret v)]) pairs)))
-
-(ind-u/add-indirection ind/assoc-pairs-noret assoc-pairs-noret)
 
 ; dissoc support functions
 (defn- -dissoc-key [t k]

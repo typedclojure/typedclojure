@@ -1,5 +1,5 @@
 (ns clojure.core.typed.test.namespaced-specials
-  (:require [clojure.core.typed.test.test-utils :refer :all]
+  (:require [typed.clj.checker.test-utils :refer :all]
             [clojure.test :refer :all]))
 
 ;backwards compatibility tests for type syntax

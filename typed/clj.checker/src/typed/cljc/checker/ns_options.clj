@@ -9,7 +9,7 @@
 (ns ^:no-doc typed.cljc.checker.ns-options
   (:require [clojure.core.typed :as t]
             [clojure.core.typed.current-impl :as impl]
-            [clojure.core.typed.env :as env]))
+            [typed.cljc.runtime.env :as env]))
 
 (t/defalias NsOptions
   "Options for namespaces"

@@ -6,15 +6,15 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns clojure.core.typed.check-form-cljs
-  (:require [clojure.core.typed.ast-utils :as ast-u]
-            [typed.cljc.checker.check-form-common2 :as chk-form2]
-            [typed.cljc.checker.runtime-check :as rt-chk] ;;TODO untested
-            [clojure.core.typed.check-cljs :as chk-cljs]
-            [clojure.core.typed.util-cljs :as ucljs]
+(ns typed.cljs.checker.check-form
+  (:require [cljs.compiler :as comp]
             [cljs.env :as env]
-            [cljs.compiler :as comp]
-            [clojure.core.typed.current-impl :as impl]))
+            [clojure.core.typed.ast-utils :as ast-u]
+            [clojure.core.typed.current-impl :as impl]
+            [typed.cljc.checker.check-form :as chk-form2]
+            [typed.cljc.checker.runtime-check :as rt-chk] ;;TODO untested
+            [typed.cljs.checker.check :as chk-cljs]
+            [typed.cljs.checker.util :as ucljs]))
 
 (defn config-map2 []
   {:impl impl/clojurescript
@@ -25,7 +25,7 @@
    ;                      (apply @runtime-infer-expr args))
    :eval-out-ast (fn eval-out-ast
                    ([ast] (eval-out-ast ast {}))
-                   ([ast opts] (prn "TODO eval cljs") nil #_(ana-clj/eval-ast ast opts)))
+                   ([ast opts] (assert nil "TODO eval cljs") nil #_(ana-clj/eval-ast ast opts)))
    :custom-expansions? true
    :emit-form ast-u/emit-form-fn
    :check-form-info chk-form2/check-form-info
@@ -37,7 +37,7 @@
   (chk-form2/check-form-info-with-config
     (config-map2) form opt))
 
-(defn check-form-cljs
+(defn check-form
   "Check a single form with an optional expected type.
   Intended to be called from Clojure. For evaluation at the Clojurescript
   REPL see cf."

@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc typed.cljc.checker.check-form-common2
+(ns ^:no-doc typed.cljc.checker.check-form
   (:require [clojure.core.cache :as cache]
             [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.current-impl :as impl]
@@ -161,29 +161,31 @@
             res (some-> c-ast u/expr-type)
             delayed-errors (delayed-errors-fn)
             ex @terminal-error]
-        (merge
+        (cond->
           {:delayed-errors (vec delayed-errors)
            :ret (or res (r/ret r/-error))}
-          (when ex
-            {:ex ex})
-          (when checked-ast
-            ;; fatal type error = nil
-            {:checked-ast c-ast})
-          (when (and (impl/checking-clojure?)
-                     (not no-eval)
-                     (empty? delayed-errors)
-                     (not ex))
-            {:result (:result c-ast)})
-          (when (and c-ast emit-form (not ex))
-            {:out-form (emit-form c-ast)}))))))
+
+          ex (assoc :ex ex)
+
+          ;; fatal type error = nil
+          checked-ast (assoc :checked-ast c-ast)
+
+          (and (impl/checking-clojure?)
+               (not no-eval)
+               (empty? delayed-errors)
+               (not ex))
+          (assoc :result (:result c-ast))
+
+          (and c-ast emit-form (not ex))
+          (assoc :out-form (emit-form c-ast)))))))
 
 (defn check-form*
   [{:keys [impl unparse-ns] :as config} form expected type-provided? opt]
   {:pre [(map? opt)]}
   (let [{:keys [ex delayed-errors ret]} (apply check-form-info config form
-                                                      :expected expected 
-                                                      :type-provided? type-provided?
-                                                      (apply concat opt))]
+                                               :expected expected 
+                                               :type-provided? type-provided?
+                                               (apply concat opt))]
     (if-let [errors (seq delayed-errors)]
       (err/print-errors! errors)
       (if ex

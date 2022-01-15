@@ -1,7 +1,7 @@
 (ns clojure.core.typed.test.cast
   (:refer-clojure :exclude [cast])
   (:require 
-    [clojure.core.typed.test.test-utils :refer :all]
+    [typed.clj.checker.test-utils :refer :all]
     [clojure.test :refer :all]
     [clojure.core.typed :as tc :refer [Int cast]]))
 

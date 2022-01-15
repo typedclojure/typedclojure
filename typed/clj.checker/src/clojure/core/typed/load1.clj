@@ -9,18 +9,18 @@
 (ns ^:no-doc clojure.core.typed.load1
   "Implementation of clojure.core.typed.load."
   (:require [clojure.core.typed :as t]
-            [typed.cljc.analyzer.env :as env]
-            [typed.clj.analyzer :as jana2]
-            [typed.cljc.checker.check-form-common2 :as chk-frm]
-            [typed.clj.checker.check-form-clj :as chk-frm-clj]
-            [typed.cljc.checker.ns-deps-utils :as ns-utils]
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.errors :as err]
-            [typed.clj.lang :as lang]
             [clojure.core.typed.util-vars :as vs]
             [clojure.java.io :as io]
             [clojure.tools.reader :as reader]
-            [clojure.tools.reader.reader-types :as readers])
+            [clojure.tools.reader.reader-types :as readers]
+            [typed.clj.analyzer :as jana2]
+            [typed.clj.checker.check-form :as chk-frm-clj]
+            [typed.clj.lang :as lang]
+            [typed.cljc.analyzer.env :as env]
+            [typed.cljc.checker.check-form :as chk-frm]
+            [typed.cljc.checker.ns-deps-utils :as ns-utils])
   (:import java.net.URL))
 
 ;; based on clojure.tools.analyzer.jvm/analyze-ns

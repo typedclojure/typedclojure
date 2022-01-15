@@ -6,12 +6,12 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc typed.clj.checker.check-form-clj
+(ns ^:no-doc typed.clj.checker.check-form
   (:require [clojure.core.typed.ast-utils :as ast-u]
             [clojure.core.typed.current-impl :as impl]
             [typed.clj.checker.analyze-clj :as ana-clj]
             [typed.clj.checker.check :as chk-clj]
-            [typed.cljc.checker.check-form-common2 :as chk-form2]
+            [typed.cljc.checker.check-form :as chk-form2]
             [typed.cljc.checker.runtime-check :as rt-chk]))
 
 (defn config-map2 []

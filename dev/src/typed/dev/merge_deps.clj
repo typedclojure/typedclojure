@@ -142,6 +142,17 @@
                                                                    ;; FIXME make less hacky
                                                                    (and (.contains p "checker")
                                                                         (not= "test-resources" (.getName (File. p)))))
+                                                                 (test-paths))}
+                                        {:kaocha.testable/type :kaocha.type/clojure.test
+                                         :kaocha.testable/id   :analyzer
+                                         :kaocha/ns-patterns   [".*"]
+                                         :kaocha/source-paths  (src-paths)
+                                         ;:kaocha.filter/skip-meta [:typed/skip-from-repo-root]
+                                         :kaocha/test-paths    (filterv
+                                                                 (fn [^String p]
+                                                                   ;; FIXME make less hacky
+                                                                   (and (.contains p "analyzer")
+                                                                        (not= "test-resources" (.getName (File. p)))))
                                                                  (test-paths))}]
    :kaocha/fail-fast?                  true
    :kaocha/color?                      true

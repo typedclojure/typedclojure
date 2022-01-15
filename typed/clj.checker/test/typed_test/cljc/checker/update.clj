@@ -1,17 +1,15 @@
 (ns typed-test.cljc.checker.update
-  (:require 
-    ; this loads the type system, must go first
-    [clojure.core.typed.test.test-utils :refer :all]
-    [typed.clj.checker.parse-unparse :refer [parse-clj]]
-    [clojure.core.typed :as t]
-    [clojure.test :refer :all]
-    [typed.cljc.checker.path-rep :as pr]
-    [typed.cljc.checker.lex-env :refer [-PropEnv]]
-    [typed.cljc.checker.type-rep :as r]
-    [typed.cljc.checker.type-ctors :as c]
-    [typed.cljc.checker.update :as update :refer [env+ update-with-filter]]
-    [typed.cljc.checker.filter-rep :as fr]
-    [typed.cljc.checker.filter-ops :as fo])
+  (:require [clojure.core.typed :as t]
+            [clojure.test :refer :all]
+            [typed.clj.checker.parse-unparse :refer [parse-clj]]
+            [typed.clj.checker.test-utils :refer :all]
+            [typed.cljc.checker.filter-ops :as fo]
+            [typed.cljc.checker.filter-rep :as fr]
+            [typed.cljc.checker.lex-env :refer [-PropEnv]]
+            [typed.cljc.checker.path-rep :as pr]
+            [typed.cljc.checker.type-ctors :as c]
+            [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.checker.update :as update :refer [env+ update-with-filter]])
   (:import [clojure.lang IPersistentMap Seqable]))
 
 (defmacro with-validator [v & body]

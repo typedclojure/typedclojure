@@ -1,7 +1,7 @@
 (ns clojure.core.typed.test.repl-new
   (:require [clojure.core.typed :as t]
             [clojure.test :refer :all]                
-            [clojure.core.typed.test.test-utils :refer :all]))
+            [typed.clj.checker.test-utils :refer :all]))
 
 (deftest apropos-test
   (is-tc-e #(apropos "clojure") [-> (Seq Sym)]

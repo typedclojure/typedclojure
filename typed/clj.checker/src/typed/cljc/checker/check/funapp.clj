@@ -7,33 +7,32 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.cljc.checker.check.funapp
-  (:require [typed.cljc.checker.type-rep :as r]
-            [typed.cljc.checker.check-below :as below]
-            [clojure.core.typed.current-impl :as impl]
-            [typed.clj.checker.subtype :as sub]
+  (:require [clojure.core.typed :as t]
             [clojure.core.typed.coerce-utils :as coerce]
-            [typed.cljc.checker.type-ctors :as c]
-            [typed.clj.checker.parse-unparse :as prs]
-            [typed.cljc.checker.check.utils :as cu]
-            [clojure.core.typed.errors :as err]
-            [typed.cljc.checker.check.invoke-kw :as invoke-kw]
-            [typed.cljc.checker.check.funapp-one :as funapp1]
-            [typed.cljc.checker.check.app-error :as app-err]
-            [typed.cljc.checker.cs-gen :as cgen]
-            [typed.cljc.checker.free-ops :as free-ops]
             [clojure.core.typed.contract-utils :as con]
-            [typed.cljc.checker.indirect-utils :as ind-u]
-            [typed.cljc.checker.indirect-ops :as ind]
-            [typed.cljc.checker.filter-ops :as fops]
+            [clojure.core.typed.current-impl :as impl]
+            [clojure.core.typed.errors :as err]
             [clojure.core.typed.util-vars :as vs]
-            [clojure.core.typed.env :as env]
-            [typed.cljc.checker.utils :as u]
             [clojure.set :as set]
-            [clojure.core.typed :as t]
-            [typed.cljc.checker.subst :as subst]
-            [typed.cljc.checker.frees :as frees]
             [typed.clj.checker.experimental.infer-vars :as infer-vars]
-            [typed.cljc.checker.hset-utils :as hset]))
+            [typed.clj.checker.parse-unparse :as prs]
+            [typed.clj.checker.subtype :as sub]
+            [typed.cljc.checker.check-below :as below]
+            [typed.cljc.checker.check.app-error :as app-err]
+            [typed.cljc.checker.check.funapp-one :as funapp1]
+            [typed.cljc.checker.check.invoke-kw :as invoke-kw]
+            [typed.cljc.checker.check.utils :as cu]
+            [typed.cljc.checker.cs-gen :as cgen]
+            [typed.cljc.checker.filter-ops :as fops]
+            [typed.cljc.checker.free-ops :as free-ops]
+            [typed.cljc.checker.frees :as frees]
+            [typed.cljc.checker.hset-utils :as hset]
+            [typed.cljc.checker.indirect-ops :as ind]
+            [typed.cljc.checker.subst :as subst]
+            [typed.cljc.checker.type-ctors :as c]
+            [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.checker.utils :as u]
+            [typed.cljc.runtime.env :as env]))
 
 (def ^:private nth-type #((requiring-resolve 'typed.cljc.checker.check.nth/nth-type) %1 %2 %3))
 
@@ -447,5 +446,3 @@
           (prn "infer-any?" fexpr-ret-type (r/infer-any? (r/ret-t fexpr-ret-type)))
           (err/tc-delayed-error (str "Cannot invoke type: " (pr-str (prs/unparse-type fexpr-type)))
                                 :return (or expected (r/ret (c/Un))))))))))
-
-(ind-u/add-indirection ind/check-funapp check-funapp)

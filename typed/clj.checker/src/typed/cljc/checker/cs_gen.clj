@@ -7,32 +7,30 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.cljc.checker.cs-gen
-  (:require [typed.cljc.checker.utils :as u]
-            [clojure.core.typed.contract-utils :as con]
-            [clojure.core.typed.errors :as err]
+  (:require [clojure.core.typed :as t :refer [letfn>]]
             [clojure.core.typed.coerce-utils :as coerce]
-            [typed.cljc.checker.type-rep :as r]
-            [typed.cljc.checker.type-ctors :as c]
-            [typed.cljc.checker.filter-rep :as fr]
-            [typed.cljc.checker.filter-ops :as fo]
-            [typed.cljc.checker.object-rep :as or]
-            ; use subtype? utility defined in this namespace
-            [typed.clj.checker.subtype :as sub]
-            [typed.clj.checker.parse-unparse :as prs]
-            [typed.cljc.checker.cs-rep :as cr]
+            [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.current-impl :as impl]
+            [clojure.core.typed.errors :as err]
             [clojure.core.typed.util-vars :as vs]
+            [clojure.set :as set]
+            [typed.clj.checker.parse-unparse :as prs]
+            [typed.clj.checker.subtype :as sub] ; use subtype? utility defined in this namespace
+            [typed.cljc.checker.cs-rep :as cr]
             [typed.cljc.checker.dvar-env :as denv]
-            [typed.cljc.checker.frees :as frees]
+            [typed.cljc.checker.filter-ops :as fo]
+            [typed.cljc.checker.filter-rep :as fr]
             [typed.cljc.checker.free-ops :as free-ops]
+            [typed.cljc.checker.frees :as frees]
+            [typed.cljc.checker.indirect-ops :as ind]
+            [typed.cljc.checker.object-rep :as or]
             [typed.cljc.checker.promote-demote :as prmt]
             [typed.cljc.checker.subst :as subst]
-            [typed.cljc.checker.indirect-ops :as ind]
-            [typed.cljc.checker.indirect-utils :as ind-u]
-            [clojure.core.typed :as t :refer [letfn>]]
-            [clojure.set :as set])
-  (:import (typed.cljc.checker.type_rep F DataType Function Protocol Bounds FlowSet TCResult HSequential)
-           (typed.cljc.checker.cs_rep c cset dcon dmap cset-entry)))
+            [typed.cljc.checker.type-ctors :as c]
+            [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.checker.utils :as u])
+  (:import (typed.cljc.checker.cs_rep c cset dcon dmap cset-entry)
+           (typed.cljc.checker.type_rep F DataType Function Protocol Bounds FlowSet TCResult HSequential)))
 
 (t/typed-deps typed.cljc.checker.free-ops
               typed.cljc.checker.promote-demote)
@@ -2167,8 +2165,6 @@
      (if R
        (subst-gen cs* (set (keys Y)) R :T T)
        true))))
-
-(ind-u/add-indirection ind/infer infer)
 
 (defmacro unify-or-nil [{:keys [fresh out]} s t]
   (assert (every? simple-symbol? fresh))

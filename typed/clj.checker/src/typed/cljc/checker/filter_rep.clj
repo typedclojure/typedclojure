@@ -10,11 +10,10 @@
   (:refer-clojure :exclude [defrecord defprotocol])
   (:require [clojure.core.typed :as t]
             [typed.cljc.checker.impl-protocols :as p]
-            [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.checker.indirect-ops :as ind]
             [typed.cljc.checker.path-rep :as pr]
-            [typed.cljc.checker.utils :as u]
-            [typed.cljc.checker.indirect-utils :as ind-u]
-            [typed.cljc.checker.indirect-ops :as ind])
+            [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.checker.utils :as u])
   ;; FIXME should this import be a var, since IPathElem is a protocol?
   (:import (typed.cljc.checker.path_rep IPathElem)))
 
@@ -64,10 +63,6 @@
 
 (defn -top-fn []
   -top)
-
-(t/tc-ignore
-(ind-u/add-indirection ind/-top-fn -top-fn)
-)
 
 (u/ann-record NoFilter [])
 (u/def-filter NoFilter []

@@ -1,7 +1,7 @@
 (ns clojure.core.typed.test.subtype
   (:require [clojure.core.typed :as tc :refer []]
             [clojure.core.typed :as t]
-            [clojure.core.typed.test.test-utils :refer :all]
+            [typed.clj.checker.test-utils :refer :all]
             [typed.cljc.checker.type-ctors :refer :all]
             [typed.cljc.checker.type-rep :refer :all]
             [typed.clj.checker.parse-unparse :refer [parse-type]]

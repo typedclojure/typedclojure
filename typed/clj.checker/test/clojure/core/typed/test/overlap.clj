@@ -1,6 +1,6 @@
 (ns clojure.core.typed.test.overlap
   (:require [clojure.test :refer :all]
-            [clojure.core.typed.test.test-utils :refer :all]
+            [typed.clj.checker.test-utils :refer :all]
             [clojure.core.typed :as t]
             [typed.cljc.checker.type-ctors :refer :all]
             [typed.cljc.checker.type-rep :refer :all]

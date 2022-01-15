@@ -20,7 +20,7 @@
 (defn emit-form-fn [expr]
   (impl/impl-case
     :clojure ((requiring-resolve 'typed.clj.analyzer.passes.emit-form/emit-form) expr)
-    :cljs ((requiring-resolve 'clojure.core.typed.util-cljs/emit-form) expr)))
+    :cljs ((requiring-resolve 'typed.cljs.checker.util/emit-form) expr)))
 
 (defn constant-expr [expr]
   {:pre [(#{:quote} (:op expr))

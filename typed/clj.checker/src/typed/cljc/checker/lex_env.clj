@@ -8,17 +8,15 @@
 
 (ns ^:no-doc typed.cljc.checker.lex-env
   (:require [clojure.core.typed :as t]
-            [typed.cljc.checker.path-rep :as pr]
-            [typed.cljc.checker.utils :as u]
-            [clojure.core.typed.util-vars :as vs]
-            [clojure.core.typed.errors :as err]
-            [typed.cljc.checker.indirect-utils :as indu]
-            [typed.cljc.checker.indirect-ops :as ind]
             [clojure.core.typed.contract-utils :as con]
-            [typed.cljc.checker.type-rep :as r]
-            [typed.cljc.checker.filter-rep :as fr]
+            [clojure.core.typed.errors :as err]
+            [clojure.core.typed.util-vars :as vs]
             [typed.clj.checker.path-type :as path-type]
-            [typed.cljc.checker.object-rep :as obj]))
+            [typed.cljc.checker.filter-rep :as fr]
+            [typed.cljc.checker.object-rep :as obj]
+            [typed.cljc.checker.path-rep :as pr]
+            [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.checker.utils :as u]))
 
 (def lex-env? (con/hash-c? con/local-sym? r/Type?))
 (def prop-set? (con/set-c? fr/Filter?))
@@ -109,5 +107,3 @@
         ; it to TR because tests were failing.
         (cond-> (empty? (:path o)) (assoc-in [:l (:id o)] t)))
     :else (err/int-error (str "what is this?" (pr-str o)))))
-
-(indu/add-indirection ind/PropEnv? PropEnv?)

@@ -1,5 +1,5 @@
 (ns clojure.core.typed.test.filter-unit-tests
-  (:require [clojure.core.typed.test.test-utils :refer :all]
+  (:require [typed.clj.checker.test-utils :refer :all]
             [clojure.test :refer :all]
             [typed.cljc.checker.filter-ops :refer :all]
             [typed.cljc.checker.path-rep :refer :all]

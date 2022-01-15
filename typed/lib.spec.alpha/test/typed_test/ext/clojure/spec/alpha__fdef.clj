@@ -3,7 +3,7 @@
             typed.ext.clojure.spec.alpha
             [clojure.core.typed :as t]
             [typed.clj.checker.parse-unparse :as prs]
-            [clojure.core.typed.test.test-utils :refer :all]))
+            [typed.clj.checker.test-utils :refer :all]))
 
 (deftest fdef-test
   (is-tc-e (s/fdef bar :args (s/cat))

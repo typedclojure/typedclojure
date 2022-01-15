@@ -1,7 +1,7 @@
 (ns clojure.core.typed.test.mainnew
   (:require  [clojure.core.typed :as t] 
              [clojure.test :refer :all]                
-             [clojure.core.typed.test.test-utils :refer :all]))
+             [typed.clj.checker.test-utils :refer :all]))
 
 (deftest demunge-test
   (is-tc-e (demunge "abc") String 

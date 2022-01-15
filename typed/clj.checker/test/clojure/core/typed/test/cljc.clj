@@ -3,10 +3,12 @@
             [clojure.core.typed :as t]
             [clojure.core.typed.load :as load]))
 
-(deftest ^:typed/skip-from-repo-root check-ns-should-load-cljc-files
+(deftest check-ns-should-load-cljc-files
+  (remove-ns 'clojure.core.typed.test.dummy-cljc)
   (is (t/check-ns 'clojure.core.typed.test.dummy-cljc)))
 
-(deftest ^:typed/skip-from-repo-root check-ns-should-load-clj-files-before-cljc
+(deftest check-ns-should-load-clj-files-before-cljc
+  (remove-ns 'clojure.core.typed.test.duplicated)
   (is (t/check-ns 'clojure.core.typed.test.duplicated)))
 
 (deftest CTYP-285-ns-form-in-reader-cond-should-work
@@ -14,5 +16,6 @@
         clojure.lang.ExceptionInfo
         (load/typed-load1 "clojure/core/typed/test/ns_reader_cond"))))
 
-(deftest ^:typed/skip-from-repo-root allow-reader-conditional-in-ns-form
+(deftest allow-reader-conditional-in-ns-form
+  (remove-ns 'clojure.core.typed.test.reader-cond)
   (is (t/check-ns 'clojure.core.typed.test.reader-cond)))

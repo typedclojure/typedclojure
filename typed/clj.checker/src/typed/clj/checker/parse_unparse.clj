@@ -8,27 +8,26 @@
 
 (ns ^:no-doc typed.clj.checker.parse-unparse
   (:require [clojure.core.typed :as t]
+            [clojure.core.typed.coerce-utils :as coerce]
+            [clojure.core.typed.contract-utils :as con]
+            [clojure.core.typed.current-impl :as impl]
+            [clojure.core.typed.errors :as err]
+            [clojure.core.typed.util-vars :as vs]
+            [clojure.math.combinatorics :as comb]
+            [clojure.set :as set]
+            [typed.clj.checker.constant-type :as const]
             [typed.cljc.analyzer.passes.uniquify :as uniquify]
-            [typed.cljc.checker.type-rep :as r]
-            [typed.cljc.checker.type-ctors :as c]
+            [typed.cljc.checker.dvar-env :as dvar]
+            [typed.cljc.checker.filter-ops :as fl]
+            [typed.cljc.checker.filter-rep :as f]
+            [typed.cljc.checker.free-ops :as free-ops]
+            [typed.cljc.checker.hset-utils :as hset]
+            [typed.cljc.checker.indirect-ops :as ind]
             [typed.cljc.checker.name-env :as nme-env]
             [typed.cljc.checker.object-rep :as orep]
             [typed.cljc.checker.path-rep :as pthrep]
-            [clojure.core.typed.coerce-utils :as coerce]
-            [clojure.core.typed.contract-utils :as con]
-            [clojure.core.typed.errors :as err]
-            [clojure.core.typed.util-vars :as vs]
-            [typed.cljc.checker.dvar-env :as dvar]
-            [typed.cljc.checker.filter-rep :as f]
-            [typed.cljc.checker.filter-ops :as fl]
-            [typed.clj.checker.constant-type :as const]
-            [typed.cljc.checker.free-ops :as free-ops]
-            [typed.cljc.checker.indirect-utils :as indu]
-            [typed.cljc.checker.indirect-ops :as ind]
-            [clojure.core.typed.current-impl :as impl]
-            [typed.cljc.checker.hset-utils :as hset]
-            [clojure.set :as set]
-            [clojure.math.combinatorics :as comb])
+            [typed.cljc.checker.type-ctors :as c]
+            [typed.cljc.checker.type-rep :as r])
   (:import (typed.cljc.checker.type_rep NotType DifferenceType Intersection Union FnIntersection
                                         DottedPretype Function RClass App TApp
                                         PrimitiveArray DataType Protocol TypeFn Poly PolyDots
@@ -918,7 +917,7 @@
 
 (defmethod parse-type-list 'cljs.core.typed/JSObj [t] (parse-JSObj t))
 
-(def ^:private cljs-ns #((requiring-resolve 'clojure.core.typed.util-cljs/cljs-ns)))
+(def ^:private cljs-ns #((requiring-resolve 'typed.cljs.checker.util/cljs-ns)))
 
 (defn- parse-in-ns []
   {:post [(symbol? %)]}
@@ -968,7 +967,7 @@
            %)]}
   (impl/assert-cljs)
   (let [nsym (parse-in-ns)
-        res ((requiring-resolve 'clojure.core.typed.util-cljs/resolve-var) nsym sym)]
+        res ((requiring-resolve 'typed.cljs.checker.util/resolve-var) nsym sym)]
     res))
 
 (defn parse-RClass [cls-sym params-syn]
@@ -1422,8 +1421,6 @@
                       (when ((some-fn symbol? keyword?) k)
                         (str "\n\nHint: Value types should be preceded by a quote or wrapped in the Value constructor." 
                              " eg. '" (pr-str k) " or (Value " (pr-str k)")")))))
-
-(indu/add-indirection ind/parse-type parse-type)
 
 (comment
   (parse-clj `(t/All [s#] [s# :-> s#]))
@@ -2078,5 +2075,3 @@
 (extend-protocol IUnparseType
   TCResult
   (unparse-type* [v] (unparse-TCResult v)))
-
-(indu/add-indirection ind/unparse-type unparse-type)

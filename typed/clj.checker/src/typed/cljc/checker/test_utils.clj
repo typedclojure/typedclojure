@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.common-utils
+(ns typed.cljc.checker.test-utils
   (:require [clojure.core.typed.errors :as err]))
 
 (defn tc-e 

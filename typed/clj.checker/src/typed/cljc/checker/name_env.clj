@@ -17,7 +17,7 @@
             [typed.cljc.checker.declared-kind-env :as kinds]
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed :as t]
-            [clojure.core.typed.env :as env]))
+            [typed.cljc.runtime.env :as env]))
 
 (t/defalias NameEnv
   "Environment mapping names to types. Keyword values are special."
@@ -104,7 +104,7 @@
                       (impl/impl-case :clojure #(or (rcls/get-rclass %)
                                                     (when (class? (resolve %))
                                                       (c/RClass-of-with-unknown-params %)))
-                                      :cljs (requiring-resolve 'clojure.core.typed.jsnominal-env/get-jsnominal))
+                                      :cljs (requiring-resolve 'typed.cljs.checker.jsnominal-env/get-jsnominal))
                       ; during the definition of RClass's that reference
                       ; themselves in their definition, a temporary TFn is
                       ; added to the declared kind env which is enough to determine
