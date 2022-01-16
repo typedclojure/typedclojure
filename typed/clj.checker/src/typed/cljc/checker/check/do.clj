@@ -41,8 +41,9 @@
 
     :else
     (let [exprs (conj (vec (:statements expr)) (:ret expr))
+          #_#_
           _ (assert (every? (comp #{:unanalyzed} :op) exprs)
-                    (mapv :op exprs))
+                    (mapv (juxt :op :form) exprs))
           nexprs (count exprs)
           reachable-atom (atom true)
           [env cexprs]

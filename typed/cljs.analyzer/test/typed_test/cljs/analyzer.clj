@@ -17,7 +17,7 @@
 (defmacro wrap [& body]
   {:pre [(seq body)]}
   `(binding [cljs-ana/*cljs-ns* '~'cljs.user]
-     (with-bindings (jsana2/default-thread-bindings (ana-api/empty-env))
+     (with-bindings (jsana2/default-thread-bindings)
        (env/with-compiler-env STATE
          (comp-api/with-core-cljs)
          (jsana2/analyze-outer
@@ -27,7 +27,7 @@
          ~@body))))
 
 (defn analyze1 [form]
-  (with-bindings (jsana2/default-thread-bindings (ana-api/empty-env))
+  (with-bindings (jsana2/default-thread-bindings)
     (-> (ana/unanalyzed
           form
           (ana-api/empty-env))
@@ -36,7 +36,7 @@
 (defn analyze-outer-root
   "cljs helper"
   [ast]
-  (with-bindings (jsana2/default-thread-bindings (ana-api/empty-env))
+  (with-bindings (jsana2/default-thread-bindings)
     (ana/analyze-outer-root ast)))
 
 (defn trim-unanalyzed [ast]
@@ -48,6 +48,43 @@
       (update :statements #(mapv trim-unanalyzed %))
       (update :ret trim-unanalyzed)))
 
+(defn unanalyzed [form env]
+  (with-bindings (jsana2/default-thread-bindings)
+    (env/with-compiler-env STATE
+      (jsana2/unanalyzed form env))))
+
+(defn analyze-outer [ast]
+  (with-bindings (jsana2/default-thread-bindings)
+    (env/with-compiler-env STATE
+      (jsana2/analyze-outer ast))))
+
+(deftest unanalyzed-test
+  (is (= {:op :unanalyzed
+          :form 1}
+         (trim-unanalyzed (unanalyzed 1 (ana-api/empty-env)))))
+  (is (= {:op :unanalyzed
+          :form '(do)}
+         (trim-unanalyzed (unanalyzed '(do) (ana-api/empty-env))))))
+
+(deftest analyze-outer-test
+  (is (= {:op :unanalyzed
+          :form '(let* [])}
+         (trim-unanalyzed
+           (analyze-outer
+             (unanalyzed `(let []) (ana-api/empty-env))))))
+  (is (= {:op :let
+          :form '(let* [])}
+         (select-keys
+           (analyze-outer
+             (analyze-outer
+               (unanalyzed `(let []) (ana-api/empty-env))))
+           [:op :form])))
+  (is (= {:op :unanalyzed
+          :form '(js* "(~{} + ~{})" 1 2)}
+         (trim-unanalyzed
+           (analyze-outer
+             (unanalyzed `(+ 1 2) (ana-api/empty-env)))))))
+
 ;;TODO preanalyze :body? true nodes
 (deftest analyze-outer-test
   (is (= :const
@@ -56,7 +93,11 @@
     (let [expr (wrap (analyze1 '(do 42 1)))]
       (is (= :do (:op expr)))
       (is (= [{:op :unanalyzed :form 42}] (mapv trim-unanalyzed (:statements expr))))
-      (is (= {:op :unanalyzed :form 1} (-> expr :ret trim-unanalyzed)))))
+      (is (= {:op :unanalyzed :form 1} (-> expr :ret trim-unanalyzed))))
+    (let [expr (wrap (analyze1 '(do)))]
+      (is (= :do (:op expr)))
+      (is (= [] (:statements expr)))
+      (is (= {:op :unanalyzed :form nil} (-> expr :ret trim-unanalyzed)))))
   ;; FIXME fully analyze bindings before putting in env
   (testing :let
     (let [expr (wrap (analyze1 '(let [a 1] (inc 42) (+ a))))]

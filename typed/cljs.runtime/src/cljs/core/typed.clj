@@ -186,9 +186,10 @@
    `(defalias ~sym ~t))
   ([sym t]
    (assert (symbol? sym) (str "First argument to defalias must be a symbol: " sym))
-   `(do (def-alias* '~sym '~t)
-        ~(when-not (namespace sym)
-           `(def ~sym)))))
+   `(tc-ignore
+      (do (defalias* '~sym '~t)
+          ~(when-not (namespace sym)
+             `(def ~sym))))))
 
 (defmacro inst 
   "Instantiate a polymorphic type with a number of types"

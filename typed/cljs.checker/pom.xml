@@ -18,6 +18,10 @@
   <dependencies>
     <dependency>
       <groupId>org.typedclojure</groupId>
+      <artifactId>typed.cljs.runtime</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.typedclojure</groupId>
       <artifactId>typed.clj.checker</artifactId>
     </dependency>
     <dependency>

@@ -1,0 +1,3 @@
+#!/bin/sh
+
+clj -M:test:nREPL "$@"

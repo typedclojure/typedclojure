@@ -8,9 +8,8 @@
 
 ;copied from clojure.tools.analyzer.passes.js.emit-form
 (ns ^:no-doc clojure.core.typed.emit-form-cljs
-  (:require [clojure.tools.analyzer.passes
-             [emit-form :as default]
-             [uniquify :refer [uniquify-locals]]]
+  (:require [clojure.tools.analyzer.passes.emit-form :as default]
+            [clojure.tools.analyzer.passes.uniquify :refer [uniquify-locals]]
             [clojure.string :as s]
             [cljs.tagged-literals :refer [->JSValue]])
   (:import cljs.tagged_literals.JSValue
@@ -60,6 +59,11 @@
   [{:keys [items]} opts]
   (->JSValue (mapv #(-emit-form* % opts) items)))
 
+(defmethod -emit-form :js-var
+  [{:keys [name]} opts]
+  ;;FIXME verify if this is correct
+  name)
+
 (defmethod print-method JSValue [^JSValue o ^Writer w]
   (.write w "#js ")
   (.write w (str (.val o))))
@@ -92,3 +96,6 @@
                     [[] []] nodes)
           ~(-emit-form* default opts)))
 
+(defmethod -emit-form :unanalyzed
+  [{:keys [form]} opts]
+  form)

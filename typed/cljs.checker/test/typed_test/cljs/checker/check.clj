@@ -16,8 +16,6 @@
             [typed.cljs.checker.test-utils :refer :all]
             [typed.cljs.checker.util :as ucljs]))
 
-;FIXME
-#_
 (deftest throw-test
   (is-tc-e (throw (js/JSError. "foo"))
            t/Nothing))
@@ -38,6 +36,13 @@
   (is-cljs (c/Protocol-of 'cljs.core/IMap [(r/JSNumber-maker)
                                            (r/JSNumber-maker)])))
 
+(deftest do-test
+  (is-tc-e (do) nil)
+  (is-tc-e (do nil) nil)
+  (is-tc-e (do #{1})
+           (ISet t/JSNumber))
+  )
+
 (deftest heterogeneous-ds-test
   (is-tc-e [1 2]
            '[t/JSNumber t/JSNumber])
@@ -57,6 +62,9 @@
 
 (deftest fn-test
   (is-tc-e (fn a [b] a))
+  (is-tc-e (t/fn a [b] a))
+  (is-tc-e (cljs.core.typed/fn a [b] a))
+  (is-tc-e (core/fn a [b] a))
   (is-tc-e (fn [a] a)
            (t/All [x] [x -> x])))
 
@@ -66,14 +74,21 @@
              ((t/inst f t/JSNumber) 1))
            t/JSNumber))
 
+#_ ;;TODO
 (deftest letfn-test
   (is-tc-e (t/letfn> [a :- (t/All [x] [x -> x])
                       (a [b] b)]
              (a 1))))
 
+(deftest ann-protocol-test
+  (is-tc-e
+    (cljs.core.typed/ann-protocol
+      [[r :variance :covariant]]
+      cljs.core.async.impl.protocols/ReadPort)))
+
 ;;commenting-out this test because just :require -ing cljs.core.async fails with internal error
 #_(deftest async-test
-  (is-cljs (t/check-ns* 'cljs.core.typed.async)))
+  (is-cljs (t/check-ns* 'typed.lib.cljs.core.async)))
 
 #_
 (deftest inline-annotation-test
@@ -242,8 +257,7 @@
   (is-tc-e (t/fn [a :- (t/U (cljs.core/IVector t/Any) t/JSUndefined)]
              (if a
                (t/ann-form a (cljs.core/IVector t/Any))
-               (t/ann-form a t/JSUndefined))))
-)
+               (t/ann-form a t/JSUndefined)))))
 
 (deftest ratio-test
   (is-tc-e 1/2 t/JSNumber))

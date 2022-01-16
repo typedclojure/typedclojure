@@ -31,7 +31,7 @@
   nil)
 
 (defn ^:no-doc
-  def-alias* 
+  defalias*
   "Internal use only. Use defalias."
   [sym type]
   nil)

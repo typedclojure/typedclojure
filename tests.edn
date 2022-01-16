@@ -17,6 +17,7 @@
     "typed/cljc.analyzer/src"
     "typed/cljs.analyzer/src"
     "typed/cljs.checker/src"
+    "typed/cljs.runtime/src"
     "typed/lib.clojure/src"
     "typed/lib.core.async/src"
     "typed/lib.spec.alpha/src"],
@@ -34,6 +35,7 @@
     "typed/cljc.analyzer/test"
     "typed/cljs.analyzer/test"
     "typed/cljs.checker/test"
+    "typed/cljs.runtime/test"
     "typed/lib.clojure/test"
     "typed/lib.core.async/test"
     "typed/lib.spec.alpha/test"]}
@@ -53,11 +55,14 @@
     "typed/cljc.analyzer/src"
     "typed/cljs.analyzer/src"
     "typed/cljs.checker/src"
+    "typed/cljs.runtime/src"
     "typed/lib.clojure/src"
     "typed/lib.core.async/src"
     "typed/lib.spec.alpha/src"],
    :kaocha/test-paths
-   ["typed/cljs.analyzer/test" "typed/cljs.checker/test"]}
+   ["typed/cljs.analyzer/test"
+    "typed/cljs.checker/test"
+    "typed/cljs.runtime/test"]}
   {:kaocha.testable/type :kaocha.type/clojure.test,
    :kaocha.testable/id :checker,
    :kaocha/ns-patterns [".*"],
@@ -74,6 +79,7 @@
     "typed/cljc.analyzer/src"
     "typed/cljs.analyzer/src"
     "typed/cljs.checker/src"
+    "typed/cljs.runtime/src"
     "typed/lib.clojure/src"
     "typed/lib.core.async/src"
     "typed/lib.spec.alpha/src"],
@@ -95,6 +101,7 @@
     "typed/cljc.analyzer/src"
     "typed/cljs.analyzer/src"
     "typed/cljs.checker/src"
+    "typed/cljs.runtime/src"
     "typed/lib.clojure/src"
     "typed/lib.core.async/src"
     "typed/lib.spec.alpha/src"],

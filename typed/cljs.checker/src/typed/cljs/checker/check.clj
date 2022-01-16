@@ -15,6 +15,7 @@
             [clojure.core.typed.coerce-utils :as coerce]
             [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.errors :as err]
+            [clojure.core.typed.runtime.jvm.configs :as configs]
             [clojure.core.typed.util-vars :as vs]
             [clojure.java.io :as io]
             [clojure.string :as c-str]
@@ -48,6 +49,7 @@
             [typed.cljc.checker.check.special.fn :as special-fn]
             [typed.cljc.checker.check.special.loop :as special-loop]
             [typed.cljc.checker.check.throw :as throw]
+            [typed.cljc.checker.check.unanalyzed :as unanalyzed]
             [typed.cljc.checker.check.utils :as cu]
             [typed.cljc.checker.check.vector :as vec]
             [typed.cljc.checker.check.with-meta :as with-meta]
@@ -71,6 +73,8 @@
 (defmulti -check (fn [expr expected]
                    (:op expr)))
 
+(def ^:private *register-exts (delay (configs/register-config-exts)))
+
 (defn check-expr
   ([expr] (check-expr expr nil))
   ([{:keys [env] :as expr} expected]
@@ -79,7 +83,10 @@
      (when (neg? fuel) (prn `check-expr "infinite loop"))
      (prn `check-expr "op" (:op expr))
      (if (= :unanalyzed (:op expr))
-       (recur (tana2/analyze-outer expr) (max -1 (dec fuel)))
+       (do @*register-exts
+           (or (binding [vs/*current-expr* expr]
+                 (unanalyzed/-unanalyzed-special expr expected))
+               (recur (tana2/analyze-outer expr) (max -1 (dec fuel)))))
        (binding [vs/*current-env* (if (:line env) env vs/*current-env*)
                  vs/*current-expr* expr]
          (-check expr expected))))))
@@ -202,9 +209,9 @@
                      expected)))
 
 (defmethod -check :const
- [{:keys [val] :as expr} expected]
- ;; FIXME probably want a custom `constant-type` function
- (const/check-const constant-type/constant-type false expr expected))
+  [{:keys [val] :as expr} expected]
+  ;; FIXME probably want a custom `constant-type` function
+  (const/check-const constant-type/constant-type false expr expected))
 
 (defmethod -check :vector
   [expr expected]
@@ -244,7 +251,7 @@
     :else (do (u/tc-warning (str "js-op missing, inferring Unchecked"))
               (assoc expr
                      u/expr-type (below/maybe-check-below
-                                   (r/ret (r/-unchecked))
+                                   (r/ret (r/-unchecked 'js))
                                    expected)))))
 
 (defmulti invoke-special (fn [{{:keys [op] :as fexpr} :fn :as expr} & expected]
@@ -468,11 +475,12 @@
   (let [;; TODO check ctor
         cargs (mapv check-expr args)]
     (u/tc-warning (str "`new` special form is Unchecked"))
-    (assoc :args cargs
-           u/expr-type (below/maybe-check-below
-                         ;; TODO actual checks
-                         (r/ret (r/-unchecked))
-                         expected))))
+    (-> expr
+        (assoc :args cargs
+               u/expr-type (below/maybe-check-below
+                             ;; TODO actual checks
+                             (r/ret (r/-unchecked 'new))
+                             expected)))))
 
 ;; TODO does this actually work?
 #_

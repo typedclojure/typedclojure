@@ -50,7 +50,7 @@
   ([form expected] (check-top-level form expected {}))
   ([form expected {:keys [env] :as opts}]
    (let [env (or env (ana-api/empty-env))]
-     (with-bindings (jsana2/default-thread-bindings env)
+     (with-bindings (jsana2/default-thread-bindings)
        (env/with-compiler-env STATE
          (-> form
              (jsana2/unanalyzed env)

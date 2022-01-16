@@ -9,7 +9,7 @@
             [cljs.core.typed.async :refer [Chan]])
   (:require-macros [cljs.core.async.macros :refer [alt!]]
                    [cljs.core.typed.async :refer [chan> go>]]
-                   [cljs.core.typed :refer [def-alias typed-deps ann]])
+                   [cljs.core.typed :refer [defalias typed-deps ann]])
   (:import goog.events.EventType))
 
 (typed-deps cljs.core.typed.async

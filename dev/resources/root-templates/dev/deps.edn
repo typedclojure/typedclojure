@@ -8,7 +8,7 @@
  :aliases {:nREPL
            {:extra-deps
             {nrepl/nrepl {:mvn/version "{◊nrepl-mvn-version◊}"}
-             cider/cider-nrepl {:mvn/version "0.22.4"}},
+             cider/cider-nrepl {:mvn/version "{◊cider-nrepl-mvn-version◊}"}},
             :main-opts ["-m" "nrepl.cmdline" "--interactive"
                         #_"
                         Note:

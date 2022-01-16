@@ -23,7 +23,7 @@
     "}
   ^:no-doc
   typed.lib.cljs.core.async
-  (:require-macros [cljs.core.typed :refer [ann ann-datatype def-alias ann-protocol inst
+  (:require-macros [cljs.core.typed :refer [ann ann-datatype defalias ann-protocol inst
                                             tc-ignore]
                     :as t])
   (:require [cljs.core.typed :refer [AnyInteger Seqable]]
@@ -60,7 +60,7 @@
 ;;;;;;;;;;;;;;;;;;;;;
 ;;; Aliases
 
-(def-alias 
+(defalias 
   ^{:forms [(ReadOnlyChan t)]}
   ReadOnlyChan
   "A core.async channel that statically disallows writes."
@@ -69,7 +69,7 @@
               (cljs.core.async.impl.protocols/ReadPort r)
               (cljs.core.async.impl.protocols/Channel Nothing r)])))
 
-(def-alias 
+(defalias 
   ^{:forms [(Chan t)]}
   Chan
   "A core.async channel"
@@ -78,20 +78,20 @@
               (cljs.core.async.impl.protocols/ReadPort x)
               (cljs.core.async.impl.protocols/Channel x x)])))
 
-(def-alias 
+(defalias 
   ^{:forms [TimeoutChan]}
   TimeoutChan
   "A timeout channel"
   (Chan Any))
 
-(def-alias 
+(defalias 
   ^{:forms [(Buffer t)]}
   Buffer
   "A buffer of type x."
   (TFn [[x :variance :invariant]]
     (cljs.core.async.impl.protocols/Buffer x)))
 
-(def-alias 
+(defalias 
   ^{:forms [(ReadOnlyPort t)]}
   ReadOnlyPort
   "A read-only port that can read type x"
@@ -99,7 +99,7 @@
     (Extends [(cljs.core.async.impl.protocols/ReadPort r) 
               (cljs.core.async.impl.protocols/WritePort Nothing)])))
 
-(def-alias 
+(defalias 
   ^{:forms [(WriteOnlyPort t)]}
   WriteOnlyPort
   "A write-only port that can write type x"
@@ -107,7 +107,7 @@
     (Extends [(cljs.core.async.impl.protocols/ReadPort x) 
               (cljs.core.async.impl.protocols/WritePort x)])))
 
-(def-alias 
+(defalias 
   ^{:forms [(Port t)]}
   Port
   "A port that can read and write type x"

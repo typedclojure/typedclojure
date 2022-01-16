@@ -8,14 +8,14 @@
 
 (ns typed.cljs.analyzer
   "Analyzer for clojurescript code."
-  (:require [cljs.env :as env]
-            [cljs.analyzer :as ana-cljs']
+  (:require [cljs.analyzer :as ana-cljs']
             [cljs.analyzer.api :as ana-api]
-            [typed.cljc.analyzer :as ana]
+            [cljs.env :as env]
             [clojure.java.io :as io]
             [clojure.string :as str]
             [clojure.tools.reader :as reader]
-            [clojure.tools.reader.reader-types :as readers]))
+            [clojure.tools.reader.reader-types :as readers]
+            [typed.cljc.analyzer :as ana]))
 
 (def instrumented-analyzer-ns (doto 'typed.cljs.analyzer.wrapped.cljs.analyzer
                                 create-ns))
@@ -301,12 +301,26 @@
     [:form :op])
   )
 
-(defn default-thread-bindings [env]
+(defn resolve-sym
+  [op env]
+  ;;TODO use `api-ana/ns-resolve` ?
+  (when (and (symbol? op)
+             (not (ana-cljs'/specials op))
+             (not (get (:locals env) op)))
+    (:name (ana-api/resolve env op))))
+
+(defn var->sym [sym]
+  (when (qualified-symbol? sym)
+    sym))
+
+(defn default-thread-bindings []
   {#'ana-cljs/parse parse
    #'ana-cljs/analyze unanalyzed-env-first
    #'ana/parse (fn [form env] (parse (first form) env form nil nil))
    #'ana/analyze-outer analyze-outer
    #'ana/unanalyzed unanalyzed
+   #'ana/resolve-sym resolve-sym
+   #'ana/var->sym var->sym
    #'ana/scheduled-passes {:pre identity
                            :post identity
                            :init-ast identity}})
@@ -314,11 +328,4 @@
 (defn resolve-op-sym
   [form env]
   (when (seq? form)
-    (let [op (first form)]
-      (when (and (symbol? op)
-                 (not (ana-cljs'/specials op))
-                 (not (get (:locals env) op)))
-        (when-some [{:keys [op] :as expr} (ana-api/resolve env op)]
-          (case op
-            :var (:name expr)
-            (throw (ex-info (str `resolve-op-sym " unsupported op: " op)))))))))
+    (resolve-sym (first form) env)))

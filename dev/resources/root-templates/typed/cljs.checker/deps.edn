@@ -4,8 +4,8 @@
         org.clojure/tools.analyzer.jvm {:mvn/version "{◊tools-analyzer-jvm-mvn-version◊}"}
         {◊typedclojure-group-id◊}/typed.clj.checker {:local/root "../clj.checker"
                                             :deps/manifest :deps}
-        {◊typedclojure-group-id◊}/typed.clj.runtime {:local/root "../clj.runtime"
-                                            :deps/manifest :deps}
+        {◊typedclojure-group-id◊}/typed.cljs.runtime {:local/root "../cljs.runtime"
+                                             :deps/manifest :deps}
         {◊typedclojure-group-id◊}/typed.cljs.analyzer {:local/root "../cljs.analyzer"
                                             :deps/manifest :deps}
         org.clojure/clojurescript {:mvn/version "{◊clojurescript-mvn-version◊}"}}
@@ -13,13 +13,13 @@
            {:extra-paths ["script"]
             :extra-deps
             {nrepl/nrepl {:mvn/version "{◊nrepl-mvn-version◊}"}
-             cider/piggieback {:mvn/version "0.5.2"}}
+             cider/piggieback {:mvn/version "{◊piggieback-mvn-version◊}"}}
             :main-opts ["-m" "nrepl.cmdline"
                         "--interactive"]}
 
            :reply
            {:extra-deps
-            {reply/reply {:mvn/version "0.4.1"}}
+            {reply/reply {:mvn/version "{◊reply-mvn-version◊}"}}
             :main-opts ["-m" "reply.main"]}
 
            :start-repl
@@ -36,6 +36,9 @@
                          ;                        :exclusions [org.clojure/tools.analyzer.jvm]}
                          ;org.clojure/tools.trace {:mvn/version "0.7.5"
                          ;                         :exclusions [org.clojure/clojure]}
+
+                         {◊typedclojure-group-id◊}/lib.core.async {:local/root "../lib.core.async"
+                                            :deps/manifest :deps}
                          org.clojure/test.check {:mvn/version "{◊test-check-mvn-version◊}"}
                          com.gfredericks/test.chuck {:mvn/version "{◊test-chuck-mvn-version◊}"}}}
            :kaocha

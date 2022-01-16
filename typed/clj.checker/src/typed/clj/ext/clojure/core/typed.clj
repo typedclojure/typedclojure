@@ -10,10 +10,11 @@
   "Typing rules for core.typed ops."
   (:require [clojure.core.typed :as t]
             [clojure.core.typed.util-vars :as vs]
-            [typed.clj.checker.check :refer [check-expr defuspecial -unanalyzed-special]]
+            [typed.clj.checker.check :refer [check-expr]]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.cljc.analyzer :as ana2]
             [typed.cljc.checker.check-below :as below]
+            [typed.cljc.checker.check.unanalyzed :refer [defuspecial -unanalyzed-special]]
             [typed.cljc.checker.check.utils :as cu]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.utils :as u]))

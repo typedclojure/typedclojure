@@ -8,7 +8,7 @@
 
 (ns ^:no-doc typed.clj.ext.clojure.core.typed.unsafe
   (:require [clojure.core.typed :as t]
-            [typed.clj.checker.check :refer [defuspecial]]
+            [typed.cljc.checker.check.unanalyzed :refer [defuspecial]]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.cljc.checker.check-below :as below]
             [typed.cljc.checker.type-rep :as r]

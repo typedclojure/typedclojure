@@ -18,9 +18,11 @@
      :git/url "https://github.com/lambdaisland/kaocha.git"}}},
   :nREPL
   {:extra-deps
-   {cider/cider-nrepl {:mvn/version "0.25.3"},
-    cider/piggieback {:mvn/version "0.5.2"},
-    nrepl/nrepl {:mvn/version "0.8.3"}},
+   {cider/cider-nrepl {:mvn/version "0.28.2"},
+    cider/piggieback {:mvn/version "0.5.3"},
+    net.cgrand/parsley {:mvn/version "0.9.3"},
+    nrepl/nrepl {:mvn/version "0.8.3"},
+    reply/reply {:mvn/version "0.5.1"}},
    :jvm-opts ["-XX:-OmitStackTraceInFastThrow"]},
   :nREPL-runner
   {:main-opts
@@ -41,7 +43,7 @@
     com.gfredericks/test.chuck {:mvn/version "0.2.12"},
     criterium/criterium {:mvn/version "0.4.5"},
     org.clojure/clojure {:mvn/version "1.10.3"},
-    org.clojure/clojurescript {:mvn/version "1.10.891"},
+    org.clojure/clojurescript {:mvn/version "1.11.4"},
     org.clojure/core.async {:mvn/version "1.5.648"},
     org.clojure/core.logic {:mvn/version "1.0.0"},
     org.clojure/math.combinatorics
@@ -49,7 +51,9 @@
     org.clojure/test.check {:mvn/version "1.1.1"},
     org.clojure/tools.analyzer.jvm {:mvn/version "1.2.2"},
     org.clojure/tools.nrepl
-    {:exclusions [org.clojure/clojure], :mvn/version "0.2.6"}},
+    {:exclusions [org.clojure/clojure], :mvn/version "0.2.6"},
+    org.typedclojure/lib.core.async
+    {:deps/manifest :deps, :local/root "../lib.core.async"}},
    :extra-paths
    ["typed/clj.analyzer/test"
     "typed/clj.annotator/test"
@@ -64,11 +68,13 @@
     "typed/cljc.analyzer/test"
     "typed/cljs.analyzer/test"
     "typed/cljs.checker/test"
+    "typed/cljs.runtime/test"
     "typed/lib.clojure/test"
     "typed/lib.core.async/test"
     "typed/lib.spec.alpha/test"]}},
  :deps
- {org.typedclojure/typed.clj.checker
+ {selmer/selmer {:mvn/version "1.12.50"},
+  org.typedclojure/typed.clj.checker
   {:deps/manifest :deps, :local/root "typed/clj.checker"},
   org.typedclojure/typed.clj.reader
   {:deps/manifest :deps, :local/root "typed/clj.reader"},
@@ -96,6 +102,8 @@
   {:deps/manifest :deps, :local/root "typed/clj.annotator"},
   org.typedclojure/typed.cljs.checker
   {:deps/manifest :deps, :local/root "typed/cljs.checker"},
+  org.typedclojure/typed.cljs.runtime
+  {:deps/manifest :deps, :local/root "typed/cljs.runtime"},
   org.typedclojure/typed.clj.runtime
   {:deps/manifest :deps, :local/root "typed/clj.runtime"}},
  :paths ["dev/src"]}

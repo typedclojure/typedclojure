@@ -8,7 +8,8 @@
 
 (ns ^:no-doc typed.ext.clojure.core.async
   "Typing rules for core.async"
-  (:require [typed.clj.checker.check :refer [defuspecial -unanalyzed-special check-expr]]
+  (:require [typed.clj.checker.check :refer [check-expr]]
+            [typed.cljc.checker.check.unanalyzed :refer [defuspecial -unanalyzed-special]]
             [typed.cljc.checker.utils :as u]
             [clojure.core.typed :as t]
             [typed.cljc.checker.type-rep :as r]

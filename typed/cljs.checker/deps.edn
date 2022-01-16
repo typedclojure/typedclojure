@@ -4,8 +4,8 @@
         org.clojure/tools.analyzer.jvm {:mvn/version "1.2.2"}
         org.typedclojure/typed.clj.checker {:local/root "../clj.checker"
                                             :deps/manifest :deps}
-        org.typedclojure/typed.clj.runtime {:local/root "../clj.runtime"
-                                            :deps/manifest :deps}
+        org.typedclojure/typed.cljs.runtime {:local/root "../cljs.runtime"
+                                             :deps/manifest :deps}
         org.typedclojure/typed.cljs.analyzer {:local/root "../cljs.analyzer"
                                             :deps/manifest :deps}
         org.clojure/clojurescript {:mvn/version "1.11.4"}}
@@ -13,13 +13,13 @@
            {:extra-paths ["script"]
             :extra-deps
             {nrepl/nrepl {:mvn/version "0.8.3"}
-             cider/piggieback {:mvn/version "0.5.2"}}
+             cider/piggieback {:mvn/version "0.5.3"}}
             :main-opts ["-m" "nrepl.cmdline"
                         "--interactive"]}
 
            :reply
            {:extra-deps
-            {reply/reply {:mvn/version "0.4.1"}}
+            {reply/reply {:mvn/version "0.5.1"}}
             :main-opts ["-m" "reply.main"]}
 
            :start-repl
@@ -36,6 +36,9 @@
                          ;                        :exclusions [org.clojure/tools.analyzer.jvm]}
                          ;org.clojure/tools.trace {:mvn/version "0.7.5"
                          ;                         :exclusions [org.clojure/clojure]}
+
+                         org.typedclojure/lib.core.async {:local/root "../lib.core.async"
+                                            :deps/manifest :deps}
                          org.clojure/test.check {:mvn/version "1.1.1"}
                          com.gfredericks/test.chuck {:mvn/version "0.2.12"}}}
            :kaocha

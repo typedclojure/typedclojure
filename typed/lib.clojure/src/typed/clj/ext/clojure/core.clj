@@ -8,17 +8,17 @@
 
 (ns ^:no-doc typed.clj.ext.clojure.core
   "Typing rules for base Clojure distribution."
-  (:require [typed.clj.checker.check :as chk]))
+  (:require [typed.cljc.checker.check.unanalyzed :as unanalyzed]))
 
 (defmacro install-unanalyzed-special [v impl]
   {:pre [(qualified-symbol? impl)]}
-  `(defmethod chk/-unanalyzed-special ~v
+  `(defmethod unanalyzed/-unanalyzed-special ~v
      [expr# expected#]
      ((requiring-resolve '~impl) expr# expected#)))
 
 (defmacro install-defuspecial [v impl]
   {:pre [(qualified-symbol? impl)]}
-  `(chk/defuspecial ~v
+  `(unanalyzed/defuspecial ~v
      [expr# expected#]
      ((requiring-resolve '~impl) expr# expected#)))
 

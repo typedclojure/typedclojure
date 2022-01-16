@@ -1,4 +1,5 @@
 #!/usr/bin/env bb
+;; usage: ./script/gen-dev-project
 
 (ns typed.dev.merge-deps
   (:require [clojure.java.io :as io]
@@ -49,9 +50,12 @@
       :jvm-opts ["-XX:-OmitStackTraceInFastThrow"]
       :extra-deps
       (sorted-map
+        'reply/reply {:mvn/version (:reply-mvn-version h/selmer-input-map)}
+        ;; override reply dep
+        'net.cgrand/parsley {:mvn/version (:parsley-mvn-version h/selmer-input-map)}
         'nrepl/nrepl {:mvn/version (:nrepl-mvn-version h/selmer-input-map)}
-        'cider/cider-nrepl {:mvn/version "0.25.3"}
-        'cider/piggieback {:mvn/version "0.5.2"}))))
+        'cider/cider-nrepl {:mvn/version (:cider-nrepl-mvn-version h/selmer-input-map)}
+        'cider/piggieback {:mvn/version (:piggieback-mvn-version h/selmer-input-map)}))))
 
 (def subproject-dirs
   (->> (File. everything-root relative-projects-root)
@@ -186,8 +190,10 @@
                                                                   :maps-to-merge test-maps-to-merge}))))
                                              test-maps-to-merge)
                                (keys subproject-base-deps)))
+        dev-deps {'selmer/selmer {:mvn/version (:selmer-mvn-version h/selmer-input-map)}}
         everything-deps (sorted-map
-                          :deps subproject-base-deps
+                          :deps (into subproject-base-deps
+                                      dev-deps)
                           :paths ["dev/src"]
                           :aliases (assoc (aliases)
                                           :test (sorted-map

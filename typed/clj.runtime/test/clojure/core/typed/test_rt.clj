@@ -1,9 +1,8 @@
 (ns clojure.core.typed.test-rt
   (:require [clojure.core.typed :as t]
-            [cljs.core.typed :as tcljs]
             [clojure.core.typed.errors :as err]
-            [clojure.java.io :as io])
-  (:use clojure.test))
+            [clojure.java.io :as io]
+            [clojure.test :refer [deftest is]]))
 
 (deftest typed-clojure-loaded
   (is (nil? (require 'clojure.core.typed))))
@@ -31,38 +30,6 @@
         (t/statistics ['foo])))
   (is (thrown? java.io.FileNotFoundException
         (t/var-coverage))))
-
-(defmacro catch-compiler-exception
-  [& body]
-  `(try (do ~@body
-            nil)
-        (catch RuntimeException e#
-          (if (instance? clojure.lang.ExceptionInfo e#)
-            ; before clojure 1.7.0-alpha2
-            (err/tc-error-thrown?
-              (throw e#))
-            ; clojure 1.7.0-alpha2
-            (err/tc-error-thrown?
-              (throw (.getCause e#)))))))
-
-(deftest ^:typed/skip-from-repo-root checking-cljs-ops
-  (is (thrown? java.io.FileNotFoundException
-        (tcljs/load-if-needed)))
-  (is (thrown? java.io.FileNotFoundException
-        (tcljs/reset-caches)))
-  (is (thrown? java.io.FileNotFoundException
-        (tcljs/cf* 1 nil nil)))
-  (is (thrown? java.io.FileNotFoundException
-        (tcljs/cf 1)))
-  (is (thrown? java.io.FileNotFoundException
-        (tcljs/check-ns*)))
-  (is (thrown? java.io.FileNotFoundException
-        (tcljs/check-ns* 'foo)))
-  ; these throw at macroexpansion time
-  (is (thrown? Exception
-        (eval '(cljs.core.typed/check-ns))))
-  (is (thrown? Exception
-        (eval '(cljs.core.typed/check-ns foo)))))
 
 (defmacro thrown-blame? [& e]
   `(try (try (do ~@e)
