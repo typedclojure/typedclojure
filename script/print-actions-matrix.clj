@@ -21,7 +21,7 @@
       exclusions)))
 
 (def clojure-stable "1.10.3")
-(def clojure-next-alpha "1.11.0-alpha3")
+(def clojure-next-release "1.11.0-beta1")
 (def clojure-next-snapshot "1.11.0-master-SNAPSHOT")
 
 (def matrix? (con/hmap-c? :include (con/every-c? (con/hmap-c?
@@ -35,7 +35,7 @@
                   clojure (cond-> [clojure-stable]
                             (= "typedclojure/typedclojure"
                                (System/getenv "GITHUB_REPOSITORY"))
-                            (conj clojure-next-alpha))
+                            (conj clojure-next-release))
                   jdk ["11"]]
               {:submodule submodule
                :clojure clojure
