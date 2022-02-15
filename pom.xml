@@ -256,7 +256,7 @@
       <dependency>
         <groupId>org.clojure</groupId>
         <artifactId>core.memoize</artifactId>
-        <version>1.0.253</version>
+        <version>1.0.257</version>
       </dependency>
       <dependency>
         <groupId>org.clojure</groupId>
