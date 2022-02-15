@@ -157,6 +157,7 @@
     <module>typed/cljs.checker</module>
 
     <module>typed/clj.runtime</module>
+    <module>typed/cljs.runtime</module>
 
     <module>typed/clj.annotator</module>
 
@@ -216,6 +217,11 @@
       <dependency>
         <groupId>{◊typedclojure-group-id◊}</groupId>
         <artifactId>typed.clj.runtime</artifactId>
+        <version>{◊typedclojure-current-mvn-version◊}</version>
+      </dependency>
+      <dependency>
+        <groupId>{◊typedclojure-group-id◊}</groupId>
+        <artifactId>typed.cljs.runtime</artifactId>
         <version>{◊typedclojure-current-mvn-version◊}</version>
       </dependency>
       <dependency>
