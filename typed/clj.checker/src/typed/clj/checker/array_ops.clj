@@ -42,4 +42,3 @@
      (r/RClass? ty) (r/RClass->Class ty)
      (r/PrimitiveArray? ty) (class (make-array (Type->array-member-Class (:jtype ty) false) 0))
      :else Object)))
-

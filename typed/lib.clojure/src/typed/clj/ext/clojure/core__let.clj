@@ -24,7 +24,8 @@
             [typed.cljc.checker.var-env :as var-env]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.type-ctors :as c]
-            [typed.cljc.checker.utils :as u]))
+            [typed.cljc.checker.utils :as u]
+            [typed.cljc.checker.check.unanalyzed :refer [defuspecial]]))
 
 ;;==================
 ;; clojure.core/let
@@ -341,7 +342,7 @@
               (-> (pad-vector expanded-bindings bvec)
                   (with-meta (meta bvec)))))))
 
-(defn defuspecial__let
+(defuspecial defuspecial__let
   "defuspecial implementation for clojure.core/let"
   [{ana-env :env :keys [form] :as expr} expected]
   (let [_ (assert (next form)

@@ -1,9 +1,19 @@
 (ns typed.dev
   {:clojure.tools.namespace.repl/unload false})
 
+(defonce watchers (atom []))
+
 (defn watch []
-  ((requiring-resolve 'kaocha.runner/exec-fn)
-   {:kaocha/watch? true}))
+  (let [w ((requiring-resolve 'kaocha.watch/run)
+           (assoc ((requiring-resolve 'kaocha.config/load-config))
+                  :skip-meta :typed/skip-from-repo-root))]
+    (swap! watchers conj w)
+    w))
+
+(defn stop-watchers []
+  (mapv (fn [[_fut cancel-fn]]
+          (cancel-fn))
+        (first (reset-vals! watchers []))))
 
 (defonce tracker (atom nil))
 

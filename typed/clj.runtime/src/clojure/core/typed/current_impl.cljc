@@ -240,10 +240,12 @@
 
 #?(:clj
 (defmacro with-impl [impl & body]
-  `(with-bindings (get (bindings-for-impl) ~impl {})
+  `(with-bindings (let [impl# ~impl]
+                    (or (get (bindings-for-impl) impl#)
+                        (throw (ex-info (str "No impl found for " (pr-str impl#))))))
      ~@body)))
 
-(defonce clj-checker-atom 
+(defonce clj-checker-atom
   (doto (env/init-checker)
     (swap! assoc current-impl-kw clojure)))
 
@@ -279,12 +281,10 @@
   `(with-impl clojurescript
      ~@body)))
 
-(defn impl-for []
-  {:clojure (cljs-checker)
-   :cljs (clj-checker)})
-
 (defn bindings-for-impl []
-  {clojure (clj-bindings)
+  {:clojure (clj-bindings)
+   :cljs (cljs-bindings)
+   clojure (clj-bindings)
    clojurescript (cljs-bindings)})
 
 #?(:clj

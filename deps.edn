@@ -42,9 +42,7 @@
    {com.clojure-goes-fast/clj-java-decompiler {:mvn/version "0.3.0"},
     com.gfredericks/test.chuck {:mvn/version "0.2.12"},
     criterium/criterium {:mvn/version "0.4.5"},
-    org.clojure/clojure {:mvn/version "1.10.3"},
     org.clojure/clojurescript {:mvn/version "1.11.4"},
-    org.clojure/core.async {:mvn/version "1.5.648"},
     org.clojure/core.logic {:mvn/version "1.0.0"},
     org.clojure/math.combinatorics
     {:exclusions [org.clojure/clojure], :mvn/version "0.1.6"},

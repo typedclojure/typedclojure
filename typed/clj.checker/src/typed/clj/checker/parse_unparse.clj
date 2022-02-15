@@ -125,7 +125,8 @@
                        :else (let [r (resolve-type-clj n)]
                                (when (var? r)
                                  (coerce/var->symbol r))))
-            :cljs (resolve-type-cljs n))
+            :cljs (or ('#{quote Array Array2} n)
+                      (resolve-type-cljs n)))
           n))))
 
 (def parsed-free-map? (con/hmap-c? :fname symbol?
@@ -306,12 +307,13 @@
 (defmethod parse-type-list 'clojure.core.typed/Pred [t] (parse-Pred t))
 (defmethod parse-type-list 'cljs.core.typed/Pred [t] (parse-Pred t))
 
-; FIXME deprecate
-(defmethod parse-type-list 'Not
-  [[_ tsyn :as all]]
+(defn parse-Not [[_ tsyn :as all]]
   (when-not (= (count all) 2) 
     (err/int-error (str "Wrong arguments to Not (expected 1): " all)))
   (r/NotType-maker (parse-type tsyn)))
+; FIXME deprecate
+(defmethod parse-type-list 'Not [frm] (parse-Not frm))
+(defmethod parse-type-list 'cljs.core.typed/Not [frm] (parse-Not frm))
 
 (defn parse-Difference [[_ tsyn & dsyns :as all]]
   (when-not (<= 3 (count all))
@@ -937,7 +939,7 @@
       (ns-resolve ns sym)
       (err/int-error (str "Cannot find namespace: " sym)))))
 
-(defn- resolve-alias-clj 
+(defn- resolve-alias-clj
   "Returns a symbol if sym maps to a type alias, otherwise nil"
   [sym]
   {:pre [(symbol? sym)]
@@ -958,7 +960,9 @@
             qsym)))
       (err/int-error (str "Cannot find namespace: " sym)))))
 
-(defn- resolve-type-cljs 
+;; ignores both clj and cljs namespace graph (other than to resolve aliases)
+;; TODO reconcile clj/cljs type resolution. neither should really be interning vars (breaking change for clj).
+(defn- resolve-type-cljs
   "Returns a qualified symbol or nil"
   [sym]
   {:pre [(symbol? sym)]
@@ -967,7 +971,17 @@
            %)]}
   (impl/assert-cljs)
   (let [nsym (parse-in-ns)
-        res ((requiring-resolve 'typed.cljs.checker.util/resolve-var) nsym sym)]
+        ;; TODO does this handle imports?
+        res (or ((requiring-resolve 'typed.cljs.checker.util/resolve-var) nsym sym)
+                (when-some [maybe-alias (some-> sym namespace symbol)]
+                  (symbol 
+                    (if-some [alias-sym (get ((requiring-resolve 'typed.cljs.checker.util/get-aliases)
+                                              nsym)
+                                             maybe-alias)]
+                      (name alias-sym)
+                      (name maybe-alias))
+                    (name sym)))
+                (symbol (name nsym) (name sym)))]
     res))
 
 (defn parse-RClass [cls-sym params-syn]
@@ -1049,7 +1063,7 @@
           :clojure (let [r (resolve-type-clj n)]
                      (when (var? r)
                        (coerce/var->symbol r)))
-          ;TODO
+          ;;FIXME logic is all tangled
           :cljs (resolve-type-cljs n))
         n)))
 
@@ -1095,6 +1109,15 @@
      'char (RClass-of 'char)
      'void r/-nil}))
 
+(defn cljs-primitives-fn []
+  {'number (r/JSNumber-maker)
+   'boolean (r/JSBoolean-maker)
+   'object (r/JSObject-maker)
+   'string (r/JSString-maker)
+   'undefined (r/JSUndefined-maker)
+   'null (r/JSNull-maker)
+   'symbol (r/JSSymbol-maker)})
+
 ;[Any -> (U nil Type)]
 (defmulti deprecated-clj-symbol identity)
 
@@ -1131,7 +1154,7 @@
   [sym]
   (let [primitives (impl/impl-case
                      :clojure (clj-primitives-fn)
-                     :cljs {})
+                     :cljs (cljs-primitives-fn))
         free (when (symbol? sym) 
                (free-ops/free-in-scope sym))
         rsym (when-not free
@@ -1157,8 +1180,10 @@
                  :cljs (when (symbol? sym)
                          (resolve-type-cljs sym))))
         _ (assert ((some-fn symbol? nil?) rsym))]
+    ;(prn `parse-type-symbol-default sym rsym)
     (or free
         (primitives sym)
+        (parse-type-symbol sym)
         (cond
           rsym ((some-fn deprecated-symbol r/Name-maker) rsym)
           :else (let [menv (let [m (meta sym)]
@@ -1171,9 +1196,9 @@
 
 (defmethod parse-type-symbol :default
   [sym]
-  (parse-type-symbol-default sym))
+  nil)
 
-(defmethod parse-type* Symbol [l] (parse-type-symbol l))
+(defmethod parse-type* Symbol [l] (parse-type-symbol-default l))
 (defmethod parse-type* Boolean [v] (if v r/-true r/-false)) 
 (defmethod parse-type* nil [_] r/-nil)
 
@@ -1567,8 +1592,7 @@
     (cond 
       ;perform substitution if obvious
       ;(TypeFn? rator) (unparse-type (resolve-tapp tapp))
-      :else
-    (list* (unparse-type rator) (mapv unparse-type rands))))
+      :else (list* (unparse-type rator) (mapv unparse-type rands))))
 
   Result
   (unparse-type* [{:keys [t]}] (unparse-type t))

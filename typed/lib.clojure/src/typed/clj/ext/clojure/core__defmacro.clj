@@ -11,12 +11,13 @@
   (:require [clojure.core.typed :as t]
             [typed.cljc.checker.check-below :as below]
             [typed.cljc.checker.type-rep :as r]
-            [typed.cljc.checker.utils :as u]))
+            [typed.cljc.checker.utils :as u]
+            [typed.cljc.checker.check.unanalyzed :refer [defuspecial]]))
 
 ;;======================
 ;; clojure.core/defmacro
 
-(defn defuspecial__defmacro
+(defuspecial defuspecial__defmacro
   "defuspecial implementation for clojure.core/defmacro"
   [expr expected]
   (assoc expr

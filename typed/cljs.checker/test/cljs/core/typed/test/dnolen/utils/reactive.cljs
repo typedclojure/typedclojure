@@ -12,10 +12,6 @@
                    [cljs.core.typed :refer [defalias typed-deps ann]])
   (:import goog.events.EventType))
 
-(typed-deps cljs.core.typed.async
-            cljs.core.typed.test.dnolen.utils.dom
-            cljs.core.typed.test.dnolen.utils.helpers)
-
 (ann ^:no-check atom? (predicate (Atom Nothing Any)))
 (defn atom? [x]
   (instance? Atom x))

@@ -9,6 +9,8 @@
 (ns typed.cljs.checker.check
   (:require [cljs.analyzer :as cljs-ana]
             [cljs.analyzer.api :as ana-api]
+            [cljs.tagged-literals :as tags]
+            [cljs.util :as cljs-util]
             [clojure.core.typed :as t]
             [clojure.core.typed.ast-utils :as ast-u]
             [clojure.core.typed.check.dot-cljs :as dot]
@@ -26,6 +28,8 @@
             [typed.clj.checker.subtype :as sub]
             [typed.clj.checker.tc-equiv :as equiv]
             [typed.cljc.analyzer :as ana2]
+            [typed.cljc.analyzer.ast :as ast]
+            [typed.cljc.checker.check :as check]
             [typed.cljc.checker.check-below :as below]
             [typed.cljc.checker.check.binding :as binding]
             [typed.cljc.checker.check.const :as const]
@@ -81,7 +85,12 @@
    (loop [expr expr
           fuel 1000]
      (when (neg? fuel) (prn `check-expr "infinite loop"))
-     (prn `check-expr "op" (:op expr))
+     (prn `check-expr "op" (:op expr) (:form expr)
+          cljs-ana/*cljs-ns*
+          )
+     ;; should really be a map. worth asserting this at some point.
+     (assert (not (symbol? (-> expr :env :ns)))
+             (str "MALFORMED :env :ns " (pr-str (-> expr :env :ns))))
      (if (= :unanalyzed (:op expr))
        (do @*register-exts
            (or (binding [vs/*current-expr* expr]
@@ -94,23 +103,35 @@
 (defn unanalyzed-top-level [form env]
   (tana2/unanalyzed form env))
 
+(defn flush-analysis-side-effects [cexpr opts]
+  (reduce (fn [ast pass] (pass (:env ast) ast opts))
+          (ast/walk cexpr
+                    identity
+                    ana2/analyze-outer-root)
+          cljs-ana/default-passes))
+
 (defn check-top-level
   "Type check a top-level form at an expected type, returning a
   fully analyzed core.typed.analyzer AST node (ie., containing no :unanalyzed nodes)
   with a u/expr-type entry giving its TCResult type, and a :result entry
   holding its evaluation result."
+  ([form] (check-top-level form nil))
   ([form expected] (check-top-level form expected {}))
   ([form expected {:keys [env] :as opts}]
    (prn "check-top-level" form)
    ;(prn "*ns*" *ns*)
+   (prn "*cljs-ns*" cljs-ana/*cljs-ns*)
    ;; TODO any bindings needed to be pinned here?
    (binding [ana2/scheduled-passes {:pre identity
                                     :post identity
-                                    :init-ast identity}]
-     (uc/with-cljs-typed-env
-       (-> form
-           (unanalyzed-top-level (or env (ana-api/empty-env)))
-           (check-expr expected))))))
+                                    :init-ast identity}
+             check/check-expr check-expr]
+     (let [cexpr (uc/with-cljs-typed-env
+                   (-> form
+                       (unanalyzed-top-level (or env (ana-api/empty-env)))
+                       (check-expr expected)))]
+       (flush-analysis-side-effects cexpr opts)
+       cexpr))))
 
 (defn check-asts [asts]
   (mapv check-expr asts))
@@ -157,13 +178,20 @@
            (with-open [rdr (io/reader res)]
              (let [pbr (readers/indexing-push-back-reader
                          (java.io.PushbackReader. rdr) 1 filename)
+                   data-readers (merge tags/*cljs-data-readers*
+                                       ;; upcoming
+                                       (when-some [load-data-readers (resolve 'cljs.analyzer/load-data-readers)]
+                                         (load-data-readers)))
                    eof (Object.)
                    read-opts (cond-> {:eof eof :features #{:cljs}}
                                (.endsWith filename "cljc") (assoc :read-cond :allow))]
                (loop []
-                 (let [form (reader/read read-opts pbr)]
+                 (let [form (binding [*ns* (create-ns cljs-ana/*cljs-ns*)
+                                      reader/*data-readers* data-readers
+                                      reader/*alias-map* (uc/get-aliases)]
+                              (reader/read read-opts pbr))]
                    (when-not (identical? form eof)
-                     (check-top-level form nil {:env (assoc env :ns cljs-ana/*cljs-ns*)})
+                     (check-top-level form)
                      (recur))))))))))))
 
 (defn check-ns-and-deps
@@ -254,35 +282,49 @@
                                    (r/ret (r/-unchecked 'js))
                                    expected)))))
 
-(defmulti invoke-special (fn [{{:keys [op] :as fexpr} :fn :as expr} & expected]
-                           (when (= :var op)
-                             (:name fexpr))))
+(defmulti invoke-special (fn [{{:keys [op] :as fexpr} :fn :keys [env] :as expr} _expected]
+                           (case op
+                             :var (:name fexpr)
+                             :unanalyzed (let [{:keys [form]} fexpr]
+                                           (when (symbol? form)
+                                             (ana2/resolve-sym form env)))
+                             nil)))
 
-(defmethod invoke-special :default [& _] ::not-special)
+(defmethod invoke-special :default [expr expected] ::not-special)
 
 (defmethod invoke-special 'cljs.core.typed/print-env
-  [{[{debug-string :form :as texpr} :as args] :args :as expr} & [expected]]
+  [{[{debug-string :form :as texpr} :as args] :args :as expr} expected]
   (assert (= 1 (count args)))
   (assert (string? debug-string))
   ;DO NOT REMOVE
   (pr-env/print-env*)
   ;DO NOT REMOVE
   (assoc expr
-         expr-type (ret r/-any)))
+         expr-type (below/maybe-check-below
+                     (ret r/-any)
+                     expected)))
 
 (defmethod invoke-special 'cljs.core.typed/inst-poly
-  [{[pexpr targs-expr :as args] :args :as expr} & [expected]]
+  [{[pexpr targs-expr :as args] :args :as expr} expected]
   (assert (#{2} (count args)) "Wrong arguments to inst")
-  (let [ptype (let [t (-> (check-expr pexpr) expr-type ret-t)]
+  (let [cpexpr (check-expr pexpr)
+        ptype (let [t (-> cpexpr expr-type ret-t)]
                 (c/fully-resolve-type t))
-        _ (assert ((some-fn r/Poly? r/PolyDots?) ptype))
+        _ (assert ((some-fn r/Poly? r/PolyDots?) ptype)
+                  (pr-str ptype))
         targs (binding [prs/*parse-type-in-ns* (cu/expr-ns expr)]
-                (mapv prs/parse-type (-> targs-expr :expr :form)))]
+                (mapv prs/parse-type (case (:op targs-expr)
+                                       ;; (quote targs) => targs
+                                       :unanalyzed (second (:form targs-expr)))))]
     (assoc expr
-           expr-type (ret (inst/manual-inst ptype targs)))))
+           expr-type (below/maybe-check-below
+                       (ret (inst/manual-inst ptype targs
+                                              ;; TODO named
+                                              {}))
+                       expected))))
 
 (defmethod invoke-special 'cljs.core.typed/loop>-ann
-  [{[expr {{expected-bnds-syn :expr} :form}] :args :as dummy-expr} & [expected]]
+  [{[expr {{expected-bnds-syn :expr} :form}] :args :as dummy-expr} expected]
   (let [expected-bnds (binding [prs/*parse-type-in-ns* (cu/expr-ns dummy-expr)]
                         (mapv prs/parse-type expected-bnds-syn))]
     ;loop may be nested, type the first loop found
@@ -291,7 +333,7 @@
 
 ; args are backwards if from inlining
 (defmethod invoke-special 'cljs.core/instance?
-  [{:keys [args] :as expr} & [expected]]
+  [{:keys [args] :as expr} expected]
   (assert (= 2 (count args)) "Wrong arguments to instance?")
   ; are arguments the correct way round?
   (assert (:from-js-op expr) "instance? without inlining NYI")
@@ -315,7 +357,7 @@
 
 ;=
 (defmethod invoke-special 'cljs.core/= 
-  [{:keys [args] :as expr} & [expected]]
+  [{:keys [args] :as expr} expected]
   {:post [(vector? (:args %))
           (-> % u/expr-type r/TCResult?)]}
   (let [cargs (mapv check-expr args)]
@@ -326,7 +368,7 @@
 
 (defmethod -check :invoke
   [{fexpr :fn :keys [args] :as expr} expected]
-  (let [e (invoke-special expr)]
+  (let [e (invoke-special expr expected)]
     (cond
       (not= e ::not-special) e
       :else
@@ -356,12 +398,6 @@
 
 ;(ann internal-special-form [Expr (U nil TCResult) -> Expr])
 (u/special-do-op spec/special-form internal-special-form)
-
-(defmethod internal-special-form ::t/tc-ignore
-  [expr expected]
-  ;; TODO migrate to extensible type rules
-  (err/nyi-error "cljs tc-ignore")
-  #_(tc-ignore/check-tc-ignore check-expr expr expected))
 
 (defn check-fn-rest [remain-dom & {:keys [rest drest kws prest]}]
   {:pre [(or (r/Type? rest)

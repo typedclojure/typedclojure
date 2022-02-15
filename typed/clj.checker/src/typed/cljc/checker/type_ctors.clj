@@ -2208,7 +2208,8 @@
   (impl/assert-clojure)
   (keyword->Fn
     ;; workaround occurrence typing failing to propagate types
-    (t/cast t/Keyword val)))
+    (->> val
+         #_(t/cast t/Keyword))))
 
 ;; Extends
 

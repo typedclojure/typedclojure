@@ -10,12 +10,13 @@
   "Typing rules for clojure.core/defn"
   (:require [clojure.core.typed.internal :as internal]
             [typed.clj.checker.check :as chk]
-            [typed.cljc.analyzer :as ana2]))
+            [typed.cljc.analyzer :as ana2]
+            [typed.cljc.checker.check.unanalyzed :refer [defuspecial]]))
 
 ;;==================
 ;; clojure.core/defn
 
-(defn defuspecial__defn
+(defuspecial defuspecial__defn
   "defuspecial implementation for clojure.core/defn"
   [{:keys [form] :as expr} expected]
   (-> expr

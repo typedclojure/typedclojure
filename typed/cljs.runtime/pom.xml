@@ -29,6 +29,10 @@
       <artifactId>clojure</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.clojure</groupId>
+      <artifactId>clojurescript</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.typedclojure</groupId>
       <artifactId>typed.clj.runtime</artifactId>
     </dependency>

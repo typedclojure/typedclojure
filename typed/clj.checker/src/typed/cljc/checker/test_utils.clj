@@ -78,6 +78,7 @@
        (-> check-result#
            (select-keys #{:ex :delayed-errors})
            (cond->
-             (some-> ex# ex-data err/top-level-error? not)
-             (dissoc :ex))
+             ;; FIXME delayed-errors shouldn't be empty
+             (empty? delayed-errors#) (dissoc :delayed-errors)
+             (some-> ex# ex-data err/top-level-error? not) (dissoc :ex))
            not-empty))))

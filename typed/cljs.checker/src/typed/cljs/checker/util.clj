@@ -7,13 +7,19 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.cljs.checker.util
-  (:require [clojure.core.typed.current-impl :as impl]
-            [cljs.analyzer :as ana]
-            [clojure.core.typed.emit-form-cljs :as emit-form]
+  (:require [cljs.analyzer :as ana]
             [cljs.compiler :as comp]
-            [cljs.env :as env]))
+            [cljs.env :as env]
+            [clojure.core.typed.current-impl :as impl]
+            [clojure.core.typed.emit-form-cljs :as emit-form]))
 
-(def default-env (env/default-compiler-env))
+(defonce default-env (env/default-compiler-env))
+
+(comment
+  (-> @default-env keys)
+  (-> @default-env ::ana/namespaces
+      (get 'cljs.core.typed.test.ann))
+  )
 
 (defmacro with-cljs-typed-env [& body]
   `(env/with-compiler-env (or env/*compiler* default-env)
@@ -27,23 +33,39 @@
 
 (defn resolve-var [nsym sym]
   {:post [((some-fn symbol? nil?) %)]}
-  (let [unresolved? (atom false)
-        r (with-cljs-typed-env
-            (binding [ana/*cljs-ns* nsym]
-              (comp/with-core-cljs
-                nil
-                ;; TODO use cljs.analyzer.api/ns-resolve
-                #(ana/resolve-var (ana/empty-env) sym
-                                  (fn [env ns sym]
-                                    (when-not (var-exists? env ns sym)
-                                      (reset! unresolved? true)))))))
-        sym* (when-not @unresolved?
-               (:name r))
-        _ (when sym*
-            (assert (symbol? sym*) sym*)
-            (assert (namespace sym*) sym*))]
-    ;(prn sym sym*)
-    sym*))
+  (with-cljs-typed-env
+    (comp/with-core-cljs)
+    (binding [ana/*cljs-ns* nsym
+              ana/*private-var-access-nowarn* true]
+      (let [unresolved? (atom false)
+            r (ana/resolve-var (ana/empty-env) sym
+                               (fn [env ns sym]
+                                 (when-not (var-exists? env ns sym)
+                                   (reset! unresolved? true))))
+            sym* (or (when-not @unresolved?
+                       (:name r)))
+            _ (when sym*
+                (assert (symbol? sym*) sym*)
+                (assert (namespace sym*) sym*))]
+      ;(prn sym sym*)
+      sym*))))
+
+(comment
+  (resolve-var 'cljs.core '+)
+  (resolve-var 'cljs.core.typed.test.ann 't/Num)
+  (resolve-var 'cljs.core.typed.test.ann 'foo)
+  (with-cljs-typed-env
+    (binding [ana/*cljs-ns* 'cljs.core.typed.test.ann]
+      (cljs.core.typed/check-ns* 'cljs.core.typed.test.ann)
+      (ana/empty-env)))
+  )
+
+(defn resolve-ns-alias [env alias-sym]
+  {:pre [(simple-symbol? alias-sym)]
+   :post [(simple-symbol? %)]}
+  (or (ana/resolve-macro-ns-alias env alias-sym nil)
+      (ana/resolve-ns-alias env alias-sym nil)
+      alias-sym))
 
 (defn cljs-ns []
   ana/*cljs-ns*)
@@ -57,3 +79,14 @@
      #(do (when-not (get-in @env/*compiler* [::ana/namespaces 'cljs.core.typed :defs])
             (ana/analyze-file "cljs/core/typed.cljs"))
           ~@body)))
+
+(defn get-aliases
+  ([] (get-aliases ana/*cljs-ns*))
+  ([cljs-nsym]
+   (with-cljs-typed-env
+     (comp/with-core-cljs)
+     (if-some [get-aliases (requiring-resolve 'cljs.analyzer/get-aliases)]
+       (get-aliases cljs-nsym)
+       (apply merge
+              ((juxt :requires :require-macros :as-aliases)
+               (ana/get-namespace cljs-nsym)))))))

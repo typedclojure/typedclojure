@@ -44,6 +44,7 @@
             [typed.clj.checker.tc-equiv :as equiv]
             [typed.cljc.analyzer :as ana2]
             [typed.cljc.analyzer.env :as env]
+            [typed.cljc.checker.check :as check]
             [typed.cljc.checker.check-below :as below]
             [typed.cljc.checker.check.apply :as apply]
             [typed.cljc.checker.check.binding :as binding]
@@ -312,10 +313,11 @@
    ;(prn "check-top-level" form)
    ;(prn "*ns*" *ns*)
    (with-bindings (dissoc (ana-clj/thread-bindings) #'*ns*) ; *ns* is managed by higher-level ops like check-ns1
-     (env/ensure (jana2/global-env)
-       (-> form
-           (ana2/unanalyzed-top-level (or env (jana2/empty-env)))
-           (check-expr expected))))))
+     (binding [check/check-expr check-expr]
+       (env/ensure (jana2/global-env)
+         (-> form
+             (ana2/unanalyzed-top-level (or env (jana2/empty-env)))
+             (check-expr expected)))))))
 
 (defmethod -check :const
   [expr expected]

@@ -1,5 +1,10 @@
 {% do-not-edit-edn-comment %}
 {:paths ["src"]
+ :deps {org.clojure/clojure {:mvn/version "{◊clojure-mvn-version◊}"}
+        org.clojure/core.async {:mvn/version "{◊core-async-mvn-version◊}"}
+        {◊typedclojure-group-id◊}/typed.clj.runtime
+        {:local/root "../clj.runtime"
+         :deps/manifest :deps}}
  :mvn/repos {"sonatype-oss-public" {:url "{◊sonatype-oss-public-url◊}"}}
  :aliases {:nREPL
            {:extra-paths ["script"]
@@ -10,12 +15,7 @@
                         "--interactive"]}
            :spec-skip-macros
            {:jvm-opts ["-Dclojure.spec.skip-macros=true"]}
-           :test {:extra-deps {org.clojure/clojure {:mvn/version "{◊clojure-mvn-version◊}"}
-                               org.clojure/core.async {:mvn/version "{◊core-async-mvn-version◊}"}
-                               {◊typedclojure-group-id◊}/typed.clj.runtime
-                               {:local/root "../clj.runtime"
-                                :deps/manifest :deps}
-                               {◊typedclojure-group-id◊}/typed.clj.checker
+           :test {:extra-deps {{◊typedclojure-group-id◊}/typed.clj.checker
                                {:local/root "../clj.checker"
                                 :deps/manifest :deps}}
                   :extra-paths ["test"]}

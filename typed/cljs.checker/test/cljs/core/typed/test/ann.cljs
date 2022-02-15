@@ -1,5 +1,5 @@
 (ns cljs.core.typed.test.ann
-  (:require [cljs.core.typed :refer-macros [ann check-ns]]))
+  (:require [cljs.core.typed :as t :refer-macros [ann check-ns]]))
 
-(ann foo number)
+(ann foo cljs.core.typed/Num)
 (def foo 1)

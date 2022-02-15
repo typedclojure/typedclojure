@@ -10,9 +10,10 @@
   "Typing rules for clojure.core/fn"
   (:require [clojure.core.typed.internal :as internal]
             [typed.clj.checker.check :as chk]
-            [typed.cljc.analyzer :as ana2]))
+            [typed.cljc.analyzer :as ana2]
+            [typed.cljc.checker.check.unanalyzed :refer [defuspecial]]))
 
-(defn defuspecial__fn
+(defuspecial defuspecial__fn
   "defuspecial implementation for clojure.core/fn"
   [expr expected]
   (-> expr

@@ -14,14 +14,13 @@
                                      (when (.isDirectory f)
                                        (.getPath f))))
                              (.listFiles (io/file "typed")))
-        exclusions #{;; wip
-                     "typed/cljs.checker"}]
+        exclusions #{}]
     (set/difference
       all-submodules
       exclusions)))
 
 (def clojure-stable "1.10.3")
-(def clojure-next-release "1.11.0-beta1")
+(def clojure-next-release "1.11.0-rc1")
 (def clojure-next-snapshot "1.11.0-master-SNAPSHOT")
 
 (def matrix? (con/hmap-c? :include (con/every-c? (con/hmap-c?

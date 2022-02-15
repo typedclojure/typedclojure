@@ -6,17 +6,16 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc typed.ext.clojure.spec.alpha__fdef
-  "Typing rules for clojure.spec.alpha/fdef."
+;; TODO clojure.core.typed.expand/tc-ignore-typing-rule has ideas on improving error msgs
+(ns ^:no-doc typed.clj.ext.clojure.core.typed__tc-ignore
+  "Typing rules for clojure.core.typed/tc-ignore"
   (:require [typed.cljc.checker.check-below :as below]
-            [typed.cljc.checker.filter-ops :as fo]
-            [typed.cljc.checker.filter-rep :as fl]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.utils :as u]
             [typed.cljc.checker.check.unanalyzed :refer [defuspecial]]))
 
-(defuspecial defuspecial__fdef
-  "defuspecial implementation for clojure.spec.alpha/fdef"
+(defuspecial defuspecial__tc-ignore
+  "defuspecial implementation for clojure.core.typed/tc-ignore"
   [expr expected]
   (-> expr
       (assoc

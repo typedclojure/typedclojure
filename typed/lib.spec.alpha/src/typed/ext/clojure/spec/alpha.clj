@@ -8,30 +8,18 @@
 
 (ns ^:no-doc typed.ext.clojure.spec.alpha
   "Typing rules for spec.alpha."
-  (:require [typed.cljc.checker.check.unanalyzed :as unanalyzed]))
-
-(defmacro install-unanalyzed-special [v impl]
-  {:pre [(qualified-symbol? impl)]}
-  `(defmethod unanalyzed/-unanalyzed-special ~v
-     [expr# expected#]
-     ((requiring-resolve '~impl) expr# expected#)))
-
-(defmacro install-defuspecial [v impl]
-  {:pre [(qualified-symbol? impl)]}
-  `(unanalyzed/defuspecial ~v
-     [expr# expected#]
-     ((requiring-resolve '~impl) expr# expected#)))
+  (:require [typed.clj.checker.check.unanalyzed :refer [install-defuspecial]]))
 
 ;;=======================
 ;; clojure.spec.alpha/def
 
 (install-defuspecial
   'clojure.spec.alpha/def
-  typed.ext.clojure.spec.alpha__def/defuspecial__def)
+  'typed.ext.clojure.spec.alpha__def/defuspecial__def)
 
 ;;=======================
 ;; clojure.spec.alpha/fdef
 
 (install-defuspecial
   'clojure.spec.alpha/fdef
-  typed.ext.clojure.spec.alpha__fdef/defuspecial__fdef)
+  'typed.ext.clojure.spec.alpha__fdef/defuspecial__fdef)

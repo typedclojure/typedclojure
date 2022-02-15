@@ -8,11 +8,52 @@
 
 (ns ^:no-doc typed.cljc.checker.check.unanalyzed
   (:require [typed.cljc.analyzer :as ana2]
-            [typed.cljc.checker.utils :as u]))
+            [typed.cljc.checker.utils :as u]
+            [typed.cljc.runtime.env :as env]
+            [clojure.core.typed.current-impl :as impl]))
 
-(defmulti -unanalyzed-special
+(defn install*
+  [impl op impl-sym]
+  (let [info impl-sym
+        prev (impl/with-impl impl
+               (-> (env/swap-checker-vals! assoc-in [::unanalyzed-special op] impl-sym)
+                   first
+                   (get-in [::unanalyzed-special op])))]
+    (when prev
+      (when (not= info prev)
+        (println (str "WARNING: Unanalyzed rule for "
+                      op
+                      " changed from "
+                      (pr-str prev)
+                      " to "
+                      (pr-str info)))))
+    nil))
+
+(defn -unanalyzed-special-dispatch [{:keys [op form env] :as expr} expected]
+  {:pre [(#{:unanalyzed} op)]
+   :post [((some-fn nil? qualified-symbol?) %)]}
+  (let [res (when (seq? form)
+              (-> (first form)
+                  (ana2/resolve-sym env)
+                  ana2/var->sym))]
+    ;(prn `-unanalyzed-special-dispatch form res)
+    res))
+
+(defn run-passes+propagate-expr-type [expr]
+  (-> expr
+      ana2/run-passes
+      (into (select-keys expr [u/expr-type]))))
+
+(defn -unanalyzed-special [expr expected]
+  (when-some [vsym (-unanalyzed-special-dispatch expr expected)]
+    (when-some [impl-sym (get-in (env/deref-checker) [::unanalyzed-special vsym])]
+      ((requiring-resolve impl-sym) expr expected))))
+
+;; API
+
+(defn install-unanalyzed-special
   "Extension point for special typing rules for unanalyzed AST nodes,
-  along with -unanalyzed-special. Dispatches on the fully qualified
+  along with defuspecial Dispatches on the fully qualified
   operator of the :form of expr, if any.
 
   Prefer using defuspecial when possible. This
@@ -31,22 +72,11 @@
   with a u/expr-type entry for the TCResult of the entire expression.
 
   Implementors can return nil to give control back to the type checker."
-  (fn [{:keys [op form env] :as expr} expected]
-    {:pre [(#{:unanalyzed} op)]
-     :post [((some-fn nil? qualified-symbol?) %)]}
-    (when (seq? form)
-      (-> (first form)
-          (ana2/resolve-sym env)
-          ana2/var->sym))))
+  [impls v impl-sym]
+  (doseq [impl impls]
+    (install* impl v impl-sym)))
 
-(defmethod -unanalyzed-special :default [expr expected])
-
-(defn run-passes+propagate-expr-type [expr]
-  (-> expr
-      ana2/run-passes
-      (into (select-keys expr [u/expr-type]))))
-
-(defmacro defuspecial
+(defn install-defuspecial
   "Extension point for special typing rules for unanalyzed AST nodes.
   This is a thin wrapper around installing a method on
   -unanalyzed-special that implicitly handles
@@ -66,11 +96,22 @@
   The return expression is implicitly evaluated (via ana2/eval-top-level)
   after control is returned to the type checker.
   Use -unanalyzed-special if this requirement is too strict."
-  [op args & body]
-  (assert (vector? args))
-  (assert (= 2 (count args))
-          "must provide bindings for expr and expected")
-  `(defmethod -unanalyzed-special ~op
-     ~args
-     (some-> (do ~@body)
-             run-passes+propagate-expr-type)))
+  [impls v impl-sym]
+  (doseq [impl impls]
+    (install* impl v impl-sym)))
+
+(defmacro defuspecial
+  [vsym & args]
+  (let [[doc args] (if (string? (first args))
+                     ((juxt first rest) args)
+                     [nil args])
+        [argv args] (if (vector? (first args))
+                      ((juxt first rest) args)
+                      [nil args])]
+    (assert (vector? argv))
+    (assert (= 2 (count argv)))
+    `(defn ~vsym
+       ~@(when doc [doc])
+       ~argv
+       (some-> (do ~@args)
+               run-passes+propagate-expr-type))))

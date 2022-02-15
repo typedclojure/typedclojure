@@ -8,25 +8,26 @@
 
 (ns ^:no-doc typed.ext.clojure.core.async
   "Typing rules for core.async"
-  (:require [typed.clj.checker.check :refer [check-expr]]
-            [typed.cljc.checker.check.unanalyzed :refer [defuspecial -unanalyzed-special]]
-            [typed.cljc.checker.utils :as u]
+  (:require [clojure.core.async :as async]
             [clojure.core.typed :as t]
-            [typed.cljc.checker.type-rep :as r]
-            [typed.cljc.checker.type-ctors :as c]
-            [typed.cljc.checker.filter-rep :as fl]
-            [typed.cljc.checker.filter-ops :as fo]
-            [typed.cljc.checker.check-below :as below]
             [clojure.core.typed.util-vars :as vs]
-            [clojure.core.async :as async]
-            [typed.lib.clojure.core.async :as tasync]
             [typed.clj.analyzer.passes.emit-form :as emit-form]
-            [typed.cljc.analyzer :as ana2]))
+            [typed.clj.checker.check :refer [check-expr]]
+            [typed.cljc.analyzer :as ana2]
+            [typed.cljc.checker.check-below :as below]
+            [typed.clj.checker.check.unanalyzed :refer [install-unanalyzed-special]]
+            [typed.cljc.checker.filter-ops :as fo]
+            [typed.cljc.checker.filter-rep :as fl]
+            [typed.cljc.checker.type-ctors :as c]
+            [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.checker.utils :as u]
+            [typed.lib.clojure.core.async :as tasync]))
 
 ;;======================
 ;; clojure.core.async/go
 
-(defmethod -unanalyzed-special 'clojure.core.async/go
+;; FIXME use install-unanalyzed-special
+(defn -unanalyzed-special__go
   [{:keys [form env] :as expr} expected]
   (let [;; type check the go body
         cbody (-> `(do ~@(rest form))
@@ -46,3 +47,7 @@
                                (fo/-true-filter))
                         expected)
           :tag nil))))
+
+(install-unanalyzed-special
+  'clojure.core.async/go
+  `-unanalyzed-special__go)

@@ -77,7 +77,7 @@
                               (map c/fully-resolve-type (:types fexpr-type))))]
         (if a-fntype
           (check-funapp fexpr args (r/ret a-fntype) arg-ret-types expected)
-          (err/int-error (str "Cannot invoke type: " (prs/unparse-type fexpr-type)))))
+          (err/int-error (str "Cannot invoke type: " (pr-str (prs/unparse-type fexpr-type))))))
 
       (c/ifn-ancestor fexpr-type)
       (check-funapp fexpr args (r/ret (c/ifn-ancestor fexpr-type)) arg-ret-types expected)
@@ -440,9 +440,6 @@
             (app-err/polyapp-type-error fexpr args fexpr-type arg-ret-types expected)))
 
         (let [opts (:opts fexpr-ret-type)]
-          #_
-          (prn ":invoke opts" opts)
-          #_
-          (prn "infer-any?" fexpr-ret-type (r/infer-any? (r/ret-t fexpr-ret-type)))
+          (prn `check-funapp (class fexpr-type))
           (err/tc-delayed-error (str "Cannot invoke type: " (pr-str (prs/unparse-type fexpr-type)))
                                 :return (or expected (r/ret (c/Un))))))))))

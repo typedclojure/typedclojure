@@ -6,18 +6,15 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-;;TODO migrate to typed.cljs
-(ns cljs.core.typed
-  "Internal functions for CLJS")
+(ns ^:no-doc typed.cljs.checker.check.unanalyzed
+  (:require [typed.cljc.checker.check.unanalyzed :as un]))
 
-(defn ^:no-doc
-  inst-poly
-  "Internal use only. Use inst."
-  [inst-of types-syn]
-  inst-of)
+;; API
 
-(defn ^:no-doc
-  loop>-ann
-  "Internal use only. Use loop>"
-  [loop-of bnding-types]
-  loop-of)
+(def ^:private this-impl :cljs)
+
+(defn install-unanalyzed-special [v impl-sym]
+  (un/install-unanalyzed-special #{this-impl} v impl-sym))
+
+(defn install-defuspecial [v impl-sym]
+  (un/install-defuspecial #{this-impl} v impl-sym))

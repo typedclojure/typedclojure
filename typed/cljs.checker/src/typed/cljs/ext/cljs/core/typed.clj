@@ -6,20 +6,20 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc typed.clj.ext.clojure.core.typed
-  "Typing rules for clojure.core.typed ops."
-  (:require [typed.clj.checker.check.unanalyzed :refer [install-defuspecial install-unanalyzed-special]]))
+(ns ^:no-doc typed.cljs.ext.cljs.core.typed
+  "Typing rules for cljs.core.typed ops."
+  (:require [typed.cljs.checker.check.unanalyzed :refer [install-defuspecial install-unanalyzed-special]]))
 
-;; ============================
-;; clojure.core.typed/tc-ignore
+;;==================
+;; cljs.core.typed/tc-ignore
 
 (install-defuspecial
-  'clojure.core.typed/tc-ignore
+  'cljs.core.typed/tc-ignore
   'typed.clj.ext.clojure.core.typed__tc-ignore/defuspecial__tc-ignore)
 
 ;; ============================
 ;; clojure.core.typed/ann-form
 
 (install-unanalyzed-special
-  'clojure.core.typed/ann-form
+  'cljs.core.typed/ann-form
   'typed.cljc.ext.clojure.core.typed__ann-form/-unanalyzed-special__ann-form)

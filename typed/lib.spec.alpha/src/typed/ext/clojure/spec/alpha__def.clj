@@ -13,9 +13,10 @@
             [typed.cljc.checker.filter-ops :as fo]
             [typed.cljc.checker.filter-rep :as fl]
             [typed.cljc.checker.type-rep :as r]
-            [typed.cljc.checker.utils :as u]))
+            [typed.cljc.checker.utils :as u]
+            [typed.cljc.checker.check.unanalyzed :refer [defuspecial]]))
 
-(defn defuspecial__def
+(defuspecial defuspecial__def
   "defuspecial implementation for clojure.spec.alpha/def"
   [expr expected]
   (-> expr

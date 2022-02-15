@@ -1,5 +1,10 @@
 ;; DO NOT EDIT! Instead, edit `dev/resources/root-templates/typed/lib.core.async/deps.edn` and run `./script/regen-selmer.sh`
 {:paths ["src"]
+ :deps {org.clojure/clojure {:mvn/version "1.10.3"}
+        org.clojure/core.async {:mvn/version "1.5.648"}
+        org.typedclojure/typed.clj.runtime
+        {:local/root "../clj.runtime"
+         :deps/manifest :deps}}
  :mvn/repos {"sonatype-oss-public" {:url "https://oss.sonatype.org/content/groups/public/"}}
  :aliases {:nREPL
            {:extra-paths ["script"]
@@ -10,12 +15,7 @@
                         "--interactive"]}
            :spec-skip-macros
            {:jvm-opts ["-Dclojure.spec.skip-macros=true"]}
-           :test {:extra-deps {org.clojure/clojure {:mvn/version "1.10.3"}
-                               org.clojure/core.async {:mvn/version "1.5.648"}
-                               org.typedclojure/typed.clj.runtime
-                               {:local/root "../clj.runtime"
-                                :deps/manifest :deps}
-                               org.typedclojure/typed.clj.checker
+           :test {:extra-deps {org.typedclojure/typed.clj.checker
                                {:local/root "../clj.checker"
                                 :deps/manifest :deps}}
                   :extra-paths ["test"]}

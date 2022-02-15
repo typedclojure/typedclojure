@@ -69,7 +69,7 @@
                                :env env
                                :should-runtime-infer? should-runtime-infer?
                                :instrument-infer-config instrument-infer-config)]
-             (impl/with-full-impl (:impl config)
+             (impl/with-impl (:impl config)
                (loop []
                  (let [form (reader/read opts pbr)]
                    (when-not (identical? form eof)

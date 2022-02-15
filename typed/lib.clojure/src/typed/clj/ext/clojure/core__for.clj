@@ -26,7 +26,8 @@
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.cs-gen :as cgen]
-            [typed.cljc.checker.utils :as u]))
+            [typed.cljc.checker.utils :as u]
+            [typed.cljc.checker.check.unanalyzed :refer [defuspecial]]))
 
 ;;==================
 ;; clojure.core/for
@@ -128,7 +129,7 @@
         (update :expanded-bindings ext-let/pad-vector args-syn))))
 
 ;; see also clojure.core.typed.expand
-(defn defuspecial__for
+(defuspecial defuspecial__for
   "defuspecial implementation for clojure.core/for"
   [{ana-env :env :keys [form] :as expr} expected]
   (let [_ (assert (= 3 (count form)) form)

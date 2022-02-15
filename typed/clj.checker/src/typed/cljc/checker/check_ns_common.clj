@@ -50,7 +50,7 @@
                                 ns-or-syms)
                              [ns-or-syms]
                              ns-or-syms))]
-        (impl/with-full-impl impl
+        (impl/with-impl impl
           (binding [vs/*delayed-errors* (err/-init-delayed-errors)
                     vs/*already-checked* (atom #{})
                     vs/*trace-checker* trace
@@ -88,14 +88,14 @@
                   (when (and file-mapping
                              (== 1 (count nsym-coll)))
                     {:file-mapping (apply merge
-                                          (map #(impl/with-full-impl impl
+                                          (map #(impl/with-impl impl
                                                   (file-map/ast->file-mapping %))
                                                (get (some-> vs/*checked-asts* deref) (first nsym-coll))))}))))))))))
 
 (defn check-ns
   ([impl ns-or-syms opt]
    (let [{:keys [delayed-errors]} (check-ns-info impl ns-or-syms opt)]
-     (impl/with-full-impl impl
+     (impl/with-impl impl
        (if-let [errors (seq delayed-errors)]
          (err/print-errors! errors)
          :ok)))))

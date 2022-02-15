@@ -36,3 +36,6 @@
 
 (defn swap-checker! [& args]
   (apply swap! (checker) args))
+
+(defn swap-checker-vals! [& args]
+  (apply swap-vals! (checker) args))

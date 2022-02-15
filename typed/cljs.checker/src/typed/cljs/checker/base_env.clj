@@ -10,7 +10,6 @@
   (:require [cljs.analyzer :as ana]
             [cljs.env :as env]
             [clojure.core.typed.base-env-helper-cljs :as h]
-            [clojure.core.typed.bootstrap-cljs :as boot]
             [clojure.core.typed.current-impl :as impl]
             [clojure.set :as set]
             [typed.cljc.checker.base-env-common :refer [delay-and-cache-env] :as common]
@@ -99,6 +98,8 @@ cljs.core/Reduced [[[x :variance :covariant]]]
 
 (delay-and-cache-env ^:private init-jsnominals 
   (reset-protocol-env!)
+  (h/jsnominal-mappings)
+  #_
   (h/jsnominal-mappings
 
 ; seems like a good place to put this
@@ -142,17 +143,11 @@ goog.events.EventTarget [[]]
 (delay-and-cache-env ^:private init-var-env
   (reset-protocol-env!)
   (reset-jsnominal-env!)
+  (h/var-mappings)
+  #_
   (merge
    (common/parse-cljs-ann-map @common/common-var-annotations)
    (h/var-mappings
-
-;internal vars
-cljs.core.typed/ann* [Any Any -> Any]
-cljs.core.typed/ann-protocol* [Any Any Any -> Any]
-cljs.core.typed/ann-datatype* [Any Any Any Any -> Any]
-cljs.core.typed/defalias* [Any Any -> Any]
-cljs.core.typed/typed-deps* [Any -> Any]
-cljs.core.typed/ann-jsnominal* [Any Any -> Any]
 
 cljs.core/+ (IFn [cljs.core.typed/CLJSInteger * -> cljs.core.typed/CLJSInteger]
                  [cljs.core.typed/JSNumber * -> cljs.core.typed/JSNumber])
@@ -162,7 +157,7 @@ cljs.core/* (IFn [cljs.core.typed/CLJSInteger * -> cljs.core.typed/CLJSInteger]
                  [cljs.core.typed/JSNumber * -> cljs.core.typed/JSNumber])
 cljs.core/nth (All [x y]
                 (IFn [(U nil (cljs.core/ISeqable x)) cljs.core.typed/CLJSInteger -> x]
-                      [(U nil (cljs.core/ISeqable x)) cljs.core.typed/CLJSInteger y -> (U y x)]))
+                     [(U nil (cljs.core/ISeqable x)) cljs.core.typed/CLJSInteger y -> (U y x)]))
 
 cljs.core/*flush-on-newline* cljs.core.typed/JSBoolean
 cljs.core/*print-newline* cljs.core.typed/JSBoolean
@@ -249,6 +244,8 @@ cljs.core/-conj [Any Any -> Any]
 (delay-and-cache-env init-jsvar-env
   (reset-protocol-env!)
   (reset-jsnominal-env!)
+  (h/js-var-mappings)
+  #_
   (h/js-var-mappings
 ;; js
     
@@ -490,19 +487,6 @@ cljs.core.typed/Reversible
 
 (defn reset-alias-env! []
   (let [alias-env (init-alias-env)]
-    ; Ensure init-alias-env agrees with the -base-aliases
-    (assert (= (set (keys alias-env))
-               (set (map #(symbol "cljs.core.typed" (str %))
-                         boot/-base-aliases)))
-            (str "core.typed Bug! Base aliases do not agree with base environment."
-                 " Missing from cljs.core.typed ns: "
-                 (set/difference (set (keys alias-env))
-                                 (set (map #(symbol "cljs.core.typed" (str %))
-                                           boot/-base-aliases)))
-                 " Missing from base-env-cljs ns "
-                 (set/difference (set (map #(symbol "cljs.core.typed" (str %))
-                                           boot/-base-aliases))
-                                 (set (keys alias-env)))))
     (name-env/reset-name-env! alias-env)))
 
 (delay-and-cache-env init-declared-kinds {})

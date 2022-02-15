@@ -10,7 +10,8 @@
   (:refer-clojure :exclude [type defprotocol fn loop dotimes let for doseq
                             defn atom ref])
   (:require [clojure.core :as core]
-            [clojure.core.typed.special-form :as spec]))
+            [clojure.core.typed.special-form :as spec]
+            [clojure.core.typed.internal :as internal]))
 
 (core/defn core-kw [kw]
   (keyword "clojure.core.typed"
@@ -47,7 +48,7 @@
         :- Long
         1)"
   [name & fdecl]
-  (core/let [[docstring fdecl] ((requiring-resolve 'clojure.core.typed.internal/take-when) string? fdecl)
+  (core/let [[docstring fdecl] (internal/take-when string? fdecl)
              [provided? t [body :as args]] (parse-colon fdecl 'def)]
     (assert (= 1 (count args)) "Wrong arguments to def")
     `(def ~(vary-meta name #(merge
@@ -59,7 +60,7 @@
           body))))
 
 (core/defn expand-typed-fn [form]
-  (core/let [{:keys [poly fn ann]} ((requiring-resolve 'clojure.core.typed.internal/parse-fn*) form)]
+  (core/let [{:keys [poly fn ann]} (internal/parse-fn* form)]
     `(do ~spec/special-form
          ~(core-kw :fn)
          {:ann '~ann
@@ -114,7 +115,7 @@
              b :- (U nil Number) nil]
         ...)"
   [bindings & exprs]
-  (core/let [{:keys [ann loop]} ((requiring-resolve 'clojure.core.typed.internal/parse-loop*) `(~bindings ~@exprs))]
+  (core/let [{:keys [ann loop]} (internal/parse-loop* `(~bindings ~@exprs))]
     `(do ~spec/special-form
          ~(core-kw :loop)
          {:ann '~ann}
@@ -129,7 +130,7 @@
             a2 1.2]
         body)"
   [bvec & forms]
-  (core/let [{:keys [let]} ((requiring-resolve 'clojure.core.typed.internal/parse-let*) (cons bvec forms))]
+  (core/let [{:keys [let]} (internal/parse-let* (cons bvec forms))]
     let))
 
 (defmacro ann-form
@@ -177,7 +178,7 @@
     MyProtocol
     ([y] a [this a :- x, b :- y] :- y))"
   [& body]
-  (core/let [{:keys [ann-protocol defprotocol]} ((requiring-resolve 'clojure.core.typed.internal/parse-defprotocol*) body)]
+  (core/let [{:keys [ann-protocol defprotocol]} (internal/parse-defprotocol* body)]
     `(do ~ann-protocol
          (clojure.core.typed/tc-ignore
            ~defprotocol))))
@@ -247,5 +248,5 @@
     ([a :- x] :- (Coll y) ...)
     ([a :- Str, b :- y] :- y ...))"
   [& args]
-  (core/let [{:keys [name args]} ((requiring-resolve 'clojure.core.typed.internal/parse-defn*) args)]
+  (core/let [{:keys [name args]} (internal/parse-defn* args)]
     `(def ~name (fn ~@args))))

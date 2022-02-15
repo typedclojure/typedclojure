@@ -14,6 +14,7 @@
 (comment
   (-> @STATE keys)
   (-> @STATE ::cljs-ana/namespaces (get 'foo.bar))
+  (-> @STATE ::cljs-ana/namespaces keys)
   )
 
 ;; An example type system written with typed.cljs.analyzer.

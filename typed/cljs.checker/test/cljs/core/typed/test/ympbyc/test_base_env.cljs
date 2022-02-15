@@ -1,13 +1,12 @@
 (ns cljs.core.typed.test.ympbyc.test-base-env
-  (:require-macros [cljs.core.typed :refer [ann ann-jsnominal] :as ct])
-  (:require [cljs.core.typed :refer [All U IFn Option I Any Seqable Vec HSequential NonEmptyASeq NonEmptySeqable Atom1 Set Coll Map] :as t]
-            [cljs.core :refer [IVector ISeq ASeq List]]))
+  (:require-macros [cljs.core.typed :refer [ann ann-jsnominal] :as t])
+  (:require [cljs.core :refer [IVector ISeq ASeq List]]))
 
 ;;seq
-(ann seq-vec (NonEmptySeqable number))
+(ann seq-vec (t/NonEmptySeqable number))
 (def seq-vec (seq [1 2 3]))
 
-(ann seq-empty (Option (NonEmptyASeq nil)))
+(ann seq-empty (t/Option (t/NonEmptyASeq nil)))
 (def seq-empty (seq []))
 
 ;;fst
@@ -42,7 +41,7 @@
 (ann seq-last number)
 (def seq-last (last (seq [1 2 3])))
 
-(ann last-nil (Option number))
+(ann last-nil (t/Option number))
 (def last-nil (last []))
 
 
@@ -59,7 +58,7 @@
 
 
 ;;test if NonEmptySeqable is Seqable
-(ann nonemp (All [x] [(NonEmptySeqable x) -> number]))
+(ann nonemp (t/All [x] [(t/NonEmptySeqable x) -> number]))
 (defn foo [xs] 1)
 
 (foo (seq [1 2 3]))
@@ -75,19 +74,19 @@
 (ann second-nil nil)
 (def second-nil (second nil))
 
-(ann second-seq (Option number))
+(ann second-seq (t/Option number))
 (def second-seq (second (seq [1 2 3])))
 
 
 
-(ann clj-to-jsjs Any)
+(ann clj-to-jsjs t/Any)
 (def clj-to-js (clj->js {:a 1}))
 
 ;BUG: Use of js-obj triggers "js-op missing" in check_cljs
-;(ann js-to-clj Any)
+;(ann js-to-clj t/Any)
 ;(def js-to-clj (js->clj (js-obj "a" 1 "b" 2)))
 
-(ann cljs.core/nil? [Any -> boolean])
+(ann cljs.core/nil? [t/Any -> boolean])
 
 (ann nil-pred-t boolean)
 (def nil-pred-t (nil? nil))
@@ -110,25 +109,26 @@
 (ann id-test number)
 (def id-test (identity 8))
 
-(ann take-vec (ASeq int))
-(def take-vec (take 2 [1 2 3 4]))
-
-
-(ann drop-vec (ASeq int))
-(def drop-vec (drop 2 [1 2 3 4]))
-
-(ann get-set (Option int))
-(def get-set (get #{1 2 3} 2))
+;; int NYI
+;(ann take-vec (ASeq int))
+;(def take-vec (take 2 [1 2 3 4]))
+;
+;
+;(ann drop-vec (ASeq int))
+;(def drop-vec (drop 2 [1 2 3 4]))
+;
+;(ann get-set (t/Option int))
+;(def get-set (get #{1 2 3} 2))
 
 (ann sym-test Symbol)
 (def sym-test 'foo)
 
 
 ;BUG: subtyping fails
-;(ann atom-test (Atom1 number))
+;(ann atom-test (t/Atom1 number))
 ;(def atom-test (atom 3))
 
-(ann set-test (Set number))
+(ann set-test (t/Set number))
 (def set-test #{5})
 
 (ann number?-t boolean)
@@ -147,8 +147,8 @@
 (def seq-f (seq? [1 2 3]))
 
 ;BUG: Use of `list` invokes an error
-;(ann cljs.core/-conj [Any Any -> (Coll Any)])
-;(ann cljs.core.List.EMPTY (List Any)) ;;this fails somehow
+;(ann cljs.core/-conj [t/Any t/Any -> (t/Coll t/Any)])
+;(ann cljs.core.List.EMPTY (List t/Any)) ;;this fails somehow
 ;(ann list?-test boolean)
 ;(def list?-test (list? (list 1 2 3)))
 
@@ -165,27 +165,27 @@
 (ann conj-2 (ASeq number))
 (def conj-2 (conj (seq [3 4 5]) 1 2))
 
-(ann conj-3 (ASeq (Vec number)))
+(ann conj-3 (ASeq (t/Vec number)))
 (def conj-3 (conj (seq [[1] [2 3]]) [8] [9]))
 
 ;BUG: this throws assert failed
 ;(ann conj-4 (t/Map Keyword number))
 ;(def conj-4 (conj {:foo 5} [:bar 8]))
-;(ann conj-5 (t/Map Keyword Any))
+;(ann conj-5 (t/Map Keyword t/Any))
 ;(def conj-5 (conj {:foo "bar"} {:baz 123}))
 
 
-(ann get-1 (Option number))
+(ann get-1 (t/Option number))
 (def get-1 (get #{1 2 3} 3))
 
 (ann get-2 boolean)
 (def get-2 (get {:a true :b false} :c false))
 
 
-(ann assoc-vec (Vec string))
+(ann assoc-vec (t/Vec string))
 (def assoc-vec (assoc ["foo" "bar"] 2 "baz"))
 
-(ann assoc-map (t/Map (Vec number) string))
+(ann assoc-map (t/Map (t/Vec number) string))
 (def assoc-map (assoc {[2 3] "foo"} [4 5] "bar"))
 
 (ann dissoc-1 (t/Map Keyword number))
@@ -201,10 +201,10 @@
 (def peek-1 (peek [{:foo "bar" :baz "zot"} {:foo "bar"}]))
 
 
-(ann pop-1 (Vec number))
+(ann pop-1 (t/Vec number))
 (def pop-1 (pop [1 2 3]))
 
-(ann disj-1 (Set number))
+(ann disj-1 (t/Set number))
 (def disj-1 (disj #{1 2 3 4} 3 4))
 
 
@@ -225,7 +225,7 @@
 
 ;(ann js/document js/Document)
 
-(ann  get-el [string -> (Option js/HTMLElement)])
+(ann  get-el [string -> (t/Option js/HTMLElement)])
 (defn get-el [sel] (.querySelector js/document sel))
 
 (ann  inner-html [js/HTMLElement -> string])

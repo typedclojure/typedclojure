@@ -269,11 +269,18 @@
     :form form
     :name name
     :opts opts
+    ;; this is crazy, maybe it won't work for cljs.analyzer
     :bindings (select-keys (get-thread-bindings)
                            [#'ana-cljs'/*recur-frames*
                             #'ana-cljs'/*loop-lets*
                             #'ana-cljs'/*allow-redef*
                             #'ana-cljs'/*allow-ns*
+                            #'ana-cljs'/*private-var-access-nowarn*
+                            #'ana-cljs'/*cljs-warnings*
+                            #'ana-cljs'/*cljs-warning-handlers*
+                            #'ana-cljs'/*passes* 
+                            #'ana-cljs'/*unchecked-if* 
+                            #'ana-cljs'/*unchecked-arrays* 
                             ])}))
 
 (defn unanalyzed [form env]

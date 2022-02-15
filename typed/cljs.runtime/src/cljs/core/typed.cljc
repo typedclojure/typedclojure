@@ -17,18 +17,19 @@
             [clojure.core.typed.internal :as internal]
             [clojure.core.typed.macros :as macros]
             [clojure.core.typed.util-vars :as vs]
-            [clojure.pprint :as pprint]))
+            [clojure.pprint :as pprint]
+            [cljs.analyzer.api :as ana-api]))
 
 (import-m/import-macros clojure.core.typed.macros
   [fn tc-ignore ann-form def loop let defn atom defprotocol])
 
-(defn load-if-needed 
+(core/defn load-if-needed
   "Load and initialize all of core.typed if not already"
   []
   (load/load-if-needed true))
 
-(let [rc #((requiring-resolve 'typed.clj.checker.reset-caches/reset-caches))]
-  (defn reset-caches
+(core/let [rc #((requiring-resolve 'typed.clj.checker.reset-caches/reset-caches))]
+  (core/defn reset-caches
     "Reset internal type caches."
     []
     (load-if-needed)
@@ -42,8 +43,8 @@
 
 (defmacro ^:private delay-tc-parse
   [t]
-  `(let [t# ~t
-         app-outer-context# (bound-fn [f#] (f#))]
+  `(core/let [t# ~t
+              app-outer-context# (bound-fn [f#] (f#))]
      (delay
        (app-outer-context#
          (fn []
@@ -53,35 +54,35 @@
 
 (defmacro ^:no-doc with-current-location
   [{:keys [form env]} & body]
-  `(let [form# ~form
-         env# ~env]
+  `(core/let [form# ~form
+              env# ~env]
      (binding [vs/*current-env* {:ns (or (:ns env#)
                                          {:name (cljs-ns)})
                                  :line (or (-> form# meta :line)
                                            (:line env#)
-                                 :column (or (-> form# meta :column)
-                                             (:column env#)))}]
+                                           :column (or (-> form# meta :column)
+                                                       (:column env#)))}]
        ~@body)))
 
-(defn ^:no-doc
+(core/defn ^:no-doc
   ann*-macro-time
   "Internal use only. Use ann."
   [qsym typesyn check? form env]
-  (let [_ (impl/with-impl impl/clojurescript
-            (when (and (contains? (impl/var-env) qsym)
-                       (not (impl/check-var? qsym))
-                       check?)
-              (err/warn (str "Removing :no-check from var " qsym))
-              (impl/remove-nocheck-var qsym)))
-        _ (impl/with-impl impl/clojurescript
-            (when-not check?
-              (impl/add-nocheck-var qsym)))
-        #_#_ast (with-current-location {:form form :env env}
-              (delay-rt-parse typesyn))
-        tc-type (with-current-location {:form form :env env}
-                  (delay-tc-parse typesyn))]
+  (core/let [_ (impl/with-impl impl/clojurescript
+                 (when (and (contains? (impl/var-env) qsym)
+                            (not (impl/check-var? qsym))
+                            check?)
+                   (err/warn (str "Removing :no-check from var " qsym))
+                   (impl/remove-nocheck-var qsym)))
+             _ (impl/with-impl impl/clojurescript
+                 (when-not check?
+                   (impl/add-nocheck-var qsym)))
+             #_#_ast (with-current-location {:form form :env env}
+                       (delay-rt-parse typesyn))
+             tc-type (with-current-location {:form form :env env}
+                       (delay-tc-parse typesyn))]
     #_(impl/with-impl impl/clojurescript
-      (impl/add-var-env qsym ast))
+        (impl/add-var-env qsym ast))
     (impl/with-impl impl/clojurescript
       (impl/add-tc-var-type qsym tc-type)))
   nil)
@@ -99,12 +100,17 @@
   ; don't check this var
   (ann ^:no-check foobar [Integer -> String])"
   [varsym typesyn]
-  (let [{:keys [name]} ((requiring-resolve 'cljs.analyzer.api/resolve) &env varsym)
-        qsym name 
-        opts (meta varsym)
-        check? (not (:no-check opts))]
+  {:pre [(symbol? varsym)]}
+  (core/let [{nme :name} (ana-api/resolve &env varsym)
+             qsym (or nme
+                      (when (simple-symbol? varsym)
+                        (symbol (name (cljs-ns))
+                                (name varsym)))
+                      (err/int-error (str "Cannot resolve " varsym))) 
+             opts (meta varsym)
+             check? (not (:no-check opts))]
     (ann*-macro-time qsym typesyn check? &form &env)
-    `(tc-ignore (ann* '~qsym '~typesyn '~check? '~&form))))
+    nil))
 
 (defmacro 
   ^{:forms '[(ann-protocol vbnd varsym & methods)
@@ -126,24 +132,25 @@
         baz
         [IFoo -> Number])"
   [& args]
-  (let [bnd-provided? (vector? (first args))
-        vbnd (when bnd-provided?
-               (first args))
-        varsym (if bnd-provided?
-                 (second args)
-                 (first args))
-        {:as mth} (if bnd-provided?
-                    (next (next args))
-                    (next args))]
-    `(ann-protocol* '~vbnd '~varsym '~mth)))
+  (core/let [bnd-provided? (vector? (first args))
+             vbnd (when bnd-provided?
+                    (first args))
+             varsym (if bnd-provided?
+                      (second args)
+                      (first args))
+             {:as mth} (if bnd-provided?
+                         (next (next args))
+                         (next args))]
+    nil))
 
 (defmacro ann-jsnominal
   "Equivalent of TypeScript interface"
   [varsym jsnom]
-  (let [qualsym (if (namespace varsym)
-                    varsym
-                    (symbol (str (ns-name *ns*)) (name varsym)))]
-   `(ann-jsnominal* '~qualsym '~jsnom)))
+  (core/let [qualsym (if (namespace varsym)
+                       varsym
+                       (symbol (str (ns-name *ns*)) (name varsym)))]
+    (assert nil "NYI")
+    nil))
 
 (defmacro
   ^{:forms '[(ann-datatype dname [field :- type*] opts*)
@@ -160,17 +167,17 @@
   vec :- (IPersistentVector Number)])"
   [& args]
   ;[dname fields & {ancests :unchecked-ancestors rplc :replace :as opts}]
-  (let [bnd-provided? (vector? (first args))
-        vbnd (when bnd-provided?
-               (first args))
-        [dname fields & {ancests :unchecked-ancestors rplc :replace :as opts}]
-        (if bnd-provided?
-          (next args)
-          args)]
+  (core/let [bnd-provided? (vector? (first args))
+             vbnd (when bnd-provided?
+                    (first args))
+             [dname fields & {ancests :unchecked-ancestors rplc :replace :as opts}]
+             (if bnd-provided?
+               (next args)
+               args)]
     (assert (not rplc) "Replace NYI")
     (assert (symbol? dname)
             (str "Must provide name symbol: " dname))
-    `(ann-datatype* '~vbnd '~dname '~fields '~opts)))
+    nil))
 
 (defmacro defalias 
   "Define a type alias. Takes an optional doc-string as a second
@@ -187,9 +194,9 @@
   ([sym t]
    (assert (symbol? sym) (str "First argument to defalias must be a symbol: " sym))
    `(tc-ignore
-      (do (defalias* '~sym '~t)
-          ~(when-not (namespace sym)
-             `(def ~sym))))))
+      ;;TODO don't reify
+      ~(when-not (namespace sym)
+         `(def ~sym)))))
 
 (defmacro inst 
   "Instantiate a polymorphic type with a number of types"
@@ -208,30 +215,30 @@
                (c [s] nil)]
         ...)"
   [fn-specs-and-annotations & body]
-  (let [bindings fn-specs-and-annotations
-        ; (Vector (U '[Symbol TypeSyn] LetFnInit))
-        normalised-bindings
-        (core/loop [[fbnd :as bindings] bindings
-                    norm []]
-          (cond
-            (empty? bindings) norm
-            (symbol? fbnd) (do
-                             (assert (#{:-} (second bindings))
-                                     "letfn> annotations require :- separator")
-                             (assert (<= 3 (count bindings)))
-                             (recur 
-                               (drop 3 bindings)
-                               (conj norm [(nth bindings 0)
-                                           (nth bindings 2)])))
-            (list? fbnd) (recur
-                           (next bindings)
-                           (conj norm fbnd))
-            :else (throw (Exception. (str "Unknown syntax to letfn>: " fbnd)))))
-        {anns false inits true} (group-by list? normalised-bindings)
-        ; init-syn unquotes local binding references to be compatible with hygienic expansion
-        init-syn (into {}
-                   (for [[lb type] anns]
-                     [lb `'~type]))]
+  (core/let [bindings fn-specs-and-annotations
+             ; (Vector (U '[Symbol TypeSyn] LetFnInit))
+             normalised-bindings
+             (core/loop [[fbnd :as bindings] bindings
+                         norm []]
+               (cond
+                 (empty? bindings) norm
+                 (symbol? fbnd) (do
+                                  (assert (#{:-} (second bindings))
+                                          "letfn> annotations require :- separator")
+                                  (assert (<= 3 (count bindings)))
+                                  (recur 
+                                    (drop 3 bindings)
+                                    (conj norm [(nth bindings 0)
+                                                (nth bindings 2)])))
+                 (list? fbnd) (recur
+                                (next bindings)
+                                (conj norm fbnd))
+                 :else (throw (Exception. (str "Unknown syntax to letfn>: " fbnd)))))
+             {anns false inits true} (group-by list? normalised-bindings)
+             ; init-syn unquotes local binding references to be compatible with hygienic expansion
+             init-syn (into {}
+                            (for [[lb type] anns]
+                              [lb `'~type]))]
     `(cljs.core/letfn ~(vec inits)
        ;unquoted to allow bindings to resolve with hygiene
        ~init-syn
@@ -254,42 +261,33 @@
               b :- (U nil Number), nil]
         ...)"
   [bndings* & forms]
-  (let [normalise-args
-        (core/fn [seq-exprs]
-          (core/loop [flat-result ()
-                 seq-exprs seq-exprs]
-            (cond
-              (empty? seq-exprs) flat-result
-              (and (vector? (first seq-exprs))
-                   (#{:-} (-> seq-exprs first second))) (do
-                                                          (prn "DEPRECATED WARNING: loop> syntax has changed, use [b :- t i] for clauses"
-                                                               "ns: " *ns* " form:" &form)
-                                                          (recur (concat flat-result (take 2 seq-exprs))
-                                                                 (drop 2 seq-exprs)))
-              :else (do (assert (#{:-} (second seq-exprs))
-                                "Incorrect syntax in loop>.")
-                        (recur (concat flat-result [(vec (take 3 seq-exprs))
-                                                    (nth seq-exprs 3)])
-                               (drop 4 seq-exprs))))))
-        ;group args in flat pairs
-        bndings* (normalise-args bndings*)
-        bnds (partition 2 bndings*)
-        ; [[lhs :- bnd-ann] rhs]
-        lhs (map ffirst bnds)
-        rhs (map second bnds)
-        bnd-anns (map #(-> % first next second) bnds)]
+  (core/let [normalise-args
+             (core/fn [seq-exprs]
+               (core/loop [flat-result ()
+                           seq-exprs seq-exprs]
+                 (cond
+                   (empty? seq-exprs) flat-result
+                   (and (vector? (first seq-exprs))
+                        (#{:-} (-> seq-exprs first second))) (do
+                                                               (prn "DEPRECATED WARNING: loop> syntax has changed, use [b :- t i] for clauses"
+                                                                    "ns: " *ns* " form:" &form)
+                                                               (recur (concat flat-result (take 2 seq-exprs))
+                                                                      (drop 2 seq-exprs)))
+                   :else (do (assert (#{:-} (second seq-exprs))
+                                     "Incorrect syntax in loop>.")
+                             (recur (concat flat-result [(vec (take 3 seq-exprs))
+                                                         (nth seq-exprs 3)])
+                                    (drop 4 seq-exprs))))))
+             ;group args in flat pairs
+             bndings* (normalise-args bndings*)
+             bnds (partition 2 bndings*)
+             ; [[lhs :- bnd-ann] rhs]
+             lhs (map ffirst bnds)
+             rhs (map second bnds)
+             bnd-anns (map #(-> % first next second) bnds)]
     `(loop>-ann (cljs.core/loop ~(vec (mapcat vector lhs rhs))
                   ~@forms)
                 '~bnd-anns)))
-
-(defmacro typed-deps 
-  "Declare namespaces which should be checked before the current namespace.
-  Accepts any number of symbols.
-  
-  eg. (typed-deps clojure.core.typed.holes
-                  myns.types)"
-  [& args]
-  `(typed-deps* '~args))
 
 (core/defn default-check-config []
   {:check-ns-dep :recheck
@@ -298,7 +296,7 @@
    :unannotated-multi :error
    #_#_:unannotated-arg :any})
 
-(defn cf* 
+(core/defn cf* 
   "Check a single form with an optional expected type.
   Intended to be called from Clojure. For evaluation at the Clojurescript
   REPL see cf."
@@ -307,7 +305,7 @@
   (core/let [opt (update opt :check-config #(merge (default-check-config) %))]
     ((requiring-resolve 'typed.cljs.checker.check-form/check-form) form expected expected-provided? opt)))
 
-(defn check-form-info 
+(core/defn check-form-info 
   [form & {:as opt}]
   (load-if-needed)
   (core/let [opt (update opt :check-config #(merge (default-check-config) %))]
@@ -318,7 +316,7 @@
   ([form] `(cf* '~form nil nil))
   ([form expected] `(cf* '~form '~expected true)))
 
-(defn check-ns-info
+(core/defn check-ns-info
   "Check a Clojurescript namespace, or the current namespace.
   Intended to be called from Clojure. For evaluation at the Clojurescript
   REPL see check-ns."
@@ -329,7 +327,7 @@
    (load-if-needed)
    ((requiring-resolve 'typed.cljs.checker.check-ns/check-ns-info) ns-or-syms opt)))
 
-(defn check-ns*
+(core/defn check-ns*
   "Check a Clojurescript namespace, or the current namespace.
   Intended to be called from Clojure. For evaluation at the Clojurescript
   REPL see check-ns."

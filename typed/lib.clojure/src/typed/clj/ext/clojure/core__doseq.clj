@@ -27,13 +27,14 @@
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.cs-gen :as cgen]
-            [typed.cljc.checker.utils :as u]))
+            [typed.cljc.checker.utils :as u]
+            [typed.cljc.checker.check.unanalyzed :refer [defuspecial]]))
 
 
 ;;==================
 ;; clojure.core/doseq
 
-(defn defuspecial__doseq
+(defuspecial defuspecial__doseq
   "defuspecial implementation for clojure.core/doseq"
   [{ana-env :env :keys [form] :as expr} expected]
   (let [_ (assert (<= 2 (count form)) form)
