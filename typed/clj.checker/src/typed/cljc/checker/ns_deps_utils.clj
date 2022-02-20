@@ -60,9 +60,14 @@
   {:pre [ns-form]
    :post [(boolean? %)]}
   (if-let [deps (ns-parse/deps-from-ns-decl ns-form)]
-    (contains? deps (impl/impl-case
-                      :clojure 'clojure.core.typed
-                      :cljs 'cljs.core.typed))
+    (boolean
+      (some (impl/impl-case
+              :clojure #{'clojure.core.typed
+                         'typed.clojure}
+              :cljs #{'clojure.core.typed
+                      'cljs.core.typed
+                      'typed.clojure})
+            deps))
     false))
 
 (defn ns-form-name

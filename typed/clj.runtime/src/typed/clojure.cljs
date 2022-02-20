@@ -6,19 +6,5 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns cljs.core.typed
-  "Internal functions for CLJS"
-  ;; https://clojurescript.org/guides/ns-forms#_implicit_sugar
-  (:require-macros cljs.core.typed))
-
-(defn ^:no-doc
-  inst-poly
-  "Internal use only. Use inst."
-  [inst-of types-syn]
-  inst-of)
-
-(defn ^:no-doc
-  loop>-ann
-  "Internal use only. Use loop>"
-  [loop-of bnding-types]
-  loop-of)
+(ns typed.clojure
+  (:require-macros typed.clojure))

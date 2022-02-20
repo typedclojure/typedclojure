@@ -38,7 +38,7 @@
             (conj configs (load-config-files url)))
           #{} (config-urls)))
 
-(def *configs 
+(def *configs
   (delay (load-configs)))
 
 (defn register-config-anns []

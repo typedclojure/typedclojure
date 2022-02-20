@@ -42,7 +42,7 @@
          (symbol? vsym)
          (namespace vsym)]
    :post [(symbol? %)]}
-  (if-let [alias (some->> nsym find-ns (prs/alias-in-ns (namespace vsym)))]
+  (if-let [alias (some-> nsym find-ns (prs/alias-in-ns (symbol (namespace vsym))))]
     (symbol (str alias) (name vsym))
     vsym))
 

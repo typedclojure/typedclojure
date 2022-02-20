@@ -7,7 +7,11 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc cljs.core.typed
-  "Macros for Clojurescript type checking"
+  "Macros for Clojurescript type checking.
+
+  Note: The (non self hosted) ClojureScript compiler will automatically rewrite clojure.core.typed
+  requires to cljs.core.typed, so (:require [clojure.core.typed :as t]) also works in
+  ClojureScript, unless self hosting."
   (:refer-clojure :exclude [fn loop let defn atom defprotocol])
   (:require [clojure.core.typed.load-if-needed :as load]
             [clojure.core :as core]
@@ -296,7 +300,7 @@
    :unannotated-multi :error
    #_#_:unannotated-arg :any})
 
-(core/defn cf* 
+(core/defn check-form*
   "Check a single form with an optional expected type.
   Intended to be called from Clojure. For evaluation at the Clojurescript
   REPL see cf."
@@ -305,16 +309,26 @@
   (core/let [opt (update opt :check-config #(merge (default-check-config) %))]
     ((requiring-resolve 'typed.cljs.checker.check-form/check-form) form expected expected-provided? opt)))
 
+(core/defn check-form*-macros
+  [& args]
+  #?(:clj (apply (requiring-resolve 'clojure.core.typed/check-form*-macros) args)
+     :cljs (throw (ex-info "check-form*-macros not yet implemented in self hosted CLJS" {}))))
+
 (core/defn check-form-info 
   [form & {:as opt}]
   (load-if-needed)
   (core/let [opt (update opt :check-config #(merge (default-check-config) %))]
     (apply (requiring-resolve 'typed.cljs.checker.check-form/check-form-info) form (apply concat opt))))
 
+(core/defn check-form-info-macros
+  [& args]
+  #?(:clj (apply (requiring-resolve 'clojure.core.typed/check-form-info-macros) args)
+     :cljs (throw (ex-info "check-form-info-macros not yet implemented in self hosted CLJS" {}))))
+
 (defmacro cf
   "Check a single form with an optional expected type."
-  ([form] `(cf* '~form nil nil))
-  ([form expected] `(cf* '~form '~expected true)))
+  ([form] `(check-form* '~form nil nil))
+  ([form expected] `(check-form* '~form '~expected true)))
 
 (core/defn check-ns-info
   "Check a Clojurescript namespace, or the current namespace.
@@ -327,6 +341,14 @@
    (load-if-needed)
    ((requiring-resolve 'typed.cljs.checker.check-ns/check-ns-info) ns-or-syms opt)))
 
+(defn check-ns-macros [& args]
+  #?(:clj (apply (requiring-resolve 'clojure.core.typed/check-ns) args)
+     :cljs (throw (ex-info "check-ns-macros not yet implemented in self hosted CLJS" {}))))
+
+(defn check-ns-info-macros [& args]
+  #?(:clj (apply (requiring-resolve 'clojure.core.typed/check-ns-info) args)
+     :cljs (throw (ex-info "check-ns-info-macros not yet implemented in self hosted CLJS" {}))))
+
 (core/defn check-ns*
   "Check a Clojurescript namespace, or the current namespace.
   Intended to be called from Clojure. For evaluation at the Clojurescript
@@ -338,22 +360,38 @@
    (load-if-needed)
    ((requiring-resolve 'typed.cljs.checker.check-ns/check-ns) ns-or-syms opt)))
 
+(defn ^:internal check-ns-expansion-side-effects
+  ([]
+   (load-if-needed)
+   (check-ns*))
+  ([ns-or-syms]
+   (load-if-needed)
+   (let [quoted? #(and (seq? %)
+                       (= 'quote (first %))
+                       (= 2 (count %)))
+         quoted-symbol? (every-pred quoted? (comp simple-symbol? second))
+         quoted-coll? (every-pred quoted? (comp coll? second))
+         _ (assert (coll? ns-or-syms)
+                   (str "check-ns arguments must be quoted symbols: " (pr-str ns-or-syms)))
+         ns-or-syms (mapv (fn [quoted-sym]
+                            (assert (quoted-symbol? quoted-sym)
+                                    (str "All args to check-ns must be quoted simple symbols: " (pr-str quoted-sym)))
+                            (second quoted-sym))
+                          (if (quoted-symbol? ns-or-syms)
+                            [ns-or-syms]
+                            (if (quoted-coll? ns-or-syms)
+                              ;; '(quote [foo bar]) => ['(quote foo) '(quote bar)]
+                              (map #(list 'quote %) (second ns-or-syms))
+                              ns-or-syms)))]
+     (check-ns* ns-or-syms))))
+
 (defmacro check-ns
-  "Check a Clojurescript namespace, or the current namespace. This macro
-  is intended to be called at the Clojurescript REPL. For the equivalent function see
-  check-ns*.
-  
-  The symbols *ns* and clojure.core/*ns* are special and refer to the current namespace. Useful if
-  providing options for the current namespace."
+  "Check a Clojurescript namespace, or the current namespace with zero args. This macro
+  is intended to be called at the Clojurescript REPL with a subset of
+  clojure.core.typed/check-ns's features.
+ 
+  For the equivalent function (callable from Clojure only) see cljs.core.typed/check-ns*."
   ([] 
-   (load-if-needed)
-   `(check-ns *ns*))
-  ([ns-or-syms & args]
-   (load-if-needed)
-   (let [_ (when (and (list? ns-or-syms)
-                      (#{'quote} (first ns-or-syms)))
-             (err/int-error "check-ns is a macro, do not quote the first argument"))
-         ns-or-syms (if ('#{*ns* clojure.core/*ns*} ns-or-syms)
-                      (cljs-ns)
-                      ns-or-syms)]
-     `~(apply check-ns* ns-or-syms args))))
+   (check-ns-expansion-side-effects))
+  ([ns-or-syms]
+   (check-ns-expansion-side-effects ns-or-syms)))

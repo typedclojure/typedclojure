@@ -928,7 +928,10 @@
         :clojure (ns-name *ns*)
         :cljs (cljs-ns))))
 
-(defn- resolve-type-clj 
+(def ^:private ns-rewrites-clj {'typed.clojure 'clojure.core.typed})
+(def ^:private ns-unrewrites-clj (set/map-invert ns-rewrites-clj))
+
+(defn- resolve-type-clj
   "Returns a var, class or nil"
   [sym]
   {:pre [(symbol? sym)]
@@ -936,10 +939,20 @@
   (impl/assert-clojure)
   (let [nsym (parse-in-ns)]
     (if-let [ns (find-ns nsym)]
-      (ns-resolve ns sym)
+      (or (when-some [res (ns-resolve ns sym)]
+            (or (when-some [rewrite-nsym (when (var? res)
+                                           (ns-rewrites-clj (some-> res symbol namespace symbol)))]
+                  (find-var (symbol rewrite-nsym (name res))))
+                res))
+          (when-some [alias-sym (some-> ((ns-aliases ns)
+                                         (some-> (namespace sym)
+                                                 symbol))
+                                        ns-name)]
+            (find-var (symbol (name (ns-rewrites-clj alias-sym alias-sym))
+                              (name sym)))))
       (err/int-error (str "Cannot find namespace: " sym)))))
 
-(defn- resolve-alias-clj
+(defn- resolve-type-alias-clj
   "Returns a symbol if sym maps to a type alias, otherwise nil"
   [sym]
   {:pre [(symbol? sym)]
@@ -960,6 +973,9 @@
             qsym)))
       (err/int-error (str "Cannot find namespace: " sym)))))
 
+(def ^:private ns-rewrites-cljs {'typed.clojure 'cljs.core.typed})
+(def ^:private ns-unrewrites-cljs (set/map-invert ns-rewrites-cljs))
+
 ;; ignores both clj and cljs namespace graph (other than to resolve aliases)
 ;; TODO reconcile clj/cljs type resolution. neither should really be interning vars (breaking change for clj).
 (defn- resolve-type-cljs
@@ -975,13 +991,15 @@
         res (or ((requiring-resolve 'typed.cljs.checker.util/resolve-var) nsym sym)
                 (when-some [maybe-alias (some-> sym namespace symbol)]
                   (symbol 
-                    (if-some [alias-sym (get ((requiring-resolve 'typed.cljs.checker.util/get-aliases)
-                                              nsym)
-                                             maybe-alias)]
-                      (name alias-sym)
-                      (name maybe-alias))
+                    (name
+                      (let [alias-sym (get ((requiring-resolve 'typed.cljs.checker.util/get-aliases)
+                                            nsym)
+                                           maybe-alias
+                                           maybe-alias)]
+                        (ns-rewrites-cljs alias-sym alias-sym)))
                     (name sym)))
-                (symbol (name nsym) (name sym)))]
+                (symbol (name (ns-rewrites-cljs nsym nsym))
+                        (name sym)))]
     res))
 
 (defn parse-RClass [cls-sym params-syn]
@@ -1166,7 +1184,7 @@
                               (var? res)   (coerce/var->symbol res)
                               ;; name doesn't resolve, try declared protocol or datatype
                               ;; in the current namespace
-                              :else (or (resolve-alias-clj sym)
+                              :else (or (resolve-type-alias-clj sym)
                                         (let [ns (parse-in-ns)
                                               dprotocol (if (namespace sym)
                                                           sym
@@ -1474,16 +1492,20 @@
      ~@body))
 
 (defn alias-in-ns
-  "Returns an alias for namespace string in ns, or nil if none."
-  [nstr ns]
-  {:pre [(string? nstr)
-         (con/namespace? ns)]
+  "Returns an alias for namespace nsym in namespace ns, or nil if none."
+  [ns nsym]
+  {:pre [(con/namespace? ns)
+         (simple-symbol? nsym)]
    :post [((some-fn nil? symbol?) %)]}
   (impl/assert-clojure)
   (some (fn [[alias ans]]
-          (when (= nstr (str (ns-name ans)))
-            alias))
-        (ns-aliases ns)))
+          (let [ans-sym (ns-name ans)]
+            (when (or (= nsym (ns-unrewrites-clj ans-sym))
+                      (= nsym ans-sym))
+              alias)))
+        ;; prefer shorter, lexicographically earlier aliases
+        (sort-by (juxt (comp count name key) key)
+                 (ns-aliases ns))))
 
 (defn core-lang-Class-sym [clsym]
   {:pre [(symbol? clsym)]
@@ -1526,13 +1548,13 @@
       :clojure
       (or ; use an import name
           (Class-symbol-intern sym ns)
-          ; core.lang classes are special
+          ; implicitly imported classes are special
           (core-lang-Class-sym sym)
           ; use unqualified name if interned
           (when (namespace sym)
             (or (var-symbol-intern sym ns)
                 ; use aliased ns if not interned, but ns is aliased
-                (when-let [alias (alias-in-ns (namespace sym) ns)]
+                (when-let [alias (alias-in-ns ns (symbol (namespace sym)))]
                   (symbol (str alias) (name sym)))))
           ; otherwise use fully qualified name
           sym)

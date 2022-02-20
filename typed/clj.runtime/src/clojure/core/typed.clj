@@ -1565,7 +1565,6 @@ for checking namespaces, cf for checking individual forms."}
   "
   [& kws]
   (load-if-needed)
-  (require '[typed.clj.annotator])
   (core/let [m (-> (if (= 1 (count kws))
                      (do
                        ((requiring-resolve 'clojure.core.typed.errors/deprecated-warn)

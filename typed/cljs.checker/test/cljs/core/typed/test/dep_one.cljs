@@ -1,4 +1,4 @@
 (ns cljs.core.typed.test.dep-one
-  (:require [cljs.core.typed :as t :include-macros true]))
+  (:require [clojure.core.typed :as t]))
 
 (def a 1)

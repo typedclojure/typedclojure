@@ -3,12 +3,18 @@
 
 (defonce watchers (atom []))
 
-(defn watch []
-  (let [w ((requiring-resolve 'kaocha.watch/run)
-           (assoc ((requiring-resolve 'kaocha.config/load-config))
-                  :skip-meta :typed/skip-from-repo-root))]
-    (swap! watchers conj w)
-    w))
+(defn watch
+  ([] (watch :checker))
+  ([profile]
+   (let [w ((requiring-resolve 'kaocha.watch/run)
+            ((requiring-resolve 'kaocha.config/load-config)
+             "tests.edn"
+             (cond-> {}
+               profile (assoc :profile profile))))]
+     (when profile
+       (println (str "Watching test profile " profile " in tests.edn")))
+     (swap! watchers conj w)
+     w)))
 
 (defn stop-watchers []
   (mapv (fn [[_fut cancel-fn]]

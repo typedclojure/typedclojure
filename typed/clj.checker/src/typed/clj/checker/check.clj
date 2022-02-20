@@ -191,7 +191,8 @@
           ; ignore ns declaration
           ns-form (ns-depsu/ns-form-for-ns nsym)
           check? (some-> ns-form ns-depsu/should-check-ns-form?)]
-      (if-not check?
+      (cond
+        (not check?)
         (when-not ('#{clojure.core.typed cljs.core.typed clojure.core cljs.core} nsym)
           (println (str "Not checking " nsym 
                         (cond
@@ -199,6 +200,8 @@
                           (ns-depsu/collect-only-ns? ns-form) " (tagged :collect-only in ns metadata)"
                           (not (ns-depsu/requires-tc? ns-form)) " (does not depend on clojure.core.typed)")))
           (flush))
+
+        :else
         (let [start (. System (nanoTime))
               _ (println "Start checking" nsym)
               _ (flush)

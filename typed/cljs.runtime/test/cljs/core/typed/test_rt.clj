@@ -13,7 +13,7 @@
         (is (thrown? java.io.FileNotFoundException
                      (tcljs/reset-caches)))
         (is (thrown? java.io.FileNotFoundException
-                     (tcljs/cf* 1 nil nil)))
+                     (tcljs/check-form* 1 nil nil)))
         (is (thrown? java.io.FileNotFoundException
                      (tcljs/cf 1)))
         (is (thrown? java.io.FileNotFoundException

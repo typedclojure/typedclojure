@@ -13,6 +13,25 @@
             [clojure.core.typed.special-form :as spec]
             [clojure.core.typed.internal :as internal]))
 
+;https://github.com/cgrand/macrovich/blob/master/src/net/cgrand/macrovich.cljc
+(defmacro platform-case
+  "Dispatch based on the compiler in charge of macroexpanding this form.
+  If called directly, must be inside a defmacro form."
+  [& {:keys [cljs clj]}]
+  (cond
+    ;; is this platform-case form expanding directly inside a defmacro?
+    (contains? &env '&env)
+    ;; then reuse the &env from the surrounding defmacro call
+    `(if (:ns ~'&env) ~cljs ~clj)
+
+    :else
+    (if #?(;; :ns is added by cljs.analyzer, not Compiler.java
+           :clj (:ns &env)
+           ;; don't need to bother checking
+           :cljs true)
+      cljs
+      clj)))
+
 (core/defn core-kw [kw]
   (keyword "clojure.core.typed"
            (name kw)))
@@ -59,7 +78,7 @@
           `(clojure.core.typed/ann-form ~body ~t)
           body))))
 
-(core/defn expand-typed-fn [form]
+(core/defn expand-typed-fn [&env form]
   (core/let [{:keys [poly fn ann]} (internal/parse-fn* form)]
     `(do ~spec/special-form
          ~(core-kw :fn)
@@ -103,7 +122,7 @@
         ([a :- String, b :- Number] :- String ...))
   "
   [& forms]
-  (expand-typed-fn &form))
+  (expand-typed-fn &env &form))
 
 (defmacro 
   ^{:forms '[(loop [binding :- type?, init*] exprs*)]}
