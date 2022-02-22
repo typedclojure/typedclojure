@@ -11,10 +11,13 @@
   typed.clojure
   (:refer-clojure :exclude [type defprotocol #_letfn fn loop dotimes let for doseq
                             defn atom ref cast])
-  (:require clojure.core.typed
-            [clojure.core.typed.macros :as macros]
-            ;; for self hosted CLJS requiring macros
-            #?@(:cljs [cljs.core.typed])))
+  (:require #?(;; not loadable in self hosted CLJS, otherwise always needed for
+               ;; CLJ AOT compilation compatibility
+               :clj clojure.core.typed
+               ;; for self hosted CLJS normal :require's from .clj/c files. for
+               ;; .clj{s,c} files, loaded via :require-macros in typed/clojure.cljs.
+               :cljs cljs.core.typed)
+            [clojure.core.typed.macros :as macros]))
 
 (defmacro ann
   "Annotate varsym with type. If unqualified, qualify in the current namespace.
