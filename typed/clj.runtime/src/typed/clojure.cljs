@@ -7,4 +7,5 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.clojure
+  (:require cljs.core.typed)
   (:require-macros typed.clojure))
