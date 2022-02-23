@@ -20,18 +20,18 @@
                IList')
              (defalias
                NEColl'
-               (TFn [[x :variance :covariant]]
+               (t/TFn [[x :variance :covariant]]
                     (ICollection' x)))
              (defalias
                NEASeq'
-               (TFn [[x :variance :covariant]]
-                    (I 
+               (t/TFn [[x :variance :covariant]]
+                    (t/I
                       (ICollection' x)
                       (ISeqable' x)
                       (ISeq' x)
                       (IList' x)
                       #_(CountRange 1))))
-             (fn [seq' :- (All [x] [(NEColl' x) -> (NEASeq' x)])
-                  a :- (NEColl' Int)] 
+             (fn [seq' :- (t/All [x] [(NEColl' x) -> (NEASeq' x)])
+                  a :- (NEColl' t/Int)] 
                :- (NEASeq' Number)
                (seq' a)))))

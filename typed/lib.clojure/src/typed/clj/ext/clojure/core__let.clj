@@ -30,7 +30,7 @@
 ;;==================
 ;; clojure.core/let
 
-(def combined-env? (con/hmap-c? :prop-env lex/PropEnv? :ana-env map? :new-syms set?))
+(def combined-env? (con/hmap-c? :prop-env lex/PropEnv?-workaround :ana-env map? :new-syms set?))
 
 (defn bad-vector-destructure-error-msg
   "Error message when destructuring a non-sequential type.
@@ -47,18 +47,18 @@
           dform))
 
 (defn update-destructure-env [prop-env ana-env lhs maybe-rhs-expr rhs-ret is-reachable]
-  {:pre [(lex/PropEnv? prop-env)
+  {:pre [(lex/PropEnv?-workaround prop-env)
          (map? ana-env)
          ((some-fn nil? map?) maybe-rhs-expr)
          (r/TCResult? rhs-ret)
          (instance? clojure.lang.IAtom2 is-reachable)]
    :post [(combined-env? %)]}
   (letfn [(upd-prop-env [prop-env uniquified-lhs rhs-ret]
-            {:pre [(lex/PropEnv? prop-env)
+            {:pre [(lex/PropEnv?-workaround prop-env)
                    (map? ana-env)
                    (simple-symbol? uniquified-lhs)
                    (r/TCResult? rhs-ret)]
-             :post [(lex/PropEnv? %)]}
+             :post [(lex/PropEnv?-workaround %)]}
             (-> prop-env
                 (let/update-env uniquified-lhs rhs-ret is-reachable)))
           (upd-ana-env [ana-env lhs]
@@ -286,21 +286,24 @@
     (into (subvec p (count v)))))
 
 (defn check-let-bindings [combined-env bvec]
-  {:pre [(combined-env? combined-env)
+  {:pre [
          (vector? bvec)
          (even? (count bvec))]
-   :post [((con/hmap-c? :prop-env lex/PropEnv? :ana-env map? :new-syms set?
+   :post [((con/hmap-c? :prop-env lex/PropEnv?-workaround :ana-env map? :new-syms set?
                         :expanded-bindings vector? :reachable boolean?)
            %)]}
+  (assert (combined-env? combined-env)
+          [(pr-str (mapv (fn [[k v]] [k (class v)]) combined-env))
+           (pr-str combined-env)])
   (let [res (reduce
               (fn [{:keys [new-syms prop-env ana-env expanded-bindings reachable]} [lhs rhs]]
                 {:pre [(boolean? reachable)
                        (set? new-syms)
-                       (lex/PropEnv? prop-env)
+                       (lex/PropEnv?-workaround prop-env)
                        (map? ana-env)
                        (vector? expanded-bindings)]
                  :post [((con/maybe-reduced-c?
-                           (con/hmap-c? :prop-env lex/PropEnv? :ana-env map? :new-syms set?
+                           (con/hmap-c? :prop-env lex/PropEnv?-workaround :ana-env map? :new-syms set?
                                         :expanded-bindings vector? :reachable boolean?))
                          %)]}
                 (assert (true? reachable))
@@ -345,6 +348,7 @@
 (defuspecial defuspecial__let
   "defuspecial implementation for clojure.core/let"
   [{ana-env :env :keys [form] :as expr} expected]
+  (prn `defuspecial__let form)
   (let [_ (assert (next form)
                   (str "Expected 1 or more arguments to clojure.core/let: " form))
         [bvec & body-syns] (next form)

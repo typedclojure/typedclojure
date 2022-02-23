@@ -38,7 +38,7 @@
               [t/Nothing (t/HMap :optional {:use-current-env t/Any}) -> t/Nothing]))
 
 (t/ann resolve-type-clj [t/Sym -> (t/U (t/Var2 t/Nothing t/Any) Class nil)])
-(defn- resolve-type-clj 
+(defn- resolve-type-clj
   "Returns a var, class or nil"
   [sym]
   {:pre [(symbol? sym)]
@@ -49,7 +49,9 @@
       (ns-resolve ns sym)
       (err/int-error (str "Cannot find namespace: " sym)))))
 
-(defn- resolve-alias-clj 
+(def ^:private ns-rewrites-clj {'clojure.core.typed 'typed.clojure})
+
+(defn- resolve-type-alias-clj
   "Returns a symbol if sym maps to a type alias, otherwise nil"
   [sym]
   {:pre [(symbol? sym)]
@@ -63,11 +65,40 @@
                                     (find-ns nsp))
                                 ns-name)
                         (ns-name ns))]
-        (let [_ (assert (and (symbol? qual)
+        (let [qual (ns-rewrites-clj qual qual)
+              _ (assert (and (symbol? qual)
                              (not (namespace qual))))
               qsym (symbol (name qual) (name sym))]
           (when (contains? (impl/alias-env) qsym)
             qsym)))
+      (err/int-error (str "Cannot find namespace: " sym)))))
+
+(defn- resolve-type-clj->sym
+  [sym]
+  {:pre [(symbol? sym)]
+   :post [(symbol? %)]}
+  (impl/assert-clojure)
+  (let [nsym (parse-in-ns)]
+    (if-some [ns (find-ns nsym)]
+      (or (when (special-symbol? sym)
+            sym)
+          ('#{quote Array ReadOnlyArray Array2 List*} sym)
+          (when-some [res (ns-resolve ns sym)]
+            (or (when (var? res)
+                  (if-some [rewrite-nsym (ns-rewrites-clj (some-> res symbol namespace symbol))]
+                    (symbol (name rewrite-nsym) (-> res symbol name))
+                    (coerce/var->symbol res)))
+                (when (class? res)
+                  (coerce/Class->symbol res))))
+          (when-some [alias-sym (some-> ((ns-aliases ns)
+                                         (some-> (namespace sym)
+                                                 symbol))
+                                        ns-name)]
+            (symbol (name (ns-rewrites-clj alias-sym alias-sym))
+                    (name sym)))
+          (let [sym-nsym (or (some-> sym namespace symbol)
+                             nsym)]
+            (symbol (name (ns-rewrites-clj sym-nsym sym-nsym)) (name sym))))
       (err/int-error (str "Cannot find namespace: " sym)))))
 
 (declare parse parse-path-elem)
@@ -353,6 +384,7 @@
 (def parse-HVec (parse-h* :HVec "Invalid HVec syntax:"))
 (def parse-HSequential (parse-h* :HSequential "Invalid HSequential syntax:"))
 (def parse-HSeq (parse-h* :HSeq "Invalid HSeq syntax:"))
+(def parse-HList (parse-h* :HList "Invalid HList syntax:"))
 
 (def parse-quoted-hvec (fn [syn]
                          (parse-HVec [nil syn])))
@@ -609,11 +641,7 @@
     {:post [((some-fn nil? symbol?) %)]}
     (when (symbol? n)
       (or (impl/impl-case
-            :clojure (cond
-                       (special-symbol? n) n
-                       :else (let [r (resolve-type-clj n)]
-                               (when (var? r)
-                                 (coerce/var->symbol r))))
+            :clojure (resolve-type-clj->sym n)
             :cljs n)
           n))))
 
@@ -628,9 +656,8 @@
 (defmethod parse-seq* 'Value [syn] 
   (err/deprecated-plain-op 'Value 'Val)
   (parse-Value syn))
-(defmethod parse-seq* 'clojure.core.typed/Value [syn] (parse-Value syn))
-(defmethod parse-seq* 'clojure.core.typed/Val [syn] (parse-Value syn))
-(defmethod parse-seq* 'cljs.core.typed/Value [syn] (parse-Value syn))
+(defmethod parse-seq* 'typed.clojure/Value [syn] (parse-Value syn))
+(defmethod parse-seq* 'typed.clojure/Val [syn] (parse-Value syn))
 
 (defn parse-Difference [[f & args :as syn]]
   (let [_ (when-not (<= 2 (count args))
@@ -644,8 +671,7 @@
 (defmethod parse-seq* 'Difference [syn] 
   (err/deprecated-plain-op 'Difference)
   (parse-Difference syn))
-(defmethod parse-seq* 'clojure.core.typed/Difference [syn] (parse-Difference syn))
-(defmethod parse-seq* 'cljs.core.typed/Difference [syn] (parse-Difference syn))
+(defmethod parse-seq* 'typed.clojure/Difference [syn] (parse-Difference syn))
 
 (defn parse-Rec [[f & args :as syn]]
   (let [_ (when-not (#{2} (count args))
@@ -661,8 +687,7 @@
 (defmethod parse-seq* 'Rec [syn] 
   (err/deprecated-plain-op 'Rec)
   (parse-Rec syn))
-(defmethod parse-seq* 'clojure.core.typed/Rec [syn] (parse-Rec syn))
-(defmethod parse-seq* 'cljs.core.typed/Rec [syn] (parse-Rec syn))
+(defmethod parse-seq* 'typed.clojure/Rec [syn] (parse-Rec syn))
 
 (defn parse-CountRange [[f & args :as syn]]
   (let [_ (when-not (#{1 2} (count args))
@@ -675,8 +700,7 @@
 (defmethod parse-seq* 'CountRange [syn] 
   (err/deprecated-plain-op 'CountRange)
   (parse-CountRange syn))
-(defmethod parse-seq* 'clojure.core.typed/CountRange [syn] (parse-CountRange syn))
-(defmethod parse-seq* 'cljs.core.typed/CountRange [syn] (parse-CountRange syn))
+(defmethod parse-seq* 'typed.clojure/CountRange [syn] (parse-CountRange syn))
 
 (defn parse-ExactCount [[f & args :as syn]]
   (let [_ (when-not (#{1} (count args))
@@ -689,8 +713,7 @@
 (defmethod parse-seq* 'ExactCount [syn] 
   (err/deprecated-plain-op 'ExactCount)
   (parse-ExactCount syn))
-(defmethod parse-seq* 'clojure.core.typed/ExactCount [syn] (parse-ExactCount syn))
-(defmethod parse-seq* 'cljs.core.typed/ExactCount [syn] (parse-ExactCount syn))
+(defmethod parse-seq* 'typed.clojure/ExactCount [syn] (parse-ExactCount syn))
 
 (defn parse-Pred [[f & args :as syn]]
   (let [_ (when-not (#{1} (count args))
@@ -703,8 +726,7 @@
 (defmethod parse-seq* 'predicate [syn] 
   (err/deprecated-plain-op 'predicate 'Pred)
   (parse-Pred syn))
-(defmethod parse-seq* 'clojure.core.typed/Pred [syn] (parse-Pred syn))
-(defmethod parse-seq* 'cljs.core.typed/Pred [syn] (parse-Pred syn))
+(defmethod parse-seq* 'typed.clojure/Pred [syn] (parse-Pred syn))
 
 (defn parse-Assoc [[f & args :as syn]]
   (let [_ (when-not (<= 1 (count args))
@@ -750,8 +772,7 @@
 (defmethod parse-seq* 'Assoc [syn] 
   (err/deprecated-plain-op 'Assoc)
   (parse-Assoc syn))
-(defmethod parse-seq* 'clojure.core.typed/Assoc [syn] (parse-Assoc syn))
-(defmethod parse-seq* 'cljs.core.typed/Assoc [syn] (parse-Assoc syn))
+(defmethod parse-seq* 'typed.clojure/Assoc [syn] (parse-Assoc syn))
 
 (defn parse-Get [[f & args :as syn]]
   (let [_ (when-not (#{2 3} (count args))
@@ -766,31 +787,18 @@
         {:not-found (parse not-foundsyn)
          :children [:type :key :not-found]}))))
 
-(defmethod parse-seq* 'Get [syn] 
-  (err/deprecated-plain-op 'Get)
-  (parse-Get syn))
-(defmethod parse-seq* 'clojure.core.typed/Get [syn] (parse-Get syn))
-(defmethod parse-seq* 'cljs.core.typed/Get [syn] (parse-Get syn))
+(defmethod parse-seq* 'typed.clojure/Get [syn] (parse-Get syn))
 
-(defmethod parse-seq* 'All [syn] 
-  (err/deprecated-plain-op 'All)
-  (parse-All syn))
-(defmethod parse-seq* 'clojure.core.typed/All [syn] (parse-All syn))
-(defmethod parse-seq* 'cljs.core.typed/All [syn] (parse-All syn))
+(defmethod parse-seq* 'typed.clojure/All [syn] (parse-All syn))
 
 (defmethod parse-seq* 'Extends [syn] (parse-Extends syn))
 
-(defmethod parse-seq* 'U [syn] 
-  (err/deprecated-plain-op 'U)
-  (parse-U syn))
-(defmethod parse-seq* 'clojure.core.typed/U [syn] (parse-U syn))
-(defmethod parse-seq* 'cljs.core.typed/U [syn] (parse-U syn))
+(defmethod parse-seq* 'typed.clojure/U [syn] (parse-U syn))
 
 (defmethod parse-seq* 'I [syn] 
   (err/deprecated-plain-op 'I)
   (parse-I syn))
-(defmethod parse-seq* 'clojure.core.typed/I [syn] (parse-I syn))
-(defmethod parse-seq* 'cljs.core.typed/I [syn] (parse-I syn))
+(defmethod parse-seq* 'typed.clojure/I [syn] (parse-I syn))
 
 (defn parse-Array [[f & args :as syn]]
   (let [_ (when-not (#{1} (count args))
@@ -844,11 +852,7 @@
 
 (defmethod parse-seq* 'Array3 [syn] (parse-Array3 syn))
 
-(defmethod parse-seq* 'TFn [syn] 
-  (err/deprecated-plain-op 'TFn)
-  (parse-TFn syn))
-(defmethod parse-seq* 'clojure.core.typed/TFn [syn] (parse-TFn syn))
-(defmethod parse-seq* 'cljs.core.typed/TFn [syn] (parse-TFn syn))
+(defmethod parse-seq* 'typed.clojure/TFn [syn] (parse-TFn syn))
 
 (t/defalias F
   '{:op ':F
@@ -1016,49 +1020,41 @@
 (defmethod parse-seq* 'Fn [syn] 
   (err/deprecated-plain-op 'Fn 'IFn)
   (parse-Fn syn))
-(defmethod parse-seq* 'clojure.core.typed/IFn [syn] (parse-Fn syn))
-(defmethod parse-seq* 'cljs.core.typed/IFn [syn] (parse-Fn syn))
+(defmethod parse-seq* 'typed.clojure/IFn [syn] (parse-Fn syn))
 
 (defmethod parse-seq* 'HMap [syn] 
   (err/deprecated-plain-op 'HMap)
   (parse-HMap syn))
-(defmethod parse-seq* 'clojure.core.typed/HMap [syn] (parse-HMap syn))
-(defmethod parse-seq* 'cljs.core.typed/HMap [syn] (parse-HMap syn))
+(defmethod parse-seq* 'typed.clojure/HMap [syn] (parse-HMap syn))
 
-(defmethod parse-seq* 'Vector* [syn] 
-  (err/deprecated-plain-op 'Vector* 'HVec)
-  (parse-quoted-hvec (vec (rest syn))))
 (defmethod parse-seq* 'Seq* [syn] 
   (err/deprecated-plain-op 'Seq* 'HSeq)
   (parse-quoted-hseq (rest syn)))
-(defmethod parse-seq* 'List* [syn] 
-  #_(err/deprecated-plain-op 'List* 'HList)
-  (parse-quoted-hlist (rest syn)))
 
 (defmethod parse-seq* 'HVec [syn] 
   (err/deprecated-plain-op 'HVec)
   (parse-HVec syn))
-(defmethod parse-seq* 'clojure.core.typed/HVec [syn] (parse-HVec syn))
-(defmethod parse-seq* 'cljs.core.typed/HVec [syn] (parse-HVec syn))
+(defmethod parse-seq* 'typed.clojure/HVec [syn] (parse-HVec syn))
 
 (defmethod parse-seq* 'HSequential [syn] 
   (err/deprecated-plain-op 'HSequential)
   (parse-HSequential syn))
-(defmethod parse-seq* 'clojure.core.typed/HSequential [syn] (parse-HSequential syn))
-(defmethod parse-seq* 'cljs.core.typed/HSequential [syn] (parse-HSequential syn))
+(defmethod parse-seq* 'typed.clojure/HSequential [syn] (parse-HSequential syn))
 
 (defmethod parse-seq* 'HSeq [syn] 
   (err/deprecated-plain-op 'HSeq)
   (parse-HSeq syn))
-(defmethod parse-seq* 'clojure.core.typed/HSeq [syn] (parse-HSeq syn))
-(defmethod parse-seq* 'cljs.core.typed/HSeq [syn] (parse-HSeq syn))
+
+(defmethod parse-seq* 'typed.clojure/HSeq [syn] (parse-HSeq syn))
+
+(defmethod parse-seq* 'typed.clojure/HList [syn] (parse-HList syn))
 
 (defn parse-HSet [[_ ts & {:keys [complete?] :or {complete? true}} :as args]]
   {:op :HSet
    :fixed ts
    :complete? complete?})
 
-(defmethod parse-seq* 'clojure.core.typed/HSet [syn] (parse-HSet syn))
+(defmethod parse-seq* 'typed.clojure/HSet [syn] (parse-HSet syn))
 
 (defmethod parse-seq* :default [[f & args :as syn]]
   {:op :TApp
@@ -1081,35 +1077,23 @@
   (fn [n] 
     {:pre [(symbol? n)]}
     (or (impl/impl-case
-          :clojure (let [r (resolve-type-clj n)]
-                     (when (var? r)
-                       (coerce/var->symbol r)))
+          :clojure (resolve-type-clj->sym n)
           ;TODO
           :cljs n)
         n)))
 
 (defn parse-Any [s] {:op :Any :form s})
 (defn parse-Nothing [s]
-  (parse-U `(clojure.core.typed/U)))
+  (parse-U `(typed.clojure/U)))
 
-(defmethod parse-symbol* 'Any [s] 
-  (impl/impl-case
-    :clojure (err/deprecated-warn "Any syntax is deprecated, use clojure.core.typed/Any")
-    :cljs nil)
-  (parse-Any s))
-(defmethod parse-symbol* 'clojure.core.typed/Any [s] (parse-Any s))
+(defmethod parse-symbol* 'typed.clojure/Any [s] (parse-Any s))
 
-(defmethod parse-symbol* 'Nothing [s] 
-  (impl/impl-case
-    :clojure (err/deprecated-warn "Nothing syntax is deprecated, use clojure.core.typed/Nothing")
-    :cljs nil)
-  (parse-Nothing s))
-(defmethod parse-symbol* 'clojure.core.typed/Nothing [s] (parse-Nothing s))
+(defmethod parse-symbol* 'typed.clojure/Nothing [s] (parse-Nothing s))
 
 (defn parse-AnyFunction [s]
   {:op :AnyFunction :form s})
 
-(defmethod parse-symbol* 'AnyFunction [s] (parse-AnyFunction s))
+(defmethod parse-symbol* 'typed.clojure/AnyFunction [s] (parse-AnyFunction s))
 
 (defmethod parse-symbol* :default
   [sym]
@@ -1131,12 +1115,15 @@
                                               dt? (contains? (impl/datatype-env) csym)]
                                           {:op (if dt? :DataType :Class) :name csym
                                            :form sym})
-                           (var? res) (let [vsym (coerce/var->symbol res)]
+                           (var? res) (let [vsym (coerce/var->symbol res)
+                                            vsym-nsym (-> vsym namespace symbol)
+                                            vsym (symbol (name (ns-rewrites-clj vsym-nsym vsym-nsym))
+                                                         (name vsym))]
                                         (if (contains? (impl/alias-env) vsym)
                                           {:op :Name :name vsym :form sym}
                                           {:op :Protocol :name vsym :form sym}))
                            (symbol? sym)
-                           (if-let [qsym (resolve-alias-clj sym)]
+                           (if-let [qsym (resolve-type-alias-clj sym)]
                              ; a type alias without an interned var
                              {:op :Name :name qsym :form sym}
                              ;an annotated datatype that hasn't been defined yet
@@ -1197,7 +1184,6 @@
       :val true
       :form true})
 
-  (parse '[true true -> Nothing])
   (impl/with-impl impl/clojure
     (parse 'a))
   )

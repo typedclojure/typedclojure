@@ -30,9 +30,9 @@
                [typed.lib.clojure.core.async]])
   (is-tc-e
     (do
-      (ann lift-chan (All [x y] [[x -> y] -> [(Chan x) -> (Chan y)]]))
+      (ann lift-chan (t/All [x y] [[x -> y] -> [(ta/Chan x) -> (ta/Chan y)]]))
       (defn lift-chan [function]
-        (fn [in :- (Chan x)]
+        (fn [in :- (ta/Chan x)]
           (let [out (chan :- y)]
             (a/go
               (loop []
@@ -41,14 +41,14 @@
                     (>! out (function rcv))))))
             out)))
 
-      (ann upper-case [Str -> Str])
+      (ann upper-case [t/Str -> t/Str])
       (defn upper-case [s] s)
 
-      (ann upcase [(Chan Str) -> (Chan Str)])
+      (ann upcase [(ta/Chan t/Str) -> (ta/Chan t/Str)])
       (def upcase (lift-chan upper-case))
-      (upcase (chan :- Str)))
+      (upcase (chan :- t/Str)))
     :requires [[clojure.core.async :as a :refer [<! >!]]
-               [typed.lib.clojure.core.async :refer [chan Chan]]]))
+               [typed.lib.clojure.core.async :as ta :refer [chan]]]))
 
 (deftest rps-async-test
   (is (t/check-ns 'typed-test.lib.clojure.core.async.rps-async-test)))

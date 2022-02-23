@@ -65,10 +65,17 @@
   "Return the name with var symbol sym.
   Returns nil if not found."
   [sym]
-  {:post [(or (nil? %)
-              (keyword? %)
-              (r/Type? %))]}
-  (force (get (name-env) sym)))
+  {:post [(or (assert (or (nil? %)
+                          (keyword? %)
+                          (r/Type? %))
+                      (pr-str %))
+              true)]}
+  (force
+    (or (get (name-env) sym)
+        (when-some [sym-nsym ((requiring-resolve 'typed.clj.checker.parse-unparse/ns-rewrites-clj)
+                              (some-> sym namespace symbol))]
+          (get (name-env)
+               (symbol (name sym-nsym) (name sym)))))))
 
 (t/ann ^:no-check add-type-name [t/Sym (t/U t/Kw r/Type) -> nil])
 (def add-type-name impl/add-tc-type-name)

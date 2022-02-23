@@ -4,7 +4,7 @@
             [typed.clj.checker.test-utils :refer :all]))
 
 (deftest browse-url-test
-  (is-tc-e #(browse-url "www.typedclojure.org") [-> Any]
+  (is-tc-e #(browse-url "www.typedclojure.org") [-> t/Any]
            :requires [[clojure.java.browse :refer [browse-url]]])
   (is-tc-err #(browse-url "www.typedclojure.org") [-> Boolean]
              :requires [[clojure.java.browse :refer [browse-url]]]))

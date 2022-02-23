@@ -101,7 +101,11 @@
   (binding [*parse-type-in-ns* sym]
     (f)))
 
-(declare parse-type parse-type* resolve-type-clj resolve-type-cljs)
+(declare parse-type* resolve-type-clj->sym resolve-type-clj resolve-type-cljs)
+
+(defn parse-type [s]
+  ;(prn `parse-type (pr-str s))
+  (parse-type* s))
 
 (defn parse-clj [s]
   (impl/with-clojure-impl
@@ -111,20 +115,13 @@
   (impl/with-cljs-impl
     (parse-type s)))
 
-(defn parse-type [s]
-  (parse-type* s))
-
 (defmulti parse-type* class)
 (defmulti parse-type-list 
   (fn [[n]]
     {:post [((some-fn nil? symbol?) %)]}
     (when (symbol? n)
       (or (impl/impl-case
-            :clojure (cond
-                       (special-symbol? n) n
-                       :else (let [r (resolve-type-clj n)]
-                               (when (var? r)
-                                 (coerce/var->symbol r))))
+            :clojure (resolve-type-clj->sym n)
             :cljs (or ('#{quote Array Array2} n)
                       (resolve-type-cljs n)))
           n))))
@@ -242,16 +239,12 @@
     (err/int-error "Second argument to CountRange must be an integer"))
   (r/make-CountRange n u))
 
-(defmethod parse-type-list 'CountRange [t] (parse-CountRange t))
-(defmethod parse-type-list 'clojure.core.typed/CountRange [t] (parse-CountRange t))
-(defmethod parse-type-list 'cljs.core.typed/CountRange [t] (parse-CountRange t))
-
-(declare resolve-type-clj)
+(defmethod parse-type-list 'typed.clojure/CountRange [t] (parse-CountRange t))
 
 (defn uniquify-local [sym]
   (get-in vs/*current-expr* [:env ::uniquify/locals-frame-val sym]))
 
-(defmethod parse-type-list 'clojure.core.typed/TypeOf [[_ sym :as t]]
+(defmethod parse-type-list 'typed.clojure/TypeOf [[_ sym :as t]]
   (impl/assert-clojure)
   (when-not (= 2 (count t))
     (err/int-error (str "Wrong number of arguments to TypeOf (" (count t) ")")))
@@ -278,9 +271,7 @@
     (err/int-error "First argument to ExactCount must be an integer"))
   (r/make-ExactCountRange n))
 
-(defmethod parse-type-list 'ExactCount [t] (parse-ExactCount t))
-(defmethod parse-type-list 'clojure.core.typed/ExactCount [t] (parse-ExactCount t))
-(defmethod parse-type-list 'cljs.core.typed/ExactCount [t] (parse-ExactCount t))
+(defmethod parse-type-list 'typed.clojure/ExactCount [t] (parse-ExactCount t))
 
 (defn- RClass-of-var []
   (let [v (ns-resolve (find-ns 'typed.cljc.checker.type-ctors) 'RClass-of)]
@@ -301,36 +292,22 @@
     (err/int-error "Wrong arguments to predicate"))
   (predicate-for (parse-type t-syn)))
 
-(defmethod parse-type-list 'predicate [t] 
-  (err/deprecated-plain-op 'predicate 'Pred)
-  (parse-Pred t))
-(defmethod parse-type-list 'clojure.core.typed/Pred [t] (parse-Pred t))
-(defmethod parse-type-list 'cljs.core.typed/Pred [t] (parse-Pred t))
+(defmethod parse-type-list 'typed.clojure/Pred [t] (parse-Pred t))
 
 (defn parse-Not [[_ tsyn :as all]]
   (when-not (= (count all) 2) 
     (err/int-error (str "Wrong arguments to Not (expected 1): " all)))
   (r/NotType-maker (parse-type tsyn)))
-; FIXME deprecate
-(defmethod parse-type-list 'Not [frm] (parse-Not frm))
-(defmethod parse-type-list 'cljs.core.typed/Not [frm] (parse-Not frm))
+(defmethod parse-type-list 'typed.clojure/Not [frm] (parse-Not frm))
 
 (defn parse-Difference [[_ tsyn & dsyns :as all]]
   (when-not (<= 3 (count all))
     (err/int-error (str "Wrong arguments to Difference (expected at least 2): " all)))
   (apply r/-difference (parse-type tsyn) (mapv parse-type dsyns)))
 
-(defmethod parse-type-list 'Difference [t] 
-  (err/deprecated-plain-op 'Difference)
-  (parse-Difference t))
-(defmethod parse-type-list 'clojure.core.typed/Difference [t] (parse-Difference t))
-(defmethod parse-type-list 'cljs.core.typed/Difference [t] (parse-Difference t))
+(defmethod parse-type-list 'typed.clojure/Difference [t] (parse-Difference t))
 
-(defmethod parse-type-list 'Rec [syn] 
-  (err/deprecated-plain-op 'Rec)
-  (parse-rec-type syn))
-(defmethod parse-type-list 'clojure.core.typed/Rec [syn] (parse-rec-type syn))
-(defmethod parse-type-list 'cljs.core.typed/Rec [syn] (parse-rec-type syn))
+(defmethod parse-type-list 'typed.clojure/Rec [syn] (parse-rec-type syn))
 
 (defn parse-Assoc [[_ tsyn & entries :as all]]
   (when-not (<= 1 (count (next all)))
@@ -370,9 +347,7 @@
                              (parse-type drest-type))
                            (:name bnd)))))))
 
-(defmethod parse-type-list 'Assoc [t] (parse-Assoc t))
-(defmethod parse-type-list 'clojure.core.typed/Assoc [t] (parse-Assoc t))
-(defmethod parse-type-list 'cljs.core.typed/Assoc [t] (parse-Assoc t))
+(defmethod parse-type-list 'typed.clojure/Assoc [t] (parse-Assoc t))
 
 (defn parse-Get [[_ tsyn keysyn & not-foundsyn :as all]]
   (when-not (#{2 3} (count (next all)))
@@ -383,9 +358,7 @@
           (when (#{3} (count (next all)))
             (parse-type not-foundsyn))))
 
-(defmethod parse-type-list 'Get [t] (parse-Get t))
-(defmethod parse-type-list 'clojure.core.typed/Get [t] (parse-Get t))
-(defmethod parse-type-list 'cljs.core.typed/Get [t] (parse-Get t))
+(defmethod parse-type-list 'typed.clojure/Get [t] (parse-Get t))
 
 ; convert flattened kw arguments to vectors
 (defn normalise-binder [bnds]
@@ -530,31 +503,19 @@
     (err/int-error (str "Bad All syntax: " all)))
   (parse-all-type bnds syn))
 
-(defmethod parse-type-list 'All [t] 
-  (err/deprecated-plain-op 'All)
-  (parse-All t))
-(defmethod parse-type-list 'clojure.core.typed/All [t] (parse-All t))
-(defmethod parse-type-list 'cljs.core.typed/All [t] (parse-All t))
+(defmethod parse-type-list 'typed.clojure/All [t] (parse-All t))
 
 (defn parse-union-type [[u & types]]
   (c/make-Union (doall (map parse-type types))))
 
-(defmethod parse-type-list 'U [syn] 
-  (err/deprecated-plain-op 'U)
-  (parse-union-type syn))
-(defmethod parse-type-list 'clojure.core.typed/U [syn] (parse-union-type syn))
-(defmethod parse-type-list 'cljs.core.typed/U [syn] (parse-union-type syn))
+(defmethod parse-type-list 'typed.clojure/U [syn] (parse-union-type syn))
 
 ; don't do any simplification of the intersection because some types might
 ; not be resolved
 (defn parse-intersection-type [[i & types]]
   (c/make-Intersection (map parse-type types)))
 
-(defmethod parse-type-list 'I [syn] 
-  (err/deprecated-plain-op 'I)
-  (parse-intersection-type syn))
-(defmethod parse-type-list 'clojure.core.typed/I [syn] (parse-intersection-type syn))
-(defmethod parse-type-list 'cljs.core.typed/I [syn] (parse-intersection-type syn))
+(defmethod parse-type-list 'typed.clojure/I [syn] (parse-intersection-type syn))
 
 (defn parse-Array 
   [[_ syn & none]]
@@ -618,8 +579,7 @@
 (defmethod parse-type-list 'Fn [t] 
   (err/deprecated-plain-op 'Fn 'IFn)
   (parse-Fn t))
-(defmethod parse-type-list 'clojure.core.typed/IFn [t] (parse-Fn t))
-(defmethod parse-type-list 'cljs.core.typed/IFn [t] (parse-Fn t))
+(defmethod parse-type-list 'typed.clojure/IFn [t] (parse-Fn t))
 
 (defn parse-free-binder [[nme & {:keys [variance < > kind] :as opts}]]
   (when-not (symbol? nme)
@@ -699,23 +659,7 @@
                bodyt
                {:meta {:env vs/*current-env*}})))
 
-(defmethod parse-type-list 'TFn [syn] 
-  (err/deprecated-plain-op 'TFn)
-  (parse-type-fn syn))
-(defmethod parse-type-list 'clojure.core.typed/TFn [syn] (parse-type-fn syn))
-(defmethod parse-type-list 'cljs.core.typed/TFn [syn] (parse-type-fn syn))
-
-(declare parse-quoted-hvec)
-
-(defmethod parse-type-list 'Seq* [syn] 
-  (err/deprecated-plain-op 'Seq* 'HSeq)
-  (r/-hseq (mapv parse-type (rest syn))))
-(defmethod parse-type-list 'List* [syn]
-  (err/deprecated-plain-op 'List* 'HList)
-  (r/HeterogeneousList-maker (mapv parse-type (rest syn))))
-(defmethod parse-type-list 'Vector* [syn] 
-  (err/deprecated-plain-op 'Vector* 'HVec)
-  (parse-quoted-hvec (rest syn)))
+(defmethod parse-type-list 'typed.clojure/TFn [syn] (parse-type-fn syn))
 
 ;; parse-HVec, parse-HSequential and parse-HSeq have many common patterns
 ;; so we reuse them
@@ -784,22 +728,12 @@
 (def parse-HList (parse-heterogeneous* parse-hseq-types (comp #(assoc % :kind :list)
                                                               r/-hsequential)))
 
-(defmethod parse-type-list 'HVec [t] (parse-HVec t))
-(defmethod parse-type-list 'clojure.core.typed/HVec [t] (parse-HVec t))
-(defmethod parse-type-list 'cljs.core.typed/HVec [t] (parse-HVec t))
-
-(defmethod parse-type-list 'HSequential [t] (parse-HSequential t))
-(defmethod parse-type-list 'clojure.core.typed/HSequential [t] (parse-HSequential t))
-(defmethod parse-type-list 'cljs.core.typed/HSequential [t] (parse-HSequential t))
-
-(defmethod parse-type-list 'HSeq [t] 
-  (err/deprecated-plain-op 'HSeq)
-  (parse-HSeq t))
-(defmethod parse-type-list 'clojure.core.typed/HSeq [t] (parse-HSeq t))
-(defmethod parse-type-list 'cljs.core.typed/HSeq [t] (parse-HSeq t))
-
-;; TODO CLJS HList
-(defmethod parse-type-list 'clojure.core.typed/HList [t] (parse-HList t))
+(defmethod parse-type-list 'typed.clojure/HVec [t] (parse-HVec t))
+(defmethod parse-type-list 'typed.clojure/HSequential [t] (parse-HSequential t))
+(defmethod parse-type-list 'typed.clojure/HSeq [t] (parse-HSeq t))
+(defmethod parse-type-list 'typed.clojure/HList [t]
+  (prn `parse-hlist t)
+  (parse-HList t))
 
 (defn parse-HSet [[_ ts & {:keys [complete?] :or {complete? true}} :as args]]
   (let [bad (seq (remove hset/valid-fixed? ts))]
@@ -810,8 +744,7 @@
                    ts)
              :complete? complete?)))
 
-(defmethod parse-type-list 'clojure.core.typed/HSet [t] (parse-HSet t))
-(defmethod parse-type-list 'cljs.core.typed/HSet [t] (parse-HSet t))
+(defmethod parse-type-list 'typed.clojure/HSet [t] (parse-HSet t))
 
 (defn- syn-to-hmap [mandatory optional absent-keys complete?]
   (when mandatory
@@ -905,8 +838,7 @@
     (syn-to-hmap mandatory optional absent-keys complete?)))
 
 (defmethod parse-type-list 'HMap [t] (parse-HMap t))
-(defmethod parse-type-list 'clojure.core.typed/HMap [t] (parse-HMap t))
-(defmethod parse-type-list 'cljs.core.typed/HMap [t] (parse-HMap t))
+(defmethod parse-type-list 'typed.clojure/HMap [t] (parse-HMap t))
 
 (defn parse-JSObj [[_JSObj_ types :as all]]
   (let [_ (when-not (= 2 (count all))
@@ -917,7 +849,7 @@
                              (map parse-type (vals types)))]
     (r/JSObj-maker parsed-types)))
 
-(defmethod parse-type-list 'cljs.core.typed/JSObj [t] (parse-JSObj t))
+(defmethod parse-type-list 'typed.clojure/JSObj [t] (parse-JSObj t))
 
 (def ^:private cljs-ns #((requiring-resolve 'typed.cljs.checker.util/cljs-ns)))
 
@@ -928,7 +860,7 @@
         :clojure (ns-name *ns*)
         :cljs (cljs-ns))))
 
-(def ^:private ns-rewrites-clj {'typed.clojure 'clojure.core.typed})
+(def ns-rewrites-clj {'clojure.core.typed 'typed.clojure})
 (def ^:private ns-unrewrites-clj (set/map-invert ns-rewrites-clj))
 
 (defn- resolve-type-clj
@@ -938,11 +870,11 @@
    :post [((some-fn var? class? nil?) %)]}
   (impl/assert-clojure)
   (let [nsym (parse-in-ns)]
-    (if-let [ns (find-ns nsym)]
+    (if-some [ns (find-ns nsym)]
       (or (when-some [res (ns-resolve ns sym)]
             (or (when-some [rewrite-nsym (when (var? res)
                                            (ns-rewrites-clj (some-> res symbol namespace symbol)))]
-                  (find-var (symbol rewrite-nsym (name res))))
+                  (find-var (symbol (name rewrite-nsym) (-> res symbol name))))
                 res))
           (when-some [alias-sym (some-> ((ns-aliases ns)
                                          (some-> (namespace sym)
@@ -968,12 +900,42 @@
                         (ns-name ns))]
         (let [_ (assert (and (symbol? qual)
                              (not (namespace qual))))
+              qual (ns-rewrites-clj qual qual)
               qsym (symbol (name qual) (name sym))]
           (when (contains? (nme-env/name-env) qsym)
             qsym)))
       (err/int-error (str "Cannot find namespace: " sym)))))
 
-(def ^:private ns-rewrites-cljs {'typed.clojure 'cljs.core.typed})
+(defn- resolve-type-clj->sym
+  [sym]
+  {:pre [(symbol? sym)]
+   :post [(symbol? %)]}
+  (impl/assert-clojure)
+  (let [nsym (parse-in-ns)]
+    (if-some [ns (find-ns nsym)]
+      (or (when (special-symbol? sym)
+            sym)
+          ('#{Array ReadOnlyArray Array2 Array3 Assoc HMap Extends} sym)
+          (when-some [res (ns-resolve ns sym)]
+            (or (when (var? res)
+                  (if-some [rewrite-nsym (ns-rewrites-clj (some-> res symbol namespace symbol))]
+                    (symbol (name rewrite-nsym) (-> res symbol name))
+                    (coerce/var->symbol res)))
+                (when (class? res)
+                  (coerce/Class->symbol res))))
+          (when-some [alias-sym (or (some-> ((ns-aliases ns)
+                                             (some-> (namespace sym)
+                                                     symbol))
+                                            ns-name)
+                                    (some-> sym namespace symbol))]
+            (symbol (name (ns-rewrites-clj alias-sym alias-sym))
+                    (name sym)))
+          (let [sym-nsym (or (some-> sym namespace symbol)
+                             nsym)]
+            (symbol (name (ns-rewrites-clj sym-nsym sym-nsym)) (name sym))))
+      (err/int-error (str "Cannot find namespace: " sym)))))
+
+(def ^:private ns-rewrites-cljs {'cljs.core.typed 'typed.clojure})
 (def ^:private ns-unrewrites-cljs (set/map-invert ns-rewrites-cljs))
 
 ;; ignores both clj and cljs namespace graph (other than to resolve aliases)
@@ -1021,11 +983,8 @@
               (r/-val syn)
             :else (assert nil "FIXME CLJS parse Value"))))
 
-(defmethod parse-type-list 'Value [t] (parse-Value t))
-(defmethod parse-type-list 'clojure.core.typed/Val [t] (parse-Value t))
-(defmethod parse-type-list 'clojure.core.typed/Value [t] (parse-Value t))
-(defmethod parse-type-list 'cljs.core.typed/Val [t] (parse-Value t))
-(defmethod parse-type-list 'cljs.core.typed/Value [t] (parse-Value t))
+(defmethod parse-type-list 'typed.clojure/Val [t] (parse-Value t))
+(defmethod parse-type-list 'typed.clojure/Value [t] (parse-Value t))
 
 (defmethod parse-type-list 'KeywordArgs
   [[_KeywordArgs_ & {:keys [optional mandatory]}]]
@@ -1078,9 +1037,7 @@
   (fn [n] 
     {:pre [(symbol? n)]}
     (or (impl/impl-case
-          :clojure (let [r (resolve-type-clj n)]
-                     (when (var? r)
-                       (coerce/var->symbol r)))
+          :clojure (resolve-type-clj->sym n)
           ;;FIXME logic is all tangled
           :cljs (resolve-type-cljs n))
         n)))
@@ -1090,30 +1047,37 @@
     r/-infer-any
     r/-any))
 
-(defmethod parse-type-symbol 'Any [_] 
-  (err/deprecated-plain-op 'Any)
-  r/-any)
-(defmethod parse-type-symbol 'clojure.core.typed/Any [s] (parse-Any s))
-(defmethod parse-type-symbol 'cljs.core.typed/Any [s] (parse-Any s))
+(defmethod parse-type-symbol 'typed.clojure/Any [s] (parse-Any s))
+(defmethod parse-type-symbol 'typed.clojure/TCError [t] (r/TCError-maker))
+(defmethod parse-type-symbol 'typed.clojure/Nothing [_] (r/Bottom))
+(defmethod parse-type-symbol 'typed.clojure/AnyFunction [_] (r/TopFunction-maker))
 
-(defmethod parse-type-symbol 'clojure.core.typed/TCError [t] (r/TCError-maker))
-
-(defmethod parse-type-symbol 'Nothing [_] 
-  (err/deprecated-plain-op 'Nothing)
-  (r/Bottom))
-(defmethod parse-type-symbol 'clojure.core.typed/Nothing [_] (r/Bottom))
-(defmethod parse-type-symbol 'cljs.core.typed/Nothing [_] (r/Bottom))
-
-(defmethod parse-type-symbol 'AnyFunction [_] (r/TopFunction-maker))
-
-(defmethod parse-type-symbol 'cljs.core.typed/CLJSInteger [_] (r/CLJSInteger-maker))
-(defmethod parse-type-symbol 'cljs.core.typed/JSNumber [_] (r/JSNumber-maker))
-(defmethod parse-type-symbol 'cljs.core.typed/JSBoolean [_] (r/JSBoolean-maker))
-(defmethod parse-type-symbol 'cljs.core.typed/JSObject [_] (r/JSObject-maker))
-(defmethod parse-type-symbol 'cljs.core.typed/JSString [_] (r/JSString-maker))
-(defmethod parse-type-symbol 'cljs.core.typed/JSUndefined [_] (r/JSUndefined-maker))
-(defmethod parse-type-symbol 'cljs.core.typed/JSNull [_] (r/JSNull-maker))
-(defmethod parse-type-symbol 'cljs.core.typed/JSSymbol [_] (r/JSSymbol-maker))
+;; hmmm...a psuedo primitive?
+(defmethod parse-type-symbol 'typed.clojure/CLJSInteger [_]
+  (impl/assert-cljs 'typed.clojure/CLJSInteger)
+  (r/CLJSInteger-maker))
+(defmethod parse-type-symbol 'typed.clojure/JSnumber [_]
+  (impl/assert-cljs 'typed.clojure/JSnumber)
+  (r/JSNumber-maker))
+(defmethod parse-type-symbol 'typed.clojure/JSboolean [_]
+  (impl/assert-cljs 'typed.clojure/JSboolean)
+  (r/JSBoolean-maker))
+#_ ;; js/Object
+(defmethod parse-type-symbol 'typed.clojure/JSobject [_]
+  (impl/assert-cljs 'typed.clojure/JSobject)
+  (r/JSObject-maker))
+(defmethod parse-type-symbol 'typed.clojure/JSstring [_]
+  (impl/assert-cljs 'typed.clojure/JSstring)
+  (r/JSString-maker))
+(defmethod parse-type-symbol 'typed.clojure/JSundefined [_]
+  (impl/assert-cljs 'typed.clojure/JSundefined)
+  (r/JSUndefined-maker))
+(defmethod parse-type-symbol 'typed.clojure/JSnull [_]
+  (impl/assert-cljs 'typed.clojure/JSnull)
+  (r/JSNull-maker))
+(defmethod parse-type-symbol 'typed.clojure/JSsymbol [_]
+  (impl/assert-cljs 'typed.clojure/JSsymbol)
+  (r/JSSymbol-maker))
 
 (defn clj-primitives-fn []
   (let [RClass-of @(RClass-of-var)]
@@ -1126,15 +1090,6 @@
      'boolean (RClass-of 'boolean)
      'char (RClass-of 'char)
      'void r/-nil}))
-
-(defn cljs-primitives-fn []
-  {'number (r/JSNumber-maker)
-   'boolean (r/JSBoolean-maker)
-   'object (r/JSObject-maker)
-   'string (r/JSString-maker)
-   'undefined (r/JSUndefined-maker)
-   'null (r/JSNull-maker)
-   'symbol (r/JSSymbol-maker)})
 
 ;[Any -> (U nil Type)]
 (defmulti deprecated-clj-symbol identity)
@@ -1172,14 +1127,14 @@
   [sym]
   (let [primitives (impl/impl-case
                      :clojure (clj-primitives-fn)
-                     :cljs (cljs-primitives-fn))
+                     :cljs {})
         free (when (symbol? sym) 
                (free-ops/free-in-scope sym))
         rsym (when-not free
                (impl/impl-case
                  :clojure (let [res (when (symbol? sym)
                                       (resolve-type-clj sym))]
-                            (cond 
+                            (cond
                               (class? res) (coerce/Class->symbol res)
                               (var? res)   (coerce/var->symbol res)
                               ;; name doesn't resolve, try declared protocol or datatype
@@ -1685,10 +1640,10 @@
   NotType
   (unparse-type* 
     [{:keys [type]}]
-    (list 'Not (unparse-type type)))
+    (list (unparse-Name-symbol-in-ns `t/Not) (unparse-type type)))
 
   TopFunction 
-  (unparse-type* [_] 'AnyFunction))
+  (unparse-type* [_] (unparse-Name-symbol-in-ns `t/AnyFunction)))
 
 (defn- unparse-kw-map [m]
   {:pre [((con/hash-c? r/Value? r/Type?) m)]}
@@ -1994,25 +1949,25 @@
 ; CLJS Types
 
   JSNumber 
-  (unparse-type* [_] (unparse-Name-symbol-in-ns 'cljs.core.typed/JSNumber))
+  (unparse-type* [_] (unparse-Name-symbol-in-ns 'typed.clojure/JSnumber))
   JSBoolean 
-  (unparse-type* [_] (unparse-Name-symbol-in-ns 'cljs.core.typed/JSBoolean))
+  (unparse-type* [_] (unparse-Name-symbol-in-ns 'typed.clojure/JSboolean))
   JSObject 
-  (unparse-type* [_] (unparse-Name-symbol-in-ns 'cljs.core.typed/JSObject))
+  (unparse-type* [_] (unparse-Name-symbol-in-ns 'typed.clojure/JSobject))
   CLJSInteger 
-  (unparse-type* [_] (unparse-Name-symbol-in-ns 'cljs.core.typed/CLJSInteger))
+  (unparse-type* [_] (unparse-Name-symbol-in-ns 'typed.clojure/CLJSInteger))
   JSString 
-  (unparse-type* [_] (unparse-Name-symbol-in-ns 'cljs.core.typed/JSString))
+  (unparse-type* [_] (unparse-Name-symbol-in-ns 'typed.clojure/JSstring))
   JSSymbol 
-  (unparse-type* [_] (unparse-Name-symbol-in-ns 'cljs.core.typed/JSSymbol))
+  (unparse-type* [_] (unparse-Name-symbol-in-ns 'typed.clojure/JSsymbol))
   JSUndefined 
-  (unparse-type* [_] (unparse-Name-symbol-in-ns 'cljs.core.typed/JSUndefined))
+  (unparse-type* [_] (unparse-Name-symbol-in-ns 'typed.clojure/JSundefined))
   JSNull 
-  (unparse-type* [_] (unparse-Name-symbol-in-ns 'cljs.core.typed/JSNull))
+  (unparse-type* [_] (unparse-Name-symbol-in-ns 'typed.clojure/JSnull))
   JSObj 
-  (unparse-type* [t] (list (unparse-Name-symbol-in-ns 'cljs.core.typed/JSObj)
-                                           (zipmap (keys (:types t))
-                                                   (map unparse-type (vals (:types t))))))
+  (unparse-type* [t] (list (unparse-Name-symbol-in-ns 'typed.clojure/JSObj)
+                           (zipmap (keys (:types t))
+                                   (map unparse-type (vals (:types t))))))
 
   ArrayCLJS
   (unparse-type* 

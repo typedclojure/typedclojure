@@ -51,8 +51,8 @@
                            (-> (map-indexed
                                  (fn [i args-syn]
                                    ;; add back short-circuited args
-                                   (case i
-                                     1 expanded-bindings
+                                   (if (= 1 i)
+                                     expanded-bindings
                                      args-syn))
                                  form)
                                (with-meta (meta form))))))]

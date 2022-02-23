@@ -44,8 +44,14 @@
 
 (defmulti Name->malli-syntax
   "Returns an unevaluated malli schema or nil."
-  (fn [{:keys [name]} _args _opts] name))
-(defmethod Name->malli-syntax 'clojure.core.typed/AnyInteger [_ _ _] :int)
+  (fn [{nme :name} _args _opts]
+    (when-some [nme-nsym (some-> nme namespace symbol)]
+      (symbol 
+        (name ({'clojure.core.typed 'typed.clojure }
+               nme-nsym
+               nme-nsym))
+        (name nme)))))
+(defmethod Name->malli-syntax 'typed.clojure/AnyInteger [_ _ _] :int)
 (defmethod Name->malli-syntax :default [_ _ _] nil)
 
 (defn ast->malli-syntax 

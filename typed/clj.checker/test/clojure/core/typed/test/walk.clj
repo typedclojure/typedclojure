@@ -20,7 +20,7 @@
              :requires [[clojure.walk :refer [postwalk]]]))
 
 (deftest postwalk-demo-test
-  (is-tc-e #(postwalk-demo [[1 2] [3 4 [5 6]] [7 8]]) [-> Any]           
+  (is-tc-e #(postwalk-demo [[1 2] [3 4 [5 6]] [7 8]]) [-> t/Any]           
            :requires [[clojure.walk :refer [postwalk-demo]]]))
 
 (deftest postwalk-replace-test

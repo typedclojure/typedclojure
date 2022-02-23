@@ -7,6 +7,11 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.clj.checker.base-env-clj-rclass
+  (:require [clojure.core.typed :as t]
+            [typed.clj.checker.rclass-env :as rcls]
+            [typed.cljc.checker.base-env-common :refer [delay-and-cache-env]]
+            [typed.cljc.checker.base-env-helper :as h]
+            [typed.cljc.checker.fold-default])
   (:import (clojure.lang Named IMapEntry AMapEntry Seqable
                          LazySeq PersistentHashSet PersistentTreeSet PersistentTreeMap PersistentList APersistentVector
                          APersistentSet IPersistentSet IPersistentMap IPersistentVector
@@ -15,15 +20,7 @@
                          IPersistentList IRef ARef Reversible
                          ITransientCollection ITransientSet ITransientAssociative ITransientMap
                          ITransientVector PersistentHashMap Reduced MultiFn)
-           (java.util Collection RandomAccess))
-  (:require [typed.cljc.checker.base-env-helper :as h]
-            [typed.cljc.checker.base-env-common :refer [delay-and-cache-env]]
-            [typed.cljc.checker.fold-default]
-            [typed.clj.checker.rclass-env :as rcls]
-            [clojure.core.typed :refer [Any Nothing TFn Rec
-                                        Pred U I All IFn
-                                        HVec HSequential]
-             :as t]))
+           (java.util Collection RandomAccess)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Altered Classes
@@ -71,7 +68,7 @@ IPersistentSet [[[a :variance :covariant]]
                 {IPersistentCollection (IPersistentCollection a)
                  Seqable (Seqable a)}
                 :unchecked-ancestors
-                #{[Any -> (U a nil)]}] ;; not a real ancestor
+                #{[t/Any -> (t/U a nil)]}] ;; not a real ancestor
 
 APersistentSet [[[a :variance :covariant]]
                 :replace
@@ -82,7 +79,7 @@ APersistentSet [[[a :variance :covariant]]
                  IPersistentCollection (IPersistentCollection a)
                  IPersistentSet (IPersistentSet a)}
                 :unchecked-ancestors
-                #{[Any -> (U a nil)]}
+                #{[t/Any -> (t/U a nil)]}
                 ]
 
 PersistentHashSet [[[a :variance :covariant]]
@@ -95,7 +92,7 @@ PersistentHashSet [[[a :variance :covariant]]
                     IPersistentSet (IPersistentSet a)
                     IPersistentCollection (IPersistentCollection a)}
                    :unchecked-ancestors
-                   #{[Any -> (U a nil)]}]
+                   #{[t/Any -> (t/U a nil)]}]
 
 PersistentTreeSet [[[a :variance :covariant]]
                    :replace
@@ -108,7 +105,7 @@ PersistentTreeSet [[[a :variance :covariant]]
                     IPersistentSet (IPersistentSet a)
                     IPersistentCollection (IPersistentCollection a)}
                     :unchecked-ancestors
-                    #{[Any -> (U a nil)]}]
+                    #{[t/Any -> (t/U a nil)]}]
 
 Associative [[[m :variance :covariant]
               [k :variance :covariant]
@@ -227,46 +224,46 @@ clojure.lang.AMapEntry
             [b :variance :covariant]]
            :replace
            {IMapEntry (IMapEntry a b)
-            Iterable (Iterable (U a b))
-            RandomAccess (RandomAccess (U a b))
+            Iterable (Iterable (t/U a b))
+            RandomAccess (RandomAccess (t/U a b))
             IPersistentCollection (IPersistentCollection 
-                                    (U a b))
-            java.util.List (java.util.List (U a b))
-            Collection (Collection (U a b))
-            Seqable (Seqable (U a b))
-            IPersistentVector (IPersistentVector (U a b))
-            Reversible (Reversible (U a b))
-            IPersistentStack (IPersistentStack (U a b))
-            ILookup (ILookup Number (U a b))
-            Associative (Associative (U a b) Number (U a b))
-            Indexed (Indexed (U a b))
-            APersistentVector (APersistentVector (U a b))}
+                                    (t/U a b))
+            java.util.List (java.util.List (t/U a b))
+            Collection (Collection (t/U a b))
+            Seqable (Seqable (t/U a b))
+            IPersistentVector (IPersistentVector (t/U a b))
+            Reversible (Reversible (t/U a b))
+            IPersistentStack (IPersistentStack (t/U a b))
+            ILookup (ILookup Number (t/U a b))
+            Associative (Associative (t/U a b) Number (t/U a b))
+            Indexed (Indexed (t/U a b))
+            APersistentVector (APersistentVector (t/U a b))}
            :unchecked-ancestors
            #{'[a b]
-             [Number -> (U a b)]}]
+             [Number -> (t/U a b)]}]
 
 clojure.lang.MapEntry
           [[[a :variance :covariant]
             [b :variance :covariant]]
            :replace
            {IMapEntry (IMapEntry a b)
-            Iterable (Iterable (U a b))
-            RandomAccess (RandomAccess (U a b))
-            java.util.List (java.util.List (U a b))
-            Collection (Collection (U a b))
+            Iterable (Iterable (t/U a b))
+            RandomAccess (RandomAccess (t/U a b))
+            java.util.List (java.util.List (t/U a b))
+            Collection (Collection (t/U a b))
             AMapEntry (AMapEntry a b)
-            IPersistentCollection (IPersistentCollection (U a b))
-            Seqable (Seqable (U a b))
-            IPersistentVector (IPersistentVector (U a b))
-            Reversible (Reversible (U a b))
-            IPersistentStack (IPersistentStack (U a b))
-            ILookup (ILookup Number (U a b))
-            Associative (Associative (U a b) Number (U a b))
-            Indexed (Indexed (U a b))
-            APersistentVector (APersistentVector (U a b))}
+            IPersistentCollection (IPersistentCollection (t/U a b))
+            Seqable (Seqable (t/U a b))
+            IPersistentVector (IPersistentVector (t/U a b))
+            Reversible (Reversible (t/U a b))
+            IPersistentStack (IPersistentStack (t/U a b))
+            ILookup (ILookup Number (t/U a b))
+            Associative (Associative (t/U a b) Number (t/U a b))
+            Indexed (Indexed (t/U a b))
+            APersistentVector (APersistentVector (t/U a b))}
            :unchecked-ancestors
            #{'[a b]
-             [Number -> (U a b)]}]
+             [Number -> (t/U a b)]}]
 
 IPersistentMap [[[a :variance :covariant]
                  [b :variance :covariant]]
@@ -297,9 +294,9 @@ APersistentMap [[[a :variance :covariant]
                  ILookup (ILookup a b)
                  Associative (Associative (AMapEntry a b) a b)}
                 :unchecked-ancestors
-                #{(All [d]
-                          (IFn [Any -> (U nil b)]
-                              [Any d -> (U b d)]))}]
+                #{(t/All [d]
+                          (t/IFn [t/Any -> (t/U nil b)]
+                              [t/Any d -> (t/U b d)]))}]
 
 
 PersistentTreeMap [[[a :variance :covariant] 
@@ -315,9 +312,9 @@ PersistentTreeMap [[[a :variance :covariant]
                     Reversible (Reversible (AMapEntry a b))
                     #_IEditableCollection #_(IEditableCollection (ITransientMap a b a b))}
                    :unchecked-ancestors
-                   #{(All [d]
-                             (IFn [Any -> (U nil b)]
-                                 [Any d -> (U b d)]))}]
+                   #{(t/All [d]
+                             (t/IFn [t/Any -> (t/U nil b)]
+                                 [t/Any d -> (t/U b d)]))}]
 
 PersistentHashMap [[[a :variance :covariant] 
                     [b :variance :covariant]]
@@ -331,9 +328,9 @@ PersistentHashMap [[[a :variance :covariant]
                     Associative (Associative (AMapEntry a b) a b)
                     #_IEditableCollection #_(IEditableCollection (ITransientMap a b a b))}
                    :unchecked-ancestors
-                   #{(All [d]
-                             (IFn [Any -> (U nil b)]
-                                 [Any d -> (U b d)]))}]
+                   #{(t/All [d]
+                             (t/IFn [t/Any -> (t/U nil b)]
+                                 [t/Any d -> (t/U b d)]))}]
 
 Cons [[[a :variance :covariant]]
       :replace
@@ -367,9 +364,9 @@ PersistentList [[[a :variance :covariant]]
 
 clojure.lang.Keyword [[]
          :unchecked-ancestors
-         #{(All [x] 
-                (IFn [(U nil (IPersistentMap Any x)) -> (U nil x)]
-                    [Any -> Any]))}]
+         #{(t/All [x] 
+                (t/IFn [(t/U nil (IPersistentMap t/Any x)) -> (t/U nil x)]
+                    [t/Any -> t/Any]))}]
 
 IDeref [[[r :variance :covariant]]]
 clojure.lang.IBlockingDeref [[[r :variance :covariant]]]
@@ -407,7 +404,7 @@ clojure.lang.Delay [[[r :variance :covariant]]
                     :replace
                     {IDeref (IDeref r)}]
 
-;invoking Var as IFn is a special case in the checker
+;invoking Var as t/IFn is a special case in the checker
 clojure.lang.Var 
     [[[w :variance :contravariant]
       [r :variance :covariant]]
@@ -444,7 +441,7 @@ Reduced [[[a :variance :covariant]]
 ;
 ;   ; make return types less specific -- seems ok. just means
 ;   ; we can infer less in defmethod's.
-;   (ann-form f (MultiFn [t/Int -> Any] [t/Int -> Any]))
+;   (ann-form f (MultiFn [t/Int -> t/Any] [t/Int -> t/Any]))
 ;
 ;   (ann g (MultiFn [t/Int -> t/Int] [t/Int -> Bool]))
 ;   (defmulti g odd?)

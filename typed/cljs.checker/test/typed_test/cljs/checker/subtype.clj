@@ -6,4 +6,4 @@
             [typed.cljs.checker.test-utils :refer [is-cljs]]))
 
 (deftest subtype-prims-cljs-test
-  (is-cljs (sub/subtype? (r/-val 1) (prs/parse-cljs 'cljs.core.typed/JSNumber))))
+  (is-cljs (sub/subtype? (r/-val 1) (prs/parse-cljs 'typed.clojure/JSnumber))))

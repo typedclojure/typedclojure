@@ -137,15 +137,87 @@
        :clj `(clojure.core.typed/ref ~@args)
        :cljs (throw (ex-info "ref does not exist in CLJS" {})))))
 
-(defn check-ns-clj [& args]
-  (apply clojure.core.typed/check-ns args))
+;; checker ops
+
+#?(:clj
+   (defn check-ns-clj
+     "Type check a Clojure namespace/s (a symbol or Namespace, or collection).
+     If not provided default to current namespace based on clojure.core/*ns*.
+     Returns a true value if type checking is successful, otherwise
+     throws an Exception.
+
+     Do not use check-ns-clj within a checked namespace.
+     It is intended to be used at the REPL or within a unit test.
+     Suggested idiom for clojure.test: (is (check-ns-clj 'your.ns))
+
+     Keyword arguments:
+     - :collect-only  If true, collect type annotations but don't type check code.
+     Useful for debugging purposes.
+     Default: nil
+     - :trace         If true, print some basic tracing of the type checker
+     Default: nil
+     - :check-config   Configuration map for the type checker.
+     - :check-ns-dep  If `:recheck`, always check dependencies.
+     If `:never`, ns dependencies are ignored.
+     #{:recheck :never}
+     Default: :recheck
+     - :unannotated-def   If `:unchecked`, unannotated `def`s are ignored
+     and their type is not recorded.
+     If `:infer`, unannotated `def`s are inferred by their
+     root binding and the type is recorded in the type environment.
+     #{:unchecked :infer}
+     Also applies to `defmethod`s on unannotated `defmulti`s.
+     Default: :infer
+     - :unannotated-var   If `:unchecked`, unannotated vars are given an *unsound*
+     annotation that is used to statically infer its type
+     based on usages/definition (see `infer-unannotated-vars`).
+     If `:any`, usages of unannotated vars are given type `Any` (sound).
+     If `:error`, unannotated vars are a type error (sound).
+     #{:unchecked :any :error}
+     Default: :error
+     - :unannotated-arg   (Not Yet Implemented)
+     If `:unchecked`, unannotated fn arguments are given an *unsound*
+     annotation that is used to statically infer its argument types
+     based on definition.
+     If `:any`, unannotated fn arguments are give type `Any` (sound).
+     #{:unchecked :any}
+     Default: :any
+
+     Removed:
+     - :profile       If true, use Timbre to profile the type checker. Timbre must be
+     added as a dependency. Must use the \"slim\" JAR.
+     Default: nil
+
+
+     If providing keyword arguments, the namespace to check must be provided
+     as the first argument.
+
+     Bind clojure.core.typed.util-vars/*verbose-types* to true to print fully qualified types.
+     Bind clojure.core.typed.util-vars/*verbose-forms* to print full forms in error messages.
+
+     eg. (check-ns-clj 'myns.typed)
+     ;=> :ok
+
+     ; implicitly check current namespace
+     (check-ns-clj)
+     ;=> :ok
+
+     ; collect but don't check the current namespace
+     (check-ns-clj *ns* :collect-only true)"
+     ([] (clojure.core.typed/check-ns))
+     ([ns-or-syms & opt] (apply clojure.core.typed/check-ns ns-or-syms opt)))) 
 
 (defn check-ns-cljs* [& args]
-  (apply (requiring-resolve 'cljs.core.typed/check-ns*) args))
+  (apply #?(:clj (requiring-resolve 'cljs.core.typed/check-ns*)
+            :cljs cljs.core.typed/check-ns*)
+         args))
 
 (defmacro check-ns-cljs [& args]
-  (apply (requiring-resolve 'cljs.core.typed/check-ns-expansion-side-effects)
+  (apply #?(:clj (requiring-resolve 'cljs.core.typed/check-ns-expansion-side-effects)
+            :cljs cljs.core.typed/check-ns-expansion-side-effects)
          args))
 
 (defn check-ns-cljs-macros [& args]
-  (apply (requiring-resolve 'cljs.core.typed/check-ns-macros) args))
+  (apply #?(:clj (requiring-resolve 'cljs.core.typed/check-ns-macros)
+            :cljs cljs.core.typed/check-ns-macros)
+         args))

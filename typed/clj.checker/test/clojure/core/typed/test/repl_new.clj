@@ -4,27 +4,27 @@
             [typed.clj.checker.test-utils :refer :all]))
 
 (deftest apropos-test
-  (is-tc-e #(apropos "clojure") [-> (Seq Sym)]
+  (is-tc-e #(apropos "clojure") [-> (t/Seq t/Sym)]
              :requires [[clojure.repl :refer [apropos]]])
-  (is-tc-e #(apropos #"") [-> (Seq Sym)]
+  (is-tc-e #(apropos #"") [-> (t/Seq t/Sym)]
              :requires [[clojure.repl :refer [apropos]]])
-  (is-tc-err #(apropos "clojure") [-> (Seq String)]
+  (is-tc-err #(apropos "clojure") [-> (t/Seq String)]
              :requires [[clojure.repl :refer [apropos]]])
-  (is-tc-err #(apropos 'clojure) [-> (Seq Str)]
+  (is-tc-err #(apropos 'clojure) [-> (t/Seq t/Str)]
              :requires [[clojure.repl :refer [apropos]]]))
              
 (deftest demunge-test
-  (is-tc-e #(demunge "clojure.repl$demunge") [-> Str]
+  (is-tc-e #(demunge "clojure.repl$demunge") [-> t/Str]
            :requires [[clojure.repl :refer [demunge]]])
-  (is-tc-err #(demunge "clojure.repl$demunge") [-> (Vec Any)]
+  (is-tc-err #(demunge "clojure.repl$demunge") [-> (t/Vec t/Any)]
              :requires [[clojure.repl :refer [demunge]]])
-  (is-tc-err #(demunge 'clojure.repl$demunge) [-> Str]
+  (is-tc-err #(demunge 'clojure.repl$demunge) [-> t/Str]
              :requires [[clojure.repl :refer [demunge]]]))
              
 (deftest source-fn-test
-  (is-tc-e #(source-fn 'source) [-> (U nil Str)]
+  (is-tc-e #(source-fn 'source) [-> (t/U nil t/Str)]
            :requires [[clojure.repl :refer [source-fn]]])
-  (is-tc-err #(source-fn 'source) [-> (Vec Any)]
+  (is-tc-err #(source-fn 'source) [-> (t/Vec t/Any)]
              :requires [[clojure.repl :refer [source-fn]]])
-  (is-tc-err #(source-fn "source") [-> Str]
+  (is-tc-err #(source-fn "source") [-> t/Str]
              :requires [[clojure.repl :refer [source-fn]]]))

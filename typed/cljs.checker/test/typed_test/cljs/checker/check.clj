@@ -23,30 +23,30 @@
            t/Nothing))
 
 (deftest ann-test
-  (is-tc-e (do (t/ann foo t/JSNumber)
+  (is-tc-e (do (t/ann foo t/JSnumber)
                (def foo 1)
                foo)
-           t/JSNumber)
-  (is-tc-err (do (t/ann foo t/JSNumber)
+           t/JSnumber)
+  (is-tc-err (do (t/ann foo t/JSnumber)
                  (def foo 1)
                  foo)
              nil)
-  (is-tc-e (do (t/ann ^:no-check foo t/JSNumber)
+  (is-tc-e (do (t/ann ^:no-check foo t/JSnumber)
                (def foo nil)
                foo)
-           t/JSNumber)
-  (is-tc-e (do (t/ann ^:no-check foo t/JSNumber)
+           t/JSnumber)
+  (is-tc-e (do (t/ann ^:no-check foo t/JSnumber)
                (def foo (fn [] (inc nil)))
                foo)
-           t/JSNumber)
-  (is-tc-err (do (t/ann foo t/JSNumber)
+           t/JSnumber)
+  (is-tc-err (do (t/ann foo t/JSnumber)
                  (def foo nil))))
 
 (deftest check-ns-test
   (is-cljs (t/check-ns* 'cljs.core.typed.test.ann)))
 
 (deftest parse-protocol-test 
-  (is-cljs (prs/parse-cljs '(cljs.core/IMap cljs.core.typed/JSNumber cljs.core.typed/JSNumber))))
+  (is-cljs (prs/parse-cljs '(cljs.core/IMap cljs.core.typed/JSnumber cljs.core.typed/JSnumber))))
 
 (deftest Protocol-of-test
   (is-cljs (c/Protocol-of 'cljs.core/IMap [(r/JSNumber-maker)
@@ -56,21 +56,21 @@
   (is-tc-e (do) nil)
   (is-tc-e (do nil) nil)
   (is-tc-e (do #{1})
-           (ISet t/JSNumber)))
+           (ISet t/JSnumber)))
 
 (deftest heterogeneous-ds-test
   (is-tc-e [1 2]
-           '[t/JSNumber t/JSNumber])
+           '[t/JSnumber t/JSnumber])
   (is-tc-e [1 2]
-           (IVector t/JSNumber))
+           (IVector t/JSnumber))
   (is-tc-e {:a 1}
-           '{:a t/JSNumber})
+           '{:a t/JSnumber})
   (is-tc-e {1 1}
-           (IMap t/JSNumber t/JSNumber))
+           (IMap t/JSnumber t/JSnumber))
   (is-tc-e #{1}
-           (ISet t/JSNumber))
+           (ISet t/JSnumber))
   (is-tc-e (let [a 1] #{1 a})
-           (ISet t/JSNumber)))
+           (ISet t/JSnumber)))
 
 (deftest js*-test
   (is-tc-e (js* "(~{})" 1)))
@@ -102,8 +102,8 @@
 (deftest inst-test
   (is-tc-e (let [f (-> (fn [a] a)
                        (t/ann-form (t/All [x] [x -> x])))]
-             ((t/inst f t/JSNumber) 1))
-           t/JSNumber))
+             ((t/inst f t/JSnumber) 1))
+           t/JSnumber))
 
 #_ ;;TODO
 (deftest letfn-test
@@ -145,10 +145,10 @@
   (is-tc-e 'a Symbol)
   (is-tc-e :a Keyword)
   (is-tc-e 1 t/CLJSInteger)
-  (is-tc-e 1.1 t/JSNumber)
-  (is-tc-e 1 t/JSNumber)
-  (is-tc-e true t/JSBoolean)
-  (is-tc-e "a" t/JSString))
+  (is-tc-e 1.1 t/JSnumber)
+  (is-tc-e 1 t/JSnumber)
+  (is-tc-e true t/JSboolean)
+  (is-tc-e "a" t/JSstring))
 
 #_ ;;TODO
 (deftest ns-deps-test
@@ -199,7 +199,7 @@
   (is-tc-e (let [x 0
                  y x]
              y)
-           t/JSNumber)
+           t/JSnumber)
 
   ;;FIXME
   ;;case
@@ -207,7 +207,7 @@
   (is-tc-e (fn [x] (case x
                     0 "zero"
                     "non-zero"))
-           [t/JSNumber -> cljs.core.typed/JSString])
+           [t/JSnumber -> cljs.core.typed/JSString])
 
   ;;def
   (is-tc-e (def x 1))
@@ -217,7 +217,7 @@
   
   
   ;;const
-  (is-tc-e 1 t/JSNumber)
+  (is-tc-e 1 t/JSnumber)
 
   ;;if
   (is-tc-e (if 1 1 0))
@@ -225,13 +225,13 @@
   ;;FIXME
   ;;letfn
   #_
-  (is-tc-e (t/letfn> [foo :- [t/JSNumber -> t/JSNumber]
+  (is-tc-e (t/letfn> [foo :- [t/JSnumber -> t/JSnumber]
                       (foo [x] x)]
              (foo 2)))
 
   ;;loop
-  (is-tc-e (t/loop [a :- t/JSNumber 1
-                    b :- (t/U nil t/JSNumber) nil]
+  (is-tc-e (t/loop [a :- t/JSnumber 1
+                    b :- (t/U nil t/JSnumber) nil]
              (if b (str a)
                (recur 1 1)))
            t/Str)
@@ -258,26 +258,26 @@
   #_(is-tc-e {:a 1} (t/HMap :mandatory {:a (t/Value 1)}))
   #_(is-tc-e {:a 1} (t/HMap :mandatory {:a (t/Val 1)}))
   (is-tc-e {:a 1}
-           (t/Rec [x] (t/U nil (t/HMap :mandatory {:a t/JSNumber} :optional {:b x}))))
+           (t/Rec [x] (t/U nil (t/HMap :mandatory {:a t/JSnumber} :optional {:b x}))))
   )
 
 (deftest undefined-test
-  (is-tc-err nil t/JSUndefined)
-  (is-tc-e nil t/JSNull)
+  (is-tc-err nil t/JSundefined)
+  (is-tc-e nil t/JSnull)
   (is-tc-e nil nil)
-  (is (not (sub? nil cljs.core.typed/JSNull)))
-  (is (not (sub? nil cljs.core.typed/JSUndefined)))
-  (is (sub? cljs.core.typed/JSUndefined nil))
-  (is (sub? cljs.core.typed/JSNull nil))
+  (is (not (sub? nil cljs.core.typed/JSnull)))
+  (is (not (sub? nil cljs.core.typed/JSundefined)))
+  (is (sub? cljs.core.typed/JSundefined nil))
+  (is (sub? cljs.core.typed/JSnull nil))
   ;;FIXME waiting for var anns
   (comment
-    (is-tc-e (t/fn [a :- t/JSUndefined] :- nil
+    (is-tc-e (t/fn [a :- t/JSundefined] :- nil
                a))
-    (is-tc-e (t/fn [a :- t/JSNull] :- nil
+    (is-tc-e (t/fn [a :- t/JSnull] :- nil
                a))
-    (is-tc-err (t/fn [a :- t/JSNull] :-  t/JSUndefined
+    (is-tc-err (t/fn [a :- t/JSnull] :-  t/JSundefined
                  a))
-    (is-tc-err (t/fn [a :- t/JSUndefined] :-  t/JSNull
+    (is-tc-err (t/fn [a :- t/JSundefined] :-  t/JSnull
                  a))
     (is-tc-e (when (undefined? nil)
                :kw)
@@ -285,26 +285,26 @@
     (is-tc-err (when (undefined? (t/ann-form nil nil))
                  :kw)
                nil)
-    (is-tc-e (t/fn [a :- t/JSNull]
+    (is-tc-e (t/fn [a :- t/JSnull]
                (when (undefined? a)
                  :kw))
-             [t/JSNull :-> nil])
-    (is-tc-e (t/fn [a :- t/JSUndefined]
+             [t/JSnull :-> nil])
+    (is-tc-e (t/fn [a :- t/JSundefined]
                (when (undefined? a)
                  :kw))
-             [t/JSUndefined :-> ':kw])
+             [t/JSundefined :-> ':kw])
     (is-tc-e (do
-               (t/ann ^:no-check a t/JSUndefined)
+               (t/ann ^:no-check a t/JSundefined)
                (def a nil)
                a)
              nil)
-    (is-tc-e (t/fn [a :- (t/U (cljs.core/IVector t/Any) t/JSUndefined)]
+    (is-tc-e (t/fn [a :- (t/U (cljs.core/IVector t/Any) t/JSundefined)]
                (if a
                  (t/ann-form a (cljs.core/IVector t/Any))
-                 (t/ann-form a t/JSUndefined))))))
+                 (t/ann-form a t/JSundefined))))))
 
 (deftest ratio-test
-  (is-tc-e 1/2 t/JSNumber))
+  (is-tc-e 1/2 t/JSnumber))
 
 #_
 (deftest goog-imports

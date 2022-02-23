@@ -20,7 +20,7 @@
        ~@body)))
 
 (defmacro is-cljs [& body]
-  `(test/is (cljs ~@body)))
+  `(cljs (test/is ~@body)))
 
 (defmacro is-cf [& body]
   `(is-cljs (t/cf ~@body) true))

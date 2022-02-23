@@ -10,7 +10,7 @@
              :requires [[clojure.inspector :refer [atom?]]]))
 
 (deftest collection-tag-test
-  (is-tc-e #(collection-tag "abc") [-> Keyword]
+  (is-tc-e #(collection-tag "abc") [-> t/Keyword]
            :requires [[clojure.inspector :refer [collection-tag]]])
   (is-tc-err #(collection-tag "abc") [-> String]
              :requires [[clojure.inspector :refer [collection-tag]]]))

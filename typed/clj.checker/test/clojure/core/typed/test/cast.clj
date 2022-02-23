@@ -3,20 +3,20 @@
   (:require 
     [typed.clj.checker.test-utils :refer :all]
     [clojure.test :refer :all]
-    [clojure.core.typed :as tc :refer [Int cast]]))
+    [clojure.core.typed :as tc]))
 
 (deftest typed-cast-test
-  (is-tc-e (cast Int 1) Int)
-  (is-tc-err #(cast Int (inc 'a)))
-  (is-tc-e (cast [Int -> Int] identity) [Int -> Int])
-  (is-tc-e (cast '{:a Int} {:a 1}) '{:a Int})
-  (is-tc-e #(cast Int nil) [:-> Int])
+  (is-tc-e (cast t/Int 1) t/Int)
+  (is-tc-err #(cast t/Int (inc 'a)))
+  (is-tc-e (cast [t/Int -> t/Int] identity) [t/Int -> t/Int])
+  (is-tc-e (cast '{:a t/Int} {:a 1}) '{:a t/Int})
+  (is-tc-e #(cast t/Int nil) [:-> t/Int])
   ;; runtime errors
   (is (thrown? Exception (tc/check-form-info `(tc/cast tc/Int nil))))
   (is (thrown? Exception
-               (tc-e (cast '{:a Int} {:a nil}))))
+               (tc-e (cast '{:a t/Int} {:a nil}))))
   (is (thrown? Exception
                (tc-e
-                 ((:a (cast '{:a [Int :-> Int]} {:a str}))
+                 ((:a (cast '{:a [t/Int :-> t/Int]} {:a str}))
                   1))))
   )

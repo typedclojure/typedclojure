@@ -1,8 +1,7 @@
 (ns clojure.core.typed.test.rbt
   (:refer-clojure :exclude [let])
   (:require [clojure.core.typed 
-             :refer [ann print-env print-filterset ann-form defalias
-                     U IFn let Rec]
+             :refer [ann print-env print-filterset ann-form defalias let]
              :as t]))
 
 ;-------------------------------
@@ -43,22 +42,22 @@
 
 (defalias rbt 
   "Trees with only black children for red nodes"
-  (Rec [rbt]
-    (U 
+  (t/Rec [rbt]
+    (t/U 
       Empty
       (Black rbt rbt)
       ;(Red bt bt)
-      (Red (U 
+      (Red (t/U 
              Empty
              (Black rbt rbt))
-           (U 
+           (t/U 
              Empty
              (Black rbt rbt))))))
 
 (defalias bt 
   "Like rbt but additionally the root node is black"
-  (Rec [bt]
-       (U 
+  (t/Rec [bt]
+       (t/U 
          Empty
          (Black rbt rbt))))
 
@@ -68,7 +67,7 @@
 
 (defalias badRoot 
   "Invariant possibly violated at the root"
-  (U 
+  (t/U 
     Empty
     (Black rbt bt)
     (Red rbt bt)
@@ -76,7 +75,7 @@
 
 (defalias badLeft 
   "Invariant possibly violated at the left child"
-  (U
+  (t/U
    Empty
    (Black rbt rbt)
    (Red bt bt)
@@ -84,7 +83,7 @@
 
 (defalias badRight 
   "Invariant possibly violated at the right child"
-  (U
+  (t/U
    Empty
    (Black rbt rbt)
    (Red bt bt)
@@ -102,7 +101,7 @@
 ;  and dict is re-balanced red/black tree (satisfying all inv's)
 ;  and the same black height n.
 
-(ann restore-right (IFn [badRight -> rbt]))
+(ann restore-right (t/IFn [badRight -> rbt]))
 (defn restore-right [tmap]
   (cond
     (and (-> tmap :tree #{:Black})
@@ -179,7 +178,7 @@
 ;;  (* ins (Red _) may violate color invariant at root *)
 ;;  (* ins (Black _) or ins (Empty) will be red/black tree *)
 ;;  (* ins preserves black height *)
-(ann insert (IFn [rbt EntryT -> rbt]))
+(ann insert (t/IFn [rbt EntryT -> rbt]))
 (defn insert [dict {:keys [key datum] :as entry}]
   (let [
         ;;  (*[ ins1 :> 'a rbt -> 'a badRoot 
@@ -187,8 +186,8 @@
 
 
          ins1 :-
-          (IFn [bt -> rbt]
-               [rbt -> (U rbt badRoot)])
+          (t/IFn [bt -> rbt]
+               [rbt -> (t/U rbt badRoot)])
           (fn ins1 [{:keys [tree] :as tmap}]
             (cond
               (#{:Empty} tree) {:tree :Red

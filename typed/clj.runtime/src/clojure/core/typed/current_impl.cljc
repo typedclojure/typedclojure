@@ -312,8 +312,11 @@
                                                  (when (seq msg)
                                                    (str ": " msg))))))
 
-(defn assert-cljs []
-  (assert (= clojurescript (current-impl)) "Clojurescript implementation only"))
+(defn assert-cljs
+  ([] (assert-cljs nil))
+  ([msg] (assert (= clojurescript (current-impl)) (str "Clojurescript implementation only"
+                                                       (when (seq msg)
+                                                         (str ": " msg))))))
 
 ;; :clojure = ::clojure
 ;; :cljs = ::clojurescript

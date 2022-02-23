@@ -7,9 +7,9 @@
 
 (deftest refine-branch-test
   (is-tc-e (do
-             (defalias M (U '{:a Int}
-                            '{:a Sym}))
+             (defalias M (t/U '{:a t/Int}
+                              '{:a t/Sym}))
              (fn [a :- M]
                (if (symbol? (:a a))
-                 (ann-form (:a a) Sym)
-                 (ann-form (:a a) Int))))))
+                 (ann-form (:a a) t/Sym)
+                 (ann-form (:a a) t/Int))))))

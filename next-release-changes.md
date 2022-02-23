@@ -2,3 +2,11 @@
   - includes no-op typing rules for `s/def` and `s/fdef`
 - remove outdated hints on type errors
 - add :unanalyzed to `typed.cljs.analyzer`
+- add `typed.clojure` namespace for cross-platform use
+- Breaking: vars representing special types from clojure.core.typed (eg., Any, HMap) have been removed
+  - set system property `clojure.core.typed.special-vars=true` to restore
+  - rationale: `:refer`ing these vars is not cross-platform. type resolution can
+    work without these vars
+- Breaking: defalias no longer interns vars
+  - set system property `clojure.core.typed.intern-defaliases=true` to restore
+  - rationale: poor cross-platform story. follow spec's lead with separate registry.

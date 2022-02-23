@@ -23,9 +23,9 @@
              :requires [[clojure.string :refer [escape]]]))
 
 (deftest split-lines-test
-  (is-tc-e (split-lines "abc\n abc") (Vec String)            
+  (is-tc-e (split-lines "abc\n abc") (t/Vec String)            
            :requires [[clojure.string :refer [split-lines]]])
   (is-tc-err (split-lines "abc\n abc") Boolean             
              :requires [[clojure.string :refer [split-lines]]])
-  (is-tc-err (split-lines 1) (Vec String)
+  (is-tc-err (split-lines 1) (t/Vec String)
              :requires [[clojure.string :refer [split-lines]]]))

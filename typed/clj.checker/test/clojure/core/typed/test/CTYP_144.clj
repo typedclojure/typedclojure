@@ -9,7 +9,7 @@
           (-next-int
             [this limit :- Integer] :- Integer))
 
-        (ann-record SeededRandom [seed :- Int
+        (ann-record SeededRandom [seed :- t/Int
                                   rng :- java.util.Random])
 
         (defrecord SeededRandom [seed ^java.util.Random rng]

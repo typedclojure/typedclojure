@@ -111,15 +111,15 @@
 
 (deftest top-function-subtype-test
   (is-clj (subtype? (parse-type `[t/Any ~'-> t/Any])
-                    (parse-type 'AnyFunction))))
+                    (parse-type `t/AnyFunction))))
 
 (deftest complete-hash-subtype-test
   (is-clj (sub? (clojure.core.typed/HMap :complete? true)
                 (clojure.core.typed/Map Integer Long))))
 
 (deftest latent-filter-subtype-test 
-  (is-clj (not (sub?-q `(t/IFn [t/Any ~'-> t/Any :filters {:then (~'is Number 0)}])
-                       `(t/IFn [t/Any ~'-> t/Any :filters {:then (~'is t/Nothing 0)}])))))
+  (is-clj (not (sub?-q `[t/Any :-> t/Any :filters {:then (~'is Number 0)}]
+                       `[t/Any :-> t/Any :filters {:then (~'is t/Nothing 0)}]))))
 
 (deftest subtype-tfn-test
   (is-clj (sub?-q `(t/TFn [[x# :variance :covariant]] Number)

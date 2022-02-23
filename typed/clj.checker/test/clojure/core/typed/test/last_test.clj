@@ -7,6 +7,6 @@
 (deftest last-test
   (testing "when we know there is at least one value"
     (is-tc-e
-     (fn [coll :- (NonEmptySeqable Long)]
+     (fn [coll :- (t/NonEmptySeqable Long)]
        (let [value (last coll)]
          (ann-form value Long))))))

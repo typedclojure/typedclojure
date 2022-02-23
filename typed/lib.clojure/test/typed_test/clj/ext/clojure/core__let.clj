@@ -18,88 +18,88 @@
 
 (deftest let-occurrence-typing-test
   ;; unreachable branches
-  (is-tc-e #(let [a (ann-form 'a Any)
+  (is-tc-e #(let [a (ann-form 'a t/Any)
                   _ (assert (symbol? a))
                   _ (assert (not (symbol? a)))]
               (/ nil nil)))
-  (is-tc-e #(let [a (ann-form 'a Any)
+  (is-tc-e #(let [a (ann-form 'a t/Any)
                   _ (assert (and (symbol? a) (not (symbol? a))))]
               (/ nil nil)))
-  (is-tc-e #(let [a (ann-form 'a Any)
+  (is-tc-e #(let [a (ann-form 'a t/Any)
                   _ (assert (and (symbol? a) (not (symbol? a))))
                   _ (/ nil nil)]))
-  (is-tc-err #(let [a (ann-form 'a Any)
+  (is-tc-err #(let [a (ann-form 'a t/Any)
                     _ (/ nil nil)
                     _ (assert (and (symbol? a) (not (symbol? a))))]))
   ;; propagating objects
-  (is-tc-e #(let [a (ann-form 1 Any)]
+  (is-tc-e #(let [a (ann-form 1 t/Any)]
               (let [b a]
                 (assert (number? b)))
               (ann-form a Number)))
-  (is-tc-e #(let [a (ann-form 1 Any)]
+  (is-tc-e #(let [a (ann-form 1 t/Any)]
               (let [b a]
                 (assert (number? a)))
               (ann-form a Number)))
-  (is-tc-e #(let [a (ann-form 1 Any)
+  (is-tc-e #(let [a (ann-form 1 t/Any)
                   _ (let [b a]
                       (assert (number? b)))]
               (ann-form a Number)))
-  (is-tc-e #(let [a (ann-form 1 Any)
+  (is-tc-e #(let [a (ann-form 1 t/Any)
                   _ (let [b a]
                       (assert (number? a)))]
               (ann-form a Number)))
-  (is-tc-err #(let [a (ann-form 1 Any)]
+  (is-tc-err #(let [a (ann-form 1 t/Any)]
                 (let [b a]
                   (assert (not (number? b))))
                 (ann-form a Number)))
-  (is-tc-err #(let [a (ann-form 1 Any)
+  (is-tc-err #(let [a (ann-form 1 t/Any)
                     _ (let [b a]
                         (assert (not (number? b))))]
                 (ann-form a Number)))
   ;; propagating complicated objects
-  (is-tc-e #(let [m {:a (ann-form 1 Any)}]
+  (is-tc-e #(let [m {:a (ann-form 1 t/Any)}]
               (let [b (:a m)]
                 (assert (number? b)))
               (ann-form (:a m) Number)))
-  (is-tc-e #(let [m {:a (ann-form 1 Any)}
+  (is-tc-e #(let [m {:a (ann-form 1 t/Any)}
                   _ (let [b (:a m)]
                       (assert (number? b)))]
               (ann-form (:a m) Number)))
-  (is-tc-err #(let [m {:a (ann-form 1 Any)}]
+  (is-tc-err #(let [m {:a (ann-form 1 t/Any)}]
                 (let [b (:a m)]
                   (assert (not (number? b))))
                 (ann-form (:a m) Number)))
-  (is-tc-err #(let [m {:a (ann-form 1 Any)}
+  (is-tc-err #(let [m {:a (ann-form 1 t/Any)}
                     _ (let [b (:a m)]
                         (assert (not (number? b))))]
                 (ann-form (:a m) Number)))
   ;; erased/uniquified shadowed bindings
-  (is-tc-err #(let [a (ann-form 1 Any)
+  (is-tc-err #(let [a (ann-form 1 t/Any)
                     _ (let [a (ann-form 1 Number)]
                         a)]
                 (ann-form a Number)))
   (is-tc-e #(let [; test if aliasing gets confused
-                  m {:a (ann-form 1 Any)}
+                  m {:a (ann-form 1 t/Any)}
                   a (:a m)
-                  m {:a (ann-form 1 Any)}
+                  m {:a (ann-form 1 t/Any)}
                   _ (assert (number? a))]
               (ann-form a Number)))
-  (is-tc-err #(let [m {:a (ann-form 1 Any)}
+  (is-tc-err #(let [m {:a (ann-form 1 t/Any)}
                     a (:a m)
-                    m {:a (ann-form 1 Any)}
+                    m {:a (ann-form 1 t/Any)}
                     _ (assert (number? a))]
                 (ann-form (:a m) Number)))
   ;; uniquify let+do (gilardi scenario)
-  (is-tc-err (do (let [m (ann-form 1 Any)]
+  (is-tc-err (do (let [m (ann-form 1 t/Any)]
                    (assert (number? m))
                    m)
-                 (let [m (ann-form 1 Any)]
+                 (let [m (ann-form 1 t/Any)]
                    (ann-form m Number))))
   ;; uniquify let+do (non-gilardi scenario)
-  (is-tc-err #(do (let [m (ann-form 1 Any)]
+  (is-tc-err #(do (let [m (ann-form 1 t/Any)]
                     (assert (number? m))
                     m)
-                  (let [m (ann-form 1 Any)]
+                  (let [m (ann-form 1 t/Any)]
                     (ann-form m Number)))))
 
 (deftest common-destructuring-test
@@ -111,32 +111,32 @@
              (ann-form a Number)
              (ann-form b Number)))
   (is-tc-e (let [[& a] [1]]
-             (ann-form a (Seq Number))))
+             (ann-form a (t/Seq Number))))
   (is-tc-e (let [[a & b] [1 2]]
              (ann-form a Number)
-             (ann-form b (Seq Number))))
+             (ann-form b (t/Seq Number))))
   (is-tc-e (let [[a b & c] [1 2 3]]
              (ann-form a Number)
              (ann-form b Number)
-             (ann-form c (Seq Number))))
+             (ann-form c (t/Seq Number))))
   (is-tc-e (let [[a b c d e & r :as all] [1 2 3 4 5 6 7]]
              (ann-form b Number)
              (ann-form c Number)
              (ann-form d Number)
              (ann-form e Number)
-             (ann-form r (Seqable Number))
-             (ann-form all (Seqable Number))))
+             (ann-form r (t/Seqable Number))
+             (ann-form all (t/Seqable Number))))
   (is-tc-e (seq [1 2 3])
-           (HSeq [Num Num Num]))
+           (t/HSeq [t/Num t/Num t/Num]))
   (is-tc-e
     '(1 2 3)
-    (HSeq [Num Num Num]))
+    (t/HSeq [t/Num t/Num t/Num]))
   (is-tc-e
     '(1 2 3)
-    (HList [Num Num Num]))
+    (t/HList [t/Num t/Num t/Num]))
   (is-tc-e
     (seq '(1 2 3))
-    (HSeq [Num Num Num]))
+    (t/HSeq [t/Num t/Num t/Num]))
   (is-tc-e
     (let [[a b c & d :as e] '(1 2 3 4 5 6 7)]
       (ann-form a (t/Val 1))

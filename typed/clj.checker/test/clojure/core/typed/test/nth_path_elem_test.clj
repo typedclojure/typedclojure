@@ -9,8 +9,8 @@
     (do
       (defalias StatementA '[':params String])
       (defalias StatementB '[':no-params])
-      (defalias Statement (U StatementA StatementB))
-      (fn [stmt :- Statement] :- Any
+      (defalias Statement (t/U StatementA StatementB))
+      (fn [stmt :- Statement] :- t/Any
         (when (= :params (first stmt))
           (let [param (nth stmt 1)]
             (ann-form param String)))))))
@@ -20,8 +20,8 @@
     (do
       (defalias StatementA '[Number ':params String])
       (defalias StatementB '[Number ':no-params])
-      (defalias Statement (U StatementA StatementB))
-      (fn [stmt :- Statement] :- Any
+      (defalias Statement (t/U StatementA StatementB))
+      (fn [stmt :- Statement] :- t/Any
         (when (= :params (second stmt))
           (let [param (nth stmt 2)]
             (ann-form param String))))))
@@ -32,8 +32,8 @@
       (do
         (defalias StatementA '[Number ':params String])
         (defalias StatementB '[Number ':no-params])
-        (defalias Statement (U StatementA StatementB))
-        (fn [stmt :- Statement] :- Any
+        (defalias Statement (t/U StatementA StatementB))
+        (fn [stmt :- Statement] :- t/Any
           (when (= :params (second stmt))
             (let [param (nth stmt 2)]
               (ann-form param Number))))))))
@@ -43,8 +43,8 @@
     (do
       (defalias StatementA '[':params String])
       (defalias StatementB '[':no-params])
-      (defalias Statement (U StatementA StatementB))
-      (fn [stmt :- Statement] :- Any
+      (defalias Statement (t/U StatementA StatementB))
+      (fn [stmt :- Statement] :- t/Any
         (when (= :params (nth stmt 0))
           (let [param (nth stmt 1)]
             (ann-form param String)))))))
@@ -54,8 +54,8 @@
     (do
       (defalias StatementA '[':a '[':params String]])
       (defalias StatementB '[':b '[':no-params]])
-      (defalias Statement (U StatementA StatementB))
-      (fn [stmt :- Statement] :- Any
+      (defalias Statement (t/U StatementA StatementB))
+      (fn [stmt :- Statement] :- t/Any
         (when (= :params (nth (nth stmt 1) 0))
           (let [param (nth (nth stmt 1) 1)]
             (ann-form param String)))))))
@@ -65,9 +65,9 @@
     (do
       (defalias StatementA '[':params String])
       (defalias StatementB '[':no-params])
-      (defalias Statement (U StatementA StatementB))
+      (defalias Statement (t/U StatementA StatementB))
 
-      (ann nth-path-multimethod [Statement -> Any])
+      (ann nth-path-multimethod [Statement -> t/Any])
       (defmulti nth-path-multimethod first)
 
       (defmethod nth-path-multimethod :params [stmt]
@@ -80,30 +80,30 @@
   (testing "HVec"
     (is-tc-e
       (do
-        (defalias StatementA (HVec [':params String]))
-        (defalias StatementB (HVec [':no-params]))
-        (defalias Statement (U StatementA StatementB))
-        (fn [stmt :- Statement] :- Any
+        (defalias StatementA (t/HVec [':params String]))
+        (defalias StatementB (t/HVec [':no-params]))
+        (defalias Statement (t/U StatementA StatementB))
+        (fn [stmt :- Statement] :- t/Any
           (when (= :params (first stmt))
             (ann-form stmt StatementA))))))
 
   (testing "HSeq"
     (is-tc-e
       (do
-        (defalias StatementA (HSeq [':params String]))
-        (defalias StatementB (HSeq [':no-params]))
-        (defalias Statement (U StatementA StatementB))
-        (fn [stmt :- Statement] :- Any
+        (defalias StatementA (t/HSeq [':params String]))
+        (defalias StatementB (t/HSeq [':no-params]))
+        (defalias Statement (t/U StatementA StatementB))
+        (fn [stmt :- Statement] :- t/Any
           (when (= :params (first stmt))
             (ann-form stmt StatementA))))))
 
   (testing "HSequential"
     (is-tc-e
       (do
-        (defalias StatementA (HSequential [':params String]))
-        (defalias StatementB (HSequential [':no-params]))
-        (defalias Statement (U StatementA StatementB))
-        (fn [stmt :- Statement] :- Any
+        (defalias StatementA (t/HSequential [':params String]))
+        (defalias StatementB (t/HSequential [':no-params]))
+        (defalias Statement (t/U StatementA StatementB))
+        (fn [stmt :- Statement] :- t/Any
           (when (= :params (first stmt))
             (ann-form stmt StatementA))))))
 
@@ -117,9 +117,9 @@
   (testing "a mixture of types"
     (is-tc-e
       (do
-        (defalias StatementA (HSeq [':params String]))
-        (defalias StatementB (HVec [':no-params]))
-        (defalias Statement (U StatementA StatementB))
-        (fn [stmt :- Statement] :- Any
+        (defalias StatementA (t/HSeq [':params String]))
+        (defalias StatementB (t/HVec [':no-params]))
+        (defalias Statement (t/U StatementA StatementB))
+        (fn [stmt :- Statement] :- t/Any
           (when (= :params (first stmt))
             (ann-form stmt StatementA)))))))

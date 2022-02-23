@@ -6,9 +6,9 @@
 
 (deftest nthnext-test
   (is-tc-e
-   (fn [stmt :- '[Any Long]]
+   (fn [stmt :- '[t/Any Long]]
      (let [body (nthnext stmt 1)]
-       (ann-form body (HSeq [Long])))))
+       (ann-form body (t/HSeq [Long])))))
 
   (is-tc-e
    (ann-form (nthnext nil 1) nil))
@@ -18,113 +18,113 @@
 (deftest nthnext-test-input-types
   (testing "HVec"
     (is-tc-e
-     (fn [stmt :- (t/HVec [Any Long])]
+     (fn [stmt :- (t/HVec [t/Any Long])]
        (let [body (nthnext stmt 1)]
-         (ann-form body (HSeq [Long]))))))
+         (ann-form body (t/HSeq [Long]))))))
 
   (testing "HSeq"
     (is-tc-e
-     (fn [stmt :- (t/HSeq [Any Long])]
+     (fn [stmt :- (t/HSeq [t/Any Long])]
        (let [body (nthnext stmt 1)]
-         (ann-form body (HSeq [Long]))))))
+         (ann-form body (t/HSeq [Long]))))))
 
   (testing "HSequential"
     (is-tc-e
-     (fn [stmt :- (t/HSequential [Any Long])]
+     (fn [stmt :- (t/HSequential [t/Any Long])]
        (let [body (nthnext stmt 1)]
-         (ann-form body (HSeq [Long])))))))
+         (ann-form body (t/HSeq [Long])))))))
 
 (deftest next-test-input-types
   (testing "HVec"
     (is-tc-e
-     (fn [stmt :- (t/HVec [Any Long])]
+     (fn [stmt :- (t/HVec [t/Any Long])]
        (let [body (next stmt)]
-         (ann-form body (HSeq [Long]))))))
+         (ann-form body (t/HSeq [Long]))))))
 
   (testing "HSeq"
     (is-tc-e
-     (fn [stmt :- (t/HSeq [Any Long])]
+     (fn [stmt :- (t/HSeq [t/Any Long])]
        (let [body (next stmt)]
-         (ann-form body (HSeq [Long]))))))
+         (ann-form body (t/HSeq [Long]))))))
 
   (testing "HSequential"
     (is-tc-e
-     (fn [stmt :- (t/HSequential [Any Long])]
+     (fn [stmt :- (t/HSequential [t/Any Long])]
        (let [body (next stmt)]
-         (ann-form body (HSeq [Long])))))))
+         (ann-form body (t/HSeq [Long])))))))
 
 (deftest seq-test-input-types
   (testing "HVec"
     (is-tc-e
-     (fn [stmt :- (t/HVec [Any Long])]
+     (fn [stmt :- (t/HVec [t/Any Long])]
        (let [body (seq stmt)]
-         (ann-form body (HSeq [Any Long]))))))
+         (ann-form body (t/HSeq [t/Any Long]))))))
 
   (testing "HSeq"
     (is-tc-e
-     (fn [stmt :- (t/HSeq [Any Long])]
+     (fn [stmt :- (t/HSeq [t/Any Long])]
        (let [body (seq stmt)]
-         (ann-form body (HSeq [Any Long]))))))
+         (ann-form body (t/HSeq [t/Any Long]))))))
 
   (testing "HSequential"
     (is-tc-e
-     (fn [stmt :- (t/HSequential [Any Long])]
+     (fn [stmt :- (t/HSequential [t/Any Long])]
        (let [body (seq stmt)]
-         (ann-form body (HSeq [Any Long])))))))
+         (ann-form body (t/HSeq [t/Any Long])))))))
 
 (deftest nthnext-test-fixed-types
   (testing "skipping past all the fixed types"
     (is-tc-e
-     (fn [stmt :- '[Any Long]]
+     (fn [stmt :- '[t/Any Long]]
        (let [body (nthnext stmt 100)]
          (ann-form body nil))))
     (is-tc-err
-     (fn [stmt :- '[Any Long]]
+     (fn [stmt :- '[t/Any Long]]
        (let [body (nthnext stmt 100)]
-         (ann-form body (HSeq [])))))))
+         (ann-form body (t/HSeq [])))))))
 
 (deftest nthnext-test-fixed-types-and-rest
   (testing "skipping past all the fixed types with a rest type"
     (is-tc-e
-     (fn [stmt :- '[Any Long *]]
+     (fn [stmt :- '[t/Any Long *]]
        (let [body (nthnext stmt 100)]
-         (ann-form body (t/Option (HSeq [Long *]))))))
+         (ann-form body (t/Option (t/HSeq [Long *]))))))
     (is-tc-err
-     (fn [stmt :- '[Any Long *]]
+     (fn [stmt :- '[t/Any Long *]]
        (let [body (nthnext stmt 100)]
-         (ann-form body (HSeq [Long *])))))
+         (ann-form body (t/HSeq [Long *])))))
     (is-tc-err
-     (fn [stmt :- '[Any Long *]]
+     (fn [stmt :- '[t/Any Long *]]
        (let [body (nthnext stmt 100)]
          (ann-form body nil))))))
 
 (deftest nthnext-test-union
   (testing "a union of types is also refined"
     (is-tc-e
-     (fn [stmt :- (U '[Any String]
-                     '[Any Long])]
-       (let [body (nthnext stmt 1)]
-         (ann-form body (U (HSeq [String])
-                           (HSeq [Long]))))))))
+      (fn [stmt :- (t/U '[t/Any String]
+                        '[t/Any Long])]
+        (let [body (nthnext stmt 1)]
+          (ann-form body (t/U (t/HSeq [String])
+                              (t/HSeq [Long]))))))))
 
 (deftest nthnext-test-destructuring
   (testing "implicitly used via destructuring"
     (is-tc-e
-     (fn [stmt :- '[Any Long]]
+     (fn [stmt :- '[t/Any Long]]
        (let [[_ & body] stmt]
-         (ann-form body (HSeq [Long]))))))
+         (ann-form body (t/HSeq [Long]))))))
 
   (testing "destructuring past fixed types"
     (is-tc-e
-     (fn [stmt :- '[Any]]
+     (fn [stmt :- '[t/Any]]
        (let [[_ & body] stmt]
          (ann-form body nil)))))
 
   (testing "destructuring past fixed types with a rest type"
     (is-tc-e
-     (fn [stmt :- '[Any Long *]]
+     (fn [stmt :- '[t/Any Long *]]
        (let [[_ & body] stmt]
-         (ann-form body (t/Option (HSeq [Long *]))))))))
+         (ann-form body (t/Option (t/HSeq [Long *]))))))))
 
 (deftest nthnext-update-test
   (is-tc-e

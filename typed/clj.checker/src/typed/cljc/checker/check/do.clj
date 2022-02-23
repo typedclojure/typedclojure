@@ -48,7 +48,7 @@
           reachable-atom (atom true)
           [env cexprs]
           (reduce (fn [[env cexprs] ^long n]
-                    {:pre [(lex/PropEnv? env)
+                    {:pre [(lex/PropEnv?-workaround env)
                            (integer? n)
                            (< n nexprs)]
                      ; :post checked after the reduce
@@ -99,7 +99,7 @@
                   [(lex/lexical-env) exprs] (range nexprs))
           _ (assert (= (count cexprs) nexprs))
           actual-types (mapv u/expr-type cexprs)
-          _ (assert (lex/PropEnv? env))
+          _ (assert (lex/PropEnv?-workaround env))
           _ (assert ((every-pred vector? seq) cexprs)) ; make sure we conj'ed in the right order
           _ (assert ((every-pred (con/every-c? r/TCResult?) seq) actual-types)
                     actual-types)]

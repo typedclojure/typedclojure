@@ -403,17 +403,17 @@
 ;; sets the flag box to #f if anything becomes (U)
 ;[PropEnv (Seqable Filter) (Atom Boolean) -> PropEnv]
 (defn env+ [env fs flag]
-  {:pre [(lex/PropEnv? env)
+  {:pre [(lex/PropEnv?-workaround env)
          (every? (every-pred fl/Filter? (complement fl/NoFilter?)) 
                  fs)
          (boolean? @flag)]
-   :post [(lex/PropEnv? %)
+   :post [(lex/PropEnv?-workaround %)
           ; flag should be updated by the time this function exits
           (boolean? @flag)]}
   (let [[props atoms] (combine-props fs (:props env) flag)]
     (reduce (fn [env f]
               ;post-condition checked in env+
-              {:pre [(lex/PropEnv? env)
+              {:pre [(lex/PropEnv?-workaround env)
                      (fl/Filter? f)]}
               (cond
                 (fl/BotFilter? f) (do ;(prn "Bot filter found in env+")

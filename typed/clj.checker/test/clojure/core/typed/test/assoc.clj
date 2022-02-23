@@ -24,7 +24,7 @@
         (assoc (->FooRec 1 'a) :a 4)))
 
   ;intersections
-  (is-tc-e (t/fn [m :- (t/I (t/HMap :mandatory {:foo Num})
-                            (t/HMap :mandatory {:bar Num}))]
-             :- '{:foo Num, :bar Num, :baz Num}
+  (is-tc-e (t/fn [m :- (t/I (t/HMap :mandatory {:foo t/Num})
+                            (t/HMap :mandatory {:bar t/Num}))]
+             :- '{:foo t/Num, :bar t/Num, :baz t/Num}
              (assoc m :baz 2))))

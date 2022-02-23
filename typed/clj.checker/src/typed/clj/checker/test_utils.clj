@@ -134,8 +134,9 @@
 
 (defmacro sub? [s t]
   `(impl/with-clojure-impl
-     (subtype? (parse-type '~s)
-               (parse-type '~t))))
+     (binding [*ns* (the-ns '~'clojure.core.typed)]
+       (subtype? (parse-type '~s)
+                 (parse-type '~t)))))
 
 (defmacro sub?-q [s t]
   `(impl/with-clojure-impl
@@ -201,7 +202,7 @@
                       nil))))))
 
 (defmacro equal-types [l r]
-  `(equal-types-noparse ~l (binding [*ns* (find-ns '~'clojure.core.typed)] (parse-type (quote ~r)))))
+  `(equal-types-noparse ~l (binding [*ns* (the-ns '~'clojure.core.typed)] (parse-type (quote ~r)))))
 
 (defmacro tc-t [form]
   `(let [{ex# :ex ret# :ret}

@@ -12,7 +12,7 @@
              :requires [[clojure.main :refer [demunge]]]))
 
 (deftest repl-prompt-test
-  (is-tc-e #(repl-prompt) [-> Any] 
+  (is-tc-e #(repl-prompt) [-> t/Any] 
            :requires [[clojure.main :refer [repl-prompt]]]))
 
 (deftest repl-test
@@ -42,7 +42,7 @@
 (deftest repl-caught-test
   (is-tc-e #(repl-caught (Exception. "a"))
            :requires [[clojure.main :refer [repl-caught]]])
-  (is-tc-err #(repl-caught "A") Any
+  (is-tc-err #(repl-caught "A") t/Any
              :requires [[clojure.main :refer [repl-caught]]]))
 
 (deftest repl-exception-test

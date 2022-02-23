@@ -29,7 +29,7 @@
 ;; Utils
 
 (defmacro defprotocol [name & args]
-  ;only define record if symbol doesn't resolve, not completely sure if this behaves like defonce
+  ;only define protocol if symbol doesn't resolve, not completely sure if this behaves like defonce
   (when-not (resolve name)
     `(clojure.core/defprotocol ~name ~@args)))
 

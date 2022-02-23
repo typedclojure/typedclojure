@@ -44,12 +44,21 @@
 (defn lexical-env []
   vs/*lexical-env*)
 
+(defn PropEnv?-workaround [a]
+  (or (PropEnv? a)
+      ;work around for recompilation issues with AOT
+      (= "typed.cljc.checker.lex_env.PropEnv"
+         (.getName (class a)))))
+
+;; hack: override
+(defn PropEnv? [a]
+  (or (instance? PropEnv a)
+      (= "typed.cljc.checker.lex_env.PropEnv"
+         (.getName (class a)))))
+
 (set-validator! #'vs/*lexical-env* (fn [a]
                                      (or (nil? a)
-                                         (PropEnv? a)
-                                         ;work around for recompilation issues with AOT
-                                         (= "typed.cljc.checker.lex_env.PropEnv"
-                                            (.getName (class a))))))
+                                         (PropEnv?-workaround a))))
 
 (defn lookup-alias [sym & {:keys [env]}]
   {:pre [(con/local-sym? sym)
@@ -76,8 +85,8 @@
             (path-type/path-type alias-path))))
 
 (defn merge-locals [env new]
-  {:pre [(PropEnv? env)]
-   :post [(PropEnv? %)]}
+  {:pre [(PropEnv?-workaround env)]
+   :post [(PropEnv?-workaround %)]}
   (-> env
       (update :l into new)))
 
@@ -88,11 +97,11 @@
 ; take an environment and (depending on the new object given) either record
 ; and alias to an existing local or extend the type env directly.
 (defn extend-env [env id t o]
-  {:pre [(PropEnv? env)
+  {:pre [(PropEnv?-workaround env)
          (con/local-sym? id)
          (r/Type? t)
          (obj/RObject? o)]
-   :post [(PropEnv? %)]}
+   :post [(PropEnv?-workaround %)]}
   (cond
     ; no aliasing to add
     (obj/EmptyObject? o)

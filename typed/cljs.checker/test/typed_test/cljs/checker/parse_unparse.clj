@@ -6,30 +6,31 @@
             [typed.cljs.checker.test-utils :refer :all]))
 
 (deftest parse-prims-cljs-test
-  (is-cljs (= (prs/parse-cljs 'cljs.core.typed/JSNumber)
+  (is-cljs (= (prs/parse-cljs 'typed.clojure/JSnumber)
               (r/JSNumber-maker)))
-  (is-cljs (= (prs/parse-cljs 'cljs.core.typed/CLJSInteger)
+  (is-cljs (= (prs/parse-cljs 'typed.clojure/CLJSInteger)
               (r/CLJSInteger-maker)))
-  (is-cljs (= (prs/parse-cljs 'cljs.core.typed/JSBoolean)
+  (is-cljs (= (prs/parse-cljs 'typed.clojure/JSboolean)
               (r/JSBoolean-maker)))
-  (is-cljs (= (prs/parse-cljs 'cljs.core.typed/JSObject)
+  #_
+  (is-cljs (= (prs/parse-cljs 'typed.clojure/JSobject)
               (r/JSObject-maker)))
-  (is-cljs (= (prs/parse-cljs 'cljs.core.typed/JSString)
+  (is-cljs (= (prs/parse-cljs 'typed.clojure/JSstring)
               (r/JSString-maker))))
 
 (deftest parse-array-cljs-test
-  (is-cljs (= (prs/parse-cljs '(Array cljs.core.typed/JSNumber))
-              (r/ArrayCLJS-maker (prs/parse-cljs 'cljs.core.typed/JSNumber)
-                                 (prs/parse-cljs 'cljs.core.typed/JSNumber)))))
+  (is-cljs (= (prs/parse-cljs '(Array typed.clojure/JSnumber))
+              (r/ArrayCLJS-maker (prs/parse-cljs 'typed.clojure/JSnumber)
+                                 (prs/parse-cljs 'typed.clojure/JSnumber)))))
 
 (deftest unparse-prims-cljs-test
-  (is-cljs (= 'cljs.core.typed/JSNumber
-              (prs/unparse-type (prs/parse-cljs 'cljs.core.typed/JSNumber))))
-  (is-cljs (= 'cljs.core.typed/JSBoolean
-              (prs/unparse-type (prs/parse-cljs 'cljs.core.typed/JSBoolean))))
-  (is-cljs (= 'cljs.core.typed/CLJSInteger
-              (prs/unparse-type (prs/parse-cljs 'cljs.core.typed/CLJSInteger))))
-  (is-cljs (= '(Array cljs.core.typed/JSNumber)
-              (prs/unparse-type (prs/parse-cljs '(Array cljs.core.typed/JSNumber)))))
-  (is-cljs (= '(Array2 cljs.core.typed/JSNumber cljs.core.typed/JSBoolean)
-              (prs/unparse-type (prs/parse-cljs '(Array2 cljs.core.typed/JSNumber cljs.core.typed/JSBoolean))))))
+  (is-cljs (= 'typed.clojure/JSnumber
+              (prs/unparse-type (prs/parse-cljs 'typed.clojure/JSnumber))))
+  (is-cljs (= 'typed.clojure/JSboolean
+              (prs/unparse-type (prs/parse-cljs 'typed.clojure/JSboolean))))
+  (is-cljs (= 'typed.clojure/CLJSInteger
+              (prs/unparse-type (prs/parse-cljs 'typed.clojure/CLJSInteger))))
+  (is-cljs (= '(Array typed.clojure/JSnumber)
+              (prs/unparse-type (prs/parse-cljs '(Array typed.clojure/JSnumber)))))
+  (is-cljs (= '(Array2 typed.clojure/JSNumber typed.clojure/JSboolean)
+              (prs/unparse-type (prs/parse-cljs '(Array2 typed.clojure/JSNumber typed.clojure/JSboolean))))))

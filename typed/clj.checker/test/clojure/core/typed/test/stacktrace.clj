@@ -4,25 +4,25 @@
             [typed.clj.checker.test-utils :refer :all]))
 
 (deftest e-test
-  (is-tc-e #(e) [-> Any]
+  (is-tc-e #(e) [-> t/Any]
            :requires [[clojure.stacktrace :refer [e]]]))
 
 (deftest print-cause-trace-test
-  (is-tc-e #(print-cause-trace (Exception. "a")) [-> Any]
+  (is-tc-e #(print-cause-trace (Exception. "a")) [-> t/Any]
            :requires [[clojure.stacktrace :refer [print-cause-trace]]])
-  (is-tc-err #(print-cause-trace "A") [-> Any]
+  (is-tc-err #(print-cause-trace "A") [-> t/Any]
              :requires [[clojure.stacktrace :refer [print-cause-trace]]]))
 
 (deftest print-stack-trace-test
-  (is-tc-e #(print-stack-trace (Exception. "a")) [-> Any]
+  (is-tc-e #(print-stack-trace (Exception. "a")) [-> t/Any]
            :requires [[clojure.stacktrace :refer [print-stack-trace]]])
-  (is-tc-err #(print-stack-trace "AC") [-> Any]
+  (is-tc-err #(print-stack-trace "AC") [-> t/Any]
              :requires [[clojure.stacktrace :refer [print-stack-trace]]]))
 
 (deftest print-throwable-test
-  (is-tc-e #(print-throwable (Exception. "a")) [-> Any]
+  (is-tc-e #(print-throwable (Exception. "a")) [-> t/Any]
            :requires [[clojure.stacktrace :refer [print-throwable]]])
-  (is-tc-err #(print-throwable "A")  [-> Any]
+  (is-tc-err #(print-throwable "A")  [-> t/Any]
              :requires [[clojure.stacktrace :refer [print-throwable]]]))
 
 (deftest root-cause-test

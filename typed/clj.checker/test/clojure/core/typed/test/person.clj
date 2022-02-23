@@ -1,7 +1,6 @@
 (ns clojure.core.typed.test.person
   (:require 
-    [clojure.core.typed :refer [check-ns cf ann-datatype ann
-                                ann-protocol AnyInteger]
+    [clojure.core.typed :refer [check-ns cf ann-datatype ann ann-protocol]
      :as t]))
 
 (t/defprotocol Age
@@ -9,7 +8,7 @@
 
 (ann-datatype Person 
   [name :- String 
-   age :- AnyInteger])
+   age :- t/AnyInteger])
 (deftype Person [name age]
   Age
   (age [this] age))

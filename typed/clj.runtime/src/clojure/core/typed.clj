@@ -437,181 +437,207 @@ for checking namespaces, cf for checking individual forms."}
       qsym (-> (symbol (str qual) (name sym))
                (with-meta (meta sym)))]
      `(tc-ignore
-        (intern '~qual '~(with-meta (symbol (name sym))
-                                    (meta sym)))
+        (when (= "true" (System/getProperty "clojure.core.typed.intern-defaliases"))
+          (intern '~qual '~(with-meta (symbol (name sym))
+                                      (meta sym))))
         (defalias* '~qsym '~t '~&form)))))
 
-(def ^{:doc "Any is the top type that contains all possible values."
-       :forms '[Any]
-       ::special-type true}
+(defmacro ^:private defspecial [& body]
+  (when (= "true" (System/getProperty "clojure.core.typed.special-vars"))
+    `(def ~@body)))
+
+(defspecial
+  ^{:doc "Any is the top type that contains all possible values."
+    :forms '[Any]
+    ::special-type true}
   Any)
 
-(def ^{:doc "AnyValue contains all Value singleton types"
-       :forms '[AnyValue]
-       ::special-type true}
+(defspecial
+  ^{:doc "AnyValue contains all Value singleton types"
+    :forms '[AnyValue]
+    ::special-type true}
   AnyValue)
 
-(def ^{:doc "TCError is the type of a type error in the type checker. Use only after
-            a type error has been thrown. Only ever use this type in a custom typing rule."
-       :forms '[TCError]
-       ::special-type true}
+(defspecial
+  ^{:doc "TCError is the type of a type error in the type checker. Use only after
+         a type error has been thrown. Only ever use this type in a custom typing rule."
+    :forms '[TCError]
+    ::special-type true}
   TCError)
 
-(def ^{:doc "U represents a union of types"
-       :forms '[(U type*)]
-       ::special-type true}
+(defspecial
+  ^{:doc "U represents a union of types"
+    :forms '[(U type*)]
+    ::special-type true}
   U)
 
-(def ^{:doc "(alpha) Resolves to the type of the var (lazily) or local (eagerly) named by sym."
-       :forms '[(TypeOf sym)]
-       ::special-type true}
+(defspecial
+  ^{:doc "(alpha) Resolves to the type of the var (lazily) or local (eagerly) named by sym."
+    :forms '[(TypeOf sym)]
+    ::special-type true}
   TypeOf)
 
-(def ^{:doc "Nothing is the bottom type that has no values."
-       :forms '[Nothing]
-       ::special-type true}
+(defspecial
+  ^{:doc "Nothing is the bottom type that has no values."
+    :forms '[Nothing]
+    ::special-type true}
   Nothing)
 
-(def ^{:doc "I represents an intersection of types"
-       :forms '[(I type*)]
-       ::special-type true}
+(defspecial
+  ^{:doc "I represents an intersection of types"
+    :forms '[(I type*)]
+    ::special-type true}
   I)
 
-(def ^{:doc "A singleton type for a constant value."
-       :forms '[(Val Constant)
-                'Constant]
-       ::special-type true}
+(defspecial
+  ^{:doc "A singleton type for a constant value."
+    :forms '[(Val Constant)
+             'Constant]
+    ::special-type true}
   Val)
 
-(def ^{:doc "A singleton type for a constant value."
-       :forms '[(Value Constant)
-                'Constant]
-       ::special-type true}
+(defspecial
+  ^{:doc "A singleton type for a constant value."
+    :forms '[(Value Constant)
+             'Constant]
+    ::special-type true}
   Value)
 
-(def ^{:doc "A type representing a range of counts for a collection"
-       :forms '[(CountRange Integer)
-                (CountRange Integer Integer)]
-       ::special-type true}
+(defspecial
+  ^{:doc "A type representing a range of counts for a collection"
+    :forms '[(CountRange Integer)
+             (CountRange Integer Integer)]
+    ::special-type true}
   CountRange)
 
-(def ^{:doc "A type representing a precise count for a collection"
-       :forms '[(ExactCount Integer)]
-       ::special-type true}
+(defspecial
+  ^{:doc "A type representing a precise count for a collection"
+    :forms '[(ExactCount Integer)]
+    ::special-type true}
   ExactCount)
 
-(def ^{:doc "Difference represents a difference of types.
-            
-            (Difference t s) is the same as type t with type s removed.
-            
-            eg. (Difference (U Num nil) nil)  => Num
-            "
-       :forms '[(Difference type type type*)]
-       ::special-type true}
+(defspecial
+  ^{:doc "Difference represents a difference of types.
+
+         (Difference t s) is the same as type t with type s removed.
+
+         eg. (Difference (U Num nil) nil)  => Num
+         "
+    :forms '[(Difference type type type*)]
+    ::special-type true}
   Difference)
 
-(def ^{:doc "HVec is a type for heterogeneous vectors.
-            It extends clojure.core.typed/Vec and is a subtype
-            of clojure.core.typed/HSequential."
-       :forms '[(HVec [fixed*] :filter-sets [FS*] :objects [obj*])
-                (HVec [fixed* type *] :filter-sets [FS*] :objects [obj*])
-                (HVec [fixed* type ... bound] :filter-sets [FS*] :objects [obj*])
-                '[fixed*]
-                '[fixed* type *]
-                '[fixed* type ... bound]]
-       ::special-type true}
+(defspecial
+  ^{:doc "HVec is a type for heterogeneous vectors.
+         It extends clojure.core.typed/Vec and is a subtype
+         of clojure.core.typed/HSequential."
+    :forms '[(HVec [fixed*] :filter-sets [FS*] :objects [obj*])
+             (HVec [fixed* type *] :filter-sets [FS*] :objects [obj*])
+             (HVec [fixed* type ... bound] :filter-sets [FS*] :objects [obj*])
+             '[fixed*]
+             '[fixed* type *]
+             '[fixed* type ... bound]]
+    ::special-type true}
   HVec)
 
-(def ^{:doc "HMap is a type for heterogeneous maps."
-       :forms '[(HMap :mandatory {Constant Type*}
-                      :optional  {Constant Type*}
-                      :absent-keys #{Constant*}
-                      :complete? Boolean)
-                '{Constant Type*}]
-       ::special-type true}
+(defspecial
+  ^{:doc "HMap is a type for heterogeneous maps."
+    :forms '[(HMap :mandatory {Constant Type*}
+                   :optional  {Constant Type*}
+                   :absent-keys #{Constant*}
+                   :complete? Boolean)
+             '{Constant Type*}]
+    ::special-type true}
   HMap)
 
-(def ^{:doc "HSequential is a type for heterogeneous sequential persistent collections.
-            It extends IPersistentCollection and Sequential"
-       :forms '[(HSequential [fixed*] :filter-sets [FS*] :objects [obj*])
-                (HSequential [fixed* rest *] :filter-sets [FS*] :objects [obj*])
-                (HSequential [fixed* drest ... bound] :filter-sets [FS*] :objects [obj*])]
-       ::special-type true}
+(defspecial
+  ^{:doc "HSequential is a type for heterogeneous sequential persistent collections.
+         It extends IPersistentCollection and Sequential"
+    :forms '[(HSequential [fixed*] :filter-sets [FS*] :objects [obj*])
+             (HSequential [fixed* rest *] :filter-sets [FS*] :objects [obj*])
+             (HSequential [fixed* drest ... bound] :filter-sets [FS*] :objects [obj*])]
+    ::special-type true}
   HSequential)
 
-(def ^{:doc "HSeq is a type for heterogeneous seqs"
-       :forms '[(HSeq [fixed*] :filter-sets [FS*] :objects [obj*])
-                (HSeq [fixed* rest *] :filter-sets [FS*] :objects [obj*])
-                (HSeq [fixed* drest ... bound] :filter-sets [FS*] :objects [obj*])]
-       ::special-type true}
+(defspecial
+  ^{:doc "HSeq is a type for heterogeneous seqs"
+    :forms '[(HSeq [fixed*] :filter-sets [FS*] :objects [obj*])
+             (HSeq [fixed* rest *] :filter-sets [FS*] :objects [obj*])
+             (HSeq [fixed* drest ... bound] :filter-sets [FS*] :objects [obj*])]
+    ::special-type true}
   HSeq)
 
-(def ^{:doc "HList is a type for heterogeneous lists. Is a supertype of HSeq that implements IPersistentList."
-       :forms '[(HList [fixed*] :filter-sets [FS*] :objects [obj*])
-                (HList [fixed* rest *] :filter-sets [FS*] :objects [obj*])
-                (HList [fixed* drest ... bound] :filter-sets [FS*] :objects [obj*])]
-       ::special-type true}
+(defspecial
+  ^{:doc "HList is a type for heterogeneous lists. Is a supertype of HSeq that implements IPersistentList."
+    :forms '[(HList [fixed*] :filter-sets [FS*] :objects [obj*])
+             (HList [fixed* rest *] :filter-sets [FS*] :objects [obj*])
+             (HList [fixed* drest ... bound] :filter-sets [FS*] :objects [obj*])]
+    ::special-type true}
   HList)
 
-(def ^{:doc "HSet is a type for heterogeneous sets.
-            Takes a set of simple values. By default
-            :complete? is true.
-            
-            eg. (HSet #{:a :b :c} :complete? true)"
-       :forms '[(HSet #{fixed*} :complete? Boolean)]
-       ::special-type true}
+(defspecial
+  ^{:doc "HSet is a type for heterogeneous sets.
+         Takes a set of simple values. By default
+         :complete? is true.
+
+         eg. (HSet #{:a :b :c} :complete? true)"
+    :forms '[(HSet #{fixed*} :complete? Boolean)]
+    ::special-type true}
   HSet)
 
-(def ^{:doc "An ordered intersection type of function arities."
-       :forms '[(IFn ArityVec+)
-                [fixed* -> ret :filters {:then fl :else fl} :object {:id Foo :path Bar}]
-                [fixed* rest * -> ret :filters {:then fl :else fl} :object {:id Foo :path Bar}]
-                [fixed* drest ... bound -> ret :filters {:then fl :else fl} :object {:id Foo :path Bar}]]
-       ::special-type true}
+(defspecial
+  ^{:doc "An ordered intersection type of function arities."
+    :forms '[(IFn ArityVec+)
+             [fixed* -> ret :filters {:then fl :else fl} :object {:id Foo :path Bar}]
+             [fixed* rest * -> ret :filters {:then fl :else fl} :object {:id Foo :path Bar}]
+             [fixed* drest ... bound -> ret :filters {:then fl :else fl} :object {:id Foo :path Bar}]]
+    ::special-type true}
   IFn)
 
-(def ^{:doc "A predicate for the given type.
-            
-            eg. Type for integer?: (Pred Int)"
-       :forms '[(Pred type)]
-       ::special-type true}
+(defspecial
+  ^{:doc "A predicate for the given type.
+
+         eg. Type for integer?: (Pred Int)"
+    :forms '[(Pred type)]
+    ::special-type true}
   Pred)
 
-(def ^{:doc "A type representing an assoc operation"
-       :forms '[(Assoc type type-pairs*)]
-       ::special-type true}
+(defspecial
+  ^{:doc "A type representing an assoc operation"
+    :forms '[(Assoc type type-pairs*)]
+    ::special-type true}
   Assoc)
 
-(def ^{:doc "A type representing a dissoc operation"
-       :forms '[(Dissoc type type*)]
-       ::special-type true}
+(defspecial
+  ^{:doc "A type representing a dissoc operation"
+    :forms '[(Dissoc type type*)]
+    ::special-type true}
   Dissoc)
 
-(def ^{:doc "A type representing a get operation"
-       :forms '[(Get type type)
-                (Get type type type)]
-       ::special-type true}
+(defspecial
+  ^{:doc "A type representing a get operation"
+    :forms '[(Get type type)
+             (Get type type type)]
+    ::special-type true}
   Get)
 
-(def ^{:doc "A recursive type"
-       :forms '[(Rec binder type)]
-       ::special-type true}
+(defspecial
+  ^{:doc "A recursive type"
+    :forms '[(Rec binder type)]
+    ::special-type true}
   Rec)
 
-(def ^{:doc "A polymorphic binder"
-       :forms '[(All binder type)]
-       ::special-type true}
+(defspecial
+  ^{:doc "A polymorphic binder"
+    :forms '[(All binder type)]
+    ::special-type true}
   All)
 
-(def ^{:doc "A type function"
-       :forms '[(TFn binder type)]
-       ::special-type true}
+(defspecial
+  ^{:doc "A type function"
+    :forms '[(TFn binder type)]
+    ::special-type true}
   TFn)
-
-;(def ^{:doc "A polymorphic binder"
-;       :forms '[(All binder type)]
-;       ::special-type true}
-;  Array)
 
 (core/defn ^:no-doc rclass-pred
   "Do not use"

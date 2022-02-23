@@ -4,5 +4,5 @@
             [typed.clj.checker.test-utils :refer :all]))
 
 (deftest sh-test
-  (is-tc-e #(sh) [-> (Map Any Any)]
+  (is-tc-e #(sh) [-> (t/Map t/Any t/Any)]
            :requires [[clojure.java.shell :refer [sh]]]))

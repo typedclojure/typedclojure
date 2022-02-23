@@ -6,13 +6,10 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-;; FIXME should this be split into typed.clj{,c,s}.ann.{clojure,cljs}?
-;; unclear what the file extensions should be, needs more thought.
 (ns ^:no-doc typed.ann.clojure
   "Type annotations for the base Clojure distribution."
-  (:require [#?(:clj clojure.core.typed
-                :cljs cljs.core.typed)
-             :refer [defalias] :as t]))
+  (:require [typed.clojure :refer [defalias] :as t]
+            #?(:clj clojure.core.typed)))
 
 (defalias
   ^{:doc "A type that returns true for clojure.core/integer?"
@@ -37,7 +34,7 @@
     :forms '[Num]}
   t/Num
   #?(:clj Number
-     :cljs t/JSNumber))
+     :cljs t/JSnumber))
 
 (defalias
   ^{:doc "A keyword"
@@ -70,14 +67,14 @@
     :forms '[Str]}
   t/Str
   #?(:clj java.lang.String
-     :cljs t/JSString))
+     :cljs t/JSstring))
 
 (defalias
   ^{:doc "A boolean"
     :forms '[Bool]}
   t/Bool
   #?(:clj java.lang.Boolean
-     :cljs t/JSBoolean))
+     :cljs t/JSboolean))
 
 (defalias
   ^{:doc "A namespace"
@@ -357,9 +354,9 @@
   ^{:doc "A hierarchy for use with derive, isa? etc."
     :forms '[Hierarchy]}
   t/Hierarchy
-  '{:parents (t/Map Any Any)
-    :ancestors (t/Map Any Any)
-    :descendants (t/Map Any Any)})
+  '{:parents (t/Map t/Any t/Any)
+    :ancestors (t/Map t/Any t/Any)
+    :descendants (t/Map t/Any t/Any)})
 
 (defalias
   ^{:doc "A Clojure derefable (see clojure.core/deref)."
@@ -524,7 +521,7 @@
 ;; Predicate support for common classes
 
 #?(:clj
-   (t/rclass-preds
+   (clojure.core.typed/rclass-preds
      ;  clojure.lang.Seqable 
      ;  {:pred (fn [this a?]
      ;           (cond 

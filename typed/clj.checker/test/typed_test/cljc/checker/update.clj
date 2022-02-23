@@ -149,20 +149,20 @@
 (deftest nested-keyword-update-test
   ; ordinary IPersistentMap does not get updated
   (is-tc-e (fn []
-             (let [a :- (Map Any Any) {}]
+             (let [a :- (t/Map t/Any t/Any) {}]
                (if (number? (-> a :a :b))
                  a
                  (assert nil))))
-           [-> (Map Any Any)])
+           [-> (t/Map t/Any t/Any)])
   ; HMaps can gain "one level" of known entries.
   (is-tc-e (fn []
              (let [a :- '{} {}]
                (if (number? (-> a :a :b))
                  a
                  (assert nil))))
-           [-> (HMap :optional {:a Any})])
-  ; update-with-filter a (HMap) with (is clojure.core.typed/Any a [(Key :a) (Key :b)])
-  ; returns a (HMap :optional {:a clojure.core.typed/Any})
+           [-> (t/HMap :optional {:a t/Any})])
+  ; update-with-filter a (t/HMap) with (is clojure.core.typed/Any a [(Key :a) (Key :b)])
+  ; returns a (t/HMap :optional {:a clojure.core.typed/Any})
   ; Only one level is updated, we can't say any more about the inner
   ; :b key.
   (is-clj (let [t (parse-clj `(t/HMap))
@@ -179,7 +179,7 @@
             (= t
                (update-with-filter t (fo/-not-filter (c/RClass-of Number) 'a [(pr/-kpe :a) (pr/-kpe :b)])))))
 
-  ; When we update-with-filter a (HMap) that has no information about an :a key, sometimes we can prove
+  ; When we update-with-filter a (t/HMap) that has no information about an :a key, sometimes we can prove
   ; the updated type always has an :a key.
   ;
   ; Here we restrict to a '{:a Number} because the path is a Number, which is never nil. We assume
@@ -188,8 +188,8 @@
             (both-subtype? (parse-clj `(t/HMap :mandatory {:a t/Num}))
                            (update-with-filter t (fo/-filter (c/RClass-of Number) 'a [(pr/-kpe :a)])))))
 
-  ; We restrict (HMap) to (HMap :optional {:a clojure.core.typed/Any}), which is slightly less accurate, because
-  ; we can't prove that the HMap :a entry is never nil. 
+  ; We restrict (t/HMap) to (t/HMap :optional {:a clojure.core.typed/Any}), which is slightly less accurate, because
+  ; we can't prove that the t/HMap :a entry is never nil. 
   (is-clj (let [t (parse-clj `(t/HMap))]
             (both-subtype? (parse-clj `(t/HMap :optional {:a t/Any}))
                            (update-with-filter t (fo/-not-filter (c/RClass-of Number) 'a [(pr/-kpe :a)]))))))

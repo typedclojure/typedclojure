@@ -5,27 +5,27 @@
 (deftest construct-hset
   (is-tc-e #{1 2 3}
            :expected
-           (HSet #{1 2 3}))
+           (t/HSet #{1 2 3}))
   (is-tc-e #{1 nil}
            :expected
-           (HSet #{nil 1})))
+           (t/HSet #{nil 1})))
 
 (deftest upcast-hset
   (is-tc-e #{1 2 3}
            :expected
-           (Set Num))
+           (t/Set t/Num))
   (is-tc-e (conj #{1 2 3} 1)
            :expected
-           (Set Num)))
+           (t/Set t/Num)))
 
 (deftest set-pred-test
-  (is-tc-e (let [foo :- (U false nil ':a ':b), :a]
+  (is-tc-e (let [foo :- (t/U false nil ':a ':b), :a]
              (if (#{:a :b false nil} foo)
-               (ann-form foo (U ':a ':b))
-               (ann-form foo (U false nil)))))
-  (is-tc-e (let [foo :- (U false nil ':a ':b), :a]
+               (ann-form foo (t/U ':a ':b))
+               (ann-form foo (t/U false nil)))))
+  (is-tc-e (let [foo :- (t/U false nil ':a ':b), :a]
              (when (#{:a :b nil} foo)
-               (ann-form foo (U ':a ':b)))))
-  (is-tc-e (let [foo :- (U nil ':a ':b), :a]
+               (ann-form foo (t/U ':a ':b)))))
+  (is-tc-e (let [foo :- (t/U nil ':a ':b), :a]
              (when (#{:a :b nil} foo)
-               (ann-form foo (U ':a ':b))))))
+               (ann-form foo (t/U ':a ':b))))))

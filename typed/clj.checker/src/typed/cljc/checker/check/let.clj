@@ -7,33 +7,33 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.cljc.checker.check.let
-  (:require [typed.cljc.checker.utils :as u]
-            [typed.cljc.checker.check.utils :as cu]
+  (:require [clojure.core.typed.ast-utils :as ast-u]
+            [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.errors :as err]
-            [typed.cljc.checker.type-rep :as r]
-            [typed.cljc.checker.type-ctors :as c]
-            [typed.cljc.checker.lex-env :as lex]
             [clojure.core.typed.util-vars :as vs]
-            [typed.cljc.checker.var-env :as var-env]
-            [typed.clj.checker.subtype :as sub]
             [typed.clj.checker.parse-unparse :as prs]
-            [clojure.core.typed.ast-utils :as ast-u]
-            [typed.cljc.checker.filter-rep :as fl]
-            [typed.cljc.checker.filter-ops :as fo]
-            [typed.cljc.checker.update :as update]
+            [typed.clj.checker.subtype :as sub]
+            [typed.cljc.analyzer :as ana2]
             [typed.cljc.checker.check.print-env :as print-env]
             [typed.cljc.checker.check.recur-utils :as recur-u]
-            [typed.cljc.checker.subst-obj :as subst-obj]
+            [typed.cljc.checker.check.utils :as cu]
+            [typed.cljc.checker.filter-ops :as fo]
+            [typed.cljc.checker.filter-rep :as fl]
+            [typed.cljc.checker.lex-env :as lex]
             [typed.cljc.checker.object-rep :as obj]
-            [typed.cljc.analyzer :as ana2]
-            [clojure.core.typed.contract-utils :as con]))
+            [typed.cljc.checker.subst-obj :as subst-obj]
+            [typed.cljc.checker.type-ctors :as c]
+            [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.checker.update :as update]
+            [typed.cljc.checker.utils :as u]
+            [typed.cljc.checker.var-env :as var-env]))
 
 (defn update-env [env sym {:keys [t fl flow o] :as r} is-reachable]
-  {:pre [(lex/PropEnv? env)
+  {:pre [(lex/PropEnv?-workaround env)
          (simple-symbol? sym)
          (r/TCResult? r)
          (instance? clojure.lang.IAtom2 is-reachable)]
-   :post [(lex/PropEnv? %)]}
+   :post [(lex/PropEnv?-workaround %)]}
   (let [{:keys [then else]} fl
         p* (cond
              ;; init has object `o`.
@@ -93,10 +93,10 @@
           (reduce
             (fn [[env cbindings] [n expected-bnd]]
               {:pre [@is-reachable
-                     (lex/PropEnv? env)
+                     (lex/PropEnv?-workaround env)
                      ((some-fn nil? r/Type?) expected-bnd)
                      (= (boolean expected-bnd) (boolean is-loop))]
-               :post [((con/maybe-reduced-c? (con/hvector-c? lex/PropEnv? vector?)) %)]}
+               :post [((con/maybe-reduced-c? (con/hvector-c? lex/PropEnv?-workaround vector?)) %)]}
               (let [expr (get cbindings n)
                     ; check rhs
                     {sym :name :as cexpr} (var-env/with-lexical-env env
