@@ -146,7 +146,6 @@ goog.events.EventTarget [[]]
   (h/var-mappings)
   #_
   (merge
-   (common/parse-cljs-ann-map @common/common-var-annotations)
    (h/var-mappings
 
 cljs.core/+ (IFn [cljs.core.typed/CLJSInteger * -> cljs.core.typed/CLJSInteger]
