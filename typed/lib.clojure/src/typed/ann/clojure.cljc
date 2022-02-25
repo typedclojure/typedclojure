@@ -169,15 +169,16 @@
   (t/TFn [[x :variance :covariant]] x))
 
 (defalias
-  ^{:doc "A type that can be used to create a sequence of member type x."
+  ^{:doc "A type that returns true for clojure.core/seqable?, with members t."
     :forms '[(Seqable t)]}
   t/Seqable
   (t/TFn [[x :variance :covariant]]
-         #?(:clj (clojure.lang.Seqable x)
-            :cljs (cljs.core/ISeqable x))))
+         (t/Nilable
+           #?(:clj (clojure.lang.Seqable x)
+              :cljs (cljs.core/ISeqable x)))))
 
 (defalias
-  ^{:doc "A persistent collection with member type x."
+  ^{:doc "A type that returns true for clojure.core/coll?, with members t."
     :forms '[(Coll t)]}
   t/Coll
   (t/TFn [[x :variance :covariant]]
