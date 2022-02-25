@@ -10,8 +10,7 @@
   (:require [clojure.core.typed :as t]
             [typed.clj.checker.rclass-env :as rcls]
             [typed.cljc.checker.base-env-common :refer [delay-and-cache-env]]
-            [typed.cljc.checker.base-env-helper :as h]
-            [typed.cljc.checker.fold-default])
+            [typed.cljc.checker.base-env-helper :as h])
   (:import (clojure.lang Named IMapEntry AMapEntry Seqable
                          LazySeq PersistentHashSet PersistentTreeSet PersistentTreeMap PersistentList APersistentVector
                          APersistentSet IPersistentSet IPersistentMap IPersistentVector

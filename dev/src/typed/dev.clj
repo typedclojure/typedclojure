@@ -1,5 +1,6 @@
 (ns typed.dev
-  {:clojure.tools.namespace.repl/unload false})
+  {:clojure.tools.namespace.repl/unload false}
+  (:require [clojure.repl :refer :all]))
 
 (defonce watchers (atom []))
 

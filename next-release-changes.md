@@ -14,3 +14,4 @@
   - rationale: in practice, t/Seqable is always made nilable in annotations. It's also
     usually in input position, so there's little reason not to broaden. 
     - t/Seqable predates `clojure.core/seqable?`, so now we can annotate as `(t/Pred (t/Seqable t/Any))`
+- move shared base env to .cljc file

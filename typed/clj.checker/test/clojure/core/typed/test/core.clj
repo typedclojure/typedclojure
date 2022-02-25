@@ -10,7 +10,6 @@
             [clojure.pprint :refer [pprint]]
             [clojure.data :refer [diff]]
             [clojure.core.typed.unsafe]
-            [typed.cljc.checker.init]
             [typed.cljc.checker.utils :as u :refer [expr-type]]
             [clojure.core.typed.errors :as err]
             [clojure.core.typed.current-impl :as impl]

@@ -7,30 +7,30 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc clojure.core.typed.all-envs
-  (:require [clojure.core.typed.util-vars :as vs]
-            [clojure.core.typed.current-impl :as impl]
+  (:require [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.load-if-needed :refer [load-if-needed]]
+            [clojure.core.typed.util-vars :as vs]
             [typed.clj.checker.parse-unparse :refer [unparse-type]]
             [typed.cljc.checker.name-env :as nme-env]
-            [typed.cljc.checker.var-env :refer [var-annotations]]))
+            [typed.cljc.checker.var-env :refer [var-annotations]]
+            [typed.cljc.runtime.env :as env]))
 
-(defn name-env []
-  (load-if-needed)
+(defn- name-env []
   (binding [vs/*verbose-types* true]
     (into {}
           (for [[k v] (nme-env/name-env)]
             (when-not (keyword? v)
               [k (unparse-type v)])))))
 
-(defn var-env []
-  (load-if-needed)
-  (assert var-env)
+(defn- var-env []
   (binding [vs/*verbose-types* true]
     (into {}
           (for [[k v] (var-annotations)]
             [k (unparse-type (force v))]))))
 
 (defn all-envs-clj []
+  (load-if-needed)
   (impl/with-clojure-impl
-    {:aliases (name-env)
-     :vars (var-env)}))
+    (env/with-pinned-env
+      {:aliases (name-env)
+       :vars (var-env)})))

@@ -4,17 +4,11 @@
   typed-test.cljs.checker.check
   (:require [cljs.core.typed :as t]
             [clojure.core.typed.analyzer-api-intercept :as fake-ana-api]
-            [clojure.core.typed.current-impl :as impl]
-            [clojure.core.typed.test.cljs-core :as core-test]
             [clojure.test :refer :all]
             [typed.clj.checker.parse-unparse :as prs]
-            [typed.clj.checker.subtype :as sub]
-            [typed.cljc.checker.base-env-common :refer [delay-and-cache-env] :as common]
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.type-rep :as r]
-            [typed.cljc.checker.var-env :as var-env]
-            [typed.cljs.checker.test-utils :refer :all]
-            [typed.cljs.checker.util :as ucljs]))
+            [typed.cljs.checker.test-utils :refer :all]))
 
 (deftest throw-test
   (is-tc-e (throw (js/JSError. "foo"))

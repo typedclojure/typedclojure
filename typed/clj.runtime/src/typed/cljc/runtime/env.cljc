@@ -18,17 +18,19 @@
 
 (defn checker []
   (let [c *checker*]
-    (assert #?(:clj (instance? clojure.lang.IAtom c)
-               :cljs (instance? Atom c))
+    (assert (or #?(:clj (instance? clojure.lang.IAtom c)
+                   :cljs (instance? Atom c))
+                (delay? c))
             (str "No checker state: " (pr-str c)))
     c))
 
 (defn empty-checker []
   {})
 
-(defn init-checker []
-  (atom (empty-checker)
-        :validator map?))
+(defn init-checker
+  ([] (init-checker (empty-checker)))
+  ([init]
+   (atom init :validator map?)))
 
 (defn deref-checker []
   {:post [(map? %)]}
@@ -39,3 +41,8 @@
 
 (defn swap-checker-vals! [& args]
   (apply swap-vals! (checker) args))
+
+;; make *checker* (lazily) immutable
+(defmacro with-pinned-env [& body]
+  `(binding [*checker* (delay (deref-checker))]
+     ~@body))

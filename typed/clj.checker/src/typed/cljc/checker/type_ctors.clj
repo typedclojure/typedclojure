@@ -8,37 +8,52 @@
 
 (ns ^:no-doc typed.cljc.checker.type-ctors
   (:refer-clojure :exclude [defrecord replace])
-  (:require [clojure.core.typed :as t]
-            [typed.cljc.checker.utils :as u]
-            [clojure.core.typed.contract-utils :as con]
-            [clojure.core.typed.errors :as err]
+  (:require [clojure.core.cache :as cache]
+            [clojure.core.typed :as t]
             [clojure.core.typed.coerce-utils :as coerce]
-            typed.cljc.checker.coerce-ann
-            [typed.cljc.checker.impl-protocols :as p]
-            [typed.cljc.checker.type-rep :as r :refer [ret-t]]
-            [typed.cljc.checker.object-rep :as or]
-            [typed.cljc.checker.path-rep :as path]
-            [typed.clj.checker.rclass-env :as rcls]
-            [typed.cljc.checker.cs-rep :as crep]
-            [clojure.core.typed.util-vars :as vs]
-            [typed.cljc.checker.fold-rep :as f]
-            [typed.cljc.checker.datatype-env :as dtenv]
-            [typed.cljc.checker.protocol-env :as prenv]
+            [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.current-impl :as impl]
-            [typed.cljc.checker.free-ops :as free-ops]
-            [typed.cljc.checker.tvar-bnds :as bnds]
-            [typed.cljc.checker.indirect-ops :as ind]
-            typed.cljc.checker.indirect-ann
-            [clojure.set :as set]
+            [clojure.core.typed.errors :as err]
+            [clojure.core.typed.util-vars :as vs]
             [clojure.reflect :as reflect]
             [clojure.repl :as repl]
-            [clojure.core.cache :as cache])
+            [clojure.set :as set]
+            [typed.clj.checker.rclass-env :as rcls]
+            [typed.cljc.checker.cs-rep :as crep]
+            [typed.cljc.checker.datatype-env :as dtenv]
+            [typed.cljc.checker.filter-rep]
+            [typed.cljc.checker.fold-rep :as f :refer [add-default-fold-case]]
+            [typed.cljc.checker.free-ops :as free-ops]
+            [typed.cljc.checker.impl-protocols :as p]
+            [typed.cljc.checker.indirect-ops :as ind]
+            [typed.cljc.checker.object-rep :as or]
+            [typed.cljc.checker.path-rep :as path]
+            [typed.cljc.checker.protocol-env :as prenv]
+            [typed.cljc.checker.tvar-bnds :as bnds]
+            [typed.cljc.checker.type-ctors :as c]
+            [typed.cljc.checker.type-rep :as r :refer [ret-t]]
+            [typed.cljc.checker.utils :as u]
+            typed.cljc.checker.coerce-ann
+            typed.cljc.checker.indirect-ann)
   (:import (clojure.lang ASeq)
            (typed.cljc.checker.type_rep HeterogeneousMap Poly TypeFn PolyDots TApp App Value
                                         Union Intersection F Function Mu B KwArgs KwArgsSeq KwArgsArray
                                         RClass Bounds Name Scope CountRange Intersection DataType Extends
                                         JSNominal Protocol GetType HSequential
-                                        HSet AssocType TypeOf)))
+                                        HSet AssocType TypeOf)
+           (typed.cljc.checker.type_rep NotType DifferenceType Intersection Union FnIntersection Bounds
+                                        DottedPretype Function RClass JSNominal App TApp
+                                        PrimitiveArray DataType Protocol TypeFn Poly PolyDots
+                                        Mu HeterogeneousMap
+                                        CountRange Name Value Top Unchecked TopFunction B F Result
+                                        TCResult TCError FlowSet Extends
+                                        JSNumber CLJSInteger JSObject JSString ArrayCLJS
+                                        JSBoolean AssocType GetType KwArgsSeq KwArgs HSequential HSet
+                                        JSUndefined JSNull JSSymbol JSObj TypeOf SymbolicClosure)
+           (typed.cljc.checker.filter_rep NoFilter TopFilter BotFilter TypeFilter NotTypeFilter
+                                          ImpFilter AndFilter OrFilter FilterSet)
+           (typed.cljc.checker.object_rep NoObject EmptyObject Path)
+           (typed.cljc.checker.path_rep KeyPE KeysPE ValsPE ClassPE NthPE CountPE KeywordPE)))
 
 (set! *warn-on-reflection* true)
 
@@ -294,8 +309,6 @@
 
 ;; Unions
 
-(def ^:private subtype? (fn [s t] ((requiring-resolve 'typed.clj.checker.subtype/subtype?) s t)))
-
 (t/defalias TypeCache 
   (t/Map (t/Set r/Type) r/Type))
 
@@ -336,10 +349,10 @@
                                       ; fully defined yet
                                       ; TODO basic error checking, eg. number of params
                                       (some (some-fn r/Name? r/TApp?) (conj b a)) (conj b a)
-                                      (subtype? a b*) b
-                                      (subtype? b* a) #{a}
+                                      (ind/subtype? a b*) b
+                                      (ind/subtype? b* a) #{a}
                                       :else (into #{a}
-                                                  (remove #(subtype? % a))
+                                                  (remove #(ind/subtype? % a))
                                                   b))]
                             ;(prn "res" res)
                             res))]
@@ -467,8 +480,8 @@
 
                 (not (overlap t1 t2)) bottom
 
-                (subtype? t1 t2) t1
-                (subtype? t2 t1) t2
+                (ind/subtype? t1 t2) t1
+                (ind/subtype? t2 t1) t2
                 :else (do
                         #_(prn "failed to eliminate intersection" (make-Intersection [t1 t2]))
                         (make-Intersection [t1 t2])))]
@@ -1601,7 +1614,7 @@
           overlap #(overlap A* %1 %2)
           ;; handle mutual recursion between subtyping and overlap
           subtype? #(binding [*overlap-seen* A*]
-                      (subtype? %1 %2))
+                      (ind/subtype? %1 %2))
 
           t1 (fully-resolve-type t1)
           t2 (fully-resolve-type t2)
@@ -1620,9 +1633,9 @@
                                                     ('#{cljs.core/ISeq} (:the-var s))))))
           record-and-iseq? (fn [r s]
                              (and (r/Record? r)
-                                  (subtype? s (impl/impl-case
-                                                :clojure (RClass-of clojure.lang.ISeq [r/-any])
-                                                :cljs (Protocol-of 'cljs.core/ISeq [r/-any])))))]
+                                  (ind/subtype? s (impl/impl-case
+                                                    :clojure (RClass-of clojure.lang.ISeq [r/-any])
+                                                    :cljs (Protocol-of 'cljs.core/ISeq [r/-any])))))]
       (cond 
         eq eq
 
@@ -1673,16 +1686,16 @@
         ;           (let [{t1-flags :flags} (reflect/type-reflect (r/RClass->Class t1))
         ;                 {t2-flags :flags} (reflect/type-reflect (r/RClass->Class t2))]
         ;             (some (complement :interface) [t1-flags t2-flags])))
-        ;      (or (subtype? t1 t2)
-        ;          (subtype? t2 t1))
+        ;      (or (ind/subtype? t1 t2)
+        ;          (ind/subtype? t2 t1))
         (and (r/RClass? t1)
              (r/RClass? t2))
         (let [_ (impl/assert-clojure)
               {t1-flags :flags} (reflect/type-reflect (r/RClass->Class t1))
               {t2-flags :flags} (reflect/type-reflect (r/RClass->Class t2))]
           ; there is only an overlap if a class could have both classes as parents
-          (or (subtype? t1 t2)
-              (subtype? t2 t1)
+          (or (ind/subtype? t1 t2)
+              (ind/subtype? t2 t1)
               ; from here they are disjoint
 
               (cond
@@ -1713,8 +1726,8 @@
         ;; already rules out free variables, so this is safe.
         (or (r/Value? t1)
             (r/Value? t2))
-        (or (subtype? t1 t2)
-            (subtype? t2 t1))
+        (or (ind/subtype? t1 t2)
+            (ind/subtype? t2 t1))
 
         (and (r/CountRange? t1)
              (r/CountRange? t2)) 
@@ -1793,7 +1806,7 @@
         subst-all @(subst-all-var)
         infer @(infer-var)]
     (cond
-      (subtype? t1 t2) t1 ;; already a subtype
+      (ind/subtype? t1 t2) t1 ;; already a subtype
 
       (not (overlap t1 t2)) (Un) ;there's no overlap, so the restriction is empty
 
@@ -2411,7 +2424,7 @@
                          (err/int-error (str "No bounds for type variable: " name bnds/*current-tvar-bnds*)))]
                  (find-val-type (:upper-bound bnd) k default
                                 #{}))
-      (subtype? t r/-nil) default
+      (ind/subtype? t r/-nil) default
       (r/AssocType? t) (let [t* (apply ind/assoc-pairs-noret (:target t) (:entries t))]
                          (cond
                            (:dentries t) (do
@@ -2526,3 +2539,374 @@
                  (ind/-and (-> r1 :flow)
                            (-> r1 :flow))))
 )
+
+;; =====================================================
+;; Fold defaults
+
+(add-default-fold-case NotType
+                       (fn [ty]
+                         (-> ty
+                           (update :type type-rec))))
+
+(add-default-fold-case DifferenceType
+                       (fn [ty]
+                         (-> ty
+                           (update :type type-rec)
+                           (update :without #(mapv type-rec %)))))
+
+(add-default-fold-case Intersection
+                       (fn [ty]
+                         ;(prn "fold-default Intersection" ty)
+                         (apply In (map type-rec (:types ty)))))
+
+(add-default-fold-case Union 
+                       (fn [ty]
+                         ;(prn "union default" (typed.clj.checker.parse-unparse/unparse-type ty))
+                         (apply Un (map type-rec (:types ty)))))
+
+(add-default-fold-case FnIntersection
+                       (fn [ty]
+                         (-> ty
+                           (update :types #(mapv type-rec %)))))
+
+(add-default-fold-case Bounds
+                       (fn [ty]
+                         (r/visit-bounds ty type-rec)))
+
+(add-default-fold-case DottedPretype
+                       (fn [ty]
+                         (-> ty
+                           (update :pre-type type-rec))))
+
+(add-default-fold-case Function
+                       (fn [ty]
+                         ;(prn "fold Function" ty)
+                         (-> ty
+                           (update :dom #(mapv type-rec %))
+                           (update :rng type-rec)
+                           (update :rest #(when %
+                                            (type-rec %)))
+                           (update :drest #(when %
+                                             (-> %
+                                                 (update :pre-type type-rec))))
+                           (update :prest #(when %
+                                             (let [t (type-rec %)]
+                                               ;; if we fully flatten out the prest, we're left
+                                               ;; with no prest
+                                               (if (= r/-nothing t)
+                                                 nil
+                                                 t)))))))
+
+(add-default-fold-case JSNominal
+                       (fn [ty]
+                         (-> ty
+                             (update :poly? #(when %
+                                               (mapv type-rec %))))))
+
+(add-default-fold-case RClass 
+                       (fn [ty]
+                         (-> ty
+                             (update :poly? #(when %
+                                               (mapv type-rec %)))
+                             #_(update :replacements #(into {}
+                                                            (map (fn [[k v]]
+                                                                   [k (type-rec v)]))
+                                                            %))
+                             #_(update :unchecked-ancestors #(into #{}
+                                                                   (map type-rec)
+                                                                   %)))))
+
+(add-default-fold-case App
+                       (fn [ty]
+                         (-> ty
+                           (update :rator type-rec)
+                           (update :rands #(mapv type-rec %)))))
+
+(add-default-fold-case TApp
+                       (fn [ty]
+                         (-> ty
+                           (update :rator type-rec)
+                           (update :rands #(mapv type-rec %)))))
+
+(add-default-fold-case PrimitiveArray
+                       (fn [ty]
+                         (-> ty
+                           (update :input-type type-rec)
+                           (update :output-type type-rec))))
+
+(add-default-fold-case DataType
+                       (fn [ty]
+                         ;(prn "datatype default" (typed.clj.checker.parse-unparse/unparse-type ty))
+                         (-> ty
+                             (update :poly? #(when %
+                                               (mapv type-rec %)))
+                             (update :fields (fn [fs]
+                                               (apply array-map
+                                                      (apply concat
+                                                             (for [[k v] fs]
+                                                               [k (type-rec v)]))))))))
+
+(add-default-fold-case Protocol
+                       (fn [ty]
+                         (-> ty
+                             (update :poly? #(when %
+                                               (mapv type-rec %)))
+                             ;FIXME this should probably be left alone in fold
+                             ; same in promote/demote
+                             (update :methods (fn [ms]
+                                                (into {}
+                                                      (map (fn [[k v]]
+                                                             [k (type-rec v)]))
+                                                      ms))))))
+
+(add-default-fold-case TypeFn
+                       (fn [ty]
+                         (let [names (TypeFn-fresh-symbols* ty)
+                               body (TypeFn-body* names ty)
+                               bbnds (TypeFn-bbnds* names ty)
+                               bmap (zipmap (map r/make-F names) bbnds)]
+                           (TypeFn* names 
+                                      (:variances ty)
+                                      (free-ops/with-bounded-frees bmap
+                                        (mapv #(r/visit-bounds % type-rec) bbnds))
+                                      (free-ops/with-bounded-frees bmap
+                                        (type-rec body))))))
+
+
+(add-default-fold-case Poly
+                       (fn [ty]
+                         (let [names (Poly-fresh-symbols* ty)
+                               body (Poly-body* names ty)
+                               bbnds (Poly-bbnds* names ty)
+                               bmap (zipmap (map r/make-F names) bbnds)]
+                           (Poly* names 
+                                    (free-ops/with-bounded-frees bmap
+                                      (mapv #(r/visit-bounds % type-rec) bbnds))
+                                    (free-ops/with-bounded-frees bmap
+                                      (type-rec body))
+                                    :named (:named ty)))))
+
+(add-default-fold-case PolyDots
+                       (fn [ty]
+                         (let [names (PolyDots-fresh-symbols* ty)
+                               body (PolyDots-body* names ty)
+                               bbnds (PolyDots-bbnds* names ty)
+                               ; don't scope the dotted bound
+                               bmap (zipmap (map r/make-F (rest names)) (rest bbnds))]
+                           (PolyDots* names 
+                                        (free-ops/with-bounded-frees bmap
+                                          (mapv #(r/visit-bounds % type-rec) bbnds))
+                                        (free-ops/with-bounded-frees bmap
+                                          (type-rec body))
+                                        :named (:named ty)))))
+
+(add-default-fold-case Mu
+                       (fn [ty]
+                         (let [name (Mu-fresh-symbol* ty)
+                               body (Mu-body* name ty)]
+                           (Mu* name (type-rec body)))))
+
+(add-default-fold-case HSequential 
+                       (fn [{:keys [types rest drest repeat kind] :as ty}]
+                         (r/-hsequential
+                           (mapv type-rec (:types ty))
+                           :filters (mapv filter-rec (:fs ty))
+                           :objects (mapv object-rec (:objects ty))
+                           :rest (when rest (type-rec rest))
+                           :drest (when drest (update drest :pre-type type-rec))
+                           :repeat repeat
+                           :kind kind)))
+
+(add-default-fold-case HSet
+                       (fn [{:keys [fixed] :as ty}]
+                         (r/-hset (set (map type-rec fixed)))))
+
+(defn- visit-type-map [m f]
+  (into {}
+        (map (fn [[k v]]
+               [(f k) (f v)]))
+        m))
+
+(add-default-fold-case HeterogeneousMap
+                       (fn [ty]
+                         (let [mandatory (visit-type-map (:types ty) type-rec)]
+                           (if (some #{r/-nothing} (apply concat mandatory))
+                             r/-nothing
+                             (-> ty 
+                                 (assoc :types mandatory)
+                                 (update :optional visit-type-map type-rec))))))
+
+(add-default-fold-case JSObj
+                       (fn [ty]
+                         (-> ty 
+                           (update :types #(zipmap (keys %) (map type-rec (vals %)))))))
+
+(add-default-fold-case KwArgs
+                       (fn [ty]
+                         (-> ty 
+                             (update :mandatory visit-type-map type-rec)
+                             (update :optional visit-type-map type-rec))))
+
+
+(add-default-fold-case KwArgsSeq
+                       (fn [ty]
+                         (-> ty 
+                             (update :kw-args-regex type-rec))))
+
+(add-default-fold-case Extends
+                       (fn [{:keys [extends without] :as ty}]
+                         (-extends
+                           (doall (map type-rec extends))
+                           :without (doall (mapv type-rec without)))))
+
+(add-default-fold-case GetType
+                       (fn [ty]
+                         (-> ty
+                             (update :target type-rec)
+                             (update :key type-rec)
+                             (update :not-found type-rec)
+                             (update :target-fs filter-rec)
+                             (update :target-object object-rec))))
+
+(add-default-fold-case AssocType
+                       (fn [{:keys [target entries dentries] :as ty}]
+                         (let [s-target (type-rec target)
+                               s-entries (doall
+                                           (for [[k v] entries]
+                                             [(type-rec k) (type-rec v)]))
+                               s-dentries (when dentries (type-rec dentries))
+                               fallback-r (-> ty
+                                              (assoc :target s-target)
+                                              (assoc :entries s-entries)
+                                              (assoc :dentries s-dentries))]
+                           (if dentries
+                             fallback-r
+                             (if-let [assoced (apply (requiring-resolve 'typed.clj.checker.assoc-utils/assoc-pairs-noret)
+                                                     s-target s-entries)]
+                               assoced
+                               fallback-r)))))
+
+(def ^:private ret-first identity)
+
+(add-default-fold-case CountRange ret-first)
+(add-default-fold-case Name ret-first)
+(add-default-fold-case Value ret-first)
+(add-default-fold-case Top ret-first)
+(add-default-fold-case Unchecked ret-first)
+(add-default-fold-case TCError ret-first)
+(add-default-fold-case TopFunction ret-first)
+(add-default-fold-case B ret-first)
+(add-default-fold-case F ret-first)
+(add-default-fold-case TypeOf ret-first)
+(add-default-fold-case SymbolicClosure ret-first)
+
+(add-default-fold-case Result 
+                       (fn [ty]
+                         (-> ty
+                             (update :t type-rec)
+                             (update :fl filter-rec)
+                             (update :o object-rec)
+                             (update :flow filter-rec))))
+
+(comment
+  (repeatedly)
+  (cycle)
+  (->
+    (iterate
+      macroexpand-1
+      '(add-default-fold-case Result 
+                              (fn [ty]
+                                (-> ty
+                                    (update :t type-rec)
+                                    (update :fl filter-rec)
+                                    (update :o object-rec)
+                                    (update :flow filter-rec)))))
+    (nth 2)
+    clojure.pprint/pprint)
+)
+
+(defmacro ^:private ret-first-many [& cls]
+  `(do ~@(map #(list `add-default-fold-case % `ret-first) cls)))
+
+; CLJS types
+
+(ret-first-many JSNumber CLJSInteger JSObject JSString JSBoolean JSUndefined
+                JSNull JSSymbol)
+
+(add-default-fold-case ArrayCLJS
+                       (fn [ty]
+                         (-> ty
+                             (update :input-type type-rec)
+                             (update :output-type type-rec))))
+
+;filters
+
+(add-default-fold-case NoFilter ret-first)
+(add-default-fold-case TopFilter ret-first)
+(add-default-fold-case BotFilter ret-first)
+
+(add-default-fold-case TypeFilter
+                       (fn [ty]
+                         (-> ty
+                             (update :type type-rec)
+                             (update :path #(seq (doall (map pathelem-rec %)))))))
+
+(add-default-fold-case NotTypeFilter
+                       (fn [ty]
+                         (-> ty
+                             (update :type type-rec)
+                             (update :path #(seq (doall (map pathelem-rec %)))))))
+
+(add-default-fold-case ImpFilter
+                       (fn [ty]
+                         (-> ty
+                             (update :a filter-rec)
+                             (update :c filter-rec))))
+
+(add-default-fold-case AndFilter
+                       (fn [^AndFilter ty]
+                         (apply ind/-and (map filter-rec (.fs ty)))))
+
+(add-default-fold-case OrFilter
+                       (fn [^OrFilter ty]
+                         (apply ind/-or (map filter-rec (.fs ty)))))
+
+(add-default-fold-case FilterSet
+                       (fn [^FilterSet ty]
+                         (ind/-FS
+                           (filter-rec (.then ty))
+                           (filter-rec (.else ty)))))
+
+(add-default-fold-case FlowSet
+                       (fn [^FlowSet ty]
+                         (r/-flow (filter-rec (.normal ty)))))
+
+
+;objects
+(add-default-fold-case EmptyObject ret-first)
+(add-default-fold-case Path
+                       (fn [ty]
+                         (-> ty
+                             (update :path #(when %
+                                              (mapv pathelem-rec %))))))
+(add-default-fold-case NoObject ret-first)
+
+;path-elems
+
+(add-default-fold-case KeyPE ret-first)
+(add-default-fold-case KeysPE ret-first)
+(add-default-fold-case ValsPE ret-first)
+(add-default-fold-case ClassPE ret-first)
+(add-default-fold-case NthPE ret-first)
+(add-default-fold-case CountPE ret-first)
+(add-default-fold-case KeywordPE ret-first)
+
+;TCResult
+
+(add-default-fold-case TCResult
+                       (fn [ty]
+                         (-> ty
+                             (update :t type-rec)
+                             (update :fl filter-rec)
+                             (update :o object-rec)
+                             (update :flow filter-rec))))

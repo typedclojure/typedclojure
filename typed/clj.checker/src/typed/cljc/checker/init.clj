@@ -11,7 +11,7 @@
             [typed.cljc.checker.reset-env :refer [load-core-envs!
                                                   reset-envs!]]))
 
-(defn load-impl 
+(defn load-impl
   ([] (load-impl false))
   ([cljs?]
    (do
