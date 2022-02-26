@@ -43,6 +43,16 @@
     :clj `(clojure.core.typed/ann-many ~@args)
     :cljs (throw (ex-info "ann-many not yet implemented in CLJS" {}))))
 
+(defmacro ann-protocol [& args]
+  (macros/platform-case
+    :clj `(clojure.core.typed/ann-protocol ~@args)
+    :cljs `(cljs.core.typed/ann-protocol ~@args)))
+
+(defmacro ann-datatype [& args]
+  (macros/platform-case
+    :clj `(clojure.core.typed/ann-datatype ~@args)
+    :cljs `(cljs.core.typed/ann-datatype ~@args)))
+
 (defmacro defalias [& args]
   (macros/platform-case
     :clj `(clojure.core.typed/defalias ~@args)

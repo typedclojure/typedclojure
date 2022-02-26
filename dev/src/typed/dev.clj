@@ -4,6 +4,10 @@
 
 (defonce watchers (atom []))
 
+(defn rin-ns [sym]
+  (require sym)
+  (in-ns sym))
+
 (defn watch
   ([] (watch :checker))
   ([profile]
@@ -64,5 +68,19 @@
 
 ;; https://github.com/nrepl/piggieback#usage
 (defn cljs-repl []
+  ((requiring-resolve 'cljs.repl/repl)
+   ((requiring-resolve 'cljs.repl.node/repl-env)))
+  ;; TODO follow up on this bizzare behavior
+  ;; 1. start a repl with the following code
+  ;; 2. (require 'typed.ann.clojure :reload)
+  ;; 3. notice that no side effects happened.
+  ;;    - go to a clj REPL and eval: (keys @(clojure.core.typed.current-impl/cljs-checker))
+  ;;      - no var/name env!
+  ;; 4. to "fix" this, change the ns form in typed.ann.clojure from
+  ;;      [typed.clojure :as t]
+  ;;    to
+  ;;      [typed.clojure :as t :include-macros true]
+  ;; 5. side effects should be back, as if the macros were never being called previously...
+  #_
   ((requiring-resolve 'cider.piggieback/cljs-repl)
    ((requiring-resolve 'cljs.repl.node/repl-env))))

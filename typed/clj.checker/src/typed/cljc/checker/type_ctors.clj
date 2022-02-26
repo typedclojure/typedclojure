@@ -30,7 +30,6 @@
             [typed.cljc.checker.path-rep :as path]
             [typed.cljc.checker.protocol-env :as prenv]
             [typed.cljc.checker.tvar-bnds :as bnds]
-            [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.type-rep :as r :refer [ret-t]]
             [typed.cljc.checker.utils :as u]
             typed.cljc.checker.coerce-ann
@@ -106,7 +105,7 @@
   "A regular map with types as keys and vals."
   (t/Map r/Type r/Type))
 
-(declare In keyword-value? RClass-of Protocol-of complete-hmap?)
+(declare In keyword-value? RClass-of Protocol-of complete-hmap? -name)
 
 (t/ann ^:no-check allowed-hmap-key? [r/Type -> Boolean])
 (defn allowed-hmap-key? [k]
@@ -116,33 +115,29 @@
 (t/ann ^:no-check upcast-hmap* 
        [(t/Map r/Type r/Type) (t/Map r/Type r/Type) (t/Set r/Type) Boolean -> r/Type])
 (defn upcast-hmap* [mandatory optional absent-keys complete?]
-  (if complete?
-    (In (let [ks (apply Un (mapcat keys [mandatory optional]))
-              vs (apply Un (mapcat vals [mandatory optional]))]
-          (impl/impl-case
-            :clojure (RClass-of 'clojure.lang.APersistentMap [ks vs])
-            :cljs (In (Protocol-of 'cljs.core/IMap [ks vs])
-                      (Protocol-of 'cljs.core/ICollection [r/-any])
-                      (Protocol-of 'cljs.core/IAssociative [r/-any ks vs])
-                      (Protocol-of 'cljs.core/ISeqable [r/-any]))))
-        (r/make-CountRange 
-          ; assume all optional entries are absent
-          #_:lower
-          (count mandatory)
-          ; assume all optional entries are present
-          #_:upper
-          (+ (count mandatory)
-             (count optional))))
-    (In (impl/impl-case
-          :clojure (RClass-of 'clojure.lang.APersistentMap [r/-any r/-any])
-          :cljs (Protocol-of 'cljs.core/IMap [r/-any r/-any]))
-        (r/make-CountRange 
-          ; assume all optional entries are absent
-          #_:lower
-          (count mandatory)
-          ; partial hmap can be infinite count
-          #_:upper
-          nil))))
+  (let [upcast-ctor (fn [ks vs]
+                      (impl/impl-case
+                        :clojure (RClass-of 'clojure.lang.APersistentMap [ks vs])
+                        :cljs (-name 'typed.clojure/Map ks vs)))]
+    (if complete?
+      (In (upcast-ctor (apply Un (mapcat keys [mandatory optional]))
+                       (apply Un (mapcat vals [mandatory optional])))
+          (r/make-CountRange 
+            ; assume all optional entries are absent
+            #_:lower
+            (count mandatory)
+            ; assume all optional entries are present
+            #_:upper
+            (+ (count mandatory)
+               (count optional))))
+      (In (upcast-ctor r/-any r/-any)
+          (r/make-CountRange 
+            ; assume all optional entries are absent
+            #_:lower
+            (count mandatory)
+            ; partial hmap can be infinite count
+            #_:upper
+            nil)))))
 
 (t/ann ^:no-check upcast-hmap [HeterogeneousMap -> r/Type])
 (defn upcast-hmap [hmap]
@@ -241,9 +236,7 @@
              r/-any)]
     (impl/impl-case
       :clojure (RClass-of 'clojure.lang.APersistentSet [tp])
-      :cljs    (In (Protocol-of 'cljs.core/ISet [tp])
-                   (Protocol-of 'cljs.core/ICollection [tp])
-                   (Protocol-of 'cljs.core/ISeqable [tp])))))
+      :cljs (-name 'typed.clojure/Set tp))))
 
 ; TODO Should update this with prest
 (t/ann ^:no-check upcast-HSequential [HSequential -> r/Type])
@@ -268,17 +261,12 @@
                       :list (RClass-of clojure.lang.PersistentList [tp])
                       :sequential (In (RClass-of clojure.lang.IPersistentCollection [tp])
                                       (RClass-of clojure.lang.Sequential)))
-           :cljs    (case kind
-                      :vector (In (Protocol-of 'cljs.core/IVector [tp])
-                                  (Protocol-of 'cljs.core/ICollection [tp])
-                                  (Protocol-of 'cljs.core/ISeqable [tp])
-                                  (Protocol-of 'cljs.core/IStack [tp])
-                                  (Protocol-of 'cljs.core/IAssociative [r/-any r/-integer-cljs tp])
-                                  (Protocol-of 'cljs.core/IReversible [tp]))
-                      :seq (Protocol-of 'cljs.core/ISeq [tp])
-                      :list (Protocol-of 'cljs.core/IList [tp])
-                      :sequential (In (Protocol-of 'cljs.core/ICollection [tp])
-                                      (Protocol-of 'cljs.core/ISequential))))]
+           :cljs (case kind
+                   :vector (-name 'typed.clojure/Vec tp)
+                   :seq (-name 'typed.clojure/Seq tp)
+                   :list (-name 'typed.clojure/List tp)
+                   :sequential (In (-name 'typed.clojure/Coll tp)
+                                   (-name 'cljs.core/ISequential))))]
         (not drest) (conj (r/make-CountRange
                             (count types)
                             (when-not rest

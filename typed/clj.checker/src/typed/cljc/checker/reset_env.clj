@@ -44,6 +44,8 @@
           ;(ns-opts/reset-ns-opts!)
           )
       :cljs
+      nil
+      #_
       (do
         (assert nil "load-core-envs! TODO CLJS")
         (assert cljs? "No ClojureScript dependency")
@@ -52,4 +54,3 @@
           (reset-cljs-envs!)
           (ns-opts/reset-ns-opts!))))
     nil)))
-

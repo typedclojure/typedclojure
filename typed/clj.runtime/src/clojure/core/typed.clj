@@ -338,7 +338,7 @@ for checking namespaces, cf for checking individual forms."}
 (declare add-to-rt-alias-env add-tc-type-name)
 
 (core/defn ^:no-doc
-  defalias* 
+  defalias*
   "Internal use only. Use defalias."
   [qsym t form]
   (add-to-rt-alias-env form qsym t)
@@ -384,7 +384,6 @@ for checking namespaces, cf for checking individual forms."}
      (with-current-location form
        (delay-rt-parse t))))
   nil)
-
 
 (def ^:private int-error #(apply (requiring-resolve 'clojure.core.typed.errors/int-error) %&)) 
 
@@ -842,8 +841,8 @@ for checking namespaces, cf for checking individual forms."}
          :name qname
          :fields fields
          :bnd vbnd}))
-    (with-current-location form
-      (with-clojure-impl
+    (with-clojure-impl
+      (with-current-location form
         (gen-datatype* vs/*current-env* (ns-name *ns*) dname fields vbnd opts false)))
     nil))
 
@@ -1037,20 +1036,19 @@ for checking namespaces, cf for checking individual forms."}
           (bar [this] [this n s])
           (baz [this n])))"
   [& args]
-  (core/let
-       [bnd-provided? (vector? (first args))
-        vbnd (when bnd-provided?
-               (first args))
-        [varsym & mth] (if bnd-provided?
-                         (next args)
-                         args)
-        _ (core/let [fs (frequencies (map first (partition 2 mth)))]
-            (when-let [dups (seq (filter (core/fn [[_ freq]] (< 1 freq)) fs))]
-              (println (str "WARNING: Duplicate method annotations in ann-protocol (" varsym 
-                            "): " (str/join ", " (map first dups))))
-              (flush)))
-        ; duplicates are checked above.
-        {:as mth} mth]
+  (core/let [bnd-provided? (vector? (first args))
+             vbnd (when bnd-provided?
+                    (first args))
+             [varsym & mth] (if bnd-provided?
+                              (next args)
+                              args)
+             _ (core/let [fs (frequencies (map first (partition 2 mth)))]
+                 (when-let [dups (seq (filter (core/fn [[_ freq]] (< 1 freq)) fs))]
+                   (println (str "WARNING: Duplicate method annotations in ann-protocol (" varsym 
+                                 "): " (str/join ", " (map first dups))))
+                   ))
+             ; duplicates are checked above.
+             {:as mth} mth]
     `(tc-ignore (ann-protocol* '~vbnd '~varsym '~mth '~&form))))
 
 (core/defn ^:no-doc
@@ -1606,7 +1604,7 @@ for checking namespaces, cf for checking individual forms."}
 (core/defn register!
   "Internal -- Do not use"
   []
-  ((requiring-resolve 'clojure.core.typed.current-impl/register!)))
+  ((requiring-resolve 'clojure.core.typed.current-impl/register-clj!)))
 
 (defmacro pred 
   "Generate a flat (runtime) predicate for type that returns true if the

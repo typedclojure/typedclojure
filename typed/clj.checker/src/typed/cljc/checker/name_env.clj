@@ -7,16 +7,16 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.cljc.checker.name-env
-  (:require [typed.cljc.checker.type-rep :as r]
-            [typed.cljc.checker.type-ctors :as c]
+  (:require [clojure.core.typed :as t]
             [clojure.core.typed.contract-utils :as con]
-            [clojure.core.typed.errors :as err]
-            [typed.cljc.checker.datatype-env :as dtenv]
-            [typed.clj.checker.rclass-env :as rcls]
-            [typed.cljc.checker.protocol-env :as prenv]
-            [typed.cljc.checker.declared-kind-env :as kinds]
             [clojure.core.typed.current-impl :as impl]
-            [clojure.core.typed :as t]
+            [clojure.core.typed.errors :as err]
+            [typed.clj.checker.rclass-env :as rcls]
+            [typed.cljc.checker.datatype-env :as dtenv]
+            [typed.cljc.checker.declared-kind-env :as kinds]
+            [typed.cljc.checker.protocol-env :as prenv]
+            [typed.cljc.checker.type-ctors :as c]
+            [typed.cljc.checker.type-rep :as r]
             [typed.cljc.runtime.env :as env]))
 
 (t/defalias NameEnv
@@ -44,20 +44,9 @@
 (defn name-env []
   (get (env/deref-checker) impl/current-name-env-kw {}))
 
-(t/ann ^:no-check update-name-env! [NameEnv -> nil])
-(defn update-name-env! [nme-env]
-  (env/swap-checker! update impl/current-name-env-kw
-                     (fnil merge {}) nme-env)
-  nil)
-
 (t/ann ^:no-check reset-name-env! [NameEnv -> nil])
 (defn reset-name-env! [nme-env]
   (env/swap-checker! assoc impl/current-name-env-kw nme-env)
-  nil)
-
-(defn merge-name-env! [nme-env]
-  {:pre [(map? nme-env)]}
-  (env/swap-checker! update impl/current-name-env-kw merge nme-env)
   nil)
 
 (t/ann get-type-name [t/Any -> (t/U nil t/Kw r/Type)])
@@ -72,7 +61,9 @@
               true)]}
   (force
     (or (get (name-env) sym)
-        (when-some [sym-nsym ((requiring-resolve 'typed.clj.checker.parse-unparse/ns-rewrites-clj)
+        (when-some [sym-nsym ((requiring-resolve (impl/impl-case
+                                                   :clojure 'typed.clj.checker.parse-unparse/ns-rewrites-clj
+                                                   :cljs 'typed.clj.checker.parse-unparse/ns-rewrites-cljs))
                               (some-> sym namespace symbol))]
           (get (name-env)
                (symbol (name sym-nsym) (name sym)))))))

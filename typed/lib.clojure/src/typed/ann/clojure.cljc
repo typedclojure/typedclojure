@@ -8,8 +8,10 @@
 
 (ns ^:no-doc typed.ann.clojure
   "Type annotations for the base Clojure distribution."
-  (:require [#?(:clj clojure.core :cljs cljs.core) :as cc]
-            [typed.clojure :refer [defalias] :as t]
+  #?(:cljs (:require-macros [typed.ann-macros.clojure :as macros]))
+  (:require [clojure.core :as cc]
+            [typed.clojure :as t]
+            #?(:clj [typed.ann-macros.clojure :as macros])
             #?(:clj clojure.core.typed))
   #?(:clj
      (:import (clojure.lang Named IMapEntry AMapEntry
@@ -19,7 +21,123 @@
                             IRef Reduced)
               (java.util Comparator Collection))))
 
-(defalias
+;; ==========================================
+;; Protocol annotations
+
+#?(:cljs (do
+(t/ann-protocol cljs.core/Fn)
+(t/ann-protocol cljs.core/IFn)
+(t/ann-protocol cljs.core/ICloneable
+                -clone [cljs.core/ICloneable :-> t/Any])
+(t/ann-protocol [[x :variance :covariant]]
+                cljs.core/IIterable
+                ;; TODO
+                -iterator [(cljs.core/IIterable x) :-> t/Any #_Object])
+(t/ann-protocol cljs.core/ICounted
+                -count [cljs.core/ICounted :-> t/Num])
+(t/ann-protocol cljs.core/IEmptyableCollection
+                ;; :/ TFn param on protocol?
+                -empty [cljs.core/IEmptyableCollection :-> t/Any])
+(t/ann-protocol cljs.core/ICollection
+                -conj [cljs.core/ICollection t/Any :-> cljs.core/ICollection])
+(t/ann-protocol cljs.core/IIndexed)
+(t/ann-protocol cljs.core/ASeq)
+(t/ann-protocol [[x :variance :covariant]] cljs.core/ISeqable) 
+(t/ann-protocol [[x :variance :covariant]] cljs.core/ISeq
+                -first [(cljs.core/ISeq x) :-> (t/Nilable x)]
+                -rest [(cljs.core/ISeq x) :-> (cljs.core/ISeq x)])
+;cljs.core/INext [[x :variance :covariant]]
+(t/ann-protocol [[v :variance :covariant]] cljs.core/ILookup)
+(t/ann-protocol [[m :variance :covariant]
+                 [k :variance :covariant]
+                 [v :variance :covariant]]
+                cljs.core/IAssociative
+                -contains-key [(cljs.core/IAssociative m k v) t/Any :-> t/Bool]
+                -assoc (t/All [k1 v1] [(cljs.core/IAssociative m k v) k1 v1 :->
+                                       (cljs.core/IAssociative m (t/U k k1) (t/U v v1))]))
+(t/ann-protocol cljs.core/IMap
+                -dissoc [cljs.core/IMap t/Any :-> cljs.core/IMap])
+(t/ann-protocol [[k :variance :covariant]
+                 [v :variance :covariant]]
+                cljs.core/IMapEntry
+                -key [(cljs.core/IMapEntry k v) :-> k]
+                -val [(cljs.core/IMapEntry k v) :-> v])
+(t/ann-protocol cljs.core/ISet
+                -disjoin (t/All [s] [s t/Any :-> s]))
+(t/ann-protocol [[x :variance :covariant]]
+                cljs.core/IStack
+                -peek [(cljs.core/IStack x) :-> (t/U nil x)]
+                -pop [(cljs.core/IStack x) :-> (cljs.core/IStack x)])
+(t/ann-protocol [[x :variance :covariant]]
+                cljs.core/IVector
+                -assoc-n (t/All [x1] [(cljs.core/IVector x) t/Num x1
+                                      :-> (cljs.core/IVector (t/U x x1))]))
+(t/ann-protocol [[x :variance :covariant]]
+                cljs.core/IDeref
+                -deref [(cljs.core/IDeref x) :-> x])
+(t/ann-protocol [[x :variance :covariant]]
+                cljs.core/IDerefWithTimeout
+                -deref-with-timeout [(cljs.core/IDerefWithTimeout x) :-> x])
+(t/ann-protocol cljs.core/IMeta
+                -meta [cljs.core/IMeta :-> (t/Nilable (t/Map t/Any t/Any))])
+(t/ann-protocol cljs.core/IWithMeta
+                -with-meta [cljs.core/IWithMeta (t/Nilable (t/Map t/Any t/Any)) :-> cljs.core/IWithMeta])
+;TODO
+;cljs.core/IReduce [[]]
+(t/ann-protocol cljs.core/IKVReduce ;;TODO
+                -kv-reduce [cljs.core/IKVReduce [t/Any t/Any t/Any :-> t/Any] :-> t/Any])
+(t/ann-protocol cljs.core/IList)
+(t/ann-protocol cljs.core/IEquiv
+                -equiv [cljs.core/IEquiv t/Any :-> t/Bool])
+(t/ann-protocol cljs.core/IHash
+                -hash [cljs.core/IHash :-> t/Num])
+(t/ann-protocol cljs.core/ISequential)
+(t/ann-protocol cljs.core/IRecord)
+(t/ann-protocol [[x :variance :covariant]]
+                cljs.core/IReversible
+                -rseq [(cljs.core/IReversible x) :-> (t/NilableNonEmptySeq x)])
+(t/ann-protocol [[k :variance :covariant]
+                 [v :variance :covariant]] cljs.core/IFind
+                -find [(cljs.core/IFind k v) t/Any :-> (t/Nilable (cljs.core/IMapEntry k v))]
+                )
+;(t/ann-protocol cljs.core/ISorted) ;;TODO
+;cljs.core/IWriter [[]]
+;cljs.core/IPrintWithWriter [[]]
+;cljs.core/IPending [[]]
+;    ;TODO
+;;cljs.core/IWatchable [[]]
+;    ;cljs.core/IEditableCollection [[]]
+;    ;cljs.core/ITransientCollection [[]]
+;    ;cljs.core/ITransientAssociative [[]]
+;    ;cljs.core/ITransientMap [[]]
+;    ;cljs.core/ITransientVector [[]]
+;    ;cljs.core/ITransientSet [[]]
+;cljs.core/IComparable [[]]
+;    ;cljs.core/IChunk [[]]
+;    ;cljs.core/IChunkedSeq [[]]
+;    ;cljs.core/IChunkedNext [[]]
+;cljs.core/INamed [[]]
+
+;(t/ann-datatype [[x :variance :covariant]] cljs.core.Reduced)
+))
+
+;; ==========================================
+;; Datatypes
+
+#?(:cljs (do
+(t/ann-datatype [[w :variance :contravariant]
+                 [r :variance :covariant]]
+                cljs.core/Atom)
+(t/ann-datatype cljs.core/Symbol)
+(t/ann-datatype cljs.core/Keyword)
+(t/ann-datatype [[x :variance :covariant]] cljs.core/List)
+(t/ann-datatype [[x :variance :covariant]] cljs.core/Reduced)
+           ))
+
+;; ==========================================
+;; Type aliases
+
+(t/defalias
   ^{:doc "A type that returns true for clojure.core/integer?"
     :forms '[AnyInteger]}
   t/AnyInteger
@@ -31,60 +149,60 @@
                Byte)
      :cljs t/CLJSInteger))
 
-(defalias
+(t/defalias
   ^{:doc "A type that returns true for clojure.core/integer?"
     :forms '[Int]}
   t/Int
   t/AnyInteger)
 
-(defalias
+(t/defalias
   ^{:doc "A type that returns true for clojure.core/number?"
     :forms '[Num]}
   t/Num
   #?(:clj Number
      :cljs t/JSnumber))
 
-(defalias
+(t/defalias
   ^{:doc "A keyword"
     :forms '[Keyword]}
   t/Keyword
   #?(:clj clojure.lang.Keyword
      :cljs cljs.core/Keyword))
 
-(defalias
+(t/defalias
   ^{:doc "A keyword"
     :forms '[Kw]}
   t/Kw
   t/Keyword)
 
-(defalias
+(t/defalias
   ^{:doc "A symbol"
     :forms '[Symbol]}
   t/Symbol
   #?(:clj clojure.lang.Symbol
      :cljs cljs.core/Symbol))
 
-(defalias
+(t/defalias
   ^{:doc "A symbol"
     :forms '[Sym]}
   t/Sym
   t/Symbol)
 
-(defalias
+(t/defalias
   ^{:doc "A string"
     :forms '[Str]}
   t/Str
   #?(:clj java.lang.String
      :cljs t/JSstring))
 
-(defalias
+(t/defalias
   ^{:doc "A boolean"
     :forms '[Bool]}
   t/Bool
   #?(:clj java.lang.Boolean
      :cljs t/JSboolean))
 
-(defalias
+(t/defalias
   ^{:doc "A namespace"
     :forms '[Namespace]}
   t/Namespace
@@ -93,7 +211,7 @@
      :cljs cljs.core/Namespace))
 
 #?(:clj
-   (defalias
+   (t/defalias
      ^{:doc "An atom that can write type w and read type r."
        :forms '[(Atom2 t)]}
      t/Atom2
@@ -102,14 +220,14 @@
             (clojure.lang.Atom w r))))
 
 #?(:clj
-   (defalias
+   (t/defalias
      ^{:doc "An atom that can read and write type x."
        :forms '[(Atom1 t)]}
      t/Atom1
      (t/TFn [[x :variance :invariant]]
             (t/Atom2 x x))))
 
-(defalias
+(t/defalias
   ^{:doc "An var that can write type w and read type r."
     :forms '[(Var2 w r)]}
   t/Var2 
@@ -118,7 +236,7 @@
          #?(:clj (clojure.lang.Var w r)
             :cljs (cljs.core/Var w r))))
 
-(defalias
+(t/defalias
   ^{:doc "An var that can read and write type x."
     :forms '[(Var1 t)]}
   t/Var1 
@@ -126,7 +244,7 @@
          (t/Var2 x x)))
 
 #?(:clj
-   (defalias
+   (t/defalias
      ^{:doc "A ref that can write type w and read type r."
        :forms '[(Ref2 w r)]}
      t/Ref2
@@ -135,7 +253,7 @@
             (clojure.lang.Ref w r))))
 
 #?(:clj
-   (defalias
+   (t/defalias
      ^{:doc "A ref that can read and write type x."
        :forms '[(Ref1 t)]}
      t/Ref1
@@ -143,7 +261,7 @@
             (t/Ref2 x x))))
 
 #?(:clj
-   (defalias
+   (t/defalias
      ^{:doc "An agent that can write type w and read type r."
        :forms '[(Agent2 t t)]}
      t/Agent2
@@ -152,32 +270,32 @@
             (clojure.lang.Agent w r))))
 
 #?(:clj
-   (defalias
+   (t/defalias
      ^{:doc "An agent that can read and write type x."
        :forms '[(Agent1 t)]}
      t/Agent1
      (t/TFn [[x :variance :invariant]] 
             (t/Agent2 x x))))
 
-(defalias
+(t/defalias
   ^{:doc "A union of x and nil."
     :forms '[(Option t)]}
   t/Option
   (t/TFn [[x :variance :covariant]] (t/U nil x)))
 
-(defalias
+(t/defalias
   ^{:doc "A union of x and nil."
     :forms '[(Nilable t)]}
   t/Nilable
   t/Option)
 
-(defalias
+(t/defalias
   ^{:doc "The identity function at the type level."
     :forms '[Id]}
   t/Id
   (t/TFn [[x :variance :covariant]] x))
 
-(defalias
+(t/defalias
   ^{:doc "A type that returns true for clojure.core/seqable?, with members t."
     :forms '[(Seqable t)]}
   t/Seqable
@@ -186,33 +304,34 @@
            #?(:clj (clojure.lang.Seqable x)
               :cljs (cljs.core/ISeqable x)))))
 
-(defalias
+(t/defalias
   ^{:doc "A type that returns true for clojure.core/coll?, with members t."
     :forms '[(Coll t)]}
   t/Coll
   (t/TFn [[x :variance :covariant]]
          #?(:clj (clojure.lang.IPersistentCollection x)
             :cljs (t/I (t/Seqable x)
-                       (cljs.core/ICollection x)
-                       cljs.core/ICounted
+                       cljs.core/ICollection
+                       ;;cljs.core/ICounted
                        cljs.core/IEmptyableCollection
-                       cljs.core/IEquiv))))
+                       ;;cljs.core/IEquiv
+                       ))))
 
-(defalias
+(t/defalias
   ^{:doc "The type of all things with count 0. Use as part of an intersection.
          eg. See EmptySeqable."
     :forms '[EmptyCount]}
   t/EmptyCount
   (t/ExactCount 0))
 
-(defalias
+(t/defalias
   ^{:doc "The type of all things with count greater than 0. Use as part of an intersection.
          eg. See NonEmptySeq"
     :forms '[NonEmptyCount]}
   t/NonEmptyCount
   (t/CountRange 1))
 
-(defalias
+(t/defalias
   ^{:doc "A persistent collection with member type x and count greater than 0."
     :forms '[(NonEmptyColl t)]}
   t/NonEmptyColl
@@ -220,10 +339,10 @@
          (t/I (t/Coll x)
               t/NonEmptyCount)))
 
-(defalias
+(t/defalias
   ^{:doc "An associative persistent collection with members of type m
          and supporting associative operations on keys type k and values type v."
-    :forms '[(Associative k v)]}
+    :forms '[(Associative m k v)]}
   t/Associative
   (t/TFn [[m :variance :covariant]
           [k :variance :covariant]
@@ -231,17 +350,17 @@
          #?(:clj (clojure.lang.Associative m k v)
             :cljs (t/I (cljs.core/IAssociative m k v)
                        (t/Coll m)
-                       (cljs.core/ILookup k v)))))
+                       (cljs.core/ILookup v)))))
 
-(defalias
+(t/defalias
   ^{:doc "A Clojure reversible collection."
     :forms '[(Reversible t)]}
   t/Reversible
   (t/TFn [[x :variance :covariant]]
          #?(:clj (clojure.lang.Reversible x)
-            :cljs (cljs.core/Reversible x))))
+            :cljs (cljs.core/IReversible x))))
 
-(defalias
+(t/defalias
   ^{:doc "A persistent vector with member type x."
     :forms '[(Vec t)]}
   t/Vec
@@ -252,9 +371,9 @@
                        cljs.core/ISequential
                        (cljs.core/IStack x)
                        (t/Reversible x)
-                       (cljs.core/IIndexed x)))))
+                       cljs.core/IIndexed))))
 
-(defalias
+(t/defalias
   ^{:doc "A persistent vector with member type x and count greater than 0."
     :forms '[(NonEmptyVec t)]}
   t/NonEmptyVec
@@ -262,7 +381,7 @@
        (t/I (t/Vec x)
             t/NonEmptyCount)))
 
-(defalias
+(t/defalias
   ^{:doc "A persistent vector returned from clojure.core/vector (and others)"
     :forms '[(AVec t)]}
   t/AVec
@@ -280,7 +399,7 @@
 
 ;;TODO from here, add :cljs equivalents
 
-(defalias
+(t/defalias
   ^{:doc "A persistent vector returned from clojure.core/vector (and others) and count greater than 0."
     :forms '[(NonEmptyAVec t)]}
   t/NonEmptyAVec
@@ -288,7 +407,7 @@
        (t/I (t/AVec x)
             t/NonEmptyCount)))
 
-(defalias
+(t/defalias
   ^{:doc "A non-empty lazy sequence of type t"
     :forms '[(NonEmptyLazySeq t)]}
   t/NonEmptyLazySeq
@@ -296,22 +415,55 @@
        (t/I (clojure.lang.LazySeq t)
             t/NonEmptyCount)))
 
-(defalias
+(t/defalias
   ^{:doc "A persistent map with keys k and vals v."
     :forms '[(Map t t)]}
   t/Map
   (t/TFn [[k :variance :covariant]
-        [v :variance :covariant]]
-       (clojure.lang.IPersistentMap k v)))
+          [v :variance :covariant]]
+         #?(:clj (clojure.lang.IPersistentMap k v)
+            :cljs (t/I cljs.core/ICloneable
+                       (cljs.core/IIterable (cc/IMapEntry k v))
+                       cljs.core/IWithMeta
+                       cljs.core/IMeta
+                       cc/ICollection
+                       cc/IEmptyableCollection
+                       cljs.core/IEquiv
+                       cljs.core/IHash
+                       (cc/ISeqable (cc/IMapEntry k v))
+                       cc/ICounted
+                       (cc/ILookup v)
+                       (cc/IAssociative t/Any k v)
+                       (cc/IFind k v)
+                       cljs.core/IMap
+                       cljs.core/IKVReduce
+                       ;; TODO IFn
+                       ;; TODO cljs.core/IEditableCollection
+                       ))))
 
-(defalias
+(t/defalias
   ^{:doc "A persistent set with member type x"
     :forms '[(Set t)]}
   t/Set
   (t/TFn [[x :variance :covariant]]
-       (clojure.lang.IPersistentSet x)))
+         #?(:clj (clojure.lang.IPersistentSet x)
+            :cljs (t/I cljs.core/ICloneable
+                       (cljs.core/IIterable x)
+                       cljs.core/IWithMeta
+                       cljs.core/IMeta
+                       cljs.core/ICollection
+                       cljs.core/IEmptyableCollection
+                       cljs.core/IEquiv
+                       cljs.core/IHash
+                       (cljs.core/ISeqable x)
+                       cljs.core/ICounted
+                       (cljs.core/ILookup x)
+                       cljs.core/ISet
+                       ;; TODO IFn
+                       ;; TODO cljs.core/IEditableCollection
+                       ))))
 
-(defalias
+(t/defalias
   ^{:doc "A sorted persistent set with member type x"
     :forms '[(SortedSet t)]}
   t/SortedSet
@@ -319,7 +471,7 @@
          (t/I (t/Set x)
               clojure.lang.Sorted)))
 
-(defalias
+(t/defalias
   ^{:doc "A type that can be used to create a sequence of member type x
          with count greater than 0."
     :forms '[(NonEmptySeqable t)]}
@@ -328,7 +480,7 @@
          (t/I (t/Seqable x)
               t/NonEmptyCount)))
 
-(defalias
+(t/defalias
   ^{:doc "A type that can be used to create a sequence of member type x
          with count 0."
     :forms '[(EmptySeqable t)]}
@@ -337,14 +489,24 @@
          (t/I (t/Seqable x)
               t/EmptyCount)))
 
-(defalias
+(t/defalias
   ^{:doc "A persistent sequence of member type x."
     :forms '[(Seq t)]}
   t/Seq
   (t/TFn [[x :variance :covariant]]
-         (clojure.lang.ISeq x)))
+         #?(:clj (clojure.lang.ISeq x)
+            :cljs (t/I (cljs.core/ISeq x)
+                       cljs.core/IWithMeta
+                       cljs.core/IMeta
+                       (cljs.core/ISeqable x)
+                       (cljs.core/IIterable x)
+                       ;(cljs.core/INext x)
+                       cljs.core/ICollection
+                       cljs.core/IEmptyableCollection
+                       cljs.core/ISequential
+                       cljs.core/IEquiv))))
 
-(defalias
+(t/defalias
   ^{:doc "A persistent sequence of member type x with count greater than 0."
     :forms '[(NonEmptySeq t)]}
   t/NonEmptySeq
@@ -352,7 +514,7 @@
          (t/I (t/Seq x)
               t/NonEmptyCount)))
 
-(defalias
+(t/defalias
   ^{:doc "A persistent sequence of member type x with count greater than 0, or nil."
     :forms '[(NilableNonEmptySeq t)]}
   t/NilableNonEmptySeq
@@ -360,7 +522,7 @@
          (t/Nilable
            (t/NonEmptySeq x))))
 
-(defalias
+(t/defalias
   ^{:doc "A hierarchy for use with derive, isa? etc."
     :forms '[Hierarchy]}
   t/Hierarchy
@@ -368,14 +530,14 @@
     :ancestors (t/Map t/Any t/Any)
     :descendants (t/Map t/Any t/Any)})
 
-(defalias
+(t/defalias
   ^{:doc "A Clojure derefable (see clojure.core/deref)."
     :forms '[(Deref t)]}
   t/Deref
   (t/TFn [[x :variance :covariant]]
        (clojure.lang.IDeref x)))
 
-(defalias
+(t/defalias
   ^{:doc "A Clojure future (see clojure.core/{future-call,future})."
     :forms '[(Future t)]}
   t/Future 
@@ -385,7 +547,7 @@
               clojure.lang.IPending
               java.util.concurrent.Future)))
 
-(defalias
+(t/defalias
   ^{:doc "A Clojure promise (see clojure.core/{promise,deliver})."
     :forms '[(Promise t)]}
   t/Promise 
@@ -397,7 +559,7 @@
                      ;; FIXME I think this might be an implementation detail.
                      [x -> (t/U nil p)]))))
 
-(defalias
+(t/defalias
   ^{:doc "A Clojure delay (see clojure.core/{delay,force})."
     :forms '[(Delay t)]}
   t/Delay
@@ -405,7 +567,7 @@
          #?(:clj (clojure.lang.Delay x)
             :cljs (cljs.core.Delay x))))
 
-(defalias
+(t/defalias
   ^{:doc "A Clojure blocking derefable (see clojure.core/deref)."
     :forms '[(BlockingDeref t)]}
   t/BlockingDeref
@@ -413,21 +575,29 @@
          #?(:clj (clojure.lang.IBlockingDeref x)
             :cljs (cljs.core/IDerefWithTimeout x))))
 
-(defalias
+(t/defalias
   ^{:doc "A Clojure persistent list."
     :forms '[(List t)]}
   t/List
   (t/TFn [[x :variance :covariant]]
-         (clojure.lang.IPersistentList x)))
-
-(defalias
+         #?(:clj (clojure.lang.IPersistentList x)
+            :cljs (t/I cljs.core/IList
+                       cljs.core/ICloneable
+                       cljs.core/IWithMeta
+                       cljs.core/IMeta
+                       cljs.core/ASeq
+                       (cljs.core/ISeq x)
+                       cljs.core/ICollection
+                       cljs.core/IEmptyableCollection
+                       cljs.core/ISequential))))
+(t/defalias
   ^{:doc "A Clojure custom exception type."
     :forms '[ExInfo]}
   t/ExInfo
   (t/I clojure.lang.IExceptionInfo
      RuntimeException))
 
-(defalias
+(t/defalias
   ^{:doc "A Clojure proxy."
     :forms '[Proxy]}
   t/Proxy
@@ -439,20 +609,20 @@
 ;Sorted
 ;              clojure.lang.Sorted
 
-(defalias
+(t/defalias
   ^{:doc "A Clojure stack."
     :forms '[(Stack t)]}
   t/Stack
   (t/TFn [[x :variance :covariant]]
        (clojure.lang.IPersistentStack x)))
 
-(defalias
+(t/defalias
   ^{:doc "A sequential collection."
     :forms '[Sequential]}
   t/Sequential
   clojure.lang.Sequential)
 
-(defalias
+(t/defalias
   ^{:doc "A sequential, seqable collection. Seq's aren't always Sequential."
     :forms '[(SequentialSeqable t)]}
   t/SequentialSeqable
@@ -460,7 +630,7 @@
          (t/I t/Sequential
               (t/Seqable x))))
 
-(defalias
+(t/defalias
   ^{:doc "A Clojure sequential sequence. Seq's aren't always Sequential."
     :forms '[(SequentialSeq t)]}
   t/SequentialSeq
@@ -468,7 +638,7 @@
          (t/I t/Sequential
               (clojure.lang.ISeq x))))
 
-(defalias
+(t/defalias
   ^{:doc "A sequential seq returned from clojure.core/seq"
     :forms '[(ASeq t)]}
   t/ASeq
@@ -479,7 +649,7 @@
               (java.util.List x)
               clojure.lang.IObj)))
 
-(defalias
+(t/defalias
   ^{:doc "A sequential non-empty seq retured from clojure.core/seq"
     :forms '[(NonEmptyASeq t)]}
   t/NonEmptyASeq
@@ -487,7 +657,7 @@
          (t/I (t/ASeq x)
               t/NonEmptyCount)))
 
-(defalias
+(t/defalias
   ^{:doc "The result of clojure.core/seq."
     :forms '[(NilableNonEmptyASeq t)]}
   t/NilableNonEmptyASeq
@@ -495,19 +665,19 @@
          (t/Nilable
            (t/NonEmptyASeq x))))
 
-(defalias
+(t/defalias
   ^{:doc "A type that returns true for clojure.core/fn?"
     :forms '[Fn]}
   t/Fn
   clojure.lang.Fn)
 
-(defalias
+(t/defalias
   ^{:doc "A Clojure multimethod."
     :forms '[Multi]}
   t/Multi
   clojure.lang.MultiFn)
 
-(defalias
+(t/defalias
   ^{:doc "A reducer function with accumulator a and reduces over collections of b"
     :forms '[(Reducer a b)]}
   t/Reducer
@@ -521,7 +691,7 @@
            ;step
            [b a :-> (t/U b (clojure.lang.Reduced b))])))
 
-(defalias
+(t/defalias
   ^{:doc "A transducer function that transforms in to out."
     :forms '[(Transducer in out)]}
   t/Transducer
@@ -639,19 +809,10 @@
       :pred (fn [this a?] 
               `(~a? (deref ~this)))}))
 
+;; ==========================================
 ;; Var annotations
 
-(defmacro ^:private anns [& body]
-  (let [pairs (partition 2 body)
-        _ (assert (even? (count body))
-                  (vec (first (filter (comp (complement qualified-symbol?) first)
-                                      pairs))))]
-    `(do ~@(map (fn [[n t]]
-                  (assert (qualified-symbol? n) [n t])
-                  `(t/ann ~n ~t))
-                pairs))))
-
-(anns
+(macros/anns
 #?@(:cljs [] :default [
 clojure.core.typed/check-ns (t/IFn [t/Sym -> t/Any]
                                    [-> t/Any])
@@ -700,16 +861,18 @@ cc/add-classpath [(t/U t/Str java.net.URL) -> nil]
 cc/*1 t/Any
 cc/*2 t/Any
 cc/*3 t/Any
-cc/*e (t/U nil Throwable)
+cc/*e #?(:cljs t/Any :default (t/U nil Throwable))
+#?@(:cljs [] :default [
 cc/*agent* (t/U nil (t/Agent2 t/Nothing t/Any))
 cc/*allow-unresolved-vars* t/Any
-cc/*assert* t/Any
 cc/*data-readers* (t/Map t/Sym (t/Var2 t/Nothing t/Any))
 cc/*default-data-reader-fn* (t/U nil [t/Any t/Any -> t/Any])
 cc/*fn-loader* t/Any
 cc/*math-context* t/Any
 cc/*source-path* t/Str
 cc/*use-context-classloader* t/Any
+])
+cc/*assert* t/Any
 
 cc/alength [(ReadOnlyArray t/Any) -> t/AnyInteger]
 cc/aclone (t/All [x] [(ReadOnlyArray x) -> (Array x)])
@@ -740,24 +903,26 @@ cc/aset
     [(Array x) t/AnyInteger t/AnyInteger t/AnyInteger t/AnyInteger t/AnyInteger t/AnyInteger t/AnyInteger t/AnyInteger t/AnyInteger x -> x]
     [(Array x) t/AnyInteger t/AnyInteger t/AnyInteger t/AnyInteger t/AnyInteger t/AnyInteger t/AnyInteger t/AnyInteger t/AnyInteger t/AnyInteger x -> x]))
 
+#?@(:cljs [] :default [
 cc/macroexpand-1 [t/Any -> t/Any]
 cc/macroexpand [t/Any -> t/Any]
 
 cc/create-struct [t/Any * -> (t/Map t/Any t/Any)]
+])
 
 cc/find-ns [t/Sym -> (t/Nilable t/Namespace)]
 cc/create-ns [t/Sym -> t/Namespace]
 #?@(:cljs [] :default [
 cc/remove-ns [t/Sym -> t/Namespace]
-])
-cc/namespace [(t/U t/Sym t/Keyword) -> (t/Nilable t/Str)]
-cc/ns-name [(t/U t/Sym t/Namespace) -> t/Sym]
 cc/ns-map [(t/U t/Sym t/Namespace) -> t/Sym]
 cc/ns-aliases [(t/U t/Sym t/Namespace) -> (t/Map t/Sym t/Namespace)]
-cc/name [(t/U t/Str Named) -> t/Str]
 cc/the-ns [(t/U t/Sym t/Namespace) -> t/Namespace]
 cc/in-ns [t/Sym -> nil]
 cc/import [t/Any * -> nil]
+])
+cc/namespace [(t/U t/Sym t/Keyword) -> (t/Nilable t/Str)]
+cc/ns-name [(t/U t/Sym t/Namespace) -> t/Sym]
+cc/name [(t/U t/Str Named) -> t/Str]
 cc/identity (t/All [x] [x -> x
                         :filters {:then (! (t/U nil false) 0)
                                   :else (is (t/U nil false) 0)}
@@ -954,8 +1119,8 @@ cc/nthrest (t/All [x] [(t/Seqable x) t/AnyInteger
                                -> (t/ASeq x)])
 
 cc/vector (t/All [r b ...]
-                           (t/IFn [b ... b -> '[b ... b]]
-                                  [r * -> (t/AVec r)]))
+                 (t/IFn [b ... b -> '[b ... b]]
+                        [r * -> (t/AVec r)]))
 cc/vec (t/All [x] [(t/Seqable x) -> (t/AVec x)])
 
 cc/not [t/Any -> t/Bool]
@@ -1038,15 +1203,19 @@ cc/print [t/Any * -> nil]
 cc/println [t/Any * -> nil]
 cc/print-str [t/Any * -> t/Str]
 cc/println-str [t/Any * -> t/Str]
+#?@(:cljs [] :default [
 cc/printf [t/Str t/Any * -> nil]
 cc/format [t/Str t/Any  * -> t/Str]
+])
 cc/pr [t/Any * -> nil]
 cc/prn [t/Any * -> nil]
 cc/flush [-> nil]
 cc/*print-length* (t/U nil false t/AnyInteger)
 cc/*print-level* (t/U nil false t/AnyInteger)
+#?@(:cljs [] :default [
 cc/*verbose-defrecords* t/Bool
 cc/print-ctor [Object [Object java.io.Writer -> t/Any] java.io.Writer -> nil]
+])
 
 cc/prefer-method [t/Multi t/Any t/Any -> t/Any]
 #?@(:cljs [] :default [
@@ -1161,7 +1330,10 @@ cc/find-keyword
 cc/derive (t/IFn [(t/U t/Sym t/Keyword Class) (t/U t/Sym t/Keyword) -> nil]
                  [t/Hierarchy (t/U t/Sym t/Keyword Class) (t/U t/Sym t/Keyword) -> t/Hierarchy])
 
+;; already defined in clj base-env
+#?@(:cljs [
 cc/compare [t/Any t/Any -> t/Num]
+])
 
 #?@(:cljs [] :default [
 cc/require [t/Any * -> nil]
@@ -1681,7 +1853,7 @@ cc/contains? [(t/Option (t/Seqable t/Any)) t/Any -> t/Bool]
 
 cc/= [t/Any t/Any * -> t/Bool]
 cc/identical? [t/Any t/Any -> t/Bool]
-#?(:cljs [
+#?@(:cljs [
 cc/keyword-identical? [t/Any t/Any -> t/Bool]
 ])
 cc/distinct? [t/Any t/Any * -> t/Bool]
@@ -1711,9 +1883,9 @@ cc/special-symbol? [t/Any -> t/Bool]
 cc/integer? (t/Pred t/AnyInteger)
 cc/number? (t/Pred t/Num)
 cc/var? (t/Pred (t/Var2 t/Nothing t/Any))
-cc/class? (t/Pred Class)
 
 #?@(:cljs [] :default [
+cc/class? (t/Pred Class)
 cc/resolve (t/IFn [t/Sym -> (t/U (t/Var2 t/Nothing t/Any) Class nil)]
                   ; should &env arg be more accurate?
                   [t/Any t/Sym -> (t/U (t/Var2 t/Nothing t/Any) Class nil)])
@@ -1738,12 +1910,14 @@ cc/* (t/IFn #?(:clj [Long * -> Long])
 cc// (t/IFn #?(:clj [Double Double * -> Double])
             [t/Num t/Num * -> t/Num])
 
+#?@(:cljs [] :default [
 cc/+' (t/IFn [t/AnyInteger * -> t/AnyInteger]
              [t/Num * -> t/Num])
 cc/-' (t/IFn [t/AnyInteger t/AnyInteger * -> t/AnyInteger]
              [t/Num t/Num * -> t/Num])
 cc/*' (t/IFn [t/AnyInteger * -> t/AnyInteger]
              [t/Num * -> t/Num])
+])
 cc/quot (t/IFn #?(:clj [Long Long -> Long])
                #?(:clj [(t/U Long Double) (t/U Long Double) -> Double])
                [t/AnyInteger t/AnyInteger -> t/AnyInteger] 
@@ -1780,12 +1954,11 @@ cc/dec (t/IFn #?(:clj [Long -> Long])
               [t/AnyInteger -> t/AnyInteger]
               [t/Num -> t/Num])
 
+#?@(:cljs [] :default [
 cc/inc' (t/IFn [t/AnyInteger -> t/AnyInteger]
                [t/Num -> t/Num])
 cc/dec' (t/IFn [t/AnyInteger -> t/AnyInteger]
                [t/Num -> t/Num])
-
-#?@(:cljs [] :default [
 cc/rationalize [t/Num -> t/Num]
 ])
 
@@ -1884,7 +2057,7 @@ cc/biginteger [(t/U t/Str t/Num) -> java.math.BigInteger]
 cc/boolean [t/Any -> t/Bool]
 cc/byte [(t/U Character t/Num) -> Byte]
 #?@(:cljs [
-cc/char [(t/U s/Str t/Num) -> s/Str]
+cc/char [(t/U t/Str t/Num) -> t/Str]
 ] :default [
 cc/char [(t/U Character t/Num) -> Character]
 ])

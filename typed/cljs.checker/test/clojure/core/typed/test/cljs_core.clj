@@ -1,8 +1,8 @@
 (ns clojure.core.typed.test.cljs-core
-    (:require [cljs.core.typed :as t]
-              [cljs.core :as core]
-              [typed.cljs.checker.test-utils :refer [is-tc-e tc-e]]
-              [clojure.test :refer :all]))
+    (:require [cljs.core :as core]
+              [cljs.core.typed :as t]
+              [clojure.test :refer :all]
+              [typed.cljs.checker.test-utils :refer [is-tc-e]]))
 
 ;;; defining tests this way should help estimate the coverage
 ;;; cljs.core vars not included in (keys @core-tests) are totally untested

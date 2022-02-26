@@ -6,6 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
+;; experimental
 (ns typed.clojure
   (:require cljs.core.typed)
   (:require-macros typed.clojure))

@@ -10,12 +10,43 @@
 (ns ^:no-doc clojure.core.typed.current-impl
   #?(:cljs (:refer-clojure :exclude [-val]))
   (:require [clojure.core.typed.contract-utils :as con]
-            [clojure.core.typed.runtime.jvm.configs :as configs]
             [clojure.core.typed.util-vars :as vs]
             [clojure.set :as set]
             [typed.cljc.runtime.env :as env]))
 
-(def register! configs/register-config-anns)
+(def clojure ::clojure)
+(def clojurescript ::clojurescript)
+
+(def unknown ::unknown)
+
+(derive clojure unknown)
+(derive clojurescript unknown)
+
+;; :clojure = ::clojure
+;; :cljs = ::clojurescript
+;; :unknown = ::unknown
+#?(:clj
+(defmacro impl-case [& {clj-case :clojure cljs-case :cljs unknown :unknown :as opts}]
+  (let [bad (set/difference (set (keys opts)) #{:clojure :cljs :unknown})]
+    (assert (empty? bad)
+            (str "Incorrect cases to impl-case: " (pr-str bad))))
+  `(case (current-impl)
+     ~clojure ~clj-case
+     ~clojurescript ~cljs-case
+     ~(if (contains? opts :unknown)
+        unknown
+        `(assert nil (str "No case matched for impl-case " (current-impl)))))))
+
+(def current-impl-kw ::current-impl)
+
+(defn current-impl []
+  {:post [(qualified-keyword? %)]}
+  (get (some-> (env/checker-or-nil) deref)
+       current-impl-kw
+       unknown))
+
+(def register-clj! #((requiring-resolve 'clojure.core.typed.runtime.jvm.configs/register-clj-config-anns)))
+(def register-cljs! #((requiring-resolve 'clojure.core.typed.runtime.jvm.configs/register-cljs-config-anns)))
 
 (def current-var-annotations-kw ::current-var-annotations)
 (def current-nocheck-var?-kw ::current-nocheck-var?)
@@ -36,6 +67,7 @@
 (def current-deps-kw ::current-deps)
 (def datatype-name-type ::datatype-name)
 (def ns-opts-kw ::ns-options)
+(def unanalyzed-special-kw ::unanalyzed-special)
 
 (defn add-tc-var-type [sym type]
   (env/swap-checker! assoc-in [current-var-annotations-kw sym] type)
@@ -143,9 +175,11 @@
   nil)
 
 (defn add-datatype [sym t]
-  {:pre [((every-pred simple-symbol?
-                      (fn [k] (some #{\.} (str k))))
-          sym)
+  {:pre [(impl-case
+           :clojure ((every-pred simple-symbol?
+                                 (fn [k] (some #{\.} (str k))))
+                     sym)
+           :cljs (qualified-symbol? sym))
          ;; checked in get-datatype
          #_
          ((some-fn delay? r/Type?) t)]
@@ -220,21 +254,6 @@
     (assert (var? var) (str "Cannot find var: " vsym))
     var)))
 
-(def clojure ::clojure)
-(def clojurescript ::clojurescript)
-
-(def unknown ::unknown)
-
-(derive clojure unknown)
-(derive clojurescript unknown)
-
-(def current-impl-kw ::current-impl)
-
-(defn current-impl []
-  {:post [(qualified-keyword? %)]}
-  (get (some-> (env/checker-or-nil) deref)
-       current-impl-kw
-       unknown))
 
 (declare bindings-for-impl)
 
@@ -318,19 +337,6 @@
                                                        (when (seq msg)
                                                          (str ": " msg))))))
 
-;; :clojure = ::clojure
-;; :cljs = ::clojurescript
-;; :unknown = ::unknown
-#?(:clj
-(defmacro impl-case [& {clj-case :clojure cljs-case :cljs unknown :unknown :as opts}]
-  (assert (empty? (set/difference (set (keys opts)) #{:clojure :cljs :unknown}))
-          "Incorrect cases to impl-case")
-  `(case (current-impl)
-     ~clojure ~clj-case
-     ~clojurescript ~cljs-case
-     ~(if (contains? opts :unknown)
-        unknown
-        `(assert nil (str "No case matched for impl-case " (current-impl)))))))
 
 #?(:clj
 (defn var->symbol [^clojure.lang.Var var]
@@ -391,7 +397,7 @@
 #?(:clj
 (def ^:private Poly-fresh-symbols* #((requiring-resolve 'typed.cljc.checker.type-ctors/Poly-fresh-symbols*) %)))
 #?(:clj
-(def ^:private Poly-body* #((requiring-resolve 'typed.cljc.checker.type-ctors/Poly-body*) %)))
+(def ^:private Poly-body* #(apply (requiring-resolve 'typed.cljc.checker.type-ctors/Poly-body*) %&)))
 #?(:clj
 (def ^:private PolyDots? #((requiring-resolve 'typed.cljc.checker.type-rep/PolyDots?) %)))
 #?(:clj
@@ -423,11 +429,16 @@
 #?(:clj
 (def ^:private subtype? #((requiring-resolve 'typed.clj.checker.subtype/subtype?) %1 %2)))
 
+#?(:clj (def ^:private std-out *out*))
 
 #?(:clj
 (defn gen-protocol* [current-env current-ns vsym binder mths]
   {:pre [(symbol? current-ns)
          ((some-fn nil? map?) mths)]}
+  #_
+  (binding [*out* std-out]
+    (println "in gen-protocol*"
+             current-ns vsym))
   (let [_ (when-not (symbol? vsym)
             (int-error
               (str "First argument to ann-protocol must be a symbol: " vsym)))
@@ -455,40 +466,41 @@
                (map (comp make-F :fname) (force parsed-binder))))
         bnds (when parsed-binder
                (delay (map :bnd (force parsed-binder))))
-        ms (into {} (for [[knq v*] mths]
-                      (let [_ (when (namespace knq)
-                                (int-error "Protocol method should be unqualified"))
-                            mtype 
-                            (delay
-                              (let [mtype (with-bounded-frees* (zipmap (force fs) (force bnds))
-                                            #(binding [vs/*current-env* current-env]
-                                               (with-parse-ns* current-ns
-                                                 (fn []
-                                                   (parse-type v*)))))
-                                    _ (let [rt (fully-resolve-type mtype)
-                                            fin? (fn [f]
-                                                   (let [f (fully-resolve-type f)]
-                                                     (boolean
-                                                       (when (FnIntersection? f)
-                                                         (every? seq (map :dom (:types f)))))))]
-                                        (when-not 
-                                          (or
-                                            (fin? rt)
-                                            (when (Poly? rt) 
-                                              (let [names (Poly-fresh-symbols* rt)]
-                                                (fin? (Poly-body* names rt))))
-                                            (when (PolyDots? rt) 
-                                              (let [names (PolyDots-fresh-symbols* rt)]
-                                                (fin? (PolyDots-body* names rt)))))
-                                          ;(prn "throwing method type")
-                                          (int-error (str "Protocol method " knq " should be a possibly-polymorphic function intersection"
-                                                          " taking at least one fixed argument: "
-                                                          (unparse-type mtype)))))]
-                                mtype))]
-                         [knq mtype])))
+        ms (into {} (map (fn [[knq v*]]
+                           (let [_ (when (namespace knq)
+                                     (int-error "Protocol method should be unqualified"))
+                                 mtype 
+                                 (delay
+                                   (let [mtype (with-bounded-frees* (zipmap (force fs) (force bnds))
+                                                 #(binding [vs/*current-env* current-env]
+                                                    (with-parse-ns* current-ns
+                                                      (fn []
+                                                        (parse-type v*)))))
+                                         _ (let [rt (fully-resolve-type mtype)
+                                                 fin? (fn [f]
+                                                        (let [f (fully-resolve-type f)]
+                                                          (boolean
+                                                            (when (FnIntersection? f)
+                                                              (every? seq (map :dom (:types f)))))))]
+                                             (when-not 
+                                               (or
+                                                 (fin? rt)
+                                                 (when (Poly? rt) 
+                                                   (let [names (Poly-fresh-symbols* rt)]
+                                                     (fin? (Poly-body* names rt))))
+                                                 (when (PolyDots? rt) 
+                                                   (let [names (PolyDots-fresh-symbols* rt)]
+                                                     (fin? (PolyDots-body* names rt)))))
+                                               ;(prn "throwing method type")
+                                               (int-error (str "Protocol method " knq " should be a possibly-polymorphic function intersection"
+                                                               " taking at least one fixed argument: "
+                                                               (unparse-type mtype)))))]
+                                     mtype))]
+                             [knq mtype])))
+                 mths)
         ;_ (prn "collect protocol methods" (into {} ms))
         t (delay
-            (Protocol* (map :name (force fs)) (map :variance (force parsed-binder) )
+            (Protocol* (map :name (force fs)) (map :variance (force parsed-binder))
                        (force fs) s (Protocol-var->on-class s) 
                        (into {} (map (fn [[k v]] [k (force v)])) ms) 
                        (map :bnd (force parsed-binder))))]
@@ -506,7 +518,9 @@
                      (protocol-method-var-ann (force mt) (map :name (force fs)) (force bnds)))]
         (add-nocheck-var kq)
         (add-tc-var-type kq mt-ann)))
-    ;(prn "end gen-protocol" s)
+    #_
+    (prn "end gen-protocol" s (when (= "cljs.core" (namespace s))
+                                (force (get-in (env/deref-checker) [current-protocol-env-kw s]))))
     nil)))
 
 (defn add-datatype-ancestors
@@ -538,91 +552,108 @@
 
 #?(:clj
 (defn gen-datatype* [current-env current-ns provided-name fields vbnd opt record?]
-  {:pre [(symbol? current-ns)]}
-  (with-clojure-impl
-    (let [{ancests :unchecked-ancestors} opt
-          ancests (or ancests (:extends opt))
-          parsed-binders (when vbnd
-                           (delay
-                             (with-parse-ns* current-ns
-                               #(parse-free-binder-with-variance vbnd))))
-          ;variances
-          vs (when parsed-binders
-               (delay (seq (map :variance (force parsed-binders)))))
-          args (when parsed-binders
-                 (delay (seq (map :fname (force parsed-binders)))))
-          bnds (when parsed-binders
-                 (delay (seq (map :bnd (force parsed-binders)))))]
-      (let [provided-name-str (str provided-name)
-            ;_ (prn "provided-name-str" provided-name-str)
-            munged-ns-str (if (some #(= \. %) provided-name-str)
-                            (apply str (butlast (apply concat (butlast (partition-by #(= \. %) provided-name-str)))))
-                            (str (munge current-ns)))
-            ;_ (prn "munged-ns-str" munged-ns-str)
-            demunged-ns-str (str (demunge munged-ns-str))
-            ;_ (prn "demunged-ns-str" demunged-ns-str)
-            local-name (if (some #(= \. %) provided-name-str)
-                         (symbol (apply str (last (partition-by #(= \. %) (str provided-name-str)))))
-                         provided-name-str)
-            ;_ (prn "local-name" local-name)
-            s (symbol (str munged-ns-str \. local-name))
-            fs (delay
-                 (let [parse-field (fn [[n _ t]] [n (parse-type t)])]
-                   (apply array-map (apply concat (with-frees* (mapv make-F (force args))
-                                                    (fn []
-                                                      (binding [vs/*current-env* current-env]
-                                                        (with-parse-ns* current-ns
-                                                          #(mapv parse-field (partition 3 fields))))))))))
-            as (into {}
-                     (map
-                       (fn [an]
-                         [an (delay
-                               (with-frees* (mapv make-F (force args))
-                                 (fn []
-                                   (binding [vs/*current-env* current-env]
+  {:pre [(symbol? current-ns)
+         (impl-case
+           :clojure (simple-symbol? provided-name)
+           :cljs (qualified-symbol? provided-name))]}
+  (let [{ancests :unchecked-ancestors} opt
+        ancests (or ancests (:extends opt))
+        parsed-binders (when vbnd
+                         (let [bfn (bound-fn []
                                      (with-parse-ns* current-ns
-                                       #(let [t (parse-type an)]
-                                          (abstract-many (force args) t)))))))]))
-                     ancests)
-            ;_ (prn "collected ancestors" as)
-            _ (add-datatype-ancestors s as)
-            pos-ctor-name (symbol demunged-ns-str (str "->" local-name))
-            map-ctor-name (symbol demunged-ns-str (str "map->" local-name))
-            dt (delay 
-                 (DataType* (force args) (force vs) (map make-F (force args)) s (force bnds) (force fs) record?))
-            _ (add-datatype s dt)
-            pos-ctor (delay
-                       (if args
-                         (Poly* (force args) (force bnds)
-                                (make-FnIntersection
-                                  (make-Function (vec (vals (force fs))) (DataType-of s (map make-F (force args))))))
-                         (make-FnIntersection
-                           (make-Function (vec (vals (force fs))) (DataType-of s)))))
-            map-ctor (delay
-                       (when record?
-                         (let [hmap-arg ; allow omission of keys if nil is allowed and field is monomorphic
-                               (let [{optional true mandatory false} 
-                                     (group-by (fn [[_ t]] (and (empty? (fv t))
-                                                                (empty? (fi t))
-                                                                (subtype? (-nil) t)))
-                                               (zipmap (map (comp -val keyword) (keys (force fs)))
-                                                       (vals (force fs))))]
-                                 (make-HMap :optional (into {} optional)
-                                            :mandatory (into {} mandatory)))]
-                           (if args
-                             (Poly* (force args) (force bnds)
-                                    (make-FnIntersection
-                                      (make-Function [hmap-arg] (DataType-of s (map make-F (force args))))))
-                             (make-FnIntersection
-                               (make-Function [hmap-arg] (DataType-of s)))))))]
-        (do 
-          ;(when vs
-          ;  (let [f (mapv r/make-F (repeatedly (count vs) gensym))]
-          ;    ;TODO replacements and unchecked-ancestors go here
-          ;    (rcls/alter-class* s (c/RClass* (map :name f) (force vs) f s {} {} (force bnds)))))
-          (add-tc-var-type pos-ctor-name pos-ctor)
-          (add-nocheck-var pos-ctor-name)
-          (when record?
-            (add-method-override (symbol (str s) "create") map-ctor)
-            (add-tc-var-type map-ctor-name map-ctor)
-            (add-nocheck-var map-ctor-name))))))))
+                                       #(parse-free-binder-with-variance vbnd)))]
+                           (delay (bfn))))
+        ;variances
+        vs (when parsed-binders
+             (delay (seq (map :variance (force parsed-binders)))))
+        args (when parsed-binders
+               (delay (seq (map :fname (force parsed-binders)))))
+        bnds (when parsed-binders
+               (delay (seq (map :bnd (force parsed-binders)))))
+        provided-name-str (str provided-name)
+        ;_ (prn "provided-name-str" provided-name-str)
+        munged-ns-str (impl-case
+                        :clojure (if (some #(= \. %) provided-name-str)
+                                   (apply str (butlast (apply concat (butlast (partition-by #(= \. %) provided-name-str)))))
+                                   (str (munge current-ns)))
+                        :cljs nil)
+        ;_ (prn "munged-ns-str" munged-ns-str)
+        demunged-ns-str (impl-case
+                          :clojure (str (demunge munged-ns-str))
+                          :cljs (-> provided-name namespace))
+        ;_ (prn "demunged-ns-str" demunged-ns-str)
+        local-name (impl-case
+                     :clojure (if (some #(= \. %) provided-name-str)
+                                (symbol (apply str (last (partition-by #(= \. %) (str provided-name-str)))))
+                                provided-name-str)
+                     :cljs (-> provided-name name symbol))
+        ;_ (prn "local-name" local-name)
+        s (impl-case
+            :clojure (symbol (str (name munged-ns-str) \. local-name))
+            :cljs provided-name)
+        fs (let [bfn (bound-fn []
+                       (let [parse-field (fn [[n _ t]] [n (parse-type t)])]
+                         (apply array-map (apply concat (with-frees* (mapv make-F (force args))
+                                                          (fn []
+                                                            (binding [vs/*current-env* current-env]
+                                                              (with-parse-ns* current-ns
+                                                                #(mapv parse-field (partition 3 fields))))))))))]
+             (delay (bfn)))
+        as (into {}
+                 (map
+                   (fn [an]
+                     [an (let [bfn (bound-fn []
+                                     (with-frees* (mapv make-F (force args))
+                                       (fn []
+                                         (binding [vs/*current-env* current-env]
+                                           (with-parse-ns* current-ns
+                                             #(let [t (parse-type an)]
+                                                (abstract-many (force args) t)))))))]
+                           (delay (bfn)))]))
+                 ancests)
+        ;_ (prn "collected ancestors" as)
+        _ (add-datatype-ancestors s as)
+        pos-ctor-name (symbol demunged-ns-str (str "->" local-name))
+        map-ctor-name (symbol demunged-ns-str (str "map->" local-name))
+        dt (let [bfn (bound-fn []
+                       (DataType* (force args) (force vs) (map make-F (force args)) s (force bnds) (force fs) record?))]
+             (delay (bfn)))
+        _ (add-datatype s dt)
+        pos-ctor (let [bfn (bound-fn []
+                             (if args
+                               (Poly* (force args) (force bnds)
+                                      (make-FnIntersection
+                                        (make-Function (vec (vals (force fs))) (DataType-of s (map make-F (force args))))))
+                               (make-FnIntersection
+                                 (make-Function (vec (vals (force fs))) (DataType-of s)))))]
+                   (delay (bfn)))]
+    (do 
+      ;(when vs
+      ;  (let [f (mapv r/make-F (repeatedly (count vs) gensym))]
+      ;    ;TODO replacements and unchecked-ancestors go here
+      ;    (rcls/alter-class* s (c/RClass* (map :name f) (force vs) f s {} {} (force bnds)))))
+      (add-tc-var-type pos-ctor-name pos-ctor)
+      (add-nocheck-var pos-ctor-name)
+      (when record?
+        (let [map-ctor (let [bfn (bound-fn []
+                                   (let [hmap-arg ; allow omission of keys if nil is allowed and field is monomorphic
+                                         (let [{optional true mandatory false} 
+                                               (group-by (fn [[_ t]] (and (empty? (fv t))
+                                                                          (empty? (fi t))
+                                                                          (subtype? (-nil) t)))
+                                                         (zipmap (map (comp -val keyword) (keys (force fs)))
+                                                                 (vals (force fs))))]
+                                           (make-HMap :optional (into {} optional)
+                                                      :mandatory (into {} mandatory)))]
+                                     (if args
+                                       (Poly* (force args) (force bnds)
+                                              (make-FnIntersection
+                                                (make-Function [hmap-arg] (DataType-of s (map make-F (force args))))))
+                                       (make-FnIntersection
+                                         (make-Function [hmap-arg] (DataType-of s))))))]
+                         (delay (bfn)))]
+          (impl-case
+            :clojure (add-method-override (symbol (str s) "create") map-ctor)
+            :cljs nil)
+          (add-tc-var-type map-ctor-name map-ctor)
+          (add-nocheck-var map-ctor-name)))))))

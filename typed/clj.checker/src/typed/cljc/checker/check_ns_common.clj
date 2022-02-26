@@ -17,12 +17,16 @@
             [typed.cljc.checker.reset-env :as reset-env]
             [typed.cljc.checker.utils :as u]
             [typed.cljc.checker.var-env :as var-env]
+            [clojure.core.typed.runtime.jvm.configs :as configs]
             [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.errors :as err]
             [clojure.core.typed.util-vars :as vs]
             [clojure.java.io :as io])
   (:import (clojure.lang ExceptionInfo)))
+
+(def *register-clj-anns (delay (configs/register-clj-config-anns)))
+(def *register-cljs-anns (delay (configs/register-cljs-config-anns)))
 
 (defn cljs-reader [nsym]
   (let [f ((requiring-resolve 'cljs.util/ns->relpath) nsym)
@@ -66,6 +70,9 @@
               ;(reset-caches)
               ;; handle terminal type error
               (try
+                (impl/impl-case
+                  :clojure @*register-clj-anns
+                  :cljs @*register-cljs-anns)
                 ;-------------------------
                 ; Check phase
                 ;-------------------------

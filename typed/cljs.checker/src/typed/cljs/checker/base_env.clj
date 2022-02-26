@@ -26,6 +26,9 @@
 (binding [ana/*cljs-ns* 'cljs.core.typed]
 (delay-and-cache-env ^:private init-protocol-env
   (h/protocol-mappings
+    )
+  #_
+  (h/protocol-mappings
     
 cljs.core/Fn [[]]
 cljs.core/IFn [[]]
@@ -38,8 +41,6 @@ cljs.core/ASeq [[[x :variance :covariant]]]
 cljs.core/ISeqable [[[x :variance :covariant]]]
 cljs.core/ISeq [[[x :variance :covariant]]]
 cljs.core/INext [[[x :variance :covariant]]]
-cljs.core/ILookup [[[maxk :variance :covariant]
-                    [v :variance :covariant]]]
 cljs.core/IAssociative [[[m :variance :covariant]
                          [k :variance :covariant]
                          [v :variance :covariant]]]
@@ -97,7 +98,7 @@ cljs.core/Reduced [[[x :variance :covariant]]]
   )
 
 (delay-and-cache-env ^:private init-jsnominals 
-  (reset-protocol-env!)
+  ;(reset-protocol-env!)
   (h/jsnominal-mappings)
   #_
   (h/jsnominal-mappings
@@ -141,7 +142,7 @@ goog.events.EventTarget [[]]
 
 ;;; vars specific to cljs
 (delay-and-cache-env ^:private init-var-env
-  (reset-protocol-env!)
+  ;(reset-protocol-env!)
   (reset-jsnominal-env!)
   (h/var-mappings)
   #_
@@ -241,7 +242,7 @@ cljs.core/-conj [Any Any -> Any]
   (set (keys (init-var-env))))
 
 (delay-and-cache-env init-jsvar-env
-  (reset-protocol-env!)
+  ;(reset-protocol-env!)
   (reset-jsnominal-env!)
   (h/js-var-mappings)
   #_
@@ -273,9 +274,9 @@ goog.events.EventType.MOUSEOUT cljs.core.typed/JSString
 goog.events.EventType.MOUSEMOVE cljs.core.typed/JSString
     ))
 
-(delay-and-cache-env init-alias-env 
-  (reset-protocol-env!)
-  (reset-jsnominal-env!)
+(delay-and-cache-env init-alias-env
+  ;(reset-protocol-env!)
+  ;(reset-jsnominal-env!)
   (h/alias-mappings
   ^{:doc "A type that returns true for cljs.core/integer?"}
 typed.clojure/AnyInteger typed.clojure/CLJSInteger
@@ -491,31 +492,29 @@ typed.clojure/Reversible
 (delay-and-cache-env init-declared-kinds {})
 
 (delay-and-cache-env init-datatype-env
-  (reset-protocol-env!)
-  (reset-jsnominal-env!)
+  ;(reset-protocol-env!)
+  ;(reset-jsnominal-env!)
   (h/datatype-mappings
 
-cljs.core/Atom [[[w :variance :contravariant]
-                 [r :variance :covariant]]]
-cljs.core/Symbol [[]]
-cljs.core/Keyword [[]]
-cljs.core/List [[[a :variance :covariant]]]
-cljs.core/Reduced [[[x :variance :covariant]]]
     ))
 )
 
+#_
 (defn reset-envs! []
   (ucljs/with-cljs-typed-env
     (impl/with-cljs-impl
-      (reset-alias-env!)
-      (var-env/reset-var-type-env! (init-var-env) (init-var-nochecks))
+      ;(reset-alias-env!)
+      ;(var-env/reset-var-type-env! (init-var-env) (init-var-nochecks))
       (var-env/reset-jsvar-type-env! (init-jsvar-env))
-      (reset-protocol-env!)
+      ;(reset-protocol-env!)
       (declared-kind-env/reset-declared-kinds! (init-declared-kinds))
       (reset-jsnominal-env!)
-      (datatype-env/reset-datatype-env! (init-datatype-env))))
+      (datatype-env/reset-datatype-env! (init-datatype-env))
+      )
+    )
   nil)
 ))
 
 ;;FIXME hack
+#_
 (reset-envs!)

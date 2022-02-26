@@ -223,7 +223,7 @@
 
 (declare check-expr)
 
-(def ^:private *register-exts (delay (configs/register-config-exts)))
+(def ^:private *register-exts (delay (configs/register-clj-config-exts)))
 
 (defn maybe-check-inlineable [{:keys [op form env] :as expr} expected]
   {:pre [(#{:unanalyzed} op)]}

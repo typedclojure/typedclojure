@@ -19,10 +19,12 @@
      ;(flush)
      ;(impl/with-clojure-impl
      ;  (reset-envs!))
-     (impl/register!)
+     (impl/register-clj!)
      (impl/with-clojure-impl
        (load-core-envs!))
+     #_
      (when cljs?
+       (impl/register-cljs!)
        (impl/with-cljs-impl
          ;; FIXME should be load-core-envs!
          (reset-envs! cljs?))

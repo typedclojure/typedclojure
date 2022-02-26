@@ -25,7 +25,8 @@
             [typed.cljc.checker.utils :as u])
   (:import (clojure.lang ExceptionInfo)))
 
-(def *register-anns (delay (configs/register-config-anns)))
+(def *register-clj-anns (delay (configs/register-clj-config-anns)))
+(def *register-cljs-anns (delay (configs/register-cljs-config-anns)))
 
 ;; (check-form-info config-map form & kw-args)
 ;; 
@@ -102,7 +103,9 @@
          (map? check-config)]}
   (assert (not (and expected-ret type-provided?)))
   (do
-    @*register-anns
+    (impl/impl-case
+      :clojure @*register-clj-anns
+      :cljs @*register-cljs-anns)
     (reset-caches/reset-caches)
     (binding [vs/*already-checked* (atom #{})
               vs/*delayed-errors* (err/-init-delayed-errors)

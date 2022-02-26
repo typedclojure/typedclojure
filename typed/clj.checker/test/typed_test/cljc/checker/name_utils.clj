@@ -1,12 +1,11 @@
 (ns typed-test.cljc.checker.name-utils
-  (:require [clojure.test :refer [deftest is]]
-            [clojure.core.typed :as t]
-            [typed.cljc.checker.name-utils :refer [erase-names]]
-            [typed.cljc.checker.type-rep :as r]
-            [typed.cljc.checker.type-ctors :as c]
+  (:require [clojure.core.typed :as t]
+            [clojure.test :refer [deftest is]]
+            [typed.clj.checker.parse-unparse :as prs]
             [typed.clj.checker.test-utils :refer [is-clj clj]]
-            [typed.clj.checker.parse-unparse :as prs])
-  (:import [clojure.lang IPersistentSet Symbol IPersistentVector]))
+            [typed.cljc.checker.name-utils :refer [erase-names]]
+            [typed.cljc.checker.type-ctors :as c]
+            [typed.cljc.checker.type-rep :as r]))
 
 (declare Pong)
 (t/defalias Ping

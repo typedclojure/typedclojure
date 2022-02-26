@@ -77,7 +77,28 @@
 (defmulti -check (fn [expr expected]
                    (:op expr)))
 
-(def ^:private *register-exts (delay (configs/register-config-exts)))
+(def ^:private *register-exts (delay
+                                (configs/register-cljs-config-anns)
+                                (configs/register-cljs-config-exts)))
+
+(declare check-expr)
+
+(defn maybe-check-unanalyzed [{:keys [form env] :as expr} expected]
+  (binding [vs/*current-expr* expr]
+    (or (unanalyzed/-unanalyzed-special expr expected)
+        ;; don't expand macros that inline raw js
+        (when-some [rsym (when (seq? form) (ana2/resolve-sym (first form) env))]
+          (when-some [cljsvar-ann (var-env/type-of-nofail rsym)]
+            (prn "cljsvar-ann" rsym cljsvar-ann)
+            (let [macro-var (find-var rsym)]
+              (when (and (var? macro-var)
+                         (-> macro-var meta :macro))
+                (check-expr (assoc expr :form (-> form
+                                                  vec
+                                                  (update 0 #(with-meta (list 'do %) {::fake-do true}))
+                                                  list*
+                                                  (with-meta (meta form))))
+                            expected))))))))
 
 (defn check-expr
   ([expr] (check-expr expr nil))
@@ -93,8 +114,7 @@
              (str "MALFORMED :env :ns " (pr-str (-> expr :env :ns))))
      (if (= :unanalyzed (:op expr))
        (do @*register-exts
-           (or (binding [vs/*current-expr* expr]
-                 (unanalyzed/-unanalyzed-special expr expected))
+           (or (maybe-check-unanalyzed expr expected)
                (recur (tana2/analyze-outer expr) (max -1 (dec fuel)))))
        (binding [vs/*current-env* (if (:line env) env vs/*current-env*)
                  vs/*current-expr* expr]
@@ -118,9 +138,9 @@
   ([form] (check-top-level form nil))
   ([form expected] (check-top-level form expected {}))
   ([form expected {:keys [env] :as opts}]
-   (prn "check-top-level" form)
+   ;(prn "check-top-level" form)
    ;(prn "*ns*" *ns*)
-   (prn "*cljs-ns*" cljs-ana/*cljs-ns*)
+   ;(prn "*cljs-ns*" cljs-ana/*cljs-ns*)
    ;; TODO any bindings needed to be pinned here?
    (binding [ana2/scheduled-passes {:pre identity
                                     :post identity
@@ -276,10 +296,10 @@
                                            expected))]
             (assoc expr
                    u/expr-type res))
-    :else (do (u/tc-warning (str "js-op missing, inferring Unchecked"))
+    :else (do (u/tc-warning (str "js-op missing, inferring Any"))
               (assoc expr
                      u/expr-type (below/maybe-check-below
-                                   (r/ret (r/-unchecked 'js))
+                                   (r/ret r/-any)
                                    expected)))))
 
 (defmulti invoke-special (fn [{{:keys [op] :as fexpr} :fn :keys [env] :as expr} _expected]

@@ -48,7 +48,7 @@
       (when (ind/subtype? (:upper-bound bnd)
                           (impl/impl-case
                             :clojure (c/RClass-of IPersistentMap [r/-any r/-any])
-                            :cljs (c/Protocol-of 'cljs.core/IMap [r/-any r/-any])))
+                            :cljs (c/-name 'typed.clojure/Map r/-any r/-any)))
         (r/AssocType-maker f [(mapv r/ret-t assoc-entry)] nil))))
 
   Value
@@ -60,7 +60,7 @@
          (c/-complete-hmap {rkt (:t vt)})
          (impl/impl-case
            :clojure (c/RClass-of IPersistentMap [rkt (:t vt)])
-           :cljs (c/Protocol-of 'cljs.core/IMap [rkt (:t vt)]))))))
+           :cljs (c/-name 'typed.clojure/Map rkt (:t vt)))))))
   
   RClass
   (-assoc-pair
@@ -100,7 +100,7 @@
              vs (apply c/Un (cons (:t vt) (mapcat vals [(:types hmap) (:optional hmap)])))]
          (impl/impl-case
            :clojure (c/RClass-of IPersistentMap [ks vs])
-           :cljs (c/Protocol-of 'cljs.core/IMap [ks vs]))))))
+           :cljs (c/-name 'typed.clojure/Map ks vs))))))
   
   HSequential
   (-assoc-pair
@@ -170,7 +170,7 @@
 
         (ind/subtype? t (impl/impl-case
                           :clojure (c/RClass-of IPersistentMap [r/-any r/-any])
-                          :cljs (c/Protocol-of 'cljs.core/IMap [r/-any r/-any])))
+                          :cljs (c/-name 'typed.clojure/Map r/-any r/-any)))
         t))))
 
 (defn dissoc-keys [t ks]
@@ -338,10 +338,10 @@
    :post [((some-fn nil? r/Type?) %)]}
   (let [left-map (ind/subtype? left (impl/impl-case
                                   :clojure (c/RClass-of IPersistentMap [r/-any r/-any])
-                                  :cljs (c/Protocol-of 'cljs.core/IMap [r/-any r/-any])))
+                                  :cljs (c/-name 'typed.clojure/Map r/-any r/-any)))
         right-map (ind/subtype? (r/ret-t right) (impl/impl-case
                                             :clojure (c/RClass-of IPersistentMap [r/-any r/-any])
-                                            :cljs (c/Protocol-of 'cljs.core/IMap [r/-any r/-any])))]
+                                            :cljs (c/-name 'typed.clojure/Map r/-any r/-any)))]
     (cond
      ; preserve the rhand alias when possible
      (and (ind/subtype? left r/-nil) right-map)
@@ -358,7 +358,7 @@
          (and (ind/subtype? left r/-nil) 
               (ind/subtype? rtype (impl/impl-case
                                 :clojure (c/RClass-of IPersistentMap [r/-any r/-any])
-                                :cljs (c/Protocol-of 'cljs.core/IMap [r/-any r/-any]))))
+                                :cljs (c/-name 'typed.clojure/Map r/-any r/-any))))
            rtype
          
          (and (r/HeterogeneousMap? left) (r/HeterogeneousMap? rtype))

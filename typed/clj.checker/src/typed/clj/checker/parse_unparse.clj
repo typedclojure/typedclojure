@@ -437,7 +437,7 @@
             (when-not (and (vector? named)
                            (every? symbol? named))
               (err/int-error (str ":named keyword argument to All must be a vector of symbols, given: " (pr-str named)))))
-        dotted? (= '... (peek positional))
+        dotted? (boolean (#{:... '...} (peek positional)))
         bnds* (if named
                 (let [positional-no-dotted (cond-> positional
                                              dotted? (-> pop pop))
@@ -1136,7 +1136,7 @@
                                       (resolve-type-clj sym))]
                             (cond
                               (class? res) (coerce/Class->symbol res)
-                              (var? res)   (coerce/var->symbol res)
+                              (var? res) (coerce/var->symbol res)
                               ;; name doesn't resolve, try declared protocol or datatype
                               ;; in the current namespace
                               :else (or (resolve-type-alias-clj sym)
@@ -1302,7 +1302,8 @@
 
         opts (apply hash-map opts-flat)
 
-        {ellipsis-pos '...
+        {ellipsis-pos :...
+         kw-ellipsis-pos '...
          asterix-pos '*
          kw-asterix-pos :*
          ampersand-pos '&
@@ -1310,10 +1311,11 @@
          push-dot-pos '<...}
         (zipmap all-dom (range))
 
-        _ (when-not (#{0 1} (count (filter identity [asterix-pos ellipsis-pos ampersand-pos 
+        _ (when-not (#{0 1} (count (filter identity [asterix-pos ellipsis-pos kw-ellipsis-pos ampersand-pos 
                                                      kw-asterix-pos push-rest-pos])))
             (err/int-error "Can only provide one rest argument option: & ... * or <*"))
 
+        ellipsis-pos (or ellipsis-pos kw-ellipsis-pos)
         asterix-pos (or asterix-pos kw-asterix-pos)
 
         _ (when-some [ks (seq (remove #{:filters :object :flow} (keys opts)))]

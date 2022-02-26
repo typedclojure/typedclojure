@@ -108,9 +108,9 @@
                      (impl/impl-case
                        :clojure (c/RClass-of APersistentMap [(apply c/Un (keys ts))
                                                              (apply c/Un (vals ts))])
-                       :cljs (c/Protocol-of 'cljs.core/IMap
-                                            [(apply c/Un (keys ts))
-                                             (apply c/Un (vals ts))]))
+                       :cljs (c/-name 'typed.clojure/Map
+                                      (apply c/Un (keys ts))
+                                      (apply c/Un (vals ts))))
                      (r/make-ExactCountRange (count keyexprs))))
         actual-ret (r/ret actual-t (fo/-true-filter))]
     (assoc expr

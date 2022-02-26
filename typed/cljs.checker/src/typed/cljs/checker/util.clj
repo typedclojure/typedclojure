@@ -11,7 +11,8 @@
             [cljs.compiler :as comp]
             [cljs.env :as env]
             [clojure.core.typed.current-impl :as impl]
-            [clojure.core.typed.emit-form-cljs :as emit-form]))
+            [clojure.core.typed.emit-form-cljs :as emit-form]
+            [clojure.tools.reader :as reader]))
 
 (defonce default-env (env/default-compiler-env))
 
@@ -24,6 +25,12 @@
 (defmacro with-cljs-typed-env [& body]
   `(env/with-compiler-env (or env/*compiler* default-env)
      (do ~@body)))
+
+(defn with-cljs-typed-env* [f]
+  (with-cljs-typed-env (f)))
+
+(defn with-core-cljs* []
+  (comp/with-core-cljs))
 
 (defn var-exists? [env prefix suffix]
   (let [compiler env/*compiler*
@@ -90,3 +97,13 @@
        (apply merge
               ((juxt :requires :require-macros :as-aliases)
                (ana/get-namespace cljs-nsym)))))))
+
+(defn with-analyzer-bindings* [f]
+  (binding [ana/*file-defs*        (atom #{})
+            ana/*unchecked-if*     false
+            ana/*unchecked-arrays* false
+            ana/*cljs-warnings*    ana/*cljs-warnings*
+            ana/*cljs-ns* 'cljs.user
+            ana/*cljs-file* "NO_FILE"
+            reader/*alias-map* (or reader/*alias-map* {})]
+    (f)))

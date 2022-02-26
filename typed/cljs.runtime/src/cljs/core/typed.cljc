@@ -22,10 +22,16 @@
             [clojure.core.typed.macros :as macros]
             [clojure.core.typed.util-vars :as vs]
             [clojure.pprint :as pprint]
+            [clojure.string :as str]
             [cljs.analyzer.api :as ana-api]))
 
 (import-m/import-macros clojure.core.typed.macros
   [fn tc-ignore ann-form def loop let defn atom defprotocol])
+
+(core/defn register!
+  "Internal -- Do not use"
+  []
+  ((requiring-resolve 'clojure.core.typed.current-impl/register-cljs!)))
 
 (core/defn load-if-needed
   "Load and initialize all of core.typed if not already"
@@ -56,7 +62,9 @@
              (cljs-ns)
              #((requiring-resolve 'typed.clj.checker.parse-unparse/parse-cljs) t#)))))))
 
-(defmacro ^:no-doc with-current-location
+(def ^:private int-error #(apply (requiring-resolve 'clojure.core.typed.errors/int-error) %&)) 
+
+(defmacro ^:private ^:no-doc with-current-location
   [{:keys [form env]} & body]
   `(core/let [form# ~form
               env# ~env]
@@ -67,6 +75,29 @@
                                            :column (or (-> form# meta :column)
                                                        (:column env#)))}]
        ~@body)))
+
+(core/defn ^:no-doc add-tc-type-name [form qsym t]
+  {:pre [(seq? form)
+         (qualified-symbol? qsym)]}
+  (impl/with-cljs-impl
+    (core/let
+      [;; preserve *ns*
+       bfn (bound-fn []
+             (with-current-location form
+               @(delay-tc-parse t)))
+       t (delay
+           (core/let
+             [unparse-type (requiring-resolve 'typed.clj.checker.parse-unparse/unparse-type)
+              t (bfn)
+              #_#_
+              _ (impl/with-cljs-impl
+                  (when-let [tfn ((requiring-resolve 'typed.cljc.checker.declared-kind-env/declared-kind-or-nil) qsym)]
+                    (when-not ((requiring-resolve 'typed.clj.checker.subtype/subtype?) t tfn)
+                      (int-error (str "Declared kind " (unparse-type tfn)
+                                      " does not match actual kind " (unparse-type t))))))]
+             t))]
+      ((requiring-resolve 'clojure.core.typed.current-impl/add-tc-type-name) qsym t)))
+  nil)
 
 (core/defn ^:no-doc
   ann*-macro-time
@@ -91,7 +122,7 @@
       (impl/add-tc-var-type qsym tc-type)))
   nil)
 
-(defmacro ann 
+(defmacro ann
   "Annotate varsym with type. If unqualified, qualify in the current namespace.
   If varsym has metadata {:no-check true}, ignore definitions of varsym while type checking.
 
@@ -105,16 +136,47 @@
   (ann ^:no-check foobar [Integer -> String])"
   [varsym typesyn]
   {:pre [(symbol? varsym)]}
-  (core/let [{nme :name} (ana-api/resolve &env varsym)
-             qsym (or nme
-                      (when (simple-symbol? varsym)
-                        (symbol (name (cljs-ns))
-                                (name varsym)))
-                      (err/int-error (str "Cannot resolve " varsym))) 
+  (core/let [current-nsym (cljs-ns)
+             varsym-nsym (some-> (namespace varsym) symbol)
+             qsym (symbol (name
+                            (or (get ((requiring-resolve 'typed.cljs.checker.util/get-aliases)
+                                      current-nsym)
+                                     varsym-nsym)
+                                varsym-nsym
+                                current-nsym))
+                          (name varsym))
+             #_#_ ;;FIXME warn if (namespace qsym) is cljs.core
+             _ (when-not (ana-api/resolve &env varsym) ;; FIXME throws on missing?
+                 (println (str "WARNING: " varsym " not resolvable, annotating as " qsym)))
              opts (meta varsym)
              check? (not (:no-check opts))]
     (ann*-macro-time qsym typesyn check? &form &env)
     nil))
+
+(core/defn- ^:no-doc
+  ann-protocol*-macro-time
+  [vbnd varsym mth form]
+  (core/let [add-protocol-env (requiring-resolve 'clojure.core.typed.current-impl/add-protocol-env)
+             gen-protocol* (requiring-resolve 'clojure.core.typed.current-impl/gen-protocol*)
+             qualsym (if (namespace varsym)
+                       varsym
+                       (symbol (name (cljs-ns)) (name varsym)))]
+    #_
+    (impl/with-cljs-impl
+      (add-protocol-env
+        qualsym
+        {:name qualsym
+         :methods mth
+         :bnds vbnd}))
+    (impl/with-cljs-impl
+      (with-current-location form
+        (gen-protocol*
+          vs/*current-env*
+          (cljs-ns)
+          varsym
+          vbnd
+          mth))))
+  nil)
 
 (defmacro 
   ^{:forms '[(ann-protocol vbnd varsym & methods)
@@ -139,12 +201,16 @@
   (core/let [bnd-provided? (vector? (first args))
              vbnd (when bnd-provided?
                     (first args))
-             varsym (if bnd-provided?
-                      (second args)
-                      (first args))
-             {:as mth} (if bnd-provided?
-                         (next (next args))
-                         (next args))]
+             [varsym & mth] (if bnd-provided?
+                              (next args)
+                              args)
+             _ (core/let [fs (frequencies (map first (partition 2 mth)))]
+                 (when-let [dups (seq (filter (core/fn [[_ freq]] (< 1 freq)) fs))]
+                   (println (str "WARNING: Duplicate method annotations in ann-protocol (" varsym 
+                                 "): " (str/join ", " (map first dups))))))
+             ; duplicates are checked above.
+             {:as mth} mth]
+    (ann-protocol*-macro-time vbnd varsym mth &form)
     nil))
 
 (defmacro ann-jsnominal
@@ -155,6 +221,34 @@
                        (symbol (str (ns-name *ns*)) (name varsym)))]
     (assert nil "NYI")
     nil))
+
+(core/defn ^:no-doc
+  ann-datatype*-macro-time
+  "Internal use only. Use ann-datatype."
+  [vbnd dname fields opts form]
+  (impl/with-cljs-impl
+    (core/let [add-datatype-env (requiring-resolve 'clojure.core.typed.current-impl/add-datatype-env)
+               gen-datatype* (requiring-resolve 'clojure.core.typed.current-impl/gen-datatype*)
+               dname-nsym (some-> dname namespace symbol)
+               qname (with-meta
+                       (symbol (name
+                                 (or (get ((requiring-resolve 'typed.cljs.checker.util/get-aliases)
+                                           (cljs-ns))
+                                          dname-nsym)
+                                     dname-nsym
+                                     (cljs-ns)))
+                               (name dname))
+                       (meta dname))]
+      #_
+      (add-datatype-env 
+        qname
+        {:record? false
+         :name qname
+         :fields fields
+         :bnd vbnd})
+      (with-current-location form
+        (gen-datatype* vs/*current-env* (cljs-ns) qname fields vbnd opts false))
+      nil)))
 
 (defmacro
   ^{:forms '[(ann-datatype dname [field :- type*] opts*)
@@ -181,7 +275,13 @@
     (assert (not rplc) "Replace NYI")
     (assert (symbol? dname)
             (str "Must provide name symbol: " dname))
+    (ann-datatype*-macro-time vbnd dname fields opts &form)
     nil))
+
+(defn- defalias*-macro-time
+  [form qsym t]
+  (add-tc-type-name form qsym t)
+  nil)
 
 (defmacro defalias 
   "Define a type alias. Takes an optional doc-string as a second
@@ -193,14 +293,25 @@
         \"Here is my alias\"
         (U nil String))"
   ([sym doc-str t]
+   (assert (symbol? sym) (str "First argument to defalias must be a symbol: " sym))
    (assert (string? doc-str) "Doc-string passed to defalias must be a string")
-   `(defalias ~sym ~t))
+   (with-meta `(defalias ~(vary-meta sym assoc :doc doc-str) ~t)
+              (meta &form)))
   ([sym t]
    (assert (symbol? sym) (str "First argument to defalias must be a symbol: " sym))
-   `(tc-ignore
-      ;;TODO don't reify
-      ~(when-not (namespace sym)
-         `(def ~sym)))))
+   (core/let [current-nsym (cljs-ns)
+              sym-nsym (some-> (namespace sym) symbol)
+              qsym (with-meta
+                     (symbol (name
+                               (or (get ((requiring-resolve 'typed.cljs.checker.util/get-aliases)
+                                         current-nsym)
+                                        sym-nsym)
+                                   sym-nsym
+                                   current-nsym))
+                             (name sym))
+                     (meta sym))]
+     (defalias*-macro-time &form qsym t)
+     nil)))
 
 (defmacro inst 
   "Instantiate a polymorphic type with a number of types"

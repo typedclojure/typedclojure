@@ -114,7 +114,8 @@
            deps-maps))))
 
 (defn kaocha-config []
-  {:kaocha/tests                       [{:kaocha.testable/type :kaocha.type/clojure.test
+  {:kaocha/bindings '{kaocha.stacktrace/*stacktrace-filters* []}
+   :kaocha/tests                       [{:kaocha.testable/type :kaocha.type/clojure.test
                                          :kaocha.testable/id   :unit
                                          :kaocha/ns-patterns   [".*"]
                                          :kaocha/source-paths  (src-paths)

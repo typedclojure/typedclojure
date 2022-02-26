@@ -40,17 +40,17 @@
   (is-cljs (t/check-ns* 'cljs.core.typed.test.ann)))
 
 (deftest parse-protocol-test 
-  (is-cljs (prs/parse-cljs '(cljs.core/IMap cljs.core.typed/JSnumber cljs.core.typed/JSnumber))))
+  (is-cljs (prs/parse-cljs '(cljs.core/IMapEntry cljs.core.typed/JSnumber cljs.core.typed/JSnumber))))
 
 (deftest Protocol-of-test
-  (is-cljs (c/Protocol-of 'cljs.core/IMap [(r/JSNumber-maker)
-                                           (r/JSNumber-maker)])))
+  (is-cljs (c/Protocol-of 'cljs.core/IMapEntry [(r/JSNumber-maker)
+                                                (r/JSNumber-maker)])))
 
 (deftest do-test
   (is-tc-e (do) nil)
   (is-tc-e (do nil) nil)
   (is-tc-e (do #{1})
-           (ISet t/JSnumber)))
+           (t/Set t/JSnumber)))
 
 (deftest heterogeneous-ds-test
   (is-tc-e [1 2]
@@ -60,11 +60,13 @@
   (is-tc-e {:a 1}
            '{:a t/JSnumber})
   (is-tc-e {1 1}
-           (IMap t/JSnumber t/JSnumber))
+           (t/Map t/JSnumber t/JSnumber))
   (is-tc-e #{1}
-           (ISet t/JSnumber))
+           (t/HSet #{1}))
+  (is-tc-e #{1}
+           (t/Set t/JSnumber))
   (is-tc-e (let [a 1] #{1 a})
-           (ISet t/JSnumber)))
+           (t/Set t/JSnumber)))
 
 (deftest js*-test
   (is-tc-e (js* "(~{})" 1)))
@@ -131,7 +133,6 @@
              (recur (inc i)))
            -1))))))
 
-#_
 (deftest simple-polymorphic-test
   (is-cljs (t/check-ns* 'cljs.core.typed.test.identity)))
 
@@ -178,8 +179,8 @@
 
 (deftest ctyp-255-cljs-test
   (testing "unparsing protocols is fully qualified in :unknown"
-    (is-cljs (= (prs/unparse-type (c/Protocol-of 'cljs.core/ISet [r/-any]))
-                '(cljs.core/ISet clojure.core.typed/Any)))))
+    (is-cljs (= (prs/unparse-type (c/Protocol-of 'cljs.core/ISet))
+                'cljs.core/ISet))))
 
 
 (def nodes #{:binding :case :case-node :case-test :case-then :const :def :defrecord :deftype :do :fn :fn-method :host-call :host-field :if :invoke :js :js-array :js-object :js-var :let :letfn :local :loop :map :new :no-op :ns :ns* :quote :recur :set :set! :the-var :throw :try :var :vector :with-meta

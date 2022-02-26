@@ -7,15 +7,15 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.cljc.checker.check.set
-  (:require [typed.cljc.checker.type-ctors :as c]
-            [clojure.core.typed.current-impl :as impl]
+  (:require [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.util-vars :as vs]
-            [typed.cljc.checker.check-below :as below]
-            [typed.cljc.checker.filter-ops :as fo]
-            [typed.cljc.checker.type-rep :as r]
-            [typed.cljc.checker.utils :as u]
             [typed.clj.checker.subtype :as sub]
-            [typed.cljc.checker.check.utils :as cu])
+            [typed.cljc.checker.check-below :as below]
+            [typed.cljc.checker.check.utils :as cu]
+            [typed.cljc.checker.filter-ops :as fo]
+            [typed.cljc.checker.type-ctors :as c]
+            [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.checker.utils :as u])
   (:import (clojure.lang PersistentHashSet)))
 
 (defn check-set [check {:keys [items] :as expr} expected]
@@ -27,7 +27,7 @@
                    (r/-hset (r/sorted-type-set ts))
                    (impl/impl-case
                      :clojure (c/RClass-of PersistentHashSet [(apply c/Un ts)])
-                     :cljs (c/Protocol-of 'cljs.core/ISet [(apply c/Un ts)])))]
+                     :cljs (c/-name 'typed.clojure/Set (apply c/Un ts))))]
     (assoc expr
            :items cargs
            u/expr-type (binding [vs/*current-expr* expr]
