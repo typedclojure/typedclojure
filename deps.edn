@@ -43,7 +43,7 @@
     com.gfredericks/test.chuck {:mvn/version "0.2.12"},
     criterium/criterium {:mvn/version "0.4.5"},
     org.clojure/clojurescript {:mvn/version "1.11.4"},
-    org.clojure/core.logic {:mvn/version "1.0.0"},
+    org.clojure/core.logic {:mvn/version "1.0.1"},
     org.clojure/math.combinatorics
     {:exclusions [org.clojure/clojure], :mvn/version "0.1.6"},
     org.clojure/test.check {:mvn/version "1.1.1"},

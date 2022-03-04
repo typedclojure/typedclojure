@@ -145,7 +145,6 @@
   (is-tc-e true t/JSboolean)
   (is-tc-e "a" t/JSstring))
 
-#_ ;;TODO
 (deftest ns-deps-test
   (is (t/check-ns* 'cljs.core.typed.test.dep-one))
   (is (t/check-ns* 'cljs.core.typed.test.dep-two)))
@@ -160,10 +159,9 @@
            [(t/All [x] [(cljs.core/IVector x) -> x])
             -> t/Any]))
 
-#_ ;;TODO
 (deftest seq-test
   (is-tc-e [1 2 3] (t/Coll cljs.core.typed/CLJSInteger))
-  (is-tc-e [1 2 3] (t/Seqable cljs.core.typed/CLJSInteger))  ;;not sure if it should be...
+  (is-tc-e [1 2 3] (t/Seqable cljs.core.typed/CLJSInteger))
   (is-tc-e (seq [1 2 3]) (t/NonEmptyASeq cljs.core.typed/CLJSInteger)))
 
 ;(t/check-ns* 'cljs.core.typed.test.dnolen.utils.dom)
@@ -264,39 +262,37 @@
   (is (not (sub? nil cljs.core.typed/JSundefined)))
   (is (sub? cljs.core.typed/JSundefined nil))
   (is (sub? cljs.core.typed/JSnull nil))
-  ;;FIXME waiting for var anns
-  (comment
-    (is-tc-e (t/fn [a :- t/JSundefined] :- nil
+  (is-tc-e (t/fn [a :- t/JSundefined] :- nil
+             a))
+  (is-tc-e (t/fn [a :- t/JSnull] :- nil
+             a))
+  (is-tc-err (t/fn [a :- t/JSnull] :-  t/JSundefined
                a))
-    (is-tc-e (t/fn [a :- t/JSnull] :- nil
+  (is-tc-err (t/fn [a :- t/JSundefined] :-  t/JSnull
                a))
-    (is-tc-err (t/fn [a :- t/JSnull] :-  t/JSundefined
-                 a))
-    (is-tc-err (t/fn [a :- t/JSundefined] :-  t/JSnull
-                 a))
-    (is-tc-e (when (undefined? nil)
+  (is-tc-e (when (undefined? nil)
+             :kw)
+           nil)
+  (is-tc-err (when (undefined? (t/ann-form nil nil))
                :kw)
              nil)
-    (is-tc-err (when (undefined? (t/ann-form nil nil))
-                 :kw)
-               nil)
-    (is-tc-e (t/fn [a :- t/JSnull]
-               (when (undefined? a)
-                 :kw))
-             [t/JSnull :-> nil])
-    (is-tc-e (t/fn [a :- t/JSundefined]
-               (when (undefined? a)
-                 :kw))
-             [t/JSundefined :-> ':kw])
-    (is-tc-e (do
-               (t/ann ^:no-check a t/JSundefined)
-               (def a nil)
-               a)
-             nil)
-    (is-tc-e (t/fn [a :- (t/U (cljs.core/IVector t/Any) t/JSundefined)]
-               (if a
-                 (t/ann-form a (cljs.core/IVector t/Any))
-                 (t/ann-form a t/JSundefined))))))
+  (is-tc-e (t/fn [a :- t/JSnull]
+             (when (undefined? a)
+               :kw))
+           [t/JSnull :-> nil])
+  (is-tc-e (t/fn [a :- t/JSundefined]
+             (when (undefined? a)
+               :kw))
+           [t/JSundefined :-> ':kw])
+  (is-tc-e (do
+             (t/ann ^:no-check a t/JSundefined)
+             (def a nil)
+             a)
+           nil)
+  (is-tc-e (t/fn [a :- (t/U (cljs.core/IVector t/Any) t/JSundefined)]
+             (if a
+               (t/ann-form a (cljs.core/IVector t/Any))
+               (t/ann-form a t/JSundefined)))))
 
 (deftest ratio-test
   (is-tc-e 1/2 t/JSnumber))

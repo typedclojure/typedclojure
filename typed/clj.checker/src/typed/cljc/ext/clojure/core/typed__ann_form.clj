@@ -24,7 +24,6 @@
   [{[_ body tsyn :as form] :form :keys [env] :as expr} expected]
   (assert (#{3} (count form))
           (str "Incorrect number of arguments to ann-form: " form))
-  (prn `-unanalyzed-special__ann-form)
   (let [parsed-t (binding [prs/*parse-type-in-ns* (cu/expr-ns expr)]
                    (prs/parse-type tsyn))
         ;; TODO let users add expected filters etc

@@ -89,7 +89,7 @@
         ;; don't expand macros that inline raw js
         (when-some [rsym (when (seq? form) (ana2/resolve-sym (first form) env))]
           (when-some [cljsvar-ann (var-env/type-of-nofail rsym)]
-            (prn "cljsvar-ann" rsym cljsvar-ann)
+            ;(prn "cljsvar-ann" rsym cljsvar-ann)
             (let [macro-var (find-var rsym)]
               (when (and (var? macro-var)
                          (-> macro-var meta :macro))
@@ -106,6 +106,7 @@
    (loop [expr expr
           fuel 1000]
      (when (neg? fuel) (prn `check-expr "infinite loop"))
+     #_
      (prn `check-expr "op" (:op expr) (:form expr)
           cljs-ana/*cljs-ns*
           )
@@ -469,7 +470,7 @@
 
 (defmethod -check :fn
   [{:keys [methods] :as expr} expected]
-  (prn `-check :fn (mapv (comp :op :ret :body) methods))
+  ;(prn `-check :fn (mapv (comp :op :ret :body) methods))
   (prepare-check-fn
     (if expected
       (fn/check-fn expr expected)

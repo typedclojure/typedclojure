@@ -42,7 +42,7 @@
    :tools-nrepl-mvn-version "0.2.6"
    :test-check-mvn-version "1.1.1"
    :test-chuck-mvn-version "0.2.12"
-   :core-logic-mvn-version "1.0.0"
+   :core-logic-mvn-version "1.0.1"
    :cognitect-test-runner-coordinates "io.github.cognitect-labs/test-runner"
    :cognitect-test-runner-git-url "https://github.com/cognitect-labs/test-runner"
    :cognitect-test-runner-sha "dd6da11611eeb87f08780a30ac8ea6012d4c05ce"
@@ -51,5 +51,5 @@
    ;; 1.60.972
    :kaocha-sha "23d7bf426c8bc2027d0da2fc2a5420f5c6474740"
    :typedclojure-homepage "https://typedclojure.org"
-   :malli-mvn-version "0.8.1"
+   :malli-mvn-version "0.8.3"
    })
