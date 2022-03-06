@@ -62,33 +62,6 @@
                   (repeat rtn-type))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Initial type aliases
-
-;(base-rclass/reset-rclass-env!)
-
-(delay-and-cache-env ^:private init-protocol-env 
-                     {}
-   #_(protocol-mappings
-clojure.java.io/IOFactory 
-     [[]
-      :methods
-      {
-       make-reader
-       [clojure.java.io/IOFactory '{:append t/Any, :encoding (t/U nil String)} -> java.io.BufferedReader]
-
-       make-writer 
-       [clojure.java.io/IOFactory '{:append t/Any, :encoding (t/U nil String)} -> java.io.BufferedWriter]
-
-       make-input-stream 
-       [clojure.java.io/IOFactory '{:append t/Any, :encoding (t/U nil String)} -> java.io.BufferedInputStream]
-
-       make-output-stream
-       [clojure.java.io/IOFactory '{:append t/Any, :encoding (t/U nil String)} -> java.io.BufferedOutputStream]
-       }]
-
-     ))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Type annotations
 
 (defn ^:private count-type []
@@ -544,7 +517,7 @@ clojure.lang.Delay (t/All [x]
     (method-override-env/reset-method-override-env! (init-method-override-env))
     (field-override-env/reset-field-override-env! (init-field-override-env))
     (ctor-override-env/reset-constructor-override-env! (init-ctor-override-env))
-    (protocol-env/reset-protocol-env! (init-protocol-env))
+    ;(protocol-env/reset-protocol-env! (init-protocol-env))
     (declared-kind-env/reset-declared-kinds! (init-declared-kinds))
     (datatype-env/reset-datatype-env! (init-datatype-env))
     (datatype-ancestor-env/reset-datatype-ancestors! (init-datatype-ancestor-env)))
@@ -554,7 +527,7 @@ clojure.lang.Delay (t/All [x]
   (impl/with-clojure-impl
     ;(refresh-core-alias-env!)
     (base-rclass/reset-rclass-env!)
-    (protocol-env/merge-protocol-env! (init-protocol-env))
+    ;(protocol-env/merge-protocol-env! (init-protocol-env))
     (var-env/refresh-var-type-env! (init-var-env) (init-var-nochecks))
     (method-param-nilables/merge-method-nilable-param-env! (init-method-nilable-param-env))
     (method-return-nilables/merge-nonnilable-method-return-env! (init-method-nonnilable-return-env))

@@ -23,6 +23,9 @@
 ;; ==========================================
 ;; Protocol annotations
 
+(t/ann-protocol cc/Inst
+                -inst-ms [cc/Inst :-> t/Int])
+
 #?(:cljs (do
 (t/ann-protocol cljs.core/Fn)
 (t/ann-protocol cljs.core/IFn)
@@ -128,7 +131,7 @@
                 -named [cljs.core/INamed :-> s/Str]
                 -namespace [cljs.core/INamed :-> (t/Nilable s/Str)])
 
-;(t/ann-datatype [[x :variance :covariant]] cljs.core.Reduced)
+(t/ann-protocol cljs.core/UUID)
 ))
 
 ;; ==========================================
@@ -142,6 +145,7 @@
 (t/ann-datatype cljs.core/Keyword)
 (t/ann-datatype [[x :variance :covariant]] cljs.core/List)
 (t/ann-datatype [[x :variance :covariant]] cljs.core/Reduced)
+(t/ann-datatype cljs.core/ExceptionInfo)
            ))
 
 ;; ==========================================
@@ -199,6 +203,10 @@
   t/Symbol)
 
 (t/defalias
+  t/Ident
+  (t/U t/Sym t/Kw))
+
+(t/defalias
   ^{:doc "A string"
     :forms '[Str]}
   t/Str
@@ -230,6 +238,11 @@
   #?(:clj clojure.lang.Namespace
      ;; nilable?
      :cljs cljs.core/Namespace))
+
+(t/defalias
+  t/UUID
+  #?(:clj java.util.UUID
+     :cljs cljs.core/UUID))
 
 (t/defalias
   ^{:doc "An atom that can write type w and read type r."
@@ -329,6 +342,16 @@
          (t/Nilable
            #?(:clj (clojure.lang.Seqable x)
               :cljs (cljs.core/ISeqable x)))))
+
+(t/defalias
+  t/Counted
+  #?(:clj clojure.lang.Counted
+     :cljs cljs.core/ICounted))
+
+(t/defalias
+  t/URI
+  #?(:clj java.net.URI
+     :cljs goog.Uri))
 
 (t/defalias
   ^{:doc "A type that returns true for clojure.core/coll?, with members t."
@@ -629,8 +652,9 @@
   ^{:doc "A Clojure custom exception type."
     :forms '[ExInfo]}
   t/ExInfo
-  (t/I clojure.lang.IExceptionInfo
-     RuntimeException))
+  #?(:clj (t/I clojure.lang.IExceptionInfo
+               RuntimeException)
+     :cljs cljs.core/ExceptionInfo))
 
 (t/defalias
   ^{:doc "A Clojure proxy."
@@ -894,6 +918,10 @@ cc/read (t/IFn [-> t/Any]
                [java.io.Reader -> t/Any]
                [java.io.Reader t/Bool t/Any -> t/Any]
                [java.io.Reader t/Bool t/Any t/Bool -> t/Any])
+cc/read+string (t/IFn [-> '[t/Any t/Str]]
+                      [java.io.Reader -> '[t/Any t/Str]]
+                      [java.io.Reader t/Bool t/Any -> '[t/Any t/Str]]
+                      [java.io.Reader t/Bool t/Any t/Bool -> '[t/Any t/Str]])
 cc/read-line [-> (t/U nil t/Str)]
 cc/add-classpath [(t/U t/Str java.net.URL) -> nil]
 ])
@@ -1124,6 +1152,7 @@ cc/set (t/All [x] [(t/Seqable x) -> #?(:cljs (t/Set x)
 cc/hash-set (t/All [x] [x * -> #?(:cljs (t/Set x)
                                   :default (PersistentHashSet x))])
 cc/hash-map (t/All [x y] [(t/HSequential [x y] :repeat true) <* -> (t/Map x y)])
+cc/array-map (t/All [x y] [(t/HSequential [x y] :repeat true) <* -> (t/Map x y)])
 cc/sorted-map (t/All [x y] [(t/HSequential [x y] :repeat true) <* -> (t/Map x y)])
 cc/sorted-set (t/All [x] [x * -> #?(:cljs (t/SortedSet x)
                                     :default (PersistentTreeSet x))])
@@ -1307,7 +1336,6 @@ cc/force (t/All [x] (t/IFn [(t/Delay x) -> x]
                            #_[(t/I x (t/Not (t/Delay t/Any))) -> x]
                            [t/Any -> t/Any]))
 
-;; TODO cljs
 cc/realized? [#?(:clj clojure.lang.IPending
                  :cljs cljs.core/IPending) -> t/Bool]
 
@@ -1321,6 +1349,10 @@ cc/replicate (t/All [a] [t/AnyInteger a -> (t/ASeq a)])
 
 cc/reset! (t/All [w r] [(t/Atom2 w r) w -> w])
 cc/swap! (t/All [w r b ...] [(t/Atom2 w r) [r b ... b -> w] b ... b -> w])
+#?@(:cljs [] :default [
+cc/reset-vals! (t/All [w r] [(t/Atom2 w r) w -> '[r w]])
+cc/swap-vals! (t/All [w r b ...] [(t/Atom2 w r) [r b ... b -> w] b ... b -> '[r w]])
+])
 cc/compare-and-set! (t/All [w] [(t/Atom2 w t/Any) t/Any w -> t/Bool])
 
 cc/set-validator! (t/All [x] [#?(:clj (clojure.lang.IRef x x)
@@ -1384,6 +1416,7 @@ cc/compare [t/Any t/Any -> t/Num]
 
 #?@(:cljs [] :default [
 cc/require [t/Any * -> nil]
+cc/requiring-resolve [t/Sym -> (t/U (t/Var2 t/Nothing t/Any) Class nil)]
 cc/use [t/Any * -> nil]
 cc/refer [t/Sym & :optional {:exclude (t/Seqable t/Sym)
                              :only (t/Seqable t/Sym)
@@ -1405,6 +1438,7 @@ cc/symbol? (t/Pred t/Sym)
 cc/keyword? (t/Pred t/Keyword)
 cc/map? (t/Pred (t/Map t/Any t/Any))
 cc/boolean? (t/Pred t/Bool)
+cc/any? (t/Pred t/Any)
 
 ; would be nice
 ; (t/Pred (t/Not nil))
@@ -1449,6 +1483,10 @@ cc/compile [t/Sym -> t/Sym]
 cc/comparator (t/All [x y] [[x y -> t/Any] -> (t/I Comparator [x y -> t/AnyInteger])])
 
 #?@(:cljs [] :default [
+cc/seq-to-map-for-destructuring [(t/Seqable t/Any) :-> t/Any]
+;cc/seq-to-map-for-destructuring (t/All [x] (t/IFn [(t/HSeq [x]) :-> x]
+;                                                  ;; could be anything if seq is of count 1
+;                                                  [(t/Seq t/Any) -> t/Any]))
 cc/destructure [t/Any -> t/Any]
 ])
 
@@ -1758,9 +1796,20 @@ cc/flatten [(t/Seqable t/Any) -> (t/Seq t/Any)]
 
 cc/map-indexed (t/All [x y] [[t/AnyInteger x -> y] (t/Seqable x) -> (t/ASeq y)])
 cc/keep-indexed (t/All [a c] [[t/Num a -> (t/U nil c)] (t/Seqable a) -> (t/Seq c)])
+cc/bounded-count [(t/U t/Counted (t/Seqable t/Any)) :-> t/Int]
 cc/keep (t/All [a b] [[a -> (t/Option b)] (t/Coll a) -> (t/Option (t/ASeq b))])
 
 cc/seqable? (t/Pred (t/Seqable Any))
+cc/indexed? (t/Pred (t/Indexed Any))
+cc/inst-ms [:-> t/Int]
+cc/inst? (t/Pred cc/Inst)
+cc/uuid? (t/Pred t/UUID)
+cc/random-uuid [:-> t/UUID]
+cc/uri? (t/Pred t/URI)
+
+cc/add-tap [[t/Any :-> t/Any] :-> nil]
+cc/remove-tap [t/Any :-> nil]
+cc/tap> [t/Any :-> t/Bool]
 
 cc/merge-with (t/All [k v] (t/IFn [[v v -> v] nil * -> nil]
                                   [[v v -> v] (t/Map k v) * -> (t/Map k v)]
@@ -1941,11 +1990,45 @@ cc/int? (t/Pred #?(:clj (t/U Long
                    :cljs (t/U t/CLJSInteger
                               goog.math.Integer
                               goog.math.Long)))
+cc/pos-int? [s/Any :-> t/Bool
+             :filters {:then (is #?(:clj (t/U Long
+                                              Integer
+                                              Short
+                                              Byte)
+                                    :cljs (t/U t/CLJSInteger
+                                               goog.math.Integer
+                                               goog.math.Long)) 0)}]
+cc/neg-int? [s/Any :-> t/Bool
+             :filters {:then (is #?(:clj (t/U Long
+                                              Integer
+                                              Short
+                                              Byte)
+                                    :cljs (t/U t/CLJSInteger
+                                               goog.math.Integer
+                                               goog.math.Long)) 0)}]
+cc/nat-int? [s/Any :-> t/Bool
+             :filters {:then (is #?(:clj (t/U Long
+                                              Integer
+                                              Short
+                                              Byte)
+                                    :cljs (t/U t/CLJSInteger
+                                               goog.math.Integer
+                                               goog.math.Long)) 0)}]
 cc/number? (t/Pred t/Num)
+cc/double? (t/Pred #?(:clj Double
+                      :cljs t/Num))
+cc/ident? (t/Pred t/Ident)
+cc/simple-ident? [s/Any :-> t/Bool :filters {:then (is t/Ident 0)}]
+cc/qualified-ident? [s/Any :-> t/Bool :filters {:then (is t/Ident 0)}]
+cc/simple-symbol? [s/Any :-> t/Bool :filters {:then (is t/Sym 0)}]
+cc/qualified-symbol? [s/Any :-> t/Bool :filters {:then (is t/Sym 0)}]
+cc/simple-keyword? [s/Any :-> t/Bool :filters {:then (is t/Kw 0)}]
+cc/qualified-keyword? [s/Any :-> t/Bool :filters {:then (is t/Kw 0)}]
 cc/var? (t/Pred (t/Var2 t/Nothing t/Any))
 
 #?@(:cljs [] :default [
 cc/class? (t/Pred Class)
+cc/bytes? (t/Pred (Array byte))
 cc/resolve (t/IFn [t/Sym -> (t/U (t/Var2 t/Nothing t/Any) Class nil)]
                   ; should &env arg be more accurate?
                   [t/Any t/Sym -> (t/U (t/Var2 t/Nothing t/Any) Class nil)])
@@ -2190,10 +2273,12 @@ cc/ref (t/All [x] [x & :optional {:validator (t/U nil [x -> t/Any]) :meta (t/U n
 cc/rand (t/IFn [-> t/Num]
                [t/Num -> t/Num])
 cc/rand-int [t/Int -> t/Int]
-cc/ex-info (t/IFn [(t/U nil t/Str) (t/Map t/Any t/Any) -> t/ExInfo]
-                  [(t/U nil t/Str) (t/Map t/Any t/Any) (t/U nil Throwable) -> t/ExInfo])
+cc/ex-info (t/IFn [(t/Nilable t/Str) (t/Map t/Any t/Any) -> t/ExInfo]
+                  [(t/Nilable t/Str) (t/Map t/Any t/Any) #?(:clj (t/Nilable Throwable) :cljs t/Any) -> t/ExInfo])
 cc/ex-data (t/IFn [t/ExInfo -> (t/Map t/Any t/Any)]
                   [t/Any -> (t/Nilable (t/Map t/Any t/Any))])
+cc/ex-message [t/Any -> (t/Nilable t/Str)]
+cc/ex-cause [t/Any -> #?(:clj (t/Nilable Throwable) :cljs t/Any)]
 
 
 ;; START CHUNK HACKS
