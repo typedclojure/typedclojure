@@ -1673,7 +1673,7 @@
 (extend-protocol IUnparseType
   SymbolicClosure
   (unparse-type* 
-    [{:keys [fexpr env]}]
+    [{:keys [fexpr]}]
     (list 'SymbolicClosure))
 
   Function

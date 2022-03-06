@@ -1852,8 +1852,8 @@
                           cmap))
             ;check delayed constraints and type variable bounds
             _ (let [t-substs (into {} (filter (t/fn [[_ v] :- '[t/Sym cr/SubstRHS]]
-                                                (cr/t-subst? v))
-                                              subst))
+                                                (cr/t-subst? v)))
+                                   subst)
                     [names images] (let [s (seq t-substs)]
                                      [(map first s)
                                       (map (comp :type second) s)])]
@@ -2117,23 +2117,43 @@
      (and (>= (count S) (count T))
           (infer X Y S new-T R expected)))))
 
+(defn cs-gen-app
+  "Constraints for a function application.
+  X : variables to infer mapped to their bounds
+  Y : indices to infer mapped to their bounds
+  S : actual argument types
+  T : formal argument types
+  R : result type
+  expected : nil or the expected type"
+  ([X Y S T R] (cs-gen-app X Y S T R nil))
+  ([X Y S T R expected]
+   {:pre [(every? (con/hash-c? symbol? r/Bounds?) [X Y])
+          (every? r/Type? S)
+          (every? r/Type? T)
+          (r/AnyType? R)
+          ((some-fn nil? r/AnyType?) expected)]
+    :post [(cr/cset? %)]}
+   (let [expected-cset (if expected
+                         (cs-gen #{} X Y R expected)
+                         (cr/empty-cset {} {}))
+         cs (cs-gen-list #{} X Y S T :expected-cset expected-cset)]
+     (cset-meet cs expected-cset))))
+
 ;; X : variables to infer mapped to their bounds
 ;; Y : indices to infer mapped to their bounds
 ;; S : actual argument types
 ;; T : formal argument types
 ;; R : result type
-;; expected : #f or the expected type
+;; expected : nil or the expected type
 ;; returns a substitution
 ;; if R is nil, we don't care about the substituion
 ;; just return a boolean result
 (t/ann infer
-  (t/IFn [ConstrainVars ConstrainVars 
-       (t/U nil (t/Seqable r/Type)) (t/U nil (t/Seqable r/Type))
-       (t/U nil r/AnyType) -> (t/U nil true cr/SubstMap)]
-      [ConstrainVars ConstrainVars 
-       (t/U nil (t/Seqable r/Type)) (t/U nil (t/Seqable r/Type))
-       (t/U nil r/AnyType) (t/U nil TCResult) -> (t/U nil true cr/SubstMap)]))
-(defn infer 
+       (t/IFn [ConstrainVars ConstrainVars (t/Seqable r/Type) (t/Seqable r/Type)
+               (t/Nilable r/AnyType) -> (t/U nil true cr/SubstMap)]
+              [ConstrainVars ConstrainVars (t/Seqable r/Type) (t/Seqable r/Type)
+               (t/Nilable r/AnyType) (t/Nilable TCResult) -> (t/U nil true cr/SubstMap)]))
+(defn infer
   ([X Y S T R] (infer X Y S T R nil))
   ([X Y S T R expected]
    {:pre [(every? (con/hash-c? symbol? r/Bounds?) [X Y])
@@ -2144,23 +2164,7 @@
     :post [(or (nil? %)
                (true? %)
                (cr/substitution-c? %))]}
-   ;  (prn "infer" )
-   ;  (prn "X:" X) 
-   ;  (prn "Y:" Y) 
-   ;  (prn "S:" (map prs/unparse-type S))
-   ;  (prn "T:" (map prs/unparse-type T))
-   ;  (when R
-   ;    (prn "R:" (class R) (prs/unparse-type R)))
-   ;  (when expected
-   ;    (prn "expected:" (class expected) (prs/unparse-type expected)))
-   (let [;_ (prn "before expected cset" R expected)
-         expected-cset (if expected
-                         (cs-gen #{} X Y R expected)
-                         (cr/empty-cset {} {}))
-         ;_ (prn "expected cset" expected-cset)
-         cs (cs-gen-list #{} X Y S T :expected-cset expected-cset)
-         cs* (cset-meet cs expected-cset)]
-     ;(prn "final cs" cs*)
+   (let [cs* (cs-gen-app X Y S T R expected)]
      (if R
        (subst-gen cs* (set (keys Y)) R :T T)
        true))))

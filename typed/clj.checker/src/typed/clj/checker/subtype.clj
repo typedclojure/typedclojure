@@ -12,6 +12,8 @@
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.errors :as err]
             [clojure.set :as set]
+            [clojure.core.typed.util-vars :as vs]
+            [typed.cljc.checker.check :as chk]
             [typed.clj.checker.assoc-utils :as assoc-u]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.cljc.checker.datatype-ancestor-env :as ancest]
@@ -911,47 +913,65 @@
                 (nil? ext) r/-nil
                 :else (throw (Exception. (str "What is this?" ext))))))))
 
+(def ^:dynamic *subtypes-varargs-symbolic-closures* false)
+
 ;[(IPersistentSet '[Type Type]) (t/Seqable Type) (t/Seqable Type) (Option Type)
 ;  -> (IPersistentSet '[Type Type])]
 (defn ^:private subtypes*-varargs [A0 argtys dom rst kws]
   {:pre [((some-fn nil? r/Type?) rst)
          ((some-fn nil? r/KwArgs?) kws)]
    :post [((some-fn set? nil?) %)]}
-  (letfn [(all-mandatory-kws? [found-kws]
-            {:pre [(set? found-kws)]}
-            (empty? (set/difference (set (keys (:mandatory kws)))
-                                    found-kws)))]
-    (loop [dom dom
-           argtys argtys
-           A A0
-           found-kws #{}]
-      (cond
-        (and (empty? dom) (empty? argtys)) 
-        (if (all-mandatory-kws? found-kws)
-          A
-          (report-not-subtypes argtys dom))
+  (let [resolve-symbolic-closures? *subtypes-varargs-symbolic-closures*]
+    (binding [*subtypes-varargs-symbolic-closures* false]
+      (letfn [(all-mandatory-kws? [found-kws]
+                {:pre [(set? found-kws)]}
+                (empty? (set/difference (set (keys (:mandatory kws)))
+                                        found-kws)))]
+        (loop [dom dom
+               argtys argtys
+               A A0
+               found-kws #{}]
+          (cond
+            (and (empty? dom) (empty? argtys)) 
+            (if (all-mandatory-kws? found-kws)
+              A
+              (report-not-subtypes argtys dom))
 
-        (empty? argtys) (report-not-subtypes argtys dom)
+            (empty? argtys) (report-not-subtypes argtys dom)
 
-        (and (empty? dom) rst)
-        (if-let [A (subtypeA* A (first argtys) rst)]
-          (recur dom (next argtys) A found-kws)
-          (report-not-subtypes (first argtys) rst))
+            (and (empty? dom) rst)
+            (if-let [A (subtypeA* A (first argtys) rst)]
+              (recur dom (next argtys) A found-kws)
+              (report-not-subtypes (first argtys) rst))
 
-        (and (empty? dom) (<= 2 (count argtys)) kws)
-        (let [kw (c/fully-resolve-type (first argtys))
-              val (second argtys)
-              expected-val ((some-fn (:mandatory kws) (:optional kws))
-                            kw)]
-          (if (and expected-val (subtypeA* A val expected-val))
-            (recur dom (drop 2 argtys) A (conj found-kws kw))
-            (report-not-subtypes (take 2 argtys) kws)))
+            (and (empty? dom) (<= 2 (count argtys)) kws)
+            (let [kw (c/fully-resolve-type (first argtys))
+                  val (second argtys)
+                  expected-val ((some-fn (:mandatory kws) (:optional kws))
+                                kw)]
+              (if (and expected-val (subtypeA* A val expected-val))
+                (recur dom (drop 2 argtys) A (conj found-kws kw))
+                (report-not-subtypes (take 2 argtys) kws)))
 
-        (empty? dom) (report-not-subtypes argtys dom)
-        :else
-        (if-let [A (subtypeA* A0 (first argtys) (first dom))]
-          (recur (next dom) (next argtys) A found-kws)
-          (report-not-subtypes (first argtys) (first dom)))))))
+            (empty? dom) (report-not-subtypes argtys dom)
+            :else
+            (let [[arg-t] argtys
+                  [dom-t] dom]
+              (if (and (r/SymbolicClosure? arg-t)
+                       resolve-symbolic-closures?)
+                (let [continue? (with-bindings (assoc (:bindings arg-t)
+                                                      #'vs/*delayed-errors* (err/-init-delayed-errors))
+                                  (and (try (chk/check-expr (:fexpr arg-t) (r/ret dom-t))
+                                            (catch clojure.lang.ExceptionInfo e
+                                              (when-not (-> e ex-data err/tc-error?)
+                                                (throw e))))
+                                       (empty? @vs/*delayed-errors*)))]
+                  (if continue?
+                    (recur (next dom) (next argtys) A0 found-kws)
+                    (report-not-subtypes arg-t dom-t)))
+                (if-let [A (subtypeA* A0 arg-t dom-t)]
+                  (recur (next dom) (next argtys) A found-kws)
+                  (report-not-subtypes arg-t dom-t))))))))))
 
 ;FIXME
 (defn subtype-kwargs* [A s t]

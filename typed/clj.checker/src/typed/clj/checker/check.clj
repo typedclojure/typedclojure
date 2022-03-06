@@ -92,7 +92,6 @@
             [typed.cljc.checker.cs-rep :as crep]
             [typed.cljc.checker.datatype-ancestor-env :as ancest]
             [typed.cljc.checker.datatype-env :as dt-env]
-            [typed.cljc.checker.dvar-env :as dvar-env]
             [typed.cljc.checker.filter-ops :as fo]
             [typed.cljc.checker.filter-rep :as fl]
             [typed.cljc.checker.fold-rep :as fold]
@@ -639,7 +638,7 @@
             extends (for [[prcl-expr mmap-expr] (partition 2 protos)]
                       (let [prcl-expr (ana2/run-pre-passes (ana2/analyze-outer-root prcl-expr))
                             protocol (do (when-not (= :var (:op prcl-expr))
-                                           (err/int-error  "Must reference protocol directly with var in extend"))
+                                           (err/int-error "Must reference protocol directly with var in extend"))
                                          (ptl-env/resolve-protocol (coerce/var->symbol (:var prcl-expr))))
                             _ (when-not (r/Protocol? protocol)
                                 (err/int-error (str "Expecting Protocol type, found " protocol)))
@@ -901,7 +900,7 @@
         bindings-expr (cond-> bindings-expr 
                         (#{:invoke} (-> bindings-expr :op))
                         (update :fn ana2/run-passes))
-        ; only support (push-thread-bindings (hash-map @~[var bnd ...]))
+        ; only support (push-thread-bindings (hash-map ~@[var bnd ...]))
         ; like `binding`s expansion
         _ (when-not (and (#{:invoke} (-> bindings-expr :op))
                          (#{#'hash-map} (-> bindings-expr :fn :var))
@@ -1147,8 +1146,6 @@
               (-> % u/expr-type r/TCResult?))]}
   (apply/maybe-check-apply check-expr -invoke-apply expr expected))
 
-;TODO this should be a special :do op
-;manual instantiation
 (defmethod -invoke-special 'clojure.core.typed/inst-poly
   [expr expected]
   {:post [(-> % u/expr-type r/TCResult?)]}
@@ -1269,30 +1266,6 @@
     (assoc expr
            :args cargs
            u/expr-type t)))
-
-;pred
-(defmethod -invoke-special 'clojure.core.typed/pred*
-  [expr expected]
-  {:post [(-> % u/expr-type r/TCResult?)]}
-  (when-not (#{3} (count (:args expr)))
-    (err/int-error (str "Wrong arguments to pred Expected 3, found " (count (:args expr)))))
-  (let [{[tsyn-expr nsym-expr _pred-fn_ :as args] :args, :keys [env], :as expr}
-        (-> expr
-            (update-in [:args 0] ana2/run-passes)
-            (update-in [:args 1] ana2/run-passes))
-        tsyn (ast-u/quote-expr-val tsyn-expr)
-        nsym (ast-u/quote-expr-val nsym-expr)
-        ptype 
-        ; frees are not scoped when pred's are parsed at runtime,
-        ; so we simulate the same here.
-        (binding [tvar-env/*current-tvars* {}
-                  dvar-env/*dotted-scope* {}]
-          (prs/with-parse-ns nsym
-            (prs/parse-type tsyn)))]
-    (assoc expr
-           u/expr-type (below/maybe-check-below
-                         (r/ret (prs/predicate-for ptype))
-                         expected))))
 
 ;seq
 (defmethod -invoke-special 'clojure.core/seq
@@ -1782,11 +1755,15 @@
                   (set-erase-atoms expr cred)
                   cred))))))
       (prepare-check-fn env expr
-                        (if expected
-                          (fn/check-fn expr expected)
-                          (if r/enable-symbolic-closures?
-                            (assoc expr u/expr-type (r/ret (r/symbolic-closure expr vs/*lexical-env*)))
-                            (special-fn/check-core-fn-no-expected check-expr expr))))))
+        (if expected
+          (fn/check-fn expr expected)
+          (if (and r/enable-symbolic-closures?
+                   ;; check thunks eagerly
+                   (some (some-fn :variadic?
+                                  (comp pos? :fixed-arity))
+                         (:methods expr)))
+            (assoc expr u/expr-type (r/ret (r/symbolic-closure expr)))
+            (special-fn/check-core-fn-no-expected check-expr expr))))))
 
 ;(ann internal-special-form [Expr (U nil TCResult) -> Expr])
 (u/special-do-op spec/special-form internal-special-form)

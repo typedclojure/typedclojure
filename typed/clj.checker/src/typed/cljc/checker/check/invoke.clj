@@ -29,7 +29,7 @@
         cargs (or cargs (mapv check-fn args))
         ftype (u/expr-type cfexpr)
         argtys (map u/expr-type cargs)
-        actual (funapp/check-funapp fexpr args ftype argtys expected :check-fn check-fn)]
+        actual (funapp/check-funapp fexpr args ftype argtys expected {:expr expr})]
     (assoc expr
            :fn cfexpr
            :args cargs

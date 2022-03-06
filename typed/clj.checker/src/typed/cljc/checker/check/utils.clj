@@ -39,8 +39,8 @@
   {:post [(symbol? %)]}
   (impl/impl-case
     :clojure (let [nsym (get-in expr [:env :ns])
-                   _ (assert (symbol? nsym) (str "Bug! " (:op expr) " expr has no associated namespace"
-                                                 nsym))]
+                   _ (assert (symbol? nsym) (str "Bug! " (pr-str (:op expr)) " expr has no associated namespace: "
+                                                 (pr-str nsym)))]
                (ns-name nsym))
     :cljs (or (-> expr :env :ns :name)
               (do (prn "WARNING: No associated ns for ClojureScript expr, defaulting to cljs.user")

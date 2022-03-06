@@ -21,8 +21,8 @@ for checking namespaces, cf for checking individual forms."}
             [clojure.core.typed.import-macros :as import-m]
             [clojure.core.typed.contract :as contract]
             [clojure.string :as str]
-            ; for `pred` and `contract`
-            ;clojure.core.typed.type-contract
+            ; for `pred` and `contract` expansion
+            clojure.core.typed.type-contract
             ; for `import-macros` below
             clojure.core.typed.macros)
   (:import (clojure.lang Compiler)))
@@ -120,24 +120,17 @@ for checking namespaces, cf for checking individual forms."}
   frm)
 
 (core/defn ^:no-doc
-  inst-poly 
-  "Internal use only. Use inst."
-  [inst-of types-syn]
-  inst-of)
-
-(core/defn ^:no-doc
   inst-poly-ctor 
   "Internal use only. Use inst-ctor"
   [inst-of types-syn]
   inst-of)
 
-;FIXME should be a special do-op
 (defmacro inst 
   "Instantiate a polymorphic type with a number of types.
   
   eg. (inst foo-fn t1 t2 t3 ...)"
   [inst-of & types]
-  `(inst-poly ~inst-of '~types))
+  inst-of)
 
 ;FIXME should be a special do-op
 (defmacro inst-ctor
@@ -1598,9 +1591,6 @@ for checking namespaces, cf for checking individual forms."}
                    (update :ns #(or % *ns*)))]
     ((requiring-resolve 'typed.clj.annotator/spec-infer) m)))
 
-(core/defn pred* [tsyn nsym pred]
-  pred)
-
 (core/defn register!
   "Internal -- Do not use"
   []
@@ -1617,9 +1607,7 @@ for checking namespaces, cf for checking individual forms."}
   [t]
   (register!)
   (with-current-location &form
-    `(pred* '~t
-            '~(ns-name *ns*)
-            ~((requiring-resolve 'clojure.core.typed.type-contract/type-syntax->pred) t))))
+    ((requiring-resolve 'clojure.core.typed.type-contract/type-syntax->pred) t)))
 
 (defmacro cast
   "Cast a value to a type. Returns a new value that conforms

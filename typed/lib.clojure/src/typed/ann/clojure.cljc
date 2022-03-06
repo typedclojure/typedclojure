@@ -146,7 +146,8 @@
 (t/ann-datatype [[x :variance :covariant]] cljs.core/List)
 (t/ann-datatype [[x :variance :covariant]] cljs.core/Reduced)
 (t/ann-datatype cljs.core/ExceptionInfo)
-           ))
+(t/ann-datatype [[x :variance :covariant]] cljs.core/Delay)
+))
 
 ;; ==========================================
 ;; Type aliases
@@ -623,7 +624,7 @@
   t/Delay
   (t/TFn [[x :variance :covariant]]
          #?(:clj (clojure.lang.Delay x)
-            :cljs (cljs.core.Delay x))))
+            :cljs (cljs.core/Delay x))))
 
 (t/defalias
   ^{:doc "A Clojure blocking derefable (see clojure.core/deref)."
@@ -761,6 +762,9 @@
   t/Transducer
   (t/TFn [[in :variance :contravariant]
           [out :variance :covariant]]
+         ;; note: putting t/Transducer in an IFn makes r existential (but only in contravariant position IIUC? need to revisit my notes)
+         ;; Stephen Dolan noted this when I showed him the type of `into`.
+         ;; eg., Simulating Existential Types https://www.cs.cmu.edu/~fp/courses/15312-f04/assignments/asst5.pdf
          (t/All [r]
                 [(t/Reducer out r) :-> (t/Reducer in r)])))
 
@@ -1975,7 +1979,7 @@ cc/var-set (t/All [w] [(t/Var2 w t/Any) w -> w])
 cc/supers [Class -> (t/U nil (t/I t/NonEmptyCount (t/Set Class)))]
 ])
 
-cc/take-nth (t/All [x] [t/AnyInteger (t/U nil (t/Seqable x)) -> (t/ASeq x)])
+cc/take-nth (t/All [x] [t/AnyInteger (t/Seqable x) -> (t/ASeq x)])
 
 cc/shuffle (t/All [x] (t/IFn [(t/I (Collection x) (t/Seqable x)) -> (t/Vec x)]
                              [(Collection x) -> (t/Vec x)]))
@@ -2035,7 +2039,7 @@ cc/resolve (t/IFn [t/Sym -> (t/U (t/Var2 t/Nothing t/Any) Class nil)]
 cc/ns-resolve (t/IFn [(t/U t/Sym t/Namespace) t/Sym -> (t/U (t/Var2 t/Nothing t/Any) Class nil)]
                      ; should &env arg be more accurate?
                      [(t/U t/Sym t/Namespace) t/Any t/Sym -> (t/U (t/Var2 t/Nothing t/Any) Class nil)])
-cc/extenders [t/Any -> (t/U nil (t/Seqable (t/U Class nil)))]
+cc/extenders [t/Any -> (t/Seqable (t/Nilable Class))]
 ])
 
 cc/+ (t/IFn #?(:clj [Long * -> Long])
@@ -2162,10 +2166,10 @@ cc/remove-watch [(#?(:clj IRef :cljs t/Atom2) t/Nothing t/Any) t/Any -> t/Any]
 cc/agent-error [(t/Agent2 t/Nothing t/Any) -> (t/U nil Throwable)]
 cc/restart-agent (t/All [w] [(t/Agent2 w t/Any) w & :optional {:clear-actions t/Any} -> t/Any])
 cc/set-error-handler! (t/All [w r] [(t/Agent2 w r) [(t/Agent2 w r) Throwable -> t/Any] -> t/Any])
-cc/error-handler (t/All [w r] [(t/Agent2 w r) -> (t/U nil [(t/Agent2 w r) Throwable -> t/Any])])
+cc/error-handler (t/All [w r] [(t/Agent2 w r) -> (t/Nilable [(t/Agent2 w r) Throwable -> t/Any])])
 cc/set-error-mode! [(t/Agent2 t/Nothing t/Any) (t/U ':fail ':continue) -> t/Any]
 cc/error-mode [(t/Agent2 t/Nothing t/Any) -> t/Any]
-cc/agent-errors [(t/Agent2 t/Nothing t/Any) -> (t/U nil (t/ASeq Throwable))]
+cc/agent-errors [(t/Agent2 t/Nothing t/Any) -> (t/Nilable (t/ASeq Throwable))]
 cc/clear-agent-errors [(t/Agent2 t/Nothing t/Any) -> t/Any]
 cc/shutdown-agents [-> t/Any]
 ])
@@ -2258,9 +2262,11 @@ cc/== [t/Num t/Num * -> t/Bool]
 
 cc/max (t/IFn #?(:clj [Long Long * -> Long])
               #?(:clj [Double Double * -> Double])
+              [t/AnyInteger t/AnyInteger * -> t/AnyInteger]
               [t/Num t/Num * -> t/Num])
 cc/min (t/IFn #?(:clj [Long Long * -> Long])
               #?(:clj [Double Double * -> Double])
+              [t/AnyInteger t/AnyInteger * -> t/AnyInteger]
               [t/Num t/Num * -> t/Num])
 
 #?@(:cljs [] :default [
@@ -2376,7 +2382,7 @@ cc/rand-nth (t/All [x] [(t/U (t/Indexed x) (t/SequentialSeqable x)) -> x])
 ;clojure.pprint/pprint (t/IFn [t/Any -> nil]
 ;                             [t/Any java.io.Writer -> nil])
 ] :default [
-clojure.pprint/cl-format [(t/U java.io.Writer nil t/Bool) t/Str t/Any * -> (t/U nil t/Str)]
+clojure.pprint/cl-format [(t/U java.io.Writer nil t/Bool) t/Str t/Any * -> (t/Nilable t/Str)]
 clojure.pprint/fresh-line [-> t/Any]
 clojure.pprint/get-pretty-writer [java.io.Writer -> java.io.Writer]
 clojure.pprint/pprint (t/IFn [t/Any -> nil]

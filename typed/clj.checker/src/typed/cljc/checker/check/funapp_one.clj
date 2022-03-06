@@ -12,6 +12,7 @@
             [typed.cljc.checker.check-below :as below]
             [clojure.core.typed.errors :as err]
             [typed.cljc.checker.type-ctors :as c]
+            [typed.cljc.checker.check :refer [check-expr]]
             [typed.cljc.checker.object-rep :as obj]
             [typed.cljc.checker.open-result :as open-result]
             [clojure.set :as set]))
@@ -110,12 +111,11 @@
         _ (assert (every? r/Type? t-a))
         [o-a t-a] (let [rs (for [[nm oa ta] (map vector 
                                                  (range arg-count) 
-                                                 (concat o-a (repeatedly obj/EmptyObject-maker))
-                                                 (concat t-a (repeatedly c/Un)))]
+                                                 (concat o-a (repeat (obj/EmptyObject-maker)))
+                                                 (concat t-a (repeat (c/Un))))]
                              [(if (>= nm dom-count) (obj/EmptyObject-maker) oa)
                               ta])]
-                    [(map first rs) (map second rs)])
-        [t-r f-r o-r flow-r] (open-result/open-Result rng o-a t-a)]
+                    [(map first rs) (map second rs)])]
     (below/maybe-check-below
-      (r/ret t-r f-r o-r flow-r)
+      (open-result/open-Result->TCResult rng o-a t-a)
       expected)))

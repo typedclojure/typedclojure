@@ -23,3 +23,17 @@
 (install-unanalyzed-special
   'clojure.core.typed/ann-form
   'typed.cljc.ext.clojure.core.typed__ann-form/-unanalyzed-special__ann-form)
+
+;; ============================
+;; clojure.core.typed/pred
+
+(install-unanalyzed-special
+  'clojure.core.typed/pred
+  'typed.cljc.ext.clojure.core.typed__pred/-unanalyzed-special__pred)
+
+;; ============================
+;; clojure.core.typed/inst
+
+(install-unanalyzed-special
+  'clojure.core.typed/inst
+  'typed.cljc.ext.clojure.core.typed__inst/-unanalyzed-special__inst)

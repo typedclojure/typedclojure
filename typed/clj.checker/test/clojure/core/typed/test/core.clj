@@ -4113,6 +4113,10 @@
             {:baz 2} [a] a)))))
 
 (deftest CTYP-212-test
+  (is-tc-e (promise)
+           (t/Promise t/Int))
+  (is-tc-e (ann-form (promise) (t/Promise t/Int)))
+  (is-tc-e (clojure.core.typed/ann-form (promise) (t/Promise t/Int)))
   (is-tc-e
     (do
       (ann-record MyRecord [p :- (t/Promise t/Int)])

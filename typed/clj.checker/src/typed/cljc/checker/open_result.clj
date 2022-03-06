@@ -79,3 +79,6 @@
                  ts
                  (repeat false)))))
 
+(defn open-Result->TCResult [r objs ts]
+  (let [[t-r f-r o-r flow-r] (open-Result r objs ts)]
+    (r/ret t-r f-r o-r flow-r)))

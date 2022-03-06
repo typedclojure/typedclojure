@@ -432,6 +432,7 @@
                                                 "Incorrect forms following :-")
                                       [v colon t init & rst] bvec]
                                   (recur rst
+                                         ;;FIXME use platform agnostic macro
                                          (conj actual-bvec v `(clojure.core.typed/ann-form ~init ~t))))
                                 (let [_ (assert (#{2} (count (take 2 bvec)))
                                                 "No init found for local binding")

@@ -1131,17 +1131,17 @@
 
 ;; Symbolic closures
 
-(def enable-symbolic-closures? false)
+(def ^:dynamic enable-symbolic-closures? false)
 
-(u/def-type SymbolicClosure [fexpr env]
+(u/def-type SymbolicClosure [bindings fexpr]
   "Symbolic closure"
   [(map? fexpr)]
   :methods
   [p/TCType])
 
-(defn symbolic-closure [fexpr env]
+(defn symbolic-closure [fexpr]
   (prn "creating symbolic-closure")
-  (SymbolicClosure-maker fexpr env))
+  (SymbolicClosure-maker (get-thread-bindings) fexpr))
 
 ;;;;;;;;;;;;;;;;;
 ;; Clojurescript types

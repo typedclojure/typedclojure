@@ -8,8 +8,7 @@
 
 ;flat contracts only
 (ns ^:no-doc clojure.core.typed.type-contract
-  (:require [clojure.core.typed.parse-ast :as ast]
-            [clojure.core.typed.errors :as err]
+  (:require [clojure.core.typed.errors :as err]
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.ast-ops :as ops]
             [clojure.core.typed.contract :as con]
@@ -281,12 +280,12 @@
   ([t] (type-syntax->pred t {}))
   ([t opt]
    (impl/with-impl impl/clojure
-     (-> (ast/parse t)
+     (-> ((requiring-resolve 'clojure.core.typed.parse-ast/parse) t)
          (ast->pred opt)))))
 
 (defn type-syntax->contract [t]
   (impl/with-impl impl/clojure
-    (-> (ast/parse t)
+    (-> ((requiring-resolve 'clojure.core.typed.parse-ast/parse) t)
         ast->contract)))
 
 (comment
@@ -306,12 +305,12 @@
         (fn [e] (prn 'pre (:op e)))
         (fn [e] (prn 'post (:op e))))
 
-  (def ast (ast/parse-clj '(HMap :optional {:c Number})))
+  (def ast (clojure.core.typed.parse-ast/parse-clj '(HMap :optional {:c Number})))
 
   (:children ast)
 
   (ops/walk ast
             (fn f [e] (prn 'pre (:op e)))
             (fn [e] (prn 'post (:op e))))
-  (ops/unwrap-rec (ast/parse-clj '(Rec [x] (U '[x] Number))) 'abc)
+  (ops/unwrap-rec (clojure.core.typed.parse-ast/parse-clj '(Rec [x] (U '[x] Number))) 'abc)
   )
