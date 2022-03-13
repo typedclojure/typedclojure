@@ -325,25 +325,6 @@
                      (ret r/-any)
                      expected)))
 
-(defmethod invoke-special 'cljs.core.typed/inst-poly
-  [{[pexpr targs-expr :as args] :args :as expr} expected]
-  (assert (#{2} (count args)) "Wrong arguments to inst")
-  (let [cpexpr (check-expr pexpr)
-        ptype (let [t (-> cpexpr expr-type ret-t)]
-                (c/fully-resolve-type t))
-        _ (assert ((some-fn r/Poly? r/PolyDots?) ptype)
-                  (pr-str ptype))
-        targs (binding [prs/*parse-type-in-ns* (cu/expr-ns expr)]
-                (mapv prs/parse-type (case (:op targs-expr)
-                                       ;; (quote targs) => targs
-                                       :unanalyzed (second (:form targs-expr)))))]
-    (assoc expr
-           expr-type (below/maybe-check-below
-                       (ret (inst/manual-inst ptype targs
-                                              ;; TODO named
-                                              {}))
-                       expected))))
-
 (defmethod invoke-special 'cljs.core.typed/loop>-ann
   [{[expr {{expected-bnds-syn :expr} :form}] :args :as dummy-expr} expected]
   (let [expected-bnds (binding [prs/*parse-type-in-ns* (cu/expr-ns dummy-expr)]

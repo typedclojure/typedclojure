@@ -97,8 +97,9 @@
 
 (deftest inst-test
   (is-tc-e (let [f (-> (fn [a] a)
-                       (t/ann-form (t/All [x] [x -> x])))]
-             ((t/inst f t/JSnumber) 1))
+                       (t/ann-form (t/All [x] [x -> x])))
+                 res ((t/inst f t/JSnumber) 1)]
+             res)
            t/JSnumber))
 
 #_ ;;TODO

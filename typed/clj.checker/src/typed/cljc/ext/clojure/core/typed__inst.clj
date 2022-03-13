@@ -8,20 +8,20 @@
 
 (ns ^:no-doc typed.cljc.ext.clojure.core.typed__inst
   "Type rule for clojure.core.typed/inst"
-  (:require [clojure.core.typed.util-vars :as vs]
-            [typed.cljc.analyzer :as ana2]
-            [clojure.core.typed.ast-utils :as ast-u]
-            [typed.cljc.checker.type-ctors :as c]
-            [typed.cljc.checker.check.utils :as cu]
-            [typed.clj.checker.parse-unparse :as prs]
-            [typed.cljc.checker.tvar-env :as tvar-env]
-            [typed.cljc.checker.dvar-env :as dvar-env]
-            [typed.cljc.checker.check :refer [check-expr]]
+  (:require [clojure.core.typed.ast-utils :as ast-u]
             [clojure.core.typed.errors :as err]
-            [typed.cljc.checker.check-below :as below]
-            [typed.cljc.checker.type-rep :as r]
+            [clojure.core.typed.util-vars :as vs]
             [clojure.set :as set]
+            [typed.clj.checker.parse-unparse :as prs]
+            [typed.cljc.analyzer :as ana2]
+            [typed.cljc.checker.check :refer [check-expr]]
+            [typed.cljc.checker.check-below :as below]
+            [typed.cljc.checker.check.utils :as cu]
+            [typed.cljc.checker.dvar-env :as dvar-env]
             [typed.cljc.checker.inst :as inst]
+            [typed.cljc.checker.tvar-env :as tvar-env]
+            [typed.cljc.checker.type-ctors :as c]
+            [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.utils :as u]))
 
 (defn -unanalyzed-special__inst

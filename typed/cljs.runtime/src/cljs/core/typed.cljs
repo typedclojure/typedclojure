@@ -12,12 +12,6 @@
   (:require-macros cljs.core.typed))
 
 (defn ^:no-doc
-  inst-poly
-  "Internal use only. Use inst."
-  [inst-of types-syn]
-  inst-of)
-
-(defn ^:no-doc
   loop>-ann
   "Internal use only. Use loop>"
   [loop-of bnding-types]

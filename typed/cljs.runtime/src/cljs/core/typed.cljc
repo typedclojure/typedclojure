@@ -316,7 +316,7 @@
 (defmacro inst 
   "Instantiate a polymorphic type with a number of types"
   [inst-of & types]
-  `(inst-poly ~inst-of '~types))
+  inst-of)
 
 (defmacro 
   ^{:forms '[(letfn> [fn-spec-or-annotation*] expr*)]}

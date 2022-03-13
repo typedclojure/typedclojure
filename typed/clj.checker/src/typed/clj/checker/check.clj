@@ -1146,56 +1146,6 @@
               (-> % u/expr-type r/TCResult?))]}
   (apply/maybe-check-apply check-expr -invoke-apply expr expected))
 
-(defmethod -invoke-special 'clojure.core.typed/inst-poly
-  [expr expected]
-  {:post [(-> % u/expr-type r/TCResult?)]}
-  (when-not (#{2} (count (:args expr)))
-    (err/int-error "Wrong arguments to inst"))
-  (let [{[pexpr targs-exprs :as args] :args :as expr}
-        (-> expr
-            (update-in [:args 0] check-expr)
-            (update-in [:args 1] ana2/run-passes))
-        ptype (c/fully-resolve-type (-> pexpr u/expr-type r/ret-t))
-        ; support (inst :kw ...)
-        ptype (if (c/keyword-value? ptype)
-                (c/KeywordValue->Fn ptype)
-                ptype)]
-    (if-not ((some-fn r/Poly? r/PolyDots?) ptype)
-      (binding [vs/*current-expr* pexpr]
-        (err/tc-delayed-error (str "Cannot instantiate non-polymorphic type: " (prs/unparse-type ptype))
-                              :return (assoc expr
-                                             u/expr-type (cu/error-ret expected))))
-      (let [[targs-syn kwargs] (split-with (complement keyword?) (ast-u/quote-expr-val targs-exprs))
-            _ (when-not (even? (count kwargs))
-                (err/int-error (str "Expected an even number of keyword options to inst, given: " (vec kwargs))))
-            _ (when (seq kwargs)
-                (when-not (apply distinct? (map first (partition 2 kwargs)))
-                  (err/int-error (str "Gave repeated keyword args to inst: " (vec kwargs)))))
-            {:keys [named] :as kwargs} kwargs
-            _ (let [unsupported (cljset/difference (set (keys kwargs)) #{:named})]
-                (when (seq unsupported)
-                  (err/int-error (str "Unsupported keyword argument(s) to inst " unsupported))))
-            _ (when (contains? kwargs :named)
-                (when-not (and (map? named)
-                               (every? symbol? (keys named)))
-                  (err/int-error (str ":named keyword argument to inst must be a map of symbols to types, given: " (pr-str named)))))
-            named (binding [prs/*parse-type-in-ns* (cu/expr-ns expr)
-                            vs/*current-expr* expr]
-                    (into {}
-                          (map (fn [[k v]]
-                                 [k (prs/parse-type v)]))
-                          named))
-            targs (binding [prs/*parse-type-in-ns* (cu/expr-ns expr)
-                            vs/*current-expr* expr]
-                    (mapv prs/parse-type targs-syn))]
-        (assoc expr
-               u/expr-type (below/maybe-check-below
-                             (r/ret 
-                               (binding [prs/*unparse-type-in-ns* (cu/expr-ns expr)
-                                         vs/*current-expr* expr]
-                                 (inst/manual-inst ptype targs named)))
-                             expected))))))
-
 (defonce ^:dynamic *inst-ctor-types* nil)
 (t/tc-ignore
 (set-validator! #'*inst-ctor-types* (some-fn nil? (con/every-c? r/Type?)))
