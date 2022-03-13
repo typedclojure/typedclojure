@@ -30,3 +30,14 @@
 (install-unanalyzed-special
   'cljs.core.typed/inst
   'typed.cljc.ext.clojure.core.typed__inst/-unanalyzed-special__inst)
+
+;; ============================
+;; clojure.core.typed/fn
+
+(install-unanalyzed-special
+  'cljs.core.typed/fn
+  'typed.cljc.ext.clojure.core.typed__fn/-unanalyzed-special__fn)
+
+(install-unanalyzed-special
+  'clojure.core.typed.macros/fn
+  'typed.cljc.ext.clojure.core.typed__fn/-unanalyzed-special__fn)

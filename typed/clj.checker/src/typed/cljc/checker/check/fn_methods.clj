@@ -56,7 +56,7 @@
   {:pre [(method? method)
          (r/Function? f)]
    :post [((some-fn nil? r/Function?) %)]}
-  ;; fn-method-u/*check-fn-method1-rest-type*, and check-fn-method1
+  ;; fn-method-u/check-rest-fn, and check-fn-method1
   ;; actually distribute the types amongst the fixed and rest parameters
   (let [ndom (count dom)
         fixed-arity (if (= :method (:op method))

@@ -39,46 +39,48 @@
 ;  -> '[Type FilterSet RObject]]
 (defn open-Result 
   "Substitute ids for objs in Result t"
-  [{t :t fs :fl old-obj :o :keys [flow] :as r} objs & [ts]]
-  {:pre [(r/Result? r)
-         (every? obj/RObject? objs)
-         ((some-fn fl/FilterSet? fl/NoFilter?) fs)
-         (obj/RObject? old-obj)
-         (r/FlowSet? flow)
-         ((some-fn nil? (con/every-c? r/Type?)) ts)]
-   :post [((con/hvector-c? r/Type? fl/FilterSet? obj/RObject? r/FlowSet?) %)]}
-  ;  (prn "open-result")
-  ;  (prn "result type" (prs/unparse-type t))
-  ;  (prn "result filterset" (prs/unparse-filter-set fs))
-  ;  (prn "result (old) object" old-obj)
-  ;  (prn "objs" objs)
-  ;  (prn "ts" (mapv prs/unparse-type ts))
-  (reduce (fn [[t fs old-obj flow] [[o k] arg-ty]]
-            {:pre [(r/Type? t)
-                   ((some-fn fl/FilterSet? fl/NoFilter?) fs)
-                   (obj/RObject? old-obj)
-                   (integer? k)
-                   (obj/RObject? o)
-                   (r/FlowSet? flow)
-                   ((some-fn false? r/Type?) arg-ty)]
-             :post [((con/hvector-c? r/Type? fl/FilterSet? obj/RObject? r/FlowSet?) %)]}
-            (let [r [(subst-obj/subst-type t k o true)
-                     (subst-obj/subst-filter-set fs k o true arg-ty)
-                     (subst-obj/subst-object old-obj k o true)
-                     (subst-obj/subst-flow-set flow k o true arg-ty)]]
-              ;              (prn [(prs/unparse-type t) (prs/unparse-filter-set fs) old-obj])
-              ;              (prn "r" r)
-              r))
-          [t fs old-obj flow]
-          ; this is just a sequence of pairs of [not-neg? RObject] and Type?
-          ; Represents the object and type of each argument, and its position
-          (map vector 
-               (map-indexed #(vector %2 %1) ;racket's is opposite..
-                            objs)
-               (if ts
-                 ts
-                 (repeat false)))))
+  ([r objs] (open-Result r objs nil))
+  ([{t :t fs :fl old-obj :o :keys [flow] :as r} objs ts]
+   {:pre [(r/Result? r)
+          (every? obj/RObject? objs)
+          ((some-fn fl/FilterSet? fl/NoFilter?) fs)
+          (obj/RObject? old-obj)
+          (r/FlowSet? flow)
+          ((some-fn nil? (con/every-c? r/Type?)) ts)]
+    :post [((con/hvector-c? r/Type? fl/FilterSet? obj/RObject? r/FlowSet?) %)]}
+   ;  (prn "open-result")
+   ;  (prn "result type" (prs/unparse-type t))
+   ;  (prn "result filterset" (prs/unparse-filter-set fs))
+   ;  (prn "result (old) object" old-obj)
+   ;  (prn "objs" objs)
+   ;  (prn "ts" (mapv prs/unparse-type ts))
+   (reduce (fn [[t fs old-obj flow] [[o k] arg-ty]]
+             {:pre [(r/Type? t)
+                    ((some-fn fl/FilterSet? fl/NoFilter?) fs)
+                    (obj/RObject? old-obj)
+                    (integer? k)
+                    (obj/RObject? o)
+                    (r/FlowSet? flow)
+                    ((some-fn false? r/Type?) arg-ty)]
+              :post [((con/hvector-c? r/Type? fl/FilterSet? obj/RObject? r/FlowSet?) %)]}
+             (let [r [(subst-obj/subst-type t k o true)
+                      (subst-obj/subst-filter-set fs k o true arg-ty)
+                      (subst-obj/subst-object old-obj k o true)
+                      (subst-obj/subst-flow-set flow k o true arg-ty)]]
+               ;              (prn [(prs/unparse-type t) (prs/unparse-filter-set fs) old-obj])
+               ;              (prn "r" r)
+               r))
+           [t fs old-obj flow]
+           ; this is just a sequence of pairs of [not-neg? RObject] and Type?
+           ; Represents the object and type of each argument, and its position
+           (map vector 
+                (map-indexed #(vector %2 %1) ;racket's is opposite..
+                             objs)
+                (if ts
+                  ts
+                  (repeat false))))))
 
-(defn open-Result->TCResult [r objs ts]
-  (let [[t-r f-r o-r flow-r] (open-Result r objs ts)]
-    (r/ret t-r f-r o-r flow-r)))
+(defn open-Result->TCResult
+  ([r objs] (open-Result->TCResult r objs nil))
+  ([r objs ts] (let [[t-r f-r o-r flow-r] (open-Result r objs ts)]
+                 (r/ret t-r f-r o-r flow-r))))

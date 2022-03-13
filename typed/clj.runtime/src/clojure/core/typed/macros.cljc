@@ -10,8 +10,8 @@
   (:refer-clojure :exclude [type defprotocol fn loop dotimes let for doseq
                             defn atom ref])
   (:require [clojure.core :as core]
-            [clojure.core.typed.special-form :as spec]
-            [clojure.core.typed.internal :as internal]))
+            [clojure.core.typed.internal :as internal]
+            [clojure.core.typed.special-form :as spec]))
 
 ;https://github.com/cgrand/macrovich/blob/master/src/net/cgrand/macrovich.cljc
 (defmacro platform-case
@@ -78,13 +78,9 @@
           `(clojure.core.typed/ann-form ~body ~t)
           body))))
 
-(core/defn expand-typed-fn [&env form]
+(core/defn expand-typed-fn [form]
   (core/let [{:keys [poly fn ann]} (internal/parse-fn* form)]
-    `(do ~spec/special-form
-         ~(core-kw :fn)
-         {:ann '~ann
-          :poly '~poly}
-         ~fn)))
+    fn))
 
 (defmacro 
   ^{:forms '[(fn name? [param :- type* & param :- type * ?] :- type? exprs*)
@@ -122,7 +118,7 @@
         ([a :- String, b :- Number] :- String ...))
   "
   [& forms]
-  (expand-typed-fn &env &form))
+  (expand-typed-fn &form))
 
 (defmacro 
   ^{:forms '[(loop [binding :- type?, init*] exprs*)]}

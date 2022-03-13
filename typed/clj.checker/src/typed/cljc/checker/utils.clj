@@ -112,7 +112,10 @@
                      [(keyword fld) `(~maker ~@(replace {fld gs} fields) ~meta-field)])
                    fields)
          (throw (UnsupportedOperationException. (str "assoc on " '~name-sym " " k#)))))
-     (entryAt [this# k#] (throw (UnsupportedOperationException. (str "entryAt on " '~name-sym " " k#))))
+     (entryAt [this# k#]
+       (let [v# (.valAt this# k# this#)]
+         (when-not (identical? this# v#)
+           (clojure.lang.MapEntry/create k# v#))))
      (count [this#] (throw (UnsupportedOperationException. (str "count on " '~name-sym))))
      ;; hack for pr-on, don't use empty
      (empty [this#] this#)

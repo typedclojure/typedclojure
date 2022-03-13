@@ -10,9 +10,3 @@
   "Internal functions for CLJS"
   ;; https://clojurescript.org/guides/ns-forms#_implicit_sugar
   (:require-macros cljs.core.typed))
-
-(defn ^:no-doc
-  loop>-ann
-  "Internal use only. Use loop>"
-  [loop-of bnding-types]
-  loop-of)

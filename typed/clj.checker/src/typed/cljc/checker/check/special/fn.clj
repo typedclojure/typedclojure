@@ -8,29 +8,29 @@
 
 (ns ^:no-doc typed.cljc.checker.check.special.fn
   (:require [clojure.core.typed :as t]
-            [typed.clj.checker.parse-unparse :as prs]
-            [typed.cljc.checker.filter-ops :as fo]
-            [typed.cljc.checker.object-rep :as or]
-            [typed.cljc.checker.filter-rep :as fl]
-            [typed.cljc.checker.free-ops :as free-ops]
-            [typed.cljc.checker.check.fn :as fn]
-            [typed.cljc.checker.dvar-env :as dvar]
-            [typed.cljc.checker.type-ctors :as c]
-            [typed.cljc.checker.lex-env :as lex]
-            [typed.cljc.checker.check.utils :as cu]
-            [typed.cljc.checker.type-rep :as r]
-            [typed.cljc.checker.utils :as u]
             [clojure.core.typed.ast-utils :as ast-u]
+            [typed.clj.checker.parse-unparse :as prs]
+            [typed.cljc.analyzer :as ana2]
+            [typed.cljc.checker.check-below :as below]
+            [typed.cljc.checker.check.fn :as fn]
             [typed.cljc.checker.check.fn-method-one :as fn-method-one]
             [typed.cljc.checker.check.fn-methods :as fn-methods]
-            [typed.cljc.checker.check-below :as below]
-            [typed.cljc.analyzer :as ana2]))
+            [typed.cljc.checker.check.utils :as cu]
+            [typed.cljc.checker.dvar-env :as dvar]
+            [typed.cljc.checker.filter-ops :as fo]
+            [typed.cljc.checker.filter-rep :as fl]
+            [typed.cljc.checker.free-ops :as free-ops]
+            [typed.cljc.checker.lex-env :as lex]
+            [typed.cljc.checker.object-rep :as or]
+            [typed.cljc.checker.type-ctors :as c]
+            [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.checker.utils :as u]))
 
 (declare wrap-poly)
 
 (defn check-anon [{:keys [methods] :as expr} {:keys [doms rngs rests drests]}
                   {:keys [frees-with-bnds dvar]}]
-  {:pre [(#{:fn} (:op expr))]}
+  {:pre [(= :fn (:op expr))]}
   (assert (apply = (map count [doms rngs rests drests rngs methods]))
           (mapv count [doms rngs rests drests rngs methods]))
   ;(prn "check-anon")
@@ -125,7 +125,7 @@
                              (or (:default rest)
                                  (nil? rest)))
                            fn-anns)
-                   (every? (comp not :drest) fn-anns))]
+                   (not-any? :drest fn-anns))]
     (and (not poly)
          defaults)))
 
@@ -168,7 +168,7 @@
                        ((some-fn nil? r/DottedPretype?) drest)
                        (every? r/Type? dom)]
                  :post [(r/Function? %)]}
-                (r/make-Function dom (or (when rng (r/Result-type* rng)) r/-any) 
+                (r/make-Function dom (or (some-> rng r/Result-type*) r/-any) 
                                  :rest rest :drest drest))
               doms rngs rests drests)))
 
@@ -190,8 +190,8 @@
 
 (defn check-core-fn-no-expected
   [check fexpr]
-  {:pre [(#{:fn} (:op fexpr))]
-   :post [(#{:fn} (:op %))
+  {:pre [(= :fn (:op fexpr))]
+   :post [(= :fn (:op %))
           (r/TCResult? (u/expr-type %))]}
   ;(prn "check-core-fn-no-expected")
   (let [self-name (cu/fn-self-name fexpr)
@@ -207,33 +207,21 @@
         flat-expecteds
         nil))))
 
-(defn check-special-fn 
-  [check {statements :statements fexpr :ret :as expr} expected]
-  {:pre [((some-fn nil? r/TCResult?) expected)
-         (#{3} (count statements))]}
-  ;(prn "check-special-fn")
+(defn check-special-fn*
+  [expr fn-anns poly expected]
   (binding [prs/*parse-type-in-ns* (cu/expr-ns expr)]
-    (let [fexpr (-> fexpr
-                    ana2/analyze-outer-root
-                    ana2/run-pre-passes)
-          statements (update statements 2 ana2/run-passes)
-          [_ _ fn-ann-expr :as statements] statements
-          _ (assert (#{:fn} (:op fexpr))
-                    ((juxt :op :form) fexpr))
-          fn-anns-quoted (ast-u/map-expr-at fn-ann-expr :ann)
-          ;_ (prn "fn-anns-quoted" fn-anns-quoted)
-          poly-quoted    (ast-u/map-expr-at fn-ann-expr :poly)
-          ;; always quoted
-          fn-anns (second fn-anns-quoted)
-          ;; always quoted
-          poly (second poly-quoted)
+    (let [expr (-> expr
+                   ana2/analyze-outer-root
+                   ana2/run-pre-passes)
+          _ (assert (= :fn (:op expr))
+                    ((juxt :op :form) expr))
           _ (assert (vector? fn-anns) (pr-str fn-anns))
-          self-name (cu/fn-self-name fexpr)
+          self-name (cu/fn-self-name expr)
           _ (assert ((some-fn nil? symbol?) self-name)
                     self-name)
           ;_ (prn "self-name" self-name)
           [frees-with-bnds dvar] (parse-poly poly)
-          new-bnded-frees (into {} (map (fn [[n bnd]] [(r/make-F n) bnd]) frees-with-bnds))
+          new-bnded-frees (into {} (map (fn [[n bnd]] [(r/make-F n) bnd])) frees-with-bnds)
           new-dotted (when dvar [(r/make-F (first dvar))])
           flat-expecteds 
           (free-ops/with-bounded-frees new-bnded-frees
@@ -247,30 +235,44 @@
                             :post [(boolean? %)]}
                            (boolean
                              (when expected
-                               (seq (fn-methods/function-types (r/ret-t expected))))))
+                               (seq (fn-methods/function-types (r/ret-t expected))))))]
+      ;; If we have an unannotated fn macro and a good expected type, use the expected
+      ;; type via check-fn, otherwise check against the expected type after a call to check-anon.
+      (if (and (all-defaults? fn-anns poly) 
+               (good-expected? expected))
+        (do ;(prn "using check-fn")
+            (fn/check-fn expr expected))
+        (let [;_ (prn "using anon-fn")
+              cexpr (lex/with-locals (when self-name
+                                       (let [this-type (self-type flat-expecteds)
+                                             ;_ (prn "this-type" this-type)
+                                             ]
+                                         {self-name this-type}))
+                      (free-ops/with-bounded-frees new-bnded-frees
+                        (dvar/with-dotted new-dotted
+                          (check-anon
+                            expr
+                            flat-expecteds
+                            {:frees-with-bnds frees-with-bnds
+                             :dvar dvar}))))]
+          (update cexpr u/expr-type below/maybe-check-below expected))))))
 
-          ;; If we have an unannotated fn macro and a good expected type, use the expected
-          ;; type via check-fn, otherwise check against the expected type after a call to check-anon.
-          cfexpr 
-          (if (and (all-defaults? fn-anns poly) 
-                   (good-expected? expected))
-            (do ;(prn "using check-fn")
-                (fn/check-fn fexpr expected))
-            (let [;_ (prn "using anon-fn")
-                  cfexpr (lex/with-locals (when self-name
-                                            (let [this-type (self-type flat-expecteds)
-                                                  ;_ (prn "this-type" this-type)
-                                                  ]
-                                              {self-name this-type}))
-                           (free-ops/with-bounded-frees new-bnded-frees
-                             (dvar/with-dotted new-dotted
-                               (check-anon
-                                 fexpr
-                                 flat-expecteds
-                                 {:frees-with-bnds frees-with-bnds
-                                  :dvar dvar}))))]
-              (update cfexpr u/expr-type below/maybe-check-below expected)))]
-      (assoc expr
-             :statements statements
-             :ret cfexpr
-             u/expr-type (u/expr-type cfexpr)))))
+(defn check-special-fn 
+  [_check {statements :statements fexpr :ret :as expr} expected]
+  {:pre [((some-fn nil? r/TCResult?) expected)
+         (= 3 (count statements))]}
+  ;(prn "check-special-fn")
+  (let [statements (update statements 2 ana2/run-passes)
+        [_ _ fn-ann-expr :as statements] statements
+        fn-anns-quoted (ast-u/map-expr-at fn-ann-expr :ann)
+        ;_ (prn "fn-anns-quoted" fn-anns-quoted)
+        poly-quoted (ast-u/map-expr-at fn-ann-expr :poly)
+        ;; always quoted
+        fn-anns (second fn-anns-quoted)
+        ;; always quoted
+        poly (second poly-quoted)
+        cfexpr (check-special-fn* fexpr fn-anns poly expected)]
+    (assoc expr
+           :statements statements
+           :ret cfexpr
+           u/expr-type (u/expr-type cfexpr))))

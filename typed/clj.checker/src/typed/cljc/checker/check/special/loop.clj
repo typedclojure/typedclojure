@@ -7,11 +7,11 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.cljc.checker.check.special.loop
-  (:require [typed.clj.checker.parse-unparse :as prs]
-            [typed.cljc.checker.check.utils :as cu]
-            [typed.cljc.checker.check.recur-utils :as recur-u]
-            [clojure.core.typed.current-impl :as impl]
+  (:require [clojure.core.typed.current-impl :as impl]
+            [typed.clj.checker.parse-unparse :as prs]
             [typed.cljc.analyzer :as ana2]
+            [typed.cljc.checker.check.recur-utils :as recur-u]
+            [typed.cljc.checker.check.utils :as cu]
             [typed.cljc.checker.utils :as u]))
 
 ; corresponds to a c.c.t/loop macro.
@@ -19,7 +19,7 @@
 ; via `recur-u/*loop-bnd-anns*`.
 (defn check-special-loop
   [check expr expected]
-  {:pre [(#{3} (count (:statements expr)))]}
+  {:pre [(= 3 (count (:statements expr)))]}
   (let [{[_ _ vexpr :as statements] :statements frm :ret, :keys [env], :as expr}
         (-> expr
             (update-in [:statements 2] ana2/run-passes))

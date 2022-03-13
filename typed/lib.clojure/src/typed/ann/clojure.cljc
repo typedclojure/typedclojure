@@ -611,12 +611,11 @@
     :forms '[(Promise t)]}
   t/Promise 
   (t/TFn [[x :variance :invariant]]
-         (t/Rec [p]
-                (t/I (t/Deref x)
-                     (clojure.lang.IBlockingDeref x)
-                     clojure.lang.IPending
-                     ;; FIXME I think this might be an implementation detail.
-                     [x -> (t/U nil p)])))))
+         (t/I (t/Deref x)
+              (clojure.lang.IBlockingDeref x)
+              clojure.lang.IPending
+              ;; FIXME I think this might be an implementation detail.
+              [x -> (t/Nilable (t/Promise x))]))))
 
 (t/defalias
   ^{:doc "A Clojure delay (see clojure.core/{delay,force})."

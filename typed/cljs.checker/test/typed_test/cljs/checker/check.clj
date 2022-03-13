@@ -126,7 +126,7 @@
     (defn ^{:ann '[(t/U nil (ISeqable t/Any)) t/Any -> cljs.core.typed/CLJSInteger]}
       index-of [xs x]
       (let [len (count xs)]
-        (t/loop>
+        (t/loop
          [i :- cljs.core.typed/CLJSInteger, 0]
          (if (< i len)
            (if (= (nth xs i) x)

@@ -21,7 +21,7 @@
   "Check a fn to be under expected and annotate the inferred type"
   [{:keys [methods] :as fexpr} expected]
   {:pre [(r/TCResult? expected)
-         (#{:fn} (:op fexpr))]
+         (= :fn (:op fexpr))]
    :post [(-> % u/expr-type r/TCResult?)
           (vector? (::t/cmethods %))]}
   ;(prn "check-fn" methods)
@@ -33,4 +33,4 @@
     (assoc fexpr
            :methods methods
            ::t/cmethods cmethods
-           u/expr-type  (r/ret ifn (fo/-true-filter)))))
+           u/expr-type (r/ret ifn (fo/-true-filter)))))

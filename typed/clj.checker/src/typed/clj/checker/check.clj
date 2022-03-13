@@ -1615,43 +1615,11 @@
   {:post [(r/TCResult? (u/expr-type %))]}
   (invoke/check-invoke check-expr -invoke-special expr expected))
 
-(defn check-rest-fn [remain-dom & {:keys [rest drest kws prest pdot]}]
-  {:pre [((some-fn nil? r/Type?) rest)
-         ((some-fn nil? r/Type?) prest)
-         ((some-fn nil? r/DottedPretype?) drest)
-         ((some-fn nil? r/Type?) pdot)
-         ((some-fn nil? r/KwArgs?) kws)
-         (#{0 1} (count (filter identity [rest drest kws prest pdot])))
-         (every? r/Type? remain-dom)]
-   :post [(r/Type? %)]}
-  (cond
-    (or rest drest
-        (not-any? identity [rest drest kws prest pdot]))
-    ; rest argument is always a nilable non-empty seq. Could
-    ; be slightly more clever here if we have a `rest`, but what about
-    ; `drest`?
-    (c/Un r/-nil 
-          (c/In (r/-hseq remain-dom
-                         :rest rest
-                         :drest drest)
-                (r/make-CountRange 1)))
-
-    (seq remain-dom) (err/nyi-error "Rest parameter with remaining fixed domain for prest/post/KwArgs")
-
-    prest (c/Un r/-nil prest)
-    pdot (c/Un r/-nil pdot)
-
-    ;kws
-    :else (c/KwArgs->Type kws)))
-
 (defmacro prepare-check-fn [env expr & body]
   `(let [env# ~env
          expr# ~expr]
      (binding [vs/*current-env* (if (:line env#) env# vs/*current-env*)
-               vs/*current-expr* expr#
-               ;; TODO pass with normal fn argument
-               fn-method-u/*check-fn-method1-checkfn* check-expr
-               fn-method-u/*check-fn-method1-rest-type* check-rest-fn]
+               vs/*current-expr* expr#]
        ~@body)))
 
 (defmethod -check :fn
@@ -1717,13 +1685,6 @@
 
 ;(ann internal-special-form [Expr (U nil TCResult) -> Expr])
 (u/special-do-op spec/special-form internal-special-form)
-
-
-(defmethod internal-special-form ::t/fn
-  [{[_ _ {{fn-anns :ann} :val} :as statements] :statements fexpr :ret :keys [env] :as expr} expected]
-  ;(prn "check special :fn" expected)
-  (prepare-check-fn env expr
-    (special-fn/check-special-fn check-expr expr expected)))
 
 (defmethod internal-special-form ::t/cast
   [{[_ _ {{tsyn :type} :val} :as statements] :statements frm :ret, :keys [env], :as expr} expected]
@@ -2132,8 +2093,7 @@
                                                (prs/unparse-type fin))))))))))))))))
 
               methods 
-              (binding [fn-method-u/*check-fn-method1-checkfn* check-expr
-                        fn-method-u/*check-fn-method1-rest-type* 
+              (binding [fn-method-u/check-rest-fn 
                         (fn [& args] 
                           (err/int-error "deftype method cannot have rest parameter"))]
                 (into []

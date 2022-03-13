@@ -325,14 +325,6 @@
                      (ret r/-any)
                      expected)))
 
-(defmethod invoke-special 'cljs.core.typed/loop>-ann
-  [{[expr {{expected-bnds-syn :expr} :form}] :args :as dummy-expr} expected]
-  (let [expected-bnds (binding [prs/*parse-type-in-ns* (cu/expr-ns dummy-expr)]
-                        (mapv prs/parse-type expected-bnds-syn))]
-    ;loop may be nested, type the first loop found
-    (binding [recur-u/*loop-bnd-anns* expected-bnds]
-      (check-expr expr expected))))
-
 ; args are backwards if from inlining
 (defmethod invoke-special 'cljs.core/instance?
   [{:keys [args] :as expr} expected]
@@ -401,42 +393,6 @@
 ;(ann internal-special-form [Expr (U nil TCResult) -> Expr])
 (u/special-do-op spec/special-form internal-special-form)
 
-(defn check-fn-rest [remain-dom & {:keys [rest drest kws prest]}]
-  {:pre [(or (r/Type? rest)
-             (r/Type? prest)
-             (r/DottedPretype? drest)
-             (r/KwArgs? kws))
-         (#{1} (count (filter identity [rest drest kws prest])))]
-   :post [(r/Type? %)]}
-  ;(prn "rest" rest)
-  ;(prn "drest" drest)
-  ;(prn "kws" kws)
-  (cond
-    (or rest drest)
-    (c/Un r/-nil 
-          ; only difference to Clojure impl
-          (r/TApp-maker (r/Name-maker 'cljs.core.typed/NonEmptySeq)
-                        [(or rest (:pre-type drest))]))
-
-    prest (err/nyi-error "NYI handle prest in CLJS")
-    :else (c/KwArgs->Type kws)))
-
-(defmacro prepare-check-fn [& body]
-  `(binding [fn-method-u/*check-fn-method1-checkfn* check-expr
-             fn-method-u/*check-fn-method1-rest-type* check-fn-rest]
-     ~@body))
-
-(defmethod internal-special-form ::t/fn
-  [{[_ _ {{fn-anns :ann} :val} :as statements] :statements fexpr :ret :as expr} expected]
-  (prepare-check-fn
-    (special-fn/check-special-fn check-expr expr expected)))
-
-(defmethod internal-special-form ::t/ann-form
-  [{[_ _ {{tsyn :type} :val} :as statements] :statements frm :ret, :keys [env], :as expr} expected]
-  ;; TODO migrate to extensible type rules
-  (err/nyi-error "cljs ann-form")
-  #_(ann-form/check-ann-form check-expr expr expected))
-
 (defmethod internal-special-form ::t/loop
   [{[_ _ {{tsyns :ann} :val} :as statements] :statements frm :ret, :keys [env], :as expr} expected]
   (special-loop/check-special-loop check-expr expr expected))
@@ -452,10 +408,9 @@
 (defmethod -check :fn
   [{:keys [methods] :as expr} expected]
   ;(prn `-check :fn (mapv (comp :op :ret :body) methods))
-  (prepare-check-fn
-    (if expected
-      (fn/check-fn expr expected)
-      (special-fn/check-core-fn-no-expected check-expr expr))))
+  (if expected
+    (fn/check-fn expr expected)
+    (special-fn/check-core-fn-no-expected check-expr expr)))
 
 (defmethod -check :set!
   [{:keys [target val] :as expr} expected]
@@ -628,7 +583,6 @@
 (defmethod -check :local
   [expr expected]
   (local/check-local expr expected))
-
 
 ; TODO check
 (defmethod -check :the-var

@@ -275,21 +275,22 @@
                             ;possibly present rest argument, or no rest parameter
                             (and (not (or drest kws prest))
                                  ((if rest <= =) (count dom) (count arg-types)))
-                            (let [;; FIXME this is way too broad. what if one symbolic closure was checked as [x -> Any]
-                                  ;; and the other as [Any -> x]? the function could call the first fn via the second's return value,
-                                  ;; but our subsequent check will check the first as [Bot -> Any]. 
-                                  symbolic-closure-fixed-args (when (and r/enable-symbolic-closures?
+                            (let [symbolic-closure-fixed-args (when (and r/enable-symbolic-closures?
                                                                          (not rest) ;;TODO support rest arg
                                                                          (= (count arg-types) (count dom)))
                                                                 (not-empty
                                                                   (into (sorted-set)
                                                                         (keep-indexed (fn [i [arg-t dom-t]]
-                                                                                        (when (and (r/SymbolicClosure? arg-t)
-                                                                                                   (r/FnIntersection? (c/fully-resolve-type dom-t)))
-                                                                                          i)))
-                                                                        (map vector arg-types dom))))]
-                              ;(prn "symbolic-closure-fixed-args" symbolic-closure-fixed-args)
-                              (if-not symbolic-closure-fixed-args
+                                                                                        (let [dom-t (c/fully-resolve-type dom-t)]
+                                                                                          (when (and (r/SymbolicClosure? arg-t)
+                                                                                                     ;; TODO punting on computing data flow between args by isolating an arity
+                                                                                                     (r/FnIntersection? dom-t)
+                                                                                                     (= 1 (count (:types dom-t))))
+                                                                                            i))))
+                                                                        (map vector arg-types dom))))
+                                  ;;TODO punting on computing data flow between args by delaying inference for exactly 1 arg
+                                  symbolic-closure-special-case? (= 1 (count symbolic-closure-fixed-args))]
+                              (if-not symbolic-closure-special-case?
                                 (cgen/infer-vararg fs-names->bbnds {}
                                                    arg-types dom rest
                                                    (r/Result-type* rng) (some-> expected r/ret-t

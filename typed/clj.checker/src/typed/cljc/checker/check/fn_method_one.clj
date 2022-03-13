@@ -8,31 +8,32 @@
 
 (ns typed.cljc.checker.check.fn-method-one
   (:require [clojure.core.typed :as t]
-            [typed.cljc.checker.type-rep :as r]
-            [clojure.core.typed.current-impl :as impl]
-            [typed.cljc.checker.utils :as u]
             [clojure.core.typed.ast-utils :as ast-u]
-            [typed.cljc.checker.object-rep :as obj]
-            [typed.cljc.checker.open-result :as open-result]
+            [clojure.core.typed.contract-utils :as con]
+            [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.errors :as err]
-            [typed.cljc.checker.lex-env :as lex]
+            [clojure.core.typed.util-vars :as vs]
+            [typed.clj.analyzer.passes.beta-reduce :as beta-reduce]
+            [typed.clj.checker.analyze-clj :as ana-clj]
+            [typed.clj.checker.parse-unparse :as prs]
+            [typed.clj.checker.subtype :as sub]
+            [typed.cljc.checker.check :refer [check-expr]]
+            [typed.cljc.analyzer :as ana]
             [typed.cljc.checker.check.fn-method-utils :as fn-method-u]
-            [typed.cljc.checker.check.multi-utils :as multi-u]
             [typed.cljc.checker.check.funapp :as funapp]
+            [typed.cljc.checker.check.isa :as isa]
+            [typed.cljc.checker.check.multi-utils :as multi-u]
+            [typed.cljc.checker.check.recur-utils :as recur-u]
+            [typed.cljc.checker.check.utils :as cu]
             [typed.cljc.checker.filter-ops :as fo]
             [typed.cljc.checker.filter-rep :as fl]
-            [typed.cljc.checker.check.isa :as isa]
+            [typed.cljc.checker.lex-env :as lex]
+            [typed.cljc.checker.object-rep :as obj]
+            [typed.cljc.checker.open-result :as open-result]
+            [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.update :as update]
-            [clojure.core.typed.contract-utils :as con]
-            [typed.cljc.checker.var-env :as var-env]
-            [typed.cljc.checker.check.recur-utils :as recur-u]
-            [clojure.core.typed.util-vars :as vs]
-            [typed.clj.checker.subtype :as sub]
-            [typed.cljc.checker.check.utils :as cu]
-            [typed.clj.checker.parse-unparse :as prs]
-            [typed.clj.checker.analyze-clj :as ana-clj]
-            [typed.cljc.analyzer :as ana]
-            [typed.clj.analyzer.passes.beta-reduce :as beta-reduce]))
+            [typed.cljc.checker.utils :as u]
+            [typed.cljc.checker.var-env :as var-env]))
 
 ;check method is under a particular Function, and return inferred Function
 ; if ignore-rng is true, otherwise return expression with original expected type.
@@ -87,12 +88,11 @@
         ;       (HVec [(U nil Class) (U nil Class)]
         ;              :objects [{:path [Class], :id a} {:path [Class], :id b}])
         expected-rng (when-not ignore-rng
-                       (apply r/ret
-                              (open-result/open-Result 
-                                (:rng expected)
-                                (map param-obj
-                                     (concat required-params 
-                                             (when rest-param [rest-param]))))))
+                       (open-result/open-Result->TCResult
+                         (:rng expected)
+                         (map param-obj
+                              (concat required-params
+                                      (some-> rest-param list)))))
         ;_ (prn "open-result expected-rng" expected-rng)
         ;_ (prn "open-result expected-rng filters" (some->> expected-rng :fl ((juxt :then :else)) (map fl/infer-top?)))
         ;ensure Function fits method
@@ -112,23 +112,21 @@
         _ (assert (every? (comp r/TCResult? u/expr-type) crequired-params))
         fixed-entry (map (juxt :name (comp r/ret-t u/expr-type)) crequired-params)
         ;_ (prn "checking function:" (prs/unparse-type expected))
-        check-fn-method1-rest-type fn-method-u/*check-fn-method1-rest-type*
-        _ (assert check-fn-method1-rest-type "No check-fn bound for rest type")
-        crest-param (when rest-param
-                      (assoc rest-param
-                             u/expr-type (r/ret (check-fn-method1-rest-type (drop (count crequired-params) dom)
-                                                                            :rest rest
-                                                                            :drest drest
-                                                                            :kws kws
-                                                                            :prest prest
-                                                                            :pdot pdot))))
+        crest-param (some-> rest-param
+                            (assoc u/expr-type (r/ret (fn-method-u/check-rest-fn
+                                                        (drop (count crequired-params) dom)
+                                                        (select-keys expected [:rest :drest :kws :prest :pdot])))))
         rest-entry (when crest-param
                      [[(:name crest-param) (r/ret-t (u/expr-type crest-param))]])
         ;_ (prn "rest entry" rest-entry)
-        _ (assert ((con/hash-c? symbol? r/Type?) (into {} fixed-entry))
-                  (into {} fixed-entry))
-        _ (assert ((some-fn nil? (con/hash-c? symbol? r/Type?)) (when rest-entry
-                                                              (into {} rest-entry))))
+        _ (when (some? fixed-entry)
+            (assert ((con/hash-c? symbol? r/Type?)
+                     (into {} fixed-entry))
+                    (into {} fixed-entry)))
+        _ (when (some? rest-entry)
+            (assert ((con/hash-c? symbol? r/Type?)
+                     (into {} rest-entry))
+                    (into {} rest-entry)))
 
         ; if this fn method is a multimethod dispatch method, then infer
         ; a new filter that results from being dispatched "here"
@@ -158,16 +156,12 @@
                           ;IF UNHYGIENIC order important, (fn [a a & a]) prefers rightmost name
                           (update :l merge (into {} fixed-entry) (into {} rest-entry)))
                   flag (atom true :validator boolean?)
-                  env (if mm-filter
-                        (let [t (update/env+ env [mm-filter] flag)]
-                          t)
-                        env)]
+                  env (cond-> env
+                        mm-filter (update/env+ [mm-filter] flag))]
               (when-not @flag
                 (err/int-error "Unreachable method: Local inferred to be bottom when applying multimethod filter"))
               env)
 
-        check-fn-method1-checkfn fn-method-u/*check-fn-method1-checkfn*
-        _ (assert check-fn-method1-checkfn "No check-fn bound for method1")
         ; rng before adding new filters
         crng-nopass
         (binding [multi-u/*current-mm* nil]
@@ -185,49 +179,48 @@
                                     (not-any? identity [rest drest kws prest pdot]))
                              ;; substitute away the rest argument to try and trigger
                              ;; any beta reductions
-                             (with-bindings* (ana-clj/thread-bindings {:env (:env method)})
-                               #(-> body
-                                    (beta-reduce/subst-locals 
-                                      {(:name rest-param) (beta-reduce/fake-seq-invoke
-                                                            (mapv (fn [t]
-                                                                    (beta-reduce/make-invoke-expr
-                                                                      (beta-reduce/make-var-expr
-                                                                        #'cu/special-typed-expression
-                                                                        (:env method))
-                                                                      [(ana/parse-quote
-                                                                         (binding [vs/*verbose-types* true]
-                                                                           `'~(prs/unparse-type t))
-                                                                         (:env method))]
-                                                                      (:env method)))
-                                                                  dom)
-                                                            (:env method))})
-                                    ana/run-passes))
+                             (with-bindings (ana-clj/thread-bindings {:env (:env method)})
+                               (-> body
+                                   (beta-reduce/subst-locals 
+                                     {(:name rest-param) (beta-reduce/fake-seq-invoke
+                                                           (mapv (fn [t]
+                                                                   (beta-reduce/make-invoke-expr
+                                                                     (beta-reduce/make-var-expr
+                                                                       #'cu/special-typed-expression
+                                                                       (:env method))
+                                                                     [(ana/parse-quote
+                                                                        (binding [vs/*verbose-types* true]
+                                                                          (list 'quote (prs/unparse-type t)))
+                                                                        (:env method))]
+                                                                     (:env method)))
+                                                                 dom)
+                                                           (:env method))})
+                                   ana/run-passes))
                              body)]
-                  (check-fn-method1-checkfn body expected-rng))))))
+                  (check-expr body expected-rng))))))
 
         ; Apply the filters of computed rng to the environment and express
         ; changes to the lexical env as new filters, and conjoin with existing filters.
 
         then-env (let [{:keys [then]} (-> crng-nopass u/expr-type r/ret-f)]
-                   (if (fl/NoFilter? then)
-                     env
-                     (update/env+ env [then] (atom true))))
-        new-then-props (reduce (fn [fs [sym t]]
-                                 {:pre [((con/set-c? fl/Filter?) fs)]}
-                                 (if (= t (get-in env [:l sym]))
-                                   ;type hasn't changed, no new propositions
-                                   fs
-                                   ;new type, add positive proposition
-                                   (conj fs (fo/-filter-at t (lex/lookup-alias sym :env env)))))
-                               #{}
-                               (:l then-env))
+                   (cond-> env
+                     (not (fl/NoFilter? then))
+                     (update/env+ [then] (atom true))))
+        new-then-props (reduce-kv (fn [fs sym t]
+                                    {:pre [((con/set-c? fl/Filter?) fs)]}
+                                    (cond-> fs
+                                      (not= t (get-in env [:l sym]))
+                                      ;new type, add positive proposition
+                                      ;(otherwise, type hasn't changed, no new propositions)
+                                      (conj (fo/-filter-at t (lex/lookup-alias sym :env env)))))
+                                  #{}
+                                  (:l then-env))
 
         crng (update-in crng-nopass [u/expr-type :fl :then]
                         (fn [f]
                           (apply fo/-and f new-then-props)))
         ;_ (prn "crng" (u/expr-type crng))
-        rest-param-name (when rest-param
-                          (:name rest-param))
+        rest-param-name (some-> rest-param :name)
 
         ftype (fn-method-u/FnResult->Function
                 (fn-method-u/FnResult-maker
@@ -244,8 +237,8 @@
                     [rest-param-name pdot])
                   (u/expr-type crng)))
                         
-        cmethod (-> (assoc method
-                           (ast-u/method-body-kw) crng
+        cmethod (-> method
+                    (assoc (ast-u/method-body-kw) crng
                            ::t/ftype ftype)
                     (ast-u/reconstruct-arglist crequired-params crest-param))
         _ (assert (vector? (:params cmethod)))

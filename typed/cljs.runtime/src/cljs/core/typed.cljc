@@ -361,49 +361,6 @@
        ;;nil
        ~@body)))
 
-(defmacro 
-  ^{:forms '[(loop> [binding :- type, init*] exprs*)]}
-  ^{:deprecated "0.2.61"}
-  loop>
-  "DEPRECATED: use loop
-
-  Like loop, except loop variables require annotation.
-
-  Suggested idiom: use a comma between the type and the initial
-  expression.
-
-  eg. (loop> [a :- Number, 1
-              b :- (U nil Number), nil]
-        ...)"
-  [bndings* & forms]
-  (core/let [normalise-args
-             (core/fn [seq-exprs]
-               (core/loop [flat-result ()
-                           seq-exprs seq-exprs]
-                 (cond
-                   (empty? seq-exprs) flat-result
-                   (and (vector? (first seq-exprs))
-                        (#{:-} (-> seq-exprs first second))) (do
-                                                               (prn "DEPRECATED WARNING: loop> syntax has changed, use [b :- t i] for clauses"
-                                                                    "ns: " *ns* " form:" &form)
-                                                               (recur (concat flat-result (take 2 seq-exprs))
-                                                                      (drop 2 seq-exprs)))
-                   :else (do (assert (#{:-} (second seq-exprs))
-                                     "Incorrect syntax in loop>.")
-                             (recur (concat flat-result [(vec (take 3 seq-exprs))
-                                                         (nth seq-exprs 3)])
-                                    (drop 4 seq-exprs))))))
-             ;group args in flat pairs
-             bndings* (normalise-args bndings*)
-             bnds (partition 2 bndings*)
-             ; [[lhs :- bnd-ann] rhs]
-             lhs (map ffirst bnds)
-             rhs (map second bnds)
-             bnd-anns (map #(-> % first next second) bnds)]
-    `(loop>-ann (cljs.core/loop ~(vec (mapcat vector lhs rhs))
-                  ~@forms)
-                '~bnd-anns)))
-
 (core/defn default-check-config []
   {:check-ns-dep :recheck
    :unannotated-def :infer

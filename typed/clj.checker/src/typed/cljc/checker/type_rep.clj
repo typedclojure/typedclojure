@@ -9,13 +9,13 @@
 (ns ^:no-doc typed.cljc.checker.type-rep
   (:refer-clojure :exclude [defrecord defprotocol])
   (:require [clojure.core.typed :as t]
-            [typed.cljc.checker.impl-protocols :as p]
-            [typed.cljc.checker.utils :as u]
-            [clojure.core.typed.contract-utils :as con]
-            clojure.core.typed.contract-ann
             [clojure.core.typed.coerce-utils :as coerce]
+            [clojure.core.typed.contract-utils :as con]
+            [clojure.set :as set]
+            [typed.cljc.checker.impl-protocols :as p]
             [typed.cljc.checker.indirect-ops :as ind]
-            [clojure.set :as set]))
+            [typed.cljc.checker.utils :as u]
+            clojure.core.typed.contract-ann))
 
 (t/defalias SeqNumber Long)
 
