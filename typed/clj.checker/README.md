@@ -7,14 +7,14 @@ Type checker for Typed Clojure, for JVM Clojure.
 
 ## Releases and Dependency Information
 
-Latest stable release is 1.0.19.
+Latest stable release is 1.0.20.
 
 * [All Released Versions](https://clojars.org/org.typedclojure/typed.clj.checker)
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) JAR dependency information:
 
 ```clj
-  org.typedclojure/typed.clj.checker {:mvn/version "1.0.19"}
+  org.typedclojure/typed.clj.checker {:mvn/version "1.0.20"}
  ```
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) Git dependency information:
@@ -25,13 +25,13 @@ Latest stable release is 1.0.19.
   org.typedclojure/typed.clj.checker
   {:git/url "https://github.com/typedclojure/typedclojure"
    :deps/root "typed/clj.checker"
-   :tag "1.0.19"}
+   :tag "1.0.20"}
 ```
 
 [Leiningen](https://github.com/technomancy/leiningen) dependency information:
 
 ```clojure
-[org.typedclojure/typed.clj.checker "1.0.19"]
+[org.typedclojure/typed.clj.checker "1.0.20"]
 ```
 
 [Maven](https://maven.apache.org/) dependency information:
@@ -40,7 +40,7 @@ Latest stable release is 1.0.19.
 <dependency>
   <groupId>org.typedclojure</groupId>
   <artifactId>typed.clj.checker</artifactId>
-  <version>1.0.19</version>
+  <version>1.0.20</version>
 </dependency>
 ```
 
