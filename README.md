@@ -46,6 +46,8 @@ In Leiningen's `project.clj`, it will look something like this:
 Then, `lein repl` will automatically activate the `:dev` profile. Verify the type
 checker is not included in uberjars with `lein with-profile uberjar deps :tree`.
 
+For ClojureScript support, use `org.typedclojure/typed.cljs.runtime` and `org.typedclojure/typed.cljs.checker`.
+
 ## Releases and Dependency Information
 
 Latest stable release is 1.0.20.
@@ -64,10 +66,10 @@ See modules for specific version coordinates:
 * [typed.clj.spec](typed/clj.spec/README.md): Type-like specs.
 * [typed.clj.malli](typed/clj.malli/README.md): Malli integration.
 
-### ClojureScript implementation (Work in progress)
+### ClojureScript implementation
 
 * [typed.cljs.analyzer](typed/cljs.analyzer/README.md): Analyzer for JS Clojure
-* [typed.cljs.checker](typed/cljs.checker/README.md): The JS type checker (unreleased)
+* [typed.cljs.checker](typed/cljs.checker/README.md): The JS type checker
 * [typed.cljs.runtime](typed/cljs.runtime/README.md): Runtime dependencies
 
 ### Implementation-agnostic
