@@ -1,3 +1,7 @@
+# 1.0.21
+
+- don't check the `typed.clojure` namespace
+
 # 1.0.20
 
 - add `lib.spec.alpha` lib for spec.alpha annotations

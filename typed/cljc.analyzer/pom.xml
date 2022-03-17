@@ -6,7 +6,7 @@
   <artifactId>typed.cljc.analyzer</artifactId>
   <description>A variant of tools.analyzer.</description>
   <name>typed.cljc.analyzer</name>
-  <version>1.0.21-SNAPSHOT</version>
+  <version>1.0.22-SNAPSHOT</version>
 
   <licenses>
     <license>
@@ -19,7 +19,7 @@
   <parent>
     <groupId>org.typedclojure</groupId>
     <artifactId>pom.typed</artifactId>
-    <version>1.0.21-SNAPSHOT</version>
+    <version>1.0.22-SNAPSHOT</version>
     <relativePath>../..</relativePath>
   </parent>
 

@@ -12,14 +12,14 @@ Runtime dependencies for the ClojureScript type checker.
 
 ## Releases and Dependency Information
 
-Latest stable release is 1.0.20.
+Latest stable release is 1.0.21.
 
 * [All Released Versions](https://clojars.org/org.typedclojure/typed.cljs.runtime)
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) JAR dependency information:
 
 ```clj
-  org.typedclojure/typed.cljs.runtime {:mvn/version "1.0.20"}
+  org.typedclojure/typed.cljs.runtime {:mvn/version "1.0.21"}
 ```
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) Git dependency information:
@@ -30,13 +30,13 @@ Latest stable release is 1.0.20.
   org.typedclojure/typed.cljs.runtime
   {:git/url "https://github.com/typedclojure/typedclojure"
    :deps/root "typed/cljs.runtime"
-   :tag "1.0.20"}
+   :tag "1.0.21"}
 ```
 
 [Leiningen](https://github.com/technomancy/leiningen) dependency information:
 
 ```clojure
-[org.typedclojure/typed.cljs.runtime "1.0.20"]
+[org.typedclojure/typed.cljs.runtime "1.0.21"]
 ```
 
 [Maven](https://maven.apache.org/) dependency information:
@@ -45,7 +45,7 @@ Latest stable release is 1.0.20.
 <dependency>
   <groupId>org.typedclojure</groupId>
   <artifactId>typed.cljs.runtime</artifactId>
-  <version>1.0.20</version>
+  <version>1.0.21</version>
 </dependency>
 ```
 

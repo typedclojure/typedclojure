@@ -1,1 +1,0 @@
-- don't check the `typed.clojure` namespace
