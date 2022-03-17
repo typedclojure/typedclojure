@@ -23,6 +23,8 @@ Optional typing in Clojure, as a library.
 
 ## Usage Overview
 
+tldr; see the [minimal example project](example-projects/minimal) for Typed Clojure[Script] setup.
+
 Typed Clojure is separated into modules. You'll want the full type checker at development
 time, and the runtime dependencies in production.
 
