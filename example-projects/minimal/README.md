@@ -2,7 +2,7 @@
 
 This project demonstrates how to type check Clojure[Script] files with Typed Clojure.
 
-See [](deps.edn) for required dependencies.
+See [deps.edn](deps.edn) for required dependencies.
 
 ## Usage
 
