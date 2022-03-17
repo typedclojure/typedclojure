@@ -192,7 +192,7 @@
           check? (some-> ns-form ns-depsu/should-check-ns-form?)]
       (cond
         (not check?)
-        (when-not ('#{clojure.core.typed cljs.core.typed clojure.core cljs.core} nsym)
+        (when-not ('#{typed.clojure clojure.core.typed cljs.core.typed clojure.core cljs.core} nsym)
           (println (str "Not checking " nsym 
                         (cond
                           (not ns-form) " (ns form missing)"

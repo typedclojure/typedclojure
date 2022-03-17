@@ -215,7 +215,7 @@
      ; collect but don't check the current namespace
      (check-ns-clj *ns* :collect-only true)"
      ([] (clojure.core.typed/check-ns))
-     ([ns-or-syms & opt] (apply clojure.core.typed/check-ns ns-or-syms opt)))) 
+     ([ns-or-syms & opt] (apply clojure.core.typed/check-ns ns-or-syms opt))))
 
 (defn check-ns-cljs* [& args]
   (apply #?(:clj (requiring-resolve 'cljs.core.typed/check-ns*)

@@ -1,0 +1,4 @@
+{:deps {org.typedclojure/typed.clj.runtime {:local/root "../../typed/clj.runtime"}
+        org.typedclojure/typed.cljs.runtime {:local/root "../../typed/cljs.runtime"}}
+ :aliases {:dev {:extra-deps {org.typedclojure/typed.clj.checker {:local/root "../../typed/clj.checker"}
+                              org.typedclojure/typed.cljs.checker {:local/root "../../typed/cljs.checker"}}}}}

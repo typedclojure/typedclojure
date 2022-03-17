@@ -62,11 +62,11 @@
   (if-let [deps (ns-parse/deps-from-ns-decl ns-form)]
     (boolean
       (some (impl/impl-case
-              :clojure #{'clojure.core.typed
-                         'typed.clojure}
-              :cljs #{'clojure.core.typed
-                      'cljs.core.typed
-                      'typed.clojure})
+              :clojure '#{clojure.core.typed
+                          typed.clojure}
+              :cljs '#{clojure.core.typed
+                       cljs.core.typed
+                       typed.clojure})
             deps))
     false))
 
@@ -101,6 +101,7 @@
   [ns-form]
   {:post [(boolean? %)]}
   (and (boolean ns-form)
+       (not ('#{typed.clojure clojure.core.typed cljs.core.typed clojure.core cljs.core} (ns-form-name ns-form)))
        (requires-tc? ns-form)
        (not (collect-only-ns? ns-form))))
 
