@@ -9,7 +9,6 @@
 (ns ^:no-doc typed.ext.clojure.core.async
   "Typing rules for core.async"
   (:require [clojure.core.async :as async]
-            [clojure.core.typed :as t]
             [clojure.core.typed.util-vars :as vs]
             [typed.clj.analyzer.passes.emit-form :as emit-form]
             [typed.clj.checker.check :refer [check-expr]]

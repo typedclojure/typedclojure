@@ -1,7 +1,7 @@
 (ns clojure.core.typed.test.poly-record
-  (:require [clojure.core.typed :as t]))
+  (:require [typed.clojure :as t]))
 
-(t/ann-record [[foo :variance :invariant]] Foo [b :- (t/U nil Number)])
+(t/ann-record [[foo :variance :invariant]] Foo [b :- (t/U nil t/Num)])
 (t/tc-ignore
 (defrecord Foo [b])
   )

@@ -1,11 +1,10 @@
 (ns clojure.core.typed.test.pomegranate
-  (:import (clojure.lang Named))
   (:require [clojure.core.typed :as t]))
 
 #_(t/non-nil-return java.lang.Class/getDeclaredMethod :all)
 #_(t/nilable-param java.lang.reflect.Method/invoke {2 #{0}})
 
-(t/ann call-method [Class Named (t/Vec Class) (t/U nil Object) (t/U nil Object) * -> (t/U nil Object)])
+(t/ann call-method [Class t/Named (t/Vec Class) (t/U nil Object) (t/U nil Object) * -> (t/U nil Object)])
 
 ;; call-method pulled from clojure.contrib.reflect, (c) 2010 Stuart Halloway & Contributors
 (defn call-method

@@ -11,7 +11,7 @@
             [cljs.analyzer.api :as ana-api]
             [cljs.tagged-literals :as tags]
             [cljs.util :as cljs-util]
-            [clojure.core.typed :as t]
+            [typed.clojure :as t]
             [clojure.core.typed.ast-utils :as ast-u]
             [clojure.core.typed.check.dot-cljs :as dot]
             [clojure.core.typed.coerce-utils :as coerce]
@@ -159,14 +159,12 @@
 
 (t/ann ^:no-check checked-ns! [t/Sym -> nil])
 (defn- checked-ns! [nsym]
-  (t/when-let-fail [a vs/*already-checked*]
-    (swap! a conj nsym))
+  (swap! vs/*already-checked* conj nsym)
   nil)
 
 (t/ann already-checked? [t/Sym -> Boolean])
 (defn already-checked? [nsym]
-  (t/when-let-fail [a vs/*already-checked*]
-    (boolean (@a nsym))))
+  (boolean (@vs/*already-checked* nsym)))
 
 (declare check-ns-and-deps)
 
@@ -393,7 +391,7 @@
 ;(ann internal-special-form [Expr (U nil TCResult) -> Expr])
 (u/special-do-op spec/special-form internal-special-form)
 
-(defmethod internal-special-form ::t/loop
+(defmethod internal-special-form :clojure.core.typed/loop
   [{[_ _ {{tsyns :ann} :val} :as statements] :statements frm :ret, :keys [env], :as expr} expected]
   (special-loop/check-special-loop check-expr expr expected))
 

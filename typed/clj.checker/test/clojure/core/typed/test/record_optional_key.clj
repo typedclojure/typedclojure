@@ -1,12 +1,12 @@
 (ns clojure.core.typed.test.record-optional-key
-  (:require [clojure.core.typed :as t]))
+  (:require [typed.clojure :as t]))
 
-(t/ann-record Foo [a :- (t/U nil Number)])
+(t/ann-record Foo [a :- (t/U nil t/Num)])
 (defrecord Foo [a])
 
 (map->Foo {})
 
-(t/ann-record FooP [a :- (t/U nil Number)])
+(t/ann-record FooP [a :- (t/U nil t/Num)])
 (defrecord FooP [a])
 
 (map->FooP {})

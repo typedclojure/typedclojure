@@ -1,5 +1,5 @@
 (ns clojure.core.typed.test.forward-variance
-  (:require [clojure.core.typed :as t]))
+  (:require [typed.clojure :as t]))
 
 ; # Problem
 ;

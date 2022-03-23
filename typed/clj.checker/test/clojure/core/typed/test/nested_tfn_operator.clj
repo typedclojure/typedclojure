@@ -1,5 +1,5 @@
 (ns clojure.core.typed.test.nested-tfn-operator
-  (:require [clojure.core.typed :as t]))
+  (:require [typed.clojure :as t]))
 
 (t/defalias Indirect0
   (t/TFn [[x :variance :covariant]]

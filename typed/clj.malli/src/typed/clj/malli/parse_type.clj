@@ -9,7 +9,7 @@
 (ns typed.clj.malli.parse-type
   "Parsing Typed Clojure syntax to malli"
   (:require [clojure.set :as set]
-            [clojure.core.typed :as t]
+            [typed.clojure :as t]
             [clojure.core.typed.parse-ast :as ast]
             [clojure.core.typed.unsafe :as unsafe]
             [clojure.core.typed.current-impl :as impl]

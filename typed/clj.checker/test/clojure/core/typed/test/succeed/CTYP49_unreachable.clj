@@ -1,12 +1,12 @@
 (ns clojure.core.typed.test.succeed.CTYP49-unreachable
-  (:require [clojure.core.typed :as t]))
+  (:require [typed.clojure :as t]))
 
 (t/ann ^:no-check request 
-       ['{:url String, :method ':get} 
-        -> (t/Atom1 '{:status Number, :body String})])
+       ['{:url t/Str, :method ':get} 
+        -> (t/Atom1 '{:status t/Num, :body t/Str})])
 (declare request)
 
-(t/ann get-or-throw [String -> '{:status Number :body String}])
+(t/ann get-or-throw [t/Str -> '{:status t/Num :body t/Str}])
 (defn get-or-throw [url]
   (let [doc (request {:url url :method :get})
         doc @doc

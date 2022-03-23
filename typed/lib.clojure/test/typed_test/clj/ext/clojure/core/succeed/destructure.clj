@@ -1,6 +1,6 @@
 (ns typed-test.clj.ext.clojure.core.succeed.destructure
   (:import (clojure.lang APersistentVector APersistentMap))
-  (:require [clojure.core.typed :as t :refer [ann-form check-ns cf]]))
+  (:require [typed.clojure :as t :refer [ann-form]]))
 
 ;; map destructuring
 (let [{:keys [b] :or {b 3}} {}]

@@ -8,7 +8,7 @@
 
 (ns ^:no-doc typed.cljs.checker.jsnominal-env
   (:refer-clojure :exclude [get-method])
-  (:require [clojure.core.typed :as t]
+  (:require [typed.clojure :as t]
             [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.current-impl :as impl]
             [typed.cljc.checker.type-ctors :as c]

@@ -1348,6 +1348,25 @@
   (is-tc-e (.ns ^clojure.lang.Var #'clojure.core/map))
   (is-tc-err (fn [] (.ns ^clojure.lang.Var 'a))))
 
+(deftest instance-method-test
+  (is-tc-e (fn [^Class a :- Class]
+             (.getName a)))
+  (is-tc-e (fn [a :- Class]
+             (let [a a]
+               (.getName a))))
+  (is-tc-e (defn foo [a :- Class]
+             (let [a a]
+               (.getName a))))
+  (is-tc-e (do
+             (typed.clojure/ann Class->symbol [Class -> typed.clojure/Sym])
+             (cc/defn Class->symbol [^Class cls]
+               {:pre [(class? cls)]
+                :post [(symbol? %)]}
+               (symbol (.getName cls)))))
+  (is-tc-e (fn [a :- Class]
+             (cc/let [a a]
+               (.getName a)))))
+
 (deftest HMap-syntax-test
   (is-clj (= (parse-type `(t/HMap :absent-keys #{:op}))
              (make-HMap :absent-keys #{(-val :op)} :complete? false))))

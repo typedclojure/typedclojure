@@ -51,7 +51,7 @@
                    (nrepl/message ses
                                   {:op :load-file 
                                    :file "(ns ^:core.typed foo.bar
-                                         (:require [clojure.core.typed :as t]))
+                                         (:require [typed.clojure :as t]))
                                          (t/ann a t/Sym)
                                          (def a 'a)
                                          42"
@@ -72,7 +72,7 @@
                      (nrepl/message ses
                                     {:op :load-file 
                                      :file "(ns ^:core.typed foo.bar
-                                           (:require [clojure.core.typed :as t]))
+                                           (:require [typed.clojure :as t]))
                                            (t/ann a t/Sym)
                                            (def a 'a)
                                            (/ 1 0)"

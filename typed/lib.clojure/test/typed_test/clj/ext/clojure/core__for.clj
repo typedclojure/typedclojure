@@ -1,6 +1,6 @@
 (ns ^:no-doc typed-test.clj.ext.clojure.core__for
   (:require [clojure.test :refer [deftest is testing]]
-            [clojure.core.typed :as t]
+            [typed.clojure :as t]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.clj.checker.test-utils :refer :all]))
 

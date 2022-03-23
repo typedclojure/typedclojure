@@ -8,8 +8,7 @@
 
 (ns ^:no-doc clojure.core.typed.ast-utils
   (:require [clojure.core.typed.current-impl :as impl]
-            [clojure.core.typed.contract-utils :as con]
-            [clojure.core.typed.coerce-utils :as coerce]))
+            [clojure.core.typed.contract-utils :as con]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; AST ops
@@ -122,6 +121,14 @@
     ;include deftype's 'this' param
     (:method) (concat [(:this method)] (:params method))))
 
+(defn visit-method-params [method f]
+  (case (:op method)
+    :fn-method (-> method
+                   (update :params #(mapv f %)))
+    :method (-> method
+                (update :this f)
+                (update :params #(mapv f %)))))
+
 (defn method-rest-param [method]
   (case (:op method)
     ;deftype methods are never variadic
@@ -152,7 +159,7 @@
 (defn def-var-name [expr]
   {:post [(symbol? %)]}
   (impl/impl-case
-    :clojure (coerce/var->symbol (:var expr))
+    :clojure ((requiring-resolve 'clojure.core.typed.coerce-utils/var->symbol) (:var expr))
     :cljs (:name expr)))
 
 (defn new-op-class [expr]

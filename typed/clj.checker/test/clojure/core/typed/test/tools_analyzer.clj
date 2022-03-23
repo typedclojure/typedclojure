@@ -1,6 +1,5 @@
 (ns clojure.core.typed.test.tools-analyzer
-  (:require [clojure.core.typed :as t]
-            [typed.clj.checker.analyze-clj :as ana]
+  (:require [typed.clj.checker.analyze-clj :as ana]
             #_[typed.cljc.checker.utils :as u]
             #_[clojure.core.typed.current-impl :as impl]))
 

@@ -8,8 +8,7 @@
 
 (ns ^:no-doc typed.clj.ext.clojure.core__defmacro
   "Typing rules clojure.core/defmacro"
-  (:require [clojure.core.typed :as t]
-            [typed.cljc.checker.check-below :as below]
+  (:require [typed.cljc.checker.check-below :as below]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.utils :as u]
             [typed.cljc.checker.check.unanalyzed :refer [defuspecial]]))

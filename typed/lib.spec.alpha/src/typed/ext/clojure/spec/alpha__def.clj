@@ -8,8 +8,7 @@
 
 (ns ^:no-doc typed.ext.clojure.spec.alpha__def
   "Typing rules for clojure.spec.alpha/def."
-  (:require [clojure.core.typed :as t]
-            [typed.cljc.checker.check-below :as below]
+  (:require [typed.cljc.checker.check-below :as below]
             [typed.cljc.checker.filter-ops :as fo]
             [typed.cljc.checker.filter-rep :as fl]
             [typed.cljc.checker.type-rep :as r]

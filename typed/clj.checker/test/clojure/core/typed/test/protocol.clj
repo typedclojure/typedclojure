@@ -1,10 +1,10 @@
 (ns clojure.core.typed.test.protocol
-  (:require [clojure.core.typed :as t :refer [ann-protocol ann-datatype check-ns]]))
+  (:require [typed.clojure :as t :refer [ann-protocol ann-datatype]]))
 
 (t/defprotocol AddProtoc
   (adder [this amount :- t/Num] :- t/Num))
 
-(ann-datatype Accumulator [t :- Number])
+(ann-datatype Accumulator [t :- t/Num])
 (deftype Accumulator [t]
   AddProtoc
   (adder [_ i] 1))
@@ -48,7 +48,3 @@
                :< Functor]]
   Functor
   ([a b c ...] fmap [fv :- (F a), g :- [a :-> b]] :- (F b)))
-
-(comment
- (check-ns 'clojure.core.typed.test.protocol)
-  )

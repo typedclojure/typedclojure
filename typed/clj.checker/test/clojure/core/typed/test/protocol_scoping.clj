@@ -1,5 +1,5 @@
 (ns clojure.core.typed.test.protocol-scoping
-  (:require [clojure.core.typed :as t]))
+  (:require [typed.clojure :as t]))
 
 (t/defprotocol NonPoly
   (nonpoly [this]))

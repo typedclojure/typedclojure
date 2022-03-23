@@ -1,11 +1,9 @@
 (ns clojure.core.typed.test.set-bang
-  (:import (clojure.lang Keyword))
-  (:require [clojure.core.typed :as t]))
+  (:require [typed.clojure :as t]))
 
-(t/ann foo Keyword)
+(t/ann foo t/Keyword)
 (def ^:dynamic foo :foo)
 
-(t/ann bar [-> Keyword])
+(t/ann bar [-> t/Keyword])
 (defn bar []
   (set! foo :bar))
-

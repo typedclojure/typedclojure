@@ -1,5 +1,5 @@
 (ns clojure.core.typed.test.rbt-types
-  (:require [clojure.core.typed :as t :refer [defalias declare-names]]))
+  (:require [typed.clojure :as t :refer [defalias]]))
 
 ;-------------------------------
 ; 'Normal' types
@@ -7,8 +7,8 @@
 
 (defalias EntryT 
   "The payload"
-  '{:key Number
-    :datum Number})
+  '{:key t/Num
+    :datum t/Num})
 
 (defalias Empty
   "A terminating node."
@@ -31,7 +31,6 @@
       :entry EntryT
       :left l
       :right r}))
-
 
 ;-------------------------------
 ; 'Refinement' types

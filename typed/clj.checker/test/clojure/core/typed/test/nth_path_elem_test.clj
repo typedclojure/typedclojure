@@ -1,8 +1,6 @@
 (ns clojure.core.typed.test.nth-path-elem-test
-  (:refer-clojure :exclude [fn])
   (:require [typed.clj.checker.test-utils :refer :all]
-            [clojure.test :refer :all]
-            [clojure.core.typed :as t :refer [ann-form defalias print-env fn]]))
+            [clojure.test :refer :all]))
 
 (deftest nth-path-elem-test-first
   (is-tc-e

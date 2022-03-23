@@ -1,17 +1,17 @@
 (ns clojure.core.typed.test.set-new
-  (:require [clojure.core.typed :as t]
+  (:require [typed.clojure :as t]
             [clojure.set :as set] 
             [clojure.test :refer :all]                
             [typed.clj.checker.test-utils :refer :all]))
 
 (deftest subset-test
-  (is-tc-e (subset? #{1} #{2}) Boolean 
+  (is-tc-e (subset? #{1} #{2}) t/Bool 
            :requires [[clojure.set :refer [subset?]]])
   (is-tc-err (subset? #{1} #{2}) (t/Set t/Any) 
              :requires [[clojure.set :refer [subset?]]]))
 
 (deftest superset-test
-  (is-tc-e (superset? #{1} #{2}) Boolean 
+  (is-tc-e (superset? #{1} #{2}) t/Bool 
            :requires [[clojure.set :refer [superset?]]])
   (is-tc-err (superset? #{1} #{2}) (t/Set t/Any) 
              :requires [[clojure.set :refer [superset?]]]))

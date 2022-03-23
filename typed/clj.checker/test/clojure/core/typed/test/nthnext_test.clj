@@ -1,8 +1,6 @@
 (ns clojure.core.typed.test.nthnext-test
-  (:refer-clojure :exclude [fn])
   (:require [typed.clj.checker.test-utils :refer :all]
-            [clojure.test :refer :all]
-            [clojure.core.typed :as t :refer [ann-form print-env fn]]))
+            [clojure.test :refer :all]))
 
 (deftest nthnext-test
   (is-tc-e

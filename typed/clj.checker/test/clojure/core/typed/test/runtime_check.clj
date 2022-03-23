@@ -1,7 +1,7 @@
 (ns clojure.core.typed.test.runtime-check
   {:lang :core.typed
    :core.typed {:features #{:runtime-check}}}
-  (:require [clojure.core.typed :as t]))
+  (:require [typed.clojure :as t]))
 
 
 (t/ann a t/Int)

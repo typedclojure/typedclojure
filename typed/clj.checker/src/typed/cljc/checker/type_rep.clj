@@ -23,7 +23,8 @@
 
 (t/defalias Type
   "A normal type"
-  p/TCType)
+  (t/I p/TCType
+       clojure.lang.IObj))
 
 (t/defalias AnyType
   "A normal type or special type like Function."
@@ -66,7 +67,7 @@
   (and (= -infer-any t)
        (boolean (-> t meta ::t/infer))))
 
-(u/ann-record Unchecked [vsym :- (U nil t/Sym)])
+(u/ann-record Unchecked [vsym :- (t/U nil t/Sym)])
 (u/def-type Unchecked [vsym]
   "The unchecked type, like bottom and only introduced 
   per-namespace with the :unchecked-imports feature."
@@ -74,7 +75,7 @@
   :methods
   [p/TCType])
 
-(t/ann -unchecked [(U nil t/Sym) :-> Type])
+(t/ann -unchecked [(t/U nil t/Sym) :-> Type])
 (defn -unchecked [vsym]
   {:pre [((some-fn nil? symbol?) vsym)]}
   (Unchecked-maker vsym))
@@ -101,7 +102,8 @@
   :methods
   [p/TCType])
 
-(t/ann ^:no-check sorted-type-set [(t/U nil (t/Seqable Type)) -> (t/SortedSet Type)])
+;; FIXME cs-gen error
+(t/ann ^:no-check sorted-type-set [(t/Seqable Type) -> (t/SortedSet Type)])
 (defn sorted-type-set [ts]
   (apply sorted-set-by u/type-comparator ts))
 
@@ -120,7 +122,7 @@
 (t/ann -nothing Type)
 (def -nothing (Bottom))
 
-(t/ann Bottom? [t/Any -> Boolean])
+(t/ann Bottom? [t/Any -> t/Bool])
 (defn Bottom? [a]
   (= empty-union a))
 
@@ -299,7 +301,7 @@
                         variances :- (t/U nil (t/NonEmptySeqable Variance)),
                         poly? :- (t/U nil (t/NonEmptySeqable Type)),
                         fields :- (t/Map t/Sym MaybeScopedType)
-                        record? :- Boolean])
+                        record? :- t/Bool])
 (u/def-type DataType [the-class variances poly? fields record?]
   "A Clojure datatype"
   [(or (nil? variances)
@@ -319,7 +321,7 @@
 (defn ^Class DataType->Class [^DataType dt]
   (coerce/symbol->Class (.the-class dt)))
 
-(t/ann Record? [t/Any -> Boolean])
+(t/ann Record? [t/Any -> t/Bool])
 (defn Record? [^DataType a]
   (boolean
     (when (DataType? a)
@@ -330,7 +332,7 @@
                         poly? :- (t/U nil (t/NonEmptySeqable Type)),
                         on-class :- t/Sym,
                         methods :- (t/Map t/Sym Type)
-                        declared? :- Boolean])
+                        declared? :- t/Bool])
 (u/def-type Protocol [the-var variances poly? on-class methods declared?]
   "A Clojure Protocol"
   [(symbol? the-var)
@@ -404,19 +406,26 @@
   :methods
   [p/TCType])
 
+(t/ann unsafe-body [[t/Any :-> t/Any] (t/U Poly PolyDots) :-> Type])
 (defn ^:private unsafe-body [pred p]
   {:pre [(pred p)]
    :post [((every-pred Type? (complement Scope?)) %)]}
-  (let [sc (atom (:scope p))]
-    (dotimes [n (:nbound p)]
-      (let [s @sc
-            _ (assert (Scope? s))]
-        (reset! sc (:body s))))
-    @sc))
+  (let [sc (t/atom :- MaybeScopedType, (:scope p))
+        _ (t/tc-ignore
+            ;;TODO dotimes type rule
+            (dotimes [n (:nbound p)]
+              (let [s @sc
+                    _ (assert (Scope? s))]
+                (reset! sc (:body s)))))
+        t @sc]
+    (assert (not (p/IScope? t)))
+    t))
 
+(t/ann Poly-body-unsafe* [Poly :-> Type])
 (defn Poly-body-unsafe* [p]
   (unsafe-body Poly? p))
 
+(t/ann PolyDots-body-unsafe* [PolyDots :-> Type])
 (defn PolyDots-body-unsafe* [p]
   (unsafe-body PolyDots? p))
 
@@ -459,7 +468,8 @@
 (t/ann Mu-body-unsafe [Mu -> Type])
 (defn Mu-body-unsafe [mu]
   {:pre [(Mu? mu)]
-   :post [(Type? %)]}
+   :post [(Type? %)
+          (not (p/IScope? %))]}
   (-> mu :scope :body))
 
 (u/ann-record Value [val :- t/Any])
@@ -486,7 +496,7 @@
 (def -nil (-val nil))
 (def -falsy (Un -nil -false))
 
-(t/ann-many [t/Any -> Boolean]
+(t/ann-many [t/Any -> t/Bool]
             Nil? False? True?)
 (defn Nil? [a] (= -nil a))
 (defn False? [a] (= -false a))
@@ -498,7 +508,7 @@
 (u/ann-record HeterogeneousMap [types :- (t/Map Type Type),
                                 optional :- (t/Map Type Type),
                                 absent-keys :- (t/Set Type),
-                                other-keys? :- Boolean])
+                                other-keys? :- t/Bool])
 (u/def-type HeterogeneousMap [types optional absent-keys other-keys?]
   "A constant map, clojure.lang.IPersistentMap"
   [((con/hash-c? Value? (some-fn Type? Result?))
@@ -542,14 +552,16 @@
 (defn DottedPretype2-maker [pre-type name]
   (DottedPretype-maker pre-type name 2))
 
-(u/ann-record HSequential [types :- (Seqable Type)
+(t/defalias HSequentialKind (t/U ':list ':seq ':vector ':sequential))
+
+(u/ann-record HSequential [types :- (t/Seqable Type)
                            fs :- (t/Vec p/IFilterSet)
                            objects :- (t/Vec p/IRObject)
                            ;variable members to the right of fixed
-                           rest :- (U nil Type)
-                           drest :- (U nil DottedPretype)
-                           repeat :- Boolean
-                           kind :- t/Kw])
+                           rest :- (t/U nil Type)
+                           drest :- (t/U nil DottedPretype)
+                           repeat :- t/Bool
+                           kind :- HSequentialKind])
 (u/def-type HSequential [types fs objects rest drest repeat kind]
   "A constant Sequential, clojure.lang.Sequential"
   [(sequential? types)
@@ -568,16 +580,20 @@
   :methods
   [p/TCType])
 
+(u/ann-record TopHSequential [])
 (u/def-type TopHSequential []
   "Supertype of all HSequentials's."
   []
   :methods [p/TCType])
 
+(t/ann -any-hsequential Type)
 (def -any-hsequential (TopHSequential-maker))
 
 (t/ann ^:no-check -hsequential
-       [(Seqable Type) & :optional {:filters (Seqable p/IFilterSet) :objects (Seqable p/IRObject)
-                                  :rest (U nil Type) :drest (U nil DottedPretype) :repeat Boolean} -> Type])
+       [(t/Seqable Type) & :optional {:filters (t/Seqable p/IFilterSet) :objects (t/Seqable p/IRObject)
+                                      :rest (t/U nil Type) :drest (t/U nil DottedPretype) :repeat t/Bool
+                                      :kind HSequentialKind}
+        -> Type])
 (defn -hsequential
   [types & {:keys [filters objects rest drest kind] repeat? :repeat}]
   (if (some Bottom? types)
@@ -595,6 +611,7 @@
                        (if repeat? true false)
                        (or kind :sequential))))
 
+(t/ann compatible-HSequential-kind? [HSequentialKind HSequentialKind :-> t/Bool])
 (defn compatible-HSequential-kind?
   "True if kind s is a subtype of kind t."
   [s t]
@@ -603,38 +620,44 @@
       (and (= s :list)
            (= t :seq))))
 
+;; FIXME :no-check on these HSequential predicates is due to some strange filter issue
+(t/ann ^:no-check HeterogeneousList? [t/Any :-> t/Bool :filters {:then (is HSequential 0)}])
 (defn HeterogeneousList? [t]
   (and (HSequential? t)
        (= :list (:kind t))))
 
-;; TODO delete
+(t/ann HeterogeneousList-maker [(t/Seqable Type) :-> Type])
 (defn HeterogeneousList-maker [types]
   (-hsequential types :kind :list))
 
+(t/ann ^:no-check HeterogeneousSeq? [t/Any :-> t/Bool :filters {:then (is HSequential 0)}])
 (defn HeterogeneousSeq? [t]
   (and (HSequential? t)
        (= :seq (:kind t))))
 
 (t/ann ^:no-check -hseq
-       [(Seqable Type) & :optional {:filters (Seqable p/IFilterSet) :objects (Seqable p/IRObject)
-                                    :rest (U nil Type) :drest (U nil DottedPretype) :repeat Boolean} -> Type])
+       [(t/Seqable Type) & :optional {:filters (t/Seqable p/IFilterSet) :objects (t/Seqable p/IRObject)
+                                      :rest (t/Nilable Type) :drest (t/Nilable DottedPretype) :repeat t/Bool}
+        -> Type])
 (defn -hseq
   [types & opts]
   (apply -hsequential types (concat opts [:kind :seq])))
 
+(t/ann ^:no-check HeterogeneousVector? [t/Any :-> t/Bool :filters {:then (is HSequential 0)}])
 (defn HeterogeneousVector? [t]
   (and (HSequential? t)
        (= :vector (:kind t))))
 
 (t/ann ^:no-check -hvec
-       [(t/Vec Type) & :optional {:filters (Seqable p/IFilterSet) :objects (Seqable p/IRObject)
-                                  :rest (U nil Type) :drest (U nil DottedPretype) :repeat Boolean} -> Type])
+       [(t/Vec Type) & :optional {:filters (t/Seqable p/IFilterSet) :objects (t/Seqable p/IRObject)
+                                  :rest (t/Nilable Type) :drest (t/Nilable DottedPretype) :repeat t/Bool}
+        -> Type])
 (defn -hvec
   [types & opts]
   (apply -hsequential types (concat opts [:kind :vector])))
 
 (u/ann-record HSet [fixed :- (t/Set Type)
-                    complete? :- Boolean])
+                    complete? :- t/Bool])
 (u/def-type HSet [fixed complete?]
   "A constant set"
   [(every? Type? fixed)
@@ -643,7 +666,7 @@
   :methods
   [p/TCType])
 
-(t/ann -hset [(t/Set Type) & :optional {:complete? Boolean} -> HSet])
+(t/ann -hset [(t/Set Type) & :optional {:complete? t/Bool} -> HSet])
 (defn -hset [fixed & {:keys [complete?] :or {complete? true}}]
   (HSet-maker fixed complete?))
 
@@ -718,9 +741,9 @@
 ;; TODO support clojure 1.11 kw args format
 (u/ann-record KwArgs [mandatory :- (t/Map Type Type)
                       optional  :- (t/Map Type Type)
-                      complete? :- Boolean
+                      complete? :- t/Bool
                       ;; TODO make nilable but possibly-empty
-                      maybe-trailing-nilable-non-empty-map? :- Boolean])
+                      maybe-trailing-nilable-non-empty-map? :- t/Bool])
 (u/def-type KwArgs [mandatory
                     optional
                     complete?
@@ -740,11 +763,13 @@
   :methods
   [p/TCType])
 
+(u/ann-record TopKwArgsSeq [])
 (u/def-type TopKwArgsSeq []
   "Supertype of all KwArgsSeq's."
   []
   :methods [p/TCType])
 
+(t/ann -any-kw-args-seq Type)
 (def -any-kw-args-seq (TopKwArgsSeq-maker))
 
 (u/ann-record KwArgsArray [kw-args-regex :- KwArgs])
@@ -754,11 +779,12 @@
   :methods
   [p/TCType])
 
-(t/ann -kw-args [& :optional {:mandatory (t/Map Type Type)
-                              :optional (t/Map Type Type)
-                              :complete? Boolean
-                              :maybe-trailing-nilable-non-empty-map? Boolean}
-                 -> KwArgs])
+;;FIXME stackoverflow in type checker
+(t/ann ^:no-check -kw-args [& :optional {:mandatory (t/Map Type Type)
+                                         :optional (t/Map Type Type)
+                                         :complete? t/Bool
+                                         :maybe-trailing-nilable-non-empty-map? t/Bool}
+                            -> KwArgs])
 (defn -kw-args [& {:keys [mandatory optional
                           complete? maybe-trailing-nilable-non-empty-map?]
                    :or {mandatory {} optional {}
@@ -766,20 +792,22 @@
   {:post [(KwArgs? %)]}
   (KwArgs-maker mandatory optional complete? maybe-trailing-nilable-non-empty-map?))
 
-(t/ann -kw-args-seq [& :optional {:mandatory (t/Map Type Type)
-                                  :optional (t/Map Type Type)
-                                  :complete? Boolean
-                                  :maybe-trailing-nilable-non-empty-map? Boolean}
-                     -> KwArgsSeq])
+;;FIXME apply + KwArgs
+(t/ann ^:no-check -kw-args-seq [& :optional {:mandatory (t/Map Type Type)
+                                             :optional (t/Map Type Type)
+                                             :complete? t/Bool
+                                             :maybe-trailing-nilable-non-empty-map? t/Bool}
+                                -> KwArgsSeq])
 (defn -kw-args-seq [& opt]
   {:post [(KwArgsSeq? %)]}
   (KwArgsSeq-maker (apply -kw-args opt)))
 
-(t/ann -kw-args-array [& :optional {:mandatory (t/Map Type Type)
-                                    :optional (t/Map Type Type)
-                                    :complete? Boolean
-                                    :maybe-trailing-nilable-non-empty-map? Boolean}
-                       -> KwArgsArray])
+;;FIXME apply + KwArgs
+(t/ann ^:no-check -kw-args-array [& :optional {:mandatory (t/Map Type Type)
+                                               :optional (t/Map Type Type)
+                                               :complete? t/Bool
+                                               :maybe-trailing-nilable-non-empty-map? t/Bool}
+                                  -> KwArgsArray])
 (defn -kw-args-array [& opt]
   {:post [(KwArgsArray? %)]}
   (KwArgsArray-maker (apply -kw-args opt)))
@@ -793,13 +821,13 @@
                       o :- p/IRObject
                       flow :- FlowSet])
 
-(u/ann-record Function [dom :- (t/U nil (t/Seqable Type)),
+(u/ann-record Function [dom :- (t/Seqable Type),
                         rng :- Result,
-                        rest :- (U nil Type)
-                        drest :- (U nil DottedPretype)
-                        kws :- (U nil KwArgs)
-                        prest :- (U nil Type)
-                        pdot :- (U nil DottedPretype)])
+                        rest :- (t/Nilable Type)
+                        drest :- (t/Nilable DottedPretype)
+                        kws :- (t/Nilable KwArgs)
+                        prest :- (t/Nilable Type)
+                        pdot :- (t/Nilable DottedPretype)])
 (u/def-type Function [dom rng rest drest kws prest pdot]
   "A function arity, must be part of an intersection"
   [(or (nil? dom)
@@ -1086,11 +1114,12 @@
       (update :lower-bound #(some-> % f))
       (update :higher-kind #(some-> % f))))
 
+;;TODO annotate ind ops
 (t/ann ^:no-check make-Result
        (t/IFn [Type -> Result]
-           [Type (t/U nil p/IFilter) -> Result]
-           [Type (t/U nil p/IFilter) (t/U nil p/IRObject) -> Result]
-           [Type (t/U nil p/IFilter) (t/U nil p/IRObject) (t/U nil FlowSet) -> Result]))
+              [Type (t/Nilable p/IFilterSet) -> Result]
+              [Type (t/Nilable p/IFilterSet) (t/Nilable p/IRObject) -> Result]
+              [Type (t/Nilable p/IFilterSet) (t/Nilable p/IRObject) (t/Nilable FlowSet) -> Result]))
 (defn make-Result
   "Make a result. ie. the range of a Function"
   ([t] (make-Result t nil nil nil))
@@ -1103,15 +1132,15 @@
                  (or flow (-flow (ind/-top-fn))))))
 
 (t/ann ^:no-check make-Function
-       [(U nil (t/Seqable Type))
+       [(t/Seqable Type)
         Type
         & :optional
-        {:rest (U nil Type) :drest (U nil Type) :prest (U nil Type)
-         :pdot (U nil DottedPretype)
-         :filter (U nil p/IFilterSet) :object (U nil p/IRObject)
-         :flow (U nil FlowSet)
-         :mandatory-kws (U nil (t/Map Type Type))
-         :optional-kws (U nil (t/Map Type Type))}
+        {:rest (t/Nilable Type) :drest (t/Nilable Type) :prest (t/Nilable Type)
+         :pdot (t/Nilable DottedPretype)
+         :filter (t/Nilable p/IFilterSet) :object (t/Nilable p/IRObject)
+         :flow (t/Nilable FlowSet)
+         :mandatory-kws (t/Nilable (t/Map Type Type))
+         :optional-kws (t/Nilable (t/Map Type Type))}
         -> Function])
 (defn make-Function
   "Make a function, wrap range type in a Result.
@@ -1133,12 +1162,15 @@
 
 (def ^:dynamic enable-symbolic-closures? false)
 
+(u/ann-record SymbolicClosure [bindings :- (t/Map t/Any t/Any)
+                               fexpr :- (t/Map t/Any t/Any)])
 (u/def-type SymbolicClosure [bindings fexpr]
   "Symbolic closure"
   [(map? fexpr)]
   :methods
   [p/TCType])
 
+(t/ann symbolic-closure [(t/Map t/Any t/Any) :-> SymbolicClosure])
 (defn symbolic-closure [fexpr]
   (prn "creating symbolic-closure")
   (SymbolicClosure-maker (get-thread-bindings) fexpr))

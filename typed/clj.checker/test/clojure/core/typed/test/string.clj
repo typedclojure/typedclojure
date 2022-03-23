@@ -1,11 +1,11 @@
 (ns clojure.core.typed.test.string
-  (:require [clojure.core.typed :as t] 
+  (:require [typed.clojure :as t] 
             [clojure.test :refer :all]                
             [typed.clj.checker.test-utils :refer :all]))
 
 (deftest escape-test
   (is-tc-e (escape "I want 1 < 2 as HTML, & other good things."
-                   {\< "&", \> "&", \& "&"}) String            
+                   {\< "&", \> "&", \& "&"}) t/Str            
            :requires [[clojure.string :refer [escape]]])
   (is-tc-e (escape "I want 1 < 2 as HTML, & other good things."
                    (fn [a]
@@ -14,18 +14,18 @@
                        \> "&" 
                        \& "&"
                        nil)))
-           String            
+           t/Str            
            :requires [[clojure.string :refer [escape]]])
   (is-tc-err (escape "I want 1 < 2 as HTML, & other good things."
-                     {\< "&", \> "&", \& "&"}) Boolean            
+                     {\< "&", \> "&", \& "&"}) t/Bool            
              :requires [[clojure.string :refer [escape]]])
-  (is-tc-err (escape 1 {\< "&", \> "&", \& "&"}) String
+  (is-tc-err (escape 1 {\< "&", \> "&", \& "&"}) t/Str
              :requires [[clojure.string :refer [escape]]]))
 
 (deftest split-lines-test
-  (is-tc-e (split-lines "abc\n abc") (t/Vec String)            
+  (is-tc-e (split-lines "abc\n abc") (t/Vec t/Str)            
            :requires [[clojure.string :refer [split-lines]]])
-  (is-tc-err (split-lines "abc\n abc") Boolean             
+  (is-tc-err (split-lines "abc\n abc") t/Bool             
              :requires [[clojure.string :refer [split-lines]]])
-  (is-tc-err (split-lines 1) (t/Vec String)
+  (is-tc-err (split-lines 1) (t/Vec t/Str)
              :requires [[clojure.string :refer [split-lines]]]))

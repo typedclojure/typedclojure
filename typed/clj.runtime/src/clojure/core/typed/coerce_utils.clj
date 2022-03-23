@@ -7,12 +7,13 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc clojure.core.typed.coerce-utils
-  (:require [clojure.string :as str]
+  (:require [typed.clojure :as t]
+            [clojure.string :as str]
             [clojure.java.io :as io]
             [clojure.core.typed.current-impl :as impl])
   (:import (clojure.lang RT Var)))
 
-;(t/ann symbol->Class [Symbol -> Class])
+(t/ann symbol->Class [t/Sym -> Class])
 (defn symbol->Class 
   "Returns the Class represented by the symbol. Works for
   primitives (eg. byte, int). Does not further resolve the symbol."
@@ -30,13 +31,13 @@
     char Character/TYPE
     (RT/classForName (str sym))))
 
-;(t/ann Class->symbol [Class -> Symbol])
+(t/ann Class->symbol [Class -> t/Sym])
 (defn Class->symbol [^Class cls]
   {:pre [(class? cls)]
    :post [(symbol? %)]}
   (symbol (.getName cls)))
 
-;(t/ann ^:no-check var->symbol [(Var Nothing Any) -> Symbol])
+(t/ann var->symbol [(t/Var2 t/Nothing t/Any) -> t/Sym])
 (defn var->symbol [^Var var]
   {:pre [(var? var)]
    :post [(symbol? %)
@@ -46,13 +47,14 @@
     (symbol (str (ns-name ns))
             (str (.sym var)))))
 
-;(t/ann ^:no-check kw->symbol [Kw -> Symbol])
+(t/ann kw->symbol [t/Kw -> t/Sym])
 (defn kw->symbol [kw]
   {:pre [(keyword? kw)]
    :post [(symbol? %)]}
-  (symbol (namespace kw)
-          (name kw)))
+  (symbol kw))
 
+(t/ann ns->file (t/IFn [t/Sym -> t/Str]
+                       [t/Sym t/Bool -> t/Str]))
 (defn ns->file 
   ([nsym] (ns->file nsym true))
   ([nsym suffix?]
@@ -60,7 +62,7 @@
     :post [(string? %)]}
    ;copied basic approach from tools.emitter.jvm
    (let [res (munge nsym)
-         f (str/replace res #"\." "/")
+         f (str/replace (str res) #"\." "/")
          ex (when suffix?
               (impl/impl-case
                 :clojure ".clj"
@@ -73,7 +75,8 @@
          p (if (.startsWith p "/") (subs p 1) p)]
      p)))
 
-(defn ^java.net.URL ns->URL [nsym]
+(t/ann ns->URL [t/Sym -> (t/Nilable java.net.URL)])
+(defn ns->URL ^java.net.URL [nsym]
   {:pre [(symbol? nsym)]
    :post [((some-fn #(instance? java.net.URL %)
                     nil?) 
@@ -81,8 +84,8 @@
   (let [p (ns->file nsym)]
     (io/resource p)))
 
+(t/ann sym->kw [t/Sym -> t/Kw])
 (defn sym->kw [sym]
   {:pre [(symbol? sym)]
    :post [(keyword? %)]}
-  (keyword (namespace sym)
-           (name sym)))
+  (keyword sym))

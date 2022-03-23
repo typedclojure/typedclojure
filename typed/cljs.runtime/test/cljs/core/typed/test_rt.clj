@@ -1,6 +1,5 @@
 (ns cljs.core.typed.test-rt
-  (:require [clojure.core.typed :as t]
-            [cljs.core.typed :as tcljs]
+  (:require [cljs.core.typed :as tcljs]
             [clojure.core.typed.errors :as err]
             [clojure.java.io :as io])
   (:use clojure.test))

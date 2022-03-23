@@ -49,7 +49,7 @@
   (env/swap-checker! assoc impl/current-name-env-kw nme-env)
   nil)
 
-(t/ann get-type-name [t/Any -> (t/U nil t/Kw r/Type)])
+(t/ann ^:no-check get-type-name [t/Sym -> (t/U nil t/Kw r/Type)])
 (defn get-type-name 
   "Return the name with var symbol sym.
   Returns nil if not found."
@@ -71,26 +71,28 @@
 (t/ann ^:no-check add-type-name [t/Sym (t/U t/Kw r/Type) -> nil])
 (def add-type-name impl/add-tc-type-name)
 
-(t/ann declare-name* [t/Sym -> nil])
+(t/ann ^:no-check declare-name* [t/Sym -> nil])
 (def declare-name* impl/declare-name*)
 
-(t/ann declared-name? [t/Any -> t/Any])
+(t/ann declared-name? [t/Sym -> t/Bool])
 (defn declared-name? [sym]
-  (= impl/declared-name-type (get-type-name sym)))
+  (= (t/tc-ignore impl/declared-name-type)
+     (get-type-name sym)))
 
-(t/ann declare-protocol* [t/Sym -> nil])
+(t/ann ^:no-check declare-protocol* [t/Sym -> nil])
 (def declare-protocol* impl/declare-protocol*)
 
-(t/ann declared-protocol? [t/Any -> t/Any])
+(t/ann ^:no-check declared-protocol? [t/Sym -> t/Bool])
 (defn declared-protocol? [sym]
-  (= impl/protocol-name-type (get-type-name sym)))
+  (= (t/tc-ignore impl/protocol-name-type) (get-type-name sym)))
 
-(t/ann declare-datatype* [t/Sym -> nil])
+(t/ann ^:no-check declare-datatype* [t/Sym -> nil])
 (def declare-datatype* impl/declare-datatype*)
 
-(t/ann declared-datatype? [t/Any -> t/Any])
+(t/ann declared-datatype? [t/Sym -> t/Bool])
 (defn declared-datatype? [sym]
-  (= impl/datatype-name-type (get-type-name sym)))
+  (= (t/tc-ignore impl/datatype-name-type)
+     (get-type-name sym)))
 
 (t/ann ^:no-check resolve-name* [t/Sym -> r/Type])
 (defn resolve-name* [sym]
@@ -109,8 +111,7 @@
                       ; type rank and variance.
                       kinds/declared-kind-or-nil) 
              sym)]
-    (if tfn
-      tfn
+    (or tfn
       (cond
         (= impl/protocol-name-type t) (prenv/resolve-protocol sym)
         (= impl/datatype-name-type t) (dtenv/resolve-datatype sym)

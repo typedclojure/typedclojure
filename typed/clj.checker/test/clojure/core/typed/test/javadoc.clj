@@ -1,8 +1,7 @@
 (ns clojure.core.typed.test.javadoc
-  (:require [clojure.core.typed :as t] 
+  (:require [typed.clojure :as t] 
             [clojure.test :refer :all]                
             [typed.clj.checker.test-utils :refer :all]))
-
 
 (deftest javadoc-test
   (is-tc-e #(javadoc 1) [-> t/Any]

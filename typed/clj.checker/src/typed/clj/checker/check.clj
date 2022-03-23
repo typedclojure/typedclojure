@@ -279,8 +279,10 @@
           ; subexpression during type checking
           {:keys [env] :as expr} (assoc-in expr [:env :ns] (ns-name *ns*))]
       (when vs/*trace-checker*
-        (println "Checking line:" (:line env))
-        (flush))
+        (println (str "Checking line " (:line env) ":" (:column env) ":" (:file env)))
+        (println (str "> " (binding [*print-level* (or *print-level* 10)
+                                     *print-length* (or *print-length* 10)]
+                             (pr-str (:form expr))))))
       (if (= :unanalyzed (:op expr))
         ;; Type checks the :unanalyzed expr at expected type.
         ;; The return expr will be fully expanded, analyzed, evaluated (if top-level),

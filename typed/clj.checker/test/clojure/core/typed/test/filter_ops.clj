@@ -2,7 +2,7 @@
   (:require 
     ; this loads the type system, must go first
     [typed.clj.checker.test-utils :refer :all]
-    [clojure.core.typed :as t]
+    [typed.clojure :as t]
     [typed.cljc.checker.filter-ops :refer [-and -filter -not-filter -or]]
     [typed.cljc.checker.filter-rep :refer [-top make-AndFilter make-OrFilter -bot]]
     [typed.cljc.checker.type-rep :refer []]

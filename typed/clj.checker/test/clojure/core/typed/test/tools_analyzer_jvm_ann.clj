@@ -1,31 +1,30 @@
 (ns clojure.core.typed.test.tools-analyzer-jvm-ann
   (:require [clojure.core.typed :as t]))
 
-
 (t/defalias NsMap
   (t/HMap :mandatory
-        {:mappings (t/Map t/Symbol t/Any) ;contradicts docs, which say (Map Symbol Var). What about Classes?
-         :aliases (t/Map t/Symbol t/Symbol)
-         :ns t/Symbol}))
+          {:mappings (t/Map t/Symbol t/Any) ;contradicts docs, which say (Map Symbol Var). What about Classes?
+           :aliases (t/Map t/Symbol t/Symbol)
+           :ns t/Symbol}))
 
 (t/defalias Env
   (t/HMap :mandatory
-        {:locals (t/Map t/Symbol t/Any #_Expr)
-         :context (t/U ':return
-                     ':statement
-                     ':expr)
-         :ns t/Symbol
-         ;:namespaces (t/Atom1 (t/Map t/Symbol NsMap))
-         }
-        :optional
-        {
-        ; ---- start t.a.j specific -----
-        ; added in :deftype
-        ; not sure what :this is
-         :this t/Any
-        ; ---- end t.a.j specific -----
-         }
-        ))
+          {:locals (t/Map t/Symbol t/Any #_Expr)
+           :context (t/U ':return
+                         ':statement
+                         ':expr)
+           :ns t/Symbol
+           ;:namespaces (t/Atom1 (t/Map t/Symbol NsMap))
+           }
+          :optional
+          {
+           ; ---- start t.a.j specific -----
+           ; added in :deftype
+           ; not sure what :this is
+           :this t/Any
+           ; ---- end t.a.j specific -----
+           }
+          ))
 
 (t/defalias Form t/Any)
 

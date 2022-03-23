@@ -1,7 +1,7 @@
 (ns clojure.core.typed.test.promise
-  (:require [clojure.core.typed :as t]))
+  (:require [typed.clojure :as t]))
 
-(t/ann p (t/Promise Number))
+(t/ann p (t/Promise t/Num))
 (def p (promise))
 
 (fn []

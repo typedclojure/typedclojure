@@ -1,10 +1,10 @@
 (ns clojure.core.typed.test.unsound-record
-  (:require [clojure.core.typed :as t]))
+  (:require [typed.clojure :as t]))
 
-(t/ann-record Foo [a :- Number])
+(t/ann-record Foo [a :- t/Num])
 (defrecord Foo [a])
 
-(t/ann unsound [(t/Map t/Any t/Any) -> Number])
+(t/ann unsound [(t/Map t/Any t/Any) -> t/Num])
 (defn unsound [r]
   (let [r (assoc r :a nil)]
     (assert (instance? Foo r))

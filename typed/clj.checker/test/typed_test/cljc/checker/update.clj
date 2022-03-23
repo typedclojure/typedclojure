@@ -1,5 +1,5 @@
 (ns typed-test.cljc.checker.update
-  (:require [clojure.core.typed :as t]
+  (:require [typed.clojure :as t]
             [clojure.test :refer :all]
             [typed.clj.checker.parse-unparse :refer [parse-clj]]
             [typed.clj.checker.test-utils :refer :all]

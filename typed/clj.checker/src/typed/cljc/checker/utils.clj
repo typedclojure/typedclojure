@@ -216,9 +216,9 @@
 (defn typed-ns-opts [ns]
   (-> ns meta :core.typed))
 
-(t/ann ^:no-check demunge-ns [(t/U t/Sym String) -> t/Sym])
+(t/ann demunge-ns [(t/U t/Sym t/Str) -> t/Sym])
 (defn demunge-ns [nsym]
-  (symbol (clojure.repl/demunge (str nsym))))
+  (symbol (repl/demunge (str nsym))))
 
 (t/tc-ignore
 ;; multimethods for dispatching on special forms like (do ::special-form ::foobar ...)

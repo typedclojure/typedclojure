@@ -1,10 +1,10 @@
 (ns clojure.core.typed.test.mm
-  (:require [clojure.core.typed :as t]))
+  (:require [typed.clojure :as t]))
 
 (t/defalias Expr
   (t/U '{:op ':test1
-         :a Number
-         :b Number}
+         :a t/Num
+         :b t/Num}
        '{:op ':test2}))
 
 (t/ann single-dispatch [Expr -> t/Any])
@@ -35,7 +35,7 @@
 (t/ann-datatype FooDT [])
 (deftype FooDT [])
 
-(t/ann-record FooRec [a :- Number])
+(t/ann-record FooRec [a :- t/Num])
 (defrecord FooRec [a])
 
 (t/ann multi-dipatch2 [t/Any -> t/Any])
@@ -44,7 +44,7 @@
 
 (defmethod multi-dipatch2 [1 Number]
   [a]
-  (t/ann-form a Number)
+  (t/ann-form a t/Num)
   (+ 1 a))
 
 (defmethod multi-dipatch2 [1 FooDT] [a] (t/ann-form a FooDT))
@@ -53,10 +53,10 @@
 
 (defmethod multi-dipatch2 [::anyfoo FooRec] 
   [{:keys [a]}]
-  (t/ann-form a Number))
+  (t/ann-form a t/Num))
 
 (defmethod multi-dipatch2 [::anyfoo FooRec] 
   [arg]
   (t/ann-form arg FooRec)
   (let [{:keys [a]} arg]
-    (t/ann-form a Number)))
+    (t/ann-form a t/Num)))

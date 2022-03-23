@@ -1,5 +1,5 @@
 (ns clojure.core.typed.test.rec-type
-  (:require [clojure.core.typed :as t])
+  (:require [typed.clojure :as t])
   (:import (clojure.lang IMapEntry)))
 
 ;(t/defalias RuleSet (Rec [x] (t/Map Any (U [Any -> Any] x))))

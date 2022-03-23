@@ -1,16 +1,16 @@
 (ns clojure.core.typed.test.records2
-  (:require [clojure.core.typed :as t :refer [ann ann-form cf ann-record]]))
+  (:require [clojure.core.typed :as t :refer [ann ann-form ann-record]]))
 
-(ann-record Point [lat :- Number
-                   lng :- Number])
+(ann-record Point [lat :- t/Num
+                   lng :- t/Num])
 (defrecord Point [lat lng])
 
 (ann-record VerticalLine [p :- Point
-                          l :- Number])
+                          l :- t/Num])
 (defrecord VerticalLine [p l])
 
 (ann-record HorizontalLine [p :- Point
-                            l :- Number])
+                            l :- t/Num])
 (defrecord HorizontalLine [p l])
 
 (ann-record Rect [l :- VerticalLine
@@ -69,33 +69,33 @@
     (if (seq? r)
       (do (t/print-env "") 'a)
       (do (t/print-env "") 1)))
-  Number)
+  t/Num)
 
 (ann-form
   (let [r {}]
     (if (seq? r)
       'a
       1))
-  Number)
+  t/Num)
 
 ; destructuring
-(ann destruct [Point -> Number])
+(ann destruct [Point -> t/Num])
 (defn destruct [{lng :lng :keys [lat] :as r}]
   lat)
 
-(ann map-over [(t/Seqable Point) -> Number])
+(ann map-over [(t/Seqable Point) -> t/Num])
 ;FIXME Datatypes+records need proper handling in cs-gen
 ;(defn map-over [ps]
-;  (apply + (map (t/inst :lat Number) ps)))
+;  (apply + (map (t/inst :lat t/Num) ps)))
 
-;(typed.clj.checker.subtype/sub-clj? [Point -> Number]
-;                                     ['{:lat Number} -> Number])
+;(typed.clj.checker.subtype/sub-clj? [Point -> t/Num]
+;                                     ['{:lat t/Num} -> t/Num])
 ;
-;(typed.clj.checker.subtype/sub-clj? ['{:lat Number} -> Number]
-;                                     [Point -> Number])
+;(typed.clj.checker.subtype/sub-clj? ['{:lat t/Num} -> t/Num]
+;                                     [Point -> t/Num])
 ;
-;(typed.clj.checker.subtype/sub-clj? '{:lat Number}
+;(typed.clj.checker.subtype/sub-clj? '{:lat t/Num}
 ;                                     Point)
 ;
 ;(typed.clj.checker.subtype/sub-clj? Point
-;                                     '{:lat Number})
+;                                     '{:lat t/Num})

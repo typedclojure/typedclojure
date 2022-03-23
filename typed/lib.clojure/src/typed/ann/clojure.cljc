@@ -26,6 +26,29 @@
 (t/ann-protocol cc/Inst
                 -inst-ms [cc/Inst :-> t/Int])
 
+#?(:clj (do
+(t/defalias IOFactoryOpts (t/HMap :optional {:append t/Any, :encoding (t/Nilable t/Str)}))
+(t/ann-protocol clojure.java.io/IOFactory 
+                make-reader
+                [clojure.java.io/IOFactory IOFactoryOpts -> java.io.BufferedReader]
+
+                make-writer 
+                [clojure.java.io/IOFactory IOFactoryOpts -> java.io.BufferedWriter]
+
+                make-input-stream 
+                [clojure.java.io/IOFactory IOFactoryOpts -> java.io.BufferedInputStream]
+
+                make-output-stream
+                [clojure.java.io/IOFactory IOFactoryOpts -> java.io.BufferedOutputStream])
+
+(t/ann-protocol clojure.java.io/Coercions
+                as-file
+                [clojure.java.io/Coercions -> (t/Nilable java.io.File)]
+
+                as-url
+                [clojure.java.io/Coercions -> (t/Nilable java.net.URL)])
+))
+
 #?(:cljs (do
 (t/ann-protocol cljs.core/Fn)
 (t/ann-protocol cljs.core/IFn)
@@ -128,8 +151,8 @@
 ;    ;cljs.core/IChunkedSeq [[]]
 ;    ;cljs.core/IChunkedNext [[]]
 (t/ann-protocol cljs.core/INamed
-                -named [cljs.core/INamed :-> s/Str]
-                -namespace [cljs.core/INamed :-> (t/Nilable s/Str)])
+                -named [cljs.core/INamed :-> t/Str]
+                -namespace [cljs.core/INamed :-> (t/Nilable t/Str)])
 
 (t/ann-protocol cljs.core/UUID)
 ))
@@ -1383,7 +1406,7 @@ cc/fnil (t/All [x y z a b ...] (t/IFn [[x b ... b -> a] x -> [(t/Nilable x) b ..
                                       [[x y b ... b -> a] x y -> [(t/Nilable x) (t/Nilable y) b ... b -> a]]
                                       [[x y z b ... b -> a] x y z -> [(t/Nilable x) (t/Nilable y) (t/Nilable z) b ... b -> a]]))
 
-cc/symbol (t/IFn [(t/U t/Sym t/Str) -> t/Sym]
+cc/symbol (t/IFn [(t/U t/Kw t/Sym t/Str) -> t/Sym]
                  [(t/U nil t/Str) t/Str -> t/Sym])
 
 cc/keyword
@@ -1608,11 +1631,17 @@ clojure.java.shell/sh [t/Any *
                             :out (t/U (Array byte) t/Str)
                             :err t/Str}]
 clojure.java.browse/browse-url [t/Any -> t/Any]
-clojure.java.io/delete-file (t/IFn [t/Any
-                                    ;; FIXME any arg that c.j.io/file accepts
-                                    #_String 
-                                    -> t/Any]
-                                   [t/Any t/Any -> t/Any])
+clojure.java.io/delete-file (t/IFn [clojure.java.io/Coercions -> t/Any]
+                                   [clojure.java.io/Coercions t/Any -> t/Any])
+clojure.java.io/make-parents [clojure.java.io/Coercions clojure.java.io/Coercions * -> t/Any]
+clojure.java.io/file [clojure.java.io/Coercions clojure.java.io/Coercions * -> java.io.File]
+clojure.java.io/as-relative-path [clojure.java.io/Coercions -> t/Str]
+;; TODO second arg is flattened IOFactoryOpts
+clojure.java.io/reader [clojure.java.io/IOFactory -> java.io.BufferedReader]
+;; TODO second arg is flattened IOFactoryOpts
+clojure.java.io/writer [clojure.java.io/IOFactory -> java.io.BufferedWriter]
+clojure.java.io/resource (t/IFn [t/Str -> (t/Nilable java.net.URL)]
+                                [t/Str ClassLoader -> (t/Nilable java.net.URL)])
 clojure.stacktrace/e [-> t/Any]
 clojure.stacktrace/print-cause-trace [Throwable -> t/Any]
 clojure.stacktrace/print-stack-trace [Throwable -> t/Any]
@@ -1993,7 +2022,7 @@ cc/int? (t/Pred #?(:clj (t/U Long
                    :cljs (t/U t/CLJSInteger
                               goog.math.Integer
                               goog.math.Long)))
-cc/pos-int? [s/Any :-> t/Bool
+cc/pos-int? [t/Any :-> t/Bool
              :filters {:then (is #?(:clj (t/U Long
                                               Integer
                                               Short
@@ -2001,7 +2030,7 @@ cc/pos-int? [s/Any :-> t/Bool
                                     :cljs (t/U t/CLJSInteger
                                                goog.math.Integer
                                                goog.math.Long)) 0)}]
-cc/neg-int? [s/Any :-> t/Bool
+cc/neg-int? [t/Any :-> t/Bool
              :filters {:then (is #?(:clj (t/U Long
                                               Integer
                                               Short
@@ -2009,7 +2038,7 @@ cc/neg-int? [s/Any :-> t/Bool
                                     :cljs (t/U t/CLJSInteger
                                                goog.math.Integer
                                                goog.math.Long)) 0)}]
-cc/nat-int? [s/Any :-> t/Bool
+cc/nat-int? [t/Any :-> t/Bool
              :filters {:then (is #?(:clj (t/U Long
                                               Integer
                                               Short
@@ -2021,12 +2050,12 @@ cc/number? (t/Pred t/Num)
 cc/double? (t/Pred #?(:clj Double
                       :cljs t/Num))
 cc/ident? (t/Pred t/Ident)
-cc/simple-ident? [s/Any :-> t/Bool :filters {:then (is t/Ident 0)}]
-cc/qualified-ident? [s/Any :-> t/Bool :filters {:then (is t/Ident 0)}]
-cc/simple-symbol? [s/Any :-> t/Bool :filters {:then (is t/Sym 0)}]
-cc/qualified-symbol? [s/Any :-> t/Bool :filters {:then (is t/Sym 0)}]
-cc/simple-keyword? [s/Any :-> t/Bool :filters {:then (is t/Kw 0)}]
-cc/qualified-keyword? [s/Any :-> t/Bool :filters {:then (is t/Kw 0)}]
+cc/simple-ident? [t/Any :-> t/Bool :filters {:then (is t/Ident 0)}]
+cc/qualified-ident? [t/Any :-> t/Bool :filters {:then (is t/Ident 0)}]
+cc/simple-symbol? [t/Any :-> t/Bool :filters {:then (is t/Sym 0)}]
+cc/qualified-symbol? [t/Any :-> t/Bool :filters {:then (is t/Sym 0)}]
+cc/simple-keyword? [t/Any :-> t/Bool :filters {:then (is t/Kw 0)}]
+cc/qualified-keyword? [t/Any :-> t/Bool :filters {:then (is t/Kw 0)}]
 cc/var? (t/Pred (t/Var2 t/Nothing t/Any))
 
 #?@(:cljs [] :default [

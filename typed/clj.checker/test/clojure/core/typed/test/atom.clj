@@ -1,5 +1,5 @@
 (ns clojure.core.typed.test.atom
-  (:require [clojure.core.typed :as t :refer [ann ann-form check-ns cf defalias]]
+  (:require [typed.clojure :as t :refer [ann ann-form defalias]]
             [clojure.repl :refer [pst]])
   (:import (clojure.lang IPersistentMap Symbol)))
 

@@ -32,10 +32,10 @@
 
 (defmethod -infer-tag :local
   [ast]
-  (let [atom @(:atom ast)]
-    (merge atom
-           ast
-           {:o-tag (:tag atom)})))
+  (let [atom-ast @(:atom ast)]
+    (-> (merge atom-ast
+               ast)
+        (assoc :o-tag (:tag atom-ast)))))
 
 (defmethod -infer-tag :var
   [{:keys [var form] :as ast}]
@@ -80,7 +80,7 @@
   (-> ast
       ;;trying to be smart here
       (assoc :tag (or (:tag expr) Object) :o-tag Object)
-      (into (select-keys expr [:return-tag :arglists])))) 
+      (into (select-keys expr [:return-tag :arglists]))))
 
 (defmethod -infer-tag :recur
   [ast]

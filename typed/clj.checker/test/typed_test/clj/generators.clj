@@ -1,6 +1,6 @@
 (ns typed-test.clj.generators
   (:require [clojure.test :refer [deftest is]]
-            [clojure.core.typed :as t]
+            [typed.clojure :as t]
             [clojure.test.check.generators :as gen]
             [clojure.walk :as walk]
             [typed.clj.generators :as sut]

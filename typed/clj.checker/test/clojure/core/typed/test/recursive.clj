@@ -1,6 +1,5 @@
 (ns clojure.core.typed.test.recursive
-  (:require [clojure.core.typed :as t :refer [ann-record ann-protocol]])
-  (:import [clojure.lang ISeq]))
+  (:require [typed.clojure :as t :refer [ann-record ann-protocol]]))
 
 (t/declare-protocols IValidator)
 

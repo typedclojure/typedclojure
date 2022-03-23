@@ -1,9 +1,9 @@
 (ns clojure.core.typed.test.record-poly-map-ctor
-  (:require [clojure.core.typed :as t]))
+  (:require [typed.clojure :as t]))
 
 ; can omit fields with ground types
 
-(t/ann-record [[foo :variance :invariant]] Foo [b :- (t/U nil Number)
+(t/ann-record [[foo :variance :invariant]] Foo [b :- (t/U nil t/Num)
                                                 c :- foo])
 ; FIXME need defrecord>
 (t/tc-ignore

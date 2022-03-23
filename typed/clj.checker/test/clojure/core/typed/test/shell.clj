@@ -1,5 +1,5 @@
 (ns clojure.core.typed.test.shell
-  (:require [clojure.core.typed :as t] 
+  (:require [typed.clojure :as t] 
             [clojure.test :refer :all]                
             [typed.clj.checker.test-utils :refer :all]))
 

@@ -1,5 +1,5 @@
 (ns clojure.core.typed.test.zip
-  (:require [clojure.core.typed :as t] 
+  (:require [typed.clojure :as t] 
             [clojure.test :refer :all]                
             [typed.clj.checker.test-utils :refer :all]))
 
@@ -15,7 +15,7 @@
            [-> (t/Vec t/Any)]
            :requires [[clojure.zip :refer [seq-zip]]])
   (is-tc-err #(seq-zip "abc") 
-             [-> String]
+             [-> t/Str]
              :requires [[clojure.zip :refer [seq-zip]]]))
 
 (deftest vector-zip-test
@@ -23,7 +23,7 @@
            [-> (t/Vec t/Any)]
            :requires [[clojure.zip :refer [vector-zip]]])
   (is-tc-err #(vector-zip "abc") 
-             [-> String]
+             [-> t/Str]
              :requires [[clojure.zip :refer [vector-zip]]]))
 
 (deftest xml-zip-test
@@ -31,7 +31,7 @@
            [-> (t/Vec t/Any)]
            :requires [[clojure.zip :refer [xml-zip]]])
   (is-tc-err #(xml-zip 1)
-             [-> String]
+             [-> t/Str]
              :requires [[clojure.zip :refer [xml-zip]]]))
 
 (deftest node-test
@@ -41,7 +41,7 @@
              :requires [[clojure.zip :refer [node]]]))
 
 (deftest branch?-test
-  (is-tc-e #(branch? (vector-zip [1 2])) [-> Boolean]
+  (is-tc-e #(branch? (vector-zip [1 2])) [-> t/Bool]
            :requires [[clojure.zip :refer [branch? vector-zip]]])
   (is-tc-err #(branch? 1)
              :requires [[clojure.zip :refer [branch? vector-zip]]]))
@@ -61,7 +61,7 @@
            [-> (t/Vec t/Any)]
            :requires [[clojure.zip :refer [rightmost]]])
   (is-tc-err #(rightmost [1 2 3]) 
-             [-> String]
+             [-> t/Str]
              :requires [[clojure.zip :refer [rightmost]]])
   (is-tc-err #(rightmost 1)
              :requires [[clojure.zip :refer [rightmost]]]))
@@ -70,7 +70,7 @@
   (is-tc-e #(right [1 2 3])
            :requires [[clojure.zip :refer [right]]])
   (is-tc-err #(right [1 2 3]) 
-             [-> String]
+             [-> t/Str]
              :requires [[clojure.zip :refer [right]]])
   (is-tc-err #(right 1)
              :requires [[clojure.zip :refer [right]]]))
@@ -78,13 +78,13 @@
 (deftest up-test
   (is-tc-e #(up (vector-zip [1 2])) [-> (t/U nil (t/Vec t/Any))]
            :requires [[clojure.zip :refer [up vector-zip]]])
-  (is-tc-err #(up 1) String
+  (is-tc-err #(up 1) t/Str
              :requires [[clojure.zip :refer [up vector-zip]]]))
 
 (deftest rights-test
   (is-tc-e #(rights [1 2 3])
            :requires [[clojure.zip :refer [rights]]])
-  (is-tc-err #(rights [1 2 3]) [-> String]
+  (is-tc-err #(rights [1 2 3]) [-> t/Str]
              :requires [[clojure.zip :refer [rights]]])
   (is-tc-err (rights 1)
              :requires [[clojure.zip :refer [rights]]]))
@@ -94,7 +94,7 @@
            [-> (t/Vec t/Any)]
            :requires [[clojure.zip :as zip :refer [vector-zip]]])
   (is-tc-err #(zip/replace (vector-zip [1 2 [3 4] 5]) 3)
-             [-> String]
+             [-> t/Str]
              :requires [[clojure.zip :as zip :refer [vector-zip]]])
   (is-tc-err #(zip/replace 1 3)
              :requires [[clojure.zip :as zip :refer [vector-zip]]]))
@@ -104,7 +104,7 @@
            [-> (t/U nil (t/Vec t/Any))]
            :requires [[clojure.zip :refer [down zipper]]])
   (is-tc-err #(down (zipper vector? seq (fn [a b]) [1 3 4]))  
-             [-> String]
+             [-> t/Str]
              :requires [[clojure.zip :refer [zipper down]]])
   (is-tc-err #(down 1)
              :requires [[clojure.zip :refer [down]]]))
@@ -114,7 +114,7 @@
            [-> (t/U nil (t/Vec t/Any))]
            :requires [[clojure.zip :refer [left]]])
   (is-tc-err #(left [1 2 [3 4] 5]) 
-             [-> String]
+             [-> t/Str]
              :requires [[clojure.zip :refer [left]]])
   (is-tc-err #(left 1)
              :requires [[clojure.zip :refer [left]]]))
@@ -124,7 +124,7 @@
            [-> (t/U nil (t/Vec t/Any))]
            :requires [[clojure.zip :refer [leftmost]]])
   (is-tc-err #(leftmost [1 2 [3 4] 5])
-             [-> String]
+             [-> t/Str]
              :requires [[clojure.zip :refer [leftmost]]])
   (is-tc-err #(leftmost 1)
              :requires [[clojure.zip :refer [leftmost]]]))
@@ -134,7 +134,7 @@
            [-> (t/U nil (t/Vec t/Any))]
            :requires [[clojure.zip :refer [lefts]]])
   (is-tc-err #(lefts [1 2 [3 4] 5])
-             [-> String]
+             [-> t/Str]
              :requires [[clojure.zip :refer [lefts]]])
   (is-tc-err #(lefts 1)
              :requires [[clojure.zip :refer [lefts]]]))
@@ -144,16 +144,16 @@
            [-> (t/Vec t/Any)]
            :requires [[clojure.zip :refer [append-child vector-zip]]])
   (is-tc-err #(append-child (vector-zip [1 2]) 9)
-             [-> String]
+             [-> t/Str]
              :requires [[clojure.zip :refer [append-child vector-zip]]])
   (is-tc-err #(append-child 1 9)
              :requires [[clojure.zip :refer [append-child]]]))
 
 (deftest end?-test
   (is-tc-e #(end? (vector-zip [1 2]))
-           [-> Boolean]
+           [-> t/Bool]
            :requires [[clojure.zip :refer [end? vector-zip]]])
-  (is-tc-err #(end? (vector-zip [1 2])) [-> String]
+  (is-tc-err #(end? (vector-zip [1 2])) [-> t/Str]
              :requires [[clojure.zip :refer [end? vector-zip]]])
   (is-tc-err #(end? 1)
              :requires [[clojure.zip :refer [end?]]]))
@@ -163,7 +163,7 @@
            [-> (t/Vec t/Any)]
            :requires [[clojure.zip :refer [insert-child vector-zip]]])
   (is-tc-err #(insert-child (vector-zip [1 2]) 9) 
-             [-> String]
+             [-> t/Str]
              :requires [[clojure.zip :refer [insert-child vector-zip]]])
   (is-tc-err #(insert-child 1 9) 
              :requires [[clojure.zip :refer [insert-child]]]))
@@ -186,7 +186,7 @@
   (is-tc-err #(let [d (down (vector-zip [1 22 3 5]))]
                 (assert d)
                 (insert-right d 6))
-             [-> String]
+             [-> t/Str]
              :requires [[clojure.zip :refer [insert-right down vector-zip]]])
   (is-tc-err #(insert-right 1 9)
              [-> (t/Vec t/Any)]
@@ -197,7 +197,7 @@
            [-> (t/Vec t/Any)]
            :requires [[clojure.zip :as zip :refer [vector-zip]]])
   (is-tc-err #(zip/next (vector-zip [1 2]))
-             [-> String]
+             [-> t/Str]
              :requires [[clojure.zip :as zip :refer [vector-zip]]])
   (is-tc-err (zip/next 1)
              :requires [[clojure.zip :as zip :refer [vector-zip]]]))
@@ -207,7 +207,7 @@
            [-> (t/U (t/Vec t/Any) nil)]
            :requires [[clojure.zip :refer [prev vector-zip]]])
   (is-tc-err #(prev (vector-zip [1 2])) 
-             [-> String]
+             [-> t/Str]
              :requires [[clojure.zip :refer [prev vector-zip]]])
   (is-tc-err #(prev 1)
              :requires [[clojure.zip :refer [prev]]]))
@@ -225,7 +225,7 @@
            [-> (t/Vec t/Any)]
            :requires [[clojure.zip :as zip :refer [down vector-zip]]])
   (is-tc-err #(zip/remove (down (vector-zip [1 22 3 5]))) 
-             [-> String]
+             [-> t/Str]
              :requires [[clojure.zip :as zip :refer [down vector-zip]]])
   (is-tc-err #(zip/remove nil)
              :requires [[clojure.zip :as zip]]))

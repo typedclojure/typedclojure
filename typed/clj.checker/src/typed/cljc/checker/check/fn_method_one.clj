@@ -12,6 +12,7 @@
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.errors :as err]
             [clojure.core.typed.util-vars :as vs]
+            [typed.cljc.analyzer :as ana2]
             [typed.clj.analyzer.passes.beta-reduce :as beta-reduce]
             [typed.clj.checker.analyze-clj :as ana-clj]
             [typed.clj.checker.parse-unparse :as prs]
@@ -64,6 +65,9 @@
   (let [ignore-rng (or ignore-rng
                        (r/infer-any? (-> expected :rng :t)))
         ;_ (prn "ignore-rng" ignore-rng)
+        method (-> method
+                   ana2/run-pre-passes
+                   (ast-u/visit-method-params ana2/run-passes))
         body ((ast-u/method-body-kw) method)
         required-params (ast-u/method-required-params method)
         rest-param (ast-u/method-rest-param method)
@@ -98,10 +102,10 @@
         _ (when-not (or ((if (or rest drest kws prest pdot) <= =) (count required-params) (count dom))
                         rest-param)
             (err/int-error (str "Checking method with incorrect number of expected parameters"
-                              ", expected " (count dom) " required parameter(s) with"
-                              (if rest " a " " no ") "rest parameter, found " (count required-params)
-                              " required parameter(s) and" (if rest-param " a " " no ")
-                              "rest parameter.")))
+                                ", expected " (count dom) " required parameter(s) with"
+                                (if rest " a " " no ") "rest parameter, found " (count required-params)
+                                " required parameter(s) and" (if rest-param " a " " no ")
+                                "rest parameter.")))
 
         props (:props (lex/lexical-env))
         crequired-params (map (fn [p t] (assoc p u/expr-type (r/ret t)))

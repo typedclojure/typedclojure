@@ -1,7 +1,7 @@
 (ns clojure.core.typed.test.protocol-monads
   (:refer-clojure :exclude [do seq map])
   (:require [clojure.set :as set]
-            [clojure.core.typed :as t]))
+            [typed.clojure :as t]))
 
 #_(t/ann-protocol [[m :variance :covariant]]
                   Monad 

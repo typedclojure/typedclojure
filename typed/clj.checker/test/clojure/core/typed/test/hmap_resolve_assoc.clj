@@ -1,6 +1,6 @@
 ;CTYP-79
 (ns clojure.core.typed.test.hmap-resolve-assoc
-  (:require [clojure.core.typed :as t]))
+  (:require [typed.clojure :as t]))
 
 (t/defalias TA (t/HMap :optional {:d t/Any}))
 

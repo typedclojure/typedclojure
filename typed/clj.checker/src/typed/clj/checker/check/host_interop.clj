@@ -68,7 +68,7 @@
                  (update :args #(mapv check-expr %))
                  ana2/run-post-passes)
         expr (cond-> expr
-               (and (#{:host-interop} (:op expr))
+               (and (= :host-interop (:op expr))
                     (cu/should-rewrite?))
                (-> (update :target add-type-hints)
                    (update :args #(mapv add-type-hints %))

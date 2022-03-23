@@ -1,4 +1,4 @@
 (ns clojure.core.typed.test.line-number
-  (:require [clojure.core.typed :as t]))
+  (:require [typed.clojure :as t]))
 
 #(identity nil nil)

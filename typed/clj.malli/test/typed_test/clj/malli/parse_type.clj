@@ -1,6 +1,6 @@
 (ns typed-test.clj.malli.parse-type
   (:require [clojure.test :refer [deftest is]]
-            [clojure.core.typed :as t]
+            [typed.clojure :as t]
             [typed.clj.malli :as tm]
             [typed.clj.malli.parse-type :as sut]
             [typed.clj.checker.parse-unparse :as prs]
@@ -8,8 +8,6 @@
             [clojure.core.typed.type-contract :as tcon]
             [typed.clj.checker.test-utils :refer [clj is-clj subtype? both-subtype? tc-e tc-err is-tc-e is-tc-err]]
             [malli.core :as m]))
-
-(t/load-if-needed)
 
 (deftest type-syntax->malli-syntax-test
   (is (= (sut/type-syntax->malli-syntax

@@ -1,5 +1,5 @@
 (ns clojure.core.typed.test.filter-combine
-  (:require [clojure.core.typed :as t :refer [ann-form check-ns print-filterset]]))
+  (:require [typed.clojure :as t :refer [ann-form]]))
 
 ; macroexpansion of `or` is understood
 (fn [a]

@@ -12,9 +12,12 @@
   (assert (apply distinct? (map name vs)) (vec vs))
   `(do 
      ~@(map (fn [v]
-              `(defn ~(-> v name symbol)
-                 [& args#]
-                 (apply (requiring-resolve '~v) args#)))
+              `(do 
+                 ;; TODO some way to forward the IFn interface
+                 #_(t/ann ~(-> v name symbol with-meta {:no-check true}) (t/TypeOf ~v))
+                 (defn ~(-> v name symbol)
+                    [& args#]
+                    (apply (requiring-resolve '~v) args#))))
             vs)))
 
 (make-indirection

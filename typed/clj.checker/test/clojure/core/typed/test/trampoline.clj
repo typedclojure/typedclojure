@@ -1,10 +1,10 @@
 (ns clojure.core.typed.test.trampoline
-  (:require [clojure.core.typed :as t]))
+  (:require [typed.clojure :as t]))
 
 (declare funb)
 
-(t/ann-many [Number -> (t/Rec [f]
-                         (t/U Number [-> (t/U t/Num f)]))]
+(t/ann-many [t/Num -> (t/Rec [f]
+                         (t/U t/Num [-> (t/U t/Num f)]))]
             funa funb)
 (defn funa [n]
   (if (= n 0)

@@ -1,5 +1,5 @@
 (ns typed-test.cljc.checker.name-utils
-  (:require [clojure.core.typed :as t]
+  (:require [typed.clojure :as t]
             [clojure.test :refer [deftest is]]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.clj.checker.test-utils :refer [is-clj clj]]

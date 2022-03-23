@@ -1,8 +1,7 @@
 (ns typed-test.lib.clojure.core.async
-  (:require 
-    [typed.clj.checker.test-utils :refer :all]
-    [clojure.test :refer :all]
-    [clojure.core.typed :as t]))
+  (:require [typed.clj.checker.test-utils :refer :all]
+            [clojure.test :refer :all]
+            [clojure.core.typed :as t]))
 
 ; wrap all these tests in thunks to prevent side effects
 

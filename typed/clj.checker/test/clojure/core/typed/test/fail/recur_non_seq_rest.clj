@@ -1,6 +1,6 @@
 (ns clojure.core.typed.test.fail.recur-non-seq-rest
-  (:require [clojure.core.typed :as t]))
+  (:require [typed.clojure :as t]))
 
-(t/ann recur-args-fail [Number * -> t/Any])
+(t/ann recur-args-fail [t/Num * -> t/Any])
 (defn recur-args-fail [& args]
   (recur [1 2 3]))

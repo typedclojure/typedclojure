@@ -1,5 +1,5 @@
 (ns clojure.core.typed.test.protocol-munge
-  (:require [clojure.core.typed :as t]))
+  (:require [typed.clojure :as t]))
 
 (t/defprotocol Foo
   (my_dash [this] :- t/Num))

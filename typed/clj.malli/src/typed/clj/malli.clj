@@ -20,7 +20,7 @@
   - typed.clj.malli.generator
   - typed.clj.malli.swagger
   - typed.clj.malli.json-schema"
-  (:require [clojure.core.typed :as t]
+  (:require [typed.clojure :as t]
             [clojure.core.typed.unsafe :as unsafe]
             [malli.core :as m]))
 
@@ -187,4 +187,3 @@
   `(m/encode ~(type-syntax->malli-syntax t)
              ~v
              ~tr))
-

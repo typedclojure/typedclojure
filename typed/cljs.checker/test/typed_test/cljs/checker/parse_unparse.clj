@@ -1,6 +1,5 @@
 (ns typed-test.cljs.checker.parse-unparse
-  (:require [clojure.core.typed :as t]
-            [clojure.test :refer [deftest]]
+  (:require [clojure.test :refer [deftest]]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljs.checker.test-utils :refer :all]))

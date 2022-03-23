@@ -1,6 +1,6 @@
 (ns clojure.core.typed.test.transducer
   (:refer-clojure :exclude [])
-  (:require [clojure.core.typed :as t]
+  (:require [typed.clojure :as t]
             [clojure.core :as core]))
 
 ;; based on https://hypirion.com/musings/haskell-transducers

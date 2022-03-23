@@ -2,7 +2,7 @@
   (:refer-clojure :exclude [fn])
   (:require [typed.clj.checker.test-utils :refer :all]
             [clojure.test :refer :all]
-            [clojure.core.typed :as t :refer [ann-form print-env fn]]))
+            [typed.clojure :as t :refer [ann-form fn]]))
 
 (deftest last-test
   (testing "when we know there is at least one value"

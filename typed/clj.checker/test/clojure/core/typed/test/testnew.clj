@@ -1,12 +1,12 @@
 (ns clojure.core.typed.test.testnew
-  (:require [clojure.core.typed :as t] 
-            [clojure.test :refer :all]                
+  (:require [typed.clojure :as t]
+            [clojure.test :refer :all]
             [typed.clj.checker.test-utils :refer :all]))
 
 (deftest function?-test
-  (is-tc-e (function? function?) Boolean
+  (is-tc-e (function? function?) t/Bool
            :requires [[clojure.test :refer [function?]]])
-  (is-tc-err (function? function?) String
+  (is-tc-err (function? function?) t/Str
              :requires [[clojure.test :refer [function?]]]))
   
 (deftest assert-any-test
@@ -20,7 +20,7 @@
 (deftest run-tests-test
   (is-tc-e #(run-tests) [-> (t/Map t/Any t/Any)]
            :requires [[clojure.test :refer [run-tests]]])
-  (is-tc-err #(run-tests) [-> String]
+  (is-tc-err #(run-tests) [-> t/Str]
              :requires [[clojure.test :refer [run-tests]]]))
             
 (deftest run-all-tests-test
@@ -28,11 +28,11 @@
            :requires [[clojure.test :refer [run-all-tests]]])
   (is-tc-e #(run-all-tests #"asdf") [-> (t/Map t/Any t/Any)]
            :requires [[clojure.test :refer [run-all-tests]]])
-  (is-tc-err #(run-all-tests) [:-> String]
+  (is-tc-err #(run-all-tests) [:-> t/Str]
              :requires [[clojure.test :refer [run-all-tests]]]))
             
 (deftest successful?-test
-  (is-tc-e #(successful? {}) [-> Boolean]
+  (is-tc-e #(successful? {}) [-> t/Bool]
            :requires [[clojure.test :refer [successful?]]]))
             
 (deftest compose-fixtures-test
@@ -42,17 +42,17 @@
            :requires [[clojure.test :refer [compose-fixtures]]]))
            
 (deftest testing-vars-str-test
-  (is-tc-e #(testing-vars-str {}) [-> String]
+  (is-tc-e #(testing-vars-str {}) [-> t/Str]
            :requires [[clojure.test :refer [testing-vars-str]]])
   (is-tc-err (testing-vars-str 1) t/Int
              :requires [[clojure.test :refer [testing-vars-str]]]))
            
 (deftest testing-contexts-str-test
-  (is-tc-e (testing-contexts-str)  String
+  (is-tc-e (testing-contexts-str) t/Str
            :requires [[clojure.test :refer [testing-contexts-str]]])
   (is-tc-err (testing-contexts-str) (t/Map t/Any t/Any)
              :requires [[clojure.test :refer [testing-contexts-str]]])
-  (is-tc-err (testing-contexts-str 1)  String
+  (is-tc-err (testing-contexts-str 1) t/Str
              :requires [[clojure.test :refer [testing-contexts-str]]]))
 
 (deftest test-ns-test

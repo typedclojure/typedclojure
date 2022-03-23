@@ -3,7 +3,6 @@
             [cljs.analyzer.api :as ana-api]
             [cljs.core.typed :as cljs-t]
             [cljs.core.typed :as t]
-            [clojure.core.typed :as clj-t]
             [clojure.core.typed.current-impl :as impl]
             [clojure.set :as set]
             [clojure.test :as test]

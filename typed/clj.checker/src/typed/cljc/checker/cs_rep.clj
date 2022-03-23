@@ -109,7 +109,7 @@
 
 (t/defalias DCon (U dcon dcon-exact dcon-dotted dcon-repeat))
 
-(t/ann ^:no-check dcon-c? (predicate DCon))
+(t/ann ^:no-check dcon-c? (t/Pred DCon))
 (def dcon-c? (some-fn dcon? dcon-exact? dcon-dotted? dcon-repeat?))
 
 ;; map : hash mapping index variables to dcons

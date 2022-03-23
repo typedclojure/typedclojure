@@ -8,8 +8,7 @@
 
 (ns ^:no-doc typed.clj.ext.clojure.core__doseq
   "Typing rules clojure.core/doseq"
-  (:require [clojure.core.typed :as t]
-            [clojure.core.typed.contract-utils :as con]
+  (:require [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.errors :as err]
             [typed.clj.checker.check :refer [check-expr]]
             [typed.clj.checker.parse-unparse :as prs]

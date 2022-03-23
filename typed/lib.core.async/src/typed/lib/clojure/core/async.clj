@@ -18,14 +18,12 @@
       use buffer (similar for other buffer constructors)
     "}
   typed.lib.clojure.core.async
-  (:require [clojure.core.typed :refer [ann ann-datatype defalias inst ann-protocol]
-             :as t]
+  (:require [typed.clojure :refer [ann ann-datatype defalias inst ann-protocol] :as t]
             [clojure.core.async :as async]
             [clojure.core.async.impl.protocols :as impl]
             [clojure.core.async.impl.channels :as channels]
             [clojure.core.async.impl.dispatch :as dispatch]
-            [clojure.core.async.impl.ioc-macros :as ioc] 
-            )
+            [clojure.core.async.impl.ioc-macros :as ioc])
   (:import (java.util.concurrent Executor)
            (java.util.concurrent.locks Lock)
            (java.util.concurrent.atomic AtomicReferenceArray)

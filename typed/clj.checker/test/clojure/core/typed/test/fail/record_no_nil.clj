@@ -1,7 +1,7 @@
 (ns clojure.core.typed.test.fail.record-no-nil
-  (:require [clojure.core.typed :as t]))
+  (:require [typed.clojure :as t]))
 
-(t/ann-record Foo [a :- Number])
+(t/ann-record Foo [a :- t/Num])
 (defrecord Foo [a])
 
 (map->Foo {})

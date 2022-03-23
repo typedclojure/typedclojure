@@ -8,8 +8,7 @@
 
 (ns ^:no-doc typed.clj.ext.clojure.core__ns
   "Typing rules clojure.core/ns"
-  (:require [clojure.core.typed :as t]
-            [typed.cljc.analyzer :as ana2]
+  (:require [typed.cljc.analyzer :as ana2]
             [typed.cljc.checker.check-below :as below]
             [typed.cljc.checker.filter-ops :as fo]
             [typed.cljc.checker.filter-rep :as fl]
@@ -54,11 +53,11 @@
         :tag nil)))
 
 (comment
-        (binding [*ns* *ns*]
-          (t/cf (ns foo)))
-        (binding [*ns* *ns*]
-          (t/check-form-info '(ns foo)
-                             :expected 't/Str
-                             :type-provided? true))
-        )
-
+  (require [clojure.core.typed :as t])
+  (binding [*ns* *ns*]
+    (t/cf (ns foo)))
+  (binding [*ns* *ns*]
+    (t/check-form-info '(ns foo)
+                       :expected 't/Str
+                       :type-provided? true))
+  )

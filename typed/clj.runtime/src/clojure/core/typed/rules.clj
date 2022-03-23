@@ -6,7 +6,7 @@
 
 ;; TODO migrate these ideas to -unanalyzed-special
 (ns clojure.core.typed.rules
-  (:require [clojure.core.typed :as t]
+  (:require [typed.clojure :as t]
             [clojure.core.typed.internal :as internal]
             [typed.cljc.analyzer :as ana2]))
 

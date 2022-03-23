@@ -1,5 +1,5 @@
 (ns clojure.core.typed.test.mm-warn-on-unannotated
-  (:require [clojure.core.typed :as t :refer [check-ns]]))
+  (:require [clojure.core.typed :as t]))
 
 (t/warn-on-unannotated-vars)
 

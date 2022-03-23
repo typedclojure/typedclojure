@@ -1,7 +1,7 @@
 (ns clojure.core.typed.test.inspector
-  (:require  [clojure.core.typed :as t] 
-             [clojure.test :refer :all]                
-             [typed.clj.checker.test-utils :refer :all]))
+  (:require [typed.clojure :as t] 
+            [clojure.test :refer :all]                
+            [typed.clj.checker.test-utils :refer :all]))
 
 (deftest atom?-test
   (is-tc-e #(atom? "abc") [-> Boolean]
