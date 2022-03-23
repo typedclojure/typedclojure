@@ -19,9 +19,10 @@
       all-submodules
       exclusions)))
 
-(def clojure-stable "1.10.3")
-(def clojure-next-release "1.11.0-rc1")
-(def clojure-next-snapshot "1.11.0-master-SNAPSHOT")
+;; TODO grab from typed.dev.helpers
+(def clojure-stable "1.11.0")
+(def clojure-next-release nil #_"1.12.0-alpha1")
+(def clojure-next-snapshot "1.12.0-master-SNAPSHOT")
 
 (def matrix? (con/hmap-c? :include (con/every-c? (con/hmap-c?
                                                    :submodule string?
@@ -32,8 +33,9 @@
   {:post [(matrix? %)]}
   {:include (for [submodule all-testable-submodules
                   clojure (cond-> [clojure-stable]
-                            (= "typedclojure/typedclojure"
-                               (System/getenv "GITHUB_REPOSITORY"))
+                            (and (= "typedclojure/typedclojure"
+                                    (System/getenv "GITHUB_REPOSITORY"))
+                                 clojure-next-release)
                             (conj clojure-next-release))
                   jdk ["11"]]
               {:submodule submodule

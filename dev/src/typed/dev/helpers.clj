@@ -14,7 +14,7 @@
       str/trim))
 
 (def selmer-input-map
-  {:clojure-mvn-version "1.10.3"
+  {:clojure-mvn-version "1.11.0"
    :clojars-url "https://clojars.org/repo"
    :sonatype-oss-public-url "https://oss.sonatype.org/content/groups/public/"
    :clojurescript-mvn-version "1.11.4"
