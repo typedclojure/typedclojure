@@ -1,9 +1,9 @@
 (ns clojure.core.typed.test.CTYP146
-  (:require [clojure.core.typed :refer [ann] :as t]))
+  (:require [typed.clojure :refer [ann] :as t]))
 
 (ann distinct-except
      (t/All [x]
-          [[x -> Boolean] (t/Option (t/I clojure.lang.Sequential (t/Seq x))) -> (t/Seq x)]))
+          [[x -> t/Bool] (t/Option (t/I clojure.lang.Sequential (t/Seq x))) -> (t/Seq x)]))
 (defn distinct-except
   "Same as distinct, but keeps duplicates if they pass exception?"
   [exception? [head & tail :as coll]]

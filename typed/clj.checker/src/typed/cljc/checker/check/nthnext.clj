@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.cljc.checker.check.nthnext
-  (:require [clojure.core.typed :as t]
+  (:require [typed.clojure :as t]
             [typed.cljc.checker.check-below :as below]
             [typed.cljc.checker.check.utils :as cu]
             [typed.cljc.checker.cs-gen :as cgen]

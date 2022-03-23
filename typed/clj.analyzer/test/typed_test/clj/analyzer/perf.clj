@@ -156,7 +156,7 @@
           (first forms1)))
       nil))
 
-  (do (require '[clojure.core.typed :as t])
+  (do (require '[typed.clojure :as t])
       (with-cpu-profiling :trace
 
         (time

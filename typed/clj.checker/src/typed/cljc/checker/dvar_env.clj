@@ -9,7 +9,7 @@
 (ns typed.cljc.checker.dvar-env
   (:require [typed.cljc.checker.type-rep :as r]
             [clojure.core.typed.contract-utils :as con]
-            [clojure.core.typed :as t])
+            [typed.clojure :as t])
   (:import [clojure.lang Symbol]
            [typed.cljc.checker.type_rep F]))
 

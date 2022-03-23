@@ -53,6 +53,11 @@
     :clj `(clojure.core.typed/ann-datatype ~@args)
     :cljs `(cljs.core.typed/ann-datatype ~@args)))
 
+(defmacro ann-record [& args]
+  (macros/platform-case
+    :clj `(clojure.core.typed/ann-record ~@args)
+    :cljs (throw (ex-info "TODO ann-record in CLJS" {}))))
+
 (defmacro defalias [& args]
   (macros/platform-case
     :clj `(clojure.core.typed/defalias ~@args)

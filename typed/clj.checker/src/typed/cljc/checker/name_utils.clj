@@ -10,8 +10,7 @@
   typed.cljc.checker.name-utils
   (:require [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.type-ctors :as c]
-            [typed.cljc.checker.fold-rep :as fold]
-            [clojure.core.typed :as t])
+            [typed.cljc.checker.fold-rep :as fold])
   (:import [typed.cljc.checker.type_rep Name]))
 
 (fold/def-derived-fold IRecursiveNames ^:private erase-names* [should-erase name->f used-f erased-frequencies])

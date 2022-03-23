@@ -17,6 +17,10 @@
             [clojure.tools.reader.reader-types :as readers]
             [typed.cljc.analyzer :as ana]))
 
+;; ===============================================================
+;; START EPIC HACK TO "MAKE" cljs.analyzer/{parse,analyze} ^:dynamic
+;; ===============================================================
+
 (def instrumented-analyzer-ns (doto 'typed.cljs.analyzer.wrapped.cljs.analyzer
                                 create-ns))
 (alias 'ana-cljs instrumented-analyzer-ns)
@@ -139,6 +143,10 @@
 
 ;; use analyzer's dynamic vars
 (assert (= #'ana-cljs'/*cljs-ns* (ns-resolve instrumented-analyzer-ns '*cljs-ns*)))
+
+;; ===============================================================
+;; END EPIC HACK TO "MAKE" cljs.analyzer/{parse,analyze} ^:dynamic
+;; ===============================================================
 
 (def inner-parse ana-cljs/parse)
 (def inner-analyze ana-cljs/analyze)

@@ -32,7 +32,7 @@
   #_
   (is (->
         (ast (do (ns bar
-                   (:require [clojure.core.typed :as t]))
+                   (:require [typed.clojure :as t]))
                  (t/ann-form 'foo 'a)))
         :ret))
   (is (= [:const Number]

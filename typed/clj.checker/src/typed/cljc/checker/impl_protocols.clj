@@ -10,7 +10,7 @@
   typed.cljc.checker.impl-protocols
   (:refer-clojure :exclude [defrecord defprotocol])
   (:require [typed.cljc.checker.def-utils :as u]
-            [clojure.core.typed :as t]))
+            [typed.clojure :as t]))
 
 ;; Implementation Protocols and protocol predicates go here.
 ;;

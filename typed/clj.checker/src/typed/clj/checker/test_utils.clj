@@ -31,7 +31,8 @@
            (:refer-clojure :exclude 
                            ~'[type defprotocol #_letfn fn loop dotimes let for doseq
                               #_def #_filter #_remove defn atom ref cast])
-           (:require ~@'[[clojure.core.typed :refer :all :as t]
+           (:require ~@'[;; TODO use typed.clojure
+                         [clojure.core.typed :refer :all :as t]
                          [clojure.core.typed.unsafe :as unsafe]
                          [clojure.core :as core]
                          [clojure.core :as cc]]

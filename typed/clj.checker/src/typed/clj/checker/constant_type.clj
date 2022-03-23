@@ -9,7 +9,7 @@
 (ns typed.clj.checker.constant-type
   (:require [typed.cljc.checker.type-rep :as r :refer [ret]]
             [typed.cljc.checker.type-ctors :as c]
-            [clojure.core.typed :as t]
+            [typed.clojure :as t]
             [clojure.core.typed.current-impl :as impl]
             [typed.cljc.checker.hset-utils :as hset]
             [typed.cljc.checker.filter-ops :as fo])

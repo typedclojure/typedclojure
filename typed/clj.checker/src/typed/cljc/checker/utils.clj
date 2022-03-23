@@ -8,7 +8,7 @@
 
 (ns ^:no-doc typed.cljc.checker.utils
   (:refer-clojure :exclude [defrecord defprotocol])
-  (:require [clojure.core.typed :as t]
+  (:require [typed.clojure :as t]
             [clojure.core.typed.util-vars :as uvs]
             [clojure.repl :as repl]
             [clojure.set :as set]))

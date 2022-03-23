@@ -7,8 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.cljc.checker.check.fn-method-one
-  (:require [clojure.core.typed :as t]
-            [clojure.core.typed.ast-utils :as ast-u]
+  (:require [clojure.core.typed.ast-utils :as ast-u]
             [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.errors :as err]
@@ -55,7 +54,7 @@
                         & {:keys [recur-target-fn ignore-rng]}]
   {:pre [(r/Function? expected)]
    :post [(r/Function? (:ftype %))
-          (-> % :cmethod ::t/ftype r/Function?)
+          (-> % :cmethod :clojure.core.typed/ftype r/Function?)
           (:cmethod %)]}
   (impl/impl-case
     :clojure (assert (#{:fn-method :method} (:op method))
@@ -239,7 +238,7 @@
                         
         cmethod (-> method
                     (assoc (ast-u/method-body-kw) crng
-                           ::t/ftype ftype)
+                           :clojure.core.typed/ftype ftype)
                     (ast-u/reconstruct-arglist crequired-params crest-param))
         _ (assert (vector? (:params cmethod)))
         _ (assert (every? (comp r/TCResult? u/expr-type) (:params cmethod)))]

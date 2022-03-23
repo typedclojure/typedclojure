@@ -44,22 +44,6 @@
       (recur (conj! butlast (first s)) xs)
       [(seq (persistent! butlast)) (first s)])))
 
-(defn update-vals
-  "Applies f to all the vals in the map"
-  [m f]
-  (into {}
-        (map (fn [[k v]]
-               [k (f v)]))
-        m))
-
-(defn update-keys
-  "Applies f to all the keys in the map"
-  [m f]
-  (into {}
-        (map (fn [[k v]]
-               [(f k) v]))
-        m))
-
 (defn update-kv
   "Applies f to all the keys and vals in the map"
   [m f]

@@ -1,5 +1,5 @@
 (ns clojure.core.typed.test.CTYP-118-cast
-  (:require [clojure.core.typed :as t]))
+  (:require [typed.clojure :as t]))
 
 (t/ann i1 String)
 (def i1 (cast String "a"))

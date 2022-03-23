@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.cljc.checker.subst
-  (:require [clojure.core.typed :as t]
+  (:require [typed.clojure :as t]
             [typed.cljc.checker.type-rep :as r]
             [clojure.core.typed.errors :as err]
             [typed.cljc.checker.fold-rep :as f]
@@ -44,7 +44,7 @@
      :image image}))
 
 (t/ann ^:no-check substitute-many [r/Type (t/U nil (t/Seqable r/Type)) (t/U nil (t/Seqable t/Sym))
-                                 -> r/Type])
+                                   -> r/Type])
 (defn substitute-many [target images names]
   (reduce (fn [t [im nme]] (substitute im nme t))
           target

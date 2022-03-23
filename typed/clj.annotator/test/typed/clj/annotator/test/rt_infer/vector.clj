@@ -1,7 +1,7 @@
 (ns typed.clj.annotator.test.rt-infer.vector
   {:lang :core.typed
    :core.typed {:features #{:runtime-infer}}}
-  (:require [clojure.core.typed :as t]))
+  (:require [typed.clojure :as t]))
 
 (defn b [coll]
   (if (< 0.5 (rand))

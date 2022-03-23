@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.clj.checker.file-mapping
-  (:require [clojure.core.typed :as t]
+  (:require [typed.clojure :as t]
             [typed.cljc.analyzer.ast :as ast]
             [typed.cljc.checker.check.utils :as cu]
             [typed.clj.checker.parse-unparse :as prs]
@@ -31,9 +31,9 @@
                 (select-keys env ks))))]
     (case (:op ast)
       ; Functions can be checked any number of times. Each
-      ; check is stored in the ::t/cmethods entry.
-      :fn (let [method-mappings (for [method (::t/cmethods ast)]
-                                  (let [ftype (::t/ftype method)
+      ; check is stored in the :clojure.core.typed/cmethods entry.
+      :fn (let [method-mappings (for [method (:clojure.core.typed/cmethods ast)]
+                                  (let [ftype (:clojure.core.typed/ftype method)
                                         _ (assert (r/Function? ftype))
                                         ;floc (mapping-key ast)
                                         ;_ (assert floc (select-keys (:env ast) [:line :file :column]))

@@ -8,8 +8,7 @@
 
 (ns typed.cljc.checker.runtime-check
   "Adds runtime checks where annotations are instead of type checking"
-  (:require [clojure.core.typed :as t]
-            [typed.cljc.checker.check.do :as do]
+  (:require [typed.cljc.checker.check.do :as do]
             [typed.cljc.checker.utils :as u]
             [typed.cljc.checker.check.def :as def]
             [clojure.core.typed.ast-utils :as ast]))

@@ -890,7 +890,7 @@
                                                              (u/ctx e :ctx/expr))
                                            :children [:init])))
                            {} binds)
-          e (update env :locals merge (u/update-vals binds u/dissoc-env))
+          e (update env :locals merge (update-vals binds u/dissoc-env))
           body (analyze-body body e)]
       (->
         {:op       :letfn

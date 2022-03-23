@@ -9,11 +9,9 @@
 (ns typed.cljc.checker.check.seq-ops
   (:require [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.type-ctors :as c]
-            [clojure.core.typed :as t]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.clj.checker.subtype :as sub]
-            [clojure.core.typed.errors :as err]
-            ))
+            [clojure.core.typed.errors :as err]))
 
 (defn type-to-seq [t]
   {:pre [(r/Type? t)]}

@@ -1,5 +1,5 @@
 (ns clojure.core.typed.test.binding
-  (:require [clojure.core.typed :as t]))
+  (:require [typed.clojure :as t]))
 
-(t/def ^:dynamic *foo* :- Boolean, true)
+(t/def ^:dynamic *foo* :- t/Bool, true)
 (binding [*foo* false])

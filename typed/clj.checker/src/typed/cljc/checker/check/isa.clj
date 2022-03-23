@@ -8,7 +8,6 @@
 
 (ns ^:no-doc typed.cljc.checker.check.isa
   (:require [typed.cljc.checker.type-rep :as r]
-            [clojure.core.typed :as t]
             [typed.cljc.checker.check-below :as below]
             [typed.cljc.checker.filter-ops :as fo]
             [clojure.core.typed.contract-utils :as con]

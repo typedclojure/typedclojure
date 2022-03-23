@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.cljc.checker.frees
-  (:require [clojure.core.typed :as t]
+  (:require [typed.clojure :as t]
             [typed.cljc.checker.type-rep :as r]
             [clojure.core.typed.current-impl :as impl]
             [typed.cljc.checker.type-ctors :as c]

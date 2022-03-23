@@ -8,7 +8,7 @@
 
 (ns ^:no-doc 
   typed.clj.checker.rclass-ancestor-env
-  (:require [clojure.core.typed :as t]
+  (:require [typed.clojure :as t]
             [typed.cljc.checker.subst :as subst]
             [typed.cljc.checker.type-rep :as r]
             [clojure.core.typed.contract-utils :as con]

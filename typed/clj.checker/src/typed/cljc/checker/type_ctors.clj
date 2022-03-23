@@ -9,7 +9,7 @@
 (ns ^:no-doc typed.cljc.checker.type-ctors
   (:refer-clojure :exclude [defrecord replace])
   (:require [clojure.core.cache :as cache]
-            [clojure.core.typed :as t]
+            [typed.clojure :as t]
             [clojure.core.typed.coerce-utils :as coerce]
             [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.current-impl :as impl]
@@ -107,13 +107,13 @@
 
 (declare In keyword-value? RClass-of Protocol-of complete-hmap? -name)
 
-(t/ann ^:no-check allowed-hmap-key? [r/Type -> Boolean])
+(t/ann ^:no-check allowed-hmap-key? [r/Type -> t/Bool])
 (defn allowed-hmap-key? [k]
   (keyword-value? k))
 
 ; Partial HMaps do not record absence of fields, only subtype to (APersistentMap t/Any t/Any)
 (t/ann ^:no-check upcast-hmap* 
-       [(t/Map r/Type r/Type) (t/Map r/Type r/Type) (t/Set r/Type) Boolean -> r/Type])
+       [(t/Map r/Type r/Type) (t/Map r/Type r/Type) (t/Set r/Type) t/Bool -> r/Type])
 (defn upcast-hmap* [mandatory optional absent-keys complete?]
   (let [upcast-ctor (fn [ks vs]
                       (impl/impl-case
@@ -149,7 +149,7 @@
                 (complete-hmap? hmap)))
 
 (t/ann ^:no-check make-HMap [& :optional {:mandatory (t/Map r/Type r/Type) :optional (t/Map r/Type r/Type)
-                                          :absent-keys (t/Set r/Type) :complete? Boolean} 
+                                          :absent-keys (t/Set r/Type) :complete? t/Bool} 
                              -> r/Type])
 (defn make-HMap 
   "Make a heterogeneous map type for the given options.
@@ -217,12 +217,12 @@
                 (not complete?))))))
 
 ;TODO to type check this, need to un-munge instance field names
-(t/ann complete-hmap? [HeterogeneousMap -> Boolean])
+(t/ann complete-hmap? [HeterogeneousMap -> t/Bool])
 (defn complete-hmap? [^HeterogeneousMap hmap]
   {:pre [(r/HeterogeneousMap? hmap)]}
   (not (:other-keys? hmap)))
 
-(t/ann partial-hmap? [HeterogeneousMap -> Boolean])
+(t/ann partial-hmap? [HeterogeneousMap -> t/Bool])
 (defn partial-hmap? [^HeterogeneousMap hmap]
   {:pre [(r/HeterogeneousMap? hmap)]}
   (:other-keys? hmap))
@@ -384,7 +384,7 @@
 
 (declare RClass-of)
 
-(t/ann ^:no-check HMap-with-Value-keys? [HeterogeneousMap * -> Boolean])
+(t/ann ^:no-check HMap-with-Value-keys? [HeterogeneousMap * -> t/Bool])
 (defn HMap-with-Value-keys? [& args]
   {:pre [(every? r/HeterogeneousMap? args)]}
   (every? r/Value? 
@@ -652,7 +652,7 @@
 
 (t/ann ^:no-check Protocol*
   [(t/Seqable t/Sym) (t/Seqable r/Variance) (t/Seqable r/Type) t/Sym t/Sym (t/Map t/Sym r/Type) (t/Seqable Bounds) 
-   & :optional {:declared? Boolean} -> r/Type])
+   & :optional {:declared? t/Bool} -> r/Type])
 (defn Protocol* [names variances poly? the-var on-class methods bnds
                  & {:keys [declared?] :or {declared? false}}]
   {:pre [(every? symbol? names)
@@ -1014,7 +1014,7 @@
                 (err/int-error (str "Bad RClass replacements for " the-class ": " bad-replacements)))
             res (r/sorted-type-set
                   (set/union (binding [*current-RClass-super* the-class]
-                               (let [rs (t/for [csym :- t/Sym, not-replaced] :- r/Type
+                               (let [rs (for [csym not-replaced]
                                           (RClass-of-with-unknown-params
                                             csym
                                             :warn-msg (when (.contains (str the-class) "clojure.lang")
@@ -1081,7 +1081,7 @@
         (with-original-names t original-names))))))
 
 ;only set to true if throwing an error and need to print a TypeFn
-(t/ann *TypeFn-variance-check* Boolean)
+(t/ann *TypeFn-variance-check* t/Bool)
 (def ^:dynamic *TypeFn-variance-check* true)
 
 ;smart destructor
@@ -1400,7 +1400,7 @@
 (defn resolve-Name [nme]
   {:pre [(r/Name? nme)]
    :post [(r/Type? %)]}
-  (let [resolve-name* (t/var> typed.cljc.checker.name-env/resolve-name*)]
+  (let [resolve-name* (requiring-resolve 'typed.cljc.checker.name-env/resolve-name*)]
     (resolve-name* (:id nme))))
 
 (t/ann fully-resolve-type 
@@ -2259,7 +2259,7 @@
    :post [(r/KwArgsArray? %)]}
   (r/KwArgsArray-maker (:kw-args-regex kws)))
 
-(t/ann HMap->KwArgsSeq [HeterogeneousMap Boolean -> r/Type])
+(t/ann HMap->KwArgsSeq [HeterogeneousMap t/Bool -> r/Type])
 (defn HMap->KwArgsSeq [kws]
   {:pre [(r/HeterogeneousMap? kws)]
    :post [(r/Type? %)]}

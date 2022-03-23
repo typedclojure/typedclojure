@@ -8,17 +8,17 @@
 
 (ns ^:no-doc typed.cljc.checker.nilsafe-utils
   (:require [clojure.set :as set]
-            [clojure.core.typed :as t]))
+            [typed.clojure :as t]))
 
 (t/ann ^:no-check set-union 
-       (t/All [x] 
+       (t/All [x]
               (t/IFn [-> (t/Set x)]
-                        [(t/U nil (t/Set x)) -> (t/Set x)]
-                        [(t/U nil (t/Set x)) (t/Set x) * -> (t/Set x)])))
+                     [(t/U nil (t/Set x)) -> (t/Set x)]
+                     [(t/U nil (t/Set x)) (t/Set x) * -> (t/Set x)])))
 (def set-union (fnil set/union #{}))
 
 (t/ann ^:no-check set-difference 
-       (t/All [x] 
+       (t/All [x]
               (t/IFn [(t/U nil (t/Set x)) -> (t/Set x)]
-                        [(t/U nil (t/Set x)) (t/Set t/Any) * -> (t/Set x)])))
+                     [(t/U nil (t/Set x)) (t/Set t/Any) * -> (t/Set x)])))
 (def set-difference (fnil set/difference #{}))

@@ -3,7 +3,7 @@
    :core.typed {:features #{:runtime-infer}}
    }
   (:refer-clojure :exclude [identity memoize])
-  (:require [clojure.core.typed :as t]
+  (:require [typed.clojure :as t]
             [clojure.core :as core]
             [clojure.spec.alpha :as s]
             [clojure.pprint :refer [pprint]]))

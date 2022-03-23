@@ -9,7 +9,7 @@
 (ns ^:no-doc 
   ^{:core.typed {:collect-only true}}
   typed.cljc.checker.tvar-bnds
-  (:require [clojure.core.typed :as t]
+  (:require [typed.clojure :as t]
             [clojure.core.typed.contract-utils :as con]
             [typed.cljc.checker.type-rep :as r])
   (:import (typed.cljc.checker.type_rep Bounds)))

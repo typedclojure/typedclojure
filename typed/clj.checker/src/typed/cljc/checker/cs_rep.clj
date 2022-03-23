@@ -11,7 +11,7 @@
   (:require [typed.cljc.checker.utils :as u]
             [clojure.core.typed.contract-utils :as con]
             [typed.cljc.checker.type-rep :as r]
-            [clojure.core.typed :as t])
+            [typed.clojure :as t])
   (:import (typed.cljc.checker.type_rep Bounds F)))
 
 (u/ann-record t-subst [type :- r/Type,
@@ -140,7 +140,7 @@
    (dmap? dmap)])
 
 (t/ann make-cset-entry (t/IFn [(t/Map t/Sym c) -> cset-entry]
-                           [(t/Map t/Sym c) (t/U nil dmap) -> cset-entry]))
+                              [(t/Map t/Sym c) (t/U nil dmap) -> cset-entry]))
 (defn make-cset-entry
   ([fixed] (make-cset-entry fixed nil))
   ([fixed dmap] (cset-entry-maker fixed

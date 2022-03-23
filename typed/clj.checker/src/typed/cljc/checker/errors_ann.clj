@@ -7,8 +7,8 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.cljc.checker.errors-ann
-  (:require [clojure.core.typed :as t]))
+  (:require [typed.clojure :as t]))
 
-(t/ann ^:no-check clojure.core.typed.errors/deprecated-warn [String -> nil])
-(t/ann ^:no-check clojure.core.typed.errors/int-error [String -> t/Nothing])
+(t/ann ^:no-check clojure.core.typed.errors/deprecated-warn [t/Str -> nil])
+(t/ann ^:no-check clojure.core.typed.errors/int-error [t/Str -> t/Nothing])
 

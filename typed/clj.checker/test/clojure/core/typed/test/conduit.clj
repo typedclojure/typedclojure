@@ -1,7 +1,8 @@
 (ns clojure.core.typed.test.conduit
   (:import (clojure.lang Seqable IMeta IPersistentMap LazySeq ISeq))
-  (:require [clojure.core.typed :refer [check-ns ann defalias tc-ignore ann-form declare-names inst
-                                        print-env inst-ctor cf declare-alias-kind]]
+  (:require [clojure.core.typed :as t
+             :refer [check-ns ann defalias tc-ignore ann-form declare-names inst
+                     print-env inst-ctor cf declare-alias-kind]]
             [clojure.repl :refer [pst]]
             #_[arrows.core :refer [defarrow]]))
 

@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.clj.checker.base-env
-  (:require [clojure.core.typed :as t]
+  (:require [typed.clojure :as t]
             [clojure.core.typed.current-impl :as impl]
             [typed.clj.checker.base-env-clj-rclass :as base-rclass]
             [typed.clj.checker.ctor-override-env :as ctor-override-env]

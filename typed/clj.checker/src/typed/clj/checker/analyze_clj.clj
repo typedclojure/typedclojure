@@ -9,8 +9,7 @@
 (ns ^:no-doc typed.clj.checker.analyze-clj
   (:refer-clojure :exclude [macroexpand-1 get-method eval])
   (:require [clojure.core :as core]
-            [clojure.core.typed :as T]
-            [clojure.core.typed :as t]
+            [typed.clojure :as t]
             [clojure.core.typed.coerce-utils :as coerce]
             [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.errors :as err]
@@ -37,7 +36,7 @@
 
 ; Updated for Clojure 1.8
 ;  https://github.com/clojure/clojure/commit/7f79ac9ee85fe305e4d9cbb76badf3a8bad24ea0
-(T/ann ^:no-check *typed-macros* (T/Map T/Any T/Any))
+(t/ann ^:no-check *typed-macros* (t/Map t/Any t/Any))
 (def ^:dynamic *typed-macros*
   {;; add positional information for destructured bindings
    #'clojure.core/loop
@@ -65,11 +64,7 @@
            `(let ~bfs
               (loop* ~(vec (interleave gs gs))
                      (let ~(vec (interleave bs gs))
-                       ~@body)))))))
-
-   #'clojure.core/for
-   (fn [&form &env seq-exprs body-expr]
-     (@#'T/for &form &env seq-exprs body-expr))})
+                       ~@body)))))))})
 
 (defn custom-expansion-opts [env]
   (let [analyze (fn [form & [env1]]
@@ -90,7 +85,7 @@
      :analyze analyze
      :emit-form emit-form/emit-form}))
 
-(T/ann ^:no-check typed-macro-lookup [T/Any T/Any :-> T/Any])
+(t/ann ^:no-check typed-macro-lookup [t/Any t/Any :-> t/Any])
 (defn typed-macro-lookup [var env]
   {:post [(ifn? %)]}
   (or (when vs/*custom-expansions*
@@ -105,9 +100,9 @@
       var))
 
 ;; copied from tools.analyzer.jvm to insert `*typed-macros*`
-(T/ann ^:no-check macroexpand-1 
-       (T/IFn [T/Any -> T/Any] 
-              [T/Any (T/Map T/Any T/Any) -> T/Any]))
+(t/ann ^:no-check macroexpand-1 
+       (t/IFn [t/Any -> t/Any] 
+              [t/Any (t/Map t/Any t/Any) -> t/Any]))
 (defn macroexpand-1
   "If form represents a macro form or an inlinable function, returns its expansion,
    else returns form."
@@ -183,22 +178,22 @@
         :else
         form))))
 
-(T/ann ^:no-check special-form? [T/Any :-> T/Any])
+(t/ann ^:no-check special-form? [t/Any :-> t/Any])
 (defn special-form? [mform]
   (and (seq? mform)
        (= 'do (first mform))
        (or (= (second mform) spec/special-form)
-           (= (second mform) ::T/special-collect))))
+           (= (second mform) :clojure.core.typed/special-collect))))
 
 (declare eval-ast)
 ;; reflect-validated from eastwood
 ;========================
-(T/ann ^:no-check reflect-validated [(T/Map T/Any T/Any) :-> T/Any])
+(t/ann ^:no-check reflect-validated [(t/Map t/Any t/Any) :-> t/Any])
 (defmulti reflect-validated 
   {:pass-info {:walk :any :depends #{#'validate/validate}}}
   :op)
 
-(T/ann ^:no-check arg-type-str [(t/Seqable (t/U nil Class)) :-> t/Str])
+(t/ann ^:no-check arg-type-str [(t/Seqable (t/U nil Class)) :-> t/Str])
 (defn arg-type-str [arg-types]
   (str/join ", "
             (map #(if (nil? %) "nil" (.getName ^Class %)) arg-types)))

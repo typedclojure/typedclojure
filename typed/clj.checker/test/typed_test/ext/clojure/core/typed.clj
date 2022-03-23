@@ -103,8 +103,7 @@
   (is (= (is-tc-err-messages
            (fn [[a] :- (t/Set t/Any)]))
          {:delayed-errors [[(extcc__let/bad-vector-destructure-error-msg
-                              "(IPersistentSet t/Any)"
+                              "(IPersistentSet typed.clojure/Any)"
                               "[a]")
                             {:type-error :clojure.core.typed.errors/tc-error-parent
-                             :form '(fn [[a] :- (t/Set t/Any)])}]]}))
-  )
+                             :form '(fn [[a] :- (t/Set t/Any)])}]]})))

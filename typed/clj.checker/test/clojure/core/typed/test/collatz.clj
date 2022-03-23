@@ -1,7 +1,7 @@
 (ns clojure.core.typed.test.collatz
-  (:require [clojure.core.typed :refer [ann] :as t]))
+  (:require [typed.clojure :as t]))
 
-(ann collatz [Number -> Number])
+(t/ann collatz [t/Num -> t/Num])
 (defn collatz [n]
   (cond
     (= 1 n) 

@@ -7,8 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.cljc.checker.check.fn
-  (:require [clojure.core.typed :as t]
-            [typed.cljc.checker.type-rep :as r]
+  (:require [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.utils :as u]
             [typed.cljc.checker.filter-ops :as fo]
             [typed.cljc.checker.filter-rep :as fl]
@@ -23,7 +22,7 @@
   {:pre [(r/TCResult? expected)
          (= :fn (:op fexpr))]
    :post [(-> % u/expr-type r/TCResult?)
-          (vector? (::t/cmethods %))]}
+          (vector? (:clojure.core.typed/cmethods %))]}
   ;(prn "check-fn" methods)
   (let [{:keys [ifn methods cmethods]}
         (fn-methods/check-fn-methods 
@@ -32,5 +31,5 @@
           :self-name (cu/fn-self-name fexpr))]
     (assoc fexpr
            :methods methods
-           ::t/cmethods cmethods
+           :clojure.core.typed/cmethods cmethods
            u/expr-type (r/ret ifn (fo/-true-filter)))))

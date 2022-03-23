@@ -10,7 +10,7 @@
   (:refer-clojure :exclude [defrecord defprotocol])
   (:require [typed.cljc.checker.utils :as u]
             [clojure.core.typed.contract-utils :as con]
-            [clojure.core.typed :as t]))
+            [typed.clojure :as t]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Paths

@@ -234,7 +234,7 @@
                (gen/bind (gen/set (generator el opts))
                          ;;TODO figure out if it's already a set or not
                          set)
-               (when (sub/subtype? el (prs/parse-clj ''[t/Any t/Any]))
+               (when (sub/subtype? el (prs/parse-clj `'[t/Any t/Any]))
                  #_ ;;FIXME destructure type
                  (gen/map kgen vgen))]))))))
 

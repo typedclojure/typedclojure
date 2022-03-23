@@ -1,5 +1,5 @@
 (ns typed-test.clj.checker.parse-unparse
-  (:require [clojure.core.typed :as t]
+  (:require [typed.clojure :as t]
             [clojure.test :refer :all]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.clj.checker.test-utils :refer :all]))
@@ -54,18 +54,14 @@
 (deftest poly-named-test
   (is (= (prs/unparse-type
            (prs/parse-clj 
-             '(clojure.core.typed/All [:named [a b]] [a -> b])))
-         '(clojure.core.typed/All [:named [a b]] [a -> b])))
+             '(typed.clojure/All [:named [a b]] [a -> b])))
+         '(typed.clojure/All [:named [a b]] [a -> b])))
   (is (= (prs/unparse-type
            (prs/parse-clj 
-             '(clojure.core.typed/All [:named [a b]] [a -> b])))
-         '(clojure.core.typed/All [:named [a b]] [a -> b])))
-  (is (= (prs/unparse-type
-           (prs/parse-clj 
-             '(clojure.core.typed/All [a ... :named [b c]]
-                                      [c b a ... a -> b])))
-         '(clojure.core.typed/All [a ... :named [b c]]
-                                  [c b a ... a -> b])))
+             '(typed.clojure/All [a ... :named [b c]]
+                                 [c b a ... a -> b])))
+         '(typed.clojure/All [a ... :named [b c]]
+                             [c b a ... a -> b])))
   (is-tc-e (do (t/ann ^:no-check foo 
                       (t/All [:named [a b]]
                              [a -> b]))

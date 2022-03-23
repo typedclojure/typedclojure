@@ -7,7 +7,7 @@
             [com.gfredericks.test.chuck.clojure-test :refer [checking]]
             [com.gfredericks.test.chuck.generators :as gen']
             [clojure.test.check.generators :as gen]
-            [clojure.core.typed :as t]
+            [typed.clojure :as t]
             [typed.cljc.analyzer :as ana2]
             [clojure.tools.analyzer.jvm :as taj]
             [typed.clj.analyzer :as jana2]
@@ -515,7 +515,7 @@
                         *debug*)]
       ;; set up ns refers
       (refer-clojure)
-      (require '[clojure.core.typed 
+      (require '[typed.clojure 
                  :as t 
                  :refer [defalias ann
                          ;Any U Vec Map
@@ -1131,7 +1131,7 @@
      (binding [*ns* ns#
                *ann-for-ns* (constantly ns#)]
        (refer-clojure)
-       (require '[clojure.core.typed :as t])
+       (require '[typed.clojure :as t])
        (when spec-ns
          (require [spec-ns :as 's]))
        (let [result# (atom :ok)

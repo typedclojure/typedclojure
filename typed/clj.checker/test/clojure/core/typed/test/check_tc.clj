@@ -1,6 +1,6 @@
 (ns clojure.core.typed.test.check-tc
   (:require [clojure.test :refer :all]
-            [clojure.core.typed :refer [check-ns]]))
+            [clojure.core.typed :as t :refer [check-ns]]))
 
 #_(deftest check-tc
   ;fails in hudson

@@ -8,8 +8,7 @@
 
 (ns ^:no-doc typed.cljc.ext.clojure.core.typed__ann-form
   "Typing rules for clojure.core.typed ops."
-  (:require [clojure.core.typed :as t]
-            [clojure.core.typed.util-vars :as vs]
+  (:require [clojure.core.typed.util-vars :as vs]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.cljc.analyzer :as ana2]
             [typed.cljc.checker.check :refer [check-expr]]

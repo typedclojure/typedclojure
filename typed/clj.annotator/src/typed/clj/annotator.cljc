@@ -1460,6 +1460,7 @@
     (if (= spec-ns 'clojure.spec)
       'clojure.spec.gen
       'clojure.spec.gen.alpha)
+    'typed.clojure
     'clojure.core.typed
     'clojure.core.typed.contract
     'clojure.core.typed.current-impl
@@ -2747,7 +2748,7 @@
                                     (find-ns
                                       (if spec?
                                         spec-ns
-                                        'clojure.core.typed))))
+                                        'typed.clojure))))
            require-info
            (when-not existing-alias?
              (let [current-aliases (ns-aliases (the-ns (current-ns)))
@@ -2758,7 +2759,7 @@
                                          '[t typ ct typed])))
                    explicit-ns (if spec?
                                  spec-ns
-                                 'clojure.core.typed)]
+                                 'typed.clojure)]
                (when new-alias
                  (binding [*ns* (the-ns (current-ns))]
                    (println (str "Aliasing " explicit-ns

@@ -53,7 +53,7 @@
 
 (defn parse-type [m]
   (cond
-    (#{'Any 'clojure.core.typed/Any} m) -any
+    (#{'Any 'clojure.core.typed/Any 'typed.clojure/Any} m) -any
     (= '? m) {:op :unknown}
 
     (or (= nil m)
@@ -64,8 +64,8 @@
                  :arities [(parse-arity m)]}
 
     (symbol? m) (case m
-                  (clojure.core.typed/Nothing Nothing) -nothing
-                  (clojure.core.typed/Sym Sym) (-class :symbol [])
+                  (typed.clojure/Nothing clojure.core.typed/Nothing Nothing) -nothing
+                  (typed.clojure/Sym clojure.core.typed/Sym Sym) (-class :symbol [])
                   (Integer Long
                    java.lang.Long java.lang.Integer) (-class :int [])
                   (String java.lang.String) (-class :string [])
@@ -118,7 +118,7 @@
                                    IPersistentSet
                                    clojure.lang.IPersistentSet)
                 (-class :set [(parse-type (second m))])
-                (clojure.core.typed/Map
+                (typed.clojure/Map clojure.core.typed/Map
                   IPersistentMap
                   clojure.lang.IPersistentMap) (let [[_ k v] m]
                                                  (-class :map

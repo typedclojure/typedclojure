@@ -7,8 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.cljc.checker.lex-env
-  (:require [clojure.core.typed :as t]
-            [clojure.core.typed.contract-utils :as con]
+  (:require [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.errors :as err]
             [clojure.core.typed.util-vars :as vs]
             [typed.clj.checker.path-type :as path-type]

@@ -191,7 +191,8 @@
                                                                   :maps-to-merge test-maps-to-merge}))))
                                              test-maps-to-merge)
                                (keys subproject-base-deps)))
-        dev-deps {'selmer/selmer {:mvn/version (:selmer-mvn-version h/selmer-input-map)}}
+        dev-deps {'selmer/selmer {:mvn/version (:selmer-mvn-version h/selmer-input-map)}
+                  'org.clojure/clojure {:mvn/version (:clojure-mvn-version h/selmer-input-map)}}
         everything-deps (sorted-map
                           :deps (into subproject-base-deps
                                       dev-deps)

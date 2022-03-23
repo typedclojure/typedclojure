@@ -11,7 +11,7 @@
   typed.cljc.checker.free-ops
   (:require [clojure.core.typed.contract-utils :as con]
             [typed.cljc.checker.type-rep :as r]
-            [clojure.core.typed :as t]
+            [typed.clojure :as t]
             [typed.cljc.checker.tvar-env :as tvar]
             [typed.cljc.checker.tvar-bnds :as bnds])
   (:import (typed.cljc.checker.type_rep F Bounds)))

@@ -2,7 +2,7 @@
   {:lang :core.typed
    :core.typed {:features #{:runtime-infer}}
    }
-  (:require [clojure.core.typed :as t]
+  (:require [typed.clojure :as t]
             [clojure.spec.alpha :as s]
             [clojure.pprint :refer [pprint]]))
 

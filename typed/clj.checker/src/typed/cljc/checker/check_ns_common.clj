@@ -8,7 +8,6 @@
 
 (ns typed.cljc.checker.check-ns-common
   (:require [clojure.core.cache :as cache]
-            [clojure.core.typed :as t]
             [typed.clj.checker.check :as chk-clj]
             [typed.clj.checker.file-mapping :as file-map]
             [typed.clj.checker.reset-caches :as reset-caches]

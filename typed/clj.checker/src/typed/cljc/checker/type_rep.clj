@@ -8,7 +8,7 @@
 
 (ns ^:no-doc typed.cljc.checker.type-rep
   (:refer-clojure :exclude [defrecord defprotocol])
-  (:require [clojure.core.typed :as t]
+  (:require [typed.clojure :as t]
             [clojure.core.typed.coerce-utils :as coerce]
             [clojure.core.typed.contract-utils :as con]
             [clojure.set :as set]

@@ -11,7 +11,7 @@
   typed.cljc.checker.tvar-env
   (:require [clojure.core.typed.contract-utils :as con]
             [typed.cljc.checker.type-rep :as r]
-            [clojure.core.typed :as t])
+            [typed.clojure :as t])
   (:import (typed.cljc.checker.type_rep F)))
 
 ;; this implements the Delta environment from the TOPLAS paper

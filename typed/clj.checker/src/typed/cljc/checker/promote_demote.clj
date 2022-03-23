@@ -11,7 +11,7 @@
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.frees :as frees]
-            [clojure.core.typed :as t]
+            [typed.clojure :as t]
             [typed.cljc.checker.hset-utils :as hset]
             [clojure.set :as set]
             [typed.cljc.checker.impl-protocols :as p]

@@ -6,8 +6,9 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
+;; move to typed.ann.clojure
 (ns clojure.core.typed.contrib-annotations
-  (:require [clojure.core.typed :as t :refer [ann-protocol ann]]))
+  (:require [typed.clojure :as t :refer [ann-protocol ann]]))
 
 (ann-protocol clojure.java.io/IOFactory 
               make-reader

@@ -14,7 +14,7 @@
             [typed.cljc.checker.type-ctors :as c]
             [clojure.core.typed.contract-utils :as con]
             [typed.clj.checker.subtype :as sub]
-            [clojure.core.typed :as t]
+            [typed.clojure :as t]
             [clojure.core.typed.errors :as err])
   (:import (clojure.lang Keyword Symbol)))
 

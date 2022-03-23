@@ -149,7 +149,8 @@
          (not (namespace s))]
    :post [(symbol? %)]}
   ;TODO
-  (symbol (get {'clojure.core.typed "t"
+  (symbol (get {'typed.clojure "t"
+                'clojure.core.typed "t"
                 'clojure.spec.alpha "s"
                 'clojure.core nil}
                nsym
@@ -164,7 +165,7 @@
 (defn qualify-typed-symbol [s]
   {:pre [(symbol? s)]
    :post [(symbol? %)]}
-  (qualify-symbol-in 'clojure.core.typed s))
+  (qualify-symbol-in 'typed.clojure s))
 
 (defn qualify-core-symbol [s]
   {:pre [(symbol? s)]

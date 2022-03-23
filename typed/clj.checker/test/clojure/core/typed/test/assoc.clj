@@ -1,9 +1,6 @@
 (ns clojure.core.typed.test.assoc
-  (:require 
-    [typed.clj.checker.test-utils :refer :all]
-    [clojure.core.typed :refer [ann-form check-ns] :as t]
-    [clojure.test :refer :all])
-  (:import (clojure.lang Symbol)))
+  (:require [typed.clj.checker.test-utils :refer :all]
+            [clojure.test :refer :all]))
 
 (deftest assoc-test
   (is-tc-e (assoc {:a 1} :b 2)

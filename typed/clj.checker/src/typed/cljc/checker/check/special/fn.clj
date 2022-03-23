@@ -7,8 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.cljc.checker.check.special.fn
-  (:require [clojure.core.typed :as t]
-            [clojure.core.typed.ast-utils :as ast-u]
+  (:require [clojure.core.typed.ast-utils :as ast-u]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.cljc.analyzer :as ana2]
             [typed.cljc.checker.check-below :as below]
@@ -88,7 +87,7 @@
                         (fo/-FS fl/-top fl/-bot))]
     (assoc expr
            :methods cmethods
-           ::t/cmethods cmethods
+           :clojure.core.typed/cmethods cmethods
            u/expr-type ret-type)))
 
 (defn gen-defaults [{:keys [methods] :as expr}]

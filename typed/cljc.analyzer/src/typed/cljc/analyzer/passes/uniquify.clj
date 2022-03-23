@@ -8,7 +8,6 @@
 
 (ns typed.cljc.analyzer.passes.uniquify
   (:require [typed.cljc.analyzer.ast :refer [update-children children]]
-            [typed.cljc.analyzer.utils :refer [update-vals]]
             [typed.cljc.analyzer.env :as env]))
 
 (defn push-new-locals-frame

@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.cljc.checker.coerce-ann
-  (:require [clojure.core.typed :as t]
+  (:require [typed.clojure :as t]
             clojure.core.typed.coerce-utils))
 
 (t/ann ^:no-check clojure.core.typed.coerce-utils/Class->symbol [Class -> t/Sym])

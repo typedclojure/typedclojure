@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.clj.checker.check
-  (:require [clojure.core.typed :as t]
+  (:require [typed.clojure :as t]
             [clojure.core.typed.ast-utils :as ast-u]
             [clojure.core.typed.coerce-utils :as coerce]
             [clojure.core.typed.contract-utils :as con]
@@ -126,14 +126,12 @@
 
 (t/ann ^:no-check checked-ns! [t/Sym -> nil])
 (defn- checked-ns! [nsym]
-  (t/when-let-fail [a vs/*already-checked*]
-    (swap! a conj nsym))
+  (swap! vs/*already-checked* conj nsym)
   nil)
 
 (t/ann already-checked? [t/Sym -> Boolean])
 (defn already-checked? [nsym]
-  (t/when-let-fail [a vs/*already-checked*]
-    (boolean (@a nsym))))
+  (boolean (@vs/*already-checked* nsym)))
 
 (declare check-ns-and-deps)
 
@@ -1686,11 +1684,11 @@
 ;(ann internal-special-form [Expr (U nil TCResult) -> Expr])
 (u/special-do-op spec/special-form internal-special-form)
 
-(defmethod internal-special-form ::t/cast
+(defmethod internal-special-form :clojure.core.typed/cast
   [{[_ _ {{tsyn :type} :val} :as statements] :statements frm :ret, :keys [env], :as expr} expected]
   (cast/check-cast check-expr expr expected))
 
-(defmethod internal-special-form ::t/loop
+(defmethod internal-special-form :clojure.core.typed/loop
   [{[_ _ {{tsyns :ann} :val} :as statements] :statements frm :ret, :keys [env], :as expr} expected]
   (special-loop/check-special-loop check-expr expr expected))
 

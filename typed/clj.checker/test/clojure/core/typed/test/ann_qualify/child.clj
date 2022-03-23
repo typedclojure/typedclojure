@@ -1,5 +1,5 @@
 (ns clojure.core.typed.test.ann-qualify.child
-  (:require [clojure.core.typed :as t]
+  (:require [typed.clojure :as t]
             [clojure.core.typed.test.ann-qualify.parent :as p]))
 
 (t/ann p/a t/Int)

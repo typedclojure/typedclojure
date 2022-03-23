@@ -7,8 +7,8 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.clj.checker.parse-unparse
-  (:require [clojure.core.typed :as t]
-            [clojure.core.typed.coerce-utils :as coerce]
+  (:require [clojure.core.typed.coerce-utils :as coerce]
+            [typed.clojure :as t]
             [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.errors :as err]
@@ -1043,7 +1043,7 @@
         n)))
 
 (defn parse-Any [sym]
-  (if (-> sym meta ::t/infer)
+  (if (-> sym meta :clojure.core.typed/infer)
     r/-infer-any
     r/-any))
 

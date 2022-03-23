@@ -70,7 +70,7 @@ Now you can execute each form by copying it into this REPL.
 ```clojure
 (require '[malli.core :as m]
          '[typed.clj.malli :as tm]
-         '[clojure.core.typed :as t])
+         '[typed.clojure :as t])
 ```
 
 ### Validation 

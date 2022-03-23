@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.clj.checker.base-env-clj-rclass
-  (:require [clojure.core.typed :as t]
+  (:require [typed.clojure :as t]
             [typed.clj.checker.rclass-env :as rcls]
             [typed.cljc.checker.base-env-common :refer [delay-and-cache-env]]
             [typed.cljc.checker.base-env-helper :as h])

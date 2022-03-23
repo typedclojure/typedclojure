@@ -1,6 +1,6 @@
 (ns clojure.core.typed.test.ctyp105
   (:require [clojure.string :as str]
-            [clojure.core.typed :as t]))
+            [typed.clojure :as t]))
 
 (t/defalias PatInfo 
   (t/HMap :mandatory {:ptnt_nr String}

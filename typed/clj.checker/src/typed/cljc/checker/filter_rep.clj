@@ -8,7 +8,7 @@
 
 (ns ^:no-doc typed.cljc.checker.filter-rep
   (:refer-clojure :exclude [defrecord defprotocol])
-  (:require [clojure.core.typed :as t]
+  (:require [typed.clojure :as t]
             [typed.cljc.checker.impl-protocols :as p]
             [typed.cljc.checker.indirect-ops :as ind]
             [typed.cljc.checker.path-rep :as pr]
