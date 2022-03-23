@@ -2,6 +2,9 @@ name: Check Clojure CA
 
 on: pull_request
 
+env:
+  CLOJURE_CLI_VERSION: "1.10.3.1087"
+
 jobs:
   build:
     if: (github.actor != 'frenchy64' || github.actor != 'dependabot') && github.repository == 'typedclojure/typedclojure'
@@ -23,6 +26,6 @@ jobs:
           java-version: 1.11
       - uses: DeLaGuardo/setup-clojure@a434c7d415d341c4eff62261c7922f0f4d554266
         with:
-          cli: 1.10.3.849
+          cli: ${{ env.CLOJURE_CLI_VERSION }} 
       - name: Check Clojure CA
         run: ./script/check-clojure-ca.sh ${{ github.actor }}
