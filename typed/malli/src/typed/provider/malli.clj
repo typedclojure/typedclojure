@@ -13,7 +13,7 @@
 
 (defn malli->Type [m]
   ((requiring-resolve 'typed.clj.checker.parse-unparse/parse-type)
-   ((requiring-resolve 'typed.clj.malli.parse-type/malli-syntax->validator-type)
+   ((requiring-resolve 'typed.malli.parse-type/malli-syntax->validator-type)
     m)))
 
 (defn Malli [[_Malli m :as args]]

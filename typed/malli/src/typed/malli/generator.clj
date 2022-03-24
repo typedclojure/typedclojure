@@ -6,21 +6,21 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.clj.malli.generator
+(ns typed.malli.generator
   "Public API for typed `malli.generator` ops."
   (:require [malli.generator :as mg]))
 
 (defmacro generate [t & args]
   `(mg/generate
-    ~((requiring-resolve 'typed.clj.malli.parse-type/type-syntax->malli-syntax) t)
+    ~((requiring-resolve 'typed.malli.parse-type/type-syntax->malli-syntax) t)
     ~@args))
 
 (defmacro sample [t & args]
   `(mg/sample
-    ~((requiring-resolve 'typed.clj.malli.parse-type/type-syntax->malli-syntax) t)
+    ~((requiring-resolve 'typed.malli.parse-type/type-syntax->malli-syntax) t)
     ~@args))
 
 (defmacro generator [t & args]
   `(mg/generator
-    ~((requiring-resolve 'typed.clj.malli.parse-type/type-syntax->malli-syntax) t)
+    ~((requiring-resolve 'typed.malli.parse-type/type-syntax->malli-syntax) t)
     ~@args))

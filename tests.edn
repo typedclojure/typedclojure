@@ -10,7 +10,6 @@
     "typed/clj.annotator/src"
     "typed/clj.checker/src"
     "typed/clj.lang/src"
-    "typed/clj.malli/src"
     "typed/clj.reader/src"
     "typed/clj.refactor/src"
     "typed/clj.runtime/src"
@@ -21,14 +20,14 @@
     "typed/cljs.runtime/src"
     "typed/lib.clojure/src"
     "typed/lib.core.async/src"
-    "typed/lib.spec.alpha/src"],
+    "typed/lib.spec.alpha/src"
+    "typed/malli/src"],
    :kaocha.filter/skip-meta [:typed/skip-from-repo-root],
    :kaocha/test-paths
    ["typed/clj.analyzer/test"
     "typed/clj.annotator/test"
     "typed/clj.checker/test"
     "typed/clj.lang/test"
-    "typed/clj.malli/test"
     "typed/clj.reader/test"
     "typed/clj.refactor/test"
     "typed/clj.runtime/test"
@@ -39,7 +38,8 @@
     "typed/cljs.runtime/test"
     "typed/lib.clojure/test"
     "typed/lib.core.async/test"
-    "typed/lib.spec.alpha/test"]}
+    "typed/lib.spec.alpha/test"
+    "typed/malli/test"]}
   {:kaocha.testable/type :kaocha.type/clojure.test,
    :kaocha.testable/id :cljs,
    :kaocha/ns-patterns [".*"],
@@ -48,7 +48,6 @@
     "typed/clj.annotator/src"
     "typed/clj.checker/src"
     "typed/clj.lang/src"
-    "typed/clj.malli/src"
     "typed/clj.reader/src"
     "typed/clj.refactor/src"
     "typed/clj.runtime/src"
@@ -59,7 +58,8 @@
     "typed/cljs.runtime/src"
     "typed/lib.clojure/src"
     "typed/lib.core.async/src"
-    "typed/lib.spec.alpha/src"],
+    "typed/lib.spec.alpha/src"
+    "typed/malli/src"],
    :kaocha/test-paths
    ["typed/cljs.analyzer/test"
     "typed/cljs.checker/test"
@@ -72,7 +72,6 @@
     "typed/clj.annotator/src"
     "typed/clj.checker/src"
     "typed/clj.lang/src"
-    "typed/clj.malli/src"
     "typed/clj.reader/src"
     "typed/clj.refactor/src"
     "typed/clj.runtime/src"
@@ -83,7 +82,8 @@
     "typed/cljs.runtime/src"
     "typed/lib.clojure/src"
     "typed/lib.core.async/src"
-    "typed/lib.spec.alpha/src"],
+    "typed/lib.spec.alpha/src"
+    "typed/malli/src"],
    :kaocha/test-paths
    ["typed/clj.checker/test" "typed/cljs.checker/test"]}
   {:kaocha.testable/type :kaocha.type/clojure.test,
@@ -94,7 +94,6 @@
     "typed/clj.annotator/src"
     "typed/clj.checker/src"
     "typed/clj.lang/src"
-    "typed/clj.malli/src"
     "typed/clj.reader/src"
     "typed/clj.refactor/src"
     "typed/clj.runtime/src"
@@ -105,7 +104,8 @@
     "typed/cljs.runtime/src"
     "typed/lib.clojure/src"
     "typed/lib.core.async/src"
-    "typed/lib.spec.alpha/src"],
+    "typed/lib.spec.alpha/src"
+    "typed/malli/src"],
    :kaocha/test-paths
    ["typed/clj.analyzer/test"
     "typed/cljc.analyzer/test"

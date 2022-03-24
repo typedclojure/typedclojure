@@ -6,10 +6,10 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.clj.malli.swagger
-  "Public API for typed `malli.swagger` ops."
-  (:require [malli.swagger :as msw]))
+(ns typed.malli.json-schema
+  "Public API for typed `malli.json-schema` ops."
+  (:require [malli.json-schema :as mj]))
 
 (defmacro transform [t]
-  `(msw/transform
-    ~((requiring-resolve 'typed.clj.malli.parse-type/type-syntax->malli-syntax) t)))
+  `(mj/transform
+    ~((requiring-resolve 'typed.malli.parse-type/type-syntax->malli-syntax) t)))

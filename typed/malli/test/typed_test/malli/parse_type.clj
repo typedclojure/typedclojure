@@ -1,8 +1,8 @@
-(ns typed-test.clj.malli.parse-type
+(ns typed-test.malli.parse-type
   (:require [clojure.test :refer [deftest is]]
             [typed.clojure :as t]
-            [typed.clj.malli :as tm]
-            [typed.clj.malli.parse-type :as sut]
+            [typed.malli :as tm]
+            [typed.malli.parse-type :as sut]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.clj.checker.subtype :as sub]
             [clojure.core.typed.type-contract :as tcon]

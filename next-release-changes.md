@@ -1,2 +1,3 @@
 - add `clojure.java.io` annotations
 - fix `{pos,neg,nat}-int?` annotations
+- rename `typed.clj.malli` submodule to `typed.malli`

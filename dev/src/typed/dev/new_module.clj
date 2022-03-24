@@ -53,7 +53,7 @@
               (file-seq (io/file "resources/module-template/script"))))))
 
 (comment
-  (-main "typed.clj.malli")
+  (-main "typed.spec2")
   (module-info "typed.clj.foo")
   (create-template-plan "typed.clj.foo")
   (module-info "typed.clj.foo-bar")

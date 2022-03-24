@@ -1,7 +1,7 @@
-(ns typed-test.clj.malli
+(ns typed-test.malli
   (:require [clojure.test :refer [deftest is]]
             [clojure.core.typed :as t]
-            [typed.clj.malli :as sut] ;:as tm
+            [typed.malli :as sut] ;:as tm
             [typed.clj.checker.test-utils :refer [is-tc-e is-tc-err]]
             [malli.core :as m]))
 
@@ -69,37 +69,37 @@
   (is-tc-e (fn [a :- t/Any] :- t/AnyInteger
              (assert (tm/validate t/AnyInteger a))
              a)
-           :requires [[typed.clj.malli :as tm]])
+           :requires [[typed.malli :as tm]])
   (is-tc-e (fn [a :- t/Any] :- t/AnyInteger
              (assert (not (tm/explain t/AnyInteger a)))
              a)
-           :requires [[typed.clj.malli :as tm]])
+           :requires [[typed.malli :as tm]])
   (is-tc-e (fn [a :- t/Any] :- t/AnyInteger
              (assert ((tm/validator t/AnyInteger) a))
              a)
-           :requires [[typed.clj.malli :as tm]])
+           :requires [[typed.malli :as tm]])
   (is-tc-err (fn [a :- t/Any] :- t/AnyInteger
                (assert (tm/validate t/Bool a))
                a)
-             :requires [[typed.clj.malli :as tm]])
+             :requires [[typed.malli :as tm]])
   (is-tc-err (fn [a :- t/Any] :- t/AnyInteger
                (assert (not (tm/explain t/Bool a)))
                a)
-             :requires [[typed.clj.malli :as tm]])
+             :requires [[typed.malli :as tm]])
   (is-tc-err (fn [a :- t/Any] :- t/AnyInteger
                (assert ((tm/validator t/Bool) a))
                a)
-             :requires [[typed.clj.malli :as tm]])
+             :requires [[typed.malli :as tm]])
   (is-tc-e (do (tm/defvalidator AnyInteger? t/AnyInteger)
                (fn [a :- t/Any] :- t/AnyInteger
                  (assert (AnyInteger? a))
                  a))
-           :requires [[typed.clj.malli :as tm]])
+           :requires [[typed.malli :as tm]])
   (is-tc-err (do (tm/defvalidator Bool? t/Bool)
                  (fn [a :- t/Any] :- t/AnyInteger
                    (assert (Bool? a))
                    a))
-             :requires [[typed.clj.malli :as tm]])
+             :requires [[typed.malli :as tm]])
   (is-tc-e (fn [a :- (t/U t/AnyInteger t/Bool)] :- t/AnyInteger
              (let [prs (tm/parse (t/U ^{::sut/name :int} t/AnyInteger
                                       ^{::sut/name :bool} t/Bool)
@@ -110,4 +110,4 @@
                  ;; TODO this would be neat. need to strengthen m/parser :filters
                  ;:int a
                  :int (second prs))))
-           :requires [[typed.clj.malli :as tm]]))
+           :requires [[typed.malli :as tm]]))

@@ -1,7 +1,7 @@
-{% do-not-edit-xml-comment %}
-# typed.clj.malli
+<!-- DO NOT EDIT! Instead, edit `dev/resources/root-templates/typed/malli/README.md` and run `./script/regen-selmer.sh` -->
+# typed.malli
 
-<a href='{◊typedclojure-homepage◊}'><img src='../../doc/images/part-of-typed-clojure-project.png'></a>
+<a href='https://typedclojure.org'><img src='../../doc/images/part-of-typed-clojure-project.png'></a>
 
 <p>
   <a href='https://www.patreon.com/ambrosebs'><img src='../../doc/images/become_a_patron_button.png'></a>
@@ -12,14 +12,14 @@ Malli integration.
 
 ## Releases and Dependency Information
 
-Latest stable release is {◊typedclojure-stable-mvn-version◊}.
+Latest stable release is 1.0.21.
 
-* [All Released Versions](https://clojars.org/{◊typedclojure-group-id◊}/typed.clj.malli)
+* [All Released Versions](https://clojars.org/org.typedclojure/typed.malli)
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) JAR dependency information:
 
 ```clj
-  {◊typedclojure-group-id◊}/typed.clj.malli {:mvn/version "{◊typedclojure-stable-mvn-version◊}"}
+  org.typedclojure/typed.malli {:mvn/version "1.0.21"}
 ```
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) Git dependency information:
@@ -27,31 +27,31 @@ Latest stable release is {◊typedclojure-stable-mvn-version◊}.
 - Note: use `clj -Sresolve` to resolve the `:tag` to a `:sha`
 
 ```clj
-  {◊typedclojure-group-id◊}/typed.clj.malli
-  {:git/url "{◊typedclojure-git-https-url◊}"
-   :deps/root "typed/clj.malli"
-   :tag "{◊typedclojure-stable-mvn-version◊}"}
+  org.typedclojure/typed.malli
+  {:git/url "https://github.com/typedclojure/typedclojure"
+   :deps/root "typed/malli"
+   :tag "1.0.21"}
 ```
 
 [Leiningen](https://github.com/technomancy/leiningen) dependency information:
 
 ```clojure
-[{◊typedclojure-group-id◊}/typed.clj.malli "{◊typedclojure-stable-mvn-version◊}"]
+[org.typedclojure/typed.malli "1.0.21"]
 ```
 
 [Maven](https://maven.apache.org/) dependency information:
 
 ```XML
 <dependency>
-  <groupId>{◊typedclojure-group-id◊}</groupId>
-  <artifactId>typed.clj.malli</artifactId>
-  <version>{◊typedclojure-stable-mvn-version◊}</version>
+  <groupId>org.typedclojure</groupId>
+  <artifactId>typed.malli</artifactId>
+  <version>1.0.21</version>
 </dependency>
 ```
 
 ## Documentation
 
-[API Reference](https://api.typedclojure.org/latest/typed.clj.malli/index.html)
+[API Reference](https://api.typedclojure.org/latest/typed.malli/index.html)
 
 ## Usage
 
@@ -59,28 +59,28 @@ Note: the following assumes you have the Clojure core type annotations and full 
 Here is a quick way to create a REPL to follow this tutorial with:
 
 ```clojure
-clj -Sdeps '{:deps {{◊typedclojure-group-id◊}/typed.clj.malli {:mvn/version "{◊typedclojure-stable-mvn-version◊}"}
+clj -Sdeps '{:deps {org.typedclojure/typed.malli {:mvn/version "1.0.21"}
                     ;; only needed if omitting typed.clj.checker
-                    {◊typedclojure-group-id◊}/typed.lib.clojure {:mvn/version "{◊typedclojure-stable-mvn-version◊}"}
-                    {◊typedclojure-group-id◊}/typed.clj.checker {:mvn/version "{◊typedclojure-stable-mvn-version◊}"}}}'
+                    org.typedclojure/typed.lib.clojure {:mvn/version "1.0.21"}
+                    org.typedclojure/typed.clj.checker {:mvn/version "1.0.21"}}}'
 ```
 
 Now you can execute each form by copying it into this REPL.
 
 ```clojure
 (require '[malli.core :as m]
-         '[typed.clj.malli :as tm]
+         '[typed.malli :as tm]
          '[typed.clojure :as t])
 ```
 
 ### Validation 
 
-[typed.clj.malli/validate](https://api.typedclojure.org/latest/typed.clj.malli/typed.clj.malli.html#var-validate) is a wrapper for `malli.core/validate`.
+[typed.malli/validate](https://api.typedclojure.org/latest/typed.malli/typed.malli.html#var-validate) is a wrapper for `malli.core/validate`.
 
 See also:
-- [typed.clj.malli/validator](https://api.typedclojure.org/latest/typed.clj.malli/typed.clj.malli.html#var-validator)
-- [typed.clj.malli/defvalidator](https://api.typedclojure.org/latest/typed.clj.malli/typed.clj.malli.html#var-defvalidator)
-- [typed.clj.malli/explain](https://api.typedclojure.org/latest/typed.clj.malli/typed.clj.malli.html#var-explain)
+- [typed.malli/validator](https://api.typedclojure.org/latest/typed.malli/typed.malli.html#var-validator)
+- [typed.malli/defvalidator](https://api.typedclojure.org/latest/typed.malli/typed.malli.html#var-defvalidator)
+- [typed.malli/explain](https://api.typedclojure.org/latest/typed.malli/typed.malli.html#var-explain)
 
 ```clojure
 ;; normally, `validate` takes schemas
@@ -114,11 +114,11 @@ See also:
 
 ### Parsing values
 
-[typed.clj.malli/parse](https://api.typedclojure.org/latest/typed.clj.malli/typed.clj.malli.html#var-parse) is a wrapper for `malli.core/parse`.
+[typed.malli/parse](https://api.typedclojure.org/latest/typed.malli/typed.malli.html#var-parse) is a wrapper for `malli.core/parse`.
 
 See also:
-- [typed.clj.malli/parser](https://api.typedclojure.org/latest/typed.clj.malli/typed.clj.malli.html#var-parser)
-- [typed.clj.malli/defparser](https://api.typedclojure.org/latest/typed.clj.malli/typed.clj.malli.html#var-defparser)
+- [typed.malli/parser](https://api.typedclojure.org/latest/typed.malli/typed.malli.html#var-parser)
+- [typed.malli/defparser](https://api.typedclojure.org/latest/typed.malli/typed.malli.html#var-defparser)
 
 ```clojure
 ;; normally, `parse` takes schemas

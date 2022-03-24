@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 ;; converts types to malli.
-(ns typed.clj.malli
+(ns typed.malli
   "Public API for typed ops in `malli.core`.
 
   In general these operations:
@@ -16,9 +16,9 @@
   - helps the type checker infer their results
   
   See also:
-  - typed.clj.malli.generator
-  - typed.clj.malli.swagger
-  - typed.clj.malli.json-schema"
+  - typed.malli.generator
+  - typed.malli.swagger
+  - typed.malli.json-schema"
   (:require [typed.clojure :as t]
             [clojure.core.typed.unsafe :as unsafe]
             [malli.core :as m]))
@@ -35,7 +35,7 @@
       m/validate
       [t/Any t/Any :-> t/Bool :filters {:then (~'is ~t 1)
                                         :else (~'! ~t 1)}])
-    ~((requiring-resolve 'typed.clj.malli.parse-type/type-syntax->malli-syntax) t)
+    ~((requiring-resolve 'typed.malli.parse-type/type-syntax->malli-syntax) t)
     ~v))
 
 (defmacro validator
@@ -50,7 +50,7 @@
       m/validator
       [t/Any :-> [t/Any :-> t/Bool :filters {:then (~'is ~t 0)
                                              :else (~'! ~t 0)}]])
-    ~((requiring-resolve 'typed.clj.malli.parse-type/type-syntax->malli-syntax) t)))
+    ~((requiring-resolve 'typed.malli.parse-type/type-syntax->malli-syntax) t)))
 
 (defmacro defvalidator
   "Def validator called name for type t. Type checker infers as a predicate
@@ -90,7 +90,7 @@
                                     :errors (t/Seqable t/Any)})
        :filters {:then (~'! ~t 1)
                  :else (~'is ~t 1)}])
-     ~((requiring-resolve 'typed.clj.malli.parse-type/type-syntax->malli-syntax) t)
+     ~((requiring-resolve 'typed.malli.parse-type/type-syntax->malli-syntax) t)
      ~v))
 
 (defmacro parse
@@ -112,9 +112,9 @@
   `((unsafe/ignore-with-unchecked-cast
       m/parse
       [t/Any t/Any :-> (t/U '::m/invalid ~(-> t 
-                                              ((requiring-resolve 'typed.clj.malli.parse-type/type-syntax->malli-syntax))
-                                              ((requiring-resolve 'typed.clj.malli.parse-type/malli-syntax->parser-type))))])
-    ~((requiring-resolve 'typed.clj.malli.parse-type/type-syntax->malli-syntax) t)
+                                              ((requiring-resolve 'typed.malli.parse-type/type-syntax->malli-syntax))
+                                              ((requiring-resolve 'typed.malli.parse-type/malli-syntax->parser-type))))])
+    ~((requiring-resolve 'typed.malli.parse-type/type-syntax->malli-syntax) t)
     ~v))
 
 (defmacro parser
@@ -133,7 +133,7 @@
      true)
     ;=> [:bool true]"
   [t]
-  `(m/parser ~((requiring-resolve 'typed.clj.malli.parse-type/type-syntax->malli-syntax) t)))
+  `(m/parser ~((requiring-resolve 'typed.malli.parse-type/type-syntax->malli-syntax) t)))
 
 (defmacro defparser
   "Def parser for Typed Clojure type t. Type checker infers
@@ -147,18 +147,18 @@
   `(do (t/ann ~(vary-meta name assoc :no-check true)
               [t/Any :-> (t/U (t/Val ::m/invalid)
                               ~(-> t
-                                   ((requiring-resolve 'typed.clj.malli.parse-type/type-syntax->malli-syntax))
-                                   ((requiring-resolve 'typed.clj.malli.parse-type/malli-syntax->parser-type))))])
+                                   ((requiring-resolve 'typed.malli.parse-type/type-syntax->malli-syntax))
+                                   ((requiring-resolve 'typed.malli.parse-type/malli-syntax->parser-type))))])
        (def ~name (parser ~t))))
 
 ;; less baked from here
 
 (defmacro unparse [t v]
-  `(m/unparse ~((requiring-resolve 'typed.clj.malli.parse-type/type-syntax->malli-syntax) t)
+  `(m/unparse ~((requiring-resolve 'typed.malli.parse-type/type-syntax->malli-syntax) t)
               ~v))
 
 (defmacro unparser [t]
-  `(m/unparser ~((requiring-resolve 'typed.clj.malli.parse-type/type-syntax->malli-syntax) t)))
+  `(m/unparser ~((requiring-resolve 'typed.malli.parse-type/type-syntax->malli-syntax) t)))
 
 (defmacro defunparser
   [name t]
@@ -167,11 +167,11 @@
        (def ~name (unparser ~t))))
 
 (defmacro -instrument [tmap & args]
-  `(m/-instrument ~(update tmap :schema (requiring-resolve 'typed.clj.malli.parse-type/type-syntax->malli-syntax))
+  `(m/-instrument ~(update tmap :schema (requiring-resolve 'typed.malli.parse-type/type-syntax->malli-syntax))
                   ~@args))
 
 (defmacro => [name t]
-  `(m/=> ~name ~((requiring-resolve 'typed.clj.malli.parse-type/type-syntax->malli-syntax) t)))
+  `(m/=> ~name ~((requiring-resolve 'typed.malli.parse-type/type-syntax->malli-syntax) t)))
 
 ;; unbaked
 

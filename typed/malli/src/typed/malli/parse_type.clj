@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.clj.malli.parse-type
+(ns typed.malli.parse-type
   "Parsing Typed Clojure syntax to malli"
   (:require [clojure.set :as set]
             [typed.clojure :as t]
@@ -16,7 +16,7 @@
             [clojure.core.typed.ast-ops :as ops]
             [clojure.core.typed.errors :as err]
             [malli.core :as m]
-            [typed.clj.malli :as tm]))
+            [typed.malli :as tm]))
 
 (declare ast->malli-syntax)
 

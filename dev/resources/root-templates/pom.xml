@@ -163,7 +163,7 @@
 
     <module>typed/clj.lang</module>
 
-    <module>typed/clj.malli</module>
+    <module>typed/malli</module>
     <module>typed/clj.spec</module>
 
     <module>typed/lib.clojure</module>
@@ -256,7 +256,7 @@
       </dependency>
       <dependency>
         <groupId>{◊typedclojure-group-id◊}</groupId>
-        <artifactId>typed.clj.malli</artifactId>
+        <artifactId>typed.malli</artifactId>
         <version>{◊typedclojure-current-mvn-version◊}</version>
       </dependency>
       <dependency>
