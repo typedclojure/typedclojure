@@ -15,7 +15,8 @@
             [typed.cljc.checker.lex-env :as lex]
             [typed.cljc.checker.name-env :as name-env]
             [typed.cljc.checker.type-rep :as r]
-            [typed.cljc.runtime.env :as env]))
+            [typed.cljc.runtime.env :as env]
+            [clojure.core.typed.runtime.jvm.configs :as configs]))
 
 (defn clj-var-annotations []
   (get @(impl/clj-checker) impl/current-var-annotations-kw {}))
@@ -148,11 +149,23 @@
         (force (e nsym)))
       (when (impl/checking-clojurescript?)
         (or (nsym (name-env/name-env))
-            ((jsvar-annotations) nsym)))))
+            ((jsvar-annotations) nsym)))
+      (when-some [ts (not-empty
+                       (into (sorted-map) (map #(vector % ((requiring-resolve %) nsym)))
+                             (impl/impl-case
+                               :clojure (configs/clj-config-var-providers)
+                               :cljs (configs/cljs-config-var-providers))))]
+        (let [chosen-entry (first ts)
+              _ (when (< 1 (count ts))
+                  (println (format "WARNING: multiple type providers for var %s (%s), using %s"
+                                   nsym
+                                   (vec (keys ts))
+                                   (key chosen-entry))))]
+          (val chosen-entry)))))
 
 (defn lookup-Var [nsym]
   {:post [((some-fn nil? r/Type?) %)]}
-  (if-let [t (lookup-Var-nofail nsym)]
+  (if-some [t (lookup-Var-nofail nsym)]
     t
     (err/int-error
       (str "Untyped var reference: " nsym))))
@@ -168,7 +181,7 @@
 (defn type-of [sym]
   {:pre [(symbol? sym)]
    :post [(r/Type? %)]}
-  (if-let [t (type-of-nofail sym)]
+  (if-some [t (type-of-nofail sym)]
     t
     (err/int-error (str (when vs/*current-env*
                           (str (:line vs/*current-env*) ": "))

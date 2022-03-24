@@ -39,15 +39,14 @@
     (case (count args)
       1 [:vector
          (ast->malli-syntax (first args))])))
-(defmethod Class->malli-syntax :default [t _ _] (err/int-error (str "Don't know how to convert " (:form t)
-                                                             " to malli")))
+(defmethod Class->malli-syntax :default [t _ _] (err/int-error (str "Don't know how to convert " (:form t) " to malli")))
 
 (defmulti Name->malli-syntax
   "Returns an unevaluated malli schema or nil."
   (fn [{nme :name} _args _opts]
     (when-some [nme-nsym (some-> nme namespace symbol)]
       (symbol 
-        (name ({'clojure.core.typed 'typed.clojure }
+        (name ({'clojure.core.typed 'typed.clojure}
                nme-nsym
                nme-nsym))
         (name nme)))))
@@ -168,52 +167,110 @@
     (-> (ast/parse t)
         ast->malli-syntax)))
 
+(declare malli-syntax->type*)
+
+(defn- malli-syntax->arg-lists
+  [m opts]
+  (letfn [(gen-inner [m opts acc]
+            ;; TODO flatten all regex ops
+            (case (m/type m)
+              :* (let [inner-t (malli-syntax->type* :validator-type (m/-get m 0 nil) opts)]
+                   (into []
+                         (map #(conj % inner-t :*))
+                         acc))
+              (:cat :catn) (reduce (fn [acc argm]
+                                     (gen-inner argm opts acc))
+                                   acc
+                                   (cond->> (m/children m)
+                                     (= :catn (m/type m)) (map #(nth % 2))))
+              :? (let [suffixes (into [[]]
+                                      (gen-inner (m/-get m 0 nil) opts [[]]))]
+                   (into []
+                         (mapcat (fn [argv]
+                                   (map #(into argv %) suffixes)))
+                         acc))
+              (let [t (malli-syntax->type* :validator-type m opts)]
+                (mapv #(conj % t) acc))))]
+    (gen-inner m opts [[]])))
+
+(defn- malli-syntax->type*
+  ([mode m] (malli-syntax->type* mode m {:seen {}}))
+  ([mode m opts]
+   {:pre [(#{:validator-type :parser-type} mode)]}
+   (letfn [(gen-inner [m opts]
+             (or (get-in opts [:schema-form->free (m/form m)])
+                 (let [_ (assert (<= (get (:seen opts) m 0)
+                                     2) m)
+                       opts (update-in opts [:seen m] (fnil inc 0))
+                       gen-inner (fn
+                                   ([m] (gen-inner m opts))
+                                   ([m opts] (gen-inner m opts)))]
+                   (case (m/type m)
+                     keyword? `t/Keyword
+                     (:any any?) `t/Any
+                     (:nil nil?) `nil
+                     boolean? `t/Bool
+                     number? `Number
+                     (:string string?) `t/Str
+                     :map-of (let [[kt vt :as cts] (map gen-inner (m/children m))
+                                   _ (assert (= 2 (count cts)) (m/children m))]
+                               `(t/Map ~kt ~vt))
+                     ;; should we have a :instrument-type mode? m/validate + m/=> is probably not sound.
+                     :=> (let [[param-malli ret-malli :as cs] (m/children m)
+                               _ (assert (= 2 (count cs)))
+                               param-ts (malli-syntax->arg-lists param-malli opts)
+                               rett (gen-inner ret-malli)
+                               arities (map #(conj % :-> rett) param-ts)]
+                           (if (= 1 (count arities))
+                             (first arities)
+                             `(t/IFn ~@arities)))
+                     :? `(t/Nilable ~(gen-inner (m/-get m 0 nil)))
+                     :* (let [inner-t (gen-inner (m/-get m 0 nil))]
+                          (case mode
+                            :validator-type `(t/Seqable ~inner-t)
+                            :parser-type `(t/Vec ~inner-t)))
+                     :ref (let [n (m/-ref m)
+                                _ (assert ((some-fn keyword? symbol? string?) n))
+                                _ (assert (re-matches #"^[a-zA-Z]+[a-zA-Z0-9]*$" (name n)) n)
+                                gn (gensym (name n))]
+                            `(t/Rec [~gn] ~(gen-inner (m/-deref m) (assoc-in opts [:schema-form->free (m/form m)] gn))))
+                     :int `t/AnyInteger
+                     :catn `'~(into (case mode :validator-type [] :parser-type {})
+                                    (map (fn [[cat-k _props cat-schema :as c]]
+                                           (assert (= 3 (count c)) c)
+                                           (assert ((some-fn string? keyword? symbol? number?) cat-k) c)
+                                           (assert (m/schema? cat-schema) c)
+                                           (let [inner-t (gen-inner cat-schema)]
+                                             (case mode
+                                               :validator-type inner-t
+                                               :parser-type [cat-k inner-t]))))
+                                    (m/children m))
+                     :orn `(t/U ~@(mapv (fn [[case-k _props case-schema :as c]]
+                                          (assert (= 3 (count c)) c)
+                                          (assert ((some-fn string? keyword? symbol? number?) case-k) c)
+                                          (assert (m/schema? case-schema) c)
+                                          (let [inner-t (gen-inner case-schema)]
+                                            (case mode
+                                              :validator-type inner-t
+                                              :parser-type `'[(t/Val ~case-k) ~inner-t])))
+                                        (m/children m)))
+                     ::m/schema (gen-inner (m/deref m))
+                     := `(t/Val ~(first (m/children m)))
+                     :schema (gen-inner (m/deref m))))))]
+     (let [inner-t (gen-inner (-> m eval m/schema) opts)]
+       (case mode
+         :validator-type inner-t
+         :parser-type `(t/U (t/Val ::m/invalid)
+                            ~inner-t))))))
+
 (defn malli-syntax->parser-type
   "The types of values returned by malli.core/parse as Typed Clojure syntax.
-  Takes unevalated malli syntax."
+  Takes unevalated malli syntax.  Uses *ns* for resolution."
   [m]
-  (letfn [(gen-inner [m opts]
-            (or (get-in opts [:schema-form->free (m/form m)])
-                (let [_ (assert (<= (get (:seen opts) m 0)
-                                    2) m)
-                      opts (update-in opts [:seen m] (fnil inc 0))
-                      gen-inner (fn
-                                  ([m] (gen-inner m opts))
-                                  ([m opts] (gen-inner m opts)))]
-                  (case (m/type m)
-                    keyword? `t/Keyword
-                    (:any any?) `t/Any
-                    (:nil nil?) `(t/Val nil)
-                    boolean? `t/Bool
-                    number? `Number
-                    (:string string?) `t/Str
-                    :map-of (let [[kt vt :as cts] (map gen-inner (m/children m))
-                                  _ (assert (= 2 (count cts)) (m/children m))]
-                              `(t/Map ~kt ~vt))
-                    :? `(t/Nilable ~(gen-inner (m/-get m 0 nil)))
-                    :* `(t/Vec ~(gen-inner (m/-get m 0 nil)))
-                    :ref (let [n (m/-ref m)
-                               _ (assert ((some-fn keyword? symbol? string?) n))
-                               _ (assert (re-matches #"^[a-zA-Z]+[a-zA-Z0-9]*$" (name n)) n)
-                               gn (gensym (name n))]
-                           `(t/Rec [~gn] ~(gen-inner (m/-deref m) (assoc-in opts [:schema-form->free (m/form m)] gn))))
-                    :int `t/AnyInteger
-                    :catn `'~(into {}
-                                   (map (fn [[cat-k _props cat-schema :as c]]
-                                          (assert (= 3 (count c)) c)
-                                          (assert ((some-fn string? keyword? symbol? number?) cat-k) c)
-                                          (assert (m/schema? cat-schema) c)
-                                          [cat-k (gen-inner cat-schema)]))
-                                   (m/children m))
-                    :orn `(t/U ~@(mapv (fn [[case-k _props case-schema :as c]]
-                                         (assert (= 3 (count c)) c)
-                                         (assert ((some-fn string? keyword? symbol? number?) case-k) c)
-                                         (assert (m/schema? case-schema) c)
-                                         `'[(t/Val ~case-k)
-                                            ~(gen-inner case-schema)])
-                                       (m/children m)))
-                    ::m/schema (gen-inner (m/deref m))
-                    := `(t/Val ~(first (m/children m)))
-                    :schema (gen-inner (m/deref m))))))]
-    `(t/U (t/Val ::m/invalid)
-          ~(gen-inner (-> m eval m/schema) {:seen {}}))))
+  (malli-syntax->type* :parser-type m))
+
+(defn malli-syntax->validator-type
+  "The types of values that succeed for malli.core/validate as Typed Clojure syntax.
+  Takes unevalated malli syntax. Uses *ns* for resolution."
+  [m]
+  (malli-syntax->type* :validator-type m))

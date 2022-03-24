@@ -100,6 +100,7 @@
                       (check-fn meta)))
             inferred (r/ret-t (u/expr-type cinit))
             _ (assert (r/Type? inferred))
+            #_#_ ;; old behavior, type should now only be annotated at runtime
             _ (when (and (not= unannotated-def :unchecked)
                          cinit)
                 ; now consider this var as checked

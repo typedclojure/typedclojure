@@ -408,21 +408,7 @@
 
 (defn expand-typed-fn-macro
   [form _]
-  (let [{:keys [parsed-methods name poly ann]} (internal/parse-fn* form)
-        reassembled-fn-type `(t/IFn ~@(map (fn [{:keys [rest drest dom rng] :as method-ann}]
-                                             {:pre [(map? method-ann)]
-                                              :post [(vector? %)]}
-                                             (vec
-                                               (concat
-                                                 (map :type dom)
-                                                 (cond
-                                                   rest [(:type rest) '*]
-                                                   drest [(-> drest :pretype :type) '... (:bound drest)])
-                                                 [:-> (:type rng)])))
-                                           (map :ann parsed-methods)))
-        reassembled-fn-type (if-let [forall (:forall poly)]
-                              `(t/All ~forall ~reassembled-fn-type)
-                              reassembled-fn-type)]
+  (let [{:keys [parsed-methods name reassembled-fn-type]} (internal/parse-fn* form)]
     `(do nil ;spc/special-form
          nil ;::t/fn
          nil ;{..}

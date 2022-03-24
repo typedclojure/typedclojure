@@ -7,7 +7,6 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 ;; converts types to malli.
-;; TODO typed.lib.malli.core that converts malli to types
 (ns typed.clj.malli
   "Public API for typed ops in `malli.core`.
 

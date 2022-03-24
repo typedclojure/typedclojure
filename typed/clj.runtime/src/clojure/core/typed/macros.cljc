@@ -32,6 +32,15 @@
       cljs
       clj)))
 
+;; TODO move all these macros to typed.clojure
+(core/defn typed-sym [&env sym]
+  {:pre [(simple-symbol? sym)]}
+  (symbol
+    (platform-case
+      :clj "clojure.core.typed"
+      :cljs "cljs.core.typed")
+    (name sym)))
+
 (core/defn core-kw [kw]
   (keyword "clojure.core.typed"
            (name kw)))
@@ -47,13 +56,11 @@
 (defmacro
   ^{:forms '[(def name docstring? :- type? expr)]}
   def
-  "Like clojure.core/def with optional type annotations
+  "Like clojure.core/def with optional type annotations. Registers
+  annotations like t/ann.
 
   NB: in Clojure it not useful refer a macro called `def` as it is a
   special form. Use an alias prefix (eg., `t/def`).
-
-  If an annotation is provided, a corresponding `ann` form
-  is generated, otherwise it expands identically to clojure.core/def
 
   eg. ;same as clojure.core/def
       (def vname 1)
@@ -70,13 +77,14 @@
   (core/let [[docstring fdecl] (internal/take-when string? fdecl)
              [provided? t [body :as args]] (parse-colon fdecl 'def)]
     (assert (= 1 (count args)) "Wrong arguments to def")
-    `(def ~(vary-meta name #(merge
-                              %
-                              (when docstring
-                                {:doc docstring})))
-       ~(if provided?
-          `(clojure.core.typed/ann-form ~body ~t)
-          body))))
+    `(do
+       ~@(when provided?
+           [`(~(typed-sym &env 'ann) ~name ~t)])
+       (def ~(vary-meta name #(merge
+                                %
+                                (when docstring
+                                  {:doc docstring})))
+         ~body))))
 
 (core/defn expand-typed-fn [form]
   (core/let [{:keys [poly fn ann]} (internal/parse-fn* form)]
@@ -195,7 +203,7 @@
   [& body]
   (core/let [{:keys [ann-protocol defprotocol]} (internal/parse-defprotocol* body)]
     `(do ~ann-protocol
-         (clojure.core.typed/tc-ignore
+         (~(typed-sym &env 'tc-ignore)
            ~defprotocol))))
 
 (defmacro tc-ignore 
@@ -221,7 +229,7 @@
   (core/let [[provided? t args] (parse-colon args 'atom)
              [init & args] args]
     `(core/atom ~(if provided?
-                   `(clojure.core.typed/ann-form ~init ~t)
+                   `(~(typed-sym &env 'ann-form) ~init ~t)
                    init)
                 ~@args)))
 
@@ -236,7 +244,7 @@
   (core/let [[provided? t args] (parse-colon args 'ref)
              [init & args] args]
     `(core/ref ~(if provided?
-                  `(clojure.core.typed/ann-form ~init ~t)
+                  `(~(typed-sym &env 'ann-form) ~init ~t)
                   init)
                ~@args)))
 
@@ -244,8 +252,7 @@
   ^{:forms '[(defn kw-args? name docstring? attr-map? [param :- type *] :- type exprs*)
              (defn kw-args? name docstring? attr-map? ([param :- type *] :- type exprs*)+)]}
   defn
-  "Like defn, but expands to clojure.core.typed/fn. If a polymorphic binder is
-  supplied before the var name, expands to clojure.core.typed/pfn.
+  "Like defn, but registers annotation with t/ann.
 
   eg. (defn fname [a :- Number, b :- (U Symbol nil)] :- Integer ...)
 
@@ -263,5 +270,8 @@
     ([a :- x] :- (Coll y) ...)
     ([a :- Str, b :- y] :- y ...))"
   [& args]
-  (core/let [{:keys [name args]} (internal/parse-defn* args)]
-    `(def ~name (fn ~@args))))
+  (core/let [{:keys [name args]} (internal/parse-defn* args)
+             init `(~(typed-sym &env 'fn) ~@args)
+             {:keys [reassembled-fn-type]} (internal/parse-fn* init)]
+    `(~(typed-sym &env 'def) ~name :- ~reassembled-fn-type,
+       ~init)))

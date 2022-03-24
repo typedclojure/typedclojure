@@ -25,9 +25,6 @@
             [clojure.string :as str]
             [cljs.analyzer.api :as ana-api]))
 
-(import-m/import-macros clojure.core.typed.macros
-  [fn tc-ignore ann-form def loop let defn atom defprotocol])
-
 (core/defn register!
   "Internal -- Do not use"
   []
@@ -57,7 +54,7 @@
               app-outer-context# (bound-fn [f#] (f#))]
      (delay
        (app-outer-context#
-         (fn []
+         (core/fn []
            (with-parse-ns*
              (cljs-ns)
              #((requiring-resolve 'typed.clj.checker.parse-unparse/parse-cljs) t#)))))))
@@ -409,11 +406,11 @@
    (load-if-needed)
    ((requiring-resolve 'typed.cljs.checker.check-ns/check-ns-info) ns-or-syms opt)))
 
-(defn check-ns-macros [& args]
+(core/defn check-ns-macros [& args]
   #?(:clj (apply (requiring-resolve 'clojure.core.typed/check-ns) args)
      :cljs (throw (ex-info "check-ns-macros not yet implemented in self hosted CLJS" {}))))
 
-(defn check-ns-info-macros [& args]
+(core/defn check-ns-info-macros [& args]
   #?(:clj (apply (requiring-resolve 'clojure.core.typed/check-ns-info) args)
      :cljs (throw (ex-info "check-ns-info-macros not yet implemented in self hosted CLJS" {}))))
 
@@ -428,29 +425,29 @@
    (load-if-needed)
    ((requiring-resolve 'typed.cljs.checker.check-ns/check-ns) ns-or-syms opt)))
 
-(defn ^:internal check-ns-expansion-side-effects
+(core/defn ^:internal check-ns-expansion-side-effects
   ([]
    (load-if-needed)
    (check-ns*))
   ([ns-or-syms]
    (load-if-needed)
-   (let [quoted? #(and (seq? %)
-                       (= 'quote (first %))
-                       (= 2 (count %)))
-         quoted-symbol? (every-pred quoted? (comp simple-symbol? second))
-         quoted-coll? (every-pred quoted? (comp coll? second))
-         _ (assert (coll? ns-or-syms)
-                   (str "check-ns arguments must be quoted symbols: " (pr-str ns-or-syms)))
-         ns-or-syms (mapv (fn [quoted-sym]
-                            (assert (quoted-symbol? quoted-sym)
-                                    (str "All args to check-ns must be quoted simple symbols: " (pr-str quoted-sym)))
-                            (second quoted-sym))
-                          (if (quoted-symbol? ns-or-syms)
-                            [ns-or-syms]
-                            (if (quoted-coll? ns-or-syms)
-                              ;; '(quote [foo bar]) => ['(quote foo) '(quote bar)]
-                              (map #(list 'quote %) (second ns-or-syms))
-                              ns-or-syms)))]
+   (core/let [quoted? #(and (seq? %)
+                            (= 'quote (first %))
+                            (= 2 (count %)))
+              quoted-symbol? (every-pred quoted? (comp simple-symbol? second))
+              quoted-coll? (every-pred quoted? (comp coll? second))
+              _ (assert (coll? ns-or-syms)
+                        (str "check-ns arguments must be quoted symbols: " (pr-str ns-or-syms)))
+              ns-or-syms (mapv (core/fn [quoted-sym]
+                                 (assert (quoted-symbol? quoted-sym)
+                                         (str "All args to check-ns must be quoted simple symbols: " (pr-str quoted-sym)))
+                                 (second quoted-sym))
+                               (if (quoted-symbol? ns-or-syms)
+                                 [ns-or-syms]
+                                 (if (quoted-coll? ns-or-syms)
+                                   ;; '(quote [foo bar]) => ['(quote foo) '(quote bar)]
+                                   (map #(list 'quote %) (second ns-or-syms))
+                                   ns-or-syms)))]
      (check-ns* ns-or-syms))))
 
 (defmacro check-ns
@@ -463,3 +460,6 @@
    (check-ns-expansion-side-effects))
   ([ns-or-syms]
    (check-ns-expansion-side-effects ns-or-syms)))
+
+(import-m/import-macros clojure.core.typed.macros
+  [fn tc-ignore ann-form def loop let defn atom defprotocol])

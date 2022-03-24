@@ -123,6 +123,17 @@
                    ~mout
                    (tm/parse ~t v#))))))))
 
+(defmacro self-validate-validator-type [res t v]
+  (let [m (sut/type-syntax->malli-syntax t)
+        tout (sut/malli-syntax->validator-type (m/schema m))
+        mout (m/form (sut/type-syntax->malli-syntax tout))]
+    `(let [v# ~v]
+       (is (= ~res
+              (= v#
+                 (m/unparse
+                   ~mout
+                   (tm/parse ~t v#))))))))
+
 (deftest malli-syntax->parser-type
   (is (= `(t/U (t/Val ::m/invalid)
                t/AnyInteger)
@@ -132,6 +143,14 @@
                (t/Val :kw))
          (sut/malli-syntax->parser-type
            [:= :kw])))
+  (is (= `(t/U (t/Val ::m/invalid)
+               (t/Vec t/AnyInteger))
+         (sut/malli-syntax->parser-type
+           [:* :int])))
+  (is (= `(t/U (t/Val ::m/invalid)
+               '{:int t/AnyInteger})
+         (sut/malli-syntax->parser-type
+           [:catn [:int :int]])))
   #_
   (is-clj (sub/subtype?
             (prs/parse-clj
@@ -160,3 +179,39 @@
   (self-validate-parser-type false (t/Val nil) 1)
   (self-validate-parser-type true (t/Val nil) nil)
   (self-validate-parser-type true (t/Val nil) nil))
+
+(deftest malli-syntax->validator-type
+  (is (= `t/AnyInteger
+         (sut/malli-syntax->validator-type
+           :int)))
+  (is (= `(t/Val :kw)
+         (sut/malli-syntax->validator-type
+           [:= :kw])))
+  (is (= `(t/Seqable t/AnyInteger)
+         (sut/malli-syntax->validator-type
+           [:* :int])))
+  (is (= `'[t/AnyInteger]
+         (sut/malli-syntax->validator-type
+           [:catn [:int :int]])))
+  (is (= `[t/AnyInteger :-> t/AnyInteger]
+         (sut/malli-syntax->validator-type
+           [:=> [:cat :int] :int])))
+  (is (= `[t/AnyInteger t/AnyInteger :-> t/AnyInteger]
+         (sut/malli-syntax->validator-type
+           [:=> [:cat :int :int] :int])))
+  (is (= `(t/IFn [t/AnyInteger :-> t/AnyInteger]
+                 [t/AnyInteger t/AnyInteger :-> t/AnyInteger])
+         (sut/malli-syntax->validator-type
+           [:=> [:cat :int [:? :int]] :int])))
+  (is (= `[t/AnyInteger t/AnyInteger :* :-> t/AnyInteger]
+         (sut/malli-syntax->validator-type
+           [:=> [:cat :int [:* :int]] :int])))
+  (is (= `[t/AnyInteger :-> t/AnyInteger]
+         (sut/malli-syntax->validator-type
+           [:=> [:catn [:foo :int]] :int])))
+  (self-validate-validator-type true t/Any 1)
+  (self-validate-validator-type true t/Str "a")
+  (self-validate-validator-type false t/Str nil)
+  (self-validate-validator-type false (t/Val nil) 1)
+  (self-validate-validator-type true (t/Val nil) nil)
+  (self-validate-validator-type true (t/Val nil) nil))

@@ -75,3 +75,7 @@
 
 (defn register-cljs-config-anns [] (register-config-anns @*cljs-configs cljs-require))
 (defn register-cljs-config-exts [] (register-config-exts @*cljs-configs clj-reloading-require))
+
+(defn- config-var-providers [configs] (mapcat :var-type-providers configs))
+(defn clj-config-var-providers [] (config-var-providers @*clj-configs))
+(defn cljs-config-var-providers [] (config-var-providers @*cljs-configs))

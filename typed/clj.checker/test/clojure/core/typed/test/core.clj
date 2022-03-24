@@ -1109,42 +1109,42 @@
                (do (print-env "else")
                    2))))))
   (is-tc-err (do (ann nil?? (t/Pred nil))
-                 (defn nil?? [x]
+                 (cc/defn nil?? [x]
                    (not (isa? (-> x class class class class) Object)))))
   (is-tc-e (do (ann rnil [t/Any -> nil])
-               (defn rnil [x]
+               (cc/defn rnil [x]
                  (when (isa? (-> x class class class class class class class class class) nil)
                    x))))
   (is-tc-e (do (ann robject [t/Any -> Object])
-               (defn robject [x]
+               (cc/defn robject [x]
                  (if (isa? (-> x class class class class class class class) Object)
                    x
                    (Object.)))))
   (is-tc-e (do (ann rnilobject [t/Any -> nil])
-               (defn rnilobject [x]
+               (cc/defn rnilobject [x]
                  (if (not (isa? (-> x class class) Object))
                    x
                    nil))))
   (is-tc-err (do (ann robject [t/Any -> nil])
-               (defn robject [x]
-                 (if (isa? (-> x class class) Object)
-                   x
-                   nil))))
+                 (cc/defn robject [x]
+                   (if (isa? (-> x class class) Object)
+                     x
+                     nil))))
   (is-tc-e (do (defn minc [x :- (t/U nil t/Num)]
                  (if (isa? (-> x class class) Class)
                    (inc x)
                    0))))
   ;(is-tc-e (do (ann nil?? (t/Pred nil))
-  ;             (defn nil?? [x]
+  ;             (cc/defn nil?? [x]
   ;               (not (isa? (-> x class class) Object)))))
   )
 
 (deftest equiv-filters-test
   (is-tc-e (do (ann a? (t/Pred ':a))
-               (defn a? [x]
+               (cc/defn a? [x]
                  (= :a x))))
   (is-tc-err (do (ann a? (t/Pred ':b))
-                 (defn a? [x]
+                 (cc/defn a? [x]
                    (= :a x)))))
 
 (deftest flow-assert-test
@@ -3094,10 +3094,12 @@
   (is (check-ns 'clojure.core.typed.test.pred-hmap)))
 
 (deftest infer-def-test
-  (is-tc-e (do (def a 1)
-               (defn b [_] 'a)
-               (b a))
-           t/Symbol))
+  (is-tc-err (do (def a 1)
+                 a))
+  (is-tc-err (do (t/def a :- t/Num, 1)
+                 (defn b [_] 'a)
+                 (b a))
+             t/Symbol))
 
 (deftest typed-for-test
   (is (check-ns 'clojure.core.typed.test.for))
@@ -3154,27 +3156,71 @@
              ([a :- t/Int] :- t/Int 
               (+ a 3)))
            #_(t/Var1 [t/Int -> t/Int]))
+  ;; arg is annotated
   (is-tc-e (do
-             (defn foo [a :- Number]
+             (defn foo [a :- t/Num]
                (inc a))
-             (inc (foo 1))))
-  ; need :forall deprecated
+             (foo 1)))
+  (is-tc-err (do
+               (defn foo [a :- t/Num]
+                 (inc a))
+               (foo nil)))
+  ;; return type is not inferred
+  (is-tc-err (do
+               (defn foo [a :- t/Num]
+                 (inc a))
+               (inc (foo 1)))
+             t/Num)
+  ; old :forall syntax
   (is (thrown? AssertionError 
                (tc-e (defn [x]
                        foo 
                        ([a :- x] :- x
                         a)))))
-  ; need :forall
+  ; mixing old+new :forall syntax
   (is (thrown? AssertionError 
                (tc-e (defn [x]
                        :forall [x]
                        foo 
                        ([a :- x] :- x
                         a)))))
-  (is-tc-e (defn :forall [x]
+  (is-tc-e (fn :forall [x]
+             ([a :- x] :- x
+              a)))
+  (is-tc-e (fn :forall [x]
+             ([a :- x] :- x
+              a))
+           (t/All [y] [y :-> y]))
+  (is-tc-err (fn :forall [x]
+               ([a :- x] :- x
+                a))
+             (t/All [x y] [x :-> y]))
+  (is-tc-e (do
+             (t/ann foo (t/All [y] [y :-> y]))
+             (def foo (fn :forall [x]
+                        ([a :- x] :- x
+                         a)))))
+  (is-tc-e (t/def foo :- (t/All [y] [y :-> y])
+             (fn :forall [x]
+               ([a :- x] :- x
+                a))))
+  (is-tc-e (defn 
+             :forall [x]
              foo 
              ([a :- x] :- x
               a)))
+  (is-tc-e (do (defn :forall [x]
+                 foo 
+                 ([a :- x] :- x
+                  a))
+               (foo 1))
+           t/Num)
+  (is-tc-err (do (defn :forall [x]
+                   foo 
+                   ([a :- x] :- x
+                    a))
+                 (foo nil))
+             t/Num)
   )
 
 (deftest atom-test
@@ -3643,7 +3689,7 @@
     (is-tc-e
       (do
         (ann parent ['{:file (t/U nil java.io.File)} -> (t/U nil t/Str)])
-        (defn parent [m]
+        (cc/defn parent [m]
           (let [^java.io.File file (:file m)]
             (when (instance? java.io.File (:file m))
               (.getParent file))))))
@@ -3654,7 +3700,7 @@
     (is-tc-e
       (do
         (ann parent ['{:file (t/U nil java.io.File)} -> (t/U nil t/Str)])
-        (defn parent [m]
+        (cc/defn parent [m]
           (let [^java.io.File file (:file m)]
             (when (:file m)
               (.getParent file))))))
@@ -4066,12 +4112,12 @@
   (is-tc-e (do (defalias SLiteral (t/U t/Sym (t/Option (t/Seqable SLiteral))))
 
                (ann s-check (t/Pred t/Symbol))
-               (defn s-check
+               (cc/defn s-check
                  [x]
                  (symbol? x))
 
                (ann s-test [SLiteral -> SLiteral])
-               (defn s-test
+               (cc/defn s-test
                  [sliteral]
                  (if (s-check sliteral)
                    'win
@@ -4469,10 +4515,11 @@
                (defmethod f :foo [a]
                  1)))
   (is-tc-e (defmulti f identity))
-  (is-tc-e (do (defmulti f identity)
-               ;(ann-form f t/Nothing)
-               (defmethod f :foo [a]
-                 1))))
+  ;; expected type required
+  (is-tc-err (do (defmulti f identity)
+                 ;(ann-form f t/Nothing)
+                 (defmethod f :foo [a]
+                   1))))
 
 (deftest typed-fn-return-empty-body
   (is (= ((clojure.core.typed/fn [] :-)) :-))

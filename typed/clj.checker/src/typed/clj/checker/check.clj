@@ -1951,6 +1951,7 @@
         mvar (meta var)
         qsym (coerce/var->symbol var)]
     ; annotation side effect
+    ;; TODO convert to type provider
     (when-let [[_ tsyn] (find mvar :ann)]
       (let [ann-type (binding [vs/*current-env* env
                                prs/*parse-type-in-ns* prs-ns]

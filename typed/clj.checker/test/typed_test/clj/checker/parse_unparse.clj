@@ -89,12 +89,12 @@
   (is-tc-e (do (t/ann ^:no-check foo 
                       (t/All [a ...]
                              [a ... a -> t/Any]))
-               (defn foo [& args])
+               (cc/defn foo [& args])
                (t/inst foo t/Str t/Bool))
            [t/Str t/Bool :-> t/Any])
   (is-tc-e (do (t/ann ^:no-check foo 
                       (t/All [a ... :named [b c]]
                              [c b a ... a -> b]))
-               (defn foo [& args] (second args))
+               (cc/defn foo [& args] (second args))
                (t/inst foo t/Str t/Bool :named {c t/Num b t/Sym}))
            [t/Num t/Sym t/Str t/Bool :-> t/Sym]))

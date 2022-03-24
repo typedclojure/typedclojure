@@ -158,6 +158,24 @@
    (-> defmethod-form
        (visit-defmethod-destructuring #(add-destructure-blame-form % blame-form)))))
 
+(defn- reassembled-fn-type [{:keys [parsed-methods name poly ann]}]
+  (let [reassembled-fn-type `(typed.clojure/IFn
+                               ~@(map (fn [{:keys [rest drest dom rng] :as method-ann}]
+                                        {:pre [(map? method-ann)]
+                                         :post [(vector? %)]}
+                                        (vec
+                                          (concat
+                                            (map :type dom)
+                                            (cond
+                                              rest [(:type rest) :*]
+                                              drest [(-> drest :pretype :type) :... (:bound drest)])
+                                            [:-> (:type rng)])))
+                                      (map :ann parsed-methods)))
+        reassembled-fn-type (if-let [forall poly]
+                              `(typed.clojure/All ~forall ~reassembled-fn-type)
+                              reassembled-fn-type)]
+    reassembled-fn-type))
+
 (defn parse-fn*
   "(fn name? [[param :- type]* & [param :- type *]?] :- type? exprs*)
   (fn name? ([[param :- type]* & [param :- type *]?] :- type? exprs*)+)"
@@ -245,17 +263,18 @@
                        :rng (some-fn (con/hmap-c? :default #{true})
                                      (con/hmap-c? :type (constantly true)))))
                    final-ann)
-                  final-ann)]
-    {:fn (-> `(fn ~@(concat
-                      (some-> name list)
-                      (for [{:keys [body pvec]} parsed-methods]
-                        (apply list pvec body))))
-             (add-fn-destructure-blame-form form))
-     :ann final-ann
-     :poly poly
-     :parsed-methods parsed-methods
-     :name name
-     :single-arity-syntax? single-arity-syntax?}))
+                  final-ann)
+        res {:fn (-> `(fn ~@(concat
+                              (some-> name list)
+                              (for [{:keys [body pvec]} parsed-methods]
+                                (apply list pvec body))))
+                     (add-fn-destructure-blame-form form))
+             :ann final-ann
+             :poly poly
+             :parsed-methods parsed-methods
+             :name name
+             :single-arity-syntax? single-arity-syntax?}]
+    (assoc res :reassembled-fn-type (reassembled-fn-type res))))
 
 (defn parse-defn* [args]
   (let [[flatopt args] (parse-keyword-flat-map args)

@@ -30,7 +30,7 @@
   (is-tc-e
     (do
       (ann lift-chan (t/All [x y] [[x -> y] -> [(ta/Chan x) -> (ta/Chan y)]]))
-      (defn lift-chan [function]
+      (cc/defn lift-chan [function]
         (fn [in :- (ta/Chan x)]
           (let [out (chan :- y)]
             (a/go
@@ -41,7 +41,7 @@
             out)))
 
       (ann upper-case [t/Str -> t/Str])
-      (defn upper-case [s] s)
+      (cc/defn upper-case [s] s)
 
       (ann upcase [(ta/Chan t/Str) -> (ta/Chan t/Str)])
       (def upcase (lift-chan upper-case))
