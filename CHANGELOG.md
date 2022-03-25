@@ -5,6 +5,8 @@
 - rename `typed.clj.malli` submodule to `typed.malli`
 - add support for type providers
 - add malli var type providers ([demo](example-projects/malli-type-providers))
+- Breaking: make `t/def` and `t/defn` never infer their types, and use `t/ann` to register global annotation
+  - Rationale: don't allow a namespace's type checking to be dependent on another namespace checking
 
 # 1.0.21
 
