@@ -1,10 +1,20 @@
 # Malli type providers
 
-This project demonstrates 
+This project demonstrates how Typed Clojure can automatically convert Malli schemas to use for type checking.
 
-See [deps.edn](deps.edn) for required dependencies.
+[typed-example.malli-type-providers](example-projects/malli-type-providers/src/typed_example/malli_type_providers.clj)
+uses `malli.core/=>` to register a normal malli schema and then Typed Clojure uses it as an expected type to both
+check and infer a var.
+
+```clojure
+(m/=> foo [:=> [:cat :int] :int])
+(defn foo [t] (inc t))
+(foo 1)
+```
 
 ## Usage
+
+See [deps.edn](deps.edn) for required dependencies.
 
 ```clojure
 clj -A:dev
