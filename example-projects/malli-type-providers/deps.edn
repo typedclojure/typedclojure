@@ -1,0 +1,4 @@
+{:deps {org.clojure/clojure {:mvn/version "1.11.0"}
+        org.typedclojure/typed.clj.runtime {:local/root "../../typed/clj.runtime"}
+        org.typedclojure/typed.malli {:local/root "../../typed/malli"}}
+ :aliases {:dev {:extra-deps {org.typedclojure/typed.clj.checker {:local/root "../../typed/clj.checker"}}}}}

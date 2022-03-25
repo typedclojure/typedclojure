@@ -8,7 +8,8 @@
 
 (ns typed.ext.malli.core__equalsgt
   "Type rules for malli.core/=>"
-  (:require [typed.cljc.checker.check-below :as below]
+  (:require [typed.clojure :as-alias t]
+            [typed.cljc.checker.check-below :as below]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.utils :as u]
             [typed.clj.checker.parse-unparse :as prs]
