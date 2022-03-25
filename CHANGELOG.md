@@ -1,3 +1,11 @@
+# 1.0.22
+
+- add `clojure.java.io` annotations
+- fix `{pos,neg,nat}-int?` annotations
+- rename `typed.clj.malli` submodule to `typed.malli`
+- add support for type providers
+- add malli var type providers ([demo](example-projects/malli-type-providers))
+
 # 1.0.21
 
 - don't check the `typed.clojure` namespace
