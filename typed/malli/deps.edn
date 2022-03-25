@@ -1,14 +1,17 @@
 ;; DO NOT EDIT! Instead, edit `dev/resources/root-templates/typed/malli/deps.edn` and run `./script/regen-selmer.sh`
 {:paths ["src"]
  :deps {org.clojure/clojure {:mvn/version "1.11.0"}
-        metosin/malli {:mvn/version "0.8.4"}
+        metosin/malli #_{:mvn/version "0.8.4"}
+        {:git/url "https://github.com/metosin/malli.git"
+         :git/sha "400dc0c79805028a6d85413086d4d6d627231940"}
         org.typedclojure/typed.clj.runtime {:local/root "../clj.runtime"
                                               :deps/manifest :deps}}
  :mvn/repos {"sonatype-oss-public"
              {:url "https://oss.sonatype.org/content/groups/public/"}}
  :aliases {:test
            {:extra-paths ["test"]
-            :extra-deps {org.typedclojure/typed.clj.checker {:local/root "../clj.checker" :deps/manifest :deps}}}
+            :extra-deps {org.typedclojure/typed.clj.checker {:local/root "../clj.checker" :deps/manifest :deps}
+                         org.typedclojure/typed.cljs.checker {:local/root "../cljs.checker" :deps/manifest :deps}}}
            :nREPL
            {:extra-deps
             {nrepl/nrepl {:mvn/version "0.8.3"}

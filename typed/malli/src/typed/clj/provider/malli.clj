@@ -6,24 +6,25 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.provider.malli
-  "Automatically convert malli annotations into types.")
+(ns typed.clj.provider.malli
+  "Automatically convert malli annotations into types."
+  (:require [typed.malli.schema-to-type :as s->t]
+            [clojure.core.typed.runtime.jvm.configs :as configs]
+            [malli.core :as m]))
 
-;; (ann-form 1 (typed.provider.malli/Malli number?))
+(defonce register!
+  (delay
+    (configs/register-clj-malli-extensions)))
 
-(defn malli->Type [m]
+(defn malli->Type [m opts]
+  @register!
   ((requiring-resolve 'typed.clj.checker.parse-unparse/parse-type)
-   ((requiring-resolve 'typed.malli.parse-type/malli-syntax->validator-type)
-    m)))
-
-(defn Malli [[_Malli m :as args]]
-  (assert (= 2 (count args)) (pr-str args))
-  (malli->Type m))
+   (s->t/malli->type m opts)))
 
 (defn var-type [var-qsym]
-  (some-> (get-in ((requiring-resolve 'malli.core/function-schemas))
+  (some-> (get-in (m/function-schemas)
                   [(symbol (namespace var-qsym))
                    (symbol (name var-qsym))
                    :schema])
-          ((requiring-resolve 'malli.core/form))
-          malli->Type))
+          (malli->Type {::s->t/mode :validator-type
+                        ::s->t/source var-qsym})))

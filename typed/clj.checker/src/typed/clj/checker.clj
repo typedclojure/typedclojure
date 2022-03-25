@@ -195,3 +195,12 @@
                                    :unannotated-arg :unchecked}
                                   %))]
      (check-ns-clj/check-ns ns-or-syms opt))))
+
+(core/defn check-ns3 
+  ([] (check-ns3 *ns*))
+  ([ns-or-syms & {:as opt}]
+   (load-if-needed)
+   (core/let [opt (update opt :check-config
+                          #(merge {:check-ns-dep :never}
+                                  %))]
+     (check-ns-clj/check-ns ns-or-syms opt))))

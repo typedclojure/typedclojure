@@ -979,9 +979,9 @@
   (impl/impl-case
     :clojure (const/constant-type syn)
     :cljs (cond
-            ((some-fn symbol? keyword?) syn)
+            ((some-fn symbol? keyword? nil?) syn)
               (r/-val syn)
-            :else (assert nil "FIXME CLJS parse Value"))))
+            :else (assert nil (str "FIXME CLJS parse Value: " (pr-str syn))))))
 
 (defmethod parse-type-list 'typed.clojure/Val [t] (parse-Value t))
 (defmethod parse-type-list 'typed.clojure/Value [t] (parse-Value t))

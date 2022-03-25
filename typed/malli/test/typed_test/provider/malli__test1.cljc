@@ -1,6 +1,5 @@
 (ns typed-test.provider.malli__test1
-  (:require [typed.provider.malli :as mp]
-            [malli.core :as m]
+  (:require [malli.core :as m]
             [typed.clojure :as t]))
 
 (m/=> foo [:=> [:cat :int] :int])
@@ -17,5 +16,6 @@
 
 (comment
   (t/check-ns-clj)
+  (t/check-ns-cljs)
   (m/function-schemas)
   )

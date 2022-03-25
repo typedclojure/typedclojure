@@ -79,3 +79,7 @@
 (defn- config-var-providers [configs] (mapcat :var-type-providers configs))
 (defn clj-config-var-providers [] (config-var-providers @*clj-configs))
 (defn cljs-config-var-providers [] (config-var-providers @*cljs-configs))
+
+(defn register-malli-extensions [configs] (run! require (mapcat :malli-extensions configs)))
+(defn register-clj-malli-extensions [] (register-malli-extensions @*clj-configs))
+(defn register-cljs-malli-extensions [] (register-malli-extensions @*cljs-configs))

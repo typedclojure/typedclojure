@@ -1,14 +1,17 @@
 {% do-not-edit-edn-comment %}
 {:paths ["src"]
  :deps {org.clojure/clojure {:mvn/version "{◊clojure-mvn-version◊}"}
-        metosin/malli {:mvn/version "{◊malli-mvn-version◊}"}
+        metosin/malli #_{:mvn/version "{◊malli-mvn-version◊}"}
+        {:git/url "{◊malli-git-url◊}"
+         :git/sha "{◊malli-snapshot-git-sha◊}"}
         {◊typedclojure-group-id◊}/typed.clj.runtime {:local/root "../clj.runtime"
                                               :deps/manifest :deps}}
  :mvn/repos {"sonatype-oss-public"
              {:url "{◊sonatype-oss-public-url◊}"}}
  :aliases {:test
            {:extra-paths ["test"]
-            :extra-deps {{◊typedclojure-group-id◊}/typed.clj.checker {:local/root "../clj.checker" :deps/manifest :deps}}}
+            :extra-deps {{◊typedclojure-group-id◊}/typed.clj.checker {:local/root "../clj.checker" :deps/manifest :deps}
+                         {◊typedclojure-group-id◊}/typed.cljs.checker {:local/root "../cljs.checker" :deps/manifest :deps}}}
            :nREPL
            {:extra-deps
             {nrepl/nrepl {:mvn/version "{◊nrepl-mvn-version◊}"}

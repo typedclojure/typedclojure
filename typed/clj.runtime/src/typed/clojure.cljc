@@ -17,6 +17,7 @@
                ;; for self hosted CLJS normal :require's from .clj/c files. for
                ;; .clj{s,c} files, loaded via :require-macros in typed/clojure.cljs.
                :cljs cljs.core.typed)
+            [clojure.core :as cc]
             [clojure.core.typed.macros :as macros]))
 
 (defmacro ann
@@ -156,18 +157,32 @@
 
 #?(:clj
    (defn check-ns-clj
-     ([] (clojure.core.typed/check-ns))
-     ([ns-or-syms & opt] (apply clojure.core.typed/check-ns ns-or-syms opt))))
+     ([] ((requiring-resolve 'typed.clj.checker/check-ns3)))
+     ([ns-or-syms & {:as opt}]
+      ((requiring-resolve 'typed.clj.checker/check-ns3)
+       ns-or-syms
+       opt))))
 
-(defn check-ns-cljs* [& args]
-  (apply #?(:clj (requiring-resolve 'cljs.core.typed/check-ns*)
-            :cljs cljs.core.typed/check-ns*)
-         args))
+(defn check-ns-cljs*
+  ([] (check-ns-cljs* (ns-name *ns*)))
+  ([& args]
+   (apply #?(:clj (requiring-resolve 'cljs.core.typed/check-ns*)
+             :cljs cljs.core.typed/check-ns*)
+          args)))
 
-(defmacro check-ns-cljs [& args]
-  (apply #?(:clj (requiring-resolve 'cljs.core.typed/check-ns-expansion-side-effects)
-            :cljs cljs.core.typed/check-ns-expansion-side-effects)
-         args))
+(defmacro check-ns-cljs
+  ([] #?(:clj (macros/platform-case
+                :clj ((requiring-resolve 'cljs.core.typed/check-ns-expansion-side-effects)
+                      (cc/let [cljs-ns @(requiring-resolve 'cljs.analyzer/*cljs-ns*)]
+                        (if (not= 'cljs.user cljs-ns)
+                          cljs-ns
+                          (ns-name *ns*))))
+                :cljs ((requiring-resolve 'cljs.core.typed/check-ns-expansion-side-effects)))
+         :cljs (cljs.core.typed/check-ns-expansion-side-effects)))
+  ([nsym]
+   (#?(:clj (requiring-resolve 'cljs.core.typed/check-ns-expansion-side-effects)
+       :cljs cljs.core.typed/check-ns-expansion-side-effects)
+            nsym)))
 
 (defn check-ns-cljs-macros [& args]
   (apply #?(:clj (requiring-resolve 'cljs.core.typed/check-ns-macros)

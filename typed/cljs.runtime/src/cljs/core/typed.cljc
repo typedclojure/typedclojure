@@ -359,7 +359,7 @@
        ~@body)))
 
 (core/defn default-check-config []
-  {:check-ns-dep :recheck
+  {:check-ns-dep :never
    :unannotated-def :infer
    :unannotated-var :error
    :unannotated-multi :error

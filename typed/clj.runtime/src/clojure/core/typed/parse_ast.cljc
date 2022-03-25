@@ -31,7 +31,7 @@
 
 (t/ann ^:no-check clojure.core.typed.current-impl/assert-clojure
        (t/IFn [-> nil]
-              [(t/U nil (t/Seqable t/Any)) -> nil]))
+              [(t/Seqable t/Any) -> nil]))
 
 (t/ann ^:no-check clojure.core.typed.errors/int-error 
        (t/IFn [t/Any -> t/Nothing]

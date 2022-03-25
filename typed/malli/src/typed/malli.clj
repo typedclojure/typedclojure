@@ -113,7 +113,7 @@
       m/parse
       [t/Any t/Any :-> (t/U '::m/invalid ~(-> t 
                                               ((requiring-resolve 'typed.malli.parse-type/type-syntax->malli-syntax))
-                                              ((requiring-resolve 'typed.malli.parse-type/malli-syntax->parser-type))))])
+                                              ((requiring-resolve 'typed.malli.schema-to-type/malli-syntax->parser-type))))])
     ~((requiring-resolve 'typed.malli.parse-type/type-syntax->malli-syntax) t)
     ~v))
 
@@ -148,7 +148,7 @@
               [t/Any :-> (t/U (t/Val ::m/invalid)
                               ~(-> t
                                    ((requiring-resolve 'typed.malli.parse-type/type-syntax->malli-syntax))
-                                   ((requiring-resolve 'typed.malli.parse-type/malli-syntax->parser-type))))])
+                                   ((requiring-resolve 'typed.malli.schema-to-type/malli-syntax->parser-type))))])
        (def ~name (parser ~t))))
 
 ;; less baked from here
