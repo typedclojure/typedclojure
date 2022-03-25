@@ -50,6 +50,11 @@ checker is not included in uberjars with `lein with-profile uberjar deps :tree`.
 
 For ClojureScript support, use `org.typedclojure/typed.cljs.runtime` and `org.typedclojure/typed.cljs.checker`.
 
+## Example projects
+
+- [minimal](example-projects/minimal) demonstrating how to statically type check Clojure[Script] namespaces
+- [malli-type-providers](example-projects/malli-type-providers) demonstrating how to statically type check using malli schemas
+
 ## Releases and Dependency Information
 
 Latest stable release is 1.0.21.
