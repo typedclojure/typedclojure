@@ -1,3 +1,9 @@
+# 1.0.23
+
+- make malli schema provider extensible
+  - see `typed.malli.schema-to-type/register-malli->type-extension`
+- add spec1 type providers
+
 # 1.0.22
 
 - add `clojure.java.io` annotations
