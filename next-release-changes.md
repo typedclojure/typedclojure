@@ -1,2 +1,3 @@
 - make malli schema provider extensible
   - see `typed.malli.schema-to-type/register-malli->type-extension`
+- add spec1 type providers
