@@ -151,7 +151,9 @@
         (or (nsym (name-env/name-env))
             ((jsvar-annotations) nsym)))
       (when-some [ts (not-empty
-                       (into (sorted-map) (map #(vector % ((requiring-resolve %) nsym)))
+                       (into (sorted-map) (map (fn [fsym]
+                                                 (some->> ((requiring-resolve fsym) nsym)
+                                                          (vector fsym))))
                              (impl/impl-case
                                :clojure (configs/clj-config-var-providers)
                                :cljs (configs/cljs-config-var-providers))))]

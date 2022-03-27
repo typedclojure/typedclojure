@@ -1,0 +1,3 @@
+src/typed_example/register_spec1_extensions.clj:3:  (:require [typed.spec1.spec-to-type :refer [register-spec-syntax->type-extension]]))
+src/typed_example/register_spec1_extensions.clj:5:(register-spec-syntax->type-extension :typed-example.spec1-extensible/over3 [s opts]
+src/typed_example/register_spec1_extensions.clj:11:(register-spec-syntax->type-extension :typed-example.spec1-extensible/over4 [s opts] `t/AnyInteger)

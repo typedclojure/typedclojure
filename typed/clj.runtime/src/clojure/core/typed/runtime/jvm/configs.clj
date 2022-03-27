@@ -83,3 +83,7 @@
 (defn register-malli-extensions [configs] (run! require (mapcat :malli-extensions configs)))
 (defn register-clj-malli-extensions [] (register-malli-extensions @*clj-configs))
 (defn register-cljs-malli-extensions [] (register-malli-extensions @*cljs-configs))
+
+(defn register-spec1-extensions [configs] (run! require (mapcat :spec1-extensions configs)))
+(defn register-clj-spec1-extensions [] (register-spec1-extensions @*clj-configs))
+(defn register-cljs-spec1-extensions [] (register-spec1-extensions @*cljs-configs))

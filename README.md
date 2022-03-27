@@ -54,6 +54,7 @@ For ClojureScript support, use `org.typedclojure/typed.cljs.runtime` and `org.ty
 
 - [minimal](example-projects/minimal) demonstrating how to statically type check Clojure[Script] namespaces
 - [malli-type-providers](example-projects/malli-type-providers) demonstrating how to statically type check using malli schemas
+- [spec1-type-providers](example-projects/spec1-type-providers) demonstrating how to statically type check using spec1 specs
 
 ## Releases and Dependency Information
 
