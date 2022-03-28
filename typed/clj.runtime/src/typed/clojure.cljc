@@ -20,6 +20,8 @@
             [clojure.core :as cc]
             [clojure.core.typed.macros :as macros]))
 
+(alias 't 'typed.clojure)
+
 (defmacro ann
   "Annotate varsym with type. If unqualified, qualify in the current namespace.
   If varsym has metadata {:no-check true}, ignore definitions of varsym 
@@ -155,36 +157,60 @@
 
 ;; checker ops
 
+#_ ;; FIXME :no-check removal warning when compiling
+(t/ann-many (t/IFn [-> ':ok]
+                   [(t/U t/Sym (t/Seqable t/Sym)) -> ':ok])
+            ^:no-check check-ns-clj
+            ^:no-check check-ns-cljs*)
 #?(:clj
-   (defn check-ns-clj
-     ([] ((requiring-resolve 'typed.clj.checker/check-ns3)))
-     ([ns-or-syms & {:as opt}]
-      ((requiring-resolve 'typed.clj.checker/check-ns3)
-       ns-or-syms
-       opt))))
+   (t/tc-ignore
+     (defn check-ns-clj
+       ([] ((requiring-resolve 'typed.clj.checker/check-ns3)))
+       ([ns-or-syms & {:as opt}]
+        ((requiring-resolve 'typed.clj.checker/check-ns3)
+         ns-or-syms
+         opt)))))
 
-(defn check-ns-cljs*
-  ([] (check-ns-cljs* (ns-name *ns*)))
-  ([& args]
-   (apply #?(:clj (requiring-resolve 'cljs.core.typed/check-ns*)
-             :cljs cljs.core.typed/check-ns*)
-          args)))
+(t/tc-ignore
+  (defn check-ns-cljs*
+    ([] (check-ns-cljs* (ns-name *ns*)))
+    ([& args]
+     (apply #?(:clj (requiring-resolve 'cljs.core.typed/check-ns*)
+               :cljs cljs.core.typed/check-ns*)
+            args))))
 
 (defmacro check-ns-cljs
-  ([] #?(:clj (macros/platform-case
-                :clj ((requiring-resolve 'cljs.core.typed/check-ns-expansion-side-effects)
-                      (cc/let [cljs-ns @(requiring-resolve 'cljs.analyzer/*cljs-ns*)]
-                        (if (not= 'cljs.user cljs-ns)
-                          cljs-ns
-                          (ns-name *ns*))))
-                :cljs ((requiring-resolve 'cljs.core.typed/check-ns-expansion-side-effects)))
-         :cljs (cljs.core.typed/check-ns-expansion-side-effects)))
-  ([nsym]
-   (#?(:clj (requiring-resolve 'cljs.core.typed/check-ns-expansion-side-effects)
-       :cljs cljs.core.typed/check-ns-expansion-side-effects)
-            nsym)))
+  [& args]
+  #?(:clj (macros/platform-case
+            :clj `(check-ns-cljs* ~@args)
+            :cljs (apply (requiring-resolve 'cljs.core.typed/check-ns-expansion-side-effects) args))
+     :cljs `(check-ns-cljs* ~@args)))
 
-(defn check-ns-cljs-macros [& args]
-  (apply #?(:clj (requiring-resolve 'cljs.core.typed/check-ns-macros)
-            :cljs cljs.core.typed/check-ns-macros)
-         args))
+(t/tc-ignore
+  (defn check-ns-cljs-macros [& args]
+    (apply #?(:clj (requiring-resolve 'cljs.core.typed/check-ns-macros)
+              :cljs cljs.core.typed/check-ns-macros)
+           args)))
+
+(defmacro check-ns
+  "In Clojure, expands to (check-ns-clj ~@args).
+  In ClojureScript JVM, (check-ns-cljs ~@args)."
+  [& args]
+  #?(:clj (macros/platform-case
+            :clj `(check-ns-clj ~@args)
+            :cljs `(check-ns-cljs ~@args))
+     :cljs (assert nil "TBD check-ns semantics for self-hosted CLJS")))
+
+(defmacro cf-clj [& args]
+  `(clojure.core.typed/cf ~@args))
+
+(defmacro cf-cljs [& args]
+  `(cljs.core.typed/cf ~@args))
+
+(defmacro cf
+  "In Clojure, expands to (cf-clj ~@args).
+  In ClojureScript JVM, (cf-cljs ~@args)."
+  [& args]
+  (macros/platform-case
+    :clj `(cf-clj ~@args)
+    :cljs `(cf-cljs ~@args)))

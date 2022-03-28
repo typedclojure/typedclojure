@@ -94,7 +94,7 @@
            {:ex [[(ext-let/bad-vector-destructure-error-msg
                     "(typed.clojure/HSet #{1})"
                     "[a]")
-                  {:type-error :clojure.core.typed.errors/tc-error-parent
+                  {:type-error :clojure.core.typed.errors/type-error
                    :form '(clojure.core/let [[a] #{1}]
                             a)}]]}))
     (is (= (is-tc-err-messages
@@ -103,7 +103,7 @@
            {:ex [[(ext-let/bad-vector-destructure-error-msg
                     "(typed.clojure/HSet #{1})"
                     "[a]")
-                  {:type-error :clojure.core.typed.errors/tc-error-parent
+                  {:type-error :clojure.core.typed.errors/type-error
                    :form '(clojure.core/let [{[a] :foo} {:foo #{1}}]
                             a)}]]})))
   (testing "for"
@@ -113,7 +113,7 @@
            {:ex [[(ext-let/bad-vector-destructure-error-msg
                     "(typed.clojure/HSet #{1})"
                     "[a]")
-                  {:type-error :clojure.core.typed.errors/tc-error-parent
+                  {:type-error :clojure.core.typed.errors/type-error
                    :form '(cc/for [[a] [#{1}]]
                             a)}]]}))
     (is (= (is-tc-err-messages
@@ -122,7 +122,7 @@
            {:ex [[(ext-let/bad-vector-destructure-error-msg
                     "(typed.clojure/HSet #{1})"
                     "[a]")
-                  {:type-error :clojure.core.typed.errors/tc-error-parent
+                  {:type-error :clojure.core.typed.errors/type-error
                    :form '(cc/for [{[a] :foo} [{:foo #{1}}]]
                             a)}]]})))
   (testing "doseq"
@@ -132,7 +132,7 @@
            {:ex [[(ext-let/bad-vector-destructure-error-msg
                     "(typed.clojure/HSet #{1})"
                     "[a]")
-                  {:type-error :clojure.core.typed.errors/tc-error-parent
+                  {:type-error :clojure.core.typed.errors/type-error
                    :form '(cc/doseq [[a] [#{1}]]
                             a)}]]}))
     (is (= (is-tc-err-messages
@@ -141,7 +141,7 @@
            {:ex [[(ext-let/bad-vector-destructure-error-msg
                     "(typed.clojure/HSet #{1})"
                     "[a]")
-                  {:type-error :clojure.core.typed.errors/tc-error-parent
+                  {:type-error :clojure.core.typed.errors/type-error
                    :form '(cc/doseq [{[a] :foo} [{:foo #{1}}]]
                             a)}]]})))
   (testing "fn"
@@ -151,7 +151,7 @@
            {:ex [[(ext-let/bad-vector-destructure-error-msg
                     "(IPersistentSet typed.clojure/Any)"
                     "[a]")
-                  {:type-error :clojure.core.typed.errors/tc-error-parent
+                  {:type-error :clojure.core.typed.errors/type-error
                    :form '(cc/fn [[a]])}]]})))
   (testing "defn"
     (is (= (is-tc-err-messages
@@ -160,7 +160,7 @@
            {:ex [[(ext-let/bad-vector-destructure-error-msg
                     "(IPersistentSet typed.clojure/Any)"
                     "[a]")
-                  {:type-error :clojure.core.typed.errors/tc-error-parent
+                  {:type-error :clojure.core.typed.errors/type-error
                    :form '(cc/defn foo [[a]])}]]})))
   (testing "defmethod"
     (is (= (is-tc-err-messages
@@ -170,9 +170,8 @@
            {:ex [[(ext-let/bad-vector-destructure-error-msg
                     "(IPersistentSet typed.clojure/Any)"
                     "[a]")
-                  {:type-error :clojure.core.typed.errors/tc-error-parent
-                   :form '(defmethod f nil [[a]])}]]})))
-  )
+                  {:type-error :clojure.core.typed.errors/type-error
+                   :form '(defmethod f nil [[a]])}]]}))))
 
 (deftest inlined-nth-error-msg-test
   (is (= '(clojure.core/nth :a :a)

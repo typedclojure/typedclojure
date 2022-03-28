@@ -176,10 +176,12 @@
   (is-tc-e (let [foo 1])))
 
 (deftest defmulti-expansion-test
-  (is-tc-e (let [v (def some-var)]
-             (when-not (and (.hasRoot v)
-                            (instance? clojure.lang.MultiFn @v))
-               (def some-var :multifn))))
+  (is-tc-e (do
+             (ann some-var ':multifn)
+             (let [v (def some-var)]
+               (when-not (and (.hasRoot v)
+                              (instance? clojure.lang.MultiFn @v))
+                 (def some-var :multifn)))))
   (is-tc-e (let [v (def some-var)]
              (when (and (.hasRoot v)
                         (instance? clojure.lang.MultiFn @v)))))

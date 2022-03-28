@@ -124,27 +124,6 @@
 ;
 ; The type checker is implemented here.
 
-(t/ann ^:no-check checked-ns! [t/Sym -> nil])
-(defn- checked-ns! [nsym]
-  (swap! vs/*already-checked* conj nsym)
-  nil)
-
-(t/ann already-checked? [t/Sym -> Boolean])
-(defn already-checked? [nsym]
-  (boolean (@vs/*already-checked* nsym)))
-
-(declare check-ns-and-deps)
-
-(defn check-deps
-  [nsym]
-  (when (= :recheck (some-> vs/*check-config* deref :check-ns-dep))
-    (checked-ns! nsym)
-    ;check normal dependencies
-    (doseq [dep (ns-depsu/deps-for-ns nsym)]
-      ;; ensure namespace actually exists
-      (when (ns-depsu/should-check-ns? nsym)
-        (check-ns-and-deps dep)))))
-
 (declare check-top-level)
 
 (defn check-ns1
@@ -170,42 +149,7 @@
                      (check-top-level form nil {:env (assoc env :ns (ns-name *ns*))})
                      (recur))))))))))))
 
-
-(t/ann check-ns-and-deps [t/Sym -> nil])
-(defn check-ns-and-deps
-  "Type check a namespace and its dependencies."
-  [nsym]
-  {:pre [(symbol? nsym)]
-   :post [(nil? %)]}
-  (cond 
-    (already-checked? nsym) (do
-                              ;(println (str "Already checked " nsym ", skipping"))
-                              ;(flush)
-                              nil)
-    :else
-    ; check deps
-    (let [_ (check-deps nsym)
-          ; ignore ns declaration
-          ns-form (ns-depsu/ns-form-for-ns nsym)
-          check? (some-> ns-form ns-depsu/should-check-ns-form?)]
-      (cond
-        (not check?)
-        (when-not ('#{typed.clojure clojure.core.typed cljs.core.typed clojure.core cljs.core} nsym)
-          (println (str "Not checking " nsym 
-                        (cond
-                          (not ns-form) " (ns form missing)"
-                          (ns-depsu/collect-only-ns? ns-form) " (tagged :collect-only in ns metadata)"
-                          (not (ns-depsu/requires-tc? ns-form)) " (does not depend on clojure.core.typed)")))
-          (flush))
-
-        :else
-        (let [start (. System (nanoTime))
-              _ (println "Start checking" nsym)
-              _ (flush)
-              _ (check-ns1 nsym)
-              _ (println "Checked" nsym "in" (/ (double (- (. System (nanoTime)) start)) 1000000.0) "msecs")
-              _ (flush)]
-          nil)))))
+(defn check-ns-and-deps [nsym] (cu/check-ns-and-deps nsym check-ns1))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Checker

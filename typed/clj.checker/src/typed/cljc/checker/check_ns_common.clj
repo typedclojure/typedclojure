@@ -24,14 +24,9 @@
             [clojure.java.io :as io])
   (:import (clojure.lang ExceptionInfo)))
 
+;; TODO move into callers of check-ns-info
 (def *register-clj-anns (delay (configs/register-clj-config-anns)))
 (def *register-cljs-anns (delay (configs/register-cljs-config-anns)))
-
-(defn cljs-reader [nsym]
-  (let [f ((requiring-resolve 'cljs.util/ns->relpath) nsym)
-        res (if (re-find #"^file://" f) (java.net.URL. f) (io/resource f))]
-    (assert res (str "Can't find " f " in classpath"))
-    (io/reader res)))
 
 ;; returns a map with keys
 ;; - :delayed errors    a vector of ExceptionInfo instances representing type errors
@@ -77,9 +72,10 @@
                 ;-------------------------
                 (when-not collect-only
                   (let [check-ns (impl/impl-case
-                                   :clojure #(binding [vs/*check-config* (atom check-config)]
-                                               (chk-clj/check-ns-and-deps %))
-                                   :cljs    (requiring-resolve 'typed.cljs.checker.check/check-ns-and-deps))]
+                                   :clojure chk-clj/check-ns-and-deps
+                                   :cljs    (requiring-resolve 'typed.cljs.checker.check/check-ns-and-deps))
+                        check-ns #(binding [vs/*check-config* (atom check-config)]
+                                    (check-ns %))]
                     (doseq [nsym nsym-coll]
                       (check-ns nsym))))
                 (catch ExceptionInfo e
@@ -98,10 +94,9 @@
                                                   (file-map/ast->file-mapping %))
                                                (get (some-> vs/*checked-asts* deref) (first nsym-coll))))}))))))))))
 
-(defn check-ns
-  ([impl ns-or-syms opt]
-   (let [{:keys [delayed-errors]} (check-ns-info impl ns-or-syms opt)]
-     (impl/with-impl impl
-       (if-let [errors (seq delayed-errors)]
-         (err/print-errors! errors)
-         :ok)))))
+(defn check-ns [impl ns-or-syms opt]
+  (let [{:keys [delayed-errors]} (check-ns-info impl ns-or-syms opt)]
+    (impl/with-impl impl
+      (if-let [errors (seq delayed-errors)]
+        (err/print-errors! errors)
+        :ok))))

@@ -20,7 +20,7 @@
     (ucljs/with-cljs-typed-env
       (comp/with-core-cljs
         nil
-        #(chk-ns/check-ns-info impl/clojurescript ns-or-syms opt)))))
+        #(chk-ns/check-ns-info impl/clojurescript ns-or-syms (update-in opt [:check-config :check-ns-dep] (fn [v] (or v :never))))))))
 
 (defn check-ns
   [ns-or-syms opt]
@@ -28,4 +28,4 @@
     (ucljs/with-cljs-typed-env
       (comp/with-core-cljs
         nil
-        #(chk-ns/check-ns impl/clojurescript ns-or-syms opt)))))
+        #(chk-ns/check-ns impl/clojurescript ns-or-syms (update-in opt [:check-config :check-ns-dep] (fn [v] (or v :never))))))))

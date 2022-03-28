@@ -434,65 +434,54 @@
 
 (t/ann checked-ns! [t/Sym -> nil])
 (defn- checked-ns! [nsym]
-  (t/when-let-fail [a vs/*already-checked*]
-    (swap! a conj nsym))
+  (swap! vs/*already-checked* conj nsym)
   nil)
 
-(t/ann already-checked? [t/Sym -> Boolean])
+(t/ann already-checked? [t/Sym -> t/Bool])
 (defn already-checked? [nsym]
-  (t/when-let-fail [a vs/*already-checked*]
-    (boolean (@a nsym))))
+  (boolean (@vs/*already-checked* nsym)))
 
-(defn check-deps [nsym {:keys [check-ns] :as config}]
-  (when (= :recheck (some-> vs/*check-config* deref :check-ns-dep))
-    (checked-ns! nsym)
-    ;check normal dependencies
-    (doseq [dep (ns-depsu/deps-for-ns nsym)]
-      ;; ensure namespace actually exists
-      (when (ns-depsu/should-check-ns? nsym)
-        (check-ns dep)))))
+(t/ann check-ns-and-deps [t/Sym [t/Sym -> t/Any] -> nil])
+(defn check-ns-and-deps
+  "Type check a namespace and its dependencies."
+  [nsym check-ns1]
+  {:pre [(symbol? nsym)]
+   :post [(nil? %)]}
+  (cond
+    (already-checked? nsym) (do
+                              ;(println (str "Already checked " nsym ", skipping"))
+                              ;(flush)
+                              nil)
+    :else
+    (let [; check deps
+          _ (when (= :recheck (some-> vs/*check-config* deref :check-ns-dep))
+              (checked-ns! nsym)
+              ;check normal dependencies
+              (doseq [dep (ns-depsu/deps-for-ns nsym)]
+                ;; ensure namespace actually exists
+                (when (ns-depsu/should-check-ns? nsym)
+                  (check-ns-and-deps dep check-ns1))))
+          ; ignore ns declaration
+          ns-form (ns-depsu/ns-form-for-ns nsym)
+          check? (or (= :never (some-> vs/*check-config* deref :check-ns-dep))
+                     (some-> ns-form ns-depsu/should-check-ns-form?))]
+      (cond
+        (not check?)
+        (when-not ('#{typed.clojure clojure.core.typed cljs.core.typed clojure.core cljs.core} nsym)
+          (println (str "Not checking " nsym 
+                        (cond
+                          (not ns-form) " (ns form missing)"
+                          (ns-depsu/collect-only-ns? ns-form) " (tagged :collect-only in ns metadata)"
+                          (not (ns-depsu/requires-tc? ns-form)) " (does not depend on clojure.core.typed)"))))
 
-(defn check-ns-and-deps*
-  "Type check a namespace and its dependencies.
-  Assumes type annotations in each namespace
-  has already been collected."
-  ([nsym {:keys [ast-for-ns
-                 check-asts
-                 check-ns] :as config}]
-   {:pre [(symbol? nsym)]
-    :post [(nil? %)]}
-   (let []
-     (cond 
-       (already-checked? nsym) (do
-                                 ;(println (str "Already checked " nsym ", skipping"))
-                                 ;(flush)
-                                 nil)
-       :else
-       ; check deps
-       (let [_ (check-deps nsym config)]
-         ; ignore ns declaration
-         (let [ns-form (ns-depsu/ns-form-for-ns nsym)
-               check? (boolean (some-> ns-form ns-depsu/should-check-ns-form?))]
-           (if-not check?
-             (when-not ('#{typed.clojure clojure.core.typed cljs.core.typed clojure.core cljs.core} nsym)
-               (println (str "Not checking " nsym 
-                             (cond
-                               (not ns-form) " (ns form missing)"
-                               (ns-depsu/collect-only-ns? ns-form) " (tagged :collect-only in ns metadata)"
-                               (not (ns-depsu/requires-tc? ns-form)) " (does not depend on clojure.core.typed)")))
-               (flush))
-             (let [start (. System (nanoTime))
-                   asts (ast-for-ns nsym)
-                   _ (println "Start checking" nsym)
-                   _ (flush)
-                   casts (check-asts asts)
-                   _ (assert (== (count casts) (count asts)))
-                   _ (when-let [checked-asts vs/*checked-asts*]
-                       (swap! checked-asts assoc nsym casts))
-                   _ (println "Checked" nsym "in" (/ (double (- (. System (nanoTime)) start)) 1000000.0) "msecs")
-                   _ (flush)
-                   ]
-         nil))))))))
+        :else
+        (let [start (. System (nanoTime))
+              _ (println "Start checking" nsym)
+              _ (flush)
+              _ (check-ns1 nsym)
+              _ (println "Checked" nsym "in" (/ (double (- (. System (nanoTime)) start)) 1000000.0) "msecs")
+              _ (flush)]
+          nil)))))
 
 (defn find-updated-locals [env1 env2]
   {:pre [(map? env1)

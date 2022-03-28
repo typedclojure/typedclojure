@@ -14,6 +14,7 @@
             [clojure.pprint :as pp]
             [clojure.core.typed.ast-utils :as ast-u]))
 
+(def type-error-kw ::type-error)
 (def int-error-kw ::internal-error)
 (def nyi-error-kw ::nyi-error)
 
@@ -22,6 +23,7 @@
 (defn derive-error [kw]
   (derive kw tc-error-parent))
 
+(derive-error type-error-kw)
 (derive-error int-error-kw)
 (derive-error nyi-error-kw)
 
@@ -82,6 +84,17 @@
      false)))
 
 #?(:clj
+(defmacro top-level-type-error-thrown?
+  "Succeeds if a top-level error thrown by check-ns is due to a type error."
+  [& body]
+  `(with-ex-info-handlers
+     [top-level-error? (fn [exd# _#]
+                         (some->> (seq (:errors exd#))
+                                  (every? #(some-> % ex-data type-error?))))]
+     ~@body
+     false)))
+
+#?(:clj
 (defmacro tc-error-thrown? [& body]
   `(with-ex-info-handlers
      [tc-error? (constantly true)]
@@ -91,6 +104,10 @@
 (defn tc-error? [exdata]
   (assert (not (instance? clojure.lang.ExceptionInfo exdata)))
   (isa? (:type-error exdata) tc-error-parent))
+
+(defn type-error? [exdata]
+  (assert (not (instance? clojure.lang.ExceptionInfo exdata)))
+  (= (:type-error exdata) type-error-kw))
 
 (defn msg-fn-opts []
   {:parse-type (requiring-resolve 'typed.clj.checker.parse-unparse/parse-type)})
@@ -118,7 +135,7 @@
                              "  More information  \n"
                              "====================\n\n"))))
                   msg)
-         e (ex-info msg {:type-error tc-error-parent
+         e (ex-info msg {:type-error type-error-kw
                          :env (env-for-error
                                 (merge (or (:env uvs/*current-expr*)
                                            *current-env*)
@@ -149,7 +166,7 @@
                          ") "
                          estr)
                     (merge
-                      {:type-error tc-error-parent}
+                      {:type-error type-error-kw}
                       {:env (env-for-error env)})))))
 
 (defn warn [msg]
@@ -190,7 +207,7 @@
 
 #?(:clj
 (defmacro with-ex-info-handlers 
-  "Handle an ExceptionInfo e thrown in body. The first handler whos left hand
+  "Handle an ExceptionInfo e thrown in body. The first handler whose left hand
   side returns true, then the right hand side is called passing (ex-info e) and e."
   [handlers & body]
   `(try

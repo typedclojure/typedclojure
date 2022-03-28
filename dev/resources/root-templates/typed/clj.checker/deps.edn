@@ -41,6 +41,8 @@
     org.clojure/tools.nrepl
     {:mvn/version "{◊tools-nrepl-mvn-version◊}", :exclusions [org.clojure/clojure]}
     com.clojure-goes-fast/clj-java-decompiler {:mvn/version "0.3.0"}
+    ;; for shared tests
+    {◊typedclojure-group-id◊}/typed.cljs.checker {:local/root "../cljs.checker" :deps/manifest :deps}
     ;; optional typed.lib.clojure dep
     {◊typedclojure-group-id◊}/typed.clj.spec {:local/root "../clj.spec" :deps/manifest :deps}}},
   :kaocha

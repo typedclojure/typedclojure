@@ -420,7 +420,7 @@
   REPL see check-ns."
   ([] 
    (load-if-needed)
-   (check-ns* (cljs-ns)))
+   (check-ns* (ns-name *ns*)))
   ([ns-or-syms & {:as opt}]
    (load-if-needed)
    ((requiring-resolve 'typed.cljs.checker.check-ns/check-ns) ns-or-syms opt)))
@@ -428,7 +428,7 @@
 (core/defn ^:internal check-ns-expansion-side-effects
   ([]
    (load-if-needed)
-   (check-ns*))
+   (check-ns* (cljs-ns)))
   ([ns-or-syms]
    (load-if-needed)
    (core/let [quoted? #(and (seq? %)

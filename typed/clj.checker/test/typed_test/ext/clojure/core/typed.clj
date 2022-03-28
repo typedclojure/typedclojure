@@ -105,5 +105,5 @@
          {:delayed-errors [[(extcc__let/bad-vector-destructure-error-msg
                               "(IPersistentSet typed.clojure/Any)"
                               "[a]")
-                            {:type-error :clojure.core.typed.errors/tc-error-parent
+                            {:type-error :clojure.core.typed.errors/type-error
                              :form '(fn [[a] :- (t/Set t/Any)])}]]})))

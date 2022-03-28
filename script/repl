@@ -2,5 +2,6 @@
 
 set -e
 
+./script/regen-selmer.sh
 ./script/gen-dev-project
 clojure -M:nREPL:test:spec-skip-macros:kaocha -m typed.dev.repl

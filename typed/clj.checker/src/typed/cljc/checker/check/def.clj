@@ -90,7 +90,7 @@
             ;_ (prn "unannotated-def" unannotated-def)
             cinit (when init-provided
                     (case unannotated-def
-                      :unchecked (assoc init u/expr-type (r/ret (r/-unchecked vsym)))
+                      ;:unchecked (assoc init u/expr-type (r/ret (r/-unchecked vsym)))
                       (check-fn init)))
             cmeta (when meta
                     (binding [vs/*current-env* (:env meta)

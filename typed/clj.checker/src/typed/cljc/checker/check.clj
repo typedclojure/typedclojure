@@ -6,7 +6,10 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc typed.cljc.checker.check)
+(ns ^:no-doc typed.cljc.checker.check
+  (:require [typed.clojure :as t]
+            [typed.cljc.checker.ns-deps-utils :as ns-depsu]
+            [clojure.core.typed.util-vars :as vs]))
 
 (def ^:dynamic check-expr
   "[expr] => cexpr
