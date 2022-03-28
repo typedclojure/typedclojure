@@ -72,7 +72,6 @@
       (do (println (when-let [line (-> expr :env :line)] 
                      (str line ": ")) 
                    "Not checking" vsym "definition")
-          (flush)
           (assoc expr
                  u/expr-type (below/maybe-check-below
                                (impl/impl-case
@@ -83,7 +82,10 @@
 
       ;otherwise try and infer a type
       :else
-      (let [_ (assert (not t))
+      (let [_ (println (when-let [line (-> expr :env :line)] 
+                         (str line ": "))
+                       "WARNING: Checking" vsym "definition without an expected type.")
+            _ (assert (not t))
             unannotated-def (some-> vs/*check-config* deref :unannotated-def)
             ;_ (prn "unannotated-def" unannotated-def)
             cinit (when init-provided
