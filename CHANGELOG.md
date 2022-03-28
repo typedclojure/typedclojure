@@ -1,3 +1,7 @@
+# 1.0.24
+
+- support more malli -> type conversions
+
 # 1.0.23
 
 - make malli schema provider extensible
