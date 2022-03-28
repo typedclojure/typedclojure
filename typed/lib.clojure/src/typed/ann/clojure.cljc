@@ -708,6 +708,14 @@
               (t/Seqable x))))
 
 (t/defalias
+  ^{:doc "A sequential, seqable Clojure collection."
+    :forms '[(SequentialColl t)]}
+  t/SequentialColl
+  (t/TFn [[x :variance :covariant]]
+         (t/I t/Sequential
+              (t/Coll x))))
+
+(t/defalias
   ^{:doc "A Clojure sequential sequence. Seq's aren't always Sequential."
     :forms '[(SequentialSeq t)]}
   t/SequentialSeq

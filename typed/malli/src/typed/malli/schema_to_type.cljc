@@ -62,15 +62,9 @@
      `(defmethod -malli->type ~dval ~argv ~@body)))
 
 (defmethod -malli->type ::default [m opts]
-  ;; TODO add last-ditch conversions
-  ;; - try and convert `:pred` prop (a compiled function) to a type
-  ;;   - this relies on pointer identity, probably a bad idea
-  ;; - try and convert `:json-schema/*` props to a type
-  ;; - create :type-properties :typedclojure/type prop in the schema
-  (throw (ex-info (str "No conversion from malli to Typed Clojure for "
-                       (pr-str (m/type m)) " in " `-malli->type)
-                  {:mtype (m/type m)
-                   :mform (m/form m)})))
+  (println (str "WARNING: No conversion from malli to Typed Clojure for "
+                (pr-str (m/type m)) " in " `-malli->type "(" #?(:clj "Clojure" :cljs "ClojureScript") " implementation)"))
+  nil)
 
 (comment
   (malli->type :int {::mode :validator-type})
@@ -92,15 +86,50 @@
                                   ([m] (gen-inner m opts))
                                   ([m opts] (gen-inner m opts)))]
                   (case (m/type m)
-                    keyword? `t/Keyword
                     (:any any?) `t/Any
+                    some? #?(:clj `Object :cljs `t/Any)
+                    (:> :< :>= :<= number?) `t/Num
+                    integer? `t/AnyInteger
+                    ;;FIXME unify cljs/clj
+                    (int? pos-int? neg-int?) `t/Num
                     (:nil nil?) `(t/Val nil)
-                    boolean? `t/Bool
-                    number? `t/Num
+                    (:boolean boolean?) `t/Bool
                     (:string string?) `t/Str
                     :map-of (let [[kt vt :as cts] (map gen-inner (m/children m))
                                   _ (assert (= 2 (count cts)) (m/children m))]
                               `(t/Map ~kt ~vt))
+                    :map (let [{req true opt false} (->> (m/children m) (group-by (m/-comp not :optional second)))
+                               opt (not-empty (apply array-map (mapcat (fn [[k _ s]] [k (gen-inner s)]) opt)))
+                               req (not-empty (apply array-map (mapcat (fn [[k _ s]] [k (gen-inner s)]) req)))]
+                           (cond
+                             (and (not opt) req) (list 'quote req)
+                             :else `(t/HMap ~@(when req [:mandatory req])
+                                            ~@(when opt [:optional opt]))))
+                    (:or :and) (let [_ (assert (= mode :validator-type) "FIXME is :parser-type the same as :validator-type for :or/:and?")
+                                     inners (mapv gen-inner (m/children m))]
+                                 (if (= 1 (count inners))
+                                   (first inners)
+                                   (list* (case (m/type m) :or `t/U :and `t/I)
+                                          inners)))
+                    :function (let [ts (map gen-inner (m/children m))
+                                    arities (mapcat (fn [t]
+                                                      (if (vector? t)
+                                                        [t]
+                                                        (do (assert (= `t/IFn (first t)))
+                                                            (rest t))))
+                                                    ts)]
+                                (if (= 1 (count arities))
+                                  (first arities)
+                                  `(t/IFn ~@arities)))
+                    :vector `(t/Vec ~(gen-inner (first (m/children m))))
+                    :set `(t/Set ~(gen-inner (first (m/children m))))
+                    :sequential `(t/SequentialColl ~(gen-inner (first (m/children m))))
+                    ;;TODO :tuple
+                    ;;TODO :enum
+                    ;;TODO :multi
+                    :fn `t/Any
+                    :maybe `(t/Maybe ~(gen-inner (first (m/children m))))
+                    :re `t/Str
                     ;; should we have a :instrument-type mode? m/validate + m/=> is probably not sound.
                     :=> (let [[param-malli ret-malli :as cs] (m/children m)
                               _ (assert (= 2 (count cs)))
@@ -122,6 +151,8 @@
                                gn (gensym (name n))]
                            `(t/Rec [~gn] ~(gen-inner (m/-deref m) (assoc-in opts [::schema-form->free (m/form m)] gn))))
                     :int `t/AnyInteger
+                    (keyword? :keyword simple-keyword? #_:simple-keyword qualified-keyword? :qualified-keyword) `t/Kw
+                    (symbol? :symbol simple-symbol? #_:simple-symbol qualified-symbol? :qualified-symbol) `t/Sym
                     :catn `'~(into (case mode :validator-type [] :parser-type {})
                                    (map (fn [[cat-k _props cat-schema :as c]]
                                           (assert (= 3 (count c)) c)
@@ -141,10 +172,14 @@
                                              :validator-type inner-t
                                              :parser-type `'[(t/Val ~case-k) ~inner-t])))
                                        (m/children m)))
-                    ::m/schema (gen-inner (m/deref m))
+                    (:schema ::m/schema) (gen-inner (m/deref m))
+                    :not= `(t/Not (t/Val ~(first (m/children m))))
                     := `(t/Val ~(first (m/children m)))
-                    :schema (gen-inner (m/deref m))
-                    (-malli->type m opts)))))]
+                    :uuid `t/UUID
+                    (:merge :union :select-keys) (throw (ex-info (str "FIXME want to expand :merge/:union/:select keys in " `malli->type)
+                                                                 {}))
+                    (or (-malli->type m opts)
+                        `t/Any)))))]
     (let [inner-t (gen-inner m opts)]
       (case mode
         :validator-type inner-t
