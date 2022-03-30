@@ -4,8 +4,7 @@
             [clojure.test :refer [deftest is]]))
 
 (deftest minimal-test
-  (is (err/top-level-type-error-thrown? (t/check-ns 'typed-example.minimal)))
+  ;;TODO add t/cns test from CLJS REPL
+  (is (err/top-level-type-error-thrown? (eval `(t/cns 'typed-example.minimal))))
   (is (err/top-level-type-error-thrown? (t/check-ns-clj 'typed-example.minimal)))
-  (is (err/top-level-type-error-thrown? (t/check-ns-cljs 'typed-example.minimal)))
-  ;;TODO add t/check-ns test from CLJS REPL
-  )
+  (is (err/top-level-type-error-thrown? (t/check-ns-cljs 'typed-example.minimal))))

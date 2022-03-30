@@ -1,2 +1,3 @@
 {:ann [typed.ann.clojure]
- :ext [typed.clj.ext.clojure.core]}
+ :ext [#?(:clj typed.clj.ext.clojure.core
+          :cljs typed.cljs.ext.cljs.core)]}

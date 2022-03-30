@@ -53,6 +53,7 @@ For ClojureScript support, use `{◊typedclojure-group-id◊}/typed.cljs.runtime
 ## Example projects
 
 - [minimal](example-projects/minimal) demonstrating how to statically type check Clojure[Script] namespaces
+- [minimal-clj](example-projects/minimal-clj) demonstrating how to statically type check (just) Clojure namespaces
 - [malli-type-providers](example-projects/malli-type-providers) demonstrating how to statically type check using malli schemas
 - [spec1-type-providers](example-projects/spec1-type-providers) demonstrating how to statically type check using spec1 specs
 

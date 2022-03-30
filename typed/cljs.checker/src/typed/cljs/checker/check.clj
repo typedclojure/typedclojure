@@ -166,31 +166,27 @@
        (assert res (str "Can't find " ns " in classpath"))
        (let [filename (str res)
              path     (.getPath res)]
-         (binding [cljs-ana/*file-defs*        (atom #{})
-                   cljs-ana/*unchecked-if*     false
-                   cljs-ana/*unchecked-arrays* false
-                   cljs-ana/*cljs-warnings*    cljs-ana/*cljs-warnings*
-                   cljs-ana/*cljs-ns* 'cljs.user
-                   cljs-ana/*cljs-file* path
-                   reader/*alias-map* (or reader/*alias-map* {})]
-           (with-open [rdr (io/reader res)]
-             (let [pbr (readers/indexing-push-back-reader
-                         (java.io.PushbackReader. rdr) 1 filename)
-                   data-readers (merge tags/*cljs-data-readers*
-                                       ;; upcoming
-                                       (when-some [load-data-readers (resolve 'cljs.analyzer/load-data-readers)]
-                                         (load-data-readers)))
-                   eof (Object.)
-                   read-opts (cond-> {:eof eof :features #{:cljs}}
-                               (.endsWith filename "cljc") (assoc :read-cond :allow))]
-               (loop []
-                 (let [form (binding [*ns* (create-ns cljs-ana/*cljs-ns*)
-                                      reader/*data-readers* data-readers
-                                      reader/*alias-map* (uc/get-aliases)]
-                              (reader/read read-opts pbr))]
-                   (when-not (identical? form eof)
-                     (check-top-level form)
-                     (recur))))))))))))
+         (uc/with-analyzer-bindings*
+           path
+           (fn []
+             (with-open [rdr (io/reader res)]
+               (let [pbr (readers/indexing-push-back-reader
+                           (java.io.PushbackReader. rdr) 1 filename)
+                     data-readers (merge tags/*cljs-data-readers*
+                                         ;; upcoming
+                                         (when-some [load-data-readers (resolve 'cljs.analyzer/load-data-readers)]
+                                           (load-data-readers)))
+                     eof (Object.)
+                     read-opts (cond-> {:eof eof :features #{:cljs}}
+                                 (.endsWith filename "cljc") (assoc :read-cond :allow))]
+                 (loop []
+                   (let [form (binding [*ns* (create-ns cljs-ana/*cljs-ns*)
+                                        reader/*data-readers* data-readers
+                                        reader/*alias-map* (uc/get-aliases)]
+                                (reader/read read-opts pbr))]
+                     (when-not (identical? form eof)
+                       (check-top-level form)
+                       (recur)))))))))))))
 
 (defn check-ns-and-deps [nsym] (cu/check-ns-and-deps nsym check-ns1))
 

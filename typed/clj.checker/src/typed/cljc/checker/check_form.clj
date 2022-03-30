@@ -95,11 +95,12 @@
            instrument-infer-config
            unparse-ns
            analyze-bindings-fn]}
-   form & {:keys [expected-ret expected type-provided?
-                  checked-ast no-eval bindings-atom beta-limit
-                  check-config]}]
+   form {:keys [expected-ret expected type-provided?
+                checked-ast no-eval bindings-atom beta-limit
+                check-config] :as opt}]
   {:pre [((some-fn nil? con/atom?) bindings-atom)
          ((some-fn nil? symbol?) unparse-ns)
+         (map? opt)
          (map? check-config)]}
   (assert (not (and expected-ret type-provided?)))
   (do
@@ -185,10 +186,10 @@
 (defn check-form*
   [{:keys [impl unparse-ns] :as config} form expected type-provided? opt]
   {:pre [(map? opt)]}
-  (let [{:keys [ex delayed-errors ret]} (apply check-form-info config form
-                                               :expected expected 
-                                               :type-provided? type-provided?
-                                               (apply concat opt))]
+  (let [{:keys [ex delayed-errors ret]} (check-form-info config form
+                                                         (into {:expected expected 
+                                                                :type-provided? type-provided?}
+                                                               opt))]
     (if-let [errors (seq delayed-errors)]
       (err/print-errors! errors)
       (if ex
@@ -198,10 +199,10 @@
 (defn check-form-info-with-config
   [config form opt]
   {:pre [(map? config)
-         (not (map? opt))]}
+         (map? opt)]}
   (impl/with-impl (:impl config)
-    (apply (:check-form-info config) config
-           form opt)))
+    ((:check-form-info config) config
+     form opt)))
 
 (defn check-form*-with-config
   [config form expected type-provided? opt]

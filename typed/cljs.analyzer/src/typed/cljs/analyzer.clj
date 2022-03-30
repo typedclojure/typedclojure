@@ -322,7 +322,8 @@
   (when (and (symbol? op)
              (not (ana-cljs'/specials op))
              (not (get (:locals env) op)))
-    (:name (ana-api/resolve env op))))
+    (:name (doto (ana-api/resolve env op)
+             #_(prn "ana-api/resolve" op (:ns env))))))
 
 (defn var->sym [sym]
   (when (qualified-symbol? sym)

@@ -9,7 +9,7 @@
 (ns ^:no-doc typed.clj.ext.clojure.core__fn
   "Typing rules for clojure.core/fn"
   (:require [clojure.core.typed.internal :as internal]
-            [typed.clj.checker.check :as chk]
+            [typed.cljc.checker.check :as chk]
             [typed.cljc.analyzer :as ana2]
             [typed.cljc.checker.check.unanalyzed :refer [defuspecial]]))
 

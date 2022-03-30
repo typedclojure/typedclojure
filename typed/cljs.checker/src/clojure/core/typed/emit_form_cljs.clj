@@ -6,6 +6,7 @@
 ;   the terms of this license.
 ;   You must not remove this notice, or any other, from this software.
 
+;; FIXME make a typed.cljs.analyzer version
 ;copied from clojure.tools.analyzer.passes.js.emit-form
 (ns ^:no-doc clojure.core.typed.emit-form-cljs
   (:require [clojure.tools.analyzer.passes.emit-form :as default]
@@ -95,6 +96,11 @@
                           (update 1 conj (-emit-form* then opts))))
                     [[] []] nodes)
           ~(-emit-form* default opts)))
+
+;; FIXME is this solution too simple?
+(defmethod -emit-form :no-op
+  [expr opts]
+  nil)
 
 (defmethod -emit-form :unanalyzed
   [{:keys [form]} opts]

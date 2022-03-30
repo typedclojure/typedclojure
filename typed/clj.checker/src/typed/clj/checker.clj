@@ -50,8 +50,7 @@
                      added as a dependency. Must use the \"slim\" JAR."
   [form & {:as opt}]
   (load-if-needed)
-  (core/let [opt (update opt :check-config #(merge (default-check-config) %))]
-    (apply check-form-clj/check-form-info form (apply concat opt))))
+  (check-form-clj/check-form-info form (update opt :check-config #(into (default-check-config) %))))
 
 (core/defn check-form*
   "Function that takes a form and optional expected type syntax and
@@ -65,8 +64,7 @@
   ([form expected] (check-form* form expected true))
   ([form expected type-provided? & {:as opt}]
    (load-if-needed)
-   (core/let [opt (update opt :check-config #(merge (default-check-config) %))]
-     (check-form-clj/check-form* form expected type-provided? opt))))
+   (check-form-clj/check-form* form expected type-provided? (update opt :check-config #(into (default-check-config) %)))))
 
 (defmacro cf
   "Takes a form and an optional expected type and
@@ -111,8 +109,7 @@
   ([] (check-ns-info *ns*))
   ([ns-or-syms & {:as opt}]
    (load-if-needed)
-   (core/let [opt (update opt :check-config #(merge (default-check-config) %))]
-     (check-ns-clj/check-ns-info ns-or-syms opt))))
+   (check-ns-clj/check-ns-info ns-or-syms (update opt :check-config #(into (default-check-config) %)))))
 
 (core/defn check-ns
   "Type check a namespace/s (a symbol or Namespace, or collection).
@@ -181,26 +178,23 @@
   ([] (check-ns *ns*))
   ([ns-or-syms & {:as opt}]
    (load-if-needed)
-   (core/let [opt (update opt :check-config #(merge (default-check-config) %))]
-     (check-ns-clj/check-ns ns-or-syms opt))))
+   (check-ns-clj/check-ns ns-or-syms (update opt :check-config #(into (default-check-config) %)))))
 
 (core/defn check-ns2 
   ([] (check-ns2 *ns*))
   ([ns-or-syms & {:as opt}]
    (load-if-needed)
-   (core/let [opt (update opt :check-config
-                          #(merge {:check-ns-dep :never
-                                   :unannotated-def :unchecked
-                                   :unannotated-var :unchecked
-                                   :unannotated-arg :unchecked}
-                                  %))]
-     (check-ns-clj/check-ns ns-or-syms opt))))
+   (check-ns-clj/check-ns ns-or-syms (update opt :check-config
+                                             #(into {:check-ns-dep :never
+                                                     :unannotated-def :unchecked
+                                                     :unannotated-var :unchecked
+                                                     :unannotated-arg :unchecked}
+                                                    %)))))
 
 (core/defn check-ns3 
   ([] (check-ns3 *ns*))
   ([ns-or-syms & {:as opt}]
    (load-if-needed)
-   (core/let [opt (update opt :check-config
-                          #(merge {:check-ns-dep :never}
-                                  %))]
-     (check-ns-clj/check-ns ns-or-syms opt))))
+   (check-ns-clj/check-ns ns-or-syms (update opt :check-config
+                                             #(into {:check-ns-dep :never}
+                                                    %)))))

@@ -6,11 +6,9 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-;; TODO clojurescript automatically rewrites clojure.core vars/macros to cljs.core
 (ns ^:no-doc typed.clj.ext.clojure.core
-  "Typing rules for base Clojure distribution."
-  (:require [typed.cljc.checker.check.unanalyzed :as un-cljc]
-            [typed.clj.checker.check.unanalyzed :as un-clj]))
+  "Typing rules for clojure.core."
+  (:require [typed.clj.checker.check.unanalyzed :as un-clj]))
 
 ;;==================
 ;; clojure.core/defmacro
@@ -50,16 +48,14 @@
 ;; ============================
 ;; clojure.core/fn
 
-(un-cljc/install-defuspecial
-  #{:clojure :cljs}
+(un-clj/install-defuspecial
   'clojure.core/fn
   'typed.clj.ext.clojure.core__fn/defuspecial__fn)
 
 ;;==================
 ;; clojure.core/for
 
-(un-cljc/install-defuspecial
-  #{:clojure :cljs}
+(un-clj/install-defuspecial
   'clojure.core/for
   'typed.clj.ext.clojure.core__for/defuspecial__for)
 

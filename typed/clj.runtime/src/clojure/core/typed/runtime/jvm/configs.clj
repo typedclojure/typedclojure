@@ -64,6 +64,10 @@
 (defn register-clj-config-exts [] (register-config-exts @*clj-configs clj-reloading-require))
 
 (defn- cljs-require [nsym]
+  ;; enough to macroexpand the file to force macros side effects
+  ((requiring-resolve 'cljs.analyzer.api/analyze-file)
+   ((requiring-resolve 'cljs.util/ns->source) nsym))
+  #_
   ((requiring-resolve 'typed.cljs.checker.util/with-analyzer-bindings*)
    (fn []
      ((requiring-resolve 'typed.cljs.checker.util/with-cljs-typed-env*)
@@ -71,7 +75,8 @@
          (requiring-resolve 'typed.cljs.checker.util/with-core-cljs*)
          ((requiring-resolve 'cljs.analyzer.api/analyze)
           ((requiring-resolve 'cljs.analyzer.api/empty-env))
-          `(cljs.core/require '~nsym)))))))
+          `(cljs.core/require '~nsym))))))
+  nil)
 
 (defn register-cljs-config-anns [] (register-config-anns @*cljs-configs cljs-require))
 (defn register-cljs-config-exts [] (register-config-exts @*cljs-configs clj-reloading-require))

@@ -5,7 +5,8 @@
             [clojure.string :as str]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.clj.ext.clojure.core__let :as ext-let]
-            [typed.clj.checker.test-utils :refer :all]))
+            [typed.clj.checker.test-utils :refer :all]
+            [typed.cljs.checker.test-utils :as cljs]))
 
 (defn eval-in-ns [form]
   (binding [*ns* *ns*]
@@ -83,7 +84,11 @@
         (is
           (= [:result 1]
              (-> res
-                 (find :result))))))))
+                 (find :result)))))))
+  (is-tc-e (defmacro foo [a] (inc a)))
+  ;;FIXME how should defmacro handled in cljs?
+  #_
+  (cljs/is-tc-e (defmacro foo [a] (inc a))))
 
 ;; tests for clojure.core.typed macros in typed-test.clj.ext.clojure.core.typed
 (deftest vector-destructure-error-msg-test
@@ -329,4 +334,11 @@
                  (cc/longs :a))))
 
 (deftest defprotocol-test
-  (is-tc-e (cc/defprotocol A)))
+  (is-tc-e (cc/defprotocol A))
+  (is-tc-err (t/ann-form (cc/defprotocol A) t/Int))
+  (cljs/is-tc-e (cc/defprotocol A))
+  (cljs/is-tc-err (t/ann-form (cc/defprotocol A) t/Int))
+  (cljs/is-tc-e (clojure.core/defprotocol A))
+  (cljs/is-tc-err (t/ann-form (clojure.core/defprotocol A) t/Int))
+  (cljs/is-tc-e (cljs.core/defprotocol A))
+  (cljs/is-tc-err (t/ann-form (cljs.core/defprotocol A) t/Int)))

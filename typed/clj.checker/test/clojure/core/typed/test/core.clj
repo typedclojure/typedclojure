@@ -1744,10 +1744,7 @@
           [-> clojure.lang.IFn]))
 
 (deftest plain-defprotocol-test
-  (is (err/top-level-error-thrown? 
-        (check-ns 'clojure.core.typed.test.fail.plain-defprotocol)))
-  (is (err/top-level-error-thrown? 
-        (check-ns 'clojure.core.typed.test.fail.CTYP-45))))
+  (is (check-ns 'clojure.core.typed.test.fail.CTYP-45)))
 
 ;; FIXME this doesn't seem to test what it claims
 (deftest HMap-absent-key-update-test

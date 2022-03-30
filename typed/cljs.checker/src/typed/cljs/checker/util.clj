@@ -98,12 +98,15 @@
               ((juxt :requires :require-macros :as-aliases)
                (ana/get-namespace cljs-nsym)))))))
 
-(defn with-analyzer-bindings* [f]
-  (binding [ana/*file-defs*        (atom #{})
-            ana/*unchecked-if*     false
-            ana/*unchecked-arrays* false
-            ana/*cljs-warnings*    ana/*cljs-warnings*
-            ana/*cljs-ns* 'cljs.user
-            ana/*cljs-file* "NO_FILE"
-            reader/*alias-map* (or reader/*alias-map* {})]
-    (f)))
+(defn with-analyzer-bindings*
+  ([f] (with-analyzer-bindings* "NO_FILE" f))
+  ([file f] (with-analyzer-bindings* 'cljs.user file f))
+  ([nsym file f]
+   (binding [ana/*file-defs*        (atom #{})
+             ana/*unchecked-if*     false
+             ana/*unchecked-arrays* false
+             ana/*cljs-warnings*    ana/*cljs-warnings*
+             ana/*cljs-ns* nsym
+             ana/*cljs-file* file
+             reader/*alias-map* (or reader/*alias-map* {})]
+     (f))))

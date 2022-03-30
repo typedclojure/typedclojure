@@ -31,11 +31,11 @@
                            (contains? :custom-expansions))
    :emit-form ast-u/emit-form-fn
    :check-form-info chk-form2/check-form-info
-   :check-form* chk-form2/check-form*
-   })
+   :check-form* chk-form2/check-form*})
 
 (defn check-form-info
-  [form & opt]
+  [form opt]
+  (assert (map? opt))
   (let [config (config-map2)]
     (chk-form2/check-form-info-with-config
       config form opt)))

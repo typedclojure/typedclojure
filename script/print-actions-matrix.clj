@@ -9,15 +9,12 @@
          '[clojure.set :as set])
 
 (def all-testable-submodules
-  (let [all-submodules (into (sorted-set)
-                             (keep (fn [^java.io.File f]
-                                     (when (.isDirectory f)
-                                       (.getPath f))))
-                             (.listFiles (io/file "typed")))
-        exclusions #{}]
-    (set/difference
-      all-submodules
-      exclusions)))
+  (into (sorted-set)
+        (keep (fn [^java.io.File f]
+                (when (.isDirectory f)
+                  (.getPath f))))
+        (concat (.listFiles (io/file "typed"))
+                (.listFiles (io/file "example-projects")))))
 
 ;; TODO grab from typed.dev.helpers
 (def clojure-stable "1.11.0")

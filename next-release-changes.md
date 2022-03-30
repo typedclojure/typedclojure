@@ -1,0 +1,5 @@
+- add `typed.clojure/cns`
+- change `typed.clojure/check-ns-cljs` from macro to function
+- separate `clojure.core` and `cljs.core` type rules
+- add `minimal-clj` example project to test typed.clj.checker in isolation without cljs deps
+- add `clojure.core/defprotocol` rule for clj{s}

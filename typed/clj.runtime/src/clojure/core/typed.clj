@@ -1242,8 +1242,8 @@ for checking namespaces, cf for checking individual forms."}
   - :delayed-errors  A sequence of delayed errors (ex-info instances)
   - :profile         Use Timbre to profile the type checker. Timbre must be
                      added as a dependency. Must use the \"slim\" JAR."
-  [form & opt]
-  (apply (requiring-resolve 'typed.clj.checker/check-form-info) form opt))
+  [form & {:as opt}]
+  ((requiring-resolve 'typed.clj.checker/check-form-info) form (or opt {})))
 
 (core/defn check-form*
   "Function that takes a form and optional expected type syntax and
@@ -1368,13 +1368,13 @@ for checking namespaces, cf for checking individual forms."}
       ; collect but don't check the current namespace
       (check-ns *ns* :collect-only true)"
   ([] ((requiring-resolve 'typed.clj.checker/check-ns)))
-  ([ns-or-syms & opt]
-   (apply (requiring-resolve 'typed.clj.checker/check-ns) ns-or-syms opt)))
+  ([ns-or-syms & {:as opt}]
+   ((requiring-resolve 'typed.clj.checker/check-ns) ns-or-syms opt)))
 
 (core/defn check-ns2 
   ([] ((requiring-resolve 'typed.clj.checker/check-ns2)))
-  ([ns-or-syms & opt]
-   (apply (requiring-resolve 'typed.clj.checker/check-ns2) ns-or-syms opt)))
+  ([ns-or-syms & {:as opt}]
+   ((requiring-resolve 'typed.clj.checker/check-ns2) ns-or-syms opt)))
 
 ;(ann statistics [(Coll Symbol) -> (Map Symbol Stats)])
 (core/defn statistics 

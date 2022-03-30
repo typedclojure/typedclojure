@@ -73,10 +73,8 @@
                (loop []
                  (let [form (reader/read opts pbr)]
                    (when-not (identical? form eof)
-                     (let [{:keys [ex]} (chk-frm/check-form-info config form
-                                                                 :check-config (t/default-check-config))]
-                       (when ex
-                         (throw ex)))
+                     (let [{:keys [ex]} (chk-frm/check-form-info config form {:check-config (t/default-check-config)})]
+                       (some-> ex throw))
                      (recur))))))))))))
 
 (defn typed-load1
@@ -100,9 +98,8 @@
 
 (defn typed-eval [form]
   (let [{:keys [ex result]} (t/check-form-info form)]
-    (if ex
-      (throw ex)
-      result)))
+    (or (some-> ex throw)
+        result)))
 
 (defn install-typed-load
   "Extend the :lang dispatch table with the :core.typed language"

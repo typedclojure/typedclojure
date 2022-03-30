@@ -33,11 +33,18 @@
    :check-form* chk-form2/check-form*
    })
 
+(defn maybe-with-analyzer-bindings [{:keys [skip-cljs-analyzer-bindings] :as _opt} f]
+  (if skip-cljs-analyzer-bindings
+    (f)
+    (ucljs/with-analyzer-bindings* (ucljs/cljs-ns) "NO_FILE" f)))
+
 (defn check-form-info
-  [form & opt]
+  [form & {:as opt}]
   (with-bindings (ana/default-thread-bindings)
-    (chk-form2/check-form-info-with-config
-      (config-map2) form opt)))
+    (maybe-with-analyzer-bindings opt
+      (fn []
+        (chk-form2/check-form-info-with-config
+          (config-map2) form opt)))))
 
 (defn check-form
   "Check a single form with an optional expected type.
@@ -45,8 +52,10 @@
   REPL see cf."
   [form expected expected-provided? opt]
   (with-bindings (ana/default-thread-bindings)
-    (ucljs/with-cljs-typed-env
-      (comp/with-core-cljs
-        nil
-        #(chk-form2/check-form*-with-config
-           (config-map2) form expected expected-provided? opt)))))
+    (maybe-with-analyzer-bindings opt
+      (fn []
+        (ucljs/with-cljs-typed-env
+          (comp/with-core-cljs
+            nil
+            #(chk-form2/check-form*-with-config
+               (config-map2) form expected expected-provided? opt)))))))

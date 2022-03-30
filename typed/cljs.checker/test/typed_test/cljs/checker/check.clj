@@ -75,7 +75,7 @@
   (is-tc-e (fn a [b] a))
   (is-tc-e (t/fn a [b] a))
   (is-tc-e (cljs.core.typed/fn a [b] a))
-  (is-tc-e (core/fn a [b] a))
+  (is-tc-e (cc/fn a [b] a))
   (is-tc-e (fn [a] a)
            (t/All [x] [x -> x])))
 

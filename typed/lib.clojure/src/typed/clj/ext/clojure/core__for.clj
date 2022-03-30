@@ -11,10 +11,8 @@
   (:require [typed.clojure :as t]
             [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.errors :as err]
-            [typed.clj.checker.check :refer [check-expr]]
+            [typed.cljc.checker.check :refer [check-expr]]
             [typed.clj.checker.parse-unparse :as prs]
-            [typed.clj.analyzer.passes.emit-form :as emit-form]
-            [typed.clj.analyzer.utils :as ana-utils]
             [typed.clj.ext.clojure.core__let :as ext-let]
             [typed.cljc.analyzer :as ana2]
             [typed.cljc.checker.check.let :as let]
@@ -27,13 +25,19 @@
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.cs-gen :as cgen]
             [typed.cljc.checker.utils :as u]
+            [clojure.core.typed.current-impl :as impl]
             [typed.cljc.checker.check.unanalyzed :refer [defuspecial]]))
+
+(defn emit-form [e]
+  (impl/impl-case
+    :clojure ((requiring-resolve 'typed.clj.analyzer.passes.emit-form/emit-form) e)
+    :cljs ((requiring-resolve 'clojure.core.typed.emit-form-cljs/emit-form) e)))
 
 ;;==================
 ;; clojure.core/for
 
 (defn ^:private -seqable-elem-query []
-  (prs/parse-clj
+  (prs/parse-type
     `(t/All [a#] [(t/U nil (t/Seqable a#)) :-> a#])))
 
 (defn check-list-comprehension-binder
@@ -74,7 +78,7 @@
                                                          identity
                                                          reduced)]
                                      (-> context
-                                         (update :expanded-bindings conj k (emit-form/emit-form cv))
+                                         (update :expanded-bindings conj k (emit-form cv))
                                          (assoc :prop-env env-thn
                                                 :reachable reachable+)
                                          maybe-reduced))
@@ -115,7 +119,7 @@
                             reachable @is-reachable
                             maybe-reduced (if reachable identity reduced)]
                         (-> updated-context
-                            (assoc :expanded-bindings (conj expanded-bindings k (emit-form/emit-form cv))
+                            (assoc :expanded-bindings (conj expanded-bindings k (emit-form cv))
                                    :reachable reachable)
                             (update :new-syms #(into new-syms %))
                             maybe-reduced)))))
@@ -169,7 +173,7 @@
                                  (fn [form]
                                    (-> form
                                        vec
-                                       (assoc 2 (emit-form/emit-form cbody))
+                                       (assoc 2 (emit-form cbody))
                                        list*
                                        (with-meta (meta form))))))]
             (assoc expr
