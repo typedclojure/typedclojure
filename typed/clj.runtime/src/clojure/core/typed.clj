@@ -1088,6 +1088,7 @@ for checking namespaces, cf for checking individual forms."}
         [clsym & mth] (if bnd-provided?
                          (next args)
                          args)
+        _ (assert (symbol? clsym) "Protocol name provided to ann-protocol must be a symbol")
         _ (core/let [fs (frequencies (map first (partition 2 mth)))]
             (when-let [dups (seq (filter (core/fn [[_ freq]] (< 1 freq)) fs))]
               (println (str "WARNING: Duplicate method annotations in ann-interface (" clsym 
