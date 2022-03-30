@@ -1,3 +1,8 @@
+# 1.0.25
+
+- add `typed.clojure/check-ns`
+- `typed.clojure/check-ns{,-clj,cljs}` no longer require the namespaces being checked to depend on a Typed Clojure namespace
+
 # 1.0.24
 
 - support more malli -> type conversions
