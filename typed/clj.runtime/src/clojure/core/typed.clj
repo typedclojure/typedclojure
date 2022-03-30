@@ -974,7 +974,7 @@ for checking namespaces, cf for checking individual forms."}
     `(tc-ignore (ann-record* '~vbnd '~dname '~fields '~opt '~&form))))
 
 (core/defn ^:no-doc
-  ann-protocol* 
+  ann-protocol*
   "Internal use only. Use ann-protocol."
   [vbnd varsym mth form]
   (core/let [add-protocol-env (requiring-resolve 'clojure.core.typed.current-impl/add-protocol-env)
@@ -1029,12 +1029,14 @@ for checking namespaces, cf for checking individual forms."}
           (bar [this] [this n s])
           (baz [this n])))"
   [& args]
+  (assert (seq args) "Protocol name must be provided")
   (core/let [bnd-provided? (vector? (first args))
              vbnd (when bnd-provided?
                     (first args))
              [varsym & mth] (if bnd-provided?
                               (next args)
                               args)
+             _ (assert (symbol? varsym) "Protocol name must be a symbol")
              _ (core/let [fs (frequencies (map first (partition 2 mth)))]
                  (when-let [dups (seq (filter (core/fn [[_ freq]] (< 1 freq)) fs))]
                    (println (str "WARNING: Duplicate method annotations in ann-protocol (" varsym 
@@ -1088,7 +1090,7 @@ for checking namespaces, cf for checking individual forms."}
         [clsym & mth] (if bnd-provided?
                          (next args)
                          args)
-        _ (assert (symbol? clsym) "Protocol name provided to ann-protocol must be a symbol")
+        _ (assert (symbol? clsym) "Interface name provided to ann-interface must be a symbol")
         _ (core/let [fs (frequencies (map first (partition 2 mth)))]
             (when-let [dups (seq (filter (core/fn [[_ freq]] (< 1 freq)) fs))]
               (println (str "WARNING: Duplicate method annotations in ann-interface (" clsym 
