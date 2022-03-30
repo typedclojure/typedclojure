@@ -13,4 +13,6 @@ user=> (require '[typed.clojure :as t])
 user=> (t/check-ns-clj 'typed-example.minimal)
 ;; type check a ClojureScript file
 user=> (t/check-ns-cljs 'typed-example.minimal)
+;; In a CLJ REPL, this is the same as check-ns-clj -- CLJS REPL => check-ns-cljs
+user=> (t/check-ns 'typed-example.minimal)
 ```
