@@ -34,6 +34,13 @@
   'typed.clj.ext.clojure.core__defn/defuspecial__defn)
 
 ;;==================
+;; clojure.core/defprotocol
+
+(un-clj/install-defuspecial
+  'clojure.core/defprotocol
+  'typed.clj.ext.clojure.core__defprotocol/defuspecial__defprotocol)
+
+;;==================
 ;; clojure.core/doseq
 
 (un-clj/install-defuspecial

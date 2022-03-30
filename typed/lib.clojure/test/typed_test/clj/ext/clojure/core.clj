@@ -327,3 +327,6 @@
                  (cc/ints :a)
                  (cc/doubles :a)
                  (cc/longs :a))))
+
+(deftest defprotocol-test
+  (is-tc-e (cc/defprotocol A)))
