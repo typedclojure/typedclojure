@@ -9,6 +9,7 @@
 ; mostly copied from clojure.core's data-reader discovery impl
 (ns ^:no-doc clojure.core.typed.runtime.jvm.configs
   "Alpha - wip, subject to change"
+  (:require [clojure.tools.reader :as rdr])
   (:import [clojure.lang LineNumberingPushbackReader]
            [java.io InputStreamReader]
            [java.net URL]))
@@ -22,15 +23,16 @@
         (enumeration-seq (.getResources cl "typedclojure_config.cljs")))
       (enumeration-seq (.getResources cl "typedclojure_config.cljc")))))
 
-(defn- load-config-files [features ^URL url]
+(defn- load-config-file [features ^URL url]
   (with-open [rdr (LineNumberingPushbackReader.
                     (InputStreamReader.
                       (.openStream url) "UTF-8"))]
     (binding [*file* (.getFile url)]
-      (let [read-opts (if (.endsWith (.getPath url) "cljc")
-                        {:eof nil :read-cond :allow :features features}
-                        {:eof nil})
-            new-config (read read-opts rdr)]
+      (let [read-opts (cond-> {:eof nil}
+                        (.endsWith (.getPath url) "cljc")
+                        (assoc :read-cond :allow
+                               :features features))
+            new-config (rdr/read read-opts rdr)]
         (when (not (map? new-config))
           (throw (ex-info (str "Not a valid Typed Clojure config map")
                           {:url url})))
@@ -38,7 +40,7 @@
 
 (defn- load-configs [features]
   (reduce (fn [configs url]
-            (conj configs (load-config-files features url)))
+            (conj configs (load-config-file features url)))
           #{} (config-urls features)))
 
 (def *clj-configs
