@@ -30,26 +30,32 @@
   ((requiring-resolve 'typed.clj.checker.parse-unparse/parse-type)
    (s->t/malli->type m opts)))
 
+(def ^ServerSocket
+  cljs-rdr-writer
+  (delay
+    (let [^ServerSocket server (server/start-server {:accept 'cljs.core.server/io-prepl
+                                                     :address "127.0.0.1"
+                                                     :port 0
+                                                     :name (str `cljs-prepl-server)
+                                                     :args [:repl-env (cljs.repl.node/repl-env)]})
+          port (.getLocalPort server)
+          socket (doto (Socket. "127.0.0.1" port)
+                   (.setSoTimeout 20000))]
+      [(io/reader socket)
+       (io/writer socket)])))
+
 (defn cljs-eval [exprs]
-  (let [^ServerSocket server (server/start-server {:accept 'cljs.core.server/io-prepl
-                                                   :address "127.0.0.1"
-                                                   :port 0
-                                                   :name (str `cljs-prepl-server)
-                                                   :args [:repl-env (cljs.repl.node/repl-env)]})
-        port (.getLocalPort server)]
-    (with-open [socket (Socket. "127.0.0.1" port)
-                reader (io/reader socket)
-                writer (io/writer socket)]
-      (into []
-            (mapcat (fn [expr]
-                      (binding [*out* writer
-                                *in* reader]
-                        (println (pr-str expr))
-                        (loop [acc []]
-                          (let [r (edn/read-string (read-line))]
-                            (cond-> (conj acc r)
-                              (not= :ret (:tag r)) recur))))))
-            exprs))))
+  (let [[reader writer] @cljs-rdr-writer]
+    (into []
+          (mapcat (fn [expr]
+                    (binding [*out* writer
+                              *in* reader]
+                      (println (pr-str expr))
+                      (loop [acc []]
+                        (let [r (edn/read-string (read-line))]
+                          (cond-> (conj acc r)
+                            (not= :ret (:tag r)) recur))))))
+          exprs)))
 
 (comment
   (cljs-eval ['(require 'typed.malli.schema-to-type 'malli.core)
@@ -69,14 +75,15 @@
 
 (defn var-type [var-qsym]
   {:pre [(qualified-symbol? var-qsym)]}
+  (println (format "Retrieving Malli schema for %s (if any) from CLJS runtime to Clojure..." var-qsym))
   (let [rs (cljs-eval ['(require 'typed.cljs.provider.malli-cljs
                                  #_'malli.instrument.cljs)
                        ;`(malli-instr/-collect-all-ns)
                        `(provider-cljs/var-type-syntax '~var-qsym)])
         res (first (filter (comp #{:ret} :tag) (rseq rs)))]
-    (prn rs)
+    ;(prn rs)
     (if (:exception res)
-      (println "Exception thrown while retreiving malli type from CLJS:" res)
+      (println "Exception thrown while retrieving malli type from CLJS:" res)
       (when-some [tsyn (-> (:val res) edn/read-string)]
         ((requiring-resolve 'typed.clj.checker.parse-unparse/parse-type)
          tsyn)))))

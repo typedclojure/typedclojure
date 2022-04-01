@@ -45,8 +45,12 @@
        current-impl-kw
        unknown))
 
-(def register-clj! #((requiring-resolve 'clojure.core.typed.runtime.jvm.configs/register-clj-config-anns)))
-(def register-cljs! #((requiring-resolve 'clojure.core.typed.runtime.jvm.configs/register-cljs-config-anns)))
+(def register-clj!
+  (let [d (delay ((requiring-resolve 'clojure.core.typed.runtime.jvm.configs/register-clj-config-anns)))]
+    (fn [] @d)))
+(def register-cljs!
+  (let [d (delay ((requiring-resolve 'clojure.core.typed.runtime.jvm.configs/register-cljs-config-anns)))]
+    (fn [] @d)))
 
 (def current-var-annotations-kw ::current-var-annotations)
 (def current-nocheck-var?-kw ::current-nocheck-var?)
