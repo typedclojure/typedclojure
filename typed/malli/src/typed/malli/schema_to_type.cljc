@@ -63,7 +63,7 @@
 
 (defmethod -malli->type ::default [m opts]
   (println (str "WARNING: No conversion from malli to Typed Clojure for "
-                (pr-str (m/type m)) " in " `-malli->type "(" #?(:clj "Clojure" :cljs "ClojureScript") " implementation)"))
+                (pr-str (m/type m)) " in " `-malli->type " (" #?(:clj "Clojure" :cljs "ClojureScript") " implementation)"))
   nil)
 
 (comment
