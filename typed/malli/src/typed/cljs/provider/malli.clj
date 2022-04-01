@@ -30,9 +30,9 @@
   ((requiring-resolve 'typed.clj.checker.parse-unparse/parse-type)
    (s->t/malli->type m opts)))
 
-(def ^ServerSocket
-  cljs-rdr-writer
+(def cljs-rdr-writer
   (delay
+    (println "Starting Node prepl to retrieve Malli schemas from CLJS runtime...")
     (let [^ServerSocket server (server/start-server {:accept 'cljs.core.server/io-prepl
                                                      :address "127.0.0.1"
                                                      :port 0
@@ -75,7 +75,6 @@
 
 (defn var-type [var-qsym]
   {:pre [(qualified-symbol? var-qsym)]}
-  (println (format "Retrieving Malli schema for %s (if any) from CLJS runtime to Clojure..." var-qsym))
   (let [rs (cljs-eval ['(require 'typed.cljs.provider.malli-cljs
                                  #_'malli.instrument.cljs)
                        ;`(malli-instr/-collect-all-ns)
