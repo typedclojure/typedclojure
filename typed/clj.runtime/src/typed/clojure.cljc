@@ -227,7 +227,6 @@
   [& args]
   #?(:clj (macros/platform-case
             :clj `(with-bindings {(requiring-resolve 'cljs.analyzer/*cljs-ns*) (ns-name *ns*)}
-                    (println @(requiring-resolve 'cljs.analyzer/*cljs-ns*))
                     (apply (requiring-resolve 'cljs.core.typed/check-form*)
                            '~(case (count args)
                                ;; form | expected expected-provided?

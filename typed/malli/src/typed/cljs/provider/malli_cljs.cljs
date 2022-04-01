@@ -13,7 +13,7 @@
 
 (m/=> var-type-syntax [:=> [:cat :symbol] :any])
 (defn var-type-syntax [var-qsym]
-  (prn (m/function-schemas :cljs))
+  ;(prn (m/function-schemas :cljs))
   (some-> (some #(get-in % [var-qsym :schema])
                 (vals (m/function-schemas :cljs)))
           (s->t/malli->type {::s->t/mode :validator-type

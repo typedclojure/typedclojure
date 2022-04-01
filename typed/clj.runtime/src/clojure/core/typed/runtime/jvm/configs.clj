@@ -50,11 +50,13 @@
   (delay (load-configs #{:cljs})))
 
 (defn- register-config-anns [configs require-fn]
+  (println "Registering :ann's from typedclojure_config's...")
   (run! (fn [{:keys [ann]}]
           (run! require-fn ann))
         configs))
 
 (defn- register-config-exts [configs require-fn]
+  (println "Registering :ext's from typedclojure_config's...")
   (run! (fn [{:keys [ext]}]
           (run! require-fn ext))
         configs))
@@ -83,14 +85,20 @@
 (defn register-cljs-config-anns [] (register-config-anns @*cljs-configs cljs-require))
 (defn register-cljs-config-exts [] (register-config-exts @*cljs-configs clj-reloading-require))
 
-(defn- config-var-providers [configs] (mapcat :var-type-providers configs))
+(defn- config-var-providers [configs]
+  (println "Registering :var-type-providers from typedclojure_config's...")
+  (mapcat :var-type-providers configs))
 (defn clj-config-var-providers [] (config-var-providers @*clj-configs))
 (defn cljs-config-var-providers [] (config-var-providers @*cljs-configs))
 
-(defn register-malli-extensions [configs] (run! require (mapcat :malli-extensions configs)))
+(defn register-malli-extensions [configs]
+  (println "Registering :malli-extensions from typedclojure_config's...")
+  (run! require (mapcat :malli-extensions configs)))
 (defn register-clj-malli-extensions [] (register-malli-extensions @*clj-configs))
 (defn register-cljs-malli-extensions [] (register-malli-extensions @*cljs-configs))
 
-(defn register-spec1-extensions [configs] (run! require (mapcat :spec1-extensions configs)))
+(defn register-spec1-extensions [configs]
+  (println "Registering :spec1-extensions from typedclojure_config's...")
+  (run! require (mapcat :spec1-extensions configs)))
 (defn register-clj-spec1-extensions [] (register-spec1-extensions @*clj-configs))
 (defn register-cljs-spec1-extensions [] (register-spec1-extensions @*cljs-configs))
