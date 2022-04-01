@@ -494,6 +494,12 @@ java.lang.Iterable [[[a :variance :covariant]]
                     :unchecked-ancestors
                     #{(Seqable a)}]
 
+;; from here, all these type params should really be :invariant.
+;; Scala deals with this via implicit conversions from their own
+;; immutable versions of these interfaces.
+;; https://docs.scala-lang.org/overviews/collections/conversions-between-java-and-scala-collections.html
+;; We could do something similar by introducing similarly named covariant types that could
+;; coexist with the invariant versions. eg., (typed.clojure.java.immutable/Set x)
 java.util.Set [[[a :variance :covariant]]
                :replace
                {Iterable (Iterable a)
