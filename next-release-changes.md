@@ -3,3 +3,4 @@
 - separate `clojure.core` and `cljs.core` type rules
 - add `minimal-clj` example project to test typed.clj.checker in isolation without cljs deps
 - add `clojure.core/defprotocol` rule for clj{s}
+- add `cljs.core/implements?` rule for cljs

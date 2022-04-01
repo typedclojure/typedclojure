@@ -11,11 +11,18 @@
   (:require [typed.cljs.checker.check.unanalyzed :as un-cljs]))
 
 ;;==================
-;; clojure.core/defprotocol
+;; cljs.core/defprotocol
 
 (un-cljs/install-defuspecial
   'cljs.core/defprotocol
   'typed.clj.ext.clojure.core__defprotocol/defuspecial__defprotocol)
+
+;;==================
+;; cljs.core/implements?
+
+(un-cljs/install-defuspecial
+  'cljs.core/implements?
+  'typed.cljs.ext.cljs.core__implements_huh/defuspecial__implements?)
 
 ;; ============================
 ;; clojure.core/fn
