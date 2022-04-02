@@ -19,7 +19,7 @@
                          IPersistentList IRef ARef Reversible
                          ITransientCollection ITransientSet ITransientAssociative ITransientMap
                          ITransientVector PersistentHashMap Reduced MultiFn)
-           (java.util Collection RandomAccess)))
+           (java.util Collection)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Altered Classes
@@ -186,7 +186,6 @@ APersistentVector [[[a :variance :covariant]]
                     Iterable (Iterable a)
                     Collection (Collection a)
                     java.util.List (java.util.List a)
-                    RandomAccess (RandomAccess a)
                     IPersistentVector (IPersistentVector a)
                     Reversible (Reversible a)
                     IPersistentStack (IPersistentStack a)
@@ -203,7 +202,6 @@ PersistentVector [[[a :variance :covariant]]
                    Iterable (Iterable a)
                    Collection (Collection a)
                    java.util.List (java.util.List a)
-                   RandomAccess (RandomAccess a)
                    Seqable (Seqable a)
                    IPersistentVector (IPersistentVector a)
                    Reversible (Reversible a)
@@ -224,7 +222,6 @@ clojure.lang.AMapEntry
            :replace
            {IMapEntry (IMapEntry a b)
             Iterable (Iterable (t/U a b))
-            RandomAccess (RandomAccess (t/U a b))
             IPersistentCollection (IPersistentCollection 
                                     (t/U a b))
             java.util.List (java.util.List (t/U a b))
@@ -247,7 +244,6 @@ clojure.lang.MapEntry
            :replace
            {IMapEntry (IMapEntry a b)
             Iterable (Iterable (t/U a b))
-            RandomAccess (RandomAccess (t/U a b))
             java.util.List (java.util.List (t/U a b))
             Collection (Collection (t/U a b))
             AMapEntry (AMapEntry a b)
@@ -424,7 +420,7 @@ LazySeq [[[a :variance :covariant]]
          :replace
          {Seqable (Seqable a)
           Collection (Collection a)
-          java.util.List (Collection a)
+          java.util.List (java.util.List a)
           Iterable (Iterable a)
           ISeq (ISeq a)
           IPersistentCollection (IPersistentCollection a)}]
@@ -521,6 +517,8 @@ java.util.Collection [[[a :variance :covariant]]
                       :unchecked-ancestors
                       #{(Seqable a)}]
 
+;;TODO delete this type param. Reconsider using fake Indexed ancestors. This was originally
+;; probably a misunderstanding of the RandomAccess + List case of nth.
 java.util.RandomAccess [[[a :variance :covariant]]
                         :unchecked-ancestors
                         #{(Indexed a)}]

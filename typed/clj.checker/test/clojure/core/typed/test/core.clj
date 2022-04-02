@@ -2899,27 +2899,19 @@
       (loop [a :- t/Symbol 1] (recur a)))))
 
 (deftest nth-test
-  (is-tc-err
-    (fn []
-      (nth #{1 2} 0)))
-  (is-tc-err
-    (fn []
-      (nth (ann-form #{1 2} (t/Seqable clojure.core.typed/Any)) 
-           0)))
-  (is-tc-err
-    (fn []
-      (nth (ann-form [1 2] (t/Seqable clojure.core.typed/Any)) 
-           0)))
-  (is-tc-err
-    (fn [] (nth {1 0} 0)))
-  (is-tc-e (nth [1] 0))
-  (is-tc-e (nth '(1) 0))
-  (is-tc-e (nth "a" 0))
+  (is-tc-err #(nth #{1 2} 0))
+  (is-tc-err #(nth (ann-form #{1 2} (t/Seqable t/Any)) 0))
+  (is-tc-err #(nth (ann-form [1 2] (t/Seqable t/Any)) 0))
+  (is-tc-err #(nth {1 0} 0))
+  (is-tc-e (nth [1] 0) t/Int)
+  (is-tc-e (nth '(1) 0) t/Int)
+  (is-tc-e (nth (ann-form "a" CharSequence) 0) Character)
+  (is-tc-e (nth "a" 0) Character)
   (is-tc-e (let [nth (ann-form nth 
-                               (clojure.core.typed/All [x y] 
+                               (t/All [x y] 
                                  [(t/U (clojure.lang.Indexed x) 
                                      (t/I clojure.lang.Sequential (t/Seqable x))) 
-                                  t/Int -> clojure.core.typed/Any]))]
+                                  t/Int -> t/Any]))]
              (nth "a" 0)))
   (is-clj (do
             (dotimes [_ 100]
@@ -2934,17 +2926,15 @@
              (mapv fully-resolve-type (RClass-supers* (RClass-of 'java.util.ArrayList)))))
   (is (sub?-q `java.util.ArrayList 
               `(clojure.lang.Indexed t/Any)))
-  (is-tc-e (nth (ann-form (java.util.ArrayList. [1 2 3]) (java.util.RandomAccess clojure.core.typed/Any)) 0))
+  (is-tc-e (nth (ann-form (java.util.ArrayList. [1 2 3]) (java.util.RandomAccess t/Any)) 0))
   (is-tc-e (nth (java.util.ArrayList. [1 2 3]) 0))
   ; this used to fail randomly
-  (is (do (dotimes [n 20]
-            (tc-e (let [nth (ann-form 
-                              nth (clojure.core.typed/All [x y] 
-                                       [(t/U (clojure.lang.Indexed x) 
-                                           (t/I clojure.lang.Sequential (t/Seqable x))) 
-                                        t/Int -> clojure.core.typed/Any]))]
-                    (nth "a" 0))))
-          true))
+  (dotimes [_ 20]
+    (is-tc-e (let [nth (ann-form nth (t/All [x y] 
+                                            [(t/U (clojure.lang.Indexed x) 
+                                                  (t/I clojure.lang.Sequential (t/Seqable x))) 
+                                             t/Int -> t/Any]))]
+               (nth "a" 0))))
   (is (apply = (for [n (range 20)]
                  (clj
                    (cs-gen #{}

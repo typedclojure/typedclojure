@@ -75,6 +75,8 @@
 (defn ^:private nth-type []
   (impl/with-clojure-impl
     (prs/parse-type
+      ;;TODO port this type from clojure.lang.RT/nthFrom properly. Try not to use Indexed as a fake ancestor.
+      ;; maybe even remove Seqable fake ancestors and move to t/Seqable.
       `(t/All [~'x ~'y]
             (t/IFn 
               [(t/U (Indexed ~'x) (t/SequentialSeqable ~'x)) t/AnyInteger :-> ~'x]
