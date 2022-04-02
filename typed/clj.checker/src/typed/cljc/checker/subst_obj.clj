@@ -87,14 +87,6 @@
                   f)))]
       (add-extra-filter fl))))
 
-(defn subst-flow-set [fs k o polarity & [t]]
-  {:pre [(r/FlowSet? fs)
-         (fl/name-ref? k)
-         (obj/RObject? o)
-         ((some-fn false? nil? r/Type?) t)]
-   :post [(r/FlowSet? %)]}
-  (r/-flow (subst-filter (add-extra-filter (:normal fs) k t) k o polarity)))
-
 ;[FilterSet Number RObject Boolean (Option Type) -> FilterSet]
 (defn subst-filter-set [fs k o polarity & [t]]
   {:pre [((some-fn fl/FilterSet? fl/NoFilter?) fs)
@@ -176,10 +168,9 @@
   (letfn [(st [t*]
             (subst-type t* k o polarity))
           (sf [fs] 
-            {:pre [((some-fn fl/FilterSet? r/FlowSet?) fs)] 
-             :post [((some-fn fl/FilterSet? r/FlowSet?) %)]}
-            ((if (fl/FilterSet? fs) subst-filter-set subst-flow-set) 
-             fs k o polarity))]
+            {:pre [(fl/FilterSet? fs)] 
+             :post [(fl/FilterSet? %)]}
+            (subst-filter-set fs k o polarity))]
     (call-subst-type*
       t
       {:type-rec st

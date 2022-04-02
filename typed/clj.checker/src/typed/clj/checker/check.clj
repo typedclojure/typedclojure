@@ -919,7 +919,6 @@
                       _ (assert (not-any? #(% arity) [:rest :drest :kws :prest :pdot]))
                       _ (assert (= (fo/-simple-filter) (:fl (:rng arity))))
                       _ (assert (= obj/-empty (:o (:rng arity))))
-                      _ (assert (= (r/-flow fl/-top) (:flow (:rng arity))))
 
                       lhs (prs/parse-type (:type t))
                       rhs (first (:dom arity))
@@ -1154,8 +1153,7 @@
         (do (pprint/pprint (prs/unparse-filter-set (:fl t)))
             (flush))
         (prn (:fl t)))
-      (prn (prs/unparse-object (:o t)))
-      (prn 'Flow (prs/unparse-filter (-> t :flow r/flow-normal))))
+      (prn (prs/unparse-object (:o t))))
     ;DO NOT REMOVE
     (assoc expr
            :args cargs
@@ -1433,7 +1431,7 @@
   {:post [(-> % u/expr-type r/TCResult?)
           (vector? (:args %))]}
   (binding [vs/*current-env* env]
-    (let [args-expected-ty (prs/parse-type `(t/U nil (clojure.lang.Seqable String)))
+    (let [args-expected-ty (prs/parse-type `(t/Seqable t/Str))
           cargs-expr (binding [vs/*current-env* (:env args-expr)]
                        (check-expr args-expr))
           _ (when-not (sub/subtype? 
@@ -1455,8 +1453,8 @@
                               specs-exprs)
 
           actual (r/-hvec [spec-map-ty 
-                           (prs/parse-type `(clojure.lang.Seqable String))
-                           (prs/parse-type `String)])
+                           (prs/parse-type `(t/Seqable t/Str))
+                           (prs/parse-type `t/Str)])
           _ (when expected
               (when-not (sub/subtype? actual (r/ret-t expected))
                 (cu/expected-error 
@@ -1617,7 +1615,8 @@
                   (set-erase-atoms expr cred)
                   cred))))))
       (prepare-check-fn env expr
-        (if expected
+        (if (and expected
+                 (not (r/infer-any? (r/ret-t expected))))
           (fn/check-fn expr expected)
           (if (and r/enable-symbolic-closures?
                    ;; check thunks eagerly
@@ -1759,14 +1758,13 @@
             (err/int-error "MultiFn name must be a literal string"))
         mm-qual (symbol (str (cu/expr-ns expr)) mm-name)
         cdisp (check-expr dispatch-expr)
-        expected-mm-disp (multi/expected-dispatch-type (or (when expected
-                                                             (r/ret-t expected))
-                                                           (r/ret-t (u/expr-type cdisp))))
+        ;_ (prn "cdisp type" (r/ret-t (u/expr-type cdisp)) expected)
+        expected-mm-disp (multi/expected-dispatch-type (r/ret-t (or expected (u/expr-type cdisp))))
+        ;_ (prn "expected-mm-disp" expected-mm-disp)
         ;; use the dispatch expected type when expected not available,
         ;; this way the type of the entire multimethod must correspond
         ;; to the inputs accepted by the dispatch function.
-        expected-t (or (when expected
-                         (r/ret-t expected))
+        expected-t (or (some-> expected r/ret-t)
                        expected-mm-disp)
         _ (assert (r/Type? expected-t))
         _ (when-not (sub/subtype? (-> cdisp u/expr-type r/ret-t) expected-mm-disp)

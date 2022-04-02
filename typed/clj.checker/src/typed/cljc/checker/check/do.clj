@@ -57,8 +57,7 @@
                       (not @reachable-atom) [env (assoc-in cexprs [n u/expr-type]
                                                            (r/ret (r/Bottom)
                                                                   (fo/-unreachable-filter)
-                                                                  orep/-empty
-                                                                  (r/-flow fl/-bot)))]
+                                                                  orep/-empty))]
                       :else
                       (let [expr (get cexprs n)
                             _ (assert (map? expr))
@@ -70,16 +69,11 @@
                                     (var-env/with-lexical-env env
                                       (check expr
                                              ;propagate expected type only to final expression
-                                             (when (== (inc n) nexprs)
+                                             (when (= (inc n) nexprs)
                                                expected))))
                             res (u/expr-type cexpr)
-                            ;_ (prn "cexpr in do" res)
-                            flow (-> res r/ret-flow r/flow-normal)
-                            ;_ (prn flow)
-                            ;add normal flow filter
-                            nenv (if (fl/NoFilter? flow)
-                                   env
-                                   (update/env+ env [flow] reachable-atom))
+                            {fs+ :then fs- :else} (r/ret-f res)
+                            nenv (update/env+ env [(fo/-or fs+ fs-)] reachable-atom)
                             _ (u/trace-when-let
                                 [ls (seq (cu/find-updated-locals (:l env) (:l nenv)))]
                                 (str "Updated local in exceptional control flow (do): " ls))
@@ -94,8 +88,7 @@
                                            (assoc cexpr 
                                                   u/expr-type (r/ret (r/Bottom)
                                                                      (fo/-unreachable-filter)
-                                                                     orep/-empty
-                                                                     (r/-flow fl/-bot))))])))))
+                                                                     orep/-empty)))])))))
                   [(lex/lexical-env) exprs] (range nexprs))
           _ (assert (= (count cexprs) nexprs))
           actual-types (mapv u/expr-type cexprs)

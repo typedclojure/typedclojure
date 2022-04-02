@@ -442,6 +442,8 @@
   (defn -simple-filter [] @f))
 (let [f (delay (-FS fr/-bot fr/-bot))]
   (defn -unreachable-filter [] @f))
+(let [f (delay (-FS fr/-infer-top fr/-infer-top))]
+  (defn -infer-filter [] @f))
 
 ;; true if f1 is implied by f2
 ;; (implied-atomic? (is Number 0) (is Integer 0)) ;=> true

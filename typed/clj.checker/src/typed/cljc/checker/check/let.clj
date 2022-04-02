@@ -28,7 +28,7 @@
             [typed.cljc.checker.utils :as u]
             [typed.cljc.checker.var-env :as var-env]))
 
-(defn update-env [env sym {:keys [t fl flow o] :as r} is-reachable]
+(defn update-env [env sym {:keys [t fl o] :as r} is-reachable]
   {:pre [(lex/PropEnv?-workaround env)
          (simple-symbol? sym)
          (r/TCResult? r)
@@ -57,7 +57,7 @@
         new-env (-> env
                     ;update binding type
                     (lex/extend-env sym t o)
-                    (update/env+ (cons (:normal flow) p*) is-reachable))]
+                    (update/env+ p* is-reachable))]
     new-env))
 
 ;now we return a result to the enclosing scope, so we
@@ -73,8 +73,7 @@
             (-> ty
                 (update :t subst-obj/subst-type sym obj/-empty true)
                 (update :fl subst-obj/subst-filter-set sym obj/-empty true)
-                (update :o subst-obj/subst-object sym obj/-empty true)
-                (update-in [:flow :normal] subst-obj/subst-filter sym obj/-empty true)))
+                (update :o subst-obj/subst-object sym obj/-empty true)))
           ret
           syms))
 

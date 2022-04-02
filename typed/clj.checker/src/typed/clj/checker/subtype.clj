@@ -1236,35 +1236,23 @@
     :else (report-not-subtypes f1 f2)))
 
 
-(defn ^:private subtype-flow-set* [A fs1 fs2]
-  {:pre [(r/FlowSet? fs1)
-         (r/FlowSet? fs2)]}
-  (let [n1 (fully-resolve-filter (:normal fs1))
-        n2 (fully-resolve-filter (:normal fs2))]
-    (if (= n1 n2)
-      A
-      (report-not-subtypes fs1 fs2))))
-
 (defn subtype-Result
   [A
-   {t1 :t f1 :fl o1 :o flow1 :flow :as s}
-   {t2 :t f2 :fl o2 :o flow2 :flow :as t}]
+   {t1 :t f1 :fl o1 :o :as s}
+   {t2 :t f2 :fl o2 :o :as t}]
   (cond
     ;trivial case
     (and (= o1 o2)
-         (subtype-filter-set* A f1 f2)
-         (subtype-flow-set* A flow1 flow2))
+         (subtype-filter-set* A f1 f2))
     (subtypeA* A t1 t2)
 
     ;we can ignore some interesting results
     (and (orep/EmptyObject? o2)
-         (= f2 (fops/-FS fr/-top fr/-top))
-         (= flow2 (r/-flow fr/-top)))
+         (= f2 (fops/-FS fr/-top fr/-top)))
     (subtypeA* A t1 t2)
 
     (and (orep/EmptyObject? o2)
-         (= f1 f2)
-         (= flow2 (r/-flow fr/-top)))
+         (= f1 f2))
     (subtypeA* A t1 t2)
 
     ;special case for (& (is y sym) ...) <: (is y sym)
@@ -1273,7 +1261,6 @@
          (every? fops/atomic-filter? (:fs (:then f1)))
          (= 1 (count (filter fr/TypeFilter? (:fs (:then f1)))))
          (= fr/-top (:else f2))
-         (= flow1 flow2 (r/-flow fr/-top))
          (= o1 o2))
     (let [f1-tf (first (filter fr/TypeFilter? (:fs (:then f1))))]
       (if (= f1-tf (:then f2))

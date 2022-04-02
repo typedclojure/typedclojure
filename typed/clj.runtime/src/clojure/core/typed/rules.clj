@@ -26,8 +26,6 @@
                              :else t/Any})
            ;; the object
            :object t/Any
-           ;; the flow filter
-           :flow t/Any
            :opts (t/HMap :optional
                          {:msg-fn [MsgFnOpts -> t/Str]
                           :blame-form t/Any})}))
@@ -284,7 +282,7 @@
                                   (solve-subtype '[x]
                                                  (fn [x]
                                                    [(:type expected) `(t/U nil (t/Seqable ~x))])))
-        ;; TODO check-below of filters/object/flow
+        ;; TODO check-below of filters/object
         errored? (when expected
                    (when-not (subtype? `(t/Seq t/Nothing) (:type expected))
                      (delayed-error (str "'for' expression returns a seq, but surrounding context expected it to return "
@@ -306,7 +304,6 @@
                           {:type `^::t/infer t/Any
                            :filters {:then 'no-filter
                                      :else 'no-filter}
-                           :flow 'no-filter
                            :object 'no-object})]
     (update expected :opts 
             ;; earlier messages override later ones

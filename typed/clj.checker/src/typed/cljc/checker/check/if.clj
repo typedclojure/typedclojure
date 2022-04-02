@@ -25,9 +25,9 @@
     [env @reachable]))
 
 (defn combine-rets [{fs+ :then fs- :else :as tst-ret}
-                    {ts :t fs2 :fl os2 :o flow2 :flow :as then-ret}
+                    {ts :t fs2 :fl os2 :o :as then-ret}
                     env-thn
-                    {us :t fs3 :fl os3 :o flow3 :flow :as else-ret}
+                    {us :t fs3 :fl os3 :o :as else-ret}
                     env-els]
   (let [then-reachable? (not= r/-nothing ts)
         else-reachable? (not= r/-nothing us)
@@ -60,20 +60,13 @@
         object (cond
                  (not then-reachable?) os3
                  (not else-reachable?) os2
-                 :else (if (= os2 os3) os2 obj/-empty))
-        flow (cond
-               (not then-reachable?) flow3
-               (not else-reachable?) flow2
-               :else
-               (r/-flow (fo/-or (:normal flow2)
-                                (:normal flow3))))]
-    (r/ret type filter object flow)))
+                 :else (if (= os2 os3) os2 obj/-empty))]
+    (r/ret type filter object)))
 
 (defn unreachable-ret []
   (r/ret r/-nothing
          (fo/-unreachable-filter)
-         obj/-empty
-         (r/-flow fl/-bot)))
+         obj/-empty))
 
 (defn check-if-reachable [check-fn expr lex-env reachable? expected]
   {:pre [(lex/PropEnv? lex-env)

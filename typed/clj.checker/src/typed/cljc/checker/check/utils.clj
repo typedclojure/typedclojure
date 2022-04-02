@@ -543,7 +543,6 @@
     {:type (prs/unparse-type (:t ret))
      :filters (prs/unparse-filter-set (:fl ret))
      :object (prs/unparse-object (:o ret))
-     :flow (prs/unparse-filter (-> ret :flow :normal))
      :opts (not-empty (:opts ret))}))
                                    
 (defn map->TCResult [expected]
@@ -551,7 +550,7 @@
          (map? expected)
          (empty?
            (set/difference (set (keys expected))
-                           #{:type :filters :object :flow :opts}))
+                           #{:type :filters :object :opts}))
          (empty?
            (set/difference (set (keys (:filters expected)))
                            #{:then :else}))
@@ -573,11 +572,7 @@
              (fo/-simple-filter))
            (if-let [[_ o] (find expected :object)]
              (prs/parse-object o)
-             obj/-empty)
-           (r/-flow
-             (if-let [[_ flow] (find expected :flow)]
-               (prs/parse-filter flow)
-               fl/-top)))
+             obj/-empty))
     (assoc :opts (or (:opts expected) {}))))
 
 (defn maybe-map->TCResult [m]

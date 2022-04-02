@@ -15,11 +15,6 @@
             [typed.cljc.checker.check-below :as below]
             [typed.cljc.checker.type-rep :as r]))
 
-(defn flow-for-value []
-  (let [props (:props (lex/lexical-env))
-        flow (r/-flow (apply fo/-and fl/-top props))]
-    flow))
-
 (defn filter-for-value [val]
   (if val
     (fo/-FS fl/-top fl/-bot)
@@ -37,7 +32,6 @@
    :post [(-> % u/expr-type r/TCResult?)]}
   (let [inferred-ret (r/ret (constant-type val quoted?)
                             (filter-for-value val)
-                            obj/-empty
-                            (flow-for-value))]
+                            obj/-empty)]
     (assoc expr
            u/expr-type (below/maybe-check-below inferred-ret expected))))

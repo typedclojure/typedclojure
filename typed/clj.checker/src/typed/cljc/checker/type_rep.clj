@@ -812,14 +812,10 @@
   {:post [(KwArgsArray? %)]}
   (KwArgsArray-maker (apply -kw-args opt)))
 
-; must go before Result
-(u/ann-record FlowSet [normal :- p/IFilter])
-
 ;must go before Function
 (u/ann-record Result [t :- Type,
                       fl :- p/IFilterSet
-                      o :- p/IRObject
-                      flow :- FlowSet])
+                      o :- p/IRObject])
 
 (u/ann-record Function [dom :- (t/Seqable Type),
                         rng :- Result,
@@ -966,14 +962,11 @@
   :methods
   [p/TCType])
 
-(declare FlowSet?)
-
-(u/def-type Result [t fl o flow]
+(u/def-type Result [t fl o]
   "A result type with filter f and object o. NOT a type."
   [(Type? t)
    (p/IFilterSet? fl)
-   (p/IRObject? o)
-   (FlowSet? flow)]
+   (p/IRObject? o)]
   :methods
   [p/TCAnyType])
 
@@ -982,20 +975,19 @@
 (u/ann-record TCResult [t :- Type
                         fl :- p/IFilterSet
                         o :- p/IRObject
-                        flow :- FlowSet
                         opts :- (t/Map t/Any t/Any)])
 
 (t/ann Result->TCResult [Result -> TCResult])
-(defn Result->TCResult [{:keys [t fl o flow] :as r}]
+(defn Result->TCResult [{:keys [t fl o] :as r}]
   {:pre [(Result? r)]
    :post [(TCResult? %)]}
-  (ret t fl o flow))
+  (ret t fl o))
 
 (t/ann TCResult->Result [TCResult -> Result])
-(defn TCResult->Result [{:keys [t fl o flow] :as r}]
+(defn TCResult->Result [{:keys [t fl o] :as r}]
   {:pre [(Result? r)]
    :post [(TCResult? %)]}
-  (make-Result t fl o flow))
+  (make-Result t fl o))
 
 (t/ann Result-type* [Result -> Type])
 (defn Result-type* [r]
@@ -1015,12 +1007,6 @@
    :post [(p/IRObject? %)]}
   (:o r))
 
-(t/ann ^:no-check Result-flow* [Result -> FlowSet])
-(defn Result-flow* [r]
-  {:pre [(Result? r)]
-   :post [(FlowSet? %)]}
-  (:flow r))
-
 (t/ann no-bounds Bounds)
 (def no-bounds (Bounds-maker -any (Un) nil))
 
@@ -1028,47 +1014,32 @@
 (defn -bounds [u l]
   (Bounds-maker u l nil))
 
-(u/def-type FlowSet [normal]
-  "The filter that is true when an expression returns normally ie. not an exception."
-  [(p/IFilter? normal)]
-  :methods
-  [p/IFilter])
-
-(u/def-type TCResult [t fl o flow opts]
-  "This record represents the result of typechecking an expression"
+(u/def-type TCResult [t fl o opts]
+  "This record represents the result of type-checking an expression"
   [(Type? t)
    (p/IFilterSet? fl)
    (p/IRObject? o)
-   (FlowSet? flow)
    (map? opts)]
   ;:methods
   ;[p/TCAnyType]
   )
 
-(t/ann -flow [p/IFilter -> FlowSet])
-(defn -flow [normal]
-  (FlowSet-maker normal))
-
 (t/ann ^:no-check ret
        (t/IFn [Type -> TCResult]
               [Type p/IFilterSet -> TCResult]
-              [Type p/IFilterSet p/IRObject -> TCResult]
-              [Type p/IFilterSet p/IRObject FlowSet -> TCResult]))
+              [Type p/IFilterSet p/IRObject -> TCResult]))
 (defn ret
   "Convenience function for returning the type of an expression"
   ([t] 
-   (ret t (ind/-FS (ind/-top-fn) (ind/-top-fn)) (ind/-empty-fn) (-flow (ind/-top-fn))))
+   (ret t (ind/-FS (ind/-top-fn) (ind/-top-fn)) (ind/-empty-fn)))
   ([t f] 
-   (ret t f (ind/-empty-fn) (-flow (ind/-top-fn))))
-  ([t f o] 
-   (ret t f o (-flow (ind/-top-fn))))
-  ([t f o flow]
+   (ret t f (ind/-empty-fn)))
+  ([t f o]
    {:pre [(AnyType? t)
           (p/IFilterSet? f)
-          (p/IRObject? o)
-          (FlowSet? flow)]
+          (p/IRObject? o)]
     :post [(TCResult? %)]}
-   (TCResult-maker t f o flow {})))
+   (TCResult-maker t f o {})))
 
 (t/ann ret-t [TCResult -> Type])
 (defn ret-t [r]
@@ -1088,18 +1059,6 @@
    :post [(p/IRObject? %)]}
   (:o r))
 
-(t/ann ret-flow [TCResult -> FlowSet])
-(defn ret-flow [r]
-  {:pre [(TCResult? r)]
-   :post [(FlowSet? %)]}
-  (:flow r))
-
-(t/ann ^:no-check flow-normal [FlowSet -> p/IFilter])
-(defn flow-normal [f]
-  {:pre [(FlowSet? f)]
-   :post [(p/IFilter? %)]}
-  (:normal f))
-
 ;; Utils
 ;; It seems easier to put these here because of dependencies
 
@@ -1118,18 +1077,15 @@
 (t/ann ^:no-check make-Result
        (t/IFn [Type -> Result]
               [Type (t/Nilable p/IFilterSet) -> Result]
-              [Type (t/Nilable p/IFilterSet) (t/Nilable p/IRObject) -> Result]
-              [Type (t/Nilable p/IFilterSet) (t/Nilable p/IRObject) (t/Nilable FlowSet) -> Result]))
+              [Type (t/Nilable p/IFilterSet) (t/Nilable p/IRObject) -> Result]))
 (defn make-Result
   "Make a result. ie. the range of a Function"
-  ([t] (make-Result t nil nil nil))
-  ([t f] (make-Result t f nil nil))
-  ([t f o] (make-Result t f o nil))
-  ([t f o flow]
+  ([t] (make-Result t nil nil))
+  ([t f] (make-Result t f nil))
+  ([t f o]
    (Result-maker t 
-                 (or f (ind/-FS (ind/-top-fn) (ind/-top-fn))) 
-                 (or o (ind/-empty-fn)) 
-                 (or flow (-flow (ind/-top-fn))))))
+                 (or f (ind/-FS (ind/-top-fn) (ind/-top-fn))) ;;TODO use (fo/-simple-filter)
+                 (or o (ind/-empty-fn)))))
 
 (t/ann ^:no-check make-Function
        [(t/Seqable Type)
@@ -1138,7 +1094,6 @@
         {:rest (t/Nilable Type) :drest (t/Nilable Type) :prest (t/Nilable Type)
          :pdot (t/Nilable DottedPretype)
          :filter (t/Nilable p/IFilterSet) :object (t/Nilable p/IRObject)
-         :flow (t/Nilable FlowSet)
          :mandatory-kws (t/Nilable (t/Map Type Type))
          :optional-kws (t/Nilable (t/Map Type Type))}
         -> Function])
@@ -1146,10 +1101,11 @@
   "Make a function, wrap range type in a Result.
   Accepts optional :filter and :object parameters that default to the most general filter
   and EmptyObject"
-  [dom rng & {:keys [rest drest prest pdot filter object mandatory-kws optional-kws flow] :as opt}]
+  [dom rng & {:keys [rest drest prest pdot filter object mandatory-kws optional-kws] :as opt}]
   {:pre [(every? keyword? (keys opt))]}
+  (assert (not (:flow opt)) "removed this feature")
   (Function-maker dom
-                  (make-Result rng filter object flow)
+                  (make-Result rng filter object)
                   rest
                   drest
                   (when (or mandatory-kws optional-kws)

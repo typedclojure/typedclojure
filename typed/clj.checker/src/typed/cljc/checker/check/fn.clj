@@ -16,7 +16,7 @@
             [typed.cljc.checker.check.utils :as cu]))
 
 ;[FnExpr (Option Type) -> Expr]
-(defn check-fn 
+(defn check-fn
   "Check a fn to be under expected and annotate the inferred type"
   [{:keys [methods] :as fexpr} expected]
   {:pre [(r/TCResult? expected)

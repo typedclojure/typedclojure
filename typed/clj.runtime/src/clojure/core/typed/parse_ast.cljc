@@ -879,7 +879,6 @@
            :rng Type
            :filter FilterSet
            :object FObject
-           :flow Filter
            :children (t/Vec t/Kw)}
           :optional
           {:rest Type
@@ -913,7 +912,7 @@
         _ (when-not (#{0 1} (count (filter identity [asterix-pos ellipsis-pos ampersand-pos push-rest-pos push-dot-pos])))
             (err/int-error "Can only provide one rest argument option: & ... * or <*"))
 
-        _ (when-let [ks (seq (remove #{:filters :object :flow} (keys opts)))]
+        _ (when-let [ks (seq (remove #{:filters :object} (keys opts)))]
             (err/int-error (str "Invalid function keyword option/s: " ks)))
 
         filters (when-let [[_ fsyn] (find opts :filters)]
@@ -921,9 +920,6 @@
 
         object (when-let [[_ obj] (find opts :object)]
                  (parse-object obj))
-
-        flow (when-let [[_ obj] (find opts :flow)]
-               (parse-filter obj))
 
         fixed-dom (cond 
                     asterix-pos (take (dec asterix-pos) all-dom)
@@ -974,8 +970,7 @@
        :rng (parse rng)
        :filter filters
        :object object
-       :flow flow
-       :children (vec (concat [:dom :rng :filter :object :flow]
+       :children (vec (concat [:dom :rng :filter :object]
                               (when asterix-pos
                                 [:rest])
                               (when ellipsis-pos

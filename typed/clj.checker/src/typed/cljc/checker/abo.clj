@@ -79,15 +79,6 @@
               (abo ids keys fs-)))
     (fl/NoFilter? fs) (fo/-FS fl/-top fl/-top)))
 
-;[(Seqable t/Sym) (Seqable AnyInteger) FlowSet
-;  -> (U NoFilter FilterSet)]
-(defn abstract-flow [ids keys fs]
-  {:pre [(every? symbol? ids)
-         (every? integer? keys)
-         (r/FlowSet? fs)]
-   :post [(r/FlowSet? %)]}
-  (r/FlowSet-maker (abo ids keys (:normal fs))))
-
 (fold/add-fold-case IAboFold abo-fold*
   TypeFilter
   (fn [{:keys [type path id] :as fl} lookup]
@@ -151,5 +142,4 @@
     (r/make-Result
       (abstract-type   arg-names keys (r/ret-t result))
       (abstract-filter arg-names keys (r/ret-f result))
-      (abstract-object arg-names keys (r/ret-o result))
-      (abstract-flow   arg-names keys (r/ret-flow result)))))
+      (abstract-object arg-names keys (r/ret-o result)))))

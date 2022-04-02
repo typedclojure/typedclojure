@@ -45,7 +45,7 @@
                                         PrimitiveArray DataType Protocol TypeFn Poly PolyDots
                                         Mu HeterogeneousMap
                                         CountRange Name Value Top Unchecked TopFunction B F Result
-                                        TCResult TCError FlowSet Extends
+                                        TCResult TCError Extends
                                         JSNumber CLJSInteger JSObject JSString ArrayCLJS
                                         JSBoolean AssocType GetType KwArgsSeq KwArgs HSequential HSet
                                         JSUndefined JSNull JSSymbol JSObj TypeOf SymbolicClosure)
@@ -2507,9 +2507,7 @@
                             (-> r1 :fl :else)))
                  (if (= (-> r1 :o) (-> r2 :o))
                    (-> r1 :o)
-                   or/-empty)
-                 (ind/-or (-> r1 :flow)
-                          (-> r1 :flow))))
+                   or/-empty)))
 
 (defn intersect-Results [r1 r2]
   {:pre [(r/Result? r1)
@@ -2523,9 +2521,7 @@
                              (-> r1 :fl :else)))
                  (if (= (-> r1 :o) (-> r2 :o))
                    (-> r1 :o)
-                   or/-empty)
-                 (ind/-and (-> r1 :flow)
-                           (-> r1 :flow))))
+                   or/-empty)))
 )
 
 ;; =====================================================
@@ -2793,8 +2789,7 @@
                          (-> ty
                              (update :t type-rec)
                              (update :fl filter-rec)
-                             (update :o object-rec)
-                             (update :flow filter-rec))))
+                             (update :o object-rec))))
 
 (comment
   (repeatedly)
@@ -2807,8 +2802,7 @@
                                 (-> ty
                                     (update :t type-rec)
                                     (update :fl filter-rec)
-                                    (update :o object-rec)
-                                    (update :flow filter-rec)))))
+                                    (update :o object-rec)))))
     (nth 2)
     clojure.pprint/pprint)
 )
@@ -2865,10 +2859,6 @@
                            (filter-rec (.then ty))
                            (filter-rec (.else ty)))))
 
-(add-default-fold-case FlowSet
-                       (fn [^FlowSet ty]
-                         (r/-flow (filter-rec (.normal ty)))))
-
 
 ;objects
 (add-default-fold-case EmptyObject ret-first)
@@ -2896,5 +2886,4 @@
                          (-> ty
                              (update :t type-rec)
                              (update :fl filter-rec)
-                             (update :o object-rec)
-                             (update :flow filter-rec))))
+                             (update :o object-rec))))

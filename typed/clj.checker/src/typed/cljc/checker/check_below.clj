@@ -37,6 +37,25 @@
           t2)))
     s))
 
+;; returns true when f1 <: f2
+(defn filter-better? [{f1+ :then f1- :else :as f1}
+                      {f2+ :then f2- :else :as f2}]
+  {:pre [(fl/FilterSet? f1)
+         (fl/FilterSet? f2)]
+   :post [(boolean? %)]}
+  (cond
+    (= f1 f2) true
+    :else
+    (let [f+-better? (simple-filter-better? f1+ f2+)
+          f--better? (simple-filter-better? f1- f2-)] 
+      (and f+-better? f--better?))))
+
+(defn bad-filter-delayed-error [{f1 :fl :as actual} {f2 :fl :as expected}]
+  {:pre [(r/TCResult? actual)
+         (r/TCResult? expected)]}
+  (err/tc-delayed-error (str "Expected result with filter " (pr-str f2) ", got filter "  (pr-str f1))
+                        :expected expected))
+
 ;; apply f1 to the current environment, and if the type filter
 ;; is boring enough it will reflect in the updated type environment
 ;(defn can-extract-in? [env f1 f2]
@@ -59,19 +78,7 @@
    :post [(cond
             (r/TCResult? tr1) (r/TCResult? %)
             (r/Type? tr1) (r/Type? %))]}
-  (letfn [;; returns true when f1 <: f2
-          (filter-better? [{f1+ :then f1- :else :as f1}
-                           {f2+ :then f2- :else :as f2}]
-            {:pre [(fl/FilterSet? f1)
-                   (fl/FilterSet? f2)]
-             :post [(boolean? %)]}
-            (cond
-              (= f1 f2) true
-              :else
-              (let [f+-better? (simple-filter-better? f1+ f2+)
-                    f--better? (simple-filter-better? f1- f2-)] 
-                (and f+-better? f--better?))))
-          ;; returns true when o1 <: o2
+  (letfn [;; returns true when o1 <: o2
           (object-better? [o1 o2]
             {:pre [(obj/RObject? o1)
                    (obj/RObject? o2)]
@@ -79,16 +86,6 @@
             (cond
               (= o1 o2) true
               ((some-fn obj/NoObject? obj/EmptyObject?) o2) true
-              :else false))
-          ;; returns true when f1 <: f2
-          (flow-better? [{flow1 :normal :as f1}
-                         {flow2 :normal :as f2}]
-            {:pre [((every-pred r/FlowSet?) f1 f2)]
-             :post [(boolean? %)]}
-            (cond
-              (= flow1 flow2) true
-              (fl/NoFilter? flow2) true
-              (sub/subtype-filter? flow1 flow2) true
               :else false))
           (choose-result-type [t1 t2]
             {:pre [(r/Type? t1)
@@ -148,21 +145,16 @@
                                (:else exp-f))))
                    (let [exp-o (r/ret-o expected)
                          tr-o (r/ret-o tr1)]
-                     (if (obj/NoObject? exp-o)
+                     (if ((some-fn obj/NoObject? obj/infer-obj?) exp-o)
                        tr-o
-                       exp-o))
-                   (let [exp-flow (r/ret-flow expected)
-                         tr-flow (r/ret-flow tr1)]
-                     ;(prn "choose flow" tr-flow exp-flow (fl/infer-top? (:normal exp-flow)))
-                     (cond ((some-fn fl/infer-top? fl/NoFilter?) (:normal exp-flow)) tr-flow
-                           :else exp-flow))))]
+                       exp-o))))]
     ;tr1 = arg
     ;expected = dom
     (cond
       (and (r/TCResult? tr1)
            (r/TCResult? expected))
-      (let [{t1 :t f1 :fl o1 :o flow1 :flow} tr1
-            {t2 :t f2 :fl o2 :o flow2 :flow} expected]
+      (let [{t1 :t f1 :fl o1 :o} tr1
+            {t2 :t f2 :fl o2 :o} expected]
         (cond
           (not (subtype? t1 t2)) (cu/expected-error t1 expected)
 
@@ -170,17 +162,11 @@
           (let [better-fs? (filter-better? f1 f2)
                 ;_ (prn "better-fs?" better-fs? f1 f2)
                 better-obj? (object-better? o1 o2)
-                better-flow? (flow-better? flow1 flow2)
-                ;_ (prn "better-flow?" better-flow? flow1 flow2)
                 ]
             (cond
-              (not better-flow?) (err/tc-delayed-error (str "Expected result with flow filter " (pr-str flow2) 
-                                                            ", got flow filter "  (pr-str flow1))
-                                                       :expected expected)
               (and (not better-fs?)
                    better-obj?)
-              (err/tc-delayed-error (str "Expected result with filter " (pr-str f2) ", got filter "  (pr-str f1))
-                                    :expected expected)
+              (bad-filter-delayed-error tr1 expected)
 
               (and better-fs? 
                    (not better-obj?))

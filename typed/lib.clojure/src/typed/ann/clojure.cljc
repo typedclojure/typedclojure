@@ -1764,6 +1764,10 @@ cc/class (t/IFn [nil -> nil :object {:id 0 :path [Class]}]
 
 ; need better metadata support if this even has a chance of working
 ; like class
+;; idea: provide global registry of :type mappings to qualified keywords.
+;; users can register their types to opt in. Add a new path element so we
+;; can refine the type if the result is found to be a kw (and if the arg has immutable metadata),
+;; eg., cc/type [t/Any -> t/Any :obj {:id 0 :path [Type]}]
 cc/type [t/Any -> t/Any]
 
 cc/seq (t/All [x] (t/IFn [(t/NonEmptyColl x) -> (t/NonEmptyASeq x)

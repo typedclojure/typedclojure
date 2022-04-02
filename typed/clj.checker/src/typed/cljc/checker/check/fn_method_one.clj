@@ -13,6 +13,7 @@
             [clojure.core.typed.errors :as err]
             [clojure.core.typed.util-vars :as vs]
             [typed.cljc.analyzer :as ana2]
+            [typed.cljc.checker.check-below :as below]
             [typed.clj.analyzer.passes.beta-reduce :as beta-reduce]
             [typed.clj.checker.analyze-clj :as ana-clj]
             [typed.clj.checker.parse-unparse :as prs]
@@ -36,7 +37,6 @@
             [typed.cljc.checker.var-env :as var-env]))
 
 ;check method is under a particular Function, and return inferred Function
-; if ignore-rng is true, otherwise return expression with original expected type.
 ;
 ; check-fn-method1 exposes enough wiring to support the differences in deftype
 ; methods and normal methods via `fn`.
@@ -52,7 +52,7 @@
 ;
 ;[MethodExpr Function -> {:ftype Function :cmethod Expr}]
 (defn check-fn-method1 [method {:keys [dom rest drest kws prest pdot] :as expected}
-                        & {:keys [recur-target-fn ignore-rng]}]
+                        & {:keys [recur-target-fn]}]
   {:pre [(r/Function? expected)]
    :post [(r/Function? (:ftype %))
           (-> % :cmethod :clojure.core.typed/ftype r/Function?)
@@ -62,10 +62,7 @@
                      (:op method))
     ; is there a better :op check here?
     :cljs (assert method))
-  (let [ignore-rng (or ignore-rng
-                       (r/infer-any? (-> expected :rng :t)))
-        ;_ (prn "ignore-rng" ignore-rng)
-        method (-> method
+  (let [method (-> method
                    ana2/run-pre-passes
                    (ast-u/visit-method-params ana2/run-passes))
         body ((ast-u/method-body-kw) method)
@@ -90,14 +87,17 @@
         ;
         ;       (HVec [(U nil Class) (U nil Class)]
         ;              :objects [{:path [Class], :id a} {:path [Class], :id b}])
-        expected-rng (when-not ignore-rng
-                       (open-result/open-Result->TCResult
-                         (:rng expected)
-                         (map param-obj
-                              (concat required-params
-                                      (some-> rest-param list)))))
-        ;_ (prn "open-result expected-rng" expected-rng)
-        ;_ (prn "open-result expected-rng filters" (some->> expected-rng :fl ((juxt :then :else)) (map fl/infer-top?)))
+        open-expected-rng (open-result/open-Result->TCResult
+                            (:rng expected)
+                            (map param-obj
+                                 (concat required-params
+                                         (some-> rest-param list))))
+        open-expected-filters (:fl open-expected-rng)
+        _ (assert (fl/FilterSet? open-expected-filters))
+        open-expected-rng-no-filters (assoc open-expected-rng :fl (fo/-infer-filter))
+        _ (assert (r/TCResult? open-expected-rng-no-filters))
+        ;_ (prn "open-result open-expected-rng-no-filters" open-expected-rng-no-filters expected)
+        ;_ (prn "open-result open-expected-rng filters" (some->> open-expected-rng-no-filters :fl ((juxt :then :else)) (map fl/infer-top?)))
         ;ensure Function fits method
         _ (when-not (or ((if (or rest drest kws prest pdot) <= =) (count required-params) (count dom))
                         rest-param)
@@ -154,7 +154,7 @@
 
         env (let [env (-> (lex/lexical-env)
                           ;add mm-filter
-                          (assoc :props (set (concat props (when mm-filter [mm-filter]))))
+                          (assoc :props (cond-> (set props) mm-filter (conj mm-filter)))
                           ;add parameters to scope
                           ;IF UNHYGIENIC order important, (fn [a a & a]) prefers rightmost name
                           (update :l merge (into {} fixed-entry) (into {} rest-entry)))
@@ -165,7 +165,7 @@
                 (err/int-error "Unreachable method: Local inferred to be bottom when applying multimethod filter"))
               env)
 
-        ; rng before adding new filters
+        ; rng with inferred filters, and before manually inferring new filters
         crng-nopass
         (binding [multi-u/*current-mm* nil]
           (var-env/with-lexical-env env
@@ -200,7 +200,7 @@
                                                            (:env method))})
                                    ana/run-passes))
                              body)]
-                  (check-expr body expected-rng))))))
+                  (check-expr body open-expected-rng-no-filters))))))
 
         ; Apply the filters of computed rng to the environment and express
         ; changes to the lexical env as new filters, and conjoin with existing filters.
@@ -219,9 +219,22 @@
                                   #{}
                                   (:l then-env))
 
-        crng (update-in crng-nopass [u/expr-type :fl :then]
-                        (fn [f]
-                          (apply fo/-and f new-then-props)))
+        crng+inferred-filters (update-in crng-nopass [u/expr-type :fl :then]
+                                         (fn [f]
+                                           (apply fo/-and f new-then-props)))
+        ;_ (prn "open-expected-filters" open-expected-filters)
+        crng (if (= open-expected-filters (fo/-infer-filter))
+               ;; infer mode
+               (do ;(prn "infer mode" multi-u/*current-mm*)
+                   crng+inferred-filters)
+               ;; check actual filters and fill in expected filters
+               (let [;_ (prn "check mode" multi-u/*current-mm*)
+                     {actual-filters :fl :as actual-ret} (u/expr-type crng+inferred-filters)
+                     _ (when-not (below/filter-better? actual-filters open-expected-filters)
+                         (below/bad-filter-delayed-error
+                           actual-ret
+                           (assoc open-expected-rng-no-filters :fl open-expected-filters)))]
+                 (assoc-in crng+inferred-filters [u/expr-type :fl] open-expected-filters)))
         ;_ (prn "crng" (u/expr-type crng))
         rest-param-name (some-> rest-param :name)
 
@@ -239,6 +252,7 @@
                   (when (and pdot rest-param)
                     [rest-param-name pdot])
                   (u/expr-type crng)))
+        _ (assert (r/Function? ftype))
                         
         cmethod (-> method
                     (assoc (ast-u/method-body-kw) crng

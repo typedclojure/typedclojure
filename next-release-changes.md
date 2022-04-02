@@ -4,3 +4,7 @@
 - add `minimal-clj` example project to test typed.clj.checker in isolation without cljs deps
 - add `clojure.core/defprotocol` rule for clj{s}
 - add `cljs.core/implements?` rule for cljs
+- fix filter checking for composite predicates by checking filter after inferring body filter
+  - enables eg., `(defn sym-or-kw? [a] (or (symbol? a) (keyword? a)))`
+- Breaking: remove `:flow` filters
+  - Andrew M Kent (@pnwamk) figured out this was redundant with `:filters` around 2015.

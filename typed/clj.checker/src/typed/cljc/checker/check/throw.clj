@@ -21,10 +21,9 @@
   (let [cexception (check exception exception-expected)
         ret (below/maybe-check-below
               (r/ret (c/Un)
-                     (fo/-unreachable-filter)
-                     obj/-empty
                      ;never returns normally
-                     (r/-flow fl/-bot))
+                     (fo/-unreachable-filter)
+                     obj/-empty)
               expected)]
     (assoc expr
            :exception cexception

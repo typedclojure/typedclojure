@@ -24,8 +24,7 @@
                  (apply fo/-or (map (comp :else r/ret-f) rs)))
          (if (apply = (map r/ret-o rs))
            (r/ret-o (first rs))
-           o/-empty)
-         (r/-flow (apply fo/-or (map (comp :normal r/ret-flow) rs))))) 
+           o/-empty))) 
 
 ; filters don't propagate between components of a `try`, nor outside of it.
 (defn check-try [check {:keys [body catches finally] :as expr} expected]

@@ -66,16 +66,14 @@
                 method
                 (r/make-Function dom (or (when (r/Result? rng)
                                            (r/Result-type* rng))
-                                         r/-any) 
+                                         r/-infer-any)
                                  :rest rest 
                                  :drest drest
                                  :filter (when (r/Result? rng)
                                            (r/Result-filter* rng))
-                                 :object (when (r/Result? rng)
-                                           (r/Result-object* rng))
-                                 :flow (when (r/Result? rng)
-                                         (r/Result-flow* rng)))
-                :ignore-rng (not rng))))
+                                 :object (if (r/Result? rng)
+                                           (r/Result-object* rng)
+                                           or/-infer-obj)))))
           methods)
 
         [fs cmethods] ((juxt #(map :ftype %)
@@ -144,8 +142,7 @@
                           (r/make-Result (prs/parse-type type)
                                          (fo/-FS fl/-infer-top
                                                  fl/-infer-top)
-                                         or/-no-object
-                                         (r/-flow fl/-infer-top))))))
+                                         or/-no-object)))))
      :rests (->> fn-anns
                  (map :rest)
                  (mapv (fn [{:keys [type default] :as has-rest}]
@@ -237,7 +234,7 @@
                                (seq (fn-methods/function-types (r/ret-t expected))))))]
       ;; If we have an unannotated fn macro and a good expected type, use the expected
       ;; type via check-fn, otherwise check against the expected type after a call to check-anon.
-      (if (and (all-defaults? fn-anns poly) 
+      (if (and (all-defaults? fn-anns poly)
                (good-expected? expected))
         (do ;(prn "using check-fn")
             (fn/check-fn expr expected))

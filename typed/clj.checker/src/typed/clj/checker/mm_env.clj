@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-;; FIXME make implementation-agnostic
+;; FIXME make implementation-agnostic (use typed.cljc.runtime.env)
 (ns ^:no-doc typed.clj.checker.mm-env
   (:require [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.errors :as err]
@@ -35,12 +35,15 @@
   {:pre [(symbol? mmsym)
          (r/Type? dtype)]}
   (impl/assert-clojure)
-  (when-let [old (@MULTIMETHOD-DISPATCH-ENV mmsym)]
-    (when-not (= old dtype)
-      (err/int-error 
-        (str "Inconsistent dispatch type inferred for multimethod: " mmsym
-             ".  JVM process restart probably necessary."))))
-  (swap! MULTIMETHOD-DISPATCH-ENV assoc mmsym dtype)
+  ;(prn `add-multimethod-dispatch-type mmsym dtype)
+  (swap! MULTIMETHOD-DISPATCH-ENV
+         update mmsym
+         (fn [old]
+           (when (and old (not= old dtype))
+             (err/int-error 
+               (str "Inconsistent dispatch type inferred for multimethod: " mmsym
+                    ".  JVM process restart probably necessary.")))
+           dtype))
   nil)
 
 (defn multimethod-dispatch-type 

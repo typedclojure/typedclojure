@@ -3348,8 +3348,7 @@
                    y :- t/Any]
                   :- t/Any
                   (throw (Exception. "a")))))
-        (parse-clj `[t/Any t/Any :-> t/Nothing :filters {:then ~'ff :else ~'ff} :flow ~'ff])))
-  )
+        (parse-clj `[t/Any t/Any :-> t/Nothing :filters {:then ~'ff :else ~'ff}]))))
 
 (deftest pfn-test
   (is-tc-e (fn :forall [x]
@@ -3396,26 +3395,16 @@
          -bot))
   (is (= (parse-clj `[t/Any :-> t/Any])
          (parse-clj `[t/Any :-> t/Any
-                      :filters {:then ~'tt :else ~'tt}
-                      :flow ~'tt])))
+                      :filters {:then ~'tt :else ~'tt}])))
   (is (-> (parse-clj `[t/Any :-> t/Any
-                       :filters {:then ~'ff :else ~'ff}
-                       :flow ~'tt])
+                       :filters {:then ~'ff :else ~'ff}])
           :types first :rng :fl #{(-FS -bot -bot)}))
   (is (-> (parse-clj `[t/Any :-> t/Any
-                       :filters {:then ~'ff :else ~'ff}
-                       :flow ~'tt])
+                       :filters {:then ~'ff :else ~'ff}])
           :types first :rng :fl :then BotFilter?))
   (is (-> (parse-clj `[t/Any :-> t/Any
-                       :filters {:then ~'ff :else ~'ff}
-                       :flow ~'tt])
-          :types first :rng :fl :else BotFilter?))
-  (is (-> (parse-clj `[t/Any :-> t/Any
-                       :flow ~'tt])
-          :types first :rng :flow :normal #{-top}))
-  (is (-> (parse-clj `[t/Any :-> t/Any
-                       :flow ~'ff])
-          :types first :rng :flow :normal #{-bot})))
+                       :filters {:then ~'ff :else ~'ff}])
+          :types first :rng :fl :else BotFilter?)))
 
 (deftest subtype-filter-test
   (testing "top and bot"
@@ -3471,13 +3460,16 @@
   )
 
 (deftest reduced?-test
-  (testing "a plain old object" (is-tc-e (reduced? :a)))
-  (testing "a nil"              (is-tc-e (reduced? nil)))
+  (testing "a plain old object"
+    (is-tc-e (reduced? :a)))
+  (testing "a nil"
+    (is-tc-e (reduced? nil)))
   (testing "control flow + inlining"
     (is-tc-e (let [r :- (t/U nil (clojure.lang.Reduced t/Any)) (reduced 1)]
                (when (reduced? r)
                  @r))))
-  (testing "an t/Any"             (is-tc-e (fn [x :- t/Any] (reduced? x)))))
+  (testing "an t/Any"
+    (is-tc-e (fn [x :- t/Any] (reduced? x)))))
 
 
 ;(deftest dotted-apply-test

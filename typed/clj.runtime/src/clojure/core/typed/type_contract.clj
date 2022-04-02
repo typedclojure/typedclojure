@@ -163,9 +163,9 @@
               (:PolyDots) (err/int-error "Cannot generate predicate for dotted polymorphic type")
               (:Fn) (cond
                       (== 1 (count (:arities t)))
-                      (let [{:keys [dom rng filter object flow rest drest] :as method}
+                      (let [{:keys [dom rng filter object rest drest] :as method}
                             (first (:arities t))]
-                        (if (or rest drest filter object flow)
+                        (if (or rest drest filter object)
                           (err/int-error "Cannot generate predicate for this function type")
                           `(con/ifn-c ~(mapv #(gen-inner % arg) dom)
                                       ~(gen-inner rng arg))))

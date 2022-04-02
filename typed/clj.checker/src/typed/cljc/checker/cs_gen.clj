@@ -30,7 +30,7 @@
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.utils :as u])
   (:import (typed.cljc.checker.cs_rep c cset dcon dmap cset-entry)
-           (typed.cljc.checker.type_rep F DataType Function Protocol Bounds FlowSet TCResult HSequential)))
+           (typed.cljc.checker.type_rep F DataType Function Protocol Bounds TCResult HSequential)))
 
 (t/typed-deps typed.cljc.checker.free-ops
               typed.cljc.checker.promote-demote)
@@ -1025,22 +1025,6 @@
 ;      (cs-gen-filter V X Y tf t))
     :else (fail! s t)))
 
-;must be *latent* flow sets
-(t/ann cs-gen-flow-set [NoMentions ConstrainVars ConstrainVars FlowSet FlowSet
-                        -> cset])
-(defn cs-gen-flow-set [V X Y s t]
-  {:pre [((con/set-c? symbol?) V)
-         (every? (con/hash-c? symbol? r/Bounds?) [X Y])
-         (r/FlowSet? s)
-         (r/FlowSet? t)]
-   :post [(cr/cset? %)]}
-  (cond
-    (= s t) (cr/empty-cset X Y)
-    :else
-    (let [{n1 :normal} s
-          {n2 :normal} t]
-      (cs-gen-filter V X Y n1 n2))))
-
 ;must be *latent* filter sets
 (t/ann cs-gen-filter-set [NoMentions ConstrainVars ConstrainVars fr/Filter fr/Filter
                           -> cset])
@@ -1119,8 +1103,7 @@
          (r/Result? T)]}
   (cset-meet* [(cs-gen V X Y (r/Result-type* S) (r/Result-type* T))
                (cs-gen-filter-set V X Y (r/Result-filter* S) (r/Result-filter* T))
-               (cs-gen-object V X Y (r/Result-object* S) (r/Result-object* T))
-               (cs-gen-flow-set V X Y (r/Result-flow* S) (r/Result-flow* T))]))
+               (cs-gen-object V X Y (r/Result-object* S) (r/Result-object* T))]))
 
 (t/ann cs-gen-datatypes-or-records
        [NoMentions ConstrainVars ConstrainVars DataType DataType -> cset])
@@ -2213,7 +2196,6 @@
         _ (assert (not-any? #(% arity) [:rest :drest :kws :prest :pdot]))
         _ (assert (= (fo/-simple-filter) (:fl (:rng arity))))
         _ (assert (= or/-empty (:o (:rng arity))))
-        _ (assert (= (r/-flow fr/-top) (:flow (:rng arity))))
 
         lhs (:t t)
         rhs (first (:dom arity))

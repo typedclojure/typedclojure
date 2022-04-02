@@ -55,7 +55,7 @@
 (defonce ^:dynamic *parse-type-in-ns* nil)
 (set-validator! #'*parse-type-in-ns* (some-fn nil? symbol? con/namespace?))
 
-(declare unparse-type unparse-filter unparse-filter-set unparse-flow-set)
+(declare unparse-type unparse-filter unparse-filter-set unparse-TCResult)
 
 ; Types print by unparsing them
 (do (defmethod print-method typed.cljc.checker.impl_protocols.TCType [s writer]
@@ -70,10 +70,14 @@
     (prefer-method print-method typed.cljc.checker.impl_protocols.TCAnyType java.util.Map)
     (prefer-method print-method typed.cljc.checker.impl_protocols.TCAnyType clojure.lang.IPersistentMap)
 
+    (defmethod print-method TCResult [s writer]
+      (print-method (unparse-TCResult s) writer))
+    (prefer-method print-method TCResult java.util.Map)
+    (prefer-method print-method TCResult clojure.lang.IPersistentMap)
+
     (defmethod print-method typed.cljc.checker.impl_protocols.IFilter [s writer]
       (cond 
         (f/FilterSet? s) (print-method (unparse-filter-set s) writer)
-        (r/FlowSet? s) (print-method (unparse-flow-set s) writer)
         :else (print-method (unparse-filter s) writer)))
     (prefer-method print-method typed.cljc.checker.impl_protocols.IFilter clojure.lang.IRecord)
     (prefer-method print-method typed.cljc.checker.impl_protocols.IFilter java.util.Map)
@@ -1318,7 +1322,7 @@
         ellipsis-pos (or ellipsis-pos kw-ellipsis-pos)
         asterix-pos (or asterix-pos kw-asterix-pos)
 
-        _ (when-some [ks (seq (remove #{:filters :object :flow} (keys opts)))]
+        _ (when-some [ks (seq (remove #{:filters :object} (keys opts)))]
             (err/int-error (str "Invalid function keyword option/s: " ks)))
 
         filters (when-some [[_ fsyn] (find opts :filters)]
@@ -1326,9 +1330,6 @@
 
         object (when-some [[_ obj] (find opts :object)]
                  (parse-object obj))
-
-        flow (when-some [[_ obj] (find opts :flow)]
-               (r/-flow (parse-filter obj)))
 
         fixed-dom (cond
                     asterix-pos (take (dec asterix-pos) all-dom)
@@ -1407,7 +1408,6 @@
                            (:name bnd))))
                      :filter filters
                      :object object
-                     :flow flow
                      :optional-kws (some-> optional-kws parse-kw-map)
                      :mandatory-kws (some-> mandatory-kws parse-kw-map))))
 
@@ -1654,15 +1654,13 @@
                [(:val k) (unparse-type v)]))
         m))
 
-(defn unparse-result [{:keys [t fl o flow] :as rng}]
+(defn unparse-result [{:keys [t fl o] :as rng}]
   {:pre [(r/Result? rng)]}
   (concat [(unparse-type t)]
           (when-not (every? (some-fn f/TopFilter? f/NoFilter?) [(:then fl) (:else fl)])
             [:filters (unparse-filter-set fl)])
           (when-not ((some-fn orep/NoObject? orep/EmptyObject?) o)
-            [:object (unparse-object o)])
-          (when-not ((some-fn f/TopFilter? f/NoFilter?) (:normal flow))
-            [:flow (unparse-flow-set flow)])))
+            [:object (unparse-object o)])))
 
 (defn unparse-bound [name]
   {:pre [((some-fn symbol? nat-int?) name)]}
@@ -1704,10 +1702,6 @@
                       (unparse-bound name)]))
                  ['->]
                  (unparse-result rng)))))
-
-(defn unparse-flow-set [flow]
-  {:pre [(r/FlowSet? flow)]}
-  (unparse-filter (r/flow-normal flow)))
 
 (extend-protocol IUnparseType
   Protocol
