@@ -54,10 +54,10 @@
     (is-tc-e false
              :expected-ret (ret -false
                                 (-FS -bot -top)))
-    (is-tc-e false
-             :expected-ret (ret -false
-                                (-FS -bot -top)
-                                (-path nil 'a)))
+    (is-tc-err false
+               :expected-ret (ret -false
+                                  (-FS -bot -top)
+                                  (-path nil 'a)))
     (is-tc-e false
              :expected-ret (ret -false
                                 (-FS -bot -top)))
