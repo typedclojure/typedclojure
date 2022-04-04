@@ -857,7 +857,7 @@
 
 (def ^:private cljs-ns #((requiring-resolve 'typed.cljs.checker.util/cljs-ns)))
 
-(defn- parse-in-ns []
+(defn parse-in-ns []
   {:post [(symbol? %)]}
   (or *parse-type-in-ns*
       (impl/impl-case
@@ -968,14 +968,6 @@
                         (name sym)))]
     res))
 
-(defn parse-RClass [cls-sym params-syn]
-  (impl/assert-clojure)
-  (let [RClass-of @(RClass-of-var)
-        cls (resolve-type-clj cls-sym)
-        _ (when-not (class? cls) (err/int-error (str (pr-str cls-sym) " cannot be resolved")))
-        tparams (doall (map parse-type params-syn))]
-    (RClass-of cls tparams)))
-
 (defn parse-Value [[_Value_ syn :as all]]
   (when-not (#{2} (count all))
     (err/int-error (str "Incorrect number of arguments to Value, " (count all)
@@ -1015,19 +1007,17 @@
                       k (r/-hseq (mapcat #(find m %) ks))]
                   k))))
 
-(declare unparse-type deprecated-list)
+(declare unparse-type)
 
 (defn parse-type-list-default 
   [[n & args :as syn]]
-  (if-let [d (deprecated-list syn)]
-    d
-    (let [op (parse-type n)]
-      ;(prn "tapp op" op)
-      (when-not ((some-fn r/Name? r/TypeFn? r/F? r/B? r/Poly?) op)
-        (err/int-error (str "Invalid operator to type application: " syn)))
-      (with-meta (r/TApp-maker op (mapv parse-type args))
-                 {:syn syn
-                  :env vs/*current-env*}))))
+  (let [op (parse-type n)]
+    ;(prn "tapp op" op)
+    (when-not ((some-fn r/Name? r/TypeFn? r/F? r/B? r/Poly?) op)
+      (err/int-error (str "Invalid operator to type application: " syn)))
+    (with-meta (r/TApp-maker op (mapv parse-type args))
+               {:syn syn
+                :env vs/*current-env*})))
 
 (defmethod parse-type-list :default 
   [[n & args :as syn]]
@@ -1095,38 +1085,6 @@
      'char (RClass-of 'char)
      'void r/-nil}))
 
-;[Any -> (U nil Type)]
-(defmulti deprecated-clj-symbol identity)
-
-(defmethod deprecated-clj-symbol :default [_] nil)
-
-;[Any -> (U nil Type)]
-(defn deprecated-symbol [sym]
-  {:post [((some-fn nil? r/Type?) %)]}
-  (impl/impl-case
-    :clojure (deprecated-clj-symbol sym)
-    :cljs nil))
-
-;[Any -> (U nil Type)]
-(defmulti deprecated-clj-list 
-  (fn [[op]]
-    (when (symbol? op)
-      ((some-fn
-         (every-pred
-           class? coerce/Class->symbol)
-         (every-pred
-           var? coerce/var->symbol))
-       (resolve-type-clj op)))))
-
-(defmethod deprecated-clj-list :default [_] nil)
-
-;[Any -> (U nil Type)]
-(defn deprecated-list [lst]
-  {:post [((some-fn nil? r/Type?) %)]}
-  (impl/impl-case
-    :clojure (deprecated-clj-list lst)
-    :cljs nil))
-
 (defn parse-type-symbol-default
   [sym]
   (let [primitives (impl/impl-case
@@ -1162,13 +1120,14 @@
         (primitives sym)
         (parse-type-symbol sym)
         (cond
-          rsym ((some-fn deprecated-symbol r/Name-maker) rsym)
+          rsym (r/Name-maker rsym)
           :else (let [menv (let [m (meta sym)]
                              (when ((every-pred :line :column :file) m)
                                m))]
                   (binding [vs/*current-env* (or menv vs/*current-env*)]
                     (err/int-error (str "Cannot resolve type: " (pr-str sym)
-                                        "\nHint: Is " (pr-str sym) " in scope?")
+                                        "\nHint: Is " (pr-str sym) " in scope in namespace"
+                                        " `" (parse-in-ns) "`?")
                                    {:use-current-env true})))))))
 
 (defmethod parse-type-symbol :default

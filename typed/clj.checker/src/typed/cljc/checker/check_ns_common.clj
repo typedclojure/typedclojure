@@ -82,7 +82,7 @@
                   (if (-> e ex-data :type-error)
                     (reset! terminal-error e)
                     (throw e))))
-              (merge
+              (into
                 {:delayed-errors (vec (concat (some-> vs/*delayed-errors* deref)
                                               (when-let [e @terminal-error]
                                                 [e])))}

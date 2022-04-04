@@ -52,7 +52,7 @@
 ;
 ;[MethodExpr Function -> {:ftype Function :cmethod Expr}]
 (defn check-fn-method1 [method {:keys [dom rest drest kws prest pdot] :as expected}
-                        & {:keys [recur-target-fn]}]
+                        & {:keys [recur-target-fn] :as opt}]
   {:pre [(r/Function? expected)]
    :post [(r/Function? (:ftype %))
           (-> % :cmethod :clojure.core.typed/ftype r/Function?)
@@ -62,7 +62,8 @@
                      (:op method))
     ; is there a better :op check here?
     :cljs (assert method))
-  (let [method (-> method
+  (let [check-rest-fn (or (:check-rest-fn opt) fn-method-u/check-rest-fn)
+        method (-> method
                    ana2/run-pre-passes
                    (ast-u/visit-method-params ana2/run-passes))
         body ((ast-u/method-body-kw) method)
@@ -116,7 +117,7 @@
         fixed-entry (map (juxt :name (comp r/ret-t u/expr-type)) crequired-params)
         ;_ (prn "checking function:" (prs/unparse-type expected))
         crest-param (some-> rest-param
-                            (assoc u/expr-type (r/ret (fn-method-u/check-rest-fn
+                            (assoc u/expr-type (r/ret (check-rest-fn
                                                         (drop (count crequired-params) dom)
                                                         (select-keys expected [:rest :drest :kws :prest :pdot])))))
         rest-entry (when crest-param

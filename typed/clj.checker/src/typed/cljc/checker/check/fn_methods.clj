@@ -37,6 +37,7 @@
       :cljs (every? method? ms))))
 
 (def opt-map? (con/hmap-c? (con/optional :recur-target-fn) ifn?
+                           (con/optional :check-rest-fn) ifn?
                            (con/optional :validate-expected-fn) ifn?
                            (con/optional :self-name) (some-fn nil? symbol?)))
 
@@ -94,7 +95,7 @@
         (== ndom fixed-arity) f
         :else nil))))
 
-(defn check-fni 
+(defn check-fni
   "Check a vector of :method AST nodes mthods against
   an expected type that is a possibly-polymorphic function
   intersection.
@@ -102,8 +103,7 @@
   Returns a vector in the same order as the passed in methods,
   but each method replaced with a vector of type checked methods."
   [expected mthods
-   {:keys [recur-target-fn
-           validate-expected-fn
+   {:keys [validate-expected-fn
            self-name]
     :as opt}]
   {:pre [(function-type? expected)
@@ -173,7 +173,8 @@
                                           {:pre [(integer? ifn-index)
                                                  (r/Function? ifn-arity)]}
                                           (let [{:keys [cmethod ftype]}
-                                                (fn-method1/check-fn-method1 m ifn-arity :recur-target-fn recur-target-fn)
+                                                (fn-method1/check-fn-method1 m ifn-arity
+                                                                             (select-keys opt [:recur-target-fn :check-rest-fn]))
                                                 _ (assert (r/Function? ftype))
                                                 union-Functions (fn [f1 f2]
                                                                   {:pre [(r/Function? f1)
@@ -232,8 +233,9 @@
 
 ; Check a sequence of methods against a (possibly polymorphic) function type.
 ;
-; If this is a deftype method, provide a recur-target-fn to handle recur behaviour
-; and validate-expected-fn to prevent expected types that include a rest argument.
+; If this is a deftype/reify method, provide a (:recur-target-fn opt) to handle recur behaviour
+; and validate-expected-fn to prevent expected types that include a rest argument. Also provide (:check-rest-fn opt)
+; to disallow rest parameter.
 ;
 ; (ann check-fn-methods [Expr Type & :optional {:recur-target-fn (Nilable [Function -> RecurTarget])
 ;                                               :validate-expected-fn (Nilable [FnIntersection -> Any])}

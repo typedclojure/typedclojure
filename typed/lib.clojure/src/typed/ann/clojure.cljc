@@ -12,6 +12,7 @@
   (:require [clojure.core :as cc]
             [typed.clojure :as t]
             #?(:clj [typed.ann-macros.clojure :as macros])
+            #?(:clj typed.ann.clojure.jvm) ;; jvm annotations
             #?(:clj clojure.core.typed))
   #?(:clj
      (:import (clojure.lang PersistentHashSet PersistentTreeSet PersistentList
@@ -797,115 +798,6 @@
          ;; eg., Simulating Existential Types https://www.cs.cmu.edu/~fp/courses/15312-f04/assignments/asst5.pdf
          (t/All [r]
                 [(t/Reducer out r) :-> (t/Reducer in r)])))
-
-;; Predicate support for common classes
-
-#?(:clj
-   (clojure.core.typed/rclass-preds
-     ;  clojure.lang.Seqable 
-     ;  {:pred (fn [this a?]
-     ;           (cond 
-     ;             (string? this) (every? a? this)
-     ;             (coll? this) (every? a? this)))}
-     clojure.lang.IPersistentCollection
-     {:args #{1}
-      :pred (fn [this a?] 
-              `(every? ~a? ~this))}
-     clojure.lang.ISeq
-     {:args #{1}
-      :pred (fn [this a?] 
-              `(every? ~a? ~this))}
-     clojure.lang.IPersistentSet
-     {:args #{1}
-      :pred (fn [this a?] 
-              `(every? ~a? ~this))}
-     clojure.lang.APersistentSet
-     {:args #{1}
-      :pred (fn [this a?] 
-              `(every? ~a? ~this))}
-     clojure.lang.PersistentHashSet
-     {:args #{1}
-      :pred (fn [this a?] 
-              `(every? ~a? ~this))}
-     clojure.lang.PersistentTreeSet
-     {:args #{1}
-      :pred (fn [this a?] 
-              `(every? ~a? ~this))}
-     clojure.lang.Associative
-     {:args #{2}
-      :pred (fn [this a? b?]
-              `(cond
-                 (vector? ~this) (and (every? ~a? (range (count ~this)))
-                                      (every? ~b? ~this))
-                 (map? ~this) (and (every? ~a? (keys ~this))
-                                   (every? ~b? (vals ~this)))))}
-     clojure.lang.IPersistentStack
-     {:args #{1}
-      :pred (fn [this a?] 
-              `(every? ~a? ~this))}
-     clojure.lang.IPersistentVector
-     {:args #{1}
-      :pred (fn [this a?] 
-              `(every? ~a? ~this))}
-     clojure.lang.APersistentVector
-     {:args #{1}
-      :pred (fn [this a?] 
-              `(every? ~a? ~this))}
-     clojure.lang.PersistentVector
-     {:args #{1}
-      :pred (fn [this a?] 
-              `(every? ~a? ~this))}
-     clojure.lang.IMapEntry
-     {:args #{2}
-      :pred (fn [this a? b?] 
-              `(and (~a? (key ~this)) (~b? (val ~this))))}
-     clojure.lang.AMapEntry
-     {:args #{2}
-      :pred (fn [this a? b?] 
-              `(and (~a? (key ~this)) (~b? (val ~this))))}
-     clojure.lang.MapEntry
-     {:args #{2}
-      :pred (fn [this a? b?] 
-              `(and (~a? (key ~this)) (~b? (val ~this))))}
-     clojure.lang.IPersistentMap
-     {:args #{2}
-      :pred (fn [this a? b?] 
-              `(and (every? ~a? (keys ~this))
-                    (every? ~b? (vals ~this))))}
-     clojure.lang.ASeq
-     {:args #{1}
-      :pred (fn [this a?] 
-              `(every? ~a? ~this))}
-     clojure.lang.APersistentMap
-     {:args #{2}
-      :pred (fn [this a? b?] 
-              `(and (every? ~a? (keys ~this))
-                    (every? ~b? (vals ~this))))}
-     clojure.lang.PersistentHashMap
-     {:args #{2}
-      :pred (fn [this a? b?] 
-              `(and (every? ~a? (keys ~this))
-                    (every? ~b? (vals ~this))))}
-     clojure.lang.Cons
-     {:args #{1}
-      :pred (fn [this a?] 
-              `(every? ~a? ~this))}
-     clojure.lang.IPersistentList
-     {:args #{1}
-      :pred (fn [this a?] 
-              `(every? ~a? ~this))}
-     clojure.lang.PersistentList
-     {:args #{1}
-      :pred (fn [this a?] 
-              `(every? ~a? ~this))}
-     clojure.lang.LazySeq
-     {:args #{1}
-      :pred (fn [this a?] 
-              `(every? ~a? ~this))}
-     clojure.lang.Reduced
-     {:args #{1}
-      :pred (fn [this a?] 
-              `(~a? (deref ~this)))}))
 
 ;; ==========================================
 ;; Var annotations
@@ -2441,6 +2333,4 @@ complete.core/completions
 (t/IFn [t/Any -> t/Any]
      [t/Any t/Any -> t/Any])
 ])
-
-
 )

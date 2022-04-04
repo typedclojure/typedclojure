@@ -57,8 +57,6 @@
                (tc-e ~@body)
                true)))
 
-;(check-ns 'clojure.core.typed.test.deftype)
-
 (deftest add-scopes-test
   (is-clj (let [body (make-F 'a)]
             (= (add-scopes 0 body)
@@ -1213,12 +1211,6 @@
   (is-tc-e (java.util.concurrent.TimeUnit/NANOSECONDS)
            java.util.concurrent.TimeUnit))
 
-;;;; Checking deftype implementation of protocol methods
-
-(deftest new-instance-method-return-test
-  (is (check-ns 'clojure.core.typed.test.protocol))
-  (is (err/top-level-error-thrown?
-        (check-ns 'clojure.core.typed.test.protocol-fail))))
 ;;;;
 
 ;FIXME CTYP-71
@@ -2459,9 +2451,6 @@
                            (parse-type 
                              `(t/All [x1# x2# m1#]
                                 [t/Any x1# m1# ~'-> x2#]))))))
-
-(deftest deftype-poly-ancestor-test
-  (is (check-ns 'clojure.core.typed.test.protocol-scoping)))
 
 (deftest map-predicate-test
   (is-tc-e (fn [a] (number? (:k a)))
@@ -3762,11 +3751,6 @@
   (is-tc-e (group-by (inst identity t/Num) [1 2 3])
            (t/Map t/Num (t/Vec t/Num))))
 
-(deftest defrecord-test
-  (is-tc-e (do (ann-record Foo [a :- t/Int])
-               (defrecord Foo [a])
-               (defn foo [] :- Foo (->Foo 3)))))
-
 (deftest CTYP-189-test
   (is-tc-e (for [x :- t/Int []] :- t/Int x)))
 
@@ -4071,20 +4055,6 @@
   (is-tc-e (fn [a]
              (java.io.File. a))
            [t/Str -> java.io.File]))
-
-(deftest rewrite-in-deftype-test
-  (is
-    (should-not-reflect
-      (tc-e (do
-              (defprotocol B
-                (f [m]))
-              (ann-datatype F [])
-              (deftype F []
-                B
-                (f [m]
-                  (fn [a :- t/Str]
-                    (java.io.File. a)))))))))
-
 
 ;; unclear what this is testing, but it's been fixed sometime after 0.2.11
 (deftest CTYP-80-test

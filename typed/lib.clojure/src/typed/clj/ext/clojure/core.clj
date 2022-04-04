@@ -72,3 +72,10 @@
 (un-clj/install-unanalyzed-special
   'clojure.core/ns
   'typed.clj.ext.clojure.core__ns/-unanalyzed-special__ns)
+
+;;==================
+;; clojure.core/reify
+
+(un-clj/install-unanalyzed-special
+  'clojure.core/reify
+  'typed.clj.ext.clojure.core__reify/defuspecial__reify)

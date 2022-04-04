@@ -50,7 +50,7 @@
 
 ; takes the current rest or drest argument (only one is non-nil) and returns
 ; the type to assign the rest parameter
-(defn ^:dynamic check-rest-fn [remain-dom {:keys [rest drest kws prest pdot] :as ts*}]
+(defn check-rest-fn [remain-dom {:keys [rest drest kws prest pdot] :as ts*}]
   {:pre [((some-fn nil? r/Type?) rest)
          ((some-fn nil? r/Type?) prest)
          ((some-fn nil? r/DottedPretype?) drest)

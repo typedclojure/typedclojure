@@ -6,11 +6,11 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.clj.checker.base-env-clj-rclass
+(ns ^:no-doc typed.ann.clojure.jvm
+  "JVM-specific type annotations for the base Clojure distribution."
   (:require [typed.clojure :as t]
-            [typed.clj.checker.rclass-env :as rcls]
-            [typed.cljc.checker.base-env-common :refer [delay-and-cache-env]]
-            [typed.cljc.checker.base-env-helper :as h])
+            [typed.clojure.jvm :refer [override-classes]]
+            clojure.core.typed)
   (:import (clojure.lang Named IMapEntry AMapEntry Seqable
                          LazySeq PersistentHashSet PersistentTreeSet PersistentTreeMap PersistentList APersistentVector
                          APersistentSet IPersistentSet IPersistentMap IPersistentVector
@@ -21,20 +21,16 @@
                          ITransientVector PersistentHashMap Reduced MultiFn)
            (java.util Collection RandomAccess)))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Altered Classes
+;; ==========================================
+;; JVM Class annotations
 
-;; TODO remove redundant ancestors, add tests to ensure they are preserved.
+;;TODO replace functional :unchecked-ancestors with :replace {clojure.lang.IFn [... -> ...]]
 
-(delay-and-cache-env init-altered-env
-                     (assert (class? Seqable))
-  (h/alters
+(override-classes
 
-Seqable [[[a :variance :covariant]]
-         ]
+Seqable [[[a :variance :covariant]]]
 
-Reversible [[[a :variance :covariant]]
-            ]
+Reversible [[[a :variance :covariant]]]
 
 IPersistentCollection [[[a :variance :covariant]]
                        :replace
@@ -67,7 +63,7 @@ IPersistentSet [[[a :variance :covariant]]
                 {IPersistentCollection (IPersistentCollection a)
                  Seqable (Seqable a)}
                 :unchecked-ancestors
-                #{[t/Any -> (t/U a nil)]}] ;; not a real ancestor
+                [[t/Any -> (t/U a nil)]]] ;; not a real ancestor
 
 APersistentSet [[[a :variance :covariant]]
                 :replace
@@ -78,8 +74,7 @@ APersistentSet [[[a :variance :covariant]]
                  IPersistentCollection (IPersistentCollection a)
                  IPersistentSet (IPersistentSet a)}
                 :unchecked-ancestors
-                #{[t/Any -> (t/U a nil)]}
-                ]
+                [[t/Any -> (t/U a nil)]]]
 
 PersistentHashSet [[[a :variance :covariant]]
                    :replace
@@ -91,7 +86,7 @@ PersistentHashSet [[[a :variance :covariant]]
                     IPersistentSet (IPersistentSet a)
                     IPersistentCollection (IPersistentCollection a)}
                    :unchecked-ancestors
-                   #{[t/Any -> (t/U a nil)]}]
+                   [[t/Any -> (t/U a nil)]]]
 
 PersistentTreeSet [[[a :variance :covariant]]
                    :replace
@@ -104,7 +99,7 @@ PersistentTreeSet [[[a :variance :covariant]]
                     IPersistentSet (IPersistentSet a)
                     IPersistentCollection (IPersistentCollection a)}
                     :unchecked-ancestors
-                    #{[t/Any -> (t/U a nil)]}]
+                    [[t/Any -> (t/U a nil)]]]
 
 Associative [[[m :variance :covariant]
               [k :variance :covariant]
@@ -177,7 +172,7 @@ IPersistentVector [[[a :variance :covariant]]
                     Associative (Associative a Number a)
                     Indexed (Indexed a)}
                    :unchecked-ancestors
-                   #{[Number -> a]}] ;; not a real ancestor, but very useful
+                   [[Number -> a]]] ;; not a real ancestor, but very useful
 
 APersistentVector [[[a :variance :covariant]]
                    :replace
@@ -194,7 +189,7 @@ APersistentVector [[[a :variance :covariant]]
                     Associative (Associative a Number a)
                     Indexed (Indexed a)}
                    :unchecked-ancestors
-                   #{[Number -> a]}]
+                   [[Number -> a]]]
 
 PersistentVector [[[a :variance :covariant]]
                   :replace
@@ -213,7 +208,7 @@ PersistentVector [[[a :variance :covariant]]
                    Indexed (Indexed a)
                    #_IEditableCollection #_(IEditableCollection (ITransientVector a))}
                   :unchecked-ancestors
-                  #{[Number -> a]}]
+                  [[Number -> a]]]
 
 IMapEntry [[[a :variance :covariant]
             [b :variance :covariant]]]
@@ -238,8 +233,8 @@ clojure.lang.AMapEntry
             Indexed (Indexed (t/U a b))
             APersistentVector (APersistentVector (t/U a b))}
            :unchecked-ancestors
-           #{'[a b]
-             [Number -> (t/U a b)]}]
+           ['[a b]
+            [Number -> (t/U a b)]]]
 
 clojure.lang.MapEntry
           [[[a :variance :covariant]
@@ -261,8 +256,8 @@ clojure.lang.MapEntry
             Indexed (Indexed (t/U a b))
             APersistentVector (APersistentVector (t/U a b))}
            :unchecked-ancestors
-           #{'[a b]
-             [Number -> (t/U a b)]}]
+           ['[a b]
+            [Number -> (t/U a b)]]]
 
 IPersistentMap [[[a :variance :covariant]
                  [b :variance :covariant]]
@@ -293,9 +288,9 @@ APersistentMap [[[a :variance :covariant]
                  ILookup (ILookup a b)
                  Associative (Associative (AMapEntry a b) a b)}
                 :unchecked-ancestors
-                #{(t/All [d]
-                          (t/IFn [t/Any -> (t/U nil b)]
-                              [t/Any d -> (t/U b d)]))}]
+                [(t/All [d]
+                        (t/IFn [t/Any -> (t/U nil b)]
+                               [t/Any d -> (t/U b d)]))]]
 
 
 PersistentTreeMap [[[a :variance :covariant] 
@@ -311,9 +306,9 @@ PersistentTreeMap [[[a :variance :covariant]
                     Reversible (Reversible (AMapEntry a b))
                     #_IEditableCollection #_(IEditableCollection (ITransientMap a b a b))}
                    :unchecked-ancestors
-                   #{(t/All [d]
-                             (t/IFn [t/Any -> (t/U nil b)]
-                                 [t/Any d -> (t/U b d)]))}]
+                   [(t/All [d]
+                           (t/IFn [t/Any -> (t/U nil b)]
+                                  [t/Any d -> (t/U b d)]))]]
 
 PersistentHashMap [[[a :variance :covariant] 
                     [b :variance :covariant]]
@@ -327,9 +322,9 @@ PersistentHashMap [[[a :variance :covariant]
                     Associative (Associative (AMapEntry a b) a b)
                     #_IEditableCollection #_(IEditableCollection (ITransientMap a b a b))}
                    :unchecked-ancestors
-                   #{(t/All [d]
-                             (t/IFn [t/Any -> (t/U nil b)]
-                                 [t/Any d -> (t/U b d)]))}]
+                   [(t/All [d]
+                           (t/IFn [t/Any -> (t/U nil b)]
+                                  [t/Any d -> (t/U b d)]))]]
 
 Cons [[[a :variance :covariant]]
       :replace
@@ -362,10 +357,10 @@ PersistentList [[[a :variance :covariant]]
                  }]
 
 clojure.lang.Keyword [[]
-         :unchecked-ancestors
-         #{(t/All [x] 
-                (t/IFn [(t/U nil (IPersistentMap t/Any x)) -> (t/U nil x)]
-                    [t/Any -> t/Any]))}]
+                      :unchecked-ancestors
+                      [(t/All [x] 
+                              (t/IFn [(t/U nil (IPersistentMap t/Any x)) -> (t/U nil x)]
+                                     [t/Any -> t/Any]))]]
 
 IDeref [[[r :variance :covariant]]]
 clojure.lang.IBlockingDeref [[[r :variance :covariant]]]
@@ -480,19 +475,19 @@ MultiFn [[[f :variance :covariant :> EveryIFn :< AnyIFn]
 
 java.lang.CharSequence [[]
                         :unchecked-ancestors
-                        #{(Seqable Character)
-                          (Indexed Character)}]
+                        [(Seqable Character)
+                         (Indexed Character)]]
 
 ;FIXME Need to correctly check ancestors, this shouldn't be necessary because String is a CharSequence
 ; CTYP-15
 java.lang.String [[]
                   :unchecked-ancestors
-                  #{(Seqable Character)
-                    (Indexed Character)}]
+                  [(Seqable Character)
+                   (Indexed Character)]]
 
 java.lang.Iterable [[[a :variance :covariant]]
                     :unchecked-ancestors
-                    #{(Seqable a)}]
+                    [(Seqable a)]]
 
 ;; from here, all these type params should really be :invariant.
 ;; Scala deals with this via implicit conversions from their own
@@ -505,7 +500,7 @@ java.util.Set [[[a :variance :covariant]]
                {Iterable (Iterable a)
                 Collection (Collection a)}
                :unchecked-ancestors
-               #{(Seqable a)}]
+               [(Seqable a)]]
 
 
 java.util.List [[[a :variance :covariant]]
@@ -513,21 +508,125 @@ java.util.List [[[a :variance :covariant]]
                 {Iterable (Iterable a)
                  Collection (Collection a)}
                 :unchecked-ancestors
-                #{(Seqable a)}]
+                [(Seqable a)]]
 
 java.util.Collection [[[a :variance :covariant]]
                       :replace
                       {Iterable (Iterable a)}
                       :unchecked-ancestors
-                      #{(Seqable a)}]
+                      [(Seqable a)]]
 
 ;;TODO delete this type param. Reconsider using fake Indexed ancestors. This was originally
 ;; probably a misunderstanding of the RandomAccess + List case of nth.
 java.util.RandomAccess [[[a :variance :covariant]]
                         :unchecked-ancestors
-                        #{(Indexed a)}]
+                        [(Indexed a)]]
+)
 
-))
-
-(defn reset-rclass-env! []
-  (rcls/reset-rclass-env! (init-altered-env)))
+;; ==========================================
+;; Predicate support for common JVM classes
+(clojure.core.typed/rclass-preds
+  ;  clojure.lang.Seqable 
+  ;  {:pred (fn [this a?]
+  ;           (cond 
+  ;             (string? this) (every? a? this)
+  ;             (coll? this) (every? a? this)))}
+  clojure.lang.IPersistentCollection
+  {:args #{1}
+   :pred (fn [this a?] 
+           `(every? ~a? ~this))}
+  clojure.lang.ISeq
+  {:args #{1}
+   :pred (fn [this a?] 
+           `(every? ~a? ~this))}
+  clojure.lang.IPersistentSet
+  {:args #{1}
+   :pred (fn [this a?] 
+           `(every? ~a? ~this))}
+  clojure.lang.APersistentSet
+  {:args #{1}
+   :pred (fn [this a?] 
+           `(every? ~a? ~this))}
+  clojure.lang.PersistentHashSet
+  {:args #{1}
+   :pred (fn [this a?] 
+           `(every? ~a? ~this))}
+  clojure.lang.PersistentTreeSet
+  {:args #{1}
+   :pred (fn [this a?] 
+           `(every? ~a? ~this))}
+  clojure.lang.Associative
+  {:args #{2}
+   :pred (fn [this a? b?]
+           `(cond
+              (vector? ~this) (and (every? ~a? (range (count ~this)))
+                                   (every? ~b? ~this))
+              (map? ~this) (and (every? ~a? (keys ~this))
+                                (every? ~b? (vals ~this)))))}
+  clojure.lang.IPersistentStack
+  {:args #{1}
+   :pred (fn [this a?] 
+           `(every? ~a? ~this))}
+  clojure.lang.IPersistentVector
+  {:args #{1}
+   :pred (fn [this a?] 
+           `(every? ~a? ~this))}
+  clojure.lang.APersistentVector
+  {:args #{1}
+   :pred (fn [this a?] 
+           `(every? ~a? ~this))}
+  clojure.lang.PersistentVector
+  {:args #{1}
+   :pred (fn [this a?] 
+           `(every? ~a? ~this))}
+  clojure.lang.IMapEntry
+  {:args #{2}
+   :pred (fn [this a? b?] 
+           `(and (~a? (key ~this)) (~b? (val ~this))))}
+  clojure.lang.AMapEntry
+  {:args #{2}
+   :pred (fn [this a? b?] 
+           `(and (~a? (key ~this)) (~b? (val ~this))))}
+  clojure.lang.MapEntry
+  {:args #{2}
+   :pred (fn [this a? b?] 
+           `(and (~a? (key ~this)) (~b? (val ~this))))}
+  clojure.lang.IPersistentMap
+  {:args #{2}
+   :pred (fn [this a? b?] 
+           `(and (every? ~a? (keys ~this))
+                 (every? ~b? (vals ~this))))}
+  clojure.lang.ASeq
+  {:args #{1}
+   :pred (fn [this a?] 
+           `(every? ~a? ~this))}
+  clojure.lang.APersistentMap
+  {:args #{2}
+   :pred (fn [this a? b?] 
+           `(and (every? ~a? (keys ~this))
+                 (every? ~b? (vals ~this))))}
+  clojure.lang.PersistentHashMap
+  {:args #{2}
+   :pred (fn [this a? b?] 
+           `(and (every? ~a? (keys ~this))
+                 (every? ~b? (vals ~this))))}
+  clojure.lang.Cons
+  {:args #{1}
+   :pred (fn [this a?] 
+           `(every? ~a? ~this))}
+  clojure.lang.IPersistentList
+  {:args #{1}
+   :pred (fn [this a?] 
+           `(every? ~a? ~this))}
+  clojure.lang.PersistentList
+  {:args #{1}
+   :pred (fn [this a?] 
+           `(every? ~a? ~this))}
+  clojure.lang.LazySeq
+  {:args #{1}
+   :pred (fn [this a?] 
+           `(every? ~a? ~this))}
+  clojure.lang.Reduced
+  {:args #{1}
+   :pred (fn [this a?] 
+           `(~a? (deref ~this)))})

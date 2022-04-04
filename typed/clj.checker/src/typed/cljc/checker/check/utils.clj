@@ -162,14 +162,13 @@
   {:pre [(symbol? sym)
          (boolean? nilable?)]
    :post [(r/Type? %)]}
-  (if-let [typ (or ((prs/clj-primitives-fn) sym)
-                   (symbol->PArray sym nilable?)
-                   (when-let [cls (resolve sym)]
-                     (apply c/Un (c/RClass-of-with-unknown-params cls)
-                            (when nilable?
-                              [r/-nil]))))]
-    typ
-    (err/tc-delayed-error (str "Method or field symbol " sym " does not resolve to a type"))))
+  (or ((prs/clj-primitives-fn) sym)
+      (symbol->PArray sym nilable?)
+      (when-let [cls (resolve sym)]
+        (apply c/Un (c/RClass-of-with-unknown-params cls)
+               (when nilable?
+                 [r/-nil])))
+      (err/tc-delayed-error (str "Method or field symbol " sym " does not resolve to a type"))))
 
 ;[t/Sym Boolean -> (Option Type)]
 (defn- symbol->PArray [sym nilable?]
@@ -206,12 +205,12 @@
                :flags (con/set-c? keyword?)))
 
 ;[MethodMap -> Type]
-(defn- instance-method->Function [{:keys [parameter-types declaring-class return-type] :as method}]
+(defn instance-method->Function [{:keys [parameter-types declaring-class return-type] :as method}]
   {:pre [(method-map? method)]
    :post [(r/FnIntersection? %)]}
   (assert (class? (resolve declaring-class)))
-  (r/make-FnIntersection (r/make-Function (concat [(c/RClass-of-with-unknown-params declaring-class)]
-                                                  (doall (map #(Java-symbol->Type % false) parameter-types)))
+  (r/make-FnIntersection (r/make-Function (cons (c/RClass-of-with-unknown-params declaring-class)
+                                                (map #(Java-symbol->Type % false) parameter-types))
                                           (Java-symbol->Type return-type true))))
 
 
@@ -225,12 +224,12 @@
   (cond
     (r/FnIntersection? expected)
     (-> expected
-        (update :types 
+        (update :types
                 #(mapv
                    (fn [ftype]
                      (assert (<= 1 (count (:dom ftype))))
                      (-> ftype
-                         (update :dom (fn [dom] 
+                         (update :dom (fn [dom]
                                         (update (vec dom) 0 (partial c/In target-type))))))
                    %)))
 
@@ -253,62 +252,45 @@
                    :named (:named expected)))
     :else (err/int-error (str "Expected Function type, found " (prs/unparse-type expected)))))
 
-(defn protocol-implementation-type [datatype {:keys [declaring-class] :as method-sig}]
-  (let [pvar (c/Protocol-interface->on-var declaring-class)
-        ptype (pcl-env/get-protocol pvar)
-        mungedsym (symbol (:name method-sig))
-        ans (map c/fully-resolve-type (sub/datatype-ancestors datatype))]
-    (when ptype
-      (let [pancestor (if (r/Protocol? ptype)
-                        ptype
-                        (let [[an :as relevant-ancestors] 
-                              (filter 
-                                (fn [a] 
-                                  (and (r/Protocol? a)
-                                       (= (:the-var a) pvar)))
-                                ans)
-                              _ (when (empty? relevant-ancestors)
-                                  (err/int-error (str "Must provide instantiated ancestor for datatype "
-                                                    (:the-class datatype) " to check protocol implementation: "
-                                                    pvar)))
-                              _ (when (< 1 (count relevant-ancestors))
-                                  (err/int-error (str "Ambiguous ancestors for datatype when checking protocol implementation: "
-                                                    (pr-str (vec relevant-ancestors)))))]
-                          an))
-            _ (assert (r/Protocol? pancestor) (pr-str pancestor))
-            ;_ (prn "pancestor" pancestor)
-            pargs (seq (:poly? pancestor))
-            unwrapped-p (if (r/Protocol? ptype)
-                          ptype
-                          (c/instantiate-typefn ptype pargs))
-            _ (assert (r/Protocol? unwrapped-p))
-            mth (get-demunged-protocol-method unwrapped-p mungedsym)]
-        (extend-method-expected datatype mth)))))
+(defn protocol-implementation-type [root-t {:keys [declaring-class] :as method-sig}]
+  (let [pvar (c/Protocol-interface->on-var declaring-class)]
+    (when-some [ptype (pcl-env/get-protocol pvar)]
+      (let [mungedsym (symbol (:name method-sig))
+            gather-impl-type (fn gather-impl-type [t]
+                               (let [t (c/fully-resolve-type t)]
+                                 (cond
+                                   (r/Protocol? t) (when (= pvar (:the-var t))
+                                                     (extend-method-expected root-t (get-demunged-protocol-method t mungedsym)))
+                                   (r/DataType? t) (some->> (seq (keep gather-impl-type (sub/datatype-ancestors t)))
+                                                            (apply c/In))
+                                   (r/Intersection? t) (some->> (seq (keep gather-impl-type (:types t)))
+                                                                (apply c/In))
+                                   (r/Union? t) (some->> (seq (keep gather-impl-type (:types t)))
+                                                         (apply c/Un)))))]
+        (gather-impl-type root-t)))))
 
-(defn datatype-method-expected [datatype method-sig]
-  {:post [(r/Type? %)]}
-  (or (protocol-implementation-type datatype method-sig)
-      (extend-method-expected datatype (instance-method->Function method-sig))))
+(defn type->method-expected [t method-sig]
+  {:pre [(r/Type? t)]
+   :post [(r/Type? %)]}
+  (or (protocol-implementation-type t method-sig)
+      (extend-method-expected t (instance-method->Function method-sig))))
 
 ;; TODO integrate reflecte-validated into run-passes
 (defn FieldExpr->Field [expr]
-  {:pre []
-   :post [(or (instance? clojure.reflect.Field %)
+  {:post [(or (instance? clojure.reflect.Field %)
               (nil? %))]}
   (-> expr
       ana/reflect-validated
       :reflected-field)) 
 
 (defn MethodExpr->Method [expr]
-  {:pre []
-   :post [(or (nil? %) (instance? clojure.reflect.Method %))]}
+  {:post [(or (nil? %) (instance? clojure.reflect.Method %))]}
   (-> expr
       ana/reflect-validated
       :reflected-method))
 
 (defn NewExpr->Ctor [expr]
-  {:pre []
-   :post [(or (instance? clojure.reflect.Constructor %)
+  {:post [(or (instance? clojure.reflect.Constructor %)
               (nil? %))]}
   (-> expr
       ana/reflect-validated

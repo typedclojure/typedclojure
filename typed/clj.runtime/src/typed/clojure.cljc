@@ -7,7 +7,8 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 ;; experimental
-(ns ^{:doc "Wrapper macros that do the right thing for each platform."}
+(ns ^{:doc "Wrapper macros that do the right thing for each platform.
+           See typed.clojure.jvm for jvm-specifics ops."}
   typed.clojure
   (:refer-clojure :exclude [type defprotocol #_letfn fn loop dotimes let for doseq
                             defn atom ref cast])
@@ -96,20 +97,6 @@
   (macros/platform-case
     :clj `(clojure.core.typed/declare-names ~@args)
     :cljs (throw (ex-info "declare-names not yet implemented in CLJS" {}))))
-
-#_
-#?(:clj
-   (defmacro non-nil-return [& args]
-     (macros/platform-case
-       :clj `(clojure.core.typed/non-nil-return ~@args)
-       :cljs (throw (ex-info "non-nil-return not applicable in CLJS" {})))))
-
-#_
-#?(:clj
-   (defmacro nilable-param [& args]
-     (macros/platform-case
-       :clj `(clojure.core.typed/nilable-param ~@args)
-       :cljs (throw (ex-info "nilable-param not applicable in CLJS" {})))))
 
 (defmacro def [& args]
   (macros/platform-case

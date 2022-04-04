@@ -6,28 +6,33 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
+;; don't require the checker from here
 (ns ^:no-doc typed.clj.checker.rclass-env
-  (:require [clojure.core.typed.contract-utils :as con]
-            [typed.cljc.checker.type-rep :as r]))
+  (:require [typed.cljc.runtime.env :as env]
+            [typed.cljc.checker.type-rep :as r]
+            [clojure.core.typed.current-impl :as impl]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Restricted Class
 
-;Class -> RClass
-(defonce RESTRICTED-CLASS (atom {}))
-(set-validator! RESTRICTED-CLASS (con/hash-c? symbol? r/Type?))
+(def rclass-env-kw ::rclass-env)
 
-(defn get-rclass 
+(defn- rclasses []
+  (get (env/deref-checker) impl/current-rclass-env-kw {}))
+
+(defn get-rclass
   "Returns the RClass with class symbol csym.
   Returns nil if not found."
   [csym]
-  (@RESTRICTED-CLASS csym))
+  {:post [(do (assert ((some-fn nil? r/RClass? r/TypeFn?) %)
+                      (class %))
+              true)]}
+  (force (get (rclasses) csym)))
 
 (defn alter-class* [csym type]
-  (assert (r/Type? type)
-          (str "alter-class* " csym " not a type: " type))
-  (swap! RESTRICTED-CLASS assoc csym type))
+  (env/swap-checker! assoc-in [impl/current-rclass-env-kw csym] type)
+  nil)
 
 (defn reset-rclass-env! [m]
-  (reset! RESTRICTED-CLASS m)
+  (env/swap-checker! assoc impl/current-rclass-env-kw m)
   nil)

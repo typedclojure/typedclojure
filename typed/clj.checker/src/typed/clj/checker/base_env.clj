@@ -9,7 +9,6 @@
 (ns typed.clj.checker.base-env
   (:require [typed.clojure :as t]
             [clojure.core.typed.current-impl :as impl]
-            [typed.clj.checker.base-env-clj-rclass :as base-rclass]
             [typed.clj.checker.ctor-override-env :as ctor-override-env]
             [typed.clj.checker.field-override-env :as field-override-env]
             [typed.clj.checker.method-override-env :as method-override-env]
@@ -512,7 +511,6 @@ clojure.lang.Delay (t/All [x]
 (defn reset-clojure-envs! []
   (impl/with-clojure-impl
     ;(reset-alias-env!)
-    (base-rclass/reset-rclass-env!)
     (var-env/reset-var-type-env! (init-var-env) (init-var-nochecks))
     (method-return-nilables/reset-nonnilable-method-return-env! (init-method-nonnilable-return-env))
     (method-param-nilables/reset-method-nilable-param-env! (init-method-nilable-param-env))
@@ -528,7 +526,6 @@ clojure.lang.Delay (t/All [x]
 (defn refresh-core-clojure-envs! []
   (impl/with-clojure-impl
     ;(refresh-core-alias-env!)
-    (base-rclass/reset-rclass-env!)
     ;(protocol-env/merge-protocol-env! (init-protocol-env))
     (var-env/refresh-var-type-env! (init-var-env) (init-var-nochecks))
     (method-param-nilables/merge-method-nilable-param-env! (init-method-nilable-param-env))

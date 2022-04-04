@@ -144,86 +144,83 @@
 
 ;; Alter class
 
-(defn- build-replacement-syntax [m]
-  `(let [m# ~m]
-     (impl/with-clojure-impl
-       (into {}
-             (map
-               (fn [[k# v# :as kv#]]
-                 (assert (= 2 (count kv#))
-                         kv#)
-                 [(if-let [c# (resolve k#)] 
-                    (do (assert (class? c#) (pr-str c#))
-                        (coerce/Class->symbol c#))
-                    k#)
-                  (prs/parse-type v#)]))
-             m#))))
+(defn build-replacement-syntax [m]
+  (impl/with-clojure-impl
+    (into {}
+          (map
+            (fn [[k v :as kv]]
+              (assert (= 2 (count kv)) kv)
+              [(if-let [c (ns-resolve (prs/parse-in-ns) k)]
+                 (do (assert (class? c) (pr-str c))
+                     (coerce/Class->symbol c))
+                 (do (assert nil (str "Unknown rclass replacement: " k))
+                     k))
+               (prs/parse-type v)]))
+          m)))
 
 (defn resolve-class-symbol [the-class]
-  `(impl/with-clojure-impl
-     (let [cls# (when-let [c# (resolve ~the-class)]
-                  (when (class? c#)
-                    c#))]
-       (assert cls# (str "Cannot resolve class " ~the-class))
-       (or (and cls# (coerce/Class->symbol cls#))
-           ~the-class))))
+  (impl/with-clojure-impl
+    (let [cls (when-let [c (ns-resolve (prs/parse-in-ns) the-class)]
+                (when (class? c)
+                  c))]
+      (assert cls (str "Cannot resolve class " the-class))
+      (coerce/Class->symbol cls))))
 
-(defn make-RClass-syn [the-class frees-syn opts]
-  (let [replacements-syn (gensym 'replacements-syn)
-        fs (gensym 'fs)]
-    `(impl/with-clojure-impl
-       (let [{~replacements-syn :replace
-              unchecked-ancestors-syn# :unchecked-ancestors} (apply hash-map ~opts)
-             {variances# :variances
-              nmes# :nmes
-              bnds# :bnds}
-             (when-let [fs# (seq ~frees-syn)]
-               ; don't bound frees because mutually dependent bounds are problematic
-               (let [b# (free-ops/with-free-symbols (mapv (fn [s#]
-                                                            {:pre [(vector? s#)]
-                                                             :post [(symbol? ~'%)]}
-                                                            (first s#))
-                                                          fs#)
-                          (mapv prs/parse-tfn-binder fs#))]
-                 {:variances (map :variance b#)
-                  :nmes (map :nme b#)
-                  :bnds (map :bound b#)}))
-             frees# (map r/make-F nmes#)
-             csym# ~(resolve-class-symbol the-class)
-             frees-and-bnds# (zipmap frees# bnds#)]
-         (assert ((con/hash-c? r/F? r/Bounds?) frees-and-bnds#) frees-and-bnds#)
-         (c/RClass* nmes# variances# frees# csym#
-                    (free-ops/with-bounded-frees frees-and-bnds#
-                      ~(build-replacement-syntax replacements-syn))
-                    (free-ops/with-bounded-frees frees-and-bnds#
-                      (set (map prs/parse-type unchecked-ancestors-syn#)))
-                    bnds#)))))
+(defn make-RClass [the-class frees-syn opts]
+  (impl/with-clojure-impl
+    (let [{replacements-syn :replace
+           unchecked-ancestors-syn :unchecked-ancestors} (if (map? opts)
+                                                           opts
+                                                           (apply hash-map opts))
+          _ (when unchecked-ancestors-syn
+              (assert (vector? unchecked-ancestors-syn)))
+          {variances :variances
+           nmes :nmes
+           bnds :bnds}
+          (when-some [fs (seq frees-syn)]
+            ; don't bound frees because mutually dependent bounds are problematic
+            (let [b (free-ops/with-free-symbols (mapv (fn [s]
+                                                        {:pre [(vector? s)]
+                                                         :post [(symbol? %)]}
+                                                        (first s))
+                                                      fs)
+                      (mapv prs/parse-tfn-binder fs))]
+              {:variances (map :variance b)
+               :nmes (map :nme b)
+               :bnds (map :bound b)}))
+          frees (map r/make-F nmes)
+          csym (resolve-class-symbol the-class)
+          frees-and-bnds (zipmap frees bnds)]
+      (assert ((con/hash-c? r/F? r/Bounds?) frees-and-bnds) frees-and-bnds)
+      (c/RClass* nmes variances frees csym
+                 (free-ops/with-bounded-frees frees-and-bnds
+                   (build-replacement-syntax replacements-syn))
+                 (free-ops/with-bounded-frees frees-and-bnds
+                   (mapv prs/parse-type unchecked-ancestors-syn))
+                 bnds))))
 
-(defn declared-kind-for-rclass [fields]
-  (let [fs (map first fields)
+(defn declared-kind-for-rclass [frees]
+  (let [fs (map first frees)
         _ (assert (every? symbol? fs) fs)
-        vs (map (fn [[v & {:keys [variance]}]] variance) fields)]
+        vs (map (fn [[v & {:keys [variance]}]] variance) frees)]
     (c/TypeFn* fs vs (repeat (count vs) r/no-bounds) r/-any)))
 
+(defn process-altered-class [[s [frees & opts] :as kv]]
+  (assert (= 2 (count kv)) (print-str "Uneven args passed to `alters`:" kv))
+  (impl/with-clojure-impl
+    (let [sym (resolve-class-symbol s)
+          decl-kind (declared-kind-for-rclass frees)
+          _ (when (r/TypeFn? decl-kind)
+              (decl-env/add-declared-kind sym decl-kind))
+          rcls (make-RClass s frees opts)]
+      ;accumulate altered classes in initial env
+      (rcls/alter-class* sym rcls)
+      (decl-env/remove-declared-kind sym)
+      [sym rcls])))
+
 (defmacro alters [& args]
-  (let [fields (gensym 'fields)
-        opts (gensym 'opts)
-        s (gensym 's)]
-    `(impl/with-clojure-impl
-       (let [ts# (partition-all 2 '~args)]
-         (into {}
-               (map
-                 (fn [[~s [~fields & ~opts] :as kv#]]
-                   (assert (= 2 (count kv#))
-                           (print-str "Uneven args passed to `alters`:"
-                                      kv#))
-                   (let [sym# ~(resolve-class-symbol s)
-                         decl-kind# (declared-kind-for-rclass ~fields)
-                         _# (when (r/TypeFn? decl-kind#)
-                              (decl-env/add-declared-kind sym# decl-kind#))
-                         rcls# ~(make-RClass-syn s fields opts)]
-                     ;accumulate altered classes in initial env
-                     (rcls/alter-class* sym# rcls#)
-                     (decl-env/remove-declared-kind sym#)
-                     [sym# rcls#])))
-               ts#)))))
+  `(let [args# '~args
+         _# (assert (even? (count args#)))
+         ts# (partition-all 2 args#)]
+     (into {} (map process-altered-class)
+           ts#)))

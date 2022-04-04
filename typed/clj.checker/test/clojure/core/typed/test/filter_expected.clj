@@ -362,20 +362,20 @@
              :expected-ret
              (ret (parse-clj `t/Num)))
     (is-tc-err (do (ann-datatype A [a :- t/Num])
-                 (deftype A [a])
-                 (.a (A. 1)))
+                   (deftype A [a])
+                   (.a (A. 1)))
                :expected-ret
                (ret (parse-clj `t/Num)
                     (-true-filter)))
     (is-tc-err (do (ann-datatype A [a :- t/Num])
-                 (deftype A [a])
-                 (.a (A. 1)))
+                   (deftype A [a])
+                   (.a (A. 1)))
                :expected-ret
                (ret (parse-clj `t/Num)
                     (-false-filter)))
     (is-tc-err (do (ann-datatype A [a :- t/Num])
-                 (deftype A [a])
-                 (.a (A. 1)))
+                   (deftype A [a])
+                   (.a (A. 1)))
                :expected-ret
                (ret (parse-clj `t/Num)
                     (-FS -top -top)

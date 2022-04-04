@@ -72,6 +72,7 @@
 (def datatype-name-type ::datatype-name)
 (def ns-opts-kw ::ns-options)
 (def unanalyzed-special-kw ::unanalyzed-special)
+(def current-rclass-env-kw ::current-rclass-env)
 
 (defn add-tc-var-type [sym type]
   (env/swap-checker! assoc-in [current-var-annotations-kw sym] type)
@@ -178,6 +179,14 @@
   (env/swap-checker! assoc-in [current-protocol-env-kw sym] t)
   nil)
 
+(defn add-rclass [sym t]
+  {:pre [(simple-symbol? sym)
+         ;; checked in get-protocol
+         #_
+         ((some-fn delay? r/RClass? r/Poly?) t)]}
+  (env/swap-checker! assoc-in [current-rclass-env-kw sym] t)
+  nil)
+
 (defn add-datatype [sym t]
   {:pre [(impl-case
            :clojure ((every-pred simple-symbol?
@@ -214,7 +223,7 @@
     `(do (def ~kw-def ~(keyword (str (ns-name *ns*)) (str n)))
          (defn ~n []
            {:post [(map? ~'%)]}
-           (get (env/deref-checker) ~kw-def {}))
+           (force (get (env/deref-checker) ~kw-def {})))
          (defn ~add-def [sym# t#]
            {:pre [(symbol? sym#)]
             :post [(nil? ~'%)]}

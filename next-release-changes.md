@@ -8,3 +8,6 @@
   - enables eg., `(defn sym-or-kw? [a] (or (symbol? a) (keyword? a)))`
 - Breaking: remove `:flow` filters
   - Andrew M Kent (@pnwamk) figured out this was redundant with `:filters` around 2015.
+- add `typed.clojure.jvm` for jvm annotations
+  - add new op `override-class` -- see `typed.ann.clojure.jvm` for base environment using
+- support `clojure.core/reify` in Clojure checker

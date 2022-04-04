@@ -99,7 +99,7 @@
   {:pre [(symbol? sym)]
    :post [(r/Type? %)]}
   (let [t (get-type-name sym)
-        tfn ((some-fn dtenv/get-datatype 
+        tfn ((some-fn dtenv/get-datatype
                       prenv/get-protocol
                       (impl/impl-case :clojure #(or (rcls/get-rclass %)
                                                     (when (class? (resolve %))
