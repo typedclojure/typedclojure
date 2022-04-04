@@ -342,3 +342,13 @@
   (cljs/is-tc-err (t/ann-form (clojure.core/defprotocol A) t/Int))
   (cljs/is-tc-e (cljs.core/defprotocol A))
   (cljs/is-tc-err (t/ann-form (cljs.core/defprotocol A) t/Int)))
+
+(deftest defn-test
+  (is-tc-e (cc/defn -registry {:arglists '([] [{:keys [registry]}])}
+             ([] nil)
+             ([opts] nil)))
+  (is-tc-e (cc/defn -registry
+             "foo"
+             {:arglists '([] [{:keys [registry]}])}
+             ([] nil)
+             ([opts] nil))))

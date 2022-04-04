@@ -106,6 +106,7 @@
   (let [[nme forms] (take-when symbol? forms)
         _ (assert (symbol? nme) (str "Missing name symbol in defn: " form))
         [doc forms] (take-when string? forms)
+        [leading-map forms] (take-when map? forms)
         [trailing-map forms] (let [trailing-map (last forms)]
                                (if (map? trailing-map)
                                  [trailing-map (butlast forms)]
@@ -114,6 +115,7 @@
                         nme
                         (concat
                           (some-> doc list)
+                          (some-> leading-map list)
                           ;; a strict subset of a fn-tail
                           (visit-fn-tail-destructuring
                             forms
