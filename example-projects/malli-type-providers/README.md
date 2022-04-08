@@ -2,7 +2,7 @@
 
 This project demonstrates how Typed Clojure can automatically convert Malli schemas to use for type checking.
 
-The example namespace [typed-example.malli-type-providers](src/typed_example/malli_type_providers.clj)
+The example namespace [typed-example.malli-type-providers](src/typed_example/malli_type_providers.cljc)
 uses `malli.core/=>` to register a normal malli schema and then Typed Clojure uses it as an expected type to both
 check and infer a var.
 
