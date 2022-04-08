@@ -1252,6 +1252,8 @@
 
 (deftest string-methods-test
   (is-tc-e (.toUpperCase "a") 
+           String)
+  (is-tc-e (.intern "a") 
            String))
 
 (deftest loop-errors-test
@@ -4547,3 +4549,16 @@
                (make-CountRange 1)
                (make-CountRange 0 1))
              (make-CountRange 1 1))))
+
+(deftest HashMap-test
+  (is-tc-e (new java.util.HashMap))
+  (is-tc-e (new java.util.HashMap 1))
+  (is-tc-e (new java.util.HashMap 1 (float 2.0)))
+  (is-tc-e (new java.util.HashMap 1 (double 2.0)))
+  #_ ;;TODO
+  (is-tc-e (new java.util.HashMap 1 2.0))
+  (is-tc-e (fn [e :- Float] (new java.util.HashMap 1 e)))
+  #_ ;;TODO
+  (is-tc-e (fn [e :- Double] (new java.util.HashMap 1 e)))
+  #_ ;;TODO
+  (is-tc-e (new java.util.HashMap 1 (ann-form 2.0 Double))))
