@@ -4554,6 +4554,7 @@
   (is-tc-e (new java.util.HashMap))
   (is-tc-e (new java.util.HashMap 1))
   (is-tc-e (new java.util.HashMap 1 (float 2.0)))
+  #_ ;;TODO
   (is-tc-e (new java.util.HashMap 1 (double 2.0)))
   #_ ;;TODO
   (is-tc-e (new java.util.HashMap 1 2.0))
