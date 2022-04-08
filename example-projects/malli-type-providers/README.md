@@ -12,7 +12,7 @@ check and infer a var.
 (foo 1)
 ```
 
-The namespace [typed-example.malli-extensible](src/typed_example/malli_extensible.clj) shows how
+The namespace [typed-example.malli-extensible](src/typed_example/malli_extensible.cljc) shows how
 Typed Clojure can be taught about new schemas.
 
 ## Usage
