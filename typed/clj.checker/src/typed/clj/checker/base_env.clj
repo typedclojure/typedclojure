@@ -270,6 +270,7 @@ java.lang.Class/forName :all
 
 java.lang.Object/toString :all
 java.lang.String/toUpperCase :all
+java.lang.String/intern :all
     ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
