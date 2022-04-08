@@ -361,6 +361,13 @@
   (let [[binder forms] (take-when vector? forms)
         [pname & typed-decl-methods] forms
         [pdoc typed-decl-methods] (take-when string? typed-decl-methods)
+        [opts typed-decl-methods] (let [all-pairs (->> typed-decl-methods
+                                                       (partition-all 2))
+                                        opts (apply concat
+                                                    (take-while (every-pred #(= 2 (count %))
+                                                                            (comp keyword? first))
+                                                                all-pairs))]
+                                    [opts (drop (count opts) typed-decl-methods)])
         parse-pvec (fn [pvec] ; parse parameter vectors
                      {:pre [(vector? pvec)]
                       :post [((con/hmap-c? :actual vector?
@@ -423,6 +430,7 @@
     {:defprotocol `(clojure.core/defprotocol 
                      ~pname 
                      ~@(when pdoc [pdoc])
+                     ~@opts
                      ~@(map (fn [{:keys [name arities doc]}] 
                               `(~name ~@(concat ; prefer left-most arities if grouped duplicates
                                                 (reduce

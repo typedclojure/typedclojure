@@ -11,3 +11,5 @@
 - add `typed.clojure.jvm` for jvm annotations
   - add new op `override-class` -- see `typed.ann.clojure.jvm` for base environment using
 - support `clojure.core/reify` in Clojure checker
+- support `clojure.core/satisfies?` in Clojure checker
+- support `:extend-via-metadata` (and other kw options) in defprotocol wrapper

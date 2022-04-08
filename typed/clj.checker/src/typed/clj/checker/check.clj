@@ -1700,19 +1700,46 @@
                                                (:env cls-expr))]
                      (when (class? cls)
                        cls)))]
-    (let [{[cls-expr cexpr :as cargs] :args :as expr}
+    (let [{[cls-expr cexpr] :args :as expr}
           (-> expr
               (update :args #(vec (map check-expr % [(r/ret (c/RClass-of Class))
-                                                     nil]))))]
-      (let [inst-of (c/RClass-of-with-unknown-params cls)
-            expr-tr (u/expr-type cexpr)]
-        (assoc expr
-               :args cargs
-               u/expr-type (below/maybe-check-below
-                             (r/ret (c/Un r/-true r/-false)
-                                    (fo/-FS (fo/-filter-at inst-of (r/ret-o expr-tr))
-                                            (fo/-not-filter-at inst-of (r/ret-o expr-tr))))
-                             expected))))))
+                                                     nil]))))
+          inst-of (c/RClass-of-with-unknown-params cls)
+          expr-tr (u/expr-type cexpr)]
+      (assoc expr
+             u/expr-type (below/maybe-check-below
+                           (r/ret (c/Un r/-true r/-false)
+                                  (fo/-FS (fo/-filter-at inst-of (r/ret-o expr-tr))
+                                          (fo/-not-filter-at inst-of (r/ret-o expr-tr))))
+                           expected)))))
+
+(defmethod -invoke-special 'clojure.core/satisfies?
+  [{[cls-expr :as args] :args :as expr} expected]
+  {:pre [(every? (comp #{:unanalyzed} :op) args)]
+   :post [((some-fn nil?
+                    (comp r/TCResult? u/expr-type))
+           %)]}
+  (when-not (#{2} (count args))
+    (err/int-error (str "Wrong number of arguments to clojure.core/satisfies?,"
+                        " expected 2, given " (count (:args expr)))))
+  (when-some [v (when (symbol? (:form cls-expr))
+                  (let [v (ana2/resolve-sym (:form cls-expr)
+                                            (:env cls-expr))]
+                    (when (var? v)
+                      v)))]
+    (let [{[_ cexpr] :args :as expr}
+          (-> expr
+              (update-in [:args 1] check-expr))
+          inst-of (c/Protocol-with-unknown-params (symbol v))
+          expr-tr (u/expr-type cexpr)]
+      (assoc expr
+             u/expr-type (below/maybe-check-below
+                           (r/ret (c/Un r/-true r/-false)
+                                  (fo/-FS (fo/-filter-at inst-of (r/ret-o expr-tr))
+                                          (if (:extend-via-metadata @v)
+                                            fl/-top ;; satisfies? does not rule out metadata extension https://clojure.atlassian.net/browse/CLJ-2426
+                                            (fo/-not-filter-at inst-of (r/ret-o expr-tr)))))
+                           expected)))))
 
 (defmethod -check :instance?
   [{cls :class the-expr :target :as expr} expected]
