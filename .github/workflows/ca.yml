@@ -3,7 +3,7 @@ name: Check Clojure CA
 on: pull_request
 
 env:
-  CLOJURE_CLI_VERSION: "1.10.3.1087"
+  CLOJURE_CLI_VERSION: "1.11.1.1105"
 
 jobs:
   build:
