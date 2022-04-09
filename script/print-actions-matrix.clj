@@ -27,9 +27,20 @@
                                                    :clojure string?
                                                    :jdk string?))))
 
+(def slow-submodule-tests #{"typed/clj.checker"
+                            "typed/clj.spec"
+                            "typed/malli"
+                            "typed/lib.clojure"})
+
+(defn submodule-batches []
+  (let [{slow-modules true fast-modules false} (group-by (comp boolean slow-modules)
+                                                         all-testable-submodules)]
+    (concat slow-modules
+            (partition-all 5 fast-modules))))
+
 (defn push-matrix []
   {:post [(matrix? %)]}
-  {:include (for [submodule (partition-all 3 all-testable-submodules)
+  {:include (for [submodule (submodule-batches)
                   clojure (cond-> [clojure-stable]
                             (and (= "typedclojure/typedclojure"
                                     (System/getenv "GITHUB_REPOSITORY"))
