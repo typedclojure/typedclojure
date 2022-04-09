@@ -82,10 +82,15 @@ jobs:
           # threads seem to race to create this if it doesn't exist
           mkdir -p ~/.config/clojure
           echo "{}" > ~/.config/clojure/deps.edn
+          download_deps (){
+            ./script/test -P -Sdeps '{:deps {org.clojure/clojure {:mvn/version "${{ matrix.clojure }}"}} :mvn/repos {"sonatype-oss-public" {:url "https://oss.sonatype.org/content/groups/public/"}}}'
+          }
+          export -f download_deps
           run_tests (){
             ./script/test -Sdeps '{:deps {org.clojure/clojure {:mvn/version "${{ matrix.clojure }}"}} :mvn/repos {"sonatype-oss-public" {:url "https://oss.sonatype.org/content/groups/public/"}}}'
           }
           export -f run_tests
+          parallel -j 1 'cd {} && download_deps' ::: "${SUBMODULE_ARRAY[@]}"
           parallel 'cd {} && run_tests' ::: "${SUBMODULE_ARRAY[@]}"
         env:
           SUBMODULE: ${{ matrix.submodule }}
