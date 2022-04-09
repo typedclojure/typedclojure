@@ -62,7 +62,7 @@
                             (conj clojure-next-release))
                   jdk ["11"]
                   :let [submodule (str/join " " submodule)]]
-              {:submodule_hash (str (UUID/nameUUIDFromBytes (.getBytes submodule)))
+              {:submodule_hash (str/replace (UUID/nameUUIDFromBytes (.getBytes submodule)) #"-" "")
                :submodule submodule
                :clojure clojure
                :jdk jdk})})
