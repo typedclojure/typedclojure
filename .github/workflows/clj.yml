@@ -69,8 +69,24 @@ jobs:
         with:
           cli: ${{ env.CLOJURE_CLI_VERSION }} 
       - name: Run ${{ matrix.submodule }} tests
-        run: ./script/test -Sdeps '{:deps {org.clojure/clojure {:mvn/version "${{ matrix.clojure }}"}} :mvn/repos {"sonatype-oss-public" {:url "https://oss.sonatype.org/content/groups/public/"}}}'
-        working-directory: ${{ matrix.submodule }}
+        run: |
+          ROOT=$PWD
+          SUBMODULE_ARRAY=($SUBMODULE)
+          # space separated list of submodules
+          # https://stackoverflow.com/a/30212526
+          read -ra SUBMODULE_ARRAY<<<"$SUBMODULE"
+          if [[ ${#SUBMODULE_ARRAY[@]} == 0 ]]; then
+            echo "Empty submodule array!"
+            exit 1
+          fi
+          for d in "${SUBMODULE_ARRAY[@]}"
+          do
+            cd "${ROOT}"
+            cd "${d}"
+            ./script/test -Sdeps '{:deps {org.clojure/clojure {:mvn/version "${{ matrix.clojure }}"}} :mvn/repos {"sonatype-oss-public" {:url "https://oss.sonatype.org/content/groups/public/"}}}'
+          done
+        env:
+          SUBMODULE: ${{ matrix.submodule }}
   check-docs:
     runs-on: ubuntu-20.04
     if: ${{ github.repository == 'typedclojure/typedclojure'
