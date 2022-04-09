@@ -1248,13 +1248,13 @@
                  args)]
    :post [(or (nil? %)
               (-> % u/expr-type r/TCResult?))]}
-  (nth/invoke-nth check-expr expr expected))
+  (nth/invoke-nth expr expected))
 
 (defmethod -invoke-special 'clojure.core/nth
   [{fexpr :fn :keys [args] :as expr} expected]
   {:post [(or (nil? %)
               (-> % u/expr-type r/TCResult?))]}
-  (nth/invoke-nth check-expr expr expected))
+  (nth/invoke-nth expr expected))
 
 ;nthnext
 (defmethod -invoke-special 'clojure.core/nthnext
