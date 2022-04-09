@@ -22,7 +22,7 @@
   (is (err/top-level-type-error-thrown? (t/check-ns-cljs 'typed-test.clojure.succeed-clj-fail-cljs)))
   (is (err/top-level-type-error-thrown? (t/check-ns-clj 'typed-test.clojure.succeed-cljs-fail-clj)))
   (testing "t/cns fail in cljs"
-    (let [rs (cljs-eval 20 5000
+    (let [rs (cljs-eval 20 15000
                         [(prep-temp-cljs-ns-form)
                          '(t/cns 'typed-test.clojure.succeed-clj-fail-cljs)])]
       (is (= :top-level-error
@@ -33,7 +33,7 @@
   (is (err/top-level-type-error-thrown? (eval `(t/cns 'typed-test.clojure.succeed-cljs-fail-clj))))
   (is (t/check-ns-cljs 'typed-test.clojure.succeed-cljs-fail-clj))
   (testing "t/cns succeed in cljs"
-    (let [rs (cljs-eval 20 5000
+    (let [rs (cljs-eval 20 15000
                         [(prep-temp-cljs-ns-form)
                          '(t/cns 'typed-test.clojure.succeed-cljs-fail-clj)])]
       (is (= :ok (edn/read-string (:val (peek rs))))
@@ -66,7 +66,7 @@
          ;;FIXME should be t/Bool
          'typed.clojure/Bool))
   (testing "t/cf in cljs"
-    (let [rs (cljs-eval 5 3000
+    (let [rs (cljs-eval 5 15000
                         ['(require '[typed.clojure :as t])
                          '(t/cns 'typed-test.clojure.cf-prep)
                          '(in-ns 'typed-test.clojure.cf-prep)
@@ -75,7 +75,7 @@
              (edn/read-string (:val (peek rs))))
           rs)))
   (testing "t/cf in cljs"
-    (let [rs (cljs-eval 5 1000
+    (let [rs (cljs-eval 5 15000
                         ['(require '[typed.clojure :as t])
                          '(t/cns 'typed-test.clojure.cf-prep)
                          '(in-ns 'typed-test.clojure.cf-prep)
@@ -84,7 +84,7 @@
              (edn/read-string (:val (peek rs))))
           rs)))
   (testing "t/cf-clj in cljs"
-    (let [rs (cljs-eval 5 1000
+    (let [rs (cljs-eval 5 15000
                         ['(require '[typed.clojure :as t])
                          '(in-ns 'typed-test.clojure.cf-prep)
                          `(t/cf-clj ~'int->clj-bool->cljs)])]
