@@ -33,9 +33,9 @@
                             "typed/lib.clojure"})
 
 (defn submodule-batches []
-  (let [{slow-modules true fast-modules false} (group-by (comp boolean slow-modules)
+  (let [{slow-modules true fast-modules false} (group-by (comp boolean slow-submodule-tests)
                                                          all-testable-submodules)]
-    (concat slow-modules
+    (concat (map vector slow-modules)
             (partition-all 5 fast-modules))))
 
 (defn push-matrix []
