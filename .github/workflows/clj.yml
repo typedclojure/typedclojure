@@ -90,8 +90,8 @@ jobs:
             ./script/test -Sdeps '{:deps {org.clojure/clojure {:mvn/version "${{ matrix.clojure }}"}} :mvn/repos {"sonatype-oss-public" {:url "https://oss.sonatype.org/content/groups/public/"}}}'
           }
           export -f run_tests
-          parallel -j 1 'cd {} && download_deps' ::: "${SUBMODULE_ARRAY[@]}"
-          parallel 'cd {} && run_tests' ::: "${SUBMODULE_ARRAY[@]}"
+          parallel --halt now,fail=1 -j 1 'cd {} && download_deps' ::: "${SUBMODULE_ARRAY[@]}"
+          parallel --halt now,fail=1 'cd {} && run_tests' ::: "${SUBMODULE_ARRAY[@]}"
         env:
           SUBMODULE: ${{ matrix.submodule }}
   check-docs:
