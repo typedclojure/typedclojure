@@ -50,6 +50,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: actions/cache@v3
+        id: test-deps-cache
         with:
           path: |
             ~/.m2/repository
@@ -90,10 +91,13 @@ jobs:
             ./script/test -Sdeps '{:deps {org.clojure/clojure {:mvn/version "${{ matrix.clojure }}"}} :mvn/repos {"sonatype-oss-public" {:url "https://oss.sonatype.org/content/groups/public/"}}}'
           }
           export -f run_tests
-          parallel --halt now,fail=1 -j 1 'cd {} && download_deps' ::: "${SUBMODULE_ARRAY[@]}"
+          if [[ "${SKIP_DOWNLOAD}" != "true" ]]; then
+            parallel --halt now,fail=1 -j 1 'cd {} && download_deps' ::: "${SUBMODULE_ARRAY[@]}"
+          fi
           parallel --halt now,fail=1 'cd {} && run_tests' ::: "${SUBMODULE_ARRAY[@]}"
         env:
           SUBMODULE: ${{ matrix.submodule }}
+          SKIP_DOWNLOAD: ${{ steps.test-deps-cache.outputs.cache-hit }}
   check-docs:
     runs-on: ubuntu-20.04
     if: ${{ github.repository == 'typedclojure/typedclojure'
