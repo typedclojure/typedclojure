@@ -52,20 +52,25 @@
         _ (assert (= (sort all-testable-submodules) (sort (mapcat identity all-splits))))]
     all-splits))
 
+(defn submodule-hash [^String submodule]
+  (str/replace (UUID/nameUUIDFromBytes (.getBytes submodule)) #"-" ""))
+
 (defn push-matrix []
   {:post [(matrix? %)]}
-  {:include (for [submodule (submodule-batches)
+  {:include (for [submodule-batch (submodule-batches)
                   clojure (cond-> [clojure-stable]
                             (and (= "typedclojure/typedclojure"
                                     (System/getenv "GITHUB_REPOSITORY"))
                                  clojure-next-release)
                             (conj clojure-next-release))
                   jdk ["11"]
-                  :let [submodule (str/join " " submodule)]]
-              {:submodule_hash (str/replace (UUID/nameUUIDFromBytes (.getBytes submodule)) #"-" "")
-               :submodule submodule
-               :clojure clojure
-               :jdk jdk})})
+                  :let [submodule (str/join " " submodule-batch)]]
+              (array-map
+                :submodule submodule
+                :clojure clojure
+                :jdk jdk
+                ;; put last so the job title is readable
+                :submodule_hash (submodule-hash submodule)))})
 
 (defn schedule-matrix []
   {:post [(matrix? %)]}
@@ -75,9 +80,12 @@
                   jdk ["8"
                        "11"
                        "17"]]
-              {:submodule submodule
-               :clojure clojure
-               :jdk jdk})})
+              (array-map
+                :submodule submodule
+                :clojure clojure
+                :jdk jdk
+                ;; put last so the job title is readable
+                :submodule_hash (submodule-hash submodule)))})
 
 (defn matrix []
   {:post [(matrix? %)]}
