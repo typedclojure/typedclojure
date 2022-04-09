@@ -6,7 +6,8 @@
 (require '[cheshire.core :as json]
          '[clojure.core.typed.contract-utils :as con]
          '[clojure.java.io :as io]
-         '[clojure.set :as set])
+         '[clojure.set :as set]
+         '[clojure.string :as str])
 
 (def all-testable-submodules
   (into (sorted-set)
@@ -28,14 +29,14 @@
 
 (defn push-matrix []
   {:post [(matrix? %)]}
-  {:include (for [submodule all-testable-submodules
+  {:include (for [submodule (partition-all 3 all-testable-submodules)
                   clojure (cond-> [clojure-stable]
                             (and (= "typedclojure/typedclojure"
                                     (System/getenv "GITHUB_REPOSITORY"))
                                  clojure-next-release)
                             (conj clojure-next-release))
                   jdk ["11"]]
-              {:submodule submodule
+              {:submodule (str/join " " submodule)
                :clojure clojure
                :jdk jdk})})
 

@@ -70,7 +70,7 @@ jobs:
           cli: ${{ env.CLOJURE_CLI_VERSION }} 
       - name: Run ${{ matrix.submodule }} tests
         run: |
-          ROOT=$PWD
+          set -x
           SUBMODULE_ARRAY=($SUBMODULE)
           # space separated list of submodules
           # https://stackoverflow.com/a/30212526
