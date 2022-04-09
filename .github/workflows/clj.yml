@@ -54,11 +54,11 @@ jobs:
           path: |
             ~/.m2/repository
             ~/.gitlibs
-          key: ${{ runner.os }}-test-deps-${{ matrix.submodule }}-${{ hashFiles('**/pom.xml') }}-${{ hashFiles('**/deps.edn') }}-${{ env.CLOJURE_CLI_VERSION }} 
+          key: ${{ runner.os }}-test-deps-${{ matrix.submodule_hash }}-${{ hashFiles('**/pom.xml') }}-${{ hashFiles('**/deps.edn') }}-${{ env.CLOJURE_CLI_VERSION }} 
           restore-keys: |
-            ${{ runner.os }}-test-deps-${{ matrix.submodule }}-${{ hashFiles('**/pom.xml') }}-${{ hashFiles('**/deps.edn') }}-
-            ${{ runner.os }}-test-deps-${{ matrix.submodule }}-${{ hashFiles('**/pom.xml') }}-
-            ${{ runner.os }}-test-deps-${{ matrix.submodule }}-
+            ${{ runner.os }}-test-deps-${{ matrix.submodule_hash }}-${{ hashFiles('**/pom.xml') }}-${{ hashFiles('**/deps.edn') }}-
+            ${{ runner.os }}-test-deps-${{ matrix.submodule_hash }}-${{ hashFiles('**/pom.xml') }}-
+            ${{ runner.os }}-test-deps-${{ matrix.submodule_hash }}-
             ${{ runner.os }}-test-deps-
       - name: Set up JDK ${{ matrix.jdk }}
         uses: actions/setup-java@v2
@@ -118,11 +118,11 @@ jobs:
           path: |
             ~/.m2/repository
             ~/.gitlibs
-          key: ${{ runner.os }}-deploy-deps-${{ matrix.submodule }}-${{ hashFiles('**/pom.xml') }}-${{ hashFiles('**/deps.edn') }}-${{ env.CLOJURE_CLI_VERSION }} 
+          key: ${{ runner.os }}-deploy-deps-${{ matrix.submodule_hash }}-${{ hashFiles('**/pom.xml') }}-${{ hashFiles('**/deps.edn') }}-${{ env.CLOJURE_CLI_VERSION }} 
           restore-keys: |
-            ${{ runner.os }}-deploy-deps-${{ matrix.submodule }}-${{ hashFiles('**/pom.xml') }}-${{ hashFiles('**/deps.edn') }}-
-            ${{ runner.os }}-deploy-deps-${{ matrix.submodule }}-${{ hashFiles('**/pom.xml') }}-
-            ${{ runner.os }}-deploy-deps-${{ matrix.submodule }}-
+            ${{ runner.os }}-deploy-deps-${{ matrix.submodule_hash }}-${{ hashFiles('**/pom.xml') }}-${{ hashFiles('**/deps.edn') }}-
+            ${{ runner.os }}-deploy-deps-${{ matrix.submodule_hash }}-${{ hashFiles('**/pom.xml') }}-
+            ${{ runner.os }}-deploy-deps-${{ matrix.submodule_hash }}-
             ${{ runner.os }}-deploy-deps-
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1

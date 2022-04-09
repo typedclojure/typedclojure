@@ -8,6 +8,7 @@
          '[clojure.java.io :as io]
          '[clojure.set :as set]
          '[clojure.string :as str])
+(import '[java.util UUID])
 
 (def all-testable-submodules
   (into (sorted-set)
@@ -24,6 +25,7 @@
 (def clojure-next-snapshot "1.12.0-master-SNAPSHOT")
 
 (def matrix? (con/hmap-c? :include (con/every-c? (con/hmap-c?
+                                                   :submodule_hash string?
                                                    :submodule string?
                                                    :clojure string?
                                                    :jdk string?))))
@@ -58,8 +60,10 @@
                                     (System/getenv "GITHUB_REPOSITORY"))
                                  clojure-next-release)
                             (conj clojure-next-release))
-                  jdk ["11"]]
-              {:submodule (str/join " " submodule)
+                  jdk ["11"]
+                  :let [submodule (str/join " " submodule)]]
+              {:submodule_hash (str (UUID/nameUUIDFromBytes (.getBytes submodule)))
+               :submodule submodule
                :clojure clojure
                :jdk jdk})})
 
