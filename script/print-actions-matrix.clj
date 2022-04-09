@@ -39,10 +39,12 @@
         _ (assert (= slow-submodule-tests (set slow-modules)))
         ;slow-splits (partition-all 2 slow-modules)
         ;; clj.checker and clj.spec are slowest
-        slow-splits [["typed/clj.checker" "typed/malli"]
-                     ["typed/clj.spec" "typed/lib.clojure"]]
+        ;slow-splits [["typed/clj.checker" "typed/malli"]
+        ;             ["typed/clj.spec" "typed/lib.clojure"]]
+        slow-splits [slow-modules]
         _ (assert (= (sort slow-submodule-tests) (sort (mapcat identity slow-splits))))
-        fast-splits (split-at (quot (count fast-modules) 2) fast-modules)
+        ;fast-splits (split-at (quot (count fast-modules) 2) fast-modules)
+        fast-splits [fast-modules]
         _ (assert (= (sort fast-modules) (sort (mapcat identity fast-splits))))
         all-splits (concat slow-splits fast-splits)
         _ (assert (= (sort all-testable-submodules) (sort (mapcat identity all-splits))))]
