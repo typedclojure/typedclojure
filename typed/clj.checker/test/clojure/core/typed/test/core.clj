@@ -4332,19 +4332,6 @@
   (is-tc-err (hash-map 1 "a" 2 \c) :expected (t/Map Number String))
   )
 
-(deftest normal-invoke-apply
-  (is-tc-e (apply (inst hash-map Number String) 1 ["a"]) :expected (t/Map Number String))
-  (is-tc-e (apply (inst hash-map Number String) 1 "a" [2 "b"]) :expected (t/Map Number String))
-  (is-tc-e (apply (inst hash-map Number String) 1 "a" [2 "b" 3 "c"]) :expected (t/Map Number String))
-  (is-tc-e (apply (inst hash-map Number String) 1 "a" [2 "b" 3 "c" 4 "c"]) :expected (t/Map Number String))
-  (is-tc-e (apply (inst hash-map Number String) 1 "a" []) :expected (t/Map Number String))
-  (is-tc-e (apply (inst hash-map Number String) 1 "a" nil) :expected (t/Map Number String))
-  (is-tc-err (apply (inst hash-map Number String) 1 "a" [2 \c]) :expected (t/Map Number String))
-  (is-tc-err (apply (inst hash-map Number String) 1 "a" [2 "b" 3 \c]) :expected (t/Map Number String))
-  (is-tc-err (apply (inst hash-map Number String) 1 \a [2 "c"]) :expected (t/Map Number String))
-  (is-tc-err (apply (inst hash-map Number String) 1 "a" [2 \c]) :expected (t/Map Number String))
-  (is-tc-err (apply (inst hash-map Number String) 1 \a [2 \c]) :expected (t/Map Number String))
-  )
 
 (deftest nil-empty-with-repeat
   (let [t (impl/with-clojure-impl
