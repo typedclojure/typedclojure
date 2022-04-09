@@ -36,7 +36,7 @@
   (let [{slow-modules true fast-modules false} (group-by (comp boolean slow-submodule-tests)
                                                          all-testable-submodules)]
     (concat (map vector slow-modules)
-            (partition-all 5 fast-modules))))
+            (partition-all 6 fast-modules))))
 
 (defn push-matrix []
   {:post [(matrix? %)]}
