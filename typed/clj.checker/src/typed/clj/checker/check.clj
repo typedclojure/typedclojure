@@ -1166,7 +1166,7 @@
   {:post [(-> % u/expr-type r/TCResult?)
           (vector? (:args %))]}
   (or (nthnext/check-seq check-expr expr expected)
-      (invoke/normal-invoke check-expr expr fexpr args expected)))
+      (invoke/normal-invoke expr fexpr args expected)))
 
 ;make vector
 (defmethod -invoke-special 'clojure.core/vector

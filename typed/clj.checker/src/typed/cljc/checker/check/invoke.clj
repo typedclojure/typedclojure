@@ -10,12 +10,13 @@
   (:require [typed.cljc.analyzer :as ana2]
             [typed.cljc.checker.utils :as u]
             [clojure.core.typed.contract-utils :as con]
+            [typed.cljc.checker.check :refer [check-expr]]
             [typed.cljc.checker.check.funapp :as funapp]
             [typed.cljc.checker.check.invoke-kw :as invoke-kw]
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.type-rep :as r]))
 
-(defn normal-invoke [check-fn expr fexpr args expected & {:keys [cfexpr cargs]}]
+(defn normal-invoke [expr fexpr args expected & {:keys [cfexpr cargs]}]
   {:pre [((some-fn nil? r/TCResult?) expected)
          (map? fexpr)
          (vector? args)
@@ -25,8 +26,8 @@
          ((some-fn nil?
                    (con/vec-c? (comp r/TCResult? u/expr-type)))
           cargs)]}
-  (let [cfexpr (or cfexpr (check-fn fexpr))
-        cargs (or cargs (mapv check-fn args))
+  (let [cfexpr (or cfexpr (check-expr fexpr))
+        cargs (or cargs (mapv check-expr args))
         ftype (u/expr-type cfexpr)
         argtys (map u/expr-type cargs)
         actual (funapp/check-funapp fexpr args ftype argtys expected {:expr expr})]
@@ -56,4 +57,4 @@
                                (when cdefault
                                  (u/expr-type cdefault)) 
                                expected))))
-      (normal-invoke check-expr expr fexpr args expected)))
+      (normal-invoke expr fexpr args expected)))

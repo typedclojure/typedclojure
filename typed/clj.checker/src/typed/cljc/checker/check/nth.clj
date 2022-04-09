@@ -11,6 +11,7 @@
             [typed.cljc.analyzer :as ana2]
             [typed.cljc.checker.check.invoke :as invoke]
             [typed.cljc.checker.check-below :as below]
+            [typed.cljc.checker.check :refer [check-expr]]
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.object-rep :as obj]
@@ -157,7 +158,7 @@
                           (t/SequentialSeqable t/Any)
                           nil)))))
 
-(defn invoke-nth [check-fn expr expected]
+(defn invoke-nth [expr expected]
   {:pre [(#{:host-call :invoke} (:op expr))
          (every? (every-pred (comp #{:unanalyzed} :op)
                              (complement u/expr-type))
@@ -173,9 +174,9 @@
   (when (#{2 3} (count (:args expr)))
     (let [{[te ne de] :args :as expr} (cond-> (-> expr
                                                   ;TODO avoid repeated checks
-                                                  (update :args #(mapv check-fn %)))
+                                                  (update :args #(mapv check-expr %)))
                                         (#{:host-call} (:op expr))
-                                        (update :target check-fn))
+                                        (update :target check-expr))
           types (let [ts (c/fully-resolve-type (expr->type te))]
                   (if (r/Union? ts)
                     (:types ts)
@@ -203,7 +204,6 @@
               expr (ana2/run-post-passes expr)]
           (case (:op expr)
             :invoke (invoke/normal-invoke
-                      check-fn
                       expr
                       (:fn expr)
                       (:args expr)

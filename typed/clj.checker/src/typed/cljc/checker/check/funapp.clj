@@ -59,12 +59,12 @@
        ;; a union of functions can be applied if we can apply all of the elements
        (r/Union? fexpr-type)
        (r/ret (reduce (fn [t ftype]
-                      {:pre [(r/Type? t)
-                             (r/Type? ftype)]
-                       :post [(r/Type? %)]}
-                      (c/Un t (r/ret-t (check-funapp fexpr args (r/ret ftype) arg-ret-types expected opt))))
-                    (c/Un)
-                    (:types fexpr-type)))
+                        {:pre [(r/Type? t)
+                               (r/Type? ftype)]
+                         :post [(r/Type? %)]}
+                        (c/Un t (r/ret-t (check-funapp fexpr args (r/ret ftype) arg-ret-types expected opt))))
+                      (c/Un)
+                      (:types fexpr-type)))
 
        ; try the first thing that looks like a Fn.
        ; FIXME This should probably try and invoke every Fn it can
