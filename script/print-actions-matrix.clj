@@ -13,7 +13,8 @@
   (into (sorted-set)
         (keep (fn [^java.io.File f]
                 (when (.isDirectory f)
-                  (.getPath f))))
+                  (when-not (str/starts-with? (.getName f) ".") ;; remove hidden dirs
+                    (.getPath f)))))
         (concat (.listFiles (io/file "typed"))
                 (.listFiles (io/file "example-projects")))))
 
@@ -41,7 +42,7 @@
         slow-splits [["typed/clj.checker" "typed/malli"]
                      ["typed/clj.spec" "typed/lib.clojure"]]
         _ (assert (= (sort slow-submodule-tests) (sort (mapcat identity slow-splits))))
-        fast-splits (partition-all 8 fast-modules)
+        fast-splits (split-at (quot (count fast-modules) 2) fast-modules)
         _ (assert (= (sort fast-modules) (sort (mapcat identity fast-splits))))
         all-splits (concat slow-splits fast-splits)
         _ (assert (= (sort all-testable-submodules) (sort (mapcat identity all-splits))))]
