@@ -79,7 +79,7 @@ jobs:
             echo "Empty submodule array!"
             exit 1
           fi
-          parallel cd {} && ./script/test -Sdeps '{:deps {org.clojure/clojure {:mvn/version "${{ matrix.clojure }}"}} :mvn/repos {"sonatype-oss-public" {:url "https://oss.sonatype.org/content/groups/public/"}}}' ::: "${SUBMODULE_ARRAY[@]}"
+          parallel 'cd {} && ./script/test -Sdeps ''{:deps {org.clojure/clojure {:mvn/version "${{ matrix.clojure }}"}} :mvn/repos {"sonatype-oss-public" {:url "https://oss.sonatype.org/content/groups/public/"}}}''' ::: "${SUBMODULE_ARRAY[@]}"
         env:
           SUBMODULE: ${{ matrix.submodule }}
   check-docs:
