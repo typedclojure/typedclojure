@@ -93,27 +93,29 @@
   [forms visitor]
   {:pre [(seq forms)]
    :post [(= % forms)]}
-  (doto (visit-fn-tail forms (fn [{:keys [type form]}]
-                               {:pre [form]}
-                               (case type
-                                 (:fixed :rest) (doto (visitor form)
-                                                  (prn form))
-                                 form)))
-    (prn forms)))
+  (visit-fn-tail forms (fn [{:keys [type form]}]
+                         {:pre [form]}
+                         (case type
+                           (:fixed :rest) (visitor form)
+                           form))))
 
-(defn visit-fn-destructuring
-  "Call visitor on all destructuring forms in first arg, a clojure.core/fn form."
+(defn visit-fn
   [[op & forms :as form] visitor]
   {:pre [(#{"fn"} (name op))]
    :post [(= % form)]}
-  ;(prn "visit-fn-destructuring" form)
-  (let [form (-> (list* op
-                        (visit-fn-tail-destructuring
-                          forms
-                          visitor))
-                 (with-meta (meta form)))]
-    ;(prn "visit-fn-destructuring" form)
-    form))
+  (-> (list* op (visit-fn-tail forms visitor))
+      (with-meta (meta form))))
+
+(defn visit-fn-destructuring
+  "Call visitor on all destructuring forms in first arg, a clojure.core/fn form."
+  [form visitor]
+  {:pre [(#{"fn"} (name (first form)))]
+   :post [(= % form)]}
+  (visit-fn form (fn [{:keys [type form]}]
+                   {:pre [form]}
+                   (case type
+                     (:fixed :rest) (visitor form)
+                     form))))
 
 (defn visit-defn-destructuring
   "Call visitor on all destructuring forms in first arg, a clojure.core/defn form."
