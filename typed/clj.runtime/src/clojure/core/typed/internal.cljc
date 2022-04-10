@@ -47,42 +47,59 @@
                                 #(or % blame-form))))
                  dform))
 
-(defn visit-fn-methods-destructuring
-  [methods visitor]
-  (-> (map (fn [arity]
-             (assert (seq arity))
-             (-> (map-indexed 
-                   (fn [i form]
-                     (case (int i)
-                       0 (do (assert (vector? form))
-                             (into (empty form)
-                                   (map (fn [maybe-destructuring]
-                                          (cond-> maybe-destructuring
-                                            (not= '& maybe-destructuring) visitor)))
-                                   form))
-                       form))
-                   arity)
-                 doall
-                 (with-meta (meta arity))))
-           methods)
-      doall
-      (with-meta (meta methods))))
+(defn visit-fn-tail
+  [forms visitor]
+  (let [[nme forms] (take-when symbol? forms)
+        single-arity-syntax? (vector? (first forms))
+        methods (cond-> forms
+                  single-arity-syntax? list)
+        visited-methods (doall
+                          (map-indexed
+                            (fn [method-pos arity]
+                              (assert (seq arity))
+                              (let [info {:method-pos method-pos}]
+                                (-> (map-indexed
+                                      (fn [i form]
+                                        (case (int i)
+                                          0 (let [_ (assert (vector? form))
+                                                  has-rest? (= '& (nth form (- (count form) 3) nil))
+                                                  info (assoc info
+                                                              :nfixed (cond-> (count form)
+                                                                        has-rest? (- 2))
+                                                              :has-rest? has-rest?)
+                                                  form (into (empty form) ;preserves meta
+                                                             (map-indexed (fn [arg-pos maybe-destructuring]
+                                                                            (if (= '& maybe-destructuring)
+                                                                              maybe-destructuring
+                                                                              (let [rest? (and has-rest? (= (inc arg-pos) (count form)))]
+                                                                                (visitor (cond-> (assoc info
+                                                                                                        :form maybe-destructuring
+                                                                                                        :type (if rest? :rest :fixed))
+                                                                                           (not rest?) (assoc :fixed-pos arg-pos)))))))
+                                                             form)]
+                                              (visitor (assoc info :form form :type :argv)))
+                                          ;else
+                                          form))
+                                      arity)
+                                    doall
+                                    (with-meta (meta arity)))))
+                            methods))]
+    (concat
+      (some-> nme list)
+      (cond-> visited-methods
+        single-arity-syntax? first))))
 
 (defn visit-fn-tail-destructuring
   [forms visitor]
   {:pre [(seq forms)]
    :post [(= % forms)]}
-  (let [[nme forms] (take-when symbol? forms)
-        single-arity-syntax? (vector? (first forms))
-        methods (cond-> forms
-                  single-arity-syntax? list)
-        visited-methods (visit-fn-methods-destructuring
-                          methods
-                          visitor)]
-    (concat
-      (some-> nme list)
-      (cond-> visited-methods
-        single-arity-syntax? first))))
+  (doto (visit-fn-tail forms (fn [{:keys [type form]}]
+                               {:pre [form]}
+                               (case type
+                                 (:fixed :rest) (doto (visitor form)
+                                                  (prn form))
+                                 form)))
+    (prn forms)))
 
 (defn visit-fn-destructuring
   "Call visitor on all destructuring forms in first arg, a clojure.core/fn form."
