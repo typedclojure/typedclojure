@@ -169,8 +169,7 @@
                        m1 
                        ^long [this t :- Foo] :- Bar)))
              :defprotocol next next first second meta)
-         '{:tag long}))
-  )
+         '{:tag long})))
 
 (deftest parse-let-test
   (is (= (internal/parse-let* '([a b c d] 1 2 3 4))
@@ -182,3 +181,25 @@
   (is (= (-> (internal/parse-let* '(^:test-meta [a :- Foo b c :- Baz d] 1 2 3 4))
              :let second meta)
          '{:test-meta true})))
+
+(deftest add-fn-destructure-blame-form-test
+  (is (= (-> (internal/add-fn-destructure-blame-form '(clojure.core/fn ([a] a)))
+             second first first meta)
+         {::internal/destructure-blame-form '(clojure.core/fn ([a] a))}))
+  (is (= (-> (internal/add-fn-destructure-blame-form '(clojure.core/fn ([a & b] a)))
+             second first first meta)
+         (-> (internal/add-fn-destructure-blame-form '(clojure.core/fn ([a & b] a)))
+             second first last meta)
+         {::internal/destructure-blame-form '(clojure.core/fn ([a & b] a))}))
+  (is (= (-> (internal/add-fn-destructure-blame-form '(clojure.core/fn [a & b] a))
+             second first meta)
+         (-> (internal/add-fn-destructure-blame-form '(clojure.core/fn [a & b] a))
+             second last meta)
+         {::internal/destructure-blame-form '(clojure.core/fn [a & b] a)}))
+  (is (= (-> (internal/add-fn-destructure-blame-form '(clojure.core/fn ([a] a) ([a & b] a)))
+             second first first meta)
+         (-> (internal/add-fn-destructure-blame-form '(clojure.core/fn ([a] a) ([a & b] a)))
+             last first last meta)
+         (-> (internal/add-fn-destructure-blame-form '(clojure.core/fn ([a] a) ([a & b] a)))
+             last first last meta)
+         {::internal/destructure-blame-form '(clojure.core/fn ([a] a) ([a & b] a))})))
