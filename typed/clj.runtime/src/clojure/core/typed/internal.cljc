@@ -85,7 +85,9 @@
                                     (with-meta (meta arity)))))
                             methods))]
     (concat
-      (some-> nme list)
+      (when nme
+        [(visitor {:form nme
+                   :type :name})])
       (cond-> visited-methods
         single-arity-syntax? first))))
 

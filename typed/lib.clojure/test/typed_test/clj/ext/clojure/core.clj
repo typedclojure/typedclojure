@@ -2,6 +2,7 @@
   (:require [clojure.test :refer [deftest is testing]]
             [clojure.template :refer [do-template]]
             [clojure.core.typed :as t]
+            [typed.clojure :as tc]
             [clojure.string :as str]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.clj.ext.clojure.core__let :as ext-let]
@@ -352,3 +353,27 @@
              {:arglists '([] [{:keys [registry]}])}
              ([] nil)
              ([opts] nil))))
+
+(deftest fn-test
+  (is-tc-e (cc/fn [^{::tc/- t/Int} a] (inc a)))
+  (is-tc-e (cc/fn ([^{::tc/- t/Int} a] (inc a))))
+  (is-tc-e (cc/fn ^{::tc/- t/Int} [^{::tc/- t/Int} a] (inc a)))
+  (is-tc-e (cc/fn (^{::tc/- t/Int} [^{::tc/- t/Int} a] (inc a))))
+  (is-tc-err (cc/fn ^{::tc/- t/Bool} [^{::tc/- t/Int} a] (inc a)))
+  (is-tc-err (cc/fn ^{::tc/- t/Int} [^{::tc/- t/Bool} a] (inc a)))
+  (is-tc-e (cc/fn [^{::tc/- '{:a t/Int}} {:keys [a]}] (inc a)))
+  #_ ;;TODO
+  (is-tc-e (cc/fn ^{::tc/forall [x y]} _a
+             [^{::tc/- x} a
+              ^{::tc/- [x :-> y]} f]
+             (f a)))
+  (is-tc-e (cc/fn ^{::tc/- (t/All [x y] [x [x :-> y] :-> y])} _a
+             [a f]
+             (f a)))
+  (is-tc-err (cc/fn ^{::tc/- (t/All [x y] [x [x :-> y] :-> x])} _a
+               [a f]
+               (f a)))
+  ;; cannot mix name annotation with others
+  (is-tc-err (cc/fn ^{::tc/- (t/All [x y] [x [x :-> y] :-> x])} _a
+               [^{::tc/- x} a f]
+               (f a))))
