@@ -27,8 +27,19 @@
                    (con/vec-c? (comp r/TCResult? u/expr-type)))
           cargs)]}
   (let [cfexpr (or cfexpr (check-expr fexpr))
-        cargs (or cargs (mapv check-expr args))
         ftype (u/expr-type cfexpr)
+        ;; keep Function arguments in checking mode
+        expected-args (when-some [ft (some-> ftype r/ret-t)]
+                        (when-some [fns (when (r/FnIntersection? ft)
+                                          (:types ft))]
+                          (when-some [f (when (= 1 (count fns))
+                                          (first fns))]
+                            (when (and (not ((some-fn :rest :drest :kws :prest :pdot) f))
+                                       (= (count (:dom f))
+                                          (count args)))
+                              (mapv #(when (r/FnIntersection? %) (r/ret %)) (:dom f))))))
+        cargs (or cargs (apply mapv check-expr args (some-> expected-args list)))
+        _ (assert (= (count cargs) (count args)))
         argtys (map u/expr-type cargs)
         actual (funapp/check-funapp fexpr args ftype argtys expected {:expr expr})]
     (assoc expr
@@ -54,7 +65,6 @@
                                expr
                                (u/expr-type cfexpr)
                                (u/expr-type ctarget)
-                               (when cdefault
-                                 (u/expr-type cdefault)) 
+                               (some-> cdefault u/expr-type) 
                                expected))))
       (normal-invoke expr fexpr args expected)))

@@ -14,3 +14,9 @@
   (is-tc-err (apply (inst hash-map Number String) 1 \a [2 "c"]) :expected (t/Map Number String))
   (is-tc-err (apply (inst hash-map Number String) 1 "a" [2 \c]) :expected (t/Map Number String))
   (is-tc-err (apply (inst hash-map Number String) 1 \a [2 \c]) :expected (t/Map Number String)))
+
+(deftest function-to-args-type-propagation-test
+  (is-tc-e (cc/fn [p] (p #(inc %)))
+           [[[t/Int :-> t/Int] :-> t/Int] :-> t/Int])
+  (is-tc-err (cc/fn [p] (p #(inc %)))
+             [[[t/Bool :-> t/Int] :-> t/Int] :-> t/Int]))
