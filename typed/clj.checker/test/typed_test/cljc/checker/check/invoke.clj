@@ -19,4 +19,11 @@
   (is-tc-e (cc/fn [p] (p #(inc %)))
            [[[t/Int :-> t/Int] :-> t/Int] :-> t/Int])
   (is-tc-err (cc/fn [p] (p #(inc %)))
-             [[[t/Bool :-> t/Int] :-> t/Int] :-> t/Int]))
+             [[[t/Bool :-> t/Int] :-> t/Int] :-> t/Int])
+  ;; resolve types
+  (is-tc-e (do (defalias Foo [t/Int :-> t/Int])
+               (ann-form (cc/fn [p] (p #(inc %)))
+                         [[Foo :-> t/Int] :-> t/Int])))
+  (is-tc-err (do (defalias Foo [t/Bool :-> t/Int])
+                 (ann-form (cc/fn [p] (p #(inc %)))
+                           [[Foo :-> t/Int] :-> t/Int]))))
