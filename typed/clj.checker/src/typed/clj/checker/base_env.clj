@@ -30,7 +30,7 @@
   (:import (clojure.lang Named IMapEntry AMapEntry
                          LazySeq PersistentHashSet PersistentTreeSet PersistentList
                          APersistentMap ISeq IPersistentCollection
-                         ILookup Indexed Associative #_ITransientSet
+                         ILookup Indexed #_ITransientSet
                          IRef Reduced)
            (java.util Comparator Collection)))
 

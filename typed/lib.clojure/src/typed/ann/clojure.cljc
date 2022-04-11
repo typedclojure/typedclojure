@@ -77,13 +77,12 @@
                 -rest [(cljs.core/ISeq x) :-> (cljs.core/ISeq x)])
 ;cljs.core/INext [[x :variance :covariant]]
 (t/ann-protocol [[v :variance :covariant]] cljs.core/ILookup)
-(t/ann-protocol [[m :variance :covariant]
-                 [k :variance :covariant]
+(t/ann-protocol [[k :variance :covariant]
                  [v :variance :covariant]]
                 cljs.core/IAssociative
-                -contains-key [(cljs.core/IAssociative m k v) t/Any :-> t/Bool]
-                -assoc (t/All [k1 v1] [(cljs.core/IAssociative m k v) k1 v1 :->
-                                       (cljs.core/IAssociative m (t/U k k1) (t/U v v1))]))
+                -contains-key [(cljs.core/IAssociative k v) t/Any :-> t/Bool]
+                -assoc (t/All [k1 v1] [(cljs.core/IAssociative k v) k1 v1 :->
+                                       (cljs.core/IAssociative (t/U k k1) (t/U v v1))]))
 (t/ann-protocol cljs.core/IMap
                 -dissoc [cljs.core/IMap t/Any :-> cljs.core/IMap])
 (t/ann-protocol [[k :variance :covariant]
@@ -414,16 +413,15 @@
               t/NonEmptyCount)))
 
 (t/defalias
-  ^{:doc "An associative persistent collection with members of type m
-         and supporting associative operations on keys type k and values type v."
-    :forms '[(t/Associative m k v)]}
+  ^{:doc "An associative persistent collection supporting associative operations on keys type k and values type v."
+    :forms '[(t/Associative k v)]}
   t/Associative
-  (t/TFn [[m :variance :covariant]
-          [k :variance :covariant]
+  (t/TFn [[k :variance :covariant]
           [v :variance :covariant]]
-         #?(:clj (clojure.lang.Associative m k v)
-            :cljs (t/I (cljs.core/IAssociative m k v)
-                       (t/Coll m)
+         #?(:clj (clojure.lang.Associative t/Any k v)
+            :cljs (t/I (cljs.core/IAssociative k v)
+                       ;; emulate clojure.lang.Associative's ancestors
+                       (t/Coll t/Any)
                        (cljs.core/ILookup v)))))
 
 (t/defalias
@@ -441,7 +439,9 @@
   (t/TFn [[x :variance :covariant]]
          #?(:clj (clojure.lang.IPersistentVector x)
             :cljs (t/I (cljs.core/IVector x)
-                       (t/Associative x t/Int x)
+                       (t/Associative t/Int x)
+                       (t/Coll x)
+                       (cljs.core/ILookup x)
                        cljs.core/ISequential
                        (cljs.core/IStack x)
                        (t/Reversible x)
@@ -504,7 +504,7 @@
                        (cc/ISeqable (cc/IMapEntry k v))
                        cc/ICounted
                        (cc/ILookup v)
-                       (cc/IAssociative t/Any k v)
+                       (cc/IAssociative k v)
                        (cc/IFind k v)
                        cljs.core/IMap
                        cljs.core/IKVReduce
@@ -1375,7 +1375,7 @@ cc/some? [t/Any -> t/Bool :filters {:then (! nil 0)
 cc/cast (t/All [x] [Class x -> x])
 ])
 
-cc/associative? (t/Pred (t/Associative t/Any t/Any t/Any))
+cc/associative? (t/Pred (t/Associative t/Any t/Any))
 cc/coll? (t/Pred (t/Coll t/Any))
       ;TODO should these be parameterized?
 cc/sequential? (t/Pred t/Sequential)
@@ -1762,7 +1762,7 @@ cc/reduce (t/All [a c] (t/IFn
                          ; (reduce (fn [a b] a) (reduced 1) nil) 
                          ; ;=> (reduced 1)
                          [[a c -> (t/U (t/Reduced a) a)] a (t/Seqable c) -> a]))
-cc/reduce-kv (t/All [a c k v] [[a k v -> (t/U (t/Reduced a) a)] a (t/Option (t/Associative t/Any k v)) -> a])
+cc/reduce-kv (t/All [a k v] [[a k v -> (t/U (t/Reduced a) a)] a (t/Option (t/Associative k v)) -> a])
 cc/reductions (t/All [a b] (t/IFn [[a b -> a] (t/Seqable b) -> (t/ASeq a)]
                                   [[a b -> a] a (t/Seqable b) -> (t/ASeq a)]))
 cc/reduced (t/All [x] [x -> (t/Reduced x)])
@@ -1874,12 +1874,12 @@ cc/conj
 
 cc/sequence (t/All [a b] (t/IFn [(t/Nilable (t/Seqable a)) -> (t/Seq a)]
                                 [(t/Transducer a b) (t/Nilable (t/Seqable a)) :-> (t/Seqable b)]))
-cc/find (t/All [x y] [(t/Nilable (t/Associative t/Any x y)) t/Any -> (t/Nilable (t/HVec [x y]))])
+cc/find (t/All [x y] [(t/Nilable (t/Associative x y)) t/Any -> (t/Nilable (t/HVec [x y]))])
 
 cc/get-in (t/IFn [t/Any (t/Nilable (t/Seqable t/Any)) -> t/Any]
                  [t/Any (t/Nilable (t/Seqable t/Any)) t/Any -> t/Any])
 
-cc/assoc-in [(t/Nilable (t/Associative t/Any t/Any t/Any)) (t/Seqable t/Any) t/Any -> t/Any]
+cc/assoc-in [(t/Nilable (t/Associative t/Any t/Any)) (t/Seqable t/Any) t/Any -> t/Any]
 
 ;FIXME maps after the first can always be nil
 cc/merge (t/All [k v] (t/IFn [nil * -> nil]

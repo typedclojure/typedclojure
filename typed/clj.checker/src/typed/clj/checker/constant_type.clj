@@ -14,7 +14,7 @@
             [typed.cljc.checker.hset-utils :as hset]
             [typed.cljc.checker.filter-ops :as fo])
   (:import (clojure.lang IPersistentList IPersistentVector Symbol Cons ISeq
-                         IFn IPersistentStack Associative IPersistentSet IPersistentMap IMapEntry
+                         IFn IPersistentStack IPersistentSet IPersistentMap IMapEntry
                          Keyword Atom PersistentList IMeta PersistentArrayMap Compiler Named
                          IRef ARef IDeref IReference Sorted
                          LazySeq Indexed)))
