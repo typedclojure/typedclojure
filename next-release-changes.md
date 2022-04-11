@@ -6,3 +6,4 @@
   - can now check: `(fn [p :- [[t/Int :-> t/Int] :-> t/Int]] (p #(inc %)))`
 - Breaking: type alias `typed.clojure/Associative` now takes 2 type arguments (before, 3)
   - similar for `cljs.core/IAssociative`, `clojure.lang.Associative`
+- Breaking: remove unused type arg from `cc/reduce-kv` annotation
