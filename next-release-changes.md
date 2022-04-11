@@ -5,5 +5,4 @@
 - propagate expected type to fn arguments of invocations
   - can now check: `(fn [p :- [[t/Int :-> t/Int] :-> t/Int]] (p #(inc %)))`
 - Breaking: type alias `typed.clojure/Associative` now takes 2 type arguments (before, 3)
-  - similar for `cljs.core/IAssociative`
-  - `clojure.lang.Associative` is still 3 arguments but may become 2 if subtyping proves smart enough
+  - similar for `cljs.core/IAssociative`, `clojure.lang.Associative`

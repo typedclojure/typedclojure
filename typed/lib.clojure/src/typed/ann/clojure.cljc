@@ -418,7 +418,7 @@
   t/Associative
   (t/TFn [[k :variance :covariant]
           [v :variance :covariant]]
-         #?(:clj (clojure.lang.Associative t/Any k v)
+         #?(:clj (clojure.lang.Associative k v)
             :cljs (t/I (cljs.core/IAssociative k v)
                        ;; emulate clojure.lang.Associative's ancestors
                        (t/Coll t/Any)
