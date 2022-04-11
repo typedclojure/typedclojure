@@ -1735,8 +1735,8 @@ cc/keep-indexed (t/All [a c] [[t/Num a -> (t/U nil c)] (t/Seqable a) -> (t/Seq c
 cc/bounded-count [(t/U t/Counted (t/Seqable t/Any)) :-> t/Int]
 cc/keep (t/All [a b] [[a -> (t/Option b)] (t/Coll a) -> (t/Option (t/ASeq b))])
 
-cc/seqable? (t/Pred (t/Seqable Any))
-cc/indexed? (t/Pred (t/Indexed Any))
+cc/seqable? (t/Pred (t/Seqable t/Any))
+cc/indexed? (t/Pred (t/Indexed t/Any))
 cc/inst-ms [:-> t/Int]
 cc/inst? (t/Pred cc/Inst)
 cc/uuid? (t/Pred t/UUID)
