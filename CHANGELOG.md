@@ -1,3 +1,20 @@
+# 1.0.27
+
+- support metadata annotations on `clojure.core/fn`
+  - `(t/fn [a :- t/Int]) <=> (cc/fn [^{:typed.clojure/- t/Int} a])`
+  - `(t/fn [] :- t/Bool) <=> (cc/fn ^{:typed.clojure/- t/Int} [])`
+  - `(t/ann-form (t/fn [a] a) (t/All [x] [x :-> x])) <=> (cc/fn ^{:typed.clojure/- (t/All [x] [x :-> x])} _id [a] a)`
+- propagate expected type to fn arguments of invocations
+  - can now check: `(fn [p :- [[t/Int :-> t/Int] :-> t/Int]] (p #(inc %)))`
+- Breaking: type alias `typed.clojure/Associative` now takes 2 type arguments (before, 3)
+  - similar for `cljs.core/IAssociative`, `clojure.lang.Associative`
+- Breaking: remove unused type arg from `cc/reduce-kv` annotation
+- fix bad annotations for `seqable?`, `indexed?`, `find`
+- use more precise line/columnn information in type parsing errors
+- Breaking: rename `t/MapEntry` to `t/AMapEntry` for fn outputs, change `t/MapEntry` for fn inputs
+- fix malli->type ref translation
+  - Reported by paola pereira in Clojurians Slack #core-typed. Thanks!
+
 # 1.0.26
 
 - add `typed.clojure/cns`
