@@ -10,3 +10,5 @@
 - fix bad annotations for `seqable?`, `indexed?`, `find`
 - use more precise line/columnn information in type parsing errors
 - Breaking: rename `t/MapEntry` to `t/AMapEntry` for fn outputs, change `t/MapEntry` for fn inputs
+- fix malli->type ref translation
+  - Reported by paola pereira in Clojurians Slack #core-typed. Thanks!

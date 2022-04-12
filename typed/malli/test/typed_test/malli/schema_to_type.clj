@@ -223,6 +223,19 @@
          (sut/malli-syntax->validator-type :qualified-symbol)
          (sut/malli-syntax->validator-type 'qualified-symbol?)))
 
+  (is (= `t/Str (sut/malli-syntax->validator-type '[:schema {:registry {'a :string}}
+                                                    'a])))
+  (is (= `t/Str (sut/malli-syntax->validator-type '[:schema {:registry {::a :string}}
+                                                    ::a])))
+  (is (= `t/Str (sut/malli-syntax->validator-type '[:schema {:registry {"a" :string}}
+                                                    "a"])))
+  (is (some? (prs/parse-clj
+               (sut/malli-syntax->validator-type '[:schema {:registry {"a space" :string}}
+                                                   "a space"]))))
+  (is (some? (prs/parse-clj
+               (sut/malli-syntax->validator-type '[:schema {:registry {"b space" [:vector [:ref "a space"]]
+                                                                       "a space" [:vector [:ref "b space"]]}}
+                                                   "a space"]))))
   (is (= `t/Any
          (sut/malli-syntax->validator-type '[:fn #(identity %)])))
   ;;TODO this tests the ::default of -malli->type -- if/when we support :fn, find a better way to test.

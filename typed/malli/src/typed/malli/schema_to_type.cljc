@@ -146,9 +146,12 @@
                            :validator-type `(t/Seqable ~inner-t)
                            :parser-type `(t/Vec ~inner-t)))
                     :ref (let [n (m/-ref m)
-                               _ (assert ((some-fn keyword? symbol? string?) n))
-                               _ (assert (re-matches #"^[a-zA-Z]+[a-zA-Z0-9]*$" (name n)) n)
-                               gn (gensym (name n))]
+                               gn (-> (cond
+                                        ((some-fn keyword? symbol?) n) (gensym (name n))
+                                        ;; don't gensym invalid symbols
+                                        (string? n) (gensym (.replaceAll ^String n "[^a-zA-Z0-9]" ""))
+                                        :else (throw (ex-info (str "What is this? " (pr-str n)))))
+                                      (with-meta {::ref-name n}))]
                            `(t/Rec [~gn] ~(gen-inner (m/-deref m) (assoc-in opts [::schema-form->free (m/form m)] gn))))
                     :int `t/AnyInteger
                     (keyword? :keyword simple-keyword? #_:simple-keyword qualified-keyword? :qualified-keyword) `t/Kw

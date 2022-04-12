@@ -15,6 +15,9 @@ check and infer a var.
 The namespace [typed-example.malli-extensible](src/typed_example/malli_extensible.cljc) shows how
 Typed Clojure can be taught about new schemas.
 
+The namespace [typed-example.malli-global-registry](src/typed_example/malli_global_registry.cljc) shows 
+how to use Malli's global registry with Typed Clojure.
+
 ## Usage
 
 See [deps.edn](deps.edn) for required dependencies.
