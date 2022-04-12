@@ -487,6 +487,13 @@
             :cljs (cc/IMapEntry k v))))
 
 (t/defalias
+  t/AMapEntry
+  (t/TFn [[k :variance :covariant]
+          [v :variance :covariant]]
+         #?(:clj (clojure.lang.AMapEntry k v)
+            :cljs (cc/IMapEntry k v))))
+
+(t/defalias
   ^{:doc "A persistent map with keys k and vals v."
     :forms '[(Map t t)]}
   t/Map
@@ -1874,7 +1881,7 @@ cc/conj
 
 cc/sequence (t/All [a b] (t/IFn [(t/Nilable (t/Seqable a)) -> (t/Seq a)]
                                 [(t/Transducer a b) (t/Nilable (t/Seqable a)) :-> (t/Seqable b)]))
-cc/find (t/All [x y] [(t/Nilable (t/Associative x y)) t/Any -> (t/Nilable (t/HVec [x y]))])
+cc/find (t/All [x y] [(t/Nilable (t/Associative x y)) t/Any -> (t/Nilable (t/AMapEntry x y))])
 
 cc/get-in (t/IFn [t/Any (t/Nilable (t/Seqable t/Any)) -> t/Any]
                  [t/Any (t/Nilable (t/Seqable t/Any)) t/Any -> t/Any])

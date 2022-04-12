@@ -48,7 +48,7 @@
      (throw (ex-info (str "Internal Error "
                           "(" (or file 
                                   (impl/impl-case
-                                    :clojure (:ns env)
+                                    :clojure (or (:ns env) *file* (ns-name *ns*))
                                     :cljs (:name (:ns env))
                                     :unknown "?"))
                           ":" 

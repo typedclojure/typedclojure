@@ -24,11 +24,11 @@
 (t/ann clean [RuleSet Data -> Data])
 (defn clean [rules data]
   (reduce (t/ann-form (fn [cleaned-up kv]
-                      (let [rule-path (key kv)
-                            datum (val kv)]
-                        (if-let [rule (get rules rule-path)]
-                          (assoc cleaned-up rule-path datum)
-                          cleaned-up)))
+                        (let [rule-path (key kv)
+                              datum (val kv)]
+                          (if-let [rule (get rules rule-path)]
+                            (assoc cleaned-up rule-path datum)
+                            cleaned-up)))
                     [Data (IMapEntry t/Any t/Any) -> Data])
           {} data))
 

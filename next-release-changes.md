@@ -7,4 +7,6 @@
 - Breaking: type alias `typed.clojure/Associative` now takes 2 type arguments (before, 3)
   - similar for `cljs.core/IAssociative`, `clojure.lang.Associative`
 - Breaking: remove unused type arg from `cc/reduce-kv` annotation
-- fix bad annotations for `seqable?`, `indexed?`
+- fix bad annotations for `seqable?`, `indexed?`, `find`
+- use more precise line/columnn information in type parsing errors
+- Breaking: rename `t/MapEntry` to `t/AMapEntry` for fn outputs, change `t/MapEntry` for fn inputs

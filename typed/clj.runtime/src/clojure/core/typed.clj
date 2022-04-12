@@ -774,9 +774,14 @@ for checking namespaces, cf for checking individual forms."}
      _ (with-clojure-impl
          (when-not check?
            (add-nocheck-var qsym)))
-     ast (with-current-location form
+     loc-form (or (some #(when ((every-pred :line :column) (meta %))
+                           %)
+                        [(second form)
+                         (first form)])
+                  form)
+     ast (with-current-location loc-form
            (delay-rt-parse typesyn))
-     tc-type (with-current-location form
+     tc-type (with-current-location loc-form
                (delay-tc-parse typesyn))]
     (with-clojure-impl
       (add-var-env qsym ast))
