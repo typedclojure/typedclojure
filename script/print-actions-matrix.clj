@@ -20,7 +20,7 @@
                 (.listFiles (io/file "example-projects")))))
 
 ;; TODO grab from typed.dev.helpers
-(def clojure-stable "1.11.0")
+(def clojure-stable "1.11.1")
 (def clojure-next-release nil #_"1.12.0-alpha1")
 (def clojure-next-snapshot "1.12.0-master-SNAPSHOT")
 

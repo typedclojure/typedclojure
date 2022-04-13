@@ -72,7 +72,7 @@
     "typed/malli/test"]}},
  :deps
  {selmer/selmer {:mvn/version "1.12.50"},
-  org.clojure/clojure {:mvn/version "1.11.0"},
+  org.clojure/clojure {:mvn/version "1.11.1"},
   org.typedclojure/typed.clj.checker
   {:deps/manifest :deps, :local/root "typed/clj.checker"},
   org.typedclojure/typed.clj.reader

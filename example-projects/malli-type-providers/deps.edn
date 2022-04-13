@@ -1,4 +1,4 @@
-{:deps {org.clojure/clojure {:mvn/version "1.11.0"}
+{:deps {org.clojure/clojure {:mvn/version "1.11.1"}
         org.typedclojure/typed.clj.runtime {:local/root "../../typed/clj.runtime"}
         org.typedclojure/typed.cljs.runtime {:local/root "../../typed/cljs.runtime"}
         org.typedclojure/typed.malli {:local/root "../../typed/malli"}}
