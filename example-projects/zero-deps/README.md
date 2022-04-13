@@ -23,7 +23,11 @@ To automatically load these annotations, we use the `resources` dir to add a [ty
 Again, you could use `dev-resources` or `test-resources` if these are internal annotations.
 
 To type check [typed-example.zero-deps](src/typed_example/zero_deps.cljc), make sure `typed.clojure` is loaded.
-One way to do this is `((requiring-resolve `t/check-ns-clj))`. This loads the Typed Clojure runtime, then the
+One way to do this is:
+```
+((requiring-resolve `t/check-ns-clj))
+```
+This loads the Typed Clojure runtime, then the
 checker is loaded before gathering the annotations in [typed-example.zero-deps.typedclojure-ann](src/typed_example/zero_deps/typedclojure_ann.cljc)
 and checking the namespace.
 
