@@ -2,7 +2,7 @@
 
 - support metadata annotations on `clojure.core/fn`
   - `(t/fn [a :- t/Int]) <=> (cc/fn [^{:typed.clojure/- t/Int} a])`
-  - `(t/fn [] :- t/Bool) <=> (cc/fn ^{:typed.clojure/- t/Int} [])`
+  - `(t/fn [] :- t/Bool) <=> (cc/fn ^{:typed.clojure/- t/Bool} [])`
   - `(t/ann-form (t/fn [a] a) (t/All [x] [x :-> x])) <=> (cc/fn ^{:typed.clojure/- (t/All [x] [x :-> x])} _id [a] a)`
 - propagate expected type to fn arguments of invocations
   - can now check: `(fn [p :- [[t/Int :-> t/Int] :-> t/Int]] (p #(inc %)))`
