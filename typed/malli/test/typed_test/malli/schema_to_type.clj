@@ -236,6 +236,10 @@
                (sut/malli-syntax->validator-type '[:schema {:registry {"b space" [:vector [:ref "a space"]]
                                                                        "a space" [:vector [:ref "b space"]]}}
                                                    "a space"]))))
+  (is (some? (prs/parse-clj
+               (sut/malli-syntax->validator-type '[:schema {:registry {"2" [:vector [:ref "1"]]
+                                                                       "1" [:vector [:ref "2"]]}}
+                                                   "1"]))))
   (is (= `t/Any
          (sut/malli-syntax->validator-type '[:fn #(identity %)])))
   ;;TODO this tests the ::default of -malli->type -- if/when we support :fn, find a better way to test.

@@ -1,0 +1,1 @@
+- support malli ref named as strings that start with non-alphanumeric

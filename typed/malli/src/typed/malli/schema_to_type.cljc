@@ -149,7 +149,7 @@
                                gn (-> (cond
                                         ((some-fn keyword? symbol?) n) (gensym (name n))
                                         ;; don't gensym invalid symbols
-                                        (string? n) (gensym (.replaceAll ^String n "[^a-zA-Z0-9]" ""))
+                                        (string? n) (gensym (str "_" (.replaceAll ^String n "[^a-zA-Z0-9]" "")))
                                         :else (throw (ex-info (str "What is this? " (pr-str n)))))
                                       (with-meta {::ref-name n}))]
                            `(t/Rec [~gn] ~(gen-inner (m/-deref m) (assoc-in opts [::schema-form->free (m/form m)] gn))))
