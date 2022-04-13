@@ -1,1 +1,2 @@
 - better support malli refs named as strings that contain non-alphanumerics
+- add [zero-deps](example-projects/zero-deps) example project for shipping type checked libraries without a Typed Clojure dependency.

@@ -685,6 +685,7 @@
   [sym]
   {:pre [(symbol? sym)]
    :post [(symbol? %)]}
+  (impl/assert-clojure)
   (let [segs (vec (partition-by #{\.} (str (repl/demunge (str sym)))))
         segs (assoc-in segs [(- (count segs) 2)] '(\/))
         var-sym (symbol (apply str (apply concat segs)))]
@@ -694,6 +695,7 @@
 (defn resolve-Protocol
   [{:keys [the-var]}]
   {:post [(var? %)]}
+  (impl/assert-clojure)
   (let [v (resolve the-var)]
     (assert (var? v) (str "Cannot resolve protocol: " the-var))
     v))
@@ -704,8 +706,8 @@
   (set (extenders @(resolve-Protocol p))))
 
 (t/ann ^:no-check Protocol-of (t/IFn [t/Sym -> r/Type]
-                                  [t/Sym (t/U nil (t/Seqable r/Type)) -> r/Type]))
-(defn Protocol-of 
+                                     [t/Sym (t/Seqable r/Type) -> r/Type]))
+(defn Protocol-of
   ([sym] (Protocol-of sym nil))
   ([sym args]
    {:pre [(symbol? sym)

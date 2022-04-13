@@ -107,17 +107,33 @@
 
 (declare parse-type* resolve-type-clj->sym resolve-type-clj resolve-type-cljs)
 
+(defn tsyn->env [s]
+  (let [m (meta s)]
+    (when ((every-pred :line :column) m)
+      m)))
+
+(defn with-tsyn-env* [tsyn f]
+  (let [menv (tsyn->env tsyn)]
+    (with-bindings (cond-> {}
+                     menv (assoc #'vs/*current-env* menv))
+      (f))))
+
+(defmacro with-tsyn-env [tsyn & body]
+  `(with-tsyn-env* ~tsyn #(let [res# (do ~@body)] res#)))
+
 (defn prs-error
   ([msg] (prs-error msg nil))
   ([msg opt]
-   (err/int-error msg (into {:use-current-env true} opt))))
+   (let [[_ tsyn :as tsyn?] (find opt ::tsyn)
+         f #(err/int-error msg (into {:use-current-env true} opt))]
+     (if tsyn?
+       (with-tsyn-env tsyn
+         (f))
+       (f)))))
 
 (defn parse-type [s]
-  (let [menv (let [m (meta s)]
-               (when ((every-pred :line :column) m)
-                 m))]
-    (binding [vs/*current-env* (or menv vs/*current-env*)]
-      (parse-type* s))))
+  (binding [vs/*current-env* (or (tsyn->env s) vs/*current-env*)]
+    (parse-type* s)))
 
 (defn parse-clj [s]
   (impl/with-clojure-impl

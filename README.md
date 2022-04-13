@@ -52,10 +52,11 @@ For ClojureScript support, use `org.typedclojure/typed.cljs.runtime` and `org.ty
 
 ## Example projects
 
-- [minimal](example-projects/minimal) demonstrating how to statically type check Clojure[Script] namespaces
-- [minimal-clj](example-projects/minimal-clj) demonstrating how to statically type check (just) Clojure namespaces
-- [malli-type-providers](example-projects/malli-type-providers) demonstrating how to statically type check using malli schemas
-- [spec1-type-providers](example-projects/spec1-type-providers) demonstrating how to statically type check using spec1 specs
+- [minimal](example-projects/minimal) demonstrates how to statically type check Clojure[Script] namespaces
+- [minimal-clj](example-projects/minimal-clj) demonstrates how to statically type check (just) Clojure namespaces
+- [malli-type-providers](example-projects/malli-type-providers) demonstrates how to statically type check using malli schemas
+- [spec1-type-providers](example-projects/spec1-type-providers) demonstrates how to statically type check using spec1 specs
+- [zero-deps](example-projects/zero-deps) demonstrates how to type check a library without introducing any runtime dependency on Typed Clojure (only dev-time).
 
 ## Releases and Dependency Information
 

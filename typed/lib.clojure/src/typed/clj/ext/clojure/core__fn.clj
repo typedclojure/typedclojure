@@ -21,6 +21,22 @@
             [typed.cljc.checker.utils :as u]
             [typed.cljc.checker.check-below :as below]))
 
+(defn quoted? [v]
+  (and (seq? v)
+       (= 2 (count v))
+       (= 'quote (first v))))
+
+(defn parse-meta-ann [quoted-tsyn]
+  #_
+  (let [_ (when-not (and (quoted? quoted-tsyn)
+                         (quoted? (second quoted-tsyn)))
+            (prs/with-tsyn-env quoted-tsyn
+              (prs/prs-error (str ":typed.clojure/- annotations must be double quoted, convert to ''" (pr-str quoted-tsyn)))))]
+    (prs/parse-type (-> quoted-tsyn second second)))
+  (prs/parse-type quoted-tsyn))
+
+(defn parse-meta-forall [quoted-forall])
+
 (defn metas->maybe-expected-type [metas]
   {:post [((some-fn nil? r/Type?) %)]}
   (when metas
@@ -36,7 +52,7 @@
         (let [_ (when (or (some :annotated (apply concat (-> all-meta-groups (dissoc :name) vals)))
                           (seq (-> nme :form meta (select-keys all-ks) keys set (disj ::t/-))))
                   (err/int-error "Cannot mix other metadata annotations after placing :typed.clojure/- on fn name."))]
-          (prs/parse-type (-> nme :form meta ::t/-)))
+          (parse-meta-ann (-> nme :form meta ::t/-)))
 
         :else (let [[_ binder :as poly?] (-> nme :form meta (find ::t/forall))
                     _ (assert (not poly?) "TODO ::t/forall")
@@ -50,8 +66,8 @@
                                                                       #{:fixed :rest :argv})))
                                           _ (assert (not rest?) "TODO rest argument via metadata annotation")
                                           prs-dash-meta (fn [desc]
-                                                          (if-some [[_ tsyn] (-> desc :form meta (find ::t/-))]
-                                                            (prs/parse-type tsyn)
+                                                          (if-some [[_ quoted-tsyn] (-> desc :form meta (find ::t/-))]
+                                                            (parse-meta-ann quoted-tsyn)
                                                             r/-infer-any))
                                           dom (->> fixed
                                                    (sort-by :fixed-pos)

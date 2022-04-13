@@ -1414,7 +1414,8 @@
   {:pre [((some-fn r/RClass? r/DataType?) s)
          (r/Protocol? t)]
    :post [(or (set? %) (nil? %))]}
-  (impl/assert-clojure)
+  (impl/assert-clojure (str "subtype-rclass-or-datatype-with-protocol not yet implemented for implementations other than Clojure: "
+                            (prs/unparse-type s) " " (prs/unparse-type t)))
   (let [s-kind (cond
                  (r/RClass? s) :RClass
                  (r/DataType? s) :DataType

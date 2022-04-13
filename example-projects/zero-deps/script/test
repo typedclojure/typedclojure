@@ -1,0 +1,6 @@
+#!/bin/bash
+
+set -ex
+
+clojure "$@" -M:runtime-test
+clojure "$@" -M:dev:test
