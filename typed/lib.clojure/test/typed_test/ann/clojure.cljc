@@ -12,6 +12,12 @@
   (cljs/is-tc-e (indexed? 1)))
 
 (deftest find-test
+  (clj/is-tc-e (when-some [e (find nil :a)]
+                 [(key e) (val e)])
+               nil)
   (clj/is-tc-e (when-some [e (find {:a 1} :a)]
+                 [(key e) (val e)])
+               (t/Nilable '[':a t/Int]))
+  (clj/is-tc-e (when-some [e (find (when (< (rand) 0.5) {:a 1}) :a)]
                  [(key e) (val e)])
                (t/Nilable '[':a t/Int])))
