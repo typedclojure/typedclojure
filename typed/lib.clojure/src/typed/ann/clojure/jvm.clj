@@ -19,7 +19,7 @@
                          IPersistentList IRef ARef Reversible
                          ITransientCollection ITransientSet ITransientAssociative ITransientMap
                          ITransientVector PersistentHashMap Reduced MultiFn)
-           (java.util Collection RandomAccess)))
+           (java.util Collection RandomAccess Map$Entry)))
 
 ;; ==========================================
 ;; JVM Class annotations
@@ -209,14 +209,21 @@ PersistentVector [[[a :variance :covariant]]
                   :unchecked-ancestors
                   [[Number -> a]]]
 
-IMapEntry [[[a :variance :covariant]
+;; unsoundly assume immutable as implemented by AMapEntry. allows covariant
+;; annotation for IMapEntry and while also supporting some common Clojure idioms with Java collections.
+Map$Entry [[[a :variance :covariant]
             [b :variance :covariant]]]
+
+IMapEntry [[[a :variance :covariant]
+            [b :variance :covariant]]
+           :replace {Map$Entry (Map$Entry a b)}]
 
 clojure.lang.AMapEntry 
           [[[a :variance :covariant]
             [b :variance :covariant]]
            :replace
-           {IMapEntry (IMapEntry a b)
+           {Map$Entry (Map$Entry a b)
+            IMapEntry (IMapEntry a b)
             Iterable (Iterable (t/U a b))
             RandomAccess (RandomAccess (t/U a b))
             IPersistentCollection (IPersistentCollection 

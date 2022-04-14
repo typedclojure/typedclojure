@@ -595,7 +595,7 @@
 (declare parse-function)
 
 (defn parse-fn-intersection-type [[Fn & types]]
-  (apply r/make-FnIntersection (mapv parse-function types)))
+  (apply r/make-FnIntersection (mapcat parse-function types)))
 
 (defn parse-Fn [[_ & types :as syn]]
   (when-not (seq types) 
@@ -694,7 +694,7 @@
 (defn parse-types-with-rest-drest [err-msg]
   (fn [syns]
     (let [syns (vec syns)
-          rest? (#{:* '*} (peek syns))
+          rest? (#{:* '* :+} (peek syns))
           dotted? (and (#{:... '...} (some-> (not-empty syns) pop peek))
                        (<= 3 (count syns)))
           _ (when (and rest? dotted?)
@@ -704,7 +704,8 @@
             rest?
             (let [fixed (mapv parse-type (-> syns pop pop))
                   rest (parse-type (-> syns pop peek))]
-              {:fixed fixed
+              {:fixed (cond-> fixed
+                        (= :+ rest?) (conj rest))
                :rest rest})
             dotted?
             (let [fixed (mapv parse-type (-> syns pop pop pop))
@@ -1269,7 +1270,8 @@
         m))
 
 (defn parse-function [f]
-  {:post [(r/Function? %)]}
+  {:post [(seq %)
+          (every? r/Function? %)]}
   (let [is-arrow '#{-> :->}
         all-dom (take-while (complement is-arrow) f)
         [the-arrow rng & opts-flat :as chk] (drop-while (complement is-arrow) f) ;opts aren't used yet
@@ -1283,19 +1285,27 @@
             (prs-error (str "Incorrect function syntax, must have even number of keyword parameters: " f)))
 
         opts (apply hash-map opts-flat)
+        specials #{:... '... '* :* :+ :? '& '<* '<...}
+        _ (when-some [repeats (not-empty
+                                (into {}
+                                      (remove #(= 1 (val %)))
+                                      (frequencies (filter specials all-dom))))]
+            (prs-error (str "Not allowed to repeat function syntax specials: " (-> repeats keys vec))))
 
         {ellipsis-pos :...
          kw-ellipsis-pos '...
          asterix-pos '*
          kw-asterix-pos :*
+         plus-pos :+
+         qmark-pos :?
          ampersand-pos '&
          push-rest-pos '<*
          push-dot-pos '<...}
         (zipmap all-dom (range))
 
         _ (when-not (#{0 1} (count (filter identity [asterix-pos ellipsis-pos kw-ellipsis-pos ampersand-pos 
-                                                     kw-asterix-pos push-rest-pos])))
-            (prs-error "Can only provide one rest argument option: & ... * or <*"))
+                                                     kw-asterix-pos plus-pos qmark-pos push-rest-pos])))
+            (prs-error "Can only provide one rest argument option: & ... * <* :+ :? or <..."))
 
         ellipsis-pos (or ellipsis-pos kw-ellipsis-pos)
         asterix-pos (or asterix-pos kw-asterix-pos)
@@ -1309,19 +1319,33 @@
         object (when-some [[_ obj] (find opts :object)]
                  (parse-object obj))
 
-        fixed-dom (cond
-                    asterix-pos (take (dec asterix-pos) all-dom)
-                    ellipsis-pos (take (dec ellipsis-pos) all-dom)
-                    ampersand-pos (take ampersand-pos all-dom)
-                    push-rest-pos (take (dec push-rest-pos) all-dom)
-                    push-dot-pos (take (dec push-dot-pos) all-dom)
-                    :else all-dom)
+        fixed-doms (cond
+                     ; *
+                     asterix-pos [(take (dec asterix-pos) all-dom)]
+                     ; +
+                     plus-pos [(take plus-pos all-dom)]
+                     ; ...
+                     ellipsis-pos [(take (dec ellipsis-pos) all-dom)]
+                     ; &
+                     ampersand-pos [(take ampersand-pos all-dom)]
+                     ; <*
+                     push-rest-pos [(take (dec push-rest-pos) all-dom)]
+                     ; <...
+                     push-dot-pos [(take (dec push-dot-pos) all-dom)]
+                     ; ?
+                     qmark-pos (let [without (take (dec qmark-pos) all-dom)
+                                     with (take qmark-pos all-dom)]
+                                 (when-not (seq with)
+                                   (prs-error "Missing type before :?"))
+                                 (when-not (= (count all-dom) (inc qmark-pos))
+                                   (prs-error "Trailing syntax after :?"))
+                                 [without with])
+                     :else [all-dom])
 
-        rest-type (when asterix-pos
-                    (nth all-dom (dec asterix-pos)))
-        _ (when-not (or (not asterix-pos)
-                        (= (count all-dom) (inc asterix-pos)))
-            (prs-error (str "Trailing syntax after rest parameter: " (pr-str (drop (inc asterix-pos) all-dom)))))
+        rest-type (when-some [pos (or asterix-pos plus-pos)]
+                    (when-not (= (count all-dom) (inc pos))
+                      (prs-error (str "Trailing syntax after rest parameter: " (pr-str (drop (inc pos) all-dom)))))
+                    (nth all-dom (dec pos)))
         [drest-type _ drest-bnd :as drest-seq] (when ellipsis-pos
                                                  (drop (dec ellipsis-pos) all-dom))
         _ (when-not (or (not ellipsis-pos) (= 3 (count drest-seq)))
@@ -1358,40 +1382,43 @@
         _ (when-not (or (not push-rest-pos)
                         (= (count all-dom) (inc push-rest-pos)))
             (prs-error (str "Trailing syntax after pust-rest parameter: " (pr-str (drop (inc push-rest-pos) all-dom)))))]
-    (r/make-Function (mapv parse-type fixed-dom)
-                     (parse-type rng)
-                     :rest
-                     (when asterix-pos
-                       (parse-type rest-type))
-                     :drest
-                     (when ellipsis-pos
-                       (let [bnd (dvar/*dotted-scope* drest-bnd)
-                             _ (when-not bnd 
-                                 (prs-error (str (pr-str drest-bnd) " is not in scope as a dotted variable")))]
-                         (r/DottedPretype1-maker
-                           (free-ops/with-frees [bnd] ;with dotted bound in scope as free
-                             (parse-type drest-type))
-                           (:name bnd))))
-                     :prest
-                     (when push-rest-pos
-                       (parse-type prest-type))
-                     :pdot
-                     (when push-dot-pos
-                       (let [bnd (dvar/*dotted-scope* pdot-bnd)
-                             _ (when-not bnd
-                                 (prs-error (str (pr-str pdot-bnd) " is not in scope as a dotted variable")))]
-                         (r/DottedPretype1-maker
-                           (free-ops/with-frees [bnd] ;with dotted bound in scope as free
-                             (parse-type pdot-type))
-                           (:name bnd))))
-                     :filter filters
-                     :object object
-                     :optional-kws (some-> optional-kws parse-kw-map)
-                     :mandatory-kws (some-> mandatory-kws parse-kw-map))))
+    (->> fixed-doms
+         (mapv
+           (fn [fixed-dom]
+             (r/make-Function (mapv parse-type fixed-dom)
+                              (parse-type rng)
+                              :rest
+                              (when (or asterix-pos plus-pos)
+                                (parse-type rest-type))
+                              :drest
+                              (when ellipsis-pos
+                                (let [bnd (dvar/*dotted-scope* drest-bnd)
+                                      _ (when-not bnd 
+                                          (prs-error (str (pr-str drest-bnd) " is not in scope as a dotted variable")))]
+                                  (r/DottedPretype1-maker
+                                    (free-ops/with-frees [bnd] ;with dotted bound in scope as free
+                                      (parse-type drest-type))
+                                    (:name bnd))))
+                              :prest
+                              (when push-rest-pos
+                                (parse-type prest-type))
+                              :pdot
+                              (when push-dot-pos
+                                (let [bnd (dvar/*dotted-scope* pdot-bnd)
+                                      _ (when-not bnd
+                                          (prs-error (str (pr-str pdot-bnd) " is not in scope as a dotted variable")))]
+                                  (r/DottedPretype1-maker
+                                    (free-ops/with-frees [bnd] ;with dotted bound in scope as free
+                                      (parse-type pdot-type))
+                                    (:name bnd))))
+                              :filter filters
+                              :object object
+                              :optional-kws (some-> optional-kws parse-kw-map)
+                              :mandatory-kws (some-> mandatory-kws parse-kw-map)))))))
 
 (defmethod parse-type* IPersistentVector
   [f]
-  (r/make-FnIntersection (parse-function f)))
+  (apply r/make-FnIntersection (parse-function f)))
 
 (defmethod parse-type* :default
   [k]
