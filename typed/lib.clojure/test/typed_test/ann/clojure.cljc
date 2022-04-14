@@ -35,5 +35,18 @@
                  (t/Nilable '[':a t/Int])))
 
 (deftest conj-test
-  (clj/is-tc-e (conj {} (java.util.HashMap.))
-               (t/Map t/Any t/Any)))
+  (clj/is-tc-e (t/ann-form (doto (java.util.HashMap.)
+                             (.put "foo" "bar"))
+                           (t/MapConjable t/Any t/Any)))
+  (clj/is-tc-e (t/ann-form (java.util.HashMap.) (t/MapConjable t/Any t/Any)))
+  (clj/is-tc-e (let [m (conj {} (java.util.HashMap.))]
+                 (t/ann-form m (t/Map t/Any t/Any)))))
+
+(deftest seqable-test
+  (clj/is-tc-e (seq (doto (java.util.HashMap.) (.put "foo" "bar")))
+               (t/NilableNonEmptySeq (t/MapEntry t/Any t/Any)))
+  ;; TODO
+  (clj/is-tc-err (seq (doto (java.util.HashMap.) (.put "foo" "bar")))
+                 (t/NilableNonEmptySeq (t/MapEntry t/Str t/Str)))
+  (clj/is-tc-e (seq "abc") (t/NilableNonEmptySeq Character))
+  (clj/is-tc-e (seq (StringBuffer. "abc")) (t/NilableNonEmptySeq Character)))
