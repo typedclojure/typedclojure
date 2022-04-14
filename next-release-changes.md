@@ -10,4 +10,4 @@
 - support zero args in `disj`
 - fix annotation for `clojure.test/run-all-tests`
 - if first arg to `merge` is a map, rest can be nilable and still returns a map
-- annotate `java.util.Map` as `(Seqable (t/MapEntry t/Any t/Any)`
+- annotate `java.util.Map` as `(Seqable (t/MapEntry t/Any t/Any))`
