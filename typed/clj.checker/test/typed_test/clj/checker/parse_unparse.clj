@@ -29,7 +29,7 @@
 (deftest bad-dots-Poly-test
   ;; no dots in variable
   (is (throws-tc-error?
-        (prs/parse-clj '(clojure.core.typed/All [:... a] [a -> a]))))
+        (prs/parse-clj '(clojure.core.typed/All [... a] [a -> a]))))
   (is (throws-tc-error?
         (prs/parse-clj '(clojure.core.typed/All [. a] [a -> a]))))
   (is (throws-tc-error?
@@ -58,10 +58,10 @@
          '(typed.clojure/All [:named [a b]] [a -> b])))
   (is (= (prs/unparse-type
            (prs/parse-clj 
-             '(typed.clojure/All [a :... :named [b c]]
-                                 [c b a :... a -> b])))
-         '(typed.clojure/All [a :... :named [b c]]
-                             [c b a :... a -> b])))
+             '(typed.clojure/All [a ... :named [b c]]
+                                 [c b a ... a -> b])))
+         '(typed.clojure/All [a ... :named [b c]]
+                             [c b a ... a -> b])))
   (is-tc-e (do (t/ann ^:no-check foo 
                       (t/All [:named [a b]]
                              [a -> b]))
@@ -87,14 +87,14 @@
                (t/inst foo))
            [t/Any :-> t/Any])
   (is-tc-e (do (t/ann ^:no-check foo 
-                      (t/All [a :...]
-                             [a :... a :-> t/Any]))
+                      (t/All [a ...]
+                             [a ... a -> t/Any]))
                (cc/defn foo [& args])
                (t/inst foo t/Str t/Bool))
            [t/Str t/Bool :-> t/Any])
   (is-tc-e (do (t/ann ^:no-check foo 
-                      (t/All [a :... :named [b c]]
-                             [c b a :... a -> b]))
+                      (t/All [a ... :named [b c]]
+                             [c b a ... a -> b]))
                (cc/defn foo [& args] (second args))
                (t/inst foo t/Str t/Bool :named {c t/Num b t/Sym}))
            [t/Num t/Sym t/Str t/Bool :-> t/Sym]))
