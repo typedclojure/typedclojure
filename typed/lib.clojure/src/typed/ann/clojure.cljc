@@ -822,7 +822,7 @@
 (macros/anns
 #?@(:cljs [] :default [
 clojure.core.typed/check-ns (t/IFn [t/Sym :-> t/Any]
-                                   [-> t/Any])
+                                   [:-> t/Any])
 ;; Internal annotations
 ;clojure.core.typed.current-impl/*current-impl* t/Any
 clojure.core.typed.current-impl/clojure t/Any
@@ -831,7 +831,7 @@ clojure.core.typed/ann* [t/Any t/Any t/Any :-> t/Any]
 clojure.core.typed/untyped-var* [t/Any t/Any :-> t/Any]
 clojure.core.typed/declare-names* [t/Any :-> t/Any]
 clojure.core.typed/typed-deps* [t/Any :-> t/Any]
-clojure.core.typed/warn-on-unannotated-vars* [-> t/Any]
+clojure.core.typed/warn-on-unannotated-vars* [:-> t/Any]
 clojure.core.typed/ann-datatype* [t/Any t/Any t/Any t/Any :-> t/Any]
 clojure.core.typed/ann-protocol* [t/Any t/Any t/Any :-> t/Any]
 clojure.core.typed/ann-record* [t/Any t/Any t/Any t/Any :-> t/Any]
@@ -843,7 +843,7 @@ clojure.core.typed/nilable-param* [t/Any t/Any :-> t/Any]
 clojure.core.typed/override-constructor* [t/Any t/Any :-> t/Any]
 clojure.core.typed/override-method* [t/Any t/Any :-> t/Any]
 clojure.core.typed/typed-deps* [t/Any :-> t/Any]
-clojure.core.typed/load-if-needed [-> t/Any]
+clojure.core.typed/load-if-needed [:-> t/Any]
 clojure.core.typed/*collect-on-eval* t/Any
 ; should always be special cased
 ;clojure.core.typed/var>* [t/Any :-> (t/Var2 t/Nothing t/Any)]
@@ -854,18 +854,18 @@ clojure.core.typed/*collect-on-eval* t/Any
 cc/*ns* t/Namespace
 
 #?@(:cljs [] :default [
-cc/pop-thread-bindings [-> t/Any]
+cc/pop-thread-bindings [:-> t/Any]
 cc/load [t/Str :* :-> t/Any]
 cc/read-string [t/Str :-> t/Any]
-cc/read (t/IFn [-> t/Any]
+cc/read (t/IFn [:-> t/Any]
                [java.io.Reader :-> t/Any]
                [java.io.Reader t/Bool t/Any :-> t/Any]
                [java.io.Reader t/Bool t/Any t/Bool :-> t/Any])
-cc/read+string (t/IFn [-> '[t/Any t/Str]]
+cc/read+string (t/IFn [:-> '[t/Any t/Str]]
                       [java.io.Reader :-> '[t/Any t/Str]]
                       [java.io.Reader t/Bool t/Any :-> '[t/Any t/Str]]
                       [java.io.Reader t/Bool t/Any t/Bool :-> '[t/Any t/Str]])
-cc/read-line [-> (t/U nil t/Str)]
+cc/read-line [:-> (t/U nil t/Str)]
 cc/add-classpath [(t/U t/Str java.net.URL) :-> nil]
 ])
 
@@ -938,7 +938,7 @@ cc/identity (t/All [x] [x :-> x
                         :filters {:then (! (t/U nil false) 0)
                                   :else (is (t/U nil false) 0)}
                         :object {:id 0}])
-cc/gensym (t/IFn [-> t/Sym]
+cc/gensym (t/IFn [:-> t/Sym]
                  [(t/U t/Sym t/Str) :-> t/Sym])
 #?@(:cljs [] :default [
 cc/intern (t/IFn [(t/U t/Sym t/Namespace) t/Sym :-> (t/Var2 t/Nothing t/Any)]
@@ -1002,8 +1002,8 @@ cc/partition (All [a] (IFn [t/AnyInteger (t/Seqable a) :-> (t/ASeq (t/ASeq a))]
                            [t/AnyInteger t/AnyInteger (t/Seqable a) :-> (t/ASeq (t/ASeq a))]
                            [t/AnyInteger t/AnyInteger t/AnyInteger (t/Seqable a) :-> (t/ASeq (t/ASeq a))]))
 
-cc/repeatedly (t/All [x] (t/IFn [[-> x] :-> (t/ASeq x)]
-                                [t/AnyInteger [-> x] :-> (t/ASeq x)]))
+cc/repeatedly (t/All [x] (t/IFn [[:-> x] :-> (t/ASeq x)]
+                                [t/AnyInteger [:-> x] :-> (t/ASeq x)]))
 
 
 cc/some (t/All [x y] [[x :-> y] (t/Seqable x) :-> (t/Option y)])
@@ -1144,7 +1144,7 @@ cc/thread-bound? [(t/Var2 t/Nothing t/Any) :* :-> t/Bool]
 cc/bases [(t/Nilable Class) :-> (t/NilableNonEmptyASeq Class)]
 ])
 
-cc/make-hierarchy [-> t/Hierarchy]
+cc/make-hierarchy [:-> t/Hierarchy]
 cc/isa? (t/IFn [t/Any t/Any :-> t/Bool]
                [t/Hierarchy t/Any t/Any :-> t/Bool])
 
@@ -1209,7 +1209,7 @@ cc/partial
 cc/str [t/Any :* :-> t/Str]
 cc/prn-str [t/Any :* :-> t/Str]
 cc/pr-str [t/Any :* :-> t/Str]
-cc/newline [-> nil]
+cc/newline [:-> nil]
 
 cc/print [t/Any :* :-> nil]
 cc/println [t/Any :* :-> nil]
@@ -1221,7 +1221,7 @@ cc/format [t/Str t/Any :* :-> t/Str]
 ])
 cc/pr [t/Any :* :-> nil]
 cc/prn [t/Any :* :-> nil]
-cc/flush [-> nil]
+cc/flush [:-> nil]
 cc/*print-length* (t/U nil false t/AnyInteger)
 cc/*print-level* (t/U nil false t/AnyInteger)
 #?@(:cljs [] :default [
@@ -1254,7 +1254,7 @@ cc/subs (t/IFn [t/Str t/AnyInteger :-> t/Str]
 ;cc/spit [java.io.Writer t/Any]
 
 #?@(:cljs [] :default [
-cc/future-call (t/All [x] [[-> x] :-> (t/Future x)])
+cc/future-call (t/All [x] [[:-> x] :-> (t/Future x)])
 ])
 
 cc/atom (t/All [x] [x & :optional {:validator (t/Nilable [x :-> t/Any]) :meta t/Any} :-> (t/Atom2 x x)])
@@ -1315,7 +1315,7 @@ cc/construct-proxy [Class t/Any :* :-> t/Any]
 cc/init-proxy [t/Proxy (t/Map t/Str t/Any) :-> t/Proxy]
 cc/update-proxy [t/Proxy (t/Map t/Str t/Any) :-> t/Proxy]
 cc/proxy-mappings [t/Proxy :-> (t/Map t/Str t/Any)]
-cc/proxy-call-with-super (t/All [x] [[-> x] t/Proxy t/Str :-> x])
+cc/proxy-call-with-super (t/All [x] [[:-> x] t/Proxy t/Str :-> x])
 cc/bean [Object :-> (t/Map t/Any t/Any)]
 ])
 
@@ -1516,12 +1516,12 @@ clojure.test/function? [t/Any :-> t/Bool]
 clojure.test/assert-any [t/Any t/Any :-> t/Any]
 clojure.test/do-report [t/Any :-> t/Any]
 clojure.test/run-tests [t/Sym :* :-> (t/Map t/Any t/Any)]
-clojure.test/run-all-tests (t/IFn [-> (t/Map t/Any t/Any)] ;; potential :?
+clojure.test/run-all-tests (t/IFn [:-> (t/Map t/Any t/Any)] ;; potential :?
                                   [t/Regex :-> (t/Map t/Any t/Any)])
 clojure.test/successful? [(t/U nil (t/Map t/Any t/Any)) :-> t/Bool]
-clojure.test/compose-fixtures [[[-> t/Any] :-> t/Any] [[-> t/Any] :-> t/Any] :-> [[-> t/Any] :-> t/Any]]
+clojure.test/compose-fixtures [[[:-> t/Any] :-> t/Any] [[:-> t/Any] :-> t/Any] :-> [[:-> t/Any] :-> t/Any]]
 clojure.test/testing-vars-str [(t/Map t/Any t/Any) :-> t/Str]
-clojure.test/testing-contexts-str [-> t/Str]
+clojure.test/testing-contexts-str [:-> t/Str]
 clojure.test/test-ns [(t/U t/Namespace t/Sym) :-> (t/Map t/Any t/Any)]
 
 clojure.test.tap/print-tap-plan [t/Any :-> t/Any]
@@ -1559,7 +1559,7 @@ clojure.java.io/reader [clojure.java.io/IOFactory :-> java.io.BufferedReader]
 clojure.java.io/writer [clojure.java.io/IOFactory :-> java.io.BufferedWriter]
 clojure.java.io/resource (t/IFn [t/Str :-> (t/Nilable java.net.URL)]
                                 [t/Str ClassLoader :-> (t/Nilable java.net.URL)])
-clojure.stacktrace/e [-> t/Any]
+clojure.stacktrace/e [:-> t/Any]
 clojure.stacktrace/print-cause-trace [Throwable :-> t/Any]
 clojure.stacktrace/print-stack-trace [Throwable :-> t/Any]
 clojure.stacktrace/print-throwable [Throwable :-> t/Any]
@@ -1577,15 +1577,15 @@ clojure.inspector/inspect-table [(t/Seqable t/Any) :-> javax.swing.JFrame]
 
 #?@(:cljs [] :default [
 clojure.main/demunge [t/Str :-> t/Str]
-clojure.main/repl-prompt [-> t/Any]
+clojure.main/repl-prompt [:-> t/Any]
 clojure.main/repl-read [t/Any t/Any :-> t/Any]
 clojure.main/repl-caught [Throwable :-> t/Any]
 clojure.main/repl-exception [Throwable :-> t/Any]
 clojure.main/root-cause [Throwable :-> Exception]
-clojure.main/repl [& :optional {:init [-> t/Any]
-                                :need-prompt [-> t/Any]
-                                :prompt [-> t/Any]
-                                :flush [-> t/Any]
+clojure.main/repl [& :optional {:init [:-> t/Any]
+                                :need-prompt [:-> t/Any]
+                                :prompt [:-> t/Any]
+                                :flush [:-> t/Any]
                                 :read [t/Any t/Any :-> t/Any]
                                 :eval [t/Any :-> t/Any]
                                 :print [t/Any :-> t/Any]
@@ -1659,7 +1659,7 @@ cc/every? (t/All [x y] (t/IFn [[x :-> t/Any :filters {:then (is y 0)}] (t/Coll x
                                :filters {:then (is (t/U nil (t/Coll y)) 1)}]
                               [[x :-> t/Any] (t/Seqable x) :-> t/Bool]))
 
-cc/range (t/IFn [-> (t/ASeq t/AnyInteger)]
+cc/range (t/IFn [:-> (t/ASeq t/AnyInteger)]
                 [t/Num :-> (t/ASeq t/AnyInteger)]
                 [t/AnyInteger t/Num :-> (t/ASeq t/AnyInteger)]
                 [t/Num t/Num :-> (t/ASeq t/Num)]
@@ -1723,7 +1723,7 @@ cc/mapcat (t/All [c a b ...] (t/IFn
 #?@(:cljs [] :default [
 cc/pmap (t/All [c a b ...] (t/IFn [[a b ... b :-> c] (t/NonEmptySeqable a) (t/NonEmptySeqable b) ... b :-> (t/NonEmptyASeq c)]
                                   [[a b ... b :-> c] (t/Seqable a) (t/Seqable b) ... b :-> (t/ASeq c)]))
-cc/pcalls (t/All [r] [[-> r] :* :-> (t/ASeq r)])
+cc/pcalls (t/All [r] [[:-> r] :* :-> (t/ASeq r)])
 ])
 
 #_#_
@@ -1738,11 +1738,11 @@ cc/frequencies (t/All [a] [(t/Seqable a) :-> (t/Map a t/AnyInteger)])
 '{:major t/Any :minor t/Any :incremental t/Any :qualifier t/Any}
 
 #?@(:cljs [] :default [
-cc/clojure-version [-> t/Str]
+cc/clojure-version [:-> t/Str]
 ])
 
 #?@(:cljs [] :default [
-cc/promise (t/All [x] [-> (t/Promise x)])
+cc/promise (t/All [x] [:-> (t/Promise x)])
 cc/deliver (t/All [x] [(t/Promise x) x :-> (t/Nilable (t/Promise x))])
 ])
 
@@ -1774,7 +1774,7 @@ cc/reduce (t/All [a c] (t/IFn
                          ; default
                          ; (reduce + my-coll)
                          [[a c :-> (t/U (t/Reduced a) a)] (t/NonEmptySeqable c) :-> a]
-                         [(t/IFn [a c :-> (t/U (t/Reduced a) a)] [-> (t/U (t/Reduced a) a)]) (t/Seqable c) :-> a]
+                         [(t/IFn [a c :-> (t/U (t/Reduced a) a)] [:-> (t/U (t/Reduced a) a)]) (t/Seqable c) :-> a]
                          ; default
                          ; (reduce + 3 my-coll)
                          ; (reduce (fn [a b] a) (reduced 1) nil) 
@@ -1792,7 +1792,7 @@ cc/reduced (t/All [x] [x :-> (t/Reduced x)])
               ;Without accumulator
               ; empty coll, f takes no args
               ; (reduce + []) => 0, (reduce + nil) => 0
-              [[-> c] (t/U nil (t/I (ExactCount 0) (t/Seqable c))) :-> c]
+              [[:-> c] (t/U nil (t/I (ExactCount 0) (t/Seqable c))) :-> c]
               ; coll count = 1, f is not called
               ; (reduce + [1]) => 1
               [t/Any (t/I (ExactCount 1) (t/Seqable c)) :-> c]
@@ -1801,7 +1801,7 @@ cc/reduced (t/All [x] [x :-> (t/Reduced x)])
               [[c c :-> c] (t/I (t/CountRange 2) (t/Seqable c)) :-> c]
               ; default
               ; (reduce + my-coll)
-              [(t/IFn [c c :-> c] [-> c]) (t/Seqable c) :-> c]
+              [(t/IFn [c c :-> c] [:-> c]) (t/Seqable c) :-> c]
               ;With accumulator
               ; empty coll, f not called, returns accumulator
               ; (reduce + 3 []) => 3
@@ -2084,7 +2084,7 @@ cc/pop (t/All [x] (t/IFn [(t/List x) :-> (t/List x)]
                          [(t/Stack x) :-> (t/Stack x)]))
 
 #?@(:cljs [] :default [
-cc/get-thread-bindings [-> (t/Map (t/Var2 t/Nothing t/Any) t/Any)]
+cc/get-thread-bindings [:-> (t/Map (t/Var2 t/Nothing t/Any) t/Any)]
 cc/bound-fn*
     (t/All [r b ...]
          [[b ... b :-> r] :-> [b ... b :-> r]])
@@ -2103,7 +2103,7 @@ cc/send-off (t/All [w r b ...] [(t/Agent2 w r) [r b ... b :-> w] b ... b :-> (t/
 cc/await [(t/Agent2 t/Nothing t/Any) :* :-> nil]
 cc/await-for [t/AnyInteger (t/Agent2 t/Nothing t/Any) :* :-> t/Bool]
 cc/await1 (t/All [w r] [(t/Agent2 w r) :-> (t/Agent2 w r)])
-cc/release-pending-sends [-> t/AnyInteger]
+cc/release-pending-sends [:-> t/AnyInteger]
 ])
 
 cc/add-watch (t/All [x [a :< (#?(:clj IRef :cljs t/Atom2) t/Nothing x)]]
@@ -2123,7 +2123,7 @@ cc/set-error-mode! [(t/Agent2 t/Nothing t/Any) (t/U ':fail ':continue) :-> t/Any
 cc/error-mode [(t/Agent2 t/Nothing t/Any) :-> t/Any]
 cc/agent-errors [(t/Agent2 t/Nothing t/Any) :-> (t/Nilable (t/ASeq Throwable))]
 cc/clear-agent-errors [(t/Agent2 t/Nothing t/Any) :-> t/Any]
-cc/shutdown-agents [-> t/Any]
+cc/shutdown-agents [:-> t/Any]
 ])
 
 cc/take (t/All [x] (t/IFn [t/Int :-> (t/Transducer x x)]
@@ -2228,7 +2228,7 @@ cc/ref (t/All [x] [x & :optional {:validator (t/U nil [x :-> t/Any]) :meta (t/U 
                    :-> (clojure.lang.Ref x x)])
 ])
 
-cc/rand (t/IFn [-> t/Num]
+cc/rand (t/IFn [:-> t/Num]
                [t/Num :-> t/Num])
 cc/rand-int [t/Int :-> t/Int]
 cc/ex-info (t/IFn [(t/Nilable t/Str) (t/Map t/Any t/Any) :-> t/ExInfo]
@@ -2274,7 +2274,7 @@ cc/subvec (t/All [x] (t/IFn [(t/Vec x) t/AnyInteger :-> (t/Vec x)]
 
 #?@(:cljs [] :default [
 cc/alias [t/Sym t/Sym :-> nil]
-cc/all-ns [-> (t/NilableNonEmptyASeq t/Namespace)]
+cc/all-ns [:-> (t/NilableNonEmptyASeq t/Namespace)]
 ])
 
 #?@(:cljs [] :default [
@@ -2285,7 +2285,7 @@ cc/*command-line-args* (t/NilableNonEmptyASeq t/Str)
 cc/*unchecked-if* t/Bool
 cc/*unchecked-arrays* t/Bool
 cc/*warn-on-infer* t/Bool
-cc/enable-console-print! [-> t/Any]
+cc/enable-console-print! [:-> t/Any]
 ] :default [
 cc/*warn-on-reflection* t/Bool
 cc/*compile-path* t/Str
@@ -2304,7 +2304,7 @@ cc/*print-readably* t/Bool
 cc/*read-eval* (t/U ':unknown t/Bool)
 ])
 
-cc/trampoline (t/All [r b ...] [[b ... b :-> (t/Rec [f] (t/U r [-> (t/U f r)]))]
+cc/trampoline (t/All [r b ...] [[b ... b :-> (t/Rec [f] (t/U r [:-> (t/U f r)]))]
                                 b ... b :-> r])
 
 
@@ -2329,20 +2329,20 @@ cc/rand-nth (t/All [x] [(t/U (t/Indexed x) (t/SequentialSeqable x)) :-> x])
 #?@(:cljs [
 ;TODO
 ;cljs.pprint/cl-format [(t/U cljs.core/IWriter nil t/Bool) t/Str t/Any :* :-> (t/U nil t/Str)]
-;cljs.pprint/fresh-line [-> t/Any]
+;cljs.pprint/fresh-line [:-> t/Any]
 ;cljs.pprint/get-pretty-writer [cljs.core/IWriter :-> cljs.core/IWriter]
 ;clojure.pprint/pprint (t/IFn [t/Any :-> nil]
 ;                             [t/Any java.io.Writer :-> nil])
 ] :default [
 clojure.pprint/cl-format [(t/U java.io.Writer nil t/Bool) t/Str t/Any :* :-> (t/Nilable t/Str)]
-clojure.pprint/fresh-line [-> t/Any]
+clojure.pprint/fresh-line [:-> t/Any]
 clojure.pprint/get-pretty-writer [java.io.Writer :-> java.io.Writer]
 clojure.pprint/pprint (t/IFn [t/Any :-> nil]
                              [t/Any java.io.Writer :-> nil])
 ])
 
 #?@(:cljs [] :default [
-clojure.repl/pst (t/IFn [-> nil]
+clojure.repl/pst (t/IFn [:-> nil]
                         [(t/U t/Int Throwable) :-> nil]
                         [Throwable t/Int :-> nil])
 clojure.repl/print-doc [t/Sym :-> t/Any]
