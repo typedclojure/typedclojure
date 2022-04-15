@@ -19,7 +19,7 @@
                             APersistentMap #_IPersistentCollection
                             #_ITransientSet
                             IRef)
-              (java.util Comparator Collection Map$Entry))))
+              (java.util Comparator Collection))))
 
 ;; ==========================================
 ;; Protocol annotations
@@ -1893,7 +1893,7 @@ cc/sequence (t/All [a b] (t/IFn [(t/Nilable (t/Seqable a)) -> (t/Seq a)]
 cc/find (t/All [x y]
                (t/IFn [nil t/Any :-> nil]
                       [(t/Nilable (t/Associative x y)) t/Any -> (t/Nilable (t/AMapEntry x y))]
-                      #?(:clj [(t/Nilable (t/U (t/Associative t/Any t/Any) java.util.Map)) t/Any -> (t/Nilable (java.util.Map$Entry t/Any t/Any))])
+                      ;#?(:clj [(t/Nilable (t/U (t/Associative t/Any t/Any) java.util.Map)) t/Any -> (t/Nilable (java.util.Map$Entry t/Any t/Any))])
                       ;;TODO TransientAssociative2
                       ))
 
