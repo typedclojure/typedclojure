@@ -8,3 +8,6 @@
 - support zero args in `disj`
 - fix annotation for `clojure.test/run-all-tests`
 - if first arg to `merge` is a map, rest can be nilable and still returns a map
+- alternative `:..` keyword syntax for dotted rest argument (along with `...` and `:...`)
+- fix `t/All` parsing: allow combining `:..` with keyword args: `(t/All [a :.. :named [b])`
+- Breaking: change `(t/Assoc c ... c)` type syntax to `(t/Assoc c :.. c)`

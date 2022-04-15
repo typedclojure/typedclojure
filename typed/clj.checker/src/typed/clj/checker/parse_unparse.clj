@@ -340,7 +340,7 @@
 (defn parse-Assoc [[_ tsyn & entries :as all]]
   (when-not (<= 1 (count (next all)))
     (prs-error (str "Wrong arguments to Assoc: " all)))
-  (let [{ellipsis-pos '...}
+  (let [{ellipsis-pos :..}
         (zipmap entries (range))
 
         [entries dentries] (split-at (if ellipsis-pos
@@ -443,7 +443,7 @@
 (defn parse-unknown-binder [bnds]
   {:pre [((some-fn nil? vector?) bnds)]}
   (when bnds
-    ((if (#{'...} (peek bnds))
+    ((if (#{:... :.. '...} (peek bnds))
        parse-dotted-binder
        parse-normal-binder)
      bnds)))
@@ -451,7 +451,12 @@
 (defn parse-All-binder [bnds]
   {:pre [(vector? bnds)]}
   (let [[positional kwargs] (split-with (complement keyword?) bnds)
-        positional (vec positional)
+        ;; allow trailing :.. in positional vars before kw args
+        [positional kwargs] (if (#{:... :..} (first kwargs))
+                              [(conj (vec positional) (first kwargs))
+                               (next kwargs)]
+                              [(vec positional) kwargs])
+        dotted? (boolean (#{:... :.. '...} (peek positional)))
         _ (when-not (even? (count kwargs))
             (prs-error (str "Expected an even number of keyword options to All, given: " (vec kwargs))))
         _ (when (seq kwargs)
@@ -465,7 +470,6 @@
             (when-not (and (vector? named)
                            (every? symbol? named))
               (prs-error (str ":named keyword argument to All must be a vector of symbols, given: " (pr-str named)))))
-        dotted? (boolean (#{:... '...} (peek positional)))
         bnds* (if named
                 (let [positional-no-dotted (cond-> positional
                                              dotted? (-> pop pop))
@@ -695,7 +699,7 @@
   (fn [syns]
     (let [syns (vec syns)
           rest? (#{:* '* :+} (peek syns))
-          dotted? (and (#{:... '...} (some-> (not-empty syns) pop peek))
+          dotted? (and (#{:... :.. '...} (some-> (not-empty syns) pop peek))
                        (<= 3 (count syns)))
           _ (when (and rest? dotted?)
               (prs-error (str err-msg syns)))
@@ -1285,15 +1289,16 @@
             (prs-error (str "Incorrect function syntax, must have even number of keyword parameters: " f)))
 
         opts (apply hash-map opts-flat)
-        specials #{:... '... '* :* :+ :? '& '<* '<...}
+        specials #{:... :.. '... '* :* :+ :? '& '<* '<...}
         _ (when-some [repeats (not-empty
                                 (into {}
                                       (remove #(= 1 (val %)))
                                       (frequencies (filter specials all-dom))))]
             (prs-error (str "Not allowed to repeat function syntax specials: " (-> repeats keys vec))))
 
-        {ellipsis-pos :...
-         kw-ellipsis-pos '...
+        {ellipsis-pos '...
+         kw-ellipsis-pos :...
+         kw-ellipsis2-pos :..
          asterix-pos '*
          kw-asterix-pos :*
          plus-pos :+
@@ -1303,11 +1308,11 @@
          push-dot-pos '<...}
         (zipmap all-dom (range))
 
-        _ (when-not (#{0 1} (count (filter identity [asterix-pos ellipsis-pos kw-ellipsis-pos ampersand-pos 
+        _ (when-not (#{0 1} (count (filter identity [asterix-pos ellipsis-pos kw-ellipsis-pos kw-ellipsis2-pos ampersand-pos 
                                                      kw-asterix-pos plus-pos qmark-pos push-rest-pos])))
             (prs-error "Can only provide one rest argument option: & ... * <* :+ :? or <..."))
 
-        ellipsis-pos (or ellipsis-pos kw-ellipsis-pos)
+        ellipsis-pos (or ellipsis-pos kw-ellipsis-pos kw-ellipsis2-pos)
         asterix-pos (or asterix-pos kw-asterix-pos)
 
         _ (when-some [ks (seq (remove #{:filters :object} (keys opts)))]
