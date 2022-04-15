@@ -483,7 +483,7 @@
   t/MapEntry
   (t/TFn [[k :variance :covariant]
           [v :variance :covariant]]
-         #?(:clj (Map$Entry k v) ;unsound
+         #?(:clj (Map$Entry k v)
             :cljs (cc/IMapEntry k v))))
 
 (t/defalias
@@ -1857,12 +1857,12 @@ cc/into
               [(t/Coll t/Any) (t/Transducer y t/Any) (t/Seqable y) -> (t/Coll t/Any)]))
 
 cc/conj
-;   (t/All [e
+;     (t/All [e
 ;           [Arg :< (t/TFn [[x :variance :covariant]] t/Any)]
 ;           [Res :< (t/TFn [[x :variance :covariant]]
 ;                     (t/Coll t/Any))]]
-;          (t/IFn [(clojure.lang.IPersistentCollection e Arg Res) (Arg e) :+ -> (Res e)]
-;                 [nil e :+ -> (clojure.lang.PersistentList e)]))
+;          (t/IFn [(clojure.lang.IPersistentCollection e Arg Res) (Arg e) (Arg e) :* -> (Res e)]
+;              [nil e e :* -> (clojure.lang.PersistentList e)]))
 (t/All [x y] (t/IFn [(t/Vec x) x :+ -> (t/Vec x)]
                     #?(:clj [(APersistentMap x y) (t/MapConjable x y) :+ -> (APersistentMap x y)])
                     [(t/Map x y) (t/MapConjable x y) :+ -> (t/Map x y)]

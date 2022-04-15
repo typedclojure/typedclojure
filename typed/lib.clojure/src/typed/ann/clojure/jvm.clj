@@ -527,10 +527,6 @@ java.util.Collection [[[a :variance :covariant]]
 java.util.RandomAccess [[[a :variance :covariant]]
                         :unchecked-ancestors
                         [(Indexed a)]]
-;; experimental
-java.util.Map [[]
-               :unchecked-ancestors
-               [(Seqable (Map$Entry t/Any t/Any))]]
 )
 
 ;; ==========================================
