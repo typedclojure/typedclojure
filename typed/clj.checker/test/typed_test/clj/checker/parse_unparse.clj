@@ -49,7 +49,22 @@
         (prs/parse-clj `(clojure.core.typed/All [:a] [nil :-> nil]))))
   ; bad kw args
   (is (throws-tc-error?
-        (prs/parse-clj `(clojure.core.typed/All [:a :b] [nil :-> nil])))))
+        (prs/parse-clj `(clojure.core.typed/All [:a :b] [nil :-> nil]))))
+  ; missing rest arg
+  (is (throws-tc-error?
+        (prs/parse-clj `[:* :-> nil])))
+  ; missing plus arg
+  (is (throws-tc-error?
+        (prs/parse-clj `[:+ :-> nil])))
+  ; missing dotted arg
+  (is (throws-tc-error?
+        (prs/parse-clj `[:.. :-> nil])))
+  ; missing optional arg
+  (is (throws-tc-error?
+        (prs/parse-clj `[:? :-> nil])))
+  (is (throws-tc-error?
+        (prs/parse-clj `[<... :-> nil])))
+  )
 
 (deftest poly-named-test
   (is (= (prs/unparse-type

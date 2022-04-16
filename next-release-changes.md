@@ -11,3 +11,4 @@
 - alternative `:..` keyword syntax for dotted rest argument (along with `...` and `:...`)
 - fix `t/All` parsing: allow combining `:..` with keyword args: `(t/All [a :.. :named [b])`
 - Breaking: change `(t/Assoc c ... c)` type syntax to `(t/Assoc c :.. c)`
+- improve type parsing error messages when no type provided before `:{?,*,+}`

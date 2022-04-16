@@ -1326,9 +1326,13 @@
 
         fixed-doms (cond
                      ; *
-                     asterix-pos [(take (dec asterix-pos) all-dom)]
+                     asterix-pos (let [_ (when-not (pos? asterix-pos)
+                                           (prs-error (str "Missing type before " (if kw-asterix-pos :* '*))))]
+                                   [(take (dec asterix-pos) all-dom)])
                      ; +
-                     plus-pos [(take plus-pos all-dom)]
+                     plus-pos (let [_ (when-not (pos? plus-pos)
+                                        (prs-error "Missing type before :+"))]
+                                [(take plus-pos all-dom)])
                      ; ...
                      ellipsis-pos [(take (dec ellipsis-pos) all-dom)]
                      ; &
@@ -1338,10 +1342,10 @@
                      ; <...
                      push-dot-pos [(take (dec push-dot-pos) all-dom)]
                      ; ?
-                     qmark-pos (let [without (take (dec qmark-pos) all-dom)
+                     qmark-pos (let [_ (when-not (pos? qmark-pos)
+                                         (prs-error "Missing type before :?"))
+                                     without (take (dec qmark-pos) all-dom)
                                      with (take qmark-pos all-dom)]
-                                 (when-not (seq with)
-                                   (prs-error "Missing type before :?"))
                                  (when-not (= (count all-dom) (inc qmark-pos))
                                    (prs-error "Trailing syntax after :?"))
                                  [without with])
@@ -1353,10 +1357,11 @@
                     (nth all-dom (dec pos)))
         [drest-type _ drest-bnd :as drest-seq] (when ellipsis-pos
                                                  (drop (dec ellipsis-pos) all-dom))
-        _ (when-not (or (not ellipsis-pos) (= 3 (count drest-seq)))
-            (prs-error "Dotted rest entry must be 3 entries"))
-        _ (when-not (or (not ellipsis-pos) (symbol? drest-bnd))
-            (prs-error "Dotted bound must be symbol"))
+        _ (when ellipsis-pos
+            (when-not (= 3 (count drest-seq))
+              (prs-error "Dotted rest entry must be 3 entries"))
+            (when-not (symbol? drest-bnd)
+              (prs-error "Dotted bound must be symbol")))
         [pdot-type _ pdot-bnd :as pdot-seq] (when push-dot-pos
                                               (drop (dec push-dot-pos) all-dom))
         _ (when-not (or (not push-dot-pos) (= 3 (count pdot-seq)))
