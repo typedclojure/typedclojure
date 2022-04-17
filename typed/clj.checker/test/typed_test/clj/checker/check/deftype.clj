@@ -99,3 +99,17 @@
   (is-tc-e (do (ann-record Foo [a :- t/Int])
                (defrecord Foo [a])
                (defn foo [] :- Foo (->Foo 3)))))
+
+(deftest deftype-set!-test
+  (is-tc-e (do (defprotocol Setter
+                 (setter [_]))
+               (ann-datatype Foo [a :- t/Bool])
+               (deftype Foo [^:unsynchronized-mutable ^boolean a]
+                 Setter
+                 (setter [_] (set! a (boolean true))))))
+  (is-tc-e (do (defprotocol Setter
+                 (setter [_]))
+               (ann-datatype Foo [a :- t/Bool])
+               (deftype Foo [^:unsynchronized-mutable a]
+                 Setter
+                 (setter [_] (set! a true))))))

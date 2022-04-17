@@ -19,7 +19,7 @@
   (binding [vs/*current-expr* expr
             vs/*current-env* env]
     (let [ctarget (check target expected)
-          cval (check val (u/expr-type ctarget))]
+          cval (check val (-> ctarget u/expr-type r/ret-t r/ret))]
       (assoc expr
              u/expr-type (u/expr-type cval)
              :target ctarget
