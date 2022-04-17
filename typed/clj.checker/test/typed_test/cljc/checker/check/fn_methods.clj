@@ -8,3 +8,18 @@
   (is-tc-e (do (typed.clojure/ann item-validator [Validator :-> [t/Any t/Any t/Int t/Any t/Any :-> t/Any]])
                (defn item-validator [valid?]
                  (fn [_ _ pos coll k])))))
+
+(deftest split-rest-arity-test
+  (is-tc-e (fn ([] [1])
+             ([a & rst] (cons a rst)))
+           [t/Int :* :-> (t/Coll t/Int)])
+  (is-tc-e (fn ([] [])
+               ([a] [a])
+               ([a b & rst] (cons a (cons b rst))))
+             [t/Int :* :-> (t/Coll t/Int)])
+  (is-tc-err (fn ([] [])
+               ([a b & rst] (cons a (cons b rst))))
+             [t/Int :* :-> (t/Coll t/Int)])
+  (is-tc-err (fn ([] [])
+               ([a] [a]))
+             [t/Int :* :-> (t/Coll t/Int)]))

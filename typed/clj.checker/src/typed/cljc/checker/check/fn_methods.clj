@@ -7,7 +7,10 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.cljc.checker.check.fn-methods
+  (:refer-clojure :exclude [methods rest])
   (:require [typed.cljc.checker.type-rep :as r]
+            [clojure.set :as set]
+            [clojure.string :as str]
             [clojure.core.typed.util-vars :as vs]
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.contract-utils :as con]
@@ -47,11 +50,15 @@
     :methods methods?
     :cmethods methods?))
 
+(defn method->fixed-arity [{:keys [fixed-arity] :as method}]
+  (cond-> fixed-arity
+    (= :method (:op method)) inc))
+
 (defn expected-for-method
   "Takes a :fn-method or :method AST node and a single Function arity type,
   and returns the Function if the :method node should be checked
   against the Function, otherwise returns nil."
-  [{:keys [fixed-arity variadic?] :as method}
+  [{:keys [variadic?] :as method}
    {:keys [dom rest drest kws pdot prest] :as f}
    all-methods]
   {:pre [(method? method)
@@ -59,41 +66,33 @@
    :post [((some-fn nil? r/Function?) %)]}
   ;; fn-method-u/check-rest-fn, and check-fn-method1
   ;; actually distribute the types amongst the fixed and rest parameters
+  (assert (not rest)) ;handled by check-fni
   (let [ndom (count dom)
-        fixed-arity (if (= :method (:op method))
-                      (inc fixed-arity)
-                      fixed-arity)]
+        fixed-arity (method->fixed-arity method)]
     (cond
       (or rest drest pdot prest)
       (cond
-        (not variadic?) nil
-
         ; extra domains flow into the rest argument
-        (<= fixed-arity ndom) f
-
-        ;otherwise method doesn't fit
-        :else nil)
+        variadic? (when (<= fixed-arity ndom)
+                    f))
 
       ; kw and drest functions must have exact fixed domain match
       (or kws drest)
       (cond
-        (not variadic?) nil
-        (== ndom fixed-arity) f
-        :else nil)
+        variadic? (when (= ndom fixed-arity) f))
 
       ; no variable arity
       (= nil rest drest kws pdot prest)
       (cond
         ;; ensure no other fixed arities would match this Function
-        variadic? (when (empty? (filter (fn [m]
-                                          (and (not (:variadic? m))
-                                               (= ndom (:fixed-arity m))))
-                                        all-methods))
+        variadic? (when (not-any? (fn [m]
+                                    (and (not (:variadic? m))
+                                         (= ndom (:fixed-arity m))))
+                                  all-methods)
                     ; extra domains flow into the rest argument
                     (when (<= fixed-arity ndom)
                       f))
-        (== ndom fixed-arity) f
-        :else nil))))
+        (= ndom fixed-arity) f))))
 
 (defn check-fni
   "Check a vector of :method AST nodes mthods against
@@ -134,26 +133,67 @@
             (dvar-env/with-dotted-mappings (case poly?
                                              :PolyDots {(-> inst-frees last r/F-original-name) (last inst-frees)}
                                              {})
-              (let [;; ordered pairs from function type to a set of matching methods (integers).
+              (let [;; ordered pairs from function type to a map of matching methods (integers) to expected types.
                     fn-matches
                     (into []
-                          (map (fn [t]
-                                 (let [ms (into #{}
-                                                (comp
-                                                  (map-indexed (fn [i m]
-                                                                 (when (expected-for-method m t mthods)
-                                                                   i)))
-                                                  (keep identity))
-                                                mthods)]
-                                   ;; it is a type error if no matching methods are found.
-                                   (when (empty? ms)
-                                     (binding [vs/*current-expr* (impl/impl-case
-                                                                   :clojure (first mthods)
-                                                                   ; fn-method is not printable in cljs
-                                                                   :cljs vs/*current-expr*)
-                                               vs/*current-env* (or (:env (first mthods)) vs/*current-env*)]
-                                       (prs/with-unparse-ns (cu/expr-ns (first mthods))
-                                         (err/tc-delayed-error (str "No matching arities: " (prs/unparse-type t))))))
+                          (map (fn [{:keys [dom rest drest kws pdot prest] :as t}]
+                                 {:pre [(r/Function? t)]}
+                                 (let [ms (cond
+                                            rest (let [ndom (count dom)
+                                                       fixed->mth (into (sorted-map)
+                                                                        (map-indexed
+                                                                          (fn [i m]
+                                                                            (let [fixed-arity (method->fixed-arity m)]
+                                                                              (when (or (:variadic? m)
+                                                                                        (<= ndom fixed-arity))
+                                                                                {fixed-arity (assoc m ::method-pos i)}))))
+                                                                        mthods)
+                                                       [max-fixed variadic] (-> fixed->mth rseq first)]
+                                                   (if-not (:variadic? variadic)
+                                                     (err/tc-delayed-error (str "Variadic method is required to satisfy type: " (prs/unparse-type t))
+                                                                           :return {})
+                                                     (if (<= max-fixed ndom)
+                                                       ; extra domains flow into the rest argument via fn-method-u/check-rest-fn 
+                                                       (do (assert (= 1 (count fixed->mth))) ;; must be just the variadic method in the case
+                                                           (into {}
+                                                                 (map (juxt ::method-pos (constantly t)))
+                                                                 (vals fixed->mth)))
+                                                       ;; rest type may flow into unrolled positional args after dom if
+                                                       ;; fixed arities monotonically increase between methods
+                                                       ;; with equal or more number of fixed args than dom
+                                                       (let [min-fixed (-> fixed->mth first key)
+                                                             expected-arities (into #{} (range min-fixed (inc max-fixed)))
+                                                             actual-arities (into #{} (keys fixed->mth))]
+                                                         (if-some [missing-arities (not-empty (set/difference expected-arities actual-arities))]
+                                                           (err/tc-delayed-error
+                                                             (str "Missing fn method(s) with "
+                                                                  (str/join ", " (sort missing-arities))
+                                                                  " fixed argument(s) to satisfy type: "
+                                                                  (prs/unparse-type t))
+                                                             :return {})
+                                                           (into {}
+                                                                 (map (fn [[fixed mth]]
+                                                                        [(::method-pos mth)
+                                                                         (-> t
+                                                                             (assoc :dom (into (vec dom) (repeat (- fixed ndom) rest)))
+                                                                             (cond-> (not (:variadic? mth)) (assoc :rest nil)))]))
+                                                                 fixed->mth))))))
+                                            ;; treat each method as separate functions
+                                            :else (let [ms (into {}
+                                                                 (keep-indexed (fn [i m]
+                                                                                 (when (expected-for-method m t mthods)
+                                                                                   [i t])))
+                                                                 mthods)]
+                                                    ;; it is a type error if no matching methods are found.
+                                                    (when (empty? ms)
+                                                      (binding [vs/*current-expr* (impl/impl-case
+                                                                                    :clojure (first mthods)
+                                                                                    ; fn-method is not printable in cljs
+                                                                                    :cljs vs/*current-expr*)
+                                                                vs/*current-env* (or (:env (first mthods)) vs/*current-env*)]
+                                                        (prs/with-unparse-ns (cu/expr-ns (first mthods))
+                                                          (err/tc-delayed-error (str "No matching arities: " (prs/unparse-type t))))))
+                                                    ms))]
                                    [t ms])))
                           (:types fin))]
                 ;; if a method occurs more than once in the entire map, it will be
@@ -163,17 +203,17 @@
                         (fn [method-index m]
                           (let [expecteds
                                 (keep
-                                  (fn [[ifn-index [ifn-arity relevant-method-idxs]]]
-                                    (when (contains? relevant-method-idxs method-index)
-                                      [ifn-index ifn-arity]))
+                                  (fn [[ifn-index [_ifn-arity relevant-method-idxs]]]
+                                    (when-some [expected-type (relevant-method-idxs method-index)] 
+                                      [ifn-index expected-type]))
                                   (map-indexed vector fn-matches))
                                 cmethods
                                 (u/rewrite-when (== 1 (count expecteds))
-                                  (mapv (fn [[ifn-index ifn-arity]]
+                                  (mapv (fn [[ifn-index expected-type]]
                                           {:pre [(integer? ifn-index)
-                                                 (r/Function? ifn-arity)]}
+                                                 (r/Function? expected-type)]}
                                           (let [{:keys [cmethod ftype]}
-                                                (fn-method1/check-fn-method1 m ifn-arity
+                                                (fn-method1/check-fn-method1 m expected-type
                                                                              (select-keys opt [:recur-target-fn :check-rest-fn]))
                                                 _ (assert (r/Function? ftype))
                                                 union-Functions (fn [f1 f2]

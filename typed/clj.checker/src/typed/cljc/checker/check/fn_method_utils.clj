@@ -73,8 +73,7 @@
 
     (seq remain-dom) (err/nyi-error "Rest parameter with remaining fixed domain for prest/post/KwArgs")
 
-    prest (c/Un r/-nil prest)
-    pdot (c/Un r/-nil pdot)
+    (or prest pdot) (c/Un r/-nil (or prest pdot))
 
     ;kws
     :else (c/KwArgs->Type kws)))

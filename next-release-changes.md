@@ -12,3 +12,11 @@
 - fix `t/All` parsing: allow combining `:..` with keyword args: `(t/All [a :.. :named [b])`
 - Breaking: change `(t/Assoc c ... c)` type syntax to `(t/Assoc c :.. c)`
 - improve type parsing error messages when no type provided before `:{?,*,+}`
+- support checking unrolled rest arguments as `:*` function types
+  - eg.,
+```
+(-> (fn ([] 0)
+        ([a] (+ a))
+        ([a b & more] (apply + a b more)))
+    (ann-form [t/Int :* :-> t/Int]))
+```
