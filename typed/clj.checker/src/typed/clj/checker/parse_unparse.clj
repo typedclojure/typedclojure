@@ -207,7 +207,10 @@
     (if (symbol? f)
       (do (validate-sym f)
           [f r/no-bounds])
-      (let [[n & {:keys [< >] :as opts}] f]
+      (let [[n & opts] f
+            _ (when-not (even? (count opts))
+                (prs-error (str "Uneven number of options after symbol: " (pr-str opts))))
+            {:keys [< >] :as opts} opts]
         (validate-sym n)
         (when (contains? opts :kind)
           (err/deprecated-warn "Kind annotation for TFn parameters"))
