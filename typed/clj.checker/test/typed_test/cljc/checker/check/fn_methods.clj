@@ -23,3 +23,9 @@
   (is-tc-err (fn ([] [])
                ([a] [a]))
              [t/Int :* :-> (t/Coll t/Int)]))
+
+(deftest refine-rest-arg-test
+  (is-tc-err (fn [& rst] (first rst))
+             [t/Int :* :-> t/Int])
+  (is-tc-e (fn [& rst] (first rst))
+           [t/Int :+ :-> t/Int]))

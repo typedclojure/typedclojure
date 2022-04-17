@@ -62,14 +62,14 @@
   (cond
     (or rest drest
         (not-any? identity [rest drest kws prest pdot]))
-    ; rest argument is always a nilable non-empty seq. Could
-    ; be slightly more clever here if we have a `rest`, but what about
-    ; `drest`?
-    (c/Un r/-nil 
-          (c/In (r/-hseq remain-dom
-                         :rest rest
-                         :drest drest)
-                (r/make-CountRange 1)))
+    ; rest argument is nilable non-empty seq, refine further based on remaining fixed domain
+    (cond-> (c/In (r/-hseq remain-dom
+                           :rest rest
+                           :drest drest)
+                  ;; in addition to hseq's count knowledge
+                  (r/make-CountRange 1))
+      ;TODO what about `drest`?
+      (and rest (zero? (count remain-dom))) (c/Un r/-nil))
 
     (seq remain-dom) (err/nyi-error "Rest parameter with remaining fixed domain for prest/post/KwArgs")
 
