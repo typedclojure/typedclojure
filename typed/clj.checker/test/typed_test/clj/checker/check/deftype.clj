@@ -113,3 +113,12 @@
                (deftype Foo [^:unsynchronized-mutable a]
                  Setter
                  (setter [_] (set! a true))))))
+
+(deftest deftype-type-hinted-field-test
+  (is-tc-e (do (import java.util.ArrayDeque)
+               (defprotocol P
+                 (p [_]))
+               (ann-datatype Foo [a :- ArrayDeque])
+               (deftype Foo [^ArrayDeque a]
+                 P
+                 (p [_] (when (< (rand) 0.5) (.pop a)))))))
