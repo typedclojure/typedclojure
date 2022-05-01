@@ -1,3 +1,6 @@
+# 1.0.29 (2022/05/01)
+
+
 # 1.0.28
 
 - better support malli refs named as strings that contain non-alphanumerics

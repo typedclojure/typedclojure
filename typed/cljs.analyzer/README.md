@@ -7,14 +7,14 @@ Analyzer for JS Clojure, tuned for consumption by an optional type checker.
 
 ## Releases and Dependency Information
 
-Latest stable release is 1.0.28.
+Latest stable release is 1.0.29.
 
 * [All Released Versions](https://clojars.org/org.typedclojure/typed.cljs.analyzer)
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) JAR dependency information:
 
 ```clj
-  org.typedclojure/typed.cljs.analyzer {:mvn/version "1.0.28"}
+  org.typedclojure/typed.cljs.analyzer {:mvn/version "1.0.29"}
 ```
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) Git dependency information:
@@ -25,13 +25,13 @@ Latest stable release is 1.0.28.
   org.typedclojure/typed.cljs.analyzer
   {:git/url "https://github.com/typedclojure/typedclojure"
    :deps/root "typed/cljs.analyzer"
-   :tag "1.0.28"}
+   :tag "1.0.29"}
 ```
 
 [Leiningen](https://github.com/technomancy/leiningen) dependency information:
 
 ```clojure
-[org.typedclojure/typed.cljs.analyzer "1.0.28"]
+[org.typedclojure/typed.cljs.analyzer "1.0.29"]
 ```
 
 [Maven](https://maven.apache.org/) dependency information:
@@ -40,7 +40,7 @@ Latest stable release is 1.0.28.
 <dependency>
   <groupId>org.typedclojure</groupId>
   <artifactId>typed.cljs.analyzer</artifactId>
-  <version>1.0.28</version>
+  <version>1.0.29</version>
 </dependency>
 ```
 
