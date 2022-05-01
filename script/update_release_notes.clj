@@ -1,11 +1,13 @@
 #!/usr/bin/env bb
-(ns update-release-notes)
+(ns update-release-notes
+  (:require [clojure.string :as str]))
 
 (defn -main []
   (let [new-changes (slurp "next-release-changes.md")
         current-changelog (slurp "CHANGELOG.md")
-        release-version (slurp "stable-version")
+        release-version (str/trim (slurp "stable-version"))
         new-changelog (str "# " release-version
+                           " (" (.format (java.text.SimpleDateFormat. "yyyy/MM/dd") (java.util.Date.)) ")"
                            "\n"
                            new-changes
                            (when (seq current-changelog)
