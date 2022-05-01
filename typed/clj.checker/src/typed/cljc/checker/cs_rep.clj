@@ -107,7 +107,7 @@
    (not-empty repeat)
    (every? c? repeat)])
 
-(t/defalias DCon (U dcon dcon-exact dcon-dotted dcon-repeat))
+(t/defalias DCon (t/U dcon dcon-exact dcon-dotted dcon-repeat))
 
 (t/ann ^:no-check dcon-c? (t/Pred DCon))
 (def dcon-c? (some-fn dcon? dcon-exact? dcon-dotted? dcon-repeat?))
