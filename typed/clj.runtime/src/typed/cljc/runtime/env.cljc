@@ -42,8 +42,7 @@
 (defn swap-checker-vals! [& args]
   (apply swap-vals! (checker) args))
 
-;; make *checker* immutable
+;; isolate *checker* for consistent reads
 (defmacro with-pinned-env [& body]
-  `(binding [*checker* (let [c# (deref-checker)]
-                         (delay c#))]
+  `(binding [*checker* (atom (deref-checker))]
      ~@body))
