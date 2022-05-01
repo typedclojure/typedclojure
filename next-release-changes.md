@@ -23,3 +23,5 @@
 - refine rest type if known to be non-empty
   - eg., `(ann-form (fn [& rst] (first rst)) [t/Int :+ :-> t/Int])`
 - ignore filter and object when checking right-hand-side of `set!`
+- fix `clojure.core.typed/envs`
+  - revealed (fixed) problems in annotations for `sort-by`, `method-sig`, `partition`

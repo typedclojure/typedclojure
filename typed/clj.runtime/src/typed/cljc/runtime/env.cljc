@@ -42,7 +42,8 @@
 (defn swap-checker-vals! [& args]
   (apply swap-vals! (checker) args))
 
-;; make *checker* (lazily) immutable
+;; make *checker* immutable
 (defmacro with-pinned-env [& body]
-  `(binding [*checker* (delay (deref-checker))]
+  `(binding [*checker* (let [c# (deref-checker)]
+                         (delay c#))]
      ~@body))

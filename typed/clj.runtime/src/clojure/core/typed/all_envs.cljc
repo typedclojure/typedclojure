@@ -20,7 +20,7 @@
     (into {}
           (for [[k v] (nme-env/name-env)]
             (when-not (keyword? v)
-              [k (unparse-type v)])))))
+              [k (unparse-type (force v))])))))
 
 (defn- var-env []
   (binding [vs/*verbose-types* true]

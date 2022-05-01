@@ -998,9 +998,9 @@ cc/split-at (t/All [x y z] [t/AnyInteger (t/Seqable x) :-> '[(t/ASeq x) (t/ASeq 
 cc/partition-all (t/All [x] (t/IFn [t/Int (t/Seqable x) :-> (t/ASeq (t/ASeq x))] 
                                    [t/Int t/Int (t/Seqable x) :-> (t/ASeq (t/ASeq x))]))
 
-cc/partition (All [a] (IFn [t/AnyInteger (t/Seqable a) :-> (t/ASeq (t/ASeq a))]
-                           [t/AnyInteger t/AnyInteger (t/Seqable a) :-> (t/ASeq (t/ASeq a))]
-                           [t/AnyInteger t/AnyInteger t/AnyInteger (t/Seqable a) :-> (t/ASeq (t/ASeq a))]))
+cc/partition (t/All [a] (t/IFn [t/AnyInteger (t/Seqable a) :-> (t/ASeq (t/ASeq a))]
+                               [t/AnyInteger t/AnyInteger (t/Seqable a) :-> (t/ASeq (t/ASeq a))]
+                               [t/AnyInteger t/AnyInteger t/AnyInteger (t/Seqable a) :-> (t/ASeq (t/ASeq a))]))
 
 cc/repeatedly (t/All [x] (t/IFn [[:-> x] :-> (t/ASeq x)]
                                 [t/AnyInteger [:-> x] :-> (t/ASeq x)]))
@@ -1287,7 +1287,7 @@ cc/select-keys (t/All [k v] [(t/Map k v) (t/Seqable t/Any) :-> (t/Map k v)])
 cc/sort (t/All [x] (t/IFn [(t/Seqable x) :-> (t/ASeq x)]
                           [(t/I Comparator [x x :-> t/AnyInteger]) (t/Seqable x) :-> (t/ASeq x)]))
 cc/sort-by (t/All [a] (t/IFn [(t/Seqable a) :-> (t/ASeq a)]
-                             [[a :-> Number] (t/Seqable a) :-> (ASeq a)]))
+                             [[a :-> Number] (t/Seqable a) :-> (t/ASeq a)]))
 cc/replicate (t/All [a] [t/AnyInteger a :-> (t/ASeq a)])
 
 cc/reset! (t/All [w r] [(t/Atom2 w r) w :-> w])
@@ -1308,7 +1308,7 @@ cc/get-validator (t/All [x] [#?(:clj (clojure.lang.IRef x x)
 #?@(:cljs [] :default [
 cc/alter-var-root (t/All [w r b :..] [(t/Var2 w r) [r b :.. b :-> w] b :.. b :-> w])
 
-cc/method-sig [java.lang.reflect.Method :-> '[t/Any (t/NilableNonEmptySeqable t/Any) t/Any]]
+cc/method-sig [java.lang.reflect.Method :-> '[t/Any (t/NilableNonEmptySeq t/Any) t/Any]]
 cc/proxy-name [Class (t/Seqable Class) :-> t/Str]
 cc/get-proxy-class [Class :* :-> Class]
 cc/construct-proxy [Class t/Any :* :-> t/Any]
