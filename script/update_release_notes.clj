@@ -8,7 +8,7 @@
         release-version (str/trim (slurp "stable-version"))
         new-changelog (str "# " release-version
                            " (" (.format (java.text.SimpleDateFormat. "yyyy/MM/dd") (java.util.Date.)) ")"
-                           "\n"
+                           "\n\n"
                            new-changes
                            (when (seq current-changelog)
                              (str "\n"
