@@ -8,14 +8,17 @@
 
 (ns ^:no-doc typed.cljc.checker.inst
   (:require [clojure.core.typed.errors :as err]
+            [clojure.set :as set]
+            [clojure.string :as str]
             [typed.clj.checker.parse-unparse :as prs]
-            [typed.cljc.checker.type-rep :as r]
-            [typed.cljc.checker.type-ctors :as c]
-            [typed.cljc.checker.free-ops :as free-ops]
             [typed.clj.checker.subtype :as sub]
+            [typed.cljc.checker.check-below :as below]
+            [typed.cljc.checker.check.utils :as cu]
+            [typed.cljc.checker.free-ops :as free-ops]
             [typed.cljc.checker.subst :as subst]
             [typed.cljc.checker.trans :as trans]
-            [clojure.string :as string]))
+            [typed.cljc.checker.type-ctors :as c]
+            [typed.cljc.checker.type-rep :as r]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Polymorphic type instantiation
@@ -59,7 +62,7 @@
                    nrequired
                    ", actual " (count argtys)
                    "\n\nTarget:\n" (prs/unparse-type ptype)
-                   "\n\nActual arguments:\n" (string/join " " (map prs/unparse-type argtys)))))
+                   "\n\nActual arguments:\n" (str/join " " (map prs/unparse-type argtys)))))
         expected-named (:named ptype)
         _ (when (empty? expected-named)
             (when (seq named)
@@ -128,3 +131,37 @@
                               (subvec argtys dotted-argtys-start)) ;the types to expand pre-type with
             ; substitute normal variables
             (subst/substitute-many (subvec argtys 0 dotted-argtys-start) (pop names))))))))
+
+(defn inst-from-targs-syn [ptype targs-syn prs-ns expected]
+  (binding [prs/*parse-type-in-ns* prs-ns
+            prs/*unparse-type-in-ns* prs-ns]
+    (let [ptype (c/fully-resolve-type ptype)
+          ; support (inst :kw ...)
+          ptype (if (c/keyword-value? ptype)
+                  (c/KeywordValue->Fn ptype)
+                  ptype)]
+      (if-not ((some-fn r/Poly? r/PolyDots?) ptype)
+        (err/tc-delayed-error (str "Cannot instantiate non-polymorphic type: " (prs/unparse-type ptype))
+                              :return (cu/error-ret expected))
+        (let [[targs-syn kwargs] (split-with (complement keyword?) targs-syn)
+              _ (when-not (even? (count kwargs))
+                  (err/int-error (str "Expected an even number of keyword options to inst, given: " (vec kwargs))))
+              _ (when (seq kwargs)
+                  (when-not (apply distinct? (map first (partition 2 kwargs)))
+                    (err/int-error (str "Gave repeated keyword args to inst: " (vec kwargs)))))
+              {:keys [named] :as kwargs} kwargs
+              _ (let [unsupported (set/difference (set (keys kwargs)) #{:named})]
+                  (when (seq unsupported)
+                    (err/int-error (str "Unsupported keyword argument(s) to inst " unsupported))))
+              _ (when (contains? kwargs :named)
+                  (when-not (and (map? named)
+                                 (every? symbol? (keys named)))
+                    (err/int-error (str ":named keyword argument to inst must be a map of symbols to types, given: " (pr-str named)))))
+              named (into {}
+                          (map (fn [[k v]]
+                                 [k (prs/parse-type v)]))
+                          named)
+              targs (mapv prs/parse-type targs-syn)]
+          (below/maybe-check-below
+            (r/ret (manual-inst ptype targs named))
+            expected))))))

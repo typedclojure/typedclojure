@@ -76,7 +76,7 @@ for checking namespaces, cf for checking individual forms."}
                                         (= (str (:name %)) (name mname))))
                      set)
              _ (assert (seq ms) (str "Method " mname " not found"))]
-    (println "Method name:" mname)
+    ( "Method name:" mname)
     (flush)
     (core/doseq [m ms]
       (println ((requiring-resolve 'typed.clj.checker.parse-unparse/unparse-type)

@@ -71,6 +71,7 @@
             [typed.cljc.checker.check.local :as local]
             [typed.cljc.checker.check.loop :as loop]
             [typed.cljc.checker.check.map :as map]
+            [typed.cljc.checker.check.meta-ann :as meta-ann]
             [typed.cljc.checker.check.monitor :as monitor]
             [typed.cljc.checker.check.multi :as multi]
             [typed.cljc.checker.check.multi-utils :as multi-u]
@@ -237,7 +238,8 @@
               _ @*register-exts]
           (or (binding [vs/*current-env* (if (:line env) env vs/*current-env*)
                         vs/*current-expr* expr]
-                (or (unanalyzed/-unanalyzed-special expr expected)
+                (or (meta-ann/maybe-check-meta-ann expr expected)
+                    (unanalyzed/-unanalyzed-special expr expected)
                     (maybe-check-inlineable expr expected)))
               (-> expr
                   ana2/analyze-outer

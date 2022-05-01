@@ -1,5 +1,6 @@
 (ns typed-test.clj.checker.check
   (:require [clojure.test :refer [deftest is]]
+            [typed.clojure :as t]
             [typed.clj.checker.test-utils :refer :all]))
 
 (deftest instance?-test
@@ -80,3 +81,30 @@
                  #(let [a (ann-form (reify A) A)]
                     (assert (not a))
                     (ann-form a Object)))))
+
+(deftest meta-ann-test
+  (is-tc-e (inc 1)
+           t/Any)
+  (is-tc-e ^::t/ignore (inc 1)
+           t/Any)
+  (is-tc-err ^::t/ignore (inc 1)
+             t/Int)
+  (is-tc-err (inc ^::t/ignore (do 1)))
+  (is-tc-err #(do (inc nil)))
+  (is-tc-e #(do ^::t/ignore (inc nil)))
+  (is-tc-e (#(do ^::t/ignore (inc %)) 1))
+  (is-tc-err #(inc nil))
+  (is-tc-e ^::t/ignore #(inc nil))
+  (is-tc-err (^::t/ignore #(inc %) 1))
+  (is-tc-e (inc ^{::t/unsafe-cast t/Int} (do 1)))
+  (is-tc-err (inc ^{::t/unsafe-cast nil} (do 1)))
+  (is-tc-e ^{::t/unsafe-cast nil} (do 1) nil)
+  (is-tc-err ^{::t/unsafe-cast nil} (do 1) t/Int)
+  (is-tc-e ^{::t/- t/Any} (do 1))
+  (is-tc-err ^{::t/- t/Any} (do 1) t/Int)
+  (is-tc-err (inc ^{::t/- t/Any} (do 1)))
+  (is-tc-e #(inc ^{::t/unsafe-cast ^:fake-quote 't/Int} (do nil)))
+  (is-tc-e (identity 1) t/Int)
+  (is-tc-e (^{::t/inst [t/Int]} identity 1) t/Int)
+  (is-tc-err (^{::t/inst [t/Num]} identity 1) t/Int)
+  (is-tc-err (^{::t/inst [t/Num]} identity nil)))

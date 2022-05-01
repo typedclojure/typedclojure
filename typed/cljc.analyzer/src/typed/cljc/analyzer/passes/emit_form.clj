@@ -127,7 +127,7 @@
   [{:keys [test then else]} opts]
   `(if ~(-emit-form* test opts)
      ~(-emit-form* then opts)
-     ~@(when-not (nil? (:form else))
+     ~@(when (some? (:form else))
          [(-emit-form* else opts)])))
 
 (defmethod -emit-form :new

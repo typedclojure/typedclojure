@@ -6,13 +6,13 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-;; TODO clojure.core.typed.expand/tc-ignore-typing-rule has ideas on improving error msgs
-(ns ^:no-doc typed.clj.ext.clojure.core.typed__tc-ignore
-  "Typing rules for clojure.core.typed/tc-ignore"
-  (:require [typed.cljc.checker.check.ignore :as ignore]
-            [typed.cljc.checker.check.unanalyzed :refer [defuspecial]]))
+(ns typed.cljc.checker.check.ignore
+  (:require [typed.cljc.checker.check-below :as below]
+            [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.checker.utils :as u]))
 
-(defuspecial defuspecial__tc-ignore
-  "defuspecial implementation for clojure.core.typed/tc-ignore"
-  [expr expected]
-  (ignore/tc-ignore-expr expr expected))
+(defn tc-ignore-expr [expr expected]
+  (-> expr
+      (assoc u/expr-type (below/maybe-check-below
+                           (r/ret r/-any)
+                           expected))))

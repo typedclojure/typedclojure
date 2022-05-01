@@ -820,8 +820,9 @@
              :rest rest)))
 
 (defmethod parse-type-list 'quote 
-  [[_ syn]]
+  [[_ syn :as all]]
   (cond
+    (-> all meta :fake-quote) (parse-type syn)
     ((some-fn number? keyword? symbol? string?) syn) (r/-val syn)
     (vector? syn) (parse-quoted-hvec syn)
     ; quoted map is a partial map with mandatory keys
