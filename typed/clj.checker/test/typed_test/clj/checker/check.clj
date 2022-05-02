@@ -112,5 +112,6 @@
   (is-tc-err (^{::t/inst [t/Num]} identity nil))
   (is-tc-e ^::t/dbg identity)
   (is-tc-err ^::t/dbg (do nil) t/Int)
-  (is-tc-e (do ^::t/ignore (def a 1)
+  (is-tc-e (do (t/ann a t/Int)
+               ^::t/ignore (def a 1)
                a)))
