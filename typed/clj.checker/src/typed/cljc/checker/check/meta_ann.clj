@@ -19,15 +19,15 @@
             [typed.cljc.checker.check-below :as below]))
 
 (defn check-meta-debug [expr maybe-msg expected]
-  (when-not ((some-fn true? string? maybe-msg))
+  (when-not ((some-fn true? string?) maybe-msg)
     (err/int-error (str "::t/dbg value must be a string, given: " (pr-str maybe-msg))))
   (let [id (gensym)
-        _ (some->> maybe-msg
-                   (println id ":typed.clojure/dbg"))
+        _ (when (string? maybe-msg)
+            (println id ":typed.clojure/dbg" maybe-msg))
         _ (println id ":typed.clojure/dbg" (pr-str (:form expr)))
 
         _ (println id ":typed.clojure/dbg" (if expected
-                                             (str "expected:" (pr-str (prs/unparse-TCResult expected)))
+                                             (str "expected: " (pr-str (prs/unparse-TCResult expected)))
                                              (str "no expected type")))
         cexpr (check-expr expr expected)
         _ (println id ":typed.clojure/dbg" "result:" (pr-str (prs/unparse-TCResult (u/expr-type cexpr))))]
