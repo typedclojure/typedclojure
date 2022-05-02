@@ -1,5 +1,6 @@
 # 1.0.29 (2022/05/01)
 
+- fix `clojure.core.typed/envs`
 
 # 1.0.28
 
