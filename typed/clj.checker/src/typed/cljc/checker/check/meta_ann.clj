@@ -10,7 +10,7 @@
   (:require [typed.clojure :as-alias t]
             [typed.cljc.checker.check.utils :as cu]
             [typed.cljc.checker.inst :as inst]
-            [typed.cljc.checker.check.ignore :as ignore]
+            [typed.clj.ext.clojure.core.typed__tc-ignore :as tc-ignore]
             [clojure.core.typed.errors :as err]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.cljc.checker.utils :as u]
@@ -51,7 +51,7 @@
 (defn check-meta-ignore [expr ignore? expected]
   (when-not (true? ignore?)
     (prs/prs-error (str "::t/ignore must be true, actual: " (pr-str ignore?))))
-  (ignore/tc-ignore-expr expr expected))
+  (tc-ignore/defuspecial__tc-ignore expr expected))
 
 (defn check-meta-inst [expr targs-syn expected]
   (let [targs-syn (cond-> targs-syn
