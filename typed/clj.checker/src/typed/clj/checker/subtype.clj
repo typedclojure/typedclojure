@@ -1415,9 +1415,9 @@
          (r/Protocol? t)]
    :post [(or (set? %) (nil? %))]}
   (let [s-kind (cond
-                 (r/RClass? s) (do :RClass
-                                   (impl/assert-clojure (str "subtype-rclass-or-datatype-with-protocol not yet implemented for implementations other than Clojure: "
-                                                             (prs/unparse-type s) " " (prs/unparse-type t))))
+                 (r/RClass? s) (do (impl/assert-clojure (str "subtype-rclass-or-datatype-with-protocol not yet implemented for implementations other than Clojure: "
+                                                             (prs/unparse-type s) " " (prs/unparse-type t)))
+                                   :RClass)
                  (r/DataType? s) :DataType
                  :else (err/int-error (str "what is this?" s)))
         ;first try and find the datatype in the protocol's extenders
