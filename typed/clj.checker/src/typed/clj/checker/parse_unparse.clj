@@ -819,8 +819,15 @@
              :drest drest
              :rest rest)))
 
+(defn quoted? [v]
+  (and (seq? v)
+       (= 2 (count v))
+       (= 'quote (first v))))
+
 (defmethod parse-type-list 'quote 
   [[_ syn :as all]]
+  (when-not (quoted? all)
+    (prs-error (str "Incorrect use of quote: " (pr-str all))))
   (cond
     (-> all meta :fake-quote) (parse-type syn)
     ((some-fn number? keyword? symbol? string?) syn) (r/-val syn)
@@ -900,7 +907,7 @@
 (def ns-rewrites-clj {'clojure.core.typed 'typed.clojure})
 (def ^:private ns-unrewrites-clj (set/map-invert ns-rewrites-clj))
 
-(defn- resolve-type-clj
+(defn resolve-type-clj
   "Returns a var, class or nil"
   [sym]
   {:pre [(symbol? sym)]
@@ -943,7 +950,7 @@
             qsym)))
       (err/int-error (str "Cannot find namespace: " sym)))))
 
-(defn- resolve-type-clj->sym
+(defn resolve-type-clj->sym
   [sym]
   {:pre [(symbol? sym)]
    :post [(symbol? %)]}
@@ -977,7 +984,7 @@
 
 ;; ignores both clj and cljs namespace graph (other than to resolve aliases)
 ;; TODO reconcile clj/cljs type resolution. neither should really be interning vars (breaking change for clj).
-(defn- resolve-type-cljs
+(defn resolve-type-cljs
   "Returns a qualified symbol or nil"
   [sym]
   {:pre [(symbol? sym)]

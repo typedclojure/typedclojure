@@ -238,3 +238,6 @@
             :clj `(cf-clj ~@args)
             :cljs `(cf-cljs ~@args))
      :cljs `(cf-cljs ~@args)))
+
+(defmacro type-doc-clj [syn] `((requiring-resolve 'typed.cljc.doc/type-doc-clj) '~syn))
+(defmacro type-doc-cljs [syn] `((requiring-resolve 'typed.cljc.doc/type-doc-cljs) '~syn))

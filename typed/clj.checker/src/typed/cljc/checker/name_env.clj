@@ -49,6 +49,15 @@
   (env/swap-checker! assoc impl/current-name-env-kw nme-env)
   nil)
 
+(defn find-type-name-entry [sym]
+  (or (find (name-env) sym)
+      (when-some [sym-nsym ((requiring-resolve (impl/impl-case
+                                                 :clojure 'typed.clj.checker.parse-unparse/ns-rewrites-clj
+                                                 :cljs 'typed.clj.checker.parse-unparse/ns-rewrites-cljs))
+                            (some-> sym namespace symbol))]
+        (find (name-env)
+              (symbol (name sym-nsym) (name sym))))))
+
 (t/ann ^:no-check get-type-name [t/Sym -> (t/U nil t/Kw r/Type)])
 (defn get-type-name 
   "Return the name with var symbol sym.
@@ -59,14 +68,7 @@
                           (r/Type? %))
                       (pr-str %))
               true)]}
-  (force
-    (or (get (name-env) sym)
-        (when-some [sym-nsym ((requiring-resolve (impl/impl-case
-                                                   :clojure 'typed.clj.checker.parse-unparse/ns-rewrites-clj
-                                                   :cljs 'typed.clj.checker.parse-unparse/ns-rewrites-cljs))
-                              (some-> sym namespace symbol))]
-          (get (name-env)
-               (symbol (name sym-nsym) (name sym)))))))
+  (some-> (find-type-name-entry sym) val force))
 
 (t/ann ^:no-check add-type-name [t/Sym (t/U t/Kw r/Type) -> nil])
 (def add-type-name impl/add-tc-type-name)

@@ -6,3 +6,4 @@
   - `^{::t/unsafe-cast TYPE} EXP` checks EXP with no expected type and unsafely infers type TYPE
   - `^{::t/inst [...]} EXP` <=> `(t/inst EXP ...)`
   - `^{::t/- TYPE} EXP` <=> `(t/ann-form EXP TYPE)`
+- add `typed.clojure/type-doc-clj{s}` for documentation on type syntax and current types

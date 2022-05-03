@@ -147,12 +147,12 @@
 (def cljs-var-providers (delay (configs/cljs-config-var-providers)))
 
 (defn lookup-Var-nofail [nsym]
-  {:post [((some-fn nil? r/Type?) %)]}
+  {:pre [(symbol? nsym)]
+   :post [((some-fn nil? r/Type?) %)]}
   (or (let [e (var-annotations)]
         (force (e nsym)))
       (when (impl/checking-clojurescript?)
-        (or (nsym (name-env/name-env))
-            ((jsvar-annotations) nsym)))
+        (force ((jsvar-annotations) nsym)))
       (when-some [ts (not-empty
                        (into (sorted-map) (map (fn [fsym]
                                                  (some->> ((requiring-resolve fsym) nsym)

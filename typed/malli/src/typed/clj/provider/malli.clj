@@ -22,9 +22,10 @@
    (s->t/malli->type m opts)))
 
 (defn var-type [var-qsym]
-  (some-> (get-in (m/function-schemas)
-                  [(symbol (namespace var-qsym))
-                   (symbol (name var-qsym))
-                   :schema])
-          (malli->Type {::s->t/mode :validator-type
-                        ::s->t/source var-qsym})))
+  (when (qualified-symbol? var-qsym)
+    (some-> (get-in (m/function-schemas)
+                    [(symbol (namespace var-qsym))
+                     (symbol (name var-qsym))
+                     :schema])
+            (malli->Type {::s->t/mode :validator-type
+                          ::s->t/source var-qsym}))))

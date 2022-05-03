@@ -427,7 +427,12 @@ for checking namespaces, cf for checking individual forms."}
                  (throw (Exception. (str "Could not resolve namespace " nsp " in sym " sym))))
              (ns-name *ns*))
       qsym (-> (symbol (str qual) (name sym))
-               (with-meta (meta sym)))]
+               (with-meta (not-empty
+                            (-> {}
+                                (into (meta sym))
+                                (assoc :file *file*)
+                                ;;FIXME find line number
+                                #_(into (meta &form))))))]
      `(tc-ignore
         (when (= "true" (System/getProperty "clojure.core.typed.intern-defaliases"))
           (intern '~qual '~(with-meta (symbol (name sym))
