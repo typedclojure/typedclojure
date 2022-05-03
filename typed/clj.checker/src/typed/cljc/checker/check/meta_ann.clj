@@ -34,7 +34,6 @@
     cexpr))
 
 (defn check-meta-unsafe-cast [expr tsyn expected]
-  (prn "check-meta-unsafe-cast" expected)
   (-> expr
       (cond-> (not (u/expr-type expr)) check-expr)
       (assoc u/expr-type (below/maybe-check-below
@@ -50,7 +49,6 @@
         (update u/expr-type below/maybe-check-below expected))))
 
 (defn check-meta-ignore [expr ignore? expected]
-  (prn "check-meta-ignore" expected)
   (when-not (true? ignore?)
     (prs/prs-error (str "::t/ignore must be true, actual: " (pr-str ignore?))))
   (tc-ignore/defuspecial__tc-ignore expr expected))
