@@ -49,6 +49,7 @@
   (env/swap-checker! assoc impl/current-name-env-kw nme-env)
   nil)
 
+(t/ann ^:no-check find-type-name-entry [t/Sym -> (t/Nilable (t/MapEntry t/Sym (t/U t/Kw (t/Delay r/Type))))])
 (defn find-type-name-entry [sym]
   (or (find (name-env) sym)
       (when-some [sym-nsym ((requiring-resolve (impl/impl-case
@@ -63,7 +64,8 @@
   "Return the name with var symbol sym.
   Returns nil if not found."
   [sym]
-  {:post [(or (assert (or (nil? %)
+  {:pre [(symbol? sym)]
+   :post [(or (assert (or (nil? %)
                           (keyword? %)
                           (r/Type? %))
                       (pr-str %))
