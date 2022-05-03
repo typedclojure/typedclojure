@@ -18,19 +18,23 @@
             [typed.cljc.checker.check :refer [check-expr]]
             [typed.cljc.checker.check-below :as below]))
 
+(def ^:dynamic ^:private *meta-debug-depth* 0)
+
 (defn check-meta-debug [expr maybe-msg expected]
   (when-not ((some-fn true? string?) maybe-msg)
     (err/int-error (str "::t/dbg value must be a string, given: " (pr-str maybe-msg))))
   (let [id (gensym)
+        prefix (str (apply str (repeat *meta-debug-depth* " ")) "::t/dbg id=" id)
         _ (when (string? maybe-msg)
-            (println id ":typed.clojure/dbg" maybe-msg))
-        _ (println id ":typed.clojure/dbg" (pr-str (:form expr)))
+            (println prefix maybe-msg))
+        _ (println prefix (pr-str (:form expr)))
 
-        _ (println id ":typed.clojure/dbg" (if expected
-                                             (str "expected: " (pr-str (prs/unparse-TCResult expected)))
-                                             (str "no expected type")))
-        cexpr (check-expr expr expected)
-        _ (println id ":typed.clojure/dbg" "result:" (pr-str (prs/unparse-TCResult (u/expr-type cexpr))))]
+        _ (println prefix (if expected
+                            (str "expected: " (pr-str (prs/unparse-TCResult expected)))
+                            (str "no expected type")))
+        cexpr (binding [*meta-debug-depth* (inc *meta-debug-depth*)]
+                (check-expr expr expected))
+        _ (println prefix "result:" (pr-str (prs/unparse-TCResult (u/expr-type cexpr))))]
     cexpr))
 
 (defn check-meta-unsafe-cast [expr tsyn expected]
