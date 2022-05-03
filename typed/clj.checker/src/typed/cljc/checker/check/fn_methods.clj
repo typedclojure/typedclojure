@@ -290,7 +290,7 @@
     (cond
       (empty? ts)
       (prs/with-unparse-ns (cu/expr-ns (first mthods))
-        (err/tc-delayed-error (str (prs/unparse-type expected) " is not a function type")
+        (err/tc-delayed-error (str (pr-str (prs/unparse-type expected)) " is not a function type")
                               :return {:methods mthods
                                        :ifn r/-error
                                        :cmethods []}))

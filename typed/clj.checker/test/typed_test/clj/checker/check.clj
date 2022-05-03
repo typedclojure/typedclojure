@@ -101,7 +101,13 @@
   (is-tc-e ^{::t/unsafe-cast nil} (do 1) nil)
   (is-tc-err ^{::t/unsafe-cast nil} (do 1) t/Int)
   (is-tc-err ^{::t/unsafe-cast nil} #(inc nil))
-  (is-tc-e ^{::t/unsafe-cast nil} ^::t/ignore #(inc nil))
+  (is-tc-e ^{::t/unsafe-cast nil}
+           ^::t/ignore
+           #(inc nil))
+  (is-tc-e ^{::t/unsafe-cast nil}
+           ^::t/ignore
+           #(inc nil)
+           nil)
   (is-tc-e ^{::t/- t/Any} (do 1))
   (is-tc-err ^{::t/- t/Any} (do 1) t/Int)
   (is-tc-err (inc ^{::t/- t/Any} (do 1)))

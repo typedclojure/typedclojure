@@ -34,6 +34,7 @@
     cexpr))
 
 (defn check-meta-unsafe-cast [expr tsyn expected]
+  (prn "check-meta-unsafe-cast" expected)
   (-> expr
       (cond-> (not (u/expr-type expr)) check-expr)
       (assoc u/expr-type (below/maybe-check-below
@@ -49,6 +50,7 @@
         (update u/expr-type below/maybe-check-below expected))))
 
 (defn check-meta-ignore [expr ignore? expected]
+  (prn "check-meta-ignore" expected)
   (when-not (true? ignore?)
     (prs/prs-error (str "::t/ignore must be true, actual: " (pr-str ignore?))))
   (tc-ignore/defuspecial__tc-ignore expr expected))
@@ -67,17 +69,20 @@
         (update u/expr-type #(inst/inst-from-targs-syn (:t %) targs-syn (cu/expr-ns expr) expected)))))
 
 (def meta-keys
-  [[::t/dbg #'check-meta-debug]
-   [::t/ignore #'check-meta-ignore]
-   [::t/unsafe-cast #'check-meta-unsafe-cast]
-   [::t/inst #'check-meta-inst]
-   [::t/- #'check-meta-ann]])
+  [{:k ::t/- :f #'check-meta-ann}
+   {:k ::t/inst :f #'check-meta-inst}
+   {:k ::t/unsafe-cast :f #'check-meta-unsafe-cast}
+   {:k ::t/ignore :f #'check-meta-ignore}
+   {:k ::t/dbg :f #'check-meta-debug}])
 
 (defn maybe-check-meta-ann
   [expr expected]
   {:pre [(= :unanalyzed (:op expr))]}
   (let [form-metas (-> expr :form meta)]
-    (when-some [[[k f] v] (some #(some-> (find form-metas (first %))
-                                         (->> val (vector %)))
-                                meta-keys)]
-      (f (update expr :form vary-meta dissoc k) v expected))))
+    (when-some [[{:keys [k f v]} :as all-matching] (not-empty
+                                                     (keep #(some-> (find form-metas (:k %))
+                                                                    (->> val (assoc % :v)))
+                                                           meta-keys))]
+      (let [propagate-expected? (= 1 (count all-matching))]
+        (-> (f (update expr :form vary-meta dissoc k) v (when propagate-expected? expected))
+            (cond-> (not propagate-expected?) (update u/expr-type below/maybe-check-below expected)))))))
