@@ -29,9 +29,8 @@
             (println prefix maybe-msg))
         _ (println prefix (pr-str (:form expr)))
 
-        _ (println prefix (if expected
-                            (str "expected: " (pr-str (prs/unparse-TCResult expected)))
-                            (str "no expected type")))
+        _ (when expected
+            (println prefix (str "expected: " (pr-str (prs/unparse-TCResult expected)))))
         cexpr (binding [*meta-debug-depth* (inc *meta-debug-depth*)]
                 (check-expr expr expected))
         _ (println prefix "result:" (pr-str (prs/unparse-TCResult (u/expr-type cexpr))))]
@@ -39,17 +38,14 @@
 
 (defn check-meta-unsafe-cast [expr tsyn expected]
   (-> expr
-      (cond-> (not (u/expr-type expr)) check-expr)
+      check-expr
       (assoc u/expr-type (below/maybe-check-below
                            (r/ret (prs/parse-type tsyn))
                            expected))))
 
 (defn check-meta-ann [expr tsyn expected]
-  (let [inner-expected (r/ret (prs/parse-type tsyn))
-        check? (not (u/expr-type expr))]
-    (-> (if check?
-          (check-expr expr inner-expected)
-          (update expr u/expr-type below/maybe-check-below inner-expected))
+  (let [inner-expected (r/ret (prs/parse-type tsyn))]
+    (-> (check-expr expr inner-expected)
         (update u/expr-type below/maybe-check-below expected))))
 
 (defn check-meta-ignore [expr ignore? expected]
@@ -67,24 +63,26 @@
         _ (when-not (vector? targs-syn)
             (prs/prs-error "::t/inst must be a vector"))]
     (-> expr
-        (cond-> (not (u/expr-type expr)) check-expr)
+        check-expr
         (update u/expr-type #(inst/inst-from-targs-syn (:t %) targs-syn (cu/expr-ns expr) expected)))))
 
 (def meta-keys
-  [{:k ::t/- :f #'check-meta-ann}
+  [{:k ::t/dbg :f #'check-meta-debug :propagate-expected? true}
+   {:k ::t/- :f #'check-meta-ann}
    {:k ::t/inst :f #'check-meta-inst}
    {:k ::t/unsafe-cast :f #'check-meta-unsafe-cast}
-   {:k ::t/ignore :f #'check-meta-ignore}
-   {:k ::t/dbg :f #'check-meta-debug}])
+   {:k ::t/ignore :f #'check-meta-ignore}])
 
 (defn maybe-check-meta-ann
   [expr expected]
   {:pre [(= :unanalyzed (:op expr))]}
   (let [form-metas (-> expr :form meta)]
-    (when-some [[{:keys [k f v]} :as all-matching] (not-empty
-                                                     (keep #(some-> (find form-metas (:k %))
-                                                                    (->> val (assoc % :v)))
-                                                           meta-keys))]
-      (let [propagate-expected? (= 1 (count all-matching))]
+    (when-some [[{:keys [k f v propagate-expected?] :as match} :as all-matching]
+                (not-empty
+                  (keep #(some-> (find form-metas (:k %))
+                                 (->> val (assoc % :v)))
+                        meta-keys))]
+      (let [propagate-expected? (or propagate-expected?
+                                    (= 1 (count all-matching)))]
         (-> (f (update expr :form vary-meta dissoc k) v (when propagate-expected? expected))
             (cond-> (not propagate-expected?) (update u/expr-type below/maybe-check-below expected)))))))

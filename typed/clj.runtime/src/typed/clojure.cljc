@@ -239,5 +239,22 @@
             :cljs `(cf-cljs ~@args))
      :cljs `(cf-cljs ~@args)))
 
-(defmacro type-doc-clj [syn] `((requiring-resolve 'typed.cljc.doc/type-doc-clj) '~syn))
-(defmacro type-doc-cljs [syn] `((requiring-resolve 'typed.cljc.doc/type-doc-cljs) '~syn))
+(defmacro doc-clj
+  "Pass any syntax fragment related to Typed Clojure to print documentation on it.
+  eg., (doc-clj t/Rec)
+       (doc-clj '[])
+       (doc-clj +) ;; print var annotation
+       (doc-clj MyAlias) ;; print defalias mapping
+
+  Use :doc/index for documentation index."
+  [syn] ((requiring-resolve 'typed.cljc.doc/type-doc-clj) syn))
+
+(defmacro doc-cljs
+  "Pass any syntax fragment related to Typed Clojure to print documentation on it.
+  eg., (doc-cljs t/Rec)
+       (doc-cljs '[])
+       (doc-cljs +) ;; print var annotation
+       (doc-cljs MyAlias) ;; print defalias mapping
+
+  Use :doc/index for documentation index."
+  [syn] ((requiring-resolve 'typed.cljc.doc/type-doc-cljs) syn))

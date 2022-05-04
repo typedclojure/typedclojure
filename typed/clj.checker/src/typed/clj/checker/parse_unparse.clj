@@ -1247,7 +1247,7 @@
   (fl/-imp (parse-filter a) (parse-filter c)))
 
 ;FIXME clean up the magic. eg. handle (Class foo bar) as an error
-(defmulti parse-path-elem 
+(defmulti parse-path-elem
   #(cond
      (symbol? %) %
      (coll? %) (first %)

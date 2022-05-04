@@ -6,4 +6,4 @@
   - `^{::t/unsafe-cast TYPE} EXP` checks EXP with no expected type and unsafely infers type TYPE
   - `^::t/ignore EXP` <=> `(t/tc-ignore EXP)`
   - `^::t/dbg EXP` prints type info on EXP
-- add `typed.clojure/type-doc-clj{s}` for documentation on type syntax and current types
+- add `typed.clojure/doc-clj{s}` for documentation snippets and type lookup
