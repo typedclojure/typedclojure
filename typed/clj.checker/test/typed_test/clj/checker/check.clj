@@ -121,4 +121,15 @@
   (is-tc-err ^::t/dbg (do ^::t/dbg (do nil)) t/Int)
   (is-tc-e (do (t/ann a t/Int)
                ^::t/ignore (def a 1)
-               a)))
+               a))
+  ;; evaluates once
+  (is-tc-e (do ^::t/ignore (def a (atom 0))
+               ^::t/ignore (swap! a inc)
+               ^::t/ignore (swap! a inc)
+               ^::t/ignore (assert (= 2 @a))))
+  ;; evaluates once
+  (is-tc-e (do ^::t/ignore (def a (atom 0))
+               ^{::t/- t/Any} ^::t/dbg ^::t/ignore (swap! a inc)
+               ^{::t/- t/Any} ^::t/dbg ^::t/ignore (swap! a inc)
+               ^::t/ignore (assert (= 2 @a))))
+)
