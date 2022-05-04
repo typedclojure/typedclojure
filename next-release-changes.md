@@ -1,9 +1,0 @@
-- new type syntax
-  - `^:fake-quote 'TYPE` <=> `TYPE`
-- new metadata annotations (in order of execution if combined)
-  - `^{::t/- TYPE} EXP` <=> `(t/ann-form EXP TYPE)`
-  - `^{::t/inst [...]} EXP` <=> `(t/inst EXP ...)`
-  - `^{::t/unsafe-cast TYPE} EXP` checks EXP with no expected type and unsafely infers type TYPE
-  - `^::t/ignore EXP` <=> `(t/tc-ignore EXP)`
-  - `^::t/dbg EXP` prints type info on EXP
-- add `typed.clojure/doc-clj{s}` for documentation snippets and type lookup

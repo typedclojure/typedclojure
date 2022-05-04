@@ -12,14 +12,14 @@ Malli integration.
 
 ## Releases and Dependency Information
 
-Latest stable release is 1.0.29.
+Latest stable release is 1.0.30.
 
 * [All Released Versions](https://clojars.org/org.typedclojure/typed.malli)
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) JAR dependency information:
 
 ```clj
-  org.typedclojure/typed.malli {:mvn/version "1.0.29"}
+  org.typedclojure/typed.malli {:mvn/version "1.0.30"}
 ```
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) Git dependency information:
@@ -30,13 +30,13 @@ Latest stable release is 1.0.29.
   org.typedclojure/typed.malli
   {:git/url "https://github.com/typedclojure/typedclojure"
    :deps/root "typed/malli"
-   :tag "1.0.29"}
+   :tag "1.0.30"}
 ```
 
 [Leiningen](https://github.com/technomancy/leiningen) dependency information:
 
 ```clojure
-[org.typedclojure/typed.malli "1.0.29"]
+[org.typedclojure/typed.malli "1.0.30"]
 ```
 
 [Maven](https://maven.apache.org/) dependency information:
@@ -45,7 +45,7 @@ Latest stable release is 1.0.29.
 <dependency>
   <groupId>org.typedclojure</groupId>
   <artifactId>typed.malli</artifactId>
-  <version>1.0.29</version>
+  <version>1.0.30</version>
 </dependency>
 ```
 
@@ -59,10 +59,10 @@ Note: the following assumes you have the Clojure core type annotations and full 
 Here is a quick way to create a REPL to follow this tutorial with:
 
 ```clojure
-clj -Sdeps '{:deps {org.typedclojure/typed.malli {:mvn/version "1.0.29"}
+clj -Sdeps '{:deps {org.typedclojure/typed.malli {:mvn/version "1.0.30"}
                     ;; only needed if omitting typed.clj.checker
-                    org.typedclojure/typed.lib.clojure {:mvn/version "1.0.29"}
-                    org.typedclojure/typed.clj.checker {:mvn/version "1.0.29"}}}'
+                    org.typedclojure/typed.lib.clojure {:mvn/version "1.0.30"}
+                    org.typedclojure/typed.clj.checker {:mvn/version "1.0.30"}}}'
 ```
 
 Now you can execute each form by copying it into this REPL.
