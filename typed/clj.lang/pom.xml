@@ -6,7 +6,7 @@
   <artifactId>typed.clj.lang</artifactId>
   <name>typed.clj.lang</name>
   <description>Extensible languages in Clojure, a la Racket's #lang.</description>
-  <version>1.0.30-SNAPSHOT</version>
+  <version>1.0.30</version>
 
   <licenses>
     <license>
@@ -19,7 +19,7 @@
   <parent>
     <groupId>org.typedclojure</groupId>
     <artifactId>pom.typed</artifactId>
-    <version>1.0.30-SNAPSHOT</version>
+    <version>1.0.30</version>
     <relativePath>../..</relativePath>
   </parent>
 
