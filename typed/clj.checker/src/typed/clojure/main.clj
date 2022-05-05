@@ -12,6 +12,7 @@
             [clojure.tools.namespace.dir :as dir]
             [clojure.tools.namespace.track :as track]
             [nextjournal.beholder :as-alias beholder]
+            [clojure.core.typed.errors :as err]
             [typed.clojure :as t]))
 
 (defn- exec1 [{:keys [dirs focus platform] :or {platform :clj}}]
@@ -22,6 +23,12 @@
     :cljs (if focus
            (t/check-ns-cljs focus)
            (t/check-dir-cljs dirs))))
+
+(defn- print-error [e]
+  (if (some-> (ex-data e) err/top-level-error?)
+    (print (.getMessage e))
+    (print e))
+  (flush))
 
 (defn- watch [{:keys [dirs platform refresh refresh-dirs watch-dirs] :or {platform :clj} :as m}]
   (let [refresh (or refresh refresh-dirs)
@@ -38,6 +45,8 @@
         do-check #(try (exec1 m)
                        (catch Throwable e
                          (println "[watch] Caught error")
+                         (print-error e)
+                         (println)
                          nil))]
     (apply (requiring-resolve `beholder/watch)
            (fn [{:keys [type path]}]
@@ -64,6 +73,7 @@
   (try (exec (apply hash-map (map edn/read-string args)))
        (System/exit 0)
        (catch Throwable e
+         (print-error e)
          (System/exit 1))))
 
 (comment
