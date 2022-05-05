@@ -1,2 +1,4 @@
 - don't check namespace if `^:typed.clojure/ignore` or `^{:typed.clojure {:ignore true}}` meta
   - eg., `(ns ^:typed.clojure/ignore foo)`
+- introduce `typed.clojure/check-dir-clj{s}` for type checking directories of code
+- introduce `typed.clojure.main` for command line usage

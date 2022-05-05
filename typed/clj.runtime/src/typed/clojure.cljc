@@ -261,3 +261,6 @@
 
 (defn check-dir-clj [dirs]
   ((requiring-resolve 'typed.cljc.dir/check-dir-clj) dirs))
+
+(defn check-dir-cljs [dirs]
+  ((requiring-resolve 'typed.cljc.dir/check-dir-cljs) dirs))

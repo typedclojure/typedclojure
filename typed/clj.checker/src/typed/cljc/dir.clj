@@ -20,6 +20,7 @@
                (string? dirs) vector)
         _ (assert (seq dirs) "Must provide one or more directories")
         {::track/keys [deps] ::dir/keys [files] ::file/keys [filemap] :as tracker} (dir/scan-dirs (track/tracker) dirs)
+        _ (assert (seq files) (str "No files found in " (pr-str dirs)))
         nses (into [] (filter (set (vals filemap)))
                    (dep/topo-sort deps))]
     (t/check-ns-clj nses)))
