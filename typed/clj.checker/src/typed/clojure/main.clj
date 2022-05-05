@@ -64,17 +64,29 @@
           (println res))))
       (recur))))
 
-(defn exec [m]
+(defn exec
+  "Check code.
+  
+  :dirs  string(s) naming directories to find namespaces to type check
+  :focus   symbol(s) naming namespaces to type check (overrides :dirs) (default: nil)
+  :platform   platform to check: :clj{s}  (default: :clj)
+  :refresh   if true (or if :refresh-dirs option is provided) refresh with tools.namespace before rechecking (default: nil)
+  :refresh-dirs   string(s) naming directories to refresh if repl/refresh-dirs is empty. (default: use :dirs)
+  :watch-dirs   string(s) naming extra directories to watch to trigger rechecking. (default: use :dirs + :refresh-dirs)"
+  [m]
   (if (:watch m)
     (watch m)
     (exec1 m)))
 
-(defn -main [& args]
-  (try (exec (apply hash-map (map edn/read-string args)))
-       (System/exit 0)
-       (catch Throwable e
-         (print-error e)
-         (System/exit 1))))
+(defn -main
+  "Same args as exec."
+  [& args]
+  (let [{:as m} (map edn/read-string args)]
+    (try (exec m)
+         (System/exit 0)
+         (catch Throwable e
+           (print-error e)
+           (System/exit 1)))))
 
 (comment
   (exec {:dirs "src"})
