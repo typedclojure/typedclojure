@@ -14,7 +14,16 @@
             [nextjournal.beholder :as-alias beholder]
             [typed.clojure :as t]))
 
-(defn watch [{:keys [dirs platform refresh refresh-dirs watch-dirs] :or {platform :clj}}]
+(defn- exec1 [{:keys [dirs focus platform] :or {platform :clj}}]
+  (case platform
+    :clj (if focus
+           (t/check-ns-clj focus)
+           (t/check-dir-clj dirs))
+    :cljs (if focus
+           (t/check-ns-cljs focus)
+           (t/check-dir-cljs dirs))))
+
+(defn- watch [{:keys [dirs platform refresh refresh-dirs watch-dirs] :or {platform :clj} :as m}]
   (let [refresh (or refresh refresh-dirs)
         watch-dirs (concat watch-dirs dirs refresh-dirs)
         refresh-dirs (or refresh-dirs dirs)
@@ -22,12 +31,11 @@
                (string? dirs) vector)
         _ (assert (seq dirs) "Must provide directories to scan")
         _ (when refresh
-            (when (empty? repl/refresh-dirs)
-              (alter-var-root #'repl/refresh-dirs (constantly refresh-dirs))))
+            (alter-var-root #'repl/refresh-dirs (fn [old]
+                                                  (or (not-empty old)
+                                                      refresh-dirs))))
         rescan (atom (promise))
-        do-check #(try (case platform
-                         :clj (t/check-dir-clj dirs)
-                         :cljs (t/check-dir-cljs dirs))
+        do-check #(try (exec1 m)
                        (catch Throwable e
                          (println "[watch] Caught error")
                          nil))]
@@ -47,12 +55,10 @@
           (println res))))
       (recur))))
 
-(defn exec [{:keys [dirs platform] :or {platform :clj} :as m}]
+(defn exec [m]
   (if (:watch m)
     (watch m)
-    (case platform
-      :clj (t/check-dir-clj dirs)
-      :cljs (t/check-dir-cljs dirs))))
+    (exec1 m)))
 
 (defn -main [& args]
   (try (exec (apply hash-map (map edn/read-string args)))
