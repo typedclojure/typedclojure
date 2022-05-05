@@ -258,3 +258,6 @@
 
   Use :doc/index for documentation index."
   [syn] ((requiring-resolve 'typed.cljc.doc/type-doc-cljs) syn))
+
+(defn check-dir-clj [dirs]
+  ((requiring-resolve 'typed.cljc.dir/check-dir-clj) dirs))

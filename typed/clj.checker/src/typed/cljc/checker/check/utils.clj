@@ -436,6 +436,7 @@
                               nil)
     :else
     (let [; check deps
+          #_#_
           _ (when (= :recheck (some-> vs/*check-config* deref :check-ns-dep))
               (checked-ns! nsym)
               ;check normal dependencies
@@ -445,16 +446,13 @@
                   (check-ns-and-deps dep check-ns1))))
           ; ignore ns declaration
           ns-form (ns-depsu/ns-form-for-ns nsym)
-          check? (or (= :never (some-> vs/*check-config* deref :check-ns-dep))
-                     (some-> ns-form ns-depsu/should-check-ns-form?))]
+          check? (some-> ns-form ns-depsu/should-check-ns-form?)]
       (cond
         (not check?)
-        (when-not ('#{typed.clojure clojure.core.typed cljs.core.typed clojure.core cljs.core} nsym)
-          (println (str "Not checking " nsym 
-                        (cond
-                          (not ns-form) " (ns form missing)"
-                          (ns-depsu/collect-only-ns? ns-form) " (tagged :collect-only in ns metadata)"
-                          (not (ns-depsu/requires-tc? ns-form)) " (does not depend on clojure.core.typed)"))))
+        (println (str "Not checking " nsym 
+                      (cond
+                        (not ns-form) " (ns form missing)"
+                        (ns-depsu/ignore-ns? ns-form) " (tagged with :typed.clojure/ignore metadata)")))
 
         :else
         (let [start (. System (nanoTime))

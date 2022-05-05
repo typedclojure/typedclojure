@@ -43,6 +43,10 @@
   (is (err/top-level-type-error-thrown? (t/check-ns-clj 'typed-test.clojure.does-not-depend-on-tc)))
   (is (err/top-level-type-error-thrown? (t/check-ns-cljs 'typed-test.clojure.does-not-depend-on-tc))))
 
+(deftest check-ns-ignore-test
+  (is (t/check-ns-clj 'typed-test.clojure.tc-ignore-ns))
+  (is (t/check-ns-cljs 'typed-test.clojure.tc-ignore-ns)))
+
 (deftest cf-*-test
   ;; setup
   (is (t/check-ns-clj 'typed-test.clojure.cf-prep))

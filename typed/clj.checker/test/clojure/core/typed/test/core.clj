@@ -4147,32 +4147,16 @@
         (let [x :- (t/Promise t/Int) (promise)])))))
 
 (deftest should-check-ns-form-test
-  (testing "does not depend on core.typed, don't check"
-    (is-clj
-      (= false
-         (ndu/should-check-ns-form?
-           '(ns foo))
-         (ndu/should-check-ns-form?
-           '(ns foo
-              {:core.typed {:collect-only true}}))
-         (ndu/should-check-ns? 'clojure.spec.alpha))))
-  (testing ":collect-only should not check"
-    (is-clj
-      (= false
-         (ndu/should-check-ns-form?
-           '(ns foo
-              {:core.typed {:collect-only true}}
-              (:require [clojure.core.typed])))
-         (ndu/should-check-ns?
-           'clojure.core.typed.test.CTYP-234.dep))))
-  (testing "plain :require of clojure.core.typed should trigger check"
-    (is-clj
-      (= true
-         (ndu/should-check-ns-form?
-           '(ns foo
-              (:require [clojure.core.typed])))
-         (ndu/should-check-ns?
-           'clojure.core.typed.test.CTYP-234.core)))))
+  (is-clj
+    (= true
+       (ndu/should-check-ns-form?
+         '(ns foo))))
+  (is-clj
+    (= false
+       (ndu/should-check-ns-form?
+         '(ns ^:typed.clojure/ignore foo))
+       (ndu/should-check-ns-form?
+         '(ns ^{:typed.clojure {:ignore true}} foo)))))
 
 (deftest CTYP-234-test
   (is (check-ns 'clojure.core.typed.test.CTYP-234.core)))

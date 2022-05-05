@@ -6,7 +6,8 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc typed.cljc.checker.ns-deps-utils
+(ns ^:no-doc ^:typed.clojure/ignore
+  typed.cljc.checker.ns-deps-utils
   (:require [clojure.tools.namespace.parse :as ns-parse]
             [clojure.tools.namespace.file :as ns-file]
             [clojure.core.typed.coerce-utils :as coerce]
@@ -97,13 +98,16 @@
    :post [(boolean? %)]}
   (boolean (-> (ns-meta ns-form) :core.typed :collect-only)))
 
+(defn ignore-ns? [ns-form]
+  (let [nmeta (ns-meta ns-form)]
+    (or (true? (:typed.clojure/ignore nmeta))
+        (-> nmeta :typed.clojure :ignore true?))))
+
 (defn should-check-ns-form?
   [ns-form]
   {:post [(boolean? %)]}
   (and (boolean ns-form)
-       (not ('#{typed.clojure clojure.core.typed cljs.core.typed clojure.core cljs.core} (ns-form-name ns-form)))
-       (requires-tc? ns-form)
-       (not (collect-only-ns? ns-form))))
+       (not (ignore-ns? ns-form))))
 
 (defn should-custom-expand-ns-form?
   [ns-form]
