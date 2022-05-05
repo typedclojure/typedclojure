@@ -14,10 +14,14 @@
             [nextjournal.beholder :as-alias beholder]
             [typed.clojure :as t]))
 
-(defn watch [{:keys [dirs platform] :or {platform :clj}}]
-  (let [dirs (cond-> dirs
+(defn watch [{:keys [dirs platform refresh refresh-dirs] :or {platform :clj}}]
+  (let [refresh (or refresh refresh-dirs)
+        dirs (cond-> dirs
                (string? dirs) vector)
         _ (assert (seq dirs) "Must provide directories to scan")
+        _ (when refresh
+            (when (empty? repl/refresh-dirs)
+              (alter-var-root #'repl/refresh-dirs (constantly (or refresh-dirs dirs)))))
         rescan (atom (promise))
         do-check #(try (case platform
                          :clj (t/check-dir-clj dirs)
@@ -34,6 +38,11 @@
       (do-check)
       @@rescan
       (reset! rescan (promise))
+      (when refresh
+        (let [res (repl/refresh)]
+        (when-not (= :ok res)
+          (println "[watch] refresh failed")
+          (println res))))
       (recur))))
 
 (defn exec [{:keys [dirs platform] :or {platform :clj} :as m}]
