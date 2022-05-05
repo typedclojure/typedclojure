@@ -8,12 +8,40 @@
 
 (ns typed.clojure.main
   (:require [clojure.edn :as edn]
+            [clojure.tools.namespace.repl :as repl]
+            [clojure.tools.namespace.dir :as dir]
+            [clojure.tools.namespace.track :as track]
+            [nextjournal.beholder :as-alias beholder]
             [typed.clojure :as t]))
 
-(defn exec [{:keys [dirs platform] :or {platform :clj}}]
-  (case platform
-    :clj (t/check-dir-clj dirs)
-    :cljs (t/check-dir-cljs dirs)))
+(defn watch [{:keys [dirs platform] :or {platform :clj}}]
+  (let [dirs (cond-> dirs
+               (string? dirs) vector)
+        _ (assert (seq dirs) "Must provide directories to scan")
+        rescan (atom (promise))
+        do-check #(try (case platform
+                         :clj (t/check-dir-clj dirs)
+                         :cljs (t/check-dir-cljs dirs))
+                       (catch Throwable e
+                         (println "[watch] Caught error")
+                         nil))]
+    (apply (requiring-resolve `beholder/watch)
+           (fn [{:keys [type path]}]
+             (when (contains? #{:modify :create} type)
+               (deliver @rescan true)))
+           dirs)
+    (loop []
+      (do-check)
+      @@rescan
+      (reset! rescan (promise))
+      (recur))))
+
+(defn exec [{:keys [dirs platform] :or {platform :clj} :as m}]
+  (if (:watch m)
+    (watch m)
+    (case platform
+      :clj (t/check-dir-clj dirs)
+      :cljs (t/check-dir-cljs dirs))))
 
 (defn -main [& args]
   (try (exec (apply hash-map (map edn/read-string args)))

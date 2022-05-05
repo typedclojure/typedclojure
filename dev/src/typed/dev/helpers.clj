@@ -54,4 +54,5 @@
    :malli-mvn-version "0.8.4"
    :malli-git-url "https://github.com/metosin/malli.git"
    :malli-snapshot-git-sha "400dc0c79805028a6d85413086d4d6d627231940"
+   :beholder-mvn-version "1.0.0"
    })

@@ -329,6 +329,11 @@
         <artifactId>malli</artifactId>
         <version>0.8.4</version>
       </dependency>
+      <dependency>
+        <groupId>com.nextjournal</groupId>
+        <artifactId>beholder</artifactId>
+        <version>1.0.0</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 

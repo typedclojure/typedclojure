@@ -81,5 +81,9 @@
       <version>{◊tools-nrepl-mvn-version◊}</version>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+      <groupId>com.nextjournal</groupId>
+      <artifactId>beholder</artifactId>
+    </dependency>
   </dependencies>
 </project>

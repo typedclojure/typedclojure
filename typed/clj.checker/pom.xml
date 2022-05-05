@@ -81,5 +81,9 @@
       <version>0.2.6</version>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+      <groupId>com.nextjournal</groupId>
+      <artifactId>beholder</artifactId>
+    </dependency>
   </dependencies>
 </project>

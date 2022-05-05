@@ -15,7 +15,7 @@
             [clojure.tools.namespace.file :as file]
             [clojure.tools.namespace.track :as track]))
 
-(defn check-dir* [dirs]
+(defn check-dir* [dirs check-ns]
   (let [dirs (cond-> dirs
                (string? dirs) vector)
         _ (assert (seq dirs) "Must provide one or more directories")
@@ -23,11 +23,15 @@
         _ (assert (seq files) (str "No files found in " (pr-str dirs)))
         nses (into [] (filter (set (vals filemap)))
                    (dep/topo-sort deps))]
-    (t/check-ns-clj nses)))
+    (check-ns nses)))
 
 (defn check-dir-clj [dirs]
   (impl/with-clojure-impl
-    (check-dir* dirs)))
+    (check-dir* dirs t/check-ns-clj)))
+
+(defn check-dir-cljs [dirs]
+  (impl/with-cljs-impl
+    (check-dir* dirs t/check-ns-cljs)))
 
 (comment
   (check-dir-clj "typed/clj.checker/src")

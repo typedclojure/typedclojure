@@ -10,7 +10,8 @@
   {◊typedclojure-group-id◊}/typed.clj.runtime {:local/root "../clj.runtime" :deps/manifest :deps},
   org.clojure/math.combinatorics {:mvn/version "{◊math-combinatorics-mvn-version◊}", :exclusions [org.clojure/clojure]},
   org.clojure/tools.namespace {:mvn/version "{◊tools-namespace-mvn-version◊}"},
-  org.clojure/tools.reader {:mvn/version "{◊tools-reader-mvn-version◊}"}},
+  org.clojure/tools.reader {:mvn/version "{◊tools-reader-mvn-version◊}"}
+  com.nextjournal/beholder {:mvn/version "{◊beholder-mvn-version◊}"}},
  :mvn/repos
  {"sonatype-oss-public"
   {:url "{◊sonatype-oss-public-url◊}"}},
