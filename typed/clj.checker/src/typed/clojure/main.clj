@@ -67,7 +67,7 @@
       (recur))))
 
 (defn exec
-  "Check code.
+  "Type check namespaces.
   
   :dirs  string(s) naming directories to find namespaces to type check
   :focus   symbol(s) naming namespaces to type check (overrides :dirs) (default: nil)

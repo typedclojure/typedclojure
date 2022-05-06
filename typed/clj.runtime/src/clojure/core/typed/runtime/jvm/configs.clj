@@ -32,7 +32,11 @@
                         (.endsWith (.getPath url) "cljc")
                         (assoc :read-cond :allow
                                :features features))
-            new-config (rdr/read read-opts rdr)]
+            new-config (try (rdr/read read-opts rdr)
+                            (catch Throwable e
+                              (println e)
+                              (throw (ex-info (str "Error while reading " url)
+                                              {:url url}))))]
         (when (not (map? new-config))
           (throw (ex-info (str "Not a valid Typed Clojure config map")
                           {:url url})))

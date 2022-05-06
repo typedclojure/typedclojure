@@ -217,6 +217,12 @@
                                                          "eg., ^::t/OP (do EXP)\n"
                                                          "     (-> EXP ^::t/OP (do))\n"
                                                          "     (->> EXP ^::t/OP (do))\n"
+                                                         "\n\n"
+                                                         "When annotating metadata inside a syntax quote, they will be automatically namespaced.\n"
+                                                         "This is usually exactly what you want, except for local type variables (see t/All, t/TFn).\n"
+                                                         "As for local bindings, use auto gensymming in this case:\n"
+                                                         "(meta `^{::t/- (t/All [x#] x#)} a)\n"
+                                                         ";=> {:typed.clojure/- (typed.clojure/All [x__57308__auto__] x__57308__auto__)}\n"
                                                          "\n"
                                                          "See also: :doc/meta, :fake-quote") 
                               ::t/dbg (str "When attached to an expression as metadata, prints type debugging information on an expression during check-ns.\n"

@@ -21,6 +21,11 @@
   ((requiring-resolve 'typed.clj.checker.parse-unparse/parse-type)
    (s->t/malli->type m opts)))
 
+(defn malli-meta-ann->Type [m opts]
+  @register!
+  ((requiring-resolve 'typed.clj.checker.parse-unparse/parse-type)
+   (s->t/malli->type (eval m) opts)))
+
 (defn var-type [var-qsym]
   (when (qualified-symbol? var-qsym)
     (some-> (get-in (m/function-schemas)
