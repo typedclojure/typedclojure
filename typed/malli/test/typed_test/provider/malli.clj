@@ -19,6 +19,3 @@
   #_
   (is (err/top-level-error-thrown? (t/check-ns-cljs 'typed-test.provider.malli__test-fail-just-in-cljs1)))
   )
-
-(deftest malli-meta-test
-  (is (t/check-ns-clj 'typed-test.provider.malli__meta-test1)))
