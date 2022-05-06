@@ -16,13 +16,15 @@
             [typed.clojure :as t]))
 
 (defn- exec1 [{:keys [dirs focus platform] :or {platform :clj}}]
-  (case platform
-    :clj (if focus
-           (t/check-ns-clj focus)
-           (t/check-dir-clj dirs))
-    :cljs (if focus
-           (t/check-ns-cljs focus)
-           (t/check-dir-cljs dirs))))
+  (doseq [platform (cond-> platform
+                     (keyword? platform) platform)]
+    (case platform
+      :clj (if focus
+             (t/check-ns-clj focus)
+             (t/check-dir-clj dirs))
+      :cljs (if focus
+              (t/check-ns-cljs focus)
+              (t/check-dir-cljs dirs)))))
 
 (defn- print-error [e]
   (if (some-> (ex-data e) err/top-level-error?)
@@ -69,9 +71,10 @@
   
   :dirs  string(s) naming directories to find namespaces to type check
   :focus   symbol(s) naming namespaces to type check (overrides :dirs) (default: nil)
-  :platform   platform to check: :clj{s}  (default: :clj)
+  :platform   platform(s) to check: :clj{s}  (default: :clj)
   :refresh   if true (or if :refresh-dirs option is provided) refresh with tools.namespace before rechecking (default: nil)
   :refresh-dirs   string(s) naming directories to refresh if repl/refresh-dirs is empty. (default: use :dirs)
+  :watch      if true, recheck on changes to :watch-dirs.
   :watch-dirs   string(s) naming extra directories to watch to trigger rechecking. (default: use :dirs + :refresh-dirs)"
   [m]
   (if (:watch m)
