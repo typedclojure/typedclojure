@@ -218,7 +218,7 @@
                                                          "     (-> EXP ^::t/OP (do))\n"
                                                          "     (->> EXP ^::t/OP (do))\n"
                                                          "\n\n"
-                                                         "When annotating metadata inside a syntax quote, they will be automatically namespaced.\n"
+                                                         "When annotating metadata inside a syntax quote, it will be automatically namespaced.\n"
                                                          "This is usually exactly what you want, except for local type variables (see t/All, t/TFn).\n"
                                                          "As for local bindings, use auto gensymming in this case:\n"
                                                          "(meta `^{::t/- (t/All [x#] x#)} a)\n"
