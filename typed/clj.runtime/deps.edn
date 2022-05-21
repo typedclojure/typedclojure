@@ -3,7 +3,7 @@
  :deps {org.clojure/clojure {:mvn/version "1.11.1"}}
  :aliases {:test
            {:extra-paths ["test"]
-            :extra-deps {org.clojure/clojurescript {:mvn/version "1.11.4"}}}
+            :extra-deps {org.clojure/clojurescript {:mvn/version "1.11.54"}}}
            :nREPL
            {:extra-deps
             {nrepl/nrepl {:mvn/version "0.8.3"}

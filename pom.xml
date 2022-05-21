@@ -181,7 +181,7 @@
       <dependency>
         <groupId>org.clojure</groupId>
         <artifactId>clojurescript</artifactId>
-        <version>1.11.4</version>
+        <version>1.11.54</version>
       </dependency>
       <dependency>
         <groupId>org.clojars.typedclojure-clojars</groupId>
