@@ -1,5 +1,5 @@
 (ns typed-example.malli-type-providers
-  (:require [typed.clojure #?(:clj :as-alias :cljs :as) t]
+  (:require [typed.clojure :as-alias t]
             [malli.core :as m]))
 
 ;; this is a normal malli annotation

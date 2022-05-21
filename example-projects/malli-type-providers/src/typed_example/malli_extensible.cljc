@@ -1,5 +1,5 @@
 (ns typed-example.malli-extensible
-  (:require [typed.clojure #?(:clj :as-alias :cljs :as) t]
+  (:require [typed.clojure :as-alias t]
             [malli.core :as m]))
 
 ;; here's a new malli schema. we need to teach Typed Clojure what it means.

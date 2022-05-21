@@ -2,14 +2,22 @@
  :paths ["src" "resources"]
  :aliases {;; test suite for verifying Typed Clojure is not required.
            ;; Run by ./script/test
-           :runtime-test
+           :clj-runtime-test
            {:main-opts ["-e" "(require,'typed-example.zero-deps)"
-                        "-e" "(prn,:runtime-test/required-zero-deps)"
+                        "-e" "(prn,:clj-runtime-test/required-zero-deps)"
                         "-e" "(assert,(=,[],(typed-example.zero-deps/foo,[])))"
-                        "-e" "(prn,:runtime-test/foo-works)"
+                        "-e" "(prn,:clj-runtime-test/foo-works)"
                         "-e" "(assert,(=,nil,(resolve,'typed.clojure/check-ns-clj)))"
-                        "-e" "(prn,:runtime-test/typedclojure-not-loaded)"
-                        "-e" ":runtime-test/ok"]}
+                        "-e" "(prn,:clj-runtime-test/typedclojure-not-loaded)"
+                        "-e" ":clj-runtime-test/ok"]}
+           :cljs-runtime-test
+           {:extra-deps {org.clojure/clojurescript {:mvn/version "1.11.54"}}
+            :main-opts ["-e" "(require,'[cljs.analyzer.api,:as,ana])"
+                        "-e" "(ana/analyze-file,\"typed_example/zero_deps.cljc\")"
+                        "-e" "(prn,:cljs-runtime-test/required-zero-deps)"
+                        "-e" "(assert,(=,nil,(resolve,'typed.clojure/check-ns-cljs)))"
+                        "-e" "(prn,:cljs-runtime-test/typedclojure-not-loaded)"
+                        "-e" ":cljs-runtime-test/ok"]}
            :dev {:extra-paths ["test"]
                  :extra-deps {org.typedclojure/typed.clj.checker {:local/root "../../typed/clj.checker"}
                               org.typedclojure/typed.cljs.checker {:local/root "../../typed/cljs.checker"}}}

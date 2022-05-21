@@ -2,8 +2,7 @@
 
 This project demonstrates how to type check Clojure files with Typed Clojure
 without a runtime dependency on Typed Clojure. This is particularly relevant for libraries
-where minimizing dependencies is paramount. While this is possible for ClojureScript files,
-its lack of `:as-alias` support makes this painful and thus the following approach is not (yet) recommended.
+where minimizing dependencies is paramount.
 
 Here's the hypothetical setup: we want to distribute [typed-example.zero-deps](src/typed_example/zero_deps.cljc)
 as a library that has zero dependencies---but we also want to type check it. It has a `reduce`, which cannot be inferred

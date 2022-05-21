@@ -2,5 +2,6 @@
 
 set -ex
 
-clojure "$@" -M:runtime-test
+clojure "$@" -M:clj-runtime-test
+clojure "$@" -M:cljs-runtime-test
 clojure "$@" -M:dev:test
