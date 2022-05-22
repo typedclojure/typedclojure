@@ -90,13 +90,33 @@
                [1 2]  ;; check the second half of all namespaces
                [2 5]  ;; check the 3rd split of 5 splits
           (default: [0 1])
-  :exec-command   base command to parallelize via :parallel option (default: \"bin/typed\")
+  :shell-command   shell command to parallelize via :parallel option (default: \"bin/typed\")
   :parallel   evenly parallelize :exec-command to check namespaces using GNU Parallel.
-              Incompatible with :split."
-  [m]
-  (if (:watch m)
-    (watch m)
-    (exec1 m)))
+              In combination with :split, assumes all splits have same parallelism."
+  [{:keys [parallel shell-command] :or {shell-command "bin/typed"} :as m}]
+  (cond
+    parallel (let [_ (assert (pos-int? parallel) (str ":parallel must be a positive integer, given: " (pr-str)))
+                   [this-split num-splits] (or (:split m) [0 1])]
+               ;;workaround, this file isn't in a release yet https://github.com/babashka/process/blob/master/src/babashka/process/pprint.clj
+               (eval `(do (require 'babashka.process 'clojure.pprint)
+                          (defmethod clojure.pprint/simple-dispatch babashka.process.Process [proc#]
+                            (clojure.pprint/pprint (into {} proc#)))))
+               ;;end workaround
+               (run! (dynavar `process/check)
+                     ((dynavar `process/pipeline)
+                      ((dynavar `process/pb)
+                       (vec (cons "echo" (map (fn [parallel-split]
+                                                (pr-str (-> m
+                                                            (dissoc :parallel)
+                                                            (assoc :split [(+ this-split parallel-split)
+                                                                           (* num-splits parallel)]))))
+                                              (range parallel)))))
+                      ((dynavar `process/pb)
+                       ["parallel" "--halt" "now,fail=1" (str shell-command " {}")]
+                       {:out :inherit
+                        :err :inherit}))))
+    (:watch m) (watch m)
+    :else (exec1 m)))
 
 (defn -main
   "Same args as exec."
