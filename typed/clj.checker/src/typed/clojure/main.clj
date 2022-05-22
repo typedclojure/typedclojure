@@ -16,18 +16,18 @@
             [typed.clojure :as t]))
 
 (defn- exec1 [{:keys [dirs focus platform] :or {platform :clj}}]
-  (doseq [platform (-> (cond-> platform
-                         (keyword? platform) vector)
-                       not-empty
-                       (doto (assert ":platform was empty")))]
-    (case platform
-      :clj (if focus
-             (t/check-ns-clj focus)
-             (t/check-dir-clj dirs))
-      :cljs (if focus
-              (t/check-ns-cljs focus)
-              (t/check-dir-cljs dirs))
-      (throw (ex-info (str "Unknown platform: " (pr-str platform)) {})))))
+  (let [platforms (cond-> platform
+                    (keyword? platform) vector)]
+    (assert (seq platforms) (str "Must provide at least one platform: " (pr-str platform)))
+    (doseq [platform platforms]
+      (case platform
+        :clj (if focus
+               (t/check-ns-clj focus)
+               (t/check-dir-clj dirs))
+        :cljs (if focus
+                (t/check-ns-cljs focus)
+                (t/check-dir-cljs dirs))
+        (throw (ex-info (str "Unknown platform: " (pr-str platform)) {}))))))
 
 (defn- print-error [e]
   (if (some-> (ex-data e) err/top-level-error?)
