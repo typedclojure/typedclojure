@@ -19,7 +19,7 @@
   (doseq [platform (-> (cond-> platform
                          (keyword? platform) vector)
                        not-empty
-                       (assert ":platform was empty"))]
+                       (doto (assert ":platform was empty")))]
     (case platform
       :clj (if focus
              (t/check-ns-clj focus)
