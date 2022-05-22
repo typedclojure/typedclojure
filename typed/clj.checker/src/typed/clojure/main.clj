@@ -17,7 +17,7 @@
 
 (defn- exec1 [{:keys [dirs focus platform] :or {platform :clj}}]
   (doseq [platform (-> (cond-> platform
-                         (keyword? platform) platform)
+                         (keyword? platform) vector)
                        not-empty
                        (assert ":platform was empty"))]
     (case platform
