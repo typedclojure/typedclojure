@@ -143,7 +143,6 @@
      "typed/clj.analyzer/test"
      "typed/clj.annotator/test"
      "typed/clj.checker/test"
-     "typed/clj.checker/test-resources"
      "typed/clj.lang/test"
      "typed/clj.reader/test"
      "typed/clj.refactor/test"

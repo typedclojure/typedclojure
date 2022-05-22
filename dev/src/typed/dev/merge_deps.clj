@@ -113,6 +113,14 @@
                (map path->relative all-paths)))
            deps-maps))))
 
+(defn non-resource-test-paths []
+  (filterv
+    (fn [^String p]
+      ;; TODO generalize pattern, perhaps via deps.edn alias convention
+      ;; don't reload test resources
+      (not= "test-resources" (.getName (File. p))))
+    (test-paths)))
+
 (defn kaocha-config []
   {:kaocha/bindings '{kaocha.stacktrace/*stacktrace-filters* []}
    :kaocha/tests                       [{:kaocha.testable/type :kaocha.type/clojure.test
@@ -120,12 +128,7 @@
                                          :kaocha/ns-patterns   [".*"]
                                          :kaocha/source-paths  (src-paths)
                                          :kaocha.filter/skip-meta [:typed/skip-from-repo-root]
-                                         :kaocha/test-paths    (filterv
-                                                                 (fn [^String p]
-                                                                   ;; TODO generalize pattern, perhaps via deps.edn alias convention
-                                                                   ;; don't reload test resources
-                                                                   (not= "test-resources" (.getName (File. p))))
-                                                                 (test-paths))}
+                                         :kaocha/test-paths    (non-resource-test-paths)}
                                         {:kaocha.testable/type :kaocha.type/clojure.test
                                          :kaocha.testable/id   :cljs
                                          :kaocha/ns-patterns   [".*"]
@@ -134,9 +137,8 @@
                                          :kaocha/test-paths    (filterv
                                                                  (fn [^String p]
                                                                    ;; FIXME make less hacky
-                                                                   (and (.startsWith p "typed/cljs.")
-                                                                        (not= "test-resources" (.getName (File. p)))))
-                                                                 (test-paths))}
+                                                                   (.startsWith p "typed/cljs."))
+                                                                 (non-resource-test-paths))}
                                         {:kaocha.testable/type :kaocha.type/clojure.test
                                          :kaocha.testable/id   :checker
                                          :kaocha/ns-patterns   [".*"]
@@ -145,9 +147,8 @@
                                          :kaocha/test-paths    (filterv
                                                                  (fn [^String p]
                                                                    ;; FIXME make less hacky
-                                                                   (and (.contains p "checker")
-                                                                        (not= "test-resources" (.getName (File. p)))))
-                                                                 (test-paths))}
+                                                                   (.contains p "checker"))
+                                                                 (non-resource-test-paths))}
                                         {:kaocha.testable/type :kaocha.type/clojure.test
                                          :kaocha.testable/id   :analyzer
                                          :kaocha/ns-patterns   [".*"]
@@ -156,9 +157,8 @@
                                          :kaocha/test-paths    (filterv
                                                                  (fn [^String p]
                                                                    ;; FIXME make less hacky
-                                                                   (and (.contains p "analyzer")
-                                                                        (not= "test-resources" (.getName (File. p)))))
-                                                                 (test-paths))}]
+                                                                   (.contains p "analyzer"))
+                                                                 (non-resource-test-paths))}]
    :kaocha/fail-fast?                  true
    :kaocha/color?                      true
    ;:kaocha/reporter                    ['kaocha.report/dots]
@@ -202,7 +202,8 @@
                                                    :exec-fn 'typed.clojure.main/exec
                                                    :exec-args {:dirs (src-paths)
                                                                :watch-dirs (concat (src-paths) (test-paths))
-                                                               :refresh-dirs (concat (src-paths) (test-paths))})
+                                                               :refresh-dirs (concat (src-paths)
+                                                                                     (non-resource-test-paths))})
                                           :test (sorted-map
                                                   :extra-deps test-deps
                                                   :extra-paths (test-paths))))

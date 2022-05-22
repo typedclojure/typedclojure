@@ -7,33 +7,37 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.clojure.main
-  (:require [clojure.core.typed.errors :as-alias err]
+  (:require [clojure.core.typed.errors :as err]
             [clojure.edn :as edn]
             [clojure.tools.namespace.repl :as-alias repl]
             [nextjournal.beholder :as-alias beholder]
             [babashka.process :as-alias process]
-            [typed.clojure :as t]))
+            [typed.clojure :as t]
+            [typed.cljc.dir :as tdir]
+            [clojure.core.typed.current-impl :as impl]))
 
 (defn- dynavar [sym]
   (doto (requiring-resolve sym)
     (assert (str "Unresolable: " (pr-str sym)))))
 
-(defn- exec1 [{:keys [dirs focus platform] :or {platform :clj}}]
-  (let [platforms (cond-> platform
+(defn- exec1 [{:keys [split dirs focus platform] :or {platform :clj split [0 1]}}]
+  (let [[this-split num-splits] split
+        platforms (cond-> platform
                     (keyword? platform) vector)]
     (assert (seq platforms) (str "Must provide at least one platform: " (pr-str platform)))
     (doseq [platform platforms]
-      (case platform
-        :clj (if focus
-               (t/check-ns-clj focus)
-               (t/check-dir-clj dirs))
-        :cljs (if focus
-                (t/check-ns-cljs focus)
-                (t/check-dir-cljs dirs))
-        (throw (ex-info (str "Unknown platform: " (pr-str platform)) {}))))))
+      (impl/with-impl (case platform
+                        :clj :clojure
+                        :cljs :cljs)
+        (let [nses (or focus (tdir/check-dir-plan dirs))]
+          (println (format "Type checking (%s): %s" (name platform) (pr-str nses)))
+          ((case platform
+             :clj t/check-ns-clj
+             :cljs t/check-ns-cljs)
+           nses))))))
 
 (defn- print-error [e]
-  (if (some-> (ex-data e) ((dynavar `err/top-level-error?)))
+  (if (some-> (ex-data e) err/top-level-error?)
     (print (.getMessage e))
     (print e))
   (flush))
@@ -98,7 +102,6 @@
     parallel (let [_ (assert (pos-int? parallel) (str ":parallel must be a positive integer, given: " (pr-str)))
                    [this-split num-splits] (or (:split m) [0 1])]
                (require 'babashka.process.pprint)
-               ;;end workaround
                (run! (dynavar `process/check)
                      ((dynavar `process/pipeline)
                       ((dynavar `process/pb)

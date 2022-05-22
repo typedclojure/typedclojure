@@ -13,26 +13,40 @@
             [clojure.tools.namespace.dependency :as dep]
             [clojure.tools.namespace.dir :as dir]
             [clojure.tools.namespace.file :as file]
-            [clojure.tools.namespace.track :as track]))
+            [clojure.tools.namespace.find :as find]
+            [clojure.tools.namespace.track :as track]
+            [typed.cljc.checker.ns-deps-utils :as ns-deps-u]))
 
-(defn check-dir* [dirs check-ns]
+(defn check-dir-plan [dirs]
+  {:post [(vector? %)]}
   (let [dirs (cond-> dirs
                (string? dirs) vector)
         _ (assert (seq dirs) "Must provide one or more directories")
-        {::track/keys [deps] ::dir/keys [files] ::file/keys [filemap] :as tracker} (dir/scan-dirs (track/tracker) dirs)
+        {::track/keys [deps] ::dir/keys [files] ::file/keys [filemap] :as tracker} (dir/scan-dirs (track/tracker) dirs
+                                                                                                  {:platform (impl/impl-case
+                                                                                                               :clojure find/clj
+                                                                                                               :cljs find/cljs)})
         _ (assert (seq files) (str "No files found in " (pr-str dirs)))
-        nses (into [] (filter (set (vals filemap)))
+        nses (into [] (filter (every-pred (set (vals filemap))
+                                          ns-deps-u/should-check-ns?))
                    (dep/topo-sort deps))]
+    nses))
+
+(defn check-dir* [dirs]
+  (let [nses (check-dir-plan dirs)]
     (println "Type checking namespaces:" nses)
-    (check-ns nses)))
+    ((impl/impl-case
+       :clojure t/check-ns-clj
+       :cljs t/check-ns-cljs)
+     nses)))
 
 (defn check-dir-clj [dirs]
   (impl/with-clojure-impl
-    (check-dir* dirs t/check-ns-clj)))
+    (check-dir* dirs)))
 
 (defn check-dir-cljs [dirs]
   (impl/with-cljs-impl
-    (check-dir* dirs t/check-ns-cljs)))
+    (check-dir* dirs)))
 
 (comment
   (check-dir-clj "typed/clj.checker/src")
