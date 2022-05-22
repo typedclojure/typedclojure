@@ -7,24 +7,27 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.clojure.main
-  (:require [clojure.edn :as edn]
-            [clojure.tools.namespace.repl :as repl]
+  (:require [clojure.core.typed.errors :as err]
+            [clojure.edn :as edn]
             [clojure.tools.namespace.dir :as dir]
+            [clojure.tools.namespace.repl :as repl]
             [clojure.tools.namespace.track :as track]
             [nextjournal.beholder :as-alias beholder]
-            [clojure.core.typed.errors :as err]
             [typed.clojure :as t]))
 
 (defn- exec1 [{:keys [dirs focus platform] :or {platform :clj}}]
-  (doseq [platform (cond-> platform
-                     (keyword? platform) platform)]
+  (doseq [platform (-> (cond-> platform
+                         (keyword? platform) platform)
+                       not-empty
+                       (assert ":platform was empty"))]
     (case platform
       :clj (if focus
              (t/check-ns-clj focus)
              (t/check-dir-clj dirs))
       :cljs (if focus
               (t/check-ns-cljs focus)
-              (t/check-dir-cljs dirs)))))
+              (t/check-dir-cljs dirs))
+      (throw (ex-info (str "Unknown platform: " (pr-str platform)) {})))))
 
 (defn- print-error [e]
   (if (some-> (ex-data e) err/top-level-error?)
@@ -32,7 +35,7 @@
     (print e))
   (flush))
 
-(defn- watch [{:keys [dirs platform refresh refresh-dirs watch-dirs] :or {platform :clj} :as m}]
+(defn- watch [{:keys [dirs refresh refresh-dirs watch-dirs] :as m}]
   (let [refresh (or refresh refresh-dirs)
         watch-dirs (concat watch-dirs dirs refresh-dirs)
         refresh-dirs (or refresh-dirs dirs)
@@ -61,13 +64,13 @@
       @@rescan
       (when refresh
         (let [res (repl/refresh)]
-        (when-not (= :ok res)
-          (println "[watch] refresh failed")
-          (println res))))
+          (when-not (= :ok res)
+            (println "[watch] refresh failed")
+            (println res))))
       (recur))))
 
 (defn exec
-  "Type check namespaces.
+  "Type check namespaces. Plural options may be provided as a vector.
   
   :dirs  string(s) naming directories to find namespaces to type check
   :focus   symbol(s) naming namespaces to type check (overrides :dirs) (default: nil)

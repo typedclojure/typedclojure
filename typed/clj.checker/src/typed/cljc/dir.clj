@@ -23,6 +23,7 @@
         _ (assert (seq files) (str "No files found in " (pr-str dirs)))
         nses (into [] (filter (set (vals filemap)))
                    (dep/topo-sort deps))]
+    (println "Type checking namespaces:" nses)
     (check-ns nses)))
 
 (defn check-dir-clj [dirs]
