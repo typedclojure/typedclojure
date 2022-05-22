@@ -334,6 +334,11 @@
         <artifactId>beholder</artifactId>
         <version>1.0.0</version>
       </dependency>
+      <dependency>
+        <groupId>babashka</groupId>
+        <artifactId>process</artifactId>
+        <version>0.1.1</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 

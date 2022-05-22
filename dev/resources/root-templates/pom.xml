@@ -334,6 +334,11 @@
         <artifactId>beholder</artifactId>
         <version>{◊beholder-mvn-version◊}</version>
       </dependency>
+      <dependency>
+        <groupId>babashka</groupId>
+        <artifactId>process</artifactId>
+        <version>{◊process-mvn-version◊}</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 

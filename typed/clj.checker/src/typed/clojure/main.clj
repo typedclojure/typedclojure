@@ -7,13 +7,16 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.clojure.main
-  (:require [clojure.core.typed.errors :as err]
+  (:require [clojure.core.typed.errors :as-alias err]
             [clojure.edn :as edn]
-            [clojure.tools.namespace.dir :as dir]
-            [clojure.tools.namespace.repl :as repl]
-            [clojure.tools.namespace.track :as track]
+            [clojure.tools.namespace.repl :as-alias repl]
             [nextjournal.beholder :as-alias beholder]
+            [babashka.process :as-alias process]
             [typed.clojure :as t]))
+
+(defn- dynavar [sym]
+  (doto (requiring-resolve sym)
+    (assert (str "Unresolable: " (pr-str sym)))))
 
 (defn- exec1 [{:keys [dirs focus platform] :or {platform :clj}}]
   (let [platforms (cond-> platform
@@ -30,7 +33,7 @@
         (throw (ex-info (str "Unknown platform: " (pr-str platform)) {}))))))
 
 (defn- print-error [e]
-  (if (some-> (ex-data e) err/top-level-error?)
+  (if (some-> (ex-data e) ((dynavar `err/top-level-error?)))
     (print (.getMessage e))
     (print e))
   (flush))
@@ -43,9 +46,10 @@
                (string? dirs) vector)
         _ (assert (seq dirs) "Must provide directories to scan")
         _ (when refresh
-            (alter-var-root #'repl/refresh-dirs (fn [old]
-                                                  (or (not-empty old)
-                                                      refresh-dirs))))
+            (alter-var-root (dynavar `repl/refresh-dirs)
+                            (fn [old]
+                              (or (not-empty old)
+                                  refresh-dirs))))
         rescan (atom (promise))
         do-check #(try (exec1 m)
                        (catch Throwable e
@@ -63,7 +67,7 @@
       (reset! rescan (promise))
       @@rescan
       (when refresh
-        (let [res (repl/refresh)]
+        (let [res ((dynavar `repl/refresh))]
           (when-not (= :ok res)
             (println "[watch] refresh failed")
             (println res))))
@@ -78,7 +82,17 @@
   :refresh   if true (or if :refresh-dirs option is provided) refresh with tools.namespace before rechecking (default: nil)
   :refresh-dirs   string(s) naming directories to refresh if repl/refresh-dirs is empty. (default: use :dirs)
   :watch      if true, recheck on changes to :watch-dirs.
-  :watch-dirs   string(s) naming extra directories to watch to trigger rechecking. (default: use :dirs + :refresh-dirs)"
+  :watch-dirs   string(s) naming extra directories to watch to trigger rechecking. (default: use :dirs + :refresh-dirs)
+  :split  a pair [this-split num-splits]. Evenly and deterministically split checkable namespaces into num-splits segments, then
+          check this-split segment (zero-based). 
+          eg., [0 1]  ;; check everything
+               [0 2]  ;; check the first half of all namespaces
+               [1 2]  ;; check the second half of all namespaces
+               [2 5]  ;; check the 3rd split of 5 splits
+          (default: [0 1])
+  :exec-command   base command to parallelize via :parallel option (default: \"bin/typed\")
+  :parallel   evenly parallelize :exec-command to check namespaces using GNU Parallel.
+              Incompatible with :split."
   [m]
   (if (:watch m)
     (watch m)

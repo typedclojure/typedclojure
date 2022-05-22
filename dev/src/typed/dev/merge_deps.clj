@@ -198,6 +198,11 @@
                                       dev-deps)
                           :paths ["dev/src"]
                           :aliases (assoc (aliases)
+                                          :typed (sorted-map
+                                                   :exec-fn 'typed.clojure.main/exec
+                                                   :exec-args {:dirs (src-paths)
+                                                               :watch-dirs (concat (src-paths) (test-paths))
+                                                               :refresh-dirs (concat (src-paths) (test-paths))})
                                           :test (sorted-map
                                                   :extra-deps test-deps
                                                   :extra-paths (test-paths))))
