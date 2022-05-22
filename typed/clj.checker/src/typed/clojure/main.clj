@@ -97,10 +97,7 @@
   (cond
     parallel (let [_ (assert (pos-int? parallel) (str ":parallel must be a positive integer, given: " (pr-str)))
                    [this-split num-splits] (or (:split m) [0 1])]
-               ;;workaround, this file isn't in a release yet https://github.com/babashka/process/blob/master/src/babashka/process/pprint.clj
-               (eval `(do (require 'babashka.process 'clojure.pprint)
-                          (defmethod clojure.pprint/simple-dispatch babashka.process.Process [proc#]
-                            (clojure.pprint/pprint (into {} proc#)))))
+               (require 'babashka.process.pprint)
                ;;end workaround
                (run! (dynavar `process/check)
                      ((dynavar `process/pipeline)
@@ -113,6 +110,7 @@
                                               (range parallel)))))
                       ((dynavar `process/pb)
                        ["parallel" "--halt" "now,fail=1" (str shell-command " {}")]
+                       ;; hmm this isn't working. 
                        {:out :inherit
                         :err :inherit}))))
     (:watch m) (watch m)
