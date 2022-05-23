@@ -17,23 +17,29 @@
             [clojure.tools.namespace.track :as track]
             [typed.cljc.checker.ns-deps-utils :as ns-deps-u]))
 
-(defn check-dir-plan [dirs]
-  {:post [(vector? %)]}
-  (let [dirs (cond-> dirs
-               (string? dirs) vector)
-        _ (assert (seq dirs) "Must provide one or more directories")
-        {::track/keys [deps] ::dir/keys [files] ::file/keys [filemap] :as tracker} (dir/scan-dirs (track/tracker) dirs
-                                                                                                  {:platform (impl/impl-case
-                                                                                                               :clojure find/clj
-                                                                                                               :cljs find/cljs)})
-        _ (assert (seq files) (str "No files found in " (pr-str dirs)))
-        nses (into [] (filter (every-pred (set (vals filemap))
-                                          ns-deps-u/should-check-ns?))
-                   (dep/topo-sort deps))]
-    nses))
+(defn check-dir-plan
+  ([dirs] (check-dir-plan (track/tracker) dirs))
+  ([tracker dirs]
+   {:post [(:tracker %)
+           (vector? (:nses %))]}
+   (let [dirs (cond-> dirs
+                (string? dirs) vector)
+         _ (assert (seq dirs) "Must provide one or more directories")
+         {::track/keys [deps] ::dir/keys [files] ::file/keys [filemap] :as tracker} (-> (or tracker (track/tracker))
+                                                                                        (dir/scan-dirs 
+                                                                                          dirs
+                                                                                          {:platform (impl/impl-case
+                                                                                                       :clojure find/clj
+                                                                                                       :cljs find/cljs)}))
+         _ (assert (seq files) (str "No files found in " (pr-str dirs)))
+         nses (into [] (filter (every-pred (set (vals filemap))
+                                           ns-deps-u/should-check-ns?))
+                    (dep/topo-sort deps))]
+     {:tracker tracker
+      :nses nses})))
 
 (defn check-dir* [dirs]
-  (let [nses (check-dir-plan dirs)]
+  (let [{:keys [nses]} (check-dir-plan dirs)]
     (println "Type checking namespaces:" nses)
     ((impl/impl-case
        :clojure t/check-ns-clj

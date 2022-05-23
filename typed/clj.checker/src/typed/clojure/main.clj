@@ -58,18 +58,19 @@
   (let [platforms (sort (cond-> platform
                           (keyword? platform) vector))
         _ (assert (seq platforms) (str "Must provide at least one platform: " (pr-str platform)))
-        plan (mapcat (fn [platform]
-                       (map (fn [nsym]
-                              {:platform platform 
-                               :nsym nsym})
-                            (nses-for-this-split
-                              split
-                              (or focus
-                                  (impl/with-impl (case platform
-                                                    :clj :clojure
-                                                    :cljs :cljs)
-                                    (tdir/check-dir-plan dirs))))))
-                     platforms)]
+        plan (map (fn [platform]
+                    (map (fn [nsym]
+                           {:platform platform 
+                            :nsym nsym})
+                         (nses-for-this-split
+                           split
+                           (or focus
+                               (:nses
+                                 (impl/with-impl (case platform
+                                                   :clj :clojure
+                                                   :cljs :cljs)
+                                   (tdir/check-dir-plan dirs)))))))
+                  platforms)]
     (assert (seq plan) "No namespaces to check")
     (reduce (fn [acc {:keys [platform nsym] :as info}]
               {:pre [(= :ok (:result acc))]}
@@ -100,30 +101,31 @@
                             (fn [old]
                               (or (not-empty old)
                                   refresh-dirs))))
-        rescan (atom (promise))]
-    (apply (dynavar `beholder/watch)
-           (fn [{:keys [type path]}]
-             (when (contains? #{:modify :create} type)
-               (deliver @rescan true)))
-           watch-dirs)
-    (loop [last-result (exec1 m)]
-      (when (= :fail (:result last-result))
-        (println "[watch] Caught error")
-        (print-error (:ex last-result))
-        (println))
-      (reset! rescan (promise))
-      @@rescan
-      (when refresh
-        (let [res ((dynavar `repl/refresh))]
-          (when-not (= :ok res)
-            (println "[watch] refresh failed")
-            (println res))))
-      (recur (exec1 (cond-> m
-                      (and (= :fail (:status last-result))
-                           ;; don't focus if deleted
-                           (ns-deps-u/should-check-ns? (:nsym last-result)))
-                      (assoc :focus (:nsym last-result)
-                             :platform (:platform last-result))))))))
+        rescan (atom (promise))
+        watcher (apply (dynavar `beholder/watch)
+                       (fn [{:keys [type path]}]
+                         (when (contains? #{:modify :create} type)
+                           (deliver @rescan true)))
+                       watch-dirs)]
+    (try (loop [last-result (exec1 m)]
+           (when (= :fail (:result last-result))
+             (println "[watch] Caught error")
+             (print-error (:ex last-result))
+             (println))
+           (reset! rescan (promise))
+           @@rescan
+           (when refresh
+             (let [res ((dynavar `repl/refresh))]
+               (when-not (= :ok res)
+                 (println "[watch] refresh failed")
+                 (println res))))
+           (recur (exec1 (cond-> m
+                           (and (= :fail (:status last-result))
+                                ;; don't focus if deleted
+                                (ns-depsu/should-check-ns? (:nsym last-result)))
+                           (assoc :focus (:nsym last-result)
+                                  :platform (:platform last-result))))))
+         (finally ((dynavar `beholder/stop) watcher)))))
 
 (defn exec
   "Type check namespaces. Plural options may be provided as a vector.
