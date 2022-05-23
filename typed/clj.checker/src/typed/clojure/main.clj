@@ -73,7 +73,10 @@
                   platforms)]
     (assert (seq plan) "No namespaces to check")
     (reduce (fn [acc {:keys [platform nsym] :as info}]
-              {:pre [(= :ok (:result acc))]}
+              {:pre [(map? info)
+                     (keyword? platform)
+                     (simple-symbol? nsym)
+                     (= :ok (:result acc))]}
               (let [chk #((case platform
                             :clj t/check-ns-clj
                             :cljs t/check-ns-cljs)
@@ -115,7 +118,7 @@
            (reset! rescan (promise))
            @@rescan
            (when refresh
-             (let [res ((dynavar `repl/refresh))]
+             (let [res ((dynavar `repl/refresh-all))] ;; refresh-all to undo check-ns making namespaces stale
                (when-not (= :ok res)
                  (println "[watch] refresh failed")
                  (println res))))
