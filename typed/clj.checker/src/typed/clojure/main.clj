@@ -119,6 +119,7 @@
              (println))
            (reset! rescan (promise))
            @@rescan
+           ;; TODO easy special case: don't refresh if the scan-dirs says only the currently focussed namespace failed
            (when refresh
              (let [res ((dynavar `repl/refresh-all))] ;; refresh-all to undo check-ns making namespaces stale
                (when-not (= :ok res)
