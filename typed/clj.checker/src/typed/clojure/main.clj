@@ -14,7 +14,8 @@
             [babashka.process :as-alias process]
             [typed.clojure :as t]
             [typed.cljc.dir :as tdir]
-            [clojure.core.typed.current-impl :as impl]))
+            [clojure.core.typed.current-impl :as impl]
+            [typed.cljc.checker.ns-deps-utils :as ns-depsu]))
 
 (defn- dynavar [sym]
   (doto (requiring-resolve sym)
@@ -118,7 +119,9 @@
             (println "[watch] refresh failed")
             (println res))))
       (recur (exec1 (cond-> m
-                      (= :fail (:status last-result))
+                      (and (= :fail (:status last-result))
+                           ;; don't focus if deleted
+                           (ns-deps-u/should-check-ns? (:nsym last-result)))
                       (assoc :focus (:nsym last-result)
                              :platform (:platform last-result))))))))
 
