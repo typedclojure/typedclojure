@@ -55,7 +55,9 @@
   (flush))
 
 (defn- exec1 [{:keys [split dirs focus platform watch] :or {platform :clj split [0 1]}}]
-  (let [platforms (sort (cond-> platform
+  (let [focus (cond-> focus
+                (symbol? focus) vector)
+        platforms (sort (cond-> platform
                           (keyword? platform) vector))
         _ (assert (seq platforms) (str "Must provide at least one platform: " (pr-str platform)))
         plan (mapcat (fn [platform]
