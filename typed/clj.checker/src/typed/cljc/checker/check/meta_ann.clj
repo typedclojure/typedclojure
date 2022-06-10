@@ -27,13 +27,15 @@
         prefix (str (apply str (repeat *meta-debug-depth* " ")) "::t/dbg id=" id)
         _ (when (string? maybe-msg)
             (println prefix maybe-msg))
-        _ (println prefix (pr-str (:form expr)))
+        _ (println prefix (binding [*print-namespace-maps* false]
+                            (pr-str (:form expr))))
 
         _ (when expected
             (println prefix (str "expected: " (pr-str (prs/unparse-TCResult expected)))))
         cexpr (binding [*meta-debug-depth* (inc *meta-debug-depth*)]
                 (check-expr expr expected))
-        _ (println prefix "result:" (pr-str (prs/unparse-TCResult (u/expr-type cexpr))))]
+        _ (println prefix "result:" (binding [*print-namespace-maps* false]
+                                      (pr-str (prs/unparse-TCResult (u/expr-type cexpr)))))]
     cexpr))
 
 (defn check-meta-unsafe-cast [expr tsyn expected]

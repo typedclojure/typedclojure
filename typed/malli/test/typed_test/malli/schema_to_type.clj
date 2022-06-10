@@ -156,7 +156,7 @@
                                             [:b :boolean]])))
   (is (thrown? clojure.lang.ExceptionInfo (m/schema [:and])))
   (is (thrown? clojure.lang.ExceptionInfo (m/schema [:or])))
-  (is (= `(t/I t/AnyInteger t/Num)
+  (is (= `t/AnyInteger
          (sut/malli-syntax->validator-type
            [:and
             {:title "Age"
@@ -197,10 +197,10 @@
   (is (= `(t/SequentialColl t/Num)
          (sut/malli-syntax->validator-type
            '[:sequential number?])))
-  (is (= `(t/Maybe t/Num)
+  (is (= `(t/Nilable t/Num)
          (sut/malli-syntax->validator-type
            '[:maybe number?])))
-  (is (= `(t/Maybe t/Num)
+  (is (= `(t/Nilable t/Num)
          (sut/malli-syntax->validator-type
            '[:maybe number?])))
   (is (= `t/Str

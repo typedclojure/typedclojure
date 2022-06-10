@@ -109,8 +109,12 @@
                                      inners (mapv gen-inner (m/children m))]
                                  (if (= 1 (count inners))
                                    (first inners)
-                                   (list* (case (m/type m) :or `t/U :and `t/I)
-                                          inners)))
+                                   (case (m/type m)
+                                     :or (list* `t/U inners)
+                                     ;; subtyping isn't always smart enough to deal with these types
+                                     ;; eg., [:and :int [:< 1]] translates to (t/I t/AnyInteger t/Num),
+                                     ;;      but (t/I t/AnyInteger t/Num) <!: t/AnyInteger
+                                     :and (first inners))))
                     :function (let [ts (map gen-inner (m/children m))
                                     arities (mapcat (fn [t]
                                                       (if (vector? t)
@@ -128,7 +132,7 @@
                     ;;TODO :enum
                     ;;TODO :multi
                     :fn `t/Any
-                    :maybe `(t/Maybe ~(gen-inner (first (m/children m))))
+                    :maybe `(t/Nilable ~(gen-inner (first (m/children m))))
                     :re `t/Str
                     ;; should we have a :instrument-type mode? m/validate + m/=> is probably not sound.
                     :=> (let [[param-malli ret-malli :as cs] (m/children m)

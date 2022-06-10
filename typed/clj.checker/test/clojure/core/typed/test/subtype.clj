@@ -128,3 +128,11 @@
   (is-clj (sub?-q 
             `(t/Map t/Any t/Any)
             `((t/TFn [[x# :variance :covariant]] (t/Map t/Any t/Any)) t/Any))))
+
+(deftest union-intersection-subtype-test
+  ;; not sure how to support this. see :or translation in typed.malli.schema-to-type for motivation
+  #_
+  (is-clj (sub?-q `(t/I t/AnyInteger t/Num)
+                  `t/AnyInteger))
+  (is-clj (sub?-q `t/AnyInteger
+                  `(t/I t/AnyInteger t/Num))))

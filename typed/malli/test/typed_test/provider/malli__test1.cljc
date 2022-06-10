@@ -14,6 +14,14 @@
 (t/ann choose-tc [t/AnyInteger :-> t/AnyInteger])
 (defn choose-tc [t] (inc t))
 
+^::t/ignore
+(def PokemonLevel
+  [:and :int [:>= 1] [:<= 100]])
+
+(m/=> get-pokemon-level [:=> [:cat [:maybe PokemonLevel]] PokemonLevel])
+(defn get-pokemon-level [pokemon-level]
+  (or pokemon-level 1))
+
 (comment
   (t/check-ns-clj)
   (t/check-ns-cljs)
