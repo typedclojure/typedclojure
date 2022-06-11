@@ -1,3 +1,13 @@
+# 1.0.31 (2022/06/11)
+
+- don't check namespace if `^:typed.clojure/ignore` or `^{:typed.clojure {:ignore true}}` meta
+  - eg., `(ns ^:typed.clojure/ignore foo)`
+- introduce `typed.clojure/check-dir-clj{s}` for type checking directories of code
+- introduce `typed.clojure.main` for command line usage
+- improve `^::t/dbg` output
+- fix `[:maybe]` case in Malli schema to static type translation
+- simplify malli schemas `[:and s1 s2 s3 ...]` to `s1` in type translation to avoid tricky subtyping cases
+
 # 1.0.30 (2022/05/04)
 
 - new type syntax
