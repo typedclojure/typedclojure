@@ -6,7 +6,7 @@
   <artifactId>typed.lib.clojure</artifactId>
   <description>Type annotations and macros for the base Clojure distribution.</description>
   <name>typed.lib.clojure</name>
-  <version>1.0.31</version>
+  <version>1.0.32-SNAPSHOT</version>
 
   <licenses>
     <license>
@@ -19,7 +19,7 @@
   <parent>
     <groupId>org.typedclojure</groupId>
     <artifactId>pom.typed</artifactId>
-    <version>1.0.31</version>
+    <version>1.0.32-SNAPSHOT</version>
     <relativePath>../..</relativePath>
   </parent>
 
