@@ -133,7 +133,23 @@
 
 (defn parse-type [s]
   (binding [vs/*current-env* (or (tsyn->env s) vs/*current-env*)]
-    (parse-type* s)))
+    (try
+      (parse-type* s)
+
+      ;; Pass through structured exceptions (e.g. TCError)
+      (catch clojure.lang.ExceptionInfo exi
+        (throw exi))
+
+      ;; Wrap all other errors and exceptions with context
+      (catch Error err
+        (throw (ex-info "Error raised in parse-type"
+                        {:s s}
+                        err)))
+
+      (catch Exception ex
+        (throw (ex-info "Exception raised in parse-type"
+                        {:s s}
+                        ex))))))
 
 (defn parse-clj [s]
   (impl/with-clojure-impl
