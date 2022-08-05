@@ -12,7 +12,7 @@
   org.clojure/tools.namespace {:mvn/version "1.3.0"},
   org.clojure/tools.reader {:mvn/version "1.3.6"}
   com.nextjournal/beholder {:mvn/version "1.0.0"}
-  babashka/process {:mvn/version "0.1.3"}},
+  babashka/process {:mvn/version "0.1.7"}},
  :mvn/repos
  {"sonatype-oss-public"
   {:url "https://oss.sonatype.org/content/groups/public/"}},
