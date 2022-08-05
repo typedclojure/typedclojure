@@ -26,7 +26,7 @@ jobs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
       - uses: actions/checkout@v3
-      - uses: turtlequeue/setup-babashka@5e0acf2cf146558d93a573e339e1d24f2758adfd
+      - uses: turtlequeue/setup-babashka@83e81711f784e0dcb593e53b642fc9850067f234
         with:
           babashka-version: ${{env.BABASHKA_VERSION}}
       - run: bb --version
@@ -105,7 +105,7 @@ jobs:
          }}
     steps:
       - uses: actions/checkout@v3
-      - uses: turtlequeue/setup-babashka@5e0acf2cf146558d93a573e339e1d24f2758adfd
+      - uses: turtlequeue/setup-babashka@83e81711f784e0dcb593e53b642fc9850067f234
         with:
           babashka-version: ${{env.BABASHKA_VERSION}}
       - run: bb --version
@@ -147,7 +147,7 @@ jobs:
       - uses: DeLaGuardo/setup-clojure@3199aaaa9cf140bcb7a5f36a72d1aa42658ee991
         with:
           cli: ${{ env.CLOJURE_CLI_VERSION }}
-      - uses: turtlequeue/setup-babashka@5e0acf2cf146558d93a573e339e1d24f2758adfd
+      - uses: turtlequeue/setup-babashka@83e81711f784e0dcb593e53b642fc9850067f234
         with:
           babashka-version: ${{env.BABASHKA_VERSION}}
       - run: bb --version
