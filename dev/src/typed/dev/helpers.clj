@@ -51,7 +51,7 @@
    ;; 1.60.972
    :kaocha-sha "23d7bf426c8bc2027d0da2fc2a5420f5c6474740"
    :typedclojure-homepage "https://typedclojure.org"
-   :malli-mvn-version "0.8.4"
+   :malli-mvn-version "0.8.9"
    :malli-git-url "https://github.com/metosin/malli.git"
    :malli-snapshot-git-sha "400dc0c79805028a6d85413086d4d6d627231940"
    :beholder-mvn-version "1.0.0"
