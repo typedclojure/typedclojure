@@ -43,7 +43,7 @@
 
 (defn int-error
   ([estr] (int-error estr {}))
-  ([estr {:keys [use-current-env] :as opt}]
+  ([estr {:keys [cause use-current-env] :as opt}]
    (let [{:keys [line column file] :as env} *current-env*]
      (throw (ex-info (str "Internal Error "
                           "(" (or file 
@@ -57,11 +57,14 @@
                             (str ":" column))
                           ") "
                           estr)
-                     {:type-error int-error-kw
-                      :env (or (when (and uvs/*current-expr*
-                                          (not use-current-env))
-                                 (:env uvs/*current-expr*))
-                               (env-for-error *current-env*))})))))
+                     (cond->
+                       {:type-error int-error-kw
+                        :env (or (when (and uvs/*current-expr*
+                                            (not use-current-env))
+                                   (:env uvs/*current-expr*))
+                                 (env-for-error *current-env*))}
+                       ;; don't want this to unwrap in the REPL, so don't use 3rd arg of ex-info
+                       cause (assoc :cause cause)))))))
 
 ;[Any * -> String]
 (defn ^String error-msg 
@@ -108,6 +111,10 @@
 (defn type-error? [exdata]
   (assert (not (instance? clojure.lang.ExceptionInfo exdata)))
   (= (:type-error exdata) type-error-kw))
+
+(defn any-tc-error? [exdata]
+  (assert (not (instance? clojure.lang.ExceptionInfo exdata)))
+  (keyword? (:type-error exdata)))
 
 (defn msg-fn-opts []
   {:parse-type (requiring-resolve 'typed.clj.checker.parse-unparse/parse-type)})
@@ -202,8 +209,8 @@
                              (str ":"col))
                            ") "
                            estr)
-                    (merge {:type-error nyi-error-kw}
-                           {:env (env-for-error env)})))))
+                    {:type-error nyi-error-kw
+                     :env (env-for-error env)}))))
 
 #?(:clj
 (defmacro with-ex-info-handlers 

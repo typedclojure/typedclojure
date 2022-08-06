@@ -133,7 +133,14 @@
 
 (defn parse-type [s]
   (binding [vs/*current-env* (or (tsyn->env s) vs/*current-env*)]
-    (parse-type* s)))
+    (try (parse-type* s)
+         (catch Throwable e
+           (prn (err/any-tc-error? (ex-data e)))
+           (if (err/any-tc-error? (ex-data e))
+             (throw e)
+             (err/int-error (format "parse-type error while parsing %s! Please report to help improve this error message."
+                                    (pr-str s))
+                            {:cause e}))))))
 
 (defn parse-clj [s]
   (impl/with-clojure-impl
@@ -505,7 +512,8 @@
 
 ;dispatch on last element of syntax in binder
 (defn parse-all-type [bnds type]
-  (let [_ (assert (vector? bnds))
+  (let [_ (when-not (vector? bnds)
+            (prs-error (str "First argument to t/All must be a vector: " (pr-str bnds))))
         {:keys [frees-with-bnds dvar named]} (parse-All-binder bnds)
         bfs (into {}
                   (map (fn [[n bnd]] [(r/make-F n) bnd]))
