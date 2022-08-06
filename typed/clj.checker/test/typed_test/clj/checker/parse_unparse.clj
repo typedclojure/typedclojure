@@ -117,9 +117,7 @@
 
 (deftest bad-All-test
   (is (throws-tc-error?
-        (prs/parse-clj `(t/All nil []))))
-  (is (throws-any-tc-error?
-        (tc (t/ann-form nil (t/All nil []))))))
+        (prs/parse-clj `(t/All nil [])))))
 
 (deftest bad-HVec-test
   (is (throws-tc-error?
