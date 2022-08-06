@@ -114,7 +114,12 @@
                (t/inst foo t/Str t/Bool :named {c t/Num b t/Sym}))
            [t/Num t/Sym t/Str t/Bool :-> t/Sym]))
 
+
 (deftest bad-All-test
   (is (throws-tc-error?
         (prs/parse-clj `(t/All nil []))))
   (is-tc-err nil (t/All nil [])))
+
+(deftest bad-HVec-test
+  (is (throws-tc-error?
+        (prs/parse-clj `(t/HVec :a)))))

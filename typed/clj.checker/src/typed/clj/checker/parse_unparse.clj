@@ -708,7 +708,9 @@
 ;; so we reuse them
 (defn parse-types-with-rest-drest [err-msg]
   (fn [syns]
-    (let [syns (vec syns)
+    (let [_ (when-not (seqable? syns)
+              (prs-error (str err-msg " " (pr-str syns))))
+          syns (vec syns)
           rest? (#{:* '* :+} (peek syns))
           dotted? (and (#{:... :.. '...} (some-> (not-empty syns) pop peek))
                        (<= 3 (count syns)))
@@ -776,7 +778,7 @@
 (defmethod parse-type-list 'typed.clojure/HSequential [t] (parse-HSequential t))
 (defmethod parse-type-list 'typed.clojure/HSeq [t] (parse-HSeq t))
 (defmethod parse-type-list 'typed.clojure/HList [t]
-  (prn `parse-hlist t)
+  ;(prn `parse-hlist t)
   (parse-HList t))
 
 (defn parse-HSet [[_ ts & {:keys [complete?] :or {complete? true}} :as args]]
