@@ -133,6 +133,12 @@
      ~@body
      false))
 
+(defmacro throws-any-tc-error? [& body]
+  `(err/with-ex-info-handlers
+     [err/any-tc-error? (constantly true)]
+     ~@body
+     false))
+
 (defmacro sub? [s t]
   `(impl/with-clojure-impl
      (binding [*ns* (the-ns '~'clojure.core.typed)]
