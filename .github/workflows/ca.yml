@@ -24,7 +24,7 @@ jobs:
         with:
           distribution: "temurin"
           java-version: "11"
-      - uses: DeLaGuardo/setup-clojure@3199aaaa9cf140bcb7a5f36a72d1aa42658ee991
+      - uses: DeLaGuardo/setup-clojure@b5e067fe9eb9a93eba94acb9506dbaace55cad57
         with:
           cli: ${{ env.CLOJURE_CLI_VERSION }} 
       - name: Check Clojure CA
