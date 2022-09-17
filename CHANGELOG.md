@@ -1,3 +1,11 @@
+# 1.0.32 (2022/09/17)
+
+- [typedclojure#63](https://github.com/typedclojure/typedclojure/issues/63): add missing validation in heterogeneous type parsing
+- type check `(merge)` as `nil`
+- add new type `t/Merge`
+  - same semantics as `clojure.core/merge` but at the type level
+  - eg., `(t/Merge '{:a t/Int :b t/Bool} '{:a t/Bool :c t/Str}) => '{:a t/Bool :b t/Bool :c t/Str}`
+
 # 1.0.31 (2022/06/11)
 
 - don't check namespace if `^:typed.clojure/ignore` or `^{:typed.clojure {:ignore true}}` meta
