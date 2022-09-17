@@ -24,7 +24,7 @@
                                         TCError Extends JSNominal
                                         JSString JSBoolean JSNumber CLJSInteger JSObject
                                         ArrayCLJS FunctionCLJS KwArgsSeq HSequential HSet LTRange
-                                        AnyValue TopFunction Scope DissocType AssocType
+                                        AnyValue TopFunction Scope DissocType AssocType MergeType
                                         GetType GTRange JSUndefined JSNull JSSymbol JSObj TypeOf)
            (typed.cljc.checker.filter_rep TopFilter BotFilter TypeFilter NotTypeFilter AndFilter OrFilter
                                           ImpFilter)))
@@ -222,6 +222,12 @@
         (update :target pmt)
         (update :entries (fn [entries] (mapv #(mapv pmt %) entries)))
         (update :dentries #(some-> % (update :pre-type pmt))))))
+
+(promote-demote MergeType
+  [T V]
+  (let [pmt #(promote % V)]
+    (-> T
+        (update :types #(mapv pmt %)))))
 
 (promote-demote DissocType
   [T V]

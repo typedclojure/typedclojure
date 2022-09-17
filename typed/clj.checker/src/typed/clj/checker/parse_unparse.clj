@@ -34,7 +34,7 @@
                                         Mu HeterogeneousMap
                                         CountRange Name Value Top TypeOf Unchecked TopFunction B F Result AnyValue
                                         KwArgsSeq KwArgsArray TCError Extends JSNumber JSBoolean SymbolicClosure
-                                        CLJSInteger ArrayCLJS JSNominal JSString TCResult AssocType
+                                        CLJSInteger ArrayCLJS JSNominal JSString TCResult AssocType MergeType
                                         GetType HSequential HSet JSUndefined JSNull JSSymbol JSObject
                                         JSObj)
            (typed.cljc.checker.filter_rep TopFilter BotFilter TypeFilter NotTypeFilter AndFilter OrFilter
@@ -386,6 +386,11 @@
                            (:name bnd)))))))
 
 (defmethod parse-type-list 'typed.clojure/Assoc [t] (parse-Assoc t))
+
+(defn parse-Merge [[_ & tsyns]]
+  (r/MergeType-maker (mapv parse-type tsyns)))
+
+(defmethod parse-type-list 'typed.clojure/Merge [t] (parse-Merge t))
 
 (defn parse-Get [[_ tsyn keysyn & not-foundsyn :as all]]
   (when-not (#{2 3} (count (next all)))
@@ -1968,6 +1973,12 @@
              (when dentries [(unparse-type (:pre-type dentries))
                              '...
                              (unparse-bound (:name dentries))]))))
+
+  MergeType
+  (unparse-type* 
+    [{:keys [types]}]
+    (list* (unparse-Name-symbol-in-ns `t/Merge)
+           (map unparse-type types)))
 
   GetType
   (unparse-type* 

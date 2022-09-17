@@ -127,6 +127,9 @@
     `t/Assoc {:doc "A type representing an assoc operation"
               :forms '[(Assoc type type-pairs*)]
               ::special-type true}
+    `t/Merge {:doc "A type representing a merge operation"
+              :forms '[(Merge types*)]
+              ::special-type true}
     `t/Dissoc {:doc "A type representing a dissoc operation"
                :forms '[(Dissoc type type*)]
                ::special-type true}

@@ -1390,17 +1390,14 @@
   {:post [(or (nil? %)
               (-> % u/expr-type r/TCResult?))]}
   (let [;FIXME possible repeated type checking
-        [ctarget & cmerge-args :as cargs] (mapv check-expr args)
-        basemap (-> ctarget u/expr-type r/ret-t c/fully-resolve-type)
-        targs (map u/expr-type cmerge-args)]
-    (when-let [merged (apply assoc-u/merge-types basemap targs)]
+        cargs (mapv check-expr args)
+        targs (map u/expr-type cargs)]
+    (when-some [merged (apply assoc-u/merge-types targs)]
       (-> expr
           (update :fn check-expr)
           (assoc :args cargs
                  u/expr-type (below/maybe-check-below
-                               (r/ret merged
-                                      (fo/-true-filter) ;assoc never returns nil
-                                      obj/-empty)
+                               (r/ret merged)
                                expected))))))
 
 ;conj

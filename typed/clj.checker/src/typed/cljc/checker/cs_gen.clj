@@ -619,12 +619,16 @@
             (cs-gen-list V X Y Svals Tvals)
             (fail! S T)))
 
-        (and (r/GetType? S)
-             (not (r/F? (:target S))))
+        (or (and (r/GetType? S)
+                 (c/Get-requires-resolving? S))
+            (and (r/MergeType? S)
+                 (c/Merge-requires-resolving? S)))
         (cs-gen V X Y (c/-resolve S) T)
 
-        (and (r/GetType? T)
-             (not (r/F? (:target T))))
+        (or (and (r/GetType? T)
+                 (c/Get-requires-resolving? T))
+            (and (r/MergeType? T)
+                 (c/Merge-requires-resolving? T)))
         (cs-gen V X Y S (c/-resolve T))
 
         (and (r/AssocType? S)

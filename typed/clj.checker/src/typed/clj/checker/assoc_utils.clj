@@ -337,11 +337,11 @@
          (r/TCResult? right)]
    :post [((some-fn nil? r/Type?) %)]}
   (let [left-map (ind/subtype? left (impl/impl-case
-                                  :clojure (c/RClass-of IPersistentMap [r/-any r/-any])
-                                  :cljs (c/-name 'typed.clojure/Map r/-any r/-any)))
+                                      :clojure (c/RClass-of IPersistentMap [r/-any r/-any])
+                                      :cljs (c/-name 'typed.clojure/Map r/-any r/-any)))
         right-map (ind/subtype? (r/ret-t right) (impl/impl-case
-                                            :clojure (c/RClass-of IPersistentMap [r/-any r/-any])
-                                            :cljs (c/-name 'typed.clojure/Map r/-any r/-any)))]
+                                                  :clojure (c/RClass-of IPersistentMap [r/-any r/-any])
+                                                  :cljs (c/-name 'typed.clojure/Map r/-any r/-any)))]
     (cond
      ; preserve the rhand alias when possible
      (and (ind/subtype? left r/-nil) right-map)
@@ -357,16 +357,16 @@
          
          (and (ind/subtype? left r/-nil) 
               (ind/subtype? rtype (impl/impl-case
-                                :clojure (c/RClass-of IPersistentMap [r/-any r/-any])
-                                :cljs (c/-name 'typed.clojure/Map r/-any r/-any))))
+                                    :clojure (c/RClass-of IPersistentMap [r/-any r/-any])
+                                    :cljs (c/-name 'typed.clojure/Map r/-any r/-any))))
            rtype
          
          (and (r/HeterogeneousMap? left) (r/HeterogeneousMap? rtype))
            (merge-hmaps left rtype)
          
          (and (not (ind/subtype? left (impl/impl-case
-                                    :clojure (c/RClass-of IPersistentVector [r/-any])
-                                    :cljs (c/Protocol-of 'cljs.core/IVector [r/-any]))))
+                                        :clojure (c/RClass-of IPersistentVector [r/-any])
+                                        :cljs (c/Protocol-of 'cljs.core/IVector [r/-any]))))
               (satisfies? AssocableType left)
               (r/HeterogeneousMap? rtype))
          (do
@@ -376,11 +376,13 @@
                                                [(r/ret k) (r/ret t)])
                                              (:types rtype))))))))))
 
-(defn merge-types [left & r-tcresults]
-  {:pre [(r/Type? left)
-         (every? r/TCResult? r-tcresults)]
-   :post [((some-fn nil? r/Type?) %)]}
-  (c/reduce-type-transform merge-pair left r-tcresults))
+(defn merge-types
+  ([] r/-nil)
+  ([left-tcresult & r-tcresults]
+   {:pre [(r/TCResult? left-tcresult)
+          (every? r/TCResult? r-tcresults)]
+    :post [((some-fn nil? r/Type?) %)]}
+   (c/reduce-type-transform merge-pair (:t left-tcresult) r-tcresults)))
 
 ; conj helper
 

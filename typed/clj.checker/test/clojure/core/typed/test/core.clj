@@ -1960,7 +1960,9 @@
   )
 
 (deftest invoke-merge-test
-  
+  (equal-types (merge)
+               nil)
+
   ; basic literal case
   (equal-types (merge {:a 5 :b 6} {:c 7 :d 8} {:e 9})
                (HMap :mandatory {:a '5 :b '6 :c '7 :d '8 :e '9} :complete? true))
@@ -2089,6 +2091,26 @@
                   m2 :- '{:b t/Num}]
                :- '{:a t/Num :b t/Num}
                (merge m1 m2)))
+
+  ;; filters/objects
+  (is-tc-e (merge nil)
+           :expected-ret
+           (ret (parse-clj nil)))
+
+  (is-tc-err (merge nil)
+             :expected-ret
+             (ret (parse-clj nil)
+                  (-false-filter)))
+  (is-tc-err (merge nil)
+             :expected-ret
+             (ret (parse-clj nil)
+                  (-true-filter)))
+  (is-tc-err (merge nil)
+             :expected-ret
+             (ret (parse-clj nil)
+                  (-FS -top -top)
+                  (-path nil 'a__#0)))
+  
 
 ;;  TODO not handling presence of non keyword keys yet
 ;;   (equal-types (merge {'a 5} {:b 6})
@@ -2222,6 +2244,16 @@
            (t/U (t/Assoc '{} ':a t/Num)
               (t/Assoc '{} ':b t/Num)
               (t/Assoc '{} ':a t/Num ':b t/Num))))
+
+(deftest Merge-test
+  (is-tc-e nil (t/Merge))
+  (is-tc-err {} (t/Merge))
+  (is-tc-e {:a 1} (t/Merge '{:a t/Int}))
+  (is-tc-err {:a :a} (t/Merge '{:a t/Int}))
+  (is-tc-e {:a 1 :b true} (t/Merge '{:a t/Int} '{:b t/Bool}))
+  (is-tc-err {:a 1 :b 1} (t/Merge '{:a t/Int} '{:b t/Bool}))
+  (is-tc-e {:a true} (t/Merge '{:a t/Int} '{:a t/Bool}))
+  (is-tc-err {:a 1} (t/Merge '{:a t/Int} '{:a t/Bool})))
 
 ;(clj
 ;  (parse-filter 

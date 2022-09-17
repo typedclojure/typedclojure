@@ -696,6 +696,13 @@
   :methods
   [p/TCType])
 
+(u/ann-record MergeType [types :- (t/Coll Type)])
+(u/def-type MergeType [types]
+  "Merge at the type level."
+  [(every? Type? types)]
+  :methods
+  [p/TCType])
+
 (u/ann-record DissocType [target :- Type,
                           keys :- (t/Coll Type)
                           dkeys :- (t/U nil DottedPretype)])

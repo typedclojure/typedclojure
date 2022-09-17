@@ -97,7 +97,7 @@ jobs:
           parallel --halt now,fail=1 'cd {} && run_tests' ::: "${SUBMODULE_ARRAY[@]}"
         env:
           SUBMODULE: ${{ matrix.submodule }}
-          SKIP_DOWNLOAD: ${{ steps.test-deps-cache.outputs.cache-hit }}
+          SKIP_DOWNLOAD: false #${{ steps.test-deps-cache.outputs.cache-hit }}
   check-docs:
     runs-on: ubuntu-20.04
     if: ${{ github.repository == 'typedclojure/typedclojure'

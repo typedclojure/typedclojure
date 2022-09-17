@@ -556,12 +556,16 @@
                s
                (apply c/In (:type t) (map r/NotType-maker (:without t))))
 
-        (and (r/GetType? s)
-             (not (r/F? (:target s))))
+        (or (and (r/GetType? s)
+                 (c/Get-requires-resolving? s))
+            (and (r/MergeType? s)
+                 (c/Merge-requires-resolving? s)))
         (recur A (c/-resolve s) t)
 
-        (and (r/GetType? t)
-             (not (r/F? (:target t))))
+        (or (and (r/GetType? t)
+                 (c/Get-requires-resolving? t))
+            (and (r/MergeType? t)
+                 (c/Merge-requires-resolving? t)))
         (recur A s (c/-resolve t))
 
         (and (r/AssocType? s)

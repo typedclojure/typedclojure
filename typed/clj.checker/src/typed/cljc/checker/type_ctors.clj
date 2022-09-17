@@ -39,7 +39,7 @@
                                         Union Intersection F Function Mu B KwArgs KwArgsSeq KwArgsArray
                                         RClass Bounds Name Scope CountRange Intersection DataType Extends
                                         JSNominal Protocol GetType HSequential
-                                        HSet AssocType TypeOf)
+                                        HSet AssocType TypeOf MergeType)
            (typed.cljc.checker.type_rep NotType DifferenceType Intersection Union FnIntersection Bounds
                                         DottedPretype Function RClass JSNominal App TApp
                                         PrimitiveArray DataType Protocol TypeFn Poly PolyDots
@@ -1367,6 +1367,14 @@
    :post [(r/Type? %)]}
   (find-val-type target key not-found))
 
+(t/ann ^:no-check resolve-Merge [MergeType -> r/Type])
+(defn resolve-Merge [{:keys [types] :as t}]
+  {:pre [(r/MergeType? t)]
+   :post [(r/Type? %)]}
+  (or (apply (requiring-resolve 'typed.clj.checker.assoc-utils/merge-types) (map r/ret types))
+      (println (str "WARNING: t/Merge resolved to t/Any"))
+      r/-any))
+
 (t/ann ^:no-check resolve-TypeOf [TypeOf -> r/Type])
 (defn resolve-TypeOf [{:keys [vsym] :as t}]
   {:pre [(r/TypeOf? t)]
@@ -1384,8 +1392,17 @@
     (r/App? ty) (resolve-App ty)
     (r/TApp? ty) (resolve-TApp ty)
     (r/GetType? ty) (resolve-Get ty)
+    (r/MergeType? ty) (resolve-Merge ty)
     (r/TypeOf? ty) (resolve-TypeOf ty)
     :else ty))
+
+(defn Get-requires-resolving? [ty]
+  {:pre [(r/GetType? ty)]}
+  (not (r/F? (fully-resolve-type (:target ty)))))
+
+(defn Merge-requires-resolving? [ty]
+  {:pre [(r/MergeType? ty)]}
+  (not-any? (comp r/F? fully-resolve-type) (:types ty)))
 
 (t/ann requires-resolving? [r/Type -> t/Any])
 (defn requires-resolving? [ty]
@@ -1395,7 +1412,9 @@
       (and (r/TApp? ty)
            (not (r/F? (fully-resolve-type (:rator ty)))))
       (and (r/GetType? ty)
-           (not (r/F? (fully-resolve-type (:target ty)))))
+           (Get-requires-resolving? ty))
+      (and (r/MergeType? ty)
+           (Merge-requires-resolving? ty))
       (r/Mu? ty)))
 
 (t/ann ^:no-check resolve-Name [Name -> r/Type])
@@ -1918,6 +1937,12 @@
                               (update :name #(if (= % name)
                                                (+ count outer)
                                                %))))))
+
+(f/add-fold-case
+  IAbstractMany abstract-many*
+  MergeType
+  (fn [{:keys [types]} name count outer sb name-to]
+    (r/MergeType-maker (mapv sb types))))
 
 (f/add-fold-case
   IAbstractMany abstract-many*
