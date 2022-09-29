@@ -11,5 +11,6 @@
 (foo 1)
 
 (comment
+  (require 'typed.clojure)
   (t/check-ns-clj)
   )
