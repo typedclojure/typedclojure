@@ -79,7 +79,8 @@
                            clojure-next-snapshot]
                   jdk ["8"
                        "11"
-                       "17"]]
+                       "17"
+                       "19"]]
               (array-map
                 :submodule submodule
                 :clojure clojure
