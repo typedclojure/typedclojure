@@ -1,9 +1,7 @@
 {% do-not-edit-edn-comment %}
 {:paths ["src"]
  :deps {org.clojure/clojure {:mvn/version "{◊clojure-mvn-version◊}"}
-        metosin/malli #_{:mvn/version "{◊malli-mvn-version◊}"}
-        {:git/url "{◊malli-git-url◊}"
-         :git/sha "{◊malli-snapshot-git-sha◊}"}
+        metosin/malli {:mvn/version "{◊malli-mvn-version◊}"}
         {◊typedclojure-group-id◊}/typed.clj.runtime {:local/root "../clj.runtime"
                                               :deps/manifest :deps}}
  :mvn/repos {"sonatype-oss-public"
