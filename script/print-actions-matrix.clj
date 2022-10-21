@@ -76,7 +76,8 @@
   {:post [(matrix? %)]}
   {:include (for [submodule all-testable-submodules
                   clojure [clojure-stable
-                           clojure-next-snapshot]
+                           clojure-next-snapshot
+                           "futjure"]
                   jdk ["8"
                        "11"
                        "17"

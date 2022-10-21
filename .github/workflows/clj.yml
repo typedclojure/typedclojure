@@ -84,11 +84,19 @@ jobs:
           mkdir -p ~/.config/clojure
           echo "{}" > ~/.config/clojure/deps.edn
           download_deps (){
-            ./script/test -P -Sdeps '{:deps {org.clojure/clojure {:mvn/version "${{ matrix.clojure }}"}} :mvn/repos {"sonatype-oss-public" {:url "https://oss.sonatype.org/content/groups/public/"}}}'
+            if [[ "${{ matrix.clojure }}" == "futjure" ]]; then
+              clojure -P -Sdeps '{:aliases {:futjure {:classpath-overrides {org.clojure/clojure nil} :extra-deps {org.clojure/clojure {:mvn/version "1.11.1" :exclusions [org.clojure/spec.alpha org.clojure/core.specs]} io.github.futjure/futjure {:mvn/version "1.12.0-master-SNAPSHOT"}}}}}' -M:test:futjure:runner
+            else
+              ./script/test -P -Sdeps '{:deps {org.clojure/clojure {:mvn/version "${{ matrix.clojure }}"}} :mvn/repos {"sonatype-oss-public" {:url "https://oss.sonatype.org/content/groups/public/"}}}'
+            fi
           }
           export -f download_deps
           run_tests (){
-            ./script/test -Sdeps '{:deps {org.clojure/clojure {:mvn/version "${{ matrix.clojure }}"}} :mvn/repos {"sonatype-oss-public" {:url "https://oss.sonatype.org/content/groups/public/"}}}'
+            if [[ "${{ matrix.clojure }}" == "futjure" ]]; then
+              clojure -Sdeps '{:aliases {:futjure {:classpath-overrides {org.clojure/clojure nil} :extra-deps {org.clojure/clojure {:mvn/version "1.11.1" :exclusions [org.clojure/spec.alpha org.clojure/core.specs]} io.github.futjure/futjure {:mvn/version "1.12.0-master-SNAPSHOT"}}}}}' -M:test:futjure:runner
+            else
+              ./script/test -Sdeps '{:deps {org.clojure/clojure {:mvn/version "${{ matrix.clojure }}"}} :mvn/repos {"sonatype-oss-public" {:url "https://oss.sonatype.org/content/groups/public/"}}}'
+            fi
           }
           export -f run_tests
           if [[ "${SKIP_DOWNLOAD}" != "true" ]]; then
