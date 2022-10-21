@@ -8,8 +8,8 @@ on:
     - cron: "0 13 * * 1,5"
 
 env:
-  CLOJURE_CLI_VERSION: "1.11.1.1105"
-  BABASHKA_VERSION: "0.8.0"
+  CLOJURE_CLI_VERSION: "1.11.1.1165"
+  BABASHKA_VERSION: "1.0.164"
 
 jobs:
   setup:
