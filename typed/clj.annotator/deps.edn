@@ -12,7 +12,7 @@
         ;; TODO revisit this now that Clojure CLI can compile java sources
         ;; can't vendor this as it includes Java sources that need to be compiled.
         ;; perhaps we can make it optional in the future.
-        potemkin/potemkin {:mvn/version "0.4.5"}}
+        potemkin/potemkin {:mvn/version "0.4.6"}}
  :mvn/repos {"sonatype-oss-public" {:url "https://oss.sonatype.org/content/groups/public/"}}
  :aliases {:test
            {:extra-paths ["test"]

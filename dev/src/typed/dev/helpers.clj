@@ -33,7 +33,7 @@
    :asm-mvn-version "9.2"
    :tools-analyzer-mvn-version "1.1.0"
    :tools-analyzer-jvm-mvn-version "1.2.2"
-   :potemkin-mvn-version "0.4.5"
+   :potemkin-mvn-version "0.4.6"
    :math-combinatorics-mvn-version "0.1.6"
    :tools-reader-mvn-version "1.3.6"
    :core-cache-mvn-version "1.0.225"
