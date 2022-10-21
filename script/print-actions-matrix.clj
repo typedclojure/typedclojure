@@ -93,6 +93,5 @@
     (schedule-matrix)
     (push-matrix)))
 
-(println
-  (str "::set-output name=matrix::"
-       (json/generate-string (matrix) {:pretty false})))
+(spit (System/getenv "GITHUB_OUTPUT")
+      (str "matrix=" (json/generate-string (matrix) {:pretty false})))
