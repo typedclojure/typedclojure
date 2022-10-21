@@ -94,4 +94,4 @@
     (push-matrix)))
 
 (spit (System/getenv "GITHUB_OUTPUT")
-      (str "matrix=" (json/generate-string (matrix) {:pretty false})))
+      (str "matrix=" (json/generate-string (matrix) {:pretty false}) "\n"))
