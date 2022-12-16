@@ -24,7 +24,7 @@
    :typedclojure-group-id "org.typedclojure"
    :selmer-mvn-version "1.12.50"
    :core-memoize-mvn-version "1.0.257"
-   :nrepl-mvn-version "0.8.3"
+   :nrepl-mvn-version "1.0.0"
    :reply-mvn-version "0.5.1"
    :parsley-mvn-version "0.9.3"
    :piggieback-mvn-version "0.5.3"
