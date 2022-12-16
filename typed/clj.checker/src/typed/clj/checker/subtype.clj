@@ -309,15 +309,13 @@
    :post [((some-fn nil? r/TCResult?) %)]}
   (with-bindings (assoc (:bindings s)
                         #'vs/*delayed-errors* (err/-init-delayed-errors))
-    (when-some [res (try (binding [*sub-current-seen* A]
-                           (-> (:fexpr s)
-                               (chk/check-expr (r/ret t))
-                               u/expr-type))
-                         (catch clojure.lang.ExceptionInfo e
-                           (when-not (-> e ex-data err/tc-error?)
-                             (throw e))))]
+    (when (try (binding [*sub-current-seen* A]
+                 (chk/check-expr (:fexpr s) (r/ret t)))
+               (catch clojure.lang.ExceptionInfo e
+                 (when-not (-> e ex-data err/tc-error?)
+                   (throw e))))
       (when (empty? @vs/*delayed-errors*)
-        res))))
+        A))))
 
 (defn check-symbolic-closure
   "Check symbolic closure s against type t (propagating all errors to caller),
