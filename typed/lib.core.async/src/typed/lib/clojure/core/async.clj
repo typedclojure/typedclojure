@@ -163,9 +163,9 @@
 ;;;;;;;;;;;;;;;;;;;;
 ;; Var annotations
 
-(ann ^:no-check clojure.core.async/buffer (t/All [w r] [t/Int :-> (Buffer2 w r)]))
-(ann ^:no-check clojure.core.async/dropping-buffer (t/All [w r] [t/Int :-> (Buffer w r)]))
-(ann ^:no-check clojure.core.async/sliding-buffer (t/All [w r] [t/Int :-> (Buffer w r)]))
+(ann ^:no-check clojure.core.async/buffer (t/All [t] [t/Int :-> (Buffer t)]))
+(ann ^:no-check clojure.core.async/dropping-buffer (t/All [t] [t/Int :-> (Buffer t)]))
+(ann ^:no-check clojure.core.async/sliding-buffer (t/All [t] [t/Int :-> (Buffer t)]))
 
 (ann ^:no-check clojure.core.async/thread-call (t/All [x] [[:-> x] :-> (Chan x)]))
 
@@ -367,42 +367,38 @@
 (defmacro chan
   "Like chan but with optional type annotations.
 
-  (chan :- t ...) creates a buffer that can read and write type t.
-  Subsequent arguments are passed directly to clojure.core.async/chan.
-  
-  Note: 
-    (chan :- t ...) is the same as ((inst async/chan t) ...)"
+  (chan :- t ...) creates a channel that can read and write type t.
+  Subsequent arguments are passed directly to clojure.core.async/chan."
   [& args]
-  (let [[t? t args] (maybe-annotation args)]
+  (let [[t? t args] (maybe-annotation args)
+        frm `(async/chan ~@args)]
     (if t?
-      `((inst async/chan ~t ~t) ~@args)
-      `(async/chan ~@args))))
+      `(t/ann-form ~frm (Chan ~t))
+      frm)))
 
 (defmacro buffer
   "Like buffer but with optional type annotations.
 
   (buffer :- t ...) creates a buffer that can read and write type t.
-  Subsequent arguments are passed directly to clojure.core.async/buffer.
-
-  Note: (buffer :- t ...) is the same as ((inst buffer t) ...)"
+  Subsequent arguments are passed directly to clojure.core.async/buffer."
   [& args]
-  (let [[t? t args] (maybe-annotation args)]
+  (let [[t? t args] (maybe-annotation args)
+        frm `(async/buffer ~@args)]
     (if t?
-      `((inst async/buffer ~t ~t) ~@args)
-      `(async/buffer ~@args))))
+      `(t/ann-form ~frm (Buffer ~t))
+      frm)))
 
 (defmacro sliding-buffer
   "Like sliding-buffer but with optional type annotations.
 
   (sliding-buffer :- t ...) creates a sliding buffer that can read and write type t.
-  Subsequent arguments are passed directly to clojure.core.async/sliding-buffer.
-  
-  Note: (sliding-buffer :- t ...) is the same as ((inst sliding-buffer t t) ...)"
+  Subsequent arguments are passed directly to clojure.core.async/sliding-buffer."
   [& args]
-  (let [[t? t args] (maybe-annotation args)]
+  (let [[t? t args] (maybe-annotation args)
+        frm `(async/sliding-buffer ~@args)]
     (if t?
-      `((inst async/sliding-buffer ~t ~t) ~@args)
-      `(async/sliding-buffer ~@args))))
+      `(t/ann-form ~frm (Buffer ~t))
+      frm)))
 
 
 (defmacro dropping-buffer
@@ -413,7 +409,8 @@
 
   Note: (dropping-buffer :- t ...) is the same as ((inst dropping-buffer t) ...)"
   [& args]
-  (let [[t? t args] (maybe-annotation args)]
+  (let [[t? t args] (maybe-annotation args)
+        frm `(async/dropping-buffer ~@args)]
     (if t?
-      `((inst async/dropping-buffer ~t ~t) ~@args)
-      `(async/dropping-buffer ~@args))))
+      `(t/ann-form ~frm (Buffer ~t))
+      frm)))
