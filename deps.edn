@@ -14,7 +14,7 @@
   :kaocha
   {:extra-deps
    {lambdaisland/kaocha
-    {:git/sha "23d7bf426c8bc2027d0da2fc2a5420f5c6474740",
+    {:git/sha "c63f3acce7230d7abdf74d05ad111c02981cb354",
      :git/url "https://github.com/lambdaisland/kaocha.git"}}},
   :nREPL
   {:extra-deps
