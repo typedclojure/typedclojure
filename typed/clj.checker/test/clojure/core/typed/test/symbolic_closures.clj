@@ -35,6 +35,28 @@
   (is-tc-err (let [f (fn* [x] x)]
                (f 1))
              t/Bool)
+  (is-tc-e (let [f (t/ann-form
+                     #(% 1)
+                     [[t/Int :-> t/Bool] :-> t/Bool])]
+             (f #(boolean (inc %))))
+           t/Bool)
+  (is-tc-err (let [f (t/ann-form
+                       #(% 1)
+                       [[t/Int :-> t/Bool] :-> t/Bool])]
+               (f #(boolean (inc %))))
+             t/Int)
+  (is-tc-e (let [comp (fn* [f g] (fn* [x] (f (g x))))
+                 f (fn* [x] x)
+                 g (fn* [y] y)]
+             ((comp f g) 1))
+           t/Int)
+  (is-tc-err (let [comp (fn* [f g] (fn* [x] (f (g x))))
+                   f (fn* [x] x)
+                   g (fn* [y] y)]
+               ((comp f g) 1))
+             t/Bool))
+
+(deftest poly-infer
   (is-tc-e (do (t/ann app (t/All [x y] [[x :-> y] x :-> y]))
                (def app #(%1 %2))
                (app #(inc %) 1))
@@ -65,33 +87,13 @@
                  ; 2 <: y
                  ;;FIXME y is being substited as Any...
                  (f 2)))
-           t/Int)
+           t/Int))
+
+#_
+(deftest poly-dots-infer
   #_ ;;FIXME
   (is-tc-e (let [f (fn* [x] x)]
              (map f [1]))
            (t/Seqable t/Int))
-  (is-tc-e (let [f (t/ann-form
-                     #(% 1)
-                     [[t/Int :-> t/Bool] :-> t/Bool])]
-             (f #(boolean (inc %))))
-           t/Bool)
-  (is-tc-err (let [f (t/ann-form
-                       #(% 1)
-                       [[t/Int :-> t/Bool] :-> t/Bool])]
-               (f #(boolean (inc %))))
-             t/Int)
-  (is-tc-e (let [comp (fn* [f g] (fn* [x] (f (g x))))
-                 f (fn* [x] x)
-                 g (fn* [y] y)]
-             ((comp f g) 1))
-           t/Int)
-  (is-tc-err (let [comp (fn* [f g] (fn* [x] (f (g x))))
-                   f (fn* [x] x)
-                   g (fn* [y] y)]
-               ((comp f g) 1))
-             t/Bool))
-
-#_
-(deftest symbolic-poly-infer-test
   ;;TODO
   (is-tc-e (map #(inc %) [1 2])))

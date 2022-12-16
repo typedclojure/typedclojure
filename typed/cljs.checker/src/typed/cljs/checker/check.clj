@@ -173,9 +173,7 @@
                (let [pbr (readers/indexing-push-back-reader
                            (java.io.PushbackReader. rdr) 1 filename)
                      data-readers (merge tags/*cljs-data-readers*
-                                         ;; upcoming
-                                         (when-some [load-data-readers (resolve 'cljs.analyzer/load-data-readers)]
-                                           (load-data-readers)))
+                                         (cljs-ana/load-data-readers))
                      eof (Object.)
                      read-opts (cond-> {:eof eof :features #{:cljs}}
                                  (.endsWith filename "cljc") (assoc :read-cond :allow))]
