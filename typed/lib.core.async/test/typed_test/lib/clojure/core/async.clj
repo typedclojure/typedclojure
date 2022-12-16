@@ -5,7 +5,7 @@
 
 (def ^:private common-requires
   '[:requires [[clojure.core.async :as a :refer [<! >!]]
-               [typed.lib.clojure.core.async :as ta :refer [chan]]]])
+               [typed.lib.clojure.core.async :as ta :refer [Chan chan]]]])
 
 (defmacro is-tc-e [& args] `(tu/is-tc-e ~@args ~@common-requires))
 (defmacro is-tc-err [& args] `(tu/is-tc-err ~@args ~@common-requires))
@@ -44,6 +44,16 @@
              (def upcase (lift-chan upper-case))
              #(upcase (chan :- t/Str)))
            [:-> (ta/Chan t/Str)]))
+
+(deftest chan-test
+  (is-tc-e #(chan 1 (map str))
+           [:-> (ta/Chan2 t/Str t/Any)])
+  (is-tc-e #(chan 1 (map str))
+           [:-> (ta/Chan2 t/Any t/Str)])
+  (is-tc-e #(chan 1 (map str))
+           [:-> (ta/Chan2 (t/U nil t/Str) t/Str)])
+  (is-tc-err #(chan 1 (map str))
+             [:-> (ta/Chan2 (t/U nil t/Str) t/Bool)]))
 
 (deftest pipe-test
   (is-tc-e #(a/pipe (chan :- t/Str)

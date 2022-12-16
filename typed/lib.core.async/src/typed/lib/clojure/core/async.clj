@@ -179,25 +179,16 @@
 (ann ^:no-check clojure.core.async/chan
      (t/All [p t]
             (t/IFn [:-> (Chan2 p t)]
-                 [(t/U (Buffer2 p t) t/Int nil) :-> (Chan2 p t)]
-                 [(t/U (Buffer2 p t) t/Int nil)
-                  ; xform
-                  (t/U nil
-                       ;;TODO use Transducer
-                       [[(Buffer2 p t) p :-> (Buffer2 p t)]
-                        :->
-                        [(Buffer2 p t) p :-> (Buffer2 p t)]])
-                  :-> (Chan2 p t)]
-                 [(t/U (Buffer2 p t) t/Int nil)
-                  ; xform
-                  (t/U nil
-                       [[(Buffer2 p t) p :-> (Buffer2 p t)]
-                        :->
-                        [(Buffer2 p t) p :-> (Buffer2 p t)]])
-                  ; ex-handler
-                  (t/U nil
-                       [Throwable :-> (t/U nil p)])
-                  :-> (Chan2 p t)])))
+                   [; buf-or-n
+                    (t/U (Buffer2 p t) t/Int nil) :-> (Chan2 p t)]
+                   [; buf-or-n
+                    (t/U (Buffer2 p t) t/Int nil)
+                    ; xform
+                    (t/U nil (t/Transducer p t))
+                    ; ex-handler
+                    (t/U nil [Throwable :-> (t/U nil p)])
+                    :?
+                    :-> (Chan2 p t)])))
 
 
 (ann ^:no-check clojure.core.async/<!! (t/All [t] [(Port2 t/Nothing t) :-> (t/U nil t)]))
