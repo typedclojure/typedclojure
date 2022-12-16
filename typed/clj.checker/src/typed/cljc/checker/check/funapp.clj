@@ -223,9 +223,8 @@
                                   ftypes)
              success-ret-type (when-let [f (first matching-fns)]
                                 (funapp1/check-funapp1 fexpr args f arg-ret-types expected :check? false))]
-         (if success-ret-type
-           success-ret-type
-           (app-err/plainapp-type-error fexpr args fexpr-type arg-ret-types expected)))
+         (or success-ret-type
+             (app-err/plainapp-type-error fexpr args fexpr-type arg-ret-types expected)))
 
        (r/SymbolicClosure? fexpr-type)
        (let [capp (with-bindings (dissoc (:bindings fexpr-type)
@@ -400,7 +399,7 @@
                             kws
                             (let [{:keys [mandatory optional]} kws
                                   [normal-argtys flat-kw-argtys] (split-at (count dom) arg-types)
-                                  _ (when-not (even? (count flat-kw-argtys))
+                                  _ (when (odd? (count flat-kw-argtys))
                                       ; move to next arity
                                       (cgen/fail! nil nil)
                                       #_(err/int-error (str "Uneven number of keyword arguments "
@@ -419,7 +418,7 @@
                                                    (r/Type? kw-key-t)
                                                    (r/Type? kw-val-t)]
                                              :post [((con/hvector-c? (every-pred vector? (con/every-c? r/Type?)) 
-                                                                   (every-pred vector? (con/every-c? r/Type?)))
+                                                                     (every-pred vector? (con/every-c? r/Type?)))
                                                      %)]}
                                             (when-not (r/Value? kw-key-t)
                                               ; move to next arity
@@ -436,15 +435,15 @@
                                                   ; the rest param as a complete hash map when checking 
                                                   ; fn bodies.
                                                   (err/tc-delayed-error (str "Undeclared keyword parameter " 
-                                                                           (pr-str (prs/unparse-type kw-key-t))))
+                                                                             (pr-str (prs/unparse-type kw-key-t))))
                                                   [(conj kw-val-actual-tys kw-val-t)
                                                    (conj kw-val-expected-tys r/-any)]))))
                                           [[] []]
                                           paired-kw-argtys)]
                               ;make sure all mandatory keys are present
-                              (when-let [missing-ks (seq 
-                                                      (set/difference (set (keys mandatory))
-                                                                      (set (keys paired-kw-argtys))))]
+                              (when-some [missing-ks (not-empty
+                                                       (set/difference (set (keys mandatory))
+                                                                       (set (keys paired-kw-argtys))))]
                                 ; move to next arity
                                 (cgen/fail! nil nil))
                                 ;(err/tc-delayed-error (str "Missing mandatory keyword keys: "
@@ -474,9 +473,8 @@
                          (do (err/tc-delayed-error (str "Cannot infer arguments to polymorphic functions with dotted rest"))
                              nil)
                          (recur ftypes)))))))]
-         (if ret-type
-           ret-type
-           (app-err/polyapp-type-error fexpr args fexpr-type arg-ret-types expected)))
+         (or ret-type
+             (app-err/polyapp-type-error fexpr args fexpr-type arg-ret-types expected)))
 
        :else ;; any kind of dotted polymorphic function without mandatory or optional keyword args
        (if-let [[pbody fixed-map dotted-map]
@@ -506,7 +504,7 @@
 
                               (and (r/FnIntersection? pbody)
                                    (seq (:types pbody))
-                                   (not (some :kws (:types pbody))))
+                                   (not-any? :kws (:types pbody)))
                               [pbody fixed dotted])))]
                   ; don't support nested PolyDots yet
                   (when (should-infer? fexpr-type)

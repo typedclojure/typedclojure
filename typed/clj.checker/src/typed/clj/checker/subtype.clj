@@ -86,11 +86,12 @@
 (defmacro ^:private do-top-level-subtype-using [f & args]
   ;; maintain *sub-current-seen* for subtyping checks that span
   ;; beyond just this file (eg., subtyping => cs-gen => subtyping)
-  `(if-let [A# *sub-current-seen*]
-     (~f A# ~@args)
-     (let [A# #{}]
-       (binding [*sub-current-seen* A#]
-         (~f A# ~@args)))))
+  `(let [f# (fn [A#] (~f A# ~@args))]
+     (if-some [A# *sub-current-seen*]
+       (f# A#)
+       (let [A# #{}]
+         (binding [*sub-current-seen* A#]
+           (f# A#))))))
 
 ;[(t/Seqable Type) (t/Seqable Type) Type -> Boolean]
 (defn subtypes-varargs?
@@ -917,6 +918,19 @@
                 (nil? ext) r/-nil
                 :else (throw (Exception. (str "What is this?" ext))))))))
 
+(defn check-symbolic-clojure [arg-t dom-t]
+  {:pre [(r/SymbolicClosure? arg-t)
+         (r/AnyType? dom-t)]
+   :post [((some-fn nil? r/TCResult?) %)]}
+  (with-bindings (assoc (:bindings arg-t)
+                        #'vs/*delayed-errors* (err/-init-delayed-errors))
+    (when-some [res (try (chk/check-expr (:fexpr arg-t) (r/ret dom-t))
+                         (catch clojure.lang.ExceptionInfo e
+                           (when-not (-> e ex-data err/tc-error?)
+                             (throw e))))]
+      (when (empty? @vs/*delayed-errors*)
+        res))))
+
 (def ^:dynamic *subtypes-varargs-symbolic-closures* false)
 
 ;[(IPersistentSet '[Type Type]) (t/Seqable Type) (t/Seqable Type) (Option Type)
@@ -963,16 +977,9 @@
                   [dom-t] dom]
               (if (and (r/SymbolicClosure? arg-t)
                        resolve-symbolic-closures?)
-                (let [continue? (with-bindings (assoc (:bindings arg-t)
-                                                      #'vs/*delayed-errors* (err/-init-delayed-errors))
-                                  (and (try (chk/check-expr (:fexpr arg-t) (r/ret dom-t))
-                                            (catch clojure.lang.ExceptionInfo e
-                                              (when-not (-> e ex-data err/tc-error?)
-                                                (throw e))))
-                                       (empty? @vs/*delayed-errors*)))]
-                  (if continue?
-                    (recur (next dom) (next argtys) A0 found-kws)
-                    (report-not-subtypes arg-t dom-t)))
+                (if (check-symbolic-clojure arg-t dom-t)
+                  (recur (next dom) (next argtys) A0 found-kws)
+                  (report-not-subtypes arg-t dom-t))
                 (if-let [A (subtypeA* A0 arg-t dom-t)]
                   (recur (next dom) (next argtys) A found-kws)
                   (report-not-subtypes arg-t dom-t))))))))))

@@ -20,7 +20,7 @@
 (fold/add-fold-case IExpectedDispatchType expected-dispatch-type*
   Function
   (fn [ty]
-    (assoc ty :rng (r/make-Result r/-any))))
+    (assoc ty :rng (r/make-Result r/-infer-any))))
 
 ;return the expected type for the dispatch fn of the given multimethod's expected type
 ;[Type -> Type]

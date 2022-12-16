@@ -1048,12 +1048,12 @@
 ;; END TOP-LEVEL TEST
 
 (deftest class-pathelem-test
-  (is-clj (= (-> (ety #(class %))
+  (is-clj (= (-> (ety (t/fn [v :- t/Any] (class v)))
                  :types first :rng Result-object*)
              (-path [(ClassPE-maker)] 0)))
   (is-clj (subtype? 
             (ety 
-              #(= Number (class %)))
+              (t/fn [v :- t/Any] (= Number (class v))))
             (FnIntersection-maker
               [(make-Function
                  [-any]
@@ -4472,8 +4472,8 @@
                (defmulti f identity)
                (defmethod f :foo [a]
                  1)))
-  (is-tc-e (defmulti f identity))
   ;; expected type required
+  (is-tc-err (defmulti f identity))
   (is-tc-err (do (defmulti f identity)
                  ;(ann-form f t/Nothing)
                  (defmethod f :foo [a]

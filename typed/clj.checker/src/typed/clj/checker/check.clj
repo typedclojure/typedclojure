@@ -1763,15 +1763,23 @@
                            (when (class? cls)
                              (coerce/Class->symbol cls)))))
 
+;; TODO share this logic with a macro rule for `clojure.core/defmulti`
 (defmethod -new-special 'clojure.lang.MultiFn
   [expr expected]
   {:post [(-> % u/expr-type r/TCResult?)]}
   (when-not (== 4 (count (:args expr)))
     (err/int-error "Wrong arguments to clojure.lang.MultiFn constructor"))
-  (let [{[nme-expr dispatch-expr default-expr hierarchy-expr] :args :as expr}
+  (when-not expected
+    (err/int-error "Expected type needed for defmulti"))
+  (let [expected-t (r/ret-t expected)
+        expected-d (multi/expected-dispatch-type expected-t)
+        {[nme-expr cdispatch-expr default-expr hierarchy-expr] :args :as expr}
         (-> expr
+            (update :class check-expr)
             ;name
             (update-in [:args 0] check-expr)
+            ;dispatch-expr
+            (update-in [:args 1] check-expr)
             ;default
             (update-in [:args 2] check-expr)
             ;hierarchy
@@ -1783,25 +1791,14 @@
         mm-name (:val nme-expr)
         _ (when-not (string? mm-name)
             (err/int-error "MultiFn name must be a literal string"))
+        inferred-dispatch-t (c/fully-resolve-type (r/ret-t (u/expr-type cdispatch-expr)))
+        _ (when ((some-fn r/Union? r/Intersection?) inferred-dispatch-t)
+            (err/nyi-error "defmulti dispatch function inferred as union or intersection"))
+        resolved-dispatch-t (cond-> inferred-dispatch-t
+                              (r/SymbolicClosure? inferred-dispatch-t) (sub/check-symbolic-clojure expected-d))
         mm-qual (symbol (str (cu/expr-ns expr)) mm-name)
-        cdisp (check-expr dispatch-expr)
-        ;_ (prn "cdisp type" (r/ret-t (u/expr-type cdisp)) expected)
-        expected-mm-disp (multi/expected-dispatch-type (r/ret-t (or expected (u/expr-type cdisp))))
-        ;_ (prn "expected-mm-disp" expected-mm-disp)
-        ;; use the dispatch expected type when expected not available,
-        ;; this way the type of the entire multimethod must correspond
-        ;; to the inputs accepted by the dispatch function.
-        expected-t (or (some-> expected r/ret-t)
-                       expected-mm-disp)
-        _ (assert (r/Type? expected-t))
-        _ (when-not (sub/subtype? (-> cdisp u/expr-type r/ret-t) expected-mm-disp)
-            (binding [vs/*current-expr* cdisp
-                      vs/*current-env* (:env cdisp)]
-              (cu/expected-error (-> cdisp u/expr-type r/ret-t) (r/ret expected-mm-disp))))
-        _ (mm/add-multimethod-dispatch-type mm-qual (r/ret-t (u/expr-type cdisp)))]
+        _ (mm/add-multimethod-dispatch-type mm-qual resolved-dispatch-t)]
     (-> expr
-        (update :class check-expr)
-        (assoc-in [:args 1] cdisp)
         (assoc u/expr-type (below/maybe-check-below
                              (r/ret (c/In #_(c/RClass-of clojure.lang.MultiFn) 
                                           expected-t))
