@@ -1794,13 +1794,13 @@
         inferred-dispatch-t (c/fully-resolve-type (r/ret-t (u/expr-type cdispatch-expr)))
         _ (when ((some-fn r/Union? r/Intersection?) inferred-dispatch-t)
             (err/nyi-error "defmulti dispatch function inferred as union or intersection"))
-        _ (prn "inferred-dispatch-t" inferred-dispatch-t)
-        _ (prn "expected-d" expected-d)
+        ;_ (prn "inferred-dispatch-t" inferred-dispatch-t)
+        ;_ (prn "expected-d" expected-d)
         resolved-dispatch-t (cond-> inferred-dispatch-t
                               (r/SymbolicClosure? inferred-dispatch-t) (-> (sub/check-symbolic-closure expected-d)
                                                                            u/expr-type
                                                                            r/ret-t))
-        _ (prn "resolved-dispatch-t" resolved-dispatch-t)
+        ;_ (prn "resolved-dispatch-t" resolved-dispatch-t)
         mm-qual (symbol (str (cu/expr-ns expr)) mm-name)
         _ (mm/add-multimethod-dispatch-type mm-qual resolved-dispatch-t)]
     (-> expr

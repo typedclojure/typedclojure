@@ -145,7 +145,7 @@
                                (:else exp-f))))
                    (let [exp-o (r/ret-o expected)
                          tr-o (r/ret-o tr1)]
-                     (prn "exp-o" exp-o (obj/infer-obj? exp-o))
+                     ;(prn "exp-o" exp-o (obj/infer-obj? exp-o))
                      (if ((some-fn obj/NoObject? obj/infer-obj?) exp-o)
                        tr-o
                        exp-o))))]
