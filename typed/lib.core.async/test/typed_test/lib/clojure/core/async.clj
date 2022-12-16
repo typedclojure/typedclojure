@@ -5,7 +5,7 @@
 
 (def ^:private common-requires
   '[:requires [[clojure.core.async :as a :refer [<! >!]]
-               [typed.lib.clojure.core.async :as ta :refer [Chan chan]]]])
+               [typed.lib.clojure.core.async :as ta :refer [chan]]]])
 
 (defmacro is-tc-e [& args] `(tu/is-tc-e ~@args ~@common-requires))
 (defmacro is-tc-err [& args] `(tu/is-tc-err ~@args ~@common-requires))
@@ -26,7 +26,7 @@
               (a/>!! c2 "there")))
   (is-tc-e #(a/alts!! [(a/chan) (a/chan)] :priority true))
   (is-tc-e (do
-             (ann lift-chan (t/All [x y] [[x :-> y] :-> [(ta/Chan x) :-> (ta/Chan y)]]))
+             (ann lift-chan (t/All [x y] [[x :-> (t/I Object y)] :-> [(ta/Chan x) :-> (ta/Chan y)]]))
              (cc/defn lift-chan [function]
                (fn [in]
                  (let [out (chan :- y)] ;;TODO infer this
@@ -54,6 +54,30 @@
            [:-> (ta/Chan2 (t/U nil t/Str) t/Str)])
   (is-tc-err #(chan 1 (map str))
              [:-> (ta/Chan2 (t/U nil t/Str) t/Bool)]))
+
+(deftest >!!-test
+  (is-tc-e (fn [c :- (ta/Chan t/Str)]
+             (a/>!! c "hi")))
+  (is-tc-err (fn [c :- (ta/Chan t/Str)]
+               (a/>!! c true)))
+  ;; nil not allowed
+  (is-tc-err (fn [c :- (ta/Chan t/Str)]
+               (a/>!! c nil)))
+  (is-tc-err (fn [c :- (ta/Chan (t/U nil t/Str))]
+               (a/>!! c nil))))
+
+(deftest >!-test
+  (is-tc-e (fn [c :- (ta/Chan t/Str)]
+             (a/go (a/>! c "hello"))))
+  (is-tc-err (fn [c :- (ta/Chan t/Str)]
+               (a/go (a/>! c true))))
+  ;; nil not allowed
+  (is-tc-err (fn [c :- (ta/Chan t/Str)]
+               (a/go (a/>! c nil))))
+  (is-tc-err (fn [c :- (ta/Chan (t/U nil t/Str))]
+               (a/go (a/>! c nil))))
+  (is-tc-err (fn [c :- (ta/Chan nil)]
+               (a/go (a/>! c nil)))))
 
 (deftest pipe-test
   (is-tc-e #(a/pipe (chan :- t/Str)

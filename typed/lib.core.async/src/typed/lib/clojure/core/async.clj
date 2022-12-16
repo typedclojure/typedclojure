@@ -194,16 +194,16 @@
 (ann ^:no-check clojure.core.async/<!! (t/All [t] [(Port2 t/Nothing t) :-> (t/U nil t)]))
 ; should this use Port's?
 (ann ^:no-check clojure.core.async/<! (t/All [t] [(Port2 t/Nothing t) :-> (t/U nil t)]))
-(ann ^:no-check clojure.core.async/>!! (t/All [p] [(Port2 p t/Any) p :-> t/Any]))
-(ann ^:no-check clojure.core.async/>! (t/All [p t] [(Port2 p t) p :-> (Port2 p t)]))
-(t/ann-many 
+(ann ^:no-check clojure.core.async/>!! (t/All [p] [(Port2 p t/Any) (t/I Object p) :-> t/Any]))
+(ann ^:no-check clojure.core.async/>! (t/All [p t] [(Port2 p t) (t/I Object p) :-> t/Any]))
+(t/ann-many
   (t/All [x d]
-         (t/IFn [(t/Seqable (t/U (Port x) '[(Port x) x])) 
-                 & :mandatory {:default d} 
-                 :optional {:priority (t/U nil true)} 
+         (t/IFn [(t/Seqable (t/U (Port x) '[(Port x) x]))
+                 & :mandatory {:default d}
+                 :optional {:priority (t/U nil true)}
                  :-> (t/U '[d ':default] '[(t/U nil x) (Port x)])]
-                [(t/Seqable (t/U (Port x) '[(Port x) x])) 
-                 & :optional {:priority (t/U nil true)} 
+                [(t/Seqable (t/U (Port x) '[(Port x) x]))
+                 & :optional {:priority (t/U nil true)}
                  :-> '[(t/U nil x) (Port x)]]))
   ^:no-check clojure.core.async/alts!!
   ^:no-check clojure.core.async/alts!)
