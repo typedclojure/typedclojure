@@ -1,7 +1,7 @@
 ;; DO NOT EDIT! Instead, edit `dev/resources/root-templates/typed/cljs.checker/deps.edn` and run `./script/regen-selmer.sh`
 {:paths ["src"]
  :deps {org.clojure/clojure {:mvn/version "1.11.1"}
-        org.clojure/tools.analyzer.jvm {:mvn/version "1.2.2"}
+        org.clojure/tools.analyzer.jvm {:mvn/version "1.2.3"}
         org.typedclojure/typed.clj.checker {:local/root "../clj.checker"
                                             :deps/manifest :deps}
         org.typedclojure/typed.cljs.runtime {:local/root "../cljs.runtime"
@@ -32,7 +32,7 @@
            {:extra-paths ["test"]
             :extra-deps {;org.clojure/tools.nrepl {:mvn/version "0.2.6"
                          ;                         :exclusions [org.clojure/clojure]}
-                         ;org.clojure/core.async {:mvn/version "1.5.648"
+                         ;org.clojure/core.async {:mvn/version "1.6.673"
                          ;                        :exclusions [org.clojure/tools.analyzer.jvm]}
                          ;org.clojure/tools.trace {:mvn/version "0.7.5"
                          ;                         :exclusions [org.clojure/clojure]}

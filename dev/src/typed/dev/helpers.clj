@@ -31,13 +31,13 @@
    :tools-namespace-mvn-version "1.3.0"
    :cider-nrepl-mvn-version "0.28.2"
    :asm-mvn-version "9.2"
-   :tools-analyzer-mvn-version "1.1.0"
-   :tools-analyzer-jvm-mvn-version "1.2.2"
+   :tools-analyzer-mvn-version "1.1.1"
+   :tools-analyzer-jvm-mvn-version "1.2.3"
    :potemkin-mvn-version "0.4.6"
    :math-combinatorics-mvn-version "0.1.6"
    :tools-reader-mvn-version "1.3.6"
    :core-cache-mvn-version "1.0.225"
-   :core-async-mvn-version "1.5.648"
+   :core-async-mvn-version "1.6.673"
    ;; FIXME clj.checker fails on higher
    :tools-nrepl-mvn-version "0.2.6"
    :test-check-mvn-version "1.1.1"
@@ -51,7 +51,7 @@
    ;; 1.60.972
    :kaocha-sha "23d7bf426c8bc2027d0da2fc2a5420f5c6474740"
    :typedclojure-homepage "https://typedclojure.org"
-   :malli-mvn-version "0.9.0"
+   :malli-mvn-version "0.9.2"
    :beholder-mvn-version "1.0.0"
-   :process-mvn-version "0.3.11"
+   :process-mvn-version "0.4.13"
    })

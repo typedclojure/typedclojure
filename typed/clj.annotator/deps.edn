@@ -8,7 +8,7 @@
         org.clojure/tools.namespace {:mvn/version "1.3.0"}
         org.clojure/math.combinatorics {:mvn/version "0.1.6"
                                         :exclusions [org.clojure/clojure]}
-        org.clojure/tools.analyzer.jvm {:mvn/version "1.2.2"}
+        org.clojure/tools.analyzer.jvm {:mvn/version "1.2.3"}
         ;; TODO revisit this now that Clojure CLI can compile java sources
         ;; can't vendor this as it includes Java sources that need to be compiled.
         ;; perhaps we can make it optional in the future.

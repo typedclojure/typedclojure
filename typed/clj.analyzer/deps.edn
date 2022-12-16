@@ -21,7 +21,7 @@
            :test
            {:extra-paths ["test"]
             :extra-deps
-            {org.clojure/tools.analyzer.jvm {:mvn/version "1.2.2"}
+            {org.clojure/tools.analyzer.jvm {:mvn/version "1.2.3"}
              criterium/criterium {:mvn/version "0.4.5"}}}
            :codox
            {:extra-deps {codox/codox {:mvn/version "0.10.7"}}
