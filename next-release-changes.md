@@ -1,1 +1,3 @@
 - require expected type for `defmulti`
+- enable symbolic closures by default
+  - checking is deferred for unannotated local functions until (and only if) they are applied

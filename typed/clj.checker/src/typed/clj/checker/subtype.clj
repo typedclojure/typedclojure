@@ -300,6 +300,35 @@
       (:types mi)
       [mi])))
 
+(defn subtype-symbolic-closure
+  "Return A if symbolic closure s is a subtype of t, otherwise nil."
+  [A s t]
+  {:pre [(set? A)
+         (r/SymbolicClosure? s)
+         (r/AnyType? t)]
+   :post [((some-fn nil? r/TCResult?) %)]}
+  (with-bindings (assoc (:bindings s)
+                        #'vs/*delayed-errors* (err/-init-delayed-errors))
+    (when-some [res (try (binding [*sub-current-seen* A]
+                           (-> (:fexpr s)
+                               (chk/check-expr (r/ret t))
+                               u/expr-type))
+                         (catch clojure.lang.ExceptionInfo e
+                           (when-not (-> e ex-data err/tc-error?)
+                             (throw e))))]
+      (when (empty? @vs/*delayed-errors*)
+        res))))
+
+(defn check-symbolic-closure
+  "Check symbolic closure s against type t (propagating all errors to caller),
+  returning the checked expression."
+  [s t]
+  {:pre [(r/SymbolicClosure? s)
+         (r/AnyType? t)]
+   :post [(-> % u/expr-type r/TCResult?)]}
+  (with-bindings (dissoc (:bindings s) #'vs/*delayed-errors*)
+    (chk/check-expr (:fexpr s) (r/ret t))))
+
 ;TODO replace hardcoding cases for unfolding Mu? etc. with a single case for unresolved types.
 ;[(t/Set '[Type Type]) Type Type -> (t/Nilable (t/Set '[Type Type]))]
 (defn ^:private subtypeA* [A s t]
@@ -309,7 +338,7 @@
    ;:post [(or (set? %) (nil? %))]
    }
   ;(prn "subtypeA*" s t)
-  (if (or ; FIXME TypeFn's probably are not between Top/Bottom
+  (if (or ; FIXME TypeFn's are probably not between Top/Bottom
           (r/Top? t)
           (r/Bottom? s)
           ;; Unchecked is both bottom and top
@@ -481,6 +510,11 @@
               (if-let [A (supertype-of-one-arr A* (first arr2) arr1)]
                 (recur A (next arr2))
                 (report-not-subtypes s t)))))
+
+        (and (r/SymbolicClosure? s)
+             ((some-fn r/FnIntersection? r/Poly? r/PolyDots?) t))
+        (or (subtype-symbolic-closure A s t)
+            (report-not-subtypes s t))
 
 ;does it matter what order the Intersection cases are?
         (r/Intersection? t)
@@ -918,71 +952,49 @@
                 (nil? ext) r/-nil
                 :else (throw (Exception. (str "What is this?" ext))))))))
 
-(defn check-symbolic-closure [arg-t dom-t]
-  {:pre [(r/SymbolicClosure? arg-t)
-         (r/AnyType? dom-t)]
-   :post [((some-fn nil? r/TCResult?) %)]}
-  (with-bindings (assoc (:bindings arg-t)
-                        #'vs/*delayed-errors* (err/-init-delayed-errors))
-    (when-some [res (try (chk/check-expr (:fexpr arg-t) (r/ret dom-t))
-                         (catch clojure.lang.ExceptionInfo e
-                           (when-not (-> e ex-data err/tc-error?)
-                             (throw e))))]
-      (when (empty? @vs/*delayed-errors*)
-        res))))
-
-(def ^:dynamic *subtypes-varargs-symbolic-closures* false)
-
 ;[(IPersistentSet '[Type Type]) (t/Seqable Type) (t/Seqable Type) (Option Type)
 ;  -> (IPersistentSet '[Type Type])]
 (defn ^:private subtypes*-varargs [A0 argtys dom rst kws]
   {:pre [((some-fn nil? r/Type?) rst)
          ((some-fn nil? r/KwArgs?) kws)]
    :post [((some-fn set? nil?) %)]}
-  (let [resolve-symbolic-closures? *subtypes-varargs-symbolic-closures*]
-    (binding [*subtypes-varargs-symbolic-closures* false]
-      (letfn [(all-mandatory-kws? [found-kws]
-                {:pre [(set? found-kws)]}
-                (empty? (set/difference (set (keys (:mandatory kws)))
-                                        found-kws)))]
-        (loop [dom dom
-               argtys argtys
-               A A0
-               found-kws #{}]
-          (cond
-            (and (empty? dom) (empty? argtys)) 
-            (if (all-mandatory-kws? found-kws)
-              A
-              (report-not-subtypes argtys dom))
+  (letfn [(all-mandatory-kws? [found-kws]
+            {:pre [(set? found-kws)]}
+            (empty? (set/difference (set (keys (:mandatory kws)))
+                                    found-kws)))]
+    (loop [dom dom
+           argtys argtys
+           A A0
+           found-kws #{}]
+      (cond
+        (and (empty? dom) (empty? argtys)) 
+        (if (all-mandatory-kws? found-kws)
+          A
+          (report-not-subtypes argtys dom))
 
-            (empty? argtys) (report-not-subtypes argtys dom)
+        (empty? argtys) (report-not-subtypes argtys dom)
 
-            (and (empty? dom) rst)
-            (if-let [A (subtypeA* A (first argtys) rst)]
-              (recur dom (next argtys) A found-kws)
-              (report-not-subtypes (first argtys) rst))
+        (and (empty? dom) rst)
+        (if-let [A (subtypeA* A (first argtys) rst)]
+          (recur dom (next argtys) A found-kws)
+          (report-not-subtypes (first argtys) rst))
 
-            (and (empty? dom) (<= 2 (count argtys)) kws)
-            (let [kw (c/fully-resolve-type (first argtys))
-                  val (second argtys)
-                  expected-val ((some-fn (:mandatory kws) (:optional kws))
-                                kw)]
-              (if (and expected-val (subtypeA* A val expected-val))
-                (recur dom (drop 2 argtys) A (conj found-kws kw))
-                (report-not-subtypes (take 2 argtys) kws)))
+        (and (empty? dom) (<= 2 (count argtys)) kws)
+        (let [kw (c/fully-resolve-type (first argtys))
+              val (second argtys)
+              expected-val ((some-fn (:mandatory kws) (:optional kws))
+                            kw)]
+          (if (and expected-val (subtypeA* A val expected-val))
+            (recur dom (drop 2 argtys) A (conj found-kws kw))
+            (report-not-subtypes (take 2 argtys) kws)))
 
-            (empty? dom) (report-not-subtypes argtys dom)
-            :else
-            (let [[arg-t] argtys
-                  [dom-t] dom]
-              (if (and (r/SymbolicClosure? arg-t)
-                       resolve-symbolic-closures?)
-                (if (check-symbolic-closure arg-t dom-t)
-                  (recur (next dom) (next argtys) A0 found-kws)
-                  (report-not-subtypes arg-t dom-t))
-                (if-let [A (subtypeA* A0 arg-t dom-t)]
-                  (recur (next dom) (next argtys) A found-kws)
-                  (report-not-subtypes arg-t dom-t))))))))))
+        (empty? dom) (report-not-subtypes argtys dom)
+        :else
+        (let [[arg-t] argtys
+              [dom-t] dom]
+          (if-some [A (subtypeA* A0 arg-t dom-t)]
+            (recur (next dom) (next argtys) A found-kws)
+            (report-not-subtypes arg-t dom-t)))))))
 
 ;FIXME
 (defn subtype-kwargs* [A s t]
@@ -1430,7 +1442,7 @@
                                                              (prs/unparse-type s) " " (prs/unparse-type t)))
                                    :RClass)
                  (r/DataType? s) :DataType
-                 :else (err/int-error (str "what is this?" s)))
+                 :else (err/int-error (str "what is this? " s)))
         ;first try and find the datatype in the protocol's extenders
         in-protocol-extenders? (boolean
                                  (seq

@@ -171,3 +171,5 @@
    p/IFilterSet
    (then-filter [_] then)
    (else-filter [_] else)])
+
+(def -infer-FS (FilterSet-maker -infer-top -infer-top))

@@ -8,7 +8,9 @@
 
 (ns typed.cljc.checker.check.multi
   (:require [typed.cljc.checker.fold-rep :as fold]
-            [typed.cljc.checker.type-rep :as r])
+            [typed.cljc.checker.filter-rep :as fl]
+            [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.checker.object-rep :as obj])
   (:import (typed.cljc.checker.type_rep Function)))
 
 ;; Multimethod definition
@@ -20,7 +22,7 @@
 (fold/add-fold-case IExpectedDispatchType expected-dispatch-type*
   Function
   (fn [ty]
-    (assoc ty :rng (r/make-Result r/-infer-any))))
+    (assoc ty :rng (r/make-Result r/-infer-any fl/-infer-FS obj/-infer-obj))))
 
 ;return the expected type for the dispatch fn of the given multimethod's expected type
 ;[Type -> Type]

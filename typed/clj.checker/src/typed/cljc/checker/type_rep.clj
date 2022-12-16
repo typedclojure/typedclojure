@@ -1123,7 +1123,7 @@
 
 ;; Symbolic closures
 
-(def ^:dynamic enable-symbolic-closures? #_true false)
+(def ^:dynamic enable-symbolic-closures? true #_false)
 
 (u/ann-record SymbolicClosure [bindings :- (t/Map t/Any t/Any)
                                fexpr :- (t/Map t/Any t/Any)])

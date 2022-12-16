@@ -1713,7 +1713,9 @@
   SymbolicClosure
   (unparse-type* 
     [{:keys [fexpr]}]
-    (list 'SymbolicClosure))
+    (list 'SymbolicClosure (binding [*print-length* 5
+                                     *print-level* 5]
+                             (pr-str (:form fexpr)))))
 
   Function
   (unparse-type* 

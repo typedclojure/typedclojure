@@ -41,8 +41,9 @@
 (def -infer-obj (with-meta (EmptyObject-maker) {::infer true}))
 
 (defn infer-obj? [v]
-  (and (= -infer-obj)
-       (::infer (meta v))))
+  (boolean
+    (and (= v -infer-obj)
+         (::infer (meta v)))))
 
 (t/ann-record Path [path :- (t/Seqable p/IRObject)
                     id :- fr/NameRef])

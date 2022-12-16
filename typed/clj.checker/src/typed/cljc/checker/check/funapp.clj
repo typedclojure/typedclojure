@@ -218,10 +218,9 @@
                                     {:pre [(r/Function? f)]}
                                     (if prest
                                       (sub/subtypes-prest? arg-types dom prest)
-                                      (binding [sub/*subtypes-varargs-symbolic-closures* true]
-                                        (sub/subtypes-varargs? arg-types dom rest kws))))
+                                      (sub/subtypes-varargs? arg-types dom rest kws)))
                                   ftypes)
-             success-ret-type (when-let [f (first matching-fns)]
+             success-ret-type (when-some [f (first matching-fns)]
                                 (funapp1/check-funapp1 fexpr args f arg-ret-types expected :check? false))]
          (or success-ret-type
              (app-err/plainapp-type-error fexpr args fexpr-type arg-ret-types expected)))
@@ -426,24 +425,22 @@
                                               #_(err/int-error 
                                                 (str "Can only check keyword arguments with Value keys, found"
                                                      (pr-str (prs/unparse-type kw-key-t)))))
-                                            (let [expected-val-t ((some-fn optional mandatory) kw-key-t)]
-                                              (if expected-val-t
+                                            (if-some [expected-val-t ((some-fn optional mandatory) kw-key-t)]
+                                              [(conj kw-val-actual-tys kw-val-t)
+                                               (conj kw-val-expected-tys expected-val-t)]
+                                              (do 
+                                                ; Using undeclared keyword keys is an error because we want to treat
+                                                ; the rest param as a complete hash map when checking 
+                                                ; fn bodies.
+                                                (err/tc-delayed-error (str "Undeclared keyword parameter " 
+                                                                           (pr-str (prs/unparse-type kw-key-t))))
                                                 [(conj kw-val-actual-tys kw-val-t)
-                                                 (conj kw-val-expected-tys expected-val-t)]
-                                                (do 
-                                                  ; Using undeclared keyword keys is an error because we want to treat
-                                                  ; the rest param as a complete hash map when checking 
-                                                  ; fn bodies.
-                                                  (err/tc-delayed-error (str "Undeclared keyword parameter " 
-                                                                             (pr-str (prs/unparse-type kw-key-t))))
-                                                  [(conj kw-val-actual-tys kw-val-t)
-                                                   (conj kw-val-expected-tys r/-any)]))))
+                                                 (conj kw-val-expected-tys r/-any)])))
                                           [[] []]
                                           paired-kw-argtys)]
                               ;make sure all mandatory keys are present
                               (when-some [missing-ks (not-empty
-                                                       (set/difference (set (keys mandatory))
-                                                                       (set (keys paired-kw-argtys))))]
+                                                       (apply disj (set (keys mandatory)) (keys paired-kw-argtys)))]
                                 ; move to next arity
                                 (cgen/fail! nil nil))
                                 ;(err/tc-delayed-error (str "Missing mandatory keyword keys: "

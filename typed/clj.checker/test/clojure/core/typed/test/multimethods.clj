@@ -22,9 +22,6 @@
            [t/Any :-> (t/Option Class) :object {:id 0 :path [Class]}])
   (is-tc-err (fn [a b] (class b))
              [t/Any t/Any :-> (t/Option Class) :object {:id 0 :path [Class]}])
-  (let [res (tc-e (cc/fn [a] (class a)))]
-    (is (both-subtype? (r/ret-t res)
-                       (prs/parse-clj `[t/Any :-> (t/Option Class) :object {:id 0 :path [~'Class]}]))))
   (let [res (tc-e (fn [a] (class a)))]
     (is (both-subtype? (r/ret-t res)
                        (prs/parse-clj `[t/Any :-> (t/Option Class) :object {:id 0 :path [~'Class]}]))))
