@@ -170,10 +170,8 @@
 (ann ^:no-check clojure.core.async/thread-call (t/All [x] [[:-> x] :-> (Chan x)]))
 
 (ann ^:no-check clojure.core.async/pipe
-     (t/All [t]
-            (t/IFn
-              [(Chan t) (Chan t) :-> (Chan t)]
-              [(Chan t) (Chan t) t/Any :-> (Chan t)])))
+     (t/All [a b c]
+            [(Chan2 a b) (Chan2 b c) t/Any :? :-> (Chan2 b c)]))
 
 (ann ^:no-check clojure.core.async/timeout [t/Int :-> TimeoutChan])
 

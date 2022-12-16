@@ -49,6 +49,41 @@
     :requires [[clojure.core.async :as a :refer [<! >!]]
                [typed.lib.clojure.core.async :as ta :refer [chan]]]))
 
+(deftest pipe-test
+  (is-tc-e (t/ann-form
+             (a/pipe (chan :- t/Str)
+                     (chan :- t/Str))
+             (ta/Chan t/Str))
+           :requires [[clojure.core.async :as a :refer [<! >!]]
+                      [typed.lib.clojure.core.async :as ta :refer [chan]]])
+  (is-tc-err (t/ann-form
+               (a/pipe (chan :- t/Int)
+                       (chan :- t/Str))
+               (ta/Chan t/Str))
+             :requires [[clojure.core.async :as a :refer [<! >!]]
+                        [typed.lib.clojure.core.async :as ta :refer [chan]]])
+  (is-tc-e (t/ann-form
+             (a/pipe (t/ann-form (chan) (ta/Chan2 t/Int t/Str))
+                     (t/ann-form (chan) (ta/Chan2 t/Str t/Bool)))
+             (ta/Chan2 t/Str t/Bool))
+           :requires [[clojure.core.async :as a :refer [<! >!]]
+                      [typed.lib.clojure.core.async :as ta :refer [chan]]])
+  (is-tc-err (t/ann-form
+               (a/pipe (t/ann-form (chan) (ta/Chan2 t/Int t/Str))
+                       (t/ann-form (chan)
+                                   ;; swapped Bool/Str
+                                   (ta/Chan2 t/Bool t/Str)))
+               (ta/Chan2 t/Str t/Bool))
+             :requires [[clojure.core.async :as a :refer [<! >!]]
+                        [typed.lib.clojure.core.async :as ta :refer [chan]]])
+  (is-tc-err (t/ann-form
+               (a/pipe (t/ann-form (chan) (ta/Chan2 t/Int t/Str))
+                       (t/ann-form (chan) (ta/Chan2 t/Str t/Bool)))
+               ;; swapped Bool/Str
+               (ta/Chan2 t/Bool t/Str))
+             :requires [[clojure.core.async :as a :refer [<! >!]]
+                        [typed.lib.clojure.core.async :as ta :refer [chan]]]))
+
 (deftest rps-async-test
   (is (t/check-ns 'typed-test.lib.clojure.core.async.rps-async-test)))
 
