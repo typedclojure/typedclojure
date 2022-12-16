@@ -4,11 +4,13 @@
             [clojure.core.typed :as t]))
 
 (def ^:private common-requires
-  '[:requires [[clojure.core.async :as a :refer [<! >!]]
-               [typed.lib.clojure.core.async :as ta :refer [chan]]]])
+  '[[clojure.core.async :as a :refer [<! >!]]
+    [typed.lib.clojure.core.async :as ta :refer [chan]]])
 
-(defmacro is-tc-e [& args] `(tu/is-tc-e ~@args ~@common-requires))
-(defmacro is-tc-err [& args] `(tu/is-tc-err ~@args ~@common-requires))
+(apply require common-requires)
+
+(defmacro is-tc-e [& args] `(tu/is-tc-e ~@args :requires ~common-requires))
+(defmacro is-tc-err [& args] `(tu/is-tc-err ~@args :requires ~common-requires))
 
 ; wrap all these tests in thunks to prevent side effects
 
@@ -30,11 +32,11 @@
              (cc/defn lift-chan [function]
                (fn [in]
                  (let [out (chan :- y)] ;;TODO infer this
-                   (a/go
-                     (loop []
-                       (let [rcv (<! in)]
-                         (when rcv
-                           (>! out (function rcv))))))
+                   (a/go-loop []
+                     (some->> (<! in)
+                              function
+                              (>! out))
+                     (recur))
                    out)))
 
              (ann upper-case [t/Str :-> t/Str])
