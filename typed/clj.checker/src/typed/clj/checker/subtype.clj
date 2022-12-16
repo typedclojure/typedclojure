@@ -306,7 +306,7 @@
   {:pre [(set? A)
          (r/SymbolicClosure? s)
          (r/AnyType? t)]
-   :post [((some-fn nil? r/TCResult?) %)]}
+   :post [((some-fn nil? set?) %)]}
   (with-bindings (assoc (:bindings s)
                         #'vs/*delayed-errors* (err/-init-delayed-errors))
     (when (try (binding [*sub-current-seen* A]
