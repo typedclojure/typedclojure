@@ -183,6 +183,7 @@
                  [(t/U (Buffer2 p t) t/Int nil)
                   ; xform
                   (t/U nil
+                       ;;TODO use Transducer
                        [[(Buffer2 p t) p :-> (Buffer2 p t)]
                         :->
                         [(Buffer2 p t) p :-> (Buffer2 p t)]])
@@ -207,12 +208,12 @@
 (t/ann-many 
   (t/All [x d]
          (t/IFn [(t/Seqable (t/U (Port x) '[(Port x) x])) 
-               & :mandatory {:default d} 
-               :optional {:priority (t/U nil true)} 
-               :-> (t/U '[d ':default] '[(t/U nil x) (Port x)])]
-              [(t/Seqable (t/U (Port x) '[(Port x) x])) 
-               & :optional {:priority (t/U nil true)} 
-               :-> '[(t/U nil x) (Port x)]]))
+                 & :mandatory {:default d} 
+                 :optional {:priority (t/U nil true)} 
+                 :-> (t/U '[d ':default] '[(t/U nil x) (Port x)])]
+                [(t/Seqable (t/U (Port x) '[(Port x) x])) 
+                 & :optional {:priority (t/U nil true)} 
+                 :-> '[(t/U nil x) (Port x)]]))
   ^:no-check clojure.core.async/alts!!
   ^:no-check clojure.core.async/alts!)
 
@@ -221,9 +222,10 @@
 (ann ^:no-check clojure.core.async/put!
      (t/All [p]
             (t/IFn [(Port2 p t/Any) p :-> t/Any]
-                 [(Port2 p t/Any) p [t/Any :-> t/Any] :-> t/Any]
-                 [(Port2 p t/Any) p [t/Any :-> t/Any] t/Any :-> t/Any])))
+                   [(Port2 p t/Any) p [t/Any :-> t/Any] :-> t/Any]
+                   [(Port2 p t/Any) p [t/Any :-> t/Any] t/Any :-> t/Any])))
 
+#_
 (ann ^:no-check clojure.core.async/map<
      (t/All [t o]
             [[t -> o]
@@ -231,6 +233,7 @@
              :->
              (Chan o)]))
 
+#_
 (ann ^:no-check clojure.core.async/map>
      (t/All [p t]
             [[t -> p]
@@ -256,6 +259,7 @@
 ;              [[t :-> t/Any :filters {:then (is p 0)}] (Chan2 t/Nothing t) :-> (Chan2 p t)]
 ;              [[t :-> t/Any] (Chan2 t/Nothing t) :-> (Chan2 t t)])))
 
+#_
 (ann ^:no-check clojure.core.async/onto-chan
      (t/All [x]
             [(Chan x)
@@ -263,6 +267,7 @@
              :->
              (Chan t/Any)]))
 
+#_
 (ann ^:no-check clojure.core.async/to-chan
      (t/All [x]
             [(t/U nil (t/Seqable x))

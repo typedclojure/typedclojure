@@ -42,7 +42,7 @@
 (ann-protocol [[r :variance :covariant]]
               cljs.core.async.impl.protocols/ReadPort)
 
-(ann-protocol [[w :variance :contravariant]] 
+(ann-protocol [[w :variance :contravariant]]
               cljs.core.async.impl.protocols/WritePort)
 
 (ann-protocol [[x :variance :invariant]]
