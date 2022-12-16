@@ -1,3 +1,4 @@
+;; TODO port these ideas to unanalyzed macro rules
 (ns clojure.core.typed.test.frozen-macros
   (:require 
     ; this loads the type system, must go first

@@ -226,16 +226,12 @@
              (app-err/plainapp-type-error fexpr args fexpr-type arg-ret-types expected)))
 
        (r/SymbolicClosure? fexpr-type)
-       (let [capp (with-bindings (dissoc (:bindings fexpr-type)
-                                         ;; hmm, additional error msg context needed to orient the user
-                                         ;; to the problem? symbolic closure will be blamed
-                                         #'vs/*delayed-errors*)
-                    (check-expr
-                      (:fexpr fexpr-type)
-                      (r/ret (r/make-FnIntersection
-                               (r/make-Function arg-types
-                                                ;; blame application site for return errors (good strategy?)
-                                                r/-infer-any)))))
+       (let [capp (sub/check-symbolic-closure
+                    fexpr-type
+                    (r/make-FnIntersection
+                      (r/make-Function arg-types
+                                       ;; blame application site for return errors (good strategy?)
+                                       r/-infer-any)))
              actual-ret-ifn (-> capp u/expr-type :t)
              _ (assert (r/FnIntersection? actual-ret-ifn))
              _ (assert (= 1 (count (:types actual-ret-ifn))))

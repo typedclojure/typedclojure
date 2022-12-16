@@ -324,7 +324,10 @@
   {:pre [(r/SymbolicClosure? s)
          (r/AnyType? t)]
    :post [(-> % u/expr-type r/TCResult?)]}
-  (with-bindings (dissoc (:bindings s) #'vs/*delayed-errors*)
+  (with-bindings (dissoc (:bindings s)
+                         ;; hmm, additional error msg context needed to orient the user
+                         ;; to the problem? symbolic closure will be blamed
+                         #'vs/*delayed-errors*)
     (chk/check-expr (:fexpr s) (r/ret t))))
 
 ;TODO replace hardcoding cases for unfolding Mu? etc. with a single case for unresolved types.

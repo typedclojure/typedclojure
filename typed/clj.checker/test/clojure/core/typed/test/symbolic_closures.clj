@@ -90,3 +90,8 @@
                    g (fn* [y] y)]
                ((comp f g) 1))
              t/Bool))
+
+#_
+(deftest symbolic-poly-infer-test
+  ;;TODO
+  (is-tc-e (map #(inc %) [1 2])))
