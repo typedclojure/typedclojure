@@ -26,10 +26,10 @@
               (a/>!! c2 "there")))
   (is-tc-e #(a/alts!! [(a/chan) (a/chan)] :priority true))
   (is-tc-e (do
-             (ann lift-chan (t/All [x y] [[x -> y] -> [(ta/Chan x) -> (ta/Chan y)]]))
+             (ann lift-chan (t/All [x y] [[x :-> y] :-> [(ta/Chan x) :-> (ta/Chan y)]]))
              (cc/defn lift-chan [function]
-               (fn [in :- (ta/Chan x)]
-                 (let [out (chan :- y)]
+               (fn [in]
+                 (let [out (chan :- y)] ;;TODO infer this
                    (a/go
                      (loop []
                        (let [rcv (<! in)]
@@ -37,12 +37,13 @@
                            (>! out (function rcv))))))
                    out)))
 
-             (ann upper-case [t/Str -> t/Str])
+             (ann upper-case [t/Str :-> t/Str])
              (cc/defn upper-case [s] s)
 
-             (ann upcase [(ta/Chan t/Str) -> (ta/Chan t/Str)])
+             (ann upcase [(ta/Chan t/Str) :-> (ta/Chan t/Str)])
              (def upcase (lift-chan upper-case))
-             (upcase (chan :- t/Str)))))
+             #(upcase (chan :- t/Str)))
+           [:-> (ta/Chan t/Str)]))
 
 (deftest pipe-test
   (is-tc-e #(a/pipe (chan :- t/Str)
@@ -76,12 +77,10 @@
                 (a/go (a/>! c 123))
                 (prn (a/<!! (a/go (a/<! c))))
                 (a/close! c)))
-  (is-tc-e
-    (t/ann-form #(a/<!! (a/go "hello"))
-                [:-> (t/Nilable t/Str)]))
-  (is-tc-err
-    (t/ann-form #(a/<!! (a/go 123))
-                [:-> (t/Nilable t/Str)])))
+  (is-tc-e #(a/<!! (a/go "hello"))
+           [:-> (t/Nilable t/Str)])
+  (is-tc-err #(a/<!! (a/go 123))
+             [:-> (t/Nilable t/Str)]))
 
 ;(let [c1 (chan)
 ;      c2 (chan :- t/Str)]
