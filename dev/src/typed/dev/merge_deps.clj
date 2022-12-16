@@ -172,26 +172,29 @@
    :kaocha.plugin.profiling/count      3
    :kaocha.plugin.profiling/profiling? true})
 
+(def test-maps-to-merge (->> (vals deps-maps)
+                             (map (comp :test :aliases))
+                             (mapcat (fn [d]
+                                       {:pre [(map? d)]}
+                                       (concat (some-> d :deps vector)
+                                               (some-> d :extra-deps vector))))))
+
+(def test-deps (into (sorted-map)
+                     (map (fn [[k v]] [k (into (sorted-map) v)]))
+                     (apply dissoc (apply merge-with
+                                          (fn [v1 v2]
+                                            (if (= v1 v2)
+                                              v2
+                                              (throw (ex-info (str "Version conflict: "
+                                                                   v1 " " v2)
+                                                              {:versions [v1 v2]
+                                                               :maps-to-merge test-maps-to-merge}))))
+                                          test-maps-to-merge)
+                            (keys subproject-base-deps))))
+
 (defn -main [& args]
-  (let [test-maps-to-merge (->> (vals deps-maps)
-                                (map (comp :test :aliases))
-                                (mapcat (fn [d]
-                                          {:pre [(map? d)]}
-                                          (concat (some-> d :deps vector)
-                                                  (some-> d :extra-deps vector)))))
-        test-deps (into (sorted-map)
-                        (map (fn [[k v]] [k (into (sorted-map) v)]))
-                        (apply dissoc (apply merge-with
-                                             (fn [v1 v2]
-                                               (if (= v1 v2)
-                                                 v2
-                                                 (throw (ex-info (str "Version conflict: "
-                                                                      v1 " " v2)
-                                                                 {:versions [v1 v2]
-                                                                  :maps-to-merge test-maps-to-merge}))))
-                                             test-maps-to-merge)
-                               (keys subproject-base-deps)))
-        dev-deps {'selmer/selmer {:mvn/version (:selmer-mvn-version h/selmer-input-map)}
+  (assert (empty? args))
+  (let [dev-deps {'selmer/selmer {:mvn/version (:selmer-mvn-version h/selmer-input-map)}
                   'org.clojure/clojure {:mvn/version (:clojure-mvn-version h/selmer-input-map)}}
         everything-deps (sorted-map
                           :deps (into subproject-base-deps

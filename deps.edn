@@ -49,9 +49,7 @@
     org.clojure/test.check {:mvn/version "1.1.1"},
     org.clojure/tools.analyzer.jvm {:mvn/version "1.2.3"},
     org.clojure/tools.nrepl
-    {:exclusions [org.clojure/clojure], :mvn/version "0.2.6"},
-    org.typedclojure/lib.core.async
-    {:deps/manifest :deps, :local/root "../lib.core.async"}},
+    {:exclusions [org.clojure/clojure], :mvn/version "0.2.6"}},
    :extra-paths
    ["typed/clj.analyzer/test"
     "typed/clj.annotator/test"
