@@ -10,6 +10,7 @@
   (:require [cljs.core.async.impl.ioc-macros :as ioc]
             [cljs.core.typed :as t]))
 
+#_
 (defmacro chan> 
   "A statically typed core.async channel. 
 
@@ -21,6 +22,7 @@
   [t & args]
   `((cljs.core.typed/inst cljs.core.async/chan ~t) ~@args))
 
+#_
 (defmacro go>
   "Asynchronously executes the body, returning immediately to the
   calling thread. Additionally, any visible calls to <!, >! and alt!/alts!
