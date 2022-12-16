@@ -918,7 +918,7 @@
                 (nil? ext) r/-nil
                 :else (throw (Exception. (str "What is this?" ext))))))))
 
-(defn check-symbolic-clojure [arg-t dom-t]
+(defn check-symbolic-closure [arg-t dom-t]
   {:pre [(r/SymbolicClosure? arg-t)
          (r/AnyType? dom-t)]
    :post [((some-fn nil? r/TCResult?) %)]}
@@ -977,7 +977,7 @@
                   [dom-t] dom]
               (if (and (r/SymbolicClosure? arg-t)
                        resolve-symbolic-closures?)
-                (if (check-symbolic-clojure arg-t dom-t)
+                (if (check-symbolic-closure arg-t dom-t)
                   (recur (next dom) (next argtys) A0 found-kws)
                   (report-not-subtypes arg-t dom-t))
                 (if-let [A (subtypeA* A0 arg-t dom-t)]

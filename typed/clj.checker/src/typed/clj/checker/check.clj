@@ -1795,7 +1795,7 @@
         _ (when ((some-fn r/Union? r/Intersection?) inferred-dispatch-t)
             (err/nyi-error "defmulti dispatch function inferred as union or intersection"))
         resolved-dispatch-t (cond-> inferred-dispatch-t
-                              (r/SymbolicClosure? inferred-dispatch-t) (sub/check-symbolic-clojure expected-d))
+                              (r/SymbolicClosure? inferred-dispatch-t) (sub/check-symbolic-closure expected-d))
         mm-qual (symbol (str (cu/expr-ns expr)) mm-name)
         _ (mm/add-multimethod-dispatch-type mm-qual resolved-dispatch-t)]
     (-> expr
