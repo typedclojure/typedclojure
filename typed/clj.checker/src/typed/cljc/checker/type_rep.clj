@@ -1135,7 +1135,7 @@
 
 (t/ann symbolic-closure [(t/Map t/Any t/Any) :-> SymbolicClosure])
 (defn symbolic-closure [fexpr]
-  (prn "creating symbolic-closure")
+  ;(prn "creating symbolic-closure")
   (SymbolicClosure-maker (get-thread-bindings) fexpr))
 
 ;;;;;;;;;;;;;;;;;

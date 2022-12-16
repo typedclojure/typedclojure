@@ -319,7 +319,7 @@
                                                         (cond->
                                                           expected-t (into (filter fs-names-set)
                                                                            (frees/fv erased-rng-t))))
-                                      _ (prn "fv-in-no-symb" fv-in-no-symb)
+                                      ;_ (prn "fv-in-no-symb" fv-in-no-symb)
                                       ;variances (into {} (filter (comp (set fs-names) key)) (frees/fv-variances fin))
                                       substitution-without-symb (into {}
                                                                       (map (fn [[fv info]]
@@ -333,8 +333,8 @@
                                                                       (cgen/infer fs-names->bbnds {}
                                                                                   arg-types-no-symb dom-no-symb
                                                                                   erased-rng-t expected-t))
-                                      _ (prn "erased-rng-t" erased-rng-t expected-t)
-                                      _ (prn "substitution-without-symb" substitution-without-symb)
+                                      ;_ (prn "erased-rng-t" erased-rng-t expected-t)
+                                      ;_ (prn "substitution-without-symb" substitution-without-symb)
                                       inferred-symbolic-closure-arg-types (into {}
                                                                                 (map (fn [i]
                                                                                        (let [arg-t (nth arg-types i)
@@ -360,6 +360,7 @@
                                                                                                                                     (assoc :rng (r/make-Result r/-infer-any))))
                                                                                                                               fns)))))]
                                                                                              (when-some [errs (seq @vs/*delayed-errors*)]
+                                                                                               #_
                                                                                                (prn "symbolic closure failed to check"
                                                                                                     #_errs)
                                                                                                ;; move to next arity, symbolic closure failed to check
@@ -370,14 +371,14 @@
                                                                              (assoc arg-types i inferred-arg-type))
                                                                            arg-types
                                                                            inferred-symbolic-closure-arg-types)
-                                      _ (prn "arg-types-with-inferred-symb" arg-types-with-inferred-symb)
+                                      ;_ (prn "arg-types-with-inferred-symb" arg-types-with-inferred-symb)
                                       ]
                                   (if (and expr
                                            (not (r/FnIntersection? expected-t))
                                            ;; TODO if rng-t has no args we don't need to suspend the type check
                                            (r/FnIntersection? rng-t))
                                     ;; wait for an expected type to help inference
-                                    (do (prn "suspending result")
+                                    (do ;(prn "suspending result")
                                         ;;FIXME expr's arguments will be rechecked, could just use old results
                                         (r/symbolic-closure expr))
                                     (cgen/infer fs-names->bbnds {}
