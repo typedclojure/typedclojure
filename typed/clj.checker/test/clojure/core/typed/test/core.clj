@@ -2193,9 +2193,8 @@
 ;               (-not-filter (Un -false -nil) 0)]
 ;              false))
 
-;TODO uncomment
 ; See CTYP-150
-#_(deftest CTYP-84-hlist-ancestor-test
+(deftest CTYP-84-hlist-ancestor-test
   (is-tc-e (seq '(1)) 
            (t/NonEmptySeq t/Num)))
 
@@ -2841,9 +2840,6 @@
 
 (deftest ctyp97-tvar-scoping-test
   (is (check-ns 'clojure.core.typed.test.ctyp97-tvar-scoping)))
-
-;TODO
-;(deftest ctyp124)
 
 (deftest get-bounded-tvar-test
   (is (check-ns 'clojure.core.typed.test.get-bounded-tvar)))
@@ -4486,13 +4482,12 @@
   (is (= ((clojure.core.typed/fn [] :- clojure.core.typed/Any, nil)) nil))
   (is (= ((clojure.core.typed/fn [] :- nil, nil)) nil)))
 
-#_
-;TODO
 (deftest nil-branch-test
   (is-tc-e (fn [a :- false]
              (when (false? a)
                :kw))
            [false :-> ':kw])
+  #_;TODO
   (is-tc-e (fn [a :- false]
              (when (= false a)
                :kw))
@@ -4502,10 +4497,12 @@
                :kw
                a))
            [(t/U t/Num nil) :-> (t/U t/Num ':kw)])
+  #_;TODO
   (is-tc-e (fn [a :- nil]
              (when (= nil a)
                :kw))
            [nil :-> ':kw])
+  #_;TODO
   (is-tc-e (fn [a :- nil]
              (when (identical? nil a)
                :kw))
