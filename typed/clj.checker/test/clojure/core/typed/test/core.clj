@@ -3090,46 +3090,6 @@
                  (b a))
              t/Symbol))
 
-(deftest typed-for-test
-  (is (check-ns 'clojure.core.typed.test.for))
-  (is-tc-e
-    (for
-      [a :- (t/U nil Number), [1 nil 2 3]
-       b :- Number, [1 2 3]
-       :when a]
-      :- Number
-      (+ a b))
-    (t/Seq Number))
-  (is-tc-err
-    (for
-      [a :- (t/U t/Symbol nil Number), [1 nil 2 3]
-       b :- Number, [1 2 3]]
-      :- Number
-      (+ a b)))
-  (is-tc-e (for [a :- t/Num [1 2 3]]
-             (inc a))
-           (t/Seq t/Any))
-  (is-tc-err (lazy-seq 1))
-  (is-tc-e (lazy-seq nil))
-  (is-tc-e (fn a [] :- (t/Seq t/Any) (lazy-seq (a))))
-  (is-tc-e (fn a [] :- (t/Seq t/Any) (lazy-seq (a))))
-  (is-tc-e (t/let [] 1))
-  (is-tc-e
-    (inc ((fn []
-            (if 1 2 3)))))
-  (is-tc-e
-    (inc ((core/fn []
-            (if 1 2 3)))))
-  (is-tc-e
-    (inc ((fn [] :- t/Num
-            (if 1 2 3)))))
-  (is-tc-e (for [a :- t/Num [1 2 3]] :- t/Num
-             (inc a))
-           (t/Seq t/Num))
-  (is-tc-err (for [a [1 2 3]]
-               (inc a))))
-
-
 (deftest file-not-found-error-test
   (is (err/top-level-error-thrown?
         (check-ns 'this.doesnt-exist))))
