@@ -29,7 +29,7 @@
         `(ns ~nsym
            ~@(when ns-meta [ns-meta])
            (:refer-clojure :exclude 
-                           ~'[type defprotocol #_letfn fn loop let
+                           ~'[type defprotocol #_letfn fn loop let dotimes
                               #_def #_filter #_remove defn atom ref cast])
            (:require ~@'[;; TODO use typed.clojure
                          [clojure.core.typed :refer :all :as t]
