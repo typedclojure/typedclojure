@@ -47,6 +47,7 @@
          (impl/add-rclass-env '~nme {:op :RClass})
          ;; type env
          (impl/with-clojure-impl
+           ;;TODO implement reparsing on ns reload
            (impl/add-rclass '~nme (delay
                                     ((requiring-resolve 'typed.clj.checker.parse-unparse/with-parse-ns*)
                                      '~this-ns

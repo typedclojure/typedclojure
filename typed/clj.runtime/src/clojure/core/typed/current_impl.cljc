@@ -10,11 +10,16 @@
 (ns ^:no-doc clojure.core.typed.current-impl
   #?(:cljs (:refer-clojure :exclude [-val]))
   (:require [clojure.core.typed.contract-utils :as con]
+            [typed.cljc.checker.env-utils :refer [force-env]]
             [clojure.core.typed.util-vars :as vs]
             [clojure.set :as set]
-            [typed.cljc.runtime.env :as env]))
+            [typed.cljc.runtime.env :as env]
+            [typed.clj.runtime.env :as clj-env]
+            [typed.cljs.runtime.env :as cljs-env]))
 
+;; copied to typed.clj.runtime.env
 (def clojure ::clojure)
+;; copied to typed.cljs.runtime.env
 (def clojurescript ::clojurescript)
 
 (def unknown ::unknown)
@@ -37,6 +42,7 @@
         unknown
         `(assert nil (str "No case matched for impl-case " (current-impl)))))))
 
+;; copied to typed.clj{s}.runtime.env
 (def current-impl-kw ::current-impl)
 
 (defn current-impl []
@@ -125,7 +131,8 @@
          ; not worth loading/importing r/Type? for this
          ; assertion.
          #_(or (r/Type? t)
-               (delay? t))]
+               (delay? t)
+               (fn? t))]
    :post [(nil? %)]}
   (env/swap-checker! assoc-in [untyped-var-annotations-kw nsym sym] t)
   nil)
@@ -150,7 +157,7 @@
   {:pre [(qualified-symbol? sym)
          ;; checked at `get-method-override`
          #_
-         ((some-fn delay? r/Poly? r/FnIntersection?)
+         ((some-fn fn? delay? r/Poly? r/FnIntersection?)
           t)]}
   (env/swap-checker! assoc-in [method-override-env-kw sym] t)
   nil)
@@ -159,7 +166,7 @@
   {:pre [(qualified-symbol? sym)
          ;; checked by `get-field-override`
          #_
-         ((some-fn delay? r/Type?)
+         ((some-fn fn? delay? r/Type?)
           t)]}
   (env/swap-checker! assoc-in [field-override-env-kw sym] t)
   nil)
@@ -167,7 +174,7 @@
 (defn add-constructor-override [sym t]
   {:pre [(simple-symbol? sym)
          ;; checked at `get-constructor-override`
-         #_((some-fn delay? r/Type?) t)]}
+         #_((some-fn fn? delay? r/Type?) t)]}
   (env/swap-checker! assoc-in [constructor-override-env-kw sym] t)
   nil)
 
@@ -175,7 +182,7 @@
   {:pre [(qualified-symbol? sym)
          ;; checked in get-protocol
          #_
-         ((some-fn delay? r/Type?) t)]}
+         ((some-fn fn? delay? r/Type?) t)]}
   (env/swap-checker! assoc-in [current-protocol-env-kw sym] t)
   nil)
 
@@ -183,7 +190,7 @@
   {:pre [(simple-symbol? sym)
          ;; checked in get-protocol
          #_
-         ((some-fn delay? r/RClass? r/Poly?) t)]}
+         ((some-fn fn? delay? r/RClass? r/Poly?) t)]}
   (env/swap-checker! assoc-in [current-rclass-env-kw sym] t)
   nil)
 
@@ -195,7 +202,7 @@
            :cljs (qualified-symbol? sym))
          ;; checked in get-datatype
          #_
-         ((some-fn delay? r/Type?) t)]
+         ((some-fn fn? delay? r/Type?) t)]
    :post [(nil? %)]}
   (env/swap-checker! assoc-in [current-datatype-env-kw sym] t)
   nil)
@@ -223,7 +230,7 @@
     `(do (def ~kw-def ~(keyword (str (ns-name *ns*)) (str n)))
          (defn ~n []
            {:post [(map? ~'%)]}
-           (force (get (env/deref-checker) ~kw-def {})))
+           (force-env (get (env/deref-checker) ~kw-def {})))
          (defn ~add-def [sym# t#]
            {:pre [(symbol? sym#)]
             :post [(nil? ~'%)]}
@@ -275,11 +282,9 @@
   `(with-bindings (let [impl# ~impl]
                     (or (get (bindings-for-impl) impl#)
                         (throw (ex-info (str "No impl found for " (pr-str impl#))))))
-     ~@body)))
+     (do ~@body))))
 
-(defonce clj-checker-atom
-  (doto (env/init-checker)
-    (swap! assoc current-impl-kw clojure)))
+(def clj-checker-atom clj-env/clj-checker-atom)
 
 (defn clj-checker []
   clj-checker-atom)
@@ -296,9 +301,7 @@
   (with-clojure-impl
     (f)))
 
-(defonce cljs-checker-atom 
-  (doto (env/init-checker)
-    (swap! assoc current-impl-kw clojurescript)))
+(def cljs-checker-atom cljs-env/cljs-checker-atom)
 
 (defn cljs-checker []
   {:post [#?(:clj (instance? clojure.lang.IAtom %)
@@ -476,15 +479,15 @@
                             #(parse-free-binder-with-variance binder))))
         fs (when parsed-binder
              (delay 
-               (map (comp make-F :fname) (force parsed-binder))))
+               (map (comp make-F :fname) (force-env parsed-binder))))
         bnds (when parsed-binder
-               (delay (map :bnd (force parsed-binder))))
+               (delay (map :bnd (force-env parsed-binder))))
         ms (into {} (map (fn [[knq v*]]
                            (let [_ (when (namespace knq)
                                      (int-error "Protocol method should be unqualified"))
                                  mtype 
                                  (delay
-                                   (let [mtype (with-bounded-frees* (zipmap (force fs) (force bnds))
+                                   (let [mtype (with-bounded-frees* (zipmap (force-env fs) (force-env bnds))
                                                  #(binding [vs/*current-env* current-env]
                                                     (with-parse-ns* current-ns
                                                       (fn []
@@ -527,6 +530,7 @@
               "Protocol method names should be unqualified")
       ;qualify method names when adding methods as vars
       (let [kq (symbol protocol-defined-in-nstr (name kuq))
+            ;;TODO reparse this on internal ns reload
             mt-ann (delay 
                      (protocol-method-var-ann (force mt) (map :name (force fs)) (force bnds)))]
         (add-nocheck-var kq)
@@ -575,6 +579,7 @@
                          (let [bfn (bound-fn []
                                      (with-parse-ns* current-ns
                                        #(parse-free-binder-with-variance vbnd)))]
+                           ;;TODO reparse on internal ns reload
                            (delay (bfn))))
         ;variances
         vs (when parsed-binders
@@ -606,7 +611,7 @@
             :cljs provided-name)
         fs (let [bfn (bound-fn []
                        (let [parse-field (fn [[n _ t]] [n (parse-type t)])]
-                         (apply array-map (apply concat (with-frees* (mapv make-F (force args))
+                         (apply array-map (apply concat (with-frees* (mapv make-F (force-env args))
                                                           (fn []
                                                             (binding [vs/*current-env* current-env]
                                                               (with-parse-ns* current-ns
@@ -616,12 +621,12 @@
                  (map
                    (fn [an]
                      [an (let [bfn (bound-fn []
-                                     (with-frees* (mapv make-F (force args))
+                                     (with-frees* (mapv make-F (force-env args))
                                        (fn []
                                          (binding [vs/*current-env* current-env]
                                            (with-parse-ns* current-ns
                                              #(let [t (parse-type an)]
-                                                (abstract-many (force args) t)))))))]
+                                                (abstract-many (force-env args) t)))))))]
                            (delay (bfn)))]))
                  ancests)
         ;_ (prn "collected ancestors" as)
@@ -630,6 +635,7 @@
         map-ctor-name (symbol demunged-ns-str (str "map->" local-name))
         dt (let [bfn (bound-fn []
                        (DataType* (force args) (force vs) (map make-F (force args)) s (force bnds) (force fs) record?))]
+             ;;TODO reparse on internal ns reload
              (delay (bfn)))
         _ (add-datatype s dt)
         pos-ctor (let [bfn (bound-fn []

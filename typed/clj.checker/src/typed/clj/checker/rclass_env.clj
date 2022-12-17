@@ -9,6 +9,7 @@
 ;; don't require the checker from here
 (ns ^:no-doc typed.clj.checker.rclass-env
   (:require [typed.cljc.runtime.env :as env]
+            [typed.cljc.checker.env-utils :refer [force-env]]
             [typed.cljc.checker.type-rep :as r]
             [clojure.core.typed.current-impl :as impl]))
 
@@ -25,9 +26,19 @@
   Returns nil if not found."
   [csym]
   {:post [(do (assert ((some-fn nil? r/RClass? r/TypeFn?) %)
-                      (class %))
+                      [:looking-up csym
+                       :gave-class (class %)
+                       :provided-class-hash
+                       (hash (class %))
+                       :current-class-hash
+                       (hash (Class/forName (.getName (class %))))
+                       :equal?
+                       (= (class %)
+                          (Class/forName (.getName (class %))))
+                       :latest-var? (= #'get-rclass (resolve `get-rclass))
+                       :raw (get (rclasses) csym)])
               true)]}
-  (force (get (rclasses) csym)))
+  (force-env (get (rclasses) csym)))
 
 (defn alter-class* [csym type]
   (env/swap-checker! assoc-in [impl/current-rclass-env-kw csym] type)

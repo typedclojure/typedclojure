@@ -16,6 +16,7 @@
             [typed.cljc.checker.name-env :as name-env]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.runtime.env :as env]
+            [typed.cljc.checker.env-utils :refer [force-env]]
             [clojure.core.typed.runtime.jvm.configs :as configs]))
 
 (defn clj-var-annotations []
@@ -59,10 +60,11 @@
   (when-let [old-t ((var-annotations) sym)]
     ;; if old type is realized, it's probably been
     ;; used. We should force the new type to ensure
-    ;; it's the same.
+    ;; it's the same. only relevant when -Dclojure.core.typed.dynamically-parse-annotations
+    ;; has not been set, since old-t will be a fn.
     (when (and (delay? old-t)
                (realized? old-t))
-      (when (not= (force old-t) (force type))
+      (when (not= (force-env old-t) (force-env type))
         (println (str "WARNING: Duplicate var annotation: " sym))
         (flush))))
   (env/swap-checker! assoc-in [impl/current-var-annotations-kw sym] type)
@@ -150,9 +152,9 @@
   {:pre [(symbol? nsym)]
    :post [((some-fn nil? r/Type?) %)]}
   (or (let [e (var-annotations)]
-        (force (e nsym)))
+        (force-env (e nsym)))
       (when (impl/checking-clojurescript?)
-        (force ((jsvar-annotations) nsym)))
+        (force-env ((jsvar-annotations) nsym)))
       (when-some [ts (not-empty
                        (into (sorted-map) (map (fn [fsym]
                                                  (some->> ((requiring-resolve fsym) nsym)
@@ -170,10 +172,9 @@
 
 (defn lookup-Var [nsym]
   {:post [((some-fn nil? r/Type?) %)]}
-  (if-some [t (lookup-Var-nofail nsym)]
-    t
-    (err/int-error
-      (str "Untyped var reference: " nsym))))
+  (or (lookup-Var-nofail nsym)
+      (err/int-error
+        (str "Untyped var reference: " nsym))))
 
 (defn type-of-nofail [sym]
   {:pre [(symbol? sym)]
@@ -186,11 +187,10 @@
 (defn type-of [sym]
   {:pre [(symbol? sym)]
    :post [(r/Type? %)]}
-  (if-some [t (type-of-nofail sym)]
-    t
-    (err/int-error (str (when vs/*current-env*
-                          (str (:line vs/*current-env*) ": "))
-                        "Missing type for binding: " (pr-str sym)))))
+  (or (type-of-nofail sym)
+      (err/int-error (str (when vs/*current-env*
+                            (str (:line vs/*current-env*) ": "))
+                          "Missing type for binding: " (pr-str sym)))))
 
 (defn get-untyped-var [nsym sym]
   {:pre [(symbol? nsym)
@@ -200,4 +200,4 @@
   (some-> (untyped-var-annotations)
           (get nsym)
           (get sym)
-          force))
+          force-env))

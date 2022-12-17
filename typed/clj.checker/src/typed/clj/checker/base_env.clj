@@ -289,7 +289,7 @@ java.lang.String/intern :all
 clojure.lang.Indexed/nth
   (t/All [x y]
        (t/IFn [(Indexed x) t/AnyInteger -> x]
-           [(Indexed x) t/AnyInteger y -> (t/U x y)]))
+              [(Indexed x) t/AnyInteger y -> (t/U x y)]))
 
 
 ;what about combinations of references and primitives?

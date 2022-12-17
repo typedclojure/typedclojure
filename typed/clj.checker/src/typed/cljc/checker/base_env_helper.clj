@@ -212,6 +212,7 @@
           decl-kind (declared-kind-for-rclass frees)
           _ (when (r/TypeFn? decl-kind)
               (decl-env/add-declared-kind sym decl-kind))
+          ;;TODO implement reparsing
           rcls (make-RClass s frees opts)]
       ;accumulate altered classes in initial env
       (rcls/alter-class* sym rcls)

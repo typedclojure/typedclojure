@@ -75,7 +75,7 @@
         [alias-path alias-id] (cond
                                 (obj/Path? obj) [(:path obj) (:id obj)]
                                 (obj/EmptyObject? obj) [nil sym]
-                                :else (err/int-error (str "what is this?" (pr-str obj))))
+                                :else (err/int-error (str "what is this? " (pr-str obj))))
         _ (assert (pr/path-elems? alias-path))
         _ (assert (fr/name-ref? alias-id))
         lt (get-in (lexical-env) [:l alias-id])]
@@ -114,4 +114,4 @@
         ; type environment. Not sure why this is needed, Andrew K added
         ; it to TR because tests were failing.
         (cond-> (empty? (:path o)) (assoc-in [:l (:id o)] t)))
-    :else (err/int-error (str "what is this?" (pr-str o)))))
+    :else (err/int-error (str "what is this? " (pr-str o)))))

@@ -226,8 +226,6 @@ for checking namespaces, cf for checking individual forms."}
     )
 
   (definterface Name)
-
-  (reify)
 )
 
 #_(defmacro 
@@ -361,6 +359,7 @@ for checking namespaces, cf for checking individual forms."}
      (delay
        (app-outer-context# (requiring-resolve 'clojure.core.typed.parse-ast/parse-clj) t#))))
 
+;;TODO implement reparsing on internal ns reload
 (defmacro ^:private delay-tc-parse
   [t]
   `(core/let [t# ~t
@@ -382,6 +381,7 @@ for checking namespaces, cf for checking individual forms."}
 
 (def ^:private int-error #(apply (requiring-resolve 'clojure.core.typed.errors/int-error) %&)) 
 
+;;TODO implement reparsing on internal ns reload
 (core/defn ^:no-doc add-tc-type-name [form qsym t]
   (with-clojure-impl
     (core/let
@@ -392,7 +392,8 @@ for checking namespaces, cf for checking individual forms."}
              [unparse-type (requiring-resolve 'typed.clj.checker.parse-unparse/unparse-type)
               t (bfn
                   #(with-current-location form
-                     @(delay-tc-parse t)))
+                     ((requiring-resolve 'typed.cljc.checker.env-utils/force-env)
+                      (delay-tc-parse t))))
               _ (with-clojure-impl
                   (when-let [tfn ((requiring-resolve 'typed.cljc.checker.declared-kind-env/declared-kind-or-nil) qsym)]
                     (when-not ((requiring-resolve 'typed.clj.checker.subtype/subtype?) t tfn)
@@ -796,7 +797,7 @@ for checking namespaces, cf for checking individual forms."}
       (add-tc-var-type qsym tc-type)))
   nil)
 
-(defmacro ann 
+(defmacro ann
   "Annotate varsym with type. If unqualified, qualify in the current namespace.
   If varsym has metadata {:no-check true}, ignore definitions of varsym 
   while type checking. Supports namespace aliases and fully qualified namespaces
@@ -813,7 +814,7 @@ for checking namespaces, cf for checking individual forms."}
   [varsym typesyn]
   (core/let
        [qsym (if-let [nsym (some-> (namespace varsym) symbol)]
-               (symbol (if-let [ns (get (ns-aliases *ns*) nsym)]
+               (symbol (if-some [ns (get (ns-aliases *ns*) nsym)]
                          (-> ns ns-name str)
                          (str nsym))
                        (name varsym))

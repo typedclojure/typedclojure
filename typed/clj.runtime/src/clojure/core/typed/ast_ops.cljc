@@ -8,11 +8,12 @@
 
 (ns ^:no-doc clojure.core.typed.ast-ops
   (:require [clojure.core.typed.current-impl :as impl]
+            [typed.cljc.checker.env-utils :refer [force-env]]
             [clojure.core.typed.errors :as err]))
 
 (defn resolve-Name [{:keys [name] :as expr}]
   {:pre [(#{:Name} (:op expr))]}
-  (let [e (force (get (impl/alias-env) name))
+  (let [e (force-env (get (impl/alias-env) name))
         _ (when-not e
             (err/int-error (str "No alias found for " name)))]
     e))

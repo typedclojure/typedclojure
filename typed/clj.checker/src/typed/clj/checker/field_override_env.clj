@@ -9,6 +9,7 @@
 (ns typed.clj.checker.field-override-env
   (:require [typed.cljc.runtime.env :as env]
             [clojure.core.typed.current-impl :as impl]
+            [typed.cljc.checker.env-utils :refer [force-env]]
             [typed.cljc.checker.type-rep :as r]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -31,4 +32,4 @@
 
 (defn get-field-override [m]
   {:post [((some-fn r/Type? nil?) %)]}
-  (force (get (field-override-env) m)))
+  (force-env (get (field-override-env) m)))

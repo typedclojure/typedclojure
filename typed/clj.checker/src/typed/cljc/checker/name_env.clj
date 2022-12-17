@@ -8,6 +8,7 @@
 
 (ns ^:no-doc typed.cljc.checker.name-env
   (:require [typed.clojure :as t]
+            [typed.cljc.checker.env-utils :refer [force-env]]
             [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.errors :as err]
@@ -49,7 +50,7 @@
   (env/swap-checker! assoc impl/current-name-env-kw nme-env)
   nil)
 
-(t/ann ^:no-check find-type-name-entry [t/Sym -> (t/Nilable (t/MapEntry t/Sym (t/U t/Kw (t/Delay r/Type))))])
+(t/ann ^:no-check find-type-name-entry [t/Sym -> (t/Nilable (t/MapEntry t/Sym (t/U t/Kw (t/Delay r/Type) [:-> r/Type])))])
 (defn find-type-name-entry [sym]
   (or (find (name-env) sym)
       (when-some [sym-nsym ((requiring-resolve (impl/impl-case
@@ -70,7 +71,7 @@
                           (r/Type? %))
                       (pr-str %))
               true)]}
-  (some-> (find-type-name-entry sym) val force))
+  (some-> (find-type-name-entry sym) val force-env))
 
 (t/ann ^:no-check add-type-name [t/Sym (t/U t/Kw r/Type) -> nil])
 (def add-type-name impl/add-tc-type-name)
@@ -116,11 +117,11 @@
                       kinds/declared-kind-or-nil) 
              sym)]
     (or tfn
-      (cond
-        (= impl/protocol-name-type t) (prenv/resolve-protocol sym)
-        (= impl/datatype-name-type t) (dtenv/resolve-datatype sym)
-        (= impl/declared-name-type t) (throw (IllegalArgumentException. (str "Reference to declared but undefined name " sym)))
-        (r/Type? t) (vary-meta t assoc :source-Name sym)
-        :else (err/int-error (str "Cannot resolve name " (pr-str sym)
-                                  (when t
-                                    (str " (Resolved to instance of)" (pr-str (class t))))))))))
+        (cond
+          (= impl/protocol-name-type t) (prenv/resolve-protocol sym)
+          (= impl/datatype-name-type t) (dtenv/resolve-datatype sym)
+          (= impl/declared-name-type t) (throw (IllegalArgumentException. (str "Reference to declared but undefined name " sym)))
+          (r/Type? t) (vary-meta t assoc :source-Name sym)
+          :else (err/int-error (str "Cannot resolve name " (pr-str sym)
+                                    (when t
+                                      (str " (Resolved to instance of)" (pr-str (class t))))))))))

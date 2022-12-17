@@ -9,6 +9,7 @@
 (ns ^:no-doc typed.cljc.checker.datatype-ancestor-env
   (:require [typed.cljc.checker.utils :as u]
             [clojure.core.typed.contract-utils :as con]
+            [typed.cljc.checker.env-utils :refer [force-env]]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.subst :as subst]
@@ -41,7 +42,7 @@
    :post [((con/set-c? r/Type?) %)]}
   (into #{}
         (map (fn [[_ t]]
-               (c/inst-and-subst (force t) poly)))
+               (c/inst-and-subst (force-env t) poly)))
         anctrs))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
