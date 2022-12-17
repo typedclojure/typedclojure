@@ -111,11 +111,9 @@
   {:pre [(cr/cset? x)
          (cr/cset? y)]
    :post [(cr/cset? %)]}
-  (let [maps (filter (t/inst identity (t/U false cset-entry))
-                     (doall (t/for
-                              [{map1 :fixed dmap1 :dmap} :- cset-entry, maps1
-                               {map2 :fixed dmap2 :dmap} :- cset-entry, maps2]
-                              :- (t/U false cset-entry)
+  (let [maps (filter identity
+                     (doall (for [{map1 :fixed dmap1 :dmap} maps1
+                                  {map2 :fixed dmap2 :dmap} maps2]
                               (handle-failure
                                 (cr/cset-entry-maker
                                   (merge-with c-meet map1 map2)
@@ -135,9 +133,7 @@
 (t/ann cset-combine [(t/U nil (t/Seqable cset)) -> cset])
 (defn cset-combine [l]
   {:pre [(every? cr/cset? l)]}
-  (let [mapss (map (-> :maps 
-                       (t/inst (t/U nil (t/Seqable cset-entry)))) 
-                   l)]
+  (let [mapss (map :maps l)]
     (-> mapss
         (t/ann-form (t/Seqable (t/U nil (t/Seqable cset-entry)))))
     (cr/cset-maker (apply concat mapss))))
@@ -153,9 +149,7 @@
    :post [(cr/cset? %)]}
   (cr/cset-maker 
     (doall
-      (t/for
-        [{fmap :fixed dmap :dmap} :- cset-entry, (:maps cs)]
-        :- cset-entry
+      (for [{fmap :fixed dmap :dmap} (:maps cs)]
         (cr/cset-entry-maker 
           (assoc fmap var (cr/c-maker S var T bnds))
           dmap)))))
@@ -177,9 +171,7 @@
       (cr/dcon-exact-maker
         (doall
           (let [vector' (t/ann-form vector [c c -> '[c c]])]
-            (t/for
-              [[c1 c2] :- '[c c], (map vector' fixed1 fixed2)]
-              :- c
+            (for [[c1 c2] (map vector' fixed1 fixed2)]
               (c-meet c1 c2 (:X c1)))))
         (c-meet rest1 rest2 (:X rest1))))
     ;; redo in the other order to call the first case
@@ -210,12 +202,9 @@
       (when-not (>= (count fixed1) (count fixed2))
         (fail! fixed1 fixed2))
       (cr/dcon-maker
-        (let [vector' (t/inst vector c c t/Any t/Any t/Any t/Any)]
-          (doall
-            (t/for
-              [[c1 c2] :- '[c c], (map vector' fixed1 (concat fixed2 (repeat rest)))]
-              :- c
-              (c-meet c1 c2 (:X c1)))))
+        (doall
+          (for [[c1 c2] (map vector fixed1 (concat fixed2 (repeat rest)))]
+            (c-meet c1 c2 (:X c1))))
         nil))
 
     (and (cr/dcon? dc1)
@@ -232,12 +221,9 @@
             [fixed1 fixed2 rest1 rest2]
             [fixed2 fixed1 rest2 rest1])]
       (cr/dcon-maker
-        (let [vector' (t/inst vector c c t/Any t/Any t/Any t/Any)]
-          (doall
-            (t/for
-              [[c1 c2] :- '[c c], (map vector' longer (concat shorter (repeat srest)))]
-              :- c
-              (c-meet c1 c2 (:X c1)))))
+        (doall
+          (for [[c1 c2] (map vector longer (concat shorter (repeat srest)))]
+            (c-meet c1 c2 (:X c1))))
         (c-meet lrest srest (:X lrest))))
 
     (and (cr/dcon-dotted? dc1)
@@ -248,12 +234,9 @@
                      (= bound1 bound2))
         (fail! bound1 bound2))
       (cr/dcon-dotted-maker 
-        (let [vector' (t/inst vector c c t/Any t/Any t/Any t/Any)]
-          (doall 
-            (t/for
-              [[c1 c2] :- '[c c], (map vector' fixed1 fixed2)]
-              :- c
-              (c-meet c1 c2 (:X c1)))))
+        (doall 
+          (for [[c1 c2] (map vector fixed1 fixed2)]
+            (c-meet c1 c2 (:X c1))))
         (c-meet c1 c2 bound1) bound1))
 
     (and (cr/dcon? dc1)
@@ -278,15 +261,12 @@
                     (zero? (rem diff repeat-count)))
         (fail! fixed1 fixed2))
       (cr/dcon-repeat-maker
-        (let [vector' (t/inst vector c c Any Any Any Any)]
-          (doall
-            (t/for 
-              [[c1 c2] :- '[c c], (map vector'
-                                       fixed2
-                                       (concat fixed1
-                                               (gen-repeat (quot diff repeat-count) repeated)))]
-              :- c
-              (c-meet c1 c2 (:X c1)))))
+        (doall
+          (for [[c1 c2] (map vector
+                             fixed2
+                             (concat fixed1
+                                     (gen-repeat (quot diff repeat-count) repeated)))]
+            (c-meet c1 c2 (:X c1))))
         repeated))
     (and (cr/dcon-repeat? dc2)
          (cr/dcon? dc1)
@@ -303,19 +283,15 @@
           l-repeat-count (count long-repeat)
           diff (- l-fixed-count s-fixed-count)
           _ (assert (= s-repeat-count l-repeat-count))
-          vector' (t/inst vector c c Any Any Any Any)
-          merged-repeat (t/for [[c1 c2] :- '[c c], (map vector' short-repeat long-repeat)]
-                              :- c
-                              (c-meet c1 c2 (:X c1)))]
+          merged-repeat (for [[c1 c2] (map vector short-repeat long-repeat)]
+                          (c-meet c1 c2 (:X c1)))]
       (assert (zero? (rem diff s-repeat-count)))
       (cr/dcon-repeat-maker
         (doall
-          (t/for 
-            [[c1 c2] :- '[c c], (map vector'
-                                     long-fixed
-                                     (concat short-fixed
-                                             (gen-repeat (quot diff s-repeat-count) short-repeat)))]
-            :- c
+          (for [[c1 c2] (map vector
+                             long-fixed
+                             (concat short-fixed
+                                     (gen-repeat (quot diff s-repeat-count) short-repeat)))]
             (c-meet c1 c2 (:X c1))))
         merged-repeat))
 
@@ -658,9 +634,8 @@
                               (let [merged-X (merge X {dbound (Y dbound)})
                                     get-list-of-c (fn get-list-of-c [t-list]
                                                     (mapv #(get-c-from-cmap % dbound)
-                                                          (t/for [t :- r/Type, t-list]
-                                                                :- cset
-                                                                (cs-gen V merged-X Y dty t))))
+                                                          (for [t t-list]
+                                                            (cs-gen V merged-X Y dty t))))
                                     repeat-c (get-list-of-c poly?)]
                                 (assoc-in (cr/empty-cset X Y)
                                           [:maps 0 :dmap :map dbound]
@@ -769,8 +744,7 @@
                               (let [merged-X (merge X {dbound (Y dbound)})
                                     get-list-of-c (fn get-list-of-c [t-list]
                                                     (mapv #(get-c-from-cmap % dbound)
-                                                          (t/for [t :- r/Type, t-list]
-                                                            :- cset
+                                                          (for [t t-list]
                                                             (cs-gen V merged-X Y dty t))))
                                     repeat-c (get-list-of-c [num-type elem-type])]
                                 (assoc-in (cr/empty-cset X Y)
@@ -940,9 +914,8 @@
                         merged-X (merge X {dbound (Y dbound)})
                         get-list-of-c (fn get-list-of-c [S-list]
                                         (mapv #(get-c-from-cmap % dbound)
-                                              (t/for [s :- r/Type, S-list]
-                                                    :- cset
-                                                    (cs-gen V merged-X Y s t-dty))))
+                                              (for [s S-list]
+                                                (cs-gen V merged-X Y s t-dty))))
                         repeat-c (get-list-of-c (:types S))]
                     [(assoc-in (cr/empty-cset X Y) [:maps 0 :dmap :map dbound] (cr/dcon-repeat-maker [] repeat-c))])
 
@@ -956,8 +929,7 @@
                       (fail! S T))
                     (let [vars (var-store-take dbound dty (- (count (:types T))
                                                              (count (:types S))))
-                          new-tys (doall (t/for
-                                           [var :- t/Sym, vars] :- r/AnyType
+                          new-tys (doall (for [var vars]
                                            (subst/substitute (r/make-F var) dbound dty)))
                           new-s-hsequential (r/-hsequential (concat (:types S) new-tys))
                           new-cset (cs-gen-HSequential V 
@@ -975,9 +947,8 @@
                       (fail! S T))
                     (let [vars (var-store-take dbound dty (- (count (:types S)) (count (:types T))))
                           new-tys (doall
-                                    (t/for
-                                       [var :- t/Sym, vars] :- r/AnyType
-                                       (subst/substitute (r/make-F var) dbound dty)))
+                                    (for [var vars]
+                                      (subst/substitute (r/make-F var) dbound dty)))
                           new-t-hsequential (r/-hsequential (concat (:types T) new-tys))
                           new-cset (cs-gen-HSequential V 
                                                        ;move dotted lower/upper bounds to vars
@@ -1081,13 +1052,11 @@
   ;(prn "cs-gen FnIntersections")
   (cset-meet*
     (doall
-      (t/for
-        [t-arr :- Function, (:types T)] :- cset
+      (for [t-arr (:types T)]
         ;; for each t-arr, we need to get at least s-arr that works
-        (let [results (filter (t/inst identity (t/U false cset))
+        (let [results (filter identity
                               (doall
-                                (t/for
-                                  [s-arr :- Function, (:types S)] :- (t/U false cset)
+                                (for [s-arr (:types S)]
                                   (let [r (handle-failure
                                             (cs-gen-Function V X Y s-arr t-arr))]
                                     r))))
@@ -1188,14 +1157,11 @@
     (cset-meet*
       (cons (cr/empty-cset X Y)
             (doall
-              (t/for
-                [[vari si ti] :- '[r/Variance r/Type r/Type]
-                  (map (-> vector
-                           (t/inst r/Variance r/Type r/Type t/Any t/Any t/Any))
-                       (:variances T)
-                       (t/ann-form (:poly? S) (t/U nil (t/Seqable r/Type)))
-                       (:poly? T))]
-                :- cset
+              (for [[vari si ti]
+                    (map vector
+                         (:variances T)
+                         (t/ann-form (:poly? S) (t/U nil (t/Seqable r/Type)))
+                         (:poly? T))]
                 (case vari
                   (:covariant :constant) (cs-gen V X Y si ti)
                   :contravariant (cs-gen V X Y ti si)
@@ -1324,10 +1290,10 @@
    :post [(cr/cset? %)]}
   (mover cset dbound vars
          (fn [cmap dmap]
-           (cr/dcon-maker (doall (t/for [v :- t/Sym, vars] :- c
-                               (if-let [c (cmap v)]
-                                 c
-                                 (err/int-error (str "No constraint for new var " v)))))
+           (cr/dcon-maker (doall (for [v vars]
+                                   (if-let [c (cmap v)]
+                                     c
+                                     (err/int-error (str "No constraint for new var " v)))))
                       nil))))
 
 ;; This one's weird, because the way we set it up, the rest is already in the dmap.
@@ -1392,10 +1358,7 @@
       (let [new (take (- n (count res))
                       (repeatedly #(gensym var)))
             all (concat res new)]
-        (let [assoc' (t/inst assoc '[r/Type t/Sym] t/Sym t/Any)
-              swap!' (t/inst swap! (t/Map '[r/Type t/Sym] t/Sym) (t/Map '[r/Type t/Sym] t/Sym)
-                             '[r/Type t/Sym] t/Sym)]
-          (swap!' DOTTED-VAR-STORE assoc' key all))
+        (swap! DOTTED-VAR-STORE assoc key all)
         all))))
 
 (defn cs-gen-Function-just-rests [V X Y S T]
@@ -1844,7 +1807,7 @@
                     [names images] (let [s (seq t-substs)]
                                      [(map first s)
                                       (map (comp :type second) s)])]
-                (t/doseq [[nme {inferred :type :keys [bnds]}] :- '[t/Sym t-subst], t-substs]
+                (doseq [[nme {inferred :type :keys [bnds]}] t-substs]
                   (when (some r/TypeFn? [(:upper-bound bnds) (:lower-bound bnds)]) (err/nyi-error "Higher kinds"))
                   (let [lower-bound (subst/substitute-many (:lower-bound bnds) images names)
                         upper-bound (subst/substitute-many (:upper-bound bnds) images names)]
@@ -1955,8 +1918,7 @@
         ;_ (prn "cs-short" cs-short)
         new-vars (var-store-take dotted-var T-dotted (count rest-S))
         new-Ts (doall
-                 (t/for
-                   [v :- t/Sym, new-vars] :- r/Type
+                 (for [v new-vars]
                    (let [target (subst/substitute-dots (map r/make-F new-vars) nil dotted-var T-dotted)]
                      #_(prn "replace" v "with" dotted-var "in" (prs/unparse-type target))
                      (subst/substitute (r/make-F v) dotted-var target))))

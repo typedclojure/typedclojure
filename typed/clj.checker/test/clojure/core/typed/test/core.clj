@@ -48,7 +48,7 @@
 ; The :refer :all of clojure.core.typed adds another Seqable which
 ; is less useful here.
   (:use [clojure.core.typed :as t :exclude [Seqable loop fn defprotocol let dotimes
-                                            for doseq def remove filter defn atom ref]])
+                                            def remove filter defn atom ref]])
   (:import (clojure.lang ISeq IPersistentVector Atom IPersistentMap
                          ExceptionInfo Var Seqable)))
 
@@ -1222,29 +1222,8 @@
 (deftest map-literal-containing-funapp-test
   (is-tc-e {:bar (identity 1)}))
 
-(deftest doseq-test
-  (is-tc-e (doseq [a :- (t/U t/AnyInteger nil), [1 nil 2 3]
-                   :when a]
-             (inc a)))
-  ;wrap in thunk to prevent evaluation
-  (is-tc-err
-    (fn []
-      (doseq [a :- (t/U t/AnyInteger nil), [1 nil 2 3]]
-        (inc a)))))
-
 (deftest dotimes-test
-  (is-tc-e (dotimes [i 100] (inc i)) nil)
-  (is-tc-e (dotimes [i :- t/Num 100] (inc i)) nil)
-  (is (let [a (atom 0)]
-        (clojure.core.typed/dotimes
-          [i 10]
-          (swap! a inc))
-        (= @a 10)))
-  (is (let [a (atom 0)]
-        (clojure.core.typed/dotimes
-          [i :- t/Num, 10]
-          (swap! a inc))
-        (= @a 10))))
+  (is-tc-e (clojure.core.typed/dotimes [i 100] (inc i)) nil))
 
 (deftest records-test
   (is (check-ns 'clojure.core.typed.test.records))
@@ -3786,7 +3765,7 @@
            (t/Map t/Num (t/Vec t/Num))))
 
 (deftest CTYP-189-test
-  (is-tc-e (for [x :- t/Int []] :- t/Int x)))
+  (is-tc-e (for [x []] x)))
 
 (comment
   (tc-e (let [x 1] (loop [x x] x)))
@@ -4447,18 +4426,6 @@
 
 (deftest group-by-annotation-test
   (is-tc-e #(group-by (inst identity t/Any) (range 10))))
-
-(deftest metadata-ann-test
-  (is-tc-e (for ^{:clojure.core.typed/ann t/Num} [^{:clojure.core.typed/ann t/Num} a [1 2 3]] a))
-  (is-tc-err (for ^{:clojure.core.typed/ann t/Bool} [^{:clojure.core.typed/ann t/Num} a [1 2 3]] a))
-  (is-tc-e #(clojure.core/loop [^{:clojure.core.typed/ann t/Num} a 1] (inc a)))
-  (is-tc-err #(clojure.core/loop [^{:clojure.core.typed/ann t/Bool} a 1] (inc a)))
-  ;;TODO
-  ;(is-tc-e (doseq [^{:clojure.core.typed/ann t/Num} a [1 2 3]] (inc a)))
-  ;(is-tc-err (doseq [^{:clojure.core.typed/ann t/Bool} a [1 2 3]] a))
-  ;(is-tc-e (fn [^{:clojure.core.typed/ann t/Num} a] (inc a)))
-  ;(is-tc-err (fn [^{:clojure.core.typed/ann t/Bool} a] (inc a)))
-)
 
 (deftest ann-namespace-alias-test
   (is (check-ns 'clojure.core.typed.test.ann-qualify.child)))
