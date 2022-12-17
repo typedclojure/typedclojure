@@ -645,7 +645,7 @@ for checking namespaces, cf for checking individual forms."}
     (with-clojure-impl
       (add-rclass-env (Class->symbol rcls) opts))))
 
-(defmacro ^:no-doc rclass-preds 
+(defmacro ^:no-doc rclass-preds
   "Do not use"
   [& args]
   `(do
@@ -1724,8 +1724,10 @@ for checking namespaces, cf for checking individual forms."}
 ; thus dynaload as lazily as possible.
 ;============================================================
 
-(defmacro doseq
-  "Like clojure.core/doseq with optional annotations.
+(defmacro ^:deprecated doseq
+  "DEPRECATED: Use clojure.core/doseq.
+  
+  Like clojure.core/doseq with optional annotations.
 
   :let option uses clojure.core.typed/let
   
@@ -1837,8 +1839,10 @@ for checking namespaces, cf for checking individual forms."}
                                    ~@(when needrec [recform]))))))])))))]
     (nth (step nil (seq seq-exprs)) 1)))
 
-(defmacro dotimes
-  "Like clojure.core/dotimes, but with optional annotations.
+(defmacro ^:deprecated dotimes
+  "DEPRECATED: Use clojure.core/dotimes.
+
+  Like clojure.core/dotimes, but with optional annotations.
 
   If annotation for binding is omitted, defaults to Int.
   
@@ -1864,8 +1868,10 @@ for checking namespaces, cf for checking individual forms."}
            ~@body
            (recur (unchecked-inc ~i)))))))
 
-(defmacro for
-  "Like clojure.core/for with optional type annotations.
+(defmacro ^:deprecated for
+  "DEPRECATED: Use clojure.core/for.
+  
+  Like clojure.core/for with optional type annotations.
 
   All types default to Any.
 

@@ -2,3 +2,5 @@
 - enable symbolic closures by default
   - checking is deferred for unannotated local functions until (and only if) they are applied
 - more precise annotation for `clojure.core.async/pipe`
+- deprecated old annotation macros `clojure.core.typed/{for,dotimes,doseq}`
+  - obsoleted by the improved type inference of the new macro rules for `clojure.core/{for,dotimes,doseq}`
