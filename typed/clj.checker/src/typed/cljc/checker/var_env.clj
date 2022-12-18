@@ -16,7 +16,7 @@
             [typed.cljc.checker.name-env :as name-env]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.runtime.env :as env]
-            [typed.cljc.runtime.env-utils :refer [force-env]]
+            [typed.cljc.runtime.env-utils :refer [force-type]]
             [clojure.core.typed.runtime.jvm.configs :as configs]))
 
 (defn clj-var-annotations []
@@ -64,7 +64,7 @@
     ;; has not been set, since old-t will be a fn.
     (when (and (delay? old-t)
                (realized? old-t))
-      (when (not= (force-env old-t) (force-env type))
+      (when (not= (force-type old-t) (force-type type))
         (println (str "WARNING: Duplicate var annotation: " sym))
         (flush))))
   (env/swap-checker! assoc-in [impl/current-var-annotations-kw sym] type)
@@ -152,9 +152,9 @@
   {:pre [(symbol? nsym)]
    :post [((some-fn nil? r/Type?) %)]}
   (or (let [e (var-annotations)]
-        (force-env (e nsym)))
+        (force-type (e nsym)))
       (when (impl/checking-clojurescript?)
-        (force-env ((jsvar-annotations) nsym)))
+        (force-type ((jsvar-annotations) nsym)))
       (when-some [ts (not-empty
                        (into (sorted-map) (map (fn [fsym]
                                                  (some->> ((requiring-resolve fsym) nsym)
@@ -200,4 +200,4 @@
   (some-> (untyped-var-annotations)
           (get nsym)
           (get sym)
-          force-env))
+          force-type))

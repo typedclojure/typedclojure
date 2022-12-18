@@ -9,7 +9,7 @@
 (ns typed.clj.checker.method-override-env
   (:require [typed.cljc.runtime.env :as env]
             [clojure.core.typed.current-impl :as impl]
-            [typed.cljc.runtime.env-utils :refer [force-env]]
+            [typed.cljc.runtime.env-utils :refer [force-type]]
             [typed.cljc.checker.type-rep :as r]))
 
 ; Should only override a method with a more specific type
@@ -35,4 +35,4 @@
 
 (defn get-method-override [m]
   {:post [((some-fn r/Poly? r/FnIntersection? nil?) %)]}
-  (force-env (get (method-override-env) m)))
+  (force-type (get (method-override-env) m)))

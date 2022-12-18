@@ -8,7 +8,7 @@
 
 (ns ^:no-doc typed.cljc.checker.name-env
   (:require [typed.clojure :as t]
-            [typed.cljc.runtime.env-utils :refer [force-env]]
+            [typed.cljc.runtime.env-utils :refer [force-type]]
             [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.errors :as err]
@@ -71,7 +71,7 @@
                           (r/Type? %))
                       (pr-str %))
               true)]}
-  (some-> (find-type-name-entry sym) val force-env))
+  (some-> (find-type-name-entry sym) val force-type))
 
 (t/ann ^:no-check add-type-name [t/Sym (t/U t/Kw r/Type) -> nil])
 (def add-type-name impl/add-tc-type-name)

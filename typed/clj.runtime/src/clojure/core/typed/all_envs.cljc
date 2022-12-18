@@ -10,7 +10,7 @@
   (:require [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.load-if-needed :refer [load-if-needed]]
             [clojure.core.typed.util-vars :as vs]
-            [typed.cljc.runtime.env-utils :refer [force-env]]
+            [typed.cljc.runtime.env-utils :refer [force-type]]
             [typed.clj.checker.parse-unparse :refer [unparse-type]]
             [typed.cljc.checker.name-env :as nme-env]
             [typed.cljc.checker.var-env :refer [var-annotations]]
@@ -21,13 +21,13 @@
     (into {}
           (for [[k v] (nme-env/name-env)]
             (when-not (keyword? v)
-              [k (unparse-type (force-env v))])))))
+              [k (unparse-type (force-type v))])))))
 
 (defn- var-env []
   (binding [vs/*verbose-types* true]
     (into {}
           (for [[k v] (var-annotations)]
-            [k (unparse-type (force-env v))]))))
+            [k (unparse-type (force-type v))]))))
 
 (defn all-envs-clj []
   (load-if-needed)

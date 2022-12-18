@@ -12,7 +12,7 @@
             [clojure.core.typed.coerce-utils :as coerce]
             [clojure.string :as str]
             [typed.clojure :as-alias t]
-            [typed.cljc.runtime.env-utils :refer [force-env]]
+            [typed.cljc.runtime.env-utils :refer [force-type]]
             [typed.cljc.checker.name-env :as name-env]
             [typed.cljc.checker.var-env :as var-env]
             [typed.clj.checker.rclass-env :as rcls]
@@ -256,7 +256,7 @@
                          (println doc)
                          (println "Forms:" forms))
                        (if-some [[alias-k alias-ty] (name-env/find-type-name-entry rsym)]
-                         (let [alias-ty (force-env alias-ty)]
+                         (let [alias-ty (force-type alias-ty)]
                            (with-out-str
                              (println "Type alias" alias-k)
                              (pp/pprint (if (keyword? alias-ty)

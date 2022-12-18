@@ -218,7 +218,7 @@
   nil)
 
 #?(:clj
-(def ^:private force-env #((requiring-resolve 'typed.cljc.runtime.env-utils/force-env) %)))
+(def ^:private force-type #((requiring-resolve 'typed.cljc.runtime.env-utils/force-type) %)))
 
 #?(:clj
 (defmacro create-env
@@ -232,7 +232,7 @@
     `(do (def ~kw-def ~(keyword (str (ns-name *ns*)) (str n)))
          (defn ~n []
            {:post [(map? ~'%)]}
-           (force-env (get (env/deref-checker) ~kw-def {})))
+           (force-type (get (env/deref-checker) ~kw-def {})))
          (defn ~add-def [sym# t#]
            {:pre [(symbol? sym#)]
             :post [(nil? ~'%)]}
@@ -481,15 +481,15 @@
                             #(parse-free-binder-with-variance binder))))
         fs (when parsed-binder
              (delay 
-               (map (comp make-F :fname) (force-env parsed-binder))))
+               (map (comp make-F :fname) (force-type parsed-binder))))
         bnds (when parsed-binder
-               (delay (map :bnd (force-env parsed-binder))))
+               (delay (map :bnd (force-type parsed-binder))))
         ms (into {} (map (fn [[knq v*]]
                            (let [_ (when (namespace knq)
                                      (int-error "Protocol method should be unqualified"))
                                  mtype 
                                  (delay
-                                   (let [mtype (with-bounded-frees* (zipmap (force-env fs) (force-env bnds))
+                                   (let [mtype (with-bounded-frees* (zipmap (force-type fs) (force-type bnds))
                                                  #(binding [vs/*current-env* current-env]
                                                     (with-parse-ns* current-ns
                                                       (fn []
@@ -613,7 +613,7 @@
             :cljs provided-name)
         fs (let [bfn (bound-fn []
                        (let [parse-field (fn [[n _ t]] [n (parse-type t)])]
-                         (apply array-map (apply concat (with-frees* (mapv make-F (force-env args))
+                         (apply array-map (apply concat (with-frees* (mapv make-F (force-type args))
                                                           (fn []
                                                             (binding [vs/*current-env* current-env]
                                                               (with-parse-ns* current-ns
@@ -623,12 +623,12 @@
                  (map
                    (fn [an]
                      [an (let [bfn (bound-fn []
-                                     (with-frees* (mapv make-F (force-env args))
+                                     (with-frees* (mapv make-F (force-type args))
                                        (fn []
                                          (binding [vs/*current-env* current-env]
                                            (with-parse-ns* current-ns
                                              #(let [t (parse-type an)]
-                                                (abstract-many (force-env args) t)))))))]
+                                                (abstract-many (force-type args) t)))))))]
                            (delay (bfn)))]))
                  ancests)
         ;_ (prn "collected ancestors" as)

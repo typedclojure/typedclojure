@@ -13,7 +13,7 @@
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.errors :as err]
             [typed.cljc.checker.errors-ann]
-            [typed.cljc.runtime.env-utils :refer [force-env]]
+            [typed.cljc.runtime.env-utils :refer [force-type]]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.runtime.env :as env]))
 
@@ -55,7 +55,7 @@
   [sym]
   {:pre [(symbol? sym)]
    :post [((some-fn nil? r/Protocol? r/TypeFn?) %)]}
-  (force-env (get (protocol-env) sym)))
+  (force-type (get (protocol-env) sym)))
 
 (t/ann resolve-protocol [t/Sym -> r/Type])
 (defn resolve-protocol [sym]

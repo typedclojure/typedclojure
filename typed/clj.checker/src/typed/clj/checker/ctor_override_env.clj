@@ -9,7 +9,7 @@
 (ns typed.clj.checker.ctor-override-env
   (:require [clojure.core.typed.contract-utils :as con]
             [typed.cljc.runtime.env :as env]
-            [typed.cljc.runtime.env-utils :refer [force-env]]
+            [typed.cljc.runtime.env-utils :refer [force-type]]
             [clojure.core.typed.current-impl :as impl]
             [typed.cljc.checker.type-rep :as r]))
 
@@ -33,4 +33,4 @@
 
 (defn get-constructor-override [sym]
   {:post [((some-fn nil? r/Type?) %)]}
-  (force-env (get (constructor-override-env) sym)))
+  (force-type (get (constructor-override-env) sym)))

@@ -32,5 +32,5 @@
 (defmacro delay-type [& args]
   `(delay-type* (fn [] (do ~@args))))
 
-(defn force-env [v]
+(defn force-type [v]
   (force (if (fn? v) (v) v)))

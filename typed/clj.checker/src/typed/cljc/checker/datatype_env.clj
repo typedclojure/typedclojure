@@ -9,7 +9,7 @@
 (ns ^:no-doc typed.cljc.checker.datatype-env
   (:require [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.errors :as err]
-            [typed.cljc.runtime.env-utils :refer [force-env]]
+            [typed.cljc.runtime.env-utils :refer [force-type]]
             [typed.cljc.checker.type-rep :as r]
             [clojure.core.typed.current-impl :as impl]
             [typed.clojure :as t]
@@ -40,7 +40,7 @@
   [sym]
   {:pre [(symbol? sym)]
    :post [((some-fn nil? r/DataType? r/TypeFn?) %)]}
-  (force-env (get (datatype-env) sym)))
+  (force-type (get (datatype-env) sym)))
 
 (t/ann resolve-datatype [t/Sym -> r/Type])
 (defn resolve-datatype 

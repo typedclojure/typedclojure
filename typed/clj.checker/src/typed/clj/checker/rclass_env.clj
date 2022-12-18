@@ -9,7 +9,7 @@
 ;; don't require the checker from here
 (ns ^:no-doc typed.clj.checker.rclass-env
   (:require [typed.cljc.runtime.env :as env]
-            [typed.cljc.runtime.env-utils :refer [force-env]]
+            [typed.cljc.runtime.env-utils :refer [force-type]]
             [typed.cljc.checker.type-rep :as r]
             [clojure.core.typed.current-impl :as impl]))
 
@@ -38,7 +38,7 @@
                        :latest-var? (= #'get-rclass (resolve `get-rclass))
                        :raw (get (rclasses) csym)])
               true)]}
-  (force-env (get (rclasses) csym)))
+  (force-type (get (rclasses) csym)))
 
 (defn alter-class* [csym type]
   (env/swap-checker! assoc-in [impl/current-rclass-env-kw csym] type)
