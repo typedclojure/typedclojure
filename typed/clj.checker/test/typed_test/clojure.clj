@@ -6,10 +6,6 @@
             [clojure.edn :as edn]
             [typed.cljs.checker.test-utils :refer [cljs-eval]]))
 
-;; for clojure.core.typed.util-vars/dev-mode?
-(deftest this-file-exists
-  (is (io/resource "typed_test/clojure.clj")))
-
 (defn prep-temp-cljs-ns-form []
   `(~'ns ~(gensym "temp.ns")
      ;; FIXME ns doesn't seem to like macros that expand to macros in other namespaces?

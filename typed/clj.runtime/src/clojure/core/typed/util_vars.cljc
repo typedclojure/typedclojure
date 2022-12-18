@@ -9,10 +9,6 @@
 (ns clojure.core.typed.util-vars
   (:require [clojure.java.io :as io]))
 
-;;TODO make this a java property
-;;TODO disable in CI
-(def ^:const dev-mode? (boolean (io/resource "typed_test/clojure.clj")))
-
 (defonce ^:no-doc registered-ann-ns (atom {:register? false :namespaces #{}}))
 
 (defonce ^:no-doc ^:dynamic *current-env* nil)

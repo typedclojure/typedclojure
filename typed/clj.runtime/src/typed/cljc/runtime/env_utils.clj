@@ -11,29 +11,11 @@
 ;; this namespace tries to contain the problem to keep development slick
 ;; until a better approach is found.
 (ns ^:no-doc typed.cljc.runtime.env-utils
-  (:require [clojure.core.typed.util-vars :as uvs]
-            [clojure.core.typed.parsed-type-invalidation :refer [parsed-types-invalidation-id]]))
-
-(defn invalidate-parsed-types! []
-  (locking parsed-types-invalidation-id
-    (vreset! parsed-types-invalidation-id (str (random-uuid)))))
+  (:require [clojure.core.typed.util-vars :as uvs]))
 
 ;; [[:-> Type] :-> [:-> Type]]
 (defn delay-type* [f]
-  (if uvs/dev-mode?
-    (let [v (volatile! nil)
-          try-read #(when-some [[t invalidation-id] @v]
-                      (when (= invalidation-id @parsed-types-invalidation-id)
-                        t))]
-      (fn []
-        (or (try-read)
-            (locking v
-              (or (try-read)
-                  ;; look up id _after_ (f) in case of side effects
-                  (let [t (f)]
-                    (vreset! v [t @parsed-types-invalidation-id])
-                    t))))))
-    (delay (f))))
+  (delay (f)))
 
 (defmacro delay-type [& args]
   `(delay-type* (fn [] (do ~@args))))

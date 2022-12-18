@@ -10,7 +10,6 @@
   (:refer-clojure :exclude [defrecord defprotocol])
   (:require [typed.clojure :as t]
             [clojure.core.typed.util-vars :as uvs]
-            [typed.cljc.runtime.env-utils :refer [invalidate-parsed-types!]]
             [clojure.repl :as repl]
             [clojure.set :as set]))
 
@@ -149,9 +148,7 @@
   (let [classname (with-meta (symbol (str (namespace-munge *ns*) "." name-sym)) (meta name-sym))
         ->ctor (symbol (str "->" name-sym))
         maker (symbol (str name-sym "-maker"))
-        qmaker (symbol (-> *ns* ns-name str) (name maker))
         pred (symbol (str name-sym "?"))
-        qpred (symbol (-> *ns* ns-name str) (name pred))
         that (gensym)
         gs (gensym)
         type-hash (hash classname)
@@ -166,47 +163,20 @@
 
        (alter-meta! (var ~->ctor) assoc :private true)
 
-       (if uvs/dev-mode?
-         (let [self# (promise)]
-           (defn ~pred [a#]
-             (let [new-f# @(resolve '~qpred)]
-               (if (identical? @self# new-f#)
-                 (instance? ~name-sym a#)
-                 (new-f# a#))))
-           (deliver self# ~pred))
-         (defn ~pred [a#]
-           (instance? ~name-sym a#)))
+       (defn ~pred [a#]
+         (instance? ~name-sym a#))
 
-       (declare ~maker)
-       ; (Atom1 (Map t/Any Number))
-       (if uvs/dev-mode?
-         (let [self# (promise)]
-           (defn ~maker
-             ([~@fields]
-              {:pre ~invariants}
-              (let [new-f# @(resolve '~qmaker)]
-                (if (identical? @self# new-f#)
-                  (~->ctor ~@fields nil nil)
-                  (new-f# ~@fields))))
-             ([~@fields meta#]
-              {:pre ~invariants}
-              (let [new-f# @(resolve '~qmaker)]
-                (if (identical? @self# new-f#)
-                  (~->ctor ~@fields nil meta#)
-                  (new-f# ~@fields meta#)))))
-           (deliver self# ~maker))
-         (defn ~maker
-           ([~@fields]
-            {:pre ~invariants}
-            (~->ctor ~@fields nil nil))
-           ([~@fields meta#]
-            {:pre ~invariants}
-            (~->ctor ~@fields nil meta#)))))))
+       (defn ~maker
+         ([~@fields]
+          {:pre ~invariants}
+          (~->ctor ~@fields nil nil))
+         ([~@fields meta#]
+          {:pre ~invariants}
+          (~->ctor ~@fields nil meta#))))))
 
 (defmacro mk [original-ns def-kind name-sym fields invariants & {:keys [methods]}]
   (when-not (resolve name-sym)
     `(t/tc-ignore
-       (invalidate-parsed-types!)
        ~(emit-deftype original-ns def-kind name-sym fields invariants methods))))
 
 (defmacro defspecial [name]
