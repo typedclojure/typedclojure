@@ -8,7 +8,7 @@
 
 (ns ^:no-doc clojure.core.typed.ast-ops
   (:require [clojure.core.typed.current-impl :as impl]
-            [typed.cljc.checker.env-utils :refer [force-env]]
+            [typed.cljc.runtime.env-utils :refer [force-env]]
             [clojure.core.typed.errors :as err]))
 
 (defn resolve-Name [{:keys [name] :as expr}]

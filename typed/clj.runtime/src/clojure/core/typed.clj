@@ -392,7 +392,7 @@ for checking namespaces, cf for checking individual forms."}
              [unparse-type (requiring-resolve 'typed.clj.checker.parse-unparse/unparse-type)
               t (bfn
                   #(with-current-location form
-                     ((requiring-resolve 'typed.cljc.checker.env-utils/force-env)
+                     ((requiring-resolve 'typed.cljc.runtime.env-utils/force-env)
                       (delay-tc-parse t))))
               _ (with-clojure-impl
                   (when-let [tfn ((requiring-resolve 'typed.cljc.checker.declared-kind-env/declared-kind-or-nil) qsym)]

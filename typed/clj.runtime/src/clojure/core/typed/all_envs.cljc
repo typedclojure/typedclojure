@@ -10,7 +10,7 @@
   (:require [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.load-if-needed :refer [load-if-needed]]
             [clojure.core.typed.util-vars :as vs]
-            [typed.cljc.checker.env-utils :refer [force-env]]
+            [typed.cljc.runtime.env-utils :refer [force-env]]
             [typed.clj.checker.parse-unparse :refer [unparse-type]]
             [typed.cljc.checker.name-env :as nme-env]
             [typed.cljc.checker.var-env :refer [var-annotations]]

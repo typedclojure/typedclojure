@@ -12,7 +12,7 @@
             [clojure.core.typed.coerce-utils :as coerce]
             [clojure.string :as str]
             [typed.clojure :as-alias t]
-            [typed.cljc.checker.env-utils :refer [force-env]]
+            [typed.cljc.runtime.env-utils :refer [force-env]]
             [typed.cljc.checker.name-env :as name-env]
             [typed.cljc.checker.var-env :as var-env]
             [typed.clj.checker.rclass-env :as rcls]

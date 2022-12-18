@@ -13,7 +13,7 @@
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.errors :as err]
             [typed.cljc.checker.errors-ann]
-            [typed.cljc.checker.env-utils :refer [force-env]]
+            [typed.cljc.runtime.env-utils :refer [force-env]]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.runtime.env :as env]))
 

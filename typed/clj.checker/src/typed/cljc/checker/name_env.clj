@@ -8,7 +8,7 @@
 
 (ns ^:no-doc typed.cljc.checker.name-env
   (:require [typed.clojure :as t]
-            [typed.cljc.checker.env-utils :refer [force-env]]
+            [typed.cljc.runtime.env-utils :refer [force-env]]
             [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.errors :as err]

@@ -218,7 +218,7 @@
   nil)
 
 #?(:clj
-(def ^:private force-env #((requiring-resolve 'typed.cljc.checker.env-utils/force-env) %)))
+(def ^:private force-env #((requiring-resolve 'typed.cljc.runtime.env-utils/force-env) %)))
 
 #?(:clj
 (defmacro create-env

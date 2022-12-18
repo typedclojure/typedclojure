@@ -16,7 +16,7 @@
             [typed.cljc.checker.name-env :as name-env]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.runtime.env :as env]
-            [typed.cljc.checker.env-utils :refer [force-env]]
+            [typed.cljc.runtime.env-utils :refer [force-env]]
             [clojure.core.typed.runtime.jvm.configs :as configs]))
 
 (defn clj-var-annotations []

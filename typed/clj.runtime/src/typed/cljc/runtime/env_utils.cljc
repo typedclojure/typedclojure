@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc typed.cljc.checker.env-utils)
+(ns ^:no-doc typed.cljc.runtime.env-utils)
 
 (defn force-env [v]
   (force (if (fn? v) (v) v)))

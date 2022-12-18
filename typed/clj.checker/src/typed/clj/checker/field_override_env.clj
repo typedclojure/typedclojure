@@ -9,7 +9,7 @@
 (ns typed.clj.checker.field-override-env
   (:require [typed.cljc.runtime.env :as env]
             [clojure.core.typed.current-impl :as impl]
-            [typed.cljc.checker.env-utils :refer [force-env]]
+            [typed.cljc.runtime.env-utils :refer [force-env]]
             [typed.cljc.checker.type-rep :as r]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

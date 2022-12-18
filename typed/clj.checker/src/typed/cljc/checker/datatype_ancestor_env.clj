@@ -9,7 +9,7 @@
 (ns ^:no-doc typed.cljc.checker.datatype-ancestor-env
   (:require [typed.cljc.checker.utils :as u]
             [clojure.core.typed.contract-utils :as con]
-            [typed.cljc.checker.env-utils :refer [force-env]]
+            [typed.cljc.runtime.env-utils :refer [force-env]]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.subst :as subst]

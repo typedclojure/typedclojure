@@ -9,7 +9,7 @@
 ;; don't require the checker from here
 (ns ^:no-doc typed.clj.checker.rclass-env
   (:require [typed.cljc.runtime.env :as env]
-            [typed.cljc.checker.env-utils :refer [force-env]]
+            [typed.cljc.runtime.env-utils :refer [force-env]]
             [typed.cljc.checker.type-rep :as r]
             [clojure.core.typed.current-impl :as impl]))
 
