@@ -218,6 +218,9 @@
   nil)
 
 #?(:clj
+(def ^:private force-env #((requiring-resolve 'typed.cljc.checker.env-utils/force-env) %)))
+
+#?(:clj
 (defmacro create-env
   "For name n, creates defs for {n}, {n}-kw, add-{n},
   and reset-{n}!"
@@ -395,8 +398,6 @@
 
 #?(:clj
 (def ^:private int-error #(apply (requiring-resolve 'clojure.core.typed.errors/int-error) %&)))
-#?(:clj
-(def ^:private force-env #((requiring-resolve 'typed.cljc.checker.env-utils/force-env) %)))
 #?(:clj
 (def ^:private parse-free-binder-with-variance #((requiring-resolve 'typed.clj.checker.parse-unparse/parse-free-binder-with-variance) %)))
 #?(:clj
