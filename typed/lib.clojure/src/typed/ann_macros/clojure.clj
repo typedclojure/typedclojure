@@ -18,5 +18,3 @@
                   (assert (symbol? n) [n t])
                   `(t/ann ~n ~t))
                 pairs))))
-
-(defmacro ann-protocols [& body])
