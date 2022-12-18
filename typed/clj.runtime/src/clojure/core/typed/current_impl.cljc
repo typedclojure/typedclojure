@@ -10,7 +10,6 @@
 (ns ^:no-doc clojure.core.typed.current-impl
   #?(:cljs (:refer-clojure :exclude [-val]))
   (:require [clojure.core.typed.contract-utils :as con]
-            [typed.cljc.checker.env-utils :refer [force-env]]
             [clojure.core.typed.util-vars :as vs]
             [clojure.set :as set]
             [typed.cljc.runtime.env :as env]
@@ -396,6 +395,8 @@
 
 #?(:clj
 (def ^:private int-error #(apply (requiring-resolve 'clojure.core.typed.errors/int-error) %&)))
+#?(:clj
+(def ^:private force-env #((requiring-resolve 'typed.cljc.checker.env-utils/force-env) %)))
 #?(:clj
 (def ^:private parse-free-binder-with-variance #((requiring-resolve 'typed.clj.checker.parse-unparse/parse-free-binder-with-variance) %)))
 #?(:clj
