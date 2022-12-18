@@ -16,6 +16,8 @@
 
 ;; [[:-> Type] :-> [:-> Type]]
 (defn delay-type* [f]
+  (delay (f))
+  #_
   (let [v (volatile! nil)
         try-read #(when-some [[t invalidation-id] @v]
                     (when (= invalidation-id @parsed-types-invalidation-id)
