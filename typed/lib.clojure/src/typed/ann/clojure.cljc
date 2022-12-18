@@ -29,7 +29,7 @@
 
 #?(:clj (do
 (t/defalias IOFactoryOpts (t/HMap :optional {:append t/Any, :encoding (t/Nilable t/Str)}))
-(t/ann-protocol clojure.java.io/IOFactory 
+(t/ann-protocol clojure.java.io/IOFactory
                 make-reader
                 [clojure.java.io/IOFactory IOFactoryOpts :-> java.io.BufferedReader]
 

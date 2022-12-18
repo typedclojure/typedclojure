@@ -1,9 +1,14 @@
 (ns typed-test.clojure
   (:require [clojure.test :refer [deftest is testing]]
+            [clojure.java.io :as io]
             [typed.clojure :as t]
             [clojure.core.typed.errors :as err]
             [clojure.edn :as edn]
             [typed.cljs.checker.test-utils :refer [cljs-eval]]))
+
+;; for clojure.core.typed.util-vars/dev-mode?
+(deftest this-file-exists
+  (is (io/resource "typed_test/clojure.clj")))
 
 (defn prep-temp-cljs-ns-form []
   `(~'ns ~(gensym "temp.ns")

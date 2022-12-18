@@ -67,11 +67,11 @@
                 ext))
         configs))
 
-(defn- clj-reloading-require [nsym]
-  (require nsym :reload))
+(defn- clj-require [nsym]
+  (require nsym))
 
-(defn register-clj-config-anns [] (register-config-anns @*clj-configs require))
-(defn register-clj-config-exts [] (register-config-exts @*clj-configs clj-reloading-require))
+(defn register-clj-config-anns [] (register-config-anns @*clj-configs clj-require))
+(defn register-clj-config-exts [] (register-config-exts @*clj-configs clj-require))
 
 (defn- cljs-require [nsym]
   ;; enough to macroexpand the file to force macros side effects
@@ -89,7 +89,7 @@
   nil)
 
 (defn register-cljs-config-anns [] (register-config-anns @*cljs-configs cljs-require))
-(defn register-cljs-config-exts [] (register-config-exts @*cljs-configs clj-reloading-require))
+(defn register-cljs-config-exts [] (register-config-exts @*cljs-configs clj-require))
 
 (defn- config-var-providers [configs]
   (println "Registering :var-type-providers from typedclojure_config's...")

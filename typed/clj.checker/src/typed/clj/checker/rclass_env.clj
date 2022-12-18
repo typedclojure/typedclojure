@@ -36,7 +36,7 @@
                        (= (class %)
                           (Class/forName (.getName (class %))))
                        :latest-var? (= #'get-rclass (resolve `get-rclass))
-                       :raw (get (rclasses) csym)])
+                       :raw-class (class (get (rclasses) csym))])
               true)]}
   (force-type (get (rclasses) csym)))
 

@@ -268,8 +268,9 @@
   [p/TCType])
 
 (t/ann ^:no-check RClass->Class [RClass -> Class])
-(defn ^Class RClass->Class [^RClass rcls]
-  (coerce/symbol->Class (.the-class rcls)))
+(defn ^Class RClass->Class [rcls]
+  {:pre [(RClass? rcls)]}
+  (coerce/symbol->Class (:the-class rcls)))
 
 (u/ann-record JSNominal [variances :- (t/U nil (t/NonEmptySeqable Variance))
                          kind :- (t/U ':interface ':class)

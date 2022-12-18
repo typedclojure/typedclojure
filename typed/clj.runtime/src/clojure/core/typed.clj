@@ -17,6 +17,7 @@ for checking namespaces, cf for checking individual forms."}
                             defn atom ref cast
                             #_filter #_remove])
   (:require [clojure.core :as core]
+            [typed.cljc.runtime.env-utils :refer [force-type delay-type]]
             [clojure.reflect :as reflect]
             [clojure.core.typed.util-vars :as vs]
             [clojure.core.typed.special-form :as spec]
@@ -356,7 +357,7 @@ for checking namespaces, cf for checking individual forms."}
   [t]
   `(core/let [t# ~t
               app-outer-context# (bound-fn [f# t#] (f# t#))]
-     (delay
+     (delay-type
        (app-outer-context# (requiring-resolve 'clojure.core.typed.parse-ast/parse-clj) t#))))
 
 ;;TODO implement reparsing on internal ns reload
@@ -364,7 +365,7 @@ for checking namespaces, cf for checking individual forms."}
   [t]
   `(core/let [t# ~t
               app-outer-context# (bound-fn [f#] (f#))]
-     (delay
+     (delay-type
        (app-outer-context#
          (core/fn []
            ((requiring-resolve 'typed.clj.checker.parse-unparse/with-parse-ns*)
@@ -387,7 +388,7 @@ for checking namespaces, cf for checking individual forms."}
     (core/let
       [;; preserve *ns*
        bfn (bound-fn [f] (f))
-       t (delay
+       t (delay-type
            (core/let
              [unparse-type (requiring-resolve 'typed.clj.checker.parse-unparse/unparse-type)
               t (bfn

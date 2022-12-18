@@ -6,6 +6,10 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
+;; reloading internal namespaces often makes the global type environment
+;; contain old versions of classes/functions and so forces a repl restart.
+;; this namespace tries to contain the problem to keep development slick
+;; until a better approach is found.
 (ns ^:no-doc typed.cljc.runtime.env-utils
   (:require [clojure.core.typed.util-vars :as uvs]
             [clojure.core.typed.parsed-type-invalidation :refer [parsed-types-invalidation-id]]))
@@ -16,21 +20,26 @@
 
 ;; [[:-> Type] :-> [:-> Type]]
 (defn delay-type* [f]
-  (delay (f))
-  #_
-  (let [v (volatile! nil)
-        try-read #(when-some [[t invalidation-id] @v]
-                    (when (= invalidation-id @parsed-types-invalidation-id)
-                      t))]
-    (fn []
-      (or (try-read)
-          (locking v
-            (or (try-read)
-                ;; look up id _after_ (f) in case of side effects
-                (vreset! v [(f) @parsed-types-invalidation-id])))))))
+  (if uvs/dev-mode?
+    (let [v (volatile! nil)
+          try-read #(when-some [[t invalidation-id] @v]
+                      (when (= invalidation-id @parsed-types-invalidation-id)
+                        t))]
+      (fn []
+        (or (try-read)
+            (locking v
+              (or (try-read)
+                  ;; look up id _after_ (f) in case of side effects
+                  (let [t (f)]
+                    (vreset! v [t @parsed-types-invalidation-id])
+                    t))))))
+    (delay (f))))
 
 (defmacro delay-type [& args]
   `(delay-type* (fn [] (do ~@args))))
 
 (defn force-type [v]
-  (force (if (fn? v) (v) v)))
+  (let [res (force (if (fn? v) (v) v))]
+    (assert (not (or (delay? res) (fn? res)))
+            (class res))
+    res))

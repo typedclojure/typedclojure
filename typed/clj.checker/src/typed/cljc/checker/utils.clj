@@ -151,6 +151,7 @@
         maker (symbol (str name-sym "-maker"))
         qmaker (symbol (-> *ns* ns-name str) (name maker))
         pred (symbol (str name-sym "?"))
+        qpred (symbol (-> *ns* ns-name str) (name pred))
         that (gensym)
         gs (gensym)
         type-hash (hash classname)
@@ -165,26 +166,42 @@
 
        (alter-meta! (var ~->ctor) assoc :private true)
 
-       (defn ~(symbol (str name-sym "?")) [a#]
-         (instance? ~name-sym a#))
+       (if uvs/dev-mode?
+         (let [self# (promise)]
+           (defn ~pred [a#]
+             (let [new-f# @(resolve '~qpred)]
+               (if (identical? @self# new-f#)
+                 (instance? ~name-sym a#)
+                 (new-f# a#))))
+           (deliver self# ~pred))
+         (defn ~pred [a#]
+           (instance? ~name-sym a#)))
 
        (declare ~maker)
        ; (Atom1 (Map t/Any Number))
-       (let [self# (promise)]
+       (if uvs/dev-mode?
+         (let [self# (promise)]
+           (defn ~maker
+             ([~@fields]
+              {:pre ~invariants}
+              (let [new-f# @(resolve '~qmaker)]
+                (if (identical? @self# new-f#)
+                  (~->ctor ~@fields nil nil)
+                  (new-f# ~@fields))))
+             ([~@fields meta#]
+              {:pre ~invariants}
+              (let [new-f# @(resolve '~qmaker)]
+                (if (identical? @self# new-f#)
+                  (~->ctor ~@fields nil meta#)
+                  (new-f# ~@fields meta#)))))
+           (deliver self# ~maker))
          (defn ~maker
            ([~@fields]
             {:pre ~invariants}
-            (let [new-f# @(resolve '~qmaker)]
-              (if (identical? @self# new-f#)
-                (~->ctor ~@fields nil nil)
-                (new-f# ~@fields))))
+            (~->ctor ~@fields nil nil))
            ([~@fields meta#]
             {:pre ~invariants}
-            (let [new-f# @(resolve '~qmaker)]
-              (if (identical? @self# new-f#)
-                (~->ctor ~@fields nil meta#)
-                (new-f# ~@fields meta#)))))
-         (deliver self# ~maker)))))
+            (~->ctor ~@fields nil meta#)))))))
 
 (defmacro mk [original-ns def-kind name-sym fields invariants & {:keys [methods]}]
   (when-not (resolve name-sym)
