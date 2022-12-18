@@ -48,7 +48,7 @@
 (defn- nses-for-this-split [[this-split num-splits] nses]
   (nth (partition-fairly num-splits nses) this-split))
 
-(defn- print-error [e]
+(defn- print-error [^Throwable e]
   (if (some-> (ex-data e) err/top-level-error?)
     (print (.getMessage e))
     (print e))
