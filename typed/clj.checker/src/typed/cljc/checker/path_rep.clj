@@ -9,6 +9,7 @@
 (ns ^:no-doc typed.cljc.checker.path-rep
   (:refer-clojure :exclude [defrecord defprotocol])
   (:require [typed.cljc.checker.utils :as u]
+            [typed.cljc.checker.def-utils :as du]
             [clojure.core.typed.contract-utils :as con]
             [typed.clojure :as t]))
 
@@ -16,7 +17,7 @@
 ;; Paths
 
 (t/ann-protocol IPathElem)
-(u/defprotocol IPathElem)
+(du/defprotocol IPathElem)
 
 (t/ann ^:no-check PathElem? (t/Pred IPathElem))
 (defn PathElem? [a]

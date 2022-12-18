@@ -6,13 +6,8 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.cljc.checker.def-utils
-  (:refer-clojure :exclude [defrecord defprotocol definterface])
-  (:require [clojure.core :as core]
-            [typed.cljc.runtime.env-utils :refer [invalidate-parsed-types!]]))
+(ns ^:no-doc clojure.core.typed.parsed-type-invalidation
+  {:clojure.tools.namespace.repl/unload false
+   :clojure.tools.namespace.repl/load false})
 
-(defmacro defprotocol [name & args]
-  ;only define protocol if symbol doesn't resolve, not completely sure if this behaves like defonce
-  (when-not (resolve name)
-    `(do (invalidate-parsed-types!)
-         (core/defprotocol ~name ~@args))))
+(defonce ^{:doc "Internal use only"} ^:no-doc parsed-types-invalidation-id (volatile! (str (random-uuid))))
