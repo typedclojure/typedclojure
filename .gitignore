@@ -13,7 +13,6 @@ target
 /.classpath
 /.project
 /.settings
-/bin
 .nrepl-port
 .repl
 .\#*
