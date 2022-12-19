@@ -762,6 +762,7 @@ for checking namespaces, cf for checking individual forms."}
                (symbol (str prs-ns) (str varsym)))]
     `(tc-ignore (untyped-var* '~qsym '~typesyn '~prs-ns '~&form))))
 
+;;inlined in typed.clojure.jvm
 (defmacro ^:private when-bindable-defining-ns [defining-nsym & body]
   ;; don't register type if the defining namespace doesn't exist.
   ;; the only sane semantics for typed.cljc.runtime.env-utils/delay-type.

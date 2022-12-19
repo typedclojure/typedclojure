@@ -14,7 +14,7 @@
   :kaocha
   {:extra-deps
    {lambdaisland/kaocha
-    {:git/sha "12c52f1fd0fd4ce447e5e63535aad1475770e7bc",
+    {:git/sha "97da5ed2b1cf1542a18460de12c4f9759e9a177f",
      :git/url "https://github.com/frenchy64/kaocha.git"}}},
   :nREPL
   {:extra-deps

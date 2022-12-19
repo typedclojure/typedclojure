@@ -47,15 +47,18 @@
          #_
          (impl/add-rclass-env '~nme {:op :RClass})
          ;; type env
-         (impl/with-clojure-impl
-           ;;TODO implement reparsing on ns reload
-           (impl/add-rclass '~nme (delay-type
-                                    ((requiring-resolve 'typed.clj.checker.parse-unparse/with-parse-ns*)
-                                     '~this-ns
-                                     #((requiring-resolve 'typed.cljc.checker.base-env-helper/make-RClass)
-                                       '~nme
-                                       '~binder
-                                       '~opts))))))))
+         ;inline when-bindable-defining-ns
+         (when-some [defining-ns# (find-ns '~this-ns)]
+           (binding [*ns* defining-ns#]
+             (impl/with-clojure-impl
+               ;;TODO implement reparsing on ns reload
+               (impl/add-rclass '~nme (delay-type
+                                        ((requiring-resolve 'typed.clj.checker.parse-unparse/with-parse-ns*)
+                                         '~this-ns
+                                         #((requiring-resolve 'typed.cljc.checker.base-env-helper/make-RClass)
+                                           '~nme
+                                           '~binder
+                                           '~opts))))))))))
 
 (defmacro override-classes [& args]
   (assert (even? (count args)))

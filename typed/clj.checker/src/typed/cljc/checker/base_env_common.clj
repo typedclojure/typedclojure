@@ -10,7 +10,12 @@
   "Utilities for all implementations of the type checker")
 
 (defmacro delay-and-cache-env [sym & body]
-  `(def ~sym
-     (let [bfn# (bound-fn [] (let [res# (do ~@body)] res#))
-           dl# (delay (bfn#))]
-       (fn [] @dl#))))
+  {:pre [(simple-symbol? sym)]}
+  (let [qsym (symbol (-> *ns* ns-name name) (name sym))]
+    `(def ~sym
+       (let [vr# (var ~qsym)]
+         (let [bfn# (bound-fn [] (let [res# (do ~@body)] res#))
+               dl# (delay (bfn#))]
+           (fn []
+             (assert (identical? vr# (find-var '~qsym)))
+             @dl#))))))

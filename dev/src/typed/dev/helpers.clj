@@ -49,7 +49,7 @@
    :codox-mvn-version "0.10.7"
    :kaocha-git-url "https://github.com/frenchy64/kaocha.git"
    ;; fixes https://github.com/lambdaisland/kaocha/issues/370
-   :kaocha-sha "12c52f1fd0fd4ce447e5e63535aad1475770e7bc"
+   :kaocha-sha "97da5ed2b1cf1542a18460de12c4f9759e9a177f"
    :typedclojure-homepage "https://typedclojure.org"
    :malli-mvn-version "0.9.2"
    :beholder-mvn-version "1.0.1"
