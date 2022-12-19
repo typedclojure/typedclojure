@@ -7,26 +7,28 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.cljc.runtime.env-utils
-  (:require [clojure.core.typed.util-vars :as uvs]))
+  (:require [clojure.core.typed.util-vars :as uvs])
+  (:import [java.lang.ref SoftReference]))
 
 ;; [[:-> Type] :-> [:-> Type]]
 (defn delay-type* [f]
   ;;FIXME pull out impl-case into its own namespace
   (case ((requiring-resolve 'clojure.core.typed.current-impl/current-impl))
     :clojure.core.typed.current-impl/clojure
-    (let [def-ns-vol (volatile! *ns*)
+    (let [def-ns-vol (volatile! (SoftReference. *ns*))
           d (volatile! (delay (f)))]
       (fn []
-        (when-some [def-ns @def-ns-vol]
-          (if (identical? def-ns (find-ns (ns-name def-ns)))
-            (let [t (force @d)]
-              ;(prn "returning" ((juxt identity hash) def-ns) ((juxt identity hash) (find-ns (ns-name def-ns))))
-              t)
-            ;;forget types that were defined in stale namespaces
-            (do ;(prn "FORGETTING ANNOTATION" (class @@d))
-                (vreset! def-ns-vol nil)
-                (vreset! d nil)
-                nil)))))
+        (when-some [^SoftReference sr @def-ns-vol]
+          (when-some [def-ns (.get sr)]
+            (if (identical? def-ns (find-ns (ns-name def-ns)))
+              (let [t (force @d)]
+                ;(prn "returning" ((juxt identity hash) def-ns) ((juxt identity hash) (find-ns (ns-name def-ns))))
+                t)
+              ;;forget types that were defined in stale namespaces
+              (do ;(prn "FORGETTING ANNOTATION" (class @@d))
+                  (vreset! def-ns-vol nil)
+                  (vreset! d nil)
+                  nil))))))
     ;; TODO cljs strategy for forgetting types from reloaded namespaces
     :clojure.core.typed.current-impl/clojurescript
     (delay (f))))
