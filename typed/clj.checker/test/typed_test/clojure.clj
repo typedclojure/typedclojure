@@ -17,6 +17,8 @@
                  [typed.clojure :as t :include-macros true])))
 
 (deftest check-ns-*-test
+  (some-> (find-ns 'typed-test.clojure.succeed-cljs-fail-clj) ns-name remove-ns)
+  (some-> (find-ns 'typed-test.clojure.succeed-clj-fail-cljs) ns-name remove-ns)
   (is (t/check-ns-clj 'typed-test.clojure.succeed-clj-fail-cljs))
   ;; TODO test that this should fail when run in cljs
   (is (t/cns 'typed-test.clojure.succeed-clj-fail-cljs))
@@ -49,6 +51,7 @@
   (is (t/check-ns-cljs 'typed-test.clojure.tc-ignore-ns)))
 
 (deftest cf-*-test
+  (some-> (find-ns 'typed-test.clojure.cf-prep) ns-name remove-ns)
   ;; setup
   (is (t/check-ns-clj 'typed-test.clojure.cf-prep))
   (is (t/check-ns-cljs 'typed-test.clojure.cf-prep))
