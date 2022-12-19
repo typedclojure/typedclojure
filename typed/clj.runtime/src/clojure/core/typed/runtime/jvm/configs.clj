@@ -68,7 +68,8 @@
         configs))
 
 (defn- clj-require [nsym]
-  (require nsym))
+  (locking clojure.lang.RT/REQUIRE_LOCK
+    (require nsym)))
 
 (defn register-clj-config-anns [] (register-config-anns @*clj-configs clj-require))
 (defn register-clj-config-exts [] (register-config-exts @*clj-configs clj-require))
@@ -99,14 +100,14 @@
 
 (defn register-malli-extensions [configs]
   (run! #(do (println (format "Registering Malli extensions from %s..." %))
-             (require %))
+             (clj-require %))
         (mapcat :malli-extensions configs)))
 (defn register-clj-malli-extensions [] (register-malli-extensions @*clj-configs))
 (defn register-cljs-malli-extensions [] (register-malli-extensions @*cljs-configs))
 
 (defn register-spec1-extensions [configs]
   (run! #(do (println (format "Registering Spec1 extensions from %s..." %))
-             (require %))
+             (clj-require %))
         (mapcat :spec1-extensions configs)))
 (defn register-clj-spec1-extensions [] (register-spec1-extensions @*clj-configs))
 (defn register-cljs-spec1-extensions [] (register-spec1-extensions @*cljs-configs))
