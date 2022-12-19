@@ -17,8 +17,6 @@
             [typed.cljs.checker.util :as ucljs])
   (:import [java.net Socket ServerSocket SocketTimeoutException]))
 
-(cljs-t/load-if-needed)
-
 (defmacro cljs [& body]
   `(impl/with-cljs-impl
      (ucljs/with-cljs-typed-env

@@ -15,12 +15,9 @@
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.utils :as u]))
 
-(when-not *compile-files*
-  (t/load-if-needed))
-
 (defn check-opt [opt]
   #_(assert (empty? (set/difference (set (keys opt))
-                                  #{:expected :ret}))))
+                                    #{:expected :ret}))))
 
 (defn tc-common* [frm {{:keys [syn provided?]} :expected-syntax :keys [expected-ret requires ns-meta check-config] :as opt}]
   (check-opt opt)
@@ -37,21 +34,23 @@
                          [clojure.core :as core]
                          [clojure.core :as cc]]
                      ~@requires))]
-    `(binding [*ns* *ns*
-               *file* *file*]
-       (let [expected-ret# ~expected-ret
-             check-config# ~check-config
-             {ex# :ex} (t/check-form-info '~ns-form
-                                          :check-config check-config#)
-             _# (assert (nil? ex#) ex#)
-             res# (t/check-form-info 
-                    '~frm
-                    :expected-ret expected-ret#
-                    :expected '~syn
-                    :type-provided? ~provided?
-                    :check-config check-config#)]
-         (remove-ns '~nsym)
-         res#))))
+    `(do
+       (t/load-if-needed)
+       (binding [*ns* *ns*
+                 *file* *file*]
+         (let [expected-ret# ~expected-ret
+               check-config# ~check-config
+               {ex# :ex} (t/check-form-info '~ns-form
+                                            :check-config check-config#)
+               _# (assert (nil? ex#) ex#)
+               res# (t/check-form-info 
+                      '~frm
+                      :expected-ret expected-ret#
+                      :expected '~syn
+                      :type-provided? ~provided?
+                      :check-config check-config#)]
+           (remove-ns '~nsym)
+           res#)))))
 
 (defmacro tc-e 
   "Type check an an expression in namespace that :refer's
