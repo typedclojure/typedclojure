@@ -13,3 +13,18 @@
   (is-clj (some? (var-env/lookup-Var-nofail 'forget-types-after-ns-remove-test/foo)))
   (is (some-> (find-ns 'forget-types-after-ns-remove-test) ns-name remove-ns))
   (is-clj (nil? (var-env/lookup-Var-nofail 'forget-types-after-ns-remove-test/foo))))
+
+(deftest forget-types-in-defining-ns-after-ns-remove-test
+  (some-> (find-ns 'forget-types-after-ns-remove-test) ns-name remove-ns)
+  (is-clj (nil? (var-env/lookup-Var-nofail 'forget-types-after-ns-remove-test/foo)))
+  (is-tc-e (do (ns forget-types-after-ns-remove-test)
+               (typed.clojure/tc-ignore
+                 (defn register-ann! []
+                   (typed.clojure/ann forget-types-after-ns-remove-test/foo ':foo)))
+               (ns registering-ns)
+               (typed.clojure/tc-ignore
+                 ;; at runtime, *ns* will be 'registering-ns.
+                 (forget-types-after-ns-remove-test/register-ann!))))
+  (is-clj (some? (var-env/lookup-Var-nofail 'forget-types-after-ns-remove-test/foo)))
+  (is (some-> (find-ns 'forget-types-after-ns-remove-test) ns-name remove-ns))
+  (is-clj (nil? (var-env/lookup-Var-nofail 'forget-types-after-ns-remove-test/foo))))

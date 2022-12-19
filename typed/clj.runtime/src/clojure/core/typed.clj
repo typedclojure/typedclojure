@@ -762,37 +762,45 @@ for checking namespaces, cf for checking individual forms."}
                (symbol (str prs-ns) (str varsym)))]
     `(tc-ignore (untyped-var* '~qsym '~typesyn '~prs-ns '~&form))))
 
+(defmacro ^:private when-bindable-defining-ns [defining-nsym & body]
+  ;; don't register type if the defining namespace doesn't exist.
+  ;; the only sane semantics for typed.cljc.runtime.env-utils/delay-type.
+  `(when-some [defining-ns# (find-ns ~defining-nsym)]
+     (binding [*ns* defining-ns#]
+       (do ~@body))))
+
 (core/defn ^:no-doc
   ann* 
   "Internal use only. Use ann."
-  [qsym typesyn check? form]
-  (with-clojure-impl
-    (core/let
-      [warn (requiring-resolve 'clojure.core.typed.errors/warn)
-       var-env (requiring-resolve 'clojure.core.typed.current-impl/var-env)
-       add-var-env (requiring-resolve 'clojure.core.typed.current-impl/add-var-env)
-       add-tc-var-type (requiring-resolve 'clojure.core.typed.current-impl/add-tc-var-type)
-       check-var? (requiring-resolve 'clojure.core.typed.current-impl/check-var?)
-       remove-nocheck-var (requiring-resolve 'clojure.core.typed.current-impl/remove-nocheck-var)
-       add-nocheck-var (requiring-resolve 'clojure.core.typed.current-impl/add-nocheck-var)
-       _ (when (and (contains? (var-env) qsym)
-                    (not (check-var? qsym))
-                    check?)
-           (warn (str "Removing :no-check from var " qsym))
-           (remove-nocheck-var qsym))
-       _ (when-not check?
-           (add-nocheck-var qsym))
-       loc-form (or (some #(when ((every-pred :line :column) (meta %))
-                             %)
-                          [(second form)
-                           (first form)])
-                    form)
-       ast (with-current-location loc-form
-             (delay-rt-parse typesyn))
-       tc-type (with-current-location loc-form
-                 (delay-tc-parse typesyn))]
-      (add-var-env qsym ast)
-      (add-tc-var-type qsym tc-type)))
+  [defining-nsym qsym typesyn check? form]
+  (when-bindable-defining-ns defining-nsym
+    (with-clojure-impl
+      (core/let
+        [warn (requiring-resolve 'clojure.core.typed.errors/warn)
+         var-env (requiring-resolve 'clojure.core.typed.current-impl/var-env)
+         add-var-env (requiring-resolve 'clojure.core.typed.current-impl/add-var-env)
+         add-tc-var-type (requiring-resolve 'clojure.core.typed.current-impl/add-tc-var-type)
+         check-var? (requiring-resolve 'clojure.core.typed.current-impl/check-var?)
+         remove-nocheck-var (requiring-resolve 'clojure.core.typed.current-impl/remove-nocheck-var)
+         add-nocheck-var (requiring-resolve 'clojure.core.typed.current-impl/add-nocheck-var)
+         _ (when (and (contains? (var-env) qsym)
+                      (not (check-var? qsym))
+                      check?)
+             (warn (str "Removing :no-check from var " qsym))
+             (remove-nocheck-var qsym))
+         _ (when-not check?
+             (add-nocheck-var qsym))
+         loc-form (or (some #(when ((every-pred :line :column) (meta %))
+                               %)
+                            [(second form)
+                             (first form)])
+                      form)
+         ast (with-current-location loc-form
+               (delay-rt-parse typesyn))
+         tc-type (with-current-location loc-form
+                   (delay-tc-parse typesyn))]
+        (add-var-env qsym ast)
+        (add-tc-var-type qsym tc-type))))
   nil)
 
 (defmacro ann
@@ -819,7 +827,7 @@ for checking namespaces, cf for checking individual forms."}
                (symbol (-> *ns* ns-name str) (str varsym)))
         opts (meta varsym)
         check? (not (:no-check opts))]
-    `(tc-ignore (ann* '~qsym '~typesyn '~check? '~&form))))
+    `(tc-ignore (ann* '~(ns-name *ns*) '~qsym '~typesyn '~check? '~&form))))
 
 (defmacro ann-many
   "Annotate several vars with type t.
@@ -832,22 +840,23 @@ for checking namespaces, cf for checking individual forms."}
 (core/defn ^:no-doc
   ann-datatype*
   "Internal use only. Use ann-datatype."
-  [vbnd dname fields opts form]
-  (with-clojure-impl
-    (core/let [add-datatype-env (requiring-resolve 'clojure.core.typed.current-impl/add-datatype-env)
-               gen-datatype* (requiring-resolve 'clojure.core.typed.current-impl/gen-datatype*)
-               qname (if (some #{\.} (str dname))
-                       dname
-                       (symbol (str (namespace-munge *ns*) "." dname)))]
-      (add-datatype-env 
-        qname
-        {:record? false
-         :name qname
-         :fields fields
-         :bnd vbnd})
-      (with-current-location form
-        (gen-datatype* vs/*current-env* (ns-name *ns*) dname fields vbnd opts false))
-      nil)))
+  [defining-nsym vbnd dname fields opts form]
+  (when-bindable-defining-ns defining-nsym
+    (with-clojure-impl
+      (core/let [add-datatype-env (requiring-resolve 'clojure.core.typed.current-impl/add-datatype-env)
+                 gen-datatype* (requiring-resolve 'clojure.core.typed.current-impl/gen-datatype*)
+                 qname (if (some #{\.} (str dname))
+                         dname
+                         (symbol (str (namespace-munge *ns*) "." dname)))]
+        (add-datatype-env 
+          qname
+          {:record? false
+           :name qname
+           :fields fields
+           :bnd vbnd})
+        (with-current-location form
+          (gen-datatype* vs/*current-env* (ns-name *ns*) dname fields vbnd opts false))
+        nil))))
 
 (defmacro
   ^{:forms '[(ann-datatype dname [field :- type*] opts*)
@@ -905,27 +914,28 @@ for checking namespaces, cf for checking individual forms."}
     (assert (not rplc) "Replace NYI")
     (assert (symbol? dname)
             (str "Must provide name symbol: " dname))
-    `(tc-ignore (ann-datatype* '~vbnd '~dname '~fields '~opts '~&form))))
+    `(tc-ignore (ann-datatype* '~(ns-name *ns*) '~vbnd '~dname '~fields '~opts '~&form))))
 
 (core/defn ^:no-doc
   ann-record* 
   "Internal use only. Use ann-record"
-  [vbnd dname fields opt form]
-  (with-clojure-impl
-    (core/let [add-datatype-env (requiring-resolve 'clojure.core.typed.current-impl/add-datatype-env)
-               gen-datatype* (requiring-resolve 'clojure.core.typed.current-impl/gen-datatype*)
-               qname (if (some #{\.} (str dname))
-                       dname
-                       (symbol (str (namespace-munge *ns*) "." dname)))]
-      (add-datatype-env 
-        qname
-        {:record? true
-         :name qname
-         :fields fields
-         :bnd vbnd})
-      (with-current-location form
-        (gen-datatype* vs/*current-env* (ns-name *ns*) dname fields vbnd opt true))
-      nil)))
+  [defining-nsym vbnd dname fields opt form]
+  (when-bindable-defining-ns defining-nsym
+    (with-clojure-impl
+      (core/let [add-datatype-env (requiring-resolve 'clojure.core.typed.current-impl/add-datatype-env)
+                 gen-datatype* (requiring-resolve 'clojure.core.typed.current-impl/gen-datatype*)
+                 qname (if (some #{\.} (str dname))
+                         dname
+                         (symbol (str (namespace-munge *ns*) "." dname)))]
+        (add-datatype-env 
+          qname
+          {:record? true
+           :name qname
+           :fields fields
+           :bnd vbnd})
+        (with-current-location form
+          (gen-datatype* vs/*current-env* (ns-name *ns*) dname fields vbnd opt true))
+        nil))))
 
 (defmacro 
   ^{:forms '[(ann-record dname [field :- type*] opts*)
@@ -980,33 +990,34 @@ for checking namespaces, cf for checking individual forms."}
         (if bnd-provided?
           (next args)
           args)]
-    `(tc-ignore (ann-record* '~vbnd '~dname '~fields '~opt '~&form))))
+    `(tc-ignore (ann-record* '~(ns-name *ns*) '~vbnd '~dname '~fields '~opt '~&form))))
 
 (core/defn ^:no-doc
   ann-protocol*
   "Internal use only. Use ann-protocol."
-  [vbnd varsym mth form]
-  (with-clojure-impl
-    (core/let [add-protocol-env (requiring-resolve 'clojure.core.typed.current-impl/add-protocol-env)
-               gen-protocol* (requiring-resolve 'clojure.core.typed.current-impl/gen-protocol*)
-               qualsym (if (namespace varsym)
-                         varsym
-                         (symbol (str (ns-name *ns*)) (name varsym)))]
-      (add-protocol-env
-        qualsym
-        {:name qualsym
-         :methods mth
-         :bnds vbnd})
-      (with-current-location form
-        (gen-protocol*
-          vs/*current-env*
-          (ns-name *ns*)
-          varsym
-          vbnd
-          mth))))
+  [defining-nsym vbnd varsym mth form]
+  (when-bindable-defining-ns defining-nsym
+    (with-clojure-impl
+      (core/let [add-protocol-env (requiring-resolve 'clojure.core.typed.current-impl/add-protocol-env)
+                 gen-protocol* (requiring-resolve 'clojure.core.typed.current-impl/gen-protocol*)
+                 qualsym (if (namespace varsym)
+                           varsym
+                           (symbol (str (ns-name *ns*)) (name varsym)))]
+        (add-protocol-env
+          qualsym
+          {:name qualsym
+           :methods mth
+           :bnds vbnd})
+        (with-current-location form
+          (gen-protocol*
+            vs/*current-env*
+            (ns-name *ns*)
+            varsym
+            vbnd
+            mth)))))
   nil)
 
-(defmacro 
+(defmacro
   ^{:forms '[(ann-protocol vbnd varsym & methods)
              (ann-protocol varsym & methods)]}
   ann-protocol 
@@ -1052,8 +1063,9 @@ for checking namespaces, cf for checking individual forms."}
                    ))
              ; duplicates are checked above.
              {:as mth} mth]
-    `(tc-ignore (ann-protocol* '~vbnd '~varsym '~mth '~&form))))
+    `(tc-ignore (ann-protocol* '~(ns-name *ns*) '~vbnd '~varsym '~mth '~&form))))
 
+;;TODO remember to use when-bindable-defining-ns when implementing
 (core/defn ^:no-doc
   ann-interface* 
   "Internal use only. Use ann-interface."
@@ -1114,31 +1126,33 @@ for checking namespaces, cf for checking individual forms."}
 (core/defn ^:no-doc
   override-constructor* 
   "Internal use only. Use override-constructor."
-  [ctorsym typesyn form]
-  (core/let [add-constructor-override (requiring-resolve 'clojure.core.typed.current-impl/add-constructor-override)]
-    (with-clojure-impl
-      (add-constructor-override 
-        ctorsym
-        (with-current-location form
-          (delay-tc-parse typesyn))))
-    nil))
+  [defining-nsym ctorsym typesyn form]
+  (when-bindable-defining-ns defining-nsym
+    (core/let [add-constructor-override (requiring-resolve 'clojure.core.typed.current-impl/add-constructor-override)]
+      (with-clojure-impl
+        (add-constructor-override 
+          ctorsym
+          (with-current-location form
+            (delay-tc-parse typesyn))))
+      nil)))
 
 (defmacro override-constructor 
   "Override all constructors for Class ctorsym with type."
   [ctorsym typesyn]
-  `(tc-ignore (override-constructor* '~ctorsym '~typesyn '~&form)))
+  `(tc-ignore (override-constructor* '~(ns-name *ns*) '~ctorsym '~typesyn '~&form)))
 
 (core/defn ^:no-doc
   override-method* 
   "Internal use only. Use override-method."
-  [methodsym typesyn form]
-  (core/let [add-method-override (requiring-resolve 'clojure.core.typed.current-impl/add-method-override)]
-    (with-clojure-impl
-      (add-method-override 
-        methodsym
-        (with-current-location form
-          (delay-tc-parse typesyn))))
-    nil))
+  [defining-nsym methodsym typesyn form]
+  (when-bindable-defining-ns defining-nsym
+    (core/let [add-method-override (requiring-resolve 'clojure.core.typed.current-impl/add-method-override)]
+      (with-clojure-impl
+        (add-method-override 
+          methodsym
+          (with-current-location form
+            (delay-tc-parse typesyn))))
+      nil)))
 
 (defmacro override-method 
   "Override type for qualified method methodsym.
@@ -1161,7 +1175,7 @@ for checking namespaces, cf for checking individual forms."}
   of class java.util.Properties to be (java.util.Set String)."
   [methodsym typesyn]
   (assert ((every-pred symbol? namespace) methodsym) "Method symbol must be a qualified symbol")
-  `(tc-ignore (override-method* '~methodsym '~typesyn '~&form)))
+  `(tc-ignore (override-method* '~(ns-name *ns*) '~methodsym '~typesyn '~&form)))
 
 (core/defn ^:no-doc
   typed-deps* 
