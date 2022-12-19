@@ -52,6 +52,6 @@
    :kaocha-sha "12c52f1fd0fd4ce447e5e63535aad1475770e7bc"
    :typedclojure-homepage "https://typedclojure.org"
    :malli-mvn-version "0.9.2"
-   :beholder-mvn-version "1.0.0"
+   :beholder-mvn-version "1.0.1"
    :process-mvn-version "0.4.13"
    })
