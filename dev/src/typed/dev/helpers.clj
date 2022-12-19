@@ -47,9 +47,9 @@
    :cognitect-test-runner-git-url "https://github.com/cognitect-labs/test-runner"
    :cognitect-test-runner-sha "dd6da11611eeb87f08780a30ac8ea6012d4c05ce"
    :codox-mvn-version "0.10.7"
-   :kaocha-git-url "https://github.com/lambdaisland/kaocha.git"
-   ;; 1.71.1119
-   :kaocha-sha "c63f3acce7230d7abdf74d05ad111c02981cb354"
+   :kaocha-git-url "https://github.com/frenchy64/kaocha.git"
+   ;; fixes https://github.com/lambdaisland/kaocha/issues/370
+   :kaocha-sha "12c52f1fd0fd4ce447e5e63535aad1475770e7bc"
    :typedclojure-homepage "https://typedclojure.org"
    :malli-mvn-version "0.9.2"
    :beholder-mvn-version "1.0.0"

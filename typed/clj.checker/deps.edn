@@ -48,9 +48,9 @@
     ;; optional typed.lib.clojure dep
     org.typedclojure/typed.clj.spec {:local/root "../clj.spec" :deps/manifest :deps}}},
   :kaocha
-  {:extra-deps {lambdaisland/kaocha {:git/url "https://github.com/lambdaisland/kaocha.git"
+  {:extra-deps {lambdaisland/kaocha {:git/url "https://github.com/frenchy64/kaocha.git"
                                      ;; https://github.com/lambdaisland/kaocha/issues/208#issuecomment-822844384
-                                     :sha "c63f3acce7230d7abdf74d05ad111c02981cb354"}}}
+                                     :sha "12c52f1fd0fd4ce447e5e63535aad1475770e7bc"}}}
   :codox
   {:extra-deps {codox/codox {:mvn/version "0.10.7"}}
    :extra-paths ["script"]
