@@ -742,15 +742,15 @@ for checking namespaces, cf for checking individual forms."}
   untyped-var* 
   "Internal use only. Use untyped-var."
   [varsym typesyn prs-ns form]
-  (core/let
-    [var (resolve varsym)
-     _ (assert (var? var) (str varsym " must resolve to a var."))
-     qsym ((requiring-resolve 'clojure.core.typed.coerce-utils/var->symbol) var)
-     expected-type (with-current-location form
-                     (delay-tc-parse typesyn))
-     _ (with-clojure-impl
-         ((requiring-resolve 'clojure.core.typed.current-impl/add-untyped-var) prs-ns qsym expected-type))]
-    nil))
+  (with-clojure-impl
+    (core/let
+      [var (resolve varsym)
+       _ (assert (var? var) (str varsym " must resolve to a var."))
+       qsym ((requiring-resolve 'clojure.core.typed.coerce-utils/var->symbol) var)
+       expected-type (with-current-location form
+                       (delay-tc-parse typesyn))
+       _ ((requiring-resolve 'clojure.core.typed.current-impl/add-untyped-var) prs-ns qsym expected-type)]
+      nil)))
 
 (defmacro untyped-var
   "Check a given var has the specified type at runtime."
@@ -766,35 +766,32 @@ for checking namespaces, cf for checking individual forms."}
   ann* 
   "Internal use only. Use ann."
   [qsym typesyn check? form]
-  (core/let
-    [warn (requiring-resolve 'clojure.core.typed.errors/warn)
-     var-env (requiring-resolve 'clojure.core.typed.current-impl/var-env)
-     add-var-env (requiring-resolve 'clojure.core.typed.current-impl/add-var-env)
-     add-tc-var-type (requiring-resolve 'clojure.core.typed.current-impl/add-tc-var-type)
-     check-var? (requiring-resolve 'clojure.core.typed.current-impl/check-var?)
-     remove-nocheck-var (requiring-resolve 'clojure.core.typed.current-impl/remove-nocheck-var)
-     add-nocheck-var (requiring-resolve 'clojure.core.typed.current-impl/add-nocheck-var)
-     _ (with-clojure-impl
-         (when (and (contains? (var-env) qsym)
+  (with-clojure-impl
+    (core/let
+      [warn (requiring-resolve 'clojure.core.typed.errors/warn)
+       var-env (requiring-resolve 'clojure.core.typed.current-impl/var-env)
+       add-var-env (requiring-resolve 'clojure.core.typed.current-impl/add-var-env)
+       add-tc-var-type (requiring-resolve 'clojure.core.typed.current-impl/add-tc-var-type)
+       check-var? (requiring-resolve 'clojure.core.typed.current-impl/check-var?)
+       remove-nocheck-var (requiring-resolve 'clojure.core.typed.current-impl/remove-nocheck-var)
+       add-nocheck-var (requiring-resolve 'clojure.core.typed.current-impl/add-nocheck-var)
+       _ (when (and (contains? (var-env) qsym)
                     (not (check-var? qsym))
                     check?)
            (warn (str "Removing :no-check from var " qsym))
-           (remove-nocheck-var qsym)))
-     _ (with-clojure-impl
-         (when-not check?
-           (add-nocheck-var qsym)))
-     loc-form (or (some #(when ((every-pred :line :column) (meta %))
-                           %)
-                        [(second form)
-                         (first form)])
-                  form)
-     ast (with-current-location loc-form
-           (delay-rt-parse typesyn))
-     tc-type (with-current-location loc-form
-               (delay-tc-parse typesyn))]
-    (with-clojure-impl
-      (add-var-env qsym ast))
-    (with-clojure-impl
+           (remove-nocheck-var qsym))
+       _ (when-not check?
+           (add-nocheck-var qsym))
+       loc-form (or (some #(when ((every-pred :line :column) (meta %))
+                             %)
+                          [(second form)
+                           (first form)])
+                    form)
+       ast (with-current-location loc-form
+             (delay-rt-parse typesyn))
+       tc-type (with-current-location loc-form
+                 (delay-tc-parse typesyn))]
+      (add-var-env qsym ast)
       (add-tc-var-type qsym tc-type)))
   nil)
 
@@ -836,22 +833,21 @@ for checking namespaces, cf for checking individual forms."}
   ann-datatype*
   "Internal use only. Use ann-datatype."
   [vbnd dname fields opts form]
-  (core/let [add-datatype-env (requiring-resolve 'clojure.core.typed.current-impl/add-datatype-env)
-             gen-datatype* (requiring-resolve 'clojure.core.typed.current-impl/gen-datatype*)
-             qname (if (some #{\.} (str dname))
-                     dname
-                     (symbol (str (namespace-munge *ns*) "." dname)))]
-    (with-clojure-impl
+  (with-clojure-impl
+    (core/let [add-datatype-env (requiring-resolve 'clojure.core.typed.current-impl/add-datatype-env)
+               gen-datatype* (requiring-resolve 'clojure.core.typed.current-impl/gen-datatype*)
+               qname (if (some #{\.} (str dname))
+                       dname
+                       (symbol (str (namespace-munge *ns*) "." dname)))]
       (add-datatype-env 
         qname
         {:record? false
          :name qname
          :fields fields
-         :bnd vbnd}))
-    (with-clojure-impl
+         :bnd vbnd})
       (with-current-location form
-        (gen-datatype* vs/*current-env* (ns-name *ns*) dname fields vbnd opts false)))
-    nil))
+        (gen-datatype* vs/*current-env* (ns-name *ns*) dname fields vbnd opts false))
+      nil)))
 
 (defmacro
   ^{:forms '[(ann-datatype dname [field :- type*] opts*)
@@ -915,22 +911,21 @@ for checking namespaces, cf for checking individual forms."}
   ann-record* 
   "Internal use only. Use ann-record"
   [vbnd dname fields opt form]
-  (core/let [add-datatype-env (requiring-resolve 'clojure.core.typed.current-impl/add-datatype-env)
-             gen-datatype* (requiring-resolve 'clojure.core.typed.current-impl/gen-datatype*)
-             qname (if (some #{\.} (str dname))
-                     dname
-                     (symbol (str (namespace-munge *ns*) "." dname)))]
-    (with-clojure-impl
+  (with-clojure-impl
+    (core/let [add-datatype-env (requiring-resolve 'clojure.core.typed.current-impl/add-datatype-env)
+               gen-datatype* (requiring-resolve 'clojure.core.typed.current-impl/gen-datatype*)
+               qname (if (some #{\.} (str dname))
+                       dname
+                       (symbol (str (namespace-munge *ns*) "." dname)))]
       (add-datatype-env 
         qname
         {:record? true
          :name qname
          :fields fields
-         :bnd vbnd}))
-    (with-current-location form
-      (with-clojure-impl
-        (gen-datatype* vs/*current-env* (ns-name *ns*) dname fields vbnd opt true)))
-    nil))
+         :bnd vbnd})
+      (with-current-location form
+        (gen-datatype* vs/*current-env* (ns-name *ns*) dname fields vbnd opt true))
+      nil)))
 
 (defmacro 
   ^{:forms '[(ann-record dname [field :- type*] opts*)
@@ -991,18 +986,17 @@ for checking namespaces, cf for checking individual forms."}
   ann-protocol*
   "Internal use only. Use ann-protocol."
   [vbnd varsym mth form]
-  (core/let [add-protocol-env (requiring-resolve 'clojure.core.typed.current-impl/add-protocol-env)
-             gen-protocol* (requiring-resolve 'clojure.core.typed.current-impl/gen-protocol*)
-             qualsym (if (namespace varsym)
-                       varsym
-                       (symbol (str (ns-name *ns*)) (name varsym)))]
-    (with-clojure-impl
+  (with-clojure-impl
+    (core/let [add-protocol-env (requiring-resolve 'clojure.core.typed.current-impl/add-protocol-env)
+               gen-protocol* (requiring-resolve 'clojure.core.typed.current-impl/gen-protocol*)
+               qualsym (if (namespace varsym)
+                         varsym
+                         (symbol (str (ns-name *ns*)) (name varsym)))]
       (add-protocol-env
         qualsym
         {:name qualsym
          :methods mth
-         :bnds vbnd}))
-    (with-clojure-impl
+         :bnds vbnd})
       (with-current-location form
         (gen-protocol*
           vs/*current-env*
@@ -1173,16 +1167,15 @@ for checking namespaces, cf for checking individual forms."}
   typed-deps* 
   "Internal use only. Use typed-deps."
   [args form]
-  (core/let [ns->URL (requiring-resolve 'clojure.core.typed.coerce-utils/ns->URL)
-             add-ns-deps (requiring-resolve 'clojure.core.typed.current-impl/add-ns-deps)]
-    (with-current-location form
-      (with-clojure-impl
+  (with-clojure-impl
+    (core/let [ns->URL (requiring-resolve 'clojure.core.typed.coerce-utils/ns->URL)
+               add-ns-deps (requiring-resolve 'clojure.core.typed.current-impl/add-ns-deps)]
+      (with-current-location form
         (core/doseq [dep args]
           (when-not (ns->URL dep)
-            (int-error (str "Cannot find dependency declared with typed-deps: " dep)))))
-      (with-clojure-impl
-        (add-ns-deps (ns-name *ns*) (set args))))
-    nil))
+            (int-error (str "Cannot find dependency declared with typed-deps: " dep))))
+        (add-ns-deps (ns-name *ns*) (set args)))
+      nil)))
 
 (defmacro typed-deps 
   "Declare namespaces which should be checked before the current namespace.

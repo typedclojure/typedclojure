@@ -1,0 +1,15 @@
+;; tests live in clj.checker for is-tc-e etc
+(ns typed-test.cljc.runtime.env-utils
+  (:require [clojure.test :refer [deftest is testing]]
+            [typed.clojure :as t]
+            [typed.cljc.checker.var-env :as var-env]
+            [typed.clj.checker.test-utils :refer [is-clj is-tc-e is-tc-err]]))
+
+(deftest forget-types-after-ns-remove-test
+  (some-> (find-ns 'forget-types-after-ns-remove-test) ns-name remove-ns)
+  (is-clj (nil? (var-env/lookup-Var-nofail 'forget-types-after-ns-remove-test/foo)))
+  (is-tc-e (do (ns forget-types-after-ns-remove-test)
+               (typed.clojure/ann forget-types-after-ns-remove-test/foo ':foo)))
+  (is-clj (some? (var-env/lookup-Var-nofail 'forget-types-after-ns-remove-test/foo)))
+  (is (some-> (find-ns 'forget-types-after-ns-remove-test) ns-name remove-ns))
+  (is-clj (nil? (var-env/lookup-Var-nofail 'forget-types-after-ns-remove-test/foo))))

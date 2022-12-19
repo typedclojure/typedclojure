@@ -60,8 +60,7 @@
   (when-let [old-t ((var-annotations) sym)]
     ;; if old type is realized, it's probably been
     ;; used. We should force the new type to ensure
-    ;; it's the same. only relevant when -Dclojure.core.typed.dynamically-parse-annotations
-    ;; has not been set, since old-t will be a fn.
+    ;; it's the same.
     (when (and (delay? old-t)
                (realized? old-t))
       (when (not= (force-type old-t) (force-type type))

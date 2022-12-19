@@ -161,13 +161,13 @@
                                                                  (non-resource-test-paths))}]
    :kaocha/fail-fast?                  true
    :kaocha/color?                      true
-   ;:kaocha/reporter                    ['kaocha.report/dots]
-   :kaocha/reporter                    ['kaocha.report/documentation]
+   :kaocha/reporter                    ['kaocha.report/dots]
+   ;:kaocha/reporter                    ['kaocha.report/documentation]
    :kaocha/plugins                     [:kaocha.plugin/randomize
                                         :kaocha.plugin/filter
                                         :kaocha.plugin/capture-output
                                         :kaocha.plugin/profiling]
-   :kaocha.plugin.randomize/seed       950716166
+   ;:kaocha.plugin.randomize/seed       950716166
    :kaocha.plugin.randomize/randomize? true
    :kaocha.plugin.profiling/count      3
    :kaocha.plugin.profiling/profiling? true})
