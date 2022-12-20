@@ -90,14 +90,14 @@
 (promote-demote ArrayCLJS 
   [T V]
   (-> T
-    (update :input-type #(demote % V))
-    (update :output-type #(promote % V))))
+    (update :input-type demote V)
+    (update :output-type promote V)))
 
 (promote-demote PrimitiveArray
   [T V]
   (-> T
-    (update :input-type #(demote % V))
-    (update :output-type #(promote % V))))
+    (update :input-type demote V)
+    (update :output-type promote V)))
 
 (extend-type F
   IPromoteDemote
@@ -136,8 +136,8 @@
 (promote-demote HSequential
   [T V]
   (let [pmt #(promote % V)
-        latent-filter-vs (set/intersection (set (mapcat frees/fv (:fs T)))
-                                           (set (mapcat frees/fi (:fs T))))]
+        latent-filter-vs (set/intersection (into #{} (mapcat frees/fv) (:fs T))
+                                           (into #{} (mapcat frees/fi) (:fs T)))]
     (cond
       ;if filter contains V, give up
       (seq (set/intersection V latent-filter-vs)) (case (:kind T)
@@ -170,7 +170,7 @@
 
 (promote-demote HSet
   [T V]
-  (let [fixed (set (mapv promote (:fixed T) (repeat V)))
+  (let [fixed (set (map promote (:fixed T) (repeat V)))
         h (r/-hset fixed :complete? (:complete? T))]
     (if (every? (fn [a] 
                   (and (r/Value? a)

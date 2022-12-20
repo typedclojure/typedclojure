@@ -275,3 +275,10 @@
              {:keys [reassembled-fn-type]} (internal/parse-fn* init)]
     `(~(typed-sym &env 'def) ~name :- ~reassembled-fn-type,
        ~init)))
+
+(defmacro when-bindable-defining-ns [defining-nsym & body]
+  ;; don't register type if the defining namespace doesn't exist.
+  ;; the only sane semantics for typed.cljc.runtime.env-utils/delay-type.
+  `(when-some [defining-ns# (find-ns ~defining-nsym)]
+     (binding [*ns* defining-ns#]
+       (do ~@body))))

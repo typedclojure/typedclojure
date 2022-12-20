@@ -26,8 +26,8 @@ for checking namespaces, cf for checking individual forms."}
             [clojure.string :as str]
             ; for `pred` and `contract` expansion
             clojure.core.typed.type-contract
-            ; for `import-macros` below
-            clojure.core.typed.macros)
+            ; also for `import-macros` below
+            [clojure.core.typed.macros :as macros])
   (:import (clojure.lang Compiler)))
 
 (defmacro ^:private with-clojure-impl [& body]
@@ -348,7 +348,7 @@ for checking namespaces, cf for checking individual forms."}
                                            @Compiler/LINE)
                                  :column (or (-> form# meta :column)
                                              @Compiler/COLUMN)}]
-       ~@body)))
+       (do ~@body))))
 
 (defmacro ^:private delay-rt-parse
   "We can type check c.c.t/parse-ast if we replace all instances
@@ -761,19 +761,11 @@ for checking namespaces, cf for checking individual forms."}
                (symbol (str prs-ns) (str varsym)))]
     `(tc-ignore (untyped-var* '~qsym '~typesyn '~prs-ns '~&form))))
 
-;;inlined in typed.clojure.jvm
-(defmacro ^:private when-bindable-defining-ns [defining-nsym & body]
-  ;; don't register type if the defining namespace doesn't exist.
-  ;; the only sane semantics for typed.cljc.runtime.env-utils/delay-type.
-  `(when-some [defining-ns# (find-ns ~defining-nsym)]
-     (binding [*ns* defining-ns#]
-       (do ~@body))))
-
 (core/defn ^:no-doc
   ann* 
   "Internal use only. Use ann."
   [defining-nsym qsym typesyn check? form]
-  (when-bindable-defining-ns defining-nsym
+  (macros/when-bindable-defining-ns defining-nsym
     (with-clojure-impl
       (core/let
         [warn (requiring-resolve 'clojure.core.typed.errors/warn)
@@ -841,7 +833,7 @@ for checking namespaces, cf for checking individual forms."}
   ann-datatype*
   "Internal use only. Use ann-datatype."
   [defining-nsym vbnd dname fields opts form]
-  (when-bindable-defining-ns defining-nsym
+  (macros/when-bindable-defining-ns defining-nsym
     (with-clojure-impl
       (core/let [add-datatype-env (requiring-resolve 'clojure.core.typed.current-impl/add-datatype-env)
                  gen-datatype* (requiring-resolve 'clojure.core.typed.current-impl/gen-datatype*)
@@ -920,7 +912,7 @@ for checking namespaces, cf for checking individual forms."}
   ann-record* 
   "Internal use only. Use ann-record"
   [defining-nsym vbnd dname fields opt form]
-  (when-bindable-defining-ns defining-nsym
+  (macros/when-bindable-defining-ns defining-nsym
     (with-clojure-impl
       (core/let [add-datatype-env (requiring-resolve 'clojure.core.typed.current-impl/add-datatype-env)
                  gen-datatype* (requiring-resolve 'clojure.core.typed.current-impl/gen-datatype*)
@@ -996,7 +988,7 @@ for checking namespaces, cf for checking individual forms."}
   ann-protocol*
   "Internal use only. Use ann-protocol."
   [defining-nsym vbnd varsym mth form]
-  (when-bindable-defining-ns defining-nsym
+  (macros/when-bindable-defining-ns defining-nsym
     (with-clojure-impl
       (core/let [add-protocol-env (requiring-resolve 'clojure.core.typed.current-impl/add-protocol-env)
                  gen-protocol* (requiring-resolve 'clojure.core.typed.current-impl/gen-protocol*)
@@ -1127,7 +1119,7 @@ for checking namespaces, cf for checking individual forms."}
   override-constructor* 
   "Internal use only. Use override-constructor."
   [defining-nsym ctorsym typesyn form]
-  (when-bindable-defining-ns defining-nsym
+  (macros/when-bindable-defining-ns defining-nsym
     (core/let [add-constructor-override (requiring-resolve 'clojure.core.typed.current-impl/add-constructor-override)]
       (with-clojure-impl
         (add-constructor-override 
@@ -1145,7 +1137,7 @@ for checking namespaces, cf for checking individual forms."}
   override-method* 
   "Internal use only. Use override-method."
   [defining-nsym methodsym typesyn form]
-  (when-bindable-defining-ns defining-nsym
+  (macros/when-bindable-defining-ns defining-nsym
     (core/let [add-method-override (requiring-resolve 'clojure.core.typed.current-impl/add-method-override)]
       (with-clojure-impl
         (add-method-override 

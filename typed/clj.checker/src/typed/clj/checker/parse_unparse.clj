@@ -145,6 +145,9 @@
                                     (pr-str s))
                             {:cause e}))))))
 
+(defn delay-parse-type [s]
+  ((resolve `parse-type) s))
+
 (defn parse-clj [s]
   (impl/with-clojure-impl
     (parse-type s)))

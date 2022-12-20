@@ -105,7 +105,7 @@
 ;; FIXME cs-gen error
 (t/ann ^:no-check sorted-type-set [(t/Seqable Type) -> (t/SortedSet Type)])
 (defn sorted-type-set [ts]
-  (apply sorted-set-by u/type-comparator ts))
+  (into (sorted-set-by u/type-comparator) ts))
 
 ;temporary union maker
 (t/ann Un [Type * -> Union])

@@ -8,7 +8,8 @@
 
 (ns typed.clj.checker.method-return-nilables
   (:require [typed.cljc.runtime.env :as env]
-            [clojure.core.typed.current-impl :as impl]))
+            [clojure.core.typed.current-impl :as impl]
+            [typed.cljc.runtime.env-utils :as env-utils]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Method Return non-nilables
@@ -29,7 +30,7 @@
   (get (env/deref-checker) impl/method-return-nonnilable-env-kw {}))
 
 (defn nonnilable-return? [sym arity]
-  (let [as (get (nonnilable-method-return-env) sym)]
+  (let [as (env-utils/force-type (get (nonnilable-method-return-env) sym))]
+    (assert ((some-fn nil? set? #{:all}) as))
     (boolean (or (= :all as)
-                 (when as
-                   (as arity))))))
+                 (contains? as arity)))))

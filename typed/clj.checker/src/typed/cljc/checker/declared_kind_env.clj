@@ -10,6 +10,7 @@
   (:require [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.errors :as err]
             [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.runtime.env-utils :as env-utils]
             [typed.cljc.runtime.env :as env]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -37,7 +38,9 @@
   nil)
 
 (defn declared-kind-or-nil [sym]
-  (get (declared-kinds) sym))
+  {:pre [(symbol? sym)]
+   :post [(or (nil? %) (r/TypeFn? %))]}
+  (env-utils/force-type (get (declared-kinds) sym)))
 
 (defn get-declared-kind [sym]
   (if-let [tfn (declared-kind-or-nil sym)]

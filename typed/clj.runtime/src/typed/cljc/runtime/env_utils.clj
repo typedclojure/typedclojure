@@ -17,11 +17,11 @@
 ;; [[:-> Type] :-> [:-> Type]]
 (defn delay-type* [f]
   ;;FIXME pull out impl-case into its own namespace
-  (let [this-invalidation-id (atom @parsed-types-invalidation-id)]
+  (let [f (bound-fn* f) this-invalidation-id (atom @parsed-types-invalidation-id)]
     (case ((requiring-resolve 'clojure.core.typed.current-impl/current-impl))
       :clojure.core.typed.current-impl/clojure
       (let [def-ns-vol (atom (SoftReference. *ns*))
-            ->f-delay #(delay (f))
+            ->f-delay (fn [] (delay (f)))
             d (atom (->f-delay))]
         (fn []
           (when-some [^SoftReference sr @def-ns-vol]

@@ -12,7 +12,8 @@
   (:require clojure.core.typed
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.internal :refer [take-when]]
-            [typed.cljc.runtime.env-utils :refer [delay-type]]))
+            [typed.cljc.runtime.env-utils :refer [delay-type]]
+            [clojure.core.typed.macros :as macros]))
 
 (defmacro ann-interface [& args]
   `(clojure.core.typed/ann-interface ~@args))
@@ -48,17 +49,15 @@
          (impl/add-rclass-env '~nme {:op :RClass})
          ;; type env
          ;inline when-bindable-defining-ns
-         (when-some [defining-ns# (find-ns '~this-ns)]
-           (binding [*ns* defining-ns#]
-             (impl/with-clojure-impl
-               ;;TODO implement reparsing on ns reload
-               (impl/add-rclass '~nme (delay-type
-                                        ((requiring-resolve 'typed.clj.checker.parse-unparse/with-parse-ns*)
-                                         '~this-ns
-                                         #((requiring-resolve 'typed.cljc.checker.base-env-helper/make-RClass)
-                                           '~nme
-                                           '~binder
-                                           '~opts))))))))))
+         (macros/when-bindable-defining-ns '~this-ns
+           (impl/with-clojure-impl
+             (impl/add-rclass '~nme (delay-type
+                                      ((requiring-resolve 'typed.clj.checker.parse-unparse/with-parse-ns*)
+                                       '~this-ns
+                                       #((requiring-resolve 'typed.cljc.checker.base-env-helper/make-RClass)
+                                         '~nme
+                                         '~binder
+                                         '~opts)))))))))
 
 (defmacro override-classes [& args]
   (assert (even? (count args)))

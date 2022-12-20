@@ -8,7 +8,8 @@
 
 (ns typed.clj.checker.method-param-nilables
   (:require [typed.cljc.runtime.env :as env]
-            [clojure.core.typed.current-impl :as impl]))
+            [clojure.core.typed.current-impl :as impl]
+            [typed.cljc.runtime.env-utils :as env-utils]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Method Param nilables
@@ -30,8 +31,9 @@
 
 (defn nilable-param? [sym arity param]
   (boolean 
-    (when-let [nilables (get (nilable-param-env) sym)]
-      (when-let [params (or (nilables :all)
-                            (nilables arity))]
+    (when-some [nilables (env-utils/force-type (get (nilable-param-env) sym))]
+      (assert (set? nilables))
+      (when-some [params (or (nilables :all)
+                             (nilables arity))]
         (or (#{:all} params)
             (params param))))))
