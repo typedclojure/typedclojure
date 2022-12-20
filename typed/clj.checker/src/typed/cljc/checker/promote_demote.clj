@@ -289,11 +289,7 @@
   (let [pmt #(promote % V)]
     (-> T
         (update :poly? #(some->> % (mapv pmt)))
-        (update :methods (fn [ms]
-                           (into {}
-                                 (map (fn [[k v]]
-                                        [k (pmt v)]))
-                                 ms))))))
+        (update :methods update-vals pmt))))
 
 (promote-demote RClass
   [T V]

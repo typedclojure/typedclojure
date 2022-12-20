@@ -18,54 +18,8 @@
             [typed.cljc.checker.declared-kind-env :as decl-env]
             [typed.clj.checker.rclass-env :as rcls]
             [clojure.core.typed.current-impl :as impl]
-            [clojure.pprint :as pprint]))
-
-(defn qualify-in-cct [as]
-  (for [[k v :as kv] (partition-all 2 as)]
-    (do
-      (assert (= 2 (count kv)) (str "Uneven args: " kv))
-      [(-> (symbol "clojure.core.typed" (name k))
-           (with-meta (meta k)))
-       v])))
-
-(defmacro alias-mappings [& args]
-  `(impl/with-clojure-impl
-     (let [ts# (qualify-in-cct '~args)]
-       (into {}
-             (map 
-               (fn [[s# t# :as kv#]]
-                 (assert (= 2 (count kv#)) (print-str "Uneven args:" kv#))
-                 (let [meta# (-> s# meta)
-                       desc# (:doc meta#)
-                       doc# (str #_"Type Alias\n\n"
-                                 (when desc#
-                                   (str desc# "\n\n")) 
-                                 (with-out-str (pprint/pprint t#)))
-                       _# (assert (and (symbol? s#)
-                                       (namespace s#))
-                                  "Need fully qualified symbol")
-                       v# (intern (find-ns (symbol (namespace s#))) (symbol (name s#)))
-                       _# (alter-meta! v# merge (assoc meta# :doc doc#))]
-                   [(with-meta s# nil) (prs/parse-type t#)])))
-             ts#))))
-
-(defmacro var-mappings [this-ns & args]
-  `(impl/with-clojure-impl
-     (let [this-ns# ~this-ns
-           _# (assert (instance? clojure.lang.Namespace this-ns#))
-           ts# (partition-all 2 '~args)
-           conveyed-parse# (fn [s#]
-                             (binding [prs/*parse-type-in-ns* (ns-name this-ns#)]
-                               (prs/parse-type s#)))]
-       (into {}
-             (map (fn [[s# t# :as kv#]]
-                    (assert (= 2 (count kv#))
-                            (print-str "Uneven args to var-mappings:" kv#))
-                    (assert (and (symbol? s#)
-                                 (namespace s#))
-                            "Need fully qualified symbol")
-                    [s# (delay (conveyed-parse# t#))]))
-             ts#))))
+            [clojure.pprint :as pprint]
+            [clojure.core.typed.macros :as macros]))
 
 (defmacro method-nonnilable-return-mappings [& args]
   `(impl/with-clojure-impl

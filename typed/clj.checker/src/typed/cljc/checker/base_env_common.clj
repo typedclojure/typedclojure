@@ -7,15 +7,11 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.cljc.checker.base-env-common
-  "Utilities for all implementations of the type checker")
+  "Utilities for all implementations of the type checker"
+  (:require [typed.cljc.runtime.env-utils :as env-utils]))
 
 (defmacro delay-and-cache-env [sym & body]
   {:pre [(simple-symbol? sym)]}
   (let [qsym (symbol (-> *ns* ns-name name) (name sym))]
     `(def ~sym
-       (let [vr# (var ~qsym)]
-         (let [bfn# (bound-fn [] (let [res# (do ~@body)] res#))
-               dl# (delay (bfn#))]
-           (fn []
-             (assert (identical? vr# (find-var '~qsym)))
-             @dl#))))))
+       (bound-fn [] (do ~@body)))))
