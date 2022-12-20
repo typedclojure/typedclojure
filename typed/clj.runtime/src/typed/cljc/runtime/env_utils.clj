@@ -7,31 +7,40 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.cljc.runtime.env-utils
-  (:require [clojure.core.typed.util-vars :as uvs])
   (:import [java.lang.ref SoftReference]))
+
+(defonce ^{:doc "Internal use only"} ^:no-doc parsed-types-invalidation-id (atom (str (random-uuid))))
+
+(defn invalidate-parsed-types! []
+  (reset! parsed-types-invalidation-id (str (random-uuid))))
 
 ;; [[:-> Type] :-> [:-> Type]]
 (defn delay-type* [f]
   ;;FIXME pull out impl-case into its own namespace
-  (case ((requiring-resolve 'clojure.core.typed.current-impl/current-impl))
-    :clojure.core.typed.current-impl/clojure
-    (let [def-ns-vol (volatile! (SoftReference. *ns*))
-          d (volatile! (delay (f)))]
-      (fn []
-        (when-some [^SoftReference sr @def-ns-vol]
-          (when-some [def-ns (.get sr)]
-            (if (identical? def-ns (find-ns (ns-name def-ns)))
-              (let [t (force @d)]
-                ;(prn "returning" ((juxt identity hash) def-ns) ((juxt identity hash) (find-ns (ns-name def-ns))))
-                t)
-              ;;forget types that were defined in stale namespaces
-              (do ;(prn "FORGETTING ANNOTATION" (class @@d))
-                  (vreset! def-ns-vol nil)
-                  (vreset! d nil)
-                  nil))))))
-    ;; TODO cljs strategy for forgetting types from reloaded namespaces
-    :clojure.core.typed.current-impl/clojurescript
-    (delay (f))))
+  (let [this-invalidation-id (atom @parsed-types-invalidation-id)]
+    (case ((requiring-resolve 'clojure.core.typed.current-impl/current-impl))
+      :clojure.core.typed.current-impl/clojure
+      (let [def-ns-vol (atom (SoftReference. *ns*))
+            ->f-delay #(delay (f))
+            d (atom (->f-delay))]
+        (fn []
+          (when-some [^SoftReference sr @def-ns-vol]
+            (when-some [def-ns (.get sr)]
+              (if (identical? def-ns (find-ns (ns-name def-ns)))
+                (let [_ (when (not= @this-invalidation-id @parsed-types-invalidation-id)
+                          ;; attempt to reparse type if internal namespaces have changed
+                          (swap! d #(when % (->f-delay)))
+                          (reset! this-invalidation-id @parsed-types-invalidation-id))]
+                  (force @d))
+                ;;forget types that were defined in stale namespaces
+                (do ;(prn "FORGETTING ANNOTATION" (class @@d))
+                    (reset! def-ns-vol nil)
+                    (reset! d nil)
+                    nil))))))
+      ;; TODO cljs strategy for forgetting types from reloaded namespaces
+      :clojure.core.typed.current-impl/clojurescript
+      (let [d (delay (f))]
+        (fn [] @d)))))
 
 (defmacro delay-type [& args]
   `(delay-type* (fn [] (do ~@args))))

@@ -600,16 +600,14 @@
   (if (some Bottom? types)
     (Bottom)
     (HSequential-maker types
-                       (if filters
-                         (vec filters)
-                         (vec (repeat (count types) (ind/-FS (ind/-top-fn)
-                                                             (ind/-top-fn)))))
-                       (if objects
-                         (vec objects)
-                         (vec (repeat (count types) (ind/-empty-fn))))
+                       (vec (or filters
+                                (repeat (count types) (ind/-FS (ind/-top-fn)
+                                                               (ind/-top-fn)))))
+                       (vec (or objects
+                                (repeat (count types) (ind/-empty-fn))))
                        rest
                        drest
-                       (if repeat? true false)
+                       (boolean repeat?)
                        (or kind :sequential))))
 
 (t/ann compatible-HSequential-kind? [HSequentialKind HSequentialKind :-> t/Bool])

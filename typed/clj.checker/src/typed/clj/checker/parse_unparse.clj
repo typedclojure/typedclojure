@@ -27,7 +27,8 @@
             [typed.cljc.checker.object-rep :as orep]
             [typed.cljc.checker.path-rep :as pthrep]
             [typed.cljc.checker.type-ctors :as c]
-            [typed.cljc.checker.type-rep :as r])
+            [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.runtime.env-utils :as env-utils])
   (:import (typed.cljc.checker.type_rep NotType DifferenceType Intersection Union FnIntersection
                                         DottedPretype Function RClass App TApp
                                         PrimitiveArray DataType Protocol TypeFn Poly PolyDots
@@ -42,6 +43,8 @@
            (typed.cljc.checker.object_rep NoObject EmptyObject Path)
            (typed.cljc.checker.path_rep KeyPE CountPE ClassPE KeysPE ValsPE NthPE KeywordPE)
            (clojure.lang Cons IPersistentList Symbol IPersistentVector)))
+
+(env-utils/invalidate-parsed-types!)
 
 (defprotocol IUnparseType 
   (unparse-type* [t]))

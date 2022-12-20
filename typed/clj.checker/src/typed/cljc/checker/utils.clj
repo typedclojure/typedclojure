@@ -10,6 +10,7 @@
   (:refer-clojure :exclude [defrecord defprotocol])
   (:require [typed.clojure :as t]
             [clojure.core.typed.util-vars :as uvs]
+            [typed.cljc.runtime.env-utils :as env-utils]
             [clojure.repl :as repl]
             [clojure.set :as set]))
 
@@ -177,6 +178,7 @@
 (defmacro mk [original-ns def-kind name-sym fields invariants & {:keys [methods]}]
   (when-not (resolve name-sym)
     `(t/tc-ignore
+       (env-utils/invalidate-parsed-types!)
        ~(emit-deftype original-ns def-kind name-sym fields invariants methods))))
 
 (defmacro defspecial [name]

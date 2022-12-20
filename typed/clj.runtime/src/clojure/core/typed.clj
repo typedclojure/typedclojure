@@ -364,13 +364,12 @@ for checking namespaces, cf for checking individual forms."}
 (defmacro ^:private delay-tc-parse
   [t]
   `(core/let [t# ~t
-              app-outer-context# (bound-fn [f#] (f#))]
+              app-outer-context# (bound-fn []
+                                   ((requiring-resolve 'typed.clj.checker.parse-unparse/with-parse-ns*)
+                                    (ns-name *ns*)
+                                    #((requiring-resolve 'typed.clj.checker.parse-unparse/parse-clj) t#)))]
      (delay-type
-       (app-outer-context#
-         (core/fn []
-           ((requiring-resolve 'typed.clj.checker.parse-unparse/with-parse-ns*)
-             (ns-name *ns*)
-             #((requiring-resolve 'typed.clj.checker.parse-unparse/parse-clj) t#)))))))
+       (app-outer-context#))))
 
 (core/defn ^:no-doc add-to-rt-alias-env [form qsym t]
   (with-clojure-impl

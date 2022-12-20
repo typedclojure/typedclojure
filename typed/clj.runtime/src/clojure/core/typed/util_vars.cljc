@@ -6,8 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns clojure.core.typed.util-vars
-  (:require [clojure.java.io :as io]))
+(ns clojure.core.typed.util-vars)
 
 (defonce ^:no-doc registered-ann-ns (atom {:register? false :namespaces #{}}))
 
