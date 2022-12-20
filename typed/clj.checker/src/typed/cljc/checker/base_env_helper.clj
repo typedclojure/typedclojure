@@ -22,79 +22,79 @@
             [clojure.core.typed.macros :as macros]))
 
 (defmacro method-nonnilable-return-mappings [& args]
-  `(impl/with-clojure-impl
-     (let [ts# (partition-all 2 '~args)]
-       (into {}
-             (map
-               (fn [[s# t# :as kv#]]
-                 (assert (= 2 (count kv#))
-                         (print-str "Uneven args to method-nonnilable-return-mappings:"
-                                    kv#))
-                 (assert (and (symbol? s#)
-                              (namespace s#))
-                         "Need fully qualified symbol")
-                 [s# t#]))
-             ts#))))
+  (assert (even? (count args)))
+  (let [this-nsym (ns-name *ns*)]
+    `(impl/with-clojure-impl
+       (let [ts# (partition-all 2 '~args)]
+         (into {}
+               (map
+                 (fn [[s# t# :as kv#]]
+                   (assert (and (symbol? s#)
+                                (namespace s#))
+                           "Need fully qualified symbol")
+                   (macros/when-bindable-defining-ns '~this-nsym
+                     [s# (env-utils/delay-type t#)])))
+               ts#)))))
 
 (defmacro method-nilable-param-mappings [& args]
-  `(impl/with-clojure-impl
-     (let [ts# (partition-all 2 '~args)]
-       (into {}
-             (map
-               (fn [[s# t# :as kv#]]
-                 (assert (= 2 (count kv#))
-                         (print-str "Uneven args to method-nilable-param-mappings:"
-                                    kv#))
-                 (assert (and (symbol? s#)
-                              (namespace s#))
-                         "Need fully qualified symbol")
-                 [s# t#]))
-             ts#))))
+  (assert (even? (count args)))
+  (let [this-nsym (ns-name *ns*)]
+    `(impl/with-clojure-impl
+       (let [ts# (partition-all 2 '~args)]
+         (into {}
+               (map
+                 (fn [[s# t# :as kv#]]
+                   (assert (and (symbol? s#)
+                                (namespace s#))
+                           "Need fully qualified symbol")
+                   (macros/when-bindable-defining-ns '~this-nsym
+                     [s# (env-utils/delay-type t#)])))
+               ts#)))))
 
 (defmacro method-override-mappings [& args]
-  `(impl/with-clojure-impl
-     (let [ts# (partition-all 2 '~args)]
-       (into {}
-             (map
-               (fn [[s# t# :as kv#]]
-                 (assert (= 2 (count kv#))
-                         (print-str "Uneven args to method-override-mappings:"
-                                    kv#))
-                 (assert (and (symbol? s#)
-                              (namespace s#))
-                         "Need fully qualified symbol")
-                 [s# (prs/parse-type t#)]))
-             ts#))))
+  (assert (even? (count args)))
+  (let [this-nsym (ns-name *ns*)]
+    `(impl/with-clojure-impl
+       (let [ts# (partition-all 2 '~args)]
+         (into {}
+               (map
+                 (fn [[s# t# :as kv#]]
+                   (assert (and (symbol? s#)
+                                (namespace s#))
+                           "Need fully qualified symbol")
+                   (macros/when-bindable-defining-ns '~this-nsym
+                     [s# (env-utils/delay-type (prs/delay-parse-type t#))])))
+               ts#)))))
 
 (defmacro field-override-mappings [& args]
-  `(impl/with-clojure-impl
-     (let [ts# (partition-all 2 '~args)]
-       (into {}
-             (map
-               (fn [[s# t# :as kv#]]
-                 (assert (= 2 (count kv#))
-                         (print-str "Uneven args to field-override-mappings:"
-                                    kv#))
-                 (assert (and (symbol? s#)
-                              (namespace s#))
-                         "Need fully qualified symbol")
-                 [s# (prs/parse-type t#)]))
-             ts#))))
+  (assert (even? (count args)))
+  (let [this-nsym (ns-name *ns*)]
+    `(impl/with-clojure-impl
+       (let [ts# (partition-all 2 '~args)]
+         (into {}
+               (map
+                 (fn [[s# t# :as kv#]]
+                   (assert (and (symbol? s#)
+                                (namespace s#))
+                           "Need fully qualified symbol")
+                   (macros/when-bindable-defining-ns '~this-nsym
+                     [s# (env-utils/delay-type (prs/delay-parse-type t#))])))
+               ts#)))))
 
 (defmacro ctor-override-mappings [& args]
-  `(impl/with-clojure-impl
-     (let [ts# (partition-all 2 '~args)]
-       (into {}
-             (map
-               (fn [[s# t# :as kv#]]
-                 (assert (= 2 (count kv#))
-                         (print-str "Uneven args to ctor-override-mappings:"
-                                    kv#))
-                 (assert (and (symbol? s#)
-                              (not (namespace s#)))
-                         "Need unqualified symbol")
-                 [s# (prs/parse-type t#)]))
-             ts#))))
+  (assert (even? (count args)))
+  (let [this-nsym (ns-name *ns*)]
+    `(impl/with-clojure-impl
+       (let [ts# (partition-all 2 '~args)]
+         (into {}
+               (map
+                 (fn [[s# t# :as kv#]]
+                   (assert (and (symbol? s#)
+                                (not (namespace s#)))
+                           "Need unqualified symbol")
+                   (macros/when-bindable-defining-ns '~this-nsym
+                     [s# (env-utils/delay-type (prs/delay-parse-type t#))])))
+               ts#)))))
 
 ;; Alter class
 

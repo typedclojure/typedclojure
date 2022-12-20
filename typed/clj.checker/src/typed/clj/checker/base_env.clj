@@ -9,6 +9,7 @@
 (ns typed.clj.checker.base-env
   (:require [typed.clojure :as t]
             [clojure.core.typed.current-impl :as impl]
+            [typed.cljc.runtime.env-utils :as env-utils]
             [typed.clj.checker.ctor-override-env :as ctor-override-env]
             [typed.clj.checker.field-override-env :as field-override-env]
             [typed.clj.checker.method-override-env :as method-override-env]
@@ -34,97 +35,95 @@
                          IRef Reduced)
            (java.util Comparator Collection)))
 
-;; Dev notes
-;; ---------
-;;
-;; To reload these type annotations *without* restarting the repl,
-;; you should reload this file then run `(reset-clojure-envs!)`.
-;;
-;; There is some abuse of interning to get the type resolving correctly
-;; in the annotations. The goal is to simulate we're inside `clojure.core.typed`.
-
 (defn- aset-*-type [t]
-  (impl/with-clojure-impl
-    (let [arr-t (prs/parse-type `(~'Array ~t))
-          rtn-type (prs/parse-type t)
-          num-t (prs/parse-type `t/Num)]
-      (apply r/make-FnIntersection
-             (map r/make-Function
-                  (loop [num 1
-                         result []
-                         dom [arr-t num-t]]
-                    (if (> num 10)
-                      result
-                      (recur (inc num)
-                             (conj result (conj dom rtn-type))
-                             (conj dom num-t))))
-                  (repeat rtn-type))))))
+  (env-utils/delay-type
+    (impl/with-clojure-impl
+      (let [arr-t (prs/delay-parse-type `(~'Array ~t))
+            rtn-type (prs/delay-parse-type t)
+            num-t (prs/delay-parse-type `t/Num)]
+        (apply (resolve `r/make-FnIntersection)
+               (map (resolve `r/make-Function)
+                    (loop [num 1
+                           result []
+                           dom [arr-t num-t]]
+                      (if (> num 10)
+                        result
+                        (recur (inc num)
+                               (conj result (conj dom rtn-type))
+                               (conj dom num-t))))
+                    (repeat rtn-type)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Type annotations
 
 (defn ^:private count-type []
-  (impl/with-clojure-impl
-    (r/make-FnIntersection
-      (r/make-Function
-        [(prs/parse-type `(t/U (t/Seqable t/Any) clojure.lang.Counted))]
-        (prs/parse-type `(t/U java.lang.Integer java.lang.Long))
-        :object (obj/-path [(pe/CountPE-maker)] 0)))))
+  (env-utils/delay-type
+    (impl/with-clojure-impl
+      ((resolve `r/make-FnIntersection)
+        ((resolve `r/make-Function)
+          [(prs/delay-parse-type `(t/U (t/Seqable t/Any) clojure.lang.Counted))]
+          (prs/delay-parse-type `(t/U java.lang.Integer java.lang.Long))
+          :object ((resolve `obj/-path) [((resolve `pe/CountPE-maker))] 0))))))
 
 (defn ^:private nth-type []
-  (impl/with-clojure-impl
-    (prs/parse-type
-      ;;TODO port this type from clojure.lang.RT/nthFrom properly. Try not to use Indexed as a fake ancestor.
-      ;; maybe even remove Seqable fake ancestors and move to t/Seqable.
-      `(t/All [~'x ~'y]
-            (t/IFn 
-              [(t/U (Indexed ~'x) (t/SequentialSeqable ~'x)) t/AnyInteger :-> ~'x]
-              [(t/U (Indexed ~'x) (t/SequentialSeqable ~'x) nil) t/AnyInteger ~'y :-> (t/U ~'x ~'y)]
-              [(t/U (Indexed ~'x) (t/SequentialSeqable ~'x) nil) t/AnyInteger :-> (t/U ~'x nil)])))))
+  (env-utils/delay-type
+    (impl/with-clojure-impl
+      (prs/delay-parse-type
+        ;;TODO port this type from clojure.lang.RT/nthFrom properly. Try not to use Indexed as a fake ancestor.
+        ;; maybe even remove Seqable fake ancestors and move to t/Seqable.
+        `(t/All [~'x ~'y]
+                (t/IFn 
+                  [(t/U (Indexed ~'x) (t/SequentialSeqable ~'x)) t/AnyInteger :-> ~'x]
+                  [(t/U (Indexed ~'x) (t/SequentialSeqable ~'x) nil) t/AnyInteger ~'y :-> (t/U ~'x ~'y)]
+                  [(t/U (Indexed ~'x) (t/SequentialSeqable ~'x) nil) t/AnyInteger :-> (t/U ~'x nil)]))))))
 
 ;; public -- used in type-ctors via requiring-resolve
 (defn get-type []
-  (impl/with-clojure-impl
-    (prs/parse-type
-      (let [x 'x
-            y 'y]
-        `(t/All [~x ~y]
-                (t/IFn 
-                  ;no default
-                  [(t/Option (ILookup t/Any ~x)) t/Any :-> (t/Option ~x)]
-                  [nil t/Any :-> nil]
-                  [(t/Option java.util.Map) t/Any :-> (t/Option t/Any)]
-                  [(t/Option (t/Set ~x)) t/Any :-> (t/Option ~x)]
-                  [(t/Option String) t/Any :-> (t/Option Character)]
-                  [(t/Option (~'ReadOnlyArray ~x)) t/Any :-> (t/Option ~x)]
-                  ;;[(t/Option (ITransientSet ~x)) t/Any :-> (t/Option ~x)] ;;TODO transients nyi
-                  [t/Any t/Any :-> t/Any]
-                  ;default
-                  [(t/Option (ILookup t/Any ~x)) t/Any ~y :-> (t/U ~x ~y)]
-                  [nil t/Any ~y :-> ~y]
-                  [(t/Option java.util.Map) t/Any t/Any :-> t/Any]
-                  [(t/Option (t/Set ~x)) t/Any ~y :-> (t/U ~x ~y)]
-                  [(t/Option String) t/Any ~y :-> (t/U Character ~y)]
-                  [(t/Option (~'ReadOnlyArray ~x)) t/Any ~y :-> (t/U ~x ~y)]
-                  ;;[(t/Option (ITransientSet ~x)) t/Any ~y :-> (t/U ~x ~y)] ;;TODO transients nyi
-                  [t/Any t/Any t/Any :-> t/Any]))))))
+  (env-utils/delay-type
+    (impl/with-clojure-impl
+      (prs/delay-parse-type
+        (let [x 'x
+              y 'y]
+          `(t/All [~x ~y]
+                  (t/IFn 
+                    ;no default
+                    [(t/Option (ILookup t/Any ~x)) t/Any :-> (t/Option ~x)]
+                    [nil t/Any :-> nil]
+                    [(t/Option java.util.Map) t/Any :-> (t/Option t/Any)]
+                    [(t/Option (t/Set ~x)) t/Any :-> (t/Option ~x)]
+                    [(t/Option String) t/Any :-> (t/Option Character)]
+                    [(t/Option (~'ReadOnlyArray ~x)) t/Any :-> (t/Option ~x)]
+                    ;;[(t/Option (ITransientSet ~x)) t/Any :-> (t/Option ~x)] ;;TODO transients nyi
+                    [t/Any t/Any :-> t/Any]
+                    ;default
+                    [(t/Option (ILookup t/Any ~x)) t/Any ~y :-> (t/U ~x ~y)]
+                    [nil t/Any ~y :-> ~y]
+                    [(t/Option java.util.Map) t/Any t/Any :-> t/Any]
+                    [(t/Option (t/Set ~x)) t/Any ~y :-> (t/U ~x ~y)]
+                    [(t/Option String) t/Any ~y :-> (t/U Character ~y)]
+                    [(t/Option (~'ReadOnlyArray ~x)) t/Any ~y :-> (t/U ~x ~y)]
+                    ;;[(t/Option (ITransientSet ~x)) t/Any ~y :-> (t/U ~x ~y)] ;;TODO transients nyi
+                    [t/Any t/Any t/Any :-> t/Any])))))))
 
 (defn ^:private reduced?-type []
-  (impl/with-clojure-impl
-    (prs/parse-type
-      `(t/Pred (Reduced t/Any)))))
+  (env-utils/delay-type
+    (impl/with-clojure-impl
+      (prs/delay-parse-type
+        `(t/Pred (Reduced t/Any))))))
 
 (defn ^:private zero?-type []
-  (impl/with-clojure-impl
-    (prs/parse-type
-      `[t/Num :-> t/Bool
-        :filters {:then (~'is (t/Value 0) 0)
-                  :else (~'!  (t/Value 0) 0)}])))
+  (env-utils/delay-type
+    (impl/with-clojure-impl
+      (prs/delay-parse-type
+        `[t/Num :-> t/Bool
+          :filters {:then (~'is (t/Value 0) 0)
+                    :else (~'!  (t/Value 0) 0)}]))))
 
 (defn ^:private compare-type []
-  (impl/with-clojure-impl
-    (prs/parse-type
-      `[t/Any t/Any :-> t/Num])))
+  (env-utils/delay-type
+    (impl/with-clojure-impl
+      (prs/delay-parse-type
+        `[t/Any t/Any :-> t/Num]))))
 
 (delay-and-cache-env ^:private init-var-env
   ;(reset-alias-env!)
@@ -329,13 +328,13 @@ clojure.lang.RT/aset (t/All [i o]
 
 ;numbers
 clojure.lang.Numbers/add (t/IFn [Long Long -> Long]
-                              [Double Double -> Double]
-                              [t/AnyInteger t/AnyInteger -> t/AnyInteger]
-                              [t/Num t/Num -> t/Num])
+                                [Double Double -> Double]
+                                [t/AnyInteger t/AnyInteger -> t/AnyInteger]
+                                [t/Num t/Num -> t/Num])
 clojure.lang.Numbers/inc (t/IFn [Long -> Long]
-                              [Double -> Double]
-                              [t/AnyInteger -> t/AnyInteger]
-                              [t/Num -> t/Num])
+                                [Double -> Double]
+                                [t/AnyInteger -> t/AnyInteger]
+                                [t/Num -> t/Num])
 clojure.lang.Numbers/dec (t/IFn [Long -> Long]
                               [Double -> Double]
                               [t/AnyInteger -> t/AnyInteger]
@@ -494,10 +493,8 @@ clojure.lang.PersistentArrayMap/EMPTY (t/HMap :complete? true)
   ;(reset-alias-env!)
   (h/ctor-override-mappings
 
-clojure.lang.LazySeq (t/All [x]
-                          [[-> (t/Seqable x)] -> (LazySeq x)])
-clojure.lang.Delay (t/All [x]
-                        [[-> x] -> (clojure.lang.Delay x)])
+clojure.lang.LazySeq (t/All [x] [[-> (t/Seqable x)] -> (LazySeq x)])
+clojure.lang.Delay (t/All [x] [[-> x] -> (clojure.lang.Delay x)])
     ))
 
 ;; not added in refresh

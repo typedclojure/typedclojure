@@ -1070,14 +1070,13 @@
          (map? opt)
          ((some-fn nil? map?) meta)]
    :post [(r/Type? %)]}
-  (let [original-names (map (comp r/F-original-name r/make-F) names)]
+  (let [original-names (mapv (comp r/F-original-name r/make-F) names)]
     (if (empty? names)
       body
-      (let [t (r/TypeFn-maker (count names) 
+      (let [t (r/TypeFn-maker (count names)
                               variances
-                              (vec
-                                (for [bnd bbnds]
-                                  (r/visit-bounds bnd #(abstract-many names %))))
+                              (mapv (fn [bnd] (r/visit-bounds bnd #(abstract-many names %)))
+                                    bbnds)
                               (abstract-many names body)
                               meta)]
         (with-original-names t original-names))))))
@@ -2494,7 +2493,9 @@
       (r/ret-t
         (ind/check-funapp nil
                           nil
-                          (r/ret ((requiring-resolve 'typed.clj.checker.base-env/get-type)))
+                          (r/ret
+                            (env-utils/force-type
+                              ((requiring-resolve 'typed.clj.checker.base-env/get-type))))
                           [(r/ret t) (r/ret k) (r/ret default)]
                           nil))
       :else r/-any))))
@@ -2595,24 +2596,19 @@
                          (-> ty
                            (update :dom #(mapv type-rec %))
                            (update :rng type-rec)
-                           (update :rest #(when %
-                                            (type-rec %)))
-                           (update :drest #(when %
-                                             (-> %
-                                                 (update :pre-type type-rec))))
+                           (update :rest #(some-> % type-rec))
+                           (update :drest #(some-> % (update :pre-type type-rec)))
                            (update :prest #(when %
                                              (let [t (type-rec %)]
                                                ;; if we fully flatten out the prest, we're left
                                                ;; with no prest
-                                               (if (= r/-nothing t)
-                                                 nil
+                                               (when (not= r/-nothing t)
                                                  t)))))))
 
 (add-default-fold-case JSNominal
                        (fn [ty]
                          (-> ty
-                             (update :poly? #(when %
-                                               (mapv type-rec %))))))
+                             (update :poly? #(some->> % (mapv type-rec))))))
 
 (add-default-fold-case RClass 
                        (fn [ty]
@@ -2649,8 +2645,7 @@
                        (fn [ty]
                          ;(prn "datatype default" (typed.clj.checker.parse-unparse/unparse-type ty))
                          (-> ty
-                             (update :poly? #(when %
-                                               (mapv type-rec %)))
+                             (update :poly? #(some->> % (mapv type-rec)))
                              (update :fields (fn [fs]
                                                (apply array-map
                                                       (apply concat
@@ -2660,15 +2655,10 @@
 (add-default-fold-case Protocol
                        (fn [ty]
                          (-> ty
-                             (update :poly? #(when %
-                                               (mapv type-rec %)))
+                             (update :poly? #(some->> % (mapv type-rec)))
                              ;FIXME this should probably be left alone in fold
                              ; same in promote/demote
-                             (update :methods (fn [ms]
-                                                (into {}
-                                                      (map (fn [[k v]]
-                                                             [k (type-rec v)]))
-                                                      ms))))))
+                             (update :methods update-vals type-rec))))
 
 (add-default-fold-case TypeFn
                        (fn [ty]
@@ -2677,11 +2667,11 @@
                                bbnds (TypeFn-bbnds* names ty)
                                bmap (zipmap (map r/make-F names) bbnds)]
                            (TypeFn* names 
-                                      (:variances ty)
-                                      (free-ops/with-bounded-frees bmap
-                                        (mapv #(r/visit-bounds % type-rec) bbnds))
-                                      (free-ops/with-bounded-frees bmap
-                                        (type-rec body))))))
+                                    (:variances ty)
+                                    (free-ops/with-bounded-frees bmap
+                                      (mapv #(r/visit-bounds % type-rec) bbnds))
+                                    (free-ops/with-bounded-frees bmap
+                                      (type-rec body))))))
 
 
 (add-default-fold-case Poly
@@ -2705,11 +2695,11 @@
                                ; don't scope the dotted bound
                                bmap (zipmap (map r/make-F (rest names)) (rest bbnds))]
                            (PolyDots* names 
-                                        (free-ops/with-bounded-frees bmap
-                                          (mapv #(r/visit-bounds % type-rec) bbnds))
-                                        (free-ops/with-bounded-frees bmap
-                                          (type-rec body))
-                                        :named (:named ty)))))
+                                      (free-ops/with-bounded-frees bmap
+                                        (mapv #(r/visit-bounds % type-rec) bbnds))
+                                      (free-ops/with-bounded-frees bmap
+                                        (type-rec body))
+                                      :named (:named ty)))))
 
 (add-default-fold-case Mu
                        (fn [ty]
