@@ -752,11 +752,17 @@
           (every? r/Bounds? bnds)
           (symbol? the-class)]
     :post [((some-fn r/TypeFn? r/RClass?) %)]}
-   (let [_ ((requiring-resolve 'typed.clj.checker.rclass-ancestor-env/add-rclass-replacements) the-class names replacements)
-         _ ((requiring-resolve 'typed.clj.checker.rclass-ancestor-env/add-rclass-ancestors) the-class names unchecked-ancestors)]
+   (let [replacements ((requiring-resolve 'typed.clj.checker.rclass-ancestor-env/abstract-rclass-replacements)
+                       the-class
+                       names
+                       replacements)
+         unchecked-ancestors ((requiring-resolve 'typed.clj.checker.rclass-ancestor-env/abstract-rclass-ancestors)
+                              the-class
+                              names
+                              unchecked-ancestors)]
      (if (seq variances)
-       (TypeFn* names variances bnds (r/RClass-maker variances poly? the-class))
-       (r/RClass-maker nil nil the-class)))))
+       (TypeFn* names variances bnds (r/RClass-maker variances poly? the-class replacements unchecked-ancestors))
+       (r/RClass-maker nil nil the-class replacements unchecked-ancestors)))))
 
 (t/ann ^:no-check isa-DataType? [(t/U t/Sym Class) -> t/Any])
 (defn isa-DataType? [sym-or-cls]
@@ -829,7 +835,7 @@
                                            " Annotate with ann-record above the first time it is parsed"))
                              (flush))
                          (r/DataType-maker sym nil nil (array-map) (isa-Record? cls)))
-                       (r/RClass-maker nil nil sym))))]
+                       (r/RClass-maker nil nil sym {} (r/sorted-type-set #{})))))]
          (swap! RClass-of-cache assoc cache-key-hash res)
          res)))))
 
@@ -2611,18 +2617,10 @@
                          (-> ty
                              (update :poly? #(some->> % (mapv type-rec))))))
 
-(add-default-fold-case RClass 
+(add-default-fold-case RClass
                        (fn [ty]
                          (-> ty
-                             (update :poly? #(when %
-                                               (mapv type-rec %)))
-                             #_(update :replacements #(into {}
-                                                            (map (fn [[k v]]
-                                                                   [k (type-rec v)]))
-                                                            %))
-                             #_(update :unchecked-ancestors #(into #{}
-                                                                   (map type-rec)
-                                                                   %)))))
+                             (update :poly? #(some->> % (mapv type-rec))))))
 
 (add-default-fold-case App
                        (fn [ty]

@@ -20,6 +20,9 @@
             [clojure.set :as set])
   (:import (typed.cljc.checker.type_rep DataType)))
 
+
+;TODO fold this state into DataType types
+
 (t/typed-deps typed.cljc.checker.type-ctors
               typed.cljc.checker.subst)
 

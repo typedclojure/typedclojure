@@ -295,11 +295,7 @@
   [T V]
   (let [pmt #(promote % V)]
     (-> T
-      (update :poly? #(some->> % (mapv pmt)))
-      #_(update :replacements #(into {}
-                                     (map (fn [[k v]]
-                                            [k (pmt v)]))
-                                     %)))))
+      (update :poly? #(some->> % (mapv pmt))))))
 
 (promote-demote TypeFn
   [{:keys [variances] :as T} V]

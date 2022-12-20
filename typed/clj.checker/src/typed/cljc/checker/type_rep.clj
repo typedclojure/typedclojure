@@ -247,8 +247,10 @@
 
 (u/ann-record RClass [variances :- (t/U nil (t/NonEmptySeqable Variance))
                       poly? :- (t/U nil (t/NonEmptySeqable Type))
-                      the-class :- t/Sym])
-(u/def-type RClass [variances poly? the-class]
+                      the-class :- t/Sym
+                      replacements (t/Map t/Sym ScopedType)
+                      unchecked-ancestors (t/SortedSet ScopedType)])
+(u/def-type RClass [variances poly? the-class replacements unchecked-ancestors]
   "A restricted class, where ancestors are
   (replace replacements (ancestors the-class))"
   [(or (nil? variances)
@@ -259,7 +261,11 @@
        (and (seq poly?)
             (sequential? poly?)
             (every? Type? poly?)))
-   (symbol? the-class)]
+   (symbol? the-class)
+   (map? replacements)
+   ((con/hash-c? symbol? scoped-Type?) replacements)
+   (sorted? unchecked-ancestors)
+   ((con/set-c? scoped-Type?) unchecked-ancestors)]
   :intern
   [variances
    (map hash poly?)
