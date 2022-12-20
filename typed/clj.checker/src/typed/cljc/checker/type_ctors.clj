@@ -10,6 +10,7 @@
   (:refer-clojure :exclude [defrecord replace])
   (:require [clojure.core.cache :as cache]
             [typed.clojure :as t]
+            [typed.cljc.runtime.env-utils :as env-utils]
             [clojure.core.typed.coerce-utils :as coerce]
             [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.current-impl :as impl]
