@@ -151,7 +151,7 @@
                  (free-ops/with-bounded-frees frees-and-bnds
                    (build-replacement-syntax replacements-syn))
                  (free-ops/with-bounded-frees frees-and-bnds
-                   (mapv prs/parse-type unchecked-ancestors-syn))
+                   (into (r/sorted-type-set []) (map prs/parse-type) unchecked-ancestors-syn))
                  bnds))))
 
 (defn declared-kind-for-rclass [frees]

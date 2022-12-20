@@ -741,7 +741,7 @@
           (t/Map t/Sym r/Type) (t/Set r/Type) -> r/Type]))
 (defn RClass*
   ([names variances poly? the-class replacements]
-   (RClass* names variances poly? the-class replacements #{}))
+   (RClass* names variances poly? the-class replacements (r/sorted-type-set [])))
   ([names variances poly? the-class replacements unchecked-ancestors]
    (RClass* names variances poly? the-class replacements unchecked-ancestors (repeat (count names) r/no-bounds)))
   ([names variances poly? the-class replacements unchecked-ancestors bnds]

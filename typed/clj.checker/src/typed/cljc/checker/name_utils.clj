@@ -64,6 +64,5 @@
                      (assoc name->f id f)
                      used-f
                      erased-frequencies)]
-          (if (@used-f f)
-            (c/Mu* (:name f) body)
-            body)))))
+          (cond->> body
+            (@used-f f) (c/Mu* (:name f)))))))
