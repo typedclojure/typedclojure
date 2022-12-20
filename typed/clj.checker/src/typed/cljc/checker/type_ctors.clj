@@ -737,9 +737,9 @@
 ;smart constructor
 (t/ann ^:no-check RClass* 
   (t/IFn [(t/Seqable t/Sym) (t/Seqable r/Variance) (t/Seqable r/Type) t/Sym (t/Map t/Sym r/Type) -> r/Type]
-      [(t/Seqable t/Sym) (t/Seqable r/Variance) (t/Seqable r/Type) t/Sym 
-       (t/Map t/Sym r/Type) (t/Set r/Type) -> r/Type]))
-(defn RClass* 
+         [(t/Seqable t/Sym) (t/Seqable r/Variance) (t/Seqable r/Type) t/Sym 
+          (t/Map t/Sym r/Type) (t/Set r/Type) -> r/Type]))
+(defn RClass*
   ([names variances poly? the-class replacements]
    (RClass* names variances poly? the-class replacements #{}))
   ([names variances poly? the-class replacements unchecked-ancestors]
