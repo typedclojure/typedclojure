@@ -276,7 +276,7 @@
                              (if (class? cls)
                                (with-out-str
                                  (println "Class" (coerce/Class->symbol cls)))
-                               (if-some [ty (var-env/lookup-Var-nofail rsym)]
+                               (when-some [ty (var-env/lookup-Var-nofail rsym)]
                                  (with-out-str
                                    (println "Printing the annotation for var" rsym "(see typed.clojure/TypeOf for usage in type syntax)")
                                    (pp/pprint (prs/unparse-type ty))))))))))

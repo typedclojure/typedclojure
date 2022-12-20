@@ -16,31 +16,25 @@
 
 ;; [[:-> Type] :-> [:-> Type]]
 (defn delay-type* [f]
-  ;;FIXME pull out impl-case into its own namespace
-  (let [f (bound-fn* f) this-invalidation-id (atom @parsed-types-invalidation-id)]
-    (case ((requiring-resolve 'clojure.core.typed.current-impl/current-impl))
-      :clojure.core.typed.current-impl/clojure
-      (let [def-ns-vol (atom (SoftReference. *ns*))
-            ->f-delay (fn [] (delay (f)))
-            d (atom (->f-delay))]
-        (fn []
-          (when-some [^SoftReference sr @def-ns-vol]
-            (when-some [def-ns (.get sr)]
-              (if (identical? def-ns (find-ns (ns-name def-ns)))
-                (let [_ (when (not= @this-invalidation-id @parsed-types-invalidation-id)
-                          ;; attempt to reparse type if internal namespaces have changed
-                          (swap! d #(when % (->f-delay)))
-                          (reset! this-invalidation-id @parsed-types-invalidation-id))]
-                  (force @d))
-                ;;forget types that were defined in stale namespaces
-                (do ;(prn "FORGETTING ANNOTATION" (class @@d))
-                    (reset! def-ns-vol nil)
-                    (reset! d nil)
-                    nil))))))
-      ;; TODO cljs strategy for forgetting types from reloaded namespaces
-      :clojure.core.typed.current-impl/clojurescript
-      (let [d (delay (f))]
-        (fn [] @d)))))
+  (let [f (bound-fn* f)
+        this-invalidation-id (atom @parsed-types-invalidation-id)]
+    (let [def-ns-vol (atom (SoftReference. *ns*))
+          ->f-delay (fn [] (delay (f)))
+          d (atom (->f-delay))]
+      (fn []
+        (when-some [^SoftReference sr @def-ns-vol]
+          (when-some [def-ns (.get sr)]
+            (if (identical? def-ns (find-ns (ns-name def-ns)))
+              (let [_ (when (not= @this-invalidation-id @parsed-types-invalidation-id)
+                        ;; attempt to reparse type if internal namespaces have changed
+                        (swap! d #(when % (->f-delay)))
+                        (reset! this-invalidation-id @parsed-types-invalidation-id))]
+                (force @d))
+              ;;forget types that were defined in stale namespaces
+              (do ;(prn "FORGETTING ANNOTATION" (class @@d))
+                  (reset! def-ns-vol nil)
+                  (reset! d nil)
+                  nil))))))))
 
 (defmacro delay-type [& args]
   `(delay-type* (fn [] (do ~@args))))
