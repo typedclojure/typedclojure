@@ -8,6 +8,7 @@
 
 (ns typed.clj.checker.experimental.infer-vars
   (:require 
+    [clojure.core.typed.util-vars :as vs]
     [typed.cljc.checker.type-rep :as r]
     [typed.cljc.checker.type-ctors :as c]
     [typed.clj.checker.parse-unparse :as prs]
@@ -23,8 +24,9 @@
    :post [(nil? %)]}
   (env/swap-checker! update-in
                      [:inferred-unchecked-vars nsym vsym]
-                     (fn [v]
-                       (conj (or v #{}) t)))
+                     (fnil conj [])
+                     (binding [vs/*verbose-types* true]
+                       (prs/unparse-type t)))
   nil)
 
 (defn inferred-var-in-ns
@@ -32,10 +34,9 @@
   {:pre [(symbol? nsym)
          (symbol? vsym)]
    :post [(r/Type? %)]}
-  (let [ts (get-in (env/deref-checker) [:inferred-unchecked-vars nsym vsym])]
-    (if (seq ts)
-      (apply c/Un ts)
-      r/-any)))
+  (if-some [ts (seq (get-in (env/deref-checker) [:inferred-unchecked-vars nsym vsym]))]
+    (apply c/Un (map prs/parse-type ts))
+    r/-any))
 
 (defn using-alias-in-ns [nsym vsym]
   {:pre [(symbol? nsym)
