@@ -91,13 +91,6 @@
   [ns-form]
   (meta (ns-form-name ns-form)))
 
-(defn collect-only-ns?
-  "Returns true if the ns-form has collect-only metadata."
-  [ns-form]
-  {:pre [ns-form]
-   :post [(boolean? %)]}
-  (boolean (-> (ns-meta ns-form) :core.typed :collect-only)))
-
 (defn ignore-ns? [ns-form]
   (let [nmeta (ns-meta ns-form)]
     (or (true? (:typed.clojure/ignore nmeta))

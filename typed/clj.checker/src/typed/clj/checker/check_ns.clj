@@ -16,8 +16,6 @@
   namespace.
 
   Options
-  - :collect-only    Don't type check the given namespace/s, but collect the 
-                     top level type annotations like ann, ann-record.
   - :type-provided?  If true, use the expected type to check the form
   - :file-mapping    If true, return map provides entry :file-mapping, a hash-map
                      of (Map '{:line Int :column Int :file Str} Str).

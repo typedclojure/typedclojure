@@ -7,7 +7,6 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc clojure.core.typed.contract-utils
-  {:core.typed {:collect-only true}}
   (:require [clojure.set :as set])
   #?(:clj (:import (clojure.lang PersistentArrayMap))))
 

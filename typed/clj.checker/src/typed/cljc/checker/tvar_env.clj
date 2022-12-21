@@ -7,7 +7,6 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc
-  ^{:core.typed {:collect-only true}}
   typed.cljc.checker.tvar-env
   (:require [clojure.core.typed.contract-utils :as con]
             [typed.cljc.checker.type-rep :as r]

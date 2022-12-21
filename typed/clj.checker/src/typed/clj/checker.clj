@@ -94,8 +94,6 @@
   namespace.
 
   Options
-  - :collect-only    Don't type check the given namespace/s, but collect the 
-  top level type annotations like ann, ann-record.
   - :type-provided?  If true, use the expected type to check the form
   - :profile         Use Timbre to profile the type checker. Timbre must be
   added as a dependency. Must use the \"slim\" JAR.
@@ -122,9 +120,6 @@
   Suggested idiom for clojure.test: (is (check-ns 'your.ns))
   
   Keyword arguments:
-  - :collect-only  If true, collect type annotations but don't type check code.
-                   Useful for debugging purposes.
-                   Default: nil
   - :trace         If true, print some basic tracing of the type checker
                    Default: nil
   - :check-config   Configuration map for the type checker.
@@ -171,10 +166,7 @@
      
       ; implicitly check current namespace
       (check-ns)
-      ;=> :ok
-  
-      ; collect but don't check the current namespace
-      (check-ns *ns* :collect-only true)"
+      ;=> :ok"
   ([] (check-ns *ns*))
   ([ns-or-syms & {:as opt}]
    (load-if-needed)

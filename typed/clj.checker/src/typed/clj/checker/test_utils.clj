@@ -1,5 +1,4 @@
 (ns typed.clj.checker.test-utils
-  {:core.typed {:collect-only true}}
   (:require [clojure.core.typed :as t]
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.errors :as err]

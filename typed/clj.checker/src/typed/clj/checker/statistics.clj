@@ -34,20 +34,20 @@
   (assert (and (coll? nsyms) (every? symbol? nsyms))
           "Must pass a collection of symbols to statistics")
   (reduce (fn [stats nsym]
-            (let [_ (chk-ns-clj/check-ns nsym {:collect-only true})
-                  ns (find-ns nsym)
-                  _ (assert ns (str "Namespace " nsym " not found"))]
+            (let [_ (locking clojure.lang.RT/REQUIRE_LOCK
+                      (require nsym))
+                  ns (the-ns nsym)]
               (conj stats
                     [nsym
                      {:vars {:all-vars (all-defs-in-ns ns)
                              :no-checks (let [all-no-checks (var-env/clj-nocheck-var?)]
                                           (filter (fn [s] (= (namespace s) nsym)) all-no-checks))
                              :var-annotations (let [annots (var-env/clj-var-annotations)]
-                                                (->> annots
-                                                     (filter (fn [[k v]] (= (namespace k) (str nsym))))
-                                                     (map (fn [[k v]] [k (binding [vs/*verbose-types* true]
-                                                                           (prs/unparse-type v))]))
-                                                     (into {})))}}])))
+                                                (into {} 
+                                                      (comp (filter (fn [[k v]] (= (namespace k) (str nsym))))
+                                                            (map (fn [[k v]] [k (binding [vs/*verbose-types* true]
+                                                                                  (prs/unparse-type v))])))
+                                                      annots))}}])))
           {} nsyms))
 
 (defn var-coverage

@@ -49,7 +49,7 @@
    :codox-mvn-version "0.10.7"
    :kaocha-git-url "https://github.com/frenchy64/kaocha.git"
    ;; fixes https://github.com/lambdaisland/kaocha/issues/370
-   ;; and 
+   ;; and
    ;; https://github.com/lambdaisland/kaocha/issues/372
    ;; (https://github.com/frenchy64/kaocha/pull/2)
    :kaocha-sha "f7d9ff428d3946eadd39f0d4dbc12cfd8a190b7f"

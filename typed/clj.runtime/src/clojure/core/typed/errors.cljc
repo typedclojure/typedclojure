@@ -7,8 +7,6 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc clojure.core.typed.errors
-  {:no-doc true
-   :core.typed {:collect-only true}}
   (:require [clojure.core.typed.util-vars :refer [*current-env*] :as uvs]
             [clojure.core.typed.current-impl :as impl]
             [clojure.pprint :as pp]

@@ -35,7 +35,7 @@
 ;; - :file-mapping      a map from namespace symbols to vectors of AST nodes
 ;;                      Added if true :file-mapping keyword is passed as an option
 (defn check-ns-info
-  [impl ns-or-syms {:keys [collect-only trace file-mapping check-config] :as opt}]
+  [impl ns-or-syms {:keys [trace file-mapping check-config] :as opt}]
   (do
     (let [start (. System (nanoTime))]
       (reset-caches/reset-caches)
@@ -70,14 +70,13 @@
                 ;-------------------------
                 ; Check phase
                 ;-------------------------
-                (when-not collect-only
-                  (let [check-ns (impl/impl-case
-                                   :clojure chk-clj/check-ns-and-deps
-                                   :cljs    (requiring-resolve 'typed.cljs.checker.check/check-ns-and-deps))
-                        check-ns #(binding [vs/*check-config* (atom check-config)]
-                                    (check-ns %))]
-                    (doseq [nsym nsym-coll]
-                      (check-ns nsym))))
+                (let [check-ns (impl/impl-case
+                                 :clojure chk-clj/check-ns-and-deps
+                                 :cljs    (requiring-resolve 'typed.cljs.checker.check/check-ns-and-deps))
+                      check-ns #(binding [vs/*check-config* (atom check-config)]
+                                  (check-ns %))]
+                  (doseq [nsym nsym-coll]
+                    (check-ns nsym)))
                 (catch ExceptionInfo e
                   (if (-> e ex-data :type-error)
                     (reset! terminal-error e)
