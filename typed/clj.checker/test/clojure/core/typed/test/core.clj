@@ -3755,17 +3755,17 @@
   ;; inlinings
   (is-tc-e (float 1) Float)
   (is-tc-err #(float 'a) [-> Float])
-  (is-tc-err (let [^Character c \c]
-               (float c))
-             Float)
+  (is-tc-err #(let [^Character c \c]
+                (float c))
+             [:-> Float])
 
   (is-tc-e double [Number -> Double])
   ;; inlinings
   (is-tc-e (double 1) Double)
   (is-tc-err #(double 'a) [-> Double])
-  (is-tc-err (let [^Character c \c]
-               (double c))
-             Double)
+  (is-tc-err #(let [^Character c \c]
+                (double c))
+             [:-> Double])
 
   (is-tc-e int [(t/U Character Number) -> Integer])
   ;; inlinings
@@ -3784,9 +3784,9 @@
   (is-tc-e num [Number -> Number])
   ;; inlinings
   (is-tc-e (num 1) Number)
-  (is-tc-err (let [^Character c \c]
-               (num c))
-             Number)
+  (is-tc-err #(let [^Character c \c]
+                (num c))
+             [:-> Number])
   (is-tc-err #(num 'a) [-> Number])
 
   (is-tc-e short [(t/U Character Number) -> Short])

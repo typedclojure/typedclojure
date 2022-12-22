@@ -23,6 +23,12 @@
             [typed.cljc.checker.ns-deps-utils :as ns-utils])
   (:import java.net.URL))
 
+(defn base-resource-path->resource [base-resource-path]
+  (some #(let [f (str base-resource-path %)]
+           (when-some [r (io/resource f)]
+             [r f]))
+        [".clj" ".cljc"]))
+
 ;; based on clojure.tools.analyzer.jvm/analyze-ns
 ;; (IFn [String -> nil]
 ;;      [String ToolsAnalyzerEnv -> nil]
@@ -31,27 +37,24 @@
   "Loads a whole typed namespace, returns nil. Assumes the file is typed."
   ([filename] (load-typed-file filename (jana2/empty-env) {}))
   ([filename env] (load-typed-file filename env {}))
-  ([filename env opts]
+  ([filename env {:keys [ex-handler skip-check-form?] :as check-opts}]
    {:pre [(string? filename)]
     :post [(nil? %)]}
    ;(prn "load-typed-file" filename)
     (t/load-if-needed)
     (env/ensure (jana2/global-env)
-     (let [should-runtime-infer? vs/*prepare-infer-ns*
+     (let [ex-handler (or ex-handler #(throw %))
+           skip-check-form? (or skip-check-form? (fn [_] false))
+           env (or env (jana2/empty-env))
+           should-runtime-infer? vs/*prepare-infer-ns*
            instrument-infer-config vs/*instrument-infer-config*
            _ (when should-runtime-infer?
                (println "Refreshing runtime inference")
                (t/refresh-runtime-infer))
            orig-filename filename
-           [file-url filename]
-           (or (let [f (str filename ".clj")]
-                 (when-let [r (io/resource f)]
-                   [r f]))
-               (let [f (str filename ".cljc")]
-                 (when-let [r (io/resource f)]
-                   [r f])))]
+           [file-url filename] (base-resource-path->resource filename)]
        (assert file-url (str "Cannot find file " orig-filename))
-       (binding [*ns*   *ns*
+       (binding [*ns* *ns*
                  *file* filename
                  vs/*in-typed-load* true
                  vs/*typed-load-atom* (atom {})
@@ -61,20 +64,21 @@
            (let [pbr (readers/indexing-push-back-reader
                        (java.io.PushbackReader. rdr) 1 filename)
                  eof (Object.)
-                 opts {:eof eof :features #{:clj :t.a.jvm}}
-                 opts (if (.endsWith ^String filename "cljc")
-                        (assoc opts :read-cond :allow)
-                        opts)
+                 read-opts (cond-> {:eof eof :features #{:clj :t.a.jvm}}
+                             (.endsWith ^String filename "cljc") (assoc :read-cond :allow))
                  config (assoc (chk-frm-clj/config-map2)
                                :env env
                                :should-runtime-infer? should-runtime-infer?
                                :instrument-infer-config instrument-infer-config)]
              (impl/with-impl (:impl config)
                (loop []
-                 (let [form (reader/read opts pbr)]
+                 (let [form (reader/read read-opts pbr)]
                    (when-not (identical? form eof)
-                     (let [{:keys [ex]} (chk-frm/check-form-info config form {:check-config (t/default-check-config)})]
-                       (some-> ex throw))
+                     (if (skip-check-form? form)
+                       (lang/default-eval form)
+                       (let [{:keys [ex]} ((resolve `chk-frm/check-form-info)
+                                           config form {:check-config (t/default-check-config)})]
+                         (some-> ex ex-handler)))
                      (recur))))))))))))
 
 (defn typed-load1

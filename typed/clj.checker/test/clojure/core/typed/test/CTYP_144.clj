@@ -14,7 +14,7 @@
 
         (defrecord SeededRandom [seed ^java.util.Random rng]
           IRandom
-          (-next-int 
+          (-next-int
             [this limit] 
             (ann-form limit Integer))))))
 

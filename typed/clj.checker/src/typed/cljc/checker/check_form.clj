@@ -98,7 +98,8 @@
    form {:keys [expected-ret expected type-provided?
                 checked-ast no-eval bindings-atom beta-limit
                 check-config] :as opt}]
-  {:pre [((some-fn nil? con/atom?) bindings-atom)
+  {:pre [(nil? analyze-bindings-fn)
+         ((some-fn nil? con/atom?) bindings-atom)
          ((some-fn nil? symbol?) unparse-ns)
          (map? opt)
          (map? check-config)]}

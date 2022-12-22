@@ -31,7 +31,8 @@
                :default (throw (ex-info (str "global env must be a map or atom containing a map, not "
                                              (class env#))
                                         {:env env#})))]
-     (binding [*env* env#] ~@body)))
+     (binding [*env* env#]
+       (do ~@body))))
 
 ;; if *env* is not bound, bind it to env
 (defmacro ensure
@@ -50,4 +51,3 @@
   (if *env*
     @*env*
     (throw (Exception. "global env not bound"))))
-

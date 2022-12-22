@@ -255,8 +255,7 @@
     (str "Renamed macro: clojure.core.typed/" old
          " -> clojure.core.typed/" new)))
 
-(defn
-  print-errors! 
+(defn print-errors!
   "Internal use only"
   [errors]
   {:pre [(seq errors)
