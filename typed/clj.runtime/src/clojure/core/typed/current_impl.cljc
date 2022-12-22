@@ -10,7 +10,6 @@
 (ns ^:no-doc clojure.core.typed.current-impl
   #?(:cljs (:refer-clojure :exclude [-val]))
   (:require [clojure.core.typed.contract-utils :as con]
-            [typed.cljc.runtime.env-utils :refer [force-type delay-type]]
             [clojure.core.typed.util-vars :as vs]
             [clojure.set :as set]
             [typed.cljc.runtime.env :as env]
@@ -219,6 +218,13 @@
   nil)
 
 #?(:clj
+(def ^:private force-type #((requiring-resolve 'typed.cljc.runtime.env-utils/force-type) %)))
+#?(:clj
+(defmacro ^:private delay-type [& body]
+  `((requiring-resolve 'typed.cljc.runtime.env-utils/delay-type*)
+    (fn [] (do ~@body)))))
+
+#?(:clj
 (defmacro create-env
   "For name n, creates defs for {n}, {n}-kw, add-{n},
   and reset-{n}!"
@@ -230,7 +236,7 @@
     `(do (def ~kw-def ~(keyword (str (ns-name *ns*)) (str n)))
          (defn ~n []
            {:post [(map? ~'%)]}
-           (force-type (get (env/deref-checker) ~kw-def {})))
+           (get (env/deref-checker) ~kw-def {}))
          (defn ~add-def [sym# t#]
            {:pre [(symbol? sym#)]
             :post [(nil? ~'%)]}

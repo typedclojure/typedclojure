@@ -17,7 +17,6 @@ for checking namespaces, cf for checking individual forms."}
                             defn atom ref cast
                             #_filter #_remove])
   (:require [clojure.core :as core]
-            [typed.cljc.runtime.env-utils :refer [force-type delay-type]]
             [clojure.reflect :as reflect]
             [clojure.core.typed.util-vars :as vs]
             [clojure.core.typed.special-form :as spec]
@@ -355,21 +354,19 @@ for checking namespaces, cf for checking individual forms."}
   of parse-ast in clojure.core.typed with delay-parse. Otherwise
   there is a circular dependency."
   [t]
-  `(core/let [t# ~t
-              app-outer-context# (bound-fn [f# t#] (f# t#))]
-     (delay-type
-       (app-outer-context# (requiring-resolve 'clojure.core.typed.parse-ast/parse-clj) t#))))
+  `(core/let [t# ~t]
+     ((requiring-resolve `typed.cljc.runtime.env-utils/delay-type*)
+      (bound-fn [] ((requiring-resolve 'clojure.core.typed.parse-ast/parse-clj) t#)))))
 
 ;;TODO implement reparsing on internal ns reload
 (defmacro ^:private delay-tc-parse
   [t]
-  `(core/let [t# ~t
-              app-outer-context# (bound-fn []
-                                   ((requiring-resolve 'typed.clj.checker.parse-unparse/with-parse-ns*)
-                                    (ns-name *ns*)
-                                    #((requiring-resolve 'typed.clj.checker.parse-unparse/parse-clj) t#)))]
-     (delay-type
-       (app-outer-context#))))
+  `(core/let [t# ~t]
+     ((requiring-resolve `typed.cljc.runtime.env-utils/delay-type*)
+      (bound-fn []
+        ((requiring-resolve 'typed.clj.checker.parse-unparse/with-parse-ns*)
+         (ns-name *ns*)
+         #((requiring-resolve 'typed.clj.checker.parse-unparse/parse-clj) t#))))))
 
 (core/defn ^:no-doc add-to-rt-alias-env [form qsym t]
   (with-clojure-impl
@@ -387,19 +384,20 @@ for checking namespaces, cf for checking individual forms."}
     (core/let
       [;; preserve *ns*
        bfn (bound-fn [f] (f))
-       t (delay-type
-           (core/let
-             [unparse-type (requiring-resolve 'typed.clj.checker.parse-unparse/unparse-type)
-              t (bfn
-                  #(with-current-location form
-                     ((requiring-resolve 'typed.cljc.runtime.env-utils/force-type)
-                      (delay-tc-parse t))))
-              _ (with-clojure-impl
-                  (when-let [tfn ((requiring-resolve 'typed.cljc.checker.declared-kind-env/declared-kind-or-nil) qsym)]
-                    (when-not ((requiring-resolve 'typed.clj.checker.subtype/subtype?) t tfn)
-                      (int-error (str "Declared kind " (unparse-type tfn)
-                                      " does not match actual kind " (unparse-type t))))))]
-             t))]
+       t ((requiring-resolve `typed.cljc.runtime.env-utils/delay-type*)
+           (core/fn []
+             (core/let
+               [unparse-type (requiring-resolve 'typed.clj.checker.parse-unparse/unparse-type)
+                t (bfn
+                    #(with-current-location form
+                       ((requiring-resolve 'typed.cljc.runtime.env-utils/force-type)
+                        (delay-tc-parse t))))
+                _ (with-clojure-impl
+                    (when-let [tfn ((requiring-resolve 'typed.cljc.checker.declared-kind-env/declared-kind-or-nil) qsym)]
+                      (when-not ((requiring-resolve 'typed.clj.checker.subtype/subtype?) t tfn)
+                        (int-error (str "Declared kind " (unparse-type tfn)
+                                        " does not match actual kind " (unparse-type t))))))]
+               t)))]
       ((requiring-resolve 'clojure.core.typed.current-impl/add-tc-type-name) qsym t)))
   nil)
 
@@ -762,7 +760,7 @@ for checking namespaces, cf for checking individual forms."}
     `(tc-ignore (untyped-var* '~qsym '~typesyn '~prs-ns '~&form))))
 
 (core/defn ^:no-doc
-  ann* 
+  ann*
   "Internal use only. Use ann."
   [defining-nsym qsym typesyn check? form]
   (macros/when-bindable-defining-ns defining-nsym

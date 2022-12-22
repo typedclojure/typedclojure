@@ -7,13 +7,12 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc clojure.core.typed.ast-ops
-  (:require [clojure.core.typed.current-impl :as impl]
-            [typed.cljc.runtime.env-utils :refer [force-type]]
-            [clojure.core.typed.errors :as err]))
+  (:require [clojure.core.typed.errors :as err]))
 
 (defn resolve-Name [{:keys [name] :as expr}]
   {:pre [(#{:Name} (:op expr))]}
-  (let [e (force-type (get (impl/alias-env) name))
+  (let [e ((requiring-resolve 'typed.cljc.runtime.env-utils/force-type)
+           (get ((requiring-resolve 'clojure.core.typed.current-impl/alias-env)) name))
         _ (when-not e
             (err/int-error (str "No alias found for " name)))]
     e))

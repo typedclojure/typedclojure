@@ -28,12 +28,9 @@
             [typed.cljc.checker.subst]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.var-env :as var-env])
-  (:import (clojure.lang Named IMapEntry AMapEntry
-                         LazySeq PersistentHashSet PersistentTreeSet PersistentList
-                         APersistentMap ISeq IPersistentCollection
+  (:import (clojure.lang LazySeq PersistentHashSet PersistentTreeSet PersistentList
                          ILookup Indexed #_ITransientSet
-                         IRef Reduced)
-           (java.util Comparator Collection)))
+                         IRef Reduced)))
 
 (defn- aset-*-type [t]
   (env-utils/delay-type
@@ -435,7 +432,7 @@ clojure.lang.Numbers/isNeg [t/Num -> t/Bool]
 clojure.lang.Numbers/isPos [t/Num -> t/Bool]
 
 ; this is overloaded in interesting ways, but this is good enough for destructuring purposes
-clojure.lang.PersistentHashMap/create [(t/U nil (ISeq t/Any) java.util.Map (ReadOnlyArray Object)) -> (t/Map t/Any t/Any)]
+clojure.lang.PersistentHashMap/create [(t/U nil (t/Seq t/Any) java.util.Map (ReadOnlyArray Object)) -> (t/Map t/Any t/Any)]
 
 clojure.lang.RT/floatCast  [t/Num -> Float]
 clojure.lang.RT/byteCast   [(t/U Character t/Num) -> Byte]
@@ -495,6 +492,7 @@ clojure.lang.PersistentArrayMap/EMPTY (t/HMap :complete? true)
 
 clojure.lang.LazySeq (t/All [x] [[-> (t/Seqable x)] -> (LazySeq x)])
 clojure.lang.Delay (t/All [x] [[-> x] -> (clojure.lang.Delay x)])
+java.lang.ref.SoftReference (t/All [x] [x -> (java.lang.ref.SoftReference x)])
     ))
 
 ;; not added in refresh

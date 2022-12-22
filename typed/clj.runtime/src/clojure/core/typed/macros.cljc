@@ -219,6 +219,7 @@
      (throw (ex-info (str "Expression was nil or false") {:form '~(second b)}))))
 
 (defmacro atom
+  ;;copied to typed.clojure
   "Like atom, but with optional type annotations.
   
   Same as (atom (ann-form init t) args*)

@@ -6,15 +6,16 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.cljc.checker.indirect-ops)
+(ns typed.cljc.checker.indirect-ops
+  (:require [typed.clojure :as t]))
 
 (defmacro ^:private make-indirection [& vs]
   (assert (apply distinct? (map name vs)) (vec vs))
   `(do 
      ~@(map (fn [v]
+              (assert (qualified-symbol? v) (pr-str v))
               `(do 
-                 ;; TODO some way to forward the IFn interface
-                 #_(t/ann ~(-> v name symbol with-meta {:no-check true}) (t/TypeOf ~v))
+                 (t/ann ~(-> v name symbol (with-meta {:no-check true})) (t/TypeOf ~v))
                  (defn ~(-> v name symbol)
                     [& args#]
                     (apply (requiring-resolve '~v) args#))))

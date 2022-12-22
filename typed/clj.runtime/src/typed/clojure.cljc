@@ -133,7 +133,15 @@
     :clj `(clojure.core.typed/defn ~@args)
     :cljs `(cljs.core.typed/defn ~@args)))
 
-(defmacro atom [& args]
+(defmacro atom
+  ;;copied from clojure.core.typed.macros
+  "Like atom, but with optional type annotations.
+  
+  Same as (atom (ann-form init t) args*)
+  
+  eg. (atom 1) : (Atom1 (Value 1))
+      (atom :- Num, 1) : (Atom1 Num)"
+  [& args]
   (macros/platform-case
     :clj `(clojure.core.typed/atom ~@args)
     :cljs `(cljs.core.typed/atom ~@args)))

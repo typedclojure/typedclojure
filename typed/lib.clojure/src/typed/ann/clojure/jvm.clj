@@ -515,6 +515,11 @@ java.util.Collection [[[a :variance :covariant]]
                       :unchecked-ancestors
                       [(Seqable a)]]
 
+java.lang.ref.Reference [[[a :variance :invariant]]]
+java.lang.ref.SoftReference [[[a :variance :invariant]]
+                             :replace
+                             {java.lang.ref.Reference (java.lang.ref.Reference a)}]
+
 ;;TODO delete this type param. Reconsider using fake Indexed ancestors. This was originally
 ;; probably a misunderstanding of the RandomAccess + List case of nth.
 java.util.RandomAccess [[[a :variance :covariant]]

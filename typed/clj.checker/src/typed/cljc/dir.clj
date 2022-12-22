@@ -55,5 +55,7 @@
     (check-dir* dirs)))
 
 (comment
+  (impl/with-clojure-impl
+    (check-dir-plan "typed/clj.checker/src"))
   (check-dir-clj "typed/clj.checker/src")
   )
