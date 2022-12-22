@@ -15,7 +15,7 @@
      ~@(map (fn [v]
               (assert (qualified-symbol? v) (pr-str v))
               `(do 
-                 (t/ann ~(-> v name symbol (with-meta {:no-check true})) (t/TypeOf ~v))
+                 (t/ann ~(-> v name symbol) (t/TypeOf ~v))
                  (defn ~(-> v name symbol)
                     [& args#]
                     (apply (requiring-resolve '~v) args#))))

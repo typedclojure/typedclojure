@@ -33,8 +33,7 @@
             [typed.cljc.checker.tvar-bnds :as bnds]
             [typed.cljc.checker.type-rep :as r :refer [ret-t]]
             [typed.cljc.checker.utils :as u]
-            typed.cljc.checker.coerce-ann
-            typed.cljc.checker.indirect-ann)
+            typed.cljc.checker.coerce-ann)
   (:import (clojure.lang ASeq)
            (typed.cljc.checker.type_rep HeterogeneousMap Poly TypeFn PolyDots TApp App Value
                                         Union Intersection F Function Mu B KwArgs KwArgsSeq KwArgsArray
@@ -1421,7 +1420,8 @@
            (Get-requires-resolving? ty))
       (and (r/MergeType? ty)
            (Merge-requires-resolving? ty))
-      (r/Mu? ty)))
+      (r/Mu? ty)
+      (r/TypeOf? ty)))
 
 (t/ann ^:no-check resolve-Name [Name -> r/Type])
 (defn resolve-Name [nme]
@@ -1432,7 +1432,7 @@
 
 (t/ann fully-resolve-type 
        (t/IFn [r/Type -> r/Type]
-           [r/Type (t/Set r/Type) -> r/Type]))
+              [r/Type (t/Set r/Type) -> r/Type]))
 (defn fully-resolve-type 
   ([t seen]
    (let [_ (assert (not (seen t)) "Infinite non-Rec type detected")
