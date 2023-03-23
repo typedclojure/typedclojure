@@ -12,3 +12,4 @@
     the underlying annotation for the misspelled version is removed as if it were a var in the old namespace.
 - remove `:collect-only` feature
   - annotations are now collected at runtime, so this concept is now redundant
+- add spec for atoms: `typed.spec.clojure.core/atom-spec`
