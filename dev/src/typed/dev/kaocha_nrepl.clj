@@ -10,7 +10,7 @@
 
 (def ^Path classpath-root-path (.toAbsolutePath (.toPath (io/file ""))))
 
-(def typed-load? false #_true)
+(def typed-load? #_false true)
 
 (def ^:private ^:dynamic *in-load* false)
 (def ^:private ^:dynamic *kaocha-watch-try-run* nil)
@@ -38,7 +38,8 @@
                               (binding [*in-load* true]
                                 (when (and @(resolve `typed-load?)
                                            kaocha-api/*active?*
-                                           *kaocha-watch-try-run*)
+                                           *kaocha-watch-try-run*
+                                           (not (::printed-type-error *kaocha-watch-try-run*)))
                                   (when (str/starts-with? base-resource-path "/")
                                     (when-some [[^java.net.URL resource filename] (load1/base-resource-path->resource (subs base-resource-path 1))]
                                       ;(prn `main resource filename (.toURI resource))
@@ -59,6 +60,7 @@
                                                                                           assoc ::printed-type-error true)))
                                                              ;(println "PRINTING!!!")
                                                              (println (ex-message e))
+                                                             #_
                                                              (throw (ex-info "Type error" {::fake-error true}))))})
                                           true)))))))
                             (load base-resource-path))))))

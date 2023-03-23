@@ -28,7 +28,7 @@
    :reply-mvn-version "0.5.1"
    :parsley-mvn-version "0.9.3"
    :piggieback-mvn-version "0.5.3"
-   :tools-namespace-mvn-version "1.3.0"
+   :tools-namespace-mvn-version "1.4.4"
    :cider-nrepl-mvn-version "0.28.2"
    :asm-mvn-version "9.2"
    :tools-analyzer-mvn-version "1.1.1"
@@ -54,7 +54,7 @@
    ;; (https://github.com/frenchy64/kaocha/pull/2)
    :kaocha-sha "f7d9ff428d3946eadd39f0d4dbc12cfd8a190b7f"
    :typedclojure-homepage "https://typedclojure.org"
-   :malli-mvn-version "0.9.2"
+   :malli-mvn-version "0.10.4"
    :beholder-mvn-version "1.0.1"
-   :process-mvn-version "0.4.13"
+   :process-mvn-version "0.4.16"
    })

@@ -134,7 +134,7 @@ jobs:
             ${{ runner.os }}-deploy-deps-${{ matrix.submodule_hash }}-
             ${{ runner.os }}-deploy-deps-
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1.7.0
+        uses: aws-actions/configure-aws-credentials@v2.0.0
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -144,7 +144,7 @@ jobs:
         with:
           distribution: 'adopt'
           java-version: ${{ env.DEPLOY_JDK }}
-      - uses: DeLaGuardo/setup-clojure@1376ded6747c79645e82c856f16375af5f5de307
+      - uses: DeLaGuardo/setup-clojure@de2d5623fda4ca49da1bac85fdfb3081a037c5fb
         with:
           cli: ${{ env.CLOJURE_CLI_VERSION }}
       - uses: turtlequeue/setup-babashka@83e81711f784e0dcb593e53b642fc9850067f234

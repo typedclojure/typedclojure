@@ -1523,6 +1523,7 @@ clojure.test/compose-fixtures [[[:-> t/Any] :-> t/Any] [[:-> t/Any] :-> t/Any] :
 clojure.test/testing-vars-str [(t/Map t/Any t/Any) :-> t/Str]
 clojure.test/testing-contexts-str [:-> t/Str]
 clojure.test/test-ns [(t/U t/Namespace t/Sym) :-> (t/Map t/Any t/Any)]
+clojure.test/test-var [(t/Var2 t/Nothing t/Any) :-> t/Any]
 
 clojure.test.tap/print-tap-plan [t/Any :-> t/Any]
 clojure.test.tap/print-tap-diagnostic [t/Str :-> t/Any]

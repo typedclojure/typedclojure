@@ -156,8 +156,10 @@
         (force-type ((jsvar-annotations) nsym)))
       (when-some [ts (not-empty
                        (into (sorted-map) (map (fn [fsym]
-                                                 (some->> ((requiring-resolve fsym) nsym)
-                                                          (vector fsym))))
+                                                 (let [f (requiring-resolve fsym)]
+                                                   (assert f fsym)
+                                                   (some->> (f nsym)
+                                                            (vector fsym)))))
                              (impl/impl-case
                                :clojure @clj-var-providers
                                :cljs @cljs-var-providers)))]
