@@ -21,4 +21,24 @@
   [s]
   `(s/resolve-spec '~(s/explicate (ns-name *ns*) `(reduced-spec ~s))))
 
+(defmacro atom-spec
+  "Example: (atom-spec :read integer? :write integer?)
+
+  Generates atoms that accept values conforming to :write (via
+  inputs of reset!, swap! etc.), and provides values conforming to :read
+  (via deref, return of old val in swap-vals! etc.).
+
+  :write is contravariant (an input to the atom) and :read is covariant
+  (an output of the atom).
+
+  Conforms atoms that deref values conforming to :read.
+  Generates atoms that conform updated values via reset!/swap! etc., to :write.
+
+  Defaults:
+  - :write    any?
+  - :read     any?
+  "
+  [& args]
+  `(s/resolve-spec '~(s/explicate (ns-name *ns*) `(atom-spec ~@args))))
+
 (load "/typed/spec_impl/clojure/core")
