@@ -42,9 +42,9 @@
                          org.clojure/test.check {:mvn/version "1.1.1"}
                          com.gfredericks/test.chuck {:mvn/version "0.2.12"}}}
            :kaocha
-           {:extra-deps {lambdaisland/kaocha {:git/url "https://github.com/frenchy64/kaocha.git"
+           {:extra-deps {lambdaisland/kaocha {:git/url "https://github.com/lambdaisland/kaocha.git"
                                               ;; https://github.com/lambdaisland/kaocha/issues/208#issuecomment-822844384
-                                              :sha "f7d9ff428d3946eadd39f0d4dbc12cfd8a190b7f"}}}
+                                              :sha "24e2e02d0848160343a6f9ac629f0f8e27a682ea"}}}
            :codox
            {:extra-deps {codox/codox {:mvn/version "0.10.7"}}
             :extra-paths ["script"]
