@@ -34,7 +34,7 @@
    :tools-analyzer-mvn-version "1.1.1"
    :tools-analyzer-jvm-mvn-version "1.2.3"
    :potemkin-mvn-version "0.4.6"
-   :math-combinatorics-mvn-version "0.1.6"
+   :math-combinatorics-mvn-version "0.2.0"
    :tools-reader-mvn-version "1.3.6"
    :core-cache-mvn-version "1.0.225"
    :core-async-mvn-version "1.6.673"
