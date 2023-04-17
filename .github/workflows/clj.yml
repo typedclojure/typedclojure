@@ -66,7 +66,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: ${{ matrix.jdk }}
-      - uses: DeLaGuardo/setup-clojure@1376ded6747c79645e82c856f16375af5f5de307
+      - uses: DeLaGuardo/setup-clojure@62f50ff1de3f399fec5daaf5bd53c9e32009df45
         with:
           cli: ${{ env.CLOJURE_CLI_VERSION }} 
       - name: Run ${{ matrix.submodule }} tests
@@ -144,7 +144,7 @@ jobs:
         with:
           distribution: 'adopt'
           java-version: ${{ env.DEPLOY_JDK }}
-      - uses: DeLaGuardo/setup-clojure@de2d5623fda4ca49da1bac85fdfb3081a037c5fb
+      - uses: DeLaGuardo/setup-clojure@62f50ff1de3f399fec5daaf5bd53c9e32009df45
         with:
           cli: ${{ env.CLOJURE_CLI_VERSION }}
       - uses: turtlequeue/setup-babashka@83e81711f784e0dcb593e53b642fc9850067f234
