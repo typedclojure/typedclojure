@@ -27,7 +27,7 @@
 
   <properties>
     <clojure.warnOnReflection>true</clojure.warnOnReflection>
-    <clojure.version>1.11.1</clojure.version>
+    <clojure.version>1.12.0-alpha2</clojure.version>
     <clojure.source.dir>src</clojure.source.dir>
     <clojure.testSource.dir>test</clojure.testSource.dir>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
