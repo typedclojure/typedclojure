@@ -1,6 +1,6 @@
 ;; DO NOT EDIT! Instead, edit `dev/resources/root-templates/typed/lib.clojure/deps.edn` and run `./script/regen-selmer.sh`
 {:paths ["src"]
- :deps {org.clojure/clojure {:mvn/version "1.12.0-alpha2"}}
+ :deps {org.clojure/clojure {:mvn/version "1.12.0-alpha3"}}
  :mvn/repos {"sonatype-oss-public" {:url "https://oss.sonatype.org/content/groups/public/"}}
  :aliases {:nREPL
            {:extra-paths ["script"]

@@ -1,7 +1,7 @@
 ;; DO NOT EDIT! Instead, edit `dev/resources/root-templates/typed/clj.checker/deps.edn` and run `./script/regen-selmer.sh`
 {:paths ["src"],
  :deps
- {org.clojure/clojure {:mvn/version "1.12.0-alpha2"},
+ {org.clojure/clojure {:mvn/version "1.12.0-alpha3"},
   org.clojure/core.cache {:mvn/version "1.0.225"},
   org.typedclojure/typed.clj.analyzer {:local/root "../clj.analyzer" :deps/manifest :deps},
   org.typedclojure/typed.clj.lang {:local/root "../clj.lang" :deps/manifest :deps},
@@ -12,7 +12,7 @@
   org.clojure/tools.namespace {:mvn/version "1.4.4"},
   org.clojure/tools.reader {:mvn/version "1.3.6"}
   com.nextjournal/beholder {:mvn/version "1.0.2"}
-  babashka/process {:mvn/version "0.4.16"}},
+  babashka/process {:mvn/version "0.5.18"}},
  :mvn/repos
  {"sonatype-oss-public"
   {:url "https://oss.sonatype.org/content/groups/public/"}},
