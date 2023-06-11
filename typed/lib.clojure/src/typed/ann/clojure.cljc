@@ -270,7 +270,7 @@
 
 (t/defalias
   ^{:doc "An atom that can write type w and read type r."
-    :forms '[(Atom2 t)]}
+    :forms '[(Atom2 w r)]}
   t/Atom2
   (t/TFn [[w :variance :contravariant]
           [r :variance :covariant]] 
@@ -278,7 +278,7 @@
 
 (t/defalias
   ^{:doc "An atom that can read and write type x."
-    :forms '[(Atom1 t)]}
+    :forms '[(Atom1 x)]}
   t/Atom1
   (t/TFn [[x :variance :invariant]]
          (t/Atom2 x x)))
@@ -294,7 +294,7 @@
 
 (t/defalias
   ^{:doc "An var that can read and write type x."
-    :forms '[(Var1 t)]}
+    :forms '[(Var1 x)]}
   t/Var1 
   (t/TFn [[x :variance :invariant]] 
          (t/Var2 x x)))
@@ -311,7 +311,7 @@
 #?(:clj
    (t/defalias
      ^{:doc "A ref that can read and write type x."
-       :forms '[(Ref1 t)]}
+       :forms '[(Ref1 x)]}
      t/Ref1
      (t/TFn [[x :variance :invariant]]
             (t/Ref2 x x))))
@@ -319,7 +319,7 @@
 #?(:clj
    (t/defalias
      ^{:doc "An agent that can write type w and read type r."
-       :forms '[(Agent2 t t)]}
+       :forms '[(Agent2 w r)]}
      t/Agent2
      (t/TFn [[w :variance :contravariant]
              [r :variance :covariant]] 
@@ -328,20 +328,20 @@
 #?(:clj
    (t/defalias
      ^{:doc "An agent that can read and write type x."
-       :forms '[(Agent1 t)]}
+       :forms '[(Agent1 x)]}
      t/Agent1
      (t/TFn [[x :variance :invariant]] 
             (t/Agent2 x x))))
 
 (t/defalias
   ^{:doc "A union of x and nil."
-    :forms '[(Option t)]}
+    :forms '[(Option x)]}
   t/Option
   (t/TFn [[x :variance :covariant]] (t/U nil x)))
 
 (t/defalias
   ^{:doc "A union of x and nil."
-    :forms '[(Nilable t)]}
+    :forms '[(Nilable x)]}
   t/Nilable
   t/Option)
 
@@ -354,13 +354,13 @@
 
 (t/defalias
   ^{:doc "The identity function at the type level."
-    :forms '[Id]}
+    :forms '[(Id x)]}
   t/Id
   (t/TFn [[x :variance :covariant]] x))
 
 (t/defalias
-  ^{:doc "A type that returns true for clojure.core/seqable?, with members t."
-    :forms '[(Seqable t)]}
+  ^{:doc "A type that returns true for clojure.core/seqable?, with members x."
+    :forms '[(Seqable x)]}
   t/Seqable
   (t/TFn [[x :variance :covariant]]
          (t/Nilable
@@ -378,8 +378,8 @@
      :cljs goog.Uri))
 
 (t/defalias
-  ^{:doc "A type that returns true for clojure.core/coll?, with members t."
-    :forms '[(Coll t)]}
+  ^{:doc "A type that returns true for clojure.core/coll?, with members x."
+    :forms '[(Coll x)]}
   t/Coll
   (t/TFn [[x :variance :covariant]]
          #?(:clj (clojure.lang.IPersistentCollection x)
@@ -406,7 +406,7 @@
 
 (t/defalias
   ^{:doc "A persistent collection with member type x and count greater than 0."
-    :forms '[(NonEmptyColl t)]}
+    :forms '[(NonEmptyColl x)]}
   t/NonEmptyColl
   (t/TFn [[x :variance :covariant]]
          (t/I (t/Coll x)
@@ -426,7 +426,7 @@
 
 (t/defalias
   ^{:doc "A Clojure reversible collection."
-    :forms '[(Reversible t)]}
+    :forms '[(Reversible x)]}
   t/Reversible
   (t/TFn [[x :variance :covariant]]
          #?(:clj (clojure.lang.Reversible x)
@@ -434,7 +434,7 @@
 
 (t/defalias
   ^{:doc "A persistent vector with member type x."
-    :forms '[(Vec t)]}
+    :forms '[(Vec x)]}
   t/Vec
   (t/TFn [[x :variance :covariant]]
          #?(:clj (clojure.lang.IPersistentVector x)
@@ -449,7 +449,7 @@
 
 (t/defalias
   ^{:doc "A persistent vector with member type x and count greater than 0."
-    :forms '[(NonEmptyVec t)]}
+    :forms '[(NonEmptyVec x)]}
   t/NonEmptyVec
   (t/TFn [[x :variance :covariant]]
        (t/I (t/Vec x)
@@ -457,7 +457,7 @@
 
 (t/defalias
   ^{:doc "A persistent vector returned from clojure.core/vector (and others)"
-    :forms '[(AVec t)]}
+    :forms '[(AVec x)]}
   t/AVec
   (t/TFn [[x :variance :covariant]]
          #?(:clj (t/I ; is this type useful enough? c.l.APV implements a lot more
@@ -473,7 +473,7 @@
 
 (t/defalias
   ^{:doc "A persistent vector returned from clojure.core/vector (and others) and count greater than 0."
-    :forms '[(NonEmptyAVec t)]}
+    :forms '[(NonEmptyAVec x)]}
   t/NonEmptyAVec
   (t/TFn [[x :variance :covariant]]
        (t/I (t/AVec x)
@@ -495,7 +495,7 @@
 
 (t/defalias
   ^{:doc "A persistent map with keys k and vals v."
-    :forms '[(Map t t)]}
+    :forms '[(Map k v)]}
   t/Map
   (t/TFn [[k :variance :covariant]
           [v :variance :covariant]]
@@ -531,7 +531,7 @@
 
 (t/defalias
   ^{:doc "A persistent set with member type x"
-    :forms '[(Set t)]}
+    :forms '[(Set x)]}
   t/Set
   (t/TFn [[x :variance :covariant]]
          #?(:clj (clojure.lang.IPersistentSet x)
@@ -553,7 +553,7 @@
 
 (t/defalias
   ^{:doc "A sorted collection."
-    :forms '[t/Sorted]}
+    :forms '[(t/Sorted x)]}
   t/Sorted
   (t/TFn [[x :variance :covariant]]
          #?(:clj clojure.lang.Sorted
@@ -561,7 +561,7 @@
 
 (t/defalias
   ^{:doc "A sorted persistent set with member type x"
-    :forms '[(SortedSet t)]}
+    :forms '[(SortedSet x)]}
   t/SortedSet
   (t/TFn [[x :variance :covariant]]
          (t/I (t/Set x)
@@ -570,7 +570,7 @@
 (t/defalias
   ^{:doc "A type that can be used to create a sequence of member type x
          with count greater than 0."
-    :forms '[(NonEmptySeqable t)]}
+    :forms '[(NonEmptySeqable x)]}
   t/NonEmptySeqable 
   (t/TFn [[x :variance :covariant]]
          (t/I (t/Seqable x)
@@ -579,7 +579,7 @@
 (t/defalias
   ^{:doc "A type that can be used to create a sequence of member type x
          with count 0."
-    :forms '[(EmptySeqable t)]}
+    :forms '[(EmptySeqable x)]}
   t/EmptySeqable
   (t/TFn [[x :variance :covariant]]
          (t/I (t/Seqable x)
@@ -587,7 +587,7 @@
 
 (t/defalias
   ^{:doc "A persistent sequence of member type x."
-    :forms '[(Seq t)]}
+    :forms '[(Seq x)]}
   t/Seq
   (t/TFn [[x :variance :covariant]]
          #?(:clj (clojure.lang.ISeq x)
@@ -604,7 +604,7 @@
 
 (t/defalias
   ^{:doc "A persistent sequence of member type x with count greater than 0."
-    :forms '[(NonEmptySeq t)]}
+    :forms '[(NonEmptySeq x)]}
   t/NonEmptySeq
   (t/TFn [[x :variance :covariant]]
          (t/I (t/Seq x)
@@ -612,7 +612,7 @@
 
 (t/defalias
   ^{:doc "A persistent sequence of member type x with count greater than 0, or nil."
-    :forms '[(NilableNonEmptySeq t)]}
+    :forms '[(NilableNonEmptySeq x)]}
   t/NilableNonEmptySeq
   (t/TFn [[x :variance :covariant]]
          (t/Nilable
@@ -628,7 +628,7 @@
 
 (t/defalias
   ^{:doc "A Clojure derefable (see clojure.core/deref)."
-    :forms '[(Deref t)]}
+    :forms '[(Deref x)]}
   t/Deref
   (t/TFn [[x :variance :covariant]]
          #?(:clj (clojure.lang.IDeref x)
@@ -638,7 +638,7 @@
 #?(:clj
 (t/defalias
   ^{:doc "A Clojure future (see clojure.core/{future-call,future})."
-    :forms '[(Future t)]}
+    :forms '[(Future x)]}
   t/Future 
   (t/TFn [[x :variance :covariant]]
          (t/I (t/Deref x)
@@ -649,7 +649,7 @@
 #?(:clj
 (t/defalias
   ^{:doc "A Clojure promise (see clojure.core/{promise,deliver})."
-    :forms '[(Promise t)]}
+    :forms '[(Promise x)]}
   t/Promise 
   (t/TFn [[x :variance :invariant]]
          (t/I (t/Deref x)
@@ -660,7 +660,7 @@
 
 (t/defalias
   ^{:doc "A Clojure delay (see clojure.core/{delay,force})."
-    :forms '[(Delay t)]}
+    :forms '[(Delay x)]}
   t/Delay
   (t/TFn [[x :variance :covariant]]
          #?(:clj (clojure.lang.Delay x)
@@ -668,7 +668,7 @@
 
 (t/defalias
   ^{:doc "A Clojure blocking derefable (see clojure.core/deref)."
-    :forms '[(BlockingDeref t)]}
+    :forms '[(BlockingDeref x)]}
   t/BlockingDeref
   (t/TFn [[x :variance :covariant]]
          #?(:clj (clojure.lang.IBlockingDeref x)
@@ -676,7 +676,7 @@
 
 (t/defalias
   ^{:doc "A Clojure persistent list."
-    :forms '[(List t)]}
+    :forms '[(List x)]}
   t/List
   (t/TFn [[x :variance :covariant]]
          #?(:clj (clojure.lang.IPersistentList x)
@@ -705,7 +705,7 @@
 
 (t/defalias
   ^{:doc "A Clojure stack."
-    :forms '[(Stack t)]}
+    :forms '[(Stack x)]}
   t/Stack
   (t/TFn [[x :variance :covariant]]
        (clojure.lang.IPersistentStack x)))
@@ -719,7 +719,7 @@
 
 (t/defalias
   ^{:doc "A sequential, seqable collection. Seq's aren't always Sequential."
-    :forms '[(SequentialSeqable t)]}
+    :forms '[(SequentialSeqable x)]}
   t/SequentialSeqable
   (t/TFn [[x :variance :covariant]]
          (t/I t/Sequential
@@ -727,7 +727,7 @@
 
 (t/defalias
   ^{:doc "A sequential, seqable Clojure collection."
-    :forms '[(SequentialColl t)]}
+    :forms '[(SequentialColl x)]}
   t/SequentialColl
   (t/TFn [[x :variance :covariant]]
          (t/I t/Sequential
@@ -735,7 +735,7 @@
 
 (t/defalias
   ^{:doc "A Clojure sequential sequence. Seq's aren't always Sequential."
-    :forms '[(SequentialSeq t)]}
+    :forms '[(SequentialSeq x)]}
   t/SequentialSeq
   (t/TFn [[x :variance :covariant]]
          (t/I t/Sequential
@@ -743,7 +743,7 @@
 
 (t/defalias
   ^{:doc "A sequential seq returned from clojure.core/seq"
-    :forms '[(ASeq t)]}
+    :forms '[(ASeq x)]}
   t/ASeq
   (t/TFn [[x :variance :covariant]]
          (t/I (t/SequentialSeq x)
@@ -754,7 +754,7 @@
 
 (t/defalias
   ^{:doc "A sequential non-empty seq retured from clojure.core/seq"
-    :forms '[(NonEmptyASeq t)]}
+    :forms '[(NonEmptyASeq x)]}
   t/NonEmptyASeq
   (t/TFn [[x :variance :covariant]]
          (t/I (t/ASeq x)
@@ -762,7 +762,7 @@
 
 (t/defalias
   ^{:doc "The result of clojure.core/seq."
-    :forms '[(NilableNonEmptyASeq t)]}
+    :forms '[(NilableNonEmptyASeq x)]}
   t/NilableNonEmptyASeq
   (t/TFn [[x :variance :covariant]]
          (t/Nilable

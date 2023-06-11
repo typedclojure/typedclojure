@@ -13,3 +13,4 @@
 - remove `:collect-only` feature
   - annotations are now collected at runtime, so this concept is now redundant
 - add spec for atoms: `typed.spec.clojure.core/atom-spec`
+- fix some `:forms` documentation for core aliases
