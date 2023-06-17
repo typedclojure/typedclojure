@@ -100,11 +100,11 @@ Typed Clojure supports Clojure 1.12.0-alpha3 and JDK 1.8+.
 
 Use the core.typed [mailing list](https://groups.google.com/forum/?fromgroups#!forum/clojure-core-typed) for Typed Clojure discussion.
 
-[#core-typed on Clojurians Slack](http://clojurians.slack.com/app_redirect?channel=core-typed) (most active, for short announcements and questions)
+[#core-typed on Clojurians Slack](http://clojurians.slack.com/app_redirect?channel=core-typed) (most active)
 
 [Archive for #core-typed Slack](https://clojurians.zulipchat.com/#narrow/stream/180378-slack-archive/topic/core-typed)
 
-[#typedclojure on ZulipChat](https://clojurians.zulipchat.com/#narrow/stream/231516-typedclojure) (for longer discussions due to threading and unlimited history)
+[#typedclojure on ZulipChat](https://clojurians.zulipchat.com/#narrow/stream/231516-typedclojure)
 
 ## Documentation
 
