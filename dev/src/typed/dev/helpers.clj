@@ -52,5 +52,5 @@
    :typedclojure-homepage "https://typedclojure.org"
    :malli-mvn-version "0.11.0"
    :beholder-mvn-version "1.0.2"
-   :process-mvn-version "0.5.18"
+   :process-mvn-version "0.5.21"
    })
