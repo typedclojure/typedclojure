@@ -60,7 +60,7 @@
 (defn- with-original-names [t names]
   (vary-meta t assoc ::names names))
 
-(t/ann ^:no-check get-original-names [r/Type -> (t/U nil t/Sym (t/Seqable t/Sym))])
+(t/ann ^:no-check get-original-names [r/Type -> (t/U t/Sym (t/Seqable t/Sym))])
 (defn get-original-names [t]
   (-> t meta ::names))
 
@@ -75,7 +75,7 @@
 (t/ann bottom r/Type)
 (def ^:private bottom (r/Union-maker (sorted-set-by u/type-comparator)))
 
-(t/ann ^:no-check make-Union [(t/U nil (t/Seqable r/Type)) -> r/Type])
+(t/ann ^:no-check make-Union [(t/Seqable r/Type) -> r/Type])
 (defn make-Union
   "Does not resolve types."
   [args]
@@ -372,7 +372,7 @@
   (reset! intersect-cache {})
   nil)
 
-(t/ann ^:no-check make-Intersection [(t/U nil (t/Seqable r/Type)) -> r/Type])
+(t/ann ^:no-check make-Intersection [(t/Seqable r/Type) -> r/Type])
 (defn make-Intersection
   "Does not resolve types."
   [types]
@@ -477,7 +477,7 @@
         ;(prn "intersect miss" (ind/unparse-type t))
         t))))
 
-(t/ann ^:no-check flatten-intersections [(t/U nil (t/Seqable r/Type)) -> (t/Set r/Type)])
+(t/ann ^:no-check flatten-intersections [(t/Seqable r/Type) -> (t/Set r/Type)])
 (defn flatten-intersections
   "Does not resolve types."
   [types]
@@ -493,7 +493,7 @@
         (recur (mapcat :types intersections)
                (into result non-intersections))))))
 
-(t/ann ^:no-check flatten-unions [(t/U nil (t/Seqable r/Type)) -> (t/Set r/Type)])
+(t/ann ^:no-check flatten-unions [(t/Seqable r/Type) -> (t/Set r/Type)])
 (defn flatten-unions
   "Does not resolve types."
   [types]
@@ -593,7 +593,7 @@
                                %))
 
 (t/ann ^:no-check JSNominal-of (t/IFn [t/Sym -> r/Type]
-                                      [t/Sym (t/U nil (t/Seqable r/Type)) -> r/Type]))
+                                      [t/Sym (t/Seqable r/Type) -> r/Type]))
 (defn JSNominal-of
   ([sym] (JSNominal-of sym nil))
   ([sym args]
@@ -629,7 +629,7 @@
       p)))
 
 (t/ann ^:no-check DataType-of (t/IFn [t/Sym -> r/Type]
-                                     [t/Sym (t/U nil (t/Seqable r/Type)) -> r/Type]))
+                                     [t/Sym (t/Seqable r/Type) -> r/Type]))
 (defn DataType-of
   ([sym] (DataType-of sym nil))
   ([sym args]
@@ -766,27 +766,25 @@
 (t/ann ^:no-check isa-DataType? [(t/U t/Sym Class) -> t/Any])
 (defn isa-DataType? [sym-or-cls]
   {:pre [((some-fn symbol? class?) sym-or-cls)]}
-  (let [cls (if (class? sym-or-cls)
-              sym-or-cls
-              (coerce/symbol->Class sym-or-cls))]
+  (let [cls (cond-> sym-or-cls
+              (not (class? sym-or-cls)) coerce/symbol->Class)]
     (and (isa? cls clojure.lang.IType)
          (not= cls clojure.lang.IType))))
 
 (t/ann ^:no-check isa-Record? [(t/U t/Sym Class) -> t/Any])
 (defn isa-Record? [sym-or-cls]
   {:pre [((some-fn symbol? class?) sym-or-cls)]}
-  (let [cls (if (class? sym-or-cls)
-              sym-or-cls
-              (coerce/symbol->Class sym-or-cls))]
+  (let [cls (cond-> sym-or-cls
+              (not (class? sym-or-cls)) coerce/symbol->Class)]
     (and (isa? cls clojure.lang.IRecord)
          (not= cls clojure.lang.IRecord))))
 
 (t/ann ^:no-check Record->HMap [DataType -> r/Type])
-(defn Record->HMap [^DataType r]
+(defn Record->HMap [r]
   {:pre [(r/Record? r)]
    :post [(r/Type? %)]}
-  (let [kf (zipmap (map (comp r/-val keyword) (keys (.fields r)))
-                   (vals (.fields r)))]
+  (let [kf (zipmap (map (comp r/-val keyword) (keys (:fields r)))
+                   (vals (:fields r)))]
     (make-HMap :mandatory kf)))
 
 (t/ann RClass-of-cache (t/Atom1 (t/Map t/Any r/Type)))
@@ -798,16 +796,15 @@
   nil)
 
 (t/ann ^:no-check RClass-of (t/IFn [(t/U t/Sym Class) -> r/Type]
-                               [(t/U t/Sym Class) (t/U nil (t/Seqable r/Type)) -> r/Type]))
+                                   [(t/U t/Sym Class) (t/Seqable r/Type) -> r/Type]))
 (defn RClass-of 
   ([sym-or-cls] (RClass-of sym-or-cls nil))
   ([sym-or-cls args]
    {:pre [((some-fn class? symbol?) sym-or-cls)
           (every? r/Type? args)]
     :post [((some-fn r/RClass? r/DataType?) %)]}
-   (let [sym (if (class? sym-or-cls)
-               (coerce/Class->symbol sym-or-cls)
-               sym-or-cls)
+   (let [sym (cond-> sym-or-cls
+               (class? sym-or-cls) coerce/Class->symbol)
          cache-key-hash [(keyword sym) args]
          cache-hit (@RClass-of-cache cache-key-hash)]
      (if cache-hit
@@ -855,9 +852,8 @@
   ([sym-or-cls & {:keys [warn-msg]}]
    {:pre [((some-fn class? symbol?) sym-or-cls)]
     :post [((some-fn r/RClass? r/DataType?) %)]}
-   (let [sym (if (class? sym-or-cls)
-               (coerce/Class->symbol sym-or-cls)
-               sym-or-cls)
+   (let [sym (cond-> sym-or-cls
+               (class? sym-or-cls) coerce/Class->symbol)
          rc ((some-fn dtenv/get-datatype rcls/get-rclass) sym)
          args (when (r/TypeFn? rc)
                 (when warn-msg
@@ -948,7 +944,7 @@
 
 (declare make-simple-substitution)
 
-(t/ann ^:no-check inst-and-subst [(t/U r/Type Scope) (t/U nil (t/Seqable r/Type)) -> r/Type])
+(t/ann ^:no-check inst-and-subst [(t/U r/Type Scope) (t/Seqable r/Type) -> r/Type])
 (defn inst-and-subst 
   "Instantiate target type with ts number of
   free names. Target must be wrapped in ts number
@@ -1062,9 +1058,8 @@
 
 ;smart constructor
 (t/ann ^:no-check TypeFn* 
-       (t/IFn [(t/U nil (t/Seqable t/Sym)) (t/U nil (t/Seqable r/Variance)) (t/U nil (t/Seqable Bounds)) r/Type -> r/Type]
-              [(t/U nil (t/Seqable t/Sym)) (t/U nil (t/Seqable r/Variance)) (t/U nil (t/Seqable Bounds)) r/Type 
-               (t/HMap :optional {:meta (t/U nil (t/Map t/Any t/Any))}) -> r/Type]))
+       [(t/Seqable t/Sym) (t/Seqable r/Variance) (t/Seqable Bounds) r/Type
+        (t/HMap :optional {:meta (t/U nil (t/Map t/Any t/Any))}) :? -> r/Type])
 (defn TypeFn* 
   ([names variances bbnds body] (TypeFn* names variances bbnds body {}))
   ([names variances bbnds body {:keys [meta] :as opt}]
@@ -1173,14 +1168,14 @@
   (if (empty? names)
     body
     (let [v (r/Poly-maker (count names)
-                          (vec
-                            (for [bnd bbnds]
-                              (r/visit-bounds bnd #(abstract-many names %))))
+                          (mapv (fn [bnd]
+                                  (r/visit-bounds bnd #(abstract-many names %)))
+                                bbnds)
                           (abstract-many names body)
                           (or named {}))]
       (with-original-names v original-names))))
 
-(t/ann ^:no-check Poly-free-names* [Poly -> (t/U nil (t/Seqable t/Sym))])
+(t/ann ^:no-check Poly-free-names* [Poly -> (t/Seqable t/Sym)])
 (defn Poly-free-names* [poly]
   {:pre [(r/Poly? poly)]
    :post [((some-fn nil? 
@@ -1259,7 +1254,7 @@
           (r/visit-bounds b #(instantiate-many names %)))
         (:bbnds poly)))
 
-(t/ann ^:no-check PolyDots-free-names* [Poly -> (t/U nil (t/Seqable t/Sym))])
+(t/ann ^:no-check PolyDots-free-names* [Poly -> (t/Seqable t/Sym)])
 (defn ^:private PolyDots-free-names* [poly]
   {:pre [(r/PolyDots? poly)]
    :post [((some-fn nil? 
@@ -1892,29 +1887,26 @@
   IAbstractMany abstract-many*
   Function
   (fn [{:keys [dom rng rest drest kws prest pdot] :as ty} name count outer sb name-to]
-   (r/Function-maker (doall (map sb dom))
-                 (sb rng)
-                 (some-> rest sb)
-                 (some-> drest
-                         (update :pre-type sb)
-                         (update :name #(if (= % name)
-                                          (+ count outer)
-                                          %)))
-                 (letfn [(abstract-kw-map [m]
-                           {:pre [(map? m)]}
-                           (into {}
-                                 (map (fn [[k v]]
-                                        [k (sb v)]))
-                                 m))]
-                   (some-> kws
-                     (update :mandatory abstract-kw-map)
-                     (update :optional abstract-kw-map)))
-                 (some-> prest sb)
-                 (some-> pdot
-                         (update :pre-type sb)
-                         (update :name #(if (= % name)
-                                          (+ count outer)
-                                          %))))))
+    (r/Function-maker (mapv sb dom)
+                      (sb rng)
+                      (some-> rest sb)
+                      (some-> drest
+                              (update :pre-type sb)
+                              (update :name #(if (= % name)
+                                               (+ count outer)
+                                               %)))
+                      (letfn [(abstract-kw-map [m]
+                                {:pre [(map? m)]}
+                                (update-vals m sb))]
+                        (some-> kws
+                          (update :mandatory abstract-kw-map)
+                          (update :optional abstract-kw-map)))
+                      (some-> prest sb)
+                      (some-> pdot
+                              (update :pre-type sb)
+                              (update :name #(if (= % name)
+                                               (+ count outer)
+                                               %))))))
 
 (f/add-fold-case
   IAbstractMany abstract-many*
@@ -2330,13 +2322,11 @@
   {:post [(every? r/Type? %)]}
   (cond
    (r/TCResult? t)
-   (doall
-     (map fully-resolve-type
-          (type-into-vector (-> t :t fully-resolve-type))))
+   (mapv fully-resolve-type
+         (type-into-vector (-> t :t fully-resolve-type)))
    
    (r/Type? t)
-   (doall 
-     (map fully-resolve-type (type-into-vector (fully-resolve-type t))))
+   (mapv fully-resolve-type (type-into-vector (fully-resolve-type t)))
    
    :else
    [t]))
@@ -2648,9 +2638,9 @@
                              (update :poly? #(some->> % (mapv type-rec)))
                              (update :fields (fn [fs]
                                                (apply array-map
-                                                      (apply concat
-                                                             (for [[k v] fs]
-                                                               [k (type-rec v)]))))))))
+                                                      (mapcat (fn [[k v]]
+                                                                [k (type-rec v)])
+                                                              fs)))))))
 
 (add-default-fold-case Protocol
                        (fn [ty]
@@ -2713,8 +2703,8 @@
                            (mapv type-rec (:types ty))
                            :filters (mapv filter-rec (:fs ty))
                            :objects (mapv object-rec (:objects ty))
-                           :rest (when rest (type-rec rest))
-                           :drest (when drest (update drest :pre-type type-rec))
+                           :rest (some-> rest type-rec)
+                           :drest (some-> drest (update :pre-type type-rec))
                            :repeat repeat
                            :kind kind)))
 
@@ -2757,8 +2747,8 @@
 (add-default-fold-case Extends
                        (fn [{:keys [extends without] :as ty}]
                          (-extends
-                           (doall (map type-rec extends))
-                           :without (doall (mapv type-rec without)))))
+                           (mapv type-rec extends)
+                           :without (mapv type-rec without))))
 
 (add-default-fold-case GetType
                        (fn [ty]
@@ -2772,20 +2762,16 @@
 (add-default-fold-case AssocType
                        (fn [{:keys [target entries dentries] :as ty}]
                          (let [s-target (type-rec target)
-                               s-entries (doall
-                                           (for [[k v] entries]
-                                             [(type-rec k) (type-rec v)]))
-                               s-dentries (when dentries (type-rec dentries))
-                               fallback-r (-> ty
-                                              (assoc :target s-target)
-                                              (assoc :entries s-entries)
-                                              (assoc :dentries s-dentries))]
-                           (if dentries
-                             fallback-r
-                             (if-let [assoced (apply (requiring-resolve 'typed.clj.checker.assoc-utils/assoc-pairs-noret)
-                                                     s-target s-entries)]
-                               assoced
-                               fallback-r)))))
+                               s-entries (mapv (fn [[k v]]
+                                                 [(type-rec k) (type-rec v)])
+                                               entries)]
+                           (or (when-not dentries
+                                 (apply (requiring-resolve 'typed.clj.checker.assoc-utils/assoc-pairs-noret)
+                                        s-target s-entries))
+                               (-> ty
+                                   (assoc :target s-target)
+                                   (assoc :entries s-entries)
+                                   (assoc :dentries (some-> dentries type-rec)))))))
 
 (def ^:private ret-first identity)
 
@@ -2848,13 +2834,13 @@
                        (fn [ty]
                          (-> ty
                              (update :type type-rec)
-                             (update :path #(seq (doall (map pathelem-rec %)))))))
+                             (update :path #(not-empty (mapv pathelem-rec %))))))
 
 (add-default-fold-case NotTypeFilter
                        (fn [ty]
                          (-> ty
                              (update :type type-rec)
-                             (update :path #(seq (doall (map pathelem-rec %)))))))
+                             (update :path #(not-empty (mapv pathelem-rec %))))))
 
 (add-default-fold-case ImpFilter
                        (fn [ty]
@@ -2863,18 +2849,18 @@
                              (update :c filter-rec))))
 
 (add-default-fold-case AndFilter
-                       (fn [^AndFilter ty]
-                         (apply ind/-and (map filter-rec (.fs ty)))))
+                       (fn [ty]
+                         (apply ind/-and (map filter-rec (:fs ty)))))
 
 (add-default-fold-case OrFilter
-                       (fn [^OrFilter ty]
-                         (apply ind/-or (map filter-rec (.fs ty)))))
+                       (fn [ty]
+                         (apply ind/-or (map filter-rec (:fs ty)))))
 
 (add-default-fold-case FilterSet
-                       (fn [^FilterSet ty]
+                       (fn [ty]
                          (ind/-FS
-                           (filter-rec (.then ty))
-                           (filter-rec (.else ty)))))
+                           (filter-rec (:then ty))
+                           (filter-rec (:else ty)))))
 
 
 ;objects
@@ -2882,8 +2868,7 @@
 (add-default-fold-case Path
                        (fn [ty]
                          (-> ty
-                             (update :path #(when %
-                                              (mapv pathelem-rec %))))))
+                             (update :path #(some->> % (mapv pathelem-rec))))))
 (add-default-fold-case NoObject ret-first)
 
 ;path-elems

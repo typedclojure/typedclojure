@@ -43,8 +43,7 @@
     {:name name
      :image image}))
 
-(t/ann ^:no-check substitute-many [r/Type (t/U nil (t/Seqable r/Type)) (t/U nil (t/Seqable t/Sym))
-                                   -> r/Type])
+(t/ann ^:no-check substitute-many [r/Type (t/Seqable r/Type) (t/Seqable t/Sym) -> r/Type])
 (defn substitute-many [target images names]
   (reduce (fn [t [im nme]] (substitute im nme t))
           target
@@ -57,16 +56,16 @@
   {:pre [(crep/substitution-c? s)
          (r/AnyType? t)]
    :post [(r/AnyType? %)]}
-  (reduce (fn [t [v r]]
-            (cond
-              (crep/t-subst? r) (substitute (:type r) v t)
-              (crep/i-subst? r) (substitute-dots (:types r) nil v t)
-              (crep/i-subst-starred? r) (substitute-dots (:types r) (:starred r) v t)
-              (and (crep/i-subst-dotted? r)
-                   (empty? (:types r))) (substitute-dotted (:dty r) (:name (:dbound r)) v t)
-              (crep/i-subst-dotted? r) (err/nyi-error "i-subst-dotted nyi")
-              :else (err/nyi-error (str "Other substitutions NYI"))))
-          t s))
+  (reduce-kv (fn [t v r]
+               (cond
+                 (crep/t-subst? r) (substitute (:type r) v t)
+                 (crep/i-subst? r) (substitute-dots (:types r) nil v t)
+                 (crep/i-subst-starred? r) (substitute-dots (:types r) (:starred r) v t)
+                 (and (crep/i-subst-dotted? r)
+                      (empty? (:types r))) (substitute-dotted (:dty r) (:name (:dbound r)) v t)
+                 (crep/i-subst-dotted? r) (err/nyi-error "i-subst-dotted nyi")
+                 :else (err/nyi-error (str "Other substitutions NYI"))))
+             t s))
 
 ;; Substitute dots
 
@@ -79,61 +78,61 @@
    (when kws (err/nyi-error "substitute keyword args"))
    (if (and (or drest pdot)
             (= name (:name (or drest pdot))))
-     (r/Function-maker (doall
-                         (concat (map sb dom)
-                                 (if drest
-                                   ;; We need to recur first, just to expand out any dotted usages of this.
-                                   (let [expanded (sb (:pre-type drest))]
-                                     ;(prn "expanded" (unparse-type expanded))
-                                     (map (fn [img] (substitute img name expanded)) images))
-                                   (let [expandeds (map sb (-> pdot :pre-type :types))
-                                         _ (assert (zero? (rem (count images) (count expandeds))))
-                                         list-of-images (partition (count expandeds) images)
-                                         list-of-result (map (fn [expandeds images]
-                                                               (map (fn [expanded img]
-                                                                      (substitute img name expanded))
-                                                                    expandeds
-                                                                    images))
-                                                             (repeat expandeds)
-                                                             list-of-images)]
-                                     (reduce concat list-of-result)))))
+     (r/Function-maker (let [sb-dom (mapv sb dom)]
+                         (if drest
+                           ;; We need to recur first, just to expand out any dotted usages of this.
+                           (let [expanded (sb (:pre-type drest))]
+                             ;(prn "expanded" (unparse-type expanded))
+                             (into sb-dom (map (fn [img] (substitute img name expanded)))
+                                   images))
+                           (let [expandeds (mapv sb (-> pdot :pre-type :types))
+                                 _ (assert (zero? (rem (count images) (count expandeds))))]
+                             (into sb-dom (comp (partition-all (count expandeds))
+                                                (mapcat (fn [images]
+                                                          (map (fn [expanded img]
+                                                                 (substitute img name expanded))
+                                                               expandeds
+                                                               images))))
+                                   images))))
                        (sb rng)
                        rimage nil nil nil nil)
-     (r/Function-maker (doall (map sb dom))
+     (r/Function-maker (mapv sb dom)
                        (sb rng)
-                       (and rest (sb rest))
-                       (and drest (r/DottedPretype1-maker (sb (:pre-type drest))
-                                                          (:name drest)))
+                       (some-> rest sb)
+                       (when drest
+                         (r/DottedPretype1-maker (sb (:pre-type drest))
+                                                 (:name drest)))
                        nil
-                       (and prest (sb prest))
-                       (and pdot (r/DottedPretype1-maker (sb (:pre-type pdot))
-                                                         (:name pdot)))))))
+                       (some-> prest sb)
+                       (when pdot
+                         (r/DottedPretype1-maker (sb (:pre-type pdot))
+                                                 (:name pdot)))))))
 
 (f/add-fold-case
   ISubstituteDots substitute-dots*
   AssocType
   (fn [{:keys [target entries dentries] :as atype} name sb images rimage]
     (let [sb-target (sb target)
-          sb-entries (map (fn [ent]
-                            [(sb (first ent)) (sb (second ent))])
-                          entries)]
+          sb-entries (mapv (fn [ent]
+                             [(sb (first ent)) (sb (second ent))])
+                           entries)]
       (if (and dentries
                (= name (:name dentries)))
-        (let [entries (concat sb-entries
-                              (let [expanded (sb (:pre-type dentries))]
-                                (->> images
-                                  (map (fn [img] (substitute img name expanded)))
-                                  (partition 2)
-                                  (map vec))))]
+        (let [entries (into sb-entries
+                            (let [expanded (sb (:pre-type dentries))]
+                              (comp (map (fn [img] (substitute img name expanded)))
+                                    (partition-all 2)
+                                    (map vec)))
+                            images)]
           ; try not to use AssocType, because subtype and cs-gen support for it
           ; is not that mature
-          (if-let [assoced (apply assoc-u/assoc-pairs-noret sb-target entries)]
-            assoced
-            (r/AssocType-maker sb-target entries nil)))
+          (or (apply assoc-u/assoc-pairs-noret sb-target entries)
+              (r/AssocType-maker sb-target entries nil)))
         (r/AssocType-maker sb-target
                            sb-entries
-                           (and dentries (r/DottedPretype1-maker (sb (:pre-type dentries))
-                                                                 (:name dentries))))))))
+                           (when dentries
+                             (r/DottedPretype1-maker (sb (:pre-type dentries))
+                                                     (:name dentries))))))))
 
 (f/add-fold-case
   ISubstituteDots substitute-dots*
@@ -142,10 +141,11 @@
     (if (and drest
              (= name (:name drest)))
       (r/-hsequential
-        (into (mapv sb types)
-              ;; We need to recur first, just to expand out any dotted usages of this.
-              (let [expanded (sb (:pre-type drest))]
-                (map (fn [img] (substitute img name expanded)) images)))
+        ;; We need to recur first, just to expand out any dotted usages of this.
+        (let [expanded (sb (:pre-type drest))]
+          (into (mapv sb types)
+                (map (fn [img] (substitute img name expanded)))
+                images))
         :filters (into (mapv sb fs) (repeat (count images) (fo/-FS fl/-top fl/-top)))
         :objects (into (mapv sb objects) (repeat (count images) orep/-empty))
         :kind kind)
@@ -153,15 +153,16 @@
         (mapv sb types)
         :filters (mapv sb fs)
         :objects (mapv sb objects)
-        :rest (when rest (sb rest))
-        :drest (when drest (r/DottedPretype1-maker (sb (:pre-type drest))
-                                                   (:name drest)))
+        :rest (some-> rest sb)
+        :drest (when drest
+                 (r/DottedPretype1-maker (sb (:pre-type drest))
+                                         (:name drest)))
         :repeat (:repeat ftype)
         :kind kind))))
 
 ;; implements angle bracket substitution from the formalism
 ;; substitute-dots : Listof[Type] Option[type] Name Type -> Type
-(t/ann ^:no-check substitute-dots [(t/U nil (t/Seqable r/Type)) (t/U nil r/Type) t/Sym r/Type -> r/Type])
+(t/ann ^:no-check substitute-dots [(t/Seqable r/Type) (t/U nil r/Type) t/Sym r/Type -> r/Type])
 (defn substitute-dots [images rimage name target]
   {:pre [(every? r/AnyType? images)
          ((some-fn nil? r/AnyType?) rimage)
@@ -169,17 +170,16 @@
          (r/AnyType? target)]}
   ;(prn "substitute-dots" (unparse-type target) name "->" (map unparse-type images))
   (letfn [(sb [t] (substitute-dots images rimage name t))]
-    (if (or ((frees/fi target) name)
-            ((frees/fv target) name))
+    (cond-> target
+      (or ((frees/fi target) name)
+          ((frees/fv target) name))
       (call-substitute-dots*
-        target
         {:type-rec sb
          :filter-rec (f/sub-f sb `call-substitute-dots*)
          :name name
          :sb sb
          :images images
-         :rimage rimage})
-      target)))
+         :rimage rimage}))))
 
 
 (f/def-derived-fold ISubstituteDotted substitute-dotted* [sb name image])
@@ -196,32 +196,32 @@
   Function
   (fn [{:keys [dom rng rest drest kws prest pdot]} sb name image]
    (when kws (err/nyi-error "substitute-dotted with kw arguments"))
-   (r/Function-maker (doall (map sb dom))
+   (r/Function-maker (mapv sb dom)
                      (sb rng)
-                     (and rest (sb rest))
-                     (and drest
-                          (r/DottedPretype1-maker (substitute image (:name drest) (sb (:pretype drest)))
-                                                  (if (= name (:name drest))
-                                                    name
-                                                    (:name drest))))
+                     (some-> rest sb)
+                     (when drest
+                       (r/DottedPretype1-maker (substitute image (:name drest) (sb (:pretype drest)))
+                                               (if (= name (:name drest))
+                                                 name
+                                                 (:name drest))))
                      nil
-                     (and prest (sb prest))
-                     (and pdot
-                          (err/nyi-error "NYI pdot of substitute-dotted for Function")))))
+                     (some-> prest sb)
+                     (when pdot
+                       (err/nyi-error "NYI pdot of substitute-dotted for Function")))))
 
 (f/add-fold-case
   ISubstituteDotted substitute-dotted*
   AssocType
   (fn [{:keys [target entries dentries]} sb name image]
    (r/AssocType-maker (sb target)
-                      (into {} (map (fn [ent]
-                                      [(sb (first ent)) (sb (second ent))])
-                                    entries))
-                      (and dentries
-                           (r/DottedPretype1-maker (substitute image (:name dentries) (sb (:pretype dentries)))
-                                                   (if (= name (:name dentries))
-                                                     name
-                                                     (:name dentries)))))))
+                      (reduce-kv (fn [entries k v]
+                                   (assoc entries (sb k) (sb v)))
+                                 {} entries)
+                      (when dentries
+                        (r/DottedPretype1-maker (substitute image (:name dentries) (sb (:pretype dentries)))
+                                                (if (= name (:name dentries))
+                                                  name
+                                                  (:name dentries)))))))
 
 (f/add-fold-case
   ISubstituteDotted substitute-dotted*
@@ -231,7 +231,7 @@
       (mapv sb types)
       :filters (mapv sb fs))
       :objects (mapv sb objects)
-      :rest (when rest (sb rest))
+      :rest (some-> rest sb)
       :drest (when drest
                (r/DottedPretype1-maker (substitute image (:name drest) (sb (:pretype drest)))
                                        (if (= name (:name drest))

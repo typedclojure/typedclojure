@@ -52,8 +52,7 @@
 (t/ann partition-by-nth (All [a] [Number (t/Seqable a) -> (t/Seq (t/Seq a))]))
 (defn partition-by-nth [n lst]
   {:pre [(zero? (rem (count lst) n))]}
-  (let [lst-count (count lst)
-        keep-rem-of (t/fn keep-rem-of [i :- Number]
+  (let [keep-rem-of (t/fn keep-rem-of [i :- Number]
                       (keep-indexed (t/fn [index :- Number
                                            item :- a]
                                       (when (= (rem index n) i)
@@ -122,7 +121,7 @@
       (fail! maps1 maps2))
     (cr/cset-maker maps)))
 
-(t/ann cset-meet* [(t/U nil (t/Seqable cset)) -> cset])
+(t/ann cset-meet* [(t/Seqable cset) -> cset])
 (defn cset-meet* [args]
   {:pre [(every? cr/cset? args)]
    :post [(cr/cset? %)]}
@@ -130,12 +129,12 @@
           (cr/cset-maker [(cr/cset-entry-maker {} (cr/dmap-maker {}))])
           args))
 
-(t/ann cset-combine [(t/U nil (t/Seqable cset)) -> cset])
+(t/ann cset-combine [(t/Seqable cset) -> cset])
 (defn cset-combine [l]
   {:pre [(every? cr/cset? l)]}
   (let [mapss (map :maps l)]
     (-> mapss
-        (t/ann-form (t/Seqable (t/U nil (t/Seqable cset-entry)))))
+        (t/ann-form (t/Seqable (t/Seqable cset-entry))))
     (cr/cset-maker (apply concat mapss))))
 
 ;add new constraint to existing cset
@@ -1106,8 +1105,8 @@
 
 ;constrain lists of types ss and ts according to variances
 (t/ann cs-gen-list-with-variances 
-       [NoMentions ConstrainVars ConstrainVars (t/U nil (t/Seqable r/Variance))
-        (t/U nil (t/Seqable r/AnyType)) (t/U nil (t/Seqable r/AnyType)) -> cset])
+       [NoMentions ConstrainVars ConstrainVars (t/Seqable r/Variance)
+        (t/Seqable r/AnyType) (t/Seqable r/AnyType) -> cset])
 (defn cs-gen-list-with-variances
   [V X Y variances ss ts]
   {:pre [(every? r/variance? variances)
@@ -1160,7 +1159,7 @@
               (for [[vari si ti]
                     (map vector
                          (:variances T)
-                         (t/ann-form (:poly? S) (t/U nil (t/Seqable r/Type)))
+                         (t/ann-form (:poly? S) (t/Seqable r/Type))
                          (:poly? T))]
                 (case vari
                   (:covariant :constant) (cs-gen V X Y si ti)
@@ -1231,7 +1230,7 @@
 (defn singleton-dmap [dbound dcon]
   (cr/dmap-maker {dbound dcon}))
 
-(t/ann mover [cset t/Sym (t/U nil (t/Seqable t/Sym)) [cr/CMap cr/DMap -> cr/DCon] -> cset])
+(t/ann mover [cset t/Sym (t/Seqable t/Sym) [cr/CMap cr/DMap -> cr/DCon] -> cset])
 (defn mover [cset dbound vars f]
   {:pre [(cr/cset? cset)
          (symbol? dbound)
@@ -1281,7 +1280,7 @@
 ;; cset : the constraints being manipulated
 ;; takes the constraints on vars and creates a dmap entry constraining dbound to be |vars|
 ;; with the constraints that cset places on vars
-(t/ann move-vars-to-dmap [cset t/Sym (t/U nil (t/Seqable t/Sym)) -> cset])
+(t/ann move-vars-to-dmap [cset t/Sym (t/Seqable t/Sym) -> cset])
 ;FIXME no-check, flow error
 (defn ^:no-check move-vars-to-dmap [cset dbound vars]
   {:pre [(cr/cset? cset)
@@ -1290,11 +1289,12 @@
    :post [(cr/cset? %)]}
   (mover cset dbound vars
          (fn [cmap dmap]
-           (cr/dcon-maker (doall (for [v vars]
-                                   (if-let [c (cmap v)]
-                                     c
-                                     (err/int-error (str "No constraint for new var " v)))))
-                      nil))))
+           (cr/dcon-maker (mapv (fn [v]
+                                  (if-let [c (cmap v)]
+                                    c
+                                    (err/int-error (str "No constraint for new var " v))))
+                                vars)
+                          nil))))
 
 ;; This one's weird, because the way we set it up, the rest is already in the dmap.
 ;; This is because we create all the vars, then recall cgen/arr with the new vars
@@ -1303,7 +1303,7 @@
 ;; we now handled.  So I've extended the mover to give access to the dmap, which we use here.
 ;FIXME no-check because of unreachable flow 
 (t/ann ^:no-check move-vars+rest-to-dmap 
-       [cset t/Sym (t/U nil (t/Seqable t/Sym)) & :optional {:exact (t/U nil true)} -> cset])
+       [cset t/Sym (t/Seqable t/Sym) & :optional {:exact (t/U nil true)} -> cset])
 (defn move-vars+rest-to-dmap [cset dbound vars & {:keys [exact]}]
   {:pre [(cr/cset? cset)
          (symbol? dbound)
@@ -1313,19 +1313,18 @@
   (mover cset dbound vars
          (fn [cmap dmap]
            ((if exact cr/dcon-exact-maker cr/dcon-maker)
-              (doall
-                (for [v vars]
-                  (if-let [c (cmap v)]
-                    c
-                    (err/int-error (str "No constraint for new var " v)))))
-              (if-let [c ((:map dmap) dbound)]
-                (cond
-                  (and (cr/dcon? c)
-                       (not (:fixed c))) (:rest c)
-                  (and (cr/dcon-exact? c)
-                       (not (:fixed c))) (:rest c)
-                  :else (err/int-error (str "did not a get a rest-only dcon when moving to the dmap")))
-                (err/int-error (str "No constraint for bound " dbound)))))))
+            (mapv (fn [v]
+                    (or (cmap v)
+                        (err/int-error (str "No constraint for new var " v))))
+                  vars)
+            (if-let [c ((:map dmap) dbound)]
+              (cond
+                (and (cr/dcon? c)
+                     (not (:fixed c))) (:rest c)
+                (and (cr/dcon-exact? c)
+                     (not (:fixed c))) (:rest c)
+                :else (err/int-error (str "did not a get a rest-only dcon when moving to the dmap")))
+              (err/int-error (str "No constraint for bound " dbound)))))))
 
 ;; Maps dotted vars (combined with dotted types, to ensure global uniqueness)
 ;; to "fresh" symbols.
@@ -1337,6 +1336,7 @@
 ;; The range is this map is a list of symbols generated on demand, as we need
 ;; more dots.
 (t/ann DOTTED-VAR-STORE (t/Atom1 (t/Map '[r/Type t/Sym] (t/Seq t/Sym))))
+;;FIXME remove global atom
 (defonce ^:private DOTTED-VAR-STORE (atom {}))
 
 (t/ann reset-dotted-var-store! [-> nil])
@@ -1657,7 +1657,7 @@
 ;; Y : (setof symbol?) - index variables that must have entries
 ;; R : Type? - result type into which we will be substituting
 ;TODO no-check, very slow!
-(t/ann ^:no-check subst-gen [cset (t/Set t/Sym) r/AnyType & :optional {:T (t/U nil (t/Seqable r/Type))} -> (t/U nil cr/SubstMap)])
+(t/ann ^:no-check subst-gen [cset (t/Set t/Sym) r/AnyType & :optional {:T (t/Seqable r/Type)} -> (t/U nil cr/SubstMap)])
 (defn subst-gen [C Y R & {:keys [T]}]
   {:pre [(cr/cset? C)
          ((con/set-c? symbol?) Y)
@@ -1669,8 +1669,7 @@
                         (mapv frees/fv-variances T))
         idx-hash (frees/idx-variances R)]
     (letfn> 
-           [
-            ;; v : Symbol - variable for which to check variance
+           [;; v : Symbol - variable for which to check variance
             ;; h : (Hash F Variance) - hash to check variance in (either var or idx hash)
             ;; variable: Symbol - variable to use instead, if v was a temp var for idx extension
             constraint->type :- [c frees/VarianceMap & :optional {:variable (t/U nil t/Sym)} -> r/Variance]
@@ -1749,64 +1748,44 @@
             ;_ (when-not (= 1 (count (:maps C))) 
             ;    (err/int-error "More than one constraint set found"))
             dm (:map dmap*)
-            subst (merge 
-                    (into {}
-                          (map
-                            (fn [[k dc]]
-                              (cond
-                                (and (cr/dcon? dc) (not (:rest dc)))
-                                [k (cr/i-subst-maker 
-                                     (mapv
-                                       (fn [f]
-                                         (constraint->type f idx-hash :variable k))
-                                       (:fixed dc)))]
-                                (and (cr/dcon? dc) (:rest dc))
-                                [k (cr/i-subst-starred-maker 
-                                     (mapv
-                                       (fn [f]
-                                         (constraint->type f idx-hash :variable k))
-                                       (:fixed dc))
-                                     (constraint->type (:rest dc) idx-hash))]
-                                (cr/dcon-exact? dc)
-                                [k (cr/i-subst-starred-maker 
-                                     (mapv
-                                       (fn [f]
-                                         (constraint->type f idx-hash :variable k))
-                                       (:fixed dc))
-                                     (constraint->type (:rest dc) idx-hash))]
-                                (cr/dcon-dotted? dc)
-                                [k (cr/i-subst-dotted-maker
-                                     (mapv
-                                       (fn [f]
-                                         (constraint->type f idx-hash :variable k))
-                                       (:fixed dc))
-                                     (constraint->type (:dc dc) idx-hash :variable k)
-                                     (:dbound dc))]
+            subst (as-> {} subst
+                    (reduce-kv (fn [subst k dc]
+                                 (let [fixed (mapv #(constraint->type % idx-hash :variable k)
+                                                   (:fixed dc))]
+                                   (assoc subst k
+                                          (cond
+                                            (and (cr/dcon? dc) (not (:rest dc)))
+                                            (cr/i-subst-maker fixed)
 
-                                (cr/dcon-repeat? dc)
-                                [k (cr/i-subst-maker
-                                     (mapv
-                                       (fn [f]
-                                         (constraint->type f idx-hash :variable k))
-                                       (:fixed dc)))]
+                                            (and (cr/dcon? dc) (:rest dc))
+                                            (cr/i-subst-starred-maker fixed (constraint->type (:rest dc) idx-hash))
 
-                                :else (err/int-error (prn-str "What is this? " dc)))))
-                          dm)
+                                            (cr/dcon-exact? dc)
+                                            (cr/i-subst-starred-maker fixed (constraint->type (:rest dc) idx-hash))
 
-                    (into {}
-                          (map
-                            (fn [[k v]]
-                              [k (cr/t-subst-maker
-                                   (constraint->type v var-hash)
-                                   (:bnds v))]))
-                          cmap))
+                                            (cr/dcon-dotted? dc)
+                                            (cr/i-subst-dotted-maker
+                                              fixed
+                                              (constraint->type (:dc dc) idx-hash :variable k)
+                                              (:dbound dc))
+
+                                            (cr/dcon-repeat? dc)
+                                            (cr/i-subst-maker fixed)
+
+                                            :else (err/int-error (prn-str "What is this? " dc))))))
+                               subst dm)
+                    (reduce-kv (fn [subst k v]
+                                 (assoc subst k (cr/t-subst-maker
+                                                  (constraint->type v var-hash)
+                                                  (:bnds v))))
+                               subst cmap))
             ;check delayed constraints and type variable bounds
             _ (let [t-substs (into {} (filter (t/fn [[_ v] :- '[t/Sym cr/SubstRHS]]
                                                 (cr/t-subst? v)))
                                    subst)
-                    [names images] (let [s (seq t-substs)]
-                                     [(map first s)
-                                      (map (comp :type second) s)])]
+                    s (seq t-substs)
+                    names (map first s)
+                    images (map (comp :type second) s)]
                 (doseq [[nme {inferred :type :keys [bnds]}] t-substs]
                   (when (some r/TypeFn? [(:upper-bound bnds) (:lower-bound bnds)]) (err/nyi-error "Higher kinds"))
                   (let [lower-bound (subst/substitute-many (:lower-bound bnds) images names)
@@ -1821,12 +1800,9 @@
                       (not (subtype? lower-bound inferred))
                       (fail! lower-bound inferred)))))]
         ;; verify that we got all the important variables
-        (when-let [r (and (every? (fn [v]
-                                    (let [entry (subst v)]
-                                      (and entry (cr/t-subst? entry))))
-                                  (frees/fv R))
-                          (extend-idxs subst))]
-          r)))))
+        (when (every? #(some-> (subst %) cr/t-subst?)
+                      (frees/fv R))
+          (extend-idxs subst))))))
 
 ;; V : a set of variables not to mention in the constraints
 ;; X : the set of type variables to be constrained mapped to their bounds
@@ -1838,7 +1814,7 @@
 ;; produces a cset which determines a substitution that makes the Ss subtypes of the Ts
 (t/ann cs-gen-list
        [NoMentions ConstrainVars ConstrainVars 
-        (t/U nil (t/Seqable r/Type)) (t/U nil (t/Seqable r/Type))
+        (t/Seqable r/Type) (t/Seqable r/Type)
         & :optional {:expected-cset (t/U nil cset)}
         -> cset])
 (defn cs-gen-list [V X Y S T & {:keys [expected-cset] :or {expected-cset (cr/empty-cset {} {})}}]
@@ -1900,18 +1876,137 @@
     (when symbolic-closure-special-case?
       symbolic-closure-fixed-args)))
 
+;; apply symbolic closure arg-t using function type dom-t as expected type, which is selectively
+;; instantiated using substitution-without-symb, a substitution yielded from constraint
+;; generation on all arguments except the symbolic closure argument.
+(defn app-symbolic-closure [arg-t dom-t]
+  {:pre [(r/SymbolicClosure? arg-t)
+         (r/FnIntersection? dom-t)]
+   :post [(r/AnyType? %)]}
+  (with-bindings (assoc (:bindings arg-t)
+                        #'vs/*delayed-errors* (err/-init-delayed-errors))
+    (let [expected (r/ret (update dom-t :types
+                                  (fn [fns]
+                                    {:pre [(vector? fns)]}
+                                    (mapv (fn [ftype]
+                                            {:pre [(r/Function? ftype)]}
+                                            (assert (not ((some-fn :rest :drest :kws :prest :pdot)
+                                                          ftype)))
+                                            (-> ftype
+                                                (assoc :rng (r/make-Result r/-infer-any))))
+                                          fns))))
+          ;_ (prn :expected expected)
+          res (ind/check-expr
+                (:fexpr arg-t)
+                expected)]
+      (when-some [errs (seq @vs/*delayed-errors*)]
+        #_
+        (prn "symbolic closure failed to check"
+             #_errs)
+        ;; move to next arity, symbolic closure failed to check
+        (fail! nil nil))
+      (-> res u/expr-type r/ret-t))))
+
+(declare infer cs-gen-app)
+
+(t/ann cs-gen-list+symbolic
+       [(t/Set t/Int) ConstrainVars ConstrainVars 
+        (t/Vec r/Type) (t/Vec r/Type)
+        cset
+        -> cset])
+(defn cs-gen-list+symbolic [symbolic-closure-fixed-args X Y S T R expected-cset]
+  {:pre [((some-fn nil? (con/set-c? nat-int?)) symbolic-closure-fixed-args)
+         (every? (con/hash-c? symbol? r/Bounds?) [X Y])
+         ((every-pred (con/vec-c? r/AnyType?)) S T)
+         (cr/cset? expected-cset)
+         (r/AnyType? R)]
+   :post [(cr/cset? %)]}
+  (when-not (= (count S) (count T))
+    (fail! S T))
+  (if-not symbolic-closure-fixed-args
+    (cs-gen-list #{} X Y S T :expected-cset expected-cset)
+    ;we have symbolic closures provided as args. infer constraints from other args
+    ;then use them to check the symbolic closures (and infer more constraints from their return types).
+    (let [rng (cond-> R
+                (not (r/Result? R)) r/make-Result)
+          arg-types S
+          dom T
+          expected-t R
+          fs-names-set (-> X keys set)
+          arg-types-no-symb (keep-indexed (fn [i t] (when-not (symbolic-closure-fixed-args i) t)) arg-types)
+          dom-no-symb (keep-indexed (fn [i t] (when-not (symbolic-closure-fixed-args i) t)) dom)
+          rng-t (c/fully-resolve-type (r/Result-type* rng))
+          erased-rng-t (cond-> rng-t
+                         (and (r/FnIntersection? expected-t)
+                              (r/FnIntersection? rng-t))
+                         (update :types (fn [types]
+                                          (let [;; if we're applying [[x -> y] -> [x -> y]]
+                                                ;; to a symbolic closure and with expected type [Int -> ^:infer Any],
+                                                ;; make the range of the polymorphic fn [x -> Any] so then y
+                                                ;; can be inferred via the symbolic closure.
+                                                ;; eg., ((partial #(+ %1 %2) 1)
+                                                ;;       2) ;; 2 makes fn expected type be [Int :-> ^:infer Any], just enough for %2, but Any is just a placeholder
+                                                erase-rng-t? (every? (comp r/infer-any? r/Result-type* :rng)
+                                                                     (:types expected-t))]
+                                            (cond->> types
+                                              erase-rng-t? (mapv (fn [t]
+                                                                   {:pre [(r/Function? t)]}
+                                                                   (assoc-in t [:rng :t] r/-infer-any))))))))
+          fv-in-no-symb (-> #{}
+                            (into (comp (mapcat frees/fv)
+                                        (filter fs-names-set))
+                                  dom-no-symb)
+                            (cond->
+                              expected-t (into (filter fs-names-set)
+                                               (frees/fv erased-rng-t))))
+          ;variances (into {} (filter (comp (set fs-names) key)) (frees/fv-variances fin))
+          cs-no-symb (cset-meet (cs-gen-app X Y arg-types-no-symb dom-no-symb erased-rng-t expected-t)
+                                expected-cset)
+          substitution-without-symb (reduce-kv (fn [subst fv info]
+                                                 (assoc subst fv
+                                                        (cond-> info
+                                                          ;; if variable is not mentioned, use lower bound. seems to help infer
+                                                          ;; eg., (partial f 1) where f takes 2 args. second arg of f will be checked as bottom.
+                                                          (and (cr/t-subst? info)
+                                                               ;; FIXME variance relevant?
+                                                               (not (fv-in-no-symb fv)))
+                                                          (assoc :type (-> info :bnds :lower-bound)))))
+                                               {} (subst-gen cs-no-symb (set (keys Y)) erased-rng-t :T dom-no-symb))
+          inferred-symbolic-closure-arg-types (reduce (fn [ts i]
+                                                        (assoc ts i
+                                                               (app-symbolic-closure 
+                                                                 (nth arg-types i)
+                                                                 ;; concretize expected type
+                                                                 (subst/subst-all
+                                                                   substitution-without-symb
+                                                                   (c/fully-resolve-type (nth dom i))))))
+                                                      {} symbolic-closure-fixed-args)
+          arg-types-with-inferred-symb (reduce-kv assoc arg-types inferred-symbolic-closure-arg-types)]
+      (if (and false
+               #_expr ;;FIXME
+               (not (r/FnIntersection? expected-t))
+               ;; TODO if rng-t has no args we don't need to suspend the type check
+               (r/FnIntersection? rng-t))
+        ;; wait for an expected type to help inference
+        (do ;(prn "suspending result")
+            ;;FIXME expr's arguments will be rechecked, could just use old results
+            (assert nil "FIXME")
+            #_
+            (r/symbolic-closure expr))
+        (cs-gen-list #{} X Y arg-types-with-inferred-symb dom :expected-cset expected-cset)))))
+
 ;; like infer, but dotted-var is the bound on the ...
 ;; and T-dotted is the repeated type
 (t/ann infer-dots
-  (t/IFn [ConstrainVars 
-       t/Sym 
-       Bounds
-       (t/U nil (t/Seqable r/Type)) 
-       (t/U nil (t/Seqable r/Type))
-       r/Type 
-       (t/U nil r/AnyType) 
-       (t/Set t/Sym)
-       & :optional {:expected (t/U nil r/Type)} -> cr/SubstMap]))
+       [ConstrainVars 
+        t/Sym 
+        Bounds
+        (t/Seqable r/Type) 
+        (t/Seqable r/Type)
+        r/Type 
+        (t/U nil r/AnyType) 
+        (t/Set t/Sym)
+        & :optional {:expected (t/U nil r/Type)} -> cr/SubstMap])
 (defn infer-dots [X dotted-var dotted-bnd S T T-dotted R must-vars & {:keys [expected]}]
   {:pre [((con/hash-c? symbol? r/Bounds?) X)
          (symbol? dotted-var)
@@ -1922,36 +2017,38 @@
          ((con/set-c? symbol?) must-vars)
          ((some-fn nil? r/Type?) expected)]
    :post [(cr/substitution-c? %)]}
-;  (prn "infer-dots")
-;  (prn "must-vars" must-vars)
-  (let [[short-S rest-S] (split-at (count T) S)
-;        _ (prn "short-S" (map prs/unparse-type short-S))
-;        _ (prn "T" (map prs/unparse-type T))
-;        _ (prn "rest-S" (map prs/unparse-type rest-S))
+  (let [T (vec T)
+        [short-S rest-S] (map vec (split-at (count T) S))
         expected-cset (if expected
                         (cs-gen #{} X {dotted-var dotted-bnd} R expected)
                         (cr/empty-cset {} {}))
-        ;_ (prn "expected-cset" expected-cset)
-        cs-short (cs-gen-list #{} X {dotted-var dotted-bnd} short-S T
-                                :expected-cset expected-cset)
-        ;_ (prn "cs-short" cs-short)
         new-vars (var-store-take dotted-var T-dotted (count rest-S))
         new-Ts (mapv (fn [v]
                        (let [target (subst/substitute-dots (map r/make-F new-vars) nil dotted-var T-dotted)]
                          #_(prn "replace" v "with" dotted-var "in" (prs/unparse-type target))
                          (subst/substitute (r/make-F v) dotted-var target)))
                      new-vars)
-        ;_ (prn "new-Ts" new-Ts)
-        cs-dotted (cs-gen-list #{} (into X (map #(vector % dotted-bnd)) new-vars) {dotted-var dotted-bnd} rest-S new-Ts
-                               :expected-cset expected-cset)
-        ;_ (prn "cs-dotted" cs-dotted)
-        cs-dotted (move-vars-to-dmap cs-dotted dotted-var new-vars)
-        ;_ (prn "cs-dotted" cs-dotted)
-        cs (cset-meet cs-short cs-dotted)
-        ;_ (prn "cs" cs)
-        ]
+        ;; allow 1 symbolic closure in non-dotted arg
+        ;; strategy: infer all other non-dotted args plus the dotted args, then use the
+        ;; resulting substitution to instantiate any dotted types in the symbolic closure's
+        ;; expected type. finally, add any constraints inferred from checking the symbolic closure
+        ;; the final substitution.
+        ;; e.g., (map #(+ %1 %2) [1 2 3] [4 5 6])
+        ;; map : (All [a c b :..] [[a b :.. b :-> c] (Seqable a) (Seqable b) :.. b :-> (Seq c)])
+        ;; (infer [1 2 3] (Seqable a)) => {a Int}
+        ;; (infer [4 5 6] (Seqable b0)) => {b0 Int} :dotted {b [b0]}
+        ;; (infer #(+ %1 %2) [Int Int :-> ^:infer Any]) => {c Int}
+        short-symbolic-closure-fixed-args (when-not (get-symbolic-closure-fixed-args rest-S new-Ts)
+                                            (get-symbolic-closure-fixed-args short-S T))
+        cs-dotted (-> (cs-gen-list #{} (reduce #(assoc %1 %2 dotted-bnd) X new-vars)
+                                   {dotted-var dotted-bnd} rest-S new-Ts
+                                   :expected-cset expected-cset)
+                      (move-vars-to-dmap dotted-var new-vars))
+        cs (cs-gen-list+symbolic short-symbolic-closure-fixed-args
+                                 X {dotted-var dotted-bnd} short-S T R (cset-meet expected-cset cs-dotted))]
     ;; FIXME pass variances via :T
-    (subst-gen (cset-meet cs expected-cset) #{dotted-var} R)))
+    (-> (cset-meet cs expected-cset)
+        (subst-gen #{dotted-var} R))))
 
 (declare infer)
 
@@ -1963,8 +2060,8 @@
   (Fn [ConstrainVars
        t/Sym
        Bounds
-       (U nil (t/Seqable r/Type))
-       (U nil (t/Seqable r/Type))
+       (t/Seqable r/Type)
+       (t/Seqable r/Type)
        r/Type
        (U nil r/AnyType)
        (t/Set t/Sym)
@@ -2009,7 +2106,7 @@
                                            list-of-vars
                                            (:types T-dotted))]
                    (apply interleave list-of-result)))
-        cs-dotted (cs-gen-list #{} (into X (map #(vector % dotted-bnd)) new-vars)
+        cs-dotted (cs-gen-list #{} (reduce #(assoc %1 %2 dotted-bnd) X new-vars)
                                {dotted-var dotted-bnd} rest-S new-Ts
                                :expected-cset expected-cset)
         ;_ (prn "cs-dotted" cs-dotted)
@@ -2024,7 +2121,7 @@
 ;; like infer-vararg, but T-var is the prest type:
 (t/ann infer-prest
   [ConstrainVars ConstrainVars
-   (U nil (t/Seqable r/Type)) (U nil (t/Seqable r/Type))
+   (t/Seqable r/Type) (t/Seqable r/Type)
    r/Type (U nil r/AnyType) (U nil TCResult)
    -> (U nil true false cr/SubstMap)])
 (defn infer-prest
@@ -2055,8 +2152,8 @@
 ;; like infer, but T-var is the vararg type:
 (t/ann infer-vararg
        [ConstrainVars ConstrainVars 
-        (t/U nil (t/Seqable r/Type))
-        (t/U nil (t/Seqable r/Type))
+        (t/Seqable r/Type)
+        (t/Seqable r/Type)
         (t/U nil r/Type)
         (t/U nil r/AnyType)
         (t/U nil TCResult) :?
@@ -2099,108 +2196,8 @@
    (let [expected-cset (if expected
                          (cs-gen #{} X Y R expected)
                          (cr/empty-cset {} {}))
-         rng (cond-> R
-               (not (r/Result? R)) r/make-Result)
-         arg-types S
-         dom T
-         expected-t R
-         symbolic-closure-fixed-args (get-symbolic-closure-fixed-args arg-types dom)
-         cs (if-not symbolic-closure-fixed-args
-              (cs-gen-list #{} X Y S T :expected-cset expected-cset)
-              ;we have symbolic closures provided as args. infer constraints from other args
-              ;then use them to check the symbolic closures (and infer more constraints from their return types).
-              (let [fs-names-set (-> X keys set)
-                    arg-types-no-symb (keep-indexed (fn [i t] (when-not (symbolic-closure-fixed-args i) t)) arg-types)
-                    dom-no-symb (keep-indexed (fn [i t] (when-not (symbolic-closure-fixed-args i) t)) dom)
-                    rng-t (c/fully-resolve-type (r/Result-type* rng))
-                    erased-rng-t (cond-> rng-t
-                                   (and (r/FnIntersection? expected-t)
-                                        (r/FnIntersection? rng-t))
-                                   (update :types (fn [types]
-                                                    (let [;; if we're applying [[x -> y] -> [x -> y]]
-                                                          ;; to a symbolic closure and with expected type [Int -> ^:infer Any],
-                                                          ;; make the range of the polymorphic fn [x -> Any] so then y
-                                                          ;; can be inferred via the symbolic closure.
-                                                          ;; eg., ((partial #(+ %1 %2) 1)
-                                                          ;;       2) ;; 2 makes fn expected type be [Int :-> ^:infer Any], just enough for %2, but Any is just a placeholder
-                                                          erase-rng-t? (every? (comp r/infer-any? r/Result-type* :rng)
-                                                                               (:types expected-t))]
-                                                      (cond->> types
-                                                        erase-rng-t? (mapv (fn [t]
-                                                                             {:pre [(r/Function? t)]}
-                                                                             (assoc-in t [:rng :t] r/-infer-any))))))))
-                    fv-in-no-symb (-> #{}
-                                      (into (comp (mapcat frees/fv)
-                                                  (filter fs-names-set))
-                                            dom-no-symb)
-                                      (cond->
-                                        expected-t (into (filter fs-names-set)
-                                                         (frees/fv erased-rng-t))))
-                    ;_ (prn "fv-in-no-symb" fv-in-no-symb)
-                    ;variances (into {} (filter (comp (set fs-names) key)) (frees/fv-variances fin))
-                    substitution-without-symb (into {}
-                                                    (map (fn [[fv info]]
-                                                           [fv (cond-> info
-                                                                 ;; if variable is not mentioned, use lower bound. seems to help infer
-                                                                 ;; eg., (partial f 1) where f takes 2 args. second arg of f will be checked as bottom.
-                                                                 (and (cr/t-subst? info)
-                                                                      ;; FIXME variance relevant?
-                                                                      (not (fv-in-no-symb fv)))
-                                                                 (assoc :type (-> info :bnds :lower-bound)))]))
-                                                    (infer X Y
-                                                           arg-types-no-symb dom-no-symb
-                                                           erased-rng-t expected-t))
-                    ;_ (prn "erased-rng-t" erased-rng-t expected-t)
-                    ;_ (prn "substitution-without-symb" substitution-without-symb)
-                    inferred-symbolic-closure-arg-types (into {}
-                                                              (map (fn [i]
-                                                                     (let [arg-t (nth arg-types i)
-                                                                           _ (assert (r/SymbolicClosure? arg-t))
-                                                                           dom-t (c/fully-resolve-type (nth dom i))
-                                                                           _ (assert (r/FnIntersection? dom-t))]
-                                                                       (with-bindings (assoc (:bindings arg-t)
-                                                                                             #'vs/*delayed-errors* (err/-init-delayed-errors))
-                                                                         (let [res (ind/check-expr
-                                                                                     (:fexpr arg-t)
-                                                                                     (r/ret (update dom-t :types
-                                                                                                    (fn [fns]
-                                                                                                      {:pre [(vector? fns)]}
-                                                                                                      (mapv (fn [ftype]
-                                                                                                              {:pre [(r/Function? ftype)]}
-                                                                                                              (-> ftype
-                                                                                                                  (update :dom
-                                                                                                                          (fn [dom]
-                                                                                                                            (mapv #(subst/subst-all substitution-without-symb %)
-                                                                                                                                  dom)))
-                                                                                                                  ;; TODO selectively instantitate range
-                                                                                                                  (assoc :rng (r/make-Result r/-infer-any))))
-                                                                                                            fns)))))]
-                                                                           (when-some [errs (seq @vs/*delayed-errors*)]
-                                                                             #_
-                                                                             (prn "symbolic closure failed to check"
-                                                                                  #_errs)
-                                                                             ;; move to next arity, symbolic closure failed to check
-                                                                             (fail! nil nil))
-                                                                           [i (-> res u/expr-type r/ret-t)])))))
-                                                              symbolic-closure-fixed-args)
-                    arg-types-with-inferred-symb (reduce (fn [arg-types [i inferred-arg-type]]
-                                                           (assoc arg-types i inferred-arg-type))
-                                                         arg-types
-                                                         inferred-symbolic-closure-arg-types)
-                    ;_ (prn "arg-types-with-inferred-symb" arg-types-with-inferred-symb)
-                    ]
-                (if (and false
-                         #_expr ;;FIXME
-                         (not (r/FnIntersection? expected-t))
-                         ;; TODO if rng-t has no args we don't need to suspend the type check
-                         (r/FnIntersection? rng-t))
-                  ;; wait for an expected type to help inference
-                  (do ;(prn "suspending result")
-                      ;;FIXME expr's arguments will be rechecked, could just use old results
-                      (assert nil "FIXME")
-                      #_
-                      (r/symbolic-closure expr))
-                  (cs-gen-list #{} X Y arg-types-with-inferred-symb dom :expected-cset expected-cset))))]
+         cs (cs-gen-list+symbolic (get-symbolic-closure-fixed-args S T)
+                                  X Y (vec S) (vec T) R expected-cset)]
      (cset-meet cs expected-cset))))
 
 ;; X : variables to infer mapped to their bounds
