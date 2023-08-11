@@ -269,121 +269,11 @@
                             ;possibly present rest argument, or no rest parameter
                             (and (not (or drest kws prest))
                                  ((if rest <= =) (count dom) (count arg-types)))
-                            (let [symbolic-closure-fixed-args (when (and r/enable-symbolic-closures?
-                                                                         (not rest) ;;TODO support rest arg
-                                                                         (= (count arg-types) (count dom)))
-                                                                (not-empty
-                                                                  (into (sorted-set)
-                                                                        (keep-indexed (fn [i [arg-t dom-t]]
-                                                                                        (let [dom-t (c/fully-resolve-type dom-t)]
-                                                                                          (when (and (r/SymbolicClosure? arg-t)
-                                                                                                     ;; TODO punting on computing data flow between args by isolating an arity
-                                                                                                     (r/FnIntersection? dom-t)
-                                                                                                     (= 1 (count (:types dom-t))))
-                                                                                            i))))
-                                                                        (map vector arg-types dom))))
-                                  ;;TODO punting on computing data flow between args by delaying inference for exactly 1 arg
-                                  symbolic-closure-special-case? (= 1 (count symbolic-closure-fixed-args))]
-                              (if-not symbolic-closure-special-case?
-                                (cgen/infer-vararg fs-names->bbnds {}
-                                                   arg-types dom rest
-                                                   (r/Result-type* rng) (some-> expected r/ret-t
-                                                                                ;;FIXME resolving t/Promise early fails to infer
-                                                                                #_c/fully-resolve-type))
-                                ;we have symbolic closures provided as args. infer constraints from other args
-                                ;then use them to check the symbolic closures (and infer more constraints from their return types).
-                                (let [fs-names-set (set fs-names)
-                                      arg-types-no-symb (keep-indexed (fn [i t] (when-not (symbolic-closure-fixed-args i) t)) arg-types)
-                                      dom-no-symb (keep-indexed (fn [i t] (when-not (symbolic-closure-fixed-args i) t)) dom)
-                                      rng-t (c/fully-resolve-type (r/Result-type* rng))
-                                      erased-rng-t (cond-> rng-t
-                                                     (and (r/FnIntersection? expected-t)
-                                                          (r/FnIntersection? rng-t))
-                                                     (update :types (fn [types]
-                                                                      (let [;; if we're applying [[x -> y] -> [x -> y]]
-                                                                            ;; to a symbolic closure and with expected type [Int -> ^:infer Any],
-                                                                            ;; make the range of the polymorphic fn [x -> Any] so then y
-                                                                            ;; can be inferred via the symbolic closure.
-                                                                            ;; eg., ((partial #(+ %1 %2) 1)
-                                                                            ;;       2) ;; 2 makes fn expected type be [Int :-> ^:infer Any], just enough for %2, but Any is just a placeholder
-                                                                            erase-rng-t? (every? (comp r/infer-any? r/Result-type* :rng)
-                                                                                                 (:types expected-t))]
-                                                                        (cond->> types
-                                                                          erase-rng-t? (mapv (fn [t]
-                                                                                               {:pre [(r/Function? t)]}
-                                                                                               (assoc-in t [:rng :t] r/-infer-any))))))))
-                                      fv-in-no-symb (-> #{}
-                                                        (into (comp (mapcat frees/fv)
-                                                                    (filter fs-names-set))
-                                                              dom-no-symb)
-                                                        (cond->
-                                                          expected-t (into (filter fs-names-set)
-                                                                           (frees/fv erased-rng-t))))
-                                      ;_ (prn "fv-in-no-symb" fv-in-no-symb)
-                                      ;variances (into {} (filter (comp (set fs-names) key)) (frees/fv-variances fin))
-                                      substitution-without-symb (into {}
-                                                                      (map (fn [[fv info]]
-                                                                             [fv (cond-> info
-                                                                                   ;; if variable is not mentioned, use lower bound. seems to help infer
-                                                                                   ;; eg., (partial f 1) where f takes 2 args. second arg of f will be checked as bottom.
-                                                                                   (and (crep/t-subst? info)
-                                                                                        ;; FIXME variance relevant?
-                                                                                        (not (fv-in-no-symb fv)))
-                                                                                   (assoc :type (-> info :bnds :lower-bound)))]))
-                                                                      (cgen/infer fs-names->bbnds {}
-                                                                                  arg-types-no-symb dom-no-symb
-                                                                                  erased-rng-t expected-t))
-                                      ;_ (prn "erased-rng-t" erased-rng-t expected-t)
-                                      ;_ (prn "substitution-without-symb" substitution-without-symb)
-                                      inferred-symbolic-closure-arg-types (into {}
-                                                                                (map (fn [i]
-                                                                                       (let [arg-t (nth arg-types i)
-                                                                                             _ (assert (r/SymbolicClosure? arg-t))
-                                                                                             dom-t (c/fully-resolve-type (nth dom i))
-                                                                                             _ (assert (r/FnIntersection? dom-t))]
-                                                                                         (with-bindings (assoc (:bindings arg-t)
-                                                                                                               #'vs/*delayed-errors* (err/-init-delayed-errors))
-                                                                                           (let [res (check-expr
-                                                                                                       (:fexpr arg-t)
-                                                                                                       (r/ret (update dom-t :types
-                                                                                                                      (fn [fns]
-                                                                                                                        {:pre [(vector? fns)]}
-                                                                                                                        (mapv (fn [ftype]
-                                                                                                                                {:pre [(r/Function? ftype)]}
-                                                                                                                                (assert (not rest) "TODO")
-                                                                                                                                (-> ftype
-                                                                                                                                    (update :dom
-                                                                                                                                            (fn [dom]
-                                                                                                                                              (mapv #(subst/subst-all substitution-without-symb %)
-                                                                                                                                                    dom)))
-                                                                                                                                    ;; TODO selectively instantitate range
-                                                                                                                                    (assoc :rng (r/make-Result r/-infer-any))))
-                                                                                                                              fns)))))]
-                                                                                             (when-some [errs (seq @vs/*delayed-errors*)]
-                                                                                               #_
-                                                                                               (prn "symbolic closure failed to check"
-                                                                                                    #_errs)
-                                                                                               ;; move to next arity, symbolic closure failed to check
-                                                                                               (cgen/fail! nil nil))
-                                                                                             [i (-> res u/expr-type r/ret-t)])))))
-                                                                                symbolic-closure-fixed-args)
-                                      arg-types-with-inferred-symb (reduce (fn [arg-types [i inferred-arg-type]]
-                                                                             (assoc arg-types i inferred-arg-type))
-                                                                           arg-types
-                                                                           inferred-symbolic-closure-arg-types)
-                                      ;_ (prn "arg-types-with-inferred-symb" arg-types-with-inferred-symb)
-                                      ]
-                                  (if (and expr
-                                           (not (r/FnIntersection? expected-t))
-                                           ;; TODO if rng-t has no args we don't need to suspend the type check
-                                           (r/FnIntersection? rng-t))
-                                    ;; wait for an expected type to help inference
-                                    (do ;(prn "suspending result")
-                                        ;;FIXME expr's arguments will be rechecked, could just use old results
-                                        (r/symbolic-closure expr))
-                                    (cgen/infer fs-names->bbnds {}
-                                                arg-types-with-inferred-symb dom
-                                                (r/Result-type* rng) expected-t)))))
+                            (cgen/infer-vararg fs-names->bbnds {}
+                                               arg-types dom rest
+                                               (r/Result-type* rng) (some-> expected r/ret-t
+                                                                            ;;FIXME resolving t/Promise early fails to infer
+                                                                            #_c/fully-resolve-type))
 
                             (and prest
                                  (<= (count dom) (count arg-types)))
@@ -489,12 +379,12 @@
                               (r/PolyDots? pbody)
                               (let [vars (vec (c/PolyDots-fresh-symbols* pbody))
                                     bbnds (c/PolyDots-bbnds* vars pbody)
-                                    fixed* (apply zipmap (map butlast [vars bbnds]))
-                                    dotted* (apply hash-map (map last [vars bbnds]))
                                     pbody (c/PolyDots-body* vars pbody)]
                                 (recur (c/fully-resolve-type pbody)
-                                       (merge fixed fixed*)
-                                       (merge dotted dotted*)))
+                                       (reduce (fn [fixed i]
+                                                 (assoc fixed (nth vars i) (nth bbnds i)))
+                                               fixed (range (dec (count vars))))
+                                       (assoc dotted (peek vars) (peek bbnds))))
 
                               (and (r/FnIntersection? pbody)
                                    (seq (:types pbody))
@@ -504,64 +394,67 @@
                   (when (should-infer? fexpr-type)
                     (collect-polydots fexpr-type)))]
          (let [;_ (prn "polydots, no kw args")
-               _ (assert (#{1} (count dotted-map)))
+               _ (assert (= 1 (count dotted-map)))
                inferred-rng
                (free-ops/with-bounded-frees (zipmap (map r/make-F (keys fixed-map)) (vals fixed-map))
                  ;(dvar-env/with-dotted-mappings (zipmap (keys dotted-map) (map r/make-F (vals dotted-map)))
-                 (some identity
-                       (for [{:keys [dom rest drest rng prest pdot] :as ftype} (:types pbody)
-                             ;only try inference if argument types match
-                             :when (cond
-                                     rest (<= (count dom) (count arg-types))
-                                     drest (and (<= (count dom) (count arg-types))
-                                                (contains? (set (keys dotted-map)) (-> drest :name)))
-                                     prest (<= (count dom) (count arg-types))
-                                     pdot (and (<= (count dom) (count arg-types))
-                                               (contains? (set (keys dotted-map)) (-> pdot :name)))
-                                     :else (= (count dom) (count arg-types)))]
-                         (cgen/handle-failure
-                           ;(prn "Inferring dotted fn" (prs/unparse-type ftype))
-                           ;; Only try to infer the free vars of the rng (which includes the vars
-                           ;; in filters/objects).
-                           (let [substitution (cond
-                                                drest (cgen/infer-dots fixed-map (key (first dotted-map)) (val (first dotted-map))
-                                                                       arg-types dom (:pre-type drest) (r/Result-type* rng) 
-                                                                       (frees/fv rng)
-                                                                       :expected (and expected (r/ret-t expected)))
+                 (some (fn [{:keys [dom rest drest rng prest pdot] :as ftype}]
+                         ;only try inference if argument types match
+                         (when (cond
+                                 rest (<= (count dom) (count arg-types))
+                                 drest (and (<= (count dom) (count arg-types))
+                                            (contains? (set (keys dotted-map)) (-> drest :name)))
+                                 prest (<= (count dom) (count arg-types))
+                                 pdot (and (<= (count dom) (count arg-types))
+                                           (contains? (set (keys dotted-map)) (-> pdot :name)))
+                                 :else (= (count dom) (count arg-types)))
+                           (cgen/handle-failure
+                             ;(prn "Inferring dotted fn" (prs/unparse-type ftype))
+                             ;; Only try to infer the free vars of the rng (which includes the vars
+                             ;; in filters/objects).
+                             (let [expected-t (some-> expected r/ret-t)
+                                   rng-t (r/Result-type* rng)
+                                   substitution (cond
+                                                  drest (let [de (first dotted-map)]
+                                                          (cgen/infer-dots fixed-map (key de) (val de)
+                                                                           arg-types dom (:pre-type drest) rng-t
+                                                                           (frees/fv rng)
+                                                                           :expected expected-t))
 
-                                                rest (cgen/infer-vararg fixed-map dotted-map
-                                                                        arg-types dom rest (r/Result-type* rng)
-                                                                        (and expected (r/ret-t expected)))
+                                                  rest (cgen/infer-vararg fixed-map dotted-map
+                                                                          arg-types dom rest rng-t
+                                                                          expected-t)
 
-                                                (and prest
-                                                     (<= (count dom) (count arg-types)))
-                                                (cgen/infer-prest fixed-map dotted-map
-                                                                  arg-types dom prest (r/Result-type* rng)
-                                                                  (and expected (r/ret-t expected)))
+                                                  (and prest
+                                                       (<= (count dom) (count arg-types)))
+                                                  (cgen/infer-prest fixed-map dotted-map
+                                                                    arg-types dom prest rng-t
+                                                                    expected-t)
 
-                                                pdot (cgen/infer-pdot fixed-map (key (first dotted-map))
-                                                                      (val (first dotted-map))
-                                                                      arg-types dom (:pre-type pdot) (r/Result-type* rng)
-                                                                      (frees/fv rng)
-                                                                      :expected (and expected (r/ret-t expected)))
+                                                  pdot (let [de (first dotted-map)]
+                                                         (cgen/infer-pdot fixed-map (key de) (val de)
+                                                                          arg-types dom (:pre-type pdot) rng-t
+                                                                          (frees/fv rng)
+                                                                          :expected expected-t))
 
-                                                :else (cgen/infer fixed-map dotted-map
-                                                                  arg-types dom (r/Result-type* rng)
-                                                                  (and expected (r/ret-t expected))))
-                                 ;_ (prn "substitution:" substitution)
-                                 substituted-type (subst/subst-all substitution ftype)
-                                 ;_ (prn "substituted-type" (prs/unparse-type substituted-type))
-                                 ;_ (prn "args" (map prs/unparse-type arg-types))
-                                 ]
-                             (or (and substitution
-                                      (funapp1/check-funapp1 fexpr args 
-                                                     substituted-type arg-ret-types expected :check? false))
-                                 (err/tc-delayed-error "Error applying dotted type")
-                                 nil))))))]
+                                                  :else (cgen/infer fixed-map dotted-map
+                                                                    arg-types dom rng-t
+                                                                    expected-t))
+                                   _ (assert (not (r/SymbolicClosure? substitution)) "TODO")
+                                   ;_ (prn "substitution:" substitution)
+                                   substituted-type (subst/subst-all substitution ftype)
+                                   ;_ (prn "substituted-type" (prs/unparse-type substituted-type))
+                                   ;_ (prn "args" (map prs/unparse-type arg-types))
+                                   ]
+                               (or (and substitution
+                                        (funapp1/check-funapp1 fexpr args 
+                                                               substituted-type arg-ret-types expected :check? false))
+                                   (err/tc-delayed-error "Error applying dotted type")
+                                   nil)))))
+                       (:types pbody)))]
            ;(prn "inferred-rng"inferred-rng)
-           (if inferred-rng
-             inferred-rng
-             (app-err/polyapp-type-error fexpr args fexpr-type arg-ret-types expected)))
+           (or inferred-rng
+               (app-err/polyapp-type-error fexpr args fexpr-type arg-ret-types expected)))
 
          (let [opts (:opts fexpr-ret-type)]
            ;(prn `check-funapp (class fexpr-type))

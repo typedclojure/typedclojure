@@ -1252,7 +1252,8 @@
 (t/ann ^:no-check PolyDots-bbnds* [(t/Seqable t/Sym) PolyDots -> (t/Seqable Bounds)])
 (defn PolyDots-bbnds* [names poly]
   {:pre [(every? symbol? names)
-         (r/PolyDots? poly)]}
+         (r/PolyDots? poly)]
+   :post [(vector? %)]}
   (assert (= (:nbound poly) (count names)) "Wrong number of names")
   (mapv (fn [b]
           (r/visit-bounds b #(instantiate-many names %)))

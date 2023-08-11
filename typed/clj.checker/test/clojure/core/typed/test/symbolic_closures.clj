@@ -1,16 +1,8 @@
 (ns clojure.core.typed.test.symbolic-closures
   (:require 
-    typed.clj.checker.test-utils
+    [typed.clj.checker.test-utils :refer [is-tc-e is-tc-err]]
     [typed.cljc.checker.type-rep :as r]
     [clojure.test :refer :all]))
-
-(defmacro is-tc-e [& args]
-  `(binding [r/enable-symbolic-closures? true]
-     (typed.clj.checker.test-utils/is-tc-e ~@args)))
-
-(defmacro is-tc-err [& args]
-  `(binding [r/enable-symbolic-closures? true]
-     (typed.clj.checker.test-utils/is-tc-err ~@args)))
 
 (deftest symbolic-closure-test
   ;; thunks always checked
@@ -88,6 +80,20 @@
                  ;;FIXME y is being substited as Any...
                  (f 2)))
            t/Int))
+
+(deftest poly-rest-infer
+  (is-tc-e (do (t/ann app (t/All [x y] [[x :-> y] x nil :* :-> y]))
+               (def app #(%1 (do %& %2)))
+               (app #(inc %) 1 nil nil))
+           t/Int)
+  (is-tc-err (do (t/ann app (t/All [x y] [[x :-> y] x nil :* :-> y]))
+                 (def app #(%1 (do %& %2)))
+                 (app #(inc %) 1 1 nil))
+             t/Int)
+  (is-tc-err (do (t/ann app (t/All [x y] [[x :-> y] x nil :* :-> y]))
+                 (def app #(%1 (do %& %2)))
+                 (app #(inc %) 1 nil nil))
+             t/Bool))
 
 #_
 (deftest poly-dots-infer
