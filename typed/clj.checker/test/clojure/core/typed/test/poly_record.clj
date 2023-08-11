@@ -3,37 +3,21 @@
 
 (t/ann-record [[foo :variance :invariant]] Foo [b :- (t/U nil t/Num)])
 (t/tc-ignore
-(defrecord Foo [b])
-  )
+(defrecord Foo [b]))
 
-(comment
-(defmacro defrecord> 
-  "Define a typed record.
+; Haskell equivalent
+; data Either a b = Either { unwrap :: forall x. (a -> x) -> (b -> x) -> x }
+(t/ann-record [[a :variance :covariant]
+               [b :variance :covariant]]
+              Either
+              [unwrap :- (t/All [x] [[a :-> x] [b :-> x] :-> x])])
+(defrecord Either [unwrap])
 
-  eg. ;monomorphic
-      (defrecord> FooM [a :- (U nil Number),
-                        b :- Number]
-        Object
-        (toString [this] \"\"))
-
-      ;polymorphic
-      (defrecord> [[x :variance :covariant]]
-        FooP [a :- x,
-              b :- Number]
-        Object
-        (toString [this] \"\"))"
-  [& args]
-  (let [vbnd (when (vector? (first args))
-               (first args))
-        args (if vbnd
-               (next args)
-               args)
-        [nme fields & args] args]
-    `(do (ann-record
-           ~@(concat (when vbnd
-                       [vbnd])
-                     nme
-                     fields))
-         (defrecord ~nme ~(mapv first (partition 3 fields))
-           ~@args))))
-  )
+;(t/ann-form
+;  ((:unwrap (->Either (t/fn :forall [x]
+;                        [f :- [t/Int :-> x]
+;                         g :- [t/Bool :-> x]]
+;                        (g true))))
+;   (t/fn [i :- t/Int] i)
+;   (t/fn [b :- t/Bool] b))
+;  t/Bool)
