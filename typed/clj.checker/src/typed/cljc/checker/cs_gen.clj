@@ -41,10 +41,7 @@
 
 (t/ann gen-repeat [Number (t/Seqable Any) -> (t/Seqable Any)])
 (defn ^:private gen-repeat [times repeated]
-  (reduce (fn [acc cur]
-            (concat acc cur))
-          []
-          (repeat times repeated)))
+  (reduce into [] (repeat times repeated)))
 
 ; (partition-by-nth 2 [1 2 3 4 5 6]) -> ((1 3 5) (2 4 6))
 ; (partition-by-nth 3 [1 2 3 4 5 6]) -> ((1 4) (2 5) (3 6))
