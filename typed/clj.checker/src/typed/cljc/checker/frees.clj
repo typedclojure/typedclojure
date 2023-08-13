@@ -65,6 +65,13 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Exposed interface
 
+(defn flip-variance-map [vs]
+  (update-vals vs (t/fn [vari :- r/Variance]
+                    (case vari
+                      :covariant :contravariant
+                      :contravariant :covariant
+                      vari))))
+
 (t/ann fv-variances [r/AnyType -> VarianceMap])
 (defn fv-variances 
   "Map of frees to their variances"
@@ -78,6 +85,14 @@
   [t]
   {:post [(variance-map? %)]}
   (.idxs (frees t)))
+
+(t/ann fv+idx-variances [r/AnyType -> (t/Set t/Sym)])
+(defn fv+idx-variances
+  "Variances of all type and index variables in type"
+  [t]
+  {:post [(variance-map? %)]}
+  (let [f (frees t)]
+    (into (.frees f) (.idxs f))))
 
 (t/ann fv [r/AnyType -> (t/Set t/Sym)])
 (defn fv 
@@ -115,16 +130,8 @@
 (defn ^FreesResult ^:private flip-variances [^FreesResult fr]
   {:pre [(instance? FreesResult fr)]
    :post [(instance? FreesResult %)]}
-  (let [flp (fn [vs]
-              (zipmap (keys vs) 
-                      (map (t/fn [vari :- r/Variance]
-                             (case vari
-                               :covariant :contravariant
-                               :contravariant :covariant
-                               vari))
-                           (vals vs))))]
-    (FreesResult. (flp (.frees fr))
-                  (flp (.idxs fr)))))
+  (FreesResult. (flip-variance-map (.frees fr))
+                (flip-variance-map (.idxs fr))))
 
 (defn ^FreesResult ^:private invariant-variances [^FreesResult fr]
   {:pre [(instance? FreesResult fr)]

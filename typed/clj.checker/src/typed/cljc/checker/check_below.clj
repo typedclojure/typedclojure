@@ -96,24 +96,7 @@
                  t1 t2
                  (r/infer-any? t1)
                  (r/infer-any? t2))
-            (cond
-              (r/infer-any? t2) t1
-              (and (r/FnIntersection? t2)
-                   (= 1 (count (:types t2)))
-                   (r/infer-any? (-> t2 :types first :rng :t)))
-              (let [rng-t (cgen/unify-or-nil
-                            {:fresh [x]
-                             :out x}
-                            t1
-                            (r/make-FnIntersection
-                              (r/make-Function
-                                (-> t2 :types first :dom)
-                                x)))]
-                ;(prn "rng-t" rng-t)
-                (if rng-t
-                  (assoc-in t2 [:types 0 :rng :t] rng-t)
-                  t2))
-              :else t2))
+            (cgen/eliminate-infer-any t1 t2))
           (choose-result-filter [f1 f2]
             {:pre [(fl/Filter? f1)
                    (fl/Filter? f2)]
@@ -216,6 +199,5 @@
   {:pre [(r/TCResult? tr1)
          ((some-fn nil? r/TCResult?) expected)]
    :post [(r/TCResult? %)]}
-  (if expected
-    (check-below tr1 expected)
-    tr1))
+  (cond-> tr1
+    expected (check-below expected)))

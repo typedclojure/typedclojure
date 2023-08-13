@@ -126,7 +126,8 @@
                 (contains? (:opts expected) :blame-form) (-> expected :opts :blame-form)
                 (contains? opt :blame-form) (:blame-form opt)
                 (contains? opt :form) form
-                :else (ast-u/emit-form-fn uvs/*current-expr*))
+                :else (or (some-> uvs/*current-expr* ast-u/emit-form-fn)
+                          '<NO-FORM>))
          msg (str (when-some [msg-fn (some-> (or (-> expected :opts :msg-fn)
                                                  (:msg-fn opt))
                                              eval)]

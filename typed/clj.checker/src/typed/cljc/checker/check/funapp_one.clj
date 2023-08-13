@@ -67,10 +67,10 @@
                                  " and arguments " (pr-str (mapv (comp prs/unparse-type r/ret-t) argtys)))))
       (cond
         ; case for regular rest argument, or no rest parameter
-        (or rest (empty? (remove nil? [rest drest kws prest])))
+        (or rest (every? nil? [rest drest kws prest]))
         (doseq [[arg-t dom-t] (map vector
                                    (map r/ret-t argtys)
-                                   (concat dom (when rest (repeat rest))))]
+                                   (concat dom (some-> rest repeat)))]
           (below/check-below arg-t dom-t))
 
         ; case for mandatory or optional keyword arguments

@@ -64,7 +64,7 @@
 (def -infer-any (with-meta -any {::t/infer true}))
 
 (defn infer-any? [t]
-  (and (= -infer-any t)
+  (and (instance? Top t)
        (boolean (-> t meta ::t/infer))))
 
 (u/ann-record Unchecked [vsym :- (t/U nil t/Sym)])
@@ -911,13 +911,12 @@
   :methods
   [p/TCType])
 
-(t/ann make-CountRange (t/IFn [Number -> CountRange]
-                           [Number (t/U nil Number) -> CountRange]))
+(t/ann make-CountRange [Number (t/U nil Number) :? -> CountRange])
 (defn make-CountRange
   ([lower] (make-CountRange lower nil))
   ([lower upper] (CountRange-maker lower upper)))
 
-(t/ann make-ExactCountRange (t/IFn [Number -> CountRange]))
+(t/ann make-ExactCountRange [Number -> CountRange])
 (defn make-ExactCountRange [c]
   {:pre [(nat-int? c)]}
   (make-CountRange c c))

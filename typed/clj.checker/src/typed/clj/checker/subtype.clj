@@ -307,13 +307,16 @@
          (r/SymbolicClosure? s)
          (r/AnyType? t)]
    :post [((some-fn nil? set?) %)]}
+  ;(prn :subtype-symbolic-closure s t)
   (with-bindings (assoc (:bindings s)
                         #'vs/*delayed-errors* (err/-init-delayed-errors))
     (when (try (binding [*sub-current-seen* A]
                  (chk/check-expr (:fexpr s) (r/ret t)))
                (catch clojure.lang.ExceptionInfo e
+                 ;(prn e) ;;tmp
                  (when-not (-> e ex-data err/tc-error?)
                    (throw e))))
+      ;(prn @vs/*delayed-errors*) ;;tmp
       (when (empty? @vs/*delayed-errors*)
         A))))
 
@@ -324,6 +327,7 @@
   {:pre [(r/SymbolicClosure? s)
          (r/AnyType? t)]
    :post [(-> % u/expr-type r/TCResult?)]}
+  ;(prn :check-symbolic-closure s t)
   (with-bindings (dissoc (:bindings s)
                          ;; hmm, additional error msg context needed to orient the user
                          ;; to the problem? symbolic closure will be blamed
@@ -387,6 +391,12 @@
              (r/Value? t))
         ;already (not= s t)
         (report-not-subtypes s t)
+
+        ;; handle before unwrapping polymorphic types
+        (and (r/SymbolicClosure? s)
+             ((some-fn r/FnIntersection? r/Poly? r/PolyDots?) (c/fully-resolve-type t)))
+        (or (subtype-symbolic-closure A s t)
+            (report-not-subtypes s t))
 
         (and (r/Poly? s)
              (r/Poly? t)
@@ -511,11 +521,6 @@
               (if-let [A (supertype-of-one-arr A* (first arr2) arr1)]
                 (recur A (next arr2))
                 (report-not-subtypes s t)))))
-
-        (and (r/SymbolicClosure? s)
-             ((some-fn r/FnIntersection? r/Poly? r/PolyDots?) t))
-        (or (subtype-symbolic-closure A s t)
-            (report-not-subtypes s t))
 
 ;does it matter what order the Intersection cases are?
         (r/Intersection? t)

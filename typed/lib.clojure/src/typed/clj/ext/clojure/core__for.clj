@@ -38,7 +38,7 @@
 
 (defn ^:private -seqable-elem-query []
   (prs/parse-type
-    `(t/All [a#] [(t/U nil (t/Seqable a#)) :-> a#])))
+    `(t/All [a#] [(t/Seqable a#) :-> a#])))
 
 (defn check-list-comprehension-binder
   [{:keys [form args-syn ana-env prop-env]}]

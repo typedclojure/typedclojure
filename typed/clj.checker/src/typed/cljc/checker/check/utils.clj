@@ -79,8 +79,7 @@
   {:pre [(r/Type? actual)
          (r/TCResult? expected)]}
   (prs/with-unparse-ns (or prs/*unparse-type-in-ns*
-                           (when vs/*current-expr*
-                             (expr-ns vs/*current-expr*)))
+                           (some-> vs/*current-expr* expr-ns))
     (apply err/tc-delayed-error (str "Type mismatch:"
                                      "\n\nExpected: \t" (pr-str (prs/unparse-type (:t expected)))
                                      "\n\nActual: \t" (pr-str (prs/unparse-type actual)))

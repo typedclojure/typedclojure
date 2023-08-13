@@ -8,8 +8,6 @@
 
 (ns clojure.core.typed.util-vars)
 
-(defonce ^:no-doc registered-ann-ns (atom {:register? false :namespaces #{}}))
-
 (defonce ^:no-doc ^:dynamic *current-env* nil)
 (defonce ^:no-doc ^:dynamic *current-expr* nil)
 (defonce ^:no-doc ^:dynamic *in-check-form* nil)

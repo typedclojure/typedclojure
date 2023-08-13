@@ -1159,10 +1159,10 @@
 (defn Poly* [names bbnds body & {:keys [original-names named]
                                  :or {original-names 
                                       (map (comp r/F-original-name r/make-F) names)}}]
-  {:pre [(every? symbol names)
+  {:pre [(every? simple-symbol? names)
          (every? r/Bounds? bbnds)
          (r/Type? body)
-         (every? symbol? original-names)
+         (every? simple-symbol? original-names)
          (apply = (map count [names bbnds original-names]))
          ((some-fn nil? map?) named)]}
   (if (empty? names)
@@ -2889,3 +2889,8 @@
                              (update :t type-rec)
                              (update :fl filter-rec)
                              (update :o object-rec))))
+
+(add-default-fold-case MergeType
+                       (fn [ty]
+                         (-> ty
+                             (update :types #(mapv type-rec %)))))
