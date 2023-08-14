@@ -37,7 +37,7 @@
    :math-combinatorics-mvn-version "0.2.0"
    :tools-reader-mvn-version "1.3.6"
    :core-cache-mvn-version "1.0.225"
-   :core-async-mvn-version "1.6.673"
+   :core-async-mvn-version "1.6.681"
    ;; FIXME clj.checker fails on higher
    :tools-nrepl-mvn-version "0.2.6"
    :test-check-mvn-version "1.1.1"
