@@ -7,14 +7,14 @@ Automatic annotator for Typed Clojure and clojure.spec annotations, for JVM Cloj
 
 ## Releases and Dependency Information
 
-Latest stable release is 1.1.0.
+Latest stable release is 1.1.1.
 
 * [All Released Versions](https://clojars.org/org.typedclojure/typed.clj.annotator)
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) JAR dependency information:
 
 ```clj
-  org.typedclojure/typed.clj.annotator {:mvn/version "1.1.0"}
+  org.typedclojure/typed.clj.annotator {:mvn/version "1.1.1"}
  ```
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) Git dependency information:
@@ -25,13 +25,13 @@ Latest stable release is 1.1.0.
   org.typedclojure/typed.clj.annotator
   {:git/url "https://github.com/typedclojure/typedclojure"
    :deps/root "typed/clj.annotator"
-   :tag "1.1.0"}
+   :tag "1.1.1"}
 ```
 
 [Leiningen](https://github.com/technomancy/leiningen) dependency information:
 
 ```clojure
-[org.typedclojure/typed.clj.annotator "1.1.0"]
+[org.typedclojure/typed.clj.annotator "1.1.1"]
 ```
 
 [Maven](https://maven.apache.org/) dependency information:
@@ -40,7 +40,7 @@ Latest stable release is 1.1.0.
 <dependency>
   <groupId>org.typedclojure</groupId>
   <artifactId>typed.clj.annotator</artifactId>
-  <version>1.1.0</version>
+  <version>1.1.1</version>
 </dependency>
 ```
 

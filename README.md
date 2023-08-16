@@ -31,8 +31,8 @@ time, and the runtime dependencies in production.
 In Clojure CLI's `deps.edn`, this will look something like this:
 
 ```clojure
-{:deps {org.typedclojure/typed.clj.runtime {:mvn/version "1.1.0"}}
- :aliases {:dev {:extra-deps {org.typedclojure/typed.clj.checker {:mvn/version "1.1.0"}}}}}
+{:deps {org.typedclojure/typed.clj.runtime {:mvn/version "1.1.1"}}
+ :aliases {:dev {:extra-deps {org.typedclojure/typed.clj.checker {:mvn/version "1.1.1"}}}}}
 ```
 
 You can then start a dev repl with `clj -A:dev`.
@@ -41,8 +41,8 @@ In Leiningen's `project.clj`, it will look something like this:
 
 ```clojure
 (defproject com.my-domain/a-project "1.0.0-SNAPSHOT"
-  :dependencies [[org.typedclojure/typed.clj.runtime "1.1.0"]]
-  :profiles {:dev {:dependencies [[org.typedclojure/typed.clj.checker "1.1.0"]]}})
+  :dependencies [[org.typedclojure/typed.clj.runtime "1.1.1"]]
+  :profiles {:dev {:dependencies [[org.typedclojure/typed.clj.checker "1.1.1"]]}})
 ```
 
 Then, `lein repl` will automatically activate the `:dev` profile. Verify the type
@@ -61,7 +61,7 @@ For ClojureScript support, use `org.typedclojure/typed.cljs.runtime` and `org.ty
 
 ## Releases and Dependency Information
 
-Latest stable release is 1.1.0.
+Latest stable release is 1.1.1.
 
 See modules for specific version coordinates:
 

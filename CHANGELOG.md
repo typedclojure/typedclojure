@@ -1,3 +1,8 @@
+# 1.1.1 (2023/08/16)
+
+- infer `(typed.clojure/fn ...)` as symbolic closure if unannotated
+- add [symbolic execution guide](example-projects/symbolic-guide/README.md)
+
 # 1.1.0 (2023/08/16)
 
 - require expected type for `defmulti`
