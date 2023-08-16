@@ -10,4 +10,4 @@ Run `./script/repl` to start an nREPL server.
 
 Connect with your editor.
 
-Navigate to [`test/typed_example/symbolic_test.clj`](test/typed_example/symbolic_test.clj) to follow along.
+Navigate to [`test/typed_example/symbolic_guide.clj`](test/typed_example/symbolic_guide.clj) to follow along.

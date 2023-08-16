@@ -90,18 +90,41 @@
   (is-tc-e (let [f (identity #(do %))]
              (inc (f 1))
              (subs (f "a") 0)))
+  ;; Some juggling:
   (is-tc-e (let [f (->> #(do %) (repeat 10) identity (map #(do %)) rand-nth)]
              (inc (f 1))
              (subs (f "a") 0)))
-
-  ;; Function-returning functions can themselves be checked symbolically if 
-  (is-tc-e   (map #(inc %)))
-  (is-tc-e   (map #(inc %)) (t/Transducer t/Int t/Int))
-  (is-tc-err (map #(inc %)) (t/Transducer t/Bool t/Int))
+  ;; Transducers:
   (is-tc-e   (let [xf (map #(inc %))]
                (into [] xf [1])))
   (is-tc-e   (let [f #(inc %)]
                (into [] (map f) [1])))
+
+  ;; Function-returning functions can themselves be checked symbolically if they do not
+  ;; provide sufficient type information to an anonymous function.
+  ;; 
+  ;; Here, the anonymous function is not type checked.
+  (is-tc-e   (map #(inc %)))
+  (is-tc-e   (map #(inc (t/ann-form % t/Nothing)))) ;; proves the body is not checked
+  ;; How can we be so confident the function is unreachable? The type of `map` can
+  ;; be instantiated like so:
+  ;;
+  ;;    map : [[t/Nothing :-> t/Any] :-> (t/Transducer t/Nothing t/Any)]
+  ;;
+  ;; This tells us that `map` cannot call its function argument, since t/Nothing is an unreachable type.
+  ;;
+  ;; When an expected type is provided, we can no longer be so optimistic.
+  ;; The anonymous function now much accept the same type as the "in" of (t/Transducer in out).
+  (is-tc-e   (map #(inc %)) (t/Transducer t/Int t/Int))
+  (is-tc-err (map #(inc %)) (t/Transducer t/Bool t/Int))
+
+  ;; We're using clojure.core functions above, but there's nothing special about them.
+  ;; Only their _types_ are used for inference---you can make your own higher-order functions
+  ;; and they will infer exactly the same as the core functions.
+  (is-tc-e   (fn [my-map :- (t/All [a c] [[a :-> c] :-> (t/Transducer a c)])]
+               (into [] (my-map #(inc %)) [1])))
+  (is-tc-err (fn [my-map :- (t/All [a c] [[a :-> c] :-> (t/Transducer a c)])]
+               (into [] (my-map #(inc %)) [true])))
 
   ;; If you are having trouble identifying why a symbolic closure fails to type check,
   ;; try annotating the function's arguments to localize the error message.
@@ -122,4 +145,7 @@
                                       (fn [g] (fn [x] (f (g g) x)))))]
                              (let [compute (Y (fn [f x] (+ 1 (f x))))]
                                (compute 1))))))
+
+  ;; Note that symbolic closures are not created for thunks, since they can be checked immediately.
+  (is-tc-err #(identity nil nil))
   )
