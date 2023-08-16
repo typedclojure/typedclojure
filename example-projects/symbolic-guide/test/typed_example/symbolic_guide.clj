@@ -43,7 +43,6 @@
   (is-tc-e #(inc (t/ann-form % t/Nothing)))
   ;; This means you can have garbage in your function body, and it will type check.
   (is-tc-e #(identity (inc nil) % % %))
-  (is-tc-e #(identity (inc nil) % % %))
   ;; When the function body is reachable, a more realistic type will be used to check.
   ;; 
   ;; Here are some common ways this can happen:
