@@ -105,7 +105,7 @@ jobs:
          }}
     steps:
       - uses: actions/checkout@v3
-      - uses: turtlequeue/setup-babashka@83e81711f784e0dcb593e53b642fc9850067f234
+      - uses: turtlequeue/setup-babashka@1e886ef84f68692d42c5128245ac83e7dd38ce70
         with:
           babashka-version: ${{env.BABASHKA_VERSION}}
       - run: bb --version
