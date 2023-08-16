@@ -45,20 +45,18 @@
            [t/Any :-> t/Bool
             :filters {:then (| (is t/Sym 0)
                                (is t/Kw 0))}])
-  (let [t (r/ret-t
-            (tc-e (fn [a]
-                    (or (symbol? a)
-                        (qualified-keyword? a)))))]
-    (is (both-subtype?
-          t
-          (prs/parse-clj `[t/Any :-> t/Bool
-                           :filters {:then (~'is (t/U t/Sym t/Kw) 0)
-                                     :else (~'! t/Sym 0)}])))
-    (is (not (both-subtype?
-               t
-               (prs/parse-clj `[t/Any :-> t/Bool
-                                :filters {:then (~'is t/Kw 0)
-                                          :else (~'! t/Sym 0)}])))))
+  (is-tc-e (fn [a]
+             (or (symbol? a)
+                 (qualified-keyword? a)))
+           [t/Any :-> t/Bool
+            :filters {:then (is (t/U t/Sym t/Kw) 0)
+                      :else (! t/Sym 0)}])
+  (is-tc-err (fn [a]
+               (or (symbol? a)
+                   (qualified-keyword? a)))
+             [t/Any :-> t/Bool
+              :filters {:then (is t/Kw 0)
+                        :else (! t/Sym 0)}])
   (is-tc-e (fn [a]
              (or (symbol? a)
                  (qualified-keyword? a)))
