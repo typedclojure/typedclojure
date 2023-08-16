@@ -114,7 +114,7 @@
   ;; This tells us that `map` cannot call its function argument, since t/Nothing is an unreachable type.
   ;;
   ;; When an expected type is provided, we can no longer be so optimistic.
-  ;; The anonymous function now much accept the same type as the "in" of (t/Transducer in out).
+  ;; The anonymous function now must accept the same type as the "in" of (t/Transducer in out).
   (is-tc-e   (map #(inc %)) (t/Transducer t/Int t/Int))
   (is-tc-err (map #(inc %)) (t/Transducer t/Bool t/Int))
 
