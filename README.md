@@ -57,6 +57,7 @@ For ClojureScript support, use `org.typedclojure/typed.cljs.runtime` and `org.ty
 - [malli-type-providers](example-projects/malli-type-providers) demonstrates how to statically type check using malli schemas
 - [spec1-type-providers](example-projects/spec1-type-providers) demonstrates how to statically type check using spec1 specs
 - [zero-deps](example-projects/zero-deps) demonstrates how to type check a library without introducing any runtime dependency on Typed Clojure (only dev-time).
+- [symbolic-guide](example-projects/symbolic-guide) shows how to reason about symbolic execution in Typed Clojure.
 
 ## Releases and Dependency Information
 
