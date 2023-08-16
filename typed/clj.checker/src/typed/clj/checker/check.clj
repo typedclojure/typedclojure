@@ -1568,9 +1568,8 @@
   [{:keys [env] :as expr} expected]
   {:pre [((some-fn nil? r/TCResult?) expected)]
    :post [(-> % u/expr-type r/TCResult?)
-          (if (= :fn (:op %))
-            (vector? (:methods %))
-            true)]}
+          (or (not= :fn (:op %))
+              (vector? (:methods %)))]}
   ;(prn "check :fn" expected)
   (or #_(when vs/*custom-expansions*
         ;; try to beta-expand
@@ -1620,9 +1619,7 @@
           (fn/check-fn expr expected)
           (if (and r/enable-symbolic-closures?
                    ;; check thunks eagerly
-                   (some (some-fn :variadic?
-                                  (comp pos? :fixed-arity))
-                         (:methods expr)))
+                   (not (special-fn/thunk-fn-expr? expr)))
             (assoc expr u/expr-type (r/ret (r/symbolic-closure expr)))
             (special-fn/check-core-fn-no-expected check-expr expr))))))
 

@@ -1948,7 +1948,7 @@
          (r/AnyType? R)
          ((some-fn nil? :op) expr)]
    :post [((some-fn cr/cset? r/SymbolicClosure?) %)]}
-  (prn :cs-gen-list+symbolic symbolic-closure-fixed-args)
+  ;(prn :cs-gen-list+symbolic symbolic-closure-fixed-args)
   (when-not (= (count S) (count T))
     (fail! S T))
   (let [cs-gen-args #(cs-gen-list #{} X Y % T :expected-cset expected-cset)]

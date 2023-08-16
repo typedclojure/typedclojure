@@ -14,6 +14,7 @@
             [typed.cljc.checker.check.fn :as fn]
             [typed.cljc.checker.check.fn-method-one :as fn-method-one]
             [typed.cljc.checker.check.fn-methods :as fn-methods]
+            [typed.cljc.checker.check :refer [check-expr]]
             [typed.cljc.checker.check.utils :as cu]
             [typed.cljc.checker.dvar-env :as dvar]
             [typed.cljc.checker.filter-ops :as fo]
@@ -203,6 +204,13 @@
         flat-expecteds
         nil))))
 
+(defn thunk-fn-expr? [expr]
+  {:pre [(= :fn (:op expr))]
+   :post [(boolean? %)]}
+  (not-any? (some-fn :variadic?
+                     (comp pos? :fixed-arity))
+            (:methods expr)))
+
 (defn check-special-fn*
   [expr fn-anns poly expected]
   (binding [prs/*parse-type-in-ns* (cu/expr-ns expr)]
@@ -226,18 +234,25 @@
           ;_ (prn "flat-expecteds" flat-expecteds)
           _ (assert ((some-fn nil? vector?) poly))
 
-          good-expected? (fn [expected]
-                           {:pre [((some-fn nil? r/TCResult?) expected)]
-                            :post [(boolean? %)]}
-                           (boolean
-                             (when expected
-                               (seq (fn-methods/function-types (r/ret-t expected))))))]
-      ;; If we have an unannotated fn macro and a good expected type, use the expected
-      ;; type via check-fn, otherwise check against the expected type after a call to check-anon.
-      (if (and (all-defaults? fn-anns poly)
-               (good-expected? expected))
-        (do ;(prn "using check-fn")
-            (fn/check-fn expr expected))
+          no-annotations? (all-defaults? fn-anns poly)
+          sym-clos-candidate? (and r/enable-symbolic-closures?
+                                   (not expected)
+                                   ;; check thunks eagerly
+                                   (not (thunk-fn-expr? expr)))
+          useful-expected-type? (boolean
+                                  (when expected
+                                    (fn-methods/function-types (r/ret-t expected))))]
+      (cond
+        ;; don't need to check anything, return a symbolic closure
+        (and no-annotations? sym-clos-candidate?)
+        (assoc expr u/expr-type (r/ret (r/symbolic-closure expr)))
+
+        ;; If we have an unannotated fn macro and a good expected type, use the expected type via check-fn
+        (and no-annotations? useful-expected-type?)
+        (fn/check-fn expr expected)
+
+        ;; otherwise check against the expected type after a call to check-anon.
+        :else
         (let [;_ (prn "using anon-fn")
               cexpr (lex/with-locals (when self-name
                                        (let [this-type (self-type flat-expecteds)

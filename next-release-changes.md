@@ -1,0 +1,1 @@
+- infer `(typed.clojure/fn ...)` as symbolic closure if unannotated

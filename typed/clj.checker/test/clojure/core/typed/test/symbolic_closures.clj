@@ -7,6 +7,10 @@
 (deftest symbolic-closure-test
   ;; thunks always checked
   (is-tc-err #(identity))
+  (is-tc-err (t/fn [] (identity)))
+  (is-tc-err (fn [] (identity)))
+  (is-tc-err (clojure.core.typed/fn [] (identity)))
+  (is-tc-err (typed.clojure/fn [] (identity)))
   (is-tc-err (core/fn [] (identity)))
   (is-tc-err (fn* [] (identity)))
   (is-tc-err (let [f #(identity)]))
@@ -18,13 +22,24 @@
   (is-tc-e (let [f (fn* [x] x)]
              (f 1))
            t/Int)
+  (is-tc-e (let [f (t/fn [x] x)]
+             (f 1))
+           t/Int)
   (is-tc-e (let [f (core/fn [x] x)]
+             (f 1)))
+  (is-tc-e (let [f (t/fn [x] x)]
              (f 1)))
   #_ ;;FIXME
   (is-tc-e (let [f (t/fn [x] x)]
              (f 1))
            t/Int)
   (is-tc-err (let [f (fn* [x] x)]
+               (f 1))
+             t/Bool)
+  (is-tc-err (let [f (t/fn [x] x)]
+               (f 1))
+             t/Bool)
+  (is-tc-err (let [f (t/fn [x] x)]
                (f 1))
              t/Bool)
   (is-tc-e (let [f (t/ann-form
