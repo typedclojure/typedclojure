@@ -1,1 +1,2 @@
 - infer `(typed.clojure/fn ...)` as symbolic closure if unannotated
+- add [symbolic execution guide](example-projects/symbolic-guide/README.md)
