@@ -250,7 +250,7 @@
          (ret -nil (-FS -bot -top) (EmptyObject-maker)))))
 
 (deftest path-test
-  (is-clj (= (tc-t (fn [a] (let [a 1] a)))
+  (is-clj (= (tc-t (fn [a :- t/Any] (let [a 1] a)))
              (ret (make-FnIntersection
                     (Function-maker [-any]
                                     (make-Result (-val 1)
