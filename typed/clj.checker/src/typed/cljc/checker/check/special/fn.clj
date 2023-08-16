@@ -241,7 +241,7 @@
                                    (not (thunk-fn-expr? expr)))
           useful-expected-type? (boolean
                                   (when expected
-                                    (fn-methods/function-types (r/ret-t expected))))]
+                                    (seq (fn-methods/function-types (r/ret-t expected)))))]
       (cond
         ;; don't need to check anything, return a symbolic closure
         (and no-annotations? sym-clos-candidate?)
