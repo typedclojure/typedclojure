@@ -45,15 +45,17 @@
            [t/Any :-> t/Bool
             :filters {:then (| (is t/Sym 0)
                                (is t/Kw 0))}])
-  (is-tc-e (fn [a]
-             (or (symbol? a)
-                 (qualified-keyword? a)))
+  (is-tc-e (let [f (fn [a]
+                     (or (symbol? a)
+                         (qualified-keyword? a)))]
+             f)
            [t/Any :-> t/Bool
             :filters {:then (is (t/U t/Sym t/Kw) 0)
                       :else (! t/Sym 0)}])
-  (is-tc-err (fn [a]
-               (or (symbol? a)
-                   (qualified-keyword? a)))
+  (is-tc-err (let [f (fn [a]
+                       (or (symbol? a)
+                           (qualified-keyword? a)))]
+               f)
              [t/Any :-> t/Bool
               :filters {:then (is t/Kw 0)
                         :else (! t/Sym 0)}])
