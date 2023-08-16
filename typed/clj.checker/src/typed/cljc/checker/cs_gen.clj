@@ -2040,7 +2040,7 @@
                                    :expected-cset expected-cset)
                       (move-vars-to-dmap dotted-var new-vars))
         expected-cset+dotted (cset-meet expected-cset cs-dotted)
-        _ (prn :expected-cset+dotted expected-cset+dotted)
+        ;_ (prn :expected-cset+dotted expected-cset+dotted)
         cs (cs-gen-list+symbolic short-symbolic-closure-fixed-args
                                  X {dotted-var dotted-bnd} short-S T R expected
                                  expected-cset+dotted expr)]
