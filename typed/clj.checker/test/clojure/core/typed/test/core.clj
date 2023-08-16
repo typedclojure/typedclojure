@@ -1147,7 +1147,7 @@
 
 (deftest flow-assert-test
   (is-clj (subtype?
-            (ety (fn [a]
+            (ety (fn [a :- t/Any]
                    {:pre [(integer? a)]}
                    a))
             (parse-type `[t/Any :-> t/AnyInteger])))
@@ -1158,7 +1158,7 @@
             (parse-type `t/AnyInteger)))
   ;postconditions
   (is-clj (subtype?
-            (ety (fn [a]
+            (ety (fn [a :- t/Any]
                    {:post [(vector? %)]}
                    a))
             (parse-type `[t/Any :-> (t/Vec t/Any)]))))
