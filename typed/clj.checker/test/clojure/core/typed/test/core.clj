@@ -3955,7 +3955,7 @@
   )
 
 (deftest rewrite-reflecting-method-test
-  (is-tc-err (fn [a] (.getParent a)))
+  (is-tc-err (fn [a :- t/Any] (.getParent a)))
   (is
     (should-not-reflect
       (tc-e 
@@ -4005,7 +4005,7 @@
 
 (deftest rewrite-reflecting-ctor-test
   (is-tc-err #(java.io.File. 1))
-  (is-tc-err (fn [a]
+  (is-tc-err (fn [a :- t/Any]
                (java.io.File. a)))
   (is
     (should-not-reflect
