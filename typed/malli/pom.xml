@@ -6,7 +6,7 @@
   <artifactId>typed.malli</artifactId>
   <description>Malli integration</description>
   <name>typed.malli</name>
-  <version>1.1.1</version>
+  <version>1.1.2-SNAPSHOT</version>
 
   <licenses>
     <license>
@@ -19,7 +19,7 @@
   <parent>
     <groupId>org.typedclojure</groupId>
     <artifactId>pom.typed</artifactId>
-    <version>1.1.1</version>
+    <version>1.1.2-SNAPSHOT</version>
     <relativePath>../..</relativePath>
   </parent>
 
