@@ -125,6 +125,10 @@
   (is-tc-err (fn [my-map :- (t/All [a c] [[a :-> c] :-> (t/Transducer a c)])]
                (into [] (my-map #(inc %)) [true])))
 
+  ;; Error messages involving symbolic closures passed to polymorphic functions are problematic
+  ;; since it is not obvious who exactly to blame for the error (the symbolic closure's body,
+  ;; or the arguments to the polymorphic function?).
+  ;;
   ;; If you are having trouble identifying why a symbolic closure fails to type check,
   ;; try annotating the function's arguments to localize the error message.
   (is-tc-err (map (fn [a]           (inc a)) [true])) ;; not much information is given.
@@ -134,7 +138,7 @@
   ;; is that this is preferable to writing annotations.
   ;;
   ;; If you get stackoverflow errors, try annotating some functions or simply wrapping
-  ;; the problematic code with `t/tc-ignore.
+  ;; the problematic code with `t/tc-ignore`.
   ;;
   ;; For example, here's a Y-combinator encoding of an infinite loop---which the type
   ;; checker follows indefinitely.
