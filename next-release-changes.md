@@ -16,6 +16,7 @@
 - annotate `keyword` 1-arity to accept a var
 - annotate clojure.core vars: `iteration`, `partitionv`, `parse-{uuid,boolean,double,long}`, `update-{keys,vals}`, `abs`, `NaN?`, `infinite?`, `*repl*`, `replace`,
   `partition-by`, `cat`, `dedupe`, `random-sample`, `eduction`, `tagged-literal{?}`, `reader-conditional{?}`, `unreduced`, `halt-when`, `ensure-reduced`, `completing`,
-  `transduce`
+  `transduce`, `sorted-map-by`, `rational?`, `float?`, `{r}subseq`
 - clojure.math annotations
 - annotate 12 arities of `comp`
+- add type parameter to clojure.lang.Sorted

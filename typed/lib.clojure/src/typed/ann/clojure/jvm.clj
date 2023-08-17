@@ -41,6 +41,13 @@ ISeq [[[a :variance :covariant]]
       {Seqable (Seqable a)
        IPersistentCollection (IPersistentCollection a)}]
 
+;TODO 
+;clojure.core.Vec [[a :variance :invariant]
+;                  ]
+
+;; seqFrom method is [(Sorted a) t/Bool :-> (ASeq a)]
+clojure.lang.Sorted [[[a :variance :covariant]]]
+
 clojure.lang.ChunkBuffer [[[a :variance :invariant]]]
 
 clojure.lang.IChunkedSeq [[[a :variance :covariant]]

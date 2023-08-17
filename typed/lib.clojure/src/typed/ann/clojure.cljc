@@ -556,7 +556,7 @@
     :forms '[(t/Sorted x)]}
   t/Sorted
   (t/TFn [[x :variance :covariant]]
-         #?(:clj clojure.lang.Sorted
+         #?(:clj (clojure.lang.Sorted x)
             :cljs (cljs.core/ISorted x))))
 
 (t/defalias
@@ -1123,9 +1123,10 @@ cc/hash-set (t/All [x] [x :* :-> #?(:cljs (t/Set x)
 cc/hash-map (t/All [x y] [(t/HSequential [x y] :repeat true) <* :-> (t/Map x y)])
 cc/array-map (t/All [x y] [(t/HSequential [x y] :repeat true) <* :-> (t/Map x y)])
 cc/sorted-map (t/All [x y] [(t/HSequential [x y] :repeat true) <* :-> (t/Map x y)])
+cc/sorted-map-by (t/All [x y] [[x x :-> t/Int] (t/HSequential [x y] :repeat true) <* :-> (t/Map x y)])
 cc/sorted-set (t/All [x] [x :* :-> #?(:cljs (t/SortedSet x)
                                      :default (PersistentTreeSet x))])
-cc/sorted-set-by (t/All [x] [[x x :-> t/AnyInteger] x :* :-> #?(:cljs (t/Set x)
+cc/sorted-set-by (t/All [x] [[x x :-> t/Int] x :* :-> #?(:cljs (t/Set x)
                                                               :default (PersistentTreeSet x))])
 cc/list (t/All [x] [x :* :-> (#?(:clj PersistentList :cljs t/List) x)])
 cc/list* (t/All [x] (t/IFn [(t/Seqable x) :-> (t/NilableNonEmptyASeq x)]
@@ -1418,7 +1419,7 @@ cc/symbol? (t/Pred t/Sym)
 cc/keyword? (t/Pred t/Keyword)
 cc/map? (t/Pred (t/Map t/Any t/Any))
 cc/boolean? (t/Pred t/Bool)
-cc/any? (t/Pred t/Any)
+cc/any? [t/Any :-> true]
 
 ; would be nice
 ; (t/Pred (t/Not nil))
@@ -1998,6 +1999,7 @@ cc/keyword-identical? [t/Any t/Any :-> t/Bool]
 cc/distinct? [t/Any :+ :-> t/Bool]
 
 #?@(:cljs [] :default [
+cc/rational? (t/Pred (t/U t/Int clojure.lang.Ratio BigDecimal))
 cc/decimal? (t/Pred BigDecimal)
 cc/denominator [clojure.lang.Ratio :-> t/Num]
 ])
@@ -2054,6 +2056,8 @@ cc/nat-int? [t/Any :-> t/Bool
 cc/number? (t/Pred t/Num)
 cc/double? (t/Pred #?(:clj Double
                       :cljs t/Num))
+cc/float? (t/Pred #?(:clj (t/U Double Float)
+                     :cljs t/Num))
 cc/ident? (t/Pred t/Ident)
 cc/simple-ident? [t/Any :-> t/Bool :filters {:then (is t/Ident 0)}]
 cc/qualified-ident? [t/Any :-> t/Bool :filters {:then (is t/Ident 0)}]
@@ -2237,6 +2241,10 @@ cc/instance? [#?(:clj Class :cljs js/Object) t/Any :-> t/Bool]
 cc/cons (t/All [x] [x (t/Seqable x) :-> (t/ASeq x)])
 cc/reverse (t/All [x] [(t/Seqable x) :-> (t/ASeq x)])
 cc/rseq (t/All [x] [(t/Reversible x) :-> (t/NilableNonEmptyASeq x)])
+cc/subseq (t/All [x] (t/IFn [(t/Sorted x) [t/Int t/Int :-> t/Bool] t/Int :-> (t/Nilable (t/ASeq x))]
+                            [(t/Sorted x) [t/Int t/Int :-> t/Bool] t/Int t/Int t/Int t/Int :-> (t/Nilable (t/ASeq x))]))
+cc/rsubseq (t/All [x] (t/IFn [(t/Sorted x) [t/Int t/Int :-> t/Bool] t/Int :-> (t/Nilable (t/ASeq x))]
+                             [(t/Sorted x) [t/Int t/Int :-> t/Bool] t/Int t/Int t/Int t/Int :-> (t/Nilable (t/ASeq x))]))
 
 ;coercions
 #?@(:cljs [] :default [
