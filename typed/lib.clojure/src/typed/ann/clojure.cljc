@@ -1765,7 +1765,7 @@ cc/keep-indexed (t/All [a c] (t/IFn [[t/Int a :-> (t/U nil c)] :-> (t/Transducer
                                     [[t/Int a :-> (t/U nil c)] (t/Seqable a) :-> (t/Seq c)]))
 cc/bounded-count [(t/U t/Counted (t/Seqable t/Any)) :-> t/Int]
 cc/keep (t/All [a b] (t/IFn [[a :-> (t/Option b)] :-> (t/Transducer a b)]
-                            [[a :-> (t/Option b)] (t/Coll a) :-> (t/ASeq b)]))
+                            [[a :-> (t/Option b)] (t/Seqable a) :-> (t/ASeq b)]))
 
 cc/seqable? (t/Pred (t/Seqable t/Any))
 cc/indexed? (t/Pred (t/Indexed t/Any))

@@ -11,3 +11,4 @@
 - annotate transducers for `filter`, `remove`, `{take,drop}-while`, `partition-all`, `distinct`,
   `interpose`, `{map,keep}-indexed`, 
 - return non-empty seq types in core annotations if infinite or known non-empty
+- `keep` accepts `Seqable`, not just `Coll`
