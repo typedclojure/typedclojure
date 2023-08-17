@@ -2142,11 +2142,12 @@ cc/shutdown-agents [:-> t/Any]
 ])
 
 cc/take (t/All [x] (t/IFn [t/Int :-> (t/Transducer x x)]
-                          [t/AnyInteger (t/Nilable (t/Seqable x)) :-> (t/ASeq x)]))
+                          [t/Int (t/Seqable x) :-> (t/ASeq x)]))
 cc/drop (t/All [x] (t/IFn [t/Int :-> (t/Transducer x x)]
-                          [t/AnyInteger (t/Nilable (t/Seqable x)) :-> (t/ASeq x)]))
-cc/take-last (t/All [x] [t/AnyInteger (t/Nilable (t/Seqable x)) :-> (t/NilableNonEmptyASeq x)])
-cc/drop-last (t/All [x] [t/AnyInteger (t/Nilable (t/Seqable x)) :-> (t/ASeq x)])
+                          [t/Int (t/Seqable x) :-> (t/ASeq x)]))
+cc/take-last (t/All [x] [t/Int (t/Seqable x) :-> (t/NilableNonEmptyASeq x)])
+cc/drop-last (t/All [x] (t/IFn [(t/Seqable x) :-> (t/ASeq x)]
+                               [t/Int (t/Seqable x) :-> (t/ASeq x)]))
 
 cc/hash [t/Any :-> t/AnyInteger]
 cc/hash-combine [t/AnyInteger t/Any :-> t/AnyInteger]

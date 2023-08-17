@@ -12,3 +12,4 @@
   `interpose`, `{map,keep}-indexed`, 
 - return non-empty seq types in core annotations if infinite or known non-empty
 - `keep` accepts `Seqable`, not just `Coll`
+- annotate 1-arity of `drop-last`
