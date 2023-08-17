@@ -974,6 +974,9 @@ cc/complement (t/All [x] [[x :-> t/Any] :-> [x :-> t/Bool]])
 cc/boolean [t/Any :-> t/Bool]
 
 cc/filter (t/All [x y] (t/IFn
+                         [[x :-> t/Any :filters {:then (is y 0)}] :-> (t/Transducer x y)]
+                         [[x :-> t/Any :filters {:then (! y 0)}] :-> (t/Transducer x (t/I x (t/Not y)))]
+                         [[x :-> t/Any] :-> (t/Transducer x x)]
                          [[x :-> t/Any :filters {:then (is y 0)}] (t/Seqable x) :-> (t/ASeq y)]
                          [[x :-> t/Any :filters {:then (! y 0)}] (t/Seqable x) :-> (t/ASeq (t/I x (t/Not y)))]
                          [[x :-> t/Any] (t/Seqable x) :-> (t/ASeq x)]))
@@ -981,29 +984,35 @@ cc/filterv (t/All [x y] (t/IFn
                           [[x :-> t/Any :filters {:then (is y 0)}] (t/Seqable x) :-> (t/AVec y)]
                           [[x :-> t/Any] (t/Seqable x) :-> (t/AVec x)]))
 cc/remove (t/All [x y] (t/IFn
+                         [[x :-> t/Any :filters {:else (is y 0)}] :-> (t/Transducer x y)]
+                         [[x :-> t/Any :filters {:else (! y 0)}] :-> (t/Transducer x (t/I x (t/Not y)))]
+                         [[x :-> t/Any] :-> (t/Transducer x x)]
                          [[x :-> t/Any :filters {:else (is y 0)}] (t/Seqable x) :-> (t/ASeq y)]
                          [[x :-> t/Any :filters {:else (! y 0)}] (t/Seqable x) :-> (t/ASeq (t/I x (t/Not y)))]
                          [[x :-> t/Any] (t/Seqable x) :-> (t/ASeq x)]))
 
 
-cc/take-while (t/All [x y] [[x :-> t/Any] (t/Seqable x) :-> (t/ASeq x)])
-cc/drop-while (t/All [x] [[x :-> t/Any] (t/Seqable x) :-> (t/ASeq x)])
+cc/take-while (t/All [x y] (t/IFn [[x :-> t/Any] :-> (t/Transducer x x)]
+                                  [[x :-> t/Any] (t/Seqable x) :-> (t/ASeq x)]))
+cc/drop-while (t/All [x] (t/IFn [[x :-> t/Any] :-> (t/Transducer x x)]
+                                [[x :-> t/Any] (t/Seqable x) :-> (t/ASeq x)]))
 
 cc/split-with (t/All [x y z] (t/IFn
                                [[x :-> t/Any :filters {:then (is y 0), :else (is z 0)}] (t/Seqable x) :-> '[(t/ASeq y) (t/ASeq z)]]
                                [[x :-> t/Any] (t/Seqable x) :-> '[(t/ASeq x) (t/ASeq x)]]))
 
-cc/split-at (t/All [x y z] [t/AnyInteger (t/Seqable x) :-> '[(t/ASeq x) (t/ASeq x)]])
+cc/split-at (t/All [x] [t/Int (t/Seqable x) :-> '[(t/ASeq x) (t/ASeq x)]])
 
-cc/partition-all (t/All [x] (t/IFn [t/Int (t/Seqable x) :-> (t/ASeq (t/ASeq x))] 
-                                   [t/Int t/Int (t/Seqable x) :-> (t/ASeq (t/ASeq x))]))
+cc/partition-all (t/All [x] (t/IFn [t/Int :-> (t/Transducer x (t/NonEmptyAVec x))]
+                                   [t/Int (t/Seqable x) :-> (t/ASeq (t/NonEmptyASeq x))] 
+                                   [t/Int t/Int (t/Seqable x) :-> (t/ASeq (t/NonEmptyASeq x))]))
 
-cc/partition (t/All [a] (t/IFn [t/AnyInteger (t/Seqable a) :-> (t/ASeq (t/ASeq a))]
-                               [t/AnyInteger t/AnyInteger (t/Seqable a) :-> (t/ASeq (t/ASeq a))]
-                               [t/AnyInteger t/AnyInteger t/AnyInteger (t/Seqable a) :-> (t/ASeq (t/ASeq a))]))
+cc/partition (t/All [a] (t/IFn [t/Int (t/Seqable a) :-> (t/ASeq (t/NonEmptyASeq a))]
+                               [t/Int t/Int (t/Seqable a) :-> (t/ASeq (t/NonEmptyASeq a))]
+                               [t/Int t/Int t/Int (t/Seqable a) :-> (t/ASeq (t/NonEmptyASeq a))]))
 
-cc/repeatedly (t/All [x] (t/IFn [[:-> x] :-> (t/ASeq x)]
-                                [t/AnyInteger [:-> x] :-> (t/ASeq x)]))
+cc/repeatedly (t/All [x] (t/IFn [[:-> x] :-> (t/NonEmptyASeq x)]
+                                [t/Int [:-> x] :-> (t/ASeq x)]))
 
 
 cc/some (t/All [x y] [[x :-> y] (t/Seqable x) :-> (t/Option y)])
@@ -1103,16 +1112,16 @@ cc/sorted-set-by (t/All [x] [[x x :-> t/AnyInteger] x :* :-> #?(:cljs (t/Set x)
                                                               :default (PersistentTreeSet x))])
 cc/list (t/All [x] [x :* :-> (#?(:clj PersistentList :cljs t/List) x)])
 cc/list* (t/All [x] (t/IFn [(t/Seqable x) :-> (t/NilableNonEmptyASeq x)]
-                           [x (t/Seqable x) :-> (t/NilableNonEmptyASeq x)]
-                           [x x (t/Seqable x) :-> (t/NilableNonEmptyASeq x)]
-                           [x x x (t/Seqable x) :-> (t/NilableNonEmptyASeq x)]
-                           [x x x x (t/Seqable x) :-> (t/NilableNonEmptyASeq x)]
-                           [x x x x x (t/Seqable x) :-> (t/NilableNonEmptyASeq x)]
-                           [x x x x x x (t/Seqable x) :-> (t/NilableNonEmptyASeq x)]
-                           [x x x x x x x (t/Seqable x) :-> (t/NilableNonEmptyASeq x)]
-                           [x x x x x x x x (t/Seqable x) :-> (t/NilableNonEmptyASeq x)]
-                           [x x x x x x x x x (t/Seqable x) :-> (t/NilableNonEmptyASeq x)]
-                           [x x x x x x x x x x (t/Seqable x) :-> (t/NilableNonEmptyASeq x)]))
+                           [x (t/Seqable x) :-> (t/NonEmptyASeq x)]
+                           [x x (t/Seqable x) :-> (t/NonEmptyASeq x)]
+                           [x x x (t/Seqable x) :-> (t/NonEmptyASeq x)]
+                           [x x x x (t/Seqable x) :-> (t/NonEmptyASeq x)]
+                           [x x x x x (t/Seqable x) :-> (t/NonEmptyASeq x)]
+                           [x x x x x x (t/Seqable x) :-> (t/NonEmptyASeq x)]
+                           [x x x x x x x (t/Seqable x) :-> (t/NonEmptyASeq x)]
+                           [x x x x x x x x (t/Seqable x) :-> (t/NonEmptyASeq x)]
+                           [x x x x x x x x x (t/Seqable x) :-> (t/NonEmptyASeq x)]
+                           [x x x x x x x x x x (t/Seqable x) :-> (t/NonEmptyASeq x)]))
 
 cc/list? (t/Pred (t/List t/Any))
 #?@(:cljs [] :default [
@@ -1417,7 +1426,7 @@ cc/commute (t/All [w r b :..] [(t/Ref2 w r) [r b :.. b :-> w] b :.. b :-> w])
 cc/alter (t/All [w r b :..] [(t/Ref2 w r) [r b :.. b :-> w] b :.. b :-> w])
 ])
 
-cc/cycle (t/All [x] [(t/Seqable x) :-> (t/ASeq x)])
+cc/cycle (t/All [x] [(t/Seqable x) :-> (t/NonEmptyASeq x)])
 
 #?@(:cljs [] :default [
 cc/compile [t/Sym :-> t/Sym]
@@ -1433,7 +1442,8 @@ cc/seq-to-map-for-destructuring [(t/Seqable t/Any) :-> t/Any]
 cc/destructure [t/Any :-> t/Any]
 ])
 
-cc/distinct (t/All [x] [(t/Seqable x) :-> (t/ASeq x)])
+cc/distinct (t/All [x] (t/IFn [:-> (t/Transducer x x)]
+                              [(t/Seqable x) :-> (t/ASeq x)]))
 
 cc/string? (t/Pred t/Str)
 cc/char? #?(:clj (t/Pred Character)
@@ -1639,11 +1649,11 @@ clojure.zip/prev [(t/Vec t/Any) :-> (t/U (t/Vec t/Any) nil)]
 clojure.zip/path [(t/Vec t/Any) :-> t/Any]
 clojure.zip/remove [(t/Vec t/Any) :-> (t/Vec t/Any)]
 
-;;TODO transducer
-cc/interpose (t/All [x] [x (t/Seqable x) :-> (t/ASeq x)])
+cc/interpose (t/All [x] (t/IFn [x :-> (t/Transducer x x)]
+                               [x (t/Seqable x) :-> (t/ASeq x)]))
 cc/interleave (t/All [x] [(t/Seqable x) :* :-> (t/ASeq x)])
 
-cc/repeat (t/All [x] (t/IFn [x :-> (t/ASeq x)]
+cc/repeat (t/All [x] (t/IFn [x :-> (t/NonEmptyASeq x)]
                             [t/AnyInteger x :-> (t/ASeq x)]))
 
 ;cc/every? (t/All [x y] 
@@ -1660,7 +1670,7 @@ cc/every? (t/All [x y] (t/IFn [[x :-> t/Any :filters {:then (is y 0)}] (t/Coll x
                                :filters {:then (is (t/U nil (t/Coll y)) 1)}]
                               [[x :-> t/Any] (t/Seqable x) :-> t/Bool]))
 
-cc/range (t/IFn [:-> (t/ASeq t/AnyInteger)]
+cc/range (t/IFn [:-> (t/NonEmptyASeq t/AnyInteger)]
                 [t/Num :-> (t/ASeq t/AnyInteger)]
                 [t/AnyInteger t/Num :-> (t/ASeq t/AnyInteger)]
                 [t/Num t/Num :-> (t/ASeq t/Num)]
@@ -1749,12 +1759,13 @@ cc/deliver (t/All [x] [(t/Promise x) x :-> (t/Nilable (t/Promise x))])
 
 cc/flatten [(t/Seqable t/Any) :-> (t/Seq t/Any)]
 
-cc/map-indexed (t/All [x y] [[t/AnyInteger x :-> y] (t/Seqable x) :-> (t/ASeq y)])
-cc/keep-indexed (t/All [a c] [[t/Num a :-> (t/U nil c)] (t/Seqable a) :-> (t/Seq c)])
+cc/map-indexed (t/All [x y] (t/IFn [[t/Int x :-> y] :-> (t/Transducer x y)]
+                                   [[t/Int x :-> y] (t/Seqable x) :-> (t/ASeq y)]))
+cc/keep-indexed (t/All [a c] (t/IFn [[t/Int a :-> (t/U nil c)] :-> (t/Transducer a c)]
+                                    [[t/Int a :-> (t/U nil c)] (t/Seqable a) :-> (t/Seq c)]))
 cc/bounded-count [(t/U t/Counted (t/Seqable t/Any)) :-> t/Int]
-cc/keep (t/All [a b]
-               (t/IFn [[a :-> (t/Option b)] :-> (t/Transducer a b)]
-                      [[a :-> (t/Option b)] (t/Coll a) :-> (t/ASeq b)]))
+cc/keep (t/All [a b] (t/IFn [[a :-> (t/Option b)] :-> (t/Transducer a b)]
+                            [[a :-> (t/Option b)] (t/Coll a) :-> (t/ASeq b)]))
 
 cc/seqable? (t/Pred (t/Seqable t/Any))
 cc/indexed? (t/Pred (t/Indexed t/Any))

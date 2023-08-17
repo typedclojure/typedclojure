@@ -7,3 +7,7 @@
   - result of calling first arg with zero-args does not unwrap `reduced`
   - use one type variable in 2-arity
 - annotate `clojure.core/keep` transducer arity
+- `clojure.core/keep` never returns nil, update annotation appropriately
+- annotate transducers for `filter`, `remove`, `{take,drop}-while`, `partition-all`, `distinct`,
+  `interpose`, `{map,keep}-indexed`, 
+- return non-empty seq types in core annotations if infinite or known non-empty
