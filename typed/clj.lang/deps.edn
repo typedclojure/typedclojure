@@ -1,6 +1,6 @@
 ;; DO NOT EDIT! Instead, edit `dev/resources/root-templates/typed/clj.lang/deps.edn` and run `./script/regen-selmer.sh`
 {:paths ["src"]
- :deps {org.clojure/clojure {:mvn/version "1.12.0-alpha3"}
+ :deps {org.clojure/clojure {:mvn/version "1.12.0-alpha4"}
         org.clojure/tools.namespace {:mvn/version "1.4.4"}}
  :aliases {:nREPL
            {:extra-paths ["script"]
