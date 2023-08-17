@@ -14,3 +14,5 @@
 - `keep` accepts `Seqable`, not just `Coll`
 - annotate 1-arity of `drop-last`
 - annotate `keyword` 1-arity to accept a var
+- annotate new clojure.core vars: `iteration`, `partitionv`, `parse-{uuid,boolean,double,long}`, `update-{keys,vals}`, `abs`, `NaN?`, `infinite?`, `*repl*`
+- clojure.math annotations

@@ -952,12 +952,18 @@ cc/doall (t/All [[c :< (t/U nil (t/Seqable t/Any))]]
 cc/dorun (t/IFn [(t/Seqable t/Any) :-> nil]
                 [t/AnyInteger (t/Seqable t/Any) :-> nil])
 cc/iterate (t/All [x]
-                  [[x :-> x] x :-> (t/ASeq x)])
+                  [[x :-> x] x :-> (t/NonEmptyASeq x)])
 cc/memoize (t/All [x y :..]
                   [[y :.. y :-> x] :-> [y :.. y :-> x]])
 
 cc/key (t/All [x] [(t/MapEntry x t/Any) :-> x])
 cc/val (t/All [x] [(t/MapEntry t/Any x) :-> x])
+
+cc/iteration (t/All [k v ret] [[k :-> ret] & :optional {:somef [ret :-> t/Any]
+                                                        :vf [ret :-> v]
+                                                        :kf [ret :-> k]
+                                                        :initk k}
+                               :-> (Seqable ret)])
 
 ;cc/juxt
 ;(t/All [b1 :..]
@@ -1010,6 +1016,10 @@ cc/partition-all (t/All [x] (t/IFn [t/Int :-> (t/Transducer x (t/NonEmptyAVec x)
 cc/partition (t/All [a] (t/IFn [t/Int (t/Seqable a) :-> (t/ASeq (t/NonEmptyASeq a))]
                                [t/Int t/Int (t/Seqable a) :-> (t/ASeq (t/NonEmptyASeq a))]
                                [t/Int t/Int t/Int (t/Seqable a) :-> (t/ASeq (t/NonEmptyASeq a))]))
+
+cc/partitionv (t/All [a] (t/IFn [t/Int (t/Seqable a) :-> (t/ASeq (t/NonEmptyAVec a))]
+                                [t/Int t/Int (t/Seqable a) :-> (t/ASeq (t/NonEmptyAVec a))]
+                                [t/Int t/Int t/Int (t/Seqable a) :-> (t/ASeq (t/NonEmptyAVec a))]))
 
 cc/repeatedly (t/All [x] (t/IFn [[:-> x] :-> (t/NonEmptyASeq x)]
                                 [t/Int [:-> x] :-> (t/ASeq x)]))
@@ -1774,6 +1784,7 @@ cc/inst-ms [:-> t/Int]
 cc/inst? (t/Pred cc/Inst)
 cc/uuid? (t/Pred t/UUID)
 cc/random-uuid [:-> t/UUID]
+cc/parse-uuid [t/Str :-> (t/Option t/UUID)]
 cc/uri? (t/Pred t/URI)
 
 cc/add-tap [[t/Any :-> t/Any] :-> nil]
@@ -1917,6 +1928,9 @@ cc/get-in (t/IFn [t/Any (t/Nilable (t/Seqable t/Any)) :-> t/Any]
                  [t/Any (t/Nilable (t/Seqable t/Any)) t/Any :-> t/Any])
 
 cc/assoc-in [(t/Nilable (t/Associative t/Any t/Any)) (t/Seqable t/Any) t/Any :-> t/Any]
+
+cc/update-keys (t/All [k k' v] [(t/Nilable (t/Associative k v)) [k :-> k'] :-> (t/Map k' v)])
+cc/update-vals (t/All [k v v'] [(t/Nilable (t/Associative k v)) [v :-> v'] :-> (t/Map k v')])
 
 cc/merge (t/All [k v] (t/IFn [nil :* :-> nil]
                              [(t/Map k v) (t/Nilable (t/Map k v)) :* :-> (t/Map k v)]
@@ -2077,6 +2091,13 @@ cc/dec' (t/IFn [t/AnyInteger :-> t/AnyInteger]
 cc/rationalize [t/Num :-> t/Num]
 ])
 
+cc/abs (t/IFn #?(:clj [Long :-> Long])
+              #?(:clj [Double :-> Double])
+              [t/Num :-> t/Num])
+
+cc/NaN? [#?(:cljs t/Num :default Double) :-> t/Bool]
+cc/infinite? [#?(:cljs t/Num :default Double) :-> t/Bool]
+
 cc/bit-not [t/AnyInteger :-> t/AnyInteger]
 cc/bit-and [t/AnyInteger t/AnyInteger :+ :-> t/AnyInteger]
 cc/bit-or [t/AnyInteger t/AnyInteger :+ :-> t/AnyInteger]
@@ -2089,6 +2110,10 @@ cc/bit-test [t/AnyInteger t/AnyInteger :-> t/AnyInteger]
 cc/bit-shift-left [t/AnyInteger t/AnyInteger :-> t/AnyInteger]
 cc/bit-shift-right [t/AnyInteger t/AnyInteger :-> t/AnyInteger]
 cc/unsigned-bit-shift-right [t/AnyInteger t/AnyInteger :-> t/AnyInteger]
+
+clojure.math/E #?(:cljs t/Num :default Double)
+clojure.math/PI #?(:cljs t/Num :default Double)
+;TODO rest of clojure.math
 
 cc/even? [t/AnyInteger :-> t/Bool]
 cc/odd? [t/AnyInteger :-> t/Bool]
@@ -2169,6 +2194,7 @@ cc/bigint [(t/U t/Str t/Num) :-> clojure.lang.BigInt]
 cc/biginteger [(t/U t/Str t/Num) :-> java.math.BigInteger]
 ])
 cc/boolean [t/Any :-> t/Bool]
+cc/parse-boolean [t/Str :-> (t/Option t/Bool)]
 cc/byte [(t/U Character t/Num) :-> Byte]
 #?@(:cljs [
 cc/char [(t/U t/Str t/Num) :-> t/Str]
@@ -2176,9 +2202,13 @@ cc/char [(t/U t/Str t/Num) :-> t/Str]
 cc/char [(t/U Character t/Num) :-> Character]
 ])
 cc/double [t/Num :-> #?(:cljs t/Num :default Double)]
+cc/parse-double [s/Str :-> (t/Option #?(:cljs t/Num :default Double))]
+
 cc/float [t/Num :-> #?(:cljs t/Num :default Float)]
 cc/int [#?(:cljs t/Num :default (t/U Character t/Num)) :-> #?(:cljs t/AnyInteger :default Integer)]
+
 cc/long [#?(:cljs t/Num :default (t/U Character t/Num)) :-> #?(:cljs t/AnyInteger :default Long)]
+cc/parse-long [t/Str :-> (t/Option #?(:cljs t/AnyInteger :default Long))]
 #?@(:cljs [] :default [
 cc/num [t/Num :-> t/Num]
 ])
@@ -2312,6 +2342,7 @@ cc/*compiler-options* (t/Map t/Any t/Any)
 cc/*in* java.io.Reader
 cc/*out* java.io.Writer ;; FIXME cljs
 cc/*err* java.io.Writer
+cc/*repl* t/Any
 ])
 cc/*flush-on-newline* t/Bool
 cc/*print-meta* t/Bool
