@@ -1003,11 +1003,18 @@ cc/take-while (t/All [x y] (t/IFn [[x :-> t/Any] :-> (t/Transducer x x)]
 cc/drop-while (t/All [x] (t/IFn [[x :-> t/Any] :-> (t/Transducer x x)]
                                 [[x :-> t/Any] (t/Seqable x) :-> (t/ASeq x)]))
 
+cc/replace (t/All [v] (t/IFn [(t/Map v v) :-> (t/Transducer v v)]
+                             [(t/Map v v) (t/Vec v) :-> (t/Vec v)]
+                             [(t/Map v v) (t/Seqable v) :-> (t/U (t/Vec v) (t/ASeq v))]))
+
 cc/split-with (t/All [x y z] (t/IFn
                                [[x :-> t/Any :filters {:then (is y 0), :else (is z 0)}] (t/Seqable x) :-> '[(t/ASeq y) (t/ASeq z)]]
                                [[x :-> t/Any] (t/Seqable x) :-> '[(t/ASeq x) (t/ASeq x)]]))
 
 cc/split-at (t/All [x] [t/Int (t/Seqable x) :-> '[(t/ASeq x) (t/ASeq x)]])
+
+cc/partition-by (t/All [x] (t/IFn [[x :-> t/Any] :-> (t/Transducer x (t/NonEmptyAVec x))]
+                                  [[x :-> t/Any] (t/Seqable x) :-> (t/ASeq (t/NonEmptyASeq x))]))
 
 cc/partition-all (t/All [x] (t/IFn [t/Int :-> (t/Transducer x (t/NonEmptyAVec x))]
                                    [t/Int (t/Seqable x) :-> (t/ASeq (t/NonEmptyASeq x))] 
@@ -1742,6 +1749,7 @@ cc/mapv (t/All [c a b :..] (t/IFn [[a b :.. b :-> c] (t/NonEmptySeqable a) (t/No
 cc/mapcat (t/All [c a b :..] (t/IFn
                                [[a :-> (t/Seqable c)] :-> (t/Transducer a c)]
                                [[a b :.. b :-> (t/Seqable c)] (t/Seqable a) (t/Seqable b) :.. b :-> (t/ASeq c)]))
+cc/cat (t/All [x] (t/Transducer (Seqable x) x))
 #?@(:cljs [] :default [
 cc/pmap (t/All [c a b :..] (t/IFn [[a b :.. b :-> c] (t/NonEmptySeqable a) (t/NonEmptySeqable b) :.. b :-> (t/NonEmptyASeq c)]
                                   [[a b :.. b :-> c] (t/Seqable a) (t/Seqable b) :.. b :-> (t/ASeq c)]))
@@ -1777,6 +1785,18 @@ cc/keep-indexed (t/All [a c] (t/IFn [[t/Int a :-> (t/U nil c)] :-> (t/Transducer
 cc/bounded-count [(t/U t/Counted (t/Seqable t/Any)) :-> t/Int]
 cc/keep (t/All [a b] (t/IFn [[a :-> (t/Option b)] :-> (t/Transducer a b)]
                             [[a :-> (t/Option b)] (t/Seqable a) :-> (t/ASeq b)]))
+cc/dedupe (t/All [x] (t/IFn [:-> (t/Transducer x x)]
+                            [(t/Seqable x) :-> (t/ASeq x)]))
+cc/random-sample (t/All [x] (t/IFn [t/Num :-> (t/Transducer x x)]
+                                   [t/Num (t/Seqable x) :-> (t/ASeq x)]))
+
+#?@(:clj [
+cc/eduction (t/All [x y z a b] (t/IFn [(t/Seqable x) :-> (Iterable x)]
+                                      [(t/Transducer x y) (t/Seqable x) :-> (Iterable y)]
+                                      [(t/Transducer x y) (t/Transducer y z) (t/Seqable x) :-> (Iterable z)]
+                                      [(t/Transducer x y) (t/Transducer y z) (t/Transducer z a) (t/Seqable x) :-> (Iterable a)]
+                                      [(t/Transducer x y) (t/Transducer y z) (t/Transducer z a) (t/Transducer a b) (t/Seqable x) :-> (Iterable b)]))
+]) 
 
 cc/seqable? (t/Pred (t/Seqable t/Any))
 cc/indexed? (t/Pred (t/Indexed t/Any))
@@ -1786,6 +1806,11 @@ cc/uuid? (t/Pred t/UUID)
 cc/random-uuid [:-> t/UUID]
 cc/parse-uuid [t/Str :-> (t/Option t/UUID)]
 cc/uri? (t/Pred t/URI)
+cc/tagged-literal? (t/Pred clojure.lang.TaggedLiteral)
+cc/reader-conditional? (t/Pred clojure.lang.ReaderConditional)
+
+cc/tagged-literal [t/Sym t/Any :-> clojure.lang.TaggedLiteral]
+cc/reader-conditional [t/Any t/Bool :-> clojure.lang.ReaderConditional]
 
 cc/add-tap [[t/Any :-> t/Any] :-> nil]
 cc/remove-tap [t/Any :-> nil]
