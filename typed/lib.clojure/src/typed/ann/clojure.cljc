@@ -2186,7 +2186,8 @@ cc/even? [t/AnyInteger :-> t/Bool]
 cc/odd? [t/AnyInteger :-> t/Bool]
 
 cc/peek (t/All [x] (t/IFn [(t/I t/NonEmptyCount (t/Stack x)) :-> x]
-                          [(t/Stack x) :-> x]))
+                          [(t/Stack x) :-> (t/Nilable x)]))
+;;TODO assert non-empty arg
 cc/pop (t/All [x] (t/IFn [(t/List x) :-> (t/List x)]
                          [(t/Vec x) :-> (t/Vec x)]
                          [(t/Stack x) :-> (t/Stack x)]))

@@ -21,3 +21,4 @@
 - annotate 12 arities of `comp`
 - add type parameter to clojure.lang.Sorted
 - support seqables of map entries in `keys` and `vals`
+- fix return type of `peek` in most general case (nilable return)
