@@ -1162,6 +1162,11 @@ cc/vector (t/All [r b :..]
                         [r :* :-> (t/AVec r)]))
 cc/vec (t/All [x] [(t/Seqable x) :-> (t/AVec x)])
 
+;#?@(:cljs [] :default [
+;;TODO annotate clojure.core.Vec
+;cc/vector-of
+;]
+
 cc/not [t/Any :-> t/Bool]
 cc/constantly (t/All [x] [x :-> [t/Any :* :-> x]])
 
@@ -1188,13 +1193,20 @@ cc/assoc
 ;           [(t/Vec d) t/AnyInteger d :-> (t/Vec d)]
 ;           [d b c (t/HSequential [b c] :repeat true) <* :-> (t/Assoc d b c)]))
 
-cc/dissoc (t/All [k v] [(t/Map k v) t/Any :* :-> (t/Map k v)])
+;;TODO
+;cc/update (t/All [m k v v' c :..] [(t/Assoc m k v) k [v c :.. c :-> v'] c :.. c :-> (t/Assoc m k v')])
+;cc/update-in (t/All [m k v v' c :..] [(t/AssocIn m ks v) ks [v c :.. c :-> v'] c :.. c :-> (t/AssocIn m ks v')])
+
+cc/dissoc (t/All [k v] (t/IFn [(t/Map k v) t/Any :* :-> (t/Map k v)]
+                              [(t/Nilable (t/Map k v)) t/Any :* :-> (t/Nilable (t/Map k v))]))
 
 cc/zipmap (t/All [k v] [(t/Seqable k) (t/Seqable v) :-> #?(:cljs (t/Map k v)
                                                           :default (APersistentMap k v))])
 
-cc/keys (t/All [k] [(t/Map k t/Any) :-> (t/ASeq k) :object {:id 0 :path [Keys]}])
-cc/vals (t/All [v] [(t/Map t/Any v) :-> (t/ASeq v) :object {:id 0 :path [Vals]}])
+cc/keys (t/All [k] (t/IFn [(t/Map k t/Any) :-> (t/ASeq k) :object {:id 0 :path [Keys]}]
+                          [(t/Seqable (t/MapEntry k t/Any)) :-> (t/Nilable (t/ASeq k))]))
+cc/vals (t/All [v] (t/IFn [(t/Map t/Any v) :-> (t/ASeq v) :object {:id 0 :path [Vals]}]
+                          [(t/Seqable (t/MapEntry t/Any v)) :-> (t/Nilable (t/ASeq v))]))
 
 cc/comp (t/All [a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 b :..]
                (t/IFn [:-> [a0 :-> a0]]
@@ -1285,8 +1297,8 @@ cc/re-find (t/IFn #?(:clj [java.util.regex.Matcher :-> (t/U nil t/Str (t/Vec (t/
                   [t/Regex t/Str :-> (t/U nil t/Str (t/Vec (t/Option t/Str)))])
 cc/re-seq [t/Regex t/Str :-> (t/ASeq (t/U nil t/Str (t/Vec (t/Option t/Str))))]
 
-cc/subs (t/IFn [t/Str t/AnyInteger :-> t/Str]
-               [t/Str t/AnyInteger t/AnyInteger :-> t/Str])
+cc/subs (t/IFn [t/Str t/Int :-> t/Str]
+               [t/Str t/Int t/Int :-> t/Str])
 
 ;TODO
 ;cc/spit [java.io.Writer t/Any]
