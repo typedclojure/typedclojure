@@ -1,3 +1,7 @@
-- fix `clojure.core/reductions` annotation
+- improve `clojure.core/reductions` annotation
   - 2-arity must support zero-args on 1 arg
+    - except when input collection is non-empty
   - add support for `reduced` values
+  - return seq is always non-empty
+- fix `clojure.core/reduce` annotation
+  - result of calling first arg with zero-args does not unwrap `reduced`
