@@ -15,5 +15,6 @@
 - annotate 1-arity of `drop-last`
 - annotate `keyword` 1-arity to accept a var
 - annotate clojure.core vars: `iteration`, `partitionv`, `parse-{uuid,boolean,double,long}`, `update-{keys,vals}`, `abs`, `NaN?`, `infinite?`, `*repl*`, `replace`,
-  `partition-by`, `cat`, `dedupe`, `random-sample`, `eduction`, `tagged-literal{?}`, `reader-conditional{?}`
+  `partition-by`, `cat`, `dedupe`, `random-sample`, `eduction`, `tagged-literal{?}`, `reader-conditional{?}`, `unreduced`, `halt-when`, `ensure-reduced`, `completing`,
+  `transduce`
 - clojure.math annotations

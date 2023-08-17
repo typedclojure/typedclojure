@@ -1789,6 +1789,12 @@ cc/dedupe (t/All [x] (t/IFn [:-> (t/Transducer x x)]
                             [(t/Seqable x) :-> (t/ASeq x)]))
 cc/random-sample (t/All [x] (t/IFn [t/Num :-> (t/Transducer x x)]
                                    [t/Num (t/Seqable x) :-> (t/ASeq x)]))
+cc/halt-when (t/All [x] (t/IFn [[x :-> t/Any] 
+                                ;; TODO opens a can of worms. requires knowledge of transduction context.
+                                ;; overrides final value of `into`, while doing nothing in `sequence`.
+                                ;(t/Option [t/Any v :-> t/Any]) :?
+                                :-> (t/Transducer x x)]
+                               ))
 
 #?@(:clj [
 cc/eduction (t/All [x y z a b] (t/IFn [(t/Seqable x) :-> (Iterable x)]
@@ -1831,11 +1837,19 @@ cc/reduce (t/All [a c] (t/IFn
                          ; (reduce (fn [a b] a) (reduced 1) nil) 
                          ; ;=> (reduced 1)
                          [[a c :-> (t/U (t/Reduced a) a)] a (t/Seqable c) :-> a]))
+cc/transduce (t/All [a b c] (t/IFn [(t/Transducer a a) (t/Reducer a a) (t/Seqable a) :-> a]
+                                   [(t/Transducer b c) (t/Reducer a c) a (t/Seqable b) :-> a]))
 cc/reduce-kv (t/All [a k v] [[a k v :-> (t/U (t/Reduced a) a)] a (t/Option (t/Associative k v)) :-> a])
 cc/reductions (t/All [a b] (t/IFn [[a a :-> (t/U (t/Reduced a) a)] (t/NonEmptySeqable a) :-> (t/NonEmptyASeq a)]
                                   [(t/IFn [:-> a] [a a :-> (t/U (t/Reduced a) a)]) (t/Seqable a) :-> (t/NonEmptyASeq a)]
                                   [[a b :-> (t/U (t/Reduced a) a)] a (t/Seqable b) :-> (t/NonEmptyASeq a)]))
 cc/reduced (t/All [x] [x :-> (t/Reduced x)])
+cc/unreduced (t/All [x] (t/IFn [(t/Reduced x) :-> x]
+                               [(t/U x (t/Reduced x)) :-> x]))
+cc/ensure-reduced (t/All [x] [(t/U x (t/Reduced x)) :-> (t/Reduced x)])
+cc/completing (t/All [a b] [(t/IFn [:-> b] [b a :-> (t/U b (t/Reduced b))])
+                            [b :-> b]
+                            :-> (t/Reducer a b)])
 
 #_(comment
   cc/reduce
@@ -1940,8 +1954,9 @@ cc/conj
 ;      [nil :-> nil]
 ;      [(t/U nil (IPersistentCollection t/Any :empty-fn empty-fn)) :-> (t/U nil (empty-fn))])
 
-cc/sequence (t/All [a b] (t/IFn [(t/Nilable (t/Seqable a)) :-> (t/Seq a)]
-                                [(t/Transducer a b) (t/Nilable (t/Seqable a)) :-> (t/Seqable b)]))
+cc/sequence (t/All [a b] (t/IFn [(t/Seqable a) :-> (t/ASeq a)]
+                                ;;TODO rest arity
+                                [(t/Transducer a b) (t/Seqable a) :-> (t/ASeq b)]))
 cc/find (t/All [x y]
                (t/IFn [nil t/Any :-> nil]
                       [(t/Nilable (t/Associative x y)) t/Any :-> (t/Nilable (t/AMapEntry x y))]
