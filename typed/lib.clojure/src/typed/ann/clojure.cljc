@@ -1838,7 +1838,7 @@ cc/reduce (t/All [a c] (t/IFn
                          ; ;=> (reduced 1)
                          [[a c :-> (t/U (t/Reduced a) a)] a (t/Seqable c) :-> a]))
 cc/transduce (t/All [a b c] (t/IFn [(t/Transducer a a) (t/Reducer a a) (t/Seqable a) :-> a]
-                                   [(t/Transducer b c) (t/Reducer a c) a (t/Seqable b) :-> a]))
+                                   [(t/Transducer b c) (t/IFn [c :-> c] [c a :-> (t/U c (t/Reduced c))]) a (t/Seqable b) :-> a]))
 cc/reduce-kv (t/All [a k v] [[a k v :-> (t/U (t/Reduced a) a)] a (t/Option (t/Associative k v)) :-> a])
 cc/reductions (t/All [a b] (t/IFn [[a a :-> (t/U (t/Reduced a) a)] (t/NonEmptySeqable a) :-> (t/NonEmptyASeq a)]
                                   [(t/IFn [:-> a] [a a :-> (t/U (t/Reduced a) a)]) (t/Seqable a) :-> (t/NonEmptyASeq a)]
