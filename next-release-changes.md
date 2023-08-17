@@ -18,3 +18,4 @@
   `partition-by`, `cat`, `dedupe`, `random-sample`, `eduction`, `tagged-literal{?}`, `reader-conditional{?}`, `unreduced`, `halt-when`, `ensure-reduced`, `completing`,
   `transduce`
 - clojure.math annotations
+- annotate 12 arities of `comp`

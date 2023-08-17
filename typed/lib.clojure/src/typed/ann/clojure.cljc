@@ -1195,8 +1195,19 @@ cc/zipmap (t/All [k v] [(t/Seqable k) (t/Seqable v) :-> #?(:cljs (t/Map k v)
 cc/keys (t/All [k] [(t/Map k t/Any) :-> (t/ASeq k) :object {:id 0 :path [Keys]}])
 cc/vals (t/All [v] [(t/Map t/Any v) :-> (t/ASeq v) :object {:id 0 :path [Vals]}])
 
-;most useful case
-cc/comp (t/All [x y b :..] [[x :-> y] [b :.. b :-> x] :-> [b :.. b :-> y]])
+cc/comp (t/All [a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 b :..]
+               (t/IFn [:-> [a0 :-> a0]]
+                      [[b :.. b :-> a0] :-> [b :.. b :-> a0]]
+                      [[a1 :-> a0]                                                                                                 [b :.. b :-> a0] :-> [b :.. b :-> a0]]
+                      [[a1 :-> a0] [a2 :-> a1]                                                                                     [b :.. b :-> a1] :-> [b :.. b :-> a0]]
+                      [[a1 :-> a0] [a2 :-> a1] [a3 :-> a2]                                                                         [b :.. b :-> a2] :-> [b :.. b :-> a0]]
+                      [[a1 :-> a0] [a2 :-> a1] [a3 :-> a2]                                                                         [b :.. b :-> a3] :-> [b :.. b :-> a0]]
+                      [[a1 :-> a0] [a2 :-> a1] [a3 :-> a2] [a4 :-> a3]                                                             [b :.. b :-> a4] :-> [b :.. b :-> a0]]
+                      [[a1 :-> a0] [a2 :-> a1] [a3 :-> a2] [a4 :-> a3] [a5 :-> a4]                                                 [b :.. b :-> a5] :-> [b :.. b :-> a0]]
+                      [[a1 :-> a0] [a2 :-> a1] [a3 :-> a2] [a4 :-> a3] [a5 :-> a4] [a6 :-> a5]                                     [b :.. b :-> a6] :-> [b :.. b :-> a0]]
+                      [[a1 :-> a0] [a2 :-> a1] [a3 :-> a2] [a4 :-> a3] [a5 :-> a4] [a6 :-> a5] [a7 :-> a6]                         [b :.. b :-> a7] :-> [b :.. b :-> a0]]
+                      [[a1 :-> a0] [a2 :-> a1] [a3 :-> a2] [a4 :-> a3] [a5 :-> a4] [a6 :-> a5] [a7 :-> a6] [a8 :-> a7]             [b :.. b :-> a8] :-> [b :.. b :-> a0]]
+                      [[a1 :-> a0] [a2 :-> a1] [a3 :-> a2] [a4 :-> a3] [a5 :-> a4] [a6 :-> a5] [a7 :-> a6] [a8 :-> a7] [a9 :-> a8] [b :.. b :-> a9] :-> [b :.. b :-> a0]]))
 
 
 ;apply: wishful thinking
