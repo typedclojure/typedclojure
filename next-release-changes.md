@@ -1,0 +1,3 @@
+- fix `clojure.core/reductions` annotation
+  - 2-arity must support zero-args on 1 arg
+  - add support for `reduced` values

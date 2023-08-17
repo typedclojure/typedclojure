@@ -1782,8 +1782,8 @@ cc/reduce (t/All [a c] (t/IFn
                          ; ;=> (reduced 1)
                          [[a c :-> (t/U (t/Reduced a) a)] a (t/Seqable c) :-> a]))
 cc/reduce-kv (t/All [a k v] [[a k v :-> (t/U (t/Reduced a) a)] a (t/Option (t/Associative k v)) :-> a])
-cc/reductions (t/All [a b] (t/IFn [[a b :-> a] (t/Seqable b) :-> (t/ASeq a)]
-                                  [[a b :-> a] a (t/Seqable b) :-> (t/ASeq a)]))
+cc/reductions (t/All [a b] (t/IFn [(t/IFn [:-> (t/U (t/Reduced a) a)] [a b :-> (t/U (t/Reduced a) a)]) (t/Seqable b) :-> (t/ASeq a)]
+                                  [[a b :-> (t/U (t/Reduced a) a)] a (t/Seqable b) :-> (t/ASeq a)]))
 cc/reduced (t/All [x] [x :-> (t/Reduced x)])
 
 #_(comment
