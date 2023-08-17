@@ -1332,7 +1332,7 @@ cc/fnil (t/All [x y z a b :..] (t/IFn [[x b :.. b :-> a] x :-> [(t/Nilable x) b 
                                       [[x y b :.. b :-> a] x y :-> [(t/Nilable x) (t/Nilable y) b :.. b :-> a]]
                                       [[x y z b :.. b :-> a] x y z :-> [(t/Nilable x) (t/Nilable y) (t/Nilable z) b :.. b :-> a]]))
 
-cc/symbol (t/IFn [(t/U t/Kw t/Sym t/Str) :-> t/Sym]
+cc/symbol (t/IFn [(t/U t/Kw t/Sym t/Str (t/Var2 t/Nothing t/Any)) :-> t/Sym]
                  [(t/U nil t/Str) t/Str :-> t/Sym])
 
 cc/keyword

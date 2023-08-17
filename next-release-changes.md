@@ -13,3 +13,4 @@
 - return non-empty seq types in core annotations if infinite or known non-empty
 - `keep` accepts `Seqable`, not just `Coll`
 - annotate 1-arity of `drop-last`
+- annotate `keyword` 1-arity to accept a var
