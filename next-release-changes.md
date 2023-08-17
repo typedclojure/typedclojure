@@ -6,3 +6,4 @@
 - fix `clojure.core/reduce` annotation
   - result of calling first arg with zero-args does not unwrap `reduced`
   - use one type variable in 2-arity
+- annotate `clojure.core/keep` transducer arity

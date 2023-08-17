@@ -1752,7 +1752,9 @@ cc/flatten [(t/Seqable t/Any) :-> (t/Seq t/Any)]
 cc/map-indexed (t/All [x y] [[t/AnyInteger x :-> y] (t/Seqable x) :-> (t/ASeq y)])
 cc/keep-indexed (t/All [a c] [[t/Num a :-> (t/U nil c)] (t/Seqable a) :-> (t/Seq c)])
 cc/bounded-count [(t/U t/Counted (t/Seqable t/Any)) :-> t/Int]
-cc/keep (t/All [a b] [[a :-> (t/Option b)] (t/Coll a) :-> (t/Option (t/ASeq b))])
+cc/keep (t/All [a b]
+               (t/IFn [[a :-> (t/Option b)] :-> (t/Transducer a b)]
+                      [[a :-> (t/Option b)] (t/Coll a) :-> (t/ASeq b)]))
 
 cc/seqable? (t/Pred (t/Seqable t/Any))
 cc/indexed? (t/Pred (t/Indexed t/Any))
@@ -1818,7 +1820,7 @@ cc/not= [t/Any :+ :-> t/Bool]
 
 cc/first (t/All [x] (t/IFn [(t/HSequential [x t/Any :*]) :-> x
                             :object {:id 0 :path [(Nth 0)]}]
-                           [(t/Option (t/EmptySeqable x)) :-> nil]
+                           [(t/EmptySeqable x) :-> nil]
                            [(t/NonEmptySeqable x) :-> x]
                            [(t/Seqable x) :-> (t/Option x)]))
 cc/second (t/All [x] (t/IFn [(t/HSequential [t/Any x t/Any :*]) :-> x
@@ -1909,7 +1911,7 @@ cc/merge (t/All [k v] (t/IFn [nil :* :-> nil]
                              [(t/Option (t/Map k v)) :* :-> (t/Option (t/Map k v))]))
 
 ;more to be said here?
-cc/contains? [(t/Option (t/Seqable t/Any)) t/Any :-> t/Bool]
+cc/contains? [(t/Seqable t/Any) t/Any :-> t/Bool]
 
 cc/= [t/Any :+ :-> t/Bool]
 cc/identical? [t/Any t/Any :-> t/Bool]
@@ -2143,8 +2145,8 @@ cc/ifn? (t/Pred #?(:clj clojure.lang.IFn
 cc/fn? (t/Pred t/Fn)
 
 cc/instance? [#?(:clj Class :cljs js/Object) t/Any :-> t/Bool]
-cc/cons (t/All [x] [x (t/Option (t/Seqable x)) :-> (t/ASeq x)])
-cc/reverse (t/All [x] [(t/Option (t/Seqable x)) :-> (t/ASeq x)])
+cc/cons (t/All [x] [x (t/Seqable x) :-> (t/ASeq x)])
+cc/reverse (t/All [x] [(t/Seqable x) :-> (t/ASeq x)])
 cc/rseq (t/All [x] [(t/Reversible x) :-> (t/NilableNonEmptyASeq x)])
 
 ;coercions
