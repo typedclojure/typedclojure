@@ -1,6 +1,7 @@
 (ns clojure.core.typed.test.symbolic-closures
   (:require 
     [typed.clj.checker.test-utils :refer [is-tc-e is-tc-err]]
+    [clojure.core.typed.util-vars :as vs]
     [typed.cljc.checker.type-rep :as r]
     [clojure.test :refer :all]))
 
@@ -175,10 +176,19 @@
   (is-tc-err (do (t/ann app (t/All [x] [[x :-> x] x :-> x]))
                  (def app #(%1 %2))
                  (app #(do % true) 1)))
+  (is-tc-e (do (t/ann app (t/All [x] [[x :-> x] x :-> x]))
+               (def app #(%1 %2))
+               (app #(inc %) 1)))
+  (is-tc-e (do (t/ann app (t/All [x] [[x :-> x] x :-> x]))
+               (def app #(%1 %2))
+               (let [res (app #(inc %) 1)]
+                 (t/ann-form res Long)
+                 nil)))
   (is-tc-err (do (t/ann app (t/All [x] [[x :-> x] x :-> x]))
                  (def app #(%1 %2))
-                 (app #(inc %) 1)))
-  )
+                 (let [res (app #(inc %) 1)]
+                   (t/ann-form res (t/Val 2))
+                   nil))))
 
 ;; expected return type of symbolic closure can be partially erased
 (deftest poly-structured-return
@@ -341,17 +351,17 @@
              (t/Vec (t/Val 1)))
   (is-tc-e (fn [map :- (t/All [c a b :..] [[t/Any :-> c] :-> [:-> c]])]
              (let [res (t/ann-form (map (fn* [_] true))
-                                   [:-> ^:clojure.core.typed/infer t/Any])]
+                                   [:-> t/?])]
                (t/ann-form res [:-> true]))))
   (is-tc-e (fn [map :- (t/All [c a b :..] [[t/Any :-> c] :-> [c :-> c]])]
              (let [res (t/ann-form (map (fn* [_] true))
-                                   [true :-> ^:clojure.core.typed/infer t/Any])]
+                                   [true :-> t/?])]
                (t/ann-form res [true :-> true]))))
-  #_;;TODO perhaps if any infer-any's exist in return type, we should return a symbolic closure?
+  #_;;TODO perhaps if any wild's exist in return type, we should return a symbolic closure?
   ;; (and remember the return type in the symbolic closure)
   (is-tc-e (fn [map :- (t/All [c a b :..] [[t/Any :-> c] :-> [c :-> c]])]
              (let [res (t/ann-form (map (fn* [_] true))
-                                   [^:clojure.core.typed/infer t/Any :-> true])]
+                                   [t/? :-> true])]
                (t/ann-form res [true :-> true]))))
   (is-tc-e (fn [map :- (t/All [c a b :..] [[c :-> c] :-> [c :-> c]])]
              (t/ann-form (map (fn* [x] x))
@@ -361,7 +371,7 @@
                            [true :-> true])))
   (is-tc-e (fn [map :- (t/All [c a b :..] [[c :-> c] :-> [c :-> c]])]
              (let [res (t/ann-form (map (fn* [x] x))
-                                   [true :-> ^:clojure.core.typed/infer t/Any])]
+                                   [true :-> t/?])]
                (t/ann-form res [true :-> true]))))
   (is-tc-e (fn [map :- (t/All [c a b :..] [[t/Any :-> c] :-> [c :-> t/Any]])]
              (t/ann-form (map (fn* [_] true)) [true :-> t/Any])))
@@ -370,21 +380,21 @@
   #_;;FIXME ????
   (is-tc-e (fn [map :- (t/All [c a b :..] [[t/Any :-> c] :-> [c :-> t/Any]])]
              (let [res (t/ann-form (map (fn* [_] true))
-                                   [^:clojure.core.typed/infer t/Any :-> t/Any])]
+                                   [t/? :-> t/Any])]
                (t/ann-form res [true :-> t/Any]))))
   (is-tc-e (fn [map :- (t/All [c] [[t/Any :-> c] :-> [[c :-> t/Any] :-> t/Any]])]
              (let [res (t/ann-form (map (fn* [_] true))
-                                   [[^:clojure.core.typed/infer t/Any :-> t/Any] :-> t/Any])]
+                                   [[t/? :-> t/Any] :-> t/Any])]
                (t/ann-form res [[true :-> t/Any] :-> t/Any]))))
   (is-tc-e (fn [map :- (t/All [c] [[:-> c] :-> [[c :-> t/Any] :-> t/Any]])]
              (t/ann-form (map (fn* [] true))
                          [[true :-> t/Any] :-> t/Any])))
   (is-tc-e (fn [map :- (t/All [c a b :..] [[a :-> c] :-> [[c :-> t/Any] :-> [a :-> t/Any]]])]
              (let [res (t/ann-form (map #(do %))
-                                   [[^:clojure.core.typed/infer t/Any :-> t/Any] :-> [(t/Val 1) :-> t/Any]])]
+                                   [[t/? :-> t/Any] :-> [(t/Val 1) :-> t/Any]])]
                (t/ann-form res [[(t/Val 1) :-> t/Any] :-> [(t/Val 1) :-> t/Any]]))))
   (is-tc-e (let [res (t/ann-form (map #(do %))
-                                 (t/Transducer (t/Val 1) ^:clojure.core.typed/infer t/Any))]
+                                 (t/Transducer (t/Val 1) t/?))]
              (t/ann-form res (t/Transducer (t/Val 1) (t/Val 1)))))
   (is-tc-err (into [] (map #(do %)) [2])
              (t/Vec (t/Val 1)))
@@ -483,9 +493,29 @@
                  res (into [] xf [1])]
              (t/ann-form res (t/Vec (t/Val 1)))
              nil))
-  (is-tc-e (let [into (t/ann-form into (t/All [x y :named [a]] [(t/Vec x) (t/Transducer y x) (t/Seqable y) :-> (t/Vec x)]))
-                 res (into [] (map #(do %)) [1])]
-             (clojure.core.typed/print-env "foo")
-             (t/ann-form res (t/Vec (t/Val 1)))
-             nil))
+  (binding [clojure.core.typed.util-vars/*verbose-types* true]
+    (is-tc-e (let [into (t/ann-form into (t/All [x y :named [a]] [(t/Vec x) (t/Transducer y x) (t/Seqable y) :-> (t/Vec x)]))
+                   res (into [] (map #(do %)) [1])]
+               (clojure.core.typed/print-env "foo")
+               (t/ann-form res (t/Vec (t/Val 1)))
+               nil)))
+  )
+
+(deftest reduce-test
+  (is-tc-e (reduce (fn [a :- t/Int, b :- t/Int] (+ a b)) 0 [1])
+           t/Int)
+  ;; (All [a c] [[a c :-> (t/U (t/Reduced a) a)] a (t/Seqable c) :-> a])
+  (binding [vs/*verbose-types* true]
+    (is-tc-e (fn [reduce :- (t/All [a] [[a a :-> a] (t/NonEmptySeqable a) :-> a])]
+               ;:- t/Int
+               (reduce (fn [a b] (+ a b)) [1]))))
+  (is-tc-e (reduce (fn [a b] (+ a b)) [1]))
+  (is-tc-e (reduce (fn [a b] (+ a b)) [1]) Long)
+  #_;;TODO
+  (is-tc-e (reduce (fn [a b]
+                     (reduce + a b))
+                   1 [[1]]))
+  (is-tc-err (reduce (fn [a b] (+ a b)) [1]) (t/Val 1))
+  #_;;TODO
+  (is-tc-e (reduce (fn [a b] (+ a (if b 1 2))) 1 [true]))
   )

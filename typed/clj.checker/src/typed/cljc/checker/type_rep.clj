@@ -60,12 +60,18 @@
 (t/ann -any Type)
 (def -any (Top-maker))
 
-(t/ann -infer-any Type)
-(def -infer-any (with-meta -any {::t/infer true}))
+(u/ann-record Wildcard [])
+(u/def-type Wildcard []
+  ""
+  []
+  :methods
+  [p/TCType])
 
-(defn infer-any? [t]
-  (and (instance? Top t)
-       (boolean (-> t meta ::t/infer))))
+(t/ann -wild Type)
+(def -wild (Wildcard-maker))
+
+(defn wild? [t]
+  (instance? Wildcard t))
 
 (u/ann-record Unchecked [vsym :- (t/U nil t/Sym)])
 (u/def-type Unchecked [vsym]

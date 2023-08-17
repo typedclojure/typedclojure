@@ -35,13 +35,15 @@
                (if (= rt t)
                  t
                  (recur rt (conj seen t)))))
-         t (call-erase-names*
-             t
-             {:type-rec #(erase-names % should-erase name->f used-f erased-frequencies)
-              :should-erase should-erase
-              :name->f name->f
-              :used-f used-f
-              :erased-frequencies erased-frequencies})]
+         t (letfn [(rec ([ty _info] (rec ty))
+                     ([ty] (erase-names ty should-erase name->f used-f erased-frequencies)))]
+             (call-erase-names*
+               t
+               {:type-rec rec
+                :should-erase should-erase
+                :name->f name->f
+                :used-f used-f
+                :erased-frequencies erased-frequencies}))]
      t)))
 
 (fold/add-fold-case

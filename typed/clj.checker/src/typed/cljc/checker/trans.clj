@@ -24,11 +24,14 @@
 ;tdr from Practical Variable-Arity Polymorphism paper
 ; Expand out dotted pretypes to fixed domain, using types bm, if (:name bound) = b
 (defn trans-dots [t b bm]
-  (call-trans-dots*
-    t
-    {:type-rec #(trans-dots % b bm)
-     :b b
-     :bm bm}))
+  (letfn [(tr
+            ([ty _info] (tr ty))
+            ([ty] (trans-dots ty b bm)))]
+    (call-trans-dots*
+      t
+      {:type-rec tr
+       :b b
+       :bm bm})))
 
 (fold/add-fold-case
   ITransDots trans-dots*

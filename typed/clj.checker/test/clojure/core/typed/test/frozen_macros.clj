@@ -754,9 +754,9 @@
   (is-tc-e (fixpoint
              (fn* [c e] (concat c [(inc e)]))
              {:subst-var x
-              :init [(Seq Nothing) Int :-> ^::t/infer Any]
+              :init [(Seq Nothing) Int :-> t/?]
               :query (All [x] [[x Int :-> x] :-> x])
-              :iterate [x Int :-> ^::t/infer Any]
+              :iterate [x Int :-> t/?]
               }))
   )
 

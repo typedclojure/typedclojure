@@ -8,16 +8,21 @@
 
 (deftest check-below-test
   (is-tc-e 1) ;;load type system
-  (is-clj (thrown? Exception (sut/check-below r/-infer-any (parse-type `t/Int))))
+  (is-tc-err (-> 1
+                 (t/ann-form t/?)
+                 (t/ann-form t/Int)))
+  (is-tc-e (-> 1
+               (t/ann-form t/Int)
+               (t/ann-form t/?)))
+  (is-clj (thrown? Error (sut/check-below r/-wild (parse-type `t/Int))))
   (is-clj (both-subtype?
-            (sut/check-below (parse-type `t/Int) r/-infer-any)
+            (sut/check-below (parse-type `t/Int) r/-wild)
             (parse-type `t/Int)))
   (is-clj (both-subtype?
             (sut/check-below (parse-type `t/Int) r/-any)
             (parse-type `t/Any)))
-  (is-clj (both-subtype? (sut/check-below (parse-type `[:-> t/Int]) (parse-type `[:-> ^:clojure.core.typed/infer t/Any]))
+  (is-clj (both-subtype? (sut/check-below (parse-type `[:-> t/Int]) (parse-type `[:-> t/?]))
                          (parse-type `[:-> t/Int])))
   (is-clj (both-subtype? (sut/check-below (parse-type `[[t/Int :-> t/Int] :-> t/Int])
-                                          (parse-type `[[^:clojure.core.typed/infer t/Any :-> (t/Val 1)] :-> ^:clojure.core.typed/infer t/Any]))
-                         (parse-type `[[t/Int :-> (t/Val 1)] :-> t/Int])))
-  )
+                                          (parse-type `[[t/? :-> (t/Val 1)] :-> t/?]))
+                         (parse-type `[[t/Int :-> (t/Val 1)] :-> t/Int]))))

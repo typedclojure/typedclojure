@@ -22,3 +22,7 @@
 - add type parameter to clojure.lang.Sorted
 - support seqables of map entries in `keys` and `vals`
 - fix return type of `peek` in most general case (nilable return)
+- iteratively check symbolic closures against types with invariant type variables
+  - enables inference of `(reduce (fn [a b] (+ a b)) [1])`
+- introduce wildcard type `t/?`, like `t/Any` but downcasted when checked against a more specific type
+- don't recreate types in internal folding when types are unchanged after walking

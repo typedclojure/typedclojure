@@ -31,7 +31,7 @@
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.utils :as u])
   (:import (typed.cljc.checker.cs_rep c cset dcon dmap cset-entry)
-           (typed.cljc.checker.type_rep Top F DataType Function Protocol Bounds TCResult HSequential SymbolicClosure)))
+           (typed.cljc.checker.type_rep Top Wildcard DottedPretype F DataType Function Protocol Bounds TCResult HSequential SymbolicClosure)))
 
 (t/typed-deps typed.cljc.checker.free-ops
               typed.cljc.checker.promote-demote)
@@ -49,12 +49,8 @@
 (def single-arity-fn-intersection? (every-pred r/FnIntersection?
                                                #(= 1 (count (:types %)))))
 (def inferrable-symbolic-closure-expected-type?
-  (some-fn single-arity-fn-intersection?
-           (every-pred r/Poly?
-                       (comp single-arity-fn-intersection? r/Poly-body-unsafe*))
-           #_
-           (every-pred r/PolyDots?
-                       (comp single-arity-fn-intersection? r/PolyDots-body-unsafe*))))
+  (comp (some-fn r/FnIntersection? r/Poly? r/PolyDots?)
+        c/fully-resolve-type))
 
 ; (partition-by-nth 2 [1 2 3 4 5 6]) -> ((1 3 5) (2 4 6))
 ; (partition-by-nth 3 [1 2 3 4 5 6]) -> ((1 4) (2 5) (3 6))
@@ -101,10 +97,10 @@
      (err/int-error (str "Non-matching vars in c-meet:" X X*)))
    (when-not (= bnds bnds*)
      (err/int-error (str "Non-matching bounds in c-meet:" bnds bnds*)))
-   (let [;_ (prn "joining" S S* (mapv r/infer-any? [S S*]))
+   (let [;_ (prn "joining" S S* (mapv r/wild? [S S*]))
          S (join S S*)
          ;_ (prn "joined:" S)
-         ;_ (prn "meeting" T T* (mapv r/infer-any? [T T*]))
+         ;_ (prn "meeting" T T* (mapv r/wild? [T T*]))
          T (meet T T*)
          ;_ (prn "meet:" T)
          ]
@@ -361,10 +357,6 @@
     (cr/empty-cset X Y)
     (binding [*cs-current-seen* (conj *cs-current-seen* [S T])]
       (cond
-        ;;TODO do we want a similar case for (r/infer-any? S) ?
-        (r/Top? T)
-        (cr/empty-cset X Y)
-
         ;IMPORTANT: handle frees first
         (and (r/F? S)
              (contains? X (:name S)))
@@ -1680,7 +1672,7 @@
                                ;; breaks some tests. should be default behavior.
                                flip-T-variances? (comp frees/flip-variance-map))
                              T))
-        ;_ (prn :var-hash var-hash)
+        ;_ (prn :subst-gen :var-hash var-hash)
         ;;FIXME consider (flipped) variances in T
         idx-hash (frees/idx-variances R)]
     (letfn> 
@@ -1899,11 +1891,164 @@
                              (cond-> subst
                                variance (assoc k (case variance
                                                    :covariant (cond
-                                                                (cr/t-subst? v) (assoc v :type r/-infer-any)
+                                                                (cr/t-subst? v) (assoc v :type r/-wild)
                                                                 :else v)
                                                    (:invariant :contravariant) v)))))
                          {} substitution-without-symb)]
     (subst/subst-all subst dom-t)))
+
+(f/def-derived-fold IRenameDots rename-dots* [rename])
+
+(f/add-fold-case
+  IRenameDots rename-dots*
+  DottedPretype
+  (fn [t rename]
+    (-> t
+        (update :name #(rename % %)))))
+
+(defn rename-dots [t rename]
+  (call-rename-dots* t {:rename rename}))
+
+(f/def-derived-fold ISeparateF separate-F* [replace-fs remap-atom idx-context in-idx-context])
+
+(f/add-fold-case
+  ISeparateF separate-F*
+  F
+  (fn [t replace-fs remap-atom idx-context _]
+    (if-not (contains? (:fv replace-fs) (:name t))
+      t
+      (let [t' (-> t
+                   (update :name gensym))]
+        (swap! remap-atom update-in
+               (-> (if idx-context
+                     [:idx-context idx-context]
+                     [:fv])
+                   (conj (:name t)))
+               (fnil conj []) (:name t'))
+        t'))))
+
+(f/add-fold-case
+  ISeparateF separate-F*
+  DottedPretype
+  (fn [{:keys [name] :as t} replace-fs remap-atom _ in-idx-context]
+    (if-not (contains? (:idx replace-fs) (:name t))
+      t
+      (let [name' (gensym name)
+            t' (-> t
+                   (update :pre-type in-idx-context name name')
+                   (assoc :name name'))]
+        (swap! remap-atom update-in [:idx name] (fnil conj []) name')
+        t'))))
+
+(defn separate-F [t replace-fs]
+  {:pre [(r/AnyType? t)
+         ((con/hmap-c? (con/optional :fv) (con/set-c? simple-symbol?)
+                       (con/optional :idx) (con/set-c? simple-symbol?))
+          replace-fs)]
+   :post [(r/AnyType? (:separated-t %))
+          (map? (:remap %))]}
+  (let [remap-atom (atom {})
+        separated-t (letfn [(rec [t replace-fs idx-context]
+                              (call-separate-F* t {:in-idx-context (partial in-idx-context replace-fs idx-context)
+                                                   :idx-context idx-context
+                                                   :replace-fs replace-fs
+                                                   :remap-atom remap-atom}))
+                            (in-idx-context [replace-fs idx-context t idx idx']
+                              (rec t
+                                   (-> replace-fs
+                                       ;; scope dotted as normal var
+                                       (update :fv (fnil conj #{}) idx))
+                                   (conj (or idx-context []) idx')))]
+                      (rec t replace-fs nil))
+        remap @remap-atom
+        separated-fv->original (reduce (fn [separated-fv->original [original separateds]]
+                                         (reduce #(assoc %1 %2 original) separated-fv->original separateds))
+                                       {} (apply concat (:fv remap) (:idx remap)
+                                                 (vals (:idx-context remap))))
+        separated-fv->original-idx-context (reduce-kv (fn [separated-fv->original-idx-context idx-context original->separateds]
+                                                        (reduce #(assoc %1 %2 (mapv separated-fv->original idx-context)) separated-fv->original-idx-context
+                                                                (mapcat identity (vals original->separateds))))
+                                                      {} (:idx-context remap))
+        {free-variances :frees idx-variances :idxs} (frees/free-variances separated-t)
+        ;_ (prn "remap" remap)
+        ;_ (prn "separated-t" separated-t)
+        ;_ (prn "separated-fv->original" separated-fv->original)
+        ;_ (prn "separated-fv->original-idx-context" separated-fv->original-idx-context)
+        ;_ (prn "free-variances" free-variances)
+        ;_ (prn "idx-variances" idx-variances)
+        ]
+    {:separated-t separated-t :remap remap
+     :separated-fv->original separated-fv->original
+     :separated-fv->original-idx-context separated-fv->original-idx-context
+     :free-variances free-variances
+     :idx-variances idx-variances}))
+
+;; apply substitution in argument positions, replace range positions with r/-infer-top
+;; TODO what if range is [x :-> x], probably want to subst the lhs with the actual x rather than r/-infer-top
+(defn prep-symbolic-closure-expected-type2 [subst t]
+  {:pre [(cr/substitution-c? subst)
+         (inferrable-symbolic-closure-expected-type? t)]
+   :post [(r/Type? %)]}
+  ;(prn "prep-symbolic-closure-expected-type2" t)
+  ;(prn "subst" subst)
+  (let [t (c/fully-resolve-type t)]
+    (cond
+      (r/FnIntersection? t) (-> t
+                                (update :types (fn [types]
+                                                 (mapv (fn [{:keys [rng] :as f}]
+                                                         {:pre [(r/Function? f)]
+                                                          :post (r/Function? %)}
+                                                         (let [rng-var-hash (frees/fv+idx-variances rng)
+                                                               ;_ (prn "rng-var-hash" rng-var-hash rng)
+                                                               rng-subst (reduce-kv (fn [subst k v]
+                                                                                      (let [variance (rng-var-hash k)]
+                                                                                        ;(prn "variance" k variance)
+                                                                                        (cond-> subst
+                                                                                          variance (assoc k (case variance
+                                                                                                              :covariant (cond
+                                                                                                                           (cr/t-subst? v) (assoc v :type r/-wild)
+                                                                                                                           :else v)
+                                                                                                              (:invariant :contravariant) v)))))
+                                                                                    {} subst)]
+                                                           (-> f
+                                                               (assoc :rng (r/make-Result r/-any))
+                                                               (->> (subst/subst-all subst))
+                                                               (assoc :rng (subst/subst-all rng-subst rng)))))
+                                                       types))))
+      (r/Poly? t) (let [names (c/Poly-fresh-symbols* t)
+                        bbnds (c/Poly-bbnds* names t)
+                        body (c/Poly-body* names t)]
+                   (c/Poly* names bbnds (prep-symbolic-closure-expected-type2 subst body)))
+      (r/PolyDots? t) (let [names (c/PolyDots-fresh-symbols* t)
+                            bbnds (c/PolyDots-bbnds* names t)
+                            body  (c/PolyDots-body* names t)]
+                        (c/PolyDots* names bbnds (prep-symbolic-closure-expected-type2 subst body)))
+      :else (do ;(prn "unsupported type in prep-symbolic-closure-expected-type: " t)
+                (fail! nil nil)))))
+
+;; replaces covariant type variables with r/-wild and then applies subst
+(defn prep-symbolic-closure-expected-type3 [subst t]
+  ;(prn :prep-symbolic-closure-expected-type3 subst)
+  (let [replace-fs (reduce-kv (fn [replace-fs sym sbst]
+                                (update replace-fs (if (cr/t-subst? sbst) :fv :idx) (fnil conj #{}) sym))
+                              {} subst)
+        {:keys [separated-t remap separated-fv->original separated-fv->original-idx-context
+                free-variances idx-variances]} (separate-F t replace-fs)
+
+        subst-infer-covariant (reduce-kv (fn [subst-infer-covariant sym variance]
+                                           (cond-> subst-infer-covariant
+                                             (= :covariant variance)
+                                             (assoc sym r/-wild)))
+                                         {} free-variances)]
+    (-> separated-t
+        ;; eliminate inferred variables
+        ;; TODO what do we do with covariant dotted variables?
+        (subst/substitute-many (vals subst-infer-covariant) (keys subst-infer-covariant))
+        ;; rename all other variables back to original
+        (subst/substitute-many (mapv r/make-F (vals separated-fv->original)) (keys separated-fv->original))
+        (rename-dots separated-fv->original)
+        ;; perform original substitution
+        (->> (subst/subst-all subst)))))
 
 ;; apply symbolic closure arg-t using function type dom-t as expected type, which is selectively
 ;; instantiated using substitution-without-symb, a substitution yielded from constraint
@@ -1916,7 +2061,17 @@
   ;(prn :app-symbolic-closure)
   (with-bindings (assoc (:bindings arg-t)
                         #'vs/*delayed-errors* (err/-init-delayed-errors))
-    (let [expected (r/ret (prep-symbolic-closure-expected-type substitution-without-symb dom-t))
+    (let [expected (r/ret (prep-symbolic-closure-expected-type3 substitution-without-symb dom-t))
+          ;_ (prn "substitution-without-symb" substitution-without-symb (update-vals substitution-without-symb class))
+          ;_ (prn "dom-t" dom-t)
+          ;_ (let [t1 (prep-symbolic-closure-expected-type substitution-without-symb dom-t)
+          ;        t2 (prep-symbolic-closure-expected-type2 substitution-without-symb dom-t)
+          ;        t3 (prep-symbolic-closure-expected-type3 substitution-without-symb dom-t)
+          ;        ]
+          ;    (prn "prep-symbolic-closure-expected-type" t1)
+          ;    (prn "prep-symbolic-closure-expected-type2" t2)
+          ;    (prn "prep-symbolic-closure-expected-type3" t3)
+          ;    )
           ;_ (prn :expected expected)
           res (-> (ind/check-expr
                     (:fexpr arg-t)
@@ -1931,6 +2086,28 @@
       ;(prn :arg-t arg-t)
       ;(prn :res res)
       res)))
+
+;; substitute all variables in non-covariant positions (and all index variables for now)
+(defn subst-non-covariant [subst t]
+  {:pre [(cr/substitution-c? subst)
+         (r/AnyType? t)]
+   :post (r/AnyType? %)}
+  (let [replace-fs (reduce-kv (fn [replace-fs sym sbst]
+                                (update replace-fs (if (cr/t-subst? sbst) :fv :idx) (fnil conj #{}) sym))
+                              {} subst)
+        {:keys [separated-t remap free-variances idx-variances separated-fv->original]} (separate-F t replace-fs)
+        subst-non-covariant (reduce (fn [subst [sym variance]]
+                                      (let [sbst (get subst (get separated-fv->original sym))]
+                                        (cond-> subst
+                                          (and sbst (not= :covariant variance))
+                                          (assoc sym sbst))))
+                                    subst (concat free-variances idx-variances))]
+    (-> separated-t
+        ;; eliminate non-covariant variables
+        (->> (subst/subst-all subst-non-covariant))
+        ;; rename all other variables back to original
+        (subst/substitute-many (mapv r/make-F (vals separated-fv->original)) (keys separated-fv->original))
+        (rename-dots separated-fv->original))))
 
 (declare infer cs-gen-app)
 
@@ -1959,9 +2136,17 @@
       (let [;_ (prn :cs-gen-list+symbolic)
             S-no-symb (keep-indexed (fn [i t] (when-not (symbolic-closure-fixed-args i) t)) S)
             T-no-symb (keep-indexed (fn [i t] (when-not (symbolic-closure-fixed-args i) t)) T)
+            S-symb (keep-indexed (fn [i t] (when (symbolic-closure-fixed-args i) t)) S)
+            T-symb (keep-indexed (fn [i t] (when (symbolic-closure-fixed-args i) t)) T)
             cs-no-symb (-> (cs-gen-app X Y S-no-symb T-no-symb R expected)
                            (cset-meet expected-cset))
+            symb-fv-variances (apply frees/combine-frees (map frees/fv-variances T-symb))
+            iterate? (some #{:invariant} (vals symb-fv-variances))
+            ;_ (prn :expected-cset expected-cset)
+            ;_ (prn :cs-no-symb cs-no-symb)
             substitution-without-symb (subst-gen cs-no-symb (set (keys Y)) R :T T :flip-T-variances? true)
+            ;_ (prn "substitution-without-symb" substitution-without-symb)
+            add-symb-to-S (fn [inferred-symbolic-closure-arg-types] (reduce-kv assoc S inferred-symbolic-closure-arg-types))
             inferred-symbolic-closure-arg-types (reduce (fn [ts i]
                                                           (assoc ts i
                                                                  (app-symbolic-closure
@@ -1969,14 +2154,48 @@
                                                                    (nth S i)
                                                                    (nth T i))))
                                                         {} symbolic-closure-fixed-args)
-            arg-types-with-inferred-symb (reduce-kv assoc S inferred-symbolic-closure-arg-types)]
+            ;_ (prn "inferred-symbolic-closure-arg-types" inferred-symbolic-closure-arg-types)
+            inferred-symbolic-closure-arg-types (if iterate?
+                                                  (loop [fuel 21
+                                                         inferred-symbolic-closure-arg-types inferred-symbolic-closure-arg-types]
+                                                    ;(prn "fuel" fuel)
+                                                    (let [S-symb' (vals (into (sorted-map) inferred-symbolic-closure-arg-types))
+                                                          T-symb' (mapv #(subst-non-covariant substitution-without-symb %) T-symb)
+                                                          ;_ (prn "S-symb'" S-symb')
+                                                          ;_ (prn "T-symb'" T-symb')
+                                                          cs-with-symb (cs-gen-list #{} X Y S-symb' T-symb')
+                                                          ;_ (prn "cs-with-symb" cs-with-symb)
+                                                          substitution-with-symb (subst-gen cs-with-symb (set (keys Y)) R :T T :flip-T-variances? true)
+                                                          inferred-symbolic-closure-arg-types' (reduce (fn [ts i]
+                                                                                                         (assoc ts i
+                                                                                                                (app-symbolic-closure
+                                                                                                                  substitution-with-symb
+                                                                                                                  (nth S i)
+                                                                                                                  (nth T i))))
+                                                                                                       {} symbolic-closure-fixed-args)
+                                                          ;_ (prn "inferred-symbolic-closure-arg-types" inferred-symbolic-closure-arg-types)
+                                                          ;_ (prn "inferred-symbolic-closure-arg-types'" inferred-symbolic-closure-arg-types')
+                                                          ;;TODO could save one extra iteration by instead checking the assignments of covariant variables.
+                                                          no-new-information? (every? (fn [[i s]]
+                                                                                        (let [t (inferred-symbolic-closure-arg-types' i)]
+                                                                                          (and (sub/subtype? s t)
+                                                                                               (sub/subtype? t s))))
+                                                                                      inferred-symbolic-closure-arg-types)]
+                                                      (if no-new-information?
+                                                        inferred-symbolic-closure-arg-types'
+                                                        (if (zero? fuel)
+                                                          (do ;(prn "fuel zero")
+                                                              (fail! nil nil))
+                                                          (recur (dec fuel) inferred-symbolic-closure-arg-types')))))
+                                                  inferred-symbolic-closure-arg-types)
+            arg-types-with-inferred-symb (add-symb-to-S inferred-symbolic-closure-arg-types)]
         ;(prn :arg-types-with-inferred-symb arg-types-with-inferred-symb)
         (if (and expr
                  ;; TODO if R has no type variables in contravariant position, I don't
                  ;; think we need to suspend the type check
                  ((some-fn r/FnIntersection? r/Poly? r/PolyDots?) (c/fully-resolve-type R))
                  (or (not expected)
-                     (r/infer-any? (c/fully-resolve-type expected))))
+                     (r/wild? (c/fully-resolve-type expected))))
           ;; wait for an expected type to help inference
           ;;FIXME expr's arguments will be rechecked, could just use old results
           ;; idea: assoc u/expr-type on the arguments and function
@@ -2313,39 +2532,37 @@
     (when substitution
       (r/ret (subst/subst-all substitution out)))))
 
-(f/def-derived-fold IInferToTV infer->tv* [tvs-atom])
+(f/def-derived-fold IInferToTV wild->tv* [tvs-atom])
 
 (f/add-fold-case
-  IInferToTV infer->tv*
-  Top
+  IInferToTV wild->tv*
+  Wildcard
   (fn [t tvs-atom]
-    (if (r/infer-any? t)
-      (let [sym (gensym 'tv)]
-        (swap! tvs-atom conj sym)
-        (r/F-maker sym))
-      t)))
+    (let [sym (gensym 'tv)]
+      (swap! tvs-atom conj sym)
+      (r/F-maker sym))))
 
-(defn infer->tv [t]
+(defn wild->tv [t]
   {:pre [(r/AnyType? t)]
    :post [(-> % :t r/AnyType?)
           ((con/vec-c? simple-symbol?) (:tvs %))]}
   (let [tvs-atom (atom [])
-        t (call-infer->tv* t {:tvs-atom tvs-atom})]
+        t (call-wild->tv* t {:tvs-atom tvs-atom})]
     {:t t :tvs @tvs-atom}))
 
-(defn eliminate-infer-any
-  "Assumes s <: t. If t has no infer-any's or if t fails to unify, returns t.
+(defn eliminate-wild
+  "Assumes s <: t. If t has no wild's or if t fails to unify, returns t.
 
   Since this is used only in check-below, we need to be conservative about extra
   subtyping checks."
   [s t]
   {:pre [(r/AnyType? s)
          (r/AnyType? t)]
-   :post [(r/AnyType? t)]}
-  (let [{t-replaced :t :keys [tvs]} (infer->tv t)]
-    (if (empty? tvs)
-      t
-      (:t (solve (r/ret s) (c/Poly* tvs (repeat (count tvs) r/no-bounds)
-                                    (r/make-FnIntersection
-                                      (r/make-Function [t-replaced] t-replaced))))
-          t))))
+   :post [((some-fn nil? r/AnyType?) t)]}
+  (when (subtype? s t)
+    (let [{t-replaced :t :keys [tvs]} (wild->tv t)]
+      (if (empty? tvs)
+        t
+        (:t (solve (r/ret s) (c/Poly* tvs (repeat (count tvs) r/no-bounds)
+                                      (r/make-FnIntersection
+                                        (r/make-Function [t-replaced] t-replaced)))))))))

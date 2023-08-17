@@ -165,17 +165,24 @@
          (boolean? polarity)]
    :post [(r/AnyType? %)]}
   ;(prn "subst-type" (prs/unparse-type t))
-  (letfn [(st [t*]
-            (subst-type t* k o polarity))
-          (sf [fs] 
-            {:pre [(fl/FilterSet? fs)] 
-             :post [(fl/FilterSet? %)]}
-            (subst-filter-set fs k o polarity))]
+  (letfn [(st
+            ([t* _info] (st t*))
+            ([t*]
+             (subst-type t* k o polarity)))
+          (sf
+            ([fs _info] (sf fs))
+            ([fs] 
+             {:pre [(fl/FilterSet? fs)] 
+              :post [(fl/FilterSet? %)]}
+             (subst-filter-set fs k o polarity)))
+          (object-rec 
+            ([f _info] (object-rec f))
+            ([f] (subst-object f k o polarity))) ]
     (call-subst-type*
       t
       {:type-rec st
        :filter-rec sf
-       :object-rec (fn [f] (subst-object f k o polarity))
+       :object-rec object-rec
        :st st
        :k k
        :o o

@@ -10,6 +10,7 @@
   (:require [typed.clojure :as t]
             [typed.cljc.checker.type-rep :as r]
             [clojure.core.typed.current-impl :as impl]
+            [typed.cljc.checker.fold-rep :as f]
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.object-rep]
             [typed.cljc.checker.utils :as u]
@@ -24,7 +25,7 @@
                                         Function RClass App TApp
                                         PrimitiveArray DataType Protocol TypeFn Poly PolyDots
                                         Mu HeterogeneousMap
-                                        CountRange Name Value Top Unchecked TopFunction B F Result AnyValue
+                                        CountRange Name Value Top Wildcard Unchecked TopFunction B F Result AnyValue
                                         Scope TCError Extends AssocType MergeType HSequential HSet
                                         JSObj TypeOf)
            (typed.cljc.checker.filter_rep FilterSet TypeFilter NotTypeFilter ImpFilter
@@ -65,12 +66,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Exposed interface
 
+(defn flip-variance [vari]
+  (case vari
+    :covariant :contravariant
+    :contravariant :covariant
+    vari))
+
 (defn flip-variance-map [vs]
-  (update-vals vs (t/fn [vari :- r/Variance]
-                    (case vari
-                      :covariant :contravariant
-                      :contravariant :covariant
-                      vari))))
+  (update-vals vs flip-variance))
 
 (t/ann fv-variances [r/AnyType -> VarianceMap])
 (defn fv-variances 
@@ -85,6 +88,15 @@
   [t]
   {:post [(variance-map? %)]}
   (.idxs (frees t)))
+
+(t/ann free-variances [r/AnyType -> '{:frees VarianceMap
+                                      :idxs VarianceMap}])
+(defn free-variances
+  "Variances of all type and index variables in type"
+  [t]
+  {:post [((con/hmap-c? :frees variance-map? :idxs variance-map?) %)]}
+  (let [f (frees t)]
+    {:frees (.frees f) :idxs (.idxs f)}))
 
 (t/ann fv+idx-variances [r/AnyType -> (t/Set t/Sym)])
 (defn fv+idx-variances
@@ -151,6 +163,7 @@
     -empty-frees-result
     frees))
 
+;;TODO attempt to rewrite using the new second "info" argument to type-rec
 (extend-protocol IFrees
   Result 
   (frees [t]
@@ -236,6 +249,8 @@
   (frees [t] -empty-frees-result)
   Top 
   (frees [t] -empty-frees-result)
+  Wildcard 
+  (frees [t] -empty-frees-result)
   Unchecked 
   (frees [t] -empty-frees-result)
   Name 
@@ -248,13 +263,13 @@
     [{varis :variances args :poly? :as t}]
     (assert (= (count args) (count varis)))
     (apply combine-freesresults (map (fn [arg va]
-                                (let [fr (frees arg)]
-                                  (case va
-                                    :covariant fr
-                                    :contravariant (flip-variances fr)
-                                    :invariant (invariant-variances fr))))
-                              args
-                              varis)))
+                                       (let [fr (frees arg)]
+                                         (case va
+                                           :covariant fr
+                                           :contravariant (flip-variances fr)
+                                           :invariant (invariant-variances fr))))
+                                     args
+                                     varis)))
 
   App
   (frees 
@@ -321,12 +336,12 @@
   (frees 
     [{:keys [types fs objects rest drest]}]
     (apply combine-freesresults (concat (mapv frees (concat types fs objects))
-                                 (when rest [(frees rest)])
-                                 (when drest
-                                   [(let [fr (-> (:pre-type drest) frees)]
-                                      (FreesResult.
-                                        (-> (.frees fr) (dissoc (:name drest)))
-                                        (.idxs fr)))]))))
+                                        (when rest [(frees rest)])
+                                        (when drest
+                                          [(let [fr (-> (:pre-type drest) frees)]
+                                             (FreesResult.
+                                               (-> (.frees fr) (dissoc (:name drest)))
+                                               (.idxs fr)))]))))
 
   HSet
   (frees 
@@ -387,22 +402,22 @@
   (frees 
     [{:keys [dom rng rest drest kws prest pdot]}]
     (apply combine-freesresults (concat (map (comp flip-variances frees)
-                                      (concat dom
-                                              (when rest
-                                                [rest])
-                                              (when kws
-                                                [(vals kws)])
-                                              (when prest
-                                                [prest])))
-                                 [(frees rng)]
-                                 (keep
-                                   #(when-let [{:keys [name pre-type]} %]
-                                      (assert (symbol? name))
-                                      (let [fr (-> pre-type frees flip-variances)]
-                                        (FreesResult.
-                                          (-> (.frees fr) (dissoc name))
-                                          (-> (.idxs fr) (assoc name :contravariant)))))
-                                   [drest pdot]))))
+                                             (concat dom
+                                                     (when rest
+                                                       [rest])
+                                                     (when kws
+                                                       [(vals kws)])
+                                                     (when prest
+                                                       [prest])))
+                                        [(frees rng)]
+                                        (keep
+                                          #(when-let [{:keys [name pre-type]} %]
+                                             (assert (symbol? name))
+                                             (let [fr (-> pre-type frees flip-variances)]
+                                               (FreesResult.
+                                                 (-> (.frees fr) (dissoc name))
+                                                 (-> (.idxs fr) (assoc name :contravariant)))))
+                                          [drest pdot]))))
 
   RClass
   (frees 

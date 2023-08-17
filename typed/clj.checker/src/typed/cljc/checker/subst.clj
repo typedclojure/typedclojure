@@ -22,15 +22,29 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Variable substitution
 
-(f/def-derived-fold ISubstitute substitute* [name image])
+(f/def-derived-fold ISubstitute substitute* [images names name->pos recur?])
+
+(declare substitute-many)
 
 (f/add-fold-case
   ISubstitute substitute*
   F
-  (fn [{name* :name :as f} name image]
-    (if (= name* name)
-      image
+  (fn [f images names name->pos recur?]
+    (if-some [i (name->pos (:name f))]
+      (cond-> (nth images i)
+        recur? (substitute-many (subvec images i) (subvec names i)))
       f)))
+
+(t/ann ^:no-check substitute-many [r/Type (t/Seqable r/Type) (t/Seqable t/Sym) -> r/Type])
+(defn substitute-many [target images names]
+  (let [images (vec images)
+        names (vec names)]
+    (assert (= (count images) (count names)) [names images])
+    (cond-> target
+      (seq images) (call-substitute* {:recur? true
+                                      :images images
+                                      :names names
+                                      :name->pos (zipmap names (range))}))))
 
 (t/ann ^:no-check substitute [r/Type t/Sym r/Type -> r/Type])
 (defn substitute [image name target]
@@ -38,16 +52,7 @@
          (symbol? name)
          (r/AnyType? target)]
    :post [(r/AnyType? %)]}
-  (call-substitute*
-    target
-    {:name name
-     :image image}))
-
-(t/ann ^:no-check substitute-many [r/Type (t/Seqable r/Type) (t/Seqable t/Sym) -> r/Type])
-(defn substitute-many [target images names]
-  (reduce (fn [t [im nme]] (substitute im nme t))
-          target
-          (map vector images names)))
+  (substitute-many target [image] [name]))
 
 (declare substitute-dots substitute-dotted)
 
@@ -169,7 +174,8 @@
          (symbol? name)
          (r/AnyType? target)]}
   ;(prn "substitute-dots" (unparse-type target) name "->" (map unparse-type images))
-  (letfn [(sb [t] (substitute-dots images rimage name t))]
+  (letfn [(sb ([t _info] (sb t))
+            ([t] (substitute-dots images rimage name t)))]
     (cond-> target
       (or ((frees/fi target) name)
           ((frees/fv target) name))
@@ -249,7 +255,8 @@
          (symbol? name)
          (r/AnyType? target)]
    :post [(r/AnyType? %)]}
-  (letfn [(sb [t] (substitute-dotted image image-bound name t))]
+  (letfn [(sb ([t _info] (sb t))
+            ([t] (substitute-dotted image image-bound name t)))]
     (cond-> target
       ((frees/fi target) name)
       (call-substitute-dotted*

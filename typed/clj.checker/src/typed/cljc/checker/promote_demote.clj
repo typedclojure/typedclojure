@@ -20,7 +20,7 @@
                                         DottedPretype Function RClass App TApp
                                         PrimitiveArray DataType Protocol TypeFn Poly PolyDots
                                         Mu HeterogeneousMap
-                                        CountRange Name Value Top Unchecked TopFunction B F Result AnyValue
+                                        CountRange Name Value Top Wildcard Unchecked TopFunction B F Result AnyValue
                                         TCError Extends JSNominal
                                         JSString JSBoolean JSNumber CLJSInteger JSObject
                                         ArrayCLJS FunctionCLJS KwArgsSeq HSequential HSet LTRange
@@ -201,7 +201,7 @@
                 `(promote-demote ~c [T# V#] T#))
               cs)))
 
-(promote-demote-id B Name Top Unchecked TCError CountRange JSString
+(promote-demote-id B Name Top Wildcard Unchecked TCError CountRange JSString
                    JSBoolean JSNumber JSObject CLJSInteger
                    FunctionCLJS LTRange GTRange AnyValue TopFunction JSUndefined
                    JSNull JSSymbol TypeOf

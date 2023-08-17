@@ -231,7 +231,7 @@
                     (r/make-FnIntersection
                       (r/make-Function arg-types
                                        ;; blame application site for return errors (good strategy?)
-                                       r/-infer-any)))
+                                       r/-wild)))
              actual-ret-ifn (-> capp u/expr-type :t)
              _ (assert (r/FnIntersection? actual-ret-ifn))
              _ (assert (= 1 (count (:types actual-ret-ifn))))

@@ -345,6 +345,7 @@
   ;(prn "subtypeA*" s t)
   (if (or ; FIXME TypeFn's are probably not between Top/Bottom
           (r/Top? t)
+          (r/wild? t)
           (r/Bottom? s)
           ;; Unchecked is both bottom and top
           (r/Unchecked? s)

@@ -33,7 +33,7 @@
                                         DottedPretype Function RClass App TApp
                                         PrimitiveArray DataType Protocol TypeFn Poly PolyDots
                                         Mu HeterogeneousMap
-                                        CountRange Name Value Top TypeOf Unchecked TopFunction B F Result AnyValue
+                                        CountRange Name Value Top Wildcard TypeOf Unchecked TopFunction B F Result AnyValue
                                         KwArgsSeq KwArgsArray TCError Extends JSNumber JSBoolean SymbolicClosure
                                         CLJSInteger ArrayCLJS JSNominal JSString TCResult AssocType MergeType
                                         GetType HSequential HSet JSUndefined JSNull JSSymbol JSObject
@@ -1098,11 +1098,12 @@
         n)))
 
 (defn parse-Any [sym]
-  (if (-> sym meta :clojure.core.typed/infer)
-    r/-infer-any
-    r/-any))
+  (assert (not (-> sym meta :clojure.core.typed/infer))
+          "^:clojure.core.typed/infer Any support has been removed. Use t/?.")
+  r/-any)
 
 (defmethod parse-type-symbol 'typed.clojure/Any [s] (parse-Any s))
+(defmethod parse-type-symbol 'typed.clojure/? [s] r/-wild)
 (defmethod parse-type-symbol 'typed.clojure/TCError [t] (r/TCError-maker))
 (defmethod parse-type-symbol 'typed.clojure/Nothing [_] (r/Bottom))
 (defmethod parse-type-symbol 'typed.clojure/AnyFunction [_] (r/TopFunction-maker))
@@ -1575,9 +1576,17 @@
 
 (defn unp [t] (prn (unparse-type t)))
 
+(defn unparse-F [f]
+  {:pre [(r/F? f)]}
+  (if vs/*verbose-types*
+    (:name f)
+    (r/F-original-name f)))
+
 (extend-protocol IUnparseType
-  Top 
-  (unparse-type* [_] (unparse-Name-symbol-in-ns `t/Any))
+  Top
+  (unparse-type* [t] (unparse-Name-symbol-in-ns `t/Any))
+  Wildcard 
+  (unparse-type* [t] (unparse-Name-symbol-in-ns `t/?))
 ;; TODO qualify vsym in current ns
   TypeOf 
   (unparse-type* [{:keys [vsym] :as t}] (list (unparse-Name-symbol-in-ns `t/TypeOf) vsym))
@@ -1597,7 +1606,7 @@
   (unparse-type* 
     [{:keys [pre-type name]}]
     (list 'DottedPretype (unparse-type pre-type) (if (symbol? name)
-                                                   (-> name r/make-F r/F-original-name)
+                                                   (-> name r/make-F unparse-F)
                                                    name)))
 
   CountRange 
@@ -1624,11 +1633,7 @@
   (unparse-type* [{:keys [t]}] (unparse-type t))
 
   F
-  (unparse-type* 
-    [{:keys [] :as f}]
-    ; Note: don't print f here, results in infinite recursion
-    ;(prn (-> f :name) (-> f :name meta))
-    (r/F-original-name f))
+  (unparse-type* [f] (unparse-F f))
 
   PrimitiveArray
   (unparse-type* 
@@ -1663,13 +1668,9 @@
   FnIntersection
   (unparse-type* 
     [{types :types}]
-    (cond
-      ; use vector sugar where appropriate
-      (and (not vs/*verbose-types*)
-           (== 1 (count types)))
+    ; use vector sugar where appropriate
+    (if (= 1 (count types))
       (unparse-type (first types))
-
-      :else
       (list* (unparse-Name-symbol-in-ns `t/IFn)
              (doall (map unparse-type types)))))
 
@@ -1712,7 +1713,7 @@
 (defn unparse-bound [name]
   {:pre [((some-fn symbol? nat-int?) name)]}
   (if (symbol? name)
-    (-> name r/make-F r/F-original-name)
+    (-> name r/make-F unparse-F)
     `(~'B ~name)))
 
 (extend-protocol IUnparseType
@@ -1778,12 +1779,12 @@
   Mu
   (unparse-type* 
     [m]
-    (let [nme (-> (c/Mu-fresh-symbol* m) r/make-F r/F-original-name)
+    (let [nme (-> (c/Mu-fresh-symbol* m) r/make-F unparse-F)
           body (c/Mu-body* nme m)]
       (list (unparse-Name-symbol-in-ns `t/Rec) [nme] (unparse-type body)))))
 
 (defn unparse-poly-bounds-entry [name {:keys [upper-bound lower-bound higher-kind] :as bnds}]
-  (let [name (-> name r/make-F r/F-original-name)
+  (let [name (-> name r/make-F unparse-F)
         u (when upper-bound 
             (unparse-type upper-bound))
         l (when lower-bound 
@@ -1802,7 +1803,7 @@
 
 (defn unparse-poly-dotted-bounds-entry [free-name bbnd]
   ; ignore dotted bound for now, not sure what it means yet.
-  [(-> free-name r/make-F r/F-original-name) '...])
+  [(-> free-name r/make-F unparse-F) '...])
 
 (defn unparse-poly-binder [dotted? free-names bbnds named]
   (let [named-remappings (apply sorted-map (interleave (vals named) (keys named)))
@@ -1857,7 +1858,7 @@
 
 ;(ann unparse-typefn-bounds-entry [t/Sym Bounds Variance -> Any])
 (defn unparse-typefn-bounds-entry [name {:keys [upper-bound lower-bound higher-kind]} v]
-  (let [name (-> name r/make-F r/F-original-name)
+  (let [name (-> name r/make-F unparse-F)
         u (when upper-bound 
             (unparse-type upper-bound))
         l (when lower-bound 

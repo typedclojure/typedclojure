@@ -44,7 +44,7 @@
 (t/tc-ignore
 (def ^:const default-xor 1)
 
-(defn ^:private inner-deftype [fields hash-field meta-field that name-sym type-hash gs
+(defn ^:private inner-deftype [fields hash-field meta-field this that name-sym type-hash gs
                                maker methods*]
   `(deftype ~name-sym [~@fields ~(with-meta hash-field {:unsynchronized-mutable true}) ~meta-field]
      clojure.lang.IHashEq
@@ -102,10 +102,12 @@
            (throw (UnsupportedOperationException. (str "lookup on " '~name-sym " " k#))))))
 
      clojure.lang.IPersistentMap
-     (assoc [this# k# ~gs]
+     (assoc [~this k# ~gs]
        (condp identical? k#
          ~@(mapcat (fn [fld]
-                     [(keyword fld) `(~maker ~@(replace {fld gs} fields) ~meta-field)])
+                     [(keyword fld) `(if (identical? ~gs ~fld)
+                                       ~this ;; don't reconstruct if field is unchanged
+                                       (~maker ~@(replace {fld gs} fields) ~meta-field))])
                    fields)
          (throw (UnsupportedOperationException. (str "assoc on " '~name-sym " " k#)))))
      (entryAt [this# k#]
@@ -150,6 +152,7 @@
         ->ctor (symbol (str "->" name-sym))
         maker (symbol (str name-sym "-maker"))
         pred (symbol (str name-sym "?"))
+        this (gensym)
         that (gensym)
         gs (gensym)
         type-hash (hash classname)
@@ -157,7 +160,7 @@
         hash-field '_hash]
     `(do
        (declare ~maker)
-       ~(inner-deftype fields hash-field meta-field that name-sym type-hash gs
+       ~(inner-deftype fields hash-field meta-field this that name-sym type-hash gs
                        maker methods*)
 
        (swap! ~(symbol (str original-ns) (str "all-" def-kind "s")) conj '~classname)

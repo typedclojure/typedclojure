@@ -22,7 +22,7 @@
 (fold/add-fold-case IExpectedDispatchType expected-dispatch-type*
   Function
   (fn [ty]
-    (assoc ty :rng (r/make-Result r/-infer-any fl/-infer-FS obj/-infer-obj))))
+    (assoc ty :rng (r/make-Result r/-wild fl/-infer-FS obj/-infer-obj))))
 
 ;return the expected type for the dispatch fn of the given multimethod's expected type
 ;[Type -> Type]
@@ -31,4 +31,5 @@
    :post [(r/AnyType? %)]}
   (call-expected-dispatch-type*
     mm-type
-    {:type-rec expected-dispatch-type}))
+    {:type-rec (fn ([ty _info] (expected-dispatch-type ty))
+                 ([ty] (expected-dispatch-type ty)))}))

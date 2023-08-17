@@ -30,7 +30,7 @@
   Path
   (fn [{p :path i :id :as o} k free-in?]
     (when (= i k)
-      (reset! free-in? true))
+      (vreset! free-in? true))
     o))
 
 (fold/add-fold-case
@@ -38,7 +38,7 @@
   NotTypeFilter
   (fn [{t :type p :path i :id :as f} k free-in?]
     (when (= i k)
-      (reset! free-in? true))
+      (vreset! free-in? true))
     f))
 
 (fold/add-fold-case
@@ -46,7 +46,7 @@
   TypeFilter
   (fn [{t :type p :path i :id :as f} k free-in?]
     (when (= i k)
-      (reset! free-in? true))
+      (vreset! free-in? true))
     f))
 
 (declare index-free-in?)
@@ -54,7 +54,7 @@
 (fold/add-fold-case
   IFreeInForType free-in-for-type
   Function
-  (fn [{:keys [dom rng rest drest kws]} k free-in? for-type]
+  (fn [{:keys [dom rng rest drest kws] :as ty} k free-in? for-type]
     ;; here we have to increment the count for the domain, where the new bindings are in scope
     (let [arg-count (+ (count dom) (if rest 1 0) (if drest 1 0) (count (concat (:mandatory kws)
                                                                                (:optional kws))))
@@ -62,38 +62,43 @@
       (doseq [d dom]
         (for-type d))
       (st* rng)
-      (and rest (for-type rest))
-      (and rest (for-type (:pre-type drest)))
+      (some-> rest for-type)
+      (some-> (:pre-type drest) for-type)
       (doseq [[_ v] (concat (:mandatory kws)
                             (:optional kws))]
         (for-type v))
-      ;dummy return value
-      (r/make-Function [] r/-any))))
+      ty)))
 
 ;[AnyInteger Type -> Boolean]
 (defn index-free-in? [k type]
-  (let [free-in? (atom false :validator boolean?)]
-    (letfn [(for-object [o]
-              (call-free-in-for-object
-                o
-                {:type-rec for-type
-                 :free-in? free-in?
-                 :k k}))
-            (for-filter [o]
-              (call-free-in-for-filter
-                o
-                {:type-rec for-type
-                 :filter-rec for-filter
-                 :free-in? free-in?
-                 :k k}))
-            (for-type [t]
-              (call-free-in-for-type
-                t
-                {:type-rec for-type
-                 :filter-rec for-filter
-                 :object-rec for-object
-                 :free-in? free-in?
-                 :k k
-                 :for-type for-type}))]
+  (let [free-in? (volatile! false)]
+    (letfn [(for-object
+              ([o _info] (for-object o))
+              ([o]
+               (call-free-in-for-object
+                 o
+                 {:type-rec for-type
+                  :free-in? free-in?
+                  :k k})))
+            (for-filter
+              ([f _info] (for-filter f))
+              ([f]
+               (call-free-in-for-filter
+                 f
+                 {:type-rec for-type
+                  :filter-rec for-filter
+                  :free-in? free-in?
+                  :k k})))
+            (for-type 
+              ([t _info] (for-type t))
+              ([t]
+               (call-free-in-for-type
+                 t
+                 {:type-rec for-type
+                  :filter-rec for-filter
+                  :object-rec for-object
+                  :free-in? free-in?
+                  :k k
+                  :for-type for-type})))]
       (for-type type)
       @free-in?)))

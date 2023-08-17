@@ -301,7 +301,7 @@
   (when-let [expected (or expected
                           (:default-expected opts)
                           #_
-                          {:type `^::t/infer t/Any
+                          {:type `t/?
                            :filters {:then 'no-filter
                                      :else 'no-filter}
                            :object 'no-object})]

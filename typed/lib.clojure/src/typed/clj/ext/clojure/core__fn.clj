@@ -68,7 +68,7 @@
                                           prs-dash-meta (fn [desc]
                                                           (if-some [[_ quoted-tsyn] (-> desc :form meta (find ::t/-))]
                                                             (parse-meta-ann quoted-tsyn)
-                                                            r/-infer-any))
+                                                            r/-wild))
                                           dom (->> fixed
                                                    (sort-by :fixed-pos)
                                                    (map prs-dash-meta))

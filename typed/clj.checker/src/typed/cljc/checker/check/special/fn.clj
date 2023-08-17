@@ -67,7 +67,7 @@
                 method
                 (r/make-Function dom (or (when (r/Result? rng)
                                            (r/Result-type* rng))
-                                         r/-infer-any)
+                                         r/-wild)
                                  :rest rest 
                                  :drest drest
                                  :filter (when (r/Result? rng)

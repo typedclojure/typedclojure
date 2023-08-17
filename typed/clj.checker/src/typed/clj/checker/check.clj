@@ -1615,7 +1615,7 @@
                   cred))))))
       (prepare-check-fn env expr
         (if (and expected
-                 (not (r/infer-any? (r/ret-t expected))))
+                 (not (r/wild? (r/ret-t expected))))
           (fn/check-fn expr expected)
           (if (and r/enable-symbolic-closures?
                    ;; check thunks eagerly

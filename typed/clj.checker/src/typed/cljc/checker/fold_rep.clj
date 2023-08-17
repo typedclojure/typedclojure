@@ -17,7 +17,7 @@
 ; b. Filter to filter-rec
 ; c. Object to object-rec
 
-(def default-params '[type-rec filter-rec object-rec pathelem-rec])
+(def default-params '[type-rec type-rec+flip type-rec+invariant filter-rec object-rec pathelem-rec])
 
 (defonce all-extra-params (atom {`IFoldDefault []}))
 
@@ -57,10 +57,11 @@
          (extend-protocol ~qpname
            Object ;; TODO replace with AnyType
            (~qmname [ty# ~@default-gs ~@extra-gs]
-             (let [~default-f #(~qmname % ~@default-gs ~@extra-gs)]
+             (let [~default-f (fn ([ty#] (~qmname ty# ~@default-gs ~@extra-gs))
+                                ([ty# _info#] (~qmname ty# ~@default-gs ~@extra-gs)))]
                ;; the only place fold-default* is called
                (fold-default*
-                 ty# 
+                 ty#
                  ~@(map (fn [g]
                           `(or ~g ~default-f))
                         default-gs))))))))
@@ -100,19 +101,22 @@
         gsym (get m sym)
         _ (assert (symbol? gsym))]
     `(letfn [(~sub-pe [st#]
-               #(~f %
-                    {:type-rec st#
-                     :pathelem-rec (~sub-pe st#)}))
+               (fn rec# ([ty# _info#] (rec# ty#))
+                 ([ty#] (~f ty#
+                            {:type-rec st#
+                             :pathelem-rec (~sub-pe st#)}))))
              (~sub-f [st#]
-               #(~f %
-                    {:type-rec st#
-                     :filter-rec (~sub-f st#)
-                     :pathelem-rec (~sub-pe st#)}))
+               (fn rec# ([ty# _info#] (rec# ty#))
+                 ([ty#] (~f ty#
+                            {:type-rec st#
+                             :filter-rec (~sub-f st#)
+                             :pathelem-rec (~sub-pe st#)}))))
              (~sub-o [st#]
-               #(~f %
-                    {:type-rec st#
-                     :object-rec (~sub-o st#)
-                     :pathelem-rec (~sub-pe st#)}))]
+               (fn rec# ([ty# _info#] (rec# ty#))
+                 ([ty#] (~f ty#
+                            {:type-rec st#
+                             :object-rec (~sub-o st#)
+                             :pathelem-rec (~sub-pe st#)}))))]
        (~gsym ~st))))
 
 (defmacro def-sub-functions []

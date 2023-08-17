@@ -28,9 +28,15 @@
          (r/AnyType? t)]
    :post [(r/AnyType? %)]}
   ;(prn "abstract type" ids keys t)
-  (letfn [(sb-t [t] (abstract-type ids keys t))
-          (sb-f [f] (abo ids keys f))
-          (sb-o [o] (abstract-object ids keys o))]
+  (letfn [(sb-t
+            ([t _info] (sb-t t))
+            ([t] (abstract-type ids keys t)))
+          (sb-f
+            ([f _info] (sb-f f))
+            ([f] (abo ids keys f)))
+          (sb-o
+            ([o _info] (sb-o o))
+            ([o] (abstract-object ids keys o)))]
     (call-abo-fold*
       t
       {:type-rec sb-t
