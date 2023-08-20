@@ -1662,7 +1662,7 @@
       ; Prefer the user provided Name for this type. Needs more thinking?
       ;(-> u meta :from-name) (-> u meta :from-name)
       (seq types) (list* (unparse-Name-symbol-in-ns `t/U)
-                         (doall (map unparse-type types)))
+                         (map unparse-type types))
       :else (unparse-Name-symbol-in-ns `t/Nothing)))
 
   FnIntersection
@@ -1672,20 +1672,20 @@
     (if (= 1 (count types))
       (unparse-type (first types))
       (list* (unparse-Name-symbol-in-ns `t/IFn)
-             (doall (map unparse-type types)))))
+             (map unparse-type types))))
 
   Intersection
   (unparse-type* 
     [{types :types}]
     (list* (unparse-Name-symbol-in-ns `t/I)
-           (doall (map unparse-type types))))
+           (map unparse-type types)))
 
   DifferenceType
   (unparse-type* 
     [{:keys [type without]}]
     (list* (unparse-Name-symbol-in-ns `t/Difference)
            (unparse-type* type)
-           (doall (map unparse-type without))))
+           (map unparse-type without)))
 
   NotType
   (unparse-type* 
@@ -1697,18 +1697,18 @@
 
 (defn- unparse-kw-map [m]
   {:pre [((con/hash-c? r/Value? r/Type?) m)]}
-  (into {}
-        (map (fn [[k v]]
-               [(:val k) (unparse-type v)]))
-        m))
+  (reduce-kv (fn [m k v]
+               (assoc m (:val k) (unparse-type v)))
+             {} m))
 
 (defn unparse-result [{:keys [t fl o] :as rng}]
   {:pre [(r/Result? rng)]}
-  (concat [(unparse-type t)]
-          (when-not (every? (some-fn f/TopFilter? f/NoFilter?) [(:then fl) (:else fl)])
-            [:filters (unparse-filter-set fl)])
-          (when-not ((some-fn orep/NoObject? orep/EmptyObject?) o)
-            [:object (unparse-object o)])))
+  (cond-> [(unparse-type t)]
+    (not-every? (some-fn f/TopFilter? f/NoFilter?) [(:then fl) (:else fl)])
+    (conj :filters (unparse-filter-set fl))
+
+    (not ((some-fn orep/NoObject? orep/EmptyObject?) o))
+    (conj :object (unparse-object o))))
 
 (defn unparse-bound [name]
   {:pre [((some-fn symbol? nat-int?) name)]}
@@ -1727,31 +1727,26 @@
   Function
   (unparse-type* 
     [{:keys [dom rng kws rest drest prest pdot]}]
-    (vec (concat (doall (map unparse-type dom))
-                 (when rest
-                   [(unparse-type rest) '*])
-                 (when drest
-                   (let [{:keys [pre-type name]} drest]
-                     [(unparse-type pre-type)
-                      '...
-                      (unparse-bound name)]))
-                 (when kws
-                   (let [{:keys [optional mandatory]} kws]
-                     (list* '&
-                            (concat
-                              (when (seq mandatory)
-                                [:mandatory (unparse-kw-map mandatory)])
-                              (when (seq optional)
-                                [:optional (unparse-kw-map optional)])))))
-                 (when prest
-                   [(unparse-type prest) '<*])
-                 (when pdot
-                   (let [{:keys [pre-type name]} pdot]
-                     [(unparse-type pre-type)
-                      '<...
-                      (unparse-bound name)]))
-                 ['->]
-                 (unparse-result rng)))))
+    (cond-> (mapv unparse-type dom)
+      rest (conj (unparse-type rest) :*)
+      drest (into (let [{:keys [pre-type name]} drest]
+                    [(unparse-type pre-type)
+                     :..
+                     (unparse-bound name)]))
+      kws (into (let [{:keys [optional mandatory]} kws]
+                  (list* '&
+                         (concat
+                           (when (seq mandatory)
+                             [:mandatory (unparse-kw-map mandatory)])
+                           (when (seq optional)
+                             [:optional (unparse-kw-map optional)])))))
+      prest (conj (unparse-type prest) '<*)
+      pdot (into (let [{:keys [pre-type name]} pdot]
+                   [(unparse-type pre-type)
+                    '<...
+                    (unparse-bound name)]))
+      true (conj :->)
+      true (into (unparse-result rng)))))
 
 (extend-protocol IUnparseType
   Protocol
@@ -1774,7 +1769,7 @@
     [{:keys [the-class poly?] :as r}]
     (if (empty? poly?)
       (unparse-Name-symbol-in-ns the-class)
-      (list* (unparse-Name-symbol-in-ns the-class) (doall (map unparse-type poly?)))))
+      (list* (unparse-Name-symbol-in-ns the-class) (map unparse-type poly?))))
 
   Mu
   (unparse-type* 
@@ -1978,7 +1973,7 @@
     (list* (unparse-Name-symbol-in-ns `t/Assoc)
            (unparse-type target)
            (concat
-             (doall (map unparse-type (apply concat entries)))
+             (map unparse-type (apply concat entries))
              (when dentries [(unparse-type (:pre-type dentries))
                              '...
                              (unparse-bound (:name dentries))]))))

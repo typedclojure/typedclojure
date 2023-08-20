@@ -173,9 +173,21 @@
                (let [res (app #(do %) 1)]
                  (t/ann-form res (t/Val 1))
                  nil)))
+  (is-tc-e (do (t/ann app (t/All [x] [[x :-> x] x :-> x]))
+               (def app #(%1 %2))
+               (app #(do % true) 1)))
+  (is-tc-e (do (t/ann app (t/All [x] [[x :-> x] x :-> x]))
+               (def app #(%1 %2))
+               (app #(do % true) 1))
+           (t/U true '1))
   (is-tc-err (do (t/ann app (t/All [x] [[x :-> x] x :-> x]))
                  (def app #(%1 %2))
-                 (app #(do % true) 1)))
+                 (app #(do % true) 1))
+             true)
+  (is-tc-err (do (t/ann app (t/All [x] [[x :-> x] x :-> x]))
+                 (def app #(%1 %2))
+                 (app #(do % true) 1))
+             '1)
   (is-tc-e (do (t/ann app (t/All [x] [[x :-> x] x :-> x]))
                (def app #(%1 %2))
                (app #(inc %) 1)))
@@ -519,3 +531,33 @@
   #_;;TODO
   (is-tc-e (reduce (fn [a b] (+ a (if b 1 2))) 1 [true]))
   )
+
+(deftest comp-test
+  (is-tc-e (fn [comp :- (t/All [x y z] [[y :-> z] [x :-> y] :-> [x :-> z]])]
+             (comp (fn [y] y)
+                   (fn [x] x))))
+  (is-tc-e (fn [comp :- (t/All [x y z] [[y :-> z] [x :-> y] :-> [x :-> z]])]
+             (let [f (comp (fn [y] y)
+                           (fn [x] x))]
+               (f 1))))
+  (is-tc-e (fn [comp :- (t/All [x y z] [[y :-> z] [x :-> y] :-> [x :-> z]])]
+             :- (t/Val 1)
+             (let [f (comp (fn [y] y)
+                           (fn [x] x))]
+               (f 1))))
+  (is-tc-err (fn [comp :- (t/All [x y z] [[y :-> z] [x :-> y] :-> [x :-> z]])]
+               :- (t/Val 0)
+               (let [f (comp (fn [y] y)
+                             (fn [x] x))]
+                 (f 1))))
+  #_;TODO
+  (is-tc-e (into [] (comp (map #(do %))
+                          (map #(do %)))
+                 [1]))
+  #_;TODO
+  (is-tc-e (comp (map #(do %))
+                 (map #(do %)))
+           (t/Transducer '1 '1))
+  #_;TODO
+  (is-tc-e (comp (fn [y] y)
+                 (fn [x y] y))))

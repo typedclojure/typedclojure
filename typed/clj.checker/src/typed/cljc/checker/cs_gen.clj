@@ -44,10 +44,6 @@
 (defn ^:private gen-repeat [times repeated]
   (reduce into [] (repeat times repeated)))
 
-;; TODO punting on computing data flow between args by isolating an arity
-;; unclear how effective this is, especially since arity-polymorphic functions are allowed
-(def single-arity-fn-intersection? (every-pred r/FnIntersection?
-                                               #(= 1 (count (:types %)))))
 (def inferrable-symbolic-closure-expected-type?
   (comp (some-fn r/FnIntersection? r/Poly? r/PolyDots?)
         c/fully-resolve-type))
@@ -2074,7 +2070,7 @@
                     expected)
                   u/expr-type r/ret-t)]
       (when-some [errs (seq @vs/*delayed-errors*)]
-        #_
+        ;#_
         (prn "symbolic closure failed to check"
              errs)
         ;; move to next arity, symbolic closure failed to check
@@ -2132,7 +2128,6 @@
       (let [;_ (prn :cs-gen-list+symbolic)
             S-no-symb (keep-indexed (fn [i t] (when-not (symbolic-closure-fixed-args i) t)) S)
             T-no-symb (keep-indexed (fn [i t] (when-not (symbolic-closure-fixed-args i) t)) T)
-            S-symb (keep-indexed (fn [i t] (when (symbolic-closure-fixed-args i) t)) S)
             T-symb (keep-indexed (fn [i t] (when (symbolic-closure-fixed-args i) t)) T)
             cs-no-symb (-> (cs-gen-app X Y S-no-symb T-no-symb R expected)
                            (cset-meet expected-cset))
@@ -2141,7 +2136,7 @@
             ;_ (prn :expected-cset expected-cset)
             ;_ (prn :cs-no-symb cs-no-symb)
             substitution-without-symb (subst-gen cs-no-symb (set (keys Y)) R :T T :flip-T-variances? true)
-            ;_ (prn "substitution-without-symb" substitution-without-symb)
+            _ (prn "substitution-without-symb" substitution-without-symb)
             add-symb-to-S (fn [inferred-symbolic-closure-arg-types] (reduce-kv assoc S inferred-symbolic-closure-arg-types))
             inferred-symbolic-closure-arg-types (reduce (fn [ts i]
                                                           (assoc ts i
@@ -2150,18 +2145,22 @@
                                                                    (nth S i)
                                                                    (nth T i))))
                                                         {} symbolic-closure-fixed-args)
-            ;_ (prn "inferred-symbolic-closure-arg-types" inferred-symbolic-closure-arg-types)
+            _ (prn "inferred-symbolic-closure-arg-types" inferred-symbolic-closure-arg-types)
             inferred-symbolic-closure-arg-types (if iterate?
                                                   (loop [fuel 21
+                                                         cs cs-no-symb
                                                          inferred-symbolic-closure-arg-types inferred-symbolic-closure-arg-types]
                                                     ;(prn "fuel" fuel)
-                                                    (let [S-symb' (vals (into (sorted-map) inferred-symbolic-closure-arg-types))
-                                                          T-symb' (mapv #(subst-non-covariant substitution-without-symb %) T-symb)
+                                                    (let [subst (subst-gen cs (set (keys Y)) R :T T :flip-T-variances? true)
+                                                          S-symb' (vals (into (sorted-map) inferred-symbolic-closure-arg-types))
+                                                          T-symb' (mapv #(subst-non-covariant subst %) T-symb)
                                                           ;_ (prn "S-symb'" S-symb')
                                                           ;_ (prn "T-symb'" T-symb')
-                                                          cs-with-symb (cs-gen-list #{} X Y S-symb' T-symb')
-                                                          ;_ (prn "cs-with-symb" cs-with-symb)
-                                                          substitution-with-symb (subst-gen cs-with-symb (set (keys Y)) R :T T :flip-T-variances? true)
+                                                          cs (-> (cs-gen-list #{} X Y S-symb' T-symb')
+                                                                           (cset-meet cs))
+                                                          ;_ (prn "cs" cs)
+                                                          substitution-with-symb (subst-gen cs (set (keys Y)) R :T T :flip-T-variances? true)
+                                                          ;_ (prn "substitution-with-symb" substitution-with-symb)
                                                           inferred-symbolic-closure-arg-types' (reduce (fn [ts i]
                                                                                                          (assoc ts i
                                                                                                                 (app-symbolic-closure
@@ -2182,7 +2181,7 @@
                                                         (if (zero? fuel)
                                                           (do ;(prn "fuel zero")
                                                               (fail! nil nil))
-                                                          (recur (dec fuel) inferred-symbolic-closure-arg-types')))))
+                                                          (recur (dec fuel) cs inferred-symbolic-closure-arg-types')))))
                                                   inferred-symbolic-closure-arg-types)
             arg-types-with-inferred-symb (add-symb-to-S inferred-symbolic-closure-arg-types)]
         ;(prn :arg-types-with-inferred-symb arg-types-with-inferred-symb)

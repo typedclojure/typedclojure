@@ -13,8 +13,8 @@
   (is-clj (= (rest (prs/unparse-type (prs/parse-type `(t/TFn ~'[[a :variance :covariant]] ~'a))))
              '([[a :variance :covariant]] a)))
   (is-clj (= (do
-               '([a b] [a b -> [a b -> nil :filters {:then ff :else tt}]
-                              :filters {:then tt :else ff}]))
+               '([a b] [a b :-> [a b :-> nil :filters {:then ff :else tt}]
+                        :filters {:then tt :else ff}]))
              (->
                (tc-e
                  (fn :forall [a b]
@@ -70,13 +70,13 @@
   (is (= (prs/unparse-type
            (prs/parse-clj 
              '(typed.clojure/All [:named [a b]] [a -> b])))
-         '(typed.clojure/All [:named [a b]] [a -> b])))
+         '(typed.clojure/All [:named [a b]] [a :-> b])))
   (is (= (prs/unparse-type
            (prs/parse-clj 
              '(typed.clojure/All [a ... :named [b c]]
                                  [c b a ... a -> b])))
          '(typed.clojure/All [a ... :named [b c]]
-                             [c b a ... a -> b])))
+                             [c b a :.. a :-> b])))
   (is-tc-e (do (t/ann ^:no-check foo 
                       (t/All [:named [a b]]
                              [a -> b]))
