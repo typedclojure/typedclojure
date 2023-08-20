@@ -6,7 +6,7 @@
   
   `guide` is the guide"
   (:require [clojure.test :refer [deftest is]]
-            [typed.clj.checker.test-utils :refer [is-tc-e is-tc-err]]
+            [typed.clj.checker.test-utils :refer [is-tc-e is-tc-err tc-e]]
             [typed.clojure :as t]))
 
 (deftest preamble
@@ -41,8 +41,15 @@
   ;;
   ;; In fact, the body _is_ checked but with % at type t/Nothing (the bottom/impossible/unreachable type).
   (is-tc-e #(inc (t/ann-form % t/Nothing)))
-  ;; This means you can have garbage in your function body, and it will type check.
-  (is-tc-e #(identity (inc nil) % % %))
+  ;; A symbolic closure type is printed using this type when needed for error messages and reporting types.
+  (is (= `[t/Nothing :-> t/Nothing :filters {:then ~'ff, :else ~'ff}]
+         (-> (tc-e #(identity %))
+             ;; convert type to data
+             pr-str read-string first)))
+  (is (= `(t/Transducer t/Nothing t/Nothing)
+         (-> (tc-e (map #(identity %)))
+             ;; convert type to data
+             pr-str read-string first)))
   ;; When the function body is reachable, a more realistic type will be used to check.
   ;; 
   ;; Here are some common ways this can happen:
@@ -150,5 +157,5 @@
                                (compute 1))))))
 
   ;; Note that symbolic closures are not created for thunks, since they can be checked immediately.
-  (is-tc-err #(identity nil nil))
+  (is-tc-err #(inc nil))
   )

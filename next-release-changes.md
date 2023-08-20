@@ -28,3 +28,7 @@
     - `(comp (fn [y] y) (fn [x] x))`
 - introduce wildcard type `t/?`, like `t/Any` but downcasted when checked against a more specific type
 - don't recreate types in internal folding when types are unchanged after walking
+- print symbolic closures as their most specific function type
+  - `(fn [x] x)` prints as `[Nothing :-> Nothing]`
+  - `(map (fn [x] x))` prints as `(Transducer Nothing Nothing)`
+- don't mention expected type in error messages if it's `t/?`

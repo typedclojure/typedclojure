@@ -119,7 +119,7 @@
                                                            [:> (prs/unparse-type lower-bound)])
                                                          (when-not (= r/-any upper-bound)
                                                            [:< (prs/unparse-type upper-bound)]))))
-                                       bnds (map (comp r/F-original-name r/make-F) names)))))))
+                                       bnds (map (comp prs/unparse-type r/make-F) names)))))))
           "\n\nDomains:\n\t" 
           (str/join "\n\t" 
                     (map (partial apply pr-str) 
@@ -155,7 +155,9 @@
           (str/join "\n\t" 
                     (map (partial apply pr-str) (map (comp prs/unparse-result :rng) (:types fin))))
           "\n\n"
-          (when expected (str "with expected type:\n\t" (pr-str (prs/unparse-type (r/ret-t expected))) "\n\n"))
+          (when-some [t (some-> expected r/ret-t)]
+            (when-not (r/wild? t) 
+              (str "with expected type:\n\t" (pr-str (prs/unparse-type t)) "\n\n")))
           #_#_"in: "
           (if fexpr
             (if (or static-method? instance-method?)

@@ -57,6 +57,7 @@
    :post [(r/Function? (:ftype %))
           (-> % :cmethod :clojure.core.typed/ftype r/Function?)
           (:cmethod %)]}
+  ;(prn "check-fn-method1" expected)
   (impl/impl-case
     :clojure (assert (#{:fn-method :method} (:op method))
                      (:op method))

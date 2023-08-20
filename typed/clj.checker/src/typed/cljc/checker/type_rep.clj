@@ -1136,17 +1136,19 @@
 (def ^:dynamic enable-symbolic-closures? true #_false)
 
 (u/ann-record SymbolicClosure [bindings :- (t/Map t/Any t/Any)
-                               fexpr :- (t/Map t/Any t/Any)])
-(u/def-type SymbolicClosure [bindings fexpr]
+                               fexpr :- (t/Map t/Any t/Any)
+                               smallest-type :- Type])
+(u/def-type SymbolicClosure [bindings fexpr smallest-type]
   "Symbolic closure"
-  [(map? fexpr)]
+  [(map? fexpr)
+   (Type? smallest-type)]
   :methods
   [p/TCType])
 
-(t/ann symbolic-closure [(t/Map t/Any t/Any) :-> SymbolicClosure])
-(defn symbolic-closure [fexpr]
+(t/ann symbolic-closure [(t/Map t/Any t/Any) Type :-> SymbolicClosure])
+(defn symbolic-closure [fexpr smallest-type]
   ;(prn "creating symbolic-closure")
-  (SymbolicClosure-maker (get-thread-bindings) fexpr))
+  (SymbolicClosure-maker (get-thread-bindings) fexpr smallest-type))
 
 ;;;;;;;;;;;;;;;;;
 ;; Clojurescript types

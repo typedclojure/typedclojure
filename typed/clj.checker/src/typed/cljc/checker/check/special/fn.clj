@@ -65,16 +65,13 @@
               ;(prn "method args" (-> method ast-u/method-required-params count))
               (fn-method-one/check-fn-method1
                 method
-                (r/make-Function dom (or (when (r/Result? rng)
-                                           (r/Result-type* rng))
+                (r/make-Function dom (or (some-> rng r/Result-type*)
                                          r/-wild)
                                  :rest rest 
                                  :drest drest
-                                 :filter (when (r/Result? rng)
-                                           (r/Result-filter* rng))
-                                 :object (if (r/Result? rng)
-                                           (r/Result-object* rng)
-                                           or/-infer-obj)))))
+                                 :filter (some-> rng r/Result-filter*)
+                                 :object (or (some-> rng r/Result-object*)
+                                             or/-infer-obj)))))
           methods)
 
         [fs cmethods] ((juxt #(map :ftype %)
@@ -89,29 +86,33 @@
            :clojure.core.typed/cmethods cmethods
            u/expr-type ret-type)))
 
-(defn gen-defaults [{:keys [methods] :as expr}]
-  (let [;; :infer-locals are enabled for this namespace, this
-        ;; var dereference is the dynamic type
-        infer-locals?
-        (-> (cu/expr-ns expr)
-            find-ns
-            meta
-            :core.typed
-            :experimental
-            (contains? :infer-locals))]
-    (apply merge-with (comp vec concat)
-           (for [method methods]
-             (let [fixed-arity (ast-u/fixed-arity method)
-                   variadic? (ast-u/variadic-method? method)]
-               {:doms [(vec (repeat fixed-arity (if infer-locals? 
-                                                  (r/-unchecked nil)
-                                                  r/-any)))]
-                :rngs [nil]
-                :rests [(when variadic?
-                          (if infer-locals? 
-                            (r/-unchecked nil)
-                            r/-any))]
-                :drests [nil]})))))
+(defn gen-defaults
+  ([expr] (gen-defaults expr r/-any))
+  ([{:keys [methods] :as expr} default-type]
+   {:pre [((some-fn r/Type? nil?) default-type)]}
+   (let [default-type (or default-type r/-any)
+         ;; :infer-locals are enabled for this namespace, this
+         ;; var dereference is the dynamic type
+         infer-locals?
+         (-> (cu/expr-ns expr)
+             find-ns
+             meta
+             :core.typed
+             :experimental
+             (contains? :infer-locals))]
+     (apply merge-with (comp vec concat)
+            (for [method methods]
+              (let [fixed-arity (ast-u/fixed-arity method)
+                    variadic? (ast-u/variadic-method? method)]
+                {:doms [(vec (repeat fixed-arity (if infer-locals? 
+                                                   (r/-unchecked nil)
+                                                   default-type)))]
+                 :rngs [nil]
+                 :rests [(when variadic?
+                           (if infer-locals? 
+                             (r/-unchecked nil)
+                             default-type))]
+                 :drests [nil]}))))))
 
 (defn all-defaults? [fn-anns poly]
   (let [defaults (and
@@ -185,31 +186,35 @@
                (map second frees-with-bnds)
                ifn))))
 
-(defn check-core-fn-no-expected
-  [check fexpr]
-  {:pre [(= :fn (:op fexpr))]
-   :post [(= :fn (:op %))
-          (r/TCResult? (u/expr-type %))]}
-  ;(prn "check-core-fn-no-expected")
-  (let [self-name (cu/fn-self-name fexpr)
-        _ (assert ((some-fn nil? symbol?) self-name))
-        flat-expecteds (gen-defaults fexpr)]
-    (lex/with-locals (when self-name
-                       (let [this-type (self-type flat-expecteds)
-                             ;_ (prn "this-type" this-type)
-                             ]
-                         {self-name this-type}))
-      (check-anon
-        fexpr
-        flat-expecteds
-        nil))))
-
 (defn thunk-fn-expr? [expr]
   {:pre [(= :fn (:op expr))]
    :post [(boolean? %)]}
   (not-any? (some-fn :variadic?
                      (comp pos? :fixed-arity))
             (:methods expr)))
+
+(defn symbolic-closure-candidate? [expr expected]
+  {:pre [(= :fn (:op expr))
+         ((some-fn nil? r/TCResult?) expected)]}
+  (and r/enable-symbolic-closures?
+       ((some-fn nil? #(= (r/ret r/-wild) %)) expected)
+       ;; check thunks eagerly
+       (not (thunk-fn-expr? expr))
+       ;; don't symbolically self-recursive fn's yet
+       (not (cu/fn-self-name expr))))
+
+(defn check-core-fn-no-expected
+  [fexpr]
+  {:pre [(= :fn (:op fexpr))]
+   :post [(= :fn (:op %))
+          (r/TCResult? (u/expr-type %))]}
+  ;(prn "check-core-fn-no-expected")
+  (let [symb? (symbolic-closure-candidate? fexpr nil)
+        flat-expecteds (gen-defaults fexpr (when symb? r/-nothing))]
+    (lex/with-locals (some-> (cu/fn-self-name fexpr)
+                             (hash-map (self-type flat-expecteds)))
+      (cond-> (check-anon fexpr flat-expecteds nil)
+        symb? (update-in [u/expr-type :t] #(r/symbolic-closure fexpr %))))))
 
 (defn check-special-fn*
   [expr fn-anns poly expected]
@@ -235,17 +240,15 @@
           _ (assert ((some-fn nil? vector?) poly))
 
           no-annotations? (all-defaults? fn-anns poly)
-          sym-clos-candidate? (and r/enable-symbolic-closures?
-                                   (not expected)
-                                   ;; check thunks eagerly
-                                   (not (thunk-fn-expr? expr)))
+          sym-clos-candidate? (symbolic-closure-candidate? expr expected)
+          ;_ (prn "sym-clos-candidate?" sym-clos-candidate?)
           useful-expected-type? (boolean
                                   (when expected
                                     (seq (fn-methods/function-types (r/ret-t expected)))))]
       (cond
         ;; don't need to check anything, return a symbolic closure
         (and no-annotations? sym-clos-candidate?)
-        (assoc expr u/expr-type (r/ret (r/symbolic-closure expr)))
+        (check-core-fn-no-expected expr)
 
         ;; If we have an unannotated fn macro and a good expected type, use the expected type via check-fn
         (and no-annotations? useful-expected-type?)

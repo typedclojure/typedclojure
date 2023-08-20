@@ -16,7 +16,7 @@
 (defn -unanalyzed-special__fn
   [{:keys [env form] :as expr} expected]
   {:post [(-> % u/expr-type r/TCResult?)]}
-  ;(prn "-unanalyzed-special__fn")
+  (prn "-unanalyzed-special__fn" expected)
   (let [{fn-anns :ann expand1 :fn :keys [poly]} (internal/parse-fn* form)]
     (special-fn/check-special-fn*
       (assoc expr :form expand1)

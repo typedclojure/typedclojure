@@ -1719,10 +1719,12 @@
 (extend-protocol IUnparseType
   SymbolicClosure
   (unparse-type* 
-    [{:keys [fexpr]}]
-    (list 'SymbolicClosure (binding [*print-length* 5
-                                     *print-level* 5]
-                             (pr-str (:form fexpr)))))
+    [{:keys [fexpr smallest-type]}]
+    (cond->> (unparse-type* smallest-type)
+      vs/*verbose-types*
+      (list 'SymbolicClosure (binding [*print-length* 5
+                                       *print-level* 5]
+                               (pr-str (:form fexpr))))))
 
   Function
   (unparse-type* 

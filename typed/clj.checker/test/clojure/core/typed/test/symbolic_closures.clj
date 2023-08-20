@@ -1,6 +1,6 @@
 (ns clojure.core.typed.test.symbolic-closures
   (:require 
-    [typed.clj.checker.test-utils :refer [is-tc-e is-tc-err]]
+    [typed.clj.checker.test-utils :refer [is-tc-e is-tc-err tc-e]]
     [clojure.core.typed.util-vars :as vs]
     [typed.cljc.checker.type-rep :as r]
     [clojure.test :refer :all]))
@@ -15,8 +15,7 @@
   (is-tc-err (core/fn [] (identity)))
   (is-tc-err (fn* [] (identity)))
   (is-tc-err (let [f #(identity)]))
-  ;; type error can hide if bad (non-thunk) fn never called
-  (is-tc-e (let [f #(identity % %)]))
+  (is-tc-err (let [f #(identity % %)]))
   (is-tc-e (let [f #(do %)]
              (f 1))
            t/Int)
@@ -30,7 +29,6 @@
              (f 1)))
   (is-tc-e (let [f (t/fn [x] x)]
              (f 1)))
-  #_ ;;FIXME
   (is-tc-e (let [f (t/fn [x] x)]
              (f 1))
            t/Int)
@@ -87,13 +85,15 @@
                  (def app #(%1 %2))
                  (app #(do (t/ann-form % (t/Val 2)))
                       1)))
-  (is-tc-err (do (t/ann app (t/All [x y] [[x :-> y] x :-> y]))
-                 (def app #(%1 %2))
-                 (app #(inc %1 %2) 1)))
-  (is-tc-err (do (t/ann app (t/All [x y] [[x :-> y] x :-> y]))
-                 (def app #(%1 %2))
-                 (app #(inc %1 %2) 1))
-             t/Int)
+  (is (thrown? clojure.lang.ArityException
+               (tc-e (do (t/ann app (t/All [x y] [[x :-> y] x :-> y]))
+                         (def app #(%1 %2))
+                         (app #(inc %1 %2) 1)))))
+  (is (thrown? clojure.lang.ArityException
+               (tc-e (do (t/ann app (t/All [x y] [[x :-> y] x :-> y]))
+                         (def app #(%1 %2))
+                         (app #(inc %1 %2) 1))
+                     t/Int)))
   (is-tc-err (do (t/ann app (t/All [x y] [[x :-> y] x :-> y]))
                  (def app #(%1 %2))
                  (app #(inc %) 1))
@@ -215,7 +215,17 @@
                (app #(do % (fn [x] true)) 1)))
   (is-tc-e (do (t/ann app (t/All [x y] [[x :-> [x :-> y]] x :-> y]))
                (def app #((%1 %2) %2))
-               (app #(do % (fn [x] (t/ann-form x (t/Val 1)) true)) 1)))
+               (app #(do % (fn* [x] (t/ann-form x (t/Val 1)) true))
+                    1)))
+  (is-tc-e (do (t/ann app (t/All [x y] [[x :-> [x :-> y]] x :-> y]))
+               (def app #((%1 %2) %2))
+               (app #(do % (cc/fn [x] (t/ann-form x (t/Val 1)) true))
+                    1)))
+  (binding [vs/*verbose-types* false #_true]
+    (is-tc-e (do (t/ann app (t/All [x y] [[x :-> [x :-> y]] x :-> y]))
+                 (def app #((%1 %2) %2))
+                 (app #(do % (fn [x] (t/ann-form x (t/Val 1)) true))
+                      1))))
   (is-tc-e (do (t/ann app (t/All [x y] [[x :-> [x :-> y]] x :-> y]))
                (def app #((%1 %2) %2))
                (app #(do % (fn [x] (t/ann-form x (t/Val 1)) true)) 1))
@@ -302,6 +312,10 @@
              (t/ann-form res (t/Transducer t/Any t/Any))))
   (is-tc-e (let [res (map #(do %))]
              (t/ann-form res (t/Transducer t/Any t/Any))))
+  ;;TODO assert this returns a good error message:
+  ;; (t/Transducer t/Nothing t/Nothing) <!: (t/Transducer t/Any t/Nothing)
+  (is-tc-err (let [res (map #(do %))]
+               (t/ann-form res (t/Transducer t/Any t/Nothing))))
   (is-tc-e (map #(do %)) (t/Transducer t/Int t/Int))
   (is-tc-e (let [map (t/ann-form map (t/All [c a b :..] [[a :-> c] :-> (t/Transducer a c)]))
                  res (map #(do %))]
@@ -312,6 +326,7 @@
                (t/ann-form res [t/Any :-> t/Any])))
   (is-tc-e (let [res (map #(do %))]
              (t/ann-form res [t/Nothing :-> t/Any])))
+  ;;FIXME better error message, should use Transducer type, not its expansion
   (is-tc-err (let [res (map (fn [% :- t/Int] (do %)))]
                (t/ann-form res [t/Any :-> t/Any])))
   (is-tc-e (let [res (map (fn [% :- t/Int] (do %)))]
@@ -389,11 +404,12 @@
              (t/ann-form (map (fn* [_] true)) [true :-> t/Any])))
   (is-tc-e (fn [map :- (t/All [c a b :..] [[t/Any :-> c] :-> [c :-> t/Any]])]
              (t/ann-form (map (fn* [_] true)) [true :-> t/Any])))
-  #_;;FIXME ????
   (is-tc-e (fn [map :- (t/All [c a b :..] [[t/Any :-> c] :-> [c :-> t/Any]])]
              (let [res (t/ann-form (map (fn* [_] true))
                                    [t/? :-> t/Any])]
-               (t/ann-form res [true :-> t/Any]))))
+               (t/ann-form res [true :-> t/Any])
+               (t/ann-form res [false :-> t/Any])
+               (t/ann-form res [t/Any :-> t/Any]))))
   (is-tc-e (fn [map :- (t/All [c] [[t/Any :-> c] :-> [[c :-> t/Any] :-> t/Any]])]
              (let [res (t/ann-form (map (fn* [_] true))
                                    [[t/? :-> t/Any] :-> t/Any])]

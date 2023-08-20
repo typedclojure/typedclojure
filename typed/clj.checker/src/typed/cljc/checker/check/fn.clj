@@ -23,7 +23,7 @@
          (= :fn (:op fexpr))]
    :post [(-> % u/expr-type r/TCResult?)
           (vector? (:clojure.core.typed/cmethods %))]}
-  ;(prn "check-fn" methods)
+  ;(prn "check-fn" #_methods expected)
   (let [{:keys [ifn methods cmethods]}
         (fn-methods/check-fn-methods 
           methods

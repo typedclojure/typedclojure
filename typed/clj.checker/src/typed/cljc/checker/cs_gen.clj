@@ -2157,7 +2157,7 @@
                                                           ;_ (prn "S-symb'" S-symb')
                                                           ;_ (prn "T-symb'" T-symb')
                                                           cs (-> (cs-gen-list #{} X Y S-symb' T-symb')
-                                                                           (cset-meet cs))
+                                                                 (cset-meet cs))
                                                           ;_ (prn "cs" cs)
                                                           substitution-with-symb (subst-gen cs (set (keys Y)) R :T T :flip-T-variances? true)
                                                           ;_ (prn "substitution-with-symb" substitution-with-symb)
@@ -2183,7 +2183,10 @@
                                                               (fail! nil nil))
                                                           (recur (dec fuel) cs inferred-symbolic-closure-arg-types')))))
                                                   inferred-symbolic-closure-arg-types)
-            arg-types-with-inferred-symb (add-symb-to-S inferred-symbolic-closure-arg-types)]
+            arg-types-with-inferred-symb (add-symb-to-S inferred-symbolic-closure-arg-types)
+            ;;seems important to recompute all constraints for all arguments again here, not sure why.
+            ;; I would think only the symbolic closure args are needed.
+            cs (cs-gen-args arg-types-with-inferred-symb)]
         ;(prn :arg-types-with-inferred-symb arg-types-with-inferred-symb)
         (if (and expr
                  ;; TODO if R has no type variables in contravariant position, I don't
@@ -2192,12 +2195,10 @@
                  (or (not expected)
                      (r/wild? (c/fully-resolve-type expected))))
           ;; wait for an expected type to help inference
-          ;;FIXME expr's arguments will be rechecked, could just use old results
-          ;; idea: assoc u/expr-type on the arguments and function
-          (r/symbolic-closure expr)
-          ;;seems important to recompute all constraints for all arguments again here, not sure why.
-          ;; I would think only the symbolic closure args are needed.
-          (cs-gen-args arg-types-with-inferred-symb))))))
+          (let [subst (subst-gen cs (set (keys Y)) R :T T)
+                smallest (subst/subst-all subst R)]
+            (r/symbolic-closure expr smallest))
+          cs)))))
 
 ;; like infer, but dotted-var is the bound on the ...
 ;; and T-dotted is the repeated type
@@ -2260,9 +2261,9 @@
                                  expected-cset+dotted expr)]
     ;(prn :cs cs)
     ;; FIXME pass variances via :T
-    (if (r/SymbolicClosure? cs)
-      cs
-      (-> (cset-meet cs expected-cset)
+    (cond-> cs
+      (not (r/SymbolicClosure? cs))
+      (-> (cset-meet expected-cset)
           (subst-gen #{dotted-var} R)))))
 
 (declare infer)

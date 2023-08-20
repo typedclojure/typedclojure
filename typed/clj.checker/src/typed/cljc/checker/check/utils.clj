@@ -52,7 +52,8 @@
   (r/-val (:val k)))
 
 (defn fn-self-name [{:keys [op] :as fexpr}]
-  (assert (#{:fn} op))
+  {:pre [(= :fn op)]
+   :post [((some-fn nil? symbol?) %)]}
   (-> fexpr :local :name))
 
 ;[MethodExpr -> (U nil NamespacedSymbol)]

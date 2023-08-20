@@ -1617,11 +1617,7 @@
         (if (and expected
                  (not (r/wild? (r/ret-t expected))))
           (fn/check-fn expr expected)
-          (if (and r/enable-symbolic-closures?
-                   ;; check thunks eagerly
-                   (not (special-fn/thunk-fn-expr? expr)))
-            (assoc expr u/expr-type (r/ret (r/symbolic-closure expr)))
-            (special-fn/check-core-fn-no-expected check-expr expr))))))
+          (special-fn/check-core-fn-no-expected expr)))))
 
 ;(ann internal-special-form [Expr (U nil TCResult) -> Expr])
 (u/special-do-op spec/special-form internal-special-form)

@@ -351,7 +351,7 @@
   ;(prn `-check :fn (mapv (comp :op :ret :body) methods))
   (if expected
     (fn/check-fn expr expected)
-    (special-fn/check-core-fn-no-expected check-expr expr)))
+    (special-fn/check-core-fn-no-expected expr)))
 
 (defmethod -check :set!
   [{:keys [target val] :as expr} expected]
