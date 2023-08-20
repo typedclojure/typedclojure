@@ -1859,18 +1859,23 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Infer
 
-;; returns a non-empty set of argument positions that should be checked as symbolic closures.
+;; returns a non-empty set of argument positions whose checking should be deferred (symbolic closures and polymorphic functions).
 ;; if none, returns nil.
-(defn get-symbolic-closure-fixed-args [arg-types dom]
-  (when r/enable-symbolic-closures?
-    (not-empty
-      (into (sorted-set)
-            (keep-indexed (fn [i arg-t]
-                            (let [dom-t (c/fully-resolve-type (nth dom i))]
-                              (when (and (r/SymbolicClosure? arg-t)
-                                         (inferrable-symbolic-closure-expected-type? dom-t))
-                                i))))
-            arg-types))))
+(defn get-deferred-fixed-args [arg-types dom]
+  (not-empty
+    (into (sorted-set)
+          (keep-indexed (fn [i arg-t]
+                          (let [arg-t (c/fully-resolve-type arg-t)
+                                dom-t (c/fully-resolve-type (nth dom i))]
+                            (when (or (and r/enable-symbolic-closures?
+                                           (r/SymbolicClosure? arg-t)
+                                           (inferrable-symbolic-closure-expected-type? dom-t))
+                                      ;TODO
+                                      #_
+                                      (and ((some-fn r/Poly? r/PolyDots?) arg-t)
+                                           (r/FnIntersection? dom-t)))
+                              i))))
+          arg-types)))
 
 (defn prep-symbolic-closure-expected-type [substitution-without-symb dom-t]
   {:pre [(cr/substitution-c? substitution-without-symb)
@@ -2108,8 +2113,8 @@
         (t/Vec r/Type) (t/Vec r/Type)
         cset
         -> (t/U cset SymbolicClosure)])
-(defn cs-gen-list+symbolic [symbolic-closure-fixed-args X Y S T R expected expected-cset expr]
-  {:pre [((some-fn nil? (con/set-c? nat-int?)) symbolic-closure-fixed-args)
+(defn cs-gen-list+symbolic [deferred-fixed-args X Y S T R expected expected-cset expr]
+  {:pre [((some-fn nil? (con/set-c? nat-int?)) deferred-fixed-args)
          (every? (con/hash-c? symbol? r/Bounds?) [X Y])
          ((every-pred (con/vec-c? r/AnyType?)) S T)
          ((some-fn nil? r/AnyType?) expected)
@@ -2117,18 +2122,18 @@
          (r/AnyType? R)
          ((some-fn nil? :op) expr)]
    :post [((some-fn cr/cset? r/SymbolicClosure?) %)]}
-  ;(prn :cs-gen-list+symbolic symbolic-closure-fixed-args)
+  ;(prn :cs-gen-list+symbolic deferred-fixed-args)
   (when-not (= (count S) (count T))
     (fail! S T))
   (let [cs-gen-args #(cs-gen-list #{} X Y % T :expected-cset expected-cset)]
-    (if-not symbolic-closure-fixed-args
+    (if-not deferred-fixed-args
       (cs-gen-args S)
       ;we have symbolic closures provided as args. infer constraints from other args
       ;then use them to check the symbolic closures (and infer more constraints from their return types).
       (let [;_ (prn :cs-gen-list+symbolic)
-            S-no-symb (keep-indexed (fn [i t] (when-not (symbolic-closure-fixed-args i) t)) S)
-            T-no-symb (keep-indexed (fn [i t] (when-not (symbolic-closure-fixed-args i) t)) T)
-            T-symb (keep-indexed (fn [i t] (when (symbolic-closure-fixed-args i) t)) T)
+            S-no-symb (keep-indexed (fn [i t] (when-not (deferred-fixed-args i) t)) S)
+            T-no-symb (keep-indexed (fn [i t] (when-not (deferred-fixed-args i) t)) T)
+            T-symb (keep-indexed (fn [i t] (when (deferred-fixed-args i) t)) T)
             cs-no-symb (-> (cs-gen-app X Y S-no-symb T-no-symb R expected)
                            (cset-meet expected-cset))
             symb-fv-variances (apply frees/combine-frees (map frees/fv-variances T-symb))
@@ -2137,53 +2142,55 @@
             ;_ (prn :cs-no-symb cs-no-symb)
             substitution-without-symb (subst-gen cs-no-symb (set (keys Y)) R :T T :flip-T-variances? true)
             ;_ (prn "substitution-without-symb" substitution-without-symb)
-            add-symb-to-S (fn [inferred-symbolic-closure-arg-types] (reduce-kv assoc S inferred-symbolic-closure-arg-types))
-            inferred-symbolic-closure-arg-types (reduce (fn [ts i]
-                                                          (assoc ts i
-                                                                 (app-symbolic-closure
-                                                                   substitution-without-symb
-                                                                   (nth S i)
-                                                                   (nth T i))))
-                                                        {} symbolic-closure-fixed-args)
-            ;_ (prn "inferred-symbolic-closure-arg-types" inferred-symbolic-closure-arg-types)
-            inferred-symbolic-closure-arg-types (if iterate?
-                                                  (loop [fuel 21
-                                                         cs cs-no-symb
-                                                         inferred-symbolic-closure-arg-types inferred-symbolic-closure-arg-types]
-                                                    ;(prn "fuel" fuel)
-                                                    (let [subst (subst-gen cs (set (keys Y)) R :T T :flip-T-variances? true)
-                                                          S-symb' (vals (into (sorted-map) inferred-symbolic-closure-arg-types))
-                                                          T-symb' (mapv #(subst-non-covariant subst %) T-symb)
-                                                          ;_ (prn "S-symb'" S-symb')
-                                                          ;_ (prn "T-symb'" T-symb')
-                                                          cs (-> (cs-gen-list #{} X Y S-symb' T-symb')
-                                                                 (cset-meet cs))
-                                                          ;_ (prn "cs" cs)
-                                                          substitution-with-symb (subst-gen cs (set (keys Y)) R :T T :flip-T-variances? true)
-                                                          ;_ (prn "substitution-with-symb" substitution-with-symb)
-                                                          inferred-symbolic-closure-arg-types' (reduce (fn [ts i]
-                                                                                                         (assoc ts i
-                                                                                                                (app-symbolic-closure
-                                                                                                                  substitution-with-symb
-                                                                                                                  (nth S i)
-                                                                                                                  (nth T i))))
-                                                                                                       {} symbolic-closure-fixed-args)
-                                                          ;_ (prn "inferred-symbolic-closure-arg-types" inferred-symbolic-closure-arg-types)
-                                                          ;_ (prn "inferred-symbolic-closure-arg-types'" inferred-symbolic-closure-arg-types')
-                                                          ;;TODO could save one extra iteration by instead checking the assignments of covariant variables.
-                                                          no-new-information? (every? (fn [[i s]]
-                                                                                        (let [t (inferred-symbolic-closure-arg-types' i)]
-                                                                                          (and (sub/subtype? s t)
-                                                                                               (sub/subtype? t s))))
-                                                                                      inferred-symbolic-closure-arg-types)]
-                                                      (if no-new-information?
-                                                        inferred-symbolic-closure-arg-types'
-                                                        (if (zero? fuel)
-                                                          (do ;(prn "fuel zero")
-                                                              (fail! nil nil))
-                                                          (recur (dec fuel) cs inferred-symbolic-closure-arg-types')))))
-                                                  inferred-symbolic-closure-arg-types)
-            arg-types-with-inferred-symb (add-symb-to-S inferred-symbolic-closure-arg-types)
+            add-symb-to-S (fn [inferred-deferred-arg-types] (reduce-kv assoc S inferred-deferred-arg-types))
+            inferred-deferred-arg-types (reduce (fn [ts i]
+                                                  (assoc ts i
+                                                         (let [s (c/fully-resolve-type (nth S i))]
+                                                           (cond
+                                                             (r/SymbolicClosure? s)
+                                                             (app-symbolic-closure substitution-without-symb s (nth T i))
+                                                             
+                                                             :else (err/int-error (str "Unsupported deferred argument type: " s))))))
+                                                {} deferred-fixed-args)
+            ;_ (prn "inferred-deferred-arg-types" inferred-deferred-arg-types)
+            inferred-deferred-arg-types (if iterate?
+                                          (loop [fuel 21
+                                                 cs cs-no-symb
+                                                 inferred-deferred-arg-types inferred-deferred-arg-types]
+                                            ;(prn "fuel" fuel)
+                                            (let [subst (subst-gen cs (set (keys Y)) R :T T :flip-T-variances? true)
+                                                  S-symb' (vals (into (sorted-map) inferred-deferred-arg-types))
+                                                  T-symb' (mapv #(subst-non-covariant subst %) T-symb)
+                                                  ;_ (prn "S-symb'" S-symb')
+                                                  ;_ (prn "T-symb'" T-symb')
+                                                  cs (-> (cs-gen-list #{} X Y S-symb' T-symb')
+                                                         (cset-meet cs))
+                                                  ;_ (prn "cs" cs)
+                                                  substitution-with-symb (subst-gen cs (set (keys Y)) R :T T :flip-T-variances? true)
+                                                  ;_ (prn "substitution-with-symb" substitution-with-symb)
+                                                  inferred-deferred-arg-types' (reduce (fn [ts i]
+                                                                                         (assoc ts i
+                                                                                                (app-symbolic-closure
+                                                                                                  substitution-with-symb
+                                                                                                  (nth S i)
+                                                                                                  (nth T i))))
+                                                                                       {} deferred-fixed-args)
+                                                  ;_ (prn "inferred-deferred-arg-types" inferred-deferred-arg-types)
+                                                  ;_ (prn "inferred-deferred-arg-types'" inferred-deferred-arg-types')
+                                                  ;;TODO could save one extra iteration by instead checking the assignments of covariant variables.
+                                                  no-new-information? (every? (fn [[i s]]
+                                                                                (let [t (inferred-deferred-arg-types' i)]
+                                                                                  (and (sub/subtype? s t)
+                                                                                       (sub/subtype? t s))))
+                                                                              inferred-deferred-arg-types)]
+                                              (if no-new-information?
+                                                inferred-deferred-arg-types'
+                                                (if (zero? fuel)
+                                                  (do ;(prn "fuel zero")
+                                                      (fail! nil nil))
+                                                  (recur (dec fuel) cs inferred-deferred-arg-types')))))
+                                          inferred-deferred-arg-types)
+            arg-types-with-inferred-symb (add-symb-to-S inferred-deferred-arg-types)
             ;;seems important to recompute all constraints for all arguments again here, not sure why.
             ;; I would think only the symbolic closure args are needed.
             cs (cs-gen-args arg-types-with-inferred-symb)]
@@ -2248,15 +2255,15 @@
         ;; (infer [1 2 3] (Seqable a)) => {a Int}
         ;; (infer [4 5 6] (Seqable b0)) => {b0 Int} :dotted {b [b0]}
         ;; (infer #(+ %1 %2) [Int Int :-> ^:infer Any]) => {c Int}
-        short-symbolic-closure-fixed-args (when-not (get-symbolic-closure-fixed-args rest-S new-Ts)
-                                            (get-symbolic-closure-fixed-args short-S T))
+        short-deferred-fixed-args (when-not (get-deferred-fixed-args rest-S new-Ts)
+                                    (get-deferred-fixed-args short-S T))
         cs-dotted (-> (cs-gen-list #{} (reduce #(assoc %1 %2 dotted-bnd) X new-vars)
                                    {dotted-var dotted-bnd} rest-S new-Ts
                                    :expected-cset expected-cset)
                       (move-vars-to-dmap dotted-var new-vars))
         expected-cset+dotted (cset-meet expected-cset cs-dotted)
         ;_ (prn :expected-cset+dotted expected-cset+dotted)
-        cs (cs-gen-list+symbolic short-symbolic-closure-fixed-args
+        cs (cs-gen-list+symbolic short-deferred-fixed-args
                                  X {dotted-var dotted-bnd} short-S T R expected
                                  expected-cset+dotted expr)]
     ;(prn :cs cs)
@@ -2430,7 +2437,7 @@
                          (cs-gen #{} X Y R expected)
                          (cr/empty-cset {} {}))
          ;_ (prn :cs-gen-app :expected-cset expected-cset)
-         cs (cs-gen-list+symbolic (get-symbolic-closure-fixed-args S T)
+         cs (cs-gen-list+symbolic (get-deferred-fixed-args S T)
                                   X Y (vec S) (vec T) R expected expected-cset expr)]
      (cond-> cs
        (not (r/SymbolicClosure? cs)) (cset-meet expected-cset)))))
