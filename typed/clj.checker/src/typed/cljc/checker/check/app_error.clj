@@ -107,7 +107,7 @@
                   dotted (when (r/PolyDots? poly?)
                            (last names))]
               (str "Polymorphic Variables:\n\t"
-                   (str/join "\n\t" 
+                   (str/join "\n\t"
                              (map (partial apply pr-str)
                                   (map (fn [{:keys [lower-bound upper-bound] :as bnd} nme]
                                          {:pre [(r/Bounds? bnd)

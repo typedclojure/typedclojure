@@ -1866,19 +1866,15 @@
 ;; returns a non-empty set of argument positions that should be checked as symbolic closures.
 ;; if none, returns nil.
 (defn get-symbolic-closure-fixed-args [arg-types dom]
-  (let [symbolic-closure-fixed-args (when r/enable-symbolic-closures?
-                                      (not-empty
-                                        (into (sorted-set)
-                                              (keep-indexed (fn [i arg-t]
-                                                              (let [dom-t (c/fully-resolve-type (nth dom i))]
-                                                                (when (and (r/SymbolicClosure? arg-t)
-                                                                           (inferrable-symbolic-closure-expected-type? dom-t))
-                                                                  i))))
-                                              arg-types)))
-         ;;TODO punting on computing data flow between args by delaying inference for exactly 1 arg
-         symbolic-closure-special-case? (= 1 (count symbolic-closure-fixed-args))]
-    (when symbolic-closure-special-case?
-      symbolic-closure-fixed-args)))
+  (when r/enable-symbolic-closures?
+    (not-empty
+      (into (sorted-set)
+            (keep-indexed (fn [i arg-t]
+                            (let [dom-t (c/fully-resolve-type (nth dom i))]
+                              (when (and (r/SymbolicClosure? arg-t)
+                                         (inferrable-symbolic-closure-expected-type? dom-t))
+                                i))))
+            arg-types))))
 
 (defn prep-symbolic-closure-expected-type [substitution-without-symb dom-t]
   {:pre [(cr/substitution-c? substitution-without-symb)
