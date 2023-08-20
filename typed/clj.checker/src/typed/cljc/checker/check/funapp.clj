@@ -460,7 +460,7 @@
                                    (err/tc-delayed-error "Error applying dotted type")
                                    nil)))))
                        (:types pbody)))]
-           ;(prn "inferred-rng"inferred-rng)
+           ;(prn "inferred-rng" inferred-rng)
            (or inferred-rng
                (app-err/polyapp-type-error fexpr args fexpr-type arg-ret-types expected)))
 

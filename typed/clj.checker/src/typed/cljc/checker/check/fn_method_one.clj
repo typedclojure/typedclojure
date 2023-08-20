@@ -135,14 +135,14 @@
 
         ; if this fn method is a multimethod dispatch method, then infer
         ; a new filter that results from being dispatched "here"
-        mm-filter (when-let [{:keys [dispatch-fn-type dispatch-val-ret]} multi-u/*current-mm*]
+        mm-filter (when-some [{:keys [dispatch-fn-type dispatch-val-ret]} multi-u/*current-mm*]
                     (assert (and dispatch-fn-type dispatch-val-ret))
                     (assert (not (or drest rest rest-param)))
                     (let [disp-app-ret (funapp/check-funapp nil nil 
-                                                     (r/ret dispatch-fn-type)
-                                                     (map r/ret dom (repeat (fo/-FS fl/-top fl/-top)) 
-                                                          (map param-obj required-params))
-                                                     nil)
+                                                            (r/ret dispatch-fn-type)
+                                                            (map r/ret dom (repeat (fo/-FS fl/-top fl/-top)) 
+                                                                 (map param-obj required-params))
+                                                            nil)
                           ;_ (prn "disp-app-ret" disp-app-ret)
                           ;_ (prn "disp-fn-type" (prs/unparse-type dispatch-fn-type))
                           ;_ (prn "dom" dom)

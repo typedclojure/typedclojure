@@ -208,7 +208,7 @@
                                       [ifn-index expected-type]))
                                   (map-indexed vector fn-matches))
                                 cmethods
-                                (u/rewrite-when (== 1 (count expecteds))
+                                (u/rewrite-when (= 1 (count expecteds))
                                   (mapv (fn [[ifn-index expected-type]]
                                           {:pre [(integer? ifn-index)
                                                  (r/Function? expected-type)]}
@@ -249,7 +249,7 @@
      ;; AST.
     {:methods (mapv 
                 (fn [cmethods m]
-                  (if (== 1 (count cmethods))
+                  (if (= 1 (count cmethods))
                     (nth cmethods 0)
                     m))
                 cmethodss
@@ -295,7 +295,7 @@
                                        :ifn r/-error
                                        :cmethods []}))
       
-      (== 1 (count ts))
+      (= 1 (count ts))
       (check-fni (nth ts 0) mthods opt)
 
       ;; disable rewriting in case we recheck a method arity
