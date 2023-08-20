@@ -1506,7 +1506,9 @@
   (some (fn [[alias ans]]
           (let [ans-sym (ns-name ans)]
             (when (or (= nsym (ns-unrewrites-clj ans-sym))
-                      (= nsym ans-sym))
+                      (= nsym ans-sym)
+                      (and (= (ns-name nsym) 'typed.clojure)
+                           (= (ns-name ans) 'clojure.core.typed)))
               alias)))
         ;; prefer shorter, lexicographically earlier aliases
         (sort-by (juxt (comp count name key) key)

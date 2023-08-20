@@ -32,3 +32,4 @@
   - `(fn [x] x)` prints as `[Nothing :-> Nothing]`
   - `(map (fn [x] x))` prints as `(Transducer Nothing Nothing)`
 - don't mention expected type in error messages if it's `t/?`
+- use `clojure.core.typed` alias in current namespace to shorten types (rather than just `typed.clojure`)
