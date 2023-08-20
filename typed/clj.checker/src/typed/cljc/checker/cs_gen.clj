@@ -2070,7 +2070,7 @@
                     expected)
                   u/expr-type r/ret-t)]
       (when-some [errs (seq @vs/*delayed-errors*)]
-        ;#_
+        #_
         (prn "symbolic closure failed to check"
              errs)
         ;; move to next arity, symbolic closure failed to check
@@ -2136,7 +2136,7 @@
             ;_ (prn :expected-cset expected-cset)
             ;_ (prn :cs-no-symb cs-no-symb)
             substitution-without-symb (subst-gen cs-no-symb (set (keys Y)) R :T T :flip-T-variances? true)
-            _ (prn "substitution-without-symb" substitution-without-symb)
+            ;_ (prn "substitution-without-symb" substitution-without-symb)
             add-symb-to-S (fn [inferred-symbolic-closure-arg-types] (reduce-kv assoc S inferred-symbolic-closure-arg-types))
             inferred-symbolic-closure-arg-types (reduce (fn [ts i]
                                                           (assoc ts i
@@ -2145,7 +2145,7 @@
                                                                    (nth S i)
                                                                    (nth T i))))
                                                         {} symbolic-closure-fixed-args)
-            _ (prn "inferred-symbolic-closure-arg-types" inferred-symbolic-closure-arg-types)
+            ;_ (prn "inferred-symbolic-closure-arg-types" inferred-symbolic-closure-arg-types)
             inferred-symbolic-closure-arg-types (if iterate?
                                                   (loop [fuel 21
                                                          cs cs-no-symb
