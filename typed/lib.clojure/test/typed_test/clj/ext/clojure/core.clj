@@ -98,7 +98,7 @@
              #(let [[a] #{1}]
                 a))
            {:ex [[(ext-let/bad-vector-destructure-error-msg
-                    "(typed.clojure/HSet #{1})"
+                    "(t/HSet #{1})"
                     "[a]")
                   {:type-error :clojure.core.typed.errors/type-error
                    :form '(clojure.core/let [[a] #{1}]
@@ -107,7 +107,7 @@
              #(let [{[a] :foo} {:foo #{1}}]
                 a))
            {:ex [[(ext-let/bad-vector-destructure-error-msg
-                    "(typed.clojure/HSet #{1})"
+                    "(t/HSet #{1})"
                     "[a]")
                   {:type-error :clojure.core.typed.errors/type-error
                    :form '(clojure.core/let [{[a] :foo} {:foo #{1}}]
@@ -117,7 +117,7 @@
              #(cc/for [[a] [#{1}]]
                 a))
            {:ex [[(ext-let/bad-vector-destructure-error-msg
-                    "(typed.clojure/HSet #{1})"
+                    "(t/HSet #{1})"
                     "[a]")
                   {:type-error :clojure.core.typed.errors/type-error
                    :form '(cc/for [[a] [#{1}]]
@@ -126,7 +126,7 @@
              #(cc/for [{[a] :foo} [{:foo #{1}}]]
                 a))
            {:ex [[(ext-let/bad-vector-destructure-error-msg
-                    "(typed.clojure/HSet #{1})"
+                    "(t/HSet #{1})"
                     "[a]")
                   {:type-error :clojure.core.typed.errors/type-error
                    :form '(cc/for [{[a] :foo} [{:foo #{1}}]]
@@ -136,7 +136,7 @@
              #(cc/doseq [[a] [#{1}]]
                 a))
            {:ex [[(ext-let/bad-vector-destructure-error-msg
-                    "(typed.clojure/HSet #{1})"
+                    "(t/HSet #{1})"
                     "[a]")
                   {:type-error :clojure.core.typed.errors/type-error
                    :form '(cc/doseq [[a] [#{1}]]
@@ -145,7 +145,7 @@
              #(cc/doseq [{[a] :foo} [{:foo #{1}}]]
                 a))
            {:ex [[(ext-let/bad-vector-destructure-error-msg
-                    "(typed.clojure/HSet #{1})"
+                    "(t/HSet #{1})"
                     "[a]")
                   {:type-error :clojure.core.typed.errors/type-error
                    :form '(cc/doseq [{[a] :foo} [{:foo #{1}}]]
@@ -155,7 +155,7 @@
              (ann-form (cc/fn [[a]])
                        [(t/Set t/Any) -> t/Any]))
            {:ex [[(ext-let/bad-vector-destructure-error-msg
-                    "(IPersistentSet typed.clojure/Any)"
+                    "(IPersistentSet t/Any)"
                     "[a]")
                   {:type-error :clojure.core.typed.errors/type-error
                    :form '(cc/fn [[a]])}]]})))
@@ -164,7 +164,7 @@
              (do (t/ann foo [(t/Set t/Any) :-> t/Any])
                  (cc/defn foo [[a]])))
            {:ex [[(ext-let/bad-vector-destructure-error-msg
-                    "(IPersistentSet typed.clojure/Any)"
+                    "(IPersistentSet t/Any)"
                     "[a]")
                   {:type-error :clojure.core.typed.errors/type-error
                    :form '(cc/defn foo [[a]])}]]})))
@@ -174,7 +174,7 @@
                  (defmulti f (fn [_] nil))
                  (defmethod f nil [[a]])))
            {:ex [[(ext-let/bad-vector-destructure-error-msg
-                    "(IPersistentSet typed.clojure/Any)"
+                    "(IPersistentSet t/Any)"
                     "[a]")
                   {:type-error :clojure.core.typed.errors/type-error
                    :form '(defmethod f nil [[a]])}]]}))))
