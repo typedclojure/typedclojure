@@ -28,7 +28,7 @@
           cargs)]}
   (let [cfexpr (or cfexpr (check-expr fexpr))
         ftype (u/expr-type cfexpr)
-        ;; propagate expected types to arguments if unambiguous
+        ;; keep Function arguments in checking mode
         expected-args (let [ft (c/fully-resolve-type (r/ret-t ftype))]
                         (when-some [fns (when (r/FnIntersection? ft)
                                           (:types ft))]
@@ -37,11 +37,12 @@
                             (when (and (not ((some-fn :rest :drest :kws :prest :pdot) f))
                                        (= (count (:dom f))
                                           (count args)))
-                              (mapv r/ret (:dom f))))))
+                              (mapv (comp #(when (r/FnIntersection? %) (r/ret %))
+                                          c/fully-resolve-type)
+                                    (:dom f))))))
         cargs (or cargs (apply mapv check-expr args (some-> expected-args list)))
         _ (assert (= (count cargs) (count args)))
         argtys (map u/expr-type cargs)
-        ;_ (prn "cargs" argtys)
         actual (funapp/check-funapp fexpr args ftype argtys expected {:expr expr})]
     (assoc expr
            :fn cfexpr
