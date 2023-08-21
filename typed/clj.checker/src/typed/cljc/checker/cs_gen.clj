@@ -1455,8 +1455,7 @@
         S-prest-types-count (count S-prest-types)
         merged-X (assoc X dbound (Y dbound))
         get-list-of-c (fn [S-list]
-                        (mapv #(get-c-from-cmap (cs-gen V merged-X Y t-dty (cs-gen V merged-X Y t-dty %))
-                                                dbound)
+                        (mapv #(get-c-from-cmap (cs-gen V merged-X Y t-dty %) dbound)
                               S-list))
         repeat-c (get-list-of-c S-prest-types)
         ret-mapping (cg (:rng S) (:rng T))]
