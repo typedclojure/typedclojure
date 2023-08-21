@@ -2034,8 +2034,8 @@
                                              (= :covariant variance)
                                              (assoc sym r/-wild)))
                                          {} free-variances)]
-    (prn "subst-infer-covariant" subst-infer-covariant)
-    (prn "separated-t" separated-t)
+    ;(prn "subst-infer-covariant" subst-infer-covariant)
+    ;(prn "separated-t" separated-t)
     (-> separated-t
         ;; replace covariant occurrences of variables with wildcards
         ;; TODO what do we do with covariant dotted variables?
