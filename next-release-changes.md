@@ -33,3 +33,5 @@
   - `(map (fn [x] x))` prints as `(Transducer Nothing Nothing)`
 - don't mention expected type in error messages if it's `t/?`
 - use `clojure.core.typed` alias in current namespace to shorten types (rather than just `typed.clojure`)
+- better support for passing polymorphic functions to other polymorphic functions
+  - e.g., `(into [] (map identity) [1])`

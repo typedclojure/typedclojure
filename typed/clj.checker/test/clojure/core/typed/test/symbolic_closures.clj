@@ -289,11 +289,13 @@
 
 (deftest transducer-symb
   (is-tc-e (map #(do %)))
-  #_;;TODO
   (is-tc-e (map identity))
-  #_;;TODO
   (is-tc-e (map identity)
            (t/Transducer t/Int t/Int))
+  (is-tc-err (map identity)
+             (t/Transducer t/Int t/Bool))
+  (is-tc-e (map identity)
+           (t/Transducer t/Int (t/U t/Bool t/Int)))
   (is-tc-e (map #(t/ann-form % t/Int)))
   (is-tc-e (map #(t/ann-form % t/Nothing)))
   (is-tc-e (map #(inc %)))
@@ -332,8 +334,9 @@
   (is-tc-e (let [res (map (fn [% :- t/Int] (do %)))]
              (t/ann-form res [t/Nothing :-> t/Any])))
   (is-tc-e (into [] (map #(do %)) [1]))
-  #_ ;;NYI
   (is-tc-e (into [] (map identity) [1]))
+  (is-tc-e (into [] (map identity) [1]) (t/Vec t/Int))
+  (is-tc-err (into [] (map identity) [1]) (t/Vec t/Bool))
   (is-tc-e (into [] (map #(t/ann-form % t/Int)) [1]))
   (is-tc-err (into [] (map #(t/ann-form % t/Int)) [true]))
   (is-tc-err (into [] (map #(t/ann-form % t/Bool)) [1]))
@@ -347,6 +350,8 @@
              (t/Vec t/Nothing))
   (is-tc-e (into (t/ann-form [] (t/Vec (t/Val 1)))
                  (map #(do %)) [1]))
+  (is-tc-e (into (t/ann-form [] (t/Vec (t/Val 1)))
+                 (map identity) [1]))
   (is-tc-e (let [map (t/ann-form map (t/All [c a b :..] [[a :-> c] :-> (t/Transducer a c)]))
                  into (t/ann-form into (t/All [x y :named [a]] [(t/Vec x) (t/Transducer y x) (t/Seqable y) :-> (t/Vec x)]))
                  res (into [1] (map #(do %)) [1])]
@@ -566,6 +571,50 @@
                (let [f (comp (fn [y] y)
                              (fn [x] x))]
                  (f 1))))
+  (is-tc-e (fn [comp :- (t/All [x y z] [[y :-> z] [x :-> y] :-> [x :-> z]])
+                f :- (t/Transducer t/Int t/Bool)
+                g :- (t/Transducer t/Bool t/Int)]
+             (comp f g)))
+  (is-tc-e (fn [comp :- (t/All [x y z] [[y :-> z] [x :-> y] :-> [x :-> z]])
+                f :- (t/Transducer t/Any t/Any)
+                g :- (t/Transducer t/Any t/Any)]
+             (comp f g)))
+  (is-tc-e (fn* [comp f g] (comp f g))
+           [(t/All [x y z] [[y :-> z] [x :-> y] :-> [x :-> z]])
+            (t/Transducer t/Any t/Any)
+            (t/Transducer t/Any t/Any)
+            :-> t/?])
+  (is-tc-e (comp (t/ann-form (map #(do %))
+                             (t/Transducer t/Nothing t/Any))
+                 (t/ann-form (map #(do %))
+                             (t/Transducer t/Nothing t/Any))))
+  (is-tc-e (comp (t/ann-form (map identity)
+                             (t/Transducer t/Nothing t/Any))
+                 (t/ann-form (map identity)
+                             (t/Transducer t/Nothing t/Any))))
+  (is-tc-err (comp (map #(do %))
+                   (map #(do %)))
+             (t/Transducer t/Nothing t/Nothing))
+  (is-tc-err (comp (map identity)
+                   (map identity))
+             (t/Transducer t/Nothing t/Nothing))
+  (is-tc-err (comp (t/ann-form (map #(do %))
+                               (t/Transducer t/Any t/Any))
+                   (t/ann-form (map #(do %))
+                               (t/Transducer t/Any t/Any)))
+             (t/Transducer t/Nothing t/Nothing))
+  #_;TODO
+  (is-tc-e (comp (t/ann-form (map #(do %))
+                             (t/Transducer t/Any t/Any))
+                 (t/ann-form (map #(do %))
+                             (t/Transducer t/Any t/Any)))
+           (t/Transducer t/Any t/Any))
+  #_;TODO
+  (is-tc-e (into [] (comp (t/ann-form (map #(do %))
+                                      (t/Transducer t/Any t/Any))
+                          (t/ann-form (map #(do %))
+                                      (t/Transducer t/Any t/Any)))
+                 [1]))
   #_;TODO
   (is-tc-e (into [] (comp (map #(do %))
                           (map #(do %)))

@@ -1002,8 +1002,8 @@
 
 (t/ann TCResult->Result [TCResult -> Result])
 (defn TCResult->Result [{:keys [t fl o] :as r}]
-  {:pre [(Result? r)]
-   :post [(TCResult? %)]}
+  {:pre [(TCResult? r)]
+   :post [(Result? %)]}
   (make-Result t fl o))
 
 (t/ann Result-type* [Result -> Type])

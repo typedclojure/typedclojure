@@ -1870,10 +1870,12 @@
                             (when (or (and r/enable-symbolic-closures?
                                            (r/SymbolicClosure? arg-t)
                                            (inferrable-symbolic-closure-expected-type? dom-t))
-                                      ;TODO
-                                      #_
                                       (and ((some-fn r/Poly? r/PolyDots?) arg-t)
-                                           (r/FnIntersection? dom-t)))
+                                           (or (and (r/FnIntersection? dom-t)
+                                                    (= 1 (count (:types dom-t)))
+                                                    (not-any? #(% (first (:types dom-t)))
+                                                              [:rest :drest :kws :prest :pdot]))
+                                               #_(prn "get-deferred-fixed-args not deferring poly because expected is:" dom-t))))
                               i))))
           arg-types)))
 
@@ -2059,17 +2061,6 @@
   (with-bindings (assoc (:bindings arg-t)
                         #'vs/*delayed-errors* (err/-init-delayed-errors))
     (let [expected (r/ret (prep-symbolic-closure-expected-type3 substitution-without-symb dom-t))
-          ;_ (prn "substitution-without-symb" substitution-without-symb (update-vals substitution-without-symb class))
-          ;_ (prn "dom-t" dom-t)
-          ;_ (let [t1 (prep-symbolic-closure-expected-type substitution-without-symb dom-t)
-          ;        t2 (prep-symbolic-closure-expected-type2 substitution-without-symb dom-t)
-          ;        t3 (prep-symbolic-closure-expected-type3 substitution-without-symb dom-t)
-          ;        ]
-          ;    (prn "prep-symbolic-closure-expected-type" t1)
-          ;    (prn "prep-symbolic-closure-expected-type2" t2)
-          ;    (prn "prep-symbolic-closure-expected-type3" t3)
-          ;    )
-          ;_ (prn :expected expected)
           res (-> (ind/check-expr
                     (:fexpr arg-t)
                     expected)
@@ -2143,15 +2134,43 @@
             substitution-without-symb (subst-gen cs-no-symb (set (keys Y)) R :T T :flip-T-variances? true)
             ;_ (prn "substitution-without-symb" substitution-without-symb)
             add-symb-to-S (fn [inferred-deferred-arg-types] (reduce-kv assoc S inferred-deferred-arg-types))
-            inferred-deferred-arg-types (reduce (fn [ts i]
-                                                  (assoc ts i
-                                                         (let [s (c/fully-resolve-type (nth S i))]
-                                                           (cond
-                                                             (r/SymbolicClosure? s)
-                                                             (app-symbolic-closure substitution-without-symb s (nth T i))
-                                                             
-                                                             :else (err/int-error (str "Unsupported deferred argument type: " s))))))
-                                                {} deferred-fixed-args)
+            infer-deferred-arg-types (fn [subst]
+                                       (reduce (fn [ts i]
+                                                 (assoc ts i
+                                                        (let [s (c/fully-resolve-type (nth S i))
+                                                              t (nth T i)]
+                                                          (cond
+                                                            (r/SymbolicClosure? s)
+                                                            (app-symbolic-closure subst s t)
+
+                                                            (and (r/Poly? s)
+                                                                 (r/FnIntersection? t)
+                                                                 (= 1 (count (:types t)))
+                                                                 (not-any? #(% (first (:types t)))
+                                                                           [:rest :drest :kws :prest :pdot]))
+                                                            (binding [vs/*delayed-errors* (err/-init-delayed-errors)]
+                                                              ;(prn "Deferred Poly <: " s t)
+                                                              (let [t (prep-symbolic-closure-expected-type3 subst t)
+                                                                    ;_ (prn "t" t)
+                                                                    inferred-rng (r/TCResult->Result
+                                                                                   ((requiring-resolve 'typed.cljc.checker.check.funapp/check-funapp)
+                                                                                    nil nil
+                                                                                    (r/ret s)
+                                                                                    (mapv r/ret (-> t :types first :dom))
+                                                                                    (-> t :types first :rng r/Result->TCResult)))
+                                                                    _ (when-some [errs (seq @vs/*delayed-errors*)]
+                                                                        #_
+                                                                        (prn "deferred Poly argument failed to check"
+                                                                             errs)
+                                                                        ;; move to next arity, symbolic closure failed to check
+                                                                        (fail! nil nil))]
+                                                                ;(prn "inferred-rng" inferred-rng)
+                                                                (assoc-in t [:types 0 :rng] inferred-rng)))
+
+                                                            :else (err/int-error (str "Unsupported deferred argument type: " (prs/unparse-type s)
+                                                                                      " " (prs/unparse-type t)))))))
+                                               {} deferred-fixed-args))
+            inferred-deferred-arg-types (infer-deferred-arg-types substitution-without-symb)
             ;_ (prn "inferred-deferred-arg-types" inferred-deferred-arg-types)
             inferred-deferred-arg-types (if iterate?
                                           (loop [fuel 21
@@ -2168,13 +2187,7 @@
                                                   ;_ (prn "cs" cs)
                                                   substitution-with-symb (subst-gen cs (set (keys Y)) R :T T :flip-T-variances? true)
                                                   ;_ (prn "substitution-with-symb" substitution-with-symb)
-                                                  inferred-deferred-arg-types' (reduce (fn [ts i]
-                                                                                         (assoc ts i
-                                                                                                (app-symbolic-closure
-                                                                                                  substitution-with-symb
-                                                                                                  (nth S i)
-                                                                                                  (nth T i))))
-                                                                                       {} deferred-fixed-args)
+                                                  inferred-deferred-arg-types' (infer-deferred-arg-types substitution-with-symb)
                                                   ;_ (prn "inferred-deferred-arg-types" inferred-deferred-arg-types)
                                                   ;_ (prn "inferred-deferred-arg-types'" inferred-deferred-arg-types')
                                                   ;;TODO could save one extra iteration by instead checking the assignments of covariant variables.
