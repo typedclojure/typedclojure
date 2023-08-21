@@ -1359,9 +1359,8 @@
         all))))
 
 (defn cs-gen-Function-just-rests [V X Y S T]
-  ;just a rest arg, no drest, no keywords, no prest
-  {:pre [(and (some-fn :rest [S T])
-              (not-any? (some-fn :drest :kws :prest) [S T]))]}
+  {:pre [(some :rest [S T])
+         (not-any? (some-fn :drest :kws :prest :pdot) [S T])]}
   (let [arg-mapping (cond
                       ;both rest args are present, so make them the same length
                       (and (:rest S) (:rest T))
@@ -1376,10 +1375,10 @@
                            (<= (count (:dom S))
                                (count (:dom T))))
                       (let [new-S (u/pad-right (count (:dom T)) (:dom S) (:rest S))]
-                        ;                            (prn "infer rest arg on left")
-                        ;                            (prn "left dom" (map prs/unparse-type (:dom S)))
-                        ;                            (prn "right dom" (map prs/unparse-type (:dom T)))
-                        ;                            (prn "new left dom" (map prs/unparse-type new-S))
+                        ;(prn "infer rest arg on left")
+                        ;(prn "left dom" (map prs/unparse-type (:dom S)))
+                        ;(prn "right dom" (map prs/unparse-type (:dom T)))
+                        ;(prn "new left dom" (map prs/unparse-type new-S))
                         (cs-gen-list V X Y (:dom T) new-S))
                       ;no rest arg on left, or wrong number = fail
                       :else (fail! S T))
@@ -1387,8 +1386,8 @@
     (cset-meet* [arg-mapping ret-mapping])))
 
 (defn cs-gen-Function-rest-prest [cg V X Y S T]
-  {:pre [(and (:rest S)
-              (:prest T))]}
+  {:pre [(:rest S)
+         (:prest T)]}
   (let [S-dom (:dom S)
         S-dom-count (count S-dom)
         T-dom (:dom T)
@@ -1454,12 +1453,11 @@
         T-dom-count (count T-dom)
         S-prest-types (-> S :prest :types)
         S-prest-types-count (count S-prest-types)
-        merged-X (merge X {dbound (Y dbound)})
-        get-list-of-c (fn get-list-of-c [S-list]
-                        (mapv #(get-c-from-cmap % dbound)
-                              (map
-                                (fn [s] (cs-gen V merged-X Y t-dty s))
-                                S-list)))
+        merged-X (assoc X dbound (Y dbound))
+        get-list-of-c (fn [S-list]
+                        (mapv #(get-c-from-cmap (cs-gen V merged-X Y t-dty (cs-gen V merged-X Y t-dty %))
+                                                dbound)
+                              S-list))
         repeat-c (get-list-of-c S-prest-types)
         ret-mapping (cg (:rng S) (:rng T))]
     (if (<= S-dom-count T-dom-count)
@@ -1471,7 +1469,7 @@
                           (gen-repeat (quot T-rest-count S-prest-types-count) S-prest-types)
                           arg-S-prest)
             arg-mapping (cs-gen-list V X Y T-dom new-S)
-            fixed-c (if (= (count arg-S-prest) 0)
+            fixed-c (if (zero? (count arg-S-prest))
                       []
                       (get-list-of-c remain-S-prest))
             darg-mapping (assoc-in (cr/empty-cset X Y)
@@ -1488,8 +1486,8 @@
         (cset-meet* [arg-mapping darg-mapping ret-mapping])))))
 
 (defn cs-gen-Function-dotted-left-nothing-right [V X Y S T]
-  {:pre [(and (:drest S)
-              (not-any? (some-fn :rest :drest :kws :prest) [T]))]}
+  {:pre [(:drest S)
+         (not ((some-fn :rest :drest :kws :prest :pdot) T))]}
   (let [{dty :pre-type dbound :name} (:drest S)]
     (when-not (Y dbound)
       (fail! S T))
@@ -1501,14 +1499,14 @@
                           (subst/substitute (r/make-F var) dbound dty))
                         vars)
           new-s-arr (r/Function-maker (concat (:dom S) new-tys) (:rng S) nil nil nil nil nil)
-          new-cset (cs-gen-Function V 
+          new-cset (cs-gen-Function V
                                     ;move dotted lower/upper bounds to vars
                                     (merge X (zipmap vars (repeat (Y dbound)))) Y new-s-arr T)]
       (move-vars-to-dmap new-cset dbound vars))))
 
 (defn cs-gen-Function-dotted-right-nothing-left [V X Y S T]
-  {:pre [(and (not-any? (some-fn :rest :drest :kws :prest) [S])
-              (:drest T))]}
+  {:pre [(not ((some-fn :rest :drest :kws :prest :pdot) S))
+         (:drest T)]}
   (let [{dty :pre-type dbound :name} (:drest T)]
     (when-not (Y dbound)
       (fail! S T))
@@ -1524,22 +1522,22 @@
           new-t-arr (r/Function-maker (concat (:dom T) new-tys) (:rng T) nil nil nil nil nil)
           ;_ (prn "S" (prs/unparse-type S))
           ;_ (prn "new-t-arr" (prs/unparse-type new-t-arr))
-          new-cset (cs-gen-Function V 
+          new-cset (cs-gen-Function V
                                     ;move dotted lower/upper bounds to vars
                                     (merge X (zipmap vars (repeat (Y dbound)))) Y S new-t-arr)]
       (move-vars-to-dmap new-cset dbound vars))))
 
 ;; * <: ...
 (defn cs-gen-Function-star-<-dots [cg V X Y S T]
-  {:pre [(and (:rest S)
-              (:drest T))]}
+  {:pre [(:rest S)
+         (:drest T)]}
   (let [{t-dty :pre-type dbound :name} (-> T :drest)]
     (when-not (Y dbound)
       (fail! S T))
     (if (<= (count (:dom S)) (count (:dom T)))
       ;; the simple case
       (let [arg-mapping (cs-gen-list V X Y (:dom T) (u/pad-right (count (:dom T)) (:dom S) (:rest S)))
-            darg-mapping (move-rest-to-dmap (cs-gen V (merge X {dbound (Y dbound)}) Y t-dty (:rest S)) dbound)
+            darg-mapping (move-rest-to-dmap (cs-gen V (assoc X dbound (Y dbound)) Y t-dty (:rest S)) dbound)
             ret-mapping (cg (:rng S) (:rng T))]
         (cset-meet* [arg-mapping darg-mapping ret-mapping]))
       ;; the hard case
@@ -1570,10 +1568,10 @@
             new-cset (cs-gen-Function V (merge X (zipmap vars (repeat (Y dbound))) X) Y new-s-arr T)]
         (move-vars+rest-to-dmap new-cset dbound vars :exact true))
 
-      (== (count (:dom S)) (count (:dom T)))
+      (= (count (:dom S)) (count (:dom T)))
       ;the simple case
       (let [arg-mapping (cs-gen-list V X Y (u/pad-right (count (:dom S)) (:dom T) (:rest T)) (:dom S))
-            darg-mapping (move-rest-to-dmap (cs-gen V (merge X {dbound (Y dbound)}) Y (:rest T) s-dty) dbound :exact true)
+            darg-mapping (move-rest-to-dmap (cs-gen V (assoc X dbound (Y dbound)) Y (:rest T) s-dty) dbound :exact true)
             ret-mapping (cg (:rng S) (:rng T))]
         (cset-meet* [arg-mapping darg-mapping ret-mapping]))
 
@@ -1593,17 +1591,15 @@
            (cg [S T] (cs-gen V X Y S T))]
     (cond
       ;easy case - no rests, drests, kws, prest
-      (not-any? (some-fn :rest :drest :kws :prest) [S T])
+      (not-any? (some-fn :rest :drest :kws :prest :pdot) [S T])
       ; contravariant
-      (let [;_ (prn "easy case")
-            ]
-        (cset-meet* [(cs-gen-list V X Y (:dom T) (:dom S))
-                     ; covariant
-                     (cg (:rng S) (:rng T))]))
+      (cset-meet* [(cs-gen-list V X Y (:dom T) (:dom S))
+                   ; covariant
+                   (cg (:rng S) (:rng T))])
 
-      ;just a rest arg, no drest, no keywords, no prest
-      (and (some-fn :rest [S T])
-           (not-any? (some-fn :drest :kws :prest) [S T]))
+      ;just a rest args on one or more sides
+      (and (some :rest [S T])
+           (not-any? (some-fn :drest :kws :prest :pdot) [S T]))
       (cs-gen-Function-just-rests V X Y S T)
 
       ; :rest is less restricted than :prest
@@ -1618,7 +1614,7 @@
 
       ; prest on left, nothing on right
       (and (:prest S)
-           (not-any? (some-fn :rest :drest :kws :prest) [T]))
+           (not ((some-fn :rest :drest :kws :prest :pdot) T)))
       (cs-gen-Function-prest-on-left V X Y S T)
 
       ; prest on left, drest on right
@@ -1628,11 +1624,11 @@
 
       ;; dotted on the left, nothing on the right
       (and (:drest S)
-           (not-any? (some-fn :rest :drest :kws :prest) [T]))
+           (not ((some-fn :rest :drest :kws :prest :pdot) T)))
       (cs-gen-Function-dotted-left-nothing-right V X Y S T)
 
       ;; dotted on the right, nothing on the left
-      (and (not-any? (some-fn :rest :drest :kws :prest) [S])
+      (and (not ((some-fn :rest :drest :kws :prest :pdot) S))
            (:drest T))
       (cs-gen-Function-dotted-right-nothing-left V X Y S T)
 
@@ -2027,7 +2023,7 @@
 
 ;; replaces covariant type variables with r/-wild and then applies subst
 (defn prep-symbolic-closure-expected-type3 [subst t]
-  ;(prn :prep-symbolic-closure-expected-type3 subst)
+  (prn :prep-symbolic-closure-expected-type3 subst t)
   (let [replace-fs (reduce-kv (fn [replace-fs sym sbst]
                                 (update replace-fs (if (cr/t-subst? sbst) :fv :idx) (fnil conj #{}) sym))
                               {} subst)
@@ -2039,15 +2035,19 @@
                                              (= :covariant variance)
                                              (assoc sym r/-wild)))
                                          {} free-variances)]
+    (prn "subst-infer-covariant" subst-infer-covariant)
+    (prn "separated-t" separated-t)
     (-> separated-t
-        ;; eliminate inferred variables
+        ;; replace covariant occurrences of variables with wildcards
         ;; TODO what do we do with covariant dotted variables?
         (subst/substitute-many (vals subst-infer-covariant) (keys subst-infer-covariant))
         ;; rename all other variables back to original
         (subst/substitute-many (mapv r/make-F (vals separated-fv->original)) (keys separated-fv->original))
         (rename-dots separated-fv->original)
         ;; perform original substitution
-        (->> (subst/subst-all subst)))))
+        (doto (->> (println "before subst" (with-out-str (clojure.pprint/pprint subst)))))
+        (->> (subst/subst-all subst))
+        (doto (->> (prn "after subst"))))))
 
 ;; apply symbolic closure arg-t using function type dom-t as expected type, which is selectively
 ;; instantiated using substitution-without-symb, a substitution yielded from constraint
@@ -2057,10 +2057,10 @@
          (r/SymbolicClosure? arg-t)
          (r/Type? #_inferrable-symbolic-closure-expected-type? dom-t)]
    :post [(r/AnyType? %)]}
-  ;(prn :app-symbolic-closure)
   (with-bindings (assoc (:bindings arg-t)
                         #'vs/*delayed-errors* (err/-init-delayed-errors))
     (let [expected (r/ret (prep-symbolic-closure-expected-type3 substitution-without-symb dom-t))
+          _ (prn :app-symbolic-closure expected)
           res (-> (ind/check-expr
                     (:fexpr arg-t)
                     expected)
