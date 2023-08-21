@@ -1106,7 +1106,7 @@
 
 (t/ann ^:no-check make-Function
        [(t/Seqable Type)
-        Type
+        (t/U Type Result)
         & :optional
         {:rest (t/Nilable Type) :drest (t/Nilable Type) :prest (t/Nilable Type)
          :pdot (t/Nilable DottedPretype)
@@ -1119,10 +1119,15 @@
   Accepts optional :filter and :object parameters that default to the most general filter
   and EmptyObject"
   [dom rng & {:keys [rest drest prest pdot filter object mandatory-kws optional-kws] :as opt}]
-  {:pre [(every? keyword? (keys opt))]}
+  {:pre [(every? keyword? (keys opt))
+         (if (Result? rng)
+           (not (or filter object))
+           (Type? rng))]}
   (assert (not (:flow opt)) "removed this feature")
   (Function-maker dom
-                  (make-Result rng filter object)
+                  (if (Result? rng)
+                    rng
+                    (make-Result rng filter object))
                   rest
                   drest
                   (when (or mandatory-kws optional-kws)

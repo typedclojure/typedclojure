@@ -1497,7 +1497,7 @@
           new-tys (mapv (fn [var]
                           (subst/substitute (r/make-F var) dbound dty))
                         vars)
-          new-s-arr (r/Function-maker (concat (:dom S) new-tys) (:rng S) nil nil nil nil nil)
+          new-s-arr (r/make-Function (concat (:dom S) new-tys) (:rng S))
           new-cset (cs-gen-Function V
                                     ;move dotted lower/upper bounds to vars
                                     (merge X (zipmap vars (repeat (Y dbound)))) Y new-s-arr T)]
@@ -1518,7 +1518,7 @@
                     vars)
           ;_ (prn "dotted on the right, nothing on the left")
           ;_ (prn "vars" vars)
-          new-t-arr (r/Function-maker (concat (:dom T) new-tys) (:rng T) nil nil nil nil nil)
+          new-t-arr (r/make-Function (concat (:dom T) new-tys) (:rng T))
           ;_ (prn "S" (prs/unparse-type S))
           ;_ (prn "new-t-arr" (prs/unparse-type new-t-arr))
           new-cset (cs-gen-Function V
@@ -1544,7 +1544,7 @@
             new-tys (mapv (fn [var]
                             (subst/substitute (r/make-F var) dbound t-dty))
                           vars)
-            new-t-arr (r/Function-maker (concat (:dom T) new-tys) (:rng T) nil (r/DottedPretype1-maker t-dty dbound) nil nil nil)
+            new-t-arr (r/make-Function (concat (:dom T) new-tys) (:rng T) :drest (r/DottedPretype1-maker t-dty dbound))
             new-cset (cs-gen-Function V (merge X (zipmap vars (repeat (Y dbound))) X) Y S new-t-arr)]
         (move-vars+rest-to-dmap new-cset dbound vars)))))
 
@@ -1563,7 +1563,7 @@
             new-tys (mapv (fn [var]
                             (subst/substitute (r/make-F var) dbound s-dty))
                           vars)
-            new-s-arr (r/Function-maker (concat (:dom S) new-tys) (:rng S) nil (r/DottedPretype1-maker s-dty dbound) nil nil nil)
+            new-s-arr (r/make-Function (concat (:dom S) new-tys) (:rng S) :drest (r/DottedPretype1-maker s-dty dbound))
             new-cset (cs-gen-Function V (merge X (zipmap vars (repeat (Y dbound))) X) Y new-s-arr T)]
         (move-vars+rest-to-dmap new-cset dbound vars :exact true))
 
@@ -2022,7 +2022,7 @@
 
 ;; replaces covariant type variables with r/-wild and then applies subst
 (defn prep-symbolic-closure-expected-type3 [subst t]
-  (prn :prep-symbolic-closure-expected-type3 subst t)
+  ;(prn :prep-symbolic-closure-expected-type3 subst t)
   (let [replace-fs (reduce-kv (fn [replace-fs sym sbst]
                                 (update replace-fs (if (cr/t-subst? sbst) :fv :idx) (fnil conj #{}) sym))
                               {} subst)
@@ -2044,9 +2044,9 @@
         (subst/substitute-many (mapv r/make-F (vals separated-fv->original)) (keys separated-fv->original))
         (rename-dots separated-fv->original)
         ;; perform original substitution
-        (doto (->> (println "before subst" (with-out-str (clojure.pprint/pprint subst)))))
+        ;(doto (->> (println "before subst" (with-out-str (clojure.pprint/pprint subst)))))
         (->> (subst/subst-all subst))
-        (doto (->> (prn "after subst"))))))
+        #_(doto (->> (prn "after subst"))))))
 
 ;; apply symbolic closure arg-t using function type dom-t as expected type, which is selectively
 ;; instantiated using substitution-without-symb, a substitution yielded from constraint
@@ -2059,7 +2059,7 @@
   (with-bindings (assoc (:bindings arg-t)
                         #'vs/*delayed-errors* (err/-init-delayed-errors))
     (let [expected (r/ret (prep-symbolic-closure-expected-type3 substitution-without-symb dom-t))
-          _ (prn :app-symbolic-closure expected)
+          ;_ (prn :app-symbolic-closure expected)
           res (-> (ind/check-expr
                     (:fexpr arg-t)
                     expected)
