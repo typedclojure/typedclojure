@@ -35,3 +35,4 @@
 - use `clojure.core.typed` alias in current namespace to shorten types (rather than just `typed.clojure`)
 - better support for passing polymorphic functions to other polymorphic functions
   - e.g., `(into [] (map identity) [1])`
+- support checking a `fn` against a union type

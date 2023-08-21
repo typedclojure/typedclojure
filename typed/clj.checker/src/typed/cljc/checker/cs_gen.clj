@@ -1719,12 +1719,11 @@
                                     ;; (i.e. a list of types for the fixed portion
                                     ;;  and a type for the starred portion)
                                     (cond
-                                      (false? no-entry) no-entry
                                       (not entry) (cons v no-entry)
                                       (or (cr/i-subst? entry)
                                           (cr/i-subst-starred? entry)
                                           (cr/i-subst-dotted? entry)) no-entry
-                                      :else false)))
+                                      :else (reduced false))))
                                 [] Y)]
                     (and absent-entries
                          (-> (into {}

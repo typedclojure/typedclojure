@@ -1127,7 +1127,7 @@ cc/sorted-map-by (t/All [x y] [[x x :-> t/Int] (t/HSequential [x y] :repeat true
 cc/sorted-set (t/All [x] [x :* :-> #?(:cljs (t/SortedSet x)
                                      :default (PersistentTreeSet x))])
 cc/sorted-set-by (t/All [x] [[x x :-> t/Int] x :* :-> #?(:cljs (t/Set x)
-                                                              :default (PersistentTreeSet x))])
+                                                         :default (PersistentTreeSet x))])
 cc/list (t/All [x] [x :* :-> (#?(:clj PersistentList :cljs t/List) x)])
 cc/list* (t/All [x] (t/IFn [(t/Seqable x) :-> (t/NilableNonEmptyASeq x)]
                            [x (t/Seqable x) :-> (t/NonEmptyASeq x)]

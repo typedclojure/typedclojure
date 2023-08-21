@@ -25,15 +25,22 @@
             [typed.cljc.checker.check.fn-method-one :as fn-method1]
             [typed.cljc.checker.dvar-env :as dvar-env]))
 
-(def function-type? (some-fn (every-pred r/Poly?
+(def function-type? (some-fn r/FnIntersection?
+                             (every-pred r/Poly?
                                          (comp r/FnIntersection? r/Poly-body-unsafe*))
                              (every-pred r/PolyDots?
                                          (comp r/FnIntersection? r/PolyDots-body-unsafe*))
-                             r/TCError?
-                             r/FnIntersection?))
+                             r/TCError?))
+
+(def function-type-union? #(every? function-type?
+                                   (if (r/Union? %)
+                                     (let [ts (:types %)]
+                                       (assert (seq ts))
+                                       ts)
+                                     [%])))
 
 (def method? (some-fn ast-u/fn-method? ast-u/deftype-method?))
-(def methods? 
+(def methods?
   (fn [ms]
     (impl/impl-case
       :clojure ((con/vec-c? method?) ms)
@@ -46,7 +53,7 @@
 
 (def method-return?
   (con/hmap-c?
-    :ifn function-type?
+    :ifn function-type-union?
     :methods methods?
     :cmethods methods?))
 
@@ -109,7 +116,6 @@
          (methods? mthods)
          (opt-map? opt)]
    :post [(method-return? %)]}
-  ;(prn "check-fni" expected)
   (let [; unwrap polymorphic expected types
         [fin inst-frees bnds poly?] (cu/unwrap-poly expected)
         ; this should never fail due to function-type? check
@@ -121,8 +127,7 @@
         ;; cmethodss is a vector in the same order as the passed in methods,
         ;; but each method replaced with a vector of type checked methods."
         cmethodss
-        (lex/with-locals (when-let [name self-name] ;self calls
-                           {name expected})
+        (lex/with-locals (some-> self-name (hash-map expected))
           ;scope type variables from polymorphic type in body
           (free-ops/with-free-mappings (case poly?
                                          :Poly (zipmap (map r/F-original-name inst-frees)
@@ -285,7 +290,6 @@
          ((every-pred methods? seq) mthods)
          (opt-map? opt)]
    :post [(method-return? %)]}
-  ;(prn "check-fn-methods")
   (let [ts (function-types expected)]
     (cond
       (empty? ts)
@@ -295,15 +299,20 @@
                                        :ifn r/-error
                                        :cmethods []}))
       
-      (== 1 (count ts))
+      (= 1 (count ts))
       (check-fni (nth ts 0) mthods opt)
 
       ;; disable rewriting in case we recheck a method arity
       :else
       (binding [vs/*can-rewrite* nil]
-        (let [method-returns (into []
-                                   (map (fn [t] (check-fni t mthods opt)))
-                                   ts)]
+        (let [method-returns+errors (mapv (fn [t]
+                                            (binding [vs/*delayed-errors* (err/-init-delayed-errors)]
+                                              (let [res (check-fni t mthods opt)]
+                                                {:errors (seq @vs/*delayed-errors*)
+                                                 :res res})))
+                                          ts)
+              _ (when (every? :errors method-returns+errors)
+                  (swap! vs/*delayed-errors* into (mapcat :errors) method-returns+errors))]
           {:methods mthods
-           :ifn (apply c/Un (map :ifn method-returns))
-           :cmethods (mapcat :cmethods method-returns)})))))
+           :ifn (apply c/Un (map (comp :ifn :res) method-returns+errors))
+           :cmethods (into [] (mapcat (comp :cmethods :res)) method-returns+errors)})))))

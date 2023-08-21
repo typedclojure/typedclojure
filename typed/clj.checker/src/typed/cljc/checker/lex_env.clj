@@ -91,7 +91,7 @@
 
 (defmacro with-locals [locals & body]
   `(binding [vs/*lexical-env* (merge-locals (lexical-env) ~locals)]
-     ~@body))
+     (do ~@body)))
 
 ; take an environment and (depending on the new object given) either record
 ; and alias to an existing local or extend the type env directly.

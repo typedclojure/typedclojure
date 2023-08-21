@@ -76,7 +76,7 @@
 
 (f/def-derived-fold ISubstituteDots substitute-dots* [name sb images rimage])
 
-(f/add-fold-case 
+(f/add-fold-case
   ISubstituteDots substitute-dots*
   Function
   (fn [{:keys [dom rng rest drest kws prest pdot] :as ftype} name sb images rimage]
@@ -104,14 +104,10 @@
      (r/Function-maker (mapv sb dom)
                        (sb rng)
                        (some-> rest sb)
-                       (when drest
-                         (r/DottedPretype1-maker (sb (:pre-type drest))
-                                                 (:name drest)))
+                       (some-> drest (update :pre-type sb))
                        nil
                        (some-> prest sb)
-                       (when pdot
-                         (r/DottedPretype1-maker (sb (:pre-type pdot))
-                                                 (:name pdot)))))))
+                       (some-> pdot (update :pre-type sb))))))
 
 (f/add-fold-case
   ISubstituteDots substitute-dots*
@@ -135,9 +131,7 @@
               (r/AssocType-maker sb-target entries nil)))
         (r/AssocType-maker sb-target
                            sb-entries
-                           (when dentries
-                             (r/DottedPretype1-maker (sb (:pre-type dentries))
-                                                     (:name dentries))))))))
+                           (some-> dentries (update :pre-type sb)))))))
 
 (f/add-fold-case
   ISubstituteDots substitute-dots*
@@ -159,9 +153,7 @@
         :filters (mapv sb fs)
         :objects (mapv sb objects)
         :rest (some-> rest sb)
-        :drest (when drest
-                 (r/DottedPretype1-maker (sb (:pre-type drest))
-                                         (:name drest)))
+        :drest (some-> drest (update :pre-type drest))
         :repeat (:repeat ftype)
         :kind kind))))
 

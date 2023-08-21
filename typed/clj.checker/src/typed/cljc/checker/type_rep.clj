@@ -840,7 +840,7 @@
                         rest :- (t/Nilable Type)
                         drest :- (t/Nilable DottedPretype)
                         kws :- (t/Nilable KwArgs)
-                        prest :- (t/Nilable Type)
+                        prest :- (t/Nilable HSequential)
                         pdot :- (t/Nilable DottedPretype)])
 (u/def-type Function [dom rng rest drest kws prest pdot]
   "A function arity, must be part of an intersection"
@@ -851,17 +851,6 @@
    (Result? rng)
    ;at most one of rest drest kws prest or pdot can be provided
    (#{0 1} (count (filter identity [rest drest kws prest pdot])))
-   ; we could have prest without repeat, but why would you do that
-   (or (nil? prest)
-       (HSequential? prest))
-   (or (nil? pdot)
-       (DottedPretype? pdot))
-   (if prest (and (:repeat prest) (:types prest)) true)
-   ; we could have pdot without repeat, but why would you do that
-   (if pdot
-     (and (-> pdot :pre-type :repeat)
-          (-> pdot :pre-type :types))
-     true)
    (or (nil? rest)
        (Type? rest))
    (or (nil? drest)
@@ -869,9 +858,15 @@
    (or (nil? kws)
        (KwArgs? kws))
    (or (nil? prest)
-       (Type? prest))
+       (and (HSequential? prest)
+            ; we could have prest without repeat, but why would you do that
+            (:repeat prest)
+            (:types prest)))
    (or (nil? pdot)
-       (DottedPretype? pdot))]
+       (and (DottedPretype? pdot)
+            ; we could have pdot without repeat, but why would you do that
+            (-> pdot :pre-type :repeat)
+            (-> pdot :pre-type :types)))]
   :methods
   [p/TCAnyType])
 
