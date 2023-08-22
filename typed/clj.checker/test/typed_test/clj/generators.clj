@@ -272,17 +272,17 @@
   (is (not (sut/check `[t/Int :-> t/Nothing] identity)))
   (is (not (sut/check `[t/Any :-> t/Int] identity)))
   (is (sut/check `(t/IFn [t/Nothing :-> t/Nothing]
-                            [t/Nothing :-> t/Any]
-                            [t/Any :-> t/Any])
-                    identity))
+                         [t/Nothing :-> t/Any]
+                         [t/Any :-> t/Any])
+                 identity))
   (is (sut/check `(t/IFn [t/Int :-> t/Int]
-                            [t/Bool :-> t/Bool]
-                            [t/Any :-> t/Any])
-                    identity))
+                         [t/Bool :-> t/Bool]
+                         [t/Any :-> t/Any])
+                 identity))
   (is (not (sut/check `(t/IFn [t/Nothing :-> t/Nothing]
                               [t/Nothing :-> t/Any]
                               [t/Any :-> t/Nothing])
-                         identity)))
+                      identity)))
 
 
   (is (sut/check `(t/All [x# y#] [[x# :-> y#] (t/Nilable (t/Coll x#)) :-> (t/Seq y#)]) map))

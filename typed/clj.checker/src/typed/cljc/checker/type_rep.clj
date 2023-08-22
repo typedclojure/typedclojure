@@ -15,6 +15,7 @@
             [typed.cljc.checker.impl-protocols :as p]
             [typed.cljc.checker.indirect-ops :as ind]
             [typed.cljc.checker.utils :as u]
+            [clojure.core.typed.util-vars :as vs]
             clojure.core.typed.contract-ann))
 
 (t/defalias SeqNumber Long)
@@ -588,7 +589,7 @@
    (or (not repeat) (not-empty types))
    ((some-fn nil? Type?) rest)
    ((some-fn nil? DottedPretype?) drest)
-   ((some-fn true? false?) repeat)
+   (boolean? repeat)
    (#{:list :seq :vector :sequential} kind)]
   :methods
   [p/TCType])
@@ -609,7 +610,7 @@
         -> Type])
 (defn -hsequential
   [types & {:keys [filters objects rest drest kind] repeat? :repeat}]
-  (if (some Bottom? types)
+  (if (and (not vs/*no-simpl*) (some Bottom? types))
     (Bottom)
     (HSequential-maker types
                        (vec (or filters

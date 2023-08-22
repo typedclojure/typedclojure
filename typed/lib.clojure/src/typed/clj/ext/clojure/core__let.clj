@@ -51,7 +51,7 @@
          (map? ana-env)
          ((some-fn nil? map?) maybe-rhs-expr)
          (r/TCResult? rhs-ret)
-         (instance? clojure.lang.IAtom2 is-reachable)]
+         (instance? clojure.lang.Volatile is-reachable)]
    :post [(combined-env? %)]}
   (letfn [(upd-prop-env [prop-env uniquified-lhs rhs-ret]
             {:pre [(lex/PropEnv?-workaround prop-env)
@@ -320,7 +320,7 @@
                                    (and (simple-symbol? lhs)
                                         inferred-tag)
                                    (vary-meta update :tag #(or % inferred-tag)))
-                      is-reachable (atom reachable)
+                      is-reachable (volatile! reachable)
                       updated-context (update-destructure-env prop-env ana-env tagged-lhs cexpr (u/expr-type cexpr) is-reachable)
                       ;; must go after update-destructure-env
                       reachable @is-reachable

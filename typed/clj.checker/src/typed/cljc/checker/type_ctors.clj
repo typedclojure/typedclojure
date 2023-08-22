@@ -2607,7 +2607,7 @@
 (add-default-fold-case FnIntersection
                        (fn [ty]
                          (-> ty
-                           (update :types #(into-identical [] type-rec %)))))
+                           (update :types #(into-identical [] type-rec-no-simpl %)))))
 
 (add-default-fold-case Bounds
                        (fn [ty]

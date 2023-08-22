@@ -20,7 +20,7 @@
 
 (defn update-lex+reachable [lex-env fs]
   {:pre [(lex/PropEnv? lex-env)]}
-  (let [reachable (atom true :validator boolean?)
+  (let [reachable (volatile! true)
         env (update/env+ lex-env [fs] reachable)]
     [env @reachable]))
 

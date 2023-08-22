@@ -26,7 +26,7 @@
            %)]}
   (letfn [(check-case-then [tst-ret {:keys [then] :as case-then}]
             (let [{{fs+ :then} :fl :as rslt} (equiv/tc-equiv := [target-ret tst-ret] nil)
-                  flag+ (atom true)
+                  flag+ (volatile! true)
                   env-thn (update/env+ (lex/lexical-env) [fs+] flag+)
                   _ (when-not @flag+
                       ;; FIXME should we ignore this branch?

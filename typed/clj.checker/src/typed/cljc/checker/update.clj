@@ -62,7 +62,7 @@
 ;       (Seqable (U TypeFilter NotTypeFilter))]]
 (defn combine-props [new-props old-props flag]
   {:pre [(every? fl/Filter? (concat new-props old-props))
-         (instance? clojure.lang.Atom flag)
+         (instance? clojure.lang.Volatile flag)
          (boolean? @flag)]
    :post [(let [[derived-props derived-atoms] %]
             (and (every? (some-fn fl/ImpFilter? fl/OrFilter? fl/AndFilter?) derived-props)
@@ -111,20 +111,20 @@
                  (= (c/Un) (:type p)))
             (do 
               ;(prn "Variable set to bottom:" p)
-              (reset! flag false)
+              (vreset! flag false)
               [derived-props derived-atoms])
             (fl/TypeFilter? p) (recur derived-props (cons p derived-atoms) (next worklist))
             (and (fl/NotTypeFilter? p)
                  (= r/-any (:type p)))
             (do 
               ;(prn "Variable set to bottom:" p)
-              (reset! flag false)
+              (vreset! flag false)
               [derived-props derived-atoms])
             (fl/NotTypeFilter? p) (recur derived-props (cons p derived-atoms) (next worklist))
             (fl/TopFilter? p) (recur derived-props derived-atoms (next worklist))
             (fl/BotFilter? p) (do 
                                 ;(prn "Bot filter found")
-                                (reset! flag false)
+                                (vreset! flag false)
                                 [derived-props derived-atoms])
             :else (recur (cons p derived-props) derived-atoms (next worklist))))))))
 
@@ -406,6 +406,7 @@
   {:pre [(lex/PropEnv?-workaround env)
          (every? (every-pred fl/Filter? (complement fl/NoFilter?)) 
                  fs)
+         (instance? clojure.lang.Volatile flag)
          (boolean? @flag)]
    :post [(lex/PropEnv?-workaround %)
           ; flag should be updated by the time this function exits
@@ -417,7 +418,7 @@
                      (fl/Filter? f)]}
               (cond
                 (fl/BotFilter? f) (do ;(prn "Bot filter found in env+")
-                                      (reset! flag false)
+                                      (vreset! flag false)
                                       (update env :l (fn [l] 
                                                        (zipmap (keys l)
                                                                (repeat r/-nothing)))))
@@ -432,7 +433,7 @@
                   ; update flag if a variable is now bottom
                   (when-let [bs (seq (filter (comp #{(c/Un)} val) (:l new-env)))]
                     ;(prn "Variables now bottom:" (keys bs))
-                    (reset! flag false))
+                    (vreset! flag false))
                   new-env)
 
                 (and (fl/OrFilter? f)
@@ -448,9 +449,9 @@
                                                   (map (fn [f] (update-with-filter t f)) 
                                                        (:fs f)))))]
                   ; update flag if a variable is now bottom
-                  (when-let [bs (seq (filter (comp #{(c/Un)} val) (:l new-env)))]
+                  (when-some [bs (seq (filter (comp #{(c/Un)} val) (:l new-env)))]
                     ;(prn "Variables now bottom:" (keys bs))
-                    (reset! flag false))
+                    (vreset! flag false))
                   new-env)
                 :else env))
             (assoc env :props (into (set atoms) props))

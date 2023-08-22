@@ -457,49 +457,51 @@
 
 
 (deftest combine-props-test
-  (is-clj (= (map set (update/combine-props [(ImpFilter-maker (-not-filter -false 'a)
-                                                              (-filter -true 'b))]
-                                            [(-not-filter (Un -nil -false) 'a)]
-                                            (atom true)))
-             [#{} #{(-not-filter (Un -nil -false) 'a)
-                    (-filter -true 'b)}])))
+  (let [vol (volatile! true)]
+    (is-clj (= (map set (update/combine-props [(ImpFilter-maker (-not-filter -false 'a)
+                                                                (-filter -true 'b))]
+                                              [(-not-filter (Un -nil -false) 'a)]
+                                              (volatile! true)))
+               [#{} #{(-not-filter (Un -nil -false) 'a)
+                      (-filter -true 'b)}]))
+    (is @vol)))
 
 (deftest env+-test
   ;test basic TypeFilter
   ;update a from clojure.core.typed/Any to (t/Value :a)
   (is-clj (let [props [(-filter (-val :a) 'a)]
-            flag (atom true)]
-        (and (= (let [env {'a -any}
-                      lenv (-PropEnv env props)]
-                  (env+ lenv [] flag))
-                (-PropEnv {'a (-val :a)} props))
-             @flag)))
+                flag (volatile! true)]
+            (and (= (let [env {'a -any}
+                          lenv (-PropEnv env props)]
+                      (env+ lenv [] flag))
+                    (-PropEnv {'a (-val :a)} props))
+                 @flag)))
   ;test positive KeyPE
   ;update a from (t/U (t/HMap :mandatory {:op :if}) (t/HMap :mandatory {:op :var})) => (t/HMap :mandatory {:op :if})
   (is-clj (let [props [(-filter (-val :if) 'a [(-kpe :op)])]
-            flag (atom true)]
-        (and (= (let [env {'a (Un (make-HMap :mandatory {(-val :op) (-val :if)})
-                                  (make-HMap :mandatory {(-val :op) (-val :var)}))}
-                      lenv (-PropEnv env props)]
-                  (env+ lenv [] flag))
-                (-PropEnv {'a (make-HMap :mandatory {(-val :op) (-val :if)})} props))
-             @flag)))
+                flag (volatile! true)]
+            (and (= (let [env {'a (Un (make-HMap :mandatory {(-val :op) (-val :if)})
+                                      (make-HMap :mandatory {(-val :op) (-val :var)}))}
+                          lenv (-PropEnv env props)]
+                      (env+ lenv [] flag))
+                    (-PropEnv {'a (make-HMap :mandatory {(-val :op) (-val :if)})} props))
+                 @flag)))
   ;test negative KeyPE
   (is-clj (let [props [(-not-filter (-val :if) 'a [(-kpe :op)])]
-            flag (atom true)]
-        (and (= (let [env {'a (Un (make-HMap :mandatory {(-val :op) (-val :if)})
-                                  (make-HMap :mandatory {(-val :op) (-val :var)}))}
-                      lenv (-PropEnv env props)]
-                  (env+ lenv [] flag))
-                (-PropEnv {'a (make-HMap :mandatory {(-val :op) (-val :var)})} props))
-             @flag)))
+                flag (volatile! true)]
+            (and (= (let [env {'a (Un (make-HMap :mandatory {(-val :op) (-val :if)})
+                                      (make-HMap :mandatory {(-val :op) (-val :var)}))}
+                          lenv (-PropEnv env props)]
+                      (env+ lenv [] flag))
+                    (-PropEnv {'a (make-HMap :mandatory {(-val :op) (-val :var)})} props))
+                 @flag)))
   ;test impfilter
   (clj (let [{:keys [l props]}
              (env+ (-PropEnv {'a (Un -false -true) 'b (Un -nil -true)}
                              [(ImpFilter-maker (-not-filter -false 'a)
                                                (-filter -true 'b))])
                    [(-not-filter (Un -nil -false) 'a)]
-                   (atom true))]
+                   (volatile! true))]
          (is (= l {'a -true, 'b -true}))
          (is (= (set props)
                 #{(-not-filter (Un -nil -false) 'a)
@@ -530,14 +532,14 @@
                                                 'tmap
                                                 [(-kpe :type)]))])
            [(-filter (Un -nil -false) 'and1)]
-           (atom true))))
+           (volatile! true))))
   ; refine a subtype
   (is-clj (= (:l (env+ (-PropEnv {'and1 (RClass-of Seqable [-any])} [])
                        [(-filter (RClass-of IPersistentVector [-any]) 'and1)]
-                       (atom true)))
+                       (volatile! true)))
              {'and1 (RClass-of IPersistentVector [-any])}))
   ; bottom preserved
-  (is-clj (let [a (atom true)]
+  (is-clj (let [a (volatile! true)]
             (env+ (-PropEnv {'foo -any} []) [-bot] a)
             (false? @a))))
 
@@ -2375,7 +2377,7 @@
   (is-tc-e (fn [a b] [(class a) (class b)])
            [t/Any t/Any
             -> (t/HVec [(t/U nil Class) (t/U nil Class)]
-                     :objects [{:path [Class], :id 0} {:path [Class], :id 1}])]))
+                       :objects [{:path [Class], :id 0} {:path [Class], :id 1}])]))
 
 (deftest interop-test
   (is (check-ns 'clojure.core.typed.test.interop)))
@@ -4283,6 +4285,7 @@
              (when-not (empty? rst) (first rst)))
            [Number (t/HSeq [Number String] :repeat true) <* -> (t/U nil Number)])
   (is-tc-e (hash-map 1 "a" 2 "c" 3 "d") :expected (t/Map Number String))
+  (is-tc-err #(hash-map 1 "a" 2 "c" 3))
   (is-clj (not (subtype? (parse-type `[(t/HSeq [String Number] :repeat true) ~'<* ~'-> String])
                          (parse-type `[(t/HSeq [String Number String] :repeat true) ~'<* ~'-> String]))))
   (is (check-ns 'clojure.core.typed.test.prest-cs-gen))

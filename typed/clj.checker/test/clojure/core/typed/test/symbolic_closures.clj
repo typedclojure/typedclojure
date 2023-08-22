@@ -1,9 +1,11 @@
 (ns clojure.core.typed.test.symbolic-closures
-  (:require 
+  (:require
+    [typed.clojure :as t]
     [typed.clj.checker.test-utils :refer [is-tc-e is-tc-err tc-e]]
+    [typed.clj.checker.parse-unparse :refer [parse-clj]]
     [clojure.core.typed.util-vars :as vs]
     [typed.cljc.checker.type-rep :as r]
-    [clojure.test :refer :all]))
+    [clojure.test :refer [deftest is]]))
 
 (deftest symbolic-closure-test
   ;; thunks always checked
@@ -626,8 +628,9 @@
                           [t/Any :-> true]
                           [t/Any t/Any :-> true]))
   (is-tc-err (fn []) [t/Nothing :* :-> t/Any])
-  #_;;FIXME
-  (is-tc-err (fn []) [(t/HSequential [t/Nothing] :repeat true) <* :-> t/Any])
+  (is (r/HSequential? (parse-clj `(t/HSequential [t/Nothing] :repeat true))))
+  (is-tc-e (fn [& _]) [(t/HSequential [t/Nothing] :repeat true) <* :-> t/Any])
+  (is-tc-e (fn [& _]) [(t/HSequential [t/Nothing] :repeat true :union true) <* :-> t/Any])
   #_;;FIXME
   (is-tc-e (fn [comp :- (t/All [x y :..] [[y :.. y :-> x] :-> [y :.. y :-> x]])]
              (comp identity)))

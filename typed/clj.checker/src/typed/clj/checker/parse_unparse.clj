@@ -135,7 +135,8 @@
        (f)))))
 
 (defn parse-type [s]
-  (binding [vs/*current-env* (or (tsyn->env s) vs/*current-env*)]
+  (binding [vs/*no-simpl* true
+            vs/*current-env* (or (tsyn->env s) vs/*current-env*)]
     (try (parse-type* s)
          (catch Throwable e
            ;(prn (err/any-tc-error? (ex-data e)))
@@ -251,9 +252,9 @@
 
 (defn parse-rec-type [[rec & [[free-symbol :as bnder] type 
                               :as args]]]
-  (when-not (== 1 (count bnder))
+  (when-not (= 1 (count bnder))
     (prs-error "Rec type requires exactly one entry in binder"))
-  (when-not (== 2 (count args))
+  (when-not (= 2 (count args))
     (prs-error "Wrong arguments to Rec"))
   (let [Mu* @(Mu*-var)
         _ (when-not (= 1 (count bnder)) 
@@ -332,7 +333,7 @@
                                        (fl/-not-filter on-type 0))))))
 
 (defn parse-Pred [[_ & [t-syn :as args]]]
-  (when-not (== 1 (count args))
+  (when-not (= 1 (count args))
     (prs-error "Wrong arguments to predicate"))
   (predicate-for (parse-type t-syn)))
 
@@ -379,8 +380,7 @@
   (r/AssocType-maker (parse-type tsyn)
                      (into []
                            (comp (map parse-type)
-                                 (partition-all 2)
-                                 (map vec))
+                                 (partition-all 2))
                            entries)
                      (when ellipsis-pos
                        (let [bnd (dvar/*dotted-scope* drest-bnd)
@@ -404,7 +404,7 @@
   (r/-get (parse-type tsyn)
           (parse-type keysyn)
           :not-found
-          (when (#{3} (count (next all)))
+          (when (= 3 (count (next all)))
             (parse-type not-foundsyn))))
 
 (defmethod parse-type-list 'typed.clojure/Get [t] (parse-Get t))
@@ -767,17 +767,16 @@
 (declare parse-object parse-filter-set)
 
 (defn parse-heterogeneous* [parse-h*-types constructor]
-  (fn [[_ syn & {:keys [filter-sets objects repeat]}]]
+  (fn [[_ syn & {:keys [filter-sets objects repeat] :or {repeat false}}]]
+    (when-not (boolean? repeat)
+      (prs-error (str ":repeat must be boolean")))
     (let [{:keys [fixed drest rest]} (parse-h*-types syn)]
       (constructor fixed
-                   :filters (when filter-sets
-                              (mapv parse-filter-set filter-sets))
-                   :objects (when objects
-                              (mapv parse-object objects))
+                   :filters (some->> filter-sets (mapv parse-filter-set))
+                   :objects (some->> objects (mapv parse-object))
                    :drest drest
                    :rest rest
-                   :repeat (when (true? repeat)
-                             true)))))
+                   :repeat (true? repeat)))))
 
 (def parse-HVec (parse-heterogeneous* parse-hvec-types r/-hvec))
 (def parse-HSequential (parse-heterogeneous* parse-hsequential-types r/-hsequential))
@@ -794,11 +793,11 @@
 
 (defn parse-HSet [[_ ts & {:keys [complete?] :or {complete? true}} :as args]]
   (let [bad (seq (remove hset/valid-fixed? ts))]
+    (when-not (boolean? complete?)
+      (prs-error (str "HSet's :complete? must be boolean")))
     (when bad
       (prs-error (str "Bad arguments to HSet: " (pr-str bad))))
-    (r/-hset (into #{}
-                   (map r/-val)
-                   ts)
+    (r/-hset (into #{} (map r/-val) ts)
              :complete? complete?)))
 
 (defmethod parse-type-list 'typed.clojure/HSet [t] (parse-HSet t))
@@ -830,7 +829,7 @@
           _ (when-not (every? keyword? (keys optional)) (prs-error "HMap's optional keys must be keywords"))
           optional (mapt optional)
           _ (when-not (every? keyword? absent-keys) (prs-error "HMap's absent keys must be keywords"))
-          absent-keys (set (map r/-val absent-keys))]
+          absent-keys (into #{} (map r/-val) absent-keys)]
       (c/make-HMap :mandatory mandatory :optional optional 
                    :complete? complete? :absent-keys absent-keys))))
 
@@ -910,8 +909,7 @@
             (prs-error (str "Bad syntax to JSObj: " (pr-str all))))
         _ (when-not (every? keyword? (keys types))
             (prs-error (str "JSObj requires keyword keys, given " (pr-str (class (first (remove keyword? (keys types))))))))
-        parsed-types (zipmap (keys types)
-                             (map parse-type (vals types)))]
+        parsed-types (update-vals types parse-type)]
     (r/JSObj-maker parsed-types)))
 
 (defmethod parse-type-list 'typed.clojure/JSObj [t] (parse-JSObj t))
@@ -1030,7 +1028,7 @@
     res))
 
 (defn parse-Value [[_Value_ syn :as all]]
-  (when-not (#{2} (count all))
+  (when-not (= 2 (count all))
     (prs-error (str "Incorrect number of arguments to Value, " (count all)
                     ", expected 2: " all)))
   (impl/impl-case

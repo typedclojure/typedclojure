@@ -45,7 +45,7 @@
           _ (assert (every? (comp #{:unanalyzed} :op) exprs)
                     (mapv (juxt :op :form) exprs))
           nexprs (count exprs)
-          reachable-atom (atom true)
+          reachable (volatile! true)
           [env cexprs]
           (reduce (fn [[env cexprs] ^long n]
                     {:pre [(lex/PropEnv?-workaround env)
@@ -54,10 +54,10 @@
                      ; :post checked after the reduce
                      }
                     (cond
-                      (not @reachable-atom) [env (assoc-in cexprs [n u/expr-type]
-                                                           (r/ret (r/Bottom)
-                                                                  (fo/-unreachable-filter)
-                                                                  orep/-empty))]
+                      (not @reachable) [env (assoc-in cexprs [n u/expr-type]
+                                                      (r/ret (r/Bottom)
+                                                             (fo/-unreachable-filter)
+                                                             orep/-empty))]
                       :else
                       (let [expr (get cexprs n)
                             _ (assert (map? expr))
@@ -73,13 +73,13 @@
                                                expected))))
                             res (u/expr-type cexpr)
                             {fs+ :then fs- :else} (r/ret-f res)
-                            nenv (update/env+ env [(fo/-or fs+ fs-)] reachable-atom)
+                            nenv (update/env+ env [(fo/-or fs+ fs-)] reachable)
                             _ (u/trace-when-let
                                 [ls (seq (cu/find-updated-locals (:l env) (:l nenv)))]
                                 (str "Updated local in exceptional control flow (do): " ls))
                             ;_ (prn nenv)
                             ]
-                        (if @reachable-atom
+                        (if @reachable
                           ;reachable
                           [nenv (assoc cexprs n cexpr)]
                           ;unreachable

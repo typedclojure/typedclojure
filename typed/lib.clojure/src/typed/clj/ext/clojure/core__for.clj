@@ -113,7 +113,7 @@
                                                         (first form)
                                                         (-> cv u/expr-type :t prs/unparse-type))
                                                 :form v)))
-                            is-reachable (atom reachable)
+                            is-reachable (volatile! reachable)
                             updated-context (ext-let/update-destructure-env prop-env ana-env k nil binding-ret is-reachable)
                             ;; must go after update-destructure-env
                             reachable @is-reachable

@@ -13,8 +13,9 @@
   (:import [clojure.lang IPersistentMap Seqable]))
 
 (defmacro with-validator [v & body]
-  `(let [~v (atom true :validator (constantly true))
-         b# ~@body]
+  `(let [v# (volatile! true)
+         b# (let [~v v#] ~@body)]
+     (assert @v#)
      b#))
 
 (defn prop-sub? [{l1 :l props1 :props} {l2 :l props2 :props}]

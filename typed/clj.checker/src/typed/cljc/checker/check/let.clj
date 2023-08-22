@@ -32,7 +32,7 @@
   {:pre [(lex/PropEnv?-workaround env)
          (simple-symbol? sym)
          (r/TCResult? r)
-         (instance? clojure.lang.IAtom2 is-reachable)]
+         (instance? clojure.lang.Volatile is-reachable)]
    :post [(lex/PropEnv?-workaround %)]}
   (let [{:keys [then else]} fl
         p* (cond
@@ -87,8 +87,8 @@
       (assoc expr
              u/expr-type (or expected (r/ret (c/Un)))))
     :else
-    (let [is-reachable (atom true)
-          [env cbindings] 
+    (let [is-reachable (volatile! true)
+          [env cbindings]
           (reduce
             (fn [[env cbindings] [n expected-bnd]]
               {:pre [@is-reachable

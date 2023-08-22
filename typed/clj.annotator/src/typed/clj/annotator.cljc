@@ -75,51 +75,50 @@
             [clojure.math.combinatorics :as comb]
             [clojure.core.typed.contract-utils :as con]
             [typed.clj.annotator.util :refer [unparse-type spec-ns core-specs-ns
-                                                       qualify-typed-symbol
-                                                       qualify-spec-symbol
-                                                       qualify-core-symbol
-                                                       *ann-for-ns*
-                                                       current-ns
-                                                       namespace-alias-in
-                                                       camel-case
-                                                       *debug*
-                                                       update-env
-                                                       update-type-env-in-ns
-                                                       update-type-env
-                                                       update-alias-env
-                                                       list*-force
-                                                       fv
-                                                       resolve-alias
-                                                       get-env
-                                                       type-env
-                                                       alias-env
-                                                       *envs*
-                                                       unp
-                                                       *spec*
-                                                       intersection-or-empty
-                                                       HMap-common-req-keys
-                                                       HMap-req-keyset
-                                                       map-key-set
-                                                       HMap-likely-tag-key
-                                                       kw-val?
-                                                       kw-vals?
-                                                       *preserve-unknown*
-                                                       kw->sym
-                                                       *used-aliases*
-                                                       *multispecs-needed*
-                                                       fully-resolve-alias
-                                                       *forbidden-aliases*
-                                                       find-top-level-var
-                                                       arglists-for-top-level-var
-                                                       alternative-arglists
-                                                       separate-fixed-from-rest-arglists
-                                                       uniquify
-                                                       gen-unique-alias-name
-                                                       #?@(:clj [macro-symbol?])
-                                                       imported-symbol?
-                                                       register-alias
-                                                       top-level-self-reference?
-                                                       ]]
+                                              qualify-typed-symbol
+                                              qualify-spec-symbol
+                                              qualify-core-symbol
+                                              *ann-for-ns*
+                                              current-ns
+                                              namespace-alias-in
+                                              camel-case
+                                              *debug*
+                                              update-env
+                                              update-type-env-in-ns
+                                              update-type-env
+                                              update-alias-env
+                                              list*-force
+                                              fv
+                                              resolve-alias
+                                              get-env
+                                              type-env
+                                              alias-env
+                                              *envs*
+                                              unp
+                                              *spec*
+                                              intersection-or-empty
+                                              HMap-common-req-keys
+                                              HMap-req-keyset
+                                              map-key-set
+                                              HMap-likely-tag-key
+                                              kw-val?
+                                              kw-vals?
+                                              *preserve-unknown*
+                                              kw->sym
+                                              *used-aliases*
+                                              *multispecs-needed*
+                                              fully-resolve-alias
+                                              *forbidden-aliases*
+                                              find-top-level-var
+                                              arglists-for-top-level-var
+                                              alternative-arglists
+                                              separate-fixed-from-rest-arglists
+                                              uniquify
+                                              gen-unique-alias-name
+                                              #?@(:clj [macro-symbol?])
+                                              imported-symbol?
+                                              register-alias
+                                              top-level-self-reference?]]
             [typed.clj.annotator.pprint :refer [pprint pprint-str-no-line
                                                          unp-str]]
             [typed.clj.annotator.parse :refer [parse-type prs]]

@@ -1971,7 +1971,7 @@
           ; Can we derive extra information from 'failed'
           ; tests? Delegate to check-case-thens for future enhancements.
           cthens (case/check-case-thens check-expr target-ret tests-rets thens expected)
-          cdefault (let [flag+ (atom true :validator boolean?)
+          cdefault (let [flag+ (volatile! true)
                          neg-tst-fl (let [val-ts (map (comp c/fully-resolve-type r/ret-t) tests-rets)]
                                       (if (every? r/Value? val-ts)
                                         (fo/-not-filter-at (apply c/Un val-ts)

@@ -139,10 +139,10 @@
                     (assert (and dispatch-fn-type dispatch-val-ret))
                     (assert (not (or drest rest rest-param)))
                     (let [disp-app-ret (funapp/check-funapp nil nil 
-                                                     (r/ret dispatch-fn-type)
-                                                     (map r/ret dom (repeat (fo/-FS fl/-top fl/-top)) 
-                                                          (map param-obj required-params))
-                                                     nil)
+                                                            (r/ret dispatch-fn-type)
+                                                            (map r/ret dom (repeat (fo/-FS fl/-top fl/-top)) 
+                                                                 (map param-obj required-params))
+                                                            nil)
                           ;_ (prn "disp-app-ret" disp-app-ret)
                           ;_ (prn "disp-fn-type" (prs/unparse-type dispatch-fn-type))
                           ;_ (prn "dom" dom)
@@ -160,7 +160,7 @@
                           ;add parameters to scope
                           ;IF UNHYGIENIC order important, (fn [a a & a]) prefers rightmost name
                           (update :l merge (into {} fixed-entry) (into {} rest-entry)))
-                  flag (atom true :validator boolean?)
+                  flag (volatile! true)
                   env (cond-> env
                         mm-filter (update/env+ [mm-filter] flag))]
               (when-not @flag
@@ -207,10 +207,14 @@
         ; Apply the filters of computed rng to the environment and express
         ; changes to the lexical env as new filters, and conjoin with existing filters.
 
+        flag (volatile! true)
         then-env (let [{:keys [then]} (-> crng-nopass u/expr-type r/ret-f)]
                    (cond-> env
                      (not (fl/NoFilter? then))
-                     (update/env+ [then] (atom true))))
+                     (update/env+ [then] flag)))
+        ;TODO
+        ;_ (when-not @flag
+        ;    (err/int-error "Unreachable method: Local inferred to be bottom when applying multimethod filter"))
         new-then-props (reduce-kv (fn [fs sym t]
                                     {:pre [((con/set-c? fl/Filter?) fs)]}
                                     (cond-> fs

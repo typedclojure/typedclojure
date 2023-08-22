@@ -36,7 +36,7 @@
 
 (defmacro with-lexical-env [env & body]
   `(binding [vs/*lexical-env* ~env]
-     ~@body))
+     (do ~@body)))
 
 (defn var-annotations []
   {:post [(map? %)]}

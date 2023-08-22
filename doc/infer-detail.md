@@ -44,7 +44,7 @@ and bounded symbol on its right.
 
 The signature of `infer-pdot` is
 `[X dotted-var dotted-bnd S T T-dotted R must-vars & {:keys [expected]}]`
-which is similar to `infer-dots`. But we requires `T-dotted` must has `repeat`
+which is similar to `infer-dots`. But we require that `T-dotted` have `repeat`
 and `type` attributes.
 
 I treat all types in `types` of `T-dotted` as pre-type, so I first substitute

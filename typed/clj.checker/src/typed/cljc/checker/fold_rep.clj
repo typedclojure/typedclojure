@@ -17,7 +17,7 @@
 ; b. Filter to filter-rec
 ; c. Object to object-rec
 
-(def default-params '[type-rec type-rec+flip type-rec+invariant filter-rec object-rec pathelem-rec])
+(def default-params '[type-rec type-rec+flip type-rec-no-simpl type-rec+invariant filter-rec object-rec pathelem-rec])
 
 (defonce all-extra-params (atom {`IFoldDefault []}))
 
@@ -33,7 +33,8 @@
 (defmacro def-derived-fold [pname mname extra-params]
   {:pre [(simple-symbol? pname)
          (simple-symbol? mname)
-         (vector? extra-params)]}
+         (vector? extra-params)
+         (apply distinct? (concat default-params extra-params))]}
   (let [default-gs (map gensym default-params)
         extra-gs (map gensym extra-params)
         default-f (gensym 'default-f)
@@ -58,13 +59,20 @@
            Object ;; TODO replace with AnyType
            (~qmname [ty# ~@default-gs ~@extra-gs]
              (let [~default-f (fn ([ty#] (~qmname ty# ~@default-gs ~@extra-gs))
-                                ([ty# _info#] (~qmname ty# ~@default-gs ~@extra-gs)))]
+                                ([ty# _info#] (~qmname ty# ~@default-gs ~@extra-gs)))
+                   ~@(mapcat (fn [g]
+                               [g `(or ~g
+                                       ~(case g
+                                          type-rec-no-simpl `(fn ([ty#]
+                                                                  (binding [vs/*no-simpl* true]
+                                                                    (~'type-rec ty#)))
+                                                               ([ty# info#]
+                                                                (binding [vs/*no-simpl* true]
+                                                                  (~'type-rec ty# info#))))
+                                          default-f))])
+                             default-gs)]
                ;; the only place fold-default* is called
-               (fold-default*
-                 ty#
-                 ~@(map (fn [g]
-                          `(or ~g ~default-f))
-                        default-gs))))))))
+               (fold-default* ty# ~@default-gs)))))))
 
 (defmacro add-fold-case [pname mname ty fld-fn]
   (let [qpname (some-> (resolve pname) symbol)
