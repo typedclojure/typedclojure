@@ -73,23 +73,6 @@
             (= (remove-scopes 1 (Scope-maker body))
                body))))
 
-(deftest parse-type-test
-  (is-clj (= (Poly-body* '(x) (parse-type '(clojure.core.typed/All [x] x)))
-             (make-F 'x)))
-  (is-clj (= (Poly-body* '(x y) (parse-type '(clojure.core.typed/All [x y] x)))
-             (make-F 'x)))
-  (is-clj (= (Poly-body* '(x y) (parse-type '(clojure.core.typed/All [x y] y)))
-             (make-F 'y)))
-  (is-clj (= (Poly-body* '(a b c d e f g h i) (parse-type '(clojure.core.typed/All [a b c d e f g h i] e)))
-             (make-F 'e))))
-
-(deftest parse-type-fn-test
-  (is-clj (= (parse-type '[nil * -> nil])
-             (make-FnIntersection (make-Function () -nil :rest -nil))))
-  (is-clj (= (parse-type '(clojure.core.typed/All [x ...] [nil ... x -> nil]))
-             (PolyDots* '(x) [no-bounds]
-                        (make-FnIntersection (make-Function () -nil :drest (DottedPretype1-maker -nil 'x)))))))
-
 (deftest poly-constructor-test
   (is-clj (= (Poly-body*
                '(x)
@@ -278,7 +261,7 @@
 
 (deftest name-to-param-index-test
   ;a => 0
-  (is-clj 
+  (is-clj
     (= (tc-t 
          (fn [a :- (t/U '{:op (t/Value :if)}
                       '{:op (t/Value :var)})] 
@@ -2730,13 +2713,6 @@
 (deftest trampoline-test
   (is (check-ns 'clojure.core.typed.test.trampoline)))
 
-(deftest polydots-unparse-test
-  (is-clj (= '[a b ...]
-             (second
-               (unparse-type
-                 (parse-type
-                   '(clojure.core.typed/All [a b ...])))))))
-
 (deftest Get-test
   ;resolve
   (is-clj (= (fully-resolve-type (parse-clj `(t/Get '{:a Number} ':a)))
@@ -3348,27 +3324,6 @@
   (is-tc-e (reduce (fn ([x :- t/Num, y :- t/Num] 1) ([] 1)) [1])))
 
 
-(deftest fn-type-parse-test
-  (is (not (= (-FS -bot -bot)
-              (-FS -top -bot))))
-  (is (not (= (-FS -bot -bot)
-              (-FS -bot -top))))
-  (is (= (:then (-FS -bot -bot))
-         -bot))
-  (is (= (:else (-FS -bot -bot))
-         -bot))
-  (is (= (parse-clj `[t/Any :-> t/Any])
-         (parse-clj `[t/Any :-> t/Any
-                      :filters {:then ~'tt :else ~'tt}])))
-  (is (-> (parse-clj `[t/Any :-> t/Any
-                       :filters {:then ~'ff :else ~'ff}])
-          :types first :rng :fl #{(-FS -bot -bot)}))
-  (is (-> (parse-clj `[t/Any :-> t/Any
-                       :filters {:then ~'ff :else ~'ff}])
-          :types first :rng :fl :then BotFilter?))
-  (is (-> (parse-clj `[t/Any :-> t/Any
-                       :filters {:then ~'ff :else ~'ff}])
-          :types first :rng :fl :else BotFilter?)))
 
 (deftest subtype-filter-test
   (testing "top and bot"

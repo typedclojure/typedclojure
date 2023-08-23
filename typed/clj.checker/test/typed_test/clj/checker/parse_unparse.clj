@@ -1,9 +1,59 @@
 (ns typed-test.clj.checker.parse-unparse
   (:require [typed.clojure :as t]
             [clojure.test :refer :all]
+            [typed.cljc.checker.type-ctors :as c]
             [typed.clj.checker.parse-unparse :as prs]
+            [typed.cljc.checker.filter-rep :as fr]
+            [typed.cljc.checker.filter-ops :as fo]
             [typed.cljc.checker.type-rep :as r]
             [typed.clj.checker.test-utils :refer :all]))
+
+(deftest parse-type-test
+  (is-clj (= (c/Poly-body* '(x) (prs/parse-type '(clojure.core.typed/All [x] x)))
+             (r/make-F 'x)))
+  (is-clj (= (c/Poly-body* '(x y) (prs/parse-type '(clojure.core.typed/All [x y] x)))
+             (r/make-F 'x)))
+  (is-clj (= (c/Poly-body* '(x y) (prs/parse-type '(clojure.core.typed/All [x y] y)))
+             (r/make-F 'y)))
+  (is-clj (= (c/Poly-body* '(a b c d e f g h i) (prs/parse-type '(clojure.core.typed/All [a b c d e f g h i] e)))
+             (r/make-F 'e))))
+
+(deftest polydots-unparse-test
+  (is-clj (= '[a b :..]
+             (second
+               (prs/unparse-type
+                 (prs/parse-type
+                   '(clojure.core.typed/All [a b ...])))))))
+
+(deftest fn-type-parse-test
+  (is (not= (fo/-FS fr/-bot fr/-bot)
+            (fo/-FS fr/-top fr/-bot)))
+  (is (not= (fo/-FS fr/-bot fr/-bot)
+            (fo/-FS fr/-bot fr/-top)))
+  (is (= (:then (fo/-FS fr/-bot fr/-bot))
+         fr/-bot))
+  (is (= (:else (fo/-FS fr/-bot fr/-bot))
+         fr/-bot))
+  (is (= (prs/parse-clj `[t/Any :-> t/Any])
+         (prs/parse-clj `[t/Any :-> t/Any
+                          :filters {:then ~'tt :else ~'tt}])))
+  (is (-> (prs/parse-clj `[t/Any :-> t/Any
+                           :filters {:then ~'ff :else ~'ff}])
+          :types first :rng :fl
+          (= (fo/-FS fr/-bot fr/-bot))))
+  (is (-> (prs/parse-clj `[t/Any :-> t/Any
+                           :filters {:then ~'ff :else ~'ff}])
+          :types first :rng :fl :then fr/BotFilter?))
+  (is (-> (prs/parse-clj `[t/Any :-> t/Any
+                           :filters {:then ~'ff :else ~'ff}])
+          :types first :rng :fl :else fr/BotFilter?)))
+
+(deftest parse-type-fn-test
+  (is-clj (= (prs/parse-type '[nil * -> nil])
+             (r/make-FnIntersection (r/make-Function () r/-nil :rest r/-nil))))
+  (is-clj (= (prs/parse-type '(clojure.core.typed/All [x ...] [nil ... x -> nil]))
+             (c/PolyDots* '(x) [r/no-bounds]
+                          (r/make-FnIntersection (r/make-Function () r/-nil :drest (r/DottedPretype1-maker r/-nil 'x)))))))
 
 (deftest unparse-free-scoping-test
   (is-clj (= (second
@@ -76,7 +126,7 @@
            (prs/parse-clj 
              '(typed.clojure/All [a ... :named [b c]]
                                  [c b a ... a -> b])))
-         '(typed.clojure/All [a ... :named [b c]]
+         '(typed.clojure/All [a :.. :named [b c]]
                              [c b a :.. a :-> b])))
   (is-tc-e (do (t/ann ^:no-check foo 
                       (t/All [:named [a b]]
@@ -115,7 +165,6 @@
                (t/inst foo t/Str t/Bool :named {c t/Num b t/Sym}))
            [t/Num t/Sym t/Str t/Bool :-> t/Sym]))
 
-
 (deftest bad-All-test
   (is (throws-tc-error?
         (prs/parse-clj `(t/All nil [])))))
@@ -139,6 +188,8 @@
                    [t/Bool t/Any t/Int :-> t/Any]))))
   (is (= (prs/parse-clj `[(t/* t/Bool) :-> t/Any])
          (prs/parse-clj `[t/Bool :* :-> t/Any])))
+  (is (not= (prs/parse-clj `[(t/* t/Bool) :-> t/Any])
+            (prs/parse-clj `[(t/HSequential [t/Bool] :repeat true) ~'<* :-> t/Any])))
   (is (throws-tc-error? (prs/parse-clj `[(t/* t/Bool) (t/* t/Bool) :-> t/Any])))
   (is (throws-tc-error? (prs/parse-clj `[(t/+ t/Bool) (t/* t/Bool) :-> t/Any])))
   (is (throws-tc-error? (prs/parse-clj `[(t/* t/Bool) (t/+ t/Bool) :-> t/Any])))
@@ -161,7 +212,11 @@
                                 [t/Int t/Bool t/Any :-> t/Any]))))
   (is (= (prs/parse-clj `[(t/* (t/cat t/Int t/Bool)) :-> t/Any])
          (prs/parse-clj `[(t/HSequential [t/Int t/Bool] :repeat true) ~'<* :-> t/Any])))
+  (is (= (prs/parse-clj `[(t/cat t/Int t/Bool) :* :-> t/Any])
+         (prs/parse-clj `[(t/HSequential [t/Int t/Bool] :repeat true) ~'<* :-> t/Any])))
   (is (= (prs/parse-clj `(t/All [x# y#] [[x# x# :-> t/Int] (t/* (t/cat x# y#)) :-> (t/Map x# y#)]))
+         (prs/parse-clj `(t/All [x# y#] [[x# x# :-> t/Int] (t/HSequential [x# y#] :repeat true) ~'<* :-> (t/Map x# y#)]))))
+  (is (= (prs/parse-clj `(t/All [x# y#] [[x# x# :-> t/Int] (t/cat x# y#) :* :-> (t/Map x# y#)]))
          (prs/parse-clj `(t/All [x# y#] [[x# x# :-> t/Int] (t/HSequential [x# y#] :repeat true) ~'<* :-> (t/Map x# y#)]))))
   (is (= (prs/parse-clj `[(t/alt (t/cat (t/? java.io.Reader))
                                  (t/cat java.io.Reader t/Bool)
@@ -203,4 +258,14 @@
          (prs/parse-clj `(t/All [a#] (t/IFn [t/Int (t/Seqable a#) :-> (t/ASeq (t/NonEmptyASeq a#))]
                                             [t/Int t/Int (t/Seqable a#) :-> (t/ASeq (t/NonEmptyASeq a#))]
                                             [t/Int t/Int t/Int (t/Seqable a#) :-> (t/ASeq (t/NonEmptyASeq a#))])))))
+  (is (= (prs/parse-clj `(t/All [m# k# v# c# :..] [m# k# v# (t/cat c# c#) :.. c# :-> (t/Assoc m# k# v# c# :.. c#)]))
+         (prs/parse-clj `(t/All [m# k# v# c# :..] [m# k# v# (t/HSequential [c# c#] :repeat true) <... c# :-> (t/Assoc m# k# v# c# :.. c#)]))))
+  (is (= (prs/parse-clj `(t/All [m# k# v# c# :..] [nil k# v# (t/cat c# c#) :.. c# :-> (t/Assoc nil k# v# c# :.. c#)]))
+         (prs/parse-clj `(t/All [m# k# v# c# :..] [nil k# v# (t/HSequential [c# c#] :repeat true) <... c# :-> (t/Assoc nil k# v# c# :.. c#)]))))
+  (is (= (prs/parse-clj `(t/All [m# k# v#] [nil k# v# (t/* (t/cat k# v#)) :-> (t/Map k# v#)]))
+         (prs/parse-clj `(t/All [m# k# v#] [nil k# v# (t/* (t/cat k# v#)) :-> (t/Map k# v#)]))))
+  (is (= (prs/parse-clj `(t/All [m# k# v#] [nil k# v# (t/* (t/cat k# v#)) :-> (t/Map k# v#)]))
+         (prs/parse-clj `(t/All [m# k# v#] [nil k# v# (t/HSequential [k# v#] :repeat true) ~'<* :-> (t/Map k# v#)]))))
+  (is (= (prs/parse-clj `(t/All [a# y#] [[(t/* a#) :-> y#] (t/* a#) :-> [(t/* a#) :-> y#]]))
+         (prs/parse-clj `(t/All [a# y#] [[a# :* :-> y#] a# :* :-> [a# :* :-> y#]]))))
 )

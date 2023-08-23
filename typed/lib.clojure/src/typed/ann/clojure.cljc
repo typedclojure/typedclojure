@@ -851,7 +851,7 @@ cc/*ns* t/Namespace
 
 #?@(:cljs [] :default [
 cc/pop-thread-bindings [:-> t/Any]
-cc/load [(t/* t/Str) :-> t/Any]
+cc/load [t/Str :* :-> t/Any]
 cc/read-string [t/Str :-> t/Any]
 cc/read [(t/alt (t/cat (t/? java.io.Reader))
                 (t/cat java.io.Reader t/Bool)
@@ -1033,7 +1033,7 @@ cc/some-fn
 (t/All [t0 t1 t2 t3 t4 t5]
        (t/IFn [[t/Any :-> t/Bool :filters {:then (is t0 0) :else (! t0 0)}] 
                :-> (t/IFn [t/Any :-> t/Bool :filters {:then (is t0 0) :else (! t0 0)}]
-                          [(t/* t/Any) :-> t/Any])]
+                          [t/Any :* :-> t/Any])]
               [[t/Any :-> t/Bool :filters {:then (is t0 0) :else (! t0 0)}] 
                [t/Any :-> t/Bool :filters {:then (is t1 0) :else (! t1 0)}]
                :-> (t/IFn [t/Any :-> t/Bool :filters {:then (is (t/U t0 t1) 0) :else (! (t/U t0 t1) 0)}]
@@ -1102,23 +1102,22 @@ cc/every-pred
                           [t/Any :* :-> t/Any])]
               [(t/+ [t/Any :-> t/Any]) :-> [t/Any :* :-> t/Any]]))
 
-cc/concat (t/All [x] [(t/* (t/Seqable x)) :-> (t/ASeq x)])
+cc/concat (t/All [x] [(t/Seqable x) :* :-> (t/ASeq x)])
 
 cc/set (t/All [x] [(t/Seqable x) :-> #?(:cljs (t/Set x)
                                         :default (PersistentHashSet x))])
-cc/hash-set (t/All [x] [(t/* x) :-> #?(:cljs (t/Set x)
-                                       :default (PersistentHashSet x))])
-cc/hash-map (t/All [x y] [(t/* (t/cat x y)) :-> (t/Map x y)])
-cc/array-map (t/All [x y] [(t/* (t/cat x y)) :-> (t/Map x y)])
-cc/sorted-map (t/All [x y] [(t/* (t/cat x y)) :-> (t/Map x y)])
-cc/sorted-map-by (t/All [x y] [[x x :-> t/Int] (t/* (t/cat x y)) :-> (t/Map x y)])
-cc/sorted-set (t/All [x] [(t/* x) :-> #?(:cljs (t/SortedSet x)
-                                         :default (PersistentTreeSet x))])
-cc/sorted-set-by (t/All [x] [[x x :-> t/Int] (t/* x) :-> #?(:cljs (t/Set x)
-                                                            :default (PersistentTreeSet x))])
-cc/list (t/All [x] [(t/* x) :-> (#?(:clj PersistentList :cljs t/List) x)])
-;cc/list* (t/All [x] (t/IFn [(t/Seqable x) :-> (t/NilableNonEmptyASeq x)]
-;                           [(t/* x) (t/Seqable x) :-> (t/NonEmptyASeq x)]))
+cc/hash-set (t/All [x] [x :* :-> #?(:cljs (t/Set x)
+                                    :default (PersistentHashSet x))])
+cc/hash-map (t/All [x y] [(t/cat x y) :* :-> (t/Map x y)])
+cc/array-map (t/All [x y] [(t/cat x y) :* :-> (t/Map x y)])
+cc/sorted-map (t/All [x y] [(t/cat x y) :* :-> (t/Map x y)])
+cc/sorted-map-by (t/All [x y] [[x x :-> t/Int] (t/cat x y) :* :-> (t/Map x y)])
+cc/sorted-set (t/All [x] [x :* :-> #?(:cljs (t/SortedSet x)
+                                      :default (PersistentTreeSet x))])
+cc/sorted-set-by (t/All [x] [[x x :-> t/Int] x :* :-> #?(:cljs (t/Set x)
+                                                         :default (PersistentTreeSet x))])
+cc/list (t/All [x] [x :* :-> (#?(:clj PersistentList :cljs t/List) x)])
+;cc/list* (t/All [x] [x :* (t/Seqable x) :-> (t/NilableNonEmptyASeq x)])
 cc/list* (t/All [x] (t/IFn [(t/Seqable x) :-> (t/NilableNonEmptyASeq x)]
                            [x (t/Seqable x) :-> (t/NonEmptyASeq x)]
                            [x x (t/Seqable x) :-> (t/NonEmptyASeq x)]
@@ -1158,11 +1157,11 @@ cc/vec (t/All [x] [(t/Seqable x) :-> (t/AVec x)])
 ;]
 
 cc/not [t/Any :-> t/Bool]
-cc/constantly (t/All [x] [x :-> [(t/* t/Any) :-> x]])
+cc/constantly (t/All [x] [x :-> [t/Any :* :-> x]])
 
 #?@(:cljs [] :default [
-cc/bound? [(t/* (t/Var2 t/Nothing t/Any)) :-> t/Bool]
-cc/thread-bound? [(t/* (t/Var2 t/Nothing t/Any)) :-> t/Bool]
+cc/bound? [(t/Var2 t/Nothing t/Any) :* :-> t/Bool]
+cc/thread-bound? [(t/Var2 t/Nothing t/Any) :* :-> t/Bool]
 cc/bases [(t/Nilable Class) :-> (t/NilableNonEmptyASeq Class)]
 ])
 
@@ -1173,21 +1172,21 @@ cc/disj (t/All [x] (t/IFn [(t/SortedSet x) t/Any :* :-> (t/SortedSet x)]
                           [(t/Set x) t/Any :* :-> (t/Set x)]))
 
 cc/assoc
-(t/All [m k v c :..] (t/IFn [m k v (t/HSeq [c c] :repeat true) <... c :-> (t/Assoc m k v c :.. c)]
-                            ;[m k v (t/HSeq [k v] :repeat true) <* :-> (t/Assoc m k v)]
-                            [nil k v (t/HSeq [c c] :repeat true) <... c :-> (t/Assoc nil k v c :.. c)]
-                            [nil k v (t/HSeq [k v] :repeat true) <* :-> (t/Map k v)]))
+(t/All [m k v c :..] (t/IFn [m k v (t/cat c c) :.. c :-> (t/Assoc m k v c :.. c)]
+                            ;[m k v (t/cat k v) :* :-> (t/Assoc m k v)]
+                            [nil k v (t/cat c c) :.. c :-> (t/Assoc nil k v c :.. c)]
+                            [nil k v (t/cat k v) :* :-> (t/Map k v)]))
 ;     (t/All [b c d]
 ;       (Fn [(t/Map b c) b c :-> (t/Map b c)]
 ;           [(t/Vec d) t/AnyInteger d :-> (t/Vec d)]
-;           [d b c (t/* (t/cat b c)) :-> (t/Assoc d b c)]))
+;           [d b c (t/cat b c) :* :-> (t/Assoc d b c)]))
 
 ;;TODO
 ;cc/update (t/All [m k v v' c :..] [(t/Assoc m k v) k [v c :.. c :-> v'] c :.. c :-> (t/Assoc m k v')])
 ;cc/update-in (t/All [m k v v' c :..] [(t/AssocIn m ks v) ks [v c :.. c :-> v'] c :.. c :-> (t/AssocIn m ks v')])
 
-cc/dissoc (t/All [k v] (t/IFn [(t/Map k v) (t/* t/Any) :-> (t/Map k v)]
-                              [(t/Nilable (t/Map k v)) (t/* t/Any) :-> (t/Nilable (t/Map k v))]))
+cc/dissoc (t/All [k v] (t/IFn [(t/Map k v) t/Any :* :-> (t/Map k v)]
+                              [(t/Nilable (t/Map k v)) t/Any :* :-> (t/Nilable (t/Map k v))]))
 
 cc/zipmap (t/All [k v] [(t/Seqable k) (t/Seqable v) :-> #?(:cljs (t/Map k v)
                                                           :default (APersistentMap k v))])
@@ -1245,21 +1244,21 @@ cc/partial
               [[a b c d z :.. z :-> y] a b c d :-> [z :.. z :-> y]]
               [[a :* :-> y] a :* :-> [a :* :-> y]]))
 
-cc/str [(t/* t/Any) :-> t/Str]
-cc/prn-str [(t/* t/Any) :-> t/Str]
-cc/pr-str [(t/* t/Any) :-> t/Str]
+cc/str [t/Any :* :-> t/Str]
+cc/prn-str [t/Any :* :-> t/Str]
+cc/pr-str [t/Any :* :-> t/Str]
 cc/newline [:-> nil]
 
-cc/print [(t/* t/Any) :-> nil]
-cc/println [(t/* t/Any) :-> nil]
-cc/print-str [(t/* t/Any) :-> t/Str]
-cc/println-str [(t/* t/Any) :-> t/Str]
+cc/print [t/Any :* :-> nil]
+cc/println [t/Any :* :-> nil]
+cc/print-str [t/Any :* :-> t/Str]
+cc/println-str [t/Any :* :-> t/Str]
 #?@(:cljs [] :default [
-cc/printf [t/Str (t/* t/Any) :-> nil]
-cc/format [t/Str (t/* t/Any) :-> t/Str]
+cc/printf [t/Str t/Any :* :-> nil]
+cc/format [t/Str t/Any :* :-> t/Str]
 ])
-cc/pr [(t/* t/Any) :-> nil]
-cc/prn [(t/* t/Any) :-> nil]
+cc/pr [t/Any :* :-> nil]
+cc/prn [t/Any :* :-> nil]
 cc/flush [:-> nil]
 cc/*print-length* (t/U nil false t/AnyInteger)
 cc/*print-level* (t/U nil false t/AnyInteger)
@@ -1346,8 +1345,8 @@ cc/alter-var-root (t/All [w r b :..] [(t/Var2 w r) [r b :.. b :-> w] b :.. b :->
 
 cc/method-sig [java.lang.reflect.Method :-> '[t/Any (t/NilableNonEmptySeq t/Any) t/Any]]
 cc/proxy-name [Class (t/Seqable Class) :-> t/Str]
-cc/get-proxy-class [(t/* Class) :-> Class]
-cc/construct-proxy [Class (t/* t/Any) :-> t/Any]
+cc/get-proxy-class [Class :* :-> Class]
+cc/construct-proxy [Class t/Any :* :-> t/Any]
 cc/init-proxy [t/Proxy (t/Map t/Str t/Any) :-> t/Proxy]
 cc/update-proxy [t/Proxy (t/Map t/Str t/Any) :-> t/Proxy]
 cc/proxy-mappings [t/Proxy :-> (t/Map t/Str t/Any)]
@@ -1395,9 +1394,9 @@ cc/compare [t/Any t/Any :-> t/Num]
 ])
 
 #?@(:cljs [] :default [
-cc/require [(t/* t/Any) :-> nil]
+cc/require [t/Any :* :-> nil]
 cc/requiring-resolve [t/Sym :-> (t/U (t/Var2 t/Nothing t/Any) Class nil)]
-cc/use [(t/* t/Any) :-> nil]
+cc/use [t/Any :* :-> nil]
 cc/*loaded-libs* (t/Ref1 (t/Set t/Sym))
 ])
 
@@ -1535,9 +1534,9 @@ clojure.set/rename-keys (t/All [x y] [(t/Map x y) (t/Map t/Any x) :-> (t/Map x y
 clojure.set/select (t/All [x y] (t/IFn [[x :-> t/Any :filters {:then (is y 0)}] (t/Set x) :-> (t/Set y)]
                                        [[x :-> t/Any :filters {:then (! y 0)}] (t/Set x) :-> (t/Set (t/I x (t/Not y)))]
                                        [[x :-> t/Any] (t/Set x) :-> (t/Set x)]))
-clojure.set/union (t/All [x] [(t/* (t/Set x)) :-> (t/Set x)])
+clojure.set/union (t/All [x] [(t/Set x) :* :-> (t/Set x)])
 clojure.set/intersection (t/All [x] [(t/+ (t/Set x)) :-> (t/Set x)])
-clojure.set/difference (t/All [x] [(t/Set x) (t/* (t/Set t/Any)) :-> (t/Set x)])
+clojure.set/difference (t/All [x] [(t/Set x) (t/Set t/Any) :* :-> (t/Set x)])
  
 ; FIXME should be [t/Str [t/Any :-> t/Any] :-> t/Str]
 clojure.string/escape [t/Str (t/U (t/Map t/Any t/Any) [t/Any :-> t/Any]) :-> t/Str]
@@ -1547,7 +1546,7 @@ clojure.string/split-lines [t/Str :-> (t/Vec t/Str)]
 clojure.test/function? [t/Any :-> t/Bool]
 clojure.test/assert-any [t/Any t/Any :-> t/Any]
 clojure.test/do-report [t/Any :-> t/Any]
-clojure.test/run-tests [(t/* t/Sym) :-> (t/Map t/Any t/Any)]
+clojure.test/run-tests [t/Sym :* :-> (t/Map t/Any t/Any)]
 clojure.test/run-all-tests [(t/? t/Regex) :-> (t/Map t/Any t/Any)]
 clojure.test/successful? [(t/U nil (t/Map t/Any t/Any)) :-> t/Bool]
 clojure.test/compose-fixtures [[[:-> t/Any] :-> t/Any] [[:-> t/Any] :-> t/Any] :-> [[:-> t/Any] :-> t/Any]]
@@ -1569,7 +1568,7 @@ clojure.java.javadoc/javadoc [t/Any :-> t/Any]
 clojure.edn/read-string [(t/U t/Str nil) :-> t/Any]
 
 #?@(:cljs [] :default [
-clojure.java.shell/sh [(t/* t/Any)
+clojure.java.shell/sh [t/Any :*
                        ;would be nice (combine :* and kw args)
                        ; t/Str :*
                        ;& :optional {:in t/Any  ;; any valid input to clojure.java.io/copy
@@ -1621,7 +1620,7 @@ clojure.main/repl [& :optional {:init [:-> t/Any]
                                 :print [t/Any :-> t/Any]
                                 :caught [Throwable :-> t/Any]}
                    :-> t/Any]
-clojure.main/main [(t/* t/Any) :-> t/Any]
+clojure.main/main [t/Any :* :-> t/Any]
 clojure.main/load-script [t/Str :-> t/Any]
 ])
 
@@ -1670,7 +1669,7 @@ clojure.zip/remove [(t/Vec t/Any) :-> (t/Vec t/Any)]
 
 cc/interpose (t/All [x] (t/IFn [x :-> (t/Transducer x x)]
                                [x (t/Seqable x) :-> (t/ASeq x)]))
-cc/interleave (t/All [x] [(t/* (t/Seqable x)) :-> (t/ASeq x)])
+cc/interleave (t/All [x] [(t/Seqable x) :* :-> (t/ASeq x)])
 
 cc/repeat (t/All [x] (t/IFn [x :-> (t/NonEmptyASeq x)]
                             [t/AnyInteger x :-> (t/ASeq x)]))
@@ -1753,7 +1752,7 @@ cc/cat (t/All [x] (t/Transducer (Seqable x) x))
 #?@(:cljs [] :default [
 cc/pmap (t/All [c a b :..] (t/IFn [[a b :.. b :-> c] (t/NonEmptySeqable a) (t/NonEmptySeqable b) :.. b :-> (t/NonEmptyASeq c)]
                                   [[a b :.. b :-> c] (t/Seqable a) (t/Seqable b) :.. b :-> (t/ASeq c)]))
-cc/pcalls (t/All [r] [(t/* [:-> r]) :-> (t/ASeq r)])
+cc/pcalls (t/All [r] [[:-> r] :* :-> (t/ASeq r)])
 ])
 
 #_#_
@@ -1823,9 +1822,9 @@ cc/add-tap [[t/Any :-> t/Any] :-> nil]
 cc/remove-tap [t/Any :-> nil]
 cc/tap> [t/Any :-> t/Bool]
 
-cc/merge-with (t/All [k v] (t/IFn [[v v :-> v] (t/* nil) :-> nil]
-                                  [[v v :-> v] (t/* (t/Map k v)) :-> (t/Map k v)]
-                                  [[v v :-> v] (t/* (t/Option (t/Map k v))) :-> (t/Option (t/Map k v))]))
+cc/merge-with (t/All [k v] (t/IFn [[v v :-> v] nil :* :-> nil]
+                                  [[v v :-> v] (t/Map k v) :* :-> (t/Map k v)]
+                                  [[v v :-> v] (t/Option (t/Map k v)) :* :-> (t/Option (t/Map k v))]))
 
 cc/reduce (t/All [a c] (t/IFn 
                          ;Without accumulator
@@ -2065,28 +2064,28 @@ cc/ns-resolve (t/IFn [(t/U t/Sym t/Namespace) t/Sym :-> (t/U (t/Var2 t/Nothing t
 cc/extenders [t/Any :-> (t/Seqable (t/Nilable Class))]
 ])
 
-cc/+ (t/IFn #?(:clj [(t/* Long) :-> Long])
-            #?(:clj [(t/* (t/U Long Double)) :-> Double])
-            [(t/* t/AnyInteger) :-> t/AnyInteger]
-            [(t/* t/Num) :-> t/Num])
+cc/+ (t/IFn #?(:clj [Long :* :-> Long])
+            #?(:clj [(t/U Long Double) :* :-> Double])
+            [t/AnyInteger :* :-> t/AnyInteger]
+            [t/Num :* :-> t/Num])
 cc/- (t/IFn #?(:clj [(t/+ Long) :-> Long])
             #?(:clj [(t/+ (t/U Long Double)) :-> Double])
             [(t/+ t/AnyInteger) :-> t/AnyInteger]
             [(t/+ t/Num) :-> t/Num])
-cc/* (t/IFn #?(:clj [(t/* Long) :-> Long])
-            #?(:clj [(t/* (t/U Long Double)) :-> Double])
-            [(t/* t/AnyInteger) :-> t/AnyInteger]
-            [(t/* t/Num) :-> t/Num])
+cc/* (t/IFn #?(:clj [Long :* :-> Long])
+            #?(:clj [(t/U Long Double) :* :-> Double])
+            [t/AnyInteger :* :-> t/AnyInteger]
+            [t/Num :* :-> t/Num])
 cc// (t/IFn #?(:clj [Double (t/+ Double) :-> Double])
             [(t/+ t/Num) :-> t/Num])
 
 #?@(:cljs [] :default [
-cc/+' (t/IFn [(t/* t/AnyInteger) :-> t/AnyInteger]
-             [(t/* t/Num) :-> t/Num])
+cc/+' (t/IFn [t/AnyInteger :* :-> t/AnyInteger]
+             [t/Num :* :-> t/Num])
 cc/-' (t/IFn [(t/+ t/AnyInteger) :-> t/AnyInteger]
              [(t/+ t/Num) :-> t/Num])
-cc/*' (t/IFn [(t/* t/AnyInteger) :-> t/AnyInteger]
-             [(t/* t/Num) :-> t/Num])
+cc/*' (t/IFn [t/AnyInteger :* :-> t/AnyInteger]
+             [t/Num :* :-> t/Num])
 ])
 cc/quot (t/IFn #?(:clj [Long Long :-> Long])
                #?(:clj [(t/U Long Double) (t/U Long Double) :-> Double])

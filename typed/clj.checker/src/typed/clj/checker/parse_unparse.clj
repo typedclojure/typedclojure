@@ -1324,19 +1324,17 @@
                [(r/-val k) (parse-type v)]))
         m))
 
-(defn distribute-regex-HSequential [t]
+(defn distribute-regex-HSequential [t repeat?]
   {:pre [(r/Regex? t)]}
   (case (:kind t)
     :* (let [inner (-> t :types first)]
          (if (r/Regex? inner)
-           (case (:kind inner)
-             :cat (do (assert (not-any? r/Regex? (:types inner)))
-                      (r/-hsequential (:types inner) :repeat true))
-             (prs-error (str "Regex not supported")))
+           (distribute-regex-HSequential inner true)
            (r/-hsequential [inner] :repeat true)))
-    :cat (do (assert (not-any? r/Regex? (:types t)))
-             (r/-hsequential (:types t) :repeat true))
-    (prs-error (str "Regex not supported"))))
+    :cat (do (when (some r/Regex? (:types t))
+               (prs-error (str "Regex not supported in t/cat in HSequential position: " (:kind t))))
+             (r/-hsequential (:types t) :repeat repeat?))
+    (prs-error (str "Regex not supported in HSequential position: " (:kind t)))))
 
 (defn distribute-regex-arities [tts {:keys [rng rest drest prest pdot object optional-kws mandatory-kws] filters :filter}]
   {:pre [(seq tts)
@@ -1372,14 +1370,14 @@
                                                               (case (:kind inner)
                                                                 ;; prest
                                                                 :cat [[{:kind :prest
-                                                                        :type (distribute-regex-HSequential t)}]]
-                                                                (prs-error (str "Regex not supported")))
+                                                                        :type (distribute-regex-HSequential t true)}]]
+                                                                (prs-error (str "Regex not supported before arrow: " (:kind inner))))
                                                               [(-> []
                                                                    (cond-> (= :+ (:kind t)) (conj {:kind :fixed
                                                                                                    :type inner}))
                                                                    (conj {:kind :rest
                                                                           :type inner}))]))
-                                                  (prs-error (str "Regex not supported")))
+                                                  (prs-error (str "Regex not supported: " (:kind t))))
                                                 [[{:kind :fixed
                                                    :type t}]])))
                              ;_ (prn "ts" ts)
@@ -1501,39 +1499,52 @@
                      :else [all-dom])
         fixed-doms (mapv #(mapv (comp parse-type allow-regex) %) fixed-doms)
 
-        rest-type (when-some [pos (or asterix-pos plus-pos)]
-                    (when-not (= (count all-dom) (inc pos))
-                      (prs-error (str "Trailing syntax after rest parameter: " (pr-str (drop (inc pos) all-dom)))))
-                    (parse-type (nth all-dom (dec pos))))
+        [rest-is-prest rest-type] (when-some [pos (or asterix-pos plus-pos)]
+                                   (when-not (= (count all-dom) (inc pos))
+                                     (prs-error (str "Trailing syntax after rest parameter: " (pr-str (drop (inc pos) all-dom)))))
+                                   (let [t (parse-type (allow-regex (nth all-dom (dec pos))))]
+                                     (if (r/Regex? t)
+                                       (case (:kind t)
+                                         :cat [true (distribute-regex-HSequential t true)]
+                                         (prs-error (str "Regex not supported in t/cat in :* " (:kind t))))
+                                       [false t])))
         
-        drest (when ellipsis-pos
-                (let [[drest-type _ drest-bnd :as drest-seq]
-                      (when ellipsis-pos
-                        (drop (dec ellipsis-pos) all-dom))
-                      _ (when-not (= 3 (count drest-seq))
-                          (prs-error "Dotted rest entry must be 3 entries"))
-                      _ (when-not (symbol? drest-bnd)
-                          (prs-error "Dotted bound must be symbol"))
-                      bnd (dvar/*dotted-scope* drest-bnd)
-                      _ (when-not bnd 
-                          (prs-error (str (pr-str drest-bnd) " is not in scope as a dotted variable")))]
-                  (r/DottedPretype1-maker
-                    (free-ops/with-frees [bnd] ;with dotted bound in scope as free
-                      (parse-type drest-type))
-                    (:name bnd))))
-        pdot (when push-dot-pos
-               (let [[pdot-type _ pdot-bnd :as pdot-seq] (drop (dec push-dot-pos) all-dom)
-                     _ (when-not (or (not push-dot-pos) (= 3 (count pdot-seq)))
-                         (prs-error "push dotted rest entry must be 3 entries"))
-                     _ (when-not (or (not push-dot-pos) (symbol? pdot-bnd))
-                         (prs-error "push dotted bound must be symbol"))
-                     bnd (dvar/*dotted-scope* pdot-bnd)
-                     _ (when-not bnd
-                         (prs-error (str (pr-str pdot-bnd) " is not in scope as a dotted variable")))]
-                 (r/DottedPretype1-maker
-                   (free-ops/with-frees [bnd] ;with dotted bound in scope as free
-                     (parse-type pdot-type))
-                   (:name bnd))))
+        [drest-is-pdot drest] (when ellipsis-pos
+                                (let [[drest-type _ drest-bnd :as drest-seq]
+                                      (when ellipsis-pos
+                                        (drop (dec ellipsis-pos) all-dom))
+                                      _ (when-not (= 3 (count drest-seq))
+                                          (prs-error "Dotted rest entry must be 3 entries"))
+                                      _ (when-not (symbol? drest-bnd)
+                                          (prs-error "Dotted bound must be symbol"))
+                                      bnd (dvar/*dotted-scope* drest-bnd)
+                                      _ (when-not bnd 
+                                          (prs-error (str (pr-str drest-bnd) " is not in scope as a dotted variable")))
+                                      ty (free-ops/with-frees [bnd] ;with dotted bound in scope as free
+                                           (-> drest-type allow-regex parse-type))
+                                      _ (when (and (r/Regex? ty)
+                                                   (not= :cat (:kind ty)))
+                                          (parse-clj (str "Only t/cat regex allowed in :..")))
+                                      drest-is-pdot (r/Regex? ty)
+                                      ty (cond-> ty
+                                           drest-is-pdot (distribute-regex-HSequential true))]
+                                  [drest-is-pdot (r/DottedPretype1-maker ty (:name bnd))]))
+        pdot (or (when push-dot-pos
+                   (assert (not drest-is-pdot))
+                   (let [[pdot-type _ pdot-bnd :as pdot-seq] (drop (dec push-dot-pos) all-dom)
+                         _ (when-not (or (not push-dot-pos) (= 3 (count pdot-seq)))
+                             (prs-error "push dotted rest entry must be 3 entries"))
+                         _ (when-not (or (not push-dot-pos) (symbol? pdot-bnd))
+                             (prs-error "push dotted bound must be symbol"))
+                         bnd (dvar/*dotted-scope* pdot-bnd)
+                         _ (when-not bnd
+                             (prs-error (str (pr-str pdot-bnd) " is not in scope as a dotted variable")))]
+                     (r/DottedPretype1-maker
+                       (free-ops/with-frees [bnd] ;with dotted bound in scope as free
+                         (parse-type pdot-type))
+                       (:name bnd))))
+                 (when drest-is-pdot drest))
+        drest (when-not drest-is-pdot drest)
         [& {optional-kws :optional
             mandatory-kws :mandatory
             :as kw-opts}
@@ -1555,8 +1566,12 @@
 
         optional-kws (some-> optional-kws parse-kw-map)
         mandatory-kws (some-> mandatory-kws parse-kw-map)
-        prest-type (when push-rest-pos
-                     (parse-type (nth all-dom (dec push-rest-pos))))
+        prest-type (or (when push-rest-pos
+                         (when rest-is-prest
+                           (prs-error (str "Cannot combine <* with t/*")))
+                         (parse-type (nth all-dom (dec push-rest-pos))))
+                       (when rest-is-prest rest-type))
+        rest-type (when-not rest-is-prest rest-type)
         _ (when-not (or (not push-rest-pos)
                         (= (count all-dom) (inc push-rest-pos)))
             (prs-error (str "Trailing syntax after push-rest parameter: " (pr-str (drop (inc push-rest-pos) all-dom)))))
@@ -1843,7 +1858,7 @@
                                        *print-level* 5]
                                (pr-str (:form fexpr))))))
 
-  Regex 
+  Regex
   (unparse-type*
     [{:keys [kind types]}]
     (list* (unparse-Name-symbol-in-ns (symbol "typed.clojure" (name kind)))
@@ -1923,7 +1938,7 @@
 
 (defn unparse-poly-dotted-bounds-entry [free-name bbnd]
   ; ignore dotted bound for now, not sure what it means yet.
-  [(-> free-name r/make-F unparse-F) '...])
+  [(-> free-name r/make-F unparse-F) :..])
 
 (defn unparse-poly-binder [dotted? free-names bbnds named]
   (let [named-remappings (apply sorted-map (interleave (vals named) (keys named)))
@@ -2053,7 +2068,7 @@
                      (map unparse-type (:types v))
                      (when rest [(unparse-type rest) '*])
                      (when drest [(unparse-type (:pre-type drest))
-                                  '...
+                                  :..
                                   (unparse-bound (:name drest))]))]
     (list* sym
            (vec first-part)
@@ -2100,7 +2115,7 @@
            (concat
              (map unparse-type (apply concat entries))
              (when dentries [(unparse-type (:pre-type dentries))
-                             '...
+                             :..
                              (unparse-bound (:name dentries))]))))
 
   MergeType
