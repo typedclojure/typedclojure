@@ -9,11 +9,11 @@
 (deftest check-below-test
   (is-tc-e 1) ;;load type system
   (is-tc-err (-> 1
-                 (t/ann-form t/?)
+                 (t/ann-form t/Infer)
                  (t/ann-form t/Int)))
   (is-tc-e (-> 1
                (t/ann-form t/Int)
-               (t/ann-form t/?)))
+               (t/ann-form t/Infer)))
   (is-clj (thrown? Error (sut/check-below r/-wild (parse-type `t/Int))))
   (is-clj (both-subtype?
             (sut/check-below (parse-type `t/Int) r/-wild)
@@ -21,8 +21,8 @@
   (is-clj (both-subtype?
             (sut/check-below (parse-type `t/Int) r/-any)
             (parse-type `t/Any)))
-  (is-clj (both-subtype? (sut/check-below (parse-type `[:-> t/Int]) (parse-type `[:-> t/?]))
+  (is-clj (both-subtype? (sut/check-below (parse-type `[:-> t/Int]) (parse-type `[:-> t/Infer]))
                          (parse-type `[:-> t/Int])))
   (is-clj (both-subtype? (sut/check-below (parse-type `[[t/Int :-> t/Int] :-> t/Int])
-                                          (parse-type `[[t/? :-> (t/Val 1)] :-> t/?]))
+                                          (parse-type `[[t/Infer :-> (t/Val 1)] :-> t/Infer]))
                          (parse-type `[[t/Int :-> (t/Val 1)] :-> t/Int]))))

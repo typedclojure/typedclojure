@@ -385,17 +385,17 @@
              (t/Vec (t/Val 1)))
   (is-tc-e (fn [map :- (t/All [c a b :..] [[t/Any :-> c] :-> [:-> c]])]
              (let [res (t/ann-form (map (fn* [_] true))
-                                   [:-> t/?])]
+                                   [:-> t/Infer])]
                (t/ann-form res [:-> true]))))
   (is-tc-e (fn [map :- (t/All [c a b :..] [[t/Any :-> c] :-> [c :-> c]])]
              (let [res (t/ann-form (map (fn* [_] true))
-                                   [true :-> t/?])]
+                                   [true :-> t/Infer])]
                (t/ann-form res [true :-> true]))))
   #_;;TODO perhaps if any wild's exist in return type, we should return a symbolic closure?
   ;; (and remember the return type in the symbolic closure)
   (is-tc-e (fn [map :- (t/All [c a b :..] [[t/Any :-> c] :-> [c :-> c]])]
              (let [res (t/ann-form (map (fn* [_] true))
-                                   [t/? :-> true])]
+                                   [t/Infer :-> true])]
                (t/ann-form res [true :-> true]))))
   (is-tc-e (fn [map :- (t/All [c a b :..] [[c :-> c] :-> [c :-> c]])]
              (t/ann-form (map (fn* [x] x))
@@ -405,7 +405,7 @@
                            [true :-> true])))
   (is-tc-e (fn [map :- (t/All [c a b :..] [[c :-> c] :-> [c :-> c]])]
              (let [res (t/ann-form (map (fn* [x] x))
-                                   [true :-> t/?])]
+                                   [true :-> t/Infer])]
                (t/ann-form res [true :-> true]))))
   (is-tc-e (fn [map :- (t/All [c a b :..] [[t/Any :-> c] :-> [c :-> t/Any]])]
              (t/ann-form (map (fn* [_] true)) [true :-> t/Any])))
@@ -413,23 +413,23 @@
              (t/ann-form (map (fn* [_] true)) [true :-> t/Any])))
   (is-tc-e (fn [map :- (t/All [c a b :..] [[t/Any :-> c] :-> [c :-> t/Any]])]
              (let [res (t/ann-form (map (fn* [_] true))
-                                   [t/? :-> t/Any])]
+                                   [t/Infer :-> t/Any])]
                (t/ann-form res [true :-> t/Any])
                (t/ann-form res [false :-> t/Any])
                (t/ann-form res [t/Any :-> t/Any]))))
   (is-tc-e (fn [map :- (t/All [c] [[t/Any :-> c] :-> [[c :-> t/Any] :-> t/Any]])]
              (let [res (t/ann-form (map (fn* [_] true))
-                                   [[t/? :-> t/Any] :-> t/Any])]
+                                   [[t/Infer :-> t/Any] :-> t/Any])]
                (t/ann-form res [[true :-> t/Any] :-> t/Any]))))
   (is-tc-e (fn [map :- (t/All [c] [[:-> c] :-> [[c :-> t/Any] :-> t/Any]])]
              (t/ann-form (map (fn* [] true))
                          [[true :-> t/Any] :-> t/Any])))
   (is-tc-e (fn [map :- (t/All [c a b :..] [[a :-> c] :-> [[c :-> t/Any] :-> [a :-> t/Any]]])]
              (let [res (t/ann-form (map #(do %))
-                                   [[t/? :-> t/Any] :-> [(t/Val 1) :-> t/Any]])]
+                                   [[t/Infer :-> t/Any] :-> [(t/Val 1) :-> t/Any]])]
                (t/ann-form res [[(t/Val 1) :-> t/Any] :-> [(t/Val 1) :-> t/Any]]))))
   (is-tc-e (let [res (t/ann-form (map #(do %))
-                                 (t/Transducer (t/Val 1) t/?))]
+                                 (t/Transducer (t/Val 1) t/Infer))]
              (t/ann-form res (t/Transducer (t/Val 1) (t/Val 1)))))
   (is-tc-err (into [] (map #(do %)) [2])
              (t/Vec (t/Val 1)))
@@ -585,7 +585,7 @@
            [(t/All [x y z] [[y :-> z] [x :-> y] :-> [x :-> z]])
             (t/Transducer t/Any t/Any)
             (t/Transducer t/Any t/Any)
-            :-> t/?])
+            :-> t/Infer])
   #_;;FIXME
   (is-tc-e (comp (t/ann-form (map #(do %))
                              (t/Transducer t/Nothing t/Any))
@@ -609,7 +609,7 @@
                         [t/Any :-> nil]
                         [t/Any t/Any :-> nil]))
   (is-tc-e (let [f (t/ann-form (fn [])
-                               (t/U [:-> t/?]
+                               (t/U [:-> t/Infer]
                                     [t/Any :-> nil]
                                     [t/Any t/Any :-> nil]))]
              (t/ann-form f
@@ -617,7 +617,7 @@
                               [t/Any :-> nil]
                               [t/Any t/Any :-> nil]))))
   (is-tc-err (let [f (t/ann-form (fn [])
-                                 (t/U [:-> t/?]
+                                 (t/U [:-> t/Infer]
                                       [t/Any :-> nil]
                                       [t/Any t/Any :-> nil]))]
                (t/ann-form f
@@ -630,7 +630,6 @@
   (is-tc-err (fn []) [t/Nothing :* :-> t/Any])
   (is (r/HSequential? (parse-clj `(t/HSequential [t/Nothing] :repeat true))))
   (is-tc-e (fn [& _]) [(t/HSequential [t/Nothing] :repeat true) <* :-> t/Any])
-  (is-tc-e (fn [& _]) [(t/HSequential [t/Nothing] :repeat true :union true) <* :-> t/Any])
   #_;;FIXME
   (is-tc-e (fn [comp :- (t/All [x y :..] [[y :.. y :-> x] :-> [y :.. y :-> x]])]
              (comp identity)))

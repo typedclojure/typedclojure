@@ -30,7 +30,7 @@
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.runtime.env-utils :as env-utils])
   (:import (typed.cljc.checker.type_rep NotType DifferenceType Intersection Union FnIntersection
-                                        DottedPretype Function RClass App TApp
+                                        DottedPretype Function Regex RClass App TApp
                                         PrimitiveArray DataType Protocol TypeFn Poly PolyDots
                                         Mu HeterogeneousMap
                                         CountRange Name Value Top Wildcard TypeOf Unchecked TopFunction B F Result AnyValue
@@ -856,6 +856,26 @@
     (map? syn) (syn-to-hmap syn nil nil false)
     :else (prs-error (str "Invalid use of quote: " (pr-str syn)))))
 
+(defn allow-regex [t]
+  (cond-> t
+    (instance? clojure.lang.IObj t)
+    (vary-meta assoc ::allow-regex true)))
+
+(defn regex-allowed? [t]
+  (-> t meta ::allow-regex boolean))
+
+(defn parse-Regex [[_ & ts :as this] kind]
+  (when-not (regex-allowed? this)
+    (prs-error (str "Regex type not allowed here: " this)))
+  (r/regex (mapv (comp parse-type* allow-regex) ts)
+           kind))
+
+(defmethod parse-type-list 'typed.clojure/+ [t] (parse-Regex t :+))
+(defmethod parse-type-list 'typed.clojure/* [t] (parse-Regex t :*))
+(defmethod parse-type-list 'typed.clojure/? [t] (parse-Regex t :?))
+(defmethod parse-type-list 'typed.clojure/alt [t] (parse-Regex t :alt))
+(defmethod parse-type-list 'typed.clojure/cat [t] (parse-Regex t :cat))
+
 (declare parse-in-ns)
 
 (defn multi-frequencies 
@@ -1097,11 +1117,11 @@
 
 (defn parse-Any [sym]
   (assert (not (-> sym meta :clojure.core.typed/infer))
-          "^:clojure.core.typed/infer Any support has been removed. Use t/?.")
+          "^:clojure.core.typed/infer Any support has been removed. Use t/Infer")
   r/-any)
 
 (defmethod parse-type-symbol 'typed.clojure/Any [s] (parse-Any s))
-(defmethod parse-type-symbol 'typed.clojure/? [s] r/-wild)
+(defmethod parse-type-symbol 'typed.clojure/Infer [s] r/-wild)
 (defmethod parse-type-symbol 'typed.clojure/TCError [t] (r/TCError-maker))
 (defmethod parse-type-symbol 'typed.clojure/Nothing [_] (r/Bottom))
 (defmethod parse-type-symbol 'typed.clojure/AnyFunction [_] (r/TopFunction-maker))
@@ -1304,6 +1324,104 @@
                [(r/-val k) (parse-type v)]))
         m))
 
+(defn distribute-regex-HSequential [t]
+  {:pre [(r/Regex? t)]}
+  (case (:kind t)
+    :* (let [inner (-> t :types first)]
+         (if (r/Regex? inner)
+           (case (:kind inner)
+             :cat (do (assert (not-any? r/Regex? (:types inner)))
+                      (r/-hsequential (:types inner) :repeat true))
+             (prs-error (str "Regex not supported")))
+           (r/-hsequential [inner] :repeat true)))
+    :cat (do (assert (not-any? r/Regex? (:types t)))
+             (r/-hsequential (:types t) :repeat true))
+    (prs-error (str "Regex not supported"))))
+
+(defn distribute-regex-arities [tts {:keys [rng rest drest prest pdot object optional-kws mandatory-kws] filters :filter}]
+  {:pre [(seq tts)
+         (every? #(every? r/Type? %) tts)]
+   :post [(every? r/Function? %)]}
+  ;(prn "tts" tts)
+  (into [] (mapcat (fn [ts]
+                     (let [last-t (dec (count ts))]
+                       (let [handle-regex (fn handle-regex [t final-pos?]
+                                            {:pre [(r/Type? t)
+                                                   (boolean? final-pos?)]
+                                             :post [(every? (partial every? (every-pred (comp #{:fixed :rest :prest} :kind)
+                                                                                        (comp r/Type? :type)))
+                                                            %)]}
+                                            (let [handle-regex #(handle-regex % final-pos?)]
+                                              (if (r/Regex? t)
+                                                (case (:kind t)
+                                                  :cat (reduce (fn [tts t]
+                                                                 (into [] (comp (mapcat (fn [ts]
+                                                                                          (map #(into ts %)
+                                                                                               (handle-regex t))))
+                                                                                (distinct))
+                                                                       tts))
+                                                               [[]] (:types t))
+                                                  :alt (into [] (comp (mapcat handle-regex) (distinct)) (:types t))
+                                                  :? (into [[]] (handle-regex (-> t :types first)))
+                                                  (:+ :*) (let [inner (-> t :types first)]
+                                                            (when-not final-pos?
+                                                              (prs-error (str "t/* and t/+ only allowed in final position")))
+                                                            (when (or rest drest prest pdot optional-kws mandatory-kws)
+                                                              (prs-error (str "t/* and t/+ cannot be combined with :*, :..")))
+                                                            (if (r/Regex? inner)
+                                                              (case (:kind inner)
+                                                                ;; prest
+                                                                :cat [[{:kind :prest
+                                                                        :type (distribute-regex-HSequential t)}]]
+                                                                (prs-error (str "Regex not supported")))
+                                                              [(-> []
+                                                                   (cond-> (= :+ (:kind t)) (conj {:kind :fixed
+                                                                                                   :type inner}))
+                                                                   (conj {:kind :rest
+                                                                          :type inner}))]))
+                                                  (prs-error (str "Regex not supported")))
+                                                [[{:kind :fixed
+                                                   :type t}]])))
+                             ;_ (prn "ts" ts)
+                             grouped (reduce (fn [tts [i t]]
+                                               (let [rights (handle-regex t (= i last-t))]
+                                                 (into [] (comp (mapcat (fn [ts]
+                                                                          (mapv #(into ts %) rights)))
+                                                                (distinct))
+                                                       tts)))
+                                             [[]] (map-indexed vector ts))]
+                         ;(prn "grouped" grouped)
+                         (->> grouped
+                              (map
+                                (fn [arity]
+                                  (let [kind-groups (into [] (partition-by :kind) arity)
+                                        kind-order (mapv (comp :kind first) kind-groups)
+                                        _ (when-not (<= 0 (count kind-groups) 2)
+                                            (prs-error (str "Unsupported ordering of regex operators")))
+                                        fixed (if (= :fixed (first kind-order))
+                                                (mapv :type (first kind-groups))
+                                                [])
+                                        final-kind (peek kind-order)
+                                        _ (when final-kind
+                                            (assert (#{:fixed :rest :prest} final-kind) (str "TODO: " final-kind)))
+                                        final-group (peek kind-groups)
+                                        final-type (when final-kind
+                                                     (when (not= :fixed final-kind)
+                                                       (when (not= 1 (count final-group))
+                                                         (prs-error (str "Not allowed more than one final regex in function domain")))
+                                                       (-> final-group first :type)))]
+                                    (r/make-Function fixed
+                                                     rng
+                                                     :rest (if (= :rest final-kind) final-type rest)
+                                                     :drest drest
+                                                     :prest (if (= :prest final-kind) final-type prest)
+                                                     :pdot pdot
+                                                     :filter filters
+                                                     :object object
+                                                     :optional-kws optional-kws
+                                                     :mandatory-kws mandatory-kws)))))))))
+          tts))
+
 (defn parse-function [f]
   {:post [(seq %)
           (every? r/Function? %)]}
@@ -1381,24 +1499,41 @@
                                    (prs-error "Trailing syntax after :?"))
                                  [without with])
                      :else [all-dom])
+        fixed-doms (mapv #(mapv (comp parse-type allow-regex) %) fixed-doms)
 
         rest-type (when-some [pos (or asterix-pos plus-pos)]
                     (when-not (= (count all-dom) (inc pos))
                       (prs-error (str "Trailing syntax after rest parameter: " (pr-str (drop (inc pos) all-dom)))))
-                    (nth all-dom (dec pos)))
-        [drest-type _ drest-bnd :as drest-seq] (when ellipsis-pos
-                                                 (drop (dec ellipsis-pos) all-dom))
-        _ (when ellipsis-pos
-            (when-not (= 3 (count drest-seq))
-              (prs-error "Dotted rest entry must be 3 entries"))
-            (when-not (symbol? drest-bnd)
-              (prs-error "Dotted bound must be symbol")))
-        [pdot-type _ pdot-bnd :as pdot-seq] (when push-dot-pos
-                                              (drop (dec push-dot-pos) all-dom))
-        _ (when-not (or (not push-dot-pos) (= 3 (count pdot-seq)))
-            (prs-error "push dotted rest entry must be 3 entries"))
-        _ (when-not (or (not push-dot-pos) (symbol? pdot-bnd))
-            (prs-error "push dotted bound must be symbol"))
+                    (parse-type (nth all-dom (dec pos))))
+        
+        drest (when ellipsis-pos
+                (let [[drest-type _ drest-bnd :as drest-seq]
+                      (when ellipsis-pos
+                        (drop (dec ellipsis-pos) all-dom))
+                      _ (when-not (= 3 (count drest-seq))
+                          (prs-error "Dotted rest entry must be 3 entries"))
+                      _ (when-not (symbol? drest-bnd)
+                          (prs-error "Dotted bound must be symbol"))
+                      bnd (dvar/*dotted-scope* drest-bnd)
+                      _ (when-not bnd 
+                          (prs-error (str (pr-str drest-bnd) " is not in scope as a dotted variable")))]
+                  (r/DottedPretype1-maker
+                    (free-ops/with-frees [bnd] ;with dotted bound in scope as free
+                      (parse-type drest-type))
+                    (:name bnd))))
+        pdot (when push-dot-pos
+               (let [[pdot-type _ pdot-bnd :as pdot-seq] (drop (dec push-dot-pos) all-dom)
+                     _ (when-not (or (not push-dot-pos) (= 3 (count pdot-seq)))
+                         (prs-error "push dotted rest entry must be 3 entries"))
+                     _ (when-not (or (not push-dot-pos) (symbol? pdot-bnd))
+                         (prs-error "push dotted bound must be symbol"))
+                     bnd (dvar/*dotted-scope* pdot-bnd)
+                     _ (when-not bnd
+                         (prs-error (str (pr-str pdot-bnd) " is not in scope as a dotted variable")))]
+                 (r/DottedPretype1-maker
+                   (free-ops/with-frees [bnd] ;with dotted bound in scope as free
+                     (parse-type pdot-type))
+                   (:name bnd))))
         [& {optional-kws :optional
             mandatory-kws :mandatory
             :as kw-opts}
@@ -1418,44 +1553,26 @@
         _ (when-not (or (not ampersand-pos) (seq kws-seq))
             (prs-error "Must provide syntax after &"))
 
+        optional-kws (some-> optional-kws parse-kw-map)
+        mandatory-kws (some-> mandatory-kws parse-kw-map)
         prest-type (when push-rest-pos
-                     (nth all-dom (dec push-rest-pos)))
+                     (parse-type (nth all-dom (dec push-rest-pos))))
         _ (when-not (or (not push-rest-pos)
                         (= (count all-dom) (inc push-rest-pos)))
-            (prs-error (str "Trailing syntax after pust-rest parameter: " (pr-str (drop (inc push-rest-pos) all-dom)))))]
-    (->> fixed-doms
-         (mapv
-           (fn [fixed-dom]
-             (r/make-Function (mapv parse-type fixed-dom)
-                              (parse-type rng)
-                              :rest
-                              (when (or asterix-pos plus-pos)
-                                (parse-type rest-type))
-                              :drest
-                              (when ellipsis-pos
-                                (let [bnd (dvar/*dotted-scope* drest-bnd)
-                                      _ (when-not bnd 
-                                          (prs-error (str (pr-str drest-bnd) " is not in scope as a dotted variable")))]
-                                  (r/DottedPretype1-maker
-                                    (free-ops/with-frees [bnd] ;with dotted bound in scope as free
-                                      (parse-type drest-type))
-                                    (:name bnd))))
-                              :prest
-                              (when push-rest-pos
-                                (parse-type prest-type))
-                              :pdot
-                              (when push-dot-pos
-                                (let [bnd (dvar/*dotted-scope* pdot-bnd)
-                                      _ (when-not bnd
-                                          (prs-error (str (pr-str pdot-bnd) " is not in scope as a dotted variable")))]
-                                  (r/DottedPretype1-maker
-                                    (free-ops/with-frees [bnd] ;with dotted bound in scope as free
-                                      (parse-type pdot-type))
-                                    (:name bnd))))
-                              :filter filters
-                              :object object
-                              :optional-kws (some-> optional-kws parse-kw-map)
-                              :mandatory-kws (some-> mandatory-kws parse-kw-map)))))))
+            (prs-error (str "Trailing syntax after push-rest parameter: " (pr-str (drop (inc push-rest-pos) all-dom)))))
+
+        rng-type (parse-type rng)]
+    (distribute-regex-arities
+      fixed-doms
+      {:rng rng-type
+       :rest rest-type
+       :drest drest
+       :prest prest-type
+       :pdot pdot
+       :filter filters
+       :object object
+       :optional-kws optional-kws
+       :mandatory-kws mandatory-kws})))
 
 (defmethod parse-type* IPersistentVector
   [f]
@@ -1586,7 +1703,7 @@
   Top
   (unparse-type* [t] (unparse-Name-symbol-in-ns `t/Any))
   Wildcard 
-  (unparse-type* [t] (unparse-Name-symbol-in-ns `t/?))
+  (unparse-type* [t] (unparse-Name-symbol-in-ns `t/Infer))
 ;; TODO qualify vsym in current ns
   TypeOf 
   (unparse-type* [{:keys [vsym] :as t}] (list (unparse-Name-symbol-in-ns `t/TypeOf) vsym))
@@ -1725,6 +1842,12 @@
       (list 'SymbolicClosure (binding [*print-length* 5
                                        *print-level* 5]
                                (pr-str (:form fexpr))))))
+
+  Regex 
+  (unparse-type*
+    [{:keys [kind types]}]
+    (list* (unparse-Name-symbol-in-ns (symbol "typed.clojure" (name kind)))
+           (map unparse-type types)))
 
   Function
   (unparse-type* 

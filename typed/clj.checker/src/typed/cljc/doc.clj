@@ -19,17 +19,18 @@
             [typed.cljc.checker.check.meta-ann :as meta-ann]
             [typed.clj.checker.parse-unparse :as prs]))
 
+;;TODO regex ops
 (def special-doc
   (sorted-map
     `t/Any {:doc "Any is the top type that contains all possible values."
             :forms '[Any]
             ::special-type true}
-    `t/? {:doc "? is a wildcard type. It is similar to t/Any except the checker will replace it with
-               a more specific type if possible. For example, t/? is expected type when checking
-               the body of an unannotated local function, ensuring the function's actual return
-               type is inferred as the final return type of the function."
-          :forms '[?]
-          ::special-type true}
+    `t/Infer {:doc "Infer is similar to t/Any except the checker will replace it with
+                   a more specific type if possible. For example, t/Infer is the expected type when checking
+                   the body of an unannotated local function, ensuring the function's actual return
+                   type is inferred as the final return type of the function."
+              :forms '[Infer]
+              ::special-type true}
     `t/AnyValue {:doc "AnyValue contains all Value singleton types"
                  :forms '[AnyValue]
                  ::special-type true}

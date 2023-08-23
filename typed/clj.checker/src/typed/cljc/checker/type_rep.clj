@@ -1151,6 +1151,20 @@
   ;(prn "creating symbolic-closure")
   (SymbolicClosure-maker (get-thread-bindings) fexpr smallest-type))
 
+(def ^:private regex-kinds #{:or :alt :* :+ :? :cat})
+
+(u/ann-record Regex [types :- (t/Seqable Type)
+                     kind :- t/Kw])
+(u/def-type Regex [types kind]
+  "Type representing regular expressions of sexpr's"
+  [(every? Type? types)
+   (contains? regex-kinds kind)]
+  :methods
+  [p/TCType])
+
+(defn regex [types kind]
+  (Regex-maker types kind))
+
 ;;;;;;;;;;;;;;;;;
 ;; Clojurescript types
 

@@ -47,7 +47,7 @@
   (clj (let [{:keys [t tvs]} (sut/wild->tv r/-wild)]
          (is (r/F? t))
          (is (= 1 (count tvs)))))
-  (clj (let [{:keys [t tvs]} (sut/wild->tv (parse-type `[t/Int :-> [t/? :-> t/Int]]))]
+  (clj (let [{:keys [t tvs]} (sut/wild->tv (parse-type `[t/Int :-> [t/Infer :-> t/Int]]))]
          (when (is (= 1 (count tvs)))
            (is (= (parse-type `[t/Int :-> [t/Bool :-> t/Int]])
                   (subst/subst-all
@@ -74,18 +74,18 @@
   (is-clj (nil? (sut/eliminate-wild (parse-type `t/Num)
                                     (parse-type `t/Int))))
   (is-clj (nil? (sut/eliminate-wild (parse-type `[t/Bool :-> t/Int])
-                                    (parse-type `[t/? :-> t/Num]))))
+                                    (parse-type `[t/Infer :-> t/Num]))))
   (is-clj (nil? (sut/eliminate-wild (parse-type `[t/Bool :-> t/Num])
-                                    (parse-type `[t/? :-> t/Int]))))
+                                    (parse-type `[t/Infer :-> t/Int]))))
   (is-clj (nil? (sut/eliminate-wild (parse-type `[t/Bool :-> t/Int])
-                                    (parse-type `[t/? :-> t/?]))))
+                                    (parse-type `[t/Infer :-> t/Infer]))))
   (is-clj (both-subtype? (parse-type `(t/Transducer t/Bool t/Int))
                          (sut/eliminate-wild (parse-type `(t/Transducer t/Bool t/Int))
-                                             (parse-type `(t/Transducer t/Bool t/?)))))
+                                             (parse-type `(t/Transducer t/Bool t/Infer)))))
   (is-clj (nil? (sut/eliminate-wild (parse-type `(t/Transducer t/Bool t/Int))
-                                    (parse-type `(t/Transducer t/? t/Int)))))
+                                    (parse-type `(t/Transducer t/Infer t/Int)))))
   (is-clj (nil? (sut/eliminate-wild (parse-type `(t/Transducer t/Bool t/Int))
-                                    (parse-type `(t/Transducer t/? t/?))))))
+                                    (parse-type `(t/Transducer t/Infer t/Infer))))))
 
 (deftest prep-symbolic-closure-expected2-type-test
   (is-tc-e true) ;load type system

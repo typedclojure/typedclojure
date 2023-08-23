@@ -26,13 +26,15 @@
   - enables inference of:
     - `(reduce (fn [a b] (+ a b)) [1])`
     - `(comp (fn [y] y) (fn [x] x))`
-- introduce wildcard type `t/?`, like `t/Any` but downcasted when checked against a more specific type
+- introduce wildcard type `t/Infer`, like `t/Any` but downcasted when checked against a more specific type
 - don't recreate types in internal folding when types are unchanged after walking
 - print symbolic closures as their most specific function type
   - `(fn [x] x)` prints as `[Nothing :-> Nothing]`
   - `(map (fn [x] x))` prints as `(Transducer Nothing Nothing)`
-- don't mention expected type in error messages if it's `t/?`
+- don't mention expected type in error messages if it's `t/Infer`
 - use `clojure.core.typed` alias in current namespace to shorten types (rather than just `typed.clojure`)
 - better support for passing polymorphic functions to other polymorphic functions
   - e.g., `(into [] (map identity) [1])`
 - support checking a `fn` against a union type
+- introduce regex ops `t/*`, `t/+`, `t/alt`, `t/?`, `t/cat`
+  - for now, simply syntactic sugar for `IFn`. Other uses are disallowed.

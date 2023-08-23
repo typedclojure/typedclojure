@@ -2,6 +2,7 @@
   (:require [typed.clojure :as t]
             [clojure.test :refer :all]
             [typed.clj.checker.parse-unparse :as prs]
+            [typed.cljc.checker.type-rep :as r]
             [typed.clj.checker.test-utils :refer :all]))
 
 (deftest unparse-free-scoping-test
@@ -122,3 +123,84 @@
 (deftest bad-HVec-test
   (is (throws-tc-error?
         (prs/parse-clj `(t/HVec :a)))))
+
+(deftest Infer-test
+  (is (r/wild? (prs/parse-clj `t/Infer))))
+
+(deftest regex-test
+  (is (= (prs/parse-clj `[(t/? t/Any) :-> t/Any])
+         (prs/parse-clj `(t/IFn [:-> t/Any]
+                                [t/Any :-> t/Any]))))
+  (is (= (prs/parse-clj `[(t/? t/Bool) t/Any (t/? t/Int) :-> t/Any])
+         (prs/parse-clj 
+           `(t/IFn [t/Any :-> t/Any]
+                   [t/Any t/Int :-> t/Any]
+                   [t/Bool t/Any :-> t/Any]
+                   [t/Bool t/Any t/Int :-> t/Any]))))
+  (is (= (prs/parse-clj `[(t/* t/Bool) :-> t/Any])
+         (prs/parse-clj `[t/Bool :* :-> t/Any])))
+  (is (throws-tc-error? (prs/parse-clj `[(t/* t/Bool) (t/* t/Bool) :-> t/Any])))
+  (is (throws-tc-error? (prs/parse-clj `[(t/+ t/Bool) (t/* t/Bool) :-> t/Any])))
+  (is (throws-tc-error? (prs/parse-clj `[(t/* t/Bool) (t/+ t/Bool) :-> t/Any])))
+  (is (throws-tc-error? (prs/parse-clj `[(t/+ t/Bool) (t/+ t/Bool) :-> t/Any])))
+  (is (throws-tc-error? (prs/parse-clj `[(t/* t/Bool) t/Bool :-> t/Any])))
+  (is (throws-tc-error? (prs/parse-clj `[(t/* t/Bool) (t/? t/Bool) :-> t/Any])))
+  (is (throws-tc-error? (prs/parse-clj `[:-> (t/? t/Bool)])))
+  (is (= (prs/parse-clj `[(t/? t/Int) (t/* t/Bool) :-> t/Any])
+         (prs/parse-clj `(t/IFn [t/Bool :* :-> t/Any]
+                                [t/Int t/Bool :* :-> t/Any]))))
+  (is (= (prs/parse-clj `[(t/? t/Int) (t/+ t/Bool) :-> t/Any])
+         (prs/parse-clj `(t/IFn [t/Bool :+ :-> t/Any]
+                                [t/Int t/Bool :+ :-> t/Any]))
+         (prs/parse-clj `(t/IFn [t/Bool t/Bool :* :-> t/Any]
+                                [t/Int t/Bool t/Bool :* :-> t/Any]))))
+  (is (= (prs/parse-clj `[(t/cat t/Int t/Bool) :-> t/Any])
+         (prs/parse-clj `[t/Int t/Bool :-> t/Any])))
+  (is (= (prs/parse-clj `[(t/cat t/Int t/Bool) (t/? t/Any) :-> t/Any])
+         (prs/parse-clj `(t/IFn [t/Int t/Bool :-> t/Any]
+                                [t/Int t/Bool t/Any :-> t/Any]))))
+  (is (= (prs/parse-clj `[(t/* (t/cat t/Int t/Bool)) :-> t/Any])
+         (prs/parse-clj `[(t/HSequential [t/Int t/Bool] :repeat true) ~'<* :-> t/Any])))
+  (is (= (prs/parse-clj `(t/All [x# y#] [[x# x# :-> t/Int] (t/* (t/cat x# y#)) :-> (t/Map x# y#)]))
+         (prs/parse-clj `(t/All [x# y#] [[x# x# :-> t/Int] (t/HSequential [x# y#] :repeat true) ~'<* :-> (t/Map x# y#)]))))
+  (is (= (prs/parse-clj `[(t/alt (t/cat (t/? java.io.Reader))
+                                 (t/cat java.io.Reader t/Bool)
+                                 (t/cat java.io.Reader t/Bool t/Any (t/? t/Bool)))
+                          :-> t/Any])
+         (prs/parse-clj `(t/IFn [:-> t/Any]
+                                [java.io.Reader :-> t/Any]
+                                [java.io.Reader t/Bool :-> t/Any]
+                                [java.io.Reader t/Bool t/Any :-> t/Any]
+                                [java.io.Reader t/Bool t/Any t/Bool :-> t/Any]))))
+  (is (= (prs/parse-clj `[(t/? t/Bool) (t/? t/Int) :-> t/Any])
+         (prs/parse-clj `(t/IFn [:-> t/Any]
+                                [t/Int :-> t/Any]
+                                [t/Bool :-> t/Any]
+                                [t/Bool t/Int :-> t/Any]))))
+  (is (= (prs/parse-clj `[(t/alt (t/? t/Bool) (t/? t/Int) (t/* t/Int)) :-> t/Any])
+         (prs/parse-clj `(t/IFn [:-> t/Any]
+                                [t/Bool :-> t/Any]
+                                [t/Int :-> t/Any]
+                                [t/Int :* :-> t/Any]))))
+  (is (= (prs/parse-clj `(t/IFn [(t/? (t/cat (t/? t/AnyInteger) t/Num)) :-> (t/ASeq t/AnyInteger)]
+                                [t/AnyInteger t/Num t/AnyInteger :-> (t/ASeq t/AnyInteger)]
+                                [t/Num t/Num (t/? t/Num) :-> (t/ASeq t/Num)]))
+         (prs/parse-clj `(t/IFn [:-> (t/ASeq t/AnyInteger)]
+                                [t/Num :-> (t/ASeq t/AnyInteger)]
+                                [t/AnyInteger t/Num :-> (t/ASeq t/AnyInteger)]
+                                [t/AnyInteger t/Num t/AnyInteger :-> (t/ASeq t/AnyInteger)]
+                                [t/Num t/Num :-> (t/ASeq t/Num)]
+                                [t/Num t/Num t/Num :-> (t/ASeq t/Num)]))))
+  (is (= (prs/parse-clj `(t/All [x#] [(t/Sorted x#) [t/Int t/Int :-> t/Bool] t/Int (t/? (t/cat t/Int t/Int t/Int)) :-> (t/Nilable (t/ASeq x#))]))
+         (prs/parse-clj `(t/All [y#] (t/IFn [(t/Sorted y#) [t/Int t/Int :-> t/Bool] t/Int :-> (t/Nilable (t/ASeq y#))]
+                                            [(t/Sorted y#) [t/Int t/Int :-> t/Bool] t/Int t/Int t/Int t/Int :-> (t/Nilable (t/ASeq y#))])))))
+  (is (= (prs/parse-clj `[(t/alt (t/cat (t/U t/Keyword t/Sym t/Str))
+                                 (t/cat t/Str t/Str))
+                          :-> (t/Option t/Keyword)])
+         (prs/parse-clj `(t/IFn [(t/U t/Keyword t/Sym t/Str) :-> (t/Option t/Keyword)]
+                                [t/Str t/Str :-> (t/Option t/Keyword)]))))
+  (is (= (prs/parse-clj `(t/All [a#] [t/Int (t/? t/Int) (t/? t/Int) (t/Seqable a#) :-> (t/ASeq (t/NonEmptyASeq a#))]))
+         (prs/parse-clj `(t/All [a#] (t/IFn [t/Int (t/Seqable a#) :-> (t/ASeq (t/NonEmptyASeq a#))]
+                                            [t/Int t/Int (t/Seqable a#) :-> (t/ASeq (t/NonEmptyASeq a#))]
+                                            [t/Int t/Int t/Int (t/Seqable a#) :-> (t/ASeq (t/NonEmptyASeq a#))])))))
+)
