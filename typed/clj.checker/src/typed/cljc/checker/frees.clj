@@ -400,7 +400,8 @@
 
   Function
   (frees 
-    [{:keys [dom rng rest drest kws prest pdot]}]
+    [{:keys [dom rng rest drest kws prest pdot kind]}]
+    {:pre [(#{:fixed :rest :drest :kws :prest :pdot} kind)]}
     (apply combine-freesresults (concat (map (comp flip-variances frees)
                                              (concat dom
                                                      (when rest

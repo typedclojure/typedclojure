@@ -65,16 +65,16 @@
                                  ", and got " nactual
                                  " for function " (pr-str (prs/unparse-type ftype0))
                                  " and arguments " (pr-str (mapv (comp prs/unparse-type r/ret-t) argtys)))))
-      (cond
+      (case (:kind ftype0)
         ; case for regular rest argument, or no rest parameter
-        (or rest (every? nil? [rest drest kws prest]))
+        (:rest :fixed)
         (doseq [[arg-t dom-t] (map vector
                                    (map r/ret-t argtys)
                                    (concat dom (some-> rest repeat)))]
           (below/check-below arg-t dom-t))
 
         ; case for mandatory or optional keyword arguments
-        kws
+        :kws
         (do
           ;check regular args
           (doseq [[arg-t dom-t] (map vector (map r/ret-t (take (count dom) argtys)) dom)]
@@ -102,7 +102,8 @@
                     ; It is an error to use an undeclared keyword arg because we want to treat the rest parameter
                     ; as a complete hash-map.
                     (err/tc-delayed-error (str "Undeclared keyword parameter " 
-                                             (pr-str (prs/unparse-type kw-key-t)))))))))))))
+                                             (pr-str (prs/unparse-type kw-key-t))))))))))
+        (err/nyi-error (str "Function :kind " (:kind ftype0))))))
   (let [dom-count (count dom)
         arg-count (+ dom-count (if rest 1 0) (count optional-kw))
         o-a (map r/ret-o argtys)

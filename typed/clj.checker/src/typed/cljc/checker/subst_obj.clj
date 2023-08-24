@@ -131,6 +131,7 @@
   ISubstType subst-type*
   Function
   (fn [{:keys [dom rng rest drest kws prest pdot] :as ty} st k o polarity]
+    {:pre [(#{:fixed :rest :drest :kws :prest :pdot} (:kind ty))]}
     ;; here we have to increment the count for the domain, where the new bindings are in scope
     (let [arg-count (+ (count dom) (if rest 1 0) (if drest 1 0) (count (:mandatory kws)) (count (:optional kws)))
           st* (if (integer? k)
@@ -138,23 +139,19 @@
                   {:pre [(r/AnyType? t)]}
                   (subst-type t (if (number? k) (+ arg-count k) k) o polarity))
                 st)]
-      (r/Function-maker (map st dom)
-                        (st* rng)
-                        (and rest (st rest))
-                        (some-> drest
-                                (update :pre-type st))
-                        (some-> kws
-                                (update :mandatory #(into {}
-                                                          (map (fn [[k v]]
-                                                                 [(st k) (st v)]))
-                                                          %))
-                                (update :optional #(into {}
-                                                         (map (fn [[k v]]
-                                                                [(st k) (st v)]))
-                                                         %)))
-                        (and prest (st prest))
-                        (some-> pdot
-                                (update :pre-type st))))))
+      (r/make-Function (map st dom)
+                       (st* rng)
+                       :rest (some-> rest st)
+                       :drest (some-> drest (update :pre-type st))
+                       :kws (some-> kws
+                                    (update :mandatory #(reduce-kv (fn [m k v]
+                                                                     (assoc m (st k) (st v)))
+                                                                   {} %))
+                                    (update :optional #(reduce-kv (fn [m k v]
+                                                                     (assoc m (st k) (st v)))
+                                                                   {} %)))
+                       :prest (some-> prest st)
+                       :pdot (some-> pdot (update :pre-type st))))))
 
 
 ;[Type (U t/Sym Number) RObject Boolean -> Type]

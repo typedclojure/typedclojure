@@ -162,7 +162,7 @@
               (:Poly) (err/int-error "Cannot generate predicate for polymorphic type")
               (:PolyDots) (err/int-error "Cannot generate predicate for dotted polymorphic type")
               (:Fn) (cond
-                      (== 1 (count (:arities t)))
+                      (= 1 (count (:arities t)))
                       (let [{:keys [dom rng filter object rest drest] :as method}
                             (first (:arities t))]
                         (if (or rest drest filter object)

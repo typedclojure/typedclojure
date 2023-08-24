@@ -328,6 +328,7 @@
   IPromoteDemote
   (promote
     [{:keys [dom rng rest drest kws] :as T} V]
+    {:pre [(#{:fixed :rest :drest :kws} (:kind T))]}
     (let [pmt #(promote % V)
           dmt #(demote % V)
           dmt-kw #(into {} (for [[k v] %]
@@ -363,6 +364,7 @@
                                   (update :optional dmt-kw)))))))
 
   (demote [{:keys [dom rng rest drest kws] :as T} V]
+    {:pre [(#{:fixed :rest :drest :kws} (:kind T))]}
     (let [pmt #(promote % V)
           dmt #(demote % V)
           pmt-kw #(into {} (for [[k v] %]

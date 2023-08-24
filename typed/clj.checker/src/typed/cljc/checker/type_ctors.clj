@@ -1887,26 +1887,27 @@
   IAbstractMany abstract-many*
   Function
   (fn [{:keys [dom rng rest drest kws prest pdot] :as ty} name count outer sb name-to]
-    (r/Function-maker (mapv sb dom)
-                      (sb rng)
-                      (some-> rest sb)
-                      (some-> drest
-                              (update :pre-type sb)
-                              (update :name #(if (= % name)
-                                               (+ count outer)
-                                               %)))
-                      (letfn [(abstract-kw-map [m]
-                                {:pre [(map? m)]}
-                                (update-vals m sb))]
-                        (some-> kws
-                          (update :mandatory abstract-kw-map)
-                          (update :optional abstract-kw-map)))
-                      (some-> prest sb)
-                      (some-> pdot
-                              (update :pre-type sb)
-                              (update :name #(if (= % name)
-                                               (+ count outer)
-                                               %))))))
+    {:pre [(#{:fixed :rest :drest :kws :prest :pdot} (:kind ty))]}
+    (r/make-Function (mapv sb dom)
+                     (sb rng)
+                     :rest (some-> rest sb)
+                     :drest (some-> drest
+                                    (update :pre-type sb)
+                                    (update :name #(if (= % name)
+                                                     (+ count outer)
+                                                     %)))
+                     :kws (letfn [(abstract-kw-map [m]
+                                    {:pre [(map? m)]}
+                                    (update-vals m sb))]
+                            (some-> kws
+                              (update :mandatory abstract-kw-map)
+                              (update :optional abstract-kw-map)))
+                     :prest (some-> prest sb)
+                     :pdot (some-> pdot
+                                   (update :pre-type sb)
+                                   (update :name #(if (= % name)
+                                                    (+ count outer)
+                                                    %))))))
 
 (f/add-fold-case
   IAbstractMany abstract-many*
@@ -2041,49 +2042,48 @@
 (f/add-fold-case
   IInstantiateMany instantiate-many*
   Function
-  (fn [{:keys [dom rng rest drest kws prest pdot]} count outer image sb replace]
-    (r/Function-maker
+  (fn [{:keys [dom rng rest drest kws prest pdot kind]} count outer image sb replace]
+    {:pre [(#{:fixed :rest :drest :kws :prest :pdot} kind)]}
+    (r/make-Function
       (map sb dom)
       (sb rng)
-      (some-> rest sb)
-      (some-> drest
-              (update :pre-type sb)
-              (update :name #(if (= (+ count outer) %)
-                               image
-                               %)))
-      (letfn [(instantiate-kw-map [m]
-                {:pre [(map? m)]}
-                (into {}
-                      (map 
-                        (fn [[k v]]
-                          [k (sb v)]))
-                      m))]
-        (some-> kws
-          (update :mandatory instantiate-kw-map)
-          (update :optional instantiate-kw-map)))
-      (some-> prest sb)
-      (some-> pdot
-              (update :pre-type sb)
-              (update :name #(if (= (+ count outer) %)
-                               image
-                               %))))))
+      :rest (some-> rest sb)
+      :drest (some-> drest
+                     (update :pre-type sb)
+                     (update :name #(if (= (+ count outer) %)
+                                      image
+                                      %)))
+      :kws (letfn [(instantiate-kw-map [m]
+                     {:pre [(map? m)]}
+                     (reduce-kv (fn [m k v]
+                                  (assoc m k (sb v)))
+                                {} m))]
+             (some-> kws
+               (update :mandatory instantiate-kw-map)
+               (update :optional instantiate-kw-map)))
+      :prest (some-> prest sb)
+      :pdot (some-> pdot
+                    (update :pre-type sb)
+                    (update :name #(if (= (+ count outer) %)
+                                     image
+                                     %))))))
 
 (f/add-fold-case
   IInstantiateMany instantiate-many*
-                 HSequential
-                 (fn [ty count outer image sb replace]
-                   (r/-hsequential 
-                     (mapv sb (:types ty))
-                     :filters (mapv sb (:fs ty))
-                     :objects (mapv sb (:objects ty))
-                     :rest (some-> (:rest ty) sb)
-                     :drest (some-> (:drest ty)
-                                    (update :pre-type sb)
-                                    (update :name #(if (= (+ count outer) %)
-                                                     image
-                                                     %)))
-                     :repeat (:repeat ty)
-                     :kind (:kind ty))))
+  HSequential
+  (fn [ty count outer image sb replace]
+    (r/-hsequential 
+      (mapv sb (:types ty))
+      :filters (mapv sb (:fs ty))
+      :objects (mapv sb (:objects ty))
+      :rest (some-> (:rest ty) sb)
+      :drest (some-> (:drest ty)
+                     (update :pre-type sb)
+                     (update :name #(if (= (+ count outer) %)
+                                      image
+                                      %)))
+      :repeat (:repeat ty)
+      :kind (:kind ty))))
 
 (f/add-fold-case
   IInstantiateMany instantiate-many*
@@ -2620,12 +2620,15 @@
 
 (add-default-fold-case Function
                        (fn [ty]
+                         {:pre [(#{:fixed :rest :drest :prest :pdot :kws} (:kind ty))]}
                          ;(prn "fold Function" ty)
                          (-> ty
                            (update :dom #(into-identical [] type-rec %))
                            (update :rng type-rec)
                            (update :rest #(some-> % type-rec))
                            (update :drest #(some-> % type-rec))
+                           (update :pdot #(some-> % type-rec))
+                           (update :kws #(some-> % type-rec))
                            (update :prest #(when %
                                              (let [t (type-rec %)]
                                                ;; if we fully flatten out the prest, we're left

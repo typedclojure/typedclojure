@@ -146,18 +146,21 @@
 
      ~@methods*))
 
-(defn emit-deftype [original-ns def-kind name-sym fields invariants methods*]
+(defn emit-deftype [original-ns def-kind name-sym fields invariants {methods* :methods :keys [computed-fields ctor-meta]}]
   (assert (symbol? name-sym))
   (let [classname (with-meta (symbol (str (namespace-munge *ns*) "." name-sym)) (meta name-sym))
         ->ctor (symbol (str "->" name-sym))
-        maker (symbol (str name-sym "-maker"))
+        maker (with-meta (symbol (str name-sym "-maker"))
+                         ctor-meta)
+        _ (assert (apply distinct? maker fields))
         pred (symbol (str name-sym "?"))
         this (gensym)
         that (gensym)
         gs (gensym)
         type-hash (hash classname)
         meta-field '_meta
-        hash-field '_hash]
+        hash-field '_hash;
+        assertions (map #(do `(assert ~% [~@fields])) invariants)]
     `(do
        (declare ~maker)
        ~(inner-deftype fields hash-field meta-field this that name-sym type-hash gs
@@ -172,17 +175,19 @@
 
        (defn ~maker
          ([~@fields]
-          {:pre ~invariants}
-          (~->ctor ~@fields nil nil))
+          (let [~@computed-fields]
+            ~@assertions
+            (~->ctor ~@fields nil nil)))
          ([~@fields meta#]
-          {:pre ~invariants}
-          (~->ctor ~@fields nil meta#))))))
+          (let [~@computed-fields]
+            ~@assertions
+            (~->ctor ~@fields nil meta#)))))))
 
-(defmacro mk [original-ns def-kind name-sym fields invariants & {:keys [methods]}]
+(defmacro mk [original-ns def-kind name-sym fields invariants & {:keys [methods computed-fields] :as opts}]
   (when-not (resolve name-sym)
     `(t/tc-ignore
        (env-utils/invalidate-parsed-types!)
-       ~(emit-deftype original-ns def-kind name-sym fields invariants methods))))
+       ~(emit-deftype original-ns def-kind name-sym fields invariants opts))))
 
 (defmacro defspecial [name]
   (let [all-entries (symbol (str "all-" name "s"))]

@@ -111,6 +111,7 @@
   ITransDots trans-dots*
   Function
   (fn [t b bm]
+    {:pre [(#{:fixed :rest :drest :prest} (:kind t))]}
     (let [tfn #(trans-dots % b bm)]
       (cond
         (:drest t)
@@ -127,13 +128,8 @@
                                       (-> (subst/substitute bk b pre-type)
                                           tfn))
                                     bm)))]
-              (r/Function-maker dom
-                                (tfn (:rng t))
-                                nil
-                                nil
-                                nil ;dotted pretype now expanded to fixed domain
-                                nil
-                                nil))
+              ;dotted pretype now expanded to fixed domain
+              (r/make-Function dom (tfn (:rng t))))
             (-> t
                 (update :dom #(doall (map tfn %)))
                 (update :rng tfn)

@@ -64,7 +64,7 @@
                :validate-expected-fn
                (fn [fin]
                  {:pre [(r/FnIntersection? fin)]}
-                 (when (some #{:rest :drest :kws} (:types fin))
+                 (when (not-every? #(= :fixed (:kind %)) (:types fin))
                    (err/int-error
                      (str "Cannot provide rest arguments to " (name kind) " method: "
                           (prs/unparse-type fin)))))})))

@@ -41,7 +41,8 @@
 
 (defn int-error
   ([estr] (int-error estr {}))
-  ([estr {:keys [cause use-current-env] :as opt}]
+  ([estr {:keys [cause visible-cause use-current-env] :as opt}]
+   (assert (not (and cause visible-cause)))
    (let [{:keys [line column file] :as env} *current-env*]
      (throw (ex-info (str "Internal Error "
                           "(" (or file 
@@ -62,7 +63,9 @@
                                    (:env uvs/*current-expr*))
                                  (env-for-error *current-env*))}
                        ;; don't want this to unwrap in the REPL, so don't use 3rd arg of ex-info
-                       cause (assoc :cause cause)))))))
+                       cause (assoc :cause cause))
+                     ;; for when we *do* want to see the cause
+                     visible-cause)))))
 
 ;[Any * -> String]
 (defn ^String error-msg 

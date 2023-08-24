@@ -831,27 +831,61 @@
   {:post [(KwArgsArray? %)]}
   (KwArgsArray-maker (apply -kw-args opt)))
 
+(def ^:private regex-kinds #{:or :alt :* :+ :? :cat})
+
+(u/ann-record Regex [types :- (t/Vec Type)
+                     kind :- t/Kw])
+(u/def-type Regex [types kind]
+  "Type representing regular expressions of sexpr's"
+  [(vector? types)
+   (contains? regex-kinds kind)
+   (do (case kind
+         (:* :+ :?) (assert (= 1 (count types)))
+         (:alt :or :cat) nil)
+       true)]
+  :computed-fields
+  [types (if (some-> types meta ::valid-Regex-types deref (identical? types))
+           types
+           (let [_ (assert (every? Type? types))
+                 tie (promise)
+                 types (vary-meta types assoc ::valid-Regex-types tie)]
+             (deliver tie types)
+             types))]
+  :methods
+  [p/TCType])
+
+(defn regex [types kind]
+  (Regex-maker types kind))
+
 ;must go before Function
 (u/ann-record Result [t :- Type,
                       fl :- p/IFilterSet
                       o :- p/IRObject])
 
-(u/ann-record Function [dom :- (t/Seqable Type),
+(u/ann-record Function [dom :- (t/Vec Type),
                         rng :- Result,
                         rest :- (t/Nilable Type)
                         drest :- (t/Nilable DottedPretype)
                         kws :- (t/Nilable KwArgs)
                         prest :- (t/Nilable HSequential)
-                        pdot :- (t/Nilable DottedPretype)])
-(u/def-type Function [dom rng rest drest kws prest pdot]
+                        pdot :- (t/Nilable DottedPretype)
+                        regex :- (t/Nilable Regex)
+                        kind :- t/Kw])
+(u/def-type Function [dom rng rest drest kws prest pdot regex kind]
   "A function arity, must be part of an intersection"
-  [(or (nil? dom)
-       (sequential? dom))
-   ;; Expensive
-   #_(every? Type? dom)
+  [(vector? dom)
    (Result? rng)
    ;at most one of rest drest kws prest or pdot can be provided
-   (#{0 1} (count (filter identity [rest drest kws prest pdot])))
+   (= (cond-> 1 (= :fixed kind) dec) (count (filter identity [rest drest kws prest pdot regex])))
+   (case kind
+     :fixed true
+     :rest rest
+     :drest drest
+     :kws kws
+     :pdot pdot
+     :prest prest
+     :regex regex
+     (throw (Exception. (str "Bad Function :kind " (pr-str kind)))))
    (or (nil? rest)
        (Type? rest))
    (or (nil? drest)
@@ -867,7 +901,29 @@
        (and (DottedPretype? pdot)
             ; we could have pdot without repeat, but why would you do that
             (-> pdot :pre-type :repeat)
-            (-> pdot :pre-type :types)))]
+            (-> pdot :pre-type :types)))
+   ((some-fn nil? Regex?) regex)]
+  :computed-fields
+  [kind (cond
+          rest :rest
+          drest :drest
+          prest :prest
+          pdot :pdot
+          kws :kws
+          regex :regex
+          :else :fixed)
+   ;; expensive, cache result
+   dom (if (some-> dom meta ::valid-Function-dom deref (identical? dom))
+         dom
+         (let [_ (assert (every? (every-pred Type? (complement Regex?))
+                                dom))
+               tie (promise)
+               dom (-> dom
+                       vec
+                       (with-meta (assoc (meta dom) ::valid-Function-dom tie)))]
+           (deliver tie dom)
+           dom))]
+  :ctor-meta {:private true}
   :methods
   [p/TCAnyType])
 
@@ -1108,29 +1164,36 @@
          :pdot (t/Nilable DottedPretype)
          :filter (t/Nilable p/IFilterSet) :object (t/Nilable p/IRObject)
          :mandatory-kws (t/Nilable (t/Map Type Type))
-         :optional-kws (t/Nilable (t/Map Type Type))}
+         :optional-kws (t/Nilable (t/Map Type Type))
+         :kws (t/Nilable KwArgs)}
         -> Function])
 (defn make-Function
   "Make a function, wrap range type in a Result.
   Accepts optional :filter and :object parameters that default to the most general filter
   and EmptyObject"
-  [dom rng & {:keys [rest drest prest pdot filter object mandatory-kws optional-kws] :as opt}]
+  [dom rng & {:keys [rest drest prest pdot filter object mandatory-kws optional-kws kws regex] :as opt}]
   {:pre [(every? keyword? (keys opt))
          (if (Result? rng)
            (not (or filter object))
            (Type? rng))]}
   (assert (not (:flow opt)) "removed this feature")
-  (Function-maker dom
-                  (if (Result? rng)
-                    rng
-                    (make-Result rng filter object))
-                  rest
-                  drest
-                  (when (or mandatory-kws optional-kws)
-                    (-kw-args :mandatory (or mandatory-kws {})
-                              :optional (or optional-kws {})))
-                  prest
-                  pdot))
+  (let [kws (if (or mandatory-kws optional-kws)
+              (do (assert (not kws)
+                          "Cannot combine :mandatory-kws or :optional-kws with :kws")
+                  (-kw-args :mandatory (or mandatory-kws {})
+                            :optional (or optional-kws {})))
+              kws)]
+    (Function-maker (vec dom)
+                    (cond-> rng
+                      (not (Result? rng)) (make-Result filter object))
+                    rest
+                    drest
+                    kws
+                    prest
+                    pdot
+                    regex
+                    ;; kind (computed)
+                    nil)))
 
 ;; Symbolic closures
 
@@ -1150,20 +1213,6 @@
 (defn symbolic-closure [fexpr smallest-type]
   ;(prn "creating symbolic-closure")
   (SymbolicClosure-maker (get-thread-bindings) fexpr smallest-type))
-
-(def ^:private regex-kinds #{:or :alt :* :+ :? :cat})
-
-(u/ann-record Regex [types :- (t/Seqable Type)
-                     kind :- t/Kw])
-(u/def-type Regex [types kind]
-  "Type representing regular expressions of sexpr's"
-  [(every? Type? types)
-   (contains? regex-kinds kind)]
-  :methods
-  [p/TCType])
-
-(defn regex [types kind]
-  (Regex-maker types kind))
 
 ;;;;;;;;;;;;;;;;;
 ;; Clojurescript types

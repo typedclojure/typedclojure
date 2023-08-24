@@ -719,8 +719,7 @@
         (let [elem-type (apply c/Un
                                (concat
                                  (:types T)
-                                 (when-let [rest (:rest T)]
-                                   [rest])
+                                 (some-> (:rest T) vector)
                                  (when (:drest T)
                                    [r/-any])))
               vec-any (r/-hvec [] :rest r/-any)
@@ -918,7 +917,7 @@
 
                   ;; dotted on the left, nothing on the right
                   (and (:drest S)
-                       (not-any? (some-fn :rest :drest :repeat) [T]))
+                       (not ((some-fn :rest :drest :repeat) T)))
                   (let [{dty :pre-type dbound :name} (:drest S)]
                     (when-not (Y dbound)
                       (fail! S T))
@@ -935,7 +934,7 @@
                       [(move-vars-to-dmap new-cset dbound vars)]))
 
                   ;; dotted on the right, nothing on the left
-                  (and (not-any? (some-fn :rest :drest :repeat) [S])
+                  (and (not ((some-fn :rest :drest :repeat) S))
                        (:drest T))
                   (let [{dty :pre-type dbound :name} (:drest T)]
                     (when-not (Y dbound)
@@ -1359,8 +1358,7 @@
         all))))
 
 (defn cs-gen-Function-just-rests [V X Y S T]
-  {:pre [(some :rest [S T])
-         (not-any? (some-fn :drest :kws :prest :pdot) [S T])]}
+  {:pre [(every? #(#{:fixed :rest} (:kind %)) [S T])]}
   (let [arg-mapping (cond
                       ;both rest args are present, so make them the same length
                       (and (:rest S) (:rest T))
@@ -1425,8 +1423,8 @@
 
 (defn cs-gen-Function-prest-on-left [V X Y S T]
   ; prest on left, nothing on right
-  {:pre [(and (:prest S)
-              (not-any? (some-fn :rest :drest :kws :prest) [T]))]}
+  {:pre [(:prest S)
+         (= :fixed (:kind T))]}
   (let [s-dom (:dom S)
         t-dom (:dom T)
         s-dom-count (count s-dom)
@@ -1444,6 +1442,8 @@
         (cset-meet* [short-cs rest-cs ret-mapping])))))
 
 (defn cs-gen-Function-prest-drest [cg V X Y S T]
+  {:pre [(:prest S)
+         (:drest T)]}
   (let [{t-dty :pre-type dbound :name} (:drest T)
         _ (when-not (Y dbound)
             (fail! S T))
@@ -1486,7 +1486,7 @@
 
 (defn cs-gen-Function-dotted-left-nothing-right [V X Y S T]
   {:pre [(:drest S)
-         (not ((some-fn :rest :drest :kws :prest :pdot) T))]}
+         (= :fixed (:kind T))]}
   (let [{dty :pre-type dbound :name} (:drest S)]
     (when-not (Y dbound)
       (fail! S T))
@@ -1504,7 +1504,7 @@
       (move-vars-to-dmap new-cset dbound vars))))
 
 (defn cs-gen-Function-dotted-right-nothing-left [V X Y S T]
-  {:pre [(not ((some-fn :rest :drest :kws :prest :pdot) S))
+  {:pre [(= :fixed (:kind S))
          (:drest T)]}
   (let [{dty :pre-type dbound :name} (:drest T)]
     (when-not (Y dbound)
@@ -1551,8 +1551,8 @@
 ;; ... <: *
 ; Typed Racket notes that this might not be a correct subtyping case?
 (defn cs-gen-Function-dots-<-star [cg V X Y S T]
-  {:pre [(and (:drest S)
-              (:rest T))]}
+  {:pre [(:drest S)
+         (:rest T)]}
   (let [{s-dty :pre-type dbound :name} (-> S :drest)]
     (when-not (Y dbound)
       (fail! S T))
@@ -1590,15 +1590,14 @@
            (cg [S T] (cs-gen V X Y S T))]
     (cond
       ;easy case - no rests, drests, kws, prest
-      (not-any? (some-fn :rest :drest :kws :prest :pdot) [S T])
+      ((every-pred #(= :fixed (:kind %))) S T)
       ; contravariant
       (cset-meet* [(cs-gen-list V X Y (:dom T) (:dom S))
                    ; covariant
                    (cg (:rng S) (:rng T))])
 
       ;just a rest args on one or more sides
-      (and (some :rest [S T])
-           (not-any? (some-fn :drest :kws :prest :pdot) [S T]))
+      ((every-pred #(#{:fixed :rest} (:kind %))) S T)
       (cs-gen-Function-just-rests V X Y S T)
 
       ; :rest is less restricted than :prest
@@ -1613,7 +1612,7 @@
 
       ; prest on left, nothing on right
       (and (:prest S)
-           (not ((some-fn :rest :drest :kws :prest :pdot) T)))
+           (= :fixed (:kind T)))
       (cs-gen-Function-prest-on-left V X Y S T)
 
       ; prest on left, drest on right
@@ -1623,11 +1622,11 @@
 
       ;; dotted on the left, nothing on the right
       (and (:drest S)
-           (not ((some-fn :rest :drest :kws :prest :pdot) T)))
+           (= :fixed (:kind T)))
       (cs-gen-Function-dotted-left-nothing-right V X Y S T)
 
       ;; dotted on the right, nothing on the left
-      (and (not ((some-fn :rest :drest :kws :prest :pdot) S))
+      (and (= :fixed (:kind S))
            (:drest T))
       (cs-gen-Function-dotted-right-nothing-left V X Y S T)
 
@@ -1867,8 +1866,7 @@
                                       (and ((some-fn r/Poly? r/PolyDots?) arg-t)
                                            (or (and (r/FnIntersection? dom-t)
                                                     (= 1 (count (:types dom-t)))
-                                                    (not-any? #(% (first (:types dom-t)))
-                                                              [:rest :drest :kws :prest :pdot]))
+                                                    (= :fixed (:kind (first (:types dom-t)))))
                                                #_(prn "get-deferred-fixed-args not deferring poly because expected is:" dom-t))))
                               i))))
           arg-types)))
@@ -2144,8 +2142,7 @@
                                                             (and (r/Poly? s)
                                                                  (r/FnIntersection? t)
                                                                  (= 1 (count (:types t)))
-                                                                 (not-any? #(% (first (:types t)))
-                                                                           [:rest :drest :kws :prest :pdot]))
+                                                                 (= :fixed (:kind (first (:types t)))))
                                                             (binding [vs/*delayed-errors* (err/-init-delayed-errors)]
                                                               ;(prn "Deferred Poly <: " s t)
                                                               (let [t (prep-symbolic-closure-expected-type3 subst t)
@@ -2528,7 +2525,7 @@
         arity (first (:types body))
         _ (assert (r/Function? arity))
         _ (assert (= 1 (count (:dom arity))))
-        _ (assert (not-any? #(% arity) [:rest :drest :kws :prest :pdot]))
+        _ (assert (= :fixed (:kind arity)))
         _ (assert (= (fo/-simple-filter) (:fl (:rng arity))))
         _ (assert (= or/-empty (:o (:rng arity))))
 

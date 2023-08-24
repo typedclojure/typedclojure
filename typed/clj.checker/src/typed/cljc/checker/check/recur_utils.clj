@@ -10,6 +10,7 @@
   (:require [typed.cljc.checker.utils :as u]
             [typed.cljc.checker.type-rep :as r]))
 
+;;TODO add `kind` field
 (u/def-type RecurTarget [dom rest drest kws]
   "A target for recur"
   [(every? r/Type? dom)

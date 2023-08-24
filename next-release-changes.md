@@ -45,3 +45,4 @@
   - `[(t/? a) :-> t/Any] => (IFn [:-> t/Any] [a :-> t/Any])`
   - `[(t/+ a) :-> t/Any] => [a :+ :-> t/Any] => [a a :* :-> t/Any]`
   - `[(t/alt (t/cat a) (t/cat a b)) :-> t/Any] => (t/IFn [a :-> t/Any] [a b :-> t/Any])`
+- support regex in fixed and `:*` positions of function argument

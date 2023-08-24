@@ -80,10 +80,10 @@
   ISubstituteDots substitute-dots*
   Function
   (fn [{:keys [dom rng rest drest kws prest pdot] :as ftype} name sb images rimage]
-   (when kws (err/nyi-error "substitute keyword args"))
-   (if (and (or drest pdot)
-            (= name (:name (or drest pdot))))
-     (r/Function-maker (let [sb-dom (mapv sb dom)]
+    {:pre [(symbol? name)
+           (#{:fixed :rest :drest :kws :prest :pdot} (:kind ftype))]}
+    (if (= name (:name (or drest pdot)))
+      (r/make-Function (let [sb-dom (mapv sb dom)]
                          (if drest
                            ;; We need to recur first, just to expand out any dotted usages of this.
                            (let [expanded (sb (:pre-type drest))]
@@ -100,14 +100,14 @@
                                                                images))))
                                    images))))
                        (sb rng)
-                       rimage nil nil nil nil)
-     (r/Function-maker (mapv sb dom)
+                       :rest rimage)
+      (r/make-Function (mapv sb dom)
                        (sb rng)
-                       (some-> rest sb)
-                       (some-> drest (update :pre-type sb))
-                       nil
-                       (some-> prest sb)
-                       (some-> pdot (update :pre-type sb))))))
+                       :rest (some-> rest sb)
+                       :drest (some-> drest (update :pre-type sb))
+                       :kws (when kws (err/nyi-error "substitute keyword args"))
+                       :prest (some-> prest sb)
+                       :pdot (some-> pdot (update :pre-type sb))))))
 
 (f/add-fold-case
   ISubstituteDots substitute-dots*
@@ -192,20 +192,19 @@
 (f/add-fold-case
   ISubstituteDotted substitute-dotted*
   Function
-  (fn [{:keys [dom rng rest drest kws prest pdot]} sb name image]
-   (when kws (err/nyi-error "substitute-dotted with kw arguments"))
-   (r/Function-maker (mapv sb dom)
+  (fn [{:keys [dom rng rest drest kws prest pdot kind]} sb name image]
+    {:pre [(#{:fixed :rest :drest :kws :prest :pdot} kind)]}
+    (r/make-Function (mapv sb dom)
                      (sb rng)
-                     (some-> rest sb)
-                     (when drest
-                       (r/DottedPretype1-maker (substitute image (:name drest) (sb (:pretype drest)))
-                                               (if (= name (:name drest))
-                                                 name
-                                                 (:name drest))))
-                     nil
-                     (some-> prest sb)
-                     (when pdot
-                       (err/nyi-error "NYI pdot of substitute-dotted for Function")))))
+                     :rest (some-> rest sb)
+                     :drest (when drest
+                              (r/DottedPretype1-maker (substitute image (:name drest) (sb (:pretype drest)))
+                                                      (if (= name (:name drest))
+                                                        name
+                                                        (:name drest))))
+                     :kws (when kws (err/nyi-error "substitute-dotted with kw arguments"))
+                     :prest (some-> prest sb)
+                     :pdot (when pdot (err/nyi-error "NYI pdot of substitute-dotted for Function")))))
 
 (f/add-fold-case
   ISubstituteDotted substitute-dotted*

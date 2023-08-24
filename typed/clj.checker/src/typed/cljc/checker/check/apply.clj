@@ -42,13 +42,13 @@
                   tail-ty (r/ret-t (u/expr-type ctail))
                   expr (assoc expr
                               :args (vec (cons cfexpr (conj fixed-args ctail))))]
-              (loop [[{:keys [dom rng rest drest prest] :as ftype0} :as fs] (:types body)]
+              (loop [[{:keys [dom rng rest] :as ftype0} :as fs] (:types body)]
                 (cond
                   (empty? fs) (err/tc-delayed-error (str "Bad arguments to polymorphic function in apply")
                                                     :return (assoc expr
                                                                    u/expr-type (cu/error-ret expected)))
 
-                  prest nil
+                  (not (#{:fixed :rest} (:kind ftype0))) nil
 
                   ;the actual work, when we have a * function and a list final argument
                   :else 

@@ -101,7 +101,10 @@
         ;_ (prn "open-result open-expected-rng-no-filters" open-expected-rng-no-filters expected)
         ;_ (prn "open-result open-expected-rng filters" (some->> open-expected-rng-no-filters :fl ((juxt :then :else)) (map fl/infer-top?)))
         ;ensure Function fits method
-        _ (when-not (or ((if (or rest drest kws prest pdot) <= =) (count required-params) (count dom))
+        _ (when-not (or ((case (:kind expected)
+                           (:rest :drest :kws :prest :pdot) <=
+                           :fixed =)
+                         (count required-params) (count dom))
                         rest-param)
             (err/int-error (str "Checking method with incorrect number of expected parameters"
                                 ", expected " (count dom) " required parameter(s) with"
@@ -137,7 +140,8 @@
         ; a new filter that results from being dispatched "here"
         mm-filter (when-let [{:keys [dispatch-fn-type dispatch-val-ret]} multi-u/*current-mm*]
                     (assert (and dispatch-fn-type dispatch-val-ret))
-                    (assert (not (or drest rest rest-param)))
+                    (assert (= :fixed (:kind expected)))
+                    (assert (not rest-param))
                     (let [disp-app-ret (funapp/check-funapp nil nil 
                                                             (r/ret dispatch-fn-type)
                                                             (map r/ret dom (repeat (fo/-FS fl/-top fl/-top)) 
@@ -181,7 +185,7 @@
               (recur-u/with-recur-target rec
                 (let [body (if (and vs/*custom-expansions*
                                     rest-param
-                                    (not-any? identity [rest drest kws prest pdot]))
+                                    (= :fixed (:kind expected)))
                              ;; substitute away the rest argument to try and trigger
                              ;; any beta reductions
                              (with-bindings (ana-clj/thread-bindings {:env (:env method)})

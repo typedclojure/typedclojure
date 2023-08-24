@@ -39,18 +39,18 @@
                          pdot)
         arg-names (concat (map first args)
                           (some-> rest-param-name list))]
-    (r/Function-maker
+    (r/make-Function
       (map second args)
       (abo/abstract-result body arg-names)
-      (some-> rest second)
-      (some-> drest second)
-      (some-> kws second)
-      (some-> prest second)
-      (some-> pdot second))))
+      :rest (some-> rest second)
+      :drest (some-> drest second)
+      :kws (some-> kws second)
+      :prest (some-> prest second)
+      :pdot (some-> pdot second))))
 
 ; takes the current rest or drest argument (only one is non-nil) and returns
 ; the type to assign the rest parameter
-(defn check-rest-fn [remain-dom {:keys [rest drest kws prest pdot] :as ts*}]
+(defn check-rest-fn [remain-dom {:keys [rest drest kws prest pdot kind] :as ts*}]
   {:pre [((some-fn nil? r/Type?) rest)
          ((some-fn nil? r/Type?) prest)
          ((some-fn nil? r/DottedPretype?) drest)
@@ -60,8 +60,7 @@
          (every? r/Type? remain-dom)]
    :post [(r/Type? %)]}
   (cond
-    (or rest drest
-        (not-any? identity [rest drest kws prest pdot]))
+    (or rest drest (= :fixed kind))
     ; rest argument is nilable non-empty seq, refine further based on remaining fixed domain
     (cond-> (c/In (r/-hseq remain-dom
                            :rest rest
@@ -75,5 +74,6 @@
 
     (or prest pdot) (c/Un r/-nil (or prest pdot))
 
-    ;kws
-    :else (c/KwArgs->Type kws)))
+    kws (c/KwArgs->Type kws)
+    
+    :else (err/nyi-error (str "Function :kind " kind))))

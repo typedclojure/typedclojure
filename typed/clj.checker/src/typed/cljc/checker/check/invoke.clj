@@ -34,7 +34,7 @@
                                           (:types ft))]
                           (when-some [f (when (= 1 (count fns))
                                           (first fns))]
-                            (when (and (not ((some-fn :rest :drest :kws :prest :pdot) f))
+                            (when (and (= :fixed (:kind f))
                                        (= (count (:dom f))
                                           (count args)))
                               (mapv (comp #(when (r/FnIntersection? %) (r/ret %))

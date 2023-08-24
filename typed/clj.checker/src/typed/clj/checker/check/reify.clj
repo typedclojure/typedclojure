@@ -28,9 +28,9 @@
   (let [t (c/fully-resolve-type t)]
     (cond
       (r/FnIntersection? t) (apply r/make-FnIntersection
-                                   (map (fn [{:keys [dom rng rest drest prest pdot kws] :as t}]
+                                   (map (fn [t]
                                           (cond
-                                            (or rest drest prest pdot kws) (assert nil "TODO IFn-invoke-method-t (or rest drest prest pdot kws)")
+                                            (not= :fixed (:kind t)) (assert nil "TODO IFn-invoke-method-t (or rest drest prest pdot kws)")
                                             :else (update t :dom #(cons this-t %))))
                                         (:types t)))
       (and (r/RClass? t)
@@ -54,7 +54,7 @@
        :validate-expected-fn
        (fn [fin]
          {:pre [(r/FnIntersection? fin)]}
-         (when (some #{:rest :drest :kws} (:types fin))
+         (when (not-every? #(= :fixed (:kind %)) (:types fin))
            (err/int-error
              (str "Cannot provide rest arguments to " (name kind) " method: "
                   (prs/unparse-type fin)))))})))

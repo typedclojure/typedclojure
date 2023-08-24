@@ -1021,8 +1021,7 @@
     ;; top for functions is above everything
     (r/TopFunction? t) A0
     ;; the really simple case
-    (and (not ((some-fn :rest :drest :kws :prest) s))
-         (not ((some-fn :rest :drest :kws :prest) t)))
+    ((every-pred #(= :fixed (:kind %))) s t)
     (if (and (= (count (:dom s))
                 (count (:dom t)))
              (some-> (reduce (fn [A* [s t]]
@@ -1100,14 +1099,14 @@
       (report-not-subtypes s t))
 
     (and (:rest s)
-         (not ((some-fn :rest :drest :kws :prest) t)))
+         (= :fixed (:kind t)))
     (if (some-> A0
                 (subtypes*-varargs (:dom t) (:dom s) (:rest s) nil)
                 (subtypeA* (:rng s) (:rng t)))
       A0
       (report-not-subtypes s t))
 
-    (and (not ((some-fn :rest :drest :kws :prest) s))
+    (and (= :fixed (:kind t))
          (:rest t))
     (report-not-subtypes s t)
 

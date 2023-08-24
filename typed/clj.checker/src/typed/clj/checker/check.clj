@@ -919,7 +919,7 @@
                       arity (first (:types body))
                       _ (assert (r/Function? arity))
                       _ (assert (= 1 (count (:dom arity))))
-                      _ (assert (not-any? #(% arity) [:rest :drest :kws :prest :pdot]))
+                      _ (assert (= :fixed (:kind arity)))
                       _ (assert (= (fo/-simple-filter) (:fl (:rng arity))))
                       _ (assert (= obj/-empty (:o (:rng arity))))
 
@@ -1588,7 +1588,7 @@
                                                                  (:types fin))]
                             (when (= 1 (count relevant-fn-types))
                               (let [{:keys [dom rng]} ft]
-                                (when (not-any? #(% ft) [:drest :kws :prest :pdot])
+                                (when (#{:fixed :rest} (:kind ft))
                                   (assert ((if (:rest ft) <= =) (count dom) (count args)))
                                   (when-let [red (beta-reduce/maybe-beta-reduce-fn
                                                    expr

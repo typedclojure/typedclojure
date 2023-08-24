@@ -54,7 +54,8 @@
 (fold/add-fold-case
   IFreeInForType free-in-for-type
   Function
-  (fn [{:keys [dom rng rest drest kws] :as ty} k free-in? for-type]
+  (fn [{:keys [dom rng rest drest prest pdot kws] :as ty} k free-in? for-type]
+    {:pre [(#{:fixed :rest :drest :prest :pdot :kws} (:kind ty))]}
     ;; here we have to increment the count for the domain, where the new bindings are in scope
     (let [arg-count (+ (count dom) (if rest 1 0) (if drest 1 0) (count (concat (:mandatory kws)
                                                                                (:optional kws))))
@@ -63,7 +64,9 @@
         (for-type d))
       (st* rng)
       (some-> rest for-type)
+      (some-> prest for-type)
       (some-> (:pre-type drest) for-type)
+      (some-> (:pre-type pdot) for-type)
       (doseq [[_ v] (concat (:mandatory kws)
                             (:optional kws))]
         (for-type v))

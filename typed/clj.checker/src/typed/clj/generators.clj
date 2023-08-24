@@ -39,7 +39,7 @@
   [fs opt]
   {:pre [(instance? FnIntersection fs)]
    :post [(seq %)]}
-  (let [_ (assert (not-any? (some-fn :rest :drest :kws :prest :pdot) fs)
+  (let [_ (assert (every? #(= :fixed (:kind %)) fs)
                   (str "Can only generate functions with positional arguments."))
         f->checkers+gens
         (map (fn [f]

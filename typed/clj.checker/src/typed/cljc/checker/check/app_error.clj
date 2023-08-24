@@ -18,15 +18,14 @@
             [clojure.string :as str]))
 
 ;; true if domains of l is a subtype of domains of r.
-;; returns false if any of arg-ret-types are a subtype of ;; r.
+;; returns false if any of arg-ret-types are a subtype of r.
 (defn domain-subtype? [l r arg-ret-types]
+  {:pre [((every-pred r/Function?) l r)]}
   (boolean
-    (when (and (not (:kws r))
-               (not (:drest r))
-               (not (:rest r)))
-      (and (== (count (:dom l))
-               (count (:dom r))
-               (count arg-ret-types))
+    (when ((every-pred #(= :fixed (:kind %))) l r)
+      (and (= (count (:dom l))
+              (count (:dom r))
+              (count arg-ret-types))
            (every? identity 
                    (map (fn [ld rd ad]
                           (and (sub/subtype? ld rd)
@@ -40,24 +39,24 @@
   ; Lots more improvements we can port from Typed Racket:
   ;  typecheck/tc-app-helper.rkt
   (let [matching-arities 
-          (remove (fn [{:keys [dom rest drest kws rng]}]
-                    ;remove arities that have a differing
-                    ; number of fixed parameters than what we
-                    ; require
-                    (or
-                      (and (not rest) (not drest) (not kws)
-                           (not= (count dom)
-                                 (count arg-ret-types)))
-                      ; remove if we don't have even the fixed args
-                      (< (count arg-ret-types)
-                         (count dom))))
-                  arities)
+        (remove (fn [{:keys [dom rest drest kws rng kind]}]
+                  ;remove arities that have a differing
+                  ; number of fixed parameters than what we
+                  ; require
+                  (or
+                    (and (= :fixed kind)
+                         (not= (count dom)
+                               (count arg-ret-types)))
+                    ; remove if we don't have even the fixed args
+                    (< (count arg-ret-types)
+                       (count dom))))
+                arities)
         remove-sub
-          (reduce (fn [acc ar]
-                    ;; assumes most general arities come last
-                    (conj (vec (remove #(domain-subtype? % ar arg-ret-types) acc)) 
-                          ar))
-                  [] matching-arities)]
+        (reduce (fn [acc ar]
+                  ;; assumes most general arities come last
+                  (conj (into [] (remove #(domain-subtype? % ar arg-ret-types)) acc) 
+                        ar))
+                [] matching-arities)]
     (or (seq remove-sub)
         ;if we remove all the arities, default to all of them
         arities)))
@@ -75,10 +74,8 @@
         method-sym (when (or static-method? instance-method?)
                      (cu/MethodExpr->qualsym fexpr))]
     (prs/with-unparse-ns (or prs/*unparse-type-in-ns*
-                             (or (when fexpr
-                                   (cu/expr-ns fexpr))
-                                 (when vs/*current-expr*
-                                   (cu/expr-ns vs/*current-expr*))))
+                             (or (some-> fexpr cu/expr-ns)
+                                 (some-> vs/*current-expr* cu/expr-ns)))
       (err/tc-delayed-error
         (str
           (if poly?
@@ -127,15 +124,16 @@
                                 (concat (map prs/unparse-type dom)
                                         (when rest
                                           [(prs/unparse-type rest) '*])
-                                        (when-let [{:keys [pre-type name]} drest]
+                                        (when-some [{:keys [pre-type name]} drest]
                                           [(prs/unparse-type pre-type)
                                            '...
                                            (-> name r/make-F r/F-original-name)])
                                         (letfn [(readable-kw-map [m]
-                                                  (into {} (for [[k v] m]
-                                                             (do (assert (r/Value? k))
-                                                                 [(:val k) (prs/unparse-type v)]))))]
-                                          (when-let [{:keys [mandatory optional]} kws]
+                                                  (reduce-kv (fn [m k v]
+                                                               {:keys [(r/Value? k)]}
+                                                               (assoc m (:val k) (prs/unparse-type v)))
+                                                             {} m))]
+                                          (when-some [{:keys [mandatory optional]} kws]
                                             (concat ['&]
                                                     (when (seq mandatory)
                                                       [:mandatory (readable-kw-map mandatory)])
@@ -143,7 +141,7 @@
                                                       [:optional (readable-kw-map optional)]))))
                                         (when prest
                                           [(prs/unparse-type prest) '<*])
-                                        (when-let [{:keys [pre-type name]} pdot]
+                                        (when-some [{:keys [pre-type name]} pdot]
                                           [(prs/unparse-type pre-type)
                                            '<...
                                            (-> name r/make-F r/F-original-name)])))

@@ -395,7 +395,8 @@
   (let [nreq (count required-params)]
     ;(prn "nreq" nreq)
     ;(prn "rest-param" rest-param)
-    (filter (fn [{:keys [dom rest drest kws prest pdot]}]
+    (filter (fn [{:keys [dom rest drest kws prest pdot kind]}]
+              {:pre [(#{:fixed :rest :drest :kws :prest :pdot} kind)]}
               (let [ndom (count dom)]
                 (if rest-param 
                   (or ; required parameters can flow into the rest type

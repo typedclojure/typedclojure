@@ -22,7 +22,7 @@
             [typed.cljc.checker.inst :as inst]
             [typed.clj.checker.subtype :as sub]
             [typed.cljc.checker.type-ctors :refer :all]
-            [typed.cljc.checker.type-rep :refer :all]
+            [typed.cljc.checker.type-rep :refer :all :as r]
             [typed.cljc.checker.filter-rep :refer :all]
             [typed.cljc.checker.filter-ops :refer :all]
             [typed.cljc.checker.object-rep :refer :all]
@@ -215,18 +215,16 @@
 (deftest empty-fn-test
   (is-clj (= (tc-t (clojure.core/fn []))
          (ret (make-FnIntersection
-                (Function-maker [] (make-Result -nil
-                                            (-FS -bot -top)
-                                            (EmptyObject-maker))
-                            nil nil nil nil nil))
+                (r/make-Function [] (make-Result -nil
+                                                 (-FS -bot -top)
+                                                 (EmptyObject-maker))))
               (-FS -top -bot)
               (EmptyObject-maker))))
   (is-clj (= (tc-t (fn [] 1))
          (ret (make-FnIntersection
-                (Function-maker [] (make-Result (-val 1)
-                                              (-FS -top -bot)
-                                              (EmptyObject-maker))
-                              nil nil nil nil nil))
+                (r/make-Function [] (make-Result (-val 1)
+                                                 (-FS -top -bot)
+                                                 (EmptyObject-maker))))
               (-FS -top -bot)
               (EmptyObject-maker))))
   (is-clj (= (tc-t (let []))
@@ -235,11 +233,10 @@
 (deftest path-test
   (is-clj (= (tc-t (fn [a :- t/Any] (let [a 1] a)))
              (ret (make-FnIntersection
-                    (Function-maker [-any]
-                                    (make-Result (-val 1)
-                                                 (-true-filter)
-                                                 -empty)
-                                    nil nil nil nil nil))
+                    (r/make-Function [-any]
+                                     (make-Result (-val 1)
+                                                  (-true-filter)
+                                                  -empty)))
                   (-FS -top -bot) -empty)))
   (is-clj (= (tc-t (let [a nil] a))
              (ret -nil (-FS -top -top) -empty))))
@@ -554,12 +551,11 @@
                                     (seq? a)))
            ret-t)
          (make-FnIntersection
-           (Function-maker [(Name-maker 'clojure.core.typed.test.util-aliases/UnionName)]
-                         (make-Result -false 
-                                      ;FIXME why isn't this (-FS -bot (-not-filter (RClass-of ISeq [-any]) 0)) ?
-                                      (-FS -bot -top)
-                                      -empty)
-                         nil nil nil nil nil))))
+           (r/make-Function [(Name-maker 'clojure.core.typed.test.util-aliases/UnionName)]
+                            (make-Result -false 
+                                         ;FIXME why isn't this (-FS -bot (-not-filter (RClass-of ISeq [-any]) 0)) ?
+                                         (-FS -bot -top)
+                                         -empty)))))
   (is-clj (= (tc-t (let [{a :a} {:a 1}]
                  a))
              (ret (-val 1) 
@@ -567,13 +563,12 @@
                   -empty)))
   ;FIXME should be (-FS -bot (! ISeq 0))
   #_(is-clj (= (tc-t (clojure.core.typed/fn [a :- (t/HMap :mandatory {:a (t/Value 1)})]
-                               (seq? a)))
-         (ret (make-FnIntersection
-                (Function-maker [(make-HMap :mandatory {(-val :a) (-val 1)})]
-                              (make-Result -false (-false-filter) -empty)
-                              nil nil nil nil nil))
-              (-FS -top -bot)
-              -empty)))
+                       (seq? a)))
+               (ret (make-FnIntersection
+                      (r/make-Function [(make-HMap :mandatory {(-val :a) (-val 1)})]
+                                       (make-Result -false (-false-filter) -empty)))
+                    (-FS -top -bot)
+                    -empty)))
   ;roughly the macroexpansion of map destructuring
   ;FIXME
   #_(is-clj (= (tc-t (clojure.core.typed/fn 

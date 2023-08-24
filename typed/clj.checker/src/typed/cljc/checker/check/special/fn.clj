@@ -67,7 +67,7 @@
                 method
                 (r/make-Function dom (or (some-> rng r/Result-type*)
                                          r/-wild)
-                                 :rest rest 
+                                 :rest rest
                                  :drest drest
                                  :filter (some-> rng r/Result-filter*)
                                  :object (or (some-> rng r/Result-object*)
