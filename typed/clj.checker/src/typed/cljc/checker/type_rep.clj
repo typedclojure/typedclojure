@@ -847,9 +847,9 @@
   [types (if (some-> types meta ::valid-Regex-types deref (identical? types))
            types
            (let [_ (assert (every? Type? types))
-                 tie (promise)
+                 tie (volatile! nil)
                  types (vary-meta types assoc ::valid-Regex-types tie)]
-             (deliver tie types)
+             (vreset! tie types)
              types))]
   :methods
   [p/TCType])
@@ -917,11 +917,11 @@
          dom
          (let [_ (assert (every? (every-pred Type? (complement Regex?))
                                 dom))
-               tie (promise)
+               tie (volatile! nil)
                dom (-> dom
                        vec
                        (with-meta (assoc (meta dom) ::valid-Function-dom tie)))]
-           (deliver tie dom)
+           (vreset! tie dom)
            dom))]
   :ctor-meta {:private true}
   :methods
