@@ -39,8 +39,8 @@
                                         Union Intersection F Function Mu B KwArgs KwArgsSeq KwArgsArray
                                         RClass Bounds Name Scope CountRange Intersection DataType Extends
                                         JSNominal Protocol GetType HSequential
-                                        HSet AssocType TypeOf MergeType)
-           (typed.cljc.checker.type_rep NotType DifferenceType Intersection Union FnIntersection Bounds
+                                        HSet AssocType TypeOf MergeType
+                                        NotType DifferenceType Intersection Union FnIntersection Bounds
                                         DottedPretype Function RClass JSNominal App TApp
                                         PrimitiveArray DataType Protocol TypeFn Poly PolyDots
                                         Mu HeterogeneousMap
@@ -48,7 +48,7 @@
                                         TCResult TCError Extends
                                         JSNumber CLJSInteger JSObject JSString ArrayCLJS
                                         JSBoolean AssocType GetType KwArgsSeq KwArgs HSequential HSet
-                                        JSUndefined JSNull JSSymbol JSObj TypeOf SymbolicClosure)
+                                        JSUndefined JSNull JSSymbol JSObj TypeOf SymbolicClosure Regex)
            (typed.cljc.checker.filter_rep NoFilter TopFilter BotFilter TypeFilter NotTypeFilter
                                           ImpFilter AndFilter OrFilter FilterSet)
            (typed.cljc.checker.object_rep NoObject EmptyObject Path)
