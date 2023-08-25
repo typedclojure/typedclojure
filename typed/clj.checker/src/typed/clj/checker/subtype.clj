@@ -334,6 +334,12 @@
                          #'vs/*delayed-errors*)
     (chk/check-expr (:fexpr s) (r/ret t))))
 
+(defn subtype-regex [A s t]
+  {:pre [(r/Regex? s)
+         (r/Regex? t)]}
+  ;;TODO
+  (report-not-subtypes s t))
+
 ;TODO replace hardcoding cases for unfolding Mu? etc. with a single case for unresolved types.
 ;[(t/Set '[Type Type]) Type Type -> (t/Nilable (t/Set '[Type Type]))]
 (defn ^:private subtypeA* [A s t]
@@ -926,6 +932,10 @@
                      (subtypeA* A b1 b2)))
             A
             (report-not-subtypes s t)))
+
+        (and (r/Regex? s)
+             (r/Regex? t))
+        (subtype-regex A s t)
 
         ; TODO (All [r x ...] [x ... x -> r]) <: (All [r x] [x * -> r]) ?
 

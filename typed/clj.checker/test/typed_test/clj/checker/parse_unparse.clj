@@ -262,6 +262,11 @@
          (prs/parse-clj `(t/All [m# k# v#] [nil k# v# (t/HSequential [k# v#] :repeat true) ~'<* :-> (t/Map k# v#)]))))
   (is (= (prs/parse-clj `(t/All [a# y#] [[(t/* a#) :-> y#] (t/* a#) :-> [(t/* a#) :-> y#]]))
          (prs/parse-clj `(t/All [a# y#] [[a# :* :-> y#] a# :* :-> [a# :* :-> y#]]))))
+  (is (-> (prs/parse-clj `[(t/+ [t/Any :-> t/Any]) :-> [t/Any :* :-> t/Any]])
+          :types
+          first
+          :rest
+          boolean))
 )
 
 (deftest unexpanded-regex-test
@@ -284,27 +289,37 @@
       (is (-> t :types first :kind (= :regex)) t)
       (is (-> t :types first :regex :kind (= :cat)) t)
       (is (= 2 (-> t :types first :regex :types count)) t)))
-  ;TODO
-  (is (= ;(prs/parse-clj `[t/Int :*    t/Bool :* :-> t/Any])
-         ;(prs/parse-clj `[t/Int :*    (t/* t/Bool) :-> t/Any])
+  (is (= (prs/parse-clj `[t/Int :*    t/Bool :* :-> t/Any])
+         (prs/parse-clj `[t/Int :*    (t/* t/Bool) :-> t/Any])
          (prs/parse-clj `[(t/* t/Int) t/Bool :* :-> t/Any])
          (prs/parse-clj `[(t/* t/Int) (t/* t/Bool) :-> t/Any])))
-  (is (= `[(t/* t/Int) (t/* t/Bool) :-> t/Any]
+  (is (= `[t/Int :* t/Bool :* :-> t/Any]
          (prs/unparse-type (prs/parse-clj `[(t/* t/Int) t/Bool :* :-> t/Any]))))
-  (is (= `[(t/* t/Bool) t/Bool :-> t/Any]
+  (is (= `[t/Bool :* t/Bool :-> t/Any]
          (prs/unparse-type (prs/parse-clj `[(t/* t/Bool) t/Bool :-> t/Any]))))
-  (is (= `[(t/+ t/Int) (t/+ t/Bool) :-> t/Any]
+  (is (= `[t/Int t/Int :* t/Bool t/Bool :* :-> t/Any]
          (prs/unparse-type (prs/parse-clj `[(t/+ t/Int) (t/+ t/Bool) :-> t/Any]))))
-  (is (= `[(t/+ t/Int) (t/* t/Bool) :-> t/Any]
+  (is (= `[t/Int t/Int :* t/Bool :* :-> t/Any]
          (prs/unparse-type (prs/parse-clj `[(t/+ t/Int) (t/* t/Bool) :-> t/Any]))))
-  (is (= `[(t/* t/Int) (t/+ t/Bool) :-> t/Any]
+  (is (= `[t/Int :* t/Bool t/Bool :* :-> t/Any]
          (prs/unparse-type (prs/parse-clj `[(t/* t/Int) (t/+ t/Bool) :-> t/Any]))))
-  (is (= `(t/IFn [(t/* t/Bool) :-> t/Any]
-                 [(t/* t/Bool) t/Bool :-> t/Any])
+  (is (= `(t/IFn [t/Bool :* :-> t/Any]
+                 [t/Bool :* t/Bool :-> t/Any])
          (prs/unparse-type (prs/parse-clj `[(t/* t/Bool) (t/? t/Bool) :-> t/Any]))))
-  #_;;TODO these expand differently but are actually the same
-  (is (= (prs/parse-clj `[(t/+ t/Int) t/Bool :+ :-> t/Any])
+  (is (= (prs/parse-clj `(t/All [y# :..] [y# :.. y# :-> t/Any]))
+         (prs/parse-clj `(t/All [y# :..] [(t/cat y# :.. y#) :-> t/Any]))))
+  (is (= (r/PolyDots-body-unsafe* (prs/parse-clj `(t/All [y# :..] [y# :.. y# :-> t/Any])))
+         (r/PolyDots-body-unsafe* (prs/parse-clj `(t/All [y# :..] [(t/cat y# :.. y#) :-> t/Any])))))
+  #_;TODO
+  (is (subtype? (r/PolyDots-body-unsafe* (prs/parse-clj `(t/All [y# :..] [y# :.. y#, t/Int :-> t/Any])))
+                (r/PolyDots-body-unsafe* (prs/parse-clj `(t/All [y# :..] [(t/cat y# :.. y#) t/Int :-> t/Any])))))
+  #_;TODO
+  (is (subtype? (prs/parse-clj `(t/All [y# :..] [y# :.. y#, t/Int :-> t/Any]))
+                (prs/parse-clj `(t/All [y# :..] [(t/cat y# :.. y#) t/Int :-> t/Any]))))
+  (is (= (prs/parse-clj `[(t/cat t/Int :+ t/Bool :+) :-> t/Any])
+         (prs/parse-clj `[t/Int :+ t/Bool :+ :-> t/Any])
+         (prs/parse-clj `[t/Int t/Int :* t/Bool :+ :-> t/Any])
+         (prs/parse-clj `[t/Int :+ t/Bool t/Bool :* :-> t/Any])
+         (prs/parse-clj `[(t/+ t/Int) t/Bool :+ :-> t/Any])
          (prs/parse-clj `[(t/+ t/Int) (t/+ t/Bool) :-> t/Any])))
-  #_
-  (is (= (prs/parse-clj `(t/All [a# y#] [a# :* y# :* :-> t/Any]))
-         (prs/parse-clj `(t/All [a# y#] [])))))
+)

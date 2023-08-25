@@ -2,8 +2,8 @@
   (:require [typed.clojure :as t]
             [typed.clj.checker.test-utils :refer :all]
             [typed.cljc.checker.type-ctors :refer :all]
-            [typed.cljc.checker.type-rep :refer :all]
-            [typed.clj.checker.parse-unparse :refer [parse-type]]
+            [typed.cljc.checker.type-rep :refer :all :as r]
+            [typed.clj.checker.parse-unparse :refer [parse-type] :as prs]
             [clojure.test :refer :all])
   (:import (clojure.lang Seqable)))
 
@@ -136,3 +136,12 @@
                   `t/AnyInteger))
   (is-clj (sub?-q `t/AnyInteger
                   `(t/I t/AnyInteger t/Num))))
+
+(deftest regex-subtype-test
+  (is-tc-e :load)
+  (is (subtype? (r/regex [(prs/parse-clj `t/Int)] :cat)
+                (r/regex [(prs/parse-clj `t/Int)] :cat)))
+  #_ ;;TODO
+  (is (subtype? (r/regex [(prs/parse-clj `t/Int)] :cat)
+                (r/regex [(prs/parse-clj `t/Num)] :cat)))
+  )

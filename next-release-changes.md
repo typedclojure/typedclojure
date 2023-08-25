@@ -37,12 +37,14 @@
   - e.g., `(into [] (map identity) [1])`
 - support checking a `fn` against a union type
 - introduce regex ops `t/*`, `t/+`, `t/alt`, `t/?`, `t/cat`
-  - for now, simply syntactic sugar for `IFn`. Other uses are disallowed.
-  - `[(t/cat a b) :-> t/Any] => [a b :-> t/Any]`
-  - `[(t/cat a b) :* :-> t/Any] => [(t/HSequential [a b] :repeat true) <* :-> t/Any]`
-  - `[(t/cat a b) :.. c :-> t/Any] => [(t/HSequential [a b] :repeat true) <... c :-> t/Any]`
-  - `[(t/* a) :-> t/Any] => [a :* :-> t/Any]`
-  - `[(t/? a) :-> t/Any] => (IFn [:-> t/Any] [a :-> t/Any])`
-  - `[(t/+ a) :-> t/Any] => [a :+ :-> t/Any] => [a a :* :-> t/Any]`
-  - `[(t/alt (t/cat a) (t/cat a b)) :-> t/Any] => (t/IFn [a :-> t/Any] [a b :-> t/Any])`
-- support regex in fixed and `:*` positions of function argument
+  - syntax only enabled in function type arguments for now
+  - when expandable to existing types, syntactic sugar for `IFn`. e.g.,
+    - `[(t/cat a b) :-> t/Any] => [a b :-> t/Any]`
+    - `[(t/cat a b) :* :-> t/Any] => [(t/HSequential [a b] :repeat true) <* :-> t/Any]`
+    - `[(t/cat a b) :.. c :-> t/Any] => [(t/HSequential [a b] :repeat true) <... c :-> t/Any]`
+    - `[(t/* a) :-> t/Any] => [a :* :-> t/Any]`
+    - `[(t/? a) :-> t/Any] => (IFn [:-> t/Any] [a :-> t/Any])`
+    - `[(t/+ a) :-> t/Any] => [a :+ :-> t/Any] => [a a :* :-> t/Any]`
+    - `[(t/alt (t/cat a) (t/cat a b)) :-> t/Any] => (t/IFn [a :-> t/Any] [a b :-> t/Any])`
+  - Otherwise, function type will still parse, but may not be callable until more support is added.
+    - please report failing usages

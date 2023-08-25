@@ -26,7 +26,7 @@
                                         PrimitiveArray DataType Protocol TypeFn Poly PolyDots
                                         Mu HeterogeneousMap
                                         CountRange Name Value Top Wildcard Unchecked TopFunction B F Result AnyValue
-                                        Scope TCError Extends AssocType MergeType HSequential HSet
+                                        Scope TCError Extends AssocType MergeType Regex HSequential HSet
                                         JSObj TypeOf)
            (typed.cljc.checker.filter_rep FilterSet TypeFilter NotTypeFilter ImpFilter
                                           AndFilter OrFilter TopFilter BotFilter)
@@ -354,6 +354,11 @@
     (apply combine-freesresults (map frees (concat extends without))))
 
   MergeType
+  (frees 
+    [{:keys [types]}]
+    (apply combine-freesresults (map frees types)))
+
+  Regex
   (frees 
     [{:keys [types]}]
     (apply combine-freesresults (map frees types)))

@@ -864,22 +864,6 @@
 (defn regex-allowed? [t]
   (-> t meta ::allow-regex boolean))
 
-(defn parse-Regex [[_ & ts :as this] kind]
-  (when-not (regex-allowed? this)
-    (prs-error (str "Regex type not allowed here: " this)))
-  (case kind
-    (:* :+ :?) (when-not (= 1 (count ts))
-                 (prs-error (str (name kind) " regex takes 1 type, given: " (count ts))))
-    (:alt :or :cat) nil)
-  (r/regex (mapv (comp parse-type* allow-regex) ts)
-           kind))
-
-(defmethod parse-type-list 'typed.clojure/+ [t] (parse-Regex t :+))
-(defmethod parse-type-list 'typed.clojure/* [t] (parse-Regex t :*))
-(defmethod parse-type-list 'typed.clojure/? [t] (parse-Regex t :?))
-(defmethod parse-type-list 'typed.clojure/alt [t] (parse-Regex t :alt))
-(defmethod parse-type-list 'typed.clojure/cat [t] (parse-Regex t :cat))
-
 (declare parse-in-ns)
 
 (defn multi-frequencies 
@@ -1331,291 +1315,254 @@
 (defn distribute-regex-HSequential [t repeat?]
   {:pre [(r/Regex? t)]}
   (case (:kind t)
-    :* (let [inner (-> t :types first)]
-         (if (r/Regex? inner)
-           (distribute-regex-HSequential inner true)
-           (r/-hsequential [inner] :repeat true)))
     :cat (do (when (some r/Regex? (:types t))
                (prs-error (str "Regex not supported in t/cat in HSequential position: " (:kind t))))
              (r/-hsequential (:types t) :repeat repeat?))
     (prs-error (str "Regex not supported in HSequential position: " (:kind t)))))
 
-(defn distribute-regex-arities [tts {:keys [rng rest drest prest pdot object optional-kws mandatory-kws] filters :filter}]
-  {:pre [(seq tts)
-         (every? #(every? r/Type? %) tts)]
+(defn push-HSequential->regex [{:keys [repeat types] :as t}]
+  {:pre [(r/HSequential? t)]}
+  (r/regex (vec types) :cat))
+
+(defn distribute-regex-arities [ts rng]
+  {:pre [(r/Result? rng)
+         (vector? ts)
+         (every? (some-fn r/Type? r/DottedPretype? r/KwArgs?) ts)]
    :post [(every? r/Function? %)]}
-  ;(prn "tts" tts)
-  (into [] (mapcat (fn [ts]
-                     (let [last-t (dec (count ts))]
-                       (let [regex? (volatile! false)
-                             handle-regex (fn handle-regex [t final-pos?]
-                                            {:pre [(r/Type? t)
-                                                   (boolean? final-pos?)]
-                                             :post [(every? (partial every? (every-pred (comp #{:regex :fixed :rest :prest} :kind)
-                                                                                        (comp r/Type? :type)))
-                                                            %)]}
-                                            (let [handle-regex #(handle-regex % final-pos?)]
-                                              (if (r/Regex? t)
-                                                (case (:kind t)
-                                                  :cat (reduce (fn [tts t]
-                                                                 (into [] (comp (mapcat (fn [ts]
-                                                                                          (map #(into ts %)
-                                                                                               (handle-regex t))))
-                                                                                (distinct))
-                                                                       tts))
-                                                               [[]] (:types t))
-                                                  :alt (into [] (comp (mapcat handle-regex) (distinct)) (:types t))
-                                                  :? (into [[]] (handle-regex (-> t :types first)))
-                                                  (:+ :*) (if (or (not final-pos?) rest @regex?)
-                                                            (do (vreset! regex? true)
-                                                                [[{:kind :regex
-                                                                   :type t}]])
-                                                            (let [inner (-> t :types first)]
-                                                              (when (or drest prest pdot optional-kws mandatory-kws)
-                                                                ;;rest allowed, handled above
-                                                                (prs-error (str "t/* and t/+ cannot be combined with :.., <..., <*, & :optional, & :mandatory")))
-                                                              (if (r/Regex? inner)
-                                                                (case (:kind inner)
-                                                                  ;; prest
-                                                                  :cat [[{:kind :prest
-                                                                          :type (distribute-regex-HSequential t true)}]]
-                                                                  (prs-error (str "Regex not supported before arrow: " (:kind inner))))
-                                                                [(-> []
-                                                                     (cond-> (= :+ (:kind t)) (conj {:kind :fixed
-                                                                                                     :type inner}))
-                                                                     (conj {:kind :rest
-                                                                            :type inner}))]))))
-                                                [[{:kind :fixed
-                                                   :type t}]])))
-                             ;_ (prn "ts" ts)
-                             grouped (reduce (fn [tts [i t]]
-                                               (let [rights (handle-regex t (= i last-t))]
-                                                 (into [] (comp (mapcat (fn [ts]
-                                                                          (mapv #(into ts %) rights)))
-                                                                (distinct))
-                                                       tts)))
-                                             [[]] (map-indexed vector ts))]
-                         ;(prn "grouped" grouped)
-                         (->> grouped
-                              (map
-                                (fn [arity]
-                                  {:pre [(vector? arity)]}
-                                  (if (some (comp #{:regex} :kind) arity)
-                                    (do (assert (every? (comp #{:rest :fixed :regex} :kind) arity)
-                                                arity)
-                                        (when (or drest prest pdot optional-kws mandatory-kws)
-                                          (prs-error (str "Unsupported combination of regex and "
-                                                          (cond
-                                                            drest :..
-                                                            prest '<*
-                                                            pdot '<...
-                                                            mandatory-kws "& :mandatory"
-                                                            optional-kws "& :optional"
-                                                            :else (err/int-error "Unreachable")))))
-                                        (r/make-Function [] rng :regex (r/regex (mapv #(case (:kind %)
-                                                                                         (:fixed :regex) (:type %)
-                                                                                         :rest (r/regex [(:type %)] :*))
-                                                                                      (cond-> arity
-                                                                                        rest (conj {:kind :rest
-                                                                                                    :type rest})))
-                                                                                :cat)))
-                                    (let [kind-groups (into [] (partition-by :kind) arity)
-                                          kind-order (mapv (comp :kind first) kind-groups)
-                                          _ (when-not (<= 0 (count kind-groups) 2)
-                                              (prs-error (str "Unsupported ordering of regex operators")))
-                                          fixed (if (= :fixed (first kind-order))
-                                                  (mapv :type (first kind-groups))
-                                                  [])
-                                          final-kind (peek kind-order)
-                                          _ (when final-kind
-                                              (assert (#{:fixed :rest :prest} final-kind) (str "TODO: " final-kind)))
-                                          final-group (peek kind-groups)
-                                          final-type (when final-kind
-                                                       (when (not= :fixed final-kind)
-                                                         (when (not= 1 (count final-group))
-                                                           (prs-error (str "Not allowed more than one final regex in function domain")))
-                                                         (-> final-group first :type)))]
-                                      (r/make-Function fixed
-                                                       rng
-                                                       :rest (if (= :rest final-kind) final-type rest)
-                                                       :drest drest
-                                                       :prest (if (= :prest final-kind) final-type prest)
-                                                       :pdot pdot
-                                                       :filter filters
-                                                       :object object
-                                                       :optional-kws optional-kws
-                                                       :mandatory-kws mandatory-kws))))))))))
-          tts))
+  (if (empty? ts)
+    [(r/make-Function ts rng)]
+    (let [last-t (dec (count ts))
+          handle-regex (fn handle-regex [t final-pos?]
+                         {:pre [((some-fn r/Type? r/DottedPretype? r/KwArgs?) t)
+                                (boolean? final-pos?)]
+                          :post [(every? (partial every? #(case (:kind %)
+                                                            (:fixed :rest) (r/Type? (:type %))
+                                                            :regex ((some-fn r/Regex? r/DottedPretype?) (:type %))
+                                                            :pdot ((every-pred r/DottedPretype?
+                                                                               (comp r/HSequential? :pre-type))
+                                                                   (:type %))
+                                                            :drest (r/DottedPretype? (:type %))
+                                                            :prest (r/HSequential? (:type %))
+                                                            :kws (r/KwArgs? (:type %))))
+                                         %)]}
+                         (let [handle-regex #(handle-regex % final-pos?)]
+                           (cond
+                             (r/Regex? t)
+                             (case (:kind t)
+                               :cat (reduce (fn [tts t]
+                                              (into [] (comp (mapcat (fn [ts]
+                                                                       (map #(into ts %)
+                                                                            (handle-regex t))))
+                                                             (distinct))
+                                                    tts))
+                                            [[]] (:types t))
+                               :alt (into [] (comp (mapcat handle-regex) (distinct)) (:types t))
+                               :? (into [[]] (handle-regex (-> t :types first)))
+                               (:+ :*) (if (not final-pos?)
+                                         [[{:kind :regex
+                                            :type t}]]
+                                         (let [inner (-> t :types first)]
+                                           (if (r/Regex? inner)
+                                             (case (:kind inner)
+                                               ;; prest
+                                               :cat [[{:kind :prest
+                                                       :type (distribute-regex-HSequential inner true)}]]
+                                               [[{:kind :regex
+                                                  :type t}]])
+                                             [(-> []
+                                                  (cond-> (= :+ (:kind t)) (conj {:kind :fixed
+                                                                                  :type inner}))
+                                                  (conj {:kind :rest
+                                                         :type inner}))]))))
+
+                             (r/KwArgs? t)
+                             [[{:kind :kws
+                                :type t}]]
+
+                             (r/DottedPretype? t)
+                             (cond
+                               (not final-pos?)
+                               [[{:kind :regex
+                                  :type t}]]
+
+                               (r/Regex? (:pre-type t))
+                               [[{:kind :pdot
+                                  :type (update t :pre-type distribute-regex-HSequential true)}]]
+
+                               :else 
+                               [[{:kind :drest
+                                  :type t}]])
+
+                             :else
+                             [[{:kind :fixed
+                                :type t}]])))
+          ;_ (prn "ts" ts)
+          grouped (reduce (fn [tts [i t]]
+                            (let [rights (handle-regex t (= i last-t))]
+                              (into [] (comp (mapcat (fn [ts]
+                                                       (mapv #(into ts %) rights)))
+                                             (distinct))
+                                    tts)))
+                          [[]] (map-indexed vector ts))]
+      ;(prn "grouped" grouped)
+      (->> grouped
+           (mapv
+             (fn [arity]
+               {:pre [(vector? arity)]}
+               (let [kind-groups (into [] (partition-by :kind) arity)
+                     ngroups (count kind-groups)
+                     kind-order (mapv (comp :kind first) kind-groups)
+                     first-kind (first kind-order)
+                     fixed (if (= :fixed first-kind)
+                             (mapv :type (first kind-groups))
+                             [])
+                     final-kind (peek kind-order)]
+                 (if (or (some (comp #{:regex} :kind) arity)
+                         (< 2 ngroups)
+                         (and (= 2 ngroups)
+                              (not= :fixed first-kind)))
+                   (r/make-Function [] rng :regex (r/regex (mapv #(case (:kind %)
+                                                                    (:fixed :regex :drest) (:type %)
+                                                                    :pdot (update (:type %) :pre-type push-HSequential->regex)
+                                                                    :prest (r/regex [(push-HSequential->regex (:type %))] :*)
+                                                                    :rest (r/regex [(:type %)] :*))
+                                                                 arity)
+                                                           :cat))
+                   (let [final-group (peek kind-groups)
+                         final-type (when final-kind
+                                      (when (not= :fixed final-kind)
+                                        (when (not= 1 (count final-group))
+                                          (prs-error (str "Not allowed more than one final regex in function domain")))
+                                        (-> final-group first :type)))]
+                     (r/make-Function fixed
+                                      rng
+                                      :rest (when (= :rest final-kind) final-type)
+                                      :drest (when (= :drest final-kind) final-type)
+                                      :prest (when (= :prest final-kind) final-type)
+                                      :pdot (when (= :pdot final-kind) final-type)
+                                      :kws (when (= :kws final-kind) final-type)))))))))))
+
+(def ^:private is-arrow #{'-> :->})
+
+(defn parse-cat [ts]
+  {:pre [(vector? ts)]}
+  (loop [cat-dom []
+         [d1 d2 d3 :as to-process] ts]
+    (if (empty? to-process)
+      cat-dom
+      (case d1
+        & (case (count to-process)
+            1 (prs-error "Must provide syntax after &")
+            2 (if (map? d2)
+                (do (err/deprecated-warn "[& {} :-> ] function syntax is deprecated. Use [& :optional {} :-> ]")
+                    (recur (conj cat-dom (r/-kw-args :optional (parse-kw-map d2)))
+                           (subvec to-process 2)))
+                (prs-error "Must provide key-value syntax after &"))
+            (let [[cat-dom to-process] (loop [mandatory nil
+                                              optional nil
+                                              [d1 d2 :as to-process] (subvec to-process 1)]
+                                         (if (empty? to-process)
+                                           [(conj cat-dom (r/-kw-args :mandatory (or mandatory {})
+                                                                      :optional (or optional {})))
+                                            to-process]
+                                           (case d1
+                                             :mandatory (do (when mandatory
+                                                              (prs-error ":mandatory only allowed once per function type."))
+                                                            (when (< (count to-process) 2)
+                                                              (prs-error "Missing type after :mandatory in function type."))
+                                                            (when-not (map? d2)
+                                                              (prs-error (str "Expected map after :mandatory in function type: " (pr-str d2))))
+                                                            (recur (parse-kw-map d2) optional (subvec to-process 2)))
+                                             :optional (do (when optional
+                                                             (prs-error ":optional only allowed once per function type."))
+                                                           (when (< (count to-process) 2)
+                                                             (prs-error "Missing type after :optional in function type."))
+                                                           (recur mandatory (parse-kw-map d2) (subvec to-process 2)))
+                                             ;; force & to go last in function syntax for now
+                                             (prs-error (str "Unknown option after & for keyword arguments: " d1)))))]
+              (recur cat-dom to-process)))
+        (case d2
+          (:? :+ :* * <*) (if (or (not= '* d2)
+                                  (and (= 2 (count to-process))
+                                       (do (err/deprecated-warn "* function syntax is deprecated and only supported as final arguments. Use :* instead.")
+                                           true)))
+                            (recur (conj cat-dom (case d2
+                                                   <* (r/regex [(-> d1 allow-regex parse-type push-HSequential->regex)] :*)
+                                                   (:? :+ :* *) (r/regex [(-> d1 allow-regex parse-type)] (keyword d2))))
+                                   (subvec to-process 2))
+                            (recur (conj cat-dom (-> d1 allow-regex parse-type))
+                                   (subvec to-process 1)))
+          (:.. :... ... <...) (if (or (= :.. d2)
+                                      (when (not= '<... d2)
+                                        (err/deprecated-warn (str d2 " function syntax is deprecated and only supported as final arguments. Use :.. instead.")))
+                                      (= 3 (count to-process)))
+                                (let [drest-bnd d3
+                                      _ (when-not (simple-symbol? drest-bnd)
+                                          (prs-error (str "Bound after " d2 " must be simple symbol: " (pr-str drest-bnd))))
+                                      bnd (dvar/*dotted-scope* drest-bnd)
+                                      _ (when-not bnd
+                                          (prs-error (str "Bound " (pr-str drest-bnd) " after " d2 " is not in scope as a dotted variable")))]
+                                  (recur (conj cat-dom (r/DottedPretype1-maker
+                                                         (cond-> (free-ops/with-frees [bnd] (-> d1 allow-regex parse-type))
+                                                           (= '<... d2) push-HSequential->regex)
+                                                         (:name bnd)))
+                                         (subvec to-process 3)))
+                                (recur (conj cat-dom (-> d1 allow-regex parse-type))
+                                       (subvec to-process 1)))
+
+          (recur (conj cat-dom (-> d1 allow-regex parse-type))
+                 (subvec to-process 1)))))))
+
+(defn parse-Regex [[_ & ts :as this] kind]
+  (when-not (regex-allowed? this)
+    (prs-error (str "Regex type not allowed here: " this)))
+  (case kind
+    (:* :+ :?) (when-not (= 1 (count ts))
+                 (prs-error (str (name kind) " regex takes 1 type, given: " (count ts))))
+    (:alt :or :cat) nil)
+  (r/regex (if (= :cat kind)
+             (parse-cat (vec ts))
+             (mapv (comp parse-type* allow-regex) ts))
+           kind))
+
+(defmethod parse-type-list 'typed.clojure/+ [t] (parse-Regex t :+))
+(defmethod parse-type-list 'typed.clojure/* [t] (parse-Regex t :*))
+(defmethod parse-type-list 'typed.clojure/? [t] (parse-Regex t :?))
+(defmethod parse-type-list 'typed.clojure/alt [t] (parse-Regex t :alt))
+(defmethod parse-type-list 'typed.clojure/cat [t] (parse-Regex t :cat))
 
 ;;TODO use [arg1 :- type1, arg2 :- type2 :-> out] syntax to scope objects in range
 (defn parse-function [f]
-  {:post [(seq %)
+  {:pre [(vector? f)]
+   :post [(seq %)
           (every? r/Function? %)]}
-  (let [is-arrow '#{-> :->}
-        all-dom (take-while (complement is-arrow) f)
-        [the-arrow rng & opts-flat :as chk] (drop-while (complement is-arrow) f) ;opts aren't used yet
-        ;TODO deprecate
-        ;_ (when ('#{->} the-arrow)
-        ;    )
-        _ (when-not (<= 2 (count chk))
-            (prs-error (str "Incorrect function syntax: " f)))
-
-        _ (when-not (even? (count opts-flat))
-            (prs-error (str "Incorrect function syntax, must have even number of keyword parameters: " f)))
-
-        opts (apply hash-map opts-flat)
-        specials #{:... :.. '... '* :* :+ :? '& '<* '<...}
-        _ (when-some [repeats (not-empty
-                                (into {}
-                                      (remove #(= 1 (val %)))
-                                      (frequencies (filter specials all-dom))))]
-            (prs-error (str "Not allowed to repeat function syntax specials: " (-> repeats keys vec))))
-
-        {ellipsis-pos '...
-         kw-ellipsis-pos :...
-         kw-ellipsis2-pos :..
-         asterix-pos '*
-         kw-asterix-pos :*
-         plus-pos :+
-         qmark-pos :?
-         ampersand-pos '&
-         push-rest-pos '<*
-         push-dot-pos '<...}
-        (zipmap all-dom (range))
-
-        _ (when-not (#{0 1} (count (filter identity [asterix-pos ellipsis-pos kw-ellipsis-pos kw-ellipsis2-pos ampersand-pos 
-                                                     kw-asterix-pos plus-pos qmark-pos push-rest-pos])))
-            (prs-error "Can only provide one rest argument option: & ... * <* :+ :? or <..."))
-
-        ellipsis-pos (or ellipsis-pos kw-ellipsis-pos kw-ellipsis2-pos)
-        asterix-pos (or asterix-pos kw-asterix-pos)
-
-        _ (when-some [ks (seq (remove #{:filters :object} (keys opts)))]
-            (prs-error (str "Invalid function keyword option/s: " ks)))
-
-        filters (when-some [[_ fsyn] (find opts :filters)]
-                  (parse-filter-set fsyn))
-
-        object (when-some [[_ obj] (find opts :object)]
-                 (parse-object obj))
-
-        fixed-doms (cond
-                     ; *
-                     asterix-pos (let [_ (when-not (pos? asterix-pos)
-                                           (prs-error (str "Missing type before " (if kw-asterix-pos :* '*))))]
-                                   [(take (dec asterix-pos) all-dom)])
-                     ; +
-                     plus-pos (let [_ (when-not (pos? plus-pos)
-                                        (prs-error "Missing type before :+"))]
-                                [(take plus-pos all-dom)])
-                     ; ...
-                     ellipsis-pos [(take (dec ellipsis-pos) all-dom)]
-                     ; &
-                     ampersand-pos [(take ampersand-pos all-dom)]
-                     ; <*
-                     push-rest-pos [(take (dec push-rest-pos) all-dom)]
-                     ; <...
-                     push-dot-pos [(take (dec push-dot-pos) all-dom)]
-                     ; ?
-                     qmark-pos (let [_ (when-not (pos? qmark-pos)
-                                         (prs-error "Missing type before :?"))
-                                     without (take (dec qmark-pos) all-dom)
-                                     with (take qmark-pos all-dom)]
-                                 (when-not (= (count all-dom) (inc qmark-pos))
-                                   (prs-error "Trailing syntax after :?"))
-                                 [without with])
-                     :else [all-dom])
-        fixed-doms (mapv #(mapv (comp parse-type allow-regex) %) fixed-doms)
-
-        [rest-is-prest rest-type] (when-some [pos (or asterix-pos plus-pos)]
-                                    (when-not (= (count all-dom) (inc pos))
-                                      (prs-error (str "Trailing syntax after rest parameter: " (pr-str (drop (inc pos) all-dom)))))
-                                    (let [t (parse-type (allow-regex (nth all-dom (dec pos))))]
-                                      (if (r/Regex? t)
-                                        (case (:kind t)
-                                          :cat [true (distribute-regex-HSequential t true)]
-                                          (prs-error (str "Regex not supported in t/cat in :* " (:kind t))))
-                                        [false t])))
-        
-        [drest-is-pdot drest] (when ellipsis-pos
-                                (let [[drest-type _ drest-bnd :as drest-seq]
-                                      (when ellipsis-pos
-                                        (drop (dec ellipsis-pos) all-dom))
-                                      _ (when-not (= 3 (count drest-seq))
-                                          (prs-error "Dotted rest entry must be 3 entries"))
-                                      _ (when-not (symbol? drest-bnd)
-                                          (prs-error "Dotted bound must be symbol"))
-                                      bnd (dvar/*dotted-scope* drest-bnd)
-                                      _ (when-not bnd 
-                                          (prs-error (str (pr-str drest-bnd) " is not in scope as a dotted variable")))
-                                      ty (free-ops/with-frees [bnd] ;with dotted bound in scope as free
-                                           (-> drest-type allow-regex parse-type))
-                                      _ (when (and (r/Regex? ty)
-                                                   (not= :cat (:kind ty)))
-                                          (parse-clj (str "Only t/cat regex allowed in :..")))
-                                      drest-is-pdot (r/Regex? ty)
-                                      ty (cond-> ty
-                                           drest-is-pdot (distribute-regex-HSequential true))]
-                                  [drest-is-pdot (r/DottedPretype1-maker ty (:name bnd))]))
-        pdot (or (when push-dot-pos
-                   (assert (not drest-is-pdot))
-                   (let [[pdot-type _ pdot-bnd :as pdot-seq] (drop (dec push-dot-pos) all-dom)
-                         _ (when-not (or (not push-dot-pos) (= 3 (count pdot-seq)))
-                             (prs-error "push dotted rest entry must be 3 entries"))
-                         _ (when-not (or (not push-dot-pos) (symbol? pdot-bnd))
-                             (prs-error "push dotted bound must be symbol"))
-                         bnd (dvar/*dotted-scope* pdot-bnd)
-                         _ (when-not bnd
-                             (prs-error (str (pr-str pdot-bnd) " is not in scope as a dotted variable")))]
-                     (r/DottedPretype1-maker
-                       (free-ops/with-frees [bnd] ;with dotted bound in scope as free
-                         (parse-type pdot-type))
-                       (:name bnd))))
-                 (when drest-is-pdot drest))
-        drest (when-not drest-is-pdot drest)
-        [& {optional-kws :optional
-            mandatory-kws :mandatory
-            :as kw-opts}
-         :as kws-seq]
-        (let [kwsyn (when ampersand-pos
-                      (drop (inc ampersand-pos) all-dom))]
-          ; support deprecated syntax [& {} -> ] to be equivalent to [& :optional {} -> ]
-          (if (and kwsyn
-                   (map? (first kwsyn)))
-            (do (err/deprecated-warn "[& {} -> ] function syntax is deprecated. Use [& :optional {} -> ]")
-                (cons :optional kwsyn))
-            kwsyn))
-
-        _ (when-some [extra (seq (remove #{:mandatory :optional} (keys kw-opts)))]
-            (prs-error (str "Unknown t/IFn options for keyword arguments: "
-                            (vec extra))))
-        _ (when-not (or (not ampersand-pos) (seq kws-seq))
-            (prs-error "Must provide syntax after &"))
-
-        optional-kws (some-> optional-kws parse-kw-map)
-        mandatory-kws (some-> mandatory-kws parse-kw-map)
-        prest-type (or (when push-rest-pos
-                         (when rest-is-prest
-                           (prs-error (str "Cannot combine <* with t/*")))
-                         (parse-type (nth all-dom (dec push-rest-pos))))
-                       (when rest-is-prest rest-type))
-        rest-type (when-not rest-is-prest rest-type)
-        _ (when-not (or (not push-rest-pos)
-                        (= (count all-dom) (inc push-rest-pos)))
-            (prs-error (str "Trailing syntax after push-rest parameter: " (pr-str (drop (inc push-rest-pos) all-dom)))))
-
-        rng-type (parse-type rng)]
-    (distribute-regex-arities
-      fixed-doms
-      {:rng rng-type
-       :rest rest-type
-       :drest drest
-       :prest prest-type
-       :pdot pdot
-       :filter filters
-       :object object
-       :optional-kws optional-kws
-       :mandatory-kws mandatory-kws})))
+  (let [[before-arrow after-arrow] (split-with (complement is-arrow) f)
+        _ (when (empty? after-arrow)
+            (prs-error (str "Missing arrow in function type: " f)))
+        cat-dom (parse-cat (vec before-arrow))
+        _ (when (empty? (next after-arrow))
+            (prs-error (str "Missing type after arrow in function type: " f)))
+        rng (parse-type (second after-arrow))]
+    (loop [filters nil
+           object nil
+           [d1 d2 :as to-process] (vec (nnext after-arrow))]
+      (assert (vector? to-process) (pr-str to-process))
+      (if (empty? to-process)
+        (distribute-regex-arities
+          cat-dom
+          (r/make-Result rng filters object))
+        (case d1
+          :filters (do (when filters
+                         (prs-error ":filters only allowed once per function type."))
+                       (when (< (count to-process) 2)
+                         (prs-error "Missing filter set after :filters in function type."))
+                       (recur (parse-filter-set d2) object (subvec to-process 2)))
+          :object (do (when object
+                        (prs-error ":object only allowed once per function type."))
+                      (when (< (count to-process) 2)
+                        (prs-error "Missing object after :objects in function type."))
+                      (recur filters (parse-object d2) (subvec to-process 2)))
+          (prs-error (str "Invalid function keyword option/s: " (pr-str d1))))))))
 
 (defmethod parse-type* IPersistentVector
   [f]
@@ -1742,6 +1689,15 @@
     (:name f)
     (r/F-original-name f)))
 
+(defn unparse-DottedPretype [{:keys [pre-type name] :as t} flat?]
+  {:pre [(r/DottedPretype? t)]}
+  (let [p (unparse-type pre-type)
+        n (cond-> name
+            (symbol? name) (-> r/make-F unparse-F))]
+    (if flat?
+      [p :.. n]
+      (list 'DottedPretype p n))))
+
 (extend-protocol IUnparseType
   Top
   (unparse-type* [t] (unparse-Name-symbol-in-ns `t/Any))
@@ -1763,11 +1719,7 @@
   (unparse-type* [_] (unparse-Name-symbol-in-ns `t/AnyValue))
 
   DottedPretype
-  (unparse-type* 
-    [{:keys [pre-type name]}]
-    (list 'DottedPretype (unparse-type pre-type) (if (symbol? name)
-                                                   (-> name r/make-F unparse-F)
-                                                   name)))
+  (unparse-type* [t] (unparse-DottedPretype t false))
 
   CountRange 
   (unparse-type* [{:keys [lower upper]}]
@@ -1877,10 +1829,19 @@
     `(~'B ~name)))
 
 (defn unparse-regex [{:keys [kind types]} flatten?]
-  (if (and flatten? (= :cat kind))
-    (mapv unparse-type types)
-    (list* (unparse-Name-symbol-in-ns (symbol "typed.clojure" (name kind)))
-           (map unparse-type types))))
+  (let [ts (into [] (mapcat (fn [t]
+                              (cond
+                                (r/DottedPretype? t) (unparse-DottedPretype t true)
+                                (r/Regex? t) (case [kind (:kind t)]
+                                               ([:cat :*]
+                                                [:cat :+]
+                                                [:cat :?]) [(-> t :types first unparse-type) (:kind t)]
+                                               [(unparse-type t)])
+                                :else [(unparse-type t)])))
+                 types)]
+    (cond->> ts
+      (not (and flatten? (= :cat kind)))
+      (list* (unparse-Name-symbol-in-ns (symbol "typed.clojure" (name kind)))))))
 
 (extend-protocol IUnparseType
   SymbolicClosure

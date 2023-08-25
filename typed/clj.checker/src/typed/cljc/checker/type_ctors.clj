@@ -1886,8 +1886,8 @@
 (f/add-fold-case
   IAbstractMany abstract-many*
   Function
-  (fn [{:keys [dom rng rest drest kws prest pdot] :as ty} name count outer sb name-to]
-    {:pre [(#{:fixed :rest :drest :kws :prest :pdot} (:kind ty))]}
+  (fn [{:keys [dom rng rest drest kws prest pdot regex] :as ty} name count outer sb name-to]
+    {:pre [(#{:fixed :rest :drest :kws :prest :pdot :regex} (:kind ty))]}
     (r/make-Function (mapv sb dom)
                      (sb rng)
                      :rest (some-> rest sb)
@@ -1907,7 +1907,8 @@
                                    (update :pre-type sb)
                                    (update :name #(if (= % name)
                                                     (+ count outer)
-                                                    %))))))
+                                                    %)))
+                     :regex (some-> regex sb))))
 
 (f/add-fold-case
   IAbstractMany abstract-many*
@@ -2042,8 +2043,8 @@
 (f/add-fold-case
   IInstantiateMany instantiate-many*
   Function
-  (fn [{:keys [dom rng rest drest kws prest pdot kind]} count outer image sb replace]
-    {:pre [(#{:fixed :rest :drest :kws :prest :pdot} kind)]}
+  (fn [{:keys [dom rng rest drest kws prest pdot kind regex]} count outer image sb replace]
+    {:pre [(#{:fixed :rest :drest :kws :prest :pdot :regex} kind)]}
     (r/make-Function
       (map sb dom)
       (sb rng)
@@ -2066,7 +2067,8 @@
                     (update :pre-type sb)
                     (update :name #(if (= (+ count outer) %)
                                      image
-                                     %))))))
+                                     %)))
+      :regex (some-> regex sb))))
 
 (f/add-fold-case
   IInstantiateMany instantiate-many*
@@ -2620,7 +2622,7 @@
 
 (add-default-fold-case Function
                        (fn [ty]
-                         {:pre [(#{:fixed :rest :drest :prest :pdot :kws} (:kind ty))]}
+                         {:pre [(#{:fixed :rest :drest :prest :pdot :kws :regex} (:kind ty))]}
                          ;(prn "fold Function" ty)
                          (-> ty
                            (update :dom #(into-identical [] type-rec %))
@@ -2634,7 +2636,8 @@
                                                ;; if we fully flatten out the prest, we're left
                                                ;; with no prest
                                                (when (not= r/-nothing t)
-                                                 t)))))))
+                                                 t))))
+                           (update :regex #(some-> % type-rec)))))
 
 (add-default-fold-case JSNominal
                        (fn [ty]

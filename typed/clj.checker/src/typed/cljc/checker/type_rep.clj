@@ -546,13 +546,11 @@
   [p/TCType])
 
 (u/ann-record DottedPretype [pre-type :- Type,
-                             name :- (t/U t/Sym Number)
-                             partition-count :- Number])
-(u/def-type DottedPretype [pre-type name partition-count]
-  "A dotted pre-type. Not a type"
+                             name :- (t/U t/Sym Number)])
+(u/def-type DottedPretype [pre-type name]
+  "A dotted pre-type. Not a type."
   [(Type? pre-type)
-   ((some-fn symbol? nat-int?) name)
-   (nat-int? partition-count)]
+   ((some-fn symbol? nat-int?) name)]
   :methods
   [p/TCAnyType])
 
@@ -561,10 +559,7 @@
             DottedPretype2-maker)
 
 (defn DottedPretype1-maker [pre-type name]
-  (DottedPretype-maker pre-type name 1))
-
-(defn DottedPretype2-maker [pre-type name]
-  (DottedPretype-maker pre-type name 2))
+  (DottedPretype-maker pre-type name))
 
 (t/defalias HSequentialKind (t/U ':list ':seq ':vector ':sequential))
 
@@ -831,31 +826,33 @@
   {:post [(KwArgsArray? %)]}
   (KwArgsArray-maker (apply -kw-args opt)))
 
-(def ^:private regex-kinds #{:or :alt :* :+ :? :cat})
-
 (u/ann-record Regex [types :- (t/Vec Type)
                      kind :- t/Kw])
 (u/def-type Regex [types kind]
   "Type representing regular expressions of sexpr's"
   [(vector? types)
-   (contains? regex-kinds kind)
    (do (case kind
-         (:* :+ :?) (assert (= 1 (count types)))
-         (:alt :or :cat) nil)
+         (:* :+ :?) (do (assert (every? Type? types))
+                        (assert (= 1 (count types))))
+         :cat (assert (every? (some-fn Type? DottedPretype?) types))
+         (:alt :or) (assert (every? Type? types)))
        true)]
-  :computed-fields
-  [types (if (some-> types meta ::valid-Regex-types deref (identical? types))
-           types
-           (let [_ (assert (every? Type? types))
-                 tie (volatile! nil)
-                 types (vary-meta types assoc ::valid-Regex-types tie)]
-             (vreset! tie types)
-             types))]
   :methods
   [p/TCType])
 
+(t/ann regex [(t/Vec Type) t/Kw -> Regex])
 (defn regex [types kind]
-  (Regex-maker types kind))
+  (case kind
+    :+ (do (assert (= 1 (count types)))
+           (regex [(first types) (regex types :*)] :cat))
+    :cat (Regex-maker (into [] (mapcat (fn [t]
+                                         (if (and (Regex? t)
+                                                  (= :cat (:kind t)))
+                                           (:types t)
+                                           [t])))
+                            types)
+                      :cat)
+    (Regex-maker types kind)))
 
 ;must go before Function
 (u/ann-record Result [t :- Type,
@@ -902,7 +899,9 @@
             ; we could have pdot without repeat, but why would you do that
             (-> pdot :pre-type :repeat)
             (-> pdot :pre-type :types)))
-   ((some-fn nil? Regex?) regex)]
+   (or (nil? regex)
+       (and (Regex? regex)
+            (empty? dom)))]
   :computed-fields
   [kind (cond
           rest :rest

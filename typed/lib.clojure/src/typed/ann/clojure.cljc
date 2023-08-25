@@ -1064,7 +1064,7 @@ cc/some-fn
                [t/Any :-> t/Bool :filters {:then (is t5 0) :else (! t5 0)}]
                :-> (t/IFn [t/Any :-> t/Bool :filters {:then (is (t/U t0 t1 t2 t3 t4 t5) 0) :else (! (t/U t0 t1 t2 t3 t4 t5) 0)}]
                           [t/Any :* :-> t/Any])]
-              [(t/+ [t/Any :-> t/Any]) :-> [t/Any :* :-> t/Any]]))
+              [[t/Any :-> t/Any] :+ :-> [t/Any :* :-> t/Any]]))
 cc/every-pred
 (t/All [t0 t1 t2 t3 t4 t5]
        (t/IFn [[t/Any :-> t/Bool :filters {:then (is t0 0) :else (! t0 0)}] 

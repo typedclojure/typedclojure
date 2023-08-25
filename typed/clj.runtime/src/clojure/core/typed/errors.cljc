@@ -200,7 +200,8 @@
           :else "NO_SOURCE_PATH")
         "): "
         msg))
-    (flush)))
+    (flush))
+  nil)
 
 (defn nyi-error
   [estr]
