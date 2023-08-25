@@ -3017,3 +3017,8 @@
                        (fn [ty]
                          (-> ty
                              (update :types #(into-identical [] type-rec %)))))
+
+(add-default-fold-case Regex
+                       (fn [ty]
+                         (-> ty
+                             (update :types #(into-identical [] type-rec %)))))
