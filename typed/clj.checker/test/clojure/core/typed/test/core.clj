@@ -104,32 +104,30 @@
                            {})))))
 
 (deftest trans-dots-test
-  (is-clj (= (inst/manual-inst (parse-type '(clojure.core.typed/All [x b ...]
-                                                 [x ... b -> x]))
-                               (mapv parse-type '(Integer Double Float))
+  (is-clj (= (inst/manual-inst (parse-type `(t/All [x# b# :..] [x# :.. b# :-> x#]))
+                               (mapv parse-type `(Integer Double Float))
                                {})
-             (parse-type '[Integer Integer -> Integer])))
-  (is-clj (= (inst/manual-inst (parse-type '(clojure.core.typed/All [x b ...]
-                                                 [b ... b -> x]))
-                               (mapv parse-type '(Integer Double Float))
+             (parse-type `[Integer Integer :-> Integer])))
+  (is-clj (= (inst/manual-inst (parse-type '(t/All [x# b# :..] [b# :.. b# :-> x#]))
+                               (mapv parse-type `(Integer Double Float))
                                {})
-             (parse-type '[Double Float -> Integer])))
+             (parse-type `[Double Float :-> Integer])))
   ;map type
-  (is-clj (= (inst/manual-inst (parse-type '(clojure.core.typed/All [c a b ...]
-                                                 [[a b ... b -> c] (clojure.lang.Seqable a) (clojure.lang.Seqable b) ... b -> (clojure.lang.Seqable c)]))
-                               (mapv parse-type '(Integer Double Float))
+  (is-clj (= (inst/manual-inst (parse-type `(t/All [c# a# b# :..]
+                                                 [[a# b# :.. b# :-> c#] (Seqable a#) (Seqable b#) :.. b# :-> (Seqable c#)]))
+                               (mapv parse-type `(Integer Double Float))
                                {})
-             (parse-type '[[Double Float -> Integer] (clojure.lang.Seqable Double) (clojure.lang.Seqable Float) -> (clojure.lang.Seqable Integer)])))
-  (is-clj (= (clj (inst/manual-inst (parse-type '(clojure.core.typed/All [x b ...]
-                                                      ['[x b] ... b -> '['[x b] ... b]]))
-                                    (mapv parse-type '(Integer Double Float))
+             (parse-type `[[Double Float :-> Integer] (Seqable Double) (Seqable Float) :-> (Seqable Integer)])))
+  (is-clj (= (clj (inst/manual-inst (parse-type `(t/All [x# b# :..]
+                                                        ['[x# b#] :.. b# :-> '['[x# b#] :.. b#]]))
+                                    (mapv parse-type `(Integer Double Float))
                                     {}))
-             (parse-type '['[Integer Double] '[Integer Float] 
-                           -> '['[Integer Double] '[Integer Float]]])))
+             (parse-type `['[Integer Double] '[Integer Float] 
+                           :-> '['[Integer Double] '[Integer Float]]])))
   ;TODO t/HSequential
   (is-clj (= (clj
                (inst/manual-inst (parse-type `(t/All [x# b# ...]
-                                                   [x# ... b# :-> (t/HSequential [x# ... b#])]))
+                                                   [x# :.. b# :-> (t/HSequential [x# ... b#])]))
                                  (mapv parse-type `(Integer Double Float))
                                  {}))
              (parse-type `(t/IFn [Integer Integer :-> (t/HSequential [Integer Integer])]))))
