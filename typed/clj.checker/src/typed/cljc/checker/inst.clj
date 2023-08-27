@@ -91,7 +91,7 @@
             bbnds (c/Poly-bbnds* names ptype)]
         (free-ops/with-bounded-frees (zipmap (map r/make-F names) bbnds)
           (doseq [[i nme ty bnds] (map vector (range) names argtys bbnds)]
-            (assert (not (:higher-kind bnds)))
+            (assert (= :Type (:higher-kind bnds)))
             (let [lower-bound (subst/substitute-many (:lower-bound bnds) (take i argtys) (take i names))
                   upper-bound (subst/substitute-many (:upper-bound bnds) (take i argtys) (take i names))]
               (when-not (sub/subtype? lower-bound upper-bound)

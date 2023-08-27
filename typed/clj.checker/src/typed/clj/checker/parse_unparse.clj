@@ -31,7 +31,7 @@
             [typed.cljc.runtime.env-utils :as env-utils])
   (:import (typed.cljc.checker.type_rep NotType DifferenceType Intersection Union FnIntersection
                                         DottedPretype Function Regex RClass App TApp
-                                        PrimitiveArray DataType Protocol TypeFn Poly PolyDots
+                                        PrimitiveArray DataType Protocol TypeFn Poly
                                         Mu HeterogeneousMap
                                         CountRange Name Value Top Wildcard TypeOf Unchecked TopFunction B F Result AnyValue
                                         KwArgsSeq KwArgsArray TCError Extends JSNumber JSBoolean SymbolicClosure
@@ -636,23 +636,20 @@
 (defmethod parse-type-list 'typed.clojure/IFn [t] (parse-Fn t))
 
 (defn parse-free-binder [[nme & {:keys [variance < > kind] :as opts}]]
+  (when kind
+    (prs-error ":kind not yet implemented"))
   (when-not (symbol? nme)
     (prs-error "First entry in free binder should be a name symbol"))
   {:nme nme :variance (or variance :invariant)
-   :bound (r/Bounds-maker
+   :bound (r/-bounds
             ;upper
-            (when-not kind
-              (if (contains? opts :<)
-                (parse-type <)
-                r/-any))
+            (if (contains? opts :<)
+              (parse-type <)
+              r/-any)
             ;lower
-            (when-not kind
-              (if (contains? opts :>)
-                (parse-type >)
-                r/-nothing))
-            ;kind
-            (when kind
-              (parse-type kind)))})
+            (if (contains? opts :>)
+              (parse-type >)
+              r/-nothing))})
 
 (defn parse-tfn-binder [[nme & opts-flat :as all]]
   {:pre [(vector? all)]
@@ -1921,9 +1918,9 @@
             (unparse-type upper-bound))
         l (when lower-bound 
             (unparse-type lower-bound))
-        h (when higher-kind
-            (unparse-type higher-kind))]
-    (or (when higher-kind
+        ;h (when (not= :Type higher-kind) higher-kind)
+        ]
+    (or #_(when higher-kind
           [name :kind h])
         (when-not (or (r/Top? upper-bound) (r/Bottom? lower-bound))
           [name :< u :> l])
@@ -1961,15 +1958,6 @@
     binder))
 
 (extend-protocol IUnparseType
-  PolyDots
-  (unparse-type* 
-    [{:keys [nbound named] :as p}]
-    (let [free-names (vec (c/PolyDots-fresh-symbols* p))
-          bbnds (c/PolyDots-bbnds* free-names p)
-          binder (unparse-poly-binder true free-names bbnds named)
-          body (c/PolyDots-body* free-names p)]
-      (list (unparse-Name-symbol-in-ns `t/All) binder (unparse-type body))))
-
   Extends
   (unparse-type* 
     [{:keys [extends without]}]
@@ -1980,13 +1968,19 @@
 
   Poly
   (unparse-type* 
-    [{:keys [nbound named] :as p}]
-    (let [free-names (c/Poly-fresh-symbols* p)
-          ;_ (prn "Poly unparse" free-names (map meta free-names))
-          bbnds (c/Poly-bbnds* free-names p)
-          binder (unparse-poly-binder false free-names bbnds named)
-          body (c/Poly-body* free-names p)]
-      (list (unparse-Name-symbol-in-ns `t/All) binder (unparse-type body)))))
+    [{:keys [nbound named kind] :as p}]
+    (case kind
+      :Poly (let [free-names (c/Poly-fresh-symbols* p)
+                  ;_ (prn "Poly unparse" free-names (map meta free-names))
+                  bbnds (c/Poly-bbnds* free-names p)
+                  binder (unparse-poly-binder false free-names bbnds named)
+                  body (c/Poly-body* free-names p)]
+              (list (unparse-Name-symbol-in-ns `t/All) binder (unparse-type body)))
+      :PolyDots (let [free-names (vec (c/PolyDots-fresh-symbols* p))
+                      bbnds (c/PolyDots-bbnds* free-names p)
+                      binder (unparse-poly-binder true free-names bbnds named)
+                      body (c/PolyDots-body* free-names p)]
+                  (list (unparse-Name-symbol-in-ns `t/All) binder (unparse-type body))))))
 
 ;(ann unparse-typefn-bounds-entry [t/Sym Bounds Variance -> Any])
 (defn unparse-typefn-bounds-entry [name {:keys [upper-bound lower-bound higher-kind]} v]
@@ -1995,10 +1989,9 @@
             (unparse-type upper-bound))
         l (when lower-bound 
             (unparse-type lower-bound))
-        h (when higher-kind
-            (unparse-type higher-kind))]
-    (or (when higher-kind
-          [name :variance v :kind h])
+        ;h nil #_(when (not= higher-kind :Type) higher-kind)
+        ]
+    (or ;(when higher-kind [name :variance v :kind h])
         (when-not (or (r/Top? upper-bound) (r/Bottom? lower-bound))
           [name :variance v :< u :> l])
         (when-not (r/Top? upper-bound) 

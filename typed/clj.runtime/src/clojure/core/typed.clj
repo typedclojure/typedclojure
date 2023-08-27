@@ -762,7 +762,7 @@ for checking namespaces, cf for checking individual forms."}
 (core/defn ^:no-doc
   ann*
   "Internal use only. Use ann."
-  [defining-nsym qsym typesyn check? form]
+  [defining-nsym qsym typesyn check? form opts]
   (macros/when-bindable-defining-ns defining-nsym
     (with-clojure-impl
       (core/let
@@ -776,7 +776,8 @@ for checking namespaces, cf for checking individual forms."}
          _ (when (and (contains? (var-env) qsym)
                       (not (check-var? qsym))
                       check?)
-             (warn (str "Removing :no-check from var " qsym))
+             (when-not (get opts :force-check)
+               (warn (str "Removing :no-check from var " qsym)))
              (remove-nocheck-var qsym))
          _ (when-not check?
              (add-nocheck-var qsym))
@@ -817,7 +818,7 @@ for checking namespaces, cf for checking individual forms."}
                (symbol (-> *ns* ns-name str) (str varsym)))
         opts (meta varsym)
         check? (not (:no-check opts))]
-    `(tc-ignore (ann* '~(ns-name *ns*) '~qsym '~typesyn '~check? '~&form))))
+    `(tc-ignore (ann* '~(ns-name *ns*) '~qsym '~typesyn '~check? '~&form '~opts))))
 
 (defmacro ann-many
   "Annotate several vars with type t.

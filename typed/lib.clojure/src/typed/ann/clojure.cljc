@@ -1200,6 +1200,11 @@ cc/keys (t/All [k] (t/IFn [(t/Map k t/Any) :-> (t/ASeq k) :object {:id 0 :path [
 cc/vals (t/All [v] (t/IFn [(t/Map t/Any v) :-> (t/ASeq v) :object {:id 0 :path [Vals]}]
                           [(t/Seqable (t/MapEntry t/Any v)) :-> (t/Nilable (t/ASeq v))]))
 
+#_
+(t/All [a :.. b :..] [[(Next... a) :-> a] :.. a
+                      [b :.. b :-> (Last  (t/cat a :.. a))] :->
+                      [b :.. b :-> (First (t/cat a :.. a))]])
+
 cc/comp (t/All [a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 b :..]
                (t/IFn [                                                                                                                             :-> [a0 :-> a0]]
                       [                                                                                                            [b :.. b :-> a0] :-> [b :.. b :-> a0]]

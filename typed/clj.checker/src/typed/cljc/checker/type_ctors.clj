@@ -35,14 +35,14 @@
             [typed.cljc.checker.utils :as u]
             typed.cljc.checker.coerce-ann)
   (:import (clojure.lang ASeq)
-           (typed.cljc.checker.type_rep HeterogeneousMap Poly TypeFn PolyDots TApp App Value
+           (typed.cljc.checker.type_rep HeterogeneousMap Poly TypeFn TApp App Value
                                         Union Intersection F Function Mu B KwArgs KwArgsSeq KwArgsArray
                                         RClass Bounds Name Scope CountRange Intersection DataType Extends
                                         JSNominal Protocol GetType HSequential
                                         HSet AssocType TypeOf MergeType
                                         NotType DifferenceType Intersection Union FnIntersection Bounds
                                         DottedPretype Function RClass JSNominal App TApp
-                                        PrimitiveArray DataType Protocol TypeFn Poly PolyDots
+                                        PrimitiveArray DataType Protocol TypeFn Poly
                                         Mu HeterogeneousMap
                                         CountRange Name Value Top Wildcard Unchecked TopFunction B F Result
                                         TCResult TCError Extends
@@ -1254,14 +1254,14 @@
       (with-original-names v original-names))))
 
 ;smart destructor
-(t/ann ^:no-check PolyDots-body* [(t/Seqable t/Sym) PolyDots -> r/Type])
-(defn PolyDots-body* [names ^PolyDots poly]
+(t/ann ^:no-check PolyDots-body* [(t/Seqable t/Sym) Poly -> r/Type])
+(defn PolyDots-body* [names poly]
   {:pre [(every? symbol? names)
          (r/PolyDots? poly)]}
-  (assert (= (.nbound poly) (count names)) "Wrong number of names")
-  (instantiate-many names (.scope poly)))
+  (assert (= (:nbound poly) (count names)) "Wrong number of names")
+  (instantiate-many names (:scope poly)))
 
-(t/ann ^:no-check PolyDots-bbnds* [(t/Seqable t/Sym) PolyDots -> (t/Seqable Bounds)])
+(t/ann ^:no-check PolyDots-bbnds* [(t/Seqable t/Sym) Poly -> (t/Seqable Bounds)])
 (defn PolyDots-bbnds* [names poly]
   {:pre [(every? symbol? names)
          (r/PolyDots? poly)]
@@ -1279,7 +1279,7 @@
            %)]}
   (get-original-names poly))
 
-(t/ann ^:no-check PolyDots-fresh-symbols* [PolyDots -> (t/Seqable t/Sym)])
+(t/ann ^:no-check PolyDots-fresh-symbols* [Poly -> (t/Seqable t/Sym)])
 (defn PolyDots-fresh-symbols* [poly]
   {:pre [(r/PolyDots? poly)]
    :post [((every-pred seq (con/every-c? symbol?)) %)]}
@@ -1972,31 +1972,27 @@
 
 (f/add-fold-case
   IAbstractMany abstract-many*
-  PolyDots
-  (fn [{:keys [named] bbnds* :bbnds n :nbound body* :scope :as ty} name count outer sb name-to]
-   (let [rs #(remove-scopes n %)
-         body (rs body*)
-         bbnds (mapv #(r/visit-bounds % rs) bbnds*)
-         as #(add-scopes n (name-to name count (+ n outer) %))]
-     (r/PolyDots-maker n 
-                       (mapv #(r/visit-bounds % as) bbnds)
-                       (as body)
-                       named
-                       (meta ty)))))
-
-(f/add-fold-case
-  IAbstractMany abstract-many*
   Poly
-  (fn [{:keys [named] bbnds* :bbnds n :nbound body* :scope :as poly} name count outer sb name-to]
-   (let [rs #(remove-scopes n %)
-         body (rs body*)
-         bbnds (mapv #(r/visit-bounds % rs) bbnds*)
-         as #(add-scopes n (name-to name count (+ n outer) %))]
-     (r/Poly-maker n 
-                   (mapv #(r/visit-bounds % as) bbnds)
-                   (as body)
-                   named
-                   (meta poly)))))
+  (fn [{:keys [named kind] bbnds* :bbnds n :nbound body* :scope :as poly} name count outer sb name-to]
+   (case kind
+     :Poly (let [rs #(remove-scopes n %)
+                 body (rs body*)
+                 bbnds (mapv #(r/visit-bounds % rs) bbnds*)
+                 as #(add-scopes n (name-to name count (+ n outer) %))]
+             (r/Poly-maker n 
+                           (mapv #(r/visit-bounds % as) bbnds)
+                           (as body)
+                           named
+                           (meta poly)))
+     :PolyDots (let [rs #(remove-scopes n %)
+                     body (rs body*)
+                     bbnds (mapv #(r/visit-bounds % rs) bbnds*)
+                     as #(add-scopes n (name-to name count (+ n outer) %))]
+                 (r/PolyDots-maker n 
+                                   (mapv #(r/visit-bounds % as) bbnds)
+                                   (as body)
+                                   named
+                                   (meta poly))))))
 
 (f/add-fold-case
   IAbstractMany abstract-many*
@@ -2126,37 +2122,33 @@
 
 (f/add-fold-case
   IInstantiateMany instantiate-many*
-  PolyDots
-  (fn [{:keys [named] bbnds* :bbnds n :nbound body* :scope :as ty} count outer image sb replace]
-    (let [rs #(remove-scopes n %)
-          body (rs body*)
-          bbnds (mapv #(r/visit-bounds % rs) bbnds*)
-          as #(add-scopes n (replace image count (+ n outer) %))]
-      (r/PolyDots-maker n 
-                        (mapv #(r/visit-bounds % as) bbnds)
-                        (as body)
-                        named
-                        (meta ty)))))
-
-(f/add-fold-case
-  IInstantiateMany instantiate-many*
   Poly
-  (fn [{:keys [named] bbnds* :bbnds n :nbound body* :scope :as poly} 
+  (fn [{:keys [named kind] bbnds* :bbnds n :nbound body* :scope :as poly} 
        count outer image sb replace]
-    (let [rs #(remove-scopes n %)
-          body (rs body*)
-          bbnds (mapv #(r/visit-bounds % rs) bbnds*)
-          as #(add-scopes n (replace image count (+ n outer) %))]
-      (r/Poly-maker n 
-                    (mapv #(r/visit-bounds % as) bbnds)
-                    (as body)
-                    named
-                    (meta poly)))))
+    (case kind
+      :Poly (let [rs #(remove-scopes n %)
+                  body (rs body*)
+                  bbnds (mapv #(r/visit-bounds % rs) bbnds*)
+                  as #(add-scopes n (replace image count (+ n outer) %))]
+              (r/Poly-maker n 
+                            (mapv #(r/visit-bounds % as) bbnds)
+                            (as body)
+                            named
+                            (meta poly)))
+      :PolyDots (let [rs #(remove-scopes n %)
+                      body (rs body*)
+                      bbnds (mapv #(r/visit-bounds % rs) bbnds*)
+                      as #(add-scopes n (replace image count (+ n outer) %))]
+                  (r/PolyDots-maker n 
+                                    (mapv #(r/visit-bounds % as) bbnds)
+                                    (as body)
+                                    named
+                                    (meta poly))))))
 
 (f/add-fold-case
   IInstantiateMany instantiate-many*
   TypeFn
-  (fn [{bbnds* :bbnds n :nbound body* :scope :keys [variances] :as t} 
+  (fn [{bbnds* :bbnds n :nbound body* :scope :keys [variances] :as t}
        count outer image sb replace]
     (let [rs #(remove-scopes n %)
           body (rs body*)
@@ -2433,7 +2425,7 @@
                                 lower-or-nil {:upper (find-upper-bound lower-or-nil) :lower lower-or-nil}
                                 ;no bounds provided, default to Nothing <: t/Any
                                 :else {:upper r/-any :lower r/-nothing})]
-    (r/Bounds-maker upper lower nil)))
+    (r/-bounds upper lower)))
 
 (defn find-val-type 
   ([t k default] (find-val-type t k default #{}))
@@ -2746,36 +2738,34 @@
 
 (add-default-fold-case Poly
                        (fn [ty]
-                         (let [names (Poly-fresh-symbols* ty)
-                               body (Poly-body* names ty)
-                               bbnds (Poly-bbnds* names ty)
-                               bmap (zipmap (map r/make-F names) bbnds)
-                               bbnds' (free-ops/with-bounded-frees bmap
-                                        (into-identical [] #(r/visit-bounds % type-rec) bbnds))
-                               body' (free-ops/with-bounded-frees bmap
-                                       (type-rec body))
-                               changed? (or (not (identical? bbnds bbnds'))
-                                            (not (identical? body body')))]
-                           (if changed?
-                             (Poly* names bbnds' body' :named (:named ty))
-                             ty))))
-
-(add-default-fold-case PolyDots
-                       (fn [ty]
-                         (let [names (PolyDots-fresh-symbols* ty)
-                               body (PolyDots-body* names ty)
-                               bbnds (PolyDots-bbnds* names ty)
-                               ; don't scope the dotted bound
-                               bmap (zipmap (map r/make-F (rest names)) (rest bbnds))
-                               bbnds' (free-ops/with-bounded-frees bmap
-                                        (into-identical [] #(r/visit-bounds % type-rec) bbnds))
-                               body' (free-ops/with-bounded-frees bmap
-                                       (type-rec body))
-                               changed? (or (not (identical? bbnds bbnds'))
-                                            (not (identical? body body')))]
-                           (if changed?
-                             (PolyDots* names bbnds' body' :named (:named ty))
-                             ty))))
+                         (case (:kind ty)
+                           :Poly (let [names (Poly-fresh-symbols* ty)
+                                       body (Poly-body* names ty)
+                                       bbnds (Poly-bbnds* names ty)
+                                       bmap (zipmap (map r/make-F names) bbnds)
+                                       bbnds' (free-ops/with-bounded-frees bmap
+                                                (into-identical [] #(r/visit-bounds % type-rec) bbnds))
+                                       body' (free-ops/with-bounded-frees bmap
+                                               (type-rec body))
+                                       changed? (or (not (identical? bbnds bbnds'))
+                                                    (not (identical? body body')))]
+                                   (if changed?
+                                     (Poly* names bbnds' body' :named (:named ty))
+                                     ty))
+                           :PolyDots (let [names (PolyDots-fresh-symbols* ty)
+                                           body (PolyDots-body* names ty)
+                                           bbnds (PolyDots-bbnds* names ty)
+                                           ; don't scope the dotted bound
+                                           bmap (zipmap (map r/make-F (rest names)) (rest bbnds))
+                                           bbnds' (free-ops/with-bounded-frees bmap
+                                                    (into-identical [] #(r/visit-bounds % type-rec) bbnds))
+                                           body' (free-ops/with-bounded-frees bmap
+                                                   (type-rec body))
+                                           changed? (or (not (identical? bbnds bbnds'))
+                                                        (not (identical? body body')))]
+                                       (if changed?
+                                         (PolyDots* names bbnds' body' :named (:named ty))
+                                         ty)))))
 
 (add-default-fold-case Mu
                        (fn [ty]

@@ -32,13 +32,11 @@
 (defmacro ann-record 
   "Like ann-record, but also adds an unchecked annotation for core.contract's generated
   nme? predicate."
-  [nme & args]
-  `(do ~(-> `(clojure.core.typed/ann-record ~nme ~@args)
+  [nme fields & {:keys [maker-name]}]
+  `(do ~(-> `(clojure.core.typed/ann-record ~nme ~fields)
             (with-meta (meta &form)))
-       ~(-> `(clojure.core.typed/ann ~(with-meta (symbol (str nme "-maker")) {:no-check true})
-                                     [~@(map #(nth % 2) (partition 3 (first args))) ~'-> ~nme])
-            (with-meta (meta &form)))
-       ~(-> `(clojure.core.typed/ann ~(with-meta (symbol (str nme "?")) {:no-check true}) ~(list `t/Pred nme))
+       ~(-> `(clojure.core.typed/ann ~(with-meta (or maker-name (symbol (str nme "-maker"))) {:no-check true})
+                                     [~@(map #(nth % 2) (partition 3 fields)) (t/? (t/Option (t/Map t/Any t/Any))) :-> ~nme])
             (with-meta (meta &form)))))
 
 (t/tc-ignore
@@ -146,14 +144,15 @@
 
      ~@methods*))
 
-(defn emit-deftype [original-ns def-kind name-sym fields invariants {methods* :methods :keys [computed-fields ctor-meta]}]
+(defn emit-deftype [original-ns def-kind name-sym fields invariants {methods* :methods :keys [computed-fields ctor-meta] :as opt}]
   (assert (symbol? name-sym))
   (let [classname (with-meta (symbol (str (namespace-munge *ns*) "." name-sym)) (meta name-sym))
         ->ctor (symbol (str "->" name-sym))
-        maker (with-meta (symbol (str name-sym "-maker"))
+        maker (with-meta (or (:maker-name opt)
+                             (symbol (str name-sym "-maker")))
                          ctor-meta)
         _ (assert (apply distinct? maker fields))
-        pred (symbol (str name-sym "?"))
+        pred (or (:pred-name opt) (symbol (str name-sym "?")))
         this (gensym)
         that (gensym)
         gs (gensym)
@@ -170,6 +169,7 @@
 
        (alter-meta! (var ~->ctor) assoc :private true)
 
+       (t/ann ~pred (t/Pred ~name-sym))
        (defn ~pred [a#]
          (instance? ~name-sym a#))
 

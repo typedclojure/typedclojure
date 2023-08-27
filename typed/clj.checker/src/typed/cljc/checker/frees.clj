@@ -23,7 +23,7 @@
             [typed.cljc.checker.declared-kind-env :as kinds])
   (:import (typed.cljc.checker.type_rep NotType DifferenceType Intersection Union FnIntersection Bounds
                                         Function RClass App TApp
-                                        PrimitiveArray DataType Protocol TypeFn Poly PolyDots
+                                        PrimitiveArray DataType Protocol TypeFn Poly
                                         Mu HeterogeneousMap
                                         CountRange Name Value Top Wildcard Unchecked TopFunction B F Result AnyValue
                                         Scope TCError Extends AssocType GetType MergeType Regex HSequential HSet
@@ -483,22 +483,17 @@
 
   Poly
   (frees 
-    [{:keys [scope bbnds]}]
-    (let [_ (when-not (every? empty-frees-result? (map frees bbnds))
-              (err/nyi-error "NYI Handle frees in bounds"))]
-      (frees scope)))
+    [{:keys [scope bbnds kind]}]
+    (case kind
+      (:Poly :PolyDots)
+      (let [_ (when-not (every? empty-frees-result? (map frees bbnds))
+                (err/nyi-error "NYI Handle frees in bounds"))]
+        (frees scope))))
 
   Mu
   (frees 
     [{:keys [scope]}]
     (frees scope))
-
-  PolyDots
-  (frees 
-    [{:keys [scope bbnds]}]
-    (let [_ (when-not (every? empty-frees-result? (map frees bbnds))
-              (err/nyi-error "NYI Handle frees in bounds"))]
-      (frees scope)))
 
 ;;js types
   typed.cljc.checker.type_rep.JSBoolean 

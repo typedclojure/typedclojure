@@ -82,21 +82,19 @@
   (is-clj (= (Poly-body*
                '(x)
                (Poly* '(x)
-                      [(Bounds-maker -nil -false nil)]
+                      [(-bounds -nil -false)]
                       (make-F 'x)))
          (make-F 'x)))
   (is-clj (= (parse-type '(clojure.core.typed/All [x x1 [y :< x] z] [x -> y]))
-             (let [no-bounds-scoped (Bounds-maker
+             (let [no-bounds-scoped (-bounds
                                       (add-scopes 4 -any)
-                                      (add-scopes 4 (Un))
-                                      nil)]
+                                      (add-scopes 4 (Un)))]
                (Poly-maker 4
                            [no-bounds-scoped
                             no-bounds-scoped
-                            (Bounds-maker 
+                            (-bounds 
                               (add-scopes 4 (B-maker 3))
-                              (add-scopes 4 (Un))
-                              nil)
+                              (add-scopes 4 (Un)))
                             no-bounds-scoped]
                            (add-scopes 4
                                        (make-FnIntersection

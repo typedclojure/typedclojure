@@ -168,9 +168,12 @@
 
 (declare Scope? TypeFn?)
 
+;FIXME these are crude kinds just to distinguish between Poly and PolyDots
+(def kinds #{:Type :.. :TypeFn})
+
 (u/ann-record Bounds [upper-bound :- MaybeScopedType
                       lower-bound :- MaybeScopedType
-                      higher-kind :- nil])
+                      higher-kind :- t/Keyword])
 (u/def-type Bounds [upper-bound lower-bound higher-kind]
   "A type bound or higher-kind bound on a variable"
   [;; verbose for performance
@@ -178,8 +181,7 @@
        (Scope? upper-bound))
    (or (Type? lower-bound)
        (Scope? lower-bound))
-   ;deprecated/unused
-   (nil? higher-kind)])
+   (contains? kinds higher-kind)])
 
 (u/ann-record B [idx :- Number])
 (u/def-type B [idx]
@@ -364,8 +366,8 @@
   [p/TCType])
 
 (u/ann-record TypeFn [nbound :- Number,
-                      variances :- (t/U nil (t/Seqable Variance))
-                      bbnds :- (t/U nil (t/Seqable Bounds)),
+                      variances :- (t/Seqable Variance)
+                      bbnds :- (t/Seqable Bounds),
                       scope :- p/IScope])
 (u/def-type TypeFn [nbound variances bbnds scope]
   "A type function containing n bound variables with variances.
@@ -380,10 +382,12 @@
   [p/TCType])
 
 (u/ann-record Poly [nbound :- Number,
-                    bbnds :- (t/U nil (t/Seqable Bounds)),
+                    bbnds :- (t/Seqable Bounds),
                     scope :- p/IScope
-                    named :- (t/Map t/Sym t/Int)])
-(u/def-type Poly [nbound bbnds scope named]
+                    named :- (t/Map t/Sym t/Int)
+                    kind :- t/Kw]
+              :maker-name -Poly-maker)
+(u/def-type Poly [nbound bbnds scope named kind]
   "A polymorphic type containing n bound variables.
   `named` is a map of free variable names to de Bruijn indices (range nbound)"
   [(nat-int? nbound)
@@ -397,30 +401,40 @@
    (or (empty? named)
        (apply distinct? (vals named)))
    ]
+  :computed-fields
+  [kind (if (and (every? (comp #(= :Type %) :higher-kind) (butlast bbnds))
+                 (-> bbnds last :higher-kind (= :..)))
+          :PolyDots
+          :Poly)]
+  :pred-name -Poly?
+  :maker-name -Poly-maker
+  :ctor-meta {:private true}
   :methods
   [p/TCType])
 
-(u/ann-record PolyDots [nbound :- Number,
-                        bbnds :- (t/U nil (t/Seqable Bounds)),
-                        scope :- p/IScope
-                        named :- (t/Map t/Sym t/Int)])
-(u/def-type PolyDots [nbound bbnds scope named]
-  "A polymorphic type containing n-1 bound variables and 1 ... variable
-  `named` is a map of free variable names to de Bruijn indices (range nbound)."
-  [(nat-int? nbound)
-   (every? Bounds? bbnds)
-   (= nbound (count bbnds))
-   (scope-depth? scope nbound)
-   (Scope? scope)
-   (map? named)
-   (every? symbol? (keys named))
-   (every? #(<= 0 % (dec nbound)) (vals named))
-   (or (empty? named)
-       (apply distinct? (vals named)))]
-  :methods
-  [p/TCType])
+(t/ann-many [t/Any :-> t/Bool :filters {:then (is Poly 0)}]
+            Poly? PolyDots?)
+(defn Poly? [p] (and (-Poly? p) (= :Poly (:kind p))))
+(defn PolyDots? [p] (and (-Poly? p) (= :PolyDots (:kind p))))
+(t/ann-many [Number (t/Seqable Bounds) p/IScope (t/Map t/Sym t/Int) (t/? (t/Option (t/Map t/Any t/Any)))
+             :-> Poly]
+            ^:force-check Poly-maker
+            ;;TODO assoc-in support
+            ^:no-check PolyDots-maker)
+(defn Poly-maker
+  ([nbound bbnds scope named] (Poly-maker nbound bbnds scope named nil))
+  ([nbound bbnds scope named meta]
+   {:post [(Poly? %)]}
+   (-Poly-maker nbound bbnds scope named :Poly meta)))
+(defn PolyDots-maker
+  ([nbound bbnds scope named] (PolyDots-maker nbound bbnds scope named nil))
+  ([nbound bbnds scope named meta]
+   {:post [(PolyDots? %)]}
+   (let [bbnds (cond-> (vec bbnds)
+                 (pos? nbound) (assoc-in [(dec nbound) :higher-kind] :..))]
+     (-Poly-maker nbound bbnds scope named :PolyDots meta))))
 
-(t/ann unsafe-body [[t/Any :-> t/Any] (t/U Poly PolyDots) :-> Type])
+(t/ann unsafe-body [[t/Any :-> t/Any] Poly :-> Type])
 (defn ^:private unsafe-body [pred p]
   {:pre [(pred p)]
    :post [((every-pred Type? (complement Scope?)) %)]}
@@ -439,8 +453,9 @@
 (defn Poly-body-unsafe* [p]
   (unsafe-body Poly? p))
 
-(t/ann PolyDots-body-unsafe* [PolyDots :-> Type])
+(t/ann PolyDots-body-unsafe* [Poly :-> Type])
 (defn PolyDots-body-unsafe* [p]
+  {:pre [(PolyDots? p)]}
   (unsafe-body PolyDots? p))
 
 (u/ann-record Name [id :- t/Sym])
@@ -1075,12 +1090,14 @@
    :post [(p/IRObject? %)]}
   (:o r))
 
-(t/ann no-bounds Bounds)
-(def no-bounds (Bounds-maker -any (Un) nil))
-
 (t/ann -bounds [Type Type -> Bounds])
 (defn -bounds [u l]
-  (Bounds-maker u l nil))
+  {:pre [(scoped-Type? u)
+         (scoped-Type? l)]}
+  (Bounds-maker u l :Type))
+
+(t/ann no-bounds Bounds)
+(def no-bounds (-bounds -any -nothing))
 
 (u/def-type TCResult [t fl o opts]
   "This record represents the result of type-checking an expression"
@@ -1139,7 +1156,9 @@
   (-> ty
       (update :upper-bound #(some-> % f))
       (update :lower-bound #(some-> % f))
-      (update :higher-kind #(some-> % f))))
+      ;;TODO
+      ;(update :higher-kind #(some-> % f))
+      ))
 
 ;;TODO annotate ind ops
 (t/ann ^:no-check make-Result

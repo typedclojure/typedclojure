@@ -18,7 +18,7 @@
             typed.cljc.checker.filter-rep)
   (:import (typed.cljc.checker.type_rep NotType Intersection Union FnIntersection Bounds
                                         DottedPretype Function RClass App TApp
-                                        PrimitiveArray DataType Protocol TypeFn Poly PolyDots
+                                        PrimitiveArray DataType Protocol TypeFn Poly
                                         Mu HeterogeneousMap
                                         CountRange Name Value Top Wildcard Unchecked TopFunction B F Result AnyValue
                                         TCError Extends JSNominal
@@ -311,12 +311,19 @@
                pmt-body)))
 
 (promote-demote Poly [T V]
-  (let [names (c/Poly-fresh-symbols* T)
-        bbnds (c/Poly-bbnds* names T)
-        pmt-body (promote (c/Poly-body* names T) V)]
-    (c/Poly* names 
-             bbnds
-             pmt-body)))
+  (case (:kind T)
+    :Poly (let [names (c/Poly-fresh-symbols* T)
+                bbnds (c/Poly-bbnds* names T)
+                pmt-body (promote (c/Poly-body* names T) V)]
+            (c/Poly* names 
+                     bbnds
+                     pmt-body))
+    :PolyDots (let [names (c/PolyDots-fresh-symbols* T)
+                    bbnds (c/PolyDots-bbnds* names T)
+                    pmt-body (promote (c/PolyDots-body* names T) V)]
+                (c/PolyDots* names 
+                             bbnds
+                             pmt-body))))
 
 (promote-demote Mu 
   [T V]
