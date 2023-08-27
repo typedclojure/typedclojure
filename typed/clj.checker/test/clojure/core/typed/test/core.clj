@@ -108,7 +108,7 @@
                                (mapv parse-type `(Integer Double Float))
                                {})
              (parse-type `[Integer Integer :-> Integer])))
-  (is-clj (= (inst/manual-inst (parse-type '(t/All [x# b# :..] [b# :.. b# :-> x#]))
+  (is-clj (= (inst/manual-inst (parse-type `(t/All [x# b# :..] [b# :.. b# :-> x#]))
                                (mapv parse-type `(Integer Double Float))
                                {})
              (parse-type `[Double Float :-> Integer])))
