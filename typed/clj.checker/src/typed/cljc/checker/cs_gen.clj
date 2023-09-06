@@ -31,7 +31,8 @@
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.utils :as u])
   (:import (typed.cljc.checker.cs_rep c cset dcon dmap cset-entry)
-           (typed.cljc.checker.type_rep Top Wildcard DottedPretype F DataType Function Protocol Bounds TCResult HSequential SymbolicClosure)))
+           (typed.cljc.checker.type_rep Top Wildcard DottedPretype F DataType Function Protocol Bounds TCResult HSequential SymbolicClosure
+                                        GetType MergeType AssocType)))
 
 (t/typed-deps typed.cljc.checker.free-ops
               typed.cljc.checker.promote-demote)
@@ -127,17 +128,12 @@
 (defn cset-meet* [args]
   {:pre [(every? cr/cset? args)]
    :post [(cr/cset? %)]}
-  (reduce cset-meet
-          (cr/cset-maker [(cr/cset-entry-maker {} (cr/dmap-maker {}))])
-          args))
+  (reduce cset-meet (cr/empty-cset {} {}) args))
 
 (t/ann cset-combine [(t/Seqable cset) -> cset])
 (defn cset-combine [l]
   {:pre [(every? cr/cset? l)]}
-  (let [mapss (map :maps l)]
-    (-> mapss
-        (t/ann-form (t/Seqable (t/Seqable cset-entry))))
-    (cr/cset-maker (apply concat mapss))))
+  (cr/cset-maker (mapcat :maps l)))
 
 ;add new constraint to existing cset
 (t/ann insert-constraint [cset t/Sym r/Type r/Type Bounds -> cset])
@@ -148,7 +144,7 @@
          (r/Type? T)
          (r/Bounds? bnds)]
    :post [(cr/cset? %)]}
-  (cr/cset-maker 
+  (cr/cset-maker
     (doall
       (for [{fmap :fixed dmap :dmap} (:maps cs)]
         (cr/cset-entry-maker 
@@ -170,10 +166,8 @@
       (when-not (and rest2 (= (count fixed1) (count fixed2)))
         (fail! fixed1 fixed2))
       (cr/dcon-exact-maker
-        (doall
-          (let [vector' (t/ann-form vector [c c -> '[c c]])]
-            (for [[c1 c2] (map vector' fixed1 fixed2)]
-              (c-meet c1 c2 (:X c1)))))
+        (mapv (fn [c1 c2] (c-meet c1 c2 (:X c1)))
+              fixed1 fixed2)
         (c-meet rest1 rest2 (:X rest1))))
     ;; redo in the other order to call the first case
     (and (cr/dcon? dc1)
@@ -189,9 +183,8 @@
       (when-not (= (count fixed1) (count fixed2))
         (fail! fixed1 fixed2))
       (cr/dcon-maker
-        (doall
-          (for [[c1 c2] (map vector fixed1 fixed2)]
-            (c-meet c1 c2 (:X c1))))
+        (mapv (fn [c1 c2] (c-meet c1 c2 (:X c1)))
+              fixed1 fixed2)
         nil))
 
     (and (cr/dcon? dc1)
@@ -203,9 +196,8 @@
       (when-not (>= (count fixed1) (count fixed2))
         (fail! fixed1 fixed2))
       (cr/dcon-maker
-        (doall
-          (for [[c1 c2] (map vector fixed1 (concat fixed2 (repeat rest)))]
-            (c-meet c1 c2 (:X c1))))
+        (mapv (fn [c1 c2] (c-meet c1 c2 (:X c1)))
+              fixed1 (concat fixed2 (repeat rest)))
         nil))
 
     (and (cr/dcon? dc1)
@@ -222,9 +214,8 @@
             [fixed1 fixed2 rest1 rest2]
             [fixed2 fixed1 rest2 rest1])]
       (cr/dcon-maker
-        (doall
-          (for [[c1 c2] (map vector longer (concat shorter (repeat srest)))]
-            (c-meet c1 c2 (:X c1))))
+        (mapv (fn [c1 c2] (c-meet c1 c2 (:X c1)))
+              longer (concat shorter (repeat srest)))
         (c-meet lrest srest (:X lrest))))
 
     (and (cr/dcon-dotted? dc1)
@@ -235,9 +226,7 @@
                      (= bound1 bound2))
         (fail! bound1 bound2))
       (cr/dcon-dotted-maker 
-        (doall 
-          (for [[c1 c2] (map vector fixed1 fixed2)]
-            (c-meet c1 c2 (:X c1))))
+        (mapv (fn [c1 c2] (c-meet c1 c2 (:X c1))) fixed1 fixed2)
         (c-meet c1 c2 bound1) bound1))
 
     (and (cr/dcon? dc1)
@@ -262,12 +251,11 @@
                     (zero? (rem diff repeat-count)))
         (fail! fixed1 fixed2))
       (cr/dcon-repeat-maker
-        (doall
-          (for [[c1 c2] (map vector
-                             fixed2
-                             (concat fixed1
-                                     (gen-repeat (quot diff repeat-count) repeated)))]
-            (c-meet c1 c2 (:X c1))))
+        (mapv (fn [c1 c2]
+                (c-meet c1 c2 (:X c1)))
+              fixed2
+              (concat fixed1
+                      (gen-repeat (quot diff repeat-count) repeated)))
         repeated))
     (and (cr/dcon-repeat? dc2)
          (cr/dcon? dc1)
@@ -288,12 +276,11 @@
                           (c-meet c1 c2 (:X c1)))]
       (assert (zero? (rem diff s-repeat-count)))
       (cr/dcon-repeat-maker
-        (doall
-          (for [[c1 c2] (map vector
-                             long-fixed
-                             (concat short-fixed
-                                     (gen-repeat (quot diff s-repeat-count) short-repeat)))]
-            (c-meet c1 c2 (:X c1))))
+        (mapv (fn [c1 c2]
+                (c-meet c1 c2 (:X c1)))
+              long-fixed
+              (concat short-fixed
+                      (gen-repeat (quot diff s-repeat-count) short-repeat)))
         merged-repeat))
 
     :else (err/nyi-error (str "NYI dcon-meet " dc1 dc2))))
@@ -499,11 +486,8 @@
             cs
             (fail! S T)))
 
-        (r/App? S)
-        (cs-gen V X Y (c/resolve-App S) T)
-
-        (r/App? T)
-        (cs-gen V X Y S (c/resolve-App T))
+        (r/App? S) (cs-gen V X Y (c/resolve-App S) T)
+        (r/App? T) (cs-gen V X Y S (c/resolve-App T))
 
         ;; constrain body to be below T, but don't mention the new vars
         (r/Poly? S)
@@ -592,6 +576,11 @@
             (cs-gen-list V X Y Svals Tvals)
             (fail! S T)))
 
+        ((every-pred r/GetType?) S T)
+        (cset-meet* [(cs-gen V X Y (:target S) (:target T))
+                     (cs-gen V X Y (:key S) (:key T))
+                     (cs-gen V X Y (:not-found S) (:not-found T))])
+
         (or (and (r/GetType? S)
                  (c/Get-requires-resolving? S))
             (and (r/MergeType? S)
@@ -610,10 +599,10 @@
               {T-target :target T-entries :entries T-dentries :dentries} T
               cg #(cs-gen V X Y %1 %2)
               target-cset (cg S-target T-target)
-              S-entries (reduce concat S-entries)
-              T-entries (reduce concat T-entries)
+              S-entries (apply concat S-entries)
+              T-entries (apply concat T-entries)
               entries-cset (cs-gen-list V X Y S-entries T-entries)
-              _ (when (and S-dentries T-dentries)
+              _ (when (or S-dentries T-dentries)
                   (err/nyi-error "NYI dentries of Assoc in cs-gen"))
               ]
           (cset-meet* [target-cset entries-cset]))
@@ -628,7 +617,7 @@
                               (when (and dbound (not (Y dbound)))
                                 (fail! S T))
                               ;(println "passed when")
-                              (let [merged-X (merge X {dbound (Y dbound)})
+                              (let [merged-X (assoc X dbound (Y dbound))
                                     get-list-of-c (fn get-list-of-c [t-list]
                                                     (mapv #(get-c-from-cmap % dbound)
                                                           (for [t t-list]
@@ -737,11 +726,11 @@
                               (when (and dbound (not (Y dbound)))
                                 (fail! S T))
                               ;(println "passed when")
-                              (let [merged-X (merge X {dbound (Y dbound)})
+                              (let [merged-X (assoc X dbound (Y dbound))
                                     get-list-of-c (fn get-list-of-c [t-list]
-                                                    (mapv #(get-c-from-cmap % dbound)
-                                                          (for [t t-list]
-                                                            (cs-gen V merged-X Y dty t))))
+                                                    (mapv #(get-c-from-cmap (cs-gen V merged-X Y dty %)
+                                                                            dbound)
+                                                          t-list))
                                     repeat-c (get-list-of-c [num-type elem-type])]
                                 (assoc-in (cr/empty-cset X Y)
                                           [:maps 0 :dmap :map dbound]
@@ -841,10 +830,7 @@
              (r/Protocol? T))
         (cs-gen V X Y (:target S) T)
 
-        :else
-        (do (when-not (subtype? S T) 
-              (fail! S T))
-            (cr/empty-cset X Y))))))
+        :else (fail! S T)))))
 
 (declare var-store-take move-vars-to-dmap)
 
@@ -907,11 +893,10 @@
                   (let [{t-dty :pre-type dbound :name} (:drest T)
                         _ (when-not (Y dbound)
                             (fail! S T))
-                        merged-X (merge X {dbound (Y dbound)})
+                        merged-X (assoc X dbound (Y dbound))
                         get-list-of-c (fn get-list-of-c [S-list]
-                                        (mapv #(get-c-from-cmap % dbound)
-                                              (for [s S-list]
-                                                (cs-gen V merged-X Y s t-dty))))
+                                        (mapv #(get-c-from-cmap (cs-gen V merged-X Y % t-dty) dbound)
+                                              S-list))
                         repeat-c (get-list-of-c (:types S))]
                     [(assoc-in (cr/empty-cset X Y) [:maps 0 :dmap :map dbound] (cr/dcon-repeat-maker [] repeat-c))])
 
@@ -1152,16 +1137,15 @@
          (:the-var T))
     (cset-meet*
       (cons (cr/empty-cset X Y)
-            (for [[vari si ti]
-                  (map vector
-                       (:variances T)
-                       (t/ann-form (:poly? S) (t/Seqable r/Type))
-                       (:poly? T))]
-              (case vari
-                (:covariant :constant) (cs-gen V X Y si ti)
-                :contravariant (cs-gen V X Y ti si)
-                :invariant (cset-meet (cs-gen V X Y si ti)
-                                      (cs-gen V X Y ti si))))))
+            (map (fn [vari si ti]
+                   (case vari
+                     (:covariant :constant) (cs-gen V X Y si ti)
+                     :contravariant (cs-gen V X Y ti si)
+                     :invariant (cset-meet (cs-gen V X Y si ti)
+                                           (cs-gen V X Y ti si))))
+                 (:variances T)
+                 (:poly? S)
+                 (:poly? T))))
     (fail! S T)))
 
 (t/ann demote-F [NoMentions ConstrainVars ConstrainVars F r/Type -> cset])
@@ -1234,7 +1218,7 @@
    :post [(cr/cset? %)]}
   (cr/cset-maker
     (map
-      (t/fn [{cmap :fixed dmap :dmap} :- cset-entry]
+      (fn [{cmap :fixed dmap :dmap}]
         (cr/cset-entry-maker
           (apply dissoc cmap dbound vars)
           (dmap-meet 
@@ -1257,9 +1241,8 @@
          (fn [cmap dmap]
            ((if exact cr/dcon-exact-maker cr/dcon-maker)
               nil
-              (if-let [c (cmap dbound)]
-                c
-                (err/int-error (str "No constraint for bound " dbound)))))))
+              (or (cmap dbound)
+                  (err/int-error (str "No constraint for bound " dbound)))))))
 
 ; FIXME why we need a list of cset-entry?
 (t/ann get-c-from-cmap [cset t/Sym -> c])
@@ -1267,9 +1250,8 @@
   {:pre [(cr/cset? cset)
          (symbol? dbound)]
    :post [(cr/c? %)]}
-  (if-let [result ((-> cset :maps first :fixed) dbound)]
-    result
-    (err/int-error (str "No constraint for bound " dbound))))
+  (or ((-> cset :maps first :fixed) dbound)
+      (err/int-error (str "No constraint for bound " dbound))))
 
 ;; dbound : index variable
 ;; vars : listof[type variable] - temporary variables
@@ -1286,9 +1268,8 @@
   (mover cset dbound vars
          (fn [cmap dmap]
            (cr/dcon-maker (mapv (fn [v]
-                                  (if-let [c (cmap v)]
-                                    c
-                                    (err/int-error (str "No constraint for new var " v))))
+                                  (or (cmap v)
+                                      (err/int-error (str "No constraint for new var " v))))
                                 vars)
                           nil))))
 
@@ -1313,7 +1294,7 @@
                     (or (cmap v)
                         (err/int-error (str "No constraint for new var " v))))
                   vars)
-            (if-let [c ((:map dmap) dbound)]
+            (if-some [c ((:map dmap) dbound)]
               (cond
                 (and (cr/dcon? c)
                      (not (:fixed c))) (:rest c)
@@ -1852,24 +1833,61 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Infer
 
+(f/def-derived-fold IHardRange
+  hard-range?*
+  [hard?])
+
+(f/add-fold-case IHardRange hard-range?* GetType (fn [t hard?] (vreset! hard? true) t))
+(f/add-fold-case IHardRange hard-range?* MergeType (fn [t hard?] (vreset! hard? true) t))
+(f/add-fold-case IHardRange hard-range?* AssocType (fn [t hard?] (vreset! hard? true) t))
+
+(defn hard-range? [t]
+  (let [hard? (volatile! false)]
+    (call-hard-range?* t {:hard? hard?})
+    @hard?))
+
+(f/def-derived-fold IHardFnIntersection
+  hard-FnIntersection?*
+  [hard?])
+
+(f/add-fold-case IHardFnIntersection hard-FnIntersection?* GetType (fn [t hard?] (vreset! hard? true) t))
+(f/add-fold-case IHardFnIntersection hard-FnIntersection?* MergeType (fn [t hard?] (vreset! hard? true) t))
+(f/add-fold-case IHardFnIntersection hard-FnIntersection?* AssocType (fn [t hard?] (vreset! hard? true) t))
+
+(defn hard-FnIntersection? [t]
+  (and (r/FnIntersection? t)
+       (let [hard? (volatile! false)]
+         (call-hard-FnIntersection?* t {:hard? hard?})
+         @hard?)))
+
 ;; returns a non-empty set of argument positions whose checking should be deferred (symbolic closures and polymorphic functions).
-;; if none, returns nil.
-(defn get-deferred-fixed-args [arg-types dom]
-  (not-empty
-    (into (sorted-set)
-          (keep-indexed (fn [i arg-t]
-                          (let [arg-t (c/fully-resolve-type arg-t)
-                                dom-t (c/fully-resolve-type (nth dom i))]
-                            (when (or (and r/enable-symbolic-closures?
-                                           (r/SymbolicClosure? arg-t)
-                                           (inferrable-symbolic-closure-expected-type? dom-t))
-                                      (and ((some-fn r/Poly? r/PolyDots?) arg-t)
-                                           (or (and (r/FnIntersection? dom-t)
-                                                    (= 1 (count (:types dom-t)))
-                                                    (= :fixed (:kind (first (:types dom-t)))))
-                                               #_(prn "get-deferred-fixed-args not deferring poly because expected is:" dom-t))))
-                              i))))
-          arg-types)))
+;; if none, returns nil. :rng is the range position.
+(defn get-deferred-fixed-args [arg-types dom R expected]
+  {:pre [(r/AnyType? R)
+         ((some-fn nil? r/AnyType?) expected)]}
+  (let [defer? (fn [mode s t]
+                 (let [s (c/fully-resolve-type s)
+                       t (c/fully-resolve-type t)]
+                   (case mode
+                     :arg (or (and r/enable-symbolic-closures?
+                                   (r/SymbolicClosure? s)
+                                   (inferrable-symbolic-closure-expected-type? t))
+                              (or (and ((some-fn r/Poly? r/PolyDots?) s)
+                                       (or (and (r/FnIntersection? t)
+                                                (= 1 (count (:types t)))
+                                                ;; something can can potentially be run through check-funapp
+                                                ;; after instantiating dotted variables, i.e., turns into :fixed
+                                                (not-any? (comp #{:rest :kws :prest :regex} :kind) (:types t)))
+                                           #_(printf "get-deferred-fixed-args not deferring poly %s because expected is: %s\n" (pr-str s) (pr-str t))))
+                                   (hard-FnIntersection? t)))
+                     :rng (hard-range? s))))]
+    (-> #{}
+        (cond-> (some->> expected (defer? :rng R)) (conj :rng))
+        (into (keep-indexed (fn [i arg-t]
+                              (when (defer? :arg arg-t (nth dom i))
+                                i)))
+              arg-types)
+        not-empty)))
 
 (defn prep-symbolic-closure-expected-type [substitution-without-symb dom-t]
   {:pre [(cr/substitution-c? substitution-without-symb)
@@ -2080,15 +2098,16 @@
                                 (update replace-fs (if (cr/t-subst? sbst) :fv :idx) (fnil conj #{}) sym))
                               {} subst)
         {:keys [separated-t remap free-variances idx-variances separated-fv->original]} (separate-F t replace-fs)
-        subst-non-covariant (reduce (fn [subst [sym variance]]
-                                      (let [sbst (get subst (get separated-fv->original sym))]
-                                        (cond-> subst
-                                          (and sbst (not= :covariant variance))
-                                          (assoc sym sbst))))
-                                    subst (concat free-variances idx-variances))]
+        non-covariant-frees (into {} (remove (comp #{:covariant} val)) free-variances)
+        non-covariant-idxs (into {} (remove (comp #{:covariant} val)) idx-variances)]
     (-> separated-t
-        ;; eliminate non-covariant variables
-        (->> (subst/subst-all subst-non-covariant))
+        ;; rename non-covariant variables back to original. ensures i-subst's substitute correctly, since
+        ;; the scoped variable in the pretype is correctly scopes (a :.. a instead of a1 :.. a2).
+        (subst/substitute-many (mapv (comp r/make-F separated-fv->original) (keys non-covariant-frees))
+                               (keys non-covariant-frees))
+        (rename-dots (select-keys separated-fv->original (keys non-covariant-idxs)))
+        ;; substitute non-covariant variables. covariant variables are effectively fresh, thus ignored here.
+        (->> (subst/subst-all subst))
         ;; rename all other variables back to original
         (subst/substitute-many (mapv r/make-F (vals separated-fv->original)) (keys separated-fv->original))
         (rename-dots separated-fv->original))))
@@ -2101,7 +2120,10 @@
         cset
         -> (t/U cset SymbolicClosure)])
 (defn cs-gen-list+symbolic [deferred-fixed-args X Y S T R expected expected-cset expr]
-  {:pre [((some-fn nil? (con/set-c? nat-int?)) deferred-fixed-args)
+  {:pre [((some-fn nil? (con/set-c? (some-fn nat-int? #{:rng}))) deferred-fixed-args)
+         (if (:rng deferred-fixed-args)
+           expected
+           true)
          (every? (con/hash-c? symbol? r/Bounds?) [X Y])
          ((every-pred (con/vec-c? r/AnyType?)) S T)
          ((some-fn nil? r/AnyType?) expected)
@@ -2121,9 +2143,13 @@
             S-no-symb (keep-indexed (fn [i t] (when-not (deferred-fixed-args i) t)) S)
             T-no-symb (keep-indexed (fn [i t] (when-not (deferred-fixed-args i) t)) T)
             T-symb (keep-indexed (fn [i t] (when (deferred-fixed-args i) t)) T)
-            cs-no-symb (-> (cs-gen-app X Y S-no-symb T-no-symb R expected)
+            cs-no-symb (-> (cs-gen-app X Y S-no-symb T-no-symb R (when-not (deferred-fixed-args :rng) expected))
                            (cset-meet expected-cset))
-            symb-fv-variances (apply frees/combine-frees (map frees/fv-variances T-symb))
+            symb-fv-variances (cond-> (frees/flip-variance-map (apply frees/combine-frees (map frees/fv-variances T-symb)))
+                                (deferred-fixed-args :rng) (frees/combine-frees (frees/fv-variances R)))
+            ;; a tvar must appear both co+contravariantly in order for iterating to potentially give new information:
+            ;; previous iteration can learn input information from a contravariant position that is useful for an output covariant
+            ;; position next iteration.
             iterate? (some #{:invariant} (vals symb-fv-variances))
             ;_ (prn :expected-cset expected-cset)
             ;_ (prn :cs-no-symb cs-no-symb)
@@ -2133,26 +2159,40 @@
             infer-deferred-arg-types (fn [subst]
                                        (reduce (fn [ts i]
                                                  (assoc ts i
-                                                        (let [s (c/fully-resolve-type (nth S i))
-                                                              t (nth T i)]
+                                                        (let [s (c/fully-resolve-type
+                                                                  (case i
+                                                                    :rng R
+                                                                    (nth S i)))
+                                                              t (c/fully-resolve-type
+                                                                  (case i
+                                                                    :rng expected
+                                                                    (nth T i)))]
+                                                          ;(prn "infer-deferred-arg-types" i s t)
                                                           (cond
-                                                            (r/SymbolicClosure? s)
+                                                            (and (not= :rng i)
+                                                                 (r/SymbolicClosure? s))
                                                             (app-symbolic-closure subst s t)
 
-                                                            (and (r/Poly? s)
+                                                            (and (not= :rng i)
                                                                  (r/FnIntersection? t)
-                                                                 (= 1 (count (:types t)))
-                                                                 (= :fixed (:kind (first (:types t)))))
+                                                                 (= 1 (count (:types t))))
                                                             (binding [vs/*delayed-errors* (err/-init-delayed-errors)]
                                                               ;(prn "Deferred Poly <: " s t)
                                                               (let [t (prep-symbolic-closure-expected-type3 subst t)
                                                                     ;_ (prn "t" t)
+                                                                    _ (when-not (and (r/FnIntersection? t)
+                                                                                     (= 1 (count (:types t)))
+                                                                                     ;; this might be too restrictive
+                                                                                     (every? #(= :fixed (:kind %)) (:types t)))
+                                                                        ;(prn "need :fixed" t)
+                                                                        (fail! nil nil))
                                                                     inferred-rng (r/TCResult->Result
                                                                                    ((requiring-resolve 'typed.cljc.checker.check.funapp/check-funapp)
                                                                                     nil nil
                                                                                     (r/ret s)
                                                                                     (mapv r/ret (-> t :types first :dom))
                                                                                     (-> t :types first :rng r/Result->TCResult)))
+                                                                    ;_ (prn "after check-funapp" inferred-rng)
                                                                     _ (when-some [errs (seq @vs/*delayed-errors*)]
                                                                         #_
                                                                         (prn "deferred Poly argument failed to check"
@@ -2162,22 +2202,39 @@
                                                                 ;(prn "inferred-rng" inferred-rng)
                                                                 (assoc-in t [:types 0 :rng] inferred-rng)))
 
+                                                            (= :rng i)
+                                                            (let [s (subst/subst-all subst s)]
+                                                              ;(prn ":rng" s :< t)
+                                                              (if (sub/subtype? s t)
+                                                                s
+                                                                (fail! s t)))
+
                                                             :else (err/int-error (str "Unsupported deferred argument type: " (prs/unparse-type s)
                                                                                       " " (prs/unparse-type t)))))))
                                                {} deferred-fixed-args))
             inferred-deferred-arg-types (infer-deferred-arg-types substitution-without-symb)
-            ;_ (prn "inferred-deferred-arg-types" inferred-deferred-arg-types)
+            ;_ (prn "inferred-deferred-arg-types" inferred-deferred-arg-types iterate?)
+            ;_ (prn "iterate?" (boolean iterate?))
             inferred-deferred-arg-types (if iterate?
                                           (loop [fuel 21
                                                  cs cs-no-symb
                                                  inferred-deferred-arg-types inferred-deferred-arg-types]
                                             ;(prn "fuel" fuel)
                                             (let [subst (subst-gen cs (set (keys Y)) R :T T :flip-T-variances? true)
-                                                  S-symb' (vals (into (sorted-map) inferred-deferred-arg-types))
+                                                  ;_ (prn "subst" subst)
+                                                  S-symb' (vals (into (sorted-map) (dissoc inferred-deferred-arg-types :rng)))
                                                   T-symb' (mapv #(subst-non-covariant subst %) T-symb)
                                                   ;_ (prn "S-symb'" S-symb')
-                                                  ;_ (prn "T-symb'" T-symb')
+                                                  ;_ (binding [vs/*verbose-types* true] (prn "T-symb" T-symb))
+                                                  ;_ (binding [vs/*verbose-types* true] (prn "T-symb'" T-symb'))
+                                                  ;_ (prn "deferred-fixed-args" deferred-fixed-args)
                                                   cs (-> (cs-gen-list #{} X Y S-symb' T-symb')
+                                                         (cond->
+                                                           (deferred-fixed-args :rng)
+                                                           ;; perhaps substituting non-contravariant occurrences instead?
+                                                           (cset-meet (let [inst-rng (subst/subst-all subst R)]
+                                                                        (prn "inst-rng" inst-rng)
+                                                                        (cs-gen #{} X Y inst-rng expected))))
                                                          (cset-meet cs))
                                                   ;_ (prn "cs" cs)
                                                   substitution-with-symb (subst-gen cs (set (keys Y)) R :T T :flip-T-variances? true)
@@ -2198,7 +2255,7 @@
                                                       (fail! nil nil))
                                                   (recur (dec fuel) cs inferred-deferred-arg-types')))))
                                           inferred-deferred-arg-types)
-            arg-types-with-inferred-symb (add-symb-to-S inferred-deferred-arg-types)
+            arg-types-with-inferred-symb (add-symb-to-S (dissoc inferred-deferred-arg-types :rng))
             ;;seems important to recompute all constraints for all arguments again here, not sure why.
             ;; I would think only the symbolic closure args are needed.
             cs (cs-gen-args arg-types-with-inferred-symb)]
@@ -2212,6 +2269,7 @@
           ;; wait for an expected type to help inference
           (let [subst (subst-gen cs (set (keys Y)) R :T T)
                 smallest (subst/subst-all subst R)]
+            ;;TODO record and reuse constraints
             (r/symbolic-closure expr smallest))
           cs)))))
 
@@ -2244,9 +2302,6 @@
   ;(prn :infer-dots S T)
   (let [T (vec T)
         [short-S rest-S] (map vec (split-at (count T) S))
-        expected-cset (if expected
-                        (cs-gen #{} X {dotted-var dotted-bnd} R expected)
-                        (cr/empty-cset {} {}))
         new-vars (var-store-take dotted-var T-dotted (count rest-S))
         new-Ts (mapv (fn [v]
                        (let [target (subst/substitute-dots (map r/make-F new-vars) nil dotted-var T-dotted)]
@@ -2263,8 +2318,11 @@
         ;; (infer [1 2 3] (Seqable a)) => {a Int}
         ;; (infer [4 5 6] (Seqable b0)) => {b0 Int} :dotted {b [b0]}
         ;; (infer #(+ %1 %2) [Int Int :-> ^:infer Any]) => {c Int}
-        short-deferred-fixed-args (when-not (get-deferred-fixed-args rest-S new-Ts)
-                                    (get-deferred-fixed-args short-S T))
+        short-deferred-fixed-args (when-not (get-deferred-fixed-args rest-S new-Ts R nil)
+                                    (get-deferred-fixed-args short-S T R expected))
+        expected-cset (if (and expected (not (:rng short-deferred-fixed-args)))
+                        (cs-gen #{} X {dotted-var dotted-bnd} R expected)
+                        (cr/empty-cset {} {}))
         cs-dotted (-> (cs-gen-list #{} (reduce #(assoc %1 %2 dotted-bnd) X new-vars)
                                    {dotted-var dotted-bnd} rest-S new-Ts
                                    :expected-cset expected-cset)
@@ -2384,21 +2442,15 @@
 
 ;; like infer, but T-var is the vararg type:
 (t/ann infer-vararg
-       (IFn [ConstrainVars ConstrainVars 
-             (t/Seqable r/Type)
-             (t/Seqable r/Type)
-             (t/U nil r/Type)
-             (t/U nil r/AnyType)
-             (t/U nil TCResult) :?
-             :-> (t/U nil true false cr/SubstMap)]
-            [ConstrainVars ConstrainVars 
-             (t/Seqable r/Type)
-             (t/Seqable r/Type)
-             (t/U nil r/Type)
-             (t/U nil r/AnyType)
-             (t/U nil TCResult)
-             (t/HMap :optional {:expr (t/U nil (t/Map t/Any t/Any))}) :?
-             :-> (t/U nil true false cr/SubstMap)]))
+       [ConstrainVars ConstrainVars 
+        (t/Seqable r/Type)
+        (t/Seqable r/Type)
+        (t/U nil r/Type)
+        (t/U nil r/AnyType)
+        (t/alt (t/? (t/U nil TCResult))
+               (t/cat (t/U nil TCResult)
+                      (t/HMap :optional {:expr (t/U nil (t/Map t/Any t/Any))})))
+        :-> (t/U nil true false cr/SubstMap)])
 (defn infer-vararg
   ([X Y S T T-var R] (infer-vararg X Y S T T-var R nil {}))
   ([X Y S T T-var R expected] (infer-vararg X Y S T T-var R expected {}))
@@ -2440,13 +2492,11 @@
     :post [((some-fn cr/cset? r/SymbolicClosure?) %)]}
    (when-not (= (count S) (count T))
      (fail! S T))
-   (let [;_ (prn :cs-gen-app S T R expected)
-         expected-cset (if expected
+   (let [deferred (get-deferred-fixed-args S T R expected)
+         expected-cset (if (and expected (not (:rng deferred)))
                          (cs-gen #{} X Y R expected)
                          (cr/empty-cset {} {}))
-         ;_ (prn :cs-gen-app :expected-cset expected-cset)
-         cs (cs-gen-list+symbolic (get-deferred-fixed-args S T)
-                                  X Y (vec S) (vec T) R expected expected-cset expr)]
+         cs (cs-gen-list+symbolic deferred X Y (vec S) (vec T) R expected expected-cset expr)]
      (cond-> cs
        (not (r/SymbolicClosure? cs)) (cset-meet expected-cset)))))
 

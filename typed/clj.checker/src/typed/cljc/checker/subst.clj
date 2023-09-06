@@ -164,7 +164,7 @@
   {:pre [(every? r/AnyType? images)
          ((some-fn nil? r/AnyType?) rimage)
          (symbol? name)
-         (r/AnyType? target)]}
+         (satisfies? ISubstituteDots target)]}
   ;(prn "substitute-dots" (unparse-type target) name "->" (map unparse-type images))
   (letfn [(sb ([t _info] (sb t))
             ([t] (substitute-dots images rimage name t)))]

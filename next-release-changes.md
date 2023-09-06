@@ -48,3 +48,4 @@
     - `[(t/alt (t/cat a) (t/cat a b)) :-> t/Any] => (t/IFn [a :-> t/Any] [a b :-> t/Any])`
   - Otherwise, function type will still parse, but may not be callable until more support is added.
     - please report failing usages
+- support `clojure.core/update`

@@ -442,6 +442,20 @@
                u))
         A
 
+        ;; go after presumably cheaper unification cases
+        (and ((some-fn r/Poly? r/PolyDots?) s)
+             (r/FnIntersection? t)
+             (= 1 (count (:types t)))
+             (every? #(= :fixed (:kind %)) (:types t))
+             (binding [vs/*delayed-errors* (err/-init-delayed-errors)]
+               (let [_ ((requiring-resolve 'typed.cljc.checker.check.funapp/check-funapp)
+                        nil nil
+                        (r/ret s)
+                        (mapv r/ret (-> t :types first :dom))
+                        (-> t :types first :rng r/Result->TCResult))]
+                 (empty? @vs/*delayed-errors*))))
+        A
+
         (and (r/Poly? t)
              (let [names (c/Poly-fresh-symbols* t)
                    b (c/Poly-body* names t)]

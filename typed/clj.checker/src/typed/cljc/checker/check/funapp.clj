@@ -54,7 +54,7 @@
      (prs/with-unparse-ns (or prs/*unparse-type-in-ns*
                               (when fexpr
                                 (cu/expr-ns fexpr)))
-     ;(prn "check-funapp" (prs/unparse-type fexpr-type) (map prs/unparse-type arg-types))
+     ;(prn "check-funapp" (prs/unparse-type fexpr-type) (map prs/unparse-type arg-types) (some-> expected prs/unparse-type))
      (cond
        ;; a union of functions can be applied if we can apply all of the elements
        (r/Union? fexpr-type)
@@ -222,6 +222,7 @@
                                   ftypes)
              success-ret-type (when-some [f (first matching-fns)]
                                 (funapp1/check-funapp1 fexpr args f arg-ret-types expected :check? false))]
+         ;(prn "success-ret-type" success-ret-type)
          (or success-ret-type
              (app-err/plainapp-type-error fexpr args fexpr-type arg-ret-types expected)))
 

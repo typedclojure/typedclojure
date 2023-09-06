@@ -1399,7 +1399,7 @@
 
 (defn Get-requires-resolving? [ty]
   {:pre [(r/GetType? ty)]}
-  (not (r/F? (fully-resolve-type (:target ty)))))
+  (not-any? (comp r/F? fully-resolve-type) ((juxt :target :key) ty)))
 
 (defn Merge-requires-resolving? [ty]
   {:pre [(r/MergeType? ty)]}
@@ -2435,8 +2435,9 @@
                         ([t k default seen]
                          (find-val-type t k default seen)))]
     (cond
-      ; propagate the error
-      (r/TCError? t) t
+      ((some-fn r/TCError? r/Bottom?) t) t
+      ((some-fn r/TCError? r/Bottom?) k) k
+      ((every-pred r/wild?) t k) r/-wild
       (r/F? t) (let [bnd (free-ops/free-with-name-bnds (:name t))
                      _ (when-not bnd
                          (err/int-error (str "No bounds for type variable: " name bnds/*current-tvar-bnds*)))]

@@ -21,19 +21,25 @@
   [(r/Type? type)
    (r/Bounds? bnds)])
 
-(u/ann-record i-subst [types :- (t/U nil (t/Seqable r/Type))])
+;; substitute a dotted variable with a list of types, each representing the instantiation
+;; of the regular type variable introduced in each pre-type.
+;; e.g., substituting types=['1 '2] on
+;;        '[a b] :.. a
+;;       equals
+;;        '['1 b] '['2 b]
+(u/ann-record i-subst [types :- (t/Seqable r/Type)])
 (u/def-type i-subst [types]
   ""
   [(every? r/Type? types)])
 
-(u/ann-record i-subst-starred [types :- (t/U nil (t/Seqable r/Type)),
+(u/ann-record i-subst-starred [types :- (t/Seqable r/Type),
                                starred :- r/Type])
 (u/def-type i-subst-starred [types starred]
   ""
   [(every? r/Type? types)
    (r/Type? starred)])
 
-(u/ann-record i-subst-dotted [types :- (t/U nil (t/Seqable r/Type)),
+(u/ann-record i-subst-dotted [types :- (t/Seqable r/Type),
                               dty :- r/Type,
                               dbound :- F])
 (u/def-type i-subst-dotted [types dty dbound]
@@ -59,13 +65,13 @@
 (def substitution-c? (con/hash-c? symbol? subst-rhs?))
 
 (u/ann-record c [S :- r/Type,
-                 X :- clojure.lang.Symbol,
+                 X :- t/Sym,
                  T :- r/Type,
                  bnds :- Bounds])
 (u/def-type c [S X T bnds]
   "A type constraint on a variable within an upper and lower bound"
   [(r/Type? S)
-   (symbol? X)
+   (simple-symbol? X)
    (r/Type? T)
    (r/Bounds? bnds)])
 
@@ -73,22 +79,22 @@
 ;; rest : option[c]
 ;; a constraint on an index variable
 ;; the index variable must be instantiated with |fixed| arguments, each meeting the appropriate constraint
-;; and further instantions of the index variable must respect the rest constraint, if it exists
-(u/ann-record dcon [fixed :- (t/U nil (t/Seqable c))
+;; and further instantiations of the index variable must respect the rest constraint, if it exists
+(u/ann-record dcon [fixed :- (t/Seqable c)
                     rest :- (t/U nil c)])
 (u/def-type dcon [fixed rest]
   ""
   [(every? c? fixed)
    ((some-fn nil? c?) rest)])
 
-(u/ann-record dcon-exact [fixed :- (t/U nil (t/Seqable c)),
+(u/ann-record dcon-exact [fixed :- (t/Seqable c),
                           rest :- c])
 (u/def-type dcon-exact [fixed rest]
   ""
   [(every? c? fixed)
    (c? rest)])
 
-(u/ann-record dcon-dotted [fixed :- (t/U nil (t/Seqable c)),
+(u/ann-record dcon-dotted [fixed :- (t/Seqable c),
                            dc :- c,
                            dbound :- F])
 (u/def-type dcon-dotted [fixed dc dbound]
@@ -104,7 +110,7 @@
 (u/def-type dcon-repeat [fixed repeat]
   ""
   [(every? c? fixed)
-   (not-empty repeat)
+   (seq repeat)
    (every? c? repeat)])
 
 (t/defalias DCon (t/U dcon dcon-exact dcon-dotted dcon-repeat))
@@ -139,12 +145,11 @@
   [((con/hash-c? symbol? c?) fixed)
    (dmap? dmap)])
 
-(t/ann make-cset-entry (t/IFn [(t/Map t/Sym c) -> cset-entry]
-                              [(t/Map t/Sym c) (t/U nil dmap) -> cset-entry]))
+(t/ann make-cset-entry [(t/Map t/Sym c) (t/U nil dmap) :? -> cset-entry])
 (defn make-cset-entry
   ([fixed] (make-cset-entry fixed nil))
   ([fixed dmap] (cset-entry-maker fixed
-                              (or dmap (dmap-maker {})))))
+                                  (or dmap (dmap-maker {})))))
 
 ;; maps is a list of cset-entries, consisting of
 ;;    - functional maps from vars to c's
@@ -152,7 +157,7 @@
 ;; we need a bunch of mappings for each cset to handle case-lambda
 ;; because case-lambda can generate multiple possible solutions, and we
 ;; don't want to rule them out too early
-(u/ann-record cset [maps :- (t/U nil (t/Seqable cset-entry))])
+(u/ann-record cset [maps :- (t/Seqable cset-entry)])
 (u/def-type cset [maps]
   ""
   [(every? cset-entry? maps)])
@@ -174,7 +179,8 @@
 ;; variables in X to the cmap and create an empty dmap.
 (t/ann ^:no-check empty-cset [FreeBnds FreeBnds -> cset])
 (defn empty-cset [X Y]
-  {:pre [(every? (con/hash-c? symbol? r/Bounds?) [X Y])]
+  {:pre [((every-pred (con/hash-c? symbol? r/Bounds?)) X Y)]
    :post [(cset? %)]}
-  (cset-maker [(cset-entry-maker (into {} (for [[x bnds] X] [x (no-constraint x bnds)]))
+  (cset-maker [(cset-entry-maker (reduce-kv (fn [acc x bnds] (assoc acc x (no-constraint x bnds)))
+                                            {} X)
                                  (dmap-maker {}))]))

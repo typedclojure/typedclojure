@@ -215,8 +215,9 @@
         (update :target pmt)
         (update :key pmt)
         (update :not-found pmt)
-        (update :target-fs pmt)
-        (update :target-object pmt))))
+        ;(update :target-fs pmt)
+        ;(update :target-object pmt)
+        )))
 
 (promote-demote AssocType
   [T V]

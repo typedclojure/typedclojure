@@ -201,4 +201,128 @@
                                                                                                                                                                (r/make-F z2_y1)))
                                                                                                                        z2)))
                                                                             y1))]
-             (is (= expected-t t')))))))
+             (is (= expected-t t'))))))
+  (clj (let [{:keys [separated-t remap]} (sut/separate-F
+                                           (r/make-Function [] r/-any :drest (r/DottedPretype1-maker (r/-hvec [(r/make-F 'z) (r/make-F 'z)]) 'z))
+                                           {:idx #{'z}})
+             {{[z] 'z} :idx} remap
+             {{{[z1 z2] 'z} [z]} :idx-context} remap
+             expected-t (r/make-Function [] r/-any :drest (r/DottedPretype1-maker (r/-hvec [(r/make-F z1) (r/make-F z2)]) z))]
+         (is (= expected-t separated-t)))))
+
+(deftest subst-non-covariant-test
+  (clj (let [d (gensym 'd)
+             a (gensym 'a)
+             r (gensym 'r)
+             t (r/make-Function [(r/make-F a)] (r/make-F r) :drest (r/DottedPretype1-maker (r/make-F d) d))
+             subst {a (crep/t-subst-maker (r/-val 0) r/no-bounds)
+                    d (crep/i-subst-maker [(r/-val 1) (r/-val 2)])}]
+         (is (= (r/make-Function [(r/-val 0) (r/-val 1) (r/-val 2)]
+                                 (r/make-F r))
+                (sut/subst-non-covariant subst t)))))
+  (clj (let [d (gensym 'd)
+             a (gensym 'a)
+             r (gensym 'r)
+             t (r/make-Function [(r/make-F a)] (r/make-F r) :drest (r/DottedPretype1-maker (r/-hvec [(r/make-F d) (r/make-F d)]) d))
+             subst {a (crep/t-subst-maker (r/-val 0) r/no-bounds)
+                    d (crep/i-subst-maker [(r/-val 1) (r/-val 2)])}]
+         (is (= (r/make-Function [(r/-val 0)
+                                  (r/-hvec [(r/-val 1) (r/-val 1)])
+                                  (r/-hvec [(r/-val 2) (r/-val 2)])]
+                                 (r/make-F r))
+                (sut/subst-non-covariant subst t))))))
+
+(deftest infer-GetType-test
+  (is-tc-e (fn [get' :- (t/All [m k] [m k :-> (t/Get m k)])]
+             (let [res (get' {:a 1} :a)]
+               (t/ann-form res '1))))
+  (is-tc-err (fn [get' :- (t/All [m k] [m k :-> (t/Get m k)])]
+               (let [res (get' {:a 1} :a)]
+                 (t/ann-form res '2))))
+  (is-tc-e (fn [get' :- (t/All [m k] [m k :-> (t/Get m k)])]
+             (t/ann-form (get' {:a 1} :a) '1)))
+  (is-tc-err (fn [get' :- (t/All [m k] [m k :-> (t/Get m k)])]
+               (t/ann-form (get' {:a 1} :a) '2)))
+  (is-tc-e (fn [get' :- (t/All [m k] [m k :-> '[(t/Get m k)]])]
+             (let [res (get' {:a 1} :a)]
+               (t/ann-form res '['1]))))
+  (is-tc-e (fn [get' :- (t/All [m k] [m k :-> '[(t/Get m k)]])]
+             (t/ann-form (get' {:a 1} :a) '['1])))
+  (is-tc-err (fn [get' :- (t/All [m k] [m k :-> '[(t/Get m k)]])]
+               (t/ann-form (get' {:a 1} :a) '['2])))
+
+  (is-tc-e (fn [update' :- (t/All [m k v] [m k [(t/Get m k) :-> v] :-> v])
+                f :- ['1 :-> '1]]
+             (update' {:a 1} :a f)))
+  (is-tc-e (fn [update' :- (t/All [m k v] [m k [(t/Get m k) :-> v] :-> v])
+                f :- ['1 :-> '1]]
+             (t/ann-form (update' {:a 1} :a f) '1)))
+  (is-tc-err (fn [update' :- (t/All [m k v] [m k [(t/Get m k) :-> v] :-> v])
+                  f :- ['2 :-> '2]]
+               (t/ann-form (update' {:a 1} :a f) '1)))
+  (is-tc-err (fn [update' :- (t/All [m k v] [m k [(t/Get m k) :-> v] :-> v])
+                  f :- ['2 :-> '1]]
+               (t/ann-form (update' {:a 1} :a f) '1)))
+  (is-tc-err (fn [update' :- (t/All [m k v] [m k [(t/Get m k) :-> v] :-> v])
+                  f :- ['1 :-> '2]]
+               (t/ann-form (update' {:a 1} :a f) '1)))
+  #_;TODO
+  (is-tc-e (fn [update'' :- (t/All [m k v] [m k [[m k :-> (t/Get m k)] :-> v] :-> v])
+                f :- [['{:a '1} '1 :-> '1] :-> '1]]
+             (t/ann-form (update'' {:a 1} :a f) '1)))
+  (is-tc-err (fn [update'' :- (t/All [m k v] [m k [[m k :-> (t/Get m k)] :-> v] :-> v])
+                  f :- [['{:a '1} '1 :-> '1] :-> '1]]
+               (t/ann-form (update'' {:a 2} :a f) '1)))
+  #_;TODO
+  (is-tc-e (fn [update'' :- (t/All [m k v] [[k :-> m] k [[m k :-> (t/Get m k)] :-> v] :-> v])
+                f1 :- ['1 :-> '{:a '1}]
+                f2 :- [['{:a '1} '1 :-> '1] :-> '1]]
+             (t/ann-form (update'' f1 :a f2) '1)))
+  (is-tc-e (fn [f :- ['1 :-> '1]]
+             (update {:a 1} :a f)))
+  (is-tc-e (fn [f :- ['1 :-> '2]]
+             (update {:a 1} :a f)))
+  (is-tc-err (fn [f :- ['2 :-> '1]]
+               (update {:a 1} :a f)))
+  (is-tc-err (fn [f :- ['2 :-> '2]]
+               (update {:a 1} :a f)))
+  (is-tc-e (fn [f :- ['2 :-> '2]]
+             (update {:a 2} :a f)))
+  (is-tc-e (fn [f :- ['1 :-> '1]]
+             (let [res (update {:a 1} :a f)]
+               (t/ann-form res '{:a '1}))))
+  (is-tc-e (fn [f :- ['1 :-> '1]]
+             (t/ann-form (update {:a 1} :a f) '{:a '1})))
+  (is-tc-err (fn [f :- ['2 :-> '2]]
+               (t/ann-form (update {:a 1} :a f) '{:a '1})))
+  (is-tc-err (fn [f :- ['2 :-> '1]]
+               (t/ann-form (update {:a 1} :a f) '{:a '1})))
+  (is-tc-err (fn [f :- ['1 :-> '2]]
+               (t/ann-form (update {:a 1} :a f) '{:a '1})))
+  (is-tc-err (update {:a 1} + 1))
+  (is-tc-err (update {:a 1} + 1) '{:a t/Bool})
+  (is-tc-e (update {:a 1} :a identity) '{:a t/Int})
+  (is-tc-err (update {:a 1} :a identity 1))
+  (is-tc-e (update {:a 1} :a inc))
+  (is-tc-e (update {:a 1} :a inc) '{:a t/Int})
+  (is-tc-e (update {:a 1} :a inc) (t/HMap {:a t/Int} :complete? true))
+  (is-tc-err (update {:a 1} :a inc) '{:a t/Bool})
+  (is-tc-err (update {:a true} :a inc) '{:a t/Int})
+  (is-tc-e (fn [v :- (t/Get (t/HMap :mandatory {:a t/Int} :complete? true) (t/Val :a))]
+             :- t/Int
+             (inc v)))
+  (is-tc-e (update {:a 1} :a + 1))
+  (is-tc-e (update {:a 1} :a + 1) '{:a t/Int})
+  (is-tc-e (update {:a 1} :a + 1 2))
+  (is-tc-err (update {:a 1} :a + 1 2 nil))
+  (is-tc-e (update {:a 1} :a + 1 2) '{:a t/Int})
+  (is-tc-e (fn [f :- [t/Int t/Kw t/Bool :-> t/Kw]]
+             (update {:a 1} :a f :f true)))
+  (is-tc-e (fn [f :- [t/Int t/Kw t/Bool :-> t/Kw]]
+             :- '{:a t/Kw}
+             (update {:a 1} :a f :f true)))
+  (is-tc-err (fn [f :- [t/Int t/Kw t/Bool :-> t/Kw]]
+               (update {:a 1} :a f true :f)))
+  (is-tc-err (fn [f :- [t/Int t/Kw t/Bool :-> t/Kw]]
+               :- '{:a t/Kw}
+               (update {:a 1} :a f true :f))))

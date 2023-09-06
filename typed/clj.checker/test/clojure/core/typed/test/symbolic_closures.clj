@@ -686,3 +686,8 @@
   #_;TODO
   (is-tc-e (comp (fn [y] y)
                  (fn [x y] y))))
+
+(deftest update-test
+  (is-tc-err #(update {} :a inc))
+  (is-tc-e (update {:a 1} :a inc))
+  )

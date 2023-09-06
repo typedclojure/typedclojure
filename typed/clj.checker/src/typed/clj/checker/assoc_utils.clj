@@ -134,8 +134,10 @@
                         (r/TCResult? v)))
                  pairs)]
    :post [((some-fn nil? r/Type?) %)]}
-  (c/reduce-type-transform -assoc-pair t pairs
-                           :when #(satisfies? AssocableType %)))
+  (let [[concrete abstract] (split-with (comp (complement r/F?) :t first) pairs)]
+    (cond-> (c/reduce-type-transform -assoc-pair t concrete
+                                     :when #(satisfies? AssocableType %))
+      (seq abstract) (r/AssocType-maker (mapv #(mapv r/ret-t %) abstract) nil))))
 
 (defn assoc-pairs-noret [t & pairs]
   {:pre [(r/Type? t)
@@ -343,7 +345,7 @@
                                                   :clojure (c/RClass-of IPersistentMap [r/-any r/-any])
                                                   :cljs (c/-name 'typed.clojure/Map r/-any r/-any)))]
     (cond
-     ; preserve the rhand alias when possible
+     ; preserve the rhs alias when possible
      (and (ind/subtype? left r/-nil) right-map)
      (r/ret-t right)
      

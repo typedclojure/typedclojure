@@ -1181,8 +1181,8 @@ cc/assoc
 ;           [(t/Vec d) t/AnyInteger d :-> (t/Vec d)]
 ;           [d b c (t/cat b c) :* :-> (t/Assoc d b c)]))
 
+cc/update (t/All [m k v c :..] [m k [(t/Get m k) c :.. c :-> v] c :.. c :-> (t/Assoc m k v)])
 ;;TODO
-;cc/update (t/All [m k v v' c :..] [(t/Assoc m k v) k [v c :.. c :-> v'] c :.. c :-> (t/Assoc m k v')])
 ;cc/update-in (t/All [m k v v' c :..] [(t/AssocIn m ks v) ks [v c :.. c :-> v'] c :.. c :-> (t/AssocIn m ks v')])
 
 cc/dissoc (t/All [k v] (t/IFn [(t/Map k v) t/Any :* :-> (t/Map k v)]
