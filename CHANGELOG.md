@@ -1,3 +1,57 @@
+# 1.1.2 (2023/09/18)
+
+- improve `clojure.core/reductions` annotation
+  - 2-arity must support zero-args on 1 arg
+    - except when input collection is non-empty
+  - add support for `reduced` values
+  - return seq is always non-empty
+- fix `clojure.core/reduce` annotation
+  - result of calling first arg with zero-args does not unwrap `reduced`
+  - use one type variable in 2-arity
+- annotate `clojure.core/keep` transducer arity
+- `clojure.core/keep` never returns nil, update annotation appropriately
+- annotate transducers for `filter`, `remove`, `{take,drop}-while`, `partition-all`, `distinct`,
+  `interpose`, `{map,keep}-indexed`, 
+- return non-empty seq types in core annotations if infinite or known non-empty
+- `keep` accepts `Seqable`, not just `Coll`
+- annotate 1-arity of `drop-last`
+- annotate `keyword` 1-arity to accept a var
+- annotate clojure.core vars: `iteration`, `partitionv`, `parse-{uuid,boolean,double,long}`, `update-{keys,vals}`, `abs`, `NaN?`, `infinite?`, `*repl*`, `replace`,
+  `partition-by`, `cat`, `dedupe`, `random-sample`, `eduction`, `tagged-literal{?}`, `reader-conditional{?}`, `unreduced`, `halt-when`, `ensure-reduced`, `completing`,
+  `transduce`, `sorted-map-by`, `rational?`, `float?`, `{r}subseq`
+- clojure.math annotations
+- annotate 12 arities of `comp`
+- add type parameter to clojure.lang.Sorted
+- support seqables of map entries in `keys` and `vals`
+- fix return type of `peek` in most general case (nilable return)
+- iteratively check symbolic closures against types with invariant type variables
+  - enables inference of:
+    - `(reduce (fn [a b] (+ a b)) [1])`
+    - `(comp (fn [y] y) (fn [x] x))`
+- introduce wildcard type `t/Infer`, like `t/Any` but downcasted when checked against a more specific type
+- don't recreate types in internal folding when types are unchanged after walking
+- print symbolic closures as their most specific function type
+  - `(fn [x] x)` prints as `[Nothing :-> Nothing]`
+  - `(map (fn [x] x))` prints as `(Transducer Nothing Nothing)`
+- don't mention expected type in error messages if it's `t/Infer`
+- use `clojure.core.typed` alias in current namespace to shorten types (rather than just `typed.clojure`)
+- better support for passing polymorphic functions to other polymorphic functions
+  - e.g., `(into [] (map identity) [1])`
+- support checking a `fn` against a union type
+- introduce regex ops `t/*`, `t/+`, `t/alt`, `t/?`, `t/cat`
+  - syntax only enabled in function type arguments for now
+  - when expandable to existing types, syntactic sugar for `IFn`. e.g.,
+    - `[(t/cat a b) :-> t/Any] => [a b :-> t/Any]`
+    - `[(t/cat a b) :* :-> t/Any] => [(t/HSequential [a b] :repeat true) <* :-> t/Any]`
+    - `[(t/cat a b) :.. c :-> t/Any] => [(t/HSequential [a b] :repeat true) <... c :-> t/Any]`
+    - `[(t/* a) :-> t/Any] => [a :* :-> t/Any]`
+    - `[(t/? a) :-> t/Any] => (IFn [:-> t/Any] [a :-> t/Any])`
+    - `[(t/+ a) :-> t/Any] => [a :+ :-> t/Any] => [a a :* :-> t/Any]`
+    - `[(t/alt (t/cat a) (t/cat a b)) :-> t/Any] => (t/IFn [a :-> t/Any] [a b :-> t/Any])`
+  - Otherwise, function type will still parse, but may not be callable until more support is added.
+    - please report failing usages
+- support `clojure.core/update`
+
 # 1.1.1 (2023/08/16)
 
 - infer `(typed.clojure/fn ...)` as symbolic closure if unannotated
