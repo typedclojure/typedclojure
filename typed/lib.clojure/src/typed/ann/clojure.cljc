@@ -1172,16 +1172,20 @@ cc/disj (t/All [x] (t/IFn [(t/SortedSet x) t/Any :* :-> (t/SortedSet x)]
                           [(t/Set x) t/Any :* :-> (t/Set x)]))
 
 cc/assoc
-(t/All [m k v c :..] (t/IFn [m k v (t/cat c c) :.. c :-> (t/Assoc m k v c :.. c)]
-                            ;[m k v (t/cat k v) :* :-> (t/Assoc m k v)]
-                            [nil k v (t/cat c c) :.. c :-> (t/Assoc nil k v c :.. c)]
-                            [nil k v (t/cat k v) :* :-> (t/Map k v)]))
+(t/All [[m :< (t/Option (t/Associative t/Any t/Any))]
+        k v c :..]
+       (t/IFn [m k v (t/cat c c) :.. c :-> (t/Assoc m k v c :.. c)]
+              ;[m k v (t/cat k v) :* :-> (t/Assoc m k v)]
+              [nil k v (t/cat c c) :.. c :-> (t/Assoc nil k v c :.. c)]
+              [nil k v (t/cat k v) :* :-> (t/Map k v)]))
 ;     (t/All [b c d]
 ;       (Fn [(t/Map b c) b c :-> (t/Map b c)]
 ;           [(t/Vec d) t/AnyInteger d :-> (t/Vec d)]
 ;           [d b c (t/cat b c) :* :-> (t/Assoc d b c)]))
 
-cc/update (t/All [m k v c :..] [m k [(t/Get m k) c :.. c :-> v] c :.. c :-> (t/Assoc m k v)])
+cc/update (t/All [[m :< (t/Option (t/Associative t/Any t/Any))]
+                  k v c :..]
+                 [m k [(t/Get m k) c :.. c :-> v] c :.. c :-> (t/Assoc m k v)])
 ;;TODO
 ;cc/update-in (t/All [m k v v' c :..] [(t/AssocIn m ks v) ks [v c :.. c :-> v'] c :.. c :-> (t/AssocIn m ks v')])
 

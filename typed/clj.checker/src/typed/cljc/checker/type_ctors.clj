@@ -114,39 +114,52 @@
 ; Partial HMaps do not record absence of fields, only subtype to (APersistentMap t/Any t/Any)
 (t/ann ^:no-check upcast-hmap* 
        [(t/Map r/Type r/Type) (t/Map r/Type r/Type) (t/Set r/Type) t/Bool -> r/Type])
-(defn upcast-hmap* [mandatory optional absent-keys complete?]
-  (let [upcast-ctor (fn [ks vs]
-                      (impl/impl-case
-                        :clojure (RClass-of 'clojure.lang.APersistentMap [ks vs])
-                        :cljs (-name 'typed.clojure/Map ks vs)))]
-    (if complete?
-      (In (upcast-ctor (apply Un (mapcat keys [mandatory optional]))
-                       (apply Un (mapcat vals [mandatory optional])))
-          (r/make-CountRange 
-            ; assume all optional entries are absent
-            #_:lower
-            (count mandatory)
-            ; assume all optional entries are present
-            #_:upper
-            (+ (count mandatory)
-               (count optional))))
-      (In (upcast-ctor r/-any r/-any)
-          (r/make-CountRange 
-            ; assume all optional entries are absent
-            #_:lower
-            (count mandatory)
-            ; partial hmap can be infinite count
-            #_:upper
-            nil)))))
+(defn upcast-hmap*
+  ([mandatory optional absent-keys complete?] (upcast-hmap* mandatory optional absent-keys complete? nil))
+  ([mandatory optional absent-keys complete?
+    {:keys [visit-ks-type
+            visit-vs-type]
+     :or {visit-ks-type identity
+          visit-vs-type identity}
+     :as opts}]
+   {:pre [(-> opts keys set (disj :visit-ks-type :visit-vs-type) empty?)]}
+   (let [upcast-ctor (fn [ks vs]
+                       (let [ks (visit-ks-type ks)
+                             vs (visit-vs-type vs)]
+                         (impl/impl-case
+                           :clojure (RClass-of 'clojure.lang.APersistentMap [ks vs])
+                           :cljs (-name 'typed.clojure/Map ks vs))))]
+     (if complete?
+       (In (upcast-ctor (apply Un (mapcat keys [mandatory optional]))
+                        (apply Un (mapcat vals [mandatory optional])))
+           (r/make-CountRange 
+             ; assume all optional entries are absent
+             #_:lower
+             (count mandatory)
+             ; assume all optional entries are present
+             #_:upper
+             (+ (count mandatory)
+                (count optional))))
+       (In (upcast-ctor r/-any r/-any)
+           (r/make-CountRange 
+             ; assume all optional entries are absent
+             #_:lower
+             (count mandatory)
+             ; partial hmap can be infinite count
+             #_:upper
+             nil))))))
 
 (t/ann ^:no-check upcast-hmap [HeterogeneousMap -> r/Type])
-(defn upcast-hmap [hmap]
-  {:pre [(r/HeterogeneousMap? hmap)]
-   :post [(r/Type? %)]}
-  (upcast-hmap* (:types hmap)
-                (:optional hmap)
-                (:absent-keys hmap)
-                (complete-hmap? hmap)))
+(defn upcast-hmap
+  ([hmap] (upcast-hmap hmap nil))
+  ([hmap opts]
+   {:pre [(r/HeterogeneousMap? hmap)]
+    :post [(r/Type? %)]}
+   (upcast-hmap* (:types hmap)
+                 (:optional hmap)
+                 (:absent-keys hmap)
+                 (complete-hmap? hmap)
+                 opts)))
 
 (t/ann ^:no-check make-HMap [& :optional {:mandatory (t/Map r/Type r/Type) :optional (t/Map r/Type r/Type)
                                           :absent-keys (t/Set r/Type) :complete? t/Bool} 
@@ -240,37 +253,41 @@
 
 ; TODO Should update this with prest
 (t/ann ^:no-check upcast-HSequential [HSequential -> r/Type])
-(defn upcast-HSequential [{:keys [types rest drest kind] :as hsequential}]
-  {:pre [(r/HSequential? hsequential)]
-   :post [(r/Type? %)]}
-  ;; Note: make-Union and make-Intersection used to be Un and In,
-  ;; but something funny happened with Ping/Pong.
-  ;; See typed-test.cljc.name-utils/find-recursive-names-test.
-  (let [tp (if-not drest
-             (make-Union
-               (concat types
-                       (when rest
-                         [rest])))
-             r/-any)]
-    (make-Intersection
-      (cond->
-        [(impl/impl-case
-           :clojure (case kind
-                      :vector (RClass-of clojure.lang.APersistentVector [tp])
-                      :seq (RClass-of clojure.lang.ASeq [tp])
-                      :list (RClass-of clojure.lang.PersistentList [tp])
-                      :sequential (In (RClass-of clojure.lang.IPersistentCollection [tp])
-                                      (RClass-of clojure.lang.Sequential)))
-           :cljs (case kind
-                   :vector (-name 'typed.clojure/Vec tp)
-                   :seq (-name 'typed.clojure/Seq tp)
-                   :list (-name 'typed.clojure/List tp)
-                   :sequential (In (-name 'typed.clojure/Coll tp)
-                                   (-name 'cljs.core/ISequential))))]
-        (not drest) (conj (r/make-CountRange
-                            (count types)
-                            (when-not rest
-                              (count types))))))))
+(defn upcast-HSequential
+  ([hsequential] (upcast-HSequential hsequential nil))
+  ([{:keys [types rest drest kind] :as hsequential}
+    {:keys [visit-elem-type] :or {visit-elem-type identity}}]
+   {:pre [(r/HSequential? hsequential)]
+    :post [(r/Type? %)]}
+   ;; Note: make-Union and make-Intersection used to be Un and In,
+   ;; but something funny happened with Ping/Pong.
+   ;; See typed-test.cljc.name-utils/find-recursive-names-test.
+   (let [tp (-> (if-not drest
+                  (make-Union
+                    (concat types
+                            (when rest
+                              [rest])))
+                  r/-any)
+                visit-elem-type)]
+     (make-Intersection
+       (cond->
+         [(impl/impl-case
+            :clojure (case kind
+                       :vector (RClass-of clojure.lang.APersistentVector [tp])
+                       :seq (RClass-of clojure.lang.ASeq [tp])
+                       :list (RClass-of clojure.lang.PersistentList [tp])
+                       :sequential (In (RClass-of clojure.lang.IPersistentCollection [tp])
+                                       (RClass-of clojure.lang.Sequential)))
+            :cljs (case kind
+                    :vector (-name 'typed.clojure/Vec tp)
+                    :seq (-name 'typed.clojure/Seq tp)
+                    :list (-name 'typed.clojure/List tp)
+                    :sequential (In (-name 'typed.clojure/Coll tp)
+                                    (-name 'cljs.core/ISequential))))]
+         (not drest) (conj (r/make-CountRange
+                             (count types)
+                             (when-not rest
+                               (count types)))))))))
 
 (defn upcast-kw-args-seq [{kws :kw-args-regex
                            :as kwseq}]

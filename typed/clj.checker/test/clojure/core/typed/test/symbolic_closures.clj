@@ -690,4 +690,7 @@
 (deftest update-test
   (is-tc-err #(update {} :a inc))
   (is-tc-e (update {:a 1} :a inc))
-  )
+  (is-tc-err (fn [x y]
+               (update x y inc)
+               nil)
+             (t/All [x y] [x y :-> nil])))

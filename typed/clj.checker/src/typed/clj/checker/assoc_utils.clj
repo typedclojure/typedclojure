@@ -8,7 +8,8 @@
 
 ; support for assoc/merge/conj
 (ns typed.clj.checker.assoc-utils
-  (:require [typed.cljc.checker.type-rep :as r]
+  (:require [typed.clojure :as t]
+            [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.indirect-ops :as ind]
             [typed.cljc.checker.utils :as u]
@@ -46,41 +47,44 @@
           _ (when-not bnd
               (err/int-error (str "No bounds for type variable: " name bnds/*current-tvar-bnds*)))]
       (when (ind/subtype? (:upper-bound bnd)
-                          (impl/impl-case
-                            :clojure (c/RClass-of IPersistentMap [r/-any r/-any])
-                            :cljs (c/-name 'typed.clojure/Map r/-any r/-any)))
+                          (c/-name `t/Map r/-any r/-any))
         (r/AssocType-maker f [(mapv r/ret-t assoc-entry)] nil))))
 
   Value
   (-assoc-pair
-   [v [kt vt]]
+   [v [kt vt :as assoc-entry]]
    (when (ind/subtype? v r/-nil)
      (let [rkt (-> kt :t c/fully-resolve-type)]
        (if (c/keyword-value? rkt)
          (c/-complete-hmap {rkt (:t vt)})
-         (impl/impl-case
-           :clojure (c/RClass-of IPersistentMap [rkt (:t vt)])
-           :cljs (c/-name 'typed.clojure/Map rkt (:t vt)))))))
+         (if (r/F? rkt)
+           (r/AssocType-maker v [(mapv r/ret-t assoc-entry)] nil)
+           (c/-name `t/Map rkt (r/ret-t vt)))))))
   
+  ;; FIXME we need another interface (or extra params on IPersistentMap) for keys allowed
+  ;; to be conj'ed onto types. Vectors and sorted maps need specific keys and records
+  ;; need specific vals for some keys. These cases are currently unsound when assoc'ing
+  ;; type variable targets/keys/vals. e.g., (fn :forall [M K] [m :- M k :- K] (assoc m k 1))
+  ;; These cases should just match on one interface (this code models Associative/assoc)
+  ;; and extract contravariant types from somewhere.
   RClass
   (-assoc-pair
    [rc [kt vt]]
    (let [_ (impl/assert-clojure)
-         rkt (-> kt :t c/fully-resolve-type)]
-     (cond
-       (= (:the-class rc) 'clojure.lang.IPersistentMap)
-       (c/RClass-of IPersistentMap [(c/Un (:t kt) (nth (:poly? rc) 0))
-                                    (c/Un (:t vt) (nth (:poly? rc) 1))])
+         rkt (-> kt r/ret-t c/fully-resolve-type)]
+     (case (:the-class rc)
+       clojure.lang.IPersistentMap
+       (c/-name `t/Map
+                (c/Un (r/ret-t kt) (nth (:poly? rc) 0))
+                (c/Un (r/ret-t vt) (nth (:poly? rc) 1)))
 
-       (and (= (:the-class rc) 'clojure.lang.IPersistentVector)
-            (r/Value? rkt))
-       (let [kt ^Value rkt]
-         (when (integer? (.val kt))
-           (c/RClass-of IPersistentVector [(c/Un (:t vt) (nth (:poly? rc) 0))])))
-
-       (and (= (:the-class rc) 'clojure.lang.IPersistentVector)
-            (ind/subtype? rkt (r/Name-maker 'clojure.core.typed/Int)))
-       (c/RClass-of IPersistentVector [(c/Un (:t vt) (nth (:poly? rc) 0))]))))
+       clojure.lang.IPersistentVector
+       (if (and (r/Value? rkt)
+                (integer? (:val rkt)))
+         (c/-name `t/Vec (c/Un (r/ret-t vt) (nth (:poly? rc) 0)))
+         (when (ind/subtype? rkt (c/-name `t/Int))
+           (c/-name `t/Vec (c/Un (r/ret-t vt) (nth (:poly? rc) 0)))))
+       nil)))
   
   HeterogeneousMap
   (-assoc-pair
@@ -94,26 +98,27 @@
          :absent-keys (-> (:absent-keys hmap) 
                           (disj rkt))
          :complete? (c/complete-hmap? hmap))
-       ; devolve the map
-       ;; todo: probably some machinery I can reuse here?
-       (let [ks (apply c/Un (cons rkt (mapcat keys [(:types hmap) (:optional hmap)])))
-             vs (apply c/Un (cons (:t vt) (mapcat vals [(:types hmap) (:optional hmap)])))]
-         (impl/impl-case
-           :clojure (c/RClass-of IPersistentMap [ks vs])
-           :cljs (c/-name 'typed.clojure/Map ks vs))))))
+       (if (r/F? rkt)
+         (r/AssocType-maker hmap [[rkt (r/ret-t vt)]] nil)
+         (c/upcast-hmap hmap {:visit-ks-type #(c/Un rkt %)
+                              :visit-vs-type #(c/Un (r/ret-t vt) %)})))))
   
   HSequential
   (-assoc-pair
    [v [kt vt]]
    (when (r/HeterogeneousVector? v)
      (let [rkt (-> kt :t c/fully-resolve-type)]
-       (when (r/Value? rkt)
-         (let [kt rkt
-               k (:val kt)] 
-           (when (and (integer? k) (<= k (count (:types v))))
-             (r/-hvec (assoc (:types v) k (:t vt))
-                      :filters (assoc (:fs v) k (:fl vt))
-                      :objects (assoc (:objects v) k (:o vt)))))))))
+       (when (ind/subtype? rkt (c/-name `t/Int))
+         (if (r/Value? rkt)
+           (let [kt rkt
+                 k (:val kt)]
+             (when (and (integer? k) (<= k (count (:types v))))
+               (r/-hvec (assoc (:types v) k (:t vt))
+                        :filters (assoc (:fs v) k (:fl vt))
+                        :objects (assoc (:objects v) k (:o vt)))))
+           (if (r/F? rkt)
+             (r/AssocType-maker v [[rkt (r/ret-t vt)]] nil)
+             (c/upcast-HSequential v {:visit-elem-type #(c/Un % (r/ret-t vt))})))))))
   
   DataType
   (-assoc-pair
@@ -134,10 +139,9 @@
                         (r/TCResult? v)))
                  pairs)]
    :post [((some-fn nil? r/Type?) %)]}
-  (let [[concrete abstract] (split-with (comp (complement r/F?) :t first) pairs)]
-    (cond-> (c/reduce-type-transform -assoc-pair t concrete
-                                     :when #(satisfies? AssocableType %))
-      (seq abstract) (r/AssocType-maker (mapv #(mapv r/ret-t %) abstract) nil))))
+  (c/reduce-type-transform -assoc-pair t pairs
+                           :when #(and (ind/subtype? % (c/Un r/-nil (c/-name `t/Associative r/-any r/-any)))
+                                       (satisfies? AssocableType %))))
 
 (defn assoc-pairs-noret [t & pairs]
   {:pre [(r/Type? t)
