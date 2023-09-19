@@ -1,2 +1,0 @@
-- make `assoc` support less unsound
-  - can still assoc bad keys onto a sorted map and bad vals onto a record

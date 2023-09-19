@@ -1,3 +1,8 @@
+# 1.1.3 (2023/09/19)
+
+- make `assoc` support less unsound
+  - can still assoc bad keys onto a sorted map and bad vals onto a record
+
 # 1.1.2 (2023/09/18)
 
 - improve `clojure.core/reductions` annotation
