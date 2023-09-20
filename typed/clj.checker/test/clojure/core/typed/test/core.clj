@@ -4167,7 +4167,13 @@
   (is (check-ns 'clojure.core.typed.test.prest-cs-gen))
   (is-tc-e (map (inst hash-map Number String) [1 2 3] ["a b c"])
            :expected (t/NonEmptySeq (t/Map Number String)))
+  (is-tc-e (map hash-map [1 2 3] ["a b c"])
+           :expected (t/NonEmptySeq (t/Map Number String)))
+  (is-tc-err (map hash-map [nil 2 3] ["a b c"])
+             :expected (t/NonEmptySeq (t/Map Number String)))
   (is-tc-err (hash-map 1 "a" 2 \c) :expected (t/Map Number String))
+  #_;;TODO
+  (is-tc-e (hash-map :a 1 :b :c) :expected '{:a '1 :b ':c})
   )
 
 
