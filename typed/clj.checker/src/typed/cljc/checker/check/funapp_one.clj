@@ -96,20 +96,18 @@
                 (when-not (r/Value? kw-key-t)
                   (err/tc-delayed-error (str "Can only check keyword arguments with Value keys, found"
                                            (pr-str (prs/unparse-type kw-key-t)))))
-                (let [expected-val-t ((some-fn optional-kw mandatory-kw) kw-key-t)]
-                  (if expected-val-t
-                    (below/check-below kw-val-t expected-val-t)
-                    ; It is an error to use an undeclared keyword arg because we want to treat the rest parameter
-                    ; as a complete hash-map.
-                    (err/tc-delayed-error (str "Undeclared keyword parameter " 
-                                             (pr-str (prs/unparse-type kw-key-t))))))))))
+                (if-let [expected-val-t ((some-fn optional-kw mandatory-kw) kw-key-t)]
+                  (below/check-below kw-val-t expected-val-t)
+                  ; It is an error to use an undeclared keyword arg because we want to treat the rest parameter
+                  ; as a complete hash-map.
+                  (err/tc-delayed-error (str "Undeclared keyword parameter " 
+                                             (pr-str (prs/unparse-type kw-key-t)))))))))
         (err/nyi-error (str "Function :kind " (:kind ftype0))))))
   (let [dom-count (count dom)
-        arg-count (+ dom-count (if rest 1 0) (count optional-kw))
+        arg-count (cond-> (+ dom-count (count optional-kw))
+                    rest inc)
         o-a (map r/ret-o argtys)
-        _ (assert (every? obj/RObject? o-a))
         t-a (map r/ret-t argtys)
-        _ (assert (every? r/Type? t-a))
         [o-a t-a] (let [rs (for [[nm oa ta] (map vector 
                                                  (range arg-count) 
                                                  (concat o-a (repeat (obj/EmptyObject-maker)))

@@ -71,6 +71,7 @@
 (t/ann -wild Type)
 (def -wild (Wildcard-maker))
 
+(t/ann wild? (t/Pred Wildcard))
 (defn wild? [t]
   (instance? Wildcard t))
 
@@ -115,7 +116,7 @@
   (into (sorted-set-by u/type-comparator) ts))
 
 ;temporary union maker
-(t/ann Un [Type * -> Union])
+(t/ann Un [Type :* -> Union])
 (defn- Un [& types]
   (Union-maker (sorted-type-set types)))
 
@@ -140,7 +141,8 @@
   :methods
   [p/TCType])
 
-(t/ann Err Type)
+(t/ann-many Type
+            Err -error)
 (def Err (TCError-maker))
 (def -error Err)
 
@@ -560,11 +562,15 @@
   :methods
   [p/TCType])
 
-(u/ann-record DottedPretype [pre-type :- Type,
+(declare Regex?)
+
+(u/ann-record Regex [types :- (t/Vec (t/U Type Regex DottedPretype))
+                     kind :- t/Kw])
+(u/ann-record DottedPretype [pre-type :- (t/U Type Regex)
                              name :- (t/U t/Sym Number)])
 (u/def-type DottedPretype [pre-type name]
   "A dotted pre-type. Not a type."
-  [(Type? pre-type)
+  [((some-fn Type? Regex?) pre-type)
    ((some-fn symbol? nat-int?) name)]
   :methods
   [p/TCAnyType])
@@ -841,22 +847,21 @@
   {:post [(KwArgsArray? %)]}
   (KwArgsArray-maker (apply -kw-args opt)))
 
-(u/ann-record Regex [types :- (t/Vec Type)
-                     kind :- t/Kw])
 (u/def-type Regex [types kind]
   "Type representing regular expressions of sexpr's"
   [(vector? types)
    (do (case kind
-         (:* :+ :?) (do (assert (every? Type? types))
+         (:* :+ :?) (do (assert (every? (some-fn Regex? Type?) types))
                         (assert (= 1 (count types))))
-         :cat (assert (every? (some-fn Type? DottedPretype?) types))
-         (:alt :or) (assert (every? Type? types)))
+         :cat (assert (every? (some-fn Type? Regex? DottedPretype?) types))
+         (:alt :or) (assert (every? (some-fn Regex? Type?) types)))
        true)]
   :methods
-  [p/TCType])
+  [p/TCAnyType])
 
-(t/ann regex [(t/Vec Type) t/Kw -> Regex])
+(t/ann regex [(t/Vec (t/U Regex Type)) t/Kw -> Regex])
 (defn regex [types kind]
+  {:post [(Regex? %)]}
   (case kind
     :+ (do (assert (= 1 (count types)))
            (regex [(first types) (regex types :*)] :cat))
@@ -969,20 +974,6 @@
   :methods
   [p/TCType])
 
-(u/ann-record GTRange [n :- Number])
-(u/def-type GTRange [n]
-  "The type of all numbers greater than n"
-  [(number? n)]
-  :methods
-  [p/TCType])
-
-(u/ann-record LTRange [n :- Number])
-(u/def-type LTRange [n]
-  "The type of all numbers less than n"
-  [(number? n)]
-  :methods
-  [p/TCType])
-
 (t/ann make-CountRange [Number (t/U nil Number) :? -> CountRange])
 (defn make-CountRange
   ([lower] (make-CountRange lower nil))
@@ -993,7 +984,7 @@
   {:pre [(nat-int? c)]}
   (make-CountRange c c))
 
-(t/ann ^:no-check make-FnIntersection [Function * -> FnIntersection])
+(t/ann ^:no-check make-FnIntersection [Function :+ -> FnIntersection])
 (defn make-FnIntersection [& fns]
   {:pre [(every? Function? fns)]}
   (FnIntersection-maker (vec fns)))
@@ -1016,19 +1007,10 @@
   :methods
   [p/TCType])
 
-(t/ann -difference [Type Type * -> DifferenceType])
+(t/ann -difference [Type :+ -> DifferenceType])
 (defn -difference [t & without]
   {:pre [without]}
   (DifferenceType-maker t (sorted-type-set without)))
-
-(u/ann-record ListDots [pre-type :- Type,
-                        bound :- (t/U F B)])
-(u/def-type ListDots [pre-type bound]
-  "A dotted list"
-  [(Type? pre-type)
-   ((some-fn F? B?) bound)]
-  :methods
-  [p/TCType])
 
 (u/ann-record Extends [extends :- (t/I (t/SortedSet Type)
                                        t/NonEmptyCount)
@@ -1222,7 +1204,8 @@
                                smallest-type :- Type])
 (u/def-type SymbolicClosure [bindings fexpr smallest-type]
   "Symbolic closure"
-  [(map? fexpr)
+  [(map? bindings)
+   (map? fexpr)
    (Type? smallest-type)]
   :methods
   [p/TCType])

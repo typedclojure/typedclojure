@@ -23,9 +23,9 @@
                                         CountRange Name Value Top Wildcard Unchecked TopFunction B F Result AnyValue
                                         TCError Extends JSNominal
                                         JSString JSBoolean JSNumber CLJSInteger JSObject
-                                        ArrayCLJS FunctionCLJS KwArgsSeq HSequential HSet LTRange
+                                        ArrayCLJS FunctionCLJS KwArgsSeq HSequential HSet
                                         AnyValue TopFunction Scope DissocType AssocType MergeType
-                                        GetType GTRange JSUndefined JSNull JSSymbol JSObj TypeOf
+                                        GetType JSUndefined JSNull JSSymbol JSObj TypeOf
                                         SymbolicClosure)
            (typed.cljc.checker.filter_rep TopFilter BotFilter TypeFilter NotTypeFilter AndFilter OrFilter
                                           ImpFilter)))
@@ -203,7 +203,7 @@
 
 (promote-demote-id B Name Top Wildcard Unchecked TCError CountRange JSString
                    JSBoolean JSNumber JSObject CLJSInteger
-                   FunctionCLJS LTRange GTRange AnyValue TopFunction JSUndefined
+                   FunctionCLJS AnyValue TopFunction JSUndefined
                    JSNull JSSymbol TypeOf
                    ;;FIXME ???
                    SymbolicClosure)

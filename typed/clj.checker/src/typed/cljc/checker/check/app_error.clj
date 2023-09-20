@@ -63,7 +63,7 @@
 
 ;[Expr (Seqable Expr) (Seqable TCResult) (Option TCResult) Boolean
 ; -> Any]
-(defn ^String app-type-error [fexpr args fin arg-ret-types expected poly?]
+(defn app-type-error [fexpr args fin arg-ret-types expected poly?]
   {:pre [(r/FnIntersection? fin)
          (or (not poly?)
              ((some-fn r/Poly? r/PolyDots?) poly?))]
@@ -110,7 +110,7 @@
                                          {:pre [(r/Bounds? bnd)
                                                 (symbol? nme)]}
                                          (cond
-                                           (= nme dotted) [nme '...]
+                                           (= nme dotted) [nme :..]
                                            :else (concat [nme]
                                                          (when-not (= r/-nothing lower-bound)
                                                            [:> (prs/unparse-type lower-bound)])
@@ -123,10 +123,10 @@
                          (map (fn [{:keys [dom rest drest kws prest pdot]}]
                                 (concat (map prs/unparse-type dom)
                                         (when rest
-                                          [(prs/unparse-type rest) '*])
+                                          [(prs/unparse-type rest) :*])
                                         (when-some [{:keys [pre-type name]} drest]
                                           [(prs/unparse-type pre-type)
-                                           '...
+                                           :..
                                            (-> name r/make-F r/F-original-name)])
                                         (letfn [(readable-kw-map [m]
                                                   (reduce-kv (fn [m k v]
@@ -166,7 +166,7 @@
         :expected expected
         :return (or expected (r/ret r/Err))))))
 
-(defn ^String polyapp-type-error [fexpr args fexpr-type arg-ret-types expected]
+(defn polyapp-type-error [fexpr args fexpr-type arg-ret-types expected]
   {:pre [((some-fn r/Poly? r/PolyDots?) fexpr-type)]
    :post [(r/TCResult? %)]}
   (let [fin (if (r/Poly? fexpr-type)
@@ -174,8 +174,7 @@
               (c/PolyDots-body* (c/PolyDots-fresh-symbols* fexpr-type) fexpr-type))]
     (app-type-error fexpr args fin arg-ret-types expected fexpr-type)))
 
-(defn ^String plainapp-type-error [fexpr args fexpr-type arg-ret-types expected]
+(defn plainapp-type-error [fexpr args fexpr-type arg-ret-types expected]
   {:pre [(r/FnIntersection? fexpr-type)]
    :post [(r/TCResult? %)]}
   (app-type-error fexpr args fexpr-type arg-ret-types expected false))
-

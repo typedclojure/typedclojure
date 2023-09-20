@@ -1324,13 +1324,13 @@
 (defn distribute-regex-arities [ts rng]
   {:pre [(r/Result? rng)
          (vector? ts)
-         (every? (some-fn r/Type? r/DottedPretype? r/KwArgs?) ts)]
+         (every? (some-fn r/Type? r/Regex? r/DottedPretype? r/KwArgs?) ts)]
    :post [(every? r/Function? %)]}
   (if (empty? ts)
     [(r/make-Function ts rng)]
     (let [last-t (dec (count ts))
           handle-regex (fn handle-regex [t final-pos?]
-                         {:pre [((some-fn r/Type? r/DottedPretype? r/KwArgs?) t)
+                         {:pre [((some-fn r/Type? r/Regex? r/DottedPretype? r/KwArgs?) t)
                                 (boolean? final-pos?)]
                           :post [(every? (partial every? #(case (:kind %)
                                                             (:fixed :rest) (r/Type? (:type %))

@@ -1,7 +1,7 @@
 (ns clojure.core.typed.test.symbolic-closures
   (:require
     [typed.clojure :as t]
-    [typed.clj.checker.test-utils :refer [is-tc-e is-tc-err tc-e]]
+    [typed.clj.checker.test-utils :refer [is-tc-e is-tc-err tc-e is-tc-err-messages]]
     [typed.clj.checker.parse-unparse :refer [parse-clj]]
     [clojure.core.typed.util-vars :as vs]
     [typed.cljc.checker.type-rep :as r]
@@ -316,10 +316,13 @@
              (t/ann-form res (t/Transducer t/Any t/Any))))
   (is-tc-e (let [res (map #(do %))]
              (t/ann-form res (t/Transducer t/Any t/Any))))
-  ;;TODO assert this returns a good error message:
-  ;; (t/Transducer t/Nothing t/Nothing) <!: (t/Transducer t/Any t/Nothing)
-  (is-tc-err (let [res (map #(do %))]
-               (t/ann-form res (t/Transducer t/Any t/Nothing))))
+  (is-tc-err-messages
+    (= {:ex [[(str "Type mismatch:\n\n"
+                   "Expected: \t(t/Transducer t/Any t/Nothing)\n\n"
+                   "Actual: \t(t/Transducer t/Nothing t/Nothing)")
+              {:type-error :clojure.core.typed.errors/type-error, :form 'res}]]}
+       (let [res (map #(do %))]
+         (t/ann-form res (t/Transducer t/Any t/Nothing)))))
   (is-tc-e (map #(do %)) (t/Transducer t/Int t/Int))
   (is-tc-e (let [map (t/ann-form map (t/All [c a b :..] [[a :-> c] :-> (t/Transducer a c)]))
                  res (map #(do %))]
@@ -546,13 +549,16 @@
                (reduce (fn [a b] (+ a b)) [1]))))
   (is-tc-e (reduce (fn [a b] (+ a b)) [1]))
   (is-tc-e (reduce (fn [a b] (+ a b)) [1]) Long)
-  #_;;TODO
   (is-tc-e (reduce (fn [a b]
                      (reduce + a b))
                    1 [[1]]))
   (is-tc-err (reduce (fn [a b] (+ a b)) [1]) (t/Val 1))
-  #_;;TODO
   (is-tc-e (reduce (fn [a b] (+ a (if b 1 2))) 1 [true]))
+  (is-tc-err (reduce (fn [a b] a) (reduced 1) nil) t/Int)
+  (is-tc-e (reduce (fn [a b] a) (reduced 1) nil) (t/Reduced t/Int))
+  #_;;FIXME just like the previous case except adds Long to the result type
+  (is-tc-e (let [res (reduce (fn [a b] a) (reduced 1) nil)]
+             (t/ann-form res (t/Reduced t/Int))))
   )
 
 (deftest comp-test
@@ -636,7 +642,6 @@
   (is-tc-e (fn [comp :- (t/All [x y :..] [[y :.. y :-> x] :-> [y :.. y :-> x]])]
              :- [t/Any :-> t/Any]
              (comp (fn [a]))))
-  #_;;FIXME
   (is-tc-e (fn [comp :- (t/All [x y :..] [[y :.. y :-> x] :-> [y :.. y :-> x]])]
              :- [t/Any :-> t/Any]
              (comp identity)))
@@ -694,3 +699,97 @@
                (update x y inc)
                nil)
              (t/All [x y] [x y :-> nil])))
+
+(deftest swap!-test
+  (is-tc-e (fn [a :- (t/Atom1 t/Int)]
+             (swap! a inc)))
+  (is-tc-err (fn [a :- (t/Atom1 (t/Nilable t/Int))]
+               (swap! a inc)))
+  (is-tc-e (fn [a :- (t/Atom1 t/Int)]
+             (swap! a (fn [a] (inc a)))))
+  ;;TODO
+  ;; expected: t/Int
+  ;; actual: nil
+  ;; in: a
+  (is-tc-err-messages
+    (fn [a :- (t/Atom1 (t/Nilable t/Int))]
+      (swap! a (fn [a] (inc a)))))
+  (is-tc-e
+    (fn [a :- (t/Atom1 t/Int)]
+      (swap! a (fn [a b c] (+ a b c)) 2 3)))
+  ;;TODO
+  ;; expected: t/Int
+  ;; actual: nil
+  ;; in: a
+  (is-tc-err-messages
+    (fn [a :- (t/Atom1 (t/Nilable t/Int))]
+      (swap! a (fn [a b c] (+ a b c)) 2 3)))
+  ;;TODO
+  ;; expected: t/Int
+  ;; actual: nil
+  ;; in: b
+  (is-tc-err-messages
+    (fn [a :- (t/Atom1 t/Int)]
+      (swap! a (fn [a b c] (+ a b c)) nil 3)))
+  )
+
+(deftest error-msgs-test
+  ;; Before
+  ;; =====
+  ;; Type Error (clojure/core/typed/test/symbolic_closures.clj:741:23)
+  ;; Function inc could not be applied to arguments:
+  ;; 
+  ;; 
+  ;; Domains:
+  ;;         t/Num
+  ;; 
+  ;; Arguments:
+  ;;         nil
+  ;; 
+  ;; Ranges:
+  ;;         t/Num
+  ;; 
+  ;; 
+  ;; 
+  ;; 
+  ;; in:
+  ;; (inc nil)
+  ;;
+  ;;TODO
+  ;; Type Error (clojure/core/typed/test/symbolic_closures.clj:741:23)
+  ;; expected: Num
+  ;; actual: nil
+  ;; in: nil
+  (is-tc-err-messages (inc nil))
+  ;;TODO
+  ;; expected: [nil -> t/Any]
+  ;; actual:   [Num -> Num]
+  ;; in: inc
+  ;;OR
+  ;; expected: Num
+  ;; actual:   nil
+  ;; in: nil
+  (is-tc-err-messages (map inc [nil]))
+  ;;TODO
+  ;; expected: (t/Seqable t/Any)
+  ;; actual:   (Val 1)
+  ;; in: 1
+  (is-tc-err-messages (reduce (fn [a v]) {} 1))
+  ;;TODO return TCError if symbolic closure fails to check with most specific args
+  ;; expected: t/Num
+  ;; actual:   nil
+  ;; in: nil
+  (is-tc-err-messages (reduce (fn [a v]
+                                (+ a v nil))
+                              1 [1]))
+  (is (= {:ex [[(str "Type mismatch:\n\n"
+                     "Expected: \tnil\n\n"
+                     "Actual: \tLong")
+                {:type-error :clojure.core.typed.errors/type-error, :form '(inc 1)}]]}
+         (is-tc-err-messages (inc 1) nil)))
+  ;;TODO
+  ;; expected: nil
+  ;; actual: (Val 1)
+  ;; in: 1
+  (is-tc-err-messages (identity 1) nil)
+  )

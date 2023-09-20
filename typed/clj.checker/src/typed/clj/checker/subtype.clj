@@ -93,7 +93,7 @@
          (binding [*sub-current-seen* A#]
            (f# A#))))))
 
-;[(t/Seqable Type) (t/Seqable Type) Type -> Boolean]
+;[(t/Vec Type) (t/Vec Type) Type -> Boolean]
 (defn subtypes-varargs?
   "True if argtys are under dom"
   [argtys dom rst kws]
@@ -108,7 +108,7 @@
         [argtys-dom argtys-rest] (split-at dom-count argtys)]
     (boolean
       (and (do-top-level-subtype-using
-             subtypes*-varargs argtys-dom dom nil nil)
+             subtypes*-varargs (vec argtys-dom) dom nil nil)
            (do-top-level-subtype-using
              subtypeA* (r/-hvec (vec argtys-rest)) prest)))))
 
@@ -986,46 +986,54 @@
 ;[(IPersistentSet '[Type Type]) (t/Seqable Type) (t/Seqable Type) (Option Type)
 ;  -> (IPersistentSet '[Type Type])]
 (defn ^:private subtypes*-varargs [A0 argtys dom rst kws]
-  {:pre [((some-fn nil? r/Type?) rst)
+  {:pre [(vector? argtys)
+         (vector? dom)
+         ((some-fn nil? r/Type?) rst)
          ((some-fn nil? r/KwArgs?) kws)]
    :post [((some-fn set? nil?) %)]}
   (letfn [(all-mandatory-kws? [found-kws]
             {:pre [(set? found-kws)]}
-            (empty? (set/difference (set (keys (:mandatory kws)))
-                                    found-kws)))]
+            (or (not kws)
+                (empty? (set/difference (set (keys (:mandatory kws)))
+                                        found-kws))))]
     (loop [dom dom
            argtys argtys
            A A0
            found-kws #{}]
-      (cond
-        (and (empty? dom) (empty? argtys)) 
-        (if (all-mandatory-kws? found-kws)
-          A
-          (report-not-subtypes argtys dom))
+      (let [ndom (count dom)
+            nargtys (count argtys)]
+        (cond
+          (and (zero? ndom) (zero? nargtys))
+          (if (all-mandatory-kws? found-kws)
+            A
+            (report-not-subtypes argtys dom))
 
-        (empty? argtys) (report-not-subtypes argtys dom)
+          (zero? nargtys) (report-not-subtypes argtys dom)
 
-        (and (empty? dom) rst)
-        (if-let [A (subtypeA* A (first argtys) rst)]
-          (recur dom (next argtys) A found-kws)
-          (report-not-subtypes (first argtys) rst))
+          (zero? ndom)
+          (cond rst
+                (let [fargty (nth argtys 0)]
+                  (if-some [A (subtypeA* A fargty rst)]
+                    (recur dom (subvec argtys 1) A found-kws)
+                    (report-not-subtypes fargty rst)))
 
-        (and (empty? dom) (<= 2 (count argtys)) kws)
-        (let [kw (c/fully-resolve-type (first argtys))
-              val (second argtys)
-              expected-val ((some-fn (:mandatory kws) (:optional kws))
-                            kw)]
-          (if (and expected-val (subtypeA* A val expected-val))
-            (recur dom (drop 2 argtys) A (conj found-kws kw))
-            (report-not-subtypes (take 2 argtys) kws)))
+                (and kws (<= 2 nargtys))
+                (let [kw (c/fully-resolve-type (nth argtys 0))
+                      val (nth argtys 1)
+                      expected-val ((some-fn (:mandatory kws) (:optional kws))
+                                    kw)]
+                  (if (and expected-val (subtypeA* A val expected-val))
+                    (recur dom (subvec argtys 2) A (conj found-kws kw))
+                    (report-not-subtypes (subvec argtys 0 2) kws)))
 
-        (empty? dom) (report-not-subtypes argtys dom)
-        :else
-        (let [[arg-t] argtys
-              [dom-t] dom]
-          (if-some [A (subtypeA* A0 arg-t dom-t)]
-            (recur (next dom) (next argtys) A found-kws)
-            (report-not-subtypes arg-t dom-t)))))))
+                :else (report-not-subtypes argtys dom))
+
+          :else
+          (let [[arg-t] argtys
+                [dom-t] dom]
+            (if-some [A (subtypeA* A0 arg-t dom-t)]
+              (recur (subvec dom 1) (subvec argtys 1) A found-kws)
+              (report-not-subtypes arg-t dom-t))))))))
 
 ;FIXME
 (defn subtype-kwargs* [A s t]
@@ -1430,12 +1438,12 @@
                        ;(prn "overriden by" sym (class o) o)
                        (cond
                          ((some-fn r/DataType? r/RClass?) o)
-                         (when (#{sym} (:the-class o))
+                         (when (= sym (:the-class o))
                            o)
                          (r/Protocol? o)
                          ; protocols are extended via their interface if they
                          ; show up in the ancestors of the datatype
-                         (when (#{sym} (:on-class o))
+                         (when (= sym (:on-class o))
                            o)))
         overrides (map c/fully-resolve-type (ancest/get-datatype-ancestors dt))
         ;_ (prn "datatype name" the-class)

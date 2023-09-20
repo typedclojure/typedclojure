@@ -28,7 +28,7 @@
 (fold/add-fold-case
   IFreeInForObject free-in-for-object
   Path
-  (fn [{p :path i :id :as o} k free-in?]
+  (fn [{i :id :as o} k free-in?]
     (when (= i k)
       (vreset! free-in? true))
     o))
@@ -36,7 +36,7 @@
 (fold/add-fold-case
   IFreeInForFilter free-in-for-filter
   NotTypeFilter
-  (fn [{t :type p :path i :id :as f} k free-in?]
+  (fn [{i :id :as f} k free-in?]
     (when (= i k)
       (vreset! free-in? true))
     f))
@@ -44,7 +44,7 @@
 (fold/add-fold-case
   IFreeInForFilter free-in-for-filter
   TypeFilter
-  (fn [{t :type p :path i :id :as f} k free-in?]
+  (fn [{i :id :as f} k free-in?]
     (when (= i k)
       (vreset! free-in? true))
     f))
@@ -57,8 +57,7 @@
   (fn [{:keys [dom rng rest drest prest pdot kws] :as ty} k free-in? for-type]
     {:pre [(#{:fixed :rest :drest :prest :pdot :kws} (:kind ty))]}
     ;; here we have to increment the count for the domain, where the new bindings are in scope
-    (let [arg-count (+ (count dom) (if rest 1 0) (if drest 1 0) (count (concat (:mandatory kws)
-                                                                               (:optional kws))))
+    (let [arg-count (+ (count dom) (if rest 1 0) (if drest 1 0) (count (:mandatory kws)) (count (:optional kws)))
           st* (fn [t] (index-free-in? (if (number? k) (+ arg-count k) k) t))]
       (doseq [d dom]
         (for-type d))

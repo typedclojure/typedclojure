@@ -52,8 +52,7 @@
    (let [fexpr-type (c/fully-resolve-type (r/ret-t fexpr-ret-type))
          arg-types (mapv r/ret-t arg-ret-types)]
      (prs/with-unparse-ns (or prs/*unparse-type-in-ns*
-                              (when fexpr
-                                (cu/expr-ns fexpr)))
+                              (some-> fexpr cu/expr-ns))
      ;(prn "check-funapp" (prs/unparse-type fexpr-type) (map prs/unparse-type arg-types) (some-> expected prs/unparse-type))
      (cond
        ;; a union of functions can be applied if we can apply all of the elements
@@ -83,7 +82,7 @@
                                (map c/fully-resolve-type (:types fexpr-type))))]
          (if a-fntype
            (check-funapp fexpr args (r/ret a-fntype) arg-ret-types expected opt)
-           (err/int-error (str "Cannot invoke type: " (pr-str (prs/unparse-type fexpr-type))))))
+           (err/tc-delayed-error (str "Cannot invoke type: " (pr-str (prs/unparse-type fexpr-type))))))
 
        (c/ifn-ancestor fexpr-type)
        (check-funapp fexpr args (r/ret (c/ifn-ancestor fexpr-type)) arg-ret-types expected opt)
@@ -100,7 +99,7 @@
             (isa? (coerce/symbol->Class (:the-class fexpr-type)) 
                   clojure.lang.IPersistentSet))
        (do
-         (when-not (#{1} (count args))
+         (when-not (= 1 (count args))
            (err/tc-delayed-error (str "Wrong number of arguments to set function (" (count args)")")))
          (below/maybe-check-below
            (r/ret r/-any)
@@ -124,13 +123,13 @@
 
        ;Symbol function
        (and (r/RClass? fexpr-type)
-            ('#{clojure.lang.Symbol} (:the-class fexpr-type)))
+            (= 'clojure.lang.Symbol (:the-class fexpr-type)))
        (let [symfn (prs/parse-type `(t/All [x#] [(t/U (t/Map t/Any x#) t/Any) :-> (t/U x# nil)]))]
          (check-funapp fexpr args (r/ret symfn) arg-ret-types expected opt))
        
        ;Var function
        (and (r/RClass? fexpr-type)
-            ('#{clojure.lang.Var} (:the-class fexpr-type)))
+            (= 'clojure.lang.Var (:the-class fexpr-type)))
        (let [{[_ ftype :as poly?] :poly?} fexpr-type
              _ (assert (#{2} (count poly?))
                        "Assuming clojure.lang.Var only takes 1 argument")]
@@ -160,7 +159,7 @@
              (r/ret (r/-unchecked nil))))
 
        (and (r/HeterogeneousVector? fexpr-type)
-            (#{1 2} (count arg-types))
+            (<= 1 (count arg-types) 2)
             (let [i (first arg-types)]
               (and (r/Value? i)
                    (integer? (:val i)))))
@@ -171,12 +170,9 @@
 
        (r/HSet? fexpr-type)
        (let [fixed (:fixed fexpr-type)
-             ret (cond
-                   (not (#{1} (count arg-ret-types))) 
+             ret (if (not= 1 (count arg-ret-types))
                    (do (err/tc-delayed-error (str "Wrong number of arguments to set (" (count args) ")"))
                        (r/ret r/Err))
-
-                   :else
                    (let [[argt] arg-ret-types
                          ; default value is nil
                          set-return (apply c/Un r/-nil fixed)]
@@ -185,8 +181,7 @@
                                         r/Value?
                                         (comp hset/valid-fixed? :val))
                                       fixed))
-                       (let [; (#{false nil} a) returns false even if a is nil/false
-                             filter-type (apply c/Un
+                       (let [filter-type (apply c/Un
                                                 (disj (r/sorted-type-set fixed) 
                                                       (r/-val nil)
                                                       (r/-val false)))]
@@ -209,19 +204,27 @@
 ;       ; check/funapp-single-arity-nopoly-nodots
 ;       (let [argtys arg-ret-types
 ;             {[t] :types} fexpr-type]
-;         (funapp1/check-funapp1 fexpr args t argtys expected)))
+;         (funapp1/check-funapp1 fexpr args t argtys expected))
 
        ;ordinary Function, multiple cases
        (r/FnIntersection? fexpr-type)
        (let [ftypes (:types fexpr-type)
-             matching-fns (filter (fn [{:keys [dom rest kws prest] :as f}]
-                                    {:pre [(r/Function? f)]}
-                                    (if prest
-                                      (sub/subtypes-prest? arg-types dom prest)
-                                      (sub/subtypes-varargs? arg-types dom rest kws)))
-                                  ftypes)
-             success-ret-type (when-some [f (first matching-fns)]
-                                (funapp1/check-funapp1 fexpr args f arg-ret-types expected :check? false))]
+             matching-fn (some (fn [{:keys [dom rest kws prest] :as f}]
+                                 {:pre [(r/Function? f)
+                                        (case (:kind f)
+                                          (:fixed :rest :kws :prest) true
+                                          false)]}
+                                 #_
+                                 (prn "arg-ret-types"
+                                      (mapv (comp #(mapv (juxt :env typed.clj.analyzer.passes.emit-form/emit-form) %) :origin-exprs meta)
+                                            arg-ret-types))
+                                 (when (if prest
+                                         (sub/subtypes-prest? arg-types dom prest)
+                                         (sub/subtypes-varargs? arg-types dom rest kws))
+                                   f))
+                               ftypes)
+             success-ret-type (when matching-fn
+                                (funapp1/check-funapp1 fexpr args matching-fn arg-ret-types expected :check? false))]
          ;(prn "success-ret-type" success-ret-type)
          (or success-ret-type
              (app-err/plainapp-type-error fexpr args fexpr-type arg-ret-types expected)))

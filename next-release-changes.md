@@ -1,3 +1,4 @@
 - internal: remove PolyDots
 - `cc/keyword` can accept nil as first arg
 - `cc/derive` returns a Hierarchy
+- record current expression in TCResult's for future error message improvements

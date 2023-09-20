@@ -44,110 +44,129 @@
 
 (defn ^:private inner-deftype [fields hash-field meta-field this that name-sym type-hash gs
                                maker methods*]
-  `(deftype ~name-sym [~@fields ~(with-meta hash-field {:unsynchronized-mutable true}) ~meta-field]
-     clojure.lang.IHashEq
-     (equals [_# ~that]
-       (and (instance? ~name-sym ~that)
-            ; do not shadow fields here!
-            ~@(for [f fields]
-                `(= (~(keyword f) ~that) ~f))))
-     ; don't shadow fields here!
-     (hasheq [this#] (if-let [h# ~hash-field]
-                       h#
-                       (let [h# ~(if-let [ts (seq (map (fn [f] `(hash ~f)) fields))]
-                                   `(bit-xor ~type-hash ~@ts)
-                                   `(bit-xor ~type-hash ~default-xor))]
-                         (set! ~hash-field h#)
-                         h#)))
-     ; don't shadow fields here!
-     (hashCode [this#] (if-let [h# ~hash-field]
-                         h#
-                         (let [h# ~(if-let [ts (seq (map (fn [f] `(hash ~f)) fields))]
-                                     `(bit-xor ~type-hash ~@ts)
-                                     `(bit-xor ~type-hash ~default-xor))]
-                           (set! ~hash-field h#)
-                           h#)))
+  (let [_ (assert (not-any? #(= name-sym %) (list* hash-field meta-field fields)))
+        this (gensym 'this)
+        gclass (gensym 'gclass)
+        k (gensym 'k)]
+    `(deftype ~name-sym [~@fields ~(with-meta hash-field {:unsynchronized-mutable true}) ~meta-field]
+       clojure.lang.IHashEq
+       (equals [~this ~that]
+         (and (instance? ~name-sym ~that)
+              ~@(let [that (with-meta that {:tag name-sym})]
+                  (for [f fields
+                        :let [f (symbol (str "-" f))]]
+                    `(= (. ~that ~f)
+                        (. ~this ~f))))))
+       (hasheq [~this] (or (. ~this ~(symbol (str "-" hash-field)))
+                           (let [h# ~(if-let [ts (seq (map (fn [f] `(hash (. ~this ~(symbol (str "-" f))))) fields))]
+                                       `(bit-xor ~type-hash ~@ts)
+                                       `(bit-xor ~type-hash ~default-xor))]
+                             (set! (. ~this ~(symbol (str "-" hash-field))) h#)
+                             h#)))
+       (hashCode [~this] (or (. ~this ~(symbol (str "-" hash-field)))
+                             (let [h# ~(if-let [ts (seq (map (fn [f] `(hash (. ~this ~(symbol (str "-" f))))) fields))]
+                                         `(bit-xor ~type-hash ~@ts)
+                                         `(bit-xor ~type-hash ~default-xor))]
+                               (set! (. ~this ~(symbol (str "-" hash-field))) h#)
+                               h#)))
 
-     clojure.lang.IObj
-     (meta [this#] ~meta-field)
-     (withMeta [this# ~gs] (~maker ~@fields ~gs))
+       clojure.lang.IObj
+       (meta [~this] (. ~this ~(symbol (str "-" meta-field))))
+       ;; can use unchecked ctor
+       (withMeta [~this ~gs] (new ~name-sym
+                                  ~@(map #(do `(. ~this ~(symbol (str "-" %)))) fields)
+                                  (. ~this ~(symbol (str "-" hash-field)))
+                                  ~gs))
 
+       clojure.lang.ILookup
+       (valAt [~this ~k else#]
+         ;; note: intentionally avoids condp throughout due to lack of inlining https://github.com/frenchy64/clojure/pull/13
+         (cond
+           ~@(mapcat (fn [fld] [`(identical? ~k ~(keyword fld)) `(. ~this ~(symbol (str "-" fld)))])
+                     fields)
+           :else (throw (UnsupportedOperationException. (str "lookup on " '~name-sym " " ~k)))))
+       (valAt [~this ~k]
+         (cond
+           ~@(mapcat (fn [fld] [`(identical? ~k ~(keyword fld)) `(. ~this ~(symbol (str "-" fld)))]) 
+                     fields)
+           :else (throw (UnsupportedOperationException. (str "lookup on " '~name-sym " " ~k)))))
 
-     clojure.lang.ILookup
-     (valAt [this# k# else#]
-       (case k# ~@(mapcat (fn [fld] [(keyword fld) fld]) 
-                          fields)
-         (throw (UnsupportedOperationException. (str "lookup on " '~name-sym " " k#)))))
-     (valAt [this# k#]
-       (case k# ~@(mapcat (fn [fld] [(keyword fld) fld]) 
-                          fields)
-         (throw (UnsupportedOperationException. (str "lookup on " '~name-sym " " k#)))))
+       clojure.lang.IKeywordLookup
+       (getLookupThunk [this# ~k]
+         (let [~gclass (class this#)]
+           (cond
+             ~@(let [gtarget (gensym 'gtarget)
+                     hinted-target (with-meta gtarget {:tag name-sym})
+                     thunk (gensym 'thunk)]
+                 (mapcat
+                   (fn [fld]
+                     [`(identical? ~k ~(keyword fld))
+                      `(reify clojure.lang.ILookupThunk
+                         (get [~thunk ~gtarget]
+                           (if (identical? (class ~gtarget) ~gclass)
+                             (. ~hinted-target ~(symbol (str "-" fld)))
+                             ~thunk)))])
+                   fields))
+             :else (throw (UnsupportedOperationException. (str "lookup on " '~name-sym " " ~k))))))
 
-     clojure.lang.IKeywordLookup
-     (getLookupThunk [this# k#]
-       (let [~'gclass (class this#)]              
-         (case k#
-           ~@(let [hinted-target (with-meta 'gtarget {:tag name-sym})] 
-               (mapcat 
-                 (fn [fld]
-                   [(keyword fld)
-                    `(reify clojure.lang.ILookupThunk
-                       (get [~'thunk ~'gtarget]
-                         (if (identical? (class ~'gtarget) ~'gclass)
-                           (. ~hinted-target ~(symbol (str "-" fld)))
-                           ~'thunk)))])
-                 fields))
-           (throw (UnsupportedOperationException. (str "lookup on " '~name-sym " " k#))))))
+       clojure.lang.IPersistentMap
+       (assoc [~this ~k ~gs]
+         (cond
+           ~@(mapcat (fn [fld]
+                       [`(identical? ~k ~(keyword fld))
+                        `(if (identical? ~gs (. ~this ~(symbol (str "-" fld))))
+                           ~this ;; don't reconstruct if field is unchanged
+                           (~maker ~@(map (fn [fld']
+                                            (if (= fld fld')
+                                              gs
+                                              `(. ~this ~(symbol (str "-" fld')))))
+                                          fields)
+                                   (. ~this ~(symbol (str "-" meta-field)))))])
+                     fields)
+           :else (throw (UnsupportedOperationException. (str "assoc on " '~name-sym " " ~k)))))
+       (entryAt [this# k#]
+         (let [v# (.valAt this# k# this#)]
+           (when-not (identical? this# v#)
+             (clojure.lang.MapEntry/create k# v#))))
+       (count [this#] (throw (UnsupportedOperationException. ~(str "count on " name-sym))))
+       ;; hack for pr-on, don't use empty
+       (empty [this#] this#)
+       (cons [this# e#] (throw (UnsupportedOperationException. ~(str "cons on " name-sym))))
+       (equiv [~this ~that]
+         (and (instance? ~name-sym ~that)
+              ~@(let [that (with-meta that {:tag name-sym})]
+                  (for [f fields
+                        :let [f (symbol (str "-" f))]]
+                    `(= (. ~that ~f)
+                        (. ~this ~f))))))
+       (containsKey [this# k#] (throw (UnsupportedOperationException. ~(str "containsKey on " name-sym))))
+       (seq [~this] (seq [~@(map #(list `new `clojure.lang.MapEntry (keyword %) `(. ~this ~(symbol (str "-" %))))
+                                 fields)]))
 
-     clojure.lang.IPersistentMap
-     (assoc [~this k# ~gs]
-       (condp identical? k#
-         ~@(mapcat (fn [fld]
-                     [(keyword fld) `(if (identical? ~gs ~fld)
-                                       ~this ;; don't reconstruct if field is unchanged
-                                       (~maker ~@(replace {fld gs} fields) ~meta-field))])
-                   fields)
-         (throw (UnsupportedOperationException. (str "assoc on " '~name-sym " " k#)))))
-     (entryAt [this# k#]
-       (let [v# (.valAt this# k# this#)]
-         (when-not (identical? this# v#)
-           (clojure.lang.MapEntry/create k# v#))))
-     (count [this#] (throw (UnsupportedOperationException. (str "count on " '~name-sym))))
-     ;; hack for pr-on, don't use empty
-     (empty [this#] this#)
-     (cons [this# e#] (throw (UnsupportedOperationException. (str "cons on " '~name-sym))))
-     (equiv [_# ~that]
-       (and (instance? ~name-sym ~that)
-            ; do not shadow fields here!
-            ~@(for [f fields]
-                `(= (~(keyword f) ~that) ~f))))
-     (containsKey [this# k#] (throw (UnsupportedOperationException. (str "containsKey on " '~name-sym))))
-     (seq [this#] (seq [~@(map #(list `new `clojure.lang.MapEntry (keyword %) %) (concat fields [#_meta-field]))]))
+       (iterator [this#] (throw (UnsupportedOperationException. ~(str "iterator on " name-sym))))
+       (without [this# k#] (throw (UnsupportedOperationException. ~(str "without on " name-sym))))
 
-     (iterator [this#] (throw (UnsupportedOperationException. (str "iterator on " '~name-sym))))
-     (without [this# k#] (throw (UnsupportedOperationException. (str "without on " '~name-sym))))
+       Comparable
+       (compareTo [~this ~that]
+         ;returns 1 if we have 2 instances of name-sym with
+         ; identical hashs, but are not =
+         (if (= ~this ~that)
+           0
+           (if (instance? ~name-sym ~that)
+             (if (< (hash ~this)
+                    (hash ~that))
+               -1
+               1)
+             (if (< (hash ~name-sym) (hash (class ~that)))
+               -1
+               1))))
 
-     Comparable
-     ~(let [this (gensym 'this)]
-        `(compareTo [~this ~that]
-                    ;returns 1 if we have 2 instances of name-sym with
-                    ; identical hashs, but are not =
-                    (cond (= ~this ~that) 0
-                          (instance? ~name-sym ~that)
-                          (if (< (hash ~this)
-                                 (hash ~that))
-                            -1
-                            1)
-                          :else (if (< (hash ~name-sym) (hash (class ~that)))
-                                  -1
-                                  1))))
-
-     ~@methods*))
+       ~@methods*)))
 
 (defn emit-deftype [original-ns def-kind name-sym fields invariants {methods* :methods :keys [computed-fields ctor-meta] :as opt}]
   (assert (symbol? name-sym))
   (let [classname (with-meta (symbol (str (namespace-munge *ns*) "." name-sym)) (meta name-sym))
-        ->ctor (symbol (str "->" name-sym))
+        ->ctor (symbol (-> *ns* ns-name str) (str "->" name-sym))
         maker (with-meta (or (:maker-name opt)
                              (symbol (str name-sym "-maker")))
                          ctor-meta)

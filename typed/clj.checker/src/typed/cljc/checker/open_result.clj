@@ -73,9 +73,7 @@
            (map vector 
                 (map-indexed #(vector %2 %1) ;racket's is opposite..
                              objs)
-                (if ts
-                  ts
-                  (repeat false))))))
+                (or ts (repeat false))))))
 
 (defn open-Result->TCResult
   ([r objs] (open-Result->TCResult r objs nil))

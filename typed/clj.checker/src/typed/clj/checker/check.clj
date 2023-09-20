@@ -169,7 +169,7 @@
 (def ^:private *register-exts (delay (configs/register-clj-config-exts)))
 
 (defn maybe-check-inlineable [{:keys [op form env] :as expr} expected]
-  {:pre [(#{:unanalyzed} op)]}
+  {:pre [(= :unanalyzed op)]}
   (when (seq? form)
     (let [v (-> (first form)
                 (ana2/resolve-sym env))]
@@ -434,25 +434,25 @@
                            expected)))))
 
 (defmulti -invoke-special (fn [{{:keys [form env] :as fexpr} :fn :as expr} expected] 
-                            {:pre [(#{:invoke} (:op expr))
-                                   (#{:unanalyzed} (:op fexpr))]
+                            {:pre [(= :invoke (:op expr))
+                                   (= :unanalyzed (:op fexpr))]
                              :post [((some-fn nil? symbol?) %)]}
                             (-> form
                                 (ana2/resolve-sym env)
                                 ana2/var->sym)))
 
 (defmulti -invoke-apply (fn [{[{:keys [op form env] :as fexpr} :as args] :args :as expr} expected]
-                          {:pre [(#{:invoke} (:op expr))]
+                          {:pre [(= :invoke (:op expr))]
                            :post [((some-fn nil? symbol?) %)]}
                           (when (seq args)
-                            (assert (#{:unanalyzed} op))
+                            (assert (= :unanalyzed op))
                             (-> form
                                 (ana2/resolve-sym env)
                                 ana2/var->sym))))
 
 (defn host-call-qname [{:keys [target] :as expr} _]
-  {:pre [(#{:host-call} (:op expr))
-         (#{:unanalyzed} (:op target))]
+  {:pre [(= :host-call (:op expr))
+         (= :unanalyzed (:op target))]
    :post [((some-fn nil?
                     (con/hvector-c? #{:static-call
                                       :instance-call}
@@ -487,7 +487,7 @@
   {:post [(or (nil? %)
               (and (r/TCResult? (u/expr-type %))
                    (vector? (:args %))))]}
-  (when (#{2} (count args))
+  (when (= 2 (count args))
     (let [cargs (mapv check-expr args)
           ct (-> (first cargs) u/expr-type r/ret-t c/fully-resolve-type)]
       (when (and (r/Value? ct) (class? (:val ct)))
@@ -505,7 +505,7 @@
   {:post [(or (nil? %)
               (and (r/TCResult? (u/expr-type %))
                    (vector? (:args %))))]}
-  (when-not (#{1} (count (:args expr)))
+  (when-not (= 1 (count (:args expr)))
     (err/int-error (str "Wrong number of arguments to clojure.core.typed/var>,"
                         " expected 1, given " (count (:args expr)))))
   (let [{[sym-expr :as args] :args fexpr :fn :as expr}
@@ -529,7 +529,7 @@
   {:post [(or (nil? %)
               (and (r/TCResult? (u/expr-type %))
                    (vector? (:args %))))]}
-  (when (#{1} (count args))
+  (when (= 1 (count args))
     (let [{[ctarget] :args :as cexpr}
           (-> expr
               (update :fn check-expr)
@@ -657,7 +657,7 @@
   {:post [(or (nil? %)
               (and (-> % u/expr-type r/TCResult?)
                    (vector? (:args %))))]}
-  (when (#{1} (count args)) 
+  (when (= 1 (count args)) 
     (let [[ctarget :as cargs] (mapv check-expr args)
           {fs+ :then fs- :else} (-> ctarget u/expr-type r/ret-f)]
       (assoc expr
@@ -675,7 +675,7 @@
   {:post [(or (nil? %)
               (and (-> % u/expr-type r/TCResult?)
                    (vector? (:args %))))]}
-  (when (#{1} (count args)) 
+  (when (= 1 (count args)) 
     (let [[ctarget :as cargs] (mapv check-expr args)
           targett (-> ctarget u/expr-type r/ret-t)]
       ;(prn "to-array" targett)
@@ -718,12 +718,12 @@
 ;FIXME should be the same as (apply hash-map ..) in invoke-apply
 (defmethod -host-call-special '[:static-call clojure.lang.PersistentHashMap/create]
   [expr expected]
-  {:pre [(#{:host-call} (:op expr))
+  {:pre [(= :host-call (:op expr))
          (every? (comp #{:unanalyzed} :op) (:args expr))]
    :post [(or (nil? %)
               (and (-> % u/expr-type r/TCResult?)
                    (-> % :target u/expr-type r/TCResult?)))]}
-  (when (#{1} (count (:args expr)))
+  (when (= 1 (count (:args expr)))
     (binding [vs/*current-expr* expr]
       (let [{[target] :args :as expr} (-> expr
                                           (update :args #(mapv check-expr %)))
@@ -771,12 +771,12 @@
 
 (defmethod -host-call-special '[:static-call clojure.lang.PersistentArrayMap/createAsIfByAssoc]
   [expr expected]
-  {:pre [(#{:host-call} (:op expr))
+  {:pre [(= :host-call (:op expr))
          (every? (comp #{:unanalyzed} :op) (:args expr))]
    :post [(or (nil? %)
               (and (-> % u/expr-type r/TCResult?)
                    (-> % :target u/expr-type r/TCResult?)))]}
-  (when (#{1} (count (:args expr)))
+  (when (= 1 (count (:args expr)))
     (binding [vs/*current-expr* expr]
       (let [{[target] :args :as expr} (-> expr
                                           (update :args #(mapv check-expr %)))
@@ -799,9 +799,10 @@
       check-expr 
       (assoc :op :prim-invoke)))
 
+;;TODO when cu/should-rewrite?, add type hints for ILookupThunk
 (defmethod -check :keyword-invoke
   [{kw :keyword :keys [target] :as expr} expected]
-  {:pre [(and (#{:const} (:op kw))
+  {:pre [(and (= :const (:op kw))
               (keyword? (:val kw)))]
    :post [(r/TCResult? (u/expr-type %))]}
   (let [ckw (check-expr kw)
@@ -845,12 +846,12 @@
     (err/int-error (str "push-thread-bindings expected one argument, given " (count args))))
   (let [bindings-expr (ana2/run-pre-passes (ana2/analyze-outer-root bindings-expr))
         bindings-expr (cond-> bindings-expr 
-                        (#{:invoke} (-> bindings-expr :op))
+                        (= :invoke (-> bindings-expr :op))
                         (update :fn ana2/run-passes))
         ; only support (push-thread-bindings (hash-map ~@[var bnd ...]))
         ; like `binding`s expansion
-        _ (when-not (and (#{:invoke} (-> bindings-expr :op))
-                         (#{#'hash-map} (-> bindings-expr :fn :var))
+        _ (when-not (and (= :invoke (-> bindings-expr :op))
+                         (= #'hash-map (-> bindings-expr :fn :var))
                          (even? (count (-> bindings-expr :args))))
             (err/nyi-error (str "Can only check push-thread-bindings with a well-formed call to hash-map as first argument"
                                 " (like bindings expansion)")))
@@ -861,13 +862,13 @@
                 (into []
                       (mapcat (fn [[var-expr bnd-expr]]
                                 (let [{:keys [op var] :as var-expr} (ana2/run-pre-passes (ana2/analyze-outer-root var-expr))]
-                                  (when-not (#{:the-var} op)
+                                  (when-not (= :the-var op)
                                     (err/int-error (str "push-thread-bindings must have var literals for keys")))
                                   (let [expected (var-env/type-of (coerce/var->symbol var))
                                         cvar-expr (check-expr var-expr)
                                         cexpr (check-expr bnd-expr (r/ret expected))
                                         actual (-> cexpr u/expr-type r/ret-t)]
-                                    (when (not (sub/subtype? actual expected))
+                                    (when-not (sub/subtype? actual expected)
                                       (err/tc-delayed-error (str "Expected binding for "
                                                                  (coerce/var->symbol var)
                                                                  " to be: " (prs/unparse-type expected)
@@ -887,7 +888,7 @@
   (let [opts (:form (nth (:statements expr) 2))]
     (assert (and (seq? opts)
                  (= 2 (count opts))
-                 (#{'quote} (first opts)))
+                 (= 'quote (first opts)))
             (str "Options of typing rule must be a quoted map literal, "
                  "found: " (pr-str opts)))
     ; (quote {...})
@@ -1052,7 +1053,7 @@
 ;identical
 (defmethod -host-call-special '[:static-call clojure.lang.Util/identical]
   [expr expected]
-  {:pre [(#{:host-call} (:op expr))]
+  {:pre [(= :host-call (:op expr))]
    :post [(vector? (:args %))
           (-> % u/expr-type r/TCResult?)]}
   (let [{:keys [args] :as expr} (-> expr
@@ -1064,7 +1065,7 @@
 ;equiv
 (defmethod -host-call-special '[:static-call clojure.lang.Util/equiv]
   [expr expected]
-  {:pre [(#{:host-call} (:op expr))]
+  {:pre [(= :host-call (:op expr))]
    :post [(vector? (:args %))
           (-> % u/expr-type r/TCResult?)]}
   (let [{:keys [args] :as expr} (-> expr
@@ -1076,7 +1077,7 @@
 ;isa? (2 arity is special)
 (defmethod -invoke-special 'clojure.core/isa?
   [{:keys [args] :as expr} expected]
-  (when (#{2} (count args))
+  (when (= 2 (count args))
     (let [[cchild-expr cparent-expr :as cargs] (mapv check-expr args)]
       (-> expr
           (update :fn check-expr)
@@ -1101,7 +1102,7 @@
 ;manual instantiation for calls to polymorphic constructors
 (defmethod -invoke-special 'clojure.core.typed/inst-poly-ctor
   [expr expected]
-  {:pre [(#{2} (count (:args expr)))]
+  {:pre [(= 2 (count (:args expr)))]
    :post [(-> % u/expr-type r/TCResult?)]}
   (let [{[ctor-expr targs-exprs] :args :as expr} (-> expr
                                                      (update-in [:args 1] ana2/run-passes))
@@ -1117,7 +1118,7 @@
 (defmethod -invoke-special 'clojure.core.typed/print-env
   [expr expected]
   {:post [(-> % u/expr-type r/TCResult?)]}
-  (when-not (#{1} (count (:args expr)))
+  (when-not (= 1 (count (:args expr)))
     (err/int-error (str "Wrong arguments to print-env, Expected 1, found " (count (:args expr)))))
   (let [{[debug-string :as args] :args :as expr} (-> expr
                                                      (update-in [:args 0] ana2/run-passes))]
@@ -1138,7 +1139,7 @@
 (defmethod -invoke-special 'clojure.core.typed/print-filterset
   [expr expected]
   {:post [(-> % u/expr-type r/TCResult?)]}
-  (when-not (#{2} (count (:args expr)))
+  (when-not (= 2 (count (:args expr)))
     (err/int-error (str "Wrong arguments to print-filterset. Expected 2, found " (count (:args expr)))))
   (let [{[debug-string form :as args] :args :as expr} (-> expr
                                                           (update-in [:args 0] ana2/run-passes))
@@ -1193,7 +1194,7 @@
               (and (-> % u/expr-type r/TCResult?)
                    (vector? (:args %))))]}
   (let [cargs (mapv check-expr args) ;FIXME possible repeated check-expr
-        tmap (when (#{1} (count cargs))
+        tmap (when (= 1 (count cargs))
                (c/fully-resolve-type (r/ret-t (u/expr-type (last cargs)))))]
     (binding [vs/*current-expr* expr]
       (when (r/HeterogeneousMap? tmap)
@@ -1210,34 +1211,37 @@
   {:post [(or (nil? %)
               (and (-> % u/expr-type r/TCResult?)
                    (vector? (:args %))))]}
-  (let [cargs (mapv check-expr args)]
+  (let [cargs (mapv check-expr args)
+        nargs (count cargs)]
     (cond
-      (and (#{1} (count cargs))
-           (r/KwArgsSeq? (u/expr-type (last cargs))))
+      (and (= 1 nargs)
+           (r/KwArgsSeq? (u/expr-type (peek cargs))))
       (-> expr
           (update :fn check-expr)
           ;; FIXME add annotation for hash-map to check fn-expr
-          (assoc :args (vec (concat [(ana2/run-passes fn-expr)] cargs))
+          (assoc :args (into [(ana2/run-passes fn-expr)] cargs)
                  u/expr-type (below/maybe-check-below
-                               (r/ret (c/KwArgsSeq->HMap (-> (u/expr-type (last cargs)) r/ret-t)))
+                               (r/ret (c/KwArgsSeq->HMap (-> cargs peek u/expr-type r/ret-t)))
                                expected)))
 
-      (and (seq cargs)
-           (r/HSequential?  (r/ret-t (u/expr-type (last cargs))))
-           ;; every key must be a Value
-           (let [kvs (vec
-                       (concat (map (comp r/ret-t u/expr-type) (butlast cargs))
-                               (mapcat vector (:types (r/ret-t (u/expr-type (last cargs)))))))]
-             (and (even? (count kvs))
-                  (every? r/Value? (keys (apply hash-map kvs))))))
+      (and (pos? nargs)
+           (let [hseq (r/ret-t (u/expr-type (peek cargs)))]
+             (when (and (r/HSequential? hseq)
+                        (not ((some-fn :rest :drest :repeat) hseq)))
+               ;; every key must be a Value
+               (let [kvs (into (mapv (comp r/ret-t u/expr-type) (pop cargs))
+                               (mapcat vector)
+                               (:types hseq))]
+                 (and (even? (count kvs))
+                      (every? (comp r/Value? first) (partition 2 kvs)))))))
       (-> expr
           (update :fn check-expr)
           ;; FIXME add annotation for hash-map to check fn-expr
-          (assoc :args (vec (concat [(ana2/run-passes fn-expr)] cargs))
+          (assoc :args (into [(ana2/run-passes fn-expr)] cargs)
                  u/expr-type (below/maybe-check-below
                                (r/ret (c/-complete-hmap
-                                        (apply hash-map (concat (map (comp r/ret-t u/expr-type) (butlast cargs))
-                                                                (mapcat vector (:types (r/ret-t (u/expr-type (last cargs)))))))))
+                                        (apply hash-map (concat (map (comp r/ret-t u/expr-type) (pop cargs))
+                                                                (mapcat vector (:types (r/ret-t (u/expr-type (peek cargs)))))))))
                                expected))))))
 
 
@@ -1493,7 +1497,7 @@
   (let [{[dispatch-val-expr _] :args target :target :keys [env] :as expr}
         (cond-> expr
           (-> expr :target :form symbol?) (update :target ana2/run-passes))
-        _ (when-not (#{:var} (:op target))
+        _ (when-not (= :var (:op target))
             (err/int-error "Must call addMethod with a literal var"))
         var (:var target)
         _ (assert (var? var))
@@ -1525,8 +1529,8 @@
                 (update :args #(-> %
                                    (update 0 check-expr)
                                    (update 1 (comp ana2/run-pre-passes ana2/analyze-outer-root)))))
-            _ (assert (#{:var} (:op target)))
-            _ (when-not (#{:fn} (:op method-expr))
+            _ (assert (= :var (:op target)))
+            _ (when-not (= :fn (:op method-expr))
                 (err/int-error (str "Method must be a fn")))
             dispatch-type (mm/multimethod-dispatch-type mmsym)]
         (if-not dispatch-type
@@ -1684,7 +1688,7 @@
    :post [((some-fn nil?
                     (comp r/TCResult? u/expr-type))
            %)]}
-  (when-not (#{2} (count args))
+  (when-not (= 2 (count args))
     (err/int-error (str "Wrong number of arguments to clojure.core/instance?,"
                         " expected 2, given " (count (:args expr)))))
   (when-let [cls (when (symbol? (:form cls-expr))
@@ -1711,7 +1715,7 @@
    :post [((some-fn nil?
                     (comp r/TCResult? u/expr-type))
            %)]}
-  (when-not (#{2} (count args))
+  (when-not (= 2 (count args))
     (err/int-error (str "Wrong number of arguments to clojure.core/satisfies?,"
                         " expected 2, given " (count (:args expr)))))
   (when-some [v (when (symbol? (:form cls-expr))
@@ -1748,7 +1752,7 @@
                          expected))))
 
 (defmulti -new-special (fn [{{:keys [form env] :as cls-expr} :class :as expr} expected]
-                         {:pre [(#{:maybe-class} (:op cls-expr))]
+                         {:pre [(= :maybe-class (:op cls-expr))]
                           :post [((some-fn nil? symbol?) %)]}
                          (let [cls (ana2/resolve-sym form
                                                      ; `new` ignores locals

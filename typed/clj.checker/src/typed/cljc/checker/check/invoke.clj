@@ -50,12 +50,12 @@
            u/expr-type actual)))
 
 (defn check-invoke [check-expr -invoke-special {fexpr :fn :keys [args env] :as expr} expected]
-  {:pre [(#{:unanalyzed} (:op fexpr))]
+  {:pre [(= :unanalyzed (:op fexpr))]
    :post [(map? %)
           (-> % u/expr-type r/TCResult?)]}
   (or (-invoke-special expr expected)
-      (when (and (keyword? (:form fexpr))
-                 (#{1 2} (count args)))
+      (if (and (keyword? (:form fexpr))
+               (<= 1 (count args) 2))
         (let [{cfexpr :fn
                [ctarget cdefault] :args
                :as expr}
@@ -68,5 +68,5 @@
                                (u/expr-type cfexpr)
                                (u/expr-type ctarget)
                                (some-> cdefault u/expr-type) 
-                               expected))))
-      (normal-invoke expr fexpr args expected)))
+                               expected)))
+        (normal-invoke expr fexpr args expected))))
