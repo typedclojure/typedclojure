@@ -1026,9 +1026,9 @@ cc/some (t/All [x y] [[x :-> y] (t/Seqable x) :-> (t/Option y)])
 ;
 ; (t/All [t0 b :..]
 ;    (t/IFn [[t/Any :-> t/Any :filters {:then (is t0 0) :else (! t0 0)}] 
-;         [t/Any :-> t/Any :filters {:then (is b 0) :else (! b 0)}] :.. b
-;         :-> (t/IFn [t/Any :-> t/Any :filters {:then (is (t/U t0 b :.. b) 0) :else (! (t/U t0 b :.. b) 0)}]
-;                   [t/Any :* :-> t/Any])]))
+;            [t/Any :-> t/Any :filters {:then (is b 0) :else (! b 0)}] :.. b
+;             :-> (t/IFn [t/Any :-> t/Any :filters {:then (is (t/U t0 b :.. b) 0) :else (! (t/U t0 b :.. b) 0)}]
+;                        [t/Any :* :-> t/Any])]))
 cc/some-fn 
 (t/All [t0 t1 t2 t3 t4 t5]
        (t/IFn [[t/Any :-> t/Bool :filters {:then (is t0 0) :else (! t0 0)}] 
@@ -1108,6 +1108,10 @@ cc/set (t/All [x] [(t/Seqable x) :-> #?(:cljs (t/Set x)
                                         :default (PersistentHashSet x))])
 cc/hash-set (t/All [x] [x :* :-> #?(:cljs (t/Set x)
                                     :default (PersistentHashSet x))])
+;TODO
+;cc/hash-map (t/All [x y z :..]
+;                   (t/IFn [(t/cat z z) :.. z :-> (t/Assoc '{} z :.. z)]
+;                          [(t/cat x y) :* :-> (t/Map x y)]))
 cc/hash-map (t/All [x y] [(t/cat x y) :* :-> (t/Map x y)])
 cc/array-map (t/All [x y] [(t/cat x y) :* :-> (t/Map x y)])
 cc/sorted-map (t/All [x y] [(t/cat x y) :* :-> (t/Map x y)])
@@ -1429,6 +1433,7 @@ cc/coll? (t/Pred (t/Coll t/Any))
 cc/sequential? (t/Pred t/Sequential)
 cc/sorted? (t/Pred (t/Sorted t/Any))
 cc/meta [t/Any :-> (t/Nilable (t/Map t/Any t/Any))]
+;; FIXME IObj annotations are a hack. doesn't literally return the same reference.
 cc/with-meta (t/All [[x :< #?(:clj clojure.lang.IObj
                               :cljs cljs.core/IWithMeta)]]
                     [x (t/Nilable (t/Map t/Any t/Any)) :-> x])
