@@ -1374,7 +1374,7 @@ cc/keyword
         :object {:id 0 :path [Keyword]}
         :filters {:then (is (t/U t/Keyword t/Sym t/Str) 0)
                   :else (! (t/U t/Keyword t/Sym t/Str) 0)}]
-       [t/Str t/Str :-> t/Keyword
+       [(t/Option t/Str) t/Str :-> t/Keyword
         :filters {:then tt
                   :else ff}])
 
