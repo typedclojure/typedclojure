@@ -1,1 +1,3 @@
 - internal: remove PolyDots
+- `cc/keyword` can accept nil as first arg
+- `cc/derive` returns a Hierarchy

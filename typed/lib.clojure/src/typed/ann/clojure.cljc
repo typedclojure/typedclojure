@@ -1385,8 +1385,7 @@ cc/find-keyword
  :-> (t/Option t/Keyword)]
 ])
 
-cc/derive (t/IFn [(t/U t/Named #?(:clj Class)) (t/U t/Sym t/Keyword) :-> nil]
-                 [t/Hierarchy (t/U t/Named #?(:clj Class)) t/Named :-> t/Hierarchy])
+cc/derive [t/Hierarchy :?, (t/U t/Named #?(:clj Class)), t/Named :-> t/Hierarchy]
 
 ;; already defined in clj base-env
 #?@(:cljs [
