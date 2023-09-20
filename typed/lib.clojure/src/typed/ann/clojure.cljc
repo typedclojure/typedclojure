@@ -1175,19 +1175,13 @@ cc/assoc
 (t/All [[m :< (t/Option (t/Associative t/Any t/Any))]
         k v c :..]
        (t/IFn [m k v (t/cat c c) :.. c :-> (t/Assoc m k v c :.. c)]
-              ;[m k v (t/cat k v) :* :-> (t/Assoc m k v)]
-              [nil k v (t/cat c c) :.. c :-> (t/Assoc nil k v c :.. c)]
-              [nil k v (t/cat k v) :* :-> (t/Map k v)]))
-;     (t/All [b c d]
-;       (Fn [(t/Map b c) b c :-> (t/Map b c)]
-;           [(t/Vec d) t/AnyInteger d :-> (t/Vec d)]
-;           [d b c (t/cat b c) :* :-> (t/Assoc d b c)]))
+              [m k v (t/cat k v) :* :-> (t/Assoc m k v)]))
 
 cc/update (t/All [[m :< (t/Option (t/Associative t/Any t/Any))]
                   k v c :..]
                  [m k [(t/Get m k) c :.. c :-> v] c :.. c :-> (t/Assoc m k v)])
 ;;TODO
-;cc/update-in (t/All [m k v v' c :..] [(t/AssocIn m ks v) ks [v c :.. c :-> v'] c :.. c :-> (t/AssocIn m ks v')])
+;cc/update-in (t/All [m k :.. v c :..] [m (t/HSequential [k :.. k]) [(t/GetIn m (t/HSequential [k :.. k])) c :.. c :-> v] c :.. c :-> (t/AssocIn m (t/HSequential [k :.. k]) v)])
 
 cc/dissoc (t/All [k v] (t/IFn [(t/Map k v) t/Any :* :-> (t/Map k v)]
                               [(t/Nilable (t/Map k v)) t/Any :* :-> (t/Nilable (t/Map k v))]))
@@ -1220,10 +1214,9 @@ cc/comp (t/All [a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 b :..]
 
 
 ;apply: wishful thinking
-;     (t/All [b1 :..]
-;     (t/All [y b2 :..]
+;     (t/All [y b1 :.. b2 :..]
 ;          (t/IFn [[b1 :.. b1 b2 :.. b2 :-> y] b1 :.. b1 (t/HSequential [b2 :.. b2]) :-> y]
-;                 [[b1 :.. b1 r :*      :-> y] b1 :.. b1 (t/Seqable r)               :-> y])))
+;                 [[b1 :.. b1 r :*      :-> y] b1 :.. b1 (t/Seqable r)               :-> y]))
 
 cc/apply
 (t/All [y a b c d r z :..]
@@ -1239,9 +1232,8 @@ cc/apply
               [[a b c d r :* :-> y] a b c d (t/Seqable r) :-> y]))
 
 ;partial: wishful thinking (replaces the first 4 arities)
-; (t/All [b1 :..]
-; (t/All [r b2 :..]
-;    [[b1 :.. b1 b2 :.. b2 :-> r] b1 :.. b1 :-> [b2 :.. b2 :-> r]]))
+; (t/All [r b1 :.. b2 :..]
+;    [[b1 :.. b1 b2 :.. b2 :-> r] b1 :.. b1 :-> [b2 :.. b2 :-> r]])
 
 cc/partial
 (t/All [y a b c d z :..]
