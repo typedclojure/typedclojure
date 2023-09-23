@@ -774,6 +774,12 @@
   ;; expected: Num
   ;; actual:   nil
   ;; in: nil
+  ;; Cannot pass nil:
+  ;;   (map inc [nil])
+  ;;             ^^^
+  ;; to function inc:
+  ;;   (map inc [nil])
+  ;;        ^^^
   (is-tc-err-messages (map inc [nil]))
   ;;TODO
   ;; expected: (t/Seqable t/Any)
