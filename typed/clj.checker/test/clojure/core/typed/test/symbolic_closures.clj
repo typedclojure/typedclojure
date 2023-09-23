@@ -760,6 +760,11 @@
   ;; expected: Num
   ;; actual: nil
   ;; in: nil
+  ;; Type Error (clojure/core/typed/test/symbolic_closures.clj:741:23)
+  ;; expected: Num
+  ;; actual: nil
+  ;; in: (inc nil)
+  ;;          ^^^
   (is-tc-err-messages (inc nil))
   ;;TODO
   ;; expected: [nil -> t/Any]

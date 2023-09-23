@@ -132,6 +132,10 @@
   {:pre [(r/TCResult? tr1)
          ((some-fn nil? r/TCResult?) expected)]
    :post [(r/TCResult? %)]}
-  (-> tr1
-      (cond-> expected (check-below expected))
-      (vary-meta update :origin-exprs (fnil conj []) vs/*current-expr*)))
+  (let [expr vs/*current-expr*
+        add-meta #(cond-> %
+                    expr (vary-meta update :origin-exprs (fnil conj []) expr))]
+    (-> tr1
+        (cond-> expected (check-below expected))
+        add-meta
+        (update :t add-meta))))
