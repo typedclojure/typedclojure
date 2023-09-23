@@ -119,7 +119,7 @@
        (let [mapfn (prs/parse-type `(t/All [x# y#]
                                            (t/IFn [(t/Vec x#) t/Int :-> x#]
                                                   [(t/Vec x#) t/Int y# :-> (t/U y# x#)])))]
-         (check-funapp fexpr args (r/ret mapfn) (concat [fexpr-ret-type] arg-ret-types) expected opt))
+         (check-funapp fexpr args (r/ret mapfn) (cons fexpr-ret-type arg-ret-types) expected opt))
 
        ;Symbol function
        (and (r/RClass? fexpr-type)
@@ -131,7 +131,7 @@
        (and (r/RClass? fexpr-type)
             (= 'clojure.lang.Var (:the-class fexpr-type)))
        (let [{[_ ftype :as poly?] :poly?} fexpr-type
-             _ (assert (#{2} (count poly?))
+             _ (assert (= 2 (count poly?))
                        "Assuming clojure.lang.Var only takes 1 argument")]
          (check-funapp fexpr args (r/ret ftype) arg-ret-types expected opt))
 

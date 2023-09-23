@@ -134,7 +134,8 @@
    :post [(r/TCResult? %)]}
   (let [expr vs/*current-expr*
         add-meta #(cond-> %
-                    expr (vary-meta update :origin-exprs (fnil conj []) expr))]
+                    expr (vary-meta update :origin (fnil conj []) {:type :expr
+                                                                   :expr expr}))]
     (-> tr1
         (cond-> expected (check-below expected))
         add-meta
