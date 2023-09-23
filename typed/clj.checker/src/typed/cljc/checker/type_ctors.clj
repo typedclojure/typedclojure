@@ -2532,10 +2532,8 @@
   (r/TApp-maker op (seq rands)))
 
 (defn -name [sym & ts]
-  (let [nme (r/Name-maker sym)]
-    (if ts
-      (r/TApp-maker nme ts)
-      nme)))
+  (cond-> (r/Name-maker sym)
+    ts (r/TApp-maker ts)))
 
 (defn union-Results [r1 r2]
   {:pre [(r/Result? r1)

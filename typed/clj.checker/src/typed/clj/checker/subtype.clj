@@ -985,12 +985,12 @@
 
 ;[(IPersistentSet '[Type Type]) (t/Seqable Type) (t/Seqable Type) (Option Type)
 ;  -> (IPersistentSet '[Type Type])]
-(defn ^:private subtypes*-varargs [A0 argtys dom rst kws]
+(defn ^:private subtypes*-varargs-info [A0 argtys dom rst kws]
   {:pre [(vector? argtys)
          (vector? dom)
          ((some-fn nil? r/Type?) rst)
          ((some-fn nil? r/KwArgs?) kws)]
-   :post [((some-fn set? nil?) %)]}
+   :post [((some-fn map? nil?) %)]}
   (letfn [(all-mandatory-kws? [found-kws]
             {:pre [(set? found-kws)]}
             (or (not kws)
@@ -1005,7 +1005,8 @@
         (cond
           (and (zero? ndom) (zero? nargtys))
           (if (all-mandatory-kws? found-kws)
-            A
+            {:result :ok
+             :A A}
             (report-not-subtypes argtys dom))
 
           (zero? nargtys) (report-not-subtypes argtys dom)
@@ -1034,6 +1035,17 @@
             (if-some [A (subtypeA* A0 arg-t dom-t)]
               (recur (subvec dom 1) (subvec argtys 1) A found-kws)
               (report-not-subtypes arg-t dom-t))))))))
+
+(defn ^:private subtypes*-varargs
+  [A0 argtys dom rst kws]
+  {:pre [(vector? argtys)
+         (vector? dom)
+         ((some-fn nil? r/Type?) rst)
+         ((some-fn nil? r/KwArgs?) kws)]
+   :post [((some-fn set? nil?) %)]}
+  (let [{:keys [result A]} (subtypes*-varargs-info A0 argtys dom rst kws)]
+    (when (= :ok result)
+      A)))
 
 ;FIXME
 (defn subtype-kwargs* [A s t]

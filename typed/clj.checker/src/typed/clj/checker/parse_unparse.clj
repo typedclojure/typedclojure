@@ -135,18 +135,20 @@
        (f)))))
 
 (defn parse-type [s]
-  (binding [vs/*no-simpl* true
-            vs/*current-env* (or (tsyn->env s) vs/*current-env*)]
-    (try (-> (parse-type* s)
-             (vary-meta update :origin (fnil conj []) {:type :ann
-                                                       :syntax s}))
-         (catch Throwable e
-           ;(prn (err/any-tc-error? (ex-data e)))
-           (if (err/any-tc-error? (ex-data e))
-             (throw e)
-             (err/int-error (format "parse-type error while parsing %s! Please report to help improve this error message."
-                                    (pr-str s))
-                            {:visible-cause e}))))))
+  (let [env (or (tsyn->env s) vs/*current-env*)]
+    (binding [vs/*no-simpl* true
+              vs/*current-env* env]
+      (try (-> (parse-type* s)
+               (vary-meta update :origin (fnil conj []) {:type :ann
+                                                         :syntax s
+                                                         :env env}))
+           (catch Throwable e
+             ;(prn (err/any-tc-error? (ex-data e)))
+             (if (err/any-tc-error? (ex-data e))
+               (throw e)
+               (err/int-error (format "parse-type error while parsing %s! Please report to help improve this error message."
+                                      (pr-str s))
+                              {:visible-cause e})))))))
 
 (defn delay-parse-type [s]
   ((resolve `parse-type) s))
