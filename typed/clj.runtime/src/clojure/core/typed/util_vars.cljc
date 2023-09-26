@@ -58,3 +58,4 @@
 ;;TODO replace with pass state
 (defonce ^{:doc "Internal use only"} ^:no-doc ^:dynamic *beta-count* nil)
 (defonce ^{:doc "Internal use only"} ^:no-doc ^:dynamic *no-simpl* nil)
+(defonce ^{:doc "Internal use only"} ^:no-doc ^:dynamic *currently-inferring-TypeFns* #{})

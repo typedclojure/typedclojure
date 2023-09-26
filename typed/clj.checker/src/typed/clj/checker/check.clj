@@ -1789,6 +1789,12 @@
         _ (when-not (string? mm-name)
             (err/int-error "MultiFn name must be a literal string"))
         inferred-dispatch-t (c/fully-resolve-type (r/ret-t (u/expr-type cdispatch-expr)))
+        inferred-dispatch-t (if (r/Intersection? inferred-dispatch-t)
+                              (first (filter (some-fn r/SymbolicClosure? r/FnIntersection? r/Poly? r/PolyDots?)
+                                             (:types inferred-dispatch-t)))
+                              inferred-dispatch-t)
+        _ (when-not inferred-dispatch-t
+            (err/nyi-error (str "defmulti dispatch not a function: " (pr-str (r/ret-t (u/expr-type cdispatch-expr))))))
         _ (when ((some-fn r/Union? r/Intersection?) inferred-dispatch-t)
             (err/nyi-error "defmulti dispatch function inferred as union or intersection"))
         ;_ (prn "inferred-dispatch-t" inferred-dispatch-t)

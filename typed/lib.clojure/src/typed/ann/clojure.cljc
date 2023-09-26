@@ -282,6 +282,21 @@
   (t/TFn [[x :variance :invariant]]
          (t/Atom2 x x)))
 
+#?(:clj (t/defalias
+          ^{:doc "A volatile that can write type x and read type y."
+            :forms '[(Volatile2 x y)]}
+          t/Volatile2
+          (t/TFn [[x :variance :contravariant]
+                  [y :variance :covariant]]
+                 (clojure.lang.Volatile x y))))
+
+#?(:clj (t/defalias
+          ^{:doc "A volatile that can read and write type x."
+            :forms '[(Volatile x)]}
+          t/Volatile
+          (t/TFn [[x :variance :invariant]]
+                 (t/Volatile2 x x))))
+
 (t/defalias
   ^{:doc "An var that can write type w and read type r."
     :forms '[(Var2 w r)]}
@@ -773,7 +788,8 @@
   t/Fn
   #?(:clj clojure.lang.Fn
      :cljs (t/U cljs.core/Fn
-                js/Function)))
+                ;;TODO 
+                #_js/Function)))
 
 (t/defalias
   ^{:doc "A Clojure multimethod."
@@ -812,6 +828,11 @@
          ;; eg., Simulating Existential Types https://www.cs.cmu.edu/~fp/courses/15312-f04/assignments/asst5.pdf
          (t/All [r]
                 [(t/Reducer out r) :-> (t/Reducer in r)])))
+
+;#?(:clj (t/defalias
+;          t/Comparable
+;          (t/TFn [[x :variance :invariant]]
+;                 (Comparable x))))
 
 ;; ==========================================
 ;; Var annotations
@@ -1296,6 +1317,8 @@ cc/subs [t/Str t/Int (t/? t/Int) :-> t/Str]
 
 #?@(:cljs [] :default [
 cc/future-call (t/All [x] [[:-> x] :-> (t/Future x)])
+
+cc/volatile! (t/All [x] [x :-> (t/Volatile x)])
 ])
 
 cc/atom (t/All [x] [x & :optional {:validator (t/Nilable [x :-> t/Any]) :meta t/Any} :-> (t/Atom2 x x)])
@@ -1334,6 +1357,7 @@ cc/swap! (t/All [w r b :..] [(t/Atom2 w r) [r b :.. b :-> w] b :.. b :-> w])
 #?@(:cljs [] :default [
 cc/reset-vals! (t/All [w r] [(t/Atom2 w r) w :-> '[r w]])
 cc/swap-vals! (t/All [w r b :..] [(t/Atom2 w r) [r b :.. b :-> w] b :.. b :-> '[r w]])
+cc/vreset! (t/All [w] [(t/Volatile2 w t/Infer) w :-> w])
 ])
 cc/compare-and-set! (t/All [w] [(t/Atom2 w t/Any) t/Any w :-> t/Bool])
 

@@ -7,7 +7,8 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.cljc.checker.check.special.fn
-  (:require [clojure.core.typed.ast-utils :as ast-u]
+  (:require [typed.clojure :as t]
+            [clojure.core.typed.ast-utils :as ast-u]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.cljc.analyzer :as ana2]
             [typed.cljc.checker.check-below :as below]
@@ -79,7 +80,8 @@
                        cmethod-specs)
         _ (assert (seq fs) fs)
         _ (assert (every? r/Function? fs) fs)
-        ret-type (r/ret (wrap-poly (apply r/make-FnIntersection fs) frees-with-bnds dvar)
+        ret-type (r/ret (c/In (c/-name `t/Fn)
+                              (wrap-poly (apply r/make-FnIntersection fs) frees-with-bnds dvar))
                         (fo/-FS fl/-top fl/-bot))]
     (assoc expr
            :methods cmethods

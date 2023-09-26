@@ -24,7 +24,7 @@
   (:import (typed.cljc.checker.type_rep NotType DifferenceType Intersection Union FnIntersection Bounds
                                         Function RClass App TApp
                                         PrimitiveArray DataType Protocol TypeFn Poly
-                                        Mu HeterogeneousMap
+                                        Mu HeterogeneousMap KwArgs
                                         CountRange Name Value Top Wildcard Unchecked TopFunction B F Result AnyValue
                                         Scope TCError Extends AssocType GetType MergeType Regex HSequential HSet
                                         JSObj TypeOf)
@@ -327,6 +327,15 @@
                               (keys optional)
                               (vals optional)))))
 
+  KwArgs
+  (frees 
+    [{:keys [mandatory optional]}]
+    (apply combine-freesresults
+           (map frees (concat (keys mandatory)
+                              (vals mandatory)
+                              (keys optional)
+                              (vals optional)))))
+
   JSObj
   (frees 
     [{:keys [types]}]
@@ -421,7 +430,7 @@
                                                      (when rest
                                                        [rest])
                                                      (when kws
-                                                       [(vals kws)])
+                                                       [kws])
                                                      (when prest
                                                        [prest])))
                                         [(frees rng)]

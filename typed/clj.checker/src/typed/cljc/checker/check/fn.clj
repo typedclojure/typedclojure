@@ -7,11 +7,13 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.cljc.checker.check.fn
-  (:require [typed.cljc.checker.type-rep :as r]
+  (:require [typed.clojure :as t]
+            [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.utils :as u]
             [typed.cljc.checker.filter-ops :as fo]
             [typed.cljc.checker.filter-rep :as fl]
             [typed.cljc.checker.object-rep :as obj]
+            [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.check.fn-methods :as fn-methods]
             [typed.cljc.checker.check.utils :as cu]))
 
@@ -32,4 +34,4 @@
     (assoc fexpr
            :methods methods
            :clojure.core.typed/cmethods cmethods
-           u/expr-type (r/ret ifn (fo/-true-filter)))))
+           u/expr-type (r/ret (c/In (c/-name `t/Fn) ifn) (fo/-true-filter)))))

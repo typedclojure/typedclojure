@@ -42,14 +42,10 @@
   ;; In fact, the body _is_ checked but with % at type t/Nothing (the bottom/impossible/unreachable type).
   (is-tc-e #(inc (t/ann-form % t/Nothing)))
   ;; A symbolic closure type is printed using this type when needed for error messages and reporting types.
-  (is (= `[t/Nothing :-> t/Nothing :filters {:then ~'ff, :else ~'ff}]
-         (-> (tc-e #(identity %))
-             ;; convert type to data
-             pr-str read-string first)))
-  (is (= `(t/Transducer t/Nothing t/Nothing)
-         (-> (tc-e (map #(identity %)))
-             ;; convert type to data
-             pr-str read-string first)))
+  (is-tc-e (let [f #(identity %)]
+             (t/ann-form f [t/Nothing :-> t/Nothing :filters {:then ff, :else ff}])))
+  (is-tc-e (let [f (map #(identity %))]
+             (t/ann-form f (t/Transducer t/Nothing t/Nothing))))
   ;; When the function body is reachable, a more realistic type will be used to check.
   ;; 
   ;; Here are some common ways this can happen:

@@ -237,9 +237,12 @@
                                        ;; blame application site for return errors (good strategy?)
                                        r/-wild)))
              actual-ret-ifn (-> capp u/expr-type :t)
-             _ (assert (r/FnIntersection? actual-ret-ifn))
-             _ (assert (= 1 (count (:types actual-ret-ifn))))
-             res (-> actual-ret-ifn :types first :rng
+             fni (cond
+                   (r/FnIntersection? actual-ret-ifn) actual-ret-ifn
+                   (r/Intersection? actual-ret-ifn) (first (filter r/FnIntersection? (:types actual-ret-ifn))))
+             _ (assert (r/FnIntersection? fni))
+             _ (assert (= 1 (count (:types fni))))
+             res (-> fni :types first :rng
                      (open-result/open-Result->TCResult
                        (map :o arg-ret-types)
                        (map :t arg-ret-types)))]

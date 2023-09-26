@@ -63,19 +63,19 @@
              '[a b]))
   (is-clj (= (rest (prs/unparse-type (prs/parse-type `(t/TFn ~'[[a :variance :covariant]] ~'a))))
              '([[a :variance :covariant]] a)))
-  (is-clj (= (do
-               '([a b] [a b :-> [a b :-> nil :filters {:then ff :else tt}]
-                        :filters {:then tt :else ff}]))
+  (is-clj (= '([a b] [a b :-> [a b :-> nil]])
              (->
                (tc-e
                  (fn :forall [a b]
-                   [f :- a, coll :- b]
+                   [f :- a, coll :- b] :- [a b :-> nil]
                    (fn
                      [x :- a
-                      y :- b])))
+                      y :- b]))
+                 (t/All [a b] [a b :-> [a b :-> nil]]))
                :t
                prs/unparse-type
-               rest))))
+               rest
+               ))))
 
 (deftest bad-dots-Poly-test
   ;; no dots in variable

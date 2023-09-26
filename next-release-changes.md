@@ -2,3 +2,11 @@
 - `cc/keyword` can accept nil as first arg
 - `cc/derive` returns a Hierarchy
 - record current expression in TCResult's for future error message improvements
+- support `:variance` inference on `t/TFn` parameters
+  - `(TFn [x] x) == (TFn [[x :variance :covariant]] x)`
+- `cc/fn` expressions now additionally infer as `t/Fn`
+- Breaking: `t/TFn` variable bounds now only has variables to the left of it in scope, rather
+  than all variables being bound simultaneously in all bounds
+  - allowed: `(TFn [y [x :< y]] t/Any)`
+  - not allowed: `(TFn [[x :< y] y] t/Any)`
+- add `t/Volatile{2}`, support `cc/volatile!` and `cc/vreset!`

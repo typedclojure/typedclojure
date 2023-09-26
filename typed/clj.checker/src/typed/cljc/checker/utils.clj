@@ -43,11 +43,21 @@
 (def ^:const default-xor 1)
 
 (defn ^:private inner-deftype [fields hash-field meta-field this that name-sym type-hash gs
-                               maker methods*]
+                               maker methods* compute-valAt]
   (let [_ (assert (not-any? #(= name-sym %) (list* hash-field meta-field fields)))
         this (gensym 'this)
         gclass (gensym 'gclass)
-        k (gensym 'k)]
+        k (gensym 'k)
+        ;; note: intentionally avoids condp throughout due to lack of inlining https://github.com/frenchy64/clojure/pull/13
+        valAt-body `(cond
+                      ~@(mapcat (fn [fld]
+                                  (let [kfld (keyword fld)]
+                                    [`(identical? ~k ~kfld)
+                                     (if-some [f (get compute-valAt kfld)]
+                                       ((eval f) this)
+                                       `(. ~this ~(symbol (str "-" fld))))]))
+                                fields)
+                      :else (throw (UnsupportedOperationException. (str "lookup on " '~name-sym " " ~k))))]
     `(deftype ~name-sym [~@fields ~(with-meta hash-field {:unsynchronized-mutable true}) ~meta-field]
        clojure.lang.IHashEq
        (equals [~this ~that]
@@ -79,17 +89,8 @@
                                   ~gs))
 
        clojure.lang.ILookup
-       (valAt [~this ~k else#]
-         ;; note: intentionally avoids condp throughout due to lack of inlining https://github.com/frenchy64/clojure/pull/13
-         (cond
-           ~@(mapcat (fn [fld] [`(identical? ~k ~(keyword fld)) `(. ~this ~(symbol (str "-" fld)))])
-                     fields)
-           :else (throw (UnsupportedOperationException. (str "lookup on " '~name-sym " " ~k)))))
-       (valAt [~this ~k]
-         (cond
-           ~@(mapcat (fn [fld] [`(identical? ~k ~(keyword fld)) `(. ~this ~(symbol (str "-" fld)))]) 
-                     fields)
-           :else (throw (UnsupportedOperationException. (str "lookup on " '~name-sym " " ~k)))))
+       (valAt [~this ~k else#] ~valAt-body)
+       (valAt [~this ~k] ~valAt-body)
 
        clojure.lang.IKeywordLookup
        (getLookupThunk [this# ~k]
@@ -100,12 +101,15 @@
                      thunk (gensym 'thunk)]
                  (mapcat
                    (fn [fld]
-                     [`(identical? ~k ~(keyword fld))
-                      `(reify clojure.lang.ILookupThunk
-                         (get [~thunk ~gtarget]
-                           (if (identical? (class ~gtarget) ~gclass)
-                             (. ~hinted-target ~(symbol (str "-" fld)))
-                             ~thunk)))])
+                     (let [kfld (keyword fld)]
+                       [`(identical? ~k ~kfld)
+                        `(reify clojure.lang.ILookupThunk
+                           (get [~thunk ~gtarget]
+                             (if (identical? (class ~gtarget) ~gclass)
+                               ~(if-some [f (get compute-valAt kfld)]
+                                  ((eval f) hinted-target)
+                                  `(. ~hinted-target ~(symbol (str "-" fld)))) 
+                               ~thunk)))]))
                    fields))
              :else (throw (UnsupportedOperationException. (str "lookup on " '~name-sym " " ~k))))))
 
@@ -163,7 +167,7 @@
 
        ~@methods*)))
 
-(defn emit-deftype [original-ns def-kind name-sym fields invariants {methods* :methods :keys [computed-fields ctor-meta] :as opt}]
+(defn emit-deftype [original-ns def-kind name-sym fields invariants {methods* :methods :keys [computed-fields ctor-meta compute-valAt] :as opt}]
   (assert (symbol? name-sym))
   (let [classname (with-meta (symbol (str (namespace-munge *ns*) "." name-sym)) (meta name-sym))
         ->ctor (symbol (-> *ns* ns-name str) (str "->" name-sym))
@@ -182,7 +186,7 @@
     `(do
        (declare ~maker)
        ~(inner-deftype fields hash-field meta-field this that name-sym type-hash gs
-                       maker methods*)
+                       maker methods* compute-valAt)
 
        (swap! ~(symbol (str original-ns) (str "all-" def-kind "s")) conj '~classname)
 

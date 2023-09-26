@@ -28,6 +28,11 @@
 
 (override-classes
 
+;Comparable [[[a :variance :invariant]]]
+;java.util.Comparator [[[a :variance :invariant]]
+;                      :replace
+;                      {Comparable (Comparable a)}]
+
 Seqable [[[a :variance :covariant]]]
 
 Reversible [[[a :variance :covariant]]]
@@ -47,6 +52,25 @@ ISeq [[[a :variance :covariant]]
 
 ;; seqFrom method is [(Sorted a) t/Bool :-> (ASeq a)]
 clojure.lang.Sorted [[[a :variance :covariant]]]
+
+;clojure.lang.IFn [[[a :variance :covariant :< t/AnyFunction]]
+;                  :unchecked-ancestors
+;                  [a]]
+;clojure.lang.AFn [[[a :variance :covariant :< t/AnyFunction]]
+;                  :replace
+;                  {clojure.lang.IFn (clojure.lang.IFn a)}
+;                  :unchecked-ancestors
+;                  [a]]
+;clojure.lang.AFunction [[[a :variance :invariant :< t/AnyFunction]]
+;                        :replace
+;                        {clojure.lang.AFn (clojure.lang.AFn a)
+;                         clojure.lang.IFn (clojure.lang.IFn a)
+;                         java.util.Comparator (java.util.Comparator
+;                                                (t/Solve [c]
+;                                                         [(t/Comparable c) (t/Comparable c) :-> (t/U t/Bool t/Num)] :< a
+;                                                         :=> c))}
+;                        :unchecked-ancestors
+;                        [a]]
 
 clojure.lang.ChunkBuffer [[[a :variance :invariant]]]
 
@@ -298,7 +322,6 @@ APersistentMap [[[a :variance :covariant]
                         (t/IFn [t/Any -> (t/U nil b)]
                                [t/Any d -> (t/U b d)]))]]
 
-
 PersistentTreeMap [[[a :variance :covariant] 
                     [b :variance :covariant]]
                    :replace
@@ -421,6 +444,12 @@ clojure.lang.Atom
        IRef (IRef w r)
        IDeref (IDeref r)}]
 
+clojure.lang.Volatile 
+     [[[w :variance :contravariant]
+       [r :variance :covariant]]
+      :replace
+      {IDeref (IDeref r)}]
+
 LazySeq [[[a :variance :covariant]]
          :replace
          {Seqable (Seqable a)
@@ -495,7 +524,7 @@ java.lang.Iterable [[[a :variance :covariant]]
                     :unchecked-ancestors
                     [(Seqable a)]]
 
-;; from here, all these type params should really be :invariant.
+;; the following Java collections should really have :invariant type params.
 ;; Scala deals with this via implicit conversions from their own
 ;; immutable versions of these interfaces.
 ;; https://docs.scala-lang.org/overviews/collections/conversions-between-java-and-scala-collections.html

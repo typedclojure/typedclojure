@@ -37,7 +37,7 @@
         nme (or (when-some [^Class c (resolve nme)]
                   (when (class? c)
                     (-> c .getName symbol)))
-                (throw (ex-info (str "Could not resolve class: " nme))))
+                (throw (ex-info (str "Could not resolve class: " nme) {:class-name nme})))
         [opts args] (take-when map? args)
         opts (if opts
                (do (assert (empty? args) (str "Trailing args to override-class: " (pr-str args)))

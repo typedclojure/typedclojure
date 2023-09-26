@@ -1074,16 +1074,20 @@
 ;; TypeFn
 
 ;smart constructor
-(t/ann ^:no-check TypeFn* 
-       [(t/Seqable t/Sym) (t/Seqable r/Variance) (t/Seqable Bounds) r/Type
+(t/ann ^:no-check TypeFn*
+       [(t/Seqable t/Sym)
+        r/TFnVariancesMaybeFn
+        (t/Seqable Bounds) r/Type
         (t/HMap :optional {:meta (t/U nil (t/Map t/Any t/Any))}) :? -> r/Type])
-(defn TypeFn* 
+(defn TypeFn*
   ([names variances bbnds body] (TypeFn* names variances bbnds body {}))
   ([names variances bbnds body {:keys [meta] :as opt}]
   {:pre [(every? symbol names)
-         (every? r/variance? variances)
+         (or (fn? variances)
+             (every? r/variance? variances))
          (every? r/Bounds? bbnds)
-         (apply = (map count [names variances bbnds]))
+         (apply = (map count (cond-> [names bbnds]
+                               (not (fn? variances)) (conj variances))))
          ((some-fn r/TypeFn? r/Type?) body)
          (map? opt)
          ((some-fn nil? map?) meta)]
@@ -1112,24 +1116,7 @@
   (let [bbnds (TypeFn-bbnds* names typefn)
         body (free-ops/with-bounded-frees
                (zipmap (map r/make-F names) bbnds)
-               (instantiate-many names (:scope typefn)))
-        vs (free-ops/with-bounded-frees 
-             (zipmap (map r/make-F names) bbnds)
-             ; We don't check variances are consistent at parse-time. Instead
-             ; we check at instantiation time. This avoids some implementation headaches,
-             ; like dealing with partially defined types.
-             ((requiring-resolve 'typed.cljc.checker.frees/fv-variances) body))
-        _ (when *TypeFn-variance-check*
-            (doseq [[nme variance] (map vector names (:variances typefn))]
-              (when-let [actual-v (vs nme)]
-                (when-not (= (vs nme) variance)
-                  (binding [vs/*current-env* (or (some-> typefn meta :env)
-                                                 vs/*current-env*)]
-                    (err/int-error (str "Type variable " (-> nme r/make-F r/F-original-name) 
-                                        " appears in " (name actual-v) " position "
-                                        "when declared " (name variance)
-                                        ", in " (binding [*TypeFn-variance-check* false]
-                                                  (ind/unparse-type typefn)))))))))]
+               (instantiate-many names (:scope typefn)))]
     body))
 
 (t/ann ^:no-check TypeFn-bbnds* [(t/Seqable t/Sym) TypeFn -> (t/Seqable Bounds)])

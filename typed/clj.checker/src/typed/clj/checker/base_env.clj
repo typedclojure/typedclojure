@@ -120,6 +120,7 @@
   (env-utils/delay-type
     (impl/with-clojure-impl
       (prs/delay-parse-type
+        ;;TODO use t/Comparable
         `[t/Any t/Any :-> t/Num]))))
 
 (delay-and-cache-env ^:private init-var-env

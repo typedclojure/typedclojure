@@ -209,31 +209,34 @@
          (ret (-val 1) (-FS -top -bot) (EmptyObject-maker)))))
 
 (deftest empty-fn-test
-  (is-clj (= (tc-t (clojure.core/fn []))
-         (ret (make-FnIntersection
-                (r/make-Function [] (make-Result -nil
-                                                 (-FS -bot -top)
-                                                 (EmptyObject-maker))))
-              (-FS -top -bot)
-              (EmptyObject-maker))))
-  (is-clj (= (tc-t (fn [] 1))
-         (ret (make-FnIntersection
-                (r/make-Function [] (make-Result (-val 1)
-                                                 (-FS -top -bot)
-                                                 (EmptyObject-maker))))
-              (-FS -top -bot)
-              (EmptyObject-maker))))
+  (is-tc-e (clojure.core/fn [])
+           :expected-ret
+           (ret (make-FnIntersection
+                  (r/make-Function [] (make-Result -nil
+                                                   (-FS -bot -top)
+                                                   (EmptyObject-maker))))
+                (-FS -top -bot)
+                (EmptyObject-maker)))
+  (is-tc-e (fn [] 1)
+           :expected-ret 
+           (ret (make-FnIntersection
+                  (r/make-Function [] (make-Result (-val 1)
+                                                   (-FS -top -bot)
+                                                   (EmptyObject-maker))))
+                (-FS -top -bot)
+                (EmptyObject-maker)))
   (is-clj (= (tc-t (let []))
-         (ret -nil (-FS -bot -top) (EmptyObject-maker)))))
+             (ret -nil (-FS -bot -top) (EmptyObject-maker)))))
 
 (deftest path-test
-  (is-clj (= (tc-t (fn [a :- t/Any] (let [a 1] a)))
-             (ret (make-FnIntersection
-                    (r/make-Function [-any]
-                                     (make-Result (-val 1)
-                                                  (-true-filter)
-                                                  -empty)))
-                  (-FS -top -bot) -empty)))
+  (is-tc-e (fn [a :- t/Any] (let [a 1] a))
+           :expected-ret
+           (ret (make-FnIntersection
+                  (r/make-Function [-any]
+                                   (make-Result (-val 1)
+                                                (-true-filter)
+                                                -empty)))
+                (-FS -top -bot) -empty))
   (is-clj (= (tc-t (let [a nil] a))
              (ret -nil (-FS -top -top) -empty))))
 
@@ -254,37 +257,32 @@
 
 (deftest name-to-param-index-test
   ;a => 0
-  (is-clj
-    (= (tc-t 
-         (fn [a :- (t/U '{:op (t/Value :if)}
-                      '{:op (t/Value :var)})] 
-           (:op a)))
-       (clj
-         (ret 
-           (parse-type 
-             `(t/IFn [(t/U '{:op (t/Value :var)} '{:op (t/Value :if)}) :-> (t/U ':var ':if) 
-                    :filters {:then (& (~'! (t/U nil false) 0 [(~'Key :op)])
-                                       (~'is (t/U ':if ':var) 0 [(~'Key :op)]))
-                              :else (~'| (~'is (t/HMap :absent-keys #{:op}) 0) 
-                                         (~'is (t/U nil false) 0 [(~'Key :op)]))} 
-                    :object {:path [(~'Key :op)], :id 0}]))
-           (-FS -top -bot)
-           -empty)))))
+  (is-tc-e
+    (fn [a :- (t/U '{:op (t/Value :if)}
+                   '{:op (t/Value :var)})] 
+      (:op a))
+    [(t/U '{:op (t/Value :var)} '{:op (t/Value :if)}) :-> (t/U ':var ':if) 
+     :filters {:then (& (! (t/U nil false) 0 [(Key :op)])
+                        (is (t/U ':if ':var) 0 [(Key :op)]))
+               :else (| (is (t/HMap :absent-keys #{:op}) 0) 
+                        (is (t/U nil false) 0 [(Key :op)]))} 
+     :object {:path [(Key :op)], :id 0}]))
 
 (deftest refine-test
-  (is-clj (= (tc-t 
-               (fn [a :- (t/U (t/HMap :mandatory {:op (t/Value :if)})
-                            (t/HMap :mandatory {:op (t/Value :var)}))]
-                 (when (= (:op a) :if) 
-                   a)))
-         (ret (make-FnIntersection
+  (is-tc-e
+    (fn [a :- (t/U (t/HMap :mandatory {:op (t/Value :if)})
+                   (t/HMap :mandatory {:op (t/Value :var)}))]
+      (when (= (:op a) :if) 
+        a))
+    :expected-ret 
+    (clj (ret (make-FnIntersection
                 (make-Function
-                    [(Un (make-HMap :mandatory {(-val :op) (-val :if)})
-                         (make-HMap :mandatory {(-val :op) (-val :var)}))]
-                    (Un -nil (make-HMap :mandatory {(-val :op) (-val :if)}))
-                    :filter (-FS (-and (-filter (-val :if) 0 [(-kpe :op)])
-                                       (-filter (make-HMap :mandatory {(-val :op) (-val :if)}) 0))
-                                 (-not-filter (-val :if) 0 [(-kpe :op)]))))
+                  [(Un (make-HMap :mandatory {(-val :op) (-val :if)})
+                       (make-HMap :mandatory {(-val :op) (-val :var)}))]
+                  (Un -nil (make-HMap :mandatory {(-val :op) (-val :if)}))
+                  :filter (-FS (-and (-filter (-val :if) 0 [(-kpe :op)])
+                                     (-filter (make-HMap :mandatory {(-val :op) (-val :if)}) 0))
+                               (-not-filter (-val :if) 0 [(-kpe :op)]))))
               (-true-filter)))))
 
 
@@ -532,16 +530,17 @@
                          a)))
                ret-t)
              (-complete-hmap {(-val :a) (-val 1)})))
-  (is-clj (= (tc-t (fn [{a :a} :- (t/HMap :mandatory {:a (t/Value 1)})]
-                     a))
-             (ret (make-FnIntersection 
-                    (make-Function
-                      [(make-HMap :mandatory {(-val :a) (-val 1)})]
-                      (-val 1) 
-                      :filter (-true-filter)
-                      :object (-path [(-kpe :a)] 0)))
-                  (-FS -top -bot)
-                  -empty)))
+  (is-tc-e (fn [{a :a} :- (t/HMap :mandatory {:a (t/Value 1)})]
+             a)
+           :expected-ret
+           (ret (make-FnIntersection 
+                  (make-Function
+                    [(make-HMap :mandatory {(-val :a) (-val 1)})]
+                    (-val 1) 
+                    :filter (-true-filter)
+                    :object (-path [(-kpe :a)] 0)))
+                (-FS -top -bot)
+                -empty))
   ;FIXME inferred filters are bit messy, but should be (-FS -bot (! t/Seq 0))
   #_(is-with-aliases (= (-> (tc-t (clojure.core.typed/fn [a :- clojure.core.typed.test.util-aliases/UnionName]
                                     (seq? a)))
@@ -558,13 +557,14 @@
                   (-true-filter)
                   -empty)))
   ;FIXME should be (-FS -bot (! ISeq 0))
-  #_(is-clj (= (tc-t (clojure.core.typed/fn [a :- (t/HMap :mandatory {:a (t/Value 1)})]
-                       (seq? a)))
-               (ret (make-FnIntersection
-                      (r/make-Function [(make-HMap :mandatory {(-val :a) (-val 1)})]
-                                       (make-Result -false (-false-filter) -empty)))
-                    (-FS -top -bot)
-                    -empty)))
+  #_(is-tc-e (clojure.core.typed/fn [a :- (t/HMap :mandatory {:a (t/Value 1)})]
+               (seq? a))
+             :expected-ret
+             (ret (make-FnIntersection
+                    (r/make-Function [(make-HMap :mandatory {(-val :a) (-val 1)})]
+                                     (make-Result -false (-false-filter) -empty)))
+                             (-FS -top -bot)
+                             -empty))
   ;roughly the macroexpansion of map destructuring
   ;FIXME
   #_(is-clj (= (tc-t (clojure.core.typed/fn 
@@ -592,113 +592,119 @@
                            maprl)]
                      maprl))))))
   ;destructuring a variable of union type
-  (is-clj (= (ety (fn [{a :a} :- (t/U (t/HMap :mandatory {:a (t/Value 1)})
-                                    (t/HMap :mandatory {:b (t/Value 2)}))]
-                    a))
-             (make-FnIntersection 
-               (make-Function [(Un (make-HMap :mandatory {(-val :a) (-val 1)})
-                                   (make-HMap :mandatory {(-val :b) (-val 2)}))]
-                              -any
-                              :filter (-FS (-and (-not-filter (Un -nil -false) 0 [(-kpe :a)])
-                                                  (-filter 
-                                                    (parse-clj
-                                                      `(t/U (t/HMap :mandatory {:a (t/Val 1)}) 
-                                                          (t/HMap :mandatory {:a t/Any, :b (t/Val 2)})))
-                                                    0))
-                                            (-filter (Un -nil -false) 0 [(-kpe :a)]))
-                              :object (-path [(-kpe :a)] 0))))))
+  (is-tc-e (fn [{a :a} :- (t/U (t/HMap :mandatory {:a (t/Value 1)})
+                               (t/HMap :mandatory {:b (t/Value 2)}))]
+             a)
+           :expected-ret
+           (ret (make-FnIntersection 
+                  (make-Function [(Un (make-HMap :mandatory {(-val :a) (-val 1)})
+                                      (make-HMap :mandatory {(-val :b) (-val 2)}))]
+                                 -any
+                                 :filter (-FS (-and (-not-filter (Un -nil -false) 0 [(-kpe :a)])
+                                                    (-filter 
+                                                      (parse-clj
+                                                        `(t/U (t/HMap :mandatory {:a (t/Val 1)}) 
+                                                              (t/HMap :mandatory {:a t/Any, :b (t/Val 2)})))
+                                                      0))
+                                              (-filter (Un -nil -false) 0 [(-kpe :a)]))
+                                 :object (-path [(-kpe :a)] 0))))))
 
 (deftest Name-resolve-test
-  (is-with-aliases (= (tc-t (fn [tmap :- clojure.core.typed.test.util-aliases/MyName]
-                              ;call to (apply hash-map tmap) should be eliminated
-                              (let [{e :a} tmap]
-                                e)))
-                      (ret (make-FnIntersection 
-                             (make-Function
-                               [(Name-maker 'clojure.core.typed.test.util-aliases/MyName)]
-                               (-val 1) 
-                               :filter (-true-filter)
-                               :object (-path [(-kpe :a)] 0)))
-                           (-true-filter))))
-  (is-with-aliases (= (tc-t (fn [tmap :- clojure.core.typed.test.util-aliases/MapName]
-                              (let [{e :a} tmap]
-                                (assoc e :c :b))))
-                      (ret (make-FnIntersection
-                             (make-Function
-                               [(Name-maker 'clojure.core.typed.test.util-aliases/MapName)]
-                               (make-HMap :mandatory {(-val :a) (-val 1)
-                                                      (-val :c) (-val :b)})
-                               :filter (-true-filter)))
-                           (-true-filter))))
+  (require 'clojure.core.typed.test.util-aliases)
+  (is-tc-e (fn [tmap :- clojure.core.typed.test.util-aliases/MyName]
+             ;call to (apply hash-map tmap) should be eliminated
+             (let [{e :a} tmap]
+               e))
+           :expected-ret
+           (ret (make-FnIntersection 
+                  (make-Function
+                    [(Name-maker 'clojure.core.typed.test.util-aliases/MyName)]
+                    (-val 1) 
+                    :filter (-true-filter)
+                    :object (-path [(-kpe :a)] 0)))
+                (-true-filter)))
+  (is-tc-e
+    (fn [tmap :- clojure.core.typed.test.util-aliases/MapName]
+      (let [{e :a} tmap]
+        (assoc e :c :b)))
+    :expected-ret
+    (ret (make-FnIntersection
+           (make-Function
+             [(Name-maker 'clojure.core.typed.test.util-aliases/MapName)]
+             (make-HMap :mandatory {(-val :a) (-val 1)
+                                    (-val :c) (-val :b)})
+             :filter (-true-filter)))
+         (-true-filter)))
   ; Name representing union of two maps, both with :type key
-  (is-with-aliases (subtype? 
-                     (-> (tc-t (fn [tmap :- clojure.core.typed.test.util-aliases/UnionName]
-                                 (:type tmap)))
-                         ret-t)
-                     (parse-type 
-                       `[clojure.core.typed.test.util-aliases/UnionName :-> (t/U (t/Value :MapStruct2)
-                                                                               (t/Value :MapStruct1))])))
+  (is-clj (subtype? 
+            (-> (tc-t (fn [tmap :- clojure.core.typed.test.util-aliases/UnionName]
+                        (:type tmap)))
+                ret-t)
+            (parse-type 
+              `[clojure.core.typed.test.util-aliases/UnionName :-> (t/U (t/Value :MapStruct2)
+                                                                        (t/Value :MapStruct1))])))
   ; using = to derive paths
-  (is-with-aliases (subtype? 
-                     (-> (tc-t (fn [tmap :- clojure.core.typed.test.util-aliases/UnionName]
-                                 (= :MapStruct1 (:type tmap))))
-                         ret-t)
-                     (make-FnIntersection 
-                       (make-Function 
-                         [(Name-maker 'clojure.core.typed.test.util-aliases/UnionName)]
-                         (Un -false -true)
-                         :filter (let [t (-val :MapStruct1)
-                                       path [(-kpe :type)]]
-                                   (-FS (-and 
-                                          (-filter (make-HMap :mandatory {(-val :type) (-val :MapStruct1)
-                                                           (-val :a) (Name-maker 'clojure.core.typed.test.util-aliases/MyName)})
-                                                   0)
-                                          (-filter (-val :MapStruct1) 0 path)
-                                          (-filter t 0 path))
-                                        (-not-filter t 0 path)))))))
+  (is-clj (subtype? 
+            (-> (tc-t (fn [tmap :- clojure.core.typed.test.util-aliases/UnionName]
+                        (= :MapStruct1 (:type tmap))))
+                ret-t)
+            (make-FnIntersection 
+              (make-Function 
+                [(Name-maker 'clojure.core.typed.test.util-aliases/UnionName)]
+                (Un -false -true)
+                :filter (let [t (-val :MapStruct1)
+                              path [(-kpe :type)]]
+                          (-FS (-and 
+                                 (-filter (make-HMap :mandatory {(-val :type) (-val :MapStruct1)
+                                                                 (-val :a) (Name-maker 'clojure.core.typed.test.util-aliases/MyName)})
+                                          0)
+                                 (-filter (-val :MapStruct1) 0 path)
+                                 (-filter t 0 path))
+                               (-not-filter t 0 path)))))))
   ; using filters derived by =
-  (is-with-aliases (subtype? (-> (tc-t (fn [tmap :- clojure.core.typed.test.util-aliases/UnionName]
-                                         (if (= :MapStruct1 (:type tmap))
-                                           (:a tmap)
-                                           (:b tmap))))
-                                 ret-t)
-                             (parse-type 
-                               `[clojure.core.typed.test.util-aliases/UnionName :-> clojure.core.typed.test.util-aliases/MyName])))
+  (is-clj (subtype? (-> (tc-t (fn [tmap :- clojure.core.typed.test.util-aliases/UnionName]
+                                (if (= :MapStruct1 (:type tmap))
+                                  (:a tmap)
+                                  (:b tmap))))
+                        ret-t)
+                    (parse-type 
+                      `[clojure.core.typed.test.util-aliases/UnionName :-> clojure.core.typed.test.util-aliases/MyName])))
   ; following paths with test of conjuncts
-  (is-clj (= (tc-t (fn [tmap :- clojure.core.typed.test.util-aliases/UnionName]
-                     ; (and (= :MapStruct1 (-> tmap :type))
-                     ;      (= 1 1))
-                     (if (print-filterset 
-                           "final filters"
-                           (let [and1 (print-filterset
-                                        "first and1"
-                                        (= :MapStruct1 (-> tmap :type)))]
-                             (print-env "first conjunct")
+  (is-tc-e (fn [tmap :- clojure.core.typed.test.util-aliases/UnionName]
+             ; (and (= :MapStruct1 (-> tmap :type))
+             ;      (= 1 1))
+             (if (print-filterset 
+                   "final filters"
+                   (let [and1 (print-filterset
+                                "first and1"
+                                (= :MapStruct1 (-> tmap :type)))]
+                     (print-env "first conjunct")
+                     (print-filterset
+                       "second and1"
+                       (if (print-filterset
+                             "second test"
+                             and1)
+                         (do (print-env "second conjunct")
                              (print-filterset
-                               "second and1"
-                               (if (print-filterset
-                                     "second test"
-                                     and1)
-                                 (do (print-env "second conjunct")
-                                     (print-filterset
-                                       "third and1"
-                                       (= 1 1)))
-                                 (do (print-env "fail conjunct")
-                                     (print-filterset
-                                       "fail and1"
-                                       and1))))))
-                       (do (print-env "follow then")
-                           (assoc tmap :c :d))
-                       1)))
-             (ret (make-FnIntersection
-                    (make-Function
-                      [(Name-maker 'clojure.core.typed.test.util-aliases/UnionName)]
-                      (Un (-val 1)
-                          (make-HMap :mandatory {(-val :type) (-val :MapStruct1)
-                                                 (-val :c) (-val :d)
-                                                 (-val :a) (Name-maker 'clojure.core.typed.test.util-aliases/MyName)}))
-                      :filter (-true-filter)))
-                  (-true-filter) -empty))))
+                               "third and1"
+                               (= 1 1)))
+                         (do (print-env "fail conjunct")
+                             (print-filterset
+                               "fail and1"
+                               and1))))))
+               (do (print-env "follow then")
+                   (assoc tmap :c :d))
+               1))
+           :expected-ret
+           (clj (ret (make-FnIntersection
+                       (make-Function
+                         [(Name-maker 'clojure.core.typed.test.util-aliases/UnionName)]
+                         (Un (-val 1)
+                             (make-HMap :mandatory {(-val :type) (-val :MapStruct1)
+                                                    (-val :c) (-val :d)
+                                                    (-val :a) (Name-maker 'clojure.core.typed.test.util-aliases/MyName)}))
+                         :filter (-true-filter)))
+                     (-true-filter) -empty))))
 
 
 (deftest assoc-test
@@ -875,8 +881,8 @@
 
 (deftest tc-throw-test
   (is-clj (subtype? (:t (tc-t (fn [] (throw (Exception. "a")))))
-                (make-FnIntersection
-                  (make-Function [] (Un))))))
+                    (make-FnIntersection
+                      (make-Function [] (Un))))))
 
 (deftest first-seq-test
   (is-clj (clj (subtype? (ret-t (tc-t (first [1 1 1])))
@@ -886,9 +892,9 @@
                 (In (RClass-of Seqable [-any])
                     (make-CountRange 1))))
   (is-clj (subtype? (ret-t (tc-t (let [l [1 2 3]]
-                               (if (seq l)
-                                 (first l)
-                                 (throw (Exception. "Error"))))))
+                                   (if (seq l)
+                                     (first l)
+                                     (throw (Exception. "Error"))))))
                 (RClass-of Number)))
   (is-clj (= (tc-t (first [1]))
          (ret (-val 1))))
@@ -925,12 +931,8 @@
                 (-> nil (ann-form MyAlias) (ann-form t/Any)))))))
 
 (deftest ccfind-test
-  (is-clj
-    (subtype? (-> (tc-t (fn [a :- (t/Map Long String)]
-                          (find a 1)))
-                  :t :types first :rng :t)
-              (Un (-hvec [(RClass-of Long) (RClass-of String)])
-                  -nil))))
+  (is-tc-e (fn [a :- (t/Map Long String)] :- (t/U nil '[Long String])
+             (find a 1))))
 
 (deftest map-infer-test
   (is-clj (subtype? (ety (map + [1 2]))
@@ -991,20 +993,6 @@
                      'a)))
             (parse-type `(t/U t/AnyInteger (t/Value ~'a))))))
 
-(deftest type-fn-test 
-  (is-clj (clj
-            (= (with-bounded-frees {(make-F 'm) (-bounds (parse-type `(t/TFn [[~'x :variance :covariant]] t/Any))
-                                                         (parse-type `(t/TFn [[~'x :variance :covariant]] t/Nothing)) )}
-                 (funapp/check-funapp
-                   (ana/ast-for-form ''a) ;dummy
-                   [(ana/ast-for-form 1)];dummy
-                   (ret (parse-type 
-                          `(t/All [~'x]
-                                  [~'x :-> (~'m ~'x)])))
-                   [(ret -nil)]
-                   nil))
-               (ret (TApp-maker (make-F 'm) [-nil]))))))
-
 ;TODO how to handle casts. CTYP-12
 ;Also need tc-t to bind *delayed-errors*
 #_(deftest prims-test
@@ -1024,9 +1012,6 @@
 ;; END TOP-LEVEL TEST
 
 (deftest class-pathelem-test
-  (is-clj (= (-> (ety (t/fn [v :- t/Any] (class v)))
-                 :types first :rng Result-object*)
-             (-path [(ClassPE-maker)] 0)))
   (is-clj (subtype? 
             (ety 
               (t/fn [v :- t/Any] (= Number (class v))))
@@ -1466,9 +1451,6 @@
                              (parse-type `t/Any)]
                             {})))
 
-#_(fully-resolve-type (parse-type '((clojure.core.typed/All [a] (t/TFn [[x :variance :covariant :< a]] a)) Number)))
-
-
 #_(deftest filter-seq-test
   ;  TODO possible extension for filter
 ;  (is (cf (filter :a (clojure.core.typed/ann-form [] (clojure.lang.Seqable '{:b Number})))
@@ -1714,53 +1696,48 @@
 
 ;CTYP-53
 (deftest hmap-cast-test
-  (is (both-subtype?
-        (ety
-          (fn
-            [m :- (t/HMap)]
-            (assert (:foo m))
-            m))
-        (parse-clj `['{} :-> '{:foo t/Any}
-                     :filters {:then ~'tt
-                               :else ~'ff}
-                     :object {:id 0}])))
-  (is (both-subtype? 
-        (ety
-          (fn
-            [m :- (t/HMap)]
-            :- (t/HMap :mandatory {:foo (clojure.core.typed/Vec clojure.core.typed/Any)})
-            (assert (vector? (:foo m)))
-            m))
-        (parse-clj `[(t/HMap) :-> 
-                     (t/HMap :mandatory {:foo (t/Vec t/Any)})
-                     :filters {:then ~'tt
-                               :else ~'ff}
-                     :object {:id 0}])))
-  (is (both-subtype? 
-        (ety 
-          (fn
-            [m :- (t/HMap :mandatory {:bar t/Any})]
-            (assert (nil? (:foo m)))
-            m))
-        (parse-clj `[(t/HMap :mandatory {:bar t/Any}) :-> 
-                     (t/HMap :mandatory {:bar t/Any}
-                           :optional {:foo nil})
-                     :filters {:then ~'tt
-                               :else ~'ff}
-                     :object {:id 0}])))
-  (is
-    (both-subtype?
-      (ety
-        (fn
-          [m :- '{}]
-          (assert (not (vector? (:foo m))))
-          m))
-      (parse-clj `[(t/HMap) :-> 
-                   ; not sure if this should simplify to (t/HMap)
-                   (t/HMap :optional {:foo t/Any})
-                   :filters {:then ~'tt
-                             :else ~'ff}
-                   :object {:id 0}])))
+  (is-tc-e
+    (fn
+      [m :- (t/HMap)]
+      (assert (:foo m))
+      m)
+    ['{} :-> '{:foo t/Any}
+     :filters {:then tt
+               :else ff}
+     :object {:id 0}])
+  (is-tc-e
+    (fn
+      [m :- (t/HMap)]
+      :- (t/HMap :mandatory {:foo (clojure.core.typed/Vec clojure.core.typed/Any)})
+      (assert (vector? (:foo m)))
+      m)
+    [(t/HMap) :-> 
+     (t/HMap :mandatory {:foo (t/Vec t/Any)})
+     :filters {:then tt
+               :else ff}
+     :object {:id 0}])
+  (is-tc-e 
+    (fn
+      [m :- (t/HMap :mandatory {:bar t/Any})]
+      (assert (nil? (:foo m)))
+      m)
+    [(t/HMap :mandatory {:bar t/Any}) :-> 
+     (t/HMap :mandatory {:bar t/Any}
+             :optional {:foo nil})
+     :filters {:then tt
+               :else ff}
+     :object {:id 0}])
+  (is-tc-e
+    (fn
+      [m :- '{}]
+      (assert (not (vector? (:foo m))))
+      m)
+    [(t/HMap) :-> 
+     ; not sure if this should simplify to (t/HMap)
+     (t/HMap :optional {:foo t/Any})
+     :filters {:then tt
+               :else ff}
+     :object {:id 0}])
   (is 
     (clj
       (let [t1 (clj (update-with-filter
@@ -3126,29 +3103,6 @@
     (fn [m :- (t/Map t/Keyword Long)] :- Long
       (get m :a 0))))
 
-(defn top-tfn1 []
-  (parse-type `(t/TFn [[~'x :variance :covariant]] t/Any)))
-
-(defn bot-tfn1 []
-  (parse-type `(t/TFn [[~'x :variance :covariant]] t/Nothing)))
-
-(defmacro with-hk-m [& body]
-  `(with-bounded-frees {(make-F '~'m) (-bounds (top-tfn1) (bot-tfn1))}
-     ~@body))
-
-(deftest subtype-hk-app
-  (is-clj (with-hk-m
-            (sub?-q `(~'m t/Int) `(~'m t/Int))))
-  (is-clj (with-hk-m
-            (sub?-q `(~'m t/Int) `(~'m t/Num))))
-  (is-clj (with-hk-m
-            (sub?-q `(~'m t/Int) `(t/U (~'m t/Int) (clojure.lang.Reduced t/Int)))))
-  (is-clj (with-hk-m
-            (sub?-q `(~'m t/Int) `(t/U (~'m t/Int) (clojure.lang.Reduced t/Int)))))
-  (is-clj (with-hk-m
-            (sub?-q `(~'m t/Int) `(t/U (~'m t/Num) (clojure.lang.Reduced t/Int)))))
-  )
-
 (deftest anon-fn
   (is-tc-e (inc ((fn [a :- t/Num] a) 1)))
   (is-tc-e (fn foo 
@@ -3188,28 +3142,22 @@
   (is-tc-err (fn 
                ([b] (inc b)))
              t/Num)
-  (is (both-subtype?
-        (ret-t
-          (tc-t (fn
-                  [x :- t/Any 
-                   y :- t/Any])))
-        (parse-clj `[t/Any t/Any :-> nil :filters {:then ~'ff :else ~'tt}])))
+  (is-tc-e (fn
+             [x :- t/Any 
+              y :- t/Any])
+           [t/Any t/Any :-> nil :filters {:then ff :else tt}])
   ; interesting case, perfectly valid to remember t/Any is falsy here
-  (is (both-subtype?
-        (ret-t
-          (tc-t (fn
-                  [x :- t/Any 
-                   y :- t/Any]
-                  :- t/Any nil)))
-        (parse-clj `[t/Any t/Any :-> t/Any :filters {:then ~'ff :else ~'tt}])))
-  (is (both-subtype?
-        (ret-t
-          (tc-t (fn
-                  [x :- t/Any 
-                   y :- t/Any]
-                  :- t/Any
-                  (throw (Exception. "a")))))
-        (parse-clj `[t/Any t/Any :-> t/Nothing :filters {:then ~'ff :else ~'ff}]))))
+  (is-tc-e (fn
+             [x :- t/Any 
+              y :- t/Any]
+             :- t/Any nil)
+           [t/Any t/Any :-> t/Any :filters {:then ff :else tt}])
+  (is-tc-e (fn
+             [x :- t/Any 
+              y :- t/Any]
+             :- t/Any
+             (throw (Exception. "a")))
+           [t/Any t/Any :-> t/Nothing :filters {:then ff :else ff}]))
 
 (deftest pfn-test
   (is-tc-e (fn :forall [x]
@@ -4383,3 +4331,149 @@
   (is-tc-e (fn [e :- Double] (new java.util.HashMap 1 e)))
   #_ ;;TODO
   (is-tc-e (new java.util.HashMap 1 (ann-form 2.0 Double))))
+
+(deftest TFn-syntax-check-test
+  ;; unknown option
+  (is (->> (is-tc-err-messages (do (defalias T
+                                     (t/TFn [[x :invariant :covariant]] (t/Seqable x)))
+                                   (fn [a :- (T t/Int)] :- (T t/Int) a)))
+           :ex
+           ffirst
+           (re-find #"Unknown t/TFn option: :invariant\."))))
+
+(deftest TFn-variance-check-test
+  ;; covariant good
+  (is-tc-e (do (defalias T
+                 (t/TFn [[x :variance :covariant]] (t/Seqable x)))
+               (fn [a :- (T t/Int)] :- (T t/Num)
+                 a)))
+  ;; covariant bad (actually contravariant)
+  (is (->> (is-tc-err-messages (do (defalias T
+                                     (t/TFn [[x :variance :covariant]] [(t/Seqable x) :-> t/Any]))
+                                   (fn [a :- (T t/Int)] :- (T t/Int)
+                                     a)))
+           :ex
+           ffirst
+           (re-find #"Type variable x occurs with contravariant variance when declared covariant")))
+  ;; contravariant good
+  (is-tc-e (do (defalias T
+                 (t/TFn [[x :variance :contravariant]] [(t/Seqable x) :-> t/Any]))
+               (fn [a :- (T t/Num)] :- (T t/Int)
+                 a)))
+  ;; contravariant bad (actually covariant)
+  (is (->> (is-tc-err-messages (do (defalias T
+                                     (t/TFn [[x :variance :contravariant]] (t/Seqable x)))
+                                   (fn [a :- (T t/Int)] :- (T t/Int)
+                                     a)))
+           :ex
+           ffirst
+           (re-find #"Type variable x occurs with covariant variance when declared contravariant")))
+  ;; invariant good
+  (is-tc-e (do (defalias T
+                 (t/TFn [[x :variance :invariant]] [x :-> x]))
+               (fn [a :- (T t/Int)] :- (T t/Int)
+                 a)))
+  ;; invariant bad (actually covariant)
+  (is (->> (is-tc-err-messages (do (defalias T
+                                     (t/TFn [[x :variance :invariant]] (t/Seqable x)))
+                                   (fn [a :- (T t/Int)] :- (T t/Int)
+                                     a)))
+           :ex
+           ffirst
+           (re-find #"Type variable x occurs with covariant variance when declared invariant")))
+  ;;recursive good (covariant)
+  (is-tc-e (do (defalias T
+                 (t/TFn [[x :variance :covariant]]
+                        (t/Option [:-> (T x)])))
+               (fn [a :- (T t/Int)] :- (T t/Num)
+                 a)))
+  ;;recursive bad (covariant)
+  (is-tc-err (do (defalias T
+                   (t/TFn [[x :variance :covariant]]
+                          (t/Option [:-> (T x)])))
+                 (fn [a :- (T t/Num)] :- (T t/Int)
+                   a)))
+  ;;recursive good (contravariant)
+  (is-tc-e (do (defalias T
+                 (t/TFn [[x :variance :contravariant]]
+                        (t/Option [:-> (T x)])))
+               (fn [a :- (T t/Num)] :- (T t/Int)
+                 a)))
+  ;;recursive bad (contravariant)
+  (is-tc-err (do (defalias T
+                   (t/TFn [[x :variance :contravariant]]
+                          (t/Option [:-> (T x)])))
+                 (fn [a :- (T t/Int)] :- (T t/Num)
+                   a)))
+  ;;recursive good (invariant)
+  (is-tc-e (do (defalias T
+                 (t/TFn [[x :variance :invariant]]
+                        (t/Option [:-> (T x)])))
+               (fn [a :- (T t/Num)] :- (T t/Num)
+                 a)))
+  ;;recursive bad (invariant)
+  (is-tc-err (do (defalias T
+                   (t/TFn [[x :variance :invariant]]
+                          (t/Option [:-> (T x)])))
+                 (fn [a :- (T t/Int)] :- (T t/Num)
+                   a))))
+
+;;TODO better support for :constant variance
+(deftest infer-TFn-variance-test
+  ;; covariant good
+  (is-tc-e (do (defalias T
+                 (t/TFn [x] (t/Seqable x)))
+               (fn [a :- (T t/Int)] :- (T t/Num)
+                 a)))
+  ;; covariant bad
+  (is-tc-err (do (defalias T
+                   (t/TFn [x] (t/Seqable x)))
+                 (fn [a :- (T t/Num)] :- (T t/Int)
+                   a)))
+  ;; contravariant good
+  (is-tc-e (do (defalias T
+                 (t/TFn [x] [(t/Seqable x) :-> t/Any]))
+               (fn [a :- (T t/Num)] :- (T t/Int)
+                 a)))
+  ;; contravariant bad
+  (is-tc-err (do (defalias T
+                   (t/TFn [x] [(t/Seqable x) :-> t/Any]))
+                 (fn [a :- (T t/Int)] :- (T t/Num)
+                   a)))
+  ;; invariant good
+  (is-tc-e (do (defalias T
+                 (t/TFn [x] (t/Atom1 x)))
+               (fn [a :- (T t/Int)] :- (T t/Int)
+                 a)))
+  ;; invariant bad (not contravariant)
+  (is-tc-err (do (defalias T
+                   (t/TFn [x] (t/Atom1 x)))
+                 (fn [a :- (T t/Num)] :- (T t/Int)
+                   a)))
+  ;; invariant bad (not covariant)
+  (is-tc-err (do (defalias T
+                   (t/TFn [x] (t/Atom1 x)))
+                 (fn [a :- (T t/Int)] :- (T t/Num)
+                   a)))
+  ;; recursive disallowed
+  (is (->> (is-tc-err-messages (do (defalias T
+                                     (t/TFn [x] (t/Option [:-> (T x)])))
+                                   (fn [a :- (T t/Int)] :- (T t/Num)
+                                     a)))
+           :ex
+           ffirst
+           (re-find #"Cannot infer variances on recursive t/TFn, please add :variance annotations"))))
+
+(deftest volatile-test
+  (is-tc-e (volatile! nil))
+  (is-tc-e (volatile! nil) (t/Volatile nil))
+  (is-tc-e (volatile! nil) (t/Volatile t/Any))
+  (is-tc-err (volatile! nil) (t/Volatile t/Int))
+  (is-tc-e (let [v (volatile! (t/ann-form 1 t/Int))]
+             (vreset! v 1)))
+  (is-tc-err (let [v (volatile! (t/ann-form 1 t/Int))]
+               (vreset! v nil)))
+  #_ ;;TODO add support similar to supressing :inline expansion where
+  ;; a macro can be checked as a fn
+  (is-tc-e (let [v (volatile! (t/ann-form 1 t/Int))]
+             (vswap! v inc))))

@@ -919,7 +919,8 @@
               (map c/fully-resolve-type (c/RClass-supers* s)))
 
         ; hack for FnIntersection <: clojure.lang.IFn
-        (when (r/FnIntersection? s)
+        (when (and (r/FnIntersection? s)
+                   (impl/checking-clojure?))
           (subtypeA* A (c/RClass-of clojure.lang.IFn) t))
         A
 

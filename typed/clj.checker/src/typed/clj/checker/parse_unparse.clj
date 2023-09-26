@@ -655,24 +655,30 @@
               (parse-type >)
               r/-nothing))})
 
-(defn parse-tfn-binder [[nme & opts-flat :as all]]
-  {:pre [(vector? all)]
-   :post [((con/hmap-c? :nme symbol? :variance r/variance?
+(defn parse-tfn-binder [binder]
+  {:pre [((some-fn symbol? vector?) binder)]
+   :post [((con/hmap-c? :nme symbol? :variance (some-fn r/variance? #(= :infer %))
                         :bound r/Bounds?)
            %)]}
-  (let [_ (when-not (even? (count opts-flat))
-            (prs-error (str "Uneven arguments passed to TFn binder: "
-                            (pr-str all))))
-        {:keys [variance < >] 
-         :or {variance :inferred}
-         :as opts} 
+  (let [[nme & opts-flat :as all] (cond-> binder
+                                    (symbol? binder) vector)
+        _ (when-not (symbol? nme)
+            (prs-error "Must provide a name symbol to TFn"))
+        _ (when-not (even? (count opts-flat))
+            (prs-error (str "Uneven binder element passed to TFn binder: "
+                            (pr-str binder))))
+        {:keys [variance < >]
+         :or {variance :infer}
+         :as opts}
         (apply hash-map opts-flat)]
-    (when-not (symbol? nme)
-      (prs-error "Must provide a name symbol to TFn"))
+    (when-some [extra-keys (not-empty (disj (-> opts keys set) :variance :< :>))]
+      (prs-error (str "Unknown t/TFn option: " (pr-str (first extra-keys))
+                      ". Known options are :variance, :<, and :>.")))
     (when (contains? opts :kind)
       (err/deprecated-warn "Kind annotation for TFn parameters"))
-    (when-not (r/variance? variance)
-      (prs-error (str "Invalid variance: " (pr-str variance))))
+    (when-some [[_ provided] (find opts :variance)]
+      (when-not (r/variance? provided)
+        (prs-error (str "Invalid variance: " (pr-str provided)))))
     {:nme nme :variance variance
      :bound (let [upper-or-nil (when (contains? opts :<)
                                  (parse-type <))
@@ -684,32 +690,52 @@
   [[_ binder bodysyn :as tfn]]
   (when-not (= 3 (count tfn))
     (prs-error (str "Wrong number of arguments to TFn: " (pr-str tfn))))
-  (when-not (every? vector? binder)
-    (prs-error (str "TFn binder should be vector of vectors: " (pr-str tfn))))
-  (let [; don't scope a free in its own bounds. Should review this decision
-        free-maps (free-ops/with-free-symbols (map (fn [s]
-                                                     {:pre [(vector? s)]
-                                                      :post [(symbol? %)]}
-                                                     (first s))
-                                                   binder)
-                    (mapv parse-tfn-binder binder))
+  (let [;; variable bounds has all variables to the left of it in scope
+        {:keys [free-maps]} (reduce (fn [{:keys [free-maps free-symbs]} binder]
+                                      (when-not ((some-fn symbol? vector?) binder)
+                                        (prs-error (str "TFn binder element must be a symbol or vector: " (pr-str binder))))
+                                      (free-ops/with-free-symbols free-symbs
+                                        {:free-maps (conj free-maps (parse-tfn-binder binder))
+                                         :free-symbs (conj free-symbs (cond-> binder
+                                                                        (vector? binder) first))}))
+                                    {:free-maps []
+                                     :free-symbs #{}}
+                                    binder)
         bodyt (free-ops/with-bounded-frees (into {}
                                                  (map (fn [{:keys [nme bound]}] [(r/make-F nme) bound]))
                                                  free-maps)
                 (parse-type bodysyn))
-        ; We check variances lazily in TypeFn-body*. This avoids any weird issues with calculating
-        ; variances with potentially partially defined types.
-        ;vs (free-ops/with-bounded-frees (map (fn [{:keys [nme bound]}] [(r/make-F nme) bound])
-        ;                                     free-maps)
-        ;     (frees/fv-variances bodyt))
-        ;_ (doseq [{:keys [nme variance]} free-maps]
-        ;    (when-let [actual-v (vs nme)]
-        ;      (when-not (= (vs nme) variance)
-        ;        (prs-error (str "Type variable " nme " appears in " (name actual-v) " position "
-        ;                          "when declared " (name variance))))))
-        ]
+        ;; at some point we should remove this requirement (this is checked by parse-tfn-binder)
+        id (gensym)
+        infer-variances? (some #(= :infer (:variance %)) free-maps)
+        variances (let [prs-error (bound-fn* prs-error)]
+                    (fn []
+                      (let [currently-inferring-TypeFns vs/*currently-inferring-TypeFns*]
+                        (if (currently-inferring-TypeFns id)
+                          (if infer-variances?
+                            (when (currently-inferring-TypeFns id)
+                              (prs-error "Cannot infer variances on recursive t/TFn, please add :variance annotations"))
+                            {:cache false
+                             :variances (map :variance free-maps)})
+                          (binding [vs/*currently-inferring-TypeFns* (conj currently-inferring-TypeFns id)]
+                            (let [vs (free-ops/with-bounded-frees (into {} (map (fn [{:keys [nme bound]}] [(r/make-F nme) bound]))
+                                                                        free-maps)
+                                       ((requiring-resolve 'typed.cljc.checker.frees/fv-variances) bodyt))]
+                              {:cache true
+                               :variances (mapv (fn [{:keys [nme variance]}]
+                                                  (if-some [actual-v (vs nme)]
+                                                    (if (and variance
+                                                             (not= :infer variance)
+                                                             (not= actual-v variance))
+                                                      (prs-error (str "Type variable " nme " occurs with " (name actual-v) " variance "
+                                                                      "when declared " (name variance)))
+                                                      actual-v)
+                                                    ;;not great support for :constant, use :invariant for now
+                                                    ;:constant
+                                                    :invariant))
+                                                free-maps)}))))))]
     (c/TypeFn* (map :nme free-maps)
-               (map :variance free-maps)
+               variances
                (map :bound free-maps)
                bodyt
                {:meta {:env vs/*current-env*}})))
@@ -811,11 +837,9 @@
     (when-not (map? optional)
       (prs-error (str "Optional entries to HMap must be a map: " optional))))
   (letfn [(mapt [m]
-            (into {}
-                  (map (fn [[k v]]
-                         [(r/-val k)
-                          (parse-type v)]))
-                  m))]
+            (reduce-kv (fn [m k v]
+                         (assoc m (r/-val k) (parse-type v)))
+                       {} m))]
     (let [_ (when-not (every? empty? [(set/intersection (set (keys mandatory))
                                                         (set (keys optional)))
                                       (set/intersection (set (keys mandatory))

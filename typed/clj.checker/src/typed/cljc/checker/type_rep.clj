@@ -183,6 +183,10 @@
        (Scope? upper-bound))
    (or (Type? lower-bound)
        (Scope? lower-bound))
+   ;; TODO a TypeFn var probably should have a "bound" embedded in its kind
+   ;; e.g., :kind (TFn [[x :variance :covariant]] (Bounds t/Any t/Nothing))
+   ;(not (TypeFn? upper-bound))
+   ;(not (TypeFn? lower-bound))
    (contains? kinds higher-kind)])
 
 (u/ann-record B [idx :- Number])
@@ -368,20 +372,64 @@
   [p/TCType])
 
 (u/ann-record TypeFn [nbound :- Number,
-                      variances :- (t/Seqable Variance)
+                      variances :- (t/U (t/I t/Fn [:-> (t/Seqable Variance)])
+                                        (t/Seqable Variance))
                       bbnds :- (t/Seqable Bounds),
-                      scope :- p/IScope])
+                      scope :- p/IScope]
+              :maker-name -TypeFn-maker)
 (u/def-type TypeFn [nbound variances bbnds scope]
   "A type function containing n bound variables with variances.
   It is of a higher kind"
   [(nat-int? nbound)
-   (every? variance? variances)
+   (or (fn? variances)
+       (every? variance? variances))
    (every? Bounds? bbnds)
-   (apply = nbound (map count [variances bbnds]))
+   (apply = nbound (map count (cond-> [bbnds]
+                                (not (fn? variances)) (conj variances))))
    (scope-depth? scope nbound)
    (Scope? scope)]
+  :maker-name -TypeFn-maker
+  :compute-valAt {:variances (fn [this]
+                               `(let [v# (.-variances ~this)]
+                                  (if (fn? v#) (v#) v#)))
+                  :scope (fn [this]
+                           `(do (let [v# (.-variances ~this)]
+                                  ;; force checks
+                                  (when (fn? v#) (v#)))
+                                (.-scope ~this)))}
   :methods
+  ;;FIXME not a type, of a different kind
   [p/TCType])
+
+(t/defalias TFnVariancesMaybeFn
+  (t/U (t/I t/Fn [:-> '{:cache t/Bool :variances (t/Seqable Variance)}])
+       (t/I (t/Not t/Fn) (t/Seqable Variance))))
+
+(t/ann ^:force-check TypeFn-maker
+       [Number TFnVariancesMaybeFn (t/Seqable Bounds) p/IScope (t/Option (t/Map t/Any t/Any)) :?
+        :-> TypeFn])
+(defn TypeFn-maker
+  ([nbound variances bbnds scope]
+   (TypeFn-maker nbound variances bbnds scope nil))
+  ([nbound variances bbnds scope mta]
+   (-TypeFn-maker nbound
+                  (if (fn? variances)
+                    (let [vol (volatile! (t/ann-form nil (t/Seqable Variance)))]
+                      (fn []
+                        (or (do @vol)
+                            (let [{vs :variances :keys [cache]} (variances)]
+                              (t/ann-form vs (t/Seqable Variance))
+                              (assert (every? variance? vs) [nbound variances bbnds scope])
+                              (assert (apply = nbound (map count [vs bbnds])))
+                              (assert (boolean? cache))
+                              (when cache (vreset! vol vs))
+                              vs))))
+                    ;; FIXME issues with (t/I (t/Not t/Fn) (t/Seqable Variance)) :< (t/Seqable Variance)
+                    ^{::t/unsafe-cast (t/Seqable Variance)}
+                    variances)
+                  bbnds
+                  scope
+                  mta)))
 
 (u/ann-record Poly [nbound :- Number,
                     bbnds :- (t/Seqable Bounds),

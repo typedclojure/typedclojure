@@ -136,10 +136,14 @@
   (binding [prs/*parse-type-in-ns* prs-ns
             prs/*unparse-type-in-ns* prs-ns]
     (let [ptype (c/fully-resolve-type ptype)
+          ptype (or (when (r/Intersection? ptype)
+                      (some #(when ((some-fn r/Poly? r/PolyDots?) %)
+                               %)
+                            (:types ptype)))
+                    ptype)
           ; support (inst :kw ...)
-          ptype (if (c/keyword-value? ptype)
-                  (c/KeywordValue->Fn ptype)
-                  ptype)]
+          ptype (cond-> ptype
+                  (c/keyword-value? ptype) c/KeywordValue->Fn)]
       (if-not ((some-fn r/Poly? r/PolyDots?) ptype)
         (err/tc-delayed-error (str "Cannot instantiate non-polymorphic type: " (prs/unparse-type ptype))
                               :return (cu/error-ret expected))
