@@ -121,7 +121,10 @@
     (impl/with-clojure-impl
       (prs/delay-parse-type
         ;;TODO use t/Comparable
-        `[t/Any t/Any :-> t/Num]))))
+        (let [x 'x]
+          `(t/All [~x] [(t/alt (t/cat (t/Option t/Num) (t/Option t/Num))
+                               (t/cat (t/Option (t/Comparable ~x)) (t/Option (t/Comparable ~x))))
+                        :-> t/Num]))))))
 
 (delay-and-cache-env ^:private init-var-env
   ;(reset-alias-env!)

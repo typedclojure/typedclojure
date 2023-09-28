@@ -116,9 +116,11 @@
        (and (r/RClass? fexpr-type)
             (isa? (coerce/symbol->Class (:the-class fexpr-type)) clojure.lang.IPersistentVector))
        ;rewrite ({..} x) as (f {..} x), where f is some dummy fn
-       (let [mapfn (prs/parse-type `(t/All [x# y#]
-                                           (t/IFn [(t/Vec x#) t/Int :-> x#]
-                                                  [(t/Vec x#) t/Int y# :-> (t/U y# x#)])))]
+       (let [mapfn (prs/parse-type (let [x 'x
+                                         y 'y]
+                                     `(t/All [~x ~y]
+                                             (t/IFn [(t/Vec ~x) t/Int :-> ~x]
+                                                    [(t/Vec ~x) t/Int ~y :-> (t/U ~y ~x)]))))]
          (check-funapp fexpr args (r/ret mapfn) (cons fexpr-ret-type arg-ret-types) expected opt))
 
        ;Symbol function
@@ -158,21 +160,22 @@
          (or expected
              (r/ret (r/-unchecked nil))))
 
-       (and (r/HeterogeneousVector? fexpr-type)
-            (<= 1 (count arg-types) 2)
-            (let [i (first arg-types)]
-              (and (r/Value? i)
-                   (integer? (:val i)))))
-       (below/maybe-check-below
-         ;; FIXME replace with path-type?
-         (r/ret (nth-type [fexpr-type] (:val (first arg-types)) (second arg-types)))
-         expected)
+       (r/HeterogeneousVector? fexpr-type)
+       (or (when (= 1 (count arg-types))
+             (let [i (first arg-types)
+                   {idx :val} (when (r/Value? i) i)]
+               (when (integer? idx)
+                 (below/maybe-check-below
+                   ;; FIXME replace with path-type?
+                   (r/ret (nth-type [fexpr-type] idx nil))
+                   expected))))
+           (check-funapp fexpr args (assoc fexpr-ret-type :t (c/upcast-HSequential fexpr-type)) arg-ret-types expected opt))
 
        (r/HSet? fexpr-type)
        (let [fixed (:fixed fexpr-type)
              ret (if (not= 1 (count arg-ret-types))
-                   (do (err/tc-delayed-error (str "Wrong number of arguments to set (" (count args) ")"))
-                       (r/ret r/Err))
+                   (err/tc-delayed-error (str "Expected 1 argument to set, given " (count args) ".")
+                                         :return (r/ret r/Err))
                    (let [[argt] arg-ret-types
                          ; default value is nil
                          set-return (apply c/Un r/-nil fixed)]

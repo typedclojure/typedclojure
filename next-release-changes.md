@@ -14,3 +14,7 @@
 - add invariant type parameter to clojure.lang.Sorted
 - make sorted maps and sets invariant in their keys
 - introduce t/Comparable, update base env with new ancestors
+- fix heterogeneous vector invocation
+  - only 1 argument is allowed, now 2 args is type error
+  - upcast to t/Vec when argument is not a specific integer, previously type error
+- fix parsing of `t/Get` optional 3rd argument (default type)

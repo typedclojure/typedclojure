@@ -145,7 +145,8 @@
 ;    ;cljs.core/ITransientMap [[]]
 ;    ;cljs.core/ITransientVector [[]]
 ;    ;cljs.core/ITransientSet [[]]
-;cljs.core/IComparable [[]]
+(t/ann-protocol [[x :variance :invariant]]
+                cljs.core/IComparable)
 ;    ;cljs.core/IChunk [[]]
 ;    ;cljs.core/IChunkedSeq [[]]
 ;    ;cljs.core/IChunkedNext [[]]
@@ -842,8 +843,7 @@
   t/Comparable
   (t/TFn [[x :variance :invariant]]
          #?(:clj (Comparable x)
-            ;;FIXME
-            :cljs t/Nothing)))
+            :cljs (cljs.core/IComparable x))))
 
 ;; ==========================================
 ;; Var annotations
@@ -1427,7 +1427,10 @@ cc/derive [t/Hierarchy :?, (t/U t/Named #?(:clj Class)), t/Named :-> t/Hierarchy
 
 ;; already defined in clj base-env
 #?@(:cljs [
-cc/compare [t/Any t/Any :-> t/Num]
+cc/compare (t/All [x]
+                  [(t/alt (t/cat (t/Option t/Num) (t/Option t/Num))
+                          (t/cat (t/Option (t/Comparable x)) (t/Option (t/Comparable x))))
+                   :-> t/Num])
 ])
 
 #?@(:cljs [] :default [

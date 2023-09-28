@@ -800,23 +800,23 @@
                        target-object :- p/IRObject])
 (u/def-type GetType [target key not-found target-fs target-object]
   "get on the type level"
-  [(Type? target) 
-   (Type? key) 
+  [(Type? target)
+   (Type? key)
    (Type? not-found)
    (p/IFilterSet? target-fs)
    (p/IRObject? target-object)]
   :methods
   [p/TCType])
 
-(t/ann ^:no-check -get 
+(t/ann ^:no-check -get
        [Type Type & :optional {:not-found (t/U nil Type)
                                :target-fs (t/U nil p/IFilterSet)
                                :target-object (t/U nil p/IRObject)}
         -> GetType])
-(defn -get 
+(defn -get
   [target key & {:keys [not-found target-fs target-object]}]
-  (GetType-maker target key (or not-found -nil) 
-                 (or target-fs (ind/-FS (ind/-top-fn) 
+  (GetType-maker target key (or not-found -nil)
+                 (or target-fs (ind/-FS (ind/-top-fn)
                                         (ind/-top-fn)))
                  (or target-object (ind/-empty-fn))))
 

@@ -2046,7 +2046,7 @@
   (is (check-ns 'clojure.core.typed.test.recursive)))
 
 (deftest comparable-inline-test
-  (is-tc-e (fn [v x] (compare v x)) (t/IFn [Comparable t/Any -> t/Num])))
+  (is-tc-e (fn [v x] (compare v x)) (t/IFn [t/Num t/Num -> t/Num])))
 
 (deftest CTYP-71-simplify-test
                                               ; must be resolvable to trigger the bug
@@ -4161,6 +4161,16 @@
              (a 0)))
   (is-tc-e (fn [a :- '[t/Int t/Bool]] :- t/Bool
              (a 1)))
+  (is-tc-err (fn [a :- '[t/Int t/Bool]]
+               (a 2)))
+  (is-tc-err (fn [a :- '[t/Int t/Bool]]
+               (a 1 nil)))
+  (is-tc-e (fn [a :- '[t/Int t/Bool]]
+             (a (ann-form 1 t/Int))))
+  (is-tc-err (fn [a :- '[t/Int t/Bool]] :- t/Int
+               (a (ann-form 1 t/Int))))
+  (is-tc-e (fn [a :- '[t/Int t/Bool]] :- (t/U t/Int t/Bool)
+             (a (ann-form 1 t/Int))))
   (is-tc-err (fn [a :- '[t/Int t/Bool]] :- t/Int
                (a 1)))
   (is-tc-e (fn [a :- (t/Vec t/Bool)] :- (t/Seqable t/Bool)
@@ -4529,4 +4539,50 @@
   (is-tc-e :a (t/Comparable t/Kw))
   (is-tc-err 'a (t/Comparable t/Kw))
   (is-tc-e "a" (t/Comparable t/Str))
-  (is-tc-err "a" (t/Comparable t/Sym)))
+  (is-tc-err "a" (t/Comparable t/Sym))
+  (is-tc-e (compare 1 2))
+  (is-tc-e (compare 1 2.1))
+  (is-tc-e (compare nil 2))
+  (is-tc-e (compare :a :b))
+  (is-tc-e (compare nil :b))
+  (is-tc-err #(compare :a 'a))
+  (is-tc-e (compare nil []))
+  (is-tc-e (compare [] []))
+  (is-tc-e (compare [1] [1]))
+  (is-tc-e (compare [:a] [:a]))
+  #_;;FIXME
+  (is-tc-e (compare [:a] [:b]))
+  (is-tc-err #(compare [:a] ['b]))
+  #_;;FIXME
+  (is-tc-e (compare [1] [2]))
+  #_;;FIXME
+  (is-tc-e (compare [1] [2.1]))
+  (is-tc-e (compare [1 2] [1 2]))
+  #_;;FIXME
+  (is-tc-e (compare [1 2] [1 2 3]))
+  (is-tc-e (compare [nil] [nil]))
+  #_;;FIXME
+  (is-tc-e (compare [nil] [1]))
+  #_;;FIXME
+  (is-tc-e (compare [1 2] [1 nil]))
+  #_;;TODO
+  (is-tc-e (fn [me :- (t/AMapEntry t/Int t/Int)]
+             (compare me [1])))
+  (is-tc-e (fn [me :- (t/AMapEntry t/Int t/Int)]
+             (compare me me)))
+  (is-tc-e (fn [me1 :- (t/AMapEntry t/Int t/Int)
+                me2 :- (t/AMapEntry t/Int t/Int)]
+             (compare me1 me2)))
+  (is-tc-err (fn [me1 :- (t/AMapEntry t/Int t/Int)
+                  me2 :- (t/AMapEntry t/Num t/Num)]
+               (compare me1 me2)))
+  #_;;TODO
+  (is-tc-e (fn [me :- (t/AMapEntry t/Int t/Int)]
+             (compare me [1 2])))
+  )
+
+(deftest Get-default-test
+  (is-tc-e (fn [get :- (t/All [c k d] [c k d :-> (t/Get c k d)])] :- '2
+             (get {:a 1} :b 2)))
+  (is-tc-err (fn [get :- (t/All [c k d] [c k d :-> (t/Get c k d)])] :- '1
+               (get {:a 1} :b 2))))

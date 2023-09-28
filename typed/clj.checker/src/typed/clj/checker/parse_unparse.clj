@@ -402,7 +402,7 @@
 
 (defmethod parse-type-list 'typed.clojure/Merge [t] (parse-Merge t))
 
-(defn parse-Get [[_ tsyn keysyn & not-foundsyn :as all]]
+(defn parse-Get [[_ tsyn keysyn not-foundsyn :as all]]
   (when-not (#{2 3} (count (next all)))
     (prs-error (str "Wrong arguments to Get: " all)))
   (r/-get (parse-type tsyn)

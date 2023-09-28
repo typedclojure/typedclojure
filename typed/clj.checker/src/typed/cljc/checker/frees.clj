@@ -272,14 +272,15 @@
                                      varis)))
 
   App
-  (frees 
+  (frees
     [{:keys [rator rands]}]
     (apply combine-freesresults (map frees (cons rator rands))))
 
   TApp
-  (frees 
+  (frees
     [{:keys [rator rands] :as tapp}]
     (apply combine-freesresults
+           (frees rator)
            (let [tfn (loop [rator rator]
                        (cond
                          (r/F? rator) (when-let [bnds (free-ops/free-with-name-bnds (:name rator))]
@@ -302,8 +303,9 @@
                          (r/TypeFn? rator) rator
                          :else (err/int-error (str "Invalid operator to type application: "
                                                    (prs/unparse-type tapp)))))
-                 _ (when-not (r/TypeFn? tfn) 
-                     (err/int-error (str "First argument to TApp must be TypeFn")))]
+                 _ (when-not (r/TypeFn? tfn)
+                     (err/int-error (str "First argument to TApp must be TypeFn: "
+                                         (prs/unparse-type tapp))))]
              (map (fn [v ^FreesResult fr]
                     (case v
                       :covariant fr
