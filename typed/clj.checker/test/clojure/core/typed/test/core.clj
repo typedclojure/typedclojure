@@ -1148,7 +1148,9 @@
   (is-tc-e (first (ann-form "a" String)) (t/Option Character)))
 
 (deftest string-as-indexed-test
-  (is (sub? String (clojure.lang.Indexed clojure.core.typed/Any))))
+  (is (sub? String (clojure.lang.Indexed clojure.core.typed/Any)))
+  (is (sub? String (clojure.lang.Indexed Character)))
+  (is (not (sub? String (clojure.lang.Indexed clojure.core.typed/Bool)))))
 
 (deftest recursive-cf-test
   (is (thrown? Exception
@@ -4506,3 +4508,25 @@
   (is-tc-err (subseq (sorted-set 1 2) = 0) (t/Seqable t/Bool))
   (is-tc-err (subseq (sorted-set 1 2) (fn [_ _]) 0))
 )
+
+(deftest comparable-test
+  (is (sub? clojure.lang.Symbol (typed.clojure/Comparable clojure.lang.Symbol)))
+  (is (not (sub? clojure.lang.Symbol (typed.clojure/Comparable clojure.lang.Keyword))))
+  (is (not (sub? clojure.lang.Symbol (typed.clojure/Comparable String))))
+  (is (sub? 'a (typed.clojure/Comparable clojure.lang.Symbol)))
+  (is (not (sub? 'a (typed.clojure/Comparable clojure.lang.Keyword))))
+  (is (not (sub? 'a (typed.clojure/Comparable String))))
+  (is (sub? clojure.lang.Keyword (typed.clojure/Comparable clojure.lang.Keyword)))
+  (is (not (sub? clojure.lang.Keyword (typed.clojure/Comparable clojure.lang.Symbol))))
+  (is (not (sub? clojure.lang.Keyword (typed.clojure/Comparable String))))
+  (is (sub? ':a (typed.clojure/Comparable clojure.lang.Keyword)))
+  (is (not (sub? ':a (typed.clojure/Comparable clojure.lang.Symbol))))
+  (is (not (sub? ':a (typed.clojure/Comparable String))))
+  (is-tc-e 'a (t/Comparable t/Sym))
+  (is-tc-err :a (t/Comparable t/Sym))
+  (is-tc-err (fn [] :- t/Kw :a)
+             [:-> (t/Comparable t/Sym)])
+  (is-tc-e :a (t/Comparable t/Kw))
+  (is-tc-err 'a (t/Comparable t/Kw))
+  (is-tc-e "a" (t/Comparable t/Str))
+  (is-tc-err "a" (t/Comparable t/Sym)))

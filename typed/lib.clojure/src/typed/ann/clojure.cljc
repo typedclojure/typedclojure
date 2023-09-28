@@ -838,10 +838,12 @@
          (t/All [r]
                 [(t/Reducer out r) :-> (t/Reducer in r)])))
 
-;(t/defalias
-;  t/Comparable
-;  (t/TFn [[x :variance :invariant]]
-;         #?(:clj (Comparable x))))
+(t/defalias
+  t/Comparable
+  (t/TFn [[x :variance :invariant]]
+         #?(:clj (Comparable x)
+            ;;FIXME
+            :cljs t/Nothing)))
 
 ;; ==========================================
 ;; Var annotations

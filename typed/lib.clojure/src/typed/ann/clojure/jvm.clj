@@ -28,7 +28,7 @@
 
 (override-classes
 
-;Comparable [[[a :variance :invariant]]]
+Comparable [[[a :variance :invariant]]]
 ;java.util.Comparator [[[a :variance :invariant]]
 ;                      :replace
 ;                      {Comparable (Comparable a)}]
@@ -218,7 +218,8 @@ APersistentVector [[[a :variance :covariant]]
                     IPersistentStack (IPersistentStack a)
                     ILookup (ILookup Number a)
                     Associative (Associative Number a)
-                    Indexed (Indexed a)}
+                    Indexed (Indexed a)
+                    Comparable (Comparable (IPersistentVector a))}
                    :unchecked-ancestors
                    [[Number -> a]]]
 
@@ -237,7 +238,8 @@ PersistentVector [[[a :variance :covariant]]
                    ILookup (ILookup Number a)
                    Associative (Associative Number a)
                    Indexed (Indexed a)
-                   #_IEditableCollection #_(IEditableCollection (ITransientVector a))}
+                   #_IEditableCollection #_(IEditableCollection (ITransientVector a))
+                   Comparable (Comparable (IPersistentVector a))}
                   :unchecked-ancestors
                   [[Number -> a]]]
 
@@ -262,7 +264,8 @@ clojure.lang.AMapEntry
             ILookup (ILookup Number (t/U a b))
             Associative (Associative Number (t/U a b))
             Indexed (Indexed (t/U a b))
-            APersistentVector (APersistentVector (t/U a b))}
+            APersistentVector (APersistentVector (t/U a b))
+            Comparable (Comparable '[a b])}
            :unchecked-ancestors
            ['[a b]
             [Number -> (t/U a b)]]]
@@ -285,7 +288,8 @@ clojure.lang.MapEntry
             ILookup (ILookup Number (t/U a b))
             Associative (Associative Number (t/U a b))
             Indexed (Indexed (t/U a b))
-            APersistentVector (APersistentVector (t/U a b))}
+            APersistentVector (APersistentVector (t/U a b))
+            Comparable (Comparable '[a b])}
            :unchecked-ancestors
            ['[a b]
             [Number -> (t/U a b)]]]
@@ -388,10 +392,16 @@ PersistentList [[[a :variance :covariant]]
                  }]
 
 clojure.lang.Keyword [[]
+                      :replace
+                      {Comparable (Comparable clojure.lang.Keyword)}
                       :unchecked-ancestors
                       [(t/All [x] 
                               (t/IFn [(t/U nil (IPersistentMap t/Any x)) -> (t/U nil x)]
                                      [t/Any -> t/Any]))]]
+
+clojure.lang.Symbol [[]
+                     :replace
+                     {Comparable (Comparable clojure.lang.Symbol)}]
 
 IDeref [[[r :variance :covariant]]]
 clojure.lang.IBlockingDeref [[[r :variance :covariant]]]
@@ -408,7 +418,7 @@ ARef [[[w :variance :contravariant]
       {IRef (IRef w r)
        IDeref (IDeref r)}]
 
-clojure.lang.Ref 
+clojure.lang.Ref
      [[[w :variance :contravariant]
        [r :variance :covariant]]
       :replace
@@ -416,7 +426,7 @@ clojure.lang.Ref
        ARef (ARef w r)
        IDeref (IDeref r)}]
 
-clojure.lang.Agent 
+clojure.lang.Agent
       [[[w :variance :contravariant]
         [r :variance :covariant]]
        :replace
@@ -430,7 +440,7 @@ clojure.lang.Delay [[[r :variance :covariant]]
                     {IDeref (IDeref r)}]
 
 ;invoking Var as t/IFn is a special case in the checker
-clojure.lang.Var 
+clojure.lang.Var
     [[[w :variance :contravariant]
       [r :variance :covariant]]
      :replace
@@ -518,9 +528,15 @@ java.lang.CharSequence [[]
 ;FIXME Need to correctly check ancestors, this shouldn't be necessary because String is a CharSequence
 ; CTYP-15
 java.lang.String [[]
+                  :replace
+                  {Comparable (Comparable String)}
                   :unchecked-ancestors
                   [(Seqable Character)
                    (Indexed Character)]]
+
+java.nio.CharBuffer [[]
+                     :replace
+                     {java.nio.CharBuffer (java.nio.CharBuffer String)}]
 
 java.lang.Iterable [[[a :variance :covariant]]
                     :unchecked-ancestors

@@ -834,31 +834,17 @@
         (r/Value? s)
         (let [sval (:val s)]
           (impl/impl-case
-            :clojure (cond 
+            :clojure (if (nil? sval)
                        ; this is after the nil <: Protocol case, so we fail
-                       (nil? sval) (report-not-subtypes s t)
-                       ; this is a faster path than the final case
-                       (r/RClass? t) (let [cls (let [cls (coerce/symbol->Class (:the-class t))]
-                                                 (or (boxed-primitives cls)
-                                                     cls))]
-                                       (cond
-                                         (#{Integer Long} cls) (if (or (instance? Integer sval)
-                                                                       (instance? Long sval))
-                                                                 A
-                                                                 (report-not-subtypes s t))
-                                         ;handle string-as-seqable
-                                         (string? sval) (subtypeA* A (c/RClass-of String) t)
-                                         :else (if (instance? cls sval) 
-                                                 A
-                                                 (report-not-subtypes s t))))
-                       :else (recur A
-                                    (apply c/In (c/RClass-of (class sval))
-                                           (cond
-                                             ;keyword values are functions
-                                             (keyword? sval) [(c/keyword->Fn sval)]
-                                             ;strings have a known length as a seqable
-                                             (string? sval) [(r/make-ExactCountRange (count sval))]))
-                                    t))
+                       (report-not-subtypes s t)
+                       (recur A
+                              (apply c/In (c/RClass-of (class sval))
+                                     (cond
+                                       ;keyword values are functions
+                                       (keyword? sval) [(c/keyword->Fn sval)]
+                                       ;strings have a known length as a seqable
+                                       (string? sval) [(r/make-ExactCountRange (count sval))]))
+                              t))
             :cljs (cond
                     (integer? sval) (recur A (r/CLJSInteger-maker) t)
                     (number? sval) (recur A (r/JSNumber-maker) t)

@@ -13,3 +13,4 @@
 - fix `{r}subseq` annotations
 - add invariant type parameter to clojure.lang.Sorted
 - make sorted maps and sets invariant in their keys
+- introduce t/Comparable, update base env with new ancestors
