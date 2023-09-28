@@ -4477,3 +4477,32 @@
   ;; a macro can be checked as a fn
   (is-tc-e (let [v (volatile! (t/ann-form 1 t/Int))]
              (vswap! v inc))))
+
+(deftest sorted-test
+  (is-tc-e (sorted-map 1 2)
+           (t/SortedMap t/Int t/Any))
+  (is-tc-e (let [m (sorted-map 1 2)]
+             (t/ann-form m (t/SortedMap '1 t/Any))))
+  (is-tc-err (let [m (sorted-map 1 2)]
+               ;;invariant keys
+               (t/ann-form m (t/SortedMap t/Int t/Any))))
+  (is-tc-e (sorted-set 1 2)
+           (t/SortedSet t/Int))
+  (is-tc-e (let [m (sorted-set 1)]
+             (t/ann-form m (t/SortedSet '1))))
+  (is-tc-err (let [m (sorted-set 1)]
+               ;;invariant keys
+               (t/ann-form m (t/SortedSet t/Int))))
+  (is-tc-e (subseq (sorted-map) = 0))
+  (is-tc-e (subseq (sorted-map 1 2) = 0))
+  (is (= [[0 1]] (subseq (sorted-map 0 1 1 2) = 0)))
+  (is-tc-e (subseq (sorted-map 0 1 1 2) = 0))
+  (is-tc-e (subseq (sorted-map 1 2) = 0) (t/Seqable (t/MapEntry t/Int t/Int)))
+  (is-tc-err (subseq (sorted-map 1 2) = 0) (t/Seqable (t/MapEntry t/Bool t/Int)))
+  (is-tc-err (subseq (sorted-map) (fn [_ _]) 0))
+  (is (= [0] (subseq (sorted-set 0 1) = 0)))
+  (is-tc-e (subseq (sorted-set 0 1 1 2) = 0))
+  (is-tc-e (subseq (sorted-set 1 2) = 0) (t/Seqable t/Int))
+  (is-tc-err (subseq (sorted-set 1 2) = 0) (t/Seqable t/Bool))
+  (is-tc-err (subseq (sorted-set 1 2) (fn [_ _]) 0))
+)

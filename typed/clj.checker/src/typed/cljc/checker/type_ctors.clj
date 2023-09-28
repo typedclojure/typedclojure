@@ -874,7 +874,7 @@
          rc ((some-fn dtenv/get-datatype rcls/get-rclass) sym)
          args (when (r/TypeFn? rc)
                 (when warn-msg
-                  (println "WARNING: " warn-msg ": " sym))
+                  (println (str "WARNING: " warn-msg ": " sym)))
                 (let [syms (TypeFn-fresh-symbols* rc)]
                   (most-general-on-variance (:variances rc)
                                             (TypeFn-bbnds* syms rc))))]

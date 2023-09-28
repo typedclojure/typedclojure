@@ -10,3 +10,6 @@
   - allowed: `(TFn [y [x :< y]] t/Any)`
   - not allowed: `(TFn [[x :< y] y] t/Any)`
 - add `t/Volatile{2}`, support `cc/volatile!` and `cc/vreset!`
+- fix `{r}subseq` annotations
+- add invariant type parameter to clojure.lang.Sorted
+- make sorted maps and sets invariant in their keys

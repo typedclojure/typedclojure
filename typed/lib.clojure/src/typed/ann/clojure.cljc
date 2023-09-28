@@ -15,7 +15,7 @@
             #?(:clj typed.ann.clojure.jvm) ;; jvm annotations
             #?(:clj clojure.core.typed))
   #?(:clj
-     (:import (clojure.lang PersistentHashSet PersistentTreeSet PersistentList
+     (:import (clojure.lang PersistentHashSet PersistentList
                             APersistentMap #_IPersistentCollection
                             #_ITransientSet
                             IRef)
@@ -127,13 +127,13 @@
                  [v :variance :covariant]] cljs.core/IFind
                 -find [(cljs.core/IFind k v) t/Any :-> (t/Nilable (cljs.core/IMapEntry k v))]
                 )
-(t/ann-protocol [[x :variance :covariant]]
+(t/ann-protocol [[x :variance :invariant]]
                 cljs.core/ISorted
                 -sorted-seq [(cljs.core/ISorted x) t/Bool :-> (t/Nilable (t/ASeq x))]
                 ;; second arg => comparable?
                 -sorted-seq-from [(cljs.core/ISorted x) t/Any t/Bool :-> (t/Nilable (t/ASeq x))]
                 -entry-key [(cljs.core/ISorted x) t/Any :-> t/Any]
-                -comparator [(cljs.core/ISorted x) :-> [t/Any t/Any :-> t/Num]])
+                -comparator [(cljs.core/ISorted x) :-> [x x :-> t/Num]])
 (t/ann-protocol cljs.core/IPending)
 ;cljs.core/IWriter [[]]
 ;cljs.core/IPrintWithWriter [[]]
@@ -569,7 +569,7 @@
   ^{:doc "A sorted collection."
     :forms '[(t/Sorted x)]}
   t/Sorted
-  (t/TFn [[x :variance :covariant]]
+  (t/TFn [[x :variance :invariant]]
          #?(:clj (clojure.lang.Sorted x)
             :cljs (cljs.core/ISorted x))))
 
@@ -577,9 +577,18 @@
   ^{:doc "A sorted persistent set with member type x"
     :forms '[(SortedSet x)]}
   t/SortedSet
-  (t/TFn [[x :variance :covariant]]
+  (t/TFn [[x :variance :invariant]]
          (t/I (t/Set x)
               (t/Sorted x))))
+
+(t/defalias
+  ^{:doc "A sorted persistent map with key type k and value type v"
+    :forms '[(SortedMap x)]}
+  t/SortedMap
+  (t/TFn [[k :variance :invariant]
+          [v :variance :covariant]]
+         (t/I (t/Map k v)
+              (t/Sorted k))))
 
 (t/defalias
   ^{:doc "A type that can be used to create a sequence of member type x
@@ -829,10 +838,10 @@
          (t/All [r]
                 [(t/Reducer out r) :-> (t/Reducer in r)])))
 
-;#?(:clj (t/defalias
-;          t/Comparable
-;          (t/TFn [[x :variance :invariant]]
-;                 (Comparable x))))
+;(t/defalias
+;  t/Comparable
+;  (t/TFn [[x :variance :invariant]]
+;         #?(:clj (Comparable x))))
 
 ;; ==========================================
 ;; Var annotations
@@ -1135,12 +1144,11 @@ cc/hash-set (t/All [x] [x :* :-> #?(:cljs (t/Set x)
 ;                          [(t/cat x y) :* :-> (t/Map x y)]))
 cc/hash-map (t/All [x y] [(t/cat x y) :* :-> (t/Map x y)])
 cc/array-map (t/All [x y] [(t/cat x y) :* :-> (t/Map x y)])
-cc/sorted-map (t/All [x y] [(t/cat x y) :* :-> (t/Map x y)])
-cc/sorted-map-by (t/All [x y] [[x x :-> t/Int] (t/cat x y) :* :-> (t/Map x y)])
-cc/sorted-set (t/All [x] [x :* :-> #?(:cljs (t/SortedSet x)
-                                      :default (PersistentTreeSet x))])
-cc/sorted-set-by (t/All [x] [[x x :-> t/Int] x :* :-> #?(:cljs (t/Set x)
-                                                         :default (PersistentTreeSet x))])
+cc/sorted-map (t/All [x y] [(t/cat x y) :* :-> (t/SortedMap x y)])
+cc/sorted-map-by (t/All [x y] [[x x :-> t/Int] (t/cat x y) :* :-> (t/SortedMap x y)])
+cc/sorted-set (t/All [x] [x :* :-> (t/SortedSet x)])
+;;FIXME use t/Comparator for first arg
+cc/sorted-set-by (t/All [x] [[x x :-> t/Int] x :* :-> (t/SortedSet x)])
 cc/list (t/All [x] [x :* :-> (#?(:clj PersistentList :cljs t/List) x)])
 ;cc/list* (t/All [x] [x :* (t/Seqable x) :-> (t/NilableNonEmptyASeq x)])
 cc/list* (t/All [x] (t/IFn [(t/Seqable x) :-> (t/NilableNonEmptyASeq x)]
@@ -2254,8 +2262,8 @@ cc/instance? [#?(:clj Class :cljs js/Object) t/Any :-> t/Bool]
 cc/cons (t/All [x] [x (t/Seqable x) :-> (t/ASeq x)])
 cc/reverse (t/All [x] [(t/Seqable x) :-> (t/ASeq x)])
 cc/rseq (t/All [x] [(t/Reversible x) :-> (t/NilableNonEmptyASeq x)])
-cc/subseq  (t/All [x] [(t/Sorted x) [t/Int t/Int :-> t/Bool] t/Int (t/cat [t/Int t/Int :-> t/Bool] t/Int) :? :-> (t/Nilable (t/ASeq x))])
-cc/rsubseq (t/All [x] [(t/Sorted x) [t/Int t/Int :-> t/Bool] t/Int (t/cat [t/Int t/Int :-> t/Bool] t/Int) :? :-> (t/Nilable (t/ASeq x))])
+cc/subseq  (t/All [x e] [(t/I (t/Seqable e) (t/Sorted x)) [t/Int t/Int :-> t/Bool] t/Int (t/cat [t/Int t/Int :-> t/Bool] t/Int) :? :-> (t/Nilable (t/ASeq e))])
+cc/rsubseq (t/All [x e] [(t/I (t/Seqable e) (t/Sorted x)) [t/Int t/Int :-> t/Bool] t/Int (t/cat [t/Int t/Int :-> t/Bool] t/Int) :? :-> (t/Nilable (t/ASeq e))])
 
 ;coercions
 #?@(:cljs [] :default [

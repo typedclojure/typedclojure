@@ -18,7 +18,7 @@
                          ILookup Indexed Associative IPersistentStack PersistentVector Cons
                          IPersistentList IRef ARef Reversible
                          ITransientCollection ITransientSet ITransientAssociative ITransientMap
-                         ITransientVector PersistentHashMap Reduced MultiFn)
+                         ITransientVector PersistentHashMap Reduced MultiFn Sorted)
            (java.util Collection RandomAccess)))
 
 ;; ==========================================
@@ -50,8 +50,8 @@ ISeq [[[a :variance :covariant]]
 ;clojure.core.Vec [[a :variance :invariant]
 ;                  ]
 
-;; seqFrom method is [(Sorted a) t/Bool :-> (ASeq a)]
-clojure.lang.Sorted [[[a :variance :covariant]]]
+;;TODO add appropriate Comparable bounds
+Sorted [[[a :variance :invariant]]]
 
 ;clojure.lang.IFn [[[a :variance :covariant :< t/AnyFunction]]
 ;                  :unchecked-ancestors
@@ -119,7 +119,7 @@ PersistentHashSet [[[a :variance :covariant]]
                    :unchecked-ancestors
                    [[t/Any -> (t/U a nil)]]]
 
-PersistentTreeSet [[[a :variance :covariant]]
+PersistentTreeSet [[[a :variance :invariant]]
                    :replace
                    {Seqable (Seqable a)
                     java.util.Set (java.util.Set a)
@@ -128,7 +128,8 @@ PersistentTreeSet [[[a :variance :covariant]]
                     Reversible (Reversible a)
                     APersistentSet (APersistentSet a)
                     IPersistentSet (IPersistentSet a)
-                    IPersistentCollection (IPersistentCollection a)}
+                    IPersistentCollection (IPersistentCollection a)
+                    Sorted (Sorted a)}
                     :unchecked-ancestors
                     [[t/Any -> (t/U a nil)]]]
 
@@ -322,7 +323,7 @@ APersistentMap [[[a :variance :covariant]
                         (t/IFn [t/Any -> (t/U nil b)]
                                [t/Any d -> (t/U b d)]))]]
 
-PersistentTreeMap [[[a :variance :covariant] 
+PersistentTreeMap [[[a :variance :invariant] 
                     [b :variance :covariant]]
                    :replace
                    {IPersistentCollection (IPersistentCollection (AMapEntry a b))
@@ -333,7 +334,8 @@ PersistentTreeMap [[[a :variance :covariant]
                     ILookup (ILookup a b)
                     Associative (Associative a b)
                     Reversible (Reversible (AMapEntry a b))
-                    #_IEditableCollection #_(IEditableCollection (ITransientMap a b a b))}
+                    #_IEditableCollection #_(IEditableCollection (ITransientMap a b a b))
+                    Sorted (Sorted a)}
                    :unchecked-ancestors
                    [(t/All [d]
                            (t/IFn [t/Any -> (t/U nil b)]
