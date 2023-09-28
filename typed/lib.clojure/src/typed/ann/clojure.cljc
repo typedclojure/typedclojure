@@ -2254,8 +2254,8 @@ cc/instance? [#?(:clj Class :cljs js/Object) t/Any :-> t/Bool]
 cc/cons (t/All [x] [x (t/Seqable x) :-> (t/ASeq x)])
 cc/reverse (t/All [x] [(t/Seqable x) :-> (t/ASeq x)])
 cc/rseq (t/All [x] [(t/Reversible x) :-> (t/NilableNonEmptyASeq x)])
-cc/subseq (t/All [x] [(t/Sorted x) [t/Int t/Int :-> t/Bool] t/Int (t/? (t/cat t/Int t/Int t/Int)) :-> (t/Nilable (t/ASeq x))])
-cc/rsubseq (t/All [x] [(t/Sorted x) [t/Int t/Int :-> t/Bool] t/Int (t/? (t/cat t/Int t/Int t/Int)) :-> (t/Nilable (t/ASeq x))])
+cc/subseq  (t/All [x] [(t/Sorted x) [t/Int t/Int :-> t/Bool] t/Int (t/cat [t/Int t/Int :-> t/Bool] t/Int) :? :-> (t/Nilable (t/ASeq x))])
+cc/rsubseq (t/All [x] [(t/Sorted x) [t/Int t/Int :-> t/Bool] t/Int (t/cat [t/Int t/Int :-> t/Bool] t/Int) :? :-> (t/Nilable (t/ASeq x))])
 
 ;coercions
 #?@(:cljs [] :default [
