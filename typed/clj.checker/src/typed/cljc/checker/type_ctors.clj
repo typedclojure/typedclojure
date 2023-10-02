@@ -722,8 +722,7 @@
   [p]
   (set (extenders @(resolve-Protocol p))))
 
-(t/ann ^:no-check Protocol-of (t/IFn [t/Sym -> r/Type]
-                                     [t/Sym (t/Seqable r/Type) -> r/Type]))
+(t/ann ^:no-check Protocol-of [t/Sym (t/Seqable r/Type) :? -> r/Type])
 (defn Protocol-of
   ([sym] (Protocol-of sym nil))
   ([sym args]
@@ -752,9 +751,8 @@
 
 ;smart constructor
 (t/ann ^:no-check RClass* 
-  (t/IFn [(t/Seqable t/Sym) (t/Seqable r/Variance) (t/Seqable r/Type) t/Sym (t/Map t/Sym r/Type) -> r/Type]
-         [(t/Seqable t/Sym) (t/Seqable r/Variance) (t/Seqable r/Type) t/Sym 
-          (t/Map t/Sym r/Type) (t/Set r/Type) -> r/Type]))
+  (t/IFn [(t/Seqable t/Sym) (t/Seqable r/Variance) (t/Seqable r/Type) t/Sym (t/Map t/Sym r/Type) (t/Set r/Type) :? -> r/Type]
+         [(t/Seqable t/Sym) (t/Seqable r/Variance) (t/Seqable r/Type) t/Sym (t/Map t/Sym r/Type) (t/Set r/Type) Bounds -> r/Type]))
 (defn RClass*
   ([names variances poly? the-class replacements]
    (RClass* names variances poly? the-class replacements (r/sorted-type-set [])))
@@ -812,8 +810,7 @@
   (reset! RClass-of-cache {})
   nil)
 
-(t/ann ^:no-check RClass-of (t/IFn [(t/U t/Sym Class) -> r/Type]
-                                   [(t/U t/Sym Class) (t/Seqable r/Type) -> r/Type]))
+(t/ann ^:no-check RClass-of [(t/U t/Sym Class) (t/Seqable r/Type) :? -> r/Type])
 (defn RClass-of 
   ([sym-or-cls] (RClass-of sym-or-cls nil))
   ([sym-or-cls args]
@@ -2258,8 +2255,8 @@
     (cond-> (r/-kw-args-seq :mandatory (:mandatory kws)
                             :optional (:optional kws)
                             :complete? false)
-      nilable-non-empty? (In (r/make-CountRange 1))
-      nilable-non-empty? (Un r/-nil))))
+      nilable-non-empty? (-> (In (r/make-CountRange 1))
+                             (Un r/-nil)))))
 
 (t/ann KwArgs->HMap [KwArgs -> r/Type])
 (defn KwArgs->HMap [kws]
