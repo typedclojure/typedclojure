@@ -25,7 +25,7 @@ jobs:
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: turtlequeue/setup-babashka@1e886ef84f68692d42c5128245ac83e7dd38ce70
         with:
           babashka-version: ${{env.BABASHKA_VERSION}}
@@ -48,7 +48,7 @@ jobs:
     strategy:
       matrix: ${{ fromJson(needs.setup.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/cache@v3
         id: test-deps-cache
         with:
@@ -66,7 +66,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: ${{ matrix.jdk }}
-      - uses: DeLaGuardo/setup-clojure@1c76ab0e154379260d7a6ea16b413679abe46785
+      - uses: DeLaGuardo/setup-clojure@0fc99a3bcdd086349bfb01a9262382fe3d37cd6d
         with:
           cli: ${{ env.CLOJURE_CLI_VERSION }} 
       - name: Run ${{ matrix.submodule }} tests
@@ -104,7 +104,7 @@ jobs:
             && github.event_name == 'schedule'
          }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: turtlequeue/setup-babashka@1e886ef84f68692d42c5128245ac83e7dd38ce70
         with:
           babashka-version: ${{env.BABASHKA_VERSION}}
@@ -121,7 +121,7 @@ jobs:
     env:
       DEPLOY_JDK: 11
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/cache@v3
         with:
           path: |
@@ -144,7 +144,7 @@ jobs:
         with:
           distribution: 'adopt'
           java-version: ${{ env.DEPLOY_JDK }}
-      - uses: DeLaGuardo/setup-clojure@1c76ab0e154379260d7a6ea16b413679abe46785
+      - uses: DeLaGuardo/setup-clojure@0fc99a3bcdd086349bfb01a9262382fe3d37cd6d
         with:
           cli: ${{ env.CLOJURE_CLI_VERSION }}
       - uses: turtlequeue/setup-babashka@83e81711f784e0dcb593e53b642fc9850067f234
