@@ -8,6 +8,7 @@
                   typed.cljc.checker.type-rep
                   typed.cljc.checker.cs-rep
                   typed.cljc.checker.name-env
+                  clojure.core.typed.util-vars
                   ;typed.cljc.checker.type-ctors
                   ]
                 {:check-config {:check-ns-dep :never}
