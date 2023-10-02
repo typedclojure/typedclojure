@@ -2813,17 +2813,7 @@
     m))
 
 (defn- visit-type-paired-vector [v f]
-  (return-if-changed
-    (fn [changed?]
-      (mapv (fn [[k v]]
-              (let [k' (f k)
-                    v' (f v)]
-                (when-not (and (identical? k k')
-                               (identical? v v'))
-                  (vreset! changed? true))
-                [k' v']))
-            v))
-    v))
+  (into-identical [] #(into-identical [] f %) v))
 
 (add-default-fold-case HeterogeneousMap
                        (fn [ty]
