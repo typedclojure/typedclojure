@@ -61,6 +61,7 @@
   (and (= -infer-top t)
        (-> t meta :clojure.core.typed/infer boolean)))
 
+(t/ann -top-fn [:-> Filter])
 (defn -top-fn []
   -top)
 
@@ -171,5 +172,8 @@
    p/IFilterSet
    (then-filter [_] then)
    (else-filter [_] else)])
+
+(t/defalias FilterSet
+  (t/I Filter FilterSet))
 
 (def -infer-FS (FilterSet-maker -infer-top -infer-top))

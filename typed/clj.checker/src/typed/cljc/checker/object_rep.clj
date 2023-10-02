@@ -33,9 +33,10 @@
   :methods
   [p/IRObject])
 
-(t/ann ^:no-check -empty EmptyObject)
+(t/ann -empty EmptyObject)
 (def -empty (EmptyObject-maker))
 
+(t/ann -empty-fn [:-> EmptyObject])
 (defn -empty-fn [] -empty)
 
 (def -infer-obj (with-meta (EmptyObject-maker) {::infer true}))

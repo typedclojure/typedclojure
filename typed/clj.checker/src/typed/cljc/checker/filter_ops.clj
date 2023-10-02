@@ -8,6 +8,7 @@
 
 (ns ^:no-doc typed.cljc.checker.filter-ops
   (:require [clojure.set :as set]
+            [typed.clojure :as t]
             [typed.cljc.checker.filter-rep :as fr]
             [typed.cljc.checker.object-rep :as or]
             [typed.cljc.checker.path-rep :as pr]
@@ -15,7 +16,8 @@
             [typed.cljc.checker.type-rep :as r] 
             [typed.cljc.checker.utils :as u])
   (:import (typed.cljc.checker.filter_rep BotFilter TopFilter NoFilter AndFilter 
-                                          OrFilter TypeFilter NotTypeFilter ImpFilter)))
+                                          OrFilter TypeFilter NotTypeFilter ImpFilter
+                                          FilterSet)))
 
 (defn -filter [t i & [p]]
   {:pre [(r/Type? t)
@@ -417,6 +419,7 @@
                       :else
                       (recur (rest fs) (cons t result))))))))))
 
+(t/ann -FS [fr/Filter fr/Filter :-> FilterSet])
 (defn -FS [+ -]
   {:pre [(fr/Filter? +)
          (fr/Filter? -)]

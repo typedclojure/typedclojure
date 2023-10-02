@@ -110,7 +110,6 @@
   :methods
   [p/TCType])
 
-;; FIXME cs-gen error
 (t/ann ^:no-check sorted-type-set [(t/Seqable Type) -> (t/SortedSet Type)])
 (defn sorted-type-set [ts]
   (into (sorted-set-by u/type-comparator) ts))
@@ -123,7 +122,7 @@
 (t/ann empty-union Type)
 (def empty-union (Un))
 
-(t/ann Bottom [-> Type])
+(t/ann Bottom [:-> Type])
 (defn Bottom []
   empty-union)
 
@@ -250,7 +249,7 @@
 (t/ann ^:no-check scoped-Type? (t/Pred (t/U Scope Type)))
 (def scoped-Type? (some-fn Scope? Type?))
 
-(t/ann ^:no-check scope-depth? [Scope Number -> t/Any])
+(t/ann scope-depth? [Scope Number -> t/Any])
 (defn scope-depth? 
   "True if scope is has depth number of scopes nested"
   [scope depth]
@@ -263,8 +262,8 @@
 (u/ann-record RClass [variances :- (t/U nil (t/NonEmptySeqable Variance))
                       poly? :- (t/U nil (t/NonEmptySeqable Type))
                       the-class :- t/Sym
-                      replacements (t/Map t/Sym ScopedType)
-                      unchecked-ancestors (t/SortedSet ScopedType)])
+                      replacements :- (t/Map t/Sym ScopedType)
+                      unchecked-ancestors :- (t/SortedSet ScopedType)])
 (u/def-type RClass [variances poly? the-class replacements unchecked-ancestors]
   "A restricted class, where ancestors are
   (replace replacements (ancestors the-class))"
@@ -288,7 +287,7 @@
   :methods
   [p/TCType])
 
-(t/ann ^:no-check RClass->Class [RClass -> Class])
+(t/ann RClass->Class [RClass -> Class])
 (defn ^Class RClass->Class [rcls]
   {:pre [(RClass? rcls)]}
   (coerce/symbol->Class (:the-class rcls)))
@@ -339,7 +338,7 @@
   :methods
   [p/TCType])
 
-(t/ann ^:no-check DataType->Class [DataType -> Class])
+(t/ann DataType->Class [DataType -> Class])
 (defn ^Class DataType->Class [^DataType dt]
   (coerce/symbol->Class (.the-class dt)))
 
@@ -696,8 +695,7 @@
       (and (= s :list)
            (= t :seq))))
 
-;; FIXME :no-check on these HSequential predicates is due to some strange filter issue
-(t/ann ^:no-check HeterogeneousList? [t/Any :-> t/Bool :filters {:then (is HSequential 0)}])
+(t/ann HeterogeneousList? [t/Any :-> t/Bool :filters {:then (is HSequential 0)}])
 (defn HeterogeneousList? [t]
   (and (HSequential? t)
        (= :list (:kind t))))
@@ -706,7 +704,7 @@
 (defn HeterogeneousList-maker [types]
   (-hsequential types :kind :list))
 
-(t/ann ^:no-check HeterogeneousSeq? [t/Any :-> t/Bool :filters {:then (is HSequential 0)}])
+(t/ann HeterogeneousSeq? [t/Any :-> t/Bool :filters {:then (is HSequential 0)}])
 (defn HeterogeneousSeq? [t]
   (and (HSequential? t)
        (= :seq (:kind t))))
@@ -719,7 +717,7 @@
   [types & opts]
   (apply -hsequential types (concat opts [:kind :seq])))
 
-(t/ann ^:no-check HeterogeneousVector? [t/Any :-> t/Bool :filters {:then (is HSequential 0)}])
+(t/ann HeterogeneousVector? [t/Any :-> t/Bool :filters {:then (is HSequential 0)}])
 (defn HeterogeneousVector? [t]
   (and (HSequential? t)
        (= :vector (:kind t))))
@@ -808,7 +806,7 @@
   :methods
   [p/TCType])
 
-(t/ann ^:no-check -get
+(t/ann -get
        [Type Type & :optional {:not-found (t/U nil Type)
                                :target-fs (t/U nil p/IFilterSet)
                                :target-object (t/U nil p/IRObject)}
@@ -1032,10 +1030,12 @@
   {:pre [(nat-int? c)]}
   (make-CountRange c c))
 
-(t/ann ^:no-check make-FnIntersection [Function :+ -> FnIntersection])
+(t/ann make-FnIntersection [Function :+ -> FnIntersection])
 (defn make-FnIntersection [& fns]
   {:pre [(every? Function? fns)]}
-  (FnIntersection-maker (vec fns)))
+  (let [fns (vec fns)]
+    (assert (seq fns))
+    (FnIntersection-maker fns)))
 
 (u/ann-record NotType [type :- Type])
 (u/def-type NotType [type]
@@ -1108,10 +1108,10 @@
    :post [(Type? %)]}
   (:t r))
 
-(t/ann ^:no-check Result-filter* [Result -> p/IFilter])
+(t/ann ^:no-check Result-filter* [Result -> p/IFilterSet])
 (defn Result-filter* [r]
   {:pre [(Result? r)]
-   :post [(p/IFilter? %)]}
+   :post [(p/IFilterSet? %)]}
   (:fl r))
 
 (t/ann ^:no-check Result-object* [Result -> p/IRObject])
@@ -1139,10 +1139,9 @@
   ;[p/TCAnyType]
   )
 
-(t/ann ^:no-check ret
+(t/ann ret
        (t/IFn [Type -> TCResult]
-              [Type p/IFilterSet -> TCResult]
-              [Type p/IFilterSet p/IRObject -> TCResult]))
+              [Type p/IFilterSet p/IRObject :? -> TCResult]))
 (defn ret
   "Convenience function for returning the type of an expression"
   ([t] 
@@ -1177,7 +1176,7 @@
 ;; Utils
 ;; It seems easier to put these here because of dependencies
 
-(t/ann ^:no-check visit-bounds [Bounds [Type -> Type] -> Bounds])
+(t/ann ^:no-check visit-bounds [Bounds [Type :-> Type] :-> Bounds])
 (defn visit-bounds 
   "Apply f to each element of bounds"
   [ty f]
@@ -1190,11 +1189,9 @@
       ;(update :higher-kind #(some-> % f))
       ))
 
-;;TODO annotate ind ops
-(t/ann ^:no-check make-Result
+(t/ann make-Result
        (t/IFn [Type -> Result]
-              [Type (t/Nilable p/IFilterSet) -> Result]
-              [Type (t/Nilable p/IFilterSet) (t/Nilable p/IRObject) -> Result]))
+              [Type (t/Nilable p/IFilterSet) (t/Nilable p/IRObject) :? -> Result]))
 (defn make-Result
   "Make a result. ie. the range of a Function"
   ([t] (make-Result t nil nil))
