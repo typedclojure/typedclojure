@@ -2555,22 +2555,27 @@
 ;; =====================================================
 ;; Fold defaults
 
+(t/ann return-if-changed (t/All [x] [[f (t/Volatile t/Bool) :-> x] x :-> x]))
+(defn return-if-changed [f default]
+  (let [changed? (volatile! false)
+        res (f changed?)]
+    (if @changed? res default)))
+
 ;; if every element of the result is identical to c, then returns c.
 ;; this works in tandem with the `assoc` implementation of types, which
 ;; avoids reconstructing the types if the updated value is identical.
 (defn into-identical [init f c]
   ;; TODO map support 
   {:pre [((some-fn vector? set?) init)]}
-  (let [changed? (volatile! false)
-        res (into init (map (fn [e]
-                              (let [r (f e)]
-                                (when-not (identical? r e)
-                                  (vreset! changed? true))
-                                r)))
-                  c)]
-    (if @changed?
-      res
-      c)))
+  (return-if-changed
+    (fn [changed?]
+      (into init (map (fn [e]
+                        (let [r (f e)]
+                          (when-not (identical? r e)
+                            (vreset! changed? true))
+                          r)))
+            c))
+    c))
 
 (add-default-fold-case NotType
                        (fn [ty]
@@ -2667,17 +2672,16 @@
                            (update :output-type type-rec))))
 
 (defn visit-args+variances [args variances type-rec]
-  (let [changed? (volatile! false)
-        res (mapv (fn [arg v]
-                    (let [arg' (type-rec arg {:variance v})]
-                      (when-not (identical? arg arg')
-                        (vreset! changed? true))
-                      arg'))
-                  args
-                  variances)]
-    (if changed?
-      res
-      args)))
+  (return-if-changed
+    (fn [changed?]
+      (mapv (fn [arg v]
+              (let [arg' (type-rec arg {:variance v})]
+                (when-not (identical? arg arg')
+                  (vreset! changed? true))
+                arg'))
+            args
+            variances))
+    args))
 
 (defn visit-DataType-or-Protocol-args [{:keys [variances] :as ty} type-rec]
   (-> ty
@@ -2688,16 +2692,16 @@
                          (-> ty
                              (visit-DataType-or-Protocol-args type-rec)
                              (update :fields (fn [fs]
-                                               (let [changed? (volatile! false)
-                                                     flat (mapcat (fn [[k t]]
+                                               (return-if-changed
+                                                 (fn [changed?]
+                                                   (apply array-map
+                                                          (mapcat (fn [[k t]]
                                                                     (let [t' (type-rec t)]
                                                                       (when-not (identical? t t')
                                                                         (vreset! changed? true))
                                                                       [k t']))
-                                                                  fs)]
-                                                 (if @changed?
-                                                   (apply array-map flat)
-                                                   fs)))))))
+                                                                  fs)))
+                                                 fs))))))
 
 (add-default-fold-case Protocol
                        (fn [ty]
@@ -2796,32 +2800,30 @@
                              ty))))
 
 (defn- visit-type-map [m f]
-  (let [changed? (volatile! false)
-        res (reduce-kv (fn [m k v]
-                         (let [k' (f k)
-                               v' (f v)]
-                           (when-not (and (identical? k k')
-                                          (identical? v v'))
-                             (vreset! changed? true))
-                           (assoc m k' v')))
-                       {} m)]
-    (if changed?
-      res
-      m)))
+  (return-if-changed
+    (fn [changed?]
+      (reduce-kv (fn [m k v]
+                   (let [k' (f k)
+                         v' (f v)]
+                     (when-not (and (identical? k k')
+                                    (identical? v v'))
+                       (vreset! changed? true))
+                     (assoc m k' v')))
+                 {} m))
+    m))
 
 (defn- visit-type-paired-vector [v f]
-  (let [changed? (volatile! false)
-        res (mapv (fn [[k v]]
-                    (let [k' (f k)
-                          v' (f v)]
-                      (when-not (and (identical? k k')
-                                     (identical? v v'))
-                        (vreset! changed? true))
-                      [k' v']))
-                  v)]
-    (if changed?
-      res
-      v)))
+  (return-if-changed
+    (fn [changed?]
+      (mapv (fn [[k v]]
+              (let [k' (f k)
+                    v' (f v)]
+                (when-not (and (identical? k k')
+                               (identical? v v'))
+                  (vreset! changed? true))
+                [k' v']))
+            v))
+    v))
 
 (add-default-fold-case HeterogeneousMap
                        (fn [ty]

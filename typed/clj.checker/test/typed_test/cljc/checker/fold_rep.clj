@@ -42,4 +42,13 @@
   (clj (let [t (parse-type `(t/All [t# s# :..] [[t# :-> [t# :-> t#]] '[t#] :-> (t/Vec t#)]))
              {:keys [t' F-count]} (count-F t)]
          (is (= 5 F-count))
-         (is (identical? t t')))))
+         (is (identical? t t'))))
+  (clj (let [t (parse-type `(t/All [t#] ['{:a t#} :-> (t/HMap :mandatory {:a t#} :optional {:b t#})]))
+             {:keys [t' F-count]} (count-F t)]
+         (is (= 3 F-count))
+         (is (identical? t t'))))
+  (clj (let [t (parse-type `(t/All [t#] [:-> ((t/TFn [x] t#) t#)]))
+             {:keys [t' F-count]} (count-F t)]
+         (is (= 2 F-count))
+         (is (identical? t t'))))
+  )
