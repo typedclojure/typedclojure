@@ -1888,7 +1888,9 @@
   IAbstractMany abstract-many*
   Function
   (fn [{:keys [dom rng rest drest kws prest pdot regex] :as ty} name count outer sb name-to]
-    {:pre [(#{:fixed :rest :drest :kws :prest :pdot :regex} (:kind ty))]}
+    {:pre [(case (:kind ty)
+             (:fixed :rest :drest :kws :prest :pdot :regex) true
+             false)]}
     (r/make-Function (mapv sb dom)
                      (sb rng)
                      :rest (some-> rest sb)
@@ -2041,7 +2043,9 @@
   IInstantiateMany instantiate-many*
   Function
   (fn [{:keys [dom rng rest drest kws prest pdot kind regex]} count outer image sb replace]
-    {:pre [(#{:fixed :rest :drest :kws :prest :pdot :regex} kind)]}
+    {:pre [(case kind
+             (:fixed :rest :drest :kws :prest :pdot :regex) true
+             false)]}
     (r/make-Function
       (map sb dom)
       (sb rng)
@@ -2614,7 +2618,9 @@
 
 (add-default-fold-case Function
                        (fn [ty]
-                         {:pre [(#{:fixed :rest :drest :prest :pdot :kws :regex} (:kind ty))]}
+                         {:pre [(case (:kind ty)
+                                  (:fixed :rest :drest :prest :pdot :kws :regex) true
+                                  false)]}
                          ;(prn "fold Function" ty)
                          (-> ty
                            (update :dom #(into-identical [] type-rec %))
