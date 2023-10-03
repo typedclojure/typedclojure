@@ -4476,7 +4476,15 @@
   #_;;FIXME
   (is-tc-err #(assoc (t/ann-form (sorted-map 1 2) (t/Map t/Int t/Int)) :a 1))
   #_;;FIXME
+  (is-tc-err #(get (t/ann-form (sorted-map 1 2) (t/Map t/Int t/Int)) :a))
+  #_;;FIXME
   (is-tc-err #(conj (t/ann-form (sorted-set 1) (t/Set t/Int)) :a))
+  #_;;FIXME
+  (is-tc-err #(get (sorted-set 1) :a))
+  #_;;FIXME
+  (is-tc-err #(get (sorted-set 1) :a nil))
+  #_;;FIXME
+  (is-tc-err #(get (t/ann-form (sorted-set 1) (t/Set t/Int)) :a))
 )
 
 (deftest comparable-test
