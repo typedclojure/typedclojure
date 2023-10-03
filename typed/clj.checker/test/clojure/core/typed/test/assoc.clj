@@ -163,14 +163,58 @@
                :- (t/Map ':b '1)
                (assoc m :a 1))))
 
+;CTYP-61
+(deftest hmap-assoc-test
+  (is-tc-e (assoc (ann-form {} (t/HMap :optional {:a t/Any})) 
+                  :b "v")
+           (t/HMap :mandatory {:b (t/Value "v")} 
+                 :optional {:a t/Any}))
+  (is-tc-e (assoc (ann-form {} (t/HMap :optional {:a t/Any})) 
+                  :a "v")
+           (t/HMap :mandatory {:a (t/Value "v")})))
+
 (deftest dissoc-test
+  ; complete dissocs
+  (equal-types (dissoc {} :a)
+               (HMap :mandatory {} :complete? true))
+  
+  (equal-types (dissoc {:a 6} :a)
+               (HMap :mandatory {} :complete? true))
+  
+  (equal-types (dissoc {:a 6 :b 7} :a)
+               (HMap :mandatory {:b '7} :complete? true))
+  
+  (equal-types (dissoc {:a 6 :b 7} :a :b)
+               (HMap :mandatory {} :complete? true))
+  
+  (equal-types (dissoc {:a 6 :b 7 :c 8} :a :b)
+               (HMap :mandatory {:c (Value 8)} :complete? true))
+  
+  ; incomplete dissocs
+  (equal-types (dissoc (clojure.core.typed/ann-form {} (t/HMap)) :a)
+               (HMap :absent-keys #{:a}))
+  
+  (equal-types (dissoc (clojure.core.typed/ann-form {} (t/HMap :optional {:a String})) :a)
+               (HMap :absent-keys #{:a}))
+  
+  (equal-types (dissoc (clojure.core.typed/ann-form {} (t/HMap :optional {:a String})) :b)
+               (HMap :optional {:a String} :absent-keys #{:b}))
+  
+  (equal-types (dissoc (clojure.core.typed/ann-form {:b 7} (t/HMap :mandatory {:b '7} :optional {:a String})) :a)
+               (HMap :mandatory {:b (Value 7)} :absent-keys #{:a}))
+  
+  (equal-types (dissoc (clojure.core.typed/ann-form {:b 7} (t/HMap :optional {:a String :c String})) :a :b)
+               (HMap :optional {:c String} :absent-keys #{:a :b}))
+
   (is-tc-e (dissoc {:a 1} :a) (t/HMap :complete? true))
   (is-tc-e (dissoc {:a 1} :b) (t/HMap :mandatory {:a '1} :complete? true))
   (is-tc-e (fn [k :- t/Kw] :- (t/HMap :optional {:a '1} :complete? true) (dissoc {:a 1} k)))
   (is-tc-err (fn [k :- t/Kw] :- (t/HMap :mandatory {:a '1} :complete? true) (dissoc {:a 1} k)))
   (is-tc-err (fn [k :- t/Any] :- (t/CountRange 1)
                (dissoc {:a 1} k)))
-  (is-tc-e (fn [k :- t/Any] :- (t/CountRange 1)
+  (is-tc-e (fn [k :- t/Any] :- (t/CountRange 0 1)
              (dissoc {:a 1} k)))
+  (is-tc-err (fn [k :- t/Any] :- (t/CountRange 1 1)
+               (dissoc {:a 1} k)))
   (is-tc-e (fn [m :- (t/Nilable '{:a '1})] :- (t/Nilable (t/HMap :absent-keys #{:a}))
              (dissoc m :a))))
