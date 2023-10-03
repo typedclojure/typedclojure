@@ -18,3 +18,4 @@
   - only 1 argument is allowed, now 2 args is type error
   - upcast to t/Vec when argument is not a specific integer, previously type error
 - fix parsing of `t/Get` optional 3rd argument (default type)
+- fix return of assoc/dissoc on unknown keys

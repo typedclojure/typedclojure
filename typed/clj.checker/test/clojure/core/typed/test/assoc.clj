@@ -161,5 +161,16 @@
                (assoc m :a 1)))
   (is-tc-err (fn [m :- (t/Map t/Nothing t/Nothing)]
                :- (t/Map ':b '1)
-               (assoc m :a 1)))
-  )
+               (assoc m :a 1))))
+
+(deftest dissoc-test
+  (is-tc-e (dissoc {:a 1} :a) (t/HMap :complete? true))
+  (is-tc-e (dissoc {:a 1} :b) (t/HMap :mandatory {:a '1} :complete? true))
+  (is-tc-e (fn [k :- t/Kw] :- (t/HMap :optional {:a '1} :complete? true) (dissoc {:a 1} k)))
+  (is-tc-err (fn [k :- t/Kw] :- (t/HMap :mandatory {:a '1} :complete? true) (dissoc {:a 1} k)))
+  (is-tc-err (fn [k :- t/Any] :- (t/CountRange 1)
+               (dissoc {:a 1} k)))
+  (is-tc-e (fn [k :- t/Any] :- (t/CountRange 1)
+             (dissoc {:a 1} k)))
+  (is-tc-e (fn [m :- (t/Nilable '{:a '1})] :- (t/Nilable (t/HMap :absent-keys #{:a}))
+             (dissoc m :a))))

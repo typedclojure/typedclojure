@@ -1372,7 +1372,8 @@
 
 (defmethod -invoke-special 'clojure.core/dissoc
   [{fexpr :fn :keys [args] :as expr} expected]
-  {:post [(-> % u/expr-type r/TCResult?)]}
+  {:post [(or (nil? %)
+              (-> % u/expr-type r/TCResult?))]}
   (let [_ (when-not (seq args)
             (err/int-error (str "dissoc takes at least one argument, given: " (count args))))
         ;FIXME possible repeated type checking

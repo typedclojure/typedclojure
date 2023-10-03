@@ -167,20 +167,21 @@
         (ind/subtype? t r/-nil)
         t
 
-        (and (r/HeterogeneousMap? t) (c/keyword-value? rtype))
-        (c/make-HMap
-          :mandatory
-          (dissoc (:types t) rtype)
-          :optional
-          (dissoc (:optional t) rtype)
-          :absent-keys
-          (conj (:absent-keys t) rtype)
-          :complete? (c/complete-hmap? t))
-
-        (ind/subtype? t (impl/impl-case
-                          :clojure (c/RClass-of IPersistentMap [r/-any r/-any])
-                          :cljs (c/-name 'typed.clojure/Map r/-any r/-any)))
-        t))))
+        (r/HeterogeneousMap? t)
+        (if (c/keyword-value? rtype)
+          (c/make-HMap
+            :mandatory
+            (dissoc (:types t) rtype)
+            :optional
+            (dissoc (:optional t) rtype)
+            :absent-keys
+            (conj (:absent-keys t) rtype)
+            :complete? (c/complete-hmap? t))
+          (c/make-HMap
+            :optional
+            (into (:types t) (:optional t))
+            :absent-keys (:absent-keys t)
+            :complete? (c/complete-hmap? t)))))))
 
 (defn dissoc-keys [t ks]
   {:post [((some-fn nil? r/Type?) %)]}
