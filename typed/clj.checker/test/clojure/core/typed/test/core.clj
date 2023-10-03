@@ -4473,6 +4473,10 @@
   (is-tc-e (subseq (sorted-set 1 2) = 0) (t/Seqable t/Int))
   (is-tc-err (subseq (sorted-set 1 2) = 0) (t/Seqable t/Bool))
   (is-tc-err (subseq (sorted-set 1 2) (fn [_ _]) 0))
+  #_;;FIXME
+  (is-tc-err #(assoc (t/ann-form (sorted-map 1 2) (t/Map t/Int t/Int)) :a 1))
+  #_;;FIXME
+  (is-tc-err #(conj (t/ann-form (sorted-set 1) (t/Set t/Int)) :a))
 )
 
 (deftest comparable-test
