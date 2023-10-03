@@ -118,11 +118,12 @@
   ([mandatory optional absent-keys complete?] (upcast-hmap* mandatory optional absent-keys complete? nil))
   ([mandatory optional absent-keys complete?
     {:keys [visit-ks-type
-            visit-vs-type]
+            visit-vs-type
+            elide-upper-count]
      :or {visit-ks-type identity
           visit-vs-type identity}
      :as opts}]
-   {:pre [(-> opts keys set (disj :visit-ks-type :visit-vs-type) empty?)]}
+   {:pre [(-> opts keys set (disj :visit-ks-type :visit-vs-type :elide-upper-count) empty?)]}
    (let [upcast-ctor (fn [ks vs]
                        (let [ks (visit-ks-type ks)
                              vs (visit-vs-type vs)]
@@ -138,8 +139,9 @@
              (count mandatory)
              ; assume all optional entries are present
              #_:upper
-             (+ (count mandatory)
-                (count optional))))
+             (when-not elide-upper-count
+               (+ (count mandatory)
+                  (count optional)))))
        (In (upcast-ctor r/-any r/-any)
            (r/make-CountRange 
              ; assume all optional entries are absent
@@ -256,7 +258,7 @@
 (defn upcast-HSequential
   ([hsequential] (upcast-HSequential hsequential nil))
   ([{:keys [types rest drest kind] :as hsequential}
-    {:keys [visit-elem-type] :or {visit-elem-type identity}}]
+    {:keys [visit-elem-type elide-count] :or {visit-elem-type identity}}]
    {:pre [(r/HSequential? hsequential)]
     :post [(r/Type? %)]}
    ;; Note: make-Union and make-Intersection used to be Un and In,
@@ -284,10 +286,11 @@
                     :list (-name 'typed.clojure/List tp)
                     :sequential (In (-name 'typed.clojure/Coll tp)
                                     (-name 'cljs.core/ISequential))))]
-         (not drest) (conj (r/make-CountRange
-                             (count types)
-                             (when-not rest
-                               (count types)))))))))
+         (and (not drest)
+              (not elide-count)) (conj (r/make-CountRange
+                                         (count types)
+                                         (when-not rest
+                                           (count types)))))))))
 
 (defn upcast-kw-args-seq [{kws :kw-args-regex
                            :as kwseq}]

@@ -94,14 +94,16 @@
        (c/make-HMap
          :mandatory (-> (:types hmap)
                         (assoc rkt (:t vt)))
-         :optional (:optional hmap)
+         :optional (-> (:optional hmap)
+                       (dissoc (:t vt)))
          :absent-keys (-> (:absent-keys hmap) 
                           (disj rkt))
          :complete? (c/complete-hmap? hmap))
        (if (r/F? rkt)
          (r/AssocType-maker hmap [[rkt (r/ret-t vt)]] nil)
          (c/upcast-hmap hmap {:visit-ks-type #(c/Un rkt %)
-                              :visit-vs-type #(c/Un (r/ret-t vt) %)})))))
+                              :visit-vs-type #(c/Un (r/ret-t vt) %)
+                              :elide-upper-count true})))))
   
   HSequential
   (-assoc-pair
@@ -118,7 +120,8 @@
                         :objects (assoc (:objects v) k (:o vt)))))
            (if (r/F? rkt)
              (r/AssocType-maker v [[rkt (r/ret-t vt)]] nil)
-             (c/upcast-HSequential v {:visit-elem-type #(c/Un % (r/ret-t vt))})))))))
+             (c/upcast-HSequential v {:visit-elem-type #(c/Un % (r/ret-t vt))
+                                      :elide-count true})))))))
   
   DataType
   (-assoc-pair
