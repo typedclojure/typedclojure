@@ -112,8 +112,9 @@
                 HMap (parse-HMap m)
                 Vec (-class :vector
                             [(parse-type (second m))])
-                (Seqable clojure.lang.Seqable) (-class :seqable
-                                                       [(parse-type (second m))])
+                ;; note: clojure.lang.Seqable's type parameter is now a Seq
+                (Seqable) (-class :seqable
+                                  [(parse-type (second m))])
                 (PersistentHashSet clojure.lang.PersistentHashSet
                                    IPersistentSet
                                    clojure.lang.IPersistentSet)
@@ -121,6 +122,7 @@
                 (typed.clojure/Map clojure.core.typed/Map
                   IPersistentMap
                   clojure.lang.IPersistentMap) (let [[_ k v] m]
+                                                 (assert (= 3 (count m)))
                                                  (-class :map
                                                          [(parse-type k)
                                                           (parse-type v)]))

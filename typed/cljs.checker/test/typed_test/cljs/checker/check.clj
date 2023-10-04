@@ -123,7 +123,7 @@
   ; code from David Nolen's blog
   ;FIXME
   #_(is-tc-e
-    (defn ^{:ann '[(t/U nil (ISeqable t/Any)) t/Any -> cljs.core.typed/CLJSInteger]}
+    (defn ^{:ann '[(t/Seqable t/Any) t/Any -> cljs.core.typed/CLJSInteger]}
       index-of [xs x]
       (let [len (count xs)]
         (t/loop

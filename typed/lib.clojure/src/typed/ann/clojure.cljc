@@ -379,8 +379,8 @@
   t/Seqable
   (t/TFn [[x :variance :covariant]]
          (t/Nilable
-           #?(:clj (clojure.lang.Seqable x)
-              :cljs (cljs.core/ISeqable x)))))
+           #?(:clj (clojure.lang.Seqable (t/NilableNonEmptySeq x))
+              :cljs (cljs.core/ISeqable (t/NilableNonEmptySeq x))))))
 
 (t/defalias
   t/Counted
@@ -558,7 +558,7 @@
                        cljs.core/IEmptyableCollection
                        cljs.core/IEquiv
                        cljs.core/IHash
-                       (cljs.core/ISeqable x)
+                       (t/Seqable x)
                        cljs.core/ICounted
                        (cljs.core/ILookup x)
                        cljs.core/ISet
@@ -618,7 +618,7 @@
             :cljs (t/I (cljs.core/ISeq x)
                        cljs.core/IWithMeta
                        cljs.core/IMeta
-                       (cljs.core/ISeqable x)
+                       (t/Seqable x)
                        (cljs.core/IIterable x)
                        ;(cljs.core/INext x)
                        cljs.core/ICollection
@@ -2381,7 +2381,7 @@ cc/chunk-first
 cc/chunk-rest
      (t/All [x]
           ;should be IChunkRest :-> t/Seq
-          [(clojure.lang.Seqable x) :-> (t/ASeq x)])
+          [(t/Seqable x) :-> (t/ASeq x)])
 cc/chunk-buffer
      (t/All [x]
           [(t/U Integer Long) :-> (clojure.lang.ChunkBuffer x)])

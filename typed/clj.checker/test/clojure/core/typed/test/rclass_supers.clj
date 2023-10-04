@@ -7,7 +7,7 @@
             [typed.cljc.checker.type-ctors :refer :all]
             [typed.clj.checker.parse-unparse :refer [unparse-type]]
             [clojure.set :as set])
-  (:import (clojure.lang Seqable IPersistentVector IPersistentCollection
+  (:import (clojure.lang IPersistentVector IPersistentCollection
                          Indexed IPersistentMap APersistentVector PersistentVector APersistentMap PersistentHashMap
                          PersistentHashSet PersistentTreeSet IPersistentSet APersistentSet
                          IPersistentList PersistentList ISeq ASeq IPersistentCollection Associative
@@ -18,7 +18,7 @@
   (is-clj 
     (let [num (RClass-of Number)
           nnum (Un num -nil)]
-        (doseq [[t r] {(RClass-of Seqable [num]) (Un -nil num)
+        (doseq [[t r] {(-name `t/Seqable num) (Un -nil num)
                        (RClass-of IPersistentVector [num]) (Un -nil num)
                        (RClass-of APersistentVector [num]) (Un -nil num)
                        (RClass-of PersistentVector [num]) (Un -nil num)

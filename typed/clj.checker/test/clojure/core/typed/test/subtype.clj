@@ -8,32 +8,34 @@
   (:import (clojure.lang Seqable)))
 
 (deftest subtype-test
+  (is-tc-e :load)
   (is-clj (sub? Integer Integer))
   (is-clj (sub? Integer Object))
   (is-clj (not (sub? Object Integer)))
   (is-clj (sub? Object Object))
   (is-clj (sub? Integer Number))
-  (is-clj (sub? (clojure.lang.Seqable Integer)
-                (clojure.lang.Seqable Integer)))
-  (is-clj (sub? (clojure.lang.Seqable Integer)
-                (clojure.lang.Seqable Number)))
+  (is-clj (sub? (typed.clojure/Seqable Integer)
+                (typed.clojure/Seqable Integer)))
+  (is-clj (sub? (typed.clojure/Seqable Integer)
+                (typed.clojure/Seqable Number)))
   (is-clj (not
-            (sub? (clojure.lang.Seqable Number)
-                  (clojure.lang.Seqable Integer))))
+            (sub? (typed.clojure/Seqable Number)
+                  (typed.clojure/Seqable Integer))))
   (is-clj (sub? (clojure.lang.Cons Integer)
                 (clojure.lang.Cons Number)))
   (is-clj (sub? (clojure.lang.Cons Integer)
-                (clojure.lang.Seqable Number))))
+                (typed.clojure/Seqable Number))))
 
 (deftest subtype-java-exceptions-test
+  (is-tc-e :load)
   (is-clj (subtype? (RClass-of IndexOutOfBoundsException nil)
                     (RClass-of Exception nil))))
 
 ;TODO uncomment
 ; See CTYP-150
 #_(deftest subtype-intersection
-  (is-clj (not (subtype? (RClass-of Seqable [-any])
-                         (In (RClass-of Seqable [-any])
+  (is-clj (not (subtype? (-name `t/Seqable -any)
+                         (In (-name `t/Seqable -any)
                              (make-CountRange 1)))))
   (is-clj (sub?-q `(t/NonEmptyASeq t/Num)
                   `(t/NonEmptySeq t/Num)))
@@ -41,9 +43,11 @@
                   `(t/NonEmptySeq t/Num))))
 
 (deftest subtype-Object
+  (is-tc-e :load)
   (is-clj (subtype? (RClass-of clojure.lang.IPersistentList [-any]) (RClass-of Object nil))))
 
 (deftest subtype-hmap
+  (is-tc-e :load)
   (is (sub?-q `(t/HMap :mandatory {:a '1} :complete? true)
               `(t/HMap :mandatory {:a Number} :complete? true)))
   (is (sub?-q `(t/HMap :mandatory {:a '1} :complete? true)
@@ -59,7 +63,7 @@
 
 (deftest subtype-poly
   (is-clj (sub?-q `(t/All [x#] (clojure.lang.ASeq x#))
-                  `(t/All [y#] (clojure.lang.Seqable y#)))))
+                  `(t/All [y#] (t/Seqable y#)))))
 
 (deftest subtype-rec
   (is-clj (sub?-q `t/Int
@@ -101,11 +105,12 @@
                     (make-CountRange 1))))
 
 (deftest array-subtype-test
+  (is-tc-e :load)
   (is-clj (sub? (Array int) (Array int)))
   (is-clj (sub? (Array int) (ReadOnlyArray int)))
-  (is-clj (sub? (Array Long) (clojure.lang.Seqable Long)))
+  (is-clj (sub? (Array Long) (typed.clojure/Seqable Long)))
   ;FIXME
-  ;(is-clj (not (sub? (Array Object) (clojure.lang.Seqable Long))))
+  ;(is-clj (not (sub? (Array Object) (typed.clojure/Seqable Long))))
   (is-clj (not (sub? (ReadOnlyArray int) (Array int)))))
 
 (deftest top-function-subtype-test

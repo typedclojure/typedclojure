@@ -33,17 +33,17 @@ Comparable [[[a :variance :invariant]]]
 ;                      :replace
 ;                      {Comparable (Comparable a)}]
 
-Seqable [[[a :variance :covariant]]]
+Seqable [[[a :variance :covariant :< (t/NilableNonEmptySeq t/Any)]]]
 
 Reversible [[[a :variance :covariant]]]
 
 IPersistentCollection [[[a :variance :covariant]]
                        :replace
-                       {Seqable (Seqable a)}]
+                       {Seqable (Seqable (t/NilableNonEmptySeq a))}]
 
 ISeq [[[a :variance :covariant]]
       :replace
-      {Seqable (Seqable a)
+      {Seqable (Seqable (t/NilableNonEmptySeq a))
        IPersistentCollection (IPersistentCollection a)}]
 
 ;TODO 
@@ -76,7 +76,7 @@ clojure.lang.ChunkBuffer [[[a :variance :invariant]]]
 
 clojure.lang.IChunkedSeq [[[a :variance :covariant]]
                           :replace
-                          {Seqable (Seqable a)
+                          {Seqable (Seqable (t/NilableNonEmptySeq a))
                            IPersistentCollection (IPersistentCollection a)
                            ISeq (ISeq a)}]
 
@@ -92,13 +92,13 @@ ILookup [[[a :variance :covariant]
 IPersistentSet [[[a :variance :covariant]]
                 :replace
                 {IPersistentCollection (IPersistentCollection a)
-                 Seqable (Seqable a)}
+                 Seqable (Seqable (t/NilableNonEmptySeq a))}
                 :unchecked-ancestors
                 [[t/Any -> (t/U a nil)]]] ;; not a real ancestor
 
 APersistentSet [[[a :variance :covariant]]
                 :replace
-                {Seqable (Seqable a)
+                {Seqable (Seqable (t/NilableNonEmptySeq a))
                  java.util.Set (java.util.Set a)
                  Collection (Collection a)
                  Iterable (Iterable a)
@@ -109,7 +109,7 @@ APersistentSet [[[a :variance :covariant]]
 
 PersistentHashSet [[[a :variance :covariant]]
                    :replace
-                   {Seqable (Seqable a)
+                   {Seqable (Seqable (t/NilableNonEmptySeq a))
                     java.util.Set (java.util.Set a)
                     Iterable (Iterable a)
                     Collection (Collection a)
@@ -121,7 +121,7 @@ PersistentHashSet [[[a :variance :covariant]]
 
 PersistentTreeSet [[[a :variance :invariant]]
                    :replace
-                   {Seqable (Seqable a)
+                   {Seqable (Seqable (t/NilableNonEmptySeq a))
                     java.util.Set (java.util.Set a)
                     Iterable (Iterable a)
                     Collection (Collection a)
@@ -137,7 +137,7 @@ Associative [[[k :variance :covariant]
               [v :variance :covariant]]
              :replace
              {IPersistentCollection (IPersistentCollection t/Any)
-              Seqable (Seqable t/Any)
+              Seqable (Seqable (t/NilableNonEmptySeq t/Any))
               ILookup (ILookup k v)}]
 
 ;ITransientCollection [[[w :variance :contravariant]
@@ -189,14 +189,14 @@ Associative [[[k :variance :covariant]
 IPersistentStack [[[a :variance :covariant]]
                   :replace
                   {IPersistentCollection (IPersistentCollection a)
-                   Seqable (Seqable a)}]
+                   Seqable (Seqable (t/NilableNonEmptySeq a))}]
 
 
 ;define vectors before maps, as HVector is part of map ancestors
 IPersistentVector [[[a :variance :covariant]]
                    :replace
                    {IPersistentCollection (IPersistentCollection a)
-                    Seqable (Seqable a)
+                    Seqable (Seqable (t/NilableNonEmptySeq a))
                     Reversible (Reversible a)
                     IPersistentStack (IPersistentStack a)
                     ILookup (ILookup Number a)
@@ -208,7 +208,7 @@ IPersistentVector [[[a :variance :covariant]]
 APersistentVector [[[a :variance :covariant]]
                    :replace
                    {IPersistentCollection (IPersistentCollection a)
-                    Seqable (Seqable a)
+                    Seqable (Seqable (t/NilableNonEmptySeq a))
                     Iterable (Iterable a)
                     Collection (Collection a)
                     java.util.List (java.util.List a)
@@ -231,7 +231,7 @@ PersistentVector [[[a :variance :covariant]]
                    Collection (Collection a)
                    java.util.List (java.util.List a)
                    RandomAccess (RandomAccess a)
-                   Seqable (Seqable a)
+                   Seqable (Seqable (t/NilableNonEmptySeq a))
                    IPersistentVector (IPersistentVector a)
                    Reversible (Reversible a)
                    IPersistentStack (IPersistentStack a)
@@ -257,7 +257,7 @@ clojure.lang.AMapEntry
                                     (t/U a b))
             java.util.List (java.util.List (t/U a b))
             Collection (Collection (t/U a b))
-            Seqable (Seqable (t/U a b))
+            Seqable (Seqable (t/NilableNonEmptySeq (t/U a b)))
             IPersistentVector (IPersistentVector (t/U a b))
             Reversible (Reversible (t/U a b))
             IPersistentStack (IPersistentStack (t/U a b))
@@ -281,7 +281,7 @@ clojure.lang.MapEntry
             Collection (Collection (t/U a b))
             AMapEntry (AMapEntry a b)
             IPersistentCollection (IPersistentCollection (t/U a b))
-            Seqable (Seqable (t/U a b))
+            Seqable (Seqable (t/NilableNonEmptySeq (t/U a b)))
             IPersistentVector (IPersistentVector (t/U a b))
             Reversible (Reversible (t/U a b))
             IPersistentStack (IPersistentStack (t/U a b))
@@ -299,7 +299,7 @@ IPersistentMap [[[a :variance :covariant]
                 :replace
                 {IPersistentCollection (IPersistentCollection (AMapEntry a b))
                  Iterable (Iterable (AMapEntry a b))
-                 Seqable (Seqable (AMapEntry a b))
+                 Seqable (Seqable (t/NilableNonEmptySeq (AMapEntry a b)))
                  ILookup (ILookup a b)
                  Associative (Associative a b)}]
 
@@ -309,7 +309,7 @@ clojure.lang.ASeq [[[a :variance :covariant]]
        Iterable (Iterable a)
        Collection (Collection a)
        java.util.List (Collection a)
-       Seqable (Seqable a)
+       Seqable (Seqable (t/NilableNonEmptySeq a))
        ISeq (ISeq a)
        }]
 
@@ -319,7 +319,7 @@ APersistentMap [[[a :variance :covariant]
                 {IPersistentCollection (IPersistentCollection (AMapEntry a b))
                  Iterable (Iterable (AMapEntry a b))
                  IPersistentMap (IPersistentMap a b)
-                 Seqable (Seqable (AMapEntry a b))
+                 Seqable (Seqable (t/NilableNonEmptySeq (AMapEntry a b)))
                  ILookup (ILookup a b)
                  Associative (Associative a b)}
                 :unchecked-ancestors
@@ -334,7 +334,7 @@ PersistentTreeMap [[[a :variance :invariant]
                     Iterable (Iterable (AMapEntry a b))
                     IPersistentMap (IPersistentMap a b)
                     APersistentMap (APersistentMap a b)
-                    Seqable (Seqable (AMapEntry a b))
+                    Seqable (Seqable (t/NilableNonEmptySeq (AMapEntry a b)))
                     ILookup (ILookup a b)
                     Associative (Associative a b)
                     Reversible (Reversible (AMapEntry a b))
@@ -352,7 +352,7 @@ PersistentHashMap [[[a :variance :covariant]
                     Iterable (Iterable (AMapEntry a b))
                     IPersistentMap (IPersistentMap a b)
                     APersistentMap (APersistentMap a b)
-                    Seqable (Seqable (AMapEntry a b))
+                    Seqable (Seqable (t/NilableNonEmptySeq (AMapEntry a b)))
                     ILookup (ILookup a b)
                     Associative (Associative a b)
                     #_IEditableCollection #_(IEditableCollection (ITransientMap a b a b))}
@@ -368,14 +368,14 @@ Cons [[[a :variance :covariant]]
        Collection (Collection a)
        java.util.List (java.util.List a)
        clojure.lang.ASeq (clojure.lang.ASeq a)
-       Seqable (Seqable a)
+       Seqable (Seqable (t/NilableNonEmptySeq a))
        ISeq (ISeq a)
        }]
 
 IPersistentList [[[a :variance :covariant]]
                  :replace
                  {IPersistentCollection (IPersistentCollection a)
-                  Seqable (Seqable a)
+                  Seqable (Seqable (t/NilableNonEmptySeq a))
                   IPersistentStack (IPersistentStack a)}]
 
 PersistentList [[[a :variance :covariant]]
@@ -385,7 +385,7 @@ PersistentList [[[a :variance :covariant]]
                  Collection (Collection a)
                  java.util.List (java.util.List a)
                  clojure.lang.ASeq (clojure.lang.ASeq a)
-                 Seqable (Seqable a)
+                 Seqable (Seqable (t/NilableNonEmptySeq a))
                  IPersistentList (IPersistentList a)
                  ISeq (ISeq a)
                  IPersistentStack (IPersistentStack a)
@@ -464,7 +464,7 @@ clojure.lang.Volatile
 
 LazySeq [[[a :variance :covariant]]
          :replace
-         {Seqable (Seqable a)
+         {Seqable (Seqable (t/NilableNonEmptySeq a))
           Collection (Collection a)
           java.util.List (java.util.List a)
           Iterable (Iterable a)
@@ -522,7 +522,7 @@ MultiFn [[[f :variance :covariant :> EveryIFn :< AnyIFn]
 
 java.lang.CharSequence [[]
                         :unchecked-ancestors
-                        [(Seqable Character)
+                        [(Seqable (t/NilableNonEmptySeq Character))
                          (Indexed Character)]]
 
 ;FIXME Need to correctly check ancestors, this shouldn't be necessary because String is a CharSequence
@@ -531,7 +531,7 @@ java.lang.String [[]
                   :replace
                   {Comparable (Comparable String)}
                   :unchecked-ancestors
-                  [(Seqable Character)
+                  [(Seqable (t/NilableNonEmptySeq Character))
                    (Indexed Character)]]
 
 java.nio.CharBuffer [[]
@@ -540,7 +540,7 @@ java.nio.CharBuffer [[]
 
 java.lang.Iterable [[[a :variance :covariant]]
                     :unchecked-ancestors
-                    [(Seqable a)]]
+                    [(Seqable (t/NilableNonEmptySeq a))]]
 
 ;; the following Java collections should really have :invariant type params.
 ;; Scala deals with this via implicit conversions from their own
@@ -553,7 +553,7 @@ java.util.Set [[[a :variance :covariant]]
                {Iterable (Iterable a)
                 Collection (Collection a)}
                :unchecked-ancestors
-               [(Seqable a)]]
+               [(Seqable (t/NilableNonEmptySeq a))]]
 
 
 java.util.List [[[a :variance :covariant]]
@@ -561,13 +561,13 @@ java.util.List [[[a :variance :covariant]]
                 {Iterable (Iterable a)
                  Collection (Collection a)}
                 :unchecked-ancestors
-                [(Seqable a)]]
+                [(Seqable (t/NilableNonEmptySeq a))]]
 
 java.util.Collection [[[a :variance :covariant]]
                       :replace
                       {Iterable (Iterable a)}
                       :unchecked-ancestors
-                      [(Seqable a)]]
+                      [(Seqable (t/NilableNonEmptySeq a))]]
 
 java.lang.ref.Reference [[[a :variance :invariant]]]
 java.lang.ref.SoftReference [[[a :variance :invariant]]

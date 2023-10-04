@@ -116,7 +116,7 @@
             [typed.cljc.checker.update :as update]
             [typed.cljc.checker.utils :as u]
             [typed.cljc.checker.var-env :as var-env])
-  (:import (clojure.lang IPersistentMap Seqable Var)))
+  (:import (clojure.lang IPersistentMap Var)))
 
 (t/ann ^:no-check typed.clj.checker.parse-unparse/*unparse-type-in-ns* (t/U nil t/Sym))
 (t/ann ^:no-check clojure.core.typed.util-vars/*already-checked* (t/U nil (t/Atom1 (t/Set t/Sym))))
@@ -641,7 +641,7 @@
                 c)
         cljt (binding [prs/*parse-type-in-ns* (cu/expr-ns expr)]
                (prs/parse-type (ast-u/quote-expr-val cljt-syn)))
-        ccoll (check-expr coll-expr (r/ret (c/Un r/-nil (c/RClass-of Seqable [cljt]))))]
+        ccoll (check-expr coll-expr (r/ret (c/Un r/-nil (c/-name `t/Seqable cljt))))]
     (-> expr
         ; into-array>* is internal, don't check it
         #_(update :fn check-expr)

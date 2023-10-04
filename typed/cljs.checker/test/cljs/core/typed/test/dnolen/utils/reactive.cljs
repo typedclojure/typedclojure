@@ -7,7 +7,8 @@
             [cljs.core.typed.test.dnolen.utils.helpers :refer [index-of]]
             [cljs.core.typed.test.dnolen.utils.dom :as dom]
             [cljs.core.typed.async :refer [Chan]])
-  (:require-macros [cljs.core.async.macros :refer [alt!]]
+  (:require-macros [typed.clojure :as t]
+                   [cljs.core.async.macros :refer [alt!]]
                    [cljs.core.typed.async :refer [chan> go>]]
                    [cljs.core.typed :refer [defalias typed-deps ann]])
   (:import goog.events.EventType))
@@ -91,7 +92,7 @@
             (close! out))))
     out))
 
-(ann fan-in (All [x] [(U nil (ISeqable (Chan x))) -> (Chan x)]))
+(ann fan-in (All [x] [(t/Seqable (Chan x)) -> (Chan x)]))
 (defn fan-in [ins]
   (let [out (chan> x)]
     (go> x

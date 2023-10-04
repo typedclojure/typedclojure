@@ -10,7 +10,7 @@
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.update :as update :refer [env+ update-with-filter]])
-  (:import [clojure.lang IPersistentMap Seqable]))
+  (:import [clojure.lang IPersistentMap]))
 
 (defmacro with-validator [v & body]
   `(let [v# (volatile! true)
@@ -114,7 +114,7 @@
   (is-clj (both-subtype? 
             (update-with-filter
               (c/RClass-of IPersistentMap [r/-any r/-any])
-              (fo/-filter (c/RClass-of Seqable [(c/RClass-of Number)])
+              (fo/-filter (c/-name `t/Seqable (c/RClass-of Number))
                        'a [(pr/KeysPE-maker)]))
             (c/RClass-of IPersistentMap [(c/RClass-of Number) r/-any])))
   ; test with = instead of subtype to catch erroneous downcast to (IPersistentMap clojure.core.typed/Nothing clojure.core.typed/Any)

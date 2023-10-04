@@ -711,7 +711,7 @@
   (is
     (let [t (prs
               [(U ':foo
-                  (clojure.lang.Seqable String))
+                  (Seqable String))
                :->
                Any])]
       (anns-from-tenv {'config-in t})))
@@ -720,7 +720,7 @@
   (is
     (let [t (prs
               [(U Sym
-                  (clojure.lang.Seqable String))
+                  (Seqable String))
                :->
                Any])]
       (anns-from-tenv {'config-in t})))
@@ -729,7 +729,7 @@
   (is
     (let [t (prs
               [(U nil
-                  (clojure.lang.Seqable String))
+                  (Seqable String))
                :->
                Any])]
       (anns-from-tenv {'config-in t})))

@@ -1,5 +1,5 @@
 (ns clojure.core.typed.test.conduit
-  (:import (clojure.lang Seqable IMeta IPersistentMap LazySeq ISeq))
+  (:import (clojure.lang IMeta IPersistentMap LazySeq ISeq))
   (:require [clojure.core.typed :as t
              :refer [check-ns ann defalias tc-ignore ann-form declare-names inst
                      print-env inst-ctor cf declare-alias-kind]]
@@ -34,7 +34,7 @@
 
 (ann conduit-seq-fn 
      (All [x]
-       [(Seqable x) -> (==> Any x)]))
+       [(t/Seqable x) :-> (==> Any x)]))
 (defn conduit-seq-fn [l]
   (fn curr-fn [_]
     (let [new-f (conduit-seq-fn (rest l))]
@@ -49,7 +49,7 @@
 
 (ann conduit-seq
      (All [x]
-       [(Seqable x) -> (==> Any x)]))
+       [(t/Seqable x) :-> (==> Any x)]))
 (defn conduit-seq 
   "create a stream processor that emits the contents of a list
   regardless of what is fed to it"
@@ -58,7 +58,7 @@
 
 (ann a-run
      (All [x]
-       [(==> Any x) -> (Seqable x)]))
+       [(==> Any x) :-> (t/Seqable x)]))
 (defn a-run 
   "execute a stream processor function"
   [f]
@@ -293,7 +293,7 @@
 
 (ann conduit-map
      (All [x y]
-       [(==> x y) (t/Option (Seqable x)) -> (t/Option (Seqable y))]))
+       [(==> x y) (t/Seqable x) :-> (t/Seqable y)]))
 (defn conduit-map [p l]
   (if (empty? l)
     l

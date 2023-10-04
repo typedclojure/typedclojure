@@ -91,8 +91,8 @@ cljs.core/- (IFn [cljs.core.typed/CLJSInteger * -> cljs.core.typed/CLJSInteger]
 cljs.core/* (IFn [cljs.core.typed/CLJSInteger * -> cljs.core.typed/CLJSInteger]
                  [cljs.core.typed/JSnumber * -> cljs.core.typed/JSnumber])
 cljs.core/nth (All [x y]
-                (IFn [(U nil (cljs.core/ISeqable x)) cljs.core.typed/CLJSInteger -> x]
-                     [(U nil (cljs.core/ISeqable x)) cljs.core.typed/CLJSInteger y -> (U y x)]))
+                (IFn [(t/Seqable x) cljs.core.typed/CLJSInteger -> x]
+                     [(t/Seqable x) cljs.core.typed/CLJSInteger y -> (U y x)]))
 
 cljs.core/*flush-on-newline* cljs.core.typed/JSBoolean
 cljs.core/*print-newline* cljs.core.typed/JSBoolean
@@ -131,8 +131,8 @@ cljs.core/array (All [r]
 cljs.core/alength [(ReadOnlyArray Any) -> cljs.core.typed/CLJSInteger]
 
 cljs.core/into-array (All [x] 
-                          (IFn [(U nil (cljs.core/ISeqable x)) -> (Array x)]
-                              [Any (U nil (cljs.core/ISeqable x)) -> (Array x)]))
+                          (IFn [(t/Seqable x) -> (Array x)]
+                               [Any (t/Seqable x) -> (Array x)]))
 
 cljs.core/pr-str* [Any -> cljs.core.typed/JSString]
 
@@ -144,10 +144,10 @@ cljs.core/cloneable? (Pred cljs.core/ICloneable)
 cljs.core/count
       ; TODO also accepts Counted
       ; FIXME should return integer
-      [(U nil (cljs.core/ISeqable Any)) -> cljs.core.typed/CLJSInteger :object {:id 0, :path [Count]}]
+      [(t/Seqable Any) -> cljs.core.typed/CLJSInteger :object {:id 0, :path [Count]}]
 cljs.core/prim-seq
       (All [x]
-           [(cljs.core/ISeqable x) -> (U nil (cljs.core/ISeq x))])
+           [(t/Seqable x) -> (t/NilableNonEmptySeq x)])
 
 cljs.core/key-test [Keyword Any -> cljs.core.typed/JSBoolean]
 
@@ -187,7 +187,7 @@ js/document js/Document
 
 goog.dom/setTextContent [js/Element (U cljs.core.typed/JSString cljs.core.typed/JSnumber) -> js/Window]
 goog.dom/getElementsByTagNameAndClass 
-      [(U nil cljs.core.typed/JSString) (U nil cljs.core.typed/JSString) (U nil js/Document js/Element) -> (cljs.core/ISeqable js/Element)]
+      [(U nil cljs.core.typed/JSString) (U nil cljs.core.typed/JSString) (U nil js/Document js/Element) -> (t/Seqable js/Element)]
 goog.dom.classes/set [(U js/Node nil) cljs.core.typed/JSString -> Any]
 goog.dom.classes/add [(U js/Node nil) (U nil cljs.core.typed/JSString) * -> cljs.core.typed/JSBoolean]
 goog.dom.classes/remove [(U js/Node nil) (U nil cljs.core.typed/JSString) * -> cljs.core.typed/JSBoolean]

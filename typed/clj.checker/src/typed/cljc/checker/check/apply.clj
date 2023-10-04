@@ -7,7 +7,8 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.cljc.checker.check.apply
-  (:require [clojure.core.typed.util-vars :as vs]
+  (:require [typed.clojure :as t]
+            [clojure.core.typed.util-vars :as vs]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.utils :as u]
             [clojure.core.typed.errors :as err]
@@ -17,8 +18,7 @@
             [typed.clj.checker.subtype :as sub]
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.cs-gen :as cgen]
-            [typed.cljc.checker.subst :as subst])
-  (:import (clojure.lang Seqable)))
+            [typed.cljc.checker.subst :as subst]))
 
 ; we should be able to remove check-apply completely, but we should also instantiate all poly function in test case
 (defn maybe-check-apply
@@ -59,7 +59,7 @@
                                                (cgen/infer-vararg (zipmap vars bbnds)
                                                                   {}
                                                                   (cons tail-ty arg-tys)
-                                                                  (cons (c/Un r/-nil (c/RClass-of Seqable [rest])) dom)
+                                                                  (cons (c/Un r/-nil (c/-name `t/Seqable rest)) dom)
                                                                   rest
                                                                   (r/Result-type* rng)
                                                                   expected)))]

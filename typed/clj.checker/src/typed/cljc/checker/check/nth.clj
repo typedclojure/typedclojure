@@ -26,7 +26,7 @@
             [typed.clj.checker.check.method :as method]
             [typed.cljc.checker.check.utils :as cu]
             [typed.cljc.checker.indirect-ops :as ind])
-  (:import (clojure.lang ISeq Seqable)))
+  (:import (clojure.lang ISeq)))
 
 (defn ^:private expr->type [expr]
   (some-> expr u/expr-type r/ret-t))
@@ -82,7 +82,7 @@
          (obj/RObject? default-o)
          (nat-int? idx)]
    :post [(fl/Filter? %)]}
-  (fo/-and (fo/-filter-at (c/In (c/RClass-of Seqable [r/-any])
+  (fo/-and (fo/-filter-at (c/In (c/-name `t/Seqable r/-any)
                                 (r/make-CountRange (inc idx)))
                           target-o)
            (fo/-filter-at r/-falsy
@@ -100,7 +100,7 @@
   {:pre [(obj/RObject? target-o)
          (nat-int? idx)]
    :post [(fl/Filter? %)]}
-  (fo/-filter-at (c/In (c/RClass-of Seqable [r/-any])
+  (fo/-filter-at (c/In (c/-name `t/Seqable r/-any)
                        (r/make-CountRange (inc idx)))
                  target-o))
 

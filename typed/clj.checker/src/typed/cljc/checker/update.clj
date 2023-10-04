@@ -7,7 +7,8 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.cljc.checker.update
-  (:require [typed.cljc.checker.filter-rep :as fl]
+  (:require [typed.clojure :as t]
+            [typed.cljc.checker.filter-rep :as fl]
             [typed.cljc.checker.path-rep :as pe]
             [typed.cljc.checker.utils :as u]
             [clojure.core.typed.errors :as err]
@@ -333,7 +334,7 @@
                     (u/handle-cs-gen-failure
                       (cgen/infer {x r/no-bounds} {} 
                                   [u]
-                                  [(c/RClass-of clojure.lang.Seqable [(r/make-F x)])]
+                                  [(c/-name `t/Seqable (r/make-F x))]
                                   r/-any)))
             ;_ (prn "subst for Keys/Vals" subst)
             ]

@@ -44,13 +44,10 @@
             [clojure.core.typed.load :as load]
             [typed.cljc.checker.ns-deps-utils :as ndu]
             [clojure.core.typed.parse-ast :as prs-ast])
-; we want clojure.lang.Seqable to be scoped here. 
-; The :refer :all of clojure.core.typed adds another Seqable which
-; is less useful here.
-  (:use [clojure.core.typed :as t :exclude [Seqable loop fn defprotocol let dotimes
+  (:use [clojure.core.typed :as t :exclude [loop fn defprotocol let dotimes
                                             def remove filter defn atom ref]])
   (:import (clojure.lang ISeq IPersistentVector Atom IPersistentMap
-                         ExceptionInfo Var Seqable)))
+                         ExceptionInfo Var)))
 
 (defmacro is-tc-e-with-aliases [& body]
   `(is-clj (do (check-ns '~'clojure.core.typed.test.util-aliases)
@@ -112,10 +109,10 @@
              (parse-type `[Double Float :-> Integer])))
   ;map type
   (is-clj (= (inst/manual-inst (parse-type `(t/All [c# a# b# :..]
-                                                 [[a# b# :.. b# :-> c#] (Seqable a#) (Seqable b#) :.. b# :-> (Seqable c#)]))
+                                                 [[a# b# :.. b# :-> c#] (t/Seqable a#) (t/Seqable b#) :.. b# :-> (t/Seqable c#)]))
                                (mapv parse-type `(Integer Double Float))
                                {})
-             (parse-type `[[Double Float :-> Integer] (Seqable Double) (Seqable Float) :-> (Seqable Integer)])))
+             (parse-type `[[Double Float :-> Integer] (t/Seqable Double) (t/Seqable Float) :-> (t/Seqable Integer)])))
   (is-clj (= (clj (inst/manual-inst (parse-type `(t/All [x# b# :..]
                                                         ['[x# b#] :.. b# :-> '['[x# b#] :.. b#]]))
                                     (mapv parse-type `(Integer Double Float))
@@ -142,17 +139,17 @@
   ; manual instantiation "seq"
   ;FIXME randomly fails. Try again when I/U are sorted sets.
   (is-clj (subtype? (ety
-                      ((fn [a :- (clojure.lang.Seqable Number), b :- Number] 
+                      ((fn [a :- (t/Seqable Number), b :- Number] 
                          ((clojure.core.typed/inst seq Number) a))
                        [1 2 1.2] 1))
                     (parse-type `(t/Option (t/I (clojure.lang.ISeq java.lang.Number) (t/CountRange 1))))))
   ; inferred "seq"
   (is-clj (subtype? (ety
-                      (fn [a :- (clojure.lang.Seqable Number), b :- Number] 
+                      (fn [a :- (t/Seqable Number), b :- Number] 
                         1))
                     (make-FnIntersection
                       (make-Function
-                        [(RClass-of Seqable [(RClass-of Number nil)]) (RClass-of Number nil)] 
+                        [(-name `t/Seqable (RClass-of Number nil)) (RClass-of Number nil)] 
                         (-val 1)
                         :filter (-FS -top -bot)
                         :object -empty))))
@@ -170,7 +167,7 @@
                        [no-bounds]
                        (make-FnIntersection
                          (make-Function
-                           [(RClass-of Seqable [x]) (RClass-of Number)] 
+                           [(-name t/Seqable x) (RClass-of Number)] 
                            (-val 1)
                            :filter (-FS -top -bot)
                            :object -empty)))))))
@@ -508,7 +505,7 @@
            [(-filter (Un -nil -false) 'and1)]
            (volatile! true))))
   ; refine a subtype
-  (is-clj (= (:l (env+ (-PropEnv {'and1 (RClass-of Seqable [-any])} [])
+  (is-clj (= (:l (env+ (-PropEnv {'and1 (-name `t/Seqable -any)} [])
                        [(-filter (RClass-of IPersistentVector [-any]) 'and1)]
                        (volatile! true)))
              {'and1 (RClass-of IPersistentVector [-any])}))
@@ -820,12 +817,12 @@
   ;intersections correctly inferred
   (is-clj (= (cs-gen '#{} {'x no-bounds} '{} 
                      (-hvec [(RClass-of Number)])
-                     (In (RClass-of Seqable [(make-F 'x)]) (make-CountRange 1)))
+                     (In (-name `t/Seqable (make-F 'x)) (make-CountRange 1)))
              (cset-maker [(make-cset-entry {'x (c-maker (RClass-of Number) 'x -any no-bounds)})])))
 ;correct RClass ancestor inference
   (is-clj (= (cs-gen #{} {'x no-bounds} {} 
                      (RClass-of IPersistentVector [(RClass-of Number)])
-                     (RClass-of Seqable [(make-F 'x)]))
+                     (-name `t/Seqable (make-F 'x)))
              (cset-maker [(make-cset-entry {'x (c-maker (RClass-of Number) 'x -any no-bounds)})]))))
 
 (deftest subst-gen-test
@@ -851,14 +848,14 @@
   (is-clj (= (cgen/infer {'x no-bounds} ;tv env
                          {}
                          [(RClass-of IPersistentVector [(Un (-val 1) (-val 2) (-val 3))])] ;actual
-                         [(RClass-of Seqable [(make-F 'x)])] ;expected
+                         [(-name `t/Seqable (make-F 'x))] ;expected
                          (RClass-of clojure.lang.ASeq [(make-F 'x)])) ;result
              {'x (crep/t-subst-maker (Un (-val 1) (-val 2) (-val 3))
                                      no-bounds)})) 
   (is-clj (= (cgen/infer {'x no-bounds} ;tv env
                          {}
                          [(-hvec [(-val 1) (-val 2) (-val 3)])] ;actual
-                         [(RClass-of Seqable [(make-F 'x)])] ;expected
+                         [(-name `t/Seqable (make-F 'x))] ;expected
                          (RClass-of clojure.lang.ASeq [(make-F 'x)])) ;result
              {'x (crep/t-subst-maker (Un (-val 1) (-val 2) (-val 3))
                                      no-bounds)})))
@@ -889,7 +886,7 @@
                      (Un -nil (RClass-of Number)))))
   (is-clj (subtype? (In (RClass-of clojure.lang.PersistentList [-any])
                     (make-CountRange 1))
-                (In (RClass-of Seqable [-any])
+                (In (-name `t/Seqable -any)
                     (make-CountRange 1))))
   (is-clj (subtype? (ret-t (tc-t (let [l [1 2 3]]
                                    (if (seq l)
@@ -905,11 +902,11 @@
 
 (deftest intersection-maker-test
   (is-clj (= (In -nil (-val 1))
-         (Un)))
-  (is-clj (clj 
-        (= (In (RClass-of Seqable [-any])
-               -nil)
-           (Un)))))
+             (Un)))
+  (is-clj (clj
+            (not= (In (-name `t/Seqable -any)
+                      -nil)
+                  (Un)))))
 ;FIXME
 ;  (is-clj (= (In (RClass-of Number)
 ;             (RClass-of t/Symbol))
@@ -936,9 +933,9 @@
 
 (deftest map-infer-test
   (is-clj (subtype? (ety (map + [1 2]))
-                    (RClass-of Seqable [(RClass-of Number)])))
+                    (-name `t/Seqable (RClass-of Number))))
   (is-clj (subtype? (ety (map + [1 2] [1 2] [4 5] [6 7] [4 4] [3 4]))
-                    (RClass-of Seqable [(RClass-of Number)])))
+                    (-name `t/Seqable (RClass-of Number))))
   (is-tc-err (map + [1 2] [1 2] [4 5] [6 7] [4 4] {3 4}))
   (is-tc-err (map + [1 2] [1 2] [4 5] [6 7] [4 4] #{'a 4})))
 
@@ -964,7 +961,7 @@
                            [a b c]))
                     (-hvec [(Un -nil (RClass-of Number))
                             (Un -nil (RClass-of Number))
-                            (RClass-of Seqable [(RClass-of Number)])])))
+                            (-name `t/Seqable (RClass-of Number))])))
   (is-clj (= (ety (let [[a b :as c] [1 2]] 
                     [a b c]))
              (-hvec [(-val 1)
@@ -1138,11 +1135,23 @@
 
 (deftest string-as-seqable-test
   (is-clj (subtype? 
+            (-name `t/Seqable (-name `t/Num))
+            (-name `t/Seqable -any)))
+  (is-clj (subtype?
+            (-resolve (-name `t/NilableNonEmptySeq (-name `t/Num)))
+            (-name `t/NilableNonEmptySeq -any)))
+  (is-clj (subtype?
+            (-name `t/NilableNonEmptySeq (-name `t/Num))
+            (-resolve (-name `t/NilableNonEmptySeq -any))))
+  (is-clj (subtype? 
+            (-name `t/NilableNonEmptySeq (-name `t/Num))
+            (-name `t/NilableNonEmptySeq -any)))
+  (is-clj (subtype? 
             (RClass-of String)
-            (RClass-of Seqable [-any])))
+            (-name `t/Seqable -any)))
   (is-clj (subtype? 
             (-val "a")
-            (RClass-of Seqable [-any])))
+            (-name `t/Seqable -any)))
   (is-tc-e (seq "a"))
   (is-tc-e (first "a") Character)
   (is-tc-e (first (ann-form "a" String)) (t/Option Character)))
@@ -1455,8 +1464,8 @@
 
 #_(deftest filter-seq-test
   ;  TODO possible extension for filter
-;  (is (cf (filter :a (clojure.core.typed/ann-form [] (clojure.lang.Seqable '{:b Number})))
-;          (clojure.lang.Seqable '{:b Number :a clojure.core.typed/Any})))
+;  (is (cf (filter :a (clojure.core.typed/ann-form [] (t/Seqable '{:b Number})))
+;          (t/Seqable '{:b Number :a clojure.core.typed/Any})))
   (is-tc-err (core/filter (inst identity (t/U nil Number)) [1 nil])
              (t/Seqable Number))
   (is-tc-e ((inst core/filter (t/U nil Number) nil) (inst identity (t/U nil Number)) [1 nil])
@@ -1553,10 +1562,10 @@
 
 (deftest intersection-csgen-test
   (is-clj (clj (cs-gen #{} {'a no-bounds} {}
-                   (In (RClass-of Seqable [(RClass-of Number)])
-                       (make-CountRange 1))
-                   (In (RClass-of Seqable [(make-F 'a)])
-                       (make-CountRange 1))))))
+                       (In (-name `t/Seqable (RClass-of Number))
+                           (make-CountRange 1))
+                       (In (-name `t/Seqable (make-F 'a))
+                           (make-CountRange 1))))))
 
 (deftest iterable-as-seqable-test
   (is-cf (first (clojure.core.typed/ann-form [] (Iterable clojure.core.typed/Any)))))
@@ -1564,25 +1573,25 @@
 ; See CTYP-29 for discussion. f in (map f coll) needs to be only a single arity
 ; to help inference.
 (deftest map-over-multiarity-fn-test
-  (is-cf (map (clojure.core.typed/ann-form + [Number -> Number]) 
-              (clojure.core.typed/ann-form [] (clojure.lang.Seqable Number))))
-  (is-cf (map inc [(or (first (range)) 0) 1])
-         (clojure.lang.Seqable clojure.core.typed/AnyInteger))
-  (is-cf (fn [x] (map (clojure.core.typed/ann-form inc [Number -> Number]) [x 1]))
-         [Number -> (clojure.lang.Seqable Number)])
+  (is-tc-e (map (ann-form + [t/Num -> t/Num]) 
+                (ann-form [] (t/Seqable Number))))
+  (is-tc-e (map inc [(or (first (range)) 0) 1])
+           (t/Seqable t/AnyInteger))
+  (is-tc-e (fn [x] (map (ann-form inc [Number -> Number]) [x 1]))
+           [t/Num -> (t/Seqable Number)])
   (is-clj (subtype? (ret-t (tc-t [(or (first (range)) 2) 1]))
-                    (RClass-of Seqable [(RClass-of Number)])))
-  (is-cf (fn [x] 
-           (map (clojure.core.typed/ann-form inc [Number -> Number]) 
-                [x 2 3])) 
-         [Number -> (clojure.core.typed/Seq Number)]))
+                    (-name `t/Seqable (RClass-of Number))))
+  (is-tc-e (fn [x] 
+             (map (ann-form inc [t/Num :-> t/Num]) 
+                  [x 2 3])) 
+           [t/Num :-> (t/Seq Number)]))
 
 (deftest unannotated-datatype-test
   (is (check-ns 'clojure.core.typed.test.unannotated-datatype)))
 
 ;(deftest intersect-RClass-ancestors-test
 ;  (is-clj (= (In (RClass-of IPersistentSet [-any])
-;             (RClass-of Seqable [(RClass-of Number)]))
+;             (-name `t/Seqable (RClass-of Number)))
 ;         (RClass-of IPersistentSet [-any]))))
 
 (deftest munged-datatype-fields-test
@@ -1630,10 +1639,10 @@
 
 ;
 (deftest csgen-combine-test
-  (is-cf (map inc [0 1.1])
-         (clojure.lang.Seqable Number))
-  (is-cf (map (clojure.core.typed/inst vector clojure.core.typed/Any Number Number) [1] [2])
-         (clojure.lang.Seqable '[Number Number])))
+  (is-tc-e (map inc [0 1.1])
+           (t/Seqable t/Num))
+  (is-tc-e (map (inst vector t/Any t/Num t/Num) [1] [2])
+           (t/Seqable '[t/Num t/Num])))
 
 ;FIXME uncomment after core.typed internals are being checked
 ;(deftest subtype-explosion-test
@@ -2755,7 +2764,7 @@
                       (-val "a")
                       (Un (RClass-of clojure.lang.Indexed [(make-F 'x)])
                           (In (RClass-of clojure.lang.Sequential) 
-                              (RClass-of clojure.lang.Seqable [(make-F 'x)])))))
+                              (-name `t/Seqable (make-F 'x))))))
             true))
   (is-clj (some
             #{(RClass-of clojure.lang.Indexed [-any])}
@@ -2779,7 +2788,7 @@
                            {}
                            (parse-clj `(t/Value "a") )
                            (with-bounded-frees {(make-F 'x) no-bounds}
-                             (parse-clj `(t/U (t/I clojure.lang.Sequential (clojure.lang.Seqable ~'x)) (clojure.lang.Indexed ~'x))))))))))
+                             (parse-clj `(t/U (t/I clojure.lang.Sequential (t/Seqable ~'x)) (clojure.lang.Indexed ~'x))))))))))
 
 (deftest nested-poly-test
   (is (Poly* ['a] [no-bounds]
