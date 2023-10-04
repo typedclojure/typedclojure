@@ -4554,3 +4554,11 @@
              (get {:a 1} :b 2)))
   (is-tc-err (fn [get :- (t/All [c k d] [c k d :-> (t/Get c k d)])] :- '1
                (get {:a 1} :b 2))))
+
+(deftest group-by-test
+  ;;non-empty groups
+  (is-tc-e (let [vs (some-> (group-by even? [1 2 3 4])
+                            first
+                            val)]
+             (assert vs)
+             (t/ann-form (first vs) t/Int))))

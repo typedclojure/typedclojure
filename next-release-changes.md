@@ -19,3 +19,4 @@
   - upcast to t/Vec when argument is not a specific integer, previously type error
 - fix parsing of `t/Get` optional 3rd argument (default type)
 - fix return of assoc/dissoc on unknown keys
+- annotate `group-by` to return non-empty vector groups

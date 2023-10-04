@@ -1933,7 +1933,7 @@ cc/second (t/All [x] (t/IFn [(t/HSequential [t/Any x t/Any :*]) :-> x
                             [(t/Seqable x) :-> (t/Option x)]))
 cc/ffirst (t/All [x] [(t/Seqable (t/Seqable x)) :-> (t/Nilable x)])
 cc/nfirst (t/All [x] [(t/Seqable (t/Seqable x)) :-> (t/NilableNonEmptyASeq x)])
-cc/group-by (t/All [x y] [[x :-> y] (t/Seqable x) :-> (t/Map y (t/Vec x))])
+cc/group-by (t/All [x y] [[x :-> y] (t/Seqable x) :-> (t/Map y (t/NonEmptyAVec x))])
 cc/fnext (t/All [x] [(t/Seqable x) :-> (t/Option x)])
 cc/nnext (t/All [x] [(t/Seqable x) :-> (t/NilableNonEmptyASeq x)])
 cc/nthnext (t/All [x] (t/IFn [nil t/AnyInteger :-> nil]
