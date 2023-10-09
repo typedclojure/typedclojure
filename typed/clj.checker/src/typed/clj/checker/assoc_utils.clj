@@ -346,45 +346,32 @@
   {:pre [(r/Type? left)
          (r/TCResult? right)]
    :post [((some-fn nil? r/Type?) %)]}
-  (let [left-map (ind/subtype? left (impl/impl-case
-                                      :clojure (c/RClass-of IPersistentMap [r/-any r/-any])
-                                      :cljs (c/-name 'typed.clojure/Map r/-any r/-any)))
-        right-map (ind/subtype? (r/ret-t right) (impl/impl-case
-                                                  :clojure (c/RClass-of IPersistentMap [r/-any r/-any])
-                                                  :cljs (c/-name 'typed.clojure/Map r/-any r/-any)))]
-    (cond
-     ; preserve the rhs alias when possible
-     (and (ind/subtype? left r/-nil) right-map)
-     (r/ret-t right)
-     
-     :else
-     (c/union-or-nil
+  (cond
+    ; preserve the rhs alias when possible
+    (and (ind/subtype? left r/-nil)
+         (ind/subtype? (r/ret-t right) (c/-name 'typed.clojure/Map r/-any r/-any)))
+    (r/ret-t right)
+
+    :else
+    (c/union-or-nil
       (for [rtype (c/resolved-type-vector (r/ret-t right))]
         (cond
-         (and (or left-map (ind/subtype? left r/-nil))
-              (ind/subtype? rtype r/-nil))
-           left
-         
-         (and (ind/subtype? left r/-nil) 
-              (ind/subtype? rtype (impl/impl-case
-                                    :clojure (c/RClass-of IPersistentMap [r/-any r/-any])
-                                    :cljs (c/-name 'typed.clojure/Map r/-any r/-any))))
-           rtype
-         
-         (and (r/HeterogeneousMap? left) (r/HeterogeneousMap? rtype))
-           (merge-hmaps left rtype)
-         
-         (and (not (ind/subtype? left (impl/impl-case
-                                        :clojure (c/RClass-of IPersistentVector [r/-any])
-                                        :cljs (c/Protocol-of 'cljs.core/IVector [r/-any]))))
-              (satisfies? AssocableType left)
-              (r/HeterogeneousMap? rtype))
-         (do
-           ;TODO
-           (assert (empty? (:optional rtype)))
-           (apply assoc-type-pairs left (map (fn [[k t]]
-                                               [(r/ret k) (r/ret t)])
-                                             (:types rtype))))))))))
+          (and (ind/subtype? left r/-nil)
+               (ind/subtype? rtype (c/Un r/-nil (c/-name 'typed.clojure/Map r/-any r/-any))))
+          rtype
+
+          (and (ind/subtype? left (c/Un r/-nil (c/-name 'typed.clojure/Map r/-any r/-any)))
+               (ind/subtype? rtype r/-nil))
+          left
+
+          (and (r/F? left)
+               (ind/subtype? left (c/Un r/-nil (c/-name 'typed.clojure/Map r/-any r/-any)))
+               (ind/subtype? rtype (c/Un r/-nil (c/-name 'typed.clojure/Map r/-any r/-any))))
+          (r/MergeType-maker [left (r/ret-t right)])
+
+          (and (r/HeterogeneousMap? left)
+               (r/HeterogeneousMap? rtype))
+          (merge-hmaps left rtype))))))
 
 (defn merge-types
   ([] r/-nil)

@@ -2233,7 +2233,7 @@
                                                            (deferred-fixed-args :rng)
                                                            ;; perhaps substituting non-contravariant occurrences instead?
                                                            (cset-meet (let [inst-rng (subst/subst-all subst R)]
-                                                                        (prn "inst-rng" inst-rng)
+                                                                        ;(prn "inst-rng" inst-rng)
                                                                         (cs-gen #{} X Y inst-rng expected))))
                                                          (cset-meet cs))
                                                   ;_ (prn "cs" cs)

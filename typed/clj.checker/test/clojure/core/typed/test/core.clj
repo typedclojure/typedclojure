@@ -1945,6 +1945,46 @@
 ;;   (equal-types (merge {'a 5} {:b 6})
 ;;                (clojure.lang.IPersistentMap (t/U 'a ':b) (t/U '5 '6)))
   
+  (is-tc-e (fn [a f] (merge a (f a)))
+           (t/All [[a :< (t/Map t/Any t/Any)]
+                   [b :< (t/Map t/Any t/Any)]]
+                  [a [a :-> b] :-> (t/Merge a b)]))
+  (is-tc-e (fn [a f] (merge a (f a)))
+           (t/All [[a :< (t/Nilable (t/Map t/Any t/Any))]
+                   [b :< (t/Nilable (t/Map t/Any t/Any))]]
+                  [a [a :-> b] :-> (t/Merge a b)]))
+  (is-tc-e (fn [a f] (merge a (f a)))
+           (t/All [[a :< nil]
+                   [b :< (t/Nilable (t/Map t/Any t/Any))]]
+                  [a [a :-> b] :-> b]))
+  (is-tc-e (fn [a f] (merge a (f a)))
+           (t/All [[a :< (t/Nilable (t/Map t/Any t/Any))]
+                   [b :< nil]]
+                  [a [a :-> b] :-> a]))
+  (is-tc-e (fn [a f] (merge a (f a)))
+           (t/All [[a :< (t/Map t/Any t/Any)]]
+                  [a [a :-> '{:a t/Int}] :-> (t/Merge a '{:a t/Int})]))
+  (is-tc-err (fn [a f] (merge a (f a)))
+             (t/All [[a :< (t/Map t/Any t/Any)]]
+                    [a [a :-> '{:a t/Int}] :-> (t/Merge a '{:b t/Int})]))
+  (is-tc-err (fn [a f] (merge (f a) a))
+             (t/All [[a :< (t/Map t/Any t/Any)]
+                     [b :< (t/Map t/Any t/Any)]]
+                    [a [a :-> b] :-> (t/Merge a b)]))
+  (is-tc-err (fn [a f] (merge (f a) a))
+             (t/All [a b] [a [a :-> b] :-> (t/Merge a b)]))
+  (is-tc-e (let [f (t/ann-form (fn [a f] (merge a (f a)))
+                               (t/All [[a :< (t/Map t/Any t/Any)]
+                                       [b :< (t/Map t/Any t/Any)]]
+                                      [a [a :-> b] :-> (t/Merge a b)]))]
+             (f {:a 1} #(assoc % :a nil)))
+           '{:a nil})
+  (is-tc-err (let [f (t/ann-form (fn [a f] (merge a (f a)))
+                                 (t/All [[a :< (t/Map t/Any t/Any)]
+                                         [b :< (t/Map t/Any t/Any)]]
+                                        [a [a :-> b] :-> (t/Merge a b)]))]
+               (f {:a 1} #(assoc % :b nil)))
+             '{:a nil})
   )
 
 (deftest invoke-conj-test

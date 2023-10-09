@@ -22,3 +22,4 @@
 - annotate `group-by` to return non-empty vector groups
 - Breaking: change `clojure.lang.Seqable` and `cljs.core/ISeqable` to take a Seq as type parameter
   - migration: change `(clojure.lang.Seqable x)` => `(t/Seqable x)`
+- support `t/Merge` of type variables
