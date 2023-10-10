@@ -8,18 +8,20 @@
 
 (ns ^:no-doc typed.cljc.checker.promote-demote
   (:require [typed.cljc.checker.utils :as u]
+            [clojure.core.typed.errors :as err]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.frees :as frees]
+            [typed.cljc.checker.free-ops :as free-ops]
             [typed.clojure :as t]
             [typed.cljc.checker.hset-utils :as hset]
             [clojure.set :as set]
             [typed.cljc.checker.impl-protocols :as p]
             typed.cljc.checker.filter-rep)
-  (:import (typed.cljc.checker.type_rep NotType Intersection Union FnIntersection Bounds
+  (:import (typed.cljc.checker.type_rep NotType Intersection Union FnIntersection
                                         DottedPretype Function RClass App TApp
                                         PrimitiveArray DataType Protocol TypeFn Poly
-                                        Mu HeterogeneousMap
+                                        Mu HeterogeneousMap Bounds
                                         CountRange Name Value Top Wildcard Unchecked TopFunction B F Result AnyValue
                                         TCError Extends JSNominal
                                         JSString JSBoolean JSNumber CLJSInteger JSObject
@@ -77,7 +79,7 @@
 (defmacro promote-demote [cls & fbody]
   `(extend-type ~cls
      IPromoteDemote
-     (promote [T# V#] 
+     (promote [T# V#]
        (let [~'promote promote
              ~'demote demote
              f# (fn ~@fbody)]
@@ -100,22 +102,54 @@
     (update :input-type demote V)
     (update :output-type promote V)))
 
+(defn promote-Kind->Type [T V]
+  {:pre [(r/Kind? T)]}
+  (let [rec #(promote-Kind->Type % V)
+        pmt #(promote % V)]
+    (cond
+      (r/Bounds? T) (pmt (:upper-bound T))
+      (r/Regex? T) (update T :types #(mapv rec %))
+      :else (err/nyi-error (str "demote-Kind->Type: " (class T))))))
+
+(defn demote-Kind->Type [T V]
+  {:pre [(r/Kind? T)]}
+  (let [rec #(promote-Kind->Type % V)
+        dmt #(demote % V)]
+    (cond
+      (r/Bounds? T) (dmt (:lower-bound T))
+      (r/Regex? T) (update T :types #(mapv rec %))
+      :else (err/nyi-error (str "demote-Kind->Type: " (class T))))))
+
 (extend-type F
   IPromoteDemote
   (promote [{:keys [name] :as T} V]
     (if (V name)
-      r/-any
+      (let [bnd (free-ops/free-in-scope-bnds name)]
+        (when-not bnd
+          (err/int-error (str "Missing kind for type variable " name)))
+        (promote-Kind->Type bnd V))
       T))
-  (demote
-    [{:keys [name] :as T} V]
+  (demote [{:keys [name] :as T} V]
     (if (V name)
-      (r/Bottom)
+      (let [bnd (free-ops/free-in-scope-bnds name)]
+        (when-not bnd
+          (err/int-error (str "Missing kind for type variable " name)))
+        (demote-Kind->Type bnd V))
       T)))
 
+(extend-type Bounds
+  IPromoteDemote
+  (promote [T V]
+    (-> T
+        (update :upper-bound promote V)
+        (update :lower-bound promote V)))
+  (demote [T V]
+    (-> T
+        (update :upper-bound demote V)
+        (update :lower-bound demote V))))
+
 (defn handle-kw-map [m p-or-d-fn V]
-  (into {}
-        (for [[k v] m]
-          [k (p-or-d-fn v V)])))
+  (c/visit-type-map m #(p-or-d-fn % V)))
 
 (promote-demote KwArgsSeq
   [T V]
@@ -313,12 +347,14 @@
 (promote-demote Poly [T V]
   (case (:kind T)
     :Poly (let [names (c/Poly-fresh-symbols* T)
+                ;;TODO promote?
                 bbnds (c/Poly-bbnds* names T)
                 pmt-body (promote (c/Poly-body* names T) V)]
             (c/Poly* names 
                      bbnds
                      pmt-body))
     :PolyDots (let [names (c/PolyDots-fresh-symbols* T)
+                    ;;TODO promote?
                     bbnds (c/PolyDots-bbnds* names T)
                     pmt-body (promote (c/PolyDots-body* names T) V)]
                 (c/PolyDots* names 

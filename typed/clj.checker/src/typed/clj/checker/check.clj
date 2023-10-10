@@ -1586,6 +1586,7 @@
               (let [[t :as ts] (fn-methods/function-types (:t expected))]
                 (when (= 1 (count ts))
                   (let [[fin inst-frees bnds poly?] (cu/unwrap-poly (first ts))]
+                    (assert (not bnds) "FIXME")
                     (when-not poly?
                       (when (r/FnIntersection? fin)
                         (when-let [matching-method (beta-reduce/find-matching-method expr (count args))]

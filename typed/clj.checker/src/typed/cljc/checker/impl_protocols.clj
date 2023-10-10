@@ -23,11 +23,11 @@
 (t/ann-protocol TCAnyType)
 (u/defprotocol TCAnyType)
 
-(t/ann-protocol IScope
-                scope-body
-                [IScope -> (t/U TCType IScope)])
-(u/defprotocol IScope
-  (scope-body [this]))
+(t/ann-protocol TCKind)
+(u/defprotocol TCKind)
+
+(t/ann-protocol IScope)
+(u/defprotocol IScope)
 
 (t/ann ^:no-check IScope? (t/Pred IScope))
 (defn IScope? [a]

@@ -382,7 +382,7 @@
                         (collect-polydots [t]
                           {:post [((con/hvector-c? r/Type?
                                                    (con/hash-c? symbol? r/Bounds?)
-                                                   (con/hash-c? symbol? r/Bounds?))
+                                                   (con/hash-c? symbol? r/Regex?))
                                    %)]}
                           (loop [pbody (c/fully-resolve-type t)
                                  fixed {}

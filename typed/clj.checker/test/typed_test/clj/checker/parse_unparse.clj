@@ -49,10 +49,10 @@
           :types first :rng :fl :else fr/BotFilter?)))
 
 (deftest parse-type-fn-test
-  (is-clj (= (prs/parse-type '[nil * -> nil])
+  (is-clj (= (prs/parse-type '[nil :* -> nil])
              (r/make-FnIntersection (r/make-Function () r/-nil :rest r/-nil))))
-  (is-clj (= (prs/parse-type '(clojure.core.typed/All [x ...] [nil ... x -> nil]))
-             (c/PolyDots* '(x) [r/no-bounds]
+  (is-clj (= (prs/parse-type '(clojure.core.typed/All [x :..] [nil :.. x -> nil]))
+             (c/PolyDots* '(x) [r/dotted-no-bounds]
                           (r/make-FnIntersection (r/make-Function () r/-nil :drest (r/DottedPretype1-maker r/-nil 'x)))))))
 
 (deftest unparse-free-scoping-test

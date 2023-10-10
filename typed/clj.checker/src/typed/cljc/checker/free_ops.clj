@@ -13,7 +13,7 @@
             [typed.clojure :as t]
             [typed.cljc.checker.tvar-env :as tvar]
             [typed.cljc.checker.tvar-bnds :as bnds])
-  (:import (typed.cljc.checker.type_rep F Bounds)))
+  (:import (typed.cljc.checker.type_rep F Bounds Regex)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Parse Type syntax
@@ -32,8 +32,7 @@
 ;        *free-scope*))
 
 (t/ann free-with-name-bnds [t/Sym -> (t/U nil Bounds)])
-(defn ^Bounds
-  free-with-name-bnds
+(defn free-with-name-bnds
   "Find the bounds for the free with the actual name name, as opposed to
   the alias used for scoping"
   [name]
@@ -49,25 +48,24 @@
    :post [((some-fn nil? r/F?) %)]}
   (tvar/*current-tvars* name))
 
-(t/ann free-in-scope-bnds [t/Sym -> (t/U nil Bounds)])
+(t/ann free-in-scope-bnds [t/Sym -> (t/U nil (t/U Bounds Regex))])
 (defn free-in-scope-bnds
   "Find the bounds for the free scoped as name"
-  ^Bounds
   [name]
   {:pre [(symbol? name)]
-   :post [((some-fn nil? r/Bounds?) %)]}
+   :post [((some-fn nil? r/Bounds? r/Regex?) %)]}
   (when-let [f (free-in-scope name)]
     (bnds/lookup-tvar-bnds (:name f))))
 
 ;; slow
-(def frees-map? map? #_(con/hash-c? symbol? (con/hmap-c? :F r/F? :bnds r/Bounds?)))
+(def frees-map? map? #_(con/hash-c? symbol? (con/hmap-c? :F r/F? :bnds (some-fn r/Bounds? r/Regex?))))
 
 ; we used to have scopes and bounds in the same map. To avoid changing the interface,
 ; with-free-mappings now handles frees-map to do scoping and bounds in separate bindings.
 ;
 ; Once this works we should use a more consistent interface
 ;
-;frees-map :- '{t/Sym '{:F F :bnds Bounds}}
+;frees-map :- '{t/Sym '{:F F :bnds (U Bounds Regex)}}
 (defmacro with-free-mappings
   [frees-map & body]
   `(let [frees-map# ~frees-map
@@ -81,7 +79,7 @@
          ~@body))))
 
 ;; extremely slow
-(def bounded-frees? map? #_(con/hash-c? r/F? r/Bounds?))
+(def bounded-frees? map? #_(con/hash-c? r/F? (some-fn r/Bounds? r/Regex?)))
 
 (defn with-bounded-frees* [bfrees bfn]
   (let [_ (assert (bounded-frees? bfrees) bfrees)]

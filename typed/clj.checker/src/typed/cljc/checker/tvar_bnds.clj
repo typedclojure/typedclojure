@@ -11,7 +11,7 @@
   (:require [typed.clojure :as t]
             [clojure.core.typed.contract-utils :as con]
             [typed.cljc.checker.type-rep :as r])
-  (:import (typed.cljc.checker.type_rep Bounds)))
+  (:import (typed.cljc.checker.type_rep Bounds Regex)))
 
 ;; this implements an environment from (fresh) type variable names
 ;; to their bounds.
@@ -22,10 +22,10 @@
 (t/defalias TVarBndsEnv
   "A map from (fresh) type variable names (symbols) to
   their bounds."
-  (t/Map t/Symbol Bounds))
+  (t/Map t/Symbol (t/U Bounds Regex)))
 
 (t/ann ^:no-check tvar-bnds-env? (t/Pred TVarBndsEnv))
-(def tvar-bnds-env? (con/hash-c? symbol? r/Bounds?))
+(def tvar-bnds-env? (con/hash-c? symbol? (some-fn r/Bounds? r/Regex?)))
 
 (t/ann initial-tvar-bnds-env TVarBndsEnv)
 (def initial-tvar-bnds-env {})
@@ -54,7 +54,7 @@
   "Extend env with pairwise mappings from vars to bndss"
   [env vars bndss]
   {:pre [(every? symbol? vars)
-         (every? r/Bounds? bndss)
+         (every? (some-fn r/Bounds? r/Regex?) bndss)
          (= (count vars) (count bndss))]
    :post [(tvar-bnds-env? %)]}
   (merge env (zipmap vars bndss)))

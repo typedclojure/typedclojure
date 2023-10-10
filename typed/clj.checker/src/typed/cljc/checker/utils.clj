@@ -36,7 +36,7 @@
   `(do ~(-> `(clojure.core.typed/ann-record ~nme ~fields)
             (with-meta (meta &form)))
        ~(-> `(clojure.core.typed/ann ~(with-meta (or maker-name (symbol (str nme "-maker"))) {:no-check true})
-                                     [~@(map #(nth % 2) (partition 3 fields)) (t/? (t/Option (t/Map t/Any t/Any))) :-> ~nme])
+                                     [~@(map #(nth % 2) (partition 3 fields)) (t/Option (t/Map t/Any t/Any)) :? :-> ~nme])
             (with-meta (meta &form)))))
 
 (t/tc-ignore

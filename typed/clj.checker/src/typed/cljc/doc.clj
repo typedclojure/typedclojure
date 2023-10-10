@@ -151,9 +151,17 @@
     `t/All {:doc "A polymorphic binder"
             :forms '[(All binder type)]
             ::special-type true}
-    `t/TFn {:doc "A type function"
-            :forms '[(TFn binder type)]
-            ::special-type true}))
+    `t/TFn {:doc "A type function. Also the kind for type functions."
+            :forms '[(TFn binder type)
+                     (TFn binder kind)]
+            ::special-type true
+            ::kind true}
+    `t/Type {:doc "The kind for types. When wrapped in parens, can provide upper/lower bounds
+                  other than Top/Bottom."
+             :forms '[t/Type
+                      (t/Type :< UpperBoundType :> LowerBoundType)]
+             ::special-type true
+             ::kind true}))
 
 (defn type-doc* [tsyn]
   (cond

@@ -31,6 +31,8 @@
   "A normal type or special type like Function."
   (t/U Type p/TCAnyType))
 
+(t/defalias Kind p/TCKind)
+
 (t/defalias MaybeScopedType
   "A type or a scope"
   (t/U Type p/IScope))
@@ -47,6 +49,10 @@
 (defn AnyType? [a]
   (or (Type? a)
       (instance? typed.cljc.checker.impl_protocols.TCAnyType a)))
+
+(t/ann ^:no-check Kind? (t/Pred Kind))
+(defn Kind? [a]
+  (instance? typed.cljc.checker.impl_protocols.TCKind a))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Types
@@ -173,20 +179,19 @@
 (def kinds #{:Type :.. :TypeFn})
 
 (u/ann-record Bounds [upper-bound :- MaybeScopedType
-                      lower-bound :- MaybeScopedType
-                      higher-kind :- t/Keyword])
-(u/def-type Bounds [upper-bound lower-bound higher-kind]
-  "A type bound or higher-kind bound on a variable"
+                      lower-bound :- MaybeScopedType])
+(u/def-type Bounds [upper-bound lower-bound]
+  "The kind of a Type between upper-bound and lower-bound."
   [;; verbose for performance
-   (or (Type? upper-bound)
-       (Scope? upper-bound))
-   (or (Type? lower-bound)
-       (Scope? lower-bound))
+   (Type? upper-bound)
+   (Type? lower-bound)
    ;; TODO a TypeFn var probably should have a "bound" embedded in its kind
    ;; e.g., :kind (TFn [[x :variance :covariant]] (Bounds t/Any t/Nothing))
-   ;(not (TypeFn? upper-bound))
-   ;(not (TypeFn? lower-bound))
-   (contains? kinds higher-kind)])
+   (not (TypeFn? upper-bound))
+   (not (TypeFn? lower-bound))
+   ]
+  :methods [p/TCKind
+            p/TCAnyType])
 
 (u/ann-record B [idx :- Number])
 (u/def-type B [idx]
@@ -237,11 +242,11 @@
 (u/ann-record Scope [body :- MaybeScopedType])
 (u/def-type Scope [body]
   "A scope that contains one bound variable, can be nested. Not used directly"
-  [(or (Type? body)
-       (Scope? body))]
+  [(or (Scope? body)
+       (Type? body)
+       (Kind? body))]
   :methods
-  [p/IScope
-   (scope-body [this] body)])
+  [p/IScope])
 
 (t/defalias ScopedType
   (t/U Type Scope))
@@ -249,15 +254,15 @@
 (t/ann ^:no-check scoped-Type? (t/Pred (t/U Scope Type)))
 (def scoped-Type? (some-fn Scope? Type?))
 
-(t/ann scope-depth? [Scope Number -> t/Any])
-(defn scope-depth? 
+(t/ann scope-depth? [Scope Number [t/Any :-> t/Bool] :-> t/Bool])
+(defn scope-depth?
   "True if scope is has depth number of scopes nested"
-  [scope depth]
+  [scope depth pred]
   {:pre [(Scope? scope)
          (nat-int? depth)]}
-  (Type? (last (take (inc depth) (iterate #(and (Scope? %)
-                                                (:body %))
-                                          scope)))))
+  (pred (last (take (inc depth) (iterate #(and (Scope? %)
+                                               (:body %))
+                                         scope)))))
 
 (u/ann-record RClass [variances :- (t/U nil (t/NonEmptySeqable Variance))
                       poly? :- (t/U nil (t/NonEmptySeqable Type))
@@ -373,20 +378,19 @@
 (u/ann-record TypeFn [nbound :- Number,
                       variances :- (t/U (t/I t/Fn [:-> (t/Seqable Variance)])
                                         (t/Seqable Variance))
-                      bbnds :- (t/Seqable Bounds),
+                      bbnds :- (t/Seqable Kind),
                       scope :- p/IScope]
               :maker-name -TypeFn-maker)
 (u/def-type TypeFn [nbound variances bbnds scope]
   "A type function containing n bound variables with variances.
-  It is of a higher kind"
+  Also represents 'kind' of type functions."
   [(nat-int? nbound)
    (or (fn? variances)
        (every? variance? variances))
-   (every? Bounds? bbnds)
+   (every? #(scope-depth? % nbound Kind?) bbnds)
    (apply = nbound (map count (cond-> [bbnds]
                                 (not (fn? variances)) (conj variances))))
-   (scope-depth? scope nbound)
-   (Scope? scope)]
+   (scope-depth? scope nbound Type?)]
   :maker-name -TypeFn-maker
   :compute-valAt {:variances (fn [this]
                                `(let [v# (.-variances ~this)]
@@ -398,14 +402,19 @@
                                 (.-scope ~this)))}
   :methods
   ;;FIXME not a type, of a different kind
-  [p/TCType])
+  [p/TCType
+   p/TCKind])
 
 (t/defalias TFnVariancesMaybeFn
+  #_ ;;TODO sugar
+  (t/If t/Fn
+        [:-> '{:cache t/Bool :variances (t/Seqable Variance)}]
+        (t/Seqable Variance))
   (t/U (t/I t/Fn [:-> '{:cache t/Bool :variances (t/Seqable Variance)}])
        (t/I (t/Not t/Fn) (t/Seqable Variance))))
 
 (t/ann ^:force-check TypeFn-maker
-       [Number TFnVariancesMaybeFn (t/Seqable Bounds) p/IScope (t/Option (t/Map t/Any t/Any)) :?
+       [Number TFnVariancesMaybeFn (t/Seqable Kind) p/IScope (t/Option (t/Map t/Any t/Any)) :?
         :-> TypeFn])
 (defn TypeFn-maker
   ([nbound variances bbnds scope]
@@ -430,8 +439,10 @@
                   scope
                   mta)))
 
+(declare Regex?)
+
 (u/ann-record Poly [nbound :- Number,
-                    bbnds :- (t/Seqable Bounds),
+                    bbnds :- (t/Vec Kind),
                     scope :- p/IScope
                     named :- (t/Map t/Sym t/Int)
                     kind :- t/Kw]
@@ -440,21 +451,21 @@
   "A polymorphic type containing n bound variables.
   `named` is a map of free variable names to de Bruijn indices (range nbound)"
   [(nat-int? nbound)
-   (every? Bounds? bbnds)
+   (vector? bbnds)
+   (every? #(scope-depth? % nbound Kind?) bbnds)
    (= nbound (count bbnds))
-   (scope-depth? scope nbound)
-   (Scope? scope)
+   (scope-depth? scope nbound Type?)
    (map? named)
    (every? symbol? (keys named))
    (every? #(<= 0 % (dec nbound)) (vals named))
    (or (empty? named)
        (apply distinct? (vals named)))
-   ]
-  :computed-fields
-  [kind (if (and (every? (comp #(= :Type %) :higher-kind) (butlast bbnds))
-                 (-> bbnds last :higher-kind (= :..)))
-          :PolyDots
-          :Poly)]
+   (case kind
+     :Poly (every? #(scope-depth? % nbound Bounds?) bbnds)
+     :PolyDots (and (every? #(scope-depth? % nbound Bounds?) (pop bbnds))
+                    (scope-depth? (peek bbnds)
+                                  nbound
+                                  Regex?)))]
   :pred-name -Poly?
   :maker-name -Poly-maker
   :ctor-meta {:private true}
@@ -465,7 +476,7 @@
             Poly? PolyDots?)
 (defn Poly? [p] (and (-Poly? p) (= :Poly (:kind p))))
 (defn PolyDots? [p] (and (-Poly? p) (= :PolyDots (:kind p))))
-(t/ann-many [Number (t/Seqable Bounds) p/IScope (t/Map t/Sym t/Int) (t/? (t/Option (t/Map t/Any t/Any)))
+(t/ann-many [Number (t/Seqable Kind) p/IScope (t/Map t/Sym t/Int) (t/? (t/Option (t/Map t/Any t/Any)))
              :-> Poly]
             ^:force-check Poly-maker
             ;;TODO assoc-in support
@@ -474,14 +485,13 @@
   ([nbound bbnds scope named] (Poly-maker nbound bbnds scope named nil))
   ([nbound bbnds scope named meta]
    {:post [(Poly? %)]}
-   (-Poly-maker nbound bbnds scope named :Poly meta)))
+   (-Poly-maker nbound (vec bbnds) scope named :Poly meta)))
 (defn PolyDots-maker
   ([nbound bbnds scope named] (PolyDots-maker nbound bbnds scope named nil))
   ([nbound bbnds scope named meta]
-   {:post [(PolyDots? %)]}
-   (let [bbnds (cond-> (vec bbnds)
-                 (pos? nbound) (assoc-in [(dec nbound) :higher-kind] :..))]
-     (-Poly-maker nbound bbnds scope named :PolyDots meta))))
+   {:pre [(pos? nbound)]
+    :post [(PolyDots? %)]}
+   (-Poly-maker nbound (vec bbnds) scope named :PolyDots meta)))
 
 (t/ann unsafe-body [[t/Any :-> t/Any] Poly :-> Type])
 (defn ^:private unsafe-body [pred p]
@@ -611,7 +621,7 @@
 
 (declare Regex?)
 
-(u/ann-record Regex [types :- (t/Vec (t/U Type Regex DottedPretype))
+(u/ann-record Regex [types :- (t/Vec (t/U Type Kind Regex DottedPretype))
                      kind :- t/Kw])
 (u/ann-record DottedPretype [pre-type :- (t/U Type Regex)
                              name :- (t/U t/Sym Number)])
@@ -894,18 +904,20 @@
   (KwArgsArray-maker (apply -kw-args opt)))
 
 (u/def-type Regex [types kind]
-  "Type representing regular expressions of sexpr's"
+  "Type representing regular expressions of sexpr's.
+  Also used as the kind of dotted variable when given kinds."
   [(vector? types)
    (do (case kind
-         (:* :+ :?) (do (assert (every? (some-fn Regex? Type?) types))
+         (:* :+ :?) (do (assert (every? (some-fn Regex? Type? Kind?) types))
                         (assert (= 1 (count types))))
-         :cat (assert (every? (some-fn Type? Regex? DottedPretype?) types))
-         (:alt :or) (assert (every? (some-fn Regex? Type?) types)))
+         :cat (assert (every? (some-fn Type? Regex? DottedPretype? Kind?) types))
+         (:alt :or) (assert (every? (some-fn Regex? Type? Kind?) types)))
        true)]
   :methods
-  [p/TCAnyType])
+  [p/TCAnyType
+   p/TCKind])
 
-(t/ann regex [(t/Vec (t/U Regex Type)) t/Kw -> Regex])
+(t/ann regex [(t/Vec (t/U Regex Type Kind)) t/Kw -> Regex])
 (defn regex [types kind]
   {:post [(Regex? %)]}
   (case kind
@@ -1122,12 +1134,15 @@
 
 (t/ann -bounds [Type Type -> Bounds])
 (defn -bounds [u l]
-  {:pre [(scoped-Type? u)
-         (scoped-Type? l)]}
-  (Bounds-maker u l :Type))
+  {:pre [(Type? u)
+         (Type? l)]}
+  (Bounds-maker u l))
 
 (t/ann no-bounds Bounds)
 (def no-bounds (-bounds -any -nothing))
+
+(t/ann dotted-no-bounds Regex)
+(def dotted-no-bounds (regex [no-bounds] :*))
 
 (u/def-type TCResult [t fl o opts]
   "This record represents the result of type-checking an expression"
@@ -1172,22 +1187,6 @@
   {:pre [(TCResult? r)]
    :post [(p/IRObject? %)]}
   (:o r))
-
-;; Utils
-;; It seems easier to put these here because of dependencies
-
-(t/ann ^:no-check visit-bounds [Bounds [Type :-> Type] :-> Bounds])
-(defn visit-bounds 
-  "Apply f to each element of bounds"
-  [ty f]
-  {:pre [(Bounds? ty)]
-   :post [(Bounds? %)]}
-  (-> ty
-      (update :upper-bound #(some-> % f))
-      (update :lower-bound #(some-> % f))
-      ;;TODO
-      ;(update :higher-kind #(some-> % f))
-      ))
 
 (t/ann make-Result
        (t/IFn [Type -> Result]

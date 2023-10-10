@@ -15,9 +15,9 @@
             [clojure.core.typed.util-vars :as vs]
             [clojure.math.combinatorics :as comb]
             [clojure.set :as set]
+            [clojure.string :as str]
             [typed.clj.checker.constant-type :as const]
             [typed.cljc.analyzer.passes.uniquify :as uniquify]
-            [typed.cljc.checker.dvar-env :as dvar]
             [typed.cljc.checker.filter-ops :as fl]
             [typed.cljc.checker.filter-rep :as f]
             [typed.cljc.checker.free-ops :as free-ops]
@@ -37,7 +37,7 @@
                                         KwArgsSeq KwArgsArray TCError Extends JSNumber JSBoolean SymbolicClosure
                                         CLJSInteger ArrayCLJS JSNominal JSString TCResult AssocType MergeType
                                         GetType HSequential HSet JSUndefined JSNull JSSymbol JSObject
-                                        JSObj)
+                                        JSObj Bounds)
            (typed.cljc.checker.filter_rep TopFilter BotFilter TypeFilter NotTypeFilter AndFilter OrFilter
                                           ImpFilter NoFilter)
            (typed.cljc.checker.object_rep NoObject EmptyObject Path)
@@ -172,8 +172,17 @@
                       (resolve-type-cljs n)))
           n))))
 
+(defmulti parse-type-symbol
+  (fn [n] 
+    {:pre [(symbol? n)]}
+    (or (impl/impl-case
+          :clojure (resolve-type-clj->sym n)
+          ;;FIXME logic is all tangled
+          :cljs (resolve-type-cljs n))
+        n)))
+
 (def parsed-free-map? (con/hmap-c? :fname symbol?
-                                   :bnd r/Bounds?
+                                   :bnd r/Kind?
                                    :variance r/variance?))
 
 ; parsing TFn, protocol, RClass binders
@@ -211,8 +220,8 @@
 
 ; parsing All binders
 ;return a vector of [name bnds]
-(defn parse-free [f]
-  {:post [((con/hvector-c? symbol? r/Bounds?) %)]}
+(defn parse-free [f default-kind]
+  {:post [((con/hvector-c? symbol? r/Kind?) %)]}
   (let [validate-sym (fn [s]
                        (when-not (symbol? s)
                          (prs-error (str "Type variable must be a symbol, given: " (pr-str s))))
@@ -224,21 +233,28 @@
                          (prs-error (str "Type variable must not be named true, false, or nil: " (pr-str s)))))]
     (if (symbol? f)
       (do (validate-sym f)
-          [f r/no-bounds])
+          [f (case default-kind
+               :type r/no-bounds
+               :dotted r/dotted-no-bounds)])
       (let [[n & opts] f
             _ (when-not (even? (count opts))
-                (prs-error (str "Uneven number of options after symbol: " (pr-str opts))))
-            {:keys [< >] :as opts} opts]
+                (prs-error (str "Uneven number of options in type variable binder: " (pr-str opts))))
+            {:keys [< > kind] :as opts} opts
+            ks (set (keys kind))
+            kind? (:kind ks)]
+        (when kind?
+          (when ((some-fn ks) :< :>)
+            (prs-error "Cannot combine :kind with :< or :> in type variable binder")))
         (validate-sym n)
-        (when (contains? opts :kind)
-          (err/deprecated-warn "Kind annotation for TFn parameters"))
-        (when (:variance opts) 
+        (when (:variance opts)
           (prs-error "Variance not supported for variables introduced with All"))
-        [n (let [upper-or-nil (when (contains? opts :<)
-                                (parse-type <))
-                 lower-or-nil (when (contains? opts :>)
-                                (parse-type >))]
-             (c/infer-bounds upper-or-nil lower-or-nil))]))))
+        [n (if kind?
+             (parse-type (:kind ks))
+             (let [upper-or-nil (when (contains? opts :<)
+                                  (parse-type <))
+                   lower-or-nil (when (contains? opts :>)
+                                  (parse-type >))]
+               (c/infer-bounds upper-or-nil lower-or-nil)))]))))
 
 (defn check-forbidden-rec [rec tbody]
   (letfn [(well-formed? [t]
@@ -269,14 +285,6 @@
         
         _ (check-forbidden-rec f body)]
     (Mu* (:name f) body)))
-
-;(defmethod parse-type-list 'DottedPretype
-;  [[_ psyn bsyn]]
-;  (let [df (dvar/*dotted-scope* bsyn)]
-;    (assert df bsyn)
-;    (r/DottedPretype1-maker (free-ops/with-frees [df]
-;                         (parse-type psyn))
-;                       (:name (dvar/*dotted-scope* bsyn)))))
 
 (defn parse-CountRange [[_ & [n u :as args]]]
   (when-not (#{1 2} (count args))
@@ -387,13 +395,18 @@
                                  (partition-all 2))
                            entries)
                      (when ellipsis-pos
-                       (let [bnd (dvar/*dotted-scope* drest-bnd)
-                             _ (when-not bnd
-                                 (prs-error (str (pr-str drest-bnd) " is not in scope as a dotted variable")))]
+                       (let [bnd (free-ops/free-in-scope-bnds drest-bnd)
+                             f (free-ops/free-in-scope drest-bnd)
+                             _ (when-not (r/Regex? bnd)
+                                 (prs-error (str (pr-str drest-bnd) " is not in scope as a dotted variable")))
+                             _ (assert (r/F? f))]
                          (r/DottedPretype1-maker
-                           (free-ops/with-frees [bnd] ;with dotted bound in scope as free
+                           ;with dotted bound in scope as free
+                           (free-ops/with-bounded-frees {(r/make-F drest-bnd)
+                                                         ((requiring-resolve 'typed.cljc.checker.cs-gen/homogeneous-dbound->bound)
+                                                          bnd)}
                              (parse-type drest-type))
-                           (:name bnd)))))))
+                           (:name f)))))))
 
 (defmethod parse-type-list 'typed.clojure/Assoc [t] (parse-Assoc t))
 
@@ -438,32 +451,24 @@
         (recur rst
                (conj out group))))))
 
-(defn parse-dotted-binder [bnds]
-  {:pre [(vector? bnds)]}
-  (let [frees-with-bnds (reduce (fn [fs fsyn]
-                                  {:pre [(vector? fs)]
-                                   :post [(every? (con/hvector-c? symbol? r/Bounds?) %)]}
-                                  (conj fs
-                                        (free-ops/with-bounded-frees (into {}
-                                                                           (map (fn [[n bnd]] [(r/make-F n) bnd]))
-                                                                           fs)
-                                          (parse-free fsyn))))
-                                [] (-> bnds pop pop))
-        dvar (parse-free (-> bnds pop peek))]
-    [frees-with-bnds dvar]))
-
 (defn parse-normal-binder [bnds]
   (let [frees-with-bnds
         (reduce (fn [fs fsyn]
                   {:pre [(vector? fs)]
-                   :post [(every? (con/hvector-c? symbol? r/Bounds?) %)]}
+                   :post [(every? (con/hvector-c? symbol? r/Kind?) %)]}
                   (conj fs
                         (free-ops/with-bounded-frees (into {}
                                                            (map (fn [[n bnd]] [(r/make-F n) bnd]))
                                                            fs)
-                          (parse-free fsyn))))
+                          (parse-free fsyn :type))))
                 [] bnds)]
     [frees-with-bnds nil]))
+
+(defn parse-dotted-binder [bnds]
+  {:pre [(vector? bnds)]}
+  (let [[frees-with-bnds] (parse-normal-binder (-> bnds pop pop))
+        dvar (parse-free (-> bnds pop peek) :dotted)]
+    [frees-with-bnds dvar]))
 
 (defn parse-unknown-binder [bnds]
   {:pre [((some-fn nil? vector?) bnds)]}
@@ -532,13 +537,13 @@
         {:keys [frees-with-bnds dvar named]} (parse-All-binder bnds)
         bfs (into {}
                   (map (fn [[n bnd]] [(r/make-F n) bnd]))
-                  frees-with-bnds)]
+                  (cond-> frees-with-bnds
+                    dvar (conj dvar)))]
     (if dvar
       (free-ops/with-bounded-frees bfs
         (c/PolyDots* (map first (concat frees-with-bnds [dvar]))
                      (map second (concat frees-with-bnds [dvar]))
-                     (dvar/with-dotted [(r/make-F (first dvar))]
-                       (parse-type type))
+                     (parse-type type)
                      :named named))
       (free-ops/with-bounded-frees bfs
         (c/Poly* (map first frees-with-bnds)
@@ -658,7 +663,7 @@
 (defn parse-tfn-binder [binder]
   {:pre [((some-fn symbol? vector?) binder)]
    :post [((con/hmap-c? :nme symbol? :variance (some-fn r/variance? #(= :infer %))
-                        :bound r/Bounds?)
+                        :bound r/Kind?)
            %)]}
   (let [[nme & opts-flat :as all] (cond-> binder
                                     (symbol? binder) vector)
@@ -742,6 +747,33 @@
 
 (defmethod parse-type-list 'typed.clojure/TFn [syn] (parse-type-fn syn))
 
+(defn parse-Type-kind [syn]
+  (cond
+    (symbol? syn) r/no-bounds
+    (seq? syn) (if-some [opts (next syn)]
+                 (let [_ (when (odd? (count opts))
+                           (prs-error "Uneven arguments passed to t/Type"))
+                       popts (partition 2 opts)
+                       _ (when-not (apply distinct? (map first popts))
+                           (prs-error "Duplicate keys passed to t/Type"))
+                       opts (apply hash-map opts)
+                       _ (when (not-every? keyword? (keys opts))
+                           (prs-error "Non-keyword key passed to t/Type"))
+                       _ (when-some [extra-keys (disj (set (keys opts)) :< :>)]
+                           (prs-error (str "Unknown keys passed to t/Type: "
+                                           (str/join ", " (sort extra-keys)))))]
+                   (r/-bounds (if-some [[_ upper] (find opts :<)]
+                                (parse-type upper)
+                                r/-any)
+                              (if-some [[_ lower] (find opts :>)]
+                                (parse-type lower)
+                                r/-nothing)))
+                 r/no-bounds)
+    :else (err/int-error (str "unparseable: " syn))))
+
+(defmethod parse-type-list 'typed.clojure/Type [syn] (parse-Type-kind syn))
+(defmethod parse-type-symbol 'typed.clojure/Type [syn] (parse-Type-kind syn))
+
 ;; parse-HVec, parse-HSequential and parse-HSeq have many common patterns
 ;; so we reuse them
 (defn parse-types-with-rest-drest [err-msg]
@@ -767,16 +799,20 @@
                   [drest-type _dots_ drest-bnd :as dot-syntax] (take-last 3 syns)
                   ; should never fail, if the logic changes above it's probably
                   ; useful to keep around.
-                  _ (when-not (#{3} (count dot-syntax))
+                  _ (when-not (= 3 (count dot-syntax))
                       (prs-error (str "Bad vector syntax: " dot-syntax)))
-                  bnd (dvar/*dotted-scope* drest-bnd)
-                  _ (when-not bnd
+                  bnd (free-ops/free-in-scope-bnds drest-bnd)
+                  f (free-ops/free-in-scope drest-bnd)
+                  _ (when-not (r/Regex? bnd)
                       (prs-error (str (pr-str drest-bnd) " is not in scope as a dotted variable")))]
               {:fixed fixed
                :drest (r/DottedPretype1-maker
-                        (free-ops/with-frees [bnd] ;with dotted bound in scope as free
-                                             (parse-type drest-type))
-                        (:name bnd))})
+                        ;with dotted bound in scope as free
+                        (free-ops/with-bounded-frees {(r/make-F drest-bnd)
+                                                      ((requiring-resolve 'typed.cljc.checker.cs-gen/homogeneous-dbound->bound)
+                                                       bnd)}
+                          (parse-type drest-type))
+                        (:name f))})
             :else {:fixed (mapv parse-type syns)})]
       {:fixed fixed
        :rest rest
@@ -1119,15 +1155,6 @@
 (defmethod parse-type* IPersistentList [l] 
   (parse-type-list l))
 
-(defmulti parse-type-symbol
-  (fn [n] 
-    {:pre [(symbol? n)]}
-    (or (impl/impl-case
-          :clojure (resolve-type-clj->sym n)
-          ;;FIXME logic is all tangled
-          :cljs (resolve-type-cljs n))
-        n)))
-
 (defn parse-Any [sym]
   (assert (not (-> sym meta :clojure.core.typed/infer))
           "^:clojure.core.typed/infer Any support has been removed. Use t/Infer")
@@ -1295,7 +1322,7 @@
 
 (defmethod parse-filter* 'when
   [[_ & [a c :as args] :as all]]
-  (when-not (#{2} (count args))
+  (when-not (= 2 (count args))
     (prs-error (str "Wrong number of arguments to when: " all)))
   (fl/-imp (parse-filter a) (parse-filter c)))
 
@@ -1524,13 +1551,17 @@
                                 (let [drest-bnd d3
                                       _ (when-not (simple-symbol? drest-bnd)
                                           (prs-error (str "Bound after " d2 " must be simple symbol: " (pr-str drest-bnd))))
-                                      bnd (dvar/*dotted-scope* drest-bnd)
-                                      _ (when-not bnd
+                                      bnd (free-ops/free-in-scope-bnds drest-bnd)
+                                      f (free-ops/free-in-scope drest-bnd)
+                                      _ (when-not (r/Regex? bnd)
                                           (prs-error (str "Bound " (pr-str drest-bnd) " after " d2 " is not in scope as a dotted variable")))]
                                   (recur (conj cat-dom (r/DottedPretype1-maker
-                                                         (cond-> (free-ops/with-frees [bnd] (-> d1 allow-regex parse-type))
+                                                         (cond-> (free-ops/with-bounded-frees {(r/make-F drest-bnd)
+                                                                                               ((requiring-resolve 'typed.cljc.checker.cs-gen/homogeneous-dbound->bound)
+                                                                                                bnd)}
+                                                                   (-> d1 allow-regex parse-type))
                                                            (= '<... d2) push-HSequential->regex)
-                                                         (:name bnd)))
+                                                         (:name f)))
                                          (subvec to-process 3)))
                                 (recur (conj cat-dom (-> d1 allow-regex parse-type))
                                        (subvec to-process 1)))
@@ -1940,26 +1971,21 @@
           body (c/Mu-body* nme m)]
       (list (unparse-Name-symbol-in-ns `t/Rec) [nme] (unparse-type body)))))
 
-(defn unparse-poly-bounds-entry [name {:keys [upper-bound lower-bound higher-kind] :as bnds}]
-  (let [name (-> name r/make-F unparse-F)
-        u (when upper-bound 
-            (unparse-type upper-bound))
-        l (when lower-bound 
-            (unparse-type lower-bound))
-        ;h (when (not= :Type higher-kind) higher-kind)
-        ]
-    (or #_(when higher-kind
-          [name :kind h])
-        (when-not (or (r/Top? upper-bound) (r/Bottom? lower-bound))
-          [name :< u :> l])
-        (when-not (r/Top? upper-bound) 
-          [name :< u])
-        (when-not (r/Bottom? lower-bound)
-          [name :> l])
-        name)))
+(defn Bounds->vector [{:keys [upper-bound lower-bound] :as bnds}]
+  {:pre [(r/Bounds? bnds)]}
+  (cond-> []
+    (not (r/Top? upper-bound)) (conj :< (unparse-type upper-bound))
+    (not (r/Bottom? lower-bound)) (conj :> (unparse-type lower-bound))))
+
+(defn unparse-poly-bounds-entry [name bnds]
+  {:pre [(r/Bounds? bnds)]}
+  (let [name (-> name r/make-F unparse-F)]
+    (if (= r/no-bounds bnds)
+      name
+      (into [name] (Bounds->vector bnds)))))
 
 (defn unparse-poly-dotted-bounds-entry [free-name bbnd]
-  ; ignore dotted bound for now, not sure what it means yet.
+  (assert (= r/dotted-no-bounds bbnd)) ;; TODO do something interesting
   [(-> free-name r/make-F unparse-F) :..])
 
 (defn unparse-poly-binder [dotted? free-names bbnds named]
@@ -2011,22 +2037,14 @@
                   (list (unparse-Name-symbol-in-ns `t/All) binder (unparse-type body))))))
 
 ;(ann unparse-typefn-bounds-entry [t/Sym Bounds Variance -> Any])
-(defn unparse-typefn-bounds-entry [name {:keys [upper-bound lower-bound higher-kind]} v]
-  (let [name (-> name r/make-F unparse-F)
-        u (when upper-bound 
-            (unparse-type upper-bound))
-        l (when lower-bound 
-            (unparse-type lower-bound))
-        ;h nil #_(when (not= higher-kind :Type) higher-kind)
-        ]
-    (or ;(when higher-kind [name :variance v :kind h])
-        (when-not (or (r/Top? upper-bound) (r/Bottom? lower-bound))
-          [name :variance v :< u :> l])
-        (when-not (r/Top? upper-bound) 
-          [name :variance v :< u])
-        (when-not (r/Bottom? lower-bound)
-          [name :variance v :> l])
-        [name :variance v])))
+(defn unparse-typefn-bounds-entry [name bnds v]
+  {:pre [(r/Bounds? bnds)]}
+  (let [name (-> name r/make-F unparse-F)]
+    ;; TODO does variance make sense with higher kinds?
+    (into [name :variance v]
+          ;;TODO higher kinds
+          (when (not= r/no-bounds bnds)
+            (Bounds->vector bnds)))))
 
 (extend-protocol IUnparseType
   TypeFn
@@ -2038,6 +2056,14 @@
           body (c/TypeFn-body* free-names p)]
       (list (unparse-Name-symbol-in-ns `t/TFn) binder (unparse-type body))))
 
+  Bounds
+  (unparse-type* 
+    [{:keys [upper-bound lower-bound] :as bnds}]
+    (if (= r/no-bounds bnds)
+      (unparse-Name-symbol-in-ns `t/Type)
+      (list* (unparse-Name-symbol-in-ns `t/Type)
+             (Bounds->vector bnds))))
+
   Value
   (unparse-type* 
     [v]
@@ -2046,15 +2072,15 @@
       (list (unparse-Name-symbol-in-ns `t/Val) (:val v)))))
 
 (defn- unparse-map-of-types [m]
-  (into {} (map (fn [[k v]]
-                  (assert (r/Value? k) k)
-                  (vector (:val k) (unparse-type v)))
-                m)))
+  (reduce-kv (fn [m k v]
+               (assert (r/Value? k) k)
+               (assoc m (:val k) (unparse-type v)))
+              {} m))
 
 (extend-protocol IUnparseType
   HeterogeneousMap
   (unparse-type* 
-    [^HeterogeneousMap v]
+    [v]
     (list* (unparse-Name-symbol-in-ns `t/HMap)
            (concat
              ; only elide if other information is present
@@ -2062,11 +2088,11 @@
                        (not (or (seq (:optional v))
                                 (seq (:absent-keys v))
                                 (c/complete-hmap? v))))
-               [:mandatory (unparse-map-of-types (.types v))])
+               [:mandatory (unparse-map-of-types (:types v))])
              (when (seq (:optional v))
                [:optional (unparse-map-of-types (:optional v))])
              (when-let [ks (and (not (c/complete-hmap? v))
-                                (seq (.absent-keys v)))]
+                                (seq (:absent-keys v)))]
                [:absent-keys (set (map :val ks))])
              (when (c/complete-hmap? v)
                [:complete? true])))))

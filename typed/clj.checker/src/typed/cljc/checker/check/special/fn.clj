@@ -17,7 +17,6 @@
             [typed.cljc.checker.check.fn-methods :as fn-methods]
             [typed.cljc.checker.check :refer [check-expr]]
             [typed.cljc.checker.check.utils :as cu]
-            [typed.cljc.checker.dvar-env :as dvar]
             [typed.cljc.checker.filter-ops :as fo]
             [typed.cljc.checker.filter-rep :as fl]
             [typed.cljc.checker.free-ops :as free-ops]
@@ -232,12 +231,12 @@
                     self-name)
           ;_ (prn "self-name" self-name)
           [frees-with-bnds dvar] (parse-poly poly)
-          new-bnded-frees (into {} (map (fn [[n bnd]] [(r/make-F n) bnd])) frees-with-bnds)
-          new-dotted (when dvar [(r/make-F (first dvar))])
+          new-bnded-frees (into {} (map (fn [[n bnd]] [(r/make-F n) bnd]))
+                                (cond-> frees-with-bnds
+                                  dvar (conj dvar)))
           flat-expecteds 
           (free-ops/with-bounded-frees new-bnded-frees
-            (dvar/with-dotted new-dotted
-              (prepare-expecteds expr fn-anns)))
+            (prepare-expecteds expr fn-anns))
           ;_ (prn "flat-expecteds" flat-expecteds)
           _ (assert ((some-fn nil? vector?) poly))
 
@@ -265,12 +264,11 @@
                                              ]
                                          {self-name this-type}))
                       (free-ops/with-bounded-frees new-bnded-frees
-                        (dvar/with-dotted new-dotted
-                          (check-anon
-                            expr
-                            flat-expecteds
-                            {:frees-with-bnds frees-with-bnds
-                             :dvar dvar}))))]
+                        (check-anon
+                          expr
+                          flat-expecteds
+                          {:frees-with-bnds frees-with-bnds
+                           :dvar dvar})))]
           (update cexpr u/expr-type below/maybe-check-below expected))))))
 
 (defn check-special-fn 

@@ -179,7 +179,8 @@
 ;; variables in X to the cmap and create an empty dmap.
 (t/ann ^:no-check empty-cset [FreeBnds FreeBnds -> cset])
 (defn empty-cset [X Y]
-  {:pre [((every-pred (con/hash-c? symbol? r/Bounds?)) X Y)]
+  {:pre [((con/hash-c? symbol? r/Bounds?) X)
+         ((con/hash-c? symbol? r/Regex?) Y)]
    :post [(cset? %)]}
   (cset-maker [(cset-entry-maker (reduce-kv (fn [acc x bnds] (assoc acc x (no-constraint x bnds)))
                                             {} X)

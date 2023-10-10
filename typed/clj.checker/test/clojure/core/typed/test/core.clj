@@ -33,7 +33,6 @@
             [typed.cljc.checker.promote-demote :refer :all]
             [typed.cljc.checker.frees :refer :all]
             [typed.cljc.checker.free-ops :refer :all]
-            [typed.cljc.checker.dvar-env :refer :all]
             [typed.cljc.checker.cs-gen :as cgen :refer :all]
             [typed.cljc.checker.cs-rep :as crep :refer :all]
             [typed.cljc.checker.subst :refer [subst-all] :as subst]
@@ -83,20 +82,16 @@
                       (make-F 'x)))
          (make-F 'x)))
   (is-clj (= (parse-type '(clojure.core.typed/All [x x1 [y :< x] z] [x -> y]))
-             (let [no-bounds-scoped (-bounds
-                                      (add-scopes 4 -any)
-                                      (add-scopes 4 (Un)))]
-               (Poly-maker 4
-                           [no-bounds-scoped
-                            no-bounds-scoped
-                            (-bounds 
-                              (add-scopes 4 (B-maker 3))
-                              (add-scopes 4 (Un)))
-                            no-bounds-scoped]
-                           (add-scopes 4
-                                       (make-FnIntersection
-                                         (make-Function [(B-maker 3)] (B-maker 1))))
-                           {})))))
+             (Poly-maker 4
+                         (mapv #(add-scopes 4 %)
+                               [r/no-bounds
+                                r/no-bounds
+                                (-bounds (B-maker 3) (Un))
+                                r/no-bounds])
+                         (add-scopes 4
+                                     (make-FnIntersection
+                                       (make-Function [(B-maker 3)] (B-maker 1))))
+                         {}))))
 
 (deftest trans-dots-test
   (is-clj (= (inst/manual-inst (parse-type `(t/All [x# b# :..] [x# :.. b# :-> x#]))
@@ -774,13 +769,17 @@
                       (unparse-type (:T v)))]]))))
 
 (deftest promote-demote-test
-  (is-clj (= (promote-var (make-F 'x) '#{x})
-         -any))
-  (is-clj (= (demote-var (make-F 'x) '#{x})
-         (Bottom)))
-  (is-clj (= (promote-var (RClass-of clojure.lang.ISeq [(make-F 'x)]) '#{x})
-         (RClass-of clojure.lang.ISeq [-any])))
-  (is-clj (= (demote-var (RClass-of clojure.lang.ISeq [(make-F 'x)]) '#{x})
+  (is-clj (= (with-bounded-frees {(make-F 'x) no-bounds}
+               (promote-var (make-F 'x) '#{x}))
+             -any))
+  (is-clj (= (with-bounded-frees {(make-F 'x) no-bounds}
+               (demote-var (make-F 'x) '#{x}))
+             (Bottom)))
+  (is-clj (= (with-bounded-frees {(make-F 'x) no-bounds}
+               (promote-var (RClass-of clojure.lang.ISeq [(make-F 'x)]) '#{x}))
+             (RClass-of clojure.lang.ISeq [-any])))
+  (is-clj (= (with-bounded-frees {(make-F 'x) no-bounds}
+               (demote-var (RClass-of clojure.lang.ISeq [(make-F 'x)]) '#{x}))
              (RClass-of clojure.lang.ISeq [(Bottom)]))))
 
 (deftest variances-test
@@ -1445,22 +1444,6 @@
            [nil -> nil])
   (is-tc-e #(inc (first [1 2 3])))
   (is-tc-e #(let [[x & xs] [1 2 3]] (inc x))))
-
-(deftest invoke-tfn-test
-  (is-clj (inst/manual-inst (parse-type `(t/All [[~'x :< (t/TFn [[~'x :variance :covariant]] t/Any)]]
-                                                (~'x t/Any)))
-                            [(parse-type `(t/TFn [[~'x :variance :covariant]] Number))]
-                            {}))
-  (is-clj (inst/manual-inst (parse-type `(t/All [[~'x :< (t/TFn [[~'x :variance :covariant]] Number)]]
-                                              (~'x t/Any)))
-                            [(parse-type `(t/TFn [[~'x :variance :covariant]] Number))]
-                            {}))
-  (is-clj (inst/manual-inst (parse-type `(t/All [x#
-                                                 [y# :< x#]] 
-                                                t/Any))
-                            [(parse-type `t/Any)
-                             (parse-type `t/Any)]
-                            {})))
 
 #_(deftest filter-seq-test
   ;  TODO possible extension for filter
@@ -2834,9 +2817,9 @@
   (is (Poly* ['a] [no-bounds]
              (Poly* ['x] [no-bounds] -any)))
   (is (Poly* ['a] [no-bounds]
-             (PolyDots* ['x] [no-bounds] -any)))
-  (is (PolyDots* ['a] [no-bounds]
-             (Poly* ['x] [no-bounds] -any)))
+             (PolyDots* ['x] [dotted-no-bounds] -any)))
+  (is (PolyDots* ['a] [dotted-no-bounds]
+                 (Poly* ['x] [no-bounds] -any)))
   (is (parse-clj '(clojure.core.typed/All [b] [clojure.core.typed/Any -> (clojure.core.typed/All [b ...] [clojure.core.typed/Any -> clojure.core.typed/Any])])))
   (is (parse-clj '(clojure.core.typed/All [b] [b -> (clojure.core.typed/All [b ...] [b ... b -> clojure.core.typed/Any])])))
   (is (parse-clj '(clojure.core.typed/All [b ...] [b ... b -> (clojure.core.typed/All [b ...] [b ... b -> clojure.core.typed/Any])])))
@@ -2864,11 +2847,12 @@
          0)))
 
 (deftest dotted-fn-test
-  (is-tc-e (fn [f :- (t/All [b ...] [-> [b ... b -> t/Any]])] 
+  (is-tc-e (fn [f :- (t/All [b :..] [-> [b :.. b -> t/Any]])] 
              (f)))
-  (is-tc-e (fn [f :- (t/All [b ...]
-                          ['[b ... b] ... b -> [b ... b -> t/Any]])] 
-             (f [1 2] [1 2])))
+  ;; can't nest dotted pretypes
+  (is-tc-err (fn [f :- (t/All [b :..]
+                              ['[b :.. b] :.. b -> [b :.. b -> t/Any]])] 
+               (f [1 2] [1 2])))
   (is-tc-e (fn [f :- (t/All [b ...]
                           [-> (t/HVec [b ... b])])] 
              (f)))

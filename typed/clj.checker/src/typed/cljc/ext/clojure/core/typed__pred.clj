@@ -12,7 +12,6 @@
             [typed.cljc.checker.check.utils :as cu]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.cljc.checker.tvar-env :as tvar-env]
-            [typed.cljc.checker.dvar-env :as dvar-env]
             [clojure.core.typed.errors :as err]
             [typed.cljc.checker.check-below :as below]
             [typed.cljc.checker.type-rep :as r]
@@ -27,8 +26,7 @@
         ptype
         ; frees are not scoped when pred's are parsed at runtime,
         ; so we simulate the same here.
-        (binding [tvar-env/*current-tvars* {}
-                  dvar-env/*dotted-scope* {}]
+        (binding [tvar-env/*current-tvars* {}]
           (prs/with-parse-ns (cu/expr-ns expr)
             (prs/parse-type tsyn)))]
     (assoc expr

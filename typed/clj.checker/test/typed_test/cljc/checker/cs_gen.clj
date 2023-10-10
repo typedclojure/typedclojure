@@ -104,10 +104,10 @@
                 res))))
   (clj (let [res (sut/prep-symbolic-closure-expected-type2
                    {'x (crep/t-subst-maker (r/-val 1) r/no-bounds)}
-                   (c/PolyDots* ['y 'z] [r/no-bounds r/no-bounds]
+                   (c/PolyDots* ['y 'z] [r/no-bounds r/dotted-no-bounds]
                                 (r/make-FnIntersection (r/make-Function [(r/make-F 'x) (r/F-maker 'y)] (r/make-F 'x)
                                                                         :drest (r/DottedPretype1-maker (r/F-maker 'z) 'z)))))]
-         (is (= (c/PolyDots* ['y 'z] [r/no-bounds r/no-bounds]
+         (is (= (c/PolyDots* ['y 'z] [r/no-bounds r/dotted-no-bounds]
                              (r/make-FnIntersection (r/make-Function [(r/-val 1) (r/F-maker 'y)] r/-wild
                                                                      :drest (r/DottedPretype1-maker (r/F-maker 'z) 'z))))
                 res))))

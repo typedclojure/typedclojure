@@ -18,7 +18,8 @@
             [typed.cljc.checker.subst :as subst]
             [typed.cljc.checker.trans :as trans]
             [typed.cljc.checker.type-ctors :as c]
-            [typed.cljc.checker.type-rep :as r]))
+            [typed.cljc.checker.type-rep :as r])
+  (:import (typed.cljc.checker.type_rep Bounds)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Polymorphic type instantiation
@@ -91,7 +92,7 @@
             bbnds (c/Poly-bbnds* names ptype)]
         (free-ops/with-bounded-frees (zipmap (map r/make-F names) bbnds)
           (doseq [[i nme ty bnds] (map vector (range) names argtys bbnds)]
-            (assert (= :Type (:higher-kind bnds)))
+            (assert (instance? Bounds bnds) "TODO other kinds")
             (let [lower-bound (subst/substitute-many (:lower-bound bnds) (take i argtys) (take i names))
                   upper-bound (subst/substitute-many (:upper-bound bnds) (take i argtys) (take i names))]
               (when-not (sub/subtype? lower-bound upper-bound)
@@ -110,9 +111,11 @@
       (let [names (vec (c/PolyDots-fresh-symbols* ptype))
             body (c/PolyDots-body* names ptype)
             bbnds (c/PolyDots-bbnds* names ptype)
+            _ (assert (= r/dotted-no-bounds (peek bbnds)) "TODO interesting dotted bound")
             dotted-argtys-start (dec (:nbound ptype))]
-        (free-ops/with-bounded-frees (zipmap (-> (map r/make-F names) butlast) (butlast bbnds))
+        (free-ops/with-bounded-frees (zipmap (-> (map r/make-F names) butlast) (pop bbnds))
           (doseq [[i nme ty bnds] (map vector (range) (pop names) argtys bbnds)]
+            (assert (instance? Bounds bnds) "TODO other kinds")
             (let [lower-bound (subst/substitute-many (:lower-bound bnds) (take i argtys) (take i names))
                   upper-bound (subst/substitute-many (:upper-bound bnds) (take i argtys) (take i names))]
               (when-not (sub/subtype? lower-bound upper-bound)

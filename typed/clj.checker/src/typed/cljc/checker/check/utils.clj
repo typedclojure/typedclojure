@@ -101,7 +101,7 @@
   (or expected
       (r/ret (r/TCError-maker))))
 
-;[Type -> '[Type (Option (Seqable t/Sym)) (Option (Seqable F)) (Option (Seqable Bounds)) (Option (U :Poly :PolyDots))]
+;[Type -> '[Type (Seqable t/Sym) (Seqable F) (Seqable (U Bounds Regex)) (Option (U :Poly :PolyDots))]
 ; -> Type]
 (defn unwrap-poly
   "Return a pair vector of the instantiated body of the possibly polymorphic
@@ -110,7 +110,7 @@
   {:pre [(r/Type? t)]
    :post [((con/hvector-c? r/Type? 
                            (some-fn nil? (con/every-c? r/F?))
-                           (some-fn nil? (con/every-c? r/Bounds?))
+                           (some-fn nil? (con/every-c? (some-fn r/Bounds? r/Regex?)))
                            (some-fn nil? #{:Poly :PolyDots})) %)]}
   (cond
     (r/Poly? t) (let [new-nmes (c/Poly-fresh-symbols* t)

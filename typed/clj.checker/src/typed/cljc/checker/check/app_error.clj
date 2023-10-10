@@ -100,22 +100,24 @@
                           :else (c/PolyDots-fresh-symbols* poly?))
                   bnds (if (r/Poly? poly?)
                          (c/Poly-bbnds* names poly?)
-                         (c/PolyDots-bbnds* names poly?))
-                  dotted (when (r/PolyDots? poly?)
-                           (last names))]
+                         (c/PolyDots-bbnds* names poly?))]
               (str "Polymorphic Variables:\n\t"
                    (str/join "\n\t"
                              (map (partial apply pr-str)
-                                  (map (fn [{:keys [lower-bound upper-bound] :as bnd} nme]
-                                         {:pre [(r/Bounds? bnd)
+                                  (map (fn [bnd nme]
+                                         {:pre [((some-fn r/Bounds? r/Regex?) bnd)
                                                 (symbol? nme)]}
                                          (cond
-                                           (= nme dotted) [nme :..]
-                                           :else (concat [nme]
-                                                         (when-not (= r/-nothing lower-bound)
-                                                           [:> (prs/unparse-type lower-bound)])
-                                                         (when-not (= r/-any upper-bound)
-                                                           [:< (prs/unparse-type upper-bound)]))))
+                                           (r/Regex? bnd) (do (assert (= r/dotted-no-bounds bnd)
+                                                                      "TODO interesting dotted bounds")
+                                                              [nme :..])
+                                           :else (let [_ (assert (r/Bounds? bnd) [(pr-str bnd)])
+                                                       {:keys [lower-bound upper-bound]} bnd]
+                                                   (concat [nme]
+                                                           (when-not (= r/-any upper-bound)
+                                                             [:< (prs/unparse-type upper-bound)])
+                                                           (when-not (= r/-nothing lower-bound)
+                                                             [:> (prs/unparse-type lower-bound)])))))
                                        bnds (map (comp prs/unparse-type r/make-F) names)))))))
           "\n\nDomains:\n\t" 
           (str/join "\n\t" 
