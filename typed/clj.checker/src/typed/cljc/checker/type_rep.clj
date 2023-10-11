@@ -178,6 +178,7 @@
 ;FIXME these are crude kinds just to distinguish between Poly and PolyDots
 (def kinds #{:Type :.. :TypeFn})
 
+;; *(lower-bound, upper-bound) in Generics of a Higher Kind, Moors et al https://adriaanm.github.io/files/higher.pdf
 (u/ann-record Bounds [upper-bound :- MaybeScopedType
                       lower-bound :- MaybeScopedType])
 (u/def-type Bounds [upper-bound lower-bound]
@@ -390,7 +391,7 @@
    (every? #(scope-depth? % nbound Kind?) bbnds)
    (apply = nbound (map count (cond-> [bbnds]
                                 (not (fn? variances)) (conj variances))))
-   (scope-depth? scope nbound Type?)]
+   (scope-depth? scope nbound (some-fn Type? Kind?))]
   :maker-name -TypeFn-maker
   :compute-valAt {:variances (fn [this]
                                `(let [v# (.-variances ~this)]

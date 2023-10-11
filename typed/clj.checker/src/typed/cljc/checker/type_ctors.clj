@@ -1077,35 +1077,30 @@
 (t/ann ^:no-check TypeFn*
        [(t/Seqable t/Sym)
         r/TFnVariancesMaybeFn
-        (t/Seqable r/Kind) r/Type
+        (t/Seqable r/Kind) (t/U r/Type r/Kind)
         (t/HMap :optional {:meta (t/U nil (t/Map t/Any t/Any))}) :? -> r/Type])
 (defn TypeFn*
   ([names variances bbnds body] (TypeFn* names variances bbnds body {}))
   ([names variances bbnds body {:keys [meta] :as opt}]
-  {:pre [(every? symbol names)
+  {:pre [(seq names)
+         (every? symbol names)
          (or (fn? variances)
              (every? r/variance? variances))
          (every? r/Kind? bbnds)
          (apply = (map count (cond-> [names bbnds]
                                (not (fn? variances)) (conj variances))))
-         ((some-fn r/TypeFn? r/Type?) body)
+         ((some-fn r/TypeFn? r/Type? r/Kind?) body)
          (map? opt)
          ((some-fn nil? map?) meta)]
    :post [(r/Type? %)]}
-  (let [original-names (mapv (comp r/F-original-name r/make-F) names)]
-    (if (empty? names)
-      body
-      (let [ab #(abstract-many names %)
-            t (r/TypeFn-maker (count names)
-                              variances
-                              (mapv ab bbnds)
-                              (ab body)
-                              meta)]
-        (with-original-names t original-names))))))
-
-;only set to true if throwing an error and need to print a TypeFn
-(t/ann *TypeFn-variance-check* t/Bool)
-(def ^:dynamic *TypeFn-variance-check* true)
+  (let [original-names (mapv (comp r/F-original-name r/make-F) names)
+        ab #(abstract-many names %)
+        t (r/TypeFn-maker (count names)
+                          variances
+                          (mapv ab bbnds)
+                          (ab body)
+                          meta)]
+    (with-original-names t original-names))))
 
 ;smart destructor
 (t/ann ^:no-check TypeFn-body* [(t/Seqable t/Sym) TypeFn -> r/Type])
@@ -1119,7 +1114,7 @@
                (instantiate-many names (:scope typefn)))]
     body))
 
-(t/ann ^:no-check TypeFn-bbnds* [(t/Seqable t/Sym) TypeFn -> (t/Seqable t/Kind)])
+(t/ann ^:no-check TypeFn-bbnds* [(t/Seqable t/Sym) TypeFn -> (t/Vec t/Kind)])
 (defn TypeFn-bbnds* [names typefn]
   {:pre [(every? symbol? names)
          (r/TypeFn? typefn)]

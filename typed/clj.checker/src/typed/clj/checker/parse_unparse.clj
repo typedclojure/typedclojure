@@ -2040,9 +2040,7 @@
 (defn unparse-typefn-bounds-entry [name bnds v]
   {:pre [(r/Bounds? bnds)]}
   (let [name (-> name r/make-F unparse-F)]
-    ;; TODO does variance make sense with higher kinds?
     (into [name :variance v]
-          ;;TODO higher kinds
           (when (not= r/no-bounds bnds)
             (Bounds->vector bnds)))))
 

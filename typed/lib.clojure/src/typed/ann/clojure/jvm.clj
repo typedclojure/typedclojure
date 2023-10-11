@@ -37,7 +37,18 @@ Seqable [[[a :variance :covariant :< (t/NilableNonEmptySeq t/Any)]]]
 
 Reversible [[[a :variance :covariant]]]
 
-IPersistentCollection [[[a :variance :covariant]]
+IPersistentCollection [[[a :variance :covariant]
+                        #_[Seq :variance :covariant :< (t/NilableNonEmptySeq t/Any)]
+                        #_[conjable :variance :contravariant]
+                        #_[Conj :variance :covariant :kind (t/TFn [[x :< conjable :variance :contravariant]]
+                                                                  (t/Type :< (IPersistentCollection :FIXME...)))]
+                        #_[Empty :< (IPersistentCollection nil t/Nothing t/Any (t/TFn [[x :variance :contravariant]] t/Any)
+                                                           ;;F-bounded
+                                                           Empty)]]
+                       #_#_
+                       :methods {cons (t/All [[c :< conjable]]
+                                             [(IPersistentCollection _) c :-> (Conj c)])
+                                 empty [(IPersistentCollection _) :-> Empty]}
                        :replace
                        {Seqable (Seqable (t/NilableNonEmptySeq a))}]
 

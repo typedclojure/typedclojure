@@ -8,6 +8,8 @@
             [typed.cljc.checker.type-rep :as r]
             [typed.clj.checker.test-utils :refer :all]))
 
+(def this-nsym (ns-name *ns*))
+
 (deftest parse-type-test
   (is-clj (= (c/Poly-body* '(x) (prs/parse-type '(clojure.core.typed/All [x] x)))
              (r/make-F 'x)))
@@ -54,6 +56,10 @@
   (is-clj (= (prs/parse-type '(clojure.core.typed/All [x :..] [nil :.. x -> nil]))
              (c/PolyDots* '(x) [r/dotted-no-bounds]
                           (r/make-FnIntersection (r/make-Function () r/-nil :drest (r/DottedPretype1-maker r/-nil 'x)))))))
+
+(deftest parse-tfn-test
+  (is-clj (= (prs/with-unparse-ns this-nsym (prs/unparse-type (prs/parse-type `(t/TFn [[~'a :variance :covariant]] t/Type))))
+             '(t/TFn [[a :variance :invariant]] t/Type))))
 
 (deftest unparse-free-scoping-test
   (is-clj (= (second
