@@ -161,7 +161,22 @@
              :forms '[t/Type
                       (t/Type :< UpperBoundType :> LowerBoundType)]
              ::special-type true
-             ::kind true}))
+             ::kind true}
+    `t/Match {:doc "Returns the result of the left-most pattern that matches target.
+                   Each clause may bind type variables that are in scope in both the pattern
+                   and result. Patterns and results are types or kinds.
+                   
+                   e.g.,
+                   (t/Match nil nil :-> nil) ;=> nil
+                   (t/Match t/Int
+                            nil :-> nil
+                            t/Int :-> t/Bool) ;=> t/Bool
+                   (t/Match (t/Seqable t/Num)
+                            [[E :< t/Int]] (t/Seqable E) :-> '[':first E]
+                            [E] (t/Seqable E) :-> '[':second E])
+                   ;=> '[':second t/Num]"
+              :forms '[(t/Match target binder? pattern :-> result)]
+              ::special-type true}))
 
 (defn type-doc* [tsyn]
   (cond

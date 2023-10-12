@@ -70,7 +70,10 @@
                 -nth (t/All [y]
                             [(cljs.core/IIndexed x) t/JSnumber (t/? y) :-> (t/U x y)]))
 (t/ann-protocol cljs.core/ASeq)
-(t/ann-protocol [[x :variance :covariant]] cljs.core/ISeqable) 
+(t/ann-protocol [[x :variance :covariant
+                  ;;FIXME causes mystery error
+                  ;:< (t/NilableNonEmptySeq t/Any)
+                  ]] cljs.core/ISeqable) 
 (t/ann-protocol [[x :variance :covariant]] cljs.core/ISeq
                 -first [(cljs.core/ISeq x) :-> (t/Nilable x)]
                 -rest [(cljs.core/ISeq x) :-> (cljs.core/ISeq x)])
@@ -374,6 +377,21 @@
   (t/TFn [[x :variance :covariant]] x))
 
 (t/defalias
+  ^{:doc "The return type of `seq` on a seqable."
+    :forms '[(SeqOn x)]}
+  t/SeqOn
+  (t/TFn [[x :variance :invariant :< (t/Seqable t/Any)]]
+         (t/Match x
+                  [[Seq :< (t/NilableNonEmptySeq t/Any)]]
+                  #?(:clj (clojure.lang.Seqable Seq)
+                     :cljs (cljs.core/ISeqable Seq))
+                  :-> Seq
+                  [[Seq :< (t/NilableNonEmptySeq t/Any)]]
+                  (t/Nilable #?(:clj (clojure.lang.Seqable Seq)
+                                :cljs (cljs.core/ISeqable Seq)))
+                  :-> (t/Nilable Seq))))
+
+(t/defalias
   ^{:doc "A type that returns true for clojure.core/seqable?, with members x."
     :forms '[(Seqable x)]}
   t/Seqable
@@ -523,7 +541,7 @@
                        cc/IEmptyableCollection
                        cljs.core/IEquiv
                        cljs.core/IHash
-                       (cc/ISeqable (cc/IMapEntry k v))
+                       (t/Seqable (cc/IMapEntry k v))
                        cc/ICounted
                        (cc/ILookup v)
                        (cc/IAssociative k v)

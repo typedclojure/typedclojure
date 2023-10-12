@@ -39,25 +39,25 @@
 (ann delay-type* (t/All [x] [(ReparsableDelayedType x) :-> [:-> (t/Nilable x)]]))
 (defn delay-type* [f]
   (let [f (bound-fn* f)
-        this-invalidation-id (atom @parsed-types-invalidation-id)]
-    (let [def-ns-vol (atom (SoftReference. *ns*))
-          ->f-delay (fn [] (delay (f)))
-          d (atom (->f-delay))]
-      (fn []
-        (when-some [^SoftReference sr @def-ns-vol]
-          (when-some [def-ns (.get sr)]
-            (assert (instance? clojure.lang.Namespace def-ns))
-            (if (identical? def-ns (find-ns (ns-name def-ns)))
-              (let [_ (when (not= @this-invalidation-id @parsed-types-invalidation-id)
-                        ;; attempt to reparse type if internal namespaces have changed
-                        (swap! d #(when % (->f-delay)))
-                        (reset! this-invalidation-id @parsed-types-invalidation-id))]
-                (force @d))
-              ;;forget types that were defined in stale namespaces
-              (do ;(prn "FORGETTING ANNOTATION" (class @@d))
-                  (reset! def-ns-vol nil)
-                  (reset! d nil)
-                  nil))))))))
+        this-invalidation-id (volatile! @parsed-types-invalidation-id)
+        def-ns-vol (volatile! (SoftReference. *ns*))
+        ->f-delay (fn [] (delay (f)))
+        d (atom (->f-delay))]
+    (fn []
+      (when-some [^SoftReference sr @def-ns-vol]
+        (when-some [def-ns (.get sr)]
+          (assert (instance? clojure.lang.Namespace def-ns))
+          (if (identical? def-ns (find-ns (ns-name def-ns)))
+            (let [_ (when (not= @this-invalidation-id @parsed-types-invalidation-id)
+                      ;; attempt to reparse type if internal namespaces have changed
+                      (swap! d #(when % (->f-delay)))
+                      (vreset! this-invalidation-id @parsed-types-invalidation-id))]
+              (force @d))
+            ;;forget types that were defined in stale namespaces
+            (do ;(prn "FORGETTING ANNOTATION" (class @@d))
+                (vreset! def-ns-vol nil)
+                (reset! d nil)
+                nil)))))))
 
 (defmacro delay-type [& args]
   `(delay-type* (fn [] (do ~@args))))

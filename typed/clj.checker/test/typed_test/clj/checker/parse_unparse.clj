@@ -329,3 +329,26 @@
          (prs/parse-clj `[(t/+ t/Int) t/Bool :+ :-> t/Any])
          (prs/parse-clj `[(t/+ t/Int) (t/+ t/Bool) :-> t/Any])))
 )
+
+(deftest parse-Match-test
+  (is-tc-e :load-checker)
+  (is-clj (= '(t/Match nil
+                       nil :-> nil)
+             (prs/with-unparse-ns this-nsym
+               (prs/unparse-type
+                 (prs/parse-clj `(t/Match nil
+                                          nil :-> nil))))))
+  (is-clj (= '(t/Match nil
+                       [S] (t/Seqable S) :-> S)
+             (prs/with-unparse-ns this-nsym
+               (prs/unparse-type
+                 (prs/parse-clj `(t/Match nil
+                                          [~'S] (t/Seqable ~'S) :-> ~'S))))))
+  (is-clj (= '(t/Match (t/Seqable t/Int)
+                       [T] (t/NilableNonEmptySeq T) :-> T
+                       [S] (t/Seqable S) :-> S)
+             (prs/with-unparse-ns this-nsym
+               (prs/unparse-type
+                 (prs/parse-clj `(t/Match (t/Seqable t/Int)
+                                          [~'T] (t/NilableNonEmptySeq ~'T) :-> ~'T
+                                          [~'S] (t/Seqable ~'S) :-> ~'S)))))))

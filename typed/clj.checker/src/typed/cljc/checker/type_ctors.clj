@@ -48,7 +48,8 @@
                                         TCResult TCError Extends
                                         JSNumber CLJSInteger JSObject JSString ArrayCLJS
                                         JSBoolean AssocType GetType KwArgsSeq KwArgs HSequential HSet
-                                        JSUndefined JSNull JSSymbol JSObj TypeOf SymbolicClosure Regex)
+                                        JSUndefined JSNull JSSymbol JSObj TypeOf SymbolicClosure Regex
+                                        MatchType)
            (typed.cljc.checker.filter_rep NoFilter TopFilter BotFilter TypeFilter NotTypeFilter
                                           ImpFilter AndFilter OrFilter FilterSet)
            (typed.cljc.checker.object_rep NoObject EmptyObject Path)
@@ -1396,6 +1397,13 @@
   (or (ind/type-of-nofail vsym)
       (err/int-error (str "Could not resolve TypeOf " vsym))))
 
+(defn resolve-Match [{:keys [target clauses] :as t}]
+  {:pre [(r/MatchType? t)]
+   :post [(r/AnyType? %)]}
+  (or (some-> (some #(ind/solve (r/ret target) %) clauses)
+              :t)
+      (err/tc-error (str "No matching clause: " (pr-str t)))))
+
 (t/ann -resolve [r/Type -> r/Type])
 (defn -resolve [ty]
   {:pre [(r/AnyType? ty)]
@@ -1408,6 +1416,7 @@
     (r/GetType? ty) (resolve-Get ty)
     (r/MergeType? ty) (resolve-Merge ty)
     (r/TypeOf? ty) (resolve-TypeOf ty)
+    (r/MatchType? ty) (resolve-Match ty)
     :else ty))
 
 (defn Get-requires-resolving? [ty]
@@ -1417,6 +1426,10 @@
 (defn Merge-requires-resolving? [ty]
   {:pre [(r/MergeType? ty)]}
   (not-any? (comp r/F? fully-resolve-type) (:types ty)))
+
+(defn Match-can-resolve? [ty]
+  {:pre [(r/MatchType? ty)]}
+  true)
 
 (t/ann requires-resolving? [r/Type -> t/Any])
 (defn requires-resolving? [ty]
@@ -1430,7 +1443,8 @@
       (and (r/MergeType? ty)
            (Merge-requires-resolving? ty))
       (r/Mu? ty)
-      (r/TypeOf? ty)))
+      (r/TypeOf? ty)
+      (r/MatchType? ty)))
 
 (t/ann ^:no-check resolve-Name [Name -> r/Type])
 (defn resolve-Name [nme]
@@ -2916,6 +2930,12 @@
                              (update :t type-rec)
                              (update :fl filter-rec)
                              (update :o object-rec))))
+
+(add-default-fold-case MatchType
+                       (fn [ty]
+                         (-> ty
+                             (update :target type-rec)
+                             (update :clauses #(into-identical [] type-rec %)))))
 
 (comment
   (repeatedly)

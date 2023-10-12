@@ -4605,3 +4605,17 @@
                                  (t/ann-form 1 (Foo t/Bool))))
          {:ex [["Type Error (:<NO LINE>) Type function argument number 1 (x) has kind (t/Type :< t/Int) but given t/Bool"
                 {:type-error :clojure.core.typed.errors/type-error}]]})))
+
+(deftest SeqOn-test
+  (is-clj (= r/-nil (fully-resolve-type (-name `t/SeqOn r/-nil))))
+  (is-tc-e nil (t/SeqOn nil))
+  (is-tc-e nil (t/SeqOn t/Str))
+  (is-tc-e (seq "a") (t/SeqOn t/Str))
+  ;; TODO
+  #_(is-tc-err (seq []) (t/SeqOn (t/NonEmptyColl t/Int)))
+  ;; TODO
+  #_(is-tc-err (seq "b") (t/SeqOn '"a"))
+  (is-tc-e nil (t/SeqOn '[]))
+  (is-tc-err (seq [1]) (t/SeqOn t/Str))
+  (is-tc-err "a" (t/SeqOn t/Int))
+  )

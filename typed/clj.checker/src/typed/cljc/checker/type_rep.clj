@@ -554,6 +554,17 @@
    p/IMu
    (mu-scope [_] scope)])
 
+(declare FnIntersection?)
+
+(u/ann-record MatchType [target :- Type
+                         clauses :- (t/Vec Type #_(U FnIntersection Poly))])
+(u/def-type MatchType [target clauses]
+  "A recursive type containing one bound variable, itself"
+  [(Type? target)
+   (every? (some-fn FnIntersection? -Poly?) clauses)]
+  :methods
+  [p/TCType])
+
 (t/ann Mu-body-unsafe [Mu -> Type])
 (defn Mu-body-unsafe [mu]
   {:pre [(Mu? mu)]

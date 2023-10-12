@@ -37,7 +37,7 @@
                                         KwArgsSeq KwArgsArray TCError Extends JSNumber JSBoolean SymbolicClosure
                                         CLJSInteger ArrayCLJS JSNominal JSString TCResult AssocType MergeType
                                         GetType HSequential HSet JSUndefined JSNull JSSymbol JSObject
-                                        JSObj Bounds)
+                                        JSObj Bounds MatchType)
            (typed.cljc.checker.filter_rep TopFilter BotFilter TypeFilter NotTypeFilter AndFilter OrFilter
                                           ImpFilter NoFilter)
            (typed.cljc.checker.object_rep NoObject EmptyObject Path)
@@ -530,26 +530,31 @@
      :dvar dvar
      :named named-map}))
 
-;dispatch on last element of syntax in binder
-(defn parse-all-type [bnds type]
-  (let [_ (when-not (vector? bnds)
-            (prs-error (str "First argument to t/All must be a vector: " (pr-str bnds))))
-        {:keys [frees-with-bnds dvar named]} (parse-All-binder bnds)
-        bfs (into {}
+(defn parse-all-type*
+  [{:keys [frees-with-bnds dvar named] :as _parsed-binder}
+   type]
+  ;(prn "parse-all-type*" type)
+  (let [bfs (into {}
                   (map (fn [[n bnd]] [(r/make-F n) bnd]))
                   (cond-> frees-with-bnds
-                    dvar (conj dvar)))]
+                    dvar (conj dvar)))
+        body (free-ops/with-bounded-frees bfs
+               (parse-type type))]
     (if dvar
-      (free-ops/with-bounded-frees bfs
-        (c/PolyDots* (map first (concat frees-with-bnds [dvar]))
-                     (map second (concat frees-with-bnds [dvar]))
-                     (parse-type type)
-                     :named named))
-      (free-ops/with-bounded-frees bfs
-        (c/Poly* (map first frees-with-bnds)
-                 (map second frees-with-bnds)
-                 (parse-type type)
-                 :named named)))))
+      (c/PolyDots* (map first (concat frees-with-bnds [dvar]))
+                   (map second (concat frees-with-bnds [dvar]))
+                   body
+                   :named named)
+      (c/Poly* (map first frees-with-bnds)
+               (map second frees-with-bnds)
+               body
+               :named named))))
+
+;dispatch on last element of syntax in binder
+(defn parse-all-type [bnds type]
+  (when-not (vector? bnds)
+    (prs-error (str "First argument to t/All must be a vector: " (pr-str bnds))))
+  (parse-all-type* (parse-All-binder bnds) type))
 
 (defmethod parse-type-list 'Extends
   [[_ extends & {:keys [without] :as opts} :as syn]]
@@ -567,6 +572,36 @@
   (parse-all-type bnds syn))
 
 (defmethod parse-type-list 'typed.clojure/All [t] (parse-All t))
+
+(defn parse-Match [[_ target & patterns :as all]]
+  (when-not (< 1 (count all))
+    (prs-error "Missing target type in t/Match"))
+  (let [patterns (loop [patterns patterns
+                        out []]
+                   (if (empty? patterns)
+                     out
+                     (let [[pattern-before-=> =>+rhs+patterns] (split-with (complement #{:->}) patterns)
+                           _ (when (empty? pattern-before-=>)
+                               (prs-error "Missing pattern before :-> in t/Match clause"))
+                           _ (when (empty? =>+rhs+patterns)
+                               (prs-error "Missing :-> in t/Match clause"))
+                           rhs+patterns (next =>+rhs+patterns)
+                           _ (when-not rhs+patterns
+                               (prs-error "Missing type after :-> in t/Match"))
+                           rhs (first rhs+patterns)
+                           patterns (next rhs+patterns)
+                           t (case (count pattern-before-=>)
+                               1 (let [[pattern] pattern-before-=>]
+                                   (parse-type [pattern :-> rhs]))
+                               2 (let [[binder pattern] pattern-before-=>]
+                                   (when-not (vector? binder)
+                                     (prs-error "Binder before :=> must be a vector"))
+                                   (parse-all-type* (parse-All-binder binder) [pattern :-> rhs]))
+                               (prs-error "Bad number of arguments before :=> in t/Match"))]
+                       (recur patterns (conj out t)))))]
+    (r/MatchType-maker (parse-type target) patterns)))
+
+(defmethod parse-type-list 'typed.clojure/Match [t] (parse-Match t))
 
 (defn parse-union-type [[u & types]]
   (c/make-Union (doall (map parse-type types))))
@@ -1837,6 +1872,7 @@
   (unparse-type* 
     [{types :types}]
     ; use vector sugar where appropriate
+    ; note: sugar is expected by unparse of t/Match
     (if (= 1 (count types))
       (unparse-type (first types))
       (list* (unparse-Name-symbol-in-ns `t/IFn)
@@ -1969,7 +2005,24 @@
     [m]
     (let [nme (-> (c/Mu-fresh-symbol* m) r/make-F unparse-F)
           body (c/Mu-body* nme m)]
-      (list (unparse-Name-symbol-in-ns `t/Rec) [nme] (unparse-type body)))))
+      (list (unparse-Name-symbol-in-ns `t/Rec) [nme] (unparse-type body))))
+
+  MatchType
+  (unparse-type* 
+    [m]
+    (list* (unparse-Name-symbol-in-ns `t/Match)
+           (unparse-type (:target m))
+           (mapcat (fn [t]
+                     (let [tsyn (unparse-type t)]
+                       ;; must be either [pattern :-> result] or (All binder [pattern :-> result])
+                       (if (vector? tsyn)
+                         (do (assert (= 3 (count tsyn)))
+                             tsyn)
+                         (let [_ (assert (= 3 (count tsyn)))
+                               [_All binder tsyn] tsyn]
+                           (assert (and (vector? tsyn) (= 3 (count tsyn))))
+                           (into [binder] tsyn)))))
+                   (:clauses m)))))
 
 (defn Bounds->vector [{:keys [upper-bound lower-bound] :as bnds}]
   {:pre [(r/Bounds? bnds)]}

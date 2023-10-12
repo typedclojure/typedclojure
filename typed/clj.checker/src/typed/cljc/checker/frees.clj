@@ -27,7 +27,7 @@
                                         Mu HeterogeneousMap KwArgs
                                         CountRange Name Value Top Wildcard Unchecked TopFunction B F Result AnyValue
                                         Scope TCError Extends AssocType GetType MergeType Regex HSequential HSet
-                                        JSObj TypeOf)
+                                        JSObj TypeOf MatchType)
            (typed.cljc.checker.filter_rep FilterSet TypeFilter NotTypeFilter ImpFilter
                                           AndFilter OrFilter TopFilter BotFilter)
            (typed.cljc.checker.object_rep Path EmptyObject NoObject)
@@ -465,13 +465,21 @@
     [{varis :variances, args :poly?, :as t}]
     (assert (= (count args) (count varis)))
     (apply combine-freesresults (map (fn [arg va]
-                                (let [fr (frees arg)]
-                                  (case va
-                                    :covariant fr
-                                    :contravariant (flip-variances fr)
-                                    :invariant (invariant-variances fr))))
-                              args
-                              varis)))
+                                       (let [fr (frees arg)]
+                                         (case va
+                                           :covariant fr
+                                           :contravariant (flip-variances fr)
+                                           :invariant (invariant-variances fr))))
+                                     args
+                                     varis)))
+
+  MatchType
+  (frees
+    [t]
+    (invariant-variances
+      (apply combine-freesresults
+             (frees (:target t))
+             (map frees (:clauses t)))))
 
   Scope
   (frees 

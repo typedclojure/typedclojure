@@ -9,3 +9,15 @@
   - e.g., `(t/All [b :..] ['[b :.. b] :.. b -> t/Any])`
 - scope dotted variables as kind `(t/* t/Type)`
 - check bounds when instantiating type functions and polymorphic types
+- add t/Match
+  - returns the result of the first (pattern) matching clause
+```clojure
+(t/Match nil nil :-> nil) ;=> nil
+(t/Match t/Int
+         nil :-> nil
+         t/Int :-> t/Bool) ;=> t/Bool
+(t/Match (t/Seqable t/Num)
+         [[E :< t/Int]] (t/Seqable E) :-> '[':first E]
+         [E] (t/Seqable E) :-> '[':second E])
+;=> '[':second t/Num]"
+```

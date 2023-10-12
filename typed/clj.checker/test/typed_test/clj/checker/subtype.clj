@@ -1,6 +1,7 @@
 (ns typed-test.clj.checker.subtype
   (:require [typed.clojure :as t]
             [typed.clj.checker.subtype :as sut]
+            [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.type-ctors :as c]
             [typed.clj.checker.test-utils :refer [is-clj]]
             [clojure.test :refer [deftest is]]))
@@ -30,4 +31,11 @@
                                  [(c/-name `t/Num)]
                                  (c/-name `t/Int)
                                  nil))
+  )
+
+(deftest has-kind?-test
+  (is-clj (sut/has-kind? r/-nil r/no-bounds))
+  (is-clj (sut/has-kind? r/-nil (r/-bounds r/-nil r/-nil)))
+  (is-clj (not (sut/has-kind? r/-nil (r/-bounds r/-nothing r/-nil))))
+  (is-clj (not (sut/has-kind? r/-nil (r/-bounds r/-nil r/-any))))
   )

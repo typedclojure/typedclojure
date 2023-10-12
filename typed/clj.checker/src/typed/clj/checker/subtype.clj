@@ -394,6 +394,12 @@
         (r/TypeOf? t)
         (recur A s (c/resolve-TypeOf t))
 
+        (r/MatchType? s)
+        (recur A (c/resolve-Match s) t)
+
+        (r/MatchType? t)
+        (recur A s (c/resolve-Match t))
+
         (and (r/Value? s)
              (r/Value? t))
         ;already (not= s t)
