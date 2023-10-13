@@ -8,3 +8,4 @@
     the dots and shadows the dotted variable
   - e.g., `(t/All [b :..] ['[b :.. b] :.. b -> t/Any])`
 - scope dotted variables as kind `(t/* t/Type)`
+- check bounds when instantiating type functions and polymorphic types

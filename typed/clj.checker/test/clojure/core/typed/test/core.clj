@@ -4595,3 +4595,13 @@
                             val)]
              (assert vs)
              (t/ann-form (first vs) t/Int))))
+
+(deftest tapp-bounds-test
+  (is-tc-e (do (t/defalias Foo
+                 (t/TFn [[x :< t/Int]] x))
+               (t/ann-form 1 (Foo t/Int))))
+  (is (= (is-tc-err-messages (do (t/defalias Foo
+                                   (t/TFn [[x :< t/Int]] x))
+                                 (t/ann-form 1 (Foo t/Bool))))
+         {:ex [["Type Error (:<NO LINE>) Type function argument number 1 (x) has kind (t/Type :< t/Int) but given t/Bool"
+                {:type-error :clojure.core.typed.errors/type-error}]]})))

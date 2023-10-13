@@ -1277,19 +1277,32 @@
         (map vector vs ts)))
 
 (t/ann ^:no-check instantiate-typefn [TypeFn (t/Seqable r/Type) -> r/Type])
-(defn instantiate-typefn [t types & {:keys [names]
+(defn instantiate-typefn [t types & {:keys [names tapp]
                                      :or {names (TypeFn-fresh-symbols* t)}}]
   (let [subst-all @(subst-all-var)]
     (when-not (r/TypeFn? t) (err/int-error (str "instantiate-typefn requires a TypeFn: " (ind/unparse-type t))))
     (do (when-not (= (:nbound t) (count types)) 
-          (err/int-error
-            (str "Wrong number of arguments passed to type function. Expected "
-                 (:nbound t) ", actual " (count types) ": "
-                 (ind/unparse-type t) " " (mapv ind/unparse-type types))))
+          (binding [vs/*current-env* (-> tapp meta :env)]
+            (err/int-error
+              (str "Wrong number of arguments passed to type function. Expected "
+                   (:nbound t) ", actual " (count types) ": "
+                   (ind/unparse-type t) " " (mapv ind/unparse-type types)
+                   (when-some [syn (-> tapp meta :syn)]
+                     (str "\n\nin :" (pr-str syn)))))))
         (let [bbnds (TypeFn-bbnds* names t)
               body (TypeFn-body* names t)]
           ;(prn "subst" names (map meta names))
           (free-ops/with-bounded-frees (zipmap (map r/make-F names) bbnds)
+            (dorun (map (fn [argn nm type bnd]
+                          (when-not (ind/has-kind? type bnd)
+                            (binding [vs/*current-env* (-> tapp meta :env)]
+                              (err/tc-error (str "Type function argument number " argn
+                                                 " (" (r/F-original-name (r/make-F nm)) ")"
+                                                 " has kind " (pr-str bnd)
+                                                 " but given " (pr-str type)
+                                                 (when-some [syn (-> tapp meta :syn)]
+                                                   (str "\n\nin: " (pr-str syn))))))))
+                        (next (range)) names types bbnds))
             (subst-all (make-simple-substitution names types) body))))))
 
 (t/ann ^:no-check instantiate-poly [Poly (t/Seqable r/Type) -> r/Type])
@@ -1308,6 +1321,12 @@
                         body (Poly-body* nms t)]
                     (free-ops/with-bounded-frees
                       (zipmap (map r/make-F nms) bbnds)
+                      (dorun (map (fn [nm type bnd]
+                                    (when-not (ind/has-kind? type bnd)
+                                      (err/tc-error (str "Polymorphic type variable " (r/F-original-name (r/make-F nm))
+                                                         " has kind " (pr-str bnd)
+                                                         " but given " (pr-str type)))))
+                                  nms types bbnds))
                       (subst-all (make-simple-substitution nms types) body)))
       ;PolyDots NYI
       :else (err/nyi-error (str "instantiate-poly: requires Poly, and PolyDots NYI")))))
@@ -1331,10 +1350,10 @@
     (when-not (= (count rands) (:nbound rator))
       (binding [vs/*current-env* (-> tapp meta :env)] ;must override env, or clear it
         (err/int-error (str "Wrong number of arguments (" (count rands) ") passed to type function: "
-                          (ind/unparse-type tapp) 
-                          (when-let [syn (-> tapp meta :syn)]
-                            (str " in " (pr-str syn)))))))
-    (instantiate-typefn rator rands)))
+                            (ind/unparse-type tapp) 
+                            (when-some [syn (-> tapp meta :syn)]
+                              (str "\n\nin: " (pr-str syn)))))))
+    (instantiate-typefn rator rands :tapp tapp)))
 
 (t/ann ^:no-check resolve-App [App -> r/Type])
 (defn resolve-App [app]
@@ -1345,7 +1364,7 @@
 (defn resolve-app* [rator rands]
   (let [rator (fully-resolve-type rator)]
     (cond
-      (r/Poly? rator) (do (when-not (= (count rands) (.nbound ^Poly rator))
+      (r/Poly? rator) (do (when-not (= (count rands) (:nbound rator))
                             (err/int-error (str "Wrong number of arguments provided to polymorphic type"
                                               (ind/unparse-type rator))))
                           (instantiate-poly rator rands))

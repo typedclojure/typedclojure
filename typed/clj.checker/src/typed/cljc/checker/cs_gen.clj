@@ -512,7 +512,7 @@
         (let [nms (c/Poly-fresh-symbols* S)
               body (c/Poly-body* nms S)
               bbnds (c/Poly-bbnds* nms S)]
-          (free-ops/with-bounded-frees (zipmap (map r/F-maker nms) bbnds)
+          (free-ops/with-bounded-frees (zipmap (map r/make-F nms) bbnds)
             (cs-gen (set/union (set nms) V) X Y body T)))
 
         (and (r/DataType? S)
@@ -2610,12 +2610,13 @@
         ;; TODO incorporate filter/object
         out (:t (:rng arity))
         substitution (handle-failure
-                       (infer
-                         (zipmap names bbnds)
-                         {}
-                         [lhs]
-                         [rhs]
-                         out))]
+                       (free-ops/with-bounded-frees (zipmap (map r/make-F names) bbnds)
+                         (infer
+                           (zipmap names bbnds)
+                           {}
+                           [lhs]
+                           [rhs]
+                           out)))]
     (when substitution
       (r/ret (subst/subst-all substitution out)))))
 

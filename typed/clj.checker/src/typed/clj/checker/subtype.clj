@@ -1651,3 +1651,10 @@
   `(impl/with-clojure-impl
      (subtype? (prs/parse-type '~s)
                (prs/parse-type '~t))))
+
+(defn has-kind? [t kind]
+  {:post [(boolean? %)]}
+  (cond
+    (r/Bounds? kind) (and (subtype? (:lower-bound kind) t)
+                          (subtype? t (:upper-bound kind)))
+    :else (err/nyi-error "non-type kinds")))
