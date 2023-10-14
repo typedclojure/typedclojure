@@ -841,8 +841,8 @@
         (let [sval (:val s)]
           (impl/impl-case
             :clojure (if (nil? sval)
-                       ; this is after the nil <: Protocol case, so we fail
-                       (report-not-subtypes s t)
+                       ; this is after the nil <: Protocol case, so just add non-protocol ancestors here
+                       (recur A (r/make-ExactCountRange 0) t)
                        (recur A
                               (apply c/In (c/RClass-of (class sval))
                                      (cond

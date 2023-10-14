@@ -21,3 +21,4 @@
          [E] (t/Seqable E) :-> '[':second E])
 ;=> '[':second t/Num]"
 ```
+- nil <: (ExactCount 0)
