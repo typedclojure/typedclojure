@@ -4,6 +4,7 @@
     ; this loads the type system, must go first
     [typed.clj.checker.test-utils :refer :all]
             [clojure.test :refer :all]
+            [clojure.string :as str]
             [typed.clj.checker.analyze-clj :as ana]
             ;[typed.clj.analyzer.passes.emit-form :as emit-form]
             [clojure.repl :refer [pst]]
