@@ -4,6 +4,7 @@
             [typed.clj.checker.test-utils :refer :all]))
 
 (deftest zipper-test
+  (is-tc-e seq [(t/Seqable t/Any) :-> (t/U nil (t/Seq t/Any))])
   (is-tc-e #(zipper vector? seq (fn [_ c] c) "abc")
            [-> (t/Vec t/Any)]
            :requires [[clojure.zip :refer [zipper]]])

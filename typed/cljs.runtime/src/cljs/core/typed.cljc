@@ -83,7 +83,7 @@
              (with-current-location form
                @(delay-tc-parse t)))
        t (delay
-           (prn "CLJS" qsym t)
+           ;(prn "CLJS" qsym t)
            (core/let [;unparse-type (requiring-resolve 'typed.clj.checker.parse-unparse/unparse-type)
                       t (bfn)
                       #_#_

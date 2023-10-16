@@ -53,7 +53,7 @@
            (typed.cljc.checker.filter_rep NoFilter TopFilter BotFilter TypeFilter NotTypeFilter
                                           ImpFilter AndFilter OrFilter FilterSet)
            (typed.cljc.checker.object_rep NoObject EmptyObject Path)
-           (typed.cljc.checker.path_rep KeyPE KeysPE ValsPE ClassPE NthPE CountPE KeywordPE)))
+           (typed.cljc.checker.path_rep KeyPE KeysPE ValsPE ClassPE NthPE CountPE KeywordPE SeqPE)))
 
 (set! *warn-on-reflection* true)
 
@@ -277,13 +277,13 @@
          [(impl/impl-case
             :clojure (case kind
                        :vector (RClass-of clojure.lang.APersistentVector [tp])
-                       :seq (RClass-of clojure.lang.ASeq [tp])
+                       :seq (-name 'typed.clojure/ASeq tp)
                        :list (RClass-of clojure.lang.PersistentList [tp])
                        :sequential (In (RClass-of clojure.lang.IPersistentCollection [tp])
                                        (RClass-of clojure.lang.Sequential)))
             :cljs (case kind
                     :vector (-name 'typed.clojure/Vec tp)
-                    :seq (-name 'typed.clojure/Seq tp)
+                    :seq (-name 'typed.clojure/ASeq tp)
                     :list (-name 'typed.clojure/List tp)
                     :sequential (In (-name 'typed.clojure/Coll tp)
                                     (-name 'cljs.core/ISequential))))]
@@ -1288,8 +1288,9 @@
               (str "Wrong number of arguments passed to type function. Expected "
                    (:nbound t) ", actual " (count types) ": "
                    (ind/unparse-type t) " " (mapv ind/unparse-type types)
-                   (when-some [syn (-> tapp meta :syn)]
-                     (str "\n\nin :" (pr-str syn)))))))
+                   (str "\n\nin: "
+                          (pr-str (or (-> tapp meta :syn)
+                                      (list* t types))))))))
         (let [bbnds (TypeFn-bbnds* names t)
               body (TypeFn-body* names t)]
           ;(prn "subst" names (map meta names))
@@ -1301,8 +1302,15 @@
                                                  " (" (r/F-original-name (r/make-F nm)) ")"
                                                  " has kind " (pr-str bnd)
                                                  " but given " (pr-str type)
-                                                 (when-some [syn (-> tapp meta :syn)]
-                                                   (str "\n\nin: " (pr-str syn))))))))
+                                                 (when (r/F? type)
+                                                   (if-some [kind (when (r/F? type)
+                                                                    (free-ops/free-with-name-bnds
+                                                                      (:name type)))]
+                                                     (str " with kind " kind)
+                                                     (str " with missing bounds")))
+                                                 (str "\n\nin: "
+                                                      (pr-str (or (-> tapp meta :syn)
+                                                                  (list* t types)))))))))
                         (next (range)) names types bbnds))
             (subst-all (make-simple-substitution names types) body))))))
 
@@ -1429,7 +1437,7 @@
 
 (defn Match-can-resolve? [ty]
   {:pre [(r/MatchType? ty)]}
-  true)
+  (not (r/F? (:target ty))))
 
 (t/ann requires-resolving? [r/Type -> t/Any])
 (defn requires-resolving? [ty]
@@ -1444,7 +1452,8 @@
            (Merge-requires-resolving? ty))
       (r/Mu? ty)
       (r/TypeOf? ty)
-      (r/MatchType? ty)))
+      (and (r/MatchType? ty)
+           (Match-can-resolve? ty))))
 
 (t/ann ^:no-check resolve-Name [Name -> r/Type])
 (defn resolve-Name [nme]
@@ -3031,6 +3040,7 @@
 (add-default-fold-case NthPE ret-first)
 (add-default-fold-case CountPE ret-first)
 (add-default-fold-case KeywordPE ret-first)
+(add-default-fold-case SeqPE ret-first)
 
 ;TCResult
 

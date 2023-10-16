@@ -394,10 +394,12 @@
         (r/TypeOf? t)
         (recur A s (c/resolve-TypeOf t))
 
-        (r/MatchType? s)
+        (and (r/MatchType? s)
+             (c/Match-can-resolve? s))
         (recur A (c/resolve-Match s) t)
 
-        (r/MatchType? t)
+        (and (r/MatchType? t)
+             (c/Match-can-resolve? t))
         (recur A s (c/resolve-Match t))
 
         (and (r/Value? s)
@@ -413,16 +415,15 @@
 
         (and (r/Poly? s)
              (r/Poly? t)
-             (= (:nbound s) (:nbound t)))
+             (= (:nbound s) (:nbound t))
+             (= (:bbnds s) (:bbnds t)))
         (let [;instantiate both sides with the same fresh variables
               names (repeatedly (:nbound s) gensym)
               bbnds1 (c/Poly-bbnds* names s)
-              bbnds2 (c/Poly-bbnds* names t)
               b1 (c/Poly-body* names s)
               b2 (c/Poly-body* names t)]
-          (if (and (= bbnds1 bbnds2)
-                   (free-ops/with-bounded-frees (zipmap (map r/F-maker names) bbnds1)
-                     (subtypeA* A b1 b2)))
+          (if (free-ops/with-bounded-frees (zipmap (map r/F-maker names) bbnds1)
+                (subtypeA* A b1 b2))
             A
             (report-not-subtypes s t)))
 
@@ -432,7 +433,9 @@
                    bnds (c/Poly-bbnds* names s)
                    b1 (c/Poly-body* names s)
                    ;_ (prn "try unify on left")
-                   u (unify (zipmap names bnds) {} [b1] [t] r/-any)]
+                   X (zipmap names bnds)
+                   u (free-ops/with-bounded-frees (update-keys X r/make-F)
+                       (unify X {} [b1] [t] r/-any))]
                ;(prn "unified on left")
                u))
         A
@@ -442,8 +445,10 @@
                    bnds (c/PolyDots-bbnds* names s)
                    b1 (c/PolyDots-body* names s)
                    ;_ (prn "try PolyDots unify on left")
-                   u (unify (zipmap (butlast names) (butlast bnds)) {(last names) (last bnds)} 
-                            [b1] [t] r/-any)]
+                   X (zipmap (pop names) (pop bnds))
+                   Y {(peek names) (peek bnds)}
+                   u (free-ops/with-bounded-frees (update-keys (into X Y) r/make-F)
+                       (unify X Y [b1] [t] r/-any))]
                ;(prn "unified on left" u)
                u))
         A
@@ -463,13 +468,13 @@
         A
 
         (and (r/Poly? t)
+             (empty? (frees/fv t))
              (let [names (c/Poly-fresh-symbols* t)
+                   bbnds (c/Poly-bbnds* names t)
                    b (c/Poly-body* names t)]
-               (empty? (frees/fv t))))
-        ;;FIXME don't recompute Poly-body*
-        (let [names (c/Poly-fresh-symbols* t)
-              b (c/Poly-body* names t)]
-          (recur A s b))
+               (free-ops/with-bounded-frees (zipmap (map r/F-maker names) bbnds)
+                 (subtypeA* A s b))))
+        A
 
         (r/Name? s)
         (recur A (c/resolve-Name s) t)

@@ -41,7 +41,7 @@
            (typed.cljc.checker.filter_rep TopFilter BotFilter TypeFilter NotTypeFilter AndFilter OrFilter
                                           ImpFilter NoFilter)
            (typed.cljc.checker.object_rep NoObject EmptyObject Path)
-           (typed.cljc.checker.path_rep KeyPE CountPE ClassPE KeysPE ValsPE NthPE KeywordPE)
+           (typed.cljc.checker.path_rep KeyPE CountPE ClassPE KeysPE ValsPE NthPE KeywordPE SeqPE)
            (clojure.lang Cons IPersistentList Symbol IPersistentVector)))
 
 (env-utils/invalidate-parsed-types!)
@@ -1372,11 +1372,25 @@
 (defmethod parse-path-elem :default [syn]
   (prs-error (str "Malformed path element: " (pr-str syn))))
 
-(defmethod parse-path-elem 'Class [_] (pthrep/ClassPE-maker))
-(defmethod parse-path-elem 'Count [_] (pthrep/CountPE-maker))
+(defmethod parse-path-elem 'Class [sym]
+  (when-not (= 'Class sym)
+    (prs-error "Class path element must be a symbol"))
+  (pthrep/ClassPE-maker))
 
-(defmethod parse-path-elem 'Keys [_] (pthrep/KeysPE-maker))
-(defmethod parse-path-elem 'Vals [_] (pthrep/ValsPE-maker))
+(defmethod parse-path-elem 'Count [sym]
+  (when-not (= 'Count sym)
+    (prs-error "Count path element must be a symbol"))
+  (pthrep/CountPE-maker))
+
+(defmethod parse-path-elem 'Keys [sym]
+  (when-not (= 'Keys sym)
+    (prs-error "Keys path element must be a symbol"))
+  (pthrep/KeysPE-maker))
+
+(defmethod parse-path-elem 'Vals [sym]
+  (when-not (= 'Vals sym)
+    (prs-error "Vals path element must be a symbol"))
+  (pthrep/ValsPE-maker))
 
 (defmethod parse-path-elem 'Key
   [[_ & [ksyn :as all]]]
@@ -1390,7 +1404,21 @@
     (prs-error "Wrong arguments to Nth"))
   (pthrep/NthPE-maker idx))
 
-(defmethod parse-path-elem 'Keyword [_] (pthrep/KeywordPE-maker))
+(defmethod parse-path-elem 'Seq
+  [[_ & [idx :as all]]]
+  (when-not (= 1 (count all))
+    (prs-error "Wrong arguments to Nth"))
+  (pthrep/NthPE-maker idx))
+
+(defmethod parse-path-elem 'Keyword [sym]
+  (when-not (= 'Keyword sym)
+    (prs-error "Keyword path element must be a symbol"))
+  (pthrep/KeywordPE-maker))
+
+(defmethod parse-path-elem 'Seq [sym]
+  (when-not (= 'Seq sym)
+    (prs-error "Seq path element must be a symbol"))
+  (pthrep/SeqPE-maker))
 
 (defn- parse-kw-map [m]
   {:post [((con/hash-c? r/Value? r/Type?) %)]}
@@ -2292,7 +2320,9 @@
   ValsPE 
   (unparse-path-elem [t] 'Vals)
   KeywordPE 
-  (unparse-path-elem [t] 'Keyword))
+  (unparse-path-elem [t] 'Keyword)
+  SeqPE 
+  (unparse-path-elem [t] 'Seq))
 
 ; Filters
 

@@ -31,7 +31,7 @@
             [typed.cljc.checker.utils :as u])
   (:import (typed.cljc.checker.cs_rep c cset dcon dmap cset-entry)
            (typed.cljc.checker.type_rep Top Wildcard DottedPretype F DataType Function Protocol Bounds TCResult HSequential SymbolicClosure
-                                        GetType MergeType AssocType Regex)))
+                                        GetType MergeType AssocType Regex MatchType)))
 
 (t/typed-deps typed.cljc.checker.free-ops
               typed.cljc.checker.promote-demote)
@@ -427,7 +427,12 @@
              (r/Poly? T)
              (= (:nbound S) (:nbound T))
              (= (:bbnds S) (:bbnds T)))
-        (cs-gen V X Y (r/Poly-body-unsafe* S) (r/Poly-body-unsafe* T))
+        (let [names (c/Poly-fresh-symbols* T)
+              bbnds (c/Poly-bbnds* names T)
+              S' (c/Poly-body* names S)
+              T' (c/Poly-body* names T)]
+          (free-ops/with-bounded-frees (zipmap (map r/make-F names) bbnds)
+            (cs-gen V X Y S' T')))
 
 
         ;constrain *each* element of S to be below T, and then combine the constraints
@@ -1861,6 +1866,7 @@
 (f/add-fold-case IHardRange hard-range?* GetType (fn [t hard?] (vreset! hard? true) t))
 (f/add-fold-case IHardRange hard-range?* MergeType (fn [t hard?] (vreset! hard? true) t))
 (f/add-fold-case IHardRange hard-range?* AssocType (fn [t hard?] (vreset! hard? true) t))
+(f/add-fold-case IHardRange hard-range?* MatchType (fn [t hard?] (vreset! hard? true) t))
 
 (defn hard-range? [t]
   (let [hard? (volatile! false)]
@@ -2048,11 +2054,13 @@
       (r/Poly? t) (let [names (c/Poly-fresh-symbols* t)
                         bbnds (c/Poly-bbnds* names t)
                         body (c/Poly-body* names t)]
-                   (c/Poly* names bbnds (prep-symbolic-closure-expected-type2 subst body)))
+                   (free-ops/with-bounded-frees (zipmap (map r/make-F names) bbnds)
+                     (c/Poly* names bbnds (prep-symbolic-closure-expected-type2 subst body))))
       (r/PolyDots? t) (let [names (c/PolyDots-fresh-symbols* t)
                             bbnds (c/PolyDots-bbnds* names t)
                             body  (c/PolyDots-body* names t)]
-                        (c/PolyDots* names bbnds (prep-symbolic-closure-expected-type2 subst body)))
+                        (free-ops/with-bounded-frees (zipmap (map r/make-F names) bbnds)
+                          (c/PolyDots* names bbnds (prep-symbolic-closure-expected-type2 subst body))))
       :else (do ;(prn "unsupported type in prep-symbolic-closure-expected-type: " t)
                 (fail! nil nil)))))
 

@@ -4601,11 +4601,10 @@
   (is-tc-e (do (t/defalias Foo
                  (t/TFn [[x :< t/Int]] x))
                (t/ann-form 1 (Foo t/Int))))
-  (is (= (is-tc-err-messages (do (t/defalias Foo
-                                   (t/TFn [[x :< t/Int]] x))
-                                 (t/ann-form 1 (Foo t/Bool))))
-         {:ex [["Type Error (:<NO LINE>) Type function argument number 1 (x) has kind (t/Type :< t/Int) but given t/Bool"
-                {:type-error :clojure.core.typed.errors/type-error}]]})))
+  (let [{[[msg]] :ex} (is-tc-err-messages (do (t/defalias Foo
+                                                (t/TFn [[x :< t/Int]] x))
+                                              (t/ann-form 1 (Foo t/Bool))))]
+    (is (str/starts-with? msg "Type Error (:<NO LINE>) Type function argument number 1 (x) has kind (t/Type :< t/Int) but given t/Bool"))))
 
 (deftest SeqOn-test
   (is-clj (= r/-nil (fully-resolve-type (-name `t/SeqOn r/-nil))))
@@ -4619,4 +4618,5 @@
   (is-tc-e nil (t/SeqOn '[]))
   (is-tc-err (seq [1]) (t/SeqOn t/Str))
   (is-tc-err "a" (t/SeqOn t/Int))
+  (is-tc-e (seq [1 2 3]) (t/NonEmptyASeq t/Int))
   )

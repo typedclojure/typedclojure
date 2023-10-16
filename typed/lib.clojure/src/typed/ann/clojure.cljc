@@ -1767,7 +1767,9 @@ cc/class (t/IFn [nil :-> nil :object {:id 0 :path [Class]}]
 cc/type [t/Any :-> t/Any]
 
 ;;TODO clojure.core/not-empty
-cc/seq (t/All [x] (t/IFn [(t/NonEmptyColl x) :-> (t/NonEmptyASeq x)
+cc/seq (t/All [[x :< (t/Seqable t/Any)]]
+              [x :-> (t/SeqOn x) :object {:id 0 :path [Seq]}])
+#_(t/All [x] (t/IFn [(t/NonEmptyColl x) :-> (t/NonEmptyASeq x)
                           :filters {:then tt
                                     :else ff}]
                          [(t/Option (t/Coll x)) :-> (t/NilableNonEmptyASeq x)

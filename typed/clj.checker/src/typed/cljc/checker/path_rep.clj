@@ -71,6 +71,11 @@
   "Calling clojure.core/keyword with a single argument."
   [])
 
+(t/ann-record SeqPE [])
+(u/def-object SeqPE []
+  "Result of clojure.core/seq."
+  [])
+
 (declare-path-elem NthPE)
 (declare-path-elem NextPE)
 (declare-path-elem ClassPE)
@@ -79,6 +84,7 @@
 (declare-path-elem KeysPE)
 (declare-path-elem ValsPE)
 (declare-path-elem KeywordPE)
+(declare-path-elem SeqPE)
 
 (def path-elems? (every-pred (some-fn nil? seq)
                              (con/every-c? PathElem?)))

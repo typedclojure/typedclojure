@@ -31,7 +31,7 @@
            (typed.cljc.checker.filter_rep FilterSet TypeFilter NotTypeFilter ImpFilter
                                           AndFilter OrFilter TopFilter BotFilter)
            (typed.cljc.checker.object_rep Path EmptyObject NoObject)
-           (typed.cljc.checker.path_rep NthPE NextPE ClassPE CountPE KeyPE KeysPE ValsPE KeywordPE)))
+           (typed.cljc.checker.path_rep NthPE NextPE ClassPE CountPE KeyPE KeysPE ValsPE KeywordPE SeqPE)))
 
 (set! *warn-on-reflection* true)
 
@@ -230,7 +230,8 @@
   (frees [t] -empty-frees-result)
   KeywordPE 
   (frees [t] -empty-frees-result)
-
+  SeqPE 
+  (frees [t] -empty-frees-result)
 
   F
   (frees

@@ -129,6 +129,14 @@
                                 [derived-props derived-atoms])
             :else (recur (cons p derived-props) derived-atoms (next worklist))))))))
 
+;; TODO make extensible
+(defn with-updated-SeqOn [t SeqOn]
+  (if (sub/subtype? ((requiring-resolve 'typed.cljc.checker.check.nthnext/seq-type)
+                     t)
+                    SeqOn)
+    t
+    r/-nothing))
+
 ; This is where filters are applied to existing types to generate more specific ones.
 ; t is the old type
 ; ft is the new type to update with
@@ -382,8 +390,8 @@
 
                  ;; if the new type is a keyword, old type must be a (U Str Sym Kw).
                  (sub/subtype? ft (c/RClass-of Keyword))
-                 (c/Un (c/RClass-of Keyword) 
-                       (c/RClass-of String) 
+                 (c/Un (c/RClass-of Keyword)
+                       (c/RClass-of String)
                        (c/RClass-of clojure.lang.Symbol))
 
                  ;; if the output of `keyword` is at best (U nil Kw), input could be anything
@@ -393,6 +401,14 @@
                  ;; impossible
                  :else r/-nothing)
                pos? (next lo))
+
+      (pe/SeqPE? (first lo))
+      (let [;; t is the argument to `clojure.core/seq`
+            ;; ft is the filter on the return value of `clojure.core/seq`
+            updated (update* (c/-name `t/SeqOn t) ft pos? (next lo))]
+        ;(prn {:t t :ft ft :pos? pos? :lo lo :updated updated})
+        (with-updated-SeqOn t updated)
+        )
 
       :else (err/int-error (str "update along ill-typed path " (pr-str (prs/unparse-type t)) " " (mapv prs/unparse-path-elem lo))))))
 

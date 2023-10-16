@@ -8,6 +8,7 @@
 
 (ns ^:no-doc typed.cljc.checker.check.nthnext
   (:require [typed.clojure :as t]
+            [typed.cljc.checker.check :refer [check-expr]]
             [typed.cljc.checker.check-below :as below]
             [typed.cljc.checker.check.utils :as cu]
             [typed.cljc.checker.cs-gen :as cgen]
@@ -118,26 +119,25 @@
    :post [((some-fn nil? r/Type?) %)]}
   (nthnext-type t 0))
 
-(defn check-specific-rest [check-fn nrests {:keys [args] :as expr} expected]
+(defn check-specific-rest [nrests {:keys [args] :as expr} expected]
   {:pre [(nat-int? nrests)]
    :post [(or (nil? %)
               (-> % u/expr-type r/TCResult?))]}
   (let [{[ctarget] :args :as expr} (-> expr
-                                       (update :args #(mapv check-fn %))) ;FIXME possibly repeated type check
+                                       (update :args #(mapv check-expr %))) ;FIXME possibly repeated type check
         target-ret (u/expr-type ctarget)]
     (when-let [t (nthrest-type (r/ret-t target-ret) nrests)]
       (-> expr
-          (update :fn check-fn)
+          (update :fn check-expr)
           (assoc u/expr-type (below/maybe-check-below
                                (r/ret t (fo/-true-filter))
                                expected))))))
 
-(defn check-specific-next [check-fn nnexts {:keys [args] :as expr} expected]
+(defn check-specific-next [nnexts {:keys [args] :as expr} expected]
   {:pre [(nat-int? nnexts)]
    :post [(or (nil? %)
               (-> % u/expr-type r/TCResult?))]}
-  (let [{[ctarget] :args :as expr} (-> expr
-                                       (update :args #(mapv check-fn %))) ;FIXME possibly repeated type check
+  (let [{[ctarget] :args :as expr} (update expr :args #(mapv check-expr %)) ;FIXME possibly repeated type check
         target-ret (u/expr-type ctarget)]
     (when-some [t (nthnext-type (r/ret-t target-ret) nnexts)]
       (let [res (r/ret t
@@ -168,36 +168,36 @@
                                                                 (:o target-ret)))))
                          (fo/-simple-filter)))]
       (-> expr
-          (update :fn check-fn)
+          (update :fn check-expr)
           (assoc u/expr-type (below/maybe-check-below
                                res
                                expected)))))))
 
-(defn check-nthnext [check-fn {[_ {maybe-int :form} :as args] :args :as expr} expected]
+(defn check-nthnext [{[_ {maybe-int :form} :as args] :args :as expr} expected]
   {:pre [(every? (comp #{:unanalyzed} :op) args)]
    :post [(or (nil? %)
               (-> % u/expr-type r/TCResult?))]}
-  (when (#{2} (count args))
+  (when (= 2 (count args))
     (when (nat-int? maybe-int)
-      (check-specific-next check-fn maybe-int expr expected))))
+      (check-specific-next maybe-int expr expected))))
 
-(defn check-next [check-fn {:keys [args] :as expr} expected]
+(defn check-next [{:keys [args] :as expr} expected]
   {:pre [(every? (comp #{:unanalyzed} :op) args)]
    :post [(or (nil? %)
               (-> % u/expr-type r/TCResult?))]}
-  (when (#{1} (count args))
-    (check-specific-next check-fn 1 expr expected)))
+  (when (= 1 (count args))
+    (check-specific-next 1 expr expected)))
 
-(defn check-seq [check-fn {:keys [args] :as expr} expected]
+(defn check-seq [{:keys [args] :as expr} expected]
   {:pre [(every? (comp #{:unanalyzed} :op) args)]
    :post [(or (nil? %)
               (-> % u/expr-type r/TCResult?))]}
-  (when (#{1} (count args))
-    (check-specific-next check-fn 0 expr expected)))
+  (when (= 1 (count args))
+    (check-specific-next 0 expr expected)))
 
-(defn check-rest [check-fn {:keys [args] :as expr} expected]
+(defn check-rest [{:keys [args] :as expr} expected]
   {:pre [(every? (comp #{:unanalyzed} :op) args)]
    :post [(or (nil? %)
               (-> % u/expr-type r/TCResult?))]}
-  (when (#{1} (count args))
-    (check-specific-rest check-fn 1 expr expected)))
+  (when (= 1 (count args))
+    (check-specific-rest 1 expr expected)))

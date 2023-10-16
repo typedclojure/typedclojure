@@ -22,3 +22,11 @@
 ;=> '[':second t/Num]"
 ```
 - nil <: (ExactCount 0)
+- add `t/SeqOn`
+  - returns the return type of `seq` for given argument type
+  - `(t/SeqOn nil) => nil`
+  - `(t/SeqOn '[1 2]) => (t/HSeq :types ['1 '2])`
+  - `(t/SeqOn (t/Seqable t/Any)) => (t/NilableNonEmptyASeq t/Any)`
+- change `clojure.core/seq` to use `t/SeqOn`
+- add new object path element `Seq`, which represents the result of calling `clojure.core/seq`
+  - replaces old filters on `clojure.core/seq` annotation

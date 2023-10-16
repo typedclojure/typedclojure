@@ -1168,7 +1168,7 @@
   [{fexpr :fn :keys [args] :as expr} expected]
   {:post [(-> % u/expr-type r/TCResult?)
           (vector? (:args %))]}
-  (or (nthnext/check-seq check-expr expr expected)
+  (or (nthnext/check-seq expr expected)
       (invoke/normal-invoke expr fexpr args expected)))
 
 ;make vector
@@ -1267,21 +1267,21 @@
   [{fexpr :fn :keys [args] :as expr} expected]
   {:post [(or (nil? %)
               (-> % u/expr-type r/TCResult?))]}
-  (nthnext/check-nthnext check-expr expr expected))
+  (nthnext/check-nthnext expr expected))
 
 ;next
 (defmethod -invoke-special 'clojure.core/next
   [{fexpr :fn :keys [args] :as expr} expected]
   {:post [(or (nil? %)
               (-> % u/expr-type r/TCResult?))]}
-  (nthnext/check-next check-expr expr expected))
+  (nthnext/check-next expr expected))
 
 ;rest
 (defmethod -invoke-special 'clojure.core/rest
   [{fexpr :fn :keys [args] :as expr} expected]
   {:post [(or (nil? %)
               (-> % u/expr-type r/TCResult?))]}
-  (nthnext/check-rest check-expr expr expected))
+  (nthnext/check-rest expr expected))
 
 ;keeping because it might be handy later
 #_

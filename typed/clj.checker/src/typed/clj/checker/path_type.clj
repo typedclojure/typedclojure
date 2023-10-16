@@ -138,4 +138,9 @@
            :else (c/Un r/-nil (c/RClass-of Keyword)))
          (next ps))
 
+       (pe/SeqPE? (first ps))
+       (path-type
+         (c/-name `t/SeqOn t)
+         (next ps))
+
        :else (err/int-error (str "Bad call to path-type: " (pr-str t) ", " (pr-str ps) ", " (mapv class ps)))))))
