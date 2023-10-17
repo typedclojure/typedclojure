@@ -545,10 +545,6 @@ java.lang.String [[]
                   [(Seqable (t/NilableNonEmptySeq Character))
                    (Indexed Character)]]
 
-java.nio.CharBuffer [[]
-                     :replace
-                     {java.nio.CharBuffer (java.nio.CharBuffer String)}]
-
 java.lang.Iterable [[[a :variance :covariant]]
                     :unchecked-ancestors
                     [(Seqable (t/NilableNonEmptySeq a))]]
