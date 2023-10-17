@@ -1961,7 +1961,7 @@ cc/nthnext (t/All [x] (t/IFn [nil t/AnyInteger :-> nil]
 cc/rest (t/All [x] [(t/Seqable x) :-> (t/ASeq x)])
 cc/last (t/All [x] (t/IFn [(t/NonEmptySeqable x) :-> x]
                           [(t/Seqable x) :-> (t/U nil x)]))
-cc/butlast (t/All [x] [(t/Seqable x) :-> (t/ASeq x)])
+cc/butlast (t/All [x] [(t/Seqable x) :-> (t/NilableNonEmptyASeq x)])
 cc/next (t/All [x] (t/IFn [(t/Option (t/Coll x)) :-> (t/NilableNonEmptyASeq x)
                            :filters {:then (& (is (t/CountRange 2) 0)
                                               (! nil 0))

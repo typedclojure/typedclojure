@@ -30,3 +30,4 @@
 - change `clojure.core/seq` to use `t/SeqOn`
 - add new object path element `Seq`, which represents the result of calling `clojure.core/seq`
   - replaces old filters on `clojure.core/seq` annotation
+- `cc/butlast` returns a nilable non-empty seq
