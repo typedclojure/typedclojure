@@ -39,11 +39,3 @@
                        :raw-class (class (get (rclasses) csym))])
               true)]}
   (force-type (get (rclasses) csym)))
-
-(defn alter-class* [csym type]
-  (env/swap-checker! assoc-in [impl/current-rclass-env-kw csym] type)
-  nil)
-
-(defn reset-rclass-env! [m]
-  (env/swap-checker! assoc impl/current-rclass-env-kw m)
-  nil)

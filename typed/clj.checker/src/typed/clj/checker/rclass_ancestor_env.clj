@@ -33,14 +33,14 @@
    :post [((con/hash-c? symbol? r/Type?) %)]}
   (update-vals replacements #(c/inst-and-subst % poly)))
 
-(t/ann ^:no-check add-rclass-ancestors [RClass (t/Seqable r/Type) -> nil])
+(t/ann ^:no-check abstract-rclass-ancestors [RClass (t/Seqable r/Type) -> nil])
 (defn abstract-rclass-ancestors [rsym names as]
   {:pre [(symbol? rsym)]}
   (r/sorted-type-set
     (for [u as]
       (c/abstract-many names u))))
 
-(t/ann ^:no-check add-rclass-replacements [RClass (t/Map t/Symbol r/Type) -> nil])
+(t/ann ^:no-check abstract-rclass-replacements [RClass (t/Map t/Symbol r/Type) -> nil])
 (defn abstract-rclass-replacements [rsym names as]
   {:pre [(symbol? rsym)]}
   (update-vals as #(c/abstract-many names %)))

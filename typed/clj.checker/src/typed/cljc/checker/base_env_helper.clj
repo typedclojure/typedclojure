@@ -153,30 +153,3 @@
                  (free-ops/with-bounded-frees frees-and-bnds
                    (into (r/sorted-type-set []) (map prs/parse-type) unchecked-ancestors-syn))
                  bnds))))
-
-(defn declared-kind-for-rclass [frees]
-  (let [fs (map first frees)
-        _ (assert (every? symbol? fs) fs)
-        vs (map (fn [[v & {:keys [variance]}]] variance) frees)]
-    (c/TypeFn* fs vs (repeat (count vs) r/no-bounds) r/-any)))
-
-(defn process-altered-class [nsym [s [frees & opts] :as kv]]
-  {:pre [(simple-symbol? nsym)]}
-  (assert (= 2 (count kv)) (print-str "Uneven args passed to `alters`:" kv))
-  (macros/when-bindable-defining-ns nsym
-    (impl/with-clojure-impl
-      (let [sym (resolve-class-symbol s)
-            decl-kind (env-utils/delay-type
-                        ((resolve `declared-kind-for-rclass) frees))
-            _ (when (r/TypeFn? (env-utils/force-type decl-kind))
-                (decl-env/add-declared-kind sym decl-kind))
-            rcls (env-utils/delay-type ((resolve `make-RClass) s frees opts))]
-        ;accumulate altered classes in initial env
-        (rcls/alter-class* sym rcls)
-        (decl-env/remove-declared-kind sym)
-        [sym rcls]))))
-
-(defmacro alters [& args]
-  (assert (even? (count args)))
-  `(into {} (map (partial process-altered-class '~(ns-name *ns*)))
-         (partition-all 2 '~args)))
