@@ -42,6 +42,8 @@
          (map resolve-or-fail mw/cider-middleware)))
 
 (defn -main [& args]
+  (when-not (System/getProperty "typed.clj.checker.parse-unparse.fipp-override")
+    (System/setProperty "typed.clj.checker.parse-unparse.fipp-override" "true"))
   ;; sigh, how do you set init-ns with nrepl??
   #_
   (deref (-> ((requiring-resolve 'nrepl.cmdline/-main)
