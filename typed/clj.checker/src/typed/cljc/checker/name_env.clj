@@ -30,8 +30,9 @@
 (t/ann temp-binding t/Kw)
 (def temp-binding ::temp-binding)
 
-(doseq [k [impl/declared-name-type impl/protocol-name-type impl/datatype-name-type]]
-  (derive k temp-binding))
+(t/tc-ignore
+  (doseq [k [impl/declared-name-type impl/protocol-name-type impl/datatype-name-type]]
+    (derive k temp-binding)))
 
 (t/ann ^:no-check name-env? [t/Any -> t/Any])
 (def name-env? (con/hash-c? (every-pred (some-fn namespace 
@@ -77,7 +78,7 @@
 (t/ann ^:no-check declare-name* [t/Sym -> nil])
 (def declare-name* impl/declare-name*)
 
-(t/ann declared-name? [t/Sym -> t/Bool])
+(t/ann ^:no-check declared-name? [t/Sym -> t/Bool])
 (defn declared-name? [sym]
   (= impl/declared-name-type (get-type-name sym)))
 
@@ -91,7 +92,7 @@
 (t/ann ^:no-check declare-datatype* [t/Sym -> nil])
 (def declare-datatype* impl/declare-datatype*)
 
-(t/ann declared-datatype? [t/Sym -> t/Bool])
+(t/ann ^:no-check declared-datatype? [t/Sym -> t/Bool])
 (defn declared-datatype? [sym]
   (= impl/datatype-name-type (get-type-name sym)))
 
