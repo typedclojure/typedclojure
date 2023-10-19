@@ -16,6 +16,7 @@
             [clojure.math.combinatorics :as comb]
             [clojure.set :as set]
             [clojure.string :as str]
+            [clojure.walk :as walk]
             [typed.clj.checker.constant-type :as const]
             [typed.cljc.analyzer.passes.uniquify :as uniquify]
             [typed.cljc.checker.filter-ops :as fl]
@@ -98,6 +99,46 @@
     (prefer-method print-method typed.cljc.checker.path_rep.IPathElem java.util.Map)
     (prefer-method print-method typed.cljc.checker.path_rep.IPathElem clojure.lang.IPersistentMap)
     )
+
+;; vim-fireplace calls cider.nrepl.pprint/fipp-pprint.
+;; because of frustrating issues with nrepl in typed.dev.repl/-main, I haven't figured out how to disable
+;; the specific cider middleware that triggers it. this hack prints types in a human readable format.
+;; it's necessary to convert to edn before calling to circumvent fipp's defaults for printing maps.
+;; this makes extending fipp.edn/IEdn useless for types.
+(defonce ^:private original-fipp-pretty nil)
+(defn- massage-before-fipp-pprint [x]
+  (let [contains-special-print? (volatile! nil)
+        special-pprint (fn [t]
+                         (cond
+                           (or (instance? typed.cljc.checker.impl_protocols.TCType t)
+                               (instance? typed.cljc.checker.impl_protocols.TCAnyType t))
+                           [(unparse-type t)]
+                           (instance? TCResult t) [(unparse-TCResult t)]
+                           (instance? typed.cljc.checker.impl_protocols.IFilter t) [((if (f/FilterSet? t)
+                                                                                       unparse-filter-set
+                                                                                       unparse-filter)
+                                                                                     t)]
+                           (instance? typed.cljc.checker.impl_protocols.IRObject t) [(unparse-object t)]
+                           (instance? typed.cljc.checker.path_rep.IPathElem t) [(unparse-path-elem t)]))
+        pprint-types (fn pprint-types [x]
+                       (if-some [[printed] (special-pprint x)]
+                         (do (vreset! contains-special-print? true)
+                             printed)
+                         ((requiring-resolve 'clojure.walk/walk) pprint-types identity x)))
+        res (pprint-types x)]
+    (if @contains-special-print? res x)))
+
+(when (= "true" (System/getProperty "typed.clj.checker.parse-unparse.fipp-override"))
+  (try (require 'fipp.ednize 'fipp.edn 'cider.nrepl.pprint)
+       (when-not original-fipp-pretty
+         (alter-var-root #'original-fipp-pretty
+                         (fn [_]
+                           (alter-var-root (resolve 'cider.nrepl.pprint/fipp-pprint)
+                                           (fn [fipp-pretty]
+                                             (fn
+                                               ([x writer] (-> x massage-before-fipp-pprint (fipp-pretty writer)))
+                                               ([x writer options] (-> x massage-before-fipp-pprint (fipp-pretty writer options)))))))))
+       #_(catch Exception _)))
 
 (defmacro with-parse-ns [sym & body]
   `(binding [*parse-type-in-ns* ~sym]

@@ -40,6 +40,7 @@
 ;; only refresh loaded namespaces
 ;;https://github.com/metosin/bat-test/blob/847b6bcaed754cfeadcc1b186e9c0eb162bc308c/src/metosin/bat_test/impl.clj
 ;;FIXME :clojure.tools.namespace.repl/unload is broken so this ns keeps losing its tracker
+;;hack in finally clause to work around
 (defn refresh []
   (let [watch-directories (filter
                             (fn [^String p]
@@ -65,7 +66,9 @@
       (catch java.io.FileNotFoundException e
         (print "Reseting tracker due to file not found exception, all namespaces will be reloaded next time.\n")
         (reset! tracker ((requiring-resolve 'clojure.tools.namespace.track/tracker)))
-        (throw e)))))
+        (throw e))
+      (finally
+        (require 'typed.dev)))))
 
 ;; https://github.com/nrepl/piggieback#usage
 (defn cljs-repl []
