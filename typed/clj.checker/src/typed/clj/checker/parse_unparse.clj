@@ -105,7 +105,6 @@
 ;; the specific cider middleware that triggers it. this hack prints types in a human readable format.
 ;; it's necessary to convert to edn before calling to circumvent fipp's defaults for printing maps.
 ;; this makes extending fipp.edn/IEdn useless for types.
-(defonce ^:private original-fipp-pretty nil)
 (defn- massage-before-fipp-pprint [x]
   (let [contains-special-print? (volatile! nil)
         special-pprint (fn [t]
@@ -129,16 +128,15 @@
     (if @contains-special-print? res x)))
 
 (when (= "true" (System/getProperty "typed.clj.checker.parse-unparse.fipp-override"))
-  (try (require 'fipp.ednize 'fipp.edn 'cider.nrepl.pprint)
-       (when-not original-fipp-pretty
-         (alter-var-root #'original-fipp-pretty
-                         (fn [_]
-                           (alter-var-root (resolve 'cider.nrepl.pprint/fipp-pprint)
-                                           (fn [fipp-pretty]
-                                             (fn
-                                               ([x writer] (-> x massage-before-fipp-pprint (fipp-pretty writer)))
-                                               ([x writer options] (-> x massage-before-fipp-pprint (fipp-pretty writer options)))))))))
-       #_(catch Exception _)))
+  (when (try (require 'fipp.ednize 'fipp.edn 'cider.nrepl.pprint)
+             true
+             (catch java.io.FileNotFoundException _))
+    (alter-var-root (resolve 'cider.nrepl.pprint/fipp-pprint)
+                    (fn [fipp-pretty]
+                      (fn
+                        ([x writer] (-> x ((resolve `massage-before-fipp-pprint)) (fipp-pretty writer)))
+                        ([x writer options] (-> x ((resolve `massage-before-fipp-pprint)) (fipp-pretty writer options)))))))
+  (System/setProperty "typed.clj.checker.parse-unparse.fipp-override" "false"))
 
 (defmacro with-parse-ns [sym & body]
   `(binding [*parse-type-in-ns* ~sym]
