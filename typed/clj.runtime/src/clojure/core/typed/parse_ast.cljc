@@ -1146,9 +1146,7 @@
                                      ne)
                                    vs/*current-env*))]
     (cond
-      (nil? syn) {:op :singleton :val nil :form syn}
-      (true? syn) {:op :singleton :val true :form syn}
-      (false? syn) {:op :singleton :val false :form syn}
+      ((some-fn nil? true? false?) syn) {:op :singleton :val syn :form syn}
       (vector? syn) {:op :Fn 
                      :arities [(parse-function syn)]
                      :form syn

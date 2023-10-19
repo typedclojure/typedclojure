@@ -30,10 +30,8 @@
 (t/ann temp-binding t/Kw)
 (def temp-binding ::temp-binding)
 
-(t/tc-ignore
 (doseq [k [impl/declared-name-type impl/protocol-name-type impl/datatype-name-type]]
   (derive k temp-binding))
-  )
 
 (t/ann ^:no-check name-env? [t/Any -> t/Any])
 (def name-env? (con/hash-c? (every-pred (some-fn namespace 
@@ -81,23 +79,21 @@
 
 (t/ann declared-name? [t/Sym -> t/Bool])
 (defn declared-name? [sym]
-  (= (t/tc-ignore impl/declared-name-type)
-     (get-type-name sym)))
+  (= impl/declared-name-type (get-type-name sym)))
 
 (t/ann ^:no-check declare-protocol* [t/Sym -> nil])
 (def declare-protocol* impl/declare-protocol*)
 
 (t/ann ^:no-check declared-protocol? [t/Sym -> t/Bool])
 (defn declared-protocol? [sym]
-  (= (t/tc-ignore impl/protocol-name-type) (get-type-name sym)))
+  (= impl/protocol-name-type (get-type-name sym)))
 
 (t/ann ^:no-check declare-datatype* [t/Sym -> nil])
 (def declare-datatype* impl/declare-datatype*)
 
 (t/ann declared-datatype? [t/Sym -> t/Bool])
 (defn declared-datatype? [sym]
-  (= (t/tc-ignore impl/datatype-name-type)
-     (get-type-name sym)))
+  (= impl/datatype-name-type (get-type-name sym)))
 
 (t/ann ^:no-check resolve-name* [t/Sym -> r/Type])
 (defn resolve-name* [sym]

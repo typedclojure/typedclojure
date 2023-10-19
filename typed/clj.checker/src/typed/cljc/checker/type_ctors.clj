@@ -673,9 +673,8 @@
 
 (t/ann ^:no-check Protocol*
   [(t/Seqable t/Sym) (t/Seqable r/Variance) (t/Seqable r/Type) t/Sym t/Sym (t/Map t/Sym r/Type) (t/Seqable Bounds) 
-   & :optional {:declared? t/Bool} -> r/Type])
-(defn Protocol* [names variances poly? the-var on-class methods bnds
-                 & {:keys [declared?] :or {declared? false}}]
+   & :optional {:type-level t/Bool} -> r/Type])
+(defn Protocol* [names variances poly? the-var on-class methods bnds]
   {:pre [(every? symbol? names)
          (every? r/variance? variances)
          (= (count variances) (count poly?))
@@ -684,7 +683,7 @@
          (symbol? the-var)
          (symbol? on-class)]
    :post [(r/Type? %)]}
-  (let [p (r/Protocol-maker the-var (seq variances) (seq poly?) on-class methods declared?)]
+  (let [p (r/Protocol-maker the-var (seq variances) (seq poly?) on-class methods)]
     (if (seq variances)
       (TypeFn* names variances bnds p)
       p)))
@@ -746,7 +745,7 @@
        (r/TypeFn? p) (instantiate-typefn p args)
        (r/Protocol? p) p
        ; allow unannotated protocols if unparameterised
-       :else (r/Protocol-maker sym nil nil (Protocol-var->on-class sym) {} false)))))
+       :else (r/Protocol-maker sym nil nil (Protocol-var->on-class sym) {})))))
 
 ;; RClass
 

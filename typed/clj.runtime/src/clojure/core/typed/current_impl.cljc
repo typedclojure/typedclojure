@@ -347,17 +347,21 @@
   (ensure-impl-specified)
   (= clojurescript (current-impl)))
 
-(defn assert-clojure 
-  ([] (assert-clojure nil))
-  ([msg] (assert (= clojure (current-impl)) (str "Clojure implementation only"
-                                                 (when (seq msg)
-                                                   (str ": " msg))))))
+(defmacro assert-clojure 
+  ([] `(assert-clojure nil))
+  ([msg] `(assert (= clojure (current-impl))
+                  (let [msg# ~msg]
+                    (str "Clojure implementation only"
+                         (when (seq msg#)
+                           (str ": " msg#)))))))
 
-(defn assert-cljs
-  ([] (assert-cljs nil))
-  ([msg] (assert (= clojurescript (current-impl)) (str "Clojurescript implementation only"
-                                                       (when (seq msg)
-                                                         (str ": " msg))))))
+(defmacro assert-cljs
+  ([] `(assert-cljs nil))
+  ([msg] `(assert (= clojurescript (current-impl))
+                  (let [msg# ~msg]
+                    (str "Clojurescript implementation only"
+                         (when (seq msg#)
+                           (str ": " msg#)))))))
 
 
 #?(:clj

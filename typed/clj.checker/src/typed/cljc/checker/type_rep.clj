@@ -286,10 +286,6 @@
    ((con/hash-c? symbol? scoped-Type?) replacements)
    (sorted? unchecked-ancestors)
    ((con/set-c? scoped-Type?) unchecked-ancestors)]
-  :intern
-  [variances
-   (map hash poly?)
-   (keyword the-class)]
   :methods
   [p/TCType])
 
@@ -345,22 +341,21 @@
   [p/TCType])
 
 (t/ann DataType->Class [DataType -> Class])
-(defn ^Class DataType->Class [^DataType dt]
-  (coerce/symbol->Class (.the-class dt)))
+(defn ^Class DataType->Class [dt]
+  (coerce/symbol->Class (:the-class dt)))
 
 (t/ann Record? [t/Any -> t/Bool])
-(defn Record? [^DataType a]
+(defn Record? [a]
   (boolean
     (when (DataType? a)
-      (.record? a))))
+      (:record? a))))
 
 (u/ann-record Protocol [the-var :- t/Sym,
                         variances :- (t/U nil (t/NonEmptySeqable Variance)),
                         poly? :- (t/U nil (t/NonEmptySeqable Type)),
                         on-class :- t/Sym,
-                        methods :- (t/Map t/Sym Type)
-                        declared? :- t/Bool])
-(u/def-type Protocol [the-var variances poly? on-class methods declared?]
+                        methods :- (t/Map t/Sym Type)])
+(u/def-type Protocol [the-var variances poly? on-class methods]
   "A Clojure Protocol"
   [(symbol? the-var)
    (or (nil? variances)
@@ -371,8 +366,7 @@
             (every? (some-fn Scope? Type?) poly?)))
    (= (count poly?) (count variances))
    (symbol? on-class)
-   ((con/hash-c? (every-pred symbol? (complement namespace)) (some-fn Scope? Type?)) methods)
-   (boolean? declared?)]
+   ((con/hash-c? (every-pred symbol? (complement namespace)) (some-fn Scope? Type?)) methods)]
   :methods
   [p/TCType])
 

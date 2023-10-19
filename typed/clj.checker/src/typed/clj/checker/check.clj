@@ -93,7 +93,6 @@
             [typed.cljc.checker.check.with-meta :as with-meta]
             [typed.cljc.checker.cs-gen :as cgen]
             [typed.cljc.checker.cs-rep :as crep]
-            [typed.cljc.checker.datatype-ancestor-env :as ancest]
             [typed.cljc.checker.datatype-env :as dt-env]
             [typed.cljc.checker.filter-ops :as fo]
             [typed.cljc.checker.filter-rep :as fl]

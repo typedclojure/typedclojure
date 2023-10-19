@@ -20,12 +20,6 @@
             [clojure.set :as set])
   (:import (typed.cljc.checker.type_rep DataType)))
 
-
-;TODO fold this state into DataType types
-
-(t/typed-deps typed.cljc.checker.type-ctors
-              typed.cljc.checker.subst)
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Type Aliases
 
@@ -36,7 +30,7 @@
 (def tmap? (con/hash-c? any? (some-fn delay? r/Scope? r/Type?)))
 (def dt-ancestor-env? (con/hash-c? symbol? tmap?))
 
-(t/ann ^:no-check inst-ancestors [DataType (t/U nil (t/Seqable r/Type)) -> (t/Set r/Type)])
+(t/ann ^:no-check inst-ancestors [DataType (t/U nil (t/Map t/Any (t/Seqable r/Type))) -> (t/Set r/Type)])
 (defn inst-ancestors
   "Given a datatype, return its instantiated ancestors"
   [{poly :poly? :as dt} anctrs]
@@ -56,7 +50,7 @@
   (get (env/deref-checker) impl/current-dt-ancestors-kw {}))
 
 (t/ann ^:no-check get-datatype-ancestors [DataType -> (t/Set r/Type)])
-(defn get-datatype-ancestors 
+(defn get-datatype-ancestors
   "Returns the set of overriden ancestors of the given DataType."
   [{:keys [poly? the-class] :as dt}]
   {:pre [(r/DataType? dt)]}

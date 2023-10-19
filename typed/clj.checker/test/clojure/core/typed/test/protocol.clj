@@ -1,6 +1,8 @@
 (ns clojure.core.typed.test.protocol
   (:require [typed.clojure :as t :refer [ann-protocol ann-datatype]]))
 
+(alias 'short 'clojure.core.typed.test.protocol)
+
 (t/defprotocol AddProtoc
   (adder [this amount :- t/Num] :- t/Num))
 
