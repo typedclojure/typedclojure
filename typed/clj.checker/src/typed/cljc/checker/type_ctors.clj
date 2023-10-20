@@ -10,6 +10,7 @@
   (:refer-clojure :exclude [defrecord replace])
   (:require [clojure.core.cache :as cache]
             [typed.clojure :as t]
+            [clojure.string :as str]
             [typed.cljc.runtime.env-utils :as env-utils]
             [clojure.core.typed.coerce-utils :as coerce]
             [clojure.core.typed.contract-utils :as con]
@@ -998,17 +999,16 @@
   ((requiring-resolve 'typed.clj.checker.rclass-ancestor-env/rclass-ancestors) rcls))
 
 (t/ann ^:no-check supers-cache (t/Atom1 (t/Map Number (t/SortedSet r/Type))))
-(defonce ^:private supers-cache (atom {}
-                                      #_#_
-                                      :validator (con/hash-c? r/RClass?
-                                                              (con/sorted-set-c? r/Type?))))
+(def ^:private supers-cache (atom {}
+                                  #_#_
+                                  :validator (con/hash-c? r/RClass?
+                                                          (con/sorted-set-c? r/Type?))))
 
 (t/ann reset-supers-cache! [-> nil])
 (defn reset-supers-cache! []
   (reset! supers-cache {})
   nil)
 
-;TODO won't type check because records+destructuring
 (t/ann ^:no-check RClass-supers* [RClass -> (t/SortedSet r/Type)])
 (defn RClass-supers* 
   "Return a set of ancestors to the RClass"
@@ -1019,51 +1019,63 @@
         cache-hit (@supers-cache cache-key)]
     (if cache-hit
       cache-hit
-      (let [unchecked-ancestors (RClass-unchecked-ancestors* rcls)
-            ;_ (prn "unchecked-ancestors" unchecked-ancestors)
-            replacements (RClass-replacements* rcls)
-            ;_ (prn "replacements" (map ind/unparse-type (vals replacements)))
-            ;set of symbols of Classes we haven't explicitly replaced
-            java-supers (into #{} (map coerce/Class->symbol) (-> the-class coerce/symbol->Class supers))
-            replace-keys (set (keys replacements))
-            not-replaced (set/difference java-supers
-                                         replace-keys)
-            ;(prn "not-replaced" not-replaced)
-            bad-replacements (set/difference replace-keys
-                                             java-supers)
-            _ (when (seq bad-replacements)
-                (err/int-error (str "Bad RClass replacements for " the-class ": " bad-replacements)))
-            res (r/sorted-type-set
-                  (set/union (binding [*current-RClass-super* the-class]
-                               (let [rs (for [csym not-replaced]
-                                          (RClass-of-with-unknown-params
-                                            csym
-                                            :warn-msg (when (.contains (str the-class) "clojure.lang")
-                                                        (str "RClass ancestor for " the-class " defaulting "
-                                                             "to most general parameters"))))]
-                                 (apply set/union (set rs) (map (t/fn [r :- r/Type]
-                                                                  {:pre [(r/RClass? r)]}
-                                                                  (RClass-supers* r))
-                                                                rs))))
-                             (set (vals replacements))
-                             #{(RClass-of Object)}
-                             unchecked-ancestors))]
-        ;(prn "supers" the-class res)
-        (when-not (<= (count (filter (some-fn r/FnIntersection? r/Poly? r/PolyDots?) res))
-                      1)
-          (err/int-error 
-            (str "Found more than one function supertype for RClass " (ind/unparse-type rcls) ": \n"
-                 (mapv ind/unparse-type (filter (some-fn r/FnIntersection? r/Poly? r/PolyDots?) res))
-                 "\nReplacements:" (into {}
-                                         (map (t/fn [[k v] :- '[t/Any r/Type]] [k (ind/unparse-type v)]))
-                                         replacements)
-                 "\nNot replaced:" not-replaced
-                 (try (throw (Exception. ""))
-                      (catch Exception e
-                        (with-out-str (repl/pst e 40)))))))
-        (t/tc-ignore
-          (swap! supers-cache assoc cache-key res))
-        res))))
+      (let [cls (-> the-class coerce/symbol->Class)]
+        (if (= Object cls)
+          (r/sorted-type-set [(RClass-of Object)])
+          (let [;_ (prn "RClass-of" the-class)
+                unchecked-ancestors (RClass-unchecked-ancestors* rcls)
+                ;_ (prn "unchecked-ancestors" unchecked-ancestors)
+                replacements (RClass-replacements* rcls)
+                ;_ (prn "replacements" (map ind/unparse-type (vals replacements)))
+                ;set of symbols of Classes we haven't explicitly replaced
+                java-bases (into #{} (map coerce/Class->symbol) (bases cls))
+                replace-keys (set (keys replacements))
+                not-replaced (set/difference java-bases
+                                             replace-keys)
+                ;_ (prn "not-replaced" not-replaced)
+                bad-replacements (set/difference replace-keys
+                                                 java-bases)
+                _ (when (seq bad-replacements)
+                    (err/int-error (str "Bad RClass replacements for " the-class ": " bad-replacements)))
+                res (r/sorted-type-set
+                      (set/union (binding [*current-RClass-super* the-class]
+                                   (let [rs (for [csym not-replaced]
+                                              (RClass-of-with-unknown-params
+                                                csym
+                                                :warn-msg (when (.contains (str the-class) "clojure.lang")
+                                                            (str "RClass ancestor for " (pr-str rcls) " defaulting "
+                                                                 "to most general parameters"))))]
+                                     (apply set/union (set rs) (map (t/fn [r :- r/Type]
+                                                                      {:pre [(r/RClass? r)]}
+                                                                      (RClass-supers* r))
+                                                                    rs))))
+                                 (into #{} (mapcat (fn [t]
+                                                     (let [t (fully-resolve-type t)]
+                                                       (cons t (RClass-supers* t)))))
+                                       (vals replacements))
+                                 #{(RClass-of Object)}
+                                 unchecked-ancestors))
+                ;;FIXME just need to do this once generically at RClass declaration
+                _ (when-some [rclass-ancestor-groups (not-empty
+                                                       (into #{} (filter (comp next val))
+                                                             (group-by :the-class (filter r/RClass? res))))]
+                    (err/int-error
+                      (str "Found clashing supertypes for RClass ancestors of " (ind/unparse-type rcls) ": "
+                           (str/join "\n" (map (fn [grp] (str/join ", " (map pr-str grp)))
+                                               (vals rclass-ancestor-groups))))))]
+            ;(prn "supers" the-class res)
+            (when-not (<= (count (filter (some-fn r/FnIntersection? r/Poly? r/PolyDots?) res))
+                          1)
+              (err/int-error 
+                (str "Found more than one function supertype for RClass " (ind/unparse-type rcls) ": \n"
+                     (mapv ind/unparse-type (filter (some-fn r/FnIntersection? r/Poly? r/PolyDots?) res))
+                     "\nReplacements:" (into {}
+                                             (map (t/fn [[k v] :- '[t/Any r/Type]] [k (ind/unparse-type v)]))
+                                             replacements)
+                     "\nNot replaced:" not-replaced)))
+            (t/tc-ignore
+              (swap! supers-cache assoc cache-key res))
+            res))))))
 
 (t/ann ^:no-check DataType-fields* [DataType -> (t/Map t/Sym r/Type)])
 (defn DataType-fields* [^DataType dt]

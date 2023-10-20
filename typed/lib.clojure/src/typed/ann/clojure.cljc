@@ -451,7 +451,9 @@
   t/Associative
   (t/TFn [[k :variance :covariant]
           [v :variance :covariant]]
-         #?(:clj (clojure.lang.Associative k v)
+         #?(:clj (clojure.lang.Associative k v 
+                                           ;;FIXME should be (t/NilableNonEmptySeq t/Any) when IPersistentCollection supports it
+                                           t/Any)
             :cljs (t/I (cljs.core/IAssociative k v)
                        ;; emulate clojure.lang.Associative's ancestors
                        (t/Coll t/Any)
