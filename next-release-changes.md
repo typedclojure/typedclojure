@@ -32,7 +32,7 @@
   - replaces old filters on `clojure.core/seq` annotation
 - `cc/butlast` returns a nilable non-empty seq
 - replacements in `override-class` are more intuitive
-  - just provide replacements for the classes' `clojure.core/bases`
+  - just provide replacements for the `clojure.core/bases` instead of `clojure.core/supers`
   - all ancestors must agree on their type parameters, like in Java
     - same class cannot extend both `(Seqable A)` and `(Seqable B)` transitively
         - must have a canonical list of arguments for each ancestor
