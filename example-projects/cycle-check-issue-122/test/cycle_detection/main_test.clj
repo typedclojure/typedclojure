@@ -4,4 +4,4 @@
 (deftest no-cycle
   (is (nil? (require 'cycle-detection.main)))
   ;; https://github.com/typedclojure/typedclojure/issues/121
-  (is ((requiring-resolve 'typed.clojure/envs))))
+  (is ((requiring-resolve 'clojure.core.typed/envs))))
