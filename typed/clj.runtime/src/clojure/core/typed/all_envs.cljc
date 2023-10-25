@@ -21,13 +21,15 @@
     (into {}
           (for [[k v] (nme-env/name-env)]
             (when-not (keyword? v)
-              [k (unparse-type (force-type v))])))))
+              (when-some [t (force-type v)]
+                [k (unparse-type t)]))))))
 
 (defn- var-env []
   (binding [vs/*verbose-types* true]
     (into {}
           (for [[k v] (var-annotations)]
-            [k (unparse-type (force-type v))]))))
+            (when-some [t (force-type v)]
+              [k (unparse-type t)])))))
 
 (defn all-envs-clj []
   (load-if-needed)
