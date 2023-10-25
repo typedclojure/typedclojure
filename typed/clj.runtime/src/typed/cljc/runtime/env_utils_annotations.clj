@@ -7,24 +7,25 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.cljc.runtime.env-utils-annotations
-  (:require [typed.cljc.runtime.env-utils :as env-utils])
+  (:require [typed.clojure :as t]
+            [typed.cljc.runtime.env-utils :as env-utils])
   (:import [java.lang.ref SoftReference]))
 
-(defalias InvalidationId t/Str)
-(defalias ForcedType
+(t/defalias env-utils/InvalidationId t/Str)
+(t/defalias env-utils/ForcedType
   (t/TFn [[x :variance :covariant]]
          (t/Difference x t/Fn (t/Delay t/Any))))
-(defalias DelayedType
+(t/defalias env-utils/DelayedType
   (t/TFn [[x :variance :covariant]]
-         (t/U (ForcedType x)
-              (t/Delay (ForcedType x)))))
-(defalias ReparsableDelayedType
+         (t/U (env-utils/ForcedType x)
+              (t/Delay (env-utils/ForcedType x)))))
+(t/defalias env-utils/ReparsableDelayedType
   (t/TFn [[x :variance :covariant]]
-         (t/I t/Fn [:-> (DelayedType x)])))
+         (t/I t/Fn [:-> (env-utils/DelayedType x)])))
 
-(ann env-utils/parsed-types-invalidation-id (t/Atom1 InvalidationId))
-(ann env-utils/invalidate-parsed-types! [:-> InvalidationId])
-(ann env-utils/delay-type* (t/All [x] [(ReparsableDelayedType x) :-> [:-> (t/Nilable x)]]))
-(ann env-utils/force-type (t/All [x] [(t/U (DelayedType x)
-                                           [:-> (DelayedType x)])
-                                      :-> x]))
+(t/ann env-utils/parsed-types-invalidation-id (t/Atom1 env-utils/InvalidationId))
+(t/ann env-utils/invalidate-parsed-types! [:-> env-utils/InvalidationId])
+(t/ann env-utils/delay-type* (t/All [x] [(env-utils/ReparsableDelayedType x) :-> [:-> (t/Nilable x)]]))
+(t/ann env-utils/force-type (t/All [x] [(t/U (env-utils/DelayedType x)
+                                             [:-> (env-utils/DelayedType x)])
+                                        :-> x]))
