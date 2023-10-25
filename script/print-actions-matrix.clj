@@ -80,7 +80,7 @@
                   jdk ["8"
                        "11"
                        "17"
-                       "19"]]
+                       "21"]]
               (array-map
                 :submodule submodule
                 :clojure clojure
