@@ -39,3 +39,5 @@
 - Fix [#121](https://github.com/typedclojure/typedclojure/issues/121): clojure.core.typed/envs was broken
 - Fix [#122](https://github.com/typedclojure/typedclojure/issues/122): cyclic dependencies when using clojure.core.typed/ann without loading typed.clojure
 - bump to clojure 1.12.0-alpha5, add jdk 21 to test matrix
+- fix simplification of intersected RClass's by respecting variance
+- fix overlap calculation of RClass's

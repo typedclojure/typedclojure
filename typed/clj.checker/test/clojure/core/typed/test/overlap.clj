@@ -11,11 +11,27 @@
      (overlap (parse-type ~s1) (parse-type ~s2))))
 
 (deftest overlap-test
+  (is-tc-e :load)
   (is-clj (not (overlap -false -true)))
   (is-clj (not (overlap (-val :a) (-val :b))))
+  ;; classes overlap with their superclass
   (is-clj (overlap (RClass-of Number) (RClass-of Integer)))
   (is-clj (not (overlap (RClass-of Number) (RClass-of clojure.lang.Symbol))))
+  ;; different classes are disjoint
+  (is-clj (not (overlap (RClass-of clojure.lang.Keyword) (RClass-of clojure.lang.Symbol))))
+  ;; different abstract and final classes are disjoint
   (is-clj (not (overlap (RClass-of Number) (RClass-of String))))
+  ;; final classes are disjoint with any interfaces it doesn't implement
+  (is-clj (not (overlap (RClass-of clojure.lang.ISeq [-any]) (RClass-of String))))
+  ;; covariant parameter 
+  (is-clj (overlap (RClass-of clojure.lang.ISeq [(RClass-of Number)])
+                   (RClass-of clojure.lang.ISeq [(RClass-of String)])))
+  ;; final classes overlap with interfaces it implements
+  (is-clj (overlap (RClass-of clojure.lang.Atom [-any -any]) (RClass-of clojure.lang.IMeta)))
+  ;; interfaces overlap
+  (is-clj (overlap (RClass-of Number) (RClass-of CharSequence)))
+  ;; different abstract class are disjoint
+  (is-clj (not (overlap (RClass-of java.nio.Buffer) (RClass-of Number))))
   (is-clj (overlap (-name `t/Seqable -any) (RClass-of clojure.lang.IMeta)))
   (is-clj (overlap (-name `t/Seqable -any) (RClass-of clojure.lang.PersistentVector [-any]))))
 
