@@ -36,3 +36,5 @@
   - all ancestors must agree on their type parameters, like in Java
     - same class cannot extend both `(Seqable A)` and `(Seqable B)` transitively
         - must have a canonical list of arguments for each ancestor
+- Fix [#121](https://github.com/typedclojure/typedclojure/issues/121): clojure.core.typed/envs was broken
+- Fix [#122](https://github.com/typedclojure/typedclojure/issues/122): cyclic dependencies when using clojure.core.typed/ann without loading typed.clojure
