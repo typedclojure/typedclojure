@@ -2,7 +2,7 @@
   (:require [clojure.core.typed :as t :refer [ann-protocol ann-datatype check-ns]]))
 
 (t/defprotocol SelfProtocol
-  (f1 [this] :- (U nil SelfProtocol)))
+  (f1 [this] :- (t/U nil SelfProtocol)))
 
 ;(declare-protocol
 ;  [[f :variance :covariant]]
