@@ -1,0 +1,30 @@
+;;   Copyright (c) Ambrose Bonnaire-Sergeant, Rich Hickey & contributors.
+;;   The use and distribution terms for this software are covered by the
+;;   Eclipse Public License 1.0 (https://opensource.org/license/epl-1-0/)
+;;   which can be found in the file epl-v10.html at the root of this distribution.
+;;   By using this software in any fashion, you are agreeing to be bound by
+;;   the terms of this license.
+;;   You must not remove this notice, or any other, from this software.
+
+(ns ^:no-doc typed.cljc.runtime.env-utils-annotations
+  (:require [typed.cljc.runtime.env-utils :as env-utils])
+  (:import [java.lang.ref SoftReference]))
+
+(defalias InvalidationId t/Str)
+(defalias ForcedType
+  (t/TFn [[x :variance :covariant]]
+         (t/Difference x t/Fn (t/Delay t/Any))))
+(defalias DelayedType
+  (t/TFn [[x :variance :covariant]]
+         (t/U (ForcedType x)
+              (t/Delay (ForcedType x)))))
+(defalias ReparsableDelayedType
+  (t/TFn [[x :variance :covariant]]
+         (t/I t/Fn [:-> (DelayedType x)])))
+
+(ann env-utils/parsed-types-invalidation-id (t/Atom1 InvalidationId))
+(ann env-utils/invalidate-parsed-types! [:-> InvalidationId])
+(ann env-utils/delay-type* (t/All [x] [(ReparsableDelayedType x) :-> [:-> (t/Nilable x)]]))
+(ann env-utils/force-type (t/All [x] [(t/U (DelayedType x)
+                                           [:-> (DelayedType x)])
+                                      :-> x]))

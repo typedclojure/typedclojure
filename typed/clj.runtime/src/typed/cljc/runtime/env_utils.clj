@@ -7,36 +7,25 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.cljc.runtime.env-utils
-  (:require [typed.clojure :as t])
+  ;; annotations live in typed.cljc.runtime.env-utils-annotations to avoid cyclic
+  ;; load dependencies when using clojure.core.typed without typed.clojure
+  ;;DON'T require typed.clojure here
+  (:require [typed.clojure :as-alias t])
   (:import [java.lang.ref SoftReference]))
 
-(t/tc-ignore
+^::t/ignore
+(do
   (def ^:private annotations (atom []))
   (defmacro ^:private ann [& args] `(swap! annotations conj #(t/ann ~@args)))
   (defmacro ^:private defalias [& args] `(swap! annotations conj #(t/defalias ~@args))))
 
-(defalias InvalidationId t/Str)
-(defalias ForcedType
-  (t/TFn [[x :variance :covariant]]
-         (t/Difference x t/Fn (t/Delay t/Any))))
-(defalias DelayedType
-  (t/TFn [[x :variance :covariant]]
-         (t/U (ForcedType x)
-              (t/Delay (ForcedType x)))))
-(defalias ReparsableDelayedType
-  (t/TFn [[x :variance :covariant]]
-         (t/I t/Fn [:-> (DelayedType x)])))
-
-(ann parsed-types-invalidation-id (t/Atom1 InvalidationId))
 (defonce ^{:doc "Internal use only"} ^:no-doc parsed-types-invalidation-id (atom (str (random-uuid))))
 
-(ann invalidate-parsed-types! [:-> InvalidationId])
 (defn invalidate-parsed-types! []
   (reset! parsed-types-invalidation-id (str (random-uuid))))
 
 ;; [[:-> Type] :-> [:-> Type]]
 ;; Note: used directly by clojure.core.typed and current-impl to avoid cycles
-(ann delay-type* (t/All [x] [(ReparsableDelayedType x) :-> [:-> (t/Nilable x)]]))
 (defn delay-type* [f]
   (let [f (bound-fn* f)
         this-invalidation-id (volatile! @parsed-types-invalidation-id)
@@ -62,9 +51,6 @@
 (defmacro delay-type [& args]
   `(delay-type* (fn [] (do ~@args))))
 
-(ann force-type (t/All [x] [(t/U (DelayedType x)
-                                 [:-> (DelayedType x)])
-                            :-> x]))
 (defn force-type [v]
   (let [res (force (if (fn? v) (v) v))]
     (assert (not (or (delay? res) (fn? res)))
@@ -72,5 +58,6 @@
     res))
 
 ;; t/ann and t/defalias expand to calls to this ns. register types after interning all vars.
-(t/tc-ignore
+^::t/ignore
+(do
   (run! #(%) @annotations))
