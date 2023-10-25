@@ -4,7 +4,7 @@
      :as t]))
 
 (t/defprotocol Age
-  (age [this] :- Int))
+  (age [this] :- t/Int))
 
 (ann-datatype Person 
   [name :- String 
