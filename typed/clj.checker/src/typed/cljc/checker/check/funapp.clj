@@ -40,6 +40,7 @@
 (def ^:private nth-type #((requiring-resolve 'typed.cljc.checker.check.nth/nth-type) %1 %2 %3))
 
 ; Expr Expr^n TCResult TCResult^n (U nil TCResult) -> TCResult
+(t/ann check-funapp [t/Any t/Any t/Any t/Any t/Any t/Any :? :-> t/Any])
 ;TODO HeterogeneousMap case, see typed-test.cljc.checker.check.funapp/invoke-HMap-test
 (defn check-funapp
   ([fexpr args fexpr-ret-type arg-ret-types expected]

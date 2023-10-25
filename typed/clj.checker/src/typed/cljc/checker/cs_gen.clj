@@ -40,7 +40,7 @@
 (t/ann ^:no-check clojure.core.typed.current-impl/current-impl [-> t/Any])
 (t/ann ^:no-check clojure.core.typed.current-impl/checking-clojure? [-> t/Any])
 
-(t/ann gen-repeat [Number (t/Seqable Any) -> (t/Seqable Any)])
+(t/ann gen-repeat [Number (t/Seqable t/Any) -> (t/Seqable t/Any)])
 (defn ^:private gen-repeat [times repeated]
   (reduce into [] (repeat times repeated)))
 
@@ -51,7 +51,7 @@
 ; (partition-by-nth 2 [1 2 3 4 5 6]) -> ((1 3 5) (2 4 6))
 ; (partition-by-nth 3 [1 2 3 4 5 6]) -> ((1 4) (2 5) (3 6))
 ; util for infer-pdot
-(t/ann partition-by-nth (All [a] [Number (t/Seqable a) -> (t/Seq (t/Seq a))]))
+(t/ann partition-by-nth (t/All [a] [Number (t/Seqable a) -> (t/Seq (t/Seq a))]))
 (defn partition-by-nth [n lst]
   {:pre [(zero? (rem (count lst) n))]}
   (let [keep-rem-of (t/fn keep-rem-of [i :- Number]
@@ -2315,7 +2315,7 @@
         (t/U nil r/AnyType) 
         (t/Set t/Sym)
         & :optional {:expected (t/U nil r/Type)
-                     :expr (t/U nil (r/Map t/Any t/Any))}
+                     :expr (t/U nil (t/Map t/Any t/Any))}
         -> cr/SubstMap])
 (defn infer-dots [X dotted-var dotted-bnd S T T-dotted R must-vars & {:keys [expected expr]}]
   {:pre [(X? X)
@@ -2377,15 +2377,15 @@
 ;; on pdot
 ;; TODO support symbolic closures, accept :expr
 (t/ann infer-pdot
-  (Fn [ConstrainVars
-       t/Sym
-       Regex
-       (t/Seqable r/Type)
-       (t/Seqable r/Type)
-       r/Type
-       (U nil r/AnyType)
-       (t/Set t/Sym)
-       & :optional {:expected (U nil r/Type)} -> cr/SubstMap]))
+       [ConstrainVars
+        t/Sym
+        Regex
+        (t/Seqable r/Type)
+        (t/Seqable r/Type)
+        r/Type
+        (t/U nil r/AnyType)
+        (t/Set t/Sym)
+        & :optional {:expected (t/U nil r/Type)} -> cr/SubstMap])
 (defn infer-pdot [X dotted-var dotted-bnd S T T-dotted R must-vars & {:keys [expected]}]
   {:pre [(X? X)
          (symbol? dotted-var)
@@ -2442,8 +2442,8 @@
 (t/ann infer-prest
   [ConstrainVars ConstrainDVars
    (t/Seqable r/Type) (t/Seqable r/Type)
-   r/Type (U nil r/AnyType) (U nil TCResult)
-   -> (U nil true false cr/SubstMap)])
+   r/Type (t/U nil r/AnyType) (t/U nil TCResult)
+   -> (t/U nil true false cr/SubstMap)])
 (defn infer-prest
   [X Y S T T-var R expected {:keys [expr]}]
   {:pre [(X? X)

@@ -27,7 +27,7 @@
   (t/TFn [[x :variance :covariant]]
          (t/I t/Fn [:-> (DelayedType x)])))
 
-(ann parsed-types-invalidation-id (t/Atom InvalidationId))
+(ann parsed-types-invalidation-id (t/Atom1 InvalidationId))
 (defonce ^{:doc "Internal use only"} ^:no-doc parsed-types-invalidation-id (atom (str (random-uuid))))
 
 (ann invalidate-parsed-types! [:-> InvalidationId])

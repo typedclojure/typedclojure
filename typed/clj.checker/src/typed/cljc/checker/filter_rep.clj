@@ -138,7 +138,7 @@
   :methods
   [p/IFilter])
 
-(t/ann make-OrFilter [Filter * -> OrFilter])
+(t/ann make-OrFilter [Filter :* :-> OrFilter])
 (defn make-OrFilter [& fs]
   {:pre [(every? Filter? fs)
          (seq fs)]

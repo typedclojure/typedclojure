@@ -1008,7 +1008,7 @@ cc/iteration (t/All [k v ret] [[k :-> ret] & :optional {:somef [ret :-> t/Any]
                                                         :vf [ret :-> v]
                                                         :kf [ret :-> k]
                                                         :initk k}
-                               :-> (Seqable ret)])
+                               :-> (t/Seqable ret)])
 
 ;cc/juxt
 ;(t/All [b1 :..]
@@ -1811,7 +1811,7 @@ cc/mapv (t/All [c a b :..] (t/IFn [[a b :.. b :-> c] (t/NonEmptySeqable a) (t/No
 cc/mapcat (t/All [c a b :..] (t/IFn
                                [[a :-> (t/Seqable c)] :-> (t/Transducer a c)]
                                [[a b :.. b :-> (t/Seqable c)] (t/Seqable a) (t/Seqable b) :.. b :-> (t/ASeq c)]))
-cc/cat (t/All [x] (t/Transducer (Seqable x) x))
+cc/cat (t/All [x] (t/Transducer (t/Seqable x) x))
 #?@(:cljs [] :default [
 cc/pmap (t/All [c a b :..] (t/IFn [[a b :.. b :-> c] (t/NonEmptySeqable a) (t/NonEmptySeqable b) :.. b :-> (t/NonEmptyASeq c)]
                                   [[a b :.. b :-> c] (t/Seqable a) (t/Seqable b) :.. b :-> (t/ASeq c)]))
@@ -2307,7 +2307,7 @@ cc/char [(t/U t/Str t/Num) :-> t/Str]
 cc/char [(t/U Character t/Num) :-> Character]
 ])
 cc/double [t/Num :-> #?(:cljs t/Num :default Double)]
-cc/parse-double [s/Str :-> (t/Option #?(:cljs t/Num :default Double))]
+cc/parse-double [t/Str :-> (t/Option #?(:cljs t/Num :default Double))]
 
 cc/float [t/Num :-> #?(:cljs t/Num :default Float)]
 cc/int [#?(:cljs t/Num :default (t/U Character t/Num)) :-> #?(:cljs t/AnyInteger :default Integer)]

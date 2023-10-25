@@ -1126,7 +1126,7 @@
                (instantiate-many names (:scope typefn)))]
     body))
 
-(t/ann ^:no-check TypeFn-bbnds* [(t/Seqable t/Sym) TypeFn -> (t/Vec t/Kind)])
+(t/ann ^:no-check TypeFn-bbnds* [(t/Seqable t/Sym) TypeFn -> (t/Vec r/Kind)])
 (defn TypeFn-bbnds* [names typefn]
   {:pre [(every? symbol? names)
          (r/TypeFn? typefn)]
@@ -2601,7 +2601,7 @@
 ;; =====================================================
 ;; Fold defaults
 
-(t/ann return-if-changed (t/All [x] [[f (t/Volatile t/Bool) :-> x] x :-> x]))
+(t/ann return-if-changed (t/All [x] [[(t/Volatile t/Bool) :-> x] x :-> x]))
 (defn return-if-changed [f default]
   (let [changed? (volatile! false)
         res (f changed?)]

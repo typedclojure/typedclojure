@@ -14,3 +14,6 @@
                 {:check-config {:check-ns-dep :never}
                  ;:trace true
                  })))
+
+(deftest self-test-annotations
+  (is (t/envs)))
