@@ -15,7 +15,7 @@
   (defmacro ^:private ann [& args] `(swap! annotations conj #(t/ann ~@args)))
   (defmacro ^:private defalias [& args] `(swap! annotations conj #(t/defalias ~@args))))
 
-(defalias InvalidationId s/Str)
+(defalias InvalidationId t/Str)
 (defalias ForcedType
   (t/TFn [[x :variance :covariant]]
          (t/Difference x t/Fn (t/Delay t/Any))))
