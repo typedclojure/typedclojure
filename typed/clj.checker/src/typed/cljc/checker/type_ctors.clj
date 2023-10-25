@@ -43,7 +43,7 @@
                                         HSet AssocType TypeOf MergeType
                                         NotType DifferenceType Intersection Union FnIntersection
                                         DottedPretype Function RClass JSNominal App TApp
-                                        PrimitiveArray DataType Protocol TypeFn Poly
+                                        PrimitiveArray DataType Satisfies Instance TypeFn Poly
                                         Mu HeterogeneousMap
                                         CountRange Name Value Top Wildcard Unchecked TopFunction B F Result
                                         TCResult TCError Extends
@@ -698,27 +698,29 @@
 (t/ann ^:no-check Protocol-interface->on-var [t/Sym -> t/Sym])
 (defn Protocol-interface->on-var
   "Given the interface symbol of a protocol, returns the corresponding
-  var the protocol is based on as a symbol. Assumes the interface is possible
+  var the protocol is based on as a symbol, or nil if none. Assumes the interface is possible
   to demunge. Only useful for Clojure implementation."
   [sym]
   {:pre [(symbol? sym)]
-   :post [(symbol? %)]}
+   :post [((some-fn symbol? nil?) %)]}
   (impl/assert-clojure)
   (let [segs (vec (partition-by #{\.} (str (repl/demunge (str sym)))))
         segs (assoc-in segs [(- (count segs) 2)] '(\/))
         var-sym (symbol (apply str (apply concat segs)))]
-    var-sym))
+    (when (var? (resolve var-sym))
+      var-sym)))
 
-(t/ann resolve-Protocol [Protocol -> (t/Var2 t/Nothing t/Any)])
+(t/ann resolve-Protocol [(t/U Satisfies Protocol) -> (t/Var2 t/Nothing t/Any)])
 (defn resolve-Protocol
-  [{:keys [the-var]}]
-  {:post [(var? %)]}
+  [{:keys [the-var] :as t}]
+  {:pre [((some-fn r/Protocol? r/Satisfies?) t)]
+   :post [(var? %)]}
   (impl/assert-clojure)
   (let [v (resolve the-var)]
     (assert (var? v) (str "Cannot resolve protocol: " the-var))
     v))
 
-(t/ann Protocol-normal-extenders [Protocol -> (t/Set (t/U nil Class))])
+(t/ann Protocol-normal-extenders [(t/U Satisfies Protocol) -> (t/Set (t/U nil Class))])
 (defn Protocol-normal-extenders
   [p]
   (set (extenders @(resolve-Protocol p))))
@@ -852,12 +854,12 @@
 
 (t/ann ^:no-check most-general-on-variance [(t/Seqable r/Variance) (t/Seqable Bounds) -> r/Type])
 (defn most-general-on-variance [variances bnds]
-  (doall
-    (for [[variance {:keys [upper-bound lower-bound] :as bnd}] 
-          (map vector variances bnds)]
-      (case variance
-        (:invariant :constant :covariant) upper-bound
-        :contravariant lower-bound))))
+  (mapv (fn [variance {:keys [upper-bound lower-bound] :as bnd}]
+          (case variance
+            (:constant :covariant) upper-bound
+            :contravariant lower-bound
+            (err/int-error (str "Cannot find most general type for variance: " (pr-str variance)))))
+        variances bnds))
 
 (declare TypeFn-bbnds* TypeFn-fresh-symbols*)
 
@@ -866,17 +868,27 @@
 (defn RClass-of-with-unknown-params
   ([sym-or-cls & {:keys [warn-msg]}]
    {:pre [((some-fn class? symbol?) sym-or-cls)]
-    :post [((some-fn r/RClass? r/DataType?) %)]}
-   (let [sym (cond-> sym-or-cls
-               (class? sym-or-cls) coerce/Class->symbol)
-         rc ((some-fn dtenv/get-datatype rcls/get-rclass) sym)
-         args (when (r/TypeFn? rc)
-                (when warn-msg
-                  (println (str "WARNING: " warn-msg ": " sym)))
-                (let [syms (TypeFn-fresh-symbols* rc)]
-                  (most-general-on-variance (:variances rc)
-                                            (TypeFn-bbnds* syms rc))))]
-     (RClass-of sym args))))
+    :post [((some-fn r/RClass? r/DataType? r/Instance?) %)]}
+   (let [sym (or (cond-> sym-or-cls
+                   (class? sym-or-cls) coerce/Class->symbol)
+                 (err/int-error (str "Unresolvable class: " (pr-str sym-or-cls))))
+         rc ((some-fn dtenv/get-datatype rcls/get-rclass) sym)]
+     (cond
+       (r/TypeFn? rc) (let [{:keys [variances]} rc]
+                        (when warn-msg
+                          (println (str "WARNING: " warn-msg ": " sym)))
+                        (if (every? #{:constant :covariant :contravariant} variances)
+                          (RClass-of sym
+                                     (let [syms (TypeFn-fresh-symbols* rc)]
+                                       (most-general-on-variance variances
+                                                                 (TypeFn-bbnds* syms rc))))
+                          (r/Instance-maker sym)))
+       :else (or rc (RClass-of sym))))))
+
+(t/ann ^:no-check Instance-of [(t/U t/Sym Class) -> r/Type])
+(defn Instance-of
+  [sym-or-cls]
+  (RClass-of-with-unknown-params sym-or-cls))
 
 (t/ann ^:no-check DataType-with-unknown-params [t/Sym -> r/Type])
 (defn DataType-with-unknown-params
@@ -935,13 +947,61 @@
 (defn Protocol-with-unknown-params
   ([sym]
    {:pre [(symbol? sym)]
-    :post [((some-fn r/Protocol?) %)]}
-   (let [t (prenv/get-protocol sym)
-         args (when (r/TypeFn? t)
-                (let [syms (TypeFn-fresh-symbols* t)]
-                  (most-general-on-variance (:variances t)
-                                            (TypeFn-bbnds* syms t))))]
-     (Protocol-of sym args))))
+    :post [((some-fn r/Protocol? r/Satisfies?) %)]}
+   (let [t (prenv/get-protocol sym)]
+     (cond
+       (r/TypeFn? t) (let [{:keys [variances]} t]
+                       (if (every? #{:constant :covariant :contravariant} variances)
+                         (Protocol-of sym
+                                      (let [syms (TypeFn-fresh-symbols* t)]
+                                        (most-general-on-variance variances
+                                                                  (TypeFn-bbnds* syms t))))
+                         (r/Satisfies-maker sym (Protocol-var->on-class sym))))
+       :else (or t (Protocol-of sym))))))
+
+(defn Datatype-ancestors
+  "Returns a set of Types which are ancestors of this datatype.
+  Only useful when checking Clojure. This is because we need to query datatypes
+  for their ancestors, as sometimes datatypes do not appear in `extenders`
+  of a protocol (this happens when a protocol is extend directly in a deftype)."
+  [{:keys [the-class] :as dt}]
+  {:pre [(r/DataType? dt)]}
+  (impl/assert-clojure)
+  (let [overidden-by (fn [sym o]
+                       ;(prn "overriden by" sym (class o) o)
+                       (cond
+                         ((some-fn r/DataType? r/RClass?) o)
+                         (when (= sym (:the-class o))
+                           o)
+                         (r/Protocol? o)
+                         ; protocols are extended via their interface if they
+                         ; show up in the ancestors of the datatype
+                         (when (= sym (:on-class o))
+                           o)))
+        overrides (map fully-resolve-type
+                       ((requiring-resolve 'typed.cljc.checker.datatype-ancestor-env/get-datatype-ancestors)
+                        dt))
+        ;_ (prn "datatype name" the-class)
+        ;_ (prn "datatype overrides" overrides)
+        _ (assert (every? (some-fn r/Protocol? r/DataType? r/RClass?) overrides)
+                  "Overriding datatypes to things other than datatypes, protocols and classes NYI")
+        ; the classes that this datatype extends.
+        ; No vars should occur here because protocol are extended via their interface.
+        normal-asyms (->> (ancestors (coerce/symbol->Class the-class))
+                          (filter class?)
+                          (map coerce/Class->symbol))
+        ;_ (prn "normal-asyms" normal-asyms)
+        post-override (set
+                        (for [sym normal-asyms]
+                          ; either we override this ancestor ...
+                          (if-let [o (some #(overidden-by sym %) overrides)]
+                            o
+                            (if-some [protocol-varsym (Protocol-interface->on-var sym)]
+                              ;... or we make a protocol type from the varified interface ...
+                              (Protocol-with-unknown-params protocol-varsym)
+                              ;... or we make an RClass from the actual ancestor.
+                              (RClass-of-with-unknown-params sym)))))]
+    post-override))
 
 (t/tc-ignore
 (defn- infer-var []
@@ -1010,9 +1070,12 @@
 (defn RClass-supers* 
   "Return a set of ancestors to the RClass"
   [{:keys [the-class] :as rcls}]
-  {:pre [(r/RClass? rcls)]
+  {:pre [((some-fn r/RClass? r/Instance?) rcls)]
    :post [((con/sorted-set-c? r/Type?) %)]}
-  (let [cache-key rcls
+  (let [rcls-type (if (r/RClass? rcls)
+                    :RClass
+                    :Instance)
+        cache-key rcls
         cache-hit (@supers-cache cache-key)]
     (if cache-hit
       cache-hit
@@ -1020,9 +1083,13 @@
         (if (= Object cls)
           (r/sorted-type-set [(RClass-of Object)])
           (let [;_ (prn "RClass-of" the-class)
-                unchecked-ancestors (RClass-unchecked-ancestors* rcls)
+                unchecked-ancestors (case rcls-type
+                                      :RClass (RClass-unchecked-ancestors* rcls)
+                                      :Instance (r/sorted-type-set []))
                 ;_ (prn "unchecked-ancestors" unchecked-ancestors)
-                replacements (RClass-replacements* rcls)
+                replacements (case rcls-type
+                               :RClass (RClass-replacements* rcls)
+                               :Instance {})
                 ;_ (prn "replacements" (map ind/unparse-type (vals replacements)))
                 ;set of symbols of Classes we haven't explicitly replaced
                 java-bases (into #{} (map coerce/Class->symbol) (bases cls))
@@ -1032,18 +1099,19 @@
                 ;_ (prn "not-replaced" not-replaced)
                 bad-replacements (set/difference replace-keys
                                                  java-bases)
-                _ (when (seq bad-replacements)
-                    (err/int-error (str "Bad RClass replacements for " the-class ": " bad-replacements)))
+                _ (when (= :RClass rcls-type)
+                    (when (seq bad-replacements)
+                      (err/int-error (str "Bad RClass replacements for " the-class ": " bad-replacements))))
                 res (r/sorted-type-set
                       (set/union (binding [*current-RClass-super* the-class]
                                    (let [rs (for [csym not-replaced]
                                               (RClass-of-with-unknown-params
                                                 csym
-                                                :warn-msg (when (.contains (str the-class) "clojure.lang")
-                                                            (str "RClass ancestor for " (pr-str rcls) " defaulting "
-                                                                 "to most general parameters"))))]
+                                                :warn-msg (when (= :RClass rcls-type)
+                                                            (when (.contains (str the-class) "clojure.lang")
+                                                              (str "RClass ancestor for " (pr-str rcls) " defaulting "
+                                                                   "to most general parameters")))))]
                                      (apply set/union (set rs) (map (t/fn [r :- r/Type]
-                                                                      {:pre [(r/RClass? r)]}
                                                                       (RClass-supers* r))
                                                                     rs))))
                                  (into #{} (mapcat (fn [t]
@@ -3076,3 +3144,6 @@
                        (fn [ty]
                          (-> ty
                              (update :types #(into-identical [] type-rec %)))))
+
+(add-default-fold-case Instance ret-first)
+(add-default-fold-case Satisfies ret-first)

@@ -352,3 +352,28 @@
                  (prs/parse-clj `(t/Match (t/Seqable t/Int)
                                           [~'T] (t/NilableNonEmptySeq ~'T) :-> ~'T
                                           [~'S] (t/Seqable ~'S) :-> ~'S)))))))
+
+(deftest parse-Instance-test
+  (is-clj (= 'Object
+             (prs/with-unparse-ns this-nsym
+               (prs/unparse-type
+                 (prs/parse-clj `(t/Instance Object)))))))
+
+(t/ann-protocol [[x :variance :invariant]]
+                InvariantProtocol)
+(defprotocol InvariantProtocol)
+
+(deftest parse-Satisfies-test
+  (is-clj (= 'typed.cljc.checker.impl-protocols/TCType
+             (prs/with-unparse-ns this-nsym
+               (prs/unparse-type
+                 (prs/parse-clj `(t/Satisfies typed.cljc.checker.impl-protocols/TCType))))))
+  (is-clj (= 'typed.cljc.checker.impl-protocols/TCType
+             (prs/with-unparse-ns this-nsym
+               (prs/unparse-type
+                 (prs/with-parse-ns 'typed.cljc.checker.impl-protocols
+                   (prs/parse-clj `(t/Satisfies ~'TCType)))))))
+  (is-clj (= '(t/Satisfies InvariantProtocol)
+             (prs/with-unparse-ns this-nsym
+               (prs/unparse-type
+                 (prs/parse-clj `(t/Satisfies InvariantProtocol)))))))

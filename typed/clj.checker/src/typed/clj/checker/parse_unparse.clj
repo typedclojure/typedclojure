@@ -38,7 +38,7 @@
                                         KwArgsSeq KwArgsArray TCError Extends JSNumber JSBoolean SymbolicClosure
                                         CLJSInteger ArrayCLJS JSNominal JSString TCResult AssocType MergeType
                                         GetType HSequential HSet JSUndefined JSNull JSSymbol JSObject
-                                        JSObj Bounds MatchType)
+                                        JSObj Bounds MatchType Instance Satisfies)
            (typed.cljc.checker.filter_rep TopFilter BotFilter TypeFilter NotTypeFilter AndFilter OrFilter
                                           ImpFilter NoFilter)
            (typed.cljc.checker.object_rep NoObject EmptyObject Path)
@@ -361,7 +361,7 @@
         (r/-type-of vsym)))))
 
 (defn parse-ExactCount [[_ & [n :as args]]]
-  (when-not (#{1} (count args))
+  (when-not (= 1 (count args))
     (prs-error "Wrong arguments to ExactCount"))
   (when-not (integer? n)
     (prs-error "First argument to ExactCount must be an integer"))
@@ -454,6 +454,32 @@
 
 (defmethod parse-type-list 'typed.clojure/Merge [t] (parse-Merge t))
 
+(defn parse-Instance [[_ tsyn :as all]]
+  (impl/assert-clojure)
+  (when-not (= 2 (count all))
+    (prs-error (str "Wrong arguments to t/Instance: " (pr-str all))))
+  (when-not (simple-symbol? tsyn)
+    (prs-error (str "t/Instance must be passed a simple symbol, given: " (pr-str tsyn))))
+  ((requiring-resolve 'typed.cljc.checker.type-ctors/RClass-of-with-unknown-params)
+   tsyn))
+
+(defmethod parse-type-list 'typed.clojure/Instance [t] (parse-Instance t))
+
+(defn parse-Satisfies [[_ tsyn :as all]]
+  (impl/assert-clojure) ;; TODO resolve protocol in cljs
+  (when-not (= 2 (count all))
+    (prs-error (str "Wrong arguments to t/Satisfies: " (pr-str all))))
+  (when-not (symbol? tsyn)
+    (prs-error (str "t/Satisfies must be passed a symbol, given: " (pr-str tsyn))))
+  (let [protocol-var (resolve-type-clj tsyn)
+        _ (when-not (var? protocol-var)
+            (prs-error (str "t/Satisfies must be passed a symbol naming a protocol: "
+                            tsyn " resolves to " (pr-str protocol-var))))]
+    ((requiring-resolve 'typed.cljc.checker.type-ctors/Protocol-with-unknown-params)
+     (symbol protocol-var))))
+
+(defmethod parse-type-list 'typed.clojure/Satisfies [t] (parse-Satisfies t))
+
 (defn parse-Get [[_ tsyn keysyn not-foundsyn :as all]]
   (when-not (#{2 3} (count (next all)))
     (prs-error (str "Wrong arguments to Get: " all)))
@@ -480,7 +506,7 @@
             [group rst] (loop [bnds rst
                                out [sym]]
                           (if (keyword? (second bnds))
-                            (let [_ (when-not (#{2} (count (take 2 bnds)))
+                            (let [_ (when-not (= 2 (count (take 2 bnds)))
                                       (prs-error (str "Keyword option " (second bnds)
                                                       " has no associated value")))
                                   [k v & rst] bnds]
@@ -2089,7 +2115,17 @@
                                [_All binder tsyn] tsyn]
                            (assert (and (vector? tsyn) (= 3 (count tsyn))))
                            (into [binder] tsyn)))))
-                   (:clauses m)))))
+                   (:clauses m))))
+  Instance
+  (unparse-type*
+    [m]
+    (list (unparse-Name-symbol-in-ns `t/Instance)
+          (unparse-Name-symbol-in-ns (:the-class m))))
+  Satisfies
+  (unparse-type*
+    [m]
+    (list (unparse-Name-symbol-in-ns `t/Satisfies)
+          (unparse-Name-symbol-in-ns (:the-var m)))))
 
 (defn Bounds->vector [{:keys [upper-bound lower-bound] :as bnds}]
   {:pre [(r/Bounds? bnds)]}

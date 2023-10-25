@@ -265,6 +265,13 @@
                                                (:body %))
                                          scope)))))
 
+(u/ann-record Instance [the-class :- t/Sym])
+(u/def-type Instance [the-class]
+  "An instance of the-class. Superclass to all RClass's on this class."
+  [(symbol? the-class)]
+  :methods
+  [p/TCType])
+
 (u/ann-record RClass [variances :- (t/U nil (t/NonEmptySeqable Variance))
                       poly? :- (t/U nil (t/NonEmptySeqable Type))
                       the-class :- t/Sym
@@ -349,6 +356,15 @@
   (boolean
     (when (DataType? a)
       (:record? a))))
+
+(u/ann-record Satisfies [the-var :- t/Sym,
+                         on-class :- t/Sym])
+(u/def-type Satisfies [the-var on-class]
+  "A Clojure Protocol"
+  [(symbol? the-var)
+   (symbol? on-class)]
+  :methods
+  [p/TCType])
 
 (u/ann-record Protocol [the-var :- t/Sym,
                         variances :- (t/U nil (t/NonEmptySeqable Variance)),

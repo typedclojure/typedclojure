@@ -523,6 +523,18 @@
         (and (r/DataType? S)
              (r/DataType? T)) (cs-gen-datatypes-or-records V X Y S T)
 
+        (and ((some-fn r/RClass? r/DataType?) S)
+             (r/Protocol? T))
+        (or (some #(when (and (r/Protocol? %)
+                              (= (:the-var %)
+                                 (:the-var T)))
+                     (cs-gen V X Y % T))
+                  (map c/fully-resolve-type
+                       (if (r/RClass? S)
+                         (c/RClass-supers* S)
+                         (c/Datatype-ancestors S))))
+            (fail! S T))
+
         ; handle Record as HMap
         (r/Record? S) (cs-gen V X Y (c/Record->HMap S) T)
 

@@ -52,25 +52,49 @@
                (ann-datatype T [a :- t/Int])
                (deftype T [a]
                  P
-                 (-m [this arg] this))))
-  ;; implements polymorphic protocol
-  (is-tc-e (do (t/defprotocol [[x :variance :invariant]]
+                 (-m [this arg] this)))))
+
+(deftest deftype-poly-ancestor-test
+  ;;extend polymorphic protocol via :extends
+  (is-tc-e (do (defprotocol [[x :variance :invariant]]
                  P
-                 (-m [this arg :- x] :- x))
-               (ann-datatype T [])
+                 (-m [this arg :- x] :- (P x)))
+               (ann-datatype T []
+                             :extends [(P t/Int)])
                (deftype T []
                  P
-                 (-m [this arg] arg))))
-  (is-tc-e (do (t/defprotocol [[x :variance :invariant]]
+                 (-m [this arg] this))
+               (ann-form (->T) (P t/Int))))
+  ;; missing :extends on invariant protocol
+  (is-tc-err (do (defprotocol [[x :variance :invariant]]
+                   P
+                   (-m [this arg :- x] :- (P x)))
+                 (ann-datatype T [])
+                 (deftype T []
+                   P
+                   (-m [this arg] this))))
+  ;; bad poly method return impl
+  (is-tc-err (do (defprotocol [[x :variance :invariant]]
+                   P
+                   (-m [this arg :- x] :- (P x)))
+                 (ann-datatype T []
+                               :extends [(P t/Int)])
+                 (deftype T []
+                   P
+                   ;;FIXME need to ensure -m is always checked against a Protocol,
+                   ;; not a Satisfies.
+                   (-m [this arg] :obviously-wrong))))
+  ;;extend covariant polymorphic protocol without specifying instantiation
+  (is-tc-e (do (defprotocol [[x :variance :covariant]]
                  P
                  (-m [this arg :- x] :- (P x)))
                (ann-datatype T [])
                (deftype T []
                  P
-                 (-m [this arg] this))))
-  ;;FIXME
-  #_
-  (is-tc-err (do (t/defprotocol [[x :variance :invariant]]
+                 (-m [this arg] this))
+               (ann-form (->T) (P t/Any))))
+  ;; covariant type params on extended protocol default to upper bound
+  (is-tc-err (do (defprotocol [[x :variance :covariant]]
                    P
                    (-m [this arg :- x] :- (P x)))
                  (ann-datatype T [])
@@ -78,9 +102,6 @@
                    P
                    (-m [this arg] this))
                  (ann-form (->T) (P t/Int)))))
-
-(deftest deftype-poly-ancestor-test
-  (is (t/check-ns 'clojure.core.typed.test.protocol-scoping)))
 
 (deftest rewrite-in-deftype-test
   (is

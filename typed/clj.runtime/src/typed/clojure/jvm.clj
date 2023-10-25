@@ -44,7 +44,8 @@
                    opts)
                (apply hash-map args))
         this-ns (ns-name *ns*)]
-    `(do ;; TODO runtime env
+    `(clojure.core.typed/tc-ignore
+        (do ;; TODO runtime env
          #_
          (impl/add-rclass-env '~nme {:op :RClass})
          ;; type env
@@ -57,7 +58,7 @@
                                        #((requiring-resolve 'typed.cljc.checker.base-env-helper/make-RClass)
                                          '~nme
                                          '~binder
-                                         '~opts)))))))))
+                                         '~opts))))))))))
 
 (defmacro override-classes [& args]
   (assert (even? (count args)))

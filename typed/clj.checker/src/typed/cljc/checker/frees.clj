@@ -27,7 +27,7 @@
                                         Mu HeterogeneousMap KwArgs
                                         CountRange Name Value Top Wildcard Unchecked TopFunction B F Result AnyValue
                                         Scope TCError Extends AssocType GetType MergeType Regex HSequential HSet
-                                        JSObj TypeOf MatchType)
+                                        JSObj TypeOf MatchType Instance Satisfies)
            (typed.cljc.checker.filter_rep FilterSet TypeFilter NotTypeFilter ImpFilter
                                           AndFilter OrFilter TopFilter BotFilter)
            (typed.cljc.checker.object_rep Path EmptyObject NoObject)
@@ -257,6 +257,10 @@
   Name 
   (frees [t] -empty-frees-result)
   TypeOf 
+  (frees [t] -empty-frees-result)
+  Instance 
+  (frees [t] -empty-frees-result)
+  Satisfies 
   (frees [t] -empty-frees-result)
 
   DataType

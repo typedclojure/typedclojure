@@ -38,8 +38,8 @@
 (defn check-method [{:keys [env] :as inst-method} {:keys [kind expected-type nme expected] :as _opts}]
   ;; returns a vector of checked methods
   {:pre [(#{:reify :deftype} kind)
-         (#{:method} (:op inst-method))]
-   :post [(#{:method} (:op %))]}
+         (= :method (:op inst-method))]
+   :post [(= :method (:op %))]}
   (when vs/*trace-checker*
     (println "Checking" (name kind) "method:" (:name inst-method)))
   (binding [vs/*current-env* env]

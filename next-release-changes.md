@@ -1,0 +1,9 @@
+- introduce `t/Instance` and `t/Satisfies`
+  - `t/Instance` provides classes with invariant type parameters with a common super type
+    - e.g., `(t/Instance Comparable)` is a supertype of `(Comparable Any)`
+  - similar for `t/Satisfies`, but for protocols
+  - helpful for the return filters of `instance?` and `satisfies?`
+    - i.e., we learn `(t/Instance Comparable)` if `(instance? Comparable ..)`, not `(Comparable Any)`
+- add Class <: Protocol, DataType <: Protocol cases to constraint generation
+- fix Class <: Protocol subtyping case
+- assert that annotation is required when extending invariant protocols with deftype

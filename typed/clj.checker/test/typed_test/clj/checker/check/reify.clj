@@ -111,6 +111,16 @@
                  (ann-form (reify Foo
                              (foo [_ a] a))
                            (Foo t/Int))))
+  ;; default covariant protocol parameters to upper bound
+  (is-tc-e (do (defprotocol [[x :variance :covariant]] Foo (foo [this a :- x] :- x))
+               (ann-form (reify Foo
+                           (foo [_ a] a))
+                         (Foo t/Any))))
+  (is-tc-err (do (defprotocol [[x :variance :covariant]] Foo (foo [this a :- x] :- x))
+                 (ann-form (reify Foo
+                             (foo [_ a] a))
+                           ;; not upper bound of x
+                           (Foo t/Int))))
   (is-tc-e (do (defprotocol [[x :variance :invariant]] Foo (foo [this a :- x] :- x))
                (ann-form (reify ^{:typed.clojure/replace (Foo t/Int)} Foo
                            (foo [_ a] a))

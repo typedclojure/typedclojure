@@ -83,8 +83,8 @@
                                                          :static-type (or (when-some [[_ t] (-> prot+class-syn meta (find :typed.clojure/replace))]
                                                                             (prs/parse-type t))
                                                                           (when v
-                                                                            (c/Protocol-of (symbol v)))
-                                                                          (c/RClass-of cls))}
+                                                                            (c/Protocol-with-unknown-params (symbol v)))
+                                                                          (c/RClass-of-with-unknown-params cls))}
                                                   v (assoc :protocol v))])))))
                           (next original-reify-form))
         class->info (-> class->info
@@ -108,11 +108,20 @@
                                                             (cond
                                                               (= msym 'clojure.lang.IFn/invoke) (IFn-invoke-method-t this-t (:static-type info))
                                                               (:protocol info) (let [static-type (c/fully-resolve-type static-type)
-                                                                                     _ (assert (r/Protocol? static-type))
+                                                                                     _ (when-not (r/Protocol? static-type)
+                                                                                         (let [prot-sym (symbol (:protocol info))
+                                                                                               prot-name (-> prot-sym name symbol)]
+                                                                                           (err/int-error
+                                                                                             (str "Missing annotation for reify ancestor "
+                                                                                                  (symbol (:protocol info))
+                                                                                                  ". e.g., "
+                                                                                                  (format "(reify ^{:typed.clojure/replace (%s ...)} %s)"
+                                                                                                          prot-name prot-name)))))
                                                                                      mtype (get-in static-type [:methods method-name])]
                                                                                  (assert mtype (format "Missing annotation for method %s on protocol %s" 
                                                                                                        method-name
-                                                                                                       (symbol (:protocol info))))
+                                                                                                       (symbol (:protocol info))
+                                                                                                       ". Please add with ann-protocol."))
                                                                                  mtype)))]]
                                  (if override-t
                                    (check-inst-fn-methods

@@ -176,7 +176,19 @@
                             [E] (t/Seqable E) :-> '[':second E])
                    ;=> '[':second t/Num]"
               :forms '[(t/Match target binder? pattern :-> result)]
-              ::special-type true}))
+              ::special-type true}
+    `t/Instance {:doc "An instance of a class without any type parameter information.
+                      Is a superclass of all the types consisting of the class applied
+                      to type arguments.
+                      
+                      For example, (Instance Comparable) is a supertype of
+                      (Comparable Int) and (Comparable Bool)."
+                 :forms '[(t/Instance class)]
+                 ::special-type true}
+    `t/Satisfies {:doc "An instance of a protocol without any type parameter information.
+                       Supertype to all protocol types with the same name."
+                  :forms '[(t/Satisfies protocol)]
+                  ::special-type true}))
 
 (defn type-doc* [tsyn]
   (cond

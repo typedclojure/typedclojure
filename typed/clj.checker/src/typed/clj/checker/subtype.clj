@@ -16,7 +16,6 @@
             [typed.cljc.checker.check :as chk]
             [typed.clj.checker.assoc-utils :as assoc-u]
             [typed.clj.checker.parse-unparse :as prs]
-            [typed.cljc.checker.datatype-ancestor-env :as ancest]
             [typed.cljc.checker.filter-ops :as fops]
             [typed.cljc.checker.filter-rep :as fr]
             [typed.cljc.checker.free-ops :as free-ops]
@@ -119,7 +118,7 @@
 
 (declare subtype-filter*)
 
-(defonce subtype-cache (atom {}))
+(def subtype-cache (atom {}))
 
 ; (ann reset-subtype-cache [-> nil])
 (defn reset-subtype-cache []
@@ -168,7 +167,8 @@
 (declare protocol-extenders
          subtype-datatypes-or-records subtype-Result subtype-PrimitiveArray
          subtype-CountRange subtype-TypeFn subtype-RClass subtype-rclass-or-datatype-with-protocol
-         boxed-primitives subtype-datatype-rclass subtype-TApp)
+         boxed-primitives subtype-datatype-rclass subtype-TApp
+         subtype-Instance subtype-Satisfies)
 
 (defn subtype-HSet [A s t]
   {:pre [(r/HSet? s)
@@ -828,8 +828,12 @@
         (subtype-datatypes-or-records A s t)
 
         (and ((some-fn r/RClass? r/DataType?) s)
-             (r/Protocol? t))
+             ((some-fn r/Protocol? r/Satisfies?) t))
         (subtype-rclass-or-datatype-with-protocol A s t)
+
+        (and ((some-fn r/Protocol? r/Satisfies?) s)
+             (r/Satisfies? t))
+        (subtype-Satisfies A s t)
 
         (and (r/Nil? s)
              (r/Protocol? t)
@@ -883,6 +887,10 @@
         (and (r/RClass? s)
              (r/RClass? t))
         (subtype-RClass A s t)
+
+        (and ((some-fn r/RClass? r/Instance?) s)
+             (r/Instance? t))
+        (subtype-Instance A s t)
 
         (and (r/DataType? s)
              (r/RClass? t))
@@ -1436,54 +1444,11 @@
     A
     (report-not-subtypes s t)))
 
-(defn datatype-ancestors 
-  "Returns a set of Types which are ancestors of this datatype.
-  Only useful when checking Clojure. This is because we need to query datatypes
-  for their ancestors, as sometimes datatypes do not appear in `extenders`
-  of a protocol (this happens when a protocol is extend directly in a deftype)."
-  [{:keys [the-class] :as dt}]
-  {:pre [(r/DataType? dt)]}
-  (impl/assert-clojure)
-  (let [overidden-by (fn [sym o]
-                       ;(prn "overriden by" sym (class o) o)
-                       (cond
-                         ((some-fn r/DataType? r/RClass?) o)
-                         (when (= sym (:the-class o))
-                           o)
-                         (r/Protocol? o)
-                         ; protocols are extended via their interface if they
-                         ; show up in the ancestors of the datatype
-                         (when (= sym (:on-class o))
-                           o)))
-        overrides (map c/fully-resolve-type (ancest/get-datatype-ancestors dt))
-        ;_ (prn "datatype name" the-class)
-        ;_ (prn "datatype overrides" overrides)
-        _ (assert (every? (some-fn r/Protocol? r/DataType? r/RClass?) overrides)
-                  "Overriding datatypes to things other than datatypes, protocols and classes NYI")
-        ; the classes that this datatype extends.
-        ; No vars should occur here because protocol are extend via
-        ; their interface.
-        normal-asyms (->> (ancestors (coerce/symbol->Class the-class))
-                          (filter class?)
-                          (map coerce/Class->symbol))
-        ;_ (prn "normal-asyms" normal-asyms)
-        post-override (set
-                        (for [sym normal-asyms]
-                          ; either we override this ancestor ...
-                          (if-let [o (some #(overidden-by sym %) overrides)]
-                            o
-                            (let [protocol-varsym (c/Protocol-interface->on-var sym)]
-                              (if (resolve protocol-varsym)
-                                ;... or we make a protocol type from the varified interface ...
-                                (c/Protocol-with-unknown-params protocol-varsym)
-                                ;... or we make an RClass from the actual ancestor.
-                                (c/RClass-of-with-unknown-params sym))))))]
-    post-override))
 
 (defn ^:private subtype-rclass-or-datatype-with-protocol
   [A s t]
   {:pre [((some-fn r/RClass? r/DataType?) s)
-         (r/Protocol? t)]
+         ((some-fn r/Protocol? r/Satisfies?) t)]
    :post [(or (set? %) (nil? %))]}
   (let [s-kind (cond
                  (r/RClass? s) (do (impl/assert-clojure (str "subtype-rclass-or-datatype-with-protocol not yet implemented for implementations other than Clojure: "
@@ -1501,14 +1466,14 @@
                                      (c/Protocol-normal-extenders t))))
         relevant-ancestor (some (fn [p] 
                                   (let [p (c/fully-resolve-type p)]
-                                    (when (and (r/Protocol? p)
+                                    (when (and ((some-fn r/Protocol? r/Satisfies?) p)
                                                (= (:the-var p) (:the-var t)))
                                       p)))
                                 ((case s-kind
                                    :RClass c/RClass-supers*
-                                   :DataType datatype-ancestors)
+                                   :DataType c/Datatype-ancestors)
                                  s))]
-    (cond 
+    (cond
       ; the extension is via the protocol
       (or in-protocol-extenders?
           ; extension via the protocol's interface, or explicitly overriden
@@ -1518,8 +1483,16 @@
                                               :RClass c/RClass-of-with-unknown-params
                                               :DataType c/DataType-with-unknown-params)
                                             (:the-class s)))]
-        (subtypeA* A s relevant-protocol-extender))
+        (subtypeA* A relevant-protocol-extender t))
       :else (report-not-subtypes s t))))
+
+(defn subtype-Satisfies
+  [A s t]
+  {:pre [((some-fn r/Protocol? r/Satisfies?) s)
+         (r/Satisfies? t)]}
+  (if (= (:the-var s) (:the-var t))
+    A
+    (report-not-subtypes s t)))
 
 ;(t/ann subtype-datatype-rclass [DataType RClass -> Seen])
 (defn ^:private subtype-datatype-rclass
@@ -1532,7 +1505,7 @@
                                                  (when (and (r/RClass? p)
                                                             (= (:the-class p) (:the-class t)))
                                                    p)))
-                                             (datatype-ancestors s))]
+                                             (c/Datatype-ancestors s))]
     (subtypeA* A s relevant-datatype-ancestor)
     (report-not-subtypes s t)))
 
@@ -1645,6 +1618,15 @@
       ;try each ancestor
 
       :else (report-not-subtypes s t))))
+
+(defn subtype-Instance
+  [A s t]
+  {:pre [((some-fn r/RClass? r/Instance?) s)
+         (r/Instance? t)]}
+  (if (class-isa? (coerce/symbol->Class (:the-class s))
+                  (coerce/symbol->Class (:the-class t)))
+    A
+    (report-not-subtypes s t)))
 
 ;subtype if t includes all of s. 
 ;tl <= sl, su <= tu

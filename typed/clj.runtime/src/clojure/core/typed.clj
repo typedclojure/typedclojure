@@ -1047,6 +1047,8 @@ for checking namespaces, cf for checking individual forms."}
                               (next args)
                               args)
              _ (assert (symbol? varsym) "Protocol name must be a symbol")
+             _ (assert (not (vector? (first mth)))
+                       "Type variable binder goes before protocol name in ann-protocol")
              _ (core/let [fs (frequencies (map first (partition 2 mth)))]
                  (when-let [dups (seq (filter (core/fn [[_ freq]] (< 1 freq)) fs))]
                    (println (str "WARNING: Duplicate method annotations in ann-protocol (" varsym 

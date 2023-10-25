@@ -253,21 +253,32 @@
     :else (err/int-error (str "Expected Function type, found " (prs/unparse-type expected)))))
 
 (defn protocol-implementation-type [root-t {:keys [declaring-class] :as method-sig}]
-  (let [pvar (c/Protocol-interface->on-var declaring-class)]
-    (when-some [ptype (pcl-env/get-protocol pvar)]
-      (let [mungedsym (symbol (:name method-sig))
-            gather-impl-type (fn gather-impl-type [t]
-                               (let [t (c/fully-resolve-type t)]
-                                 (cond
-                                   (r/Protocol? t) (when (= pvar (:the-var t))
-                                                     (extend-method-expected root-t (get-demunged-protocol-method t mungedsym)))
-                                   (r/DataType? t) (some->> (seq (keep gather-impl-type (sub/datatype-ancestors t)))
-                                                            (apply c/In))
-                                   (r/Intersection? t) (some->> (seq (keep gather-impl-type (:types t)))
-                                                                (apply c/In))
-                                   (r/Union? t) (some->> (seq (keep gather-impl-type (:types t)))
-                                                         (apply c/Un)))))]
-        (gather-impl-type root-t)))))
+  (when-some [pvar (c/Protocol-interface->on-var declaring-class)]
+    (when-not (pcl-env/get-protocol pvar)
+      (err/int-error (str "Protocol " pvar " must be annotated via ann-protocol before its method implementations "
+                          "can be checked.")))
+    (let [mungedsym (symbol (:name method-sig))
+          gather-impl-type (fn gather-impl-type [t]
+                             (let [t (c/fully-resolve-type t)]
+                               (cond
+                                 (r/Protocol? t) (when (= pvar (:the-var t))
+                                                   (extend-method-expected root-t (get-demunged-protocol-method t mungedsym)))
+                                 (r/DataType? t) (some->> (seq (keep gather-impl-type (c/Datatype-ancestors t)))
+                                                          (apply c/In))
+                                 (r/Intersection? t) (some->> (seq (keep gather-impl-type (:types t)))
+                                                              (apply c/In))
+                                 (r/Union? t) (some->> (seq (keep gather-impl-type (:types t)))
+                                                       (apply c/Un)))
+                               ))
+          found (gather-impl-type root-t)]
+      (when-not found
+        (err/int-error
+          (str "Datatype " (:the-class root-t) " must annotate how it extends protocol " pvar
+               " via ann-datatype. e.g., "
+               (format "(ann-datatype %s :extends [(%s ...)])"
+                       (apply str (->> (:the-class root-t) str (partition-by #{\.}) last))
+                       (-> pvar name symbol)))))
+      found)))
 
 (defn type->method-expected [t method-sig]
   {:pre [(r/Type? t)]

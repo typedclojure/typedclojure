@@ -326,3 +326,98 @@
   (is-tc-err (fn [f :- [t/Int t/Kw t/Bool :-> t/Kw]]
                :- '{:a t/Kw}
                (update {:a 1} :a f true :f))))
+
+(deftest csgen-intersect
+  (is-tc-e (do 
+             (defprotocol 
+               [[x :variance :covariant]]
+               ICollection')
+             (defprotocol 
+               [[x :variance :covariant]]
+               ISeq')
+             (defprotocol 
+               [[x :variance :covariant]]
+               ISeqable')
+             (defprotocol 
+               [[x :variance :covariant]]
+               IList')
+             (defalias
+               NEColl'
+               (t/TFn [[x :variance :covariant]]
+                    (ICollection' x)))
+             (defalias
+               NEASeq'
+               (t/TFn [[x :variance :covariant]]
+                    (t/I
+                      (ICollection' x)
+                      (ISeqable' x)
+                      (ISeq' x)
+                      (IList' x)
+                      #_(CountRange 1))))
+             (fn [seq' :- (t/All [x] [(NEColl' x) -> (NEASeq' x)])
+                  a :- (NEColl' t/Int)] 
+               :- (NEASeq' Number)
+               (seq' a)))))
+
+(deftest cs-gen-DataType-Protocol-test
+  (is-tc-e (do (defprotocol [[foo :variance :covariant]]
+                 Foo)
+               (t/ann-datatype [[bar :variance :covariant]]
+                               FooD []
+                               :extends
+                               [(Foo bar)])
+               (deftype FooD []
+                 Foo)
+               (fn [upcast :- (t/All [x] [(Foo x) :-> x])
+                    dt :- (FooD t/Int)]
+                 :- t/Int
+                 (upcast dt))))
+  (is-tc-err (do (defprotocol [[foo :variance :covariant]]
+                   Foo)
+                 (t/ann-datatype [[bar :variance :covariant]]
+                                 FooD []
+                                 :extends
+                                 [(Foo bar)])
+                 (deftype FooD []
+                   Foo)
+                 (fn [upcast :- (t/All [x] [(Foo x) :-> x])
+                      dt :- (FooD t/Int)]
+                   :- t/Bool ;;bad return
+                   (upcast dt))))
+  (is-tc-e (do (t/defprotocol
+                 [[foo :variance :covariant]]
+                 Foo
+                 (bar- [this] :- foo))
+
+               (t/ann-datatype FooD [t :- t/Symbol]
+                               :extends
+                               [(Foo t/Symbol)])
+
+               (deftype FooD [t]
+                 Foo
+                 (bar- [this] t))
+
+               (t/ann-form (bar- (->FooD 'a))
+                           t/Symbol))))
+
+(deftest cs-gen-RClass-Protocol-test
+  (is-tc-e (do (defprotocol [[a :variance :covariant]] Prot)
+               (definterface Inter)
+               (override-classes Inter [[[a :variance :covariant]]
+                                        :unchecked-ancestors
+                                        [(Prot a)]])
+               (fn [upcast :- (t/All [x] [(Prot x) :-> x])
+                    inter :- (Inter t/Int)]
+                 :- t/Int
+                 (upcast inter)))
+           :requires [[typed.clojure.jvm :refer [override-classes]]])
+  (is-tc-err (do (defprotocol [[a :variance :covariant]] Prot)
+                 (definterface Inter)
+                 (override-classes Inter [[[a :variance :covariant]]
+                                          :unchecked-ancestors
+                                          [(Prot a)]])
+                 (fn [upcast :- (t/All [x] [(Prot x) :-> x])
+                      inter :- (Inter t/Int)]
+                   :- t/Bool ;; bad return
+                   (upcast inter)))
+             :requires [[typed.clojure.jvm :refer [override-classes]]]))

@@ -28,7 +28,7 @@
                                         ArrayCLJS FunctionCLJS KwArgsSeq HSequential HSet
                                         AnyValue TopFunction Scope DissocType AssocType MergeType
                                         GetType JSUndefined JSNull JSSymbol JSObj TypeOf
-                                        SymbolicClosure)
+                                        SymbolicClosure Instance Satisfies)
            (typed.cljc.checker.filter_rep TopFilter BotFilter TypeFilter NotTypeFilter AndFilter OrFilter
                                           ImpFilter)))
 
@@ -240,7 +240,7 @@
                    FunctionCLJS AnyValue TopFunction JSUndefined
                    JSNull JSSymbol TypeOf
                    ;;FIXME ???
-                   SymbolicClosure)
+                   SymbolicClosure Instance Satisfies)
 
 (promote-demote GetType
   [T V]
