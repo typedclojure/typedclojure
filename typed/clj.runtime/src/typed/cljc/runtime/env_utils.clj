@@ -13,12 +13,6 @@
   (:require [typed.clojure :as-alias t])
   (:import [java.lang.ref SoftReference]))
 
-^::t/ignore
-(do
-  (def ^:private annotations (atom []))
-  (defmacro ^:private ann [& args] `(swap! annotations conj #(t/ann ~@args)))
-  (defmacro ^:private defalias [& args] `(swap! annotations conj #(t/defalias ~@args))))
-
 (defonce ^{:doc "Internal use only"} ^:no-doc parsed-types-invalidation-id (atom (str (random-uuid))))
 
 (defn invalidate-parsed-types! []
@@ -56,8 +50,3 @@
     (assert (not (or (delay? res) (fn? res)))
             (class res))
     res))
-
-;; t/ann and t/defalias expand to calls to this ns. register types after interning all vars.
-^::t/ignore
-(do
-  (run! #(%) @annotations))
