@@ -429,7 +429,7 @@
 #?(:clj
 (def ^:private PolyDots-fresh-symbols* #((requiring-resolve 'typed.cljc.checker.type-ctors/PolyDots-fresh-symbols*) %)))
 #?(:clj
-(def ^:private PolyDots-body* #((requiring-resolve 'typed.cljc.checker.type-ctors/PolyDots-body*) %)))
+(def ^:private PolyDots-body* #((requiring-resolve 'typed.cljc.checker.type-ctors/PolyDots-body*) %1 %2)))
 #?(:clj
 (def ^:private FnIntersection? #((requiring-resolve 'typed.cljc.checker.type-rep/FnIntersection?) %)))
 #?(:clj
@@ -455,16 +455,10 @@
 #?(:clj
 (def ^:private subtype? #((requiring-resolve 'typed.clj.checker.subtype/subtype?) %1 %2)))
 
-#?(:clj (def ^:private std-out *out*))
-
 #?(:clj
 (defn gen-protocol* [current-env current-ns vsym binder mths]
   {:pre [(symbol? current-ns)
          ((some-fn nil? map?) mths)]}
-  #_
-  (binding [*out* std-out]
-    (println "in gen-protocol*"
-             current-ns vsym))
   (let [_ (when-not (symbol? vsym)
             (int-error
               (str "First argument to ann-protocol must be a symbol: " vsym)))

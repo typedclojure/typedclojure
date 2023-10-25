@@ -3,7 +3,7 @@
 
 ; all map->* keys are mandatory in polymorphic records
 
-(t/ann-record [[foo :variance :invariant]] Foo [b :- (U nil t/Num)])
+(t/ann-record [[foo :variance :invariant]] Foo [b :- (t/U nil t/Num)])
 (t/tc-ignore
 (defrecord Foo [b])
   )
