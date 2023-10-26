@@ -1,0 +1,16 @@
+# sourcehut build
+image: ubuntu/22.04
+secrets:
+  - 4fb99124-4e5f-4427-8796-3ccc0d953621
+sources:
+  - git@git.sr.ht:~ambrosebs/typedclojure
+tasks:
+  - install-clojure: |
+      curl -L -O https://github.com/clojure/brew-install/releases/latest/download/linux-install.sh
+      chmod +x linux-install.sh
+      sudo ./linux-install.sh
+  - deps:
+      sudo apt-get install -y openjdk-17-jdk nodejs
+  - test: |
+      cd typedclojure/typed/clj.checker/
+      ./script/test
