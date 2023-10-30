@@ -326,7 +326,7 @@
 (def ^:private initial-Un-cache (cache/lu-cache-factory {} :threshold 256))
 
 (t/ann ^:no-check Un-cache (t/Atom1 TypeCache))
-(defonce Un-cache (atom initial-Un-cache))
+(def Un-cache (atom initial-Un-cache))
 
 (t/ann ^:no-check reset-Un-cache [-> nil])
 (defn reset-Un-cache []
@@ -383,10 +383,10 @@
 (declare overlap In)
 
 (t/ann In-cache (t/Atom1 TypeCache))
-(defonce In-cache (atom {}))
+(def In-cache (atom {}))
 
 (t/ann intersect-cache (t/Atom1 TypeCache))
-(defonce intersect-cache (atom {}))
+(def intersect-cache (atom {}))
 
 (t/ann reset-In-cache [-> nil])
 (defn reset-In-cache []
@@ -542,11 +542,42 @@
 
                 (= 1 (count ts)) (first ts)
 
+                ; try and simplify to disjunctive normal form
                 ; normalise (I t1 t2 (t/U t3 t4))
-                ; to (t/U (I t1 t2) (I t1 t2 t3) (t/I t1 t2 t4))
-                :else (let [{:keys [unions count-ranges hmaps non-unions]}
+                ; to (t/U (I t1 t2 t3) (t/I t1 t2 t4))
+                :else (let [;_ (binding [vs/*verbose-types* true] (prn "before ts" ts))
+                            ;; only move common elements of all inner unions to outer union
+                            ; (I (U nil t1) (U nil t2))
+                            ; =>
+                            ; (U nil (I t1 t2))
+                            ; rather than 
+                            ; (U nil t1 t2)
+                            inner-unions (filter r/Union? ts)
+                            ;; only move if there's more than one union
+                            inner-unions (when (next inner-unions) inner-unions)
+                            outer-union-elements (some->> inner-unions
+                                                          (map :types)
+                                                          (apply set/intersection)
+                                                          not-empty)
+                            ts (if outer-union-elements
+                                 (flatten-intersections
+                                   (keep (fn [t]
+                                           (when (r/Union? t)
+                                             ;; remove inner union if all its elements have been moved to outer union
+                                             ;; (I (U t1 t2) (U t1 t2 t3))
+                                             ;; =>
+                                             ;; (U t1 t2 t3)
+                                             ;; not 
+                                             ;; (U t1 t2 (U) t3)
+                                             (some->> (not-empty
+                                                        (set/difference (:types t) outer-union-elements))
+                                                      (apply Un))))
+                                         ts))
+                                 ts)
+                            ;_ (prn "ts" ts)
+                            ;_ (prn "outer-union-elements" outer-union-elements)
+                            {:keys [unions count-ranges hmaps tapps non-unions]}
                             (group-by (fn [t]
-                                        {:pre [(not (r/Intersection? t))]}
                                         (cond
                                           (r/Union? t) :unions
                                           (r/CountRange? t) :count-ranges
@@ -555,21 +586,23 @@
                                       ts)
                             non-unions (concat non-unions
                                                ;; FIXME hmm some of these can return unions... 
-                                               (some->> (seq count-ranges)
+                                               (some->> count-ranges
                                                         (reduce intersect-CountRange)
                                                         list)
-                                               (some->> (seq hmaps)
+                                               (some->> hmaps
                                                         (reduce intersect-HMap)
                                                         list))
-                            ;_ (prn "unions" (map ind/unparse-type unions))
-                            ;_ (prn "non-unions" (map ind/unparse-type non-unions))
+                            ;_ (prn "unions" unions)
+                            ;_ (prn "non-unions" non-unions)
                             ;intersect all the non-unions to get a possibly-nil type
                             intersect-non-unions (some->> (seq non-unions)
                                                           (reduce intersect))
+                            ;_ (prn "intersect-non-unions" intersect-non-unions)
                             ;if we have an intersection above, use it to update each
                             ;member of the unions we're intersecting
-                            flat-unions (flatten-unions unions)
-                            intersect-union-ts (cond 
+                            flat-unions (flatten-unions (concat unions outer-union-elements))
+                            ;_ (prn "flat-unions" flat-unions)
+                            intersect-union-ts (cond
                                                  intersect-non-unions
                                                  (if (seq flat-unions)
                                                    (reduce (fn [acc union-m]
@@ -578,9 +611,10 @@
                                                    #{intersect-non-unions})
 
                                                  :else flat-unions)
+                            ;_ (prn "intersect-union-ts" intersect-union-ts)
                             _ (assert (every? r/Type? intersect-union-ts)
                                       intersect-union-ts)]
-                        (apply Un intersect-union-ts))))]
+                        (apply Un (concat outer-union-elements intersect-union-ts)))))]
     res))
 
 (declare TypeFn* instantiate-typefn abstract-many instantiate-many)

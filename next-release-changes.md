@@ -7,3 +7,5 @@
 - add Class <: Protocol, DataType <: Protocol cases to constraint generation
 - fix Class <: Protocol subtyping case
 - assert that annotation is required when extending invariant protocols with deftype
+- fix intersection simplication after change in 1.1.5
+  - `(I Int (Nilable Int)) => Int`, not `(Nilable Int)`

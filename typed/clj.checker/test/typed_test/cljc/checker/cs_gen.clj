@@ -421,3 +421,130 @@
                    :- t/Bool ;; bad return
                    (upcast inter)))
              :requires [[typed.clojure.jvm :refer [override-classes]]]))
+
+(deftest cs-gen-no-best-inst-test
+  (is-tc-e (fn [f :- (t/All [x] [:-> [x :-> x]])]
+             (let [e (f)]
+               (clojure.core.typed/print-env "a"))))
+  ;; TODO return symbolic closure from (f)
+  #_
+  (is-tc-e (do (fn [f :- (t/All [x] [:-> [x :-> x]])]
+             (let [e (f)]
+               (e 1)))))
+  ;;FIXME should error, no best instantiation
+  #_
+  (is-tc-err (do (defprotocol [[x :variance :invariant]]
+                   Inv)
+                 (fn [f :- (t/All [x] [:-> (Inv x)])]
+                   (f))))
+  ;;FIXME should error, no best instantiation
+  #_
+  (is-tc-err (do (defprotocol [[x :variance :invariant]]
+                   Inv)
+                 (fn [f :- (t/All [x] [:-> (Inv x)])]
+                   (let [inv (f)]
+                     (t/ann-form inv (Inv t/Nothing))))))
+  (is-tc-err (do (defprotocol [[x :variance :invariant]]
+                   Inv)
+                 (fn [f :- (t/All [x] [:-> (Inv x)])]
+                   (let [inv (f)]
+                     (t/ann-form inv (Inv t/Any))))))
+  (is-tc-e (do (defprotocol [[x :variance :invariant]]
+                 Inv)
+               (fn [f :- (t/All [x] [:-> (Inv x)])]
+                 (t/ann-form (f) (Inv t/Any))
+                 (t/ann-form (f) (Inv t/Nothing))
+                 (t/ann-form (f) (Inv t/Int))
+                 (t/ann-form (f) (Inv t/Bool)))))
+  (is-tc-e (fn [f :- (t/All [x] [:-> (t/Atom1 x)])]
+             (t/ann-form @(f) t/Nothing)))
+  (is-tc-e (fn [f :- (t/All [x] [:-> [x :-> (t/Atom1 x)]])
+                a :- t/Nothing]
+             (t/ann-form @((f) a) t/Nothing)))
+  ;; TODO return symbolic closure from (f)
+  #_
+  (is-tc-e (fn [f :- (t/All [x] [:-> [x :-> (t/Atom1 x)]])
+                a :- t/Int]
+             (t/ann-form @((f) a) t/Int)))
+  (is-tc-err (do (defprotocol [[x :variance :invariant]]
+                   Atom)
+                 (fn [swap! :- (t/All [x] [(Atom x) [x :-> x] :-> x])
+                      a :- (Atom (t/Nilable t/Int))
+                      inc :- [t/Int :-> t/Int]]
+                   (swap! a inc))))
+  (is-tc-e (do (defprotocol [[x :variance :invariant]]
+                 Inv)
+               (defprotocol [[x :variance :covariant]]
+                 Cov)
+               (fn [f :- (t/All [x] [(Inv x) (Cov x) :-> x])
+                    inv :- (Inv (t/Nilable t/Int))
+                    ;; can upcast to (Cov (t/Nilable t/Int))
+                    cov :- (Cov t/Int)]
+                 (f inv cov))))
+  (is-tc-err (do (defprotocol [[x :variance :invariant]]
+                   Inv)
+                 (defprotocol [[x :variance :contravariant]]
+                   Contra)
+                 (fn [f :- (t/All [x] [(Inv x) (Contra x) :-> x])
+                      inv :- (Inv (t/Nilable t/Int))
+                      ;; cannot upcast to (Contra (t/Nilable t/Int))
+                      contra :- (Contra t/Int)]
+                   (f inv contra))))
+  (is-tc-err (do (defprotocol [[x :variance :contravariant]]
+                   Contra)
+                 (fn [contra :- (Contra t/Int)]
+                   :- (Contra (t/Nilable t/Int))
+                   contra)))
+  (is-tc-err (do (defprotocol [[x :variance :contravariant]]
+                   Inv)
+                 (fn [inv :- (Inv t/Int)]
+                   :- (Inv (t/Nilable t/Int))
+                   inv)))
+  (is-tc-e (do (defprotocol [[x :variance :covariant]]
+                 Cov)
+               (fn [cov :- (Cov t/Int)]
+                 :- (Cov (t/Nilable t/Int))
+                 cov)))
+  (is-tc-e (do (defprotocol [[x :variance :contravariant]]
+                 Contra)
+               (fn [f :- (t/All [x] [(Contra x) (Contra x) :-> x])
+                    contra1 :- (Contra (t/Nilable t/Int))
+                    contra2 :- (Contra t/Int)]
+                 (let [a (f contra1 contra2)]
+                   (ann-form a (Contra t/Int))))))
+  (is-tc-e (do (defprotocol [[x :variance :contravariant]]
+                 Contra)
+               (fn [f :- (t/All [x] [(Contra x) (Contra x) :-> x])
+                    contra1 :- (Contra (t/Nilable t/Int))
+                    contra2 :- (Contra t/Int)]
+                 :- t/Int
+                 (f contra1 contra2))))
+  ;;FIXME
+  #_
+  (is-tc-err (do (defprotocol [[x :variance :contravariant]]
+                   Contra)
+                 (fn [f :- (t/All [x] [(Contra x) (Contra x) :-> x])
+                      contra1 :- (Contra (t/Nilable t/Int))
+                      contra2 :- (Contra t/Int)]
+                   (f contra1 contra2))))
+  (is-tc-e (do (defprotocol [[x :variance :covariant]]
+                 Cov)
+               (fn [f :- (t/All [x] [(Cov x) (Cov x) :-> x])
+                    cov1 :- (Cov (t/Nilable t/Int))
+                    cov2 :- (Cov t/Int)]
+                 (f cov1 cov2))))
+  (is-tc-err (do (defprotocol [[x :variance :covariant]]
+                   Cov)
+                 (fn [f :- (t/All [x] [(Cov x) (Cov x) :-> x])
+                      cov1 :- (Cov (t/Nilable t/Int))
+                      cov2 :- (Cov t/Int)]
+                   :- t/Int ;; should be nilable
+                   (f cov1 cov2))))
+  (is-tc-e (do (defprotocol [[x :variance :covariant]]
+                 Cov)
+               (fn [f :- (t/All [x] [(Cov x) (Cov x) :-> x])
+                    cov1 :- (Cov (t/Nilable t/Int))
+                    cov2 :- (Cov t/Int)]
+                 :- (t/Nilable t/Int)
+                 (f cov1 cov2))))
+  )

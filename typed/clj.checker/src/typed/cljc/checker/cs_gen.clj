@@ -1694,12 +1694,20 @@
                      ((some-fn nil? symbol?) variable)]}
               (when-not (subtype? S T) (fail! S T))
               (when (some r/TypeFn? [upper-bound lower-bound]) (err/nyi-error "Higher kinds"))
-              (let [var (h (or variable X) :constant)
+              (let [X (or variable X)
+                    var (h X :constant)
+                    ;_ (prn "variance" X var)
+                    ;; Pierce+Turner section 3.5
                     inferred (case var
                                (:constant :covariant) S
                                :contravariant T
-                               ;; FIXME unsure if In is correct here
-                               :invariant (c/In S T))]
+                               ;;FIXME incorrect
+                               :invariant (c/In S T)
+                               ;; other direction already checked
+                               #_(if (subtype? T S)
+                                   S
+                                   (fail! S T)))]
+                ;(prn "inferred" inferred)
                 inferred))
             ;TODO implement generalize
             ;                  (let [gS (generalize S)]
@@ -2611,6 +2619,7 @@
   {:pre [(r/TCResult? t)
          (r/Type? query)]
    :post [((some-fn nil? r/TCResult?) %)]}
+  ;(prn "solve" t query)
   (let [;; atm only support query = (All [x+] [in :-> out])
         _ (assert (r/Poly? query))
         names (c/Poly-fresh-symbols* query)
@@ -2629,6 +2638,7 @@
         rhs (first (:dom arity))
         ;; TODO incorporate filter/object
         out (:t (:rng arity))
+        ;_ (prn {:lhs lhs :rhs rhs :out out})
         substitution (handle-failure
                        (free-ops/with-bounded-frees (zipmap (map r/make-F names) bbnds)
                          (infer

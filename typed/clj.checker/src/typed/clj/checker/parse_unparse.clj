@@ -1862,7 +1862,8 @@
 (defn unparse-type [t]
   ; quick way of giving a Name that the user is familiar with
   ;(prn "unparse-type" (class t))
-  (or (-> t meta :source-Name)
+  (or (when-not vs/*verbose-types*
+        (-> t meta :source-Name))
       (unparse-type* t)))
 
 (defn unp [t] (prn (unparse-type t)))

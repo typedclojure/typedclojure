@@ -1,5 +1,6 @@
 (ns typed-test.cljc.checker.type-ctors
   (:require [clojure.test :refer [deftest is]]
+            [typed.clojure :as t]
             [typed.clj.checker.test-utils :refer :all]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.type-ctors :as c]))
@@ -27,3 +28,17 @@
                       (c/RClass-of 'java.lang.constant.Constable)]))
              (c/RClass-supers* (r/Instance-maker `Integer))))
   )
+
+(deftest In-test
+  (is-clj (not (subtype?
+                 (c/-name `t/Nilable (c/-name `t/Int))
+                 (c/In (c/-name `t/Nilable (c/-name `t/Int))
+                       (c/-name `t/Int)))))
+  (is-clj (subtype?
+            (c/In (c/-name `t/Nilable (c/-name `t/Int))
+                  (c/-name `t/Int))
+            (c/-name `t/Nilable (c/-name `t/Int))))
+  (is-clj (both-subtype?
+            (c/-name `t/Int)
+            (c/In (c/-name `t/Nilable (c/-name `t/Int))
+                  (c/-name `t/Int)))))
