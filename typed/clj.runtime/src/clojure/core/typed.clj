@@ -1749,6 +1749,10 @@ for checking namespaces, cf for checking individual forms."}
            ~@body
            (recur (unchecked-inc ~i)))))))
 
+;; Not technically required, but a valuable hint for clj-kondo & friends
+(declare def fn loop let ann-form tc-ignore
+         defprotocol when-let-fail defn atom ref)
+
 (import-m/import-macros clojure.core.typed.macros
   [def fn loop let ann-form tc-ignore defprotocol
    when-let-fail defn atom ref])

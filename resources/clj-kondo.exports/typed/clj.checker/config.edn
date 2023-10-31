@@ -1,0 +1,2 @@
+{:hooks {:analyze-call {clojure.core.typed/defn hooks.typedclojure/typed-defn}}
+ :linters {:typed.clojure/unannotated {:level :error}}}
