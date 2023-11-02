@@ -598,14 +598,7 @@ java.util.Set [[[a :variance :covariant]]
                :unchecked-ancestors
                [(Seqable (t/NilableNonEmptySeq a))]]
 
-
-java.util.List [[[a :variance :covariant]]
-                :replace
-                {;Iterable (Iterable a)
-                 Collection (Collection a)}
-                :unchecked-ancestors
-                [(Seqable (t/NilableNonEmptySeq a))]]
-
+;; FIXME should invariant
 java.util.Collection [[[a :variance :covariant]]
                       :replace
                       {Iterable (Iterable a)}
@@ -623,6 +616,27 @@ java.util.RandomAccess [[[a :variance :covariant]]
                         :unchecked-ancestors
                         [(Indexed a)]]
 )
+
+(cond
+  (resolve 'java.util.SequencedCollection)
+  (override-classes
+    java.util.SequencedCollection [[[a :variance :invariant]]
+                                   :replace
+                                   {;Iterable (Iterable a)
+                                    Collection (Collection a)}]
+    ;; FIXME should be invariant
+    java.util.List [[[a :variance :covariant]]
+                    :replace
+                    {;Iterable (Iterable a)
+                     ;Collection (Collection a)
+                     java.util.SequencedCollection (java.util.SequencedCollection a)}])
+  :else
+  (override-classes
+    ;; FIXME should be invariant
+    java.util.List [[[a :variance :covariant]]
+                    :replace
+                    {;Iterable (Iterable a)
+                     Collection (Collection a)}]))
 
 ;; ==========================================
 ;; Predicate support for common JVM classes

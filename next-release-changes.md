@@ -9,3 +9,6 @@
 - assert that annotation is required when extending invariant protocols with deftype
 - fix intersection simplication after change in 1.1.5
   - `(I Int (Nilable Int)) => Int`, not `(Nilable Int)`
+- resolve first argument to `override-class` at runtime
+- improve Java 21 support
+  - annotate `java.util.SequencedCollection` and extend in `java.util.List`

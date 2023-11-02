@@ -34,10 +34,6 @@
   (let [[binder args] (take-when vector? args)
         [nme args] (take-when symbol? args)
         _ (assert (symbol? nme) (str "Missing name in override-class" [nme args]))
-        nme (or (when-some [^Class c (resolve nme)]
-                  (when (class? c)
-                    (-> c .getName symbol)))
-                (throw (ex-info (str "Could not resolve class: " nme) {:class-name nme})))
         [opts args] (take-when map? args)
         opts (if opts
                (do (assert (empty? args) (str "Trailing args to override-class: " (pr-str args)))
@@ -45,20 +41,24 @@
                (apply hash-map args))
         this-ns (ns-name *ns*)]
     `(clojure.core.typed/tc-ignore
-        (do ;; TODO runtime env
+       (let [nme# (or (when-some [^Class c# (ns-resolve '~this-ns '~nme)]
+                        (when (class? c#)
+                          (-> c# .getName symbol)))
+                      (throw (ex-info (str "Could not resolve class: " '~nme) {:class-name '~nme})))]
+          ;; TODO runtime env
          #_
-         (impl/add-rclass-env '~nme {:op :RClass})
+         (impl/add-rclass-env nme# {:op :RClass})
          ;; type env
          ;inline when-bindable-defining-ns
          (macros/when-bindable-defining-ns '~this-ns
            (impl/with-clojure-impl
-             (impl/add-rclass '~nme (delay-type
-                                      ((requiring-resolve 'typed.clj.checker.parse-unparse/with-parse-ns*)
-                                       '~this-ns
-                                       #((requiring-resolve 'typed.cljc.checker.base-env-helper/make-RClass)
-                                         '~nme
-                                         '~binder
-                                         '~opts))))))))))
+             (impl/add-rclass nme# (delay-type
+                                     ((requiring-resolve 'typed.clj.checker.parse-unparse/with-parse-ns*)
+                                      '~this-ns
+                                      #((requiring-resolve 'typed.cljc.checker.base-env-helper/make-RClass)
+                                        nme#
+                                        '~binder
+                                        '~opts))))))))))
 
 (defmacro override-classes [& args]
   (assert (even? (count args)))
