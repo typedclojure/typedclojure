@@ -1,0 +1,2 @@
+src/typed_example/clj_kondo_hooks.clj:5:19: error: Expected: number, received: keyword.
+src/typed_example/clj_kondo_hooks.clj:7:20: error: Expected: number, received: keyword.

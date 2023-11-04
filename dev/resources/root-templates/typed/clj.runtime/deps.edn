@@ -1,5 +1,5 @@
 {% do-not-edit-edn-comment %}
-{:paths ["src"]
+{:paths ["src" "resources"]
  :deps {org.clojure/clojure {:mvn/version "{◊clojure-mvn-version◊}"}}
  :aliases {:test
            {:extra-paths ["test"]
