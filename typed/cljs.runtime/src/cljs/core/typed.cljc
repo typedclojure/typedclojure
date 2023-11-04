@@ -119,6 +119,19 @@
       (impl/add-tc-var-type qsym tc-type)))
   nil)
 
+#?(:clj
+   (defn- qualify-sym [varsym]
+     (core/let [current-nsym (cljs-ns)
+                varsym-nsym (some-> (namespace varsym) symbol)
+                qsym (symbol (name
+                               (or (get ((requiring-resolve 'typed.cljs.checker.util/get-aliases)
+                                         current-nsym)
+                                        varsym-nsym)
+                                   varsym-nsym
+                                   current-nsym))
+                             (name varsym))]
+       qsym)))
+
 (defmacro ann
   "Annotate varsym with type. If unqualified, qualify in the current namespace.
   If varsym has metadata {:no-check true}, ignore definitions of varsym while type checking.
@@ -133,15 +146,7 @@
   (ann ^:no-check foobar [Integer -> String])"
   [varsym typesyn]
   {:pre [(symbol? varsym)]}
-  (core/let [current-nsym (cljs-ns)
-             varsym-nsym (some-> (namespace varsym) symbol)
-             qsym (symbol (name
-                            (or (get ((requiring-resolve 'typed.cljs.checker.util/get-aliases)
-                                      current-nsym)
-                                     varsym-nsym)
-                                varsym-nsym
-                                current-nsym))
-                          (name varsym))
+  (core/let [qsym (qualify-sym varsym)
              #_#_ ;;FIXME warn if (namespace qsym) is cljs.core
              _ (when-not (ana-api/resolve &env varsym) ;; FIXME throws on missing?
                  (println (str "WARNING: " varsym " not resolvable, annotating as " qsym)))
@@ -209,8 +214,9 @@
                    (println (str "WARNING: Duplicate method annotations in ann-protocol (" varsym 
                                  "): " (str/join ", " (map first dups))))))
              ; duplicates are checked above.
-             {:as mth} mth]
-    (ann-protocol*-macro-time vbnd varsym mth &form)
+             {:as mth} mth
+             qsym (qualify-sym varsym)]
+    (ann-protocol*-macro-time vbnd qsym mth &form)
     nil))
 
 (defmacro ann-jsnominal

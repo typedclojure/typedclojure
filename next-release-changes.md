@@ -31,3 +31,6 @@
 - Breaking: remove `t/Volatile2`, change `clojure.lang.Volatile to take only 1 type parameter
   - use `t/AnyVolatile` for `(t/Volatile2 t/Nothing t/Any)`
 - add `t/AnySeqable` and `t/AnyNilableNonEmptySeq`
+- don't use `resolve` to qualify first argument of `t/ann-protocol`
+  - just qualify based on current namespace aliases
+  - allows for annotations on protocols without a corresponding `defprotocol`

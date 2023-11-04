@@ -401,6 +401,21 @@ for checking namespaces, cf for checking individual forms."}
       ((requiring-resolve 'clojure.core.typed.current-impl/add-tc-type-name) qsym t)))
   nil)
 
+(defn- qualify-sym [sym]
+  (core/let [qual (if-some [nsp (some-> sym namespace symbol)]
+                    (or (some-> (or ((ns-aliases *ns*) nsp)
+                                    (find-ns nsp))
+                                ns-name)
+                        (throw (Exception. (str "Could not resolve namespace " nsp " in sym " sym))))
+                    (ns-name *ns*))]
+    (-> (symbol (str qual) (name sym))
+        (with-meta (not-empty
+                     (-> {}
+                         (into (meta sym))
+                         (assoc :file *file*)
+                         ;;FIXME find line number
+                         #_(into (meta &form))))))))
+
 (defmacro defalias 
   "Define a recursive type alias on a qualified symbol. Takes an optional doc-string as a second
   argument.
@@ -421,22 +436,10 @@ for checking namespaces, cf for checking individual forms."}
   ([sym t]
    (assert (symbol? sym) (str "First argument to defalias must be a symbol: " sym))
    (core/let
-     [qual (if-let [nsp (some-> sym namespace symbol)]
-             (or (some-> (or ((ns-aliases *ns*) nsp)
-                             (find-ns nsp))
-                         ns-name)
-                 (throw (Exception. (str "Could not resolve namespace " nsp " in sym " sym))))
-             (ns-name *ns*))
-      qsym (-> (symbol (str qual) (name sym))
-               (with-meta (not-empty
-                            (-> {}
-                                (into (meta sym))
-                                (assoc :file *file*)
-                                ;;FIXME find line number
-                                #_(into (meta &form))))))]
+     [qsym (qualify-sym sym)]
      `(tc-ignore
         (when (= "true" (System/getProperty "clojure.core.typed.intern-defaliases"))
-          (intern '~qual '~(with-meta (symbol (name sym))
+          (intern '~qsym '~(with-meta (symbol (name sym))
                                       (meta sym))))
         (defalias* '~qsym '~t '~&form)))))
 
@@ -1052,11 +1055,11 @@ for checking namespaces, cf for checking individual forms."}
              _ (core/let [fs (frequencies (map first (partition 2 mth)))]
                  (when-let [dups (seq (filter (core/fn [[_ freq]] (< 1 freq)) fs))]
                    (println (str "WARNING: Duplicate method annotations in ann-protocol (" varsym 
-                                 "): " (str/join ", " (map first dups))))
-                   ))
+                                 "): " (str/join ", " (map first dups))))))
              ; duplicates are checked above.
-             {:as mth} mth]
-    `(tc-ignore (ann-protocol* '~(ns-name *ns*) '~vbnd '~varsym '~mth '~&form))))
+             {:as mth} mth
+             qsym (qualify-sym varsym)]
+    `(tc-ignore (ann-protocol* '~(ns-name *ns*) '~vbnd '~qsym '~mth '~&form))))
 
 ;;TODO remember to use when-bindable-defining-ns when implementing
 (core/defn ^:no-doc
