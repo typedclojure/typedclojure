@@ -1,4 +1,4 @@
-(ns hooks.typed
+(ns hooks.typed.clj.runtime
   (:require [clj-kondo.hooks-api :as api]))
 
 (defn mask-index
@@ -21,28 +21,30 @@
   (let [{:keys [children]}
         node
 
-        ;; Thing is the `:-`. Our strategy is to strip types then emit `defn`
-        [_fname name args thing _rtype & body]
+        ;; Our strategy is to strip types then emit `defn`
+        ;; `sugar` is the `:-`.
+        ;; `args` has been constructed as a list of tokens, not a token itself
+        [_fname name {args :children :as _args-node} sugar _rtype & body]
         children
 
         ;; args with no typing included
         processed-args
         (->> (map #(and %1 %2)
-                  (->> args :children mask-index (map not))
-                  (-> args :children))
+                  (->> args mask-index (map not))
+                  args)
              (filter identity))
 
         new-node
         (api/list-node
          (list*
-          (api/token-node 'defn)
-          (-> name :value)
+          (api/token-node 'clojure.core/defn)
+          name
           (api/vector-node processed-args)
           body))]
     (when-not
-      (= (:k thing) :-) ;; :-)
-      (api/reg-finding! (assoc (meta thing)
-                               :message "Expected first token to be :-"
+      (= (:k sugar) :-) ;; :-)
+      (api/reg-finding! (assoc (meta sugar)
+                               :message "Expected first token to be `:-`"
                                :type :typed.clojure/unannotated)))
 
     #_(prn (api/sexpr new-node))
