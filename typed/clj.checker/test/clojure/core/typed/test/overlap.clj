@@ -27,7 +27,7 @@
   (is-clj (overlap (RClass-of clojure.lang.ISeq [(RClass-of Number)])
                    (RClass-of clojure.lang.ISeq [(RClass-of String)])))
   ;; final classes overlap with interfaces it implements
-  (is-clj (overlap (RClass-of clojure.lang.Atom [-any -any]) (RClass-of clojure.lang.IMeta)))
+  (is-clj (overlap (RClass-of clojure.lang.Atom [-any]) (RClass-of clojure.lang.IMeta)))
   ;; interfaces overlap
   (is-clj (overlap (RClass-of Number) (RClass-of CharSequence)))
   ;; different abstract class are disjoint

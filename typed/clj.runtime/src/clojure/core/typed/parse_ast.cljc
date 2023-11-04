@@ -37,7 +37,7 @@
        (t/IFn [t/Any -> t/Nothing]
               [t/Nothing (t/HMap :optional {:use-current-env t/Any}) -> t/Nothing]))
 
-(t/ann resolve-type-clj [t/Sym -> (t/U (t/Var2 t/Nothing t/Any) Class nil)])
+(t/ann resolve-type-clj [t/Sym -> (t/U t/AnyVar Class nil)])
 (defn- resolve-type-clj
   "Returns a var, class or nil"
   [sym]

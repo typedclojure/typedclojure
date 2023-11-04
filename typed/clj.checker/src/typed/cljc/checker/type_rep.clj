@@ -296,9 +296,9 @@
   :methods
   [p/TCType])
 
-(t/ann RClass->Class [RClass -> Class])
+(t/ann RClass->Class [(t/U RClass Instance) -> Class])
 (defn ^Class RClass->Class [rcls]
-  {:pre [(RClass? rcls)]}
+  {:pre [((some-fn RClass? Instance?) rcls)]}
   (coerce/symbol->Class (:the-class rcls)))
 
 (u/ann-record JSNominal [variances :- (t/U nil (t/NonEmptySeqable Variance))

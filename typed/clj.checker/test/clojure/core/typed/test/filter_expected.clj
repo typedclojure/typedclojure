@@ -545,21 +545,21 @@
     (is-tc-e (do (t/def foo :- t/Num 1)
                  #'foo)
              :expected-ret
-             (ret (parse-clj `(t/Var1 t/Num))))
+             (ret (parse-clj `(t/Var t/Num))))
     (is-tc-e (do (t/def foo :- t/Num 1)
                  #'foo)
              :expected-ret
-             (ret (parse-clj `(t/Var1 t/Num))
+             (ret (parse-clj `(t/Var t/Num))
                   (-true-filter)))
     (is-tc-err (do (t/def foo :- t/Num 1)
                    #'foo)
                :expected-ret
-               (ret (parse-clj `(t/Var1 t/Num))
+               (ret (parse-clj `(t/Var t/Num))
                     (-false-filter)))
     (is-tc-err (do (t/def foo :- t/Num 1)
                    #'foo)
                :expected-ret
-               (ret (parse-clj `(t/Var1 t/Num))
+               (ret (parse-clj `(t/Var t/Num))
                     (-true-filter)
                     (-path nil 'a))))
   (testing "cast"
@@ -638,7 +638,7 @@
     (is-tc-err (fn [a] (monitor-exit 1))
                [t/Any -> nil :filters {:then ff :else tt} :object {:id 0}]))
   (testing "def"
-    (is-tc-e #(def a 1) [-> (t/Var1 (t/Val 1))])
+    (is-tc-e #(def a 1) [-> (t/Var (t/Val 1))])
     (testing ":dynamic metadata works"
       (is-tc-e (do (def ^:dynamic *blob* 1)
                    (tc-ignore
@@ -647,11 +647,11 @@
                                  :dynamic))))))
     (testing "bad metadata throws static type error"
       (is-tc-err (def ^{:npe (inc nil)} a 1)))
-    (is-tc-err #(def a 1) [-> (t/Var1 (t/Val 2))])
+    (is-tc-err #(def a 1) [-> (t/Var (t/Val 2))])
     (is-tc-e #(def a 1) 
-             [-> (t/Var1 (t/Val 1)) :filters {:then tt :else ff}])
+             [-> (t/Var (t/Val 1)) :filters {:then tt :else ff}])
     (is-tc-err #(def a 1) 
-             [-> (t/Var1 (t/Val 1)) :filters {:then ff :else tt}])
+             [-> (t/Var (t/Val 1)) :filters {:then ff :else tt}])
     (is-tc-err (fn [f] (def a 1))
-               [t/Any -> (t/Var1 (t/Val 1)) :filters {:then tt :else ff}
+               [t/Any -> (t/Var (t/Val 1)) :filters {:then tt :else ff}
                 :object {:id 0}])))

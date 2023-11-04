@@ -456,14 +456,14 @@
                  (t/ann-form (f) (Inv t/Nothing))
                  (t/ann-form (f) (Inv t/Int))
                  (t/ann-form (f) (Inv t/Bool)))))
-  (is-tc-e (fn [f :- (t/All [x] [:-> (t/Atom1 x)])]
+  (is-tc-e (fn [f :- (t/All [x] [:-> (t/Atom x)])]
              (t/ann-form @(f) t/Nothing)))
-  (is-tc-e (fn [f :- (t/All [x] [:-> [x :-> (t/Atom1 x)]])
+  (is-tc-e (fn [f :- (t/All [x] [:-> [x :-> (t/Atom x)]])
                 a :- t/Nothing]
              (t/ann-form @((f) a) t/Nothing)))
   ;; TODO return symbolic closure from (f)
   #_
-  (is-tc-e (fn [f :- (t/All [x] [:-> [x :-> (t/Atom1 x)]])
+  (is-tc-e (fn [f :- (t/All [x] [:-> [x :-> (t/Atom x)]])
                 a :- t/Int]
              (t/ann-form @((f) a) t/Int)))
   (is-tc-err (do (defprotocol [[x :variance :invariant]]
@@ -548,3 +548,12 @@
                  :- (t/Nilable t/Int)
                  (f cov1 cov2))))
   )
+
+(deftest cs-gen-Instance-RClass-test
+  (is-tc-e (fn [a :- t/AnyAtom
+                f :- (t/All [x] [(t/Deref x) :-> (t/Deref x)])]
+             (f a)))
+  (is-tc-err (fn [a :- t/AnyAtom
+                  f :- (t/All [x] [(t/Deref x) :-> (t/Deref x)])]
+               :- t/Nothing
+               (f a))))

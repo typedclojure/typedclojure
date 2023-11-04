@@ -23,7 +23,7 @@
   (t/TFn [[x :variance :covariant]]
          (t/I t/Fn [:-> (env-utils/DelayedType x)])))
 
-(t/ann env-utils/parsed-types-invalidation-id (t/Atom1 env-utils/InvalidationId))
+(t/ann env-utils/parsed-types-invalidation-id (t/Atom env-utils/InvalidationId))
 (t/ann env-utils/invalidate-parsed-types! [:-> env-utils/InvalidationId])
 (t/ann env-utils/delay-type* (t/All [x] [(env-utils/ReparsableDelayedType x) :-> [:-> (t/Nilable x)]]))
 (t/ann env-utils/force-type (t/All [x] [(t/U (env-utils/DelayedType x)

@@ -125,7 +125,7 @@
 
 
 ;BUG: subtyping fails
-;(ann atom-test (t/Atom1 number))
+;(ann atom-test (t/Atom number))
 ;(def atom-test (atom 3))
 
 (ann set-test (t/Set number))

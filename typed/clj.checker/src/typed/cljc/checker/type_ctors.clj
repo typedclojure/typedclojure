@@ -42,7 +42,7 @@
                                         JSNominal Protocol GetType HSequential
                                         HSet AssocType TypeOf MergeType
                                         NotType DifferenceType Intersection Union FnIntersection
-                                        DottedPretype Function RClass JSNominal App TApp
+                                        DottedPretype Function JSNominal App TApp
                                         PrimitiveArray DataType Satisfies Instance TypeFn Poly
                                         Mu HeterogeneousMap
                                         CountRange Name Value Top Wildcard Unchecked TopFunction B F Result
@@ -325,7 +325,7 @@
 (t/ann ^:no-check initial-Un-cache TypeCache)
 (def ^:private initial-Un-cache (cache/lu-cache-factory {} :threshold 256))
 
-(t/ann ^:no-check Un-cache (t/Atom1 TypeCache))
+(t/ann ^:no-check Un-cache (t/Atom TypeCache))
 (def Un-cache (atom initial-Un-cache))
 
 (t/ann ^:no-check reset-Un-cache [-> nil])
@@ -382,10 +382,10 @@
 
 (declare overlap In)
 
-(t/ann In-cache (t/Atom1 TypeCache))
+(t/ann In-cache (t/Atom TypeCache))
 (def In-cache (atom {}))
 
-(t/ann intersect-cache (t/Atom1 TypeCache))
+(t/ann intersect-cache (t/Atom TypeCache))
 (def intersect-cache (atom {}))
 
 (t/ann reset-In-cache [-> nil])
@@ -744,7 +744,7 @@
     (when (var? (resolve var-sym))
       var-sym)))
 
-(t/ann resolve-Protocol [(t/U Satisfies Protocol) -> (t/Var2 t/Nothing t/Any)])
+(t/ann resolve-Protocol [(t/U Satisfies Protocol) -> t/AnyVar])
 (defn resolve-Protocol
   [{:keys [the-var] :as t}]
   {:pre [((some-fn r/Protocol? r/Satisfies?) t)]
@@ -839,7 +839,7 @@
                    (vals (:fields r)))]
     (make-HMap :mandatory kf)))
 
-(t/ann RClass-of-cache (t/Atom1 (t/Map t/Any r/Type)))
+(t/ann RClass-of-cache (t/Atom (t/Map t/Any r/Type)))
 (defonce ^:private RClass-of-cache (atom {}))
 
 (t/ann reset-RClass-of-cache! [-> nil])
@@ -1089,7 +1089,7 @@
    :post [((con/sorted-set-c? r/Type?) %)]}
   ((requiring-resolve 'typed.clj.checker.rclass-ancestor-env/rclass-ancestors) rcls))
 
-(t/ann ^:no-check supers-cache (t/Atom1 (t/Map Number (t/SortedSet r/Type))))
+(t/ann ^:no-check supers-cache (t/Atom (t/Map Number (t/SortedSet r/Type))))
 (def ^:private supers-cache (atom {}
                                   #_#_
                                   :validator (con/hash-c? r/RClass?

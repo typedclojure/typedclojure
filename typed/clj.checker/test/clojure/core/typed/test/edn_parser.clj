@@ -17,7 +17,7 @@
   "A set of default settings values"
   {})
 
-(t/ann settings (t/Atom1 (t/U Settings nil)))
+(t/ann settings (t/Atom (t/U Settings nil)))
 (def ^:private settings
   "This atom hosts the loaded settings."
   (atom nil))

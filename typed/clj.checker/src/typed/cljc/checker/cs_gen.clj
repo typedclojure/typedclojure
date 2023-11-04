@@ -98,10 +98,10 @@
      (err/int-error (str "Non-matching vars in c-meet:" X X*)))
    (when-not (= bnds bnds*)
      (err/int-error (str "Non-matching bounds in c-meet:" bnds bnds*)))
-   (let [;_ (prn "joining" S S* (mapv r/wild? [S S*]))
+   (let [;_ (prn "joining" S S* #_(mapv r/wild? [S S*]))
          S (join S S*)
          ;_ (prn "joined:" S)
-         ;_ (prn "meeting" T T* (mapv r/wild? [T T*]))
+         ;_ (prn "meeting" T T* #_(mapv r/wild? [T T*]))
          T (meet T T*)
          ;_ (prn "meet:" T)
          ]
@@ -842,8 +842,8 @@
                 T)
 
 
-        (and (r/RClass? S)
-             (r/RClass? T))
+        (and ((some-fn r/RClass? r/Instance?) S)
+             ((some-fn r/RClass? r/Instance?) T))
         (cs-gen-RClass V X Y S T)
 
         (and (r/Protocol? S)
@@ -1050,7 +1050,7 @@
     ;;FIXME do something here
     :else (fail! s t)))
 
-(declare cs-gen-Function cs-gen-list-with-variances)
+(declare cs-gen-list-with-variances)
 
 (defn cs-gen-TApp
   [V X Y S T]
@@ -1145,25 +1145,30 @@
 
 (defn cs-gen-RClass
   [V X Y S T]
-  {:pre [(r/RClass? S)
-         (r/RClass? T)]}
-  (let [rsupers (c/RClass-supers* S)
-        relevant-S (some #(when (r/RClass? %)
-                            (and (= (:the-class %) (:the-class T))
-                                 %))
-                         (map c/fully-resolve-type (conj rsupers S)))]
-  ;  (prn "S" (prs/unparse-type S))
-  ;  (prn "T" (prs/unparse-type T))
-;    (prn "supers" (map (juxt prs/unparse-type class) rsupers))
-;    (when relevant-S
-  ;    (prn "relevant-S" (prs/unparse-type relevant-S)))
+  {:pre [((some-fn r/RClass? r/Instance?) S)
+         ((some-fn r/RClass? r/Instance?) T)]}
+  (let [relevant-S (or (when (= (:the-class S)
+                                (:the-class T))
+                         S)
+                       (some #(when (and ((some-fn r/RClass? r/Instance?) %)
+                                         (= (:the-class %) (:the-class T)))
+                                %)
+                             (map c/fully-resolve-type (c/RClass-supers* S))))]
+    ;(prn "relevant-S" relevant-S)
+    ;(prn "T" T)
+    ;(when relevant-S
+    ; (prn "relevant-S" (prs/unparse-type relevant-S)))
     (cond
-      relevant-S
+      ((every-pred r/RClass? r/RClass?) relevant-S T)
       (cs-gen-list-with-variances 
         V X Y
         (:variances T)
         (:poly? relevant-S)
         (:poly? T))
+
+      ((every-pred r/Instance?) relevant-S T)
+      (cr/empty-cset X Y)
+
       :else (fail! S T))))
 
 (defn cs-gen-Protocol
@@ -1348,7 +1353,7 @@
 ;; The domain of this map is pairs (var . dotted-type).
 ;; The range is this map is a list of symbols generated on demand, as we need
 ;; more dots.
-(t/ann DOTTED-VAR-STORE (t/Atom1 (t/Map '[r/Type t/Sym] (t/Seq t/Sym))))
+(t/ann DOTTED-VAR-STORE (t/Atom (t/Map '[r/Type t/Sym] (t/Seq t/Sym))))
 ;;FIXME remove global atom
 (defonce ^:private DOTTED-VAR-STORE (atom {}))
 
@@ -1701,12 +1706,8 @@
                     inferred (case var
                                (:constant :covariant) S
                                :contravariant T
-                               ;;FIXME incorrect
-                               :invariant (c/In S T)
-                               ;; other direction already checked
-                               #_(if (subtype? T S)
-                                   S
-                                   (fail! S T)))]
+                               ;; Colored LTI suggests S
+                               :invariant (c/In S T))]
                 ;(prn "inferred" inferred)
                 inferred))
             ;TODO implement generalize
@@ -1845,10 +1846,10 @@
          (every? r/Type? (concat S T))
          (cr/cset? expected-cset)]
    :post [(cr/cset? %)]}
-;  (prn "cs-gen-list" 
-;       V X Y
-;       (map prs/unparse-type S)
-;       (map prs/unparse-type T))
+  ;(prn "cs-gen-list" 
+  ;     V X Y
+  ;     (map prs/unparse-type S)
+  ;     (map prs/unparse-type T))
   (when-not (= (count S) (count T))
     (fail! S T))
   (cset-meet*
@@ -1865,13 +1866,11 @@
                    ;_ (prn "Y" Y)
                    ;_ (prn "s" (prs/unparse-type s))
                    ;_ (prn "t" (prs/unparse-type t))
-                   ;_ (prn "c")
-                   ;_ (clojure.pprint/pprint c)
-                   ;_ (flush)
+                   ;_ (prn "c" c)
                    ;_ (prn "expected cset" expected-cset)
                    m (cset-meet c expected-cset)]
                ;(prn "meet:")
-               ;(clojure.pprint/pprint m)
+               ;(prn m)
                ;(flush)
                m))
            S T))))

@@ -224,8 +224,8 @@
   
   Same as (atom (ann-form init t) args*)
   
-  eg. (atom 1) : (Atom1 (Value 1))
-      (atom :- Num, 1) : (Atom1 Num)"
+  eg. (atom 1) : (Atom (Value 1))
+      (atom :- Num, 1) : (Atom Num)"
   [& args]
   (core/let [[provided? t args] (parse-colon args 'atom)
              [init & args] args]
@@ -239,8 +239,8 @@
   
   Same as (ref (ann-form init t) args*)
   
-  eg. (ref 1) : (Ref1 (Value 1))
-      (ref :- Num, 1) : (Ref1 Num)"
+  eg. (ref 1) : (Ref (Value 1))
+      (ref :- Num, 1) : (Ref Num)"
   [& args]
   (core/let [[provided? t args] (parse-colon args 'ref)
              [init & args] args]

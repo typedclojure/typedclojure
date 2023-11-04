@@ -455,7 +455,10 @@
     [t]
     (let [varis (:variances t)
           args (:poly? t)]
-      (assert (= (count args) (count varis)))
+      (when-not (= (count args) (count varis))
+        (err/int-error (str "Wrong number of arguments passed to class "
+                            (:the-class t) ": expected "
+                            (count varis) ", given " (count args) ".")))
       (apply combine-freesresults (map (fn [arg va]
                                          (let [fr (frees arg)]
                                            (case va

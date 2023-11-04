@@ -156,7 +156,7 @@
 ;        (ana2/inherit-top-level expr)
 ;        (assoc ::untyped true
 ;               ::expr-type (maybe-check-below
-;                             {:type `t/Var2
+;                             {:type `t/AnyVar
 ;                              :filters {:else 'ff}}
 ;                             expected)))))
 ;

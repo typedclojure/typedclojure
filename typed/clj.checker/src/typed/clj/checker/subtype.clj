@@ -168,7 +168,7 @@
          subtype-datatypes-or-records subtype-Result subtype-PrimitiveArray
          subtype-CountRange subtype-TypeFn subtype-RClass subtype-rclass-or-datatype-with-protocol
          boxed-primitives subtype-datatype-rclass subtype-TApp
-         subtype-Instance subtype-Satisfies)
+         subtype-Satisfies)
 
 (defn subtype-HSet [A s t]
   {:pre [(r/HSet? s)
@@ -884,13 +884,9 @@
              (r/TypeFn? t))
         (subtype-TypeFn A s t)
 
-        (and (r/RClass? s)
-             (r/RClass? t))
-        (subtype-RClass A s t)
-
         (and ((some-fn r/RClass? r/Instance?) s)
-             (r/Instance? t))
-        (subtype-Instance A s t)
+             ((some-fn r/RClass? r/Instance?) t))
+        (subtype-RClass A s t)
 
         (and (r/DataType? s)
              (r/RClass? t))
@@ -902,11 +898,11 @@
         (cond
           ; Var doesn't actually have an FnIntersection ancestor,
           ; but this case simulates it.
-          (#{'clojure.lang.Var} (:the-class s))
-          (let [[_ read-type :as poly] (:poly? s)
-                _ (when-not (#{2} (count (:poly? s)))
+          (= 'clojure.lang.Var (:the-class s))
+          (let [[read-type :as args] (:poly? s)
+                _ (when-not (= 1 (count args))
                     (err/int-error
-                      (str "Assuming Var takes 2 arguments, "
+                      (str "clojure.lang.Var takes 1 argument, "
                            "given " (count (:poly? s)))))]
             (recur A read-type t))
 
@@ -1585,48 +1581,52 @@
       (class-isa? scls tcls))))
 
 (defn subtype-RClass
-  [A
-   {polyl? :poly? :as s}
-   {polyr? :poly? :as t}]
+  [A s t]
+  {:pre [((some-fn r/RClass? r/Instance?) s)
+         ((some-fn r/RClass? r/Instance?) t)]}
   (impl/assert-clojure)
   (let [scls (r/RClass->Class s)
         tcls (r/RClass->Class t)]
-    ;(prn "subtype RClass" (prs/unparse-type s) (prs/unparse-type t))
     (cond
-      (or
-        ; use java subclassing
-        (and (empty? polyl?)
-             (empty? polyr?)
-             (class-isa? scls tcls))
-
-        ;same base class
-        (and (= scls tcls)
-             (subtype-RClass-common-base A s t))
-
-        ;one is a primitive, coerce
-        (and (or (.isPrimitive scls)
-                 (.isPrimitive tcls))
-             (coerce-RClass-primitive s t))
-
+      ((some-fn r/Instance?) s t)
+      (if (r/Instance? t)
+        ;; (U RClass Instance) <: Instance
+        (if (class-isa? scls tcls)
+          A
+          (report-not-subtypes s t))
+        ;;  :< (U RClass Instance)
         ;find a supertype of s that is the same base as t, and subtype of it
-        (some #(when (r/RClass? %)
-                 (and (= (:the-class t) (:the-class %))
-                      (subtype-RClass-common-base A % t)))
+        (some #(when (and ((some-fn r/RClass? r/Instance?) %)
+                          (= (:the-class t) (:the-class %)))
+                 (subtype-RClass-common-base A % t))
               (map c/fully-resolve-type (c/RClass-supers* s))))
-      A
 
-      ;try each ancestor
+      :else
+      ;; RClass <: RClass
+      (let [{polyl? :poly?} s
+            {polyr? :poly?} t]
+        (if (or
+              ; use java subclassing
+              (and (empty? polyl?)
+                   (empty? polyr?)
+                   (class-isa? scls tcls))
 
-      :else (report-not-subtypes s t))))
+              ;same base class
+              (and (= scls tcls)
+                   (subtype-RClass-common-base A s t))
 
-(defn subtype-Instance
-  [A s t]
-  {:pre [((some-fn r/RClass? r/Instance?) s)
-         (r/Instance? t)]}
-  (if (class-isa? (coerce/symbol->Class (:the-class s))
-                  (coerce/symbol->Class (:the-class t)))
-    A
-    (report-not-subtypes s t)))
+              ;one is a primitive, coerce
+              (and (or (.isPrimitive scls)
+                       (.isPrimitive tcls))
+                   (coerce-RClass-primitive s t))
+
+              ;find a supertype of s that is the same base as t, and subtype of it
+              (some #(when (r/RClass? %)
+                       (and (= (:the-class t) (:the-class %))
+                            (subtype-RClass-common-base A % t)))
+                    (map c/fully-resolve-type (c/RClass-supers* s))))
+          A
+          (report-not-subtypes s t))))))
 
 ;subtype if t includes all of s. 
 ;tl <= sl, su <= tu

@@ -37,15 +37,12 @@
    :post [(symbol? %)]}
   (symbol (.getName cls)))
 
-(t/ann var->symbol [(t/Var2 t/Nothing t/Any) -> t/Sym])
+(t/ann var->symbol [t/AnyVar -> t/Sym])
 (defn var->symbol [^Var var]
   {:pre [(var? var)]
    :post [(symbol? %)
           (namespace %)]}
-  (let [ns (.ns var)
-        _ (assert ns)]
-    (symbol (str (ns-name ns))
-            (str (.sym var)))))
+  (symbol var))
 
 (t/ann kw->symbol [t/Kw -> t/Sym])
 (defn kw->symbol [kw]

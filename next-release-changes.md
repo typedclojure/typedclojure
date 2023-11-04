@@ -12,3 +12,21 @@
 - resolve first argument to `override-class` at runtime
 - improve Java 21 support
   - annotate `java.util.SequencedCollection` and extend in `java.util.List`
+- Breaking: remove `t/Var2`, change `clojure.lang.Var to take only 1 type parameter
+  - use `t/AnyVar` for `(t/Var2 t/Nothing t/Any)`
+- Deprecate `t/Var1`
+  - use `t/Var`
+- Breaking: remove `t/Ref2`, change `clojure.lang.Ref to take only 1 type parameter
+  - use `t/AnyRef` for `(t/Ref2 t/Nothing t/Any)`
+- Deprecate `t/Ref1`
+  - use `t/Ref`
+- Breaking: remove `t/Agent2`, change `clojure.lang.Agent to take only 1 type parameter
+  - use `t/AnyAgent` for `(t/Agent2 t/Nothing t/Any)`
+- Deprecate `t/Agent1`
+  - use `t/Agent`
+- Breaking: remove `t/Atom2`, change `clojure.lang.Atom to take only 1 type parameter
+  - use `t/AnyAtom` for `(t/Atom2 t/Nothing t/Any)`
+- Deprecate `t/Atom1`
+  - use `t/Atom`
+- Breaking: remove `t/Volatile2`, change `clojure.lang.Volatile to take only 1 type parameter
+  - use `t/AnyVolatile` for `(t/Volatile2 t/Nothing t/Any)`

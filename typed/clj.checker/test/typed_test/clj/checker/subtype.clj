@@ -75,7 +75,7 @@
                        `(t/Rec [x#] (t/U t/Int (t/Seqable x#))))))
   (is-clj (sub?-q `'{:op ':if
                      :test '{:op ':var
-                             :var (clojure.lang.Var t/Nothing t/Any)}
+                             :var t/AnyVar}
                      :then '{:op ':nil}
                      :else '{:op ':false}}
                   `(t/Rec [x#] 
@@ -84,7 +84,7 @@
                                  :then x#
                                  :else x#}
                                '{:op ':var
-                                 :var (clojure.lang.Var clojure.core.typed/Nothing clojure.core.typed/Any)}
+                                 :var t/AnyVar}
                                '{:op ':nil}
                                '{:op ':false}))))
 

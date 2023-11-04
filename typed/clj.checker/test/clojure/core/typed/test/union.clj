@@ -56,7 +56,7 @@
      (t/HMap :mandatory
            {:op ':def
             :env Env
-            :var (t/Var2 t/Nothing t/Any)
+            :var t/AnyVar
             :meta (t/U nil Expr)
             :init Expr
             :init-provided t/Any

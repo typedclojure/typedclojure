@@ -118,7 +118,7 @@
   (:import (clojure.lang IPersistentMap Var)))
 
 (t/ann ^:no-check typed.clj.checker.parse-unparse/*unparse-type-in-ns* (t/U nil t/Sym))
-(t/ann ^:no-check clojure.core.typed.util-vars/*already-checked* (t/U nil (t/Atom1 (t/Set t/Sym))))
+(t/ann ^:no-check clojure.core.typed.util-vars/*already-checked* (t/U nil (t/Atom (t/Set t/Sym))))
 
 ;==========================================================
 ; # Type Checker
@@ -428,7 +428,7 @@
     (assoc expr
            u/expr-type (binding [vs/*current-expr* expr]
                          (below/maybe-check-below
-                           (r/ret (c/RClass-of Var [t t])
+                           (r/ret (c/-name `t/Var t)
                                   (fo/-true-filter))
                            expected)))))
 

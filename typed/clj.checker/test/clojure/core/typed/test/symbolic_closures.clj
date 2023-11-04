@@ -701,35 +701,56 @@
              (t/All [x y] [x y :-> nil])))
 
 (deftest swap!-test
-  (is-tc-e (fn [a :- (t/Atom1 t/Int)]
+  (is-tc-e (fn [a :- (t/Atom t/Int)]
              (swap! a inc)))
-  (is-tc-err (fn [a :- (t/Atom1 (t/Nilable t/Int))]
+  (is-tc-err (fn [a :- (t/Atom (t/Nilable t/Int))]
                (swap! a inc)))
-  (is-tc-e (fn [a :- (t/Atom1 t/Int)]
+  (is-tc-err (fn [a :- (t/Atom (t/Nilable t/Int))
+                  swap! :- (t/All [x] [(t/Atom x) [x :-> x] :-> x])
+                  inc :- [t/Int :-> t/Int]]
+               (swap! a inc)))
+  (is-tc-err (fn [a :- [(t/Nilable t/Int) :-> (t/Nilable t/Int)]
+                  swap! :- (t/All [x] [[x :-> x] [x :-> x] :-> x])
+                  inc :- [t/Int :-> t/Int]]
+               (swap! a inc)))
+  (is-tc-e (fn [a :- [(t/Nilable t/Int) :-> t/Any]
+                swap! :- (t/All [x] [[x :-> t/Any] [x :-> x] :-> x])
+                inc :- [t/Int :-> t/Int]]
+             (swap! a inc)))
+  (is-tc-err (fn [a :- (t/Nilable t/Int)
+                  swap! :- (t/All [x] [x [x :-> x] :-> x])
+                  inc :- [t/Int :-> t/Int]]
+               (swap! a inc)))
+  (is-tc-err (fn [a :- (t/Atom (t/Nilable t/Int))]
+               (swap! a #(inc %))))
+  (is-tc-e (fn [a :- (t/Atom t/Int)]
              (swap! a (fn [a] (inc a)))))
+  (is-tc-err (fn [a :- (t/Atom t/Int)]
+               (swap! a (fn [_] (t/ann-form a t/Bool)
+                          1))))
   ;;TODO
   ;; expected: t/Int
   ;; actual: nil
   ;; in: a
   (is-tc-err-messages
-    (fn [a :- (t/Atom1 (t/Nilable t/Int))]
+    (fn [a :- (t/Atom (t/Nilable t/Int))]
       (swap! a (fn [a] (inc a)))))
   (is-tc-e
-    (fn [a :- (t/Atom1 t/Int)]
+    (fn [a :- (t/Atom t/Int)]
       (swap! a (fn [a b c] (+ a b c)) 2 3)))
   ;;TODO
   ;; expected: t/Int
   ;; actual: nil
   ;; in: a
   (is-tc-err-messages
-    (fn [a :- (t/Atom1 (t/Nilable t/Int))]
+    (fn [a :- (t/Atom (t/Nilable t/Int))]
       (swap! a (fn [a b c] (+ a b c)) 2 3)))
   ;;TODO
   ;; expected: t/Int
   ;; actual: nil
   ;; in: b
   (is-tc-err-messages
-    (fn [a :- (t/Atom1 t/Int)]
+    (fn [a :- (t/Atom t/Int)]
       (swap! a (fn [a b c] (+ a b c)) nil 3)))
   )
 

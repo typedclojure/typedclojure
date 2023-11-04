@@ -3,7 +3,7 @@
 
 (t/ann ^:no-check request 
        ['{:url t/Str, :method ':get} 
-        -> (t/Atom1 '{:status t/Num, :body t/Str})])
+        -> (t/Atom '{:status t/Num, :body t/Str})])
 (declare request)
 
 (t/ann get-or-throw [t/Str -> '{:status t/Num :body t/Str}])

@@ -1,7 +1,7 @@
 (ns clojure.core.typed.test.swap-bang
   (:require [typed.clojure :as t]))
 
-(t/ann foo (t/Atom1 (t/Map ':a t/Num)))
+(t/ann foo (t/Atom (t/Map ':a t/Num)))
 (def foo (atom {:a 1}))
 
 (fn []

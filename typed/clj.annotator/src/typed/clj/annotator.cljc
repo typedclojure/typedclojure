@@ -570,7 +570,7 @@
                                  :set (qualify-typed-symbol 'Set)
                                  :symbol (qualify-typed-symbol 'Sym)
                                  :keyword (qualify-typed-symbol 'Kw)
-                                 :atom (qualify-typed-symbol 'Atom1)
+                                 :atom (qualify-typed-symbol 'Atom)
                                  :seq (qualify-typed-symbol 'Coll)
                                  :list (qualify-typed-symbol 'Coll)
                                  :coll (qualify-typed-symbol 'Coll)

@@ -164,9 +164,11 @@
 ;; Datatypes
 
 #?(:cljs (do
-(t/ann-datatype [[w :variance :contravariant]
-                 [r :variance :covariant]]
+           ;;FIXME should these be namespaced?
+(t/ann-datatype [[x :variance :invariant]]
                 cljs.core/Atom)
+(t/ann-datatype [[x :variance :invariant]]
+                cljs.core/Var)
 (t/ann-datatype cljs.core/Symbol)
 (t/ann-datatype cljs.core/Keyword)
 (t/ann-datatype [[x :variance :covariant]] cljs.core/List)
@@ -272,84 +274,114 @@
      :cljs cljs.core/UUID))
 
 (t/defalias
-  ^{:doc "An atom that can write type w and read type r."
-    :forms '[(Atom2 w r)]}
-  t/Atom2
-  (t/TFn [[w :variance :contravariant]
-          [r :variance :covariant]] 
-         (#?(:clj clojure.lang.Atom :cljs cljs.core/Atom) w r)))
+  ^{:doc "Supertype of all atoms."
+    :forms '[AnyAtom]}
+  t/AnyAtom
+  (t/Instance
+    #?(:clj clojure.lang.Atom
+       :cljs cljs.core/Atom)))
 
 (t/defalias
   ^{:doc "An atom that can read and write type x."
+    :forms '[(Atom x)]}
+  t/Atom
+  (t/TFn [[x :variance :invariant]]
+         (#?(:clj clojure.lang.Atom :cljs cljs.core/Atom) x)))
+
+(t/defalias
+  ^{:doc "An atom that can read and write type x.
+         
+         Deprecated: Please use t/Atom instead."
+    :deprecated "1.1.6"
+    :superseded-by `t/Atom
     :forms '[(Atom1 x)]}
   t/Atom1
-  (t/TFn [[x :variance :invariant]]
-         (t/Atom2 x x)))
+  t/Atom)
 
 #?(:clj (t/defalias
-          ^{:doc "A volatile that can write type x and read type y."
-            :forms '[(Volatile2 x y)]}
-          t/Volatile2
-          (t/TFn [[x :variance :contravariant]
-                  [y :variance :covariant]]
-                 (clojure.lang.Volatile x y))))
+          ^{:doc "Supertype of all volatiles."
+            :forms '[AnyVolatile]}
+          t/AnyVolatile
+          (t/Instance clojure.lang.Volatile)))
 
 #?(:clj (t/defalias
           ^{:doc "A volatile that can read and write type x."
             :forms '[(Volatile x)]}
           t/Volatile
           (t/TFn [[x :variance :invariant]]
-                 (t/Volatile2 x x))))
+                 (clojure.lang.Volatile x))))
 
 (t/defalias
-  ^{:doc "An var that can write type w and read type r."
-    :forms '[(Var2 w r)]}
-  t/Var2 
-  (t/TFn [[w :variance :contravariant]
-          [r :variance :covariant]] 
-         #?(:clj (clojure.lang.Var w r)
-            :cljs (cljs.core/Var w r))))
+  ^{:doc "Supertype of all vars."
+    :forms '[AnyVar]}
+  t/AnyVar
+  (t/Instance
+    #?(:clj clojure.lang.Var
+       :cljs cljs.core/Var)))
+
+(t/defalias
+  ^{:doc "A var that can read and write type x."
+    :forms '[(Var x)]}
+  t/Var
+  (t/TFn [[x :variance :invariant]] 
+         #?(:clj (clojure.lang.Var x)
+            :cljs (cljs.core/Var x))))
 
 (t/defalias
   ^{:doc "An var that can read and write type x."
+    :deprecated "1.1.6"
+    :superseded-by `t/Var
     :forms '[(Var1 x)]}
-  t/Var1 
-  (t/TFn [[x :variance :invariant]] 
-         (t/Var2 x x)))
+  t/Var1
+  t/Var)
 
-#?(:clj
-   (t/defalias
-     ^{:doc "A ref that can write type w and read type r."
-       :forms '[(Ref2 w r)]}
-     t/Ref2
-     (t/TFn [[w :variance :contravariant]
-             [r :variance :covariant]] 
-            (clojure.lang.Ref w r))))
+#?(:clj (t/defalias
+          ^{:doc "Supertype of all refs."
+            :forms '[AnyRef]}
+          t/AnyRef
+          (t/Instance clojure.lang.Ref)))
 
 #?(:clj
    (t/defalias
      ^{:doc "A ref that can read and write type x."
-       :forms '[(Ref1 x)]}
-     t/Ref1
+       :forms '[(Ref x)]}
+     t/Ref
      (t/TFn [[x :variance :invariant]]
-            (t/Ref2 x x))))
+            (clojure.lang.Ref x))))
 
 #?(:clj
    (t/defalias
-     ^{:doc "An agent that can write type w and read type r."
-       :forms '[(Agent2 w r)]}
-     t/Agent2
-     (t/TFn [[w :variance :contravariant]
-             [r :variance :covariant]] 
-            (clojure.lang.Agent w r))))
+     ^{:doc "A ref that can read and write type x."
+       :deprecated "1.1.6"
+       :superseded-by `t/Ref
+       :forms '[(Ref1 x)]}
+     t/Ref1
+     t/Ref))
+
+#?(:clj (t/defalias
+          ^{:doc "Supertype of all agents."
+            :forms '[AnyAgent]}
+          t/AnyAgent
+          (t/Instance clojure.lang.Agent)))
 
 #?(:clj
    (t/defalias
      ^{:doc "An agent that can read and write type x."
+       :forms '[(Agent x)]}
+     t/Agent
+     (t/TFn [[x :variance :invariant]] 
+            (clojure.lang.Agent x))))
+
+#?(:clj
+   (t/defalias
+     ^{:doc "An agent that can read and write type x.
+            
+            Deprecated: Please use t/Agent."
+       :deprecated "1.1.6"
+       :superseded-by `t/Agent
        :forms '[(Agent1 x)]}
      t/Agent1
-     (t/TFn [[x :variance :invariant]] 
-            (t/Agent2 x x))))
+     t/Agent))
 
 (t/defalias
   ^{:doc "A union of x and nil."
@@ -893,8 +925,6 @@ clojure.core.typed/override-method* [t/Any t/Any :-> t/Any]
 clojure.core.typed/typed-deps* [t/Any :-> t/Any]
 clojure.core.typed/load-if-needed [:-> t/Any]
 clojure.core.typed/*collect-on-eval* t/Any
-; should always be special cased
-;clojure.core.typed/var>* [t/Any :-> (t/Var2 t/Nothing t/Any)]
 ])
 
 ;; core annotations
@@ -922,9 +952,9 @@ cc/*2 t/Any
 cc/*3 t/Any
 cc/*e #?(:cljs t/Any :default (t/U nil Throwable))
 #?@(:cljs [] :default [
-cc/*agent* (t/U nil (t/Agent2 t/Nothing t/Any))
+cc/*agent* (t/U nil (t/Deref t/Any) #_(t/Agent t/Any))
 cc/*allow-unresolved-vars* t/Any
-cc/*data-readers* (t/Map t/Sym (t/Var2 t/Nothing t/Any))
+cc/*data-readers* (t/Map t/Sym t/AnyVar)
 cc/*default-data-reader-fn* (t/U nil [t/Any t/Any :-> t/Any])
 cc/*fn-loader* t/Any
 cc/*math-context* t/Any
@@ -989,7 +1019,7 @@ cc/identity (t/All [x] [x :-> x
                         :object {:id 0}])
 cc/gensym [(t/? (t/U t/Sym t/Str)) :-> t/Sym]
 #?@(:cljs [] :default [
-cc/intern [(t/U t/Sym t/Namespace) t/Sym (t/? t/Any) :-> (t/Var2 t/Nothing t/Any)]
+cc/intern [(t/U t/Sym t/Namespace) t/Sym (t/? t/Any) :-> t/AnyVar]
 ])
 
 
@@ -1215,8 +1245,8 @@ cc/not [t/Any :-> t/Bool]
 cc/constantly (t/All [x] [x :-> [t/Any :* :-> x]])
 
 #?@(:cljs [] :default [
-cc/bound? [(t/Var2 t/Nothing t/Any) :* :-> t/Bool]
-cc/thread-bound? [(t/Var2 t/Nothing t/Any) :* :-> t/Bool]
+cc/bound? [t/AnyVar :* :-> t/Bool]
+cc/thread-bound? [t/AnyVar :* :-> t/Bool]
 cc/bases [(t/Nilable Class) :-> (t/NilableNonEmptyASeq Class)]
 ])
 
@@ -1351,7 +1381,7 @@ cc/future-call (t/All [x] [[:-> x] :-> (t/Future x)])
 cc/volatile! (t/All [x] [x :-> (t/Volatile x)])
 ])
 
-cc/atom (t/All [x] [x & :optional {:validator (t/Nilable [x :-> t/Any]) :meta t/Any} :-> (t/Atom2 x x)])
+cc/atom (t/All [x] [x & :optional {:validator (t/Nilable [x :-> t/Any]) :meta t/Any} :-> (t/Atom x)])
 
 cc/deref (t/All [x #?(:clj y)]
                 (t/IFn 
@@ -1378,28 +1408,28 @@ cc/realized? [#?(:clj clojure.lang.IPending
 
 cc/select-keys (t/All [k v] [(t/Map k v) (t/Seqable t/Any) :-> (t/Map k v)])
 
-cc/sort (t/All [x] [(t/? (t/I Comparator [x x :-> t/AnyInteger])) (t/Seqable x) :-> (t/ASeq x)])
-cc/sort-by (t/All [a] [(t/? [a :-> Number]) (t/Seqable a) :-> (t/ASeq a)])
+cc/sort (t/All [x] [(t/I Comparator [x x :-> t/AnyInteger]) :? (t/Seqable x) :-> (t/ASeq x)])
+cc/sort-by (t/All [a] [[a :-> Number] :? (t/Seqable a) :-> (t/ASeq a)])
 cc/replicate (t/All [a] [t/AnyInteger a :-> (t/ASeq a)])
 
-cc/reset! (t/All [w r] [(t/Atom2 w r) w :-> w])
-cc/swap! (t/All [w r b :..] [(t/Atom2 w r) [r b :.. b :-> w] b :.. b :-> w])
+cc/reset! (t/All [x] [(t/Atom x) x :-> x])
+cc/swap! (t/All [x b :..] [(t/Atom x) [x b :.. b :-> x] b :.. b :-> x])
 #?@(:cljs [] :default [
-cc/reset-vals! (t/All [w r] [(t/Atom2 w r) w :-> '[r w]])
-cc/swap-vals! (t/All [w r b :..] [(t/Atom2 w r) [r b :.. b :-> w] b :.. b :-> '[r w]])
-cc/vreset! (t/All [w] [(t/Volatile2 w t/Infer) w :-> w])
+cc/reset-vals! (t/All [x] [(t/Atom x) x :-> '[x x]])
+cc/swap-vals! (t/All [x b :..] [(t/Atom x) [x b :.. b :-> x] b :.. b :-> '[x x]])
+cc/vreset! (t/All [x] [(t/Volatile x) x :-> x])
 ])
-cc/compare-and-set! (t/All [w] [(t/Atom2 w t/Any) t/Any w :-> t/Bool])
+cc/compare-and-set! (t/All [x] [(t/Atom x) t/Any x :-> t/Bool])
 
-cc/set-validator! (t/All [x] [#?(:clj (clojure.lang.IRef x x)
-                                 :cljs (cljs.core/Atom x x))
+cc/set-validator! (t/All [x] [#?(:clj (clojure.lang.IRef x)
+                                 :cljs (cljs.core/Atom x))
                               (t/Nilable [x :-> t/Any]) :-> t/Any])
-cc/get-validator (t/All [x] [#?(:clj (clojure.lang.IRef x x)
-                                 :cljs (cljs.core/Atom x x))
+cc/get-validator (t/All [x] [#?(:clj (clojure.lang.IRef x)
+                                 :cljs (cljs.core/Atom x))
                              :-> (t/Nilable [x :-> t/Any])])
 
 #?@(:cljs [] :default [
-cc/alter-var-root (t/All [w r b :..] [(t/Var2 w r) [r b :.. b :-> w] b :.. b :-> w])
+cc/alter-var-root (t/All [x b :..] [(t/Var x) [x b :.. b :-> x] b :.. b :-> x])
 
 cc/method-sig [java.lang.reflect.Method :-> '[t/Any (t/NilableNonEmptySeq t/Any) t/Any]]
 cc/proxy-name [Class (t/Seqable Class) :-> t/Str]
@@ -1416,7 +1446,7 @@ cc/fnil (t/All [x y z a b :..] (t/IFn [[x b :.. b :-> a] x :-> [(t/Nilable x) b 
                                       [[x y b :.. b :-> a] x y :-> [(t/Nilable x) (t/Nilable y) b :.. b :-> a]]
                                       [[x y z b :.. b :-> a] x y z :-> [(t/Nilable x) (t/Nilable y) (t/Nilable z) b :.. b :-> a]]))
 
-cc/symbol (t/IFn [(t/U t/Kw t/Sym t/Str (t/Var2 t/Nothing t/Any)) :-> t/Sym]
+cc/symbol (t/IFn [(t/U t/Kw t/Sym t/Str t/AnyVar) :-> t/Sym]
                  [(t/U nil t/Str) t/Str :-> t/Sym])
 
 cc/keyword
@@ -1455,9 +1485,9 @@ cc/compare (t/All [x]
 
 #?@(:cljs [] :default [
 cc/require [t/Any :* :-> nil]
-cc/requiring-resolve [t/Sym :-> (t/U (t/Var2 t/Nothing t/Any) Class nil)]
+cc/requiring-resolve [t/Sym :-> (t/U t/AnyVar Class nil)]
 cc/use [t/Any :* :-> nil]
-cc/*loaded-libs* (t/Ref1 (t/Set t/Sym))
+cc/*loaded-libs* (t/Ref (t/Set t/Sym))
 ])
 
 cc/seq? (t/Pred (t/Seq t/Any))
@@ -1506,8 +1536,8 @@ cc/alter-meta!
          (t/Nilable (t/Map t/Any t/Any))] b :.. b :-> (t/Nilable (t/Map t/Any t/Any))])
 
 #?@(:cljs [] :default [
-cc/commute (t/All [w r b :..] [(t/Ref2 w r) [r b :.. b :-> w] b :.. b :-> w])
-cc/alter (t/All [w r b :..] [(t/Ref2 w r) [r b :.. b :-> w] b :.. b :-> w])
+cc/commute (t/All [x b :..] [(t/Ref x) [x b :.. b :-> x] b :.. b :-> x])
+cc/alter (t/All [x b :..] [(t/Ref x) [x b :.. b :-> x] b :.. b :-> x])
 ])
 
 cc/cycle (t/All [x] [(t/Seqable x) :-> (t/NonEmptyASeq x)])
@@ -1614,7 +1644,7 @@ clojure.test/compose-fixtures [[[:-> t/Any] :-> t/Any] [[:-> t/Any] :-> t/Any] :
 clojure.test/testing-vars-str [(t/Map t/Any t/Any) :-> t/Str]
 clojure.test/testing-contexts-str [:-> t/Str]
 clojure.test/test-ns [(t/U t/Namespace t/Sym) :-> (t/Map t/Any t/Any)]
-clojure.test/test-var [(t/Var2 t/Nothing t/Any) :-> t/Any]
+clojure.test/test-var [t/AnyVar :-> t/Any]
 
 clojure.test.tap/print-tap-plan [t/Any :-> t/Any]
 clojure.test.tap/print-tap-diagnostic [t/Str :-> t/Any]
@@ -2058,8 +2088,8 @@ cc/mod (t/IFn [t/AnyInteger t/AnyInteger :-> t/AnyInteger]
               [t/Num t/Num :-> t/Num])
 
 #?@(:cljs [] :default [
-cc/var-get (t/All [r] [(t/Var2 t/Nothing r) :-> r])
-cc/var-set (t/All [w] [(t/Var2 w t/Any) w :-> w])
+cc/var-get (t/All [x] [(t/Var x) :-> x])
+cc/var-set (t/All [x] [(t/Var x) x :-> x])
 
 cc/supers [Class :-> (t/U nil (t/I t/NonEmptyCount (t/Set Class)))]
 ])
@@ -2115,15 +2145,15 @@ cc/simple-symbol? [t/Any :-> t/Bool :filters {:then (is t/Sym 0)}]
 cc/qualified-symbol? [t/Any :-> t/Bool :filters {:then (is t/Sym 0)}]
 cc/simple-keyword? [t/Any :-> t/Bool :filters {:then (is t/Kw 0)}]
 cc/qualified-keyword? [t/Any :-> t/Bool :filters {:then (is t/Kw 0)}]
-cc/var? (t/Pred (t/Var2 t/Nothing t/Any))
+cc/var? (t/Pred t/AnyVar)
 
 #?@(:cljs [] :default [
 cc/class? (t/Pred Class)
 cc/bytes? (t/Pred (Array byte))
-cc/resolve [(t/? t/Any) t/Sym :-> (t/U (t/Var2 t/Nothing t/Any) Class nil)]
-cc/ns-resolve (t/IFn [(t/U t/Sym t/Namespace) t/Sym :-> (t/U (t/Var2 t/Nothing t/Any) Class nil)]
+cc/resolve [(t/? t/Any) t/Sym :-> (t/U t/AnyVar Class nil)]
+cc/ns-resolve (t/IFn [(t/U t/Sym t/Namespace) t/Sym :-> (t/U t/AnyVar Class nil)]
                      ; should &env arg be more accurate?
-                     [(t/U t/Sym t/Namespace) t/Any t/Sym :-> (t/U (t/Var2 t/Nothing t/Any) Class nil)])
+                     [(t/U t/Sym t/Namespace) t/Any t/Sym :-> (t/U t/AnyVar Class nil)])
 cc/extenders [t/Any :-> (t/Seqable (t/Nilable Class))]
 ])
 
@@ -2229,45 +2259,45 @@ cc/pop (t/All [x] (t/IFn [(t/List x) :-> (t/List x)]
                          [(t/Stack x) :-> (t/Stack x)]))
 
 #?@(:cljs [] :default [
-cc/get-thread-bindings [:-> (t/Map (t/Var2 t/Nothing t/Any) t/Any)]
+cc/get-thread-bindings [:-> (t/Map t/AnyVar t/Any)]
 cc/bound-fn*
     (t/All [r b :..]
          [[b :.. b :-> r] :-> [b :.. b :-> r]])
 cc/find-var
-    [t/Sym :-> (t/U nil (t/Var2 t/Nothing t/Any))]
+    [t/Sym :-> (t/Nilable t/AnyVar)]
 cc/agent
-    (t/All [x] [x & :optional {:validator (t/U nil [x :-> t/Any]) :meta t/Any
-                             :error-handler (t/U nil [(t/Agent1 x) Throwable :-> t/Any])
-                             :error-mode (t/U ':continue ':fail)} 
-              :-> (t/Agent1 x)])
+    (t/All [x] [x & :optional {:validator (t/Nilable [x :-> t/Any]) :meta t/Any
+                               :error-handler (t/Nilable [(t/Agent x) Throwable :-> t/Any])
+                               :error-mode (t/U ':continue ':fail)} 
+                :-> (t/Agent x)])
 cc/set-agent-send-executor! [java.util.concurrent.ExecutorService :-> t/Any]
 cc/set-agent-send-off-executor! [java.util.concurrent.ExecutorService :-> t/Any]
-cc/send-via (t/All [w r b :..] [(t/Agent2 w r) [r b :.. b :-> w] b :.. b :-> (t/Agent2 w r)])
-cc/send (t/All [w r b :..] [(t/Agent2 w r) [r b :.. b :-> w] b :.. b :-> (t/Agent2 w r)])
-cc/send-off (t/All [w r b :..] [(t/Agent2 w r) [r b :.. b :-> w] b :.. b :-> (t/Agent2 w r)])
-cc/await [(t/Agent2 t/Nothing t/Any) :* :-> nil]
-cc/await-for [t/AnyInteger (t/Agent2 t/Nothing t/Any) :* :-> t/Bool]
-cc/await1 (t/All [w r] [(t/Agent2 w r) :-> (t/Agent2 w r)])
+cc/send-via (t/All [x b :..] [(t/Agent x) [x b :.. b :-> x] b :.. b :-> (t/Agent x)])
+cc/send (t/All [x b :..] [(t/Agent x) [x b :.. b :-> x] b :.. b :-> (t/Agent x)])
+cc/send-off (t/All [x b :..] [(t/Agent x) [x b :.. b :-> x] b :.. b :-> (t/Agent x)])
+cc/await [t/AnyAgent :* :-> nil]
+cc/await-for [t/AnyInteger t/AnyAgent :* :-> t/Bool]
+cc/await1 (t/All [[a :< t/AnyAgent]] [a :-> (t/Nilable a)])
 cc/release-pending-sends [:-> t/AnyInteger]
 ])
 
-cc/add-watch (t/All [x [a :< (#?(:clj IRef :cljs t/Atom2) t/Nothing x)]]
-                    (t/IFn 
+cc/add-watch (t/All [x [a :< (#?(:clj IRef :cljs t/Atom) x)]]
+                    (t/IFn
                       ; this arity remembers the type of reference we pass to the function
                       [a t/Any [t/Any a x x :-> t/Any] :-> t/Any]
                       ; if the above cannot be inferred, 
-                      [(#?(:clj IRef :cljs t/Atom2) t/Nothing x) t/Any [t/Any (#?(:clj IRef :cljs t/Atom2) t/Nothing x) x x :-> t/Any] :-> t/Any]))
-cc/remove-watch [(#?(:clj IRef :cljs t/Atom2) t/Nothing t/Any) t/Any :-> t/Any]
+                      [(#?(:clj IRef :cljs t/Atom) x) t/Any [t/Any (#?(:clj IRef :cljs t/Atom) x) x x :-> t/Any] :-> t/Any]))
+cc/remove-watch (t/All [x] [(#?(:clj IRef :cljs t/Atom) x) t/Any :-> t/Any])
 
 #?@(:cljs [] :default [
-cc/agent-error [(t/Agent2 t/Nothing t/Any) :-> (t/U nil Throwable)]
-cc/restart-agent (t/All [w] [(t/Agent2 w t/Any) w & :optional {:clear-actions t/Any} :-> t/Any])
-cc/set-error-handler! (t/All [w r] [(t/Agent2 w r) [(t/Agent2 w r) Throwable :-> t/Any] :-> t/Any])
-cc/error-handler (t/All [w r] [(t/Agent2 w r) :-> (t/Nilable [(t/Agent2 w r) Throwable :-> t/Any])])
-cc/set-error-mode! [(t/Agent2 t/Nothing t/Any) (t/U ':fail ':continue) :-> t/Any]
-cc/error-mode [(t/Agent2 t/Nothing t/Any) :-> t/Any]
-cc/agent-errors [(t/Agent2 t/Nothing t/Any) :-> (t/Nilable (t/ASeq Throwable))]
-cc/clear-agent-errors [(t/Agent2 t/Nothing t/Any) :-> t/Any]
+cc/agent-error [t/AnyAgent :-> (t/Nilable Throwable)]
+cc/restart-agent (t/All [x] [(t/Agent x) x & :optional {:clear-actions t/Any} :-> t/Any])
+cc/set-error-handler! (t/All [x] [(t/Agent x) [(t/Agent x) Throwable :-> t/Any] :-> t/Any])
+cc/error-handler (t/All [[a :< t/AnyAgent]] [a :-> (t/Nilable [a Throwable :-> t/Any])])
+cc/set-error-mode! [t/AnyAgent (t/U ':fail ':continue) :-> t/Any]
+cc/error-mode [t/AnyAgent :-> t/Any]
+cc/agent-errors [t/AnyAgent :-> (t/Nilable (t/ASeq Throwable))]
+cc/clear-agent-errors [t/AnyAgent :-> t/Any]
 cc/shutdown-agents [:-> t/Any]
 ])
 
@@ -2377,7 +2407,7 @@ cc/min (t/IFn #?(:clj [(t/+ Long) :-> Long])
 cc/ref (t/All [x] [x & :optional {:validator (t/U nil [x :-> t/Any]) :meta (t/U nil (t/Map t/Any t/Any))
                                   :min-history (t/U nil t/AnyInteger)
                                   :max-history (t/U nil t/AnyInteger)}
-                   :-> (clojure.lang.Ref x x)])
+                   :-> (t/Ref x)])
 ])
 
 cc/rand [(t/? t/Num) :-> t/Num]

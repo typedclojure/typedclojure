@@ -437,35 +437,31 @@ IDeref [[[r :variance :covariant]]]
 clojure.lang.IBlockingDeref [[[r :variance :covariant]]]
 
 
-IRef [[[w :variance :contravariant]
-       [r :variance :covariant]]
+IRef [[[x :variance :invariant]]
       :replace
-      {IDeref (IDeref r)}]
+      {IDeref (IDeref x)}]
 
-ARef [[[w :variance :contravariant]
-       [r :variance :covariant]]
+ARef [[[x :variance :invariant]]
       :replace
-      {IRef (IRef w r)
-       ;IDeref (IDeref r)
+      {IRef (IRef x)
+       ;IDeref (IDeref x)
        }]
 
 clojure.lang.Ref
-     [[[w :variance :contravariant]
-       [r :variance :covariant]]
+     [[[x :variance :invariant]]
       :replace
       {;; note: also redundantly overrides IRef transitively in ARef
-       IRef (IRef w r)
-       ARef (ARef w r)
-       ;IDeref (IDeref r)
-       Comparable (Comparable (clojure.lang.Ref t/Any t/Any))}]
+       IRef (IRef x)
+       ARef (ARef x)
+       ;IDeref (IDeref x)
+       Comparable (Comparable (t/Instance clojure.lang.Ref))}]
 
 clojure.lang.Agent
-      [[[w :variance :contravariant]
-        [r :variance :covariant]]
+      [[[x :variance :invariant]]
        :replace
-       {ARef (ARef w r)
-        ;IRef (IRef w r)
-        ;IDeref (IDeref r)
+       {ARef (ARef x)
+        ;IRef (IRef x)
+        ;IDeref (IDeref x)
         }]
 
 
@@ -475,38 +471,33 @@ clojure.lang.Delay [[[r :variance :covariant]]
 
 ;invoking Var as t/IFn is a special case in the checker
 clojure.lang.Var
-    [[[w :variance :contravariant]
-      [r :variance :covariant]]
+    [[[x :variance :invariant]]
      :replace
      {;;IRef redundantly extended in both Var itself and ancestor ARef
-      IRef (IRef w r)
-      ;IDeref (IDeref r)
-      ARef (ARef w r)}]
+      IRef (IRef x)
+      ;IDeref (IDeref x)
+      ARef (ARef x)}]
 
 clojure.lang.IAtom
-     [[[w :variance :contravariant]
-       [r :variance :covariant]]]
+     [[[x :variance :invariant]]]
 
 clojure.lang.IAtom2
-     [[[w :variance :contravariant]
-       [r :variance :covariant]]
+     [[[x :variance :invariant]]
       :replace
-      {clojure.lang.IAtom (clojure.lang.IAtom w r)}]
+      {clojure.lang.IAtom (clojure.lang.IAtom x)}]
 
 clojure.lang.Atom 
-     [[[w :variance :contravariant]
-       [r :variance :covariant]]
+     [[[x :variance :invariant]]
       :replace
-      {ARef (ARef w r)
-       ;IRef (IRef w r)
-       ;IDeref (IDeref r)
-       clojure.lang.IAtom2 (clojure.lang.IAtom2 w r)}]
+      {ARef (ARef x)
+       ;IRef (IRef x)
+       ;IDeref (IDeref x)
+       clojure.lang.IAtom2 (clojure.lang.IAtom2 x)}]
 
 clojure.lang.Volatile 
-     [[[w :variance :contravariant]
-       [r :variance :covariant]]
+     [[[x :variance :invariant]]
       :replace
-      {IDeref (IDeref r)}]
+      {IDeref (IDeref x)}]
 
 LazySeq [[[a :variance :covariant]]
          :replace

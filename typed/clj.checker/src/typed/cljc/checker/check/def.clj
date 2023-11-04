@@ -7,7 +7,8 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.cljc.checker.check.def
-  (:require [clojure.core.typed.coerce-utils :as coerce]
+  (:require [typed.clojure :as t]
+            [clojure.core.typed.coerce-utils :as coerce]
             [typed.cljc.checker.ns-options :as ns-opts]
             [clojure.core.typed :as T]
             [clojure.core.typed.current-impl :as impl]
@@ -59,7 +60,7 @@
                :meta cmeta
                u/expr-type (below/maybe-check-below
                              (impl/impl-case
-                               :clojure (r/ret (c/RClass-of Var [t t])
+                               :clojure (r/ret (c/-name `t/Var t)
                                                (fo/-true-filter))
                                :cljs cljs-ret)
                              expected)))
@@ -75,7 +76,7 @@
           (assoc expr
                  u/expr-type (below/maybe-check-below
                                (impl/impl-case
-                                 :clojure (r/ret (c/RClass-of Var [(or t r/-nothing) (or t r/-any)])
+                                 :clojure (r/ret (c/-name `t/AnyVar)
                                                  (fo/-true-filter))
                                  :cljs cljs-ret)
                                expected)))
@@ -114,7 +115,7 @@
                :meta cmeta
                u/expr-type (below/maybe-check-below
                              (impl/impl-case
-                               :clojure (r/ret (c/RClass-of Var [inferred inferred])
+                               :clojure (r/ret (c/-name `t/Var inferred)
                                                (fo/-true-filter))
                                :cljs cljs-ret)
                              expected))))))
@@ -131,7 +132,7 @@
   [expr expected]
   (assoc expr
          u/expr-type (below/maybe-check-below
-                       (r/ret (c/RClass-of Var [r/-nothing r/-any]))
+                       (r/ret (c/-name `t/AnyVar))
                        expected)))
 
 (defn check-def

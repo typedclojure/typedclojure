@@ -24,7 +24,11 @@
   (let [f (bound-fn* f)
         this-invalidation-id (volatile! @parsed-types-invalidation-id)
         def-ns-vol (volatile! (SoftReference. *ns*))
-        ->f-delay (fn [] (delay (f)))
+        ->f-delay (fn [] (delay
+                           ;; locals clearing issue?
+                           ;; reproduce via (refresh) then (clojure.core.typed/envs)
+                           (let [f f]
+                             (when f (f)))))
         d (atom (->f-delay))]
     (fn []
       (when-some [^SoftReference sr @def-ns-vol]

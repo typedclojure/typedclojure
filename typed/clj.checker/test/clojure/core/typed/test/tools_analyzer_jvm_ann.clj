@@ -14,7 +14,7 @@
                          ':statement
                          ':expr)
            :ns t/Symbol
-           ;:namespaces (t/Atom1 (t/Map t/Symbol NsMap))
+           ;:namespaces (t/Atom (t/Map t/Symbol NsMap))
            }
           :optional
           {
@@ -89,7 +89,7 @@
             :env Env
             :form Form
             :assignable? Boolean
-            ;:var (t/Var2 Nothing t/Any)
+            ;:var t/AnyVar
             })
      (t/HMap :mandatory
            {:op ':maybe-host-form
@@ -236,7 +236,7 @@
             :env Env
             :form Form
             :name t/Symbol
-            ;:var (t/Var2 Nothing t/Any)
+            ;:var t/AnyVar
             }
            :optional
            {:meta Expr
@@ -282,7 +282,7 @@
            {:op ':the-var
             :env Env
             :form Form
-            ;:var (t/Var2 Nothing t/Any)
+            ;:var t/AnyVar
             })
      (t/HMap :mandatory
            {:op ':monitor-enter

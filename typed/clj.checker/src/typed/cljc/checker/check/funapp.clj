@@ -133,9 +133,10 @@
        ;Var function
        (and (r/RClass? fexpr-type)
             (= 'clojure.lang.Var (:the-class fexpr-type)))
-       (let [{[_ ftype :as poly?] :poly?} fexpr-type
-             _ (assert (= 2 (count poly?))
-                       "Assuming clojure.lang.Var only takes 1 argument")]
+       (let [{[ftype :as args] :poly?} fexpr-type
+             _ (when-not (= 1 (count args))
+                 (err/int-error (str "clojure.lang.Var takes 1 argument, "
+                                     "given " (count args))))]
          (check-funapp fexpr args (r/ret ftype) arg-ret-types expected opt))
 
        ;Error is perfectly good fn type

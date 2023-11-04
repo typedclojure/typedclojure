@@ -46,7 +46,7 @@
             [clojure.core.typed.parse-ast :as prs-ast])
   (:use [clojure.core.typed :as t :exclude [loop fn defprotocol let dotimes
                                             def remove filter defn atom ref]])
-  (:import (clojure.lang ISeq IPersistentVector Atom IPersistentMap
+  (:import (clojure.lang ISeq IPersistentVector IPersistentMap
                          ExceptionInfo Var)))
 
 (defmacro is-tc-e-with-aliases [& body]
@@ -789,14 +789,8 @@
   (is-clj (= (fv-variances -any)
          '{}))
   (is-clj (= (fv-variances 
-           (make-Function [] (RClass-of Atom [(make-F 'a) (make-F 'a)])))
-         '{a :invariant}))
-  (is-clj (= (fv-variances 
-           (make-Function [] (RClass-of Atom [-any (make-F 'a)])))
-         '{a :covariant}))
-  (is-clj (= (fv-variances 
-           (make-Function [] (RClass-of Atom [(make-F 'a) -any])))
-         '{a :contravariant})))
+               (make-Function [] (-name `t/Atom (make-F 'a))))
+             '{a :invariant})))
 
 
 (deftest fv-test
@@ -940,13 +934,13 @@
   (is-tc-err (map + [1 2] [1 2] [4 5] [6 7] [4 4] #{'a 4})))
 
 (deftest ann-form-test
-  (is-clj (= (ety (ann-form (atom 1) (t/Atom1 t/Num)))
-             (parse-type `(t/Atom1 t/Num)))))
+  (is-clj (= (ety (ann-form (atom 1) (t/Atom t/Num)))
+             (parse-type `(t/Atom t/Num)))))
 
 (deftest atom-ops-test
   (is-clj (subtype? (ety
                       (reset!
-                        (ann-form (atom 1) (t/Atom1 t/Num))
+                        (ann-form (atom 1) (t/Atom t/Num))
                         10.1))
                     (RClass-of Number))))
 
@@ -1635,7 +1629,7 @@
 (deftest var-as-function-test
   (is-cf #'+ [Number * -> Number])
   (is-cf (#'+ 1 2))
-  (is (sub? (clojure.core.typed/Var1 [-> nil]) [-> nil])))
+  (is (sub? (clojure.core.typed/Var [-> nil]) [-> nil])))
 
 (deftest future-test
   (is-cf @(future 'a) clojure.lang.Symbol)
@@ -2199,7 +2193,7 @@
 (deftest def-test
   (is (check-ns 'clojure.core.typed.test.def-arrow))
   (is-tc-e (clojure.core.typed/def a :- t/Num 1)
-           (t/Var1 t/Num)))
+           (t/Var t/Num)))
 
 (deftest poly-inst-scoping-test
   (is-tc-e (fn [a] (inst identity foo))
@@ -2612,7 +2606,7 @@
 ;  (is-tc-e (fn [a] (inc a)) 
 ;           [(t/Get '{:a [Number -> Number]} ':a) -> Number])
   (is-tc-e (fn [a] (deref a))
-           [(t/Get '{:a (t/Atom1 Number)} ':a)
+           [(t/Get '{:a (t/Atom Number)} ':a)
             -> Number])
   )
 
@@ -2968,11 +2962,11 @@
 (deftest defn-test
   (is-tc-e (defn add-two [a :- t/Int] :- t/Int
              (+ a 2))
-           (t/Var1 [t/Int -> t/Int]))
+           (t/Var [t/Int -> t/Int]))
   (is-tc-e (defn add-three 
              ([a :- t/Int] :- t/Int 
               (+ a 3)))
-           #_(t/Var1 [t/Int -> t/Int]))
+           #_(t/Var [t/Int -> t/Int]))
   ;; arg is annotated
   (is-tc-e (do
              (defn foo [a :- t/Num]
@@ -3041,13 +3035,13 @@
   )
 
 (deftest atom-test
-  (is-tc-e (atom :- (t/Vec t/Any) []) (t/Atom1 (t/Vec t/Any)))
+  (is-tc-e (atom :- (t/Vec t/Any) []) (t/Atom (t/Vec t/Any)))
   (is-tc-e @(atom 1) t/Any)
   (is-tc-e @(atom :- Number 1) Number)
-  (is-tc-e (atom :- Number 1) (t/Atom1 Number))
+  (is-tc-e (atom :- Number 1) (t/Atom Number))
   (is-tc-e (atom :- Number 1))
-  (is-tc-e (atom (ann-form 1 Number)) (t/Atom1 Number))
-  (is-tc-err (atom :- Number 1) (t/Atom1 Boolean))
+  (is-tc-e (atom (ann-form 1 Number)) (t/Atom Number))
+  (is-tc-err (atom :- Number 1) (t/Atom Boolean))
 )
 
 (deftest ref-test
@@ -4444,17 +4438,17 @@
                    a)))
   ;; invariant good
   (is-tc-e (do (defalias T
-                 (t/TFn [x] (t/Atom1 x)))
+                 (t/TFn [x] (t/Atom x)))
                (fn [a :- (T t/Int)] :- (T t/Int)
                  a)))
   ;; invariant bad (not contravariant)
   (is-tc-err (do (defalias T
-                   (t/TFn [x] (t/Atom1 x)))
+                   (t/TFn [x] (t/Atom x)))
                  (fn [a :- (T t/Num)] :- (T t/Int)
                    a)))
   ;; invariant bad (not covariant)
   (is-tc-err (do (defalias T
-                   (t/TFn [x] (t/Atom1 x)))
+                   (t/TFn [x] (t/Atom x)))
                  (fn [a :- (T t/Int)] :- (T t/Num)
                    a)))
   ;; recursive disallowed

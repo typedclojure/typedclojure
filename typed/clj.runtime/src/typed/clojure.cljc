@@ -139,8 +139,8 @@
   
   Same as (atom (ann-form init t) args*)
   
-  eg. (atom 1) : (Atom1 (Value 1))
-      (atom :- Num, 1) : (Atom1 Num)"
+  eg. (atom 1) : (Atom (Value 1))
+      (atom :- Num, 1) : (Atom Num)"
   [& args]
   (macros/platform-case
     :clj `(clojure.core.typed/atom ~@args)
