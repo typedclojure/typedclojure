@@ -3,5 +3,5 @@
 if command -v clj-kondo &> /dev/null; then
   clj-kondo "$@"
 else
-  clj -M:clj-kondo "$@"
+  clojure -M:clj-kondo "$@"
 fi
