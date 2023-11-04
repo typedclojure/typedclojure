@@ -1,2 +1,3 @@
 .clj-kondo/.cache
+.clj-kondo/org.typedclojure
 output/actual-output

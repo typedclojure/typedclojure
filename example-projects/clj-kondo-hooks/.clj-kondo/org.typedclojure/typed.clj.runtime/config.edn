@@ -1,4 +1,0 @@
-{:hooks {:analyze-call {clojure.core.typed/ann-form typed.clj.runtime.clj-kondo-hooks/_ann-form
-                        typed.clojure/ann-form typed.clj.runtime.clj-kondo-hooks/_ann-form}}
- ;:linters {:typed.clojure/unannotated {:level :error}}
- }
