@@ -120,7 +120,7 @@
   {:post [((con/set-c? symbol?) %)]}
   (set (keys (idx-variances t))))
 
-(t/ann combine-frees [VarianceMap * -> VarianceMap])
+(t/ann combine-frees [VarianceMap :* :-> VarianceMap])
 (defn combine-frees [& frees]
   {:post [(map? %)]}
   (if frees
@@ -153,7 +153,7 @@
     (FreesResult. (inv (.frees fr))
                   (inv (.idxs fr)))))
 
-(t/ann combine-freesresults [FreesResult * -> FreesResult])
+(t/ann combine-freesresults [FreesResult :* :-> FreesResult])
 (defn ^FreesResult ^:private combine-freesresults [& frees]
   {:post [(instance? FreesResult %)]}
   (reduce 

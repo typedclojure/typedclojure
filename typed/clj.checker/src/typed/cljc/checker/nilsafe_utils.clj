@@ -12,9 +12,9 @@
 
 (t/ann ^:no-check set-union 
        (t/All [x]
-              (t/IFn [-> (t/Set x)]
-                     [(t/U nil (t/Set x)) -> (t/Set x)]
-                     [(t/U nil (t/Set x)) (t/Set x) * -> (t/Set x)])))
+              (t/IFn [:-> (t/Set x)]
+                     [(t/Nilable (t/Set x)) :-> (t/Set x)]
+                     [(t/Nilable (t/Set x)) (t/Set x) :* :-> (t/Set x)])))
 (def set-union (fnil set/union #{}))
 
 (t/ann ^:no-check set-difference 

@@ -30,12 +30,10 @@
         :cljs (t/tc-ignore ((requiring-resolve 'typed.cljs.checker.util/cljs-ns))))))
 
 (t/ann ^:no-check clojure.core.typed.current-impl/assert-clojure
-       (t/IFn [-> nil]
-              [(t/Seqable t/Any) -> nil]))
+       [t/AnySeqable :? :-> nil])
 
 (t/ann ^:no-check clojure.core.typed.errors/int-error 
-       (t/IFn [t/Any -> t/Nothing]
-              [t/Nothing (t/HMap :optional {:use-current-env t/Any}) -> t/Nothing]))
+       [t/Any (t/HMap :optional {:use-current-env t/Any}) :? :-> t/Nothing])
 
 (t/ann resolve-type-clj [t/Sym -> (t/U t/AnyVar Class nil)])
 (defn- resolve-type-clj

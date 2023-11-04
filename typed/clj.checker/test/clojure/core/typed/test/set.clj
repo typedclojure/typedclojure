@@ -15,10 +15,7 @@
   )
 
 (ann union (t/All [x]
-             (t/IFn [ -> (APersistentSet x)]
-                 [(APersistentSet x) -> (APersistentSet x)]
-                 [(APersistentSet x) (APersistentSet x) -> (APersistentSet x)]
-                 [(APersistentSet x) (APersistentSet x) (APersistentSet x) * -> (APersistentSet x)])))
+             [(APersistentSet x) :* -> (APersistentSet x)]))
 (tc-ignore
 (defn union
   "Return a set that is the union of the input sets"

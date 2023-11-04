@@ -76,7 +76,7 @@
 (def -no-filter (NoFilter-maker))
 
 (u/ann-record TypeFilter [type :- r/Type,
-                          path :- (t/U nil (t/Seqable IPathElem))
+                          path :- (t/Seqable IPathElem)
                           id :- NameRef])
 (u/def-filter TypeFilter [type path id]
   "A filter claiming looking up id, down the given path, is of given type"
@@ -87,7 +87,7 @@
   [p/IFilter])
 
 (u/ann-record NotTypeFilter [type :- r/Type,
-                             path :- (t/U nil (t/Seqable IPathElem))
+                             path :- (t/Seqable IPathElem)
                              id :- NameRef])
 (u/def-filter NotTypeFilter [type path id]
   "A filter claiming looking up id, down the given path, is NOT of given type"
@@ -123,7 +123,7 @@
   :methods
   [p/IFilter])
 
-(t/ann ^:no-check make-AndFilter [Filter * -> AndFilter])
+(t/ann ^:no-check make-AndFilter [Filter :* :-> AndFilter])
 (defn make-AndFilter [& fs]
   {:pre [(every? Filter? fs)]
    :post [(AndFilter? %)]}

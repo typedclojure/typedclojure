@@ -40,7 +40,7 @@
 (t/ann ^:no-check clojure.core.typed.current-impl/current-impl [-> t/Any])
 (t/ann ^:no-check clojure.core.typed.current-impl/checking-clojure? [-> t/Any])
 
-(t/ann gen-repeat [Number (t/Seqable t/Any) -> (t/Seqable t/Any)])
+(t/ann gen-repeat (t/All [x] [t/Int (t/Seqable x) -> (t/Vec x)]))
 (defn ^:private gen-repeat [times repeated]
   (reduce into [] (repeat times repeated)))
 

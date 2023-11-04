@@ -268,7 +268,7 @@
 
 (def expr-type ::expr-type)
 
-;(t/ann tc-warning [t/Any * -> nil])
+(t/ann tc-warning [t/Any :* :-> nil])
 (defn tc-warning [& ss]
   (let [env uvs/*current-env*]
     (binding [*out* *err*]

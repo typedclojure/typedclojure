@@ -335,7 +335,7 @@
 
 (declare flatten-intersections)
 
-(t/ann ^:no-check Un [r/Type * -> r/Type])
+(t/ann ^:no-check Un [r/Type :* :-> r/Type])
 (defn Un [& types]
   {:pre [(every? r/Type? types)]
    :post [(r/Type? %)]}
@@ -406,7 +406,7 @@
 
 (declare RClass-of)
 
-(t/ann ^:no-check HMap-with-Value-keys? [HeterogeneousMap * -> t/Bool])
+(t/ann ^:no-check HMap-with-Value-keys? [HeterogeneousMap :* :-> t/Bool])
 (defn HMap-with-Value-keys? [& args]
   {:pre [(every? r/HeterogeneousMap? args)]}
   (every? r/Value? 
@@ -528,7 +528,7 @@
         (recur (mapcat :types unions)
                (into result non-unions))))))
 
-(t/ann ^:no-check In [r/Type * -> r/Type])
+(t/ann ^:no-check In [r/Type :* :-> r/Type])
 (defn In [& types]
   {:pre [(every? r/Type? types)]
    :post [(r/Type? %)]}
