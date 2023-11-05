@@ -7,14 +7,14 @@ Extensible languages in Clojure, a la Racket's #lang.
 
 ## Releases and Dependency Information
 
-Latest stable release is 1.1.5.
+Latest stable release is 1.2.0.
 
 * [All Released Versions](https://clojars.org/org.typedclojure/typed.clj.lang)
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) JAR dependency information:
 
 ```clj
-  org.typedclojure/typed.clj.lang {:mvn/version "1.1.5"}
+  org.typedclojure/typed.clj.lang {:mvn/version "1.2.0"}
  ```
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) Git dependency information:
@@ -25,13 +25,13 @@ Latest stable release is 1.1.5.
   org.typedclojure/typed.clj.lang
   {:git/url "https://github.com/typedclojure/typedclojure"
    :deps/root "typed/clj.lang"
-   :tag "1.1.5"}
+   :tag "1.2.0"}
 ```
 
 [Leiningen](https://github.com/technomancy/leiningen) dependency information:
 
 ```clojure
-[org.typedclojure/typed.clj.lang "1.1.5"]
+[org.typedclojure/typed.clj.lang "1.2.0"]
 ```
 
 [Maven](https://maven.apache.org/) dependency information:
@@ -40,7 +40,7 @@ Latest stable release is 1.1.5.
 <dependency>
   <groupId>org.typedclojure</groupId>
   <artifactId>typed.clj.lang</artifactId>
-  <version>1.1.5</version>
+  <version>1.2.0</version>
 </dependency>
 ```
 
