@@ -9,6 +9,7 @@
 (ns ^:no-doc typed.cljc.checker.check-form
   (:require [clojure.core.cache :as cache]
             [clojure.core.typed.contract-utils :as con]
+            [clojure.core.typed.contract-utils-platform-specific :as plat-con]
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.errors :as err]
             [clojure.core.typed.runtime.jvm.configs :as configs]
@@ -99,7 +100,7 @@
                 checked-ast no-eval bindings-atom beta-limit
                 check-config] :as opt}]
   {:pre [(nil? analyze-bindings-fn)
-         ((some-fn nil? con/atom?) bindings-atom)
+         ((some-fn nil? plat-con/atom?) bindings-atom)
          ((some-fn nil? symbol?) unparse-ns)
          (map? opt)
          (map? check-config)]}

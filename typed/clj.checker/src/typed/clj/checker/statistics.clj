@@ -8,6 +8,7 @@
 
 (ns typed.clj.checker.statistics
   (:require [clojure.core.typed.contract-utils :as con]
+            [clojure.core.typed.contract-utils-platform-specific :as plat-con]
             [clojure.core.typed.util-vars :as vs]
             [clojure.set :as set]
             [typed.clj.checker.check-ns :as chk-ns-clj]
@@ -19,7 +20,7 @@
 (defn ^:no-wiki 
   all-defs-in-ns
   [ns]
-  {:pre [(con/namespace? ns)]}
+  {:pre [(plat-con/namespace? ns)]}
   (set
     (map #(symbol (str (ns-name ns)) (str %))
          (set/difference 
@@ -52,11 +53,11 @@
 
 (defn var-coverage
   ([nsyms-or-nsym]
-   (assert (or (con/namespace? nsyms-or-nsym)
+   (assert (or (plat-con/namespace? nsyms-or-nsym)
                (symbol? nsyms-or-nsym)
                (and (coll? nsyms-or-nsym) (every? symbol? nsyms-or-nsym)))
            "Must pass a collection of symbols or a symbol/namespace to var-coverage")
-   (let [nsyms (if ((some-fn symbol? con/namespace?)
+   (let [nsyms (if ((some-fn symbol? plat-con/namespace?)
                     nsyms-or-nsym)
                  [(ns-name nsyms-or-nsym)]
                  nsyms-or-nsym)

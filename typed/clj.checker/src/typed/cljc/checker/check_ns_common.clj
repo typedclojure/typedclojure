@@ -18,6 +18,7 @@
             [typed.cljc.checker.var-env :as var-env]
             [clojure.core.typed.runtime.jvm.configs :as configs]
             [clojure.core.typed.contract-utils :as con]
+            [clojure.core.typed.contract-utils-platform-specific :as plat-con]
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.errors :as err]
             [clojure.core.typed.util-vars :as vs]
@@ -44,7 +45,7 @@
                               ; to convert to symbol
                               %
                               (ns-name %))
-                           (if ((some-fn symbol? con/namespace?)
+                           (if ((some-fn symbol? plat-con/namespace?)
                                 ns-or-syms)
                              [ns-or-syms]
                              ns-or-syms))]

@@ -7,8 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc clojure.core.typed.contract-utils
-  (:require [clojure.set :as set])
-  #?(:clj (:import (clojure.lang PersistentArrayMap))))
+  (:require [clojure.set :as set]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Constraint shorthands
@@ -17,9 +16,6 @@
   #(every? c %))
 
 (def nne-seq? (some-fn nil? (every-pred seq? seq)))
-
-#?(:bb nil
-   :clj (def namespace? #(instance? clojure.lang.Namespace %)))
 
 (defn =-c? [& as]
   #(apply = (concat as %&)))
@@ -38,10 +34,6 @@
     (if (reduced? r)
       (c @r)
       (c r))))
-
-(defn array-map-c? [ks-c? vs-c?]
-  (every-pred #(instance? PersistentArrayMap %)
-              (every-c? (hvector-c? ks-c? vs-c?))))
 
 (defrecord OptionalKey [k])
 
@@ -85,6 +77,3 @@
               (every-c? c?)))
 
 (def local-sym? simple-symbol?)
-
-;; FIXME when 1.7 is released, change to IAtom
-(defn atom? [v] (instance? #?(:clj clojure.lang.IAtom2 :cljs Atom) v))

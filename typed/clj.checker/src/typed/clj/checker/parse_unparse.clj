@@ -10,6 +10,7 @@
   (:require [clojure.core.typed.coerce-utils :as coerce]
             [typed.clojure :as t]
             [clojure.core.typed.contract-utils :as con]
+            [clojure.core.typed.contract-utils-platform-specific :as plat-con]
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.errors :as err]
             [clojure.core.typed.util-vars :as vs]
@@ -57,7 +58,7 @@
   (unparse-filter* [fl]))
 
 (defonce ^:dynamic *parse-type-in-ns* nil)
-(set-validator! #'*parse-type-in-ns* (some-fn nil? symbol? con/namespace?))
+(set-validator! #'*parse-type-in-ns* (some-fn nil? symbol? plat-con/namespace?))
 
 (declare unparse-type unparse-filter unparse-filter-set unparse-TCResult)
 
@@ -1788,7 +1789,7 @@
 (defn alias-in-ns
   "Returns an alias for namespace nsym in namespace ns, or nil if none."
   [ns nsym]
-  {:pre [(con/namespace? ns)
+  {:pre [(plat-con/namespace? ns)
          (simple-symbol? nsym)]
    :post [((some-fn nil? symbol?) %)]}
   (impl/assert-clojure)
@@ -1810,7 +1811,7 @@
     (symbol (.getSimpleName (Class/forName (str clsym))))))
 
 (defn Class-symbol-intern [clsym ns]
-  {:pre [(con/namespace? ns)]
+  {:pre [(plat-con/namespace? ns)]
    :post [((some-fn nil? symbol?) %)]}
   (some (fn [[isym cls]]
           (when (= (str clsym) (str (coerce/Class->symbol cls)))
@@ -1826,7 +1827,7 @@
   ;=> nil"
   [sym ns]
   {:pre [(symbol? sym)
-         (con/namespace? ns)]
+         (plat-con/namespace? ns)]
    :post [((some-fn nil? symbol?) %)]}
   (some (fn [[isym var]]
           (when (var? var)
@@ -2455,7 +2456,7 @@
         [t fs o]))))
 
 (defn unparse-TCResult-in-ns [r ns]
-  {:pre [((some-fn con/namespace? symbol?) ns)]}
+  {:pre [((some-fn plat-con/namespace? symbol?) ns)]}
   (binding [*unparse-type-in-ns* (if (symbol? ns)
                                    ns
                                    (ns-name ns))]

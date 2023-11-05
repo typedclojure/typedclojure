@@ -11,6 +11,7 @@
   (:require [typed.clojure :as t]
             [clojure.core.typed.coerce-utils :as coerce]
             [clojure.core.typed.contract-utils :as con]
+            [clojure.core.typed.contract-utils-platform-specific :as plat-con]
             [clojure.set :as set]
             [typed.cljc.checker.impl-protocols :as p]
             [typed.cljc.checker.indirect-ops :as ind]
@@ -342,7 +343,7 @@
             (every? Type? poly?)))
    (= (count variances) (count poly?))
    (symbol? the-class)
-   ((con/array-map-c? symbol? (some-fn Scope? Type?)) fields)
+   ((plat-con/array-map-c? symbol? (some-fn Scope? Type?)) fields)
    (boolean? record?)]
   :methods
   [p/TCType])

@@ -14,6 +14,7 @@
             [typed.cljc.runtime.env-utils :as env-utils]
             [clojure.core.typed.coerce-utils :as coerce]
             [clojure.core.typed.contract-utils :as con]
+            [clojure.core.typed.contract-utils-platform-specific :as plat-con]
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.errors :as err]
             [clojure.core.typed.util-vars :as vs]
@@ -1179,7 +1180,7 @@
 (t/ann ^:no-check DataType-fields* [DataType -> (t/Map t/Sym r/Type)])
 (defn DataType-fields* [^DataType dt]
   {:pre [(r/DataType? dt)]
-   :post [((con/array-map-c? symbol? r/Type?) %)]}
+   :post [((plat-con/array-map-c? symbol? r/Type?) %)]}
   (:fields dt))
 
 ;; TypeFn

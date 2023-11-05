@@ -12,6 +12,7 @@
             [typed.clojure :as t]
             [clojure.core.typed.coerce-utils :as coerce]
             [clojure.core.typed.contract-utils :as con]
+            [clojure.core.typed.contract-utils-platform-specific :as plat-con]
             [clojure.core.typed.errors :as err]
             [clojure.core.typed.expand :as expand]
             [clojure.core.typed.rules :as rules]
@@ -339,7 +340,7 @@
   ([form] (analyze1 form (taj/empty-env) {}))
   ([form env] (analyze1 form env {}))
   ([form env {:keys [bindings-atom analyze-bindings-fn] :as opts}]
-   {:pre [((some-fn nil? con/atom?) bindings-atom)
+   {:pre [((some-fn nil? plat-con/atom?) bindings-atom)
           ((some-fn nil? ifn?) analyze-bindings-fn)]}
    (u/trace "Analyze1 form" *file* form)
    (let [old-bindings (or (some-> bindings-atom deref) {})

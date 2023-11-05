@@ -11,26 +11,8 @@
                             defn atom ref])
   (:require [clojure.core :as core]
             [clojure.core.typed.internal :as internal]
-            [clojure.core.typed.special-form :as spec]))
-
-;https://github.com/cgrand/macrovich/blob/master/src/net/cgrand/macrovich.cljc
-(defmacro platform-case
-  "Dispatch based on the compiler in charge of macroexpanding this form.
-  If called directly, must be inside a defmacro form."
-  [& {:keys [cljs clj]}]
-  (cond
-    ;; is this platform-case form expanding directly inside a defmacro?
-    (contains? &env '&env)
-    ;; then reuse the &env from the surrounding defmacro call
-    `(if (:ns ~'&env) ~cljs ~clj)
-
-    :else
-    (if #?(;; :ns is added by cljs.analyzer, not Compiler.java
-           :clj (:ns &env)
-           ;; don't need to bother checking
-           :cljs true)
-      cljs
-      clj)))
+            [clojure.core.typed.special-form :as spec]
+            [clojure.core.typed.platform-case :refer [platform-case]]))
 
 ;; TODO move all these macros to typed.clojure
 (core/defn typed-sym [&env sym]

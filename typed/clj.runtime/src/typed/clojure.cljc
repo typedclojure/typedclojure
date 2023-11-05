@@ -19,7 +19,8 @@
                ;; .clj{s,c} files, loaded via :require-macros in typed/clojure.cljs.
                :cljs cljs.core.typed)
             [clojure.core :as cc]
-            [clojure.core.typed.macros :as macros]))
+            [clojure.core.typed.macros :as macros]
+            [clojure.core.typed.platform-case :refer [platform-case]]))
 
 (alias 't 'typed.clojure)
 
@@ -38,98 +39,98 @@
       ; don't check this var
       (ann ^:no-check foobar [Integer -> String])"
   [varsym typesyn]
-  (macros/platform-case
+  (platform-case
     :clj `(clojure.core.typed/ann ~varsym ~typesyn)
     :cljs `(cljs.core.typed/ann ~varsym ~typesyn)))
 
 (defmacro ann-many [& args]
-  (macros/platform-case
+  (platform-case
     :clj `(clojure.core.typed/ann-many ~@args)
     :cljs (throw (ex-info "ann-many not yet implemented in CLJS" {}))))
 
 (defmacro ann-protocol [& args]
-  (macros/platform-case
+  (platform-case
     :clj `(clojure.core.typed/ann-protocol ~@args)
     :cljs `(cljs.core.typed/ann-protocol ~@args)))
 
 (defmacro ann-datatype [& args]
-  (macros/platform-case
+  (platform-case
     :clj `(clojure.core.typed/ann-datatype ~@args)
     :cljs `(cljs.core.typed/ann-datatype ~@args)))
 
 (defmacro ann-record [& args]
-  (macros/platform-case
+  (platform-case
     :clj `(clojure.core.typed/ann-record ~@args)
     :cljs (throw (ex-info "TODO ann-record in CLJS" {}))))
 
 (defmacro defalias [& args]
-  (macros/platform-case
+  (platform-case
     :clj `(clojure.core.typed/defalias ~@args)
     :cljs `(cljs.core.typed/defalias ~@args)))
 
 (defmacro inst [& args]
-  (macros/platform-case
+  (platform-case
     :clj `(clojure.core.typed/inst ~@args)
     :cljs `(cljs.core.typed/inst ~@args)))
 
 #?(:clj
    (defmacro inst-ctor [& args]
-     (macros/platform-case
+     (platform-case
        :clj `(clojure.core.typed/inst ~@args)
        :cljs (throw (ex-info "inst-ctor does not applicable in CLJS" {})))))
 
 (defmacro declare-datatypes [& args]
-  (macros/platform-case
+  (platform-case
     :clj `(clojure.core.typed/declare-datatypes ~@args)
     :cljs (throw (ex-info "declare-datatypes not yet implemented in CLJS" {}))))
 
 (defmacro declare-protocols [& args]
-  (macros/platform-case
+  (platform-case
     :clj `(clojure.core.typed/declare-protocols ~@args)
     :cljs (throw (ex-info "declare-protocols not yet implemented in CLJS" {}))))
 
 (defmacro declare-alias-kind [& args]
-  (macros/platform-case
+  (platform-case
     :clj `(clojure.core.typed/declare-alias-kind ~@args)
     :cljs (throw (ex-info "declare-alias-kind not yet implemented in CLJS" {}))))
 
 (defmacro declare-names [& args]
-  (macros/platform-case
+  (platform-case
     :clj `(clojure.core.typed/declare-names ~@args)
     :cljs (throw (ex-info "declare-names not yet implemented in CLJS" {}))))
 
 (defmacro def [& args]
-  (macros/platform-case
+  (platform-case
     :clj `(clojure.core.typed/def ~@args)
     :cljs `(cljs.core.typed/def ~@args)))
 
 (defmacro fn [& args]
-  (macros/platform-case
+  (platform-case
     :clj `(clojure.core.typed/fn ~@args)
     :cljs `(cljs.core.typed/fn ~@args)))
 
 (defmacro loop [& args]
-  (macros/platform-case
+  (platform-case
     :clj `(clojure.core.typed/loop ~@args)
     :cljs `(cljs.core.typed/loop ~@args)))
 
 (defmacro ann-form [& args]
-  (macros/platform-case
+  (platform-case
     :clj `(clojure.core.typed/ann-form ~@args)
     :cljs `(cljs.core.typed/ann-form ~@args)))
 
 (defmacro tc-ignore [& args]
-  (macros/platform-case
+  (platform-case
     :clj `(clojure.core.typed/tc-ignore ~@args)
     :cljs `(cljs.core.typed/tc-ignore ~@args)))
 
 (defmacro defprotocol [& args]
-  (macros/platform-case
+  (platform-case
     :clj `(clojure.core.typed/defprotocol ~@args)
     :cljs `(cljs.core.typed/defprotocol ~@args)))
 
 (defmacro defn [& args]
-  (macros/platform-case
+  (platform-case
     :clj `(clojure.core.typed/defn ~@args)
     :cljs `(cljs.core.typed/defn ~@args)))
 
@@ -142,13 +143,13 @@
   eg. (atom 1) : (Atom (Value 1))
       (atom :- Num, 1) : (Atom Num)"
   [& args]
-  (macros/platform-case
+  (platform-case
     :clj `(clojure.core.typed/atom ~@args)
     :cljs `(cljs.core.typed/atom ~@args)))
 
 #?(:clj
    (defmacro ref [& args]
-     (macros/platform-case
+     (platform-case
        :clj `(clojure.core.typed/ref ~@args)
        :cljs (throw (ex-info "ref does not exist in CLJS" {})))))
 
@@ -192,7 +193,7 @@
   Not compatible with AOT compilation."
   [& args]
   (assert (#{0 1} (count args)))
-  #?(:clj (macros/platform-case
+  #?(:clj (platform-case
             ;; hmm, should this be evaluated at compile-time too for consistency?
             :clj `(check-ns-clj ~@args)
             :cljs (apply (requiring-resolve 'cljs.core.typed/check-ns-expansion-side-effects) args))
@@ -204,7 +205,7 @@
 (defmacro cf-clj
   "Check a Clojure form in the current *ns*."
   [& args]
-  #?(:clj (macros/platform-case
+  #?(:clj (platform-case
             :clj `(clojure.core.typed/cf ~@args)
             :cljs (binding [*ns* (create-ns @(requiring-resolve 'cljs.analyzer/*cljs-ns*))]
                     (list 'quote
@@ -220,7 +221,7 @@
 (defmacro cf-cljs
   "Check a ClojureScript form in the same namespace as the current platform."
   [& args]
-  #?(:clj (macros/platform-case
+  #?(:clj (platform-case
             :clj `(with-bindings {(requiring-resolve 'cljs.analyzer/*cljs-ns*) (ns-name *ns*)}
                     (apply (requiring-resolve 'cljs.core.typed/check-form*)
                            '~(case (count args)
@@ -242,7 +243,7 @@
   "In Clojure, expands to (clojure.core.typed/cf ~@args).
   In ClojureScript JVM, expands to (cljs.core.typed/cf ~@args)."
   [& args]
-  #?(:clj (macros/platform-case
+  #?(:clj (platform-case
             :clj `(cf-clj ~@args)
             :cljs `(cf-cljs ~@args))
      :cljs `(cf-cljs ~@args)))
