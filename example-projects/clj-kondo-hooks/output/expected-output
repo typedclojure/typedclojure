@@ -20,3 +20,7 @@ src/typed_example/clj_kondo_hooks.clj:58:8: error: Expected: number, received: k
 src/typed_example/clj_kondo_hooks.clj:60:9: error: Expected: number, received: keyword.
 src/typed_example/clj_kondo_hooks.clj:62:14: error: Expected: number, received: keyword.
 src/typed_example/clj_kondo_hooks.clj:63:15: error: Expected: number, received: keyword.
+src/typed_example/clj_kondo_hooks.clj:65:9: error: Expected: number, received: keyword.
+src/typed_example/clj_kondo_hooks.clj:67:10: error: Expected: number, received: keyword.
+src/typed_example/clj_kondo_hooks.clj:70:14: error: Expected: number, received: keyword.
+src/typed_example/clj_kondo_hooks.clj:72:14: error: Expected: number, received: keyword.

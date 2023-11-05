@@ -10,26 +10,25 @@
 ;; don't forget to add a test in typed-example.clj-kondo-hooks
 
 (def aliased-macros
-  (-> ;; global annotation macros
-      (zipmap '#{ann
-                 ann-many
-                 ann-protocol 
-                 ann-datatype
-                 ann-record
-                 defalias
-                 declare-datatypes
-                 declare-protocols
-                 declare-alias-kind
-                 declare-names}
-              (repeat 'typed.clj.runtime.clj-kondo-hooks/ignored))
+  (-> ;; no shared implementation, but straightforward hooks
+      '{inst typed.clj.runtime.clj-kondo-hooks/inst
+        inst-ctor typed.clj.runtime.clj-kondo-hooks/inst-ctor}
+      ;; global annotation macros
+      (into (zipmap '#{ann
+                       ann-many
+                       ann-protocol 
+                       ann-datatype
+                       ann-record
+                       defalias
+                       declare-datatypes
+                       declare-protocols
+                       declare-alias-kind
+                       declare-names}
+                    (repeat 'typed.clj.runtime.clj-kondo-hooks/ignored)))
       ;; macros in clojure.core.typed.macros
       (into (map (fn [macro]
                    {macro (symbol "clojure.core.typed.macros" (name macro))}))
-            '#{;;TODO
-               ;inst
-               ;;TODO
-               ;inst-ctor
-               def
+            '#{def
                fn
                loop
                ann-form

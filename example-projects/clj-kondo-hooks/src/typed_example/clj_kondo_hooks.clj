@@ -62,6 +62,16 @@ ctdefn1
 (t/tc-ignore (inc :expected-failure))
 (ct/tc-ignore (inc :expected-failure))
 
+(t/inst (inc :expected-failure)
+        (inc "unexpected-failure"))
+(ct/inst (inc :expected-failure)
+         (inc "unexpected-failure"))
+
+(t/inst-ctor (inc :expected-failure)
+             (inc "unexpected-failure"))
+(t/inst-ctor (inc :expected-failure)
+             (inc "unexpected-failure"))
+
 ;; unexpected failures from here
 
 (t/ann (inc "unexpected-failure")

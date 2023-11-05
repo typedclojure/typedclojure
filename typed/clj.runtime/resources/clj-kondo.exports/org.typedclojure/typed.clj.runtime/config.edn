@@ -26,6 +26,9 @@
    clojure.core.typed/defprotocol
    clojure.core.typed.macros/defprotocol,
    clojure.core.typed/fn clojure.core.typed.macros/fn,
+   clojure.core.typed/inst typed.clj.runtime.clj-kondo-hooks/inst,
+   clojure.core.typed/inst-ctor
+   typed.clj.runtime.clj-kondo-hooks/inst-ctor,
    clojure.core.typed/loop clojure.core.typed.macros/loop,
    clojure.core.typed/ref clojure.core.typed.macros/ref,
    clojure.core.typed/tc-ignore clojure.core.typed.macros/tc-ignore,
@@ -51,6 +54,8 @@
    typed.clojure/defn clojure.core.typed.macros/defn,
    typed.clojure/defprotocol clojure.core.typed.macros/defprotocol,
    typed.clojure/fn clojure.core.typed.macros/fn,
+   typed.clojure/inst typed.clj.runtime.clj-kondo-hooks/inst,
+   typed.clojure/inst-ctor typed.clj.runtime.clj-kondo-hooks/inst-ctor,
    typed.clojure/loop clojure.core.typed.macros/loop,
    typed.clojure/ref clojure.core.typed.macros/ref,
    typed.clojure/tc-ignore clojure.core.typed.macros/tc-ignore}}}
