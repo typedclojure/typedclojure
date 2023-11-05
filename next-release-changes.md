@@ -34,3 +34,4 @@
 - don't use `resolve` to qualify first argument of `t/ann-protocol`
   - just qualify based on current namespace aliases
   - allows for annotations on protocols without a corresponding `defprotocol`
+- add clj-kondo hook for `ann-form`
