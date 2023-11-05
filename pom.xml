@@ -52,7 +52,7 @@
     <testSourceDirectory>java-test</testSourceDirectory>
     <resources>
       <resource>
-        <directory>resources-src</directory>
+        <directory>resources</directory>
       </resource>
     </resources>
     <testResources>
