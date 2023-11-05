@@ -2,6 +2,8 @@
 
 set -e
 
+bb -f ./script/regen_kondo_config.clj
+
 cd typed/clj.runtime
 mkdir -p resources/clj-kondo.exports/org.typedclojure/typed.clj.runtime/clojure/core/typed
 
