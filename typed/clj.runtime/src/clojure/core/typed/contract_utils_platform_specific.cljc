@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-;; moved outside clojure.core.typed.contract-utils so we can copy
+;; moved outside clojure.core.typed.contract-utils so we can
 ;; use that namespace in clj-kondo hooks, which seems to only recognize
 ;; reader conditions in .clj files, and where PersistentArrayMap doesn't
 ;; exist.

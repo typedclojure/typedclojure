@@ -10,6 +10,7 @@
   "Typing rules for clojure.core/fn"
   (:refer-clojure :exclude [type])
   (:require [clojure.core.typed.internal :as internal]
+            [clojure.core.typed.internal.add-destructure-blame-form :refer [add-destructure-blame-form]]
             [typed.cljc.checker.type-rep :as r]
             [clojure.set :as set]
             [typed.clj.checker.parse-unparse :as prs]
@@ -96,12 +97,12 @@
                    :fixed (let [ks #{::t/-}]
                             (record! desc ks)
                             (-> form
-                                (internal/add-destructure-blame-form blame-form)
+                                (add-destructure-blame-form blame-form)
                                 (rm-ks ks)))
                    :rest (let [ks #{::t/* ::t/... ::t/kv}]
                            (record! desc ks)
                            (-> form
-                               (internal/add-destructure-blame-form blame-form)
+                               (add-destructure-blame-form blame-form)
                                (rm-ks ks)))
                    :argv (let [ks #{::t/-}]
                            (record! desc ks)

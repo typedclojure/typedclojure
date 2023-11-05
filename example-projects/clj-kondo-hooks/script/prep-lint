@@ -1,3 +1,4 @@
 #!/bin/bash
 
+rm -fr .clj-kondo/org.typedclojure
 ./script/clj-kondo --lint "$(clojure -Spath)" --copy-configs --skip-lint

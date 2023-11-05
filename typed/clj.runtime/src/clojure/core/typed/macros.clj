@@ -6,6 +6,9 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
+;; note: this file is copied into resources/clj-kondo.exports/org.typedclojure/typed.clj.runtime
+;; via ./script/regen-kondo.sh
+;; the canonical version is in the src folder
 (ns ^:no-doc clojure.core.typed.macros
   (:refer-clojure :exclude [type defprotocol fn loop dotimes let for doseq
                             defn atom ref])

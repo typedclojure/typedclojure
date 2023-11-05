@@ -6,11 +6,13 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
+; note: this file is copied into resources/clj-kondo.exports/org.typedclojure/typed.clj.runtime
+;; via ./script/regen-kondo.sh
+;; the canonical version is in the src folder
 (ns ^:no-doc clojure.core.typed.internal
   (:require [clojure.core.typed.contract-utils :as con]
-            [clojure.set :as set]
-            [clojure.walk :as walk])
-  (:import [clojure.lang IObj]))
+            [clojure.core.typed.internal.add-destructure-blame-form :refer [add-destructure-blame-form]]
+            [clojure.set :as set]))
 
 (defn take-when
   "When pred is true of the head of seq, return [head tail]. Otherwise
@@ -36,16 +38,6 @@
 (defn parse-keyword-map [forms]
   (let [[flatopts forms] (parse-keyword-flat-map forms)]
     [(apply hash-map flatopts) forms]))
-
-(defn add-destructure-blame-form
-  "Recursively annotate destructuring form dform with blame form."
-  [dform blame-form]
-  (walk/postwalk (fn [dform]
-                   (cond-> dform
-                     (instance? IObj dform)
-                     (vary-meta update ::destructure-blame-form
-                                #(or % blame-form))))
-                 dform))
 
 (defn visit-fn-tail
   [forms visitor]
