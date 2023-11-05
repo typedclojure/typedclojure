@@ -1,2 +1,2 @@
-{:ann #{typed.lib.clojure.core.async}
+{:ann #{typed.ann.clojure.core.async}
  :ext #{typed.ext.clojure.core.async}}

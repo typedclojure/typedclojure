@@ -1,0 +1,3 @@
+- lib.core.async improvements
+  - register annotations/extensions without loading core.async
+  - don't load `typed.clojure`  in macros namespace
