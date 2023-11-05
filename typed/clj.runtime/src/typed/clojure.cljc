@@ -76,7 +76,7 @@
 #?(:clj
    (defmacro inst-ctor [& args]
      (platform-case
-       :clj `(clojure.core.typed/inst ~@args)
+       :clj `(clojure.core.typed/inst-ctor ~@args)
        :cljs (throw (ex-info "inst-ctor does not applicable in CLJS" {})))))
 
 (defmacro declare-datatypes [& args]

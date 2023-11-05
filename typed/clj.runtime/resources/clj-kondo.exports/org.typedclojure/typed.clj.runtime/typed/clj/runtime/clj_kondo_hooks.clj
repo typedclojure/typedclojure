@@ -1,7 +1,3 @@
-(ns typed.clj.runtime.clj-kondo-hooks
-  (:require [clj-kondo.hooks-api :as kondo]))
+(ns typed.clj.runtime.clj-kondo-hooks)
 
-(defn _ann-form
-  [{:keys [node]}]
-  (let [[body _type] (rest (:children node))]
-    {:node body}))
+(defmacro ignored [& _])
