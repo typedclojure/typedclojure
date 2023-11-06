@@ -155,30 +155,23 @@
 
 ;; checker ops
 
-#_ ;; FIXME :no-check removal warning when compiling
-(t/ann-many (t/IFn [-> ':ok]
-                   [(t/U t/Sym (t/Seqable t/Sym)) -> ':ok])
-            ^:no-check check-ns-clj
-            ^:no-check check-ns-cljs)
-(t/tc-ignore
-  (defn check-ns-clj
-    "In Clojure, checks the current namespace or provided namespaces.
-    Similar for self-hosted ClojureScript, except for macros namespaces."
-    ([] #?(:clj ((requiring-resolve 'typed.clj.checker/check-ns3))
-           :cljs (cljs.core.typed/check-ns-macros)))
-    ([ns-or-syms & {:as opt}]
-     (#?(:clj (requiring-resolve 'typed.clj.checker/check-ns3)
-         :cljs cljs.core.typed/check-ns-macros)
-      ns-or-syms
-      opt))))
+(defn check-ns-clj
+  "In Clojure, checks the current namespace or provided namespaces.
+  Similar for self-hosted ClojureScript, except for macros namespaces."
+  ([] #?(:clj ((requiring-resolve 'typed.clj.checker/check-ns3))
+         :cljs (cljs.core.typed/check-ns-macros)))
+  ([ns-or-syms & {:as opt}]
+   (#?(:clj (requiring-resolve 'typed.clj.checker/check-ns3)
+       :cljs cljs.core.typed/check-ns-macros)
+    ns-or-syms
+    opt)))
 
-(t/tc-ignore
-  (defn check-ns-cljs
-    ([] (check-ns-cljs (ns-name *ns*)))
-    ([& args]
-     (apply #?(:clj (requiring-resolve 'cljs.core.typed/check-ns*)
-               :cljs cljs.core.typed/check-ns*)
-            args))))
+(defn check-ns-cljs
+  ([] (check-ns-cljs (ns-name *ns*)))
+  ([& args]
+   (apply #?(:clj (requiring-resolve 'cljs.core.typed/check-ns*)
+             :cljs cljs.core.typed/check-ns*)
+          args)))
 
 (defmacro cns
   "In Clojure, expands to (check-ns-clj ~@args).

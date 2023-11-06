@@ -4614,3 +4614,10 @@
   (is-tc-err "a" (t/SeqOn t/Int))
   (is-tc-e (seq [1 2 3]) (t/NonEmptyASeq t/Int))
   )
+
+(deftest requiring-resolve-test
+  (is-tc-e ((requiring-resolve 'clojure.core/+)
+            1
+            2))
+  (is-tc-err ((requiring-resolve 'clojure.core/+)
+              nil)))

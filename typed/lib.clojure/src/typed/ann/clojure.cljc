@@ -913,9 +913,18 @@
 ;; ==========================================
 ;; Var annotations
 
+#?(:cljs nil :default
+(t/ann-many (t/IFn [:-> ':ok]
+                   [(t/U t/Sym (t/SequentialSeqable t/Sym)) & :optional {} :-> ':ok])
+            clojure.core.typed/check-ns
+            typed.clj.checker/check-ns3
+            typed.clojure/check-ns-clj
+            typed.clojure/check-ns-cljs
+            cljs.core.typed/check-ns-macros)
+)
+
 (macros/anns
 #?@(:cljs [] :default [
-clojure.core.typed/check-ns [(t/? t/Sym) :-> t/Any]
 ;; Internal annotations
 ;clojure.core.typed.current-impl/*current-impl* t/Any
 clojure.core.typed.current-impl/clojure t/Any

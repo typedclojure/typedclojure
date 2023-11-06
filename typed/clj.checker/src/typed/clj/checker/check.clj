@@ -1170,6 +1170,31 @@
   (or (nthnext/check-seq expr expected)
       (invoke/normal-invoke expr fexpr args expected)))
 
+;requiring-resolve
+(defmethod -invoke-special 'clojure.core/requiring-resolve
+  [{fexpr :fn :keys [args] :as expr} expected]
+  {:post [(or (nil? %)
+              (and (-> % u/expr-type r/TCResult?)
+                   (vector? (:args %))))]}
+  (when (= 1 (count args))
+    (let [cargs (mapv check-expr args)
+          t (-> cargs first u/expr-type :t)]
+      (when-some [sym (when (r/Value? t)
+                        (let [v (:val t)]
+                          (when (qualified-symbol? v)
+                            v)))]
+          ;; assumes there are never namespace aliases that shadow namespaces
+          (when (var? (try (requiring-resolve sym)
+                           (catch java.io.FileNotFoundException _)))
+            (when (var-env/lookup-Var-nofail sym)
+              (-> expr
+                  (update :fn check-expr)
+                  (assoc 
+                    :args cargs
+                    u/expr-type (below/maybe-check-below
+                                  (r/ret (c/-name `t/Var (r/-type-of sym)))
+                                  expected)))))))))
+
 ;make vector
 (defmethod -invoke-special 'clojure.core/vector
   [{:keys [args] :as expr} expected]
