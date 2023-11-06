@@ -76,7 +76,7 @@
 (declare Un make-Union make-Intersection fully-resolve-type fully-resolve-non-rec-type flatten-unions)
 
 (t/ann bottom r/Type)
-(def ^:private bottom (r/Union-maker (sorted-set-by u/type-comparator)))
+(def ^:private bottom (r/Union-maker (sorted-set)))
 
 (t/ann ^:no-check make-Union [(t/Seqable r/Type) -> r/Type])
 (defn make-Union
@@ -374,7 +374,7 @@
                       :else 
                       (make-Union
                         (reduce (fn [acc t] (merge-type t acc))
-                                (sorted-set-by u/type-comparator)
+                                (sorted-set)
                                 types)))))]
         (swap! Un-cache assoc cache-key res)
         res))))
@@ -506,7 +506,7 @@
           (sorted? %)
           (every? r/Type? %)]}
   (loop [work types
-         result (sorted-set-by u/type-comparator)]
+         result (sorted-set)]
     (if (empty? work)
       result
       (let [{intersections true non-intersections false} (group-by r/Intersection? work)]
@@ -522,7 +522,7 @@
           (sorted? %)
           (every? (every-pred r/Type? (complement r/Union?)) %)]}
   (loop [work types
-         result (sorted-set-by u/type-comparator)]
+         result (sorted-set)]
     (if (empty? work)
       result
       (let [{unions true non-unions false} (group-by r/Union? work)]

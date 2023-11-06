@@ -39,8 +39,9 @@
                                      [~@(map #(nth % 2) (partition 3 fields)) (t/Option (t/Map t/Any t/Any)) :? :-> ~nme])
             (with-meta (meta &form)))))
 
+(t/def ^:const default-xor :- Long, 1)
+
 (t/tc-ignore
-(def ^:const default-xor 1)
 
 (defn ^:private inner-deftype [fields hash-field meta-field this that name-sym type-hash gs
                                maker methods* compute-valAt]
@@ -220,9 +221,6 @@
          (defn ~(symbol (str name "<"))
            [t1# t2#]
            (neg? (compare t1# t2#)))
-         (defn ~(symbol (str name "-comparator"))
-           [t1# t2#]
-           (compare t1# t2#))
          (def ~all-entries (atom #{}))
          (defmacro ~(symbol (str "def-" name))
            [name# fields# doc# invariants# & opts#]
