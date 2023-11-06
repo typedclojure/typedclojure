@@ -6,3 +6,5 @@
   - at type checking time, if `(requiring-resolve 'fully-qualified/sym)` evaluates
     to a var, and a type annotation is found for `fully-qualified/sym`, then
     returns type `(t/Var (t/TypeOf fully-qualified/sym))`
+- improve `requiring-resolve` annotation
+  - never returns a Class

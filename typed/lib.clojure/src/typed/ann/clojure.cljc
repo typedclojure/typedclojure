@@ -1507,7 +1507,7 @@ cc/compare (t/All [x]
 
 #?@(:cljs [] :default [
 cc/require [t/Any :* :-> nil]
-cc/requiring-resolve [t/Sym :-> (t/U t/AnyVar Class nil)]
+cc/requiring-resolve [t/Sym :-> (t/Nilable t/AnyVar)]
 cc/use [t/Any :* :-> nil]
 cc/*loaded-libs* (t/Ref (t/Set t/Sym))
 ])
