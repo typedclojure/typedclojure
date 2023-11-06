@@ -7,11 +7,16 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.cljc.checker.check.recur-utils
-  (:require [typed.cljc.checker.utils :as u]
-            [typed.cljc.checker.type-rep :as r]))
+  (:require [typed.clojure :as t]
+            [typed.cljc.checker.utils :as u]
+            [typed.cljc.checker.type-rep :as r])
+  (:import (typed.cljc.checker.type_rep DottedPretype)))
 
 ;;TODO add `kind` field
-(u/def-type RecurTarget [dom rest drest kws]
+(u/def-type RecurTarget [dom :- (t/SequentialColl '[t/Sym r/Type])
+                         rest :- (t/Nilable r/Type)
+                         drest :- (t/Nilable DottedPretype)
+                         kws :- nil]
   "A target for recur"
   [(every? r/Type? dom)
    ((some-fn nil? r/Type?) rest)

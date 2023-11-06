@@ -27,51 +27,43 @@
 (defn declare-path-elem [c]
   (extend c IPathElem {}))
 
-(t/ann-record NthPE [idx :- Number]) ;; More specific?
-(u/def-object NthPE [idx]
+(u/def-object NthPE [;; More specific?
+                     idx :- Number]
   "A path accessing an indexed member, as by clojure.core/first, second, nth"
   [(integer? idx)
    (not (neg? idx))])
 
-(t/ann-record NextPE [])
 (u/def-object NextPE []
   "A path calling clojure.core/next"
   [])
 
-(t/ann-record ClassPE [])
 (u/def-object ClassPE []
   "A path calling clojure.core/class"
   [])
 
-(t/ann-record CountPE [])
 (u/def-object CountPE []
   "A path calling clojure.core/count"
   [])
 
-(t/ann-record KeyPE [val :- t/Kw])
-(u/def-object KeyPE [val]
+(u/def-object KeyPE [val :- t/Kw]
   "A key in a hash-map"
   [(keyword? val)])
 
 (t/ann ^:no-check -kpe [t/Kw -> KeyPE])
 (def -kpe KeyPE-maker)
 
-(t/ann-record KeysPE [])
 (u/def-object KeysPE []
   "Calling clojure.core/keys"
   [])
 
-(t/ann-record ValsPE [])
 (u/def-object ValsPE []
   "Calling clojure.core/vals"
   [])
 
-(t/ann-record KeywordPE [])
 (u/def-object KeywordPE []
   "Calling clojure.core/keyword with a single argument."
   [])
 
-(t/ann-record SeqPE [])
 (u/def-object SeqPE []
   "Result of clojure.core/seq."
   [])

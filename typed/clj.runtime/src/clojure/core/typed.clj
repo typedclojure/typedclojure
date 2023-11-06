@@ -965,8 +965,8 @@ for checking namespaces, cf for checking individual forms."}
 
       ; a record in another namespace
       (ann-record another.ns.TheirRecord
-                    [str :- String,
-                     vec :- (Vec Number)])
+                  [str :- String,
+                   vec :- (Vec Number)])
 
       ; a record, polymorphic in a
       (ann-record [[a :variance :covariant]]

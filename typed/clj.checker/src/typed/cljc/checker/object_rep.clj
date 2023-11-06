@@ -26,7 +26,6 @@
 (defn RObject? [a]
   (instance? typed.cljc.checker.impl_protocols.IRObject a))
 
-(t/ann-record EmptyObject [])
 (u/def-object EmptyObject []
   "No interesting information about this path/object"
   []
@@ -46,9 +45,8 @@
     (and (= v -infer-obj)
          (::infer (meta v)))))
 
-(t/ann-record Path [path :- (t/Seqable p/IRObject)
-                    id :- fr/NameRef])
-(u/def-object Path [path id]
+(u/def-object Path [path :- (t/Seqable p/IRObject)
+                    id :- fr/NameRef]
   "A path to a variable. Paths grow to the right, with leftmost
   pathelem being applied first (think of -> threading operator)."
   [(pr/path-elems? path)
@@ -73,7 +71,6 @@
    :post [(Path? %)]}
   (update o :path (comp seq butlast)))
 
-(t/ann-record NoObject [])
 (u/def-object NoObject []
   "Represents no info about the object of this expression
   should only be used for parsing type annotations and expected types"

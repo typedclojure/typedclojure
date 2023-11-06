@@ -14,9 +14,8 @@
             [typed.clojure :as t])
   (:import (typed.cljc.checker.type_rep Bounds F)))
 
-(u/ann-record t-subst [type :- r/Type,
-                       bnds :- Bounds])
-(u/def-type t-subst [type bnds]
+(u/def-type t-subst [type :- r/Type,
+                     bnds :- Bounds]
   ""
   [(r/Type? type)
    (r/Bounds? bnds)])
@@ -27,22 +26,19 @@
 ;;        '[a b] :.. a
 ;;       equals
 ;;        '['1 b] '['2 b]
-(u/ann-record i-subst [types :- (t/Seqable r/Type)])
-(u/def-type i-subst [types]
+(u/def-type i-subst [types :- (t/Seqable r/Type)]
   ""
   [(every? r/Type? types)])
 
-(u/ann-record i-subst-starred [types :- (t/Seqable r/Type),
-                               starred :- r/Type])
-(u/def-type i-subst-starred [types starred]
+(u/def-type i-subst-starred [types :- (t/Seqable r/Type),
+                             starred :- r/Type]
   ""
   [(every? r/Type? types)
    (r/Type? starred)])
 
-(u/ann-record i-subst-dotted [types :- (t/Seqable r/Type),
-                              dty :- r/Type,
-                              dbound :- F])
-(u/def-type i-subst-dotted [types dty dbound]
+(u/def-type i-subst-dotted [types :- (t/Seqable r/Type),
+                            dty :- r/Type,
+                            dbound :- F]
   ""
   [(or (nil? types)
        (every? r/Type? types))
@@ -64,11 +60,10 @@
 (t/ann ^:no-check substitution-c? (t/Pred SubstMap))
 (def substitution-c? (con/hash-c? symbol? subst-rhs?))
 
-(u/ann-record c [S :- r/Type,
-                 X :- t/Sym,
-                 T :- r/Type,
-                 bnds :- Bounds])
-(u/def-type c [S X T bnds]
+(u/def-type c [S :- r/Type,
+               X :- t/Sym,
+               T :- r/Type,
+               bnds :- Bounds]
   "A type constraint on a variable within an upper and lower bound"
   [(r/Type? S)
    (simple-symbol? X)
@@ -80,24 +75,21 @@
 ;; a constraint on an index variable
 ;; the index variable must be instantiated with |fixed| arguments, each meeting the appropriate constraint
 ;; and further instantiations of the index variable must respect the rest constraint, if it exists
-(u/ann-record dcon [fixed :- (t/Seqable c)
-                    rest :- (t/U nil c)])
-(u/def-type dcon [fixed rest]
+(u/def-type dcon [fixed :- (t/Seqable c)
+                  rest :- (t/U nil c)]
   ""
   [(every? c? fixed)
    ((some-fn nil? c?) rest)])
 
-(u/ann-record dcon-exact [fixed :- (t/Seqable c),
-                          rest :- c])
-(u/def-type dcon-exact [fixed rest]
+(u/def-type dcon-exact [fixed :- (t/Seqable c),
+                        rest :- c]
   ""
   [(every? c? fixed)
    (c? rest)])
 
-(u/ann-record dcon-dotted [fixed :- (t/Seqable c),
-                           dc :- c,
-                           dbound :- F])
-(u/def-type dcon-dotted [fixed dc dbound]
+(u/def-type dcon-dotted [fixed :- (t/Seqable c),
+                         dc :- c,
+                         dbound :- F]
   ""
   [(every? c? fixed)
    (c? dc)
@@ -105,9 +97,8 @@
 
 ; this dcon is used for check prest with drest, because prest will
 ; have repeat in it, then the dcon must contains it for future check
-(u/ann-record dcon-repeat [fixed :- (t/Seqable c)
-                           repeat :- (t/NonEmptySeq c)])
-(u/def-type dcon-repeat [fixed repeat]
+(u/def-type dcon-repeat [fixed :- (t/Seqable c)
+                         repeat :- (t/NonEmptySeq c)]
   ""
   [(every? c? fixed)
    (seq repeat)
@@ -119,8 +110,7 @@
 (def dcon-c? (some-fn dcon? dcon-exact? dcon-dotted? dcon-repeat?))
 
 ;; map : hash mapping index variables to dcons
-(u/ann-record dmap [map :- (t/Map t/Sym DCon)])
-(u/def-type dmap [map]
+(u/def-type dmap [map :- (t/Map t/Sym DCon)]
   ""
   [((con/hash-c? symbol? dcon-c?) map)])
 
@@ -138,9 +128,8 @@
   in a dmap constructor."
   dmap)
 
-(u/ann-record cset-entry [fixed :- CMap
-                          dmap :- DMap])
-(u/def-type cset-entry [fixed dmap]
+(u/def-type cset-entry [fixed :- CMap
+                        dmap :- DMap]
   ""
   [((con/hash-c? symbol? c?) fixed)
    (dmap? dmap)])
@@ -157,8 +146,7 @@
 ;; we need a bunch of mappings for each cset to handle case-lambda
 ;; because case-lambda can generate multiple possible solutions, and we
 ;; don't want to rule them out too early
-(u/ann-record cset [maps :- (t/Seqable cset-entry)])
-(u/def-type cset [maps]
+(u/def-type cset [maps :- (t/Seqable cset-entry)]
   ""
   [(every? cset-entry? maps)])
 

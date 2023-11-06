@@ -612,7 +612,11 @@
             :clojure (symbol (str (name munged-ns-str) \. local-name))
             :cljs provided-name)
         fs (let [bfn (bound-fn []
-                       (let [parse-field (fn [[n _ t]] [n (parse-type t)])]
+                       (let [parse-field (fn [[n colon t]]
+                                           (when (not= :- colon)
+                                             (int-error (format "Missing :- after field %s in ann-record."
+                                                                n)))
+                                           [n (parse-type t)])]
                          (apply array-map (apply concat (with-frees* (mapv make-F (force-type args))
                                                           (fn []
                                                             (binding [vs/*current-env* current-env]

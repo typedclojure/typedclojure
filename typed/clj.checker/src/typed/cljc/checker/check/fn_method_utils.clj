@@ -7,15 +7,23 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.cljc.checker.check.fn-method-utils
-  (:require [clojure.core.typed.contract-utils :as con]
+  (:require [typed.clojure :as t]
+            [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.errors :as err]
             [typed.cljc.checker.abo :as abo]
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.type-rep :as r]
-            [typed.cljc.checker.utils :as u]))
+            [typed.cljc.checker.utils :as u])
+  (:import (typed.cljc.checker.type_rep DottedPretype KwArgs TCResult)))
 
 ;lam-result in TR
-(u/def-type FnResult [args kws rest drest prest pdot body]
+(u/def-type FnResult [args :- (t/SequentialColl '[t/Sym r/Type])
+                      kws :- (t/Nilable '[t/Sym KwArgs])
+                      rest :- (t/Nilable '[t/Sym r/Type])
+                      drest :- (t/Nilable '[t/Sym r/Type])
+                      prest :- (t/Nilable '[t/Sym DottedPretype])
+                      pdot :- (t/Nilable '[t/Sym DottedPretype])
+                      body :- TCResult]
   "Results of checking a fn method"
   [(every? symbol? (map first args))
    (every? r/Type? (map second args))

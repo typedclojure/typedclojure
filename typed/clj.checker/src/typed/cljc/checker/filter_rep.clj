@@ -36,14 +36,12 @@
 (defn Filter? [a]
   (p/IFilter? a))
 
-(u/ann-record BotFilter [])
 (u/def-filter BotFilter []
   "Always false proposition"
   []
   :methods
   [p/IFilter])
 
-(u/ann-record TopFilter [])
 (u/def-filter TopFilter []
   "Trivially true proposition"
   []
@@ -65,7 +63,6 @@
 (defn -top-fn []
   -top)
 
-(u/ann-record NoFilter [])
 (u/def-filter NoFilter []
   "Represents no info about filters, used for parsing types"
   []
@@ -75,10 +72,9 @@
 (t/ann -no-filter Filter)
 (def -no-filter (NoFilter-maker))
 
-(u/ann-record TypeFilter [type :- r/Type,
+(u/def-filter TypeFilter [type :- r/Type,
                           path :- (t/Seqable IPathElem)
-                          id :- NameRef])
-(u/def-filter TypeFilter [type path id]
+                          id :- NameRef]
   "A filter claiming looking up id, down the given path, is of given type"
   [(r/Type? type)
    (pr/path-elems? path)
@@ -86,10 +82,9 @@
   :methods
   [p/IFilter])
 
-(u/ann-record NotTypeFilter [type :- r/Type,
+(u/def-filter NotTypeFilter [type :- r/Type,
                              path :- (t/Seqable IPathElem)
-                             id :- NameRef])
-(u/def-filter NotTypeFilter [type path id]
+                             id :- NameRef]
   "A filter claiming looking up id, down the given path, is NOT of given type"
   [(r/Type? type)
    (pr/path-elems? path)
@@ -114,8 +109,7 @@
    :post [(name-ref? %)]}
   (:id f))
 
-(u/ann-record AndFilter [fs :- (t/Set Filter)])
-(u/def-filter AndFilter [fs]
+(u/def-filter AndFilter [fs :- (t/Set Filter)]
   "Logical conjunction of filters"
   [(set? fs)
    (seq fs)
@@ -129,8 +123,7 @@
    :post [(AndFilter? %)]}
   (AndFilter-maker (set fs)))
 
-(u/ann-record OrFilter [fs :- (t/Set Filter)])
-(u/def-filter OrFilter [fs]
+(u/def-filter OrFilter [fs :- (t/Set Filter)]
   "Logical disjunction of filters"
   [(seq fs)
    (set? fs)
@@ -145,18 +138,16 @@
    :post [(Filter? %)]}
   (OrFilter-maker (set fs)))
 
-(u/ann-record ImpFilter [a :- Filter
-                         c :- Filter])
-(u/def-filter ImpFilter [a c]
+(u/def-filter ImpFilter [a :- Filter
+                         c :- Filter]
   "Antecedent (filter a) implies consequent (filter c)"
   [(Filter? a)
    (Filter? c)]
   :methods
   [p/IFilter])
 
-(u/ann-record FilterSet [then :- Filter
-                         else :- Filter])
-(u/def-filter FilterSet [then else]
+(u/def-filter FilterSet [then :- Filter
+                         else :- Filter]
   "A set of filters: those true when the expression is a true value, and 
   those when it is a false value."
   [(and (or (BotFilter? then)

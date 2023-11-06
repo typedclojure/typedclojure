@@ -58,7 +58,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Types
 
-(u/ann-record Top [])
 (u/def-type Top []
   "The top type"
   []
@@ -68,7 +67,6 @@
 (t/ann -any Type)
 (def -any (Top-maker))
 
-(u/ann-record Wildcard [])
 (u/def-type Wildcard []
   ""
   []
@@ -82,8 +80,7 @@
 (defn wild? [t]
   (instance? Wildcard t))
 
-(u/ann-record Unchecked [vsym :- (t/U nil t/Sym)])
-(u/def-type Unchecked [vsym]
+(u/def-type Unchecked [vsym :- (t/U nil t/Sym)]
   "The unchecked type, like bottom and only introduced 
   per-namespace with the :unchecked-imports feature."
   []
@@ -95,8 +92,7 @@
   {:pre [((some-fn nil? symbol?) vsym)]}
   (Unchecked-maker vsym))
 
-(u/ann-record TypeOf [vsym :- t/Sym])
-(u/def-type TypeOf [vsym]
+(u/def-type TypeOf [vsym :- t/Sym]
   "The type of a local or var."
   []
   :methods
@@ -107,8 +103,7 @@
   {:pre [(symbol? vsym)]}
   (TypeOf-maker vsym))
 
-(u/ann-record Union [types :- (t/SortedSet Type)])
-(u/def-type Union [types]
+(u/def-type Union [types :- (t/SortedSet Type)]
   "An flattened, sorted union of types"
   [(set? types)
    (sorted? types)
@@ -140,7 +135,6 @@
 (defn Bottom? [a]
   (= empty-union a))
 
-(u/ann-record TCError [])
 (u/def-type TCError []
   "Use *only* when a type error occurs"
   []
@@ -152,9 +146,8 @@
 (def Err (TCError-maker))
 (def -error Err)
 
-(u/ann-record Intersection [types :- (t/I t/NonEmptyCount 
-                                          (t/SortedSet Type))])
-(u/def-type Intersection [types]
+(u/def-type Intersection [types :- (t/I t/NonEmptyCount 
+                                        (t/SortedSet Type))]
   "An unordered intersection of types."
   [(sorted? types)
    (set? types)
@@ -177,12 +170,11 @@
 (declare Scope? TypeFn?)
 
 ;FIXME these are crude kinds just to distinguish between Poly and PolyDots
-(def kinds #{:Type :.. :TypeFn})
+(t/def kinds :- (t/Set t/Kw), #{:Type :.. :TypeFn})
 
 ;; *(lower-bound, upper-bound) in Generics of a Higher Kind, Moors et al https://adriaanm.github.io/files/higher.pdf
-(u/ann-record Bounds [upper-bound :- MaybeScopedType
-                      lower-bound :- MaybeScopedType])
-(u/def-type Bounds [upper-bound lower-bound]
+(u/def-type Bounds [upper-bound :- MaybeScopedType
+                    lower-bound :- MaybeScopedType]
   "The kind of a Type between upper-bound and lower-bound."
   [;; verbose for performance
    (Type? upper-bound)
@@ -195,8 +187,7 @@
   :methods [p/TCKind
             p/TCAnyType])
 
-(u/ann-record B [idx :- Number])
-(u/def-type B [idx]
+(u/def-type B [idx :- Number]
   "de Bruijn indices - should never appear outside of this file.
   Bound type variables"
   [(nat-int? idx)]
@@ -217,8 +208,7 @@
 ; Because of the way we check function return values, we cache this result.
 
 ; Same with bounds.
-(u/ann-record F [name :- t/Sym])
-(u/def-type F [name]
+(u/def-type F [name :- t/Sym]
   "A named free variable"
   [(symbol? name)]
   :methods
@@ -241,8 +231,7 @@
   (or (-> f :name meta :original-name)
       (:name f)))
 
-(u/ann-record Scope [body :- MaybeScopedType])
-(u/def-type Scope [body]
+(u/def-type Scope [body :- MaybeScopedType]
   "A scope that contains one bound variable, can be nested. Not used directly"
   [(or (Scope? body)
        (Type? body)
@@ -266,19 +255,17 @@
                                                (:body %))
                                          scope)))))
 
-(u/ann-record Instance [the-class :- t/Sym])
-(u/def-type Instance [the-class]
+(u/def-type Instance [the-class :- t/Sym]
   "An instance of the-class. Superclass to all RClass's on this class."
   [(symbol? the-class)]
   :methods
   [p/TCType])
 
-(u/ann-record RClass [variances :- (t/U nil (t/NonEmptySeqable Variance))
-                      poly? :- (t/U nil (t/NonEmptySeqable Type))
-                      the-class :- t/Sym
-                      replacements :- (t/Map t/Sym ScopedType)
-                      unchecked-ancestors :- (t/SortedSet ScopedType)])
-(u/def-type RClass [variances poly? the-class replacements unchecked-ancestors]
+(u/def-type RClass [variances :- (t/U nil (t/NonEmptySeqable Variance))
+                    poly? :- (t/U nil (t/NonEmptySeqable Type))
+                    the-class :- t/Sym
+                    replacements :- (t/Map t/Sym ScopedType)
+                    unchecked-ancestors :- (t/SortedSet ScopedType)]
   "A restricted class, where ancestors are
   (replace replacements (ancestors the-class))"
   [(or (nil? variances)
@@ -302,14 +289,13 @@
   {:pre [((some-fn RClass? Instance?) rcls)]}
   (coerce/symbol->Class (:the-class rcls)))
 
-(u/ann-record JSNominal [variances :- (t/U nil (t/NonEmptySeqable Variance))
-                         kind :- (t/U ':interface ':class)
-                         poly? :- (t/U nil (t/NonEmptySeqable Type))
-                         name :- t/Sym
-                         ctor :- (t/U nil MaybeScopedType)
-                         instance-properties :- (t/Map t/Sym MaybeScopedType)
-                         static-properties :- (t/Map t/Sym Type)])
-(u/def-type JSNominal [variances kind poly? name ctor instance-properties static-properties]
+(u/def-type JSNominal [variances :- (t/U nil (t/NonEmptySeqable Variance))
+                       kind :- (t/U ':interface ':class)
+                       poly? :- (t/U nil (t/NonEmptySeqable Type))
+                       name :- t/Sym
+                       ctor :- (t/U nil MaybeScopedType)
+                       instance-properties :- (t/Map t/Sym MaybeScopedType)
+                       static-properties :- (t/Map t/Sym Type)]
   "A Javascript nominal type"
   [(or (nil? variances)
        (and (seq variances)
@@ -328,12 +314,11 @@
   :methods
   [p/TCType])
 
-(u/ann-record DataType [the-class :- t/Sym,
-                        variances :- (t/U nil (t/NonEmptySeqable Variance)),
-                        poly? :- (t/U nil (t/NonEmptySeqable Type)),
-                        fields :- (t/Map t/Sym MaybeScopedType)
-                        record? :- t/Bool])
-(u/def-type DataType [the-class variances poly? fields record?]
+(u/def-type DataType [the-class :- t/Sym,
+                      variances :- (t/U nil (t/NonEmptySeqable Variance)),
+                      poly? :- (t/U nil (t/NonEmptySeqable Type)),
+                      fields :- (t/Map t/Sym MaybeScopedType)
+                      record? :- t/Bool]
   "A Clojure datatype"
   [(or (nil? variances)
        (and (seq variances)
@@ -358,21 +343,19 @@
     (when (DataType? a)
       (:record? a))))
 
-(u/ann-record Satisfies [the-var :- t/Sym,
-                         on-class :- t/Sym])
-(u/def-type Satisfies [the-var on-class]
+(u/def-type Satisfies [the-var :- t/Sym,
+                       on-class :- t/Sym]
   "A Clojure Protocol"
   [(symbol? the-var)
    (symbol? on-class)]
   :methods
   [p/TCType])
 
-(u/ann-record Protocol [the-var :- t/Sym,
-                        variances :- (t/U nil (t/NonEmptySeqable Variance)),
-                        poly? :- (t/U nil (t/NonEmptySeqable Type)),
-                        on-class :- t/Sym,
-                        methods :- (t/Map t/Sym Type)])
-(u/def-type Protocol [the-var variances poly? on-class methods]
+(u/def-type Protocol [the-var :- t/Sym,
+                      variances :- (t/U nil (t/NonEmptySeqable Variance)),
+                      poly? :- (t/U nil (t/NonEmptySeqable Type)),
+                      on-class :- t/Sym,
+                      methods :- (t/Map t/Sym Type)]
   "A Clojure Protocol"
   [(symbol? the-var)
    (or (nil? variances)
@@ -387,13 +370,11 @@
   :methods
   [p/TCType])
 
-(u/ann-record TypeFn [nbound :- Number,
-                      variances :- (t/U (t/I t/Fn [:-> (t/Seqable Variance)])
-                                        (t/Seqable Variance))
-                      bbnds :- (t/Seqable Kind),
-                      scope :- p/IScope]
-              :maker-name -TypeFn-maker)
-(u/def-type TypeFn [nbound variances bbnds scope]
+(u/def-type TypeFn [nbound :- Number,
+                    variances :- (t/U (t/I t/Fn [:-> (t/Seqable Variance)])
+                                      (t/Seqable Variance))
+                    bbnds :- (t/Seqable Kind),
+                    scope :- p/IScope]
   "A type function containing n bound variables with variances.
   Also represents 'kind' of type functions."
   [(nat-int? nbound)
@@ -453,13 +434,11 @@
 
 (declare Regex?)
 
-(u/ann-record Poly [nbound :- Number,
-                    bbnds :- (t/Vec Kind),
-                    scope :- p/IScope
-                    named :- (t/Map t/Sym t/Int)
-                    kind :- t/Kw]
-              :maker-name -Poly-maker)
-(u/def-type Poly [nbound bbnds scope named kind]
+(u/def-type Poly [nbound :- Number,
+                  bbnds :- (t/Vec Kind),
+                  scope :- p/IScope
+                  named :- (t/Map t/Sym t/Int)
+                  kind :- t/Kw]
   "A polymorphic type containing n bound variables.
   `named` is a map of free variable names to de Bruijn indices (range nbound)"
   [(nat-int? nbound)
@@ -529,8 +508,7 @@
   {:pre [(PolyDots? p)]}
   (unsafe-body PolyDots? p))
 
-(u/ann-record Name [id :- t/Sym])
-(u/def-type Name [id]
+(u/def-type Name [id :- t/Sym]
   "A late bound name"
   [((every-pred symbol?
                 (some-fn namespace #(some #{\.} (str %))))
@@ -538,26 +516,23 @@
   :methods
   [p/TCType])
 
-(u/ann-record TApp [rator :- Type,
-                    rands :- (t/Seqable Type)])
-(u/def-type TApp [rator rands]
+(u/def-type TApp [rator :- Type,
+                  rands :- (t/Seqable Type)]
   "An application of a type function to arguments."
   [(Type? rator)
    (every? Type? rands)]
   :methods
   [p/TCType])
 
-(u/ann-record App [rator :- Type,
-                   rands :- (t/Seqable Type)])
-(u/def-type App [rator rands]
+(u/def-type App [rator :- Type,
+                 rands :- (t/Seqable Type)]
   "An application of a polymorphic type to type arguments"
   [(Type? rator)
    (every? Type? rands)]
   :methods
   [p/TCType])
 
-(u/ann-record Mu [scope :- p/IScope])
-(u/def-type Mu [scope]
+(u/def-type Mu [scope :- p/IScope]
   "A recursive type containing one bound variable, itself"
   [(Scope? scope)]
   :methods
@@ -567,9 +542,8 @@
 
 (declare FnIntersection?)
 
-(u/ann-record MatchType [target :- Type
-                         clauses :- (t/Vec Type #_(U FnIntersection Poly))])
-(u/def-type MatchType [target clauses]
+(u/def-type MatchType [target :- Type
+                       clauses :- (t/Vec Type #_(U FnIntersection Poly))]
   "A recursive type containing one bound variable, itself"
   [(Type? target)
    (every? (some-fn FnIntersection? -Poly?) clauses)]
@@ -583,14 +557,12 @@
           (not (p/IScope? %))]}
   (-> mu :scope :body))
 
-(u/ann-record Value [val :- t/Any])
-(u/def-type Value [val]
+(u/def-type Value [val :- t/Any]
   "A Clojure value"
   []
   :methods
   [p/TCType])
 
-(u/ann-record AnyValue [])
 (u/def-type AnyValue []
   "Any Value"
   []
@@ -616,11 +588,10 @@
 
 (declare Result?)
 
-(u/ann-record HeterogeneousMap [types :- (t/Map Type Type),
-                                optional :- (t/Map Type Type),
-                                absent-keys :- (t/Set Type),
-                                other-keys? :- t/Bool])
-(u/def-type HeterogeneousMap [types optional absent-keys other-keys?]
+(u/def-type HeterogeneousMap [types :- (t/Map Type Type),
+                              optional :- (t/Map Type Type),
+                              absent-keys :- (t/Set Type),
+                              other-keys? :- t/Bool]
   "A constant map, clojure.lang.IPersistentMap"
   [((con/hash-c? Value? (some-fn Type? Result?))
      types)
@@ -635,8 +606,7 @@
   :methods
   [p/TCType])
 
-(u/ann-record JSObj [types :- (t/Map t/Kw Type)])
-(u/def-type JSObj [types]
+(u/def-type JSObj [types :- (t/Map t/Kw Type)]
   "A JavaScript structural object"
   [((con/hash-c? keyword? Type?) types)]
   :methods
@@ -644,11 +614,8 @@
 
 (declare Regex?)
 
-(u/ann-record Regex [types :- (t/Vec (t/U Type Kind Regex DottedPretype))
-                     kind :- t/Kw])
-(u/ann-record DottedPretype [pre-type :- (t/U Type Regex)
-                             name :- (t/U t/Sym Number)])
-(u/def-type DottedPretype [pre-type name]
+(u/def-type DottedPretype [pre-type :- (t/U Type Regex)
+                           name :- (t/U t/Sym Number)]
   "A dotted pre-type. Not a type."
   [((some-fn Type? Regex?) pre-type)
    ((some-fn symbol? nat-int?) name)]
@@ -664,15 +631,14 @@
 
 (t/defalias HSequentialKind (t/U ':list ':seq ':vector ':sequential))
 
-(u/ann-record HSequential [types :- (t/Seqable Type)
-                           fs :- (t/Vec p/IFilterSet)
-                           objects :- (t/Vec p/IRObject)
-                           ;variable members to the right of fixed
-                           rest :- (t/U nil Type)
-                           drest :- (t/U nil DottedPretype)
-                           repeat :- t/Bool
-                           kind :- HSequentialKind])
-(u/def-type HSequential [types fs objects rest drest repeat kind]
+(u/def-type HSequential [types :- (t/Seqable Type)
+                         fs :- (t/Vec p/IFilterSet)
+                         objects :- (t/Vec p/IRObject)
+                         ;variable members to the right of fixed
+                         rest :- (t/U nil Type)
+                         drest :- (t/U nil DottedPretype)
+                         repeat :- t/Bool
+                         kind :- HSequentialKind]
   "A constant Sequential, clojure.lang.Sequential"
   [(sequential? types)
    (every? (some-fn Type? Result?) types)
@@ -690,7 +656,6 @@
   :methods
   [p/TCType])
 
-(u/ann-record TopHSequential [])
 (u/def-type TopHSequential []
   "Supertype of all HSequentials's."
   []
@@ -763,9 +728,8 @@
   [types & opts]
   (apply -hsequential types (concat opts [:kind :vector])))
 
-(u/ann-record HSet [fixed :- (t/Set Type)
-                    complete? :- t/Bool])
-(u/def-type HSet [fixed complete?]
+(u/def-type HSet [fixed :- (t/Set Type)
+                  complete? :- t/Bool]
   "A constant set"
   [(every? Type? fixed)
    (set? fixed)
@@ -777,10 +741,9 @@
 (defn -hset [fixed & {:keys [complete?] :or {complete? true}}]
   (HSet-maker fixed complete?))
 
-(u/ann-record PrimitiveArray [jtype :- Class,
-                              input-type :- Type
-                              output-type :- Type])
-(u/def-type PrimitiveArray [jtype input-type output-type]
+(u/def-type PrimitiveArray [jtype :- Class,
+                            input-type :- Type
+                            output-type :- Type]
   "A Java Primitive array"
   [(class? jtype)
    (Type? input-type)
@@ -790,10 +753,9 @@
 
 ;; Heterogeneous ops
 
-(u/ann-record AssocType [target :- Type,
-                         entries :- (t/Coll '[Type Type])
-                         dentries :- (t/U nil DottedPretype)])
-(u/def-type AssocType [target entries dentries]
+(u/def-type AssocType [target :- Type,
+                       entries :- (t/Coll '[Type Type])
+                       dentries :- (t/U nil DottedPretype)]
   "An assoc[iate] operation on the type level"
   [(Type? target)
    (or (DottedPretype? dentries)
@@ -803,17 +765,15 @@
   :methods
   [p/TCType])
 
-(u/ann-record MergeType [types :- (t/Coll Type)])
-(u/def-type MergeType [types]
+(u/def-type MergeType [types :- (t/Coll Type)]
   "Merge at the type level."
   [(every? Type? types)]
   :methods
   [p/TCType])
 
-(u/ann-record DissocType [target :- Type,
-                          keys :- (t/Coll Type)
-                          dkeys :- (t/U nil DottedPretype)])
-(u/def-type DissocType [target keys dkeys]
+(u/def-type DissocType [target :- Type,
+                        keys :- (t/Coll Type)
+                        dkeys :- (t/U nil DottedPretype)]
   "A dissoc[iate] operation on the type level"
   [(Type? target)
    (or (DottedPretype? dkeys)
@@ -824,12 +784,11 @@
   :methods
   [p/TCType])
 
-(u/ann-record GetType [target :- Type,
-                       key :- Type
-                       not-found :- Type
-                       target-fs :- p/IFilterSet
-                       target-object :- p/IRObject])
-(u/def-type GetType [target key not-found target-fs target-object]
+(u/def-type GetType [target :- Type,
+                     key :- Type
+                     not-found :- Type
+                     target-fs :- p/IFilterSet
+                     target-object :- p/IRObject]
   "get on the type level"
   [(Type? target)
    (Type? key)
@@ -853,15 +812,11 @@
 
 ;not a type, see KwArgsSeq
 ;; TODO support clojure 1.11 kw args format
-(u/ann-record KwArgs [mandatory :- (t/Map Type Type)
-                      optional  :- (t/Map Type Type)
-                      complete? :- t/Bool
-                      ;; TODO make nilable but possibly-empty
-                      maybe-trailing-nilable-non-empty-map? :- t/Bool])
-(u/def-type KwArgs [mandatory
-                    optional
-                    complete?
-                    maybe-trailing-nilable-non-empty-map?]
+(u/def-type KwArgs [mandatory :- (t/Map Type Type)
+                    optional  :- (t/Map Type Type)
+                    complete? :- t/Bool
+                    ;; TODO make nilable but possibly-empty
+                    maybe-trailing-nilable-non-empty-map? :- t/Bool]
   "Represents a flattened map as a regex op like clojure.spec/keys*.
   A set of mandatory and optional keywords"
   [(every? (con/hash-c? Value? Type?) [mandatory optional])
@@ -870,14 +825,12 @@
    (boolean? complete?)
    (boolean? maybe-trailing-nilable-non-empty-map?)])
 
-(u/ann-record KwArgsSeq [kw-args-regex :- KwArgs])
-(u/def-type KwArgsSeq [kw-args-regex]
+(u/def-type KwArgsSeq [kw-args-regex :- KwArgs]
   "A sequential seq representing a flattened map."
   [(KwArgs? kw-args-regex)]
   :methods
   [p/TCType])
 
-(u/ann-record TopKwArgsSeq [])
 (u/def-type TopKwArgsSeq []
   "Supertype of all KwArgsSeq's."
   []
@@ -886,8 +839,7 @@
 (t/ann -any-kw-args-seq Type)
 (def -any-kw-args-seq (TopKwArgsSeq-maker))
 
-(u/ann-record KwArgsArray [kw-args-regex :- KwArgs])
-(u/def-type KwArgsArray [kw-args-regex]
+(u/def-type KwArgsArray [kw-args-regex :- KwArgs]
   "A Java array representing a flattened map."
   [(KwArgs? kw-args-regex)]
   :methods
@@ -926,7 +878,8 @@
   {:post [(KwArgsArray? %)]}
   (KwArgsArray-maker (apply -kw-args opt)))
 
-(u/def-type Regex [types kind]
+(u/def-type Regex [types :- (t/Vec (t/U Type Kind Regex DottedPretype))
+                   kind :- t/Kw]
   "Type representing regular expressions of sexpr's.
   Also used as the kind of dotted variable when given kinds."
   [(vector? types)
@@ -955,21 +908,15 @@
                       :cat)
     (Regex-maker types kind)))
 
-;must go before Function
-(u/ann-record Result [t :- Type,
-                      fl :- p/IFilterSet
-                      o :- p/IRObject])
-
-(u/ann-record Function [dom :- (t/Vec Type),
-                        rng :- Result,
-                        rest :- (t/Nilable Type)
-                        drest :- (t/Nilable DottedPretype)
-                        kws :- (t/Nilable KwArgs)
-                        prest :- (t/Nilable HSequential)
-                        pdot :- (t/Nilable DottedPretype)
-                        regex :- (t/Nilable Regex)
-                        kind :- t/Kw])
-(u/def-type Function [dom rng rest drest kws prest pdot regex kind]
+(u/def-type Function [dom :- (t/Vec Type),
+                      rng :- Result,
+                      rest :- (t/Nilable Type)
+                      drest :- (t/Nilable DottedPretype)
+                      kws :- (t/Nilable KwArgs)
+                      prest :- (t/Nilable HSequential)
+                      pdot :- (t/Nilable DottedPretype)
+                      regex :- (t/Nilable Regex)
+                      kind :- t/Kw]
   "A function arity, must be part of an intersection"
   [(vector? dom)
    (Result? rng)
@@ -1027,15 +974,13 @@
   :methods
   [p/TCAnyType])
 
-(u/ann-record TopFunction [])
 (u/def-type TopFunction []
   "Supertype to all functions"
   []
   :methods
   [p/TCType])
 
-(u/ann-record FnIntersection [types :- (t/NonEmptyVec Function)])
-(u/def-type FnIntersection [types]
+(u/def-type FnIntersection [types :- (t/NonEmptyVec Function)]
   "An ordered intersection of Functions."
   [(seq types)
    (vector? types)
@@ -1043,9 +988,8 @@
   :methods
   [p/TCType])
 
-(u/ann-record CountRange [lower :- Number,
-                          upper :- (t/U nil Number)])
-(u/def-type CountRange [lower upper]
+(u/def-type CountRange [lower :- Number,
+                        upper :- (t/U nil Number)]
   "A sequence of count between lower (inclusive) and upper (inclusive).
   If upper is nil, between lower and infinity."
   [(nat-int? lower)
@@ -1072,16 +1016,14 @@
     (assert (seq fns))
     (FnIntersection-maker fns)))
 
-(u/ann-record NotType [type :- Type])
-(u/def-type NotType [type]
+(u/def-type NotType [type :- Type]
   "A type that does not include type"
   [(Type? type)]
   :methods
   [p/TCType])
 
-(u/ann-record DifferenceType [type :- Type
-                              without :- (t/SortedSet Type)])
-(u/def-type DifferenceType [type without]
+(u/def-type DifferenceType [type :- Type
+                            without :- (t/SortedSet Type)]
   "A type that does not include type"
   [(Type? type)
    (every? Type? without)
@@ -1095,10 +1037,9 @@
   {:pre [without]}
   (DifferenceType-maker t (sorted-type-set without)))
 
-(u/ann-record Extends [extends :- (t/I (t/SortedSet Type)
-                                       t/NonEmptyCount)
-                       without :- (t/SortedSet Type)])
-(u/def-type Extends [extends without]
+(u/def-type Extends [extends :- (t/I (t/SortedSet Type)
+                                     t/NonEmptyCount)
+                     without :- (t/SortedSet Type)]
   "A set of ancestors that always and never occur."
   [(every? Type? extends)
    (set? extends)
@@ -1110,7 +1051,9 @@
   :methods
   [p/TCType])
 
-(u/def-type Result [t fl o]
+(u/def-type Result [t :- Type,
+                    fl :- p/IFilterSet
+                    o :- p/IRObject]
   "A result type with filter f and object o. NOT a type."
   [(Type? t)
    (p/IFilterSet? fl)
@@ -1119,11 +1062,6 @@
   [p/TCAnyType])
 
 (declare ret TCResult? make-Result)
-
-(u/ann-record TCResult [t :- Type
-                        fl :- p/IFilterSet
-                        o :- p/IRObject
-                        opts :- (t/Map t/Any t/Any)])
 
 (t/ann Result->TCResult [Result -> TCResult])
 (defn Result->TCResult [{:keys [t fl o] :as r}]
@@ -1167,7 +1105,10 @@
 (t/ann dotted-no-bounds Regex)
 (def dotted-no-bounds (regex [no-bounds] :*))
 
-(u/def-type TCResult [t fl o opts]
+(u/def-type TCResult [t :- Type
+                      fl :- p/IFilterSet
+                      o :- p/IRObject
+                      opts :- (t/Map t/Any t/Any)]
   "This record represents the result of type-checking an expression"
   [(Type? t)
    (p/IFilterSet? fl)
@@ -1264,12 +1205,11 @@
 
 ;; Symbolic closures
 
-(def ^:dynamic enable-symbolic-closures? true #_false)
+(t/def ^:dynamic enable-symbolic-closures? :- t/Bool, true #_false)
 
-(u/ann-record SymbolicClosure [bindings :- (t/Map t/Any t/Any)
-                               fexpr :- (t/Map t/Any t/Any)
-                               smallest-type :- Type])
-(u/def-type SymbolicClosure [bindings fexpr smallest-type]
+(u/def-type SymbolicClosure [bindings :- (t/Map t/Any t/Any)
+                             fexpr :- (t/Map t/Any t/Any)
+                             smallest-type :- Type]
   "Symbolic closure"
   [(map? bindings)
    (map? fexpr)
@@ -1285,56 +1225,48 @@
 ;;;;;;;;;;;;;;;;;
 ;; Clojurescript types
 
-(u/ann-record JSUndefined [])
 (u/def-type JSUndefined []
   "JavaScript undefined"
   []
   :methods
   [p/TCType])
 
-(u/ann-record JSNull [])
 (u/def-type JSNull []
   "JavaScript null"
   []
   :methods
   [p/TCType])
 
-(u/ann-record JSBoolean [])
 (u/def-type JSBoolean []
   "JavaScript primitive boolean"
   []
   :methods
   [p/TCType])
 
-(u/ann-record JSObject [])
 (u/def-type JSObject []
   "Any JavaScript object"
   []
   :methods
   [p/TCType])
 
-(u/ann-record JSString [])
 (u/def-type JSString []
   "JavaScript primitive string"
   []
   :methods
   [p/TCType])
 
-(u/ann-record JSSymbol [])
 (u/def-type JSSymbol []
   "JavaScript primitive symbol"
   []
   :methods
   [p/TCType])
 
-(u/ann-record JSNumber [])
 (u/def-type JSNumber []
   "JavaScript number"
   []
   :methods
   [p/TCType])
 
-(u/ann-record CLJSInteger [])
 (u/def-type CLJSInteger []
   "ClojureScript integer. Represents a primitive
   JavaScript number with no decimal places (values
@@ -1346,9 +1278,8 @@
 (t/ann -integer-cljs Type)
 (def -integer-cljs (CLJSInteger-maker))
 
-(u/ann-record ArrayCLJS [input-type :- Type
-                         output-type :- Type])
-(u/def-type ArrayCLJS [input-type output-type]
+(u/def-type ArrayCLJS [input-type :- Type
+                       output-type :- Type]
   "Primitive array in CLJS"
   [(Type? input-type)
    (Type? output-type)]

@@ -7,7 +7,8 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.cljc.checker.lex-env
-  (:require [clojure.core.typed.contract-utils :as con]
+  (:require [typed.clojure :as t]
+            [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.errors :as err]
             [clojure.core.typed.util-vars :as vs]
             [typed.clj.checker.path-type :as path-type]
@@ -17,11 +18,17 @@
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.utils :as u]))
 
+(t/defalias LexEnv (t/Map t/Sym r/Type))
+(t/defalias PropSet (t/Set fr/Filter))
+(t/defalias AliasEnv (t/Map t/Sym obj/RObject))
+
 (def lex-env? (con/hash-c? con/local-sym? r/Type?))
 (def prop-set? (con/set-c? fr/Filter?))
 (def alias-env? (con/hash-c? con/local-sym? obj/RObject?))
 
-(u/def-type PropEnv [l props aliases]
+(u/def-type PropEnv [l :- LexEnv
+                     props :- PropSet
+                     aliases :- AliasEnv]
   "A lexical environment l, props is a set of known propositions"
   [(lex-env? l)
    (prop-set? props)
@@ -43,21 +50,9 @@
 (defn lexical-env []
   vs/*lexical-env*)
 
-(defn PropEnv?-workaround [a]
-  (or (PropEnv? a)
-      ;work around for recompilation issues with AOT
-      (= "typed.cljc.checker.lex_env.PropEnv"
-         (.getName (class a)))))
-
-;; hack: override
-(defn PropEnv? [a]
-  (or (instance? PropEnv a)
-      (= "typed.cljc.checker.lex_env.PropEnv"
-         (.getName (class a)))))
-
 (set-validator! #'vs/*lexical-env* (fn [a]
                                      (or (nil? a)
-                                         (PropEnv?-workaround a))))
+                                         (PropEnv? a))))
 
 (defn lookup-alias [sym & {:keys [env]}]
   {:pre [(con/local-sym? sym)
@@ -84,8 +79,8 @@
             (path-type/path-type alias-path))))
 
 (defn merge-locals [env new]
-  {:pre [(PropEnv?-workaround env)]
-   :post [(PropEnv?-workaround %)]}
+  {:pre [(PropEnv? env)]
+   :post [(PropEnv? %)]}
   (-> env
       (update :l into new)))
 
@@ -96,11 +91,11 @@
 ; take an environment and (depending on the new object given) either record
 ; and alias to an existing local or extend the type env directly.
 (defn extend-env [env id t o]
-  {:pre [(PropEnv?-workaround env)
+  {:pre [(PropEnv? env)
          (con/local-sym? id)
          (r/Type? t)
          (obj/RObject? o)]
-   :post [(PropEnv?-workaround %)]}
+   :post [(PropEnv? %)]}
   (cond
     ; no aliasing to add
     (obj/EmptyObject? o)

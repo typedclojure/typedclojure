@@ -207,11 +207,21 @@
             ~@assertions
             (~->ctor ~@fields nil meta#)))))))
 
-(defmacro mk [original-ns def-kind name-sym fields invariants & {:keys [methods computed-fields] :as opts}]
+(defmacro mk [original-ns def-kind name-sym fields invariants & {:keys [methods computed-fields maker-name] :as opts}]
   (when-not (resolve name-sym)
-    `(t/tc-ignore
-       (env-utils/invalidate-parsed-types!)
-       ~(emit-deftype original-ns def-kind name-sym fields invariants opts))))
+    (let [unannotated-fields (loop [out []
+                                    fields (seq fields)]
+                               (if (nil? fields)
+                                 out
+                                 (let [fst (first fields)]
+                                   (if (keyword? fst)
+                                     (recur out (nnext fields))
+                                     (recur (conj out fst) (next fields))))))]
+      `(t/tc-ignore
+         (ann-record ~name-sym ~fields
+                     ~@(when maker-name [:maker-name maker-name]))
+         (env-utils/invalidate-parsed-types!)
+         ~(emit-deftype original-ns def-kind name-sym unannotated-fields invariants opts)))))
 
 (defmacro defspecial [name]
   (let [all-entries (symbol (str "all-" name "s"))]
