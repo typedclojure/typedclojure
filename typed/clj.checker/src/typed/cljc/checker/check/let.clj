@@ -29,11 +29,11 @@
             [typed.cljc.checker.var-env :as var-env]))
 
 (defn update-env [env sym {:keys [t fl o] :as r} is-reachable]
-  {:pre [(lex/PropEnv?-workaround env)
+  {:pre [(lex/PropEnv? env)
          (simple-symbol? sym)
          (r/TCResult? r)
          (instance? clojure.lang.Volatile is-reachable)]
-   :post [(lex/PropEnv?-workaround %)]}
+   :post [(lex/PropEnv? %)]}
   (let [{:keys [then else]} fl
         p* (cond
              ;; init has object `o`.
@@ -92,10 +92,10 @@
           (reduce
             (fn [[env cbindings] [n expected-bnd]]
               {:pre [@is-reachable
-                     (lex/PropEnv?-workaround env)
+                     (lex/PropEnv? env)
                      ((some-fn nil? r/Type?) expected-bnd)
                      (= (boolean expected-bnd) (boolean is-loop))]
-               :post [((con/maybe-reduced-c? (con/hvector-c? lex/PropEnv?-workaround vector?)) %)]}
+               :post [((con/maybe-reduced-c? (con/hvector-c? lex/PropEnv? vector?)) %)]}
               (let [expr (get cbindings n)
                     ; check rhs
                     {sym :name :as cexpr} (var-env/with-lexical-env env

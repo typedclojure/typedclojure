@@ -30,7 +30,7 @@
 ;;==================
 ;; clojure.core/let
 
-(def combined-env? (con/hmap-c? :prop-env lex/PropEnv?-workaround :ana-env map? :new-syms set?))
+(def combined-env? (con/hmap-c? :prop-env lex/PropEnv? :ana-env map? :new-syms set?))
 
 (defn bad-vector-destructure-error-msg
   "Error message when destructuring a non-sequential type.
@@ -47,18 +47,18 @@
           dform))
 
 (defn update-destructure-env [prop-env ana-env lhs maybe-rhs-expr rhs-ret is-reachable]
-  {:pre [(lex/PropEnv?-workaround prop-env)
+  {:pre [(lex/PropEnv? prop-env)
          (map? ana-env)
          ((some-fn nil? map?) maybe-rhs-expr)
          (r/TCResult? rhs-ret)
          (instance? clojure.lang.Volatile is-reachable)]
    :post [(combined-env? %)]}
   (letfn [(upd-prop-env [prop-env uniquified-lhs rhs-ret]
-            {:pre [(lex/PropEnv?-workaround prop-env)
+            {:pre [(lex/PropEnv? prop-env)
                    (map? ana-env)
                    (simple-symbol? uniquified-lhs)
                    (r/TCResult? rhs-ret)]
-             :post [(lex/PropEnv?-workaround %)]}
+             :post [(lex/PropEnv? %)]}
             (-> prop-env
                 (let/update-env uniquified-lhs rhs-ret is-reachable)))
           (upd-ana-env [ana-env lhs]
@@ -289,7 +289,7 @@
   {:pre [
          (vector? bvec)
          (even? (count bvec))]
-   :post [((con/hmap-c? :prop-env lex/PropEnv?-workaround :ana-env map? :new-syms set?
+   :post [((con/hmap-c? :prop-env lex/PropEnv? :ana-env map? :new-syms set?
                         :expanded-bindings vector? :reachable boolean?)
            %)]}
   (assert (combined-env? combined-env)
@@ -299,11 +299,11 @@
               (fn [{:keys [new-syms prop-env ana-env expanded-bindings reachable]} [lhs rhs]]
                 {:pre [(boolean? reachable)
                        (set? new-syms)
-                       (lex/PropEnv?-workaround prop-env)
+                       (lex/PropEnv? prop-env)
                        (map? ana-env)
                        (vector? expanded-bindings)]
                  :post [((con/maybe-reduced-c?
-                           (con/hmap-c? :prop-env lex/PropEnv?-workaround :ana-env map? :new-syms set?
+                           (con/hmap-c? :prop-env lex/PropEnv? :ana-env map? :new-syms set?
                                         :expanded-bindings vector? :reachable boolean?))
                          %)]}
                 (assert (true? reachable))

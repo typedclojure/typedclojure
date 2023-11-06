@@ -420,18 +420,18 @@
 ;; sets the flag box to #f if anything becomes (U)
 ;[PropEnv (Seqable Filter) (Atom Boolean) -> PropEnv]
 (defn env+ [env fs flag]
-  {:pre [(lex/PropEnv?-workaround env)
+  {:pre [(lex/PropEnv? env)
          (every? (every-pred fl/Filter? (complement fl/NoFilter?)) 
                  fs)
          (instance? clojure.lang.Volatile flag)
          (boolean? @flag)]
-   :post [(lex/PropEnv?-workaround %)
+   :post [(lex/PropEnv? %)
           ; flag should be updated by the time this function exits
           (boolean? @flag)]}
   (let [[props atoms] (combine-props fs (:props env) flag)]
     (reduce (fn [env f]
               ;post-condition checked in env+
-              {:pre [(lex/PropEnv?-workaround env)
+              {:pre [(lex/PropEnv? env)
                      (fl/Filter? f)]}
               (cond
                 (fl/BotFilter? f) (do ;(prn "Bot filter found in env+")
