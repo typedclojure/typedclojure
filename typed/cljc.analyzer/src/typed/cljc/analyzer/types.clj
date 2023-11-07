@@ -15,7 +15,14 @@
             [typed.cljc.analyzer.utils :as u]))
 
 (defalias ana/Env (t/Map t/Kw t/Any))
-(defalias ana/Expr (t/Map t/Kw t/Any))
+(defalias ana/Config (t/HMap :optional {:top-level t/Bool}))
+(defalias ana/Expr (t/Merge
+                     (t/HMap :mandatory {:op t/Kw}
+                             :optional {::ana/config ana/Config
+                                        :result t/Any})
+                     (t/U (t/HMap :mandatory {:op ':do
+                                              :ret ana/Expr})
+                          )))
 (defalias ast/Pre [ana/Expr :-> ana/Expr])
 (defalias ast/Post [ana/Expr :-> ana/Expr])
 (defalias ana/Unanalyzed ana/Expr)
@@ -34,7 +41,7 @@
 (ann ana/eval-ast (t/All [[x :< ana/Expr]] [x :-> (t/Assoc x ':result t/Any)]))
 (ann ana/var->sym [t/Any :-> (t/Nilable t/Sym)])
 (ann ana/analyze-outer [ana/Expr :-> ana/Expr])
-(ann ana/unanalyzed [t/Any :-> ana/Unanalyzed])
+(ann ana/unanalyzed [t/Any ana/Env :-> ana/Unanalyzed])
 (ann ana/run-pre-passes [ana/Expr :-> ana/Expr])
 (ann ana/run-post-passes [ana/Expr :-> ana/Expr])
 (ann ana/run-passes [ana/Expr :-> ana/Expr])
@@ -60,18 +67,24 @@
 (ann ana/eval-top-level [ana/Expr :-> ana/Expr])
 (ann ana/analyze-outer-root [ana/Expr :-> ana/Expr])
 (ann ana/unanalyzed-in-env [ana/Env :-> [t/Any :-> ana/Unanalyzed]])
-(t/ann-record typed.cljc.analyzer.WithMetaExprWithMetaExpr
+(t/ann-protocol ast/IASTWalk
+                children-of* [ast/IASTWalk :-> (t/Vec ana/Expr)]
+                update-children* [ast/IASTWalk [ana/Expr :-> ana/Expr] :-> ast/IASTWalk])
+(t/ann-record typed.cljc.analyzer.WithMetaExpr
               [op :- t/Kw
                form :- t/Any
-               env :- t/Env
+               env :- ana/Env
                meta :- ana/Expr
                expr :- ana/Expr
                top-level :- t/Any
                children :- (t/Vec t/Kw)])
-(ann ana/update-withmetaexpr-children [])
+(ann ana/update-withmetaexpr-children [typed.cljc.analyzer.WithMetaExpr
+                                       [ana/Expr :-> ana/Expr]
+                                       :-> typed.cljc.analyzer.WithMetaExpr])
 
-(ann typed.cljc.analyzer.ast/walk
-     [ana/Expr ast/Pre ast/Post t/Any :? :-> ana/Expr])
+(ann typed.cljc.analyzer.ast/walk [ana/Expr ast/Pre ast/Post t/Any :? :-> ana/Expr])
+(ann typed.cljc.analyzer.ast/update-children [ana/Expr [ana/Expr :-> ana/Expr] t/Any :? :-> ana/Expr])
+(ann typed.cljc.analyzer.ast/children [ana/Expr :-> (t/Vec t/Kw)])
 
 (ann ana/analyze-symbol [t/Sym ana/Env :-> ana/Expr])
 (ann ana/analyze-const [t/Any ana/Env (t/Nilable u/Classification) :? :-> ana/Expr])

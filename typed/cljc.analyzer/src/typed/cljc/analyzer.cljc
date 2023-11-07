@@ -225,12 +225,16 @@
 
 (defn mark-top-level
   [ast]
+  ^::t/ignore
+  ^{::t/unsafe-cast Expr}
   ; in ::config because an :unanalyzed node is still top-level
   ; once analyzed
   (assoc-in ast [::config :top-level] true))
 
 (defn unmark-top-level
   [ast]
+  ^::t/ignore
+  ^{::t/unsafe-cast Expr}
   (update ast ::config dissoc :top-level))
 
 (defn top-level?
@@ -281,6 +285,8 @@
   (cond-> ast
     (and (= :do (:op ast))
          (get-in ast [::config :top-level]))
+    ^::t/ignore
+    ^{::t/unsafe-cast Expr}
     (into (select-keys (:ret ast) [:result]))))
 
 (defn eval-top-level

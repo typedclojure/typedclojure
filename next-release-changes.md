@@ -8,3 +8,4 @@
     returns type `(t/Var (t/TypeOf fully-qualified/sym))`
 - improve `requiring-resolve` annotation
   - never returns a Class
+- annotate `clojure.core/record?`
