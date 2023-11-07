@@ -9,3 +9,4 @@
 - improve `requiring-resolve` annotation
   - never returns a Class
 - annotate `clojure.core/record?`
+- support `__meta` and `__extmap` on records

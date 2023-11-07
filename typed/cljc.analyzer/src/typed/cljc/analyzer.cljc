@@ -161,11 +161,11 @@
         _ (assert info (str "No info for expr " cls))
         fset (into #{} (map keyword) fields)
         real-fields (select-keys m fset)
-        extmap (apply dissoc m fset)]
+        extmap (not-empty (apply dissoc m fset))]
     `(new ~rsym
           ~@(map (comp real-fields keyword) fields)
-          nil
-          ~(not-empty extmap))))
+          ~@(when extmap
+              [nil extmap]))))
 
 (defmacro update-expr [e cls & cases]
   {:pre [(symbol? cls)

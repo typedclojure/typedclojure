@@ -1183,6 +1183,18 @@
    :post [((plat-con/array-map-c? symbol? r/Type?) %)]}
   (:fields dt))
 
+(defn extra-Record-fields [dt]
+  {:pre [(r/Record? dt)]
+   :post [((plat-con/array-map-c? symbol? r/Type?) %)]}
+  (let [fields (DataType-fields* dt)]
+    (array-map '__meta
+               (-name `t/Nilable (-name `t/Map r/-any r/-any))
+               '__extmap
+               (Un r/-nil (In (-name `t/NonEmptyCount)
+                              (-partial-hmap {}
+                                             (into #{} (map (comp r/-val keyword))
+                                                   (keys fields))))))))
+
 ;; TypeFn
 
 ;smart constructor

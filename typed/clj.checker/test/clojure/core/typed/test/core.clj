@@ -1193,7 +1193,48 @@
 
 (deftest records-test
   (is (check-ns 'clojure.core.typed.test.records))
-  (is (check-ns 'clojure.core.typed.test.records2)))
+  (is (check-ns 'clojure.core.typed.test.records2))
+  (is-tc-e (do (t/ann-record A [])
+               (defrecord A [])
+               ;; no __meta, __extmap
+               (ann-form (new A) A)))
+  (is (thrown-with-msg? Exception #"no ctor found"
+                        (tc-e (do (t/ann-record A [])
+                                  (defrecord A [])
+                                  ;; missing __extmap
+                                  (ann-form (new A nil) A)))))
+  (is-tc-e (do (t/ann-record A [])
+               (defrecord A [])
+               ;; good __meta, __extmap
+               (ann-form (new A nil nil) A)))
+  (is-tc-e (do (t/ann-record A [a :- t/Int])
+               (defrecord A [a])
+               ;; good __extmap
+               (ann-form (new A 1 nil {:b 2}) A)))
+  (is-tc-err (do (t/ann-record A [a :- t/Int])
+                 (defrecord A [a])
+                 ;; bad __extmap
+                 (ann-form (new A 1 nil {:a nil}) A)))
+  (is-tc-err (do (t/ann-record A [a :- t/Int])
+                 (defrecord A [a])
+                 ;; bad __meta
+                 (ann-form (new A 1 #{} nil) A)))
+  (is-tc-e (do (t/ann-record A [a :- t/Int])
+               (defrecord A [a])
+               (fn [^A a :- A] :- (t/Nilable (t/Map t/Any t/Any))
+                 (.__meta a))))
+  (is-tc-err (do (t/ann-record A [a :- t/Int])
+                 (defrecord A [a])
+                 (fn [^A a :- A] :- (t/Map t/Any t/Any)
+                   (.__meta a))))
+  (is-tc-e (do (t/ann-record A [a :- t/Int])
+               (defrecord A [a])
+               (fn [^A a :- A] :- (t/Nilable (t/I t/NonEmptyCount (t/HMap :absent-keys #{:a})))
+                 (.__extmap a))))
+  (is-tc-e (do (t/ann-record A [a :- t/Int])
+               (defrecord A [a])
+               (fn [^A a :- A] :- (t/Nilable (t/I t/NonEmptyCount (t/HMap :absent-keys #{:b})))
+                 (.__extmap a)))))
 
 (deftest string-methods-test
   (is-tc-e (.toUpperCase "a") 

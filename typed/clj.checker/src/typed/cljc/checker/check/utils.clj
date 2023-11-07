@@ -329,9 +329,14 @@
   (letfn [(resolve-ctor [dtp]
             (cond
               ((some-fn r/DataType? r/Record?) dtp) 
-              (let [dt dtp]
-                (r/make-FnIntersection 
-                  (r/make-Function (-> (c/DataType-fields* dt) vals) dt)))
+              (let [dt dtp
+                    fields (c/DataType-fields* dt)
+                    make-arity (fn [extra-args]
+                                 (r/make-Function (concat (vals fields) extra-args)
+                                                  dt))]
+                (apply r/make-FnIntersection 
+                       (cond-> [(make-arity nil)]
+                         (r/Record? dtp) (conj (make-arity (vals (c/extra-Record-fields dt)))))))
 
               (r/TypeFn? dtp) (let [nms (c/TypeFn-fresh-symbols* dtp)
                                     bbnds (c/TypeFn-bbnds* nms dtp)
