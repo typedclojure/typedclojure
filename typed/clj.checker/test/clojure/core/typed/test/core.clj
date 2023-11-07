@@ -1231,10 +1231,10 @@
                (defrecord A [a])
                (fn [^A a :- A] :- (t/Nilable (t/I t/NonEmptyCount (t/HMap :absent-keys #{:a})))
                  (.__extmap a))))
-  (is-tc-e (do (t/ann-record A [a :- t/Int])
-               (defrecord A [a])
-               (fn [^A a :- A] :- (t/Nilable (t/I t/NonEmptyCount (t/HMap :absent-keys #{:b})))
-                 (.__extmap a)))))
+  (is-tc-err (do (t/ann-record A [a :- t/Int])
+                 (defrecord A [a])
+                 (fn [^A a :- A] :- (t/Nilable (t/I t/NonEmptyCount (t/HMap :absent-keys #{:b})))
+                   (.__extmap a)))))
 
 (deftest string-methods-test
   (is-tc-e (.toUpperCase "a") 
