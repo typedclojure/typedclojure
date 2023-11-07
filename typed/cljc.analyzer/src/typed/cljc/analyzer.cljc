@@ -9,7 +9,8 @@
 ;; adapted from clojure.tools.analyzer
 (ns typed.cljc.analyzer
   (:refer-clojure :exclude [macroexpand-1 var?])
-  (:require [typed.cljc.analyzer.ast :as ast]
+  (:require [typed.clojure :as-alias t]
+            [typed.cljc.analyzer.ast :as ast]
             [typed.cljc.analyzer.utils :as u])
   #?(:clj (:import (clojure.lang IType))))
 

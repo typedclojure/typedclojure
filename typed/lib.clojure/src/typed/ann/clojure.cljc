@@ -1526,6 +1526,8 @@ cc/keyword? (t/Pred t/Keyword)
 cc/map? (t/Pred (t/Map t/Any t/Any))
 cc/boolean? (t/Pred t/Bool)
 cc/any? [t/Any :-> true]
+cc/record? (t/Pred #?(:clj clojure.lang.IRecord
+                      :cljs cljs.core/IRecord))
 
 ; would be nice
 ; (t/Pred (t/Not nil))
