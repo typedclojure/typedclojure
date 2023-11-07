@@ -78,11 +78,11 @@
                                                     (cu/unwrap-datatype dtp (repeatedly (:nbound dtp) gensym))
                                                     dtp)
                                                _ (assert ((some-fn r/DataType? r/Record?) dt))
-                                               demunged (symbol (repl/demunge (str fsym)))
                                                field-lookup (-> (c/DataType-fields* dt)
                                                                 (cond-> (r/Record? dt)
-                                                                  (into (c/extra-Record-fields dt))))]
-                                           (some field-lookup [demunged fsym])))]
+                                                                  (into (c/extra-Record-fields dt)))
+                                                                (update-keys munge))]
+                                           (get field-lookup fsym)))]
                        override
                        ; if not a datatype field, convert as normal
                        (if field
