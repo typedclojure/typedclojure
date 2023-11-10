@@ -454,7 +454,7 @@
     :else
     (let [; check deps
           #_#_
-          _ (when (= :recheck (some-> vs/*check-config* deref :check-ns-dep))
+          _ (when (= :recheck (some-> vs/*check-config* :check-ns-dep))
               (checked-ns! nsym)
               ;check normal dependencies
               (doseq [dep (ns-depsu/deps-for-ns nsym)]

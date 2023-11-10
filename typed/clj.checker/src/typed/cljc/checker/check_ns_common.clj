@@ -49,6 +49,7 @@
                                 ns-or-syms)
                              [ns-or-syms]
                              ns-or-syms))]
+        (assert (seq nsym-coll) "Nothing to check")
         (impl/with-impl impl
           (binding [vs/*delayed-errors* (err/-init-delayed-errors)
                     vs/*already-checked* (atom #{})
@@ -65,16 +66,25 @@
               ;(reset-caches)
               ;; handle terminal type error
               (try
+                ;-------------------------
+                ; Collection phase
+                ;-------------------------
                 (impl/impl-case
                   :clojure @*register-clj-anns
                   :cljs @*register-cljs-anns)
+                (case (:check-ns-load check-config)
+                  :require-before-check (impl/impl-case
+                                          :clojure (apply require nsym-coll)
+                                          :cljs (err/nyi-error
+                                                  ":check-ns-load :require-before-check in CLJS"))
+                  (nil :never) nil)
                 ;-------------------------
                 ; Check phase
                 ;-------------------------
                 (let [check-ns (impl/impl-case
                                  :clojure chk-clj/check-ns-and-deps
                                  :cljs    (requiring-resolve 'typed.cljs.checker.check/check-ns-and-deps))
-                      check-ns #(binding [vs/*check-config* (atom check-config)]
+                      check-ns #(binding [vs/*check-config* check-config]
                                   (check-ns %))]
                   (doseq [nsym nsym-coll]
                     (check-ns nsym)))
@@ -86,9 +96,9 @@
                 {:delayed-errors (vec (concat (some-> vs/*delayed-errors* deref)
                                               (when-let [e @terminal-error]
                                                 [e])))}
-                (when (#{impl/clojure} impl)
+                (when (= impl/clojure impl)
                   (when (and file-mapping
-                             (== 1 (count nsym-coll)))
+                             (= 1 (count nsym-coll)))
                     {:file-mapping (apply merge
                                           (map #(impl/with-impl impl
                                                   (file-map/ast->file-mapping %))

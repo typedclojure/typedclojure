@@ -23,7 +23,7 @@
   Deprecated:
   - :profile         Use Timbre to profile the type checker. Timbre must be
                      added as a dependency."
-  [ns-or-syms opt] 
+  [ns-or-syms opt]
   (chk-ns/check-ns-info impl/clojure ns-or-syms opt))
 
 (defn check-ns

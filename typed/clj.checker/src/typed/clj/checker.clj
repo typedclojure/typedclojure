@@ -32,8 +32,6 @@
   - :checked-ast     Returns the entire AST for the given form as the :checked-ast entry,
                      annotated with the static types inferred after checking.
                      If a fatal error occurs, mapped to nil.
-  - :no-eval         If true, don't evaluate :out-form. Removes :result return value.
-                     It is highly recommended to evaluate :out-form manually.
   - :beta-limit      A natural integer which denotes the maximum number of beta reductions
                      the type system can perform on a single top-level form (post Gilardi-scenario).
   - :check-config    Configuration map for the type checker. (See corresponding option for `check-ns`)
@@ -41,7 +39,7 @@
   Default return map
   - :ret             TCResult inferred for the current form
   - :out-form        The macroexpanded result of type-checking, if successful. 
-  - :result          The evaluated result of :out-form, unless :no-eval is provided.
+  - :result          The evaluated result of :out-form, if any.
   - :ex              If an exception was thrown during evaluation, this key will be present
                      with the exception as the value.
   DEPRECATED
@@ -148,6 +146,17 @@
                          If `:any`, unannotated fn arguments are give type `Any` (sound).
                          #{:unchecked :any}
                          Default: :any
+    - :check-form-eval   Configures when to evaluate a form relative to type checking it.
+                         If :never, don't evaluate individual forms as part of type checking.
+                         Avoids side effects during expansion and analysis.
+                         If :before, evaluate entire individual forms before type checking, ignoring
+                         the Gilardi scenario. Avoids side effects during expansion and analysis.
+                         If :after, evaluate individual forms after type checking, respecting the
+                         Gilardi scenario.
+                         Default: :after
+    - :check-ns-load     If :require-before-check, `require` all checked namespaces before checking.
+                         If :never, don't load files before checking.
+                         Default: :never
 
   Removed:
   - :profile       If true, use Timbre to profile the type checker. Timbre must be
@@ -189,4 +198,14 @@
    (load-if-needed)
    (check-ns-clj/check-ns ns-or-syms (update opt :check-config
                                              #(into {:check-ns-dep :never}
+                                                    %)))))
+
+(core/defn check-ns4
+  ([] (check-ns4 *ns*))
+  ([ns-or-syms & {:as opt}]
+   (load-if-needed)
+   (check-ns-clj/check-ns ns-or-syms (update opt :check-config
+                                             #(into {:check-ns-dep :never
+                                                     :check-form-eval :never
+                                                     :check-ns-load :require-before-check}
                                                     %)))))

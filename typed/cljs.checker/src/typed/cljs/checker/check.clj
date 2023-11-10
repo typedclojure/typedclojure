@@ -178,7 +178,10 @@
                      read-opts (cond-> {:eof eof :features #{:cljs}}
                                  (.endsWith filename "cljc") (assoc :read-cond :allow))]
                  (loop []
-                   (let [form (binding [*ns* (create-ns cljs-ana/*cljs-ns*)
+                   (let [form (binding [*ns* (do (when (:check-form-eval vs/*check-config*)
+                                                   ;; see clj implementation
+                                                   (err/nyi-error ":check-form-eval in CLJS"))
+                                                 (create-ns cljs-ana/*cljs-ns*))
                                         reader/*data-readers* data-readers
                                         reader/*alias-map* (uc/get-aliases)]
                                 (reader/read read-opts pbr))]

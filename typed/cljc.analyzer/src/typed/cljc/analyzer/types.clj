@@ -17,16 +17,28 @@
 (defalias ana/Env (t/Map t/Kw t/Any))
 (defalias ana/Config (t/HMap :optional {:top-level t/Bool}))
 (defalias ana/Expr (t/Merge
-                     (t/HMap :mandatory {:op t/Kw}
+                     (t/HMap :mandatory {;:op t/Kw
+                                         :env ana/Env}
                              :optional {::ana/config ana/Config
-                                        :result t/Any})
+                                        :result t/Any}
+                             )
                      (t/U (t/HMap :mandatory {:op ':do
-                                              :ret ana/Expr})
-                          )))
+                                              :ret ana/Expr}
+                                  ;;FIXME causes stackoverflow
+                                  ;:complete? true
+                                  )
+                          (t/HMap :mandatory {:op ':meta}
+                                  ;:complete? true
+                                  )
+                          )
+                     ))
 (defalias ast/Pre [ana/Expr :-> ana/Expr])
 (defalias ast/Post [ana/Expr :-> ana/Expr])
 (defalias ana/Unanalyzed ana/Expr)
+(defalias ana/Form t/Any)
+(defalias ana/Op t/Kw)
 (defalias u/Classification t/Kw)
+(defalias u/Ctx (t/U ':ctx/expr))
 
 (ann ana/macroexpand-1 [t/Any ana/Env :-> t/Any])
 (ann ana/parse [(t/Seq t/Any) ana/Env :-> t/Any])
@@ -52,7 +64,7 @@
                                      :ns t/Sym
                                      :name t/Sym}))
 (ann ana/f->fs (t/All [x y] [[x :-> y] :-> [(t/Seqable x) :-> (t/Vec y)]]))
-(ann ana/f->maybe-f (t/All [x y] [[x :-> y] :-> [x :-> (t/Nilable y)]]))
+(ann ana/f->maybe-f (t/All [x y] [[x :-> y] :-> [(t/Nilable x) :-> (t/Nilable y)]]))
 
 (ann ana/mark-top-level [ana/Expr :-> ana/Expr])
 (ann ana/unmark-top-level [ana/Expr :-> ana/Expr])
@@ -71,8 +83,8 @@
                 children-of* [ast/IASTWalk :-> (t/Vec ana/Expr)]
                 update-children* [ast/IASTWalk [ana/Expr :-> ana/Expr] :-> ast/IASTWalk])
 (t/ann-record typed.cljc.analyzer.WithMetaExpr
-              [op :- t/Kw
-               form :- t/Any
+              [op :- ana/Op
+               form :- ana/Form
                env :- ana/Env
                meta :- ana/Expr
                expr :- ana/Expr
@@ -82,13 +94,43 @@
                                        [ana/Expr :-> ana/Expr]
                                        :-> typed.cljc.analyzer.WithMetaExpr])
 
+(ann ana/wrapping-meta [ana/Expr :-> ana/Expr])
+
+(t/ann-record typed.cljc.analyzer.ConstExpr
+              [op :- ana/Op
+               form :- ana/Form
+               env :- ana/Env
+               type :- u/Classification
+               literal? :- t/Bool
+               val :- ana/Form
+               meta :- (t/Nilable ana/Expr)
+               top-level :- t/Any
+               children :- (t/Nilable (t/Vec t/Kw))])
+(ann ana/update-constexpr-children [typed.cljc.analyzer.ConstExpr
+                                    [ana/Expr :-> ana/Expr]
+                                    :-> typed.cljc.analyzer.ConstExpr])
+
+(t/ann-record typed.cljc.analyzer.VectorExpr
+              [op :- ana/Op
+               env :- ana/Env
+               items :- (t/Vec ana/Expr)
+               form :- ana/Form
+               children :- (t/Vec t/Kw)
+               top-level :- t/Any])
+(ann ana/update-vectorexpr-children [typed.cljc.analyzer.VectorExpr
+                                     [ana/Expr :-> ana/Expr]
+                                     :-> typed.cljc.analyzer.VectorExpr])
+
+
 (ann typed.cljc.analyzer.ast/walk [ana/Expr ast/Pre ast/Post t/Any :? :-> ana/Expr])
 (ann typed.cljc.analyzer.ast/update-children [ana/Expr [ana/Expr :-> ana/Expr] t/Any :? :-> ana/Expr])
 (ann typed.cljc.analyzer.ast/children [ana/Expr :-> (t/Vec t/Kw)])
 
 (ann ana/analyze-symbol [t/Sym ana/Env :-> ana/Expr])
-(ann ana/analyze-const [t/Any ana/Env (t/Nilable u/Classification) :? :-> ana/Expr])
+(ann ^:no-check ana/analyze-const [t/Any ana/Env (t/Nilable u/Classification) :? :-> ana/Expr])
 (ann u/classify [t/Any :-> u/Classification])
+(ann u/ctx [ana/Env u/Ctx :-> (t/Assoc ana/Env ':context u/Ctx)])
+(ann u/obj? (t/Pred (t/Instance clojure.lang.IObj)))
 (ann ana/analyze-seq [(t/NonEmptySeq t/Any) ana/Env :-> ana/Expr])
 (ann ana/analyze-map [(t/Map t/Any t/Any) ana/Env :-> ana/Expr])
 (ann ana/analyze-vector [(t/Vec t/Any) ana/Env :-> ana/Expr])

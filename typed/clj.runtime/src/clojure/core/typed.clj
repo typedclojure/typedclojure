@@ -1243,8 +1243,6 @@ for checking namespaces, cf for checking individual forms."}
   - :checked-ast     Returns the entire AST for the given form as the :checked-ast entry,
                      annotated with the static types inferred after checking.
                      If a fatal error occurs, mapped to nil.
-  - :no-eval         If true, don't evaluate :out-form. Removes :result return value.
-                     It is highly recommended to evaluate :out-form manually.
   - :beta-limit      A natural integer which denotes the maximum number of beta reductions
                      the type system can perform on a single top-level form (post Gilardi-scenario).
   - :check-config    Configuration map for the type checker. (See corresponding option for `check-ns`)
@@ -1252,7 +1250,7 @@ for checking namespaces, cf for checking individual forms."}
   Default return map
   - :ret             TCResult inferred for the current form
   - :out-form        The macroexpanded result of type-checking, if successful. 
-  - :result          The evaluated result of :out-form, unless :no-eval is provided.
+  - :result          The evaluated result of :out-form, if any.
   - :ex              If an exception was thrown during evaluation, this key will be present
                      with the exception as the value.
   DEPRECATED

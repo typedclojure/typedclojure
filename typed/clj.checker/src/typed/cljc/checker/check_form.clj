@@ -98,7 +98,10 @@
            analyze-bindings-fn]}
    form {:keys [expected-ret expected type-provided?
                 checked-ast no-eval bindings-atom beta-limit
-                check-config] :as opt}]
+                check-config]
+         {:keys [check-form-eval]
+          :or {check-form-eval :after} :as check-config} :check-config
+         :as opt}]
   {:pre [(nil? analyze-bindings-fn)
          ((some-fn nil? plat-con/atom?) bindings-atom)
          ((some-fn nil? symbol?) unparse-ns)
@@ -150,7 +153,7 @@
             terminal-error (atom nil)
             ;_ (prn "before c-ast")
             c-ast (try
-                    (binding [vs/*check-config* (atom check-config)]
+                    (binding [vs/*check-config* check-config]
                       (check-top-level form expected))
                     (catch Throwable e
                       (let [e (if (some-> e ex-data err/tc-error?)
@@ -177,10 +180,9 @@
           checked-ast (assoc :checked-ast c-ast)
 
           (and (impl/checking-clojure?)
-               (not no-eval)
                (empty? delayed-errors)
                (not ex))
-          (assoc :result (:result c-ast))
+          (into (select-keys c-ast [:result]))
 
           (and c-ast emit-form (not ex))
           (assoc :out-form (emit-form c-ast)))))))

@@ -64,9 +64,11 @@
          ((some-fn nil? r/DottedPretype?) drest)
          ((some-fn nil? r/Type?) pdot)
          ((some-fn nil? r/KwArgs?) kws)
-         (#{0 1} (count (filter some? (vals ts*))))
+         (keyword? kind)
          (every? r/Type? remain-dom)]
    :post [(r/Type? %)]}
+  (when-not (<= 0 (count (filter some? (vals (dissoc ts* :kind)))) 1)
+    (err/nyi-error (str "Checking rest function with: " ts*)))
   (cond
     (or rest drest (= :fixed kind))
     ; rest argument is nilable non-empty seq, refine further based on remaining fixed domain

@@ -10,3 +10,21 @@
   - never returns a Class
 - annotate `clojure.core/record?`
 - support `__meta` and `__extmap` on records
+- Breaking: remove `:no-eval` option on `check-form` family of functions
+  - replaced by `:check-config {:check-form-eval :{before/never}}`
+- Add new options to control evaluation of forms
+  - the following keys can be passed in the `:check-config` map accepted by `check-{ns,form}`
+    - check-ns will forward them to check-form
+  - :check-ns-load
+    - If :require-before-check, `require` all checked namespaces before checking.
+    - If :never, don't load files before checking.
+    - Default: :never
+  - :check-form-eval
+    - Configures when to evaluate a form relative to type checking it.
+    - If :never, don't evaluate individual forms as part of type checking. Avoids side effects during expansion and analysis.
+    - If :before, evaluate entire individual forms before type checking, ignoring the Gilardi scenario. Avoids side effects during expansion and analysis.
+    - If :after, evaluate individual forms after type checking, respecting the Gilardi scenario.
+    - Default: :after
+- add new configuration for analyzer
+  - `typed.clj.analyzer/*parse-deftype-with-existing-class*`
+    - If true, don't generate a new class when analyzing deftype* if a class of the same name already exists.

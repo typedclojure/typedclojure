@@ -28,6 +28,11 @@
             [typed.clj.analyzer.utils :as ju])
   (:import [clojure.lang IObj RT Var Compiler$LocalBinding]))
 
+(def ^:dynamic *parse-deftype-with-existing-class*
+  "If true, don't generate a new class when analyzing deftype* if a class
+  of the same name already exists."
+  nil)
+
 (def specials
   "Set of the special forms for clojure in the JVM"
   (into ana/specials
@@ -413,7 +418,9 @@
         methods (mapv #(assoc (analyze-method-impls % menv) :interfaces interfaces)
                       methods)]
 
-    (-deftype name class-name fields interfaces)
+    (or (when *parse-deftype-with-existing-class*
+          (class? (resolve class-name)))
+        (-deftype name class-name fields interfaces))
 
     {:op         :deftype
      ::common/op ::deftype

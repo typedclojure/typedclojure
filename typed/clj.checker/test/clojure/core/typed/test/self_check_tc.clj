@@ -1,5 +1,6 @@
 (ns clojure.core.typed.test.self-check-tc
   (:require [clojure.test :refer :all]
+            [typed.clj.checker :refer [check-ns4]]
             [clojure.core.typed :as t :refer [check-ns]]))
 
 (deftest check-tc
@@ -14,6 +15,14 @@
                 {:check-config {:check-ns-dep :never}
                  ;:trace true
                  })))
+
+#_ ;;WIP
+(deftest analyzer-test
+  (is (check-ns4 'typed.cljc.analyzer)))
+
+#_ ;;WIP
+(deftest api-test
+  (is (check-ns4 'typed.clojure)))
 
 (deftest self-test-annotations
   (is (t/envs)))

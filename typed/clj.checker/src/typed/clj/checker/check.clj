@@ -135,8 +135,11 @@
      (let [^java.net.URL res (jtau/ns-url ns)]
        (assert res (str "Can't find " ns " in classpath"))
        (let [filename (str res)
-             path     (.getPath res)]
-         (binding [*ns*   *ns*
+             path     (.getPath res)
+             {:keys [check-form-eval]} vs/*check-config*]
+         (binding [*ns*   (if (= :never check-form-eval)
+                            (the-ns ns)
+                            *ns*)
                    *file* filename]
            (with-open [rdr (io/reader res)]
              (let [pbr (readers/indexing-push-back-reader
@@ -260,12 +263,15 @@
   ([form expected {:keys [env] :as opts}]
    ;(prn "check-top-level" form)
    ;(prn "*ns*" *ns*)
-   (with-bindings (dissoc (ana-clj/thread-bindings) #'*ns*) ; *ns* is managed by higher-level ops like check-ns1
-     (binding [check/check-expr check-expr]
-       (env/ensure (jana2/global-env)
-         (-> form
-             (ana2/unanalyzed-top-level (or env (jana2/empty-env)))
-             (check-expr expected)))))))
+   (let [extra (when (= :before (:check-form-eval vs/*check-config*))
+                 {:result (eval form)})]
+     (with-bindings (dissoc (ana-clj/thread-bindings) #'*ns*) ; *ns* is managed by higher-level ops like check-ns1
+       (binding [check/check-expr check-expr]
+         (env/ensure (jana2/global-env)
+           (-> form
+               (ana2/unanalyzed-top-level (or env (jana2/empty-env)))
+               (check-expr expected)
+               (into extra))))))))
 
 (defmethod -check :const
   [expr expected]
@@ -333,7 +339,7 @@
         (or (should-infer-vars? expr)
             (impl/impl-case
               :clojure (= :unchecked 
-                          (some-> vs/*check-config* deref :unannotated-var))
+                          (some-> vs/*check-config* :unannotated-var))
               :cljs nil))
         (do
           (println (str "Inferring " vsym " dereference as Unchecked"))
@@ -342,7 +348,7 @@
                                (r/ret (r/-unchecked vsym))
                                expected)))
         (impl/impl-case
-          :clojure (= :any (some-> vs/*check-config* deref :unannotated-var))
+          :clojure (= :any (some-> vs/*check-config* :unannotated-var))
           :cljs nil)
         (do
           (println (str "Inferring " vsym " dereference as Any"))
@@ -1533,7 +1539,7 @@
                                     (r/ret (c/RClass-of clojure.lang.MultiFn))
                                     expected)))
         default? (cu/default-defmethod? var (ast-u/emit-form-fn dispatch-val-expr))
-        unannotated-def (some-> vs/*check-config* deref :unannotated-def)]
+        unannotated-def (some-> vs/*check-config* :unannotated-def)]
     (cond
       (and (= :unchecked unannotated-def)
            (not (var-env/lookup-Var-nofail mmsym)))

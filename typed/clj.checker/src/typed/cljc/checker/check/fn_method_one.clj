@@ -123,7 +123,7 @@
         crest-param (some-> rest-param
                             (assoc u/expr-type (r/ret (check-rest-fn
                                                         (drop (count crequired-params) dom)
-                                                        (select-keys expected [:rest :drest :kws :prest :pdot])))))
+                                                        (select-keys expected [:rest :drest :kws :prest :pdot :kind])))))
         rest-entry (when crest-param
                      [[(:name crest-param) (r/ret-t (u/expr-type crest-param))]])
         ;_ (prn "rest entry" rest-entry)

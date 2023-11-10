@@ -87,7 +87,7 @@
                          (str line ": "))
                        "WARNING: Checking" vsym "definition without an expected type.")
             _ (assert (not t))
-            unannotated-def (some-> vs/*check-config* deref :unannotated-def)
+            unannotated-def (some-> vs/*check-config* :unannotated-def)
             ;_ (prn "unannotated-def" unannotated-def)
             cinit (when init-provided
                     (case unannotated-def

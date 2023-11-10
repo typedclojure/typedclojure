@@ -280,29 +280,41 @@
 ;; (All [x ...] [-> '{(Var x) x ...})])
 (defn thread-bindings [& [opts]]
   (let [ns (the-ns (or (-> opts :env :ns)
-                       *ns*))]
+                       *ns*))
+        side-effects? (case (:check-form-eval vs/*check-config*)
+                        (:never :before) false
+                        (:after nil) true)
+        eval-ast (if side-effects? jana2/eval-ast2 identity)]
     (-> (jana2/default-thread-bindings {:ns (ns-name ns)})
-        (update #'ana2/eval-ast (fn [old]
-                                  (fn [& args]
-                                    ; don't evaluate a form if there are delayed type errors
-                                    (let [throw-this (atom nil)
-                                          _ (swap! vs/*delayed-errors*
-                                                   (fn [delayed]
-                                                     {:pre [(vector? delayed)]
-                                                      :post [(vector? %)]}
-                                                     (if (seq delayed)
-                                                       ; take the last type error to throw
-                                                       (do (reset! throw-this (peek delayed))
-                                                           (pop delayed))
-                                                       delayed)))
-                                          _ (when-some [e @throw-this]
-                                              (throw e))]
-                                      (apply old args)))))
-        (assoc
-          #'ana2/macroexpand-1 macroexpand-1
-          #'ana2/scheduled-passes (if vs/*custom-expansions*
-                                    @scheduled-passes-for-custom-expansions
-                                    @jana2/scheduled-default-passes)))))
+        (cond->
+          ;; reify* also imports a class name, but it's gensym'd.
+          (not side-effects?) (assoc #'jana2/*parse-deftype-with-existing-class* true
+                                     #'ana2/create-var (fn [sym {:keys [ns]}]
+                                                         (or (find-var
+                                                               (symbol (-> ns ns-name name)
+                                                                       (name sym)))
+                                                             (err/int-error
+                                                               (format "Could not find var %s in namespace %s"
+                                                                       sym (ns-name ns)))))))
+        (assoc #'ana2/eval-ast (fn [ast]
+                                 ; don't evaluate a form if there are delayed type errors
+                                 (let [throw-this (atom nil)
+                                       _ (swap! vs/*delayed-errors*
+                                                (fn [delayed]
+                                                  {:pre [(vector? delayed)]
+                                                   :post [(vector? %)]}
+                                                  (if (seq delayed)
+                                                    ; take the last type error to throw
+                                                    (do (reset! throw-this (peek delayed))
+                                                        (pop delayed))
+                                                    delayed)))
+                                       _ (when-some [e @throw-this]
+                                           (throw e))]
+                                   (eval-ast ast)))
+               #'ana2/macroexpand-1 macroexpand-1
+               #'ana2/scheduled-passes (if vs/*custom-expansions*
+                                         @scheduled-passes-for-custom-expansions
+                                         @jana2/scheduled-default-passes)))))
 (defn will-custom-expand? [form env]
   (boolean
     (when vs/*custom-expansions*
