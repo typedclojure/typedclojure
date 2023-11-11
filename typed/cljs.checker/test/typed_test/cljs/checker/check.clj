@@ -34,7 +34,11 @@
                foo)
            t/JSnumber)
   (is-tc-err (do (t/ann foo t/JSnumber)
-                 (def foo nil))))
+                 (def foo nil)))
+  #_
+  (is-tc-err (do (def foo nil)
+                 (t/ann foo t/JSnumber)))
+  )
 
 (deftest check-ns-test
   (is-cljs (t/check-ns* 'cljs.core.typed.test.ann)))

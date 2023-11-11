@@ -45,10 +45,11 @@
     (binding [ana/*cljs-ns* nsym
               ana/*private-var-access-nowarn* true]
       (let [unresolved? (atom false)
-            r (ana/resolve-var (ana/empty-env) sym
-                               (fn [env ns sym]
-                                 (when-not (var-exists? env ns sym)
-                                   (reset! unresolved? true))))
+            r (binding [ana/*cljs-warning-handlers* []]
+                (ana/resolve-var (ana/empty-env) sym
+                                 (fn [env ns sym]
+                                   (when-not (var-exists? env ns sym)
+                                     (reset! unresolved? true)))))
             sym* (or (when-not @unresolved?
                        (:name r)))
             _ (when sym*

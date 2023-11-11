@@ -157,6 +157,9 @@
 (t/ann-protocol cljs.core/INamed
                 -named [cljs.core/INamed :-> t/Str]
                 -namespace [cljs.core/INamed :-> (t/Nilable t/Str)])
+(t/ann-protocol [[x :variance :invariant]]
+                cljs.core/IVolatile
+                -vreset! (t/All [x] [(cljs.core/IVolatile x) x :-> x]))
 
 (t/ann-protocol cljs.core/UUID)
 ))
@@ -176,6 +179,9 @@
 (t/ann-datatype [[x :variance :covariant]] cljs.core/Reduced)
 (t/ann-datatype cljs.core/ExceptionInfo)
 (t/ann-datatype [[x :variance :covariant]] cljs.core/Delay)
+(t/ann-datatype [[x :variance :invariant]] cljs.core/Volatile
+                ;;FIXME extends cljs.core/IVolatile
+                )
 ))
 
 ;; ==========================================
@@ -299,18 +305,26 @@
   t/Atom1
   t/Atom)
 
-#?(:clj (t/defalias
-          ^{:doc "Supertype of all volatiles."
-            :forms '[AnyVolatile]}
-          t/AnyVolatile
-          (t/Instance clojure.lang.Volatile)))
+(t/defalias
+  ^{:doc "Supertype of all volatiles."
+    :forms '[AnyVolatile]}
+  t/AnyVolatile
+  #?(:clj (t/Instance clojure.lang.Volatile)
+     :cljs (t/I (cljs.core/IDeref t/Any)
+                (t/Instance cljs.core/IVolatile)
+                ;;FIXME should just be Volatile
+                (t/Instance cljs.core/Volatile))))
 
-#?(:clj (t/defalias
-          ^{:doc "A volatile that can read and write type x."
-            :forms '[(Volatile x)]}
-          t/Volatile
-          (t/TFn [[x :variance :invariant]]
-                 (clojure.lang.Volatile x))))
+(t/defalias
+  ^{:doc "A volatile that can read and write type x."
+    :forms '[(Volatile x)]}
+  t/Volatile
+  (t/TFn [[x :variance :invariant]]
+         #?(:clj (clojure.lang.Volatile x)
+            :cljs (t/I (cljs.core/IDeref x)
+                       (cljs.core/IVolatile x)
+                       ;;FIXME should just be Volatile
+                       (cljs.core/Volatile x)))))
 
 (t/defalias
   ^{:doc "Supertype of all vars."
@@ -541,7 +555,6 @@
                       (java.util.List x)
                       clojure.lang.IObj)
             :cljs (t/I (t/Vec x)
-                       cljs.core/APersistentVector
                        ; TODO cljs equivalent
                        ))))
 
@@ -769,7 +782,8 @@
   t/List
   (t/TFn [[x :variance :covariant]]
          #?(:clj (clojure.lang.IPersistentList x)
-            :cljs (t/I cljs.core/IList
+            :cljs (t/I (cljs.core/IStack x)
+                       cljs.core/IList
                        cljs.core/ICloneable
                        cljs.core/IWithMeta
                        cljs.core/IMeta
@@ -797,7 +811,8 @@
     :forms '[(Stack x)]}
   t/Stack
   (t/TFn [[x :variance :covariant]]
-       (clojure.lang.IPersistentStack x)))
+         #?(:clj (clojure.lang.IPersistentStack x)
+            :cljs (cljs.core/IStack x))))
 
 (t/defalias
   ^{:doc "A sequential collection."
@@ -1399,9 +1414,9 @@ cc/subs [t/Str t/Int (t/? t/Int) :-> t/Str]
 
 #?@(:cljs [] :default [
 cc/future-call (t/All [x] [[:-> x] :-> (t/Future x)])
+])
 
 cc/volatile! (t/All [x] [x :-> (t/Volatile x)])
-])
 
 cc/atom (t/All [x] [x & :optional {:validator (t/Nilable [x :-> t/Any]) :meta t/Any} :-> (t/Atom x)])
 
@@ -1439,15 +1454,16 @@ cc/swap! (t/All [x b :..] [(t/Atom x) [x b :.. b :-> x] b :.. b :-> x])
 #?@(:cljs [] :default [
 cc/reset-vals! (t/All [x] [(t/Atom x) x :-> '[x x]])
 cc/swap-vals! (t/All [x b :..] [(t/Atom x) [x b :.. b :-> x] b :.. b :-> '[x x]])
-cc/vreset! (t/All [x] [(t/Volatile x) x :-> x])
 ])
+cc/vreset! (t/All [x] [(t/Volatile x) x :-> x])
+cc/volatile? (t/Pred t/AnyVolatile)
 cc/compare-and-set! (t/All [x] [(t/Atom x) t/Any x :-> t/Bool])
 
 cc/set-validator! (t/All [x] [#?(:clj (clojure.lang.IRef x)
                                  :cljs (cljs.core/Atom x))
                               (t/Nilable [x :-> t/Any]) :-> t/Any])
 cc/get-validator (t/All [x] [#?(:clj (clojure.lang.IRef x)
-                                 :cljs (cljs.core/Atom x))
+                                :cljs (cljs.core/Atom x))
                              :-> (t/Nilable [x :-> t/Any])])
 
 #?@(:cljs [] :default [
@@ -2129,8 +2145,10 @@ cc/supers [Class :-> (t/U nil (t/I t/NonEmptyCount (t/Set Class)))]
 
 cc/take-nth (t/All [x] [t/AnyInteger (t/Seqable x) :-> (t/ASeq x)])
 
-cc/shuffle (t/All [x] (t/IFn [(t/I (Collection x) (t/Seqable x)) :-> (t/Vec x)]
-                             [(Collection x) :-> (t/Vec x)]))
+cc/shuffle (t/All [x] 
+                  #?(:clj (t/IFn [(t/I (Collection x) (t/Seqable x)) :-> (t/Vec x)]
+                                 [(Collection x) :-> (t/Vec x)])
+                     :cljs [(t/Seqable x) :-> (t/Vec x)]))
 
 cc/special-symbol? [t/Any :-> t/Bool]
 

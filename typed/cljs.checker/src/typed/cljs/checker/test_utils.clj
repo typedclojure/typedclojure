@@ -42,8 +42,8 @@
            (let [expected-ret# ~expected-ret
                  ; first element of this list must be the symbol ns
                  ns-form# '(~'ns ~nsym
-                             ;~'(:refer-clojure :exclude [fn])
-                             ~'(:require-macros [cljs.core.typed :as t]
+                             ~'(:refer-clojure :exclude [fn])
+                             ~'(:require-macros [cljs.core.typed :as t :refer [ann-form fn]]
                                                 [cljs.core :as cc]))
                  ;; use cljs.analyzer just for side effects
                  _# (ana-api/analyze (ana-api/empty-env) ns-form#)

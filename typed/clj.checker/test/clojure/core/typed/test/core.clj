@@ -876,23 +876,10 @@
                       (make-Function [] (Un))))))
 
 (deftest first-seq-test
-  (is-clj (clj (subtype? (ret-t (tc-t (first [1 1 1])))
-                     (Un -nil (RClass-of Number)))))
   (is-clj (subtype? (In (RClass-of clojure.lang.PersistentList [-any])
-                    (make-CountRange 1))
-                (In (-name `t/Seqable -any)
-                    (make-CountRange 1))))
-  (is-clj (subtype? (ret-t (tc-t (let [l [1 2 3]]
-                                   (if (seq l)
-                                     (first l)
-                                     (throw (Exception. "Error"))))))
-                (RClass-of Number)))
-  (is-clj (= (tc-t (first [1]))
-         (ret (-val 1))))
-  (is-clj (= (tc-t (first []))
-         (ret -nil)))
-  (is-clj (subtype? (ret-t (tc-t (first [1 2 3])))
-                (RClass-of Number))))
+                        (make-CountRange 1))
+                    (In (-name `t/Seqable -any)
+                        (make-CountRange 1)))))
 
 (deftest intersection-maker-test
   (is-clj (= (In -nil (-val 1))
@@ -921,33 +908,9 @@
                   (t/U nil (t/HMap :mandatory {:a Number})))
                 (-> nil (ann-form MyAlias) (ann-form t/Any)))))))
 
-(deftest ccfind-test
-  (is-tc-e (fn [a :- (t/Map Long String)] :- (t/U nil '[Long String])
-             (find a 1))))
-
-(deftest map-infer-test
-  (is-clj (subtype? (ety (map + [1 2]))
-                    (-name `t/Seqable (RClass-of Number))))
-  (is-clj (subtype? (ety (map + [1 2] [1 2] [4 5] [6 7] [4 4] [3 4]))
-                    (-name `t/Seqable (RClass-of Number))))
-  (is-tc-err (map + [1 2] [1 2] [4 5] [6 7] [4 4] {3 4}))
-  (is-tc-err (map + [1 2] [1 2] [4 5] [6 7] [4 4] #{'a 4})))
-
 (deftest ann-form-test
   (is-clj (= (ety (ann-form (atom 1) (t/Atom t/Num)))
              (parse-type `(t/Atom t/Num)))))
-
-(deftest atom-ops-test
-  (is-clj (subtype? (ety
-                      (reset!
-                        (ann-form (atom 1) (t/Atom t/Num))
-                        10.1))
-                    (RClass-of Number))))
-
-(deftest apply-test
-  ;conservative while not tracking keys "not" in a hmap
-  (is-clj (subtype? (ety (apply merge [{:a 1}]))
-                    (Un -nil (RClass-of IPersistentMap [-any -any])))))
 
 (deftest destructuring-test
   ;Vector destructuring with :as
@@ -1247,11 +1210,6 @@
         (cf (loop [a 1] a))))
   (is (caught-top-level-errors #{1}
         (cf (loop [a :- String, 1] a)))))
-
-(deftest map-indexed-test
-  (is-tc-e (map-indexed (inst vector t/Any t/AnyInteger Long) 
-                        [1 2])
-           (t/Seqable '[t/AnyInteger Long])))
 
 (deftest letfn>-test
   (is-tc-e (letfn> [a :- [Number -> Number]
@@ -1638,21 +1596,6 @@
 (deftest hmap-smart-infer-test
   (is-tc-e {:a #(+ % 1)} (t/HMap :optional {:a [Number -> Number]})))
 
-(deftest fnil-test
-  (is-tc-e ((fnil + (ann-form 0 Number)) 2))
-  ;;FIXME probably related to how we handle :invariant variables in subst-gen
-  #_(is-cf ((fnil + 0) 2))
-  (is-cf ((fnil + 0) nil))
-  ;;FIXME probably related to how we handle :invariant variables in subst-gen
-  #_
-  (is-cf ((fnil (clojure.core.typed/ann-form + [Number * -> Number])
-                0)
-          2.2))
-  ; can Typed Racket do better here?
-  (is-tc-e ((fnil (clojure.core.typed/ann-form + [Number * -> Number])
-                  (ann-form 0 Number))
-            2.2))
-)
 
 ;(cf (every? (fn [a] a) [1]))
 
@@ -1671,10 +1614,6 @@
   (is-cf #'+ [Number * -> Number])
   (is-cf (#'+ 1 2))
   (is (sub? (clojure.core.typed/Var [-> nil]) [-> nil])))
-
-(deftest future-test
-  (is-cf @(future 'a) clojure.lang.Symbol)
-  (is-cf (future 'a) java.util.concurrent.Future))
 
 (deftest ignore-macro-def-test
   (is-cf (defmacro foobar [])))
@@ -2070,7 +2009,7 @@
   (is (check-ns 'clojure.core.typed.test.recursive)))
 
 (deftest comparable-inline-test
-  (is-tc-e (fn [v x] (compare v x)) (t/IFn [t/Num t/Num -> t/Num])))
+  (is-tc-e (fn [v x] (compare v x)) [t/Num t/Num -> t/Num]))
 
 (deftest CTYP-71-simplify-test
                                               ; must be resolvable to trigger the bug
@@ -2802,21 +2741,7 @@
     (fn []
       (loop [a :- t/Symbol 1] (recur a)))))
 
-(deftest nth-test
-  (is-tc-err #(nth #{1 2} 0))
-  (is-tc-err #(nth (ann-form #{1 2} (t/Seqable t/Any)) 0))
-  (is-tc-err #(nth (ann-form [1 2] (t/Seqable t/Any)) 0))
-  (is-tc-err #(nth {1 0} 0))
-  (is-tc-e (nth [1] 0) t/Int)
-  (is-tc-e (nth '(1) 0) t/Int)
-  (is-tc-e (nth (ann-form "a" CharSequence) 0) Character)
-  (is-tc-e (nth "a" 0) Character)
-  (is-tc-e (let [nth (ann-form nth 
-                               (t/All [x y] 
-                                 [(t/U (clojure.lang.Indexed x) 
-                                     (t/I clojure.lang.Sequential (t/Seqable x))) 
-                                  t/Int -> t/Any]))]
-             (nth "a" 0)))
+(deftest nth-jvm-test
   (is-clj (do
             (dotimes [_ 100]
               (cs-gen #{'x} {'x no-bounds} {}
@@ -2829,25 +2754,7 @@
             #{(RClass-of clojure.lang.Indexed [-any])}
              (mapv fully-resolve-type (RClass-supers* (RClass-of 'java.util.ArrayList)))))
   (is (sub?-q `java.util.ArrayList 
-              `(clojure.lang.Indexed t/Any)))
-  (is-tc-e (nth (ann-form (java.util.ArrayList. [1 2 3]) (java.util.RandomAccess t/Any)) 0))
-  (is-tc-e (nth (java.util.ArrayList. [1 2 3]) 0))
-  ; this used to fail randomly
-  (dotimes [_ 20]
-    (is-tc-e (let [nth (ann-form nth (t/All [x y] 
-                                            [(t/U (clojure.lang.Indexed x) 
-                                                  (t/I clojure.lang.Sequential (t/Seqable x))) 
-                                             t/Int -> t/Any]))]
-               (nth "a" 0))))
-  (is (apply = (for [n (range 20)]
-                 (clj
-                   (cs-gen #{}
-                           {'x no-bounds
-                            'y no-bounds}
-                           {}
-                           (parse-clj `(t/Value "a") )
-                           (with-bounded-frees {(make-F 'x) no-bounds}
-                             (parse-clj `(t/U (t/I clojure.lang.Sequential (t/Seqable ~'x)) (clojure.lang.Indexed ~'x))))))))))
+              `(clojure.lang.Indexed t/Any))))
 
 (deftest nested-poly-test
   (is (Poly* ['a] [no-bounds]
@@ -4174,11 +4081,6 @@
     (is-clj (do (cg -nil) true))
   ))
 
-(deftest some?-test
-  (is-tc-e (let [x (ann-form 1 (t/U nil t/Int))]
-             (when (some? x)
-               (inc x)))))
-
 (deftest invoke-vector-test
   (is-tc-e (fn [a :- (t/Vec t/Int)] :- t/Int
              (a 0)))
@@ -4501,60 +4403,6 @@
            ffirst
            (re-find #"Cannot infer variances on recursive t/TFn, please add :variance annotations"))))
 
-(deftest volatile-test
-  (is-tc-e (volatile! nil))
-  (is-tc-e (volatile! nil) (t/Volatile nil))
-  (is-tc-e (volatile! nil) (t/Volatile t/Any))
-  (is-tc-err (volatile! nil) (t/Volatile t/Int))
-  (is-tc-e (let [v (volatile! (t/ann-form 1 t/Int))]
-             (vreset! v 1)))
-  (is-tc-err (let [v (volatile! (t/ann-form 1 t/Int))]
-               (vreset! v nil)))
-  #_ ;;TODO add support similar to supressing :inline expansion where
-  ;; a macro can be checked as a fn
-  (is-tc-e (let [v (volatile! (t/ann-form 1 t/Int))]
-             (vswap! v inc))))
-
-(deftest sorted-test
-  (is-tc-e (sorted-map 1 2)
-           (t/SortedMap t/Int t/Any))
-  (is-tc-e (let [m (sorted-map 1 2)]
-             (t/ann-form m (t/SortedMap '1 t/Any))))
-  (is-tc-err (let [m (sorted-map 1 2)]
-               ;;invariant keys
-               (t/ann-form m (t/SortedMap t/Int t/Any))))
-  (is-tc-e (sorted-set 1 2)
-           (t/SortedSet t/Int))
-  (is-tc-e (let [m (sorted-set 1)]
-             (t/ann-form m (t/SortedSet '1))))
-  (is-tc-err (let [m (sorted-set 1)]
-               ;;invariant keys
-               (t/ann-form m (t/SortedSet t/Int))))
-  (is-tc-e (subseq (sorted-map) = 0))
-  (is-tc-e (subseq (sorted-map 1 2) = 0))
-  (is (= [[0 1]] (subseq (sorted-map 0 1 1 2) = 0)))
-  (is-tc-e (subseq (sorted-map 0 1 1 2) = 0))
-  (is-tc-e (subseq (sorted-map 1 2) = 0) (t/Seqable (t/MapEntry t/Int t/Int)))
-  (is-tc-err (subseq (sorted-map 1 2) = 0) (t/Seqable (t/MapEntry t/Bool t/Int)))
-  (is-tc-err (subseq (sorted-map) (fn [_ _]) 0))
-  (is (= [0] (subseq (sorted-set 0 1) = 0)))
-  (is-tc-e (subseq (sorted-set 0 1 1 2) = 0))
-  (is-tc-e (subseq (sorted-set 1 2) = 0) (t/Seqable t/Int))
-  (is-tc-err (subseq (sorted-set 1 2) = 0) (t/Seqable t/Bool))
-  (is-tc-err (subseq (sorted-set 1 2) (fn [_ _]) 0))
-  #_;;FIXME
-  (is-tc-err #(assoc (t/ann-form (sorted-map 1 2) (t/Map t/Int t/Int)) :a 1))
-  #_;;FIXME
-  (is-tc-err #(get (t/ann-form (sorted-map 1 2) (t/Map t/Int t/Int)) :a))
-  #_;;FIXME
-  (is-tc-err #(conj (t/ann-form (sorted-set 1) (t/Set t/Int)) :a))
-  #_;;FIXME
-  (is-tc-err #(get (sorted-set 1) :a))
-  #_;;FIXME
-  (is-tc-err #(get (sorted-set 1) :a nil))
-  #_;;FIXME
-  (is-tc-err #(get (t/ann-form (sorted-set 1) (t/Set t/Int)) :a))
-)
 
 (deftest comparable-test
   (is (sub? clojure.lang.Symbol (typed.clojure/Comparable clojure.lang.Symbol)))
@@ -4624,13 +4472,6 @@
   (is-tc-err (fn [get :- (t/All [c k d] [c k d :-> (t/Get c k d)])] :- '1
                (get {:a 1} :b 2))))
 
-(deftest group-by-test
-  ;;non-empty groups
-  (is-tc-e (let [vs (some-> (group-by even? [1 2 3 4])
-                            first
-                            val)]
-             (assert vs)
-             (t/ann-form (first vs) t/Int))))
 
 (deftest tapp-bounds-test
   (is-tc-e (do (t/defalias Foo
@@ -4655,10 +4496,3 @@
   (is-tc-err "a" (t/SeqOn t/Int))
   (is-tc-e (seq [1 2 3]) (t/NonEmptyASeq t/Int))
   )
-
-(deftest requiring-resolve-test
-  (is-tc-e ((requiring-resolve 'clojure.core/+)
-            1
-            2))
-  (is-tc-err ((requiring-resolve 'clojure.core/+)
-              nil)))

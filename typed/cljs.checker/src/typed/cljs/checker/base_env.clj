@@ -83,30 +83,13 @@ goog.events.EventTarget [[]]
   #_
   (merge
    (h/var-mappings
-
-cljs.core/+ (IFn [cljs.core.typed/CLJSInteger * -> cljs.core.typed/CLJSInteger]
-                 [cljs.core.typed/JSnumber * -> cljs.core.typed/JSnumber])
-cljs.core/- (IFn [cljs.core.typed/CLJSInteger * -> cljs.core.typed/CLJSInteger]
-                 [cljs.core.typed/JSnumber * -> cljs.core.typed/JSnumber])
-cljs.core/* (IFn [cljs.core.typed/CLJSInteger * -> cljs.core.typed/CLJSInteger]
-                 [cljs.core.typed/JSnumber * -> cljs.core.typed/JSnumber])
 cljs.core/nth (All [x y]
                 (IFn [(t/Seqable x) cljs.core.typed/CLJSInteger -> x]
                      [(t/Seqable x) cljs.core.typed/CLJSInteger y -> (U y x)]))
 
-cljs.core/*flush-on-newline* cljs.core.typed/JSBoolean
-cljs.core/*print-newline* cljs.core.typed/JSBoolean
-cljs.core/*print-readably* cljs.core.typed/JSBoolean
-cljs.core/*print-meta* cljs.core.typed/JSBoolean
-cljs.core/*print-dup* cljs.core.typed/JSBoolean
-cljs.core/*print-length* (U nil cljs.core.typed/CLJSInteger)
-
 cljs.core/truth_ [Any -> Any]
 
 cljs.core/coercive-= [Any Any -> cljs.core.typed/JSBoolean]
-
-cljs.core/nil? (Pred nil)
-cljs.core/undefined? (Pred JSUndefined)
 
 cljs.core/array? (ReadOnlyArray Any)
 
@@ -140,7 +123,6 @@ cljs.core/clone [Any -> Any]
 
 cljs.core/cloneable? (Pred cljs.core/ICloneable)
 
-
 cljs.core/count
       ; TODO also accepts Counted
       ; FIXME should return integer
@@ -150,9 +132,6 @@ cljs.core/prim-seq
            [(t/Seqable x) -> (t/NilableNonEmptySeq x)])
 
 cljs.core/key-test [Keyword Any -> cljs.core.typed/JSBoolean]
-
-cljs.core/fn? [Any -> cljs.core.typed/JSBoolean]
-cljs.core/ifn? [Any -> cljs.core.typed/JSBoolean]
 
 ;;pop needs to be defined here because
 ;;definition of List differs between clj and cljs

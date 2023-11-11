@@ -62,7 +62,7 @@
                                                                   (cons (c/Un r/-nil (c/-name `t/Seqable rest)) dom)
                                                                   rest
                                                                   (r/Result-type* rng)
-                                                                  expected)))]
+                                                                  (some-> expected r/ret-t))))]
                     (assoc expr
                            u/expr-type (r/ret (subst/subst-all substitution (r/Result-type* rng))))
                     (recur (next fs)))))))))))

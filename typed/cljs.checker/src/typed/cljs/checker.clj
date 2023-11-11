@@ -37,6 +37,18 @@
    (load-if-needed)
    ((requiring-resolve 'typed.cljs.checker.check-ns/check-ns) ns-or-syms (update opt :check-config #(into (default-check-config) %)))))
 
+(defn check-ns4
+  "Check a Clojurescript namespace, or the current namespace (via *ns*).
+  Intended to be called from Clojure."
+  ([] (check-ns (ns-name *ns*)))
+  ([ns-or-syms & {:as opt}]
+   (load-if-needed)
+   ((requiring-resolve 'typed.cljs.checker.check-ns/check-ns)
+    ns-or-syms (update opt :check-config #(into {:check-ns-dep :never
+                                                 :check-form-eval :never
+                                                 :check-ns-load :require-before-check}
+                                                %)))))
+
 (defn check-form
   "Check a single form with an optional expected type.
   Intended to be called from Clojure. For evaluation at the Clojurescript
