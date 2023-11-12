@@ -11,13 +11,14 @@
             [typed.cljc.checker.check-below :as below]
             [typed.cljc.checker.utils :as u]
             [typed.clj.checker.subtype :as sub]
+            [typed.cljc.checker.check :refer [check-expr]]
             [typed.cljc.checker.check.utils :as cu]
             [typed.cljc.checker.filter-ops :as fo]))
 
-(defn check-vector [check {:keys [items] :as expr} expected]
+(defn check-vector [{:keys [items] :as expr} expected]
   {:post [(-> % u/expr-type r/TCResult?)
           (vector? (:items %))]}
-  (let [cargs (mapv check items)
+  (let [cargs (mapv check-expr items)
         res-type (r/-hvec (mapv (comp r/ret-t u/expr-type) cargs)
                           :filters (mapv (comp r/ret-f u/expr-type) cargs)
                           :objects (mapv (comp r/ret-o u/expr-type) cargs))]

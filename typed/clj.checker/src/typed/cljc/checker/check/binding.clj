@@ -8,12 +8,13 @@
 
 (ns typed.cljc.checker.check.binding
   (:require [clojure.core.typed.util-vars :as vs]
+            [typed.cljc.checker.check :refer [check-expr]]
             [typed.cljc.checker.utils :as u]))
 
 (defn check-binding
-  [check {:keys [init] :as expr} expected]
+  [{:keys [init] :as expr} expected]
   (let [cinit (binding [vs/*current-expr* init]
-                (check init expected))]
+                (check-expr init expected))]
     (assoc expr
            :init cinit
            u/expr-type (u/expr-type cinit))))

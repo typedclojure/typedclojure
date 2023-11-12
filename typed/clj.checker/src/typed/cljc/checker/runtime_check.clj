@@ -11,6 +11,7 @@
   (:require [typed.cljc.checker.check.do :as do]
             [typed.cljc.checker.utils :as u]
             [typed.cljc.checker.check.def :as def]
+            [typed.cljc.checker.check :refer [check-expr]]
             [clojure.core.typed.ast-utils :as ast]))
 
 (defn check
@@ -23,22 +24,23 @@
   Assumes collect-expr is already called on this AST."
   ([expr] (check expr nil))
   ([expr expected]
-   (case (:op expr)
-     (:def) (if (def/defmacro-or-declare? expr)
-              ;; ignore defmacro and declare
-              expr
-              (def/add-checks-normal-def check expr expected))
-     (:do) (letfn [(default-do [expr expected]
-                     (assoc expr
-                            :statements (mapv check (:statements expr))
-                            :ret (check (:ret expr) expected)))]
+   (binding [check-expr check]
+     (case (:op expr)
+       (:def) (if (def/defmacro-or-declare? expr)
+                ;; ignore defmacro and declare
+                expr
+                (def/add-checks-normal-def expr expected))
+       (:do) (letfn [(default-do [expr expected]
+                       (assoc expr
+                              :statements (mapv check (:statements expr))
+                              :ret (check (:ret expr) expected)))]
 
-             (if (do/internal-form? expr)
-               (case (u/internal-dispatch-val expr)
-                 ;; could be an error or another special form, 
-                 ;; but we'll let it slide in runtime checking mode.
-                 expr)
-               (default-do expr expected)))
-     (ast/walk-children check expr))))
+               (if (do/internal-form? expr)
+                 (case (u/internal-dispatch-val expr)
+                   ;; could be an error or another special form, 
+                   ;; but we'll let it slide in runtime checking mode.
+                   expr)
+                 (default-do expr expected)))
+       (ast/walk-children check expr)))))
 
 (def runtime-check-expr check)

@@ -9,7 +9,7 @@
 (ns ^:no-doc typed.cljc.ext.clojure.core.typed__fn
   "Type rule for clojure.core.typed/fn"
   (:require [clojure.core.typed.internal :as internal]
-            [typed.cljc.checker.check.special.fn :as special-fn]
+            [typed.cljc.checker.check.fn :as fn]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.utils :as u]))
 
@@ -18,7 +18,7 @@
   {:post [(-> % u/expr-type r/TCResult?)]}
   ;(prn "-unanalyzed-special__fn" expected)
   (let [{fn-anns :ann expand1 :fn :keys [poly]} (internal/parse-fn* form)]
-    (special-fn/check-special-fn*
+    (fn/check-special-fn*
       (assoc expr :form expand1)
       fn-anns
       poly

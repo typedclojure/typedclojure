@@ -12,6 +12,7 @@
             [clojure.core.typed.errors :as err]
             [clojure.core.typed.special-form :as spec]
             [clojure.core.typed.util-vars :as vs]
+            [typed.cljc.checker.check :refer [check-expr]]
             [typed.cljc.checker.check.utils :as cu]
             [typed.cljc.checker.filter-ops :as fo]
             [typed.cljc.checker.filter-rep :as fl]
@@ -31,7 +32,7 @@
                               (map :val statements))))
     (err/int-error (str "Folded special-forms detected " (ast-u/emit-form-fn expr)))))
 
-(defn check-do [check internal-special-form expr expected]
+(defn check-do [expr expected internal-special-form]
   {:post [(-> % u/expr-type r/TCResult?)
           (vector? (:statements %))]}
   (enforce-do-folding expr spec/special-form)
@@ -67,10 +68,10 @@
                                                                vs/*current-env*)
                                             vs/*current-expr* expr]
                                     (var-env/with-lexical-env env
-                                      (check expr
-                                             ;propagate expected type only to final expression
-                                             (when (= (inc n) nexprs)
-                                               expected))))
+                                      (check-expr expr
+                                                  ;propagate expected type only to final expression
+                                                  (when (= (inc n) nexprs)
+                                                    expected))))
                             res (u/expr-type cexpr)
                             {fs+ :then fs- :else} (r/ret-f res)
                             nenv (update/env+ env [(fo/-or fs+ fs-)] reachable)

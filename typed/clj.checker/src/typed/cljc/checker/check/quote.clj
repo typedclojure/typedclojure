@@ -8,10 +8,11 @@
 
 (ns typed.cljc.checker.check.quote
   (:require [typed.cljc.checker.utils :as u]
+            [typed.cljc.checker.check :refer [check-expr]]
             [typed.cljc.checker.check.const :as const]))
 
-(defn check-quote [check constant-type {:keys [expr] :as quote-expr} expected]
-  (let [cexpr (const/check-const constant-type true expr expected)]
+(defn check-quote [{:keys [expr] :as quote-expr} expected]
+  (let [cexpr (const/check-const expr expected true)]
     (assoc quote-expr
            :expr cexpr
            u/expr-type (u/expr-type cexpr))))

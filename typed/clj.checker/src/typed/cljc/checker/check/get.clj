@@ -8,6 +8,7 @@
 
 (ns typed.cljc.checker.check.get
   (:require [typed.cljc.checker.utils :as u]
+            [typed.cljc.checker.check :refer [check-expr]]
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.check.invoke-kw :as invoke-kw]
@@ -19,7 +20,7 @@
   with fully type checked :args, checks expr at expected type
   and returns a fully analyzed expression with a TCResult u/expr-type entry,
   or returns nil."
-  [check-expr {:keys [args] :as expr} expected]
+  [{:keys [args] :as expr} expected]
   {:pre [(#{:invoke :host-call} (:op expr))
          (every? (every-pred (comp #{:unanalyzed} :op)
                              (complement u/expr-type))

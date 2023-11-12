@@ -7,7 +7,8 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.cljc.checker.check.with-meta
-  (:require [typed.cljc.checker.type-rep :as r]
+  (:require [typed.cljc.checker.check :refer [check-expr]]
+            [typed.cljc.checker.type-rep :as r]
             [clojure.core.typed.errors :as err]
             [typed.cljc.checker.utils :as u]))
 
@@ -23,13 +24,13 @@
       (f ast))))
 
 (defn check-with-meta
-  [check {:keys [expr meta] :as with-meta-expr} expected]
+  [{:keys [expr meta] :as with-meta-expr} expected]
   {:post [(-> % u/expr-type r/TCResult?)]}
   (let [erase-atom (atom nil)
         expr (visit-tail-pos expr (fn [ast]
                                     (assoc ast ::erase-atom erase-atom)))
-        cexpr (check expr expected)
-        cmeta (check meta)]
+        cexpr (check-expr expr expected)
+        cmeta (check-expr meta)]
     (if @erase-atom
       cexpr
       (assoc with-meta-expr 

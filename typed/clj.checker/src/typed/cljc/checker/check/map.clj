@@ -11,6 +11,7 @@
             [typed.cljc.checker.utils :as u]
             [clojure.core.typed.current-impl :as impl]
             [typed.clj.checker.subtype :as sub]
+            [typed.cljc.checker.check :refer [check-expr]]
             [typed.cljc.checker.check.utils :as cu]
             [typed.cljc.checker.check-below :as below]
             [typed.cljc.checker.filter-ops :as fo]
@@ -88,17 +89,17 @@
       ; otherwise we don't give expected types
       :else no-expecteds)))
 
-(defn check-map [check {keyexprs :keys valexprs :vals :as expr} expected]
+(defn check-map [{keyexprs :keys valexprs :vals :as expr} expected]
   {:post [(-> % u/expr-type r/TCResult?)
           (vector? (:keys %))
           (vector? (:vals %))]}
-  (let [ckeyexprs (mapv check keyexprs)
+  (let [ckeyexprs (mapv check-expr keyexprs)
         key-types (map (comp r/ret-t u/expr-type) ckeyexprs)
 
         val-rets
         (expected-vals key-types expected)
 
-        cvalexprs (mapv check valexprs val-rets)
+        cvalexprs (mapv check-expr valexprs val-rets)
         val-types (map (comp r/ret-t u/expr-type) cvalexprs)
 
         ts (zipmap key-types val-types)

@@ -7,7 +7,8 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.cljc.checker.check.if
-  (:require [typed.cljc.checker.type-rep :as r]
+  (:require [typed.cljc.checker.check :refer [check-expr]]
+            [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.utils :as u]
             [typed.cljc.checker.filter-ops :as fo]
@@ -68,7 +69,7 @@
          (fo/-unreachable-filter)
          obj/-empty))
 
-(defn check-if-reachable [check-fn expr lex-env reachable? expected]
+(defn check-if-reachable [expr lex-env reachable? expected]
   {:pre [(lex/PropEnv? lex-env)
          (boolean? reachable?)]}
   (if (not reachable?)
@@ -76,12 +77,12 @@
            u/expr-type (unreachable-ret))
     (binding [vs/*current-expr* expr]
       (var-env/with-lexical-env lex-env
-        (check-fn expr expected)))))
+        (check-expr expr expected)))))
 
-(defn check-if [check-fn {:keys [test then else] :as expr} expected]
+(defn check-if [{:keys [test then else] :as expr} expected]
   {:pre [((some-fn r/TCResult? nil?) expected)]
    :post [(-> % u/expr-type r/TCResult?)]}
-  (let [ctest (check-fn test)
+  (let [ctest (check-expr test)
         tst (u/expr-type ctest)
         {fs+ :then fs- :else :as tst-f} (r/ret-f tst)
 
@@ -89,10 +90,10 @@
         [env-thn reachable+] (update-lex+reachable lex-env fs+)
         [env-els reachable-] (update-lex+reachable lex-env fs-)
 
-        cthen (check-if-reachable check-fn then env-thn reachable+ expected)
+        cthen (check-if-reachable then env-thn reachable+ expected)
         then-ret (u/expr-type cthen)
 
-        celse (check-if-reachable check-fn else env-els reachable- expected)
+        celse (check-if-reachable else env-els reachable- expected)
         else-ret (u/expr-type celse)]
     (let [if-ret (combine-rets tst-f then-ret env-thn else-ret env-els)]
       (assoc expr

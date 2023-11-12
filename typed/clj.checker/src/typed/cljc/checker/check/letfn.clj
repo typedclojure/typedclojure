@@ -15,11 +15,14 @@
             [typed.cljc.checker.utils :as u]
             [typed.cljc.checker.lex-env :as lex]
             [typed.cljc.analyzer :as ana2]
+            [typed.cljc.checker.check :refer [check-expr]]
             [typed.cljc.checker.check.let :as let]
             [typed.cljc.checker.type-rep :as r]))
 
 ; annotations are in the first expression of the body (a :do)
-(defn check-letfn [bindings body letfn-expr expected check]
+(defn check-letfn [{:keys [bindings body] :as letfn-expr} expected]
+  {:post [(-> % u/expr-type r/TCResult?)
+          (vector? (:bindings %))]}
   (let [;; must pass over bindings first to uniquify
         bindings (mapv ana2/run-pre-passes bindings)
         inits-expected
@@ -53,14 +56,14 @@
                                                    " " (vec (keys inits-expected))))
                         ; we already uniquified bindings above, so I don't think
                         ; we want to check the :binding node
-                        cinit (check init (r/ret expected-fn))]
+                        cinit (check-expr init (r/ret expected-fn))]
                     (assoc b
                            :init cinit
                            u/expr-type (u/expr-type cinit))))
                 bindings))
 
             cbody (lex/with-locals inits-expected
-                    (check body expected))
+                    (check-expr body expected))
             unshadowed-ret (let/erase-objects (into #{} (map :name) cbindings) (u/expr-type cbody))]
         (assoc letfn-expr
                :bindings cbindings

@@ -14,7 +14,7 @@
             [typed.cljc.checker.cs-gen :as cgen]
             [typed.cljc.checker.free-ops :as free-ops]
             [typed.clj.checker.parse-unparse :as prs]
-            [typed.clj.checker.constant-type :as const]
+            [typed.cljc.checker.constant-type :as const]
             [typed.cljc.checker.type-ctors :as c]))
 
 (defn parse-fn-return-type [parse-fn-type]

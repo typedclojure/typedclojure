@@ -13,6 +13,7 @@
             [typed.cljc.checker.filter-rep :as fl]
             [typed.cljc.checker.filter-ops :as fo]
             [typed.cljc.checker.check-below :as below]
+            [typed.cljc.checker.constant-type :refer [constant-type]]
             [typed.cljc.checker.type-rep :as r]))
 
 (defn filter-for-value [val]
@@ -26,7 +27,7 @@
   
   quoted? should be true if this :const node is nested inside a
   :quote node, otherwise should be false"
-  [constant-type quoted? {:keys [val] :as expr} expected]
+  [{:keys [val] :as expr} expected quoted?]
   {:pre [(#{:const} (:op expr))
          ((some-fn nil? r/TCResult?) expected)]
    :post [(-> % u/expr-type r/TCResult?)]}

@@ -1665,7 +1665,7 @@
       (cs-gen-Function-dots-<-star cg V X Y S T)
 
       :else 
-      (err/nyi-error (pr-str "NYI Function inference " (prs/unparse-type S) (prs/unparse-type T))))))
+      (err/nyi-error (str "NYI Function inference " (pr-str (prs/unparse-type S)) " " (pr-str (prs/unparse-type T)))))))
 
 ;; C : cset? - set of constraints found by the inference engine
 ;; Y : (setof symbol?) - index variables that must have entries

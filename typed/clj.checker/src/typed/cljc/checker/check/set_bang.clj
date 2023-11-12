@@ -8,6 +8,7 @@
 
 (ns typed.cljc.checker.check.set-bang
   (:require [clojure.core.typed.util-vars :as vs]
+            [typed.cljc.checker.check :refer [check-expr]]
             [typed.cljc.checker.utils :as u]
             [typed.cljc.checker.check.utils :as cu]
             [typed.cljc.checker.type-rep :as r]
@@ -15,12 +16,10 @@
             [clojure.core.typed.errors :as err]
             [typed.clj.checker.subtype :as sub]))
 
-(defn check-set! [check {:keys [target val env] :as expr} expected]
-  (binding [vs/*current-expr* expr
-            vs/*current-env* env]
-    (let [ctarget (check target expected)
-          cval (check val (-> ctarget u/expr-type r/ret-t r/ret))]
-      (assoc expr
-             u/expr-type (u/expr-type cval)
-             :target ctarget
-             :val cval))))
+(defn check-set! [{:keys [target val env] :as expr} expected]
+  (let [ctarget (check-expr target expected)
+        cval (check-expr val (-> ctarget u/expr-type r/ret-t r/ret))]
+    (assoc expr
+           u/expr-type (u/expr-type cval)
+           :target ctarget
+           :val cval)))

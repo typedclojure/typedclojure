@@ -14,6 +14,7 @@
             [typed.clj.checker.parse-unparse :as prs]
             [typed.clj.checker.subtype :as sub]
             [typed.cljc.analyzer :as ana2]
+            [typed.cljc.checker.check :refer [check-expr]]
             [typed.cljc.checker.check.print-env :as print-env]
             [typed.cljc.checker.check.recur-utils :as recur-u]
             [typed.cljc.checker.check.utils :as cu]
@@ -77,7 +78,7 @@
           ret
           syms))
 
-(defn check-let [check {:keys [body bindings] :as expr} expected & [{is-loop :loop? :keys [expected-bnds]}]]
+(defn check-let [{:keys [body bindings] :as expr} expected & [{is-loop :loop? :keys [expected-bnds]}]]
   {:post [(-> % u/expr-type r/TCResult?)
           (vector? (:bindings %))]}
   (cond
@@ -99,8 +100,8 @@
               (let [expr (get cbindings n)
                     ; check rhs
                     {sym :name :as cexpr} (var-env/with-lexical-env env
-                                            (check expr (when is-loop
-                                                          (r/ret expected-bnd))))
+                                            (check-expr expr (when is-loop
+                                                               (r/ret expected-bnd))))
                     new-env (update-env env sym (u/expr-type cexpr) is-reachable)
                     maybe-reduced (if @is-reachable identity reduced)]
                 (maybe-reduced
@@ -120,9 +121,9 @@
         (let [cbody (var-env/with-lexical-env env
                       (if is-loop
                         (binding [recur-u/*recur-target* (recur-u/RecurTarget-maker expected-bnds nil nil nil)]
-                          (check body expected))
+                          (check-expr body expected))
                         (binding [vs/*current-expr* body]
-                          (check body expected))))
+                          (check-expr body expected))))
              unshadowed-ret (erase-objects (into #{} (map :name) cbindings) (u/expr-type cbody))]
           (assoc expr
                  :body cbody

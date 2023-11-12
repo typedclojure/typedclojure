@@ -29,7 +29,7 @@
             [typed.cljc.checker.object-rep :refer :all]
             [typed.cljc.checker.path-rep :refer :all]
             [typed.clj.checker.parse-unparse :refer :all]
-            [typed.clj.checker.constant-type :refer [constant-type]]
+            [typed.cljc.checker.constant-type :refer [constant-type]]
             [typed.cljc.checker.lex-env :refer :all]
             [typed.cljc.checker.promote-demote :refer :all]
             [typed.cljc.checker.frees :refer :all]

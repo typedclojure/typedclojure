@@ -9,6 +9,7 @@
 (ns typed.cljc.checker.check.loop
   (:require [clojure.core.typed.errors :as err]
             [clojure.core.typed.util-vars :as vs]
+            [typed.cljc.checker.utils :as u]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.cljc.checker.check.let :as let]
             [typed.cljc.checker.check.recur-utils :as recur-u]
@@ -43,7 +44,9 @@
     normalize))
 
 ;; `recur-u/*loop-bnd-anns*` is populated in `typed.cljc.checker.check.special.loop`
-(defn check-loop [check expr expected]
+(defn check-loop [expr expected]
+  {:post [(-> % u/expr-type r/TCResult?)
+          (vector? (:bindings %))]}
   (let [loop-bnd-anns recur-u/*loop-bnd-anns*
         inlines (inline-annotations expr)
         _ (when (and loop-bnd-anns inlines)
@@ -51,6 +54,6 @@
         ;_ (prn "inlines" inlines)
         anns (or loop-bnd-anns inlines)]
     (binding [recur-u/*loop-bnd-anns* nil]
-      (let/check-let check expr expected 
+      (let/check-let expr expected 
                      {:expected-bnds anns
                       :loop? true}))))

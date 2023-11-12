@@ -11,7 +11,6 @@
             [cljs.analyzer.api :as ana-api]
             [cljs.tagged-literals :as tags]
             [cljs.util :as cljs-util]
-            [typed.clojure :as t]
             [clojure.core.typed.ast-utils :as ast-u]
             [clojure.core.typed.check.dot-cljs :as dot]
             [clojure.core.typed.coerce-utils :as coerce]
@@ -23,7 +22,6 @@
             [clojure.string :as c-str]
             [clojure.tools.reader :as reader]
             [clojure.tools.reader.reader-types :as readers]
-            [typed.clj.checker.constant-type :as constant-type]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.clj.checker.subtype :as sub]
             [typed.clj.checker.tc-equiv :as equiv]
@@ -32,6 +30,7 @@
             [typed.cljc.checker.check :as check]
             [typed.cljc.checker.check-below :as below]
             [typed.cljc.checker.check.binding :as binding]
+            [typed.cljc.checker.check.catch :as catch]
             [typed.cljc.checker.check.const :as const]
             [typed.cljc.checker.check.def :as def]
             [typed.cljc.checker.check.do :as do]
@@ -50,9 +49,9 @@
             [typed.cljc.checker.check.recur-utils :as recur-u]
             [typed.cljc.checker.check.set :as set]
             [typed.cljc.checker.check.set-bang :as set!]
-            [typed.cljc.checker.check.special.fn :as special-fn]
             [typed.cljc.checker.check.special.loop :as special-loop]
             [typed.cljc.checker.check.throw :as throw]
+            [typed.cljc.checker.check.try :as try]
             [typed.cljc.checker.check.unanalyzed :as unanalyzed]
             [typed.cljc.checker.check.utils :as cu]
             [typed.cljc.checker.check.vector :as vec]
@@ -64,7 +63,6 @@
             [typed.cljc.checker.lex-env :as lex]
             [typed.cljc.checker.local-result :as local-result]
             [typed.cljc.checker.ns-deps-utils :as ns-depsu]
-            [typed.cljc.checker.object-rep :a obj]
             [typed.cljc.checker.object-rep :as o]
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.type-rep :as r :refer [ret ret-t ret-o]]
@@ -72,7 +70,8 @@
             [typed.cljc.checker.var-env :as var-env]
             [typed.cljs.analyzer :as tana2]
             [typed.cljs.checker.jsnominal-env :as jsnom]
-            [typed.cljs.checker.util :as uc]))
+            [typed.cljs.checker.util :as uc]
+            [typed.clojure :as t]))
 
 (defmulti -check (fn [expr expected]
                    (:op expr)))
@@ -201,27 +200,10 @@
                      (ret r/-any)
                      expected)))
 
-(defmethod -check :const
-  [{:keys [val] :as expr} expected]
-  ;; FIXME probably want a custom `constant-type` function
-  (const/check-const constant-type/constant-type false expr expected))
-
-(defmethod -check :vector
-  [expr expected]
-  (vec/check-vector check-expr expr expected))
-
-(defmethod -check :set
-  [expr expected]
-  (set/check-set check-expr expr expected))
-
-(defmethod -check :map
-  [expr expected]
-  (map/check-map check-expr expr expected))
-
 (defmethod -check :def
   [{:keys [init] :as expr} expected]
   (if init
-    (def/check-normal-def check-expr expr expected)
+    (def/check-normal-def expr expected)
     (assoc expr
            u/expr-type (below/maybe-check-below
                          (ret r/-any)
@@ -345,40 +327,7 @@
   [expr expected]
   (err/int-error (str "No such internal form: " (ast-u/emit-form-fn expr))))
 
-(defmethod -check :do
-  [expr expected]
-  (do/check-do check-expr internal-special-form expr expected))
 
-(defmethod -check :fn
-  [{:keys [methods] :as expr} expected]
-  ;(prn `-check :fn (mapv (comp :op :ret :body) methods))
-  (if expected
-    (fn/check-fn expr expected)
-    (special-fn/check-core-fn-no-expected expr)))
-
-(defmethod -check :set!
-  [{:keys [target val] :as expr} expected]
-  (set!/check-set! check-expr expr expected))
-
-(defmethod -check :if
-  [{:keys [test then else] :as expr} expected]
-  (if/check-if check-expr expr expected))
-
-(defmethod -check :let
-  [expr expected]
-  (let/check-let check-expr expr expected))
-
-(defmethod -check :letfn
-  [{:keys [bindings body env] :as expr} expected]
-  (letfn/check-letfn bindings body expr expected check-expr))
-
-(defmethod -check :recur
-  [{:keys [exprs env] :as recur-expr} expected]
-  (recur/check-recur exprs env recur-expr expected check-expr))
-
-(defmethod -check :loop
-  [loop-expr expected]
-  (loop/check-loop check-expr loop-expr expected))
 
 (defmethod -check :ns
   [expr expected]
@@ -394,13 +343,6 @@
                        (r/ret r/-any)
                        expected)))
 
-(defmethod -check :binding
-  [expr expected]
-  (binding/check-binding check-expr expr expected))
-
-(defmethod -check :quote
-  [expr expected]
-  (quote/check-quote check-expr constant-type/constant-type expr expected))
 
 ;; adding a bunch of missing methods: 
 
@@ -524,9 +466,6 @@
                        (r/ret (r/-unchecked))
                        expected)))
 
-(defmethod -check :local
-  [expr expected]
-  (local/check-local expr expected))
 
 ; TODO check
 (defmethod -check :the-var
@@ -537,15 +476,24 @@
                        (r/ret (r/-unchecked))
                        expected)))
 
-(defmethod -check :throw
-  [expr expected]
-  (throw/check-throw check-expr expr expected nil))
+;; common
 
-; TODO check
-(defmethod -check :try
-  [expr expected]
-  (fail-empty expr))
-
-(defmethod -check :with-meta
-  [expr expected]
-  (with-meta/check-with-meta check-expr expr expected))
+(defmethod -check :binding   [expr expected] (binding/check-binding     expr expected))
+(defmethod -check :catch     [expr expected] (catch/check-catch         expr expected))
+(defmethod -check :const     [expr expected] (const/check-const         expr expected false))
+(defmethod -check :do        [expr expected] (do/check-do               expr expected internal-special-form))
+(defmethod -check :fn        [expr expected] (fn/check-fn               expr expected))
+(defmethod -check :if        [expr expected] (if/check-if               expr expected))
+(defmethod -check :let       [expr expected] (let/check-let             expr expected))
+(defmethod -check :letfn     [expr expected] (letfn/check-letfn         expr expected))
+(defmethod -check :local     [expr expected] (local/check-local         expr expected))
+(defmethod -check :loop      [expr expected] (loop/check-loop           expr expected))
+(defmethod -check :map       [expr expected] (map/check-map             expr expected))
+(defmethod -check :quote     [expr expected] (quote/check-quote         expr expected))
+(defmethod -check :recur     [expr expected] (recur/check-recur         expr expected))
+(defmethod -check :set       [expr expected] (set/check-set             expr expected))
+(defmethod -check :set!      [expr expected] (set!/check-set!           expr expected))
+(defmethod -check :throw     [expr expected] (throw/check-throw         expr expected nil))
+(defmethod -check :try       [expr expected] (try/check-try             expr expected))
+(defmethod -check :vector    [expr expected] (vec/check-vector          expr expected))
+(defmethod -check :with-meta [expr expected] (with-meta/check-with-meta expr expected))

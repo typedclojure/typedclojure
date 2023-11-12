@@ -12,6 +12,7 @@
             [typed.cljc.checker.ns-options :as ns-opts]
             [clojure.core.typed :as T]
             [clojure.core.typed.current-impl :as impl]
+            [typed.cljc.checker.check :refer [check-expr]]
             [typed.cljc.checker.check.utils :as cu]
             [typed.cljc.checker.var-env :as var-env]
             [typed.cljc.checker.type-rep :as r]
@@ -30,7 +31,7 @@
 ;[Expr (Option TCResult) -> Expr]
 (defn check-normal-def
   "Checks a def that isn't a macro definition."
-  [check-fn {:keys [meta init env] :as expr} & [expected]]
+  [{:keys [meta init env] :as expr} & [expected]]
   {:post [(:init %)]}
   (let [init-provided (init-provided? expr)
         _ (assert init-provided)
@@ -47,11 +48,11 @@
       (let [cinit (when init-provided
                     (binding [vs/*current-env* (:env init)
                               vs/*current-expr* init]
-                      (check-fn init (r/ret t))))
+                      (check-expr init (r/ret t))))
             cmeta (when meta
                     (binding [vs/*current-env* (:env meta)
                               vs/*current-expr* meta]
-                      (check-fn meta)))
+                      (check-expr meta)))
             _ (when cinit
                 ; now consider this var as checked
                 (var-env/add-checked-var-def vsym))]
@@ -92,7 +93,7 @@
             cinit (when init-provided
                     (case unannotated-def
                       ;:unchecked (assoc init u/expr-type (r/ret (r/-unchecked vsym)))
-                      (check-fn init)))
+                      (check-expr init)))
             cmeta (when meta
                     (binding [vs/*current-env* (:env meta)
                               vs/*current-expr* meta
@@ -100,7 +101,7 @@
                               ;; emit :meta nodes in a :def. Don't
                               ;; try and rewrite it, just type check.
                               vs/*can-rewrite* false]
-                      (check-fn meta)))
+                      (check-expr meta)))
             inferred (r/ret-t (u/expr-type cinit))
             _ (assert (r/Type? inferred))
             #_#_ ;; old behavior, type should now only be annotated at runtime
@@ -137,19 +138,18 @@
 
 (defn check-def
   "Check a def. If it is a declare or a defmacro, don't try and check it."
-  [check-fn {:keys [var init env] :as expr} expected]
+  [{:keys [var init env] :as expr} expected]
+  (impl/assert-clojure) ;;TODO cljs support
   ;(prn " Checking def" var)
-  (binding [vs/*current-env* (if (:line env) env vs/*current-env*)
-            vs/*current-expr* expr]
-    (cond 
-      ;ignore macro definitions and declare
-      (defmacro-or-declare? expr) (check-defmacro-or-declare expr expected)
+  (cond 
+    ;ignore macro definitions and declare
+    (defmacro-or-declare? expr) (check-defmacro-or-declare expr expected)
 
-      :else (check-normal-def check-fn expr expected))))
+    :else (check-normal-def expr expected)))
 
 (defn add-checks-normal-def
   "Add runtime checks to a def with an initial value."
-  [check-fn expr expected]
+  [expr expected]
   (let [_ (assert (init-provided? expr))
         vsym (ast-u/def-var-name expr)
         check? (var-env/check-var? vsym)
@@ -159,9 +159,9 @@
            :init (if t
                    ;;cast immediately, don't propagate type.
                    (cu/add-cast
-                     (check-fn (:init expr) nil)
+                     (check-expr (:init expr) nil)
                      t
                      {:positive "cast"
                       :negative "cast"})
                    ;;
-                   (check-fn (:init expr) nil)))))
+                   (check-expr (:init expr) nil)))))

@@ -18,7 +18,7 @@
             [clojure.set :as set]
             [clojure.string :as str]
             [clojure.walk :as walk]
-            [typed.clj.checker.constant-type :as const]
+            [typed.cljc.checker.constant-type :as const]
             [typed.cljc.analyzer.passes.uniquify :as uniquify]
             [typed.cljc.checker.filter-ops :as fl]
             [typed.cljc.checker.filter-rep :as f]

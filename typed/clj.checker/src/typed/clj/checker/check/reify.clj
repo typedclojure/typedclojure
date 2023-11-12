@@ -45,7 +45,7 @@
     (fn-methods/check-fn-methods
       inst-methods
       expected-ifn
-      {:check-recur-fn (fn [& args] (err/int-error (format "%s method cannot have rest parameter" (name kind))))
+      {:check-rest-fn (fn [& args] (err/int-error (format "%s method cannot have rest parameter" (name kind))))
        :recur-target-fn
        (fn [{:keys [dom] :as f}]
          {:pre [(r/Function? f)]
