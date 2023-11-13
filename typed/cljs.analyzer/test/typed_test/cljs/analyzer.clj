@@ -203,7 +203,7 @@
   (testing :var
     (let [expr (wrap (analyze1 '+))]
       (is (= {:op :var
-              ::ana/op ::jsana2/var}
+              ::ana/op ::ana/var}
              (select-keys expr [:op ::ana/op]))
           (keys expr))
       (is (= '+ (:form expr)))
@@ -332,7 +332,7 @@
               ::ana/op ::jsana2/def}
              (select-keys expr [:op ::ana/op])))
       (is (= {:op :var
-              ::ana/op ::jsana2/var}
+              ::ana/op ::ana/var}
              (-> expr :var (select-keys [:op ::ana/op]))))
       (is (= {:ns 'foo.bar
               :name 'foo.bar/a}

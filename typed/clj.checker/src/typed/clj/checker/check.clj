@@ -47,29 +47,17 @@
             [typed.cljc.analyzer :as ana2]
             [typed.cljc.analyzer.env :as env]
             [typed.cljc.checker.check :as check]
+            [typed.cljc.checker.check-impl :refer [-check]]
             [typed.cljc.checker.check-below :as below]
             [typed.cljc.checker.check.apply :as apply]
-            [typed.cljc.checker.check.binding :as binding]
             [typed.cljc.checker.check.case :as case]
-            [typed.cljc.checker.check.catch :as catch]
             [typed.cljc.checker.check.cli :as cli]
-            [typed.cljc.checker.check.const :as const]
             [typed.cljc.checker.check.def :as def]
-            [typed.cljc.checker.check.do :as do]
-            [typed.cljc.checker.check.fn :as fn]
-            [typed.cljc.checker.check.fn-method-utils :as fn-method-u]
-            [typed.cljc.checker.check.fn-methods :as fn-methods]
             [typed.cljc.checker.check.funapp :as funapp]
             [typed.cljc.checker.check.get :as get]
-            [typed.cljc.checker.check.if :as if]
             [typed.cljc.checker.check.invoke :as invoke]
             [typed.cljc.checker.check.invoke-kw :as invoke-kw]
             [typed.cljc.checker.check.isa :as isa]
-            [typed.cljc.checker.check.let :as let]
-            [typed.cljc.checker.check.letfn :as letfn]
-            [typed.cljc.checker.check.local :as local]
-            [typed.cljc.checker.check.loop :as loop]
-            [typed.cljc.checker.check.map :as map]
             [typed.cljc.checker.check.meta-ann :as meta-ann]
             [typed.cljc.checker.check.monitor :as monitor]
             [typed.cljc.checker.check.multi :as multi]
@@ -77,17 +65,10 @@
             [typed.cljc.checker.check.nth :as nth]
             [typed.cljc.checker.check.nthnext :as nthnext]
             [typed.cljc.checker.check.print-env :as print-env]
-            [typed.cljc.checker.check.quote :as quote]
-            [typed.cljc.checker.check.recur :as recur]
-            [typed.cljc.checker.check.set :as set]
-            [typed.cljc.checker.check.set-bang :as set!]
             [typed.cljc.checker.check.special.cast :as cast]
             [typed.cljc.checker.check.special.loop :as special-loop]
-            [typed.cljc.checker.check.throw :as throw]
-            [typed.cljc.checker.check.try :as try]
             [typed.cljc.checker.check.unanalyzed :as unanalyzed]
             [typed.cljc.checker.check.utils :as cu]
-            [typed.cljc.checker.check.vector :as vec]
             [typed.cljc.checker.check.with-meta :as with-meta]
             [typed.cljc.checker.cs-gen :as cgen]
             [typed.cljc.checker.cs-rep :as crep]
@@ -155,14 +136,6 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Checker
-
-(defmulti -check
-  "Type checks the given expression at an optional expected TCResult.
-  Assumes expression has been passed to ana2/run-pre-passes.
-  Dispatches on the operator of expr."
-  (fn [expr expected]
-    {:pre [((some-fn nil? r/TCResult?) expected)]}
-    (::ana2/op expr)))
 
 (declare check-expr)
 
@@ -359,14 +332,7 @@
              "(" (:limit @state) ")"))
       (swap! state update :count inc))))
 
-(defmethod -check ::ana2/var
-  [{:keys [var env] :as expr} expected]
-  {:pre [(var? var)]}
-  ;(prn " checking var" var)
-  (impl/assert-clojure)
-  (check-var expr expected))
-
-(defmethod -check ::ana2/the-var
+(defn check-the-var
   [{:keys [^Var var env] :as expr} expected]
   {:pre [(var? var)]}
   (impl/assert-clojure)
@@ -766,6 +732,7 @@
   {:pre [(and (= :const (:op kw))
               (keyword? (:val kw)))]
    :post [(r/TCResult? (u/expr-type %))]}
+  (impl/assert-clojure)
   (let [ckw (check-expr kw)
         ctarget (check-expr target)]
     (assoc expr
@@ -794,6 +761,7 @@
 
 (defmethod -check ::ana2/protocol-invoke ; protocol methods
   [expr expected]
+  (impl/assert-clojure)
   (protocol-invoke expr expected))
 
 ;binding
@@ -1654,6 +1622,7 @@
 (defmethod -check ::jana2/instance?
   [{cls :class the-expr :target :as expr} expected]
   ;(assert nil ":instance? node not used")
+  (impl/assert-clojure)
   (let [inst-of (c/RClass-of-with-unknown-params cls)
         cexpr (check-expr the-expr)
         expr-tr (u/expr-type cexpr)]
@@ -1728,7 +1697,7 @@
 
 (defmethod -new-special :default [expr expected])
 
-(defmethod -check ::ana2/new
+(defn check-new
   [expr expected]
   {:post [(-> % u/expr-type r/TCResult?)
           (vector? (:args %))]}
@@ -1795,7 +1764,7 @@
                                               (give-up rexpr))))
             :else (give-up expr))))))
 
-(defmethod -check ::ana2/def
+(defn check-def
   [{:keys [var env] :as expr} expected]
   (impl/assert-clojure)
   (let [prs-ns (cu/expr-ns expr)
@@ -1887,27 +1856,3 @@
              :thens cthens
              :default cdefault
              u/expr-type case-result))))
-
-
-;; common
-
-(defmethod -check ::ana2/binding   [expr expected] (binding/check-binding expr expected))
-(defmethod -check ::ana2/catch     [expr expected] (catch/check-catch expr expected))
-(defmethod -check ::ana2/const     [expr expected] (const/check-const expr expected false))
-(defmethod -check ::ana2/do        [expr expected] (do/check-do expr expected internal-special-form))
-(defmethod -check ::ana2/fn        [expr expected] (fn/check-fn expr expected))
-(defmethod -check ::ana2/if        [expr expected] (if/check-if expr expected))
-(defmethod -check ::ana2/invoke    [expr expected] (invoke/check-invoke expr expected -invoke-special))
-(defmethod -check ::ana2/let       [expr expected] (let/check-let expr expected))
-(defmethod -check ::ana2/letfn     [expr expected] (letfn/check-letfn expr expected))
-(defmethod -check ::ana2/local     [expr expected] (local/check-local expr expected))
-(defmethod -check ::ana2/loop      [expr expected] (loop/check-loop expr expected))
-(defmethod -check ::ana2/map       [expr expected] (map/check-map expr expected))
-(defmethod -check ::ana2/quote     [expr expected] (quote/check-quote expr expected))
-(defmethod -check ::ana2/recur     [expr expected] (recur/check-recur expr expected))
-(defmethod -check ::ana2/set       [expr expected] (set/check-set expr expected))
-(defmethod -check ::ana2/set!      [expr expected] (set!/check-set! expr expected))
-(defmethod -check ::ana2/throw     [expr expected] (throw/check-throw expr expected))
-(defmethod -check ::ana2/try       [expr expected] (try/check-try expr expected))
-(defmethod -check ::ana2/vector    [expr expected] (vec/check-vector expr expected))
-(defmethod -check ::ana2/with-meta [expr expected] (with-meta/check-with-meta expr expected))

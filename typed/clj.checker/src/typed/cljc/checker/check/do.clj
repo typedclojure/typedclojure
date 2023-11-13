@@ -9,6 +9,7 @@
 (ns typed.cljc.checker.check.do
   (:require [clojure.core.typed.ast-utils :as ast-u]
             [clojure.core.typed.contract-utils :as con]
+            [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.errors :as err]
             [clojure.core.typed.special-form :as spec]
             [clojure.core.typed.util-vars :as vs]
@@ -32,73 +33,77 @@
                               (map :val statements))))
     (err/int-error (str "Folded special-forms detected " (ast-u/emit-form-fn expr)))))
 
-(defn check-do [expr expected internal-special-form]
+(defn check-do [expr expected]
   {:post [(-> % u/expr-type r/TCResult?)
           (vector? (:statements %))]}
   (enforce-do-folding expr spec/special-form)
-  (cond
-    (internal-form? expr)
-    (internal-special-form expr expected)
+  (let [internal-special-form
+        (impl/impl-case
+          :clojure (requiring-resolve 'typed.clj.checker.check/internal-special-form)
+          :cljs (requiring-resolve 'typed.cljs.checker.check/internal-special-form))]
+    (cond
+      (internal-form? expr)
+      (internal-special-form expr expected)
 
-    :else
-    (let [exprs (conj (vec (:statements expr)) (:ret expr))
-          #_#_
-          _ (assert (every? (comp #{:unanalyzed} :op) exprs)
-                    (mapv (juxt :op :form) exprs))
-          nexprs (count exprs)
-          reachable (volatile! true)
-          [env cexprs]
-          (reduce (fn [[env cexprs] ^long n]
-                    {:pre [(lex/PropEnv? env)
-                           (integer? n)
-                           (< n nexprs)]
-                     ; :post checked after the reduce
-                     }
-                    (cond
-                      (not @reachable) [env (assoc-in cexprs [n u/expr-type]
-                                                      (r/ret (r/Bottom)
-                                                             (fo/-unreachable-filter)
-                                                             orep/-empty))]
-                      :else
-                      (let [expr (get cexprs n)
-                            _ (assert (map? expr))
-                            cexpr (binding [; always prefer envs with :line information, even if inaccurate
-                                            vs/*current-env* (if (:line (:env expr))
-                                                               (:env expr)
-                                                               vs/*current-env*)
-                                            vs/*current-expr* expr]
-                                    (var-env/with-lexical-env env
-                                      (check-expr expr
-                                                  ;propagate expected type only to final expression
-                                                  (when (= (inc n) nexprs)
-                                                    expected))))
-                            res (u/expr-type cexpr)
-                            {fs+ :then fs- :else} (r/ret-f res)
-                            nenv (update/env+ env [(fo/-or fs+ fs-)] reachable)
-                            _ (u/trace-when-let
-                                [ls (seq (cu/find-updated-locals (:l env) (:l nenv)))]
-                                (str "Updated local in exceptional control flow (do): " ls))
-                            ;_ (prn nenv)
-                            ]
-                        (if @reachable
-                          ;reachable
-                          [nenv (assoc cexprs n cexpr)]
-                          ;unreachable
-                          (do ;(prn "Detected unreachable code")
-                              [nenv (assoc cexprs n
-                                           (assoc cexpr 
-                                                  u/expr-type (r/ret (r/Bottom)
-                                                                     (fo/-unreachable-filter)
-                                                                     orep/-empty)))])))))
-                  [(lex/lexical-env) exprs] (range nexprs))
-          _ (assert (= (count cexprs) nexprs))
-          actual-types (mapv u/expr-type cexprs)
-          _ (assert (lex/PropEnv? env))
-          _ (assert ((every-pred vector? seq) cexprs)) ; make sure we conj'ed in the right order
-          _ (assert ((every-pred (con/every-c? r/TCResult?) seq) actual-types)
-                    actual-types)]
-      ;(prn "do actual-types" actual-types)
-      (assoc expr
-             :statements (pop cexprs)
-             :ret (peek cexprs)
-             u/expr-type (peek actual-types))))) ;should be a r/ret already
+      :else
+      (let [exprs (conj (vec (:statements expr)) (:ret expr))
+            #_#_
+            _ (assert (every? (comp #{:unanalyzed} :op) exprs)
+                      (mapv (juxt :op :form) exprs))
+            nexprs (count exprs)
+            reachable (volatile! true)
+            [env cexprs]
+            (reduce (fn [[env cexprs] ^long n]
+                      {:pre [(lex/PropEnv? env)
+                             (integer? n)
+                             (< n nexprs)]
+                       ; :post checked after the reduce
+                       }
+                      (cond
+                        (not @reachable) [env (assoc-in cexprs [n u/expr-type]
+                                                        (r/ret (r/Bottom)
+                                                               (fo/-unreachable-filter)
+                                                               orep/-empty))]
+                        :else
+                        (let [expr (get cexprs n)
+                              _ (assert (map? expr))
+                              cexpr (binding [; always prefer envs with :line information, even if inaccurate
+                                              vs/*current-env* (if (:line (:env expr))
+                                                                 (:env expr)
+                                                                 vs/*current-env*)
+                                              vs/*current-expr* expr]
+                                      (var-env/with-lexical-env env
+                                        (check-expr expr
+                                                    ;propagate expected type only to final expression
+                                                    (when (= (inc n) nexprs)
+                                                      expected))))
+                              res (u/expr-type cexpr)
+                              {fs+ :then fs- :else} (r/ret-f res)
+                              nenv (update/env+ env [(fo/-or fs+ fs-)] reachable)
+                              _ (u/trace-when-let
+                                  [ls (seq (cu/find-updated-locals (:l env) (:l nenv)))]
+                                  (str "Updated local in exceptional control flow (do): " ls))
+                              ;_ (prn nenv)
+                              ]
+                          (if @reachable
+                            ;reachable
+                            [nenv (assoc cexprs n cexpr)]
+                            ;unreachable
+                            (do ;(prn "Detected unreachable code")
+                                [nenv (assoc cexprs n
+                                             (assoc cexpr 
+                                                    u/expr-type (r/ret (r/Bottom)
+                                                                       (fo/-unreachable-filter)
+                                                                       orep/-empty)))])))))
+                    [(lex/lexical-env) exprs] (range nexprs))
+            _ (assert (= (count cexprs) nexprs))
+            actual-types (mapv u/expr-type cexprs)
+            _ (assert (lex/PropEnv? env))
+            _ (assert ((every-pred vector? seq) cexprs)) ; make sure we conj'ed in the right order
+            _ (assert ((every-pred (con/every-c? r/TCResult?) seq) actual-types)
+                      actual-types)]
+        ;(prn "do actual-types" actual-types)
+        (assoc expr
+               :statements (pop cexprs)
+               :ret (peek cexprs)
+               u/expr-type (peek actual-types)))))) ;should be a r/ret already

@@ -8,6 +8,7 @@
 
 (ns typed.cljc.checker.check.invoke
   (:require [typed.cljc.analyzer :as ana2]
+            [clojure.core.typed.current-impl :as impl]
             [typed.cljc.checker.utils :as u]
             [clojure.core.typed.contract-utils :as con]
             [typed.cljc.checker.check :refer [check-expr]]
@@ -49,24 +50,27 @@
            :args cargs
            u/expr-type actual)))
 
-(defn check-invoke [{fexpr :fn :keys [args env] :as expr} expected -invoke-special]
+(defn check-invoke [{fexpr :fn :keys [args env] :as expr} expected]
   {:pre [(= :unanalyzed (:op fexpr))]
    :post [(map? %)
           (-> % u/expr-type r/TCResult?)]}
-  (or (-invoke-special expr expected)
-      (if (and (keyword? (:form fexpr))
-               (<= 1 (count args) 2))
-        (let [{cfexpr :fn
-               [ctarget cdefault] :args
-               :as expr}
-              (-> expr
-                  (update :fn check-expr)
-                  (update :args #(mapv check-expr %)))]
-          (assoc expr
-                 u/expr-type (invoke-kw/invoke-keyword 
-                               expr
-                               (u/expr-type cfexpr)
-                               (u/expr-type ctarget)
-                               (some-> cdefault u/expr-type) 
-                               expected)))
-        (normal-invoke expr fexpr args expected))))
+  (let [-invoke-special (impl/impl-case
+                          :clojure (requiring-resolve 'typed.clj.checker.check/-invoke-special)
+                          :cljs (requiring-resolve 'typed.cljs.checker.check/invoke-special))]
+    (or (-invoke-special expr expected)
+        (if (and (keyword? (:form fexpr))
+                 (<= 1 (count args) 2))
+          (let [{cfexpr :fn
+                 [ctarget cdefault] :args
+                 :as expr}
+                (-> expr
+                    (update :fn check-expr)
+                    (update :args #(mapv check-expr %)))]
+            (assoc expr
+                   u/expr-type (invoke-kw/invoke-keyword 
+                                 expr
+                                 (u/expr-type cfexpr)
+                                 (u/expr-type ctarget)
+                                 (some-> cdefault u/expr-type) 
+                                 expected)))
+          (normal-invoke expr fexpr args expected)))))

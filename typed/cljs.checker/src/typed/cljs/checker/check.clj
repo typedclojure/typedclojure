@@ -29,34 +29,13 @@
             [typed.cljc.analyzer :as ana2]
             [typed.cljc.analyzer.ast :as ast]
             [typed.cljc.checker.check :as check]
+            [typed.cljc.checker.check-impl :refer [-check]]
             [typed.cljc.checker.check-below :as below]
-            [typed.cljc.checker.check.binding :as binding]
-            [typed.cljc.checker.check.catch :as catch]
-            [typed.cljc.checker.check.const :as const]
             [typed.cljc.checker.check.def :as def]
-            [typed.cljc.checker.check.do :as do]
-            [typed.cljc.checker.check.fn :as fn]
-            [typed.cljc.checker.check.fn-method-utils :as fn-method-u]
-            [typed.cljc.checker.check.if :as if]
-            [typed.cljc.checker.check.invoke :as invoke]
-            [typed.cljc.checker.check.let :as let]
-            [typed.cljc.checker.check.letfn :as letfn]
-            [typed.cljc.checker.check.local :as local]
-            [typed.cljc.checker.check.loop :as loop]
-            [typed.cljc.checker.check.map :as map]
             [typed.cljc.checker.check.print-env :as pr-env]
-            [typed.cljc.checker.check.quote :as quote]
-            [typed.cljc.checker.check.recur :as recur]
-            [typed.cljc.checker.check.recur-utils :as recur-u]
-            [typed.cljc.checker.check.set :as set]
-            [typed.cljc.checker.check.set-bang :as set!]
             [typed.cljc.checker.check.special.loop :as special-loop]
-            [typed.cljc.checker.check.throw :as throw]
-            [typed.cljc.checker.check.try :as try]
             [typed.cljc.checker.check.unanalyzed :as unanalyzed]
             [typed.cljc.checker.check.utils :as cu]
-            [typed.cljc.checker.check.vector :as vec]
-            [typed.cljc.checker.check.with-meta :as with-meta]
             [typed.cljc.checker.filter-ops :as fl]
             [typed.cljc.checker.filter-ops :as fo]
             [typed.cljc.checker.filter-rep :as f]
@@ -73,9 +52,6 @@
             [typed.cljs.checker.jsnominal-env :as jsnom]
             [typed.cljs.checker.util :as uc]
             [typed.clojure :as t]))
-
-(defmulti -check (fn [expr expected]
-                   (::ana2/op expr)))
 
 (def ^:private *register-exts (delay
                                 (configs/register-cljs-config-anns)
@@ -201,7 +177,7 @@
                      (ret r/-any)
                      expected)))
 
-(defmethod -check ::tana2/def
+(defn check-def
   [{:keys [init] :as expr} expected]
   (if init
     (def/check-normal-def expr expected)
@@ -300,8 +276,9 @@
         (ret t)
         expected))))
 
-(defmethod -check ::tana2/var
+(defn check-var
   [{vname :name :as expr} expected]
+  (impl/assert-cljs)
   (assoc expr expr-type
          (js-var-result expr vname expected)))
 
@@ -338,8 +315,8 @@
 (defn fail-empty [expr]
   (throw (Exception. (str "Not implemented, yet: " (:op expr)))))
 
-(defmethod -check ::ana2/new
-  [{:keys [ctor args] :as expr} expected]
+(defn check-new
+  [{ctor :class :keys [args] :as expr} expected]
   (impl/assert-cljs)
   (let [;; TODO check ctor
         cargs (mapv check-expr args)]
@@ -391,11 +368,6 @@
          u/expr-type (below/maybe-check-below
                        (r/ret (r/-unchecked))
                        expected)))
-
-(defmethod -check ::ana2/fn-method
-  [expr expected]
-  (impl/assert-cljs)
-  (fail-empty expr))
 
 ; see clojure.core.typed.check.dot-cljs
 ;; TODO check
@@ -459,7 +431,7 @@
 
 
 ; TODO check
-(defmethod -check ::ana2/the-var
+(defn check-the-var
   [expr expected]
   (impl/assert-cljs)
   (u/tc-warning (str "`var` special form is Unchecked"))
@@ -467,26 +439,3 @@
          u/expr-type (below/maybe-check-below
                        (r/ret (r/-unchecked))
                        expected)))
-
-;; common
-
-(defmethod -check ::ana2/binding   [expr expected] (binding/check-binding     expr expected))
-(defmethod -check ::ana2/catch     [expr expected] (catch/check-catch         expr expected))
-(defmethod -check ::ana2/const     [expr expected] (const/check-const         expr expected false))
-(defmethod -check ::ana2/do        [expr expected] (do/check-do               expr expected internal-special-form))
-(defmethod -check ::ana2/fn        [expr expected] (fn/check-fn               expr expected))
-(defmethod -check ::ana2/if        [expr expected] (if/check-if               expr expected))
-(defmethod -check ::ana2/invoke    [expr expected] (invoke/check-invoke       expr expected invoke-special))
-(defmethod -check ::ana2/let       [expr expected] (let/check-let             expr expected))
-(defmethod -check ::ana2/letfn     [expr expected] (letfn/check-letfn         expr expected))
-(defmethod -check ::ana2/local     [expr expected] (local/check-local         expr expected))
-(defmethod -check ::ana2/loop      [expr expected] (loop/check-loop           expr expected))
-(defmethod -check ::ana2/map       [expr expected] (map/check-map             expr expected))
-(defmethod -check ::ana2/quote     [expr expected] (quote/check-quote         expr expected))
-(defmethod -check ::ana2/recur     [expr expected] (recur/check-recur         expr expected))
-(defmethod -check ::ana2/set       [expr expected] (set/check-set             expr expected))
-(defmethod -check ::ana2/set!      [expr expected] (set!/check-set!           expr expected))
-(defmethod -check ::ana2/throw     [expr expected] (throw/check-throw         expr expected))
-(defmethod -check ::ana2/try       [expr expected] (try/check-try             expr expected))
-(defmethod -check ::ana2/vector    [expr expected] (vec/check-vector          expr expected))
-(defmethod -check ::ana2/with-meta [expr expected] (with-meta/check-with-meta expr expected))
