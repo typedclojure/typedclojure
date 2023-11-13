@@ -151,27 +151,48 @@
 (def inner-parse ana-cljs/parse)
 (def inner-analyze ana-cljs/analyze)
 
+(defn infer-ana-op [{:keys [op] :as expr}]
+  (let [ana-op (case op
+                 (:the-var :var :new :host-field :host-call :deftype :defrecord :js
+                           :js-object :js-array :js-var :ns* :ns
+                           :def :case :case-node :case-test :case-then)
+                 (keyword "typed.cljs.analyzer" (name op))
+                 (:do :throw :binding :fn-method :quote :const :set! :invoke
+                      :map :vector :set :with-meta :unanalyzed :let :loop
+                      :try :fn :letfn)
+                 (keyword "typed.cljc.analyzer" (name op))
+                 nil)]
+    (cond-> expr
+      ana-op (update ::ana/op #(or % ana-op)))))
+
+(defn add-bindings-op [expr]
+  (update expr :bindings #(mapv infer-ana-op %)))
+
 (defmulti parse (fn [op env form nme opts] op))
 
 (defmethod parse 'def
   [op env form nme opts]
   (let [inner (inner-parse op env form nme opts)]
-    (update inner :var
-            (fn [expr]
-              ;; completely analyze this:
-              ;; :var (assoc
-              ;;        (analyze
-              ;;          (-> env (dissoc :locals)
-              ;;            (assoc :context :expr)
-              ;;            (assoc :def-var true))
-              ;;          sym)
-              ;;        :op :var)
-              (assert (= :var (:op expr))
-                      (pr-str (:op expr) (vec (keys expr))))
-              (assert (symbol? (:form expr)))
-              (-> expr
-                  (assoc :op :unanalyzed)
-                  ana/analyze-outer-root)))))
+    (-> inner
+        infer-ana-op
+        (update :var
+                (fn [expr]
+                  ;; completely analyze this:
+                  ;; :var (assoc
+                  ;;        (analyze
+                  ;;          (-> env (dissoc :locals)
+                  ;;            (assoc :context :expr)
+                  ;;            (assoc :def-var true))
+                  ;;          sym)
+                  ;;        :op :var)
+                  (assert (= :var (:op expr))
+                          (pr-str (:op expr) (vec (keys expr))))
+                  (assert (symbol? (:form expr)))
+                  (-> expr
+                      (assoc :op :unanalyzed)
+                      infer-ana-op
+                      ana/analyze-outer-root
+                      infer-ana-op))))))
 
 (declare analyze-outer)
 
@@ -181,15 +202,20 @@
 
 (defmethod parse 'let*
   [op env form nme opts]
-  (parse-let op env form nme opts))
+  (-> (parse-let op env form nme opts)
+      infer-ana-op
+      add-bindings-op))
 
 (defmethod parse 'loop*
   [op env form nme opts]
-  (parse-let op env form nme opts))
+  (-> (parse-let op env form nme opts)
+      infer-ana-op
+      add-bindings-op))
 
 (defmethod parse 'try
   [op env form nme opts]
   (let [ast (-> (inner-parse op env form nme opts)
+                infer-ana-op
                 (update :body analyze-outer))]
     (cond-> ast
       (:catch ast) (update :catch analyze-outer)
@@ -198,13 +224,24 @@
 (defmethod parse 'fn*
   [op env form nme opts]
   (-> (inner-parse op env form nme opts)
+      infer-ana-op
       (update :methods (fn [methods]
-                         (mapv #(update % :body analyze-outer) methods)))))
+                         (mapv #(-> %
+                                    infer-ana-op
+                                    (update :body analyze-outer))
+                               methods)))))
+
+(defmethod parse 'quote
+  [op env form nme opts]
+  (-> (inner-parse op env form nme opts)
+      (update :expr infer-ana-op)))
 
 (defmethod parse 'letfn*
   [op env form nme opts]
   (-> (inner-parse op env form nme opts)
-      (update :body analyze-outer)))
+      infer-ana-op
+      (update :body analyze-outer)
+      add-bindings-op))
 
 (defmethod parse 'case*
   [op env [_ sym tests thens default :as form] name _]
@@ -216,16 +253,19 @@
         thens    (mapv #(ana-cljs/analyze env %) thens)
         nodes    (mapv (fn [tests then]
                          {:op :case-node
+                          ::ana/op ::case-node
                           ;synthetic node, no :form
                           :env env
                           :tests (mapv (fn [test]
                                          {:op :case-test
+                                          ::ana/op ::case-test
                                           :form (:form test)
                                           :env expr-env
                                           :test test
                                           :children [:test]})
                                        tests)
                           :then {:op :case-then
+                                 ::ana/op ::case-then
                                  :form (:form then)
                                  :env env
                                  :then then
@@ -241,13 +281,14 @@
                              ((some-fn number? string? char?) (:form t)))))
               (apply concat tests))
       "case* tests must be numbers, strings, or constants")
-    {:env env :op :case :form form
+    {:env env :op :case ::ana/op ::case :form form
      :test v :nodes nodes :default default
      :children [:test :nodes :default]}))
 
 (defmethod parse :default
   [op env form nme opts]
-  (inner-parse op env form nme opts))
+  (-> (inner-parse op env form nme opts)
+      infer-ana-op))
 
 (defn analyze
   ([env form] (analyze env form nil))
@@ -256,7 +297,8 @@
             (when env/*compiler*
               (:options @env/*compiler*))))
   ([env form name opts]
-   (inner-analyze env form name opts)))
+   (-> (inner-analyze env form name opts)
+       infer-ana-op)))
 
 (comment
   (env/with-compiler-env (ana-api/empty-state)
@@ -273,6 +315,7 @@
   ([env form name opts]
    {:pre [(map? env)]}
    {:op :unanalyzed
+    ::ana/op ::ana/unanalyzed
     :env env
     :form form
     :name name
