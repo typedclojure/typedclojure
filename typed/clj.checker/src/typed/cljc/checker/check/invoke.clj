@@ -49,7 +49,7 @@
            :args cargs
            u/expr-type actual)))
 
-(defn check-invoke [check-expr -invoke-special {fexpr :fn :keys [args env] :as expr} expected]
+(defn check-invoke [{fexpr :fn :keys [args env] :as expr} expected -invoke-special]
   {:pre [(= :unanalyzed (:op fexpr))]
    :post [(map? %)
           (-> % u/expr-type r/TCResult?)]}

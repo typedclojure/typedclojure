@@ -13,6 +13,7 @@
             [cljs.util :as cljs-util]
             [clojure.core.typed.ast-utils :as ast-u]
             [clojure.core.typed.check.dot-cljs :as dot]
+            [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.coerce-utils :as coerce]
             [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.errors :as err]
@@ -36,8 +37,8 @@
             [typed.cljc.checker.check.do :as do]
             [typed.cljc.checker.check.fn :as fn]
             [typed.cljc.checker.check.fn-method-utils :as fn-method-u]
-            [typed.cljc.checker.check.funapp :as funapp]
             [typed.cljc.checker.check.if :as if]
+            [typed.cljc.checker.check.invoke :as invoke]
             [typed.cljc.checker.check.let :as let]
             [typed.cljc.checker.check.letfn :as letfn]
             [typed.cljc.checker.check.local :as local]
@@ -213,6 +214,7 @@
   [{:keys [js-op args env] :as expr} expected]
   (cond
     js-op (let [res (expr-type (check-expr {:op :invoke
+                                            ::ana2/op ::ana2/invoke
                                             :from-js-op expr
                                             :env env
                                             :children [:fn :args]
@@ -237,7 +239,7 @@
                                              (ana2/resolve-sym form env)))
                              nil)))
 
-(defmethod invoke-special :default [expr expected] ::not-special)
+(defmethod invoke-special :default [expr expected])
 
 (defmethod invoke-special 'cljs.core.typed/print-env
   [{[{debug-string :form :as texpr} :as args] :args :as expr} expected]
@@ -286,19 +288,6 @@
         (assoc :args cargs
                u/expr-type (equiv/tc-equiv := (map u/expr-type cargs) expected)))))
 
-(defmethod -check ::ana2/invoke
-  [{fexpr :fn :keys [args] :as expr} expected]
-  (let [e (invoke-special expr expected)]
-    (cond
-      (not= e ::not-special) e
-      :else
-      (let [cfexpr (check-expr fexpr)
-            cargs (mapv check-expr args)
-            ftype (expr-type cfexpr)
-            argtys (map expr-type cargs)
-            actual (funapp/check-funapp cfexpr cargs ftype argtys expected)]
-        (assoc expr
-               expr-type actual)))))
 
 ;only local bindings are immutable, vars/js do not partipate in occurrence typing
 (defn js-var-result [expr vname expected]
@@ -349,8 +338,9 @@
 (defn fail-empty [expr]
   (throw (Exception. (str "Not implemented, yet: " (:op expr)))))
 
-(defmethod -check ::tana2/new
+(defmethod -check ::ana2/new
   [{:keys [ctor args] :as expr} expected]
+  (impl/assert-cljs)
   (let [;; TODO check ctor
         cargs (mapv check-expr args)]
     (u/tc-warning (str "`new` special form is Unchecked"))
@@ -404,6 +394,7 @@
 
 (defmethod -check ::ana2/fn-method
   [expr expected]
+  (impl/assert-cljs)
   (fail-empty expr))
 
 ; see clojure.core.typed.check.dot-cljs
@@ -468,8 +459,9 @@
 
 
 ; TODO check
-(defmethod -check ::tana2/the-var
+(defmethod -check ::ana2/the-var
   [expr expected]
+  (impl/assert-cljs)
   (u/tc-warning (str "`var` special form is Unchecked"))
   (assoc expr 
          u/expr-type (below/maybe-check-below
@@ -484,6 +476,7 @@
 (defmethod -check ::ana2/do        [expr expected] (do/check-do               expr expected internal-special-form))
 (defmethod -check ::ana2/fn        [expr expected] (fn/check-fn               expr expected))
 (defmethod -check ::ana2/if        [expr expected] (if/check-if               expr expected))
+(defmethod -check ::ana2/invoke    [expr expected] (invoke/check-invoke       expr expected invoke-special))
 (defmethod -check ::ana2/let       [expr expected] (let/check-let             expr expected))
 (defmethod -check ::ana2/letfn     [expr expected] (letfn/check-letfn         expr expected))
 (defmethod -check ::ana2/local     [expr expected] (local/check-local         expr expected))
@@ -493,7 +486,7 @@
 (defmethod -check ::ana2/recur     [expr expected] (recur/check-recur         expr expected))
 (defmethod -check ::ana2/set       [expr expected] (set/check-set             expr expected))
 (defmethod -check ::ana2/set!      [expr expected] (set!/check-set!           expr expected))
-(defmethod -check ::ana2/throw     [expr expected] (throw/check-throw         expr expected nil))
+(defmethod -check ::ana2/throw     [expr expected] (throw/check-throw         expr expected))
 (defmethod -check ::ana2/try       [expr expected] (try/check-try             expr expected))
 (defmethod -check ::ana2/vector    [expr expected] (vec/check-vector          expr expected))
 (defmethod -check ::ana2/with-meta [expr expected] (with-meta/check-with-meta expr expected))

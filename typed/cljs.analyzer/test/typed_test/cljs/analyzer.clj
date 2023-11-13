@@ -183,7 +183,7 @@
   (testing :the-var
     (let [expr (wrap (analyze1 '(var +)))]
       (is (= {:op :the-var
-              ::ana/op ::jsana2/the-var
+              ::ana/op ::ana/the-var
               :form '(var +)}
              (select-keys expr [:op ::ana/op :form])))
       (is (= {:op :unanalyzed
@@ -401,13 +401,14 @@
              (-> expr :expr (select-keys [:op ::ana/op]))))
       (is (= 1 (-> expr :expr :val)))))
   (testing :new
-    (let [expr (wrap
-                 (analyze1 '(Foo. 1)))]
+    (let [expr (wrap (analyze1 '(Foo. 1)))]
       (is (= {:op :new
-              ::ana/op ::jsana2/new}
+              ::ana/op ::ana/new}
              (select-keys expr [:op ::ana/op])))
-      ;FIXME unsure what we want to do here
-      ;;(is (= .. (-> expr :class)))
+      (is (= {:op :unanalyzed
+              ::ana/op ::ana/unanalyzed
+              :form 'Foo}
+             (-> expr :class (select-keys [:op ::ana/op :form]))))
       (is (= [{:op :unanalyzed
                ::ana/op ::ana/unanalyzed
                :form 1}]

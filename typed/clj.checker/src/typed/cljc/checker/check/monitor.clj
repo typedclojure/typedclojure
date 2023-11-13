@@ -9,6 +9,7 @@
 (ns typed.cljc.checker.check.monitor
   (:require [typed.cljc.checker.utils :as u]
             [clojure.core.typed.util-vars :as vs]
+            [typed.cljc.checker.check :refer [check-expr]]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.type-ctors :as c]
             [typed.clj.checker.subtype :as sub]
@@ -18,10 +19,9 @@
 
 (defn check-monitor
   "monitor-enter and monitor-exit both take any object and return nil"
-  [check {:keys [target] :as expr} expected]
+  [{:keys [target] :as expr} expected]
   {:pre [((some-fn nil? r/TCResult?) expected)]}
-  (binding [vs/*current-expr* expr]
-    (assoc expr
-           :target (check target (r/ret (c/RClass-of Object)))
-           u/expr-type (below/maybe-check-below (r/ret r/-nil (fo/-false-filter))
-                                                expected))))
+  (assoc expr
+         :target (check-expr target (r/ret (c/RClass-of Object)))
+         u/expr-type (below/maybe-check-below (r/ret r/-nil (fo/-false-filter))
+                                              expected)))

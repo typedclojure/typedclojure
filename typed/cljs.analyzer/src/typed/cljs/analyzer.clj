@@ -153,13 +153,13 @@
 
 (defn infer-ana-op [{:keys [op] :as expr}]
   (let [ana-op (case op
-                 (:the-var :var :new :host-field :host-call :deftype :defrecord :js
+                 (:var :host-field :host-call :deftype :defrecord :js
                            :js-object :js-array :js-var :ns* :ns
                            :def :case :case-node :case-test :case-then :no-op)
                  (keyword "typed.cljs.analyzer" (name op))
                  (:do :throw :binding :fn-method :quote :const :set! :invoke
                       :map :vector :set :with-meta :unanalyzed :let :loop
-                      :try :fn :letfn :local :recur :if)
+                      :try :fn :letfn :local :recur :if :new :the-var)
                  (keyword "typed.cljc.analyzer" (name op)))]
     (cond-> expr
       ana-op (update ::ana/op #(or % ana-op)))))
