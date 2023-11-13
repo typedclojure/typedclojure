@@ -74,7 +74,7 @@
             [typed.clojure :as t]))
 
 (defmulti -check (fn [expr expected]
-                   (:op expr)))
+                   (::ana2/op expr)))
 
 (def ^:private *register-exts (delay
                                 (configs/register-cljs-config-anns)
@@ -193,14 +193,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Check CLJS AST
 
-(defmethod -check :no-op
+(defmethod -check ::tana2/no-op
   [expr expected]
   (assoc expr
          expr-type (below/maybe-check-below
                      (ret r/-any)
                      expected)))
 
-(defmethod -check :def
+(defmethod -check ::tana2/def
   [{:keys [init] :as expr} expected]
   (if init
     (def/check-normal-def expr expected)
@@ -209,7 +209,7 @@
                          (ret r/-any)
                          expected))))
 
-(defmethod -check :js
+(defmethod -check ::tana2/js
   [{:keys [js-op args env] :as expr} expected]
   (cond
     js-op (let [res (expr-type (check-expr {:op :invoke
@@ -286,7 +286,7 @@
         (assoc :args cargs
                u/expr-type (equiv/tc-equiv := (map u/expr-type cargs) expected)))))
 
-(defmethod -check :invoke
+(defmethod -check ::ana2/invoke
   [{fexpr :fn :keys [args] :as expr} expected]
   (let [e (invoke-special expr expected)]
     (cond
@@ -311,7 +311,7 @@
         (ret t)
         expected))))
 
-(defmethod -check :var
+(defmethod -check ::tana2/var
   [{vname :name :as expr} expected]
   (assoc expr expr-type
          (js-var-result expr vname expected)))
@@ -329,14 +329,14 @@
 
 
 
-(defmethod -check :ns
+(defmethod -check ::tana2/ns
   [expr expected]
   (assoc expr
          expr-type (below/maybe-check-below
                      (ret r/-any)
                      expected)))
 
-(defmethod -check :ns*
+(defmethod -check ::tana2/ns*
   [expr expected]
   (assoc expr 
          u/expr-type (below/maybe-check-below
@@ -349,7 +349,7 @@
 (defn fail-empty [expr]
   (throw (Exception. (str "Not implemented, yet: " (:op expr)))))
 
-(defmethod -check :new
+(defmethod -check ::tana2/new
   [{:keys [ctor args] :as expr} expected]
   (let [;; TODO check ctor
         cargs (mapv check-expr args)]
@@ -363,7 +363,7 @@
 
 ;; TODO does this actually work?
 #_
-(defmethod -check :case
+(defmethod -check ::tana2/case
   [{:keys [test nodes default :as expr]} expected]
   (chk/check ;;TODO what `check` is this?
    {:op :case
@@ -373,20 +373,20 @@
     :thens (map :then nodes)}
    expected))
 
-(defmethod -check :case-node
+(defmethod -check ::tana2/case-node
   [expr expected]
   (fail-empty expr))
 
-(defmethod -check :case-test
+(defmethod -check ::tana2/case-test
   [expr expected]
   (fail-empty expr))
 
-(defmethod -check :case-then
+(defmethod -check ::tana2/case-then
   [expr expected]
   (fail-empty expr))
 
 ;TODO
-(defmethod -check :defrecord
+(defmethod -check ::tana2/defrecord
   [expr expected]
   (u/tc-warning (str "`defrecord` special form is Unchecked"))
   (assoc expr
@@ -394,7 +394,7 @@
                        (r/ret (r/-unchecked))
                        expected)))
 
-(defmethod -check :deftype
+(defmethod -check ::tana2/deftype
   [expr expected]
   (u/tc-warning (str "`deftype` special form is Unchecked"))
   (assoc expr
@@ -402,13 +402,13 @@
                        (r/ret (r/-unchecked))
                        expected)))
 
-(defmethod -check :fn-method
+(defmethod -check ::ana2/fn-method
   [expr expected]
   (fail-empty expr))
 
 ; see clojure.core.typed.check.dot-cljs
 ;; TODO check
-(defmethod -check :host-call
+(defmethod -check ::tana2/host-call
   [{:keys [method target args] :as expr} expected]
   (let [ctarget (check-expr target)
         cargs (mapv check-expr args)]
@@ -423,7 +423,7 @@
 
 ; see clojure.core.typed.check.dot-cljs
 ;; TODO check
-(defmethod -check :host-field
+(defmethod -check ::tana2/host-field
   [{:keys [target] :as expr} expected]
   (let [ctarget (check-expr target)]
     #_(dot/check-dot ...)
@@ -435,7 +435,7 @@
                          expected))))
 
 ;; TODO check
-(defmethod -check :js-array
+(defmethod -check ::tana2/js-array
   [{:keys [items] :as expr} expected]
   (let [citems (mapv check-expr items)]
     #_(dot/check-dot ...)
@@ -446,7 +446,7 @@
                          (r/ret (r/-unchecked))
                          expected))))
 
-(defmethod -check :js-object
+(defmethod -check ::tana2/js-object
   [{:keys [keys vals] :as expr} expected]
   (let [cvals (mapv check-expr vals)]
     (assoc expr
@@ -458,7 +458,7 @@
                          expected))))
 
 ; TODO check
-(defmethod -check :js-var
+(defmethod -check ::tana2/js-var
   [{:keys [name] :as expr} expected]
   (u/tc-warning (str "Assuming JS variable is unchecked " name))
   (assoc expr 
@@ -468,7 +468,7 @@
 
 
 ; TODO check
-(defmethod -check :the-var
+(defmethod -check ::tana2/the-var
   [expr expected]
   (u/tc-warning (str "`var` special form is Unchecked"))
   (assoc expr 
@@ -478,22 +478,22 @@
 
 ;; common
 
-(defmethod -check :binding   [expr expected] (binding/check-binding     expr expected))
-(defmethod -check :catch     [expr expected] (catch/check-catch         expr expected))
-(defmethod -check :const     [expr expected] (const/check-const         expr expected false))
-(defmethod -check :do        [expr expected] (do/check-do               expr expected internal-special-form))
-(defmethod -check :fn        [expr expected] (fn/check-fn               expr expected))
-(defmethod -check :if        [expr expected] (if/check-if               expr expected))
-(defmethod -check :let       [expr expected] (let/check-let             expr expected))
-(defmethod -check :letfn     [expr expected] (letfn/check-letfn         expr expected))
-(defmethod -check :local     [expr expected] (local/check-local         expr expected))
-(defmethod -check :loop      [expr expected] (loop/check-loop           expr expected))
-(defmethod -check :map       [expr expected] (map/check-map             expr expected))
-(defmethod -check :quote     [expr expected] (quote/check-quote         expr expected))
-(defmethod -check :recur     [expr expected] (recur/check-recur         expr expected))
-(defmethod -check :set       [expr expected] (set/check-set             expr expected))
-(defmethod -check :set!      [expr expected] (set!/check-set!           expr expected))
-(defmethod -check :throw     [expr expected] (throw/check-throw         expr expected nil))
-(defmethod -check :try       [expr expected] (try/check-try             expr expected))
-(defmethod -check :vector    [expr expected] (vec/check-vector          expr expected))
-(defmethod -check :with-meta [expr expected] (with-meta/check-with-meta expr expected))
+(defmethod -check ::ana2/binding   [expr expected] (binding/check-binding     expr expected))
+(defmethod -check ::ana2/catch     [expr expected] (catch/check-catch         expr expected))
+(defmethod -check ::ana2/const     [expr expected] (const/check-const         expr expected false))
+(defmethod -check ::ana2/do        [expr expected] (do/check-do               expr expected internal-special-form))
+(defmethod -check ::ana2/fn        [expr expected] (fn/check-fn               expr expected))
+(defmethod -check ::ana2/if        [expr expected] (if/check-if               expr expected))
+(defmethod -check ::ana2/let       [expr expected] (let/check-let             expr expected))
+(defmethod -check ::ana2/letfn     [expr expected] (letfn/check-letfn         expr expected))
+(defmethod -check ::ana2/local     [expr expected] (local/check-local         expr expected))
+(defmethod -check ::ana2/loop      [expr expected] (loop/check-loop           expr expected))
+(defmethod -check ::ana2/map       [expr expected] (map/check-map             expr expected))
+(defmethod -check ::ana2/quote     [expr expected] (quote/check-quote         expr expected))
+(defmethod -check ::ana2/recur     [expr expected] (recur/check-recur         expr expected))
+(defmethod -check ::ana2/set       [expr expected] (set/check-set             expr expected))
+(defmethod -check ::ana2/set!      [expr expected] (set!/check-set!           expr expected))
+(defmethod -check ::ana2/throw     [expr expected] (throw/check-throw         expr expected nil))
+(defmethod -check ::ana2/try       [expr expected] (try/check-try             expr expected))
+(defmethod -check ::ana2/vector    [expr expected] (vec/check-vector          expr expected))
+(defmethod -check ::ana2/with-meta [expr expected] (with-meta/check-with-meta expr expected))

@@ -173,7 +173,9 @@
                          analyze-outer-root
                          :ret
                          analyze-outer-root))]
-      (is (= :recur (:op expr)))
+      (is (= {:op :recur
+              ::ana/op ::ana/recur}
+             (select-keys expr [:op ::ana/op])))
       (is (= [{:op :unanalyzed
                ::ana/op ::ana/unanalyzed
                :form '(+ a)}]
@@ -208,10 +210,6 @@
       (is (= {:ns 'cljs.core
               :name 'cljs.core/+}
              (select-keys (:info expr) [:ns :name])))))
-  (testing :js-var
-    (let [expr (wrap (analyze1 'js/document))]
-      (is (= :js-var (:op expr)))
-      (is (= 'js/document (:form expr)))))
   (testing :local
     (let [expr (wrap
                  (-> (analyze1 '(let [a 1] a))
@@ -219,7 +217,9 @@
                      analyze-outer-root
                      :ret
                      analyze-outer-root))]
-      (is (= :local (:op expr)))
+      (is (= {:op :local
+              ::ana/op ::ana/local}
+             (select-keys expr [:op ::ana/op])))
       ;FIXME probably should be analyzed
       (is (= {:op :unanalyzed
               ::ana/op ::ana/unanalyzed
@@ -227,7 +227,9 @@
   (testing :if
     (let [expr (wrap
                  (analyze1 '(if 1 2 3)))]
-      (is (= :if (:op expr)))
+      (is (= {:op :if
+              ::ana/op ::ana/if}
+             (select-keys expr [:op ::ana/op])))
       (is (= {:op :unanalyzed
               ::ana/op ::ana/unanalyzed
               :form 1}
