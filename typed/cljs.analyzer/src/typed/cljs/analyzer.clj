@@ -155,11 +155,11 @@
   (let [ana-op (case op
                  (:host-field :host-call :deftype :defrecord :js
                            :js-object :js-array :js-var :ns* :ns
-                           :def :case :case-node :case-test :case-then :no-op)
+                           :case :case-node :case-test :case-then :no-op)
                  (keyword "typed.cljs.analyzer" (name op))
                  (:var :do :throw :binding :fn-method :quote :const :set! :invoke
                       :map :vector :set :with-meta :unanalyzed :let :loop
-                      :try :fn :letfn :local :recur :if :new :the-var)
+                      :try :fn :letfn :local :recur :if :new :the-var :def)
                  (keyword "typed.cljc.analyzer" (name op)))]
     (cond-> expr
       ana-op (update ::ana/op #(or % ana-op)))))

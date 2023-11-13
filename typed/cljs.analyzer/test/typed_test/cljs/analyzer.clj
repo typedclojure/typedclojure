@@ -329,7 +329,7 @@
     (let [expr (wrap
                  (analyze1 '(def a 1)))]
       (is (= {:op :def
-              ::ana/op ::jsana2/def}
+              ::ana/op ::ana/def}
              (select-keys expr [:op ::ana/op])))
       (is (= {:op :var
               ::ana/op ::ana/var}
