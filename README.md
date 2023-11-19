@@ -166,19 +166,6 @@ Thanks to the following people for contributing to core.typed:
 * Alejandro Gomez (dialelo)
 * Piotr Jarzemski (kazuhiro)
 
-## Sponsors
-
-Thanks to the following companies for their active sponsorship of Typed Clojure's development
-via [OpenCollective](https://opencollective.com/typedclojure).
-
-<div>
-  <div>
-    <a href="https://www.adgoji.com/">
-      <img src="https://typedclojure.org/images/sponsors/adgoji.png" alt="Adgoji">
-    </a>
-  </div>
-</div>
-
 ## YourKit
 
 YourKit is kindly supporting core.typed and other open source projects with its full-featured Java Profiler.
