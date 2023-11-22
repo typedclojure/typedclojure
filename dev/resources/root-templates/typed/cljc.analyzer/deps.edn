@@ -19,7 +19,7 @@
 
            :test-cljs
            {:extra-deps {org.clojure/clojurescript {:git/url "https://github.com/clojure/clojurescript.git"
-                                                    :sha "f97d766defd02f7d43abd37e3e9b04790a521b1e"}}
+                                                    :git/sha "f97d766defd02f7d43abd37e3e9b04790a521b1e"}}
             :extra-paths ["test"]}
 
            :runner-cljs {:extra-deps {olical/cljs-test-runner {:mvn/version "3.7.0"}}
@@ -30,7 +30,7 @@
            :runner
            {:extra-deps {{◊cognitect-test-runner-coordinates◊}
                          {:git/url "{◊cognitect-test-runner-git-url◊}"
-                          :sha "{◊cognitect-test-runner-sha◊}"}}
+                          :git/sha "{◊cognitect-test-runner-sha◊}"}}
             :main-opts ["-m" "cognitect.test-runner"
                         "-r" ".*"
                         "-d" "test"]}}}

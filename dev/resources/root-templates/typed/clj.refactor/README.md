@@ -24,13 +24,13 @@ Latest stable release is 1.0.12.
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) Git dependency information:
 
-- Note: use `clj -Sresolve` to resolve the `:tag` to a `:sha`
+- Note: use `clj -Sresolve` to resolve the `:git/tag` to a `:git/sha`
 
 ```clj
   {◊typedclojure-group-id◊}/typed.clj.refactor
   {:git/url "{◊typedclojure-git-https-url◊}"
    :deps/root "typed/clj.refactor"
-   :tag "1.0.12"}
+   :gittag "1.0.12"}
 ```
 
 [Leiningen](https://github.com/technomancy/leiningen) dependency information:

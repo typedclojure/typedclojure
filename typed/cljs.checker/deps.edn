@@ -44,7 +44,7 @@
            :kaocha
            {:extra-deps {lambdaisland/kaocha {:git/url "https://github.com/lambdaisland/kaocha.git"
                                               ;; https://github.com/lambdaisland/kaocha/issues/208#issuecomment-822844384
-                                              :sha "24e2e02d0848160343a6f9ac629f0f8e27a682ea"}}}
+                                              :git/sha "24e2e02d0848160343a6f9ac629f0f8e27a682ea"}}}
            :codox
            {:extra-deps {codox/codox {:mvn/version "0.10.7"}}
             :extra-paths ["script"]
@@ -52,7 +52,7 @@
            :runner
            {:extra-deps {io.github.cognitect-labs/test-runner
                          {:git/url "https://github.com/cognitect-labs/test-runner"
-                          :sha "dd6da11611eeb87f08780a30ac8ea6012d4c05ce"}}
+                          :git/sha "dd6da11611eeb87f08780a30ac8ea6012d4c05ce"}}
             :main-opts ["-m" "cognitect.test-runner"
                         "-d" "test/clojure/core/typed/test"
                         "-r" ".*"

@@ -19,13 +19,13 @@ Latest stable release is 1.2.0.
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) Git dependency information:
 
-- Note: use `clj -Sresolve` to resolve the `:tag` to a `:sha`
+- Note: use `clj -Sresolve` to resolve the `:git/tag` to a `:git/sha`
 
 ```clj
   org.typedclojure/typed.clj.lang
   {:git/url "https://github.com/typedclojure/typedclojure"
    :deps/root "typed/clj.lang"
-   :tag "1.2.0"}
+   :git/tag "1.2.0"}
 ```
 
 [Leiningen](https://github.com/technomancy/leiningen) dependency information:

@@ -50,7 +50,7 @@
   :kaocha
   {:extra-deps {lambdaisland/kaocha {:git/url "{◊kaocha-git-url◊}"
                                      ;; https://github.com/lambdaisland/kaocha/issues/208#issuecomment-822844384
-                                     :sha "{◊kaocha-sha◊}"}}}
+                                     :git/sha "{◊kaocha-sha◊}"}}}
   :codox
   {:extra-deps {codox/codox {:mvn/version "{◊codox-mvn-version◊}"}}
    :extra-paths ["script"]
@@ -62,7 +62,7 @@
   {:extra-deps
    {{◊cognitect-test-runner-coordinates◊}
     {:git/url "{◊cognitect-test-runner-git-url◊}"
-     :sha "{◊cognitect-test-runner-sha◊}"}}
+     :git/sha "{◊cognitect-test-runner-sha◊}"}}
    :main-opts
    ["-m"
     "cognitect.test-runner"

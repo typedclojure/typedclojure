@@ -21,7 +21,7 @@
            :runner
            {:extra-deps {{◊cognitect-test-runner-coordinates◊}
                          {:git/url "{◊cognitect-test-runner-git-url◊}"
-                          :sha "{◊cognitect-test-runner-sha◊}"}}
+                          :git/sha "{◊cognitect-test-runner-sha◊}"}}
             :main-opts ["-m" "cognitect.test-runner"
                         "-d" "test"
                         "-r" ".*"]}}}

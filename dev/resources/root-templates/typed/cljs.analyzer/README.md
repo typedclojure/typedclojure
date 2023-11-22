@@ -19,13 +19,13 @@ Latest stable release is {◊typedclojure-stable-mvn-version◊}.
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) Git dependency information:
 
-- Note: use `clj -Sresolve` to resolve the `:tag` to a `:sha`
+- Note: use `clj -Sresolve` to resolve the `:git/tag` to a `:git/sha`
 
 ```clj
   {◊typedclojure-group-id◊}/typed.cljs.analyzer
   {:git/url "{◊typedclojure-git-https-url◊}"
    :deps/root "typed/cljs.analyzer"
-   :tag "{◊typedclojure-stable-mvn-version◊}"}
+   :git/tag "{◊typedclojure-stable-mvn-version◊}"}
 ```
 
 [Leiningen](https://github.com/technomancy/leiningen) dependency information:
