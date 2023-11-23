@@ -72,6 +72,7 @@ jobs:
       - name: Run ${{ matrix.submodule }} tests
         run: ./script/run-ci-submodule-tests.sh
         env:
+          CLOJURE_VERSION: ${{ matrix.clojure }}
           SUBMODULE: ${{ matrix.submodule }}
           SKIP_DOWNLOAD: false #${{ steps.test-deps-cache.outputs.cache-hit }}
   check-docs:
