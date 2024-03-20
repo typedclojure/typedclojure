@@ -35,7 +35,7 @@
    :tools-analyzer-jvm-mvn-version "1.2.3"
    :potemkin-mvn-version "0.4.6"
    :math-combinatorics-mvn-version "0.2.0"
-   :tools-reader-mvn-version "1.3.6"
+   :tools-reader-mvn-version "1.3.7"
    :core-cache-mvn-version "1.0.225"
    :core-async-mvn-version "1.6.681"
    ;; FIXME clj.checker fails on higher
