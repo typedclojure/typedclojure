@@ -2044,7 +2044,7 @@ cc/next (t/All [x] (t/IFn [(t/Option (t/Coll x)) :-> (t/NilableNonEmptyASeq x)
 cc/into
 #_
 (t/All [x y Conj]
-       [(t/Coll x :conjable y :Conj Conj) (t/Transducer y x) (t/Seqable y) :-> (Conj y)])
+       [(t/Coll x :conjable y :Conj Conj) (t/Transducer y x) (t/Seqable y) :-> (Conj x)])
 (t/All [x y :named [a]]
        (t/IFn [(t/Map x y) (t/Seqable (t/MapConjable x y)) :-> (t/Map x y)]
               [(t/Vec x) (t/Seqable x) :-> (t/Vec x)]
