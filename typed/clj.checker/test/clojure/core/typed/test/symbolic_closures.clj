@@ -754,6 +754,18 @@
       (swap! a (fn [a b c] (+ a b c)) nil 3)))
   )
 
+(deftest keyword-functions-test
+  (is-tc-e (map #(:a %) [{:a 1}])
+           (t/Seq t/Int))
+  (is-tc-err (map #(:b %) [{:a 1}])
+             (t/Seq t/Int))
+  (is-tc-e (map (t/ann-form :a (t/All [x] ['{:a x} :-> x])) [{:a 1}])
+           (t/Seq t/Int))
+  (is-tc-e (map :a [{:a 1}])
+           (t/Seq t/Int))
+  (is-tc-err (map :b [{:a 1}])
+             (t/Seq t/Int)))
+
 (deftest error-msgs-test
   ;; Before
   ;; =====

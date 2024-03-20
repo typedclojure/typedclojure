@@ -1918,7 +1918,7 @@
                      :arg (or (and r/enable-symbolic-closures?
                                    (r/SymbolicClosure? s)
                                    (inferrable-symbolic-closure-expected-type? t))
-                              (or (and ((some-fn r/Poly? r/PolyDots?) s)
+                              (or (and ((some-fn r/Poly? r/PolyDots? r/Value?) s)
                                        (or (and (r/FnIntersection? t)
                                                 (= 1 (count (:types t)))
                                                 ;; something can can potentially be run through check-funapp
