@@ -31,8 +31,7 @@
    :post [(r/TCResult? %)]}
   (let [targett (c/-resolve (r/ret-t target-ret))
         kwt (r/ret-t kw-ret)
-        defaultt (or (when default-ret
-                       (r/ret-t default-ret))
+        defaultt (or (some-> default-ret r/ret-t)
                      r/-nil)]
     (cond
       ;Keyword must be a singleton with no default
@@ -45,7 +44,8 @@
             val-type (c/find-val-type targett kwt defaultt)]
         (binding [vs/*current-expr* (or expr vs/*current-expr*)]
           (below/maybe-check-below
-            (if (not= (c/Un) val-type)
+            (if (or (r/Bottom? targett)
+                    (not (r/Bottom? val-type)))
               (r/ret val-type
                      (fo/-FS (if (and (obj/Path? o)
                                       (= r/-nil defaultt))
