@@ -28,6 +28,6 @@
 - add new configuration for analyzer
   - `typed.clj.analyzer/*parse-deftype-with-existing-class*`
     - If true, don't generate a new class when analyzing deftype* if a class of the same name already exists.
-- Support keywords being passed as higher-order functions
+- Support keywords passed as functions to polymorphic higher-order functions
   - now `(map :a ...)` checks like `(map #(:a %) ...)`
     - both participate in symbolic inference

@@ -1921,7 +1921,7 @@
                               (or (and ((some-fn r/Poly? r/PolyDots? r/Value?) s)
                                        (or (and (r/FnIntersection? t)
                                                 (= 1 (count (:types t)))
-                                                ;; something can can potentially be run through check-funapp
+                                                ;; something can potentially be run through check-funapp
                                                 ;; after instantiating dotted variables, i.e., turns into :fixed
                                                 (not-any? (comp #{:rest :kws :prest :regex} :kind) (:types t)))
                                            #_(printf "get-deferred-fixed-args not deferring poly %s because expected is: %s\n" (pr-str s) (pr-str t))))
