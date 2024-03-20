@@ -3,7 +3,7 @@
  :deps {org.clojure/clojure {:mvn/version "1.12.0-alpha9"}}
  :aliases {:nREPL
            {:extra-deps
-            {nrepl/nrepl {:mvn/version "1.0.0"}
+            {nrepl/nrepl {:mvn/version "1.1.1"}
              cider/piggieback {:mvn/version "0.5.3"}}
             :main-opts ["-m" "nrepl.cmdline"
                         "--interactive"]}
