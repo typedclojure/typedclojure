@@ -99,6 +99,34 @@
   (is-tc-e (coll? "foo")  t/Bool)
   (is-tc-e (coll? 2)      t/Bool))
 
+(deftest empty-test
+  (is-tc-e (empty nil) nil)
+  (is-tc-e (empty {}) (t/Map t/Nothing t/Nothing))
+  (is-tc-e (empty {}) (t/Map t/Nothing t/Nothing))
+  (is-tc-e (empty []) (t/Vec t/Nothing))
+  ;;FIXME lists don't like to cast to seqs
+  (comment
+    (is-tc-e () (t/Seq t/Nothing))
+    (is-tc-e () (t/List t/Nothing))
+    (clj/is-tc-e (t/ann-form () (clojure.lang.PersistentList t/Nothing))
+                 (t/List t/Nothing))
+    (clj/is-tc-e (empty (t/ann-form () (clojure.lang.PersistentList t/Any)))
+                 (t/List t/Nothing))
+    (is-tc-e (list) (t/List t/Nothing))
+    (clj/is-tc-e (fn [l :- (clojure.lang.ASeq t/Nothing)] :- (t/Seq t/Nothing) l))
+    (clj/is-tc-e (fn [l :- (clojure.lang.ASeq t/Nothing)] :- (clojure.lang.ISeq t/Nothing) l))
+    (clj/is-tc-e (fn [l :- (clojure.lang.PersistentList t/Nothing)] :- (clojure.lang.ISeq t/Nothing) l))
+    (is-tc-e (fn [l :- (t/List t/Nothing)]
+               :- (t/Seq t/Nothing)
+               l))
+    (is-tc-e (empty ()))
+    (is-tc-e (empty ()) #_(t/List t/Nothing)))
+  (is-tc-e (empty #{}) (t/Set t/Nothing))
+  (is-tc-e (fn [c :- (t/Nilable (t/Coll t/Any))]
+             :- (t/Nilable (t/Coll t/Any))
+             (empty c)))
+  )
+
 (deftest empty?-test
   (is-tc-e (empty? [])  t/Bool)
   (is-tc-e (empty? #{}) t/Bool)

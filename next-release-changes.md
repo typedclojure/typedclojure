@@ -1,0 +1,1 @@
+- annotate `clojure.core/empty`

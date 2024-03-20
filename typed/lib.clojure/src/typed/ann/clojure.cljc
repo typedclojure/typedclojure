@@ -2042,6 +2042,9 @@ cc/next (t/All [x] (t/IFn [(t/Option (t/Coll x)) :-> (t/NilableNonEmptyASeq x)
                           [(t/Seqable x) :-> (t/NilableNonEmptyASeq x)]))
 
 cc/into
+#_
+(t/All [x y Conj]
+       [(t/Coll x :conjable y :Conj Conj) (t/Transducer y x) (t/Seqable y) :-> (Conj y)])
 (t/All [x y :named [a]]
        (t/IFn [(t/Map x y) (t/Seqable (t/MapConjable x y)) :-> (t/Map x y)]
               [(t/Vec x) (t/Seqable x) :-> (t/Vec x)]
@@ -2086,6 +2089,15 @@ cc/conj
 ;      [(IPersistentCollection t/Any :empty-fn empty-fn) :-> (empty-fn)]
 ;      [nil :-> nil]
 ;      [(t/U nil (IPersistentCollection t/Any :empty-fn empty-fn)) :-> (t/U nil (empty-fn))])
+
+cc/empty
+(t/IFn [nil :-> nil]
+       [(t/Vec t/Any) :-> (t/Vec t/Nothing)]
+       [(t/Map t/Any t/Any) :-> (t/Map t/Nothing t/Nothing)]
+       [(t/Set t/Any) :-> (t/Set t/Nothing)]
+       ;[(t/List t/Any) :-> (t/List t/Nothing)]
+       [(t/Seq t/Any) :-> (t/Seq t/Nothing)]
+       [(t/Nilable (t/Coll t/Any)) :-> (t/Nilable (t/Coll t/Nothing))])
 
 cc/sequence (t/All [a b] (t/IFn [(t/Seqable a) :-> (t/ASeq a)]
                                 ;;TODO rest arity
