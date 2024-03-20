@@ -1,6 +1,6 @@
 ;; DO NOT EDIT! Instead, edit `dev/resources/root-templates/typed/clj.spec/deps.edn` and run `./script/regen-selmer.sh`
 {:paths ["src"]
- :deps {org.clojure/clojure {:mvn/version "1.12.0-alpha5"}
+ :deps {org.clojure/clojure {:mvn/version "1.12.0-alpha9"}
         ;contains fixes for CLJ-2561 + CLJ-2562
         org.clojars.typedclojure-clojars/alpha.spec 
         {:mvn/version "0.2.177-typedclojure-2"}}
