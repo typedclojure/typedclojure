@@ -8,6 +8,14 @@
   <description>An optional type system for ClojureScript — full system for annotating and type-checking.</description>
   <version>1.2.1-SNAPSHOT</version>
 
+  <licenses>
+    <license>
+      <name>Eclipse Public License 1.0</name>
+      <url>https://opensource.org/licenses/eclipse-1.0.php</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
   <parent>
     <groupId>org.typedclojure</groupId>
     <artifactId>pom.typed</artifactId>
