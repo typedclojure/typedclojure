@@ -763,6 +763,8 @@
            (t/Seq t/Int))
   (is-tc-e (map :a [{:a 1}])
            (t/Seq t/Int))
+  (is-tc-err (map :a [{:a 1}])
+             (t/Seq t/Bool))
   (is-tc-err (map :b [{:a 1}])
              (t/Seq t/Int)))
 
