@@ -337,7 +337,7 @@
       <dependency>
         <groupId>babashka</groupId>
         <artifactId>process</artifactId>
-        <version>0.5.21</version>
+        <version>0.5.22</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
