@@ -108,14 +108,14 @@
                  (:singleton) (let [v (:val t)]
                                 (cond
                                   (nil? v) `(nil? ~arg)
-                                  (symbol? v) `(= '~v ~arg)
+                                  ((some-fn symbol? string?) v) `(= '~v ~arg)
                                   (keyword? v) `(identical? '~v ~arg)
                                   ((some-fn true? false?) v) `(identical? '~v ~arg)
                                   (number? v) `(when (number? ~arg)
                                                  ; I think = models the type system's behaviour better than ==
                                                  (= '~v ~arg))
                                   :else (err/int-error 
-                                          (str "Cannot generate predicate for value type: " v))))
+                                          (str "Cannot generate predicate for value type: " (pr-str v)))))
                  (:HMap) (let [mandatory (apply hash-map (:mandatory t))
                                optional (apply hash-map (:optional t))
                                absent-keys (:absent-keys t)

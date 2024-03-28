@@ -1,1 +1,2 @@
 - annotate `clojure.core/empty`
+- support `(t/Val "string")` in `t/pred`
