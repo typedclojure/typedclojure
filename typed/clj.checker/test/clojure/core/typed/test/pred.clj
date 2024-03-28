@@ -4,13 +4,16 @@
     [clojure.core.typed :as t]))
 
 (def Number? (t/pred Number))
+(def Str? (t/pred t/Str))
 
 (t/defalias NumberAlias 
   Number)
 
 (deftest class-pred-test
   (is (Number? 1))
-  (is (not (Number? nil))))
+  (is (not (Number? nil)))
+  (is (Str? "a"))
+  (is (not (Str? 'sym))))
 
 (deftest hmap-pred-test
   (is ((every-pred
