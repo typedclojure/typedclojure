@@ -127,8 +127,10 @@
          (complement
            (t/pred '1)))
        1.0))
-  (is ((t/pred (t/Value 1))
-       1)))
+  (is (true? ((t/pred (t/Value 1))
+              1)))
+  (is (false? ((t/pred (t/Value 1))
+               nil))))
 
 (deftest countrange-pred-test
   (is ((every-pred
