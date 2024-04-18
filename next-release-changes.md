@@ -1,2 +1,5 @@
 - annotate `clojure.core/empty`
 - support `(t/Val "string")` in `t/pred`
+- Close https://github.com/typedclojure/typedclojure/issues/143
+  - correctly scope datatype type variables when checking deftype
+  - fix t/Match to work without type variables

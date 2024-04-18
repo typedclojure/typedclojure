@@ -143,3 +143,54 @@
                (deftype Foo [^ArrayDeque a]
                  P
                  (p [_] (when (< (rand) 0.5) (.pop a)))))))
+
+(deftest deftype-bounded-vars-test
+  (is-tc-e (do (ann-datatype [[x :variance :covariant :< t/Num]] SomeData [count :- x])
+               (deftype SomeData [count])
+               (SomeData. 1)))
+  (is-tc-err (do (ann-datatype [[x :variance :covariant :< t/Num]] SomeData [count :- x])
+                 (deftype SomeData [count])
+                 (SomeData. nil)))
+  (is-tc-e (do (ann-datatype [[x :variance :covariant]] SomeData [count :- (t/I x t/Num)])
+               (deftype SomeData [count])
+               (SomeData. 1)))
+  (is-tc-err (do (ann-datatype [[x :variance :covariant]] SomeData [count :- (t/I x t/Num)])
+                 (deftype SomeData [count])
+                 (SomeData. nil)))
+  (is-tc-e (do
+             (t/defalias NumOrError (t/TFn [[y :variance :invariant]]
+                                           (t/Match y
+                                                    t/Num :-> t/Num)))
+
+             (t/ann-form 1 (NumOrError t/Int))))
+  (is-tc-err (do
+               (t/defalias NumOrError (t/TFn [[y :variance :invariant]]
+                                             (t/Match y
+                                                      t/Num :-> t/Num)))
+
+               (t/ann-form nil (NumOrError t/Int))))
+  #_ ;;TODO backwards inference of datatype tvs via field's t/Match
+  (is-tc-e (do
+             (t/defalias NumOrError (t/TFn [[y :variance :invariant]]
+                                           (t/Match y
+                                                    t/Num :-> t/Bool)))
+
+             (t/ann-datatype [x] SomeData [count :- (NumOrError x)])
+             (deftype SomeData [count])
+             (SomeData. true)))
+  (is-tc-e (do
+             (t/defalias NumOrError (t/TFn [[y :variance :invariant]]
+                                           (t/Match y
+                                                    t/Num :-> t/Bool)))
+
+             (t/ann-datatype [x] SomeData [count :- (NumOrError x)])
+             (deftype SomeData [count])
+             (inst-ctor (SomeData. true) t/Num)))
+  (is-tc-err (do
+               (t/defalias NumOrError (t/TFn [[y :variance :invariant]]
+                                             (t/Match y
+                                                      t/Num :-> t/Bool)))
+
+               (t/ann-datatype [x] SomeData [count :- (NumOrError x)])
+               (deftype SomeData [count])
+               (inst-ctor (SomeData. 1) t/Num))))

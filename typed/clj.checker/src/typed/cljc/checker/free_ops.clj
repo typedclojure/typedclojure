@@ -78,23 +78,31 @@
        (bnds/with-extended-bnds fresh-names# bndss#
          ~@body))))
 
+(def bounded-frees-key? r/F?)
+(def bounded-frees-val? (some-fn r/Bounds? r/Regex?))
 ;; extremely slow
-(def bounded-frees? map? #_(con/hash-c? r/F? (some-fn r/Bounds? r/Regex?)))
+(def bounded-frees? map? #_(con/hash-c? bounded-frees-key? bounded-frees-val?))
 
 (defn with-bounded-frees* [bfrees bfn]
+  {:pre [(fn? bfn)]}
   (let [_ (assert (bounded-frees? bfrees) bfrees)]
-    (with-free-mappings (into {} (for [[f bnds] bfrees]
-                                   [(:name f) {:F f :bnds bnds}]))
+    (with-free-mappings (into {} (map (fn [[f bnds]]
+                                        (assert (bounded-frees-key? f) (class f))
+                                        (assert (bounded-frees-val? bnds) (class bnds))
+                                        [(:name f) {:F f :bnds bnds}]))
+                              bfrees)
       (bfn))))
 
 (defmacro with-bounded-frees
   "Scopes bfrees, a map of instances of F to their bounds, inside body."
   [bfrees & body]
-  `(with-bounded-frees* ~bfrees (fn [] (do ~@body))))
+  `(with-bounded-frees* ~bfrees #(do ~@body)))
 
 (defn with-frees* [frees bfn]
-  (with-free-mappings (into {} (for [f frees]
-                                 [(:name f) {:F f :bnds r/no-bounds}]))
+  (with-free-mappings (into {} (map (fn [f]
+                                      (assert (r/F? f) (class f))
+                                      [(:name f) {:F f :bnds r/no-bounds}]))
+                            frees)
     (bfn)))
 
 (defmacro with-frees
@@ -102,11 +110,12 @@
   default bounds."
   [frees & body]
   `(with-frees* ~frees
-     (fn [] (do ~@body))))
+     #(do ~@body)))
 
 (defmacro with-free-symbols
   "Scopes sfrees, a sequence of symbols, inside body as free variables, with default bounds."
   [sfrees & body]
-  `(with-free-mappings (into {} (for [f# ~sfrees]
-                                  [f# {:F (r/F-maker f#) :bnds r/no-bounds}]))
+  `(with-free-mappings (into {} (map (fn [f#]
+                                       [f# {:F (r/F-maker f#) :bnds r/no-bounds}]))
+                             ~sfrees)
      ~@body))

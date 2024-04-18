@@ -647,7 +647,9 @@
                              (if args
                                (Poly* (force-type args) (force-type bnds)
                                       (make-FnIntersection
-                                        (make-Function (vec (vals (force-type fs))) (DataType-of s (map make-F (force-type args))))))
+                                        (make-Function (vec (vals (force-type fs)))
+                                                       (with-bounded-frees* (zipmap (map make-F (force-type args)) (force-type bnds))
+                                                         #(DataType-of s (map make-F (force-type args)))))))
                                (make-FnIntersection
                                  (make-Function (vec (vals (force-type fs))) (DataType-of s)))))]
                    (delay-type (bfn)))]

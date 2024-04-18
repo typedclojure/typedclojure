@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.cljc.checker.type-ctors
-  (:refer-clojure :exclude [defrecord replace])
+  (:refer-clojure :exclude [defrecord replace type])
   (:require [clojure.core.cache :as cache]
             [typed.clojure :as t]
             [clojure.string :as str]
@@ -338,9 +338,11 @@
 
 (t/ann ^:no-check Un [r/Type :* :-> r/Type])
 (defn Un [& types]
-  {:pre [(every? r/Type? types)]
-   :post [(r/Type? %)]}
-  (let [cache-key (set types)]
+  {:post [(r/Type? %)]}
+  (let [cache-key (into #{} (map (fn [t]
+                                   (assert (r/Type? t))
+                                   t))
+                        types)]
     (if-let [hit (get @Un-cache cache-key)]
       hit
       (let [res (letfn [;; a is a Type (not a union type)
@@ -501,8 +503,7 @@
 (defn flatten-intersections
   "Does not resolve types."
   [types]
-  {:pre [(every? r/Type? types)]
-   :post [(set? %)
+  {:post [(set? %)
           (sorted? %)
           (every? r/Type? %)]}
   (loop [work types
@@ -511,14 +512,13 @@
       result
       (let [{intersections true non-intersections false} (group-by r/Intersection? work)]
         (recur (mapcat :types intersections)
-               (into result non-intersections))))))
+               (into result (map r/assert-Type) non-intersections))))))
 
 (t/ann ^:no-check flatten-unions [(t/Seqable r/Type) -> (t/Set r/Type)])
 (defn flatten-unions
   "Does not resolve types."
   [types]
-  {:pre [(every? r/Type? types)]
-   :post [(set? %)
+  {:post [(set? %)
           (sorted? %)
           (every? (every-pred r/Type? (complement r/Union?)) %)]}
   (loop [work types
@@ -527,13 +527,12 @@
       result
       (let [{unions true non-unions false} (group-by r/Union? work)]
         (recur (mapcat :types unions)
-               (into result non-unions))))))
+               (into result (map r/assert-Type) non-unions))))))
 
 (t/ann ^:no-check In [r/Type :* :-> r/Type])
 (defn In [& types]
-  {:pre [(every? r/Type? types)]
-   :post [(r/Type? %)]}
-  (let [res (let [ts (flatten-intersections (map fully-resolve-type types))]
+  {:post [(r/Type? %)]}
+  (let [res (let [ts (flatten-intersections (map (comp fully-resolve-type r/assert-Type) types))]
               (cond
                 ; empty intersection is Top
                 (empty? ts) r/-any
@@ -1067,11 +1066,8 @@
   (let [subst-all @(subst-all-var)
         ; these names are eliminated immediately, they don't need to be
         ; created with fresh-symbol
-        names (repeatedly (count ts) gensym)
-        ;_ (prn "inst-and-subst" names)
-        fs (map r/make-F names)
-        t (instantiate-many names target)
-        _ (assert (r/Type? t))
+        names (into [] (map (fn [_] (gensym))) (range (count ts)))
+        t (r/assert-Type (instantiate-many names target))
         subst (make-simple-substitution names ts)]
     (subst-all subst t)))
 
@@ -1391,13 +1387,12 @@
 
 (t/ann ^:no-check make-simple-substitution [(t/Seqable t/Sym) (t/Seqable r/Type) -> crep/SubstMap])
 (defn make-simple-substitution [vs ts]
-  {:pre [(every? symbol? vs)
-         (every? r/Type? ts)
-         (= (count vs)
+  {:pre [(= (count vs)
             (count ts))]}
-  (into {}
-        (map (fn [[v t]]
-               [v (crep/t-subst-maker t r/no-bounds)]))
+  (into {} (map (fn [[v t]]
+                  {:pre [(symbol? v)
+                         (r/Type? t)]}
+                  [v (crep/t-subst-maker t r/no-bounds)]))
         (map vector vs ts)))
 
 (t/ann ^:no-check instantiate-typefn [TypeFn (t/Seqable r/Type) -> r/Type])
@@ -1405,37 +1400,37 @@
                                      :or {names (TypeFn-fresh-symbols* t)}}]
   (let [subst-all @(subst-all-var)]
     (when-not (r/TypeFn? t) (err/int-error (str "instantiate-typefn requires a TypeFn: " (ind/unparse-type t))))
-    (do (when-not (= (:nbound t) (count types)) 
-          (binding [vs/*current-env* (-> tapp meta :env)]
-            (err/int-error
-              (str "Wrong number of arguments passed to type function. Expected "
-                   (:nbound t) ", actual " (count types) ": "
-                   (ind/unparse-type t) " " (mapv ind/unparse-type types)
-                   (str "\n\nin: "
-                          (pr-str (or (-> tapp meta :syn)
-                                      (list* t types))))))))
-        (let [bbnds (TypeFn-bbnds* names t)
-              body (TypeFn-body* names t)]
-          ;(prn "subst" names (map meta names))
-          (free-ops/with-bounded-frees (zipmap (map r/make-F names) bbnds)
-            (dorun (map (fn [argn nm type bnd]
-                          (when-not (ind/has-kind? type bnd)
-                            (binding [vs/*current-env* (-> tapp meta :env)]
-                              (err/tc-error (str "Type function argument number " argn
-                                                 " (" (r/F-original-name (r/make-F nm)) ")"
-                                                 " has kind " (pr-str bnd)
-                                                 " but given " (pr-str type)
-                                                 (when (r/F? type)
-                                                   (if-some [kind (when (r/F? type)
-                                                                    (free-ops/free-with-name-bnds
-                                                                      (:name type)))]
-                                                     (str " with kind " kind)
-                                                     (str " with missing bounds")))
-                                                 (str "\n\nin: "
-                                                      (pr-str (or (-> tapp meta :syn)
-                                                                  (list* t types)))))))))
-                        (next (range)) names types bbnds))
-            (subst-all (make-simple-substitution names types) body))))))
+    (when-not (= (:nbound t) (count types))
+      (binding [vs/*current-env* (-> tapp meta :env)]
+        (err/int-error
+          (str "Wrong number of arguments passed to type function. Expected "
+               (:nbound t) ", actual " (count types) ": "
+               (ind/unparse-type t) " " (mapv ind/unparse-type types)
+               (str "\n\nin: "
+                    (pr-str (or (-> tapp meta :syn)
+                                (list* t types))))))))
+    (let [bbnds (TypeFn-bbnds* names t)
+          body (TypeFn-body* names t)
+          ;;check bounds
+          _ (dorun
+              (map (fn [argn nm type bnd]
+                     (when-not (ind/has-kind? type bnd)
+                       (binding [vs/*current-env* (-> tapp meta :env)]
+                         (err/tc-error (str "Type function argument number " argn
+                                            " (" (r/F-original-name (r/make-F nm)) ")"
+                                            " has kind " (pr-str bnd)
+                                            " but given " (pr-str type)
+                                            (when (r/F? type)
+                                              (if-some [kind (free-ops/free-with-name-bnds
+                                                               (:name type))]
+                                                (str " with kind " kind)
+                                                (str " with missing bounds")))
+                                            (str "\n\nin: "
+                                                 (pr-str (or (-> tapp meta :syn)
+                                                             (list* t types)))))))))
+                   (next (range)) names types bbnds))]
+      (free-ops/with-bounded-frees (zipmap (map r/make-F names) bbnds)
+        (subst-all (make-simple-substitution names types) body)))))
 
 (t/ann ^:no-check instantiate-poly [Poly (t/Seqable r/Type) -> r/Type])
 (defn instantiate-poly [t types]
@@ -1590,6 +1585,7 @@
               [r/Type (t/Set r/Type) -> r/Type]))
 (defn fully-resolve-type 
   ([t seen]
+   {:pre [(r/Type? t)]}
    (let [_ (assert (not (seen t)) "Infinite non-Rec type detected")
          seen (conj seen t)]
      (if (requires-resolving? t)
@@ -2165,11 +2161,11 @@
 (defn abstract-many 
   "Names Type -> Scope^n  where n is (count names)"
   [names ty]
-  {:pre [(every? symbol? names)
-         ((some-fn r/Type? r/TypeFn? r/Kind?) ty)]}
+  {:pre [((some-fn r/Type? r/TypeFn? r/Kind?) ty)]}
   (letfn [(name-to 
             ([name count type] (name-to name count 0 type))
             ([name count outer ty]
+             (assert (symbol? name))
              (letfn [(sb 
                        ([t _info] (sb t))
                        ([t] (name-to name count outer t)))]
@@ -2321,13 +2317,13 @@
   Instantiate de Bruijn indices in sc to frees named by
   images, preserving upper/lower bounds"
   [images sc]
-  {:pre [(every? symbol? images)
-         (or (r/Scope? sc)
+  {:pre [(or (r/Scope? sc)
              (empty? images))]
    :post [((some-fn r/Type? r/TypeFn? r/Kind?) %)]}
   (letfn [(replace 
             ([image count type] (replace image count 0 type))
             ([image count outer ty]
+             (assert (symbol? image))
              (letfn [(sb 
                        ([t _info] (sb t))
                        ([t] (replace image count outer t)))]

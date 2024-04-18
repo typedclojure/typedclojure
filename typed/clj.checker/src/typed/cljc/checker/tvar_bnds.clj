@@ -64,4 +64,4 @@
   vars are the fresh names of the frees, rather than the scoped names."
   [vars bndss & body]
   `(binding [*current-tvar-bnds* (extend-many *current-tvar-bnds* ~vars ~bndss)]
-     ~@body))
+     (do ~@body)))

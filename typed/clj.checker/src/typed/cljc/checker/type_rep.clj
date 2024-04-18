@@ -45,6 +45,10 @@
 (defn Type? [a]
   (instance? typed.cljc.checker.impl_protocols.TCType a))
 
+(defn assert-Type [t]
+  (assert (Type? t))
+  t)
+
 ; similar for AnyType
 (t/ann ^:no-check AnyType? (t/Pred AnyType))
 (defn AnyType? [a]

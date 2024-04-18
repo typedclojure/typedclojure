@@ -2619,12 +2619,12 @@
          (r/Type? query)]
    :post [((some-fn nil? r/TCResult?) %)]}
   ;(prn "solve" t query)
-  (let [;; atm only support query = (All [x+] [in :-> out])
-        _ (assert (r/Poly? query))
-        names (c/Poly-fresh-symbols* query)
-        bbnds (c/Poly-bbnds* names query)
-        body (c/Poly-body* names query)
-        _ (assert (r/FnIntersection? body))
+  (let [;; atm only support query = (All [x+] [in :-> out]) or [in :-> out]
+        poly? (r/Poly? query)
+        names (when poly? (c/Poly-fresh-symbols* query))
+        bbnds (when poly? (c/Poly-bbnds* names query))
+        body (if poly? (c/Poly-body* names query) query)
+        _ (assert (r/FnIntersection? body) (class body))
         _ (assert (= 1 (count (:types body))))
         arity (first (:types body))
         _ (assert (r/Function? arity))
