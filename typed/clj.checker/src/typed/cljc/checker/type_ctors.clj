@@ -339,10 +339,7 @@
 (t/ann ^:no-check Un [r/Type :* :-> r/Type])
 (defn Un [& types]
   {:post [(r/Type? %)]}
-  (let [cache-key (into #{} (map (fn [t]
-                                   (assert (r/Type? t))
-                                   t))
-                        types)]
+  (let [cache-key (into #{} r/assert-Type types)]
     (if-let [hit (get @Un-cache cache-key)]
       hit
       (let [res (letfn [;; a is a Type (not a union type)
@@ -350,8 +347,7 @@
                         ;; The output is a non overlapping list of non Union types.
                         (merge-type [a b]
                           {:pre [(set? b)
-                                 (do (assert (r/Type? a) a)
-                                     true)
+                                 (r/Type? a)
                                  (not (r/Union? a))]
                            :post [(set? %)]}
                           #_(prn "merge-type" a b)

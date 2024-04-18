@@ -46,7 +46,7 @@
   (instance? typed.cljc.checker.impl_protocols.TCType a))
 
 (defn assert-Type [t]
-  (assert (Type? t))
+  (assert (Type? t) [(class t) t])
   t)
 
 ; similar for AnyType
