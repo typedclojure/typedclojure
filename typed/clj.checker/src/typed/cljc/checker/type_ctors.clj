@@ -339,7 +339,7 @@
 (t/ann ^:no-check Un [r/Type :* :-> r/Type])
 (defn Un [& types]
   {:post [(r/Type? %)]}
-  (let [cache-key (into #{} r/assert-Type types)]
+  (let [cache-key (into #{} (map r/assert-Type) types)]
     (if-let [hit (get @Un-cache cache-key)]
       hit
       (let [res (letfn [;; a is a Type (not a union type)
