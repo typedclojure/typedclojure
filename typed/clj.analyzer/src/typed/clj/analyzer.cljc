@@ -26,7 +26,9 @@
             [typed.clj.analyzer.passes.infer-tag :as infer-tag]
             [typed.clj.analyzer.passes.validate :as validate]
             [typed.clj.analyzer.utils :as ju])
-  (:import [clojure.lang IObj RT Var Compiler$LocalBinding]))
+  (:import  [clojure.lang IObj RT Var]
+            #?(:cljr    [clojure.lang.CljCompiler.Ast LocalBinding]
+			   :default [clojure.lang Compiler$LocalBinding])))
 
 (def ^:dynamic *parse-deftype-with-existing-class*
   "If true, don't generate a new class when analyzing deftype* if a class
@@ -67,18 +69,18 @@
                        (meta form)))
 
           (cond
-            (.startsWith opname ".")     ; (.foo bar ..)
+            (#?(:cljr .StartsWith :default .startsWith) opname ".")     ; (.foo bar ..)
             (let [[target & args] expr
                   target (if-let [target (ju/maybe-class-literal target)]
                            (with-meta (list 'do target)
-                                      {:tag 'java.lang.Class})
+                                      {:tag #?(:cljr 'System.Type :default 'java.lang.Class)})
                            target)
                   args (list* (symbol (subs opname 1)) args)]
               (with-meta (list '. target (if (= 1 (count args)) ;; we don't know if (.foo bar) is
                                            (first args) args))  ;; a method call or a field access
                          (meta form)))
 
-            (.endsWith opname ".") ;; (class. ..)
+            (#?(:cljr .EndsWith :default .endsWith) opname ".") ;; (class. ..)
             (with-meta (list* 'new (symbol (subs opname 0 (dec (count opname)))) expr)
                        (meta form))
 
@@ -239,7 +241,7 @@
                              (ju/special-arrays (str t)))
                        t
                        (if-let [c (ju/maybe-class t)]
-                         (let [new-t (-> c .getName symbol)]
+                         (let [new-t (-> c #?(:cljr .FullName :default .getName) symbol)]
                            (if (= new-t t)
                              t
                              (with-meta new-t {::qualified? true})))
@@ -361,7 +363,7 @@
     (memo/memo-clear! ju/members* [arg])
     (memo/memo-clear! ju/members* [(str arg)]))
 
-  (let [interfaces (mapv #(symbol (.getName ^Class %)) interfaces)]
+  (let [interfaces (mapv #(symbol #?(:cljr (.FullName ^Type %) :default (.getName ^Class %))) interfaces)]
     (eval (list 'let []
                 (list 'deftype* cname class-name args :implements interfaces)
                 (list 'import class-name)))))
@@ -567,19 +569,33 @@
   ([form] (analyze form (empty-env) {}))
   ([form env] (analyze form env {}))
   ([form env opts]
-   (with-bindings (into {Compiler/LOADER     (RT/makeClassLoader)
-                         #'ana/macroexpand-1 macroexpand-1
-                         #'ana/create-var    create-var
-                         #'ana/scheduled-passes    @scheduled-default-passes
-                         #'ana/parse         parse
-                         #'ana/var?          var?
-                         #'ana/resolve-ns    resolve-ns
-                         #'ana/resolve-sym   resolve-sym
-                         #'ana/unanalyzed unanalyzed
-                         #'ana/analyze-outer analyze-outer
-                         #'ana/current-ns-name current-ns-name
-                         ;#'*ns*              (the-ns (:ns env))
-                         }
+   (with-bindings (into #?(:cljr  
+						   {#'ana/macroexpand-1 macroexpand-1
+                            #'ana/create-var    create-var
+                            #'ana/scheduled-passes    @scheduled-default-passes
+                            #'ana/parse         parse
+                            #'ana/var?          var?
+                            #'ana/resolve-ns    resolve-ns
+                            #'ana/resolve-sym   resolve-sym
+                            #'ana/unanalyzed unanalyzed
+                            #'ana/analyze-outer analyze-outer
+                            #'ana/current-ns-name current-ns-name
+                            ;#'*ns*              (the-ns (:ns env))
+                           }   
+                           :default 
+						   {Compiler/LOADER     (RT/makeClassLoader)
+                            #'ana/macroexpand-1 macroexpand-1
+                            #'ana/create-var    create-var
+                            #'ana/scheduled-passes    @scheduled-default-passes
+                            #'ana/parse         parse
+                            #'ana/var?          var?
+                            #'ana/resolve-ns    resolve-ns
+                            #'ana/resolve-sym   resolve-sym
+                            #'ana/unanalyzed unanalyzed
+                            #'ana/analyze-outer analyze-outer
+                            #'ana/current-ns-name current-ns-name
+                            ;#'*ns*              (the-ns (:ns env))
+                           })
                         (:bindings opts))
        (env/ensure (global-env)
          (env/with-env (u/mmerge (env/deref-env) {:passes-opts (get opts :passes-opts default-passes-opts)})
@@ -597,6 +613,25 @@
         result (clojure.lang.Compiler/eval form)]
     (assoc ast :result result)))
 
+#?(
+:cljr
+(defn default-thread-bindings [env]
+  {#'ana/macroexpand-1 macroexpand-1
+   #'ana/create-var    create-var
+   #'ana/scheduled-passes    @scheduled-default-passes
+   #'ana/parse         parse
+   #'ana/var?          var?
+   #'ana/resolve-ns    resolve-ns
+   #'ana/resolve-sym   resolve-sym
+   #'ana/var->sym      var->sym
+   #'ana/eval-ast      eval-ast2
+   #'ana/current-ns-name current-ns-name
+   #'ana/analyze-outer analyze-outer
+   #'ana/unanalyzed unanalyzed
+   ;#'*ns*              (the-ns (:ns env))
+   })
+
+:default 
 (defn default-thread-bindings [env]
   {Compiler/LOADER     (RT/makeClassLoader)
    #'ana/macroexpand-1 macroexpand-1
@@ -613,6 +648,7 @@
    #'ana/unanalyzed unanalyzed
    ;#'*ns*              (the-ns (:ns env))
    })
+)
 
 (defmethod emit-form/-emit-form :unanalyzed
   [{:keys [form] :as ast} opts]
@@ -664,13 +700,20 @@
               :as opts}]
      (env/ensure (global-env)
        (let [env (merge env (u/-source-info form env))
-             [mform raw-forms] (with-bindings {Compiler/LOADER     (RT/makeClassLoader)
-                                               ;#'*ns*              (the-ns (:ns env))
-                                               #'ana/resolve-ns    resolve-ns
-                                               #'ana/resolve-sym   resolve-sym
-                                               #'ana/current-ns-name current-ns-name
-                                               #'ana/macroexpand-1 (get-in opts [:bindings #'ana/macroexpand-1]
-                                                                           macroexpand-1)}
+             [mform raw-forms] (with-bindings #?(:cljr 
+                                                 {#'ana/resolve-ns    resolve-ns
+                                                  #'ana/resolve-sym   resolve-sym
+                                                  #'ana/current-ns-name current-ns-name
+                                                  #'ana/macroexpand-1 (get-in opts [:bindings #'ana/macroexpand-1]
+                                                                              macroexpand-1)}			  
+			                                     :default
+			                                     {Compiler/LOADER     (RT/makeClassLoader)
+                                                  ;#'*ns*              (the-ns (:ns env))
+                                                  #'ana/resolve-ns    resolve-ns
+                                                  #'ana/resolve-sym   resolve-sym
+                                                  #'ana/current-ns-name current-ns-name
+                                                  #'ana/macroexpand-1 (get-in opts [:bindings #'ana/macroexpand-1]
+                                                                              macroexpand-1)})
                                  (loop [form form raw-forms []]
                                    (let [mform (if (stop-gildardi-check form env)
                                                  form

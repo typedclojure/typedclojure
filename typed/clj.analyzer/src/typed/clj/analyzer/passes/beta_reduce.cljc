@@ -122,8 +122,8 @@
                :max-count (count (:val ast))}])
     :do (splice-seqable-expr (:ret ast))
     (:let :let-fn) (splice-seqable-expr (:body ast))
-    :new (let [cls ^Class (:class ast)
-               csym (symbol (.getName cls))]
+    :new (let [cls ^#?(:cljr Type :default Class) (:class ast)
+               csym (symbol #?(:cljr (.FullName cls) :default (.getName cls)))]
            (case csym
              ;; TODO needs testing
              ;clojure.lang.LazySeq (let [body (-> ast :args first :methods first :body)]

@@ -29,7 +29,7 @@
   [{:keys [class env] :as ast}]
   (if-let [handle (-> (env/deref-env) :passes-opts :validate/unresolvable-symbol-handler)]
     (handle nil class ast)
-    (if (not (.contains (str class) "."))
+    (if (not (#?(:cljr .Contains :default .contains) (str class) "."))
       (throw (ex-info (str "Could not resolve var: " class)
                       (into {:var class}
                             (cu/source-info env))))
@@ -69,8 +69,8 @@
                       (into {:class (:form (:class ast))
                              :ast   ast}
                             (cu/source-info (:env ast)))))
-      (let [^Class class (-> ast :class :val)
-            c-name (symbol (.getName class))
+      (let [^#?(:cljr Type :default Class) class (-> ast :class :val)
+            c-name #?(:cljr '.ctor :default (symbol (.getName class)))  ;;                                                                  ;; in .NET, ctors are named .ctor, not with the class name
             argc (count args)
             tags (mapv :tag args)]
         (let [[ctor & rest] (->> (filter #(= (count (:parameter-types %)) argc)
@@ -162,9 +162,10 @@
 (defmethod -validate :import
   [{:keys [^String class validated? env form] :as ast}]
   (if-not validated?
-    (let [class-sym (-> class (subs (inc (.lastIndexOf class "."))) symbol)
+    (let [class-sym (-> class (subs (inc #?(:cljr (.LastIndexOf class ".") :default (.lastIndexOf class ".")))) symbol)
           sym-val (ana2/resolve-sym class-sym env)]
-      (if (and (class? sym-val) (not= (.getName ^Class sym-val) class)) ;; allow deftype redef
+      (if (and (class? sym-val) (not= #?(:cljr (.FullName ^Type sym-val) 
+	                                     :default (.getName ^Class sym-val)) class)) ;; allow deftype redef
         (throw (ex-info (str class-sym " already refers to: " sym-val
                              " in namespace: " (:ns env))
                         (into {:class     class
@@ -179,7 +180,7 @@
   [ast]
   (when-not (var? (:var ast))
     (throw (ex-info (str "Cannot def " (:name ast) " as it refers to the class "
-                         (.getName ^Class (:var ast)))
+                         #?(:cljr  (.FullName ^Type (:var ast)) :default (.getName ^Class (:var ast))))
                     (into {:ast (ast/prewalk ast cleanup/cleanup)}
                           (cu/source-info (:env ast))))))
   (into
@@ -213,7 +214,7 @@
       ast)))
 
 (defn validate-interfaces [{:keys [env form interfaces]}]
-  (when-not (every? #(.isInterface ^Class %) (disj interfaces Object))
+  (when-not (every? #?(:cljr #(.IsInterface ^Type %) :default #(.isInterface ^Class %)) (disj interfaces Object))
     (throw (ex-info "only interfaces or Object can be implemented by deftype/reify"
                     (into {:interfaces interfaces
                            :form       form}
