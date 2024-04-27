@@ -154,9 +154,9 @@
 (defmacro create-expr [m cls]
   {:pre [(symbol? cls)
          (map? m)]}
-  (let [^Class rcls (resolve cls)
+  (let [^#?(:cljr Type :default Class) rcls (resolve cls)
         _ (assert (class? rcls) {:cls cls :resolved rcls})
-        rsym (symbol (.getName rcls))
+        rsym (symbol (#?(:cljr .FullName :default .getName) rcls))
         {:keys [fields] :as info} (get defexpr-info rsym)
         _ (assert info (str "No info for expr " cls))
         fset (into #{} (map keyword) fields)
@@ -170,9 +170,9 @@
 (defmacro update-expr [e cls & cases]
   {:pre [(symbol? cls)
          (every? vector? cases)]}
-  (let [^Class rcls (resolve cls)
+  (let [^#?(:cljr Type :default Class) rcls (resolve cls)
         _ (assert (class? rcls) {:cls cls :resolved rcls})
-        rsym (symbol (.getName rcls))
+        rsym (symbol (#?(:cljr .FullName :default .getName) rcls))
         {:keys [fields] :as info} (get defexpr-info rsym)
         _ (assert info (str "No info for expr " cls))
         ks (map first cases)

@@ -1,0 +1,29 @@
+strict digraph G {
+
+rankdir = RL;
+
+/* here start the interfaces */
+
+
+
+{
+	node [shape=box];
+	
+     "typed.clojure";
+	"t.cljc.analyzer" -> {"tca.ast", "tca.utils"};
+	"tca.ast" -> {"tca.utils"};
+	"tca.utils";
+	"tca.env";
+	"tca.types" -> {"typed.clojure", "tca.utils"};
+	"tca.utils";
+	
+	"tca.passes.add-binding-atom" -> {"tca.ast", "tca.passes.uniquify"};
+	"tca.passes.cleanup";
+	"tca.passes.constant-lifter" -> {"t.cljc.analyzer", "tca.utils"};
+	"tca.passes.elide-meta"  -> {"t.cljc.analyzer", "tca.passes.source-info"};
+	"tca.passes.emit-form" -> {"tca.passes.uniquify"};
+	"tca.passes.source-info" -> {"tca.utils"};
+	"tca.passes.uniquify" -> {"tca.ast", "tca.env"};
+		
+}	
+}

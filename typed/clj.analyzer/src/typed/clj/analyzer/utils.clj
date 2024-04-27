@@ -14,17 +14,30 @@
             [clojure.reflect :as reflect]
             [clojure.string :as s]
             [clojure.core.memoize :refer [lru]]
-            [clojure.java.io :as io])
+            #?(:cljr [clojure.clr.io] :default [clojure.java.io :as io] ))
   (:import (clojure.lang RT Symbol Var)
-           org.objectweb.asm.Type))
+           #?(:clj org.objectweb.asm.Type)))
 
 (set! *warn-on-reflection* true)
+
+#?(
+:cljr 
 
 (defn ^:private type-reflect
   [typeref & options]
   (apply reflect/type-reflect typeref
-         :reflector (reflect/->JavaReflector (RT/baseLoader))
          options))
+
+:default
+
+(defn ^:private type-reflect
+  [typeref & options]
+  (apply reflect/type-reflect typeref
+         :reflector #?(:cljr (reflect/->ClrReflector nil)
+                       :default (reflect/->JavaReflector (RT/baseLoader)))
+         options))
+)
+
 
 ;difference: use ana2/resolve-sym
 (defn macro? [sym env]
@@ -41,6 +54,30 @@
            (or (not inline-arities-f)
                (inline-arities-f (count args)))
            (:inline (meta v))))))
+		   
+#?(
+:cljr 
+
+(defn specials [c]
+  (case c
+    "byte"    Byte         ;;; Byte/TYPE
+    "boolean" Boolean      ;;; Boolean/TYPE
+    "char"    Char         ;;; Character/TYPE
+    "int"     Int32        ;;; Integer/TYPE
+    "long"    Int64        ;;; Long/TYPE
+    "float"   Single       ;;; Float/TYPE
+    "double"  Double       ;;; Double/TYPE
+    "short"   Int16        ;;; Short/TYPE
+    "void"    System.Void  ;;; Void/TYPE
+    "object"  Object       ;;; DM: Added
+	"decimal" Decimal      ;;; DM: Added
+	"sbyte"   SByte        ;;; DM: Added
+	"ushort"  UInt16       ;;; DM: Added
+	"uint"    UInt32       ;;; DM: Added
+	"ulong"   UInt64       ;;; DM: Added
+    nil))
+
+:default
 
 (defn specials [c]
   (case c
@@ -55,6 +92,30 @@
     "void" Void/TYPE
     "object" Object
     nil))
+)
+
+#?(
+:cljr
+
+(defn special-arrays [c]
+  (case c
+    "bytes"    |System.Byte[]|             ;;; (Class/forName "[B")
+    "booleans" |System.Boolean[]|          ;;; (Class/forName "[Z")
+    "chars"    |System.Char[]|             ;;; (Class/forName "[C")
+    "ints"     |System.Int32[]|            ;;; (Class/forName "[I")
+    "longs"    |System.Int64[]|            ;;; (Class/forName "[J")
+    "floats"   |System.Single[]|           ;;; (Class/forName "[F")
+    "doubles"  |System.Double[]|           ;;; (Class/forName "[D")
+    "shorts"   |System.Int16[]|            ;;; (Class/forName "[S")
+    "objects"  |System.Object[]|           ;;; (Class/forName "[Ljava.lang.Object;")
+	"sbytes"   |System.SByte[]|            ;;;  DM: Added 
+	"ushorts"  |System.Int16[]|            ;;;  DM: Added
+	"uints"    |System.Int32[]|            ;;;  DM: Added
+	"ulongs"   |System.Int64[]|            ;;;  DM: Added
+	"decimals" |System.Decimal[]|          ;;;  DM: Added
+    nil))
+
+:default
 
 (defn special-arrays [c]
   (case c
@@ -68,10 +129,26 @@
     "shorts" (Class/forName "[S")
     "objects" (Class/forName "[Ljava.lang.Object;")
     nil))
+)
 
-(defmulti ^Class maybe-class
+
+(defmulti ^#?(:cljr Type :default Class) maybe-class
   "Takes a Symbol, String or Class and tries to resolve to a matching Class"
   class)
+
+
+#?(
+:cljr
+
+(defn array-class [element-type]
+  (RT/classForName
+    (str (-> element-type
+             maybe-class 
+             .FullName
+            (.Replace \/ \.))
+          "[]"))) 
+		  
+:default
 
 (defn array-class [element-type]
   (RT/classForName
@@ -80,18 +157,20 @@
               Type/getType
               .getDescriptor
               (.replace \/ \.)))))
+)
+
 
 ;difference: always use ana2/resolve-sym
 (defn maybe-class-from-string [^String s]
-  (or (when-let [maybe-class (and (neg? (.indexOf s "."))
+  (or (when-let [maybe-class (and (neg? (#?(:cljr .IndexOf  :default .indexOf) s "."))
                                   (not= \[ (first s))
                                   (ana2/resolve-sym (symbol s) {:ns (ns-name *ns*)}))]
         (when (class? maybe-class) maybe-class))
       (try (RT/classForName s)
-           (catch ClassNotFoundException _))))
+           (catch #?(:cljr Exception :default ClassNotFoundException) _))))
 
 (defmethod maybe-class :default [_] nil)
-(defmethod maybe-class Class [c] c)
+(defmethod maybe-class #?(:cljr Type :default Class) [c] c)
 (defmethod maybe-class String [s]
   (maybe-class (symbol s)))
 
@@ -99,7 +178,7 @@
   (when-not (namespace sym)
     (let [sname (name sym)
           snamec (count sname)]
-      (if-let [base-type (and (.endsWith sname "<>")
+      (if-let [base-type (and (#?(:cljr .EndsWith :default .endsWith) sname "<>")
                               (maybe-class (subs sname 0 (- snamec 2))))]
         (array-class base-type)
         (if-let [ret (or (specials sname)
@@ -114,11 +193,43 @@
                     (maybe-class-from-string (name x)))
    (string? x) (maybe-class-from-string x)))
 
+#?(
+:cljr
+
+(def primitive?
+  "Returns non-nil if the argument represents a primitive Class other than Void"
+  #{Double Char Byte Boolean SByte Decimal
+    Int16 Single Int64 Int32 UInt16 UInt64 UInt32}) 
+
+:default
+
 (def primitive?
   "Returns non-nil if the argument represents a primitive Class other than Void"
   #{Double/TYPE Character/TYPE Byte/TYPE Boolean/TYPE
     Short/TYPE Float/TYPE Long/TYPE Integer/TYPE})
+)
 
+#?(
+:cljr
+(def ^:private convertible-primitives 
+  "If the argument is a primitive Class, returns a set of Classes
+   to which the primitive Class can be casted"
+  {Int32   #{Int32 Int64 Int16 Byte SByte}  
+   Single  #{Single Double}                 
+   Double  #{Double Single}                 
+   Int64   #{Int64 Int32 Int16 Byte}        
+   Char    #{Char}                          
+   Int16   #{Int16}                         
+   Byte    #{Byte}                          
+   Boolean #{Boolean}                       
+   UInt32  #{Int32 Int64 Int16 Byte SByte}  
+   UInt64  #{Int64 Int32 Int16 Byte}        
+   UInt16  #{Int16}                         
+   SByte   #{SByte}                         
+   Decimal #{Decimal}                       
+   System.Void    #{System.Void}})          
+   
+:default
 (def ^:private convertible-primitives
   "If the argument is a primitive Class, returns a set of Classes
    to which the primitive Class can be casted"
@@ -131,6 +242,17 @@
    Byte/TYPE      #{Byte Object Number}
    Boolean/TYPE   #{Boolean Object}
    Void/TYPE      #{Void}})
+)
+
+#?(
+:cljr
+(defn ^Type box
+  "If the argument is a primitive Class, returns its boxed equivalent,
+   otherwise returns the argument"
+  [c]
+   c)
+
+:default
 
 (defn ^Class box
   "If the argument is a primitive Class, returns its boxed equivalent,
@@ -146,6 +268,19 @@
     Boolean/TYPE   Boolean
     Void/TYPE      Void}
    c c))
+)
+
+
+#?(
+:cljr
+
+(defn ^Type unbox                                                          ;;; ^Class
+  "If the argument is a Class with a primitive equivalent, returns that,
+   otherwise returns the argument"
+  [c]
+   c)
+
+:default
 
 (defn ^Class unbox
   "If the argument is a Class with a primitive equivalent, returns that,
@@ -161,13 +296,17 @@
     Double    Double/TYPE,
     Void      Void/TYPE}
    c c))
+)
 
 (defn numeric?
   "Returns true if the given class is numeric"
   [c]
   (when c
-    (.isAssignableFrom Number (box c))))
+    #?(:cljr  (clojure.lang.Util/IsNumeric ^Type c) :default (.isAssignableFrom Number (box c)))))
 
+(defmacro assignable-from? [t1 t2]
+  `(#?(:cljr .IsAssignableFrom :default .isAssignableFrom) ~t1 ~t2))
+  
 (defn subsumes?
   "Returns true if c2 is subsumed by c1"
   [c1 c2]
@@ -176,7 +315,7 @@
     (and (not= c1 c2)
          (or (and (not (primitive? c1))
                   (primitive? c2))
-             (.isAssignableFrom c2 c1)))))
+             (assignable-from? c2 c1)))))
 
 (defn convertible?
   "Returns true if it's possible to convert from c1 to c2"
@@ -187,11 +326,29 @@
       (not (primitive? c2))
       (or
        (= c1 c2)
-       (.isAssignableFrom c2 c1)
+       (assignable-from? c2 c1)
        (and (primitive? c2)
             ((convertible-primitives c2) c1))
        (and (primitive? c1)
-            (.isAssignableFrom (box c1) c2))))))
+            (assignable-from? (box c1) c2))))))
+#?(
+:cljr
+
+(def wider-than
+  "If the argument is a numeric primitive Class, returns a set of primitive Classes
+   that are narrower than the given one"
+  {Int64   #{Int32 UInt32 Int16 UInt16 Byte SByte}            
+   Int32   #{Int16 UInt16 Byte SByte}                         
+   Single  #{Int32 UInt32 Int16 UInt16 Byte SByte}            
+   Double  #{Int32 UInt32 Int16 UInt16 Byte SByte Single}     
+   Int16   #{Byte SByte}                                      
+   UInt64  #{Int32 UInt32 Int16 UInt16 Byte SByte}            
+   UInt32  #{Int16 UInt16 Byte SByte}                         
+   UInt16  #{Byte SByte}                                      
+   Decimal #{}                                                
+   Byte    #{}}) 
+
+:default
 
 (def wider-than
   "If the argument is a numeric primitive Class, returns a set of primitive Classes
@@ -202,6 +359,8 @@
    Double/TYPE  #{Integer/TYPE Short/TYPE Byte/TYPE Long/TYPE Float/TYPE}
    Short/TYPE   #{Byte/TYPE}
    Byte/TYPE    #{}})
+)
+
 
 (defn wider-primitive
   "Given two numeric primitive Classes, returns the wider one"
@@ -259,11 +418,11 @@
 (def munge 
   (lru
     (fn [^String nme]
-      (let [ar (.toCharArray nme)]
+      (let [ar (#?(:cljr .ToCharArray :default .toCharArray) nme)]
         (str
           (areduce ar i sb
                    (StringBuilder.)
-                   (.append sb (munge-dispatch (aget ar i)))))))))
+                   (#?(:cljr .Append :default .append) sb (munge-dispatch (aget ar i)))))))))
 
 (comment
   (time
@@ -277,7 +436,7 @@
 (defn name-matches?
   [member]
   (let [member-name (str member)
-        i (.lastIndexOf member-name ".")
+        i (#?(:cljr .LastIndexOf :default .lastIndexOf) member-name ".")
         member-name* (when (pos? i)
                        (str (s/replace (subs member-name 0 i) "-" "_") (subs member-name i)))
         member-name** (s/replace member-name "-" "_")
@@ -302,8 +461,8 @@
                           (not-any? #{:public :protected} flags))
                         (-> class
                             maybe-class
-                            ^Class (box)
-                            .getName
+                            ^#?(:cljr Type :default Class) (box)
+                            #?(:cljr .FullName :default.getName)
                             symbol
                             (type-reflect :ancestors true)
                             :members)))))))
@@ -359,12 +518,32 @@
   [tag]
   (if (and tag (primitive? tag))
     tag
-    java.lang.Object))
+    #?(:cljr System.Object :default java.lang.Object)))
+
+#?(
+:cljr
+
+;;; We have to work a lot harder on this one.
+;;; The idea is that if (in Java) tags is Long Object Double Object, then you extract LODO and look up "clojure.lang.IFn$LODO" to see if it is a class.
+;;; This would be one of the primitive interface types.
+;;; Our problem is that we have Int64 instead of Long, so we get "I" instead of "L".  Double and Object are okay.
+;;; We'll create a map mapping Int64, Double, Object to the correct character, and default every other type to something bogus.
+;;; Then do the class lookup. However, our classes are named clojure.lang.primifs.LODO, e.g.
+
+(defn prim-interface [tags]
+  (when (some primitive? tags)
+    (let [sig (apply str (mapv #(get {Object "O" Int64 "L" Double "D"} % "x") tags))]
+	  (maybe-class (str "clojure.lang.primifs." sig)))))
+
+:default 
 
 (defn prim-interface [tags]
   (when (some primitive? tags)
     (let [sig (apply str (mapv #(.toUpperCase (subs (.getSimpleName ^Class %) 0 1)) tags))]
       (maybe-class (str "clojure.lang.IFn$" sig)))))
+
+)
+
 
 (defn tag-match? [arg-tags meth]
   (every? identity (map convertible? arg-tags (:parameter-types meth))))
@@ -391,15 +570,15 @@
                    (cond
                     (= prev-ret next-ret)
                     (cond
-                     (.isAssignableFrom prev-decl next-decl)
+                     (assignable-from? prev-decl next-decl)
                      [next]
-                     (.isAssignableFrom next-decl prev-decl)
+                     (assignable-from? next-decl prev-decl)
                      p
                      :else
                      (conj p next))
-                    (.isAssignableFrom prev-ret next-ret)
+                    (assignable-from? prev-ret next-ret)
                     [next]
-                    (.isAssignableFrom next-ret prev-ret)
+                    (assignable-from? next-ret prev-ret)
                     p
                     :else
                     (conj p next))
@@ -413,7 +592,18 @@
 (defn ns->relpath [s]
   (-> s str (s/replace \. \/) (s/replace \- \_) (str ".clj")))
 
+#?(
+:cljr
+
+;; no equivalent
+
+(defn ns-url [ns]
+   (ns->relpath ns))
+
+:default
 (defn ns-url [ns]
   (let [f (ns->relpath ns)]
     (or (io/resource f)
         (io/resource (str f "c")))))
+		
+)

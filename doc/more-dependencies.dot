@@ -1,0 +1,42 @@
+strict digraph G {
+
+rankdir = RL;
+
+/* here start the interfaces */
+
+
+{
+	node [shape=box];
+
+    "t.c.analyzer" -> {"tca.passes.annotate-host-expr", 
+	                         "tca.passes.classify-invoke", 
+							 "tca.passes.emit-form",
+							 "tca.passes.infer-tag",
+							 "tca.passes.validate",
+							 "tca.utils" };
+	"tca.utils" -> {"clojure.core.memoize", "clojure.java.io"};
+
+"tca.passes.analyze-host-expr" -> {"tca.utils" };
+"tca.passes.annotate-host-info" -> {"tca.utils" };
+"tca.passes.annotate-tag"  -> {"tca.utils", 
+                                              "tca.passes.constant-lifter" };
+"tca.passes.beta-reduce" -> { "tca.passes.analyze-host-expr", 
+                                             "tca.passes.annotate-tag", 
+											 "tca.passes.classify-invoke",
+											 "tca.passes.emit-form" };
+"tca.passes.classify-invoke" -> {"tca.utils", 
+                                                "tca.passes.validate" };
+"tca.passes.constant-lifter" -> {"tca.utils",
+                                                "tca.passes.analyze-host-expr" };
+"tca.passes.emit-form";
+"tca.passes.fix-case-test";
+"tca.passes.infer-tag" -> { "tca.utils",
+                                           "tca.passes.analyze-host-expr",
+										   "tca.passes.annotate-tag",
+                                           "tca.passes.fix-case-test"};
+										   
+"tca.passes.validate" -> { "tca.utils",
+                                           "tca.passes.infer-tag"
+										   "tca.passes.analyze-host-expr" };
+}
+}
