@@ -8,7 +8,6 @@
 
 ;copied from clojure.tools.analyzer.jvm.utils
 (ns typed.clj.analyzer.utils
-  (:refer-clojure :exclude [munge])
   (:require [typed.cljc.analyzer.utils :as u]
             [typed.cljc.analyzer :as ana2]
             [clojure.reflect :as reflect]
