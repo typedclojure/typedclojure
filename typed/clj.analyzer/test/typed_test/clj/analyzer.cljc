@@ -27,7 +27,8 @@
   (is (= true
          (:result (ast (do (ns foo) (= 1 1))))))
   (is (= "a"
-         (:result (ast (.toString (reify Object (toString [this] "a")))))))
+         (:result (ast #?(:cljr    (.ToString (reify Object (ToString [this] "a")))
+		                  :default (.toString (reify Object (toString [this] "a"))))))))
   (is (= 2 (:result (ast (#(inc %) 1)))))
   #_
   (is (->
@@ -35,35 +36,44 @@
                    (:require [typed.clojure :as t]))
                  (t/ann-form 'foo 'a)))
         :ret))
-  (is (= [:const Number]
-         ((juxt :op :val) (ast Number))))
+  #?(:cljr 
+     (is (= [:const Int64]
+	        ((juxt :op :val) (ast Int64))))
+     :default 	 
+     (is (= [:const Number]
+            ((juxt :op :val) (ast Number)))))
   (is (= [:const clojure.lang.Compiler]
          ((juxt :op :val) (ast clojure.lang.Compiler))))
-  (is (= [:static-field 'LOADER]
-         ((juxt :op :field) (ast clojure.lang.Compiler/LOADER))))
+		 
+  #?(:cljr
+     (is (= [:static-field 'specials]
+            ((juxt :op :field) (ast clojure.lang.Compiler/specials))))
+     :default   
+     (is (= [:static-field 'LOADER]
+            ((juxt :op :field) (ast clojure.lang.Compiler/LOADER)))))
   )
 
 (deftest local-tag-test
-  (is (= java.lang.String
+  (is (= #?(:cljr System.String :default java.lang.String)
          (:tag (ast "asdf"))))
-  (is (= [:const java.lang.String]
+  (is (= [:const #?(:cljr System.String :default java.lang.String)]
          (-> (ast (let [a "asdf"]))
              :bindings
              first
              :init
              ((juxt :op :tag)))))
-  (is (= [:binding java.lang.String]
+  (is (= [:binding #?(:cljr System.String :default java.lang.String)]
          (-> (ast (let [a "asdf"]))
              :bindings
              first
              ((juxt :op :tag)))))
-  (is (= [:local java.lang.String]
+  (is (= [:local #?(:cljr System.String :default java.lang.String)]
          (-> (ast (let [a "asdf"]
                     a))
              :body
              :ret
              ((juxt :op :tag)))))
-  (is (= java.lang.String
+  (is (= #?(:cljr System.String :default java.lang.String)
          (:tag (ast (let [a "asdf"]
                       a)))))
   )
@@ -75,7 +85,7 @@
           (ast
             (deftype A []
               Object
-              (toString [_] (A.) "a")))))))
+              (#?(:cljr ToString :default toString) [_] (A.) "a")))))))
 
 (deftest uniquify-test
   (let [ret (ast' (let [a 1]
