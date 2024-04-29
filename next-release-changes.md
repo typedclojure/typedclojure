@@ -3,4 +3,5 @@
 - Close https://github.com/typedclojure/typedclojure/issues/143
   - correctly scope datatype type variables when checking deftype
   - fix t/Match to work without type variables
+- revert bad optimization in analyzer (caught by David Miller during CLR port)
 - support Clojure 1.9.0 in analyzers
