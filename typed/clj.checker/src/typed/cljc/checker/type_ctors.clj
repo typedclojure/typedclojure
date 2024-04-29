@@ -500,7 +500,8 @@
   "Does not resolve types."
   [types]
   {:post [(set? %)
-          (sorted? %)]}
+          (sorted? %)
+          (every? r/Type? %)]}
   (loop [work types
          result (sorted-set)]
     (if (empty? work)
@@ -514,14 +515,15 @@
   "Does not resolve types."
   [types]
   {:post [(set? %)
-          (sorted? %)]}
+          (sorted? %)
+          (every? (every-pred r/Type? (complement r/Union?)) %)]}
   (loop [work types
          result (sorted-set)]
     (if (empty? work)
       result
       (let [{unions true non-unions false} (group-by r/Union? work)]
         (recur (mapcat :types unions)
-               (into result (map (every-pred r/Type? (complement r/Union?))) non-unions))))))
+               (into result (map r/assert-Type) non-unions))))))
 
 (t/ann ^:no-check In [r/Type :* :-> r/Type])
 (defn In [& types]
