@@ -37,9 +37,9 @@
 
 (defn submodule-batches []
   (let [;; analyzers use a different clojure version
-        {analyzers true all-testable-submodules false} (group-by #(str/includes? % "analyzer") all-testable-submodules)
+        {analyzers true all-latest-clojure-submodules false} (group-by #(str/includes? % "analyzer") all-testable-submodules)
         {slow-modules true fast-modules false} (group-by (comp boolean slow-submodule-tests)
-                                                         all-testable-submodules)
+                                                         all-latest-clojure-submodules)
         _ (assert (= slow-submodule-tests (set slow-modules)))
         ;slow-splits (partition-all 2 slow-modules)
         ;; clj.checker and clj.spec are slowest
@@ -49,7 +49,10 @@
         _ (assert (= (sort slow-submodule-tests) (sort (mapcat identity slow-splits))))
         ;fast-splits (split-at (quot (count fast-modules) 2) fast-modules)
         fast-splits [fast-modules analyzers]
-        _ (assert (= (sort fast-modules) (sort (mapcat identity fast-splits))))
+        _ (let [expected-fast-splits-modules (sort (concat fast-modules analyzers))
+                actual-fast-splits-modules (sort (mapcat identity fast-splits))]
+            (assert (= expected-fast-splits-modules actual-fast-splits-modules)
+                    [expected-fast-splits-modules actual-fast-splits-modules]))
         all-splits (concat slow-splits fast-splits)
         _ (assert (= (sort all-testable-submodules) (sort (mapcat identity all-splits))))]
     all-splits))
