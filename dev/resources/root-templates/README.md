@@ -95,7 +95,7 @@ See modules for specific version coordinates:
 
 ## Compatibility
 
-Typed Clojure supports Clojure {◊clojure-mvn-version◊} and JDK 1.8+.
+Typed Clojure supports Clojure {◊clojure-mvn-version◊} and JDK {◊min-supported-jdk◊}+.
 
 ## Mailing List and Chat
 

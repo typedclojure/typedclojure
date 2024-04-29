@@ -8,7 +8,8 @@
 
 (ns typed.cljc.analyzer.passes.uniquify
   (:require [typed.cljc.analyzer.ast :refer [update-children children]]
-            [typed.cljc.analyzer.env :as env]))
+            [typed.cljc.analyzer.env :as env]
+            [typed.cljc.analyzer.utils :as u]))
 
 (defn push-new-locals-frame
   "Binding expressions like let/loop need to create
@@ -80,7 +81,7 @@
   (let [ast (cond-> ast
               (-> (env/deref-env) :passes-opts :uniquify/uniquify-env)
               (update-in [:env :locals]
-                         update-vals #(update % :name normalize env)))]
+                         u/update-vals #(update % :name normalize env)))]
    (-uniquify-locals ast)))
 
 (defn uniquify-locals* [{:keys [env] :as ast}]

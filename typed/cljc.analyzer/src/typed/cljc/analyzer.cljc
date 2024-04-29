@@ -9,10 +9,14 @@
 ;; adapted from clojure.tools.analyzer
 (ns typed.cljc.analyzer
   (:refer-clojure :exclude [macroexpand-1 var?])
-  (:require [typed.clojure :as-alias t]
+  (:require #?(:cljs [typed.clojure :as-alias t])
             [typed.cljc.analyzer.ast :as ast]
             [typed.cljc.analyzer.utils :as u])
   #?(:clj (:import (clojure.lang IType))))
+
+;; clojure 1.9 compat
+#?(:clj (do (create-ns 'typed.clojure)
+            (alias 't 'typed.clojure)))
 
 (set! *warn-on-reflection* true)
 
@@ -897,7 +901,7 @@
                                                              (u/ctx e :ctx/expr))
                                            :children [:init])))
                            {} binds)
-          e (update env :locals merge (update-vals binds u/dissoc-env))
+          e (update env :locals merge (u/update-vals binds u/dissoc-env))
           body (analyze-body body e)]
       (->
         {:op       :letfn

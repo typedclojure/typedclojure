@@ -15,6 +15,8 @@
 
 (def selmer-input-map
   {:clojure-mvn-version "1.12.0-alpha9"
+   :min-supported-jdk "1.8"
+   :analyzer-clojure-mvn-version "1.9.0"
    :clojars-url "https://clojars.org/repo"
    :sonatype-oss-public-url "https://oss.sonatype.org/content/groups/public/"
    :clojurescript-mvn-version "1.11.60"

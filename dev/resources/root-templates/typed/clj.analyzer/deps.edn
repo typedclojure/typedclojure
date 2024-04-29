@@ -1,6 +1,6 @@
 {% do-not-edit-edn-comment %}
 {:paths ["src"]
- :deps {org.clojure/clojure {:mvn/version "{◊clojure-mvn-version◊}"}
+ :deps {org.clojure/clojure {:mvn/version "{◊analyzer-clojure-mvn-version◊}"}
         org.clojure/core.memoize {:mvn/version "{◊core-memoize-mvn-version◊}"}
         org.ow2.asm/asm {:mvn/version "{◊asm-mvn-version◊}"}
         {◊typedclojure-group-id◊}/typed.cljc.analyzer {:local/root "../cljc.analyzer"

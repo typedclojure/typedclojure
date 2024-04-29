@@ -58,13 +58,16 @@
 (defn push-matrix []
   {:post [(matrix? %)]}
   {:include (for [submodule-batch (submodule-batches)
+                  :let [submodule (str/join " " submodule-batch)]
                   clojure (cond-> [clojure-stable]
                             (and (= "typedclojure/typedclojure"
                                     (System/getenv "GITHUB_REPOSITORY"))
                                  clojure-next-release)
-                            (conj clojure-next-release))
-                  jdk ["11"]
-                  :let [submodule (str/join " " submodule-batch)]]
+                            (conj clojure-next-release)
+
+                            (str/includes? submodule "analyzer")
+                            (conj "1.9.0"))
+                  jdk ["11"]]
               (array-map
                 :submodule submodule
                 :clojure clojure
@@ -75,8 +78,10 @@
 (defn schedule-matrix []
   {:post [(matrix? %)]}
   {:include (for [submodule all-testable-submodules
-                  clojure [clojure-stable
-                           clojure-next-snapshot]
+                  clojure (cond-> [clojure-stable
+                                   clojure-next-snapshot]
+                            (str/includes? submodule "analyzer")
+                            (conj "1.9.0" "1.10.1"))
                   jdk ["8"
                        "11"
                        "17"
