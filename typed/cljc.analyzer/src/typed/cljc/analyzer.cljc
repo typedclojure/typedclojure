@@ -104,7 +104,6 @@
 (defn run-passes
   "Function that will be invoked on the AST tree immediately after it has been constructed."
   [ast]
-  {:pre [(map? scheduled-passes)]}
   (ast/walk ast
             (comp run-pre-passes analyze-outer-root)
             (comp eval-top-level run-post-passes)))
