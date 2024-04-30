@@ -491,7 +491,7 @@
                    ::op         ::local
                    :assignable? (boolean mutable)
                    ;; don't walk :init, but keep in AST
-                   :children    (vec (remove #{:init} children))})
+                   :children    (into [] (remove #(= :init %)) children)})
             map->LocalExpr)
           (if-let [var (let [v (resolve-sym sym env)]
                          (and (var? v) v))]
