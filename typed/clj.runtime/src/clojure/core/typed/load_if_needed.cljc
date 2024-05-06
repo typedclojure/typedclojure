@@ -8,7 +8,7 @@
 
 (ns ^:no-doc clojure.core.typed.load-if-needed
   (:require [clojure.core.typed.errors :as err]
-            [clojure.java.io :as io]
+            #?(:clj [clojure.java.io :as io])
             [clojure.core.typed.util-vars :as vs]))
 
 (defn load-if-needed 

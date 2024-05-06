@@ -67,7 +67,8 @@
                  (:Name) 
                  (impl/impl-case
                    :clojure (gen-inner (ops/resolve-Name t) arg)
-                   :cljs (err/int-error (str "TODO CLJS Name")))
+                   :cljs (err/int-error (str "TODO CLJS Name"))
+				   :cljr (gen-inner (ops/resolve-Name t) arg))
                  ;              (cond
                  ;                              (empty? (:poly? t)) `(instance? ~(:the-class t) ~arg)
                  ;                              :else (err/int-error (str "Cannot generate predicate for polymorphic Class")))
@@ -201,7 +202,8 @@
               (:Name) 
               (impl/impl-case
                 :clojure (gen-inner (ops/resolve-Name t) arg)
-                :cljs (err/int-error (str "TODO CLJS Name")))
+                :cljs (err/int-error (str "TODO CLJS Name"))
+				:cljr (gen-inner (ops/resolve-Name t) arg))
               ;              (cond
               ;                              (empty? (:poly? t)) `(instance? ~(:the-class t) ~arg)
               ;                              :else (err/int-error (str "Cannot generate predicate for polymorphic Class")))

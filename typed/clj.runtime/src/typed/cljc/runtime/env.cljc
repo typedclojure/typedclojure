@@ -18,7 +18,8 @@
 
 (defn checker []
   (let [c *checker*]
-    (assert (or #?(:clj (instance? clojure.lang.IAtom c)
+    (assert (or #?(:clj  (instance? clojure.lang.IAtom c)
+	               :cljr (instance? clojure.lang.IAtom c)
                    :cljs (instance? Atom c))
                 (delay? c))
             (str "No checker state: " (pr-str c)))

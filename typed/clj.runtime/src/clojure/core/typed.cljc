@@ -71,7 +71,7 @@ for checking namespaces, cf for checking individual forms."}
   Intended for use at the REPL."
   [mname]
   (load-if-needed)
-  (core/let [ms (->> (Class/forName (namespace mname))
+  (core/let [ms (->> (#?(:cljr clojure.lang.RT/classForNameE :default Class/forName) (namespace mname))
                      reflect/type-reflect
                      :members
                      (core/filter #(and (instance? clojure.reflect.Method %)
@@ -344,9 +344,9 @@ for checking namespaces, cf for checking individual forms."}
      (binding [vs/*current-env* {:ns {:name (ns-name *ns*)}
                                  :file *file*
                                  :line (or (-> form# meta :line)
-                                           @Compiler/LINE)
+                                           #?(:cljr @clojure.lang.Compiler/LineVar :default @Compiler/LINE))
                                  :column (or (-> form# meta :column)
-                                             @Compiler/COLUMN)}]
+                                             #?(:cljr @clojure.lang.Compiler/ColumnVar :default @Compiler/COLUMN))}]
        (do ~@body))))
 
 (defmacro ^:private delay-rt-parse
@@ -444,7 +444,7 @@ for checking namespaces, cf for checking individual forms."}
         (defalias* '~qsym '~t '~&form)))))
 
 (defmacro ^:private defspecial [& body]
-  (when (= "true" (System/getProperty "clojure.core.typed.special-vars"))
+  (when (= "true" (#?(:cljr Environment/GetEnvironmentVariable :default System/getProperty) "clojure.core.typed.special-vars"))
     `(def ~@body)))
 
 (defspecial
@@ -1681,10 +1681,10 @@ for checking namespaces, cf for checking individual forms."}
                            ~*file*)
                  :line (or (:line opt#)
                            ~(or (-> &form meta :line)
-                                @Compiler/LINE))
+                                 #?(:cljr @clojure.lang.Compiler/LineVar :default @Compiler/LINE)))
                  :column (or (:column opt#)
                              ~(or (-> &form meta :column)
-                                  @Compiler/COLUMN))))))
+                                  #?(:cljr @clojure.lang.Compiler/ColumnVar :default @Compiler/COLUMN)))))))
          ~x))))
 
 (core/defn infer-unannotated-vars
@@ -1721,7 +1721,7 @@ for checking namespaces, cf for checking individual forms."}
 ; thus dynaload as lazily as possible.
 ;============================================================
 
-(when (= "true" (System/getProperty "clojure.core.typed.deprecated-wrapper-macros"))
+(when (= "true" (#?(:cljr Environment/GetEnvironmentVariable :default System/getProperty) "clojure.core.typed.deprecated-wrapper-macros"))
   (load "typed/deprecated_wrapper_macros"))
 
 ;;TODO make typing rule

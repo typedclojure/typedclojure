@@ -21,6 +21,9 @@
 ;; copied to typed.cljs.runtime.env
 (def clojurescript ::clojurescript)
 
+;; We don't have a typed.cljr.runtime.env to copy to -- is this a problem?
+(def cljr ::cljr)
+
 (def unknown ::unknown)
 
 (derive clojure unknown)
@@ -28,18 +31,23 @@
 
 ;; :clojure = ::clojure
 ;; :cljs = ::clojurescript
+;; :cljr = ::cljr
 ;; :unknown = ::unknown
-#?(:clj
-(defmacro impl-case [& {clj-case :clojure cljs-case :cljs unknown :unknown :as opts}]
-  (let [bad (set/difference (set (keys opts)) #{:clojure :cljs :unknown})]
+#?(:cljs :ignore
+:default
+(defmacro impl-case [& {clj-case :clojure cljs-case :cljs cljr-case :cljr unknown :unknown :as opts}]
+  (let [bad (set/difference (set (keys opts)) #{:clojure :cljs :cljr :unknown})]
     (assert (empty? bad)
             (str "Incorrect cases to impl-case: " (pr-str bad))))
   `(case (current-impl)
      ~clojure ~clj-case
      ~clojurescript ~cljs-case
+	 ~cljr ~cljr-case
      ~(if (contains? opts :unknown)
         unknown
-        `(assert nil (str "No case matched for impl-case " (current-impl)))))))
+        `(assert nil (str "No case matched for impl-case " (current-impl))))))
+)		
+		
 
 ;; copied to typed.clj{s}.runtime.env
 (def current-impl-kw ::current-impl)
@@ -217,14 +225,16 @@
   (env/swap-checker! assoc-in [ns-opts-kw nsym :warn-on-unannotated-vars] true)
   nil)
 
-#?(:clj
+#?(:cljs :ignore 
+:default
 (def ^:private force-type #((requiring-resolve 'typed.cljc.runtime.env-utils/force-type) %)))
-#?(:clj
+#?(:cljs :ignore :default
 (defmacro ^:private delay-type [& body]
   `((requiring-resolve 'typed.cljc.runtime.env-utils/delay-type*)
     (fn [] (do ~@body)))))
 
-#?(:clj
+#?(:cljs :ignore
+:default
 (defmacro create-env
   "For name n, creates defs for {n}, {n}-kw, add-{n},
   and reset-{n}!"
@@ -248,20 +258,20 @@
          nil))))
 
 ;; runtime environments
-#?(:clj
+#?(:cljs :ignore :default
 (create-env var-env))
-#?(:clj
+#?(:cljs :ignore :default
 (create-env alias-env))
-#?(:clj 
+#?(:cljs :ignore :default
 (create-env protocol-env))
-#?(:clj 
+#?(:cljs :ignore :default
 (create-env rclass-env))
-#?(:clj 
+#?(:cljs :ignore :default
 (create-env datatype-env))
-#?(:clj 
+#?(:cljs :ignore :default
 (create-env jsnominal-env))
 
-#?(:clj
+#?(:cljs :ignore :default
 (defn v [vsym]
   {:pre [(qualified-symbol? vsym)]}
   (let [ns (find-ns (symbol (namespace vsym)))
@@ -270,7 +280,7 @@
     (assert (var? var) (str "Cannot find var: " vsym))
     @var)))
 
-#?(:clj
+#?(:cljs :ignore :default
 (defn the-var [vsym]
   {:pre [(qualified-symbol? vsym)]
    :post [(var? %)]}
@@ -283,7 +293,7 @@
 
 (declare bindings-for-impl)
 
-#?(:clj
+#?(:cljs :ignore :default
 (defmacro with-impl [impl & body]
   `(with-bindings (let [impl# ~impl]
                     (or (get (bindings-for-impl) impl#)
@@ -298,7 +308,7 @@
 (defn clj-bindings []
   {#'env/*checker* (clj-checker)})
 
-#?(:clj
+#?(:cljs :ignore :default
 (defmacro with-clojure-impl [& body]
   `(with-impl clojure
      ~@body)))
@@ -317,7 +327,7 @@
 (defn cljs-bindings []
   {#'env/*checker* (cljs-checker)})
 
-#?(:clj
+#?(:cljs :ignore :default
 (defmacro with-cljs-impl [& body]
   `(with-impl clojurescript
      ~@body)))
@@ -328,7 +338,7 @@
    clojure (clj-bindings)
    clojurescript (cljs-bindings)})
 
-#?(:clj
+#?(:cljs :ignore :default
 (defmacro with-full-impl [impl & body]
   `(with-impl ~impl
      ~@body)))
@@ -364,18 +374,18 @@
                            (str ": " msg#)))))))
 
 
-#?(:clj
+#?(:cljs :ignore :default
 (defn var->symbol [^clojure.lang.Var var]
   {:pre [(var? var)]
    :post [(qualified-symbol? %)]}
   (symbol (str (ns-name (.ns var)))
           (str (.sym var)))))
 
-#?(:clj
-(defn Class->symbol [^Class cls]
+#?(:cljs :ignore :default
+(defn Class->symbol [^#?(:cljr Type :clj Class) cls]
   {:pre [(class? cls)]
    :post [(simple-symbol? %)]}
-  (symbol (.getName cls))))
+  (symbol (#?(:cljr .FullName :clj .getName) cls))))
 
 ; for type-contract
 (defn hmap-c? [& {:keys [mandatory optional absent-keys complete?]}]
@@ -404,58 +414,58 @@
                              (vc (get % k))))
                        optional)))
 
-#?(:clj
+#?(:cljs :ignore :default
 (def ^:private int-error #(apply (requiring-resolve 'clojure.core.typed.errors/int-error) %&)))
-#?(:clj
+#?(:cljs :ignore :default
 (def ^:private parse-free-binder-with-variance #((requiring-resolve 'typed.clj.checker.parse-unparse/parse-free-binder-with-variance) %)))
-#?(:clj
+#?(:cljs :ignore :default
 (def ^:private with-parse-ns* #((requiring-resolve 'typed.clj.checker.parse-unparse/with-parse-ns*) %1 %2)))
-#?(:clj
+#?(:cljs :ignore :default
 (def ^:private with-bounded-frees* #((requiring-resolve 'typed.cljc.checker.free-ops/with-bounded-frees*) %1 %2)))
-#?(:clj
+#?(:cljs :ignore :default
 (def ^:private unparse-type #((requiring-resolve 'typed.clj.checker.parse-unparse/unparse-type) %)))
-#?(:clj
+#?(:cljs :ignore :default
 (def ^:private parse-type #((requiring-resolve 'typed.clj.checker.parse-unparse/parse-type) %)))
-#?(:clj
+#?(:cljs :ignore :default
 (def ^:private fully-resolve-type #((requiring-resolve 'typed.cljc.checker.type-ctors/fully-resolve-type) %)))
-#?(:clj
+#?(:cljs :ignore :default
 (def ^:private Poly? #((requiring-resolve 'typed.cljc.checker.type-rep/Poly?) %)))
-#?(:clj
+#?(:cljs :ignore :default
 (def ^:private Poly-fresh-symbols* #((requiring-resolve 'typed.cljc.checker.type-ctors/Poly-fresh-symbols*) %)))
-#?(:clj
+#?(:cljs :ignore :default
 (def ^:private Poly-body* #(apply (requiring-resolve 'typed.cljc.checker.type-ctors/Poly-body*) %&)))
-#?(:clj
+#?(:cljs :ignore :default
 (def ^:private PolyDots? #((requiring-resolve 'typed.cljc.checker.type-rep/PolyDots?) %)))
-#?(:clj
+#?(:cljs :ignore :default
 (def ^:private PolyDots-fresh-symbols* #((requiring-resolve 'typed.cljc.checker.type-ctors/PolyDots-fresh-symbols*) %)))
-#?(:clj
+#?(:cljs :ignore :default
 (def ^:private PolyDots-body* #((requiring-resolve 'typed.cljc.checker.type-ctors/PolyDots-body*) %1 %2)))
-#?(:clj
+#?(:cljs :ignore :default
 (def ^:private FnIntersection? #((requiring-resolve 'typed.cljc.checker.type-rep/FnIntersection?) %)))
-#?(:clj
+#?(:cljs :ignore :default
 (def ^:private Protocol* #(apply (requiring-resolve 'typed.cljc.checker.type-ctors/Protocol*) %&)))
-#?(:clj
+#?(:cljs :ignore :default
 (def ^:private Protocol-var->on-class #((requiring-resolve 'typed.cljc.checker.type-ctors/Protocol-var->on-class) %)))
-#?(:clj
+#?(:cljs :ignore :default
 (def ^:private -any #(deref (requiring-resolve 'typed.cljc.checker.type-rep/-any))))
-#?(:clj
+#?(:cljs :ignore :default
 (def ^:private protocol-method-var-ann #(apply (requiring-resolve 'typed.cljc.checker.collect-utils/protocol-method-var-ann) %&)))
-#?(:clj
+#?(:cljs :ignore :default
 (def ^:private make-F #((requiring-resolve 'typed.cljc.checker.type-rep/make-F) %)))
-#?(:clj
+#?(:cljs :ignore :default
 (def ^:private DataType* #(apply (requiring-resolve 'typed.cljc.checker.type-ctors/DataType*) %&)))
-#?(:clj
+#?(:cljs :ignore :default
 (def ^:private Poly* #(apply (requiring-resolve 'typed.cljc.checker.type-ctors/Poly*) %&)))
-#?(:clj
+#?(:cljs :ignore :default
 (def ^:private make-FnIntersection #((requiring-resolve 'typed.cljc.checker.type-rep/make-FnIntersection) %)))
-#?(:clj
+#?(:cljs :ignore :default
 (def ^:private make-Function #(apply (requiring-resolve 'typed.cljc.checker.type-rep/make-Function) %&)))
-#?(:clj
+#?(:cljs :ignore :default
 (def ^:private DataType-of #(apply (requiring-resolve 'typed.cljc.checker.type-ctors/DataType-of) %&)))
-#?(:clj
+#?(:cljs :ignore :default
 (def ^:private subtype? #((requiring-resolve 'typed.clj.checker.subtype/subtype?) %1 %2)))
 
-#?(:clj
+#?(:cljs :ignore :default
 (defn gen-protocol* [current-env current-ns vsym binder mths]
   {:pre [(symbol? current-ns)
          ((some-fn nil? map?) mths)]}
@@ -553,24 +563,24 @@
   (env/swap-checker! update-in [current-dt-ancestors-kw sym] merge tmap)
   nil)
 
-#?(:clj
+#?(:cljs :ignore :default
 (def ^:private demunge #((requiring-resolve 'clojure.repl/demunge) %)))
-#?(:clj
+#?(:cljs :ignore :default
 (def ^:private abstract-many #((requiring-resolve 'typed.cljc.checker.type-ctors/abstract-many) %1 %2)))
-#?(:clj
+#?(:cljs :ignore :default
 (def ^:private with-frees* #((requiring-resolve 'typed.cljc.checker.free-ops/with-frees*) %1 %2)))
-#?(:clj
+#?(:cljs :ignore :default
 (def ^:private -val #((requiring-resolve 'typed.cljc.checker.type-rep/-val) %1)))
-#?(:clj
+#?(:cljs :ignore :default
 (def ^:private -nil #(deref (requiring-resolve 'typed.cljc.checker.type-rep/-nil))))
-#?(:clj
+#?(:cljs :ignore :default
 (def ^:private fv #((requiring-resolve 'typed.cljc.checker.frees/fv) %)))
-#?(:clj
+#?(:cljs :ignore :default
 (def ^:private fi #((requiring-resolve 'typed.cljc.checker.frees/fi) %)))
-#?(:clj
+#?(:cljs :ignore :default
 (def ^:private make-HMap #(apply (requiring-resolve 'typed.cljc.checker.type-ctors/make-HMap) %&)))
 
-#?(:clj
+#?(:cljs :ignore :default
 (defn gen-datatype* [current-env current-ns provided-name fields vbnd opt record?]
   {:pre [(symbol? current-ns)
          (impl-case
