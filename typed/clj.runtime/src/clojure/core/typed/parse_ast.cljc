@@ -27,7 +27,8 @@
   (or *parse-type-in-ns* 
       (impl/impl-case
         :clojure (ns-name *ns*)
-        :cljs (t/tc-ignore ((requiring-resolve 'typed.cljs.checker.util/cljs-ns))))))
+        :cljs (t/tc-ignore ((requiring-resolve 'typed.cljs.checker.util/cljs-ns)))
+		:cljr (ns-name *ns*))))
 
 (t/ann ^:no-check clojure.core.typed.current-impl/assert-clojure
        [t/AnySeqable :? :-> nil])
@@ -120,12 +121,12 @@
 (t/ann *dotted-scope* (t/Map t/Sym t/Sym))
 (def ^:dynamic *dotted-scope* {})
 
-#?(:clj
+#?(:cljs :ignore :default
 (defmacro with-frees [fs & args]
   `(binding [*tvar-scope* (merge *tvar-scope* ~fs)]
      ~@args)))
 
-#?(:clj
+#?(:cljs :ignore :default
 (defmacro with-dfrees [fs & args]
   `(binding [*dotted-scope* (merge *dotted-scope* ~fs)]
      ~@args)))
@@ -149,6 +150,14 @@
                          :type Type
                          :id NameRef}
              :optional {:path (t/Vec PathElem)}))))
+
+#?(:cljr
+
+(do 
+  (def ^:private init-symbol-escape *allow-symbol-escape*)
+  (.bindRoot #'*allow-symbol-escape* false))
+
+)
 
 (t/ann parse-filter [t/Any -> Filter])
 (defn parse-filter [syn]
@@ -212,6 +221,12 @@
       (if m
         m
         (err/int-error (str "Bad filter syntax: " syn))))))
+
+
+#?(:cljr
+
+  (.bindRoot #'*allow-symbol-escape* init-symbol-escape)
+)
 
 (t/defalias FilterSet
   '{:op ':filter-set
@@ -457,6 +472,22 @@
   {'int     {:op :cljs-prim :name 'int}
    'object  {:op :cljs-prim :name 'object}})
 
+(def cljr-primitives
+  {'byte     {:op :clj-prim :name 'byte}
+   'sbyte    {:op :clj-pimr :name 'sbyte}
+   'short    {:op :clj-prim :name 'short}
+   'int      {:op :clj-prim :name 'int}
+   'long     {:op :clj-prim :name 'long}
+   'ushort   {:op :clj-prim :name 'ushort}
+   'uint     {:op :clj-prim :name 'uint}
+   'ulong    {:op :clj-prim :name 'ulong}
+   'float    {:op :clj-prim :name 'float}
+   'double   {:op :clj-prim :name 'double}
+   'boolean  {:op :clj-prim :name 'boolean}
+   'char     {:op :clj-prim :name 'char}
+   'decimal  {:op :clj-prim :name 'decimal}
+   'void     {:op :singleton :val nil}})
+
 (defn parse-free [f gsym]
   (if (symbol? f)
     {:op :F
@@ -640,7 +671,8 @@
     (when (symbol? n)
       (or (impl/impl-case
             :clojure (resolve-type-clj->sym n)
-            :cljs n)
+            :cljs n
+			:cljr (resolve-type-clj->sym n))
           n))))
 
 (defmethod parse-seq* 'quote [syn] (parse-quote syn))
@@ -1072,7 +1104,8 @@
     (or (impl/impl-case
           :clojure (resolve-type-clj->sym n)
           ;TODO
-          :cljs n)
+          :cljs n
+		  :cljr (resolve-type-clj->sym n))
         n)))
 
 (defn parse-Any [s] {:op :Any :form s})
@@ -1092,7 +1125,8 @@
   [sym]
   (let [primitives (impl/impl-case
                      :clojure clj-primitives
-                     :cljs cljs-primitives)
+                     :cljs cljs-primitives
+					 :cljr cljr-primitives)
         free (when (symbol? sym)
                (*tvar-scope* sym))]
     (cond
@@ -1126,6 +1160,30 @@
                                (when (contains? (impl/datatype-env) qname)
                                  {:op :DataType :name qname :form sym})))))
               :cljs (assert nil)
+			  :cljr (let [res (when (symbol? sym)
+                                   (resolve-type-clj sym))]
+                         (cond 
+                           (class? res) (let [csym (coerce/Class->symbol res)
+                                              dt? (contains? (impl/datatype-env) csym)]
+                                          {:op (if dt? :DataType :Class) :name csym
+                                           :form sym})
+                           (var? res) (let [vsym (coerce/var->symbol res)
+                                            vsym-nsym (-> vsym namespace symbol)
+                                            vsym (symbol (name (ns-rewrites-clj vsym-nsym vsym-nsym))
+                                                         (name vsym))]
+                                        (if (contains? (impl/alias-env) vsym)
+                                          {:op :Name :name vsym :form sym}
+                                          {:op :Protocol :name vsym :form sym}))
+                           (symbol? sym)
+                           (if-let [qsym (resolve-type-alias-clj sym)]
+                             ; a type alias without an interned var
+                             {:op :Name :name qsym :form sym}
+                             ;an annotated datatype that hasn't been defined yet
+                             ; assume it's in the current namespace
+                                      ; do we want to munge the sym also?
+                             (let [qname (symbol (str (namespace-munge (parse-in-ns)) "." sym))]
+                               (when (contains? (impl/datatype-env) qname)
+                                 {:op :DataType :name qname :form sym})))))
                #_(when-let [res (when (symbol? sym)
                                       (resolve-type-cljs sym))]
                        (:name res)))

@@ -12,6 +12,7 @@
 
 (defn checker-or-nil []
   {:post [(or #?(:clj (instance? clojure.lang.IAtom %)
+                 :cljr (instance? clojure.lang.IAtom %)
                  :cljs (instance? Atom %))
               (nil? %))]}
   *checker*)

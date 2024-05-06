@@ -438,7 +438,7 @@ for checking namespaces, cf for checking individual forms."}
    (core/let
      [qsym (qualify-sym sym)]
      `(tc-ignore
-        (when (= "true" (System/getProperty "clojure.core.typed.intern-defaliases"))
+        (when (= "true" (#?(:cljr Environment/GetEnvironmentVariable :default System/getProperty) "clojure.core.typed.intern-defaliases"))
           (intern '~qsym '~(with-meta (symbol (name sym))
                                       (meta sym))))
         (defalias* '~qsym '~t '~&form)))))

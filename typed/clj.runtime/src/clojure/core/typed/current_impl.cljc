@@ -21,13 +21,14 @@
 ;; copied to typed.cljs.runtime.env
 (def clojurescript ::clojurescript)
 
-;; We don't have a typed.cljr.runtime.env to copy to -- is this a problem?
+;; We don't have a typed.cljr.runtime.env to copy to -- is this a problem?  What does this even mean?
 (def cljr ::cljr)
 
 (def unknown ::unknown)
 
 (derive clojure unknown)
 (derive clojurescript unknown)
+(derive cljr unknown)
 
 ;; :clojure = ::clojure
 ;; :cljs = ::clojurescript
