@@ -6,3 +6,5 @@
 - revert bad optimization in analyzer (caught by David Miller during CLR port)
 - support Clojure 1.9.0 in analyzers
 - add alternative syntax for "or" proposition: (or Props...)
+- using requiring-resolve to resolve protocol vars during type checking
+  - allows `:as-alias` to be used in annotations

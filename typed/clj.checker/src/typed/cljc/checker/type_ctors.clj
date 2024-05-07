@@ -747,7 +747,7 @@
   {:pre [((some-fn r/Protocol? r/Satisfies?) t)]
    :post [(var? %)]}
   (impl/assert-clojure)
-  (let [v (resolve the-var)]
+  (let [v (requiring-resolve the-var)]
     (assert (var? v) (str "Cannot resolve protocol: " the-var))
     v))
 
