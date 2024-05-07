@@ -160,55 +160,56 @@
                 (case f
                   is
                   (let [[tsyn nme psyns] args
-                        _ (when (and (#{3} (count args))
+                        _ (when (and (= 3 (count args))
                                      (not (vector? psyns)))
                             (err/int-error
                               (str "3rd argument to 'is' must be a vector")))
-                        _ (when-not (#{2 3} (count args))
+                        _ (when-not (<= 2 (count args) 3)
                             (throw (ex-info "Bad arguments to 'is'"
                                             {:form syn})))
                         t (parse tsyn)
-                        p (when (#{3} (count args))
+                        p (when (= 3 (count args))
                             (mapv parse-path-elem psyns))]
-                    (merge 
+                    (cond-> 
                       {:op :type-filter
                        :type t
                        :id nme}
-                      (when p
-                        {:path p})))
+                      p (assoc :path p)))
                   !
                   (let [[tsyn nme psyns] args
-                        _ (when (and (#{3} (count args))
+                        _ (when (and (= 3 (count args))
                                      (not (vector? psyns)))
                             (err/int-error
                               (str "3rd argument to '!' must be a vector")))
-                        _ (when-not (#{2 3} (count args))
+                        _ (when-not (<= 2 (count args) 3)
                             (throw (ex-info "Bad arguments to '!'"
                                             {:form syn})))
                         t (parse tsyn)
-                        p (when (#{3} (count args))
+                        p (when (= 3 (count args))
                             (mapv parse-path-elem psyns))]
-                    (merge 
+                    (cond-> 
                       {:op :not-type-filter
                        :type t
                        :id nme}
-                      (when p
-                        {:path p})))
-                  |
-                  {:op :or-filter
-                   :fs (mapv parse-filter args)}
+                      p (assoc :path p)))
                   &
                   {:op :and-filter
                    :fs (mapv parse-filter args)}
                   when
                   (let [[a c] args]
-                    (when-not (#{2} (count args))
+                    (when-not (= 2 (count args))
                       (throw (ex-info "Bad arguments to 'when'"
                                       {:form syn})))
                     {:op :impl-filter
                      :a (parse-filter a)
                      :c (parse-filter c)})
-                  nil)))]
+                  (cond
+                    (or (= 'or f)
+                        (and (simple-symbol? f)
+                             ;; clojure-clr treats pipes in symbols as special
+                             (= "|" (name f))))
+                    {:op :or-filter
+                     :fs (mapv parse-filter args)}))))]
       (if m
         m
         (err/int-error (str "Bad filter syntax: " syn))))))

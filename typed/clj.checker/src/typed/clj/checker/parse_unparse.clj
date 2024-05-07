@@ -1361,7 +1361,15 @@
     (= 'tt f) f/-top
     (= 'ff f) f/-bot
     (= 'no-filter f) f/-no-filter
-    (not ((some-fn seq? list?) f)) (prs-error (str "Malformed filter expression: " (pr-str f)))
+    (not (seq? f)) (prs-error (str "Malformed filter expression: " (pr-str f)))
+
+    (when-some [op (first f)]
+      (and (simple-symbol? op)
+           (or (= 'or op)
+               ;; clojure-clr treats pipes in symbols as special
+               (= "|" (name op)))))
+    (apply fl/-or (mapv parse-filter (next f)))
+
     :else (parse-filter* f)))
 
 (defn parse-object-path [{:keys [id path]}]
@@ -1413,12 +1421,7 @@
             (mapv parse-path-elem psyns))]
     (fl/-not-filter t nme p)))
 
-(defmethod parse-filter* '|
-  [[_ & fsyns]]
-  (apply fl/-or (mapv parse-filter fsyns)))
-
-(defmethod parse-filter* '&
-  [[_ & fsyns]]
+(defmethod parse-filter* '& [[_ & fsyns]]
   (apply fl/-and (mapv parse-filter fsyns)))
 
 (defmethod parse-filter* 'when
@@ -2436,7 +2439,7 @@
   AndFilter 
   (unparse-filter* [{:keys [fs]}] (apply list '& (map unparse-filter fs)))
   OrFilter 
-  (unparse-filter* [{:keys [fs]}] (apply list '| (map unparse-filter fs)))
+  (unparse-filter* [{:keys [fs]}] (apply list 'or (map unparse-filter fs)))
 
   ImpFilter
   (unparse-filter* 

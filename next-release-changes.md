@@ -5,3 +5,4 @@
   - fix t/Match to work without type variables
 - revert bad optimization in analyzer (caught by David Miller during CLR port)
 - support Clojure 1.9.0 in analyzers
+- add alternative syntax for "or" proposition: (or Props...)

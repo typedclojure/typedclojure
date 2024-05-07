@@ -4496,3 +4496,14 @@
   (is-tc-err "a" (t/SeqOn t/Int))
   (is-tc-e (seq [1 2 3]) (t/NonEmptyASeq t/Int))
   )
+
+(deftest or-filter-syntax-test
+  (is (prs-ast/parse-clj `[:-> t/Any :filters {:then (~'| (~'is (t/U nil false) 0 [(~'Key :a)])
+                                                           (~'is (t/HMap :absent-keys #{:a}) 0))}]))
+  (is (prs-ast/parse-clj `[:-> t/Any :filters {:then (~'or (~'is (t/U nil false) 0 [(~'Key :a)])
+                                                           (~'is (t/HMap :absent-keys #{:a}) 0))}]))
+  (is (parse-clj `[:-> t/Any :filters {:then (~'| (~'is (t/U nil false) 0 [(~'Key :a)])
+                                                  (~'is (t/HMap :absent-keys #{:a}) 0))}]))
+  (is (parse-clj `[:-> t/Any :filters {:then (~'or (~'is (t/U nil false) 0 [(~'Key :a)])
+                                                   (~'is (t/HMap :absent-keys #{:a}) 0))}]))
+)
