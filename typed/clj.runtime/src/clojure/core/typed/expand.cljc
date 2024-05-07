@@ -259,7 +259,7 @@
                                                          ~(expand-with-open (subvec bindings 2) body)
                                                          (finally
                                                            (. ~(bindings 0) close))))
-                             :else (throw (IllegalArgumentException. "with-open only allows Symbols in bindings"))))]
+                             :else (throw (#?(:cljr ArgumentException. :default IllegalArgumentException.) "with-open only allows Symbols in bindings"))))]
     (expand-with-open bindings body)))
 
 (defmethod -expand-macro 'clojure.core/assert
@@ -286,7 +286,7 @@
                (if (seq? (first sigs))
                  sigs
                  ;; Assume single arity syntax
-                 (throw (IllegalArgumentException.
+                 (throw (#?(:cljr ArgumentException. :default IllegalArgumentException.)
                           (if (seq sigs)
                             (str "Parameter declaration "
                                  (first sigs)
