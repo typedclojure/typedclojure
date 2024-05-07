@@ -156,8 +156,8 @@
                            ;[(Option (Coll x)) -> (Option (NonEmptyASeq x))
                            ; :filters {:then (& (is NonEmptyCount 0)
                            ;                    (! nil 0))
-                           ;           :else (| (is nil 0)
-                           ;                    (is EmptyCount 0))}]
+                           ;           :else (or (is nil 0)
+                           ;                     (is EmptyCount 0))}]
                            :else (fo/-FS (fo/-and (fo/-filter-at (r/make-CountRange (inc nnexts))
                                                                  (:o target-ret))
                                                   (fo/-not-filter-at r/-nil

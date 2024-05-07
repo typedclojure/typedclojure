@@ -189,8 +189,8 @@
 ;              '(Fn ['{:a java.lang.Number} -> java.lang.Number 
 ;                    :filters {:then (& (is (t/HMap :mandatory {:a Number}) 0)
 ;                                       (is java.lang.Number 0 [(Key :a)]))
-;                              :else (| (is (t/U nil false) 0 [(Key :a)])
-;                                       (is (t/HMap :absent-keys #{:a}) 0) )} 
+;                              :else (or (is (t/U nil false) 0 [(Key :a)])
+;                                        (is (t/HMap :absent-keys #{:a}) 0) )} 
 ;                    :object {:path [(Key :a)], :id 0}])))))
 
 (deftest truth-false-values-test
@@ -257,8 +257,8 @@
     [(t/U '{:op (t/Value :var)} '{:op (t/Value :if)}) :-> (t/U ':var ':if) 
      :filters {:then (& (! (t/U nil false) 0 [(Key :op)])
                         (is (t/U ':if ':var) 0 [(Key :op)]))
-               :else (| (is (t/HMap :absent-keys #{:op}) 0) 
-                        (is (t/U nil false) 0 [(Key :op)]))} 
+               :else (or (is (t/HMap :absent-keys #{:op}) 0) 
+                         (is (t/U nil false) 0 [(Key :op)]))} 
      :object {:path [(Key :op)], :id 0}]))
 
 (deftest refine-test
@@ -343,83 +343,83 @@
   (is-clj (implied-atomic?
             (clj
               (parse-filter
-                '(| (! ':Red   tmap [(Key :right) (Key :left) (Key :tree)]) 
-                    (! ':Black tmap [(Key :tree)]) 
-                    (! ':Red   tmap [(Key :right) (Key :tree)]) 
-                    (! ':Red   tmap [(Key :left)  (Key :tree)]))))
+                '(or (! ':Red   tmap [(Key :right) (Key :left) (Key :tree)]) 
+                     (! ':Black tmap [(Key :tree)]) 
+                     (! ':Red   tmap [(Key :right) (Key :tree)]) 
+                     (! ':Red   tmap [(Key :left)  (Key :tree)]))))
             (clj 
               (parse-filter
-                '(| (! ':Red   tmap [(Key :right) (Key :left) (Key :tree)]) 
-                    (! ':Black tmap [(Key :tree)]) 
-                    (! ':Red   tmap [(Key :right) (Key :tree)])) ))
+                '(or (! ':Red   tmap [(Key :right) (Key :left) (Key :tree)]) 
+                     (! ':Black tmap [(Key :tree)]) 
+                     (! ':Red   tmap [(Key :right) (Key :tree)])) ))
             ))
 
   (is-clj 
     (let [f1 (clj 
                (parse-filter
-                 '(| (! ':Red   tmap [(Key :right) (Key :left) (Key :tree)]) 
-                     (! ':Black tmap [(Key :tree)]) 
-                     (! ':Red   tmap [(Key :right) (Key :tree)]))))
+                 '(or (! ':Red   tmap [(Key :right) (Key :left) (Key :tree)]) 
+                      (! ':Black tmap [(Key :tree)]) 
+                      (! ':Red   tmap [(Key :right) (Key :tree)]))))
           f2 (clj
                (parse-filter
-                 '(| (! ':Red   tmap [(Key :right) (Key :left) (Key :tree)]) 
-                     (! ':Black tmap [(Key :tree)]) 
-                     (! ':Red   tmap [(Key :right) (Key :tree)]) 
-                     (! ':Red   tmap [(Key :left)  (Key :tree)]))))]
+                 '(or (! ':Red   tmap [(Key :right) (Key :left) (Key :tree)]) 
+                      (! ':Black tmap [(Key :tree)]) 
+                      (! ':Red   tmap [(Key :right) (Key :tree)]) 
+                      (! ':Red   tmap [(Key :left)  (Key :tree)]))))]
       (= (-and f1 f2)
          (-and f2 f1)
          f1)))
   (is-clj 
     (not (implied-atomic?
            (parse-filter
-             '(| (! ':Red   tmap [(Key :right) (Key :right) (Key :tree)]) 
-                 (! ':Black tmap [(Key :tree)]) 
-                 (! ':Red   tmap [(Key :right) (Key :tree)])))
+             '(or (! ':Red   tmap [(Key :right) (Key :right) (Key :tree)]) 
+                  (! ':Black tmap [(Key :tree)]) 
+                  (! ':Red   tmap [(Key :right) (Key :tree)])))
            (parse-filter
-             '(| (! ':Red   tmap [(Key :right) (Key :right) (Key :tree)]) 
-                 (! ':Black tmap [(Key :tree)]) 
-                 (! ':Red   tmap [(Key :right) (Key :tree)])
-                 (! ':Red   tmap [(Key :left)  (Key :tree)]))))))
+             '(or (! ':Red   tmap [(Key :right) (Key :right) (Key :tree)]) 
+                  (! ':Black tmap [(Key :tree)]) 
+                  (! ':Red   tmap [(Key :right) (Key :tree)])
+                  (! ':Red   tmap [(Key :left)  (Key :tree)]))))))
   (is-clj (implied-atomic?
                  (parse-filter
-                   '(| (! ':Red   tmap [(Key :right) (Key :right) (Key :tree)]) 
-                       (! ':Black tmap [(Key :tree)]) 
-                       (! ':Red   tmap [(Key :right) (Key :tree)]) 
-                       (! ':Red   tmap [(Key :left)  (Key :tree)])))
+                   '(or (! ':Red   tmap [(Key :right) (Key :right) (Key :tree)]) 
+                        (! ':Black tmap [(Key :tree)]) 
+                        (! ':Red   tmap [(Key :right) (Key :tree)]) 
+                        (! ':Red   tmap [(Key :left)  (Key :tree)])))
                  (parse-filter
-                   '(| (! ':Red   tmap [(Key :right) (Key :right) (Key :tree)]) 
-                       (! ':Black tmap [(Key :tree)]) 
-                       (! ':Red   tmap [(Key :right) (Key :tree)])))))
+                   '(or (! ':Red   tmap [(Key :right) (Key :right) (Key :tree)]) 
+                        (! ':Black tmap [(Key :tree)]) 
+                        (! ':Red   tmap [(Key :right) (Key :tree)])))))
   (is-clj (= (clj
                (-and
                  (clj
                    (parse-filter
-                     '(| (! ':Red   tmap [(Key :right) (Key :right) (Key :tree)]) 
-                         (! ':Black tmap [(Key :tree)]) 
-                         (! ':Red   tmap [(Key :right) (Key :tree)]))))
+                     '(or (! ':Red   tmap [(Key :right) (Key :right) (Key :tree)]) 
+                          (! ':Black tmap [(Key :tree)]) 
+                          (! ':Red   tmap [(Key :right) (Key :tree)]))))
                  (clj
                    (parse-filter
-                     '(| (! ':Red   tmap [(Key :right) (Key :right) (Key :tree)]) 
-                         (! ':Black tmap [(Key :tree)]) 
-                         (! ':Red   tmap [(Key :right) (Key :tree)]) 
-                         (! ':Red   tmap [(Key :left)  (Key :tree)]))))))
+                     '(or (! ':Red   tmap [(Key :right) (Key :right) (Key :tree)]) 
+                          (! ':Black tmap [(Key :tree)]) 
+                          (! ':Red   tmap [(Key :right) (Key :tree)]) 
+                          (! ':Red   tmap [(Key :left)  (Key :tree)]))))))
              (clj
                (-and
                  (clj
                    (parse-filter
-                     '(| (! ':Red   tmap [(Key :right) (Key :right) (Key :tree)]) 
-                         (! ':Black tmap [(Key :tree)]) 
-                         (! ':Red   tmap [(Key :right) (Key :tree)]) 
-                         (! ':Red   tmap [(Key :left)  (Key :tree)]))))
+                     '(or (! ':Red   tmap [(Key :right) (Key :right) (Key :tree)]) 
+                          (! ':Black tmap [(Key :tree)]) 
+                          (! ':Red   tmap [(Key :right) (Key :tree)]) 
+                          (! ':Red   tmap [(Key :left)  (Key :tree)]))))
                  (clj
                    (parse-filter
-                     '(| (! ':Red   tmap [(Key :right) (Key :right) (Key :tree)]) 
-                         (! ':Black tmap [(Key :tree)]) 
-                         (! ':Red   tmap [(Key :right) (Key :tree)]))))))
+                     '(or (! ':Red   tmap [(Key :right) (Key :right) (Key :tree)]) 
+                          (! ':Black tmap [(Key :tree)]) 
+                          (! ':Red   tmap [(Key :right) (Key :tree)]))))))
              (parse-filter
-               '(| (! ':Red   tmap [(Key :right) (Key :right) (Key :tree)]) 
-                   (! ':Black tmap [(Key :tree)]) 
-                   (! ':Red   tmap [(Key :right) (Key :tree)])))))
+               '(or (! ':Red   tmap [(Key :right) (Key :right) (Key :tree)]) 
+                    (! ':Black tmap [(Key :tree)]) 
+                    (! ':Red   tmap [(Key :right) (Key :tree)])))))
   )
 
 
@@ -1245,8 +1245,8 @@
   (is (check-ns 'clojure.core.typed.test.filter-combine)))
 
 (deftest or-filter-simplify-test
-  ;(| (is T  a)
-  ;   (is T' a))
+  ;(or (is T  a)
+  ;    (is T' a))
   ; simplifies to
   ;(is (t/U T T') a)
   (is-clj 
@@ -1256,8 +1256,8 @@
                     (RClass-of String))
                 'id)))
 
-  ;(| (is T  a pth)
-  ;   (is T' a pth))
+  ;(or (is T  a pth)
+  ;    (is T' a pth))
   ; simplifies to
   ;(is (t/U T T') a pth)
   (is-clj 
@@ -1315,13 +1315,13 @@
               [(t/U '{:op ':if} '{:op ':case})
                -> (t/U ':if ':case)
                :filters {:then (is (t/U ':case ':if) 0 [(Key :op)])
-                         :else (| (is (t/HMap :absent-keys #{:op}) 0)
-                                  (is (t/U false nil) 0 [(Key :op)]))}
+                         :else (or (is (t/HMap :absent-keys #{:op}) 0)
+                                   (is (t/U false nil) 0 [(Key :op)]))}
                :object {:id 0
                         :path [(Key :op)]}]))
   ; {:then (is :if 0 [:op])
-  ;  :else (| (! :if 0 [:op])
-  ;           (is (t/HMap :absent-keys #{:op}) 0))}
+  ;  :else (or (! :if 0 [:op])
+  ;            (is (t/HMap :absent-keys #{:op}) 0))}
   (is-tc-e #(= :if (:op %))
            [(t/U '{:op ':if} '{:op ':case})
             -> Boolean

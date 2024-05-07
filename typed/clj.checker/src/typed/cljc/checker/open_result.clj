@@ -25,13 +25,13 @@
 ;; The latent result:
 ; (Option (ISeq x))
 ; :filters {:then (is (CountRange 1) 0)
-;           :else (| (is nil 0)
-;                    (is (ExactCount 0) 0))}]))
+;           :else (or (is nil 0)
+;                     (is (ExactCount 0) 0))}]))
 ;; instantiates to 
 ; (Option (ISeq x))
 ; :filters {:then (is (CountRange 1) a)
-;           :else (| (is nil a)
-;                    (is (ExactCount 0) a))}]))
+;           :else (or (is nil a)
+;                     (is (ExactCount 0) a))}]))
 ;;
 ;; Notice the objects are instantiated from 0 -> a
 ;
