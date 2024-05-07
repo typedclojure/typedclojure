@@ -1847,8 +1847,8 @@ cc/seq (t/All [[x :< t/AnySeqable]]
                          [(t/Option (t/Coll x)) :-> (t/NilableNonEmptyASeq x)
                           :filters {:then (& (is t/NonEmptyCount 0)
                                              (! nil 0))
-                                    :else (| (is nil 0)
-                                             (is t/EmptyCount 0))}]
+                                    :else (or (is nil 0)
+                                              (is t/EmptyCount 0))}]
                          [(t/Seqable x) :-> (t/NilableNonEmptyASeq x)]))
 
 ; t/Seqable [[x :variance :covariant]
@@ -1864,12 +1864,12 @@ cc/seq (t/All [[x :< t/AnySeqable]]
 ;                      [(t/Seqable x :count AnyCountRange :to-seq sfn) :-> (t/U nil (sfn x))]))
 
 cc/empty? (t/IFn [(t/Option (t/HSequential [t/Any :*])) :-> t/Bool
-                  :filters {:then (| (is t/EmptyCount 0)
-                                     (is nil 0))
+                  :filters {:then (or (is t/EmptyCount 0)
+                                      (is nil 0))
                             :else (is t/NonEmptyCount 0)}]
                  [(t/Option (t/Coll t/Any)) :-> t/Bool
-                  :filters {:then (| (is t/EmptyCount 0)
-                                     (is nil 0))
+                  :filters {:then (or (is t/EmptyCount 0)
+                                      (is nil 0))
                             :else (is t/NonEmptyCount 0)}]
                  [t/AnySeqable :-> t/Bool])
 
@@ -2037,8 +2037,8 @@ cc/butlast (t/All [x] [(t/Seqable x) :-> (t/NilableNonEmptyASeq x)])
 cc/next (t/All [x] (t/IFn [(t/Option (t/Coll x)) :-> (t/NilableNonEmptyASeq x)
                            :filters {:then (& (is (t/CountRange 2) 0)
                                               (! nil 0))
-                                     :else (| (is (t/CountRange 0 1) 0)
-                                              (is nil 0))}]
+                                     :else (or (is (t/CountRange 0 1) 0)
+                                               (is nil 0))}]
                           [(t/Seqable x) :-> (t/NilableNonEmptyASeq x)]))
 
 cc/into
