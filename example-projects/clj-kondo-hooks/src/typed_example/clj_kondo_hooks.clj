@@ -172,3 +172,5 @@ ctdefn-unexpected1
   (recur (inc a)))
 (ct/loop [a :- (inc "unexpected-failure"), 1]
   (recur (inc a)))
+
+(ct/pred (inc "unexpected-failure"))
