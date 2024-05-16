@@ -9,3 +9,4 @@
 - using requiring-resolve to resolve protocol vars during type checking
   - allows `:as-alias` to be used in annotations
 - add clj-kondo hook for `clojure.core.typed/pred`
+- add `clojure.string/starts-with?` annotation

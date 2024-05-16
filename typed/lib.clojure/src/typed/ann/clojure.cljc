@@ -1606,6 +1606,9 @@ cc/char? #?(:clj (t/Pred Character)
 clojure.string/split
 [t/Str t/Regex (t/? t/AnyInteger) :-> (t/AVec t/Str)]
 
+clojure.string/starts-with?
+[t/Str t/Str :-> t/Bool]
+
 clojure.string/join
 [(t/? t/Any) t/AnySeqable :-> t/Str]
 
