@@ -7,12 +7,33 @@ checks and improve performance.
 
 ## Identical namespace caching
 
+The most common case is that a namepsace has not changed textually. This is the main
+case targetted by tools.namespace, and while we do could do more granular caching, this
+should always be checked first to avoid extra work.
+
 If an entire namespace is exactly the same as the last time it was type checked,
 we need to recheck it if:
 
-- a different Typed Clojure version is used
-- a transitive .clj dependency changes
-- a typing rule used to check the namespace changes
+1. a different Typed Clojure version is used
+2. a transitive .clj dependency changes
+3. a typing rule used to check the namespace changes
+4. any type aliases/annotations used in the process of type checking the namespace have changed
+- typed.cljc.checker.name-env/get-type-name
+- typed.cljc.checker.var-env/lookup-Var-nofail
+
+```clojure
+(ns example
+  (:require [typed.clojure :as t]
+            [annotation-ns :as-alias ann]
+            ;; 2) if dep.clj changes or any of its dependencies
+            dep))
+
+;; 4) if ann/Str changes its meaning
+(t/ann foo [ann/Str :-> t/Bool])
+(defn foo [x]
+  ;; 4) if dep/string->boolean changes its annotation
+  (dep/string->boolean x))
+```
 
 If we need to recheck it, ideally only part of the namespace needs to be rechecked (next section).
 
@@ -31,6 +52,8 @@ when looking up its type in a cache.
 For example, a form could be identified as a cache key using a combination of:
 - its ns form
 - the form itself
+- all used vars
+- all type aliases
 
 If it is a `defn`, perhaps the name of the `def` could also be used for faster lookups.
 
