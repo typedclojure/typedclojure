@@ -2,7 +2,7 @@
   (:require [typed.clojure :as t]))
 
 (defmacro slow-macro
-  "Takes 1 second to type check via cache.rules__cache.slow__slow-macro/defuspecial__slow-macro"
+  "Takes 1 second to type check via cache.rules__slow-macro/defuspecial__slow-macro"
   [])
 
 (t/ann a [t/Int :-> t/Bool])
