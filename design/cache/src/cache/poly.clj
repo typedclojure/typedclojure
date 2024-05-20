@@ -1,7 +1,7 @@
 (ns cache.poly
   (:require [typed.clojure :as t]))
 
-(t/defalias As (t/Seqable t/Int))
+(t/defalias As (t/Seqable t/Int)) ;; changing this alias should trigger rechecking all defn's in this namespace
 (t/defalias Bs (t/Seqable t/Bool))
 
 (t/ann-many [As :-> Bs]
