@@ -6,7 +6,7 @@
 
 (t/defalias A1 ':A1)
 (t/defalias A2 ':A2)
-(t/defalias A3 ':A3 #_':A0) ;; changing this should recheck a3 and a2 (since it uses a3)
+(t/defalias A3 ':A3 #_':A0) ;; changing this should recheck a3 (since it changes its ann) and a2 (since it uses a3)
 (t/defalias A4 ':A4)
 (t/defalias A5 ':A5)
 
