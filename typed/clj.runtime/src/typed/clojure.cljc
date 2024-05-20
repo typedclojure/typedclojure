@@ -9,6 +9,7 @@
 ;; experimental
 (ns ^{:doc "Wrapper macros that do the right thing for each platform.
            See typed.clojure.jvm for jvm-specific ops."}
+  ^:typed.clojure/ignore
   typed.clojure
   (:refer-clojure :exclude [type defprotocol #_letfn fn loop dotimes let for doseq
                             defn atom ref cast])

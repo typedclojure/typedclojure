@@ -13,7 +13,7 @@
             [typed.clj.checker.check-ns :as check-ns-clj]))
 
 (core/defn default-check-config []
-  {:check-ns-dep :recheck
+  {:check-ns-dep :never
    :unannotated-def :infer
    :unannotated-var :error
    :unannotated-multi :error
@@ -124,7 +124,7 @@
     - :check-ns-dep  If `:recheck`, always check dependencies.
                      If `:never`, ns dependencies are ignored.
                      #{:recheck :never}
-                     Default: :recheck
+                     Default: :never
     - :unannotated-def   If `:unchecked`, unannotated `def`s are ignored
                          and their type is not recorded.
                          If `:infer`, unannotated `def`s are inferred by their

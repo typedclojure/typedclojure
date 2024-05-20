@@ -453,7 +453,6 @@
                               nil)
     :else
     (let [; check deps
-          #_#_
           _ (when (= :recheck (some-> vs/*check-config* :check-ns-dep))
               (checked-ns! nsym)
               ;check normal dependencies

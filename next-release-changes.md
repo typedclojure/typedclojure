@@ -10,3 +10,4 @@
   - allows `:as-alias` to be used in annotations
 - add clj-kondo hook for `clojure.core.typed/pred`
 - add `clojure.string/starts-with?` annotation
+- default `:check-config` `:check-ns-dep` to `:never` and fix `:recheck`
