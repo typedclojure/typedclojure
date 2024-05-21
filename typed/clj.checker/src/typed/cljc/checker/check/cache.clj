@@ -1,0 +1,138 @@
+;;   Copyright (c) Ambrose Bonnaire-Sergeant, Rich Hickey & contributors.
+;;   The use and distribution terms for this software are covered by the
+;;   Eclipse Public License 1.0 (https://opensource.org/license/epl-1-0/)
+;;   which can be found in the file epl-v10.html at the root of this distribution.
+;;   By using this software in any fashion, you are agreeing to be bound by
+;;   the terms of this license.
+;;   You must not remove this notice, or any other, from this software.
+
+(ns typed.cljc.checker.check.cache
+  (:require [typed.cljc.checker.check :as check]
+            [typed.cljc.checker.var-env :as var-env]
+            [clojure.pprint :as pp]
+            [typed.cljc.runtime.env :as env]
+            [clojure.core.typed.util-vars :as uvs]
+            [clojure.core.typed.current-impl :as impl]
+            [typed.cljc.checker.check.utils :as cu]
+            [typed.cljc.analyzer :as ana2]))
+
+(defn cache-id
+  [expr expected opts]
+  (str (random-uuid)
+       "#:;-;:#"
+       (-> expr :env :ns)
+       "#:;-;:#"
+       (when (some? expected)
+         (random-uuid))
+       "#:;-;:#"
+       (when (-> expr :env :locals seq)
+         (random-uuid))))
+
+(defn monitored-checker-map [m callback path]
+  (reify
+    clojure.lang.IPersistentMap
+    (containsKey [_ k] (let [res (.containsKey ^clojure.lang.Associative m k)]
+                         (when res (callback (conj path k)))
+                         res))
+    clojure.lang.IFn
+    (invoke [this k] (.valAt this k))
+    (iterator [_] (let [res (.iterator ^java.util.Iterator m)]
+                    ;;TODO
+                    (callback (conj path ::ALL))
+                    res))
+    clojure.lang.ILookup
+    (entryAt [_ k] (let [r (find m k)
+                         path (conj path k)]
+                     (if r
+                       (if (map? (nth r 1))
+                         (update r 1 monitored-checker-map callback path)
+                         (do (callback path)
+                             r))
+                       (do (callback path)
+                           r))))
+    (valAt [_ k] (let [r (get m k)
+                       path (conj path k)]
+                   (if (map? r)
+                     (monitored-checker-map r callback path)
+                     (do (when (some? r) (callback path))
+                         r))))
+    (valAt [_ k not-found] (let [unique (Object.)
+                                 r (get m k unique)]
+                             (if (identical? r unique)
+                               not-found
+                               (let [path (conj path k)]
+                                 (if (map? r)
+                                   (monitored-checker-map r callback path)
+                                   (do (when (some? r) (callback path))
+                                       r))))))))
+
+(defn with-recorded-deps [expr expected]
+  (let [errors (volatile! nil)
+        types (atom {})
+        vars (atom #{})
+        interop (atom {})
+        instrumented-checker (when-some [^clojure.lang.IAtom2 checker env/*checker*]
+                               (reify
+                                 clojure.lang.IAtom2
+                                 (swapVals [_ f] (.swapVals checker f))
+                                 (swapVals [_ f arg] (.swapVals checker f arg))
+                                 (swapVals [_ f arg1 arg2] (.swapVals checker f arg1 arg2))
+                                 (swapVals [_ f x y args] (.swapVals checker f x y args))
+                                 (swap [_ f] (.swap checker f))
+                                 (swap [_ f arg] (.swap checker f arg))
+                                 (swap [_ f arg1 arg2] (.swap checker f arg1 arg2))
+                                 (swap [_ f x y args] (.swap checker f x y args))
+                                 (compareAndSet [_ old new] (.compareAndSet checker old new))
+                                 (reset [_ new] (.reset checker new))
+                                 clojure.lang.IDeref
+                                 (deref [_] (monitored-checker-map @checker #(swap! types update-in % (fn [prev] (or prev {}))) []))))]
+    (binding [env/*checker* instrumented-checker
+              ana2/resolve-sym (let [resolve-sym ana2/resolve-sym]
+                                 (fn [sym env]
+                                   (let [r (resolve-sym sym env)]
+                                     (when (ana2/var? r)
+                                       (swap! vars conj r))
+                                     r)))
+              check/check-expr (let [check-expr check/check-expr]
+                                 (fn ce
+                                   ([expr] (ce expr nil))
+                                   ([expr expected] (let [{:keys [op] :as cexpr} (check-expr expr expected)]
+                                                      (when (impl/checking-clojure?)
+                                                        ;;TODO resolve actual method signatures
+                                                        (case op
+                                                          (:instance-call :static-call) (swap! interop update op (fnil conj #{}) (cu/MethodExpr->qualsym cexpr))
+                                                          (:instance-field :static-field) (swap! interop update op (fnil conj #{}) (cu/FieldExpr->qualsym cexpr))
+                                                          :new (swap! interop update op (fnil conj #{}) (cu/NewExpr->qualsym cexpr))
+                                                          nil))
+                                                      cexpr))))]
+      (let [result (check/check-expr expr expected)]
+        (assoc result ::cache-info {::types @types ::vars @vars ::errors (pos? (count @uvs/*delayed-errors*)) ::interop @interop})))))
+
+(defn need-to-check-top-level-expr? [expr expected opts]
+  ;;TODO
+  true)
+
+(defn- record-cache! [{::keys [cache-info] :as cexpr}
+                      {:keys [form] :as original}]
+  (when (-> *ns* meta :typed.clojure :experimental :cache)
+    (if (::errors cache-info)
+      (println "cache: Not caching form due to type error")
+      (println "cache: Caching form with cache info"))
+    (binding [*print-namespace-maps* false
+              *print-level* 10
+              *print-length* 10
+              ;*print-meta* true
+              ]
+      (println "cache: dependencies for form:"
+               (pr-str form)))
+    (binding [*print-namespace-maps* false
+              *print-level* nil
+              *print-length* nil]
+      (pp/pprint cache-info))))
+
+(defn check-top-level-expr [expr expected opts]
+  (if (need-to-check-top-level-expr? expr expected opts)
+    (let [cexpr (with-recorded-deps expr expected)]
+      (when (not expected) (record-cache! cexpr expr))
+      cexpr)
+    expr))

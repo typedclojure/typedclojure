@@ -8,6 +8,7 @@
 
 (ns ^:no-doc typed.clj.checker.check
   (:require [typed.clojure :as t]
+            [typed.cljc.checker.check.cache :as cache]
             [typed.cljc.checker.filter-ops :as fo]
             [clojure.core.typed.ast-utils :as ast-u]
             [clojure.core.typed.coerce-utils :as coerce]
@@ -241,7 +242,7 @@
          (env/ensure (jana2/global-env)
            (-> form
                (ana2/unanalyzed-top-level (or env (jana2/empty-env)))
-               (check-expr expected)
+               (cache/check-top-level-expr expected opts)
                (into extra))))))))
 
 
@@ -1716,9 +1717,7 @@
               ;; call when we're convinced there's no way to rewrite this AST node
               ;; in a non-reflective way.
               give-up (fn [expr]
-                        (let [clssym (-> expr
-                                         ast-u/new-op-class 
-                                         coerce/Class->symbol)]
+                        (let [clssym (cu/NewExpr->qualsym expr)]
                           (err/tc-delayed-error (str "Unresolved constructor invocation " 
                                                      (type-hints/suggest-type-hints 
                                                        nil 
@@ -1733,9 +1732,7 @@
               ;; it is reflective.
               ctor-fn (fn [expr]
                         (when (:validated? expr)
-                          (let [clssym (-> expr
-                                           ast-u/new-op-class 
-                                           coerce/Class->symbol)]
+                          (let [clssym (cu/NewExpr->qualsym expr)]
                             (or (ctor-override/get-constructor-override clssym)
                                 (and (dt-env/get-datatype clssym)
                                      (cu/DataType-ctor-type clssym))

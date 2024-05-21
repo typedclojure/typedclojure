@@ -60,6 +60,7 @@
 (defn MethodExpr->qualsym [{c :class :keys [op method] :as expr}]
   {:pre [(#{:static-call :instance-call} op)]
    :post [((some-fn nil? symbol?) %)]}
+  (impl/assert-clojure)
   (when c
     (assert (class? c))
     (assert (symbol? method))
@@ -69,6 +70,7 @@
 (defn FieldExpr->qualsym [{c :class :keys [op field] :as expr}]
   {:pre [(#{:static-field :instance-field} op)]
    :post [((some-fn nil? symbol?) %)]}
+  (impl/assert-clojure)
   (when c
     (assert (class? c))
     (assert (symbol? field))
@@ -296,6 +298,7 @@
 
 (defn MethodExpr->Method [expr]
   {:post [(or (nil? %) (instance? clojure.reflect.Method %))]}
+  (impl/assert-clojure)
   (-> expr
       ana/reflect-validated
       :reflected-method))
@@ -306,6 +309,11 @@
   (-> expr
       ana/reflect-validated
       :reflected-ctor))
+
+(defn NewExpr->qualsym [expr]
+  (-> expr
+      ast-u/new-op-class
+      coerce/Class->symbol))
 
 ;FIXME I think this hurts more than it helps
 ;[Type (Seqable t/Sym) -> Type]
