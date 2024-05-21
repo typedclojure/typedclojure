@@ -3,5 +3,5 @@
   (:require [typed.clojure :as t]
             [clojure.core.typed]))
 
-(t/ann a [t/Int :-> t/Bool])
-(defn a [] nil)
+(t/ann a [:-> t/Int #_t/Bool]) ;; changing this should recheck cache.dep/foo
+(defn a [] 1)
