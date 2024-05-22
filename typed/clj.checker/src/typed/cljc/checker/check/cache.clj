@@ -8,12 +8,15 @@
 
 (ns typed.cljc.checker.check.cache
   (:require [typed.cljc.checker.check :as check]
+            [typed.clj.checker.parse-unparse :as prs]
+            [typed.cljc.runtime.env-utils :refer [force-type]]
             [typed.cljc.checker.var-env :as var-env]
             [clojure.pprint :as pp]
             [typed.cljc.runtime.env :as env]
             [clojure.core.typed.util-vars :as uvs]
             [clojure.core.typed.current-impl :as impl]
             [typed.cljc.checker.check.utils :as cu]
+            [typed.cljc.checker.type-rep :as r]
             [typed.cljc.analyzer :as ana2]))
 
 (defn cache-id
@@ -32,13 +35,13 @@
   (reify
     clojure.lang.IPersistentMap
     (containsKey [_ k] (let [res (.containsKey ^clojure.lang.Associative m k)]
-                         (when res (callback (conj path k)))
+                         (when res (callback (conj path k) nil))
                          res))
     clojure.lang.IFn
     (invoke [this k] (.valAt this k))
     (iterator [_] (let [res (.iterator ^java.util.Iterator m)]
                     ;;TODO
-                    (callback (conj path ::ALL))
+                    (callback (conj path ::ALL) nil)
                     res))
     clojure.lang.ILookup
     (entryAt [_ k] (let [r (find m k)
@@ -46,15 +49,15 @@
                      (if r
                        (if (map? (nth r 1))
                          (update r 1 monitored-checker-map callback path)
-                         (do (callback path)
+                         (do (callback path (val r))
                              r))
-                       (do (callback path)
+                       (do (callback path nil)
                            r))))
     (valAt [_ k] (let [r (get m k)
                        path (conj path k)]
                    (if (map? r)
                      (monitored-checker-map r callback path)
-                     (do (when (some? r) (callback path))
+                     (do (when (some? r) (callback path r))
                          r))))
     (valAt [_ k not-found] (let [unique (Object.)
                                  r (get m k unique)]
@@ -63,7 +66,7 @@
                                (let [path (conj path k)]
                                  (if (map? r)
                                    (monitored-checker-map r callback path)
-                                   (do (when (some? r) (callback path))
+                                   (do (when (some? r) (callback path r))
                                        r))))))))
 
 (defn with-recorded-deps [expr expected]
@@ -71,6 +74,10 @@
         types (atom {})
         vars (atom #{})
         interop (atom {})
+        ->serialize (fn [t]
+                      (binding [uvs/*verbose-types* true]
+                        (let [t (force-type t)]
+                          (cond-> t (r/Type? t) prs/unparse-type))))
         instrumented-checker (when-some [^clojure.lang.IAtom2 checker env/*checker*]
                                (reify
                                  clojure.lang.IAtom2
@@ -85,7 +92,7 @@
                                  (compareAndSet [_ old new] (.compareAndSet checker old new))
                                  (reset [_ new] (.reset checker new))
                                  clojure.lang.IDeref
-                                 (deref [_] (monitored-checker-map @checker #(swap! types update-in % (fn [prev] (or prev {}))) []))))]
+                                 (deref [_] (monitored-checker-map @checker #(swap! types update-in %1 (fn [prev] (or prev (->serialize %2) {}))) []))))]
     (binding [env/*checker* instrumented-checker
               ana2/resolve-sym (let [resolve-sym ana2/resolve-sym]
                                  (fn [sym env]
@@ -106,7 +113,8 @@
                                                           nil))
                                                       cexpr))))]
       (let [result (check/check-expr expr expected)]
-        (assoc result ::cache-info {::types @types ::vars @vars ::errors (pos? (count @uvs/*delayed-errors*)) ::interop @interop})))))
+        (assoc result ::cache-info {::types (dissoc @types :clojure.core.typed.current-impl/current-nocheck-var?)
+                                    ::vars @vars ::errors (pos? (count @uvs/*delayed-errors*)) ::interop @interop})))))
 
 (defn need-to-check-top-level-expr? [expr expected opts]
   ;;TODO

@@ -37,8 +37,10 @@
   ;cache: dependencies for form: (ns cache.slow {:typed.clojure {:experimental #{:cache}}} (:require [typed.clojure :as t]))
   ;{:typed.cljc.checker.check.cache/types
   ; {:clojure.core.typed.current-impl/unanalyzed-special
-  ;  {clojure.core/ns {}},
-  ;  :clojure.core.typed.current-impl/current-impl {}},
+  ;  {clojure.core/ns
+  ;   typed.clj.ext.clojure.core__ns/-unanalyzed-special__ns},
+  ;  :clojure.core.typed.current-impl/current-impl
+  ;  :clojure.core.typed.current-impl/clojure},
   ; :typed.cljc.checker.check.cache/vars #{#'clojure.core/ns},
   ; :typed.cljc.checker.check.cache/errors false,
   ; :typed.cljc.checker.check.cache/interop {}}
@@ -46,8 +48,10 @@
   ;cache: dependencies for form: (defmacro slow-macro "Takes 1 second to type check via cache.rules__slow-macro/defuspecial__slow-macro" [])
   ;{:typed.cljc.checker.check.cache/types
   ; {:clojure.core.typed.current-impl/unanalyzed-special
-  ;  {clojure.core/defmacro {}},
-  ;  :clojure.core.typed.current-impl/current-impl {}},
+  ;  {clojure.core/defmacro
+  ;   typed.clj.ext.clojure.core__defmacro/defuspecial__defmacro},
+  ;  :clojure.core.typed.current-impl/current-impl
+  ;  :clojure.core.typed.current-impl/clojure},
   ; :typed.cljc.checker.check.cache/vars
   ; #{#'cache.slow/slow-macro
   ;   #'clojure.core/fn
@@ -59,8 +63,10 @@
   ;cache: dependencies for form: (t/ann a [t/Int :-> t/Bool])
   ;{:typed.cljc.checker.check.cache/types
   ; {:clojure.core.typed.current-impl/unanalyzed-special
-  ;  {clojure.core.typed/tc-ignore {}},
-  ;  :clojure.core.typed.current-impl/current-impl {}},
+  ;  {clojure.core.typed/tc-ignore
+  ;   typed.clj.ext.clojure.core.typed__tc-ignore/defuspecial__tc-ignore},
+  ;  :clojure.core.typed.current-impl/current-impl
+  ;  :clojure.core.typed.current-impl/clojure},
   ; :typed.cljc.checker.check.cache/vars
   ; #{#'typed.clojure/ann
   ;   #'clojure.core.typed/ann*
@@ -68,34 +74,43 @@
   ;   #'clojure.core.typed/tc-ignore},
   ; :typed.cljc.checker.check.cache/errors false,
   ; :typed.cljc.checker.check.cache/interop {}}
-  ;::t/dbg id=G__156323 checking a
-  ;::t/dbg id=G__156323 (slow-macro)
+  ;::t/dbg id=G__157257 checking a
+  ;::t/dbg id=G__157257 (slow-macro)
   ;Checking slow-macro...
   ;Checked slow-macro.
-  ;::t/dbg id=G__156323 result: t/Any
+  ;::t/dbg id=G__157257 result: t/Any
   ;cache: Caching form with cache info
   ;cache: dependencies for form: (defn a "A docstring for a" [x] (slow-macro) (boolean x))
   ;{:typed.cljc.checker.check.cache/types
   ; {:clojure.core.typed.current-impl/unanalyzed-special
-  ;  {clojure.core/defn {}, clojure.core/fn {}, cache.slow/slow-macro {}},
-  ;  :clojure.core.typed.current-impl/current-impl {},
+  ;  {clojure.core/defn
+  ;   typed.clj.ext.clojure.core__defn/defuspecial__defn,
+  ;   clojure.core/fn typed.clj.ext.clojure.core__fn/defuspecial__fn,
+  ;   cache.slow/slow-macro
+  ;   cache.rules__slow-macro/defuspecial__slow-macro},
+  ;  :clojure.core.typed.current-impl/current-impl
+  ;  :clojure.core.typed.current-impl/clojure,
   ;  :clojure.core.typed.current-impl/current-var-annotations
-  ;  {cache.slow/a {}, clojure.core/boolean {}},
-  ;  :clojure.core.typed.current-impl/current-nocheck-var? {},
-  ;  :clojure.core.typed.current-impl/current-used-vars {},
+  ;  {cache.slow/a [typed.clojure/Int :-> typed.clojure/Bool],
+  ;   clojure.core/boolean [typed.clojure/Any :-> typed.clojure/Bool]},
+  ;  :clojure.core.typed.current-impl/current-used-vars #{},
   ;  :clojure.core.typed.current-impl/current-name-env
   ;  {java.lang.Short {},
   ;   java.lang.Integer {},
   ;   java.math.BigInteger {},
   ;   clojure.lang.Fn {},
-  ;   typed.clojure/Fn {},
+  ;   typed.clojure/Fn clojure.lang.Fn,
   ;   java.lang.Long {},
   ;   java.lang.Byte {},
   ;   clojure.lang.BigInt {},
-  ;   typed.clojure/Int {},
-  ;   typed.clojure/AnyInteger {}},
+  ;   typed.clojure/Int typed.clojure/AnyInteger,
+  ;   typed.clojure/AnyInteger
+  ;   (typed.clojure/U Short Byte BigInteger Integer BigInt Long)},
   ;  :clojure.core.typed.current-impl/current-rclass-env
-  ;  {java.lang.Comparable {}}},
+  ;  {java.lang.Comparable
+  ;   (typed.clojure/TFn
+  ;    [[a157258 :variance :invariant]]
+  ;    (java.lang.Comparable a))}},
   ; :typed.cljc.checker.check.cache/vars
   ; #{#'clojure.core/boolean
   ;   #'cache.slow/slow-macro
@@ -108,8 +123,10 @@
   ;cache: dependencies for form: (t/ann b [t/Int :-> t/Bool])
   ;{:typed.cljc.checker.check.cache/types
   ; {:clojure.core.typed.current-impl/unanalyzed-special
-  ;  {clojure.core.typed/tc-ignore {}},
-  ;  :clojure.core.typed.current-impl/current-impl {}},
+  ;  {clojure.core.typed/tc-ignore
+  ;   typed.clj.ext.clojure.core.typed__tc-ignore/defuspecial__tc-ignore},
+  ;  :clojure.core.typed.current-impl/current-impl
+  ;  :clojure.core.typed.current-impl/clojure},
   ; :typed.cljc.checker.check.cache/vars
   ; #{#'typed.clojure/ann
   ;   #'clojure.core.typed/ann*
@@ -117,32 +134,39 @@
   ;   #'clojure.core.typed/tc-ignore},
   ; :typed.cljc.checker.check.cache/errors false,
   ; :typed.cljc.checker.check.cache/interop {}}
-  ;::t/dbg id=G__156341 checking b
-  ;::t/dbg id=G__156341 (slow-macro)
+  ;::t/dbg id=G__157264 checking b
+  ;::t/dbg id=G__157264 (slow-macro)
   ;Checking slow-macro...
   ;Checked slow-macro.
-  ;::t/dbg id=G__156341 result: t/Any
+  ;::t/dbg id=G__157264 result: t/Any
   ;cache: Caching form with cache info
   ;cache: dependencies for form: (defn b "A docstring for b" [x] (slow-macro) (boolean x))
   ;{:typed.cljc.checker.check.cache/types
   ; {:clojure.core.typed.current-impl/unanalyzed-special
-  ;  {clojure.core/defn {}, clojure.core/fn {}, cache.slow/slow-macro {}},
-  ;  :clojure.core.typed.current-impl/current-impl {},
+  ;  {clojure.core/defn
+  ;   typed.clj.ext.clojure.core__defn/defuspecial__defn,
+  ;   clojure.core/fn typed.clj.ext.clojure.core__fn/defuspecial__fn,
+  ;   cache.slow/slow-macro
+  ;   cache.rules__slow-macro/defuspecial__slow-macro},
+  ;  :clojure.core.typed.current-impl/current-impl
+  ;  :clojure.core.typed.current-impl/clojure,
   ;  :clojure.core.typed.current-impl/current-var-annotations
-  ;  {cache.slow/b {}, clojure.core/boolean {}},
-  ;  :clojure.core.typed.current-impl/current-nocheck-var? {},
-  ;  :clojure.core.typed.current-impl/current-used-vars {},
+  ;  {cache.slow/b [typed.clojure/Int :-> typed.clojure/Bool],
+  ;   clojure.core/boolean [typed.clojure/Any :-> typed.clojure/Bool]},
+  ;  :clojure.core.typed.current-impl/current-used-vars
+  ;  #{clojure.core/boolean},
   ;  :clojure.core.typed.current-impl/current-name-env
   ;  {java.lang.Short {},
   ;   java.lang.Integer {},
   ;   java.math.BigInteger {},
   ;   clojure.lang.Fn {},
-  ;   typed.clojure/Fn {},
+  ;   typed.clojure/Fn clojure.lang.Fn,
   ;   java.lang.Long {},
   ;   java.lang.Byte {},
   ;   clojure.lang.BigInt {},
-  ;   typed.clojure/Int {},
-  ;   typed.clojure/AnyInteger {}}},
+  ;   typed.clojure/Int typed.clojure/AnyInteger,
+  ;   typed.clojure/AnyInteger
+  ;   (typed.clojure/U Short Byte BigInteger Integer BigInt Long)}},
   ; :typed.cljc.checker.check.cache/vars
   ; #{#'clojure.core/boolean
   ;   #'cache.slow/slow-macro
@@ -155,8 +179,10 @@
   ;cache: dependencies for form: (t/ann c [t/Int :-> t/Bool])
   ;{:typed.cljc.checker.check.cache/types
   ; {:clojure.core.typed.current-impl/unanalyzed-special
-  ;  {clojure.core.typed/tc-ignore {}},
-  ;  :clojure.core.typed.current-impl/current-impl {}},
+  ;  {clojure.core.typed/tc-ignore
+  ;   typed.clj.ext.clojure.core.typed__tc-ignore/defuspecial__tc-ignore},
+  ;  :clojure.core.typed.current-impl/current-impl
+  ;  :clojure.core.typed.current-impl/clojure},
   ; :typed.cljc.checker.check.cache/vars
   ; #{#'typed.clojure/ann
   ;   #'clojure.core.typed/ann*
@@ -164,32 +190,39 @@
   ;   #'clojure.core.typed/tc-ignore},
   ; :typed.cljc.checker.check.cache/errors false,
   ; :typed.cljc.checker.check.cache/interop {}}
-  ;::t/dbg id=G__156347 checking c
-  ;::t/dbg id=G__156347 (slow-macro)
+  ;::t/dbg id=G__157270 checking c
+  ;::t/dbg id=G__157270 (slow-macro)
   ;Checking slow-macro...
   ;Checked slow-macro.
-  ;::t/dbg id=G__156347 result: t/Any
+  ;::t/dbg id=G__157270 result: t/Any
   ;cache: Caching form with cache info
   ;cache: dependencies for form: (defn c "A docstring for c" [x] (slow-macro) (boolean x))
   ;{:typed.cljc.checker.check.cache/types
   ; {:clojure.core.typed.current-impl/unanalyzed-special
-  ;  {clojure.core/defn {}, clojure.core/fn {}, cache.slow/slow-macro {}},
-  ;  :clojure.core.typed.current-impl/current-impl {},
+  ;  {clojure.core/defn
+  ;   typed.clj.ext.clojure.core__defn/defuspecial__defn,
+  ;   clojure.core/fn typed.clj.ext.clojure.core__fn/defuspecial__fn,
+  ;   cache.slow/slow-macro
+  ;   cache.rules__slow-macro/defuspecial__slow-macro},
+  ;  :clojure.core.typed.current-impl/current-impl
+  ;  :clojure.core.typed.current-impl/clojure,
   ;  :clojure.core.typed.current-impl/current-var-annotations
-  ;  {cache.slow/c {}, clojure.core/boolean {}},
-  ;  :clojure.core.typed.current-impl/current-nocheck-var? {},
-  ;  :clojure.core.typed.current-impl/current-used-vars {},
+  ;  {cache.slow/c [typed.clojure/Int :-> typed.clojure/Bool],
+  ;   clojure.core/boolean [typed.clojure/Any :-> typed.clojure/Bool]},
+  ;  :clojure.core.typed.current-impl/current-used-vars
+  ;  #{clojure.core/boolean},
   ;  :clojure.core.typed.current-impl/current-name-env
   ;  {java.lang.Short {},
   ;   java.lang.Integer {},
   ;   java.math.BigInteger {},
   ;   clojure.lang.Fn {},
-  ;   typed.clojure/Fn {},
+  ;   typed.clojure/Fn clojure.lang.Fn,
   ;   java.lang.Long {},
   ;   java.lang.Byte {},
   ;   clojure.lang.BigInt {},
-  ;   typed.clojure/Int {},
-  ;   typed.clojure/AnyInteger {}}},
+  ;   typed.clojure/Int typed.clojure/AnyInteger,
+  ;   typed.clojure/AnyInteger
+  ;   (typed.clojure/U Short Byte BigInteger Integer BigInt Long)}},
   ; :typed.cljc.checker.check.cache/vars
   ; #{#'clojure.core/boolean
   ;   #'cache.slow/slow-macro
@@ -201,10 +234,11 @@
   ;cache: Caching form with cache info
   ;cache: dependencies for form: (comment (t/check-ns-clj) :ok)
   ;{:typed.cljc.checker.check.cache/types
-  ; {:clojure.core.typed.current-impl/current-impl {}},
+  ; {:clojure.core.typed.current-impl/current-impl
+  ;  :clojure.core.typed.current-impl/clojure},
   ; :typed.cljc.checker.check.cache/vars #{#'clojure.core/comment},
   ; :typed.cljc.checker.check.cache/errors false,
   ; :typed.cljc.checker.check.cache/interop {}}
-  ;Checked cache.slow in 3107.389875 msecs
+  ;Checked cache.slow in 3119.083683 msecs
   :ok
   )
