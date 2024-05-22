@@ -113,6 +113,7 @@
                                                           :new (swap! interop update op (fnil conj #{}) (cu/NewExpr->qualsym cexpr))
                                                           nil))
                                                       cexpr))))
+              ;; preserve the namespace resolutions that occur while parsing during type checking, like t/ann-form
               prs/resolve-type-clj->sym (let [resolve-type-clj->sym prs/resolve-type-clj->sym]
                                           (fn [sym]
                                             (let [res (resolve-type-clj->sym sym)]
