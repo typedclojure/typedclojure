@@ -21,18 +21,6 @@
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.analyzer :as ana2]))
 
-(defn cache-id
-  [expr expected opts]
-  (str (random-uuid)
-       "#:;-;:#"
-       (-> expr :env :ns)
-       "#:;-;:#"
-       (when (some? expected)
-         (random-uuid))
-       "#:;-;:#"
-       (when (-> expr :env :locals seq)
-         (random-uuid))))
-
 (defn monitored-checker-map [m callback path]
   (reify
     clojure.lang.IPersistentMap
