@@ -128,10 +128,13 @@
                                     ::vars @vars ::errors (pos? (count @uvs/*delayed-errors*)) ::interop @interop
                                     ::type-syms @type-syms})))))
 
+(defn cache-info-id [env {:keys [top-level-form-string ns-form-string] :as opts}]
+  [::check-cache (ana2/current-ns-name env) ns-form-string top-level-form-string])
+
 (defn retrieve-cache-info [{:keys [env] :as expr}
                            expected
                            {:keys [top-level-form-string ns-form-string] :as opts}]
-  (get-in (env/deref-checker) [::check-cache (ana2/current-ns-name env) ns-form-string top-level-form-string]))
+  (get-in (env/deref-checker) (cache-info-id env opts)))
 
 (defn need-to-check-top-level-expr? [expr expected {:keys [top-level-form-string ns-form-string] :as opts}]
   (or (-> *ns* meta :typed.clojure :experimental :cache not)
@@ -167,8 +170,8 @@
               *print-level* nil
               *print-length* nil]
       (pp/pprint cache-info)))
-  (env/swap-checker! assoc-in [::check-cache (ana2/current-ns-name env) ns-form-string top-level-form-string]
-                     cache-info))
+  ;; communicate with need-to-check-top-level-expr?
+  (env/swap-checker! assoc-in (cache-info-id env opts) cache-info))
 
 (defn remove-stale-cache-entries [nsym ns-form-str sforms]
   {:pre [(simple-symbol? nsym)]}
