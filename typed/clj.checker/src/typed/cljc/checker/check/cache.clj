@@ -74,6 +74,7 @@
         types (atom {})
         vars (atom {})
         interop (atom {})
+        type-syms (atom {})
         ->serialize (fn [t]
                       (binding [uvs/*verbose-types* true]
                         (let [t (force-type t)]
@@ -111,10 +112,26 @@
                                                           (:instance-field :static-field) (swap! interop update op (fnil conj #{}) (cu/FieldExpr->qualsym cexpr))
                                                           :new (swap! interop update op (fnil conj #{}) (cu/NewExpr->qualsym cexpr))
                                                           nil))
-                                                      cexpr))))]
+                                                      cexpr))))
+              prs/resolve-type-clj->sym (let [resolve-type-clj->sym prs/resolve-type-clj->sym]
+                                          (fn [sym]
+                                            (let [res (resolve-type-clj->sym sym)]
+                                              (swap! type-syms assoc sym res)
+                                              res)))
+              prs/resolve-type-clj (let [resolve-type-clj prs/resolve-type-clj]
+                                     (fn [sym]
+                                       (let [res (resolve-type-clj sym)]
+                                         (when res (swap! type-syms assoc sym res))
+                                         res)))
+              prs/parse-type-symbol-default (let [parse-type-symbol-default prs/parse-type-symbol-default]
+                                              (fn [sym]
+                                                (let [res (parse-type-symbol-default sym)]
+                                                  (swap! type-syms assoc sym (->serialize res))
+                                                  res)))]
       (let [result (check/check-expr expr expected)]
         (assoc result ::cache-info {::types (dissoc @types :clojure.core.typed.current-impl/current-nocheck-var?)
-                                    ::vars @vars ::errors (pos? (count @uvs/*delayed-errors*)) ::interop @interop})))))
+                                    ::vars @vars ::errors (pos? (count @uvs/*delayed-errors*)) ::interop @interop
+                                    ::type-syms @type-syms})))))
 
 (defn need-to-check-top-level-expr? [expr expected opts]
   ;;TODO

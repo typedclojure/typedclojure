@@ -148,7 +148,7 @@
   (binding [*parse-type-in-ns* sym]
     (f)))
 
-(declare parse-type* resolve-type-clj->sym resolve-type-clj resolve-type-cljs)
+(declare parse-type* ^:dynamic resolve-type-clj->sym ^:dynamic resolve-type-clj resolve-type-cljs)
 
 (defn tsyn->env [s]
   (let [m (meta s)]
@@ -1096,7 +1096,7 @@
 (def ns-rewrites-clj {'clojure.core.typed 'typed.clojure})
 (def ^:private ns-unrewrites-clj (set/map-invert ns-rewrites-clj))
 
-(defn resolve-type-clj
+(defn ^:dynamic resolve-type-clj
   "Returns a var, class or nil"
   [sym]
   {:pre [(symbol? sym)]
@@ -1139,7 +1139,7 @@
             qsym)))
       (err/int-error (str "Cannot find namespace: " sym)))))
 
-(defn resolve-type-clj->sym
+(defn ^:dynamic resolve-type-clj->sym
   [sym]
   {:pre [(symbol? sym)]
    :post [(symbol? %)]}
@@ -1306,7 +1306,7 @@
      'char (RClass-of 'char)
      'void r/-nil}))
 
-(defn parse-type-symbol-default
+(defn ^:dynamic parse-type-symbol-default
   [sym]
   (let [primitives (impl/impl-case
                      :clojure (clj-primitives-fn)
