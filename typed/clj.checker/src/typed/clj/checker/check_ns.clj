@@ -11,6 +11,11 @@
             [clojure.core.typed.current-impl :as impl]
             [typed.cljc.checker.check-ns-common :as chk-ns]))
 
+(defn default-check-config []
+  {:check-ns-dep :never
+   :check-ns-load :require-before-check
+   :check-form-eval :never})
+
 (defn check-ns-info
   "Same as check-ns, but returns a map of results from type checking the
   namespace.
@@ -24,8 +29,10 @@
   - :profile         Use Timbre to profile the type checker. Timbre must be
                      added as a dependency."
   [ns-or-syms opt]
-  (chk-ns/check-ns-info impl/clojure ns-or-syms opt))
+  (chk-ns/check-ns-info impl/clojure ns-or-syms
+                        (update opt :check-config #(into (default-check-config) %))))
 
 (defn check-ns
   [ns-or-syms opt]
-  (chk-ns/check-ns impl/clojure ns-or-syms opt))
+  (chk-ns/check-ns impl/clojure ns-or-syms
+                   (update opt :check-config #(into (default-check-config) %))))
