@@ -14,3 +14,5 @@
 - add `{:typed.clojure {:experimental #{:cache}}}` namespace meta to start investigating caching of type checking results
   - currently prints results to screen
 - fix verbose printing for composite types
+- don't uniquify type variables with verbose printing
+  - add new new `:unique-tvars` option to `*verbose-types*` to uniquify type variable names

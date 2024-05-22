@@ -1874,7 +1874,7 @@
 
 (defn unparse-F [f]
   {:pre [(r/F? f)]}
-  (if vs/*verbose-types*
+  (if (:unique-tvars vs/*verbose-types*)
     (:name f)
     (r/F-original-name f)))
 
