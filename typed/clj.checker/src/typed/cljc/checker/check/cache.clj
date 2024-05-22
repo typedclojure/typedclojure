@@ -13,7 +13,9 @@
             [typed.cljc.checker.var-env :as var-env]
             [clojure.pprint :as pp]
             [typed.cljc.runtime.env :as env]
+            [clojure.walk :as walk]
             [clojure.core.typed.util-vars :as uvs]
+            [clojure.core.typed.coerce-utils :as coerce]
             [clojure.core.typed.current-impl :as impl]
             [typed.cljc.checker.check.utils :as cu]
             [typed.cljc.checker.type-rep :as r]
@@ -99,7 +101,11 @@
                                  (fn [sym env]
                                    (let [r (resolve-sym sym env)]
                                      (when r
-                                       (swap! vars assoc sym r))
+                                       (swap! vars assoc sym (if (ana2/var? r)
+                                                               (ana2/var->sym r)
+                                                               (if (class? r)
+                                                                 (coerce/Class->symbol r)
+                                                                 r))))
                                      r)))
               check/check-expr (let [check-expr check/check-expr]
                                  (fn ce
@@ -134,31 +140,61 @@
                                     ::vars @vars ::errors (pos? (count @uvs/*delayed-errors*)) ::interop @interop
                                     ::type-syms @type-syms})))))
 
-(defn need-to-check-top-level-expr? [expr expected opts]
-  ;;TODO
-  true)
+(defn retrieve-cache-info [{:keys [env] :as expr}
+                           expected
+                           {:keys [top-level-form-string ns-form-string] :as opts}]
+  (get-in (env/deref-checker) [::check-cache (ana2/current-ns-name env) ns-form-string top-level-form-string]))
 
-(defn- record-cache! [{::keys [cache-info] :as cexpr}
-                      {:keys [form] :as original}]
+(defn need-to-check-top-level-expr? [expr expected {:keys [top-level-form-string ns-form-string] :as opts}]
+  (or (-> *ns* meta :typed.clojure :experimental :cache not)
+      (some? expected)
+      (not ns-form-string)
+      (not top-level-form-string)
+      (if-some [cache-info (retrieve-cache-info expr expected opts)]
+        (do
+          (println "need-to-check-top-level-expr?: found cache info")
+          ;;TODO compare cache-info to current environment
+          true)
+        (do
+          (println "need-to-check-top-level-expr?: did not find cache info")
+          true))))
+
+(defn- record-cache! [{::keys [cache-info env] :as cexpr}
+                      {:keys [form env] :as original}
+                      {:keys [top-level-form-string ns-form-string] :as opts}]
   (when (-> *ns* meta :typed.clojure :experimental :cache)
     (if (::errors cache-info)
       (println "cache: Not caching form due to type error")
       (println "cache: Caching form with cache info"))
     (binding [*print-namespace-maps* false
               *print-level* 10
-              *print-length* 10
-              ;*print-meta* true
-              ]
-      (println "cache: dependencies for form:"
-               (pr-str form)))
+              *print-length* 10]
+      (println (str "ns form:\n>>>>\n" ns-form-string "\n<<<<"))
+      (println (str "cache: on disk:\n>>>>\n" (if (and (seq? form)
+                                                       (= #'comment (-> (first form) (ana2/resolve-sym env))))
+                                                (str (subs top-level-form-string 0 (min 10 (count top-level-form-string))) "...")
+                                                top-level-form-string)
+                    "\n<<<<")))
     (binding [*print-namespace-maps* false
               *print-level* nil
               *print-length* nil]
-      (pp/pprint cache-info))))
+      (pp/pprint cache-info)))
+  (env/swap-checker! assoc-in [::check-cache (ana2/current-ns-name env) ns-form-string top-level-form-string]
+                     cache-info))
+
+(defn remove-stale-cache-entries [nsym ns-form-str sforms]
+  {:pre [(simple-symbol? nsym)]}
+  (when ns-form-str
+    (env/swap-checker! update-in [::check-cache nsym]
+                       (fn [m]
+                         (some-> m
+                                 (select-keys [ns-form-str])
+                                 not-empty
+                                 (update ns-form-str select-keys sforms))))))
 
 (defn check-top-level-expr [expr expected opts]
   (if (need-to-check-top-level-expr? expr expected opts)
     (let [cexpr (with-recorded-deps expr expected)]
-      (when (not expected) (record-cache! cexpr expr))
+      (when (not expected) (record-cache! cexpr expr opts))
       cexpr)
     expr))

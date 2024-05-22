@@ -49,18 +49,38 @@
   (t/cns)
   ;Start checking cache.poly
   ;cache: Caching form with cache info
-  ;cache: dependencies for form: (ns cache.poly {:typed.clojure {:experimental #{:cache}}} (:require [typed.clojure :as t]))
+  ;ns form:
+  ;>>>>
+  ;
+  ;<<<<
+  ;cache: on disk:
+  ;>>>>
+  ;(ns cache.poly
+  ;  {:typed.clojure {:experimental #{:cache}}}
+  ;  (:require [typed.clojure :as t]))
+  ;<<<<
   ;{:typed.cljc.checker.check.cache/types
   ; {:clojure.core.typed.current-impl/unanalyzed-special
   ;  {clojure.core/ns
   ;   typed.clj.ext.clojure.core__ns/-unanalyzed-special__ns},
   ;  :clojure.core.typed.current-impl/current-impl
   ;  :clojure.core.typed.current-impl/clojure},
-  ; :typed.cljc.checker.check.cache/vars {ns #'clojure.core/ns},
+  ; :typed.cljc.checker.check.cache/vars {ns clojure.core/ns},
   ; :typed.cljc.checker.check.cache/errors false,
-  ; :typed.cljc.checker.check.cache/interop {}}
+  ; :typed.cljc.checker.check.cache/interop {},
+  ; :typed.cljc.checker.check.cache/type-syms {}}
+  ;need-to-check-top-level-expr?: did not find cache info
   ;cache: Caching form with cache info
-  ;cache: dependencies for form: (t/defalias As (t/Seqable t/Int))
+  ;ns form:
+  ;>>>>
+  ;(ns cache.poly
+  ;  {:typed.clojure {:experimental #{:cache}}}
+  ;  (:require [typed.clojure :as t]))
+  ;<<<<
+  ;cache: on disk:
+  ;>>>>
+  ;(t/defalias As (t/Seqable t/Int))
+  ;<<<<
   ;{:typed.cljc.checker.check.cache/types
   ; {:clojure.core.typed.current-impl/unanalyzed-special
   ;  {clojure.core.typed/tc-ignore
@@ -68,18 +88,29 @@
   ;  :clojure.core.typed.current-impl/current-impl
   ;  :clojure.core.typed.current-impl/clojure},
   ; :typed.cljc.checker.check.cache/vars
-  ; {t/defalias #'typed.clojure/defalias,
-  ;  clojure.core.typed/defalias #'clojure.core.typed/defalias,
-  ;  clojure.core.typed/tc-ignore #'clojure.core.typed/tc-ignore,
-  ;  clojure.core/when #'clojure.core/when,
-  ;  clojure.core/= #'clojure.core/=,
+  ; {t/defalias typed.clojure/defalias,
+  ;  clojure.core.typed/defalias clojure.core.typed/defalias,
+  ;  clojure.core.typed/tc-ignore clojure.core.typed/tc-ignore,
+  ;  clojure.core/when clojure.core/when,
+  ;  clojure.core/= clojure.core/=,
   ;  clojure.lang.Util clojure.lang.Util,
-  ;  clojure.core/intern #'clojure.core/intern,
-  ;  clojure.core.typed/defalias* #'clojure.core.typed/defalias*},
+  ;  clojure.core/intern clojure.core/intern,
+  ;  clojure.core.typed/defalias* clojure.core.typed/defalias*},
   ; :typed.cljc.checker.check.cache/errors false,
-  ; :typed.cljc.checker.check.cache/interop {}}
+  ; :typed.cljc.checker.check.cache/interop {},
+  ; :typed.cljc.checker.check.cache/type-syms {}}
+  ;need-to-check-top-level-expr?: did not find cache info
   ;cache: Caching form with cache info
-  ;cache: dependencies for form: (t/defalias Bs (t/Seqable t/Bool))
+  ;ns form:
+  ;>>>>
+  ;(ns cache.poly
+  ;  {:typed.clojure {:experimental #{:cache}}}
+  ;  (:require [typed.clojure :as t]))
+  ;<<<<
+  ;cache: on disk:
+  ;>>>>
+  ;(t/defalias Bs (t/Seqable t/Bool #_t/Int))
+  ;<<<<
   ;{:typed.cljc.checker.check.cache/types
   ; {:clojure.core.typed.current-impl/unanalyzed-special
   ;  {clojure.core.typed/tc-ignore
@@ -87,18 +118,50 @@
   ;  :clojure.core.typed.current-impl/current-impl
   ;  :clojure.core.typed.current-impl/clojure},
   ; :typed.cljc.checker.check.cache/vars
-  ; {t/defalias #'typed.clojure/defalias,
-  ;  clojure.core.typed/defalias #'clojure.core.typed/defalias,
-  ;  clojure.core.typed/tc-ignore #'clojure.core.typed/tc-ignore,
-  ;  clojure.core/when #'clojure.core/when,
-  ;  clojure.core/= #'clojure.core/=,
+  ; {t/defalias typed.clojure/defalias,
+  ;  clojure.core.typed/defalias clojure.core.typed/defalias,
+  ;  clojure.core.typed/tc-ignore clojure.core.typed/tc-ignore,
+  ;  clojure.core/when clojure.core/when,
+  ;  clojure.core/= clojure.core/=,
   ;  clojure.lang.Util clojure.lang.Util,
-  ;  clojure.core/intern #'clojure.core/intern,
-  ;  clojure.core.typed/defalias* #'clojure.core.typed/defalias*},
+  ;  clojure.core/intern clojure.core/intern,
+  ;  clojure.core.typed/defalias* clojure.core.typed/defalias*},
   ; :typed.cljc.checker.check.cache/errors false,
-  ; :typed.cljc.checker.check.cache/interop {}}
+  ; :typed.cljc.checker.check.cache/interop {},
+  ; :typed.cljc.checker.check.cache/type-syms {}}
+  ;need-to-check-top-level-expr?: did not find cache info
   ;cache: Caching form with cache info
-  ;cache: dependencies for form: (t/ann-many [As :-> Bs] map-kw1 map-kw2 map-kw3 map-kw4 map-kw5 map-kw6 map-kw7 map-kw8 ...)
+  ;ns form:
+  ;>>>>
+  ;(ns cache.poly
+  ;  {:typed.clojure {:experimental #{:cache}}}
+  ;  (:require [typed.clojure :as t]))
+  ;<<<<
+  ;cache: on disk:
+  ;>>>>
+  ;;; changing this alias should trigger rechecking all defn's in this namespace
+  ;
+  ;(t/ann-many [As :-> Bs]
+  ;            map-kw1
+  ;            map-kw2
+  ;            map-kw3
+  ;            map-kw4
+  ;            map-kw5
+  ;            map-kw6
+  ;            map-kw7
+  ;            map-kw8
+  ;            map-kw9
+  ;            map-kw10
+  ;            map-kw11
+  ;            map-kw12
+  ;            map-kw13
+  ;            map-kw14
+  ;            map-kw15
+  ;            map-kw16
+  ;            map-kw17
+  ;            map-kw18
+  ;            map-kw19)
+  ;<<<<
   ;{:typed.cljc.checker.check.cache/types
   ; {:clojure.core.typed.current-impl/current-impl
   ;  :clojure.core.typed.current-impl/clojure,
@@ -106,19 +169,30 @@
   ;  {clojure.core.typed/tc-ignore
   ;   typed.clj.ext.clojure.core.typed__tc-ignore/defuspecial__tc-ignore}},
   ; :typed.cljc.checker.check.cache/vars
-  ; {t/ann-many #'typed.clojure/ann-many,
-  ;  clojure.core.typed/ann-many #'clojure.core.typed/ann-many,
-  ;  clojure.core.typed/ann #'clojure.core.typed/ann,
-  ;  clojure.core.typed/tc-ignore #'clojure.core.typed/tc-ignore,
-  ;  clojure.core.typed/ann* #'clojure.core.typed/ann*},
+  ; {t/ann-many typed.clojure/ann-many,
+  ;  clojure.core.typed/ann-many clojure.core.typed/ann-many,
+  ;  clojure.core.typed/ann clojure.core.typed/ann,
+  ;  clojure.core.typed/tc-ignore clojure.core.typed/tc-ignore,
+  ;  clojure.core.typed/ann* clojure.core.typed/ann*},
   ; :typed.cljc.checker.check.cache/errors false,
-  ; :typed.cljc.checker.check.cache/interop {}}
-  ;::t/dbg id=G__171767 map-kw1
-  ;::t/dbg id=G__171767 (map boolean as)
-  ;::t/dbg id=G__171767 expected: cache.poly/Bs
-  ;::t/dbg id=G__171767 result: cache.poly/Bs
+  ; :typed.cljc.checker.check.cache/interop {},
+  ; :typed.cljc.checker.check.cache/type-syms {}}
+  ;need-to-check-top-level-expr?: did not find cache info
+  ;::t/dbg id=G__61459 map-kw1
+  ;::t/dbg id=G__61459 (map boolean as)
+  ;::t/dbg id=G__61459 expected: cache.poly/Bs
+  ;::t/dbg id=G__61459 result: cache.poly/Bs
   ;cache: Caching form with cache info
-  ;cache: dependencies for form: (defn map-kw1 [as] (map boolean as))
+  ;ns form:
+  ;>>>>
+  ;(ns cache.poly
+  ;  {:typed.clojure {:experimental #{:cache}}}
+  ;  (:require [typed.clojure :as t]))
+  ;<<<<
+  ;cache: on disk:
+  ;>>>>
+  ;(defn map-kw1 [as] ^{::t/dbg "map-kw1"} (map boolean as))
+  ;<<<<
   ;{:typed.cljc.checker.check.cache/types
   ; {:clojure.core.typed.current-impl/unanalyzed-special
   ;  {clojure.core/defn
@@ -173,17 +247,17 @@
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     (typed.clojure/CountRange 1)
-  ;     (java.util.List x)
-  ;     (clojure.lang.ISeq x)
   ;     clojure.lang.Sequential
-  ;     clojure.lang.IObj)),
+  ;     (clojure.lang.ISeq x)
+  ;     clojure.lang.IObj
+  ;     (java.util.List x)
+  ;     (typed.clojure/CountRange 1))),
   ;   typed.clojure/NonEmptySeqable
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     (typed.clojure/CountRange 1)
-  ;     (clojure.lang.Seqable (typed.clojure/NilableNonEmptySeq x)))),
+  ;     (clojure.lang.Seqable (typed.clojure/NilableNonEmptySeq x))
+  ;     (typed.clojure/CountRange 1))),
   ;   java.util.SequencedCollection {},
   ;   clojure.lang.Seqable {},
   ;   typed.clojure/NilableNonEmptySeq
@@ -217,10 +291,10 @@
   ;      :<
   ;      (typed.clojure/NilableNonEmptySeq typed.clojure/Any)]]
   ;    (clojure.lang.Seqable a)),
-  ;   java.lang.Comparable
+  ;   clojure.lang.IPersistentCollection
   ;   (typed.clojure/TFn
-  ;    [[a :variance :invariant]]
-  ;    (java.lang.Comparable a)),
+  ;    [[a :variance :covariant]]
+  ;    (clojure.lang.IPersistentCollection a)),
   ;   java.util.SequencedCollection
   ;   (typed.clojure/TFn
   ;    [[a :variance :invariant]]
@@ -232,24 +306,61 @@
   ;   java.lang.Iterable
   ;   (typed.clojure/TFn
   ;    [[a :variance :covariant]]
-  ;    (java.lang.Iterable a)),
-  ;   clojure.lang.IPersistentCollection
-  ;   (typed.clojure/TFn
-  ;    [[a :variance :covariant]]
-  ;    (clojure.lang.IPersistentCollection a))}},
+  ;    (java.lang.Iterable a))}},
   ; :typed.cljc.checker.check.cache/vars
-  ; {defn #'clojure.core/defn,
-  ;  clojure.core/fn #'clojure.core/fn,
-  ;  map #'clojure.core/map,
-  ;  boolean #'clojure.core/boolean},
+  ; {defn clojure.core/defn,
+  ;  clojure.core/fn clojure.core/fn,
+  ;  map clojure.core/map,
+  ;  boolean clojure.core/boolean},
   ; :typed.cljc.checker.check.cache/errors false,
-  ; :typed.cljc.checker.check.cache/interop {}}
-  ;::t/dbg id=G__172182 map-kw2
-  ;::t/dbg id=G__172182 (map boolean as)
-  ;::t/dbg id=G__172182 expected: cache.poly/Bs
-  ;::t/dbg id=G__172182 result: cache.poly/Bs
+  ; :typed.cljc.checker.check.cache/interop {},
+  ; :typed.cljc.checker.check.cache/type-syms
+  ; {x x,
+  ;  t/Seq typed.clojure/Seq,
+  ;  t/NonEmptyASeq typed.clojure/NonEmptyASeq,
+  ;  t/NonEmptySeq typed.clojure/NonEmptySeq,
+  ;  clojure.lang.ISeq clojure.lang.ISeq,
+  ;  t/NonEmptyCount typed.clojure/NonEmptyCount,
+  ;  t/NonEmptySeqable typed.clojure/NonEmptySeqable,
+  ;  a a,
+  ;  t/Nilable typed.clojure/Nilable,
+  ;  t/Seqable typed.clojure/Seqable,
+  ;  t/Sequential typed.clojure/Sequential,
+  ;  Collection java.util.Collection,
+  ;  java.util.Collection java.util.Collection,
+  ;  Seqable clojure.lang.Seqable,
+  ;  t/SequentialSeq typed.clojure/SequentialSeq,
+  ;  Iterable java.lang.Iterable,
+  ;  java.lang.Boolean java.lang.Boolean,
+  ;  t/Transducer typed.clojure/Transducer,
+  ;  t/ASeq typed.clojure/ASeq,
+  ;  clojure.lang.IObj clojure.lang.IObj,
+  ;  t/Option typed.clojure/Option,
+  ;  t/NilableNonEmptySeq typed.clojure/NilableNonEmptySeq,
+  ;  c c,
+  ;  clojure.lang.Sequential clojure.lang.Sequential,
+  ;  java.util.SequencedCollection java.util.SequencedCollection,
+  ;  clojure.lang.Seqable clojure.lang.Seqable,
+  ;  t/Any typed.clojure/Any,
+  ;  java.util.List java.util.List,
+  ;  b b,
+  ;  IPersistentCollection clojure.lang.IPersistentCollection}}
+  ;need-to-check-top-level-expr?: did not find cache info
+  ;::t/dbg id=G__61960 map-kw2
+  ;::t/dbg id=G__61960 (map boolean as)
+  ;::t/dbg id=G__61960 expected: cache.poly/Bs
+  ;::t/dbg id=G__61960 result: cache.poly/Bs
   ;cache: Caching form with cache info
-  ;cache: dependencies for form: (defn map-kw2 [as] (map boolean as))
+  ;ns form:
+  ;>>>>
+  ;(ns cache.poly
+  ;  {:typed.clojure {:experimental #{:cache}}}
+  ;  (:require [typed.clojure :as t]))
+  ;<<<<
+  ;cache: on disk:
+  ;>>>>
+  ;(defn map-kw2 [as] ^{::t/dbg "map-kw2"} (map boolean as))
+  ;<<<<
   ;{:typed.cljc.checker.check.cache/types
   ; {:clojure.core.typed.current-impl/unanalyzed-special
   ;  {clojure.core/defn
@@ -305,17 +416,17 @@
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     (typed.clojure/CountRange 1)
   ;     (java.util.List x)
   ;     (clojure.lang.ISeq x)
   ;     clojure.lang.Sequential
-  ;     clojure.lang.IObj)),
+  ;     clojure.lang.IObj
+  ;     (typed.clojure/CountRange 1))),
   ;   typed.clojure/NonEmptySeqable
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     (typed.clojure/CountRange 1)
-  ;     (clojure.lang.Seqable (typed.clojure/NilableNonEmptySeq x)))),
+  ;     (clojure.lang.Seqable (typed.clojure/NilableNonEmptySeq x))
+  ;     (typed.clojure/CountRange 1))),
   ;   java.util.SequencedCollection {},
   ;   clojure.lang.Seqable {},
   ;   typed.clojure/NilableNonEmptySeq
@@ -326,10 +437,10 @@
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     clojure.lang.Sequential
-  ;     clojure.lang.IObj
   ;     (java.util.List x)
-  ;     (clojure.lang.ISeq x))),
+  ;     (clojure.lang.ISeq x)
+  ;     clojure.lang.Sequential
+  ;     clojure.lang.IObj)),
   ;   typed.clojure/Int typed.clojure/AnyInteger,
   ;   typed.clojure/AnyInteger
   ;   (typed.clojure/U
@@ -341,7 +452,19 @@
   ;    java.lang.Long),
   ;   java.lang.Iterable {}},
   ;  :clojure.core.typed.current-impl/current-rclass-env
-  ;  {java.util.SequencedCollection
+  ;  {clojure.lang.IPersistentCollection
+  ;   (typed.clojure/TFn
+  ;    [[a :variance :covariant]]
+  ;    (clojure.lang.IPersistentCollection a)),
+  ;   clojure.lang.Seqable
+  ;   (typed.clojure/TFn
+  ;    [[a
+  ;      :variance
+  ;      :covariant
+  ;      :<
+  ;      (typed.clojure/NilableNonEmptySeq typed.clojure/Any)]]
+  ;    (clojure.lang.Seqable a)),
+  ;   java.util.SequencedCollection
   ;   (typed.clojure/TFn
   ;    [[a :variance :invariant]]
   ;    (java.util.SequencedCollection a)),
@@ -352,32 +475,31 @@
   ;   java.lang.Iterable
   ;   (typed.clojure/TFn
   ;    [[a :variance :covariant]]
-  ;    (java.lang.Iterable a)),
-  ;   clojure.lang.Seqable
-  ;   (typed.clojure/TFn
-  ;    [[a
-  ;      :variance
-  ;      :covariant
-  ;      :<
-  ;      (typed.clojure/NilableNonEmptySeq typed.clojure/Any)]]
-  ;    (clojure.lang.Seqable a)),
-  ;   clojure.lang.IPersistentCollection
-  ;   (typed.clojure/TFn
-  ;    [[a :variance :covariant]]
-  ;    (clojure.lang.IPersistentCollection a))}},
+  ;    (java.lang.Iterable a))}},
   ; :typed.cljc.checker.check.cache/vars
-  ; {defn #'clojure.core/defn,
-  ;  clojure.core/fn #'clojure.core/fn,
-  ;  map #'clojure.core/map,
-  ;  boolean #'clojure.core/boolean},
+  ; {defn clojure.core/defn,
+  ;  clojure.core/fn clojure.core/fn,
+  ;  map clojure.core/map,
+  ;  boolean clojure.core/boolean},
   ; :typed.cljc.checker.check.cache/errors false,
-  ; :typed.cljc.checker.check.cache/interop {}}
-  ;::t/dbg id=G__172577 map-kw3
-  ;::t/dbg id=G__172577 (map boolean as)
-  ;::t/dbg id=G__172577 expected: cache.poly/Bs
-  ;::t/dbg id=G__172577 result: cache.poly/Bs
+  ; :typed.cljc.checker.check.cache/interop {},
+  ; :typed.cljc.checker.check.cache/type-syms {}}
+  ;need-to-check-top-level-expr?: did not find cache info
+  ;::t/dbg id=G__62357 map-kw3
+  ;::t/dbg id=G__62357 (map boolean as)
+  ;::t/dbg id=G__62357 expected: cache.poly/Bs
+  ;::t/dbg id=G__62357 result: cache.poly/Bs
   ;cache: Caching form with cache info
-  ;cache: dependencies for form: (defn map-kw3 [as] (map boolean as))
+  ;ns form:
+  ;>>>>
+  ;(ns cache.poly
+  ;  {:typed.clojure {:experimental #{:cache}}}
+  ;  (:require [typed.clojure :as t]))
+  ;<<<<
+  ;cache: on disk:
+  ;>>>>
+  ;(defn map-kw3 [as] ^{::t/dbg "map-kw3"} (map boolean as))
+  ;<<<<
   ;{:typed.cljc.checker.check.cache/types
   ; {:clojure.core.typed.current-impl/unanalyzed-special
   ;  {clojure.core/defn
@@ -433,17 +555,17 @@
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     (typed.clojure/CountRange 1)
+  ;     (clojure.lang.ISeq x)
+  ;     (java.util.List x)
   ;     clojure.lang.Sequential
   ;     clojure.lang.IObj
-  ;     (clojure.lang.ISeq x)
-  ;     (java.util.List x))),
+  ;     (typed.clojure/CountRange 1))),
   ;   typed.clojure/NonEmptySeqable
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     (typed.clojure/CountRange 1)
-  ;     (clojure.lang.Seqable (typed.clojure/NilableNonEmptySeq x)))),
+  ;     (clojure.lang.Seqable (typed.clojure/NilableNonEmptySeq x))
+  ;     (typed.clojure/CountRange 1))),
   ;   java.util.SequencedCollection {},
   ;   clojure.lang.Seqable {},
   ;   typed.clojure/NilableNonEmptySeq
@@ -454,9 +576,9 @@
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     clojure.lang.Sequential
   ;     (clojure.lang.ISeq x)
   ;     (java.util.List x)
+  ;     clojure.lang.Sequential
   ;     clojure.lang.IObj)),
   ;   typed.clojure/Int typed.clojure/AnyInteger,
   ;   typed.clojure/AnyInteger
@@ -494,18 +616,29 @@
   ;    [[a :variance :covariant]]
   ;    (clojure.lang.IPersistentCollection a))}},
   ; :typed.cljc.checker.check.cache/vars
-  ; {defn #'clojure.core/defn,
-  ;  clojure.core/fn #'clojure.core/fn,
-  ;  map #'clojure.core/map,
-  ;  boolean #'clojure.core/boolean},
+  ; {defn clojure.core/defn,
+  ;  clojure.core/fn clojure.core/fn,
+  ;  map clojure.core/map,
+  ;  boolean clojure.core/boolean},
   ; :typed.cljc.checker.check.cache/errors false,
-  ; :typed.cljc.checker.check.cache/interop {}}
-  ;::t/dbg id=G__172978 map-kw4
-  ;::t/dbg id=G__172978 (map boolean as)
-  ;::t/dbg id=G__172978 expected: cache.poly/Bs
-  ;::t/dbg id=G__172978 result: cache.poly/Bs
+  ; :typed.cljc.checker.check.cache/interop {},
+  ; :typed.cljc.checker.check.cache/type-syms {}}
+  ;need-to-check-top-level-expr?: did not find cache info
+  ;::t/dbg id=G__62758 map-kw4
+  ;::t/dbg id=G__62758 (map boolean as)
+  ;::t/dbg id=G__62758 expected: cache.poly/Bs
+  ;::t/dbg id=G__62758 result: cache.poly/Bs
   ;cache: Caching form with cache info
-  ;cache: dependencies for form: (defn map-kw4 [as] (map boolean as))
+  ;ns form:
+  ;>>>>
+  ;(ns cache.poly
+  ;  {:typed.clojure {:experimental #{:cache}}}
+  ;  (:require [typed.clojure :as t]))
+  ;<<<<
+  ;cache: on disk:
+  ;>>>>
+  ;(defn map-kw4 [as] ^{::t/dbg "map-kw4"} (map boolean as))
+  ;<<<<
   ;{:typed.cljc.checker.check.cache/types
   ; {:clojure.core.typed.current-impl/unanalyzed-special
   ;  {clojure.core/defn
@@ -561,17 +694,17 @@
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     (typed.clojure/CountRange 1)
-  ;     (java.util.List x)
   ;     (clojure.lang.ISeq x)
+  ;     (java.util.List x)
   ;     clojure.lang.Sequential
-  ;     clojure.lang.IObj)),
+  ;     clojure.lang.IObj
+  ;     (typed.clojure/CountRange 1))),
   ;   typed.clojure/NonEmptySeqable
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     (typed.clojure/CountRange 1)
-  ;     (clojure.lang.Seqable (typed.clojure/NilableNonEmptySeq x)))),
+  ;     (clojure.lang.Seqable (typed.clojure/NilableNonEmptySeq x))
+  ;     (typed.clojure/CountRange 1))),
   ;   java.util.SequencedCollection {},
   ;   clojure.lang.Seqable {},
   ;   typed.clojure/NilableNonEmptySeq
@@ -582,10 +715,10 @@
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     (clojure.lang.ISeq x)
-  ;     (java.util.List x)
   ;     clojure.lang.Sequential
-  ;     clojure.lang.IObj)),
+  ;     clojure.lang.IObj
+  ;     (java.util.List x)
+  ;     (clojure.lang.ISeq x))),
   ;   typed.clojure/Int typed.clojure/AnyInteger,
   ;   typed.clojure/AnyInteger
   ;   (typed.clojure/U
@@ -622,18 +755,29 @@
   ;    [[a :variance :covariant]]
   ;    (clojure.lang.IPersistentCollection a))}},
   ; :typed.cljc.checker.check.cache/vars
-  ; {defn #'clojure.core/defn,
-  ;  clojure.core/fn #'clojure.core/fn,
-  ;  map #'clojure.core/map,
-  ;  boolean #'clojure.core/boolean},
+  ; {defn clojure.core/defn,
+  ;  clojure.core/fn clojure.core/fn,
+  ;  map clojure.core/map,
+  ;  boolean clojure.core/boolean},
   ; :typed.cljc.checker.check.cache/errors false,
-  ; :typed.cljc.checker.check.cache/interop {}}
-  ;::t/dbg id=G__173381 map-kw5
-  ;::t/dbg id=G__173381 (map boolean as)
-  ;::t/dbg id=G__173381 expected: cache.poly/Bs
-  ;::t/dbg id=G__173381 result: cache.poly/Bs
+  ; :typed.cljc.checker.check.cache/interop {},
+  ; :typed.cljc.checker.check.cache/type-syms {}}
+  ;need-to-check-top-level-expr?: did not find cache info
+  ;::t/dbg id=G__63159 map-kw5
+  ;::t/dbg id=G__63159 (map boolean as)
+  ;::t/dbg id=G__63159 expected: cache.poly/Bs
+  ;::t/dbg id=G__63159 result: cache.poly/Bs
   ;cache: Caching form with cache info
-  ;cache: dependencies for form: (defn map-kw5 [as] (map boolean as))
+  ;ns form:
+  ;>>>>
+  ;(ns cache.poly
+  ;  {:typed.clojure {:experimental #{:cache}}}
+  ;  (:require [typed.clojure :as t]))
+  ;<<<<
+  ;cache: on disk:
+  ;>>>>
+  ;(defn map-kw5 [as] ^{::t/dbg "map-kw5"} (map boolean as))
+  ;<<<<
   ;{:typed.cljc.checker.check.cache/types
   ; {:clojure.core.typed.current-impl/unanalyzed-special
   ;  {clojure.core/defn
@@ -689,17 +833,17 @@
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     (typed.clojure/CountRange 1)
   ;     clojure.lang.Sequential
   ;     clojure.lang.IObj
+  ;     (clojure.lang.ISeq x)
   ;     (java.util.List x)
-  ;     (clojure.lang.ISeq x))),
+  ;     (typed.clojure/CountRange 1))),
   ;   typed.clojure/NonEmptySeqable
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     (typed.clojure/CountRange 1)
-  ;     (clojure.lang.Seqable (typed.clojure/NilableNonEmptySeq x)))),
+  ;     (clojure.lang.Seqable (typed.clojure/NilableNonEmptySeq x))
+  ;     (typed.clojure/CountRange 1))),
   ;   java.util.SequencedCollection {},
   ;   clojure.lang.Seqable {},
   ;   typed.clojure/NilableNonEmptySeq
@@ -750,18 +894,29 @@
   ;    [[a :variance :covariant]]
   ;    (clojure.lang.IPersistentCollection a))}},
   ; :typed.cljc.checker.check.cache/vars
-  ; {defn #'clojure.core/defn,
-  ;  clojure.core/fn #'clojure.core/fn,
-  ;  map #'clojure.core/map,
-  ;  boolean #'clojure.core/boolean},
+  ; {defn clojure.core/defn,
+  ;  clojure.core/fn clojure.core/fn,
+  ;  map clojure.core/map,
+  ;  boolean clojure.core/boolean},
   ; :typed.cljc.checker.check.cache/errors false,
-  ; :typed.cljc.checker.check.cache/interop {}}
-  ;::t/dbg id=G__173782 map-kw6
-  ;::t/dbg id=G__173782 (map boolean as)
-  ;::t/dbg id=G__173782 expected: cache.poly/Bs
-  ;::t/dbg id=G__173782 result: cache.poly/Bs
+  ; :typed.cljc.checker.check.cache/interop {},
+  ; :typed.cljc.checker.check.cache/type-syms {}}
+  ;need-to-check-top-level-expr?: did not find cache info
+  ;::t/dbg id=G__63552 map-kw6
+  ;::t/dbg id=G__63552 (map boolean as)
+  ;::t/dbg id=G__63552 expected: cache.poly/Bs
+  ;::t/dbg id=G__63552 result: cache.poly/Bs
   ;cache: Caching form with cache info
-  ;cache: dependencies for form: (defn map-kw6 [as] (map boolean as))
+  ;ns form:
+  ;>>>>
+  ;(ns cache.poly
+  ;  {:typed.clojure {:experimental #{:cache}}}
+  ;  (:require [typed.clojure :as t]))
+  ;<<<<
+  ;cache: on disk:
+  ;>>>>
+  ;(defn map-kw6 [as] ^{::t/dbg "map-kw6"} (map boolean as))
+  ;<<<<
   ;{:typed.cljc.checker.check.cache/types
   ; {:clojure.core.typed.current-impl/unanalyzed-special
   ;  {clojure.core/defn
@@ -817,17 +972,17 @@
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     (typed.clojure/CountRange 1)
   ;     clojure.lang.Sequential
-  ;     (java.util.List x)
+  ;     clojure.lang.IObj
   ;     (clojure.lang.ISeq x)
-  ;     clojure.lang.IObj)),
+  ;     (java.util.List x)
+  ;     (typed.clojure/CountRange 1))),
   ;   typed.clojure/NonEmptySeqable
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     (typed.clojure/CountRange 1)
-  ;     (clojure.lang.Seqable (typed.clojure/NilableNonEmptySeq x)))),
+  ;     (clojure.lang.Seqable (typed.clojure/NilableNonEmptySeq x))
+  ;     (typed.clojure/CountRange 1))),
   ;   java.util.SequencedCollection {},
   ;   clojure.lang.Seqable {},
   ;   typed.clojure/NilableNonEmptySeq
@@ -838,10 +993,10 @@
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     (java.util.List x)
-  ;     (clojure.lang.ISeq x)
   ;     clojure.lang.Sequential
-  ;     clojure.lang.IObj)),
+  ;     clojure.lang.IObj
+  ;     (java.util.List x)
+  ;     (clojure.lang.ISeq x))),
   ;   typed.clojure/Int typed.clojure/AnyInteger,
   ;   typed.clojure/AnyInteger
   ;   (typed.clojure/U
@@ -878,18 +1033,29 @@
   ;    [[a :variance :covariant]]
   ;    (java.lang.Iterable a))}},
   ; :typed.cljc.checker.check.cache/vars
-  ; {defn #'clojure.core/defn,
-  ;  clojure.core/fn #'clojure.core/fn,
-  ;  map #'clojure.core/map,
-  ;  boolean #'clojure.core/boolean},
+  ; {defn clojure.core/defn,
+  ;  clojure.core/fn clojure.core/fn,
+  ;  map clojure.core/map,
+  ;  boolean clojure.core/boolean},
   ; :typed.cljc.checker.check.cache/errors false,
-  ; :typed.cljc.checker.check.cache/interop {}}
-  ;::t/dbg id=G__174179 map-kw7
-  ;::t/dbg id=G__174179 (map boolean as)
-  ;::t/dbg id=G__174179 expected: cache.poly/Bs
-  ;::t/dbg id=G__174179 result: cache.poly/Bs
+  ; :typed.cljc.checker.check.cache/interop {},
+  ; :typed.cljc.checker.check.cache/type-syms {}}
+  ;need-to-check-top-level-expr?: did not find cache info
+  ;::t/dbg id=G__63949 map-kw7
+  ;::t/dbg id=G__63949 (map boolean as)
+  ;::t/dbg id=G__63949 expected: cache.poly/Bs
+  ;::t/dbg id=G__63949 result: cache.poly/Bs
   ;cache: Caching form with cache info
-  ;cache: dependencies for form: (defn map-kw7 [as] (map boolean as))
+  ;ns form:
+  ;>>>>
+  ;(ns cache.poly
+  ;  {:typed.clojure {:experimental #{:cache}}}
+  ;  (:require [typed.clojure :as t]))
+  ;<<<<
+  ;cache: on disk:
+  ;>>>>
+  ;(defn map-kw7 [as] ^{::t/dbg "map-kw7"} (map boolean as))
+  ;<<<<
   ;{:typed.cljc.checker.check.cache/types
   ; {:clojure.core.typed.current-impl/unanalyzed-special
   ;  {clojure.core/defn
@@ -945,17 +1111,17 @@
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     (typed.clojure/CountRange 1)
   ;     (clojure.lang.ISeq x)
   ;     (java.util.List x)
   ;     clojure.lang.Sequential
-  ;     clojure.lang.IObj)),
+  ;     clojure.lang.IObj
+  ;     (typed.clojure/CountRange 1))),
   ;   typed.clojure/NonEmptySeqable
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     (typed.clojure/CountRange 1)
-  ;     (clojure.lang.Seqable (typed.clojure/NilableNonEmptySeq x)))),
+  ;     (clojure.lang.Seqable (typed.clojure/NilableNonEmptySeq x))
+  ;     (typed.clojure/CountRange 1))),
   ;   java.util.SequencedCollection {},
   ;   clojure.lang.Seqable {},
   ;   typed.clojure/NilableNonEmptySeq
@@ -966,10 +1132,10 @@
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     (clojure.lang.ISeq x)
-  ;     (java.util.List x)
   ;     clojure.lang.Sequential
-  ;     clojure.lang.IObj)),
+  ;     clojure.lang.IObj
+  ;     (clojure.lang.ISeq x)
+  ;     (java.util.List x))),
   ;   typed.clojure/Int typed.clojure/AnyInteger,
   ;   typed.clojure/AnyInteger
   ;   (typed.clojure/U
@@ -1006,18 +1172,29 @@
   ;    [[a :variance :covariant]]
   ;    (clojure.lang.IPersistentCollection a))}},
   ; :typed.cljc.checker.check.cache/vars
-  ; {defn #'clojure.core/defn,
-  ;  clojure.core/fn #'clojure.core/fn,
-  ;  map #'clojure.core/map,
-  ;  boolean #'clojure.core/boolean},
+  ; {defn clojure.core/defn,
+  ;  clojure.core/fn clojure.core/fn,
+  ;  map clojure.core/map,
+  ;  boolean clojure.core/boolean},
   ; :typed.cljc.checker.check.cache/errors false,
-  ; :typed.cljc.checker.check.cache/interop {}}
-  ;::t/dbg id=G__174572 map-kw8
-  ;::t/dbg id=G__174572 (map boolean as)
-  ;::t/dbg id=G__174572 expected: cache.poly/Bs
-  ;::t/dbg id=G__174572 result: cache.poly/Bs
+  ; :typed.cljc.checker.check.cache/interop {},
+  ; :typed.cljc.checker.check.cache/type-syms {}}
+  ;need-to-check-top-level-expr?: did not find cache info
+  ;::t/dbg id=G__64342 map-kw8
+  ;::t/dbg id=G__64342 (map boolean as)
+  ;::t/dbg id=G__64342 expected: cache.poly/Bs
+  ;::t/dbg id=G__64342 result: cache.poly/Bs
   ;cache: Caching form with cache info
-  ;cache: dependencies for form: (defn map-kw8 [as] (map boolean as))
+  ;ns form:
+  ;>>>>
+  ;(ns cache.poly
+  ;  {:typed.clojure {:experimental #{:cache}}}
+  ;  (:require [typed.clojure :as t]))
+  ;<<<<
+  ;cache: on disk:
+  ;>>>>
+  ;(defn map-kw8 [as] ^{::t/dbg "map-kw8"} (map boolean as))
+  ;<<<<
   ;{:typed.cljc.checker.check.cache/types
   ; {:clojure.core.typed.current-impl/unanalyzed-special
   ;  {clojure.core/defn
@@ -1073,17 +1250,17 @@
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     (typed.clojure/CountRange 1)
-  ;     (java.util.List x)
-  ;     clojure.lang.Sequential
   ;     (clojure.lang.ISeq x)
-  ;     clojure.lang.IObj)),
+  ;     clojure.lang.Sequential
+  ;     (java.util.List x)
+  ;     clojure.lang.IObj
+  ;     (typed.clojure/CountRange 1))),
   ;   typed.clojure/NonEmptySeqable
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     (typed.clojure/CountRange 1)
-  ;     (clojure.lang.Seqable (typed.clojure/NilableNonEmptySeq x)))),
+  ;     (clojure.lang.Seqable (typed.clojure/NilableNonEmptySeq x))
+  ;     (typed.clojure/CountRange 1))),
   ;   java.util.SequencedCollection {},
   ;   clojure.lang.Seqable {},
   ;   typed.clojure/NilableNonEmptySeq
@@ -1094,10 +1271,10 @@
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     (java.util.List x)
-  ;     (clojure.lang.ISeq x)
   ;     clojure.lang.Sequential
-  ;     clojure.lang.IObj)),
+  ;     clojure.lang.IObj
+  ;     (java.util.List x)
+  ;     (clojure.lang.ISeq x))),
   ;   typed.clojure/Int typed.clojure/AnyInteger,
   ;   typed.clojure/AnyInteger
   ;   (typed.clojure/U
@@ -1109,19 +1286,7 @@
   ;    java.lang.Long),
   ;   java.lang.Iterable {}},
   ;  :clojure.core.typed.current-impl/current-rclass-env
-  ;  {clojure.lang.IPersistentCollection
-  ;   (typed.clojure/TFn
-  ;    [[a :variance :covariant]]
-  ;    (clojure.lang.IPersistentCollection a)),
-  ;   clojure.lang.Seqable
-  ;   (typed.clojure/TFn
-  ;    [[a
-  ;      :variance
-  ;      :covariant
-  ;      :<
-  ;      (typed.clojure/NilableNonEmptySeq typed.clojure/Any)]]
-  ;    (clojure.lang.Seqable a)),
-  ;   java.util.SequencedCollection
+  ;  {java.util.SequencedCollection
   ;   (typed.clojure/TFn
   ;    [[a :variance :invariant]]
   ;    (java.util.SequencedCollection a)),
@@ -1132,20 +1297,43 @@
   ;   java.lang.Iterable
   ;   (typed.clojure/TFn
   ;    [[a :variance :covariant]]
-  ;    (java.lang.Iterable a))}},
+  ;    (java.lang.Iterable a)),
+  ;   clojure.lang.Seqable
+  ;   (typed.clojure/TFn
+  ;    [[a
+  ;      :variance
+  ;      :covariant
+  ;      :<
+  ;      (typed.clojure/NilableNonEmptySeq typed.clojure/Any)]]
+  ;    (clojure.lang.Seqable a)),
+  ;   clojure.lang.IPersistentCollection
+  ;   (typed.clojure/TFn
+  ;    [[a :variance :covariant]]
+  ;    (clojure.lang.IPersistentCollection a))}},
   ; :typed.cljc.checker.check.cache/vars
-  ; {defn #'clojure.core/defn,
-  ;  clojure.core/fn #'clojure.core/fn,
-  ;  map #'clojure.core/map,
-  ;  boolean #'clojure.core/boolean},
+  ; {defn clojure.core/defn,
+  ;  clojure.core/fn clojure.core/fn,
+  ;  map clojure.core/map,
+  ;  boolean clojure.core/boolean},
   ; :typed.cljc.checker.check.cache/errors false,
-  ; :typed.cljc.checker.check.cache/interop {}}
-  ;::t/dbg id=G__174969 map-kw9
-  ;::t/dbg id=G__174969 (map boolean as)
-  ;::t/dbg id=G__174969 expected: cache.poly/Bs
-  ;::t/dbg id=G__174969 result: cache.poly/Bs
+  ; :typed.cljc.checker.check.cache/interop {},
+  ; :typed.cljc.checker.check.cache/type-syms {}}
+  ;need-to-check-top-level-expr?: did not find cache info
+  ;::t/dbg id=G__64743 map-kw9
+  ;::t/dbg id=G__64743 (map boolean as)
+  ;::t/dbg id=G__64743 expected: cache.poly/Bs
+  ;::t/dbg id=G__64743 result: cache.poly/Bs
   ;cache: Caching form with cache info
-  ;cache: dependencies for form: (defn map-kw9 [as] (map boolean as))
+  ;ns form:
+  ;>>>>
+  ;(ns cache.poly
+  ;  {:typed.clojure {:experimental #{:cache}}}
+  ;  (:require [typed.clojure :as t]))
+  ;<<<<
+  ;cache: on disk:
+  ;>>>>
+  ;(defn map-kw9 [as] ^{::t/dbg "map-kw9"} (map boolean as))
+  ;<<<<
   ;{:typed.cljc.checker.check.cache/types
   ; {:clojure.core.typed.current-impl/unanalyzed-special
   ;  {clojure.core/defn
@@ -1201,17 +1389,17 @@
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     (typed.clojure/CountRange 1)
+  ;     (clojure.lang.ISeq x)
   ;     (java.util.List x)
   ;     clojure.lang.Sequential
-  ;     (clojure.lang.ISeq x)
-  ;     clojure.lang.IObj)),
+  ;     clojure.lang.IObj
+  ;     (typed.clojure/CountRange 1))),
   ;   typed.clojure/NonEmptySeqable
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     (typed.clojure/CountRange 1)
-  ;     (clojure.lang.Seqable (typed.clojure/NilableNonEmptySeq x)))),
+  ;     (clojure.lang.Seqable (typed.clojure/NilableNonEmptySeq x))
+  ;     (typed.clojure/CountRange 1))),
   ;   java.util.SequencedCollection {},
   ;   clojure.lang.Seqable {},
   ;   typed.clojure/NilableNonEmptySeq
@@ -1222,10 +1410,10 @@
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     clojure.lang.Sequential
-  ;     clojure.lang.IObj
+  ;     (java.util.List x)
   ;     (clojure.lang.ISeq x)
-  ;     (java.util.List x))),
+  ;     clojure.lang.Sequential
+  ;     clojure.lang.IObj)),
   ;   typed.clojure/Int typed.clojure/AnyInteger,
   ;   typed.clojure/AnyInteger
   ;   (typed.clojure/U
@@ -1237,19 +1425,7 @@
   ;    java.lang.Long),
   ;   java.lang.Iterable {}},
   ;  :clojure.core.typed.current-impl/current-rclass-env
-  ;  {clojure.lang.IPersistentCollection
-  ;   (typed.clojure/TFn
-  ;    [[a :variance :covariant]]
-  ;    (clojure.lang.IPersistentCollection a)),
-  ;   clojure.lang.Seqable
-  ;   (typed.clojure/TFn
-  ;    [[a
-  ;      :variance
-  ;      :covariant
-  ;      :<
-  ;      (typed.clojure/NilableNonEmptySeq typed.clojure/Any)]]
-  ;    (clojure.lang.Seqable a)),
-  ;   java.util.SequencedCollection
+  ;  {java.util.SequencedCollection
   ;   (typed.clojure/TFn
   ;    [[a :variance :invariant]]
   ;    (java.util.SequencedCollection a)),
@@ -1260,20 +1436,43 @@
   ;   java.lang.Iterable
   ;   (typed.clojure/TFn
   ;    [[a :variance :covariant]]
-  ;    (java.lang.Iterable a))}},
+  ;    (java.lang.Iterable a)),
+  ;   clojure.lang.Seqable
+  ;   (typed.clojure/TFn
+  ;    [[a
+  ;      :variance
+  ;      :covariant
+  ;      :<
+  ;      (typed.clojure/NilableNonEmptySeq typed.clojure/Any)]]
+  ;    (clojure.lang.Seqable a)),
+  ;   clojure.lang.IPersistentCollection
+  ;   (typed.clojure/TFn
+  ;    [[a :variance :covariant]]
+  ;    (clojure.lang.IPersistentCollection a))}},
   ; :typed.cljc.checker.check.cache/vars
-  ; {defn #'clojure.core/defn,
-  ;  clojure.core/fn #'clojure.core/fn,
-  ;  map #'clojure.core/map,
-  ;  boolean #'clojure.core/boolean},
+  ; {defn clojure.core/defn,
+  ;  clojure.core/fn clojure.core/fn,
+  ;  map clojure.core/map,
+  ;  boolean clojure.core/boolean},
   ; :typed.cljc.checker.check.cache/errors false,
-  ; :typed.cljc.checker.check.cache/interop {}}
-  ;::t/dbg id=G__175368 map-kw10
-  ;::t/dbg id=G__175368 (map boolean as)
-  ;::t/dbg id=G__175368 expected: cache.poly/Bs
-  ;::t/dbg id=G__175368 result: cache.poly/Bs
+  ; :typed.cljc.checker.check.cache/interop {},
+  ; :typed.cljc.checker.check.cache/type-syms {}}
+  ;need-to-check-top-level-expr?: did not find cache info
+  ;::t/dbg id=G__65148 map-kw10
+  ;::t/dbg id=G__65148 (map boolean as)
+  ;::t/dbg id=G__65148 expected: cache.poly/Bs
+  ;::t/dbg id=G__65148 result: cache.poly/Bs
   ;cache: Caching form with cache info
-  ;cache: dependencies for form: (defn map-kw10 [as] (map boolean as))
+  ;ns form:
+  ;>>>>
+  ;(ns cache.poly
+  ;  {:typed.clojure {:experimental #{:cache}}}
+  ;  (:require [typed.clojure :as t]))
+  ;<<<<
+  ;cache: on disk:
+  ;>>>>
+  ;(defn map-kw10 [as] ^{::t/dbg "map-kw10"} (map boolean as))
+  ;<<<<
   ;{:typed.cljc.checker.check.cache/types
   ; {:clojure.core.typed.current-impl/unanalyzed-special
   ;  {clojure.core/defn
@@ -1329,17 +1528,17 @@
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     (typed.clojure/CountRange 1)
+  ;     (java.util.List x)
+  ;     (clojure.lang.ISeq x)
   ;     clojure.lang.Sequential
   ;     clojure.lang.IObj
-  ;     (clojure.lang.ISeq x)
-  ;     (java.util.List x))),
+  ;     (typed.clojure/CountRange 1))),
   ;   typed.clojure/NonEmptySeqable
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     (typed.clojure/CountRange 1)
-  ;     (clojure.lang.Seqable (typed.clojure/NilableNonEmptySeq x)))),
+  ;     (clojure.lang.Seqable (typed.clojure/NilableNonEmptySeq x))
+  ;     (typed.clojure/CountRange 1))),
   ;   java.util.SequencedCollection {},
   ;   clojure.lang.Seqable {},
   ;   typed.clojure/NilableNonEmptySeq
@@ -1350,10 +1549,10 @@
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     clojure.lang.Sequential
-  ;     clojure.lang.IObj
+  ;     (java.util.List x)
   ;     (clojure.lang.ISeq x)
-  ;     (java.util.List x))),
+  ;     clojure.lang.Sequential
+  ;     clojure.lang.IObj)),
   ;   typed.clojure/Int typed.clojure/AnyInteger,
   ;   typed.clojure/AnyInteger
   ;   (typed.clojure/U
@@ -1365,19 +1564,7 @@
   ;    java.lang.Long),
   ;   java.lang.Iterable {}},
   ;  :clojure.core.typed.current-impl/current-rclass-env
-  ;  {clojure.lang.IPersistentCollection
-  ;   (typed.clojure/TFn
-  ;    [[a :variance :covariant]]
-  ;    (clojure.lang.IPersistentCollection a)),
-  ;   clojure.lang.Seqable
-  ;   (typed.clojure/TFn
-  ;    [[a
-  ;      :variance
-  ;      :covariant
-  ;      :<
-  ;      (typed.clojure/NilableNonEmptySeq typed.clojure/Any)]]
-  ;    (clojure.lang.Seqable a)),
-  ;   java.util.SequencedCollection
+  ;  {java.util.SequencedCollection
   ;   (typed.clojure/TFn
   ;    [[a :variance :invariant]]
   ;    (java.util.SequencedCollection a)),
@@ -1388,20 +1575,43 @@
   ;   java.lang.Iterable
   ;   (typed.clojure/TFn
   ;    [[a :variance :covariant]]
-  ;    (java.lang.Iterable a))}},
+  ;    (java.lang.Iterable a)),
+  ;   clojure.lang.Seqable
+  ;   (typed.clojure/TFn
+  ;    [[a
+  ;      :variance
+  ;      :covariant
+  ;      :<
+  ;      (typed.clojure/NilableNonEmptySeq typed.clojure/Any)]]
+  ;    (clojure.lang.Seqable a)),
+  ;   clojure.lang.IPersistentCollection
+  ;   (typed.clojure/TFn
+  ;    [[a :variance :covariant]]
+  ;    (clojure.lang.IPersistentCollection a))}},
   ; :typed.cljc.checker.check.cache/vars
-  ; {defn #'clojure.core/defn,
-  ;  clojure.core/fn #'clojure.core/fn,
-  ;  map #'clojure.core/map,
-  ;  boolean #'clojure.core/boolean},
+  ; {defn clojure.core/defn,
+  ;  clojure.core/fn clojure.core/fn,
+  ;  map clojure.core/map,
+  ;  boolean clojure.core/boolean},
   ; :typed.cljc.checker.check.cache/errors false,
-  ; :typed.cljc.checker.check.cache/interop {}}
-  ;::t/dbg id=G__175761 map-kw11
-  ;::t/dbg id=G__175761 (map boolean as)
-  ;::t/dbg id=G__175761 expected: cache.poly/Bs
-  ;::t/dbg id=G__175761 result: cache.poly/Bs
+  ; :typed.cljc.checker.check.cache/interop {},
+  ; :typed.cljc.checker.check.cache/type-syms {}}
+  ;need-to-check-top-level-expr?: did not find cache info
+  ;::t/dbg id=G__65545 map-kw11
+  ;::t/dbg id=G__65545 (map boolean as)
+  ;::t/dbg id=G__65545 expected: cache.poly/Bs
+  ;::t/dbg id=G__65545 result: cache.poly/Bs
   ;cache: Caching form with cache info
-  ;cache: dependencies for form: (defn map-kw11 [as] (map boolean as))
+  ;ns form:
+  ;>>>>
+  ;(ns cache.poly
+  ;  {:typed.clojure {:experimental #{:cache}}}
+  ;  (:require [typed.clojure :as t]))
+  ;<<<<
+  ;cache: on disk:
+  ;>>>>
+  ;(defn map-kw11 [as] ^{::t/dbg "map-kw11"} (map boolean as))
+  ;<<<<
   ;{:typed.cljc.checker.check.cache/types
   ; {:clojure.core.typed.current-impl/unanalyzed-special
   ;  {clojure.core/defn
@@ -1457,17 +1667,17 @@
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     (typed.clojure/CountRange 1)
   ;     clojure.lang.Sequential
   ;     clojure.lang.IObj
+  ;     (clojure.lang.ISeq x)
   ;     (java.util.List x)
-  ;     (clojure.lang.ISeq x))),
+  ;     (typed.clojure/CountRange 1))),
   ;   typed.clojure/NonEmptySeqable
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     (typed.clojure/CountRange 1)
-  ;     (clojure.lang.Seqable (typed.clojure/NilableNonEmptySeq x)))),
+  ;     (clojure.lang.Seqable (typed.clojure/NilableNonEmptySeq x))
+  ;     (typed.clojure/CountRange 1))),
   ;   java.util.SequencedCollection {},
   ;   clojure.lang.Seqable {},
   ;   typed.clojure/NilableNonEmptySeq
@@ -1518,18 +1728,29 @@
   ;    [[a :variance :covariant]]
   ;    (clojure.lang.IPersistentCollection a))}},
   ; :typed.cljc.checker.check.cache/vars
-  ; {defn #'clojure.core/defn,
-  ;  clojure.core/fn #'clojure.core/fn,
-  ;  map #'clojure.core/map,
-  ;  boolean #'clojure.core/boolean},
+  ; {defn clojure.core/defn,
+  ;  clojure.core/fn clojure.core/fn,
+  ;  map clojure.core/map,
+  ;  boolean clojure.core/boolean},
   ; :typed.cljc.checker.check.cache/errors false,
-  ; :typed.cljc.checker.check.cache/interop {}}
-  ;::t/dbg id=G__176164 map-kw12
-  ;::t/dbg id=G__176164 (map boolean as)
-  ;::t/dbg id=G__176164 expected: cache.poly/Bs
-  ;::t/dbg id=G__176164 result: cache.poly/Bs
+  ; :typed.cljc.checker.check.cache/interop {},
+  ; :typed.cljc.checker.check.cache/type-syms {}}
+  ;need-to-check-top-level-expr?: did not find cache info
+  ;::t/dbg id=G__65956 map-kw12
+  ;::t/dbg id=G__65956 (map boolean as)
+  ;::t/dbg id=G__65956 expected: cache.poly/Bs
+  ;::t/dbg id=G__65956 result: cache.poly/Bs
   ;cache: Caching form with cache info
-  ;cache: dependencies for form: (defn map-kw12 [as] (map boolean as))
+  ;ns form:
+  ;>>>>
+  ;(ns cache.poly
+  ;  {:typed.clojure {:experimental #{:cache}}}
+  ;  (:require [typed.clojure :as t]))
+  ;<<<<
+  ;cache: on disk:
+  ;>>>>
+  ;(defn map-kw12 [as] ^{::t/dbg "map-kw12"} (map boolean as))
+  ;<<<<
   ;{:typed.cljc.checker.check.cache/types
   ; {:clojure.core.typed.current-impl/unanalyzed-special
   ;  {clojure.core/defn
@@ -1585,17 +1806,17 @@
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     (typed.clojure/CountRange 1)
-  ;     (java.util.List x)
   ;     (clojure.lang.ISeq x)
+  ;     (java.util.List x)
   ;     clojure.lang.Sequential
-  ;     clojure.lang.IObj)),
+  ;     clojure.lang.IObj
+  ;     (typed.clojure/CountRange 1))),
   ;   typed.clojure/NonEmptySeqable
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     (typed.clojure/CountRange 1)
-  ;     (clojure.lang.Seqable (typed.clojure/NilableNonEmptySeq x)))),
+  ;     (clojure.lang.Seqable (typed.clojure/NilableNonEmptySeq x))
+  ;     (typed.clojure/CountRange 1))),
   ;   java.util.SequencedCollection {},
   ;   clojure.lang.Seqable {},
   ;   typed.clojure/NilableNonEmptySeq
@@ -1608,8 +1829,8 @@
   ;    (typed.clojure/I
   ;     clojure.lang.Sequential
   ;     clojure.lang.IObj
-  ;     (java.util.List x)
-  ;     (clojure.lang.ISeq x))),
+  ;     (clojure.lang.ISeq x)
+  ;     (java.util.List x))),
   ;   typed.clojure/Int typed.clojure/AnyInteger,
   ;   typed.clojure/AnyInteger
   ;   (typed.clojure/U
@@ -1621,7 +1842,19 @@
   ;    java.lang.Long),
   ;   java.lang.Iterable {}},
   ;  :clojure.core.typed.current-impl/current-rclass-env
-  ;  {java.util.SequencedCollection
+  ;  {clojure.lang.IPersistentCollection
+  ;   (typed.clojure/TFn
+  ;    [[a :variance :covariant]]
+  ;    (clojure.lang.IPersistentCollection a)),
+  ;   clojure.lang.Seqable
+  ;   (typed.clojure/TFn
+  ;    [[a
+  ;      :variance
+  ;      :covariant
+  ;      :<
+  ;      (typed.clojure/NilableNonEmptySeq typed.clojure/Any)]]
+  ;    (clojure.lang.Seqable a)),
+  ;   java.util.SequencedCollection
   ;   (typed.clojure/TFn
   ;    [[a :variance :invariant]]
   ;    (java.util.SequencedCollection a)),
@@ -1632,32 +1865,31 @@
   ;   java.lang.Iterable
   ;   (typed.clojure/TFn
   ;    [[a :variance :covariant]]
-  ;    (java.lang.Iterable a)),
-  ;   clojure.lang.Seqable
-  ;   (typed.clojure/TFn
-  ;    [[a
-  ;      :variance
-  ;      :covariant
-  ;      :<
-  ;      (typed.clojure/NilableNonEmptySeq typed.clojure/Any)]]
-  ;    (clojure.lang.Seqable a)),
-  ;   clojure.lang.IPersistentCollection
-  ;   (typed.clojure/TFn
-  ;    [[a :variance :covariant]]
-  ;    (clojure.lang.IPersistentCollection a))}},
+  ;    (java.lang.Iterable a))}},
   ; :typed.cljc.checker.check.cache/vars
-  ; {defn #'clojure.core/defn,
-  ;  clojure.core/fn #'clojure.core/fn,
-  ;  map #'clojure.core/map,
-  ;  boolean #'clojure.core/boolean},
+  ; {defn clojure.core/defn,
+  ;  clojure.core/fn clojure.core/fn,
+  ;  map clojure.core/map,
+  ;  boolean clojure.core/boolean},
   ; :typed.cljc.checker.check.cache/errors false,
-  ; :typed.cljc.checker.check.cache/interop {}}
-  ;::t/dbg id=G__176553 map-kw13
-  ;::t/dbg id=G__176553 (map boolean as)
-  ;::t/dbg id=G__176553 expected: cache.poly/Bs
-  ;::t/dbg id=G__176553 result: cache.poly/Bs
+  ; :typed.cljc.checker.check.cache/interop {},
+  ; :typed.cljc.checker.check.cache/type-syms {}}
+  ;need-to-check-top-level-expr?: did not find cache info
+  ;::t/dbg id=G__66333 map-kw13
+  ;::t/dbg id=G__66333 (map boolean as)
+  ;::t/dbg id=G__66333 expected: cache.poly/Bs
+  ;::t/dbg id=G__66333 result: cache.poly/Bs
   ;cache: Caching form with cache info
-  ;cache: dependencies for form: (defn map-kw13 [as] (map boolean as))
+  ;ns form:
+  ;>>>>
+  ;(ns cache.poly
+  ;  {:typed.clojure {:experimental #{:cache}}}
+  ;  (:require [typed.clojure :as t]))
+  ;<<<<
+  ;cache: on disk:
+  ;>>>>
+  ;(defn map-kw13 [as] ^{::t/dbg "map-kw13"} (map boolean as))
+  ;<<<<
   ;{:typed.cljc.checker.check.cache/types
   ; {:clojure.core.typed.current-impl/unanalyzed-special
   ;  {clojure.core/defn
@@ -1713,17 +1945,17 @@
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     (typed.clojure/CountRange 1)
   ;     (clojure.lang.ISeq x)
   ;     (java.util.List x)
   ;     clojure.lang.Sequential
-  ;     clojure.lang.IObj)),
+  ;     clojure.lang.IObj
+  ;     (typed.clojure/CountRange 1))),
   ;   typed.clojure/NonEmptySeqable
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     (typed.clojure/CountRange 1)
-  ;     (clojure.lang.Seqable (typed.clojure/NilableNonEmptySeq x)))),
+  ;     (clojure.lang.Seqable (typed.clojure/NilableNonEmptySeq x))
+  ;     (typed.clojure/CountRange 1))),
   ;   java.util.SequencedCollection {},
   ;   clojure.lang.Seqable {},
   ;   typed.clojure/NilableNonEmptySeq
@@ -1734,8 +1966,8 @@
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     (java.util.List x)
   ;     (clojure.lang.ISeq x)
+  ;     (java.util.List x)
   ;     clojure.lang.Sequential
   ;     clojure.lang.IObj)),
   ;   typed.clojure/Int typed.clojure/AnyInteger,
@@ -1774,18 +2006,29 @@
   ;    [[a :variance :covariant]]
   ;    (java.lang.Iterable a))}},
   ; :typed.cljc.checker.check.cache/vars
-  ; {defn #'clojure.core/defn,
-  ;  clojure.core/fn #'clojure.core/fn,
-  ;  map #'clojure.core/map,
-  ;  boolean #'clojure.core/boolean},
+  ; {defn clojure.core/defn,
+  ;  clojure.core/fn clojure.core/fn,
+  ;  map clojure.core/map,
+  ;  boolean clojure.core/boolean},
   ; :typed.cljc.checker.check.cache/errors false,
-  ; :typed.cljc.checker.check.cache/interop {}}
-  ;::t/dbg id=G__176952 map-kw14
-  ;::t/dbg id=G__176952 (map boolean as)
-  ;::t/dbg id=G__176952 expected: cache.poly/Bs
-  ;::t/dbg id=G__176952 result: cache.poly/Bs
+  ; :typed.cljc.checker.check.cache/interop {},
+  ; :typed.cljc.checker.check.cache/type-syms {}}
+  ;need-to-check-top-level-expr?: did not find cache info
+  ;::t/dbg id=G__66734 map-kw14
+  ;::t/dbg id=G__66734 (map boolean as)
+  ;::t/dbg id=G__66734 expected: cache.poly/Bs
+  ;::t/dbg id=G__66734 result: cache.poly/Bs
   ;cache: Caching form with cache info
-  ;cache: dependencies for form: (defn map-kw14 [as] (map boolean as))
+  ;ns form:
+  ;>>>>
+  ;(ns cache.poly
+  ;  {:typed.clojure {:experimental #{:cache}}}
+  ;  (:require [typed.clojure :as t]))
+  ;<<<<
+  ;cache: on disk:
+  ;>>>>
+  ;(defn map-kw14 [as] ^{::t/dbg "map-kw14"} (map boolean as))
+  ;<<<<
   ;{:typed.cljc.checker.check.cache/types
   ; {:clojure.core.typed.current-impl/unanalyzed-special
   ;  {clojure.core/defn
@@ -1841,17 +2084,17 @@
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     (typed.clojure/CountRange 1)
+  ;     (clojure.lang.ISeq x)
+  ;     (java.util.List x)
   ;     clojure.lang.Sequential
   ;     clojure.lang.IObj
-  ;     (clojure.lang.ISeq x)
-  ;     (java.util.List x))),
+  ;     (typed.clojure/CountRange 1))),
   ;   typed.clojure/NonEmptySeqable
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     (typed.clojure/CountRange 1)
-  ;     (clojure.lang.Seqable (typed.clojure/NilableNonEmptySeq x)))),
+  ;     (clojure.lang.Seqable (typed.clojure/NilableNonEmptySeq x))
+  ;     (typed.clojure/CountRange 1))),
   ;   java.util.SequencedCollection {},
   ;   clojure.lang.Seqable {},
   ;   typed.clojure/NilableNonEmptySeq
@@ -1862,10 +2105,10 @@
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     clojure.lang.Sequential
-  ;     clojure.lang.IObj
   ;     (clojure.lang.ISeq x)
-  ;     (java.util.List x))),
+  ;     (java.util.List x)
+  ;     clojure.lang.Sequential
+  ;     clojure.lang.IObj)),
   ;   typed.clojure/Int typed.clojure/AnyInteger,
   ;   typed.clojure/AnyInteger
   ;   (typed.clojure/U
@@ -1877,7 +2120,19 @@
   ;    java.lang.Long),
   ;   java.lang.Iterable {}},
   ;  :clojure.core.typed.current-impl/current-rclass-env
-  ;  {java.util.SequencedCollection
+  ;  {clojure.lang.IPersistentCollection
+  ;   (typed.clojure/TFn
+  ;    [[a :variance :covariant]]
+  ;    (clojure.lang.IPersistentCollection a)),
+  ;   clojure.lang.Seqable
+  ;   (typed.clojure/TFn
+  ;    [[a
+  ;      :variance
+  ;      :covariant
+  ;      :<
+  ;      (typed.clojure/NilableNonEmptySeq typed.clojure/Any)]]
+  ;    (clojure.lang.Seqable a)),
+  ;   java.util.SequencedCollection
   ;   (typed.clojure/TFn
   ;    [[a :variance :invariant]]
   ;    (java.util.SequencedCollection a)),
@@ -1888,32 +2143,31 @@
   ;   java.lang.Iterable
   ;   (typed.clojure/TFn
   ;    [[a :variance :covariant]]
-  ;    (java.lang.Iterable a)),
-  ;   clojure.lang.Seqable
-  ;   (typed.clojure/TFn
-  ;    [[a
-  ;      :variance
-  ;      :covariant
-  ;      :<
-  ;      (typed.clojure/NilableNonEmptySeq typed.clojure/Any)]]
-  ;    (clojure.lang.Seqable a)),
-  ;   clojure.lang.IPersistentCollection
-  ;   (typed.clojure/TFn
-  ;    [[a :variance :covariant]]
-  ;    (clojure.lang.IPersistentCollection a))}},
+  ;    (java.lang.Iterable a))}},
   ; :typed.cljc.checker.check.cache/vars
-  ; {defn #'clojure.core/defn,
-  ;  clojure.core/fn #'clojure.core/fn,
-  ;  map #'clojure.core/map,
-  ;  boolean #'clojure.core/boolean},
+  ; {defn clojure.core/defn,
+  ;  clojure.core/fn clojure.core/fn,
+  ;  map clojure.core/map,
+  ;  boolean clojure.core/boolean},
   ; :typed.cljc.checker.check.cache/errors false,
-  ; :typed.cljc.checker.check.cache/interop {}}
-  ;::t/dbg id=G__177339 map-kw15
-  ;::t/dbg id=G__177339 (map boolean as)
-  ;::t/dbg id=G__177339 expected: cache.poly/Bs
-  ;::t/dbg id=G__177339 result: cache.poly/Bs
+  ; :typed.cljc.checker.check.cache/interop {},
+  ; :typed.cljc.checker.check.cache/type-syms {}}
+  ;need-to-check-top-level-expr?: did not find cache info
+  ;::t/dbg id=G__67131 map-kw15
+  ;::t/dbg id=G__67131 (map boolean as)
+  ;::t/dbg id=G__67131 expected: cache.poly/Bs
+  ;::t/dbg id=G__67131 result: cache.poly/Bs
   ;cache: Caching form with cache info
-  ;cache: dependencies for form: (defn map-kw15 [as] (map boolean as))
+  ;ns form:
+  ;>>>>
+  ;(ns cache.poly
+  ;  {:typed.clojure {:experimental #{:cache}}}
+  ;  (:require [typed.clojure :as t]))
+  ;<<<<
+  ;cache: on disk:
+  ;>>>>
+  ;(defn map-kw15 [as] ^{::t/dbg "map-kw15"} (map boolean as))
+  ;<<<<
   ;{:typed.cljc.checker.check.cache/types
   ; {:clojure.core.typed.current-impl/unanalyzed-special
   ;  {clojure.core/defn
@@ -1969,17 +2223,17 @@
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     (typed.clojure/CountRange 1)
-  ;     (clojure.lang.ISeq x)
-  ;     (java.util.List x)
   ;     clojure.lang.Sequential
-  ;     clojure.lang.IObj)),
+  ;     clojure.lang.IObj
+  ;     (java.util.List x)
+  ;     (clojure.lang.ISeq x)
+  ;     (typed.clojure/CountRange 1))),
   ;   typed.clojure/NonEmptySeqable
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     (typed.clojure/CountRange 1)
-  ;     (clojure.lang.Seqable (typed.clojure/NilableNonEmptySeq x)))),
+  ;     (clojure.lang.Seqable (typed.clojure/NilableNonEmptySeq x))
+  ;     (typed.clojure/CountRange 1))),
   ;   java.util.SequencedCollection {},
   ;   clojure.lang.Seqable {},
   ;   typed.clojure/NilableNonEmptySeq
@@ -1990,9 +2244,9 @@
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
+  ;     (java.util.List x)
   ;     (clojure.lang.ISeq x)
   ;     clojure.lang.Sequential
-  ;     (java.util.List x)
   ;     clojure.lang.IObj)),
   ;   typed.clojure/Int typed.clojure/AnyInteger,
   ;   typed.clojure/AnyInteger
@@ -2005,7 +2259,19 @@
   ;    java.lang.Long),
   ;   java.lang.Iterable {}},
   ;  :clojure.core.typed.current-impl/current-rclass-env
-  ;  {java.util.SequencedCollection
+  ;  {clojure.lang.IPersistentCollection
+  ;   (typed.clojure/TFn
+  ;    [[a :variance :covariant]]
+  ;    (clojure.lang.IPersistentCollection a)),
+  ;   clojure.lang.Seqable
+  ;   (typed.clojure/TFn
+  ;    [[a
+  ;      :variance
+  ;      :covariant
+  ;      :<
+  ;      (typed.clojure/NilableNonEmptySeq typed.clojure/Any)]]
+  ;    (clojure.lang.Seqable a)),
+  ;   java.util.SequencedCollection
   ;   (typed.clojure/TFn
   ;    [[a :variance :invariant]]
   ;    (java.util.SequencedCollection a)),
@@ -2016,32 +2282,31 @@
   ;   java.lang.Iterable
   ;   (typed.clojure/TFn
   ;    [[a :variance :covariant]]
-  ;    (java.lang.Iterable a)),
-  ;   clojure.lang.Seqable
-  ;   (typed.clojure/TFn
-  ;    [[a
-  ;      :variance
-  ;      :covariant
-  ;      :<
-  ;      (typed.clojure/NilableNonEmptySeq typed.clojure/Any)]]
-  ;    (clojure.lang.Seqable a)),
-  ;   clojure.lang.IPersistentCollection
-  ;   (typed.clojure/TFn
-  ;    [[a :variance :covariant]]
-  ;    (clojure.lang.IPersistentCollection a))}},
+  ;    (java.lang.Iterable a))}},
   ; :typed.cljc.checker.check.cache/vars
-  ; {defn #'clojure.core/defn,
-  ;  clojure.core/fn #'clojure.core/fn,
-  ;  map #'clojure.core/map,
-  ;  boolean #'clojure.core/boolean},
+  ; {defn clojure.core/defn,
+  ;  clojure.core/fn clojure.core/fn,
+  ;  map clojure.core/map,
+  ;  boolean clojure.core/boolean},
   ; :typed.cljc.checker.check.cache/errors false,
-  ; :typed.cljc.checker.check.cache/interop {}}
-  ;::t/dbg id=G__177726 map-kw16
-  ;::t/dbg id=G__177726 (map boolean as)
-  ;::t/dbg id=G__177726 expected: cache.poly/Bs
-  ;::t/dbg id=G__177726 result: cache.poly/Bs
+  ; :typed.cljc.checker.check.cache/interop {},
+  ; :typed.cljc.checker.check.cache/type-syms {}}
+  ;need-to-check-top-level-expr?: did not find cache info
+  ;::t/dbg id=G__67518 map-kw16
+  ;::t/dbg id=G__67518 (map boolean as)
+  ;::t/dbg id=G__67518 expected: cache.poly/Bs
+  ;::t/dbg id=G__67518 result: cache.poly/Bs
   ;cache: Caching form with cache info
-  ;cache: dependencies for form: (defn map-kw16 [as] (map boolean as))
+  ;ns form:
+  ;>>>>
+  ;(ns cache.poly
+  ;  {:typed.clojure {:experimental #{:cache}}}
+  ;  (:require [typed.clojure :as t]))
+  ;<<<<
+  ;cache: on disk:
+  ;>>>>
+  ;(defn map-kw16 [as] ^{::t/dbg "map-kw16"} (map boolean as))
+  ;<<<<
   ;{:typed.cljc.checker.check.cache/types
   ; {:clojure.core.typed.current-impl/unanalyzed-special
   ;  {clojure.core/defn
@@ -2097,17 +2362,17 @@
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     (typed.clojure/CountRange 1)
-  ;     (clojure.lang.ISeq x)
-  ;     (java.util.List x)
   ;     clojure.lang.Sequential
-  ;     clojure.lang.IObj)),
+  ;     clojure.lang.IObj
+  ;     (java.util.List x)
+  ;     (clojure.lang.ISeq x)
+  ;     (typed.clojure/CountRange 1))),
   ;   typed.clojure/NonEmptySeqable
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     (typed.clojure/CountRange 1)
-  ;     (clojure.lang.Seqable (typed.clojure/NilableNonEmptySeq x)))),
+  ;     (clojure.lang.Seqable (typed.clojure/NilableNonEmptySeq x))
+  ;     (typed.clojure/CountRange 1))),
   ;   java.util.SequencedCollection {},
   ;   clojure.lang.Seqable {},
   ;   typed.clojure/NilableNonEmptySeq
@@ -2118,8 +2383,8 @@
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     (java.util.List x)
   ;     (clojure.lang.ISeq x)
+  ;     (java.util.List x)
   ;     clojure.lang.Sequential
   ;     clojure.lang.IObj)),
   ;   typed.clojure/Int typed.clojure/AnyInteger,
@@ -2133,19 +2398,7 @@
   ;    java.lang.Long),
   ;   java.lang.Iterable {}},
   ;  :clojure.core.typed.current-impl/current-rclass-env
-  ;  {clojure.lang.IPersistentCollection
-  ;   (typed.clojure/TFn
-  ;    [[a :variance :covariant]]
-  ;    (clojure.lang.IPersistentCollection a)),
-  ;   clojure.lang.Seqable
-  ;   (typed.clojure/TFn
-  ;    [[a
-  ;      :variance
-  ;      :covariant
-  ;      :<
-  ;      (typed.clojure/NilableNonEmptySeq typed.clojure/Any)]]
-  ;    (clojure.lang.Seqable a)),
-  ;   java.util.SequencedCollection
+  ;  {java.util.SequencedCollection
   ;   (typed.clojure/TFn
   ;    [[a :variance :invariant]]
   ;    (java.util.SequencedCollection a)),
@@ -2156,20 +2409,43 @@
   ;   java.lang.Iterable
   ;   (typed.clojure/TFn
   ;    [[a :variance :covariant]]
-  ;    (java.lang.Iterable a))}},
+  ;    (java.lang.Iterable a)),
+  ;   clojure.lang.Seqable
+  ;   (typed.clojure/TFn
+  ;    [[a
+  ;      :variance
+  ;      :covariant
+  ;      :<
+  ;      (typed.clojure/NilableNonEmptySeq typed.clojure/Any)]]
+  ;    (clojure.lang.Seqable a)),
+  ;   clojure.lang.IPersistentCollection
+  ;   (typed.clojure/TFn
+  ;    [[a :variance :covariant]]
+  ;    (clojure.lang.IPersistentCollection a))}},
   ; :typed.cljc.checker.check.cache/vars
-  ; {defn #'clojure.core/defn,
-  ;  clojure.core/fn #'clojure.core/fn,
-  ;  map #'clojure.core/map,
-  ;  boolean #'clojure.core/boolean},
+  ; {defn clojure.core/defn,
+  ;  clojure.core/fn clojure.core/fn,
+  ;  map clojure.core/map,
+  ;  boolean clojure.core/boolean},
   ; :typed.cljc.checker.check.cache/errors false,
-  ; :typed.cljc.checker.check.cache/interop {}}
-  ;::t/dbg id=G__178139 map-kw17
-  ;::t/dbg id=G__178139 (map boolean as)
-  ;::t/dbg id=G__178139 expected: cache.poly/Bs
-  ;::t/dbg id=G__178139 result: cache.poly/Bs
+  ; :typed.cljc.checker.check.cache/interop {},
+  ; :typed.cljc.checker.check.cache/type-syms {}}
+  ;need-to-check-top-level-expr?: did not find cache info
+  ;::t/dbg id=G__67903 map-kw17
+  ;::t/dbg id=G__67903 (map boolean as)
+  ;::t/dbg id=G__67903 expected: cache.poly/Bs
+  ;::t/dbg id=G__67903 result: cache.poly/Bs
   ;cache: Caching form with cache info
-  ;cache: dependencies for form: (defn map-kw17 [as] (map boolean as))
+  ;ns form:
+  ;>>>>
+  ;(ns cache.poly
+  ;  {:typed.clojure {:experimental #{:cache}}}
+  ;  (:require [typed.clojure :as t]))
+  ;<<<<
+  ;cache: on disk:
+  ;>>>>
+  ;(defn map-kw17 [as] ^{::t/dbg "map-kw17"} (map boolean as))
+  ;<<<<
   ;{:typed.cljc.checker.check.cache/types
   ; {:clojure.core.typed.current-impl/unanalyzed-special
   ;  {clojure.core/defn
@@ -2225,17 +2501,17 @@
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     (typed.clojure/CountRange 1)
+  ;     (clojure.lang.ISeq x)
+  ;     (java.util.List x)
   ;     clojure.lang.Sequential
   ;     clojure.lang.IObj
-  ;     (java.util.List x)
-  ;     (clojure.lang.ISeq x))),
+  ;     (typed.clojure/CountRange 1))),
   ;   typed.clojure/NonEmptySeqable
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     (typed.clojure/CountRange 1)
-  ;     (clojure.lang.Seqable (typed.clojure/NilableNonEmptySeq x)))),
+  ;     (clojure.lang.Seqable (typed.clojure/NilableNonEmptySeq x))
+  ;     (typed.clojure/CountRange 1))),
   ;   java.util.SequencedCollection {},
   ;   clojure.lang.Seqable {},
   ;   typed.clojure/NilableNonEmptySeq
@@ -2246,10 +2522,10 @@
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     clojure.lang.Sequential
-  ;     clojure.lang.IObj
+  ;     (java.util.List x)
   ;     (clojure.lang.ISeq x)
-  ;     (java.util.List x))),
+  ;     clojure.lang.Sequential
+  ;     clojure.lang.IObj)),
   ;   typed.clojure/Int typed.clojure/AnyInteger,
   ;   typed.clojure/AnyInteger
   ;   (typed.clojure/U
@@ -2286,18 +2562,29 @@
   ;    [[a :variance :covariant]]
   ;    (java.lang.Iterable a))}},
   ; :typed.cljc.checker.check.cache/vars
-  ; {defn #'clojure.core/defn,
-  ;  clojure.core/fn #'clojure.core/fn,
-  ;  map #'clojure.core/map,
-  ;  boolean #'clojure.core/boolean},
+  ; {defn clojure.core/defn,
+  ;  clojure.core/fn clojure.core/fn,
+  ;  map clojure.core/map,
+  ;  boolean clojure.core/boolean},
   ; :typed.cljc.checker.check.cache/errors false,
-  ; :typed.cljc.checker.check.cache/interop {}}
-  ;::t/dbg id=G__178542 map-kw18
-  ;::t/dbg id=G__178542 (map boolean as)
-  ;::t/dbg id=G__178542 expected: cache.poly/Bs
-  ;::t/dbg id=G__178542 result: cache.poly/Bs
+  ; :typed.cljc.checker.check.cache/interop {},
+  ; :typed.cljc.checker.check.cache/type-syms {}}
+  ;need-to-check-top-level-expr?: did not find cache info
+  ;::t/dbg id=G__68306 map-kw18
+  ;::t/dbg id=G__68306 (map boolean as)
+  ;::t/dbg id=G__68306 expected: cache.poly/Bs
+  ;::t/dbg id=G__68306 result: cache.poly/Bs
   ;cache: Caching form with cache info
-  ;cache: dependencies for form: (defn map-kw18 [as] (map boolean as))
+  ;ns form:
+  ;>>>>
+  ;(ns cache.poly
+  ;  {:typed.clojure {:experimental #{:cache}}}
+  ;  (:require [typed.clojure :as t]))
+  ;<<<<
+  ;cache: on disk:
+  ;>>>>
+  ;(defn map-kw18 [as] ^{::t/dbg "map-kw18"} (map boolean as))
+  ;<<<<
   ;{:typed.cljc.checker.check.cache/types
   ; {:clojure.core.typed.current-impl/unanalyzed-special
   ;  {clojure.core/defn
@@ -2353,17 +2640,17 @@
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     (typed.clojure/CountRange 1)
+  ;     (java.util.List x)
   ;     (clojure.lang.ISeq x)
   ;     clojure.lang.Sequential
-  ;     (java.util.List x)
-  ;     clojure.lang.IObj)),
+  ;     clojure.lang.IObj
+  ;     (typed.clojure/CountRange 1))),
   ;   typed.clojure/NonEmptySeqable
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     (typed.clojure/CountRange 1)
-  ;     (clojure.lang.Seqable (typed.clojure/NilableNonEmptySeq x)))),
+  ;     (clojure.lang.Seqable (typed.clojure/NilableNonEmptySeq x))
+  ;     (typed.clojure/CountRange 1))),
   ;   java.util.SequencedCollection {},
   ;   clojure.lang.Seqable {},
   ;   typed.clojure/NilableNonEmptySeq
@@ -2376,8 +2663,8 @@
   ;    (typed.clojure/I
   ;     clojure.lang.Sequential
   ;     clojure.lang.IObj
-  ;     (java.util.List x)
-  ;     (clojure.lang.ISeq x))),
+  ;     (clojure.lang.ISeq x)
+  ;     (java.util.List x))),
   ;   typed.clojure/Int typed.clojure/AnyInteger,
   ;   typed.clojure/AnyInteger
   ;   (typed.clojure/U
@@ -2389,19 +2676,7 @@
   ;    java.lang.Long),
   ;   java.lang.Iterable {}},
   ;  :clojure.core.typed.current-impl/current-rclass-env
-  ;  {clojure.lang.IPersistentCollection
-  ;   (typed.clojure/TFn
-  ;    [[a :variance :covariant]]
-  ;    (clojure.lang.IPersistentCollection a)),
-  ;   clojure.lang.Seqable
-  ;   (typed.clojure/TFn
-  ;    [[a
-  ;      :variance
-  ;      :covariant
-  ;      :<
-  ;      (typed.clojure/NilableNonEmptySeq typed.clojure/Any)]]
-  ;    (clojure.lang.Seqable a)),
-  ;   java.util.SequencedCollection
+  ;  {java.util.SequencedCollection
   ;   (typed.clojure/TFn
   ;    [[a :variance :invariant]]
   ;    (java.util.SequencedCollection a)),
@@ -2412,20 +2687,43 @@
   ;   java.lang.Iterable
   ;   (typed.clojure/TFn
   ;    [[a :variance :covariant]]
-  ;    (java.lang.Iterable a))}},
+  ;    (java.lang.Iterable a)),
+  ;   clojure.lang.Seqable
+  ;   (typed.clojure/TFn
+  ;    [[a
+  ;      :variance
+  ;      :covariant
+  ;      :<
+  ;      (typed.clojure/NilableNonEmptySeq typed.clojure/Any)]]
+  ;    (clojure.lang.Seqable a)),
+  ;   clojure.lang.IPersistentCollection
+  ;   (typed.clojure/TFn
+  ;    [[a :variance :covariant]]
+  ;    (clojure.lang.IPersistentCollection a))}},
   ; :typed.cljc.checker.check.cache/vars
-  ; {defn #'clojure.core/defn,
-  ;  clojure.core/fn #'clojure.core/fn,
-  ;  map #'clojure.core/map,
-  ;  boolean #'clojure.core/boolean},
+  ; {defn clojure.core/defn,
+  ;  clojure.core/fn clojure.core/fn,
+  ;  map clojure.core/map,
+  ;  boolean clojure.core/boolean},
   ; :typed.cljc.checker.check.cache/errors false,
-  ; :typed.cljc.checker.check.cache/interop {}}
-  ;::t/dbg id=G__178927 map-kw19
-  ;::t/dbg id=G__178927 (map boolean as)
-  ;::t/dbg id=G__178927 expected: cache.poly/Bs
-  ;::t/dbg id=G__178927 result: cache.poly/Bs
+  ; :typed.cljc.checker.check.cache/interop {},
+  ; :typed.cljc.checker.check.cache/type-syms {}}
+  ;need-to-check-top-level-expr?: did not find cache info
+  ;::t/dbg id=G__68705 map-kw19
+  ;::t/dbg id=G__68705 (map boolean as)
+  ;::t/dbg id=G__68705 expected: cache.poly/Bs
+  ;::t/dbg id=G__68705 result: cache.poly/Bs
   ;cache: Caching form with cache info
-  ;cache: dependencies for form: (defn map-kw19 [as] (map boolean as))
+  ;ns form:
+  ;>>>>
+  ;(ns cache.poly
+  ;  {:typed.clojure {:experimental #{:cache}}}
+  ;  (:require [typed.clojure :as t]))
+  ;<<<<
+  ;cache: on disk:
+  ;>>>>
+  ;(defn map-kw19 [as] ^{::t/dbg "map-kw19"} (map boolean as))
+  ;<<<<
   ;{:typed.cljc.checker.check.cache/types
   ; {:clojure.core.typed.current-impl/unanalyzed-special
   ;  {clojure.core/defn
@@ -2481,17 +2779,17 @@
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     (typed.clojure/CountRange 1)
+  ;     clojure.lang.Sequential
+  ;     clojure.lang.IObj
   ;     (java.util.List x)
   ;     (clojure.lang.ISeq x)
-  ;     clojure.lang.Sequential
-  ;     clojure.lang.IObj)),
+  ;     (typed.clojure/CountRange 1))),
   ;   typed.clojure/NonEmptySeqable
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     (typed.clojure/CountRange 1)
-  ;     (clojure.lang.Seqable (typed.clojure/NilableNonEmptySeq x)))),
+  ;     (clojure.lang.Seqable (typed.clojure/NilableNonEmptySeq x))
+  ;     (typed.clojure/CountRange 1))),
   ;   java.util.SequencedCollection {},
   ;   clojure.lang.Seqable {},
   ;   typed.clojure/NilableNonEmptySeq
@@ -2502,8 +2800,8 @@
   ;   (typed.clojure/TFn
   ;    [[x :variance :covariant]]
   ;    (typed.clojure/I
-  ;     (java.util.List x)
   ;     (clojure.lang.ISeq x)
+  ;     (java.util.List x)
   ;     clojure.lang.Sequential
   ;     clojure.lang.IObj)),
   ;   typed.clojure/Int typed.clojure/AnyInteger,
@@ -2542,320 +2840,33 @@
   ;    [[a :variance :covariant]]
   ;    (clojure.lang.IPersistentCollection a))}},
   ; :typed.cljc.checker.check.cache/vars
-  ; {defn #'clojure.core/defn,
-  ;  clojure.core/fn #'clojure.core/fn,
-  ;  map #'clojure.core/map,
-  ;  boolean #'clojure.core/boolean},
+  ; {defn clojure.core/defn,
+  ;  clojure.core/fn clojure.core/fn,
+  ;  map clojure.core/map,
+  ;  boolean clojure.core/boolean},
   ; :typed.cljc.checker.check.cache/errors false,
-  ; :typed.cljc.checker.check.cache/interop {}}
+  ; :typed.cljc.checker.check.cache/interop {},
+  ; :typed.cljc.checker.check.cache/type-syms {}}
+  ;need-to-check-top-level-expr?: did not find cache info
   ;cache: Caching form with cache info
-  ;cache: dependencies for form: (comment (t/cns) :ok)
+  ;ns form:
+  ;>>>>
+  ;(ns cache.poly
+  ;  {:typed.clojure {:experimental #{:cache}}}
+  ;  (:require [typed.clojure :as t]))
+  ;<<<<
+  ;cache: on disk:
+  ;>>>>
+  ;(comment
+  ; ...
+  ;<<<<
   ;{:typed.cljc.checker.check.cache/types
   ; {:clojure.core.typed.current-impl/current-impl
   ;  :clojure.core.typed.current-impl/clojure},
-  ; :typed.cljc.checker.check.cache/vars {comment #'clojure.core/comment},
+  ; :typed.cljc.checker.check.cache/vars {comment clojure.core/comment},
   ; :typed.cljc.checker.check.cache/errors false,
-  ; :typed.cljc.checker.check.cache/interop {}}
-  ;Checked cache.poly in 2765.766896 msecs
+  ; :typed.cljc.checker.check.cache/interop {},
+  ; :typed.cljc.checker.check.cache/type-syms {}}
+  ;Checked cache.poly in 2716.886404 msecs
   :ok
-
-;=Start checking cache.defn-chain
-;=cache: Caching form with cache info
-;=cache: dependencies for form: (ns cache.defn-chain {:typed.clojure {:experimental #{:cache}}} (:require [typed.clojure :as t]))
-;={:typed.cljc.checker.check.cache/types
-;= {:clojure.core.typed.current-impl/unanalyzed-special
-;=  {clojure.core/ns
-;=   typed.clj.ext.clojure.core__ns/-unanalyzed-special__ns},
-;=  :clojure.core.typed.current-impl/current-impl
-;=  :clojure.core.typed.current-impl/clojure},
-;= :typed.cljc.checker.check.cache/vars {ns #'clojure.core/ns},
-;= :typed.cljc.checker.check.cache/errors false,
-;= :typed.cljc.checker.check.cache/interop {}}
-;=cache: Caching form with cache info
-;=cache: dependencies for form: (t/defalias A1 (quote :A1))
-;={:typed.cljc.checker.check.cache/types
-;= {:clojure.core.typed.current-impl/unanalyzed-special
-;=  {clojure.core.typed/tc-ignore
-;=   typed.clj.ext.clojure.core.typed__tc-ignore/defuspecial__tc-ignore},
-;=  :clojure.core.typed.current-impl/current-impl
-;=  :clojure.core.typed.current-impl/clojure},
-;= :typed.cljc.checker.check.cache/vars
-;= {t/defalias #'typed.clojure/defalias,
-;=  clojure.core.typed/defalias #'clojure.core.typed/defalias,
-;=  clojure.core.typed/tc-ignore #'clojure.core.typed/tc-ignore,
-;=  clojure.core/when #'clojure.core/when,
-;=  clojure.core/= #'clojure.core/=,
-;=  clojure.lang.Util clojure.lang.Util,
-;=  clojure.core/intern #'clojure.core/intern,
-;=  clojure.core.typed/defalias* #'clojure.core.typed/defalias*},
-;= :typed.cljc.checker.check.cache/errors false,
-;= :typed.cljc.checker.check.cache/interop {}}
-;=cache: Caching form with cache info
-;=cache: dependencies for form: (t/defalias A2 (quote :A2))
-;={:typed.cljc.checker.check.cache/types
-;= {:clojure.core.typed.current-impl/unanalyzed-special
-;=  {clojure.core.typed/tc-ignore
-;=   typed.clj.ext.clojure.core.typed__tc-ignore/defuspecial__tc-ignore},
-;=  :clojure.core.typed.current-impl/current-impl
-;=  :clojure.core.typed.current-impl/clojure},
-;= :typed.cljc.checker.check.cache/vars
-;= {t/defalias #'typed.clojure/defalias,
-;=  clojure.core.typed/defalias #'clojure.core.typed/defalias,
-;=  clojure.core.typed/tc-ignore #'clojure.core.typed/tc-ignore,
-;=  clojure.core/when #'clojure.core/when,
-;=  clojure.core/= #'clojure.core/=,
-;=  clojure.lang.Util clojure.lang.Util,
-;=  clojure.core/intern #'clojure.core/intern,
-;=  clojure.core.typed/defalias* #'clojure.core.typed/defalias*},
-;= :typed.cljc.checker.check.cache/errors false,
-;= :typed.cljc.checker.check.cache/interop {}}
-;=cache: Caching form with cache info
-;=cache: dependencies for form: (t/defalias A3 (quote :A3))
-;={:typed.cljc.checker.check.cache/types
-;= {:clojure.core.typed.current-impl/unanalyzed-special
-;=  {clojure.core.typed/tc-ignore
-;=   typed.clj.ext.clojure.core.typed__tc-ignore/defuspecial__tc-ignore},
-;=  :clojure.core.typed.current-impl/current-impl
-;=  :clojure.core.typed.current-impl/clojure},
-;= :typed.cljc.checker.check.cache/vars
-;= {t/defalias #'typed.clojure/defalias,
-;=  clojure.core.typed/defalias #'clojure.core.typed/defalias,
-;=  clojure.core.typed/tc-ignore #'clojure.core.typed/tc-ignore,
-;=  clojure.core/when #'clojure.core/when,
-;=  clojure.core/= #'clojure.core/=,
-;=  clojure.lang.Util clojure.lang.Util,
-;=  clojure.core/intern #'clojure.core/intern,
-;=  clojure.core.typed/defalias* #'clojure.core.typed/defalias*},
-;= :typed.cljc.checker.check.cache/errors false,
-;= :typed.cljc.checker.check.cache/interop {}}
-;=cache: Caching form with cache info
-;=cache: dependencies for form: (t/defalias A4 (quote :A4))
-;={:typed.cljc.checker.check.cache/types
-;= {:clojure.core.typed.current-impl/unanalyzed-special
-;=  {clojure.core.typed/tc-ignore
-;=   typed.clj.ext.clojure.core.typed__tc-ignore/defuspecial__tc-ignore},
-;=  :clojure.core.typed.current-impl/current-impl
-;=  :clojure.core.typed.current-impl/clojure},
-;= :typed.cljc.checker.check.cache/vars
-;= {t/defalias #'typed.clojure/defalias,
-;=  clojure.core.typed/defalias #'clojure.core.typed/defalias,
-;=  clojure.core.typed/tc-ignore #'clojure.core.typed/tc-ignore,
-;=  clojure.core/when #'clojure.core/when,
-;=  clojure.core/= #'clojure.core/=,
-;=  clojure.lang.Util clojure.lang.Util,
-;=  clojure.core/intern #'clojure.core/intern,
-;=  clojure.core.typed/defalias* #'clojure.core.typed/defalias*},
-;= :typed.cljc.checker.check.cache/errors false,
-;= :typed.cljc.checker.check.cache/interop {}}
-;=cache: Caching form with cache info
-;=cache: dependencies for form: (t/defalias A5 (quote :A5))
-;={:typed.cljc.checker.check.cache/types
-;= {:clojure.core.typed.current-impl/unanalyzed-special
-;=  {clojure.core.typed/tc-ignore
-;=   typed.clj.ext.clojure.core.typed__tc-ignore/defuspecial__tc-ignore},
-;=  :clojure.core.typed.current-impl/current-impl
-;=  :clojure.core.typed.current-impl/clojure},
-;= :typed.cljc.checker.check.cache/vars
-;= {t/defalias #'typed.clojure/defalias,
-;=  clojure.core.typed/defalias #'clojure.core.typed/defalias,
-;=  clojure.core.typed/tc-ignore #'clojure.core.typed/tc-ignore,
-;=  clojure.core/when #'clojure.core/when,
-;=  clojure.core/= #'clojure.core/=,
-;=  clojure.lang.Util clojure.lang.Util,
-;=  clojure.core/intern #'clojure.core/intern,
-;=  clojure.core.typed/defalias* #'clojure.core.typed/defalias*},
-;= :typed.cljc.checker.check.cache/errors false,
-;= :typed.cljc.checker.check.cache/interop {}}
-;=cache: Caching form with cache info
-;=cache: dependencies for form: (declare a1 a2 a3 a4 a5)
-;={:typed.cljc.checker.check.cache/types
-;= {:clojure.core.typed.current-impl/current-impl
-;=  :clojure.core.typed.current-impl/clojure},
-;= :typed.cljc.checker.check.cache/vars {declare #'clojure.core/declare},
-;= :typed.cljc.checker.check.cache/errors false,
-;= :typed.cljc.checker.check.cache/interop {}}
-;=cache: Caching form with cache info
-;=cache: dependencies for form: (t/ann a1 [A1 :-> A5])
-;={:typed.cljc.checker.check.cache/types
-;= {:clojure.core.typed.current-impl/unanalyzed-special
-;=  {clojure.core.typed/tc-ignore
-;=   typed.clj.ext.clojure.core.typed__tc-ignore/defuspecial__tc-ignore},
-;=  :clojure.core.typed.current-impl/current-impl
-;=  :clojure.core.typed.current-impl/clojure},
-;= :typed.cljc.checker.check.cache/vars
-;= {t/ann #'typed.clojure/ann,
-;=  clojure.core.typed/ann #'clojure.core.typed/ann,
-;=  clojure.core.typed/tc-ignore #'clojure.core.typed/tc-ignore,
-;=  clojure.core.typed/ann* #'clojure.core.typed/ann*},
-;= :typed.cljc.checker.check.cache/errors false,
-;= :typed.cljc.checker.check.cache/interop {}}
-;=::t/dbg id=G__179397 (a2 :A2)
-;=::t/dbg id=G__179397 expected: cache.defn-chain/A5
-;=::t/dbg id=G__179397 result: cache.defn-chain/A5
-;=cache: Caching form with cache info
-;=cache: dependencies for form: (defn a1 [x] (a2 :A2))
-;={:typed.cljc.checker.check.cache/types
-;= {:clojure.core.typed.current-impl/unanalyzed-special
-;=  {clojure.core/defn
-;=   typed.clj.ext.clojure.core__defn/defuspecial__defn,
-;=   clojure.core/fn typed.clj.ext.clojure.core__fn/defuspecial__fn},
-;=  :clojure.core.typed.current-impl/current-impl
-;=  :clojure.core.typed.current-impl/clojure,
-;=  :clojure.core.typed.current-impl/current-var-annotations
-;=  {cache.defn-chain/a1 [cache.defn-chain/A1 :-> cache.defn-chain/A5],
-;=   cache.defn-chain/a2 [cache.defn-chain/A2 :-> cache.defn-chain/A5]},
-;=  :clojure.core.typed.current-impl/current-used-vars #{},
-;=  :clojure.core.typed.current-impl/current-name-env
-;=  {cache.defn-chain/A2 (typed.clojure/Val :A2),
-;=   typed.clojure/Fn clojure.lang.Fn,
-;=   clojure.lang.Fn {}}},
-;= :typed.cljc.checker.check.cache/vars
-;= {defn #'clojure.core/defn,
-;=  clojure.core/fn #'clojure.core/fn,
-;=  a2 #'cache.defn-chain/a2},
-;= :typed.cljc.checker.check.cache/errors false,
-;= :typed.cljc.checker.check.cache/interop {}}
-;=cache: Caching form with cache info
-;=cache: dependencies for form: (t/ann a2 [A2 :-> A5])
-;={:typed.cljc.checker.check.cache/types
-;= {:clojure.core.typed.current-impl/unanalyzed-special
-;=  {clojure.core.typed/tc-ignore
-;=   typed.clj.ext.clojure.core.typed__tc-ignore/defuspecial__tc-ignore},
-;=  :clojure.core.typed.current-impl/current-impl
-;=  :clojure.core.typed.current-impl/clojure},
-;= :typed.cljc.checker.check.cache/vars
-;= {t/ann #'typed.clojure/ann,
-;=  clojure.core.typed/ann #'clojure.core.typed/ann,
-;=  clojure.core.typed/tc-ignore #'clojure.core.typed/tc-ignore,
-;=  clojure.core.typed/ann* #'clojure.core.typed/ann*},
-;= :typed.cljc.checker.check.cache/errors false,
-;= :typed.cljc.checker.check.cache/interop {}}
-;=::t/dbg id=G__179403 (a3 :A3)
-;=::t/dbg id=G__179403 expected: cache.defn-chain/A5
-;=::t/dbg id=G__179403 result: cache.defn-chain/A5
-;=cache: Caching form with cache info
-;=cache: dependencies for form: (defn a2 [x] (a3 :A3))
-;={:typed.cljc.checker.check.cache/types
-;= {:clojure.core.typed.current-impl/unanalyzed-special
-;=  {clojure.core/defn
-;=   typed.clj.ext.clojure.core__defn/defuspecial__defn,
-;=   clojure.core/fn typed.clj.ext.clojure.core__fn/defuspecial__fn},
-;=  :clojure.core.typed.current-impl/current-impl
-;=  :clojure.core.typed.current-impl/clojure,
-;=  :clojure.core.typed.current-impl/current-var-annotations
-;=  {cache.defn-chain/a2 [cache.defn-chain/A2 :-> cache.defn-chain/A5],
-;=   cache.defn-chain/a3 [cache.defn-chain/A3 :-> cache.defn-chain/A5]},
-;=  :clojure.core.typed.current-impl/current-used-vars
-;=  #{cache.defn-chain/a2},
-;=  :clojure.core.typed.current-impl/current-name-env
-;=  {cache.defn-chain/A3 (typed.clojure/Val :A3),
-;=   typed.clojure/Fn clojure.lang.Fn,
-;=   clojure.lang.Fn {}}},
-;= :typed.cljc.checker.check.cache/vars
-;= {defn #'clojure.core/defn,
-;=  clojure.core/fn #'clojure.core/fn,
-;=  a3 #'cache.defn-chain/a3},
-;= :typed.cljc.checker.check.cache/errors false,
-;= :typed.cljc.checker.check.cache/interop {}}
-;=cache: Caching form with cache info
-;=cache: dependencies for form: (t/ann a3 [A3 :-> A5])
-;={:typed.cljc.checker.check.cache/types
-;= {:clojure.core.typed.current-impl/unanalyzed-special
-;=  {clojure.core.typed/tc-ignore
-;=   typed.clj.ext.clojure.core.typed__tc-ignore/defuspecial__tc-ignore},
-;=  :clojure.core.typed.current-impl/current-impl
-;=  :clojure.core.typed.current-impl/clojure},
-;= :typed.cljc.checker.check.cache/vars
-;= {t/ann #'typed.clojure/ann,
-;=  clojure.core.typed/ann #'clojure.core.typed/ann,
-;=  clojure.core.typed/tc-ignore #'clojure.core.typed/tc-ignore,
-;=  clojure.core.typed/ann* #'clojure.core.typed/ann*},
-;= :typed.cljc.checker.check.cache/errors false,
-;= :typed.cljc.checker.check.cache/interop {}}
-;=::t/dbg id=G__179412 (a4 :A4)
-;=::t/dbg id=G__179412 expected: cache.defn-chain/A5
-;=::t/dbg id=G__179412 result: cache.defn-chain/A5
-;=cache: Caching form with cache info
-;=cache: dependencies for form: (defn a3 [x] (identity 1) (a4 :A4))
-;={:typed.cljc.checker.check.cache/types
-;= {:clojure.core.typed.current-impl/unanalyzed-special
-;=  {clojure.core/defn
-;=   typed.clj.ext.clojure.core__defn/defuspecial__defn,
-;=   clojure.core/fn typed.clj.ext.clojure.core__fn/defuspecial__fn},
-;=  :clojure.core.typed.current-impl/current-impl
-;=  :clojure.core.typed.current-impl/clojure,
-;=  :clojure.core.typed.current-impl/current-var-annotations
-;=  {cache.defn-chain/a3 [cache.defn-chain/A3 :-> cache.defn-chain/A5],
-;=   clojure.core/identity
-;=   (typed.clojure/All
-;=    [x]
-;=    [x
-;=     :->
-;=     x
-;=     :filters
-;=     {:then (! (typed.clojure/U false nil) 0),
-;=      :else (is (typed.clojure/U false nil) 0)}
-;=     :object
-;=     {:id 0}]),
-;=   cache.defn-chain/a4 [cache.defn-chain/A4 :-> cache.defn-chain/A5]},
-;=  :clojure.core.typed.current-impl/current-used-vars
-;=  #{cache.defn-chain/a3 cache.defn-chain/a2},
-;=  :clojure.core.typed.current-impl/current-name-env
-;=  {cache.defn-chain/A4 (typed.clojure/Val :A4),
-;=   typed.clojure/Fn clojure.lang.Fn,
-;=   clojure.lang.Fn {}}},
-;= :typed.cljc.checker.check.cache/vars
-;= {defn #'clojure.core/defn,
-;=  clojure.core/fn #'clojure.core/fn,
-;=  identity #'clojure.core/identity,
-;=  a4 #'cache.defn-chain/a4},
-;= :typed.cljc.checker.check.cache/errors false,
-;= :typed.cljc.checker.check.cache/interop {}}
-;=cache: Caching form with cache info
-;=cache: dependencies for form: (t/ann a4 [A4 :-> A5])
-;={:typed.cljc.checker.check.cache/types
-;= {:clojure.core.typed.current-impl/unanalyzed-special
-;=  {clojure.core.typed/tc-ignore
-;=   typed.clj.ext.clojure.core.typed__tc-ignore/defuspecial__tc-ignore},
-;=  :clojure.core.typed.current-impl/current-impl
-;=  :clojure.core.typed.current-impl/clojure},
-;= :typed.cljc.checker.check.cache/vars
-;= {t/ann #'typed.clojure/ann,
-;=  clojure.core.typed/ann #'clojure.core.typed/ann,
-;=  clojure.core.typed/tc-ignore #'clojure.core.typed/tc-ignore,
-;=  clojure.core.typed/ann* #'clojure.core.typed/ann*},
-;= :typed.cljc.checker.check.cache/errors false,
-;= :typed.cljc.checker.check.cache/interop {}}
-;=::t/dbg id=G__179418 (do :A5)
-;=::t/dbg id=G__179418 expected: cache.defn-chain/A5
-;=::t/dbg id=G__179418 result: [cache.defn-chain/A5 {:then tt, :else ff}]
-;=cache: Caching form with cache info
-;=cache: dependencies for form: (defn a4 [x] (do :A5))
-;={:typed.cljc.checker.check.cache/types
-;= {:clojure.core.typed.current-impl/unanalyzed-special
-;=  {clojure.core/defn
-;=   typed.clj.ext.clojure.core__defn/defuspecial__defn,
-;=   clojure.core/fn typed.clj.ext.clojure.core__fn/defuspecial__fn},
-;=  :clojure.core.typed.current-impl/current-impl
-;=  :clojure.core.typed.current-impl/clojure,
-;=  :clojure.core.typed.current-impl/current-var-annotations
-;=  {cache.defn-chain/a4 [cache.defn-chain/A4 :-> cache.defn-chain/A5]},
-;=  :clojure.core.typed.current-impl/current-name-env
-;=  {cache.defn-chain/A5 (typed.clojure/Val :A5),
-;=   typed.clojure/Fn clojure.lang.Fn,
-;=   clojure.lang.Fn {}}},
-;= :typed.cljc.checker.check.cache/vars
-;= {defn #'clojure.core/defn, clojure.core/fn #'clojure.core/fn},
-;= :typed.cljc.checker.check.cache/errors false,
-;= :typed.cljc.checker.check.cache/interop {}}
-;=cache: Caching form with cache info
-;=cache: dependencies for form: (comment (t/cns) :ok)
-;={:typed.cljc.checker.check.cache/types
-;= {:clojure.core.typed.current-impl/current-impl
-;=  :clojure.core.typed.current-impl/clojure},
-;= :typed.cljc.checker.check.cache/vars {comment #'clojure.core/comment},
-;= :typed.cljc.checker.check.cache/errors false,
-;= :typed.cljc.checker.check.cache/interop {}}
-;=Checked cache.defn-chain in 221.30706 msecs
-:ok
   )

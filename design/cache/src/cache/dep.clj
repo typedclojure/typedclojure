@@ -11,21 +11,43 @@
   ;Not checking typed.clojure (tagged with :typed.clojure/ignore metadata)
   ;Not checking clojure.core.typed (tagged with :typed.clojure/ignore metadata)
   ;Start checking cache.dep1
-  ;Checked cache.dep1 in 27.033352 msecs
+  ;Checked cache.dep1 in 18.502651 msecs
   ;Start checking cache.dep
   ;cache: Caching form with cache info
-  ;cache: dependencies for form: (ns cache.dep {:typed.clojure {:experimental #{:cache}}} (:require [cache.dep1 :as dep1] [typed.clojure :as t]))
+  ;ns form:
+  ;>>>>
+  ;
+  ;<<<<
+  ;cache: on disk:
+  ;>>>>
+  ;(ns cache.dep
+  ;  {:typed.clojure {:experimental #{:cache}}}
+  ;  (:require [cache.dep1 :as dep1]
+  ;            [typed.clojure :as t]))
+  ;<<<<
   ;{:typed.cljc.checker.check.cache/types
   ; {:clojure.core.typed.current-impl/unanalyzed-special
   ;  {clojure.core/ns
   ;   typed.clj.ext.clojure.core__ns/-unanalyzed-special__ns},
   ;  :clojure.core.typed.current-impl/current-impl
   ;  :clojure.core.typed.current-impl/clojure},
-  ; :typed.cljc.checker.check.cache/vars {ns #'clojure.core/ns},
+  ; :typed.cljc.checker.check.cache/vars {ns clojure.core/ns},
   ; :typed.cljc.checker.check.cache/errors false,
-  ; :typed.cljc.checker.check.cache/interop {}}
+  ; :typed.cljc.checker.check.cache/interop {},
+  ; :typed.cljc.checker.check.cache/type-syms {}}
+  ;need-to-check-top-level-expr?: found cache info
   ;cache: Caching form with cache info
-  ;cache: dependencies for form: (t/ann foo [:-> t/Any])
+  ;ns form:
+  ;>>>>
+  ;(ns cache.dep
+  ;  {:typed.clojure {:experimental #{:cache}}}
+  ;  (:require [cache.dep1 :as dep1]
+  ;            [typed.clojure :as t]))
+  ;<<<<
+  ;cache: on disk:
+  ;>>>>
+  ;(t/ann foo [:-> t/Any])
+  ;<<<<
   ;{:typed.cljc.checker.check.cache/types
   ; {:clojure.core.typed.current-impl/unanalyzed-special
   ;  {clojure.core.typed/tc-ignore
@@ -33,14 +55,26 @@
   ;  :clojure.core.typed.current-impl/current-impl
   ;  :clojure.core.typed.current-impl/clojure},
   ; :typed.cljc.checker.check.cache/vars
-  ; {t/ann #'typed.clojure/ann,
-  ;  clojure.core.typed/ann #'clojure.core.typed/ann,
-  ;  clojure.core.typed/tc-ignore #'clojure.core.typed/tc-ignore,
-  ;  clojure.core.typed/ann* #'clojure.core.typed/ann*},
+  ; {t/ann typed.clojure/ann,
+  ;  clojure.core.typed/ann clojure.core.typed/ann,
+  ;  clojure.core.typed/tc-ignore clojure.core.typed/tc-ignore,
+  ;  clojure.core.typed/ann* clojure.core.typed/ann*},
   ; :typed.cljc.checker.check.cache/errors false,
-  ; :typed.cljc.checker.check.cache/interop {}}
+  ; :typed.cljc.checker.check.cache/interop {},
+  ; :typed.cljc.checker.check.cache/type-syms {}}
+  ;need-to-check-top-level-expr?: found cache info
   ;cache: Caching form with cache info
-  ;cache: dependencies for form: (defn foo [] (inc (dep1/a)))
+  ;ns form:
+  ;>>>>
+  ;(ns cache.dep
+  ;  {:typed.clojure {:experimental #{:cache}}}
+  ;  (:require [cache.dep1 :as dep1]
+  ;            [typed.clojure :as t]))
+  ;<<<<
+  ;cache: on disk:
+  ;>>>>
+  ;(defn foo [] (inc (dep1/a)))
+  ;<<<<
   ;{:typed.cljc.checker.check.cache/types
   ; {:clojure.core.typed.current-impl/unanalyzed-special
   ;  {clojure.core/defn
@@ -79,22 +113,36 @@
   ;    [[a :variance :invariant]]
   ;    (java.lang.Comparable a))}},
   ; :typed.cljc.checker.check.cache/vars
-  ; {defn #'clojure.core/defn,
-  ;  clojure.core/fn #'clojure.core/fn,
-  ;  inc #'clojure.core/inc,
-  ;  dep1/a #'cache.dep1/a,
+  ; {defn clojure.core/defn,
+  ;  clojure.core/fn clojure.core/fn,
+  ;  inc clojure.core/inc,
+  ;  dep1/a cache.dep1/a,
   ;  clojure.lang.Numbers clojure.lang.Numbers},
   ; :typed.cljc.checker.check.cache/errors false,
   ; :typed.cljc.checker.check.cache/interop
-  ; {:static-call #{clojure.lang.Numbers/inc}}}
+  ; {:static-call #{clojure.lang.Numbers/inc}},
+  ; :typed.cljc.checker.check.cache/type-syms {}}
+  ;need-to-check-top-level-expr?: found cache info
   ;cache: Caching form with cache info
-  ;cache: dependencies for form: (comment (t/check-ns-clj *ns* :check-config {:check-ns-dep :recheck}) :ok)
+  ;ns form:
+  ;>>>>
+  ;(ns cache.dep
+  ;  {:typed.clojure {:experimental #{:cache}}}
+  ;  (:require [cache.dep1 :as dep1]
+  ;            [typed.clojure :as t]))
+  ;<<<<
+  ;cache: on disk:
+  ;>>>>
+  ;(comment
+  ; ...
+  ;<<<<
   ;{:typed.cljc.checker.check.cache/types
   ; {:clojure.core.typed.current-impl/current-impl
   ;  :clojure.core.typed.current-impl/clojure},
-  ; :typed.cljc.checker.check.cache/vars {comment #'clojure.core/comment},
+  ; :typed.cljc.checker.check.cache/vars {comment clojure.core/comment},
   ; :typed.cljc.checker.check.cache/errors false,
-  ; :typed.cljc.checker.check.cache/interop {}}
-  ;Checked cache.dep in 50.075358 msecs
+  ; :typed.cljc.checker.check.cache/interop {},
+  ; :typed.cljc.checker.check.cache/type-syms {}}
+  ;Checked cache.dep in 40.436416 msecs
   :ok
   )

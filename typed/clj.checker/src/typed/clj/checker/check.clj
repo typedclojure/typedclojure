@@ -122,16 +122,25 @@
                             *ns*)
                    *file* filename]
            (with-open [rdr (io/reader res)]
-             (let [pbr (readers/indexing-push-back-reader
+             (let [pbr (readers/source-logging-push-back-reader
                          (java.io.PushbackReader. rdr) 1 filename)
                    eof (Object.)
                    read-opts (cond-> {:eof eof :features #{:clj}}
                                (.endsWith filename "cljc") (assoc :read-cond :allow))]
-               (loop []
-                 (let [form (reader/read read-opts pbr)]
-                   (when-not (identical? form eof)
-                     (check-top-level form nil {:env (assoc env :ns (ns-name *ns*))})
-                     (recur))))))))))))
+               (loop [ns-form-str nil
+                      sforms []]
+                 (let [[form sform] (reader/read+string read-opts pbr)]
+                   (if (identical? form eof)
+                     (do (cache/remove-stale-cache-entries ns ns-form-str sforms)
+                         nil)
+                     (do
+                       (check-top-level form nil {:env (assoc env :ns (ns-name *ns*))
+                                                  :top-level-form-string sform
+                                                  :ns-form-string ns-form-str})
+                       (recur (or ns-form-str
+                                  (when (and (seq? form) (= 'ns (first form)))
+                                    sform))
+                              (conj sforms sform))))))))))))))
 
 (defn check-ns-and-deps [nsym] (cu/check-ns-and-deps nsym check-ns1))
 
