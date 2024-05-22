@@ -72,7 +72,7 @@
 (defn with-recorded-deps [expr expected]
   (let [errors (volatile! nil)
         types (atom {})
-        vars (atom #{})
+        vars (atom {})
         interop (atom {})
         ->serialize (fn [t]
                       (binding [uvs/*verbose-types* true]
@@ -97,8 +97,8 @@
               ana2/resolve-sym (let [resolve-sym ana2/resolve-sym]
                                  (fn [sym env]
                                    (let [r (resolve-sym sym env)]
-                                     (when (ana2/var? r)
-                                       (swap! vars conj r))
+                                     (when r
+                                       (swap! vars assoc sym r))
                                      r)))
               check/check-expr (let [check-expr check/check-expr]
                                  (fn ce
