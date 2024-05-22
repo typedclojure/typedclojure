@@ -11,7 +11,7 @@
   ;Not checking typed.clojure (tagged with :typed.clojure/ignore metadata)
   ;Not checking clojure.core.typed (tagged with :typed.clojure/ignore metadata)
   ;Start checking cache.dep1
-  ;Checked cache.dep1 in 19.912098 msecs
+  ;Checked cache.dep1 in 27.033352 msecs
   ;Start checking cache.dep
   ;cache: Caching form with cache info
   ;cache: dependencies for form: (ns cache.dep {:typed.clojure {:experimental #{:cache}}} (:require [cache.dep1 :as dep1] [typed.clojure :as t]))
@@ -21,7 +21,7 @@
   ;   typed.clj.ext.clojure.core__ns/-unanalyzed-special__ns},
   ;  :clojure.core.typed.current-impl/current-impl
   ;  :clojure.core.typed.current-impl/clojure},
-  ; :typed.cljc.checker.check.cache/vars #{#'clojure.core/ns},
+  ; :typed.cljc.checker.check.cache/vars {ns #'clojure.core/ns},
   ; :typed.cljc.checker.check.cache/errors false,
   ; :typed.cljc.checker.check.cache/interop {}}
   ;cache: Caching form with cache info
@@ -33,10 +33,10 @@
   ;  :clojure.core.typed.current-impl/current-impl
   ;  :clojure.core.typed.current-impl/clojure},
   ; :typed.cljc.checker.check.cache/vars
-  ; #{#'typed.clojure/ann
-  ;   #'clojure.core.typed/ann*
-  ;   #'clojure.core.typed/ann
-  ;   #'clojure.core.typed/tc-ignore},
+  ; {t/ann #'typed.clojure/ann,
+  ;  clojure.core.typed/ann #'clojure.core.typed/ann,
+  ;  clojure.core.typed/tc-ignore #'clojure.core.typed/tc-ignore,
+  ;  clojure.core.typed/ann* #'clojure.core.typed/ann*},
   ; :typed.cljc.checker.check.cache/errors false,
   ; :typed.cljc.checker.check.cache/interop {}}
   ;cache: Caching form with cache info
@@ -79,10 +79,11 @@
   ;    [[a :variance :invariant]]
   ;    (java.lang.Comparable a))}},
   ; :typed.cljc.checker.check.cache/vars
-  ; #{#'clojure.core/fn
-  ;   #'clojure.core/inc
-  ;   #'clojure.core/defn
-  ;   #'cache.dep1/a},
+  ; {defn #'clojure.core/defn,
+  ;  clojure.core/fn #'clojure.core/fn,
+  ;  inc #'clojure.core/inc,
+  ;  dep1/a #'cache.dep1/a,
+  ;  clojure.lang.Numbers clojure.lang.Numbers},
   ; :typed.cljc.checker.check.cache/errors false,
   ; :typed.cljc.checker.check.cache/interop
   ; {:static-call #{clojure.lang.Numbers/inc}}}
@@ -91,9 +92,9 @@
   ;{:typed.cljc.checker.check.cache/types
   ; {:clojure.core.typed.current-impl/current-impl
   ;  :clojure.core.typed.current-impl/clojure},
-  ; :typed.cljc.checker.check.cache/vars #{#'clojure.core/comment},
+  ; :typed.cljc.checker.check.cache/vars {comment #'clojure.core/comment},
   ; :typed.cljc.checker.check.cache/errors false,
   ; :typed.cljc.checker.check.cache/interop {}}
-  ;Checked cache.dep in 35.687217 msecs
+  ;Checked cache.dep in 50.075358 msecs
   :ok
   )

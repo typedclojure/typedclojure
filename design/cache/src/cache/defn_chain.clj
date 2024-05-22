@@ -160,9 +160,9 @@
   ;  clojure.core.typed/ann* #'clojure.core.typed/ann*},
   ; :typed.cljc.checker.check.cache/errors false,
   ; :typed.cljc.checker.check.cache/interop {}}
-  ;::t/dbg id=G__171686 (a2 :A2)
-  ;::t/dbg id=G__171686 expected: cache.defn-chain/A5
-  ;::t/dbg id=G__171686 result: cache.defn-chain/A5
+  ;::t/dbg id=G__179535 (a2 :A2)
+  ;::t/dbg id=G__179535 expected: cache.defn-chain/A5
+  ;::t/dbg id=G__179535 result: cache.defn-chain/A5
   ;cache: Caching form with cache info
   ;cache: dependencies for form: (defn a1 [x] (a2 :A2))
   ;{:typed.cljc.checker.check.cache/types
@@ -201,9 +201,9 @@
   ;  clojure.core.typed/ann* #'clojure.core.typed/ann*},
   ; :typed.cljc.checker.check.cache/errors false,
   ; :typed.cljc.checker.check.cache/interop {}}
-  ;::t/dbg id=G__171692 (a3 :A3)
-  ;::t/dbg id=G__171692 expected: cache.defn-chain/A5
-  ;::t/dbg id=G__171692 result: cache.defn-chain/A5
+  ;::t/dbg id=G__179541 (a3 :A3)
+  ;::t/dbg id=G__179541 expected: cache.defn-chain/A5
+  ;::t/dbg id=G__179541 result: cache.defn-chain/A5
   ;cache: Caching form with cache info
   ;cache: dependencies for form: (defn a2 [x] (a3 :A3))
   ;{:typed.cljc.checker.check.cache/types
@@ -243,9 +243,9 @@
   ;  clojure.core.typed/ann* #'clojure.core.typed/ann*},
   ; :typed.cljc.checker.check.cache/errors false,
   ; :typed.cljc.checker.check.cache/interop {}}
-  ;::t/dbg id=G__171701 (a4 :A4)
-  ;::t/dbg id=G__171701 expected: cache.defn-chain/A5
-  ;::t/dbg id=G__171701 result: cache.defn-chain/A5
+  ;::t/dbg id=G__179550 (a4 :A4)
+  ;::t/dbg id=G__179550 expected: cache.defn-chain/A5
+  ;::t/dbg id=G__179550 result: cache.defn-chain/A5
   ;cache: Caching form with cache info
   ;cache: dependencies for form: (defn a3 [x] (identity 1) (a4 :A4))
   ;{:typed.cljc.checker.check.cache/types
@@ -297,9 +297,9 @@
   ;  clojure.core.typed/ann* #'clojure.core.typed/ann*},
   ; :typed.cljc.checker.check.cache/errors false,
   ; :typed.cljc.checker.check.cache/interop {}}
-  ;::t/dbg id=G__171707 (do :A5)
-  ;::t/dbg id=G__171707 expected: cache.defn-chain/A5
-  ;::t/dbg id=G__171707 result: [cache.defn-chain/A5 {:then tt, :else ff}]
+  ;::t/dbg id=G__179556 (do :A5)
+  ;::t/dbg id=G__179556 expected: cache.defn-chain/A5
+  ;::t/dbg id=G__179556 result: [cache.defn-chain/A5 {:then tt, :else ff}]
   ;cache: Caching form with cache info
   ;cache: dependencies for form: (defn a4 [x] (do :A5))
   ;{:typed.cljc.checker.check.cache/types
@@ -327,6 +327,6 @@
   ; :typed.cljc.checker.check.cache/vars {comment #'clojure.core/comment},
   ; :typed.cljc.checker.check.cache/errors false,
   ; :typed.cljc.checker.check.cache/interop {}}
-  ;Checked cache.defn-chain in 151.602704 msecs
+  ;Checked cache.defn-chain in 138.92196 msecs
   :ok
   )
