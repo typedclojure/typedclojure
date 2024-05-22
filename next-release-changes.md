@@ -13,3 +13,4 @@
 - default `:check-config` `:check-ns-dep` to `:never` and fix `:recheck`
 - add `{:typed.clojure {:experimental #{:cache}}}` namespace meta to start investigating caching of type checking results
   - currently prints results to screen
+- fix verbose printing for composite types
