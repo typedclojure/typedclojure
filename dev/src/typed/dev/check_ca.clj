@@ -12,7 +12,8 @@
           ; some users with no GitHub entries
           "stuarthalloway"
           "stuartsierra"
-          "seancorfield"}
+          "seancorfield"
+          "dmiller"}
         (->> hickory-ca-page
              (s/select (s/tag :tbody))
              first
