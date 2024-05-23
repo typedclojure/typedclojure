@@ -21,8 +21,8 @@
   (is-tc-e (ann-form (fn [a]
                        (symbol? a))
                      [t/Any :-> t/Bool
-                      :filters {:then (| (is t/Sym 0)
-                                         (is t/Kw 0))}]))
+                      :filters {:then (or (is t/Sym 0)
+                                          (is t/Kw 0))}]))
   (is-tc-e (ann-form (fn [a]
                        (symbol? a))
                      [t/Any :-> t/Bool
@@ -30,21 +30,21 @@
   (is-tc-e (ann-form (fn [a]
                        (qualified-keyword? a))
                      [t/Any :-> t/Bool
-                      :filters {:then (| (is t/Sym 0)
-                                         (is t/Kw 0))}]))
+                      :filters {:then (or (is t/Sym 0)
+                                          (is t/Kw 0))}]))
   (is-tc-e (ann-form (fn [a]
                        (if (symbol? a)
                          true
                          (qualified-keyword? a)))
                      [t/Any :-> t/Bool
-                      :filters {:then (| (is t/Sym 0)
-                                         (is t/Kw 0))}]))
+                      :filters {:then (or (is t/Sym 0)
+                                          (is t/Kw 0))}]))
   (is-tc-e (fn [a]
              (or (symbol? a)
                  (qualified-keyword? a)))
            [t/Any :-> t/Bool
-            :filters {:then (| (is t/Sym 0)
-                               (is t/Kw 0))}])
+            :filters {:then (or (is t/Sym 0)
+                                (is t/Kw 0))}])
   (is-tc-e (let [f (fn [a :- t/Any]
                      (or (symbol? a)
                          (qualified-keyword? a)))]

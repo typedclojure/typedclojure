@@ -339,7 +339,7 @@
 (t/ann ^:no-check Un [r/Type :* :-> r/Type])
 (defn Un [& types]
   {:post [(r/Type? %)]}
-  (let [cache-key (into #{} r/assert-Type types)]
+  (let [cache-key (into #{} (map r/assert-Type) types)]
     (if-let [hit (get @Un-cache cache-key)]
       hit
       (let [res (letfn [;; a is a Type (not a union type)
@@ -500,8 +500,7 @@
   "Does not resolve types."
   [types]
   {:post [(set? %)
-          (sorted? %)
-          (every? r/Type? %)]}
+          (sorted? %)]}
   (loop [work types
          result (sorted-set)]
     (if (empty? work)
@@ -515,15 +514,17 @@
   "Does not resolve types."
   [types]
   {:post [(set? %)
-          (sorted? %)
-          (every? (every-pred r/Type? (complement r/Union?)) %)]}
+          (sorted? %)]}
   (loop [work types
          result (sorted-set)]
     (if (empty? work)
       result
       (let [{unions true non-unions false} (group-by r/Union? work)]
         (recur (mapcat :types unions)
-               (into result (map r/assert-Type) non-unions))))))
+               (into result (map (fn [t]
+                                   {:pre [(not (r/Union? t))]}
+                                   (r/assert-Type t)))
+                     non-unions))))))
 
 (t/ann ^:no-check In [r/Type :* :-> r/Type])
 (defn In [& types]
@@ -746,7 +747,7 @@
   {:pre [((some-fn r/Protocol? r/Satisfies?) t)]
    :post [(var? %)]}
   (impl/assert-clojure)
-  (let [v (resolve the-var)]
+  (let [v (requiring-resolve the-var)]
     (assert (var? v) (str "Cannot resolve protocol: " the-var))
     v))
 

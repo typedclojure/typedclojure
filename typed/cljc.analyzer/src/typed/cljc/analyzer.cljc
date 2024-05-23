@@ -9,10 +9,15 @@
 ;; adapted from clojure.tools.analyzer
 (ns typed.cljc.analyzer
   (:refer-clojure :exclude [macroexpand-1 var?])
-  (:require [typed.clojure :as-alias t]
+  (:require #?@(:clj []
+                :default [[typed.clojure :as-alias t]])
             [typed.cljc.analyzer.ast :as ast]
             [typed.cljc.analyzer.utils :as u])
   #?(:clj (:import (clojure.lang IType))))
+
+;; clojure 1.9 compat
+#?(:clj (do (create-ns 'typed.clojure)
+            (alias 't 'typed.clojure)))
 
 (set! *warn-on-reflection* true)
 
@@ -50,32 +55,39 @@
   scheduled-passes)
 
 (def ^{:dynamic  true
-       :doc      "Resolves the value mapped by the given sym in the global env"}
+       :doc      "Resolves the value mapped by the given sym in the global env"
+       :arglists '([sym env])}
   resolve-sym)
 
 (def ^{:dynamic  true
        :doc      "Resolves the ns mapped by the given sym in the global env.
-                 If sym is shadowed by a local in env, returns nil."}
+                 If sym is shadowed by a local in env, returns nil."
+       :arglists '([ns-sym env])}
   resolve-ns)
 
 (def ^{:dynamic  true
-       :doc      "Returns the name symbol of the current namespace."}
+       :doc      "Returns the name symbol of the current namespace."
+       :arglists '([env])}
   current-ns-name)
 
 (def ^{:dynamic  true
-       :doc      "Evaluates an AST node, attaching result to :result."}
+       :doc      "Evaluates an AST node, attaching result to :result."
+       :arglists '([a opts])}
   eval-ast)
 
 (def ^{:dynamic  true
-       :doc      "If given a var, returns the fully qualified symbol for that var, otherwise nil."}
+       :doc      "If given a var, returns the fully qualified symbol for that var, otherwise nil."
+       :arglists '([v])}
   var->sym)
 
 (def ^{:dynamic  true
-       :doc      "If ast is :unanalyzed, then call analyze-form on it, otherwise returns ast."}
+       :doc      "If ast is :unanalyzed, then call analyze-form on it, otherwise returns ast."
+       :arglists '([ast])}
   analyze-outer)
 
 (def ^{:dynamic  true
-       :doc      "Create an AST node for a form without expanding it."}
+       :doc      "Create an AST node for a form without expanding it."
+       :arglists '([form env])}
   unanalyzed)
 
 (declare analyze-outer-root)
@@ -93,7 +105,6 @@
 (defn run-passes
   "Function that will be invoked on the AST tree immediately after it has been constructed."
   [ast]
-  {:pre [(map? scheduled-passes)]}
   (ast/walk ast
             (comp run-pre-passes analyze-outer-root)
             (comp eval-top-level run-post-passes)))
@@ -487,7 +498,7 @@
                    ::op         ::local
                    :assignable? (boolean mutable)
                    ;; don't walk :init, but keep in AST
-                   :children    (vec (remove #{:init} children))})
+                   :children    (into [] (remove #(= :init %)) children)})
             map->LocalExpr)
           (if-let [var (let [v (resolve-sym sym env)]
                          (and (var? v) v))]
@@ -897,7 +908,7 @@
                                                              (u/ctx e :ctx/expr))
                                            :children [:init])))
                            {} binds)
-          e (update env :locals merge (update-vals binds u/dissoc-env))
+          e (update env :locals merge (u/update-vals binds u/dissoc-env))
           body (analyze-body body e)]
       (->
         {:op       :letfn

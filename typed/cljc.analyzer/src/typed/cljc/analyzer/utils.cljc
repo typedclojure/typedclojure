@@ -8,6 +8,7 @@
 
 ;copied from clojure.tools.analyzer.utils
 (ns typed.cljc.analyzer.utils
+  (:refer-clojure :exclude [update-vals])
   #?(:cljs (:require [cljs.analyzer :as cljs-ana]))
   #?@(:cljs []
       ; cljs+cljr
@@ -216,3 +217,21 @@
   (assert (simple-keyword? field))
   `(let [this# ~this]
      (assoc this# ~field (mapv ~f (~(symbol (str ".-" (name field))) this#)))))
+
+#?(:clj
+   (defn update-vals
+     "m f => {k (f v) ...}
+
+     Given a map m and a function f of 1-argument, returns a new map where the keys of m
+     are mapped to result of applying f to the corresponding values of m."
+     {:added "1.11"}
+     [m f]
+     (with-meta
+       (persistent!
+         (reduce-kv (fn [acc k v] (assoc! acc k (f v)))
+                    (if (instance? clojure.lang.IEditableCollection m)
+                      (transient m)
+                      (transient {}))
+                    m))
+       (meta m)))
+   :default (def update-vals clojure.core/update-vals))

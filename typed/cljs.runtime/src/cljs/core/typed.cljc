@@ -6,7 +6,9 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc cljs.core.typed
+(ns ^:no-doc
+  ^:typed.clojure/ignore
+  cljs.core.typed
   "Macros for Clojurescript type checking.
 
   Note: The (non self hosted) ClojureScript compiler will automatically rewrite clojure.core.typed

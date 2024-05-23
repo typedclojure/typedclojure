@@ -8,6 +8,7 @@
 
 (ns ^:no-doc typed.clj.checker.check
   (:require [typed.clojure :as t]
+            [typed.cljc.checker.check.cache :as cache]
             [typed.cljc.checker.filter-ops :as fo]
             [clojure.core.typed.ast-utils :as ast-u]
             [clojure.core.typed.coerce-utils :as coerce]
@@ -121,16 +122,25 @@
                             *ns*)
                    *file* filename]
            (with-open [rdr (io/reader res)]
-             (let [pbr (readers/indexing-push-back-reader
+             (let [pbr (readers/source-logging-push-back-reader
                          (java.io.PushbackReader. rdr) 1 filename)
                    eof (Object.)
                    read-opts (cond-> {:eof eof :features #{:clj}}
                                (.endsWith filename "cljc") (assoc :read-cond :allow))]
-               (loop []
-                 (let [form (reader/read read-opts pbr)]
-                   (when-not (identical? form eof)
-                     (check-top-level form nil {:env (assoc env :ns (ns-name *ns*))})
-                     (recur))))))))))))
+               (loop [ns-form-str nil
+                      sforms []]
+                 (let [[form sform] (reader/read+string read-opts pbr)]
+                   (if (identical? form eof)
+                     (do (cache/remove-stale-cache-entries ns ns-form-str sforms)
+                         nil)
+                     (do
+                       (check-top-level form nil {:env (assoc env :ns (ns-name *ns*))
+                                                  :top-level-form-string sform
+                                                  :ns-form-string ns-form-str})
+                       (recur (or ns-form-str
+                                  (when (and (seq? form) (= 'ns (first form)))
+                                    sform))
+                              (conj sforms sform))))))))))))))
 
 (defn check-ns-and-deps [nsym] (cu/check-ns-and-deps nsym check-ns1))
 
@@ -241,7 +251,7 @@
          (env/ensure (jana2/global-env)
            (-> form
                (ana2/unanalyzed-top-level (or env (jana2/empty-env)))
-               (check-expr expected)
+               (cache/check-top-level-expr expected opts)
                (into extra))))))))
 
 
@@ -1716,9 +1726,7 @@
               ;; call when we're convinced there's no way to rewrite this AST node
               ;; in a non-reflective way.
               give-up (fn [expr]
-                        (let [clssym (-> expr
-                                         ast-u/new-op-class 
-                                         coerce/Class->symbol)]
+                        (let [clssym (cu/NewExpr->qualsym expr)]
                           (err/tc-delayed-error (str "Unresolved constructor invocation " 
                                                      (type-hints/suggest-type-hints 
                                                        nil 
@@ -1733,9 +1741,7 @@
               ;; it is reflective.
               ctor-fn (fn [expr]
                         (when (:validated? expr)
-                          (let [clssym (-> expr
-                                           ast-u/new-op-class 
-                                           coerce/Class->symbol)]
+                          (let [clssym (cu/NewExpr->qualsym expr)]
                             (or (ctor-override/get-constructor-override clssym)
                                 (and (dt-env/get-datatype clssym)
                                      (cu/DataType-ctor-type clssym))

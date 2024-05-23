@@ -70,7 +70,7 @@
                :form     form
                :env      env
                :o-tag    #?(:cljr Boolean :default Boolean/TYPE)
-               :tag      (or tag #?(:cljr Boolean Boolean/TYPE))
+               :tag      (or tag #?(:cljr Boolean :default Boolean/TYPE))
                :children [:target]})
 
        (and var? (cu/protocol-node? the-var (:meta the-fn)))
