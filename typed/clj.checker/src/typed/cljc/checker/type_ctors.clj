@@ -1104,7 +1104,8 @@
   [{:keys [the-class] :as rcls}]
   {:pre [((some-fn r/RClass? r/Instance?) rcls)]
    :post [((con/sorted-set-c? r/Type?) %)]}
-  (let [rcls-type (if (r/RClass? rcls)
+  (let [rclass? (r/RClass? rcls)
+        rcls-type (if (r/RClass? rcls)
                     :RClass
                     :Instance)
         cache-key rcls
@@ -1115,13 +1116,13 @@
         (if (= Object cls)
           (r/sorted-type-set [(RClass-of Object)])
           (let [;_ (prn "RClass-of" the-class)
-                unchecked-ancestors (case rcls-type
-                                      :RClass (RClass-unchecked-ancestors* rcls)
-                                      :Instance (r/sorted-type-set []))
+                unchecked-ancestors (if rclass?
+                                      (RClass-unchecked-ancestors* rcls)
+                                      (r/sorted-type-set []))
                 ;_ (prn "unchecked-ancestors" unchecked-ancestors)
-                replacements (case rcls-type
-                               :RClass (RClass-replacements* rcls)
-                               :Instance {})
+                replacements (if rclass?
+                               (RClass-replacements* rcls)
+                               {})
                 ;_ (prn "replacements" (map ind/unparse-type (vals replacements)))
                 ;set of symbols of Classes we haven't explicitly replaced
                 java-bases (into #{} (map coerce/Class->symbol) (bases cls))
@@ -1131,27 +1132,32 @@
                 ;_ (prn "not-replaced" not-replaced)
                 bad-replacements (set/difference replace-keys
                                                  java-bases)
-                _ (when (= :RClass rcls-type)
+                _ (when rclass?
                     (when (seq bad-replacements)
                       (err/int-error (str "Bad RClass replacements for " the-class ": " bad-replacements))))
                 res (r/sorted-type-set
-                      (set/union (binding [*current-RClass-super* the-class]
-                                   (let [rs (for [csym not-replaced]
-                                              (RClass-of-with-unknown-params
-                                                csym
-                                                :warn-msg (when (= :RClass rcls-type)
-                                                            (when (.contains (str the-class) "clojure.lang")
-                                                              (str "RClass ancestor for " (pr-str rcls) " defaulting "
-                                                                   "to most general parameters")))))]
-                                     (apply set/union (set rs) (map (t/fn [r :- r/Type]
-                                                                      (RClass-supers* r))
-                                                                    rs))))
-                                 (into #{} (mapcat (fn [t]
-                                                     (let [t (fully-resolve-type t)]
-                                                       (cons t (RClass-supers* t)))))
-                                       (vals replacements))
-                                 #{(RClass-of Object)}
-                                 unchecked-ancestors))
+                     (as-> (transient #{}) res
+                       (binding [*current-RClass-super* the-class]
+                         (let [rs (mapv (fn [csym]
+                                          (RClass-of-with-unknown-params
+                                           csym
+                                           :warn-msg (when (= :RClass rcls-type)
+                                                       (when (.contains (str the-class) "clojure.lang")
+                                                         (str "RClass ancestor for " (pr-str rcls) " defaulting "
+                                                              "to most general parameters")))))
+                                        not-replaced)
+                               res (reduce conj! res rs)]
+                           (transduce (comp (map (t/fn [r :- r/Type]
+                                                   (RClass-supers* r)))
+                                            cat)
+                                      conj! res rs)))
+                       (reduce conj! res (mapcat (fn [t]
+                                                   (let [t (fully-resolve-type t)]
+                                                     (cons t (RClass-supers* t))))
+                                                 (vals replacements)))
+                       (conj! res (RClass-of Object))
+                       (reduce conj! res unchecked-ancestors)
+                       (persistent! res)))
                 ;;FIXME just need to do this once generically at RClass declaration
                 _ (when-some [rclass-ancestor-groups (not-empty
                                                        (into #{} (filter (comp next val))
