@@ -37,6 +37,7 @@
             [typed.cljc.checker.utils :as u]
             typed.cljc.checker.coerce-ann)
   (:import (clojure.lang ASeq)
+           java.lang.reflect.Modifier
            (typed.cljc.checker.type_rep HeterogeneousMap Poly TypeFn TApp App Value
                                         Union Intersection F Function Mu B KwArgs KwArgsSeq KwArgsArray
                                         RClass Bounds Name Scope CountRange Intersection DataType Extends
@@ -1860,18 +1861,20 @@
            (let [_ (impl/assert-clojure)
                  c1 (r/RClass->Class t1)
                  c2 (r/RClass->Class t2)
-                 {t1-flags :flags} (reflect/type-reflect c1)
-                 {t2-flags :flags} (reflect/type-reflect c2)]
+                 c1-mods (.getModifiers c1)
+                 c2-mods (.getModifiers c2)
+                 c1-final? (Modifier/isFinal c1-mods)
+                 c2-final? (Modifier/isFinal c2-mods)]
              ; there is only an overlap if a class could have both classes as parents
              ;(prn t1-flags t2-flags)
              (cond
                (or (.isAssignableFrom c1 c2)
                    (.isAssignableFrom c2 c1)) true
                ; no potential ancestors
-               (some :final [t1-flags t2-flags]) false
+               (or (Modifier/isFinal c1-mods) (Modifier/isFinal c2-mods)) false
                ; if we have two things that are not interfaces, ie. abstract, normal
                ; classes, there is no possibility of overlap
-               (every? (complement :interface) [t1-flags t2-flags]) false
+               (not (or (Modifier/isInterface c1-mods) (Modifier/isInterface c2-mods))) false
                :else true)))
 
          (some r/Extends? [t1 t2])
