@@ -93,70 +93,61 @@
     nil))
 )
 
-#?(
-:cljr
-
 (defn special-arrays [c]
   (case c
-    "bytes"    |System.Byte[]|             ;;; (Class/forName "[B")
-    "booleans" |System.Boolean[]|          ;;; (Class/forName "[Z")
-    "chars"    |System.Char[]|             ;;; (Class/forName "[C")
-    "ints"     |System.Int32[]|            ;;; (Class/forName "[I")
-    "longs"    |System.Int64[]|            ;;; (Class/forName "[J")
-    "floats"   |System.Single[]|           ;;; (Class/forName "[F")
-    "doubles"  |System.Double[]|           ;;; (Class/forName "[D")
-    "shorts"   |System.Int16[]|            ;;; (Class/forName "[S")
-    "objects"  |System.Object[]|           ;;; (Class/forName "[Ljava.lang.Object;")
-	"sbytes"   |System.SByte[]|            ;;;  DM: Added 
-	"ushorts"  |System.Int16[]|            ;;;  DM: Added
-	"uints"    |System.Int32[]|            ;;;  DM: Added
-	"ulongs"   |System.Int64[]|            ;;;  DM: Added
-	"decimals" |System.Decimal[]|          ;;;  DM: Added
+    "bytes"
+    #?(:cljr    |System.Byte[]|
+       :default (Class/forName "[B"))
+    "booleans"
+    #?(:cljr    |System.Boolean[]|
+       :default Class/forName "[Z")
+    "chars"
+    #?(:cljr    |System.Char[]|
+       :default (Class/forName "[C"))
+    "ints"
+    #?(:cljr    |System.Int32[]|
+       :default (Class/forName "[I"))
+    "longs"
+    #?(:cljr    |System.Int64[]|
+       :default (Class/forName "[J"))
+    "floats"
+    #?(:cljr    |System.Single[]|
+       :default (Class/forName "[F"))
+    "doubles"
+    #?(:cljr    |System.Double[]|
+       :default (Class/forName "[D"))
+    "shorts"
+    #?(:cljr    |System.Int16[]|
+       :default (Class/forName "[S"))
+    "objects"
+    #?(:cljr    |System.Object[]|
+       :default (Class/forName "[Ljava.lang.Object;"))
+    #?@(:cljr [
+    "sbytes"   |System.SByte[]|
+    "ushorts"  |System.Int16[]|
+    "uints"    |System.Int32[]|
+    "ulongs"   |System.Int64[]|
+    "decimals" |System.Decimal[]|
+    ])
     nil))
-
-:default
-
-(defn special-arrays [c]
-  (case c
-    "bytes" (Class/forName "[B")
-    "booleans" (Class/forName "[Z")
-    "chars" (Class/forName "[C")
-    "ints" (Class/forName "[I")
-    "longs" (Class/forName "[J")
-    "floats" (Class/forName "[F")
-    "doubles" (Class/forName "[D")
-    "shorts" (Class/forName "[S")
-    "objects" (Class/forName "[Ljava.lang.Object;")
-    nil))
-)
 
 
 (defmulti ^#?(:cljr Type :default Class) maybe-class
   "Takes a Symbol, String or Class and tries to resolve to a matching Class"
   class)
 
-
-#?(
-:cljr
-
 (defn array-class [element-type]
   (RT/classForName
-    (str (-> element-type
-             maybe-class 
-             .FullName
-            (.Replace \/ \.))
-          "[]"))) 
-		  
-:default
-
-(defn array-class [element-type]
-  (RT/classForName
-   (str "[" (-> element-type
-              maybe-class
-              Type/getType
-              .getDescriptor
-              (.replace \/ \.)))))
-)
+    #?(:cljr (str (-> element-type
+                      maybe-class 
+                      .FullName
+                      (.Replace \/ \.))
+                  "[]")
+       :default (str "[" (-> element-type
+                             maybe-class
+                             Type/getType
+                             .getDescriptor
+                             (.replace \/ \.))))))
 
 
 ;difference: always use ana2/resolve-sym
@@ -192,56 +183,43 @@
                     (maybe-class-from-string (name x)))
    (string? x) (maybe-class-from-string x)))
 
-#?(
-:cljr
-
 (def primitive?
   "Returns non-nil if the argument represents a primitive Class other than Void"
-  #{Double Char Byte Boolean SByte Decimal
-    Int16 Single Int64 Int32 UInt16 UInt64 UInt32}) 
+  #?(:cljr
+     #{Double Char Byte Boolean SByte Decimal
+       Int16 Single Int64 Int32 UInt16 UInt64 UInt32}
+     :default
+     #{Double/TYPE Character/TYPE Byte/TYPE Boolean/TYPE
+       Short/TYPE Float/TYPE Long/TYPE Integer/TYPE}))
 
-:default
-
-(def primitive?
-  "Returns non-nil if the argument represents a primitive Class other than Void"
-  #{Double/TYPE Character/TYPE Byte/TYPE Boolean/TYPE
-    Short/TYPE Float/TYPE Long/TYPE Integer/TYPE})
-)
-
-#?(
-:cljr
-(def ^:private convertible-primitives 
-  "If the argument is a primitive Class, returns a set of Classes
-   to which the primitive Class can be casted"
-  {Int32   #{Int32 Int64 Int16 Byte SByte}  
-   Single  #{Single Double}                 
-   Double  #{Double Single}                 
-   Int64   #{Int64 Int32 Int16 Byte}        
-   Char    #{Char}                          
-   Int16   #{Int16}                         
-   Byte    #{Byte}                          
-   Boolean #{Boolean}                       
-   UInt32  #{Int32 Int64 Int16 Byte SByte}  
-   UInt64  #{Int64 Int32 Int16 Byte}        
-   UInt16  #{Int16}                         
-   SByte   #{SByte}                         
-   Decimal #{Decimal}                       
-   System.Void    #{System.Void}})          
-   
-:default
 (def ^:private convertible-primitives
   "If the argument is a primitive Class, returns a set of Classes
    to which the primitive Class can be casted"
-  {Integer/TYPE   #{Integer Long/TYPE Long Short/TYPE Byte/TYPE Object Number}
-   Float/TYPE     #{Float Double/TYPE Object Number}
-   Double/TYPE    #{Double Float/TYPE Object Number}
-   Long/TYPE      #{Long Integer/TYPE Short/TYPE Byte/TYPE Object Number}
-   Character/TYPE #{Character Object}
-   Short/TYPE     #{Short Object Number}
-   Byte/TYPE      #{Byte Object Number}
-   Boolean/TYPE   #{Boolean Object}
-   Void/TYPE      #{Void}})
-)
+  #?(:cljr
+     {Int32   #{Int32 Int64 Int16 Byte SByte}  
+      Single  #{Single Double}                 
+      Double  #{Double Single}                 
+      Int64   #{Int64 Int32 Int16 Byte}        
+      Char    #{Char}                          
+      Int16   #{Int16}                         
+      Byte    #{Byte}                          
+      Boolean #{Boolean}                       
+      UInt32  #{Int32 Int64 Int16 Byte SByte}  
+      UInt64  #{Int64 Int32 Int16 Byte}        
+      UInt16  #{Int16}                         
+      SByte   #{SByte}                         
+      Decimal #{Decimal}                       
+      System.Void    #{System.Void}}
+     :default
+     {Integer/TYPE   #{Integer Long/TYPE Long Short/TYPE Byte/TYPE Object Number}
+      Float/TYPE     #{Float Double/TYPE Object Number}
+      Double/TYPE    #{Double Float/TYPE Object Number}
+      Long/TYPE      #{Long Integer/TYPE Short/TYPE Byte/TYPE Object Number}
+      Character/TYPE #{Character Object}
+      Short/TYPE     #{Short Object Number}
+      Byte/TYPE      #{Byte Object Number}
+      Boolean/TYPE   #{Boolean Object}
+      Void/TYPE      #{Void}}))
 
 #?(
 :cljr
@@ -301,7 +279,8 @@
   "Returns true if the given class is numeric"
   [c]
   (when c
-    #?(:cljr  (clojure.lang.Util/IsNumeric ^Type c) :default (.isAssignableFrom Number (box c)))))
+    #?(:cljr (clojure.lang.Util/IsNumeric ^Type c)
+       :default (.isAssignableFrom Number (box c)))))
 
 (defmacro assignable-from? [t1 t2]
   `(#?(:cljr .IsAssignableFrom :default .isAssignableFrom) ~t1 ~t2))
@@ -330,36 +309,28 @@
             ((convertible-primitives c2) c1))
        (and (primitive? c1)
             (assignable-from? (box c1) c2))))))
-#?(
-:cljr
 
 (def wider-than
   "If the argument is a numeric primitive Class, returns a set of primitive Classes
    that are narrower than the given one"
-  {Int64   #{Int32 UInt32 Int16 UInt16 Byte SByte}            
-   Int32   #{Int16 UInt16 Byte SByte}                         
-   Single  #{Int32 UInt32 Int16 UInt16 Byte SByte}            
-   Double  #{Int32 UInt32 Int16 UInt16 Byte SByte Single}     
-   Int16   #{Byte SByte}                                      
-   UInt64  #{Int32 UInt32 Int16 UInt16 Byte SByte}            
-   UInt32  #{Int16 UInt16 Byte SByte}                         
-   UInt16  #{Byte SByte}                                      
-   Decimal #{}                                                
-   Byte    #{}}) 
-
-:default
-
-(def wider-than
-  "If the argument is a numeric primitive Class, returns a set of primitive Classes
-   that are narrower than the given one"
-  {Long/TYPE    #{Integer/TYPE Short/TYPE Byte/TYPE}
-   Integer/TYPE #{Short/TYPE Byte/TYPE}
-   Float/TYPE   #{Integer/TYPE Short/TYPE Byte/TYPE Long/TYPE}
-   Double/TYPE  #{Integer/TYPE Short/TYPE Byte/TYPE Long/TYPE Float/TYPE}
-   Short/TYPE   #{Byte/TYPE}
-   Byte/TYPE    #{}})
-)
-
+  #?(:cljr
+     {Int64   #{Int32 UInt32 Int16 UInt16 Byte SByte}            
+      Int32   #{Int16 UInt16 Byte SByte}                         
+      Single  #{Int32 UInt32 Int16 UInt16 Byte SByte}            
+      Double  #{Int32 UInt32 Int16 UInt16 Byte SByte Single}     
+      Int16   #{Byte SByte}                                      
+      UInt64  #{Int32 UInt32 Int16 UInt16 Byte SByte}            
+      UInt32  #{Int16 UInt16 Byte SByte}                         
+      UInt16  #{Byte SByte}                                      
+      Decimal #{}                                                
+      Byte    #{}}
+     :default
+     {Long/TYPE    #{Integer/TYPE Short/TYPE Byte/TYPE}
+      Integer/TYPE #{Short/TYPE Byte/TYPE}
+      Float/TYPE   #{Integer/TYPE Short/TYPE Byte/TYPE Long/TYPE}
+      Double/TYPE  #{Integer/TYPE Short/TYPE Byte/TYPE Long/TYPE Float/TYPE}
+      Short/TYPE   #{Byte/TYPE}
+      Byte/TYPE    #{}}))
 
 (defn wider-primitive
   "Given two numeric primitive Classes, returns the wider one"
@@ -429,7 +400,7 @@
                           (not-any? #{:public :protected} flags))
                         (-> class
                             maybe-class
-                            ^#?(:cljr Type :default Class) (box)
+                            box
                             #?(:cljr .FullName :default .getName)
                             symbol
                             (type-reflect :ancestors true)
@@ -566,7 +537,7 @@
 ;; no equivalent
 
 (defn ns-url [ns]
-   (ns->relpath ns))
+  (ns->relpath ns))
 
 :default
 (defn ns-url [ns]
