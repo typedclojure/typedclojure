@@ -146,8 +146,7 @@
                                                             :ns-form-string ns-form-str}))))
                            forms-info)
                  results (if-some [^java.util.concurrent.ExecutorService
-                                   ;;TODO use threadpool
-                                   threadpool nil #_vs/*check-threadpool*]
+                                   threadpool vs/*check-threadpool*]
                            (mapv (fn [^java.util.concurrent.Future future]
                                    (try (.get future)
                                         (catch java.util.concurrent.ExecutionException e

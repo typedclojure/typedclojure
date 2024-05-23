@@ -41,12 +41,16 @@
         threadpool vs/*check-threadpool*
         shutdown-threadpool? (not threadpool)
         ^java.util.concurrent.ExecutorService
+        max-parallelism (or (when (= :available-processors max-parallelism)
+                              (.. Runtime getRuntime availableProcessors))
+                            max-parallelism
+                            (when-some [max-parallelism (System/getProperty "typed.clojure.max-parallelism")]
+                              (if (= ":available-processors")
+                                (.. Runtime getRuntime availableProcessors)
+                                (Integer/parseInt max-parallelism))))
+        _ (when max-parallelism (assert (pos? max-parallelism) max-parallelism))
         threadpool (or threadpool
-                       (java.util.concurrent.Executors/newFixedThreadPool
-                         1
-                         #_
-                         (or max-parallelism
-                             (.. Runtime getRuntime availableProcessors))))]
+                       (some-> max-parallelism java.util.concurrent.Executors/newFixedThreadPool))]
     (try
       (reset-caches/reset-caches)
       (let [nsym-coll (mapv #(if (symbol? %)
@@ -106,15 +110,16 @@
                                                (if (-> e ex-data :type-error)
                                                  {:thrown e}
                                                  (throw e))))))
-                          results (mapv check-ns nsym-coll)
-                          ;;TODO deadlock in clojure.core.typed.test.self-check-tc
-                          #_(mapv (fn [^java.util.concurrent.Future future]
-                                    (try (.get future)
-                                         (catch java.util.concurrent.ExecutionException e
-                                           (throw (or (.getCause e) e)))))
-                                  (.invokeAll threadpool (map (fn [nsym]
-                                                                #(check-ns nsym))
-                                                              nsym-coll)))
+                          results (if-not threadpool
+                                    (mapv check-ns nsym-coll)
+                                    ;;TODO deadlock in clojure.core.typed.test.self-check-tc
+                                    (mapv (fn [^java.util.concurrent.Future future]
+                                            (try (.get future)
+                                                 (catch java.util.concurrent.ExecutionException e
+                                                   (throw (or (.getCause e) e)))))
+                                          (.invokeAll threadpool (map (fn [nsym]
+                                                                        #(check-ns nsym))
+                                                                      nsym-coll))))
                           delayed (swap! vs/*delayed-errors* into (mapcat :delayed) results)
                           terminals (some->> (some :thrown results)
                                              (reset! terminal-error))])))
@@ -135,7 +140,7 @@
                                                (get (some-> vs/*checked-asts* deref) (first nsym-coll))))})))))))
       (finally
         (when shutdown-threadpool?
-          (.shutdown threadpool))))))
+          (some-> threadpool .shutdown))))))
 
 (defn check-ns [impl ns-or-syms opt]
   (let [{:keys [delayed-errors]} (check-ns-info impl ns-or-syms opt)]
