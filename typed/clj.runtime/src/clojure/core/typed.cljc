@@ -345,9 +345,9 @@ for checking namespaces, cf for checking individual forms."}
      (binding [vs/*current-env* {:ns {:name (ns-name *ns*)}
                                  :file *file*
                                  :line (or (-> form# meta :line)
-                                           #?(:cljr @clojure.lang.Compiler/LineVar :default @Compiler/LINE))
+                                           #?(:cljr @Compiler/LineVar :default @Compiler/LINE))
                                  :column (or (-> form# meta :column)
-                                             #?(:cljr @clojure.lang.Compiler/ColumnVar :default @Compiler/COLUMN))}]
+                                             #?(:cljr @Compiler/ColumnVar :default @Compiler/COLUMN))}]
        (do ~@body))))
 
 (defmacro ^:private delay-rt-parse
@@ -1693,10 +1693,10 @@ for checking namespaces, cf for checking individual forms."}
                            ~*file*)
                  :line (or (:line opt#)
                            ~(or (-> &form meta :line)
-                                 #?(:cljr @clojure.lang.Compiler/LineVar :default @Compiler/LINE)))
+                                 #?(:cljr @Compiler/LineVar :default @Compiler/LINE)))
                  :column (or (:column opt#)
                              ~(or (-> &form meta :column)
-                                  #?(:cljr @clojure.lang.Compiler/ColumnVar :default @Compiler/COLUMN)))))))
+                                  #?(:cljr @Compiler/ColumnVar :default @Compiler/COLUMN)))))))
          ~x))))
 
 (core/defn infer-unannotated-vars
