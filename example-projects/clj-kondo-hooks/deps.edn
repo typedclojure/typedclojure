@@ -2,7 +2,7 @@
         org.typedclojure/typed.clj.runtime {:local/root "../../typed/clj.runtime"}}
  :aliases {:dev {:extra-paths ["test"]}
            :clj-kondo
-           {:replace-deps {clj-kondo/clj-kondo {:mvn/version "RELEASE"}}
+           {:replace-deps {clj-kondo/clj-kondo {:mvn/version "2024-03-11"}}
             :main-opts ["-m" "clj-kondo.main"]}
            :test {:extra-deps {io.github.cognitect-labs/test-runner 
                                {:git/tag "v0.5.0" :git/sha "b3fd0d2"}}
