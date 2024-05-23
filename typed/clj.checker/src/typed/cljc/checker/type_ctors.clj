@@ -816,16 +816,16 @@
 (defn isa-DataType? [sym-or-cls]
   {:pre [((some-fn symbol? class?) sym-or-cls)]}
   (let [cls (cond-> sym-or-cls
-              (not (class? sym-or-cls)) coerce/symbol->Class)]
-    (and (isa? cls clojure.lang.IType)
+              (symbol? sym-or-cls) coerce/symbol->Class)]
+    (and (.isAssignableFrom clojure.lang.IType cls)
          (not= cls clojure.lang.IType))))
 
 (t/ann ^:no-check isa-Record? [(t/U t/Sym Class) -> t/Any])
 (defn isa-Record? [sym-or-cls]
   {:pre [((some-fn symbol? class?) sym-or-cls)]}
   (let [cls (cond-> sym-or-cls
-              (not (class? sym-or-cls)) coerce/symbol->Class)]
-    (and (isa? cls clojure.lang.IRecord)
+              (symbol? sym-or-cls) coerce/symbol->Class)]
+    (and (.isAssignableFrom clojure.lang.IRecord cls)
          (not= cls clojure.lang.IRecord))))
 
 (t/ann ^:no-check Record->HMap [DataType -> r/Type])
