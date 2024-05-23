@@ -234,4 +234,4 @@
                       (transient {}))
                     m))
        (meta m)))
-   :cljs (def update-vals clojure.core/update-vals))
+   :default (def update-vals clojure.core/update-vals))
