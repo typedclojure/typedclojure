@@ -62,3 +62,4 @@
 (defonce ^{:doc "Internal use only"} ^:no-doc ^:dynamic *beta-count* nil)
 (defonce ^{:doc "Internal use only"} ^:no-doc ^:dynamic *no-simpl* nil)
 (defonce ^{:doc "Internal use only"} ^:no-doc ^:dynamic *currently-inferring-TypeFns* #{})
+(defonce ^{:doc "Internal use only"} ^:no-doc ^:dynamic *check-threadpool* nil)
