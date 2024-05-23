@@ -430,7 +430,7 @@
                         (-> class
                             maybe-class
                             ^#?(:cljr Type :default Class) (box)
-                            #?(:cljr .FullName :default.getName)
+                            #?(:cljr .FullName :default .getName)
                             symbol
                             (type-reflect :ancestors true)
                             :members)))))))
