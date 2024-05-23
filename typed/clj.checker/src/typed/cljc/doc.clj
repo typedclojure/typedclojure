@@ -230,6 +230,7 @@
                                                               "(! T obj-id obj-path-elem ...)  Object does not has type T. See :doc/object-syntax\n"
                                                               "(& P1 P2 ...)   conjunction\n"
                                                               "(| P1 P2 ...)   disjunction\n"
+                                                              "(or P1 P2 ...)   disjunction\n"
                                                               "(when P1 P2)   implication\n")
                               :doc/object-syntax (str "Object syntax\n\n"
                                                       "{:id obj-id :path [obj-path-elem ...]}\n\n"

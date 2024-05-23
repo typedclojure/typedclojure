@@ -70,7 +70,7 @@
                                         ; Note: if this code executes more than once per AST (which would be
                                         ; incorrect, since it should only run at the root), then it's probably
                                         ; a bug somewhere else that fails to propagate :env down the AST.
-                                        (update-vals state #(%))))]
+                                        (u/update-vals state #(%))))]
                      (update-in ast [:env ::ana/state] state-fn)))]
     {:init-ast init-ast
      :pre pre-passes

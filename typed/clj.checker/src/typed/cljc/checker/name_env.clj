@@ -60,7 +60,7 @@
               (symbol (name sym-nsym) (name sym))))))
 
 (t/ann ^:no-check get-type-name [t/Sym -> (t/U nil t/Kw r/Type)])
-(defn get-type-name 
+(defn get-type-name
   "Return the name with var symbol sym.
   Returns nil if not found."
   [sym]

@@ -36,8 +36,10 @@
                             "typed/lib.clojure"})
 
 (defn submodule-batches []
-  (let [{slow-modules true fast-modules false} (group-by (comp boolean slow-submodule-tests)
-                                                         all-testable-submodules)
+  (let [;; analyzers use a different clojure version
+        {analyzers true all-latest-clojure-submodules false} (group-by #(str/includes? % "analyzer") all-testable-submodules)
+        {slow-modules true fast-modules false} (group-by (comp boolean slow-submodule-tests)
+                                                         all-latest-clojure-submodules)
         _ (assert (= slow-submodule-tests (set slow-modules)))
         ;slow-splits (partition-all 2 slow-modules)
         ;; clj.checker and clj.spec are slowest
@@ -46,8 +48,11 @@
         slow-splits [slow-modules]
         _ (assert (= (sort slow-submodule-tests) (sort (mapcat identity slow-splits))))
         ;fast-splits (split-at (quot (count fast-modules) 2) fast-modules)
-        fast-splits [fast-modules]
-        _ (assert (= (sort fast-modules) (sort (mapcat identity fast-splits))))
+        fast-splits [fast-modules analyzers]
+        _ (let [expected-fast-splits-modules (sort (concat fast-modules analyzers))
+                actual-fast-splits-modules (sort (mapcat identity fast-splits))]
+            (assert (= expected-fast-splits-modules actual-fast-splits-modules)
+                    [expected-fast-splits-modules actual-fast-splits-modules]))
         all-splits (concat slow-splits fast-splits)
         _ (assert (= (sort all-testable-submodules) (sort (mapcat identity all-splits))))]
     all-splits))
@@ -58,13 +63,16 @@
 (defn push-matrix []
   {:post [(matrix? %)]}
   {:include (for [submodule-batch (submodule-batches)
+                  :let [submodule (str/join " " submodule-batch)]
                   clojure (cond-> [clojure-stable]
                             (and (= "typedclojure/typedclojure"
                                     (System/getenv "GITHUB_REPOSITORY"))
                                  clojure-next-release)
-                            (conj clojure-next-release))
-                  jdk ["11"]
-                  :let [submodule (str/join " " submodule-batch)]]
+                            (conj clojure-next-release)
+
+                            (str/includes? submodule "analyzer")
+                            (conj "1.9.0"))
+                  jdk ["11"]]
               (array-map
                 :submodule submodule
                 :clojure clojure
@@ -75,8 +83,10 @@
 (defn schedule-matrix []
   {:post [(matrix? %)]}
   {:include (for [submodule all-testable-submodules
-                  clojure [clojure-stable
-                           clojure-next-snapshot]
+                  clojure (cond-> [clojure-stable
+                                   clojure-next-snapshot]
+                            (str/includes? submodule "analyzer")
+                            (conj "1.9.0" "1.10.1"))
                   jdk ["8"
                        "11"
                        "17"

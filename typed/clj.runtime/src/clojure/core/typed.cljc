@@ -10,6 +10,7 @@
   ^{:doc "This namespace contains typed wrapper macros, type aliases
 and functions for type checking Clojure code. check-ns is the interface
 for checking namespaces, cf for checking individual forms."}
+  ^:typed.clojure/ignore
   clojure.core.typed
   (:refer-clojure :exclude [type defprotocol #_letfn fn loop let
                             ; keep these since the deprecated_wrapper_macros ns may intern these names
@@ -1333,7 +1334,7 @@ for checking namespaces, cf for checking individual forms."}
     - :check-ns-dep  If `:recheck`, always check dependencies.
                      If `:never`, ns dependencies are ignored.
                      #{:recheck :never}
-                     Default: :recheck
+                     Default: :never
     - :unannotated-def   If `:unchecked`, unannotated `def`s are ignored
                          and their type is not recorded.
                          If `:infer`, unannotated `def`s are inferred by their
@@ -1355,6 +1356,17 @@ for checking namespaces, cf for checking individual forms."}
                          If `:any`, unannotated fn arguments are give type `Any` (sound).
                          #{:unchecked :any}
                          Default: :any
+    - :check-form-eval   Configures when to evaluate a form relative to type checking it.
+                         If :never, don't evaluate individual forms as part of type checking.
+                         Avoids side effects during expansion and analysis.
+                         If :before, evaluate entire individual forms before type checking, ignoring
+                         the Gilardi scenario. Avoids side effects during expansion and analysis.
+                         If :after, evaluate individual forms after type checking, respecting the
+                         Gilardi scenario.
+                         Default: :never
+    - :check-ns-load     If :require-before-check, `require` all checked namespaces before checking.
+                         If :never, don't load files before checking.
+                         Default: :require-before-check
 
   Removed:
   - :profile       If true, use Timbre to profile the type checker. Timbre must be

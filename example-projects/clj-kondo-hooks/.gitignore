@@ -1,3 +1,4 @@
 .clj-kondo/.cache
+.clj-kondo/imports
 .clj-kondo/org.typedclojure
 output/actual-output
