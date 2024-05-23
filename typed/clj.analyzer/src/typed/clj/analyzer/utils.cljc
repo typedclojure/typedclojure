@@ -13,7 +13,7 @@
             [clojure.reflect :as reflect]
             [clojure.string :as s]
             [clojure.core.memoize :refer [lru]]
-            #?(:cljr [clojure.clr.io] :default [clojure.java.io :as io] ))
+            #?(:cljr [clojure.clr.io] :default [clojure.java.io :as io]))
   (:import (clojure.lang RT Symbol Var)
            #?(:clj org.objectweb.asm.Type)))
 

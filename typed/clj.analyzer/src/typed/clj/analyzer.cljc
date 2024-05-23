@@ -26,9 +26,7 @@
             [typed.clj.analyzer.passes.infer-tag :as infer-tag]
             [typed.clj.analyzer.passes.validate :as validate]
             [typed.clj.analyzer.utils :as ju])
-  (:import  [clojure.lang IObj RT Var]
-            #?(:cljr    [clojure.lang.CljCompiler.Ast LocalBinding]
-			   :default [clojure.lang Compiler$LocalBinding])))
+  (:import  [clojure.lang IObj RT Var]))
 
 (def ^:dynamic *parse-deftype-with-existing-class*
   "If true, don't generate a new class when analyzing deftype* if a class
@@ -569,34 +567,20 @@
   ([form] (analyze form (empty-env) {}))
   ([form env] (analyze form env {}))
   ([form env opts]
-   (with-bindings (into #?(:cljr  
-						   {#'ana/macroexpand-1 macroexpand-1
-                            #'ana/create-var    create-var
-                            #'ana/scheduled-passes    @scheduled-default-passes
-                            #'ana/parse         parse
-                            #'ana/var?          var?
-                            #'ana/resolve-ns    resolve-ns
-                            #'ana/resolve-sym   resolve-sym
-                            #'ana/unanalyzed unanalyzed
-                            #'ana/analyze-outer analyze-outer
-                            #'ana/current-ns-name current-ns-name
-                            ;#'*ns*              (the-ns (:ns env))
-                           }   
-                           :default 
-						   {Compiler/LOADER     (RT/makeClassLoader)
-                            #'ana/macroexpand-1 macroexpand-1
-                            #'ana/create-var    create-var
-                            #'ana/scheduled-passes    @scheduled-default-passes
-                            #'ana/parse         parse
-                            #'ana/var?          var?
-                            #'ana/resolve-ns    resolve-ns
-                            #'ana/resolve-sym   resolve-sym
-                            #'ana/unanalyzed unanalyzed
-                            #'ana/analyze-outer analyze-outer
-                            #'ana/current-ns-name current-ns-name
-                            ;#'*ns*              (the-ns (:ns env))
-                           })
-                        (:bindings opts))
+   (with-bindings (-> {#'ana/macroexpand-1 macroexpand-1
+                       #'ana/create-var    create-var
+                       #'ana/scheduled-passes    @scheduled-default-passes
+                       #'ana/parse         parse
+                       #'ana/var?          var?
+                       #'ana/resolve-ns    resolve-ns
+                       #'ana/resolve-sym   resolve-sym
+                       #'ana/unanalyzed unanalyzed
+                       #'ana/analyze-outer analyze-outer
+                       #'ana/current-ns-name current-ns-name
+                       ;#'*ns*              (the-ns (:ns env))
+                       }
+                      #?@(:cljr [] :default [(assoc Compiler/LOADER (RT/makeClassLoader))])
+                      (into (:bindings opts)))
        (env/ensure (global-env)
          (env/with-env (u/mmerge (env/deref-env) {:passes-opts (get opts :passes-opts default-passes-opts)})
            (ana/run-passes (ana/unanalyzed form env)))))))
@@ -613,42 +597,22 @@
         result (clojure.lang.Compiler/eval form)]
     (assoc ast :result result)))
 
-#?(
-:cljr
 (defn default-thread-bindings [env]
-  {#'ana/macroexpand-1 macroexpand-1
-   #'ana/create-var    create-var
-   #'ana/scheduled-passes    @scheduled-default-passes
-   #'ana/parse         parse
-   #'ana/var?          var?
-   #'ana/resolve-ns    resolve-ns
-   #'ana/resolve-sym   resolve-sym
-   #'ana/var->sym      var->sym
-   #'ana/eval-ast      eval-ast2
-   #'ana/current-ns-name current-ns-name
-   #'ana/analyze-outer analyze-outer
-   #'ana/unanalyzed unanalyzed
-   ;#'*ns*              (the-ns (:ns env))
-   })
-
-:default 
-(defn default-thread-bindings [env]
-  {Compiler/LOADER     (RT/makeClassLoader)
-   #'ana/macroexpand-1 macroexpand-1
-   #'ana/create-var    create-var
-   #'ana/scheduled-passes    @scheduled-default-passes
-   #'ana/parse         parse
-   #'ana/var?          var?
-   #'ana/resolve-ns    resolve-ns
-   #'ana/resolve-sym   resolve-sym
-   #'ana/var->sym      var->sym
-   #'ana/eval-ast      eval-ast2
-   #'ana/current-ns-name current-ns-name
-   #'ana/analyze-outer analyze-outer
-   #'ana/unanalyzed unanalyzed
-   ;#'*ns*              (the-ns (:ns env))
-   })
-)
+  (-> {#'ana/macroexpand-1 macroexpand-1
+       #'ana/create-var    create-var
+       #'ana/scheduled-passes    @scheduled-default-passes
+       #'ana/parse         parse
+       #'ana/var?          var?
+       #'ana/resolve-ns    resolve-ns
+       #'ana/resolve-sym   resolve-sym
+       #'ana/var->sym      var->sym
+       #'ana/eval-ast      eval-ast2
+       #'ana/current-ns-name current-ns-name
+       #'ana/analyze-outer analyze-outer
+       #'ana/unanalyzed unanalyzed
+       ;#'*ns*              (the-ns (:ns env))
+       }
+      #?@(:cljr [] :default [(assoc Compiler/LOADER (RT/makeClassLoader))])))
 
 (defmethod emit-form/-emit-form :unanalyzed
   [{:keys [form] :as ast} opts]
@@ -700,20 +664,13 @@
               :as opts}]
      (env/ensure (global-env)
        (let [env (merge env (u/-source-info form env))
-             [mform raw-forms] (with-bindings #?(:cljr 
-                                                 {#'ana/resolve-ns    resolve-ns
-                                                  #'ana/resolve-sym   resolve-sym
-                                                  #'ana/current-ns-name current-ns-name
-                                                  #'ana/macroexpand-1 (get-in opts [:bindings #'ana/macroexpand-1]
-                                                                              macroexpand-1)}			  
-			                                     :default
-			                                     {Compiler/LOADER     (RT/makeClassLoader)
-                                                  ;#'*ns*              (the-ns (:ns env))
-                                                  #'ana/resolve-ns    resolve-ns
-                                                  #'ana/resolve-sym   resolve-sym
-                                                  #'ana/current-ns-name current-ns-name
-                                                  #'ana/macroexpand-1 (get-in opts [:bindings #'ana/macroexpand-1]
-                                                                              macroexpand-1)})
+             [mform raw-forms] (with-bindings (-> {;#'*ns*              (the-ns (:ns env))
+                                                   #'ana/resolve-ns    resolve-ns
+                                                   #'ana/resolve-sym   resolve-sym
+                                                   #'ana/current-ns-name current-ns-name
+                                                   #'ana/macroexpand-1 (get-in opts [:bindings #'ana/macroexpand-1]
+                                                                               macroexpand-1)}
+                                                  #?@(:cljr [] :default [(assoc Compiler/LOADER (RT/makeClassLoader))]))
                                  (loop [form form raw-forms []]
                                    (let [mform (if (stop-gildardi-check form env)
                                                  form

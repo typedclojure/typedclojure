@@ -27,8 +27,8 @@
   (is (= true
          (:result (ast (do (ns foo) (= 1 1))))))
   (is (= "a"
-         (:result (ast #?(:cljr    (.ToString (reify Object (ToString [this] "a")))
-		                  :default (.toString (reify Object (toString [this] "a"))))))))
+         (:result (ast #?(:cljr (.ToString (reify Object (ToString [this] "a")))
+                          :default (.toString (reify Object (toString [this] "a"))))))))
   (is (= 2 (:result (ast (#(inc %) 1)))))
   #_
   (is (->
@@ -38,7 +38,7 @@
         :ret))
   #?(:cljr 
      (is (= [:const Int64]
-	        ((juxt :op :val) (ast Int64))))
+            ((juxt :op :val) (ast Int64))))
      :default 	 
      (is (= [:const Number]
             ((juxt :op :val) (ast Number)))))

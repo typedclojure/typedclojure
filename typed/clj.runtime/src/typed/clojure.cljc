@@ -13,13 +13,12 @@
   typed.clojure
   (:refer-clojure :exclude [type defprotocol #_letfn fn loop dotimes let for doseq
                             defn atom ref cast])
-  (:require #?(;; not loadable in self hosted CLJS, otherwise always needed for
-               ;; CLJ AOT compilation compatibility
-               :clj clojure.core.typed
-			   :cljr clojure.core.typed
-               ;; for self hosted CLJS normal :require's from .clj/c files. for
+  (:require #?(;; for self hosted CLJS normal :require's from .clj/c files. for
                ;; .clj{s,c} files, loaded via :require-macros in typed/clojure.cljs.
-               :cljs cljs.core.typed)
+               :cljs cljs.core.typed
+               ;; not loadable in self hosted CLJS, otherwise always needed for
+               ;; CLJ AOT compilation compatibility
+               :default clojure.core.typed)
             [clojure.core :as cc]
             [clojure.core.typed.macros :as macros]
             [clojure.core.typed.platform-case :refer [platform-case]]))
@@ -75,17 +74,11 @@
     :clj `(clojure.core.typed/inst ~@args)
     :cljs `(cljs.core.typed/inst ~@args)))
 
-#?(:clj
+#?(:cljs nil :default
    (defmacro inst-ctor [& args]
      (platform-case
        :clj `(clojure.core.typed/inst-ctor ~@args)
-       :cljs (throw (ex-info "inst-ctor does not applicable in CLJS" {}))))
-
-:cljr
-   (defmacro inst-ctor [& args]
-     `(clojure.core.typed/inst-ctor ~@args))
-
-)
+       :cljs (throw (ex-info "inst-ctor does not applicable in CLJS" {})))))
 
 (defmacro declare-datatypes [& args]
   (platform-case
@@ -155,30 +148,22 @@
     :clj `(clojure.core.typed/atom ~@args)
     :cljs `(cljs.core.typed/atom ~@args)))
 
-#?(:clj
+#?(:cljs nil :default
 (defmacro ref [& args]
    (platform-case
      :clj `(clojure.core.typed/ref ~@args)
-     :cljs (throw (ex-info "ref does not exist in CLJS" {}))))
-
-:cljr
-(defmacro ref [& args]
-  `(clojure.core.typed/ref ~@args))
-	   
-)
+     :cljs (throw (ex-info "ref does not exist in CLJS" {})))))
 
 ;; checker ops
 
 (defn check-ns-clj
   "In Clojure, checks the current namespace or provided namespaces.
   Similar for self-hosted ClojureScript, except for macros namespaces."
-  ([] #?(:clj ((requiring-resolve 'typed.clj.checker/check-ns3))
-         :cljs (cljs.core.typed/check-ns-macros))
-		 :cljr ((requiring-resolve 'typed.clj.checker/check-ns3)))
+  ([] #?(:cljs (cljs.core.typed/check-ns-macros)
+         :default ((requiring-resolve 'typed.clj.checker/check-ns3))))
   ([ns-or-syms & {:as opt}]
-   (#?(:clj (requiring-resolve 'typed.clj.checker/check-ns3)
-       :cljs cljs.core.typed/check-ns-macros
-	   :cljr (requiring-resolve 'typed.clj.checker/check-ns3))
+   (#?(:cljs cljs.core.typed/check-ns-macros
+       :default (requiring-resolve 'typed.clj.checker/check-ns3))
     ns-or-syms
     opt)))
 
@@ -202,70 +187,60 @@
   Not compatible with AOT compilation."
   [& args]
   (assert (#{0 1} (count args)))
-  #?(:clj (platform-case
-            ;; hmm, should this be evaluated at compile-time too for consistency?
-            :clj `(check-ns-clj ~@args)
-            :cljs (apply (requiring-resolve 'cljs.core.typed/check-ns-expansion-side-effects) args))
-     ;; idea:
+  #?(;; idea:
      ;; - if *ns* ends in $macros, check-ns-clj
      ;; - otherwise, check-ns-cljs
      :cljs `(check-ns-cljs ~@args)
-	 :cljr `(check-ns-clj ~@args)))
+     :default (platform-case
+                ;; hmm, should this be evaluated at compile-time too for consistency?
+                :clj `(check-ns-clj ~@args)
+                :cljs (apply (requiring-resolve 'cljs.core.typed/check-ns-expansion-side-effects) args))))
 
 (defmacro cf-clj
   "Check a Clojure form in the current *ns*."
   [& args]
-  #?(:clj (platform-case
-            :clj `(clojure.core.typed/cf ~@args)
-            :cljs (binding [*ns* (create-ns @(requiring-resolve 'cljs.analyzer/*cljs-ns*))]
-                    (list 'quote
-                          (apply (requiring-resolve 'clojure.core.typed/check-form*)
-                                 (case (count args)
-                                   ;; form | expected expected-provided?
-                                   1 (concat args [nil nil])
-                                   ;; form expected | expected-provided?
-                                   2 (concat args [true]))))))
-     ;;TODO check in macros ns?
+  #?(;;TODO check in macros ns?
      :cljs `(cljs.core.typed/cf ~@args)
-     :cljr `(clojure.core.typed/cf ~@args)))
+     :default (platform-case
+                :clj `(clojure.core.typed/cf ~@args)
+                :cljs (binding [*ns* (create-ns @(requiring-resolve 'cljs.analyzer/*cljs-ns*))]
+                        (list 'quote
+                              (apply (requiring-resolve 'clojure.core.typed/check-form*)
+                                     (case (count args)
+                                       ;; form | expected expected-provided?
+                                       1 (concat args [nil nil])
+                                       ;; form expected | expected-provided?
+                                       2 (concat args [true]))))))))
 
 (defmacro cf-cljs
   "Check a ClojureScript form in the same namespace as the current platform."
   [& args]
-  #?(:clj (platform-case
-            :clj `(with-bindings {(requiring-resolve 'cljs.analyzer/*cljs-ns*) (ns-name *ns*)}
-                    (apply (requiring-resolve 'cljs.core.typed/check-form*)
-                           '~(case (count args)
-                               ;; form | expected expected-provided?
-                               1 (concat args [nil nil])
-                               ;; form expected | expected-provided?
-                               2 (concat args [true]))))
-            :cljs (list 'quote
+  #?(:cljs `(cljs.core.typed/cf ~@args)
+     :default (platform-case
+                :clj `(with-bindings {(requiring-resolve 'cljs.analyzer/*cljs-ns*) (ns-name *ns*)}
                         (apply (requiring-resolve 'cljs.core.typed/check-form*)
-                               (case (count args)
-                                 ;; form | expected expected-provided?
-                                 1 (concat args [nil nil])
-                                 ;; form expected | expected-provided?
-                                 2 (concat args [true])))))
-     :cljs `(cljs.core.typed/cf ~@args)
-	 :cljr `(with-bindings {(requiring-resolve 'cljs.analyzer/*cljs-ns*) (ns-name *ns*)}
-                    (apply (requiring-resolve 'cljs.core.typed/check-form*)
-                           '~(case (count args)
-                               ;; form | expected expected-provided?
-                               1 (concat args [nil nil])
-                               ;; form expected | expected-provided?
-                               2 (concat args [true]))))))
+                               '~(case (count args)
+                                   ;; form | expected expected-provided?
+                                   1 (concat args [nil nil])
+                                   ;; form expected | expected-provided?
+                                   2 (concat args [true]))))
+                :cljs (list 'quote
+                            (apply (requiring-resolve 'cljs.core.typed/check-form*)
+                                   (case (count args)
+                                     ;; form | expected expected-provided?
+                                     1 (concat args [nil nil])
+                                     ;; form expected | expected-provided?
+                                     2 (concat args [true])))))))
 
 ;; TODO add check-form-clj{s} defn's for symmetry
 (defmacro cf
   "In Clojure, expands to (clojure.core.typed/cf ~@args).
   In ClojureScript JVM, expands to (cljs.core.typed/cf ~@args)."
   [& args]
-  #?(:clj (platform-case
-            :clj `(cf-clj ~@args)
-            :cljs `(cf-cljs ~@args))
-     :cljs `(cf-cljs ~@args)
-     :cljr `(cf-clj ~@args)))
+  #?(:cljs `(cf-cljs ~@args)
+     :default (platform-case
+                :clj `(cf-clj ~@args)
+                :cljs `(cf-cljs ~@args))))
 
 (defmacro doc-clj
   "Pass any syntax fragment related to Typed Clojure to print documentation on it.

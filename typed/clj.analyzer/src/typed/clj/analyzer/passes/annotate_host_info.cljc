@@ -52,7 +52,7 @@
                                              (let [nm? (ju/name-matches? name)]
                                                (filter #(and (= argc (count (:parameter-types %)))
                                                              (or (nm? (:name %))
-															      #?(:cljr (explicit-implementation-name-matches name (:name %)))))
+                                                                 #?(:cljr (explicit-implementation-name-matches name (:name %)))))
                                                        all-methods))))))
                                 methods)))
 
