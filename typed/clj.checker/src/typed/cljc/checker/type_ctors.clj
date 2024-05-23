@@ -854,12 +854,14 @@
     :post [((some-fn r/RClass? r/DataType?) %)]}
    (let [sym (cond-> sym-or-cls
                (class? sym-or-cls) coerce/Class->symbol)
-         cache-key-hash [(keyword sym) args]
-         cache-hit (@RClass-of-cache cache-key-hash)]
+         cache-key (if (seq args)
+                     [sym args]
+                     sym)
+         cache-hit (@RClass-of-cache cache-key)]
      (if cache-hit
        cache-hit
-       (let [rc ((some-fn dtenv/get-datatype rcls/get-rclass) 
-                 sym)
+       (let [rc (or (dtenv/get-datatype sym)
+                    (rcls/get-rclass sym))
              _ (assert ((some-fn r/TypeFn? r/RClass? r/DataType? nil?) rc))
              _ (when-not (or (r/TypeFn? rc) (empty? args))
                  (err/int-error
@@ -870,7 +872,8 @@
                    (r/TypeFn? rc) (instantiate-typefn rc args)
                    ((some-fn r/DataType? r/RClass?) rc) rc
                    :else
-                   (let [cls (coerce/symbol->Class sym)]
+                   (let [cls (cond-> sym-or-cls
+                               (symbol? sym-or-cls) coerce/symbol->Class)]
                      (if (isa-DataType? cls)
                        (do (println (str "WARNING: Assuming unannotated Clojure type " sym
                                          " is a datatype"))
@@ -881,7 +884,7 @@
                              (flush))
                          (r/DataType-maker sym nil nil (array-map) (isa-Record? cls)))
                        (r/RClass-maker nil nil sym {} (r/sorted-type-set #{})))))]
-         (swap! RClass-of-cache assoc cache-key-hash res)
+         (swap! RClass-of-cache assoc cache-key res)
          res)))))
 
 (t/ann ^:no-check most-general-on-variance [(t/Seqable r/Variance) (t/Seqable Bounds) -> r/Type])
@@ -910,12 +913,12 @@
                         (when warn-msg
                           (println (str "WARNING: " warn-msg ": " sym)))
                         (if (every? #{:constant :covariant :contravariant} variances)
-                          (RClass-of sym
+                          (RClass-of sym-or-cls
                                      (let [syms (TypeFn-fresh-symbols* rc)]
                                        (most-general-on-variance variances
                                                                  (TypeFn-bbnds* syms rc))))
                           (r/Instance-maker sym)))
-       :else (or rc (RClass-of sym))))))
+       :else (or rc (RClass-of sym-or-cls))))))
 
 (t/ann ^:no-check Instance-of [(t/U t/Sym Class) -> r/Type])
 (defn Instance-of
