@@ -77,28 +77,26 @@
    :post [(symbol? %)]}
   (symbol kw))
 
-(t/ann ns->file (t/IFn [t/Sym -> t/Str]
-                       [t/Sym t/Bool -> t/Str]))
-(defn ns->file 
-  ([nsym] (ns->file nsym true))
-  ([nsym suffix?]
-   {:pre [(symbol? nsym)]
-    :post [(string? %)]}
-   ;copied basic approach from tools.emitter.jvm
-   (let [res (munge nsym)
-         f (str/replace (str res) #"\." "/")
-         ex (when suffix?
-              (impl/impl-case
-                :clojure ".clj"
-                :cljs ".cljs"
-				:cljr ".cljr"))
-         p (str f ex)
-         p (if (or #?(:cljr false :default (io/resource p))    ;; no equivalent of io/resource for CLR
-                   (not suffix?))
-             p
-             (str f ".cljc"))
-         p (if (#?(:cljr .StartsWith :default .startsWith) p "/") (subs p 1) p)]
-     p)))
+(t/ann ns->file [t/Sym -> t/Str])
+(defn ns->file [nsym]
+  {:pre [(symbol? nsym)]
+   :post [(string? %)]}
+  ;copied basic approach from tools.emitter.jvm
+  (let [res (munge nsym)
+        f (str/replace (str res) #"\." "/")
+        p (or (some (fn [ex]
+                      (let [p (str f ex)]
+                        ;;FIXME how to check if file exists on "classpath" in CLR?
+                        (when #?(:cljr (throw (ex-info "how to check if file exists on classpath in CLR?"
+                                                       {}))
+                                 :default (io/resource p))
+                          p)))
+                    (impl/impl-case
+                      :clojure [#?(:cljr ".cljr") ".clj"]
+                      :cljs [".cljs"]))
+              (str f ".cljc"))]
+    (cond-> p
+      (str/starts-with? p "/") (subs 1))))
 
 #?(:cljr  :ignore :default
 (do 

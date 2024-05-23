@@ -23,7 +23,7 @@
 (defn delay-type* [f]
   (let [f (bound-fn* f)
         this-invalidation-id (volatile! @parsed-types-invalidation-id)
-        def-ns-vol (volatile! (#?(:cljr WeakReference. :default SoftReference.) *ns*))
+        def-ns-vol (volatile! (#?(:cljr identity :default SoftReference.) *ns*))
         ->f-delay (fn [] (delay
                            ;; locals clearing issue?
                            ;; reproduce via (refresh) then (clojure.core.typed/envs)
@@ -31,8 +31,8 @@
                              (when f (f)))))
         d (atom (->f-delay))]
     (fn []
-      (when-some [^#?(:cljr WeakReference :default SoftReference) sr @def-ns-vol]
-        (when-some [def-ns (#?(:cljr .Target :default .get) sr)]
+      (when-some [^#?(:cljr Object :default SoftReference) sr @def-ns-vol]
+        (when-some [def-ns #?(:cljr sr :default (.get sr))]
           (assert (instance? clojure.lang.Namespace def-ns))
           (if (identical? def-ns (find-ns (ns-name def-ns)))
             (let [_ (when (not= @this-invalidation-id @parsed-types-invalidation-id)

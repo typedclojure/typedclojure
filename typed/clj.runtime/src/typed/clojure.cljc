@@ -82,9 +82,7 @@
 
 :cljr
    (defmacro inst-ctor [& args]
-     (platform-case
-       :clj `(clojure.core.typed/inst-ctor ~@args)
-       :cljs (throw (ex-info "inst-ctor does not applicable in CLJS" {}))))
+     `(clojure.core.typed/inst-ctor ~@args))
 
 )
 
@@ -157,16 +155,15 @@
     :cljs `(cljs.core.typed/atom ~@args)))
 
 #?(:clj
-   (defmacro ref [& args]
-     (platform-case
-       :clj `(clojure.core.typed/ref ~@args)
-       :cljs (throw (ex-info "ref does not exist in CLJS" {}))))
+(defmacro ref [& args]
+   (platform-case
+     :clj `(clojure.core.typed/ref ~@args)
+     :cljs (throw (ex-info "ref does not exist in CLJS" {}))))
 
 :cljr
-   (defmacro ref [& args]
-     (platform-case
-       :clj `(clojure.core.typed/ref ~@args)
-       :cljs (throw (ex-info "ref does not exist in CLJS" {}))))	   
+(defmacro ref [& args]
+  `(clojure.core.typed/ref ~@args))
+	   
 )
 
 ;; checker ops
@@ -212,10 +209,7 @@
      ;; - if *ns* ends in $macros, check-ns-clj
      ;; - otherwise, check-ns-cljs
      :cljs `(check-ns-cljs ~@args)
-	 :cljr (platform-case
-            ;; hmm, should this be evaluated at compile-time too for consistency?
-            :clj `(check-ns-clj ~@args)
-            :cljs (apply (requiring-resolve 'cljs.core.typed/check-ns-expansion-side-effects) args))))
+	 :cljr `(check-ns-clj ~@args)))
 
 (defmacro cf-clj
   "Check a Clojure form in the current *ns*."
@@ -232,16 +226,7 @@
                                    2 (concat args [true]))))))
      ;;TODO check in macros ns?
      :cljs `(cljs.core.typed/cf ~@args)
-     :cljr (platform-case
-            :clj `(clojure.core.typed/cf ~@args)
-            :cljs (binding [*ns* (create-ns @(requiring-resolve 'cljs.analyzer/*cljs-ns*))]
-                    (list 'quote
-                          (apply (requiring-resolve 'clojure.core.typed/check-form*)
-                                 (case (count args)
-                                   ;; form | expected expected-provided?
-                                   1 (concat args [nil nil])
-                                   ;; form expected | expected-provided?
-                                   2 (concat args [true]))))))))
+     :cljr `(clojure.core.typed/cf ~@args)))
 
 (defmacro cf-cljs
   "Check a ClojureScript form in the same namespace as the current platform."
@@ -262,21 +247,13 @@
                                  ;; form expected | expected-provided?
                                  2 (concat args [true])))))
      :cljs `(cljs.core.typed/cf ~@args)
-	 :cljr (platform-case
-            :clj `(with-bindings {(requiring-resolve 'cljs.analyzer/*cljs-ns*) (ns-name *ns*)}
+	 :cljr `(with-bindings {(requiring-resolve 'cljs.analyzer/*cljs-ns*) (ns-name *ns*)}
                     (apply (requiring-resolve 'cljs.core.typed/check-form*)
                            '~(case (count args)
                                ;; form | expected expected-provided?
                                1 (concat args [nil nil])
                                ;; form expected | expected-provided?
-                               2 (concat args [true]))))
-            :cljs (list 'quote
-                        (apply (requiring-resolve 'cljs.core.typed/check-form*)
-                               (case (count args)
-                                 ;; form | expected expected-provided?
-                                 1 (concat args [nil nil])
-                                 ;; form expected | expected-provided?
-                                 2 (concat args [true])))))))
+                               2 (concat args [true]))))))
 
 ;; TODO add check-form-clj{s} defn's for symmetry
 (defmacro cf
@@ -287,9 +264,7 @@
             :clj `(cf-clj ~@args)
             :cljs `(cf-cljs ~@args))
      :cljs `(cf-cljs ~@args)
-     :cljr (platform-case
-            :clj `(cf-clj ~@args)
-            :cljs `(cf-cljs ~@args))))
+     :cljr `(cf-clj ~@args)))
 
 (defmacro doc-clj
   "Pass any syntax fragment related to Typed Clojure to print documentation on it.

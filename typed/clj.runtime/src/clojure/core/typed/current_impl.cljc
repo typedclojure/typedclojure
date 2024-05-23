@@ -36,14 +36,13 @@
 ;; :unknown = ::unknown
 #?(:cljs :ignore
 :default
-(defmacro impl-case [& {clj-case :clojure cljs-case :cljs cljr-case :cljr unknown :unknown :as opts}]
+(defmacro impl-case [& {clj-case :clojure cljs-case :cljs unknown :unknown :as opts}]
   (let [bad (set/difference (set (keys opts)) #{:clojure :cljs :cljr :unknown})]
     (assert (empty? bad)
             (str "Incorrect cases to impl-case: " (pr-str bad))))
   `(case (current-impl)
      ~clojure ~clj-case
      ~clojurescript ~cljs-case
-	 ~cljr ~cljr-case
      ~(if (contains? opts :unknown)
         unknown
         `(assert nil (str "No case matched for impl-case " (current-impl))))))

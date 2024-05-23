@@ -23,8 +23,7 @@
   (symbol
     (platform-case
       :clj "clojure.core.typed"
-      :cljs "cljs.core.typed"
-	  :cljr "clojure.core.typed")
+      :cljs "cljs.core.typed")
     (name sym)))
 
 (core/defn core-kw [kw]

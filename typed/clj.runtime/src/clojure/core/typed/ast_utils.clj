@@ -19,8 +19,7 @@
 (defn emit-form-fn [expr]
   (impl/impl-case
     :clojure ((requiring-resolve 'typed.clj.analyzer.passes.emit-form/emit-form) expr)
-    :cljs ((requiring-resolve 'typed.cljs.checker.util/emit-form) expr)
-	:cljr ((requiring-resolve 'typed.clj.analyzer.passes.emit-form/emit-form) expr)))
+    :cljs ((requiring-resolve 'typed.cljs.checker.util/emit-form) expr)))
 
 (defn constant-expr [expr]
   {:pre [(#{:quote} (:op expr))
@@ -41,17 +40,7 @@
                           (:vals expr))
                 _ (assert (contains? m key))
                 vexpr (get m key)]
-            (:form vexpr))
-
-    :cljr (case (:op expr)
-               :map (let [const ((requiring-resolve 'typed.cljc.analyzer.passes.constant-lifter/constant-lift) expr)]
-                      (assert (#{:const} (:op const)))
-                      (map-expr-at const key))
-               :const (let [v (:val expr)]
-                        (assert (contains? v key) key)
-                        (get v key)))		
-			
-			))
+            (:form vexpr))))
 
 (defn constant-exprs [exprs]
   (map constant-expr exprs))
@@ -162,17 +151,7 @@
     :cljs (assoc method
                  :params (vec (concat required-params
                                       (when rest-param
-                                        [rest-param]))))
-    :cljr (case (:op method) 
-               :fn-method (assoc method
-                                 :params (vec (concat required-params
-                                                      (when rest-param
-                                                        [rest-param]))))
-               :method (do (assert (nil? rest-param))
-                           (assert (seq required-params))
-                           (assoc method
-                                  :this (first required-params)
-                                  :params (vec (rest required-params)))))))
+                                        [rest-param]))))))
 
 (defn let-body-kw []
   :body)
@@ -181,9 +160,7 @@
   {:post [(symbol? %)]}
   (impl/impl-case
     :clojure ((requiring-resolve 'clojure.core.typed.coerce-utils/var->symbol) (:var expr))
-    :cljs (:name expr)
-    :cljr ((requiring-resolve 'clojure.core.typed.coerce-utils/var->symbol) (:var expr))
-	))
+    :cljs (:name expr)))
 
 (defn new-op-class [expr]
   {:pre [(#{:new} (:op expr))
@@ -202,9 +179,7 @@
                          :clojure ((every-pred map? (comp #{:method} :op))
                                    m)
                          ; FIXME should be nyi-error but c.c.t.errors depends on this namespace
-                         :cljs (assert nil "Method for CLJS")
-                         :cljr ((every-pred map? (comp #{:method} :op))
-                                   m))))
+                         :cljs (assert nil "Method for CLJS"))))
 
 (def fn-method? (fn [m]
                   ((every-pred map? (comp #{:fn-method} :op))
@@ -214,8 +189,7 @@
                      :clojure ((con/vec-c? fn-method?) ms)
                      :cljs ((every-pred (con/every-c? fn-method?)
                                         seq?)
-                            ms)
-                     :clojure ((con/vec-c? fn-method?) ms))))
+                            ms))))
 
 (defn variadic-method? [m]
   {:pre [((some-fn fn-method? deftype-method?) m)]
