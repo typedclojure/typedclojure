@@ -93,43 +93,42 @@
     nil))
 )
 
+#?(
+:cljr
+
 (defn special-arrays [c]
   (case c
-    "bytes"
-    #?(:cljr    |System.Byte[]|
-       :default (Class/forName "[B"))
-    "booleans"
-    #?(:cljr    |System.Boolean[]|
-       :default Class/forName "[Z")
-    "chars"
-    #?(:cljr    |System.Char[]|
-       :default (Class/forName "[C"))
-    "ints"
-    #?(:cljr    |System.Int32[]|
-       :default (Class/forName "[I"))
-    "longs"
-    #?(:cljr    |System.Int64[]|
-       :default (Class/forName "[J"))
-    "floats"
-    #?(:cljr    |System.Single[]|
-       :default (Class/forName "[F"))
-    "doubles"
-    #?(:cljr    |System.Double[]|
-       :default (Class/forName "[D"))
-    "shorts"
-    #?(:cljr    |System.Int16[]|
-       :default (Class/forName "[S"))
-    "objects"
-    #?(:cljr    |System.Object[]|
-       :default (Class/forName "[Ljava.lang.Object;"))
-    #?@(:cljr [
-    "sbytes"   |System.SByte[]|
-    "ushorts"  |System.Int16[]|
-    "uints"    |System.Int32[]|
-    "ulongs"   |System.Int64[]|
-    "decimals" |System.Decimal[]|
-    ])
+    "bytes"    |System.Byte[]|             ;;; (Class/forName "[B")
+    "booleans" |System.Boolean[]|          ;;; (Class/forName "[Z")
+    "chars"    |System.Char[]|             ;;; (Class/forName "[C")
+    "ints"     |System.Int32[]|            ;;; (Class/forName "[I")
+    "longs"    |System.Int64[]|            ;;; (Class/forName "[J")
+    "floats"   |System.Single[]|           ;;; (Class/forName "[F")
+    "doubles"  |System.Double[]|           ;;; (Class/forName "[D")
+    "shorts"   |System.Int16[]|            ;;; (Class/forName "[S")
+    "objects"  |System.Object[]|           ;;; (Class/forName "[Ljava.lang.Object;")
+	"sbytes"   |System.SByte[]|            ;;;  DM: Added 
+	"ushorts"  |System.Int16[]|            ;;;  DM: Added
+	"uints"    |System.Int32[]|            ;;;  DM: Added
+	"ulongs"   |System.Int64[]|            ;;;  DM: Added
+	"decimals" |System.Decimal[]|          ;;;  DM: Added
     nil))
+
+:default
+
+(defn special-arrays [c]
+  (case c
+    "bytes" (Class/forName "[B")
+    "booleans" (Class/forName "[Z")
+    "chars" (Class/forName "[C")
+    "ints" (Class/forName "[I")
+    "longs" (Class/forName "[J")
+    "floats" (Class/forName "[F")
+    "doubles" (Class/forName "[D")
+    "shorts" (Class/forName "[S")
+    "objects" (Class/forName "[Ljava.lang.Object;")
+    nil))
+)
 
 
 (defmulti ^#?(:cljr Type :default Class) maybe-class
