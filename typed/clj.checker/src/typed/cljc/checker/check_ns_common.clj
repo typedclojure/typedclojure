@@ -49,15 +49,15 @@
                              (.. Runtime getRuntime availableProcessors))))]
     (try
       (reset-caches/reset-caches)
-      (let [nsym-coll (map #(if (symbol? %)
-                              ; namespace might not exist yet, so ns-name is not appropriate
-                              ; to convert to symbol
-                              %
-                              (ns-name %))
-                           (if ((some-fn symbol? plat-con/namespace?)
-                                ns-or-syms)
-                             [ns-or-syms]
-                             ns-or-syms))]
+      (let [nsym-coll (mapv #(if (symbol? %)
+                               ; namespace might not exist yet, so ns-name is not appropriate
+                               ; to convert to symbol
+                               %
+                               (ns-name %))
+                            (if ((some-fn symbol? plat-con/namespace?)
+                                 ns-or-syms)
+                              [ns-or-syms]
+                              ns-or-syms))]
         (assert (seq nsym-coll) "Nothing to check")
         (impl/with-impl impl
           (binding [vs/*delayed-errors* (err/-init-delayed-errors)
@@ -65,7 +65,7 @@
                     vs/*trace-checker* trace
                     ; we only use this if we have exactly one namespace passed
                     vs/*checked-asts* (when (#{impl/clojure} impl)
-                                        (when (== 1 (count nsym-coll))
+                                        (when (= 1 (count nsym-coll))
                                           (atom {})))
                     vs/*lexical-env* (lex-env/init-lexical-env)
                     ;; nested check-ns inside check-form switches off check-form
@@ -95,25 +95,29 @@
                 ;-------------------------
                 (let [check-ns (impl/impl-case
                                  :clojure chk-clj/check-ns-and-deps
-                                 :cljs    (requiring-resolve 'typed.cljs.checker.check/check-ns-and-deps))
-                      check-ns (bound-fn*
-                                 #(binding [vs/*delayed-errors* (err/-init-delayed-errors)]
-                                    (try (check-ns %)
-                                         {:delayed @vs/*delayed-errors*}
-                                         (catch ExceptionInfo e
-                                           (if (-> e ex-data :type-error)
-                                             {:thrown e}
-                                             (throw e))))))
-                      results (mapv (fn [^java.util.concurrent.Future future]
-                                      (try (.get future)
-                                           (catch java.util.concurrent.ExecutionException e
-                                             (throw (or (.getCause e) e)))))
-                                    (.invokeAll threadpool (map (fn [nsym]
-                                                                  #(check-ns nsym))
-                                                                nsym-coll)))
-                      delayed (swap! vs/*delayed-errors* into (mapcat :delayed) results)
-                      terminals (some->> (some :thrown results)
-                                         (reset! terminal-error))])
+                                 :cljs    (requiring-resolve 'typed.cljs.checker.check/check-ns-and-deps))]
+                  (if (= 1 (count nsym-coll))
+                    (check-ns (nth nsym-coll 0))
+                    (let [check-ns (bound-fn*
+                                     #(binding [vs/*delayed-errors* (err/-init-delayed-errors)]
+                                        (try (check-ns %)
+                                             {:delayed @vs/*delayed-errors*}
+                                             (catch ExceptionInfo e
+                                               (if (-> e ex-data :type-error)
+                                                 {:thrown e}
+                                                 (throw e))))))
+                          results (mapv check-ns nsym-coll)
+                          ;;TODO deadlock in clojure.core.typed.test.self-check-tc
+                          #_(mapv (fn [^java.util.concurrent.Future future]
+                                    (try (.get future)
+                                         (catch java.util.concurrent.ExecutionException e
+                                           (throw (or (.getCause e) e)))))
+                                  (.invokeAll threadpool (map (fn [nsym]
+                                                                #(check-ns nsym))
+                                                              nsym-coll)))
+                          delayed (swap! vs/*delayed-errors* into (mapcat :delayed) results)
+                          terminals (some->> (some :thrown results)
+                                             (reset! terminal-error))])))
                 (catch ExceptionInfo e
                   (if (-> e ex-data :type-error)
                     (reset! terminal-error e)
