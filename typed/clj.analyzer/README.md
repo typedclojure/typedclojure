@@ -44,6 +44,10 @@ Latest stable release is 1.2.1.
 </dependency>
 ```
 
+## Compatibility
+
+typed.clj.analyzer supports Clojure 1.9.0 and JDK 1.8+.
+
 ## Documentation
 
 [API Reference](https://api.typedclojure.org/latest/typed.clj.analyzer/index.html)

@@ -44,6 +44,10 @@ Latest stable release is {◊typedclojure-stable-mvn-version◊}.
 </dependency>
 ```
 
+## Compatibility
+
+typed.clj.analyzer supports Clojure {◊analyzer-clojure-mvn-version◊} and JDK {◊min-supported-jdk◊}+.
+
 ## Documentation
 
 [API Reference](https://api.typedclojure.org/latest/typed.clj.analyzer/index.html)

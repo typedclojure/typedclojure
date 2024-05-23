@@ -148,7 +148,7 @@
   (binding [*parse-type-in-ns* sym]
     (f)))
 
-(declare parse-type* resolve-type-clj->sym resolve-type-clj resolve-type-cljs)
+(declare parse-type* ^:dynamic resolve-type-clj->sym ^:dynamic resolve-type-clj resolve-type-cljs)
 
 (defn tsyn->env [s]
   (let [m (meta s)]
@@ -1096,7 +1096,7 @@
 (def ns-rewrites-clj {'clojure.core.typed 'typed.clojure})
 (def ^:private ns-unrewrites-clj (set/map-invert ns-rewrites-clj))
 
-(defn resolve-type-clj
+(defn ^:dynamic resolve-type-clj
   "Returns a var, class or nil"
   [sym]
   {:pre [(symbol? sym)]
@@ -1139,7 +1139,7 @@
             qsym)))
       (err/int-error (str "Cannot find namespace: " sym)))))
 
-(defn resolve-type-clj->sym
+(defn ^:dynamic resolve-type-clj->sym
   [sym]
   {:pre [(symbol? sym)]
    :post [(symbol? %)]}
@@ -1306,7 +1306,7 @@
      'char (RClass-of 'char)
      'void r/-nil}))
 
-(defn parse-type-symbol-default
+(defn ^:dynamic parse-type-symbol-default
   [sym]
   (let [primitives (impl/impl-case
                      :clojure (clj-primitives-fn)
@@ -1361,7 +1361,15 @@
     (= 'tt f) f/-top
     (= 'ff f) f/-bot
     (= 'no-filter f) f/-no-filter
-    (not ((some-fn seq? list?) f)) (prs-error (str "Malformed filter expression: " (pr-str f)))
+    (not (seq? f)) (prs-error (str "Malformed filter expression: " (pr-str f)))
+
+    (when-some [op (first f)]
+      (and (simple-symbol? op)
+           (or (= 'or op)
+               ;; clojure-clr treats pipes in symbols as special
+               (= "|" (name op)))))
+    (apply fl/-or (mapv parse-filter (next f)))
+
     :else (parse-filter* f)))
 
 (defn parse-object-path [{:keys [id path]}]
@@ -1413,12 +1421,7 @@
             (mapv parse-path-elem psyns))]
     (fl/-not-filter t nme p)))
 
-(defmethod parse-filter* '|
-  [[_ & fsyns]]
-  (apply fl/-or (mapv parse-filter fsyns)))
-
-(defmethod parse-filter* '&
-  [[_ & fsyns]]
+(defmethod parse-filter* '& [[_ & fsyns]]
   (apply fl/-and (mapv parse-filter fsyns)))
 
 (defmethod parse-filter* 'when
@@ -1871,7 +1874,7 @@
 
 (defn unparse-F [f]
   {:pre [(r/F? f)]}
-  (if vs/*verbose-types*
+  (if (:unique-tvars vs/*verbose-types*)
     (:name f)
     (r/F-original-name f)))
 
@@ -1959,8 +1962,7 @@
     (cond
       ; Prefer the user provided Name for this type. Needs more thinking?
       ;(-> u meta :from-name) (-> u meta :from-name)
-      (seq types) (list* (unparse-Name-symbol-in-ns `t/U)
-                         (map unparse-type types))
+      (seq types) (list* (unparse-Name-symbol-in-ns `t/U) (mapv unparse-type types))
       :else (unparse-Name-symbol-in-ns `t/Nothing)))
 
   FnIntersection
@@ -1971,20 +1973,20 @@
     (if (= 1 (count types))
       (unparse-type (first types))
       (list* (unparse-Name-symbol-in-ns `t/IFn)
-             (map unparse-type types))))
+             (mapv unparse-type types))))
 
   Intersection
   (unparse-type* 
     [{types :types}]
     (list* (unparse-Name-symbol-in-ns `t/I)
-           (map unparse-type types)))
+           (mapv unparse-type types)))
 
   DifferenceType
   (unparse-type* 
     [{:keys [type without]}]
     (list* (unparse-Name-symbol-in-ns `t/Difference)
            (unparse-type* type)
-           (map unparse-type without)))
+           (mapv unparse-type without)))
 
   NotType
   (unparse-type* 
@@ -2093,7 +2095,7 @@
     [{:keys [the-class poly?] :as r}]
     (if (empty? poly?)
       (unparse-Name-symbol-in-ns the-class)
-      (list* (unparse-Name-symbol-in-ns the-class) (map unparse-type poly?))))
+      (list* (unparse-Name-symbol-in-ns the-class) (mapv unparse-type poly?))))
 
   Mu
   (unparse-type* 
@@ -2107,17 +2109,18 @@
     [m]
     (list* (unparse-Name-symbol-in-ns `t/Match)
            (unparse-type (:target m))
-           (mapcat (fn [t]
-                     (let [tsyn (unparse-type t)]
-                       ;; must be either [pattern :-> result] or (All binder [pattern :-> result])
-                       (if (vector? tsyn)
-                         (do (assert (= 3 (count tsyn)))
-                             tsyn)
-                         (let [_ (assert (= 3 (count tsyn)))
-                               [_All binder tsyn] tsyn]
-                           (assert (and (vector? tsyn) (= 3 (count tsyn))))
-                           (into [binder] tsyn)))))
-                   (:clauses m))))
+           (doall
+             (mapcat (fn [t]
+                       (let [tsyn (unparse-type t)]
+                         ;; must be either [pattern :-> result] or (All binder [pattern :-> result])
+                         (if (vector? tsyn)
+                           (do (assert (= 3 (count tsyn)))
+                               tsyn)
+                           (let [_ (assert (= 3 (count tsyn)))
+                                 [_All binder tsyn] tsyn]
+                             (assert (and (vector? tsyn) (= 3 (count tsyn))))
+                             (into [binder] tsyn)))))
+                     (:clauses m)))))
   Instance
   (unparse-type*
     [m]
@@ -2312,8 +2315,8 @@
     [{:keys [target entries dentries]}]
     (list* (unparse-Name-symbol-in-ns `t/Assoc)
            (unparse-type target)
-           (concat
-             (map unparse-type (apply concat entries))
+           (into
+             (mapv unparse-type (apply concat entries))
              (when dentries [(unparse-type (:pre-type dentries))
                              :..
                              (unparse-bound (:name dentries))]))))
@@ -2322,7 +2325,7 @@
   (unparse-type* 
     [{:keys [types]}]
     (list* (unparse-Name-symbol-in-ns `t/Merge)
-           (map unparse-type types)))
+           (mapv unparse-type types)))
 
   GetType
   (unparse-type* 
@@ -2368,7 +2371,7 @@
     [{:keys [name poly?]}]
     (let [sym (symbol name)]
       (if (seq poly?)
-        (list* sym (map unparse-type poly?))
+        (list* sym (mapv unparse-type poly?))
         sym))))
 
 ; Objects
@@ -2436,7 +2439,7 @@
   AndFilter 
   (unparse-filter* [{:keys [fs]}] (apply list '& (map unparse-filter fs)))
   OrFilter 
-  (unparse-filter* [{:keys [fs]}] (apply list '| (map unparse-filter fs)))
+  (unparse-filter* [{:keys [fs]}] (apply list 'or (map unparse-filter fs)))
 
   ImpFilter
   (unparse-filter* 

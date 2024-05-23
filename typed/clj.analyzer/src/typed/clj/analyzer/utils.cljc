@@ -8,13 +8,12 @@
 
 ;copied from clojure.tools.analyzer.jvm.utils
 (ns typed.clj.analyzer.utils
-  (:refer-clojure :exclude [munge])
   (:require [typed.cljc.analyzer.utils :as u]
             [typed.cljc.analyzer :as ana2]
             [clojure.reflect :as reflect]
             [clojure.string :as s]
             [clojure.core.memoize :refer [lru]]
-            #?(:cljr [clojure.clr.io] :default [clojure.java.io :as io] ))
+            #?(:cljr [clojure.clr.io] :default [clojure.java.io :as io]))
   (:import (clojure.lang RT Symbol Var)
            #?(:clj org.objectweb.asm.Type)))
 
@@ -136,28 +135,18 @@
   "Takes a Symbol, String or Class and tries to resolve to a matching Class"
   class)
 
-
-#?(
-:cljr
-
 (defn array-class [element-type]
   (RT/classForName
-    (str (-> element-type
-             maybe-class 
-             .FullName
-            (.Replace \/ \.))
-          "[]"))) 
-		  
-:default
-
-(defn array-class [element-type]
-  (RT/classForName
-   (str "[" (-> element-type
-              maybe-class
-              Type/getType
-              .getDescriptor
-              (.replace \/ \.)))))
-)
+    #?(:cljr (str (-> element-type
+                      maybe-class 
+                      .FullName
+                      (.Replace \/ \.))
+                  "[]")
+       :default (str "[" (-> element-type
+                             maybe-class
+                             Type/getType
+                             .getDescriptor
+                             (.replace \/ \.))))))
 
 
 ;difference: always use ana2/resolve-sym
@@ -193,56 +182,43 @@
                     (maybe-class-from-string (name x)))
    (string? x) (maybe-class-from-string x)))
 
-#?(
-:cljr
-
 (def primitive?
   "Returns non-nil if the argument represents a primitive Class other than Void"
-  #{Double Char Byte Boolean SByte Decimal
-    Int16 Single Int64 Int32 UInt16 UInt64 UInt32}) 
+  #?(:cljr
+     #{Double Char Byte Boolean SByte Decimal
+       Int16 Single Int64 Int32 UInt16 UInt64 UInt32}
+     :default
+     #{Double/TYPE Character/TYPE Byte/TYPE Boolean/TYPE
+       Short/TYPE Float/TYPE Long/TYPE Integer/TYPE}))
 
-:default
-
-(def primitive?
-  "Returns non-nil if the argument represents a primitive Class other than Void"
-  #{Double/TYPE Character/TYPE Byte/TYPE Boolean/TYPE
-    Short/TYPE Float/TYPE Long/TYPE Integer/TYPE})
-)
-
-#?(
-:cljr
-(def ^:private convertible-primitives 
-  "If the argument is a primitive Class, returns a set of Classes
-   to which the primitive Class can be casted"
-  {Int32   #{Int32 Int64 Int16 Byte SByte}  
-   Single  #{Single Double}                 
-   Double  #{Double Single}                 
-   Int64   #{Int64 Int32 Int16 Byte}        
-   Char    #{Char}                          
-   Int16   #{Int16}                         
-   Byte    #{Byte}                          
-   Boolean #{Boolean}                       
-   UInt32  #{Int32 Int64 Int16 Byte SByte}  
-   UInt64  #{Int64 Int32 Int16 Byte}        
-   UInt16  #{Int16}                         
-   SByte   #{SByte}                         
-   Decimal #{Decimal}                       
-   System.Void    #{System.Void}})          
-   
-:default
 (def ^:private convertible-primitives
   "If the argument is a primitive Class, returns a set of Classes
    to which the primitive Class can be casted"
-  {Integer/TYPE   #{Integer Long/TYPE Long Short/TYPE Byte/TYPE Object Number}
-   Float/TYPE     #{Float Double/TYPE Object Number}
-   Double/TYPE    #{Double Float/TYPE Object Number}
-   Long/TYPE      #{Long Integer/TYPE Short/TYPE Byte/TYPE Object Number}
-   Character/TYPE #{Character Object}
-   Short/TYPE     #{Short Object Number}
-   Byte/TYPE      #{Byte Object Number}
-   Boolean/TYPE   #{Boolean Object}
-   Void/TYPE      #{Void}})
-)
+  #?(:cljr
+     {Int32   #{Int32 Int64 Int16 Byte SByte}  
+      Single  #{Single Double}                 
+      Double  #{Double Single}                 
+      Int64   #{Int64 Int32 Int16 Byte}        
+      Char    #{Char}                          
+      Int16   #{Int16}                         
+      Byte    #{Byte}                          
+      Boolean #{Boolean}                       
+      UInt32  #{Int32 Int64 Int16 Byte SByte}  
+      UInt64  #{Int64 Int32 Int16 Byte}        
+      UInt16  #{Int16}                         
+      SByte   #{SByte}                         
+      Decimal #{Decimal}                       
+      System.Void    #{System.Void}}
+     :default
+     {Integer/TYPE   #{Integer Long/TYPE Long Short/TYPE Byte/TYPE Object Number}
+      Float/TYPE     #{Float Double/TYPE Object Number}
+      Double/TYPE    #{Double Float/TYPE Object Number}
+      Long/TYPE      #{Long Integer/TYPE Short/TYPE Byte/TYPE Object Number}
+      Character/TYPE #{Character Object}
+      Short/TYPE     #{Short Object Number}
+      Byte/TYPE      #{Byte Object Number}
+      Boolean/TYPE   #{Boolean Object}
+      Void/TYPE      #{Void}}))
 
 #?(
 :cljr
@@ -302,7 +278,8 @@
   "Returns true if the given class is numeric"
   [c]
   (when c
-    #?(:cljr  (clojure.lang.Util/IsNumeric ^Type c) :default (.isAssignableFrom Number (box c)))))
+    #?(:cljr (clojure.lang.Util/IsNumeric ^Type c)
+       :default (.isAssignableFrom Number (box c)))))
 
 (defmacro assignable-from? [t1 t2]
   `(#?(:cljr .IsAssignableFrom :default .isAssignableFrom) ~t1 ~t2))
@@ -331,36 +308,28 @@
             ((convertible-primitives c2) c1))
        (and (primitive? c1)
             (assignable-from? (box c1) c2))))))
-#?(
-:cljr
 
 (def wider-than
   "If the argument is a numeric primitive Class, returns a set of primitive Classes
    that are narrower than the given one"
-  {Int64   #{Int32 UInt32 Int16 UInt16 Byte SByte}            
-   Int32   #{Int16 UInt16 Byte SByte}                         
-   Single  #{Int32 UInt32 Int16 UInt16 Byte SByte}            
-   Double  #{Int32 UInt32 Int16 UInt16 Byte SByte Single}     
-   Int16   #{Byte SByte}                                      
-   UInt64  #{Int32 UInt32 Int16 UInt16 Byte SByte}            
-   UInt32  #{Int16 UInt16 Byte SByte}                         
-   UInt16  #{Byte SByte}                                      
-   Decimal #{}                                                
-   Byte    #{}}) 
-
-:default
-
-(def wider-than
-  "If the argument is a numeric primitive Class, returns a set of primitive Classes
-   that are narrower than the given one"
-  {Long/TYPE    #{Integer/TYPE Short/TYPE Byte/TYPE}
-   Integer/TYPE #{Short/TYPE Byte/TYPE}
-   Float/TYPE   #{Integer/TYPE Short/TYPE Byte/TYPE Long/TYPE}
-   Double/TYPE  #{Integer/TYPE Short/TYPE Byte/TYPE Long/TYPE Float/TYPE}
-   Short/TYPE   #{Byte/TYPE}
-   Byte/TYPE    #{}})
-)
-
+  #?(:cljr
+     {Int64   #{Int32 UInt32 Int16 UInt16 Byte SByte}            
+      Int32   #{Int16 UInt16 Byte SByte}                         
+      Single  #{Int32 UInt32 Int16 UInt16 Byte SByte}            
+      Double  #{Int32 UInt32 Int16 UInt16 Byte SByte Single}     
+      Int16   #{Byte SByte}                                      
+      UInt64  #{Int32 UInt32 Int16 UInt16 Byte SByte}            
+      UInt32  #{Int16 UInt16 Byte SByte}                         
+      UInt16  #{Byte SByte}                                      
+      Decimal #{}                                                
+      Byte    #{}}
+     :default
+     {Long/TYPE    #{Integer/TYPE Short/TYPE Byte/TYPE}
+      Integer/TYPE #{Short/TYPE Byte/TYPE}
+      Float/TYPE   #{Integer/TYPE Short/TYPE Byte/TYPE Long/TYPE}
+      Double/TYPE  #{Integer/TYPE Short/TYPE Byte/TYPE Long/TYPE Float/TYPE}
+      Short/TYPE   #{Byte/TYPE}
+      Byte/TYPE    #{}}))
 
 (defn wider-primitive
   "Given two numeric primitive Classes, returns the wider one"
@@ -404,35 +373,6 @@
               (not (primitive? wider)))
       wider)))
 
-(defmacro ^:private munge-dispatch [ch]
-  `(let [ch# (char ~ch)]
-     (case ch#
-       ~@(mapcat (fn [[k v]]
-                   {:pre [(char? k)
-                          (string? v)]}
-                   [k v])
-                 clojure.lang.Compiler/CHAR_MAP)
-       ch#)))
-
-;; clojure.core/munge's use of CHAR_MAP in implementation is very slow
-(def munge 
-  (lru
-    (fn [^String nme]
-      (let [ar (#?(:cljr .ToCharArray :default .toCharArray) nme)]
-        (str
-          (areduce ar i sb
-                   (StringBuilder.)
-                   (#?(:cljr .Append :default .append) sb (munge-dispatch (aget ar i)))))))))
-
-(comment
-  (time
-    (dotimes [_ 1000000]
-      (munge "as389!?._-")))
-  (time
-    (dotimes [_ 1000000]
-      (clojure.core/munge "as389!?._-")))
-  )
-
 (defn name-matches?
   [member]
   (let [member-name (str member)
@@ -440,8 +380,6 @@
         member-name* (when (pos? i)
                        (str (s/replace (subs member-name 0 i) "-" "_") (subs member-name i)))
         member-name** (s/replace member-name "-" "_")
-        ;; calls to `munge` are a performance bottleneck, avoid them
-        ;; if possible.
         member-name*** (delay (munge member-name))]
     (fn [name]
       (let [name (str name)]
@@ -461,8 +399,8 @@
                           (not-any? #{:public :protected} flags))
                         (-> class
                             maybe-class
-                            ^#?(:cljr Type :default Class) (box)
-                            #?(:cljr .FullName :default.getName)
+                            box
+                            #?(:cljr .FullName :default .getName)
                             symbol
                             (type-reflect :ancestors true)
                             :members)))))))
@@ -598,7 +536,7 @@
 ;; no equivalent
 
 (defn ns-url [ns]
-   (ns->relpath ns))
+  (ns->relpath ns))
 
 :default
 (defn ns-url [ns]

@@ -36,9 +36,18 @@
 ;; - :file-mapping      a map from namespace symbols to vectors of AST nodes
 ;;                      Added if true :file-mapping keyword is passed as an option
 (defn check-ns-info
-  [impl ns-or-syms {:keys [trace file-mapping check-config] :as opt}]
-  (do
-    (let [start (. System (nanoTime))]
+  [impl ns-or-syms {:keys [trace file-mapping check-config max-parallelism] :as opt}]
+  (let [start (. System (nanoTime))
+        threadpool vs/*check-threadpool*
+        shutdown-threadpool? (not threadpool)
+        ^java.util.concurrent.ExecutorService
+        threadpool (or threadpool
+                       (java.util.concurrent.Executors/newFixedThreadPool
+                         1
+                         #_
+                         (or max-parallelism
+                             (.. Runtime getRuntime availableProcessors))))]
+    (try
       (reset-caches/reset-caches)
       (let [nsym-coll (map #(if (symbol? %)
                               ; namespace might not exist yet, so ns-name is not appropriate
@@ -60,7 +69,9 @@
                                           (atom {})))
                     vs/*lexical-env* (lex-env/init-lexical-env)
                     ;; nested check-ns inside check-form switches off check-form
-                    vs/*in-check-form* false]
+                    vs/*in-check-form* false
+                    vs/*check-threadpool* threadpool
+                    vs/*check-config* check-config]
             (let [terminal-error (atom nil)]
               ;(reset-env/reset-envs!)
               ;(reset-caches)
@@ -74,7 +85,8 @@
                   :cljs @*register-cljs-anns)
                 (case (:check-ns-load check-config)
                   :require-before-check (impl/impl-case
-                                          :clojure (apply require nsym-coll)
+                                          :clojure (locking clojure.lang.RT/REQUIRE_LOCK
+                                                     (apply require nsym-coll))
                                           :cljs (err/nyi-error
                                                   ":check-ns-load :require-before-check in CLJS"))
                   (nil :never) nil)
@@ -84,10 +96,24 @@
                 (let [check-ns (impl/impl-case
                                  :clojure chk-clj/check-ns-and-deps
                                  :cljs    (requiring-resolve 'typed.cljs.checker.check/check-ns-and-deps))
-                      check-ns #(binding [vs/*check-config* check-config]
-                                  (check-ns %))]
-                  (doseq [nsym nsym-coll]
-                    (check-ns nsym)))
+                      check-ns (bound-fn*
+                                 #(binding [vs/*delayed-errors* (err/-init-delayed-errors)]
+                                    (try (check-ns %)
+                                         {:delayed @vs/*delayed-errors*}
+                                         (catch ExceptionInfo e
+                                           (if (-> e ex-data :type-error)
+                                             {:thrown e}
+                                             (throw e))))))
+                      results (mapv (fn [^java.util.concurrent.Future future]
+                                      (try (.get future)
+                                           (catch java.util.concurrent.ExecutionException e
+                                             (throw (or (.getCause e) e)))))
+                                    (.invokeAll threadpool (map (fn [nsym]
+                                                                  #(check-ns nsym))
+                                                                nsym-coll)))
+                      delayed (swap! vs/*delayed-errors* into (mapcat :delayed) results)
+                      terminals (some->> (some :thrown results)
+                                         (reset! terminal-error))])
                 (catch ExceptionInfo e
                   (if (-> e ex-data :type-error)
                     (reset! terminal-error e)
@@ -102,7 +128,10 @@
                     {:file-mapping (apply merge
                                           (map #(impl/with-impl impl
                                                   (file-map/ast->file-mapping %))
-                                               (get (some-> vs/*checked-asts* deref) (first nsym-coll))))}))))))))))
+                                               (get (some-> vs/*checked-asts* deref) (first nsym-coll))))})))))))
+      (finally
+        (when shutdown-threadpool?
+          (.shutdown threadpool))))))
 
 (defn check-ns [impl ns-or-syms opt]
   (let [{:keys [delayed-errors]} (check-ns-info impl ns-or-syms opt)]
