@@ -13,6 +13,14 @@ env:
 
 jobs:
   setup:
+    # delegate self-pull-requests to push jobs and run cron only in main repo
+    if: ${{ !((github.repository == 'typedclojure/typedclojure' ||
+               github.repository_owner == 'frenchy64')
+              && github.event_name == 'pull_request')
+            &&
+            (github.repository == 'typedclojure/typedclojure' ||
+             github.event_name != 'schedule')
+         }}
     runs-on: ubuntu-20.04
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
@@ -27,6 +35,14 @@ jobs:
         id: set-matrix
         run: ./script/print-actions-matrix.clj
   test:
+    # delegate self-pull-requests to push jobs and run cron only in main repo
+    if: ${{ !((github.repository == 'typedclojure/typedclojure' ||
+               github.repository_owner == 'frenchy64')
+              && github.event_name == 'pull_request')
+            &&
+            (github.repository == 'typedclojure/typedclojure' ||
+             github.event_name != 'schedule')
+         }}
     needs: setup
     runs-on: ubuntu-20.04
     strategy:
