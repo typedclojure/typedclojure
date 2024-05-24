@@ -194,7 +194,9 @@
        (alter-meta! (var ~->ctor) assoc :private true)
 
        (t/ann ~pred (t/Pred ~name-sym))
-       (defn ~pred [a#]
+       (defn ~pred
+         {:inline (fn [x#] (list 'instance? ~name-sym a#))}
+         [a#]
          (instance? ~name-sym a#))
 
        (defn ~maker
