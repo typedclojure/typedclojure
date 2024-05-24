@@ -195,7 +195,7 @@
 
        (t/ann ~pred (t/Pred ~name-sym))
        (defn ~pred
-         {:inline (fn [x#] (list 'instance? ~name-sym a#))}
+         {:inline (fn [a#] (list 'instance? ~name-sym a#))}
          [a#]
          (instance? ~name-sym a#))
 
