@@ -138,13 +138,13 @@
                                              (conj forms-info {:ns-form-str ns-form-str :sform sform :form form})))))))
 
                  ns-form-str (some :ns-form-str forms-info)
-                 exs (mapv (fn [{:keys [form sform]}]
-                             (bound-fn []
-                               (binding [vs/*delayed-errors* (err/-init-delayed-errors)]
-                                 (check-top-level form nil {:env (assoc env :ns (ns-name *ns*))
-                                                            :top-level-form-string sform
-                                                            :ns-form-string ns-form-str}))))
-                           forms-info)
+                 exs (map (fn [{:keys [form sform]}]
+                            (bound-fn []
+                              (binding [vs/*delayed-errors* (err/-init-delayed-errors)]
+                                (check-top-level form nil {:env (assoc env :ns (ns-name *ns*))
+                                                           :top-level-form-string sform
+                                                           :ns-form-string ns-form-str}))))
+                          forms-info)
                  results (if-some [^java.util.concurrent.ExecutorService
                                    threadpool vs/*check-threadpool*]
                            (mapv (fn [^java.util.concurrent.Future future]

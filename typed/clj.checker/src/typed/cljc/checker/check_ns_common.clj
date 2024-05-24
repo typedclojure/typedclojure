@@ -50,7 +50,7 @@
                                 (Integer/parseInt max-parallelism))))
         _ (when max-parallelism (assert (pos? max-parallelism) max-parallelism))
         threadpool (or threadpool
-                       (some-> max-parallelism java.util.concurrent.Executors/newFixedThreadPool))]
+                       (some-> max-parallelism java.util.concurrent.Executors/newWorkStealingPool))]
     (try
       (reset-caches/reset-caches)
       (let [nsym-coll (mapv #(if (symbol? %)

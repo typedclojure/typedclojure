@@ -12,7 +12,7 @@
                   clojure.core.typed.util-vars
                   ;typed.cljc.checker.type-ctors
                   typed.cljc.dir]
-                {:check-config {:check-ns-dep :never}
+                {:max-parallelism :available-processors
                  ;:trace true
                  })))
 
