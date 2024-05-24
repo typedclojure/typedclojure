@@ -47,7 +47,8 @@
                             (when-some [max-parallelism (System/getProperty "typed.clojure.max-parallelism")]
                               (if (= ":available-processors")
                                 (.. Runtime getRuntime availableProcessors)
-                                (Integer/parseInt max-parallelism))))
+                                (Integer/parseInt max-parallelism)))
+                            (.. Runtime getRuntime availableProcessors))
         _ (when max-parallelism (assert (pos? max-parallelism) max-parallelism))
         threadpool (or threadpool
                        (some-> max-parallelism java.util.concurrent.Executors/newWorkStealingPool))]

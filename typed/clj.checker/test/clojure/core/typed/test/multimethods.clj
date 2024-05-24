@@ -7,7 +7,8 @@
             [clojure.test :refer :all]))
 
 (deftest multimethod-test
-  (is (check-ns 'clojure.core.typed.test.mm))
+  (is (check-ns 'clojure.core.typed.test.mm
+                :max-parallelism 1))
   (is-tc-e (do (ann f [t/Any -> t/Any])
                (defmulti f class)
                (defmethod f Number [n] (inc n))))

@@ -1575,7 +1575,8 @@
   (is (check-ns 'clojure.core.typed.test.munge-record-field)))
 
 (deftest mm-warn-on-unannotated-vars-test
-  (is (check-ns 'clojure.core.typed.test.mm-warn-on-unannotated)))
+  (is (check-ns 'clojure.core.typed.test.mm-warn-on-unannotated
+                :max-parallelism 1)))
 
 (deftest HMap-parse-fail-test
   (is (err/tc-error-thrown? (clj (parse-type `(t/HMap :mandatory {:a t/Any} :absent-keys #{:a}))))))
