@@ -642,7 +642,7 @@
                          ;variable members to the right of fixed
                          rest :- (t/U nil Type)
                          drest :- (t/U nil DottedPretype)
-                         repeat :- t/Bool
+                         repeat :- t/Bool ;; note: subtyping's AND assumes this is boolean
                          kind :- HSequentialKind]
   "A constant Sequential, clojure.lang.Sequential"
   [(sequential? types)

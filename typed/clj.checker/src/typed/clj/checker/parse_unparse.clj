@@ -1815,30 +1815,34 @@
   (when (.startsWith (str clsym) "clojure.lang.")
     (symbol (.getSimpleName (Class/forName (str clsym))))))
 
-(defn Class-symbol-intern [clsym ns]
+(defn Class-symbol-intern
+  "If symbol named by class is interned in ns by its
+  simple name, return the simple name."
+  [clsym ns]
   {:pre [(plat-con/namespace? ns)]
    :post [((some-fn nil? symbol?) %)]}
-  (some (fn [[isym cls]]
-          (when (= (str clsym) (str (coerce/Class->symbol cls)))
-            isym))
-        (ns-imports ns)))
+  (when (nil? (namespace clsym))
+    (let [clstr (name clsym)
+          last-dot (.lastIndexOf clstr ".")]
+      (when (<= 0 last-dot (- (count clstr) 2))
+        (let [short-name (symbol (subs clstr (inc last-dot)))]
+          (when-some [mapping (ns-map ns)]
+            (when-some [^Class cls (mapping short-name)]
+              (when (= clstr (.getName cls))
+                short-name))))))))
 
-(defn var-symbol-intern 
-  "Returns a symbol interned in ns for var symbol, or nil if none.
-
-  (var-symbol-intern 'clojure.core/symbol (find-ns 'clojure.core))
-  ;=> 'symbol
-  (var-symbol-intern 'bar (find-ns 'clojure.core))
-  ;=> nil"
+(defn protocol-var-symbol-intern
+  "Returns a symbol interned in ns for symbol naming a protocol var, or nil if none."
   [sym ns]
-  {:pre [(symbol? sym)
+  {:pre [(qualified-symbol? sym)
          (plat-con/namespace? ns)]
    :post [((some-fn nil? symbol?) %)]}
-  (some (fn [[isym var]]
-          (when (var? var)
-            (when (= sym (symbol var))
-              isym)))
-        (ns-map ns)))
+  (let [simple-sym (-> sym name symbol)]
+    (when-some [mapping (ns-map ns)]
+      (let [v (mapping simple-sym)]
+        (when (and (var? v)
+                   (= sym (symbol v)))
+          simple-sym)))))
 
 (defn unparse-Name-symbol-in-ns [sym]
   {:pre [(symbol? sym)]
@@ -1854,7 +1858,7 @@
           (core-lang-Class-sym sym)
           ; use unqualified name if interned
           (when (namespace sym)
-            (or (var-symbol-intern sym ns)
+            (or (protocol-var-symbol-intern sym ns)
                 ; use aliased ns if not interned, but ns is aliased
                 (when-let [alias (alias-in-ns ns (symbol (namespace sym)))]
                   (symbol (str alias) (name sym)))))
