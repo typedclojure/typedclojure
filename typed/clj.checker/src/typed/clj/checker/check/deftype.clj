@@ -89,8 +89,9 @@
           ; unannotated datatypes are handled below
           dtp (dt-env/get-datatype nme)
           [nms bbnds dt] (if (r/TypeFn? dtp)
-                           (let [nms (c/TypeFn-fresh-symbols* dtp)]
-                             [nms (c/TypeFn-bbnds* nms dtp) (c/TypeFn-body* nms dtp)])
+                           (let [nms (c/TypeFn-fresh-symbols* dtp)
+                                 bbnds (c/TypeFn-bbnds* nms dtp)]
+                             [nms bbnds  (c/TypeFn-body* nms bbnds dtp)])
                            [nil nil dtp])
           expected-fields (some-> dt c/DataType-fields*)
           expected-field-syms (vec (keys expected-fields))

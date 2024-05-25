@@ -1488,8 +1488,8 @@
         names (repeatedly (:nbound S) gensym)
         sbnds (c/TypeFn-bbnds* names S)
         tbnds (c/TypeFn-bbnds* names T)
-        sbody (c/TypeFn-body* names S)
-        tbody (c/TypeFn-body* names T)]
+        sbody (c/TypeFn-body* names sbnds S)
+        tbody (c/TypeFn-body* names tbnds T)]
     (if (and (= (:nbound S) (:nbound T))
              (= (:variances S) (:variances T))
              (every?' (fn [lbnd rbnd]

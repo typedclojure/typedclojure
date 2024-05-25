@@ -2213,11 +2213,13 @@
                (-bounds t -nothing)))))
 
 (deftest consistent-variance-test
-  (is-clj (let [t (parse-type `(t/TFn [[x# :variance :covariant]] x#))]
-            (TypeFn-body* (TypeFn-fresh-symbols* t) t)
+  (is-clj (let [t (parse-type `(t/TFn [[x# :variance :covariant]] x#))
+                names (TypeFn-fresh-symbols* t)]
+            (TypeFn-body* names (TypeFn-bbnds* names t) t)
             true))
-  (is-clj (let [t (parse-type `(t/TFn [[x# :variance :contravariant]] t/Any))]
-            (TypeFn-body* (TypeFn-fresh-symbols* t) t)
+  (is-clj (let [t (parse-type `(t/TFn [[x# :variance :contravariant]] t/Any))
+                names (TypeFn-fresh-symbols* t)]
+            (TypeFn-body* names (TypeFn-bbnds* names t) t)
             true)))
 
 (deftest hvec-abstract-test

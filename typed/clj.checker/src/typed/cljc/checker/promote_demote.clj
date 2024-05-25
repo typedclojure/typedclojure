@@ -338,10 +338,11 @@
 (promote-demote TypeFn
   [{:keys [variances] :as T} V]
   (let [names (c/TypeFn-fresh-symbols* T)
-        pmt-body (promote (c/TypeFn-body* names T) V)]
+        bbnds (c/TypeFn-bbnds* names T)
+        pmt-body (promote (c/TypeFn-body* names bbnds T) V)]
     (c/TypeFn* names 
                variances
-               (c/TypeFn-bbnds* names T)
+               bbnds
                pmt-body)))
 
 (promote-demote Poly [T V]

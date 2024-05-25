@@ -1227,14 +1227,13 @@
     (with-original-names t original-names))))
 
 ;smart destructor
-(t/ann ^:no-check TypeFn-body* [(t/Seqable t/Sym) TypeFn -> r/Type])
-(defn TypeFn-body* [names typefn]
+(t/ann ^:no-check TypeFn-body* [(t/Seqable t/Sym) (t/Vec r/Kind) TypeFn -> r/Type])
+(defn TypeFn-body* [names bbnds typefn]
   {:pre [(every? symbol? names)
          (r/TypeFn? typefn)]}
   (assert (= (:nbound typefn) (count names)) "Wrong number of names")
-  (let [bbnds (TypeFn-bbnds* names typefn)
-        body (free-ops/with-bounded-frees
-               (zipmap (map r/make-F names) bbnds)
+  (let [body (free-ops/with-bounded-frees
+                 (zipmap (map r/make-F names) bbnds)
                (instantiate-many names (:scope typefn)))]
     body))
 
@@ -1415,7 +1414,7 @@
                     (pr-str (or (-> tapp meta :syn)
                                 (list* t types))))))))
     (let [bbnds (TypeFn-bbnds* names t)
-          body (TypeFn-body* names t)
+          body (TypeFn-body* names bbnds t)
           ;;check bounds
           _ (reduce4
               (fn [_ argn nm type bnd]
@@ -2548,8 +2547,8 @@
                   (Mu* name new-body))
       (r/Poly? t) (fnd-bnd (Poly-body* (Poly-fresh-symbols* t) t))
       (r/TypeFn? t) (let [names (TypeFn-fresh-symbols* t)
-                          body (TypeFn-body* names t)
                           bbnds (TypeFn-bbnds* names t)
+                          body (TypeFn-body* names bbnds t)
                           new-body (fnd-bnd body)]
                       (TypeFn* names
                                (:variances t)
@@ -2879,8 +2878,8 @@
 (add-default-fold-case TypeFn
                        (fn [ty]
                          (let [names (TypeFn-fresh-symbols* ty)
-                               body (TypeFn-body* names ty)
                                bbnds (TypeFn-bbnds* names ty)
+                               body (TypeFn-body* names bbnds ty)
                                bmap (zipmap (map r/make-F names) bbnds)
                                ;;FIXME type variables are scoped left-to-right in bounds
                                bbnds' (free-ops/with-bounded-frees bmap

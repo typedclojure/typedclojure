@@ -326,7 +326,7 @@
           (every? symbol? nms)]
     :post [(r/DataType? %)]}
    (if (r/TypeFn? dt)
-     (c/TypeFn-body* nms dt)
+     (c/TypeFn-body* nms (c/TypeFn-bbnds* nms dt) dt)
      dt))
   ([dt] (let [nms (when (r/TypeFn? dt)
                     (c/TypeFn-fresh-symbols* dt))]
@@ -348,7 +348,7 @@
 
               (r/TypeFn? dtp) (let [nms (c/TypeFn-fresh-symbols* dtp)
                                     bbnds (c/TypeFn-bbnds* nms dtp)
-                                    body (c/TypeFn-body* nms dtp)]
+                                    body (c/TypeFn-body* nms bbnds dtp)]
                                 (c/Poly* nms
                                          bbnds
                                          (free-ops/with-bounded-frees (zipmap (map r/make-F nms) bbnds)

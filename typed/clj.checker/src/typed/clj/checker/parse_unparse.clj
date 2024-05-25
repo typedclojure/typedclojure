@@ -2222,7 +2222,7 @@
     (let [free-names (c/TypeFn-fresh-symbols* p)
           bbnds (c/TypeFn-bbnds* free-names p)
           binder (mapv unparse-typefn-bounds-entry free-names bbnds (:variances p))
-          body (c/TypeFn-body* free-names p)]
+          body (c/TypeFn-body* free-names bbnds p)]
       (list (unparse-Name-symbol-in-ns `t/TFn) binder (unparse-type body))))
 
   Bounds
