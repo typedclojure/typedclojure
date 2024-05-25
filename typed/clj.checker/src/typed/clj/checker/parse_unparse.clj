@@ -1818,10 +1818,16 @@
 (defn Class-symbol-intern [clsym ns]
   {:pre [(plat-con/namespace? ns)]
    :post [((some-fn nil? symbol?) %)]}
-  (some (fn [[isym cls]]
-          (when (= (str clsym) (str (coerce/Class->symbol cls)))
-            isym))
-        (ns-imports ns)))
+  ;; TODO: this relies on ns mapping always being ShortName -> Class.
+  ;; Is this good enough?
+  (let [mapping (ns-map ns)
+        clstr (str clsym)
+        last-dot (.lastIndexOf clstr ".")
+        short-name (symbol (if (= last-dot -1)
+                             clstr
+                             (subs clstr (inc last-dot))))]
+    (when (mapping short-name)
+      short-name)))
 
 (defn var-symbol-intern 
   "Returns a symbol interned in ns for var symbol, or nil if none.
@@ -1834,11 +1840,17 @@
   {:pre [(symbol? sym)
          (plat-con/namespace? ns)]
    :post [((some-fn nil? symbol?) %)]}
-  (some (fn [[isym var]]
-          (when (var? var)
-            (when (= sym (symbol var))
-              isym)))
-        (ns-map ns)))
+  (let [mapping (ns-map ns)
+        sym-simple-name (name sym)
+        sym-simple (symbol sym-simple-name)
+        sym-ns-name (namespace sym)]
+    (reduce-kv (fn [_ isym var]
+                 (when (and (var? var)
+                            (= (.sym ^clojure.lang.Var var) sym-simple)
+                            (= (str (.ns ^clojure.lang.Var var)) sym-ns-name))
+                   (reduced isym)))
+               nil
+               mapping)))
 
 (defn unparse-Name-symbol-in-ns [sym]
   {:pre [(symbol? sym)]
