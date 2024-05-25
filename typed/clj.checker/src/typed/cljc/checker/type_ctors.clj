@@ -1593,10 +1593,9 @@
 (defn fully-resolve-type 
   ([t seen]
    {:pre [(r/Type? t)]}
-   (let [_ (assert (not (seen t)) "Infinite non-Rec type detected")
-         seen (conj seen t)]
+   (let [_ (assert (not (seen t)) "Infinite non-Rec type detected")]
      (if (requires-resolving? t)
-       (recur (-resolve t) seen)
+       (recur (-resolve t) (conj seen t))
        t)))
   ([t] (fully-resolve-type t #{})))
 
@@ -1605,11 +1604,10 @@
            [r/Type (t/Set r/Type) -> r/Type]))
 (defn fully-resolve-non-rec-type 
   ([t seen]
-   (let [_ (assert (not (seen t)) "Infinite non-Rec type detected")
-         seen (conj seen t)]
+   (let [_ (assert (not (seen t)) "Infinite non-Rec type detected")]
      (if (and (not (r/Mu? t))
               (requires-resolving? t))
-       (recur (-resolve t) seen)
+       (recur (-resolve t) (conj seen t))
        t)))
   ([t] (fully-resolve-non-rec-type t #{})))
 
