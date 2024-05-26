@@ -212,8 +212,6 @@
        '{:P ':and, :ps (t/Set P)}
        '{:P ':not, :p P}))
 
-;((requiring-resolve 'clojure.repl/pst) 100)
-
 (defn count-branches [v]
   (let [a (atom 0)]
     (walk/postwalk

@@ -7,10 +7,12 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc clojure.core.typed.errors
+  #?(:clj (:refer-clojure :exclude [requiring-resolve]))
   (:require [clojure.core.typed.util-vars :refer [*current-env*] :as uvs]
             [clojure.core.typed.current-impl :as impl]
             [clojure.pprint :as pp]
-            [clojure.core.typed.ast-utils :as ast-u]))
+            [clojure.core.typed.ast-utils :as ast-u]
+            #?(:clj [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]])))
 
 (def type-error-kw ::type-error)
 (def int-error-kw ::internal-error)

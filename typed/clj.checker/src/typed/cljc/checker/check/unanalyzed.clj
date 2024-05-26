@@ -7,9 +7,11 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.cljc.checker.check.unanalyzed
+  (:refer-clojure :exclude [requiring-resolve])
   (:require [typed.cljc.analyzer :as ana2]
             [typed.cljc.checker.utils :as u]
             [typed.cljc.runtime.env :as env]
+            [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]
             [clojure.core.typed.current-impl :as impl]))
 
 (defn install*

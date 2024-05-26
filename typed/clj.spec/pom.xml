@@ -29,6 +29,10 @@
       <artifactId>alpha.spec</artifactId>
     </dependency>
     <dependency>
+      <groupId>io.github.frenchy64</groupId>
+      <artifactId>fully-satisfies</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.clojure</groupId>
       <artifactId>test.check</artifactId>
       <scope>provided</scope>

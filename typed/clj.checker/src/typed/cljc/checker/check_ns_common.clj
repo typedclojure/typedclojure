@@ -7,7 +7,9 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.cljc.checker.check-ns-common
+  (:refer-clojure :exclude [requiring-resolve])
   (:require [clojure.core.cache :as cache]
+            [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]
             [typed.clj.checker.check :as chk-clj]
             [typed.clj.checker.file-mapping :as file-map]
             [typed.clj.checker.reset-caches :as reset-caches]
@@ -51,8 +53,7 @@
                             (.. Runtime getRuntime availableProcessors))
         _ (when max-parallelism (assert (pos? max-parallelism) max-parallelism))
         threadpool (or threadpool
-                       ;;TODO https://clojure.atlassian.net/browse/CLJ-2735
-                       #_(some-> max-parallelism java.util.concurrent.Executors/newWorkStealingPool))]
+                       (some-> max-parallelism java.util.concurrent.Executors/newWorkStealingPool))]
     (try
       (reset-caches/reset-caches)
       (let [nsym-coll (mapv #(if (symbol? %)

@@ -7,6 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.clojure.main
+  (:refer-clojure :exclude [requiring-resolve])
   (:require [clojure.core.typed.errors :as err]
             [clojure.edn :as edn]
             [clojure.tools.namespace.repl :as-alias repl]
@@ -15,6 +16,7 @@
             [typed.clojure :as t]
             [typed.cljc.dir :as tdir]
             [clojure.core.typed.current-impl :as impl]
+            [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]
             [typed.cljc.checker.ns-deps-utils :as ns-depsu]))
 
 (defn- dynavar [sym]

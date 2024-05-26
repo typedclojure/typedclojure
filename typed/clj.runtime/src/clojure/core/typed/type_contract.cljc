@@ -8,12 +8,14 @@
 
 ;flat contracts only
 (ns ^:no-doc clojure.core.typed.type-contract
+  #?(:clj (:refer-clojure :exclude [requiring-resolve]))
   (:require [clojure.core.typed.errors :as err]
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.ast-ops :as ops]
             [clojure.core.typed.contract :as con]
             ;used in contracts
-            [clojure.set :as set]))
+            [clojure.set :as set]
+            #?(:clj [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]])))
 
 (defn keyword-singleton? [{:keys [op val]}]
   (when ('#{:singleton} op)

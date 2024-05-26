@@ -8,11 +8,13 @@
 
 (ns typed.spec-impl.clojure.core
   "Implementation details for typed.spec.clojure.core"
+  (:refer-clojure :exclude [requiring-resolve])
   (:require [clojure.alpha.spec :as s]
             [clojure.alpha.spec.protocols :as protocols
              :refer [Spec conform* unform* explain* gen* with-gen* describe*
                      Schema keyspecs*
                      Select]]
+            [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]
             [typed.spec.clojure.core :as api]
             [clojure.alpha.spec.gen :as gen]))
 

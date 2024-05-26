@@ -7,12 +7,14 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.cljs.checker.util
+  (:refer-clojure :exclude [requiring-resolve])
   (:require [cljs.analyzer :as ana]
             [cljs.compiler :as comp]
             [cljs.env :as env]
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.emit-form-cljs :as emit-form]
-            [clojure.tools.reader :as reader]))
+            [clojure.tools.reader :as reader]
+            [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]))
 
 (defonce default-env (env/default-compiler-env))
 

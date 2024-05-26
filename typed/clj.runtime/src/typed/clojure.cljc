@@ -12,7 +12,7 @@
   ^:typed.clojure/ignore
   typed.clojure
   (:refer-clojure :exclude [type defprotocol #_letfn fn loop dotimes let for doseq
-                            defn atom ref cast])
+                            defn atom ref cast #?(:clj requiring-resolve)])
   (:require #?(;; not loadable in self hosted CLJS, otherwise always needed for
                ;; CLJ AOT compilation compatibility
                :clj clojure.core.typed
@@ -21,7 +21,9 @@
                :cljs cljs.core.typed)
             [clojure.core :as cc]
             [clojure.core.typed.macros :as macros]
-            [clojure.core.typed.platform-case :refer [platform-case]]))
+            [clojure.core.typed.platform-case :refer [platform-case]]
+            #?(:clj [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]])))
+            
 
 (alias 't 'typed.clojure)
 

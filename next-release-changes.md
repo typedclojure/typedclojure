@@ -24,3 +24,4 @@
 ```clojure
 (check-ns *ns* :check-config {:check-ns-load :never, :check-form-eval :after})
 ```
+- use fully-satisfies library for thread-safe variant of requiring-resolve in all submodules

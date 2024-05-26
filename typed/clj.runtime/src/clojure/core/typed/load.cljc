@@ -10,8 +10,10 @@
   "Front end for actual implementation in clojure.core.typed.load1.
 
   Indirection is necessary to delay loading core.typed as long as possible."
+  #?(:clj (:refer-clojure :exclude [requiring-resolve]))
   (:require [clojure.core.typed.load-if-needed :refer [load-if-needed]]
-            [clojure.core.typed.current-impl :as impl]))
+            [clojure.core.typed.current-impl :as impl]
+            #?(:clj [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]])))
 
 ;; based on clojure.tools.analyzer.jvm/analyze-ns
 ;; (IFn [String -> nil]

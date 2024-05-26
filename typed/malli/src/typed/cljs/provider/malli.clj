@@ -8,6 +8,7 @@
 
 (ns typed.cljs.provider.malli
   "Automatically convert malli annotations into types."
+  (:refer-clojure :exclude [requiring-resolve])
   (:require [typed.malli.schema-to-type :as-alias s->t]
             [typed.cljs.provider.malli-cljs :as-alias provider-cljs]
             [clojure.core.typed.runtime.jvm.configs :as configs]
@@ -17,6 +18,7 @@
             [clojure.java.io :as io]
             [clojure.edn :as edn]
             [clojure.core.server :as server]
+            [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]
             [malli.instrument.cljs :as malli-instr])
   (:import [java.net Socket ServerSocket]))
 
