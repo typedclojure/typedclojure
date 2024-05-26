@@ -53,8 +53,7 @@
                             (.. Runtime getRuntime availableProcessors))
         _ (when max-parallelism (assert (pos? max-parallelism) max-parallelism))
         threadpool (or threadpool
-                       ;;TODO https://clojure.atlassian.net/browse/CLJ-2735
-                       #_(some-> max-parallelism java.util.concurrent.Executors/newWorkStealingPool))]
+                       (some-> max-parallelism java.util.concurrent.Executors/newWorkStealingPool))]
     (try
       (reset-caches/reset-caches)
       (let [nsym-coll (mapv #(if (symbol? %)
