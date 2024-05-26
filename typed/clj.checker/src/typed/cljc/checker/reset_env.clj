@@ -7,9 +7,11 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.cljc.checker.reset-env
+  (:refer-clojure :exclude [requiring-resolve])
   (:require [typed.clj.checker.base-env :as bse-clj]
             [typed.cljc.checker.ns-options :as ns-opts]
             [clojure.core.typed.current-impl :as impl]
+            [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]
             [typed.clj.checker.mm-env :as mmenv]))
 
 (def ^:private reset-cljs-envs! #(requiring-resolve 'typed.cljs.checker.base-env/reset-envs!))

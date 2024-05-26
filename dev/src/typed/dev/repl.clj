@@ -1,7 +1,9 @@
 (ns typed.dev.repl
+  (:refer-clojure :exclude [requiring-resolve])
   (:require [clojure.main :as m]
             [nrepl.cmdline :as cmdline]
             [nrepl.server :as server]
+            [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]
             [cider.piggieback :as pback]
             cider.nrepl
             [nrepl.middleware :refer [set-descriptor!]]

@@ -1,7 +1,9 @@
 (ns typed.clj.provider.spec1
+  (:refer-clojure :exclude [requiring-resolve])
   (:require [typed.spec1.spec-to-type :as s->t]
             [clojure.spec.alpha :as spec1]
-            [clojure.core.typed.runtime.jvm.configs :as configs]))
+            [clojure.core.typed.runtime.jvm.configs :as configs]
+            [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]))
 
 (defonce register!
   (delay

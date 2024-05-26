@@ -7,6 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.clj.checker.parse-unparse
+  (:refer-clojure :exclude [requiring-resolve])
   (:require [clojure.core.typed.coerce-utils :as coerce]
             [typed.clojure :as t]
             [clojure.core.typed.contract-utils :as con]
@@ -18,6 +19,7 @@
             [clojure.set :as set]
             [clojure.string :as str]
             [clojure.walk :as walk]
+            [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]
             [typed.cljc.checker.constant-type :as const]
             [typed.cljc.analyzer.passes.uniquify :as uniquify]
             [typed.cljc.checker.filter-ops :as fl]

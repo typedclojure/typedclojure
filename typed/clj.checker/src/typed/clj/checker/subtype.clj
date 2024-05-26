@@ -8,11 +8,13 @@
 
 (ns ^:no-doc typed.clj.checker.subtype
   "Use [[subtype?]] to check if s <: t, and [[subtype-filter?]] for filters."
+  (:refer-clojure :exclude [requiring-resolve])
   (:require [clojure.core.typed.coerce-utils :as coerce]
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.errors :as err]
             [clojure.set :as set]
             [clojure.core.typed.util-vars :as vs]
+            [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]
             [typed.cljc.checker.check :as chk]
             [typed.clj.checker.assoc-utils :as assoc-u]
             [typed.clj.checker.parse-unparse :as prs]
@@ -954,6 +956,59 @@
         (subtype-regex A s t)
 
         ; TODO (All [r x ...] [x ... x -> r]) <: (All [r x] [x * -> r]) ?
+
+        :else (report-not-subtypes s t)))))
+
+(defn ^:private subtypeA*-App [A s t]
+  {:pre [(r/App? s)
+         (r/AnyType? t)]}
+  (if (or ; FIXME TypeFn's are probably not between Top/Bottom
+          (r/Top? t)
+          (r/wild? t)
+          (r/Unchecked? t)
+          (r/TCError? t)
+          (contains? A [s t])
+          (= s t))
+    A
+    (let [A (conj A [s t])]
+      (cond
+        (r/TCResult? t)
+        (assert nil "Cannot give TCResult to subtype")
+
+        (and (r/F? t)
+             (let [{:keys [upper-bound lower-bound] :as bnd} (free-ops/free-with-name-bnds (:name t))]
+               (if-not bnd 
+                 (do #_(err/int-error (str "No bounds for " (:name t)))
+                     nil)
+                 (and (subtypeA* A s upper-bound)
+                      (subtypeA* A s lower-bound)))))
+        A
+
+        (r/TypeOf? t)
+        (recur A s (c/resolve-TypeOf t))
+
+        (and (r/MatchType? t)
+             (c/Match-can-resolve? t))
+        (recur A s (c/resolve-Match t))
+
+        (and (r/Poly? t)
+             (empty? (frees/fv t))
+             (let [names (c/Poly-fresh-symbols* t)
+                   bbnds (c/Poly-bbnds* names t)
+                   b (c/Poly-body* names t)]
+               (free-ops/with-bounded-frees (zipmap (map r/F-maker names) bbnds)
+                 (subtypeA* A s b))))
+        A
+
+        (r/Name? t)
+        (recur A s (c/resolve-Name t))
+
+        (r/Mu? t)
+        (binding [*sub-current-seen* A]
+          (subtypeA* A s (c/unfold t)))
+
+        (r/App? s)
+        (recur A (c/resolve-App s) t)
 
         :else (report-not-subtypes s t)))))
 

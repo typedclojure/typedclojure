@@ -7,10 +7,12 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.cljc.checker.check.invoke
+  (:refer-clojure :exclude [requiring-resolve])
   (:require [typed.cljc.analyzer :as ana2]
             [clojure.core.typed.current-impl :as impl]
             [typed.cljc.checker.utils :as u]
             [clojure.core.typed.contract-utils :as con]
+            [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]
             [typed.cljc.checker.check :refer [check-expr]]
             [typed.cljc.checker.check.funapp :as funapp]
             [typed.cljc.checker.check.invoke-kw :as invoke-kw]

@@ -339,6 +339,11 @@
         <artifactId>process</artifactId>
         <version>{◊process-mvn-version◊}</version>
       </dependency>
+      <dependency>
+        <groupId>io.github.frenchy64</groupId>
+        <artifactId>fully-satisfies</artifactId>
+        <version>{◊fully-satisfies-mvn-version◊}</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 

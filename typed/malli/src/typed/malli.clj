@@ -19,9 +19,11 @@
   - typed.malli.generator
   - typed.malli.swagger
   - typed.malli.json-schema"
+  (:refer-clojure :exclude [requiring-resolve])
   (:require [typed.clojure :as t]
             [clojure.core.typed.unsafe :as unsafe]
-            [malli.core :as m]))
+            [malli.core :as m]
+            [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]))
 
 (defmacro validate
   "Validate v as type t. Type checker infers as a predicate

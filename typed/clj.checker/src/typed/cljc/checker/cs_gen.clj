@@ -7,6 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.cljc.checker.cs-gen
+  (:refer-clojure :exclude [requiring-resolve])
   (:require [clojure.core.typed :as t :refer [letfn>]]
             [clojure.core.typed.coerce-utils :as coerce]
             [clojure.core.typed.contract-utils :as con]
@@ -14,6 +15,7 @@
             [clojure.core.typed.errors :as err]
             [clojure.core.typed.util-vars :as vs]
             [clojure.set :as set]
+            [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.clj.checker.subtype :as sub] ; use subtype? utility defined in this namespace
             [typed.cljc.checker.cs-rep :as cr]

@@ -16,6 +16,7 @@ for checking namespaces, cf for checking individual forms."}
                             ; keep these since the deprecated_wrapper_macros ns may intern these names
                             for doseq dotimes 
                             defn atom ref cast
+                            #?(:clj requiring-resolve)
                             #_filter #_remove])
   (:require [clojure.core :as core]
             [clojure.reflect :as reflect]
@@ -27,7 +28,8 @@ for checking namespaces, cf for checking individual forms."}
             ; for `pred` and `contract` expansion
             clojure.core.typed.type-contract
             ; also for `import-macros` below
-            [clojure.core.typed.macros :as macros])
+            [clojure.core.typed.macros :as macros]
+            #?(:clj [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]))
   (:import (clojure.lang Compiler)))
 
 (defmacro ^:private with-clojure-impl [& body]

@@ -2,6 +2,7 @@
 {:paths ["src"]
  :deps {org.clojure/clojure {:mvn/version "{◊clojure-mvn-version◊}"}
         org.clojure/tools.analyzer.jvm {:mvn/version "{◊tools-analyzer-jvm-mvn-version◊}"}
+        io.github.frenchy64/fully-satisfies {:mvn/version "{◊fully-satisfies-mvn-version◊}"}
         {◊typedclojure-group-id◊}/typed.clj.checker {:local/root "../clj.checker"
                                             :deps/manifest :deps}
         {◊typedclojure-group-id◊}/typed.cljs.runtime {:local/root "../cljs.runtime"

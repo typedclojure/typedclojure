@@ -339,6 +339,11 @@
         <artifactId>process</artifactId>
         <version>0.5.21</version>
       </dependency>
+      <dependency>
+        <groupId>io.github.frenchy64</groupId>
+        <artifactId>fully-satisfies</artifactId>
+        <version>1.10.5-20240526.080945-4</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 

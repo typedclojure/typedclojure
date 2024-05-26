@@ -7,7 +7,9 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.cljc.checker.check-ns-common
+  (:refer-clojure :exclude [requiring-resolve])
   (:require [clojure.core.cache :as cache]
+            [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]
             [typed.clj.checker.check :as chk-clj]
             [typed.clj.checker.file-mapping :as file-map]
             [typed.clj.checker.reset-caches :as reset-caches]

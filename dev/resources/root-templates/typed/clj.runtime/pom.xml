@@ -22,4 +22,26 @@
     <version>{◊typedclojure-current-mvn-version◊}</version>
     <relativePath>../..</relativePath>
   </parent>
+
+  <repositories>
+    <repository>
+      <id>clojars</id>
+      <url>https://repo.clojars.org/</url>
+    </repository>
+    <repository>
+      <id>sonatype-oss-public</id>
+      <url>{◊sonatype-oss-public-url◊}</url>
+    </repository>
+  </repositories>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.clojure</groupId>
+      <artifactId>clojure</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.github.frenchy64</groupId>
+      <artifactId>fully-satisfies</artifactId>
+    </dependency>
+  </dependencies>
 </project>

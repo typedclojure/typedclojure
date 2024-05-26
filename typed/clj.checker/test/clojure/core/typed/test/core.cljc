@@ -3927,7 +3927,8 @@
 (deftest gradual-untyped-import-test
   (is (try
         (do (load/load-typed-file "clojure/core/typed/test/gradual/import_untyped")
-            ((requiring-resolve 'clojure.core.typed.test.gradual.import-untyped/bad)))
+            (locking clojure.lang.RT/REQUIRE_LOCK
+              ((requiring-resolve 'clojure.core.typed.test.gradual.import-untyped/bad))))
         false
         (catch ExceptionInfo e
           ;(prn (ex-data e))

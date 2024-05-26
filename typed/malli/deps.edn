@@ -2,6 +2,7 @@
 {:paths ["src"]
  :deps {org.clojure/clojure {:mvn/version "1.12.0-alpha9"}
         metosin/malli {:mvn/version "0.13.0"}
+        io.github.frenchy64/fully-satisfies {:mvn/version "1.10.5-20240526.080945-4"}
         org.typedclojure/typed.clj.runtime {:local/root "../clj.runtime"
                                               :deps/manifest :deps}}
  :mvn/repos {"sonatype-oss-public"

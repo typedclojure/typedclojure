@@ -7,6 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.clj.checker.check
+  (:refer-clojure :exclude [requiring-resolve])
   (:require [typed.clojure :as t]
             [typed.cljc.checker.check.cache :as cache]
             [typed.cljc.checker.filter-ops :as fo]
@@ -25,6 +26,7 @@
             [clojure.string :as str]
             [clojure.tools.reader :as reader]
             [clojure.tools.reader.reader-types :as readers]
+            [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]
             [typed.clj.analyzer :as jana2]
             [typed.clj.analyzer.passes.beta-reduce :as beta-reduce]
             [typed.clj.analyzer.passes.emit-form :as emit-form]

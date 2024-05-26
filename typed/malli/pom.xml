@@ -32,5 +32,9 @@
       <groupId>org.typedclojure</groupId>
       <artifactId>typed.clj.runtime</artifactId>
     </dependency>
+    <dependency>
+      <groupId>io.github.frenchy64</groupId>
+      <artifactId>fully-satisfies</artifactId>
+    </dependency>
   </dependencies>
 </project>
