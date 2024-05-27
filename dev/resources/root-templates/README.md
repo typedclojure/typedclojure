@@ -165,6 +165,7 @@ Thanks to the following people for contributing to core.typed:
 * Tobias Kortkamp (t6)
 * Alejandro Gomez (dialelo)
 * Piotr Jarzemski (kazuhiro)
+* Oleksandr Yakushev (alexander-yakushev)
 
 ## YourKit
 
