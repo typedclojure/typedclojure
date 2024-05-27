@@ -39,7 +39,7 @@
   Returns nil if not found."
   [sym]
   {:pre [(symbol? sym)]
-   :post [((some-fn nil? r/DataType? r/TypeFn?) %)]}
+   :post [(or (nil? %) (r/DataType? %) (r/TypeFn? %))]}
   (force-type (get (datatype-env) sym)))
 
 (t/ann resolve-datatype [t/Sym -> r/Type])

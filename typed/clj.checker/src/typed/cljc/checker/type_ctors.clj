@@ -816,19 +816,23 @@
 
 (t/ann ^:no-check isa-DataType? [(t/U t/Sym Class) -> t/Any])
 (defn isa-DataType? [sym-or-cls]
-  {:pre [((some-fn symbol? class?) sym-or-cls)]}
-  (let [cls (cond-> sym-or-cls
-              (symbol? sym-or-cls) coerce/symbol->Class)]
-    (and (.isAssignableFrom clojure.lang.IType cls)
-         (not= cls clojure.lang.IType))))
+  #_{:pre [((some-fn symbol? class?) sym-or-cls)]}
+  (let [cls (if (symbol? sym-or-cls)
+              (coerce/symbol->Class sym-or-cls)
+              (do (assert (class? sym-or-cls))
+                  sym-or-cls))]
+    (and (not (identical? cls clojure.lang.IType))
+         (.isAssignableFrom clojure.lang.IType cls))))
 
 (t/ann ^:no-check isa-Record? [(t/U t/Sym Class) -> t/Any])
 (defn isa-Record? [sym-or-cls]
-  {:pre [((some-fn symbol? class?) sym-or-cls)]}
-  (let [cls (cond-> sym-or-cls
-              (symbol? sym-or-cls) coerce/symbol->Class)]
-    (and (.isAssignableFrom clojure.lang.IRecord cls)
-         (not= cls clojure.lang.IRecord))))
+  #_{:pre [((some-fn symbol? class?) sym-or-cls)]}
+  (let [cls (if (symbol? sym-or-cls)
+              (coerce/symbol->Class sym-or-cls)
+              (do (assert (class? sym-or-cls))
+                  sym-or-cls))]
+    (and (not (identical? cls clojure.lang.IRecord))
+         (.isAssignableFrom clojure.lang.IRecord cls))))
 
 (t/ann ^:no-check Record->HMap [DataType -> r/Type])
 (defn Record->HMap [r]
@@ -850,43 +854,51 @@
 (defn RClass-of 
   ([sym-or-cls] (RClass-of sym-or-cls nil))
   ([sym-or-cls args]
+   #_
    {:pre [((some-fn class? symbol?) sym-or-cls)
+          ;; checked by instantiate-typefn
           (every? r/Type? args)]
-    :post [((some-fn r/RClass? r/DataType?) %)]}
-   (let [sym (cond-> sym-or-cls
-               (class? sym-or-cls) coerce/Class->symbol)
-         cache-key (if (seq args)
+    :post [;; checked by final cond
+           ((some-fn r/RClass? r/DataType?) %)]}
+   (let [sym (if (class? sym-or-cls)
+               (coerce/Class->symbol sym-or-cls)
+               (do (assert (symbol? sym-or-cls))
+                   sym-or-cls))
+         args? (seq args)
+         cache-key (if args?
                      [sym args]
-                     sym)
-         cache-hit (@RClass-of-cache cache-key)]
-     (if cache-hit
-       cache-hit
-       (let [rc (or (dtenv/get-datatype sym)
-                    (rcls/get-rclass sym))
-             _ (assert ((some-fn r/TypeFn? r/RClass? r/DataType? nil?) rc))
-             _ (when-not (or (r/TypeFn? rc) (empty? args))
-                 (err/int-error
-                   (str "Cannot instantiate non-polymorphic RClass " sym
-                        (when *current-RClass-super*
-                          (str " when checking supertypes of RClass " *current-RClass-super*)))))
-             res (cond 
-                   (r/TypeFn? rc) (instantiate-typefn rc args)
-                   ((some-fn r/DataType? r/RClass?) rc) rc
-                   :else
-                   (let [cls (cond-> sym-or-cls
-                               (symbol? sym-or-cls) coerce/symbol->Class)]
-                     (if (isa-DataType? cls)
-                       (do (println (str "WARNING: Assuming unannotated Clojure type " sym
-                                         " is a datatype"))
-                           (flush)
-                           (when (isa-Record? cls)
-                             (println (str "WARNING: " sym " is probably a record because it extends IRecord."
-                                           " Annotate with ann-record above the first time it is parsed"))
-                             (flush))
-                         (r/DataType-maker sym nil nil (array-map) (isa-Record? cls)))
-                       (r/RClass-maker nil nil sym {} (r/sorted-type-set #{})))))]
-         (swap! RClass-of-cache assoc cache-key res)
-         res)))))
+                     sym)]
+     (or (@RClass-of-cache cache-key)
+         (let [rc (or (dtenv/get-datatype sym)
+                      (rcls/get-rclass sym))
+               ;; checked by dtenv/get-datatype and rcls/get-rclass
+               ;_ (assert ((some-fn r/TypeFn? r/RClass? r/DataType? nil?) rc))
+               res (if (r/TypeFn? rc)
+                     (let [res (instantiate-typefn rc args)]
+                       (assert (or (r/RClass? res) (r/DataType? res)))
+                       res)
+                     (do (when args?
+                           (err/int-error
+                             (str "Cannot instantiate non-polymorphic RClass " sym
+                                  (when *current-RClass-super*
+                                    (str " when checking supertypes of RClass " *current-RClass-super*)))))
+                         (if (nil? rc)
+                           (let [cls (cond-> sym-or-cls
+                                       (symbol? sym-or-cls) coerce/symbol->Class)]
+                             (if (isa-DataType? cls)
+                               (do (println (str "WARNING: Assuming unannotated Clojure type " sym
+                                                 " is a datatype"))
+                                   (flush)
+                                   (when (isa-Record? cls)
+                                     (println (str "WARNING: " sym " is probably a record because it extends IRecord."
+                                                   " Annotate with ann-record above the first time it is parsed"))
+                                     (flush))
+                                   (r/DataType-maker sym nil nil (array-map) (isa-Record? cls)))
+                               (r/RClass-maker nil nil sym {} (r/sorted-type-set #{}))))
+                           (do #_(assert (or (r/RClass? res) (r/DataType? res)))
+                               rc))))]
+           (swap! RClass-of-cache assoc cache-key res)
+           res)))))
 
 (t/ann ^:no-check most-general-on-variance [(t/Seqable r/Variance) (t/Seqable Bounds) -> r/Type])
 (defn most-general-on-variance [variances bnds]
@@ -1422,6 +1434,7 @@
           ;;check bounds
           _ (dorun
               (map (fn [argn nm type bnd]
+                     {:pre [(r/Type? type)]}
                      (when-not (ind/has-kind? type bnd)
                        (binding [vs/*current-env* (-> tapp meta :env)]
                          (err/tc-error (str "Type function argument number " argn

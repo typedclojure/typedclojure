@@ -33,8 +33,8 @@
 
 (t/ann Class->symbol [Class -> t/Sym])
 (defn Class->symbol [^Class cls]
-  {:pre [(class? cls)]
-   :post [(symbol? %)]}
+  #_{:pre [(class? cls)]
+     :post [(symbol? %)]}
   (symbol (.getName cls)))
 
 (t/ann var->symbol [t/AnyVar -> t/Sym])
