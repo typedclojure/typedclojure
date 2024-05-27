@@ -898,7 +898,7 @@
                                                    " Annotate with ann-record above the first time it is parsed"))
                                      (flush))
                                    (r/DataType-maker sym nil nil (array-map) (isa-Record? cls)))
-                               (r/RClass-maker nil nil sym {} (r/sorted-type-set #{}))))
+                               (r/RClass-maker nil nil sym {} (sorted-set))))
                            (do #_(assert (or (r/RClass? res) (r/DataType? res)))
                                rc))))]
            (swap! RClass-of-cache assoc cache-key res)
