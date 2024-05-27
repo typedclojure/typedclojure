@@ -36,6 +36,10 @@
       <groupId>org.clojure</groupId>
       <artifactId>clojurescript</artifactId>
     </dependency>
+    <dependency>
+      <groupId>io.github.frenchy64</groupId>
+      <artifactId>fully-satisfies</artifactId>
+    </dependency>
   </dependencies>
 </project>
 

@@ -8,11 +8,13 @@
 
 (ns ^:no-doc typed.clj.checker.subtype
   "Use [[subtype?]] to check if s <: t, and [[subtype-filter?]] for filters."
+  (:refer-clojure :exclude [requiring-resolve])
   (:require [clojure.core.typed.coerce-utils :as coerce]
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.errors :as err]
             [clojure.set :as set]
             [clojure.core.typed.util-vars :as vs]
+            [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]
             [typed.cljc.checker.check :as chk]
             [typed.clj.checker.assoc-utils :as assoc-u]
             [typed.clj.checker.parse-unparse :as prs]

@@ -7,11 +7,12 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.cljc.checker.type-ctors
-  (:refer-clojure :exclude [defrecord replace type])
+  (:refer-clojure :exclude [defrecord replace type requiring-resolve])
   (:require [clojure.core.cache :as cache]
             [typed.clojure :as t]
             [clojure.string :as str]
             [typed.cljc.runtime.env-utils :as env-utils]
+            [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]
             [clojure.core.typed.coerce-utils :as coerce]
             [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.contract-utils-platform-specific :as plat-con]
@@ -37,6 +38,7 @@
             [typed.cljc.checker.utils :as u]
             typed.cljc.checker.coerce-ann)
   (:import (clojure.lang ASeq)
+           java.lang.reflect.Modifier
            (typed.cljc.checker.type_rep HeterogeneousMap Poly TypeFn TApp App Value
                                         Union Intersection F Function Mu B KwArgs KwArgsSeq KwArgsArray
                                         RClass Bounds Name Scope CountRange Intersection DataType Extends
@@ -814,19 +816,25 @@
 
 (t/ann ^:no-check isa-DataType? [(t/U t/Sym Class) -> t/Any])
 (defn isa-DataType? [sym-or-cls]
-  {:pre [((some-fn symbol? class?) sym-or-cls)]}
-  (let [cls (cond-> sym-or-cls
-              (not (class? sym-or-cls)) coerce/symbol->Class)]
-    (and (isa? cls clojure.lang.IType)
-         (not= cls clojure.lang.IType))))
+  #_{:pre [((some-fn symbol? class?) sym-or-cls)]}
+  (let [cls (if (symbol? sym-or-cls)
+              (coerce/symbol->Class sym-or-cls)
+              (do (assert (class? sym-or-cls))
+                  sym-or-cls))]
+    (if (identical? cls clojure.lang.IType)
+      false
+      (.isAssignableFrom clojure.lang.IType cls))))
 
 (t/ann ^:no-check isa-Record? [(t/U t/Sym Class) -> t/Any])
 (defn isa-Record? [sym-or-cls]
-  {:pre [((some-fn symbol? class?) sym-or-cls)]}
-  (let [cls (cond-> sym-or-cls
-              (not (class? sym-or-cls)) coerce/symbol->Class)]
-    (and (isa? cls clojure.lang.IRecord)
-         (not= cls clojure.lang.IRecord))))
+  #_{:pre [((some-fn symbol? class?) sym-or-cls)]}
+  (let [cls (if (symbol? sym-or-cls)
+              (coerce/symbol->Class sym-or-cls)
+              (do (assert (class? sym-or-cls))
+                  sym-or-cls))]
+    (if (identical? cls clojure.lang.IRecord)
+      false
+      (.isAssignableFrom clojure.lang.IRecord cls))))
 
 (t/ann ^:no-check Record->HMap [DataType -> r/Type])
 (defn Record->HMap [r]
@@ -848,40 +856,53 @@
 (defn RClass-of 
   ([sym-or-cls] (RClass-of sym-or-cls nil))
   ([sym-or-cls args]
+   #_
    {:pre [((some-fn class? symbol?) sym-or-cls)
+          ;; checked by instantiate-typefn
           (every? r/Type? args)]
-    :post [((some-fn r/RClass? r/DataType?) %)]}
-   (let [sym (cond-> sym-or-cls
-               (class? sym-or-cls) coerce/Class->symbol)
-         cache-key-hash [(keyword sym) args]
-         cache-hit (@RClass-of-cache cache-key-hash)]
-     (if cache-hit
-       cache-hit
-       (let [rc ((some-fn dtenv/get-datatype rcls/get-rclass) 
-                 sym)
-             _ (assert ((some-fn r/TypeFn? r/RClass? r/DataType? nil?) rc))
-             _ (when-not (or (r/TypeFn? rc) (empty? args))
-                 (err/int-error
-                   (str "Cannot instantiate non-polymorphic RClass " sym
-                        (when *current-RClass-super*
-                          (str " when checking supertypes of RClass " *current-RClass-super*)))))
-             res (cond 
-                   (r/TypeFn? rc) (instantiate-typefn rc args)
-                   ((some-fn r/DataType? r/RClass?) rc) rc
-                   :else
-                   (let [cls (coerce/symbol->Class sym)]
-                     (if (isa-DataType? cls)
-                       (do (println (str "WARNING: Assuming unannotated Clojure type " sym
-                                         " is a datatype"))
-                           (flush)
-                           (when (isa-Record? cls)
-                             (println (str "WARNING: " sym " is probably a record because it extends IRecord."
-                                           " Annotate with ann-record above the first time it is parsed"))
-                             (flush))
-                         (r/DataType-maker sym nil nil (array-map) (isa-Record? cls)))
-                       (r/RClass-maker nil nil sym {} (r/sorted-type-set #{})))))]
-         (swap! RClass-of-cache assoc cache-key-hash res)
-         res)))))
+    :post [;; checked by final cond
+           ((some-fn r/RClass? r/DataType?) %)]}
+   (let [cls? (class? sym-or-cls)
+         sym (if cls?
+               (coerce/Class->symbol sym-or-cls)
+               (do #_(assert (symbol? sym-or-cls)) ;; checked by dtenv/get-datatype
+                   sym-or-cls))
+         args? (seq args)
+         cache-key (if args?
+                     [sym args]
+                     sym)]
+     (or (@RClass-of-cache cache-key)
+         (let [rc (or (dtenv/get-datatype sym)
+                      (rcls/get-rclass sym))
+               ;; checked by dtenv/get-datatype and rcls/get-rclass
+               ;_ (assert ((some-fn r/TypeFn? r/RClass? r/DataType? nil?) rc))
+               res (if (r/TypeFn? rc)
+                     (let [res (instantiate-typefn rc args)]
+                       (assert (or (r/RClass? res) (r/DataType? res)))
+                       res)
+                     (do (when args?
+                           (err/int-error
+                             (str "Cannot instantiate non-polymorphic RClass " sym
+                                  (when *current-RClass-super*
+                                    (str " when checking supertypes of RClass " *current-RClass-super*)))))
+                         (if (nil? rc)
+                           (let [cls (if cls?
+                                       sym-or-cls
+                                       (coerce/symbol->Class sym-or-cls))]
+                             (if (isa-DataType? cls)
+                               (do (println (str "WARNING: Assuming unannotated Clojure type " sym
+                                                 " is a datatype"))
+                                   (flush)
+                                   (when (isa-Record? cls)
+                                     (println (str "WARNING: " sym " is probably a record because it extends IRecord."
+                                                   " Annotate with ann-record above the first time it is parsed"))
+                                     (flush))
+                                   (r/DataType-maker sym nil nil (array-map) (isa-Record? cls)))
+                               (r/RClass-maker nil nil sym {} (sorted-set))))
+                           (do #_(assert (or (r/RClass? res) (r/DataType? res)))
+                               rc))))]
+           (swap! RClass-of-cache assoc cache-key res)
+           res)))))
 
 (t/ann ^:no-check most-general-on-variance [(t/Seqable r/Variance) (t/Seqable Bounds) -> r/Type])
 (defn most-general-on-variance [variances bnds]
@@ -894,27 +915,32 @@
 
 (declare TypeFn-bbnds* TypeFn-fresh-symbols*)
 
+(def valid-variances #{:constant :covariant :contravariant})
+
 ;FIXME rename to RClass-with-unknown-params
-(t/ann ^:no-check RClass-of-with-unknown-params [(t/U t/Sym Class) & :optional {:warn-msg (t/U nil t/Str)} -> r/Type])
+(t/ann ^:no-check RClass-of-with-unknown-params [(t/U t/Sym Class) (t/Nilable (t/HMap :optional {:warn-msg (t/U nil t/Str)})) :? -> r/Type])
 (defn RClass-of-with-unknown-params
-  ([sym-or-cls & {:keys [warn-msg]}]
-   {:pre [((some-fn class? symbol?) sym-or-cls)]
-    :post [((some-fn r/RClass? r/DataType? r/Instance?) %)]}
-   (let [sym (or (cond-> sym-or-cls
-                   (class? sym-or-cls) coerce/Class->symbol)
-                 (err/int-error (str "Unresolvable class: " (pr-str sym-or-cls))))
-         rc ((some-fn dtenv/get-datatype rcls/get-rclass) sym)]
-     (cond
-       (r/TypeFn? rc) (let [{:keys [variances]} rc]
-                        (when warn-msg
-                          (println (str "WARNING: " warn-msg ": " sym)))
-                        (if (every? #{:constant :covariant :contravariant} variances)
-                          (RClass-of sym
-                                     (let [syms (TypeFn-fresh-symbols* rc)]
-                                       (most-general-on-variance variances
-                                                                 (TypeFn-bbnds* syms rc))))
-                          (r/Instance-maker sym)))
-       :else (or rc (RClass-of sym))))))
+  ([sym-or-cls] (RClass-of-with-unknown-params sym-or-cls nil))
+  ([sym-or-cls {:keys [warn-msg]}]
+   #_{:pre [((some-fn class? symbol?) sym-or-cls)]
+      :post [((some-fn r/RClass? r/DataType? r/Instance?) %)]}
+   (let [sym (if (class? sym-or-cls)
+               (coerce/Class->symbol sym-or-cls)
+               (do #_(assert (symbol? sym-or-cls)) ;; checked by dtenv/get-datatype
+                   sym-or-cls))
+         rc (or (dtenv/get-datatype sym)
+                (rcls/get-rclass sym))]
+     (if (r/TypeFn? rc)
+       (let [{:keys [variances]} rc]
+         (when warn-msg
+           (println (str "WARNING: " warn-msg ": " sym)))
+         (if (every? valid-variances variances)
+           (RClass-of sym-or-cls
+                      (let [syms (TypeFn-fresh-symbols* rc)]
+                        (most-general-on-variance variances
+                                                  (TypeFn-bbnds* syms rc))))
+           (r/Instance-maker sym)))
+       (or rc (RClass-of sym-or-cls))))))
 
 (t/ann ^:no-check Instance-of [(t/U t/Sym Class) -> r/Type])
 (defn Instance-of
@@ -982,7 +1008,7 @@
    (let [t (prenv/get-protocol sym)]
      (cond
        (r/TypeFn? t) (let [{:keys [variances]} t]
-                       (if (every? #{:constant :covariant :contravariant} variances)
+                       (if (every? valid-variances variances)
                          (Protocol-of sym
                                       (let [syms (TypeFn-fresh-symbols* t)]
                                         (most-general-on-variance variances
@@ -1063,7 +1089,7 @@
   (let [subst-all @(subst-all-var)
         ; these names are eliminated immediately, they don't need to be
         ; created with fresh-symbol
-        names (into [] (map (fn [_] (gensym))) (range (count ts)))
+        names (mapv (fn [_] (gensym)) (range (count ts)))
         t (r/assert-Type (instantiate-many names target))
         subst (make-simple-substitution names ts)]
     (subst-all subst t)))
@@ -1100,75 +1126,58 @@
   [{:keys [the-class] :as rcls}]
   {:pre [((some-fn r/RClass? r/Instance?) rcls)]
    :post [((con/sorted-set-c? r/Type?) %)]}
-  (let [rcls-type (if (r/RClass? rcls)
-                    :RClass
-                    :Instance)
-        cache-key rcls
-        cache-hit (@supers-cache cache-key)]
-    (if cache-hit
-      cache-hit
-      (let [cls (-> the-class coerce/symbol->Class)]
-        (if (= Object cls)
-          (r/sorted-type-set [(RClass-of Object)])
-          (let [;_ (prn "RClass-of" the-class)
-                unchecked-ancestors (case rcls-type
-                                      :RClass (RClass-unchecked-ancestors* rcls)
-                                      :Instance (r/sorted-type-set []))
-                ;_ (prn "unchecked-ancestors" unchecked-ancestors)
-                replacements (case rcls-type
-                               :RClass (RClass-replacements* rcls)
-                               :Instance {})
-                ;_ (prn "replacements" (map ind/unparse-type (vals replacements)))
-                ;set of symbols of Classes we haven't explicitly replaced
-                java-bases (into #{} (map coerce/Class->symbol) (bases cls))
-                replace-keys (set (keys replacements))
-                not-replaced (set/difference java-bases
-                                             replace-keys)
-                ;_ (prn "not-replaced" not-replaced)
-                bad-replacements (set/difference replace-keys
-                                                 java-bases)
-                _ (when (= :RClass rcls-type)
-                    (when (seq bad-replacements)
-                      (err/int-error (str "Bad RClass replacements for " the-class ": " bad-replacements))))
-                res (r/sorted-type-set
-                      (set/union (binding [*current-RClass-super* the-class]
-                                   (let [rs (for [csym not-replaced]
-                                              (RClass-of-with-unknown-params
-                                                csym
-                                                :warn-msg (when (= :RClass rcls-type)
-                                                            (when (.contains (str the-class) "clojure.lang")
-                                                              (str "RClass ancestor for " (pr-str rcls) " defaulting "
-                                                                   "to most general parameters")))))]
-                                     (apply set/union (set rs) (map (t/fn [r :- r/Type]
-                                                                      (RClass-supers* r))
-                                                                    rs))))
-                                 (into #{} (mapcat (fn [t]
-                                                     (let [t (fully-resolve-type t)]
-                                                       (cons t (RClass-supers* t)))))
-                                       (vals replacements))
-                                 #{(RClass-of Object)}
-                                 unchecked-ancestors))
-                ;;FIXME just need to do this once generically at RClass declaration
-                _ (when-some [rclass-ancestor-groups (not-empty
-                                                       (into #{} (filter (comp next val))
-                                                             (group-by :the-class (filter r/RClass? res))))]
-                    (err/int-error
-                      (str "Found clashing supertypes for RClass ancestors of " (ind/unparse-type rcls) ": "
-                           (str/join "\n" (map (fn [grp] (str/join ", " (map pr-str grp)))
-                                               (vals rclass-ancestor-groups))))))]
-            ;(prn "supers" the-class res)
-            (when-not (<= (count (filter (some-fn r/FnIntersection? r/Poly? r/PolyDots?) res))
-                          1)
-              (err/int-error 
-                (str "Found more than one function supertype for RClass " (ind/unparse-type rcls) ": \n"
-                     (mapv ind/unparse-type (filter (some-fn r/FnIntersection? r/Poly? r/PolyDots?) res))
-                     "\nReplacements:" (into {}
-                                             (map (t/fn [[k v] :- '[t/Any r/Type]] [k (ind/unparse-type v)]))
-                                             replacements)
-                     "\nNot replaced:" not-replaced)))
-            (t/tc-ignore
-              (swap! supers-cache assoc cache-key res))
-            res))))))
+  (let [rclass? (r/RClass? rcls)
+        cache-key rcls]
+    (or (@supers-cache cache-key)
+        (let [cls (-> the-class coerce/symbol->Class)]
+          (if (identical? Object cls)
+            (sorted-set (RClass-of Object))
+            (let [replacements (if rclass?
+                                 (RClass-replacements* rcls)
+                                 {})
+                  java-bases (into #{} (map coerce/Class->symbol) (bases cls))
+                  warn-msg-opts {:warn-msg (when rclass?
+                                             (when (.contains (str the-class) "clojure.lang")
+                                               (str "RClass ancestor for " (pr-str rcls) " defaulting "
+                                                    "to most general parameters")))} 
+                  res (as-> (sorted-set) res
+                        (binding [*current-RClass-super* the-class]
+                          (reduce (fn [res csym]
+                                    (if (replacements csym)
+                                      res
+                                      (let [r (RClass-of-with-unknown-params csym warn-msg-opts)]
+                                        (-> res (conj r) (into (RClass-supers* r))))))
+                                  res java-bases))
+                        (reduce-kv (fn [res csym t]
+                                     (if (and rclass? (not (java-bases csym)))
+                                       (err/int-error (str "Bad RClass replacement for " the-class ": " csym))
+                                       (let [t (fully-resolve-type t)]
+                                         (-> res (conj t) (into (RClass-supers* t))))))
+                                   res replacements)
+                        (conj res (RClass-of Object))
+                        (into res (when rclass? (RClass-unchecked-ancestors* rcls))))
+                  ;;FIXME just need to do this once generically at RClass declaration
+                  _ (when-some [rclass-ancestor-groups (not-empty
+                                                         (into #{} (filter (comp next val))
+                                                               (group-by :the-class (filter r/RClass? res))))]
+                      (err/int-error
+                        (str "Found clashing supertypes for RClass ancestors of " (ind/unparse-type rcls) ": "
+                             (str/join "\n" (map (fn [grp] (str/join ", " (map pr-str grp)))
+                                                 (vals rclass-ancestor-groups))))))]
+              ;(prn "supers" the-class res)
+              (when-not (<= (count (filter (some-fn r/FnIntersection? r/Poly? r/PolyDots?) res))
+                            1)
+                (let [not-replaced (set/difference java-bases (set (keys replacements)))]
+                  (err/int-error 
+                    (str "Found more than one function supertype for RClass " (ind/unparse-type rcls) ": \n"
+                         (mapv ind/unparse-type (filter (some-fn r/FnIntersection? r/Poly? r/PolyDots?) res))
+                         "\nReplacements:" (into {}
+                                                 (map (t/fn [[k v] :- '[t/Any r/Type]] [k (ind/unparse-type v)]))
+                                                 replacements)
+                         "\nNot replaced:" not-replaced))))
+              (t/tc-ignore
+                (swap! supers-cache assoc cache-key res))
+              res))))))
 
 (t/ann ^:no-check DataType-fields* [DataType -> (t/Map t/Sym r/Type)])
 (defn DataType-fields* [^DataType dt]
@@ -1411,6 +1420,7 @@
           ;;check bounds
           _ (dorun
               (map (fn [argn nm type bnd]
+                     {:pre [(r/Type? type)]}
                      (when-not (ind/has-kind? type bnd)
                        (binding [vs/*current-env* (-> tapp meta :env)]
                          (err/tc-error (str "Type function argument number " argn
@@ -1583,10 +1593,9 @@
 (defn fully-resolve-type 
   ([t seen]
    {:pre [(r/Type? t)]}
-   (let [_ (assert (not (seen t)) "Infinite non-Rec type detected")
-         seen (conj seen t)]
+   (let [_ (assert (not (seen t)) "Infinite non-Rec type detected")]
      (if (requires-resolving? t)
-       (recur (-resolve t) seen)
+       (recur (-resolve t) (conj seen t))
        t)))
   ([t] (fully-resolve-type t #{})))
 
@@ -1595,11 +1604,10 @@
            [r/Type (t/Set r/Type) -> r/Type]))
 (defn fully-resolve-non-rec-type 
   ([t seen]
-   (let [_ (assert (not (seen t)) "Infinite non-Rec type detected")
-         seen (conj seen t)]
+   (let [_ (assert (not (seen t)) "Infinite non-Rec type detected")]
      (if (and (not (r/Mu? t))
               (requires-resolving? t))
-       (recur (-resolve t) seen)
+       (recur (-resolve t) (conj seen t))
        t)))
   ([t] (fully-resolve-non-rec-type t #{})))
 
@@ -1860,18 +1868,20 @@
            (let [_ (impl/assert-clojure)
                  c1 (r/RClass->Class t1)
                  c2 (r/RClass->Class t2)
-                 {t1-flags :flags} (reflect/type-reflect c1)
-                 {t2-flags :flags} (reflect/type-reflect c2)]
+                 c1-mods (.getModifiers c1)
+                 c2-mods (.getModifiers c2)
+                 c1-final? (Modifier/isFinal c1-mods)
+                 c2-final? (Modifier/isFinal c2-mods)]
              ; there is only an overlap if a class could have both classes as parents
              ;(prn t1-flags t2-flags)
              (cond
                (or (.isAssignableFrom c1 c2)
                    (.isAssignableFrom c2 c1)) true
                ; no potential ancestors
-               (some :final [t1-flags t2-flags]) false
+               (or (Modifier/isFinal c1-mods) (Modifier/isFinal c2-mods)) false
                ; if we have two things that are not interfaces, ie. abstract, normal
                ; classes, there is no possibility of overlap
-               (every? (complement :interface) [t1-flags t2-flags]) false
+               (not (or (Modifier/isInterface c1-mods) (Modifier/isInterface c2-mods))) false
                :else true)))
 
          (some r/Extends? [t1 t2])

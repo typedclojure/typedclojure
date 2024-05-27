@@ -31,6 +31,9 @@
   (boolean x))
 
 (comment
+  ;; 3x faster
+  (t/check-ns-clj *ns* :max-parallelism :available-processors)
+
   (t/check-ns-clj)
   ;Start checking cache.slow
   ;cache: Caching form with cache info

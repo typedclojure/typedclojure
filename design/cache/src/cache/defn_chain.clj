@@ -31,7 +31,10 @@
   ^::t/dbg (do :A5))
 
 (comment
-  (t/cns)
+  ;; 2x faster
+  (time (t/check-ns-clj *ns* :max-parallelism :available-processors))
+
+  (time (t/cns))
   ;Start checking cache.defn-chain
   ;cache: Caching form with cache info
   ;ns form:

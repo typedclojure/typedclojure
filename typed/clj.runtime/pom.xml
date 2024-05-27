@@ -22,4 +22,26 @@
     <version>1.2.2-SNAPSHOT</version>
     <relativePath>../..</relativePath>
   </parent>
+
+  <repositories>
+    <repository>
+      <id>clojars</id>
+      <url>https://repo.clojars.org/</url>
+    </repository>
+    <repository>
+      <id>sonatype-oss-public</id>
+      <url>https://oss.sonatype.org/content/groups/public/</url>
+    </repository>
+  </repositories>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.clojure</groupId>
+      <artifactId>clojure</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.github.frenchy64</groupId>
+      <artifactId>fully-satisfies</artifactId>
+    </dependency>
+  </dependencies>
 </project>

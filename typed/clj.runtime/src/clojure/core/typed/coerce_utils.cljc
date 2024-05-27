@@ -40,8 +40,8 @@
 
 (t/ann Class->symbol [#?(:cljr Type :default Class) -> t/Sym])
 (defn Class->symbol [^#?(:cljr Type :default Class) cls]
-  {:pre [(class? cls)]
-   :post [(symbol? %)]}
+  #_{:pre [(class? cls)]
+     :post [(symbol? %)]}
   (symbol (#?(:cljr .FullName :default .getName) cls)))
 
 (t/ann var->symbol [t/AnyVar -> t/Sym])

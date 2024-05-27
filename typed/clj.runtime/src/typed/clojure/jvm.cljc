@@ -9,10 +9,12 @@
 (ns typed.clojure.jvm
   "JVM-specific annotations and operations.
   See typed.clojure for cross-platform ops."
+  #?(:clj (:refer-clojure :exclude [requiring-resolve]))
   (:require clojure.core.typed
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.internal :refer [take-when]]
             [typed.cljc.runtime.env-utils :refer [delay-type]]
+            #?(:clj [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]])
             [clojure.core.typed.macros :as macros]))
 
 (defmacro ann-interface [& args]

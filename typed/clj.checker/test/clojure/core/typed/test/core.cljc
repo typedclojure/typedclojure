@@ -1575,7 +1575,8 @@
   (is (check-ns 'clojure.core.typed.test.munge-record-field)))
 
 (deftest mm-warn-on-unannotated-vars-test
-  (is (check-ns 'clojure.core.typed.test.mm-warn-on-unannotated)))
+  (is (check-ns 'clojure.core.typed.test.mm-warn-on-unannotated
+                :max-parallelism 1)))
 
 (deftest HMap-parse-fail-test
   (is (err/tc-error-thrown? (clj (parse-type `(t/HMap :mandatory {:a t/Any} :absent-keys #{:a}))))))
@@ -3926,7 +3927,8 @@
 (deftest gradual-untyped-import-test
   (is (try
         (do (load/load-typed-file "clojure/core/typed/test/gradual/import_untyped")
-            ((requiring-resolve 'clojure.core.typed.test.gradual.import-untyped/bad)))
+            (locking clojure.lang.RT/REQUIRE_LOCK
+              ((requiring-resolve 'clojure.core.typed.test.gradual.import-untyped/bad))))
         false
         (catch ExceptionInfo e
           ;(prn (ex-data e))

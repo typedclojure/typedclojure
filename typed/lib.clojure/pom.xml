@@ -34,5 +34,9 @@
       <artifactId>typed.clj.spec</artifactId>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+      <groupId>io.github.frenchy64</groupId>
+      <artifactId>fully-satisfies</artifactId>
+    </dependency>
   </dependencies>
 </project>

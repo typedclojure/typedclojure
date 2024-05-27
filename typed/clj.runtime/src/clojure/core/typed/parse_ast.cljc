@@ -8,12 +8,14 @@
 
 ;; TODO unparse functionality
 (ns ^:no-doc clojure.core.typed.parse-ast
+  #?(:clj (:refer-clojure :exclude [requiring-resolve]))
   (:require [clojure.core.typed :as t]
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.errors :as err]
             [clojure.core.typed.util-vars :as vs]
             [clojure.core.typed.coerce-utils :as coerce]
-            [clojure.set :as set]))
+            [clojure.set :as set]
+            #?(:clj [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]])))
 
 (t/ann *parse-type-in-ns* (t/U nil t/Sym))
 (defonce ^:dynamic *parse-type-in-ns* nil)

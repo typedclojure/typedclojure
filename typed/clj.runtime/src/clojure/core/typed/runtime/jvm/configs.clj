@@ -9,7 +9,9 @@
 ; mostly copied from clojure.core's data-reader discovery impl
 (ns ^:no-doc clojure.core.typed.runtime.jvm.configs
   "Alpha - wip, subject to change"
-  (:require [clojure.tools.reader :as rdr])
+  (:refer-clojure :exclude [requiring-resolve])
+  (:require [clojure.tools.reader :as rdr]
+            [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]])
   (:import [clojure.lang LineNumberingPushbackReader]
            [java.io InputStreamReader]
            [java.net URL]))

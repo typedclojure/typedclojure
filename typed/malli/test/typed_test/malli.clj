@@ -62,7 +62,6 @@
 (comment
   (m/parse Hiccup [:div [:p "foo"]])
   (m/parse Hiccup [:div [:p :a "foo"]])
-  ((requiring-resolve 'clojure.repl/pst) 100)
   )
 
 (deftest malli-type-check-test

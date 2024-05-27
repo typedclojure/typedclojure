@@ -11,10 +11,7 @@
                   typed.cljc.checker.name-env
                   clojure.core.typed.util-vars
                   ;typed.cljc.checker.type-ctors
-                  typed.cljc.dir]
-                {:check-config {:check-ns-dep :never}
-                 ;:trace true
-                 })))
+                  typed.cljc.dir])))
 
 #_ ;;WIP
 (deftest analyzer-test

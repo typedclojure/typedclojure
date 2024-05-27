@@ -14,7 +14,7 @@
   Note: The (non self hosted) ClojureScript compiler will automatically rewrite clojure.core.typed
   requires to cljs.core.typed, so (:require [clojure.core.typed :as t]) also works in
   ClojureScript, unless self hosting."
-  (:refer-clojure :exclude [fn loop let defn atom defprotocol])
+  (:refer-clojure :exclude [fn loop let defn atom defprotocol requiring-resolve])
   (:require [clojure.core.typed.load-if-needed :as load]
             [clojure.core :as core]
             [clojure.core.typed.current-impl :as impl]
@@ -25,7 +25,8 @@
             [clojure.core.typed.util-vars :as vs]
             [clojure.pprint :as pprint]
             [clojure.string :as str]
-            [cljs.analyzer.api :as ana-api]))
+            [cljs.analyzer.api :as ana-api]
+            [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]))
 
 (core/defn register!
   "Internal -- Do not use"

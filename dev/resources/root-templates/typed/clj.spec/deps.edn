@@ -1,6 +1,7 @@
 {% do-not-edit-edn-comment %}
 {:paths ["src"]
  :deps {org.clojure/clojure {:mvn/version "{◊clojure-mvn-version◊}"}
+        io.github.frenchy64/fully-satisfies {:mvn/version "{◊fully-satisfies-mvn-version◊}"}
         ;contains fixes for CLJ-2561 + CLJ-2562
         org.clojars.typedclojure-clojars/alpha.spec 
         {:mvn/version "{◊typedclojure-alpha-spec-mvn-version◊}"}}

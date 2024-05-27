@@ -8,6 +8,7 @@
 
 (ns ^:no-doc typed.clj.ext.clojure.core__for
   "Typing rules clojure.core/for"
+  (:refer-clojure :exclude [requiring-resolve])
   (:require [typed.clojure :as t]
             [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.errors :as err]
@@ -26,7 +27,8 @@
             [typed.cljc.checker.cs-gen :as cgen]
             [typed.cljc.checker.utils :as u]
             [clojure.core.typed.current-impl :as impl]
-            [typed.cljc.checker.check.unanalyzed :refer [defuspecial]]))
+            [typed.cljc.checker.check.unanalyzed :refer [defuspecial]]
+            [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]))
 
 (defn emit-form [e]
   (impl/impl-case

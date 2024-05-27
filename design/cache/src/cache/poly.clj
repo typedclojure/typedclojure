@@ -46,7 +46,10 @@
 (defn map-kw19 [as] ^{::t/dbg "map-kw19"} (map boolean as))
 
 (comment
-  (t/cns)
+  ;; 3x faster
+  (time (t/check-ns-clj *ns* :max-parallelism :available-processors))
+
+  (time (t/cns))
   ;Start checking cache.poly
   ;cache: Caching form with cache info
   ;ns form:
