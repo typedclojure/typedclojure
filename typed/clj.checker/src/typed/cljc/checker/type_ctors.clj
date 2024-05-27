@@ -913,27 +913,31 @@
 
 (declare TypeFn-bbnds* TypeFn-fresh-symbols*)
 
+(def valid-variances #{:constant :covariant :contravariant})
+
 ;FIXME rename to RClass-with-unknown-params
 (t/ann ^:no-check RClass-of-with-unknown-params [(t/U t/Sym Class) & :optional {:warn-msg (t/U nil t/Str)} -> r/Type])
 (defn RClass-of-with-unknown-params
   ([sym-or-cls & {:keys [warn-msg]}]
-   {:pre [((some-fn class? symbol?) sym-or-cls)]
-    :post [((some-fn r/RClass? r/DataType? r/Instance?) %)]}
-   (let [sym (or (cond-> sym-or-cls
-                   (class? sym-or-cls) coerce/Class->symbol)
-                 (err/int-error (str "Unresolvable class: " (pr-str sym-or-cls))))
-         rc ((some-fn dtenv/get-datatype rcls/get-rclass) sym)]
-     (cond
-       (r/TypeFn? rc) (let [{:keys [variances]} rc]
-                        (when warn-msg
-                          (println (str "WARNING: " warn-msg ": " sym)))
-                        (if (every? #{:constant :covariant :contravariant} variances)
-                          (RClass-of sym-or-cls
-                                     (let [syms (TypeFn-fresh-symbols* rc)]
-                                       (most-general-on-variance variances
-                                                                 (TypeFn-bbnds* syms rc))))
-                          (r/Instance-maker sym)))
-       :else (or rc (RClass-of sym-or-cls))))))
+   #_{:pre [((some-fn class? symbol?) sym-or-cls)]
+      :post [((some-fn r/RClass? r/DataType? r/Instance?) %)]}
+   (let [sym (if (class? sym-or-cls)
+               (coerce/Class->symbol sym-or-cls)
+               (do (assert (symbol? sym-or-cls))
+                   sym-or-cls))
+         rc (or (dtenv/get-datatype sym)
+                (rcls/get-rclass sym))]
+     (if (r/TypeFn? rc)
+       (let [{:keys [variances]} rc]
+         (when warn-msg
+           (println (str "WARNING: " warn-msg ": " sym)))
+         (if (every? valid-variances variances)
+           (RClass-of sym-or-cls
+                      (let [syms (TypeFn-fresh-symbols* rc)]
+                        (most-general-on-variance variances
+                                                  (TypeFn-bbnds* syms rc))))
+           (r/Instance-maker sym)))
+       (or rc (RClass-of sym-or-cls))))))
 
 (t/ann ^:no-check Instance-of [(t/U t/Sym Class) -> r/Type])
 (defn Instance-of
@@ -1001,7 +1005,7 @@
    (let [t (prenv/get-protocol sym)]
      (cond
        (r/TypeFn? t) (let [{:keys [variances]} t]
-                       (if (every? #{:constant :covariant :contravariant} variances)
+                       (if (every? valid-variances variances)
                          (Protocol-of sym
                                       (let [syms (TypeFn-fresh-symbols* t)]
                                         (most-general-on-variance variances
