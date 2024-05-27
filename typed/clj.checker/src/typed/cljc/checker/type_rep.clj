@@ -116,6 +116,7 @@
   :methods
   [p/TCType])
 
+;;TODO remove this fn and used (sorted-set) directly
 (t/ann ^:no-check sorted-type-set [(t/Seqable Type) -> (t/SortedSet Type)])
 (defn sorted-type-set [ts]
   (into (sorted-set) ts))
