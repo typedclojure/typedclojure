@@ -1125,25 +1125,10 @@
         (let [cls (-> the-class coerce/symbol->Class)]
           (if (identical? Object cls)
             (sorted-set (RClass-of Object))
-            (let [;_ (prn "RClass-of" the-class)
-                  unchecked-ancestors (if rclass?
-                                        (RClass-unchecked-ancestors* rcls)
-                                        (sorted-set))
-                  ;_ (prn "unchecked-ancestors" unchecked-ancestors)
-                  replacements (if rclass?
+            (let [replacements (if rclass?
                                  (RClass-replacements* rcls)
                                  {})
-                  ;_ (prn "replacements" (map ind/unparse-type (vals replacements)))
-                  ;set of symbols of Classes we haven't explicitly replaced
                   java-bases (into #{} (map coerce/Class->symbol) (bases cls))
-                  replace-keys (set (keys replacements))
-                  not-replaced (set/difference java-bases
-                                               replace-keys)
-                  ;_ (prn "not-replaced" not-replaced)
-                  _ (when rclass?
-                      (when-some [bad-replacements (not-empty
-                                                     (set/difference replace-keys java-bases))]
-                        (err/int-error (str "Bad RClass replacements for " the-class ": " bad-replacements))))
                   warn-msg (when rclass?
                              (when (.contains (str the-class) "clojure.lang")
                                (str "RClass ancestor for " (pr-str rcls) " defaulting "
@@ -1151,15 +1136,19 @@
                   res (as-> (sorted-set) res
                         (binding [*current-RClass-super* the-class]
                           (reduce (fn [res csym]
-                                    (let [r (RClass-of-with-unknown-params csym :warn-msg warn-msg)]
-                                      (-> res (conj r) (into (RClass-supers* r)))))
-                                  res not-replaced))
-                        (reduce-kv (fn [res _ t]
-                                     (let [t (fully-resolve-type t)]
-                                       (-> res (conj t) (into (RClass-supers* t)))))
+                                    (if (replacements csym)
+                                      res
+                                      (let [r (RClass-of-with-unknown-params csym :warn-msg warn-msg)]
+                                        (-> res (conj r) (into (RClass-supers* r))))))
+                                  res java-bases))
+                        (reduce-kv (fn [res csym t]
+                                     (if (and rclass? (not (java-bases csym)))
+                                       (err/int-error (str "Bad RClass replacement for " the-class ": " csym))
+                                       (let [t (fully-resolve-type t)]
+                                         (-> res (conj t) (into (RClass-supers* t))))))
                                    res replacements)
                         (conj res (RClass-of Object))
-                        (into res unchecked-ancestors))
+                        (into res (when rclass? (RClass-unchecked-ancestors* rcls))))
                   ;;FIXME just need to do this once generically at RClass declaration
                   _ (when-some [rclass-ancestor-groups (not-empty
                                                          (into #{} (filter (comp next val))
@@ -1171,13 +1160,14 @@
               ;(prn "supers" the-class res)
               (when-not (<= (count (filter (some-fn r/FnIntersection? r/Poly? r/PolyDots?) res))
                             1)
-                (err/int-error 
-                  (str "Found more than one function supertype for RClass " (ind/unparse-type rcls) ": \n"
-                       (mapv ind/unparse-type (filter (some-fn r/FnIntersection? r/Poly? r/PolyDots?) res))
-                       "\nReplacements:" (into {}
-                                               (map (t/fn [[k v] :- '[t/Any r/Type]] [k (ind/unparse-type v)]))
-                                               replacements)
-                       "\nNot replaced:" not-replaced)))
+                (let [not-replaced (set/difference java-bases (set (keys replacements)))]
+                  (err/int-error 
+                    (str "Found more than one function supertype for RClass " (ind/unparse-type rcls) ": \n"
+                         (mapv ind/unparse-type (filter (some-fn r/FnIntersection? r/Poly? r/PolyDots?) res))
+                         "\nReplacements:" (into {}
+                                                 (map (t/fn [[k v] :- '[t/Any r/Type]] [k (ind/unparse-type v)]))
+                                                 replacements)
+                         "\nNot replaced:" not-replaced))))
               (t/tc-ignore
                 (swap! supers-cache assoc cache-key res))
               res))))))
