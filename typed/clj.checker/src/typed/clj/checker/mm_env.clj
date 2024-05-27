@@ -19,6 +19,7 @@
 
 ; (Atom (Seqable (IPersistentMap Symbol '{:fn-type Type, :dispatch-result (U nil Type)})))
 (defonce MULTIMETHOD-DISPATCH-ENV (atom initial-mm-dispatch-env
+                                        #_#_
                                         :validator (con/hash-c?
                                                      (every-pred symbol? namespace)
                                                      r/Type?)))
