@@ -862,7 +862,8 @@
           (every? r/Type? args)]
     :post [;; checked by final cond
            ((some-fn r/RClass? r/DataType?) %)]}
-   (let [sym (if (class? sym-or-cls)
+   (let [cls? (class? sym-or-cls)
+         sym (if cls?
                (coerce/Class->symbol sym-or-cls)
                (do #_(assert (symbol? sym-or-cls)) ;; checked by dtenv/get-datatype
                    sym-or-cls))
@@ -885,8 +886,9 @@
                                   (when *current-RClass-super*
                                     (str " when checking supertypes of RClass " *current-RClass-super*)))))
                          (if (nil? rc)
-                           (let [cls (cond-> sym-or-cls
-                                       (symbol? sym-or-cls) coerce/symbol->Class)]
+                           (let [cls (if cls?
+                                       sym-or-cls
+                                       (coerce/symbol->Class sym-or-cls))]
                              (if (isa-DataType? cls)
                                (do (println (str "WARNING: Assuming unannotated Clojure type " sym
                                                  " is a datatype"))
