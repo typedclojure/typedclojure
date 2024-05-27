@@ -918,9 +918,10 @@
 (def valid-variances #{:constant :covariant :contravariant})
 
 ;FIXME rename to RClass-with-unknown-params
-(t/ann ^:no-check RClass-of-with-unknown-params [(t/U t/Sym Class) & :optional {:warn-msg (t/U nil t/Str)} -> r/Type])
+(t/ann ^:no-check RClass-of-with-unknown-params [(t/U t/Sym Class) (t/Nilable {:warn-msg (t/U nil t/Str)}) :? -> r/Type])
 (defn RClass-of-with-unknown-params
-  ([sym-or-cls & {:keys [warn-msg]}]
+  ([sym-or-cls] (RClass-of-with-unknown-params sym-or-cls nil))
+  ([sym-or-cls {:keys [warn-msg]}]
    #_{:pre [((some-fn class? symbol?) sym-or-cls)]
       :post [((some-fn r/RClass? r/DataType? r/Instance?) %)]}
    (let [sym (if (class? sym-or-cls)
@@ -1144,7 +1145,7 @@
                           (reduce (fn [res csym]
                                     (if (replacements csym)
                                       res
-                                      (let [r (RClass-of-with-unknown-params csym :warn-msg warn-msg)]
+                                      (let [r (RClass-of-with-unknown-params csym {:warn-msg warn-msg})]
                                         (-> res (conj r) (into (RClass-supers* r))))))
                                   res java-bases))
                         (reduce-kv (fn [res csym t]
