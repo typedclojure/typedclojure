@@ -918,7 +918,7 @@
 (def valid-variances #{:constant :covariant :contravariant})
 
 ;FIXME rename to RClass-with-unknown-params
-(t/ann ^:no-check RClass-of-with-unknown-params [(t/U t/Sym Class) (t/Nilable {:warn-msg (t/U nil t/Str)}) :? -> r/Type])
+(t/ann ^:no-check RClass-of-with-unknown-params [(t/U t/Sym Class) (t/Nilable (t/HMap :optional {:warn-msg (t/U nil t/Str)})) :? -> r/Type])
 (defn RClass-of-with-unknown-params
   ([sym-or-cls] (RClass-of-with-unknown-params sym-or-cls nil))
   ([sym-or-cls {:keys [warn-msg]}]
@@ -1089,7 +1089,7 @@
   (let [subst-all @(subst-all-var)
         ; these names are eliminated immediately, they don't need to be
         ; created with fresh-symbol
-        names (into [] (map (fn [_] (gensym))) (range (count ts)))
+        names (mapv (fn [_] (gensym)) (range (count ts)))
         t (r/assert-Type (instantiate-many names target))
         subst (make-simple-substitution names ts)]
     (subst-all subst t)))
