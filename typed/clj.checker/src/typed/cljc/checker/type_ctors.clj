@@ -1136,16 +1136,16 @@
                                  (RClass-replacements* rcls)
                                  {})
                   java-bases (into #{} (map coerce/Class->symbol) (bases cls))
-                  warn-msg (when rclass?
-                             (when (.contains (str the-class) "clojure.lang")
-                               (str "RClass ancestor for " (pr-str rcls) " defaulting "
-                                    "to most general parameters"))) 
+                  warn-msg-opts {:warn-msg (when rclass?
+                                             (when (.contains (str the-class) "clojure.lang")
+                                               (str "RClass ancestor for " (pr-str rcls) " defaulting "
+                                                    "to most general parameters")))} 
                   res (as-> (sorted-set) res
                         (binding [*current-RClass-super* the-class]
                           (reduce (fn [res csym]
                                     (if (replacements csym)
                                       res
-                                      (let [r (RClass-of-with-unknown-params csym {:warn-msg warn-msg})]
+                                      (let [r (RClass-of-with-unknown-params csym warn-msg-opts)]
                                         (-> res (conj r) (into (RClass-supers* r))))))
                                   res java-bases))
                         (reduce-kv (fn [res csym t]
