@@ -864,7 +864,7 @@
            ((some-fn r/RClass? r/DataType?) %)]}
    (let [sym (if (class? sym-or-cls)
                (coerce/Class->symbol sym-or-cls)
-               (do (assert (symbol? sym-or-cls))
+               (do #_(assert (symbol? sym-or-cls)) ;; checked by dtenv/get-datatype
                    sym-or-cls))
          args? (seq args)
          cache-key (if args?
@@ -923,7 +923,7 @@
       :post [((some-fn r/RClass? r/DataType? r/Instance?) %)]}
    (let [sym (if (class? sym-or-cls)
                (coerce/Class->symbol sym-or-cls)
-               (do (assert (symbol? sym-or-cls))
+               (do #_(assert (symbol? sym-or-cls)) ;; checked by dtenv/get-datatype
                    sym-or-cls))
          rc (or (dtenv/get-datatype sym)
                 (rcls/get-rclass sym))]
