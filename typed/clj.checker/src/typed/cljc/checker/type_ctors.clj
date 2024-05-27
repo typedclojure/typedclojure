@@ -821,8 +821,9 @@
               (coerce/symbol->Class sym-or-cls)
               (do (assert (class? sym-or-cls))
                   sym-or-cls))]
-    (and (not (identical? cls clojure.lang.IType))
-         (.isAssignableFrom clojure.lang.IType cls))))
+    (if (identical? cls clojure.lang.IType)
+      false
+      (.isAssignableFrom clojure.lang.IType cls))))
 
 (t/ann ^:no-check isa-Record? [(t/U t/Sym Class) -> t/Any])
 (defn isa-Record? [sym-or-cls]
@@ -831,8 +832,9 @@
               (coerce/symbol->Class sym-or-cls)
               (do (assert (class? sym-or-cls))
                   sym-or-cls))]
-    (and (not (identical? cls clojure.lang.IRecord))
-         (.isAssignableFrom clojure.lang.IRecord cls))))
+    (if (identical? cls clojure.lang.IRecord)
+      false
+      (.isAssignableFrom clojure.lang.IRecord cls))))
 
 (t/ann ^:no-check Record->HMap [DataType -> r/Type])
 (defn Record->HMap [r]
