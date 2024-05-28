@@ -18,8 +18,8 @@
             [typed.clj.runtime.env :as clj-env]
             [typed.cljs.runtime.env :as cljs-env]))
 
-;; copied to typed.clj.runtime.env
-(def clojure ::clojure)
+;; copied to typed.clj.runtime.env, clojure.core.typed.type-contract
+(def clojure :clojure.core.typed.current-impl/clojure)
 ;; copied to typed.cljs.runtime.env
 (def clojurescript ::clojurescript)
 
@@ -285,12 +285,14 @@
 
 (declare bindings-for-impl)
 
+(defn with-impl* [impl f]
+  (with-bindings (or (get (bindings-for-impl) impl)
+                     (throw (ex-info (str "No impl found for " (pr-str impl)))))
+     (f)))
+
 #?(:clj
 (defmacro with-impl [impl & body]
-  `(with-bindings (let [impl# ~impl]
-                    (or (get (bindings-for-impl) impl#)
-                        (throw (ex-info (str "No impl found for " (pr-str impl#))))))
-     (do ~@body))))
+  `(with-impl* ~impl #(do ~@body))))
 
 (def clj-checker-atom clj-env/clj-checker-atom)
 

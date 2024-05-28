@@ -9,15 +9,11 @@
 ;flat contracts only
 (ns ^:no-doc clojure.core.typed.type-contract
   #?(:clj (:refer-clojure :exclude [requiring-resolve]))
-  (:require [clojure.core.typed.current-impl :as impl]
-            [clojure.core.typed.ast-ops :as ops]
-            [clojure.core.typed.contract :as con]
-            ;used in contracts
-            [clojure.set :as set]
+  (:require [clojure.core.typed.ast-ops :as ops]
             #?(:clj [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]])))
 
 (defn keyword-singleton? [{:keys [op val]}]
-  (when ('#{:singleton} op)
+  (when (= :singleton op)
     (keyword? val)))
 
 (def ^:dynamic *inside-rec* #{})
@@ -47,7 +43,7 @@
                              (gen-inner (update t :rator ops/resolve-Name) arg)
                              ;polymorphic class
                              (#{:Class} (:op rator))
-                             (let [{:keys [args pred] :as rcls} (get (impl/rclass-env) (:name rator))
+                             (let [{:keys [args pred] :as rcls} (get ((requiring-resolve 'clojure.core.typed.current-impl/rclass-env)) (:name rator))
                                    _ (when-not rcls
                                        (int-error (str "Class does not take arguments: "
                                                            (:name rator))))
@@ -68,9 +64,9 @@
                              (int-error (str "Don't know how to apply type: " (:form t)))))
                  (:Class) `(instance? ~(:name t) ~arg)
                  (:Name) 
-                 (impl/impl-case
-                   :clojure (gen-inner (ops/resolve-Name t) arg)
-                   :cljs (int-error (str "TODO CLJS Name")))
+                 (case ((requiring-resolve 'clojure.core.typed.current-impl/current-impl))
+                   :clojure.core.typed.current-impl/clojure (gen-inner (ops/resolve-Name t) arg)
+                   (int-error (str "TODO CLJS Name")))
                  ;              (cond
                  ;                              (empty? (:poly? t)) `(instance? ~(:the-class t) ~arg)
                  ;                              :else (int-error (str "Cannot generate predicate for polymorphic Class")))
@@ -129,10 +125,11 @@
                                                            ~(gen-inner tsyn gi)))
                                                       (vals tmap)
                                                       (repeatedly (count tmap) gensym))))]
-                           `((impl/hmap-c? :mandatory ~(valgen mandatory)
-                                           :optional ~(valgen optional)
-                                           :absent-keys ~(set (map :val absent-keys))
-                                           :complete? ~(:complete? t))
+                           `(((requiring-resolve 'clojure.core.typed.current-impl/hmap-c?)
+                              :mandatory ~(valgen mandatory)
+                              :optional ~(valgen optional)
+                              :absent-keys ~(set (map :val absent-keys))
+                              :complete? ~(:complete? t))
                              ~arg))
                  (:Rec) (cond
                           ;we're already inside this rec
@@ -170,8 +167,9 @@
                             (first (:arities t))]
                         (if (or rest drest filter object)
                           (int-error "Cannot generate predicate for this function type")
-                          `(con/ifn-c ~(mapv #(gen-inner % arg) dom)
-                                      ~(gen-inner rng arg))))
+                          `((requiring-resolve 'clojure.core.typed.contract/ifn-c)
+                            ~(mapv #(gen-inner % arg) dom)
+                            ~(gen-inner rng arg))))
                       :else (int-error "Cannot generate predicate for function type"))
               (:TApp) (let [{:keys [rator rands]} t]
                         (cond 
@@ -199,22 +197,23 @@
                           (gen-inner (ops/instantiate-TFn rator rands) arg)
                           :else
                           (int-error (str "Don't know how to apply type: " (:form t)))))
-              (:Class) `(con/instance-c
-                          (Class/forName ~(str (:name t))))
+              (:Class) `((requiring-resolve 'clojure.core.typed.contract/instance-c*)
+                         ~(:name t)
+                         #(instance? ~(:name t) %))
               (:Name) 
-              (impl/impl-case
-                :clojure (gen-inner (ops/resolve-Name t) arg)
-                :cljs (int-error (str "TODO CLJS Name")))
+              (case ((requiring-resolve 'clojure.core.typed.current-impl/current-impl))
+                :clojure.core.typed.current-impl/clojure (gen-inner (ops/resolve-Name t) arg)
+                (int-error (str "TODO CLJS Name")))
               ;              (cond
               ;                              (empty? (:poly? t)) `(instance? ~(:the-class t) ~arg)
               ;                              :else (int-error (str "Cannot generate predicate for polymorphic Class")))
-              (:Any) `con/any-c
+              (:Any) `@(requiring-resolve clojure.core.typed.contract/any-c)
               ;TODO special case for union of HMap, and unions of constants
-              (:U) `(con/or-c
-                      ;; TODO flatten unions, ensuring Names are resolved
-                      ~@(mapv #(gen-inner % arg) (:types t)))
-              (:I) `(con/and-c
-                      ~@(mapv #(gen-inner % arg) (:types t)))
+              (:U) `((requiring-resolve 'clojure.core.typed.contract/or-c)
+                     ;; TODO flatten unions, ensuring Names are resolved
+                     ~@(mapv #(gen-inner % arg) (:types t)))
+              (:I) `((requiring-resolve 'clojure.core.typed.contract/and-c)
+                     ~@(mapv #(gen-inner % arg) (:types t)))
               ;(:HVec) `(and (vector? ~arg)
               ;              ~(cond
               ;                 (:rest t)
@@ -237,15 +236,16 @@
               ;                                   `(fn [~vlocal] 
               ;                                      ~(gen-inner (:rest t) vlocal)))
               ;                                rstvec#))])))
-              (:CountRange) `(con/count-range-c ~(:lower t) ~(:upper t))
+              (:CountRange) `((requiring-resolve 'clojure.core.typed.contract/count-range-c)
+                              ~(:lower t) ~(:upper t))
               (:singleton) (let [v (:val t)]
                              (cond
-                               (nil? v) `con/nil-c
-                               (symbol? v) `(con/equiv-c ~v)
-                               (keyword? v) `(con/identical-c ~v)
-                               ((some-fn true? false?) v) `(con/identical-c ~v)
+                               (nil? v) `@(requiring-resolve 'clojure.core.typed.contract/nil-c)
+                               (symbol? v) `((requiring-resolve 'clojure.core.typed.contract/equiv-c) ~v)
+                               (keyword? v) `((requiring-resolve 'clojure.core.typed.contract/identical-c) ~v)
+                               ((some-fn true? false?) v) `((requiring-resolve 'clojure.core.typed.contract/identical-c) ~v)
                                (number? v) ; I think = models the type system's behaviour better than ==
-                               `(con/equiv-c ~v)
+                               `((requiring-resolve 'clojure.core.typed.contract/equiv-c) ~v)
 
                                :else (int-error 
                                        (str "Cannot generate predicate for value type: " v))))
@@ -256,10 +256,11 @@
                             congen (fn [tmap]
                                      (zipmap (map :val (keys tmap))
                                              (map #(gen-inner % arg) (vals tmap))))]
-                        `(con/hmap-c :mandatory ~(congen mandatory)
-                                     :optional ~(congen optional)
-                                     :absent-keys ~(set (map :val absent-keys))
-                                     :complete? ~(:complete? t)))
+                        `((requiring-resolve clojure.core.typed.contract/hmap-c)
+                          :mandatory ~(congen mandatory)
+                          :optional ~(congen optional)
+                          :absent-keys ~(set (map :val absent-keys))
+                          :complete? ~(:complete? t)))
 
               ;(:Rec) (cond
               ;         ;we're already inside this rec
@@ -282,13 +283,15 @@
 (defn type-syntax->pred
   ([t] (type-syntax->pred t {}))
   ([t opt]
-   (impl/with-impl impl/clojure
-     (-> ((requiring-resolve 'clojure.core.typed.parse-ast/parse) t)
+   ((requiring-resolve 'clojure.core.typed.current-impl/with-impl*)
+    :clojure.core.typed.current-impl/clojure
+    #(-> ((requiring-resolve 'clojure.core.typed.parse-ast/parse) t)
          (ast->pred opt)))))
 
 (defn type-syntax->contract [t]
-  (impl/with-impl impl/clojure
-    (-> ((requiring-resolve 'clojure.core.typed.parse-ast/parse) t)
+  ((requiring-resolve 'clojure.core.typed.current-impl/with-impl*)
+   :clojure.core.typed.current-impl/clojure
+   #(-> ((requiring-resolve 'clojure.core.typed.parse-ast/parse) t)
         ast->contract)))
 
 (comment
@@ -296,7 +299,7 @@
         (type-syntax->pred 'Nothing)
         (type-syntax->pred '(U Number Boolean))
 
-        (con/contract (type-syntax->contract 'nil) 1)
+        ((requiring-resolve 'clojure.core.typed.contract/contract) (type-syntax->contract 'nil) 1)
 
   (clojure.pprint/pprint (type-syntax->pred '(HMap :optional {:c Number})))
   (clojure.pprint/pprint (type-syntax->pred '(HMap :mandatory {:c Number})))

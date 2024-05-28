@@ -164,13 +164,17 @@
   "Flat contract for values that pass `integer?`."
   (make-flat-contract :name 'int-c :first-order integer?))
 
+(defn instance-c* [c pred]
+  (make-flat-contract :name (str c)
+                      :first-order pred))
+
 ;; macro to allow instance? specialisation
 #?(:clj
 (defmacro instance-c
   "Flat contracts for instance? checks on Class's."
   [c]
-  `(make-flat-contract :name (str ~c)
-                       :first-order #(instance? ~c %))))
+  {:pre [(symbol? c)]}
+  `(instance-c* (str ~c) #(instance? ~c %))))
 
 #_(ann Object-c Contract)
 (def Object-c (instance-c Object))

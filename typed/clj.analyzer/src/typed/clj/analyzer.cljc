@@ -8,7 +8,7 @@
 
 ;; adapted from tools.analyzer.jvm
 (ns typed.clj.analyzer
-  (:refer-clojure :exclude [macroexpand-1])
+  (:refer-clojure :exclude [macroexpand-1 #?(:clj requiring-resolve)])
   (:require [typed.cljc.analyzer :as ana]
             [typed.cljc.analyzer.ast :as ast]
             [typed.cljc.analyzer :as common]

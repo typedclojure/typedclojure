@@ -22,8 +22,6 @@ for checking namespaces, cf for checking individual forms."}
             [clojure.core.typed.util-vars :as vs]
             [clojure.core.typed.import-macros :as import-m]
             [clojure.core.typed.contract :as contract]
-            ; for `pred` and `contract` expansion
-            clojure.core.typed.type-contract
             ; also for `import-macros` below
             [clojure.core.typed.macros :as macros]
             #?(:clj [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]))
