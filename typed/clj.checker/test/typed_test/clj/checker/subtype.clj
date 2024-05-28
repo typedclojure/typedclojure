@@ -110,8 +110,8 @@
   (is-clj (sub? (Array int) (Array int)))
   (is-clj (sub? (Array int) (ReadOnlyArray int)))
   (is-clj (sub? (Array Long) (typed.clojure/Seqable Long)))
-  ;FIXME
-  ;(is-clj (not (sub? (Array Object) (typed.clojure/Seqable Long))))
+  (is-clj (sub? (Array Long) (typed.clojure/Seqable Object)))
+  (is-clj (not (sub? (Array Object) (typed.clojure/Seqable Long))))
   (is-clj (not (sub? (ReadOnlyArray int) (Array int)))))
 
 (deftest top-function-subtype-test

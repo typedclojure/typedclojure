@@ -1830,28 +1830,20 @@
             (when (mapping short-name)
               short-name)))))))
 
-(defn var-symbol-intern
-  "Returns a symbol interned in ns for var symbol, or nil if none.
+(defn protocol-var-symbol-intern
+  "Returns a symbol interned in ns for symbol naming a protocol var, or nil if none.
 
   (var-symbol-intern 'clojure.core/symbol (find-ns 'clojure.core))
   ;=> 'symbol
   (var-symbol-intern 'bar (find-ns 'clojure.core))
   ;=> nil"
   [sym ns]
-  {:pre [(symbol? sym)
+  {:pre [(qualified-symbol? sym)
          (plat-con/namespace? ns)]
    :post [((some-fn nil? symbol?) %)]}
-  (let [mapping (ns-map ns)
-        sym-simple-name (name sym)
-        sym-simple (symbol sym-simple-name)
-        sym-ns-name (namespace sym)]
-    (reduce-kv (fn [_ isym var]
-                 (when (and (var? var)
-                            (= (.sym ^clojure.lang.Var var) sym-simple)
-                            (= (str (.ns ^clojure.lang.Var var)) sym-ns-name))
-                   (reduced isym)))
-               nil
-               mapping)))
+  (let [simple-sym (-> sym name symbol)]
+    (when (= sym (some-> (ns-resolve ns simple-sym) symbol))
+      simple-sym)))
 
 (defn unparse-Name-symbol-in-ns [sym]
   {:pre [(symbol? sym)]
@@ -1867,7 +1859,7 @@
           (core-lang-Class-sym sym)
           ; use unqualified name if interned
           (when (namespace sym)
-            (or #_(var-symbol-intern sym ns)
+            (or (protocol-var-symbol-intern sym ns)
                 ; use aliased ns if not interned, but ns is aliased
                 (when-let [alias (alias-in-ns ns (symbol (namespace sym)))]
                   (symbol (str alias) (name sym)))))
