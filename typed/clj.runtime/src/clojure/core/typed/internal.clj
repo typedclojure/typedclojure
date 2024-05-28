@@ -9,8 +9,7 @@
 ; note: this file is copied into resources/clj-kondo.exports/org.typedclojure/typed.clj.runtime
 ;; via ./script/regen-kondo.sh
 ;; the canonical version is in the src folder
-(ns ^:no-doc clojure.core.typed.internal
-  (:require #_[clojure.core.typed.contract-utils :as con]))
+(ns ^:no-doc clojure.core.typed.internal)
 
 (defn take-when
   "When pred is true of the head of seq, return [head tail]. Otherwise
