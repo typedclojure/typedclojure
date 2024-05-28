@@ -845,7 +845,8 @@
                  (= 2 (count opts))
                  (= 'quote (first opts)))
             (str "Options of typing rule must be a quoted map literal, "
-                 "found: " (pr-str opts)))
+                 "found: " (pr-str opts)
+                 " in " (pr-str (:form expr))))
     ; (quote {...})
     (second opts)))
 
@@ -1127,11 +1128,13 @@
       (invoke/normal-invoke expr fexpr args expected)))
 
 ;requiring-resolve
-(defmethod -invoke-special 'clojure.core/requiring-resolve
+(defn check-requiring-resolve
   [{fexpr :fn :keys [args] :as expr} expected]
   {:post [(or (nil? %)
               (and (-> % u/expr-type r/TCResult?)
                    (vector? (:args %))))]}
+  ;; TODO guide the user with better error messages if any of these conditions fail.
+  ;; currently complains that requiring-resolve is not annotated.
   (when (= 1 (count args))
     (let [cargs (mapv check-expr args)
           t (-> cargs first u/expr-type :t)]
@@ -1142,14 +1145,20 @@
           ;; assumes there are never namespace aliases that shadow namespaces
           (when (var? (try (requiring-resolve sym)
                            (catch java.io.FileNotFoundException _)))
-            (when (var-env/lookup-Var-nofail sym)
+            (if (var-env/lookup-Var-nofail sym)
               (-> expr
                   (update :fn check-expr)
                   (assoc 
                     :args cargs
                     u/expr-type (below/maybe-check-below
                                   (r/ret (c/-name `t/Var (r/-type-of sym)))
-                                  expected)))))))))
+                                  expected)))
+              (do (println (str "WARNING: cannot check requiring-resolve call because "
+                                sym " is unannotated"))
+                  nil)))))))
+
+(defmethod -invoke-special 'clojure.core/requiring-resolve [expr expected] (check-requiring-resolve expr expected))
+(defmethod -invoke-special 'io.github.frenchy64.fully-satisfies.requiring-resolve/requiring-resolve [expr expected] (check-requiring-resolve expr expected))
 
 ;make vector
 (defmethod -invoke-special 'clojure.core/vector

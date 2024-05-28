@@ -8,7 +8,7 @@
 
 ;; adapted from tools.analyzer.jvm
 (ns typed.clj.analyzer
-  (:refer-clojure :exclude [macroexpand-1])
+  (:refer-clojure :exclude [macroexpand-1 #?(:clj requiring-resolve)])
   (:require [typed.cljc.analyzer :as ana]
             [typed.cljc.analyzer.ast :as ast]
             [typed.cljc.analyzer :as common]
@@ -595,7 +595,7 @@
   "Evaluate an AST node, attaching result to :result."
   [ast]
   (let [form (emit-form/emit-form ast)
-        result (clojure.lang.Compiler/eval form)]
+        result (Compiler/eval form)]
     (assoc ast :result result)))
 
 (defn default-thread-bindings [env]
