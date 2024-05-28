@@ -116,6 +116,10 @@
 (defn allowed-hmap-key? [k]
   (keyword-value? k))
 
+(defn upcast-PrimitiveArray [t]
+  {:pre [(r/PrimitiveArray? t)]}
+  (-name 'typed.clojure/Seqable r/-any))
+
 ; Partial HMaps do not record absence of fields, only subtype to (APersistentMap t/Any t/Any)
 (t/ann ^:no-check upcast-hmap* 
        [(t/Map r/Type r/Type) (t/Map r/Type r/Type) (t/Set r/Type) t/Bool -> r/Type])
