@@ -30,7 +30,10 @@
             [typed.cljc.checker.utils :as u])
   (:import (typed.cljc.checker.type_rep Poly TApp F FnIntersection Intersection
                                         Extends NotType DifferenceType AssocType
-                                        RClass Bounds HSequential HeterogeneousMap)))
+                                        RClass Bounds HSequential HeterogeneousMap
+                                        Protocol JSObj)))
+
+(set! *warn-on-reflection* true)
 
 (defn ^:private gen-repeat [times repeated]
   (reduce into [] (repeat times repeated)))
@@ -568,15 +571,15 @@
   ;; It is easier to calculate the ancestors of a datatype than
   ;; the descendants of a protocol, so Datatype <: Any comes
   ;; before Protocol <: Any.
-  typed.cljc.checker.type_rep.Protocol
-  (subtypeA*-for-s [s t A]
+  Protocol
+  (subtypeA*-for-s [s ^Protocol t A]
     (cond
       (r/Protocol? t)
-      (let [var1 (:the-var s)
-            variances* (:variances s)
-            poly1 (:poly? s)
-            var2 (:the-var t)
-            poly2 (:poly? t)]
+      (let [var1 (.the-var s)
+            variances* (.variances s)
+            poly1 (.poly? s)
+            var2 (.the-var t)
+            poly2 (.poly? t)]
         ;(prn "protocols subtype" s t)
         (when (AND (= var1 var2)
                    (every?' (fn _prcol-variance [v l r]
@@ -601,12 +604,12 @@
     (subtypeA* A (c/upcast-hmap s) t))
 
   ;; JSObj is covariant, taking after TypeScript & Google Closure. Obviously unsound.
-  typed.cljc.checker.type_rep.JSObj
-  (subtypeA*-for-s [s t A]
+  JSObj
+  (subtypeA*-for-s [s ^JSObj t A]
     (when (r/JSObj? t)
       (let [; convention: prefix things on left with l, right with r
-            ltypes (:types s)
-            rtypes (:types t)]
+            ltypes (.types s)
+            rtypes (.types t)]
         (when (every? (fn [[k rt]]
                         (when-let [lt (get ltypes k)]
                           (subtypeA* A lt rt)))
@@ -627,10 +630,10 @@
 
   ;; TODO add repeat support
   HSequential
-  (subtypeA*-for-s [s t A]
+  (subtypeA*-for-s [s ^HSequential t A]
     (cond (and (r/HSequential? t)
-               (r/compatible-HSequential-kind? (:kind s)
-                                               (:kind t)))
+               (r/compatible-HSequential-kind? (.kind s)
+                                               (.kind t)))
           (subtype-compatible-HSequential A s t)
 
           (r/TopHSequential? t) A
@@ -646,13 +649,13 @@
       (subtype-heterogeneous-map A s t)
       (subtypeA* A (c/upcast-hmap s) t)))
 
-  typed.cljc.checker.type_rep.Poly
-  (subtypeA*-for-s [s t A]
+  Poly
+  (subtypeA*-for-s [s ^Poly t A]
     (when (AND (r/PolyDots? t) ;; test t first to short-circuit if -Poly? fails
-               (= :PolyDots (:kind s))
-               (= (:nbound s) (:nbound t)))
+               (= :PolyDots (.kind s))
+               (= (.nbound s) (.nbound t)))
       (let [;instantiate both sides with the same fresh variables
-            names (repeatedly (:nbound s) gensym)
+            names (repeatedly (.nbound s) gensym)
             bbnds1 (c/PolyDots-bbnds* names s)
             bbnds2 (c/PolyDots-bbnds* names t)
             b1 (c/PolyDots-body* names s)
