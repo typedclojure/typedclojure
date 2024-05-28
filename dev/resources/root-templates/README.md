@@ -166,6 +166,7 @@ Thanks to the following people for contributing to core.typed:
 * Alejandro Gomez (dialelo)
 * Piotr Jarzemski (kazuhiro)
 * Oleksandr Yakushev (alexander-yakushev)
+* David Miller (dmiller)
 
 ## YourKit
 
