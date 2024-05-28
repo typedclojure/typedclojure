@@ -22,9 +22,6 @@
             [clojure.core :as cc]
             [clojure.core.typed.platform-case :refer [platform-case]]
             #?(:clj [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]])))
-            
-
-(alias 't 'typed.clojure)
 
 (defmacro ann
   "Annotate varsym with type. If unqualified, qualify in the current namespace.
@@ -157,7 +154,7 @@
 
 ;; checker ops
 
-(defn check-ns-clj
+(cc/defn check-ns-clj
   "In Clojure, checks the current namespace or provided namespaces.
   Similar for self-hosted ClojureScript, except for macros namespaces."
   ([] #?(:clj ((requiring-resolve 'typed.clj.checker/check-ns3))
@@ -168,7 +165,7 @@
     ns-or-syms
     opt)))
 
-(defn check-ns-cljs
+(cc/defn check-ns-cljs
   ([] (check-ns-cljs (ns-name *ns*)))
   ([& args]
    (apply #?(:clj (requiring-resolve 'cljs.core.typed/check-ns*)
@@ -263,8 +260,8 @@
   Use :doc/index for documentation index."
   [syn] ((requiring-resolve 'typed.cljc.doc/type-doc-cljs) syn))
 
-(defn check-dir-clj [dirs]
+(cc/defn check-dir-clj [dirs]
   ((requiring-resolve 'typed.cljc.dir/check-dir-clj) dirs))
 
-(defn check-dir-cljs [dirs]
+(cc/defn check-dir-cljs [dirs]
   ((requiring-resolve 'typed.cljc.dir/check-dir-cljs) dirs))

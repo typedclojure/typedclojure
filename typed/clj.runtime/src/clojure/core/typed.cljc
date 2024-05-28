@@ -19,12 +19,8 @@ for checking namespaces, cf for checking individual forms."}
                             #?(:clj requiring-resolve)
                             #_filter #_remove])
   (:require [clojure.core :as core]
-            [clojure.reflect :as reflect]
             [clojure.core.typed.util-vars :as vs]
-            [clojure.core.typed.special-form :as spec]
             [clojure.core.typed.import-macros :as import-m]
-            [clojure.core.typed.contract :as contract]
-            [clojure.string :as str]
             ; for `pred` and `contract` expansion
             clojure.core.typed.type-contract
             ; also for `import-macros` below
@@ -75,18 +71,16 @@ for checking namespaces, cf for checking individual forms."}
   [mname]
   (load-if-needed)
   (core/let [ms (->> (Class/forName (namespace mname))
-                     reflect/type-reflect
+                     ((requiring-resolve 'clojure.reflect/type-reflect))
                      :members
                      (core/filter #(and (instance? clojure.reflect.Method %)
                                         (= (str (:name %)) (name mname))))
                      set)
              _ (assert (seq ms) (str "Method " mname " not found"))]
-    ( "Method name:" mname)
-    (flush)
+    (println "Method name:" mname)
     (core/doseq [m ms]
       (println ((requiring-resolve 'typed.clj.checker.parse-unparse/unparse-type)
-                ((requiring-resolve 'typed.clj.checker.check/Method->Type) m)))
-      (flush))))
+                ((requiring-resolve 'typed.clj.checker.check/Method->Type) m))))))
 
 (core/defn install
   "Install the :core.typed :lang. Takes an optional set of features
@@ -1058,7 +1052,7 @@ for checking namespaces, cf for checking individual forms."}
              _ (core/let [fs (frequencies (map first (partition 2 mth)))]
                  (when-let [dups (seq (filter (core/fn [[_ freq]] (< 1 freq)) fs))]
                    (println (str "WARNING: Duplicate method annotations in ann-protocol (" varsym 
-                                 "): " (str/join ", " (map first dups))))))
+                                 "): " ((requiring-resolve 'clojure.string/join) ", " (map first dups))))))
              ; duplicates are checked above.
              {:as mth} mth
              qsym (qualify-sym varsym)]
@@ -1113,7 +1107,7 @@ for checking namespaces, cf for checking individual forms."}
         _ (core/let [fs (frequencies (map first (partition 2 mth)))]
             (when-let [dups (seq (filter (core/fn [[_ freq]] (< 1 freq)) fs))]
               (println (str "WARNING: Duplicate method annotations in ann-interface (" clsym 
-                            "): " (str/join ", " (map first dups))))
+                            "): " ((requiring-resolve 'clojure.string/join) ", " (map first dups))))
               (flush)))
         ; duplicates are checked above.
         {:as mth} mth
@@ -1673,20 +1667,20 @@ for checking namespaces, cf for checking individual forms."}
   ([t x] `(cast ~t ~x {}))
   ([t x opt]
    (register!) ; for type-syntax->contract
-   `(do ~spec/special-form
+   `(do :clojure.core.typed.special-form/special-form
         ::cast
         {:type '~t}
         ;; type checker expects a contract to be in this form, ie. ((fn [x] ..) x)
         ;; - clojure.core.typed.check.add-cast
         ;; - clojure.core.typed.check.special.cast
         ((core/fn [x#]
-           (contract/contract
+           ((requiring-resolve 'clojure.core.typed.contract/contract)
              ~(with-current-location &form
                 ((requiring-resolve 'clojure.core.typed.type-contract/type-syntax->contract)
                  t))
              x#
              (core/let [opt# ~opt]
-               (contract/make-blame
+               ((requiring-resolve 'clojure.core.typed.contract/make-blame)
                  :positive (or (:positive opt#)
                                "cast")
                  :negative (or (:negative opt#)
