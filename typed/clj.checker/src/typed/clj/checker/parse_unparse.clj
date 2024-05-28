@@ -1827,9 +1827,8 @@
       (when (<= 0 last-dot (- (count clstr) 2))
         (let [short-name (symbol (subs clstr (inc last-dot)))]
           (when-some [mapping (ns-map ns)]
-            (when-some [^Class cls (mapping short-name)]
-              (when (= short-name (.getSimpleName cls))
-                short-name))))))))
+            (when (mapping short-name)
+              short-name)))))))
 
 (defn var-symbol-intern 
   "Returns a symbol interned in ns for var symbol, or nil if none.

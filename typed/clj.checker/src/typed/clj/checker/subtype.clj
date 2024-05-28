@@ -446,14 +446,13 @@
   FnIntersection
   ;; hack for FnIntersection <: clojure.lang.IFn
   (subtypeA*-for-s [s t A]
-    (when (and (impl/checking-clojure?)
-               (subtypeA* A (c/RClass-of clojure.lang.IFn) t))
-      A))
+    (when (impl/checking-clojure?)
+      (subtypeA* A (c/RClass-of clojure.lang.IFn) t)))
 
   RClass
-  (subtypeA*-for-s [^RClass s t A]
+  (subtypeA*-for-s [s t A]
     (cond
-      (or (r/RClass? t)
+      (OR (r/RClass? t)
           (r/Instance? t))
       (subtype-RClass A s t)
 
@@ -474,20 +473,22 @@
                         "given " (count (.poly? s)))))]
           (subtypeA* A read-type t))
 
-        (some #(when (r/FnIntersection? %)
-                 (subtypeA* A % t))
-              (map c/fully-resolve-type (c/RClass-supers* s))))
+        (some #(let [s (c/fully-resolve-type %)]
+                 (when (r/FnIntersection? s)
+                   (subtypeA* A s t)))
+              (c/RClass-supers* s)))
 
       ;; handles classes with heterogeneous vector ancestors (eg. IMapEntry)
       (OR (r/HSequential? t)
           (r/TopHSequential? t))
-      (some #(when (r/HSequential? %)
-               (subtypeA* A % t))
-            (map c/fully-resolve-type (c/RClass-supers* s)))))
+      (some #(let [s (c/fully-resolve-type %)]
+               (when (r/HSequential? s)
+                 (subtypeA* A s t)))
+            (c/RClass-supers* s))))
 
   typed.cljc.checker.type_rep.Instance
   (subtypeA*-for-s [s t A]
-    (when (or (r/RClass? t)
+    (when (OR (r/RClass? t)
               (r/Instance? t))
       (subtype-RClass A s t)))
 
@@ -526,15 +527,15 @@
 
   ;;values are subtypes of their classes
   typed.cljc.checker.type_rep.Value
-  (subtypeA*-for-s [^typed.cljc.checker.type_rep.Value s t A]
+  (subtypeA*-for-s [s t A]
     (cond
       ;; repeat Heterogeneous* can always accept nil
-      (and (= s r/-nil)
+      (AND (= s r/-nil)
            (r/HSequential? t)
            (:repeat t))
       A
 
-      (and (= s r/-nil)
+      (AND (= s r/-nil)
            (r/Protocol? t)
            (impl/checking-clojure?)
            (contains? (c/Protocol-normal-extenders t) nil))
@@ -568,7 +569,7 @@
   ;; the descendants of a protocol, so Datatype <: Any comes
   ;; before Protocol <: Any.
   typed.cljc.checker.type_rep.Protocol
-  (subtypeA*-for-s [^typed.cljc.checker.type_rep.Protocol s t A]
+  (subtypeA*-for-s [s t A]
     (cond
       (r/Protocol? t)
       (let [var1 (:the-var s)
@@ -577,7 +578,7 @@
             var2 (:the-var t)
             poly2 (:poly? t)]
         ;(prn "protocols subtype" s t)
-        (when (and (= var1 var2)
+        (when (AND (= var1 var2)
                    (every?' (fn _prcol-variance [v l r]
                               (case v
                                 :covariant (subtypeA* A l r)
@@ -647,8 +648,8 @@
 
   typed.cljc.checker.type_rep.Poly
   (subtypeA*-for-s [s t A]
-    (when (and (r/PolyDots? s)
-               (r/PolyDots? t)
+    (when (AND (r/PolyDots? t) ;; test t first to short-circuit if -Poly? fails
+               (= :PolyDots (:kind s))
                (= (:nbound s) (:nbound t)))
       (let [;instantiate both sides with the same fresh variables
             names (repeatedly (:nbound s) gensym)
@@ -656,10 +657,9 @@
             bbnds2 (c/PolyDots-bbnds* names t)
             b1 (c/PolyDots-body* names s)
             b2 (c/PolyDots-body* names t)]
-        (when (and (= bbnds1 bbnds2)
-                   (free-ops/with-bounded-frees (zipmap (map r/F-maker names) bbnds1)
-                     (subtypeA* A b1 b2)))
-          A)))))
+        (when (= bbnds1 bbnds2)
+          (free-ops/with-bounded-frees (zipmap (map r/F-maker names) bbnds1)
+            (subtypeA* A b1 b2)))))))
 
 ;;TODO replace hardcoding cases for unfolding Mu? etc. with a single case for unresolved types.
 ;;[(t/Set '[Type Type]) Type Type -> (t/Nilable (t/Set '[Type Type]))]
