@@ -134,7 +134,7 @@
   {:pre [b]}
   (((:projection c) b) x))
 
-#?(:clj
+#?(:cljs :ignore :default
 (defmacro contract
   "Check a contract against a value, with an optional Blame object.
   
@@ -148,9 +148,9 @@
                       :negative ~(str "Not " (ns-name *ns*))
                       :file ~*file*
                       :line ~(or (-> &form meta :line)
-                                 @Compiler/LINE)
+                                 #?(:cljr @clojure.lang.Compiler/LineVar :default @Compiler/LINE))
                       :column ~(or (-> &form meta :column)
-                                   @Compiler/COLUMN))))
+                                   #?(:cljr @clojure.lang.Compiler/ColumnVar :default @Compiler/COLUMN)))))
      ~x))))
 
 #_(ann swap-blame [Blame :-> Blame])
@@ -175,7 +175,7 @@
                       :first-order pred))
 
 ;; macro to allow instance? specialisation
-#?(:clj
+#?(:cljs :ignore :default
 (defmacro instance-c
   "Flat contracts for instance? checks on Class's."
   [c]
@@ -304,8 +304,12 @@
   (next [this]
     (when-let [n (next s)]
       (->CheckedISeq n c b)))
-  (cons [this x]
+  #?(:cljr
+  (^clojure.lang.ISeq cons [this ^Object x]  ;; Sigh -- overloaded in cljr
     (->CheckedISeq (conj s x) c b))
+   :default   
+  (cons [this x]
+    (->CheckedISeq (conj s x) c b)))
   (empty [this]
     (empty s))
   (seq [this]
@@ -313,7 +317,7 @@
       this))
   (equiv [this o]
     (if (or (not (instance? clojure.lang.Sequential o))
-            (not (instance? java.util.List o)))
+            (not (instance? #?(:cljr System.Collections.IEnumerable :default java.util.List) o)))     
       false
       (loop [ms this
              s (seq o)]

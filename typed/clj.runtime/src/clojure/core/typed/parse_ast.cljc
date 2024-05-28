@@ -122,12 +122,12 @@
 (t/ann *dotted-scope* (t/Map t/Sym t/Sym))
 (def ^:dynamic *dotted-scope* {})
 
-#?(:clj
+#?(:cljs :ignore :default
 (defmacro with-frees [fs & args]
   `(binding [*tvar-scope* (merge *tvar-scope* ~fs)]
      ~@args)))
 
-#?(:clj
+#?(:cljs :ignore :default
 (defmacro with-dfrees [fs & args]
   `(binding [*dotted-scope* (merge *dotted-scope* ~fs)]
      ~@args)))
@@ -151,6 +151,14 @@
                          :type Type
                          :id NameRef}
              :optional {:path (t/Vec PathElem)}))))
+
+#?(:cljr
+
+(do 
+  (def ^:private init-symbol-escape *allow-symbol-escape*)
+  (.bindRoot #'*allow-symbol-escape* false))
+
+)
 
 (t/ann parse-filter [t/Any -> Filter])
 (defn parse-filter [syn]
@@ -215,6 +223,12 @@
       (if m
         m
         (err/int-error (str "Bad filter syntax: " syn))))))
+
+
+#?(:cljr
+
+  (.bindRoot #'*allow-symbol-escape* init-symbol-escape)
+)
 
 (t/defalias FilterSet
   '{:op ':filter-set
@@ -445,6 +459,25 @@
                  :upper-bound {:op :Any}
                  :lower-bound {:op :U :types []}})
 
+#?(
+:cljr
+(def clj-primitives
+  {'byte     {:op :clj-prim :name 'byte}
+   'sbyte    {:op :clj-pimr :name 'sbyte}
+   'short    {:op :clj-prim :name 'short}
+   'int      {:op :clj-prim :name 'int}
+   'long     {:op :clj-prim :name 'long}
+   'ushort   {:op :clj-prim :name 'ushort}
+   'uint     {:op :clj-prim :name 'uint}
+   'ulong    {:op :clj-prim :name 'ulong}
+   'float    {:op :clj-prim :name 'float}
+   'double   {:op :clj-prim :name 'double}
+   'boolean  {:op :clj-prim :name 'boolean}
+   'char     {:op :clj-prim :name 'char}
+   'decimal  {:op :clj-prim :name 'decimal}
+   'void     {:op :singleton :val nil}})
+
+:default
 (def clj-primitives
   {'byte     {:op :clj-prim :name 'byte}
    'short    {:op :clj-prim :name 'short}
@@ -455,6 +488,7 @@
    'boolean  {:op :clj-prim :name 'boolean}
    'char     {:op :clj-prim :name 'char}
    'void     {:op :singleton :val nil}})
+   )
 
 (def cljs-primitives
   {'int     {:op :cljs-prim :name 'int}

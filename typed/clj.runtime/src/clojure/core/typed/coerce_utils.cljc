@@ -9,11 +9,11 @@
 (ns ^:no-doc clojure.core.typed.coerce-utils
   (:require [typed.clojure :as t]
             [clojure.string :as str]
-            [clojure.java.io :as io]
+            #?(:cljr [clojure.clr.io] :default [clojure.java.io :as io])
             [clojure.core.typed.current-impl :as impl])
   (:import (clojure.lang RT Var)))
 
-(t/ann symbol->Class [t/Sym -> Class])
+(t/ann symbol->Class [t/Sym -> #?(:cljr Type :default Class)])
 (defn symbol->Class 
   "Returns the Class represented by the symbol. Works for
   primitives (eg. byte, int). Does not further resolve the symbol."
@@ -29,13 +29,20 @@
     double Double/TYPE
     boolean Boolean/TYPE
     char Character/TYPE
+    #?@(:cljr [
+    sbyte SByte
+    ushort UInt16
+    uint UInt32
+    ulong UInt64
+    decimal Decimal
+    ])
     (RT/classForName (str sym))))
 
-(t/ann Class->symbol [Class -> t/Sym])
-(defn Class->symbol [^Class cls]
+(t/ann Class->symbol [#?(:cljr Type :default Class) -> t/Sym])
+(defn Class->symbol [^#?(:cljr Type :default Class) cls]
   #_{:pre [(class? cls)]
      :post [(symbol? %)]}
-  (symbol (.getName cls)))
+  (symbol (#?(:cljr .FullName :default .getName) cls)))
 
 (t/ann var->symbol [t/AnyVar -> t/Sym])
 (defn var->symbol [^Var var]
@@ -71,7 +78,10 @@
     (cond-> p
       (str/starts-with? p "/") (subs 1))))
 
+;; no equivalent of io/resource for CLR 
+#?(:cljr nil :default (do
 (t/ann ns->URL [t/Sym -> (t/Nilable java.net.URL)])
+
 (defn ns->URL ^java.net.URL [nsym]
   {:pre [(symbol? nsym)]
    :post [((some-fn #(instance? java.net.URL %)
@@ -79,6 +89,7 @@
            %)]}
   (let [p (ns->file nsym)]
     (io/resource p)))
+))
 
 (t/ann sym->kw [t/Sym -> t/Kw])
 (defn sym->kw [sym]

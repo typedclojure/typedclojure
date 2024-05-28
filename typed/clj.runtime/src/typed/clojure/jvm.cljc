@@ -43,9 +43,9 @@
                (apply hash-map args))
         this-ns (ns-name *ns*)]
     `(clojure.core.typed/tc-ignore
-       (let [nme# (or (when-some [^Class c# (ns-resolve '~this-ns '~nme)]
+       (let [nme# (or (when-some [^#?(:cljr Type :default Class) c# (ns-resolve '~this-ns '~nme)]
                         (when (class? c#)
-                          (-> c# .getName symbol)))
+                          (-> c# #?(:cljr .FullName :default .getName) symbol)))
                       (throw (ex-info (str "Could not resolve class: " '~nme) {:class-name '~nme})))]
           ;; TODO runtime env
          #_

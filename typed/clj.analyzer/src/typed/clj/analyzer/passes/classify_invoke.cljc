@@ -69,8 +69,8 @@
                :target   (second args)
                :form     form
                :env      env
-               :o-tag    Boolean/TYPE
-               :tag      (or tag Boolean/TYPE)
+               :o-tag    #?(:cljr Boolean :default Boolean/TYPE)
+               :tag      (or tag #?(:cljr Boolean :default Boolean/TYPE))
                :children [:target]})
 
        (and var? (cu/protocol-node? the-var (:meta the-fn)))

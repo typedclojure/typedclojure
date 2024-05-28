@@ -12,6 +12,7 @@
 
 (defn checker-or-nil []
   {:post [(or #?(:clj (instance? clojure.lang.IAtom2 %)
+                 :cljr (instance? clojure.lang.IAtom2 %)
                  :cljs (instance? Atom %))
               (nil? %))]}
   *checker*)
@@ -19,6 +20,7 @@
 (defn checker []
   (let [c *checker*]
     (assert (or #?(:clj (instance? clojure.lang.IAtom2 c)
+                   :cljr (instance? clojure.lang.IAtom2 c)
                    :cljs (instance? Atom c))
                 (delay? c))
             (str "No checker state: " (pr-str c)))

@@ -15,6 +15,17 @@
             [typed.cljc.analyzer.utils :as cu]
             [typed.clj.analyzer.utils :as ju]))
 
+#?(
+:cljr
+
+;;; Added this to deal with explicit interface implementation.
+(defn explicit-implementation-name-matches 
+  [impl-method-name interface-method-name]
+  (let [member-name (str impl-method-name )
+        i (.LastIndexOf member-name ".")] 
+    (and (pos? i) (= (subs member-name (inc i)) (str interface-method-name)))))
+)
+
 (defn annotate-host-info
   "Adds a :methods key to reify/deftype :methods info representing
    the reflected informations for the required methods, replaces
@@ -40,7 +51,8 @@
                                              ()
                                              (let [nm? (ju/name-matches? name)]
                                                (filter #(and (= argc (count (:parameter-types %)))
-                                                             (nm? (:name %)))
+                                                             (or (nm? (:name %))
+                                                                 #?(:cljr (explicit-implementation-name-matches name (:name %)))))
                                                        all-methods))))))
                                 methods)))
 
@@ -50,7 +62,7 @@
 
                      (and (= :const (:op class))
                           (= :default (:form class)))
-                     Throwable
+                     #?(:cljr Exception :default Throwable)
 
                      (= :maybe-class (:op class))
                      (ju/maybe-class-literal (:class class)))
@@ -59,8 +71,8 @@
                 (-> ast
                   (assoc :class (assoc (ana/analyze-const the-class env :class)
                                   :form  (:form class)
-                                  :tag   Class
-                                  :o-tag Class)))
+                                  :tag   #?(:cljr Type :default Class)
+                                  :o-tag #?(:cljr Type :default Class))))
                 ast)]
       (assoc-in ast [:local :tag]  (-> ast :class :val)))
 
@@ -85,7 +97,7 @@
                                   (= arg-tags (mapv ju/maybe-class parameter-types)))) rest))
                   (assoc (dissoc ast :interfaces :methods)
                     :bridges   (filter #(and (= arg-tags (mapv ju/maybe-class (:parameter-types %)))
-                                             (.isAssignableFrom (ju/maybe-class (:return-type %)) ret-tag))
+                                             (#?(:cljr .IsAssignableFrom :default .isAssignableFrom) (ju/maybe-class (:return-type %)) ret-tag))
                                        (disj methods-set (dissoc m :declaring-class :flags)))
                     :methods   methods
                     :interface i-tag

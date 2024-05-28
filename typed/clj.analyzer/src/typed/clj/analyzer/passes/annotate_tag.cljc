@@ -39,7 +39,7 @@
       (assoc ast :o-tag t :tag t))
 
     :char
-    (assoc ast :o-tag Character/TYPE :tag Character/TYPE)
+    (assoc ast :o-tag #?(:cljr Char :default Character/TYPE) :tag #?(:cljr Char :default Character/TYPE))
 
     :seq
     (assoc ast :o-tag ISeq :tag ISeq)
@@ -54,7 +54,7 @@
                   (and (= :arg local) variadic? ISeq)
                   o-tag
                   Object)
-        o-tag (if (#{Void Void/TYPE} o-tag)
+        o-tag (if (#?(:cljr #{Void} :default #{Void Void/TYPE}) o-tag)
                 Object
                 o-tag)]
     (if-let [tag (or (:tag (meta form)) tag)]

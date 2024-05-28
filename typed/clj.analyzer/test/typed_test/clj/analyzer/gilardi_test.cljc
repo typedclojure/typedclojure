@@ -212,7 +212,7 @@
   (is (= 2 (:result
              (chk `(do (ns ~(gensym 'foo))
                        (require '~'[clojure.core :as core])
-                       (assert (.startsWith (str (ns-name *ns*)) "foo")
+                       (assert (#?(:cljr .StartsWith :default .startsWith) (str (ns-name *ns*)) "foo")
                                *ns*)
                        ;(prn (ns-aliases *ns*))
                        ;(println "foo ADSF")
@@ -329,7 +329,7 @@
                          (~'demunge "a")))
              nil)))
   (is (thrown-with-msg?
-        RuntimeException
+        #?(:cljr Exception :default RuntimeException)
         #"" ;#"Unable to resolve symbol: demunge in this context"
         (eval-in-fresh-ns `(let* []
                              (my-body (change-to-clojure-repl-on-eval)
@@ -342,7 +342,7 @@
                     (~'demunge "a")))
              nil)))
   (is (thrown-with-msg?
-        RuntimeException
+        #?(:cljr Exception :default RuntimeException)
         #"" ;#"Unable to resolve symbol: demunge in this context"
         (eval-in-fresh-ns `(let* []
                              (do (change-to-clojure-repl-on-eval)

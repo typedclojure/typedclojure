@@ -217,7 +217,7 @@
                     {:type-error nyi-error-kw
                      :env (env-for-error env)}))))
 
-#?(:clj
+#?(:cljs :ignore :default
 (defmacro with-ex-info-handlers 
   "Handle an ExceptionInfo e thrown in body. The first handler whose left hand
   side returns true, then the right hand side is called passing (ex-info e) and e."
@@ -282,7 +282,7 @@
                              (str ":" column))))
                     ") "))
         (println)
-        (print (.getMessage e))
+        (print (#?(:cljr .Message :default .getMessage) e))
         (println)
         (flush)
         (let [[_ form :as has-form?] (find data :form)]

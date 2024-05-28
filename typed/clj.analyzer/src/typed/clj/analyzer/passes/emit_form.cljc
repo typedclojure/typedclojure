@@ -49,7 +49,7 @@
   [{:keys [type val] :as ast} opts]
   (if (and (= type :class)
            (:qualified-symbols opts))
-    (symbol (.getName ^Class val))
+    (symbol #?(:cljr (.FullName ^Type val) :default (.getName ^Class val)))
     (default/-emit-form ast opts)))
 
 (defmethod -emit-form :monitor-enter
@@ -79,12 +79,12 @@
 (defn class->str [class]
   (if (symbol? class)
     (name class)
-    (.getName ^Class class)))
+    #?(:cljr (.FullName ^Type class) :default (.getName ^Class class))))
 
 (defn class->sym [class]
   (if (symbol? class)
     class
-    (symbol (.getName ^Class class))))
+    (symbol #?(:cljr (.FullName ^Type class) :default (.getName ^Class class)))))
 
 (defmethod -emit-form :catch
   [{:keys [class local body]} opts]

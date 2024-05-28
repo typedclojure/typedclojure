@@ -8,8 +8,7 @@
 
 (ns ^:no-doc typed.cljc.runtime.env-utils-annotations
   (:require [typed.clojure :as t]
-            [typed.cljc.runtime.env-utils :as env-utils])
-  (:import [java.lang.ref SoftReference]))
+            [typed.cljc.runtime.env-utils :as env-utils]))
 
 (t/defalias env-utils/InvalidationId t/Str)
 (t/defalias env-utils/ForcedType

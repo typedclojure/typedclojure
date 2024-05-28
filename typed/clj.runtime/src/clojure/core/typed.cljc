@@ -184,7 +184,7 @@ for checking namespaces, cf for checking individual forms."}
   ([sym t] ((requiring-resolve 'clojure.core.typed.impl/defalias) &form sym t)))
 
 (defmacro ^:private defspecial [& body]
-  (when (= "true" (System/getProperty "clojure.core.typed.special-vars"))
+  (when (= "true" (#?(:cljr Environment/GetEnvironmentVariable :default System/getProperty) "clojure.core.typed.special-vars"))
     `(def ~@body)))
 
 (defspecial
@@ -1146,7 +1146,7 @@ for checking namespaces, cf for checking individual forms."}
 ; thus dynaload as lazily as possible.
 ;============================================================
 
-(when (= "true" (System/getProperty "clojure.core.typed.deprecated-wrapper-macros"))
+(when (= "true" (#?(:cljr Environment/GetEnvironmentVariable :default System/getProperty) "clojure.core.typed.deprecated-wrapper-macros"))
   (load "typed/deprecated_wrapper_macros"))
 
 ;;TODO make typing rule

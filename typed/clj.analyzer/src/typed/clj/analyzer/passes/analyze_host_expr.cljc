@@ -169,8 +169,8 @@
                                          (u/maybe-class-literal (:form target)))]
                    (merge target
                           (assoc (ana/analyze-const the-class env :class)
-                            :tag   Class
-                            :o-tag Class))
+                            :tag   #?(:cljr Type :default Class)
+                            :o-tag #?(:cljr Type :default Class)))
                    target)
           class? (and (= :const (:op target))
                       (= :class (:type target))
@@ -194,7 +194,7 @@
                 {:tag tag})))
     :var
     (if-let [the-class (and (not (namespace form))
-                            (pos? (.indexOf (str form) "."))
+                            (pos? (#?(:cljr .IndexOf :default .indexOf) (str form) "."))
                             (u/maybe-class-literal form))]
       (assoc (ana/analyze-const the-class env :class) :form form)
       ast)

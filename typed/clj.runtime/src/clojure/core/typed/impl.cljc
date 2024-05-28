@@ -65,7 +65,7 @@
   Intended for use at the REPL."
   [mname]
   (load-if-needed)
-  (core/let [ms (->> (Class/forName (namespace mname))
+  (core/let [ms (->> (#?(:cljr clojure.lang.RT/classForNameE :default Class/forName) (namespace mname))
                      ((requiring-resolve 'clojure.reflect/type-reflect))
                      :members
                      (core/filter #(and (instance? clojure.reflect.Method %)
@@ -196,9 +196,9 @@
                      {:ns {:name (ns-name *ns*)}
                       :file *file*
                       :line (or (-> form# meta :line)
-                                @Compiler/LINE)
+                                #?(:cljr @Compiler/LineVar :default @Compiler/LINE))
                       :column (or (-> form# meta :column)
-                                  @Compiler/COLUMN)}}
+                                  #?(:cljr @Compiler/ColumnVar :default @Compiler/COLUMN))}}
        (do ~@body))))
 
 (defmacro ^:private delay-rt-parse
@@ -290,13 +290,13 @@
    (core/let
      [qsym (qualify-sym sym)]
      `(clojure.core.typed/tc-ignore
-        (when (= "true" (System/getProperty "clojure.core.typed.intern-defaliases"))
+        (when (= "true" (#?(:cljr Environment/GetEnvironmentVariable :default System/getProperty) "clojure.core.typed.intern-defaliases"))
           (intern '~qsym '~(with-meta (symbol (name sym))
                                       (meta sym))))
         ((requiring-resolve 'defalias*) '~qsym '~t '~&form)))))
 
 (defmacro ^:private defspecial [& body]
-  (when (= "true" (System/getProperty "clojure.core.typed.special-vars"))
+  (when (= "true" (#?(:cljr Environment/GetEnvironmentVariable :default System/getProperty) "clojure.core.typed.special-vars"))
     `(def ~@body)))
 
 (defspecial
@@ -1368,10 +1368,10 @@
                            ~*file*)
                  :line (or (:line opt#)
                            ~(or (-> &form meta :line)
-                                @Compiler/LINE))
+                                #?(:cljr @Compiler/LineVar :default @Compiler/LINE)))
                  :column (or (:column opt#)
                              ~(or (-> &form meta :column)
-                                  @Compiler/COLUMN))))))
+                                  #?(:cljr @Compiler/ColumnVar :default @Compiler/COLUMN)))))))
          ~x))))
 
 (core/defn infer-unannotated-vars

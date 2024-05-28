@@ -11,13 +11,19 @@
 ;; reader conditions in .clj files, and where PersistentArrayMap doesn't
 ;; exist.
 (ns ^:no-doc clojure.core.typed.contract-utils-platform-specific
-  #?(:clj (:require [clojure.core.typed.contract-utils :as con]))
-  #?(:clj (:import (clojure.lang PersistentArrayMap))))
+  #?(:clj (:require [clojure.core.typed.contract-utils :as con])
+     :cljr (:require [clojure.core.typed.contract-utils :as con]))
+  #?(:clj (:import (clojure.lang PersistentArrayMap))
+     :cljr (:import (clojure.lang PersistentArrayMap))))
 
 #?(:bb nil
-   :clj (def namespace? #(instance? clojure.lang.Namespace %)))
+   :clj (def namespace? #(instance? clojure.lang.Namespace %))
+   :cljr (def namespace? #(instance? clojure.lang.Namespace %)))
 
 #?(:clj (defn array-map-c? [ks-c? vs-c?]
+          (every-pred #(instance? PersistentArrayMap %)
+                      (con/every-c? (con/hvector-c? ks-c? vs-c?))))
+   :cljr (defn array-map-c? [ks-c? vs-c?]
           (every-pred #(instance? PersistentArrayMap %)
                       (con/every-c? (con/hvector-c? ks-c? vs-c?)))))
 

@@ -9,7 +9,8 @@
 ;; adapted from clojure.tools.analyzer
 (ns typed.cljc.analyzer
   (:refer-clojure :exclude [macroexpand-1 var?])
-  (:require #?(:cljs [typed.clojure :as-alias t])
+  (:require #?@(:clj []
+                :default [[typed.clojure :as-alias t]])
             [typed.cljc.analyzer.ast :as ast]
             [typed.cljc.analyzer.utils :as u])
   #?(:clj (:import (clojure.lang IType))))
@@ -164,9 +165,9 @@
 (defmacro create-expr [m cls]
   {:pre [(symbol? cls)
          (map? m)]}
-  (let [^Class rcls (resolve cls)
+  (let [^#?(:cljr Type :default Class) rcls (resolve cls)
         _ (assert (class? rcls) {:cls cls :resolved rcls})
-        rsym (symbol (.getName rcls))
+        rsym (symbol (#?(:cljr .FullName :default .getName) rcls))
         {:keys [fields] :as info} (get defexpr-info rsym)
         _ (assert info (str "No info for expr " cls))
         fset (into #{} (map keyword) fields)
@@ -180,9 +181,9 @@
 (defmacro update-expr [e cls & cases]
   {:pre [(symbol? cls)
          (every? vector? cases)]}
-  (let [^Class rcls (resolve cls)
+  (let [^#?(:cljr Type :default Class) rcls (resolve cls)
         _ (assert (class? rcls) {:cls cls :resolved rcls})
-        rsym (symbol (.getName rcls))
+        rsym (symbol (#?(:cljr .FullName :default .getName) rcls))
         {:keys [fields] :as info} (get defexpr-info rsym)
         _ (assert info (str "No info for expr " cls))
         ks (map first cases)
