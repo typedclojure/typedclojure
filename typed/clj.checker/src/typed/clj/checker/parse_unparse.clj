@@ -1827,23 +1827,21 @@
       (when (<= 0 last-dot (- (count clstr) 2))
         (let [short-name (symbol (subs clstr (inc last-dot)))]
           (when-some [mapping (ns-map ns)]
-            (when (mapping short-name)
-              short-name)))))))
+            (when-some [^Class cls (mapping short-name)]
+              (when (= clstr (.getName cls))
+                short-name))))))))
 
 (defn protocol-var-symbol-intern
-  "Returns a symbol interned in ns for symbol naming a protocol var, or nil if none.
-
-  (var-symbol-intern 'clojure.core/symbol (find-ns 'clojure.core))
-  ;=> 'symbol
-  (var-symbol-intern 'bar (find-ns 'clojure.core))
-  ;=> nil"
+  "Returns a symbol interned in ns for symbol naming a protocol var, or nil if none."
   [sym ns]
   {:pre [(qualified-symbol? sym)
          (plat-con/namespace? ns)]
    :post [((some-fn nil? symbol?) %)]}
-  (let [simple-sym (-> sym name symbol)]
-    (when (= sym (some-> (ns-resolve ns simple-sym) symbol))
-      simple-sym)))
+  (let [simple-sym (-> sym name symbol)
+        v (ns-resolve ns simple-sym)]
+    (when (var? v)
+      (when (= sym (symbol v))
+        simple-sym))))
 
 (defn unparse-Name-symbol-in-ns [sym]
   {:pre [(symbol? sym)]
