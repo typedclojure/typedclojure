@@ -512,8 +512,7 @@
   (subtypeA*-for-s [s t A]
     (if (r/PrimitiveArray? t)
       (subtype-PrimitiveArray A s t)
-      ;; TODO: Wouldn't this always loop?
-      (subtypeA* A (r/PrimitiveArray-maker Object r/-any r/-any) t)))
+      (subtypeA* A s (r/PrimitiveArray-maker Object r/-any r/-any))))
 
   typed.cljc.checker.type_rep.TypeFn
   (subtypeA*-for-s [s t A]
