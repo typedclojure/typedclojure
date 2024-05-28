@@ -9,8 +9,7 @@
 ;; adapted from tools.analyzer.jvm
 (ns typed.clj.analyzer
   (:refer-clojure :exclude [macroexpand-1])
-  (:require [clojure.core.memoize :as memo]
-            [typed.cljc.analyzer :as ana]
+  (:require [typed.cljc.analyzer :as ana]
             [typed.cljc.analyzer.ast :as ast]
             [typed.cljc.analyzer :as common]
             [typed.cljc.analyzer.env :as env]
@@ -25,8 +24,9 @@
             [typed.clj.analyzer.passes.emit-form :as emit-form]
             [typed.clj.analyzer.passes.infer-tag :as infer-tag]
             [typed.clj.analyzer.passes.validate :as validate]
-            [typed.clj.analyzer.utils :as ju])
-  (:import  [clojure.lang IObj RT Var]))
+            [typed.clj.analyzer.utils :as ju]
+            #?(:clj [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]))
+  (:import [clojure.lang IObj RT Var Compiler]))
 
 (def ^:dynamic *parse-deftype-with-existing-class*
   "If true, don't generate a new class when analyzing deftype* if a class
@@ -357,9 +357,10 @@
 ;; HACK
 (defn -deftype [cname class-name args interfaces]
 
-  (doseq [arg [class-name cname]]
-    (memo/memo-clear! ju/members* [arg])
-    (memo/memo-clear! ju/members* [(str arg)]))
+  (let [memo-clear! @(requiring-resolve 'clojure.core.memoize/memo-clear!)]
+    (doseq [arg [class-name cname]]
+      (memo-clear! ju/members* [arg])
+      (memo-clear! ju/members* [(str arg)])))
 
   (let [interfaces (mapv #(symbol #?(:cljr (.FullName ^Type %) :default (.getName ^Class %))) interfaces)]
     (eval (list 'let []

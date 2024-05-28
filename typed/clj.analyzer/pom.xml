@@ -36,5 +36,9 @@
       <groupId>org.ow2.asm</groupId>
       <artifactId>asm</artifactId>
     </dependency>
+    <dependency>
+      <groupId>io.github.frenchy64</groupId>
+      <artifactId>fully-satisfies</artifactId>
+    </dependency>
   </dependencies>
 </project>

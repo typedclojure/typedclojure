@@ -9,10 +9,7 @@
 ; note: this file is copied into resources/clj-kondo.exports/org.typedclojure/typed.clj.runtime
 ;; via ./script/regen-kondo.sh
 ;; the canonical version is in the src folder
-(ns ^:no-doc clojure.core.typed.internal
-  (:require [clojure.core.typed.contract-utils :as con]
-            [clojure.core.typed.internal.add-destructure-blame-form :refer [add-destructure-blame-form]]
-            [clojure.set :as set]))
+(ns ^:no-doc clojure.core.typed.internal)
 
 (defn take-when
   "When pred is true of the head of seq, return [head tail]. Otherwise
@@ -157,21 +154,21 @@
   ([fn-form] (add-fn-destructure-blame-form fn-form fn-form))
   ([fn-form blame-form]
    (-> fn-form
-       (visit-fn-destructuring #(add-destructure-blame-form % blame-form)))))
+       (visit-fn-destructuring #((requiring-resolve 'clojure.core.typed.internal.add-destructure-blame-form/add-destructure-blame-form) % blame-form)))))
 
 (defn add-defn-destructure-blame-form
   "Add destructuring blame forms to the provided clojure.core/defn form."
   ([defn-form] (add-defn-destructure-blame-form defn-form defn-form))
   ([defn-form blame-form]
    (-> defn-form
-       (visit-defn-destructuring #(add-destructure-blame-form % blame-form)))))
+       (visit-defn-destructuring #((requiring-resolve 'clojure.core.typed.internal.add-destructure-blame-form/add-destructure-blame-form) % blame-form)))))
 
 (defn add-defmethod-destructure-blame-form
   "Add destructuring blame forms to the provided clojure.core/defmethod form."
   ([defmethod-form] (add-defmethod-destructure-blame-form defmethod-form defmethod-form))
   ([defmethod-form blame-form]
    (-> defmethod-form
-       (visit-defmethod-destructuring #(add-destructure-blame-form % blame-form)))))
+       (visit-defmethod-destructuring #((requiring-resolve 'clojure.core.typed.internal.add-destructure-blame-form/add-destructure-blame-form) % blame-form)))))
 
 (defn- reassembled-fn-type [{:keys [parsed-methods name poly ann]}]
   (let [reassembled-fn-type `(typed.clojure/IFn
@@ -351,8 +348,9 @@
      ~name
      ~@(mapcat (fn [{:keys [name arities poly]}]
                  (let [localtvars (set (binder-names poly))
-                       _ (assert (empty? (set/intersection localtvars
-                                                           tvars))
+                       _ (assert (empty? ((requiring-resolve 'clojure.set/intersection)
+                                          localtvars
+                                          tvars))
                                  "Shadowing a protocol type variable in a method is disallowed")
                        fn-type `(clojure.core.typed/IFn
                                   ~@(map (fn [{:keys [ptypes ret]}]
@@ -383,8 +381,9 @@
                                     [opts (drop (count opts) typed-decl-methods)])
         parse-pvec (fn [pvec] ; parse parameter vectors
                      {:pre [(vector? pvec)]
-                      :post [((con/hmap-c? :actual vector?
-                                           :ptypes vector?)
+                      :post [(((requiring-resolve 'clojure.core.typed.contract-utils/hmap-c?)
+                               :actual vector?
+                               :ptypes vector?)
                               %)]}
                      (loop [pvec pvec
                             actual (empty pvec) ; empty vector with same metadata as pvec

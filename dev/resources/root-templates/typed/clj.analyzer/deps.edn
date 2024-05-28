@@ -2,6 +2,7 @@
 {:paths ["src"]
  :deps {org.clojure/clojure {:mvn/version "{◊analyzer-clojure-mvn-version◊}"}
         org.clojure/core.memoize {:mvn/version "{◊core-memoize-mvn-version◊}"}
+        io.github.frenchy64/fully-satisfies {:mvn/version "{◊fully-satisfies-mvn-version◊}"}
         org.ow2.asm/asm {:mvn/version "{◊asm-mvn-version◊}"}
         {◊typedclojure-group-id◊}/typed.cljc.analyzer {:local/root "../cljc.analyzer"
                                               :deps/manifest :deps}}
