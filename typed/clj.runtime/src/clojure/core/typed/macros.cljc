@@ -11,11 +11,10 @@
 ;; the canonical version is in the src folder
 (ns ^:no-doc clojure.core.typed.macros
   (:refer-clojure :exclude [type defprotocol fn loop dotimes let for doseq
-                            defn atom ref])
+                            defn atom ref #?(:clj requiring-resolve)])
   (:require [clojure.core :as core]
-            [clojure.core.typed.internal :as internal]
-            [clojure.core.typed.special-form :as spec]
-            [clojure.core.typed.platform-case :refer [platform-case]]))
+            [clojure.core.typed.platform-case :refer [platform-case]]
+            #?(:clj [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]])))
 
 ;; TODO move all these macros to typed.clojure
 (core/defn typed-sym [&env sym]
@@ -59,7 +58,7 @@
         :- Long
         1)"
   [name & fdecl]
-  (core/let [[docstring fdecl] (internal/take-when string? fdecl)
+  (core/let [[docstring fdecl] ((requiring-resolve 'clojure.core.typed.internal/take-when) string? fdecl)
              [provided? t [body :as args]] (parse-colon fdecl 'def)]
     (assert (= 1 (count args)) "Wrong arguments to def")
     `(do
@@ -72,7 +71,7 @@
          ~body))))
 
 (core/defn expand-typed-fn [form]
-  (core/let [{:keys [poly fn ann]} (internal/parse-fn* form)]
+  (core/let [{:keys [poly fn ann]} ((requiring-resolve 'clojure.core.typed.internal/parse-fn*) form)]
     fn))
 
 (defmacro 
@@ -123,8 +122,8 @@
              b :- (U nil Number) nil]
         ...)"
   [bindings & exprs]
-  (core/let [{:keys [ann loop]} (internal/parse-loop* `(~bindings ~@exprs))]
-    `(do ~spec/special-form
+  (core/let [{:keys [ann loop]} ((requiring-resolve 'clojure.core.typed.internal/parse-loop*) `(~bindings ~@exprs))]
+    `(do :clojure.core.typed.special-form/special-form
          ~(core-kw :loop)
          {:ann '~ann}
          ~loop)))
@@ -138,7 +137,7 @@
             a2 1.2]
         body)"
   [bvec & forms]
-  (core/let [{:keys [let]} (internal/parse-let* (cons bvec forms))]
+  (core/let [{:keys [let]} ((requiring-resolve 'clojure.core.typed.internal/parse-let*) (cons bvec forms))]
     let))
 
 (defmacro ann-form
@@ -186,7 +185,7 @@
     MyProtocol
     ([y] a [this a :- x, b :- y] :- y))"
   [& body]
-  (core/let [{:keys [ann-protocol defprotocol]} (internal/parse-defprotocol* body)]
+  (core/let [{:keys [ann-protocol defprotocol]} ((requiring-resolve 'clojure.core.typed.internal/parse-defprotocol*) body)]
     `(do ~ann-protocol
          (~(typed-sym &env 'tc-ignore)
            ~defprotocol))))
@@ -256,9 +255,9 @@
     ([a :- x] :- (Coll y) ...)
     ([a :- Str, b :- y] :- y ...))"
   [& args]
-  (core/let [{:keys [name args]} (internal/parse-defn* args)
+  (core/let [{:keys [name args]} ((requiring-resolve 'clojure.core.typed.internal/parse-defn*) args)
              init `(~(typed-sym &env 'fn) ~@args)
-             {:keys [reassembled-fn-type]} (internal/parse-fn* init)]
+             {:keys [reassembled-fn-type]} ((requiring-resolve 'clojure.core.typed.internal/parse-fn*) init)]
     `(~(typed-sym &env 'def) ~name :- ~reassembled-fn-type,
        ~init)))
 
