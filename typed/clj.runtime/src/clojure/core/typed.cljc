@@ -21,7 +21,6 @@ for checking namespaces, cf for checking individual forms."}
   (:require [clojure.core :as core]
             [clojure.core.typed.util-vars :as vs]
             [clojure.core.typed.import-macros :as import-m]
-            [clojure.core.typed.contract :as contract]
             ; also for `import-macros` below
             [clojure.core.typed.macros :as macros]
             #?(:clj [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]))
@@ -1673,13 +1672,13 @@ for checking namespaces, cf for checking individual forms."}
         ;; - clojure.core.typed.check.add-cast
         ;; - clojure.core.typed.check.special.cast
         ((core/fn [x#]
-           (contract/contract
+           ((requiring-resolve 'clojure.core.typed.contract/contract*)
              ~(with-current-location &form
                 ((requiring-resolve 'clojure.core.typed.type-contract/type-syntax->contract)
                  t))
              x#
              (core/let [opt# ~opt]
-               (contract/make-blame
+               ((requiring-resolve 'clojure.core.typed.contract/make-blame)
                  :positive (or (:positive opt#)
                                "cast")
                  :negative (or (:negative opt#)

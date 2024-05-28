@@ -128,6 +128,12 @@
   [& {:as bls}]
   (map->Blame bls))
 
+(defn contract*
+  "Like contract except blame must be provided."
+  [c x b]
+  {:pre [b]}
+  (((:projection c) b) x))
+
 #?(:clj
 (defmacro contract
   "Check a contract against a value, with an optional Blame object.
