@@ -19,7 +19,6 @@ for checking namespaces, cf for checking individual forms."}
                             #?(:clj requiring-resolve)
                             #_filter #_remove])
   (:require [clojure.core :as core]
-            [clojure.core.typed.util-vars :as vs]
             [clojure.core.typed.import-macros :as import-m]
             ; also for `import-macros` below
             [clojure.core.typed.macros :as macros]
@@ -336,12 +335,13 @@ for checking namespaces, cf for checking individual forms."}
 (defmacro ^:no-doc with-current-location
   [form & body]
   `(core/let [form# ~form]
-     (binding [vs/*current-env* {:ns {:name (ns-name *ns*)}
-                                 :file *file*
-                                 :line (or (-> form# meta :line)
-                                           @Compiler/LINE)
-                                 :column (or (-> form# meta :column)
-                                             @Compiler/COLUMN)}]
+     (with-bindings {(requiring-resolve 'clojure.core.typed.util-vars/*current-env*)
+                     {:ns {:name (ns-name *ns*)}
+                      :file *file*
+                      :line (or (-> form# meta :line)
+                                @Compiler/LINE)
+                      :column (or (-> form# meta :column)
+                                  @Compiler/COLUMN)}}
        (do ~@body))))
 
 (defmacro ^:private delay-rt-parse
@@ -844,7 +844,7 @@ for checking namespaces, cf for checking individual forms."}
            :fields fields
            :bnd vbnd})
         (with-current-location form
-          (gen-datatype* vs/*current-env* (ns-name *ns*) dname fields vbnd opts false))
+          (gen-datatype* @(requiring-resolve 'clojure.core.typed.util-vars/*current-env*) (ns-name *ns*) dname fields vbnd opts false))
         nil))))
 
 (defmacro
@@ -923,7 +923,7 @@ for checking namespaces, cf for checking individual forms."}
            :fields fields
            :bnd vbnd})
         (with-current-location form
-          (gen-datatype* vs/*current-env* (ns-name *ns*) dname fields vbnd opt true))
+          (gen-datatype* @(requiring-resolve 'clojure.core.typed.util-vars/*current-env*) (ns-name *ns*) dname fields vbnd opt true))
         nil))))
 
 (defmacro 
@@ -999,7 +999,7 @@ for checking namespaces, cf for checking individual forms."}
            :bnds vbnd})
         (with-current-location form
           (gen-protocol*
-            vs/*current-env*
+            @(requiring-resolve 'clojure.core.typed.util-vars/*current-env*)
             (ns-name *ns*)
             varsym
             vbnd
@@ -1452,9 +1452,9 @@ for checking namespaces, cf for checking individual forms."}
   (case strategy
     :compile
     (with-clojure-impl
-      (binding [vs/*prepare-infer-ns* true
-                vs/*instrument-infer-config* (-> config
-                                                 (dissoc :ns))]
+      (with-bindings {(requiring-resolve 'clojure.core.typed.util-vars/*prepare-infer-ns*) true
+                      (requiring-resolve 'clojure.core.typed.util-vars/*instrument-infer-config*) (-> config
+                                                                                                      (dissoc :ns))}
         ((requiring-resolve 'clojure.core.typed.load/load-typed-file) 
           (subs (@#'clojure.core/root-resource (if (symbol? ns) ns (ns-name ns))) 1))))
     :instrument
