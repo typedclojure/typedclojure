@@ -31,3 +31,6 @@
   - 80% improvement, also improves `typed.clojure` loading time
   - performance of generated code from `pred` and contracts may be affected because of `requiring-resolve` calls in output
 - merged first batch of ClojureCLR specializations to analyzer and runtime, thanks to David Miller (@dmiller)
+- pretty printing of Classes by their simple names only supported for classes interned by their simple names
+- fix Array <: Seqable subtyping
+- refactor tail of subtyping using single-dispatch, thanks to Oleksandr Yakushev (@alexander-yakushev)
