@@ -1830,7 +1830,7 @@
             (when (mapping short-name)
               short-name)))))))
 
-(defn var-symbol-intern 
+(defn var-symbol-intern
   "Returns a symbol interned in ns for var symbol, or nil if none.
 
   (var-symbol-intern 'clojure.core/symbol (find-ns 'clojure.core))
@@ -1867,7 +1867,7 @@
           (core-lang-Class-sym sym)
           ; use unqualified name if interned
           (when (namespace sym)
-            (or (var-symbol-intern sym ns)
+            (or #_(var-symbol-intern sym ns)
                 ; use aliased ns if not interned, but ns is aliased
                 (when-let [alias (alias-in-ns ns (symbol (namespace sym)))]
                   (symbol (str alias) (name sym)))))
