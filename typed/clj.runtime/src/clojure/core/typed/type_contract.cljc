@@ -207,7 +207,7 @@
               ;              (cond
               ;                              (empty? (:poly? t)) `(instance? ~(:the-class t) ~arg)
               ;                              :else (int-error (str "Cannot generate predicate for polymorphic Class")))
-              (:Any) `@(requiring-resolve clojure.core.typed.contract/any-c)
+              (:Any) `@(requiring-resolve 'clojure.core.typed.contract/any-c)
               ;TODO special case for union of HMap, and unions of constants
               (:U) `((requiring-resolve 'clojure.core.typed.contract/or-c)
                      ;; TODO flatten unions, ensuring Names are resolved
@@ -256,7 +256,7 @@
                             congen (fn [tmap]
                                      (zipmap (map :val (keys tmap))
                                              (map #(gen-inner % arg) (vals tmap))))]
-                        `((requiring-resolve clojure.core.typed.contract/hmap-c)
+                        `((requiring-resolve 'clojure.core.typed.contract/hmap-c)
                           :mandatory ~(congen mandatory)
                           :optional ~(congen optional)
                           :absent-keys ~(set (map :val absent-keys))
