@@ -1837,11 +1837,12 @@
   {:pre [(qualified-symbol? sym)
          (plat-con/namespace? ns)]
    :post [((some-fn nil? symbol?) %)]}
-  (let [simple-sym (-> sym name symbol)
-        v (ns-resolve ns simple-sym)]
-    (when (var? v)
-      (when (= sym (symbol v))
-        simple-sym))))
+  (let [simple-sym (-> sym name symbol)]
+    (when-some [mapping (ns-map ns)]
+      (let [v (mapping simple-sym)]
+        (when (and (var? v)
+                   (= sym (symbol v)))
+          simple-sym)))))
 
 (defn unparse-Name-symbol-in-ns [sym]
   {:pre [(symbol? sym)]
