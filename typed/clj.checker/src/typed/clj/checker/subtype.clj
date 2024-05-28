@@ -510,9 +510,8 @@
 
   typed.cljc.checker.type_rep.PrimitiveArray
   (subtypeA*-for-s [s t A]
-    (if (r/PrimitiveArray? t)
-      (subtype-PrimitiveArray A s t)
-      (subtypeA* A s (r/PrimitiveArray-maker Object r/-any r/-any))))
+    (when (r/PrimitiveArray? t)
+      (subtype-PrimitiveArray A s t)))
 
   typed.cljc.checker.type_rep.TypeFn
   (subtypeA*-for-s [s t A]
