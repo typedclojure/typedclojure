@@ -2,7 +2,7 @@
 {:paths ["src"]
  :deps {org.clojure/clojure {:mvn/version "1.12.0-alpha9"}
         org.clojure/clojurescript {:mvn/version "1.11.60"}
-        io.github.frenchy64/fully-satisfies {:mvn/version "1.11.0"}
+        io.github.frenchy64/fully-satisfies {:mvn/version "1.11.2"}
         org.typedclojure/typed.clj.runtime {:local/root "../clj.runtime" :deps/manifest :deps}}
  :mvn/repos {"sonatype-oss-public"
              {:url "https://oss.sonatype.org/content/groups/public/"}}

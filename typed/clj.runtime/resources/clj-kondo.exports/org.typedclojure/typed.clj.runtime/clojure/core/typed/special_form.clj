@@ -11,4 +11,5 @@
 ;; the canonical version is in the src folder
 (ns ^:no-doc clojure.core.typed.special-form)
 
-(def special-form ::special-form)
+;; note: copied into clojure.core.typed
+(def special-form :clojure.core.typed.special-form/special-form)

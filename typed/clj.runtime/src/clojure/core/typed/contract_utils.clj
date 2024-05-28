@@ -9,8 +9,7 @@
 ;; note: this file is copied into resources/clj-kondo.exports/org.typedclojure/typed.clj.runtime
 ;; via ./script/regen-kondo.sh
 ;; the canonical version is in the src folder
-(ns ^:no-doc clojure.core.typed.contract-utils
-  (:require [clojure.set :as set]))
+(ns ^:no-doc clojure.core.typed.contract-utils)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Constraint shorthands
