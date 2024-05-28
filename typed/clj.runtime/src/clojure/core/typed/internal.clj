@@ -10,11 +10,7 @@
 ;; via ./script/regen-kondo.sh
 ;; the canonical version is in the src folder
 (ns ^:no-doc clojure.core.typed.internal
-  #?@(:bb []
-      :clj [(:refer-clojure :exclude [requiring-resolve])])
-  (:require #_[clojure.core.typed.contract-utils :as con]
-            #?@(:bb []
-                :clj [[io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]])))
+  (:require #_[clojure.core.typed.contract-utils :as con]))
 
 (defn take-when
   "When pred is true of the head of seq, return [head tail]. Otherwise
