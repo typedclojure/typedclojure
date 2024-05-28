@@ -117,8 +117,7 @@
   (keyword-value? k))
 
 (defn upcast-PrimitiveArray [^PrimitiveArray t]
-  {:pre [(r/PrimitiveArray? t)]}
-  (-name 'typed.clojure/Seqable (.output-type t)))
+  (RClass-of clojure.lang.Seqable [(-name 'typed.clojure/NilableNonEmptySeq (.output-type t))]))
 
 ; Partial HMaps do not record absence of fields, only subtype to (APersistentMap t/Any t/Any)
 (t/ann ^:no-check upcast-hmap* 
