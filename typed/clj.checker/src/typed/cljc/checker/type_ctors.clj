@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.cljc.checker.type-ctors
-  (:refer-clojure :exclude [defrecord replace type requiring-resolve])
+  (:refer-clojure :exclude [defrecord replace type requiring-resolve repeatedly])
   (:require [clojure.core.cache :as cache]
             [typed.clojure :as t]
             [clojure.string :as str]
@@ -22,6 +22,7 @@
             [clojure.reflect :as reflect]
             [clojure.repl :as repl]
             [clojure.set :as set]
+            [typed.cljc.runtime.perf-utils :refer [repeatedly reduce4]]
             [typed.clj.checker.rclass-env :as rcls]
             [typed.cljc.checker.cs-rep :as crep]
             [typed.cljc.checker.datatype-env :as dtenv]
@@ -370,7 +371,7 @@
                                                   b))]
                             ;(prn "res" res)
                             res))]
-                  (let [types (flatten-unions (map fully-resolve-non-rec-type types))]
+                  (let [types (flatten-unions (eduction (map fully-resolve-non-rec-type) types))]
                     (cond
                       (empty? types) r/empty-union
                       (= 1 (count types)) (first types)
@@ -506,13 +507,11 @@
   [types]
   {:post [(set? %)
           (sorted? %)]}
-  (loop [work types
-         result (sorted-set)]
-    (if (empty? work)
-      result
-      (let [{intersections true non-intersections false} (group-by r/Intersection? work)]
-        (recur (mapcat :types intersections)
-               (into result (map r/assert-Type) non-intersections))))))
+  (reduce (fn flatten-1 [acc type]
+            (if (r/Intersection? type)
+              (reduce flatten-1 acc (:types type))
+              (conj acc (r/assert-Type type))))
+          (sorted-set) types))
 
 (t/ann ^:no-check flatten-unions [(t/Seqable r/Type) -> (t/Set r/Type)])
 (defn flatten-unions
@@ -520,21 +519,16 @@
   [types]
   {:post [(set? %)
           (sorted? %)]}
-  (loop [work types
-         result (sorted-set)]
-    (if (empty? work)
-      result
-      (let [{unions true non-unions false} (group-by r/Union? work)]
-        (recur (mapcat :types unions)
-               (into result (map (fn [t]
-                                   {:pre [(not (r/Union? t))]}
-                                   (r/assert-Type t)))
-                     non-unions))))))
+  (reduce (fn flatten-1 [acc type]
+            (if (r/Union? type)
+              (reduce flatten-1 acc (:types type))
+              (conj acc (r/assert-Type type))))
+          (sorted-set) types))
 
 (t/ann ^:no-check In [r/Type :* :-> r/Type])
 (defn In [& types]
   {:post [(r/Type? %)]}
-  (let [res (let [ts (flatten-intersections (map (comp fully-resolve-type r/assert-Type) types))]
+  (let [res (let [ts (flatten-intersections (eduction (map (comp fully-resolve-type r/assert-Type)) types))]
               (cond
                 ; empty intersection is Top
                 (empty? ts) r/-any
@@ -563,6 +557,7 @@
                                                           not-empty)
                             ts (if outer-union-elements
                                  (flatten-intersections
+                                  (eduction
                                    (keep (fn [t]
                                            (when (r/Union? t)
                                              ;; remove inner union if all its elements have been moved to outer union
@@ -573,8 +568,8 @@
                                              ;; (U t1 t2 (U) t3)
                                              (some->> (not-empty
                                                         (set/difference (:types t) outer-union-elements))
-                                                      (apply Un))))
-                                         ts))
+                                                      (apply Un)))))
+                                   ts))
                                  ts)
                             ;_ (prn "ts" ts)
                             ;_ (prn "outer-union-elements" outer-union-elements)
@@ -1407,13 +1402,14 @@
 (t/ann ^:no-check instantiate-typefn [TypeFn (t/Seqable r/Type) -> r/Type])
 (defn instantiate-typefn [t types & {:keys [names tapp]
                                      :or {names (TypeFn-fresh-symbols* t)}}]
-  (let [subst-all @(subst-all-var)]
+  (let [subst-all @(subst-all-var)
+        cnt (count types)]
     (when-not (r/TypeFn? t) (err/int-error (str "instantiate-typefn requires a TypeFn: " (ind/unparse-type t))))
-    (when-not (= (:nbound t) (count types))
+    (when-not (= (:nbound t) cnt)
       (binding [vs/*current-env* (-> tapp meta :env)]
         (err/int-error
           (str "Wrong number of arguments passed to type function. Expected "
-               (:nbound t) ", actual " (count types) ": "
+               (:nbound t) ", actual " cnt ": "
                (ind/unparse-type t) " " (mapv ind/unparse-type types)
                (str "\n\nin: "
                     (pr-str (or (-> tapp meta :syn)
@@ -1421,24 +1417,25 @@
     (let [bbnds (TypeFn-bbnds* names t)
           body (TypeFn-body* names t)
           ;;check bounds
-          _ (dorun
-              (map (fn [argn nm type bnd]
-                     {:pre [(r/Type? type)]}
-                     (when-not (ind/has-kind? type bnd)
-                       (binding [vs/*current-env* (-> tapp meta :env)]
-                         (err/tc-error (str "Type function argument number " argn
-                                            " (" (r/F-original-name (r/make-F nm)) ")"
-                                            " has kind " (pr-str bnd)
-                                            " but given " (pr-str type)
-                                            (when (r/F? type)
-                                              (if-some [kind (free-ops/free-with-name-bnds
-                                                               (:name type))]
-                                                (str " with kind " kind)
-                                                (str " with missing bounds")))
-                                            (str "\n\nin: "
-                                                 (pr-str (or (-> tapp meta :syn)
-                                                             (list* t types)))))))))
-                   (next (range)) names types bbnds))]
+          _ (reduce4
+              (fn [_ argn nm type bnd]
+                {:pre [(r/Type? type)]}
+                (when-not (ind/has-kind? type bnd)
+                  (binding [vs/*current-env* (-> tapp meta :env)]
+                    (err/tc-error (str "Type function argument number " argn
+                                       " (" (r/F-original-name (r/make-F nm)) ")"
+                                       " has kind " (pr-str bnd)
+                                       " but given " (pr-str type)
+                                       (when (r/F? type)
+                                         (if-some [kind (free-ops/free-with-name-bnds
+                                                         (:name type))]
+                                           (str " with kind " kind)
+                                           (str " with missing bounds")))
+                                       (str "\n\nin: "
+                                            (pr-str (or (-> tapp meta :syn)
+                                                        (list* t types)))))))))
+              nil
+              (range 1 (inc cnt)) names types bbnds)]
       (free-ops/with-bounded-frees (zipmap (map r/make-F names) bbnds)
         (subst-all (make-simple-substitution names types) body)))))
 
@@ -2219,7 +2216,7 @@
              (:fixed :rest :drest :kws :prest :pdot :regex) true
              false)]}
     (r/make-Function
-      (map sb dom)
+      (mapv sb dom)
       (sb rng)
       :rest (some-> rest sb)
       :drest (some-> drest
@@ -2265,7 +2262,7 @@
   AssocType
   (fn [{:keys [target entries dentries]} count outer image sb replace]
     (r/AssocType-maker (sb target)
-                       (map (fn [[k v]] [(sb k) (sb v)]) entries)
+                       (mapv (fn [[k v]] [(sb k) (sb v)]) entries)
                        (some-> dentries
                                (update :pre-type sb)
                                (update :name #(if (= (+ count outer) %)
@@ -2348,9 +2345,9 @@
                     :image image
                     :sb sb
                     :replace replace})))))]
-    (if (empty? images)
-      sc
-      (let [n (count images)]
+    (let [n (count images)]
+      (if (zero? n)
+        sc
         (loop [ty (remove-scopes n sc)
                images images
                count (dec n)]

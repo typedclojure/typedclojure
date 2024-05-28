@@ -10,7 +10,8 @@
   typed.cljc.checker.tvar-bnds
   (:require [typed.clojure :as t]
             [clojure.core.typed.contract-utils :as con]
-            [typed.cljc.checker.type-rep :as r])
+            [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.runtime.perf-utils :refer [reduce2]])
   (:import (typed.cljc.checker.type_rep Bounds Regex)))
 
 ;; this implements an environment from (fresh) type variable names
@@ -57,7 +58,7 @@
          (every? (some-fn r/Bounds? r/Regex?) bndss)
          (= (count vars) (count bndss))]
    :post [(tvar-bnds-env? %)]}
-  (merge env (zipmap vars bndss)))
+  (reduce2 assoc env vars bndss))
 
 (defmacro with-extended-bnds
   "Takes a list of vars and bnds extends the current tvar environment.

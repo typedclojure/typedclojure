@@ -72,8 +72,9 @@
          _# (assert (frees-map? frees-map#)
                     frees-map#)
          scoped-names# (keys frees-map#)
-         fresh-names# (map (comp :name :F) (vals frees-map#))
-         bndss# (map :bnds (vals frees-map#))]
+         vals# (vals frees-map#)
+         fresh-names# (mapv (comp :name :F) vals#)
+         bndss# (mapv :bnds vals#)]
      (tvar/with-extended-new-tvars scoped-names# fresh-names#
        (bnds/with-extended-bnds fresh-names# bndss#
          ~@body))))
@@ -86,11 +87,11 @@
 (defn with-bounded-frees* [bfrees bfn]
   {:pre [(fn? bfn)]}
   (let [_ (assert (bounded-frees? bfrees) bfrees)]
-    (with-free-mappings (into {} (map (fn [[f bnds]]
-                                        (assert (bounded-frees-key? f) (class f))
-                                        (assert (bounded-frees-val? bnds) (class bnds))
-                                        [(:name f) {:F f :bnds bnds}]))
-                              bfrees)
+    (with-free-mappings (reduce-kv (fn [m f bnds]
+                                     (assert (bounded-frees-key? f) (class f))
+                                     (assert (bounded-frees-val? bnds) (class bnds))
+                                     (assoc m (:name f) {:F f :bnds bnds}))
+                                   {} bfrees)
       (bfn))))
 
 (defmacro with-bounded-frees
@@ -99,10 +100,10 @@
   `(with-bounded-frees* ~bfrees #(do ~@body)))
 
 (defn with-frees* [frees bfn]
-  (with-free-mappings (into {} (map (fn [f]
-                                      (assert (r/F? f) (class f))
-                                      [(:name f) {:F f :bnds r/no-bounds}]))
-                            frees)
+  (with-free-mappings (reduce (fn [m f]
+                                (assert (r/F? f) (class f))
+                                (assoc m (:name f) {:F f :bnds r/no-bounds}))
+                              {} frees)
     (bfn)))
 
 (defmacro with-frees

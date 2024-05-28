@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.cljc.checker.cs-gen
-  (:refer-clojure :exclude [requiring-resolve])
+  (:refer-clojure :exclude [requiring-resolve repeatedly])
   (:require [clojure.core.typed :as t :refer [letfn>]]
             [clojure.core.typed.coerce-utils :as coerce]
             [clojure.core.typed.contract-utils :as con]
@@ -16,6 +16,7 @@
             [clojure.core.typed.util-vars :as vs]
             [clojure.set :as set]
             [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]
+            [typed.cljc.runtime.perf-utils :refer [repeatedly]]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.clj.checker.subtype :as sub] ; use subtype? utility defined in this namespace
             [typed.cljc.checker.cs-rep :as cr]
@@ -1375,8 +1376,7 @@
       ;; there are enough symbols already, take n
       (take n res)
       ;; we need to generate more
-      (let [new (take (- n (count res))
-                      (repeatedly #(gensym var)))
+      (let [new (repeatedly (- n (count res)) #(gensym var))
             all (concat res new)]
         (swap! DOTTED-VAR-STORE assoc key all)
         all))))

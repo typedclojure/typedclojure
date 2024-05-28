@@ -10,6 +10,7 @@
   typed.cljc.checker.tvar-env
   (:require [clojure.core.typed.contract-utils :as con]
             [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.runtime.perf-utils :refer [reduce2]]
             [typed.clojure :as t])
   (:import (typed.cljc.checker.type_rep F)))
 
@@ -87,9 +88,8 @@
    {:post [(tvar-env? %)]}
    (let [fresh-vars (or fresh-vars (repeat (count vars) nil))
          _ (assert (= (count vars) (count fresh-vars)))]
-     (reduce (fn [env [var fresh-var]]
-               {:pre [(symbol? var)
-                      ((some-fn nil? symbol?) fresh-var)]}
-               (extend-one env var fresh-var))
-             env
-             (map vector vars fresh-vars)))))
+     (reduce2 (fn [env var fresh-var]
+                {:pre [(symbol? var)
+                       ((some-fn nil? symbol?) fresh-var)]}
+                (extend-one env var fresh-var))
+              env vars fresh-vars))))
