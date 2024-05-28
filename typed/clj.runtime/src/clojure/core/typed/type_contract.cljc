@@ -9,8 +9,7 @@
 ;flat contracts only
 (ns ^:no-doc clojure.core.typed.type-contract
   #?(:clj (:refer-clojure :exclude [requiring-resolve]))
-  (:require [clojure.core.typed.errors :as err]
-            [clojure.core.typed.current-impl :as impl]
+  (:require [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.ast-ops :as ops]
             [clojure.core.typed.contract :as con]
             ;used in contracts
@@ -23,6 +22,8 @@
 
 (def ^:dynamic *inside-rec* #{})
 
+(def ^:private int-error #((requiring-resolve 'clojure.core.typed.errors/int-error) %&))
+
 (defn ast->pred
   "Returns syntax representing a runtime predicate on the
   given type ast."
@@ -31,14 +32,14 @@
    (let [ast->pred #(ast->pred % opt)]
      (letfn [(gen-inner [{:keys [op] :as t} arg]
                (case op
-                 (:F) (err/int-error "Cannot generate predicate for free variable")
+                 (:F) (int-error "Cannot generate predicate for free variable")
                  (:Poly) (if-some [Poly-predicate (::Poly-pred-syntax opt)]
                            (Poly-predicate t arg opt)
-                           (err/int-error "Cannot generate predicate for polymorphic type"))
-                 (:PolyDots) (err/int-error (str "Cannot generate predicate for dotted polymorphic type: " (:form t)))
+                           (int-error "Cannot generate predicate for polymorphic type"))
+                 (:PolyDots) (int-error (str "Cannot generate predicate for dotted polymorphic type: " (:form t)))
                  (:Fn) (if-some [Fn-predicate (::Fn-pred-syntax opt)]
                          (Fn-predicate t arg opt)
-                         (err/int-error "Cannot generate predicate for function type"))
+                         (int-error "Cannot generate predicate for function type"))
                  (:TApp) (let [{:keys [rator rands]} t]
                            (cond 
                              ;needs resolving
@@ -48,10 +49,10 @@
                              (#{:Class} (:op rator))
                              (let [{:keys [args pred] :as rcls} (get (impl/rclass-env) (:name rator))
                                    _ (when-not rcls
-                                       (err/int-error (str "Class does not take arguments: "
+                                       (int-error (str "Class does not take arguments: "
                                                            (:name rator))))
                                    _ (when-not (args (count rands))
-                                       (err/int-error (str "Wrong number of arguments to "
+                                       (int-error (str "Wrong number of arguments to "
                                                            (:name rator) ", expected " args
                                                            " actual " (count rands))))
                                    rands-args (repeatedly (count rands) gensym)
@@ -64,15 +65,15 @@
                              (#{:TFn} (:op rator))
                              (gen-inner (ops/instantiate-TFn rator rands) arg)
                              :else
-                             (err/int-error (str "Don't know how to apply type: " (:form t)))))
+                             (int-error (str "Don't know how to apply type: " (:form t)))))
                  (:Class) `(instance? ~(:name t) ~arg)
                  (:Name) 
                  (impl/impl-case
                    :clojure (gen-inner (ops/resolve-Name t) arg)
-                   :cljs (err/int-error (str "TODO CLJS Name")))
+                   :cljs (int-error (str "TODO CLJS Name")))
                  ;              (cond
                  ;                              (empty? (:poly? t)) `(instance? ~(:the-class t) ~arg)
-                 ;                              :else (err/int-error (str "Cannot generate predicate for polymorphic Class")))
+                 ;                              :else (int-error (str "Cannot generate predicate for polymorphic Class")))
                  (:Any) `true
                  ;TODO special case for union of HMap, and unions of constants
                  (:U) `(or ~@(mapv gen-inner (:types t) (repeat arg)))
@@ -82,7 +83,7 @@
                                   (:rest t)
                                   `(<= ~(count (:types t)) (count ~arg))
                                   (:drest t)
-                                  (err/int-error (str "Cannot generate predicate for dotted HVec"))
+                                  (int-error (str "Cannot generate predicate for dotted HVec"))
                                   :else
                                   `(== ~(count (:types t)) (count ~arg)))
                                ~@(doall
@@ -116,7 +117,7 @@
                                   (number? v) `(when (number? ~arg)
                                                  ; I think = models the type system's behaviour better than ==
                                                  (= '~v ~arg))
-                                  :else (err/int-error 
+                                  :else (int-error 
                                           (str "Cannot generate predicate for value type: " (pr-str v)))))
                  (:HMap) (let [mandatory (apply hash-map (:mandatory t))
                                optional (apply hash-map (:optional t))
@@ -148,7 +149,7 @@
                                   [~garg]
                                   ~(gen-inner body garg))
                                 ~arg))))
-                 (err/int-error (str op " not supported in type->pred: " (:form t)))))]
+                 (int-error (str op " not supported in type->pred: " (:form t)))))]
        (let [arg (gensym "arg")]
          `(fn [~arg] 
             (boolean
@@ -160,18 +161,18 @@
   [t]
   (letfn [(gen-inner [{:keys [op] :as t} arg]
             (case op
-              (:F) (err/int-error "Cannot generate predicate for free variable")
-              (:Poly) (err/int-error "Cannot generate predicate for polymorphic type")
-              (:PolyDots) (err/int-error "Cannot generate predicate for dotted polymorphic type")
+              (:F) (int-error "Cannot generate predicate for free variable")
+              (:Poly) (int-error "Cannot generate predicate for polymorphic type")
+              (:PolyDots) (int-error "Cannot generate predicate for dotted polymorphic type")
               (:Fn) (cond
                       (= 1 (count (:arities t)))
                       (let [{:keys [dom rng filter object rest drest] :as method}
                             (first (:arities t))]
                         (if (or rest drest filter object)
-                          (err/int-error "Cannot generate predicate for this function type")
+                          (int-error "Cannot generate predicate for this function type")
                           `(con/ifn-c ~(mapv #(gen-inner % arg) dom)
                                       ~(gen-inner rng arg))))
-                      :else (err/int-error "Cannot generate predicate for function type"))
+                      :else (int-error "Cannot generate predicate for function type"))
               (:TApp) (let [{:keys [rator rands]} t]
                         (cond 
                           ;needs resolving
@@ -181,10 +182,10 @@
                           ;(#{:Class} (:op rator))
                           ;  (let [{:keys [args pred] :as rcls} (get (impl/rclass-env) (:name rator))
                           ;        _ (when-not rcls
-                          ;            (err/int-error (str "Class does not take arguments: "
+                          ;            (int-error (str "Class does not take arguments: "
                           ;                                (:name rator))))
                           ;        _ (when-not (args (count rands))
-                          ;            (err/int-error (str "Wrong number of arguments to "
+                          ;            (int-error (str "Wrong number of arguments to "
                           ;                                (:name rator) ", expected " args
                           ;                                " actual " (count rands))))
                           ;        rands-args (repeatedly (count rands) gensym)
@@ -197,16 +198,16 @@
                           (#{:TFn} (:op rator))
                           (gen-inner (ops/instantiate-TFn rator rands) arg)
                           :else
-                          (err/int-error (str "Don't know how to apply type: " (:form t)))))
+                          (int-error (str "Don't know how to apply type: " (:form t)))))
               (:Class) `(con/instance-c
                           (Class/forName ~(str (:name t))))
               (:Name) 
               (impl/impl-case
                 :clojure (gen-inner (ops/resolve-Name t) arg)
-                :cljs (err/int-error (str "TODO CLJS Name")))
+                :cljs (int-error (str "TODO CLJS Name")))
               ;              (cond
               ;                              (empty? (:poly? t)) `(instance? ~(:the-class t) ~arg)
-              ;                              :else (err/int-error (str "Cannot generate predicate for polymorphic Class")))
+              ;                              :else (int-error (str "Cannot generate predicate for polymorphic Class")))
               (:Any) `con/any-c
               ;TODO special case for union of HMap, and unions of constants
               (:U) `(con/or-c
@@ -219,7 +220,7 @@
               ;                 (:rest t)
               ;                 `(<= ~(count (:types t)) (count ~arg))
               ;                 (:drest t)
-              ;                 (err/int-error (str "Cannot generate predicate for dotted HVec"))
+              ;                 (int-error (str "Cannot generate predicate for dotted HVec"))
               ;                 :else
               ;                 `(== ~(count (:types t)) (count ~arg)))
               ;              ~@(doall
@@ -246,7 +247,7 @@
                                (number? v) ; I think = models the type system's behaviour better than ==
                                `(con/equiv-c ~v)
 
-                               :else (err/int-error 
+                               :else (int-error 
                                        (str "Cannot generate predicate for value type: " v))))
 
               (:HMap) (let [mandatory (apply hash-map (:mandatory t))
@@ -275,7 +276,7 @@
               ;                  [~garg]
               ;                  ~(gen-inner body garg))
               ;                ~arg))))
-              (err/int-error (str op " not supported in type->pred: " (:form t)))))]
+              (int-error (str op " not supported in type->pred: " (:form t)))))]
     (gen-inner t nil)))
 
 (defn type-syntax->pred
