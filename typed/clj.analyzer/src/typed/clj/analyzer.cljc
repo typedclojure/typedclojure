@@ -26,7 +26,7 @@
             [typed.clj.analyzer.passes.validate :as validate]
             [typed.clj.analyzer.utils :as ju]
             #?(:clj [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]))
-  (:import [clojure.lang IObj RT Var Compiler$LocalBinding]))
+  (:import [clojure.lang IObj RT Var]))
 
 (def ^:dynamic *parse-deftype-with-existing-class*
   "If true, don't generate a new class when analyzing deftype* if a class
