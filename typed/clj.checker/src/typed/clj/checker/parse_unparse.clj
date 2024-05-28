@@ -1815,19 +1815,21 @@
   (when (.startsWith (str clsym) "clojure.lang.")
     (symbol (.getSimpleName (Class/forName (str clsym))))))
 
-(defn Class-symbol-intern [clsym ns]
+(defn Class-symbol-intern
+  "If symbol named by class is interned in ns by its
+  simple name, return the simple name."
+  [clsym ns]
   {:pre [(plat-con/namespace? ns)]
    :post [((some-fn nil? symbol?) %)]}
-  ;; TODO: this relies on ns mapping always being ShortName -> Class.
-  ;; Is this good enough?
-  (let [mapping (ns-map ns)
-        clstr (str clsym)
-        last-dot (.lastIndexOf clstr ".")
-        short-name (symbol (if (= last-dot -1)
-                             clstr
-                             (subs clstr (inc last-dot))))]
-    (when (mapping short-name)
-      short-name)))
+  (when (nil? (namespace clsym))
+    (let [clstr (name clsym)
+          last-dot (.lastIndexOf clstr ".")]
+      (when (<= 0 last-dot (- (count clstr) 2))
+        (let [short-name (symbol (subs clstr (inc last-dot)))]
+          (when-some [mapping (ns-map ns)]
+            (when-some [^Class cls (mapping short-name)]
+              (when (= short-name (.getSimpleName cls))
+                short-name))))))))
 
 (defn var-symbol-intern 
   "Returns a symbol interned in ns for var symbol, or nil if none.
