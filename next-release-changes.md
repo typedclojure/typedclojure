@@ -24,8 +24,10 @@
 ```clojure
 (check-ns *ns* :check-config {:check-ns-load :never, :check-form-eval :after})
 ```
+- micro-optimization improvements thanks to Oleksandr Yakushev (@alexander-yakushev)
 - use fully-satisfies library for thread-safe variant of requiring-resolve in all submodules
   - add additional typing rule for this function
 - restructure `clojure.core.typed` to optimize loading time
   - 80% improvement, also improves `typed.clojure` loading time
   - performance of generated code from `pred` and contracts may be affected because of `requiring-resolve` calls in output
+- merged first batch of ClojureCLR specializations to analyzer and runtime, thanks to David Miller (@dmiller)
