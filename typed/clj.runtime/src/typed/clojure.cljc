@@ -20,7 +20,6 @@
                ;; .clj{s,c} files, loaded via :require-macros in typed/clojure.cljs.
                :cljs cljs.core.typed)
             [clojure.core :as cc]
-            [clojure.core.typed.macros :as macros]
             [clojure.core.typed.platform-case :refer [platform-case]]
             #?(:clj [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]])))
             
