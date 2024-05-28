@@ -27,7 +27,10 @@
             [typed.cljc.checker.path-rep :as pth-rep]
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.type-rep :as r]
-            [typed.cljc.checker.utils :as u]))
+            [typed.cljc.checker.utils :as u])
+  (:import (typed.cljc.checker.type_rep Poly TApp F FnIntersection Intersection
+                                        Extends NotType DifferenceType AssocType
+                                        RClass Bounds HSequential HeterogeneousMap)))
 
 (defn ^:private gen-repeat [times repeated]
   (reduce into [] (repeat times repeated)))
@@ -342,8 +345,326 @@
   ;;TODO
   (report-not-subtypes s t))
 
-;TODO replace hardcoding cases for unfolding Mu? etc. with a single case for unresolved types.
-;[(t/Set '[Type Type]) Type Type -> (t/Nilable (t/Set '[Type Type]))]
+
+(defmacro ^:private AND
+  "Like `clojure.core/and` but produces better bytecode when used with
+  compile-time known booleans."
+  ([] true)
+  ([x] `(if ~x true false))
+  ([x & next]
+   `(let [and# ~x]
+      (if ~x (AND ~@next) false))))
+
+(defmacro ^:private OR
+  "Like `clojure.core/or` but produces better bytecode when used with
+  compile-time known booleans."
+  ([] nil)
+  ([x] `(if ~x true false))
+  ([x & next]
+   `(if ~x true (OR ~@next))))
+
+(defn subtype-heterogeneous-map [A s t]
+  (let [                ; convention: prefix things on left with l, right with r
+        ltypes (:types s)
+        labsent (:absent-keys s)
+        rtypes (:types t)
+        rabsent (:absent-keys t)]
+    (if (and                           ; if t is complete, s must be complete ..
+         (if (c/complete-hmap? t)
+           (if (c/complete-hmap? s)
+                                        ; mandatory keys on the right must appear as
+                                        ; mandatory on the left, but extra keys may appear
+                                        ; on the left
+             (and (let [right-mkeys (set (keys rtypes))
+                        left-mkeys (set (keys ltypes))]
+                    (set/subset? right-mkeys
+                                 left-mkeys))
+                                        ; extra mandatory keys on the left must appear
+                                        ; as optional on the right
+                  (let [left-extra-mkeys (set/difference (set (keys ltypes))
+                                                         (set (keys rtypes)))
+                        right-optional-keys (set (keys (:optional t)))]
+                    (set/subset? left-extra-mkeys
+                                 right-optional-keys)))
+                                        ;Note:
+                                        ; optional key keys on t must be optional or mandatory or absent in s,
+                                        ; which is always the case so we don't need to check.
+             false)
+           true)
+                                        ; all absent keys in t should be absent in s
+         (every? (fn [rabsent-key]
+                                        ; Subtyping is good if rabsent-key is:
+                                        ; 1. Absent in s
+                                        ; 2. Not present in s, but s is complete
+                   (or ((set labsent) rabsent-key)
+                       (when (c/complete-hmap? s)
+                         (not ((set (keys ltypes)) rabsent-key)))))
+                 rabsent)
+                                        ; all present keys in t should be present in s
+         (every? (fn [[k v]]
+                   (when-let [t (get ltypes k)]
+                     (subtypeA* A t v)))
+                 rtypes)
+                                        ; all optional keys in t should match optional/mandatory entries in s
+         (every? (fn [[k v]]
+                   (let [matches-entry?
+                         (if-let [actual-v 
+                                  ((merge-with c/In
+                                               (:types s)
+                                               (:optional s))
+                                   k)]
+                           (subtypeA* A actual-v v)
+                           (c/complete-hmap? s))]
+                     (cond
+                       (c/partial-hmap? s)
+                       (or (contains? (:absent-keys s) k)
+                           matches-entry?)
+                       :else matches-entry?)))
+                 (:optional t)))
+      A
+      (report-not-subtypes s t))))
+
+(defprotocol SubtypeA*Protocol
+  (subtypeA*-for-s [s t A]))
+
+(extend-protocol SubtypeA*Protocol
+  typed.cljc.checker.type_rep.Regex
+  (subtypeA*-for-s [s t A]
+    (when (r/Regex? t)
+      (subtype-regex A s t)))
+
+  typed.cljc.checker.type_rep.CountRange
+  (subtypeA*-for-s [s t A]
+    (when (r/CountRange? t)
+      (subtype-CountRange A s t)))
+
+  typed.cljc.checker.type_rep.CLJSInteger
+  (subtypeA*-for-s [s t A]
+    (when (r/JSNumber? t)
+      A))
+
+  FnIntersection
+  ;; hack for FnIntersection <: clojure.lang.IFn
+  (subtypeA*-for-s [s t A]
+    (when (and (impl/checking-clojure?)
+               (subtypeA* A (c/RClass-of clojure.lang.IFn) t))
+      A))
+
+  RClass
+  (subtypeA*-for-s [^RClass s t A]
+    (cond
+      (or (r/RClass? t)
+          (r/Instance? t))
+      (subtype-RClass A s t)
+
+      (OR (r/Protocol? t)
+          (r/Satisfies? t))
+      (subtype-rclass-or-datatype-with-protocol A s t)
+
+      ;; handles classes with FnIntersection ancestors
+      (r/FnIntersection? t)
+      (if (= 'clojure.lang.Var (.the-class s))
+        ;; Var doesn't actually have an FnIntersection ancestor,
+        ;; but this case simulates it.
+        (let [args (:poly? s)
+              read-type (first args)
+              _ (when-not (= 1 (count args))
+                  (err/int-error
+                   (str "clojure.lang.Var takes 1 argument, "
+                        "given " (count (.poly? s)))))]
+          (subtypeA* A read-type t))
+
+        (some #(when (r/FnIntersection? %)
+                 (subtypeA* A % t))
+              (map c/fully-resolve-type (c/RClass-supers* s))))
+
+      ;; handles classes with heterogeneous vector ancestors (eg. IMapEntry)
+      (OR (r/HSequential? t)
+          (r/TopHSequential? t))
+      (some #(when (r/HSequential? %)
+               (subtypeA* A % t))
+            (map c/fully-resolve-type (c/RClass-supers* s)))))
+
+  typed.cljc.checker.type_rep.Instance
+  (subtypeA*-for-s [s t A]
+    (when (or (r/RClass? t)
+              (r/Instance? t))
+      (subtype-RClass A s t)))
+
+  typed.cljc.checker.type_rep.DataType
+  (subtypeA*-for-s [s t A]
+    (cond (r/DataType? t)
+          (subtype-datatypes-or-records A s t)
+
+          (r/RClass? t)
+          (subtype-datatype-rclass A s t)
+
+          (OR (r/Protocol? t)
+              (r/Satisfies? t))
+          (subtype-rclass-or-datatype-with-protocol A s t)))
+
+  typed.cljc.checker.type_rep.Result
+  (subtypeA*-for-s [s t A]
+    (when (r/Result? t)
+      (subtype-Result A s t)))
+
+  typed.cljc.checker.type_rep.PrimitiveArray
+  (subtypeA*-for-s [s t A]
+    (if (r/PrimitiveArray? t)
+      (subtype-PrimitiveArray A s t)
+      ;; TODO: Wouldn't this always loop?
+      (subtypeA* A (r/PrimitiveArray-maker Object r/-any r/-any) t)))
+
+  typed.cljc.checker.type_rep.TypeFn
+  (subtypeA*-for-s [s t A]
+    (when (r/TypeFn? t)
+      (subtype-TypeFn A s t)))
+
+  typed.cljc.checker.type_rep.JSNull
+  (subtypeA*-for-s [s t A] (subtypeA* A r/-nil t))
+
+  typed.cljc.checker.type_rep.JSUndefined
+  (subtypeA*-for-s [s t A] (subtypeA* A r/-nil t))
+
+  ;;values are subtypes of their classes
+  typed.cljc.checker.type_rep.Value
+  (subtypeA*-for-s [^typed.cljc.checker.type_rep.Value s t A]
+    (cond
+      ;; repeat Heterogeneous* can always accept nil
+      (and (= s r/-nil)
+           (r/HSequential? t)
+           (:repeat t))
+      A
+
+      (and (= s r/-nil)
+           (r/Protocol? t)
+           (impl/checking-clojure?)
+           (contains? (c/Protocol-normal-extenders t) nil))
+      A
+
+      :else
+      (let [sval (.val s)]
+        (impl/impl-case
+         :clojure (if (nil? sval)
+                    ; this is after the nil <: Protocol case, so just add non-protocol ancestors here
+                    (subtypeA* A (r/make-ExactCountRange 0) t)
+                    (subtypeA* A
+                               (apply c/In (c/RClass-of (class sval))
+                                      (cond
+                                        ;keyword values are functions
+                                        (keyword? sval) [(c/keyword->Fn sval)]
+                                        ;strings have a known length as a seqable
+                                        (string? sval) [(r/make-ExactCountRange (count sval))]))
+                               t))
+         :cljs (cond
+                 (integer? sval) (subtypeA* A (r/CLJSInteger-maker) t)
+                 (number? sval) (subtypeA* A (r/JSNumber-maker) t)
+                 (string? sval) (subtypeA* A (r/JSString-maker) t)
+                 (boolean? sval) (subtypeA* A (r/JSBoolean-maker) t)
+                 (symbol? sval) (subtypeA* A (c/DataType-of 'cljs.core/Symbol) t)
+                 (keyword? sval) (subtypeA* A (c/DataType-of 'cljs.core/Keyword) t)
+                 :else (report-not-subtypes s t))))))
+
+  ;; The order of checking protocols and datatypes is subtle.
+  ;; It is easier to calculate the ancestors of a datatype than
+  ;; the descendants of a protocol, so Datatype <: Any comes
+  ;; before Protocol <: Any.
+  typed.cljc.checker.type_rep.Protocol
+  (subtypeA*-for-s [^typed.cljc.checker.type_rep.Protocol s t A]
+    (cond
+      (r/Protocol? t)
+      (let [var1 (:the-var s)
+            variances* (:variances s)
+            poly1 (:poly? s)
+            var2 (:the-var t)
+            poly2 (:poly? t)]
+        ;(prn "protocols subtype" s t)
+        (when (and (= var1 var2)
+                   (every?' (fn _prcol-variance [v l r]
+                              (case v
+                                :covariant (subtypeA* A l r)
+                                :contravariant (subtypeA* A r l)
+                                :invariant (and (subtypeA* A l r)
+                                                (subtypeA* A r l))))
+                            variances* poly1 poly2))
+          A))
+
+      (r/Satisfies? t)
+      (subtype-Satisfies A s t)))
+
+  typed.cljc.checker.type_rep.Satisfies
+  (subtypeA*-for-s [s t A]
+    (when (r/Satisfies? t)
+      (subtype-Satisfies A s t)))
+
+  HeterogeneousMap
+  (subtypeA*-for-s [s t A]
+    (subtypeA* A (c/upcast-hmap s) t))
+
+  ;; JSObj is covariant, taking after TypeScript & Google Closure. Obviously unsound.
+  typed.cljc.checker.type_rep.JSObj
+  (subtypeA*-for-s [s t A]
+    (when (r/JSObj? t)
+      (let [; convention: prefix things on left with l, right with r
+            ltypes (:types s)
+            rtypes (:types t)]
+        (when (every? (fn [[k rt]]
+                        (when-let [lt (get ltypes k)]
+                          (subtypeA* A lt rt)))
+                      rtypes)
+          A))))
+
+  typed.cljc.checker.type_rep.HSet
+  (subtypeA*-for-s [s t A]
+    (if (r/HSet? t)
+      (subtype-HSet A s t)
+      (subtypeA* A (c/upcast-hset s) t)))
+
+  typed.cljc.checker.type_rep.KwArgsSeq
+  (subtypeA*-for-s [s t A]
+    (if (r/TopKwArgsSeq? t)
+      A
+      (subtypeA* A (c/upcast-kw-args-seq s) t)))
+
+  ;; TODO add repeat support
+  HSequential
+  (subtypeA*-for-s [s t A]
+    (cond (and (r/HSequential? t)
+               (r/compatible-HSequential-kind? (:kind s)
+                                               (:kind t)))
+          (subtype-compatible-HSequential A s t)
+
+          (r/TopHSequential? t) A
+
+          :else
+          (subtypeA* A (c/upcast-HSequential s) t)))
+
+  ;;every rtype entry must be in ltypes
+  ;;eg. {:a 1, :b 2, :c 3} <: {:a 1, :b 2}
+  HeterogeneousMap
+  (subtypeA*-for-s [s t A]
+    (if (r/HeterogeneousMap? t)
+      (subtype-heterogeneous-map A s t)
+      (subtypeA* A (c/upcast-hmap s) t)))
+
+  typed.cljc.checker.type_rep.Poly
+  (subtypeA*-for-s [s t A]
+    (when (and (r/PolyDots? s)
+               (r/PolyDots? t)
+               (= (:nbound s) (:nbound t)))
+      (let [;instantiate both sides with the same fresh variables
+            names (repeatedly (:nbound s) gensym)
+            bbnds1 (c/PolyDots-bbnds* names s)
+            bbnds2 (c/PolyDots-bbnds* names t)
+            b1 (c/PolyDots-body* names s)
+            b2 (c/PolyDots-body* names t)]
+        (when (and (= bbnds1 bbnds2)
+                   (free-ops/with-bounded-frees (zipmap (map r/F-maker names) bbnds1)
+                     (subtypeA* A b1 b2)))
+          A)))))
+
+;;TODO replace hardcoding cases for unfolding Mu? etc. with a single case for unresolved types.
+;;[(t/Set '[Type Type]) Type Type -> (t/Nilable (t/Set '[Type Type]))]
 (defn ^:private subtypeA* [A s t]
   {:pre [(r/AnyType? s)
          (r/AnyType? t)]
@@ -351,43 +672,43 @@
    ;:post [(or (set? %) (nil? %))]
    }
   ;(prn "subtypeA*" s t)
-  (if (or ; FIXME TypeFn's are probably not between Top/Bottom
+  (if (OR ; FIXME TypeFn's are probably not between Top/Bottom
           (r/Top? t)
-          (r/wild? t)
-          (r/Bottom? s)
+          (r/Wildcard? t)
+          (= r/empty-union s)
           ;; Unchecked is both bottom and top
           (r/Unchecked? s)
           (r/Unchecked? t)
           ;TCError is top and bottom
           (r/TCError? s)
           (r/TCError? t)
-          (contains? A [s t])
-          (= s t))
+          (= s t)
+          (contains? A [s t]))
     A
     (let [A (conj A [s t])]
       (cond
-        (or (r/TCResult? s)
+        (OR (r/TCResult? s)
             (r/TCResult? t))
         (assert nil "Cannot give TCResult to subtype")
 
         ; use bounds to determine subtyping between frees and types
         ; 2 frees of the same name are handled in the (= s t) case.
-        (and (r/F? s)
-             (let [{:keys [upper-bound lower-bound] :as bnd} (free-ops/free-with-name-bnds (:name s))]
-               (if-not bnd 
-                 (do #_(err/int-error (str "No bounds for " (:name s)))
-                     nil)
-                 (and (subtypeA* A upper-bound t)
-                      (subtypeA* A lower-bound t)))))
+        (AND (r/F? s)
+             (if-some [^Bounds bnd
+                       (free-ops/free-with-name-bnds (:name s))]
+               (and (subtypeA* A (:upper-bound bnd) t)
+                    (subtypeA* A (:lower-bound bnd) t))
+               (do #_(err/int-error (str "No bounds for " (:name s)))
+                   false)))
         A
 
-        (and (r/F? t)
-             (let [{:keys [upper-bound lower-bound] :as bnd} (free-ops/free-with-name-bnds (:name t))]
-               (if-not bnd 
-                 (do #_(err/int-error (str "No bounds for " (:name t)))
-                     nil)
-                 (and (subtypeA* A s upper-bound)
-                      (subtypeA* A s lower-bound)))))
+        (AND (r/F? t)
+             (if-some [^Bounds bnd
+                       (free-ops/free-with-name-bnds (:name t))]
+               (and (subtypeA* A s (:upper-bound bnd))
+                    (subtypeA* A s (:lower-bound bnd)))
+               (do #_(err/int-error (str "No bounds for " (:name s)))
+                   false)))
         A
 
         (r/TypeOf? s)
@@ -396,26 +717,29 @@
         (r/TypeOf? t)
         (recur A s (c/resolve-TypeOf t))
 
-        (and (r/MatchType? s)
+        (AND (r/MatchType? s)
              (c/Match-can-resolve? s))
         (recur A (c/resolve-Match s) t)
 
-        (and (r/MatchType? t)
+        (AND (r/MatchType? t)
              (c/Match-can-resolve? t))
         (recur A s (c/resolve-Match t))
 
-        (and (r/Value? s)
+        (AND (r/Value? s)
              (r/Value? t))
         ;already (not= s t)
         (report-not-subtypes s t)
 
         ;; handle before unwrapping polymorphic types
-        (and (r/SymbolicClosure? s)
-             ((some-fn r/FnIntersection? r/Poly? r/PolyDots?) (c/fully-resolve-type t)))
+        (AND (r/SymbolicClosure? s)
+             (let [frt (c/fully-resolve-type t)]
+               (OR (r/FnIntersection? frt)
+                   (r/Poly? frt)
+                   (r/PolyDots? frt))))
         (or (subtype-symbolic-closure A s t)
             (report-not-subtypes s t))
 
-        (and (r/Poly? s)
+        (AND (r/Poly? s)
              (r/Poly? t)
              (= (:nbound s) (:nbound t))
              (= (:bbnds s) (:bbnds t)))
@@ -456,21 +780,21 @@
         A
 
         ;; go after presumably cheaper unification cases
-        (and ((some-fn r/Poly? r/PolyDots?) s)
+        (and (or (r/Poly? s) (r/PolyDots? s))
              (r/FnIntersection? t)
              (= 1 (count (:types t)))
              (every? #(= :fixed (:kind %)) (:types t))
              (binding [vs/*delayed-errors* (err/-init-delayed-errors)]
-               (let [_ ((requiring-resolve 'typed.cljc.checker.check.funapp/check-funapp)
-                        nil nil
-                        (r/ret s)
-                        (mapv r/ret (-> t :types first :dom))
-                        (-> t :types first :rng r/Result->TCResult))]
-                 (empty? @vs/*delayed-errors*))))
+               ((requiring-resolve 'typed.cljc.checker.check.funapp/check-funapp)
+                nil nil
+                (r/ret s)
+                (mapv r/ret (-> t :types first :dom))
+                (-> t :types first :rng r/Result->TCResult))
+               (empty? @vs/*delayed-errors*)))
         A
 
         (and (r/Poly? t)
-             (empty? (frees/fv t))
+             (empty? (frees/fv-variances t))
              (let [names (c/Poly-fresh-symbols* t)
                    bbnds (c/Poly-bbnds* names t)
                    b (c/Poly-body* names t)]
@@ -499,10 +823,10 @@
         (r/App? t)
         (recur A s (c/resolve-App t))
 
-        (r/Bottom? t)
+        (= r/empty-union t)
         (report-not-subtypes s t)
 
-        (and (r/TApp? s)
+        (AND (r/TApp? s)
              (r/TApp? t)
              (= (c/fully-resolve-type (:rator s))
                 (c/fully-resolve-type (:rator t))))
@@ -510,7 +834,7 @@
 
         (and (r/TApp? s)
              (r/TypeFn? (c/fully-resolve-type (:rator s))))
-        (let [{:keys [rands]} s
+        (let [rands (:rands s)
               rator (c/fully-resolve-type (:rator s))]
           (cond
             (r/F? rator) (report-not-subtypes s t)
@@ -525,7 +849,7 @@
 
         (and (r/TApp? t)
              (r/TypeFn? (c/fully-resolve-type (:rator t))))
-        (let [{:keys [rands]} t
+        (let [rands (:rands t)
               rator (c/fully-resolve-type (:rator t))]
           (cond
             (r/F? rator) (report-not-subtypes s t)
@@ -545,12 +869,12 @@
         (r/Union? t)
         (some (fn union-right [t] (subtypeA* A s t)) (:types t))
 
-        (and (r/FnIntersection? s)
+        (AND (r/FnIntersection? s)
              (r/FnIntersection? t))
         (loop [A* A
                arr2 (:types t)]
           (let [arr1 (:types s)]
-            (if (empty? arr2) 
+            (if (empty? arr2)
               A*
               (if-let [A (supertype-of-one-arr A* (first arr2) arr1)]
                 (recur A (next arr2))
@@ -567,7 +891,7 @@
         (let [ss (simplify-In s)]
           (some #(subtypeA* A % t) ss))
 
-        (and (r/Extends? s)
+        (AND (r/Extends? s)
              (r/Extends? t))
         (if (and ;all positive information matches.
                  ; Each t should occur in at least one s.
@@ -599,14 +923,14 @@
           A
           (report-not-subtypes s t))
 
-        (and (r/TopFunction? t)
+        (AND (r/TopFunction? t)
              (r/FnIntersection? s))
         A
 
         ;       B <: A
         ;_______________________________
         ; (Not A) <: (Not B)
-        (and (r/NotType? s)
+        (AND (r/NotType? s)
              (r/NotType? t))
         (subtypeA* A (:type t) (:type s))
 
@@ -643,12 +967,15 @@
                  (c/Merge-requires-resolving? t)))
         (recur A s (c/-resolve t))
 
-        (and (r/AssocType? s)
+        (AND (r/AssocType? s)
              (r/RClass? t)
              ; (Map xx yy)
              (= 'clojure.lang.IPersistentMap (:the-class t)))
-        (let [{:keys [target entries dentries]} s
-              {:keys [poly? the-class]} t
+        (let [target (:target s)
+              entries (:entries s)
+              dentries (:dentries s)
+              poly? (:poly? t)
+              the-class (:the-class t)
               ; _ (when-not (nil? dentries) (err/nyi-error (pr-str "NYI subtype of dentries AssocType " s)))
               ; we assume its all right
               entries-keys (map first entries)
@@ -659,7 +986,7 @@
             A
             (report-not-subtypes s t)))
 
-        (and (r/AssocType? s)
+        (AND (r/AssocType? s)
              (r/AssocType? t)
              (r/F? (:target s))
              (r/F? (:target t))
@@ -696,268 +1023,11 @@
           (recur A s t-or-n)
           (report-not-subtypes s t))
 
-        (and (r/HSequential? s)
-             (r/HSequential? t)
-             (r/compatible-HSequential-kind? (:kind s) (:kind t)))
-        (subtype-compatible-HSequential A s t)
-
-        ; repeat Heterogeneous* can always accept nil
-        (and (r/Nil? s)
-             (r/HSequential? t)
-             (:repeat t))
-        A
-
-        (and (r/HSequential? s)
-             (r/TopHSequential? t))
-        A
-
-        ;every rtype entry must be in ltypes
-        ;eg. {:a 1, :b 2, :c 3} <: {:a 1, :b 2}
-        (and (r/HeterogeneousMap? s)
-             (r/HeterogeneousMap? t))
-        (let [; convention: prefix things on left with l, right with r
-              {ltypes :types labsent :absent-keys :as s} s
-              {rtypes :types rabsent :absent-keys :as t} t]
-          (if (and ; if t is complete, s must be complete ..
-                   (if (c/complete-hmap? t)
-                     (if (c/complete-hmap? s)
-                       ; mandatory keys on the right must appear as
-                       ; mandatory on the left, but extra keys may appear
-                       ; on the left
-                       (and (let [right-mkeys (set (keys rtypes))
-                                  left-mkeys (set (keys ltypes))]
-                              (set/subset? right-mkeys
-                                           left-mkeys))
-                            ; extra mandatory keys on the left must appear
-                            ; as optional on the right
-                            (let [left-extra-mkeys (set/difference (set (keys ltypes))
-                                                                       (set (keys rtypes)))
-                                  right-optional-keys (set (keys (:optional t)))]
-                              (set/subset? left-extra-mkeys
-                                           right-optional-keys)))
-                            ;Note:
-                            ; optional key keys on t must be optional or mandatory or absent in s,
-                            ; which is always the case so we don't need to check.
-                       false)
-                     true)
-                   ; all absent keys in t should be absent in s
-                   (every? (fn [rabsent-key]
-                             ; Subtyping is good if rabsent-key is:
-                             ; 1. Absent in s
-                             ; 2. Not present in s, but s is complete
-                             (or ((set labsent) rabsent-key)
-                                 (when (c/complete-hmap? s)
-                                   (not ((set (keys ltypes)) rabsent-key)))))
-                           rabsent)
-                   ; all present keys in t should be present in s
-                   (every? (fn [[k v]]
-                             (when-let [t (get ltypes k)]
-                               (subtypeA* A t v)))
-                           rtypes)
-                   ; all optional keys in t should match optional/mandatory entries in s
-                   (every? (fn [[k v]]
-                             (let [matches-entry?
-                                   (if-let [actual-v 
-                                            ((merge-with c/In
-                                                         (:types s)
-                                                         (:optional s))
-                                             k)]
-                                     (subtypeA* A actual-v v)
-                                     (c/complete-hmap? s))]
-                               (cond
-                                 (c/partial-hmap? s)
-                                 (or (contains? (:absent-keys s) k)
-                                     matches-entry?)
-                                 :else matches-entry?)))
-                           (:optional t)))
-            A
-            (report-not-subtypes s t)))
-
-        (r/HeterogeneousMap? s)
-        (recur A (c/upcast-hmap s) t)
-
-        ;; JSObj is covariant, taking after TypeScript & Google Closure. Obviously unsound.
-        (and (r/JSObj? s)
-             (r/JSObj? t))
-        (let [; convention: prefix things on left with l, right with r
-              {ltypes :types} s
-              {rtypes :types} t]
-          (if (every? (fn [[k rt]]
-                        (when-let [lt (get ltypes k)]
-                          (subtypeA* A lt rt)))
-                      rtypes)
-            A
-            (report-not-subtypes s t)))
-
-        (and (r/HSet? s)
-             (r/HSet? t))
-        (subtype-HSet A s t)
-
-        (r/HSet? s)
-        (recur A (c/upcast-hset s) t)
-
-        (r/KwArgsSeq? s)
-        (if (r/TopKwArgsSeq? t)
-          A
-          (recur A (c/upcast-kw-args-seq s) t))
-
-        ; TODO add repeat support
-        (r/HSequential? s)
-        (recur A (c/upcast-HSequential s) t)
-
-; The order of checking protocols and datatypes is subtle.
-; It is easier to calculate the ancestors of a datatype than
-; the descendants of a protocol, so Datatype <: Any comes 
-; before Protocol <: Any.
-        (and (r/Protocol? s)
-             (r/Protocol? t))
-        (let [{var1 :the-var variances* :variances poly1 :poly?} s
-              {var2 :the-var poly2 :poly?} t]
-          ;(prn "protocols subtype" s t)
-          (if (and (= var1 var2)
-                   (every?' (fn _prcol-variance [v l r]
-                              (case v
-                                :covariant (subtypeA* A l r)
-                                :contravariant (subtypeA* A r l)
-                                :invariant (and (subtypeA* A l r)
-                                                (subtypeA* A r l))))
-                            variances* poly1 poly2))
-            A
-            (report-not-subtypes s t)))
-
-        (and (r/DataType? s)
-             (r/DataType? t))
-        (subtype-datatypes-or-records A s t)
-
-        (and ((some-fn r/RClass? r/DataType?) s)
-             ((some-fn r/Protocol? r/Satisfies?) t))
-        (subtype-rclass-or-datatype-with-protocol A s t)
-
-        (and ((some-fn r/Protocol? r/Satisfies?) s)
-             (r/Satisfies? t))
-        (subtype-Satisfies A s t)
-
-        (and (r/Nil? s)
-             (r/Protocol? t)
-             (impl/checking-clojure?))
-        (if (contains? (c/Protocol-normal-extenders t) nil)
-          A
-          (report-not-subtypes s t))
-
-        ((some-fn r/JSNull? r/JSUndefined?) s)
-        (recur A r/-nil t)
-
-        ;values are subtypes of their classes
-        (r/Value? s)
-        (let [sval (:val s)]
-          (impl/impl-case
-            :clojure (if (nil? sval)
-                       ; this is after the nil <: Protocol case, so just add non-protocol ancestors here
-                       (recur A (r/make-ExactCountRange 0) t)
-                       (recur A
-                              (apply c/In (c/RClass-of (class sval))
-                                     (cond
-                                       ;keyword values are functions
-                                       (keyword? sval) [(c/keyword->Fn sval)]
-                                       ;strings have a known length as a seqable
-                                       (string? sval) [(r/make-ExactCountRange (count sval))]))
-                              t))
-            :cljs (cond
-                    (integer? sval) (recur A (r/CLJSInteger-maker) t)
-                    (number? sval) (recur A (r/JSNumber-maker) t)
-                    (string? sval) (recur A (r/JSString-maker) t)
-                    (boolean? sval) (recur A (r/JSBoolean-maker) t)
-                    (symbol? sval) (recur A (c/DataType-of 'cljs.core/Symbol) t)
-                    (keyword? sval) (recur A (c/DataType-of 'cljs.core/Keyword) t)
-                    :else (report-not-subtypes s t))))
-
-        (and (r/Result? s)
-             (r/Result? t))
-        (subtype-Result A s t)
-
-        (and (r/PrimitiveArray? s)
-             (r/PrimitiveArray? t))
-        (subtype-PrimitiveArray A s t)
-
-        (r/PrimitiveArray? s)
-        (recur A (r/PrimitiveArray-maker Object r/-any r/-any) t)
-      
-        (and (r/TypeFn? s)
-             (r/TypeFn? t))
-        (subtype-TypeFn A s t)
-
-        (and ((some-fn r/RClass? r/Instance?) s)
-             ((some-fn r/RClass? r/Instance?) t))
-        (subtype-RClass A s t)
-
-        (and (r/DataType? s)
-             (r/RClass? t))
-        (subtype-datatype-rclass A s t)
-
-        ; handles classes with FnIntersection ancestors
-        (and (r/RClass? s)
-             (r/FnIntersection? t))
-        (cond
-          ; Var doesn't actually have an FnIntersection ancestor,
-          ; but this case simulates it.
-          (= 'clojure.lang.Var (:the-class s))
-          (let [[read-type :as args] (:poly? s)
-                _ (when-not (= 1 (count args))
-                    (err/int-error
-                      (str "clojure.lang.Var takes 1 argument, "
-                           "given " (count (:poly? s)))))]
-            (recur A read-type t))
-
-          :else (some #(when (r/FnIntersection? %)
-                         (subtypeA* A % t))
-                      (map c/fully-resolve-type (c/RClass-supers* s))))
-
-        ; handles classes with heterogeneous vector ancestors (eg. IMapEntry)
-        (and (r/RClass? s)
-             ((some-fn r/HSequential?
-                       r/TopHSequential?)
-              t))
-        (some #(when (r/HSequential? %)
-                 (subtypeA* A % t))
-              (map c/fully-resolve-type (c/RClass-supers* s)))
-
-        ; hack for FnIntersection <: clojure.lang.IFn
-        (when (and (r/FnIntersection? s)
-                   (impl/checking-clojure?))
-          (subtypeA* A (c/RClass-of clojure.lang.IFn) t))
-        A
-
-        (and (r/CountRange? s)
-             (r/CountRange? t))
-        (subtype-CountRange A s t)
-
-        ; CLJS special types
-        (and (r/CLJSInteger? s)
-             (r/JSNumber? t))
-        A
-
-        (and (r/PolyDots? s)
-             (r/PolyDots? t)
-             (= (:nbound s) (:nbound t)))
-        (let [;instantiate both sides with the same fresh variables
-              names (repeatedly (:nbound s) gensym)
-              bbnds1 (c/PolyDots-bbnds* names s)
-              bbnds2 (c/PolyDots-bbnds* names t)
-              b1 (c/PolyDots-body* names s)
-              b2 (c/PolyDots-body* names t)]
-          (if (and (= bbnds1 bbnds2)
-                   (free-ops/with-bounded-frees (zipmap (map r/F-maker names) bbnds1)
-                     (subtypeA* A b1 b2)))
-            A
-            (report-not-subtypes s t)))
-
-        (and (r/Regex? s)
-             (r/Regex? t))
-        (subtype-regex A s t)
-
-        ; TODO (All [r x ...] [x ... x -> r]) <: (All [r x] [x * -> r]) ?
-
-        :else (report-not-subtypes s t)))))
+        :else (or (when (extends? SubtypeA*Protocol (class s))
+                    (subtypeA*-for-s s t A))
+                  ;; TODO (All [r x ...] [x ... x -> r]) <: (All [r x] [x * -> r]) ?
+                  (report-not-subtypes s t))
+        ))))
 
 (defn ^:private resolve-JS-reference [sym]
   (impl/assert-cljs)
