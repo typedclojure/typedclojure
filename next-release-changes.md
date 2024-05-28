@@ -34,3 +34,6 @@
 - pretty printing of Classes by their simple names only supported for classes interned by their simple names
 - fix Array <: Seqable subtyping
 - refactor tail of subtyping using single-dispatch, thanks to Oleksandr Yakushev (@alexander-yakushev)
+- enable parallel checking by default, one thread per top-level form
+  - defaults to number of processors
+  - configurable via options: `(check-ns *ns* {:max-processors 1})`
