@@ -26,7 +26,7 @@
     (cond 
       (keyword? (first forms))
       (let [[kv forms] (split-at 2 forms)]
-        (assert (#{2} (count kv))
+        (assert (= 2 (count kv))
                 (str "Missing keyword argument to: " (pr-str (first kv))))
         (recur (apply conj opts kv)
                forms))
@@ -92,7 +92,7 @@
 
 (defn visit-fn
   [[op & forms :as form] visitor]
-  {:pre [(#{"fn"} (name op))]
+  {:pre [(= "fn" (name op))]
    :post [(= % form)]}
   (-> (list* op (visit-fn-tail forms visitor))
       (with-meta (meta form))))
@@ -100,7 +100,7 @@
 (defn visit-fn-destructuring
   "Call visitor on all destructuring forms in first arg, a clojure.core/fn form."
   [form visitor]
-  {:pre [(#{"fn"} (name (first form)))]
+  {:pre [(= "fn" (name (first form)))]
    :post [(= % form)]}
   (visit-fn form (fn [{:keys [type form]}]
                    {:pre [form]}
@@ -111,7 +111,7 @@
 (defn visit-defn-destructuring
   "Call visitor on all destructuring forms in first arg, a clojure.core/defn form."
   [[op & forms :as form] visitor]
-  {:pre [(#{"defn"} (name op))]
+  {:pre [(= "defn" (name op))]
    :post [(= % form)]}
   (let [[nme forms] (take-when symbol? forms)
         _ (assert (symbol? nme) (str "Missing name symbol in defn: " form))
@@ -137,7 +137,7 @@
 (defn visit-defmethod-destructuring
   "Call visitor on all destructuring forms in first arg, a clojure.core/defmethod form."
   [[op nme dispatch & fn-tail :as form] visitor]
-  {:pre [(#{"defmethod"} (name op))]
+  {:pre [(= "defmethod" (name op))]
    :post [(= % form)]}
   (let [_ (assert (<= 4 (count form)) (str "Insufficient number of arguments to defmethod: " form))
         form (-> (list* op
@@ -213,24 +213,24 @@
                                             ann-info []]
                                        (cond
                                          (empty? ann-params)
-                                         (let [[dom [amp rst]] (split-with (complement #{'&}) ann-info)]
+                                         (let [[dom [amp rst]] (split-with #(not= '& %) ann-info)]
                                            {:pvec pvec
                                             :ann (-> (select-keys rst [:rest :drest])
                                                      (assoc :dom dom))})
 
                                          ;rest param
-                                         (#{'&} (first ann-params))
+                                         (= '& (first ann-params))
                                          (let [[amp & ann-params] ann-params]
-                                           (if (#{:-} (second ann-params))
+                                           (if (= :- (second ann-params))
                                              (let [[p colon & rst-params] ann-params]
                                                (cond
-                                                 (#{'*} (second rst-params))
+                                                 (= '* (second rst-params))
                                                  (let [[t star & after-rst] rst-params]
                                                    (recur after-rst
                                                           (conj pvec amp p)
                                                           (conj ann-info amp {:rest {:type t}})))
 
-                                                 (#{'...} (second rst-params))
+                                                 (= '... (second rst-params))
                                                  (let [[pretype dots bound & after-rst] rst-params]
                                                    (recur after-rst
                                                           (conj pvec amp p)
@@ -247,7 +247,7 @@
 
                                          ;fixed param
                                          :else
-                                         (if (#{:-} (second ann-params))
+                                         (if (= :- (second ann-params))
                                            (let [[p colon t & rest-params] ann-params]
                                              (recur rest-params
                                                     (conj pvec p)
@@ -257,7 +257,7 @@
                                                     (conj pvec p)
                                                     (conj ann-info {:type 'clojure.core.typed/Any
                                                                     :default true}))))))
-                                     (if (and (#{:-} (second method))
+                                     (if (and (= :- (second method))
                                               (<= 3 (count method)))
                                        (let [[param colon t & body] method]
                                          {:body body
@@ -391,8 +391,8 @@
                        (assert (every? vector? [actual ptypes]))
                        (cond
                          (empty? pvec) {:ptypes ptypes :actual actual}
-                         :else (if (#{:-} (second pvec))
-                                 (let [_ (assert (#{3} (count (take 3 pvec)))
+                         :else (if (= :- (second pvec))
+                                 (let [_ (assert (= 3 (count (take 3 pvec)))
                                                  "Missing type annotation after :-")
                                        [b colon t & rst] pvec]
                                    (recur rst 
@@ -419,8 +419,8 @@
                                            (when (string? (first dvecs))
                                              {:doc (first dvecs)}))
 
-                                    :else (if (#{:-} (second dvecs))
-                                            (let [_ (assert (#{3} (count (take 3 dvecs)))
+                                    :else (if (= :- (second dvecs))
+                                            (let [_ (assert (= 3 (count (take 3 dvecs)))
                                                             "Missing type annotation after :-")
                                                   [v colon t & rst] dvecs
                                                   {:keys [ptypes actual]} (parse-pvec v)]
@@ -464,14 +464,14 @@
                       (assert (vector? actual-bvec))
                       (cond
                         (empty? bvec) actual-bvec
-                        :else (if (#{:-} (second bvec))
-                                (let [_ (assert (#{4} (count (take 4 bvec)))
+                        :else (if (= :- (second bvec))
+                                (let [_ (assert (= 4 (count (take 4 bvec)))
                                                 "Incorrect forms following :-")
                                       [v colon t init & rst] bvec]
                                   (recur rst
                                          ;;FIXME use platform agnostic macro
                                          (conj actual-bvec v `(clojure.core.typed/ann-form ~init ~t))))
-                                (let [_ (assert (#{2} (count (take 2 bvec)))
+                                (let [_ (assert (= 2 (count (take 2 bvec)))
                                                 "No init found for local binding")
                                       [v init & rst] bvec]
                                   (recur rst
