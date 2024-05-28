@@ -85,5 +85,9 @@
       <groupId>com.nextjournal</groupId>
       <artifactId>beholder</artifactId>
     </dependency>
+    <dependency>
+      <groupId>io.github.frenchy64</groupId>
+      <artifactId>fully-satisfies</artifactId>
+    </dependency>
   </dependencies>
 </project>
