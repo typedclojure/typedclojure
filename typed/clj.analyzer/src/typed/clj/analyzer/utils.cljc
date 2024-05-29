@@ -426,28 +426,24 @@
   (eduction (remove (comp :static :flags)) (members2 class f)))
 
 (defn static-methods [class method argc]
-  (eduction (filter #(and (:return-type %)
+  (eduction (filter #(and (instance? clojure.reflect.Method %)
                           (= argc (count (:parameter-types %)))))
             (static-members class method)))
 
 (defn instance-methods [class method argc]
-  (eduction (filter #(and (:return-type %)
+  (eduction (filter #(and (instance? clojure.reflect.Method %)
                           (= argc (count (:parameter-types %)))))
             (instance-members class method)))
 
+(defn- field [member]
+  (when (instance? clojure.reflect.Field member)
+    member))
+
 (defn static-field [class f]
-  (when-let [statics (static-members class f)]
-    (when-let [[member] (filter (every-pred (comp nil? seq :parameter-types)
-                                            (comp nil? :return-type))
-                                statics)]
-      member)))
+  (some field (static-members class f)))
 
 (defn instance-field [class f]
-  (when-let [i-members (instance-members class f)]
-    (when-let [[member] (filter (every-pred (comp nil? seq :parameter-types)
-                                            (comp nil? :return-type))
-                                i-members)]
-      member)))
+  (some field (instance-members class f)))
 
 (defn static-method [class method]
   (first (static-methods class method 0)))

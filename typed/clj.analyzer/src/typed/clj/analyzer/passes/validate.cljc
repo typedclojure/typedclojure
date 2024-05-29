@@ -92,6 +92,7 @@
 (defn validate-call [{:keys [class instance method args tag env op] :as ast}]
   (let [argc (count args)
         instance? (= :instance-call op)
+        ;;[class method argc -> eduction]
         f (if instance? ju/instance-methods ju/static-methods)
         tags (mapv :tag args)]
     (if-let [matching-methods (not-empty (into [] (f class method argc)))]
