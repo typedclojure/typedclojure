@@ -134,25 +134,35 @@
                                     ::vars @vars ::errors (pos? (count @uvs/*delayed-errors*)) ::interop @interop
                                     ::type-syms @type-syms})))))
 
+(defn ns-check-cached? [nsym slurped]
+  {:pre [(simple-symbol? nsym)
+         (string? slurped)]
+   :post [(boolean? %)]}
+  (if-some [{::keys [types] :as cache-info} (get-in (env/deref-checker) [::check-ns-cache nsym])]
+    (do ;(println "top level info" types)
+        (and (= slurped (:slurped cache-info))
+             ;;TODO include the source of the namespaces that declare the relevant types and rules
+             ;; so we just need to compare the files at this level
+             ;(= (:clojure.core.typed.current-impl/unanalyzed-special ))
+             ;;DISABLE comment this out until the cache works!!
+             false)
+        )
+    false))
+
 (defn cache-info-id [env {:keys [top-level-form-string ns-form-string] :as opts}]
   [::check-form-cache (ana2/current-ns-name env) ns-form-string top-level-form-string])
 
-(defn retrieve-cache-info [{:keys [env] :as expr}
-                           expected
-                           {:keys [top-level-form-string ns-form-string] :as opts}]
+(defn retrieve-form-cache-info [{:keys [env] :as expr}
+                                expected
+                                {:keys [top-level-form-string ns-form-string] :as opts}]
   (get-in (env/deref-checker) (cache-info-id env opts)))
-
-(defn ns-check-cached? [ns slurped]
-  ;;TODO
-  false
-  )
 
 (defn need-to-check-top-level-expr? [expr expected {:keys [top-level-form-string ns-form-string] :as opts}]
   (or (-> *ns* meta :typed.clojure :experimental :cache not)
       (some? expected)
       (not ns-form-string)
       (not top-level-form-string)
-      (if-some [cache-info (retrieve-cache-info expr expected opts)]
+      (if-some [cache-info (retrieve-form-cache-info expr expected opts)]
         (do
           (println "need-to-check-top-level-expr?: found cache info")
           ;;TODO compare cache-info to current environment
@@ -195,11 +205,12 @@
                                        not-empty
                                        (update ns-form-str select-keys sforms))))]
       (env/swap-checker! assoc-in [::check-ns-cache nsym]
-                         (-> (apply merge-with merge (map #(dissoc % :clojure.core.typed.current-impl/current-used-vars :clojure.core.typed.current-impl/current-impl
-                                                                   ;;TODO
-                                                                   :typed.cljc.checker.check.cache/errors)
-                                                          (vals forms-cache)))
-                             (assoc :slurped slurped))))))
+                         (when (not-any? ::errors (vals forms-cache))
+                           (-> (apply merge-with merge (map #(dissoc % :clojure.core.typed.current-impl/current-used-vars :clojure.core.typed.current-impl/current-impl
+                                                                     ;;TODO
+                                                                     :typed.cljc.checker.check.cache/errors)
+                                                            (vals forms-cache)))
+                               (assoc :slurped slurped)))))))
 
 (defn check-top-level-expr [expr expected opts]
   (if (need-to-check-top-level-expr? expr expected opts)
