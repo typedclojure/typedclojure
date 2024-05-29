@@ -256,9 +256,9 @@
 (defn propagate-top-level
   "Propagate :top-level down :do nodes. Attach ::ana2/eval-gilardi? to
   root nodes that should be evaluated."
-  [{:keys [op] :as ast}]
-  (if (and (not= :unanalyzed op)
-           (get-in ast [::config :top-level]))
+  [ast]
+  (if (and (not= :unanalyzed (:op ast))
+           (:top-level (::config ast)))
     ; we know this root node is fully analyzed, so we can reliably predict
     ; whether to evaluate it under the Gilardi scenario.
     (case (:op ast)
