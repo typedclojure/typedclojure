@@ -117,7 +117,7 @@
      (let [^java.net.URL res (jtau/ns-url ns)]
        (assert res (str "Can't find " ns " in classpath"))
        (let [filename (str res)
-             path     (.getPath res)
+             slurped (slurp (io/reader res))
              {:keys [check-form-eval]} vs/*check-config*]
          (binding [*ns*   (if (= :never check-form-eval)
                             (the-ns ns)
@@ -155,7 +155,7 @@
                                           (throw (or (.getCause e) e)))))
                                  (.invokeAll threadpool exs))
                            (mapv #(%) exs))]
-             (cache/remove-stale-cache-entries ns ns-form-str (map :sform forms-info))
+             (cache/remove-stale-cache-entries ns ns-form-str (map :sform forms-info) slurped)
              )))))))
 
 (defn check-ns-and-deps [nsym] (cu/check-ns-and-deps nsym check-ns1))

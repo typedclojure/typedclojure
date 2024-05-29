@@ -138,7 +138,7 @@
                                     ::type-syms @type-syms})))))
 
 (defn cache-info-id [env {:keys [top-level-form-string ns-form-string] :as opts}]
-  [::check-cache (ana2/current-ns-name env) ns-form-string top-level-form-string])
+  [::check-form-cache (ana2/current-ns-name env) ns-form-string top-level-form-string])
 
 (defn retrieve-cache-info [{:keys [env] :as expr}
                            expected
@@ -182,15 +182,22 @@
   ;; communicate with need-to-check-top-level-expr?
   (env/swap-checker! assoc-in (cache-info-id env opts) cache-info))
 
-(defn remove-stale-cache-entries [nsym ns-form-str sforms]
+(defn remove-stale-cache-entries [nsym ns-form-str sforms slurped]
   {:pre [(simple-symbol? nsym)]}
   (when ns-form-str
-    (env/swap-checker! update-in [::check-cache nsym]
-                       (fn [m]
-                         (some-> m
-                                 (select-keys [ns-form-str])
-                                 not-empty
-                                 (update ns-form-str select-keys sforms))))))
+    (let [{{{forms-cache ns-form-str} nsym} ::check-form-cache}
+          (env/swap-checker! update-in [::check-form-cache nsym]
+                             (fn [m]
+                               (some-> m
+                                       (select-keys [ns-form-str])
+                                       not-empty
+                                       (update ns-form-str select-keys sforms))))]
+      (env/swap-checker! assoc-in [::check-ns-cache nsym]
+                         (-> (apply merge-with merge (map #(dissoc % :clojure.core.typed.current-impl/current-used-vars :clojure.core.typed.current-impl/current-impl
+                                                                   ;;TODO
+                                                                   :typed.cljc.checker.check.cache/errors)
+                                                          (vals forms-cache)))
+                             (assoc :slurped slurped))))))
 
 (defn check-top-level-expr [expr expected opts]
   (if (need-to-check-top-level-expr? expr expected opts)
