@@ -494,12 +494,9 @@
   "Given a vector of arg tags and a collection of methods, tries to return the
    subset of methods that match best the given tags"
   [tags methods]
-  (let [o-tags (mapv #(or (maybe-class %) Object) tags)
-        methods' (filterv #(= o-tags (mapv maybe-class (:parameter-types %)))
-                          methods)
-        methods' (if (seq methods') methods'
-                     (filterv #(tag-match? tags %) methods))]
-    (if-let [methods (seq methods')]
+  (let [o-tags (mapv #(or (maybe-class %) Object) tags)]
+    (if-let [methods (or (seq (filterv #(= o-tags (mapv maybe-class (:parameter-types %))) methods))
+                         (seq (filterv #(tag-match? tags %) methods)))]
       (reduce (fn [[prev & _ :as p] next]
                 (let [prev-params (mapv maybe-class (:parameter-types prev))
                       next-params (mapv maybe-class (:parameter-types next))
