@@ -186,11 +186,13 @@
             (recur (conj! ret val) (inc i))))
         (persistent! ret)))))
 
+(def ^:private source-info-keys #{:file :line :column :end-line :end-column :source-span})
+
 (defn- source-info-into-transient! [m dest]
   (if (:line m)
     (reduce-kv (fn [acc k v]
                  (cond-> acc
-                   (#{:file :line :column :end-line :end-column :source-span} k)
+                   (source-info-keys k)
                    (assoc! k v)))
                dest m)
     dest))
