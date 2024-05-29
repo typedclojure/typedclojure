@@ -6,52 +6,34 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc typed.clj.ext.clojure.core.typed
-  "Typing rules for clojure.core.typed ops."
+(ns ^:no-doc typed.clj.ext.typed.clojure
+  "Typing rules for typed.clojure ops."
   (:require [typed.clj.checker.check.unanalyzed :refer [install-defuspecial install-unanalyzed-special]]))
 
 ;; ============================
-;; clojure.core.typed/tc-ignore
+;; typed.clojure/ann
 
 (install-defuspecial
-  'clojure.core.typed/tc-ignore
-  'typed.clj.ext.clojure.core.typed__tc-ignore/defuspecial__tc-ignore)
-
-;; ============================
-;; clojure.core.typed/ann
-
-(install-defuspecial
-  'clojure.core.typed/ann
+  'typed.clojure/ann
   'typed.clj.ext.clojure.core.typed__ann/defuspecial__ann)
 
 ;; ============================
-;; clojure.core.typed/ann-form
+;; typed.clojure/ann-form
 
 (install-unanalyzed-special
-  'clojure.core.typed/ann-form
+  'typed.clojure/ann-form
   'typed.cljc.ext.clojure.core.typed__ann-form/-unanalyzed-special__ann-form)
 
 ;; ============================
-;; clojure.core.typed/pred
-
-(install-unanalyzed-special
-  'clojure.core.typed/pred
-  'typed.cljc.ext.clojure.core.typed__pred/-unanalyzed-special__pred)
-
-;; ============================
-;; clojure.core.typed/inst
+;; typed.clojure/inst
 
 (install-unanalyzed-special
   'clojure.core.typed/inst
   'typed.cljc.ext.clojure.core.typed__inst/-unanalyzed-special__inst)
 
 ;; ============================
-;; clojure.core.typed/fn
+;; typed.clojure/fn
 
 (install-unanalyzed-special
-  'clojure.core.typed/fn
-  'typed.cljc.ext.clojure.core.typed__fn/-unanalyzed-special__fn)
-
-(install-unanalyzed-special
-  'clojure.core.typed.macros/fn
+  'typed.clojure/fn
   'typed.cljc.ext.clojure.core.typed__fn/-unanalyzed-special__fn)

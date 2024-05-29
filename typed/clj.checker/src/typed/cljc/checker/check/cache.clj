@@ -89,11 +89,13 @@
                                  (fn [sym env]
                                    (let [r (resolve-sym sym env)]
                                      (when r
-                                       (swap! vars assoc sym (if (ana2/var? r)
-                                                               (ana2/var->sym r)
-                                                               (if (class? r)
-                                                                 (coerce/Class->symbol r)
-                                                                 r))))
+                                       (let [v (if (ana2/var? r)
+                                                 (ana2/var->sym r)
+                                                 (if (class? r)
+                                                   (coerce/Class->symbol r)
+                                                   r))]
+                                         (when (not= v sym)
+                                           (swap! vars assoc sym v))))
                                      r)))
               check/check-expr (let [check-expr check/check-expr]
                                  (fn ce
@@ -111,17 +113,24 @@
               prs/resolve-type-clj->sym (let [resolve-type-clj->sym prs/resolve-type-clj->sym]
                                           (fn [sym]
                                             (let [res (resolve-type-clj->sym sym)]
-                                              (swap! type-syms assoc sym res)
+                                              (prn "resolve-type-clj->sym" res sym)
+                                              (when (not= res sym)
+                                                (swap! type-syms assoc-in [(prs/parse-in-ns) sym] res))
                                               res)))
               prs/resolve-type-clj (let [resolve-type-clj prs/resolve-type-clj]
                                      (fn [sym]
                                        (let [res (resolve-type-clj sym)]
-                                         (when res (swap! type-syms assoc sym res))
+                                         (prn "resolve-type-clj" res sym)
+                                         (when (and res (not= res sym))
+                                           (swap! type-syms assoc-in [(prs/parse-in-ns) sym] res))
                                          res)))
               prs/parse-type-symbol-default (let [parse-type-symbol-default prs/parse-type-symbol-default]
                                               (fn [sym]
                                                 (let [res (parse-type-symbol-default sym)]
-                                                  (swap! type-syms assoc sym (->serialize res))
+                                                  ;(prn "prs/parse-type-symbol-default" res sym)
+                                                  (let [rep (->serialize res)]
+                                                    (when (not= rep sym)
+                                                      (swap! type-syms assoc-in [(prs/parse-in-ns) sym] rep)))
                                                   res)))]
       (let [result (check/check-expr expr expected)]
         (assoc result ::cache-info {::types (dissoc @types :clojure.core.typed.current-impl/current-nocheck-var?)
