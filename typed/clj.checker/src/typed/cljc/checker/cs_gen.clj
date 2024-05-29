@@ -1073,24 +1073,24 @@
          (r/FnIntersection? T)]}
   ;(prn "cs-gen FnIntersections")
   (cset-meet*
-    (doall
-      (for [t-arr (:types T)]
-        ;; for each t-arr, we need to get at least s-arr that works
-        (let [results (filter identity
-                              (doall
-                                (for [s-arr (:types S)]
-                                  (let [r (handle-failure
-                                            (cs-gen-Function V X Y s-arr t-arr))]
-                                    r))))
-              ;_ (prn "results" (count results))
-              ;_ (clojure.pprint/pprint results) 
-              ;_ (flush)
-              ;; ensure that something produces a constraint set
-              _ (when (empty? results) 
-                  (fail! S T))
-              comb (cset-combine results)]
-          ;(prn "combined" comb)
-          comb)))))
+   (mapv
+    (fn [t-arr]
+      ;; for each t-arr, we need to get at least s-arr that works
+      (let [results
+            (into [] (keep #(let [r (handle-failure
+                                      (cs-gen-Function V X Y % t-arr))]
+                              (when r r)))
+                  (:types S))
+            ;;_ (prn "results" (count results))
+            ;;_ (clojure.pprint/pprint results)
+            ;;_ (flush)
+            ;; ensure that something produces a constraint set
+            _ (when (empty? results)
+                (fail! S T))
+            comb (cset-combine results)]
+        ;; (prn "combined" comb)
+        comb))
+    (:types T))))
 
 (defn cs-gen-Result
   [V X Y S T] 

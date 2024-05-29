@@ -33,8 +33,11 @@
    vector contains only nodes and not vectors of nodes."
   [ast]
   (persistent!
-   (reduce (fn [acc [_ c]] ((if (vector? c) into! conj!) acc c))
-           (transient []) (children* ast))))
+   (reduce (fn [acc c]
+             (let [c (get ast c)]
+               ((if (vector? c) into! conj!) acc c)))
+           (transient [])
+           (:children ast))))
 
 ;; return transient or reduced holding transient
 (defn ^:private -update-children

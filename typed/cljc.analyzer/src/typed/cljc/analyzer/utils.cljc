@@ -19,6 +19,11 @@
   [to from]
   (reduce conj! to from))
 
+(defn merge!
+  "Like `merge`, but accepts and returns a transient as the first arg."
+  [to-transient m]
+  (reduce-kv assoc! to-transient m))
+
 (defn rseqv
   "Same as (comp vec rseq)"
   [v]
@@ -164,7 +169,10 @@
 (defn merge'
   "Like merge, but uses transients"
   [m & mms]
-  (persistent! (reduce conj! (transient (or m {})) mms)))
+  (persistent!
+   (reduce (fn [acc mm] (reduce-kv assoc! acc mm))
+           (transient (or m {}))
+           mms)))
 
 (defn mapv'
   "Like mapv, but short-circuits on reduced"
@@ -178,22 +186,39 @@
             (recur (conj! ret val) (inc i))))
         (persistent! ret)))))
 
+(defn- source-info-into-transient [m dest]
+  (if (:line m)
+    (reduce-kv (fn [acc k v]
+                 (cond-> acc
+                   (#{:file :line :column :end-line :end-column :source-span} k)
+                   (assoc! k v)))
+               dest m)
+    dest))
+
 (defn source-info
   "Returns the available source-info keys from a map"
   [m]
   (when (:line m)
-    (select-keys' m #{:file :line :column :end-line :end-column :source-span})))
+    (persistent!
+     (source-info-into-transient m (transient {})))))
+
+(defn -source-info-into-transient
+  "Like `-source-info`, but returns a raw transient."
+  [x env dest]
+  (let [t (->> dest
+               (source-info-into-transient env)
+               (source-info-into-transient (meta x)))]
+    (if-let [file (let [file #?(:cljs cljs-ana/*cljs-file*
+                                :default *file*)]
+                    (and (not= file "NO_SOURCE_FILE")
+                         file))]
+      (assoc! t :file file)
+      t)))
 
 (defn -source-info
   "Returns the source-info of x"
   [x env]
-  (merge' (source-info env)
-          (source-info (meta x))
-          (when-let [file (let [file #?(:cljs cljs-ana/*cljs-file*
-                                        :default *file*)]
-                            (and (not= file "NO_SOURCE_FILE")
-                                 file))]
-            {:file file})))
+  (persistent! (-source-info-into-transient x env (transient {}))))
 
 (defn const-val
   "Returns the value of a constant node (either :quote or :const)"

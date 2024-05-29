@@ -413,23 +413,27 @@
                                 (members* class))]
        members))))
 
+(defn members2
+  ([class] (members* class))
+  ([class member]
+   (let [nm? (name-matches? member)]
+     (eduction (filter #(nm? (:name %))) (members* class)))))
+
 (defn static-members [class f]
-  (when-let [members (members class f)]
-    (when-let [statics (filter (comp :static :flags) members)]
-      statics)))
+  (eduction (filter (comp :static :flags)) (members2 class f)))
 
 (defn instance-members [class f]
-  (when-let [members (members class f)]
-    (when-let [i-members (remove (comp :static :flags) members)]
-      i-members)))
+  (eduction (remove (comp :static :flags)) (members class f)))
 
 (defn static-methods [class method argc]
-  (filter #(= argc (count (:parameter-types %)))
-          (filter :return-type (static-members class method))))
+  (eduction (filter #(and (:return-type %)
+                          (= argc (count (:parameter-types %)))))
+            (static-members class method)))
 
 (defn instance-methods [class method argc]
-  (filter #(= argc (count (:parameter-types %)))
-          (filter :return-type (instance-members class method))))
+  (eduction (filter #(and (:return-type %)
+                          (= argc (count (:parameter-types %)))))
+            (instance-members class method)))
 
 (defn static-field [class f]
   (when-let [statics (static-members class f)]
@@ -490,10 +494,12 @@
   "Given a vector of arg tags and a collection of methods, tries to return the
    subset of methods that match best the given tags"
   [tags methods]
-  (let [o-tags (mapv #(or (maybe-class %) Object) tags)]
-    (if-let [methods (or (seq (filter
-                               #(= o-tags (mapv maybe-class (:parameter-types %))) methods))
-                         (seq (filter #(tag-match? tags %) methods)))]
+  (let [o-tags (mapv #(or (maybe-class %) Object) tags)
+        methods' (filterv #(= o-tags (mapv maybe-class (:parameter-types %)))
+                          methods)
+        methods' (if (seq methods') methods'
+                     (filterv #(tag-match? tags %) methods))]
+    (if-let [methods (seq methods')]
       (reduce (fn [[prev & _ :as p] next]
                 (let [prev-params (mapv maybe-class (:parameter-types prev))
                       next-params (mapv maybe-class (:parameter-types next))

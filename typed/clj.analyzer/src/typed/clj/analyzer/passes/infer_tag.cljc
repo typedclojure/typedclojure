@@ -25,16 +25,21 @@
 (defmethod -infer-tag :binding
   [{:keys [init atom] :as ast}]
   (if init
-    (let [info (select-keys init [:return-tag :arglists])]
-      (swap! atom merge info)
-      (into ast info))
+    (let [return-tag (:return-tag init)
+          arglists (:arglists init)]
+      (swap! atom (fn [m]
+                    (cond-> m
+                      return-tag (assoc :return-tag return-tag)
+                      arglists (assoc :arglists arglists))))
+      (cond-> ast
+        return-tag (assoc :return-tag return-tag)
+        arglists (assoc :arglists arglists)))
     ast))
 
 (defmethod -infer-tag :local
   [ast]
   (let [atom-ast @(:atom ast)]
-    (-> (merge atom-ast
-               ast)
+    (-> (cu/merge' atom-ast ast)
         (assoc :o-tag (:tag atom-ast)))))
 
 (defmethod -infer-tag :var
@@ -42,16 +47,14 @@
   (let [{:keys [tag arglists]} (:meta ast)
         arglists (cond-> arglists
                    (= 'quote (first arglists)) second)
-        form-tag (:tag (meta form))]
+        tag (or (:tag (meta form)) tag)
+        is-fn (fn? @var)]
     ;;if (not dynamic)
-    (-> ast
-        (assoc :o-tag Object)
-        (into (when-let [tag (or form-tag tag)]
-                (if (fn? @var)
-                  {:tag clojure.lang.AFunction :return-tag tag}
-                  {:tag tag})))
-        (into (when arglists
-                {:arglists arglists})))))
+    (cond-> ast
+      true (assoc :o-tag Object)
+      (and tag is-fn) (assoc :tag clojure.lang.AFunction :return-tag tag)
+      (and tag (not is-fn)) (assoc :tag tag)
+      arglists (assoc :arglists arglists))))
 
 (defmethod -infer-tag :def
   [{:keys [var init name] :as ast}]
@@ -60,8 +63,8 @@
     (when (and (seq info)
                (not (:dynamic (meta name)))
                (= :global (-> (env/deref-env) :passes-opts :infer-tag/level)))
-      (alter-meta! var merge (set/rename-keys info {:return-tag :tag})))
-    (-> ast 
+      (alter-meta! var cu/merge' (set/rename-keys info {:return-tag :tag})))
+    (-> ast
         (into info)
         (assoc :tag clojure.lang.Var :o-tag clojure.lang.Var))))
 

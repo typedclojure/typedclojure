@@ -94,7 +94,7 @@
         instance? (= :instance-call op)
         f (if instance? ju/instance-methods ju/static-methods)
         tags (mapv :tag args)]
-    (if-let [matching-methods (seq (f class method argc))]
+    (if-let [matching-methods (into [] (f class method argc))]
       (let [[m & rest :as matching] (ju/try-best-match tags matching-methods)]
         (if m
           (let [all-ret-equals? (apply = (mapv :return-type matching))]
@@ -243,6 +243,26 @@
                                :ast      (ast/prewalk ast cleanup/cleanup)}
                               (cu/source-info env))))))))
 
+(defn validate2 [{:keys [tag form env] :as ast}]
+  (let [ast (merge (-validate ast)
+                   (when tag
+                     {:tag tag}))]
+    (merge ast
+           (when (:tag ast)
+             (validate-tag :tag ast))
+           (when (:o-tag ast)
+             (validate-tag :o-tag ast))
+           (when (:return-tag ast)
+             (validate-tag :return-tag ast)))))
+
+;; (let [tag (:tag ast)]
+;;   (cond-> (cu/merge! (transient {}) (-validate ast))
+;;     tag (assoc! :tag tag)
+;;     tag (cu/merge! (validate-tag :tag ast))
+;;     (:o-tag ast) (cu/merge! (validate-tag :o-tag ast))
+;;     (:return-tag ast) (cu/merge! (validate-tag :return-tag ast))
+;;     true persistent!))
+
 ;;important that this pass depends our `uniquify-locals`
 ;; (typed.cljc.analyzer.passes.uniquify), not the taj pass
 ;; - remove validate-recur
@@ -271,21 +291,11 @@
       AST node which can be either a :maybe-class or a :maybe-host-form,
       those nodes are documented in the tools.analyzer quickref.
       The function must return a valid tools.analyzer.jvm AST node."
-  {:pass-info {:walk :post :depends #{;; replace
+  {:pass-info {:walk :post :depends #{ ;; replace
                                       #'infer-tag/infer-tag
                                       ;; replace
                                       #'analyze-host-expr/analyze-host-expr
                                       ;; validate-recur doesn't seem to play nicely with core.async/go
                                       #_#'validate-recur/validate-recur}}}
   [{:keys [tag form env] :as ast}]
-  (let [ast (merge (-validate ast)
-                   (when tag
-                     {:tag tag}))]
-    (merge ast
-           (when (:tag ast)
-             (validate-tag :tag ast))
-           (when (:o-tag ast)
-             (validate-tag :o-tag ast))
-           (when (:return-tag ast)
-             (validate-tag :return-tag ast)))))
-
+  (validate2 ast))

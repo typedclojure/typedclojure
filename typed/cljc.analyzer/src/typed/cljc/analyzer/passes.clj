@@ -71,7 +71,7 @@
                                         ; incorrect, since it should only run at the root), then it's probably
                                         ; a bug somewhere else that fails to propagate :env down the AST.
                                         (u/update-vals state #(%))))]
-                     (update-in ast [:env ::ana/state] state-fn)))]
+                     (update ast :env update ::ana/state state-fn)))]
     {:init-ast init-ast
      :pre pre-passes
      :post post-passes}))

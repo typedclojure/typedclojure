@@ -503,7 +503,8 @@
       {:op :unanalyzed
        ::ana/op ::ana/unanalyzed
        :form form
-       :env (u/merge' env (u/-source-info form env))
+       :env (when env
+              (persistent! (u/-source-info-into-transient form env (transient env))))
        ;; ::ana/config will be inherited by whatever node
        ;; this :unanalyzed node becomes when analyzed
        ::ana/config {}}
