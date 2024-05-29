@@ -169,10 +169,7 @@
 (defn merge'
   "Like merge, but uses transients"
   [m & mms]
-  (persistent!
-   (reduce (fn [acc mm] (reduce-kv assoc! acc mm))
-           (transient (or m {}))
-           mms)))
+  (persistent! (reduce merge! (transient (or m {})) mms)))
 
 (defn mapv'
   "Like mapv, but short-circuits on reduced"
