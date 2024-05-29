@@ -738,6 +738,7 @@
    :post [((some-fn symbol? nil?) %)]}
   (impl/assert-clojure)
   (let [clstr (repl/demunge (str sym))
+        ;; replace final dot with /
         varstr (str/replace clstr #"\.([^.]+)$" "/$1")
         var-sym (symbol varstr)]
     (when (var? (resolve var-sym))
