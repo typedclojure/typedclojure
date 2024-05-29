@@ -113,21 +113,18 @@
               prs/resolve-type-clj->sym (let [resolve-type-clj->sym prs/resolve-type-clj->sym]
                                           (fn [sym]
                                             (let [res (resolve-type-clj->sym sym)]
-                                              (prn "resolve-type-clj->sym" res sym)
                                               (when (not= res sym)
                                                 (swap! type-syms assoc-in [(prs/parse-in-ns) sym] res))
                                               res)))
               prs/resolve-type-clj (let [resolve-type-clj prs/resolve-type-clj]
                                      (fn [sym]
                                        (let [res (resolve-type-clj sym)]
-                                         (prn "resolve-type-clj" res sym)
                                          (when (and res (not= res sym))
                                            (swap! type-syms assoc-in [(prs/parse-in-ns) sym] res))
                                          res)))
               prs/parse-type-symbol-default (let [parse-type-symbol-default prs/parse-type-symbol-default]
                                               (fn [sym]
                                                 (let [res (parse-type-symbol-default sym)]
-                                                  ;(prn "prs/parse-type-symbol-default" res sym)
                                                   (let [rep (->serialize res)]
                                                     (when (not= rep sym)
                                                       (swap! type-syms assoc-in [(prs/parse-in-ns) sym] rep)))
