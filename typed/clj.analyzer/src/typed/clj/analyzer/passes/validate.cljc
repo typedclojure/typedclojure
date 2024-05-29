@@ -243,25 +243,12 @@
                                :ast      (ast/prewalk ast cleanup/cleanup)}
                               (cu/source-info env))))))))
 
-(defn validate2 [{:keys [tag form env] :as ast}]
-  (let [ast (merge (-validate ast)
-                   (when tag
-                     {:tag tag}))]
-    (merge ast
-           (when (:tag ast)
-             (validate-tag :tag ast))
-           (when (:o-tag ast)
-             (validate-tag :o-tag ast))
-           (when (:return-tag ast)
-             (validate-tag :return-tag ast)))))
-
-;; (let [tag (:tag ast)]
-;;   (cond-> (cu/merge! (transient {}) (-validate ast))
-;;     tag (assoc! :tag tag)
-;;     tag (cu/merge! (validate-tag :tag ast))
-;;     (:o-tag ast) (cu/merge! (validate-tag :o-tag ast))
-;;     (:return-tag ast) (cu/merge! (validate-tag :return-tag ast))
-;;     true persistent!))
+(defn validate-tag' [tag ast]
+  (or (ju/maybe-class tag)
+      (throw (ex-info (str "Class not found: " tag)
+                      (into {:class    tag
+                             :ast      (ast/prewalk ast cleanup/cleanup)}
+                            (cu/source-info (:env ast)))))))
 
 ;;important that this pass depends our `uniquify-locals`
 ;; (typed.cljc.analyzer.passes.uniquify), not the taj pass
@@ -298,4 +285,11 @@
                                       ;; validate-recur doesn't seem to play nicely with core.async/go
                                       #_#'validate-recur/validate-recur}}}
   [{:keys [tag form env] :as ast}]
-  (validate2 ast))
+  (let [tag (:tag ast)
+        ast (-validate ast)
+        o-tag (:o-tag ast)
+        return-tag (:return-tag ast)]
+    (cond-> (-validate ast)
+      tag (assoc :tag (validate-tag' tag ast))
+      o-tag (assoc :o-tag (validate-tag' o-tag ast))
+      return-tag (assoc :return-tag (validate-tag' return-tag ast)))))
