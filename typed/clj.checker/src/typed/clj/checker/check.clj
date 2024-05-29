@@ -114,49 +114,49 @@
   ([ns] (check-ns1 ns (jana2/empty-env)))
   ([ns env]
    (env/ensure (jana2/global-env)
-     (let [^java.net.URL res (jtau/ns-url ns)]
-       (assert res (str "Can't find " ns " in classpath"))
-       (let [filename (str res)
-             slurped (slurp (io/reader res))
-             {:keys [check-form-eval]} vs/*check-config*]
-         (binding [*ns*   (if (= :never check-form-eval)
-                            (the-ns ns)
-                            *ns*)
-                   *file* filename]
-           (let [forms-info (with-open [rdr (io/reader res)]
-                              (let [pbr (readers/source-logging-push-back-reader
-                                          (java.io.PushbackReader. rdr) 1 filename)
-                                    eof (Object.)
-                                    read-opts (cond-> {:eof eof :features #{:clj}}
-                                                (.endsWith filename "cljc") (assoc :read-cond :allow))]
-                                (loop [ns-form-str nil
-                                       forms-info []]
-                                  (let [[form sform] (reader/read+string read-opts pbr)]
-                                    (if (identical? form eof)
-                                      forms-info
-                                      (recur (or ns-form-str
-                                                 (when (and (seq? form) (= 'ns (first form)))
-                                                   sform))
-                                             (conj forms-info {:ns-form-str ns-form-str :sform sform :form form})))))))
+     (let [^java.net.URL res (jtau/ns-url ns)
+           _ (assert res (str "Can't find " ns " in classpath"))
+           slurped (slurp (io/reader res))]
+       (when-not (cache/ns-check-cached? ns slurped)
+         (let [filename (str res)
+               {:keys [check-form-eval]} vs/*check-config*]
+           (binding [*ns*   (if (= :never check-form-eval)
+                              (the-ns ns) ;; assumes ns == clojure.core/ns and ns is the same throughout file
+                              *ns*)
+                     *file* filename]
+             (let [forms-info (with-open [rdr (io/reader res)]
+                                (let [pbr (readers/source-logging-push-back-reader
+                                            (java.io.PushbackReader. rdr) 1 filename)
+                                      eof (Object.)
+                                      read-opts (cond-> {:eof eof :features #{:clj}}
+                                                  (.endsWith filename "cljc") (assoc :read-cond :allow))]
+                                  (loop [ns-form-str nil
+                                         forms-info []]
+                                    (let [[form sform] (reader/read+string read-opts pbr)]
+                                      (if (identical? form eof)
+                                        forms-info
+                                        (recur (or ns-form-str
+                                                   (when (and (seq? form) (= 'ns (first form)))
+                                                     sform))
+                                               (conj forms-info {:ns-form-str ns-form-str :sform sform :form form})))))))
 
-                 ns-form-str (some :ns-form-str forms-info)
-                 exs (map (fn [{:keys [form sform]}]
-                            (bound-fn []
-                              (binding [vs/*delayed-errors* (err/-init-delayed-errors)]
-                                (check-top-level form nil {:env (assoc env :ns (ns-name *ns*))
-                                                           :top-level-form-string sform
-                                                           :ns-form-string ns-form-str}))))
-                          forms-info)
-                 results (if-some [^java.util.concurrent.ExecutorService
-                                   threadpool vs/*check-threadpool*]
-                           (mapv (fn [^java.util.concurrent.Future future]
-                                   (try (.get future)
-                                        (catch java.util.concurrent.ExecutionException e
-                                          (throw (or (.getCause e) e)))))
-                                 (.invokeAll threadpool exs))
-                           (mapv #(%) exs))]
-             (cache/remove-stale-cache-entries ns ns-form-str (map :sform forms-info) slurped)
-             )))))))
+                   ns-form-str (some :ns-form-str forms-info)
+                   exs (map (fn [{:keys [form sform]}]
+                              (bound-fn []
+                                (binding [vs/*delayed-errors* (err/-init-delayed-errors)]
+                                  (check-top-level form nil {:env (assoc env :ns (ns-name *ns*))
+                                                             :top-level-form-string sform
+                                                             :ns-form-string ns-form-str}))))
+                            forms-info)
+                   results (if-some [^java.util.concurrent.ExecutorService
+                                     threadpool vs/*check-threadpool*]
+                             (mapv (fn [^java.util.concurrent.Future future]
+                                     (try (.get future)
+                                          (catch java.util.concurrent.ExecutionException e
+                                            (throw (or (.getCause e) e)))))
+                                   (.invokeAll threadpool exs))
+                             (mapv #(%) exs))]
+               (cache/remove-stale-cache-entries ns ns-form-str (map :sform forms-info) slurped)))))))))
 
 (defn check-ns-and-deps [nsym] (cu/check-ns-and-deps nsym check-ns1))
 

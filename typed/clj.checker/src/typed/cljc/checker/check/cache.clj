@@ -142,6 +142,11 @@
                            {:keys [top-level-form-string ns-form-string] :as opts}]
   (get-in (env/deref-checker) (cache-info-id env opts)))
 
+(defn ns-check-cached? [ns slurped]
+  ;;TODO
+  false
+  )
+
 (defn need-to-check-top-level-expr? [expr expected {:keys [top-level-form-string ns-form-string] :as opts}]
   (or (-> *ns* meta :typed.clojure :experimental :cache not)
       (some? expected)
