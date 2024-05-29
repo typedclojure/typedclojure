@@ -107,6 +107,8 @@
   {:pre [(symbol? vsym)]}
   (TypeOf-maker vsym))
 
+;; TODO it might be faster to store types as a sorted vector
+;; note: c/In assumes it's a set (and probably other places)
 (u/def-type Union [types :- (t/SortedSet Type)]
   "An flattened, sorted union of types"
   [(set? types)

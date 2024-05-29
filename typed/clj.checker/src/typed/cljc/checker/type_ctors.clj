@@ -558,22 +558,21 @@
                                                           (map :types)
                                                           (apply set/intersection)
                                                           not-empty)
-                            ts (if outer-union-elements
-                                 (flatten-intersections
-                                  (eduction
-                                   (keep (fn [t]
-                                           (when (r/Union? t)
-                                             ;; remove inner union if all its elements have been moved to outer union
-                                             ;; (I (U t1 t2) (U t1 t2 t3))
-                                             ;; =>
-                                             ;; (U t1 t2 t3)
-                                             ;; not 
-                                             ;; (U t1 t2 (U) t3)
-                                             (some->> (not-empty
-                                                        (set/difference (:types t) outer-union-elements))
-                                                      (apply Un)))))
-                                   ts))
-                                 ts)
+                            ts (cond-> ts
+                                 outer-union-elements
+                                 (->> (eduction
+                                        (keep (fn [t]
+                                                (when (r/Union? t)
+                                                  ;; remove inner union if all its elements have been moved to outer union
+                                                  ;; (I (U t1 t2) (U t1 t2 t3))
+                                                  ;; =>
+                                                  ;; (U t1 t2 t3)
+                                                  ;; not 
+                                                  ;; (U t1 t2 (U) t3)
+                                                  (some->> (not-empty
+                                                             (set/difference (:types t) outer-union-elements))
+                                                           (apply Un))))))
+                                      flatten-intersections))
                             ;_ (prn "ts" ts)
                             ;_ (prn "outer-union-elements" outer-union-elements)
                             {:keys [unions count-ranges hmaps tapps non-unions]}
