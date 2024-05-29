@@ -423,7 +423,7 @@
   (eduction (filter (comp :static :flags)) (members2 class f)))
 
 (defn instance-members [class f]
-  (eduction (remove (comp :static :flags)) (members class f)))
+  (eduction (remove (comp :static :flags)) (members2 class f)))
 
 (defn static-methods [class method argc]
   (eduction (filter #(and (:return-type %)
