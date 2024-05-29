@@ -1798,20 +1798,19 @@
          (simple-symbol? nsym)]
    :post [((some-fn nil? symbol?) %)]}
   (impl/assert-clojure)
-  (let [aliases
-        (reduce-kv (fn [v alias ans]
-                     (let [ans-sym (ns-name ans)]
-                       (if (or (= nsym (ns-unrewrites-clj ans-sym))
-                               (= nsym ans-sym)
-                               (and (= (ns-name nsym) 'typed.clojure)
-                                    (= (ns-name ans) 'clojure.core.typed)))
-                         (conj v alias)
-                         v)))
-                   [] (ns-aliases ns))]
-    (if (<= (count aliases) 1) ; fast path
-      (first aliases)
-      ;; prefer shorter, lexicographically earlier aliases
-      (first (sort-by (juxt (comp count name) identity) aliases)))))
+  (reduce-kv (fn [earliest alias ans]
+               (let [ans-sym (ns-name ans)]
+                 (if (or (= nsym (ns-unrewrites-clj ans-sym))
+                         (= nsym ans-sym)
+                         (and (= nsym 'typed.clojure)
+                              (= ans-sym 'clojure.core.typed)))
+                   (if earliest
+                     (if (pos? (compare earliest alias))
+                       alias
+                       earliest)
+                     alias)
+                   earliest)))
+             nil (ns-aliases ns)))
 
 (defn core-lang-Class-sym [clsym]
   {:pre [(symbol? clsym)]
