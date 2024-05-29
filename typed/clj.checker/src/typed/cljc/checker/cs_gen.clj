@@ -120,13 +120,17 @@
   {:pre [(cr/cset? x)
          (cr/cset? y)]
    :post [(cr/cset? %)]}
-  (let [maps (filter identity
-                     (doall (for [{map1 :fixed dmap1 :dmap} maps1
-                                  {map2 :fixed dmap2 :dmap} maps2]
-                              (handle-failure
-                                (cr/cset-entry-maker
-                                  (merge-with c-meet map1 map2)
-                                  (dmap-meet dmap1 dmap2))))))]
+  (let [maps (persistent!
+              (reduce (fn [acc {map1 :fixed dmap1 :dmap}]
+                        (reduce (fn [acc {map2 :fixed dmap2 :dmap}]
+                                  (if-let [r (handle-failure
+                                               (cr/cset-entry-maker
+                                                (merge-with c-meet map1 map2)
+                                                (dmap-meet dmap1 dmap2)))]
+                                    (conj! acc r)
+                                    acc))
+                                acc maps2))
+                      (transient []) maps1))]
     (when (empty? maps)
       (fail! maps1 maps2))
     (cr/cset-maker maps)))
@@ -446,8 +450,9 @@
 
         ;; find *an* element of T which can be made a supertype of S
         (r/Union? T)
-        (if-let [cs (seq (filter identity (mapv #(handle-failure (cs-gen V X Y S %))
-                                                (:types T))))]
+        (if-let [cs (not-empty
+                     (into [] (keep #(handle-failure (cs-gen V X Y S %)))
+                           (:types T)))]
           (cset-combine cs)
           (fail! S T))
 
@@ -477,16 +482,16 @@
               ;       V X Y)
               ; FIXME handle negative information
               cs (cset-meet*
-                   (doall
+                   (mapv
                      ; for each element of T, we need at least one element of S that works
-                     (for [t* (:extends T)]
-                       (if-let [results (doall
-                                          (seq (filter identity
-                                                       (map #(handle-failure
-                                                               (cs-gen V X Y % t*))
-                                                            (:extends S)))))]
+                     (fn [t*]
+                       (if-let [results (not-empty
+                                         (into [] (keep #(handle-failure
+                                                           (cs-gen V X Y % t*)))
+                                               (:extends S)))]
                          (cset-meet* results)
-                         (fail! S T)))))]
+                         (fail! S T)))
+                     (:extends T)))]
           cs)
 
         ;; find *an* element of S which can be made a subtype of T
@@ -504,10 +509,8 @@
         (let [cs (cset-meet*
                    (cons (cr/empty-cset X Y)
                          (mapv #(cs-gen V X Y S %) (:extends T))))
-              satisfies-without? (not-any? identity 
-                                           (doall
-                                             (map #(handle-failure (cs-gen V X Y % T))
-                                                  (:without T))))]
+              satisfies-without? (not-any? #(handle-failure (cs-gen V X Y % T))
+                                           (:without T))]
           (if satisfies-without?
             cs
             (fail! S T)))
@@ -1077,9 +1080,7 @@
     (fn [t-arr]
       ;; for each t-arr, we need to get at least s-arr that works
       (let [results
-            (into [] (keep #(let [r (handle-failure
-                                      (cs-gen-Function V X Y % t-arr))]
-                              (when r r)))
+            (into [] (keep #(handle-failure (cs-gen-Function V X Y % t-arr)))
                   (:types S))
             ;;_ (prn "results" (count results))
             ;;_ (clojure.pprint/pprint results)

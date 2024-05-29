@@ -735,9 +735,9 @@
   {:pre [(symbol? sym)]
    :post [((some-fn symbol? nil?) %)]}
   (impl/assert-clojure)
-  (let [segs (vec (partition-by #{\.} (str (repl/demunge (str sym)))))
-        segs (assoc-in segs [(- (count segs) 2)] '(\/))
-        var-sym (symbol (apply str (apply concat segs)))]
+  (let [clstr (repl/demunge (str sym))
+        varstr (str/replace clstr #"\.([^.]+)$" "/$1")
+        var-sym (symbol varstr)]
     (when (var? (resolve var-sym))
       var-sym)))
 
