@@ -409,31 +409,30 @@
   ([class] (members* class))
   ([class member]
    (let [nm? (name-matches? member)]
-     (when-let [members (filter #(nm? (:name %))
-                                (members* class))]
-       members))))
+     (filter #(nm? (:name %))
+             (members* class)))))
 
-(defn members2
+(defn- members2
   ([class] (members* class))
   ([class member]
    (let [nm? (name-matches? member)]
      (eduction (filter #(nm? (:name %))) (members* class)))))
 
-(defn static-members [class f]
+(defn- static-members [class f]
   (eduction (filter (comp :static :flags)) (members2 class f)))
 
-(defn instance-members [class f]
+(defn- instance-members [class f]
   (eduction (remove (comp :static :flags)) (members2 class f)))
 
 (defn static-methods [class method argc]
-  (eduction (filter #(and (instance? clojure.reflect.Method %)
-                          (= argc (count (:parameter-types %)))))
-            (static-members class method)))
+  (into [] (filter #(and (instance? clojure.reflect.Method %)
+                         (= argc (count (:parameter-types %)))))
+        (static-members class method)))
 
 (defn instance-methods [class method argc]
-  (eduction (filter #(and (instance? clojure.reflect.Method %)
-                          (= argc (count (:parameter-types %)))))
-            (instance-members class method)))
+  (into [] (filter #(and (instance? clojure.reflect.Method %)
+                         (= argc (count (:parameter-types %)))))
+        (instance-members class method)))
 
 (defn- field [member]
   (when (instance? clojure.reflect.Field member)
