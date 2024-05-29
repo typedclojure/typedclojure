@@ -81,6 +81,7 @@
 (t/ann bottom r/Type)
 (def ^:private bottom (r/Union-maker (sorted-set)))
 
+;;TODO accepts IReduce
 (t/ann ^:no-check make-Union [(t/Seqable r/Type) -> r/Type])
 (defn make-Union
   "Does not resolve types."
@@ -501,6 +502,7 @@
         ;(prn "intersect miss" (ind/unparse-type t))
         t))))
 
+;;TODO accepts IReduce
 (t/ann ^:no-check flatten-intersections [(t/Seqable r/Type) -> (t/Set r/Type)])
 (defn flatten-intersections
   "Does not resolve types."
@@ -513,6 +515,7 @@
               (conj acc (r/assert-Type type))))
           (sorted-set) types))
 
+;;TODO accepts IReduce
 (t/ann ^:no-check flatten-unions [(t/Seqable r/Type) -> (t/Set r/Type)])
 (defn flatten-unions
   "Does not resolve types."

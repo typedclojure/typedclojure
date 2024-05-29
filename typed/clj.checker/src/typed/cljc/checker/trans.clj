@@ -118,16 +118,16 @@
         (let [{:keys [pre-type name]} (:drest t)]
           (assert (symbol? name))
           (if (= b name) ;identical bounds
-            (let [dom (concat 
+            (let [dom (into 
                         ;keep fixed domain
-                        (doall (map tfn (:dom t)))
+                        (mapv tfn (:dom t))
                         ;expand dotted type to fixed domain
-                        (doall (map (fn [bk]
-                                      {:post [(r/Type? %)]}
-                                      ;replace free occurences of bound with bk
-                                      (-> (subst/substitute bk b pre-type)
-                                          tfn))
-                                    bm)))]
+                        (map (fn [bk]
+                               {:post [(r/Type? %)]}
+                               ;replace free occurences of bound with bk
+                               (-> (subst/substitute bk b pre-type)
+                                   tfn)))
+                        bm)]
               ;dotted pretype now expanded to fixed domain
               (r/make-Function dom (tfn (:rng t))))
             (-> t

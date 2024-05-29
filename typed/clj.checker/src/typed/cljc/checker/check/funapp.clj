@@ -159,7 +159,7 @@
              vsym
              (r/make-FnIntersection
                (r/make-Function
-                 (repeat (count args) r/-any)
+                 (vec (repeat (count args) r/-any))
                  r/-any))))
          (or expected
              (r/ret (r/-unchecked nil))))

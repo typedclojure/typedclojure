@@ -139,7 +139,7 @@
                   {:pre [(r/AnyType? t)]}
                   (subst-type t (if (number? k) (+ arg-count k) k) o polarity))
                 st)]
-      (r/make-Function (map st dom)
+      (r/make-Function (mapv st dom)
                        (st* rng)
                        :rest (some-> rest st)
                        :drest (some-> drest (update :pre-type st))

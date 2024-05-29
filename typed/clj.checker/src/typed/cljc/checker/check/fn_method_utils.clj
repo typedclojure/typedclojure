@@ -48,7 +48,7 @@
         arg-names (concat (map first args)
                           (some-> rest-param-name list))]
     (r/make-Function
-      (map second args)
+      (mapv second args)
       (abo/abstract-result body arg-names)
       :rest (some-> rest second)
       :drest (some-> drest second)

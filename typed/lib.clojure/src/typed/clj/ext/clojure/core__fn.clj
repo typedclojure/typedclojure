@@ -72,7 +72,7 @@
                                                             r/-wild))
                                           dom (->> fixed
                                                    (sort-by :fixed-pos)
-                                                   (map prs-dash-meta))
+                                                   (mapv prs-dash-meta))
                                           rett (prs-dash-meta argv)]
                                       (r/make-Function
                                         dom

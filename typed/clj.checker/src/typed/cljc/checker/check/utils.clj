@@ -211,8 +211,9 @@
   {:pre [(method-map? method)]
    :post [(r/FnIntersection? %)]}
   (assert (class? (resolve declaring-class)))
-  (r/make-FnIntersection (r/make-Function (cons (c/RClass-of-with-unknown-params declaring-class)
-                                                (map #(Java-symbol->Type % false) parameter-types))
+  (r/make-FnIntersection (r/make-Function (into [(c/RClass-of-with-unknown-params declaring-class)]
+                                                (map #(Java-symbol->Type % false))
+                                                parameter-types)
                                           (Java-symbol->Type return-type true))))
 
 
@@ -340,7 +341,7 @@
               (let [dt dtp
                     fields (c/DataType-fields* dt)
                     make-arity (fn [extra-args]
-                                 (r/make-Function (concat (vals fields) extra-args)
+                                 (r/make-Function (into (vec (vals fields)) extra-args)
                                                   dt))]
                 (apply r/make-FnIntersection 
                        (cond-> [(make-arity nil)]
@@ -373,26 +374,25 @@
   (mtd-ret-nil/nonnilable-return? msym nparams))
 
 ;[clojure.reflect.Method -> Type]
-(defn Method->Type [{:keys [parameter-types return-type flags] :as method}]
-  {:pre [(instance? clojure.reflect.Method method)]
+(defn Method->Type [{{:keys [varargs]} :flags :keys [parameter-types return-type] :as method}]
+  {:pre [(instance? clojure.reflect.Method method)
+         (vector? parameter-types)]
    :post [(r/FnIntersection? %)]}
   (let [msym (Method->symbol method)
         nparams (count parameter-types)]
-    (r/make-FnIntersection (r/make-Function (mapv (fn [[n tsym]]
-                                                    (Java-symbol->Type
-                                                      tsym
-                                                      (mtd-param-nil/nilable-param? msym nparams n)))
-                                                  (map-indexed vector
-                                                               (if (:varargs flags)
-                                                                 (butlast parameter-types)
-                                                                 parameter-types)))
+    (r/make-FnIntersection (r/make-Function (into [] (map-indexed (fn [n tsym]
+                                                                    (Java-symbol->Type
+                                                                      tsym
+                                                                      (mtd-param-nil/nilable-param? msym nparams n))))
+                                                  (cond-> parameter-types
+                                                    varargs pop))
                                             (Java-symbol->Type
                                               return-type
                                               (not (mtd-ret-nil/nonnilable-return? msym nparams)))
                                             :rest
-                                            (when (:varargs flags)
+                                            (when varargs
                                               (Java-symbol->Type
-                                                (last parameter-types)
+                                                (peek parameter-types)
                                                 (mtd-param-nil/nilable-param? msym nparams (dec nparams))))))))
 
 ;[clojure.reflect.Constructor -> Type]
@@ -402,7 +402,7 @@
   (let [cls (resolve declaring-class)
         _ (when-not (class? cls)
             (err/tc-delayed-error (str "Constructor for unresolvable class " (:class ctor))))]
-    (r/make-FnIntersection (r/make-Function (doall (map #(Java-symbol->Type % false) parameter-types))
+    (r/make-FnIntersection (r/make-Function (mapv #(Java-symbol->Type % false) parameter-types)
                                             (c/RClass-of-with-unknown-params cls)
                                             ;always a true value. Cannot construct nil
                                             ; or primitive false

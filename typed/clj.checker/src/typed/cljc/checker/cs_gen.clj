@@ -1522,7 +1522,7 @@
           new-tys (mapv (fn [var]
                           (subst/substitute (r/make-F var) dbound dty))
                         vars)
-          new-s-arr (r/make-Function (concat (:dom S) new-tys) (:rng S))
+          new-s-arr (r/make-Function (into (:dom S) new-tys) (:rng S))
           new-cset (cs-gen-Function V
                                     ;move dotted lower/upper bounds to vars
                                     (merge X (zipmap vars (repeat (homogeneous-dbound->bound (Y dbound))))) Y new-s-arr T)]
@@ -1543,7 +1543,7 @@
                     vars)
           ;_ (prn "dotted on the right, nothing on the left")
           ;_ (prn "vars" vars)
-          new-t-arr (r/make-Function (concat (:dom T) new-tys) (:rng T))
+          new-t-arr (r/make-Function (into (:dom T) new-tys) (:rng T))
           ;_ (prn "S" (prs/unparse-type S))
           ;_ (prn "new-t-arr" (prs/unparse-type new-t-arr))
           new-cset (cs-gen-Function V
@@ -1569,7 +1569,7 @@
             new-tys (mapv (fn [var]
                             (subst/substitute (r/make-F var) dbound t-dty))
                           vars)
-            new-t-arr (r/make-Function (concat (:dom T) new-tys) (:rng T) :drest (r/DottedPretype1-maker t-dty dbound))
+            new-t-arr (r/make-Function (into (:dom T) new-tys) (:rng T) :drest (r/DottedPretype1-maker t-dty dbound))
             new-cset (cs-gen-Function V (merge X (zipmap vars (repeat (homogeneous-dbound->bound (Y dbound)))) X) Y S new-t-arr)]
         (move-vars+rest-to-dmap new-cset dbound vars)))))
 
@@ -1588,7 +1588,7 @@
             new-tys (mapv (fn [var]
                             (subst/substitute (r/make-F var) dbound s-dty))
                           vars)
-            new-s-arr (r/make-Function (concat (:dom S) new-tys) (:rng S) :drest (r/DottedPretype1-maker s-dty dbound))
+            new-s-arr (r/make-Function (into (:dom S) new-tys) (:rng S) :drest (r/DottedPretype1-maker s-dty dbound))
             new-cset (cs-gen-Function V (merge X (zipmap vars (repeat (homogeneous-dbound->bound (Y dbound)))) X) Y new-s-arr T)]
         (move-vars+rest-to-dmap new-cset dbound vars :exact true))
 

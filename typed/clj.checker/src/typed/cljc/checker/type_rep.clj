@@ -1170,7 +1170,7 @@
                  (or o (ind/-empty-fn)))))
 
 (t/ann ^:no-check make-Function
-       [(t/Seqable Type)
+       [(t/Vec Type)
         (t/U Type Result)
         & :optional
         {:rest (t/Nilable Type) :drest (t/Nilable Type) :prest (t/Nilable Type)
@@ -1185,7 +1185,8 @@
   Accepts optional :filter and :object parameters that default to the most general filter
   and EmptyObject"
   [dom rng & {:keys [rest drest prest pdot filter object mandatory-kws optional-kws kws regex] :as opt}]
-  {:pre [(every? keyword? (keys opt))
+  {:pre [(vector? dom)
+         (every? keyword? (keys opt))
          (if (Result? rng)
            (not (or filter object))
            (Type? rng))]}
@@ -1196,7 +1197,7 @@
                   (-kw-args :mandatory (or mandatory-kws {})
                             :optional (or optional-kws {})))
               kws)]
-    (Function-maker (vec dom)
+    (Function-maker dom
                     (cond-> rng
                       (not (Result? rng)) (make-Result filter object))
                     rest
