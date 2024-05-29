@@ -1805,7 +1805,9 @@
                          (and (= nsym 'typed.clojure)
                               (= ans-sym 'clojure.core.typed)))
                    (if earliest
-                     (if (pos? (compare earliest alias))
+                     (if (or (< (-> alias name count)
+                                (-> earliest name count))
+                             (pos? (compare earliest alias)))
                        alias
                        earliest)
                      alias)
