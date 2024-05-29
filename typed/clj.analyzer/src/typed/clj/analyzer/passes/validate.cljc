@@ -232,23 +232,19 @@
 
 (defmethod -validate :default [ast] ast)
 
-(defn validate-tag [t {:keys [env] :as ast}]
-  (let [tag (get ast t)]
-    (if-let [the-class (ju/maybe-class tag)]
-      {t the-class}
+(defn validate-tag' [t tag ast]
+  (or (ju/maybe-class tag)
       (if-let [handle (-> (env/deref-env) :passes-opts :validate/wrong-tag-handler)]
         (handle t ast)
         (throw (ex-info (str "Class not found: " tag)
                         (into {:class    tag
                                :ast      (ast/prewalk ast cleanup/cleanup)}
-                              (cu/source-info env))))))))
+                              (cu/source-info (:env ast))))))))
 
-(defn validate-tag' [tag ast]
-  (or (ju/maybe-class tag)
-      (throw (ex-info (str "Class not found: " tag)
-                      (into {:class    tag
-                             :ast      (ast/prewalk ast cleanup/cleanup)}
-                            (cu/source-info (:env ast)))))))
+(defn validate-tag [t ast]
+  (let [tag (get ast t)
+        the-class (validate-tag' t tag ast)]
+    {t the-class}))
 
 ;;important that this pass depends our `uniquify-locals`
 ;; (typed.cljc.analyzer.passes.uniquify), not the taj pass
@@ -284,12 +280,10 @@
                                       #'analyze-host-expr/analyze-host-expr
                                       ;; validate-recur doesn't seem to play nicely with core.async/go
                                       #_#'validate-recur/validate-recur}}}
-  [{:keys [tag form env] :as ast}]
-  (let [tag (:tag ast)
-        ast (-validate ast)
-        o-tag (:o-tag ast)
-        return-tag (:return-tag ast)]
-    (cond-> (-validate ast)
-      tag (assoc :tag (validate-tag' tag ast))
-      o-tag (assoc :o-tag (validate-tag' o-tag ast))
-      return-tag (assoc :return-tag (validate-tag' return-tag ast)))))
+  [{:keys [tag] :as ast}]
+  (let [{:keys [o-tag return-tag] :as ast} (-validate ast)
+        tag (or (:tag ast) tag)]
+    (cond-> ast
+      tag (assoc :tag (validate-tag' :tag tag ast))
+      o-tag (assoc :o-tag (validate-tag' :o-tag o-tag ast))
+      return-tag (assoc :return-tag (validate-tag' :return-tag return-tag ast)))))

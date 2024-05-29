@@ -47,14 +47,16 @@
   (let [{:keys [tag arglists]} (:meta ast)
         arglists (cond-> arglists
                    (= 'quote (first arglists)) second)
-        tag (or (:tag (meta form)) tag)
-        is-fn (fn? @var)]
+        tag (or (:tag (meta form)) tag)]
     ;;if (not dynamic)
-    (cond-> ast
-      true (assoc :o-tag Object)
-      (and tag is-fn) (assoc :tag clojure.lang.AFunction :return-tag tag)
-      (and tag (not is-fn)) (assoc :tag tag)
-      arglists (assoc :arglists arglists))))
+    (-> ast
+        (assoc :o-tag Object)
+        (cond-> 
+          arglists (assoc :arglists arglists)
+          tag (as-> ast
+                (if (fn? @var)
+                  (assoc ast :tag clojure.lang.AFunction :return-tag tag)
+                  (assoc ast :tag tag)))))))
 
 (defmethod -infer-tag :def
   [{:keys [var init name] :as ast}]
