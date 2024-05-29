@@ -497,14 +497,14 @@
 
 (defn unanalyzed
   [form env]
+  {:pre [(map? env)]}
   (let [init-ast (:init-ast ana/scheduled-passes)
         _ (assert init-ast "scheduled-passes must bind :init-ast")]
     (->
       {:op :unanalyzed
        ::ana/op ::ana/unanalyzed
        :form form
-       :env (when env
-              (persistent! (u/-source-info-into-transient form env (transient env))))
+       :env (u/-source-info form env env)
        ;; ::ana/config will be inherited by whatever node
        ;; this :unanalyzed node becomes when analyzed
        ::ana/config {}}

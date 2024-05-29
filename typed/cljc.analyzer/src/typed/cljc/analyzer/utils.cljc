@@ -186,7 +186,7 @@
             (recur (conj! ret val) (inc i))))
         (persistent! ret)))))
 
-(defn- source-info-into-transient [m dest]
+(defn- source-info-into-transient! [m dest]
   (if (:line m)
     (reduce-kv (fn [acc k v]
                  (cond-> acc
@@ -200,14 +200,14 @@
   [m]
   (when (:line m)
     (persistent!
-     (source-info-into-transient m (transient {})))))
+     (source-info-into-transient! m (transient {})))))
 
-(defn -source-info-into-transient
+(defn- -source-info-into-transient!
   "Like `-source-info`, but returns a raw transient."
   [x env dest]
   (let [t (->> dest
-               (source-info-into-transient env)
-               (source-info-into-transient (meta x)))]
+               (source-info-into-transient! env)
+               (source-info-into-transient! (meta x)))]
     (if-let [file (let [file #?(:cljs cljs-ana/*cljs-file*
                                 :default *file*)]
                     (and (not= file "NO_SOURCE_FILE")
@@ -217,8 +217,8 @@
 
 (defn -source-info
   "Returns the source-info of x"
-  [x env]
-  (persistent! (-source-info-into-transient x env (transient {}))))
+  ([x env] (-source-info x env {}))
+  ([x env base] (persistent! (-source-info-into-transient! x env (transient base)))))
 
 (defn const-val
   "Returns the value of a constant node (either :quote or :const)"
