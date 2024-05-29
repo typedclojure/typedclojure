@@ -274,7 +274,7 @@
       AST node which can be either a :maybe-class or a :maybe-host-form,
       those nodes are documented in the tools.analyzer quickref.
       The function must return a valid tools.analyzer.jvm AST node."
-  {:pass-info {:walk :post :depends #{ ;; replace
+  {:pass-info {:walk :post :depends #{;; replace
                                       #'infer-tag/infer-tag
                                       ;; replace
                                       #'analyze-host-expr/analyze-host-expr
