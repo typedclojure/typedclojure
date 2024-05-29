@@ -282,7 +282,7 @@
                                       #_#'validate-recur/validate-recur}}}
   [{:keys [tag] :as ast}]
   (let [{:keys [o-tag return-tag] :as ast} (-validate ast)
-        tag (or (:tag ast) tag)]
+        tag (or tag (:tag ast))]
     (cond-> ast
       tag (assoc :tag (validate-tag' :tag tag ast))
       o-tag (assoc :o-tag (validate-tag' :o-tag o-tag ast))
