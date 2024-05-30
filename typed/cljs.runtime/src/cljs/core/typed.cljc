@@ -87,7 +87,7 @@
                @(delay-tc-parse t)))
        t (clojure.lang.Delay.
            ;(prn "CLJS" qsym t)
-           (fn [] (core/let [;unparse-type (requiring-resolve 'typed.clj.checker.parse-unparse/unparse-type)
+           (clojure.core/fn [] (core/let [;unparse-type (requiring-resolve 'typed.clj.checker.parse-unparse/unparse-type)
                       t (bfn)
                       #_#_
                       _ (impl/with-cljs-impl
