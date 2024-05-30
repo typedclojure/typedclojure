@@ -16,6 +16,18 @@ jobs:
         clojure: [ '1.11.0', '1.11.1', '1.11.2', '1.11.3', '1.12.0-alpha9' ]
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/cache@v3
+        id: test-deps-cache
+        with:
+          path: |
+            ~/.m2/repository
+            ~/.gitlibs
+          key: ${{ runner.os }}-test-deps-${{ matrix.submodule_hash }}-${{ hashFiles('**/pom.xml') }}-${{ hashFiles('**/deps.edn') }}-${{ env.CLOJURE_CLI_VERSION }} 
+          restore-keys: |
+            ${{ runner.os }}-test-deps-${{ matrix.submodule_hash }}-${{ hashFiles('**/pom.xml') }}-${{ hashFiles('**/deps.edn') }}-
+            ${{ runner.os }}-test-deps-${{ matrix.submodule_hash }}-${{ hashFiles('**/pom.xml') }}-
+            ${{ runner.os }}-test-deps-${{ matrix.submodule_hash }}-
+            ${{ runner.os }}-test-deps-
       - name: Set up JDK ${{ matrix.jdk }}
         uses: actions/setup-java@v3
         with:
@@ -24,6 +36,8 @@ jobs:
       - uses: DeLaGuardo/setup-clojure@0fc99a3bcdd086349bfb01a9262382fe3d37cd6d
         with:
           cli: ${{ env.CLOJURE_CLI_VERSION }} 
-      - run: clojure -Sdeps '{:deps {org.clojure/clojure {:mvn/version "'$CLOJURE_VERSION'"}} :mvn/repos {"sonatype-oss-public" {:url "https://oss.sonatype.org/content/groups/public/"}}}' -M:test -e "(do (require,'typed-test.ann.clojure),(in-ns,'typed-test.ann.clojure),(or (cljs/is-tc-e (rest [1 2 3])       (t/Seq t/Num)) (System/exit 1)))"
+      - run: |
+          set -x
+          clojure -Sdeps '{:deps {org.clojure/clojure {:mvn/version "'$CLOJURE_VERSION'"}} :mvn/repos {"sonatype-oss-public" {:url "https://oss.sonatype.org/content/groups/public/"}}}' -M:test -e "(do (require,'typed-test.ann.clojure),(in-ns,'typed-test.ann.clojure),(or (cljs/is-tc-e (rest [1 2 3])       (t/Seq t/Num)) (System/exit 1)))"
         env:
           CLOJURE_VERSION: ${{ matrix.clojure }}
