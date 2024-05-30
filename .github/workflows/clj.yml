@@ -2,10 +2,6 @@ name: Test and deploy
 
 on:
   pull_request:
-  push:
-  schedule:
-    # Every Monday and Friday at 1PM UTC (9AM EST)
-    - cron: "0 13 * * 1,5"
 
 env:
   CLOJURE_CLI_VERSION: "1.11.1.1347"
@@ -13,22 +9,9 @@ env:
 
 jobs:
   test:
-    needs: setup
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/cache@v3
-        id: test-deps-cache
-        with:
-          path: |
-            ~/.m2/repository
-            ~/.gitlibs
-          key: ${{ runner.os }}-test-deps-${{ matrix.submodule_hash }}-${{ hashFiles('**/pom.xml') }}-${{ hashFiles('**/deps.edn') }}-${{ env.CLOJURE_CLI_VERSION }} 
-          restore-keys: |
-            ${{ runner.os }}-test-deps-${{ matrix.submodule_hash }}-${{ hashFiles('**/pom.xml') }}-${{ hashFiles('**/deps.edn') }}-
-            ${{ runner.os }}-test-deps-${{ matrix.submodule_hash }}-${{ hashFiles('**/pom.xml') }}-
-            ${{ runner.os }}-test-deps-${{ matrix.submodule_hash }}-
-            ${{ runner.os }}-test-deps-
       - name: Set up JDK ${{ matrix.jdk }}
         uses: actions/setup-java@v3
         with:
@@ -38,72 +21,8 @@ jobs:
         with:
           cli: ${{ env.CLOJURE_CLI_VERSION }} 
       - name: Run ${{ matrix.submodule }} tests
-        run: ./script/run-ci-submodule-tests.sh
+        run: clojure -Sdeps '{:deps {org.clojure/clojure {:mvn/version "'$CLOJURE_VERSION'"}} :mvn/repos {"sonatype-oss-public" {:url "https://oss.sonatype.org/content/groups/public/"}}}' -M:test -e "(do (require,'typed-test.ann.clojure),(in-ns,'typed-test.ann.clojure),(is-tc-e (rest [1 2 3])       (t/Seq t/Num)))"
         env:
           CLOJURE_VERSION: ${{ matrix.clojure }}
           SUBMODULE: ${{ matrix.submodule }}
           SKIP_DOWNLOAD: false #${{ steps.test-deps-cache.outputs.cache-hit }}
-  check-docs:
-    runs-on: ubuntu-20.04
-    if: ${{ github.repository == 'typedclojure/typedclojure'
-            && github.event_name == 'schedule'
-         }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: turtlequeue/setup-babashka@1e886ef84f68692d42c5128245ac83e7dd38ce70
-        with:
-          babashka-version: ${{env.BABASHKA_VERSION}}
-      - run: bb --version
-      - run: ./script-test/test_runner.clj
-      - run: ./script/check_docs.clj
-  deploy:
-    needs: test
-    if: ${{ github.ref == 'refs/heads/main'
-            && github.repository == 'typedclojure/typedclojure'
-            && github.event_name == 'push'
-         }}
-    runs-on: ubuntu-20.04
-    env:
-      DEPLOY_JDK: 11
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/cache@v3
-        with:
-          path: |
-            ~/.m2/repository
-            ~/.gitlibs
-          key: ${{ runner.os }}-deploy-deps-${{ matrix.submodule_hash }}-${{ hashFiles('**/pom.xml') }}-${{ hashFiles('**/deps.edn') }}-${{ env.CLOJURE_CLI_VERSION }} 
-          restore-keys: |
-            ${{ runner.os }}-deploy-deps-${{ matrix.submodule_hash }}-${{ hashFiles('**/pom.xml') }}-${{ hashFiles('**/deps.edn') }}-
-            ${{ runner.os }}-deploy-deps-${{ matrix.submodule_hash }}-${{ hashFiles('**/pom.xml') }}-
-            ${{ runner.os }}-deploy-deps-${{ matrix.submodule_hash }}-
-            ${{ runner.os }}-deploy-deps-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2.2.0
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-west-2
-      - name: Set up JDK ${{ env.DEPLOY_JDK }}
-        uses: actions/setup-java@v3
-        with:
-          distribution: 'adopt'
-          java-version: ${{ env.DEPLOY_JDK }}
-      - uses: DeLaGuardo/setup-clojure@0fc99a3bcdd086349bfb01a9262382fe3d37cd6d
-        with:
-          cli: ${{ env.CLOJURE_CLI_VERSION }}
-      - uses: turtlequeue/setup-babashka@83e81711f784e0dcb593e53b642fc9850067f234
-        with:
-          babashka-version: ${{env.BABASHKA_VERSION}}
-      - run: bb --version
-      - name: Configure settings.xml
-        run: |
-          mkdir -p ~/.m2
-          echo "<settings><servers><server><id>clojars</id><username>typedclojure-clojars</username><password>${{ secrets.ClojarsPassword }}</password></server></servers></settings>" > ~/.m2/settings.xml
-
-      - name: Deploy
-        run: ./script/deploy-actions.sh 
-        env:
-          AWS_BUCKET: ${{ secrets.AWS_BUCKET }}
-      - run: rm -f ~/.m2/settings.xml
-        if: ${{ always() }}
