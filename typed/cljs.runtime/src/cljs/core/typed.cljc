@@ -85,9 +85,9 @@
        bfn (bound-fn []
              (with-current-location form
                @(delay-tc-parse t)))
-       t (delay
+       t (clojure.lang.Delay.
            ;(prn "CLJS" qsym t)
-           (core/let [;unparse-type (requiring-resolve 'typed.clj.checker.parse-unparse/unparse-type)
+           (fn [] (core/let [;unparse-type (requiring-resolve 'typed.clj.checker.parse-unparse/unparse-type)
                       t (bfn)
                       #_#_
                       _ (impl/with-cljs-impl
@@ -95,7 +95,7 @@
                             (when-not ((requiring-resolve 'typed.clj.checker.subtype/subtype?) t tfn)
                               (int-error (str "Declared kind " (unparse-type tfn)
                                               " does not match actual kind " (unparse-type t))))))]
-             t))]
+             t)))]
       ((requiring-resolve 'clojure.core.typed.current-impl/add-tc-type-name) qsym t)))
   nil)
 
