@@ -24,6 +24,6 @@ jobs:
       - uses: DeLaGuardo/setup-clojure@0fc99a3bcdd086349bfb01a9262382fe3d37cd6d
         with:
           cli: ${{ env.CLOJURE_CLI_VERSION }} 
-      - run: clojure -Sdeps '{:deps {org.clojure/clojure {:mvn/version "'$CLOJURE_VERSION'"}} :mvn/repos {"sonatype-oss-public" {:url "https://oss.sonatype.org/content/groups/public/"}}}' -M:test -e "(do (require,'typed-test.ann.clojure),(in-ns,'typed-test.ann.clojure),(or (cljs/is-tc-e (rest [1 2 3])       (t/Seq t/Num)) (System/exit 1))))"
+      - run: clojure -Sdeps '{:deps {org.clojure/clojure {:mvn/version "'$CLOJURE_VERSION'"}} :mvn/repos {"sonatype-oss-public" {:url "https://oss.sonatype.org/content/groups/public/"}}}' -M:test -e "(do (require,'typed-test.ann.clojure),(in-ns,'typed-test.ann.clojure),(or (cljs/is-tc-e (rest [1 2 3])       (t/Seq t/Num)) (System/exit 1)))"
         env:
           CLOJURE_VERSION: ${{ matrix.clojure }}
