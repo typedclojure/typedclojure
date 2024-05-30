@@ -10,6 +10,9 @@ env:
 jobs:
   test:
     runs-on: ubuntu-20.04
+    matrix:
+      java: [ '8', '11', '17', '21' ]
+      clojure: [ '1.11.0', '1.11.1', '1.11.2', '1.12.0-alpha9' ]
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK ${{ matrix.jdk }}
