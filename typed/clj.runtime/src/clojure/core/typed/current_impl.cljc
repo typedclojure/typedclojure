@@ -8,12 +8,13 @@
 
 ; untyped, clojure.core.typed depends on this namespace
 (ns ^:no-doc clojure.core.typed.current-impl
-  #?(:clj (:refer-clojure :exclude [requiring-resolve])
+  #?(:clj (:refer-clojure :exclude [requiring-resolve delay])
      :cljs (:refer-clojure :exclude [-val]))
   (:require [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.util-vars :as vs]
             [clojure.set :as set]
             #?(:clj [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]])
+            #?(:clj [io.github.frenchy64.fully-satisfies.safe-locals-clearing :refer [delay]])
             [typed.cljc.runtime.env :as env]
             [typed.clj.runtime.env :as clj-env]
             [typed.cljs.runtime.env :as cljs-env]))

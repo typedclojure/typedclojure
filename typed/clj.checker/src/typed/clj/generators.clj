@@ -8,6 +8,7 @@
 
 (ns ^:no-doc typed.clj.generators
   "In development -- do not use yet."
+  (:refer-clojure :exclude [delay])
   (:require [typed.cljc.checker.type-ctors :as c]
             [clojure.core.typed.type-contract :as type-contract]
             [clojure.core.typed.current-impl :as impl]
@@ -23,7 +24,8 @@
             [clojure.core.typed :as t]
             [typed.clj.checker.subtype :as sub]
             [typed.cljc.checker.subst :as subst]
-            [typed.cljc.checker.name-utils :as nme-utils])
+            [typed.cljc.checker.name-utils :as nme-utils]
+            [io.github.frenchy64.fully-satisfies.safe-locals-clearing :refer [delay]])
   (:import [typed.cljc.checker.type_rep Top Value Union Name RClass HSequential Mu HeterogeneousMap
             TApp F FnIntersection Function TopFunction Poly]))
 

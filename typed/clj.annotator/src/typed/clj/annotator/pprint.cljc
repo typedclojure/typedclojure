@@ -81,7 +81,7 @@
   [kw]
   (let [aliases #?(:clj (ns-aliases (current-ns))
                    :cljs #{})
-        some-alias (delay
+        some-alias (delay ;;TODO use io.github.frenchy64.fully-satisfies.safe-locals-clearing/delay
                      (some (fn [[k v]]
                              (when (= (namespace kw)
                                       (str (ns-name v)))

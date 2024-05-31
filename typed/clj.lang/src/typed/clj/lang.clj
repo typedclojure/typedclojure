@@ -135,6 +135,7 @@
 (def monkey-patch-extensible-load
   "A no-argument function that installs the extensible `load` function
   over clojure.core/load."
+  ;;TODO use io.github.frenchy64.fully-satisfies.safe-locals-clearing/delay
   (let [l (delay (alter-var-root #'load (constantly #'extensible-load)))]
     (fn []
       @l

@@ -8,12 +8,15 @@
 
 ;copied from clojure.tools.analyzer.jvm.utils
 (ns typed.clj.analyzer.utils
+  #?(:clj (:refer-clojure :exclude [delay]))
   (:require [typed.cljc.analyzer.utils :as u]
             [typed.cljc.analyzer :as ana2]
             [clojure.reflect :as reflect]
             [clojure.string :as s]
             [clojure.core.memoize :refer [lru]]
-            #?(:cljr [clojure.clr.io] :default [clojure.java.io :as io]))
+            #?(:cljr [clojure.clr.io]
+               :default [clojure.java.io :as io])
+            #?(:clj [io.github.frenchy64.fully-satisfies.safe-locals-clearing :refer [delay]]))
   (:import (clojure.lang RT Symbol Var)
            #?(:clj org.objectweb.asm.Type)))
 

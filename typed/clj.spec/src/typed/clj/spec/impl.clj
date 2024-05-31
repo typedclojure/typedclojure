@@ -8,7 +8,7 @@
 
 (ns typed.clj.spec.impl
   "Implementation details for typed.clj.spec{1,2}"
-  (:refer-clojure :exclude [requiring-resolve])
+  (:refer-clojure :exclude [requiring-resolve delay])
   (:require [clojure.alpha.spec :as s]
             [clojure.alpha.spec :as s2]
             [clojure.spec.alpha :as s1]
@@ -16,6 +16,7 @@
             [clojure.alpha.spec.protocols :as protocols2]
             [clojure.walk :as walk]
             [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]
+            [io.github.frenchy64.fully-satisfies.safe-locals-clearing :refer [delay]]
             [typed.clj.spec.impl.shim :as shim]
             [typed.clj.spec.protocols
              :refer [ITypeFn apply-typefn*

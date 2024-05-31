@@ -7,6 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.cljs.checker.check
+  (:refer-clojure :exclude [delay])
   (:require [cljs.analyzer :as cljs-ana]
             [cljs.analyzer.api :as ana-api]
             [cljs.tagged-literals :as tags]
@@ -51,7 +52,8 @@
             [typed.cljs.analyzer :as tana2]
             [typed.cljs.checker.jsnominal-env :as jsnom]
             [typed.cljs.checker.util :as uc]
-            [typed.clojure :as t]))
+            [typed.clojure :as t]
+            [io.github.frenchy64.fully-satisfies.safe-locals-clearing :refer [delay]]))
 
 (def ^:private *register-exts (delay
                                 (configs/register-cljs-config-anns)

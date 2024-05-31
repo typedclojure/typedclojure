@@ -8,13 +8,14 @@
 
 (ns typed.spec-impl.clojure.core
   "Implementation details for typed.spec.clojure.core"
-  (:refer-clojure :exclude [requiring-resolve])
+  (:refer-clojure :exclude [requiring-resolve delay])
   (:require [clojure.alpha.spec :as s]
             [clojure.alpha.spec.protocols :as protocols
              :refer [Spec conform* unform* explain* gen* with-gen* describe*
                      Schema keyspecs*
                      Select]]
             [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]
+            [io.github.frenchy64.fully-satisfies.safe-locals-clearing :refer [delay]]
             [typed.spec.clojure.core :as api]
             [clojure.alpha.spec.gen :as gen]))
 

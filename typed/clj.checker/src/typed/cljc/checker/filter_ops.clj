@@ -7,6 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.cljc.checker.filter-ops
+  (:refer-clojure :exclude [delay])
   (:require [clojure.set :as set]
             [typed.clojure :as t]
             [typed.cljc.checker.filter-rep :as fr]
@@ -14,7 +15,8 @@
             [typed.cljc.checker.path-rep :as pr]
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.type-rep :as r] 
-            [typed.cljc.checker.utils :as u])
+            [typed.cljc.checker.utils :as u]
+            [io.github.frenchy64.fully-satisfies.safe-locals-clearing :refer [delay]])
   (:import (typed.cljc.checker.filter_rep BotFilter TopFilter NoFilter AndFilter 
                                           OrFilter TypeFilter NotTypeFilter ImpFilter
                                           FilterSet)))

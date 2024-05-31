@@ -8,7 +8,7 @@
 
 ;; adapted from tools.analyzer.jvm
 (ns typed.clj.analyzer
-  (:refer-clojure :exclude [macroexpand-1 #?(:clj requiring-resolve)])
+  (:refer-clojure :exclude [macroexpand-1 #?(:clj requiring-resolve) #?(:clj delay)])
   (:require [typed.cljc.analyzer :as ana]
             [typed.cljc.analyzer.ast :as ast]
             [typed.cljc.analyzer :as common]
@@ -25,7 +25,8 @@
             [typed.clj.analyzer.passes.infer-tag :as infer-tag]
             [typed.clj.analyzer.passes.validate :as validate]
             [typed.clj.analyzer.utils :as ju]
-            #?(:clj [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]))
+            #?(:clj [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]])
+            #?(:clj [io.github.frenchy64.fully-satisfies.safe-locals-clearing :refer [delay]]))
   (:import [clojure.lang IObj RT Var Compiler]))
 
 (def ^:dynamic *parse-deftype-with-existing-class*

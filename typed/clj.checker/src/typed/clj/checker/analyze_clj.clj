@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.clj.checker.analyze-clj
-  (:refer-clojure :exclude [macroexpand-1 get-method eval])
+  (:refer-clojure :exclude [macroexpand-1 get-method eval delay])
   (:require [clojure.core :as core]
             [typed.clojure :as t]
             [clojure.core.typed.coerce-utils :as coerce]
@@ -32,7 +32,8 @@
             [typed.cljc.analyzer.env :as env]
             [typed.cljc.analyzer.passes :as passes]
             [typed.cljc.analyzer.utils :as ta-utils]
-            [typed.cljc.checker.utils :as u])
+            [typed.cljc.checker.utils :as u]
+            [io.github.frenchy64.fully-satisfies.safe-locals-clearing :refer [delay]])
   (:import [clojure.lang Compiler$LocalBinding]))
 
 ; Updated for Clojure 1.8

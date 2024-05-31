@@ -10,8 +10,14 @@
   ;; annotations live in typed.cljc.runtime.env-utils-annotations to avoid cyclic
   ;; load dependencies when using clojure.core.typed without typed.clojure
   ;;DON'T require typed.clojure here
-  (:require [typed.clojure :as-alias t])
+  (:refer-clojure :exclude [random-uuid #?(:clj delay)])
+  (:require [typed.clojure :as-alias t]
+            #?(:clj [io.github.frenchy64.fully-satisfies.safe-locals-clearing :refer [delay]]))
   (:import #?(:clj [java.lang.ref SoftReference])))
+
+(defn random-uuid []
+  #?(:clj (java.util.UUID/randomUUID) ;;clojure 1.10 support
+     :default (throw (ex-info "TODO random-uuid" {}))))
 
 (defonce ^{:doc "Internal use only"} ^:no-doc parsed-types-invalidation-id (atom (str (random-uuid))))
 
@@ -24,11 +30,7 @@
   (let [f (bound-fn* f)
         this-invalidation-id (volatile! @parsed-types-invalidation-id)
         def-ns-vol (volatile! (#?(:cljr identity :default SoftReference.) *ns*))
-        ->f-delay (fn [] (delay
-                           ;; locals clearing issue?
-                           ;; reproduce via (refresh) then (clojure.core.typed/envs)
-                           (let [f f]
-                             (when f (f)))))
+        ->f-delay (fn [] (delay (when f (f))))
         d (atom (->f-delay))]
     (fn []
       (when-some [^#?(:cljr Object :default SoftReference) sr @def-ns-vol]

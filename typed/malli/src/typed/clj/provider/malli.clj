@@ -8,11 +8,12 @@
 
 (ns typed.clj.provider.malli
   "Automatically convert malli annotations into types."
-  (:refer-clojure :exclude [requiring-resolve])
+  (:refer-clojure :exclude [requiring-resolve delay])
   (:require [typed.malli.schema-to-type :as s->t]
             [clojure.core.typed.runtime.jvm.configs :as configs]
             [malli.core :as m]
-            [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]))
+            [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]
+            [io.github.frenchy64.fully-satisfies.safe-locals-clearing :refer [delay]]))
 
 (defonce register!
   (delay
