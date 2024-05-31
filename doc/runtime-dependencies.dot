@@ -1,0 +1,104 @@
+strict digraph G {
+
+rankdir = RL;
+
+/* here start the interfaces */
+
+
+{
+	node [shape=box];
+
+
+  "typed.clojure" -> {
+    "clojure.core.typed",
+	"cct.macros", 
+	"cct.platform-case"};
+  "t.clojure.jvm" -> {
+		"clojure.core.typed", 
+		"cct.current-impl", 
+		"cct.internal", 
+		"t.cljc.rt.env-utils", 
+		"cct.macros"};
+		
+  "t.clj.rt.env" -> {"t.cljc.rt.env"};
+  "t.cljc.rt.env";
+  "t.cljc.rt.env-utils" -> {"typed.clojure"};
+  "t.cljc.rt.env-utils-annotations" -> {
+		"typed.clojure", 
+		"t.cljc.rt.env-utils"};
+  
+  "clojure.core.typed" -> {
+		"cct.util-vars", 
+		"cct.special-form", 
+		"cct.import-macros", 
+		"cct.contract", 
+		"cct.type-contract", 
+		"cct.macros"};
+		
+  "cct.all-envs" -> {
+		"cct.current-impl",
+		"cct.load-if-needed",
+		"cct.util-vars",
+		"t.cljc.rt.env-utils",
+		"t.clj.checker.parse-unparse",
+		"t.cljc.checker.name-env",
+		"t.cljc.checker.var-env",
+		"t.cljc.rt.env" };
+		
+   "cct.ast-ops" -> {"cct.errors"};
+   "cct.ast-utils" -> {"cct.current-impl", "cct.contract-utils"};
+   "cct.coerce-utils" -> {"typed.clojure", "cct.current-impl"};
+   "cct.contract";
+   "cct.contract-utils";
+   "cct.contract-utils-platform-specific" ->{"cct.contract-utils"};
+   "cct.current-impl" -> {
+		"cct.contract-utils", 
+		"cct.util-vars", 
+		"t.cljc.rt.env", 
+		"t.clj.rt.env", 
+		"t.cljs.rt.env"};
+   "cct.errors" -> {
+		"cct.util-vars", 
+		"cct.current-impl", 
+		"cct.ast-utils"};
+   "cct.expand" -> {
+		"clojure.core.typed", 
+		"cct.special-form", 
+		"cct.internal"};
+   "cct.hold" -> {"clojure.core.typed"};
+   "cct.import-macros";
+   "cct.internal" -> {
+		"cct.contract-utils", 
+		"cct.internal.add-destructure-blame-form"};
+   "cct.load" -> {"cct.load-if-needed", "cct.current-impl"};
+   "cct.load-if-needed" -> {"cct.errors", "cct.util-vars"};
+   "cct.macros" -> {
+		"cct.internal", 
+		"cct.special-form", 
+		"cct.platform-case"};
+   "cct.parse-ast" -> {
+		"clojure.core.typed",
+		"cct.current-impl",
+		"cct.errors",
+		"cct.util-vars",
+		"cct.coerce-utils"};
+	"cct.platform-case";
+	"cct.rules" -> {
+		"typed.clojure", 
+		"cct.internal", 
+		"t.cljc.analyzer"};
+	"cct.special-form";
+	"cct.type-contract" -> {
+		"cct.errors",
+		"cct.current-impl",
+		"cct.ast-ops",
+		"cct.contract"};
+	"cct.unsafe";
+	"cct.util-vars";
+	
+	"cct.rt.jvm.configs";
+	"cct.internal.add-destructure-blame-form";
+
+  
+}
+}
