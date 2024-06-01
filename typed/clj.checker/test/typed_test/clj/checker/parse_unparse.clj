@@ -354,7 +354,7 @@
                                           [~'S] (t/Seqable ~'S) :-> ~'S)))))))
 
 (deftest parse-Instance-test
-  (is-clj (= 'Object
+  (is-clj (= '(t/Instance Object)
              (prs/with-unparse-ns this-nsym
                (prs/unparse-type
                  (prs/parse-clj `(t/Instance Object)))))))
