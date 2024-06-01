@@ -378,13 +378,12 @@
     v))
 
 (defn predicate-for [on-type]
-  (let [RClass-of @(RClass-of-var)]
-    (r/make-FnIntersection
-      (r/make-Function [r/-any] (impl/impl-case
-                                  :clojure (RClass-of Boolean)
-                                  :cljs    (r/JSBoolean-maker))
-                       :filter (fl/-FS (fl/-filter on-type 0)
-                                       (fl/-not-filter on-type 0))))))
+  (r/make-FnIntersection
+    (r/make-Function [r/-any] (impl/impl-case
+                                :clojure (r/Name-maker 'java.lang.Boolean)
+                                :cljs    (r/JSBoolean-maker))
+                     :filter (fl/-FS (fl/-filter on-type 0)
+                                     (fl/-not-filter on-type 0)))))
 
 (defn parse-Pred [[_ & [t-syn :as args]]]
   (when-not (= 1 (count args))
@@ -463,8 +462,10 @@
     (prs-error (str "Wrong arguments to t/Instance: " (pr-str all))))
   (when-not (simple-symbol? tsyn)
     (prs-error (str "t/Instance must be passed a simple symbol, given: " (pr-str tsyn))))
-  ((requiring-resolve 'typed.cljc.checker.type-ctors/RClass-of-with-unknown-params)
-   tsyn))
+  (let [^Class cls (resolve-type-clj tsyn)]
+    (when-not (class? cls)
+      (prs-error "t/Instance must resolve to a class"))
+    (-> cls .getName symbol r/Instance-maker)))
 
 (defmethod parse-type-list 'typed.clojure/Instance [t] (parse-Instance t))
 

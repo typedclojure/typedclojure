@@ -30,7 +30,7 @@
   (let [f (bound-fn* f)
         this-invalidation-id (volatile! @parsed-types-invalidation-id)
         def-ns-vol (volatile! (#?(:cljr identity :default SoftReference.) *ns*))
-        ->f-delay (fn [] (delay (when f (f))))
+        ->f-delay (fn [] (delay (f)))
         d (atom (->f-delay))]
     (fn []
       (when-some [^#?(:cljr Object :default SoftReference) sr @def-ns-vol]
