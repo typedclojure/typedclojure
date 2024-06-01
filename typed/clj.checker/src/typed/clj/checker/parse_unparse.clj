@@ -464,7 +464,7 @@
     (prs-error (str "t/Instance must be passed a simple symbol, given: " (pr-str tsyn))))
   (let [^Class cls (resolve-type-clj tsyn)]
     (when-not (class? cls)
-      (prs-error "t/Instance must resolve to a class"))
+      (prs-error (str "t/Instance must resolve to a class: " (pr-str tsyn))))
     (-> cls .getName symbol r/Instance-maker)))
 
 (defmethod parse-type-list 'typed.clojure/Instance [t] (parse-Instance t))
