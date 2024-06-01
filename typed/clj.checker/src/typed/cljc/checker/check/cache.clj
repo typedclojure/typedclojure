@@ -119,8 +119,14 @@
               prs/resolve-type-clj (let [resolve-type-clj prs/resolve-type-clj]
                                      (fn [sym]
                                        (let [res (resolve-type-clj sym)]
-                                         (when (and res (not= res sym))
-                                           (swap! type-syms assoc-in [(prs/parse-in-ns) sym] res))
+                                         (when res
+                                           (let [res (cond
+                                                       (var? res) (symbol res)
+                                                       (class? res) (-> ^Class res .getName symbol)
+                                                       :else (assert nil (str "WIP prs/resolve-type-clj to sym: " sym res)))]
+                                             (assert (symbol? res))
+                                             (when (not= res sym)
+                                               (swap! type-syms assoc-in [(prs/parse-in-ns) sym] res))))
                                          res)))
               prs/parse-type-symbol-default (let [parse-type-symbol-default prs/parse-type-symbol-default]
                                               (fn [sym]

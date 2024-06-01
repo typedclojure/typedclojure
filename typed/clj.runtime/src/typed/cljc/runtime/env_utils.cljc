@@ -24,6 +24,8 @@
 (defn invalidate-parsed-types! []
   (reset! parsed-types-invalidation-id (str (random-uuid))))
 
+(def ^:dynamic *type-cache* nil)
+
 ;; [[:-> Type] :-> [:-> Type]]
 ;; Note: used directly by clojure.core.typed and current-impl to avoid cycles
 (defn delay-type* [f]
@@ -31,21 +33,26 @@
         this-invalidation-id (volatile! @parsed-types-invalidation-id)
         def-ns-vol (volatile! (#?(:cljr identity :default SoftReference.) *ns*))
         ->f-delay (fn [] (delay (f)))
-        d (atom (->f-delay))]
+        ;;global cache
+        d (atom (->f-delay))
+        id (gensym)]
     (fn []
       (when-some [^#?(:cljr Object :default SoftReference) sr @def-ns-vol]
         (when-some [def-ns #?(:cljr sr :default (.get sr))]
           (assert (instance? clojure.lang.Namespace def-ns))
           (if (identical? def-ns (find-ns (ns-name def-ns)))
-            (let [_ (when (not= @this-invalidation-id @parsed-types-invalidation-id)
-                      ;; attempt to reparse type if internal namespaces have changed
-                      (swap! d #(when % (->f-delay)))
-                      (vreset! this-invalidation-id @parsed-types-invalidation-id))]
-              (force @d))
+            (if-some [cache *type-cache*]
+              (force @(get (swap! cache update id #(or % (->f-delay))) id))
+              (let [_ (when (not= @this-invalidation-id @parsed-types-invalidation-id)
+                        ;; attempt to reparse type if internal namespaces have changed
+                        (swap! d #(when % (->f-delay)))
+                        (vreset! this-invalidation-id @parsed-types-invalidation-id))]
+                (force @d)))
             ;;forget types that were defined in stale namespaces
             (do ;(prn "FORGETTING ANNOTATION" (class @@d))
                 (vreset! def-ns-vol nil)
                 (reset! d nil)
+                (some-> *type-cache* (swap! dissoc id))
                 nil)))))))
 
 (defmacro delay-type [& args]

@@ -96,7 +96,8 @@
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.update :as update]
             [typed.cljc.checker.utils :as u]
-            [typed.cljc.checker.var-env :as var-env])
+            [typed.cljc.checker.var-env :as var-env]
+            [typed.cljc.runtime.env-utils :as env-utils])
   (:import (clojure.lang IPersistentMap Var)))
 
 (t/ann ^:no-check typed.clj.checker.parse-unparse/*unparse-type-in-ns* (t/U nil t/Sym))
@@ -143,7 +144,11 @@
                    ns-form-str (some :ns-form-str forms-info)
                    exs (map (fn [{:keys [form sform]}]
                               (bound-fn []
-                                (binding [vs/*delayed-errors* (err/-init-delayed-errors)]
+                                (binding [vs/*delayed-errors* (err/-init-delayed-errors)
+                                          ;; force types to reparse to detect dependencies in per-form cache
+                                          ;; might affect TypeFn variance inference
+                                          env-utils/*type-cache* (do (assert (not env-utils/*type-cache*))
+                                                                     (atom {}))]
                                   (check-top-level form nil {:env (assoc env :ns (ns-name *ns*))
                                                              :top-level-form-string sform
                                                              :ns-form-string ns-form-str}))))
