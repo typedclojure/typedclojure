@@ -42,7 +42,8 @@
           (assert (instance? clojure.lang.Namespace def-ns))
           (if (identical? def-ns (find-ns (ns-name def-ns)))
             (if-some [cache *type-cache*]
-              (force @(get (swap! cache update id #(or % (->f-delay))) id))
+              (force @(or (get @cache id)
+                          (get (swap! cache update id #(or % (->f-delay))) id)))
               (let [_ (when (not= @this-invalidation-id @parsed-types-invalidation-id)
                         ;; attempt to reparse type if internal namespaces have changed
                         (swap! d #(when % (->f-delay)))
