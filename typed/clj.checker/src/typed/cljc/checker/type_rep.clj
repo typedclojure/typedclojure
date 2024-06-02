@@ -107,14 +107,14 @@
   {:pre [(symbol? vsym)]}
   (TypeOf-maker vsym))
 
-;; TODO it might be faster to store types as a sorted vector
-;; note: c/In assumes it's a set (and probably other places)
-(u/def-type Union [types :- (t/SortedSet Type)]
+(u/def-type Union [types :- (t/U (t/SortedSet Type)
+                                 (t/Vec Type))]
   "An flattened, sorted union of types"
-  [(set? types)
-   (sorted? types)
-   (every? Type? types)
-   (not-any? Union? types)]
+  [(or (vector? types)
+       (and (set? types)
+            (sorted? types)
+            (not-any? Union? types)))
+   (every? Type? types)]
   :methods
   [p/TCType])
 
@@ -153,11 +153,13 @@
 (def Err (TCError-maker))
 (def -error Err)
 
-(u/def-type Intersection [types :- (t/I t/NonEmptyCount 
-                                        (t/SortedSet Type))]
+(u/def-type Intersection [types :- (t/U (t/I t/NonEmptyCount 
+                                             (t/SortedSet Type))
+                                        (t/NonEmptyVec Type))]
   "An unordered intersection of types."
-  [(sorted? types)
-   (set? types)
+  [(or (vector? types)
+       (and (sorted? types)
+            (set? types)))
    (seq types)
    (every? Type? types)]
   :methods 
@@ -678,7 +680,7 @@
         -> Type])
 (defn -hsequential
   [types & {:keys [filters objects rest drest kind] repeat? :repeat}]
-  (if (and (not vs/*no-simpl*) (some Bottom? types))
+  (if (and (not repeat?) (some Bottom? types) (not vs/*no-simpl*))
     (Bottom)
     (HSequential-maker types
                        (vec (or filters

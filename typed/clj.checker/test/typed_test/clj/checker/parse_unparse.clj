@@ -58,6 +58,24 @@
                           (r/make-FnIntersection (r/make-Function [] r/-nil :drest (r/DottedPretype1-maker r/-nil 'x)))))))
 
 (deftest parse-tfn-test
+  (is-tc-e 1)
+  (is-clj (= (clj (prs/with-unparse-ns this-nsym (prs/unparse-type (prs/parse-type `(t/TFn [[~'a :variance :covariant]] (t/U t/Int t/Bool ~'a))))))
+             '(t/TFn [[a :variance :covariant]] (t/U t/Int t/Bool a))))
+  (is-clj (= (clj (prs/with-unparse-ns this-nsym (prs/unparse-type (prs/parse-type `(t/TFn [[~'a :variance :covariant]] (t/U t/Bool t/Int ~'a))))))
+             '(t/TFn [[a :variance :covariant]] (t/U t/Bool t/Int a))))
+  (is-clj (= (clj (prs/with-unparse-ns this-nsym (prs/unparse-type (prs/parse-type `(t/TFn [[~'a :variance :covariant]] (t/I t/Int t/Bool ~'a))))))
+             '(t/TFn [[a :variance :covariant]] (t/I t/Int t/Bool a))))
+  (is-clj (= (clj (prs/with-unparse-ns this-nsym (prs/unparse-type (prs/parse-type `(t/TFn [[~'a :variance :covariant]] (t/I t/Bool t/Int ~'a))))))
+             '(t/TFn [[a :variance :covariant]] (t/I t/Bool t/Int a))))
+  (is-clj (= (clj (prs/with-unparse-ns this-nsym (prs/unparse-type (prs/parse-type `(t/TFn [[~'a :variance :covariant]] (t/SequentialSeq ~'a))))))
+             '(t/TFn [[a :variance :covariant]] (t/SequentialSeq a))))
+  (is-clj (= (clj (prs/with-unparse-ns this-nsym (prs/unparse-type (prs/parse-type `(t/TFn [[~'a :variance :covariant]]
+                                                                                           (t/I (t/SequentialSeq ~'a)
+                                                                                                (Iterable ~'a)
+                                                                                                (java.util.Collection ~'a)
+                                                                                                (java.util.List ~'a)
+                                                                                                clojure.lang.IObj))))))
+             '(t/TFn [[a :variance :covariant]] (t/I (t/SequentialSeq a) (Iterable a) (java.util.Collection a) (java.util.List a) IObj))))
   (is-clj (= (prs/with-unparse-ns this-nsym (prs/unparse-type (prs/parse-type `(t/TFn [[~'a :variance :covariant]] t/Type))))
              '(t/TFn [[a :variance :invariant]] t/Type))))
 
@@ -70,18 +88,19 @@
   (is-clj (= (rest (prs/unparse-type (prs/parse-type `(t/TFn ~'[[a :variance :covariant]] ~'a))))
              '([[a :variance :covariant]] a)))
   (is-clj (= '([a b] [a b :-> [a b :-> nil]])
-             (->
-               (tc-e
-                 (fn :forall [a b]
-                   [f :- a, coll :- b] :- [a b :-> nil]
-                   (fn
-                     [x :- a
-                      y :- b]))
-                 (t/All [a b] [a b :-> [a b :-> nil]]))
-               :t
-               prs/unparse-type
-               rest
-               ))))
+             (with-delayed-remove-ns
+               (->
+                 (tc-e
+                   (fn :forall [a b]
+                     [f :- a, coll :- b] :- [a b :-> nil]
+                     (fn
+                       [x :- a
+                        y :- b]))
+                   (t/All [a b] [a b :-> [a b :-> nil]]))
+                 :t
+                 prs/unparse-type
+                 rest
+                 )))))
 
 (deftest bad-dots-Poly-test
   ;; no dots in variable

@@ -178,12 +178,18 @@
 
 (defn parse-type [s]
   (let [env (or (tsyn->env s) vs/*current-env*)]
-    (binding [vs/*no-simpl* true
-              vs/*current-env* env]
-      (try (-> (parse-type* s)
-               (vary-meta update :origin (fnil conj []) {:type :ann
-                                                         :syntax s
-                                                         :env env}))
+    (binding [vs/*current-env* env]
+      (try (let [parsed (parse-type* s)]
+             (-> parsed
+                 (vary-meta (fnil into {})
+                            (let [app (bound-fn* (fn [f] (f)))
+                                  t (delay (app #(binding [vs/*no-simpl* true]
+                                                   (parse-type s))))]
+                              {:pretty {parsed {:original-syntax s
+                                                :no-simpl (delay @t)
+                                                :no-simpl-verbose-syntax (delay
+                                                                           (binding [vs/*verbose-types* true]
+                                                                             (app #(unparse-type @t))))}}}))))
            (catch Throwable e
              ;(prn (err/any-tc-error? (ex-data e)))
              (if (err/any-tc-error? (ex-data e))
@@ -945,18 +951,16 @@
                    :rest rest
                    :repeat (true? repeat)))))
 
-(def parse-HVec (parse-heterogeneous* parse-hvec-types r/-hvec))
-(def parse-HSequential (parse-heterogeneous* parse-hsequential-types r/-hsequential))
-(def parse-HSeq (parse-heterogeneous* parse-hseq-types r/-hseq))
+(def parse-HVec (parse-heterogeneous* parse-hvec-types #'r/-hvec))
+(def parse-HSequential (parse-heterogeneous* parse-hsequential-types #'r/-hsequential))
+(def parse-HSeq (parse-heterogeneous* parse-hseq-types #'r/-hseq))
 (def parse-HList (parse-heterogeneous* parse-hseq-types (comp #(assoc % :kind :list)
-                                                              r/-hsequential)))
+                                                              #'r/-hsequential)))
 
 (defmethod parse-type-list 'typed.clojure/HVec [t] (parse-HVec t))
 (defmethod parse-type-list 'typed.clojure/HSequential [t] (parse-HSequential t))
 (defmethod parse-type-list 'typed.clojure/HSeq [t] (parse-HSeq t))
-(defmethod parse-type-list 'typed.clojure/HList [t]
-  ;(prn `parse-hlist t)
-  (parse-HList t))
+(defmethod parse-type-list 'typed.clojure/HList [t] (parse-HList t))
 
 (defn parse-HSet [[_ ts & {:keys [complete?] :or {complete? true}} :as args]]
   (let [bad (seq (remove hset/valid-fixed? ts))]
@@ -1169,7 +1173,7 @@
           (let [sym-nsym (or (some-> sym namespace symbol)
                              nsym)]
             (symbol (name (ns-rewrites-clj sym-nsym sym-nsym)) (name sym))))
-      (err/int-error (str "Cannot find namespace: " sym)))))
+      (err/int-error (str "Cannot find namespace: " nsym)))))
 
 (def ^:private ns-rewrites-cljs {'cljs.core.typed 'typed.clojure})
 (def ^:private ns-unrewrites-cljs (set/map-invert ns-rewrites-cljs))
@@ -1880,7 +1884,9 @@
   ;(prn "unparse-type" (class t))
   (or (when-not vs/*verbose-types*
         (-> t meta :source-Name))
-      (unparse-type* t)))
+      (binding [vs/*no-simpl* true]
+        (unparse-type* (or (some-> t meta :pretty (get t) :no-simpl deref)
+                           t)))))
 
 (defn unp [t] (prn (unparse-type t)))
 

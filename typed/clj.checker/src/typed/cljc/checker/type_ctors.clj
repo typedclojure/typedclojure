@@ -86,11 +86,13 @@
 (defn make-Union
   "Does not resolve types."
   [args]
-  (let [ts (flatten-unions args)]
-    (case (count ts)
-      0 bottom
-      1 (first ts)
-      (r/Union-maker ts))))
+  (if vs/*no-simpl*
+    (r/Union-maker (vec args))
+    (let [ts (flatten-unions args)]
+      (case (count ts)
+        0 bottom
+        1 (first ts)
+        (r/Union-maker ts)))))
 
 ;; Heterogeneous maps
 
@@ -346,43 +348,45 @@
 (t/ann ^:no-check Un [r/Type :* :-> r/Type])
 (defn Un [& types]
   {:post [(r/Type? %)]}
-  (let [cache-key (into #{} (map r/assert-Type) types)]
-    (if-let [hit (get @Un-cache cache-key)]
-      hit
-      (let [res (letfn [;; a is a Type (not a union type)
-                        ;; b is a Set[Type] (non overlapping, non Union-types)
-                        ;; The output is a non overlapping list of non Union types.
-                        (merge-type [a b]
-                          {:pre [(set? b)
-                                 (r/Type? a)
-                                 (not (r/Union? a))]
-                           :post [(set? %)]}
-                          #_(prn "merge-type" a b)
-                          (let [b* (make-Union b)
-                                ;_ (prn "merge-type" a b*)
-                                res (cond
-                                      ; don't resolve type applications in case types aren't
-                                      ; fully defined yet
-                                      ; TODO basic error checking, eg. number of params
-                                      (some (some-fn r/Name? r/TApp?) (conj b a)) (conj b a)
-                                      (ind/subtype? a b*) b
-                                      (ind/subtype? b* a) #{a}
-                                      :else (into #{a}
-                                                  (remove #(ind/subtype? % a))
-                                                  b))]
-                            ;(prn "res" res)
-                            res))]
-                  (let [types (flatten-unions (eduction (map fully-resolve-non-rec-type) types))]
-                    (cond
-                      (empty? types) r/empty-union
-                      (= 1 (count types)) (first types)
-                      :else 
-                      (make-Union
-                        (reduce (fn [acc t] (merge-type t acc))
-                                (sorted-set)
-                                types)))))]
-        (swap! Un-cache assoc cache-key res)
-        res))))
+  (if vs/*no-simpl*
+    (make-Union types)
+    (let [cache-key (into #{} (map r/assert-Type) types)]
+      (if-let [hit (get @Un-cache cache-key)]
+        hit
+        (let [res (letfn [;; a is a Type (not a union type)
+                          ;; b is a Set[Type] (non overlapping, non Union-types)
+                          ;; The output is a non overlapping list of non Union types.
+                          (merge-type [a b]
+                            {:pre [(set? b)
+                                   (r/Type? a)
+                                   (not (r/Union? a))]
+                             :post [(set? %)]}
+                            #_(prn "merge-type" a b)
+                            (let [b* (make-Union b)
+                                  ;_ (prn "merge-type" a b*)
+                                  res (cond
+                                        ; don't resolve type applications in case types aren't
+                                        ; fully defined yet
+                                        ; TODO basic error checking, eg. number of params
+                                        (some (some-fn r/Name? r/TApp?) (conj b a)) (conj b a)
+                                        (ind/subtype? a b*) b
+                                        (ind/subtype? b* a) #{a}
+                                        :else (into #{a}
+                                                    (remove #(ind/subtype? % a))
+                                                    b))]
+                              ;(prn "res" res)
+                              res))]
+                    (let [types (flatten-unions (eduction (map fully-resolve-non-rec-type) types))]
+                      (cond
+                        (empty? types) r/empty-union
+                        (= 1 (count types)) (first types)
+                        :else 
+                        (make-Union
+                          (reduce (fn [acc t] (merge-type t acc))
+                                  (sorted-set)
+                                  types)))))]
+          (swap! Un-cache assoc cache-key res)
+          res)))))
 
 ;; Intersections
 
@@ -404,11 +408,13 @@
 (defn make-Intersection
   "Does not resolve types."
   [types]
-  (let [ts (flatten-intersections types)]
-    (case (count ts)
-      0 r/-any
-      1 (first ts)
-      (r/Intersection-maker ts))))
+  (if vs/*no-simpl*
+    (r/Intersection-maker (vec types))
+    (let [ts (flatten-intersections types)]
+      (case (count ts)
+        0 r/-any
+        1 (first ts)
+        (r/Intersection-maker ts)))))
 
 (declare RClass-of)
 
@@ -531,90 +537,92 @@
 (t/ann ^:no-check In [r/Type :* :-> r/Type])
 (defn In [& types]
   {:post [(r/Type? %)]}
-  (let [res (let [ts (flatten-intersections (eduction (map (comp fully-resolve-type r/assert-Type)) types))]
-              (cond
-                ; empty intersection is Top
-                (empty? ts) r/-any
+  (if vs/*no-simpl*
+    (make-Intersection types)
+    (let [res (let [ts (flatten-intersections (eduction (map (comp fully-resolve-type r/assert-Type)) types))]
+                (cond
+                  ; empty intersection is Top
+                  (empty? ts) r/-any
 
-                ; intersection containing Bottom is Bottom
-                (contains? ts bottom) r/-nothing
+                  ; intersection containing Bottom is Bottom
+                  (contains? ts bottom) r/-nothing
 
-                (= 1 (count ts)) (first ts)
+                  (= 1 (count ts)) (first ts)
 
-                ; try and simplify to disjunctive normal form
-                ; normalise (I t1 t2 (t/U t3 t4))
-                ; to (t/U (I t1 t2 t3) (t/I t1 t2 t4))
-                :else (let [;_ (binding [vs/*verbose-types* true] (prn "before ts" ts))
-                            ;; only move common elements of all inner unions to outer union
-                            ; (I (U nil t1) (U nil t2))
-                            ; =>
-                            ; (U nil (I t1 t2))
-                            ; rather than 
-                            ; (U nil t1 t2)
-                            inner-unions (filter r/Union? ts)
-                            ;; only move if there's more than one union
-                            inner-unions (when (next inner-unions) inner-unions)
-                            outer-union-elements (some->> inner-unions
-                                                          (map :types)
-                                                          (apply set/intersection)
-                                                          not-empty)
-                            ts (cond-> ts
-                                 outer-union-elements
-                                 (->> (eduction
-                                        (keep (fn [t]
-                                                (when (r/Union? t)
-                                                  ;; remove inner union if all its elements have been moved to outer union
-                                                  ;; (I (U t1 t2) (U t1 t2 t3))
-                                                  ;; =>
-                                                  ;; (U t1 t2 t3)
-                                                  ;; not 
-                                                  ;; (U t1 t2 (U) t3)
-                                                  (some->> (not-empty
-                                                             (set/difference (:types t) outer-union-elements))
-                                                           (apply Un))))))
-                                      flatten-intersections))
-                            ;_ (prn "ts" ts)
-                            ;_ (prn "outer-union-elements" outer-union-elements)
-                            {:keys [unions count-ranges hmaps tapps non-unions]}
-                            (group-by (fn [t]
-                                        (cond
-                                          (r/Union? t) :unions
-                                          (r/CountRange? t) :count-ranges
-                                          (r/HeterogeneousMap? t) :hmaps
-                                          :else :non-unions))
-                                      ts)
-                            non-unions (concat non-unions
-                                               ;; FIXME hmm some of these can return unions... 
-                                               (some->> count-ranges
-                                                        (reduce intersect-CountRange)
-                                                        list)
-                                               (some->> hmaps
-                                                        (reduce intersect-HMap)
-                                                        list))
-                            ;_ (prn "unions" unions)
-                            ;_ (prn "non-unions" non-unions)
-                            ;intersect all the non-unions to get a possibly-nil type
-                            intersect-non-unions (some->> (seq non-unions)
-                                                          (reduce intersect))
-                            ;_ (prn "intersect-non-unions" intersect-non-unions)
-                            ;if we have an intersection above, use it to update each
-                            ;member of the unions we're intersecting
-                            flat-unions (flatten-unions (concat unions outer-union-elements))
-                            ;_ (prn "flat-unions" flat-unions)
-                            intersect-union-ts (cond
-                                                 intersect-non-unions
-                                                 (if (seq flat-unions)
-                                                   (reduce (fn [acc union-m]
-                                                             (conj acc (intersect intersect-non-unions union-m)))
-                                                           #{} flat-unions)
-                                                   #{intersect-non-unions})
+                  ; try and simplify to disjunctive normal form
+                  ; normalise (I t1 t2 (t/U t3 t4))
+                  ; to (t/U (I t1 t2 t3) (t/I t1 t2 t4))
+                  :else (let [;_ (binding [vs/*verbose-types* true] (prn "before ts" ts))
+                              ;; only move common elements of all inner unions to outer union
+                              ; (I (U nil t1) (U nil t2))
+                              ; =>
+                              ; (U nil (I t1 t2))
+                              ; rather than 
+                              ; (U nil t1 t2)
+                              inner-unions (filter r/Union? ts)
+                              ;; only move if there's more than one union
+                              inner-unions (when (next inner-unions) inner-unions)
+                              outer-union-elements (some->> inner-unions
+                                                            (map (comp set :types))
+                                                            (apply set/intersection)
+                                                            not-empty)
+                              ts (cond-> ts
+                                   outer-union-elements
+                                   (->> (eduction
+                                          (keep (fn [t]
+                                                  (when (r/Union? t)
+                                                    ;; remove inner union if all its elements have been moved to outer union
+                                                    ;; (I (U t1 t2) (U t1 t2 t3))
+                                                    ;; =>
+                                                    ;; (U t1 t2 t3)
+                                                    ;; not 
+                                                    ;; (U t1 t2 (U) t3)
+                                                    (some->> (not-empty
+                                                               (set/difference (set (:types t)) outer-union-elements))
+                                                             (apply Un))))))
+                                        flatten-intersections))
+                              ;_ (prn "ts" ts)
+                              ;_ (prn "outer-union-elements" outer-union-elements)
+                              {:keys [unions count-ranges hmaps tapps non-unions]}
+                              (group-by (fn [t]
+                                          (cond
+                                            (r/Union? t) :unions
+                                            (r/CountRange? t) :count-ranges
+                                            (r/HeterogeneousMap? t) :hmaps
+                                            :else :non-unions))
+                                        ts)
+                              non-unions (concat non-unions
+                                                 ;; FIXME hmm some of these can return unions... 
+                                                 (some->> count-ranges
+                                                          (reduce intersect-CountRange)
+                                                          list)
+                                                 (some->> hmaps
+                                                          (reduce intersect-HMap)
+                                                          list))
+                              ;_ (prn "unions" unions)
+                              ;_ (prn "non-unions" non-unions)
+                              ;intersect all the non-unions to get a possibly-nil type
+                              intersect-non-unions (some->> (seq non-unions)
+                                                            (reduce intersect))
+                              ;_ (prn "intersect-non-unions" intersect-non-unions)
+                              ;if we have an intersection above, use it to update each
+                              ;member of the unions we're intersecting
+                              flat-unions (flatten-unions (concat unions outer-union-elements))
+                              ;_ (prn "flat-unions" flat-unions)
+                              intersect-union-ts (cond
+                                                   intersect-non-unions
+                                                   (if (seq flat-unions)
+                                                     (reduce (fn [acc union-m]
+                                                               (conj acc (intersect intersect-non-unions union-m)))
+                                                             #{} flat-unions)
+                                                     #{intersect-non-unions})
 
-                                                 :else flat-unions)
-                            ;_ (prn "intersect-union-ts" intersect-union-ts)
-                            _ (assert (every? r/Type? intersect-union-ts)
-                                      intersect-union-ts)]
-                        (apply Un (concat outer-union-elements intersect-union-ts)))))]
-    res))
+                                                   :else flat-unions)
+                              ;_ (prn "intersect-union-ts" intersect-union-ts)
+                              _ (assert (every? r/Type? intersect-union-ts)
+                                        intersect-union-ts)]
+                          (apply Un (concat outer-union-elements intersect-union-ts)))))]
+      res)))
 
 (declare TypeFn* instantiate-typefn abstract-many instantiate-many)
 

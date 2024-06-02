@@ -2,7 +2,7 @@
   (:require [typed.clojure :as t]
             [clojure.test :refer [deftest is]]
             [typed.clj.checker.parse-unparse :as prs]
-            [typed.clj.checker.test-utils :refer [is-clj clj]]
+            [typed.clj.checker.test-utils :refer [is-clj clj is-tc-e]]
             [typed.cljc.checker.name-utils :refer [erase-names]]
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.type-rep :as r]))
@@ -14,6 +14,7 @@
   (t/U nil '[Ping]))
 
 (deftest erase-names-ping-pong-test
+  (is-tc-e 1)
   (is-clj (= [(prs/parse-clj `Ping) {}]
              (clj (erase-names (prs/parse-clj `Ping)
                                #{}))))

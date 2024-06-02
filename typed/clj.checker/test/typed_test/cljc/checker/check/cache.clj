@@ -1,5 +1,6 @@
 (ns typed-test.cljc.checker.check.cache
   (:require [typed.clj.checker.test-utils :refer :all]
+            [clojure.walk :as walk]
             [typed.clojure :as t]
             [typed.clj.runtime.env :as env-clj]
             [typed.cljc.checker.check.cache :as cache]
@@ -22,12 +23,12 @@
                                                          :clojure.core.typed.current-impl/current-var-annotations {typed-test.cljc.checker.check.cache-test-ns1/foo typed.clojure/Int},
                                                          :clojure.core.typed.current-impl/current-name-env {typed.clojure/Int typed.clojure/AnyInteger,
                                                                                                             typed.clojure/AnyInteger (typed.clojure/U
-                                                                                                                                      java.lang.Short
-                                                                                                                                      java.lang.Byte
-                                                                                                                                      java.math.BigInteger
                                                                                                                                       java.lang.Integer
+                                                                                                                                      java.lang.Long
                                                                                                                                       clojure.lang.BigInt
-                                                                                                                                      java.lang.Long),
+                                                                                                                                      java.math.BigInteger
+                                                                                                                                      java.lang.Short
+                                                                                                                                      java.lang.Byte),
                                                                                                             java.lang.Short {},
                                                                                                             java.lang.Byte {},
                                                                                                             java.math.BigInteger {},
@@ -105,20 +106,16 @@
                                                                                                                                 typed.clojure/NonEmptyASeq (typed.clojure/TFn
                                                                                                                                                             [[x :variance :covariant]]
                                                                                                                                                             (typed.clojure/I
-                                                                                                                                                             clojure.lang.Sequential
-                                                                                                                                                             clojure.lang.IObj
-                                                                                                                                                             (clojure.lang.ISeq x)
-                                                                                                                                                             (java.util.List x)
-                                                                                                                                                             (typed.clojure/CountRange 1))),
+                                                                                                                                                             (typed.clojure/ASeq x)
+                                                                                                                                                             typed.clojure/NonEmptyCount)),
                                                                                                                                 typed.clojure/Seq (typed.clojure/TFn
                                                                                                                                                    [[x :variance :covariant]]
                                                                                                                                                    (clojure.lang.ISeq x)),
                                                                                                                                 typed.clojure/NonEmptySeqable (typed.clojure/TFn
                                                                                                                                                                [[x :variance :covariant]]
                                                                                                                                                                (typed.clojure/I
-                                                                                                                                                                (clojure.lang.Seqable
-                                                                                                                                                                 (typed.clojure/NilableNonEmptySeq x))
-                                                                                                                                                                (typed.clojure/CountRange 1))),
+                                                                                                                                                                (typed.clojure/Seqable x)
+                                                                                                                                                                typed.clojure/NonEmptyCount)),
                                                                                                                                 java.util.SequencedCollection {},
                                                                                                                                 clojure.lang.Seqable {},
                                                                                                                                 java.lang.Number {},
@@ -129,9 +126,10 @@
                                                                                                                                 typed.clojure/ASeq (typed.clojure/TFn
                                                                                                                                                     [[x :variance :covariant]]
                                                                                                                                                     (typed.clojure/I
-                                                                                                                                                     (clojure.lang.ISeq x)
+                                                                                                                                                     (typed.clojure/SequentialSeq x)
+                                                                                                                                                     (java.lang.Iterable x)
+                                                                                                                                                     (java.util.Collection x)
                                                                                                                                                      (java.util.List x)
-                                                                                                                                                     clojure.lang.Sequential
                                                                                                                                                      clojure.lang.IObj)),
                                                                                                                                 java.lang.Iterable {}},
                                                                              :clojure.core.typed.current-impl/current-rclass-env {clojure.lang.Seqable (typed.clojure/TFn
@@ -141,9 +139,9 @@
                                                                                                                                                           :<
                                                                                                                                                           (typed.clojure/NilableNonEmptySeq typed.clojure/Any)]]
                                                                                                                                                         (clojure.lang.Seqable a)),
-                                                                                                                                  java.lang.Comparable (typed.clojure/TFn
-                                                                                                                                                        [[a :variance :invariant]]
-                                                                                                                                                        (java.lang.Comparable a)),
+                                                                                                                                  clojure.lang.IPersistentCollection (typed.clojure/TFn
+                                                                                                                                                                      [[a :variance :covariant]]
+                                                                                                                                                                      (clojure.lang.IPersistentCollection a)),
                                                                                                                                   java.util.SequencedCollection (typed.clojure/TFn
                                                                                                                                                                  [[a :variance :invariant]]
                                                                                                                                                                  (java.util.SequencedCollection a)),
@@ -153,9 +151,6 @@
                                                                                                                                   java.lang.Iterable (typed.clojure/TFn
                                                                                                                                                       [[a :variance :covariant]]
                                                                                                                                                       (java.lang.Iterable a)),
-                                                                                                                                  clojure.lang.IPersistentCollection (typed.clojure/TFn
-                                                                                                                                                                      [[a :variance :covariant]]
-                                                                                                                                                                      (clojure.lang.IPersistentCollection a)),
                                                                                                                                   clojure.lang.ISeq (typed.clojure/TFn
                                                                                                                                                      [[a :variance :covariant]]
                                                                                                                                                      (clojure.lang.ISeq a))}},
@@ -239,18 +234,11 @@
                                                                                              typed.clojure/Nilable typed.clojure/Option,
                                                                                              typed.clojure/NonEmptyASeq (typed.clojure/TFn
                                                                                                                          [[x :variance :covariant]]
-                                                                                                                         (typed.clojure/I
-                                                                                                                          clojure.lang.Sequential
-                                                                                                                          clojure.lang.IObj
-                                                                                                                          (clojure.lang.ISeq x)
-                                                                                                                          (java.util.List x)
-                                                                                                                          (typed.clojure/CountRange 1))),
+                                                                                                                         (typed.clojure/I (typed.clojure/ASeq x) typed.clojure/NonEmptyCount)),
                                                                                              typed.clojure/Seq (typed.clojure/TFn [[x :variance :covariant]] (clojure.lang.ISeq x)),
                                                                                              typed.clojure/NonEmptySeqable (typed.clojure/TFn
                                                                                                                             [[x :variance :covariant]]
-                                                                                                                            (typed.clojure/I
-                                                                                                                             (clojure.lang.Seqable (typed.clojure/NilableNonEmptySeq x))
-                                                                                                                             (typed.clojure/CountRange 1))),
+                                                                                                                            (typed.clojure/I (typed.clojure/Seqable x) typed.clojure/NonEmptyCount)),
                                                                                              java.util.SequencedCollection {},
                                                                                              clojure.lang.Seqable {},
                                                                                              java.lang.Number {},
@@ -260,21 +248,21 @@
                                                                                              typed.clojure/ASeq (typed.clojure/TFn
                                                                                                                  [[x :variance :covariant]]
                                                                                                                  (typed.clojure/I
-                                                                                                                  (clojure.lang.ISeq x)
+                                                                                                                  (typed.clojure/SequentialSeq x)
+                                                                                                                  (java.lang.Iterable x)
+                                                                                                                  (java.util.Collection x)
                                                                                                                   (java.util.List x)
-                                                                                                                  clojure.lang.Sequential
                                                                                                                   clojure.lang.IObj)),
                                                                                              java.lang.Iterable {}},
                                           :clojure.core.typed.current-impl/current-rclass-env {clojure.lang.Seqable (typed.clojure/TFn
                                                                                                                      [[a :variance :covariant :< (typed.clojure/NilableNonEmptySeq typed.clojure/Any)]]
                                                                                                                      (clojure.lang.Seqable a)),
-                                                                                               java.lang.Comparable (typed.clojure/TFn [[a :variance :invariant]] (java.lang.Comparable a)),
-                                                                                               java.util.SequencedCollection (typed.clojure/TFn [[a :variance :invariant]] (java.util.SequencedCollection a)),
-                                                                                               java.util.Collection (typed.clojure/TFn [[a :variance :covariant]] (java.util.Collection a)),
-                                                                                               java.lang.Iterable (typed.clojure/TFn [[a :variance :covariant]] (java.lang.Iterable a)),
                                                                                                clojure.lang.IPersistentCollection (typed.clojure/TFn
                                                                                                                                    [[a :variance :covariant]]
                                                                                                                                    (clojure.lang.IPersistentCollection a)),
+                                                                                               java.util.SequencedCollection (typed.clojure/TFn [[a :variance :invariant]] (java.util.SequencedCollection a)),
+                                                                                               java.util.Collection (typed.clojure/TFn [[a :variance :covariant]] (java.util.Collection a)),
+                                                                                               java.lang.Iterable (typed.clojure/TFn [[a :variance :covariant]] (java.lang.Iterable a)),
                                                                                                clojure.lang.ISeq (typed.clojure/TFn [[a :variance :covariant]] (clojure.lang.ISeq a))},
                                           :clojure.core.typed.current-impl/current-used-vars #{}},
    :typed.cljc.checker.check.cache/vars {ns clojure.core/ns, t/ann typed.clojure/ann, defn clojure.core/defn, map clojure.core/map, zero? clojure.core/zero?},
@@ -307,14 +295,22 @@
                                                                      Seqable clojure.lang.Seqable,
                                                                      Iterable java.lang.Iterable,
                                                                      Collection java.util.Collection}},
-   :slurped "(ns typed-test.cljc.checker.check.cache-test-ns1\n  (:require [typed.clojure :as t]))\n\n(t/ann foo t/Int)\n(def foo 1)\n\n(t/ann bar [(t/Seqable t/Num) :-> (t/Seq t/Bool)])\n(defn bar [n]\n  (map zero? n))\n"})
+   :slurped "(ns typed-test.cljc.checker.check.cache-test-ns1\n  (:require [typed.clojure :as t]))\n\n(t/ann foo t/Int)\n(def foo 1)\n\n(t/ann bar [(t/Seqable t/Num) :-> (t/Seq t/Bool)])\n(defn bar [n]\n  (map zero? n))\n"}
+ )
 
+(defn massage-expected [m]
+  (walk/prewalk (fn [m]
+                  (if (map? m)
+                    (cond-> m
+                      (not (resolve 'java.util.SequencedCollection))
+                      (dissoc 'java.util.SequencedCollection))
+                    m))
+                m))
 
-#_ ;;FIXME non-deterministic I/U printing order
 (deftest test-ns1
   (is (t/check-ns-clj 'typed-test.cljc.checker.check.cache-test-ns1))
-  (is (= expected-cache
+  (is (= (massage-expected expected-cache)
          (get-in @env-clj/clj-checker-atom [::cache/check-form-cache 'typed-test.cljc.checker.check.cache-test-ns1
                                             "(ns typed-test.cljc.checker.check.cache-test-ns1\n  (:require [typed.clojure :as t]))"])))
-  (is (= expected-ns-cache
+  (is (= (massage-expected expected-ns-cache)
          (get-in @env-clj/clj-checker-atom [::cache/check-ns-cache 'typed-test.cljc.checker.check.cache-test-ns1]))))

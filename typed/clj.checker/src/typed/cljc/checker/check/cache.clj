@@ -66,9 +66,12 @@
         interop (atom {})
         type-syms (atom {})
         ->serialize (fn [t]
-                      (binding [uvs/*verbose-types* true]
-                        (let [t (force-type t)]
-                          (cond-> t (r/Type? t) prs/unparse-type))))
+                      (let [t (force-type t)]
+                        (or (some-> t meta :pretty (get t) :no-simpl-verbose-syntax deref)
+                            (if (r/Type? t)
+                              (binding [uvs/*verbose-types* true]
+                                (prs/unparse-type t))
+                              t))))
         instrumented-checker (when-some [^clojure.lang.IAtom2 checker env/*checker*]
                                (reify
                                  clojure.lang.IAtom2

@@ -18,6 +18,14 @@
   #_(assert (empty? (set/difference (set (keys opt))
                                     #{:expected :ret}))))
 
+(def ^:dynamic *remove-nsyms* nil)
+
+(defmacro with-delayed-remove-ns [& body]
+  `(binding [*remove-nsyms* (atom #{})]
+     (let [res# (do ~@body)]
+       (run! remove-ns @*remove-nsyms*)
+       res#)))
+
 (defn tc-common* [frm {{:keys [syn provided?]} :expected-syntax :keys [expected-ret requires ns-meta check-config] :as opt}]
   (check-opt opt)
   (let [nsym (gensym 'clojure.core.typed.test.temp)
@@ -48,7 +56,8 @@
                       :expected '~syn
                       :type-provided? ~provided?
                       :check-config check-config#)]
-           (remove-ns '~nsym)
+           (or (some-> *remove-nsyms* (swap! conj '~nsym))
+               (remove-ns '~nsym))
            res#)))))
 
 (defmacro tc-e 

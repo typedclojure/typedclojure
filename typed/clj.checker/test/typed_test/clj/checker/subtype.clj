@@ -141,7 +141,13 @@
   (is-clj (sub?-q `(t/I t/AnyInteger t/Num)
                   `t/AnyInteger))
   (is-clj (sub?-q `t/AnyInteger
-                  `(t/I t/AnyInteger t/Num))))
+                  `(t/I t/AnyInteger t/Num)))
+  (is-clj (sub?-q `(t/U '{:op (t/Value :var)} '{:op (t/Value :if)})
+                  `(t/U '{:op (t/Value :var)} '{:op (t/Value :if)})))
+  (is-clj (sub?-q `(t/U '{:op (t/Value :if)} '{:op (t/Value :var)})
+                  `(t/U '{:op (t/Value :var)} '{:op (t/Value :if)})))
+  (is-clj (sub?-q `(t/U (t/Value :var) (t/Value :if))
+                  `(t/U (t/Value :if) (t/Value :var)))))
 
 (deftest regex-subtype-test
   (is-tc-e :load)
