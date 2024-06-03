@@ -41,20 +41,31 @@
 
 (t/tc-ignore
 
+(defmacro or-non-zero
+  ([] 0)
+  ([x] x)
+  ([x & next]
+   `(let [or# ~x]
+      (if (zero? or#) (or-non-zero ~@next) or#))))
+
 (defn ^:private inner-deftype [fields hash-field meta-field this that name-sym type-hash gs
-                               maker methods* compute-valAt]
+                               maker methods* compute-valAt compare-self]
   (let [_ (assert (not-any? #(= name-sym %) (list* hash-field meta-field fields)))
         this (gensym 'this)
         gclass (gensym 'gclass)
         k (gensym 'k)
+        this->field (fn [this fld]
+                      {:pre [(symbol? fld)]}
+                      (let [kfld (keyword fld)
+                            this (vary-meta this update :tag #(or % name-sym))]
+                        (if-some [f (get compute-valAt kfld)]
+                          ((eval f) this)
+                          `(. ~this ~(symbol (str "-" fld))))))
         ;; note: intentionally avoids condp throughout due to lack of inlining https://github.com/frenchy64/clojure/pull/13
         valAt-body `(cond
                       ~@(mapcat (fn [fld]
-                                  (let [kfld (keyword fld)]
-                                    [`(identical? ~k ~kfld)
-                                     (if-some [f (get compute-valAt kfld)]
-                                       ((eval f) this)
-                                       `(. ~this ~(symbol (str "-" fld))))]))
+                                  [`(identical? ~k ~(keyword fld))
+                                   (this->field this fld)])
                                 fields)
                       :else (throw (UnsupportedOperationException. (str "lookup on " '~name-sym " " ~k))))]
     `(deftype ~name-sym [~@fields ~(with-meta hash-field {:unsynchronized-mutable true}) ~meta-field]
@@ -105,9 +116,7 @@
                         `(reify clojure.lang.ILookupThunk
                            (get [~thunk ~gtarget]
                              (if (identical? (class ~gtarget) ~gclass)
-                               ~(if-some [f (get compute-valAt kfld)]
-                                  ((eval f) hinted-target)
-                                  `(. ~hinted-target ~(symbol (str "-" fld)))) 
+                               ~(this->field hinted-target fld)
                                ~thunk)))]))
                    fields))
              :else (throw (UnsupportedOperationException. (str "lookup on " '~name-sym " " ~k))))))
@@ -151,22 +160,20 @@
 
        Comparable
        (compareTo [~this ~that]
-         ;returns 1 if we have 2 instances of name-sym with
-         ; identical hashs, but are not =
          (if (= ~this ~that)
            0
            (if (instance? ~name-sym ~that)
-             (if (< (hash ~this)
-                    (hash ~that))
-               -1
-               1)
-             (if (< (hash ~name-sym) (hash (class ~that)))
-               -1
-               1))))
+             (or-non-zero
+               ~@(map (fn [field]
+                        (let [coerce (get compare-self field `identity)]
+                          `(compare (~coerce ~(this->field this field))
+                                    (~coerce ~(this->field that field)))))
+                      fields))
+             (compare (.getName (class ~this)) (.getName (class ~that))))))
 
        ~@methods*)))
 
-(defn emit-deftype [original-ns def-kind name-sym fields invariants {methods* :methods :keys [computed-fields ctor-meta compute-valAt] :as opt}]
+(defn emit-deftype [original-ns def-kind name-sym fields invariants {methods* :methods :keys [computed-fields ctor-meta compute-valAt compare-self] :as opt}]
   (assert (symbol? name-sym))
   (let [classname (with-meta (symbol (str (namespace-munge *ns*) "." name-sym)) (meta name-sym))
         ->ctor (symbol (-> *ns* ns-name str) (str "->" name-sym))
@@ -185,7 +192,7 @@
     `(do
        (declare ~maker)
        ~(inner-deftype fields hash-field meta-field this that name-sym type-hash gs
-                       maker methods* compute-valAt)
+                       maker methods* compute-valAt compare-self)
 
        (swap! ~(symbol (str original-ns) (str "all-" def-kind "s")) conj '~classname)
 

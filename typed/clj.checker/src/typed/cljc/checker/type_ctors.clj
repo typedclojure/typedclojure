@@ -820,8 +820,8 @@
                               names
                               unchecked-ancestors)]
      (if (seq variances)
-       (TypeFn* names variances bnds (r/RClass-maker variances poly? the-class replacements unchecked-ancestors))
-       (r/RClass-maker nil nil the-class replacements unchecked-ancestors)))))
+       (TypeFn* names variances bnds (r/RClass-maker the-class poly? variances replacements unchecked-ancestors))
+       (r/RClass-maker the-class nil nil replacements unchecked-ancestors)))))
 
 (t/ann ^:no-check isa-DataType? [(t/U t/Sym Class) -> t/Any])
 (defn isa-DataType? [sym-or-cls]
@@ -907,7 +907,7 @@
                                                    " Annotate with ann-record above the first time it is parsed"))
                                      (flush))
                                    (r/DataType-maker sym nil nil (array-map) (isa-Record? cls)))
-                               (r/RClass-maker nil nil sym {} (sorted-set))))
+                               (r/RClass-maker sym nil nil {} (sorted-set))))
                            (do #_(assert (or (r/RClass? res) (r/DataType? res)))
                                rc))))]
            (swap! RClass-of-cache assoc cache-key res)

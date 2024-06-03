@@ -29,11 +29,9 @@
                                                                                                                                       java.math.BigInteger
                                                                                                                                       java.lang.Short
                                                                                                                                       java.lang.Byte),
-                                                                                                            java.lang.Short {},
-                                                                                                            java.lang.Byte {},
-                                                                                                            java.math.BigInteger {},
-                                                                                                            java.lang.Integer {},
                                                                                                             clojure.lang.BigInt {},
+                                                                                                            java.lang.Byte {},
+                                                                                                            java.lang.Integer {},
                                                                                                             java.lang.Long {}},
                                                          :clojure.core.typed.current-impl/current-rclass-env {java.lang.Comparable (typed.clojure/TFn [[a :variance :invariant]] (java.lang.Comparable a))}},
                   :typed.cljc.checker.check.cache/vars {},
@@ -139,18 +137,21 @@
                                                                                                                                                           :<
                                                                                                                                                           (typed.clojure/NilableNonEmptySeq typed.clojure/Any)]]
                                                                                                                                                         (clojure.lang.Seqable a)),
+                                                                                                                                  java.lang.Comparable (typed.clojure/TFn
+                                                                                                                                                        [[a :variance :invariant]]
+                                                                                                                                                        (java.lang.Comparable a)),
                                                                                                                                   clojure.lang.IPersistentCollection (typed.clojure/TFn
                                                                                                                                                                       [[a :variance :covariant]]
                                                                                                                                                                       (clojure.lang.IPersistentCollection a)),
+                                                                                                                                  java.lang.Iterable (typed.clojure/TFn
+                                                                                                                                                      [[a :variance :covariant]]
+                                                                                                                                                      (java.lang.Iterable a)),
                                                                                                                                   java.util.SequencedCollection (typed.clojure/TFn
                                                                                                                                                                  [[a :variance :invariant]]
                                                                                                                                                                  (java.util.SequencedCollection a)),
                                                                                                                                   java.util.Collection (typed.clojure/TFn
                                                                                                                                                         [[a :variance :covariant]]
                                                                                                                                                         (java.util.Collection a)),
-                                                                                                                                  java.lang.Iterable (typed.clojure/TFn
-                                                                                                                                                      [[a :variance :covariant]]
-                                                                                                                                                      (java.lang.Iterable a)),
                                                                                                                                   clojure.lang.ISeq (typed.clojure/TFn
                                                                                                                                                      [[a :variance :covariant]]
                                                                                                                                                      (clojure.lang.ISeq a))}},
@@ -187,7 +188,8 @@
                                                                                                         IPersistentCollection clojure.lang.IPersistentCollection,
                                                                                                         Seqable clojure.lang.Seqable,
                                                                                                         Iterable java.lang.Iterable,
-                                                                                                        Collection java.util.Collection}}}})
+                                                                                                        Collection java.util.Collection}}}}
+)
 
 (def expected-ns-cache
  '{:typed.cljc.checker.check.cache/types {:clojure.core.typed.current-impl/unanalyzed-special {clojure.core/defn typed.clj.ext.clojure.core__defn/defuspecial__defn,
@@ -257,12 +259,13 @@
                                           :clojure.core.typed.current-impl/current-rclass-env {clojure.lang.Seqable (typed.clojure/TFn
                                                                                                                      [[a :variance :covariant :< (typed.clojure/NilableNonEmptySeq typed.clojure/Any)]]
                                                                                                                      (clojure.lang.Seqable a)),
+                                                                                               java.lang.Comparable (typed.clojure/TFn [[a :variance :invariant]] (java.lang.Comparable a)),
                                                                                                clojure.lang.IPersistentCollection (typed.clojure/TFn
                                                                                                                                    [[a :variance :covariant]]
                                                                                                                                    (clojure.lang.IPersistentCollection a)),
+                                                                                               java.lang.Iterable (typed.clojure/TFn [[a :variance :covariant]] (java.lang.Iterable a)),
                                                                                                java.util.SequencedCollection (typed.clojure/TFn [[a :variance :invariant]] (java.util.SequencedCollection a)),
                                                                                                java.util.Collection (typed.clojure/TFn [[a :variance :covariant]] (java.util.Collection a)),
-                                                                                               java.lang.Iterable (typed.clojure/TFn [[a :variance :covariant]] (java.lang.Iterable a)),
                                                                                                clojure.lang.ISeq (typed.clojure/TFn [[a :variance :covariant]] (clojure.lang.ISeq a))},
                                           :clojure.core.typed.current-impl/current-used-vars #{}},
    :typed.cljc.checker.check.cache/vars {ns clojure.core/ns, t/ann typed.clojure/ann, defn clojure.core/defn, map clojure.core/map, zero? clojure.core/zero?},
@@ -296,7 +299,7 @@
                                                                      Iterable java.lang.Iterable,
                                                                      Collection java.util.Collection}},
    :slurped "(ns typed-test.cljc.checker.check.cache-test-ns1\n  (:require [typed.clojure :as t]))\n\n(t/ann foo t/Int)\n(def foo 1)\n\n(t/ann bar [(t/Seqable t/Num) :-> (t/Seq t/Bool)])\n(defn bar [n]\n  (map zero? n))\n"}
- )
+)
 
 (defn massage-expected [m]
   (walk/prewalk (fn [m]
@@ -308,7 +311,7 @@
                 m))
 
 (deftest test-ns1
-  (is (t/check-ns-clj 'typed-test.cljc.checker.check.cache-test-ns1))
+  (is (t/check-ns-clj 'typed-test.cljc.checker.check.cache-test-ns1 {:max-parallelism 1}))
   (is (= (massage-expected expected-cache)
          (get-in @env-clj/clj-checker-atom [::cache/check-form-cache 'typed-test.cljc.checker.check.cache-test-ns1
                                             "(ns typed-test.cljc.checker.check.cache-test-ns1\n  (:require [typed.clojure :as t]))"])))

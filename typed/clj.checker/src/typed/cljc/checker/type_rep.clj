@@ -116,7 +116,11 @@
             (not-any? Union? types)))
    (every? Type? types)]
   :methods
-  [p/TCType])
+  [p/TCType]
+  :compare-self
+  {types (fn [v]
+           [(if (vector? v) :vector :set)
+            (vec v)])})
 
 ;;TODO remove this fn and used (sorted-set) directly
 (t/ann ^:no-check sorted-type-set [(t/Seqable Type) -> (t/SortedSet Type)])
@@ -163,7 +167,11 @@
    (seq types)
    (every? Type? types)]
   :methods 
-  [p/TCType])
+  [p/TCType]
+  :compare-self
+  {types (fn [v]
+           [(if (vector? v) :vector :set)
+            (vec v)])})
 
 (t/defalias Variance
   "Keywords that represent a certain variance"
@@ -270,9 +278,9 @@
   :methods
   [p/TCType])
 
-(u/def-type RClass [variances :- (t/U nil (t/NonEmptySeqable Variance))
+(u/def-type RClass [the-class :- t/Sym
                     poly? :- (t/U nil (t/NonEmptySeqable Type))
-                    the-class :- t/Sym
+                    variances :- (t/U nil (t/NonEmptySeqable Variance))
                     replacements :- (t/Map t/Sym ScopedType)
                     unchecked-ancestors :- (t/SortedSet ScopedType)]
   "A restricted class, where ancestors are
@@ -291,7 +299,9 @@
    (sorted? unchecked-ancestors)
    ((con/set-c? scoped-Type?) unchecked-ancestors)]
   :methods
-  [p/TCType])
+  [p/TCType]
+  :compare-self
+  {poly? vec})
 
 (t/ann RClass->Class [(t/U RClass Instance) -> Class])
 (defn ^Class RClass->Class [rcls]
@@ -321,7 +331,10 @@
    ((con/hash-c? symbol? Type?) static-properties)
    (symbol? name)]
   :methods
-  [p/TCType])
+  [p/TCType]
+  :compare-self
+  {variances vec
+   poly? vec})
 
 (u/def-type DataType [the-class :- t/Sym,
                       variances :- (t/U nil (t/NonEmptySeqable Variance)),
@@ -405,7 +418,10 @@
   :methods
   ;;FIXME not a type, of a different kind
   [p/TCType
-   p/TCKind])
+   p/TCKind]
+  :compare-self
+  {variances vec
+   bbnds vec})
 
 (t/defalias TFnVariancesMaybeFn
   #_ ;;TODO sugar
@@ -470,7 +486,9 @@
   :maker-name -Poly-maker
   :ctor-meta {:private true}
   :methods
-  [p/TCType])
+  [p/TCType]
+  :compare-self
+  {named vec})
 
 (t/ann-many [t/Any :-> t/Bool :filters {:then (is Poly 0)}]
             Poly? PolyDots?)
@@ -531,7 +549,9 @@
   [(Type? rator)
    (every? Type? rands)]
   :methods
-  [p/TCType])
+  [p/TCType]
+  :compare-self
+  {rands vec})
 
 (u/def-type App [rator :- Type,
                  rands :- (t/Seqable Type)]
@@ -539,7 +559,9 @@
   [(Type? rator)
    (every? Type? rands)]
   :methods
-  [p/TCType])
+  [p/TCType]
+  :compare-self
+  {rands vec})
 
 (u/def-type Mu [scope :- p/IScope]
   "A recursive type containing one bound variable, itself"
@@ -570,7 +592,9 @@
   "A Clojure value"
   []
   :methods
-  [p/TCType])
+  [p/TCType]
+  :compare-self
+  {val (fn [v] [(some-> (class v) .getName) v])})
 
 (u/def-type AnyValue []
   "Any Value"
@@ -613,13 +637,19 @@
              absent-keys))
    (boolean? other-keys?)]
   :methods
-  [p/TCType])
+  [p/TCType]
+  :compare-self
+  {types (comp vec sort)
+   optional (comp vec sort)
+   absent-keys (comp vec sort)})
 
 (u/def-type JSObj [types :- (t/Map t/Kw Type)]
   "A JavaScript structural object"
   [((con/hash-c? keyword? Type?) types)]
   :methods
-  [p/TCType])
+  [p/TCType]
+  :compare-self
+  {types (comp vec sort)})
 
 (declare Regex?)
 
@@ -629,7 +659,10 @@
   [((some-fn Type? Regex?) pre-type)
    ((some-fn symbol? nat-int?) name)]
   :methods
-  [p/TCAnyType])
+  [p/TCAnyType]
+  :compare-self
+  {name #(vector (if (symbol? %) :symbol :number)
+                 %)})
 
 (t/ann-many [Type (t/U t/Sym Number) -> DottedPretype]
             DottedPretype1-maker
@@ -663,7 +696,9 @@
    (boolean? repeat)
    (#{:list :seq :vector :sequential} kind)]
   :methods
-  [p/TCType])
+  [p/TCType]
+  :compare-self
+  {types vec})
 
 (u/def-type TopHSequential []
   "Supertype of all HSequentials's."
@@ -744,7 +779,9 @@
    (set? fixed)
    (boolean? complete?)]
   :methods
-  [p/TCType])
+  [p/TCType]
+  :compare-self
+  {fixed (comp vec sort)})
 
 (t/ann -hset [(t/Set Type) & :optional {:complete? t/Bool} -> HSet])
 (defn -hset [fixed & {:keys [complete?] :or {complete? true}}]
@@ -758,7 +795,9 @@
    (Type? input-type)
    (Type? output-type)]
   :methods
-  [p/TCType])
+  [p/TCType]
+  :compare-self
+  {jtype #(.getName ^Class %)})
 
 ;; Heterogeneous ops
 
@@ -772,13 +811,17 @@
    (and (every? (con/hvector-c? Type? Type?) entries)
         (sequential? entries))]
   :methods
-  [p/TCType])
+  [p/TCType]
+  :compare-self
+  {entries vec})
 
 (u/def-type MergeType [types :- (t/Coll Type)]
   "Merge at the type level."
   [(every? Type? types)]
   :methods
-  [p/TCType])
+  [p/TCType]
+  :compare-self
+  {types vec})
 
 (u/def-type DissocType [target :- Type,
                         keys :- (t/Coll Type)
@@ -791,7 +834,9 @@
         (sequential? keys))
    (not (and keys dkeys))]
   :methods
-  [p/TCType])
+  [p/TCType]
+  :compare-self
+  {keys vec})
 
 (u/def-type GetType [target :- Type,
                      key :- Type
@@ -832,7 +877,10 @@
    (empty? (set/intersection (set (keys mandatory)) 
                              (set (keys optional))))
    (boolean? complete?)
-   (boolean? maybe-trailing-nilable-non-empty-map?)])
+   (boolean? maybe-trailing-nilable-non-empty-map?)]
+  :compare-self
+  {mandatory (comp vec sort)
+   optional (comp vec sort)})
 
 (u/def-type KwArgsSeq [kw-args-regex :- KwArgs]
   "A sequential seq representing a flattened map."
@@ -887,8 +935,8 @@
   {:post [(KwArgsArray? %)]}
   (KwArgsArray-maker (apply -kw-args opt)))
 
-(u/def-type Regex [types :- (t/Vec (t/U Type Kind Regex DottedPretype))
-                   kind :- t/Kw]
+(u/def-type Regex [kind :- t/Kw
+                   types :- (t/Vec (t/U Type Kind Regex DottedPretype))]
   "Type representing regular expressions of sexpr's.
   Also used as the kind of dotted variable when given kinds."
   [(vector? types)
@@ -908,14 +956,14 @@
   (case kind
     :+ (do (assert (= 1 (count types)))
            (regex [(first types) (regex types :*)] :cat))
-    :cat (Regex-maker (into [] (mapcat (fn [t]
+    :cat (Regex-maker :cat
+                      (into [] (mapcat (fn [t]
                                          (if (and (Regex? t)
                                                   (= :cat (:kind t)))
                                            (:types t)
                                            [t])))
-                            types)
-                      :cat)
-    (Regex-maker types kind)))
+                            types))
+    (Regex-maker kind types)))
 
 (u/def-type Function [dom :- (t/Vec Type),
                       rng :- Result,
@@ -1039,7 +1087,9 @@
    (set? without)
    (sorted? without)]
   :methods
-  [p/TCType])
+  [p/TCType]
+  :compare-self
+  {without vec})
 
 (t/ann -difference [Type :+ -> DifferenceType])
 (defn -difference [t & without]
@@ -1058,7 +1108,10 @@
    (set? without)
    (sorted? without)]
   :methods
-  [p/TCType])
+  [p/TCType]
+  :compare-self
+  {extends vec
+   without vec})
 
 (u/def-type Result [t :- Type,
                     fl :- p/IFilterSet
@@ -1125,7 +1178,8 @@
    (map? opts)]
   ;:methods
   ;[p/TCAnyType]
-  )
+  :compare-self
+  {opts (fn [_] (throw (ex-info "Cannot compare TCResult opts" {})))})
 
 (t/ann ret
        (t/IFn [Type -> TCResult]
@@ -1225,7 +1279,9 @@
    (map? fexpr)
    (Type? smallest-type)]
   :methods
-  [p/TCType])
+  [p/TCType]
+  :compare-self
+  {bindings (fn [_] (gensym 'unordered))})
 
 (t/ann symbolic-closure [(t/Map t/Any t/Any) Type :-> SymbolicClosure])
 (defn symbolic-closure [fexpr smallest-type]
