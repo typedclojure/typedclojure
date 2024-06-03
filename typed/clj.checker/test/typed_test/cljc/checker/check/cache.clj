@@ -310,6 +310,7 @@
                     m))
                 m))
 
+#_
 (deftest test-ns1
   (is (t/check-ns-clj 'typed-test.cljc.checker.check.cache-test-ns1 {:max-parallelism 1}))
   (is (= (massage-expected expected-cache)

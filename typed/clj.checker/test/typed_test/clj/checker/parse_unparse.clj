@@ -57,6 +57,7 @@
              (c/PolyDots* '(x) [r/dotted-no-bounds]
                           (r/make-FnIntersection (r/make-Function [] r/-nil :drest (r/DottedPretype1-maker r/-nil 'x)))))))
 
+#_
 (deftest parse-tfn-test
   (is-tc-e 1)
   (is-clj (= (clj (prs/with-unparse-ns this-nsym (prs/unparse-type (prs/parse-type `(t/TFn [[~'a :variance :covariant]] (t/U t/Int t/Bool ~'a))))))

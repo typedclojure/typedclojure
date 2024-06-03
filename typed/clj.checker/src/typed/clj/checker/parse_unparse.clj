@@ -176,20 +176,26 @@
          (f))
        (f)))))
 
+(declare parse-in-ns)
+
 (defn parse-type [s]
   (let [env (or (tsyn->env s) vs/*current-env*)]
     (binding [vs/*current-env* env]
       (try (let [parsed (parse-type* s)]
              (-> parsed
+                 #_
                  (vary-meta (fnil into {})
-                            (let [app (bound-fn* (fn [f] (f)))
+                            (let [;app *bound-f*
                                   t (delay (app #(binding [vs/*no-simpl* true]
                                                    (parse-type s))))]
                               {:pretty {parsed {:original-syntax s
+                                                :file *file*
+                                                :nsym (parse-in-ns)
                                                 :no-simpl (delay @t)
                                                 :no-simpl-verbose-syntax (delay
                                                                            (binding [vs/*verbose-types* true]
-                                                                             (app #(unparse-type @t))))}}}))))
+                                                                             (app #(vary-meta (unparse-type @t)
+                                                                                              assoc :file *file* :nsym (parse-in-ns)))))}}}))))
            (catch Throwable e
              ;(prn (err/any-tc-error? (ex-data e)))
              (if (err/any-tc-error? (ex-data e))
@@ -1032,8 +1038,6 @@
 
 (defn regex-allowed? [t]
   (-> t meta ::allow-regex boolean))
-
-(declare parse-in-ns)
 
 (defn multi-frequencies 
   "Like frequencies, but only returns frequencies greater
@@ -2244,7 +2248,8 @@
   Value
   (unparse-type* 
     [v]
-    (if ((some-fn r/Nil? r/True? r/False?) v)
+    (if (and ((some-fn r/Nil? r/True? r/False?) v)
+             (not vs/*verbose-types*))
       (:val v)
       (list (unparse-Name-symbol-in-ns `t/Val) (:val v)))))
 

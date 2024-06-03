@@ -67,7 +67,7 @@
         type-syms (atom {})
         ->serialize (fn [t]
                       (let [t (force-type t)]
-                        (or (some-> t meta :pretty (get t) :no-simpl-verbose-syntax deref)
+                        (or #_(some-> t meta :pretty (get t) :no-simpl-verbose-syntax deref)
                             (if (r/Type? t)
                               (binding [uvs/*verbose-types* true]
                                 (prs/unparse-type t))
