@@ -594,7 +594,7 @@
   (let [{ancests :unchecked-ancestors} opt
         ancests (or ancests (:extends opt))
         parsed-binders (when vbnd
-                         (let [bfn (bound-fn []
+                         (let [bfn (fn []
                                      (with-parse-ns* current-ns
                                        #(parse-free-binder-with-variance vbnd)))]
                            (delay-type (bfn))))

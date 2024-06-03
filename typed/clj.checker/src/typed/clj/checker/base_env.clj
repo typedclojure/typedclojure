@@ -33,7 +33,7 @@
                          IRef Reduced)))
 
 (defn- aset-*-type [t]
-  (env-utils/delay-type
+  (env-utils/delay-type'
     (impl/with-clojure-impl
       (let [arr-t (prs/delay-parse-type `(~'Array ~t))
             rtn-type (prs/delay-parse-type t)
@@ -54,7 +54,7 @@
 ;; Type annotations
 
 (defn ^:private count-type []
-  (env-utils/delay-type
+  (env-utils/delay-type'
     (impl/with-clojure-impl
       ((resolve `r/make-FnIntersection)
         ((resolve `r/make-Function)
@@ -63,7 +63,7 @@
           :object ((resolve `obj/-path) [((resolve `pe/CountPE-maker))] 0))))))
 
 (defn ^:private nth-type []
-  (env-utils/delay-type
+  (env-utils/delay-type'
     (impl/with-clojure-impl
       (prs/delay-parse-type
         ;;TODO port this type from clojure.lang.RT/nthFrom properly. Try not to use Indexed as a fake ancestor.
@@ -76,7 +76,7 @@
 
 ;; public -- used in type-ctors via requiring-resolve
 (defn get-type []
-  (env-utils/delay-type
+  (env-utils/delay-type'
     (impl/with-clojure-impl
       (prs/delay-parse-type
         (let [x 'x
@@ -103,13 +103,13 @@
                     [t/Any t/Any t/Any :-> t/Any])))))))
 
 (defn ^:private reduced?-type []
-  (env-utils/delay-type
+  (env-utils/delay-type'
     (impl/with-clojure-impl
       (prs/delay-parse-type
         `(t/Pred (Reduced t/Any))))))
 
 (defn ^:private zero?-type []
-  (env-utils/delay-type
+  (env-utils/delay-type'
     (impl/with-clojure-impl
       (prs/delay-parse-type
         `[t/Num :-> t/Bool
@@ -117,7 +117,7 @@
                     :else (~'!  (t/Value 0) 0)}]))))
 
 (defn ^:private compare-type []
-  (env-utils/delay-type
+  (env-utils/delay-type'
     (impl/with-clojure-impl
       (prs/delay-parse-type
         ;;TODO use t/Comparable

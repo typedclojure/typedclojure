@@ -116,7 +116,6 @@
                                                  (throw e))))))
                           results (if-not threadpool
                                     (mapv check-ns nsym-coll)
-                                    ;;TODO deadlock in clojure.core.typed.test.self-check-tc
                                     (mapv (fn [^java.util.concurrent.Future future]
                                             (try (.get future)
                                                  (catch java.util.concurrent.ExecutionException e

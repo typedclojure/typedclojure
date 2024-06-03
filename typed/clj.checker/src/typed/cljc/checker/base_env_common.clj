@@ -12,6 +12,7 @@
 
 (defmacro delay-and-cache-env [sym & body]
   {:pre [(simple-symbol? sym)]}
-  (let [qsym (symbol (-> *ns* ns-name name) (name sym))]
+  (let [nstr (-> *ns* ns-name name)
+        qsym (symbol nstr (name sym))]
     `(def ~sym
-       (bound-fn [] (do ~@body)))))
+       (fn [] (binding [*ns* (the-ns '~(symbol nstr))] (do ~@body))))))

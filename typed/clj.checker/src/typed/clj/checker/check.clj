@@ -142,13 +142,15 @@
                                                (conj forms-info {:ns-form-str ns-form-str :sform sform :form form})))))))
 
                    ns-form-str (some :ns-form-str forms-info)
+                   bndings (get-thread-bindings)
                    exs (map (fn [{:keys [form sform]}]
-                              (bound-fn []
-                                (binding [vs/*delayed-errors* (err/-init-delayed-errors)
-                                          ;; force types to reparse to detect dependencies in per-form cache
-                                          ;; might affect TypeFn variance inference
-                                          env-utils/*type-cache* (do (assert (not env-utils/*type-cache*))
-                                                                     (atom {}))]
+                              (fn []
+                                (with-bindings (assoc bndings
+                                                      #'vs/*delayed-errors* (err/-init-delayed-errors)
+                                                      ;; force types to reparse to detect dependencies in per-form cache
+                                                      ;; might affect TypeFn variance inference
+                                                      #'env-utils/*type-cache* (do (assert (not env-utils/*type-cache*))
+                                                                                   (atom {})))
                                   (check-top-level form nil {:env (assoc env :ns (ns-name *ns*))
                                                              :top-level-form-string sform
                                                              :ns-form-string ns-form-str}))))
@@ -353,15 +355,6 @@
   (let [_ (some-> expr ::with-meta/erase-atom (reset! true))
         _ (some-> expr ::replace-invoke-atom (reset! cred))]
     nil))
-
-(defn ensure-within-beta-limit []
-  (let [state vs/*beta-count*]
-    (assert state)
-    (if (< (:limit @state) (:count @state))
-      (err/int-error
-        (str "Exceeded the limit of symbolic beta reductions in a single form "
-             "(" (:limit @state) ")"))
-      (swap! state update :count inc))))
 
 (defn check-the-var
   [{:keys [^Var var env] :as expr} expected]

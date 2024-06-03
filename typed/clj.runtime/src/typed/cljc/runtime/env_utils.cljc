@@ -28,9 +28,10 @@
 
 ;; [[:-> Type] :-> [:-> Type]]
 ;; Note: used directly by clojure.core.typed and current-impl to avoid cycles
-(defn delay-type* [f]
-  (let [f (bound-fn* f)
-        this-invalidation-id (volatile! @parsed-types-invalidation-id)
+(defn delay-type**
+  "Manual bound-fn"
+  [f]
+  (let [this-invalidation-id (volatile! @parsed-types-invalidation-id)
         def-ns-vol (volatile! (#?(:cljr identity :default SoftReference.) *ns*))
         ->f-delay (fn [] (delay (f)))
         ;;global cache
@@ -56,7 +57,19 @@
                 (some-> *type-cache* (swap! dissoc id))
                 nil)))))))
 
-(defmacro delay-type [& args]
+(defn delay-type*
+  "Automatic bound-fn"
+  [f]
+  (delay-type** (bound-fn* f)))
+
+(defmacro delay-type'
+  "Manual bound-fn"
+  [& args]
+  `(delay-type** (fn [] (do ~@args))))
+
+(defmacro delay-type
+  "Automatic bound-fn"
+  [& args]
   `(delay-type* (fn [] (do ~@args))))
 
 (defn force-type [v]
