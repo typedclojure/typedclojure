@@ -97,30 +97,31 @@
                               (int-error (str "Declared kind " (unparse-type tfn)
                                               " does not match actual kind " (unparse-type t))))))]
              t))]
-      ((requiring-resolve 'clojure.core.typed.current-impl/add-tc-type-name) qsym t)))
+      ((requiring-resolve 'clojure.core.typed.current-impl/add-tc-type-name)
+       ((requiring-resolve 'clojure.core.typed.current-impl/cljs-checker))
+       qsym t)))
   nil)
 
 (core/defn ^:no-doc
   ann*-macro-time
   "Internal use only. Use ann."
   [qsym typesyn check? form env]
-  (core/let [_ (impl/with-impl impl/clojurescript
-                 (when (and (contains? (impl/var-env) qsym)
-                            (not (impl/check-var? qsym))
-                            check?)
-                   (err/warn (str "Removing :no-check from var " qsym))
-                   (impl/remove-nocheck-var qsym)))
-             _ (impl/with-impl impl/clojurescript
-                 (when-not check?
-                   (impl/add-nocheck-var qsym)))
+  (core/let [checker (impl/cljs-checker)
+             _ (when (and (contains? (impl/var-env checker) qsym)
+                          (not (impl/check-var? checker qsym))
+                          check?)
+                 (err/warn (str "Removing :no-check from var " qsym))
+                 (impl/remove-nocheck-var checker qsym))
+             _ (when-not check?
+                 (impl/add-nocheck-var checker qsym))
              #_#_ast (with-current-location {:form form :env env}
                        (delay-rt-parse typesyn))
              tc-type (with-current-location {:form form :env env}
                        (delay-tc-parse typesyn))]
     #_(impl/with-impl impl/clojurescript
-        (impl/add-var-env qsym ast))
+        (impl/add-var-env checker qsym ast))
     (impl/with-impl impl/clojurescript
-      (impl/add-tc-var-type qsym tc-type)))
+      (impl/add-tc-var-type checker qsym tc-type)))
   nil)
 
 #?(:clj
@@ -162,7 +163,8 @@
 (core/defn- ^:no-doc
   ann-protocol*-macro-time
   [vbnd varsym mth form]
-  (core/let [add-protocol-env (requiring-resolve 'clojure.core.typed.current-impl/add-protocol-env)
+  (core/let [checker ((requiring-resolve 'clojure.core.typed.current-impl/cljs-checker))
+             add-protocol-env (requiring-resolve 'clojure.core.typed.current-impl/add-protocol-env)
              gen-protocol* (requiring-resolve 'clojure.core.typed.current-impl/gen-protocol*)
              qualsym (if (namespace varsym)
                        varsym
@@ -170,6 +172,7 @@
     #_
     (impl/with-cljs-impl
       (add-protocol-env
+        checker
         qualsym
         {:name qualsym
          :methods mth
@@ -181,7 +184,8 @@
           (cljs-ns)
           varsym
           vbnd
-          mth))))
+          mth
+          checker))))
   nil)
 
 (defmacro 
@@ -237,7 +241,8 @@
   "Internal use only. Use ann-datatype."
   [vbnd dname fields opts form]
   (impl/with-cljs-impl
-    (core/let [add-datatype-env (requiring-resolve 'clojure.core.typed.current-impl/add-datatype-env)
+    (core/let [checker ((requiring-resolve 'clojure.core.typed.current-impl/cljs-checker))
+               add-datatype-env (requiring-resolve 'clojure.core.typed.current-impl/add-datatype-env)
                gen-datatype* (requiring-resolve 'clojure.core.typed.current-impl/gen-datatype*)
                dname-nsym (some-> dname namespace symbol)
                qname (with-meta
@@ -251,13 +256,14 @@
                        (meta dname))]
       #_
       (add-datatype-env 
+        checker
         qname
         {:record? false
          :name qname
          :fields fields
          :bnd vbnd})
       (with-current-location form
-        (gen-datatype* vs/*current-env* (cljs-ns) qname fields vbnd opts false))
+        (gen-datatype* vs/*current-env* (cljs-ns) qname fields vbnd opts false checker))
       nil)))
 
 (defmacro

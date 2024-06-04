@@ -32,7 +32,8 @@
             [typed.cljc.checker.path-rep :as pthrep]
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.type-rep :as r]
-            [typed.cljc.runtime.env-utils :as env-utils])
+            [typed.cljc.runtime.env-utils :as env-utils]
+            [typed.cljc.runtime.env :as env])
   (:import (typed.cljc.checker.type_rep NotType DifferenceType Intersection Union FnIntersection
                                         DottedPretype Function Regex RClass App TApp
                                         PrimitiveArray DataType Protocol TypeFn Poly
@@ -1146,7 +1147,7 @@
                              (not (namespace qual))))
               qual (ns-rewrites-clj qual qual)
               qsym (symbol (name qual) (name sym))]
-          (when (contains? (nme-env/name-env) qsym)
+          (when (contains? (nme-env/name-env (env/checker)) qsym)
             qsym)))
       (err/int-error (str "Cannot find namespace: " sym)))))
 

@@ -49,12 +49,13 @@
                       (throw (ex-info (str "Could not resolve class: " '~nme) {:class-name '~nme})))]
           ;; TODO runtime env
          #_
-         (impl/add-rclass-env nme# {:op :RClass})
+         (impl/add-rclass-env (impl/clj-checker) nme# {:op :RClass})
          ;; type env
          ;inline when-bindable-defining-ns
          (macros/when-bindable-defining-ns '~this-ns
            (impl/with-clojure-impl
-             (impl/add-rclass nme# (delay-type
+             (impl/add-rclass (impl/clj-checker)
+                              nme# (delay-type
                                      ((requiring-resolve 'typed.clj.checker.parse-unparse/with-parse-ns*)
                                       '~this-ns
                                       #((requiring-resolve 'typed.cljc.checker.base-env-helper/make-RClass)

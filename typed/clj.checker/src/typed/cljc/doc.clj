@@ -192,7 +192,8 @@
                   :forms '[(t/Satisfies protocol)]
                   ::special-type true}))
 
-(defn type-doc* [tsyn]
+(defn type-doc* [checker tsyn]
+    (let [type-doc* #(type-doc* checker %)]
   (cond
     (prs/quoted? tsyn) (cond
                          (-> tsyn meta :fake-quote) (type-doc* :fake-quote)
@@ -310,7 +311,7 @@
                              (println "Metadata:")
                              (pp/pprint (meta alias-k))))
                          (if-some [ty (impl/impl-case
-                                        :clojure (rcls/get-rclass rsym)
+                                        :clojure (rcls/get-rclass checker rsym)
                                         :cljs nil)]
                            (with-out-str
                              (println "Class annotation for" rsym)
@@ -326,14 +327,14 @@
                                    (println "Printing the annotation for var" rsym "(see typed.clojure/TypeOf for usage in type syntax)")
                                    (pp/pprint (prs/unparse-type ty))))))))))
     (vector? tsyn) (type-doc* `t/IFn)
-    ((some-fn boolean? nil?) tsyn) (type-doc* `t/Val)))
+    ((some-fn boolean? nil?) tsyn) (type-doc* `t/Val))))
 
 (defn type-doc-clj* [v]
   ((requiring-resolve 'clojure.core.typed/load-if-needed))
   ((requiring-resolve 'clojure.core.typed/register!))
   (impl/with-clojure-impl
     (binding [prs/*unparse-type-in-ns* (ns-name *ns*)]
-      (type-doc* v))))
+      (type-doc* (impl/clj-checker) v))))
 
 (defn type-doc-clj [v] (println (type-doc-clj* v)))
 
@@ -341,6 +342,6 @@
   ((requiring-resolve 'cljs.core.typed/load-if-needed))
   ((requiring-resolve 'cljs.core.typed/register!))
   (impl/with-cljs-impl
-    (type-doc* v)))
+    (type-doc* (impl/cljs-checker) v)))
 
 (defn type-doc-cljs [v] (println (type-doc-cljs* v)))

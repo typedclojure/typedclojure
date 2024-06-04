@@ -17,19 +17,23 @@
 
 (def add-field-override impl/add-field-override)
 
-(defn reset-field-override-env! [m]
-  (env/swap-checker! assoc impl/field-override-env-kw m)
+(defn reset-field-override-env! [checker m]
+  (env/swap-checker! checker assoc impl/field-override-env-kw m)
   nil)
 
-(defn merge-field-override-env! [m]
+(defn merge-field-override-env! [checker m]
   {:pre [(map? m)]}
-  (env/swap-checker! update impl/field-override-env-kw merge m)
+  (env/swap-checker! checker update impl/field-override-env-kw merge m)
   nil)
 
-(defn field-override-env []
-  {:post [(map? %)]}
-  (get (env/deref-checker) impl/field-override-env-kw {}))
+(defn field-override-env
+  ([] (field-override-env (env/checker)))
+  ([checker]
+   {:post [(map? %)]}
+   (get (env/deref-checker checker) impl/field-override-env-kw {})))
 
-(defn get-field-override [m]
-  {:post [((some-fn r/Type? nil?) %)]}
-  (force-type (get (field-override-env) m)))
+(defn get-field-override
+  ([m] (get-field-override (env/checker) m))
+  ([checker m]
+   {:post [((some-fn r/Type? nil?) %)]}
+   (force-type (get (field-override-env checker) m))))

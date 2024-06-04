@@ -22,7 +22,8 @@
             [clojure.core.typed.util-vars :as vs]
             [typed.cljc.checker.filter-ops :as fo]
             [typed.cljc.checker.check-below :as below]
-            [typed.cljc.checker.type-ctors :as c])
+            [typed.cljc.checker.type-ctors :as c]
+            [typed.cljc.runtime.env :as env])
   (:import (clojure.lang Var)))
 
 (defn init-provided? [expr]
@@ -33,13 +34,14 @@
   "Checks a def that isn't a macro definition."
   [{:keys [meta init env] :as expr} & [expected]]
   {:post [(:init %)]}
-  (let [init-provided (init-provided? expr)
+  (let [checker (env/checker)
+        init-provided (init-provided? expr)
         _ (assert init-provided)
         vsym (ast-u/def-var-name expr)
-        warn-if-unannotated? (ns-opts/warn-on-unannotated-vars? (cu/expr-ns expr))
+        warn-if-unannotated? (ns-opts/warn-on-unannotated-vars? checker (cu/expr-ns expr))
         t (var-env/lookup-Var-nofail vsym)
         ;_ (prn "lookup var" vsym t)
-        check? (var-env/check-var? vsym)
+        check? (var-env/check-var? checker vsym)
         ;_ (prn "check? var" vsym check?)
         cljs-ret (r/ret r/-any)]
     (cond
@@ -55,7 +57,7 @@
                       (check-expr meta)))
             _ (when cinit
                 ; now consider this var as checked
-                (var-env/add-checked-var-def vsym))]
+                (var-env/add-checked-var-def (env/checker) vsym))]
         (assoc expr
                :init cinit
                :meta cmeta
@@ -108,9 +110,9 @@
             _ (when (and (not= unannotated-def :unchecked)
                          cinit)
                 ; now consider this var as checked
-                (var-env/add-checked-var-def vsym)
+                (var-env/add-checked-var-def (env/checker) vsym)
                 ; and add the inferred static type (might be Error)
-                (var-env/add-var-type vsym inferred))]
+                (var-env/add-var-type (env/clj-checker) vsym inferred))]
         (assoc expr
                :init cinit
                :meta cmeta
@@ -150,9 +152,10 @@
 (defn add-checks-normal-def
   "Add runtime checks to a def with an initial value."
   [expr expected]
-  (let [_ (assert (init-provided? expr))
+  (let [checker (env/checker)
+        _ (assert (init-provided? expr))
         vsym (ast-u/def-var-name expr)
-        check? (var-env/check-var? vsym)
+        check? (var-env/check-var? checker vsym)
         t (when check?
             (var-env/lookup-Var-nofail vsym))]
     (assoc expr

@@ -58,7 +58,7 @@
   Returns nil if not found."
   [csym]
   {:post [((some-fn nil? r/Type?) %)]}
-  (-> (get (impl/jsnominal-env) csym) :jsnominal))
+  (-> (get (impl/jsnominal-env (env/checker)) csym) :jsnominal))
 
 (t/ann contains-jsnominal? [t/Any -> boolean])
 (defn contains-jsnominal?

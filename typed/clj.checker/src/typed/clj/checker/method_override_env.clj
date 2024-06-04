@@ -20,19 +20,19 @@
 
 (def add-method-override impl/add-method-override)
 
-(defn reset-method-override-env! [m]
-  (env/swap-checker! assoc impl/method-override-env-kw m)
+(defn reset-method-override-env! [checker m]
+  (env/swap-checker! checker assoc impl/method-override-env-kw m)
   nil)
 
-(defn merge-method-override-env! [m]
+(defn merge-method-override-env! [checker m]
   {:pre [(map? m)]}
-  (env/swap-checker! update impl/method-override-env-kw merge m)
+  (env/swap-checker! checker update impl/method-override-env-kw merge m)
   nil)
 
-(defn method-override-env []
+(defn method-override-env [checker]
   {:post [(map? %)]}
-  (get (env/deref-checker) impl/method-override-env-kw {}))
+  (get (env/deref-checker checker) impl/method-override-env-kw {}))
 
-(defn get-method-override [m]
+(defn get-method-override [checker m]
   {:post [((some-fn r/Poly? r/FnIntersection? nil?) %)]}
-  (force-type (get (method-override-env) m)))
+  (force-type (get (method-override-env checker) m)))

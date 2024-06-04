@@ -153,6 +153,7 @@
        (let [{:keys [vsym]} fexpr-type]
          (when vsym
            (infer-vars/add-inferred-type
+             (env/checker)
              (or prs/*unparse-type-in-ns*
                  (when fexpr
                    (cu/expr-ns fexpr)))

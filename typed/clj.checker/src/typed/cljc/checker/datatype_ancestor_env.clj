@@ -45,25 +45,25 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Interface
 
-(defn all-dt-ancestors []
+(defn all-dt-ancestors [checker]
   {:post [(map? %)]}
-  (get (env/deref-checker) impl/current-dt-ancestors-kw {}))
+  (get (env/deref-checker checker) impl/current-dt-ancestors-kw {}))
 
-(t/ann ^:no-check get-datatype-ancestors [DataType -> (t/Set r/Type)])
+(t/ann ^:no-check get-datatype-ancestors [t/Any DataType -> (t/Set r/Type)])
 (defn get-datatype-ancestors
   "Returns the set of overriden ancestors of the given DataType."
-  [{:keys [poly? the-class] :as dt}]
+  [checker {:keys [poly? the-class] :as dt}]
   {:pre [(r/DataType? dt)]}
-  (let [as (get (all-dt-ancestors) the-class)]
+  (let [as (get (all-dt-ancestors checker) the-class)]
     (inst-ancestors dt as)))
 
-(t/ann ^:no-check add-datatype-ancestors [t/Sym (t/Map t/Any (t/U (t/Delay r/Type) r/Type)) -> nil])
+(t/ann ^:no-check add-datatype-ancestors [t/Any t/Sym (t/Map t/Any (t/U (t/Delay r/Type) r/Type)) -> nil])
 (def add-datatype-ancestors impl/add-datatype-ancestors)
 
-(t/ann ^:no-check reset-datatype-ancestors! [DTAncestorEnv -> nil])
+(t/ann ^:no-check reset-datatype-ancestors! [t/Any DTAncestorEnv -> nil])
 (defn reset-datatype-ancestors! 
   "Reset the current ancestor map."
-  [aenv]
+  [checker aenv]
   {:pre [(dt-ancestor-env? aenv)]}
-  (env/swap-checker! assoc impl/current-dt-ancestors-kw aenv)
+  (env/swap-checker! checker assoc impl/current-dt-ancestors-kw aenv)
   nil)

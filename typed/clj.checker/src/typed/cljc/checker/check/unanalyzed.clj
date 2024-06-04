@@ -17,8 +17,8 @@
 (defn install*
   [impl op impl-sym]
   (let [info impl-sym
-        prev (impl/with-impl impl
-               (-> (env/swap-checker-vals! assoc-in [impl/unanalyzed-special-kw op] impl-sym)
+        prev (let [checker (get-in (impl/bindings-for-impl) [impl #'env/*checker*])]
+               (-> (env/swap-checker-vals! checker assoc-in [impl/unanalyzed-special-kw op] impl-sym)
                    first
                    (get-in [impl/unanalyzed-special-kw op])))]
     (when prev
@@ -48,7 +48,7 @@
 
 (defn -unanalyzed-special [expr expected]
   (when-some [vsym (-unanalyzed-special-dispatch expr expected)]
-    (when-some [impl-sym (get-in (env/deref-checker) [impl/unanalyzed-special-kw vsym])]
+    (when-some [impl-sym (get-in (env/deref-checker (env/checker)) [impl/unanalyzed-special-kw vsym])]
       ((requiring-resolve impl-sym) expr expected))))
 
 ;; API

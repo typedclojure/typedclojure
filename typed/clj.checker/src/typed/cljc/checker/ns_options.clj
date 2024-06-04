@@ -19,18 +19,18 @@
 (t/defalias OptMap
   (t/Map t/Sym NsOptions))
 
-(t/ann reset-ns-opts! [-> nil])
-(defn reset-ns-opts! []
-  (env/swap-checker! assoc impl/ns-opts-kw {})
+(t/ann ^:no-check reset-ns-opts! [t/Any -> nil])
+(defn reset-ns-opts! [checker]
+  (env/swap-checker! checker assoc impl/ns-opts-kw {})
   nil)
 
-(t/ann ^:no-check register-warn-on-unannotated-vars [t/Sym -> nil])
+(t/ann ^:no-check register-warn-on-unannotated-vars [t/Any t/Sym -> nil])
 (def register-warn-on-unannotated-vars impl/register-warn-on-unannotated-vars)
 
-(defn get-ns-opts [nsym]
+(defn get-ns-opts [checker nsym]
   {:post [(map? %)]}
-  (get-in (env/deref-checker) [impl/ns-opts-kw nsym] {}))
+  (get-in (env/deref-checker checker) [impl/ns-opts-kw nsym] {}))
 
-(t/ann ^:no-check warn-on-unannotated-vars? [t/Sym -> Boolean])
-(defn warn-on-unannotated-vars? [nsym]
-  (boolean (:warn-on-unannotated-vars (get-ns-opts nsym))))
+(t/ann ^:no-check warn-on-unannotated-vars? [t/Any t/Sym -> Boolean])
+(defn warn-on-unannotated-vars? [checker nsym]
+  (boolean (:warn-on-unannotated-vars (get-ns-opts checker nsym))))

@@ -12,6 +12,7 @@
             [typed.clojure :as t]
             [clojure.string :as str]
             [typed.cljc.runtime.env-utils :as env-utils]
+            [typed.cljc.runtime.env :as env]
             [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]
             [clojure.core.typed.coerce-utils :as coerce]
             [clojure.core.typed.contract-utils :as con]
@@ -696,7 +697,8 @@
    {:pre [(symbol? sym)
           (every? r/Type? args)]
     :post [(r/Type? %)]}
-   (let [p (dtenv/get-datatype sym)]
+   (let [checker (env/checker)
+         p (dtenv/get-datatype checker sym)]
      (assert ((some-fn r/TypeFn? r/DataType? nil?) p))
      ; parameterised datatypes must be previously annotated
      (assert (or (r/TypeFn? p) (empty? args))
@@ -774,7 +776,7 @@
    {:pre [(symbol? sym)
           (every? r/Type? args)]
     :post [(r/Type? %)]}
-   (let [p (prenv/get-protocol sym)]
+   (let [p (prenv/get-protocol (env/checker) sym)]
      (assert ((some-fn r/TypeFn? r/Protocol? nil?) p))
      ; parameterised protocols must be previously annotated
      (assert (or (r/TypeFn? p) (empty? args))
@@ -871,7 +873,8 @@
           (every? r/Type? args)]
     :post [;; checked by final cond
            ((some-fn r/RClass? r/DataType?) %)]}
-   (let [cls? (class? sym-or-cls)
+   (let [checker (env/checker)
+         cls? (class? sym-or-cls)
          sym (if cls?
                (coerce/Class->symbol sym-or-cls)
                (do #_(assert (symbol? sym-or-cls)) ;; checked by dtenv/get-datatype
@@ -881,8 +884,8 @@
                      [sym args]
                      sym)]
      (or (@RClass-of-cache cache-key)
-         (let [rc (or (dtenv/get-datatype sym)
-                      (rcls/get-rclass sym))
+         (let [rc (or (dtenv/get-datatype checker sym)
+                      (rcls/get-rclass checker sym))
                ;; checked by dtenv/get-datatype and rcls/get-rclass
                ;_ (assert ((some-fn r/TypeFn? r/RClass? r/DataType? nil?) rc))
                res (if (r/TypeFn? rc)
@@ -933,12 +936,13 @@
   ([sym-or-cls {:keys [warn-msg]}]
    #_{:pre [((some-fn class? symbol?) sym-or-cls)]
       :post [((some-fn r/RClass? r/DataType? r/Instance?) %)]}
-   (let [sym (if (class? sym-or-cls)
+   (let [checker (env/checker)
+         sym (if (class? sym-or-cls)
                (coerce/Class->symbol sym-or-cls)
                (do #_(assert (symbol? sym-or-cls)) ;; checked by dtenv/get-datatype
                    sym-or-cls))
-         rc (or (dtenv/get-datatype sym)
-                (rcls/get-rclass sym))]
+         rc (or (dtenv/get-datatype checker sym)
+                (rcls/get-rclass checker sym))]
      (if (r/TypeFn? rc)
        (let [{:keys [variances]} rc]
          (when warn-msg
@@ -961,7 +965,8 @@
   ([sym]
    {:pre [(symbol? sym)]
     :post [((some-fn r/DataType?) %)]}
-   (let [t (dtenv/get-datatype sym)
+   (let [checker (env/checker)
+         t (dtenv/get-datatype checker sym)
          args (when (r/TypeFn? t)
                 (let [syms (TypeFn-fresh-symbols* t)]
                   (most-general-on-variance (:variances t)
@@ -1014,7 +1019,7 @@
   ([sym]
    {:pre [(symbol? sym)]
     :post [((some-fn r/Protocol? r/Satisfies?) %)]}
-   (let [t (prenv/get-protocol sym)]
+   (let [t (prenv/get-protocol (env/checker) sym)]
      (cond
        (r/TypeFn? t) (let [{:keys [variances]} t]
                        (if (every? valid-variances variances)
@@ -1033,7 +1038,8 @@
   [{:keys [the-class] :as dt}]
   {:pre [(r/DataType? dt)]}
   (impl/assert-clojure)
-  (let [overidden-by (fn [sym o]
+  (let [checker (env/checker)
+        overidden-by (fn [sym o]
                        ;(prn "overriden by" sym (class o) o)
                        (cond
                          ((some-fn r/DataType? r/RClass?) o)
@@ -1046,6 +1052,7 @@
                            o)))
         overrides (map fully-resolve-type
                        ((requiring-resolve 'typed.cljc.checker.datatype-ancestor-env/get-datatype-ancestors)
+                        checker
                         dt))
         ;_ (prn "datatype name" the-class)
         ;_ (prn "datatype overrides" overrides)

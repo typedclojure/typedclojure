@@ -18,6 +18,7 @@
             [typed.cljc.checker.check-below :as below]
             [typed.clj.ext.clojure.core__reify :as reify]
             [typed.clj.analyzer.utils :as ju]
+            [typed.cljc.runtime.env :as env]
             [typed.clj.checker.method-override-env :as mth-override]
             [typed.cljc.checker.check.recur-utils :as recur-u]
             [typed.cljc.checker.check.fn-methods :as fn-methods]
@@ -104,7 +105,7 @@
                                              msym (symbol (str declaring-class) (name method-name))
                                              {:keys [static-type] :as info} (get class->info (ju/maybe-class declaring-class))
                                              _ (assert info)
-                                             override-t (or (mth-override/get-method-override msym)
+                                             override-t (or (mth-override/get-method-override (env/checker) msym)
                                                             (cond
                                                               (= msym 'clojure.lang.IFn/invoke) (IFn-invoke-method-t this-t (:static-type info))
                                                               (:protocol info) (let [static-type (c/fully-resolve-type static-type)

@@ -18,7 +18,8 @@
             [typed.clj.checker.parse-unparse :as prs]
             [typed.cljc.checker.check.funapp :as funapp]
             [typed.cljc.checker.check.utils :as cu]
-            [typed.clj.checker.method-override-env :as mth-override]))
+            [typed.clj.checker.method-override-env :as mth-override]
+            [typed.cljc.runtime.env :as env]))
 
 ;[MethodExpr Type Any -> Expr]
 (defn check-invoke-method [{method-name :method :keys [args env] :as expr} expected
@@ -36,7 +37,7 @@
           method (cu/MethodExpr->Method expr)
           msym (cu/MethodExpr->qualsym expr)
           rfin-type (or method-override
-                        (some-> msym mth-override/get-method-override)
+                        (some->> msym (mth-override/get-method-override (env/checker)))
                         (some-> method cu/Method->Type))
           _ (assert ((some-fn nil? r/Type?) rfin-type))
           ctarget (:instance expr)]

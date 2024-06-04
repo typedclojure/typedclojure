@@ -143,11 +143,11 @@
                                     ::vars @vars ::errors (pos? (count @uvs/*delayed-errors*)) ::interop @interop
                                     ::type-syms @type-syms})))))
 
-(defn ns-check-cached? [nsym slurped]
+(defn ns-check-cached? [checker nsym slurped]
   {:pre [(simple-symbol? nsym)
          (string? slurped)]
    :post [(boolean? %)]}
-  (if-some [{::keys [types] :as cache-info} (get-in (env/deref-checker) [::check-ns-cache nsym])]
+  (if-some [{::keys [types] :as cache-info} (get-in (env/deref-checker checker) [::check-ns-cache nsym])]
     (do ;(println "top level info" types)
         (and (= slurped (:slurped cache-info))
              ;;TODO include the source of the namespaces that declare the relevant types and rules
@@ -164,7 +164,7 @@
 (defn retrieve-form-cache-info [{:keys [env] :as expr}
                                 expected
                                 {:keys [top-level-form-string ns-form-string] :as opts}]
-  (get-in (env/deref-checker) (cache-info-id env opts)))
+  (get-in (env/deref-checker (env/checker)) (cache-info-id env opts)))
 
 (defn need-to-check-top-level-expr? [expr expected {:keys [top-level-form-string ns-form-string] :as opts}]
   (or (-> *ns* meta :typed.clojure :experimental :cache not)
@@ -201,19 +201,19 @@
               *print-length* nil]
       (pp/pprint cache-info)))
   ;; communicate with need-to-check-top-level-expr?
-  (env/swap-checker! assoc-in (cache-info-id env opts) cache-info))
+  (env/swap-checker! (env/checker) assoc-in (cache-info-id env opts) cache-info))
 
 (defn remove-stale-cache-entries [nsym ns-form-str sforms slurped]
   {:pre [(simple-symbol? nsym)]}
   (when ns-form-str
     (let [{{{forms-cache ns-form-str} nsym} ::check-form-cache}
-          (env/swap-checker! update-in [::check-form-cache nsym]
+          (env/swap-checker! (env/checker) update-in [::check-form-cache nsym]
                              (fn [m]
                                (some-> m
                                        (select-keys [ns-form-str])
                                        not-empty
                                        (update ns-form-str select-keys sforms))))]
-      (env/swap-checker! assoc-in [::check-ns-cache nsym]
+      (env/swap-checker! (env/checker) assoc-in [::check-ns-cache nsym]
                          (when (not-any? ::errors (vals forms-cache))
                            (-> (apply merge-with merge (map #(dissoc % :clojure.core.typed.current-impl/current-used-vars :clojure.core.typed.current-impl/current-impl
                                                                      ;;TODO

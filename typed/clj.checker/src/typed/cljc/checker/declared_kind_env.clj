@@ -20,39 +20,39 @@
 
 (def current-declared-kinds-kw ::current-declared-kinds)
 
-(defn declared-kinds []
+(defn declared-kinds [checker]
   {:post [(map? %)]}
-  (get (env/deref-checker) current-declared-kinds-kw {}))
+  (get (env/deref-checker checker) current-declared-kinds-kw {}))
 
-(defn reset-declared-kinds! [m]
+(defn reset-declared-kinds! [checker m]
   {:pre [(declared-kind-env? m)]
    :post [(nil? %)]}
-  (env/swap-checker! assoc current-declared-kinds-kw m)
+  (env/swap-checker! checker assoc current-declared-kinds-kw m)
   nil)
 
-(defn add-declared-kind [sym tfn]
+(defn add-declared-kind [checker sym tfn]
   {:pre [(symbol? sym)
          (r/TypeFn? tfn)]
    :post [(nil? %)]}
-  (env/swap-checker! assoc-in [current-declared-kinds-kw sym] tfn)
+  (env/swap-checker! checker assoc-in [current-declared-kinds-kw sym] tfn)
   nil)
 
-(defn declared-kind-or-nil [sym]
+(defn declared-kind-or-nil [checker sym]
   {:pre [(symbol? sym)]
    :post [(or (nil? %) (r/TypeFn? %))]}
-  (env-utils/force-type (get (declared-kinds) sym)))
+  (env-utils/force-type (get (declared-kinds checker) sym)))
 
-(defn get-declared-kind [sym]
-  (if-let [tfn (declared-kind-or-nil sym)]
+(defn get-declared-kind [checker sym]
+  (if-let [tfn (declared-kind-or-nil checker sym)]
     tfn
     (err/int-error (str "No declared kind for Name " sym))))
 
-(defn has-declared-kind? [sym]
-  (boolean (declared-kind-or-nil sym)))
+(defn has-declared-kind? [checker sym]
+  (boolean (declared-kind-or-nil checker sym)))
 
-(defn remove-declared-kind [sym]
-  (env/swap-checker! update current-declared-kinds-kw dissoc sym)
+(defn remove-declared-kind [checker sym]
+  (env/swap-checker! checker update current-declared-kinds-kw dissoc sym)
   nil)
 
-(defn declare-alias-kind* [sym ty]
-  (add-declared-kind sym ty))
+(defn declare-alias-kind* [checker sym ty]
+  (add-declared-kind checker sym ty))

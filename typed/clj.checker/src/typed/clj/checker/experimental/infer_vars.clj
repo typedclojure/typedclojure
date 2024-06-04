@@ -17,12 +17,12 @@
 
 (defn add-inferred-type 
   "Add type t to the pool of inferred types of var vsym in namespace ns."
-  [nsym vsym t]
+  [checker nsym vsym t]
   {:pre [(symbol? nsym)
          (symbol? vsym)
          (r/Type? t)]
    :post [(nil? %)]}
-  (env/swap-checker! update-in
+  (env/swap-checker! checker update-in
                      [:inferred-unchecked-vars nsym vsym]
                      (fnil conj [])
                      (binding [vs/*verbose-types* true]
@@ -30,11 +30,11 @@
   nil)
 
 (defn inferred-var-in-ns
-  [nsym vsym]
+  [checker nsym vsym]
   {:pre [(symbol? nsym)
          (symbol? vsym)]
    :post [(r/Type? %)]}
-  (if-some [ts (seq (get-in (env/deref-checker) [:inferred-unchecked-vars nsym vsym]))]
+  (if-some [ts (seq (get-in (env/deref-checker checker) [:inferred-unchecked-vars nsym vsym]))]
     (apply c/Un (map prs/parse-type ts))
     r/-any))
 
@@ -50,8 +50,8 @@
 (defn prepare-inferred-untyped-var-expression
   "Return an expression to eval in namespace nsym, which declares
   untyped var vsym as its inferred type."
-  [nsym vsym]
-  (let [t (inferred-var-in-ns nsym vsym)]
+  [checker nsym vsym]
+  (let [t (inferred-var-in-ns checker nsym vsym)]
     (prs/with-unparse-ns nsym
       (list (using-alias-in-ns nsym 'clojure.core.typed/ann)
             (using-alias-in-ns nsym vsym)
@@ -60,6 +60,7 @@
 (defn infer-unannotated-vars
   "Return a vector of syntax that can be spliced into the given namespace,
   that annotates the inferred untyped variables."
-  [nsym]
-  (mapv (fn [vsym] (prepare-inferred-untyped-var-expression nsym vsym))
-        (keys (get-in (env/deref-checker) [:inferred-unchecked-vars nsym]))))
+  ([nsym] (infer-unannotated-vars (env/checker) nsym))
+  ([checker nsym]
+   (mapv (fn [vsym] (prepare-inferred-untyped-var-expression checker nsym vsym))
+         (keys (get-in (env/deref-checker checker) [:inferred-unchecked-vars nsym])))))

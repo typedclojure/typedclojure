@@ -21,16 +21,18 @@
             [typed.cljc.checker.datatype-env :as dt-env]
             [clojure.repl :as repl]
             [clojure.core.typed.util-vars :as vs]
-            [typed.clj.checker.field-override-env :as fld-override]))
+            [typed.clj.checker.field-override-env :as fld-override]
+            [typed.cljc.runtime.env :as env]))
 
 (defn check-static-field
   [expr expected]
   {:pre [(#{:static-field} (:op expr))]
    :post [(-> % u/expr-type r/TCResult?)]}
   (binding [vs/*current-expr* expr]
-    (let [field (cu/FieldExpr->Field expr)
+    (let [checker (env/checker) 
+          field (cu/FieldExpr->Field expr)
           fsym (cu/FieldExpr->qualsym expr)
-          ftype (or (some-> fsym fld-override/get-field-override)
+          ftype (or (some->> fsym (fld-override/get-field-override checker))
                     (cu/Field->Type field))]
       (assoc expr
              u/expr-type (below/maybe-check-below
@@ -43,7 +45,8 @@
          (-> instance u/expr-type r/TCResult?)]
    :post [(-> % u/expr-type r/TCResult?)]}
   (binding [vs/*current-expr* expr]
-   (let [field (cu/FieldExpr->Field expr)]
+   (let [checker (env/checker)
+         field (cu/FieldExpr->Field expr)]
     (if-not target-class
       ; I think target-class will never be false
       (err/tc-delayed-error (str "Call to instance field "
@@ -72,7 +75,7 @@
                                       :form (ast-u/emit-form-fn expr))))
 
             ; datatype fields are special
-            result-t (if-let [override (when-let [dtp (dt-env/get-datatype (coerce/Class->symbol target-class))]
+            result-t (if-let [override (when-let [dtp (dt-env/get-datatype checker (coerce/Class->symbol target-class))]
                                          (let [dt (if (r/Poly? dtp)
                                                     ;generate new names
                                                     (cu/unwrap-datatype dtp (repeatedly (:nbound dtp) gensym))

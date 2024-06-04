@@ -52,7 +52,8 @@
 
 (defmacro protocol-mappings [& args]
   `(impl/with-cljs-impl
-     (let [ts# (partition 2 '~args)]
+     (let [checker# (impl/cljs-checker)
+           ts# (partition 2 '~args)]
        (into {}
              (doall
                (for [[n# [fields# & {:as opts#}]] ts#]
@@ -62,9 +63,9 @@
                        decl-kind# (declared-kind-for-protocol fields#)
                        ;FIXME this is harder than it has to be
                        ; add a Name so the methods can be parsed
-                       _# (nme-env/declare-protocol* n#)
+                       _# (nme-env/declare-protocol* checker# n#)
                        _# (when (r/TypeFn? decl-kind#)
-                            (decl-env/add-declared-kind n# decl-kind#))
+                            (decl-env/add-declared-kind checker# n# decl-kind#))
                        names# (when (seq fields#)
                                 (map first fields#))
                        ; FIXME specify bounds
@@ -77,7 +78,7 @@
                                           [mname# (prs/parse-type mtype#)])))
                        the-var# n#
                        on-class# (c/Protocol-var->on-class the-var#)]
-                   (decl-env/remove-declared-kind n#)
+                   (decl-env/remove-declared-kind checker n#)
                    [n# (c/Protocol* names# vs# frees# the-var#
                                     on-class# methods# bnds#)])))))))
 
@@ -111,7 +112,7 @@
                      (into #{}
                            (for [mtype (:ancestors opts)]
                              (c/abstract-many names (prs/parse-type mtype)))))]
-    (decl-env/remove-declared-kind n)
+    (decl-env/remove-declared-kind (impl/cljs-checker) n)
     [n {:jsnominal (c/JSNominal* names vs frees n bnds)
          :fields fields
          :methods methods
@@ -151,7 +152,7 @@
                                  (into {}
                                        (for [[mname# mtype#] (:fields opts#)]
                                          [mname# (prs/parse-type mtype#)])))]
-                   (decl-env/remove-declared-kind n#)
+                   (decl-env/remove-declared-kind (impl/cljs-checker) n#)
                    [n# (c/DataType* names# vs# frees# n# bnds# fields# (boolean record?#))])))))))
 
 (defmacro jsenv-mappings [& args]

@@ -18,19 +18,19 @@
 
 (def add-constructor-override impl/add-constructor-override)
 
-(defn reset-constructor-override-env! [m]
-  (env/swap-checker! assoc impl/constructor-override-env-kw m)
+(defn reset-constructor-override-env! [checker m]
+  (env/swap-checker! checker assoc impl/constructor-override-env-kw m)
   nil)
 
-(defn merge-constructor-override-env! [m]
+(defn merge-constructor-override-env! [checker m]
   {:pre [(map? m)]}
-  (env/swap-checker! update impl/constructor-override-env-kw merge m)
+  (env/swap-checker! checker update impl/constructor-override-env-kw merge m)
   nil)
 
-(defn constructor-override-env []
+(defn constructor-override-env [checker]
   {:post [(map? %)]}
-  (get (env/deref-checker) impl/constructor-override-env-kw {}))
+  (get (env/deref-checker checker) impl/constructor-override-env-kw {}))
 
-(defn get-constructor-override [sym]
+(defn get-constructor-override [checker sym]
   {:post [((some-fn nil? r/Type?) %)]}
-  (force-type (get (constructor-override-env) sym)))
+  (force-type (get (constructor-override-env checker) sym)))

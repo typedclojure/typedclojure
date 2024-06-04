@@ -21,7 +21,8 @@
             [typed.cljc.checker.lex-env :as lex]
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.type-rep :as r]
-            [typed.cljc.checker.utils :as u]))
+            [typed.cljc.checker.utils :as u]
+            [typed.cljc.runtime.env :as env]))
 
 (defn match-method->expected-ifn [t inst-method]
   {:pre [((some-fn nil? r/Type?) t)]
@@ -77,7 +78,8 @@
   ;TODO check fields match, handle extra fields in records
   ;TODO check that all protocols are accounted for
   (binding [vs/*current-env* env]
-    (let [compiled-class (:class-name expr)
+    (let [checker (env/checker)
+          compiled-class (:class-name expr)
           ;; jana2/validate turns :class-name into a class.
           ;; might not be run at this point.
           compiled-class (cond-> compiled-class
@@ -87,7 +89,7 @@
           field-syms (map :name fields)
           _ (assert (every? symbol? field-syms))
           ; unannotated datatypes are handled below
-          dtp (dt-env/get-datatype nme)
+          dtp (dt-env/get-datatype checker nme)
           [nms bbnds dt] (if (r/TypeFn? dtp)
                            (let [nms (c/TypeFn-fresh-symbols* dtp)
                                  bbnds (c/TypeFn-bbnds* nms dtp)]

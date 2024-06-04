@@ -45,7 +45,7 @@
        (t/load-if-needed)
        (binding [*ns* *ns*
                  *file* *file*]
-         (let [expected-ret# ~expected-ret
+         (let [expected-ret# (clj ~expected-ret)
                check-config# ~check-config
                {ex# :ex} (t/check-form-info '~ns-form
                                             :check-config check-config#)

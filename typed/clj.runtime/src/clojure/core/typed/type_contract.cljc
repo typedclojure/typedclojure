@@ -45,7 +45,9 @@
                              (gen-inner (update t :rator ops/resolve-Name) arg)
                              ;polymorphic class
                              (#{:Class} (:op rator))
-                             (let [{:keys [args pred] :as rcls} (get ((requiring-resolve 'clojure.core.typed.current-impl/rclass-env)) (:name rator))
+                             (let [{:keys [args pred] :as rcls} (get ((requiring-resolve 'clojure.core.typed.current-impl/rclass-env)
+                                                                      ((requiring-resolve 'typed.cljc.runtime.env/checker)))
+                                                                     (:name rator))
                                    _ (when-not rcls
                                        (int-error (str "Class does not take arguments: "
                                                            (:name rator))))
@@ -180,7 +182,7 @@
                           (gen-inner (update t :rator ops/resolve-Name) arg)
                           ;polymorphic class
                           ;(#{:Class} (:op rator))
-                          ;  (let [{:keys [args pred] :as rcls} (get (impl/rclass-env) (:name rator))
+                          ;  (let [{:keys [args pred] :as rcls} (get (impl/rclass-env ((requiring-resolve 'typed.cljc.runtime.env/checker))) (:name rator))
                           ;        _ (when-not rcls
                           ;            (int-error (str "Class does not take arguments: "
                           ;                                (:name rator))))

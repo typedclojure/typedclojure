@@ -97,6 +97,7 @@
             [typed.cljc.checker.update :as update]
             [typed.cljc.checker.utils :as u]
             [typed.cljc.checker.var-env :as var-env]
+            [typed.cljc.runtime.env :as cenv]
             [typed.cljc.runtime.env-utils :as env-utils])
   (:import (clojure.lang IPersistentMap Var)))
 
@@ -115,10 +116,11 @@
   ([ns] (check-ns1 ns (jana2/empty-env)))
   ([ns env]
    (env/ensure (jana2/global-env)
-     (let [^java.net.URL res (jtau/ns-url ns)
+     (let [checker (cenv/checker)
+           ^java.net.URL res (jtau/ns-url ns)
            _ (assert res (str "Can't find " ns " in classpath"))
            slurped (slurp (io/reader res))]
-       (when-not (cache/ns-check-cached? ns slurped)
+       (when-not (cache/ns-check-cached? checker ns slurped)
          (let [filename (str res)
                {:keys [check-form-eval]} vs/*check-config*]
            (binding [*ns*   (if (= :never check-form-eval)
@@ -274,6 +276,7 @@
          (env/ensure (jana2/global-env)
            (-> form
                (ana2/unanalyzed-top-level (or env (jana2/empty-env)))
+               (assoc-in [::ana2/config ::cenv/checker] (cenv/checker))
                (cache/check-top-level-expr expected opts)
                (into extra))))))))
 
@@ -290,11 +293,12 @@
 (defn check-var [{:keys [var] :as expr} expected]
   {:pre [(var? var)]}
   (binding [vs/*current-expr* expr]
-    (let [id (coerce/var->symbol var)
-          _ (when-not (var-env/used-var? id)
-              (var-env/add-used-var id))
+    (let [checker (cenv/checker)
+          id (coerce/var->symbol var)
+          _ (when-not (var-env/used-var? checker id)
+              (var-env/add-used-var checker id))
           vsym id
-          ut (var-env/get-untyped-var (cu/expr-ns expr) vsym)
+          ut (var-env/get-untyped-var checker (cu/expr-ns expr) vsym)
           t (var-env/lookup-Var-nofail vsym)]
       ;(prn " annotation" t)
       ;(prn " untyped annotation" ut)
@@ -360,11 +364,12 @@
   [{:keys [^Var var env] :as expr} expected]
   {:pre [(var? var)]}
   (impl/assert-clojure)
-  (let [id (coerce/var->symbol var)
+  (let [checker (cenv/checker)
+        id (coerce/var->symbol var)
         macro? (.isMacro var)
         _ (when-not (or macro?
-                        (var-env/used-var? id))
-            (var-env/add-used-var id))
+                        (var-env/used-var? checker id))
+            (var-env/add-used-var checker id))
         t (var-env/lookup-Var-nofail id)
         t (cond
             t t
@@ -500,7 +505,8 @@
   (when-not ((every-pred odd? pos?) (count (:args expr)))
     (err/int-error (str "Wrong number of arguments to extend, expected at least one with an even "
                         "number of variable arguments, given " (count (:args expr)))))
-  (let [{[catype & protos :as args] :args :as expr}
+  (let [checker (cenv/checker)
+        {[catype & protos :as args] :args :as expr}
         (-> expr
             ;atype
             (update-in [:args 0] check-expr))
@@ -535,7 +541,7 @@
                       (let [prcl-expr (ana2/run-pre-passes (ana2/analyze-outer-root prcl-expr))
                             protocol (do (when-not (= :var (:op prcl-expr))
                                            (err/int-error "Must reference protocol directly with var in extend"))
-                                         (ptl-env/resolve-protocol (coerce/var->symbol (:var prcl-expr))))
+                                         (ptl-env/resolve-protocol checker (coerce/var->symbol (:var prcl-expr))))
                             _ (when-not (r/Protocol? protocol)
                                 (err/int-error (str "Expecting Protocol type, found " protocol)))
                             expected-mmap (c/make-HMap ;get all combinations
@@ -1482,7 +1488,8 @@
    :post [#_(every? :post-done (cons (:target %) (:args %)))]}
   (when-not (= 2 (count (:args expr)))
     (err/int-error "Wrong arguments to clojure.lang.MultiFn/addMethod"))
-  (let [{[dispatch-val-expr _] :args target :target :keys [env] :as expr}
+  (let [checker (cenv/checker)
+        {[dispatch-val-expr _] :args target :target :keys [env] :as expr}
         (cond-> expr
           (-> expr :target :form symbol?) (update :target ana2/run-passes))
         _ (when-not (= :var (:op target))
@@ -1504,9 +1511,9 @@
           (update :args #(mapv ana2/run-passes %)))
 
       ;skip if warn-on-unannotated-vars is in effect
-      (or (and (ns-opts/warn-on-unannotated-vars? (cu/expr-ns expr))
+      (or (and (ns-opts/warn-on-unannotated-vars? checker (cu/expr-ns expr))
                (not (var-env/lookup-Var-nofail mmsym)))
-          (not (var-env/check-var? mmsym)))
+          (not (var-env/check-var? checker mmsym)))
       (do (u/tc-warning (str "Not checking defmethod " mmsym " with dispatch value: " 
                              (pr-str (ast-u/emit-form-fn dispatch-val-expr))))
           (-> expr
@@ -1739,7 +1746,8 @@
   (binding [vs/*current-expr* expr
             vs/*current-env* (:env expr)]
     (or (-new-special expr expected)
-        (let [inst-types *inst-ctor-types*
+        (let [checker (cenv/checker)
+              inst-types *inst-ctor-types*
               expr (-> expr
                        (update :class check-expr)
                        (update :args #(binding [*inst-ctor-types* nil]
@@ -1765,8 +1773,8 @@
               ctor-fn (fn [expr]
                         (when (:validated? expr)
                           (let [clssym (cu/NewExpr->qualsym expr)]
-                            (or (ctor-override/get-constructor-override clssym)
-                                (and (dt-env/get-datatype clssym)
+                            (or (ctor-override/get-constructor-override checker clssym)
+                                (and (dt-env/get-datatype checker clssym)
                                      (cu/DataType-ctor-type clssym))
                                 (when-let [ctor (cu/NewExpr->Ctor expr)]
                                   (cu/Constructor->Function ctor))))))
@@ -1796,7 +1804,8 @@
 (defn check-def
   [{:keys [var env] :as expr} expected]
   (impl/assert-clojure)
-  (let [prs-ns (cu/expr-ns expr)
+  (let [checker (cenv/checker)
+        prs-ns (cu/expr-ns expr)
         mvar (meta var)
         qsym (coerce/var->symbol var)]
     ; annotation side effect
@@ -1805,9 +1814,9 @@
       (let [ann-type (binding [vs/*current-env* env
                                prs/*parse-type-in-ns* prs-ns]
                        (prs/parse-type tsyn))]
-        (var-env/add-var-type qsym ann-type)))
+        (var-env/add-var-type checker qsym ann-type)))
     (when (:no-check mvar)
-      (var-env/add-nocheck-var qsym))
+      (var-env/add-nocheck-var checker qsym))
     (def/check-def expr expected)))
 
 (defmethod -check ::jana2/deftype

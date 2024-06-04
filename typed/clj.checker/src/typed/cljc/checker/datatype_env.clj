@@ -25,22 +25,21 @@
   "An Environment mapping datatype symbols to types."
   (t/Map t/Sym (t/U (t/Delay r/Type) r/Type)))
 
-(defn datatype-env []
+(defn datatype-env [checker]
   {:post [(map? %)]}
-  (get (env/deref-checker) impl/current-datatype-env-kw {}))
+  (get (env/deref-checker checker) impl/current-datatype-env-kw {}))
 
-(t/ann ^:no-check add-datatype [t/Sym r/Type -> nil])
-
+(t/ann ^:no-check add-datatype [t/Any t/Sym r/Type -> nil])
 (def add-datatype impl/add-datatype)
 
-(t/ann get-datatype [t/Sym -> (t/U nil r/Type)])
-(defn get-datatype 
+(t/ann get-datatype [t/Any t/Sym -> (t/U nil r/Type)])
+(defn get-datatype
   "Get the datatype with class symbol sym.
   Returns nil if not found."
-  [sym]
+  [checker sym]
   {:pre [(symbol? sym)]
    :post [(or (nil? %) (r/DataType? %) (r/TypeFn? %))]}
-  (force-type (get (datatype-env) sym)))
+  (force-type (get (datatype-env checker) sym)))
 
 (t/ann resolve-datatype [t/Sym -> r/Type])
 (defn resolve-datatype 
@@ -53,9 +52,9 @@
       (err/int-error (str "Could not resolve DataType: " sym)))
     d))
 
-(t/ann reset-datatype-env! [DataTypeEnv -> DataTypeEnv])
-(defn reset-datatype-env! [new-env]
+(t/ann reset-datatype-env! [t/Any DataTypeEnv -> DataTypeEnv])
+(defn reset-datatype-env! [checker new-env]
   {:pre [(map? new-env)]
    :post [(nil? %)]}
-  (env/swap-checker! assoc impl/current-datatype-env-kw new-env)
+  (env/swap-checker! checker assoc impl/current-datatype-env-kw new-env)
   nil)

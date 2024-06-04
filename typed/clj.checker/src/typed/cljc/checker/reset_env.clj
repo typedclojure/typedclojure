@@ -25,13 +25,13 @@
       :clojure
       (do (bse-clj/reset-clojure-envs!)
           (mmenv/reset-mm-dispatch-env!)
-          (ns-opts/reset-ns-opts!))
+          (ns-opts/reset-ns-opts! (impl/clj-checker)))
       :cljs
       (do
         (assert cljs? "No ClojureScript dependency")
         (when cljs?
           (reset-cljs-envs!)
-          (ns-opts/reset-ns-opts!))))
+          (ns-opts/reset-ns-opts! (impl/cljs-checker)))))
     nil)))
 
 (defn load-core-envs! 
@@ -43,7 +43,7 @@
       :clojure
       (do (bse-clj/refresh-core-clojure-envs!)
           ;(mmenv/reset-mm-dispatch-env!)
-          ;(ns-opts/reset-ns-opts!)
+          ;(ns-opts/reset-ns-opts! (impl/clj-checker))
           )
       :cljs
       nil
@@ -54,5 +54,5 @@
         (reset-envs! true)
         (when cljs?
           (reset-cljs-envs!)
-          (ns-opts/reset-ns-opts!))))
+          (ns-opts/reset-ns-opts! (impl/cljs-checker)))))
     nil)))

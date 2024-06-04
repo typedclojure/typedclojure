@@ -90,27 +90,28 @@
 (def unanalyzed-special-kw ::unanalyzed-special)
 (def current-rclass-env-kw ::current-rclass-env)
 
-(defn add-tc-var-type [sym type]
-  (env/swap-checker! assoc-in [current-var-annotations-kw sym] type)
+(defn add-tc-var-type [checker sym type]
+  (env/swap-checker! checker assoc-in [current-var-annotations-kw sym] type)
   nil)
 
-(defn add-nocheck-var [sym]
-  (env/swap-checker! update current-nocheck-var?-kw (fnil conj #{}) sym)
+(defn add-nocheck-var [checker sym]
+  (env/swap-checker! checker update current-nocheck-var?-kw (fnil conj #{}) sym)
   nil)
 
-(defn remove-nocheck-var [sym]
-  (env/swap-checker! update current-nocheck-var?-kw (fnil disj #{}) sym)
+(defn remove-nocheck-var [checker sym]
+  (env/swap-checker! checker update current-nocheck-var?-kw (fnil disj #{}) sym)
   nil)
 
-(defn var-no-checks []
+(defn var-no-checks [checker]
   {:post [(set? %)]}
-  (get (env/deref-checker) current-nocheck-var?-kw #{}))
+  (get (env/deref-checker checker) current-nocheck-var?-kw #{}))
 
-(defn check-var? [sym]
-  (not (contains? (var-no-checks) sym)))
+(defn check-var? [checker sym]
+  (not (contains? (var-no-checks checker) sym)))
 
-(defn add-tc-type-name [sym ty]
-  (env/swap-checker! assoc-in
+(defn add-tc-type-name [checker sym ty]
+  (env/swap-checker! checker
+                     assoc-in
                      [current-name-env-kw sym]
                      ty
                      #_(if (r/Type? ty)
@@ -120,21 +121,21 @@
 
 (def declared-name-type ::declared-name)
 
-(defn declare-name* [sym]
+(defn declare-name* [checker sym]
   {:pre [(qualified-symbol? sym)]}
-  (add-tc-type-name sym declared-name-type)
+  (add-tc-type-name checker sym declared-name-type)
   nil)
 
-(defn declare-protocol* [sym]
+(defn declare-protocol* [checker sym]
   {:pre [(qualified-symbol? sym)]}
-  (add-tc-type-name sym protocol-name-type)
+  (add-tc-type-name checker sym protocol-name-type)
   nil)
 
-(defn declare-datatype* [sym]
-  (add-tc-type-name sym datatype-name-type)
+(defn declare-datatype* [checker sym]
+  (add-tc-type-name checker sym datatype-name-type)
   nil)
 
-(defn add-untyped-var [nsym sym t]
+(defn add-untyped-var [checker nsym sym t]
   {:pre [(symbol? nsym)
          (symbol? sym)
          ; enforced in var-env/get-untyped-var,
@@ -144,67 +145,67 @@
                (delay? t)
                (fn? t))]
    :post [(nil? %)]}
-  (env/swap-checker! assoc-in [untyped-var-annotations-kw nsym sym] t)
+  (env/swap-checker! checker assoc-in [untyped-var-annotations-kw nsym sym] t)
   nil)
 
-(defn add-nonnilable-method-return [sym m]
+(defn add-nonnilable-method-return [checker sym m]
   {:pre [(qualified-symbol? sym)
          ((some-fn #{:all}
                    (con/set-c? nat-int?))
           m)]}
-  (env/swap-checker! assoc-in [method-return-nonnilable-env-kw sym] m)
+  (env/swap-checker! checker assoc-in [method-return-nonnilable-env-kw sym] m)
   nil)
 
-(defn add-method-nilable-param [sym a]
+(defn add-method-nilable-param [checker sym a]
   {:pre [(qualified-symbol? sym)
          ((con/hash-c? (some-fn #{:all} nat-int?)
                        (some-fn #{:all} (con/set-c? nat-int?)))
           a)]}
-  (env/swap-checker! assoc-in [method-param-nilable-env-kw sym] a)
+  (env/swap-checker! checker assoc-in [method-param-nilable-env-kw sym] a)
   nil)
 
-(defn add-method-override [sym t]
+(defn add-method-override [checker sym t]
   {:pre [(qualified-symbol? sym)
          ;; checked at `get-method-override`
          #_
          ((some-fn fn? delay? r/Poly? r/FnIntersection?)
           t)]}
-  (env/swap-checker! assoc-in [method-override-env-kw sym] t)
+  (env/swap-checker! checker assoc-in [method-override-env-kw sym] t)
   nil)
 
-(defn add-field-override [sym t]
+(defn add-field-override [checker sym t]
   {:pre [(qualified-symbol? sym)
          ;; checked by `get-field-override`
          #_
          ((some-fn fn? delay? r/Type?)
           t)]}
-  (env/swap-checker! assoc-in [field-override-env-kw sym] t)
+  (env/swap-checker! checker assoc-in [field-override-env-kw sym] t)
   nil)
 
-(defn add-constructor-override [sym t]
+(defn add-constructor-override [checker sym t]
   {:pre [(simple-symbol? sym)
          ;; checked at `get-constructor-override`
          #_((some-fn fn? delay? r/Type?) t)]}
-  (env/swap-checker! assoc-in [constructor-override-env-kw sym] t)
+  (env/swap-checker! checker assoc-in [constructor-override-env-kw sym] t)
   nil)
 
-(defn add-protocol [sym t]
+(defn add-protocol [checker sym t]
   {:pre [(qualified-symbol? sym)
          ;; checked in get-protocol
          #_
          ((some-fn fn? delay? r/Type?) t)]}
-  (env/swap-checker! assoc-in [current-protocol-env-kw sym] t)
+  (env/swap-checker! checker assoc-in [current-protocol-env-kw sym] t)
   nil)
 
-(defn add-rclass [sym t]
+(defn add-rclass [checker sym t]
   {:pre [(simple-symbol? sym)
          ;; checked in get-protocol
          #_
          ((some-fn fn? delay? r/RClass? r/Poly?) t)]}
-  (env/swap-checker! assoc-in [current-rclass-env-kw sym] t)
+  (env/swap-checker! checker assoc-in [current-rclass-env-kw sym] t)
   nil)
 
-(defn add-datatype [sym t]
+(defn add-datatype [checker sym t]
   {:pre [(impl-case
            :clojure ((every-pred simple-symbol?
                                  (fn [k] (some #{\.} (str k))))
@@ -214,18 +215,18 @@
          #_
          ((some-fn fn? delay? r/Type?) t)]
    :post [(nil? %)]}
-  (env/swap-checker! assoc-in [current-datatype-env-kw sym] t)
+  (env/swap-checker! checker assoc-in [current-datatype-env-kw sym] t)
   nil)
 
-(defn add-ns-deps [nsym deps]
+(defn add-ns-deps [checker nsym deps]
   {:pre [(simple-symbol? nsym)
          ((con/set-c? symbol?) deps)]
    :post [(nil? %)]}
-  (env/swap-checker! update-in [current-deps-kw nsym] (fnil set/union #{}) deps)
+  (env/swap-checker! checker update-in [current-deps-kw nsym] (fnil set/union #{}) deps)
   nil)
 
-(defn register-warn-on-unannotated-vars [nsym]
-  (env/swap-checker! assoc-in [ns-opts-kw nsym :warn-on-unannotated-vars] true)
+(defn register-warn-on-unannotated-vars [checker nsym]
+  (env/swap-checker! checker assoc-in [ns-opts-kw nsym :warn-on-unannotated-vars] true)
   nil)
 
 #?(:cljs :ignore 
@@ -247,16 +248,16 @@
         add-def (symbol (str "add-" n))
         reset-def (symbol (str "reset-" n "!"))]
     `(do (def ~kw-def ~(keyword (str (ns-name *ns*)) (str n)))
-         (defn ~n []
+         (defn ~n [checker#]
            {:post [(map? ~'%)]}
-           (get (env/deref-checker) ~kw-def {}))
-         (defn ~add-def [sym# t#]
+           (get (env/deref-checker checker#) ~kw-def {}))
+         (defn ~add-def [checker# sym# t#]
            {:pre [(symbol? sym#)]
             :post [(nil? ~'%)]}
-           (env/swap-checker! assoc-in [~kw-def sym#] t#)
+           (env/swap-checker! checker# assoc-in [~kw-def sym#] t#)
            nil)
-         (defn ~reset-def [m#]
-           (env/swap-checker! assoc ~kw-def m#)
+         (defn ~reset-def [checker# m#]
+           (env/swap-checker! checker# assoc ~kw-def m#)
            nil)
          nil))))
 
@@ -471,7 +472,7 @@
 (def ^:private subtype? #((requiring-resolve 'typed.clj.checker.subtype/subtype?) %1 %2)))
 
 #?(:cljs :ignore :default
-(defn gen-protocol* [current-env current-ns vsym binder mths]
+(defn gen-protocol* [current-env current-ns vsym binder mths checker]
   {:pre [(symbol? current-ns)
          ((some-fn nil? map?) mths)]}
   (let [_ (when-not (symbol? vsym)
@@ -491,7 +492,7 @@
                 (str "Protocol methods for " vsym " must have distinct representations: "
                      "both " n1 " and " n2 " compile to " (munge n1)))))
         ; add a Name so the methods can be parsed
-        _ (declare-protocol* s)
+        _ (declare-protocol* checker s)
         parsed-binder (when binder 
                         (delay-type
                           (with-parse-ns* current-ns
@@ -540,10 +541,10 @@
                        (into {} (map (fn [[k v]] [k (force-type v)])) ms) 
                        (map :bnd (force-type parsed-binder))))]
     ;(prn "Adding protocol" s t)
-    (add-protocol s t)
+    (add-protocol checker s t)
     ; annotate protocol var as Any
-    (add-nocheck-var s)
-    (add-tc-var-type s (delay-type (-any)))
+    (add-nocheck-var checker s)
+    (add-tc-var-type checker s (delay-type (-any)))
     (doseq [[kuq mt] ms]
       (assert (not (namespace kuq))
               "Protocol method names should be unqualified")
@@ -551,21 +552,21 @@
       (let [kq (symbol protocol-defined-in-nstr (name kuq))
             mt-ann (delay-type 
                      (protocol-method-var-ann (force-type mt) (map :name (force-type fs)) (force-type bnds)))]
-        (add-nocheck-var kq)
-        (add-tc-var-type kq mt-ann)))
+        (add-nocheck-var checker kq)
+        (add-tc-var-type checker kq mt-ann)))
     #_
     (prn "end gen-protocol" s (when (= "cljs.core" (namespace s))
-                                (force-type (get-in (env/deref-checker) [current-protocol-env-kw s]))))
+                                (force-type (get-in (env/deref-checker checker) [current-protocol-env-kw s]))))
     nil)))
 
 (defn add-datatype-ancestors
   "Add a mapping of ancestor overrides (from the type syntax of the override
   to the actual parsed type) for the datatype named sym."
-  [sym tmap]
+  [checker sym tmap]
   {:pre [(symbol? sym)
          (map? tmap)]
    :post [(nil? %)]}
-  (env/swap-checker! update-in [current-dt-ancestors-kw sym] merge tmap)
+  (env/swap-checker! checker update-in [current-dt-ancestors-kw sym] merge tmap)
   nil)
 
 #?(:cljs :ignore :default
@@ -586,7 +587,7 @@
 (def ^:private make-HMap #(apply (requiring-resolve 'typed.cljc.checker.type-ctors/make-HMap) %&)))
 
 #?(:cljs :ignore :default
-(defn gen-datatype* [current-env current-ns provided-name fields vbnd opt record?]
+(defn gen-datatype* [current-env current-ns provided-name fields vbnd opt record? checker]
   {:pre [(symbol? current-ns)
          (impl-case
            :clojure (simple-symbol? provided-name)
@@ -651,13 +652,13 @@
                            (delay-type (bfn)))]))
                  ancests)
         ;_ (prn "collected ancestors" as)
-        _ (add-datatype-ancestors s as)
+        _ (add-datatype-ancestors checker s as)
         pos-ctor-name (symbol demunged-ns-str (str "->" local-name))
         map-ctor-name (symbol demunged-ns-str (str "map->" local-name))
         dt (let [bfn (bound-fn []
                        (DataType* (force-type args) (force-type vs) (map make-F (force-type args)) s (force-type bnds) (force-type fs) record?))]
              (delay-type (bfn)))
-        _ (add-datatype s dt)
+        _ (add-datatype checker s dt)
         pos-ctor (let [bfn (bound-fn []
                              (if args
                                (Poly* (force-type args) (force-type bnds)
@@ -673,8 +674,8 @@
       ;  (let [f (mapv r/make-F (repeatedly (count vs) gensym))]
       ;    ;TODO replacements and unchecked-ancestors go here
       ;    (rcls/alter-class* s (c/RClass* (map :name f) (force-type vs) f s {} {} (force-type bnds)))))
-      (add-tc-var-type pos-ctor-name pos-ctor)
-      (add-nocheck-var pos-ctor-name)
+      (add-tc-var-type checker pos-ctor-name pos-ctor)
+      (add-nocheck-var checker pos-ctor-name)
       (when record?
         (let [map-ctor (let [bfn (bound-fn []
                                    (let [hmap-arg ; allow omission of keys if nil is allowed and field is monomorphic
@@ -694,7 +695,7 @@
                                          (make-Function [hmap-arg] (DataType-of s))))))]
                          (delay-type (bfn)))]
           (impl-case
-            :clojure (add-method-override (symbol (str s) "create") map-ctor)
+            :clojure (add-method-override checker (symbol (str s) "create") map-ctor)
             :cljs nil)
-          (add-tc-var-type map-ctor-name map-ctor)
-          (add-nocheck-var map-ctor-name)))))))
+          (add-tc-var-type checker map-ctor-name map-ctor)
+          (add-nocheck-var checker map-ctor-name)))))))

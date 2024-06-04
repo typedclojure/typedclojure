@@ -190,7 +190,7 @@ goog.events.EventType.MOUSEMOVE cljs.core.typed/JSString
   (ucljs/with-cljs-typed-env
     (impl/with-cljs-impl
       ;(var-env/reset-var-type-env! (init-var-env) (init-var-nochecks))
-      (var-env/reset-jsvar-type-env! (init-jsvar-env))
+      (var-env/reset-jsvar-type-env! (impl/cljs-checker) (init-jsvar-env))
       (reset-jsnominal-env!)
       )
     )

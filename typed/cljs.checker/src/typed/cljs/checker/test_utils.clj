@@ -39,7 +39,7 @@
        (fn []
          (cljs-t/load-if-needed)
          (ucljs/with-cljs-typed-env
-           (let [expected-ret# ~expected-ret
+           (let [expected-ret# (cljs ~expected-ret)
                  ; first element of this list must be the symbol ns
                  ns-form# '(~'ns ~nsym
                              ~'(:refer-clojure :exclude [fn])

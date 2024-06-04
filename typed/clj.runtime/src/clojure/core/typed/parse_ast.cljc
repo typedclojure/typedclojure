@@ -58,7 +58,8 @@
   {:pre [(symbol? sym)]
    :post [((some-fn symbol? nil?) %)]}
   (impl/assert-clojure)
-  (let [nsym (parse-in-ns)
+  (let [checker (impl/clj-checker)
+        nsym (parse-in-ns)
         nsp (some-> (namespace sym) symbol)]
     (if-let [ns (find-ns nsym)]
       (when-let [qual (if nsp
@@ -70,7 +71,7 @@
               _ (assert (and (symbol? qual)
                              (not (namespace qual))))
               qsym (symbol (name qual) (name sym))]
-          (when (contains? (impl/alias-env) qsym)
+          (when (contains? (impl/alias-env checker) qsym)
             qsym)))
       (err/int-error (str "Cannot find namespace: " sym)))))
 
@@ -1128,7 +1129,8 @@
 
 (defmethod parse-symbol* :default
   [sym]
-  (let [primitives (impl/impl-case
+  (let [checker ((requiring-resolve 'typed.cljc.runtime.env/checker))
+        primitives (impl/impl-case
                      :clojure clj-primitives
                      :cljs cljs-primitives)
         free (when (symbol? sym)
@@ -1143,14 +1145,14 @@
                                    (resolve-type-clj sym))]
                          (cond 
                            (class? res) (let [csym (coerce/Class->symbol res)
-                                              dt? (contains? (impl/datatype-env) csym)]
+                                              dt? (contains? (impl/datatype-env checker) csym)]
                                           {:op (if dt? :DataType :Class) :name csym
                                            :form sym})
                            (var? res) (let [vsym (coerce/var->symbol res)
                                             vsym-nsym (-> vsym namespace symbol)
                                             vsym (symbol (name (ns-rewrites-clj vsym-nsym vsym-nsym))
                                                          (name vsym))]
-                                        (if (contains? (impl/alias-env) vsym)
+                                        (if (contains? (impl/alias-env checker) vsym)
                                           {:op :Name :name vsym :form sym}
                                           {:op :Protocol :name vsym :form sym}))
                            (symbol? sym)
@@ -1161,7 +1163,7 @@
                              ; assume it's in the current namespace
                                       ; do we want to munge the sym also?
                              (let [qname (symbol (str (namespace-munge (parse-in-ns)) "." sym))]
-                               (when (contains? (impl/datatype-env) qname)
+                               (when (contains? (impl/datatype-env checker) qname)
                                  {:op :DataType :name qname :form sym})))))
               :cljs (assert nil)
                #_(when-let [res (when (symbol? sym)

@@ -14,24 +14,24 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Method Param nilables
 
-(defn reset-method-nilable-param-env! [m]
-  (env/swap-checker! assoc impl/method-param-nilable-env-kw m)
+(defn reset-method-nilable-param-env! [checker m]
+  (env/swap-checker! checker assoc impl/method-param-nilable-env-kw m)
   nil)
 
-(defn merge-method-nilable-param-env! [m]
+(defn merge-method-nilable-param-env! [checker m]
   {:pre [(map? m)]}
-  (env/swap-checker! update impl/method-param-nilable-env-kw merge m)
+  (env/swap-checker! checker update impl/method-param-nilable-env-kw merge m)
   nil)
 
 (def add-method-nilable-param impl/add-method-nilable-param)
 
-(defn nilable-param-env []
+(defn nilable-param-env [checker]
   {:post [(map? %)]}
-  (get (env/deref-checker) impl/method-param-nilable-env-kw {}))
+  (get (env/deref-checker checker) impl/method-param-nilable-env-kw {}))
 
 (defn nilable-param? [sym arity param]
   (boolean 
-    (when-some [nilables (env-utils/force-type (get (nilable-param-env) sym))]
+    (when-some [nilables (env-utils/force-type (get (nilable-param-env (env/checker)) sym))]
       (assert (set? nilables))
       (when-some [params (or (nilables :all)
                              (nilables arity))]

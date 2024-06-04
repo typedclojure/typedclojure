@@ -30,6 +30,7 @@
             [typed.cljc.checker.filter-rep :as fl]
             [typed.cljc.checker.filter-ops :as fo]
             [typed.clj.checker.subtype :as sub]
+            [typed.cljc.runtime.env :as env]
             [clojure.core.typed.ast-utils :as ast-u]
             [clojure.set :as set])
   (:import (clojure.lang MultiFn)))
@@ -257,7 +258,7 @@
 
 (defn protocol-implementation-type [root-t {:keys [declaring-class] :as method-sig}]
   (when-some [pvar (c/Protocol-interface->on-var declaring-class)]
-    (when-not (pcl-env/get-protocol pvar)
+    (when-not (pcl-env/get-protocol (env/checker) pvar)
       (err/int-error (str "Protocol " pvar " must be annotated via ann-protocol before its method implementations "
                           "can be checked.")))
     (let [mungedsym (symbol (:name method-sig))
@@ -357,7 +358,7 @@
 
               :else (err/tc-delayed-error (str "Cannot generate constructor type for: " sym)
                                         :return r/Err)))]
-    (resolve-ctor (dt-env/get-datatype sym))))
+    (resolve-ctor (dt-env/get-datatype (env/checker) sym))))
 
 ;[Method -> t/Sym]
 (defn Method->symbol [{name-sym :name :keys [declaring-class] :as method}]

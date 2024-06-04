@@ -43,22 +43,22 @@
                             (some-fn r/Type? #(isa? % temp-binding))))
 
 (t/ann ^:no-check name-env [-> NameEnv])
-(defn name-env []
-  (get (env/deref-checker) impl/current-name-env-kw {}))
+(defn name-env [checker]
+  (get (env/deref-checker checker) impl/current-name-env-kw {}))
 
-(t/ann ^:no-check reset-name-env! [NameEnv -> nil])
-(defn reset-name-env! [nme-env]
-  (env/swap-checker! assoc impl/current-name-env-kw nme-env)
+(t/ann ^:no-check reset-name-env! [t/Any NameEnv -> nil])
+(defn reset-name-env! [checker nme-env]
+  (env/swap-checker! checker assoc impl/current-name-env-kw nme-env)
   nil)
 
 (t/ann ^:no-check find-type-name-entry [t/Sym -> (t/Nilable (t/MapEntry t/Sym (t/U t/Kw (t/Delay r/Type) [:-> r/Type])))])
 (defn find-type-name-entry [sym]
-  (or (find (name-env) sym)
+  (or (find (name-env (env/checker)) sym)
       (when-some [sym-nsym ((requiring-resolve (impl/impl-case
                                                  :clojure 'typed.clj.checker.parse-unparse/ns-rewrites-clj
                                                  :cljs 'typed.clj.checker.parse-unparse/ns-rewrites-cljs))
                             (some-> sym namespace symbol))]
-        (find (name-env)
+        (find (name-env (env/checker))
               (symbol (name sym-nsym) (name sym))))))
 
 (t/ann ^:no-check get-type-name [t/Sym -> (t/U nil t/Kw r/Type)])
@@ -74,7 +74,7 @@
               true)]}
   (some-> (find-type-name-entry sym) val force-type))
 
-(t/ann ^:no-check add-type-name [t/Sym (t/U t/Kw r/Type) -> nil])
+(t/ann ^:no-check add-type-name [t/Any t/Sym (t/U t/Kw r/Type) -> nil])
 (def add-type-name impl/add-tc-type-name)
 
 (t/ann ^:no-check declare-name* [t/Sym -> nil])
@@ -84,14 +84,14 @@
 (defn declared-name? [sym]
   (= impl/declared-name-type (get-type-name sym)))
 
-(t/ann ^:no-check declare-protocol* [t/Sym -> nil])
+(t/ann ^:no-check declare-protocol* [t/Any t/Sym -> nil])
 (def declare-protocol* impl/declare-protocol*)
 
 (t/ann ^:no-check declared-protocol? [t/Sym -> t/Bool])
 (defn declared-protocol? [sym]
   (= impl/protocol-name-type (get-type-name sym)))
 
-(t/ann ^:no-check declare-datatype* [t/Sym -> nil])
+(t/ann ^:no-check declare-datatype* [t/Any t/Sym -> nil])
 (def declare-datatype* impl/declare-datatype*)
 
 (t/ann ^:no-check declared-datatype? [t/Sym -> t/Bool])
@@ -102,10 +102,11 @@
 (defn resolve-name* [sym]
   {:pre [(symbol? sym)]
    :post [(r/Type? %)]}
-  (let [t (get-type-name sym)
-        tfn ((some-fn dtenv/get-datatype
-                      prenv/get-protocol
-                      (impl/impl-case :clojure #(or (rcls/get-rclass %)
+  (let [checker (env/checker)
+        t (get-type-name sym)
+        tfn ((some-fn #(dtenv/get-datatype checker %)
+                      #(prenv/get-protocol checker %)
+                      (impl/impl-case :clojure #(or (rcls/get-rclass checker %)
                                                     (when (class? (resolve %))
                                                       (c/RClass-of-with-unknown-params %)))
                                       :cljs (requiring-resolve 'typed.cljs.checker.jsnominal-env/get-jsnominal))
@@ -113,11 +114,11 @@
                       ; themselves in their definition, a temporary TFn is
                       ; added to the declared kind env which is enough to determine
                       ; type rank and variance.
-                      kinds/declared-kind-or-nil) 
+                      #(kinds/declared-kind-or-nil checker %)) 
              sym)]
     (or tfn
         (cond
-          (= impl/protocol-name-type t) (prenv/resolve-protocol sym)
+          (= impl/protocol-name-type t) (prenv/resolve-protocol checker sym)
           (= impl/datatype-name-type t) (dtenv/resolve-datatype sym)
           (= impl/declared-name-type t) (throw (IllegalArgumentException. (str "Reference to declared but undefined name " sym)))
           (r/Type? t) (vary-meta t assoc :source-Name sym)

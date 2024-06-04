@@ -18,24 +18,12 @@
 
 (def rclass-env-kw ::rclass-env)
 
-(defn- rclasses []
-  (get (env/deref-checker) impl/current-rclass-env-kw {}))
+(defn- rclasses [checker]
+  (get (env/deref-checker checker) impl/current-rclass-env-kw {}))
 
 (defn get-rclass
   "Returns the RClass with class symbol csym.
   Returns nil if not found."
-  [csym]
-  {:post [(do (assert ((some-fn nil? r/RClass? r/TypeFn?) %)
-                      [:looking-up csym
-                       :gave-class (class %)
-                       :provided-class-hash
-                       (hash (class %))
-                       :current-class-hash
-                       (hash (Class/forName (.getName (class %))))
-                       :equal?
-                       (= (class %)
-                          (Class/forName (.getName (class %))))
-                       :latest-var? (= #'get-rclass (resolve `get-rclass))
-                       :raw-class (class (get (rclasses) csym))])
-              true)]}
-  (force-type (get (rclasses) csym)))
+  [checker csym]
+  {:post [((some-fn nil? r/RClass? r/TypeFn?) %)]}
+  (force-type (get (rclasses checker) csym)))

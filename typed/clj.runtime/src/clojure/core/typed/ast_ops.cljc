@@ -9,12 +9,14 @@
 (ns ^:no-doc clojure.core.typed.ast-ops
   #?(:clj (:refer-clojure :exclude [requiring-resolve]))
   (:require [clojure.core.typed.errors :as err]
+            [typed.cljc.runtime.env :as env]
             #?(:clj [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]])))
 
 (defn resolve-Name [{:keys [name] :as expr}]
   {:pre [(#{:Name} (:op expr))]}
-  (let [e ((requiring-resolve 'typed.cljc.runtime.env-utils/force-type)
-           (get ((requiring-resolve 'clojure.core.typed.current-impl/alias-env)) name))
+  (let [checker (env/checker)
+        e ((requiring-resolve 'typed.cljc.runtime.env-utils/force-type)
+           (get ((requiring-resolve 'clojure.core.typed.current-impl/alias-env) checker) name))
         _ (when-not e
             (err/int-error (str "No alias found for " name)))]
     e))

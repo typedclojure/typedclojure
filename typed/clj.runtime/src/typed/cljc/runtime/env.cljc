@@ -31,20 +31,14 @@
 
 (defn init-checker
   ([] (init-checker (empty-checker)))
-  ([init]
-   (atom init :validator map?)))
+  ([init] (atom init)))
 
-(defn deref-checker []
+(defn deref-checker [checker]
   {:post [(map? %)]}
-  @(checker))
+  @checker)
 
-(defn swap-checker! [& args]
-  (apply swap! (checker) args))
+(defn swap-checker! [c & args]
+  (apply swap! c args))
 
-(defn swap-checker-vals! [& args]
-  (apply swap-vals! (checker) args))
-
-;; isolate *checker* for consistent reads
-(defmacro with-pinned-env [& body]
-  `(binding [*checker* (atom (deref-checker))]
-     ~@body))
+(defn swap-checker-vals! [c & args]
+  (apply swap-vals! c args))

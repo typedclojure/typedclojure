@@ -361,4 +361,7 @@
 (defn should-runtime-infer-ns?
   [ns]
   (ns-has-feature? ns :runtime-infer))
+
+(defn expr->checker [expr]
+  (get-in expr ))
 )

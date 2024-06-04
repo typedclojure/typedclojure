@@ -20,7 +20,8 @@
             [typed.cljc.checker.filter-rep :as fr]
             [typed.cljc.checker.free-ops :as free-ops]
             [typed.cljc.checker.name-env :as nmenv]
-            [typed.cljc.checker.declared-kind-env :as kinds])
+            [typed.cljc.checker.declared-kind-env :as kinds]
+            [typed.cljc.runtime.env :as env])
   (:import (typed.cljc.checker.type_rep NotType DifferenceType Intersection Union FnIntersection Bounds
                                         Function RClass App TApp
                                         PrimitiveArray DataType Protocol TypeFn Poly
@@ -286,7 +287,8 @@
     [{:keys [rator rands] :as tapp}]
     (apply combine-freesresults
            (frees rator)
-           (let [tfn (loop [rator rator]
+           (let [checker (env/checker)
+                 tfn (loop [rator rator]
                        (cond
                          (r/F? rator) (when-let [bnds (free-ops/free-with-name-bnds (:name rator))]
                                         ;assume upper/lower bound variance agree
@@ -294,14 +296,14 @@
                          (r/Name? rator) (let [{:keys [id]} rator]
                                            (cond
                                              (nmenv/declared-name? id)
-                                             (kinds/get-declared-kind id)
+                                             (kinds/get-declared-kind checker id)
 
                                              ; alter class introduces temporary declared kinds for
                                              ; computing variance when referencing an RClass inside
                                              ; its own definition.
                                              (and (class? (resolve id))
-                                                  (kinds/has-declared-kind? id))
-                                             (kinds/get-declared-kind id)
+                                                  (kinds/has-declared-kind? checker id))
+                                             (kinds/get-declared-kind checker id)
 
                                              :else
                                              (recur (c/resolve-Name rator))))

@@ -28,39 +28,39 @@
 (def protocol-env? (con/hash-c? (every-pred symbol? namespace)
                                 (some-fn delay? r/Protocol? r/TypeFn?)))
 
-(t/ann ^:no-check protocol-env [-> ProtocolEnv])
-(defn protocol-env []
+(t/ann ^:no-check protocol-env [t/Any -> ProtocolEnv])
+(defn protocol-env [checker]
   {:post [(map? %)
           #_(protocol-env? %)]}
-  (get (env/deref-checker) impl/current-protocol-env-kw {}))
+  (get (env/deref-checker checker) impl/current-protocol-env-kw {}))
 
 (t/ann ^:no-check reset-protocol-env! [ProtocolEnv -> nil])
-(defn reset-protocol-env! [e]
+(defn reset-protocol-env! [checker e]
   {:pre [#_(protocol-env? e)]}
-  (env/swap-checker! assoc impl/current-protocol-env-kw e)
+  (env/swap-checker! checker assoc impl/current-protocol-env-kw e)
   nil)
 
-(defn merge-protocol-env! [e]
+(defn merge-protocol-env! [checker e]
   {:pre [(map? e)]}
-  (env/swap-checker! update impl/current-protocol-env-kw merge e)
+  (env/swap-checker! checker update impl/current-protocol-env-kw merge e)
   nil)
 
-(t/ann ^:no-check add-protocol [t/Sym r/Type -> nil])
+(t/ann ^:no-check add-protocol [t/Any t/Sym r/Type -> nil])
 (def add-protocol impl/add-protocol)
 
-(t/ann get-protocol [t/Sym -> (t/U nil r/Type)])
-(defn get-protocol 
+(t/ann get-protocol [t/Any t/Sym -> (t/U nil r/Type)])
+(defn get-protocol
   "Returns the protocol with var symbol sym.
   Returns nil if not found."
-  [sym]
+  [checker sym]
   {:pre [(symbol? sym)]
    :post [((some-fn nil? r/Protocol? r/TypeFn?) %)]}
-  (force-type (get (protocol-env) sym)))
+  (force-type (get (protocol-env checker) sym)))
 
-(t/ann resolve-protocol [t/Sym -> r/Type])
-(defn resolve-protocol [sym]
+(t/ann resolve-protocol [t/Any t/Sym -> r/Type])
+(defn resolve-protocol [checker sym]
   {:post [(r/Type? %)]}
-  (let [p (get-protocol sym)]
+  (let [p (get-protocol checker sym)]
     (when-not p 
       (err/int-error (str "Could not resolve Protocol: " sym
                           "\n\nHint: Add protocol annotations with ann-protocol")))

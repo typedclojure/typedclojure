@@ -16,21 +16,21 @@
 
 (def add-nonnilable-method-return impl/add-nonnilable-method-return)
 
-(defn reset-nonnilable-method-return-env! [m]
-  (env/swap-checker! assoc impl/method-return-nonnilable-env-kw m)
+(defn reset-nonnilable-method-return-env! [checker m]
+  (env/swap-checker! checker assoc impl/method-return-nonnilable-env-kw m)
   nil)
 
-(defn merge-nonnilable-method-return-env! [m]
+(defn merge-nonnilable-method-return-env! [checker m]
   {:pre [(map? m)]}
-  (env/swap-checker! update impl/method-return-nonnilable-env-kw merge m)
+  (env/swap-checker! checker update impl/method-return-nonnilable-env-kw merge m)
   nil)
 
-(defn nonnilable-method-return-env []
+(defn nonnilable-method-return-env [checker]
   {:post [(map? %)]}
-  (get (env/deref-checker) impl/method-return-nonnilable-env-kw {}))
+  (get (env/deref-checker checker) impl/method-return-nonnilable-env-kw {}))
 
 (defn nonnilable-return? [sym arity]
-  (let [as (env-utils/force-type (get (nonnilable-method-return-env) sym))]
+  (let [as (env-utils/force-type (get (nonnilable-method-return-env (env/checker)) sym))]
     (assert ((some-fn nil? set? #{:all}) as))
     (boolean (or (= :all as)
                  (contains? as arity)))))
