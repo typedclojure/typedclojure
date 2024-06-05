@@ -41,13 +41,13 @@
    :post [(or (nil? %) (r/DataType? %) (r/TypeFn? %))]}
   (force-type (get (datatype-env checker) sym)))
 
-(t/ann resolve-datatype [t/Sym -> r/Type])
+(t/ann resolve-datatype [t/Any t/Sym -> r/Type])
 (defn resolve-datatype 
   "Same as get-datatype, but fails if datatype is not found."
-  [sym]
+  [checker sym]
   {:pre [(symbol? sym)]
    :post [(r/Type? %)]}
-  (let [d (get-datatype sym)]
+  (let [d (get-datatype checker sym)]
     (when-not d 
       (err/int-error (str "Could not resolve DataType: " sym)))
     d))

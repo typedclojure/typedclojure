@@ -119,7 +119,7 @@
     (or tfn
         (cond
           (= impl/protocol-name-type t) (prenv/resolve-protocol checker sym)
-          (= impl/datatype-name-type t) (dtenv/resolve-datatype sym)
+          (= impl/datatype-name-type t) (dtenv/resolve-datatype checker sym)
           (= impl/declared-name-type t) (throw (IllegalArgumentException. (str "Reference to declared but undefined name " sym)))
           (r/Type? t) (vary-meta t assoc :source-Name sym)
           :else (err/int-error (str "Cannot resolve name " (pr-str sym)
