@@ -38,7 +38,7 @@
 
 ;; returns a sequence of checkers/gens corresponding to each Function in order
 (defn- all-FnIntersection-checkers+gens
-  [fs opt]
+  [fs opts]
   {:pre [(instance? FnIntersection fs)]
    :post [(seq %)]}
   (let [_ (assert (every? #(= :fixed (:kind %)) fs)
@@ -46,11 +46,11 @@
         f->checkers+gens
         (map (fn [f]
                {:pre [(r/Function? f)]}
-               (let [dpreds (mapv #(type-rep->pred % (flip-parity opt)) (:dom f))
+               (let [dpreds (mapv #(type-rep->pred % (flip-parity opts)) (:dom f))
                      dgens (mapv generator (:dom f))
                      nargs (count (:dom f))
                      rett (-> f :rng :t)
-                     bottom-args? (boolean (some sub-bottom? (:dom f)))]
+                     bottom-args? (boolean (some #(sub-bottom? % opts) (:dom f)))]
                  {:f f
                   :nargs nargs 
                   :bottom-args? bottom-args?
@@ -70,7 +70,7 @@
                                          dpreds
                                          args)))
                   :ret-gen (generator rett)
-                  :ret-pred (type-rep->pred rett opt)}))
+                  :ret-pred (type-rep->pred rett opts)}))
              (:types fs))]
    f->checkers+gens))
 
@@ -168,8 +168,8 @@
                                                   ::type-contract/Poly-pred-syntax generative-Poly-pred-syntax))
           eval))))
 
-(defn- sub-bottom? [t]
-  (sub/subtype? t r/-nothing))
+(defn- sub-bottom? [t opts]
+  (sub/subtype? t r/-nothing opts))
 
 (defonce -unreachable-generator (gen/fmap
                                   (fn [_]
@@ -197,7 +197,7 @@
   (case (count poly?)
     0 (gen/set gen/any-printable-equatable)
     1 (let [[el] poly?]
-        (if (sub-bottom? el)
+        (if (sub-bottom? el opts)
           (gen/return #{})
           (gen/set (generator el opts))))))
 (defmethod RClass->generator 'clojure.lang.IPersistentVector
@@ -206,7 +206,7 @@
   (case (count poly?)
     0 (gen/vector gen/any-printable-equatable)
     1 (let [[el] poly?]
-        (if (sub-bottom? el)
+        (if (sub-bottom? el opts)
           (gen/return [])
           (gen/vector (generator el opts))))))
 (defmethod RClass->generator 'clojure.lang.ISeq
@@ -215,7 +215,7 @@
   (case (count poly?)
     0 (gen/bind (gen/vector gen/any-printable-equatable) sequence)
     1 (let [[el] poly?]
-        (if (sub-bottom? el)
+        (if (sub-bottom? el opts)
           (gen/return (sequence ()))
           (gen/bind (gen/vector (generator el opts)) sequence)))))
 (defmethod RClass->generator 'clojure.lang.IPersistentCollection
@@ -226,7 +226,7 @@
                    (gen/set gen/any-printable-equatable)
                    (gen/map gen/any-printable-equatable gen/any-printable-equatable)])
     1 (let [[el] poly?]
-        (if (sub-bottom? el)
+        (if (sub-bottom? el opts)
           (gen/elements [(sequence []) (list) [] #{} (sorted-set) {} (sorted-map)])
           (gen/one-of
             (filterv
