@@ -17,9 +17,10 @@
 
 (defuspecial defuspecial__def
   "defuspecial implementation for clojure.spec.alpha/def"
-  [expr expected]
+  [expr expected opts]
   (-> expr
       (assoc
         u/expr-type (below/maybe-check-below
                       (r/ret r/-any)
-                      expected))))
+                      expected
+                      opts))))

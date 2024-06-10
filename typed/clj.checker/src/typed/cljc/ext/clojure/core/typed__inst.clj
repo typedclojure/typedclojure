@@ -12,18 +12,18 @@
             [clojure.core.typed.util-vars :as vs]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.cljc.analyzer :as ana2]
-            [typed.cljc.checker.check :refer [check-expr]]
+            [typed.cljc.checker.check :as check]
             [typed.cljc.checker.check.utils :as cu]
             [typed.cljc.checker.inst :as inst]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.utils :as u]))
 
 (defn -unanalyzed-special__inst
-  [{[_ pform & targs-syn :as form] :form :keys [env] :as expr} expected]
+  [{[_ pform & targs-syn :as form] :form :keys [env] :as expr} expected {::check/keys [check-expr] :as opts}]
   {:post [(-> % u/expr-type r/TCResult?)]}
     (let [_ (when-not (next form)
-              (err/int-error "Wrong arguments to inst"))
+              (err/int-error "Wrong arguments to inst" opts))
           ptype (-> pform (ana2/unanalyzed env)
                     check-expr u/expr-type r/ret-t)]
       (assoc expr
-             u/expr-type (inst/inst-from-targs-syn ptype targs-syn (cu/expr-ns expr) expected))))
+             u/expr-type (inst/inst-from-targs-syn ptype targs-syn (cu/expr-ns expr) expected opts))))

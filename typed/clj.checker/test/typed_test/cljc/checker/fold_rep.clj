@@ -20,35 +20,35 @@
     (swap! count-atom inc)
     t))
 
-(defn count-F [t]
+(defn count-F [t opts]
   {:pre [(r/AnyType? t)]}
   (let [count-atom (atom 0)
-        t' (call-count-F* t {:count-atom count-atom})]
+        t' (call-count-F* t opts {:count-atom count-atom})]
     {:t' t' :F-count @count-atom}))
 
 (deftest identical-fold-return-test
   (clj (let [t (r/make-F 'x)
-             {:keys [t' F-count]} (count-F t)]
+             {:keys [t' F-count]} (count-F t clj-opts)]
          (is (= 1 F-count))
          (is (identical? t t'))))
   (clj (let [t (r/make-Function [(r/make-F 'x)] (r/make-F 'x))
-             {:keys [t' F-count]} (count-F t)]
+             {:keys [t' F-count]} (count-F t clj-opts)]
          (is (= 2 F-count))
          (is (identical? t t'))))
-  (clj (let [t (parse-type `(t/All [t#] [[t# :-> [t# :-> t#]] '[t#] :-> (t/Vec t#)]))
-             {:keys [t' F-count]} (count-F t)]
+  (clj (let [t (parse-type `(t/All [t#] [[t# :-> [t# :-> t#]] '[t#] :-> (t/Vec t#)]) clj-opts)
+             {:keys [t' F-count]} (count-F t clj-opts)]
          (is (= 5 F-count))
          (is (identical? t t'))))
-  (clj (let [t (parse-type `(t/All [t# s# :..] [[t# :-> [t# :-> t#]] '[t#] :-> (t/Vec t#)]))
-             {:keys [t' F-count]} (count-F t)]
+  (clj (let [t (parse-type `(t/All [t# s# :..] [[t# :-> [t# :-> t#]] '[t#] :-> (t/Vec t#)]) clj-opts)
+             {:keys [t' F-count]} (count-F t clj-opts)]
          (is (= 5 F-count))
          (is (identical? t t'))))
-  (clj (let [t (parse-type `(t/All [t#] ['{:a t#} :-> (t/HMap :mandatory {:a t#} :optional {:b t#})]))
-             {:keys [t' F-count]} (count-F t)]
+  (clj (let [t (parse-type `(t/All [t#] ['{:a t#} :-> (t/HMap :mandatory {:a t#} :optional {:b t#})]) clj-opts)
+             {:keys [t' F-count]} (count-F t clj-opts)]
          (is (= 3 F-count))
          (is (identical? t t'))))
-  (clj (let [t (parse-type `(t/All [t#] [:-> ((t/TFn [x] t#) t#)]))
-             {:keys [t' F-count]} (count-F t)]
+  (clj (let [t (parse-type `(t/All [t#] [:-> ((t/TFn [x] t#) t#)]) clj-opts)
+             {:keys [t' F-count]} (count-F t clj-opts)]
          (is (= 2 F-count))
          (is (identical? t t'))))
   )

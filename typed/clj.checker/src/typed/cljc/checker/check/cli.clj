@@ -17,11 +17,11 @@
             [typed.cljc.checker.constant-type :as const]
             [typed.cljc.checker.type-ctors :as c]))
 
-(defn parse-fn-return-type [parse-fn-type]
+(defn parse-fn-return-type [parse-fn-type opts]
   (let [subst-in (free-ops/with-free-symbols 
-                   #{'a} (prs/parse-type '[String -> a]))] 
+                   #{'a} (prs/parse-type '[String -> a] opts))] 
     (-> (cgen/cs-gen #{} {'a r/no-bounds} {} parse-fn-type subst-in) 
-        (cgen/subst-gen #{} subst-in)
+        (cgen/subst-gen #{} subst-in {} opts)
         (get-in ['a :type]))))
 
 (defn vector-args [expr]
@@ -37,7 +37,7 @@
 ; some code taken from tools.cli
 ; (All [x]
 ;   [CliSpec -> (U nil '[Value Type])])
-(defn parse-cli-spec [check-fn spec-expr]
+(defn parse-cli-spec [check-fn spec-expr opts]
   (letfn [(opt? [^String x]
             (.startsWith x "-"))
           (name-for [k]
@@ -97,27 +97,29 @@
                                  (-> (check-fn default-expr)
                                      u/expr-type
                                      r/ret-t)
-                                 (const/constant-type frm)))
+                                 (const/constant-type frm false opts)))
                 parse-fn-type (when-let [[pfrm parse-fn-expr] (:parse-fn options)]
                                 (if parse-fn-expr
                                   (-> (check-fn parse-fn-expr (r/ret (prs/parse-type
-                                                                       '[String -> Any])))
+                                                                       '[String -> Any]
+                                                                       opts)))
                                       u/expr-type
                                       r/ret-t)
-                                  (const/constant-type pfrm)))
+                                  (const/constant-type pfrm false opts)))
                 parse-fn-ret (when parse-fn-type
-                               (parse-fn-return-type parse-fn-type))
+                               (parse-fn-return-type parse-fn-type opts))
                 type (cond
                        (and parse-fn-type
                             (not parse-fn-ret)) (do
                                                   ;(prn "cli: parse-fn")
                                                   nil)
-                       flag (c/RClass-of Boolean)
+                       flag (c/RClass-of Boolean opts)
                        :else
-                       (apply c/Un (concat (when default-type
-                                             [default-type])
-                                           (if parse-fn-type
-                                             [parse-fn-ret]
-                                             [(c/RClass-of String)]))))]
+                       (c/Un (concat (when default-type
+                                       [default-type])
+                                     (if parse-fn-type
+                                       [parse-fn-ret]
+                                       [(c/RClass-of String opts)]))
+                             opts))]
             (when type
               [name type]))))))))

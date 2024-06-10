@@ -23,12 +23,13 @@
 ;; do it all again.
 #_
 (defuspecial 'clojure.core/ns
-  [expr expected]
+  [expr expected opts]
   (assoc expr
          u/expr-type (below/maybe-check-below
                        (r/ret r/-nil
                               (fo/-FS fl/-bot fl/-top))
-                       expected)))
+                       expected
+                       opts)))
 
 ;; # fast version
 ;; Delegates (possible) expansion and evaluation to Compiler.java.
@@ -42,14 +43,15 @@
 ;;    :blame-form ~&form})
 (defn -unanalyzed-special__ns
   "-unanalyzed-special implementation for clojure.core/ns"
-  [expr expected]
+  [expr expected opts]
   (-> expr
       ana2/eval-top-level
       (assoc
         u/expr-type (below/maybe-check-below
                       (r/ret r/-nil
                              (fo/-FS fl/-bot fl/-top))
-                      expected)
+                      expected
+                      opts)
         :tag nil)))
 
 (comment

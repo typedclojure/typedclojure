@@ -10,6 +10,6 @@
   (:require [typed.cljc.checker.local-result :as local-result]
             [typed.cljc.checker.utils :as u]))
 
-(defn check-local [{sym :name :as expr} expected]
+(defn check-local [{sym :name :as expr} expected opts]
   (assoc expr
-         u/expr-type (local-result/local-result expr sym expected)))
+         u/expr-type (local-result/local-result expr sym expected opts)))

@@ -19,34 +19,36 @@
             [clojure.core.typed.errors :as err]))
 
 ;; returns true when f1 <: f2
-(defn simple-filter-better? [f1 f2]
+(defn simple-filter-better? [f1 f2 opts]
   {:pre [(fl/Filter? f1)
          (fl/Filter? f2)]}
   (cond (fl/NoFilter? f2) true
         (fl/NoFilter? f1) false
-        :else (sub/subtype-filter? f1 f2)))
+        :else (sub/subtype-filter? f1 f2 opts)))
 
 ;; returns true when f1 <: f2
 (defn filter-better? [{f1+ :then f1- :else :as f1}
-                      {f2+ :then f2- :else :as f2}]
+                      {f2+ :then f2- :else :as f2}
+                      opts]
   {:pre [(fl/FilterSet? f1)
          (fl/FilterSet? f2)]
    :post [(boolean? %)]}
   (cond
     (= f1 f2) true
     :else
-    (let [f+-better? (simple-filter-better? f1+ f2+)
-          f--better? (simple-filter-better? f1- f2-)] 
+    (let [f+-better? (simple-filter-better? f1+ f2+ opts)
+          f--better? (simple-filter-better? f1- f2- opts)] 
       (and f+-better? f--better?))))
 
-(defn bad-filter-delayed-error [{f1 :fl :as actual} {f2 :fl :as expected}]
+(defn bad-filter-delayed-error [{f1 :fl :as actual} {f2 :fl :as expected} opts]
   {:pre [(r/TCResult? actual)
          (r/TCResult? expected)]}
   (err/tc-delayed-error (str "Expected result with filter " (pr-str f2) ", got filter "  (pr-str f1))
-                        :expected expected))
+                        {:expected expected}
+                        opts))
 
 ;check that arg type tr1 is under expected
-(defn check-below [tr1 expected]
+(defn check-below [tr1 expected opts]
   {:pre [(or (and (r/TCResult? tr1)
                   (r/TCResult? expected))
              (and (r/Type? tr1)
@@ -104,31 +106,33 @@
                                  type-special-case? r/ret)
           {t2 :t f2 :fl o2 :o} (cond-> expected
                                  type-special-case? r/ret)
-          tres (or (cgen/eliminate-wild t1 t2)
-                   (cu/expected-error t1 expected))
-          better-fs? (filter-better? f1 f2)
+          tres (or (cgen/eliminate-wild t1 t2 opts)
+                   (cu/expected-error t1 expected opts))
+          better-fs? (filter-better? f1 f2 opts)
           ;_ (prn "better-fs?" better-fs? f1 f2)
           better-obj? (object-better? o1 o2)
           _ (cond
               (and (not better-fs?)
                    better-obj?)
-              (bad-filter-delayed-error tr1 expected)
+              (bad-filter-delayed-error tr1 expected opts)
 
               (and better-fs? 
                    (not better-obj?))
               (err/tc-delayed-error (str "Expected result with object " (pr-str o2) ", got object " (pr-str o1))
-                                    :expected expected)
+                                    {:expected expected}
+                                    opts)
 
               (and (not better-fs?)
                    (not better-obj?))
               (err/tc-delayed-error (str "Expected result with object " (pr-str o2) ", got object"  o1 " and filter "
                                          (pr-str f2) " got filter " (pr-str f1))
-                                    :expected expected))]
+                                    {:expected expected}
+                                    opts))]
       (cond-> tres
         (not type-special-case?) (construct-ret tr1 expected)))))
 
 (defn maybe-check-below
-  [tr1 expected]
+  [tr1 expected opts]
   {:pre [(r/TCResult? tr1)
          ((some-fn nil? r/TCResult?) expected)]
    :post [(r/TCResult? %)]}
@@ -137,6 +141,6 @@
                     expr (vary-meta update :origin (fnil conj []) {:type :expr
                                                                    :expr expr}))]
     (-> tr1
-        (cond-> expected (check-below expected))
+        (cond-> expected (check-below expected opts))
         add-meta
         (update :t add-meta))))

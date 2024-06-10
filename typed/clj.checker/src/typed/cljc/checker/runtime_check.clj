@@ -11,10 +11,10 @@
   (:require [typed.cljc.checker.check.do :as do]
             [typed.cljc.checker.utils :as u]
             [typed.cljc.checker.check.def :as def]
-            [typed.cljc.checker.check :refer [check-expr]]
+            [typed.cljc.checker.check :as check]
             [clojure.core.typed.ast-utils :as ast]))
 
-(defn check
+(defn check-expr
   "Add runtime checks to the output AST.
 
   Static checking is disabled, outside ill-formed types.
@@ -22,25 +22,26 @@
   Unsafe contracts can be generated, and contract generation cannot fail.
   
   Assumes collect-expr is already called on this AST."
-  ([expr] (check expr nil))
-  ([expr expected]
-   (binding [check-expr check]
-     (case (:op expr)
-       (:def) (if (def/defmacro-or-declare? expr)
-                ;; ignore defmacro and declare
-                expr
-                (def/add-checks-normal-def expr expected))
-       (:do) (letfn [(default-do [expr expected]
-                       (assoc expr
-                              :statements (mapv check (:statements expr))
-                              :ret (check (:ret expr) expected)))]
+  ([expr expected opts]
+   (let [check-expr (check/->check-expr check-expr opts)
+         opts (assoc opts ::check-expr check-expr)]
+     (binding [check-expr check-expr]
+       (case (:op expr)
+         (:def) (if (def/defmacro-or-declare? expr)
+                  ;; ignore defmacro and declare
+                  expr
+                  (def/add-checks-normal-def expr expected opts))
+         (:do) (letfn [(default-do [expr expected]
+                         (assoc expr
+                                :statements (mapv check-expr (:statements expr))
+                                :ret (check-expr (:ret expr) expected)))]
 
-               (if (do/internal-form? expr)
-                 (case (u/internal-dispatch-val expr)
-                   ;; could be an error or another special form, 
-                   ;; but we'll let it slide in runtime checking mode.
-                   expr)
-                 (default-do expr expected)))
-       (ast/walk-children check expr)))))
+                 (if (do/internal-form? expr)
+                   (case (u/internal-dispatch-val expr)
+                     ;; could be an error or another special form, 
+                     ;; but we'll let it slide in runtime checking mode.
+                     expr)
+                   (default-do expr expected)))
+         (ast/walk-children check-expr expr))))))
 
-(def runtime-check-expr check)
+(def runtime-check-expr check-expr)

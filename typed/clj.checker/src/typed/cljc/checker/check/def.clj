@@ -12,7 +12,7 @@
             [typed.cljc.checker.ns-options :as ns-opts]
             [clojure.core.typed :as T]
             [clojure.core.typed.current-impl :as impl]
-            [typed.cljc.checker.check :refer [check-expr]]
+            [typed.cljc.checker.check :as check]
             [typed.cljc.checker.check.utils :as cu]
             [typed.cljc.checker.var-env :as var-env]
             [typed.cljc.checker.type-rep :as r]
@@ -32,7 +32,7 @@
 ;[Expr (Option TCResult) -> Expr]
 (defn check-normal-def
   "Checks a def that isn't a macro definition."
-  [{:keys [meta init env] :as expr} & [expected]]
+  [{:keys [meta init env] :as expr} expected {::check/keys [check-expr] :as opts}]
   {:post [(:init %)]}
   (let [checker (env/checker)
         init-provided (init-provided? expr)
@@ -66,7 +66,8 @@
                                :clojure (r/ret (c/-name `t/Var t)
                                                (fo/-true-filter))
                                :cljs cljs-ret)
-                             expected)))
+                             expected
+                             opts)))
 
       ; if warn-if-unannotated?, don't try and infer this var,
       ; just skip it
@@ -82,7 +83,8 @@
                                  :clojure (r/ret (c/-name `t/AnyVar)
                                                  (fo/-true-filter))
                                  :cljs cljs-ret)
-                               expected)))
+                               expected
+                               opts)))
 
       ;otherwise try and infer a type
       :else
@@ -121,7 +123,8 @@
                                :clojure (r/ret (c/-name `t/Var inferred)
                                                (fo/-true-filter))
                                :cljs cljs-ret)
-                             expected))))))
+                             expected
+                             opts))))))
 
 (defn defmacro-or-declare? 
   "Returns true if this :def AST was originally a defmacro or declare."
@@ -132,26 +135,27 @@
 (defn check-defmacro-or-declare
   "To check a defmacro or declare, just assign it the most general
   Var type and ignore the body."
-  [expr expected]
+  [expr expected opts]
   (assoc expr
          u/expr-type (below/maybe-check-below
                        (r/ret (c/-name `t/AnyVar))
-                       expected)))
+                       expected
+                       opts)))
 
 (defn check-def
   "Check a def. If it is a declare or a defmacro, don't try and check it."
-  [{:keys [var init env] :as expr} expected]
+  [{:keys [var init env] :as expr} expected opts]
   (impl/assert-clojure) ;;TODO cljs support
   ;(prn " Checking def" var)
   (cond 
     ;ignore macro definitions and declare
-    (defmacro-or-declare? expr) (check-defmacro-or-declare expr expected)
+    (defmacro-or-declare? expr) (check-defmacro-or-declare expr expected opts)
 
-    :else (check-normal-def expr expected)))
+    :else (check-normal-def expr expected opts)))
 
 (defn add-checks-normal-def
   "Add runtime checks to a def with an initial value."
-  [expr expected]
+  [expr expected {::check/keys [check-expr] :as opts}]
   (let [checker (env/checker)
         _ (assert (init-provided? expr))
         vsym (ast-u/def-var-name expr)
@@ -165,6 +169,7 @@
                      (check-expr (:init expr) nil)
                      t
                      {:positive "cast"
-                      :negative "cast"})
+                      :negative "cast"}
+                     opts)
                    ;;
                    (check-expr (:init expr) nil)))))

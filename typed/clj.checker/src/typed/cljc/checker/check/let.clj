@@ -14,7 +14,7 @@
             [typed.clj.checker.parse-unparse :as prs]
             [typed.clj.checker.subtype :as sub]
             [typed.cljc.analyzer :as ana2]
-            [typed.cljc.checker.check :refer [check-expr]]
+            [typed.cljc.checker.check :as check]
             [typed.cljc.checker.check.print-env :as print-env]
             [typed.cljc.checker.check.recur-utils :as recur-u]
             [typed.cljc.checker.check.utils :as cu]
@@ -29,7 +29,7 @@
             [typed.cljc.checker.utils :as u]
             [typed.cljc.checker.var-env :as var-env]))
 
-(defn update-env [env sym {:keys [t fl o] :as r} is-reachable]
+(defn update-env [env sym {:keys [t fl o] :as r} is-reachable opts]
   {:pre [(lex/PropEnv? env)
          (simple-symbol? sym)
          (r/TCResult? r)
@@ -44,27 +44,30 @@
 
              ;; FIXME can we push this optimisation further into
              ;; the machinery? like, check-below?
-             (not (c/overlap t r/-falsy)) [then]
+             (not (c/overlap t r/-falsy opts)) [then]
 
              ;; TODO (c/overlap t (NOT r/-falsy)) case,
              ;; which requires thorough testing of Not + (overlap, In, Un)
 
              ;; init does not have an object so remember new binding `sym`
              ;; in our propositions
-             :else [(fo/-or (fo/-and (fo/-not-filter r/-falsy sym)
-                                     then)
-                            (fo/-and (fo/-filter r/-falsy sym) 
-                                     else))])
+             :else [(fo/-or [(fo/-and [(fo/-not-filter r/-falsy sym)
+                                       then]
+                                      opts)
+                             (fo/-and [(fo/-filter r/-falsy sym) 
+                                       else]
+                                      opts)]
+                            opts)])
         new-env (-> env
                     ;update binding type
-                    (lex/extend-env sym t o)
-                    (update/env+ p* is-reachable))]
+                    (lex/extend-env sym t o opts)
+                    (update/env+ p* is-reachable opts))]
     new-env))
 
 ;now we return a result to the enclosing scope, so we
 ;erase references to any bindings this scope introduces
 ;FIXME is this needed in the presence of hygiene?
-(defn erase-objects [syms ret]
+(defn erase-objects [syms ret opts]
   {:pre [((con/set-c? simple-symbol?) syms)
          (r/TCResult? ret)]
    :post [(r/TCResult? %)]}
@@ -72,21 +75,21 @@
             {:pre [(r/TCResult? ty)
                    (simple-symbol? sym)]}
             (-> ty
-                (update :t subst-obj/subst-type sym obj/-empty true)
-                (update :fl subst-obj/subst-filter-set sym obj/-empty true)
-                (update :o subst-obj/subst-object sym obj/-empty true)))
+                (update :t subst-obj/subst-type sym obj/-empty true opts)
+                (update :fl subst-obj/subst-filter-set sym obj/-empty true nil opts)
+                (update :o subst-obj/subst-object sym obj/-empty true opts)))
           ret
           syms))
 
-(defn check-let [{:keys [body bindings] :as expr} expected & [{is-loop :loop? :keys [expected-bnds]}]]
+(defn check-let [{:keys [body bindings] :as expr} expected {is-loop :loop? :keys [expected-bnds]} {::check/keys [check-expr] :as opts}]
   {:post [(-> % u/expr-type r/TCResult?)
           (vector? (:bindings %))]}
   (cond
     (and is-loop (seq bindings) (not expected-bnds))
     (do
-      (err/tc-delayed-error "Loop requires more annotations")
+      (err/tc-delayed-error "Loop requires more annotations" opts)
       (assoc expr
-             u/expr-type (or expected (r/ret (c/Un)))))
+             u/expr-type (or expected (r/ret (r/Bottom)))))
     :else
     (let [is-reachable (volatile! true)
           [env cbindings]
@@ -102,7 +105,7 @@
                     {sym :name :as cexpr} (var-env/with-lexical-env env
                                             (check-expr expr (when is-loop
                                                                (r/ret expected-bnd))))
-                    new-env (update-env env sym (u/expr-type cexpr) is-reachable)
+                    new-env (update-env env sym (u/expr-type cexpr) is-reachable opts)
                     maybe-reduced (if @is-reachable identity reduced)]
                 (maybe-reduced
                   [new-env (assoc cbindings n cexpr)])))
@@ -115,7 +118,7 @@
       (cond
         (not @is-reachable) (assoc expr 
                                    :bindings cbindings
-                                   u/expr-type (or expected (r/ret (c/Un))))
+                                   u/expr-type (or expected (r/ret (r/Bottom))))
 
         :else
         (let [cbody (var-env/with-lexical-env env
@@ -124,7 +127,7 @@
                           (check-expr body expected))
                         (binding [vs/*current-expr* body]
                           (check-expr body expected))))
-             unshadowed-ret (erase-objects (into #{} (map :name) cbindings) (u/expr-type cbody))]
+             unshadowed-ret (erase-objects (into #{} (map :name) cbindings) (u/expr-type cbody) opts)]
           (assoc expr
                  :body cbody
                  :bindings cbindings

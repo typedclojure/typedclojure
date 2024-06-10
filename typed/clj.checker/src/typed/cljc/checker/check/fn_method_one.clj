@@ -18,7 +18,7 @@
             [typed.clj.checker.analyze-clj :as ana-clj]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.clj.checker.subtype :as sub]
-            [typed.cljc.checker.check :refer [check-expr]]
+            [typed.cljc.checker.check :as check]
             [typed.cljc.analyzer :as ana]
             [typed.cljc.checker.check.fn-method-utils :as fn-method-u]
             [typed.cljc.checker.check.funapp :as funapp]
@@ -52,7 +52,8 @@
 ;
 ;[MethodExpr Function -> {:ftype Function :cmethod Expr}]
 (defn check-fn-method1 [method {:keys [dom rest drest kws prest pdot] :as expected}
-                        & {:keys [recur-target-fn] :as opt}]
+                        {:keys [recur-target-fn] :as opt}
+                        {::check/keys [check-expr] :as opts}]
   {:pre [(r/Function? expected)]
    :post [(r/Function? (:ftype %))
           (-> % :cmethod :clojure.core.typed/ftype r/Function?)
@@ -93,7 +94,8 @@
                             (:rng expected)
                             (map param-obj
                                  (concat required-params
-                                         (some-> rest-param list))))
+                                         (some-> rest-param list)))
+                            opts)
         open-expected-filters (:fl open-expected-rng)
         _ (assert (fl/FilterSet? open-expected-filters))
         open-expected-rng-no-filters (assoc open-expected-rng :fl (fo/-infer-filter))
@@ -110,7 +112,8 @@
                                 ", expected " (count dom) " required parameter(s) with"
                                 (if rest " a " " no ") "rest parameter, found " (count required-params)
                                 " required parameter(s) and" (if rest-param " a " " no ")
-                                "rest parameter.")))
+                                "rest parameter.")
+                           opts))
 
         props (:props (lex/lexical-env))
         crequired-params (map (fn [p t] (assoc p u/expr-type (r/ret t)))
@@ -119,11 +122,12 @@
                                       (repeat (or rest (:pre-type drest) prest (:pre-type pdot)))))
         _ (assert (every? (comp r/TCResult? u/expr-type) crequired-params))
         fixed-entry (map (juxt :name (comp r/ret-t u/expr-type)) crequired-params)
-        ;_ (prn "checking function:" (prs/unparse-type expected))
+        ;_ (prn "checking function:" (prs/unparse-type expected opts))
         crest-param (some-> rest-param
                             (assoc u/expr-type (r/ret (check-rest-fn
                                                         (drop (count crequired-params) dom)
-                                                        (select-keys expected [:rest :drest :kws :prest :pdot :kind])))))
+                                                        (select-keys expected [:rest :drest :kws :prest :pdot :kind])
+                                                        opts))))
         rest-entry (when crest-param
                      [[(:name crest-param) (r/ret-t (u/expr-type crest-param))]])
         ;_ (prn "rest entry" rest-entry)
@@ -146,11 +150,11 @@
                                                             (r/ret dispatch-fn-type)
                                                             (map r/ret dom (repeat (fo/-FS fl/-top fl/-top)) 
                                                                  (map param-obj required-params))
-                                                            nil)
+                                                            nil {} opts)
                           ;_ (prn "disp-app-ret" disp-app-ret)
-                          ;_ (prn "disp-fn-type" (prs/unparse-type dispatch-fn-type))
+                          ;_ (prn "disp-fn-type" (prs/unparse-type dispatch-fn-type opts))
                           ;_ (prn "dom" dom)
-                          isa-ret (isa/tc-isa? disp-app-ret dispatch-val-ret nil)
+                          isa-ret (isa/tc-isa? disp-app-ret dispatch-val-ret nil opts)
                           then-filter (-> isa-ret r/ret-f :then)
                           _ (assert then-filter)]
                       then-filter))
@@ -166,9 +170,9 @@
                           (update :l merge (into {} fixed-entry) (into {} rest-entry)))
                   flag (volatile! true)
                   env (cond-> env
-                        mm-filter (update/env+ [mm-filter] flag))]
+                        mm-filter (update/env+ [mm-filter] flag opts))]
               (when-not @flag
-                (err/int-error "Unreachable method: Local inferred to be bottom when applying multimethod filter"))
+                (err/int-error "Unreachable method: Local inferred to be bottom when applying multimethod filter" opts))
               env)
 
         ; rng with inferred filters, and before manually inferring new filters
@@ -199,7 +203,7 @@
                                                                        (:env method))
                                                                      [(ana/parse-quote
                                                                         (binding [vs/*verbose-types* true]
-                                                                          (list 'quote (prs/unparse-type t)))
+                                                                          (list 'quote (prs/unparse-type t opts)))
                                                                         (:env method))]
                                                                      (:env method)))
                                                                  dom)
@@ -215,10 +219,10 @@
         then-env (let [{:keys [then]} (-> crng-nopass u/expr-type r/ret-f)]
                    (cond-> env
                      (not (fl/NoFilter? then))
-                     (update/env+ [then] flag)))
+                     (update/env+ [then] flag opts)))
         ;TODO
         ;_ (when-not @flag
-        ;    (err/int-error "Unreachable method: Local inferred to be bottom when applying multimethod filter"))
+        ;    (err/int-error "Unreachable method: Local inferred to be bottom when applying multimethod filter" opts))
         new-then-props (reduce-kv (fn [fs sym t]
                                     {:pre [((con/set-c? fl/Filter?) fs)]}
                                     (cond-> fs
@@ -231,7 +235,7 @@
 
         crng+inferred-filters (update-in crng-nopass [u/expr-type :fl :then]
                                          (fn [f]
-                                           (apply fo/-and f new-then-props)))
+                                           (fo/-and (cons f new-then-props) opts)))
         ;_ (prn "open-expected-filters" open-expected-filters)
         crng (if (= open-expected-filters (fo/-infer-filter))
                ;; infer mode
@@ -240,10 +244,11 @@
                ;; check actual filters and fill in expected filters
                (let [;_ (prn "check mode" multi-u/*current-mm*)
                      {actual-filters :fl :as actual-ret} (u/expr-type crng+inferred-filters)
-                     _ (when-not (below/filter-better? actual-filters open-expected-filters)
+                     _ (when-not (below/filter-better? actual-filters open-expected-filters opts)
                          (below/bad-filter-delayed-error
                            actual-ret
-                           (assoc open-expected-rng-no-filters :fl open-expected-filters)))]
+                           (assoc open-expected-rng-no-filters :fl open-expected-filters)
+                           opts))]
                  (assoc-in crng+inferred-filters [u/expr-type :fl] open-expected-filters)))
         ;_ (prn "crng" (u/expr-type crng))
         rest-param-name (some-> rest-param :name)
@@ -261,7 +266,8 @@
                     [rest-param-name prest])
                   (when (and pdot rest-param)
                     [rest-param-name pdot])
-                  (u/expr-type crng)))
+                  (u/expr-type crng))
+                opts)
         _ (assert (r/Function? ftype))
                         
         cmethod (-> method

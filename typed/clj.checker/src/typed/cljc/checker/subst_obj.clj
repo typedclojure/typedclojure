@@ -18,14 +18,14 @@
 
 (declare subst-type)
 
-;[Filter (U Number t/Sym) RObject Boolean -> Filter]
-(defn subst-filter [f k o polarity]
+;[Filter (U Number t/Sym) RObject Boolean Opts -> Filter]
+(defn subst-filter [f k o polarity opts]
   {:pre [(fl/Filter? f)
          (fl/name-ref? k)
          (obj/RObject? o)
          (boolean? polarity)]
    :post [(fl/Filter? %)]}
-  (letfn [(ap [f] (subst-filter f k o polarity))
+  (letfn [(ap [f] (subst-filter f k o polarity opts))
           (tf-matcher [t p i k o polarity maker]
             {:pre [(r/Type? t)
                    ((some-fn obj/EmptyObject? obj/NoObject? obj/Path?) o)]
@@ -36,26 +36,26 @@
               (cond 
                 (= i k) (if polarity fl/-top fl/-bot)
                 ;; TODO delete this case - Ambrose
-                (free-in/index-free-in? k t) (if polarity fl/-top fl/-bot)
+                (free-in/index-free-in? k t opts) (if polarity fl/-top fl/-bot)
                 :else f)
 
               (obj/Path? o) (let [{p* :path i* :id} o]
                               (cond
                                 (= i k) (maker 
-                                          (subst-type t k o polarity)
+                                          (subst-type t k o polarity opts)
                                           i*
                                           (concat p p*))
                                 ;; TODO delete this case - Ambrose
-                                (free-in/index-free-in? k t) (if polarity fl/-top fl/-bot)
+                                (free-in/index-free-in? k t opts) (if polarity fl/-top fl/-bot)
                                 :else f))
-              :else (err/int-error (str "what is this? " o))))]
+              :else (err/int-error (str "what is this? " o) opts)))]
     (cond
       (fl/ImpFilter? f) (let [{ant :a consq :c} f]
-                          (fo/-imp (subst-filter ant k o (not polarity)) (ap consq)))
+                          (fo/-imp (subst-filter ant k o (not polarity) opts) (ap consq)))
       (fl/AndFilter? f) (let [fs (:fs f)] 
-                          (apply fo/-and (map ap fs)))
+                          (fo/-and (map ap fs) opts))
       (fl/OrFilter? f) (let [fs (:fs f)]
-                         (apply fo/-or (map ap fs)))
+                         (fo/-or (map ap fs) opts))
       (fl/BotFilter? f) f
       ;; preserve -infer-top
       (fl/TopFilter? f) f
@@ -72,7 +72,7 @@
 (defn- add-extra-filter
   "If provided a type t, then add the filter (is t k).
   Helper function."
-  [fl k t]
+  [fl k t opts]
   {:pre [(fl/Filter? fl)
          (fl/name-ref? k)
          ((some-fn false? nil? r/Type?) t)]
@@ -81,32 +81,32 @@
     (letfn [(add-extra-filter [f]
               {:pre [(fl/Filter? f)]
                :post [(fl/Filter? %)]}
-              (let [f* (fo/-and extra-filter f)]
+              (let [f* (fo/-and [extra-filter f] opts)]
                 (if (fl/BotFilter? f*)
                   f*
                   f)))]
       (add-extra-filter fl))))
 
 ;[FilterSet Number RObject Boolean (Option Type) -> FilterSet]
-(defn subst-filter-set [fs k o polarity & [t]]
+(defn subst-filter-set [fs k o polarity t opts]
   {:pre [((some-fn fl/FilterSet? fl/NoFilter?) fs)
          (fl/name-ref? k)
          (obj/RObject? o)
          ((some-fn false? nil? r/Type?) t)]
    :post [(fl/FilterSet? %)]}
   ;  (prn "subst-filter-set")
-  ;  (prn "fs" (prs/unparse-filter-set fs))
+  ;  (prn "fs" (prs/unparse-filter-set fs opts))
   ;  (prn "k" k) 
   ;  (prn "o" o)
   ;  (prn "polarity" polarity) 
-  ;  (prn "t" (when t (prs/unparse-type t)))
+  ;  (prn "t" (when t (prs/unparse-type t opts)))
   (cond
-    (fl/FilterSet? fs) (fo/-FS (subst-filter (add-extra-filter (:then fs) k t) k o polarity)
-                               (subst-filter (add-extra-filter (:else fs) k t) k o polarity))
+    (fl/FilterSet? fs) (fo/-FS (subst-filter (add-extra-filter (:then fs) k t opts) k o polarity opts)
+                               (subst-filter (add-extra-filter (:else fs) k t opts) k o polarity opts))
     :else (fo/-FS fl/-top fl/-top)))
 
 ;[RObject NameRef RObject Boolean -> RObject]
-(defn subst-object [t k o polarity]
+(defn subst-object [t k o polarity opts]
   {:pre [(obj/RObject? t)
          (fl/name-ref? k)
          (obj/RObject? o)
@@ -137,7 +137,7 @@
           st* (if (integer? k)
                 (fn [t] 
                   {:pre [(r/AnyType? t)]}
-                  (subst-type t (if (number? k) (+ arg-count k) k) o polarity))
+                  (subst-type t (if (number? k) (+ arg-count k) k) o polarity opts))
                 st)]
       (r/make-Function (mapv st dom)
                        (st* rng)
@@ -154,29 +154,29 @@
                        :pdot (some-> pdot (update :pre-type st))))))
 
 
-;[Type (U t/Sym Number) RObject Boolean -> Type]
-(defn subst-type [t k o polarity]
+;[Type (U t/Sym Number) RObject Boolean Opts -> Type]
+(defn subst-type [t k o polarity opts]
   {:pre [(r/AnyType? t)
          (fl/name-ref? k)
          (obj/RObject? o)
          (boolean? polarity)]
    :post [(r/AnyType? %)]}
-  ;(prn "subst-type" (prs/unparse-type t))
+  ;(prn "subst-type" (prs/unparse-type t opts))
   (letfn [(st
-            ([t* _info] (st t*))
-            ([t*]
-             (subst-type t* k o polarity)))
+            ([t*] (st t* opts))
+            ([t* opts]
+             (subst-type t* k o polarity opts)))
           (sf
-            ([fs _info] (sf fs))
-            ([fs] 
+            ([fs] (sf fs opts))
+            ([fs opts] 
              {:pre [(fl/FilterSet? fs)] 
               :post [(fl/FilterSet? %)]}
-             (subst-filter-set fs k o polarity)))
+             (subst-filter-set fs k o polarity nil opts)))
           (object-rec 
-            ([f _info] (object-rec f))
-            ([f] (subst-object f k o polarity))) ]
+            ([f] (object-rec f opts))
+            ([f opts] (subst-object f k o polarity opts)))]
     (call-subst-type*
-      t
+      t opts
       {:type-rec st
        :filter-rec sf
        :object-rec object-rec

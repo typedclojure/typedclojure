@@ -31,7 +31,7 @@
 (defn statistics 
   "Takes a collection of namespace symbols and returns a map mapping the namespace
   symbols to a map of data"
-  [nsyms]
+  [nsyms opts]
   (assert (and (coll? nsyms) (every? symbol? nsyms))
           "Must pass a collection of symbols to statistics")
   (reduce (fn [stats nsym]
@@ -47,7 +47,7 @@
                                                 (into {} 
                                                       (comp (filter (fn [[k v]] (= (namespace k) (str nsym))))
                                                             (map (fn [[k v]] [k (binding [vs/*verbose-types* true]
-                                                                                  (prs/unparse-type v))])))
+                                                                                  (prs/unparse-type v opts))])))
                                                       annots))}}])))
           {} nsyms))
 

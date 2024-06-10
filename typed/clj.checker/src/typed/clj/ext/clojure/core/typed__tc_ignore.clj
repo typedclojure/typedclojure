@@ -14,5 +14,5 @@
 
 (defuspecial defuspecial__tc-ignore
   "defuspecial implementation for clojure.core.typed/tc-ignore"
-  [expr expected]
-  (ignore/tc-ignore-expr expr expected))
+  [expr expected opts]
+  (ignore/tc-ignore-expr expr expected opts))

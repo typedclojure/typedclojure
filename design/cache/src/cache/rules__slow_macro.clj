@@ -5,11 +5,12 @@
             [typed.cljc.checker.check.unanalyzed :refer [defuspecial]]))
 
 (defuspecial defuspecial__slow-macro
-  [expr expected]
+  [expr expected opts]
   (println "Checking slow-macro...")
   (Thread/sleep 1000)
   (println "Checked slow-macro.")
   (assoc expr
          u/expr-type (below/maybe-check-below
                        (r/ret r/-any)
-                       expected)))
+                       expected
+                       opts)))

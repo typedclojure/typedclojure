@@ -10,6 +10,7 @@
   (:require [clojure.core.typed.current-impl :as impl]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.cljc.analyzer :as ana2]
+            [typed.cljc.checker.check :as check]
             [typed.cljc.checker.check.recur-utils :as recur-u]
             [typed.cljc.checker.check.utils :as cu]
             [typed.cljc.checker.utils :as u]))
@@ -18,7 +19,7 @@
 ; Extra the :ann annotations for loop variables and propagate to actual loop construct checking
 ; via `recur-u/*loop-bnd-anns*`.
 (defn check-special-loop
-  [check expr expected]
+  [expr expected {::check/keys [check-expr] :as opts}]
   {:pre [(= 3 (count (:statements expr)))]}
   (let [{[_ _ vexpr :as statements] :statements frm :ret, :keys [env], :as expr}
         (-> expr
@@ -42,10 +43,10 @@
                        tsyns))
         _ (assert (map? tsyns))
         tbindings (binding [prs/*parse-type-in-ns* (cu/expr-ns expr)]
-                    (mapv (comp prs/parse-type :type) (:params tsyns)))
+                    (mapv (comp #(prs/parse-type % opts) :type) (:params tsyns)))
         cfrm ;loop may be nested, type the first loop found
         (binding [recur-u/*loop-bnd-anns* tbindings]
-          (check frm expected))]
+          (check-expr frm expected))]
     (assoc expr
            :ret cfrm
            u/expr-type (u/expr-type cfrm))))

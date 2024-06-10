@@ -24,12 +24,12 @@
 
 (deftest unparse-prims-cljs-test
   (is-cljs (= 'typed.clojure/JSnumber
-              (prs/unparse-type (prs/parse-cljs 'typed.clojure/JSnumber))))
+              (prs/unparse-type (prs/parse-cljs 'typed.clojure/JSnumber) cljs-opts)))
   (is-cljs (= 'typed.clojure/JSboolean
-              (prs/unparse-type (prs/parse-cljs 'typed.clojure/JSboolean))))
+              (prs/unparse-type (prs/parse-cljs 'typed.clojure/JSboolean) cljs-opts)))
   (is-cljs (= 'typed.clojure/CLJSInteger
-              (prs/unparse-type (prs/parse-cljs 'typed.clojure/CLJSInteger))))
+              (prs/unparse-type (prs/parse-cljs 'typed.clojure/CLJSInteger) cljs-opts)))
   (is-cljs (= '(Array typed.clojure/JSnumber)
-              (prs/unparse-type (prs/parse-cljs '(Array typed.clojure/JSnumber)))))
+              (prs/unparse-type (prs/parse-cljs '(Array typed.clojure/JSnumber)) cljs-opts)))
   (is-cljs (= '(Array2 typed.clojure/JSNumber typed.clojure/JSboolean)
-              (prs/unparse-type (prs/parse-cljs '(Array2 typed.clojure/JSNumber typed.clojure/JSboolean))))))
+              (prs/unparse-type (prs/parse-cljs '(Array2 typed.clojure/JSNumber typed.clojure/JSboolean)) cljs-opts))))

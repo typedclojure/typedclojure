@@ -9,7 +9,7 @@
 (ns ^:no-doc typed.clj.ext.clojure.core__reify
   "Typing rules clojure.core/reify"
   (:require [clojure.core.typed.internal :as internal]
-            [typed.cljc.checker.check :as chk]
+            [typed.cljc.checker.check :as check]
             [typed.cljc.analyzer :as ana2]
             [typed.cljc.checker.check.unanalyzed :refer [defuspecial]]))
 
@@ -18,7 +18,7 @@
 
 (defuspecial defuspecial__reify
   "defuspecial implementation for clojure.core/reify"
-  [{original-reify-form :form :as original-expr} expected]
+  [{original-reify-form :form :as original-expr} expected {::check/keys [check-expr] :as opts}]
   (-> original-expr
       ana2/analyze-outer
       ((fn [expr]
@@ -29,4 +29,4 @@
                               (-> (list* (vary-meta (first form) assoc ::original-reify-expr original-expr)
                                          (rest form))
                                   (with-meta (meta form)))))))
-      (chk/check-expr expected)))
+      (check-expr expected)))

@@ -98,8 +98,8 @@
 (defn declared-datatype? [sym]
   (= impl/datatype-name-type (get-type-name sym)))
 
-(t/ann ^:no-check resolve-name* [t/Sym -> r/Type])
-(defn resolve-name* [sym]
+(t/ann ^:no-check resolve-name* [t/Sym t/Any -> r/Type])
+(defn resolve-name* [sym opts]
   {:pre [(symbol? sym)]
    :post [(r/Type? %)]}
   (let [checker (env/checker)
@@ -108,7 +108,7 @@
                       #(prenv/get-protocol checker %)
                       (impl/impl-case :clojure #(or (rcls/get-rclass checker %)
                                                     (when (class? (resolve %))
-                                                      (c/RClass-of-with-unknown-params %)))
+                                                      (c/RClass-of-with-unknown-params % opts)))
                                       :cljs (requiring-resolve 'typed.cljs.checker.jsnominal-env/get-jsnominal))
                       ; during the definition of RClass's that reference
                       ; themselves in their definition, a temporary TFn is
@@ -118,10 +118,11 @@
              sym)]
     (or tfn
         (cond
-          (= impl/protocol-name-type t) (prenv/resolve-protocol checker sym)
-          (= impl/datatype-name-type t) (dtenv/resolve-datatype checker sym)
+          (= impl/protocol-name-type t) (prenv/resolve-protocol checker sym opts)
+          (= impl/datatype-name-type t) (dtenv/resolve-datatype checker sym opts)
           (= impl/declared-name-type t) (throw (IllegalArgumentException. (str "Reference to declared but undefined name " sym)))
           (r/Type? t) (vary-meta t assoc :source-Name sym)
           :else (err/int-error (str "Cannot resolve name " (pr-str sym)
                                     (when t
-                                      (str " (Resolved to instance of)" (pr-str (class t))))))))))
+                                      (str " (Resolved to instance of)" (pr-str (class t)))))
+                               opts)))))

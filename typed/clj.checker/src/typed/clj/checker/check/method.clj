@@ -23,7 +23,7 @@
 
 ;[MethodExpr Type Any -> Expr]
 (defn check-invoke-method [{method-name :method :keys [args env] :as expr} expected
-                           & {:keys [method-override] :as opt}]
+                           {:keys [method-override] :as opt} opts]
   {:pre [(#{:static-call :instance-call} (:op expr))
          (not (:ctarget opt)) ;not supported
          (not (:cargs opt))   ;not supported
@@ -38,7 +38,7 @@
           msym (cu/MethodExpr->qualsym expr)
           rfin-type (or method-override
                         (some->> msym (mth-override/get-method-override (env/checker)))
-                        (some-> method cu/Method->Type))
+                        (some-> method (cu/Method->Type opts)))
           _ (assert ((some-fn nil? r/Type?) rfin-type))
           ctarget (:instance expr)]
       (if-not rfin-type
@@ -47,34 +47,39 @@
                                  (type-hints/suggest-type-hints 
                                    method-name 
                                    (some-> ctarget u/expr-type r/ret-t)
-                                   (map (comp r/ret-t u/expr-type) args))
+                                   (map (comp r/ret-t u/expr-type) args)
+                                   {}
+                                   opts)
                                  "\n\nHint: use *warn-on-reflection* to identify reflective calls")
-                            :form (ast-u/emit-form-fn expr)
-                            :return (merge
-                                      (assoc expr 
-                                             u/expr-type (cu/error-ret expected))
-                                      (when ctarget {:instance ctarget})))
+                              {:form (ast-u/emit-form-fn expr)
+                               :return (merge
+                                         (assoc expr 
+                                                u/expr-type (cu/error-ret expected))
+                                         (when ctarget {:instance ctarget}))}
+                              opts)
         (let [_ (when inst?
                   (let [target-class (resolve (:declaring-class method))
                         _ (assert (class? target-class))]
-                    ;                (prn "check target" (prs/unparse-type (r/ret-t (u/expr-type ctarget)))
-                    ;                     (prs/unparse-type (c/RClass-of (coerce/Class->symbol (resolve (:declaring-class method))) nil)))
-                    (when-not (sub/subtype? (r/ret-t (u/expr-type ctarget)) (c/RClass-of-with-unknown-params target-class))
+                    ;                (prn "check target" (prs/unparse-type (r/ret-t (u/expr-type ctarget)) opts)
+                    ;                     (prs/unparse-type (c/RClass-of (coerce/Class->symbol (resolve (:declaring-class method))) nil opts) opts))
+                    (when-not (sub/subtype? (r/ret-t (u/expr-type ctarget)) (c/RClass-of-with-unknown-params target-class opts) opts)
                       (err/tc-delayed-error (str "Cannot call instance method " (cu/Method->symbol method)
-                                               " on type " (pr-str (prs/unparse-type (r/ret-t (u/expr-type ctarget)))))
-                                          :form (ast-u/emit-form-fn expr)))))
-              result-type (funapp/check-funapp expr args (r/ret rfin-type) (map u/expr-type args) expected)
+                                               " on type " (pr-str (prs/unparse-type (r/ret-t (u/expr-type ctarget)) opts)))
+                                            {:form (ast-u/emit-form-fn expr)}
+                                            opts))))
+              result-type (funapp/check-funapp expr args (r/ret rfin-type) (map u/expr-type args) expected {} opts)
               _ (when expected
                   ;;FIXME check filters and object
-                  (when-not (sub/subtype? (r/ret-t result-type) (r/ret-t expected))
+                  (when-not (sub/subtype? (r/ret-t result-type) (r/ret-t expected) opts)
                     (err/tc-delayed-error (str "Return type of " (if inst? "instance" "static")
                                                " method " (cu/Method->symbol method)
-                                               " is " (prs/unparse-type (r/ret-t result-type))
-                                               ", expected " (prs/unparse-type (r/ret-t expected)) "."
-                                               (when (sub/subtype? r/-nil (r/ret-t result-type))
+                                               " is " (prs/unparse-type (r/ret-t result-type) opts)
+                                               ", expected " (prs/unparse-type (r/ret-t expected) opts) "."
+                                               (when (sub/subtype? r/-nil (r/ret-t result-type) opts)
                                                  (str "\n\nHint: Use `non-nil-return` and `nilable-param` to configure "
                                                       "where `nil` is allowed in a Java method call. `method-type` "
                                                       "prints the current type of a method.")))
-                                          :form (ast-u/emit-form-fn expr))))]
+                                          {:form (ast-u/emit-form-fn expr)}
+                                          opts)))]
           (assoc expr
                  u/expr-type result-type))))))

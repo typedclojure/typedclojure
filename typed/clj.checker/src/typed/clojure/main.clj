@@ -97,7 +97,8 @@
             {:result :ok} plan)))
 
 (defn- watch [{:keys [dirs refresh refresh-dirs watch-dirs] :as m}]
-  (let [refresh (or refresh refresh-dirs)
+  (let [opts ((requiring-resolve 'typed.clj.runtime.env/clj-opts))
+        refresh (or refresh refresh-dirs)
         watch-dirs (concat watch-dirs dirs refresh-dirs)
         refresh-dirs (or refresh-dirs dirs)
         dirs (cond-> dirs
@@ -130,7 +131,7 @@
            (recur (exec1 (cond-> m
                            (and (= :fail (:status last-result))
                                 ;; don't focus if deleted
-                                (ns-depsu/should-check-ns? (:nsym last-result)))
+                                (ns-depsu/should-check-ns? (:nsym last-result) opts))
                            (assoc :focus (:nsym last-result)
                                   :platform (:platform last-result))))))
          (finally ((dynavar `beholder/stop) watcher)))))

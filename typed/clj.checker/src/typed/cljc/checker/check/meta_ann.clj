@@ -15,14 +15,14 @@
             [typed.clj.checker.parse-unparse :as prs]
             [typed.cljc.checker.utils :as u]
             [typed.cljc.checker.type-rep :as r]
-            [typed.cljc.checker.check :refer [check-expr]]
+            [typed.cljc.checker.check :as check]
             [typed.cljc.checker.check-below :as below]))
 
 (def ^:dynamic ^:private *meta-debug-depth* 0)
 
-(defn check-meta-debug [expr maybe-msg expected]
+(defn check-meta-debug [expr maybe-msg expected {::check/keys [check-expr] :as opts}]
   (when-not ((some-fn true? string?) maybe-msg)
-    (err/int-error (str "::t/dbg value must be a string, given: " (pr-str maybe-msg))))
+    (err/int-error (str "::t/dbg value must be a string, given: " (pr-str maybe-msg)) opts))
   (let [id (gensym)
         prefix (str (apply str (repeat *meta-debug-depth* " ")) "::t/dbg id=" id)
         _ (when (string? maybe-msg)
@@ -31,31 +31,32 @@
                             (pr-str (:form expr))))
 
         _ (when expected
-            (println prefix (str "expected: " (pr-str (prs/unparse-TCResult expected)))))
+            (println prefix (str "expected: " (pr-str (prs/unparse-TCResult expected opts)))))
         cexpr (binding [*meta-debug-depth* (inc *meta-debug-depth*)]
                 (check-expr expr expected))
         _ (println prefix "result:" (binding [*print-namespace-maps* false]
-                                      (pr-str (prs/unparse-TCResult (u/expr-type cexpr)))))]
+                                      (pr-str (prs/unparse-TCResult (u/expr-type cexpr) opts))))]
     cexpr))
 
-(defn check-meta-unsafe-cast [expr tsyn expected]
+(defn check-meta-unsafe-cast [expr tsyn expected {::check/keys [check-expr] :as opts}]
   (-> expr
       check-expr
       (assoc u/expr-type (below/maybe-check-below
-                           (r/ret (prs/parse-type tsyn))
-                           expected))))
+                           (r/ret (prs/parse-type tsyn opts))
+                           expected
+                           opts))))
 
-(defn check-meta-ann [expr tsyn expected]
-  (let [inner-expected (r/ret (prs/parse-type tsyn))]
+(defn check-meta-ann [expr tsyn expected {::check/keys [check-expr] :as opts}]
+  (let [inner-expected (r/ret (prs/parse-type tsyn opts))]
     (-> (check-expr expr inner-expected)
-        (update u/expr-type below/maybe-check-below expected))))
+        (update u/expr-type below/maybe-check-below expected opts))))
 
-(defn check-meta-ignore [expr ignore? expected]
+(defn check-meta-ignore [expr ignore? expected opts]
   (when-not (true? ignore?)
     (prs/prs-error (str "::t/ignore must be true, actual: " (pr-str ignore?))))
-  (tc-ignore/defuspecial__tc-ignore expr expected))
+  (tc-ignore/defuspecial__tc-ignore expr expected opts))
 
-(defn check-meta-inst [expr targs-syn expected]
+(defn check-meta-inst [expr targs-syn expected {::check/keys [check-expr] :as opts}]
   (let [targs-syn (cond-> targs-syn
                     (and (seq? targs-syn)
                          (= 2 (count targs-syn))
@@ -66,7 +67,7 @@
             (prs/prs-error "::t/inst must be a vector"))]
     (-> expr
         check-expr
-        (update u/expr-type #(inst/inst-from-targs-syn (:t %) targs-syn (cu/expr-ns expr) expected)))))
+        (update u/expr-type #(inst/inst-from-targs-syn (:t %) targs-syn (cu/expr-ns expr) expected opts)))))
 
 (def meta-keys
   [{:k ::t/dbg :f #'check-meta-debug :propagate-expected? true}
@@ -76,7 +77,7 @@
    {:k ::t/ignore :f #'check-meta-ignore}])
 
 (defn maybe-check-meta-ann
-  [expr expected]
+  [expr expected opts]
   {:pre [(= :unanalyzed (:op expr))]}
   (let [form-metas (-> expr :form meta)]
     (when-some [[{:keys [k f v propagate-expected?] :as match} :as all-matching]
@@ -86,5 +87,5 @@
                         meta-keys))]
       (let [propagate-expected? (or propagate-expected?
                                     (= 1 (count all-matching)))]
-        (-> (f (update expr :form vary-meta dissoc k) v (when propagate-expected? expected))
-            (cond-> (not propagate-expected?) (update u/expr-type below/maybe-check-below expected)))))))
+        (-> (f (update expr :form vary-meta dissoc k) v (when propagate-expected? expected) opts)
+            (cond-> (not propagate-expected?) (update u/expr-type below/maybe-check-below expected opts)))))))

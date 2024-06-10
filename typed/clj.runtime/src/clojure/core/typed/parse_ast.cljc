@@ -38,23 +38,23 @@
 (t/ann ^:no-check clojure.core.typed.errors/int-error 
        [t/Any (t/HMap :optional {:use-current-env t/Any}) :? :-> t/Nothing])
 
-(t/ann resolve-type-clj [t/Sym -> (t/U t/AnyVar Class nil)])
+(t/ann resolve-type-clj [t/Sym t/Any -> (t/U t/AnyVar Class nil)])
 (defn- resolve-type-clj
   "Returns a var, class or nil"
-  [sym]
+  [sym opts]
   {:pre [(symbol? sym)]
    :post [((some-fn var? class? nil?) %)]}
   (impl/assert-clojure)
   (let [nsym (parse-in-ns)]
     (if-let [ns (find-ns nsym)]
       (ns-resolve ns sym)
-      (err/int-error (str "Cannot find namespace: " sym)))))
+      (err/int-error (str "Cannot find namespace: " sym) opts))))
 
 (def ^:private ns-rewrites-clj {'clojure.core.typed 'typed.clojure})
 
 (defn- resolve-type-alias-clj
   "Returns a symbol if sym maps to a type alias, otherwise nil"
-  [sym]
+  [sym opts]
   {:pre [(symbol? sym)]
    :post [((some-fn symbol? nil?) %)]}
   (impl/assert-clojure)
@@ -73,14 +73,15 @@
               qsym (symbol (name qual) (name sym))]
           (when (contains? (impl/alias-env checker) qsym)
             qsym)))
-      (err/int-error (str "Cannot find namespace: " sym)))))
+      (err/int-error (str "Cannot find namespace: " sym) opts))))
 
 (defn- resolve-type-clj->sym
   [sym]
   {:pre [(symbol? sym)]
    :post [(symbol? %)]}
   (impl/assert-clojure)
-  (let [nsym (parse-in-ns)]
+  (let [opts ((requiring-resolve 'typed.clj.runtime.env/clj-opts))
+        nsym (parse-in-ns)]
     (if-some [ns (find-ns nsym)]
       (or (when (special-symbol? sym)
             sym)
@@ -101,11 +102,11 @@
           (let [sym-nsym (or (some-> sym namespace symbol)
                              nsym)]
             (symbol (name (ns-rewrites-clj sym-nsym sym-nsym)) (name sym))))
-      (err/int-error (str "Cannot find namespace: " sym)))))
+      (err/int-error (str "Cannot find namespace: " sym) opts))))
 
 (declare parse parse-path-elem)
 
-(t/ann ^:no-check parse [t/Any -> Type])
+(t/ann ^:no-check parse [t/Any t/Any -> Type])
 
 (t/defalias Type
   (t/Rec [Type]
@@ -162,8 +163,8 @@
 
 )
 
-(t/ann parse-filter [t/Any -> Filter])
-(defn parse-filter [syn]
+(t/ann parse-filter [t/Any t/Any -> Filter])
+(defn parse-filter [syn opts]
   (case syn
     tt {:op :top-filter}
     ff {:op :bot-filter}
@@ -175,13 +176,14 @@
                         _ (when (and (= 3 (count args))
                                      (not (vector? psyns)))
                             (err/int-error
-                              (str "3rd argument to 'is' must be a vector")))
+                              (str "3rd argument to 'is' must be a vector")
+                              opts))
                         _ (when-not (<= 2 (count args) 3)
                             (throw (ex-info "Bad arguments to 'is'"
                                             {:form syn})))
-                        t (parse tsyn)
+                        t (parse tsyn opts)
                         p (when (= 3 (count args))
-                            (mapv parse-path-elem psyns))]
+                            (mapv #(parse-path-elem % opts) psyns))]
                     (cond-> 
                       {:op :type-filter
                        :type t
@@ -192,13 +194,14 @@
                         _ (when (and (= 3 (count args))
                                      (not (vector? psyns)))
                             (err/int-error
-                              (str "3rd argument to '!' must be a vector")))
+                              (str "3rd argument to '!' must be a vector")
+                              opts))
                         _ (when-not (<= 2 (count args) 3)
                             (throw (ex-info "Bad arguments to '!'"
                                             {:form syn})))
-                        t (parse tsyn)
+                        t (parse tsyn opts)
                         p (when (= 3 (count args))
-                            (mapv parse-path-elem psyns))]
+                            (mapv #(parse-path-elem % opts) psyns))]
                     (cond-> 
                       {:op :not-type-filter
                        :type t
@@ -206,25 +209,25 @@
                       p (assoc :path p)))
                   &
                   {:op :and-filter
-                   :fs (mapv parse-filter args)}
+                   :fs (mapv #(parse-filter % opts) args)}
                   when
                   (let [[a c] args]
                     (when-not (= 2 (count args))
                       (throw (ex-info "Bad arguments to 'when'"
                                       {:form syn})))
                     {:op :impl-filter
-                     :a (parse-filter a)
-                     :c (parse-filter c)})
+                     :a (parse-filter a opts)
+                     :c (parse-filter c opts)})
                   (cond
                     (or (= 'or f)
                         (and (simple-symbol? f)
                              ;; clojure-clr treats pipes in symbols as special
                              (= "|" (name f))))
                     {:op :or-filter
-                     :fs (mapv parse-filter args)}))))]
+                     :fs (mapv #(parse-filter % opts) args)}))))]
       (if m
         m
-        (err/int-error (str "Bad filter syntax: " syn))))))
+        (err/int-error (str "Bad filter syntax: " syn) opts)))))
 
 
 #?(:cljr
@@ -237,18 +240,18 @@
     :then Filter
     :else Filter})
 
-(t/ann parse-filter-set [t/Any -> FilterSet])
-(defn parse-filter-set [syn]
+(t/ann parse-filter-set [t/Any t/Any -> FilterSet])
+(defn parse-filter-set [syn opts]
   (when-not (map? syn)
-    (err/int-error "Filter set must be a map"))
+    (err/int-error "Filter set must be a map" opts))
   (let [then (:then syn)
         else (:else syn)]
     {:op :filter-set
      :then (if then
-             (parse-filter then)
+             (parse-filter then opts)
              {:op :top-filter})
      :else (if else
-             (parse-filter else)
+             (parse-filter else opts)
              {:op :top-filter})}))
 
 (t/defalias NameRef (t/U t/Sym t/Int))
@@ -269,8 +272,8 @@
          :key t/Any}))
 
 ; no-check for perf issues
-(t/ann ^:no-check parse-path-elem [t/Any -> PathElem])
-(defn parse-path-elem [syn]
+(t/ann ^:no-check parse-path-elem [t/Any t/Any -> PathElem])
+(defn parse-path-elem [syn opts]
   (case syn
     Class {:op :ClassPE}
     Count {:op :CountPE}
@@ -282,98 +285,98 @@
                 (case f
                   Nth (do
                         (when-not (#{1} (count args))
-                          (err/int-error (str "Wrong arguments to Nth: " syn)))
+                          (err/int-error (str "Wrong arguments to Nth: " syn) opts))
                         {:op :NthPE
                          :idx (first args)})
                   Key (do
                         (when-not (#{1} (count args))
-                          (err/int-error (str "Wrong arguments to Key: " syn)))
+                          (err/int-error (str "Wrong arguments to Key: " syn) opts))
                         {:op :KeyPE
                          :key (first args)})
                   Val (do
                         (when-not (#{1} (count args))
-                          (err/int-error (str "Wrong arguments to Val" syn)))
+                          (err/int-error (str "Wrong arguments to Val" syn) opts))
                         {:op :ValPE
                          :val (first args)})
                   nil)))]
       (if m
         m
-        (err/int-error (str "Bad path element syntax: " syn))))))
+        (err/int-error (str "Bad path element syntax: " syn) opts)))))
 
-(t/ann parse-object-path [t/Any -> FObject])
-(defn parse-object-path [syn]
+(t/ann parse-object-path [t/Any t/Any -> FObject])
+(defn parse-object-path [syn opts]
   (when-not (map? syn)
-    (err/int-error (str "Object must be a map")))
+    (err/int-error (str "Object must be a map") opts))
   (let [id (:id syn)
         path (:path syn)]
     (when-not (name-ref? id)
-      (err/int-error (str "Must pass natural number or symbol as id: " (pr-str id))))
+      (err/int-error (str "Must pass natural number or symbol as id: " (pr-str id)) opts))
     (when-not ((some-fn nil? vector?) path)
-      (err/int-error "Path must be a vector"))
+      (err/int-error "Path must be a vector" opts))
     (when (contains? syn :path)
       (when-not (vector? path)
-        (err/int-error "Path must be a vector")))
+        (err/int-error "Path must be a vector" opts)))
     (merge
       {:op :object
        :id id}
       (when path
-        {:path-elems (mapv parse-path-elem path)}))))
+        {:path-elems (mapv #(parse-path-elem % opts) path)}))))
 
-(defn parse-object [syn]
+(defn parse-object [syn opts]
   (case syn
     empty {:op :empty-object}
-    (parse-object-path syn)))
+    (parse-object-path syn opts)))
 
 (t/defalias RestDrest
   (HMap :mandatory {:types (t/U nil (t/Coll Type))}
         :optional {:rest (t/U nil Type)
                    :drest (t/U nil DottedPretype)}))
 
-(t/ann parse-with-rest-drest [t/Str (t/Seq t/Any) -> RestDrest])
-(defn parse-with-rest-drest [msg syns]
+(t/ann parse-with-rest-drest [t/Str (t/Seq t/Any) t/Any -> RestDrest])
+(defn parse-with-rest-drest [msg syns opts]
   (let [syns (vec syns)
         rest? (#{:* '*} (peek syns))
         dotted? (and (#{:... '...} (some-> (not-empty syns) pop peek))
                      (<= 3 (count syns)))
         _ (when (and rest? dotted?)
-            (err/int-error (str msg syns)))
+            (err/int-error (str msg syns) opts))
         {:keys [types rest drest]}
         (cond
           rest?
-          (let [fixed (mapv parse (-> syns pop pop))
-                rest (parse (-> syns pop peek))]
+          (let [fixed (mapv #(parse % opts) (-> syns pop pop))
+                rest (parse (-> syns pop peek) opts)]
             {:types fixed
              :rest rest})
           dotted?
-          (let [fixed (mapv parse (-> syns pop pop pop))
+          (let [fixed (mapv #(parse % opts) (-> syns pop pop pop))
                 [drest-type _dots_ drest-bnd :as dot-syntax] (take-last 3 syns)
                 ; should never fail, if the logic changes above it's probably
                 ; useful to keep around.
                 _ (when-not (symbol? drest-bnd)
-                    (err/int-error "Dotted rest bound after ... must be a symbol"))
+                    (err/int-error "Dotted rest bound after ... must be a symbol" opts))
                 _ (when-not (#{3} (count dot-syntax))
-                    (err/int-error (str "Bad vector syntax: " dot-syntax)))
+                    (err/int-error (str "Bad vector syntax: " dot-syntax) opts))
                 bnd (*dotted-scope* drest-bnd)
                 _ (when-not bnd 
-                    (err/int-error (str (pr-str drest-bnd) " is not in scope as a dotted variable")))
+                    (err/int-error (str (pr-str drest-bnd) " is not in scope as a dotted variable") opts))
                 gdrest-bnd (gensym bnd)]
             {:types fixed
              :drest (t/ann-form
                       {:op :dotted-pretype
                        :f {:op :F :name gdrest-bnd}
                        :drest (with-frees {drest-bnd gdrest-bnd} ;with dotted bound in scope as free
-                                (parse drest-type))
+                                (parse drest-type opts))
                        :name gdrest-bnd}
                       DottedPretype)})
-          :else {:types (mapv parse syns)})]
+          :else {:types (mapv #(parse % opts) syns)})]
     {:types types
      :rest rest
      :drest drest}))
 
 (defn parse-h* [op msg]
-  (fn [[_ fixed & {:keys [filter-sets objects repeat]}]]
+  (fn [[_ fixed & {:keys [filter-sets objects repeat]}] opts]
     (let [{:keys [types drest rest]}
-          (parse-with-rest-drest msg fixed)]
+          (parse-with-rest-drest msg fixed opts)]
       (merge
         {:op op
          :types types
@@ -393,9 +396,9 @@
         (when rest
           {:rest rest})
         (when filter-sets
-          {:filter-sets (mapv parse-filter-set filter-sets)})
+          {:filter-sets (mapv #(parse-filter-set % opts) filter-sets)})
         (when objects
-          {:objects (mapv parse-object objects)})
+          {:objects (mapv #(parse-object % opts) objects)})
         (when (true? repeat) {:repeat true})))))
 
 (def parse-HVec (parse-h* :HVec "Invalid HVec syntax:"))
@@ -403,44 +406,44 @@
 (def parse-HSeq (parse-h* :HSeq "Invalid HSeq syntax:"))
 (def parse-HList (parse-h* :HList "Invalid HList syntax:"))
 
-(def parse-quoted-hvec (fn [syn]
-                         (parse-HVec [nil syn])))
+(def parse-quoted-hvec (fn [syn opts]
+                         (parse-HVec [nil syn] opts)))
 
-(defn parse-quoted-hseq [syn]
-  (let [types (mapv parse syn)]
+(defn parse-quoted-hseq [syn opts]
+  (let [types (mapv #(parse % opts) syn)]
     {:op :HSeq
      :types types
      :children [:types]}))
 
-(defn parse-quoted-hlist [syn]
-  (let [types (mapv parse syn)]
+(defn parse-quoted-hlist [syn opts]
+  (let [types (mapv #(parse % opts) syn)]
     {:op :HList
      :types types
      :children [:types]}))
 
-(defn- syn-to-hmap [mandatory optional absent-keys complete?]
+(defn- syn-to-hmap [mandatory optional absent-keys complete? opts]
   (when mandatory
     (when-not (map? mandatory)
-      (err/int-error (str "Mandatory entries to HMap must be a map: " mandatory))))
+      (err/int-error (str "Mandatory entries to HMap must be a map: " mandatory) opts)))
   (when optional
     (when-not (map? optional)
-      (err/int-error (str "Optional entries to HMap must be a map: " optional))))
+      (err/int-error (str "Optional entries to HMap must be a map: " optional) opts)))
   (letfn [(mapt [m]
             (into {} (for [[k v] m]
                        [{:op :singleton :val k}
-                        (parse v)])))]
+                        (parse v opts)])))]
     (let [_ (when-not (every? empty? [(set/intersection (set (keys mandatory))
                                                         (set (keys optional)))
                                       (set/intersection (set (keys mandatory))
                                                         (set absent-keys))
                                       (set/intersection (set (keys optional))
                                                         (set absent-keys))])
-              (err/int-error (str "HMap options contain duplicate key entries: ")))
-          _ (when-not (every? keyword? (keys mandatory)) (err/int-error "HMap's mandatory keys must be keywords"))
+              (err/int-error (str "HMap options contain duplicate key entries: ") opts))
+          _ (when-not (every? keyword? (keys mandatory)) (err/int-error "HMap's mandatory keys must be keywords" opts))
           mandatory (mapt mandatory)
-          _ (when-not (every? keyword? (keys optional)) (err/int-error "HMap's optional keys must be keywords"))
+          _ (when-not (every? keyword? (keys optional)) (err/int-error "HMap's optional keys must be keywords" opts))
           optional (mapt optional)
-          _ (when-not (every? keyword? absent-keys) (err/int-error "HMap's absent keys must be keywords"))
+          _ (when-not (every? keyword? absent-keys) (err/int-error "HMap's absent keys must be keywords" opts))
           absent-keys (set (map (fn [a] {:op :singleton :val a}) absent-keys))]
       {:op :HMap
        :mandatory (vec (apply concat mandatory))
@@ -449,13 +452,13 @@
        :absent-keys (vec absent-keys)
        :children [:mandatory :optional :absent-keys]})))
 
-(defn parse-quote [[_ syn]]
+(defn parse-quote [[_ syn] opts]
   (cond
     ((some-fn number? keyword? symbol?) syn) {:op :singleton :val syn}
-    (vector? syn) (parse-quoted-hvec syn)
+    (vector? syn) (parse-quoted-hvec syn opts)
     ; quoted map is a partial map with mandatory keys
-    (map? syn) (syn-to-hmap syn nil nil false)
-    :else (err/int-error (str "Invalid use of quote:" (pr-str syn)))))
+    (map? syn) (syn-to-hmap syn nil nil false opts)
+    :else (err/int-error (str "Invalid use of quote:" (pr-str syn)) opts)))
 
 (def any-bounds {:op :bounds
                  :upper-bound {:op :Any}
@@ -496,50 +499,50 @@
   {'int     {:op :cljs-prim :name 'int}
    'object  {:op :cljs-prim :name 'object}})
 
-(defn parse-free [f gsym]
+(defn parse-free [f gsym opts]
   (if (symbol? f)
     {:op :F
      :name gsym
      :bounds any-bounds}
-    (let [[n & {:keys [< >] :as opts}] f]
-      (when (contains? opts :kind)
+    (let [[n & {:keys [< >] :as fopts}] f]
+      (when (contains? fopts :kind)
         (err/deprecated-warn "kind annotation for TFn parameters is removed"))
-      (when (:variance opts) 
-        (err/int-error "Variance not supported for variables introduced with All"))
+      (when (:variance fopts) 
+        (err/int-error "Variance not supported for variables introduced with All" opts))
       {:op :F
        :name gsym
-       :bounds {:upper (when (contains? opts :<)
-                         (parse <))
-                :lower (when (contains? opts :>)
-                         (parse >))}})))
+       :bounds {:upper (when (contains? fopts :<)
+                         (parse < opts))
+                :lower (when (contains? fopts :>)
+                         (parse > opts))}})))
 
-(defn parse-tfn-binder [[nme & opts-flat :as all] gsym]
+(defn parse-tfn-binder [[nme & opts-flat :as all] gsym opts]
   (let [_ (when-not (even? (count opts-flat))
             (err/int-error (str "Uneven arguments passed to TFn binder: "
-                              (pr-str all))))
+                                (pr-str all)) opts))
         {:keys [variance < >] 
          :or {variance :inferred}
-         :as opts} 
+         :as fopts} 
         (apply hash-map opts-flat)]
     (when-not (symbol? nme)
-      (err/int-error "Must provide a name symbol to TFn"))
-    (when (contains? opts :kind)
+      (err/int-error "Must provide a name symbol to TFn" opts))
+    (when (contains? fopts :kind)
       (err/deprecated-warn "kind annotation for TFn parameters is removed"))
     #_(when-not (r/variance? variance)
-      (err/int-error (str "Invalid variance: " (pr-str variance))))
+      (err/int-error (str "Invalid variance: " (pr-str variance)) opts))
     {:name gsym :variance variance
      :bound {:op :bounds
-             :upper-bound (when (contains? opts :<)
-                            (parse <))
-             :lower-bound (when (contains? opts :>)
-                            (parse >))}}))
+             :upper-bound (when (contains? fopts :<)
+                            (parse < opts))
+             :lower-bound (when (contains? fopts :>)
+                            (parse > opts))}}))
 
-(defn parse-TFn 
-  [[_ binder bodysyn :as tfn]]
+(defn parse-TFn
+  [[_ binder bodysyn :as tfn] opts]
   (when-not (= 3 (count tfn))
-    (err/int-error (str "Wrong number of arguments to TFn: " (pr-str tfn))))
+    (err/int-error (str "Wrong number of arguments to TFn: " (pr-str tfn)) opts))
   (when-not (every? vector? binder)
-    (err/int-error (str "TFn binder should be vector of vectors: " (pr-str tfn))))
+    (err/int-error (str "TFn binder should be vector of vectors: " (pr-str tfn)) opts))
   (let [; don't scope a free in its own bounds. Should review this decision
         [fs free-maps] (reduce
                          (fn [[fs prsed] b]
@@ -548,11 +551,11 @@
                                  gsym (gensym sym)
                                  fs (conj fs [sym gsym])]
                              (with-frees fs
-                               [fs (conj prsed (parse-tfn-binder b gsym))])))
+                               [fs (conj prsed (parse-tfn-binder b gsym opts))])))
                          [{} []]
                          binder)
         bodyt (with-frees fs
-                (parse bodysyn))]
+                (parse bodysyn opts))]
     {:op :TFn
      :binder free-maps
      :body bodyt}))
@@ -568,8 +571,8 @@
                    true)))
        (into {})))
 
-(defn parse-HMap 
-  [[_HMap_ & flat-opts :as all]]
+(defn parse-HMap
+  [[_HMap_ & flat-opts :as all] opts]
   (let [supported-options #{:optional :mandatory :absent-keys :complete?}
         ; support deprecated syntax (HMap {}), which is now (HMap :mandatory {})
         deprecated-mandatory (when (map? (first flat-opts))
@@ -580,40 +583,40 @@
                     (next flat-opts)
                     flat-opts)
         _ (when-not (even? (count flat-opts))
-            (err/int-error (str "Uneven keyword arguments to HMap: " (pr-str all))))
+            (err/int-error (str "Uneven keyword arguments to HMap: " (pr-str all)) opts))
         flat-keys (->> flat-opts
                        (partition 2)
                        (map first))
         _ (when-not (every? keyword? flat-keys)
             (err/int-error (str "HMap requires keyword arguments, given " (pr-str (first flat-keys))
-                                #_#_" in: " (pr-str all))))
+                                #_#_" in: " (pr-str all)) opts))
         _ (let [kf (->> flat-keys
                         multi-frequencies
                         (map first)
                         seq)]
             (when-let [[k] kf]
-              (err/int-error (str "Repeated keyword argument to HMap: " (pr-str k)))))
+              (err/int-error (str "Repeated keyword argument to HMap: " (pr-str k)) opts)))
 
         {:keys [optional mandatory absent-keys complete?]
          :or {complete? false}
          :as others} (apply hash-map flat-opts)
         _ (when-let [[k] (seq (set/difference (set (keys others)) supported-options))]
-            (err/int-error (str "Unsupported HMap keyword argument: " (pr-str k))))
+            (err/int-error (str "Unsupported HMap keyword argument: " (pr-str k)) opts))
         _ (when (and deprecated-mandatory mandatory)
-            (err/int-error (str "Cannot provide both deprecated initial map syntax and :mandatory option to HMap")))
+            (err/int-error (str "Cannot provide both deprecated initial map syntax and :mandatory option to HMap") opts))
         mandatory (or deprecated-mandatory mandatory)]
-    (syn-to-hmap mandatory optional absent-keys complete?)))
+    (syn-to-hmap mandatory optional absent-keys complete? opts)))
 
-(defn parse-All 
-  [[_All_ & args :as syn]]
+(defn parse-All
+  [[_All_ & args :as syn] opts]
   (let [_ (when-not (#{2} (count args))
-            (err/int-error "Wrong arguments to All"))
+            (err/int-error "Wrong arguments to All" opts))
         [bnds type] args
         _ (when-not (vector? bnds)
-            (err/int-error "Wrong arguments to All"))
+            (err/int-error "Wrong arguments to All" opts))
         [bnds kwargs] (split-with (complement keyword?) bnds)
         _ (when-not (even? (count kwargs))
-            (err/int-error "Wrong arguments to All"))
+            (err/int-error "Wrong arguments to All" opts))
         {:keys [named] :as kwargs} kwargs
         dotted? (boolean 
                   ('#{...} (last bnds)))
@@ -625,7 +628,7 @@
                                              gsym (gensym sym)
                                              fs (conj fs [sym gsym])]
                                          (with-frees fs
-                                           [fs (conj prsed (parse-free fsyn gsym))])))
+                                           [fs (conj prsed (parse-free fsyn gsym opts))])))
                                      [{} []]
                                      (if dotted?
                                        (drop-last 2 bnds)
@@ -635,7 +638,7 @@
         _ (assert ((some-fn nil? symbol?) dvar-plain-name))
         gdvar (gensym dvar-plain-name)
         dvar (when dotted?
-               (parse-free dvar-plain-name gdvar))]
+               (parse-free dvar-plain-name gdvar opts))]
     (with-frees fs
       (with-dfrees (if dvar 
                      {dvar-plain-name (:name dvar)}
@@ -645,36 +648,36 @@
                          (when dotted?
                            [dvar]))
          :named (or named {})
-         :type (parse type)
+         :type (parse type opts)
          :children [:type]}))))
 
 (defn parse-Extends
-  [[_Extends_ & args :as syn]]
-  (let [[extends & {:keys [without] :as opts}] args]
-    (when-not (empty? (set/difference (set (keys opts)) #{:without}))
-      (err/int-error (str "Invalid options to Extends:" (keys opts))))
+  [[_Extends_ & args :as syn] opts]
+  (let [[extends & {:keys [without] :as fopts}] args]
+    (when-not (empty? (set/difference (set (keys fopts)) #{:without}))
+      (err/int-error (str "Invalid options to Extends:" (keys fopts)) opts))
     (when-not (vector? extends) 
-      (err/int-error (str "Extends takes a vector of types: " (pr-str syn))))
+      (err/int-error (str "Extends takes a vector of types: " (pr-str syn)) opts))
     {:op :Extends
-     :types (mapv parse extends)
-     :without (mapv parse without)
+     :types (mapv #(parse % opts) extends)
+     :without (mapv #(parse % opts) without)
      :children [:types :without]}))
 
 (defn parse-U
-  [[_U_ & args]]
+  [[_U_ & args] opts]
   {:op :U
-   :types (mapv parse args)
+   :types (mapv #(parse % opts) args)
    :children [:types]})
 
-(defn parse-I 
-  [[_I_ & args]]
+(defn parse-I
+  [[_I_ & args] opts]
   {:op :I
-   :types (mapv parse args)
+   :types (mapv #(parse % opts) args)
    :children [:types]})
 
-(t/ann parse-seq* [(t/Seq t/Any) -> Type])
+(t/ann parse-seq* [(t/Seq t/Any) t/Any -> Type])
 (defmulti parse-seq*
-  (fn [[n]]
+  (fn [[n] opts]
     {:post [((some-fn nil? symbol?) %)]}
     (when (symbol? n)
       (or (impl/impl-case
@@ -682,92 +685,92 @@
             :cljs n)
           n))))
 
-(defmethod parse-seq* 'quote [syn] (parse-quote syn))
+(defmethod parse-seq* 'quote [syn opts] (parse-quote syn opts))
 
-(defn parse-Value [[f & args :as syn]]
+(defn parse-Value [[f & args :as syn] opts]
   (when-not (#{1} (count args))
-    (err/int-error (str "Wrong arguments to Value: " syn)))
+    (err/int-error (str "Wrong arguments to Value: " syn) opts))
   {:op :singleton
    :val (first args)})
 
-(defmethod parse-seq* 'Value [syn] 
+(defmethod parse-seq* 'Value [syn opts] 
   (err/deprecated-plain-op 'Value 'Val)
-  (parse-Value syn))
-(defmethod parse-seq* 'typed.clojure/Value [syn] (parse-Value syn))
-(defmethod parse-seq* 'typed.clojure/Val [syn] (parse-Value syn))
+  (parse-Value syn opts))
+(defmethod parse-seq* 'typed.clojure/Value [syn opts] (parse-Value syn opts))
+(defmethod parse-seq* 'typed.clojure/Val [syn opts] (parse-Value syn opts))
 
-(defn parse-Difference [[f & args :as syn]]
+(defn parse-Difference [[f & args :as syn] opts]
   (let [_ (when-not (<= 2 (count args))
-            (err/int-error "Wrong arguments to Difference"))
+            (err/int-error "Wrong arguments to Difference" opts))
         [t & without] args]
     {:op :Difference
-     :type (parse t)
-     :without (mapv parse without)
+     :type (parse t opts)
+     :without (mapv #(parse % opts) without)
      :children [:type :without]}))
 
-(defmethod parse-seq* 'Difference [syn] 
+(defmethod parse-seq* 'Difference [syn opts] 
   (err/deprecated-plain-op 'Difference)
-  (parse-Difference syn))
-(defmethod parse-seq* 'typed.clojure/Difference [syn] (parse-Difference syn))
+  (parse-Difference syn opts))
+(defmethod parse-seq* 'typed.clojure/Difference [syn opts] (parse-Difference syn opts))
 
-(defn parse-Rec [[f & args :as syn]]
+(defn parse-Rec [[f & args :as syn] opts]
   (let [_ (when-not (#{2} (count args))
-            (err/int-error "Wrong arguments to Rec"))
+            (err/int-error "Wrong arguments to Rec" opts))
         [[sym :as binder] t] args
         gsym (gensym sym)]
     {:op :Rec
      :f {:op :F :name gsym}
      :type (with-frees {sym gsym}
-             (parse t))
+             (parse t opts))
      :children [:type]}))
 
-(defmethod parse-seq* 'Rec [syn] 
+(defmethod parse-seq* 'Rec [syn opts] 
   (err/deprecated-plain-op 'Rec)
-  (parse-Rec syn))
-(defmethod parse-seq* 'typed.clojure/Rec [syn] (parse-Rec syn))
+  (parse-Rec syn opts))
+(defmethod parse-seq* 'typed.clojure/Rec [syn opts] (parse-Rec syn opts))
 
-(defn parse-CountRange [[f & args :as syn]]
+(defn parse-CountRange [[f & args :as syn] opts]
   (let [_ (when-not (#{1 2} (count args))
-            (err/int-error "Wrong arguments to CountRange"))
+            (err/int-error "Wrong arguments to CountRange" opts))
         [l u] args]
     {:op :CountRange
      :upper u
      :lower l}))
 
-(defmethod parse-seq* 'CountRange [syn] 
+(defmethod parse-seq* 'CountRange [syn opts] 
   (err/deprecated-plain-op 'CountRange)
-  (parse-CountRange syn))
-(defmethod parse-seq* 'typed.clojure/CountRange [syn] (parse-CountRange syn))
+  (parse-CountRange syn opts))
+(defmethod parse-seq* 'typed.clojure/CountRange [syn opts] (parse-CountRange syn opts))
 
-(defn parse-ExactCount [[f & args :as syn]]
+(defn parse-ExactCount [[f & args :as syn] opts]
   (let [_ (when-not (#{1} (count args))
-            (err/int-error "Wrong arguments to ExactCount"))
+            (err/int-error "Wrong arguments to ExactCount" opts))
         [n] args]
     {:op :CountRange
      :upper n
      :lower n}))
 
-(defmethod parse-seq* 'ExactCount [syn] 
+(defmethod parse-seq* 'ExactCount [syn opts] 
   (err/deprecated-plain-op 'ExactCount)
-  (parse-ExactCount syn))
-(defmethod parse-seq* 'typed.clojure/ExactCount [syn] (parse-ExactCount syn))
+  (parse-ExactCount syn opts))
+(defmethod parse-seq* 'typed.clojure/ExactCount [syn opts] (parse-ExactCount syn opts))
 
-(defn parse-Pred [[f & args :as syn]]
+(defn parse-Pred [[f & args :as syn] opts]
   (let [_ (when-not (#{1} (count args))
-            (err/int-error (str "Wrong arguments to " f)))
+            (err/int-error (str "Wrong arguments to " f) opts))
         [t] args]
     {:op :predicate
-     :type (parse t)
+     :type (parse t opts)
      :children [:type]}))
 
-(defmethod parse-seq* 'predicate [syn] 
+(defmethod parse-seq* 'predicate [syn opts] 
   (err/deprecated-plain-op 'predicate 'Pred)
-  (parse-Pred syn))
-(defmethod parse-seq* 'typed.clojure/Pred [syn] (parse-Pred syn))
+  (parse-Pred syn opts))
+(defmethod parse-seq* 'typed.clojure/Pred [syn opts] (parse-Pred syn opts))
 
-(defn parse-Assoc [[f & args :as syn]]
+(defn parse-Assoc [[f & args :as syn] opts]
   (let [_ (when-not (<= 1 (count args))
-            (err/int-error "Wrong arguments to Assoc"))
+            (err/int-error "Wrong arguments to Assoc" opts))
         [t & entries] args
         {ellipsis-pos '...}
         (zipmap entries (range))
@@ -779,107 +782,107 @@
         _ (when-not (-> entries count even?)
             (err/int-error (str "Incorrect Assoc syntax: "
                                 syn
-                                " , must have even number of key/val pair.")))
+                                " , must have even number of key/val pair.") opts))
         _ (when-not (or (not ellipsis-pos)
                         (= (count dentries) 3))
             (err/int-error (str "Incorrect Assoc syntax: "
                                 syn
-                                " , must have even number of key/val pair.")))
+                                " , must have even number of key/val pair.") opts))
         [drest-type _ drest-bnd] (when ellipsis-pos
                                    dentries)
         _ (when-not (or (not ellipsis-pos) (symbol? drest-bnd))
-            (err/int-error "Dotted bound must be symbol"))]
+            (err/int-error "Dotted bound must be symbol" opts))]
     {:op :Assoc
-     :type (parse t)
-     :entries (mapv parse entries)
+     :type (parse t opts)
+     :entries (mapv #(parse % opts) entries)
      :dentries (when ellipsis-pos
                  (let [bnd (*dotted-scope* drest-bnd)
                        _ (when-not (symbol? bnd)
                            (err/int-error (str (pr-str drest-bnd)
-                                               " is not in scope as a dotted variable")))
+                                               " is not in scope as a dotted variable") opts))
                        gbnd (gensym bnd)]
                    {:drest
                     {:op :dotted-pretype
                      :f {:op :F :name gbnd}
                      :drest (with-frees {drest-bnd gbnd} ;with dotted bound in scope as free
-                              (parse drest-type))
+                              (parse drest-type opts))
                      :name gbnd}}))
      :children (concat [:type :entries] (when ellipsis-pos [:dentries]))}))
 
-(defmethod parse-seq* 'Assoc [syn] 
+(defmethod parse-seq* 'Assoc [syn opts] 
   (err/deprecated-plain-op 'Assoc)
-  (parse-Assoc syn))
-(defmethod parse-seq* 'typed.clojure/Assoc [syn] (parse-Assoc syn))
+  (parse-Assoc syn opts))
+(defmethod parse-seq* 'typed.clojure/Assoc [syn opts] (parse-Assoc syn opts))
 
-(defn parse-Get [[f & args :as syn]]
+(defn parse-Get [[f & args :as syn] opts]
   (let [_ (when-not (#{2 3} (count args))
-            (err/int-error "Wrong arguments to Get"))
+            (err/int-error "Wrong arguments to Get" opts))
         [t ksyn not-foundsyn] args]
     (merge 
       {:op :Get
-       :type (parse t)
-       :key (parse ksyn)
+       :type (parse t opts)
+       :key (parse ksyn opts)
        :children [:type :key]}
       (when (#{3} (count args))
-        {:not-found (parse not-foundsyn)
+        {:not-found (parse not-foundsyn opts)
          :children [:type :key :not-found]}))))
 
-(defmethod parse-seq* 'typed.clojure/Get [syn] (parse-Get syn))
+(defmethod parse-seq* 'typed.clojure/Get [syn opts] (parse-Get syn opts))
 
-(defmethod parse-seq* 'typed.clojure/All [syn] (parse-All syn))
+(defmethod parse-seq* 'typed.clojure/All [syn opts] (parse-All syn opts))
 
-(defmethod parse-seq* 'Extends [syn] (parse-Extends syn))
+(defmethod parse-seq* 'Extends [syn opts] (parse-Extends syn opts))
 
-(defmethod parse-seq* 'typed.clojure/U [syn] (parse-U syn))
+(defmethod parse-seq* 'typed.clojure/U [syn opts] (parse-U syn opts))
 
-(defmethod parse-seq* 'I [syn] 
+(defmethod parse-seq* 'I [syn opts] 
   (err/deprecated-plain-op 'I)
-  (parse-I syn))
-(defmethod parse-seq* 'typed.clojure/I [syn] (parse-I syn))
+  (parse-I syn opts))
+(defmethod parse-seq* 'typed.clojure/I [syn opts] (parse-I syn opts))
 
-(defn parse-Array [[f & args :as syn]]
+(defn parse-Array [[f & args :as syn] opts]
   (let [_ (when-not (#{1} (count args))
-            (err/int-error "Expected 1 argument to Array"))
+            (err/int-error "Expected 1 argument to Array" opts))
         [syn] args
-        t (parse syn)]
+        t (parse syn opts)]
     {:op :Array
      :read t
      :write t
      :children [:read :write]}))
 
-(defmethod parse-seq* 'Array [syn] (parse-Array syn))
+(defmethod parse-seq* 'Array [syn opts] (parse-Array syn opts))
 
-(defn parse-Array2 [[f & args :as syn]]
+(defn parse-Array2 [[f & args :as syn] opts]
   (let [_ (when-not (#{2} (count args))
-            (err/int-error "Expected 2 arguments to Array2"))
+            (err/int-error "Expected 2 arguments to Array2" opts))
         [wsyn rsyn] args
-        w (parse wsyn)
-        r (parse rsyn)]
+        w (parse wsyn opts)
+        r (parse rsyn opts)]
     {:op :Array
      :read r
      :write w
      :children [:read :write]}))
 
-(defmethod parse-seq* 'Array2 [syn] (parse-Array2 syn))
+(defmethod parse-seq* 'Array2 [syn opts] (parse-Array2 syn opts))
 
-(defn parse-ReadOnlyArray [[f & args :as syn]]
+(defn parse-ReadOnlyArray [[f & args :as syn] opts]
   (let [_ (when-not (#{1} (count args))
-            (err/int-error "Expected 1 arguments to ReadOnlyArray"))
+            (err/int-error "Expected 1 arguments to ReadOnlyArray" opts))
         [rsyn] args
-        r (parse rsyn)]
+        r (parse rsyn opts)]
     {:op :Array
      :read r
      :write {:op :U :types []}
      :children [:read :write]}))
 
-(defmethod parse-seq* 'ReadOnlyArray [syn] (parse-ReadOnlyArray syn))
+(defmethod parse-seq* 'ReadOnlyArray [syn opts] (parse-ReadOnlyArray syn opts))
 
-(defn parse-Array3 [[f & args :as syn]]
+(defn parse-Array3 [[f & args :as syn] opts]
   (let [_ (when-not (#{3} (count args))
-            (err/int-error "Expected 3 arguments to Array3"))
+            (err/int-error "Expected 3 arguments to Array3" opts))
         [wsyn rsyn jsyn] args
-        w (parse wsyn)
-        r (parse rsyn)]
+        w (parse wsyn opts)
+        r (parse rsyn opts)]
     {:op :Array
      :read r
      :write {:op :U :types []
@@ -887,9 +890,9 @@
      :java-syntax jsyn
      :children [:read :write]}))
 
-(defmethod parse-seq* 'Array3 [syn] (parse-Array3 syn))
+(defmethod parse-seq* 'Array3 [syn opts] (parse-Array3 syn opts))
 
-(defmethod parse-seq* 'typed.clojure/TFn [syn] (parse-TFn syn))
+(defmethod parse-seq* 'typed.clojure/TFn [syn opts] (parse-TFn syn opts))
 
 (t/defalias F
   '{:op ':F
@@ -921,10 +924,10 @@
           {:rest Type
            :drest DottedPretype}))
 
-(t/ann parse-function [t/Any -> Function])
-(defn parse-function [f]
+(t/ann parse-function [t/Any t/Any -> Function])
+(defn parse-function [f opts]
   (when-not (vector? f) 
-    (err/int-error "Function arity must be a vector"))
+    (err/int-error "Function arity must be a vector" opts))
   (let [is-arrow '#{-> :->}
         all-dom (take-while (complement is-arrow) f)
         [the-arrow rng & opts-flat :as chk] (drop-while (complement is-arrow) f) ;opts aren't used yet
@@ -932,12 +935,12 @@
         ;_ (when ('#{->} the-arrow)
         ;    )
         _ (when-not (<= 2 (count chk)) 
-            (err/int-error (str "Incorrect function syntax: " f)))
+            (err/int-error (str "Incorrect function syntax: " f) opts))
 
         _ (when-not (even? (count opts-flat)) 
-            (err/int-error (str "Incorrect function syntax, must have even number of keyword parameters: " f)))
+            (err/int-error (str "Incorrect function syntax, must have even number of keyword parameters: " f) opts))
 
-        opts (apply hash-map opts-flat)
+        fopts (apply hash-map opts-flat)
 
         {ellipsis-pos '...
          asterix-pos '*
@@ -947,16 +950,16 @@
         (zipmap all-dom (range))
 
         _ (when-not (#{0 1} (count (filter identity [asterix-pos ellipsis-pos ampersand-pos push-rest-pos push-dot-pos])))
-            (err/int-error "Can only provide one rest argument option: & ... * or <*"))
+            (err/int-error "Can only provide one rest argument option: & ... * or <*" opts))
 
-        _ (when-let [ks (seq (remove #{:filters :object} (keys opts)))]
-            (err/int-error (str "Invalid function keyword option/s: " ks)))
+        _ (when-let [ks (seq (remove #{:filters :object} (keys fopts)))]
+            (err/int-error (str "Invalid function keyword option/s: " ks) opts))
 
-        filters (when-let [[_ fsyn] (find opts :filters)]
-                  (parse-filter-set fsyn))
+        filters (when-let [[_ fsyn] (find fopts :filters)]
+                  (parse-filter-set fsyn opts))
 
-        object (when-let [[_ obj] (find opts :object)]
-                 (parse-object obj))
+        object (when-let [[_ obj] (find fopts :object)]
+                 (parse-object obj opts))
 
         fixed-dom (cond 
                     asterix-pos (take (dec asterix-pos) all-dom)
@@ -970,19 +973,19 @@
                     (nth all-dom (dec asterix-pos)))
         _ (when-not (or (not asterix-pos)
                         (= (count all-dom) (inc asterix-pos)))
-            (err/int-error (str "Trailing syntax after rest parameter: " (pr-str (drop (inc asterix-pos) all-dom)))))
+            (err/int-error (str "Trailing syntax after rest parameter: " (pr-str (drop (inc asterix-pos) all-dom))) opts))
         [drest-type _ drest-bnd :as drest-seq] (when ellipsis-pos
                                                  (drop (dec ellipsis-pos) all-dom))
         _ (when-not (or (not ellipsis-pos) (= 3 (count drest-seq))) 
-            (err/int-error "Dotted rest entry must be 3 entries"))
+            (err/int-error "Dotted rest entry must be 3 entries" opts))
         _ (when-not (or (not ellipsis-pos) (symbol? drest-bnd))
-            (err/int-error "Dotted bound must be symbol"))
+            (err/int-error "Dotted bound must be symbol" opts))
         [pdot-type _ pdot-bnd :as pdot-seq] (when push-dot-pos
                                                  (drop (dec push-dot-pos) all-dom))
         _ (when-not (or (not push-dot-pos) (= 3 (count pdot-seq)))
-            (err/int-error "push dotted rest entry must be 3 entries"))
+            (err/int-error "push dotted rest entry must be 3 entries" opts))
         _ (when-not (or (not push-dot-pos) (symbol? pdot-bnd))
-            (err/int-error "push dotted bound must be symbol"))
+            (err/int-error "push dotted bound must be symbol" opts))
         [& {optional-kws :optional mandatory-kws :mandatory} :as kws-seq]
         (let [kwsyn (when ampersand-pos
                       (drop (inc ampersand-pos) all-dom))]
@@ -994,17 +997,17 @@
             kwsyn))
 
         _ (when-not (or (not ampersand-pos) (seq kws-seq)) 
-            (err/int-error "Must provide syntax after &"))
+            (err/int-error "Must provide syntax after &" opts))
 
         prest-type (when push-rest-pos
                      (nth all-dom (dec push-rest-pos)))
         _ (when-not (or (not push-rest-pos)
                         (= (count all-dom) (inc push-rest-pos)))
-            (err/int-error (str "Trailing syntax after push-rest parameter: " (pr-str (drop (inc push-rest-pos) all-dom)))))]
+            (err/int-error (str "Trailing syntax after push-rest parameter: " (pr-str (drop (inc push-rest-pos) all-dom))) opts))]
     (merge
       {:op :Fn-method
-       :dom (mapv parse fixed-dom)
-       :rng (parse rng)
+       :dom (mapv #(parse % opts) fixed-dom)
+       :rng (parse rng opts)
        :filter filters
        :object object
        :children (vec (concat [:dom :rng :filter :object]
@@ -1017,96 +1020,96 @@
                               (when push-dot-pos
                                 [:pdot])))}
       (when asterix-pos
-        {:rest (parse rest-type)})
+        {:rest (parse rest-type opts)})
       (when ellipsis-pos
         (let [bnd (*dotted-scope* drest-bnd)
               _ (when-not (symbol? bnd)
-                  (err/int-error (str (pr-str drest-bnd) " is not in scope as a dotted variable")))
+                  (err/int-error (str (pr-str drest-bnd) " is not in scope as a dotted variable") opts))
               gbnd (gensym bnd)]
           {:drest
            {:op :dotted-pretype
             :f {:op :F :name gbnd}
             :drest (with-frees {drest-bnd gbnd} ;with dotted bound in scope as free
-                     (parse drest-type))
+                     (parse drest-type opts))
             :name gbnd}}))
       (when push-rest-pos
-        {:prest (parse prest-type)})
+        {:prest (parse prest-type opts)})
       (when push-dot-pos
         (let [bnd (*dotted-scope* pdot-bnd)
               _ (when-not (symbol? bnd)
-                  (err/int-error (str (pr-str pdot-bnd) " is not in scope as a dotted variable")))
+                  (err/int-error (str (pr-str pdot-bnd) " is not in scope as a dotted variable") opts))
               gbnd (gensym bnd)]
           {:pdot
            {:op :dotted-pretype
             :f {:op :F :name gbnd}
             :drest (with-frees {pdot-bnd gbnd} ;with dotted bound in scope as free
-                     (parse pdot-type))
+                     (parse pdot-type opts))
             :name gbnd}})))))
 
-(defn parse-Fn [[_ & args :as syn]]
+(defn parse-Fn [[_ & args :as syn] opts]
   {:op :Fn
-   :arities (mapv parse-function args)
+   :arities (mapv #(parse-function % opts) args)
    :form syn
    :children [:arities]})
 
-(defmethod parse-seq* 'Fn [syn] 
+(defmethod parse-seq* 'Fn [syn opts] 
   (err/deprecated-plain-op 'Fn 'IFn)
-  (parse-Fn syn))
-(defmethod parse-seq* 'typed.clojure/IFn [syn] (parse-Fn syn))
+  (parse-Fn syn opts))
+(defmethod parse-seq* 'typed.clojure/IFn [syn opts] (parse-Fn syn opts))
 
-(defmethod parse-seq* 'HMap [syn] 
+(defmethod parse-seq* 'HMap [syn opts] 
   (err/deprecated-plain-op 'HMap)
-  (parse-HMap syn))
-(defmethod parse-seq* 'typed.clojure/HMap [syn] (parse-HMap syn))
+  (parse-HMap syn opts))
+(defmethod parse-seq* 'typed.clojure/HMap [syn opts] (parse-HMap syn opts))
 
-(defmethod parse-seq* 'Seq* [syn] 
+(defmethod parse-seq* 'Seq* [syn opts] 
   (err/deprecated-plain-op 'Seq* 'HSeq)
-  (parse-quoted-hseq (rest syn)))
+  (parse-quoted-hseq (rest syn) opts))
 
-(defmethod parse-seq* 'HVec [syn] 
+(defmethod parse-seq* 'HVec [syn opts] 
   (err/deprecated-plain-op 'HVec)
-  (parse-HVec syn))
-(defmethod parse-seq* 'typed.clojure/HVec [syn] (parse-HVec syn))
+  (parse-HVec syn opts))
+(defmethod parse-seq* 'typed.clojure/HVec [syn opts] (parse-HVec syn opts))
 
-(defmethod parse-seq* 'HSequential [syn] 
+(defmethod parse-seq* 'HSequential [syn opts] 
   (err/deprecated-plain-op 'HSequential)
-  (parse-HSequential syn))
-(defmethod parse-seq* 'typed.clojure/HSequential [syn] (parse-HSequential syn))
+  (parse-HSequential syn opts))
+(defmethod parse-seq* 'typed.clojure/HSequential [syn opts] (parse-HSequential syn opts))
 
-(defmethod parse-seq* 'HSeq [syn] 
+(defmethod parse-seq* 'HSeq [syn opts] 
   (err/deprecated-plain-op 'HSeq)
-  (parse-HSeq syn))
+  (parse-HSeq syn opts))
 
-(defmethod parse-seq* 'typed.clojure/HSeq [syn] (parse-HSeq syn))
+(defmethod parse-seq* 'typed.clojure/HSeq [syn opts] (parse-HSeq syn opts))
 
-(defmethod parse-seq* 'typed.clojure/HList [syn] (parse-HList syn))
+(defmethod parse-seq* 'typed.clojure/HList [syn opts] (parse-HList syn opts))
 
 (defn parse-HSet [[_ ts & {:keys [complete?] :or {complete? true}} :as args]]
   {:op :HSet
    :fixed ts
    :complete? complete?})
 
-(defmethod parse-seq* 'typed.clojure/HSet [syn] (parse-HSet syn))
+(defmethod parse-seq* 'typed.clojure/HSet [syn opts] (parse-HSet syn))
 
-(defmethod parse-seq* :default [[f & args :as syn]]
+(defmethod parse-seq* :default [[f & args :as syn] opts]
   {:op :TApp
-   :rator (parse f)
-   :rands (mapv parse args)
+   :rator (parse f opts)
+   :rands (mapv #(parse % opts) args)
    :children [:rator :rands]})
 
-(defn parse-Not [[f & args :as syn]]
+(defn parse-Not [[f & args :as syn] opts]
   (let [_ (when-not (#{1} (count args))
-            (err/int-error "Wrong arguments to Not"))]
+            (err/int-error "Wrong arguments to Not" opts))]
     {:op :Not
-     :type (parse (first args))}))
+     :type (parse (first args) opts)}))
 
-(defmethod parse-seq* 'Not [syn] (parse-Not syn))
+(defmethod parse-seq* 'Not [syn opts] (parse-Not syn opts))
 
-(defn parse-seq [syn]
-  (parse-seq* syn))
+(defn parse-seq [syn opts]
+  (parse-seq* syn opts))
 
 (defmulti parse-symbol*
-  (fn [n] 
+  (fn [n opts]
     {:pre [(symbol? n)]}
     (or (impl/impl-case
           :clojure (resolve-type-clj->sym n)
@@ -1115,20 +1118,20 @@
         n)))
 
 (defn parse-Any [s] {:op :Any :form s})
-(defn parse-Nothing [s]
-  (parse-U `(typed.clojure/U)))
+(defn parse-Nothing [s opts]
+  (parse-U `(typed.clojure/U) opts))
 
-(defmethod parse-symbol* 'typed.clojure/Any [s] (parse-Any s))
+(defmethod parse-symbol* 'typed.clojure/Any [s opts] (parse-Any s))
 
-(defmethod parse-symbol* 'typed.clojure/Nothing [s] (parse-Nothing s))
+(defmethod parse-symbol* 'typed.clojure/Nothing [s opts] (parse-Nothing s opts))
 
 (defn parse-AnyFunction [s]
   {:op :AnyFunction :form s})
 
-(defmethod parse-symbol* 'typed.clojure/AnyFunction [s] (parse-AnyFunction s))
+(defmethod parse-symbol* 'typed.clojure/AnyFunction [s opts] (parse-AnyFunction s))
 
 (defmethod parse-symbol* :default
-  [sym]
+  [sym opts]
   (let [checker ((requiring-resolve 'typed.cljc.runtime.env/checker))
         primitives (impl/impl-case
                      :clojure clj-primitives
@@ -1142,7 +1145,7 @@
       :else 
         (or (impl/impl-case
               :clojure (let [res (when (symbol? sym)
-                                   (resolve-type-clj sym))]
+                                   (resolve-type-clj sym opts))]
                          (cond 
                            (class? res) (let [csym (coerce/Class->symbol res)
                                               dt? (contains? (impl/datatype-env checker) csym)]
@@ -1156,7 +1159,7 @@
                                           {:op :Name :name vsym :form sym}
                                           {:op :Protocol :name vsym :form sym}))
                            (symbol? sym)
-                           (if-let [qsym (resolve-type-alias-clj sym)]
+                           (if-let [qsym (resolve-type-alias-clj sym opts)]
                              ; a type alias without an interned var
                              {:op :Name :name qsym :form sym}
                              ;an annotated datatype that hasn't been defined yet
@@ -1169,14 +1172,14 @@
                #_(when-let [res (when (symbol? sym)
                                       (resolve-type-cljs sym))]
                        (:name res)))
-            (err/int-error (str "Cannot resolve type: " (pr-str sym)))))))
+            (err/int-error (str "Cannot resolve type: " (pr-str sym)) opts)))))
 
-(defn parse-symbol [s]
-  (parse-symbol* s))
+(defn parse-symbol [s opts]
+  (parse-symbol* s opts))
 
 (def ^:private register! (delay (t/register!)))
 
-(defn parse [syn]
+(defn parse [syn opts]
   @register!
   (binding [vs/*current-env* (let [ne (when-let [m (meta syn)]
                                         (select-keys m [:file :line :column :end-line :end-column]))]
@@ -1186,18 +1189,18 @@
     (cond
       ((some-fn nil? true? false?) syn) {:op :singleton :val syn :form syn}
       (vector? syn) {:op :Fn 
-                     :arities [(parse-function syn)]
+                     :arities [(parse-function syn opts)]
                      :form syn
                      :children [:arities]}
-      (symbol? syn) (assoc (parse-symbol syn)
+      (symbol? syn) (assoc (parse-symbol syn opts)
                            :form syn)
-      (seq? syn) (assoc (parse-seq syn)
+      (seq? syn) (assoc (parse-seq syn opts)
                         :form syn)
-      :else (err/int-error (str "Bad type syntax: " syn)))))
+      :else (err/int-error (str "Bad type syntax: " syn) opts))))
 
 (defn parse-clj [syn]
   (impl/with-impl impl/clojure
-    (parse syn)))
+    (parse syn ((requiring-resolve 'typed.clj.runtime.env/clj-opts)))))
 
 (comment
   (parse-clj `'[String ~'* t/Any])

@@ -32,7 +32,7 @@
 (defn add-multimethod-dispatch-type
   "Add the type of the dispatch function of the multimethod named by mmsym
   to the environment. If already exists, must be identical."
-  [mmsym dtype]
+  [mmsym dtype opts]
   {:pre [(symbol? mmsym)
          (r/Type? dtype)]}
   (impl/assert-clojure)
@@ -43,7 +43,8 @@
            (when (and old (not= old dtype))
              (err/int-error 
                (str "Inconsistent dispatch type inferred for multimethod: " mmsym
-                    ".  JVM process restart probably necessary.")))
+                    ".  JVM process restart probably necessary.")
+               opts))
            dtype))
   nil)
 
@@ -55,11 +56,12 @@
   (impl/assert-clojure)
   (@MULTIMETHOD-DISPATCH-ENV mmsym))
 
-(defn get-multimethod-dispatch-type [mmsym]
+#_
+(defn get-multimethod-dispatch-type [mmsym opts]
   {:pre [(symbol? mmsym)]
    :post [(r/Type? %)]}
   (impl/assert-clojure)
   (let [t (@MULTIMETHOD-DISPATCH-ENV mmsym)]
     (when-not t 
-      (err/int-error (str "Multimethod requires dispatch type: " mmsym)))
+      (err/int-error (str "Multimethod requires dispatch type: " mmsym) opts))
     t))

@@ -11,7 +11,7 @@
   (:require [clojure.core.typed.util-vars :as vs]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.cljc.analyzer :as ana2]
-            [typed.cljc.checker.check :refer [check-expr]]
+            [typed.cljc.checker.check :as check]
             [typed.cljc.checker.check-below :as below]
             [typed.cljc.checker.check.utils :as cu]
             [typed.cljc.checker.type-rep :as r]
@@ -20,17 +20,18 @@
 ;; TODO clojure.core.typed.expand/expand-ann-form has ideas on improving error msgs
 ;; TODO move to defuspecial
 (defn -unanalyzed-special__ann-form
-  [{[_ body tsyn :as form] :form :keys [env] :as expr} expected]
-  (assert (#{3} (count form))
+  [{[_ body tsyn :as form] :form :keys [env] :as expr} expected {::check/keys [check-expr] :as opts}]
+  (assert (= 3 (count form))
           (str "Incorrect number of arguments to ann-form: " form))
   (let [parsed-t (binding [prs/*parse-type-in-ns* (cu/expr-ns expr)]
-                   (prs/parse-type tsyn))
+                   (prs/parse-type tsyn opts))
         ;; TODO let users add expected filters etc
         this-expected (or (some-> expected (assoc :t parsed-t))
                           (r/ret parsed-t))
         _ (below/maybe-check-below
             this-expected
-            expected)
+            expected
+            opts)
         cret (-> body
                  (ana2/unanalyzed env)
                  (ana2/inherit-top-level expr)

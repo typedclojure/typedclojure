@@ -13,8 +13,8 @@
             [typed.clj.checker.parse-unparse :as prs]))
 
 (defn print-env*
-  ([] (print-env* (lex/lexical-env)))
-  ([e]
+  ([opts] (print-env* (lex/lexical-env) opts))
+  ([e opts]
    {:pre [(lex/PropEnv? e)]}
    ;; DO NOT REMOVE
    (let [tvar-scope tvar-env/*current-tvars*
@@ -24,8 +24,8 @@
          _ (every? symbol? actual-names)
          actual-bnds (map tvar-bounds actual-names)]
      (prn {:env (into {} (for [[k v] (:l e)]
-                           [k (prs/unparse-type v)]))
-           :props (map prs/unparse-filter (:props e))
+                           [k (prs/unparse-type v opts)]))
+           :props (map #(prs/unparse-filter % opts) (:props e))
            :aliases (:aliases e)
            ;:frees (map (t/fn
            ;              [nme :- t/Sym, bnd :- (U nil Bounds)]

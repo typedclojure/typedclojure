@@ -9,7 +9,7 @@
 (ns ^:no-doc typed.clj.ext.clojure.core__defmethod
   "Typing rules for clojure.core/defmethod"
   (:require [clojure.core.typed.internal :as internal]
-            [typed.clj.checker.check :as chk]
+            [typed.cljc.checker.check :as check]
             [typed.cljc.analyzer :as ana2]
             [typed.cljc.checker.check.unanalyzed :refer [defuspecial]]))
 
@@ -18,8 +18,8 @@
 
 (defuspecial defuspecial__defmethod
   "defuspecial implementation for clojure.core/defmethod"
-  [{:keys [form] :as expr} expected]
+  [{:keys [form] :as expr} expected {::check/keys [check-expr] :as opts}]
   (-> expr
       (update :form internal/add-defmethod-destructure-blame-form)
       ana2/analyze-outer
-      (chk/check-expr expected)))
+      (check-expr expected)))

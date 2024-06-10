@@ -176,27 +176,29 @@
                                      (key chosen-entry))))]
             (val chosen-entry))))))
 
-(defn lookup-Var [nsym]
+(defn lookup-Var [nsym opts]
   {:post [((some-fn nil? r/Type?) %)]}
   (or (lookup-Var-nofail nsym)
       (err/int-error
-        (str "Untyped var reference: " nsym))))
+        (str "Untyped var reference: " nsym)
+        opts)))
 
-(defn type-of-nofail [sym]
+(defn type-of-nofail [sym opts]
   {:pre [(symbol? sym)]
    :post [((some-fn nil? r/Type?) %)]}
   (or (when (and (not (namespace sym))
                  (not-any? #{\.} (str sym)))
-        (lex/lookup-local sym))
+        (lex/lookup-local sym opts))
       (lookup-Var-nofail sym)))
 
-(defn type-of [sym]
+(defn type-of [sym opts]
   {:pre [(symbol? sym)]
    :post [(r/Type? %)]}
-  (or (type-of-nofail sym)
+  (or (type-of-nofail sym opts)
       (err/int-error (str (when vs/*current-env*
                             (str (:line vs/*current-env*) ": "))
-                          "Missing type for binding: " (pr-str sym)))))
+                          "Missing type for binding: " (pr-str sym))
+                     opts)))
 
 (defn get-untyped-var [checker nsym sym]
   {:pre [(symbol? nsym)

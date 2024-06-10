@@ -24,19 +24,19 @@
             [typed.cljc.checker.utils :as u]
             [typed.cljc.runtime.env :as env]))
 
-(defn match-method->expected-ifn [t inst-method]
+(defn match-method->expected-ifn [t inst-method opts]
   {:pre [((some-fn nil? r/Type?) t)]
    :post [((some-fn nil? r/Type?) %)]}
-  (some->> (some #(when (and (= (count (:parameter-types inst-method))
-                                ; minus the target arg
-                                (count (:required-params %)))
-                             (= (munge (:name inst-method))
-                                (:name %)))
-                    %)
-                 (:methods inst-method))
-           (cu/type->method-expected t)))
+  (some-> (some #(when (and (= (count (:parameter-types inst-method))
+                               ; minus the target arg
+                               (count (:required-params %)))
+                            (= (munge (:name inst-method))
+                               (:name %)))
+                   %)
+                (:methods inst-method))
+          (as-> m (cu/type->method-expected t m opts))))
 
-(defn check-method [{:keys [env] :as inst-method} {:keys [kind expected-type nme expected] :as _opts}]
+(defn check-method [{:keys [env] :as inst-method} {:keys [kind expected-type nme expected]} opts]
   ;; returns a vector of checked methods
   {:pre [(#{:reify :deftype} kind)
          (= :method (:op inst-method))]
@@ -50,13 +50,13 @@
           ;_ (prn "inst-method" inst-method)
           _ (assert (:this inst-method))
           _ (assert (:params inst-method))]
-      (if-some [expected-ifn (match-method->expected-ifn expected-type inst-method)]
+      (if-some [expected-ifn (match-method->expected-ifn expected-type inst-method opts)]
         (first
           (:methods
             (fn-methods/check-fn-methods
               [inst-method]
               expected-ifn
-              {:check-rest-fn (fn [& args] (err/int-error (format "%s method cannot have rest parameter" (name kind))))
+              {:check-rest-fn (fn [& args] (err/int-error (format "%s method cannot have rest parameter" (name kind)) opts))
                :recur-target-fn
                (fn [{:keys [dom] :as f}]
                  {:pre [(r/Function? f)]
@@ -68,12 +68,15 @@
                  (when (not-every? #(= :fixed (:kind %)) (:types fin))
                    (err/int-error
                      (str "Cannot provide rest arguments to " (name kind) " method: "
-                          (prs/unparse-type fin)))))})))
+                          (prs/unparse-type fin opts))
+                     opts)))}
+              opts)))
         (err/tc-delayed-error (str "Internal error checking " (name kind) (when nme " " nme) " method: " method-nme)
-                              :return inst-method)))))
+                              {:return inst-method}
+                              opts)))))
 
 (defn check-deftype
-  [{:keys [fields methods env] :as expr} expected]
+  [{:keys [fields methods env] :as expr} expected opts]
   {:post [(-> % u/expr-type r/TCResult?)]}
   ;TODO check fields match, handle extra fields in records
   ;TODO check that all protocols are accounted for
@@ -92,24 +95,27 @@
           dtp (dt-env/get-datatype checker nme)
           [nms bbnds dt] (if (r/TypeFn? dtp)
                            (let [nms (c/TypeFn-fresh-symbols* dtp)
-                                 bbnds (c/TypeFn-bbnds* nms dtp)]
-                             [nms bbnds  (c/TypeFn-body* nms bbnds dtp)])
+                                 bbnds (c/TypeFn-bbnds* nms dtp opts)]
+                             [nms bbnds (c/TypeFn-body* nms bbnds dtp opts)])
                            [nil nil dtp])
           expected-fields (some-> dt c/DataType-fields*)
           expected-field-syms (vec (keys expected-fields))
           ret-expr (assoc expr
                           u/expr-type (below/maybe-check-below
-                                        (r/ret (c/RClass-of Class))
-                                        expected))]
+                                        (r/ret (c/RClass-of Class opts))
+                                        expected
+                                        opts))]
       (cond
         (not dtp)
         (err/tc-delayed-error (str "deftype " nme " must have corresponding annotation. "
                                    "See ann-datatype and ann-record")
-                              :return ret-expr)
+                              {:return ret-expr}
+                              opts)
 
         (not ((some-fn r/DataType? r/Record?) dt))
-        (err/tc-delayed-error (str "deftype " nme " cannot be checked against: " (prs/unparse-type dt))
-                              :return ret-expr)
+        (err/tc-delayed-error (str "deftype " nme " cannot be checked against: " (prs/unparse-type dt opts))
+                              {:return ret-expr}
+                              opts)
 
         (if (r/Record? dt)
           (c/isa-DataType? compiled-class)
@@ -119,7 +125,8 @@
                                      " is annotated as a " (if datatype? "record" "datatype") 
                                      ", should be a " (if datatype? "datatype" "record") ". "
                                      "See ann-datatype and ann-record")
-                                :return ret-expr))
+                                {:return ret-expr}
+                                opts))
 
         (not= expected-field-syms 
               ; remove implicit __meta and __extmap fields
@@ -130,7 +137,8 @@
                                    nme " fields do not match annotation. "
                                    " Expected: " (vec expected-field-syms)
                                    ", Actual: " (vec field-syms))
-                              :return ret-expr)
+                              {:return ret-expr}
+                              opts)
 
         :else
         (let [check-method? (fn [inst-method]
@@ -149,5 +157,6 @@
                                        (map #(cond-> %
                                                (check-method? %) (check-method {:kind :deftype
                                                                                 :expected-type dt
-                                                                                :nme nme})))
+                                                                                :nme nme}
+                                                                               opts)))
                                        methods))))))))))

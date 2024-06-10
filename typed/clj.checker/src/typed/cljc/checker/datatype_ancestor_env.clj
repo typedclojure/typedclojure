@@ -30,16 +30,16 @@
 (def tmap? (con/hash-c? any? (some-fn delay? r/Scope? r/Type?)))
 (def dt-ancestor-env? (con/hash-c? symbol? tmap?))
 
-(t/ann ^:no-check inst-ancestors [DataType (t/U nil (t/Map t/Any (t/Seqable r/Type))) -> (t/Set r/Type)])
+(t/ann ^:no-check inst-ancestors [DataType (t/U nil (t/Map t/Any (t/Seqable r/Type))) t/Any -> (t/Set r/Type)])
 (defn inst-ancestors
   "Given a datatype, return its instantiated ancestors"
-  [{poly :poly? :as dt} anctrs]
+  [{poly :poly? :as dt} anctrs opts]
   {:pre [(r/DataType? dt)
          ((some-fn nil? map?) anctrs)]
    :post [((con/set-c? r/Type?) %)]}
   (into #{}
         (map (fn [[_ t]]
-               (c/inst-and-subst (force-type t) poly)))
+               (c/inst-and-subst (force-type t) poly opts)))
         anctrs))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -49,13 +49,13 @@
   {:post [(map? %)]}
   (get (env/deref-checker checker) impl/current-dt-ancestors-kw {}))
 
-(t/ann ^:no-check get-datatype-ancestors [t/Any DataType -> (t/Set r/Type)])
+(t/ann ^:no-check get-datatype-ancestors [t/Any DataType t/Any -> (t/Set r/Type)])
 (defn get-datatype-ancestors
   "Returns the set of overriden ancestors of the given DataType."
-  [checker {:keys [poly? the-class] :as dt}]
+  [checker {:keys [poly? the-class] :as dt} opts]
   {:pre [(r/DataType? dt)]}
   (let [as (get (all-dt-ancestors checker) the-class)]
-    (inst-ancestors dt as)))
+    (inst-ancestors dt as opts)))
 
 (t/ann ^:no-check add-datatype-ancestors [t/Any t/Sym (t/Map t/Any (t/U (t/Delay r/Type) r/Type)) -> nil])
 (def add-datatype-ancestors impl/add-datatype-ancestors)

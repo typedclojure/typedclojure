@@ -9,6 +9,7 @@
 (ns typed.cljs.checker.check-form
   (:require [cljs.compiler :as comp]
             [cljs.env :as env]
+            [typed.cljs.runtime.env :as cljs-env]
             [clojure.core.typed.ast-utils :as ast-u]
             [clojure.core.typed.current-impl :as impl]
             [typed.cljc.checker.check-form :as chk-form2]
@@ -44,7 +45,7 @@
     (maybe-with-analyzer-bindings opt
       (fn []
         (chk-form2/check-form-info-with-config
-          (config-map2) form opt)))))
+          (config-map2) form opt (cljs-env/cljs-opts))))))
 
 (defn check-form
   "Check a single form with an optional expected type.
@@ -58,4 +59,4 @@
           (comp/with-core-cljs
             nil
             #(chk-form2/check-form*-with-config
-               (config-map2) form expected expected-provided? opt)))))))
+               (config-map2) form expected expected-provided? opt (cljs-env/cljs-opts))))))))

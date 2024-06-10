@@ -18,6 +18,7 @@
             [typed.clj.analyzer :as jana2]
             [typed.clj.checker.check-form :as chk-frm-clj]
             [typed.clj.lang :as lang]
+            [typed.clj.runtime.env :as clj-env]
             [typed.cljc.analyzer.env :as env]
             [typed.cljc.checker.check-form :as chk-frm]
             [typed.cljc.checker.ns-deps-utils :as ns-utils])
@@ -43,7 +44,8 @@
    ;(prn "load-typed-file" filename)
     (t/load-if-needed)
     (env/ensure (jana2/global-env)
-     (let [ex-handler (or ex-handler #(throw %))
+     (let [opts (clj-env/clj-opts)
+           ex-handler (or ex-handler #(throw %))
            skip-check-form? (or skip-check-form? (fn [_] false))
            env (or env (jana2/empty-env))
            should-runtime-infer? vs/*prepare-infer-ns*
@@ -76,8 +78,9 @@
                    (when-not (identical? form eof)
                      (if (skip-check-form? form)
                        (lang/default-eval form)
-                       (let [{:keys [ex]} ((resolve `chk-frm/check-form-info)
-                                           config form {:check-config (t/default-check-config)})]
+                       (let [{:keys [ex]} (chk-frm/check-form-info
+                                            config form {:check-config (t/default-check-config)}
+                                            opts)]
                          (some-> ex ex-handler)))
                      (recur))))))))))))
 
@@ -88,17 +91,18 @@
   {:pre [(every? string? base-resource-paths)]
    :post [(nil? %)]}
   ;(prn "typed load" base-resource-paths)
-  (doseq [base-resource-path base-resource-paths]
-    (cond
-      (impl/with-clojure-impl
-        (or (ns-utils/file-should-use-typed-load? (str base-resource-path ".clj"))
-            (ns-utils/file-should-use-typed-load? (str base-resource-path ".cljc"))))
-      (do
-        (when @#'clojure.core/*loading-verbosely*
-          (printf "Loading typed file\n" base-resource-path))
-        (load-typed-file base-resource-path))
+  (let [opts (clj-env/clj-opts)]
+    (doseq [base-resource-path base-resource-paths]
+      (cond
+        (impl/with-clojure-impl
+          (or (ns-utils/file-should-use-typed-load? (str base-resource-path ".clj") opts)
+              (ns-utils/file-should-use-typed-load? (str base-resource-path ".cljc") opts)))
+        (do
+          (when @#'clojure.core/*loading-verbosely*
+            (printf "Loading typed file\n" base-resource-path))
+          (load-typed-file base-resource-path))
 
-      :else (clojure.lang.RT/load base-resource-path))))
+        :else (clojure.lang.RT/load base-resource-path)))))
 
 (defn typed-eval [form]
   (let [{:keys [ex result]} (t/check-form-info form)]

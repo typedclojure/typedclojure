@@ -17,13 +17,14 @@
 ;; clojure.core.typed.unsafe/ignore-with-unchecked-cast
 
 (defuspecial defuspecial__ignore-with-unchecked-cast
-  [{[_ _ ty :as form] :form :as expr} expected]
+  [{[_ _ ty :as form] :form :as expr} expected opts]
   (assert (= 3 (count form)) (pr-str form))
   (-> expr
       (assoc
         u/expr-type (below/maybe-check-below
-                      (r/ret (prs/parse-type ty))
-                      expected))))
+                      (r/ret (prs/parse-type ty opts))
+                      expected
+                      opts))))
 
 (install-defuspecial
   #{:clojure}

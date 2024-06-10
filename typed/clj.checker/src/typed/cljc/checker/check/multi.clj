@@ -26,10 +26,11 @@
 
 ;return the expected type for the dispatch fn of the given multimethod's expected type
 ;[Type -> Type]
-(defn expected-dispatch-type [mm-type]
+(defn expected-dispatch-type [mm-type opts]
   {:pre [(r/AnyType? mm-type)]
    :post [(r/AnyType? %)]}
   (call-expected-dispatch-type*
-    mm-type
-    {:type-rec (fn ([ty _info] (expected-dispatch-type ty))
-                 ([ty] (expected-dispatch-type ty)))}))
+    mm-type opts
+    {:type-rec (fn
+                 ([ty]      (expected-dispatch-type ty opts))
+                 ([ty opts] (expected-dispatch-type ty opts)))}))

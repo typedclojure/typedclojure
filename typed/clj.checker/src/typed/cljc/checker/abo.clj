@@ -22,29 +22,29 @@
   [lookup])
 
 ;[Type (Seqable t/Sym) -> Type]
-(defn abstract-type [ids keys t]
+(defn abstract-type [ids keys t opts]
   {:pre [(every? symbol? ids)
          (every? integer? keys)
          (r/AnyType? t)]
    :post [(r/AnyType? %)]}
   ;(prn "abstract type" ids keys t)
   (letfn [(sb-t
-            ([t _info] (sb-t t))
-            ([t] (abstract-type ids keys t)))
+            ([t] (sb-t t opts))
+            ([t opts] (abstract-type ids keys t opts)))
           (sb-f
-            ([f _info] (sb-f f))
-            ([f] (abo ids keys f)))
+            ([f] (sb-f f opts))
+            ([f opts] (abo ids keys f opts)))
           (sb-o
-            ([o _info] (sb-o o))
-            ([o] (abstract-object ids keys o)))]
+            ([o] (sb-o o opts))
+            ([o opts] (abstract-object ids keys o opts)))]
     (call-abo-fold*
-      t
+      t opts
       {:type-rec sb-t
        :filter-rec sb-f
        :object-rec sb-o})))
 
 ;[(Seqable t/Sym) (Seqable AnyInteger) RObject -> RObject]
-(defn abstract-object [ids keys o]
+(defn abstract-object [ids keys o opts]
   {:pre [(every? symbol? ids)
          (every? integer? keys)
          (obj/RObject? o)]
@@ -72,7 +72,7 @@
 
 ;[(Seqable t/Sym) (Seqable AnyInteger) (U NoFilter FilterSet) 
 ;  -> (U NoFilter FilterSet)]
-(defn abstract-filter [ids keys fs]
+(defn abstract-filter [ids keys fs opts]
   {:pre [(every? symbol? ids)
          (every? integer? keys)
          ((some-fn fl/NoFilter? fl/FilterSet?) fs)]
@@ -81,8 +81,8 @@
   (cond
     (fl/FilterSet? fs)
     (let [{fs+ :then fs- :else} fs]
-      (fo/-FS (abo ids keys fs+)
-              (abo ids keys fs-)))
+      (fo/-FS (abo ids keys fs+ opts)
+              (abo ids keys fs- opts)))
     (fl/NoFilter? fs) (fo/-FS fl/-top fl/-top)))
 
 (fold/add-fold-case IAboFold abo-fold*
@@ -102,7 +102,7 @@
       fl/-top)))
 
 ;[(Seqable t/Sym) (Seqable AnyInteger) Filter -> Filter]
-(defn abo [xs idxs f]
+(defn abo [xs idxs f opts]
   {:pre [(every? symbol? xs)
          (every? integer? idxs)
          (fl/Filter? f)]
@@ -123,11 +123,15 @@
              :post [((some-fn nil? integer?) %)]}
             (some (fn [[x i]] (and (= x y) i))
                   (map vector xs idxs)))
-          (rec [f] (abo xs idxs f))
-          (sb-t [t] (abstract-type xs idxs t))]
+          (rec
+            ([f] (rec f opts))
+            ([f opts] (abo xs idxs f opts)))
+          (sb-t
+            ([t] (sb-t t opts))
+            ([t opts] (abstract-type xs idxs t opts)))]
     (call-abo-fold*
-      f
-      {:type-rec sb-t 
+      f opts
+      {:type-rec sb-t
        :filter-rec rec
        :lookup lookup})))
 
@@ -139,13 +143,13 @@
 ; we need to abstract and instantiate all types at function boundaries.
 
 ;[TCResult (Seqable t/Sym) -> Result]
-(defn abstract-result [result arg-names]
+(defn abstract-result [result arg-names opts]
   {:pre [(r/TCResult? result)
          (every? symbol? arg-names)]
    :post [(r/Result? %)]}
   ;(prn "abstract result" result arg-names)
   (let [keys (range (count arg-names))]
     (r/make-Result
-      (abstract-type   arg-names keys (r/ret-t result))
-      (abstract-filter arg-names keys (r/ret-f result))
-      (abstract-object arg-names keys (r/ret-o result)))))
+      (abstract-type   arg-names keys (r/ret-t result) opts)
+      (abstract-filter arg-names keys (r/ret-f result) opts)
+      (abstract-object arg-names keys (r/ret-o result) opts))))

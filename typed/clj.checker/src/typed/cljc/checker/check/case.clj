@@ -16,7 +16,7 @@
             [typed.cljc.checker.update :as update]
             [typed.clj.checker.tc-equiv :as equiv]))
 
-(defn check-case-thens [check-fn target-ret tst-rets case-thens expected]
+(defn check-case-thens [check-fn target-ret tst-rets case-thens expected opts]
   {:pre [(r/TCResult? target-ret)
          (every? r/TCResult? tst-rets)
          (== (count tst-rets)
@@ -25,9 +25,9 @@
                        (con/every-c? (comp #{:case-then} :op)))
            %)]}
   (letfn [(check-case-then [tst-ret {:keys [then] :as case-then}]
-            (let [{{fs+ :then} :fl :as rslt} (equiv/tc-equiv := [target-ret tst-ret] nil)
+            (let [{{fs+ :then} :fl :as rslt} (equiv/tc-equiv := [target-ret tst-ret] nil opts)
                   flag+ (volatile! true)
-                  env-thn (update/env+ (lex/lexical-env) [fs+] flag+)
+                  env-thn (update/env+ (lex/lexical-env) [fs+] flag+ opts)
                   _ (when-not @flag+
                       ;; FIXME should we ignore this branch?
                       (u/tc-warning "Local became bottom when checking case then"))

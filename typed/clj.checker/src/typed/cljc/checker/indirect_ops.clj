@@ -38,5 +38,4 @@
   typed.cljc.checker.lex-env/PropEnv?
   typed.cljc.checker.filter-ops/-or
   typed.cljc.checker.filter-ops/-and
-  typed.cljc.checker.var-env/type-of-nofail
-  typed.cljc.checker.check/check-expr)
+  typed.cljc.checker.var-env/type-of-nofail)

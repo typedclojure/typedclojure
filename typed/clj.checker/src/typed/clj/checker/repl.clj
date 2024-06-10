@@ -7,9 +7,11 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.clj.checker.repl
+  (:refer-clojure :exclude [requiring-resolve])
   (:require [clojure.tools.nrepl.middleware :as mid]
             [clojure.tools.nrepl.transport :as transport]
             [clojure.tools.nrepl.misc :as misc]
+            [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]
             [clojure.core.typed :as t]
             [clojure.core.typed.current-impl :as impl]
             [typed.cljc.checker.ns-deps-utils :as ns-utils]
@@ -20,12 +22,12 @@
             [clojure.main :as main])
   (:import java.io.Writer))
 
-(defn typed-ns-form? [current-ns rcode]
+(defn typed-ns-form? [current-ns rcode opts]
   (and (seq? rcode) 
        (= (first rcode) 'ns)
        (= #'ns (when current-ns
                  (ns-resolve current-ns 'ns)))
-       (ns-utils/ns-has-core-typed-metadata? rcode)))
+       (ns-utils/ns-has-core-typed-metadata? rcode opts)))
 
 (defn ns-has-core-typed-meta? [nsym]
   {:pre [(or (symbol? nsym)
@@ -55,7 +57,7 @@
                (symbol? sym)
                (ns-has-core-typed-meta? sym)))))))
 
-(defn handle-eval [handler {:keys [transport session code op] :as msg}]
+(defn handle-eval [handler {:keys [transport session code op] :as msg} opts]
   (let [original-ns (@session #'*ns*)
         maybe-explicit-ns (when-let [ns (some-> (:ns msg) symbol find-ns)]
                             {#'*ns* ns})
@@ -79,7 +81,7 @@
                    (catch Throwable e
                      (reset! rfail? e)
                      nil))
-        should-check? (and (or typed? (typed-ns-form? current-ns rcode))
+        should-check? (and (or typed? (typed-ns-form? current-ns rcode opts))
                            (not @rfail?))]
     ;(prn "code" code)
     ;(prn "current-ns" current-ns)
@@ -128,7 +130,7 @@
             (flush))))
       :else (handler msg))))
 
-(defn handle-load-file [handler {:keys [file file-name file-path session transport] :as msg}]
+(defn handle-load-file [handler {:keys [file file-name file-path session transport] :as msg} opts]
   {:pre [session transport]}
   (let [rfail? (atom false)
         rcode (try (read-string file)
@@ -138,7 +140,7 @@
         flush (fn []
                 (.flush ^Writer (@session #'*out*))
                 (.flush ^Writer (@session #'*err*)))
-        should-check? (and (or (typed-ns-form? 'user rcode)
+        should-check? (and (or (typed-ns-form? 'user rcode opts)
                                ;; vim-fireplace abuses :file to switch namespaces
                                (typed-in-ns-form? 'user rcode))
                            (not @rfail?))]
@@ -195,8 +197,8 @@
   (fn [{:keys [op] :as msg}]
     ;(prn "wrap-clj-repl" op)
     (cond 
-      (= "load-file" op) (handle-load-file handler msg)
-      (= "eval" op)      (handle-eval handler msg)
+      (= "load-file" op) (handle-load-file handler msg ((requiring-resolve 'typed.clj.runtime.env/clj-opts)))
+      (= "eval" op)      (handle-eval handler msg ((requiring-resolve 'typed.clj.runtime.env/clj-opts)))
       :else (handler msg))))
 
 (mid/set-descriptor! #'wrap-clj-repl

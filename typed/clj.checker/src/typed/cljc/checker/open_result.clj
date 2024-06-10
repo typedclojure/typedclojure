@@ -39,8 +39,8 @@
 ;  -> '[Type FilterSet RObject]]
 (defn open-Result 
   "Substitute ids for objs in Result t"
-  ([r objs] (open-Result r objs nil))
-  ([{t :t fs :fl old-obj :o :as r} objs ts]
+  ([r objs opts] (open-Result r objs nil opts))
+  ([{t :t fs :fl old-obj :o :as r} objs ts opts]
    {:pre [(r/Result? r)
           (every? obj/RObject? objs)
           ((some-fn fl/FilterSet? fl/NoFilter?) fs)
@@ -48,11 +48,11 @@
           ((some-fn nil? (con/every-c? r/Type?)) ts)]
     :post [((con/hvector-c? r/Type? fl/FilterSet? obj/RObject?) %)]}
    ;  (prn "open-result")
-   ;  (prn "result type" (prs/unparse-type t))
-   ;  (prn "result filterset" (prs/unparse-filter-set fs))
+   ;  (prn "result type" (prs/unparse-type t opts))
+   ;  (prn "result filterset" (prs/unparse-filter-set fs opts))
    ;  (prn "result (old) object" old-obj)
    ;  (prn "objs" objs)
-   ;  (prn "ts" (mapv prs/unparse-type ts))
+   ;  (prn "ts" (mapv #(prs/unparse-type % opts) ts))
    (reduce (fn [[t fs old-obj] [[o k] arg-ty]]
              {:pre [(r/Type? t)
                     ((some-fn fl/FilterSet? fl/NoFilter?) fs)
@@ -61,10 +61,10 @@
                     (obj/RObject? o)
                     ((some-fn false? r/Type?) arg-ty)]
               :post [((con/hvector-c? r/Type? fl/FilterSet? obj/RObject?) %)]}
-             (let [r [(subst-obj/subst-type t k o true)
-                      (subst-obj/subst-filter-set fs k o true arg-ty)
-                      (subst-obj/subst-object old-obj k o true)]]
-               ;              (prn [(prs/unparse-type t) (prs/unparse-filter-set fs) old-obj])
+             (let [r [(subst-obj/subst-type t k o true opts)
+                      (subst-obj/subst-filter-set fs k o true arg-ty opts)
+                      (subst-obj/subst-object old-obj k o true opts)]]
+               ;              (prn [(prs/unparse-type t opts) (prs/unparse-filter-set fs opts) old-obj])
                ;              (prn "r" r)
                r))
            [t fs old-obj]
@@ -76,6 +76,6 @@
                 (or ts (repeat false))))))
 
 (defn open-Result->TCResult
-  ([r objs] (open-Result->TCResult r objs nil))
-  ([r objs ts] (let [[t-r f-r o-r] (open-Result r objs ts)]
-                 (r/ret t-r f-r o-r))))
+  ([r objs opts] (open-Result->TCResult r objs nil opts))
+  ([r objs ts opts] (let [[t-r f-r o-r] (open-Result r objs ts opts)]
+                      (r/ret t-r f-r o-r))))

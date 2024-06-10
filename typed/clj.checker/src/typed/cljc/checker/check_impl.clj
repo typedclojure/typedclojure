@@ -36,56 +36,56 @@
   "Type checks the given expression at an optional expected TCResult.
   Assumes expression has been passed to ana2/run-pre-passes.
   Dispatches on the operator of expr."
-  (fn [expr expected]
+  (fn [expr expected opts]
     (::ana2/op expr)))
 
-(defmethod -check ::ana2/binding   [expr expected] (binding/check-binding     expr expected))
-(defmethod -check ::ana2/catch     [expr expected] (catch/check-catch         expr expected))
-(defmethod -check ::ana2/const     [expr expected] (const/check-const         expr expected))
-(defmethod -check ::ana2/do        [expr expected] (do/check-do               expr expected))
-(defmethod -check ::ana2/fn        [expr expected] (fn/check-fn               expr expected))
-(defmethod -check ::ana2/if        [expr expected] (if/check-if               expr expected))
-(defmethod -check ::ana2/invoke    [expr expected] (invoke/check-invoke       expr expected))
-(defmethod -check ::ana2/let       [expr expected] (let/check-let             expr expected))
-(defmethod -check ::ana2/letfn     [expr expected] (letfn/check-letfn         expr expected))
-(defmethod -check ::ana2/local     [expr expected] (local/check-local         expr expected))
-(defmethod -check ::ana2/loop      [expr expected] (loop/check-loop           expr expected))
-(defmethod -check ::ana2/map       [expr expected] (map/check-map             expr expected))
-(defmethod -check ::ana2/quote     [expr expected] (quote/check-quote         expr expected))
-(defmethod -check ::ana2/recur     [expr expected] (recur/check-recur         expr expected))
-(defmethod -check ::ana2/set       [expr expected] (set/check-set             expr expected))
-(defmethod -check ::ana2/set!      [expr expected] (set!/check-set!           expr expected))
-(defmethod -check ::ana2/throw     [expr expected] (throw/check-throw         expr expected))
-(defmethod -check ::ana2/try       [expr expected] (try/check-try             expr expected))
-(defmethod -check ::ana2/vector    [expr expected] (vec/check-vector          expr expected))
-(defmethod -check ::ana2/with-meta [expr expected] (with-meta/check-with-meta expr expected))
+(defmethod -check ::ana2/binding   [expr expected opts] (binding/check-binding     expr expected opts))
+(defmethod -check ::ana2/catch     [expr expected opts] (catch/check-catch         expr expected opts))
+(defmethod -check ::ana2/const     [expr expected opts] (const/check-const         expr expected false opts))
+(defmethod -check ::ana2/do        [expr expected opts] (do/check-do               expr expected opts))
+(defmethod -check ::ana2/fn        [expr expected opts] (fn/check-fn               expr expected opts))
+(defmethod -check ::ana2/if        [expr expected opts] (if/check-if               expr expected opts))
+(defmethod -check ::ana2/invoke    [expr expected opts] (invoke/check-invoke       expr expected opts))
+(defmethod -check ::ana2/let       [expr expected opts] (let/check-let             expr expected {} opts))
+(defmethod -check ::ana2/letfn     [expr expected opts] (letfn/check-letfn         expr expected opts))
+(defmethod -check ::ana2/local     [expr expected opts] (local/check-local         expr expected opts))
+(defmethod -check ::ana2/loop      [expr expected opts] (loop/check-loop           expr expected opts))
+(defmethod -check ::ana2/map       [expr expected opts] (map/check-map             expr expected opts))
+(defmethod -check ::ana2/quote     [expr expected opts] (quote/check-quote         expr expected opts))
+(defmethod -check ::ana2/recur     [expr expected opts] (recur/check-recur         expr expected opts))
+(defmethod -check ::ana2/set       [expr expected opts] (set/check-set             expr expected opts))
+(defmethod -check ::ana2/set!      [expr expected opts] (set!/check-set!           expr expected opts))
+(defmethod -check ::ana2/throw     [expr expected opts] (throw/check-throw         expr expected opts))
+(defmethod -check ::ana2/try       [expr expected opts] (try/check-try             expr expected opts))
+(defmethod -check ::ana2/vector    [expr expected opts] (vec/check-vector          expr expected opts))
+(defmethod -check ::ana2/with-meta [expr expected opts] (with-meta/check-with-meta expr expected opts))
 
 ;; TODO
 
 (defmethod -check ::ana2/var
-  [expr expected]
+  [expr expected opts]
   ((impl/impl-case
     :clojure (requiring-resolve 'typed.clj.checker.check/check-var)
     :cljs (requiring-resolve 'typed.cljs.checker.check/check-var))
-   expr expected))
+   expr expected opts))
 
 (defmethod -check ::ana2/the-var
-  [expr expected]
+  [expr expected opts]
   ((impl/impl-case
     :clojure (requiring-resolve 'typed.clj.checker.check/check-the-var)
     :cljs (requiring-resolve 'typed.cljs.checker.check/check-the-var))
-   expr expected))
+   expr expected opts))
 
 (defmethod -check ::ana2/def
-  [expr expected]
+  [expr expected opts]
   ((impl/impl-case
     :clojure (requiring-resolve 'typed.clj.checker.check/check-def)
     :cljs (requiring-resolve 'typed.cljs.checker.check/check-def))
-   expr expected))
+   expr expected opts))
 
 (defmethod -check ::ana2/new
-  [expr expected]
+  [expr expected opts]
   ((impl/impl-case
     :clojure (requiring-resolve 'typed.clj.checker.check/check-new)
     :cljs (requiring-resolve 'typed.cljs.checker.check/check-new))
-   expr expected))
+   expr expected opts))

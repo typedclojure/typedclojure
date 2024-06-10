@@ -42,10 +42,10 @@
    :post [(or (nil? %) (r/TypeFn? %))]}
   (env-utils/force-type (get (declared-kinds checker) sym)))
 
-(defn get-declared-kind [checker sym]
+(defn get-declared-kind [checker sym opts]
   (if-let [tfn (declared-kind-or-nil checker sym)]
     tfn
-    (err/int-error (str "No declared kind for Name " sym))))
+    (err/int-error (str "No declared kind for Name " sym) opts)))
 
 (defn has-declared-kind? [checker sym]
   (boolean (declared-kind-or-nil checker sym)))

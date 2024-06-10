@@ -55,7 +55,7 @@
                 t))))
 
 ;[Any TCResult * -> TCResult]
-(defn tc-equiv [comparator vs expected]
+(defn tc-equiv [comparator vs expected opts]
   {:pre [(every? r/TCResult? vs)
          ((some-fn nil? r/TCResult?) expected)]
    :post [(r/TCResult? %)]}
@@ -69,39 +69,42 @@
         ; conservative for now
         vs-combinations (comb/combinations vs 2)
         ;_ (prn (count vs-combinations))
-        then-filter (apply fo/-and (apply concat
-                                          (for [[{t1 :t fl1 :fl o1 :o}
-                                                 {t2 :t fl2 :fl o2 :o}] vs-combinations]
-                                            (concat
-                                              (when-some [t1 (then-equivable t1)]
-                                                [(fo/-filter-at t1 o2)])
-                                              (when-some [t2 (then-equivable t2)]
-                                                [(fo/-filter-at t2 o1)])))))
+        then-filter (fo/-and (apply concat
+                                    (for [[{t1 :t fl1 :fl o1 :o}
+                                           {t2 :t fl2 :fl o2 :o}] vs-combinations]
+                                      (concat
+                                        (when-some [t1 (then-equivable t1)]
+                                          [(fo/-filter-at t1 o2)])
+                                        (when-some [t2 (then-equivable t2)]
+                                          [(fo/-filter-at t2 o1)]))))
+                             opts)
         ;_ (prn "then" then-filter)
-        else-filter (apply fo/-or 
-                           (if-let [fs (seq (apply concat
-                                                   (for [[{t1 :t fl1 :fl o1 :o}
-                                                          {t2 :t fl2 :fl o2 :o}] vs-combinations]
-                                                     (concat
-                                                       (when-some [t1 (else-equivable t1)]
-                                                         ;(prn "else t1" t1 o2 (fo/-not-filter-at t1 o2))
-                                                         [(fo/-not-filter-at t1 o2)])
-                                                       (when-some [t2 (else-equivable t2)]
-                                                         ;(prn "else t2" t2 o1 (fo/-not-filter-at t2 o1))
-                                                         [(fo/-not-filter-at t2 o1)])))))]
-                             fs
-                             ; ensure we don't simplify to ff if we have more than one
-                             ; argument to = (1 arg is always a true value)
-                             (when (< 1 (count vs))
-                               [fl/-top])))
+        else-filter (fo/-or (if-let [fs (seq (apply concat
+                                                    (for [[{t1 :t fl1 :fl o1 :o}
+                                                           {t2 :t fl2 :fl o2 :o}] vs-combinations]
+                                                      (concat
+                                                        (when-some [t1 (else-equivable t1)]
+                                                          ;(prn "else t1" t1 o2 (fo/-not-filter-at t1 o2))
+                                                          [(fo/-not-filter-at t1 o2)])
+                                                        (when-some [t2 (else-equivable t2)]
+                                                          ;(prn "else t2" t2 o1 (fo/-not-filter-at t2 o1))
+                                                          [(fo/-not-filter-at t2 o1)])))))]
+                              fs
+                              ; ensure we don't simplify to ff if we have more than one
+                              ; argument to = (1 arg is always a true value)
+                              (when (< 1 (count vs))
+                                [fl/-top]))
+                            opts)
         ;_ (prn "else" else-filter)
         [then-filter else-filter]  (case comparator
                                      :not= [else-filter then-filter]
                                      (:= :identical?) [then-filter else-filter])]
     (below/maybe-check-below
-      (r/ret (apply c/Un (concat (when (not= then-filter fl/-bot)
-                                   [r/-true])
-                                 (when (not= else-filter fl/-bot)
-                                   [r/-false])))
+      (r/ret (c/Un (concat (when (not= then-filter fl/-bot)
+                             [r/-true])
+                           (when (not= else-filter fl/-bot)
+                             [r/-false]))
+                   opts)
              (fo/-FS then-filter else-filter))
-      expected)))
+      expected
+      opts)))

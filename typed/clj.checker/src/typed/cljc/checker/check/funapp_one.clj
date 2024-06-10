@@ -12,7 +12,6 @@
             [typed.cljc.checker.check-below :as below]
             [clojure.core.typed.errors :as err]
             [typed.cljc.checker.type-ctors :as c]
-            [typed.cljc.checker.check :refer [check-expr]]
             [typed.cljc.checker.object-rep :as obj]
             [typed.cljc.checker.open-result :as open-result]
             [clojure.set :as set]))
@@ -20,7 +19,7 @@
 ;Function TCResult^n (or nil TCResult) -> TCResult
 (defn check-funapp1 [fexpr arg-exprs {{optional-kw :optional mandatory-kw :mandatory :as kws} :kws
                                       :keys [dom rng rest drest prest pdot] :as ftype0}
-                     argtys expected & {:keys [check?] :or {check? true}}]
+                     argtys expected {:keys [check?] :or {check? true}} opts]
   {:pre [(r/Function? ftype0)
          (every? r/TCResult? argtys)
          ((some-fn nil? r/TCResult?) expected)
@@ -63,8 +62,9 @@
                                          (seq optional-kw) " and some optional keyword arguments"
                                          :else (str " with unknow ftype " ftype0)))
                                  ", and got " nactual
-                                 " for function " (pr-str (prs/unparse-type ftype0))
-                                 " and arguments " (pr-str (mapv (comp prs/unparse-type r/ret-t) argtys)))))
+                                 " for function " (pr-str (prs/unparse-type ftype0 opts))
+                                 " and arguments " (pr-str (mapv (comp #(prs/unparse-type % opts) r/ret-t) argtys)))
+                              opts))
       (case (:kind ftype0)
         ; case for regular rest argument, or no rest parameter
         (:rest :fixed)
@@ -83,25 +83,29 @@
           (let [flat-kw-argtys (drop (count dom) argtys)]
             (when-not (even? (count flat-kw-argtys))
               (err/tc-delayed-error  
-                (str "Uneven number of arguments to function expecting keyword arguments")))
+                (str "Uneven number of arguments to function expecting keyword arguments")
+                opts))
             (let [kw-args-paired-t (apply hash-map (map r/ret-t flat-kw-argtys))]
               ;make sure all mandatory keys are present
               (when-let [missing-ks (seq 
                                       (set/difference (set (keys mandatory-kw))
                                                       (set (keys kw-args-paired-t))))]
                 (err/tc-delayed-error (str "Missing mandatory keyword keys: "
-                                         (pr-str (interpose ", " (map prs/unparse-type missing-ks))))))
+                                           (pr-str (interpose ", " (map #(prs/unparse-type % opts) missing-ks))))
+                                      opts))
               ;check each keyword argument is correctly typed
               (doseq [[kw-key-t kw-val-t] kw-args-paired-t]
                 (when-not (r/Value? kw-key-t)
                   (err/tc-delayed-error (str "Can only check keyword arguments with Value keys, found"
-                                           (pr-str (prs/unparse-type kw-key-t)))))
+                                             (pr-str (prs/unparse-type kw-key-t opts)))
+                                        opts))
                 (if-let [expected-val-t ((some-fn optional-kw mandatory-kw) kw-key-t)]
                   (below/check-below kw-val-t expected-val-t)
                   ; It is an error to use an undeclared keyword arg because we want to treat the rest parameter
                   ; as a complete hash-map.
                   (err/tc-delayed-error (str "Undeclared keyword parameter " 
-                                             (pr-str (prs/unparse-type kw-key-t)))))))))
+                                             (pr-str (prs/unparse-type kw-key-t opts)))
+                                        opts))))))
         (err/nyi-error (str "Function :kind " (:kind ftype0))))))
   (let [dom-count (count dom)
         arg-count (cond-> (+ dom-count (count optional-kw))
@@ -111,10 +115,11 @@
         [o-a t-a] (let [rs (for [[nm oa ta] (map vector 
                                                  (range arg-count) 
                                                  (concat o-a (repeat (obj/EmptyObject-maker)))
-                                                 (concat t-a (repeat (c/Un))))]
+                                                 (concat t-a (repeat (r/Bottom))))]
                              [(if (>= nm dom-count) (obj/EmptyObject-maker) oa)
                               ta])]
                     [(map first rs) (map second rs)])]
     (below/maybe-check-below
-      (open-result/open-Result->TCResult rng o-a t-a)
-      expected)))
+      (open-result/open-Result->TCResult rng o-a t-a opts)
+      expected
+      opts)))

@@ -28,11 +28,13 @@
   Deprecated:
   - :profile         Use Timbre to profile the type checker. Timbre must be
                      added as a dependency."
-  [ns-or-syms opt]
+  [ns-or-syms opt opts]
   (chk-ns/check-ns-info impl/clojure ns-or-syms
-                        (update opt :check-config #(into (default-check-config) %))))
+                        (update opt :check-config #(into (default-check-config) %))
+                        opts))
 
 (defn check-ns
-  [ns-or-syms opt]
+  [ns-or-syms opt opts]
   (chk-ns/check-ns impl/clojure ns-or-syms
-                   (update opt :check-config #(into (default-check-config) %))))
+                   (update opt :check-config #(into (default-check-config) %))
+                   opts))

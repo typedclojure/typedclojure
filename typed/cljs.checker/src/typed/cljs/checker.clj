@@ -10,6 +10,7 @@
   (:refer-clojure :exclude [requiring-resolve])
   (:require [clojure.core.typed.load-if-needed :refer [load-if-needed]]
             [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]
+            [typed.cljs.runtime.env :as cljs-env]
             [typed.cljs.checker.check-form :as check-form-clj]
             [typed.cljs.checker.check-ns :as check-ns-clj]))
 
@@ -29,7 +30,8 @@
   ([] (check-ns-info (ns-name *ns*)))
   ([ns-or-syms & {:as opt}]
    (load-if-needed)
-   ((requiring-resolve 'typed.cljs.checker.check-ns/check-ns-info) ns-or-syms (update opt :check-config #(into (default-check-config) %)))))
+   ((requiring-resolve 'typed.cljs.checker.check-ns/check-ns-info) ns-or-syms (update opt :check-config #(into (default-check-config) %))
+    (cljs-env/cljs-opts))))
 
 (defn check-ns
   "Check a Clojurescript namespace, or the current namespace (via *ns*).
@@ -37,7 +39,8 @@
   ([] (check-ns (ns-name *ns*)))
   ([ns-or-syms & {:as opt}]
    (load-if-needed)
-   ((requiring-resolve 'typed.cljs.checker.check-ns/check-ns) ns-or-syms (update opt :check-config #(into (default-check-config) %)))))
+   ((requiring-resolve 'typed.cljs.checker.check-ns/check-ns) ns-or-syms (update opt :check-config #(into (default-check-config) %))
+    (cljs-env/cljs-opts))))
 
 (defn check-ns4
   "Check a Clojurescript namespace, or the current namespace (via *ns*).
@@ -49,7 +52,8 @@
     ns-or-syms (update opt :check-config #(into {:check-ns-dep :never
                                                  :check-form-eval :never
                                                  :check-ns-load :require-before-check}
-                                                %)))))
+                                                %))
+    (cljs-env/cljs-opts))))
 
 (defn check-form
   "Check a single form with an optional expected type.

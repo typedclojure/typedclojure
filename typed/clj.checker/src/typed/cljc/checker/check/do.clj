@@ -15,7 +15,7 @@
             [clojure.core.typed.special-form :as spec]
             [clojure.core.typed.util-vars :as vs]
             [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]
-            [typed.cljc.checker.check :refer [check-expr]]
+            [typed.cljc.checker.check :as check]
             [typed.cljc.checker.check.utils :as cu]
             [typed.cljc.checker.filter-ops :as fo]
             [typed.cljc.checker.filter-rep :as fl]
@@ -29,23 +29,24 @@
 (defn internal-form? [expr]
   (u/internal-form? expr spec/special-form))
 
-(defn enforce-do-folding [{:keys [statements] :as expr} kw]
+(defn enforce-do-folding [{:keys [statements] :as expr} kw opts]
   (when-not (#{0 1} (count 
                       (filter #{kw}
                               (map :val statements))))
-    (err/int-error (str "Folded special-forms detected " (ast-u/emit-form-fn expr)))))
+    (err/int-error (str "Folded special-forms detected " (ast-u/emit-form-fn expr)) opts)))
 
-(defn check-do [expr expected]
+(defn check-do [expr expected {::check/keys [check-expr] :as opts}]
   {:post [(-> % u/expr-type r/TCResult?)
           (vector? (:statements %))]}
-  (enforce-do-folding expr spec/special-form)
+  (assert check-expr)
+  (enforce-do-folding expr spec/special-form opts)
   (let [internal-special-form
         (impl/impl-case
           :clojure (requiring-resolve 'typed.clj.checker.check/internal-special-form)
           :cljs (requiring-resolve 'typed.cljs.checker.check/internal-special-form))]
     (cond
       (internal-form? expr)
-      (internal-special-form expr expected)
+      (internal-special-form expr expected opts)
 
       :else
       (let [exprs (conj (vec (:statements expr)) (:ret expr))
@@ -81,11 +82,11 @@
                                                       expected))))
                               res (u/expr-type cexpr)
                               {fs+ :then fs- :else} (r/ret-f res)
-                              nenv (update/env+ env [(fo/-or fs+ fs-)] reachable)
+                              nenv (update/env+ env [(fo/-or [fs+ fs-] opts)] reachable opts)
                               _ (u/trace-when-let
                                   [ls (seq (cu/find-updated-locals (:l env) (:l nenv)))]
                                   (str "Updated local in exceptional control flow (do): " ls))
-                              ;_ (prn nenv)
+                              ;_ (prn "check-do" nenv)
                               ]
                           (if @reachable
                             ;reachable

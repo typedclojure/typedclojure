@@ -20,25 +20,27 @@
                          LazySeq Indexed)))
 
 (defprotocol ConstantType 
-  (constant-ret [this]))
+  (constant-ret [this opts]))
 
 (def ^:dynamic *quoted?* false)
 
-(defn constant-type [s & [quoted?]]
-  (binding [*quoted?* (or quoted? *quoted?*)]
-    (if (and (not *quoted?*)
-             (seq? s)
-             (= 'quote (first s))
-             (= 2 (count s)))
-      (binding [*quoted?* true]
-        (r/ret-t (constant-ret (second s))))
-      (r/ret-t (constant-ret s)))))
+(defn constant-type
+  ([s opts] (constant-type s false opts))
+  ([s quoted? opts]
+   (binding [*quoted?* (or quoted? *quoted?*)]
+     (if (and (not *quoted?*)
+              (seq? s)
+              (= 'quote (first s))
+              (= 2 (count s)))
+       (binding [*quoted?* true]
+         (r/ret-t (constant-ret (second s) opts)))
+       (r/ret-t (constant-ret s opts))))))
 
 ;[Any -> Type]
 
 (defmacro constant-type->val
   [& cls]
-  (let [method `(constant-ret [v#] (ret (r/-val v#)))]
+  (let [method `(constant-ret [v# opts#] (ret (r/-val v#)))]
     `(extend-protocol ConstantType
        ~@(apply concat (zipmap cls (repeat method))))))
 
@@ -49,53 +51,55 @@
 
 (extend-protocol ConstantType
   nil
-  (constant-ret [v]
+  (constant-ret [v opts]
     (impl/impl-case
       :clojure (ret (r/-val nil))
       :cljs (ret (r/JSNull-maker))))
 
   java.util.regex.Pattern
-  (constant-ret [v]
+  (constant-ret [v opts]
     (impl/impl-case
-      :clojure (ret (c/RClass-of java.util.regex.Pattern))
+      :clojure (ret (c/RClass-of java.util.regex.Pattern opts))
       :cljs (assert nil "TODO: CLJS pattern in ConstantType")))
 
   IPersistentSet
-  (constant-ret [v] 
+  (constant-ret [v opts]
     (ret
       (if (every? hset/valid-fixed? v)
         (r/-hset (r/sorted-type-set (map r/-val v)))
-        (c/-name `t/Set (apply c/Un (map constant-type v))))))
+        (c/-name `t/Set (c/Un (map #(constant-type % opts) v) opts)))))
 
   ;default for ISeqs
   ISeq
-  (constant-ret [iseq] (ret (r/-hsequential
-                              (mapv constant-type iseq)
-                              :kind (cond
-                                      (list? iseq) :list
-                                      (seq? iseq) :seq
-                                      :else :sequential))))
+  (constant-ret [iseq opts]
+    (ret (r/-hsequential
+           (mapv #(constant-type % opts) iseq)
+           :kind (cond
+                   (list? iseq) :list
+                   (seq? iseq) :seq
+                   :else :sequential))))
 
   IPersistentVector
-  (constant-ret [cvec] (ret (r/-hvec (mapv constant-type cvec))))
+  (constant-ret [cvec opts] (ret (r/-hvec (mapv #(constant-type % opts) cvec))))
 
   IPersistentMap
-  (constant-ret [cmap]
-    (let [kts (map constant-type (keys cmap))
-          vts (map constant-type (vals cmap))]
+  (constant-ret [cmap opts]
+    (let [kts (map #(constant-type % opts) (keys cmap))
+          vts (map #(constant-type % opts) (vals cmap))]
       (if (every? r/Value? kts)
-        (ret (c/-complete-hmap (zipmap kts vts)))
+        (ret (c/-complete-hmap (zipmap kts vts) opts))
         (ret (c/In
-               (c/-name `t/Map
-                        (apply c/Un kts)
-                        (apply c/Un vts))
-               (r/make-ExactCountRange (count cmap)))))))
+               [(c/-name `t/Map
+                         (c/Un kts opts)
+                         (c/Un vts opts))
+                (r/make-ExactCountRange (count cmap))]
+               opts)))))
   
   ;base case
   Object
-  (constant-ret [bse]
+  (constant-ret [bse opts]
     (impl/impl-case
-      :clojure (ret (c/RClass-of-with-unknown-params (class bse)))
+      :clojure (ret (c/RClass-of-with-unknown-params (class bse) opts))
       :cljs (cond
               (number? bse) (ret (r/JSNumber-maker))
               :else (assert nil "TODO: base case of constant-type")))))

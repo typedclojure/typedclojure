@@ -10,7 +10,7 @@
   (:require [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.util-vars :as vs]
             [typed.clj.checker.subtype :as sub]
-            [typed.cljc.checker.check :refer [check-expr]]
+            [typed.cljc.checker.check :as check]
             [typed.cljc.checker.check-below :as below]
             [typed.cljc.checker.check.utils :as cu]
             [typed.cljc.checker.filter-ops :as fo]
@@ -19,19 +19,20 @@
             [typed.cljc.checker.utils :as u])
   (:import (clojure.lang PersistentHashSet)))
 
-(defn check-set [{:keys [items] :as expr} expected]
+(defn check-set [{:keys [items] :as expr} expected {::check/keys [check-expr] :as opts}]
   {:post [(-> % u/expr-type r/TCResult?)
           (vector? (:items %))]}
   (let [cargs (mapv check-expr items)
-        ts (map (comp c/fully-resolve-type r/ret-t u/expr-type) cargs)
+        ts (map (comp #(c/fully-resolve-type % opts) r/ret-t u/expr-type) cargs)
         res-type (if (every? r/Value? ts)
                    (r/-hset (r/sorted-type-set ts))
                    (impl/impl-case
-                     :clojure (c/RClass-of PersistentHashSet [(apply c/Un ts)])
-                     :cljs (c/-name 'typed.clojure/Set (apply c/Un ts))))]
+                     :clojure (c/RClass-of PersistentHashSet [(c/Un ts opts)] opts)
+                     :cljs (c/-name 'typed.clojure/Set (c/Un ts opts))))]
     (assoc expr
            :items cargs
            u/expr-type (binding [vs/*current-expr* expr]
                          (below/maybe-check-below
                            (r/ret res-type (fo/-true-filter))
-                           expected)))))
+                           expected
+                           opts)))))

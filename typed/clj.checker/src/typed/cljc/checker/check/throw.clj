@@ -8,7 +8,7 @@
 
 (ns typed.cljc.checker.check.throw
   (:require [clojure.core.typed.current-impl :as impl]
-            [typed.cljc.checker.check :refer [check-expr]]
+            [typed.cljc.checker.check :as check]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.check-below :as below]
             [typed.cljc.checker.filter-ops :as fo]
@@ -18,18 +18,19 @@
             [typed.cljc.checker.utils :as u]))
 
 (defn check-throw
-  [{:keys [exception] :as expr} expected]
+  [{:keys [exception] :as expr} expected {::check/keys [check-expr] :as opts}]
   (let [exception-expected (impl/impl-case
-                             :clojure (r/ret (c/RClass-of Throwable))
+                             :clojure (r/ret (c/RClass-of Throwable opts))
                              :cljs nil)
         cexception (check-expr exception exception-expected)
         ret (below/maybe-check-below
-              (r/ret (c/Un)
+              (r/ret (r/Bottom)
                      ;never returns normally
                      (fo/-unreachable-filter)
                      ;;FIXME need an unreachable object
                      obj/-empty)
-              expected)]
+              expected
+              opts)]
     (assoc expr
            :exception cexception
            u/expr-type ret)))

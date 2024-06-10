@@ -21,7 +21,7 @@
             [typed.clj.checker.parse-unparse :as prs]
             [typed.clj.checker.subtype :as sub]
             [typed.cljc.checker.check-below :as below]
-            [typed.cljc.checker.check :refer [check-expr]]
+            [typed.cljc.checker.check :as check]
             [typed.cljc.checker.check.app-error :as app-err]
             [typed.cljc.checker.check.funapp-one :as funapp1]
             [typed.cljc.checker.check.invoke-kw :as invoke-kw]
@@ -39,24 +39,23 @@
             [typed.cljc.checker.utils :as u]
             [typed.cljc.runtime.env :as env]))
 
-(def ^:private nth-type #((requiring-resolve 'typed.cljc.checker.check.nth/nth-type) %1 %2 %3))
+(def ^:private nth-type #((requiring-resolve 'typed.cljc.checker.check.nth/nth-type) %1 %2 %3 %4))
 
 ; Expr Expr^n TCResult TCResult^n (U nil TCResult) -> TCResult
-(t/ann check-funapp [t/Any t/Any t/Any t/Any t/Any t/Any :? :-> t/Any])
+(t/ann check-funapp [t/Any t/Any t/Any t/Any t/Any t/Any t/Any :-> t/Any])
 ;TODO HeterogeneousMap case, see typed-test.cljc.checker.check.funapp/invoke-HMap-test
 (defn check-funapp
-  ([fexpr args fexpr-ret-type arg-ret-types expected]
-   (check-funapp fexpr args fexpr-ret-type arg-ret-types expected nil))
-  ([fexpr args fexpr-ret-type arg-ret-types expected {:keys [expr] :as opt}]
+  ([fexpr args fexpr-ret-type arg-ret-types expected {:keys [expr] :as opt} opts]
    {:pre [(r/TCResult? fexpr-ret-type)
           (every? r/TCResult? arg-ret-types)
           ((some-fn nil? r/TCResult?) expected)]
     :post [(r/TCResult? %)]}
-   (let [fexpr-type (c/fully-resolve-type (r/ret-t fexpr-ret-type))
-         arg-types (mapv r/ret-t arg-ret-types)]
+   (let [fexpr-type (c/fully-resolve-type (r/ret-t fexpr-ret-type) opts)
+         arg-types (mapv r/ret-t arg-ret-types)
+         fexpr-ifn-ancestor (delay (c/ifn-ancestor fexpr-type opts))]
      (prs/with-unparse-ns (or prs/*unparse-type-in-ns*
                               (some-> fexpr cu/expr-ns))
-     ;(prn "check-funapp" (prs/unparse-type fexpr-type) (map prs/unparse-type arg-types) (some-> expected prs/unparse-type))
+     ;(prn "check-funapp" (prs/unparse-type fexpr-type opts) (map #(prs/unparse-type % opts) arg-types) (some-> expected (prs/unparse-type opts)))
      (cond
        ;; a union of functions can be applied if we can apply all of the elements
        (r/Union? fexpr-type)
@@ -64,8 +63,9 @@
                         {:pre [(r/Type? t)
                                (r/Type? ftype)]
                          :post [(r/Type? %)]}
-                        (c/Un t (r/ret-t (check-funapp fexpr args (r/ret ftype) arg-ret-types expected opt))))
-                      (c/Un)
+                        (c/Un [t (r/ret-t (check-funapp fexpr args (r/ret ftype) arg-ret-types expected opt opts))]
+                              opts))
+                      (r/Bottom)
                       (:types fexpr-type)))
 
        ; try the first thing that looks like a Fn.
@@ -80,21 +80,21 @@
                                  (or (r/FnIntersection? t)
                                      (r/HeterogeneousVector? t)
                                      (c/keyword-value? t)
-                                     (c/ifn-ancestor t)
+                                     (c/ifn-ancestor t opts)
                                      (r/Poly? t)))
-                               (map c/fully-resolve-type (:types fexpr-type))))]
+                               (map #(c/fully-resolve-type % opts) (:types fexpr-type))))]
          (if a-fntype
-           (check-funapp fexpr args (r/ret a-fntype) arg-ret-types expected opt)
-           (err/tc-delayed-error (str "Cannot invoke type: " (pr-str (prs/unparse-type fexpr-type))))))
+           (check-funapp fexpr args (r/ret a-fntype) arg-ret-types expected opt opts)
+           (err/tc-delayed-error (str "Cannot invoke type: " (pr-str (prs/unparse-type fexpr-type opts))) opts)))
 
-       (c/ifn-ancestor fexpr-type)
-       (check-funapp fexpr args (r/ret (c/ifn-ancestor fexpr-type)) arg-ret-types expected opt)
+       @fexpr-ifn-ancestor
+       (check-funapp fexpr args (r/ret @fexpr-ifn-ancestor) arg-ret-types expected opt opts)
 
        ;keyword function
        (c/keyword-value? fexpr-type)
        (let [[target-ret default-ret & more-args] arg-ret-types]
          (assert (empty? more-args))
-         (invoke-kw/invoke-keyword nil fexpr-ret-type target-ret default-ret expected))
+         (invoke-kw/invoke-keyword nil fexpr-ret-type target-ret default-ret expected opts))
 
        ;set function
        ;FIXME yuck. Also this is wrong, should be APersistentSet or something that *actually* extends IFn
@@ -103,17 +103,18 @@
                   clojure.lang.IPersistentSet))
        (do
          (when-not (= 1 (count args))
-           (err/tc-delayed-error (str "Wrong number of arguments to set function (" (count args)")")))
+           (err/tc-delayed-error (str "Wrong number of arguments to set function (" (count args)")") opts))
          (below/maybe-check-below
            (r/ret r/-any)
-           expected))
+           expected
+           opts))
 
        ;FIXME same as IPersistentSet case
        (and (r/RClass? fexpr-type)
             (isa? (coerce/symbol->Class (:the-class fexpr-type)) clojure.lang.IPersistentMap))
        ;rewrite ({..} x) as (f {..} x), where f is some dummy fn
-       (let [mapfn (prs/parse-type `(t/All [x#] [(t/Map t/Any x#) t/Any :-> (t/U nil x#)]))]
-         (check-funapp fexpr args (r/ret mapfn) (concat [fexpr-ret-type] arg-ret-types) expected opt))
+       (let [mapfn (prs/parse-type `(t/All [x#] [(t/Map t/Any x#) t/Any :-> (t/U nil x#)]) opts)]
+         (check-funapp fexpr args (r/ret mapfn) (concat [fexpr-ret-type] arg-ret-types) expected opt opts))
 
        ;FIXME same as IPersistentSet case
        (and (r/RClass? fexpr-type)
@@ -123,14 +124,15 @@
                                          y 'y]
                                      `(t/All [~x ~y]
                                              (t/IFn [(t/Vec ~x) t/Int :-> ~x]
-                                                    [(t/Vec ~x) t/Int ~y :-> (t/U ~y ~x)]))))]
-         (check-funapp fexpr args (r/ret mapfn) (cons fexpr-ret-type arg-ret-types) expected opt))
+                                                    [(t/Vec ~x) t/Int ~y :-> (t/U ~y ~x)])))
+                                   opts)]
+         (check-funapp fexpr args (r/ret mapfn) (cons fexpr-ret-type arg-ret-types) expected opt opts))
 
        ;Symbol function
        (and (r/RClass? fexpr-type)
             (= 'clojure.lang.Symbol (:the-class fexpr-type)))
-       (let [symfn (prs/parse-type `(t/All [x#] [(t/U (t/Map t/Any x#) t/Any) :-> (t/U x# nil)]))]
-         (check-funapp fexpr args (r/ret symfn) arg-ret-types expected opt))
+       (let [symfn (prs/parse-type `(t/All [x#] [(t/U (t/Map t/Any x#) t/Any) :-> (t/U x# nil)]) opts)]
+         (check-funapp fexpr args (r/ret symfn) arg-ret-types expected opt opts))
        
        ;Var function
        (and (r/RClass? fexpr-type)
@@ -138,14 +140,16 @@
        (let [{[ftype :as args] :poly?} fexpr-type
              _ (when-not (= 1 (count args))
                  (err/int-error (str "clojure.lang.Var takes 1 argument, "
-                                     "given " (count args))))]
-         (check-funapp fexpr args (r/ret ftype) arg-ret-types expected opt))
+                                     "given " (count args))
+                                opts))]
+         (check-funapp fexpr args (r/ret ftype) arg-ret-types expected opt opts))
 
        ;Error is perfectly good fn type
        (r/TCError? fexpr-type)
        (below/maybe-check-below
          (r/ret r/Err)
-         expected)
+         expected
+         opts)
 
        ; Unchecked function is upcast to anything so we don't check arguments,
        ; but return Unchecked or expected.
@@ -161,7 +165,8 @@
              (r/make-FnIntersection
                (r/make-Function
                  (vec (repeat (count args) r/-any))
-                 r/-any))))
+                 r/-any))
+             opts))
          (or expected
              (r/ret (r/-unchecked nil))))
 
@@ -172,27 +177,29 @@
                (when (integer? idx)
                  (below/maybe-check-below
                    ;; FIXME replace with path-type?
-                   (r/ret (nth-type [fexpr-type] idx nil))
-                   expected))))
-           (check-funapp fexpr args (assoc fexpr-ret-type :t (c/upcast-HSequential fexpr-type)) arg-ret-types expected opt))
+                   (r/ret (nth-type [fexpr-type] idx nil opts))
+                   expected
+                   opts))))
+           (check-funapp fexpr args (assoc fexpr-ret-type :t (c/upcast-HSequential fexpr-type opts)) arg-ret-types expected opt opts))
 
        (r/HSet? fexpr-type)
        (let [fixed (:fixed fexpr-type)
              ret (if (not= 1 (count arg-ret-types))
                    (err/tc-delayed-error (str "Expected 1 argument to set, given " (count args) ".")
-                                         :return (r/ret r/Err))
+                                         {:return (r/ret r/Err)}
+                                         opts)
                    (let [[argt] arg-ret-types
                          ; default value is nil
-                         set-return (apply c/Un r/-nil fixed)]
+                         set-return (c/Un (cons r/-nil fixed) opts)]
                      (if (and (:complete? fexpr-type)
                               (every? (every-pred
                                         r/Value?
                                         (comp hset/valid-fixed? :val))
                                       fixed))
-                       (let [filter-type (apply c/Un
-                                                (disj (r/sorted-type-set fixed) 
-                                                      (r/-val nil)
-                                                      (r/-val false)))]
+                       (let [filter-type (c/Un (disj (r/sorted-type-set fixed) 
+                                                     (r/-val nil)
+                                                     (r/-val false))
+                                               opts)]
                          (r/ret set-return
                                 (fops/-FS
                                   (fops/-filter-at filter-type (r/ret-o argt))
@@ -200,7 +207,8 @@
                        (r/ret set-return))))]
          (below/maybe-check-below
            ret
-           expected))
+           expected
+           opts))
 
    ; FIXME error messages are worse here because we don't use line numbers for
    ; specific arguments
@@ -212,7 +220,7 @@
 ;       ; check/funapp-single-arity-nopoly-nodots
 ;       (let [argtys arg-ret-types
 ;             {[t] :types} fexpr-type]
-;         (funapp1/check-funapp1 fexpr args t argtys expected))
+;         (funapp1/check-funapp1 fexpr args t argtys expected {} opts))
 
        ;ordinary Function, multiple cases
        (r/FnIntersection? fexpr-type)
@@ -227,15 +235,15 @@
                                       (mapv (comp #(mapv (juxt :env typed.clj.analyzer.passes.emit-form/emit-form) %) :origin-exprs meta)
                                             arg-ret-types))
                                  (when (if prest
-                                         (sub/subtypes-prest? arg-types dom prest)
-                                         (sub/subtypes-varargs? arg-types dom rest kws))
+                                         (sub/subtypes-prest? arg-types dom prest opts)
+                                         (sub/subtypes-varargs? arg-types dom rest kws opts))
                                    f))
                                ftypes)
              success-ret-type (when matching-fn
-                                (funapp1/check-funapp1 fexpr args matching-fn arg-ret-types expected :check? false))]
+                                (funapp1/check-funapp1 fexpr args matching-fn arg-ret-types expected {:check? false} opts))]
          ;(prn "success-ret-type" success-ret-type)
          (or success-ret-type
-             (app-err/plainapp-type-error fexpr args fexpr-type arg-ret-types expected)))
+             (app-err/plainapp-type-error fexpr args fexpr-type arg-ret-types expected opts)))
 
        (r/SymbolicClosure? fexpr-type)
        (let [capp (sub/check-symbolic-closure
@@ -253,27 +261,29 @@
              res (-> fni :types first :rng
                      (open-result/open-Result->TCResult
                        (map :o arg-ret-types)
-                       (map :t arg-ret-types)))]
+                       (map :t arg-ret-types)
+                       opts))]
          (below/maybe-check-below
            res
-           expected))
+           expected
+           opts))
 
        ;ordinary polymorphic function without dotted rest
        (when (r/Poly? fexpr-type)
          (let [names (c/Poly-fresh-symbols* fexpr-type)
-               body (c/Poly-body* names fexpr-type)]
+               body (c/Poly-body* names fexpr-type opts)]
            (when (r/FnIntersection? body)
              (not-any? (some-fn :drest :pdot) (:types body)))))
        (let [fs-names (c/Poly-fresh-symbols* fexpr-type)
              _ (assert (every? symbol? fs-names))
-             fin (c/Poly-body* fs-names fexpr-type)
-             bbnds (c/Poly-bbnds* fs-names fexpr-type)
+             fin (c/Poly-body* fs-names fexpr-type opts)
+             bbnds (c/Poly-bbnds* fs-names fexpr-type opts)
              _ (assert (r/FnIntersection? fin))
              ;; Only infer free variables in the return type
              ret-type
              (free-ops/with-bounded-frees (zipmap (map r/F-maker fs-names) bbnds)
                (let [fs-names->bbnds (zipmap fs-names bbnds)
-                     expected-t (some-> expected r/ret-t c/fully-resolve-type)]
+                     expected-t (some-> expected r/ret-t (c/fully-resolve-type opts))]
                  (loop [[{:keys [dom rng rest drest kws prest] :as ftype} & ftypes] (:types fin)]
                    (when ftype
                      ;; only try inference if argument types are appropriate
@@ -288,14 +298,16 @@
                                                arg-types dom rest
                                                (r/Result-type* rng)
                                                (some-> expected r/ret-t)
-                                               {:expr expr})
+                                               {:expr expr}
+                                               opts)
 
                             (and prest
                                  (<= (count dom) (count arg-types)))
                             (cgen/infer-prest fs-names->bbnds {}
                                               arg-types dom prest
                                               (r/Result-type* rng) expected-t
-                                              {:expr expr})
+                                              {:expr expr}
+                                              opts)
 
                             ;keyword parameters
                             kws
@@ -306,7 +318,8 @@
                                       (cgen/fail! nil nil)
                                       #_(err/int-error (str "Uneven number of keyword arguments "
                                                             "provided to polymorphic function "
-                                                            "with keyword parameters.")))
+                                                            "with keyword parameters.")
+                                                       opts))
                                   paired-kw-argtys (apply hash-map flat-kw-argtys)
 
                                   ;generate two vectors identical in length with actual kw val types
@@ -326,8 +339,9 @@
                                               ; move to next arity
                                               (cgen/fail! nil nil)
                                               #_(err/int-error 
-                                                (str "Can only check keyword arguments with Value keys, found"
-                                                     (pr-str (prs/unparse-type kw-key-t)))))
+                                                  (str "Can only check keyword arguments with Value keys, found"
+                                                       (pr-str (prs/unparse-type kw-key-t opts)))
+                                                  opts))
                                             (if-some [expected-val-t ((some-fn optional mandatory) kw-key-t)]
                                               [(conj kw-val-actual-tys kw-val-t)
                                                (conj kw-val-expected-tys expected-val-t)]
@@ -336,7 +350,8 @@
                                                 ; the rest param as a complete hash map when checking 
                                                 ; fn bodies.
                                                 (err/tc-delayed-error (str "Undeclared keyword parameter " 
-                                                                           (pr-str (prs/unparse-type kw-key-t))))
+                                                                           (pr-str (prs/unparse-type kw-key-t opts)))
+                                                                      opts)
                                                 [(conj kw-val-actual-tys kw-val-t)
                                                  (conj kw-val-expected-tys r/-any)])))
                                           [[] []]
@@ -348,13 +363,13 @@
                                 (cgen/fail! nil nil))
                                 ;(err/tc-delayed-error (str "Missing mandatory keyword keys: "
                                 ;                         (pr-str (vec (interpose ", "
-                                ;                                                 (map prs/unparse-type missing-ks))))))
+                                ;                                                 (map #(prs/unparse-type % opts) missing-ks))))) opts)
                               ;; it's probably a bug to not infer for unused optional args, revisit this
                               ;(when-let [missing-optional-ks (seq
                               ;                                 (set/difference (set (keys optional))
                               ;                                                 (set (keys paired-kw-argtys))))]
                               ;  (err/nyi-error (str "NYI POSSIBLE BUG?! Unused optional parameters"
-                              ;                    (pr-str (interpose ", " (map prs/unparse-type missing-optional-ks)))))
+                              ;                    (pr-str (interpose ", " (map #(prs/unparse-type % opts) missing-optional-ks)))))
                               ;  )
                               ; infer keyword and fixed parameters all at once
                               (cgen/infer fs-names->bbnds {}
@@ -362,20 +377,21 @@
                                           (concat dom kw-val-expected-tys) 
                                           (r/Result-type* rng)
                                           (some-> expected r/ret-t)
-                                          {:expr expr}))))]
+                                          {:expr expr}
+                                          opts))))]
                        (if (r/SymbolicClosure? substitution)
                          (r/ret substitution)
                          (let [;_ (prn "subst:" substitution)
-                               new-ftype (subst/subst-all substitution ftype)]
+                               new-ftype (subst/subst-all substitution ftype opts)]
                            ;(prn "substituted type" new-ftype)
                            (funapp1/check-funapp1 fexpr args new-ftype
-                                                  arg-ret-types expected :check? false)))
+                                                  arg-ret-types expected {:check? false} opts)))
                        (if drest
-                         (do (err/tc-delayed-error (str "Cannot infer arguments to polymorphic functions with dotted rest"))
+                         (do (err/tc-delayed-error (str "Cannot infer arguments to polymorphic functions with dotted rest") opts)
                              nil)
                          (recur ftypes)))))))]
          (or ret-type
-             (app-err/polyapp-type-error fexpr args fexpr-type arg-ret-types expected)))
+             (app-err/polyapp-type-error fexpr args fexpr-type arg-ret-types expected opts)))
 
        :else ;; any kind of dotted polymorphic function without mandatory or optional keyword args
        (if-let [[pbody fixed-map dotted-map]
@@ -383,21 +399,22 @@
                           (and (r/PolyDots? t)
                                (r/FnIntersection?
                                  (c/PolyDots-body* (c/PolyDots-fresh-symbols* t)
-                                                   t))))
+                                                   t
+                                                   opts))))
                         (collect-polydots [t]
                           {:post [((con/hvector-c? r/Type?
                                                    (con/hash-c? symbol? r/Bounds?)
                                                    (con/hash-c? symbol? r/Regex?))
                                    %)]}
-                          (loop [pbody (c/fully-resolve-type t)
+                          (loop [pbody (c/fully-resolve-type t opts)
                                  fixed {}
                                  dotted {}]
                             (cond 
                               (r/PolyDots? pbody)
                               (let [vars (vec (c/PolyDots-fresh-symbols* pbody))
-                                    bbnds (c/PolyDots-bbnds* vars pbody)
-                                    pbody (c/PolyDots-body* vars pbody)]
-                                (recur (c/fully-resolve-type pbody)
+                                    bbnds (c/PolyDots-bbnds* vars pbody opts)
+                                    pbody (c/PolyDots-body* vars pbody opts)]
+                                (recur (c/fully-resolve-type pbody opts)
                                        (reduce (fn [fixed i]
                                                  (assoc fixed (nth vars i) (nth bbnds i)))
                                                fixed (range (dec (count vars))))
@@ -426,7 +443,7 @@
                                            (contains? (set (keys dotted-map)) (-> pdot :name)))
                                  :else (= (count dom) (count arg-types)))
                            (cgen/handle-failure
-                             ;(prn "Inferring dotted fn" (prs/unparse-type ftype))
+                             ;(prn "Inferring dotted fn" (prs/unparse-type ftype opts))
                              ;; Only try to infer the free vars of the rng (which includes the vars
                              ;; in filters/objects).
                              (let [expected-t (some-> expected r/ret-t)
@@ -435,51 +452,55 @@
                                                   drest (let [de (first dotted-map)]
                                                           (cgen/infer-dots fixed-map (key de) (val de)
                                                                            arg-types dom (:pre-type drest) rng-t
-                                                                           (frees/fv rng)
-                                                                           :expected expected-t
-                                                                           :expr expr))
+                                                                           (frees/fv rng opts)
+                                                                           {:expected expected-t
+                                                                            :expr expr}
+                                                                           opts))
 
                                                   rest (cgen/infer-vararg fixed-map dotted-map
                                                                           arg-types dom rest rng-t
-                                                                          expected-t {:expr expr})
+                                                                          expected-t {:expr expr}
+                                                                          opts)
 
                                                   (and prest
                                                        (<= (count dom) (count arg-types)))
                                                   (cgen/infer-prest fixed-map dotted-map
                                                                     arg-types dom prest rng-t
-                                                                    expected-t {:expr expr})
+                                                                    expected-t {:expr expr}
+                                                                    opts)
 
                                                   pdot (let [de (first dotted-map)]
                                                          (cgen/infer-pdot fixed-map (key de) (val de)
                                                                           arg-types dom (:pre-type pdot) rng-t
-                                                                          (frees/fv rng)
-                                                                          :expected expected-t
-                                                                          #_;;TODO
-                                                                          {:expr expr}))
+                                                                          (frees/fv rng opts)
+                                                                          {:expected expected-t
+                                                                           #_#_;;TODO
+                                                                           :expr expr}
+                                                                          opts))
 
                                                   :else (cgen/infer fixed-map dotted-map
                                                                     arg-types dom rng-t
-                                                                    expected-t {:expr expr}))
+                                                                    expected-t {:expr expr}
+                                                                    opts))
                                    ;_ (prn "substitution:" substitution)
                                    substituted-type (cond-> substitution
                                                       (not (r/SymbolicClosure? substitution))
-                                                      (subst/subst-all ftype))
-                                   ;_ (prn "substituted-type" (prs/unparse-type substituted-type))
-                                   ;_ (prn "args" (map prs/unparse-type arg-types))
+                                                      (subst/subst-all ftype opts))
+                                   ;_ (prn "substituted-type" (prs/unparse-type substituted-type opts))
+                                   ;_ (prn "args" (map #(prs/unparse-type % opts) arg-types))
                                    ]
                                (or (when (r/SymbolicClosure? substituted-type)
                                      (r/ret substituted-type (fops/-true-filter)))
                                    (and substitution
                                         (funapp1/check-funapp1 fexpr args 
-                                                               substituted-type arg-ret-types expected :check? false))
-                                   (err/tc-delayed-error "Error applying dotted type")
+                                                               substituted-type arg-ret-types expected {:check? false} opts))
+                                   (err/tc-delayed-error "Error applying dotted type" opts)
                                    nil)))))
                        (:types pbody)))]
            ;(prn "inferred-rng"inferred-rng)
            (or inferred-rng
-               (app-err/polyapp-type-error fexpr args fexpr-type arg-ret-types expected)))
+               (app-err/polyapp-type-error fexpr args fexpr-type arg-ret-types expected opts)))
 
-         (let [opts (:opts fexpr-ret-type)]
-           ;(prn `check-funapp (class fexpr-type))
-           (err/tc-delayed-error (str "Cannot invoke type: " (pr-str (prs/unparse-type fexpr-type)))
-                                 :return (or expected (r/ret (c/Un)))))))))))
+         (err/tc-delayed-error (str "Cannot invoke type: " (pr-str (prs/unparse-type fexpr-type opts)))
+                               {:return (or expected (r/ret (r/Bottom)))}
+                               opts)))))))

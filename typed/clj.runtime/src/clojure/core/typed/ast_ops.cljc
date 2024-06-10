@@ -12,13 +12,13 @@
             [typed.cljc.runtime.env :as env]
             #?(:clj [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]])))
 
-(defn resolve-Name [{:keys [name] :as expr}]
+(defn resolve-Name [{:keys [name] :as expr} opts]
   {:pre [(#{:Name} (:op expr))]}
   (let [checker (env/checker)
         e ((requiring-resolve 'typed.cljc.runtime.env-utils/force-type)
            (get ((requiring-resolve 'clojure.core.typed.current-impl/alias-env) checker) name))
         _ (when-not e
-            (err/int-error (str "No alias found for " name)))]
+            (err/int-error (str "No alias found for " name) opts))]
     e))
 
 ;copied from tools.analyzer
@@ -105,13 +105,13 @@
     (replace-frees body
                    (zipmap names args))))
 
-(defn fully-resolve-type [t]
+(defn fully-resolve-type [t opts]
   (loop [t t
          seen #{}]
     (assert (not (seen t)) (str "Unhandled infinite type " t))
     (let [seen (conj seen t)]
       (case (:op t)
-        :Name (recur (resolve-Name t)
+        :Name (recur (resolve-Name t opts)
                      seen)
         :TFn (recur (instantiate-TFn t)
                     seen)

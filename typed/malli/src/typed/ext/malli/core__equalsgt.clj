@@ -21,8 +21,9 @@
 ;; TODO type check schema arg
 (defuspecial defuspecial__=>
   "defuspecial implementation for malli.core/=>"
-  [expr expected]
+  [expr expected opts]
   (assoc expr
          u/expr-type (below/maybe-check-below
-                       (r/ret (prs/parse-type `t/Sym))
-                       expected)))
+                       (r/ret (prs/parse-type `t/Sym opts))
+                       expected
+                       opts)))

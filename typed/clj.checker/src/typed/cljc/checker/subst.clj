@@ -32,42 +32,42 @@
   (fn [f images names name->pos recur?]
     (if-some [i (name->pos (:name f))]
       (cond-> (nth images i)
-        recur? (substitute-many (subvec images i) (subvec names i)))
+        recur? (substitute-many (subvec images i) (subvec names i) opts))
       f)))
 
-(t/ann ^:no-check substitute-many [r/Type (t/Seqable r/Type) (t/Seqable t/Sym) -> r/Type])
-(defn substitute-many [target images names]
+(t/ann ^:no-check substitute-many [r/Type (t/Seqable r/Type) (t/Seqable t/Sym) t/Any -> r/Type])
+(defn substitute-many [target images names opts]
   (let [images (vec images)
         names (vec names)]
     (assert (= (count images) (count names)) [names images])
     (cond-> target
-      (seq images) (call-substitute* {:recur? true
-                                      :images images
-                                      :names names
-                                      :name->pos (zipmap names (range))}))))
+      (seq images) (call-substitute* opts {:recur? true
+                                           :images images
+                                           :names names
+                                           :name->pos (zipmap names (range))}))))
 
-(t/ann ^:no-check substitute [r/Type t/Sym r/Type -> r/Type])
-(defn substitute [image name target]
+(t/ann ^:no-check substitute [r/Type t/Sym r/Type t/Any -> r/Type])
+(defn substitute [image name target opts]
   {:pre [(r/AnyType? image)
          (symbol? name)
          (r/AnyType? target)]
    :post [(r/AnyType? %)]}
-  (substitute-many target [image] [name]))
+  (substitute-many target [image] [name] opts))
 
 (declare substitute-dots substitute-dotted)
 
-(t/ann ^:no-check subst-all [crep/SubstMap r/Type -> r/Type])
-(defn subst-all [s t]
+(t/ann ^:no-check subst-all [crep/SubstMap r/Type t/Any -> r/Type])
+(defn subst-all [s t opts]
   {:pre [(crep/substitution-c? s)
          (r/AnyType? t)]
    :post [(r/AnyType? %)]}
   (reduce-kv (fn [t v r]
                (cond
-                 (crep/t-subst? r) (substitute (:type r) v t)
-                 (crep/i-subst? r) (substitute-dots (:types r) nil v t)
-                 (crep/i-subst-starred? r) (substitute-dots (:types r) (:starred r) v t)
+                 (crep/t-subst? r) (substitute (:type r) v t opts)
+                 (crep/i-subst? r) (substitute-dots (:types r) nil v t opts)
+                 (crep/i-subst-starred? r) (substitute-dots (:types r) (:starred r) v t opts)
                  (and (crep/i-subst-dotted? r)
-                      (empty? (:types r))) (substitute-dotted (:dty r) (:name (:dbound r)) v t)
+                      (empty? (:types r))) (substitute-dotted (:dty r) (:name (:dbound r)) v t opts)
                  (crep/i-subst-dotted? r) (err/nyi-error "i-subst-dotted nyi")
                  :else (err/nyi-error (str "Other substitutions NYI"))))
              t s))
@@ -87,15 +87,15 @@
                          (if drest
                            ;; We need to recur first, just to expand out any dotted usages of this.
                            (let [expanded (sb (:pre-type drest))]
-                             ;(prn "expanded" (unparse-type expanded))
-                             (into sb-dom (map (fn [img] (substitute img name expanded)))
+                             ;(prn "expanded" (unparse-type expanded opts))
+                             (into sb-dom (map (fn [img] (substitute img name expanded opts)))
                                    images))
                            (let [expandeds (mapv sb (-> pdot :pre-type :types))
                                  _ (assert (zero? (rem (count images) (count expandeds))))]
                              (into sb-dom (comp (partition-all (count expandeds))
                                                 (mapcat (fn [images]
                                                           (map (fn [expanded img]
-                                                                 (substitute img name expanded))
+                                                                 (substitute img name expanded opts))
                                                                expandeds
                                                                images))))
                                    images))))
@@ -121,13 +121,13 @@
                (= name (:name dentries)))
         (let [entries (into sb-entries
                             (let [expanded (sb (:pre-type dentries))]
-                              (comp (map (fn [img] (substitute img name expanded)))
+                              (comp (map (fn [img] (substitute img name expanded opts)))
                                     (partition-all 2)
                                     (map vec)))
                             images)]
           ; try not to use AssocType, because subtype and cs-gen support for it
           ; is not that mature
-          (or (apply assoc-u/assoc-pairs-noret sb-target entries)
+          (or (assoc-u/assoc-pairs-noret sb-target entries opts)
               (r/AssocType-maker sb-target entries nil)))
         (r/AssocType-maker sb-target
                            sb-entries
@@ -143,7 +143,7 @@
         ;; We need to recur first, just to expand out any dotted usages of this.
         (let [expanded (sb (:pre-type drest))]
           (into (mapv sb types)
-                (map (fn [img] (substitute img name expanded)))
+                (map (fn [img] (substitute img name expanded opts)))
                 images))
         :filters (into (mapv sb fs) (repeat (count images) (fo/-FS fl/-top fl/-top)))
         :objects (into (mapv sb objects) (repeat (count images) orep/-empty))
@@ -159,21 +159,22 @@
 
 ;; implements angle bracket substitution from the formalism
 ;; substitute-dots : Listof[Type] Option[type] Name Type -> Type
-(t/ann ^:no-check substitute-dots [(t/Seqable r/Type) (t/U nil r/Type) t/Sym r/Type -> r/Type])
-(defn substitute-dots [images rimage name target]
+(t/ann ^:no-check substitute-dots [(t/Seqable r/Type) (t/U nil r/Type) t/Sym r/Type t/Any -> r/Type])
+(defn substitute-dots [images rimage name target opts]
   {:pre [(every? r/AnyType? images)
          ((some-fn nil? r/AnyType?) rimage)
          (symbol? name)
          (satisfies? ISubstituteDots target)]}
-  ;(prn "substitute-dots" (unparse-type target) name "->" (map unparse-type images))
-  (letfn [(sb ([t _info] (sb t))
-            ([t] (substitute-dots images rimage name t)))]
+  ;(prn "substitute-dots" (unparse-type target opts) name "->" (map #(unparse-type % opts) images))
+  (letfn [(sb
+            ([t] (sb t opts))
+            ([t opts] (substitute-dots images rimage name t opts)))]
     (cond-> target
-      (or ((frees/fi target) name)
-          ((frees/fv target) name))
-      (call-substitute-dots*
+      (or ((frees/fi target opts) name)
+          ((frees/fv target opts) name))
+      (call-substitute-dots* opts
         {:type-rec sb
-         :filter-rec (f/sub-f sb `call-substitute-dots*)
+         :filter-rec (f/sub-f sb `call-substitute-dots* opts)
          :name name
          :sb sb
          :images images
@@ -198,7 +199,7 @@
                      (sb rng)
                      :rest (some-> rest sb)
                      :drest (when drest
-                              (r/DottedPretype1-maker (substitute image (:name drest) (sb (:pretype drest)))
+                              (r/DottedPretype1-maker (substitute image (:name drest) (sb (:pretype drest)) opts)
                                                       (if (= name (:name drest))
                                                         name
                                                         (:name drest))))
@@ -215,7 +216,7 @@
                                    (assoc entries (sb k) (sb v)))
                                  {} entries)
                       (when dentries
-                        (r/DottedPretype1-maker (substitute image (:name dentries) (sb (:pretype dentries)))
+                        (r/DottedPretype1-maker (substitute image (:name dentries) (sb (:pretype dentries)) opts)
                                                 (if (= name (:name dentries))
                                                   name
                                                   (:name dentries)))))))
@@ -230,7 +231,7 @@
       :objects (mapv sb objects)
       :rest (some-> rest sb)
       :drest (when drest
-               (r/DottedPretype1-maker (substitute image (:name drest) (sb (:pretype drest)))
+               (r/DottedPretype1-maker (substitute image (:name drest) (sb (:pretype drest)) opts)
                                        (if (= name (:name drest))
                                          name
                                          (:name drest))))
@@ -239,20 +240,21 @@
 
 ;; implements curly brace substitution from the formalism
 ;; substitute-dotted : Type Name Name Type -> Type
-(t/ann ^:no-check substitute-dotted [r/Type t/Sym t/Sym r/Type -> r/Type])
-(defn substitute-dotted [image image-bound name target]
+(t/ann ^:no-check substitute-dotted [r/Type t/Sym t/Sym r/Type t/Any -> r/Type])
+(defn substitute-dotted [image image-bound name target opts]
   {:pre [(r/AnyType? image)
          (symbol? image-bound)
          (symbol? name)
          (r/AnyType? target)]
    :post [(r/AnyType? %)]}
-  (letfn [(sb ([t _info] (sb t))
-            ([t] (substitute-dotted image image-bound name t)))]
+  (letfn [(sb
+            ([t] (sb t opts))
+            ([t opts] (substitute-dotted image image-bound name t opts)))]
     (cond-> target
-      ((frees/fi target) name)
-      (call-substitute-dotted*
+      ((frees/fi target opts) name)
+      (call-substitute-dotted* opts
         {:type-rec sb 
-         :filter-rec (f/sub-f sb `call-substitute-dotted*)
+         :filter-rec (f/sub-f sb `call-substitute-dotted* opts)
          :name name
          :sb sb
          :image image}))))

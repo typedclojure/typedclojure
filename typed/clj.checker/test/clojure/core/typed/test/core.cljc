@@ -29,7 +29,6 @@
             [typed.cljc.checker.object-rep :refer :all]
             [typed.cljc.checker.path-rep :refer :all]
             [typed.clj.checker.parse-unparse :refer :all]
-            [typed.cljc.checker.constant-type :refer [constant-type]]
             [typed.cljc.checker.lex-env :refer :all]
             [typed.cljc.checker.promote-demote :refer :all]
             [typed.cljc.checker.frees :refer :all]
@@ -74,20 +73,24 @@
   (is-clj (= (Poly-body*
                '(x)
                (Poly* '(x) [no-bounds]
-                      (make-F 'x)))
+                      (make-F 'x)
+                      clj-opts)
+               clj-opts)
              (make-F 'x)))
   (is-clj (= (Poly-body*
                '(x)
                (Poly* '(x)
                       [(-bounds -nil -false)]
-                      (make-F 'x)))
+                      (make-F 'x)
+                      clj-opts)
+               clj-opts)
          (make-F 'x)))
-  (is-clj (= (parse-type '(clojure.core.typed/All [x x1 [y :< x] z] [x -> y]))
+  (is-clj (= (parse-clj '(clojure.core.typed/All [x x1 [y :< x] z] [x -> y]))
              (Poly-maker 4
                          (mapv #(add-scopes 4 %)
                                [r/no-bounds
                                 r/no-bounds
-                                (-bounds (B-maker 3) (Un))
+                                (-bounds (B-maker 3) (Bottom))
                                 r/no-bounds])
                          (add-scopes 4
                                      (make-FnIntersection
@@ -95,33 +98,38 @@
                          {}))))
 
 (deftest trans-dots-test
-  (is-clj (= (inst/manual-inst (parse-type `(t/All [x# b# :..] [x# :.. b# :-> x#]))
-                               (mapv parse-type `(Integer Double Float))
-                               {})
-             (parse-type `[Integer Integer :-> Integer])))
-  (is-clj (= (inst/manual-inst (parse-type `(t/All [x# b# :..] [b# :.. b# :-> x#]))
-                               (mapv parse-type `(Integer Double Float))
-                               {})
-             (parse-type `[Double Float :-> Integer])))
+  (is-clj (= (inst/manual-inst (parse-clj `(t/All [x# b# :..] [x# :.. b# :-> x#]))
+                               (mapv parse-clj `(Integer Double Float))
+                               {}
+                               clj-opts)
+             (parse-clj `[Integer Integer :-> Integer])))
+  (is-clj (= (inst/manual-inst (parse-clj `(t/All [x# b# :..] [b# :.. b# :-> x#]))
+                               (mapv parse-clj `(Integer Double Float))
+                               {}
+                               clj-opts)
+             (parse-clj `[Double Float :-> Integer])))
   ;map type
-  (is-clj (= (inst/manual-inst (parse-type `(t/All [c# a# b# :..]
+  (is-clj (= (inst/manual-inst (parse-clj `(t/All [c# a# b# :..]
                                                  [[a# b# :.. b# :-> c#] (t/Seqable a#) (t/Seqable b#) :.. b# :-> (t/Seqable c#)]))
-                               (mapv parse-type `(Integer Double Float))
-                               {})
-             (parse-type `[[Double Float :-> Integer] (t/Seqable Double) (t/Seqable Float) :-> (t/Seqable Integer)])))
-  (is-clj (= (clj (inst/manual-inst (parse-type `(t/All [x# b# :..]
+                               (mapv parse-clj `(Integer Double Float))
+                               {}
+                               clj-opts)
+             (parse-clj `[[Double Float :-> Integer] (t/Seqable Double) (t/Seqable Float) :-> (t/Seqable Integer)])))
+  (is-clj (= (clj (inst/manual-inst (parse-clj `(t/All [x# b# :..]
                                                         ['[x# b#] :.. b# :-> '['[x# b#] :.. b#]]))
-                                    (mapv parse-type `(Integer Double Float))
-                                    {}))
-             (parse-type `['[Integer Double] '[Integer Float] 
+                                    (mapv parse-clj `(Integer Double Float))
+                                    {}
+                                    clj-opts))
+             (parse-clj `['[Integer Double] '[Integer Float] 
                            :-> '['[Integer Double] '[Integer Float]]])))
   ;TODO t/HSequential
   (is-clj (= (clj
-               (inst/manual-inst (parse-type `(t/All [x# b# ...]
+               (inst/manual-inst (parse-clj `(t/All [x# b# ...]
                                                    [x# :.. b# :-> (t/HSequential [x# ... b#])]))
-                                 (mapv parse-type `(Integer Double Float))
-                                 {}))
-             (parse-type `(t/IFn [Integer Integer :-> (t/HSequential [Integer Integer])]))))
+                                 (mapv parse-clj `(Integer Double Float))
+                                 {}
+                                 clj-opts))
+             (parse-clj `(t/IFn [Integer Integer :-> (t/HSequential [Integer Integer])]))))
   ; completeness check
   (is (check-ns 'clojure.core.typed.test.trans-dots))
   )
@@ -131,21 +139,21 @@
   (is-clj (subtype? (ety
                       ((fn [a :- Number, b :- Number] b)
                        1 2))
-                    (parse-type `Number)))
+                    (parse-clj `Number)))
   ; manual instantiation "seq"
   ;FIXME randomly fails. Try again when I/U are sorted sets.
   (is-clj (subtype? (ety
                       ((fn [a :- (t/Seqable Number), b :- Number] 
                          ((clojure.core.typed/inst seq Number) a))
                        [1 2 1.2] 1))
-                    (parse-type `(t/Option (t/I (clojure.lang.ISeq java.lang.Number) (t/CountRange 1))))))
+                    (parse-clj `(t/Option (t/I (clojure.lang.ISeq java.lang.Number) (t/CountRange 1))))))
   ; inferred "seq"
   (is-clj (subtype? (ety
                       (fn [a :- (t/Seqable Number), b :- Number] 
                         1))
                     (make-FnIntersection
                       (make-Function
-                        [(-name `t/Seqable (RClass-of Number nil)) (RClass-of Number nil)] 
+                        [(-name `t/Seqable (RClass-of Number clj-opts)) (RClass-of Number clj-opts)] 
                         (-val 1)
                         :filter (-FS -top -bot)
                         :object -empty))))
@@ -163,21 +171,22 @@
                        [no-bounds]
                        (make-FnIntersection
                          (make-Function
-                           [(-name t/Seqable x) (RClass-of Number)] 
+                           [(-name t/Seqable x) (RClass-of Number clj-opts)] 
                            (-val 1)
                            :filter (-FS -top -bot)
-                           :object -empty)))))))
+                           :object -empty))
+                       clj-opts)))))
   ;test invoke fn
   (is-clj (subtype? (ety
                       ((fn [a :- (t/Seqable t/Num), b :- t/Num] 
                          (seq a))
                        [1 2 1.2] 1))
-                    (parse-type `(t/U nil (t/I (t/CountRange 1) (clojure.lang.ISeq Number))))))
+                    (parse-clj `(t/U nil (t/I (t/CountRange 1) (clojure.lang.ISeq Number))))))
   (is-clj (subtype? (ety
                       ((fn [a :- (t/Map t/Any t/Num), b :- t/Num] 
                          ((inst get t/Num t/Nothing) a b))
                        (zipmap [1] [2]) 1))
-                    (parse-type `(t/U nil Number)))))
+                    (parse-clj `(t/U nil Number)))))
 
 ;FIXME
 ;(deftest get-special-test
@@ -185,7 +194,7 @@
 ;            (ety 
 ;              (clojure.core.typed/fn [a :- (t/HMap :mandatory {:a Number})]
 ;                                     (get a :a)))
-;            (parse-type
+;            (parse-clj
 ;              '(Fn ['{:a java.lang.Number} -> java.lang.Number 
 ;                    :filters {:then (& (is (t/HMap :mandatory {:a Number}) 0)
 ;                                       (is java.lang.Number 0 [(Key :a)]))
@@ -239,14 +248,14 @@
              (ret -true (-FS -top -bot) -empty)))
   (is-clj (= (tc-t (= 1 1))
              (tc-t (= 1 1 1 1 1 1 1 1 1 1))
-             (ret (Un -true -false) (-FS -top -top) -empty)))
+             (ret (Un [-true -false] clj-opts) (-FS -top -top) -empty)))
   (is-clj (= (tc-t (= 'a 'b))
              (tc-t (= 1 2))
              (tc-t (= :a :b))
              (tc-t (= :a 1 'a))
-             (ret (Un -true -false) (-FS -top -top) -empty)))
+             (ret (Un [-true -false] clj-opts) (-FS -top -top) -empty)))
   (is-clj (= (tc-t (= :Val (-> {:a :Val} :a)))
-             (ret (Un -true -false) (-FS -top -top) -empty))))
+             (ret (Un [-true -false] clj-opts) (-FS -top -top) -empty))))
 
 (deftest name-to-param-index-test
   ;a => 0
@@ -270,11 +279,14 @@
     :expected-ret 
     (clj (ret (make-FnIntersection
                 (make-Function
-                  [(Un (make-HMap :mandatory {(-val :op) (-val :if)})
-                       (make-HMap :mandatory {(-val :op) (-val :var)}))]
-                  (Un -nil (make-HMap :mandatory {(-val :op) (-val :if)}))
-                  :filter (-FS (-and (-filter (-val :if) 0 [(-kpe :op)])
-                                     (-filter (make-HMap :mandatory {(-val :op) (-val :if)}) 0))
+                  [(Un [(make-HMap clj-opts {:mandatory {(-val :op) (-val :if)}})
+                        (make-HMap clj-opts {:mandatory {(-val :op) (-val :var)}})]
+                       clj-opts)]
+                  (Un [-nil (make-HMap clj-opts {:mandatory {(-val :op) (-val :if)}})]
+                      clj-opts)
+                  :filter (-FS (-and [(-filter (-val :if) 0 [(-kpe :op)])
+                                      (-filter (make-HMap clj-opts {:mandatory {(-val :op) (-val :if)}}) 0)]
+                                     clj-opts)
                                (-not-filter (-val :if) 0 [(-kpe :op)]))))
               (-true-filter)))))
 
@@ -286,7 +298,7 @@
   ; wrap in thunk to prevent evaluation (analyzer currently evaluates forms)
   (is (err/top-level-error-thrown? (cf (fn [] (symbol "a" 'b)))))
   (is (both-subtype? (ety (symbol "a" "a"))
-                     (clj (RClass-of clojure.lang.Symbol)))))
+                     (clj (RClass-of clojure.lang.Symbol clj-opts)))))
 
 (deftest check-do-test
   (is-clj (= (ety (do 1 2))
@@ -294,29 +306,29 @@
 
 (deftest tc-var-test
   (is-clj (subtype? (ret-t (tc-t seq?))
-                    (parse-type `(t/Pred (t/Seq t/Any))))))
+                    (parse-clj `(t/Pred (t/Seq t/Any))))))
 
 (deftest heterogeneous-ds-test
   (is-clj 
-    (not (subtype? (parse-type `(t/HMap :mandatory {:a (t/Value 1)}))
-                   (RClass-of ISeq [-any]))))
+    (not (subtype? (parse-clj `(t/HMap :mandatory {:a (t/Value 1)}))
+                   (RClass-of ISeq [-any] clj-opts))))
   (is-clj 
-    (not (subtype? (parse-type `(t/HVec [(t/Value 1) (t/Value 2)]))
-                   (RClass-of ISeq [-any]))))
+    (not (subtype? (parse-clj `(t/HVec [(t/Value 1) (t/Value 2)]))
+                   (RClass-of ISeq [-any] clj-opts))))
   (is-clj
-    (subtype? (parse-type `(t/HSeq [(t/Value 1) (t/Value 2)]))
-              (RClass-of ISeq [-any])))
+    (subtype? (parse-clj `(t/HSeq [(t/Value 1) (t/Value 2)]))
+              (RClass-of ISeq [-any] clj-opts)))
   (is-clj 
-    (subtype? (parse-type `(t/HList [(t/Value 1) (t/Value 2)]))
-              (RClass-of ISeq [-any])))
+    (subtype? (parse-clj `(t/HList [(t/Value 1) (t/Value 2)]))
+              (RClass-of ISeq [-any] clj-opts)))
   (is-clj (= (tc-t [1 2])
              (ret (-hvec [(-val 1) (-val 2)] :filters [(-true-filter) (-true-filter)]) (-true-filter) -empty)))
   (is-clj (= (tc-t '(1 2))
          (ret (HeterogeneousList-maker [(-val 1) (-val 2)]) (-true-filter) -empty)))
   (is-clj (= (tc-t {:a 1})
-         (ret (-complete-hmap {(-val :a) (-val 1)}) (-true-filter) -empty)))
+             (ret (-complete-hmap {(-val :a) (-val 1)} clj-opts) (-true-filter) -empty)))
   (is-clj (= (tc-t {})
-         (ret (-complete-hmap {}) (-true-filter) -empty)))
+             (ret (-complete-hmap {} clj-opts) (-true-filter) -empty)))
   (is-clj (= (tc-t [])
          (ret (-hvec []) (-true-filter) -empty)))
   (is-clj (= (tc-t '())
@@ -324,102 +336,117 @@
   (is-cf '(a b) (clojure.core.typed/HList [clojure.lang.Symbol clojure.lang.Symbol])))
 
 (deftest implied-atomic?-test
-  (is-clj (implied-atomic? -top -bot))
-  (is-clj (not (implied-atomic? -bot -top)))
+  (is-clj (implied-atomic? -top -bot clj-opts))
+  (is-clj (not (implied-atomic? -bot -top clj-opts)))
   (is-clj (implied-atomic? -top
-                           (-filter (RClass-of Long) 0)))
+                           (-filter (RClass-of Long clj-opts) 0) clj-opts))
   (is-clj (not
-            (implied-atomic? (-filter (RClass-of Long) 0)
-                           -top)))
-  (is-clj (implied-atomic? (-filter (RClass-of Long) 0)
-                           (-filter (RClass-of Long) 0)))
-  (is-clj (implied-atomic? (-filter (RClass-of Long) 'a__#0)
-                           (-filter (RClass-of Long) 'a__#0)))
+            (implied-atomic? (-filter (RClass-of Long clj-opts) 0)
+                           -top clj-opts)))
+  (is-clj (implied-atomic? (-filter (RClass-of Long clj-opts) 0)
+                           (-filter (RClass-of Long clj-opts) 0) clj-opts))
+  (is-clj (implied-atomic? (-filter (RClass-of Long clj-opts) 'a__#0)
+                           (-filter (RClass-of Long clj-opts) 'a__#0) clj-opts))
   (is-clj (implied-atomic? (-not-filter (Name-maker `Long) 'a__#0)
-                           (-not-filter (RClass-of Long) 'a__#0)))
-  (is-clj (implied-atomic? (-not-filter (RClass-of Long) 'a__#0)
-                           (-not-filter (Name-maker `Long) 'a__#0)))
-  (is-clj (implied-atomic? (-not-filter -false 'a)(-not-filter (Un -nil -false) 'a)))
+                           (-not-filter (RClass-of Long clj-opts) 'a__#0) clj-opts))
+  (is-clj (implied-atomic? (-not-filter (RClass-of Long clj-opts) 'a__#0)
+                           (-not-filter (Name-maker `Long) 'a__#0) clj-opts))
+  (is-clj (implied-atomic? (-not-filter -false 'a) (-not-filter (Un [-nil -false] clj-opts) 'a) clj-opts))
   (is-clj (implied-atomic?
             (clj
               (parse-filter
                 '(or (! ':Red   tmap [(Key :right) (Key :left) (Key :tree)]) 
                      (! ':Black tmap [(Key :tree)]) 
                      (! ':Red   tmap [(Key :right) (Key :tree)]) 
-                     (! ':Red   tmap [(Key :left)  (Key :tree)]))))
+                     (! ':Red   tmap [(Key :left)  (Key :tree)]))
+                clj-opts))
             (clj 
               (parse-filter
                 '(or (! ':Red   tmap [(Key :right) (Key :left) (Key :tree)]) 
                      (! ':Black tmap [(Key :tree)]) 
-                     (! ':Red   tmap [(Key :right) (Key :tree)])) ))
-            ))
+                     (! ':Red   tmap [(Key :right) (Key :tree)]))
+                clj-opts))
+             clj-opts))
 
   (is-clj 
     (let [f1 (clj 
                (parse-filter
                  '(or (! ':Red   tmap [(Key :right) (Key :left) (Key :tree)]) 
                       (! ':Black tmap [(Key :tree)]) 
-                      (! ':Red   tmap [(Key :right) (Key :tree)]))))
+                      (! ':Red   tmap [(Key :right) (Key :tree)]))
+                 clj-opts))
           f2 (clj
                (parse-filter
                  '(or (! ':Red   tmap [(Key :right) (Key :left) (Key :tree)]) 
                       (! ':Black tmap [(Key :tree)]) 
                       (! ':Red   tmap [(Key :right) (Key :tree)]) 
-                      (! ':Red   tmap [(Key :left)  (Key :tree)]))))]
-      (= (-and f1 f2)
-         (-and f2 f1)
+                      (! ':Red   tmap [(Key :left)  (Key :tree)]))
+                 clj-opts))]
+      (= (-and [f1 f2] clj-opts)
+         (-and [f2 f1] clj-opts)
          f1)))
   (is-clj 
     (not (implied-atomic?
            (parse-filter
              '(or (! ':Red   tmap [(Key :right) (Key :right) (Key :tree)]) 
                   (! ':Black tmap [(Key :tree)]) 
-                  (! ':Red   tmap [(Key :right) (Key :tree)])))
+                  (! ':Red   tmap [(Key :right) (Key :tree)]))
+             clj-opts)
            (parse-filter
              '(or (! ':Red   tmap [(Key :right) (Key :right) (Key :tree)]) 
                   (! ':Black tmap [(Key :tree)]) 
                   (! ':Red   tmap [(Key :right) (Key :tree)])
-                  (! ':Red   tmap [(Key :left)  (Key :tree)]))))))
+                  (! ':Red   tmap [(Key :left)  (Key :tree)]))
+             clj-opts) clj-opts)))
   (is-clj (implied-atomic?
                  (parse-filter
                    '(or (! ':Red   tmap [(Key :right) (Key :right) (Key :tree)]) 
                         (! ':Black tmap [(Key :tree)]) 
                         (! ':Red   tmap [(Key :right) (Key :tree)]) 
-                        (! ':Red   tmap [(Key :left)  (Key :tree)])))
+                        (! ':Red   tmap [(Key :left)  (Key :tree)]))
+                   clj-opts)
                  (parse-filter
                    '(or (! ':Red   tmap [(Key :right) (Key :right) (Key :tree)]) 
                         (! ':Black tmap [(Key :tree)]) 
-                        (! ':Red   tmap [(Key :right) (Key :tree)])))))
+                        (! ':Red   tmap [(Key :right) (Key :tree)]))
+                   clj-opts) clj-opts))
   (is-clj (= (clj
                (-and
-                 (clj
-                   (parse-filter
-                     '(or (! ':Red   tmap [(Key :right) (Key :right) (Key :tree)]) 
-                          (! ':Black tmap [(Key :tree)]) 
-                          (! ':Red   tmap [(Key :right) (Key :tree)]))))
-                 (clj
-                   (parse-filter
-                     '(or (! ':Red   tmap [(Key :right) (Key :right) (Key :tree)]) 
-                          (! ':Black tmap [(Key :tree)]) 
-                          (! ':Red   tmap [(Key :right) (Key :tree)]) 
-                          (! ':Red   tmap [(Key :left)  (Key :tree)]))))))
+                 [(clj
+                    (parse-filter
+                      '(or (! ':Red   tmap [(Key :right) (Key :right) (Key :tree)]) 
+                           (! ':Black tmap [(Key :tree)]) 
+                           (! ':Red   tmap [(Key :right) (Key :tree)]))
+                      clj-opts))
+                  (clj
+                    (parse-filter
+                      '(or (! ':Red   tmap [(Key :right) (Key :right) (Key :tree)]) 
+                           (! ':Black tmap [(Key :tree)]) 
+                           (! ':Red   tmap [(Key :right) (Key :tree)]) 
+                           (! ':Red   tmap [(Key :left)  (Key :tree)]))
+                      clj-opts))]
+                 clj-opts))
              (clj
                (-and
-                 (clj
-                   (parse-filter
-                     '(or (! ':Red   tmap [(Key :right) (Key :right) (Key :tree)]) 
-                          (! ':Black tmap [(Key :tree)]) 
-                          (! ':Red   tmap [(Key :right) (Key :tree)]) 
-                          (! ':Red   tmap [(Key :left)  (Key :tree)]))))
-                 (clj
-                   (parse-filter
-                     '(or (! ':Red   tmap [(Key :right) (Key :right) (Key :tree)]) 
-                          (! ':Black tmap [(Key :tree)]) 
-                          (! ':Red   tmap [(Key :right) (Key :tree)]))))))
+                 [(clj
+                    (parse-filter
+                      '(or (! ':Red   tmap [(Key :right) (Key :right) (Key :tree)]) 
+                           (! ':Black tmap [(Key :tree)]) 
+                           (! ':Red   tmap [(Key :right) (Key :tree)]) 
+                           (! ':Red   tmap [(Key :left)  (Key :tree)]))
+                      clj-opts))
+                  (clj
+                    (parse-filter
+                      '(or (! ':Red   tmap [(Key :right) (Key :right) (Key :tree)]) 
+                           (! ':Black tmap [(Key :tree)]) 
+                           (! ':Red   tmap [(Key :right) (Key :tree)]))
+                      clj-opts))]
+                 clj-opts))
              (parse-filter
                '(or (! ':Red   tmap [(Key :right) (Key :right) (Key :tree)]) 
                     (! ':Black tmap [(Key :tree)]) 
-                    (! ':Red   tmap [(Key :right) (Key :tree)])))))
+                    (! ':Red   tmap [(Key :right) (Key :tree)]))
+               clj-opts)))
   )
 
 
@@ -427,9 +454,10 @@
   (let [vol (volatile! true)]
     (is-clj (= (map set (update/combine-props [(ImpFilter-maker (-not-filter -false 'a)
                                                                 (-filter -true 'b))]
-                                              [(-not-filter (Un -nil -false) 'a)]
-                                              (volatile! true)))
-               [#{} #{(-not-filter (Un -nil -false) 'a)
+                                              [(-not-filter (Un [-nil -false] clj-opts) 'a)]
+                                              (volatile! true)
+                                              clj-opts))
+               [#{} #{(-not-filter (Un [-nil -false] clj-opts) 'a)
                       (-filter -true 'b)}]))
     (is @vol)))
 
@@ -440,74 +468,81 @@
                 flag (volatile! true)]
             (and (= (let [env {'a -any}
                           lenv (-PropEnv env props)]
-                      (env+ lenv [] flag))
+                      (env+ lenv [] flag clj-opts))
                     (-PropEnv {'a (-val :a)} props))
                  @flag)))
   ;test positive KeyPE
   ;update a from (t/U (t/HMap :mandatory {:op :if}) (t/HMap :mandatory {:op :var})) => (t/HMap :mandatory {:op :if})
   (is-clj (let [props [(-filter (-val :if) 'a [(-kpe :op)])]
                 flag (volatile! true)]
-            (and (= (let [env {'a (Un (make-HMap :mandatory {(-val :op) (-val :if)})
-                                      (make-HMap :mandatory {(-val :op) (-val :var)}))}
+            (and (= (let [env {'a (Un [(make-HMap clj-opts {:mandatory {(-val :op) (-val :if)}})
+                                       (make-HMap clj-opts {:mandatory {(-val :op) (-val :var)}})]
+                                      clj-opts)}
                           lenv (-PropEnv env props)]
-                      (env+ lenv [] flag))
-                    (-PropEnv {'a (make-HMap :mandatory {(-val :op) (-val :if)})} props))
+                      (env+ lenv [] flag clj-opts))
+                    (-PropEnv {'a (make-HMap clj-opts {:mandatory {(-val :op) (-val :if)}})} props))
                  @flag)))
   ;test negative KeyPE
   (is-clj (let [props [(-not-filter (-val :if) 'a [(-kpe :op)])]
                 flag (volatile! true)]
-            (and (= (let [env {'a (Un (make-HMap :mandatory {(-val :op) (-val :if)})
-                                      (make-HMap :mandatory {(-val :op) (-val :var)}))}
+            (and (= (let [env {'a (Un [(make-HMap clj-opts {:mandatory {(-val :op) (-val :if)}})
+                                       (make-HMap clj-opts {:mandatory {(-val :op) (-val :var)}})]
+                                      clj-opts)}
                           lenv (-PropEnv env props)]
-                      (env+ lenv [] flag))
-                    (-PropEnv {'a (make-HMap :mandatory {(-val :op) (-val :var)})} props))
+                      (env+ lenv [] flag clj-opts))
+                    (-PropEnv {'a (make-HMap clj-opts {:mandatory {(-val :op) (-val :var)}})} props))
                  @flag)))
   ;test impfilter
   (clj (let [{:keys [l props]}
-             (env+ (-PropEnv {'a (Un -false -true) 'b (Un -nil -true)}
+             (env+ (-PropEnv {'a (Un [-false -true] clj-opts)
+                              'b (Un [-nil -true] clj-opts)}
                              [(ImpFilter-maker (-not-filter -false 'a)
                                                (-filter -true 'b))])
-                   [(-not-filter (Un -nil -false) 'a)]
-                   (volatile! true))]
+                   [(-not-filter (Un [-nil -false] clj-opts) 'a)]
+                   (volatile! true)
+                   clj-opts)]
          (is (= l {'a -true, 'b -true}))
          (is (= (set props)
-                #{(-not-filter (Un -nil -false) 'a)
+                #{(-not-filter (Un [-nil -false] clj-opts) 'a)
                   (-filter -true 'b)}))))
   ; more complex impfilter
   (is-with-aliases
     (=
      (-PropEnv {'and1 -false
-                'tmap (make-HMap :mandatory {(-val :type) (-val :MapStruct2)
-                                             (-val :b) (Name-maker 'clojure.core.typed.test.util-aliases/MyName)})}
+                'tmap (make-HMap clj-opts
+                                 {:mandatory {(-val :type) (-val :MapStruct2)
+                                              (-val :b) (Name-maker 'clojure.core.typed.test.util-aliases/MyName)}})}
                #{(-not-filter (-val :MapStruct1)
                               'tmap
                               [(-kpe :type)])
-                 (-filter (Un -false -nil)
+                 (-filter (Un [-false -nil] clj-opts)
                           'and1)
-                 (ImpFilter-maker (-not-filter (Un -nil -false) 'and1)
+                 (ImpFilter-maker (-not-filter (Un [-nil -false] clj-opts) 'and1)
                                   (-filter (-val :MapStruct1)
                                            'tmap
                                            [(-kpe :type)]))})
-     (env+ (-PropEnv {'and1 (Un -false -true)
+     (env+ (-PropEnv {'and1 (Un [-false -true] clj-opts)
                       'tmap (Name-maker 'clojure.core.typed.test.util-aliases/UnionName)}
-                     [(ImpFilter-maker (-filter (Un -nil -false) 'and1)
+                     [(ImpFilter-maker (-filter (Un [-nil -false] clj-opts) 'and1)
                                        (-not-filter (-val :MapStruct1)
                                                     'tmap
                                                     [(-kpe :type)]))
-                      (ImpFilter-maker (-not-filter (Un -nil -false) 'and1)
+                      (ImpFilter-maker (-not-filter (Un [-nil -false] clj-opts) 'and1)
                                        (-filter (-val :MapStruct1)
                                                 'tmap
                                                 [(-kpe :type)]))])
-           [(-filter (Un -nil -false) 'and1)]
-           (volatile! true))))
+           [(-filter (Un [-nil -false] clj-opts) 'and1)]
+           (volatile! true)
+           clj-opts)))
   ; refine a subtype
   (is-clj (= (:l (env+ (-PropEnv {'and1 (-name `t/Seqable -any)} [])
-                       [(-filter (RClass-of IPersistentVector [-any]) 'and1)]
-                       (volatile! true)))
-             {'and1 (RClass-of IPersistentVector [-any])}))
+                       [(-filter (RClass-of IPersistentVector [-any] clj-opts) 'and1)]
+                       (volatile! true)
+                       clj-opts))
+             {'and1 (RClass-of IPersistentVector [-any] clj-opts)}))
   ; bottom preserved
   (is-clj (let [a (volatile! true)]
-            (env+ (-PropEnv {'foo -any} []) [-bot] a)
+            (env+ (-PropEnv {'foo -any} []) [-bot] a clj-opts)
             (false? @a))))
 
 ;FIXME all these tests relate to CTYP-24
@@ -522,13 +557,13 @@
                          (apply (clojure.core.typed/inst hash-map t/Keyword Number) a)
                          a)))
                ret-t)
-             (-complete-hmap {(-val :a) (-val 1)})))
+             (-complete-hmap {(-val :a) (-val 1)} clj-opts)))
   (is-tc-e (fn [{a :a} :- (t/HMap :mandatory {:a (t/Value 1)})]
              a)
            :expected-ret
            (ret (make-FnIntersection 
                   (make-Function
-                    [(make-HMap :mandatory {(-val :a) (-val 1)})]
+                    [(make-HMap clj-opts {:mandatory {(-val :a) (-val 1)}})]
                     (-val 1) 
                     :filter (-true-filter)
                     :object (-path [(-kpe :a)] 0)))
@@ -541,7 +576,7 @@
          (make-FnIntersection
            (r/make-Function [(Name-maker 'clojure.core.typed.test.util-aliases/UnionName)]
                             (make-Result -false 
-                                         ;FIXME why isn't this (-FS -bot (-not-filter (RClass-of ISeq [-any]) 0)) ?
+                                         ;FIXME why isn't this (-FS -bot (-not-filter (RClass-of ISeq [-any] clj-opts) 0)) ?
                                          (-FS -bot -top)
                                          -empty)))))
   (is-clj (= (tc-t (let [{a :a} {:a 1}]
@@ -554,7 +589,7 @@
                (seq? a))
              :expected-ret
              (ret (make-FnIntersection
-                    (r/make-Function [(make-HMap :mandatory {(-val :a) (-val 1)})]
+                    (r/make-Function [(make-HMap clj-opts {:mandatory {(-val :a) (-val 1)}})]
                                      (make-Result -false (-false-filter) -empty)))
                              (-FS -top -bot)
                              -empty))
@@ -590,16 +625,18 @@
              a)
            :expected-ret
            (ret (make-FnIntersection 
-                  (make-Function [(Un (make-HMap :mandatory {(-val :a) (-val 1)})
-                                      (make-HMap :mandatory {(-val :b) (-val 2)}))]
+                  (make-Function [(Un [(make-HMap clj-opts {:mandatory {(-val :a) (-val 1)}})
+                                       (make-HMap clj-opts {:mandatory {(-val :b) (-val 2)}})]
+                                      clj-opts)]
                                  -any
-                                 :filter (-FS (-and (-not-filter (Un -nil -false) 0 [(-kpe :a)])
-                                                    (-filter 
-                                                      (parse-clj
-                                                        `(t/U (t/HMap :mandatory {:a (t/Val 1)}) 
-                                                              (t/HMap :mandatory {:a t/Any, :b (t/Val 2)})))
-                                                      0))
-                                              (-filter (Un -nil -false) 0 [(-kpe :a)]))
+                                 :filter (-FS (-and [(-not-filter (Un [-nil -false] clj-opts) 0 [(-kpe :a)])
+                                                     (-filter 
+                                                       (parse-clj
+                                                         `(t/U (t/HMap :mandatory {:a (t/Val 1)}) 
+                                                               (t/HMap :mandatory {:a t/Any, :b (t/Val 2)})))
+                                                       0)]
+                                                    clj-opts)
+                                              (-filter (Un [-nil -false] clj-opts) 0 [(-kpe :a)]))
                                  :object (-path [(-kpe :a)] 0))))))
 
 (deftest Name-resolve-test
@@ -624,8 +661,9 @@
     (ret (make-FnIntersection
            (make-Function
              [(Name-maker 'clojure.core.typed.test.util-aliases/MapName)]
-             (make-HMap :mandatory {(-val :a) (-val 1)
-                                    (-val :c) (-val :b)})
+             (make-HMap clj-opts
+                        {:mandatory {(-val :a) (-val 1)
+                                     (-val :c) (-val :b)}})
              :filter (-true-filter)))
          (-true-filter)))
   ; Name representing union of two maps, both with :type key
@@ -633,7 +671,7 @@
             (-> (tc-t (fn [tmap :- clojure.core.typed.test.util-aliases/UnionName]
                         (:type tmap)))
                 ret-t)
-            (parse-type 
+            (parse-clj 
               `[clojure.core.typed.test.util-aliases/UnionName :-> (t/U (t/Value :MapStruct2)
                                                                         (t/Value :MapStruct1))])))
   ; using = to derive paths
@@ -644,15 +682,17 @@
             (make-FnIntersection 
               (make-Function 
                 [(Name-maker 'clojure.core.typed.test.util-aliases/UnionName)]
-                (Un -false -true)
+                (Un [-false -true] clj-opts)
                 :filter (let [t (-val :MapStruct1)
                               path [(-kpe :type)]]
                           (-FS (-and 
-                                 (-filter (make-HMap :mandatory {(-val :type) (-val :MapStruct1)
-                                                                 (-val :a) (Name-maker 'clojure.core.typed.test.util-aliases/MyName)})
-                                          0)
-                                 (-filter (-val :MapStruct1) 0 path)
-                                 (-filter t 0 path))
+                                 [(-filter (make-HMap clj-opts
+                                                      {:mandatory {(-val :type) (-val :MapStruct1)
+                                                                   (-val :a) (Name-maker 'clojure.core.typed.test.util-aliases/MyName)}})
+                                           0)
+                                  (-filter (-val :MapStruct1) 0 path)
+                                  (-filter t 0 path)]
+                                 clj-opts)
                                (-not-filter t 0 path)))))))
   ; using filters derived by =
   (is-clj (subtype? (-> (tc-t (fn [tmap :- clojure.core.typed.test.util-aliases/UnionName]
@@ -660,7 +700,7 @@
                                   (:a tmap)
                                   (:b tmap))))
                         ret-t)
-                    (parse-type 
+                    (parse-clj 
                       `[clojure.core.typed.test.util-aliases/UnionName :-> clojure.core.typed.test.util-aliases/MyName])))
   ; following paths with test of conjuncts
   (is-tc-e (fn [tmap :- clojure.core.typed.test.util-aliases/UnionName]
@@ -692,32 +732,35 @@
            (clj (ret (make-FnIntersection
                        (make-Function
                          [(Name-maker 'clojure.core.typed.test.util-aliases/UnionName)]
-                         (Un (-val 1)
-                             (make-HMap :mandatory {(-val :type) (-val :MapStruct1)
-                                                    (-val :c) (-val :d)
-                                                    (-val :a) (Name-maker 'clojure.core.typed.test.util-aliases/MyName)}))
+                         (Un [(-val 1)
+                              (make-HMap clj-opts
+                                         {:mandatory {(-val :type) (-val :MapStruct1)
+                                                      (-val :c) (-val :d)
+                                                      (-val :a) (Name-maker 'clojure.core.typed.test.util-aliases/MyName)}})]
+                             clj-opts)
                          :filter (-true-filter)))
                      (-true-filter) -empty))))
 
 
 (deftest assoc-test
   (is-clj (= (tc-t (assoc {} :a :b))
-             (ret (-complete-hmap {(-val :a) (-val :b)})
+             (ret (-complete-hmap {(-val :a) (-val :b)} clj-opts)
                   (-FS -top -bot)
                   -empty)))
   ;see `invoke-special` for assoc for TODO
   ;FIXME
   #_(is-clj (= (-> (tc-t (-> (fn [m]
-                         (assoc m :c 1))
-                     (clojure.core.typed/ann-form [clojure.core.typed.test.core/SomeMap -> (t/U '{:a ':b :c '1}
-                                                                         '{:b ':c :c '1})])))
-           ret-t :types first :rng)
-         (make-Result (Un (make-HMap :mandatory {(-val :a) (-val :b)
-                                  (-val :c) (-val 1)})
-                          (make-HMap :mandatory {(-val :b) (-val :c)
-                                  (-val :c) (-val 1)}))
-                      (-FS -top -bot)
-                      -empty))))
+                               (assoc m :c 1))
+                             (clojure.core.typed/ann-form [clojure.core.typed.test.core/SomeMap -> (t/U '{:a ':b :c '1}
+                                                                                                        '{:b ':c :c '1})])))
+                   ret-t :types first :rng)
+               (make-Result (Un [(make-HMap clj-opts {:mandatory {(-val :a) (-val :b)
+                                                                  (-val :c) (-val 1)}})
+                                 (make-HMap clj-opts {:mandatory {(-val :b) (-val :c)
+                                                                  (-val :c) (-val 1)}})]
+                                clj-opts)
+                            (-FS -top -bot)
+                            -empty))))
          
 
 
@@ -748,7 +791,7 @@
            (t/U Number t/Symbol))
   ; absent keys, optional keys and complete HMaps
   (is-clj (= (tc-t (:o (ann-form {} (t/HMap :optional {:o (t/Val "v")} :complete? true))))
-             (ret (Un -nil (-val "v")))))
+             (ret (Un [-nil (-val "v")] clj-opts))))
   (is-clj (= (tc-t (:a (ann-form {} (t/HMap :absent-keys #{:a} :complete? true))))
              (ret -nil)))
   (is-clj (= (tc-t (:a (ann-form {} (t/HMap :absent-keys #{:a} :complete? false))))
@@ -763,102 +806,111 @@
              (for [ms (:maps cs)
                    [k v] (:fixed ms)]
                [k
-                [(str (unparse-type (:S v))
+                [(str (unparse-type (:S v) clj-opts)
                       " << "
                       (:X v)
                       " << "
-                      (unparse-type (:T v)))]]))))
+                      (unparse-type (:T v) clj-opts))]]))))
 
 (deftest promote-demote-test
+  (is-tc-e 1)
   (is-clj (= (with-bounded-frees {(make-F 'x) no-bounds}
-               (promote-var (make-F 'x) '#{x}))
+               (promote-var (make-F 'x) '#{x} clj-opts))
              -any))
   (is-clj (= (with-bounded-frees {(make-F 'x) no-bounds}
-               (demote-var (make-F 'x) '#{x}))
+               (demote-var (make-F 'x) '#{x} clj-opts))
              (Bottom)))
   (is-clj (= (with-bounded-frees {(make-F 'x) no-bounds}
-               (promote-var (RClass-of clojure.lang.ISeq [(make-F 'x)]) '#{x}))
-             (RClass-of clojure.lang.ISeq [-any])))
+               (promote-var (RClass-of clojure.lang.ISeq [(make-F 'x)] clj-opts) '#{x} clj-opts))
+             (RClass-of clojure.lang.ISeq [-any] clj-opts)))
   (is-clj (= (with-bounded-frees {(make-F 'x) no-bounds}
-               (demote-var (RClass-of clojure.lang.ISeq [(make-F 'x)]) '#{x}))
-             (RClass-of clojure.lang.ISeq [(Bottom)]))))
+               (demote-var (RClass-of clojure.lang.ISeq [(make-F 'x)] clj-opts) '#{x} clj-opts))
+             (RClass-of clojure.lang.ISeq [(Bottom)] clj-opts))))
 
 (deftest variances-test
-  (is-clj (= (fv-variances (make-F 'x))
-         '{x :covariant}))
-  (is-clj (= (fv-variances -any)
-         '{}))
+  (is-clj (= (fv-variances (make-F 'x) clj-opts)
+             '{x :covariant}))
+  (is-clj (= (fv-variances -any clj-opts)
+             '{}))
   (is-clj (= (fv-variances 
-               (make-Function [] (-name `t/Atom (make-F 'a))))
+               (make-Function [] (-name `t/Atom (make-F 'a)))
+               clj-opts)
              '{a :invariant})))
 
-
 (deftest fv-test
-  (is-clj (= (fv (make-F 'x))
-         '#{x})))
+  (is-clj (= (fv (make-F 'x) clj-opts)
+             '#{x})))
 
 (deftest fi-test
-  (is-clj (empty? (fi (make-F 'x)))))
+  (is-clj (empty? (fi (make-F 'x) clj-opts))))
 
 (deftest cs-gen-test
   (is-clj (= (cs-gen #{} ;V
                      (zipmap '[x y] (repeat no-bounds)) ;X
                      {} ;Y
                      (-val 1) ;S
-                     (make-F 'x)) ;T
+                     (make-F 'x) ;T
+                     clj-opts)
              (cset-maker [(make-cset-entry {'x (c-maker (-val 1) 'x -any no-bounds)
-                                        'y (c-maker (Un) 'y -any no-bounds)})])))
+                                        'y (c-maker (Bottom) 'y -any no-bounds)})])))
   ;intersections correctly inferred
   (is-clj (= (cs-gen '#{} {'x no-bounds} '{} 
-                     (-hvec [(RClass-of Number)])
-                     (In (-name `t/Seqable (make-F 'x)) (make-CountRange 1)))
-             (cset-maker [(make-cset-entry {'x (c-maker (RClass-of Number) 'x -any no-bounds)})])))
+                     (-hvec [(RClass-of Number clj-opts)])
+                     (In [(-name `t/Seqable (make-F 'x)) (make-CountRange 1)]
+                         clj-opts)
+                     clj-opts)
+             (cset-maker [(make-cset-entry {'x (c-maker (RClass-of Number clj-opts) 'x -any no-bounds)})])))
 ;correct RClass ancestor inference
   (is-clj (= (cs-gen #{} {'x no-bounds} {} 
-                     (RClass-of IPersistentVector [(RClass-of Number)])
-                     (-name `t/Seqable (make-F 'x)))
-             (cset-maker [(make-cset-entry {'x (c-maker (RClass-of Number) 'x -any no-bounds)})]))))
+                     (RClass-of IPersistentVector [(RClass-of Number clj-opts)] clj-opts)
+                     (-name `t/Seqable (make-F 'x))
+                     clj-opts)
+             (cset-maker [(make-cset-entry {'x (c-maker (RClass-of Number clj-opts) 'x -any no-bounds)})]))))
 
 (deftest subst-gen-test
   (let [cs (clj (cs-gen #{} ;V
                         (zipmap '[x y] (repeat no-bounds)) ;X
                         {} ;Y
                         (-val 1) ;S
-                        (make-F 'x)))]
-    (is-clj (= (subst-gen cs #{} (make-F 'x))
+                        (make-F 'x)
+                        clj-opts))]
+    (is-clj (= (subst-gen cs #{} (make-F 'x) {} clj-opts)
            {'x (t-subst-maker (-val 1) no-bounds)
-            'y (t-subst-maker (Un) no-bounds)}))))
+            'y (t-subst-maker (Bottom) no-bounds)}))))
 
 (deftest infer-test
   (is-clj (= (cgen/infer (zipmap '[x y] (repeat no-bounds)) ;tv env
                          {}
                          [(-val 1) (-val 2)] ;actual
                          [(make-F 'x) (make-F 'y)] ;expected
-                         (make-F 'x)) ;result
+                         (make-F 'x) ;result
+                         clj-opts)
              {'x (crep/t-subst-maker (-val 1)
                                      no-bounds)
               'y (crep/t-subst-maker (-val 2)
                                      no-bounds)}))
   (is-clj (= (cgen/infer {'x no-bounds} ;tv env
                          {}
-                         [(RClass-of IPersistentVector [(Un (-val 1) (-val 2) (-val 3))])] ;actual
+                         [(RClass-of IPersistentVector [(Un [(-val 1) (-val 2) (-val 3)] clj-opts)] clj-opts)] ;actual
                          [(-name `t/Seqable (make-F 'x))] ;expected
-                         (RClass-of clojure.lang.ASeq [(make-F 'x)])) ;result
-             {'x (crep/t-subst-maker (Un (-val 1) (-val 2) (-val 3))
+                         (RClass-of clojure.lang.ASeq [(make-F 'x)] clj-opts) ;result
+                         clj-opts)
+             {'x (crep/t-subst-maker (Un [(-val 1) (-val 2) (-val 3)] clj-opts)
                                      no-bounds)})) 
   (is-clj (= (cgen/infer {'x no-bounds} ;tv env
                          {}
                          [(-hvec [(-val 1) (-val 2) (-val 3)])] ;actual
                          [(-name `t/Seqable (make-F 'x))] ;expected
-                         (RClass-of clojure.lang.ASeq [(make-F 'x)])) ;result
-             {'x (crep/t-subst-maker (Un (-val 1) (-val 2) (-val 3))
+                         (RClass-of clojure.lang.ASeq [(make-F 'x)] clj-opts) ;result
+                         clj-opts)
+             {'x (crep/t-subst-maker (Un [(-val 1) (-val 2) (-val 3)] clj-opts)
                                      no-bounds)})))
 
 (deftest arith-test
   (is-clj (subtype? (:t (tc-t (+)))
-                    (RClass-of Number)))
+                    (RClass-of Number clj-opts)))
   (is-clj (subtype? (:t (tc-t (+ 1 2)))
-                    (RClass-of Number)))
+                    (RClass-of Number clj-opts)))
   ;wrap in thunks to prevent evaluation
   (is (err/top-level-error-thrown? (cf (fn [] (+ 1 2 "a")))))
   (is (err/top-level-error-thrown? (cf (fn [] (-)))))
@@ -866,28 +918,31 @@
 
 (deftest tc-constructor-test
   (is-clj (= (tc-t (Exception. "a"))
-         (ret (RClass-of Exception)
+         (ret (RClass-of Exception clj-opts)
               (-FS -top -bot)
               (EmptyObject-maker)))))
 
 (deftest tc-throw-test
   (is-clj (subtype? (:t (tc-t (fn [] (throw (Exception. "a")))))
                     (make-FnIntersection
-                      (make-Function [] (Un))))))
+                      (make-Function [] (Bottom))))))
 
 (deftest first-seq-test
-  (is-clj (subtype? (In (RClass-of clojure.lang.PersistentList [-any])
-                        (make-CountRange 1))
-                    (In (-name `t/Seqable -any)
-                        (make-CountRange 1)))))
+  (is-clj (subtype? (In [(RClass-of clojure.lang.PersistentList [-any] clj-opts)
+                         (make-CountRange 1)]
+                        clj-opts)
+                    (In [(-name `t/Seqable -any)
+                         (make-CountRange 1)]
+                        clj-opts))))
 
 (deftest intersection-maker-test
-  (is-clj (= (In -nil (-val 1))
-             (Un)))
+  (is-clj (= (In [-nil (-val 1)] clj-opts)
+             (Bottom)))
   (is-clj (clj
-            (not= (In (-name `t/Seqable -any)
-                      -nil)
-                  (Un)))))
+            (not= (In [(-name `t/Seqable -any)
+                       -nil]
+                      clj-opts)
+                  (Bottom)))))
 ;FIXME
 ;  (is-clj (= (In (RClass-of Number)
 ;             (RClass-of t/Symbol))
@@ -910,15 +965,15 @@
 
 (deftest ann-form-test
   (is-clj (= (ety (ann-form (atom 1) (t/Atom t/Num)))
-             (parse-type `(t/Atom t/Num)))))
+             (parse-clj `(t/Atom t/Num)))))
 
 (deftest destructuring-test
   ;Vector destructuring with :as
   (is-clj (subtype? (ety (let [[a b :as c] :- (t/Vec t/Num), [1 2]]
                            [a b c]))
-                    (-hvec [(Un -nil (RClass-of Number))
-                            (Un -nil (RClass-of Number))
-                            (-name `t/Seqable (RClass-of Number))])))
+                    (-hvec [(Un [-nil (RClass-of Number clj-opts)] clj-opts)
+                            (Un [-nil (RClass-of Number clj-opts)] clj-opts)
+                            (-name `t/Seqable (RClass-of Number clj-opts))])))
   (is-clj (= (ety (let [[a b :as c] [1 2]] 
                     [a b c]))
              (-hvec [(-val 1)
@@ -935,8 +990,8 @@
                  (-hvec [(-val 1) (-val 2)])]))))
 
 (deftest vararg-subtyping-test
-  (is-clj (subtype? (parse-type '[nil * -> nil])
-                    (parse-type '[nil -> nil])))
+  (is-clj (subtype? (parse-clj '[nil * -> nil])
+                    (parse-clj '[nil -> nil])))
   (is-cf (clojure.core.typed/ann-form (clojure.core.typed/inst merge clojure.core.typed/Any clojure.core.typed/Any) [nil -> nil])))
 
 (deftest poly-filter-test
@@ -945,13 +1000,13 @@
                    (if (seq a)
                      (first a)
                      'a)))
-            (parse-type `(t/U t/AnyInteger (t/Value ~'a))))))
+            (parse-clj `(t/U t/AnyInteger (t/Value ~'a))))))
 
 ;TODO how to handle casts. CTYP-12
 ;Also need tc-t to bind *delayed-errors*
 #_(deftest prims-test
   (is-clj (= (ret-t (tc-t (Math/sqrt 1)))
-         (parse-type 'double))))
+         (parse-clj 'double))))
 
 (deftest hmap-subtype
   (is-tc-e {} (clojure.lang.APersistentMap t/Any t/Any)))
@@ -972,10 +1027,11 @@
             (FnIntersection-maker
               [(make-Function
                  [-any]
-                 (RClass-of 'boolean)
-                 :filter (-FS (-and (-filter (-val Number) 0 [(ClassPE-maker)])
-                                    ;the important filter, updates first argument to be Number if predicate is true
-                                    (-filter (RClass-of Number) 0))
+                 (RClass-of 'boolean clj-opts)
+                 :filter (-FS (-and [(-filter (-val Number) 0 [(ClassPE-maker)])
+                                     ;the important filter, updates first argument to be Number if predicate is true
+                                     (-filter (RClass-of Number clj-opts) 0)]
+                                    clj-opts)
                               (-not-filter (-val Number) 0 [(ClassPE-maker)])))]))))
 
 ;TODO ^--
@@ -1065,46 +1121,47 @@
             (ety (fn [a :- t/Any]
                    {:pre [(integer? a)]}
                    a))
-            (parse-type `[t/Any :-> t/AnyInteger])))
+            (parse-clj `[t/Any :-> t/AnyInteger])))
   (is-clj (subtype? 
             (ety (let [a (read-string "1")
                        _ (assert (integer? a))]
                    (+ 10 a)))
-            (parse-type `t/AnyInteger)))
+            (parse-clj `t/AnyInteger)))
   ;postconditions
   (is-clj (subtype?
             (ety (fn [a :- t/Any]
                    {:post [(vector? %)]}
                    a))
-            (parse-type `[t/Any :-> (t/Vec t/Any)]))))
+            (parse-clj `[t/Any :-> (t/Vec t/Any)]))))
 
 (deftest complete-hmap-test
-  (is-clj (subtype? (-complete-hmap {})
-                    (parse-type `(clojure.lang.APersistentMap t/Nothing t/Nothing))))
+  (is-clj (subtype? (-complete-hmap {} clj-opts)
+                    (parse-clj `(clojure.lang.APersistentMap t/Nothing t/Nothing))))
   (is-clj (not
-            (subtype? (make-HMap :mandatory {})
-                      (parse-type `(clojure.lang.APersistentMap t/Nothing t/Nothing)))))
+            (subtype? (make-HMap clj-opts {:mandatory {}})
+                      (parse-clj `(clojure.lang.APersistentMap t/Nothing t/Nothing)))))
   (is-clj (subtype? (-> (tc-t {}) ret-t)
-                    (parse-type `(clojure.lang.APersistentMap t/Nothing t/Nothing)))))
+                    (parse-clj `(clojure.lang.APersistentMap t/Nothing t/Nothing)))))
 
 (deftest dotted-on-left-test
   (is-tc-e (memoize (fn []))))
 
 (deftest string-as-seqable-test
+  (is-tc-e 1)
   (is-clj (subtype? 
             (-name `t/Seqable (-name `t/Num))
             (-name `t/Seqable -any)))
   (is-clj (subtype?
-            (-resolve (-name `t/NilableNonEmptySeq (-name `t/Num)))
+            (-resolve (-name `t/NilableNonEmptySeq (-name `t/Num)) clj-opts)
             (-name `t/NilableNonEmptySeq -any)))
   (is-clj (subtype?
             (-name `t/NilableNonEmptySeq (-name `t/Num))
-            (-resolve (-name `t/NilableNonEmptySeq -any))))
+            (-resolve (-name `t/NilableNonEmptySeq -any) clj-opts)))
   (is-clj (subtype? 
             (-name `t/NilableNonEmptySeq (-name `t/Num))
             (-name `t/NilableNonEmptySeq -any)))
   (is-clj (subtype? 
-            (RClass-of String)
+            (RClass-of String clj-opts)
             (-name `t/Seqable -any)))
   (is-clj (subtype? 
             (-val "a")
@@ -1250,10 +1307,12 @@
   ; simplifies to
   ;(is (t/U T T') a)
   (is-clj 
-    (= (-or (-filter (RClass-of clojure.lang.Symbol) 'id)
-            (-filter (RClass-of String) 'id))
-       (-filter (Un (RClass-of clojure.lang.Symbol)
-                    (RClass-of String))
+    (= (-or [(-filter (RClass-of clojure.lang.Symbol clj-opts) 'id)
+             (-filter (RClass-of String clj-opts) 'id)]
+            clj-opts)
+       (-filter (Un [(RClass-of clojure.lang.Symbol clj-opts)
+                     (RClass-of String clj-opts)]
+                    clj-opts)
                 'id)))
 
   ;(or (is T  a pth)
@@ -1261,10 +1320,12 @@
   ; simplifies to
   ;(is (t/U T T') a pth)
   (is-clj 
-    (= (-or (-filter (RClass-of clojure.lang.Symbol) 'id [(-kpe :a)])
-            (-filter (RClass-of String) 'id [(-kpe :a)]))
-       (-filter (Un (RClass-of clojure.lang.Symbol)
-                    (RClass-of String))
+    (= (-or [(-filter (RClass-of clojure.lang.Symbol clj-opts) 'id [(-kpe :a)])
+             (-filter (RClass-of String clj-opts) 'id [(-kpe :a)])]
+            clj-opts)
+       (-filter (Un [(RClass-of clojure.lang.Symbol clj-opts)
+                     (RClass-of String clj-opts)]
+                    clj-opts)
                 'id [(-kpe :a)])))
   
   ;(& (is T a pth)
@@ -1306,8 +1367,8 @@
                (.getName a)))))
 
 (deftest HMap-syntax-test
-  (is-clj (= (parse-type `(t/HMap :absent-keys #{:op}))
-             (make-HMap :absent-keys #{(-val :op)} :complete? false))))
+  (is-clj (= (parse-clj `(t/HMap :absent-keys #{:op}))
+             (make-HMap clj-opts {:absent-keys #{(-val :op)} :complete? false}))))
 
 (deftest map-filter-test
   (is-tc-e 
@@ -1428,8 +1489,10 @@
          ['foo1 'foo2]
          (Poly* '[x y] 
                 [no-bounds no-bounds]
-                (In (make-F 'x) (make-F 'y))))
-       (In (make-F 'foo1) (make-F 'foo2)))))
+                (In [(make-F 'x) (make-F 'y)] clj-opts)
+                clj-opts)
+         clj-opts)
+       (In [(make-F 'foo1) (make-F 'foo2)] clj-opts))))
 
 (deftest CTYP-27-nth-inline-test
   (is-tc-e (fn [s] (clojure.lang.RT/nth s 0 nil))
@@ -1539,10 +1602,13 @@
 
 (deftest intersection-csgen-test
   (is-clj (clj (cs-gen #{} {'a no-bounds} {}
-                       (In (-name `t/Seqable (RClass-of Number))
-                           (make-CountRange 1))
-                       (In (-name `t/Seqable (make-F 'a))
-                           (make-CountRange 1))))))
+                       (In [(-name `t/Seqable (RClass-of Number clj-opts))
+                            (make-CountRange 1)]
+                           clj-opts)
+                       (In [(-name `t/Seqable (make-F 'a))
+                            (make-CountRange 1)]
+                           clj-opts)
+                       clj-opts))))
 
 (deftest iterable-as-seqable-test
   (is-cf (first (clojure.core.typed/ann-form [] (Iterable clojure.core.typed/Any)))))
@@ -1557,7 +1623,7 @@
   (is-tc-e (fn [x] (map (ann-form inc [Number -> Number]) [x 1]))
            [t/Num -> (t/Seqable Number)])
   (is-clj (subtype? (ret-t (tc-t [(or (first (range)) 2) 1]))
-                    (-name `t/Seqable (RClass-of Number))))
+                    (-name `t/Seqable (RClass-of Number clj-opts))))
   (is-tc-e (fn [x] 
              (map (ann-form inc [t/Num :-> t/Num]) 
                   [x 2 3])) 
@@ -1579,7 +1645,7 @@
                 :max-parallelism 1)))
 
 (deftest HMap-parse-fail-test
-  (is (err/tc-error-thrown? (clj (parse-type `(t/HMap :mandatory {:a t/Any} :absent-keys #{:a}))))))
+  (is (err/tc-error-thrown? (clj (parse-clj `(t/HMap :mandatory {:a t/Any} :absent-keys #{:a}))))))
 
 (deftest HMap-absent-complete-test
   (is-clj (not (sub? (HMap :mandatory {:a Any}) (HMap :absent-keys #{:a}))))
@@ -1711,9 +1777,10 @@
   (is 
     (clj
       (let [t1 (clj (update-with-filter
-                      (parse-type `(t/HMap))
-                      (parse-filter `(~'is (t/Vec t/Any) ~'m [(~'Key :foo)]))))
-            t2 (clj (parse-type `(t/HMap :mandatory {:foo (t/Vec t/Any)})))]
+                      (parse-clj `(t/HMap))
+                      (parse-filter `(~'is (t/Vec t/Any) ~'m [(~'Key :foo)]) clj-opts)
+                      clj-opts))
+            t2 (clj (parse-clj `(t/HMap :mandatory {:foo (t/Vec t/Any)})))]
         (both-subtype? t1 t2)))))
 
 ;CTYP-60
@@ -1730,12 +1797,13 @@
   (is-clj (tc-equiv := 
                     [(ret (-val "a"))
                      (ret -any)]
-                    nil)
-          (ret (Un -false -true)))
+                    nil
+                    clj-opts)
+          (ret (Un [-false -true] clj-opts)))
   (is (= (eret (= "a" (clojure.core.typed/ann-form 1 clojure.core.typed/Any)))
-         (ret (Un -false -true))))
+         (ret (Un [-false -true] clj-opts))))
   (is (= (eret (= "a" (clojure.core.typed/ann-form 1 clojure.core.typed/Any)))
-         (ret (Un -false -true))))
+         (ret (Un [-false -true] clj-opts))))
   ; needs value objects
   ;(is-tc-e (clojure.lang.Util/equiv :a :a)
   ;         (t/Val true))
@@ -1963,7 +2031,7 @@
   (equal-types-noparse (conj [1]
                              (ann-form nil (t/U nil '2))
                              3)
-                       (-hvec [(-val 1) (Un -nil (-val 2)) (-val 3)]
+                       (-hvec [(-val 1) (Un [-nil (-val 2)] clj-opts) (-val 3)]
                               :filters [(-true-filter)
                                         (-FS -top -top)
                                         (-true-filter)]
@@ -2017,7 +2085,7 @@
   (is-tc-e (clojure.core.typed/fn [a :- (t/U nil (clojure.core.typed/Nilable java.util.Date))] 
                                  (when a (clojure.core.typed/ann-form a java.util.Date)))))
 
-;(clj (compact [(-filter (parse-type 'Number) 0)
+;(clj (compact [(-filter (parse-clj 'Number) 0)
 ;               (-not-filter (Un -false -nil) 0)]
 ;              false))
 
@@ -2033,7 +2101,7 @@
   (is (check-ns 'clojure.core.typed.test.non-literal-val-fn)))
 
 (deftest CTYP-74-malformed-TApp-test
-  (is-clj (err/tc-error-thrown? (parse-type `([t/Any ~'-> t/Any])))))
+  (is-clj (err/tc-error-thrown? (parse-clj `([t/Any ~'-> t/Any])))))
 
 (deftest CTYP-73-reduced-test
   (is-tc-e (reduced 1) (clojure.lang.Reduced t/Num))
@@ -2204,22 +2272,22 @@
            [(t/All [b ...] [b ... b -> t/Any]) -> t/Any]))
 
 (deftest infer-bounds-test
-  (is (= (infer-bounds -any nil)
-         (infer-bounds -any -nothing)
-         (infer-bounds nil nil)
+  (is (= (infer-bounds -any nil clj-opts)
+         (infer-bounds -any -nothing clj-opts)
+         (infer-bounds nil nil clj-opts)
          (-bounds -any -nothing)))
-  (is-clj (let [t (parse-type `(t/Seq t/Num))]
-            (= (infer-bounds t nil)
+  (is-clj (let [t (parse-clj `(t/Seq t/Num))]
+            (= (infer-bounds t nil clj-opts)
                (-bounds t -nothing)))))
 
 (deftest consistent-variance-test
-  (is-clj (let [t (parse-type `(t/TFn [[x# :variance :covariant]] x#))
+  (is-clj (let [t (parse-clj `(t/TFn [[x# :variance :covariant]] x#))
                 names (TypeFn-fresh-symbols* t)]
-            (TypeFn-body* names (TypeFn-bbnds* names t) t)
+            (TypeFn-body* names (TypeFn-bbnds* names t clj-opts) t clj-opts)
             true))
-  (is-clj (let [t (parse-type `(t/TFn [[x# :variance :contravariant]] t/Any))
+  (is-clj (let [t (parse-clj `(t/TFn [[x# :variance :contravariant]] t/Any))
                 names (TypeFn-fresh-symbols* t)]
-            (TypeFn-body* names (TypeFn-bbnds* names t) t)
+            (TypeFn-body* names (TypeFn-bbnds* names t clj-opts) t clj-opts)
             true)))
 
 (deftest hvec-abstract-test
@@ -2239,39 +2307,39 @@
 
 (deftest parse-forbidden-rec-test
   (is-clj (throws-tc-error?
-            (parse-type `(t/Rec [x#] x#))))
+            (parse-clj `(t/Rec [x#] x#))))
   (is-clj (throws-tc-error?
-            (parse-type `(t/Rec [x#] (t/I x# Number)))))
+            (parse-clj `(t/Rec [x#] (t/I x# Number)))))
   (is-clj (throws-tc-error?
-            (parse-type `(t/Rec [x#] (t/U x# Number)))))
+            (parse-clj `(t/Rec [x#] (t/U x# Number)))))
   (is-clj (throws-tc-error?
-            (parse-type `(t/Rec [x#] (t/U (t/I x# Number) Double))))))
+            (parse-clj `(t/Rec [x#] (t/U (t/I x# Number) Double))))))
 
 (deftest parse-value-test
   (is-clj (throws-tc-error?
-            (parse-type `(t/Value))))
+            (parse-clj `(t/Value))))
   (is-clj (throws-tc-error?
-            (parse-type `(t/Value 1 2 3))))
+            (parse-clj `(t/Value 1 2 3))))
   (is-clj (throws-tc-error?
-            (parse-type `a)))
+            (parse-clj `a)))
   (is-clj (throws-tc-error?
-            (parse-type ':a)))
+            (parse-clj ':a)))
   (is-clj (throws-tc-error?
-            (parse-type '1))))
+            (parse-clj '1))))
 
 (deftest parse-TFn-bad-args-test
   (is-clj (throws-tc-error?
-            (parse-type `(t/TFn [[x# :variance :covariant :argh]] t/Any)))))
+            (parse-clj `(t/TFn [[x# :variance :covariant :argh]] t/Any)))))
 
 (deftest parse-HMap-bad-args-test
   (is-clj (throws-tc-error?
-            (parse-type `(t/HMap :foo))))
+            (parse-clj `(t/HMap :foo))))
   (is-clj (throws-tc-error?
-            (parse-type `(t/HMap :foo :foo))))
+            (parse-clj `(t/HMap :foo :foo))))
   (is-clj (throws-tc-error?
-            (parse-type `(t/HMap :mandatory {} :mandatory {}))))
+            (parse-clj `(t/HMap :mandatory {} :mandatory {}))))
   (is-clj (throws-tc-error?
-            (parse-type `(t/HMap ~'mandatory {})))))
+            (parse-clj `(t/HMap ~'mandatory {})))))
 
 (deftest hmap-intersection-test
   (is-tc-e {:a 1} 
@@ -2296,9 +2364,9 @@
   (is-clj
     (subtype? 
       (RClass-of 'clojure.lang.ChunkBuffer
-                 [(RClass-of 'java.lang.Number)])
+                 [(RClass-of 'java.lang.Number clj-opts)] clj-opts)
       (RClass-of 'clojure.lang.ChunkBuffer
-                 [(Name-maker 'java.lang.Number)]))))
+                 [(Name-maker 'java.lang.Number)] clj-opts))))
 
 (deftest protocol-method-ann-test
   (is-clj (let [x1 (gensym 'x1)
@@ -2307,11 +2375,11 @@
                 bnds [no-bounds no-bounds]
                 mt (with-bounded-frees (zipmap (map make-F names)
                                                bnds)
-                     (parse-type `(t/All [m1#]
+                     (parse-clj `(t/All [m1#]
                                     [t/Any ~x1 m1# ~'-> ~x2])))]
             (both-subtype? (collect-u/protocol-method-var-ann
-                             mt names bnds)
-                           (parse-type 
+                             mt names bnds clj-opts)
+                           (parse-clj
                              `(t/All [x1# x2# m1#]
                                 [t/Any x1# m1# ~'-> x2#]))))))
 
@@ -2341,13 +2409,15 @@
 
   (is-clj 
     (sub/subtype-type-filter?
-      (parse-filter `(~'is Number 0 [(~'Key :k)]))
-      (parse-filter `(~'is (t/HMap :mandatory {:k Number}) 0))))
+      (parse-filter `(~'is Number 0 [(~'Key :k)]) clj-opts)
+      (parse-filter `(~'is (t/HMap :mandatory {:k Number}) 0) clj-opts)
+      clj-opts))
 
   (is-clj 
     (sub/subtype-not-type-filter?
-      (parse-filter `(~'! Number 0 [(~'Key :k)]))
-      (parse-filter `(~'! (t/HMap :mandatory {:k Number}) 0)))))
+      (parse-filter `(~'! Number 0 [(~'Key :k)]) clj-opts)
+      (parse-filter `(~'! (t/HMap :mandatory {:k Number}) 0) clj-opts)
+      clj-opts)))
 
 (deftest function-as-ifn-test
   (is (sub? [-> nil] clojure.lang.IFn))
@@ -2526,13 +2596,14 @@
   (is
     (clj (not
            (subtype?
-             (parse-type `(t/Rec [x#] (t/U nil '[t/Any x#])))
-             (parse-type `(t/Rec [x#] '[Number x#]))))))
+             (parse-clj `(t/Rec [x#] (t/U nil '[t/Any x#])))
+             (parse-clj `(t/Rec [x#] '[Number x#]))))))
   ;; infinite loop
   (is
     (clj (overlap
-           (parse-type `(t/Rec [x#] (t/U nil '[t/Any x#])))
-           (parse-type `(t/Rec [x#] '[Number x#])))))
+           (parse-clj `(t/Rec [x#] (t/U nil '[t/Any x#])))
+           (parse-clj `(t/Rec [x#] '[Number x#]))
+           clj-opts)))
   (is (check-ns 'clojure.core.typed.test.rec-type)))
 
 (deftest poly-rec-type-test
@@ -2581,8 +2652,8 @@
 
 (deftest Get-test
   ;resolve
-  (is-clj (= (fully-resolve-type (parse-clj `(t/Get '{:a Number} ':a)))
-             (fully-resolve-type (parse-clj `Number))))
+  (is-clj (= (fully-resolve-type (parse-clj `(t/Get '{:a Number} ':a)) clj-opts)
+             (fully-resolve-type (parse-clj `Number) clj-opts)))
   (is-clj (both-subtype? (parse-clj `Number)
                          (parse-clj `(t/Get '{:a Number} ':a))))
   (is-tc-e 1 (t/Get '{:a Number} ':a))
@@ -2620,8 +2691,8 @@
 ;          true)))
 
 ;(deftest parse-with-inferred-variance
-;  (is-clj (= (clj (parse-type '(t/TFn [[x :variance :inferred]] x)))
-;             (parse-type '(t/TFn [[x :variance :covariant]] x)))))
+;  (is-clj (= (clj (parse-clj '(t/TFn [[x :variance :inferred]] x)))
+;             (parse-clj '(t/TFn [[x :variance :covariant]] x)))))
 
 ;(sub? (t/TFn (t/Rec [m]
 ;                     (t/TFn [[x :variance :covariant]]
@@ -2749,23 +2820,29 @@
             (dotimes [_ 100]
               (cs-gen #{'x} {'x no-bounds} {}
                       (-val "a")
-                      (Un (RClass-of clojure.lang.Indexed [(make-F 'x)])
-                          (In (RClass-of clojure.lang.Sequential) 
-                              (-name `t/Seqable (make-F 'x))))))
+                      (Un [(RClass-of clojure.lang.Indexed [(make-F 'x)] clj-opts)
+                           (In [(RClass-of clojure.lang.Sequential clj-opts) 
+                                (-name `t/Seqable (make-F 'x))]
+                               clj-opts)]
+                          clj-opts)
+                      clj-opts))
             true))
   (is-clj (some
-            #{(RClass-of clojure.lang.Indexed [-any])}
-             (mapv fully-resolve-type (RClass-supers* (RClass-of 'java.util.ArrayList)))))
+            #{(RClass-of clojure.lang.Indexed [-any] clj-opts)}
+             (mapv #(fully-resolve-type % clj-opts) (RClass-supers* (RClass-of 'java.util.ArrayList clj-opts) clj-opts))))
   (is (sub?-q `java.util.ArrayList 
               `(clojure.lang.Indexed t/Any))))
 
 (deftest nested-poly-test
   (is (Poly* ['a] [no-bounds]
-             (Poly* ['x] [no-bounds] -any)))
+             (Poly* ['x] [no-bounds] -any clj-opts)
+             clj-opts))
   (is (Poly* ['a] [no-bounds]
-             (PolyDots* ['x] [dotted-no-bounds] -any)))
+             (PolyDots* ['x] [dotted-no-bounds] -any clj-opts)
+             clj-opts))
   (is (PolyDots* ['a] [dotted-no-bounds]
-                 (Poly* ['x] [no-bounds] -any)))
+                 (Poly* ['x] [no-bounds] -any clj-opts)
+                 clj-opts))
   (is (parse-clj '(clojure.core.typed/All [b] [clojure.core.typed/Any -> (clojure.core.typed/All [b ...] [clojure.core.typed/Any -> clojure.core.typed/Any])])))
   (is (parse-clj '(clojure.core.typed/All [b] [b -> (clojure.core.typed/All [b ...] [b ... b -> clojure.core.typed/Any])])))
   (is (parse-clj '(clojure.core.typed/All [b ...] [b ... b -> (clojure.core.typed/All [b ...] [b ... b -> clojure.core.typed/Any])])))
@@ -2774,7 +2851,7 @@
 (deftest instantiate-polydots-test
   (is (let [sym (gensym)]
         (= sym
-           (-> (PolyDots-body* [sym] (parse-clj '(clojure.core.typed/All [b ...] ['[b ... b] -> clojure.core.typed/Any])))
+           (-> (PolyDots-body* [sym] (parse-clj '(clojure.core.typed/All [b ...] ['[b ... b] -> clojure.core.typed/Any])) clj-opts)
                :types
                first
                :dom
@@ -2851,7 +2928,7 @@
             (def foo)
             (fn []
               (foo))))
-      (ret (parse-type '[-> '[clojure.core.typed/Any *]])
+      (ret (parse-clj '[-> '[clojure.core.typed/Any *]])
            (-true-filter)
            -empty)))
   (is
@@ -3132,56 +3209,67 @@
 
 (deftest subtype-filter-test
   (testing "top and bot"
-    (is (sub/subtype-filter? -top -top))
-    (is (sub/subtype-filter? -bot -top))
-    (is (sub/subtype-filter? -bot -bot))
-    (is (not (sub/subtype-filter? -top -bot))))
+    (is (sub/subtype-filter? -top -top clj-opts))
+    (is (sub/subtype-filter? -bot -top clj-opts))
+    (is (sub/subtype-filter? -bot -bot clj-opts))
+    (is (not (sub/subtype-filter? -top -bot clj-opts))))
   (testing "this simplifies to top"
     (is (= (-filter -any 'a) -top)))
   (testing "this doesn't simplify to top"
     (is (not= (-filter -true 'a) -top)))
   (testing "combine type-filter and top/bot"
-    (is (sub/subtype-filter? (-filter -true 'a) -top))
-    (is (sub/subtype-filter? -bot (-filter -true 'a)))
-    (is (not (sub/subtype-filter? -top (-filter -true 'a))))
-    (is (not (sub/subtype-filter? (-filter -true 'a) -bot))))
+    (is (sub/subtype-filter? (-filter -true 'a) -top clj-opts))
+    (is (sub/subtype-filter? -bot (-filter -true 'a) clj-opts))
+    (is (not (sub/subtype-filter? -top (-filter -true 'a) clj-opts)))
+    (is (not (sub/subtype-filter? (-filter -true 'a) -bot clj-opts))))
   (testing "simple type-filters"
-    (is-clj (sub/subtype-filter? (-filter -true 'a) (-filter -true 'a)))
+    (is-clj (sub/subtype-filter? (-filter -true 'a) (-filter -true 'a) clj-opts))
     (testing "different types, that are subtypes"
-      (is-clj (sub/subtype-filter? (-filter -false 'a) (-filter (parse-clj `Boolean) 'a)))
-      (is-clj (sub/subtype-filter? (-filter -false 'a [(-kpe :a)]) (-filter (parse-clj `Boolean) 'a [(-kpe :a)]))))
+      (is-clj (sub/subtype-filter? (-filter -false 'a) (-filter (parse-clj `Boolean) 'a) clj-opts))
+      (is-clj (sub/subtype-filter? (-filter -false 'a [(-kpe :a)]) (-filter (parse-clj `Boolean) 'a [(-kpe :a)]) clj-opts)))
     (testing "different types, not subtypes"
-      (is-clj (not (sub/subtype-filter? (-filter -false 'a) (-filter -true 'a))))
+      (is-clj (not (sub/subtype-filter? (-filter -false 'a) (-filter -true 'a) clj-opts)))
       (is-clj (not (sub/subtype-filter? (-filter -false 'a [(-kpe :a)]) 
-                                        (-filter -true 'a [(-kpe :a)])))))
+                                        (-filter -true 'a [(-kpe :a)])
+                                        clj-opts))))
     (testing "different paths, but types happen to be subtypes (still should fail)"
-      (is-clj (not (sub/subtype-filter? (-filter -true 'a) (-filter -true 'b))))
-      (is-clj (not (sub/subtype-filter? (-filter -false 'a) (-filter (parse-clj `Boolean) 'b))))
-      (is-clj (not (sub/subtype-filter? (-filter -false 'a) (-filter (parse-clj `Boolean) 'a [(-kpe :a)])))))
+      (is-clj (not (sub/subtype-filter? (-filter -true 'a) (-filter -true 'b) clj-opts)))
+      (is-clj (not (sub/subtype-filter? (-filter -false 'a) (-filter (parse-clj `Boolean) 'b) clj-opts)))
+      (is-clj (not (sub/subtype-filter? (-filter -false 'a) (-filter (parse-clj `Boolean) 'a [(-kpe :a)]) clj-opts))))
     )
   (testing "or filter"
-    (is-clj (sub/subtype-filter? (-filter -true 'a) (-or (-filter -true 'a) (-filter -false 'b))))
-    (is-clj (not (sub/subtype-filter? (-filter -false 'a) (-or (-filter -true 'a) (-filter -false 'b)))))
-    (is-clj (not (sub/subtype-filter? (-or (-filter -true 'a) (-filter -false 'b)) (-filter -true 'a))))
-    (is-clj (sub/subtype-filter? (-or (-filter -true 'a) (-filter -false 'b)) (-or (-filter -true 'a) (-filter -false 'b))))
-    (is-clj (sub/subtype-filter? (-or (-filter -true 'a) (-filter -false 'b)) 
-                                 (-or (-filter (parse-clj `Boolean) 'a) (-filter (parse-clj `Boolean) 'b))))
+    (is-clj (sub/subtype-filter? (-filter -true 'a) (-or [(-filter -true 'a) (-filter -false 'b)] clj-opts) clj-opts))
+    (is-clj (not (sub/subtype-filter? (-filter -false 'a) (-or [(-filter -true 'a) (-filter -false 'b)] clj-opts) clj-opts)))
+    (is-clj (not (sub/subtype-filter? (-or [(-filter -true 'a) (-filter -false 'b)] clj-opts) (-filter -true 'a) clj-opts)))
+    (is-clj (sub/subtype-filter? (-or [(-filter -true 'a) (-filter -false 'b)] clj-opts)
+                                 (-or [(-filter -true 'a) (-filter -false 'b)] clj-opts)
+                                 clj-opts))
+    (is-clj (sub/subtype-filter? (-or [(-filter -true 'a) (-filter -false 'b)]
+                                      clj-opts) 
+                                 (-or [(-filter (parse-clj `Boolean) 'a) (-filter (parse-clj `Boolean) 'b)]
+                                      clj-opts)
+                                 clj-opts))
     (is-clj (not
-              (sub/subtype-filter? (-or (-filter (parse-clj `Boolean) 'a) (-filter (parse-clj `Boolean) 'b))
-                                   (-or (-filter -true 'a) (-filter -false 'b))))))
+              (sub/subtype-filter? (-or [(-filter (parse-clj `Boolean) 'a) (-filter (parse-clj `Boolean) 'b)]
+                                        clj-opts)
+                                   (-or [(-filter -true 'a) (-filter -false 'b)]
+                                        clj-opts)
+                                   clj-opts))))
   (testing "and filter"
     (is-clj (not
               (sub/subtype-filter? (-filter -true 'a) 
-                                   (-and (-filter -true 'a) (-filter -false 'b)))))
-    (is-clj (sub/subtype-filter? (-and (-filter -true 'a) (-filter -false 'b))
-                                 (-filter -true 'a)))
+                                   (-and [(-filter -true 'a) (-filter -false 'b)] clj-opts)
+                                   clj-opts)))
+    (is-clj (sub/subtype-filter? (-and [(-filter -true 'a) (-filter -false 'b)] clj-opts)
+                                 (-filter -true 'a)
+                                 clj-opts))
     (is-clj (not
-              (sub/subtype-filter? (-and (-filter (parse-clj `Boolean) 'a) (-filter (parse-clj `Boolean) 'b))
-                                   (-and (-filter -true 'a) (-filter -false 'b)))))
-    (is-clj (sub/subtype-filter? (-and (-filter -true 'a) (-filter -false 'b))
-                                 (-and (-filter (parse-clj `Boolean) 'a) (-filter (parse-clj `Boolean) 'b))))
-    )
-  )
+              (sub/subtype-filter? (-and [(-filter (parse-clj `Boolean) 'a) (-filter (parse-clj `Boolean) 'b)] clj-opts)
+                                   (-and [(-filter -true 'a) (-filter -false 'b)] clj-opts)
+                                   clj-opts)))
+    (is-clj (sub/subtype-filter? (-and [(-filter -true 'a) (-filter -false 'b)] clj-opts)
+                                 (-and [(-filter (parse-clj `Boolean) 'a) (-filter (parse-clj `Boolean) 'b)] clj-opts)
+                                 clj-opts))))
 
 (deftest reduced?-test
   (testing "a plain old object"
@@ -3228,68 +3316,85 @@
   (is-tc-e (defn f [c :- clojure.lang.Counted] :- t/Int (count c))))
 
 (deftest path-type-test
-  (is-clj (= (path-type -any nil)
+  (is-clj (= (path-type -any nil clj-opts)
              -any))
-  (is-clj (= (path-type -nil nil)
+  (is-clj (= (path-type -nil nil clj-opts)
              -nil))
-  (is-clj (= (path-type -nil [(-kpe :a)])
+  (is-clj (= (path-type -nil [(-kpe :a)] clj-opts)
              -nil))
-  (is-clj (= (path-type (-complete-hmap {(-val :a) (-val :b)}) [(-kpe :a)])
+  (is-clj (= (path-type (-complete-hmap {(-val :a) (-val :b)} clj-opts) [(-kpe :a)] clj-opts)
              (-val :b)))
-  (is-clj (= (path-type (-partial-hmap {(-val :a) (-val :b)}) [(-kpe :a)])
+  (is-clj (= (path-type (-partial-hmap clj-opts {(-val :a) (-val :b)}) [(-kpe :a)] clj-opts)
              (-val :b)))
-  (is-clj (= (path-type (make-HMap :optional {(-val :a) (-val :b)}) [(-kpe :a)])
-             (Un -nil (-val :b))))
-  (is-clj (= (path-type (make-HMap :optional {(-val :a) (-val :b)}
-                                   :complete? true) 
-                        [(-kpe :a)])
-             (Un -nil (-val :b))))
-  (is-clj (= (path-type (make-HMap :optional {(-val :a) (-val :b)}
-                                   :complete? true) 
-                        [(-kpe :a)])
-             (Un -nil (-val :b))))
-  (is-clj (= (path-type (make-HMap :complete? true)
-                        [(-kpe :a)])
+  (is-clj (= (path-type (make-HMap clj-opts {:optional {(-val :a) (-val :b)}}) [(-kpe :a)] clj-opts)
+             (Un [-nil (-val :b)] clj-opts)))
+  (is-clj (= (path-type (make-HMap clj-opts {:optional {(-val :a) (-val :b)}
+                                             :complete? true}) 
+                        [(-kpe :a)]
+                        clj-opts)
+             (Un [-nil (-val :b)] clj-opts)))
+  (is-clj (= (path-type (make-HMap clj-opts
+                                   {:optional {(-val :a) (-val :b)}
+                                    :complete? true}) 
+                        [(-kpe :a)]
+                        clj-opts)
+             (Un [-nil (-val :b)] clj-opts)))
+  (is-clj (= (path-type (make-HMap clj-opts {:complete? true})
+                        [(-kpe :a)]
+                        clj-opts)
              -nil))
-  (is-clj (= (path-type (make-HMap :complete? false)
-                        [(-kpe :a)])
+  (is-clj (= (path-type (make-HMap clj-opts {:complete? false})
+                        [(-kpe :a)]
+                        clj-opts)
              -any))
-  (is-clj (= (path-type (make-HMap :absent-keys #{(-val :a)})
-                        [(-kpe :a)])
+  (is-clj (= (path-type (make-HMap clj-opts {:absent-keys #{(-val :a)}})
+                        [(-kpe :a)]
+                        clj-opts)
              -nil))
   (is-clj (= (path-type -nil
-                        [(-kpe :a)])
+                        [(-kpe :a)]
+                        clj-opts)
              -nil))
   (is-clj (= (path-type -any
-                        [(-kpe :a)])
+                        [(-kpe :a)]
+                        clj-opts)
              -any))
   (is-clj (= (path-type (-val :b)
-                        [(-kpe :a)])
+                        [(-kpe :a)]
+                        clj-opts)
              -any))
   ; um CountPE just returning t/Int will probably do
   (is-clj (both-subtype? 
             (path-type (-val :b)
-                       [(CountPE-maker)])
+                       [(CountPE-maker)]
+                       clj-opts)
             (Name-maker `t/Int)))
   (is-clj (both-subtype? (clj (path-type (parse-clj `(t/Vec t/Int))
-                                         [(CountPE-maker)]))
+                                         [(CountPE-maker)]
+                                         clj-opts))
                          (Name-maker `t/Int)))
   (is-clj (= (path-type (-hvec [(-val :a) (-val :b) (-val :c)])
-                        [(NthPE-maker 0)])
+                        [(NthPE-maker 0)]
+                        clj-opts)
              (-val :a)))
   (is-clj (= (path-type (-hvec [(-val :a) (-val :b) (-val :c)])
-                        [(NthPE-maker 1)])
+                        [(NthPE-maker 1)]
+                        clj-opts)
              (-val :b)))
   (is-clj (= (path-type (-hvec [(-val :a) (-val :b) (-val :c)])
-                        [(NthPE-maker 2)])
+                        [(NthPE-maker 2)]
+                        clj-opts)
              (-val :c)))
   (is-clj (= (path-type (-hvec [(-val :a) (-val :b) (-val :c)])
-                        [(NthPE-maker 3)])
+                        [(NthPE-maker 3)]
+                        clj-opts)
              -any))
-  (is-clj (= (path-type (Un (-hvec [(-val :b)])
-                            (-hvec [(-val :a) (-val :b) (-val :c)]))
-                        [(NthPE-maker 0)])
-             (Un (-val :a) (-val :b))))
+  (is-clj (= (path-type (Un [(-hvec [(-val :b)])
+                             (-hvec [(-val :a) (-val :b) (-val :c)])]
+                            clj-opts)
+                        [(NthPE-maker 0)]
+                        clj-opts)
+             (Un [(-val :a) (-val :b)] clj-opts)))
   )
 
 (deftest aliasing-test
@@ -3681,7 +3786,8 @@
   (is (=
        (-val :a)
        (path-type (-val 'a)
-                  [(KeywordPE-maker)])))
+                  [(KeywordPE-maker)]
+                  clj-opts)))
   (is-tc-e (fn [k :- 'a] :- t/Kw
              (let [i (keyword k)]
                i)))
@@ -3879,13 +3985,16 @@
   (is-clj
     (= true
        (ndu/should-check-ns-form?
-         '(ns foo))))
+         '(ns foo)
+         clj-opts)))
   (is-clj
     (= false
        (ndu/should-check-ns-form?
-         '(ns ^:typed.clojure/ignore foo))
+         '(ns ^:typed.clojure/ignore foo)
+         clj-opts)
        (ndu/should-check-ns-form?
-         '(ns ^{:typed.clojure {:ignore true}} foo)))))
+         '(ns ^{:typed.clojure {:ignore true}} foo)
+         clj-opts))))
 
 (deftest CTYP-234-test
   (is (check-ns 'clojure.core.typed.test.CTYP-234.core)))
@@ -4004,41 +4113,41 @@
 
 (deftest subtype-heterogeneous*-with-repeat
   (let [t (impl/with-clojure-impl
-            (parse-type `(t/HSequential [Number String] :repeat true)))]
+            (parse-clj `(t/HSequential [Number String] :repeat true)))]
     ; t/HVec, t/HSeq are all rely on t/HSequential to implement subtype
-    (is-clj (subtype? (parse-type `(t/HSequential [Number String])) t))
+    (is-clj (subtype? (parse-clj `(t/HSequential [Number String])) t))
 
-    (is-clj (subtype? (parse-type `(t/HSequential [Number String Number String])) t))
+    (is-clj (subtype? (parse-clj `(t/HSequential [Number String Number String])) t))
 
     ; if both s and t have :repeat, then (count (:types t)) should <= (count (:types s))
-    (is-clj (subtype? (parse-type `(t/HSequential [Number String Number String] :repeat true)) t))
-    (is-clj (not (subtype? t (parse-type `(t/HSequential [Number String Number String] :repeat true)))))
+    (is-clj (subtype? (parse-clj `(t/HSequential [Number String Number String] :repeat true)) t))
+    (is-clj (not (subtype? t (parse-clj `(t/HSequential [Number String Number String] :repeat true)))))
 
-    (is-clj (not (subtype? (parse-type `(t/HSequential [Number])) t)))
+    (is-clj (not (subtype? (parse-clj `(t/HSequential [Number])) t)))
 
-    (is-clj (not (subtype? (parse-type `(t/HSequential [Number String Number])) t)))
+    (is-clj (not (subtype? (parse-clj `(t/HSequential [Number String Number])) t)))
 
     ; they are same
-    (is-clj (subtype? (parse-type `(t/HSequential [Number] :repeat true))
-                      (parse-type `(t/HSequential [Number Number ~'*]))))
-    (is-clj (subtype? (parse-type `(t/HSequential [Number Number ~'*]))
-                      (parse-type `(t/HSequential [Number] :repeat true))))
+    (is-clj (subtype? (parse-clj `(t/HSequential [Number] :repeat true))
+                      (parse-clj `(t/HSequential [Number Number ~'*]))))
+    (is-clj (subtype? (parse-clj `(t/HSequential [Number Number ~'*]))
+                      (parse-clj `(t/HSequential [Number] :repeat true))))
 
-    (is-clj (subtype? (parse-type `(t/HSequential [Number] :repeat true))
-                      (parse-type `(t/HSequential [Number Number Number ~'*]))))
+    (is-clj (subtype? (parse-clj `(t/HSequential [Number] :repeat true))
+                      (parse-clj `(t/HSequential [Number Number Number ~'*]))))
 
-    (is-clj (not (subtype? (parse-type `(t/HSequential [Number] :repeat true))
-                           (parse-type `(t/HSequential [Number Number String ~'*])))))
+    (is-clj (not (subtype? (parse-clj `(t/HSequential [Number] :repeat true))
+                           (parse-clj `(t/HSequential [Number Number String ~'*])))))
 
-    (is-clj (not (subtype? (parse-type `(t/HSequential [Number] :repeat true))
-                           (parse-type `(t/HSequential [Number String Number ~'*])))))
+    (is-clj (not (subtype? (parse-clj `(t/HSequential [Number] :repeat true))
+                           (parse-clj `(t/HSequential [Number String Number ~'*])))))
 
-    (is-clj (subtype? (parse-type `(t/HVec [Number String Number String])) t))
+    (is-clj (subtype? (parse-clj `(t/HVec [Number String Number String])) t))
 
-    (is-clj (not (subtype? (parse-type `(t/HVec [Number String] :repeat true))
-                           (parse-type `(t/HSequential [Number String Number String])))))
+    (is-clj (not (subtype? (parse-clj `(t/HVec [Number String] :repeat true))
+                           (parse-clj `(t/HSequential [Number String Number String])))))
 
-    (is-clj (subtype? (parse-type `(t/HSeq [Number String Number String])) t))))
+    (is-clj (subtype? (parse-clj `(t/HSeq [Number String Number String])) t))))
 
 (deftest function-prest
   (is-tc-e (fn [a & rst] 1) [Number (t/HSeq [Number String] :repeat true) <* -> Number])
@@ -4047,8 +4156,8 @@
            [Number (t/HSeq [Number String] :repeat true) <* -> (t/U nil Number)])
   (is-tc-e (hash-map 1 "a" 2 "c" 3 "d") :expected (t/Map Number String))
   (is-tc-err #(hash-map 1 "a" 2 "c" 3))
-  (is-clj (not (subtype? (parse-type `[(t/HSeq [String Number] :repeat true) ~'<* ~'-> String])
-                         (parse-type `[(t/HSeq [String Number String] :repeat true) ~'<* ~'-> String]))))
+  (is-clj (not (subtype? (parse-clj `[(t/HSeq [String Number] :repeat true) ~'<* ~'-> String])
+                         (parse-clj `[(t/HSeq [String Number String] :repeat true) ~'<* ~'-> String]))))
   (is (check-ns 'clojure.core.typed.test.prest-cs-gen))
   (is-tc-e (map (inst hash-map Number String) [1 2 3] ["a b c"])
            :expected (t/NonEmptySeq (t/Map Number String)))
@@ -4064,23 +4173,24 @@
 
 (deftest nil-empty-with-repeat
   (let [t (impl/with-clojure-impl
-            (parse-type `(t/HSequential [Number String] :repeat true)))
+            (parse-clj `(t/HSequential [Number String] :repeat true)))
         tt (impl/with-clojure-impl
-             (parse-type `(t/All [k# v#] (t/HSequential [k# v#] :repeat true))))
+             (parse-clj `(t/All [k# v#] (t/HSequential [k# v#] :repeat true))))
         cg #(cs-gen #{} ;V
                     (zipmap '[k v] (repeat no-bounds)) ;X
                     {} ;Y
                     % ;S
-                    tt)]
-    (is-clj (subtype? (parse-type `(t/HSequential [])) t))
-    (is-clj (subtype? (parse-type `(t/HVec [])) t))
-    (is-clj (subtype? (parse-type `(t/HSeq [])) t))
+                    tt
+                    clj-opts)]
+    (is-clj (subtype? (parse-clj `(t/HSequential [])) t))
+    (is-clj (subtype? (parse-clj `(t/HVec [])) t))
+    (is-clj (subtype? (parse-clj `(t/HSeq [])) t))
     (is-clj (subtype? -nil t))
-    (is-clj (subtype? -nil (parse-type `(t/HVec [Number String] :repeat true))))
-    (is-clj (subtype? -nil (parse-type `(t/HSeq [Number String] :repeat true))))
-    (is-clj (do (cg (parse-type `(t/HSequential []))) true))
-    (is-clj (do (cg (parse-type `(t/HVec []))) true))
-    (is-clj (do (cg (parse-type `(t/HSeq []))) true))
+    (is-clj (subtype? -nil (parse-clj `(t/HVec [Number String] :repeat true))))
+    (is-clj (subtype? -nil (parse-clj `(t/HSeq [Number String] :repeat true))))
+    (is-clj (do (cg (parse-clj `(t/HSequential []))) true))
+    (is-clj (do (cg (parse-clj `(t/HVec []))) true))
+    (is-clj (do (cg (parse-clj `(t/HSeq []))) true))
     (is-clj (do (cg -nil) true))
   ))
 
@@ -4486,7 +4596,7 @@
     (is (str/starts-with? msg "Type Error (:<NO LINE>) Type function argument number 1 (x) has kind (t/Type :< t/Int) but given t/Bool"))))
 
 (deftest SeqOn-test
-  (is-clj (= r/-nil (fully-resolve-type (-name `t/SeqOn r/-nil))))
+  (is-clj (= r/-nil (fully-resolve-type (-name `t/SeqOn r/-nil) clj-opts)))
   (is-tc-e nil (t/SeqOn nil))
   (is-tc-e nil (t/SeqOn t/Str))
   (is-tc-e (seq "a") (t/SeqOn t/Str))

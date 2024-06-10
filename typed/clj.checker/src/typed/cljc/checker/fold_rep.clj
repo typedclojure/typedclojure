@@ -17,14 +17,14 @@
 ; b. Filter to filter-rec
 ; c. Object to object-rec
 
-(def default-params '[type-rec type-rec+flip type-rec-no-simpl type-rec+invariant filter-rec object-rec pathelem-rec])
+(def default-params '[type-rec type-rec+flip type-rec+invariant filter-rec object-rec pathelem-rec])
 
 (defonce all-extra-params (atom {`IFoldDefault []}))
 
 ;visit a type nested inside ty
 (defmacro ^:private def-fold-default-protocol []
   `(defprotocol IFoldDefault
-     (~'fold-default* [~'ty ~@default-params])))
+     (~'fold-default* [~'ty ~'opts ~@default-params])))
 
 (def-fold-default-protocol)
 
@@ -40,39 +40,34 @@
         default-f (gensym 'default-f)
         qpname (symbol (-> *ns* ns-name name) (name pname))
         qmname (symbol (-> *ns* ns-name name) (name mname))
+        gopts (gensym 'opts)
         call-mname-defmacro 
         (let [m (gensym 'm)]
-          `(defmacro ~(symbol (str "call-" mname)) [t# ~m]
+          `(defmacro ~(symbol (str "call-" mname)) [t# opts# ~m]
              {:pre [(map? ~m)]}
              (let [extra# (set/difference (set (keys ~m))
                                           '~(into #{} (map keyword) (concat default-params extra-params)))]
                (assert (empty? extra#) (str "Extra keys: " extra#)))
-             (list '~qmname t#
+             (list '~qmname t# opts#
                    ; (:type-rec m) (:filter-rec m) ... (:locals m) ...
                    ~@(map #(list (keyword %) m) (concat default-params extra-params)))))]
     (swap! all-extra-params assoc qpname extra-params)
     `(do (defprotocol ~pname
-           (~mname [~'ty ~@default-params ~@extra-params]))
+           (~mname [~'ty ~'opts ~@default-params ~@extra-params]))
          (swap! all-extra-params assoc '~qpname '~extra-params)
          ~call-mname-defmacro
          (extend-protocol ~qpname
            Object ;; TODO replace with AnyType
-           (~qmname [ty# ~@default-gs ~@extra-gs]
-             (let [~default-f (fn ([ty#] (~qmname ty# ~@default-gs ~@extra-gs))
-                                ([ty# _info#] (~qmname ty# ~@default-gs ~@extra-gs)))
+           (~qmname [ty# opts# ~@default-gs ~@extra-gs]
+             (let [~default-f (fn rec#
+                                ([ty#] (rec# ty# opts#))
+                                ([ty# opts#] (~qmname ty# opts# ~@default-gs ~@extra-gs)))
                    ~@(mapcat (fn [g]
-                               [g `(or ~g
-                                       ~(case g
-                                          type-rec-no-simpl `(fn ([ty#]
-                                                                  (binding [vs/*no-simpl* true]
-                                                                    (~'type-rec ty#)))
-                                                               ([ty# info#]
-                                                                (binding [vs/*no-simpl* true]
-                                                                  (~'type-rec ty# info#))))
-                                          default-f))])
+                               ;; g is local
+                               [g `(if ~g ~g ~default-f)])
                              default-gs)]
                ;; the only place fold-default* is called
-               (fold-default* ty# ~@default-gs)))))))
+               (fold-default* ty# opts# ~@default-gs)))))))
 
 (defmacro add-fold-case [pname mname ty fld-fn]
   (let [qpname (some-> (resolve pname) symbol)
@@ -82,21 +77,26 @@
         qmname (some-> (resolve mname) symbol)
         default-f (gensym 'default-f)
         _ (assert (qualified-symbol? qmname) mname)]
+    (assert (not-any? #(= 'opts %) (concat default-params extra-params)))
     `(extend-protocol ~pname ;; can be captured
-       ~ty ;; can be captured
-       (~mname [ty# ~@default-params ~@extra-gs]
+       ~ty ;; can be captured, including opts
+       (~mname [ty# opts# ~@default-params ~@extra-gs]
          ; ~@all-extra-params in scope now
-         (let [~default-f #(~qmname % ~@default-params ~@extra-gs)
+         (let [~default-f (fn rec#
+                            ([ty#] (rec# ty# opts#))
+                            ([ty# opts#] (~qmname ty# opts# ~@default-params ~@extra-gs)))
                ;; defaults for all-extra-params
                ~@(mapcat (fn [d]
-                           [d `(or ~d ~default-f)])
-                         default-params)]
+                           ;; d is local
+                           [d `(if ~d ~d ~default-f)])
+                         default-params)
+               ~'opts opts#]
            (~fld-fn ty# ~@extra-gs))))))
 
 (defmacro add-default-fold-case [ty fld-fn]
   `(add-fold-case IFoldDefault fold-default* ~ty ~fld-fn))
 
-(defn ^:private def-sub-function* [sym st f]
+(defn ^:private def-sub-function* [sym st f opts]
   (assert (qualified-symbol? f) f)
   (assert (resolve f) f)
   ;; expects a macro call created by def-derived-fold to inline
@@ -108,35 +108,39 @@
               '[sub-pe sub-f sub-o])
         gsym (get m sym)
         _ (assert (symbol? gsym))]
-    `(letfn [(~sub-pe [st#]
-               (fn rec# ([ty# _info#] (rec# ty#))
-                 ([ty#] (~f ty#
-                            {:type-rec st#
-                             :pathelem-rec (~sub-pe st#)}))))
-             (~sub-f [st#]
-               (fn rec# ([ty# _info#] (rec# ty#))
-                 ([ty#] (~f ty#
-                            {:type-rec st#
-                             :filter-rec (~sub-f st#)
-                             :pathelem-rec (~sub-pe st#)}))))
-             (~sub-o [st#]
-               (fn rec# ([ty# _info#] (rec# ty#))
-                 ([ty#] (~f ty#
-                            {:type-rec st#
-                             :object-rec (~sub-o st#)
-                             :pathelem-rec (~sub-pe st#)}))))]
-       (~gsym ~st))))
+    `(letfn [(~sub-pe [st# opts#]
+               (fn rec#
+                 ([ty#] (rec# ty# opts#))
+                 ([ty# opts#] (~f ty# opts#
+                                  {:type-rec st#
+                                   :pathelem-rec (~sub-pe st# opts#)}))))
+             (~sub-f [st# opts#]
+               (fn rec#
+                 ([ty#] (rec# ty# opts#))
+                 ([ty# opts#] (~f ty# opts#
+                                  {:type-rec st#
+                                   :filter-rec (~sub-f st# opts#)
+                                   :pathelem-rec (~sub-pe st# opts#)}))))
+             (~sub-o [st# opts#]
+               (fn rec#
+                 ([ty#] (rec# ty# opts#))
+                 ([ty# opts#] (~f ty# opts#
+                                  {:type-rec st#
+                                   :object-rec (~sub-o st# opts#)
+                                   :pathelem-rec (~sub-pe st# opts#)}))))]
+       (~gsym ~st ~opts))))
 
 (defmacro def-sub-functions []
   (let [mk-sub-fn (fn [sym]
                     (let [st (gensym 'st)
-                          f (gensym 'f)]
-                      `(defmacro ~sym [~st ~f]
+                          f (gensym 'f)
+                          opts (gensym 'opts)]
+                      `(defmacro ~sym [~st ~f ~opts]
                          (assert (and (seq? ~f)
                                       ('#{quote} (first ~f))
                                       (qualified-symbol? (second ~f)))
                                  (str "Must provide qualified symbol (like `call-subst-dots*): " ~f))
-                         (def-sub-function* '~sym ~st (second ~f)))))]
+                         (def-sub-function* '~sym ~st (second ~f) ~opts))))]
     `(do ~@(map mk-sub-fn '[sub-pe sub-f sub-o]))))
 
 ;; defines sub-pe, sub-f, sub-o

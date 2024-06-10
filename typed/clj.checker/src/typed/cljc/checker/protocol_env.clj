@@ -57,11 +57,12 @@
    :post [((some-fn nil? r/Protocol? r/TypeFn?) %)]}
   (force-type (get (protocol-env checker) sym)))
 
-(t/ann resolve-protocol [t/Any t/Sym -> r/Type])
-(defn resolve-protocol [checker sym]
+(t/ann resolve-protocol [t/Any t/Sym t/Any -> r/Type])
+(defn resolve-protocol [checker sym opts]
   {:post [(r/Type? %)]}
   (let [p (get-protocol checker sym)]
     (when-not p 
       (err/int-error (str "Could not resolve Protocol: " sym
-                          "\n\nHint: Add protocol annotations with ann-protocol")))
+                          "\n\nHint: Add protocol annotations with ann-protocol")
+                     opts))
     p))

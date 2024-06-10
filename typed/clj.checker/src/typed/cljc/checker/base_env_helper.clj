@@ -102,7 +102,7 @@
 
 ;; Alter class
 
-(defn- build-replacement-syntax [m]
+(defn- build-replacement-syntax [m opts]
   (impl/with-clojure-impl
     (into {}
           (map
@@ -113,7 +113,7 @@
                      (coerce/Class->symbol c))
                  (do (assert nil (str "Unknown rclass replacement: " k))
                      k))
-               (prs/parse-type v)]))
+               (prs/parse-type v opts)]))
           m)))
 
 (defn resolve-class-symbol [the-class]
@@ -142,7 +142,7 @@
                                                          :post [(symbol? %)]}
                                                         (first s))
                                                       fs)
-                      (mapv prs/parse-tfn-binder fs))]
+                      (mapv #(prs/parse-tfn-binder % opts) fs))]
               {:variances (map :variance b)
                :nmes (map :nme b)
                :bnds (map :bound b)}))
@@ -152,7 +152,8 @@
       (assert ((con/hash-c? r/F? r/Bounds?) frees-and-bnds) frees-and-bnds)
       (c/RClass* nmes variances frees csym
                  (free-ops/with-bounded-frees frees-and-bnds
-                   (build-replacement-syntax replacements-syn))
+                   (build-replacement-syntax replacements-syn opts))
                  (free-ops/with-bounded-frees frees-and-bnds
-                   (into (r/sorted-type-set []) (map prs/parse-type) unchecked-ancestors-syn))
-                 bnds))))
+                   (into (r/sorted-type-set []) (map #(prs/parse-type % opts)) unchecked-ancestors-syn))
+                 bnds
+                 opts))))

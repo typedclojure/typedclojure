@@ -16,7 +16,7 @@
 
 ; (Vec '{:ftype Type :fn-expr Expr})
 (def ^:private ^:dynamic *fn-stack* [])
-(set-validator! #'*fn-stack* vector?)
+;(set-validator! #'*fn-stack* vector?)
 
 ;(t/defalias InfoEntry '{:msg t/Str :fn-stack (t/Vec {:ftype Type :fn-expr Expr})})
 ;(t/defalias MappingKey '{:line Int :column Int :file Str})
@@ -79,7 +79,7 @@
 ;(defalias MsgMap (Map MappingKey Str))
 
 ;[InfoMap -> MsgMap]
-(defn info-map->msg-map [info-map]
+(defn info-map->msg-map [info-map opts]
   (into {}
         (map
           (fn [[k v]]
@@ -91,7 +91,7 @@
                                                            (prs/with-unparse-ns (cu/expr-ns expr)
                                                              (str
                                                                "In context size " (count fn-stack) ":\n\t"
-                                                               (pr-str (prs/unparse-type (r/ret-t r)))
+                                                               (pr-str (prs/unparse-type (r/ret-t r) opts))
                                                                "\n")))))
                                                      v))]
                                 (apply str ms))
@@ -99,9 +99,9 @@
                                     r (u/expr-type expr)]
                                 (prs/with-unparse-ns (cu/expr-ns expr)
                                   (when (r/TCResult? r)
-                                    (pr-str (prs/unparse-type (r/ret-t r)))))))]
+                                    (pr-str (prs/unparse-type (r/ret-t r) opts))))))]
               [k msg])))
         info-map))
 
-(defn ast->file-mapping [ast]
+(defn ast->file-mapping [ast opts]
   (-> ast ast->info-map info-map->msg-map))

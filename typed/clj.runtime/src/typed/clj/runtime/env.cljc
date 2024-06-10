@@ -16,3 +16,6 @@
 
 (defn clear-clj-checker! []
   (reset! clj-checker-atom (empty-clj-checker)))
+
+(let [-opts {::env/checker clj-checker-atom}]
+  (defn clj-opts [] -opts))

@@ -17,14 +17,24 @@
               (nil? %))]}
   *checker*)
 
-(defn checker []
-  (let [c *checker*]
-    (assert (or #?(:clj (instance? clojure.lang.IAtom2 c)
-                   :cljr (instance? clojure.lang.IAtom2 c)
-                   :cljs (instance? Atom c))
-                (delay? c))
-            (str "No checker state: " (pr-str c)))
-    c))
+(defn checker
+  ([opts]
+   (let [c (or (::checker opts)
+               *checker*)]
+     (assert (or #?(:clj (instance? clojure.lang.IAtom2 c)
+                    :cljr (instance? clojure.lang.IAtom2 c)
+                    :cljs (instance? Atom c))
+                 (delay? c))
+             (str "No checker state: " (pr-str c)))
+     c))
+  ([]
+   (let [c *checker*]
+     (assert (or #?(:clj (instance? clojure.lang.IAtom2 c)
+                    :cljr (instance? clojure.lang.IAtom2 c)
+                    :cljs (instance? Atom c))
+                 (delay? c))
+             (str "No checker state: " (pr-str c)))
+     c)))
 
 (defn empty-checker []
   {})

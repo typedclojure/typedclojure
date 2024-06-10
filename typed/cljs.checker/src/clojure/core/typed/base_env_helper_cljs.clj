@@ -12,6 +12,7 @@
             [typed.clj.checker.parse-unparse :as prs]
             [typed.cljc.checker.free-ops :as free-ops]
             [typed.cljc.checker.type-ctors :as c]
+            [typed.cljs.runtime.env :refer [cljs-opts]]
             [typed.cljc.checker.declared-kind-env :as decl-env]
             [clojure.core.typed.current-impl :as impl]
             [typed.cljc.checker.name-env :as nme-env]
@@ -34,7 +35,7 @@
                    (assert (and (symbol? s#)
                                 (namespace s#))
                            "Need fully qualified symbol")
-                   [s# (prs/parse-type t#)])))))))
+                   [s# (prs/parse-type t# (cljs-opts))])))))))
 
 (defmacro js-var-mappings [& args]
   `(impl/with-cljs-impl
@@ -42,25 +43,26 @@
        (into {}
              (doall
                (for [[s# t#] ts#]
-                 [s# (prs/parse-type t#)]))))))
+                 [s# (prs/parse-type t# (cljs-opts))]))))))
 
-(defn declared-kind-for-protocol [binder]
+(defn declared-kind-for-protocol [binder opts]
   (let [fs (map first binder)
         _ (assert (every? symbol? fs) fs)
         vs (map (fn [[v & {:keys [variance]}]] variance) binder)]
-    (c/TypeFn* fs vs (repeat (count vs) r/no-bounds) r/-any)))
+    (c/TypeFn* fs vs (repeat (count vs) r/no-bounds) r/-any opts)))
 
 (defmacro protocol-mappings [& args]
   `(impl/with-cljs-impl
      (let [checker# (impl/cljs-checker)
-           ts# (partition 2 '~args)]
+           ts# (partition 2 '~args)
+           opts# (cljs-opts)]
        (into {}
              (doall
-               (for [[n# [fields# & {:as opts#}]] ts#]
+               (for [[n# [fields# & {:as popts#}]] ts#]
                  (let [vs# (seq
                              (for [[_# & {variance# :variance}] fields#]
                                variance#))
-                       decl-kind# (declared-kind-for-protocol fields#)
+                       decl-kind# (declared-kind-for-protocol fields# opts#)
                        ;FIXME this is harder than it has to be
                        ; add a Name so the methods can be parsed
                        _# (nme-env/declare-protocol* checker# n#)
@@ -74,15 +76,15 @@
                        frees# (map r/make-F names#)
                        methods# (free-ops/with-bounded-frees (zipmap frees# bnds#)
                                   (into {}
-                                        (for [[mname# mtype#] (:methods opts#)]
-                                          [mname# (prs/parse-type mtype#)])))
+                                        (for [[mname# mtype#] (:methods popts#)]
+                                          [mname# (prs/parse-type mtype# opts#)])))
                        the-var# n#
                        on-class# (c/Protocol-var->on-class the-var#)]
                    (decl-env/remove-declared-kind checker n#)
                    [n# (c/Protocol* names# vs# frees# the-var#
-                                    on-class# methods# bnds#)])))))))
+                                    on-class# methods# bnds# opts#)])))))))
 
-(defn jsnominal-entry [[n [binder & {:as opts}]]]
+(defn jsnominal-entry [[n [binder & {:as jopts}]] opts]
   (let [names (when (seq binder)
                     (map first binder))
         {vs :variances
@@ -92,28 +94,28 @@
           ; don't bound frees because mutually dependent bounds are problematic
           ; FIXME ... Or is this just laziness? 
           (let [b (free-ops/with-free-symbols names
-                     (mapv prs/parse-tfn-binder binder))]
+                     (mapv #(prs/parse-tfn-binder % opts) binder))]
             {:variances (map :variance b)
              :names (map :nme b)
              :bnds (map :bound b)}))
         frees (map r/make-F names)
         methods (free-ops/with-bounded-frees (zipmap frees bnds)
                    (into {}
-                         (for [[mname mtype] (:methods opts)]
-                           [mname (c/abstract-many names (prs/parse-type mtype))])))
+                         (for [[mname mtype] (:methods jopts)]
+                           [mname (c/abstract-many names (prs/parse-type mtype opts) opts)])))
         fields (free-ops/with-bounded-frees (zipmap frees bnds)
                   (into {}
-                        (for [[mname mtype] (:fields opts)]
-                          [mname (c/abstract-many names (prs/parse-type mtype))])))
-        ctor (when-let [ctor (:ctor opts)]
+                        (for [[mname mtype] (:fields jopts)]
+                          [mname (c/abstract-many names (prs/parse-type mtype opts) opts)])))
+        ctor (when-let [ctor (:ctor jopts)]
                 (free-ops/with-bounded-frees (zipmap frees bnds)
-                  (c/abstract-many names (prs/parse-type ctor))))
+                  (c/abstract-many names (prs/parse-type ctor opts) opts)))
         ancestors (free-ops/with-bounded-frees (zipmap frees bnds)
                      (into #{}
-                           (for [mtype (:ancestors opts)]
-                             (c/abstract-many names (prs/parse-type mtype)))))]
+                           (for [mtype (:ancestors jopts)]
+                             (c/abstract-many names (prs/parse-type mtype opts) opts))))]
     (decl-env/remove-declared-kind (impl/cljs-checker) n)
-    [n {:jsnominal (c/JSNominal* names vs frees n bnds)
+    [n {:jsnominal (c/JSNominal* names vs frees n bnds opts)
          :fields fields
          :methods methods
          :ctor ctor
@@ -122,18 +124,20 @@
 
 (defmacro jsnominal-mappings [& args]
   `(impl/with-cljs-impl
-     (let [ts# (partition 2 '~args)]
+     (let [ts# (partition 2 '~args)
+           opts# (cljs-opts)]
        (into {}
              (doall
                 (for [t# ts#]
-                 (jsnominal-entry t#)))))))
+                  (jsnominal-entry t# opts#)))))))
 
 (defmacro datatype-mappings [& args]
   `(impl/with-cljs-impl
-     (let [ts# (partition 2 '~args)]
+     (let [ts# (partition 2 '~args)
+           opts# (cljs-opts)]
        (into {}
              (doall
-               (for [[n# [binder# & {record?# :record? :as opts#}]] ts#]
+               (for [[n# [binder# & {record?# :record? :as dopts#}]] ts#]
                  (let [names# (when (seq binder#)
                                 (map first binder#))
                        {vs# :variances
@@ -143,17 +147,17 @@
                          ; don't bound frees because mutually dependent bounds are problematic
                          ; FIXME ... Or is this just laziness? 
                          (let [b# (free-ops/with-free-symbols names#
-                                    (mapv prs/parse-tfn-binder binder#))]
+                                    (mapv #(prs/parse-tfn-binder % opts#) binder#))]
                            {:variances (seq (map :variance b#))
                             :names (seq (map :nme b#))
                             :bnds (seq (map :bound b#))}))
                        frees# (seq (map r/make-F names#))
                        fields# (free-ops/with-bounded-frees (zipmap frees# bnds#)
                                  (into {}
-                                       (for [[mname# mtype#] (:fields opts#)]
-                                         [mname# (prs/parse-type mtype#)])))]
+                                       (for [[mname# mtype#] (:fields dopts#)]
+                                         [mname# (prs/parse-type mtype# opts#)])))]
                    (decl-env/remove-declared-kind (impl/cljs-checker) n#)
-                   [n# (c/DataType* names# vs# frees# n# bnds# fields# (boolean record?#))])))))))
+                   [n# (c/DataType* names# vs# frees# n# bnds# fields# (boolean record?#) opts#)])))))))
 
 (defmacro jsenv-mappings [& args]
   `(impl/with-cljs-impl
@@ -161,4 +165,4 @@
        (into {}
              (doall
                (for [[s# t#] ts#]
-                 [s# (prs/parse-type t#)]))))))
+                 [s# (prs/parse-type t# (cljs-opts))]))))))

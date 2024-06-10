@@ -11,6 +11,7 @@
             [clojure.core.typed.ast-utils :as ast-u]
             [typed.cljc.checker.object-rep :as obj]
             [typed.clj.checker.parse-unparse :as prs]
+            [typed.cljc.checker.check :as check]
             [typed.cljc.checker.check.utils :as cu]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.utils :as u]
@@ -22,7 +23,7 @@
             [typed.cljc.checker.filter-rep :as fl]))
 
 (defn check-cast
-  [check expr expected]
+  [expr expected {::check/keys [check-expr] :as opts}]
   (assert (#{:do} (:op expr)))
   (let [{[_ _ texpr :as statements] :statements :keys [env] frm :ret :as expr}
         (-> expr 
@@ -44,7 +45,7 @@
         parsed-t (binding [vs/*current-env* env
                            prs/*parse-type-in-ns* (cu/expr-ns expr)]
                    ;; unwrap quoted syntax with second
-                   (prs/parse-type tsyn))
+                   (prs/parse-type tsyn opts))
         ;; frm is of the form ((fn [x] ...) x), we want to type check
         ;; x, but not the lambda.
         _ (assert (= :invoke (:op frm)))
@@ -54,7 +55,7 @@
                  ; just need to traverse :fn using the analyzer
                  (update-in [:ret :fn] ana2/run-passes)
                  ; check the expression being cast
-                 (update-in [:ret :args 0] check)
+                 (update-in [:ret :args 0] check-expr)
                  ; top-level could be propagated here since this is a :do form,
                  ; so call eval-top-level
                  (update :ret (comp ana2/eval-top-level ana2/run-post-passes)))]

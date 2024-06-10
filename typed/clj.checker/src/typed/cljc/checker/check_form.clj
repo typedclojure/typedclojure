@@ -18,7 +18,6 @@
             [clojure.repl :as repl]
             [typed.clj.analyzer.passes.beta-reduce :as beta-reduce]
             [typed.clj.checker.check :as chk]
-            [typed.clj.checker.file-mapping :as file-map]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.clj.checker.reset-caches :as reset-caches]
             [typed.cljc.analyzer :as ana]
@@ -97,19 +96,22 @@
            should-runtime-infer?
            instrument-infer-config
            unparse-ns
-           analyze-bindings-fn]}
+           analyze-bindings-fn] :as m1}
    form {:keys [expected-ret expected type-provided?
                 checked-ast no-eval bindings-atom beta-limit
                 check-config]
          {:keys [check-form-eval]
           :or {check-form-eval :after} :as check-config} :check-config
-         :as opt}]
+         :as opt}
+   opts]
   {:pre [(nil? analyze-bindings-fn)
          ((some-fn nil? plat-con/atom?) bindings-atom)
          ((some-fn nil? symbol?) unparse-ns)
          (map? opt)
          (map? check-config)]}
   (assert (not (and expected-ret type-provided?)))
+  (assert opts)
+  (assert (not (:opts m1)))
   (do
     (impl/impl-case
       :clojure @*register-clj-anns
@@ -129,7 +131,7 @@
                        expected-ret
                        (when type-provided?
                          (r/ret (binding [prs/*parse-type-in-ns* unparse-ns]
-                                  (prs/parse-type expected)))))
+                                  (prs/parse-type expected opts)))))
             delayed-errors-fn (fn [] (seq @vs/*delayed-errors*))
             file-mapping-atom (atom [])
             should-runtime-check? (and runtime-check-expr
@@ -190,29 +192,30 @@
           (assoc :out-form (emit-form c-ast)))))))
 
 (defn check-form*
-  [{:keys [impl unparse-ns] :as config} form expected type-provided? opt]
+  [{:keys [impl unparse-ns] :as config} form expected type-provided? opt opts]
   {:pre [(map? opt)]}
   (let [{:keys [ex delayed-errors ret]} (check-form-info config form
                                                          (into {:expected expected 
                                                                 :type-provided? type-provided?}
-                                                               opt))]
+                                                               opt)
+                                                         opts)]
     (if-let [errors (seq delayed-errors)]
       (err/print-errors! errors)
       (if ex
         (throw ex)
-        (prs/unparse-TCResult-in-ns ret unparse-ns)))))
+        (prs/unparse-TCResult-in-ns ret unparse-ns opts)))))
 
 (defn check-form-info-with-config
-  [config form opt]
+  [config form opt opts]
   {:pre [(map? config)
          (map? opt)]}
   (impl/with-impl (:impl config)
     ((:check-form-info config) config
-     form opt)))
+     form opt opts)))
 
 (defn check-form*-with-config
-  [config form expected type-provided? opt]
+  [config form expected type-provided? opt opts]
   {:pre [(map? opt)]}
   (impl/with-impl (:impl config)
     ((:check-form* config) config
-     form expected type-provided? opt)))
+     form expected type-provided? opt opts)))

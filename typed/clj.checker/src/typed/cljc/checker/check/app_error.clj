@@ -19,7 +19,7 @@
 
 ;; true if domains of l is a subtype of domains of r.
 ;; returns false if any of arg-ret-types are a subtype of r.
-(defn domain-subtype? [l r arg-ret-types]
+(defn domain-subtype? [l r arg-ret-types opts]
   {:pre [((every-pred r/Function?) l r)]}
   (boolean
     (when ((every-pred #(= :fixed (:kind %))) l r)
@@ -28,13 +28,13 @@
               (count arg-ret-types))
            (every? identity 
                    (map (fn [ld rd ad]
-                          (and (sub/subtype? ld rd)
-                               (not (sub/subtype? rd (r/ret-t ad)))))
+                          (and (sub/subtype? ld rd opts)
+                               (not (sub/subtype? rd (r/ret-t ad) opts))))
                         (:dom l) 
                         (:dom r)
                         arg-ret-types))))))
 
-(defn trim-arities [arities arg-ret-types]
+(defn trim-arities [arities arg-ret-types opts]
   ;try and prune some of the arities
   ; Lots more improvements we can port from Typed Racket:
   ;  typecheck/tc-app-helper.rkt
@@ -54,7 +54,7 @@
         remove-sub
         (reduce (fn [acc ar]
                   ;; assumes most general arities come last
-                  (conj (into [] (remove #(domain-subtype? % ar arg-ret-types)) acc) 
+                  (conj (into [] (remove #(domain-subtype? % ar arg-ret-types opts)) acc) 
                         ar))
                 [] matching-arities)]
     (or (seq remove-sub)
@@ -63,12 +63,12 @@
 
 ;[Expr (Seqable Expr) (Seqable TCResult) (Option TCResult) Boolean
 ; -> Any]
-(defn app-type-error [fexpr args fin arg-ret-types expected poly?]
+(defn app-type-error [fexpr args fin arg-ret-types expected poly? opts]
   {:pre [(r/FnIntersection? fin)
          (or (not poly?)
              ((some-fn r/Poly? r/PolyDots?) poly?))]
    :post [(r/TCResult? %)]}
-  (let [fin (apply r/make-FnIntersection (trim-arities (:types fin) arg-ret-types))
+  (let [fin (apply r/make-FnIntersection (trim-arities (:types fin) arg-ret-types opts))
         static-method? (= :static-call (:op fexpr))
         instance-method? (= :instance-call (:op fexpr))
         method-sym (when (or static-method? instance-method?)
@@ -99,8 +99,8 @@
                           ;PolyDots
                           :else (c/PolyDots-fresh-symbols* poly?))
                   bnds (if (r/Poly? poly?)
-                         (c/Poly-bbnds* names poly?)
-                         (c/PolyDots-bbnds* names poly?))]
+                         (c/Poly-bbnds* names poly? opts)
+                         (c/PolyDots-bbnds* names poly? opts))]
               (str "Polymorphic Variables:\n\t"
                    (str/join "\n\t"
                              (map (partial apply pr-str)
@@ -115,25 +115,25 @@
                                                        {:keys [lower-bound upper-bound]} bnd]
                                                    (concat [nme]
                                                            (when-not (= r/-any upper-bound)
-                                                             [:< (prs/unparse-type upper-bound)])
+                                                             [:< (prs/unparse-type upper-bound opts)])
                                                            (when-not (= r/-nothing lower-bound)
-                                                             [:> (prs/unparse-type lower-bound)])))))
-                                       bnds (map (comp prs/unparse-type r/make-F) names)))))))
+                                                             [:> (prs/unparse-type lower-bound opts)])))))
+                                       bnds (map (comp #(prs/unparse-type % opts) r/make-F) names)))))))
           "\n\nDomains:\n\t" 
           (str/join "\n\t" 
                     (map (partial apply pr-str) 
                          (map (fn [{:keys [dom rest drest kws prest pdot]}]
-                                (concat (map prs/unparse-type dom)
+                                (concat (map #(prs/unparse-type % opts) dom)
                                         (when rest
-                                          [(prs/unparse-type rest) :*])
+                                          [(prs/unparse-type rest opts) :*])
                                         (when-some [{:keys [pre-type name]} drest]
-                                          [(prs/unparse-type pre-type)
+                                          [(prs/unparse-type pre-type opts)
                                            :..
                                            (-> name r/make-F r/F-original-name)])
                                         (letfn [(readable-kw-map [m]
                                                   (reduce-kv (fn [m k v]
                                                                {:keys [(r/Value? k)]}
-                                                               (assoc m (:val k) (prs/unparse-type v)))
+                                                               (assoc m (:val k) (prs/unparse-type v opts)))
                                                              {} m))]
                                           (when-some [{:keys [mandatory optional]} kws]
                                             (concat ['&]
@@ -142,22 +142,22 @@
                                                     (when (seq optional)
                                                       [:optional (readable-kw-map optional)]))))
                                         (when prest
-                                          [(prs/unparse-type prest) '<*])
+                                          [(prs/unparse-type prest opts) '<*])
                                         (when-some [{:keys [pre-type name]} pdot]
-                                          [(prs/unparse-type pre-type)
+                                          [(prs/unparse-type pre-type opts)
                                            '<...
                                            (-> name r/make-F r/F-original-name)])))
                               (:types fin))))
           "\n\n"
-          "Arguments:\n\t" (apply prn-str (mapv (comp prs/unparse-type r/ret-t) arg-ret-types))
+          "Arguments:\n\t" (apply prn-str (mapv (comp #(prs/unparse-type % opts) r/ret-t) arg-ret-types))
           "\n"
           "Ranges:\n\t"
           (str/join "\n\t" 
-                    (map (partial apply pr-str) (map (comp prs/unparse-result :rng) (:types fin))))
+                    (map (partial apply pr-str) (map (comp #(prs/unparse-result % opts) :rng) (:types fin))))
           "\n\n"
           (when-some [t (some-> expected r/ret-t)]
             (when-not (r/wild? t) 
-              (str "with expected type:\n\t" (pr-str (prs/unparse-type t)) "\n\n")))
+              (str "with expected type:\n\t" (pr-str (prs/unparse-type t opts)) "\n\n")))
           #_#_"in: "
           (if fexpr
             (if (or static-method? instance-method?)
@@ -165,18 +165,19 @@
               (list* (ast-u/emit-form-fn fexpr)
                      (map ast-u/emit-form-fn args)))
             "<NO FORM>"))
-        :expected expected
-        :return (or expected (r/ret r/Err))))))
+        {:expected expected
+         :return (or expected (r/ret r/Err))}
+        opts))))
 
-(defn polyapp-type-error [fexpr args fexpr-type arg-ret-types expected]
+(defn polyapp-type-error [fexpr args fexpr-type arg-ret-types expected opts]
   {:pre [((some-fn r/Poly? r/PolyDots?) fexpr-type)]
    :post [(r/TCResult? %)]}
   (let [fin (if (r/Poly? fexpr-type)
-              (c/Poly-body* (c/Poly-fresh-symbols* fexpr-type) fexpr-type)
-              (c/PolyDots-body* (c/PolyDots-fresh-symbols* fexpr-type) fexpr-type))]
-    (app-type-error fexpr args fin arg-ret-types expected fexpr-type)))
+              (c/Poly-body* (c/Poly-fresh-symbols* fexpr-type) fexpr-type opts)
+              (c/PolyDots-body* (c/PolyDots-fresh-symbols* fexpr-type) fexpr-type opts))]
+    (app-type-error fexpr args fin arg-ret-types expected fexpr-type opts)))
 
-(defn plainapp-type-error [fexpr args fexpr-type arg-ret-types expected]
+(defn plainapp-type-error [fexpr args fexpr-type arg-ret-types expected opts]
   {:pre [(r/FnIntersection? fexpr-type)]
    :post [(r/TCResult? %)]}
-  (app-type-error fexpr args fexpr-type arg-ret-types expected false))
+  (app-type-error fexpr args fexpr-type arg-ret-types expected false opts))

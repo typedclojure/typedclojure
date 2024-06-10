@@ -9,6 +9,11 @@
 (ns ^:no-doc typed.cljc.checker.check
   (:require [typed.cljc.analyzer :as ana2]))
 
-(def ^:dynamic check-expr
-  "[expr] => cexpr
-   [expr expected] => cexpr")
+(defn ->check-expr [check-expr opts]
+  (let [opts->check-expr (fn opts->check-expr [opts]
+                           (let [opts (delay (assoc opts ::check-expr (opts->check-expr opts)))]
+                             (fn
+                               ([expr] (check-expr expr nil @opts))
+                               ([expr expected] (check-expr expr expected @opts))
+                               ([expr expected opts] (check-expr expr expected (assoc opts ::check-expr (opts->check-expr opts)))))))]
+    (opts->check-expr opts)))

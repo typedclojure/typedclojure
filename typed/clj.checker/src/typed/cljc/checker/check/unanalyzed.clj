@@ -41,15 +41,15 @@
     ;(prn `-unanalyzed-special-dispatch form res)
     res))
 
-(defn run-passes+propagate-expr-type [expr]
+(defn run-passes+propagate-expr-type [expr opts]
   (-> expr
       ana2/run-passes
       (into (select-keys expr [u/expr-type]))))
 
-(defn -unanalyzed-special [expr expected]
+(defn -unanalyzed-special [expr expected opts]
   (when-some [vsym (-unanalyzed-special-dispatch expr expected)]
-    (when-some [impl-sym (get-in (env/deref-checker (env/checker)) [impl/unanalyzed-special-kw vsym])]
-      ((requiring-resolve impl-sym) expr expected))))
+    (when-some [impl-sym (get-in (env/deref-checker (env/checker opts)) [impl/unanalyzed-special-kw vsym])]
+      ((requiring-resolve impl-sym) expr expected opts))))
 
 ;; API
 
@@ -109,11 +109,18 @@
                      [nil args])
         [argv args] (if (vector? (first args))
                       ((juxt first rest) args)
-                      [nil args])]
+                      [nil args])
+        gopts (gensym 'opts)]
     (assert (vector? argv))
-    (assert (= 2 (count argv)))
-    `(defn ~vsym
-       ~@(when doc [doc])
-       ~argv
-       (some-> (do ~@args)
-               run-passes+propagate-expr-type))))
+    (assert (not-any? #{'&} argv))
+    (case (count argv)
+      2 `(defn ~vsym
+           ~@(when doc [doc])
+           ~(conj argv gopts)
+           (some-> (do ~@args)
+                   (run-passes+propagate-expr-type ~gopts)))
+      3 `(defn ~vsym
+           ~@(when doc [doc])
+           ~(-> argv pop (conj gopts))
+           (some-> (let [~(peek argv) ~gopts] ~@args)
+                   (run-passes+propagate-expr-type ~gopts))))))

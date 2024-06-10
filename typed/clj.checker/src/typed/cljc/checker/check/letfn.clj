@@ -15,12 +15,12 @@
             [typed.cljc.checker.utils :as u]
             [typed.cljc.checker.lex-env :as lex]
             [typed.cljc.analyzer :as ana2]
-            [typed.cljc.checker.check :refer [check-expr]]
+            [typed.cljc.checker.check :as check]
             [typed.cljc.checker.check.let :as let]
             [typed.cljc.checker.type-rep :as r]))
 
 ; annotations are in the first expression of the body (a :do)
-(defn check-letfn [{:keys [bindings body] :as letfn-expr} expected]
+(defn check-letfn [{:keys [bindings body] :as letfn-expr} expected {::check/keys [check-expr] :as opts}]
   {:post [(-> % u/expr-type r/TCResult?)
           (vector? (:bindings %))]}
   (let [;; must pass over bindings first to uniquify
@@ -35,17 +35,18 @@
                      (vector? (-> body :statements first :expr :val)))
             (if-not (= (count (-> body :statements first :expr :val))
                        (count bindings))
-              (do (err/tc-delayed-error "letfn requires each binding be annotated")
+              (do (err/tc-delayed-error "letfn requires each binding be annotated" opts)
                   nil)
               (into {}
                     (for [[nme type-syn] (map vector (map :name bindings) (-> body :statements first :expr :val))]
                       [nme (binding [prs/*parse-type-in-ns* (cu/expr-ns letfn-expr)]
-                             (prs/parse-type type-syn))])))))]
+                             (prs/parse-type type-syn opts))])))))]
     (if-not inits-expected
       (err/tc-delayed-error (str "letfn requires annotation, see: "
                                  (impl/impl-case :clojure 'clojure :cljs 'cljs) ".core.typed/letfn>")
-                            :return (assoc letfn-expr
-                                           u/expr-type (cu/error-ret expected)))
+                            {:return (assoc letfn-expr
+                                            u/expr-type (cu/error-ret expected))}
+                            opts)
 
       (let [cbindings
             (lex/with-locals inits-expected
@@ -64,7 +65,7 @@
 
             cbody (lex/with-locals inits-expected
                     (check-expr body expected))
-            unshadowed-ret (let/erase-objects (into #{} (map :name) cbindings) (u/expr-type cbody))]
+            unshadowed-ret (let/erase-objects (into #{} (map :name) cbindings) (u/expr-type cbody) opts)]
         (assoc letfn-expr
                :bindings cbindings
                :body cbody

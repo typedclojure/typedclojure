@@ -18,13 +18,13 @@
 
 (defn parse-annotation
   "Parse the raw type annotation tsyn in the context of expr"
-  [tsyn {:keys [env] :as expr}]
+  [tsyn {:keys [env] :as expr} opts]
   (let [parsed-t (binding [vs/*current-env* env
                            prs/*parse-type-in-ns* (cu/expr-ns expr)]
-                   (prs/parse-type tsyn))]
+                   (prs/parse-type tsyn opts))]
     parsed-t))
 
-(defn inline-annotations [expr]
+(defn inline-annotations [expr opts]
   {:pre [(= :loop (:op expr))]
    :post [(or (nil? %)
               (and (seq %)
@@ -35,7 +35,7 @@
         maybe-anns (map (comp (fn [m]
                                 ;(prn "meta" m)
                                 (when-let [[_ tsyn] (find m :clojure.core.typed/ann)]
-                                  (parse-annotation tsyn expr)))
+                                  (parse-annotation tsyn expr opts)))
                               meta)
                         names)
         normalize (when (some identity maybe-anns)
@@ -44,16 +44,17 @@
     normalize))
 
 ;; `recur-u/*loop-bnd-anns*` is populated in `typed.cljc.checker.check.special.loop`
-(defn check-loop [expr expected]
+(defn check-loop [expr expected opts]
   {:post [(-> % u/expr-type r/TCResult?)
           (vector? (:bindings %))]}
   (let [loop-bnd-anns recur-u/*loop-bnd-anns*
-        inlines (inline-annotations expr)
+        inlines (inline-annotations expr opts)
         _ (when (and loop-bnd-anns inlines)
-            (err/int-error "Cannot provide both an annotation with t/loop and inline loop"))
+            (err/int-error "Cannot provide both an annotation with t/loop and inline loop" opts))
         ;_ (prn "inlines" inlines)
         anns (or loop-bnd-anns inlines)]
     (binding [recur-u/*loop-bnd-anns* nil]
       (let/check-let expr expected 
                      {:expected-bnds anns
-                      :loop? true}))))
+                      :loop? true}
+                     opts))))

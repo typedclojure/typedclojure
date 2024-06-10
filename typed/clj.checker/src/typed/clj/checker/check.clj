@@ -113,10 +113,9 @@
 
 (defn check-ns1
   "Type checks an entire namespace."
-  ([ns] (check-ns1 ns (jana2/empty-env)))
-  ([ns env]
+  ([ns env {::cenv/keys [checker] :as opts}]
    (env/ensure (jana2/global-env)
-     (let [checker (cenv/checker)
+     (let [env (or env (jana2/empty-env))
            ^java.net.URL res (jtau/ns-url ns)
            _ (assert res (str "Can't find " ns " in classpath"))
            slurped (slurp (io/reader res))]
@@ -153,7 +152,8 @@
                                                       ;; might affect TypeFn variance inference
                                                       #'env-utils/*type-cache* (do (assert (not env-utils/*type-cache*))
                                                                                    (atom {})))
-                                  (check-top-level form nil {:env (assoc env :ns (ns-name *ns*))
+                                  (check-top-level form nil {::env/checker checker
+                                                             :env (assoc env :ns (ns-name *ns*))
                                                              :top-level-form-string sform
                                                              :ns-form-string ns-form-str}))))
                             forms-info)
@@ -167,16 +167,14 @@
                              (mapv #(%) exs))]
                (cache/remove-stale-cache-entries ns ns-form-str (map :sform forms-info) slurped)))))))))
 
-(defn check-ns-and-deps [nsym] (cu/check-ns-and-deps nsym check-ns1))
+(defn check-ns-and-deps [nsym opts] (cu/check-ns-and-deps nsym check-ns1 opts))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Checker
 
-(declare check-expr)
-
 (def ^:private *register-exts (delay (configs/register-clj-config-exts)))
 
-(defn maybe-check-inlineable [{:keys [op form env] :as expr} expected]
+(defn maybe-check-inlineable [{:keys [op form env] :as expr} expected {::check/keys [check-expr] :as opts}]
   {:pre [(= :unanalyzed op)]}
   (when (seq? form)
     (let [v (-> (first form)
@@ -209,77 +207,6 @@
                       ana2/run-passes
                       (assoc u/expr-type res)))))))))))
 
-(defn check-expr
-  "Type checks expr at optional expected type. expr must not have a u/expr-type entry.
-  
-  The return expr will be fully expanded, analyzed, evaluated (via ana2/eval-top-level),
-  with a u/expr-type entry giving the TCResult of the whole expression.
-
-  As an exception, an :unanalyzed node may be returned from this function. It will have a :tag,
-  and :result (if top-level). If not top-level, the node will be expanded and evaluated as part
-  of its enclosing top-level expression."
-  ([expr] (check-expr expr nil))
-  ([expr expected]
-  {:pre [(map? expr)
-         ((some-fn nil? r/TCResult?) expected)]
-   :post [(r/TCResult? (u/expr-type %))]}
-  ;(prn "check-expr" op)
-  ;(clojure.pprint/pprint (emit-form/emit-form expr))
-  ;; to keep :post condition
-  (loop [expr expr]
-    (assert (not (u/expr-type expr))
-            (str "Expression already has type information when passed to check-expr"))
-    (let [; update namespace, as it might have changed when evaluating a previous
-          ; subexpression during type checking
-          {:keys [env] :as expr} (assoc-in expr [:env :ns] (ns-name *ns*))]
-      (when vs/*trace-checker*
-        (println (str "Checking line " (:line env) ":" (:column env) ":" (:file env)))
-        (println (str "> " (binding [*print-level* (or *print-level* 10)
-                                     *print-length* (or *print-length* 10)]
-                             (pr-str (:form expr))))))
-      (if (= :unanalyzed (:op expr))
-        ;; Type checks the :unanalyzed expr at expected type.
-        ;; The return expr will be fully expanded, analyzed, evaluated (if top-level),
-        ;; with a u/expr-type entry for the TCResult of the entire expression."
-        (let [;register typing rules (ie., implementations of -unanalyzed-top-level
-              ; and -unanalyzed-special)
-              _ @*register-exts]
-          (or (binding [vs/*current-env* (if (:line env) env vs/*current-env*)
-                        vs/*current-expr* expr]
-                (or (meta-ann/maybe-check-meta-ann expr expected)
-                    (unanalyzed/-unanalyzed-special expr expected)
-                    (maybe-check-inlineable expr expected)))
-              (-> expr
-                  ana2/analyze-outer
-                  recur)))
-        (binding [vs/*current-env* (if (:line env) env vs/*current-env*)
-                  vs/*current-expr* expr]
-          (-> expr
-              ana2/run-pre-passes
-              (-check expected)
-              ana2/run-post-passes
-              ana2/eval-top-level)))))))
-
-(defn check-top-level
-  "Type check a top-level form at an expected type, returning a
-  fully analyzed core.typed.analyzer AST node (ie., containing no :unanalyzed nodes)
-  with a u/expr-type entry giving its TCResult type, and a :result entry
-  holding its evaluation result."
-  ([form expected] (check-top-level form expected {}))
-  ([form expected {:keys [env] :as opts}]
-   ;(prn "check-top-level" form)
-   ;(prn "*ns*" *ns*)
-   (let [extra (when (= :before (:check-form-eval vs/*check-config*))
-                 {:result (eval form)})]
-     (with-bindings (dissoc (ana-clj/thread-bindings) #'*ns*) ; *ns* is managed by higher-level ops like check-ns1
-       (binding [check/check-expr check-expr]
-         (env/ensure (jana2/global-env)
-           (-> form
-               (ana2/unanalyzed-top-level (or env (jana2/empty-env)))
-               (assoc-in [::ana2/config ::cenv/checker] (cenv/checker))
-               (cache/check-top-level-expr expected opts)
-               (into extra))))))))
-
 
 
 (defn should-infer-vars? [expr]
@@ -290,7 +217,7 @@
       :experimental
       (contains? :infer-vars)))
 
-(defn check-var [{:keys [var] :as expr} expected]
+(defn check-var [{:keys [var] :as expr} expected opts]
   {:pre [(var? var)]}
   (binding [vs/*current-expr* expr]
     (let [checker (cenv/checker)
@@ -308,21 +235,25 @@
         (if (cu/should-rewrite?)
           (assoc (cu/add-cast expr ut
                               {:positive (str "Annotation for " vsym)
-                               :negative (str (cu/expr-ns expr))})
+                               :negative (str (cu/expr-ns expr))}
+                              opts)
                  u/expr-type (below/maybe-check-below
                                (r/ret ut)
-                               expected))
+                               expected
+                               opts))
           (err/tc-delayed-error
-            (str "Untyped var " id " found, but unable to rewrite to add contract"
-            :return (assoc expr
-                           u/expr-type (cu/error-ret expected)))))
+            (str "Untyped var " id " found, but unable to rewrite to add contract")
+            {:return (assoc expr
+                            u/expr-type (cu/error-ret expected))}
+            opts))
 
         ;; we have a typed annotation
         t
         (assoc expr
                u/expr-type (below/maybe-check-below
                              (r/ret t)
-                             expected))
+                             expected
+                             opts))
 
         ;; :infer-vars are enabled for this namespace, this
         ;; var dereference is the dynamic type
@@ -336,7 +267,8 @@
           (assoc expr
                  u/expr-type (below/maybe-check-below
                                (r/ret (r/-unchecked vsym))
-                               expected)))
+                               expected
+                               opts)))
         (impl/impl-case
           :clojure (= :any (some-> vs/*check-config* :unannotated-var))
           :cljs nil)
@@ -345,14 +277,16 @@
           (assoc expr
                  u/expr-type (below/maybe-check-below
                                (r/ret r/-any)
-                               expected)))
+                               expected
+                               opts)))
 
 
         :else
         (err/tc-delayed-error
           (str "Unannotated var " id)
-          :return (assoc expr
-                         u/expr-type (cu/error-ret expected)))))))
+          {:return (assoc expr
+                          u/expr-type (cu/error-ret expected))}
+          opts)))))
 
 (defn set-erase-atoms [expr cred]
   {:pre [(u/expr-type cred)]}
@@ -361,7 +295,7 @@
     nil))
 
 (defn check-the-var
-  [{:keys [^Var var env] :as expr} expected]
+  [{:keys [^Var var env] :as expr} expected opts]
   {:pre [(var? var)]}
   (impl/assert-clojure)
   (let [checker (cenv/checker)
@@ -378,16 +312,18 @@
             ;; var object is the dynamic type
             (should-infer-vars? expr) (r/-unchecked id)
             :else (err/tc-delayed-error (str "Unannotated var reference: " id)
-                                        :form (ast-u/emit-form-fn expr)
-                                        :return (r/TCError-maker)))]
+                                        {:form (ast-u/emit-form-fn expr)
+                                         :return (r/TCError-maker)}
+                                        opts))]
     (assoc expr
            u/expr-type (binding [vs/*current-expr* expr]
                          (below/maybe-check-below
                            (r/ret (c/-name `t/Var t)
                                   (fo/-true-filter))
-                           expected)))))
+                           expected
+                           opts)))))
 
-(defmulti -invoke-special (fn [{{:keys [form env] :as fexpr} :fn :as expr} expected] 
+(defmulti -invoke-special (fn [{{:keys [form env] :as fexpr} :fn :as expr} expected opts]
                             {:pre [(= :invoke (:op expr))
                                    (= :unanalyzed (:op fexpr))]
                              :post [((some-fn nil? symbol?) %)]}
@@ -395,7 +331,7 @@
                                 (ana2/resolve-sym env)
                                 ana2/var->sym)))
 
-(defmulti -invoke-apply (fn [{[{:keys [op form env] :as fexpr} :as args] :args :as expr} expected]
+(defmulti -invoke-apply (fn [{[{:keys [op form env] :as fexpr} :as args] :args :as expr} expected opts]
                           {:pre [(= :invoke (:op expr))]
                            :post [((some-fn nil? symbol?) %)]}
                           (when (seq args)
@@ -404,7 +340,7 @@
                                 (ana2/resolve-sym env)
                                 ana2/var->sym))))
 
-(defn host-call-qname [{:keys [target] :as expr} _]
+(defn host-call-qname [{:keys [target] :as expr} _expected _opts]
   {:pre [(= :host-call (:op expr))
          (= :unanalyzed (:op target))]
    :post [((some-fn nil?
@@ -437,31 +373,35 @@
 
 ; only handle special case that the first argument is literal class
 (defmethod -invoke-special 'clojure.core/cast
-  [{:keys [args] :as expr} expected]
+  [{:keys [args] :as expr} expected {::check/keys [check-expr] :as opts}]
   {:post [(or (nil? %)
               (and (r/TCResult? (u/expr-type %))
                    (vector? (:args %))))]}
   (when (= 2 (count args))
     (let [cargs (mapv check-expr args)
-          ct (-> (first cargs) u/expr-type r/ret-t c/fully-resolve-type)]
+          ct (-> (first cargs) u/expr-type r/ret-t (c/fully-resolve-type opts))]
       (when (and (r/Value? ct) (class? (:val ct)))
         (let [v-t (-> (check-expr (second args)) u/expr-type r/ret-t)
-              t (c/In v-t (c/Un r/-nil (c/RClass-of-with-unknown-params (:val ct))))]
+              t (c/In [v-t (c/Un [r/-nil (c/RClass-of-with-unknown-params (:val ct) opts)]
+                                 opts)]
+                      opts)]
           (-> expr
               (update :fn check-expr)
               (assoc :args cargs
                      u/expr-type (below/maybe-check-below
                                    (r/ret t)
-                                   expected))))))))
+                                   expected
+                                   opts))))))))
 
 (defmethod -invoke-special 'clojure.core.typed/var>*
-  [expr expected]
+  [expr expected {::check/keys [check-expr] :as opts}]
   {:post [(or (nil? %)
               (and (r/TCResult? (u/expr-type %))
                    (vector? (:args %))))]}
   (when-not (= 1 (count (:args expr)))
     (err/int-error (str "Wrong number of arguments to clojure.core.typed/var>,"
-                        " expected 1, given " (count (:args expr)))))
+                        " expected 1, given " (count (:args expr)))
+                   opts))
   (let [{[sym-expr :as args] :args fexpr :fn :as expr}
         (-> expr
             (update-in [:args 0] ana2/run-passes))
@@ -469,17 +409,18 @@
         _ (assert (symbol? sym))
         t (var-env/lookup-Var-nofail sym)
         _ (when-not t
-            (err/tc-delayed-error (str "Unannotated var: " sym)))]
+            (err/tc-delayed-error (str "Unannotated var: " sym) opts))]
     (-> expr
         ; var>* is internal, don't check
         #_(update :fn check-expr)
         (assoc u/expr-type (below/maybe-check-below
                              (r/ret (or t (r/TCError-maker)))
-                             expected)))))
+                             expected
+                             opts)))))
 
 ; ignore some keyword argument related intersections
 (defmethod -invoke-special 'clojure.core/seq?
-  [{:keys [args] :as expr} expected]
+  [{:keys [args] :as expr} expected {::check/keys [check-expr] :as opts}]
   {:post [(or (nil? %)
               (and (r/TCResult? (u/expr-type %))
                    (vector? (:args %))))]}
@@ -488,7 +429,7 @@
           (-> expr
               (update :fn check-expr)
               (update :args #(mapv check-expr %)))
-          targett (-> ctarget u/expr-type r/ret-t c/fully-resolve-type)]
+          targett (-> ctarget u/expr-type r/ret-t (c/fully-resolve-type opts))]
       (cond 
         ; records never extend ISeq
         ;; TODO move this to subtyping
@@ -496,15 +437,17 @@
         (assoc cexpr
                u/expr-type (below/maybe-check-below
                              (r/ret r/-false (fo/-false-filter))
-                             expected))))))
+                             expected
+                             opts))))))
 
 (defmethod -invoke-special 'clojure.core/extend
-  [expr expected]
+  [expr expected {::check/keys [check-expr] :as opts}]
   {:post [(and (r/TCResult? (u/expr-type %))
                (vector? (:args %)))]}
   (when-not ((every-pred odd? pos?) (count (:args expr)))
     (err/int-error (str "Wrong number of arguments to extend, expected at least one with an even "
-                        "number of variable arguments, given " (count (:args expr)))))
+                        "number of variable arguments, given " (count (:args expr)))
+                   opts))
   (let [checker (cenv/checker)
         {[catype & protos :as args] :args :as expr}
         (-> expr
@@ -515,7 +458,8 @@
                  ;(update :fn check-expr)
                  (assoc u/expr-type (below/maybe-check-below
                                       (r/ret r/-nil (fo/-false-filter))
-                                      expected)))
+                                      expected
+                                      opts)))
         ; this is a Value type containing a java.lang.Class instance representing
         ; the type extending the protocol, or (Value nil) if extending to nil
         target-literal-class (r/ret-t (u/expr-type catype))]
@@ -524,34 +468,36 @@
                 ((some-fn class? nil?) (:val target-literal-class))))
       (err/tc-delayed-error
         (str "Must provide a Class or nil as first argument to extend, "
-             "got " (pr-str (prs/unparse-type target-literal-class)))
-        :return expr)
+             "got " (pr-str (prs/unparse-type target-literal-class opts)))
+        {:return expr}
+        opts)
 
-      (and expected (not (sub/subtype? r/-any (r/ret-t expected))))
-      (do (cu/expected-error r/-any expected)
+      (and expected (not (sub/subtype? r/-any (r/ret-t expected) opts)))
+      (do (cu/expected-error r/-any expected opts)
           expr)
       :else
       (let [; this is the actual core.typed type of the thing extending the protocol
             target-type (let [v (:val target-literal-class)]
                           (if (nil? v)
                             r/-nil
-                            (c/RClass-of-with-unknown-params v)))
+                            (c/RClass-of-with-unknown-params v opts)))
             ; build expected types for each method map
             extends (for [[prcl-expr mmap-expr] (partition 2 protos)]
                       (let [prcl-expr (ana2/run-pre-passes (ana2/analyze-outer-root prcl-expr))
                             protocol (do (when-not (= :var (:op prcl-expr))
-                                           (err/int-error "Must reference protocol directly with var in extend"))
-                                         (ptl-env/resolve-protocol checker (coerce/var->symbol (:var prcl-expr))))
+                                           (err/int-error "Must reference protocol directly with var in extend" opts))
+                                         (ptl-env/resolve-protocol checker (coerce/var->symbol (:var prcl-expr)) opts))
                             _ (when-not (r/Protocol? protocol)
-                                (err/int-error (str "Expecting Protocol type, found " protocol)))
-                            expected-mmap (c/make-HMap ;get all combinations
-                                                       :optional
-                                                       (into {}
-                                                             (map
-                                                               (fn [[msym mtype]]
-                                                                 [(r/-val (keyword (name msym))) 
-                                                                  (cu/extend-method-expected target-type mtype)]))
-                                                             (:methods protocol)))]
+                                (err/int-error (str "Expecting Protocol type, found " protocol) opts))
+                            expected-mmap (c/make-HMap opts
+                                                       ;get all combinations
+                                                       {:optional
+                                                        (into {}
+                                                              (map
+                                                                (fn [[msym mtype]]
+                                                                  [(r/-val (keyword (name msym))) 
+                                                                   (cu/extend-method-expected target-type mtype opts)]))
+                                                              (:methods protocol))})]
                         {:expected-hmap expected-mmap
                          :prcl-expr prcl-expr
                          :mmap-expr mmap-expr}))
@@ -572,11 +518,11 @@
 ; Usage: (into-array> javat cljt coll)
 ;        (into-array> cljt coll)
 (defmethod -invoke-special 'clojure.core.typed/into-array>*
-  [{:keys [args] :as expr} expected]
+  [{:keys [args] :as expr} expected {::check/keys [check-expr] :as opts}]
   {:post [(and (r/TCResult? (u/expr-type %))
                (vector? (:args %)))]}
   (when-not (#{2 3 4} (count args)) 
-    (err/int-error "Wrong number of args to into-array>*"))
+    (err/int-error "Wrong number of args to into-array>*" opts))
   (let [has-java-syn? (#{3 4} (count args))
         [javat-syn cljt-syn coll-expr]
         (cond 
@@ -590,13 +536,14 @@
                             (ast-u/quote-expr-val cljt-syn))
                     c (-> 
                         (binding [prs/*parse-type-in-ns* (cu/expr-ns expr)]
-                          (prs/parse-type syn))
-                        arr-ops/Type->array-member-Class)]
+                          (prs/parse-type syn opts))
+                        (arr-ops/Type->array-member-Class opts))]
                 (assert (class? c))
                 c)
         cljt (binding [prs/*parse-type-in-ns* (cu/expr-ns expr)]
-               (prs/parse-type (ast-u/quote-expr-val cljt-syn)))
-        ccoll (check-expr coll-expr (r/ret (c/Un r/-nil (c/-name `t/Seqable cljt))))]
+               (prs/parse-type (ast-u/quote-expr-val cljt-syn) opts))
+        ccoll (check-expr coll-expr (r/ret (c/Un [r/-nil (c/-name `t/Seqable cljt)]
+                                                 opts)))]
     (-> expr
         ; into-array>* is internal, don't check it
         #_(update :fn check-expr)
@@ -604,11 +551,12 @@
         (assoc :args (-> args pop (conj ccoll))
                u/expr-type (below/maybe-check-below
                              (r/ret (r/PrimitiveArray-maker javat cljt cljt))
-                             expected)))))
+                             expected
+                             opts)))))
 
 ;not
 (defmethod -invoke-special 'clojure.core/not
-  [{:keys [args] :as expr} expected]
+  [{:keys [args] :as expr} expected {::check/keys [check-expr] :as opts}]
   {:post [(or (nil? %)
               (and (-> % u/expr-type r/TCResult?)
                    (vector? (:args %))))]}
@@ -618,15 +566,16 @@
       (assoc expr
              :args cargs
              u/expr-type (below/maybe-check-below
-                           (r/ret (prs/parse-type 'boolean) 
+                           (r/ret (prs/parse-type 'boolean opts) 
                                   ;flip filters
                                   (fo/-FS fs- fs+)
                                   obj/-empty)
-                           expected)))))
+                           expected
+                           opts)))))
 
 ;to-array
 (defmethod -invoke-special 'clojure.core/to-array
-  [{:keys [args] :as expr} expected]
+  [{:keys [args] :as expr} expected {::check/keys [check-expr] :as opts}]
   {:post [(or (nil? %)
               (and (-> % u/expr-type r/TCResult?)
                    (vector? (:args %))))]}
@@ -636,7 +585,7 @@
       ;(prn "to-array" targett)
       (cond
         ;; handle seq-to-map-for-destructuring expansion introduced in Clojure 1.11
-        (sub/subtype? targett r/-any-kw-args-seq)
+        (sub/subtype? targett r/-any-kw-args-seq opts)
         (let [res (reduce (fn [t union-t]
                             (if-some [intersection-ts
                                       (seq (keep #(do (assert ((some-fn r/KwArgsSeq? r/CountRange?)
@@ -645,34 +594,36 @@
                                                       (when (r/KwArgsSeq? %)
                                                         (c/KwArgsSeq->KwArgsArray %)))
                                                  (c/flatten-intersections [union-t])))]
-                              (c/Un t (apply c/In intersection-ts))
+                              (c/Un [t (c/In intersection-ts opts)]
+                                    opts)
                               t))
-                          (c/Un)
+                          (r/Bottom)
                           (c/flatten-unions [targett]))
-              _ (assert (not (sub/subtype? res (c/Un)))
+              _ (assert (not (sub/subtype? res (r/Bottom) opts))
                         targett)]
           (assoc expr
                  :args cargs
                  u/expr-type (below/maybe-check-below
                                (r/ret res)
-                               expected)))))))
+                               expected
+                               opts)))))))
 
 ;get
 (defmethod -invoke-special 'clojure.core/get
-  [{fexpr :fn :keys [args] :as expr} expected]
+  [{fexpr :fn :keys [args] :as expr} expected opts]
   {:post [(or (nil? %)
               (-> % u/expr-type r/TCResult?))]}
-  (get/invoke-get expr expected))
+  (get/invoke-get expr expected opts))
 
 (defmethod -host-call-special '[:static-call clojure.lang.RT/get]
-  [{:keys [args] :as expr} expected]
+  [{:keys [args] :as expr} expected opts]
   {:post [(or (nil? %)
               (-> % u/expr-type r/TCResult?))]}
-  (get/invoke-get expr expected))
+  (get/invoke-get expr expected opts))
 
 ;FIXME should be the same as (apply hash-map ..) in invoke-apply
 (defmethod -host-call-special '[:static-call clojure.lang.PersistentHashMap/create]
-  [expr expected]
+  [expr expected {::check/keys [check-expr] :as opts}]
   {:pre [(= :host-call (:op expr))
          (every? (comp #{:unanalyzed} :op) (:args expr))]
    :post [(or (nil? %)
@@ -682,10 +633,10 @@
     (binding [vs/*current-expr* expr]
       (let [{[target] :args :as expr} (-> expr
                                           (update :args #(mapv check-expr %)))
-            targett (-> target u/expr-type r/ret-t c/fully-resolve-type)]
+            targett (-> target u/expr-type r/ret-t (c/fully-resolve-type opts))]
         (cond
-          (and (sub/subtype? targett (c/Un r/-nil r/-any-kw-args-seq))
-               (not (sub/subtype? targett r/-nil)))
+          (and (sub/subtype? targett (c/Un [r/-nil r/-any-kw-args-seq] opts) opts)
+               (not (sub/subtype? targett r/-nil opts)))
           (let [res (reduce (fn [t union-t]
                               (if-some [intersection-ts
                                         (seq (keep #(do (assert ((some-fn r/KwArgsSeq? r/Nil? r/CountRange?)
@@ -695,37 +646,40 @@
                                                           (when (-> % :kw-args-regex :maybe-trailing-nilable-non-empty-map?)
                                                             (err/tc-delayed-error
                                                               (str "Cannot pass KwArgsSeq to clojure.lang.PersistentHashMap/create "
-                                                                   "when :maybe-trailing-nilable-non-empty-map? is true.")))
-                                                          (c/KwArgsSeq->HMap %)))
+                                                                   "when :maybe-trailing-nilable-non-empty-map? is true.")
+                                                              opts))
+                                                          (c/KwArgsSeq->HMap % opts)))
                                                    (c/flatten-intersections [union-t])))]
-                                (c/Un t (apply c/In intersection-ts))
+                                (c/Un [t (c/In intersection-ts opts)] opts)
                                 t))
-                            (c/Un)
+                            (r/Bottom)
                             (c/flatten-unions [targett]))
-                _ (assert (not (sub/subtype? res (c/Un)))
+                _ (assert (not (sub/subtype? res (r/Bottom) opts))
                           targett)]
             (-> expr
                 (update :target check-expr)
                 (assoc u/expr-type (below/maybe-check-below
                                      (r/ret res)
-                                     expected))))
+                                     expected
+                                     opts))))
           (r/HeterogeneousSeq? targett)
           (let [res (reduce (fn [t [kt vt]]
                               {:pre [(r/HeterogeneousMap? t)]}
-                              (if (= (c/Un) vt)
+                              (if (= (r/Bottom) vt)
                                 ;preserve bottom
                                 (reduced vt)
                                 (assoc-in t [:types kt] vt)))
-                            (c/-complete-hmap {})
+                            (c/-complete-hmap {} opts)
                             (:types targett))]
             (-> expr
                 (update :target check-expr)
                 (assoc u/expr-type (below/maybe-check-below
                                      (r/ret res)
-                                     expected)))))))))
+                                     expected
+                                     opts)))))))))
 
 (defmethod -host-call-special '[:static-call clojure.lang.PersistentArrayMap/createAsIfByAssoc]
-  [expr expected]
+  [expr expected {::check/keys [check-expr] :as opts}]
   {:pre [(= :host-call (:op expr))
          (every? (comp #{:unanalyzed} :op) (:args expr))]
    :post [(or (nil? %)
@@ -735,7 +689,7 @@
     (binding [vs/*current-expr* expr]
       (let [{[target] :args :as expr} (-> expr
                                           (update :args #(mapv check-expr %)))
-            targett (-> target u/expr-type r/ret-t c/fully-resolve-type)]
+            targett (-> target u/expr-type r/ret-t (c/fully-resolve-type opts))]
         (cond
           ;; handle seq-to-map-for-destructuring expansion, which always passes
           ;; the result of to-array
@@ -743,28 +697,29 @@
           (-> expr
               (update :target check-expr)
               (assoc u/expr-type (below/maybe-check-below
-                                   (r/ret (c/KwArgsArray->HMap targett)
+                                   (r/ret (c/KwArgsArray->HMap targett opts)
                                           (fo/-true-filter))
-                                   expected))))))))
+                                   expected
+                                   opts))))))))
 
 (defmethod -check ::jana2/prim-invoke
-  [expr expected]
+  [expr expected {::check/keys [check-expr] :as opts}]
   (-> expr
       (assoc :op :invoke
              ::op ::ana2/invoke)
-      check-expr 
+      (check-expr expected opts)
       (assoc :op :prim-invoke
              ::op ::jana2/prim-invoke)))
 
 ;;TODO when cu/should-rewrite?, add type hints for ILookupThunk
 (defmethod -check ::ana2/keyword-invoke
-  [{kw :keyword :keys [target] :as expr} expected]
+  [{kw :keyword :keys [target] :as expr} expected {::check/keys [check-expr] :as opts}]
   {:pre [(and (= :const (:op kw))
               (keyword? (:val kw)))]
    :post [(r/TCResult? (u/expr-type %))]}
   (impl/assert-clojure)
-  (let [ckw (check-expr kw)
-        ctarget (check-expr target)]
+  (let [ckw (check-expr kw opts)
+        ctarget (check-expr target opts)]
     (assoc expr
            :keyword ckw
            :target ctarget
@@ -773,16 +728,17 @@
                          (u/expr-type ckw)
                          (u/expr-type ctarget)
                          nil
-                         expected))))
+                         expected
+                         opts))))
 
 ;; TODO refactor into own file
-(defn protocol-invoke [{:keys [protocol-fn target args] :as expr} expected]
+(defn protocol-invoke [{:keys [protocol-fn target args] :as expr} expected {::check/keys [check-expr] :as opts}]
   (let [cprotocol-fn (check-expr protocol-fn)
         ctarget (check-expr target)
         cargs (mapv check-expr args)
         ftype (u/expr-type cprotocol-fn)
         argtys (map u/expr-type (cons ctarget cargs))
-        actual (funapp/check-funapp cprotocol-fn (cons ctarget cargs) ftype argtys expected)]
+        actual (funapp/check-funapp cprotocol-fn (cons ctarget cargs) ftype argtys expected {} opts)]
     (assoc expr
            :target ctarget
            :protocol-fn cprotocol-fn
@@ -790,19 +746,19 @@
            u/expr-type actual)))
 
 (defmethod -check ::ana2/protocol-invoke ; protocol methods
-  [expr expected]
+  [expr expected opts]
   (impl/assert-clojure)
-  (protocol-invoke expr expected))
+  (protocol-invoke expr expected opts))
 
 ;binding
 ;FIXME use `check-normal-def`
 ;FIXME record checked-var-def info
 (defmethod -invoke-special 'clojure.core/push-thread-bindings
-  [{[bindings-expr :as args] :args :as expr} expected]
+  [{[bindings-expr :as args] :args :as expr} expected {::check/keys [check-expr] :as opts}]
   {:post [((every-pred vector? #(= 1 (count %))) (:args %))
           (-> % u/expr-type r/TCResult?)]}
   (when-not (= 1 (count args))
-    (err/int-error (str "push-thread-bindings expected one argument, given " (count args))))
+    (err/int-error (str "push-thread-bindings expected one argument, given " (count args)) opts))
   (let [bindings-expr (ana2/run-pre-passes (ana2/analyze-outer-root bindings-expr))
         bindings-expr (cond-> bindings-expr 
                         (= :invoke (-> bindings-expr :op))
@@ -822,16 +778,17 @@
                       (mapcat (fn [[var-expr bnd-expr]]
                                 (let [{:keys [op var] :as var-expr} (ana2/run-pre-passes (ana2/analyze-outer-root var-expr))]
                                   (when-not (= :the-var op)
-                                    (err/int-error (str "push-thread-bindings must have var literals for keys")))
-                                  (let [expected (var-env/type-of (coerce/var->symbol var))
+                                    (err/int-error (str "push-thread-bindings must have var literals for keys") opts))
+                                  (let [expected (var-env/type-of (coerce/var->symbol var) opts)
                                         cvar-expr (check-expr var-expr)
                                         cexpr (check-expr bnd-expr (r/ret expected))
                                         actual (-> cexpr u/expr-type r/ret-t)]
-                                    (when-not (sub/subtype? actual expected)
+                                    (when-not (sub/subtype? actual expected opts)
                                       (err/tc-delayed-error (str "Expected binding for "
                                                                  (coerce/var->symbol var)
-                                                                 " to be: " (prs/unparse-type expected)
-                                                                 ", Actual: " (prs/unparse-type actual))))
+                                                                 " to be: " (prs/unparse-type expected opts)
+                                                                 ", Actual: " (prs/unparse-type actual opts))
+                                                            opts))
                                     [cvar-expr cexpr]))))
                       new-bindings-exprs))]]
     (-> expr
@@ -840,7 +797,8 @@
         (assoc :args cargs
                u/expr-type (below/maybe-check-below
                              (r/ret r/-nil)
-                             expected)))))
+                             expected
+                             opts)))))
 
 (defn typing-rule-opts [expr]
   {:post [(map? %)]}
@@ -857,24 +815,24 @@
 (def typing-rule-expr-kw :ret)
 
 (defn invoke-typing-rule
-  [vsym {:keys [env] :as expr} expected]
+  [vsym {:keys [env] :as expr} expected {::check/keys [check-expr] :as opts}]
   ;(prn "invoke-typing-rule" vsym)
   (let [unparse-type-verbose #(binding [vs/*verbose-types* false]
-                                (prs/unparse-type %))
+                                (prs/unparse-type % opts))
         subtype? (fn [s t]
-                   (let [s (prs/parse-type s)
-                         t (prs/parse-type t)]
-                     (sub/subtype? s t)))
+                   (let [s (prs/parse-type s opts)
+                         t (prs/parse-type t opts)]
+                     (sub/subtype? s t opts)))
         solve (fn [t q]
                 {:pre [(map? t)
                        (contains? t :type)]
                  :post [((some-fn nil? map?) %)]}
                 (let [;; atm only support query = (All [x+] [in :-> out])
-                      query (prs/parse-type q)
+                      query (prs/parse-type q opts)
                       _ (assert (r/Poly? query))
                       names (c/Poly-fresh-symbols* query)
-                      bbnds (c/Poly-bbnds* names query)
-                      body (c/Poly-body* names query)
+                      bbnds (c/Poly-bbnds* names query opts)
+                      body (c/Poly-body* names query opts)
                       _ (assert (r/FnIntersection? body))
                       _ (assert (= 1 (count (:types body))))
                       arity (first (:types body))
@@ -884,7 +842,7 @@
                       _ (assert (= (fo/-simple-filter) (:fl (:rng arity))))
                       _ (assert (= obj/-empty (:o (:rng arity))))
 
-                      lhs (prs/parse-type (:type t))
+                      lhs (prs/parse-type (:type t) opts)
                       rhs (first (:dom arity))
                       out (:t (:rng arity))
                       substitution (cgen/handle-failure
@@ -893,10 +851,11 @@
                                        {}
                                        [lhs]
                                        [rhs]
-                                       out))]
+                                       out
+                                       opts))]
                   (when substitution
                     {:type (unparse-type-verbose
-                             (subst/subst-all substitution out))})))
+                             (subst/subst-all substitution out opts))})))
         #_#_
         solve-subtype (fn [vs f]
                         {:pre [(apply distinct? vs)
@@ -905,7 +864,7 @@
                               gvs->vs (zipmap gvs vs)
                               syns (apply f gvs)
                               [lhs rhs] (tvar-env/with-extended-tvars gvs
-                                          (mapv prs/parse-type syns))
+                                          (mapv #(prs/parse-type % opts) syns))
                               substitution
                               (cgen/handle-failure
                                 (cgen/infer
@@ -913,7 +872,8 @@
                                   {}
                                   [lhs]
                                   [rhs]
-                                  r/-any))]
+                                  r/-any
+                                  opts))]
                           (when substitution
                             (into {}
                                   (comp (filter (every-pred (comp (set gvs) key)
@@ -926,7 +886,7 @@
                               (let [locals (into {}
                                                  (map (fn [[k v]]
                                                         [(prs/uniquify-local k)
-                                                         (prs/parse-type v)]))
+                                                         (prs/parse-type v opts)]))
                                                  locals)]
                                 (lex/with-locals locals
                                   (f))))
@@ -934,7 +894,7 @@
                    :opts (typing-rule-opts expr)
                    :expr (typing-rule-expr-kw expr)
                    :locals (:locals env)
-                   :expected (some-> expected cu/TCResult->map)
+                   :expected (some-> expected (cu/TCResult->map opts))
                    ;:uniquify-local prs/uniquify-local
                    :with-updated-locals with-updated-locals
                    :maybe-check-expected (fn [actual expected]
@@ -944,41 +904,40 @@
                                            (->
                                              (below/maybe-check-below
                                                (cu/map->TCResult actual)
-                                               (cu/maybe-map->TCResult expected))
-                                             cu/TCResult->map))
+                                               (cu/maybe-map->TCResult expected)
+                                               opts)
+                                             (cu/TCResult->map opts)))
                    :check (fn check-fn
                             ([expr] (check-fn expr nil))
                             ([expr expected]
                              {:pre [((some-fn nil? map?) expected)]}
                              (let [ret (some-> expected cu/map->TCResult)
                                    cexpr (check-expr expr ret)]
-                               (assoc cexpr ::rules/expr-type (cu/TCResult->map (u/expr-type cexpr))))))
+                               (assoc cexpr ::rules/expr-type (cu/TCResult->map (u/expr-type cexpr) opts)))))
                    ;:solve-subtype solve-subtype
                    :solve solve
                    :subtype? subtype?
                    :emit-form ast-u/emit-form-fn
                    :abbreviate-type (fn [t]
-                                      (let [m (prs/parse-type t)]
+                                      (let [m (prs/parse-type t opts)]
                                         (binding [vs/*verbose-types* false]
-                                          (prs/unparse-type m))))
-                   :delayed-error (fn [s opts]
-                                    (let [opts (-> opts
-                                                   (update :expected cu/maybe-map->TCResult)
-                                                   (cond->
-                                                     (contains? opts :actual)
-                                                     (update :actual prs/parse-type)))]
-                                      (apply err/tc-delayed-error s (apply concat opts))))
-                   :expected-error (fn [s t opts]
-                                     (let [s (prs/parse-type s)
+                                          (prs/unparse-type m opts))))
+                   :delayed-error (fn [s opt]
+                                    (let [opt (-> opt
+                                                  (update :expected cu/maybe-map->TCResult)
+                                                  (cond->
+                                                    (contains? opt :actual)
+                                                    (update :actual prs/parse-type opt)))]
+                                      (err/tc-delayed-error s opt opts)))
+                   :expected-error (fn [s t opt]
+                                     (let [s (prs/parse-type s opts)
                                            t (cu/map->TCResult t)
-                                           opts (-> opts
-                                                    (update :expected cu/map->TCResult))]
-                                       (apply cu/expected-error s t (apply concat opts))))
-                   :internal-error (fn [s opts]
+                                           opt (update opt :expected cu/map->TCResult)]
+                                       (cu/expected-error s t opt opts)))
+                   :internal-error (fn [s opt]
                                      ;; TODO args
-                                     (let [opts (-> opts
-                                                    (update :expected cu/maybe-map->TCResult))]
-                                       (apply err/int-error s (apply concat opts))))}
+                                     (let [opt (update opt :expected cu/maybe-map->TCResult)]
+                                       (err/int-error s opt opts)))}
 
         {out-expr-type ::rules/expr-type :as cexpr} (rules/typing-rule rule-args)
         out-tcresult (cu/map->TCResult out-expr-type)]
@@ -989,30 +948,30 @@
                                        (assoc u/expr-type out-tcresult))))))
 
 ;=
-(defmethod -invoke-special 'clojure.core/= 
-  [{:keys [args] :as expr} expected]
+(defmethod -invoke-special 'clojure.core/=
+  [{:keys [args] :as expr} expected {::check/keys [check-expr] :as opts}]
   {:post [(vector? (:args %))
           (-> % u/expr-type r/TCResult?)]}
   (let [cargs (mapv check-expr args)]
     (-> expr
         (update :fn check-expr)
         (assoc :args cargs
-               u/expr-type (equiv/tc-equiv := (map u/expr-type cargs) expected)))))
+               u/expr-type (equiv/tc-equiv := (map u/expr-type cargs) expected opts)))))
 
 ;not=
 (defmethod -invoke-special 'clojure.core/not=
-  [{:keys [args] :as expr} expected]
+  [{:keys [args] :as expr} expected {::check/keys [check-expr] :as opts}]
   {:post [(vector? (:args %))
           (-> % u/expr-type r/TCResult?)]}
   (let [cargs (mapv check-expr args)]
     (-> expr
         (update :fn check-expr)
         (assoc :args cargs
-               u/expr-type (equiv/tc-equiv :not= (map u/expr-type cargs) expected)))))
+               u/expr-type (equiv/tc-equiv :not= (map u/expr-type cargs) expected opts)))))
 
 ;identical
 (defmethod -host-call-special '[:static-call clojure.lang.Util/identical]
-  [expr expected]
+  [expr expected {::check/keys [check-expr] :as opts}]
   {:pre [(= :host-call (:op expr))]
    :post [(vector? (:args %))
           (-> % u/expr-type r/TCResult?)]}
@@ -1020,11 +979,11 @@
                                     (update :target check-expr)
                                     (update :args #(mapv check-expr %)))]
     (assoc expr
-           u/expr-type (equiv/tc-equiv :identical? (map u/expr-type args) expected))))
+           u/expr-type (equiv/tc-equiv :identical? (map u/expr-type args) expected opts))))
 
 ;equiv
 (defmethod -host-call-special '[:static-call clojure.lang.Util/equiv]
-  [expr expected]
+  [expr expected {::check/keys [check-expr] :as opts}]
   {:pre [(= :host-call (:op expr))]
    :post [(vector? (:args %))
           (-> % u/expr-type r/TCResult?)]}
@@ -1032,11 +991,11 @@
                                     (update :target check-expr)
                                     (update :args #(mapv check-expr %)))]
     (assoc expr
-           u/expr-type (equiv/tc-equiv := (map u/expr-type args) expected))))
+           u/expr-type (equiv/tc-equiv := (map u/expr-type args) expected opts))))
 
 ;isa? (2 arity is special)
 (defmethod -invoke-special 'clojure.core/isa?
-  [{:keys [args] :as expr} expected]
+  [{:keys [args] :as expr} expected {::check/keys [check-expr] :as opts}]
   (when (= 2 (count args))
     (let [[cchild-expr cparent-expr :as cargs] (mapv check-expr args)]
       (-> expr
@@ -1044,14 +1003,15 @@
           (assoc :args cargs
                  u/expr-type (isa/tc-isa? (u/expr-type cchild-expr)
                                           (u/expr-type cparent-expr)
-                                          expected))))))
+                                          expected
+                                          opts))))))
 
 ;apply
 (defmethod -invoke-special 'clojure.core/apply
-  [{:keys [args env] :as expr} expected]
+  [{:keys [args env] :as expr} expected {::check/keys [check-expr] :as opts}]
   {:post [(or (nil? %)
               (-> % u/expr-type r/TCResult?))]}
-  (apply/maybe-check-apply check-expr -invoke-apply expr expected))
+  (apply/maybe-check-apply check-expr -invoke-apply expr expected opts))
 
 (defonce ^:dynamic *inst-ctor-types* nil)
 (t/tc-ignore
@@ -1061,13 +1021,13 @@
 ;TODO this should be a special :do op
 ;manual instantiation for calls to polymorphic constructors
 (defmethod -invoke-special 'clojure.core.typed/inst-poly-ctor
-  [expr expected]
+  [expr expected {::check/keys [check-expr] :as opts}]
   {:pre [(= 2 (count (:args expr)))]
    :post [(-> % u/expr-type r/TCResult?)]}
   (let [{[ctor-expr targs-exprs] :args :as expr} (-> expr
                                                      (update-in [:args 1] ana2/run-passes))
         targs (binding [prs/*parse-type-in-ns* (cu/expr-ns expr)]
-                (mapv prs/parse-type (ast-u/quote-expr-val targs-exprs)))
+                (mapv #(prs/parse-type % opts) (ast-u/quote-expr-val targs-exprs)))
         cexpr (binding [*inst-ctor-types* targs]
                 (check-expr ctor-expr))]
     (-> expr 
@@ -1076,35 +1036,36 @@
 
 ;debug printing
 (defmethod -invoke-special 'clojure.core.typed/print-env
-  [expr expected]
+  [expr expected opts]
   {:post [(-> % u/expr-type r/TCResult?)]}
   (when-not (= 1 (count (:args expr)))
-    (err/int-error (str "Wrong arguments to print-env, Expected 1, found " (count (:args expr)))))
+    (err/int-error (str "Wrong arguments to print-env, Expected 1, found " (count (:args expr))) opts))
   (let [{[debug-string :as args] :args :as expr} (-> expr
                                                      (update-in [:args 0] ana2/run-passes))]
     (when-not (= :const (:op debug-string))
-      (err/int-error "Must pass print-env a string literal"))
+      (err/int-error "Must pass print-env a string literal" opts))
     ;DO NOT REMOVE
     (println (:val debug-string))
     (flush)
     (prs/with-unparse-ns (cu/expr-ns expr)
-      (print-env/print-env*))
+      (print-env/print-env* opts))
     ;DO NOT REMOVE
     (assoc expr
            u/expr-type (below/maybe-check-below
                          (r/ret r/-nil (fo/-false-filter) obj/-empty)
-                         expected))))
+                         expected
+                         opts))))
 
 ;filter printing
 (defmethod -invoke-special 'clojure.core.typed/print-filterset
-  [expr expected]
+  [expr expected {::check/keys [check-expr] :as opts}]
   {:post [(-> % u/expr-type r/TCResult?)]}
   (when-not (= 2 (count (:args expr)))
-    (err/int-error (str "Wrong arguments to print-filterset. Expected 2, found " (count (:args expr)))))
+    (err/int-error (str "Wrong arguments to print-filterset. Expected 2, found " (count (:args expr))) opts))
   (let [{[debug-string form :as args] :args :as expr} (-> expr
                                                           (update-in [:args 0] ana2/run-passes))
         _ (when-not (= :const (:op debug-string)) 
-            (err/int-error "Must pass print-filterset a string literal as the first argument."))
+            (err/int-error "Must pass print-filterset a string literal as the first argument." opts))
         cform (check-expr form expected)
         cargs (assoc args 1 cform)
         t (u/expr-type cform)]
@@ -1114,10 +1075,10 @@
     ;(prn (:fl t))
     (prs/with-unparse-ns (cu/expr-ns expr)
       (if (fl/FilterSet? (:fl t))
-        (do (pprint/pprint (prs/unparse-filter-set (:fl t)))
+        (do (pprint/pprint (prs/unparse-filter-set (:fl t) opts))
             (flush))
         (prn (:fl t)))
-      (prn (prs/unparse-object (:o t))))
+      (prn (prs/unparse-object (:o t) opts)))
     ;DO NOT REMOVE
     (assoc expr
            :args cargs
@@ -1125,15 +1086,15 @@
 
 ;seq
 (defmethod -invoke-special 'clojure.core/seq
-  [{fexpr :fn :keys [args] :as expr} expected]
+  [{fexpr :fn :keys [args] :as expr} expected opts]
   {:post [(-> % u/expr-type r/TCResult?)
           (vector? (:args %))]}
-  (or (nthnext/check-seq expr expected)
-      (invoke/normal-invoke expr fexpr args expected)))
+  (or (nthnext/check-seq expr expected opts)
+      (invoke/normal-invoke expr fexpr args expected {} opts)))
 
 ;requiring-resolve
 (defn check-requiring-resolve
-  [{fexpr :fn :keys [args] :as expr} expected]
+  [{fexpr :fn :keys [args] :as expr} expected {::check/keys [check-expr] :as opts}]
   {:post [(or (nil? %)
               (and (-> % u/expr-type r/TCResult?)
                    (vector? (:args %))))]}
@@ -1156,17 +1117,18 @@
                     :args cargs
                     u/expr-type (below/maybe-check-below
                                   (r/ret (c/-name `t/Var (r/-type-of sym)))
-                                  expected)))
+                                  expected
+                                  opts)))
               (do (println (str "WARNING: cannot check requiring-resolve call because "
                                 sym " is unannotated"))
                   nil)))))))
 
-(defmethod -invoke-special 'clojure.core/requiring-resolve [expr expected] (check-requiring-resolve expr expected))
-(defmethod -invoke-special 'io.github.frenchy64.fully-satisfies.requiring-resolve/requiring-resolve [expr expected] (check-requiring-resolve expr expected))
+(defmethod -invoke-special 'clojure.core/requiring-resolve [expr expected opts] (check-requiring-resolve expr expected opts))
+(defmethod -invoke-special 'io.github.frenchy64.fully-satisfies.requiring-resolve/requiring-resolve [expr expected opts] (check-requiring-resolve expr expected opts))
 
 ;make vector
 (defmethod -invoke-special 'clojure.core/vector
-  [{:keys [args] :as expr} expected]
+  [{:keys [args] :as expr} expected {::check/keys [check-expr] :as opts}]
   {:post [(-> % u/expr-type r/TCResult?)
           (vector? (:args %))]}
   (let [cargs (mapv check-expr args)]
@@ -1178,17 +1140,18 @@
                         (r/ret (r/-hvec (mapv (comp r/ret-t u/expr-type) cargs)
                                         :filters (mapv (comp r/ret-f u/expr-type) cargs)
                                         :objects (mapv (comp r/ret-o u/expr-type) cargs)))
-                        expected)))))
+                        expected
+                        opts)))))
 
 ;(apply concat hmap)
 (defmethod -invoke-apply 'clojure.core/concat
-  [{[_concat-fn_ & args] :args :as expr} expected]
+  [{[_concat-fn_ & args] :args :as expr} expected {::check/keys [check-expr] :as opts}]
   {:post [(or (nil? %)
               (and (-> % u/expr-type r/TCResult?)
                    (vector? (:args %))))]}
   (let [cargs (mapv check-expr args) ;FIXME possible repeated check-expr
         tmap (when (= 1 (count cargs))
-               (c/fully-resolve-type (r/ret-t (u/expr-type (last cargs)))))]
+               (c/fully-resolve-type (r/ret-t (u/expr-type (last cargs))) opts))]
     (binding [vs/*current-expr* expr]
       (when (r/HeterogeneousMap? tmap)
         (let [r (c/HMap->KwArgsSeq tmap)]
@@ -1196,11 +1159,12 @@
               (update :fn check-expr)
               (assoc u/expr-type (below/maybe-check-below
                                    (r/ret r (fo/-true-filter))
-                                   expected))))))))
+                                   expected
+                                   opts))))))))
 
 ;apply hash-map
 (defmethod -invoke-apply 'clojure.core/hash-map
-  [{[fn-expr & args] :args :as expr} expected]
+  [{[fn-expr & args] :args :as expr} expected {::check/keys [check-expr] :as opts}]
   {:post [(or (nil? %)
               (and (-> % u/expr-type r/TCResult?)
                    (vector? (:args %))))]}
@@ -1214,8 +1178,9 @@
           ;; FIXME add annotation for hash-map to check fn-expr
           (assoc :args (into [(ana2/run-passes fn-expr)] cargs)
                  u/expr-type (below/maybe-check-below
-                               (r/ret (c/KwArgsSeq->HMap (-> cargs peek u/expr-type r/ret-t)))
-                               expected)))
+                               (r/ret (c/KwArgsSeq->HMap (-> cargs peek u/expr-type r/ret-t) opts))
+                               expected
+                               opts)))
 
       (and (pos? nargs)
            (let [hseq (r/ret-t (u/expr-type (peek cargs)))]
@@ -1234,62 +1199,66 @@
                  u/expr-type (below/maybe-check-below
                                (r/ret (c/-complete-hmap
                                         (apply hash-map (concat (map (comp r/ret-t u/expr-type) (pop cargs))
-                                                                (mapcat vector (:types (r/ret-t (u/expr-type (peek cargs)))))))))
-                               expected))))))
+                                                                (mapcat vector (:types (r/ret-t (u/expr-type (peek cargs)))))))
+                                        opts))
+                               expected
+                               opts))))))
 
 
 ;nth
 (defmethod -host-call-special '[:static-call clojure.lang.RT/nth]
-  [{:keys [args] :as expr} expected]
+  [{:keys [args] :as expr} expected opts]
   {:pre [(#{:host-call :invoke} (:op expr))
          (every? (every-pred (comp #{:unanalyzed} :op)
                              (complement u/expr-type))
                  args)]
    :post [(or (nil? %)
               (-> % u/expr-type r/TCResult?))]}
-  (nth/invoke-nth expr expected))
+  (nth/invoke-nth expr expected opts))
 
 (defmethod -invoke-special 'clojure.core/nth
-  [{fexpr :fn :keys [args] :as expr} expected]
+  [{fexpr :fn :keys [args] :as expr} expected opts]
   {:post [(or (nil? %)
               (-> % u/expr-type r/TCResult?))]}
-  (nth/invoke-nth expr expected))
+  (nth/invoke-nth expr expected opts))
 
 ;nthnext
 (defmethod -invoke-special 'clojure.core/nthnext
-  [{fexpr :fn :keys [args] :as expr} expected]
+  [{fexpr :fn :keys [args] :as expr} expected opts]
   {:post [(or (nil? %)
               (-> % u/expr-type r/TCResult?))]}
-  (nthnext/check-nthnext expr expected))
+  (nthnext/check-nthnext expr expected opts))
 
 ;next
 (defmethod -invoke-special 'clojure.core/next
-  [{fexpr :fn :keys [args] :as expr} expected]
+  [{fexpr :fn :keys [args] :as expr} expected opts]
   {:post [(or (nil? %)
               (-> % u/expr-type r/TCResult?))]}
-  (nthnext/check-next expr expected))
+  (nthnext/check-next expr expected opts))
 
 ;rest
 (defmethod -invoke-special 'clojure.core/rest
-  [{fexpr :fn :keys [args] :as expr} expected]
+  [{fexpr :fn :keys [args] :as expr} expected opts]
   {:post [(or (nil? %)
               (-> % u/expr-type r/TCResult?))]}
-  (nthnext/check-rest expr expected))
+  (nthnext/check-rest expr expected opts))
 
 ;keeping because it might be handy later
 #_
-(defn first-result [t]
+(defn first-result [t opts]
   {:pre [(r/Type? t)]
    :post [((some-fn nil? r/Result?) %)]}
   (let [ftype (fn ftype [t]
                 {:pre [(r/Type? t)]
                  :post [((some-fn nil? r/Result?) %)]}
-                (let [t (c/fully-resolve-type t)]
+                (let [t (c/fully-resolve-type t opts)]
                   (cond
                     (r/Union? t) (let [ts (mapv ftype (:types t))]
                                    (when (every? identity ts)
+                                     #_ ;; what is this?
                                      (apply c/union-Results ts)))
                     (r/Intersection? t) (when-let [ts (seq (keep ftype (:types t)))]
+                                          #_ ;; what is this?
                                           (apply c/intersect-Results ts))
                     (r/Nil? t) (r/make-Result r/-nil (fo/-false-filter))
                     (r/HSequential? t) (cond
@@ -1298,21 +1267,22 @@
                                                         (first (:fs t))
                                                         (first (:objects t)))
 
-                                         (:rest t) (r/make-Result (c/Un r/-nil (:rest t)))
+                                         (:rest t) (r/make-Result (c/Un [r/-nil (:rest t)] opts))
                                          (:drest t) (r/make-Result r/-any)
 
                                          (empty? (:types t)) (r/make-Result (r/ret r/-nil (fo/-false-filter)))))))]
-    (ftype (nthnext/seq-type t))))
+    (ftype (nthnext/seq-type t opts))))
 
 ;first
 #_
 (defmethod -invoke-special 'clojure.core/first
-  [{fexpr :fn :keys [args] :as expr} expected]
+  [{fexpr :fn :keys [args] :as expr} expected opts]
   {:post [(or (nil? %)
               (-> % u/expr-type r/TCResult?))]}
   (when-not (= 1 (count args))
     (err/int-error (str "'first' accepts 1 argument, found "
-                        (count args))))
+                        (count args))
+                   opts))
   #_
   (when vs/*custom-expansions*
     (let [[coll :as cargs] (mapv check-expr args)
@@ -1326,22 +1296,23 @@
 
 ;assoc
 (defmethod -invoke-special 'clojure.core/assoc
-  [{:keys [args] :as expr} expected]
+  [{:keys [args] :as expr} expected {::check/keys [check-expr] :as opts}]
   {:post [(-> % u/expr-type r/TCResult?)]}
   (let [[target & keyvals] args
 
         _ (when-not (<= 3 (count args))
             (err/int-error (str "assoc accepts at least 3 arguments, found "
-                                     (count args))))
+                                     (count args))
+                           opts))
         _ (when-not (even? (count keyvals))
-            (err/int-error "assoc accepts an even number of keyvals"))
+            (err/int-error "assoc accepts an even number of keyvals" opts))
 
         ctarget (check-expr target)
         targetun (-> ctarget u/expr-type r/ret-t)
         ckeyvals (mapv check-expr keyvals)
         keypair-types (partition 2 (map u/expr-type ckeyvals))
         cargs (into [ctarget] ckeyvals)]
-    (if-let [new-hmaps (apply assoc-u/assoc-type-pairs targetun keypair-types)]
+    (if-let [new-hmaps (assoc-u/assoc-type-pairs targetun keypair-types opts)]
       (-> expr
         (update :fn check-expr)
         (assoc
@@ -1349,63 +1320,67 @@
           u/expr-type (below/maybe-check-below
                         (r/ret new-hmaps
                                (fo/-true-filter)) ;assoc never returns nil
-                        expected)))
+                        expected
+                        opts)))
       
       ;; to do: improve this error message
-      (err/tc-delayed-error (str "A call to assoc failed to type check with target expression of type:\n\t" (prs/unparse-type targetun)
+      (err/tc-delayed-error (str "A call to assoc failed to type check with target expression of type:\n\t" (prs/unparse-type targetun opts)
                                  "\nand key/value pairs of types: \n\t"
-                                 (str/join " " (map (comp pr-str prs/unparse-type :t u/expr-type) ckeyvals)))
+                                 (str/join " " (map (comp pr-str #(prs/unparse-type % opts) :t u/expr-type) ckeyvals)))
                             ;; first argument is to blame, gather any blame information from there
-                            :expected (u/expr-type ctarget)
-                            :return (-> expr
-                                        (update :fn check-expr)
-                                        (assoc
-                                          :args cargs
-                                          u/expr-type (cu/error-ret expected)))))))
+                            {:expected (u/expr-type ctarget)
+                             :return (-> expr
+                                         (update :fn check-expr)
+                                         (assoc
+                                           :args cargs
+                                           u/expr-type (cu/error-ret expected)))}
+                            opts))))
 
 (defmethod -invoke-special 'clojure.core/dissoc
-  [{fexpr :fn :keys [args] :as expr} expected]
+  [{fexpr :fn :keys [args] :as expr} expected {::check/keys [check-expr] :as opts}]
   {:post [(or (nil? %)
               (-> % u/expr-type r/TCResult?))]}
   (let [_ (when-not (seq args)
-            (err/int-error (str "dissoc takes at least one argument, given: " (count args))))
+            (err/int-error (str "dissoc takes at least one argument, given: " (count args)) opts))
         ;FIXME possible repeated type checking
         [ctarget & cdissoc-args :as cargs] (mapv check-expr args)
         ttarget (-> ctarget u/expr-type r/ret-t)
         targs (map u/expr-type cdissoc-args)]
-    (when-let [new-t (assoc-u/dissoc-keys ttarget targs)]
+    (when-let [new-t (assoc-u/dissoc-keys ttarget targs opts)]
       (-> expr
           (update :fn check-expr)
           (assoc
             :args cargs
             u/expr-type (below/maybe-check-below
                           (r/ret new-t)
-                          expected))))))
+                          expected
+                          opts))))))
 
 ; merge
 (defmethod -invoke-special 'clojure.core/merge
-  [{fexpr :fn :keys [args] :as expr} expected]
+  [{fexpr :fn :keys [args] :as expr} expected {::check/keys [check-expr] :as opts}]
   {:post [(or (nil? %)
               (-> % u/expr-type r/TCResult?))]}
   (let [;FIXME possible repeated type checking
         cargs (mapv check-expr args)
         targs (map u/expr-type cargs)]
-    (when-some [merged (apply assoc-u/merge-types targs)]
+    (when-some [merged (apply assoc-u/merge-types opts targs)]
       (-> expr
           (update :fn check-expr)
           (assoc :args cargs
                  u/expr-type (below/maybe-check-below
                                (r/ret merged)
-                               expected))))))
+                               expected
+                               opts))))))
 
 ;conj
 (defmethod -invoke-special 'clojure.core/conj
-  [{fexpr :fn :keys [args] :as expr} expected]
+  [{fexpr :fn :keys [args] :as expr} expected {::check/keys [check-expr] :as opts}]
   (let [;FIXME possible repeated type checking
         [ctarget & cconj-args :as cargs] (mapv check-expr args)
         ttarget (-> ctarget u/expr-type r/ret-t)
         targs (map u/expr-type cconj-args)]
-    (when-let [conjed (apply assoc-u/conj-types ttarget targs)]
+    (when-let [conjed (apply assoc-u/conj-types opts ttarget targs)]
       (-> expr
           (update :fn check-expr)
           (assoc :args cargs
@@ -1413,7 +1388,8 @@
                                (r/ret conjed
                                       (fo/-true-filter) ; conj never returns nil
                                       obj/-empty)
-                               expected))))))
+                               expected
+                               opts))))))
 
 (comment
   (method-expected-type (prs/parse-type '[Any -> Any])
@@ -1425,20 +1401,21 @@
 ; cli
 ;TODO add cargs to result
 (defmethod -invoke-special 'clojure.tools.cli/cli
-  [{[args-expr & specs-exprs] :args :keys [env] :as expr} expected]
+  [{[args-expr & specs-exprs] :args :keys [env] :as expr} expected {::check/keys [check-expr] :as opts}]
   {:post [(-> % u/expr-type r/TCResult?)
           (vector? (:args %))]}
   (binding [vs/*current-env* env]
-    (let [args-expected-ty (prs/parse-type `(t/Seqable t/Str))
+    (let [args-expected-ty (prs/parse-type `(t/Seqable t/Str) opts)
           cargs-expr (binding [vs/*current-env* (:env args-expr)]
                        (check-expr args-expr))
           _ (when-not (sub/subtype? 
                         (-> cargs-expr u/expr-type r/ret-t)
-                        args-expected-ty)
+                        args-expected-ty
+                        opts)
               (binding [vs/*current-env* (:env args-expr)]
-                (cu/expected-error (-> cargs-expr u/expr-type r/ret-t) (r/ret args-expected-ty))))
+                (cu/expected-error (-> cargs-expr u/expr-type r/ret-t) (r/ret args-expected-ty) opts)))
           spec-map-ty (reduce (fn [t spec-expr]
-                                (if-let [[keyt valt] (cli/parse-cli-spec check-expr spec-expr)]
+                                (if-let [[keyt valt] (cli/parse-cli-spec check-expr spec-expr opts)]
                                   (-> t
                                     (assoc-in [:types keyt] valt))
                                   ; resort to a general type
@@ -1446,62 +1423,65 @@
                                     ;(prn "cli: giving up because of" (ast-u/emit-form-fn spec-expr)
                                          ;"\n" spec-expr)
                                     (reduced 
-                                      (c/RClass-of IPersistentMap [(c/RClass-of clojure.lang.Keyword) r/-any])))))
-                              (c/-complete-hmap {})
+                                      (c/RClass-of IPersistentMap [(c/RClass-of clojure.lang.Keyword opts) r/-any] opts)))))
+                              (c/-complete-hmap {} opts)
                               specs-exprs)
 
           actual (r/-hvec [spec-map-ty 
-                           (prs/parse-type `(t/Seqable t/Str))
-                           (prs/parse-type `t/Str)])
+                           (prs/parse-type `(t/Seqable t/Str) opts)
+                           (prs/parse-type `t/Str opts)])
           _ (when expected
-              (when-not (sub/subtype? actual (r/ret-t expected))
+              (when-not (sub/subtype? actual (r/ret-t expected) opts)
                 (cu/expected-error 
-                  actual expected)))
+                  actual expected opts)))
           cargs (vec (cons cargs-expr specs-exprs))]
       (-> expr
           (update :fn check-expr)
           (assoc :args cargs
                  u/expr-type (below/maybe-check-below
                                (r/ret actual)
-                               expected))))))
+                               expected
+                               opts))))))
 
 (defmethod -invoke-special 'typed.cljc.checker.check.utils/special-typed-expression
-  [expr expected]
+  [expr expected opts]
   (let [_ (assert (= 1 (count (:args expr))))
         {[type-expr] :args :keys [env] :as expr} (-> expr
                                                      (update-in [:args 0] ana2/run-passes))
         _ (assert (= :quote (:op type-expr)))
         _ (assert (= :const (-> type-expr :expr :op))
                   (-> type-expr :expr :op))
-        t (prs/parse-type (-> type-expr :expr :val))]
+        t (prs/parse-type (-> type-expr :expr :val) opts)]
     (assoc expr
            u/expr-type (below/maybe-check-below
                          (r/ret t)
-                         expected))))
+                         expected
+                         opts))))
 
 ; FIXME this needs a line number from somewhere!
 (defmethod -host-call-special '[:instance-call clojure.lang.MultiFn/addMethod]
-  [expr expected]
+  [expr expected {::check/keys [check-expr] :as opts}]
   {:pre [(every? (every-pred (complement u/expr-type)
                              (comp #{:unanalyzed} :op))
                  (cons (:target expr) (:args expr)))]
    :post [#_(every? :post-done (cons (:target %) (:args %)))]}
   (when-not (= 2 (count (:args expr)))
-    (err/int-error "Wrong arguments to clojure.lang.MultiFn/addMethod"))
+    (err/int-error "Wrong arguments to clojure.lang.MultiFn/addMethod" opts))
   (let [checker (cenv/checker)
         {[dispatch-val-expr _] :args target :target :keys [env] :as expr}
         (cond-> expr
           (-> expr :target :form symbol?) (update :target ana2/run-passes))
         _ (when-not (= :var (:op target))
-            (err/int-error "Must call addMethod with a literal var"))
+            (err/int-error "Must call addMethod with a literal var" opts))
         var (:var target)
         _ (assert (var? var))
         mmsym (coerce/var->symbol var)
         expr (assoc expr
                     u/expr-type (binding [vs/*current-expr* expr]
                                   (below/maybe-check-below
-                                    (r/ret (c/RClass-of clojure.lang.MultiFn))
-                                    expected)))
+                                    (r/ret (c/RClass-of clojure.lang.MultiFn opts))
+                                    expected
+                                    opts)))
         default? (cu/default-defmethod? var (ast-u/emit-form-fn dispatch-val-expr))
         unannotated-def (some-> vs/*check-config* :unannotated-def)]
     (cond
@@ -1526,15 +1506,16 @@
                                    (update 1 (comp ana2/run-pre-passes ana2/analyze-outer-root)))))
             _ (assert (= :var (:op target)))
             _ (when-not (= :fn (:op method-expr))
-                (err/int-error (str "Method must be a fn")))
+                (err/int-error (str "Method must be a fn") opts))
             dispatch-type (mm/multimethod-dispatch-type mmsym)]
         (if-not dispatch-type
           (binding [vs/*current-env* env]
             (err/tc-delayed-error (str "Multimethod requires dispatch type: " mmsym
                                        "\n\nHint: defmulti must be checked before its defmethods")
-                                  :return (-> expr
-                                              (update-in [:args 1] ana2/run-passes))))
-          (let [method-expected (var-env/type-of mmsym)
+                                  {:return (-> expr
+                                               (update-in [:args 1] ana2/run-passes))}
+                                  opts))
+          (let [method-expected (var-env/type-of mmsym opts)
                 cmethod-expr 
                 (binding [multi-u/*current-mm* 
                           (when-not default?
@@ -1544,75 +1525,70 @@
             (-> expr
                 (assoc-in [:args 1] cmethod-expr))))))))
 
-(defmethod -invoke-special :default [expr expected])
-(defmethod -host-call-special :default [expr expected])
+(defmethod -invoke-special :default [expr expected opts])
+(defmethod -host-call-special :default [expr expected opts])
 
 ;;TODO attach new :args etc.
 ;;convert apply to normal function application
-(defmethod -invoke-apply :default [expr expected])
+(defmethod -invoke-apply :default [expr expected opts])
 
 
 
 ;(ann internal-special-form [Expr (U nil TCResult) -> Expr])
 (u/special-do-op spec/special-form internal-special-form)
 
-(defmethod internal-special-form :clojure.core.typed/cast
-  [{[_ _ {{tsyn :type} :val} :as statements] :statements frm :ret, :keys [env], :as expr} expected]
-  (cast/check-cast check-expr expr expected))
-
-(defmethod internal-special-form :clojure.core.typed/loop
-  [{[_ _ {{tsyns :ann} :val} :as statements] :statements frm :ret, :keys [env], :as expr} expected]
-  (special-loop/check-special-loop check-expr expr expected))
+(defmethod internal-special-form :clojure.core.typed/cast [expr expected opts] (cast/check-cast expr expected opts))
+(defmethod internal-special-form :clojure.core.typed/loop [expr expected opts] (special-loop/check-special-loop expr expected opts))
 
 (defmethod internal-special-form :default
-  [expr expected]
+  [expr expected opts]
   (binding [vs/*current-expr* expr]
-    (invoke-typing-rule (coerce/kw->symbol (u/internal-dispatch-val expr)) expr expected)))
+    (invoke-typing-rule (coerce/kw->symbol (u/internal-dispatch-val expr)) expr expected opts)))
 
-
-(defmethod -check ::jana2/monitor-enter [expr expected] (monitor/check-monitor expr expected))
-(defmethod -check ::jana2/monitor-exit  [expr expected] (monitor/check-monitor expr expected))
-
+(defmethod -check ::jana2/monitor-enter [expr expected opts] (monitor/check-monitor expr expected opts))
+(defmethod -check ::jana2/monitor-exit  [expr expected opts] (monitor/check-monitor expr expected opts))
 
 (defmethod -check ::ana2/host-interop
-  [expr expected]
+  [expr expected opts]
   (impl/assert-clojure)
-  (host-interop/check-host-interop check-expr expr expected))
+  (host-interop/check-host-interop expr expected opts))
 
 (defmethod -check ::ana2/host-call
-  [expr expected]
+  [expr expected opts]
   (impl/assert-clojure)
-  (host-interop/check-host-call check-expr -host-call-special expr expected))
+  (host-interop/check-host-call -host-call-special expr expected opts))
 
 (defmethod -check ::ana2/host-field
-  [expr expected]
+  [expr expected opts]
   (impl/assert-clojure)
-  (host-interop/check-host-interop check-expr expr expected))
+  (host-interop/check-host-interop expr expected opts))
 
 (defmethod -check ::ana2/maybe-host-form
-  [expr expected]
+  [expr expected opts]
   (impl/assert-clojure)
-  (host-interop/check-maybe-host-form check-expr expr expected))
+  (host-interop/check-maybe-host-form expr expected opts))
 
 (defmethod -check ::ana2/maybe-class
-  [expr expected]
+  [expr expected {::check/keys [check-expr] :as opts}]
   (impl/assert-clojure)
   (let [expr (ana2/run-post-passes expr)]
     (if (= :maybe-class (:op expr))
       (err/tc-delayed-error (str "Unresolved host interop: " (:form expr)
                                  "\n\nHint: use *warn-on-reflection* to identify reflective calls")
-                            :return (assoc expr u/expr-type (or expected r/-error)))
-      (check-expr expr expected))))
+                            {:return (assoc expr u/expr-type (or expected r/-error))}
+                            opts)
+      (check-expr expr expected opts))))
 
 (defmethod -invoke-special 'clojure.core/instance?
-  [{[cls-expr :as args] :args :as expr} expected]
+  [{[cls-expr :as args] :args :as expr} expected {::check/keys [check-expr] :as opts}]
   {:pre [(every? (comp #{:unanalyzed} :op) args)]
    :post [((some-fn nil?
                     (comp r/TCResult? u/expr-type))
            %)]}
   (when-not (= 2 (count args))
     (err/int-error (str "Wrong number of arguments to clojure.core/instance?,"
-                        " expected 2, given " (count (:args expr)))))
+                        " expected 2, given " (count (:args expr)))
+                   opts))
   (when-let [cls (when (symbol? (:form cls-expr))
                    (let [cls (ana2/resolve-sym (:form cls-expr)
                                                (:env cls-expr))]
@@ -1620,26 +1596,28 @@
                        cls)))]
     (let [{[cls-expr cexpr] :args :as expr}
           (-> expr
-              (update :args #(vec (map check-expr % [(r/ret (c/RClass-of Class))
-                                                     nil]))))
-          inst-of (c/RClass-of-with-unknown-params cls)
+              (update :args #(mapv check-expr % [(r/ret (c/RClass-of Class opts))
+                                                 nil])))
+          inst-of (c/RClass-of-with-unknown-params cls opts)
           expr-tr (u/expr-type cexpr)]
       (assoc expr
              u/expr-type (below/maybe-check-below
-                           (r/ret (c/Un r/-true r/-false)
+                           (r/ret (c/Un [r/-true r/-false] opts)
                                   (fo/-FS (fo/-filter-at inst-of (r/ret-o expr-tr))
                                           (fo/-not-filter-at inst-of (r/ret-o expr-tr))))
-                           expected)))))
+                           expected
+                           opts)))))
 
 (defmethod -invoke-special 'clojure.core/satisfies?
-  [{[cls-expr :as args] :args :as expr} expected]
+  [{[cls-expr :as args] :args :as expr} expected {::check/keys [check-expr] :as opts}]
   {:pre [(every? (comp #{:unanalyzed} :op) args)]
    :post [((some-fn nil?
                     (comp r/TCResult? u/expr-type))
            %)]}
   (when-not (= 2 (count args))
     (err/int-error (str "Wrong number of arguments to clojure.core/satisfies?,"
-                        " expected 2, given " (count (:args expr)))))
+                        " expected 2, given " (count (:args expr)))
+                   opts))
   (when-some [v (when (symbol? (:form cls-expr))
                   (let [v (ana2/resolve-sym (:form cls-expr)
                                             (:env cls-expr))]
@@ -1648,33 +1626,35 @@
     (let [{[_ cexpr] :args :as expr}
           (-> expr
               (update-in [:args 1] check-expr))
-          inst-of (c/Protocol-with-unknown-params (symbol v))
+          inst-of (c/Protocol-with-unknown-params (symbol v) opts)
           expr-tr (u/expr-type cexpr)]
       (assoc expr
              u/expr-type (below/maybe-check-below
-                           (r/ret (c/Un r/-true r/-false)
+                           (r/ret (c/Un [r/-true r/-false] opts)
                                   (fo/-FS (fo/-filter-at inst-of (r/ret-o expr-tr))
                                           (if (:extend-via-metadata @v)
                                             fl/-top ;; satisfies? does not rule out metadata extension https://clojure.atlassian.net/browse/CLJ-2426
                                             (fo/-not-filter-at inst-of (r/ret-o expr-tr)))))
-                           expected)))))
+                           expected
+                           opts)))))
 
 (defmethod -check ::jana2/instance?
-  [{cls :class the-expr :target :as expr} expected]
+  [{cls :class the-expr :target :as expr} expected {::check/keys [check-expr] :as opts}]
   ;(assert nil ":instance? node not used")
   (impl/assert-clojure)
-  (let [inst-of (c/RClass-of-with-unknown-params cls)
+  (let [inst-of (c/RClass-of-with-unknown-params cls opts)
         cexpr (check-expr the-expr)
         expr-tr (u/expr-type cexpr)]
     (assoc expr
            :target cexpr
            u/expr-type (below/maybe-check-below
-                         (r/ret (c/Un r/-true r/-false)
+                         (r/ret (c/Un [r/-true r/-false] opts)
                                 (fo/-FS (fo/-filter-at inst-of (r/ret-o expr-tr))
                                         (fo/-not-filter-at inst-of (r/ret-o expr-tr))))
-                         expected))))
+                         expected
+                         opts))))
 
-(defmulti -new-special (fn [{{:keys [form env] :as cls-expr} :class :as expr} expected]
+(defmulti -new-special (fn [{{:keys [form env] :as cls-expr} :class :as expr} expected opts]
                          {:pre [(= :maybe-class (:op cls-expr))]
                           :post [((some-fn nil? symbol?) %)]}
                          (let [cls (ana2/resolve-sym form
@@ -1685,14 +1665,14 @@
 
 ;; TODO share this logic with a macro rule for `clojure.core/defmulti`
 (defmethod -new-special 'clojure.lang.MultiFn
-  [expr expected]
+  [expr expected {::check/keys [check-expr] :as opts}]
   {:post [(-> % u/expr-type r/TCResult?)]}
   (when-not (== 4 (count (:args expr)))
-    (err/int-error "Wrong arguments to clojure.lang.MultiFn constructor"))
+    (err/int-error "Wrong arguments to clojure.lang.MultiFn constructor" opts))
   (when-not expected
-    (err/int-error "Expected type needed for defmulti"))
+    (err/int-error "Expected type needed for defmulti" opts))
   (let [expected-t (r/ret-t expected)
-        expected-d (multi/expected-dispatch-type expected-t)
+        expected-d (multi/expected-dispatch-type expected-t opts)
         {[nme-expr cdispatch-expr default-expr hierarchy-expr] :args :as expr}
         (-> expr
             (update :class check-expr)
@@ -1705,13 +1685,13 @@
             ;hierarchy
             (update-in [:args 3] check-expr))
         _ (when-not (= (:val hierarchy-expr) #'clojure.core/global-hierarchy)
-            (err/int-error "Multimethod hierarchy cannot be customised"))
+            (err/int-error "Multimethod hierarchy cannot be customised" opts))
         _ (when-not (= (:val default-expr) :default)
-            (err/int-error "Non :default default dispatch value NYI"))
+            (err/int-error "Non :default default dispatch value NYI" opts))
         mm-name (:val nme-expr)
         _ (when-not (string? mm-name)
-            (err/int-error "MultiFn name must be a literal string"))
-        inferred-dispatch-t (c/fully-resolve-type (r/ret-t (u/expr-type cdispatch-expr)))
+            (err/int-error "MultiFn name must be a literal string" opts))
+        inferred-dispatch-t (c/fully-resolve-type (r/ret-t (u/expr-type cdispatch-expr)) opts)
         inferred-dispatch-t (if (r/Intersection? inferred-dispatch-t)
                               (first (filter (some-fn r/SymbolicClosure? r/FnIntersection? r/Poly? r/PolyDots?)
                                              (:types inferred-dispatch-t)))
@@ -1728,24 +1708,26 @@
                                                                            r/ret-t))
         ;_ (prn "resolved-dispatch-t" resolved-dispatch-t)
         mm-qual (symbol (str (cu/expr-ns expr)) mm-name)
-        _ (mm/add-multimethod-dispatch-type mm-qual resolved-dispatch-t)]
+        _ (mm/add-multimethod-dispatch-type mm-qual resolved-dispatch-t opts)]
     (-> expr
         (assoc u/expr-type (below/maybe-check-below
-                             (r/ret (c/In #_(c/RClass-of clojure.lang.MultiFn) 
-                                          expected-t))
-                             expected)))))
+                             (r/ret (c/In [#_(c/RClass-of clojure.lang.MultiFn opts) 
+                                           expected-t]
+                                          opts))
+                             expected
+                             opts)))))
 
-(defmethod -new-special :default [expr expected])
+(defmethod -new-special :default [expr expected opts])
 
 (defn check-new
-  [expr expected]
+  [expr expected {::check/keys [check-expr] :as opts}]
   {:post [(-> % u/expr-type r/TCResult?)
           (vector? (:args %))]}
   ;(prn ":new" (mapv (juxt :op :tag) (cons (:class expr) (:args expr))))
   (impl/assert-clojure)
   (binding [vs/*current-expr* expr
             vs/*current-env* (:env expr)]
-    (or (-new-special expr expected)
+    (or (-new-special expr expected opts)
         (let [checker (cenv/checker)
               inst-types *inst-ctor-types*
               expr (-> expr
@@ -1763,11 +1745,13 @@
                                                        nil 
                                                        nil 
                                                        (map (comp r/ret-t u/expr-type) (:args expr))
-                                                       :constructor-call clssym)
+                                                       {:constructor-call clssym}
+                                                       opts)
                                                      ".\n\nHint: add type hints")
-                                                :form (ast-u/emit-form-fn expr)
-                                                :return (assoc expr
-                                                               u/expr-type (cu/error-ret expected)))))
+                                                {:form (ast-u/emit-form-fn expr)
+                                                 :return (assoc expr
+                                                                u/expr-type (cu/error-ret expected))}
+                                                opts)))
               ;; returns the function type for this constructor, or nil if
               ;; it is reflective.
               ctor-fn (fn [expr]
@@ -1775,17 +1759,17 @@
                           (let [clssym (cu/NewExpr->qualsym expr)]
                             (or (ctor-override/get-constructor-override checker clssym)
                                 (and (dt-env/get-datatype checker clssym)
-                                     (cu/DataType-ctor-type clssym))
+                                     (cu/DataType-ctor-type clssym opts))
                                 (when-let [ctor (cu/NewExpr->Ctor expr)]
-                                  (cu/Constructor->Function ctor))))))
+                                  (cu/Constructor->Function ctor opts))))))
               ;; check a non-reflective constructor
               check-validated (fn [expr]
                                 (let [ifn (-> (ctor-fn expr)
                                               (cond-> inst-types
-                                                (inst/manual-inst inst-types {}))
+                                                (inst/manual-inst inst-types {} opts))
                                               r/ret)
-                                      ;_ (prn "Expected constructor" (prs/unparse-type (r/ret-t ifn)))
-                                      res-type (funapp/check-funapp expr (:args expr) ifn (map u/expr-type (:args expr)) expected)]
+                                      ;_ (prn "Expected constructor" (prs/unparse-type (r/ret-t ifn) opts))
+                                      res-type (funapp/check-funapp expr (:args expr) ifn (map u/expr-type (:args expr)) expected {} opts)]
                                   (assoc expr
                                          u/expr-type res-type)))]
           ;; try to rewrite, otherwise error on reflection
@@ -1802,7 +1786,7 @@
             :else (give-up expr))))))
 
 (defn check-def
-  [{:keys [var env] :as expr} expected]
+  [{:keys [var env] :as expr} expected opts]
   (impl/assert-clojure)
   (let [checker (cenv/checker)
         prs-ns (cu/expr-ns expr)
@@ -1813,36 +1797,37 @@
     (when-let [[_ tsyn] (find mvar :ann)]
       (let [ann-type (binding [vs/*current-env* env
                                prs/*parse-type-in-ns* prs-ns]
-                       (prs/parse-type tsyn))]
+                       (prs/parse-type tsyn opts))]
         (var-env/add-var-type checker qsym ann-type)))
     (when (:no-check mvar)
       (var-env/add-nocheck-var checker qsym))
-    (def/check-def expr expected)))
+    (def/check-def expr expected opts)))
 
 (defmethod -check ::jana2/deftype
-  [expr expected]
-  (deftype/check-deftype expr expected))
+  [expr expected opts]
+  (deftype/check-deftype expr expected opts))
 
 (defmethod -check ::jana2/reify
-  [expr expected]
-  (reify/check-reify expr expected))
+  [expr expected opts]
+  (reify/check-reify expr expected opts))
 
 (defmethod -check ::jana2/import
-  [expr expected]
+  [expr expected opts]
   (assoc expr
          u/expr-type (below/maybe-check-below
                        (r/ret r/-nil)
-                       expected)))
+                       expected
+                       opts)))
 
 (defmethod -check ::jana2/case-test
-  [{:keys [test] :as expr} expected]
-  (let [ctest (check-expr test expected)]
+  [{:keys [test] :as expr} expected {::check/keys [check-expr] :as opts}]
+  (let [ctest (check-expr test expected opts)]
     (assoc expr
            :test ctest
            u/expr-type (u/expr-type ctest))))
 
 (defmethod -check ::jana2/case
-  [{target :test :keys [tests thens default] :as expr} expected]
+  [{target :test :keys [tests thens default] :as expr} expected {::check/keys [check-expr] :as opts}]
   {:post [((every-pred vector?
                        (con/every-c? (every-pred
                                        (comp #{:case-test} :op)
@@ -1864,14 +1849,14 @@
           tests-rets (map u/expr-type ctests)
           ; Can we derive extra information from 'failed'
           ; tests? Delegate to check-case-thens for future enhancements.
-          cthens (case/check-case-thens check-expr target-ret tests-rets thens expected)
+          cthens (case/check-case-thens check-expr target-ret tests-rets thens expected opts)
           cdefault (let [flag+ (volatile! true)
-                         neg-tst-fl (let [val-ts (map (comp c/fully-resolve-type r/ret-t) tests-rets)]
+                         neg-tst-fl (let [val-ts (map (comp #(c/fully-resolve-type % opts) r/ret-t) tests-rets)]
                                       (if (every? r/Value? val-ts)
-                                        (fo/-not-filter-at (apply c/Un val-ts)
+                                        (fo/-not-filter-at (c/Un val-ts opts)
                                                            (r/ret-o target-ret))
                                         fl/-top))
-                         env-default (update/env+ (lex/lexical-env) [neg-tst-fl] flag+)
+                         env-default (update/env+ (lex/lexical-env) [neg-tst-fl] flag+ opts)
                          _ (when-not @flag+
                              ;; FIXME should we ignore this branch?
                              (u/tc-warning "Local became bottom when checking case default"))]
@@ -1880,17 +1865,90 @@
                      (var-env/with-lexical-env env-default
                        (check-expr default expected)))
           ;; FIXME this is a duplicated expected test, already done able
-          case-result (let [type (apply c/Un (map (comp :t u/expr-type) (cons cdefault cthens)))
+          case-result (let [type (c/Un (map (comp :t u/expr-type) (cons cdefault cthens)) opts)
                             ; TODO
                             filter (fo/-FS fl/-top fl/-top)
                             ; TODO
                             object obj/-empty]
                         (below/maybe-check-below
                           (r/ret type filter object)
-                          expected))]
+                          expected
+                          opts))]
       (assoc expr
              :test ctarget
              :tests ctests
              :thens cthens
              :default cdefault
              u/expr-type case-result))))
+
+;; public ops
+
+(defn check-expr
+  "Type checks expr at optional expected type. expr must not have a u/expr-type entry.
+  
+  The return expr will be fully expanded, analyzed, evaluated (via ana2/eval-top-level),
+  with a u/expr-type entry giving the TCResult of the whole expression.
+
+  As an exception, an :unanalyzed node may be returned from this function. It will have a :tag,
+  and :result (if top-level). If not top-level, the node will be expanded and evaluated as part
+  of its enclosing top-level expression."
+  [expr expected opts]
+  {:pre [(map? expr)
+         ((some-fn nil? r/TCResult?) expected)]
+   :post [(r/TCResult? (u/expr-type %))]}
+  ;(prn "check-expr" op)
+  ;(clojure.pprint/pprint (emit-form/emit-form expr))
+  ;; to keep :post condition
+  (loop [expr expr]
+    (assert (not (u/expr-type expr))
+            (str "Expression already has type information when passed to check-expr"))
+    (let [; update namespace, as it might have changed when evaluating a previous
+          ; subexpression during type checking
+          {:keys [env] :as expr} (assoc-in expr [:env :ns] (ns-name *ns*))]
+      (when vs/*trace-checker*
+        (println (str "Checking line " (:line env) ":" (:column env) ":" (:file env)))
+        (println (str "> " (binding [*print-level* (or *print-level* 10)
+                                     *print-length* (or *print-length* 10)]
+                             (pr-str (:form expr))))))
+      (if (= :unanalyzed (:op expr))
+        ;; Type checks the :unanalyzed expr at expected type.
+        ;; The return expr will be fully expanded, analyzed, evaluated (if top-level),
+        ;; with a u/expr-type entry for the TCResult of the entire expression."
+        (let [;register typing rules (ie., implementations of -unanalyzed-top-level
+              ; and -unanalyzed-special)
+              _ @*register-exts]
+          (or (binding [vs/*current-env* (if (:line env) env vs/*current-env*)
+                        vs/*current-expr* expr]
+                (or (meta-ann/maybe-check-meta-ann expr expected opts)
+                    (unanalyzed/-unanalyzed-special expr expected opts)
+                    (maybe-check-inlineable expr expected opts)))
+              (-> expr
+                  ana2/analyze-outer
+                  recur)))
+        (binding [vs/*current-env* (if (:line env) env vs/*current-env*)
+                  vs/*current-expr* expr]
+          (-> expr
+              ana2/run-pre-passes
+              (-check expected opts)
+              ana2/run-post-passes
+              ana2/eval-top-level))))))
+
+(defn check-top-level
+  "Type check a top-level form at an expected type, returning a
+  fully analyzed core.typed.analyzer AST node (ie., containing no :unanalyzed nodes)
+  with a u/expr-type entry giving its TCResult type, and a :result entry
+  holding its evaluation result."
+  ([form expected] (check-top-level form expected {}))
+  ([form expected {:keys [env] :as opts}]
+   ;(prn "check-top-level" form)
+   ;(prn "*ns*" *ns*)
+   (let [extra (when (= :before (:check-form-eval vs/*check-config*))
+                 {:result (eval form)})
+         check-expr (check/->check-expr check-expr opts)
+         opts (assoc opts ::check/check-expr check-expr)]
+     (with-bindings (dissoc (ana-clj/thread-bindings opts) #'*ns*) ; *ns* is managed by higher-level ops like check-ns1
+       (env/ensure (jana2/global-env)
+         (-> form
+             (ana2/unanalyzed-top-level (or env (jana2/empty-env)))
+             (cache/check-top-level-expr expected opts)
+             (into extra)))))))

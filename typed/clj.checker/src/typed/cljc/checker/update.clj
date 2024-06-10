@@ -30,7 +30,7 @@
   (:import (clojure.lang IPersistentMap Keyword)))
 
 ;[(Seqable Filter) Filter -> Filter]
-(defn resolve* [atoms prop]
+(defn resolve* [atoms prop opts]
   {:pre [(every? fl/Filter? atoms)
          (fl/Filter? prop)]
    :post [(fl/Filter? %)]}
@@ -40,11 +40,11 @@
               (loop [ps (:fs a)
                      result []]
                 (if (empty? ps)
-                  (apply fo/-and result)
+                  (fo/-and result opts)
                   (let [p (first ps)]
                     (cond
-                      (fo/opposite? a p) fl/-bot
-                      (fo/implied-atomic? p a) (recur (next ps) result)
+                      (fo/opposite? a p opts) fl/-bot
+                      (fo/implied-atomic? p a opts) (recur (next ps) result)
                       :else (recur (next ps) (cons p result))))))
               :else prop))
           prop
@@ -63,7 +63,7 @@
 ;[(Seqable Filter) (Seqable Filter) (Atom Boolean) 
 ;  -> '[(Seqable (U ImpFilter fl/OrFilter AndFilter))
 ;       (Seqable (U TypeFilter NotTypeFilter))]]
-(defn combine-props [new-props old-props flag]
+(defn combine-props [new-props old-props flag opts]
   {:pre [(every? fl/Filter? (concat new-props old-props))
          (instance? clojure.lang.Volatile flag)
          (boolean? @flag)]
@@ -78,32 +78,32 @@
       (if (empty? worklist)
         [derived-props derived-atoms]
         (let [p (first worklist)
-              p (resolve* derived-atoms p)]
+              p (resolve* derived-atoms p opts)]
           (cond
             (fl/AndFilter? p) (recur derived-props derived-atoms (concat (:fs p) (next worklist)))
             (fl/ImpFilter? p) 
             (let [{:keys [a c]} p
-                  implied? (some (fn [p] (fo/implied-atomic? a p)) (concat derived-props derived-atoms))]
-              #_(prn "combining " (unparse-filter p) " with " (map unparse-filter (concat derived-props
-                                                                                          derived-atoms))
+                  implied? (some (fn [p] (fo/implied-atomic? a p opts)) (concat derived-props derived-atoms))]
+              #_(prn "combining " (unparse-filter p opts) " with " (map #(unparse-filter % opts) (concat derived-props
+                                                                                                         derived-atoms))
                      " and implied:" implied?)
               (if implied?
                 (recur derived-props derived-atoms (cons c (rest worklist)))
                 (recur (cons p derived-props) derived-atoms (next worklist))))
             (fl/OrFilter? p)
             (let [ps (:fs p)
-                  new-or (if (some (fn [f] (fo/implied-atomic? p f))
+                  new-or (if (some (fn [f] (fo/implied-atomic? p f opts))
                                    (disj (set/union (set worklist) (set derived-props)) 
                                          p))
                            fl/-top
                            (loop [ps ps
                                   result []]
                              (cond
-                               (empty? ps) (apply fo/-or result)
-                               (some (fn [other-p] (fo/opposite? (first ps) other-p))
+                               (empty? ps) (fo/-or result opts)
+                               (some (fn [other-p] (fo/opposite? (first ps) other-p opts))
                                      (concat derived-props derived-atoms))
                                (recur (next ps) result)
-                               (some (fn [other-p] (fo/implied-atomic? (first ps) other-p))
+                               (some (fn [other-p] (fo/implied-atomic? (first ps) other-p opts))
                                      derived-atoms)
                                fl/-top
                                :else (recur (next ps) (cons (first ps) result)))))]
@@ -111,7 +111,7 @@
                 (recur (cons new-or derived-props) derived-atoms (next worklist))
                 (recur derived-props derived-atoms (cons new-or (next worklist)))))
             (and (fl/TypeFilter? p)
-                 (= (c/Un) (:type p)))
+                 (= (r/Bottom) (:type p)))
             (do 
               ;(prn "Variable set to bottom:" p)
               (vreset! flag false)
@@ -132,10 +132,12 @@
             :else (recur (cons p derived-props) derived-atoms (next worklist))))))))
 
 ;; TODO make extensible
-(defn with-updated-SeqOn [t SeqOn]
+(defn with-updated-SeqOn [t SeqOn opts]
   (if (sub/subtype? ((requiring-resolve 'typed.cljc.checker.check.nthnext/seq-type)
-                     t)
-                    SeqOn)
+                     t
+                     opts)
+                    SeqOn
+                    opts)
     t
     r/-nothing))
 
@@ -147,28 +149,29 @@
 ; - if false, we're updating with a NotTypeFilter so we use remove
 ; lo is a sequence of path elements, in the same order as -> (left to right)
 ;[Type Type Boolean PathElems -> Type]
-(defn update* [t ft pos? lo]
+(defn update* [t ft pos? lo opts]
   {:pre [(r/Type? t)
          (r/Type? ft)
          (boolean? pos?)
          (pr/path-elems? lo)]
    :post [(r/Type? %)]}
-  (let [t (c/fully-resolve-type t)]
+  (let [t (c/fully-resolve-type t opts)]
     (cond
       ; The easy cases: we have a filter without a further path to travel down.
       ; Just update t with the correct polarity.
 
       (empty? lo)
       (if pos?
-        (c/restrict t ft)
-        (remove/remove* t ft))
+        (c/restrict t ft opts)
+        (remove/remove* t ft opts))
 
       ; unwrap unions and intersections to update their members
 
       (or (r/Union? t)
           (r/Intersection? t))
-      (apply (if (r/Union? t) c/Un c/In)
-             (map #(update* % ft pos? lo) (:types t)))
+      ((if (r/Union? t) c/Un c/In)
+       (map #(update* % ft pos? lo opts) (:types t))
+       opts)
 
       ;from here, t is fully resolved and is not a Union or Intersection
 
@@ -183,8 +186,8 @@
             [fkeype & rstpth] path
             fpth (cu/KeyPE->Type fkeype)
             update-inner (fn 
-                           ([old] (update* old ft pos? rstpth))
-                           ([old new] (update* old new pos? rstpth)))
+                           ([old] (update* old ft pos? rstpth opts))
+                           ([old new] (update* old new pos? rstpth opts)))
             present? (contains? (:types t) fpth)
             optional? (contains? (:optional t) fpth)
             absent? (contains? (:absent-keys t) fpth)]
@@ -195,11 +198,11 @@
         (cond
           present?
             ; make-HMap simplifies to bottom if a mandatory entry is bottom
-            (c/make-HMap
-              :mandatory (update (:types t) fpth update-inner)
-              :optional (:optional t)
-              :absent-keys (:absent-keys t)
-              :complete? (c/complete-hmap? t))
+            (c/make-HMap opts
+              {:mandatory (update (:types t) fpth update-inner)
+               :optional (:optional t)
+               :absent-keys (:absent-keys t)
+               :complete? (c/complete-hmap? t)})
           (or absent?
               (and (c/complete-hmap? t)
                    (not present?)
@@ -218,24 +221,24 @@
                 update-to-mandatory? (r/Bottom? (update-inner r/-nil))
                 old-type (or ((:optional t) fpth) r/-any)]
             (if update-to-mandatory?
-              (c/make-HMap 
-                :mandatory (-> (:types t)
+              (c/make-HMap opts
+                {:mandatory (-> (:types t)
+                                (assoc fpth (update-inner old-type)))
+                 :optional (dissoc (:optional t) fpth)
+                 :absent-keys (:absent-keys t)
+                 :complete? (c/complete-hmap? t)})
+              (c/make-HMap opts
+                {:mandatory (:types t)
+                 :optional (-> (:optional t)
                                (assoc fpth (update-inner old-type)))
-                :optional (dissoc (:optional t) fpth)
-                :absent-keys (:absent-keys t)
-                :complete? (c/complete-hmap? t))
-              (c/make-HMap 
-                :mandatory (:types t)
-                :optional (-> (:optional t)
-                              (assoc fpth (update-inner old-type)))
-                :absent-keys (:absent-keys t)
-                :complete? (c/complete-hmap? t))))))
+                 :absent-keys (:absent-keys t)
+                 :complete? (c/complete-hmap? t)})))))
 
       ; nil returns nil on keyword lookups
       (and (not pos?)
            (pe/KeyPE? (first lo))
            (r/Nil? t))
-      (update* r/-nil ft pos? (next lo))
+      (update* r/-nil ft pos? (next lo) opts)
 
       ; update count information based on a call to `count`
       ; eg. (= 1 (count a))
@@ -259,8 +262,8 @@
                          (when (seq ns)
                            (r/make-CountRange (first ns)
                                               (last ns)))))]
-          (c/restrict t cnt)
-          (do (u/tc-warning "Cannot infer Count from type " (prs/unparse-type u))
+          (c/restrict t cnt opts)
+          (do (u/tc-warning "Cannot infer Count from type " (prs/unparse-type u opts))
               t)))
 
       ;can't do much without a NotCountRange type or difference type
@@ -277,7 +280,7 @@
             fixed-types (conj (vec (repeat idx r/-any)) type)
             restriction-type (r/-hsequential fixed-types :rest r/-any
                                              :kind (:kind t))]
-        (c/restrict t restriction-type))
+        (c/restrict t restriction-type opts))
 
       (and (not pos?)
            (pe/NthPE? (first lo))
@@ -293,7 +296,7 @@
           (and pos?
                (r/Value? u)
                (class? (:val u)))
-          (update* t (c/RClass-of-with-unknown-params (:val u)) true (next lo))
+          (update* t (c/RClass-of-with-unknown-params (:val u) opts) true (next lo) opts)
 
           ; For this case to be sound, we need to prove there doesn't exist a subclass
           ; of (:val u). Finding subclasses is difficult on the JVM, even after verifying
@@ -301,24 +304,24 @@
           ;(and (not pos?)
           ;     (r/Value? u)
           ;     (class? (:val u)))
-          ;(update* t (c/RClass-of-with-unknown-params (:val u)) true (next lo))
+          ;(update* t (c/RClass-of-with-unknown-params (:val u) opts) true (next lo) opts)
 
           (and pos?
-               (sub/subtype? u (c/RClass-of Object)))
-          (update* t (c/RClass-of Object) true (next lo))
+               (sub/subtype? u (c/RClass-of Object opts) opts))
+          (update* t (c/RClass-of Object opts) true (next lo) opts)
 
           (and pos?
-               (sub/subtype? u r/-nil))
-          (update* t r/-nil true (next lo))
+               (sub/subtype? u r/-nil opts))
+          (update* t r/-nil true (next lo) opts)
 
           ;flip polarity in recursive calls
           (and (not pos?)
-               (sub/subtype? (c/RClass-of Object) u))
-          (update* t r/-nil true (next lo))
+               (sub/subtype? (c/RClass-of Object opts) u opts))
+          (update* t r/-nil true (next lo) opts)
 
           (and (not pos?)
-               (sub/subtype? r/-nil u))
-          (update* t (c/RClass-of Object) true (next lo))
+               (sub/subtype? r/-nil u opts))
+          (update* t (c/RClass-of Object opts) true (next lo) opts)
 
           ;; t = Any
           :else t))
@@ -336,7 +339,7 @@
       ((some-fn pe/KeysPE? pe/ValsPE?) (first lo))
       (let [[fstpth & rstpth] lo
             u ft
-            ;_ (prn "u" (prs/unparse-type u))
+            ;_ (prn "u" (prs/unparse-type u opts))
 
             ; solve for x:  t <: (Seqable x)
             x (gensym)
@@ -345,7 +348,8 @@
                       (cgen/infer {x r/no-bounds} {} 
                                   [u]
                                   [(c/-name `t/Seqable (r/make-F x))]
-                                  r/-any)))
+                                  r/-any
+                                  opts)))
             ;_ (prn "subst for Keys/Vals" subst)
             ]
         (if-not subst
@@ -355,7 +359,7 @@
             _ (assert (crep/t-subst? element-t-subst))
             ; the updated 'keys/vals' type
             element-t (:type element-t-subst)
-            ;_ (prn "element-t" (prs/unparse-type element-t))
+            ;_ (prn "element-t" (prs/unparse-type element-t opts))
             _ (assert element-t)]
         ;; FIXME this is easy to implement, just recur update* on rstpth instead of nil.
         ;; should also add a test.
@@ -363,9 +367,9 @@
         (if pos?
           (update* t
                    (if (pe/KeysPE? fstpth)
-                     (c/RClass-of IPersistentMap [element-t r/-any])
-                     (c/RClass-of IPersistentMap [r/-any element-t]))
-                   pos? nil)
+                     (c/RClass-of IPersistentMap [element-t r/-any] opts)
+                     (c/RClass-of IPersistentMap [r/-any element-t] opts))
+                   pos? nil opts)
           ; can we do anything for a NotTypeFilter?
           t))))
 
@@ -373,7 +377,7 @@
       ;; t is the old type, eg. (Val "my-key"). Can also be any type.
       ;; ft is the new type, eg. (Val :my-key). Can also be in (U nil Kw).
       ;;
-      ;; eg. (update* (Val "my-key") (Val :my-key) true [KeywordPE])
+      ;; eg. (update* (Val "my-key") (Val :my-key) true [KeywordPE] opts)
       ;; Here we have 
       (update* t
                (cond
@@ -383,45 +387,46 @@
                                    (keyword? val) (let [kstr (str (when (namespace val)
                                                                     (str (namespace val) "/"))
                                                                   (name val))]
-                                                    (c/Un (r/-val kstr)
-                                                          (r/-val (symbol kstr))
-                                                          (r/-val val)))
+                                                    (c/Un [(r/-val kstr)
+                                                           (r/-val (symbol kstr))
+                                                           (r/-val val)]
+                                                          opts))
                                    (nil? val) r/-any
                                    ;; impossible
                                    :else r/-nothing))
 
                  ;; if the new type is a keyword, old type must be a (U Str Sym Kw).
-                 (sub/subtype? ft (c/RClass-of Keyword))
-                 (c/Un (c/RClass-of Keyword)
-                       (c/RClass-of String)
-                       (c/RClass-of clojure.lang.Symbol))
+                 (sub/subtype? ft (c/RClass-of Keyword opts) opts)
+                 (c/Un [(c/RClass-of Keyword opts)
+                        (c/RClass-of String opts)
+                        (c/RClass-of clojure.lang.Symbol opts)]
+                       opts)
 
                  ;; if the output of `keyword` is at best (U nil Kw), input could be anything
-                 (sub/subtype? ft (c/Un r/-nil (c/RClass-of Keyword)))
+                 (sub/subtype? ft (c/Un [r/-nil (c/RClass-of Keyword opts)] opts) opts)
                  r/-any
 
                  ;; impossible
                  :else r/-nothing)
-               pos? (next lo))
+               pos? (next lo) opts)
 
       (pe/SeqPE? (first lo))
       (let [;; t is the argument to `clojure.core/seq`
             ;; ft is the filter on the return value of `clojure.core/seq`
-            updated (update* (c/-name `t/SeqOn t) ft pos? (next lo))]
+            updated (update* (c/-name `t/SeqOn t) ft pos? (next lo) opts)]
         ;(prn {:t t :ft ft :pos? pos? :lo lo :updated updated})
-        (with-updated-SeqOn t updated)
-        )
+        (with-updated-SeqOn t updated opts))
 
-      :else (err/int-error (str "update along ill-typed path " (pr-str (prs/unparse-type t)) " " (mapv prs/unparse-path-elem lo))))))
+      :else (err/int-error (str "update along ill-typed path " (pr-str (prs/unparse-type t opts)) " " (mapv #(prs/unparse-path-elem % opts) lo)) opts))))
 
-(defn update-with-filter [t lo]
+(defn update-with-filter [t lo opts]
   {:pre [((some-fn fl/TypeFilter? fl/NotTypeFilter?) lo)]
    :post [(r/Type? %)]}
-  (update* t (:type lo) (fl/TypeFilter? lo) (fl/filter-path lo)))
+  (update* t (:type lo) (fl/TypeFilter? lo) (fl/filter-path lo) opts))
 
 ;; sets the flag box to #f if anything becomes (U)
 ;[PropEnv (Seqable Filter) (Atom Boolean) -> PropEnv]
-(defn env+ [env fs flag]
+(defn env+ [env fs flag opts]
   {:pre [(lex/PropEnv? env)
          (every? (every-pred fl/Filter? (complement fl/NoFilter?)) 
                  fs)
@@ -430,7 +435,7 @@
    :post [(lex/PropEnv? %)
           ; flag should be updated by the time this function exits
           (boolean? @flag)]}
-  (let [[props atoms] (combine-props fs (:props env) flag)]
+  (let [[props atoms] (combine-props fs (:props env) flag opts)]
     (reduce (fn [env f]
               ;post-condition checked in env+
               {:pre [(lex/PropEnv? env)
@@ -447,10 +452,11 @@
                                          (fn [t]
                                            (when-not t
                                              (err/int-error (str "Updating local not in scope: " (:id f)
-                                                                 " " (-> env :l keys vec))))
-                                           (update-with-filter t f)))]
+                                                                 " " (-> env :l keys vec))
+                                                            opts))
+                                           (update-with-filter t f opts)))]
                   ; update flag if a variable is now bottom
-                  (when-let [bs (seq (filter (comp #{(c/Un)} val) (:l new-env)))]
+                  (when-let [bs (seq (filter (comp #{(r/Bottom)} val) (:l new-env)))]
                     ;(prn "Variables now bottom:" (keys bs))
                     (vreset! flag false))
                   new-env)
@@ -463,12 +469,12 @@
                       new-env (update-in env [:l id]
                                          (fn [t]
                                            (when-not t
-                                             (err/int-error (str "Updating local not in scope: " (:id f))))
-                                           (apply c/Un
-                                                  (map (fn [f] (update-with-filter t f)) 
-                                                       (:fs f)))))]
+                                             (err/int-error (str "Updating local not in scope: " (:id f)) opts))
+                                           (c/Un (map (fn [f] (update-with-filter t f opts)) 
+                                                      (:fs f))
+                                                 opts)))]
                   ; update flag if a variable is now bottom
-                  (when-some [bs (seq (filter (comp #{(c/Un)} val) (:l new-env)))]
+                  (when-some [bs (seq (filter (comp #{(r/Bottom)} val) (:l new-env)))]
                     ;(prn "Variables now bottom:" (keys bs))
                     (vreset! flag false))
                   new-env)

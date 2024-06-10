@@ -16,7 +16,7 @@
             [typed.clj.checker.parse-unparse :as prs]
             [clojure.core.typed.errors :as err]
             [typed.clojure :as t]
-            [typed.cljc.checker.check :as chk]
+            [typed.cljc.checker.check :as check]
             [typed.cljc.analyzer :as ana2]
             [typed.cljc.checker.check.unanalyzed :refer [defuspecial]]
             [typed.cljc.checker.utils :as u]
@@ -27,18 +27,16 @@
        (= 2 (count v))
        (= 'quote (first v))))
 
-(defn parse-meta-ann [quoted-tsyn]
+(defn parse-meta-ann [quoted-tsyn opts]
   #_
   (let [_ (when-not (and (quoted? quoted-tsyn)
                          (quoted? (second quoted-tsyn)))
             (prs/with-tsyn-env quoted-tsyn
               (prs/prs-error (str ":typed.clojure/- annotations must be double quoted, convert to ''" (pr-str quoted-tsyn)))))]
     (prs/parse-type (-> quoted-tsyn second second)))
-  (prs/parse-type quoted-tsyn))
+  (prs/parse-type quoted-tsyn opts))
 
-(defn parse-meta-forall [quoted-forall])
-
-(defn metas->maybe-expected-type [metas]
+(defn metas->maybe-expected-type [metas opts]
   {:post [((some-fn nil? r/Type?) %)]}
   (when metas
     (let [{[nme :as nme?] :name :as all-meta-groups} (group-by :type metas)
@@ -52,8 +50,8 @@
         (-> nme :form meta (find ::t/-))
         (let [_ (when (or (some :annotated (apply concat (-> all-meta-groups (dissoc :name) vals)))
                           (seq (-> nme :form meta (select-keys all-ks) keys set (disj ::t/-))))
-                  (err/int-error "Cannot mix other metadata annotations after placing :typed.clojure/- on fn name."))]
-          (parse-meta-ann (-> nme :form meta ::t/-)))
+                  (err/int-error "Cannot mix other metadata annotations after placing :typed.clojure/- on fn name." opts))]
+          (parse-meta-ann (-> nme :form meta ::t/-) opts))
 
         :else (let [[_ binder :as poly?] (-> nme :form meta (find ::t/forall))
                     _ (assert (not poly?) "TODO ::t/forall")
@@ -68,7 +66,7 @@
                                           _ (assert (not rest?) "TODO rest argument via metadata annotation")
                                           prs-dash-meta (fn [desc]
                                                           (if-some [[_ quoted-tsyn] (-> desc :form meta (find ::t/-))]
-                                                            (parse-meta-ann quoted-tsyn)
+                                                            (parse-meta-ann quoted-tsyn opts)
                                                             r/-wild))
                                           dom (->> fixed
                                                    (sort-by :fixed-pos)
@@ -119,14 +117,14 @@
 
 (defuspecial defuspecial__fn
   "defuspecial implementation for clojure.core/fn"
-  [expr expected]
+  [expr expected {::check/keys [check-expr] :as opts}]
   (let [[form metas] (prep-tc-meta (:form expr))
-        annotated-t (metas->maybe-expected-type metas)
+        annotated-t (metas->maybe-expected-type metas opts)
         expr (-> expr
                  (assoc :form form)
                  ana2/analyze-outer)]
     (if annotated-t
       (-> expr
-          (chk/check-expr (r/ret annotated-t))
-          (update u/expr-type below/maybe-check-below expected))
-      (chk/check-expr expr expected))))
+          (check-expr (r/ret annotated-t))
+          (update u/expr-type below/maybe-check-below expected opts))
+      (check-expr expr expected))))

@@ -30,12 +30,12 @@
 (defn ns-form-for-ns
   "Returns the namespace declaration for the namespace, or
   nil if not found."
-  [nsym]
+  [nsym opts]
   {:pre [(symbol? nsym)]}
   (let [f (-> nsym coerce/ns->file)
         ns (ns-form-for-file f)]
     (or ns
-        (err/int-error (str "File for " nsym " not found on classpath: " f)))))
+        (err/int-error (str "File for " nsym " not found on classpath: " f) opts))))
 
 (defn ns-form-deps
   "Given a ns-form, returns a set of dependencies"
@@ -48,10 +48,10 @@
 
 (defn deps-for-ns
   "Returns the dependencies for a namespace"
-  [nsym]
+  [nsym opts]
   {:pre [(symbol? nsym)]
    :post [(set? %)]}
-  (if-let [ns-form (ns-form-for-ns nsym)]
+  (if-let [ns-form (ns-form-for-ns nsym opts)]
     (ns-form-deps ns-form)
     #{}))
 
@@ -74,12 +74,12 @@
 (defn ns-form-name
   "Returns the symbol naming this namespace, with any
   metadata attached."
-  [ns-form]
+  [ns-form opts]
   {:post [(symbol? %)]}
   (let [ns-form (next ns-form)
         [nsym ns-form] (internal/take-when symbol? ns-form)
         _ (when-not (symbol? nsym)
-            (err/int-error "Malformed ns form"))
+            (err/int-error "Malformed ns form" opts))
         [docstr ns-form]  (internal/take-when string? ns-form)
         [metamap ns-form] (internal/take-when map? ns-form)]
     (if (map? metamap)
@@ -88,62 +88,64 @@
 
 (defn ns-meta
   "Returns the metadata map for this namespace"
-  [ns-form]
-  (meta (ns-form-name ns-form)))
+  [ns-form opts]
+  (meta (ns-form-name ns-form opts)))
 
-(defn ignore-ns? [ns-form]
-  (let [nmeta (ns-meta ns-form)]
+(defn ignore-ns? [ns-form opts]
+  (let [nmeta (ns-meta ns-form opts)]
     (or (true? (:typed.clojure/ignore nmeta))
         (-> nmeta :typed.clojure :ignore true?))))
 
 (defn should-check-ns-form?
-  [ns-form]
+  [ns-form opts]
   {:post [(boolean? %)]}
   (and (boolean ns-form)
-       (not (ignore-ns? ns-form))))
+       (not (ignore-ns? ns-form opts))))
 
+#_
 (defn should-custom-expand-ns-form?
-  [ns-form]
+  [ns-form opts]
   {:post [(boolean? %)]}
-  (let [m (ns-meta ns-form)]
+  (let [m (ns-meta ns-form opts)]
     (-> m :core.typed :experimental
         (contains? :custom-expansions))))
 
 (defn should-check-ns?
   "Returns true if the given namespace should be type checked"
-  [nsym]
+  [nsym opts]
   {:pre [(symbol? nsym)]
    :post [(boolean? %)]}
-  (should-check-ns-form? (ns-form-for-ns nsym)))
+  (should-check-ns-form? (ns-form-for-ns nsym opts) opts))
 
 (defn ns-has-core-typed-metadata?
   "Returns true if the given ns form has :core.typed metadata."
-  [rcode]
+  [rcode opts]
   {:post [(boolean? %)]}
-  (boolean (-> (ns-meta rcode) :core.typed)))
+  (boolean (-> (ns-meta rcode opts) :core.typed)))
 
 (defn should-use-typed-load?
   "Returns true if typed load should be triggered for this namespace."
-  [ns-form]
+  [ns-form opts]
   {:post [(boolean? %)]}
-  (let [m (ns-meta ns-form)]
+  (let [m (ns-meta ns-form opts)]
     (and (= :core.typed (:lang m))
          (not (-> m :core.typed :no-typed-load)))))
 
+#_
 (defn file-has-core-typed-metadata?
   "Returns true if the given file has :core.typed metadata."
-  [res]
+  [res opts]
   {:pre [(string? res)]
    :post [(boolean? %)]}
   (if-let [ns-form (ns-form-for-file res)]
-    (boolean (some-> ns-form ns-has-core-typed-metadata?))
+    (boolean (some-> ns-form (ns-has-core-typed-metadata? opts)))
     false))
 
 (defn file-should-use-typed-load?
   "Returns true if the given file should be loaded with typed load."
-  [res]
+  [res opts]
   {:pre [(string? res)]
    :post [(boolean? %)]}
   (if-let [ns-form (ns-form-for-file res)]
-    (boolean (some-> ns-form should-use-typed-load?))
+    (boolean (some-> ns-form (should-use-typed-load? opts)))
     false))

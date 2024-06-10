@@ -14,7 +14,7 @@
             [clojure.core.typed.internal :as internal]
             [clojure.core.typed.util-vars :as vs]
             [typed.cljc.checker.check.nth :as nth]
-            [typed.clj.checker.check :refer [check-expr]]
+            [typed.cljc.checker.check :as check]
             [typed.clj.analyzer.passes.emit-form :as emit-form]
             [typed.clj.analyzer.utils :as ana-utils]
             [typed.cljc.analyzer.passes.uniquify :as uniquify]
@@ -46,7 +46,7 @@
           t
           dform))
 
-(defn update-destructure-env [prop-env ana-env lhs maybe-rhs-expr rhs-ret is-reachable]
+(defn update-destructure-env [prop-env ana-env lhs maybe-rhs-expr rhs-ret is-reachable {::check/keys [check-expr] :as opts}]
   {:pre [(lex/PropEnv? prop-env)
          (map? ana-env)
          ((some-fn nil? map?) maybe-rhs-expr)
@@ -60,7 +60,7 @@
                    (r/TCResult? rhs-ret)]
              :post [(lex/PropEnv? %)]}
             (-> prop-env
-                (let/update-env uniquified-lhs rhs-ret is-reachable)))
+                (let/update-env uniquified-lhs rhs-ret is-reachable opts)))
           (upd-ana-env [ana-env lhs]
             {:pre [(map? ana-env)
                    (simple-symbol? lhs)]
@@ -185,8 +185,7 @@
                                                                (u/expr-type
                                                                  (chk-form combined-env
                                                                            gfirst))
-                                                               (if (nth/valid-first-arg-for-3-arity-nth?
-                                                                     gvec-type)
+                                                               (if (nth/valid-first-arg-for-3-arity-nth? gvec-type opts)
                                                                  (u/expr-type
                                                                    (chk-form combined-env
                                                                              (list `nth gvec n nil)))
@@ -197,7 +196,8 @@
                                                                        (pr-str lhs))
                                                                      (cond-> {}
                                                                        (contains? (meta lhs) ::internal/destructure-blame-form)
-                                                                       (assoc :blame-form (-> lhs meta ::internal/destructure-blame-form)))))))]
+                                                                       (assoc :blame-form (-> lhs meta ::internal/destructure-blame-form)))
+                                                                     opts))))]
                                               (recur (upd-destructure-env
                                                        combined-env
                                                        firstb
@@ -285,9 +285,8 @@
        (count p))
     (into (subvec p (count v)))))
 
-(defn check-let-bindings [combined-env bvec]
-  {:pre [
-         (vector? bvec)
+(defn check-let-bindings [combined-env bvec {::check/keys [check-expr] :as opts}]
+  {:pre [(vector? bvec)
          (even? (count bvec))]
    :post [((con/hmap-c? :prop-env lex/PropEnv? :ana-env map? :new-syms set?
                         :expanded-bindings vector? :reachable boolean?)
@@ -295,6 +294,7 @@
   (assert (combined-env? combined-env)
           [(pr-str (mapv (fn [[k v]] [k (class v)]) combined-env))
            (pr-str combined-env)])
+  (assert check-expr)
   (let [res (reduce
               (fn [{:keys [new-syms prop-env ana-env expanded-bindings reachable]} [lhs rhs]]
                 {:pre [(boolean? reachable)
@@ -321,7 +321,7 @@
                                         inferred-tag)
                                    (vary-meta update :tag #(or % inferred-tag)))
                       is-reachable (volatile! reachable)
-                      updated-context (update-destructure-env prop-env ana-env tagged-lhs cexpr (u/expr-type cexpr) is-reachable)
+                      updated-context (update-destructure-env prop-env ana-env tagged-lhs cexpr (u/expr-type cexpr) is-reachable opts)
                       ;; must go after update-destructure-env
                       reachable @is-reachable
                       maybe-reduced (if reachable identity reduced)]
@@ -347,8 +347,8 @@
 
 (defuspecial defuspecial__let
   "defuspecial implementation for clojure.core/let"
-  [{ana-env :env :keys [form] :as expr} expected]
-  ;(prn `defuspecial__let form)
+  [{ana-env :env :keys [form] :as expr} expected {::check/keys [check-expr] :as opts}]
+  (assert check-expr)
   (let [_ (assert (next form)
                   (str "Expected 1 or more arguments to clojure.core/let: " form))
         [bvec & body-syns] (next form)
@@ -361,21 +361,22 @@
           {:new-syms #{}
            :prop-env (lex/lexical-env)
            :ana-env ana-env}
-          bvec)]
+          bvec
+          opts)]
     (cond
       (not reachable) (assoc expr 
                              :form (-> (list* (first form)
                                               expanded-bindings
                                               body-syns)
                                        (with-meta (meta form)))
-                             u/expr-type (or expected (r/ret (c/Un))))
+                             u/expr-type (or expected (r/ret (r/Bottom))))
       :else (let [cbody (var-env/with-lexical-env prop-env
                           (let [body (-> `(do ~@body-syns)
                                          (ana2/unanalyzed ana-env))]
                             (binding [vs/*current-expr* body]
                               (-> body
                                   (check-expr expected)))))
-                  unshadowed-ret (let/erase-objects new-syms (u/expr-type cbody))]
+                  unshadowed-ret (let/erase-objects new-syms (u/expr-type cbody) opts)]
               (assoc expr
                      :form (-> (list (first form)
                                      expanded-bindings

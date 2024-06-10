@@ -57,36 +57,44 @@
 ;(t/ann ^:no-check promote [r/AnyType ElimVars -> r/AnyType])
 ;(t/ann ^:no-check demote [r/AnyType ElimVars -> r/AnyType])
 (defprotocol IPromoteDemote
-  (promote [T V] "Eliminate all variables V in t by promotion")
-  (demote [T V] "Eliminate all variables V in T by demotion"))
+  (promote [T V opts] "Eliminate all variables V in t by promotion")
+  (demote [T V opts] "Eliminate all variables V in T by demotion"))
 
-(t/ann promote-var [r/AnyType ElimVars -> r/AnyType])
-(defn promote-var [T V]
+(t/ann promote-var [r/AnyType ElimVars t/Any -> r/AnyType])
+(defn promote-var [T V opts]
   {:pre [(r/AnyType? T)
          (set? V)
          (every? symbol? V)]
    :post [(r/AnyType? %)]}
-  (promote T V))
+  (promote T V opts))
 
-(t/ann demote-var [r/AnyType ElimVars -> r/AnyType])
-(defn demote-var [T V]
+(t/ann demote-var [r/AnyType ElimVars t/Any -> r/AnyType])
+(defn demote-var [T V opts]
   {:pre [(r/AnyType? T)
          (set? V)
          (every? symbol? V)]
    :post [(r/AnyType? %)]}
-  (demote T V))
+  (demote T V opts))
 
 (defmacro promote-demote [cls & fbody]
   `(extend-type ~cls
      IPromoteDemote
-     (promote [T# V#]
-       (let [~'promote promote
-             ~'demote demote
+     (promote [T# V# ~'opts]
+       (let [~'promote (fn
+                         ([T# V#]       (promote T# V# ~'opts))
+                         ([T# V# opts#] (promote T# V# opts#)))
+             ~'demote (fn
+                        ([T# V#]       (demote T# V# ~'opts))
+                        ([T# V# opts#] (demote T# V# opts#)))
              f# (fn ~@fbody)]
          (f# T# V#)))
-     (demote [T# V#] 
-       (let [~'promote demote
-             ~'demote promote
+     (demote [T# V# ~'opts]
+       (let [~'promote (fn
+                         ([T# V#]       (demote T# V# ~'opts))
+                         ([T# V# opts#] (demote T# V# opts#)))
+             ~'demote (fn
+                        ([T# V#]       (promote T# V# ~'opts))
+                        ([T# V# opts#] (promote T# V# opts#)))
              f# (fn ~@fbody)]
          (f# T# V#)))))
 
@@ -102,19 +110,19 @@
     (update :input-type demote V)
     (update :output-type promote V)))
 
-(defn promote-Kind->Type [T V]
+(defn promote-Kind->Type [T V opts]
   {:pre [(r/Kind? T)]}
-  (let [rec #(promote-Kind->Type % V)
-        pmt #(promote % V)]
+  (let [rec #(promote-Kind->Type % V opts)
+        pmt #(promote % V opts)]
     (cond
       (r/Bounds? T) (pmt (:upper-bound T))
       (r/Regex? T) (update T :types #(mapv rec %))
       :else (err/nyi-error (str "demote-Kind->Type: " (class T))))))
 
-(defn demote-Kind->Type [T V]
+(defn demote-Kind->Type [T V opts]
   {:pre [(r/Kind? T)]}
-  (let [rec #(promote-Kind->Type % V)
-        dmt #(demote % V)]
+  (let [rec #(promote-Kind->Type % V opts)
+        dmt #(demote % V opts)]
     (cond
       (r/Bounds? T) (dmt (:lower-bound T))
       (r/Regex? T) (update T :types #(mapv rec %))
@@ -122,31 +130,31 @@
 
 (extend-type F
   IPromoteDemote
-  (promote [{:keys [name] :as T} V]
+  (promote [{:keys [name] :as T} V opts]
     (if (V name)
       (let [bnd (free-ops/free-in-scope-bnds name)]
         (when-not bnd
-          (err/int-error (str "Missing kind for type variable " name)))
-        (promote-Kind->Type bnd V))
+          (err/int-error (str "Missing kind for type variable " name) opts))
+        (promote-Kind->Type bnd V opts))
       T))
-  (demote [{:keys [name] :as T} V]
+  (demote [{:keys [name] :as T} V opts]
     (if (V name)
       (let [bnd (free-ops/free-in-scope-bnds name)]
         (when-not bnd
-          (err/int-error (str "Missing kind for type variable " name)))
-        (demote-Kind->Type bnd V))
+          (err/int-error (str "Missing kind for type variable " name) opts))
+        (demote-Kind->Type bnd V opts))
       T)))
 
 (extend-type Bounds
   IPromoteDemote
-  (promote [T V]
+  (promote [T V opts]
     (-> T
-        (update :upper-bound promote V)
-        (update :lower-bound promote V)))
-  (demote [T V]
+        (update :upper-bound promote V opts)
+        (update :lower-bound promote V opts)))
+  (demote [T V opts]
     (-> T
-        (update :upper-bound demote V)
-        (update :lower-bound demote V))))
+        (update :upper-bound demote V opts)
+        (update :lower-bound demote V opts))))
 
 (defn handle-kw-map [m p-or-d-fn V]
   (c/visit-type-map m #(p-or-d-fn % V)))
@@ -171,17 +179,18 @@
 (promote-demote HSequential
   [T V]
   (let [pmt #(promote % V)
-        latent-filter-vs (set/intersection (into #{} (mapcat frees/fv) (:fs T))
-                                           (into #{} (mapcat frees/fi) (:fs T)))]
+        latent-filter-vs (set/intersection (into #{} (mapcat #(frees/fv % opts)) (:fs T))
+                                           (into #{} (mapcat #(frees/fi % opts)) (:fs T)))]
     (cond
       ;if filter contains V, give up
       (seq (set/intersection V latent-filter-vs)) (case (:kind T)
-                                                    :vector (c/RClass-of clojure.lang.IPersistentVector [r/-any])
-                                                    :seq (c/RClass-of clojure.lang.ISeq [r/-any])
-                                                    :list (c/RClass-of clojure.lang.IPersistentList [r/-any])
+                                                    :vector (c/RClass-of clojure.lang.IPersistentVector [r/-any] opts)
+                                                    :seq (c/RClass-of clojure.lang.ISeq [r/-any] opts)
+                                                    :list (c/RClass-of clojure.lang.IPersistentList [r/-any] opts)
                                                     :sequential
-                                                    (c/In (c/RClass-of clojure.lang.Sequential)
-                                                          (c/RClass-of clojure.lang.IPersistentCollection [r/-any])))
+                                                    (c/In [(c/RClass-of clojure.lang.Sequential opts)
+                                                           (c/RClass-of clojure.lang.IPersistentCollection [r/-any] opts)]
+                                                          opts))
 
       ;if dotted bound is in V, transfer to rest args
       (and (:drest T) (V (-> T :drest :name)))
@@ -212,7 +221,7 @@
                        (hset/valid-fixed? (:val a))))
                 fixed)
       h
-      (c/upcast-hset h))))
+      (c/upcast-hset h opts))))
 
 (promote-demote Value [T V] T)
 
@@ -294,18 +303,18 @@
 
 (promote-demote Union 
   [T V]
-  (apply c/Un (map promote (:types T) (repeat V))))
+  (c/Un (map promote (:types T) (repeat V)) opts))
 
 ; FIXME is this correct? Promoting NotType should make the inner type smaller,
 ; and demoting should make inner type bigger?
 (extend-type NotType
   IPromoteDemote
-  (promote [T V] 
+  (promote [T V opts]
     (-> T
-        (update :type demote V)))
-  (demote [T V] 
+        (update :type demote V opts)))
+  (demote [T V opts]
     (-> T
-        (update :type promote V))))
+        (update :type promote V opts))))
 
 (promote-demote Extends
   [T V] 
@@ -315,7 +324,7 @@
 
 (promote-demote Intersection
   [T V] 
-  (apply c/In (map promote (:types T) (repeat V))))
+  (c/In (map promote (:types T) (repeat V)) opts))
 
 (promote-demote FnIntersection
   [T V] 
@@ -338,49 +347,52 @@
 (promote-demote TypeFn
   [{:keys [variances] :as T} V]
   (let [names (c/TypeFn-fresh-symbols* T)
-        bbnds (c/TypeFn-bbnds* names T)
-        pmt-body (promote (c/TypeFn-body* names bbnds T) V)]
+        bbnds (c/TypeFn-bbnds* names T opts)
+        pmt-body (promote (c/TypeFn-body* names bbnds T opts) V)]
     (c/TypeFn* names 
                variances
                bbnds
-               pmt-body)))
+               pmt-body
+               opts)))
 
 (promote-demote Poly [T V]
   (case (:kind T)
     :Poly (let [names (c/Poly-fresh-symbols* T)
                 ;;TODO promote?
-                bbnds (c/Poly-bbnds* names T)
-                pmt-body (promote (c/Poly-body* names T) V)]
+                bbnds (c/Poly-bbnds* names T opts)
+                pmt-body (promote (c/Poly-body* names T opts) V)]
             (c/Poly* names 
                      bbnds
-                     pmt-body))
+                     pmt-body
+                     opts))
     :PolyDots (let [names (c/PolyDots-fresh-symbols* T)
                     ;;TODO promote?
-                    bbnds (c/PolyDots-bbnds* names T)
-                    pmt-body (promote (c/PolyDots-body* names T) V)]
+                    bbnds (c/PolyDots-bbnds* names T opts)
+                    pmt-body (promote (c/PolyDots-body* names T opts) V)]
                 (c/PolyDots* names 
                              bbnds
-                             pmt-body))))
+                             pmt-body
+                             opts))))
 
 (promote-demote Mu 
   [T V]
   (let [name (c/Mu-fresh-symbol* T)
-        body (c/Mu-body* name T)]
-    (c/Mu* name (promote body V))))
+        body (c/Mu-body* name T opts)]
+    (c/Mu* name (promote body V) opts)))
 
 ;; Note: ignores path elements
 (extend-type Function
   IPromoteDemote
   (promote
-    [{:keys [dom rng rest drest kws] :as T} V]
+    [{:keys [dom rng rest drest kws] :as T} V opts]
     {:pre [(#{:fixed :rest :drest :kws} (:kind T))]}
-    (let [pmt #(promote % V)
-          dmt #(demote % V)
+    (let [pmt #(promote % V opts)
+          dmt #(demote % V opts)
           dmt-kw #(into {} (for [[k v] %]
                              [k (dmt v)]))
           latent-filter-vs (let [f (r/Result-filter* rng)]
-                             (set/intersection (frees/fv f)
-                                               (frees/fi f)))]
+                             (set/intersection (frees/fv f opts)
+                                               (frees/fi f opts)))]
       (cond 
         ;if filter contains V, give up
         (seq (set/intersection V latent-filter-vs)) (r/TopFunction-maker)
@@ -408,15 +420,15 @@
                                   (update :mandatory dmt-kw)
                                   (update :optional dmt-kw)))))))
 
-  (demote [{:keys [dom rng rest drest kws] :as T} V]
+  (demote [{:keys [dom rng rest drest kws] :as T} V opts]
     {:pre [(#{:fixed :rest :drest :kws} (:kind T))]}
-    (let [pmt #(promote % V)
-          dmt #(demote % V)
+    (let [pmt #(promote % V opts)
+          dmt #(demote % V opts)
           pmt-kw #(into {} (for [[k v] %]
                              [k (pmt v)]))
           latent-filter-vs (let [f (r/Result-filter* rng)]
-                             (set/intersection (frees/fv f)
-                                               (frees/fi f)))]
+                             (set/intersection (frees/fv f opts)
+                                               (frees/fi f opts)))]
       (cond 
         ;if filter contains V, give up
         (seq (set/intersection V latent-filter-vs)) (r/TopFunction-maker)

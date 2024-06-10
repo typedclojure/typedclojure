@@ -12,7 +12,7 @@
   (:require [typed.clojure :as t]
             [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.errors :as err]
-            [typed.cljc.checker.check :refer [check-expr]]
+            [typed.cljc.checker.check :as check]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.clj.ext.clojure.core__let :as ext-let]
             [typed.cljc.analyzer :as ana2]
@@ -22,6 +22,7 @@
             [typed.cljc.checker.filter-ops :as fo]
             [typed.cljc.checker.lex-env :as lex]
             [typed.cljc.checker.var-env :as var-env]
+            [typed.cljc.runtime.env :as env]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.cs-gen :as cgen]
@@ -38,12 +39,13 @@
 ;;==================
 ;; clojure.core/for
 
-(defn ^:private -seqable-elem-query []
+(defn ^:private -seqable-elem-query [opts]
   (prs/parse-type
-    `(t/All [a#] [(t/Seqable a#) :-> a#])))
+    `(t/All [a#] [(t/Seqable a#) :-> a#])
+    opts))
 
 (defn check-list-comprehension-binder
-  [{:keys [form args-syn ana-env prop-env]}]
+  [{:keys [form args-syn ana-env prop-env]} {::check/keys [check-expr] :as opts}]
   {:pre [(seq? form)
          (seq form)
          (symbol? (first form))
@@ -75,7 +77,7 @@
                                                   (ana2/unanalyzed ana-env)
                                                   check-expr))
                                          fs+ (-> cv u/expr-type r/ret-f :then)
-                                         [env-thn reachable+] (if/update-lex+reachable prop-env fs+)
+                                         [env-thn reachable+] (if/update-lex+reachable prop-env fs+ opts)
                                          maybe-reduced (if reachable+
                                                          identity
                                                          reduced)]
@@ -92,7 +94,8 @@
                                {:keys [new-syms prop-env ana-env expanded-bindings reachable] :as lb-res}
                                (ext-let/check-let-bindings
                                  (select-keys context #{:new-syms :prop-env :ana-env})
-                                 bvec)
+                                 bvec
+                                 opts)
                                maybe-reduced (if reachable
                                                identity
                                                reduced)]
@@ -108,15 +111,17 @@
                                      check-expr))
                             binding-ret (or (cgen/solve
                                               (u/expr-type cv)
-                                              (-seqable-elem-query))
+                                              (-seqable-elem-query opts)
+                                              opts)
                                             (r/ret
                                               (err/tc-delayed-error
                                                 (format "Right hand side of '%s' clause must be seqable: %s"
                                                         (first form)
-                                                        (-> cv u/expr-type :t prs/unparse-type))
-                                                :form v)))
+                                                        (-> cv u/expr-type :t (prs/unparse-type opts)))
+                                                {:form v}
+                                                opts)))
                             is-reachable (volatile! reachable)
-                            updated-context (ext-let/update-destructure-env prop-env ana-env k nil binding-ret is-reachable)
+                            updated-context (ext-let/update-destructure-env prop-env ana-env k nil binding-ret is-reachable opts)
                             ;; must go after update-destructure-env
                             reachable @is-reachable
                             maybe-reduced (if reachable identity reduced)]
@@ -137,7 +142,7 @@
 ;; see also clojure.core.typed.expand
 (defuspecial defuspecial__for
   "defuspecial implementation for clojure.core/for"
-  [{ana-env :env :keys [form] :as expr} expected]
+  [{ana-env :env :keys [form] :as expr} expected {::check/keys [check-expr] :as opts}]
   (let [_ (assert (= 3 (count form)) form)
         [args-syn body-syn] (next form)
         {:keys [new-syms expanded-bindings prop-env ana-env reachable]}
@@ -145,7 +150,8 @@
           {:form form
            :args-syn args-syn
            :ana-env ana-env
-           :prop-env (lex/lexical-env)})
+           :prop-env (lex/lexical-env)}
+          opts)
         expr (-> expr
                  (update :form
                          (fn [form]
@@ -162,14 +168,15 @@
                  u/expr-type (below/maybe-check-below
                                (r/ret (c/-name `t/ASeq r/-nothing)
                                       (fo/-true-filter))
-                               expected))
+                               expected
+                               opts))
           (let [body-expected (some-> expected
-                                      (cgen/solve (-seqable-elem-query)))
+                                      (cgen/solve (-seqable-elem-query opts) opts))
                 cbody (var-env/with-lexical-env prop-env
                         (-> body-syn
                             (ana2/unanalyzed ana-env)
                             (check-expr body-expected)))
-                unshadowed-ret (let/erase-objects new-syms (u/expr-type cbody))
+                unshadowed-ret (let/erase-objects new-syms (u/expr-type cbody) opts)
                 expr (-> expr
                          (update :form
                                  (fn [form]
@@ -182,4 +189,5 @@
                    u/expr-type (below/maybe-check-below
                                  (r/ret (c/-name `t/ASeq (r/ret-t unshadowed-ret))
                                         (fo/-true-filter))
-                                 expected))))))
+                                 expected
+                                 opts))))))

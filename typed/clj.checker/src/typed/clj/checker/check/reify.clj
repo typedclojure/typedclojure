@@ -25,8 +25,8 @@
             [typed.cljc.checker.check.utils :as cu]
             [typed.clj.checker.parse-unparse :as prs]))
 
-(defn IFn-invoke-method-t [this-t t]
-  (let [t (c/fully-resolve-type t)]
+(defn IFn-invoke-method-t [this-t t opts]
+  (let [t (c/fully-resolve-type t opts)]
     (cond
       (r/FnIntersection? t) (apply r/make-FnIntersection
                                    (map (fn [t]
@@ -38,7 +38,7 @@
            (= 'clojure.lang.IFn (:the-class t))) (r/TopFunction-maker)
       :else (assert nil (str "TODO: " `IFn-invoke-method-t " " (class t))))))
 
-(defn check-inst-fn-methods [inst-methods {:keys [kind expected-ifn] :as _opts}]
+(defn check-inst-fn-methods [inst-methods {:keys [kind expected-ifn]} opts]
   {:pre [(#{:reify :deftype} kind)
          (every? (comp #{:method} :op) inst-methods)]
    :post [(every? (comp #{:method} :op) %)]}
@@ -46,7 +46,7 @@
     (fn-methods/check-fn-methods
       inst-methods
       expected-ifn
-      {:check-rest-fn (fn [& args] (err/int-error (format "%s method cannot have rest parameter" (name kind))))
+      {:check-rest-fn (fn [& args] (err/int-error (format "%s method cannot have rest parameter" (name kind)) opts))
        :recur-target-fn
        (fn [{:keys [dom] :as f}]
          {:pre [(r/Function? f)]
@@ -58,10 +58,12 @@
          (when (not-every? #(= :fixed (:kind %)) (:types fin))
            (err/int-error
              (str "Cannot provide rest arguments to " (name kind) " method: "
-                  (prs/unparse-type fin)))))})))
+                  (prs/unparse-type fin opts))
+             opts)))}
+      opts)))
 
 (defn check-reify
-  [expr expected]
+  [expr expected opts]
   (let [{original-reify-form :form :as original-reify-expr} (-> expr :form first meta ::reify/original-reify-expr)
         _ (assert original-reify-form)
         class->info (into {}
@@ -82,16 +84,16 @@
                                          (when-not (#{Object clojure.lang.IObj} cls)
                                            [cls (cond-> {:prot+interface-syntax prot+class-syn
                                                          :static-type (or (when-some [[_ t] (-> prot+class-syn meta (find :typed.clojure/replace))]
-                                                                            (prs/parse-type t))
+                                                                            (prs/parse-type t opts))
                                                                           (when v
-                                                                            (c/Protocol-with-unknown-params (symbol v)))
-                                                                          (c/RClass-of-with-unknown-params cls))}
+                                                                            (c/Protocol-with-unknown-params (symbol v) opts))
+                                                                          (c/RClass-of-with-unknown-params cls opts))}
                                                   v (assoc :protocol v))])))))
                           (next original-reify-form))
         class->info (-> class->info
-                        (assoc clojure.lang.IObj {:static-type (c/RClass-of clojure.lang.IObj)}
-                               Object {:static-type (c/RClass-of Object)}))
-        this-t (apply c/In (map (comp :static-type val) class->info))]
+                        (assoc clojure.lang.IObj {:static-type (c/RClass-of clojure.lang.IObj opts)}
+                               Object {:static-type (c/RClass-of Object opts)}))
+        this-t (c/In (map (comp :static-type val) class->info) opts)]
     (binding [vs/*current-expr* original-reify-expr]
       (-> expr
           (update :methods (fn [methods]
@@ -107,8 +109,8 @@
                                              _ (assert info)
                                              override-t (or (mth-override/get-method-override (env/checker) msym)
                                                             (cond
-                                                              (= msym 'clojure.lang.IFn/invoke) (IFn-invoke-method-t this-t (:static-type info))
-                                                              (:protocol info) (let [static-type (c/fully-resolve-type static-type)
+                                                              (= msym 'clojure.lang.IFn/invoke) (IFn-invoke-method-t this-t (:static-type info) opts)
+                                                              (:protocol info) (let [static-type (c/fully-resolve-type static-type opts)
                                                                                      _ (when-not (r/Protocol? static-type)
                                                                                          (let [prot-sym (symbol (:protocol info))
                                                                                                prot-name (-> prot-sym name symbol)]
@@ -117,7 +119,8 @@
                                                                                                   (symbol (:protocol info))
                                                                                                   ". e.g., "
                                                                                                   (format "(reify ^{:typed.clojure/replace (%s ...)} %s)"
-                                                                                                          prot-name prot-name)))))
+                                                                                                          prot-name prot-name))
+                                                                                             opts)))
                                                                                      mtype (get-in static-type [:methods method-name])]
                                                                                  (assert mtype (format "Missing annotation for method %s on protocol %s" 
                                                                                                        method-name
@@ -128,18 +131,21 @@
                                    (check-inst-fn-methods
                                      methods
                                      {:kind :reify
-                                      :expected-ifn override-t})
+                                      :expected-ifn override-t}
+                                     opts)
                                    (doseq [method methods
                                            :let [_ (assert (= 1 (count (:methods method))))
                                                  m (first (:methods method))
                                                  _ (prn m)
-                                                 rfin-type (cu/extend-method-expected this-t (cu/instance-method->Function m))]]
+                                                 rfin-type (cu/extend-method-expected this-t (cu/instance-method->Function m opts) opts)]]
                                      (check-inst-fn-methods
                                        [method]
                                        {:kind :reify
-                                        :expected-ifn rfin-type})))))
+                                        :expected-ifn rfin-type}
+                                       opts)))))
                              methods))
           (assoc u/expr-type (below/maybe-check-below
                                (r/ret this-t
                                       (fo/-true-filter))
-                               expected))))))
+                               expected
+                               opts))))))

@@ -10,7 +10,6 @@
   (:require [clojure.core.typed.ast-utils :as ast-u]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.cljc.analyzer :as ana2]
-            [typed.cljc.checker.check :refer [check-expr]]
             [typed.cljc.checker.check-below :as below]
             [typed.cljc.checker.check.fn-method-one :as fn-method-one]
             [typed.cljc.checker.check.fn-methods :as fn-methods]
@@ -28,7 +27,7 @@
 ;[FnExpr (Option Type) -> Expr]
 (defn check-fn*
   "Check a fn to be under expected and annotate the inferred type"
-  [{:keys [methods] :as fexpr} expected]
+  [{:keys [methods] :as fexpr} expected opts]
   {:pre [(r/TCResult? expected)
          (= :fn (:op fexpr))]
    :post [(-> % u/expr-type r/TCResult?)
@@ -38,16 +37,18 @@
         (fn-methods/check-fn-methods
           methods
           (r/ret-t expected)
-          :self-name (cu/fn-self-name fexpr))]
+          {:self-name (cu/fn-self-name fexpr)}
+          opts)]
     (assoc fexpr
            :methods methods
            :clojure.core.typed/cmethods cmethods
-           u/expr-type (r/ret (c/In (c/-name `t/Fn) ifn) (fo/-true-filter)))))
+           u/expr-type (r/ret (c/In [(c/-name `t/Fn) ifn] opts) (fo/-true-filter)))))
 
 (declare wrap-poly)
 
 (defn check-anon [{:keys [methods] :as expr} {:keys [doms rngs rests drests]}
-                  {:keys [frees-with-bnds dvar]}]
+                  {:keys [frees-with-bnds dvar]}
+                  opts]
   {:pre [(= :fn (:op expr))]}
   (assert (apply = (map count [doms rngs rests drests rngs methods]))
           (mapv count [doms rngs rests drests rngs methods]))
@@ -89,7 +90,9 @@
                                  :drest drest
                                  :filter (some-> rng r/Result-filter*)
                                  :object (or (some-> rng r/Result-object*)
-                                             or/-infer-obj)))))
+                                             or/-infer-obj))
+                {}
+                opts)))
           methods)
 
         [fs cmethods] ((juxt #(map :ftype %)
@@ -97,8 +100,9 @@
                        cmethod-specs)
         _ (assert (seq fs) fs)
         _ (assert (every? r/Function? fs) fs)
-        ret-type (r/ret (c/In (c/-name `t/Fn)
-                              (wrap-poly (apply r/make-FnIntersection fs) frees-with-bnds dvar))
+        ret-type (r/ret (c/In [(c/-name `t/Fn)
+                               (wrap-poly (apply r/make-FnIntersection fs) frees-with-bnds dvar opts)]
+                              opts)
                         (fo/-FS fl/-top fl/-bot))]
     (assoc expr
            :methods cmethods
@@ -147,20 +151,20 @@
     (and (not poly)
          defaults)))
 
-(defn prepare-expecteds [expr fn-anns]
+(defn prepare-expecteds [expr fn-anns opts]
   (binding [prs/*parse-type-in-ns* (cu/expr-ns expr)]
     {:doms
      (->> fn-anns
           (map :dom)
           (mapv (fn [dom]
                   (mapv (fn [{:keys [type default]}]
-                          (prs/parse-type type))
+                          (prs/parse-type type opts))
                         dom))))
      :rngs (->> fn-anns
                 (map :rng)
                 (mapv (fn [{:keys [type default]}]
                         (when-not default
-                          (r/make-Result (prs/parse-type type)
+                          (r/make-Result (prs/parse-type type opts)
                                          (fo/-FS fl/-infer-top
                                                  fl/-infer-top)
                                          or/-no-object)))))
@@ -168,13 +172,13 @@
                  (map :rest)
                  (mapv (fn [{:keys [type default] :as has-rest}]
                          (when has-rest
-                           (prs/parse-type type)))))
+                           (prs/parse-type type opts)))))
      :drests (->> fn-anns
                   (map :drest)
                   (mapv (fn [{:keys [pretype bound] :as has-drest}]
                           (when has-drest
                             (r/DottedPretype1-maker
-                              (prs/parse-type pretype)
+                              (prs/parse-type pretype opts)
                               bound)))))}))
 
 (defn self-type [{:keys [doms rngs rests drests] :as expecteds}]
@@ -189,21 +193,23 @@
                                  :rest rest :drest drest))
               doms rngs rests drests)))
 
-(defn parse-poly [bnds]
+(defn parse-poly [bnds opts]
   {:pre [((some-fn nil? vector?) bnds)]}
-  (prs/parse-unknown-binder bnds))
+  (prs/parse-unknown-binder bnds opts))
 
-(defn wrap-poly [ifn frees-with-bnds dvar]
+(defn wrap-poly [ifn frees-with-bnds dvar opts]
   (if (and (empty? frees-with-bnds)
            (not dvar))
     ifn
     (if dvar
       (c/PolyDots* (map first (concat frees-with-bnds [dvar]))
                    (map second (concat frees-with-bnds [dvar]))
-                   ifn)
+                   ifn
+                   opts)
       (c/Poly* (map first frees-with-bnds)
                (map second frees-with-bnds)
-               ifn))))
+               ifn
+               opts))))
 
 (defn thunk-fn-expr? [expr]
   {:pre [(= :fn (:op expr))]
@@ -225,7 +231,7 @@
 ;; expected is either missing or a wildcard.
 ;; passed to check filters and object.
 (defn check-core-fn-no-expected
-  [fexpr expected]
+  [fexpr expected opts]
   {:pre [((some-fn nil? r/TCResult?) expected)
          (= :fn (:op fexpr))]
    :post [(= :fn (:op %))
@@ -235,12 +241,12 @@
         flat-expecteds (gen-defaults fexpr (when symb? r/-nothing))]
     (lex/with-locals (some-> (cu/fn-self-name fexpr)
                              (hash-map (self-type flat-expecteds)))
-      (-> (check-anon fexpr flat-expecteds nil)
-          (cond-> symb? (update-in [u/expr-type :t] #(r/symbolic-closure fexpr %)))
-          (update u/expr-type below/maybe-check-below expected)))))
+      (-> (check-anon fexpr flat-expecteds nil opts)
+          (cond-> symb? (update-in [u/expr-type :t] #(r/symbolic-closure fexpr % opts)))
+          (update u/expr-type below/maybe-check-below expected opts)))))
 
 (defn check-special-fn*
-  [expr fn-anns poly expected]
+  [expr fn-anns poly expected opts]
   (binding [prs/*parse-type-in-ns* (cu/expr-ns expr)]
     (let [expr (-> expr
                    ana2/analyze-outer-root
@@ -252,13 +258,13 @@
           _ (assert ((some-fn nil? symbol?) self-name)
                     self-name)
           ;_ (prn "self-name" self-name)
-          [frees-with-bnds dvar] (parse-poly poly)
+          [frees-with-bnds dvar] (parse-poly poly opts)
           new-bnded-frees (into {} (map (fn [[n bnd]] [(r/make-F n) bnd]))
                                 (cond-> frees-with-bnds
                                   dvar (conj dvar)))
           flat-expecteds 
           (free-ops/with-bounded-frees new-bnded-frees
-            (prepare-expecteds expr fn-anns))
+            (prepare-expecteds expr fn-anns opts))
           ;_ (prn "flat-expecteds" flat-expecteds)
           _ (assert ((some-fn nil? vector?) poly))
 
@@ -267,15 +273,15 @@
           ;_ (prn "sym-clos-candidate?" sym-clos-candidate?)
           useful-expected-type? (boolean
                                   (when expected
-                                    (seq (fn-methods/function-types (r/ret-t expected)))))]
+                                    (seq (fn-methods/function-types (r/ret-t expected) opts))))]
       (cond
         ;; don't need to check anything, return a symbolic closure
         (and no-annotations? sym-clos-candidate?)
-        (check-core-fn-no-expected expr expected)
+        (check-core-fn-no-expected expr expected opts)
 
         ;; If we have an unannotated fn macro and a good expected type, use the expected type via check-fn
         (and no-annotations? useful-expected-type?)
-        (check-fn* expr expected)
+        (check-fn* expr expected opts)
 
         ;; otherwise check against the expected type after a call to check-anon.
         :else
@@ -290,35 +296,15 @@
                           expr
                           flat-expecteds
                           {:frees-with-bnds frees-with-bnds
-                           :dvar dvar})))]
+                           :dvar dvar}
+                          opts)))]
           ;;TODO unit test check below
-          (update cexpr u/expr-type below/maybe-check-below expected))))))
-
-(defn check-special-fn 
-  [_check {statements :statements fexpr :ret :as expr} expected]
-  {:pre [((some-fn nil? r/TCResult?) expected)
-         (= 3 (count statements))]}
-  ;(prn "check-special-fn")
-  (let [statements (update statements 2 ana2/run-passes)
-        [_ _ fn-ann-expr :as statements] statements
-        fn-anns-quoted (ast-u/map-expr-at fn-ann-expr :ann)
-        ;_ (prn "fn-anns-quoted" fn-anns-quoted)
-        poly-quoted (ast-u/map-expr-at fn-ann-expr :poly)
-        ;; always quoted
-        fn-anns (second fn-anns-quoted)
-        ;; always quoted
-        poly (second poly-quoted)
-        cfexpr (check-special-fn* fexpr fn-anns poly expected)]
-    (assoc expr
-           :statements statements
-           :ret cfexpr
-           u/expr-type (u/expr-type cfexpr))))
-
+          (update cexpr u/expr-type below/maybe-check-below expected opts))))))
 
 (defn check-fn
   "If expected provided, check a fn to be under expected and annotate the inferred type.
   Otherwise, check as symbolic closure (if enabled) or with t/Any arguments."
-  [{:keys [methods] :as fexpr} expected]
+  [{:keys [methods] :as fexpr} expected opts]
   {:pre [((some-fn nil? r/TCResult?) expected)
          (= :fn (:op fexpr))]
    :post [(-> % u/expr-type r/TCResult?)
@@ -329,4 +315,4 @@
             (not (r/wild? (r/ret-t expected))))
      check-fn*
      check-core-fn-no-expected)
-   fexpr expected))
+   fexpr expected opts))

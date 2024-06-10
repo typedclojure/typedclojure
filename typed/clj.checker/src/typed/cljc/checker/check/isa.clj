@@ -19,12 +19,12 @@
             [typed.clj.checker.tc-equiv :as equiv])
   (:import (typed.cljc.checker.type_rep TCResult)))
 
-;(t/ann tc-isa? [TCResult TCResult -> TCResult])
-(defn tc-isa? 
+;(t/ann tc-isa? [TCResult TCResult Any -> TCResult])
+(defn tc-isa?
   "Type check a call to isa?. Assumes global hierarchy.
   Also supports the case where both elements are vectors, but not recursively.
   Ensures result is below expected."
-  [child-ret parent-ret expected]
+  [child-ret parent-ret expected opts]
   {:pre [(r/TCResult? child-ret)
          (r/TCResult? parent-ret)
          ((some-fn r/TCResult? nil?) parent-ret)]
@@ -35,7 +35,7 @@
                         (r/TCResult? parent1)]
                   :post [((con/hmap-c? :then fl/Filter? :else fl/Filter?) %)]}
                  (let [obj (r/ret-o child1)
-                       ty (c/fully-resolve-type (r/ret-t parent1))]
+                       ty (c/fully-resolve-type (r/ret-t parent1) opts)]
                    (cond
                      ;; - if child1's object is terminated with a ClassPE and we have a class singleton
                      ;;   on the right, then we strip off the last path element and claim that object is
@@ -46,7 +46,7 @@
                           (r/Value? ty)
                           (class? (:val ty)))
                      (let [obj (obj/without-final-elem obj)
-                           ty (c/RClass-of (:val ty))]
+                           ty (c/RClass-of (:val ty) opts)]
                        {:then (fo/-filter-at ty obj)
                         :else (fo/-not-filter-at ty obj)})
 
@@ -72,12 +72,13 @@
                     (== (count (:types child-t))
                         (count (:types parent-t))))
                (let [individual-fs (map fs (cu/hvec->rets child-t) (cu/hvec->rets parent-t))]
-                 (fo/-FS (apply fo/-and (map :then individual-fs))
-                         (apply fo/-or (map :else individual-fs))))
+                 (fo/-FS (fo/-and (map :then individual-fs) opts)
+                         (fo/-or (map :else individual-fs) opts)))
                ; simple (isa? child parent) 
                :else (let [{:keys [then else]} (fs child-ret parent-ret)]
                        (fo/-FS then else)))]
       (below/maybe-check-below
-        (r/ret (c/Un r/-true r/-false) fs obj/-empty)
-        expected))))
+        (r/ret (c/Un [r/-true r/-false] opts) fs obj/-empty)
+        expected
+        opts))))
 

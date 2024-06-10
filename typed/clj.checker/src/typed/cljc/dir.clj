@@ -35,10 +35,10 @@
 
 (t/defalias Dirs (t/U t/Str (t/SequentialColl t/Str)))
 
-(t/ann ^:no-check check-dir-plan [ttrack/Tracker :? Dirs :-> DirPlan])
+(t/ann ^:no-check check-dir-plan [ttrack/Tracker :? Dirs t/Any :-> DirPlan])
 (defn check-dir-plan
-  ([dirs] (check-dir-plan (track/tracker) dirs))
-  ([tracker dirs]
+  ([dirs opts] (check-dir-plan (track/tracker) dirs opts))
+  ([tracker dirs opts]
    {:post [(:tracker %)
            (vector? (:nses %))]}
    (let [dirs (cond-> dirs
@@ -52,18 +52,18 @@
                                                                                                        :cljs find/cljs)}))
          _ (assert (seq files) (str "No files found in " (pr-str dirs)))
          nses (into [] (filter (every-pred (set (vals filemap))
-                                           ns-deps-u/should-check-ns?))
+                                           #(ns-deps-u/should-check-ns? % opts)))
                     (dep/topo-sort deps))]
      {:tracker tracker
       :nses nses})))
 
-(t/ann-many [Dirs :-> t/Kw]
+(t/ann-many [Dirs t/Any :-> t/Kw]
             check-dir* 
             ^:no-check check-dir-clj
             ^:no-check check-dir-cljs)
 
-(defn check-dir* [dirs]
-  (let [{:keys [nses]} (check-dir-plan dirs)]
+(defn check-dir* [dirs opts]
+  (let [{:keys [nses]} (check-dir-plan dirs opts)]
     (println "Type checking namespaces:" nses)
     ((impl/impl-case
        :clojure t/check-ns-clj
@@ -72,14 +72,14 @@
 
 (defn check-dir-clj [dirs]
   (impl/with-clojure-impl
-    (check-dir* dirs)))
+    (check-dir* dirs ((requiring-resolve 'typed.clj.runtime.env/clj-opts)))))
 
 (defn check-dir-cljs [dirs]
   (impl/with-cljs-impl
-    (check-dir* dirs)))
+    (check-dir* dirs ((requiring-resolve 'typed.cljs.runtime.env/cljs-opts)))))
 
 (comment
   (impl/with-clojure-impl
-    (check-dir-plan "typed/clj.checker/src"))
+    (check-dir-plan "typed/clj.checker/src" ((requiring-resolve 'typed.clj.runtime.env/clj-opts))))
   (check-dir-clj "typed/clj.checker/src")
   )

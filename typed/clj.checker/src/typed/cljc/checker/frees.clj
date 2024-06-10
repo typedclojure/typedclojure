@@ -59,7 +59,7 @@
   (t/Map t/Sym r/Variance))
 
 (defprotocol ^:private IFrees
-  (^:private ^FreesResult frees [t]))
+  (^:private ^FreesResult frees [t opts]))
 
 (t/ann ^:no-check variance-map? (t/Pred VarianceMap))
 (def variance-map? (con/hash-c? symbol? r/variance?))
@@ -76,50 +76,50 @@
 (defn flip-variance-map [vs]
   (update-vals vs flip-variance))
 
-(t/ann fv-variances [r/AnyType -> VarianceMap])
-(defn fv-variances 
+(t/ann fv-variances [r/AnyType t/Any -> VarianceMap])
+(defn fv-variances
   "Map of frees to their variances"
-  [t]
+  [t opts]
   {:post [(variance-map? %)]}
-  (.frees (frees t)))
+  (.frees (frees t opts)))
 
 (t/ann idx-variances [r/AnyType -> VarianceMap])
 (defn idx-variances 
   "Map of indexes to their variances"
-  [t]
+  [t opts]
   {:post [(variance-map? %)]}
-  (.idxs (frees t)))
+  (.idxs (frees t opts)))
 
-(t/ann free-variances [r/AnyType -> '{:frees VarianceMap
-                                      :idxs VarianceMap}])
+(t/ann free-variances [r/AnyType t/Any -> '{:frees VarianceMap
+                                            :idxs VarianceMap}])
 (defn free-variances
   "Variances of all type and index variables in type"
-  [t]
+  [t opts]
   {:post [((con/hmap-c? :frees variance-map? :idxs variance-map?) %)]}
-  (let [f (frees t)]
+  (let [f (frees t opts)]
     {:frees (.frees f) :idxs (.idxs f)}))
 
-(t/ann fv+idx-variances [r/AnyType -> (t/Set t/Sym)])
+(t/ann fv+idx-variances [r/AnyType t/Any -> (t/Set t/Sym)])
 (defn fv+idx-variances
   "Variances of all type and index variables in type"
-  [t]
+  [t opts]
   {:post [(variance-map? %)]}
-  (let [f (frees t)]
+  (let [f (frees t opts)]
     (into (.frees f) (.idxs f))))
 
-(t/ann fv [r/AnyType -> (t/Set t/Sym)])
-(defn fv 
+(t/ann fv [r/AnyType t/Any -> (t/Set t/Sym)])
+(defn fv
   "All frees in type"
-  [t]
+  [t opts]
   {:post [((con/set-c? symbol?) %)]}
-  (set (keys (fv-variances t))))
+  (set (keys (fv-variances t opts))))
 
-(t/ann fi [r/AnyType -> (t/Set t/Sym)])
+(t/ann fi [r/AnyType t/Any -> (t/Set t/Sym)])
 (defn fi
   "All index variables in type (dotted bounds, etc.)"
-  [t]
+  [t opts]
   {:post [((con/set-c? symbol?) %)]}
-  (set (keys (idx-variances t))))
+  (set (keys (idx-variances t opts))))
 
 (t/ann combine-frees [VarianceMap :* :-> VarianceMap])
 (defn combine-frees [& frees]
@@ -167,109 +167,109 @@
 ;;TODO attempt to rewrite using the new second "info" argument to type-rec
 (extend-protocol IFrees
   Result 
-  (frees [t]
+  (frees [t opts]
     (t/ann-form t Result)
     (let [{:keys [t fl o]} t]
-      (combine-freesresults (frees t)
-                            (frees fl)
-                            (frees o))))
+      (combine-freesresults (frees t opts)
+                            (frees fl opts)
+                            (frees o opts))))
   ;; Filters
   FilterSet
-  (frees [{:keys [then else]}]
-    (combine-freesresults (frees then)
-                          (frees else)))
+  (frees [{:keys [then else]} opts]
+    (combine-freesresults (frees then opts)
+                          (frees else opts)))
 
   TypeFilter
-  (frees [{:keys [type]}] (frees type))
+  (frees [{:keys [type]} opts] (frees type opts))
 
   NotTypeFilter
-  (frees [{:keys [type]}] (flip-variances (frees type)))
+  (frees [{:keys [type]} opts] (flip-variances (frees type opts)))
 
   ImpFilter
-  (frees [{:keys [a c]}] 
-    (combine-freesresults (frees a)
-                          (frees c)))
+  (frees [{:keys [a c]} opts]
+    (combine-freesresults (frees a opts)
+                          (frees c opts)))
   AndFilter
-  (frees [{:keys [fs]}] 
-    (apply combine-freesresults (map frees fs)))
+  (frees [{:keys [fs]} opts]
+    (apply combine-freesresults (map #(frees % opts) fs)))
 
   OrFilter
-  (frees [{:keys [fs]}]
-    (apply combine-freesresults (map frees fs)))
+  (frees [{:keys [fs]} opts]
+    (apply combine-freesresults (map #(frees % opts) fs)))
 
   TopFilter 
-  (frees [t] -empty-frees-result)
+  (frees [t opts] -empty-frees-result)
 
   BotFilter 
-  (frees [t] -empty-frees-result)
+  (frees [t opts] -empty-frees-result)
 
   ;; Objects
 
   Path
   (frees 
-    [{:keys [path]}]
-    (apply combine-freesresults (map frees path)))
+    [{:keys [path]} opts]
+    (apply combine-freesresults (map #(frees % opts) path)))
 
   EmptyObject 
-  (frees [t] -empty-frees-result)
+  (frees [t opts] -empty-frees-result)
   NoObject 
-  (frees [t] -empty-frees-result)
+  (frees [t opts] -empty-frees-result)
 
   NthPE 
-  (frees [t] -empty-frees-result)
+  (frees [t opts] -empty-frees-result)
   NextPE 
-  (frees [t] -empty-frees-result)
+  (frees [t opts] -empty-frees-result)
   ClassPE 
-  (frees [t] -empty-frees-result)
+  (frees [t opts] -empty-frees-result)
   CountPE 
-  (frees [t] -empty-frees-result)
+  (frees [t opts] -empty-frees-result)
   KeyPE 
-  (frees [t] -empty-frees-result)
+  (frees [t opts] -empty-frees-result)
   KeysPE 
-  (frees [t] -empty-frees-result)
+  (frees [t opts] -empty-frees-result)
   ValsPE 
-  (frees [t] -empty-frees-result)
+  (frees [t opts] -empty-frees-result)
   KeywordPE 
-  (frees [t] -empty-frees-result)
+  (frees [t opts] -empty-frees-result)
   SeqPE 
-  (frees [t] -empty-frees-result)
+  (frees [t opts] -empty-frees-result)
 
   F
   (frees
-    [{:keys [name] :as t}]
+    [{:keys [name] :as t} opts]
     (FreesResult. {name :covariant} {}))
 
   TCError 
-  (frees [t] -empty-frees-result)
+  (frees [t opts] -empty-frees-result)
   B
-  (frees [t] -empty-frees-result)
+  (frees [t opts] -empty-frees-result)
   CountRange 
-  (frees [t] -empty-frees-result)
+  (frees [t opts] -empty-frees-result)
   Value 
-  (frees [t] -empty-frees-result)
+  (frees [t opts] -empty-frees-result)
   AnyValue 
-  (frees [t] -empty-frees-result)
+  (frees [t opts] -empty-frees-result)
   Top 
-  (frees [t] -empty-frees-result)
+  (frees [t opts] -empty-frees-result)
   Wildcard 
-  (frees [t] -empty-frees-result)
+  (frees [t opts] -empty-frees-result)
   Unchecked 
-  (frees [t] -empty-frees-result)
+  (frees [t opts] -empty-frees-result)
   Name 
-  (frees [t] -empty-frees-result)
+  (frees [t opts] -empty-frees-result)
   TypeOf 
-  (frees [t] -empty-frees-result)
+  (frees [t opts] -empty-frees-result)
   Instance 
-  (frees [t] -empty-frees-result)
+  (frees [t opts] -empty-frees-result)
   Satisfies 
-  (frees [t] -empty-frees-result)
+  (frees [t opts] -empty-frees-result)
 
   DataType
   (frees 
-    [{varis :variances args :poly? :as t}]
+    [{varis :variances args :poly? :as t} opts]
     (assert (= (count args) (count varis)))
     (apply combine-freesresults (map (fn [arg va]
-                                       (let [fr (frees arg)]
+                                       (let [fr (frees arg opts)]
                                          (case va
                                            :covariant fr
                                            :contravariant (flip-variances fr)
@@ -279,125 +279,127 @@
 
   App
   (frees
-    [{:keys [rator rands]}]
-    (apply combine-freesresults (map frees (cons rator rands))))
+    [{:keys [rator rands]} opts]
+    (apply combine-freesresults (map #(frees % opts) (cons rator rands))))
 
   TApp
   (frees
-    [{:keys [rator rands] :as tapp}]
+    [{:keys [rator rands] :as tapp} opts]
     (apply combine-freesresults
-           (frees rator)
+           (frees rator opts)
            (let [checker (env/checker)
                  tfn (loop [rator rator]
                        (cond
                          (r/F? rator) (when-let [bnds (free-ops/free-with-name-bnds (:name rator))]
                                         ;assume upper/lower bound variance agree
-                                        (c/fully-resolve-type (:upper-bound bnds)))
+                                        (c/fully-resolve-type (:upper-bound bnds) opts))
                          (r/Name? rator) (let [{:keys [id]} rator]
                                            (cond
                                              (nmenv/declared-name? id)
-                                             (kinds/get-declared-kind checker id)
+                                             (kinds/get-declared-kind checker id opts)
 
                                              ; alter class introduces temporary declared kinds for
                                              ; computing variance when referencing an RClass inside
                                              ; its own definition.
                                              (and (class? (resolve id))
                                                   (kinds/has-declared-kind? checker id))
-                                             (kinds/get-declared-kind checker id)
+                                             (kinds/get-declared-kind checker id opts)
 
                                              :else
-                                             (recur (c/resolve-Name rator))))
+                                             (recur (c/resolve-Name rator opts))))
                          (r/TypeFn? rator) rator
                          :else (err/int-error (str "Invalid operator to type application: "
-                                                   (prs/unparse-type tapp)))))
+                                                   (prs/unparse-type tapp opts))
+                                              opts)))
                  _ (when-not (r/TypeFn? tfn)
                      (err/int-error (str "First argument to TApp must be TypeFn: "
-                                         (prs/unparse-type tapp))))]
+                                         (prs/unparse-type tapp opts))
+                                    opts))]
              (map (fn [v ^FreesResult fr]
                     (case v
                       :covariant fr
                       :contravariant (flip-variances fr)
                       :invariant (invariant-variances fr)))
                   (:variances tfn)
-                  (map frees rands)))))
+                  (map #(frees % opts) rands)))))
 
   PrimitiveArray
   (frees 
-    [{:keys [input-type output-type]}] 
-    (combine-freesresults (flip-variances (frees input-type))
-                          (frees output-type)))
+    [{:keys [input-type output-type]} opts]
+    (combine-freesresults (flip-variances (frees input-type opts))
+                          (frees output-type opts)))
 
   HeterogeneousMap
   (frees 
-    [{:keys [types optional]}]
+    [{:keys [types optional]} opts]
     (apply combine-freesresults
-           (map frees (concat (keys types)
-                              (vals types)
-                              (keys optional)
-                              (vals optional)))))
+           (map #(frees % opts) (concat (keys types)
+                                        (vals types)
+                                        (keys optional)
+                                        (vals optional)))))
 
   KwArgs
   (frees 
-    [{:keys [mandatory optional]}]
+    [{:keys [mandatory optional]} opts]
     (apply combine-freesresults
-           (map frees (concat (keys mandatory)
-                              (vals mandatory)
-                              (keys optional)
-                              (vals optional)))))
+           (map #(frees % opts) (concat (keys mandatory)
+                                        (vals mandatory)
+                                        (keys optional)
+                                        (vals optional)))))
 
   JSObj
   (frees 
-    [{:keys [types]}]
-    (apply combine-freesresults (map frees (vals types))))
+    [{:keys [types]} opts]
+    (apply combine-freesresults (map #(frees % opts) (vals types))))
 
   HSequential
   (frees 
-    [{:keys [types fs objects rest drest]}]
-    (apply combine-freesresults (concat (mapv frees (concat types fs objects))
-                                        (when rest [(frees rest)])
+    [{:keys [types fs objects rest drest]} opts]
+    (apply combine-freesresults (concat (mapv #(frees % opts) (concat types fs objects))
+                                        (when rest [(frees rest opts)])
                                         (when drest
-                                          [(let [fr (-> (:pre-type drest) frees)]
+                                          [(let [fr (-> (:pre-type drest) (frees opts))]
                                              (FreesResult.
                                                (-> (.frees fr) (dissoc (:name drest)))
                                                (.idxs fr)))]))))
 
   HSet
   (frees 
-    [{:keys [fixed]}]
-    (apply combine-freesresults (map frees fixed)))
+    [{:keys [fixed]} opts]
+    (apply combine-freesresults (map #(frees % opts) fixed)))
 
   Extends
   (frees 
-    [{:keys [extends without]}] 
-    (apply combine-freesresults (map frees (concat extends without))))
+    [{:keys [extends without]} opts]
+    (apply combine-freesresults (map #(frees % opts) (concat extends without))))
 
   MergeType
   (frees 
-    [{:keys [types]}]
-    (apply combine-freesresults (map frees types)))
+    [{:keys [types]} opts]
+    (apply combine-freesresults (map #(frees % opts) types)))
 
   GetType
   (frees 
-    [{:keys [target key not-found target-fs target-object]}]
-    (combine-freesresults (frees target)
-                          (frees key)
-                          (frees not-found)
-                          (frees target-fs)
-                          (frees target-object)))
+    [{:keys [target key not-found target-fs target-object]} opts]
+    (combine-freesresults (frees target opts)
+                          (frees key opts)
+                          (frees not-found opts)
+                          (frees target-fs opts)
+                          (frees target-object opts)))
 
   Regex
   (frees 
-    [{:keys [types]}]
-    (apply combine-freesresults (map frees types)))
+    [{:keys [types]} opts]
+    (apply combine-freesresults (map #(frees % opts) types)))
 
   AssocType
   (frees 
-    [{:keys [target entries dentries]}]
+    [{:keys [target entries dentries]} opts]
     (apply combine-freesresults
-           (frees target)
-           (concat (map frees (apply concat entries))
+           (frees target opts)
+           (concat (map #(frees % opts) (apply concat entries))
                    (when-let [{:keys [name pre-type]} dentries]
-                     (let [fr (frees pre-type)]
+                     (let [fr (frees pre-type opts)]
                        (assert (symbol? name))
                        [(FreesResult.
                           (-> (.frees fr) (dissoc name))
@@ -406,35 +408,35 @@
 ; are negative types covariant?
   NotType
   (frees 
-    [{:keys [type]}] 
-    (frees type))
+    [{:keys [type]} opts]
+    (frees type opts))
 
   Intersection
   (frees 
-    [{:keys [types]}] 
-    (apply combine-freesresults (map frees types)))
+    [{:keys [types]} opts]
+    (apply combine-freesresults (map #(frees % opts) types)))
 
 ; are negative types covariant?
   DifferenceType
   (frees 
-    [{:keys [type without]}] 
-    (apply combine-freesresults (frees type) (map frees without)))
+    [{:keys [type without]} opts]
+    (apply combine-freesresults (frees type opts) (map #(frees % opts) without)))
 
   Union
   (frees 
-    [{:keys [types]}]
-    (apply combine-freesresults (map frees types)))
+    [{:keys [types]} opts]
+    (apply combine-freesresults (map #(frees % opts) types)))
 
   FnIntersection
   (frees 
-    [{:keys [types]}] 
-    (apply combine-freesresults (map frees types)))
+    [{:keys [types]} opts]
+    (apply combine-freesresults (map #(frees % opts) types)))
 
   Function
   (frees 
-    [{:keys [dom rng rest drest kws prest pdot kind]}]
+    [{:keys [dom rng rest drest kws prest pdot kind]} opts]
     {:pre [(#{:fixed :rest :drest :kws :prest :pdot} kind)]}
-    (apply combine-freesresults (concat (map (comp flip-variances frees)
+    (apply combine-freesresults (concat (map (comp flip-variances #(frees % opts))
                                              (concat dom
                                                      (when rest
                                                        [rest])
@@ -442,11 +444,11 @@
                                                        [kws])
                                                      (when prest
                                                        [prest])))
-                                        [(frees rng)]
+                                        [(frees rng opts)]
                                         (keep
                                           #(when-let [{:keys [name pre-type]} %]
                                              (assert (symbol? name))
-                                             (let [fr (-> pre-type frees flip-variances)]
+                                             (let [fr (-> pre-type (frees opts) flip-variances)]
                                                (FreesResult.
                                                  (-> (.frees fr) (dissoc name))
                                                  (-> (.idxs fr) (assoc name :contravariant)))))
@@ -454,15 +456,16 @@
 
   RClass
   (frees 
-    [t]
+    [t opts]
     (let [varis (:variances t)
           args (:poly? t)]
       (when-not (= (count args) (count varis))
         (err/int-error (str "Wrong number of arguments passed to class "
                             (:the-class t) ": expected "
-                            (count varis) ", given " (count args) ".")))
+                            (count varis) ", given " (count args) ".")
+                       opts))
       (apply combine-freesresults (map (fn [arg va]
-                                         (let [fr (frees arg)]
+                                         (let [fr (frees arg opts)]
                                            (case va
                                              :covariant fr
                                              :contravariant (flip-variances fr)
@@ -472,10 +475,10 @@
 
   Protocol
   (frees 
-    [{varis :variances, args :poly?, :as t}]
+    [{varis :variances, args :poly?, :as t} opts]
     (assert (= (count args) (count varis)))
     (apply combine-freesresults (map (fn [arg va]
-                                       (let [fr (frees arg)]
+                                       (let [fr (frees arg opts)]
                                          (case va
                                            :covariant fr
                                            :contravariant (flip-variances fr)
@@ -485,63 +488,63 @@
 
   MatchType
   (frees
-    [t]
+    [t opts]
     (invariant-variances
       (apply combine-freesresults
-             (frees (:target t))
-             (map frees (:clauses t)))))
+             (frees (:target t) opts)
+             (map #(frees % opts) (:clauses t)))))
 
   Scope
   (frees 
-    [{:keys [body]}]
-    (frees body))
+    [{:keys [body]} opts]
+    (frees body opts))
 
   Bounds
   (frees 
-    [{:keys [upper-bound lower-bound]}]
-    (combine-freesresults (frees upper-bound)
-                          (frees lower-bound)))
+    [{:keys [upper-bound lower-bound]} opts]
+    (combine-freesresults (frees upper-bound opts)
+                          (frees lower-bound opts)))
 
 ;FIXME Type variable bounds should probably be checked for frees
   TypeFn
   (frees 
-    [{:keys [scope bbnds]}]
-    (let [_ (assert (every? empty-frees-result? (map frees bbnds))
+    [{:keys [scope bbnds]} opts]
+    (let [_ (assert (every? empty-frees-result? (map #(frees % opts) bbnds))
                     "NYI Handle frees in bounds")]
-      (frees scope)))
+      (frees scope opts)))
 
   Poly
   (frees 
-    [{:keys [scope bbnds kind]}]
+    [{:keys [scope bbnds kind]} opts]
     (case kind
       (:Poly :PolyDots)
-      (let [_ (when-not (every? empty-frees-result? (map frees bbnds))
+      (let [_ (when-not (every? empty-frees-result? (map #(frees % opts) bbnds))
                 (err/nyi-error "NYI Handle frees in bounds"))]
-        (frees scope))))
+        (frees scope opts))))
 
   Mu
   (frees 
-    [{:keys [scope]}]
-    (frees scope))
+    [{:keys [scope]} opts]
+    (frees scope opts))
 
 ;;js types
   typed.cljc.checker.type_rep.JSBoolean 
-  (frees [t] -empty-frees-result)
+  (frees [t opts] -empty-frees-result)
   typed.cljc.checker.type_rep.JSObject 
-  (frees [t] -empty-frees-result)
+  (frees [t opts] -empty-frees-result)
   typed.cljc.checker.type_rep.JSString 
-  (frees [t] -empty-frees-result)
+  (frees [t opts] -empty-frees-result)
   typed.cljc.checker.type_rep.JSSymbol 
-  (frees [t] -empty-frees-result)
+  (frees [t opts] -empty-frees-result)
   typed.cljc.checker.type_rep.JSNumber 
-  (frees [t] -empty-frees-result)
+  (frees [t opts] -empty-frees-result)
   typed.cljc.checker.type_rep.CLJSInteger 
-  (frees [t] -empty-frees-result)
+  (frees [t opts] -empty-frees-result)
   typed.cljc.checker.type_rep.ArrayCLJS 
-  (frees [t] -empty-frees-result)
+  (frees [t opts] -empty-frees-result)
   typed.cljc.checker.type_rep.FunctionCLJS 
-  (frees [t] -empty-frees-result)
+  (frees [t opts] -empty-frees-result)
   typed.cljc.checker.type_rep.JSUndefined 
-  (frees [t] -empty-frees-result)
+  (frees [t opts] -empty-frees-result)
   typed.cljc.checker.type_rep.JSNull 
-  (frees [t] -empty-frees-result))
+  (frees [t opts] -empty-frees-result))

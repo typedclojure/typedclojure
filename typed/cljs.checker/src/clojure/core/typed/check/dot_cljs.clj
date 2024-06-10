@@ -15,10 +15,10 @@
             [typed.cljc.checker.check.funapp :as funapp]
             [clojure.core.typed.errors :as err]))
 
-(defn check-dot [check {:keys [target field method args] :as dot-expr} expected]
+(defn check-dot [check {:keys [target field method args] :as dot-expr} expected opts]
   (let [ctarget (check target)
         target-t (-> ctarget u/expr-type r/ret-t)
-        resolved (let [t (c/fully-resolve-type target-t)]
+        resolved (let [t (c/fully-resolve-type target-t opts)]
                    ;TODO DataType
                    (when ((some-fn r/JSNominal? 
                                    r/JSString?
@@ -33,7 +33,7 @@
                            (r/JSNominal? resolved)
                            (jsnom/get-field (:name resolved) (:poly? resolved) field))
               _ (assert field-type (str "Don't know how to get field " field
-                                        " from " (prs/unparse-type resolved)))]
+                                        " from " (prs/unparse-type resolved opts)))]
           (assoc dot-expr
                  u/expr-type (r/ret field-type)))
         :else
@@ -43,18 +43,19 @@
                             (r/JSNominal? resolved)
                             (jsnom/get-method (:name resolved) (:poly? resolved) method))
               _ (assert method-type (str "Don't know how to call method " method
-                                         " from " (prs/unparse-type resolved)))
+                                         " from " (prs/unparse-type resolved opts)))
               cargs (mapv check args)
               actual (funapp/check-funapp nil cargs (r/ret method-type) (map u/expr-type cargs)
-                                          expected)]
+                                          expected {} opts)]
           (assoc dot-expr
                  u/expr-type actual)))
-      (err/tc-delayed-error (str "Don't know how to use type " (prs/unparse-type target-t)
+      (err/tc-delayed-error (str "Don't know how to use type " (prs/unparse-type target-t opts)
                                  " with "
                                  (if field (str "field " field)
                                    (str "method " method)))
-                            :return 
-                            (assoc dot-expr
-                                   u/expr-type (r/ret (or (when expected
-                                                            (r/ret-t expected))
-                                                          (r/TCError-maker))))))))
+                            {:return 
+                             (assoc dot-expr
+                                    u/expr-type (r/ret (or (when expected
+                                                             (r/ret-t expected))
+                                                           (r/TCError-maker))))}
+                            opts))))

@@ -27,13 +27,12 @@
   
   quoted? should be true if this :const node is nested inside a
   :quote node, otherwise should be false"
-  ([expr expected] (check-const expr expected false))
-  ([{:keys [val] :as expr} expected quoted?]
+  ([{:keys [val] :as expr} expected quoted? opts]
    {:pre [(#{:const} (:op expr))
           ((some-fn nil? r/TCResult?) expected)]
     :post [(-> % u/expr-type r/TCResult?)]}
-   (let [inferred-ret (r/ret (constant-type val quoted?)
+   (let [inferred-ret (r/ret (constant-type val quoted? opts)
                              (filter-for-value val)
                              obj/-empty)]
      (assoc expr
-            u/expr-type (below/maybe-check-below inferred-ret expected)))))
+            u/expr-type (below/maybe-check-below inferred-ret expected opts)))))

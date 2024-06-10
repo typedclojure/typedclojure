@@ -13,16 +13,16 @@
             [typed.clj.checker.subtype :as sub]
             [clojure.core.typed.errors :as err]))
 
-(defn type-to-seq [t]
+(defn type-to-seq [t opts]
   {:pre [(r/Type? t)]}
   (cond
-    (r/Union? t) (apply c/Un (map type-to-seq (:types t)))
-    (r/Intersection? t) (apply c/In (map type-to-seq (:types t)))
+    (r/Union? t) (c/Un (map #(type-to-seq % opts) (:types t)) opts)
+    (r/Intersection? t) (c/In (map #(type-to-seq % opts) (:types t)) opts)
     (r/HSequential? t) (if (seq (:types t))
                          t
-                         (c/Un r/-nil t))
-    ;TODO (sub/subtype? t (prs/parse-type `(t/U nil t/Seqable t/Any))) 
-    :else (err/int-error (str "Cannot create seq from " t))))
+                         (c/Un [r/-nil t] opts))
+    ;TODO (sub/subtype? t (prs/parse-type `(t/U nil t/Seqable t/Any) opts)) 
+    :else (err/int-error (str "Cannot create seq from " t) opts)))
 
 (defn cons-types [a d]
   {:pre [(r/Type? a)

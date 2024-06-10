@@ -32,16 +32,17 @@
     `map?
     (case (count args)
       2 [:map
-         (ast->malli-syntax (first args))
-         (ast->malli-syntax (second args))])))
+         (ast->malli-syntax (first args) opts)
+         (ast->malli-syntax (second args) opts)])))
 (defmethod Class->malli-syntax 'clojure.lang.IPersistentVector [_ args opts]
   (if (nil? args)
     `vector?
     (case (count args)
       1 [:vector
-         (ast->malli-syntax (first args))])))
-(defmethod Class->malli-syntax :default [t _ _] (err/int-error (str "Don't know how to convert Class annotation " (:form t) " to malli "
-                                                                    "via " `Class->malli-syntax)))
+         (ast->malli-syntax (first args) opts)])))
+(defmethod Class->malli-syntax :default [t _ opts] (err/int-error (str "Don't know how to convert Class annotation " (:form t) " to malli "
+                                                                       "via " `Class->malli-syntax)
+                                                                  opts))
 
 (defmulti Name->malli-syntax
   "Returns an unevaluated malli schema or nil."
@@ -55,9 +56,9 @@
 (defmethod Name->malli-syntax 'typed.clojure/AnyInteger [_ _ _] :int)
 (defmethod Name->malli-syntax :default [_ _ _] nil)
 
-(defn ast->malli-syntax 
+(defn ast->malli-syntax
   "Returns an unevaluated malli schema."
-  [t]
+  [t opts]
   (letfn [(gen-inner [{:keys [op] :as t} opts]
             (let [_ (assert (not ((::tm/seen opts) t))
                             (str "Unhandled recursive type detected: " (:form t)))
@@ -66,11 +67,11 @@
                 ;; TODO use lazy registries to delay resolution until runtime
                 ;; https://github.com/metosin/malli#lazy-registries
                 :Name (or (Name->malli-syntax t nil opts)
-                          (gen-inner (ops/resolve-Name t) opts))
+                          (gen-inner (ops/resolve-Name t opts) opts))
                 :Class (Class->malli-syntax t nil opts)
                 :U (let [{:keys [types]} t
                          ;; note: would skip any Name/Class overrides
-                         all-resolved (map ops/fully-resolve-type types)
+                         all-resolved (map #(ops/fully-resolve-type % opts) types)
                          dispatch-key (when (every? (comp #{:HMap} :op) all-resolved)
                                         (let [mandatories (map (comp #(apply hash-map %) :mandatory) all-resolved)
                                               common-keys (apply set/intersection
@@ -112,7 +113,7 @@
                         (assert (<= (count (filter identity [drest rest repeat]))
                                     1))
                         (cond
-                          drest (err/int-error "HVec with unexpanded ... is unsupported in ast->malli-syntax")
+                          drest (err/int-error "HVec with unexpanded ... is unsupported in ast->malli-syntax" opts)
                           ;; TODO coerce to vector schema
                           ;; TODO wrap in :schema
                           rest (if (seq types)
@@ -154,17 +155,18 @@
                 :TApp (let [{:keys [rator rands]} t]
                         (case (:op rator)
                           :Name (or (Name->malli-syntax rator (vec rands) opts)
-                                    (gen-inner (update t :rator ops/resolve-Name) opts))
+                                    (gen-inner (update t :rator ops/resolve-Name opts) opts))
                           :Class (Class->malli-syntax rator (vec rands) opts)
                           :TFn (gen-inner (ops/instantiate-TFn rator rands) opts)
-                          (err/int-error (str "Don't know how to apply type: " (:form t)))))
+                          (err/int-error (str "Don't know how to apply type: " (:form t)) opts)))
                 :Any :any
-                (err/int-error (str op " not supported in ast->malli-syntax " (:form t))))))]
-    (gen-inner t {::tm/seen #{}})))
+                (err/int-error (str op " not supported in ast->malli-syntax " (:form t)) opts))))]
+    (gen-inner t (assoc opts ::tm/seen #{}))))
 
 (defn type-syntax->malli-syntax
   "Returns an unevaluated malli schema."
   [t]
   (impl/with-impl impl/clojure
-    (-> (ast/parse t)
-        ast->malli-syntax)))
+    (let [opts ((requiring-resolve 'typed.clj.runtime.env/clj-opts))]
+      (-> (ast/parse t opts)
+          (ast->malli-syntax opts)))))

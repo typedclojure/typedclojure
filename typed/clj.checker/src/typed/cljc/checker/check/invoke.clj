@@ -13,13 +13,13 @@
             [typed.cljc.checker.utils :as u]
             [clojure.core.typed.contract-utils :as con]
             [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]
-            [typed.cljc.checker.check :refer [check-expr]]
+            [typed.cljc.checker.check :as check]
             [typed.cljc.checker.check.funapp :as funapp]
             [typed.cljc.checker.check.invoke-kw :as invoke-kw]
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.type-rep :as r]))
 
-(defn normal-invoke [expr fexpr args expected & {:keys [cfexpr cargs]}]
+(defn normal-invoke [expr fexpr args expected {:keys [cfexpr cargs]} {::check/keys [check-expr] :as opts}]
   {:pre [((some-fn nil? r/TCResult?) expected)
          (map? fexpr)
          (vector? args)
@@ -32,7 +32,7 @@
   (let [cfexpr (or cfexpr (check-expr fexpr))
         ftype (u/expr-type cfexpr)
         ;; keep Function arguments in checking mode
-        expected-args (let [ft (c/fully-resolve-type (r/ret-t ftype))]
+        expected-args (let [ft (c/fully-resolve-type (r/ret-t ftype) opts)]
                         (when-some [fns (when (r/FnIntersection? ft)
                                           (:types ft))]
                           (when-some [f (when (= 1 (count fns))
@@ -41,25 +41,25 @@
                                        (= (count (:dom f))
                                           (count args)))
                               (mapv (comp #(when (r/FnIntersection? %) (r/ret %))
-                                          c/fully-resolve-type)
+                                          #(c/fully-resolve-type % opts))
                                     (:dom f))))))
         cargs (or cargs (apply mapv check-expr args (some-> expected-args list)))
         _ (assert (= (count cargs) (count args)))
         argtys (map u/expr-type cargs)
-        actual (funapp/check-funapp fexpr args ftype argtys expected {:expr expr})]
+        actual (funapp/check-funapp fexpr args ftype argtys expected {:expr expr} opts)]
     (assoc expr
            :fn cfexpr
            :args cargs
            u/expr-type actual)))
 
-(defn check-invoke [{fexpr :fn :keys [args env] :as expr} expected]
+(defn check-invoke [{fexpr :fn :keys [args env] :as expr} expected {::check/keys [check-expr] :as opts}]
   {:pre [(= :unanalyzed (:op fexpr))]
    :post [(map? %)
           (-> % u/expr-type r/TCResult?)]}
   (let [-invoke-special (impl/impl-case
                           :clojure (requiring-resolve 'typed.clj.checker.check/-invoke-special)
                           :cljs (requiring-resolve 'typed.cljs.checker.check/invoke-special))]
-    (or (-invoke-special expr expected)
+    (or (-invoke-special expr expected opts)
         (if (and (keyword? (:form fexpr))
                  (<= 1 (count args) 2))
           (let [{cfexpr :fn
@@ -74,5 +74,6 @@
                                  (u/expr-type cfexpr)
                                  (u/expr-type ctarget)
                                  (some-> cdefault u/expr-type) 
-                                 expected)))
-          (normal-invoke expr fexpr args expected)))))
+                                 expected
+                                 opts)))
+          (normal-invoke expr fexpr args expected nil opts)))))

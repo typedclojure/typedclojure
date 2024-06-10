@@ -7,4 +7,4 @@
 
 (deftest persistent-array-map-overrides-test
   (is-clj (= (tc-t clojure.lang.PersistentArrayMap/EMPTY)
-             (ret (-complete-hmap {})))))
+             (ret (-complete-hmap {} {})))))

@@ -22,14 +22,14 @@
             [clojure.core.typed.errors :as err]))
 
 ;[(U nil Expr) TCResult TCResult (Option TCResult) (Option TCResult) -> TCResult]
-(defn invoke-keyword [expr kw-ret target-ret default-ret expected-ret]
+(defn invoke-keyword [expr kw-ret target-ret default-ret expected-ret opts]
   {:pre [(r/TCResult? kw-ret)
          (r/TCResult? target-ret)
          ((some-fn nil? r/TCResult?) default-ret)
          ((some-fn nil? r/TCResult?) expected-ret)
          ((some-fn nil? map?) expr)]
    :post [(r/TCResult? %)]}
-  (let [targett (c/-resolve (r/ret-t target-ret))
+  (let [targett (c/-resolve (r/ret-t target-ret) opts)
         kwt (r/ret-t kw-ret)
         defaultt (or (some-> default-ret r/ret-t)
                      r/-nil)]
@@ -41,7 +41,7 @@
             o (or o (r/ret-o target-ret))
             _ (assert ((some-fn obj/Path? obj/EmptyObject?) o))
             this-pelem (pe/-kpe (:val kwt))
-            val-type (c/find-val-type targett kwt defaultt)]
+            val-type (c/find-val-type targett kwt defaultt #{} opts)]
         (binding [vs/*current-expr* (or expr vs/*current-expr*)]
           (below/maybe-check-below
             (if (or (r/Bottom? targett)
@@ -52,21 +52,25 @@
                                ;; if val-type is falsey, this will simplify to ff
                                (let [obj (obj/-path (concat path-hm [this-pelem]) id-hm)]
                                  (fo/-and
-                                   (fo/-filter-at val-type obj)
-                                   (fo/-not-filter-at r/-falsy obj)))
+                                   [(fo/-filter-at val-type obj)
+                                    (fo/-not-filter-at r/-falsy obj)]
+                                   opts))
                                fl/-top)
                              (if (and (obj/Path? o)
                                       (= r/-nil defaultt))
-                               (fo/-or (fo/-filter (c/make-HMap :absent-keys #{kwt}) id-hm path-hm) ; this map doesn't have a kwt key or...
-                                       (fo/-filter r/-falsy id-hm (concat path-hm [this-pelem]))) ; this map has a false kwt key
+                               (fo/-or [(fo/-filter (c/make-HMap opts {:absent-keys #{kwt}}) id-hm path-hm) ; this map doesn't have a kwt key or...
+                                        (fo/-filter r/-falsy id-hm (concat path-hm [this-pelem]))]  ; this map has a false kwt key
+                                       opts)
                                fl/-top))
                      (if (and (obj/Path? o) (= r/-nil defaultt))
                        (update o :path #(seq (concat % [this-pelem])))
                        obj/-empty))
               (do (u/tc-warning (str "Keyword lookup gave bottom type: "
-                                     (:val kwt) " " (prs/unparse-type targett)))
+                                     (:val kwt) " " (prs/unparse-type targett opts)))
                   (r/ret r/-any)))
-            expected-ret)))
+            expected-ret
+            opts)))
 
       :else (err/int-error (str "keyword-invoke only supports keyword lookup, no default. Found " 
-                              (prs/unparse-type kwt))))))
+                              (prs/unparse-type kwt opts))
+                           opts))))

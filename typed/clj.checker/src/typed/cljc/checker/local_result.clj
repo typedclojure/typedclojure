@@ -18,25 +18,26 @@
             [typed.cljc.checker.filter-ops :as fo]
             [typed.cljc.checker.check.utils :as cu]))
 
-(defn local-ret [sym]
+(defn local-ret [sym opts]
   {:pre [(symbol? sym)]
    :post [(r/TCResult? %)]}
-  (let [[obj t] ((juxt lex/lookup-alias lex/lookup-local) sym)]
+  (let [[obj t] ((juxt lex/lookup-alias #(lex/lookup-local % opts)) sym)]
     (when-not t
-      (err/int-error (str "Could not find type for local variable " sym)))
+      (err/int-error (str "Could not find type for local variable " sym) opts))
     (r/ret t 
-           (if (c/overlap t (c/Un r/-nil r/-false))
+           (if (c/overlap t (c/Un [r/-nil r/-false] opts) opts)
              (fo/-FS (fo/-not-filter-at r/-falsy obj)
                      (fo/-filter-at r/-falsy obj))
              (fo/-true-filter))
            obj)))
 
-(defn local-result [expr sym expected]
+(defn local-result [expr sym expected opts]
   {:pre [(con/local-sym? sym)
          ((some-fn nil? r/TCResult?) expected)]
    :post [(r/TCResult? %)]}
   (binding [vs/*current-expr* expr]
     (prs/with-unparse-ns (cu/expr-ns expr)
       (below/maybe-check-below
-        (local-ret sym)
-        expected))))
+        (local-ret sym opts)
+        expected
+        opts))))

@@ -26,37 +26,38 @@
 (declare assoc-type-pairs)
 
 (defprotocol AssocableType
-  (-assoc-pair [left kv]))
+  (-assoc-pair [left kv opts]))
 
 (extend-protocol AssocableType
   Intersection
   (-assoc-pair
-    [old-i assoc-entry]
+    [old-i assoc-entry opts]
     ; attempt to simplify the intersection before recursing. Parsing an
     ; intersection type does not simplify it.
-    (let [new-i (apply c/In (:types old-i))]
+    (let [new-i (c/In (:types old-i) opts)]
       (if (r/Intersection? new-i)
-        (apply c/In (keep #(assoc-type-pairs % assoc-entry) (:types new-i)))
-        (assoc-type-pairs new-i assoc-entry))))
+        (c/In (keep #(assoc-type-pairs % [assoc-entry] opts) (:types new-i)) opts)
+        (assoc-type-pairs new-i [assoc-entry] opts))))
 
   ; use the upper bound if bounds below (Map t/Any t/Any)
   F
   (-assoc-pair
-    [{:keys [name] :as f} assoc-entry]
+    [{:keys [name] :as f} assoc-entry opts]
     (let [bnd (free-ops/free-with-name-bnds name)
           _ (when-not bnd
-              (err/int-error (str "No bounds for type variable: " name bnds/*current-tvar-bnds*)))]
+              (err/int-error (str "No bounds for type variable: " name bnds/*current-tvar-bnds*) opts))]
       (when (ind/subtype? (:upper-bound bnd)
-                          (c/-name `t/Map r/-any r/-any))
+                          (c/-name `t/Map r/-any r/-any)
+                          opts)
         (r/AssocType-maker f [(mapv r/ret-t assoc-entry)] nil))))
 
   Value
   (-assoc-pair
-   [v [kt vt :as assoc-entry]]
-   (when (ind/subtype? v r/-nil)
-     (let [rkt (-> kt :t c/fully-resolve-type)]
+   [v [kt vt :as assoc-entry] opts]
+   (when (ind/subtype? v r/-nil opts)
+     (let [rkt (-> kt :t (c/fully-resolve-type opts))]
        (if (c/keyword-value? rkt)
-         (c/-complete-hmap {rkt (:t vt)})
+         (c/-complete-hmap {rkt (:t vt)} opts)
          (if (r/F? rkt)
            (r/AssocType-maker v [(mapv r/ret-t assoc-entry)] nil)
            (c/-name `t/Map rkt (r/ret-t vt)))))))
@@ -69,48 +70,49 @@
   ;; and extract contravariant types from somewhere.
   RClass
   (-assoc-pair
-   [rc [kt vt]]
+   [rc [kt vt] opts]
    (let [_ (impl/assert-clojure)
-         rkt (-> kt r/ret-t c/fully-resolve-type)]
+         rkt (-> kt r/ret-t (c/fully-resolve-type opts))]
      (case (:the-class rc)
        clojure.lang.IPersistentMap
        (c/-name `t/Map
-                (c/Un (r/ret-t kt) (nth (:poly? rc) 0))
-                (c/Un (r/ret-t vt) (nth (:poly? rc) 1)))
+                (c/Un [(r/ret-t kt) (nth (:poly? rc) 0)] opts)
+                (c/Un [(r/ret-t vt) (nth (:poly? rc) 1)] opts))
 
        clojure.lang.IPersistentVector
        (if (and (r/Value? rkt)
                 (integer? (:val rkt)))
-         (c/-name `t/Vec (c/Un (r/ret-t vt) (nth (:poly? rc) 0)))
-         (when (ind/subtype? rkt (c/-name `t/Int))
-           (c/-name `t/Vec (c/Un (r/ret-t vt) (nth (:poly? rc) 0)))))
+         (c/-name `t/Vec (c/Un [(r/ret-t vt) (nth (:poly? rc) 0)] opts))
+         (when (ind/subtype? rkt (c/-name `t/Int) opts)
+           (c/-name `t/Vec (c/Un [(r/ret-t vt) (nth (:poly? rc) 0)] opts))))
        nil)))
   
   HeterogeneousMap
   (-assoc-pair
-   [hmap [kt vt]]
-   (let [rkt (-> kt :t c/fully-resolve-type)]
+   [hmap [kt vt] opts]
+   (let [rkt (-> kt :t (c/fully-resolve-type opts))]
      (if (c/keyword-value? rkt)
-       (c/make-HMap
-         :mandatory (-> (:types hmap)
-                        (assoc rkt (:t vt)))
-         :optional (-> (:optional hmap)
-                       (dissoc (:t vt)))
-         :absent-keys (-> (:absent-keys hmap) 
-                          (disj rkt))
-         :complete? (c/complete-hmap? hmap))
+       (c/make-HMap opts
+                    {:mandatory (-> (:types hmap)
+                                    (assoc rkt (:t vt)))
+                     :optional (-> (:optional hmap)
+                                   (dissoc (:t vt)))
+                     :absent-keys (-> (:absent-keys hmap) 
+                                      (disj rkt))
+                     :complete? (c/complete-hmap? hmap)})
        (if (r/F? rkt)
          (r/AssocType-maker hmap [[rkt (r/ret-t vt)]] nil)
-         (c/upcast-hmap hmap {:visit-ks-type #(c/Un rkt %)
-                              :visit-vs-type #(c/Un (r/ret-t vt) %)
-                              :elide-upper-count true})))))
+         (c/upcast-hmap hmap {:visit-ks-type #(c/Un [rkt %] opts)
+                              :visit-vs-type #(c/Un [(r/ret-t vt) %] opts)
+                              :elide-upper-count true}
+                        opts)))))
   
   HSequential
   (-assoc-pair
-   [v [kt vt]]
+   [v [kt vt] opts]
    (when (r/HeterogeneousVector? v)
-     (let [rkt (-> kt :t c/fully-resolve-type)]
-       (when (ind/subtype? rkt (c/-name `t/Int))
+     (let [rkt (-> kt :t (c/fully-resolve-type opts))]
+       (when (ind/subtype? rkt (c/-name `t/Int) opts)
          (if (r/Value? rkt)
            (let [kt rkt
                  k (:val kt)]
@@ -120,21 +122,22 @@
                         :objects (assoc (:objects v) k (:o vt)))))
            (if (r/F? rkt)
              (r/AssocType-maker v [[rkt (r/ret-t vt)]] nil)
-             (c/upcast-HSequential v {:visit-elem-type #(c/Un % (r/ret-t vt))
-                                      :elide-count true})))))))
+             (c/upcast-HSequential v {:visit-elem-type #(c/Un [% (r/ret-t vt)] opts)
+                                      :elide-count true}
+                                   opts)))))))
   
   DataType
   (-assoc-pair
-   [dt [kt vt]]
-   (let [rkt (-> kt :t c/fully-resolve-type)]
+   [dt [kt vt] opts]
+   (let [rkt (-> kt :t (c/fully-resolve-type opts))]
      (when (and (r/Record? dt) (c/keyword-value? rkt))
        (let [kt rkt
              field-type (when (c/keyword-value? kt)
                           (get (:fields dt) (symbol (name (:val kt)))))]
-         (when (and field-type (ind/subtype? (:t vt) field-type))
+         (when (and field-type (ind/subtype? (:t vt) field-type opts))
            dt))))))
 
-(defn assoc-type-pairs [t & pairs]
+(defn assoc-type-pairs [t pairs opts]
   {:pre [(r/Type? t)
          (every? (fn [[k v :as kv]]
                    (and (= 2 (count kv))
@@ -142,11 +145,12 @@
                         (r/TCResult? v)))
                  pairs)]
    :post [((some-fn nil? r/Type?) %)]}
-  (c/reduce-type-transform -assoc-pair t pairs
-                           :when #(and (ind/subtype? % (c/Un r/-nil (c/-name `t/Associative r/-any r/-any)))
-                                       (satisfies? AssocableType %))))
+  (c/reduce-type-transform #(-assoc-pair %1 %2 opts) t pairs
+                           {:when #(and (ind/subtype? % (c/Un [r/-nil (c/-name `t/Associative r/-any r/-any)] opts) opts)
+                                        (satisfies? AssocableType %))}
+                           opts))
 
-(defn assoc-pairs-noret [t & pairs]
+(defn assoc-pairs-noret [t pairs opts]
   {:pre [(r/Type? t)
          (every? (fn [[k v :as kv]]
                    (and (= 2 (count kv))
@@ -154,38 +158,39 @@
                         (r/Type? v)))
                  pairs)]
    :post [((some-fn nil? r/Type?) %)]}
-  (apply assoc-type-pairs t (map (fn [[k v]] [(r/ret k) (r/ret v)]) pairs)))
+  (assoc-type-pairs t (map (fn [[k v]] [(r/ret k) (r/ret v)]) pairs) opts))
 
 ; dissoc support functions
-(defn- -dissoc-key [t k]
+(defn- -dissoc-key [t k opts]
   {:pre [(r/Type? t)
          (r/TCResult? k)]
    :post [((some-fn nil? r/Type?) %)]}
   (c/union-or-nil
-    (for [rtype (c/resolved-type-vector k)]
+    (for [rtype (c/resolved-type-vector k opts)]
       (cond
-        (ind/subtype? t r/-nil)
+        (ind/subtype? t r/-nil opts)
         t
 
         (r/HeterogeneousMap? t)
         (if (c/keyword-value? rtype)
-          (c/make-HMap
-            :mandatory
-            (dissoc (:types t) rtype)
-            :optional
-            (dissoc (:optional t) rtype)
-            :absent-keys
-            (conj (:absent-keys t) rtype)
-            :complete? (c/complete-hmap? t))
-          (c/make-HMap
-            :optional
-            (into (:types t) (:optional t))
-            :absent-keys (:absent-keys t)
-            :complete? (c/complete-hmap? t)))))))
+          (c/make-HMap opts
+                       {:mandatory
+                        (dissoc (:types t) rtype)
+                        :optional
+                        (dissoc (:optional t) rtype)
+                        :absent-keys
+                        (conj (:absent-keys t) rtype)
+                        :complete? (c/complete-hmap? t)})
+          (c/make-HMap opts
+                       {:optional
+                        (into (:types t) (:optional t))
+                        :absent-keys (:absent-keys t)
+                        :complete? (c/complete-hmap? t)}))))
+    opts))
 
-(defn dissoc-keys [t ks]
+(defn dissoc-keys [t ks opts]
   {:post [((some-fn nil? r/Type?) %)]}
-  (c/reduce-type-transform -dissoc-key t ks))
+  (c/reduce-type-transform #(-dissoc-key %1 %2 opts) t ks {} opts))
 
 ; merge support functions
 (defn- merge-hmaps
@@ -199,21 +204,21 @@
   
   For example:
   (merge '{:a 4 :b 6} '{:b 5}) -> '{:a t/Any :b 5}"
-  [left right]
+  [left right opts]
   {:pre [(r/HeterogeneousMap? left)
          (r/HeterogeneousMap? right)]}
   ;; want to know how often complete HMap's help with merging.
   (u/trace-when (c/complete-hmap? right)
     "Merge: complete used on the right")
-  (c/make-HMap
-    :mandatory
+  (c/make-HMap opts
+   {:mandatory
       (let [m (:types left)
             ; optional keys on the right may or may not overwrite mandatory
             ; entries, so we union the common mandatory and optional val types together.
             ;
             ; eg. (merge (HMap :mandatory {:a Number}) (HMap :optional {:a t/Sym}))
             ;     => (HMap :mandatory {:a (t/U Number t/Sym)})
-            m (merge-with c/Un 
+            m (merge-with #(c/Un [%1 %2] opts) 
                           m 
                           (select-keys (:optional right) (keys (:types left))))
             ;_ (prn "after first mandatory pass" m)
@@ -254,7 +259,7 @@
                                (set (keys (:types left))))))
             ;_ (prn "after first optional pass" o)
             ; now we merge any new :optional entries
-            o (merge-with c/Un 
+            o (merge-with #(c/Un [%1 %2] opts) 
                           o
                           ; if the left is partial then we only add optional entries
                           ; common to both maps.
@@ -339,60 +344,62 @@
         :else (throw (Exception. "should never get here")))
     :complete?
       (and (c/complete-hmap? left)
-           (c/complete-hmap? right))))
+           (c/complete-hmap? right))}))
 
 (defn- merge-pair
-  [left right]
+  [left right opts]
   {:pre [(r/Type? left)
          (r/TCResult? right)]
    :post [((some-fn nil? r/Type?) %)]}
   (cond
     ; preserve the rhs alias when possible
-    (and (ind/subtype? left r/-nil)
-         (ind/subtype? (r/ret-t right) (c/-name 'typed.clojure/Map r/-any r/-any)))
+    (and (ind/subtype? left r/-nil opts)
+         (ind/subtype? (r/ret-t right) (c/-name 'typed.clojure/Map r/-any r/-any) opts))
     (r/ret-t right)
 
     :else
     (c/union-or-nil
-      (for [rtype (c/resolved-type-vector (r/ret-t right))]
+      (for [rtype (c/resolved-type-vector (r/ret-t right) opts)]
         (cond
-          (and (ind/subtype? left r/-nil)
-               (ind/subtype? rtype (c/Un r/-nil (c/-name 'typed.clojure/Map r/-any r/-any))))
+          (and (ind/subtype? left r/-nil opts)
+               (ind/subtype? rtype (c/Un [r/-nil (c/-name 'typed.clojure/Map r/-any r/-any)] opts) opts))
           rtype
 
-          (and (ind/subtype? left (c/Un r/-nil (c/-name 'typed.clojure/Map r/-any r/-any)))
-               (ind/subtype? rtype r/-nil))
+          (and (ind/subtype? left (c/Un [r/-nil (c/-name 'typed.clojure/Map r/-any r/-any)] opts) opts)
+               (ind/subtype? rtype r/-nil opts))
           left
 
           (and (r/F? left)
-               (ind/subtype? left (c/Un r/-nil (c/-name 'typed.clojure/Map r/-any r/-any)))
-               (ind/subtype? rtype (c/Un r/-nil (c/-name 'typed.clojure/Map r/-any r/-any))))
+               (ind/subtype? left (c/Un [r/-nil (c/-name 'typed.clojure/Map r/-any r/-any)] opts) opts)
+               (ind/subtype? rtype (c/Un [r/-nil (c/-name 'typed.clojure/Map r/-any r/-any)] opts) opts))
           (r/MergeType-maker [left (r/ret-t right)])
 
           (and (r/HeterogeneousMap? left)
                (r/HeterogeneousMap? rtype))
-          (merge-hmaps left rtype))))))
+          (merge-hmaps left rtype opts)))
+      opts)))
 
 (defn merge-types
-  ([] r/-nil)
-  ([left-tcresult & r-tcresults]
+  ([opts] r/-nil)
+  ([opts left-tcresult & r-tcresults]
    {:pre [(r/TCResult? left-tcresult)
           (every? r/TCResult? r-tcresults)]
     :post [((some-fn nil? r/Type?) %)]}
-   (c/reduce-type-transform merge-pair (:t left-tcresult) r-tcresults)))
+   (c/reduce-type-transform #(merge-pair %1 %2 opts) (:t left-tcresult) r-tcresults {} opts)))
 
 ; conj helper
 
-(defn- conj-pair [left right]
+(defn- conj-pair [left right opts]
   {:pre [(r/Type? left)
          (r/TCResult? right)]
    :post [((some-fn nil? r/TCResult?) right)]}
   (cond
     (r/HeterogeneousVector? left)
-    (assoc-type-pairs left [(r/ret (r/-val (count (:types left))))
-                            right])
+    (assoc-type-pairs left [[(r/ret (r/-val (count (:types left))))
+                             right]]
+                      opts)
 
-    (ind/subtype? left r/-nil)
+    (ind/subtype? left r/-nil opts)
     (r/-hvec [(:t right)]
              :filters [(:fl right)]
              :objects [(:o right)])
@@ -400,20 +407,21 @@
     ; other rules need to unwrap the rhs
     :else
     (c/union-or-nil
-      (for [rtype (c/resolved-type-vector right)]
+      (for [rtype (c/resolved-type-vector right opts)]
         (cond
           (and (r/HeterogeneousMap? left)
                (r/HeterogeneousVector? rtype))
           (if (= (count (:types rtype)) 2)
-            (assoc-type-pairs left (map r/ret (:types rtype)))
-            (err/int-error "Need vector of length 2 to conj to map"))
+            (assoc-type-pairs left [(map r/ret (:types rtype))] opts)
+            (err/int-error "Need vector of length 2 to conj to map" opts))
 
           (and (r/HeterogeneousMap? left)
-               (ind/subtype? rtype r/-nil))
-          left)))))
+               (ind/subtype? rtype r/-nil opts))
+          left))
+      opts)))
 
-(defn conj-types [left & rtypes]
+(defn conj-types [opts left & rtypes]
   {:pre [(r/Type? left)
          (every? r/TCResult? rtypes)]
    :post [((some-fn nil? r/Type?) %)]}
-  (c/reduce-type-transform conj-pair left rtypes))
+  (c/reduce-type-transform #(conj-pair %1 %2 opts) left rtypes {} opts))

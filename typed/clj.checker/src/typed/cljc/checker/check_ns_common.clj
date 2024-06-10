@@ -19,6 +19,7 @@
             [typed.cljc.checker.reset-env :as reset-env]
             [typed.cljc.checker.utils :as u]
             [typed.cljc.checker.var-env :as var-env]
+            [typed.cljc.runtime.env :as env]
             [clojure.core.typed.runtime.jvm.configs :as configs]
             [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.contract-utils-platform-specific :as plat-con]
@@ -39,7 +40,9 @@
 ;; - :file-mapping      a map from namespace symbols to vectors of AST nodes
 ;;                      Added if true :file-mapping keyword is passed as an option
 (defn check-ns-info
-  [impl ns-or-syms {:keys [trace file-mapping check-config max-parallelism] :as opt}]
+  [impl ns-or-syms {:keys [trace file-mapping check-config max-parallelism] :as opt} opts]
+  (assert (not (:opts opt)))
+  (assert opts)
   (let [start (. System (nanoTime))
         threadpool vs/*check-threadpool*
         shutdown-threadpool? (not threadpool)
@@ -101,9 +104,13 @@
                 ;-------------------------
                 ; Check phase
                 ;-------------------------
-                (let [check-ns (impl/impl-case
+                (let [opts {::env/checker (impl/impl-case
+                                            :clojure (impl/clj-checker)
+                                            :cljs (impl/cljs-checker))}
+                      check-ns (impl/impl-case
                                  :clojure chk-clj/check-ns-and-deps
-                                 :cljs    (requiring-resolve 'typed.cljs.checker.check/check-ns-and-deps))]
+                                 :cljs    (requiring-resolve 'typed.cljs.checker.check/check-ns-and-deps))
+                      check-ns #(check-ns % opts)]
                   (if (= 1 (count nsym-coll))
                     (check-ns (nth nsym-coll 0))
                     (let [check-ns (bound-fn*
@@ -139,14 +146,14 @@
                              (= 1 (count nsym-coll)))
                     {:file-mapping (apply merge
                                           (map #(impl/with-impl impl
-                                                  (file-map/ast->file-mapping %))
+                                                  (file-map/ast->file-mapping % opts))
                                                (get (some-> vs/*checked-asts* deref) (first nsym-coll))))})))))))
       (finally
         (when shutdown-threadpool?
           (some-> threadpool .shutdown))))))
 
-(defn check-ns [impl ns-or-syms opt]
-  (let [{:keys [delayed-errors]} (check-ns-info impl ns-or-syms opt)]
+(defn check-ns [impl ns-or-syms opt opts]
+  (let [{:keys [delayed-errors]} (check-ns-info impl ns-or-syms opt opts)]
     (impl/with-impl impl
       (if-let [errors (seq delayed-errors)]
         (err/print-errors! errors)

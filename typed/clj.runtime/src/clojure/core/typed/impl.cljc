@@ -75,7 +75,10 @@
     (println "Method name:" mname)
     (core/doseq [m ms]
       (println ((requiring-resolve 'typed.clj.checker.parse-unparse/unparse-type)
-                ((requiring-resolve 'typed.clj.checker.check/Method->Type) m))))))
+                ((requiring-resolve 'typed.clj.checker.check/Method->Type)
+                 m
+                 ((requiring-resolve 'typed.clj.runtime.env/clj-opts)))
+                ((requiring-resolve 'typed.clj.runtime.env/clj-opts)))))))
 
 ;=============================================================
 ; Special functions
@@ -241,6 +244,7 @@
   (with-clojure-impl
     (core/let
       [checker ((requiring-resolve 'clojure.core.typed.current-impl/clj-checker))
+       opts ((requiring-resolve 'typed.clj.runtime.env/clj-opts))
        ;; preserve *ns*
        bfn (bound-fn [f] (f))
        t ((requiring-resolve `typed.cljc.runtime.env-utils/delay-type*)
@@ -254,8 +258,9 @@
                 _ (with-clojure-impl
                     (when-let [tfn ((requiring-resolve 'typed.cljc.checker.declared-kind-env/declared-kind-or-nil) checker qsym)]
                       (when-not ((requiring-resolve 'typed.clj.checker.subtype/subtype?) t tfn)
-                        (int-error (str "Declared kind " (unparse-type tfn)
-                                        " does not match actual kind " (unparse-type t))))))]
+                        (int-error (str "Declared kind " (unparse-type tfn opts)
+                                        " does not match actual kind " (unparse-type t opts))
+                                   opts))))]
                t)))]
       ((requiring-resolve 'clojure.core.typed.current-impl/add-tc-type-name) checker qsym t)))
   nil)
@@ -523,12 +528,14 @@
    (load-if-needed)
    (with-clojure-impl
      (into-array ((requiring-resolve 'typed.clj.checker.array-ops/Type->array-member-Class)
-                  ((requiring-resolve 'typed.clj.checker.parse-unparse/parse-type) cljt)) coll)))
+                  ((requiring-resolve 'typed.clj.checker.parse-unparse/parse-clj) cljt)
+                  ((requiring-resolve 'typed.clj.runtime.env/clj-opts))) coll)))
   ([javat cljt coll]
    (load-if-needed)
    (with-clojure-impl
      (into-array ((requiring-resolve 'typed.clj.checker.array-ops/Type->array-member-Class)
-                  ((requiring-resolve 'typed.clj.checker.parse-unparse/parse-type) javat)) coll)))
+                  ((requiring-resolve 'typed.clj.checker.parse-unparse/parse-clj) javat)
+                  ((requiring-resolve 'typed.clj.runtime.env/clj-opts))) coll)))
   ;this is the hacky case to prevent full core.typed from loading
   ([into-array-syn javat cljt coll]
    (into-array (resolve into-array-syn) coll)))
@@ -1046,7 +1053,7 @@
       (with-current-location form
         (core/doseq [dep args]
           (when-not (ns->URL dep)
-            (int-error (str "Cannot find dependency declared with typed-deps: " dep))))
+            (int-error (str "Cannot find dependency declared with typed-deps: " dep) ((requiring-resolve 'typed.clj.runtime.env/clj-opts)))))
         (add-ns-deps checker (ns-name *ns*) (set args)))
       nil)))
 
@@ -1099,7 +1106,7 @@
   symbols to a map of data"
   [nsyms]
   (load-if-needed)
-  ((requiring-resolve 'typed.clj.checker.statistics/statistics) nsyms))
+  ((requiring-resolve 'typed.clj.checker.statistics/statistics) nsyms ((requiring-resolve 'typed.clj.runtime.env/clj-opts))))
 
 ; (ann var-coverage [(Coll Symbol) -> nil])
 (core/defn var-coverage 

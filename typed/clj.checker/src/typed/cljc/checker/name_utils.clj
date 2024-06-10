@@ -16,29 +16,30 @@
 (fold/def-derived-fold IRecursiveNames ^:private erase-names* [should-erase name->f used-f erased-frequencies])
 
 (defn erase-names
-  ([t should-erase] 
+  ([t should-erase opts]
    {:post [(map? (second %))
            (every? symbol? (keys (second %)))
            (every? nat-int? (vals (second %)))]}
    (let [erased-frequencies (atom {})
          used-f (atom {})
-         erased (erase-names t should-erase {} used-f erased-frequencies)
+         erased (erase-names t should-erase {} used-f erased-frequencies opts)
          erased-frequencies @erased-frequencies]
      [(if (empty? erased-frequencies) t erased)
       erased-frequencies]))
-  ([t should-erase name->f used-f erased-frequencies]
+  ([t should-erase name->f used-f erased-frequencies opts]
    (let [t (loop [t t
                   seen #{}]
              (assert (not (seen t)))
              (let [rt (cond-> t
-                        (r/TApp? t) c/-resolve)]
+                        (r/TApp? t) (c/-resolve opts))]
                (if (= rt t)
                  t
                  (recur rt (conj seen t)))))
-         t (letfn [(rec ([ty _info] (rec ty))
-                     ([ty] (erase-names ty should-erase name->f used-f erased-frequencies)))]
+         t (letfn [(rec
+                     ([ty] (rec ty opts))
+                     ([ty opts] (erase-names ty should-erase name->f used-f erased-frequencies opts)))]
              (call-erase-names*
-               t
+               t opts
                {:type-rec rec
                 :should-erase should-erase
                 :name->f name->f
@@ -61,10 +62,12 @@
         ;; create a Mu that is like t except erases all instances of Name.
         (let [f (r/make-F (gensym (str (namespace id) "_" (name id))))
               body (erase-names
-                     (c/-resolve t)
+                     (c/-resolve t opts)
                      should-erase
                      (assoc name->f id f)
                      used-f
-                     erased-frequencies)]
-          (cond->> body
-            (@used-f f) (c/Mu* (:name f)))))))
+                     erased-frequencies
+                     opts)]
+          (if (@used-f f)
+            (c/Mu* (:name f) body opts)
+            body)))))

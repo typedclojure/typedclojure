@@ -11,6 +11,7 @@
   (:require [clojure.core.typed.ast-utils :as ast-u]
             [clojure.core.typed.current-impl :as impl]
             [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]
+            [typed.clj.runtime.env :as clj-env]
             [typed.clj.checker.analyze-clj :as ana-clj]
             [typed.clj.checker.check :as chk-clj]
             [typed.cljc.checker.check-form :as chk-form2]
@@ -36,15 +37,15 @@
    :check-form* chk-form2/check-form*})
 
 (defn check-form-info
-  [form opt]
+  [form opt opts]
   (assert (map? opt))
   (let [config (config-map2)]
     (chk-form2/check-form-info-with-config
-      config form opt)))
+      config form opt opts)))
 
 (defn check-form*
-  [form expected type-provided? opt]
+  [form expected type-provided? opt opts]
   {:pre [(map? opt)]}
   (let [config (config-map2)]
     (chk-form2/check-form*-with-config
-      config form expected type-provided? opt)))
+      config form expected type-provided? opt opts)))

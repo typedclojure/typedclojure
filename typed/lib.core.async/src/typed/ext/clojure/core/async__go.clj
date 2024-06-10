@@ -10,7 +10,7 @@
   "Typing rules for clojure.core.async/go"
   (:require [clojure.core.typed.util-vars :as vs]
             [typed.clj.analyzer.passes.emit-form :as emit-form]
-            [typed.clj.checker.check :refer [check-expr]]
+            [typed.cljc.checker.check :as check]
             [typed.cljc.analyzer :as ana2]
             [typed.cljc.checker.check-below :as below]
             [typed.cljc.checker.filter-ops :as fo]
@@ -24,7 +24,7 @@
 ;; clojure.core.async/go
 
 (defn -unanalyzed-special__go
-  [{:keys [form env] :as expr} expected]
+  [{:keys [form env] :as expr} expected {::check/keys [check-expr] :as opts}]
   (let [;; type check the go body
         cbody (-> `(do ~@(rest form))
                   (ana2/unanalyzed env)
@@ -41,5 +41,6 @@
           u/expr-type (below/maybe-check-below
                         (r/ret (c/-name `tasync/Chan (-> cbody u/expr-type :t))
                                (fo/-true-filter))
-                        expected)
+                        expected
+                        opts)
           :tag nil))))

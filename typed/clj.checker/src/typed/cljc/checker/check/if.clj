@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.cljc.checker.check.if
-  (:require [typed.cljc.checker.check :refer [check-expr]]
+  (:require [typed.cljc.checker.check :as check]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.utils :as u]
@@ -19,43 +19,44 @@
             [clojure.core.typed.util-vars :as vs]
             [typed.cljc.checker.var-env :as var-env]))
 
-(defn update-lex+reachable [lex-env fs]
+(defn update-lex+reachable [lex-env fs opts]
   {:pre [(lex/PropEnv? lex-env)]}
   (let [reachable (volatile! true)
-        env (update/env+ lex-env [fs] reachable)]
+        env (update/env+ lex-env [fs] reachable opts)]
     [env @reachable]))
 
 (defn combine-rets [{fs+ :then fs- :else :as tst-ret}
                     {ts :t fs2 :fl os2 :o :as then-ret}
                     env-thn
                     {us :t fs3 :fl os3 :o :as else-ret}
-                    env-els]
+                    env-els
+                    opts]
   (let [then-reachable? (not= r/-nothing ts)
         else-reachable? (not= r/-nothing us)
-        type (c/Un ts us)
+        type (c/Un [ts us] opts)
         filter (let [{f2+ :then f2- :else} fs2
                      {f3+ :then f3- :else} fs3
                      new-thn-props (:props env-thn)
                      new-els-props (:props env-els)
                      ; +ve test, +ve then
                      +t+t (if then-reachable?
-                            (apply fo/-and fs+ f2+ new-thn-props)
+                            (fo/-and (list* fs+ f2+ new-thn-props) opts)
                             fl/-bot)
                      ; +ve test, -ve then
                      +t-t (if then-reachable?
-                            (apply fo/-and fs+ f2- new-thn-props)
+                            (fo/-and (list* fs+ f2- new-thn-props) opts)
                             fl/-bot)
                      ; -ve test, +ve else
                      -t+e (if else-reachable?
-                            (apply fo/-and fs- f3+ new-els-props)
+                            (fo/-and (list* fs- f3+ new-els-props) opts)
                             fl/-bot)
                      ; -ve test, -ve else
                      -t-e (if else-reachable?
-                            (apply fo/-and fs- f3- new-els-props)
+                            (fo/-and (list* fs- f3- new-els-props) opts)
                             fl/-bot)
 
-                     final-thn-prop (fo/-or +t+t -t+e)
-                     final-els-prop (fo/-or +t-t -t-e)
+                     final-thn-prop (fo/-or [+t+t -t+e] opts)
+                     final-els-prop (fo/-or [+t-t -t-e] opts)
                      fs (fo/-FS final-thn-prop final-els-prop)]
                  fs)
         object (cond
@@ -69,7 +70,7 @@
          (fo/-unreachable-filter)
          obj/-empty))
 
-(defn check-if-reachable [expr lex-env reachable? expected]
+(defn check-if-reachable [expr lex-env reachable? expected {::check/keys [check-expr] :as opts}]
   {:pre [(lex/PropEnv? lex-env)
          (boolean? reachable?)]}
   (if (not reachable?)
@@ -79,7 +80,7 @@
       (var-env/with-lexical-env lex-env
         (check-expr expr expected)))))
 
-(defn check-if [{:keys [test then else] :as expr} expected]
+(defn check-if [{:keys [test then else] :as expr} expected {::check/keys [check-expr] :as opts}]
   {:pre [((some-fn r/TCResult? nil?) expected)]
    :post [(-> % u/expr-type r/TCResult?)]}
   (let [ctest (check-expr test)
@@ -87,15 +88,15 @@
         {fs+ :then fs- :else :as tst-f} (r/ret-f tst)
 
         lex-env (lex/lexical-env)
-        [env-thn reachable+] (update-lex+reachable lex-env fs+)
-        [env-els reachable-] (update-lex+reachable lex-env fs-)
+        [env-thn reachable+] (update-lex+reachable lex-env fs+ opts)
+        [env-els reachable-] (update-lex+reachable lex-env fs- opts)
 
-        cthen (check-if-reachable then env-thn reachable+ expected)
+        cthen (check-if-reachable then env-thn reachable+ expected opts)
         then-ret (u/expr-type cthen)
 
-        celse (check-if-reachable else env-els reachable- expected)
+        celse (check-if-reachable else env-els reachable- expected opts)
         else-ret (u/expr-type celse)]
-    (let [if-ret (combine-rets tst-f then-ret env-thn else-ret env-els)]
+    (let [if-ret (combine-rets tst-f then-ret env-thn else-ret env-els opts)]
       (assoc expr
              :test ctest
              :then cthen

@@ -59,7 +59,8 @@
                                    (do (when (some? r) (callback path r))
                                        r))))))))
 
-(defn with-recorded-deps [expr expected]
+(defn with-recorded-deps [expr expected {::check/keys [check-expr] :as opts}]
+  (assert check-expr)
   (let [errors (volatile! nil)
         types (atom {})
         vars (atom {})
@@ -70,7 +71,7 @@
                         (or #_(some-> t meta :pretty (get t) :no-simpl-verbose-syntax deref)
                             (if (r/Type? t)
                               (binding [uvs/*verbose-types* true]
-                                (prs/unparse-type t))
+                                (prs/unparse-type t opts))
                               t))))
         instrumented-checker (when-some [^clojure.lang.IAtom2 checker env/*checker*]
                                (reify
@@ -86,7 +87,18 @@
                                  (compareAndSet [_ old new] (.compareAndSet checker old new))
                                  (reset [_ new] (.reset checker new))
                                  clojure.lang.IDeref
-                                 (deref [_] (monitored-checker-map @checker #(swap! types update-in %1 (fn [prev] (or prev (->serialize %2) {}))) []))))]
+                                 (deref [_] (monitored-checker-map @checker #(swap! types update-in %1 (fn [prev] (or prev (->serialize %2) {}))) []))))
+        check-expr (comp (fn [{:keys [op] :as cexpr}]
+                           (when (impl/checking-clojure?)
+                             ;;TODO resolve actual method signatures
+                             (case op
+                               (:instance-call :static-call) (swap! interop update op (fnil conj #{}) (cu/MethodExpr->qualsym cexpr))
+                               (:instance-field :static-field) (swap! interop update op (fnil conj #{}) (cu/FieldExpr->qualsym cexpr))
+                               :new (swap! interop update op (fnil conj #{}) (cu/NewExpr->qualsym cexpr))
+                               nil))
+                           cexpr)
+                         check-expr)
+        opts (assoc opts ::check/check-expr check-expr)]
     (binding [env/*checker* instrumented-checker
               ana2/resolve-sym (let [resolve-sym ana2/resolve-sym]
                                  (fn [sym env]
@@ -100,28 +112,16 @@
                                          (when (not= v sym)
                                            (swap! vars assoc sym v))))
                                      r)))
-              check/check-expr (let [check-expr check/check-expr]
-                                 (fn ce
-                                   ([expr] (ce expr nil))
-                                   ([expr expected] (let [{:keys [op] :as cexpr} (check-expr expr expected)]
-                                                      (when (impl/checking-clojure?)
-                                                        ;;TODO resolve actual method signatures
-                                                        (case op
-                                                          (:instance-call :static-call) (swap! interop update op (fnil conj #{}) (cu/MethodExpr->qualsym cexpr))
-                                                          (:instance-field :static-field) (swap! interop update op (fnil conj #{}) (cu/FieldExpr->qualsym cexpr))
-                                                          :new (swap! interop update op (fnil conj #{}) (cu/NewExpr->qualsym cexpr))
-                                                          nil))
-                                                      cexpr))))
               ;; preserve the namespace resolutions that occur while parsing during type checking, like t/ann-form
               prs/resolve-type-clj->sym (let [resolve-type-clj->sym prs/resolve-type-clj->sym]
-                                          (fn [sym]
-                                            (let [res (resolve-type-clj->sym sym)]
+                                          (fn [sym opts]
+                                            (let [res (resolve-type-clj->sym sym opts)]
                                               (when (not= res sym)
                                                 (swap! type-syms assoc-in [(prs/parse-in-ns) sym] res))
                                               res)))
               prs/resolve-type-clj (let [resolve-type-clj prs/resolve-type-clj]
-                                     (fn [sym]
-                                       (let [res (resolve-type-clj sym)]
+                                     (fn [sym opts]
+                                       (let [res (resolve-type-clj sym opts)]
                                          (when res
                                            (let [res (cond
                                                        (var? res) (symbol res)
@@ -132,13 +132,13 @@
                                                (swap! type-syms assoc-in [(prs/parse-in-ns) sym] res))))
                                          res)))
               prs/parse-type-symbol-default (let [parse-type-symbol-default prs/parse-type-symbol-default]
-                                              (fn [sym]
-                                                (let [res (parse-type-symbol-default sym)]
+                                              (fn [sym opts]
+                                                (let [res (parse-type-symbol-default sym opts)]
                                                   (let [rep (->serialize res)]
                                                     (when (not= rep sym)
                                                       (swap! type-syms assoc-in [(prs/parse-in-ns) sym] rep)))
                                                   res)))]
-      (let [result (check/check-expr expr expected)]
+      (let [result (check-expr expr expected opts)]
         (assoc result ::cache-info {::types (dissoc @types :clojure.core.typed.current-impl/current-nocheck-var?)
                                     ::vars @vars ::errors (pos? (count @uvs/*delayed-errors*)) ::interop @interop
                                     ::type-syms @type-syms})))))
@@ -223,7 +223,7 @@
 
 (defn check-top-level-expr [expr expected opts]
   (if (need-to-check-top-level-expr? expr expected opts)
-    (let [cexpr (with-recorded-deps expr expected)]
+    (let [cexpr (with-recorded-deps expr expected opts)]
       (when (not expected) (record-cache! cexpr expr opts))
       cexpr)
     expr))

@@ -14,7 +14,7 @@
             [typed.cljc.checker.utils :as u]))
 
 (defn -unanalyzed-special__fn
-  [{:keys [env form] :as expr} expected]
+  [{:keys [env form] :as expr} expected opts]
   {:post [(-> % u/expr-type r/TCResult?)]}
   ;(prn "-unanalyzed-special__fn" expected)
   (let [{fn-anns :ann expand1 :fn :keys [poly]} (internal/parse-fn* form)]
@@ -22,4 +22,5 @@
       (assoc expr :form expand1)
       fn-anns
       poly
-      expected)))
+      expected
+      opts)))

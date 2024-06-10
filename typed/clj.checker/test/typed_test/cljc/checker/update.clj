@@ -30,13 +30,13 @@
 (deftest simple-env+
   (testing "updating empty env with tt"
     (is (with-validator v
-          (prop-sub? (env+ (-PropEnv {} #{}) [fr/-top] v)
+          (prop-sub? (env+ (-PropEnv {} #{}) [fr/-top] v clj-opts)
                      (-PropEnv {} #{})))))
   (testing "updating non-empty env with tt"
     (is (let [l {'x r/-nil}]
           (with-validator v
             (prop-sub? (env+ (-PropEnv l #{})
-                             [fr/-top] v)
+                             [fr/-top] v clj-opts)
                        (-PropEnv l #{}))))))
   (testing "updating a typical `and` conjunction
 
@@ -49,74 +49,93 @@
                's (parse-clj `(t/NilableNonEmptySeq t/Num))}]
         (with-validator v
           (prop-sub?
-            (env+ (-PropEnv l #{(fo/-imp (fo/-not-filter (c/Un r/-nil r/-false) 's)
-                                      (fo/-filter (r/make-CountRange 1) 'v))})
-                  [(fo/-not-filter (c/Un r/-nil r/-false) 's)]
-                  v)
+            (env+ (-PropEnv l #{(fo/-imp (fo/-not-filter (c/Un [r/-nil r/-false] clj-opts) 's)
+                                         (fo/-filter (r/make-CountRange 1) 'v))})
+                  [(fo/-not-filter (c/Un [r/-nil r/-false] clj-opts) 's)]
+                  v
+                  clj-opts)
             (-PropEnv {'v (parse-clj `(t/NonEmptyVec t/Num))
                        's (parse-clj `(t/NonEmptySeq t/Num))}
-                      #{(fo/-not-filter (c/Un r/-nil r/-false) 's)
+                      #{(fo/-not-filter (c/Un [r/-nil r/-false] clj-opts) 's)
                         (fo/-filter (r/make-CountRange 1) 'v)})))))))
 
 (deftest update-with-filter-test
   (is-clj (= (update-with-filter
-               (c/Un (c/make-HMap :mandatory {(r/-val :type) (r/-val :Map1)})
-                   (c/make-HMap :mandatory {(r/-val :type) (r/-val :Map2)}))
-               (fo/-filter (r/-val :Map1) 'tmap [(pr/-kpe :type)]))
-             (c/make-HMap :mandatory {(r/-val :type) (r/-val :Map1)})))
+               (c/Un [(c/make-HMap clj-opts {:mandatory {(r/-val :type) (r/-val :Map1)}})
+                      (c/make-HMap clj-opts {:mandatory {(r/-val :type) (r/-val :Map2)}})]
+                     clj-opts)
+               (fo/-filter (r/-val :Map1) 'tmap [(pr/-kpe :type)])
+               clj-opts)
+             (c/make-HMap clj-opts {:mandatory {(r/-val :type) (r/-val :Map1)}})))
   ;test that update-with-filter resolves Names properly
   (is-with-aliases (= (update-with-filter
                         (r/Name-maker 'clojure.core.typed.test.util-aliases/MapStruct2)
-                        (fo/-filter (r/-val :MapStruct1) 'tmap [(pr/-kpe :type)]))
-                      (c/Un)))
+                        (fo/-filter (r/-val :MapStruct1) 'tmap [(pr/-kpe :type)])
+                        clj-opts)
+                      (r/Bottom)))
   ;test that update-with-filter resolves Names properly
   ; here we refine the type of tmap with the equivalent of following the then branch 
   ; with test (= :MapStruct1 (:type tmap))
   (is-with-aliases (= (update-with-filter
                         (r/Name-maker 'clojure.core.typed.test.util-aliases/UnionName)
-                        (fo/-filter (r/-val :MapStruct1) 'tmap [(pr/-kpe :type)]))
-                      (c/make-HMap :mandatory {(r/-val :type) (r/-val :MapStruct1) 
-                                             (r/-val :a) (r/Name-maker 'clojure.core.typed.test.util-aliases/MyName)})))
+                        (fo/-filter (r/-val :MapStruct1) 'tmap [(pr/-kpe :type)])
+                        clj-opts)
+                      (c/make-HMap clj-opts
+                                   {:mandatory {(r/-val :type) (r/-val :MapStruct1) 
+                                                (r/-val :a) (r/Name-maker 'clojure.core.typed.test.util-aliases/MyName)}})))
   (is-with-aliases (= (update-with-filter
                         (r/Name-maker 'clojure.core.typed.test.util-aliases/UnionName)
-                        (fo/-not-filter (r/-val :MapStruct1) 'tmap [(pr/-kpe :type)]))
-                      (c/make-HMap :mandatory {(r/-val :type) (r/-val :MapStruct2) 
-                                             (r/-val :b) (r/Name-maker 'clojure.core.typed.test.util-aliases/MyName)})))
-  (is-clj (= (update-with-filter (c/Un r/-true r/-false) (fo/-filter (c/Un r/-false r/-nil) 'a nil)) 
+                        (fo/-not-filter (r/-val :MapStruct1) 'tmap [(pr/-kpe :type)])
+                        clj-opts)
+                      (c/make-HMap clj-opts
+                                   {:mandatory {(r/-val :type) (r/-val :MapStruct2) 
+                                                (r/-val :b) (r/Name-maker 'clojure.core.typed.test.util-aliases/MyName)}})))
+  (is-clj (= (update-with-filter (c/Un [r/-true r/-false] clj-opts) (fo/-filter (c/Un [r/-false r/-nil] clj-opts) 'a nil)
+                                 clj-opts)
              r/-false)))
 
 (deftest or-filter-update-with-filter-test
   (is-clj (= (update-with-filter
                r/-any
-               (fo/-or (fo/-filter (c/RClass-of clojure.lang.Symbol) 'id)
-                       (fo/-filter (c/RClass-of String) 'id)))
-             (c/Un (c/RClass-of clojure.lang.Symbol)
-                 (c/RClass-of String)))))
+               (fo/-or [(fo/-filter (c/RClass-of clojure.lang.Symbol clj-opts) 'id)
+                        (fo/-filter (c/RClass-of String clj-opts) 'id)]
+                       clj-opts)
+               clj-opts)
+             (c/Un [(c/RClass-of clojure.lang.Symbol clj-opts)
+                    (c/RClass-of String clj-opts)]
+                   clj-opts))))
 
 (deftest path-update-test
   (is-clj 
     (both-subtype? (update-with-filter
-                     (c/Un r/-nil (c/make-HMap :mandatory {(r/-val :foo) (c/RClass-of Number)}))
-                     (fo/-filter (c/Un r/-false r/-nil) 'id [(pr/-kpe :foo)]))
+                     (c/Un [r/-nil (c/make-HMap clj-opts {:mandatory {(r/-val :foo) (c/RClass-of Number clj-opts)}})] clj-opts)
+                     (fo/-filter (c/Un [r/-false r/-nil] clj-opts) 'id [(pr/-kpe :foo)])
+                     clj-opts)
                    r/-nil))
   (is-clj 
     (both-subtype? (update-with-filter
-                     (c/Un r/-nil (c/make-HMap :mandatory {(r/-val :foo) (c/RClass-of Number)}))
-                     (fo/-not-filter (c/Un r/-false r/-nil) 'id [(pr/-kpe :foo)]))
-                   (c/make-HMap :mandatory {(r/-val :foo) (c/RClass-of Number)})))
+                     (c/Un [r/-nil (c/make-HMap clj-opts {:mandatory {(r/-val :foo) (c/RClass-of Number clj-opts)}})] clj-opts)
+                     (fo/-not-filter (c/Un [r/-false r/-nil] clj-opts) 'id [(pr/-kpe :foo)])
+                     clj-opts)
+                   (c/make-HMap clj-opts {:mandatory {(r/-val :foo) (c/RClass-of Number clj-opts)}})))
   ; if (:foo a) is nil, either a has a :foo entry with nil, or no :foo entry
   (is-clj (both-subtype? (update-with-filter
-                           (c/make-HMap)
-                           (fo/-filter r/-nil 'id [(pr/-kpe :foo)]))
-                         (c/make-HMap :optional {(r/-val :foo) r/-nil}))))
+                           (c/make-HMap clj-opts {})
+                           (fo/-filter r/-nil 'id [(pr/-kpe :foo)])
+                           clj-opts)
+                         (c/make-HMap clj-opts {:optional {(r/-val :foo) r/-nil}}))))
 
 (deftest keys-vals-update-test
   (is-clj (both-subtype? 
             (update-with-filter
-              (c/RClass-of IPersistentMap [r/-any r/-any])
-              (fo/-filter (c/-name `t/Seqable (c/RClass-of Number))
-                       'a [(pr/KeysPE-maker)]))
-            (c/RClass-of IPersistentMap [(c/RClass-of Number) r/-any])))
+              (c/RClass-of IPersistentMap [r/-any r/-any] clj-opts)
+              (fo/-filter (c/-name `t/Seqable (c/RClass-of Number clj-opts))
+                          'a [(pr/KeysPE-maker)])
+              clj-opts)
+            (c/RClass-of IPersistentMap [(c/RClass-of Number clj-opts) r/-any] clj-opts)))
+  (is-tc-e (fn [every? :- (t/All [x y] [[x :-> t/Any :filters {:then (is y 0)}] (t/Coll x) :-> t/Bool :filters {:then (is (t/Coll y) 1)}])
+                m :- (clojure.lang.IPersistentMap clojure.core.typed/Any clojure.core.typed/Any)]
+             (every? number? (keys m))))
   ; test with = instead of subtype to catch erroneous downcast to (IPersistentMap clojure.core.typed/Nothing clojure.core.typed/Any)
   (is-clj (both-subtype?
             (-> 
@@ -172,13 +191,13 @@
                 lo- (fo/-not-filter (parse-clj `Number) 'a path)
                 expected+ (parse-clj `(t/HMap :optional {:a t/Any}))
                 expected- (parse-clj `(t/HMap :optional {:a t/Any}))]
-            (and (both-subtype? (update-with-filter t lo+) expected+)
-                 (both-subtype? (update-with-filter t lo-) expected+))))
+            (and (both-subtype? (update-with-filter t lo+ clj-opts) expected+)
+                 (both-subtype? (update-with-filter t lo- clj-opts) expected+))))
   ; negative absent keys. The absent entry :a is not a Number (KeyPE does not support defaults), so we
   ; just return the original type
   (is-clj (let [t (parse-clj `(t/HMap :absent-keys #{:a}))]
             (= t
-               (update-with-filter t (fo/-not-filter (c/RClass-of Number) 'a [(pr/-kpe :a) (pr/-kpe :b)])))))
+               (update-with-filter t (fo/-not-filter (c/RClass-of Number clj-opts) 'a [(pr/-kpe :a) (pr/-kpe :b)]) clj-opts))))
 
   ; When we update-with-filter a (t/HMap) that has no information about an :a key, sometimes we can prove
   ; the updated type always has an :a key.
@@ -187,10 +206,10 @@
   ; nil is the not-found type.
   (is-clj (let [t (parse-clj `(t/HMap))]
             (both-subtype? (parse-clj `(t/HMap :mandatory {:a t/Num}))
-                           (update-with-filter t (fo/-filter (c/RClass-of Number) 'a [(pr/-kpe :a)])))))
+                           (update-with-filter t (fo/-filter (c/RClass-of Number clj-opts) 'a [(pr/-kpe :a)]) clj-opts))))
 
   ; We restrict (t/HMap) to (t/HMap :optional {:a clojure.core.typed/Any}), which is slightly less accurate, because
   ; we can't prove that the t/HMap :a entry is never nil. 
   (is-clj (let [t (parse-clj `(t/HMap))]
             (both-subtype? (parse-clj `(t/HMap :optional {:a t/Any}))
-                           (update-with-filter t (fo/-not-filter (c/RClass-of Number) 'a [(pr/-kpe :a)]))))))
+                           (update-with-filter t (fo/-not-filter (c/RClass-of Number clj-opts) 'a [(pr/-kpe :a)]) clj-opts)))))

@@ -18,10 +18,11 @@
 
 (defuspecial defuspecial__defprotocol
   "defuspecial implementation for clojure.core/defprotocol"
-  [expr expected]
+  [expr expected opts]
   ;;TODO check arities at least match up with definition
   ;;TODO give warning if defprotocol is unannotated
   (assoc expr
          u/expr-type (below/maybe-check-below
                        (r/ret r/-any)
-                       expected)))
+                       expected
+                       opts)))

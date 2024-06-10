@@ -22,9 +22,9 @@
 
 ; we should be able to remove check-apply completely, but we should also instantiate all poly function in test case
 (defn maybe-check-apply
-  [check-fn -invoke-apply {[fexpr & args] :args :as expr} expected]
+  [check-fn -invoke-apply {[fexpr & args] :args :as expr} expected opts]
   {:post [((some-fn nil? (comp r/TCResult? u/expr-type)) %)]}
-  (or (-invoke-apply expr expected)
+  (or (-invoke-apply expr expected opts)
       (binding [vs/*current-expr* expr]
         (let [cfexpr (check-fn fexpr)
               ftype (r/ret-t (u/expr-type cfexpr))
@@ -33,8 +33,8 @@
             ;; apply of a simple polymorphic function
             (r/Poly? ftype)
             (let [vars (c/Poly-fresh-symbols* ftype)
-                  bbnds (c/Poly-bbnds* vars ftype)
-                  body (c/Poly-body* vars ftype)
+                  bbnds (c/Poly-bbnds* vars ftype opts)
+                  body (c/Poly-body* vars ftype opts)
                   _ (assert (r/FnIntersection? body))
                   fixed-args (mapv check-fn fixed-args)
                   arg-tys (mapv (comp r/ret-t u/expr-type) fixed-args)
@@ -45,8 +45,9 @@
               (loop [[{:keys [dom rng rest] :as ftype0} :as fs] (:types body)]
                 (cond
                   (empty? fs) (err/tc-delayed-error (str "Bad arguments to polymorphic function in apply")
-                                                    :return (assoc expr
-                                                                   u/expr-type (cu/error-ret expected)))
+                                                    {:return (assoc expr
+                                                                    u/expr-type (cu/error-ret expected))}
+                                                    opts)
 
                   (not (#{:fixed :rest} (:kind ftype0))) nil
 
@@ -59,10 +60,11 @@
                                                (cgen/infer-vararg (zipmap vars bbnds)
                                                                   {}
                                                                   (cons tail-ty arg-tys)
-                                                                  (cons (c/Un r/-nil (c/-name `t/Seqable rest)) dom)
+                                                                  (cons (c/Un [r/-nil (c/-name `t/Seqable rest)] opts) dom)
                                                                   rest
                                                                   (r/Result-type* rng)
-                                                                  (some-> expected r/ret-t))))]
+                                                                  (some-> expected r/ret-t)
+                                                                  opts)))]
                     (assoc expr
-                           u/expr-type (r/ret (subst/subst-all substitution (r/Result-type* rng))))
+                           u/expr-type (r/ret (subst/subst-all substitution (r/Result-type* rng) opts)))
                     (recur (next fs)))))))))))

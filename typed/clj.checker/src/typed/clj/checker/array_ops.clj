@@ -17,20 +17,20 @@
 ; (Type->array-member-Class (parse-type '(U nil Number))) => Number
 ; (Type->array-member-Class (parse-type '(Array (U nil Number)))) =~> (Array Number)
 
-;(ann Type->array-member-Class (Fn [Type -> (Option Class)]
-;                                  [Type t/Any -> (Option Class)]))
-(defn Type->array-member-Class 
-  ([ty] (Type->array-member-Class ty false))
-  ([ty nilok?]
+;(ann Type->array-member-Class (Fn [Type Opts -> (Option Class)]
+;                                  [Type t/Any Opts -> (Option Class)]))
+(defn Type->array-member-Class
+  ([ty opts] (Type->array-member-Class ty false opts))
+  ([ty nilok? opts]
    {:pre [(r/Type? ty)]}
    (cond
-     (c/requires-resolving? ty) (Type->array-member-Class (c/-resolve ty) nilok?)
+     (c/requires-resolving? ty opts) (Type->array-member-Class (c/-resolve ty opts) nilok? opts)
      (r/Nil? ty) (if nilok?
                  nil
                  Object)
      (r/Value? ty) (c/Value->Class ty)
      ;; handles most common case of (U nil Type)
-     (r/Union? ty) (let [clss (map #(Type->array-member-Class % true) (:types ty))
+     (r/Union? ty) (let [clss (map #(Type->array-member-Class % true opts) (:types ty))
                          prim-and-nil? (and (some nil? clss)
                                             (some #(when % (.isPrimitive ^Class %)) clss))
                          nonil-clss (remove nil? clss)]
@@ -40,5 +40,5 @@
                        Object))
      (r/Intersection? ty) Object
      (r/RClass? ty) (r/RClass->Class ty)
-     (r/PrimitiveArray? ty) (class (make-array (Type->array-member-Class (:jtype ty) false) 0))
+     (r/PrimitiveArray? ty) (class (make-array (Type->array-member-Class (:jtype ty) false opts) 0))
      :else Object)))

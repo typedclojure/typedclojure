@@ -10,7 +10,7 @@
   "Typing rules clojure.core/doseq"
   (:require [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.errors :as err]
-            [typed.clj.checker.check :refer [check-expr]]
+            [typed.cljc.checker.check :as check]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.clj.analyzer.passes.emit-form :as emit-form]
             [typed.clj.analyzer.utils :as ana-utils]
@@ -35,7 +35,7 @@
 
 (defuspecial defuspecial__doseq
   "defuspecial implementation for clojure.core/doseq"
-  [{ana-env :env :keys [form] :as expr} expected]
+  [{ana-env :env :keys [form] :as expr} expected {::check/keys [check-expr] :as opts}]
   (let [_ (assert (<= 2 (count form)) form)
         [args-syn & body-syns] (next form)
         {:keys [new-syms expanded-bindings prop-env ana-env reachable]}
@@ -43,7 +43,8 @@
           {:form form
            :args-syn args-syn
            :ana-env ana-env
-           :prop-env (lex/lexical-env)})
+           :prop-env (lex/lexical-env)}
+          opts)
         expr (-> expr
                  (update :form
                          (fn [form]
@@ -60,7 +61,8 @@
                  u/expr-type (below/maybe-check-below
                                (r/ret r/-nil
                                       (fo/-false-filter))
-                               expected))
+                               expected
+                               opts))
           (let [cbody (var-env/with-lexical-env prop-env
                         (-> `(do ~@body-syns)
                             (ana2/unanalyzed ana-env)
@@ -78,4 +80,5 @@
                    u/expr-type (below/maybe-check-below
                                  (r/ret r/-nil
                                         (fo/-false-filter))
-                                 expected))))))
+                                 expected
+                                 opts))))))

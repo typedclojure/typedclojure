@@ -10,6 +10,7 @@
   (:require [typed.cljc.analyzer :as ana2]
             [typed.clj.analyzer.passes.analyze-host-expr :as ana-host]
             [typed.clj.analyzer.passes.validate :as validate]
+            [typed.cljc.checker.check :as check]
             [typed.clj.checker.check.field :as field]
             [typed.clj.checker.check.method :as method]
             [typed.clj.checker.check.type-hints :as type-hints]
@@ -58,7 +59,7 @@
       expr)))
 
 (defn check-host-interop
-  [check-expr expr expected]
+  [expr expected {::check/keys [check-expr] :as opts}]
   {:pre [(#{:host-interop :host-call :host-field} (:op expr))
          (#{:unanalyzed} (:op (:target expr)))
          (every? (comp #{:unanalyzed} :op) (:args expr))]
@@ -74,9 +75,9 @@
                    (update :args #(mapv add-type-hints %))
                    try-resolve-reflection))]
     (case (:op expr)
-      (:instance-call :static-call) (method/check-invoke-method expr expected)
-      :static-field (field/check-static-field expr expected)
-      :instance-field (field/check-instance-field expr expected)
+      (:instance-call :static-call) (method/check-invoke-method expr expected {} opts)
+      :static-field (field/check-static-field expr expected opts)
+      :instance-field (field/check-instance-field expr expected opts)
       (:host-interop :host-field :host-call)
       (let [m-or-f-kw (case (:op expr)
                         :host-interop :m-or-f
@@ -87,19 +88,22 @@
                (type-hints/suggest-type-hints 
                  (m-or-f-kw expr)
                  (-> expr :target u/expr-type r/ret-t) 
-                 (map (comp r/ret-t u/expr-type) (:args expr)))
+                 (map (comp r/ret-t u/expr-type) (:args expr))
+                 {}
+                 opts)
                "\n\nHint: use *warn-on-reflection* to identify reflective calls")
-          :return (assoc expr 
-                         u/expr-type (cu/error-ret expected)))))))
+          {:return (assoc expr 
+                          u/expr-type (cu/error-ret expected))}
+          opts)))))
 
 (defn check-host-call
-  [check-expr -host-call-special expr expected]
+  [-host-call-special expr expected opts]
   {:pre [(#{:host-call} (-> expr :op))
          (#{:unanalyzed} (-> expr :target :op))
          (every? (comp #{:unanalyzed} :op) (:args expr))]
    :post [(-> % u/expr-type r/TCResult?)
           (#{:static-call :instance-call} (:op %))]}
-  (or (when-some [expr (-host-call-special expr expected)]
+  (or (when-some [expr (-host-call-special expr expected opts)]
         (let [expr (-> expr
                        ana2/run-post-passes
                        (assoc u/expr-type (u/expr-type expr)))]
@@ -111,18 +115,22 @@
                    (type-hints/suggest-type-hints
                      (:method expr)
                      (-> expr :target u/expr-type r/ret-t) 
-                     (->> expr :args (map (comp r/ret-t u/expr-type))))
+                     (->> expr :args (map (comp r/ret-t u/expr-type)))
+                     {}
+                     opts)
                    "\n\nHint: use *warn-on-reflection* to identify reflective calls")
-              :return expr))))
-      (check-host-interop check-expr expr expected)))
+              {:return expr}
+              opts))))
+      (check-host-interop expr expected opts)))
 
 (defn check-maybe-host-form
-  [check-expr expr expected]
+  [expr expected {::check/keys [check-expr] :as opts}]
   {:pre [(#{:maybe-host-form} (:op expr))]
    :post [(-> % u/expr-type r/TCResult?)]}
   (let [expr (ana2/run-pre-passes expr)]
     (if (= :maybe-host-form (:op expr))
       (err/tc-delayed-error (str "Unresolved host interop: " (:form expr)
                                  "\n\nHint: use *warn-on-reflection* to identify reflective calls")
-                            :return (assoc expr u/expr-type (r/ret r/-error)))
-      (check-expr expr expected))))
+                            {:return (assoc expr u/expr-type (r/ret r/-error))}
+                            opts)
+      (check-expr expr expected opts))))

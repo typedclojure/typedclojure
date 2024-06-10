@@ -18,8 +18,9 @@
 
 (defuspecial defuspecial__defmacro
   "defuspecial implementation for clojure.core/defmacro"
-  [expr expected]
+  [expr expected opts]
   (assoc expr
          u/expr-type (below/maybe-check-below
                        (r/ret r/-any)
-                       expected)))
+                       expected
+                       opts)))

@@ -273,7 +273,7 @@
   "Define a multimethod that takes an expr and an expected type
   and dispatches on the second statement"
   [kw nme]
-  `(defmulti ~nme (fn [expr# & _#] (internal-dispatch-val expr#))))
+  `(defmulti ~nme (fn [expr# _expected# _opts#] (internal-dispatch-val expr#))))
 
 (defn internal-form? [expr kw]
   (= kw (:form (first (:statements expr)))))

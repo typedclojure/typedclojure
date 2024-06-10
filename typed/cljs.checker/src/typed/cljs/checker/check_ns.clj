@@ -15,17 +15,17 @@
             [typed.cljc.checker.check-ns-common :as chk-ns]))
 
 (defn check-ns-info
-  [ns-or-syms opt]
+  [ns-or-syms opt opts]
   (with-bindings (ana/default-thread-bindings)
     (ucljs/with-cljs-typed-env
       (comp/with-core-cljs
         nil
-        #(chk-ns/check-ns-info impl/clojurescript ns-or-syms opt)))))
+        #(chk-ns/check-ns-info impl/clojurescript ns-or-syms opt opts)))))
 
 (defn check-ns
-  [ns-or-syms opt]
+  [ns-or-syms opt opts]
   (with-bindings (ana/default-thread-bindings)
     (ucljs/with-cljs-typed-env
       (comp/with-core-cljs
         nil
-        #(chk-ns/check-ns impl/clojurescript ns-or-syms opt)))))
+        #(chk-ns/check-ns impl/clojurescript ns-or-syms opt opts)))))

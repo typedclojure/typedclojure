@@ -61,7 +61,7 @@
   (or (get-in (or env (lexical-env)) [:aliases sym])
       (obj/-id-path sym)))
 
-(defn lookup-local [sym]
+(defn lookup-local [sym opts]
   {:pre [(con/local-sym? sym)]
    :post [((some-fn nil? r/Type?) %)]}
   (let [; see if sym is an alias for an object
@@ -70,13 +70,13 @@
         [alias-path alias-id] (cond
                                 (obj/Path? obj) [(:path obj) (:id obj)]
                                 (obj/EmptyObject? obj) [nil sym]
-                                :else (err/int-error (str "what is this? " (pr-str obj))))
+                                :else (err/int-error (str "what is this? " (pr-str obj)) opts))
         _ (assert (pr/path-elems? alias-path))
         _ (assert (fr/name-ref? alias-id))
         lt (get-in (lexical-env) [:l alias-id])]
     ;(prn "lex-env" (lexical-env))
     (some-> lt
-            (path-type/path-type alias-path))))
+            (path-type/path-type alias-path opts))))
 
 (defn merge-locals [env new]
   {:pre [(PropEnv? env)]
@@ -90,7 +90,7 @@
 
 ; take an environment and (depending on the new object given) either record
 ; and alias to an existing local or extend the type env directly.
-(defn extend-env [env id t o]
+(defn extend-env [env id t o opts]
   {:pre [(PropEnv? env)
          (con/local-sym? id)
          (r/Type? t)
@@ -109,4 +109,4 @@
         ; type environment. Not sure why this is needed, Andrew K added
         ; it to TR because tests were failing.
         (cond-> (empty? (:path o)) (assoc-in [:l (:id o)] t)))
-    :else (err/int-error (str "what is this? " (pr-str o)))))
+    :else (err/int-error (str "what is this? " (pr-str o)) opts)))

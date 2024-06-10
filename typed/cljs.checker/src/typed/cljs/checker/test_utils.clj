@@ -3,6 +3,7 @@
             [cljs.analyzer.api :as ana-api]
             [cljs.core.typed :as cljs-t]
             [cljs.core.typed :as t]
+            [typed.cljs.runtime.env :as cljs-env]
             [clojure.core.typed.current-impl :as impl]
             [clojure.set :as set]
             [clojure.test :as test]
@@ -91,16 +92,16 @@
 (defmacro tc-err [frm & opts]
   (apply common-test/tc-err tc-common* frm opts))
 
-(defn subtype? [& rs]
-  (impl/with-cljs-impl
-    (sub/reset-subtype-cache)
-    (apply sub/subtype? rs)))
+(defmacro subtype? [s t]
+  `(impl/with-cljs-impl
+     (sub/reset-subtype-cache)
+     (sub/subtype? ~s ~t cljs-opts)))
 
 (defmacro sub? [s t]
   `(impl/with-cljs-impl
      (sub/reset-subtype-cache)
-     (subtype? (prs/parse-type '~s)
-               (prs/parse-type '~t))))
+     (subtype? (prs/parse-type '~s cljs-opts)
+               (prs/parse-type '~t cljs-opts))))
 
 (defn cljs-eval
   ([exprs] (cljs-eval 5 5000 exprs))
@@ -137,3 +138,5 @@
                                  (conj acc {:tag ::timeout
                                             :form expr}))))))))
              exprs)))))
+
+(def cljs-opts (cljs-env/cljs-opts))

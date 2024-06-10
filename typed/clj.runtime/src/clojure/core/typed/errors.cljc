@@ -42,8 +42,8 @@
              {:ns n}))))
 
 (defn int-error
-  ([estr] (int-error estr {}))
-  ([estr {:keys [cause visible-cause use-current-env] :as opt}]
+  ([estr opts] (int-error estr {} opts))
+  ([estr {:keys [cause visible-cause use-current-env] :as opt} opts]
    (assert (not (and cause visible-cause)))
    (let [{:keys [line column file] :as env} *current-env*]
      (throw (ex-info (str "Internal Error "
@@ -124,9 +124,8 @@
 
 (defn tc-delayed-error
   "Supports kw args or single optional map."
-  ([msg] (tc-delayed-error msg {}))
-  ([msg k1 v1 & {:as opt}] (tc-delayed-error msg (into {k1 v1} opt)))
-  ([msg {:keys [return form expected] :as opt}]
+  ([msg opts] (tc-delayed-error msg {} opts))
+  ([msg {:keys [return form expected] :as opt} opts]
    (let [form (cond
                 (contains? (:opts expected) :blame-form) (-> expected :opts :blame-form)
                 (contains? opt :blame-form) (:blame-form opt)
@@ -138,7 +137,7 @@
                                              eval)]
                     (str (msg-fn (merge (msg-fn-opts)
                                         (when-some [[_ actual] (find opt :actual)]
-                                          {:actual ((requiring-resolve 'typed.clj.checker.parse-unparse/unparse-type) actual)})))
+                                          {:actual ((requiring-resolve 'typed.clj.checker.parse-unparse/unparse-type) actual opts)})))
                          (when msg
                            (str
                              "\n\n"

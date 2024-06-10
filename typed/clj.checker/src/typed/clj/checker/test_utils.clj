@@ -6,9 +6,10 @@
             [clojure.set :as set]
             [clojure.test :as test :refer [is]]
             [typed.clj.checker.check :as chk]
-            [typed.clj.checker.parse-unparse :refer [parse-type]]
+            [typed.clj.checker.parse-unparse :refer [parse-type parse-clj]]
             [typed.clj.checker.subtype :as sub]
             [typed.clj.lang :as lang]
+            [typed.clj.runtime.env :as clj-env]
             [typed.cljc.checker.test-utils :as common-test]
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.type-rep :as r]
@@ -143,17 +144,19 @@
 (defmacro sub? [s t]
   `(impl/with-clojure-impl
      (binding [*ns* (the-ns '~'clojure.core.typed)]
-       (subtype? (parse-type '~s)
-                 (parse-type '~t)))))
+       (subtype? (parse-type '~s clj-opts)
+                 (parse-type '~t clj-opts)))))
 
 (defmacro sub?-q [s t]
   `(impl/with-clojure-impl
-     (subtype? (parse-type ~s)
-               (parse-type ~t))))
+     (subtype? (parse-type ~s clj-opts)
+               (parse-type ~t clj-opts))))
+
+(def clj-opts (clj-env/clj-opts))
 
 (defn subtype? [s t]
   (impl/with-clojure-impl
-    (sub/subtype? s t)))
+    (sub/subtype? s t clj-opts)))
 
 (defn both-subtype? [s t]
   (and (not= r/-error s)
@@ -162,8 +165,8 @@
        (subtype? t s)))
 
 (defmacro both-sub? [s t]
-  `(both-subtype? (parse-type '~s)
-                  (parse-type '~t)))
+  `(both-subtype? (parse-clj '~s)
+                  (parse-clj '~t)))
 
 (defn check [& as]
   (impl/with-clojure-impl
@@ -210,7 +213,7 @@
                       nil))))))
 
 (defmacro equal-types [l r]
-  `(equal-types-noparse ~l (binding [*ns* (the-ns '~'clojure.core.typed)] (parse-type (quote ~r)))))
+  `(equal-types-noparse ~l (binding [*ns* (the-ns '~'clojure.core.typed)] (parse-type (quote ~r) clj-opts))))
 
 (defmacro tc-t [form]
   `(let [{ex# :ex ret# :ret}

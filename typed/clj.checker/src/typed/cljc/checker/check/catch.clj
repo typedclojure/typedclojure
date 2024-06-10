@@ -9,20 +9,20 @@
 (ns typed.cljc.checker.check.catch
   (:require [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.errors :as err]
-            [typed.cljc.checker.check :refer [check-expr]]
+            [typed.cljc.checker.check :as check]
             [typed.cljc.checker.utils :as u]
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.lex-env :as lex]
             [typed.cljc.analyzer :as ana2]
             [clojure.core.typed.ast-utils :as ast-u]))
 
-(defn check-catch [{handler :body :keys [local] :as expr} expected]
+(defn check-catch [{handler :body :keys [local] :as expr} expected {::check/keys [check-expr] :as opts}]
   (let [expr (-> expr
                  (update :class ana2/run-passes))
         ecls (ast-u/catch-op-class expr)
         local-sym (:name local)
         local-type (impl/impl-case
-                     :clojure (c/RClass-of-with-unknown-params ecls)
+                     :clojure (c/RClass-of-with-unknown-params ecls opts)
                      :cljs (err/nyi-error "catch in CLJS"))
         chandler (lex/with-locals {local-sym local-type}
                    (check-expr handler expected))]

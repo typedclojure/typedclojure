@@ -35,7 +35,7 @@
    (r/TCResult? body)])
 
 ;[FnResult -> Function]
-(defn FnResult->Function [{:keys [args kws rest drest prest pdot body] :as fres}]
+(defn FnResult->Function [{:keys [args kws rest drest prest pdot body] :as fres} opts]
   {:pre [(FnResult? fres)]
    :post [(r/Function? %)]}
   (let [; names of formal parameters to abstract from result type
@@ -49,7 +49,7 @@
                           (some-> rest-param-name list))]
     (r/make-Function
       (mapv second args)
-      (abo/abstract-result body arg-names)
+      (abo/abstract-result body arg-names opts)
       :rest (some-> rest second)
       :drest (some-> drest second)
       :kws (some-> kws second)
@@ -58,7 +58,7 @@
 
 ; takes the current rest or drest argument (only one is non-nil) and returns
 ; the type to assign the rest parameter
-(defn check-rest-fn [remain-dom {:keys [rest drest kws prest pdot kind] :as ts*}]
+(defn check-rest-fn [remain-dom {:keys [rest drest kws prest pdot kind] :as ts*} opts]
   {:pre [((some-fn nil? r/Type?) rest)
          ((some-fn nil? r/Type?) prest)
          ((some-fn nil? r/DottedPretype?) drest)
@@ -72,18 +72,19 @@
   (cond
     (or rest drest (= :fixed kind))
     ; rest argument is nilable non-empty seq, refine further based on remaining fixed domain
-    (cond-> (c/In (r/-hseq remain-dom
-                           :rest rest
-                           :drest drest)
-                  ;; in addition to hseq's count knowledge
-                  (r/make-CountRange 1))
+    (cond-> (c/In [(r/-hseq remain-dom
+                            :rest rest
+                            :drest drest)
+                   ;; in addition to hseq's count knowledge
+                   (r/make-CountRange 1)]
+                  opts)
       ;TODO what about `drest`?
-      (and rest (zero? (count remain-dom))) (c/Un r/-nil))
+      (and rest (zero? (count remain-dom))) (as-> t (c/Un [t r/-nil] opts)))
 
     (seq remain-dom) (err/nyi-error "Rest parameter with remaining fixed domain for prest/post/KwArgs")
 
-    (or prest pdot) (c/Un r/-nil (or prest pdot))
+    (or prest pdot) (c/Un [r/-nil (or prest pdot)] opts)
 
-    kws (c/KwArgs->Type kws)
+    kws (c/KwArgs->Type kws opts)
     
     :else (err/nyi-error (str "Function :kind " kind))))

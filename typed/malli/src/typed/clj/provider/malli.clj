@@ -12,6 +12,7 @@
   (:require [typed.malli.schema-to-type :as s->t]
             [clojure.core.typed.runtime.jvm.configs :as configs]
             [malli.core :as m]
+            [typed.clj.runtime.env :as clj-env]
             [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]
             [io.github.frenchy64.fully-satisfies.safe-locals-clearing :refer [delay]]))
 
@@ -22,12 +23,14 @@
 (defn malli->Type [m opts]
   @register!
   ((requiring-resolve 'typed.clj.checker.parse-unparse/parse-type)
-   (s->t/malli->type m opts)))
+   (s->t/malli->type m opts)
+   opts))
 
 (defn malli-meta-ann->Type [m opts]
   @register!
   ((requiring-resolve 'typed.clj.checker.parse-unparse/parse-type)
-   (s->t/malli->type (eval m) opts)))
+   (s->t/malli->type (eval m) opts)
+   opts))
 
 (defn var-type [var-qsym]
   (when (qualified-symbol? var-qsym)
@@ -35,5 +38,6 @@
                     [(symbol (namespace var-qsym))
                      (symbol (name var-qsym))
                      :schema])
-            (malli->Type {::s->t/mode :validator-type
-                          ::s->t/source var-qsym}))))
+            (malli->Type (assoc (clj-env/clj-opts)
+                                ::s->t/mode :validator-type
+                                ::s->t/source var-qsym)))))

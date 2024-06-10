@@ -18,18 +18,19 @@
             [typed.cljc.checker.utils :as u]))
 
 (defn -unanalyzed-special__pred
-  [{[_ tsyn :as form] :form :keys [env] :as expr} expected]
+  [{[_ tsyn :as form] :form :keys [env] :as expr} expected opts]
   {:post [(-> % u/expr-type r/TCResult?)]}
   (let [nargs (dec (count form))
         _ (when-not (= 1 nargs)
-            (err/int-error (str "Wrong arguments to pred: Expected 1, found " nargs)))
+            (err/int-error (str "Wrong arguments to pred: Expected 1, found " nargs) opts))
         ptype
         ; frees are not scoped when pred's are parsed at runtime,
         ; so we simulate the same here.
         (binding [tvar-env/*current-tvars* {}]
           (prs/with-parse-ns (cu/expr-ns expr)
-            (prs/parse-type tsyn)))]
+            (prs/parse-type tsyn opts)))]
     (assoc expr
            u/expr-type (below/maybe-check-below
                          (r/ret (prs/predicate-for ptype))
-                         expected))))
+                         expected
+                         opts))))

@@ -16,7 +16,7 @@
             [clojure.set :as set]
             [clojure.core.typed.util-vars :as vs]
             [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]
-            [typed.cljc.checker.check :as chk]
+            [typed.cljc.checker.check :as check]
             [typed.clj.checker.assoc-utils :as assoc-u]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.cljc.checker.filter-ops :as fops]
@@ -104,21 +104,21 @@
 ;[(t/Vec Type) (t/Vec Type) Type -> Boolean]
 (defn subtypes-varargs?
   "True if argtys are under dom"
-  [argtys dom rst kws]
+  [argtys dom rst kws opts]
   (boolean
     (do-top-level-subtype-using
-      subtypes*-varargs argtys dom rst kws)))
+      subtypes*-varargs argtys dom rst kws opts)))
 
 (defn subtypes-prest?
   "True if argtys are under dom and prest"
-  [argtys dom prest]
+  [argtys dom prest opts]
   (let [dom-count (count dom)
         [argtys-dom argtys-rest] (split-at dom-count argtys)]
     (boolean
       (and (do-top-level-subtype-using
-             subtypes*-varargs (vec argtys-dom) dom nil nil)
+             subtypes*-varargs (vec argtys-dom) dom nil nil opts)
            (do-top-level-subtype-using
-             subtypeA* (r/-hvec (vec argtys-rest)) prest)))))
+             subtypeA* (r/-hvec (vec argtys-rest)) prest opts)))))
 
 ;subtype and subtype? use *sub-current-seen* for remembering types (for Rec)
 ;subtypeA* takes an extra argument (the current-seen subtypes), called by subtype
@@ -135,11 +135,11 @@
   nil)
 
 ;[Type Type -> Boolean]
-(defn subtype? [s t]
+(defn subtype? [s t opts]
   {:post [(boolean? %)]}
   (letfn [(do-subtype []
             (boolean
-              (do-top-level-subtype-using subtypeA* s t)))]
+              (do-top-level-subtype-using subtypeA* s t opts)))]
     (if true ;; true == disable cache
       (do-subtype)
       (if-let [[_ res] (find @subtype-cache [s t])]
@@ -149,29 +149,29 @@
             (swap! subtype-cache assoc [s t] res))
           res)))))
 
-(defn subtype-filter? [f1 f2]
+(defn subtype-filter? [f1 f2 opts]
   (boolean
     (do-top-level-subtype-using
-      subtype-filter* f1 f2)))
+      subtype-filter* f1 f2 opts)))
 
 (declare subtype-type-filter* subtype-not-type-filter*)
 
-(defn subtype-type-filter? [f1 f2]
+(defn subtype-type-filter? [f1 f2 opts]
   (boolean
     (do-top-level-subtype-using
-      subtype-type-filter* f1 f2)))
+      subtype-type-filter* f1 f2 opts)))
 
-(defn subtype-not-type-filter? [f1 f2]
+(defn subtype-not-type-filter? [f1 f2 opts]
   (boolean
     (do-top-level-subtype-using
-      subtype-not-type-filter* f1 f2)))
+      subtype-not-type-filter* f1 f2 opts)))
 
 ;[(Map Symbol Bounds) (Map Symbol Bounds) (t/Seqable Type) (t/Seqable Type)
 ;  -> Boolean]
-(defn unify [X Y S T R]
+(defn unify [X Y S T R opts]
   (boolean 
     (u/handle-cs-gen-failure
-      (ind/infer X Y S T R))))
+      (ind/infer X Y S T R opts))))
 
 (declare protocol-extenders
          subtype-datatypes-or-records subtype-Result subtype-PrimitiveArray
@@ -188,10 +188,11 @@
     A
     (report-not-subtypes s t)))
 
-(defn subtype-compatible-HSequential [A s t]
+(defn subtype-compatible-HSequential [A s t opts]
   {:pre [(r/HSequential? s)
          (r/HSequential? t)
          (r/compatible-HSequential-kind? (:kind s) (:kind t))]}
+  (let [subtypeA* #(subtypeA* A %1 %2 opts)]
   (if (and (cond
              ; simple case, no rest, drest, repeat types
              (and (not-any? :rest [s t])
@@ -200,7 +201,7 @@
              (let []
                (and (= (count (:types s))
                        (count (:types t)))
-                    (every?' (partial subtypeA* A) (:types s) (:types t))))
+                    (every?' subtypeA* (:types s) (:types t))))
 
              ; repeat on left
              (and (:repeat s)
@@ -212,10 +213,10 @@
                (cond
                  (:rest t)
                  (and (= 1 s-types-count)
-                      (every?' (partial subtypeA* A)
+                      (every?' subtypeA*
                                (repeat (first s-types))
                                t-types)
-                      (subtypeA* A (first s-types) (:rest t)))
+                      (subtypeA* (first s-types) (:rest t)))
 
                  ; both s & t have :repeat
                  (:repeat t)
@@ -223,7 +224,7 @@
                           s-types-count)
                       (zero? (rem s-types-count
                                   t-types-count))
-                      (every?' (partial subtypeA* A)
+                      (every?' subtypeA*
                                s-types
                                (gen-repeat (/ (count s-types)
                                               (count t-types))
@@ -242,10 +243,10 @@
                    t-types-count (count t-types)]
                (if (:rest s)
                  (and (= 1 t-types-count)
-                      (every?' (partial subtypeA* A)
+                      (every?' subtypeA*
                                s-types
                                (repeat (first t-types)))
-                      (subtypeA* A (:rest s) (first t-types)))
+                      (subtypeA* (:rest s) (first t-types)))
 
                  ; nothing on left
                  (and (or (zero? s-types-count)
@@ -253,7 +254,7 @@
                               s-types-count))
                       (if (zero? (rem s-types-count
                                       t-types-count))
-                        (every?' (partial subtypeA* A)
+                        (every?' subtypeA*
                                  s-types
                                  (gen-repeat (/ s-types-count
                                                 t-types-count)
@@ -266,9 +267,9 @@
              (and (>= (count (:types s))
                       (count (:types t)))
                   (or (not (:rest s))
-                      (subtypeA* A (:rest s) (:rest t)))
+                      (subtypeA* (:rest s) (:rest t)))
                   ;pad t to the right
-                  (every?' (partial subtypeA* A)
+                  (every?' subtypeA*
                            (:types s)
                            (concat (:types t)
                                    (repeat (- (count (:types s)) (count (:types t)))
@@ -277,7 +278,7 @@
              (and (:drest s)
                   (:rest t))
              (and
-               (every?' (partial subtypeA* A)
+               (every?' subtypeA*
                         (:types s)
                         (concat (:types t)
                                 (repeat (- (count (:types s)) (count (:types t)))
@@ -297,21 +298,21 @@
                           (= o1 o2)))
                     (:objects s) (:objects t)))
     A
-    (report-not-subtypes s t)))
+    (report-not-subtypes s t))))
 
-(defn simplify-In [t]
+(defn simplify-In [t opts]
   {:pre [(r/Intersection? t)]}
   (:types t)
   ;; very slow
   #_
-  (let [mi (apply c/In (:types t))]
+  (let [mi (c/In (:types t) opts)]
     (if (r/Intersection? mi)
       (:types mi)
       [mi])))
 
 (defn subtype-symbolic-closure
   "Return A if symbolic closure s is a subtype of t, otherwise nil."
-  [A s t]
+  [A s t {::check/keys [check-expr] :as opts}]
   {:pre [(set? A)
          (r/SymbolicClosure? s)
          (r/AnyType? t)]
@@ -320,7 +321,7 @@
   (with-bindings (assoc (:bindings s)
                         #'vs/*delayed-errors* (err/-init-delayed-errors))
     (when (try (binding [*sub-current-seen* A]
-                 (chk/check-expr (:fexpr s) (r/ret t)))
+                 (check-expr (:fexpr s) (r/ret t)))
                (catch clojure.lang.ExceptionInfo e
                  ;(prn e) ;;tmp
                  (when-not (-> e ex-data err/tc-error?)
@@ -332,7 +333,7 @@
 (defn check-symbolic-closure
   "Check symbolic closure s against type t (propagating all errors to caller),
   returning the checked expression."
-  [s t]
+  [{{::check/keys [check-expr]} :opts :as s} t]
   {:pre [(r/SymbolicClosure? s)
          (r/AnyType? t)]
    :post [(-> % u/expr-type r/TCResult?)]}
@@ -341,7 +342,7 @@
                          ;; hmm, additional error msg context needed to orient the user
                          ;; to the problem? symbolic closure will be blamed
                          #'vs/*delayed-errors*)
-    (chk/check-expr (:fexpr s) (r/ret t))))
+    (check-expr (:fexpr s) (r/ret t))))
 
 (defn subtype-regex [A s t]
   {:pre [(r/Regex? s)
@@ -367,8 +368,8 @@
   ([x & next]
    `(if ~x true (OR ~@next))))
 
-(defn subtype-heterogeneous-map [A s t]
-  (let [                ; convention: prefix things on left with l, right with r
+(defn subtype-heterogeneous-map [A s t opts]
+  (let [; convention: prefix things on left with l, right with r
         ltypes (:types s)
         labsent (:absent-keys s)
         rtypes (:types t)
@@ -407,17 +408,17 @@
                                         ; all present keys in t should be present in s
          (every? (fn [[k v]]
                    (when-let [t (get ltypes k)]
-                     (subtypeA* A t v)))
+                     (subtypeA* A t v opts)))
                  rtypes)
                                         ; all optional keys in t should match optional/mandatory entries in s
          (every? (fn [[k v]]
                    (let [matches-entry?
                          (if-let [actual-v 
-                                  ((merge-with c/In
+                                  ((merge-with #(c/In [%1 %2] opts)
                                                (:types s)
                                                (:optional s))
                                    k)]
-                           (subtypeA* A actual-v v)
+                           (subtypeA* A actual-v v opts)
                            (c/complete-hmap? s))]
                      (cond
                        (c/partial-hmap? s)
@@ -429,40 +430,40 @@
       (report-not-subtypes s t))))
 
 (defprotocol SubtypeA*Protocol
-  (subtypeA*-for-s [s t A]))
+  (subtypeA*-for-s [s t A opts]))
 
 (extend-protocol SubtypeA*Protocol
   typed.cljc.checker.type_rep.Regex
-  (subtypeA*-for-s [s t A]
+  (subtypeA*-for-s [s t A opts]
     (when (r/Regex? t)
       (subtype-regex A s t)))
 
   typed.cljc.checker.type_rep.CountRange
-  (subtypeA*-for-s [s t A]
+  (subtypeA*-for-s [s t A opts]
     (when (r/CountRange? t)
       (subtype-CountRange A s t)))
 
   typed.cljc.checker.type_rep.CLJSInteger
-  (subtypeA*-for-s [s t A]
+  (subtypeA*-for-s [s t A opts]
     (when (r/JSNumber? t)
       A))
 
   FnIntersection
   ;; hack for FnIntersection <: clojure.lang.IFn
-  (subtypeA*-for-s [s t A]
+  (subtypeA*-for-s [s t A opts]
     (when (impl/checking-clojure?)
-      (subtypeA* A (c/RClass-of clojure.lang.IFn) t)))
+      (subtypeA* A (c/RClass-of clojure.lang.IFn opts) t opts)))
 
   RClass
-  (subtypeA*-for-s [s t A]
+  (subtypeA*-for-s [s t A opts]
     (cond
       (OR (r/RClass? t)
           (r/Instance? t))
-      (subtype-RClass A s t)
+      (subtype-RClass A s t opts)
 
       (OR (r/Protocol? t)
           (r/Satisfies? t))
-      (subtype-rclass-or-datatype-with-protocol A s t)
+      (subtype-rclass-or-datatype-with-protocol A s t opts)
 
       ;; handles classes with FnIntersection ancestors
       (r/FnIntersection? t)
@@ -474,65 +475,66 @@
               _ (when-not (= 1 (count args))
                   (err/int-error
                    (str "clojure.lang.Var takes 1 argument, "
-                        "given " (count (.poly? s)))))]
-          (subtypeA* A read-type t))
+                        "given " (count (.poly? s)))
+                   opts))]
+          (subtypeA* A read-type t opts))
 
-        (some #(let [s (c/fully-resolve-type %)]
+        (some #(let [s (c/fully-resolve-type % opts)]
                  (when (r/FnIntersection? s)
-                   (subtypeA* A s t)))
-              (c/RClass-supers* s)))
+                   (subtypeA* A s t opts)))
+              (c/RClass-supers* s opts)))
 
       ;; handles classes with heterogeneous vector ancestors (eg. IMapEntry)
       (OR (r/HSequential? t)
           (r/TopHSequential? t))
-      (some #(let [s (c/fully-resolve-type %)]
+      (some #(let [s (c/fully-resolve-type % opts)]
                (when (r/HSequential? s)
-                 (subtypeA* A s t)))
-            (c/RClass-supers* s))))
+                 (subtypeA* A s t opts)))
+            (c/RClass-supers* s opts))))
 
   typed.cljc.checker.type_rep.Instance
-  (subtypeA*-for-s [s t A]
+  (subtypeA*-for-s [s t A opts]
     (when (OR (r/RClass? t)
               (r/Instance? t))
-      (subtype-RClass A s t)))
+      (subtype-RClass A s t opts)))
 
   typed.cljc.checker.type_rep.DataType
-  (subtypeA*-for-s [s t A]
+  (subtypeA*-for-s [s t A opts]
     (cond (r/DataType? t)
-          (subtype-datatypes-or-records A s t)
+          (subtype-datatypes-or-records A s t opts)
 
           (r/RClass? t)
-          (subtype-datatype-rclass A s t)
+          (subtype-datatype-rclass A s t opts)
 
           (OR (r/Protocol? t)
               (r/Satisfies? t))
-          (subtype-rclass-or-datatype-with-protocol A s t)))
+          (subtype-rclass-or-datatype-with-protocol A s t opts)))
 
   typed.cljc.checker.type_rep.Result
-  (subtypeA*-for-s [s t A]
+  (subtypeA*-for-s [s t A opts]
     (when (r/Result? t)
-      (subtype-Result A s t)))
+      (subtype-Result A s t opts)))
 
   typed.cljc.checker.type_rep.PrimitiveArray
-  (subtypeA*-for-s [s t A]
+  (subtypeA*-for-s [s t A opts]
     (if (r/PrimitiveArray? t)
-      (subtype-PrimitiveArray A s t)
-      (subtypeA* A (c/upcast-PrimitiveArray s) t)))
+      (subtype-PrimitiveArray A s t opts)
+      (subtypeA* A (c/upcast-PrimitiveArray s opts) t opts)))
 
   typed.cljc.checker.type_rep.TypeFn
-  (subtypeA*-for-s [s t A]
+  (subtypeA*-for-s [s t A opts]
     (when (r/TypeFn? t)
-      (subtype-TypeFn A s t)))
+      (subtype-TypeFn A s t opts)))
 
   typed.cljc.checker.type_rep.JSNull
-  (subtypeA*-for-s [s t A] (subtypeA* A r/-nil t))
+  (subtypeA*-for-s [s t A opts] (subtypeA* A r/-nil t opts))
 
   typed.cljc.checker.type_rep.JSUndefined
-  (subtypeA*-for-s [s t A] (subtypeA* A r/-nil t))
+  (subtypeA*-for-s [s t A opts] (subtypeA* A r/-nil t opts))
 
   ;;values are subtypes of their classes
   typed.cljc.checker.type_rep.Value
-  (subtypeA*-for-s [s t A]
+  (subtypeA*-for-s [s t A opts]
     (cond
       ;; repeat Heterogeneous* can always accept nil
       (AND (= s r/-nil)
@@ -551,22 +553,24 @@
         (impl/impl-case
          :clojure (if (nil? sval)
                     ; this is after the nil <: Protocol case, so just add non-protocol ancestors here
-                    (subtypeA* A (r/make-ExactCountRange 0) t)
+                    (subtypeA* A (r/make-ExactCountRange 0) t opts)
                     (subtypeA* A
-                               (apply c/In (c/RClass-of (class sval))
-                                      (cond
-                                        ;keyword values are functions
-                                        (keyword? sval) [(c/keyword->Fn sval)]
-                                        ;strings have a known length as a seqable
-                                        (string? sval) [(r/make-ExactCountRange (count sval))]))
-                               t))
+                               (c/In (cons (c/RClass-of (class sval) opts)
+                                           (cond
+                                             ;keyword values are functions
+                                             (keyword? sval) [(c/keyword->Fn sval opts)]
+                                             ;strings have a known length as a seqable
+                                             (string? sval) [(r/make-ExactCountRange (count sval))]))
+                                     opts)
+                               t
+                               opts))
          :cljs (cond
-                 (integer? sval) (subtypeA* A (r/CLJSInteger-maker) t)
-                 (number? sval) (subtypeA* A (r/JSNumber-maker) t)
-                 (string? sval) (subtypeA* A (r/JSString-maker) t)
-                 (boolean? sval) (subtypeA* A (r/JSBoolean-maker) t)
-                 (symbol? sval) (subtypeA* A (c/DataType-of 'cljs.core/Symbol) t)
-                 (keyword? sval) (subtypeA* A (c/DataType-of 'cljs.core/Keyword) t)
+                 (integer? sval) (subtypeA* A (r/CLJSInteger-maker) t opts)
+                 (number? sval) (subtypeA* A (r/JSNumber-maker) t opts)
+                 (string? sval) (subtypeA* A (r/JSString-maker) t opts)
+                 (boolean? sval) (subtypeA* A (r/JSBoolean-maker) t opts)
+                 (symbol? sval) (subtypeA* A (c/DataType-of 'cljs.core/Symbol opts) t opts)
+                 (keyword? sval) (subtypeA* A (c/DataType-of 'cljs.core/Keyword opts) t opts)
                  :else (report-not-subtypes s t))))))
 
   ;; The order of checking protocols and datatypes is subtle.
@@ -574,7 +578,7 @@
   ;; the descendants of a protocol, so Datatype <: Any comes
   ;; before Protocol <: Any.
   Protocol
-  (subtypeA*-for-s [s ^Protocol t A]
+  (subtypeA*-for-s [s ^Protocol t A opts]
     (cond
       (r/Protocol? t)
       (let [var1 (.the-var s)
@@ -586,10 +590,10 @@
         (when (AND (= var1 var2)
                    (every?' (fn _prcol-variance [v l r]
                               (case v
-                                :covariant (subtypeA* A l r)
-                                :contravariant (subtypeA* A r l)
-                                :invariant (and (subtypeA* A l r)
-                                                (subtypeA* A r l))))
+                                :covariant (subtypeA* A l r opts)
+                                :contravariant (subtypeA* A r l opts)
+                                :invariant (and (subtypeA* A l r opts)
+                                                (subtypeA* A r l opts))))
                             variances* poly1 poly2))
           A))
 
@@ -597,84 +601,85 @@
       (subtype-Satisfies A s t)))
 
   typed.cljc.checker.type_rep.Satisfies
-  (subtypeA*-for-s [s t A]
+  (subtypeA*-for-s [s t A opts]
     (when (r/Satisfies? t)
       (subtype-Satisfies A s t)))
 
   HeterogeneousMap
-  (subtypeA*-for-s [s t A]
-    (subtypeA* A (c/upcast-hmap s) t))
+  (subtypeA*-for-s [s t A opts]
+    (subtypeA* A (c/upcast-hmap s opts) t opts))
 
   ;; JSObj is covariant, taking after TypeScript & Google Closure. Obviously unsound.
   JSObj
-  (subtypeA*-for-s [s ^JSObj t A]
+  (subtypeA*-for-s [s ^JSObj t A opts]
     (when (r/JSObj? t)
       (let [; convention: prefix things on left with l, right with r
             ltypes (.types s)
             rtypes (.types t)]
         (when (every? (fn [[k rt]]
                         (when-let [lt (get ltypes k)]
-                          (subtypeA* A lt rt)))
+                          (subtypeA* A lt rt opts)))
                       rtypes)
           A))))
 
   typed.cljc.checker.type_rep.HSet
-  (subtypeA*-for-s [s t A]
+  (subtypeA*-for-s [s t A opts]
     (if (r/HSet? t)
       (subtype-HSet A s t)
-      (subtypeA* A (c/upcast-hset s) t)))
+      (subtypeA* A (c/upcast-hset s opts) t opts)))
 
   typed.cljc.checker.type_rep.KwArgsSeq
-  (subtypeA*-for-s [s t A]
+  (subtypeA*-for-s [s t A opts]
     (if (r/TopKwArgsSeq? t)
       A
-      (subtypeA* A (c/upcast-kw-args-seq s) t)))
+      (subtypeA* A (c/upcast-kw-args-seq s opts) t opts)))
 
   ;; TODO add repeat support
   HSequential
-  (subtypeA*-for-s [s ^HSequential t A]
+  (subtypeA*-for-s [s ^HSequential t A opts]
     (cond (and (r/HSequential? t)
                (r/compatible-HSequential-kind? (.kind s)
                                                (.kind t)))
-          (subtype-compatible-HSequential A s t)
+          (subtype-compatible-HSequential A s t opts)
 
           (r/TopHSequential? t) A
 
           :else
-          (subtypeA* A (c/upcast-HSequential s) t)))
+          (subtypeA* A (c/upcast-HSequential s opts) t opts)))
 
   ;;every rtype entry must be in ltypes
   ;;eg. {:a 1, :b 2, :c 3} <: {:a 1, :b 2}
   HeterogeneousMap
-  (subtypeA*-for-s [s t A]
+  (subtypeA*-for-s [s t A opts]
     (if (r/HeterogeneousMap? t)
-      (subtype-heterogeneous-map A s t)
-      (subtypeA* A (c/upcast-hmap s) t)))
+      (subtype-heterogeneous-map A s t opts)
+      (subtypeA* A (c/upcast-hmap s opts) t opts)))
 
   Poly
-  (subtypeA*-for-s [s ^Poly t A]
+  (subtypeA*-for-s [s ^Poly t A opts]
     (when (AND (r/PolyDots? t) ;; test t first to short-circuit if -Poly? fails
                (= :PolyDots (.kind s))
                (= (.nbound s) (.nbound t)))
       (let [;instantiate both sides with the same fresh variables
             names (repeatedly (.nbound s) gensym)
-            bbnds1 (c/PolyDots-bbnds* names s)
-            bbnds2 (c/PolyDots-bbnds* names t)
-            b1 (c/PolyDots-body* names s)
-            b2 (c/PolyDots-body* names t)]
+            bbnds1 (c/PolyDots-bbnds* names s opts)
+            bbnds2 (c/PolyDots-bbnds* names t opts)
+            b1 (c/PolyDots-body* names s opts)
+            b2 (c/PolyDots-body* names t opts)]
         (when (= bbnds1 bbnds2)
           (free-ops/with-bounded-frees (zipmap (map r/F-maker names) bbnds1)
-            (subtypeA* A b1 b2)))))))
+            (subtypeA* A b1 b2 opts)))))))
 
 ;;TODO replace hardcoding cases for unfolding Mu? etc. with a single case for unresolved types.
 ;;[(t/Set '[Type Type]) Type Type -> (t/Nilable (t/Set '[Type Type]))]
-(defn ^:private subtypeA* [A s t]
+(defn ^:private subtypeA* [A s t opts]
   {:pre [(r/AnyType? s)
          (r/AnyType? t)]
    ;; for recur
    ;:post [(or (set? %) (nil? %))]
    }
   ;(prn "subtypeA*" s t)
+  (let [subtypeA* #(subtypeA* %1 %2 %3 opts)]
   (if (OR ; FIXME TypeFn's are probably not between Top/Bottom
           (r/Top? t)
           (r/Wildcard? t)
@@ -701,7 +706,7 @@
                        (free-ops/free-with-name-bnds (:name s))]
                (and (subtypeA* A (:upper-bound bnd) t)
                     (subtypeA* A (:lower-bound bnd) t))
-               (do #_(err/int-error (str "No bounds for " (:name s)))
+               (do #_(err/int-error (str "No bounds for " (:name s)) opts)
                    false)))
         A
 
@@ -710,23 +715,23 @@
                        (free-ops/free-with-name-bnds (:name t))]
                (and (subtypeA* A s (:upper-bound bnd))
                     (subtypeA* A s (:lower-bound bnd)))
-               (do #_(err/int-error (str "No bounds for " (:name s)))
+               (do #_(err/int-error (str "No bounds for " (:name s)) opts)
                    false)))
         A
 
         (r/TypeOf? s)
-        (recur A (c/resolve-TypeOf s) t)
+        (recur A (c/resolve-TypeOf s opts) t opts)
 
         (r/TypeOf? t)
-        (recur A s (c/resolve-TypeOf t))
+        (recur A s (c/resolve-TypeOf t opts) opts)
 
         (AND (r/MatchType? s)
              (c/Match-can-resolve? s))
-        (recur A (c/resolve-Match s) t)
+        (recur A (c/resolve-Match s opts) t opts)
 
         (AND (r/MatchType? t)
              (c/Match-can-resolve? t))
-        (recur A s (c/resolve-Match t))
+        (recur A s (c/resolve-Match t opts) opts)
 
         (AND (r/Value? s)
              (r/Value? t))
@@ -735,11 +740,11 @@
 
         ;; handle before unwrapping polymorphic types
         (AND (r/SymbolicClosure? s)
-             (let [frt (c/fully-resolve-type t)]
+             (let [frt (c/fully-resolve-type t opts)]
                (OR (r/FnIntersection? frt)
                    (r/Poly? frt)
                    (r/PolyDots? frt))))
-        (or (subtype-symbolic-closure A s t)
+        (or (subtype-symbolic-closure A s t opts)
             (report-not-subtypes s t))
 
         (AND (r/Poly? s)
@@ -748,9 +753,9 @@
              (= (:bbnds s) (:bbnds t)))
         (let [;instantiate both sides with the same fresh variables
               names (repeatedly (:nbound s) gensym)
-              bbnds1 (c/Poly-bbnds* names s)
-              b1 (c/Poly-body* names s)
-              b2 (c/Poly-body* names t)]
+              bbnds1 (c/Poly-bbnds* names s opts)
+              b1 (c/Poly-body* names s opts)
+              b2 (c/Poly-body* names t opts)]
           (if (free-ops/with-bounded-frees (zipmap (map r/F-maker names) bbnds1)
                 (subtypeA* A b1 b2))
             A
@@ -759,25 +764,25 @@
         ;use unification to see if we can use the Poly type here
         (and (r/Poly? s)
              (let [names (c/Poly-fresh-symbols* s)
-                   bnds (c/Poly-bbnds* names s)
-                   b1 (c/Poly-body* names s)
+                   bnds (c/Poly-bbnds* names s opts)
+                   b1 (c/Poly-body* names s opts)
                    ;_ (prn "try unify on left")
                    X (zipmap names bnds)
                    u (free-ops/with-bounded-frees (update-keys X r/make-F)
-                       (unify X {} [b1] [t] r/-any))]
+                       (unify X {} [b1] [t] r/-any opts))]
                ;(prn "unified on left")
                u))
         A
 
         (and (r/PolyDots? s)
              (let [names (c/PolyDots-fresh-symbols* s)
-                   bnds (c/PolyDots-bbnds* names s)
-                   b1 (c/PolyDots-body* names s)
+                   bnds (c/PolyDots-bbnds* names s opts)
+                   b1 (c/PolyDots-body* names s opts)
                    ;_ (prn "try PolyDots unify on left")
                    X (zipmap (pop names) (pop bnds))
                    Y {(peek names) (peek bnds)}
                    u (free-ops/with-bounded-frees (update-keys (into X Y) r/make-F)
-                       (unify X Y [b1] [t] r/-any))]
+                       (unify X Y [b1] [t] r/-any opts))]
                ;(prn "unified on left" u)
                u))
         A
@@ -792,77 +797,78 @@
                 nil nil
                 (r/ret s)
                 (mapv r/ret (-> t :types first :dom))
-                (-> t :types first :rng r/Result->TCResult))
+                (-> t :types first :rng r/Result->TCResult)
+                {} opts)
                (empty? @vs/*delayed-errors*)))
         A
 
         (and (r/Poly? t)
-             (empty? (frees/fv-variances t))
+             (empty? (frees/fv-variances t opts))
              (let [names (c/Poly-fresh-symbols* t)
-                   bbnds (c/Poly-bbnds* names t)
-                   b (c/Poly-body* names t)]
+                   bbnds (c/Poly-bbnds* names t opts)
+                   b (c/Poly-body* names t opts)]
                (free-ops/with-bounded-frees (zipmap (map r/F-maker names) bbnds)
                  (subtypeA* A s b))))
         A
 
         (r/Name? s)
-        (recur A (c/resolve-Name s) t)
+        (recur A (c/resolve-Name s opts) t opts)
 
         (r/Name? t)
-        (recur A s (c/resolve-Name t))
+        (recur A s (c/resolve-Name t opts) opts)
 
         ;;only pay cost of dynamic binding when absolutely necessary (eg., before unfolding Mu)
         (r/Mu? s)
         (binding [*sub-current-seen* A]
-          (subtypeA* A (c/unfold s) t))
+          (subtypeA* A (c/unfold s opts) t))
 
         (r/Mu? t)
         (binding [*sub-current-seen* A]
-          (subtypeA* A s (c/unfold t)))
+          (subtypeA* A s (c/unfold t opts)))
 
         (r/App? s)
-        (recur A (c/resolve-App s) t)
+        (recur A (c/resolve-App s opts) t opts)
 
         (r/App? t)
-        (recur A s (c/resolve-App t))
+        (recur A s (c/resolve-App t opts) opts)
 
         (= r/empty-union t)
         (report-not-subtypes s t)
 
         (AND (r/TApp? s)
              (r/TApp? t)
-             (= (c/fully-resolve-type (:rator s))
-                (c/fully-resolve-type (:rator t))))
-        (subtype-TApp A s t)
+             (= (c/fully-resolve-type (:rator s) opts)
+                (c/fully-resolve-type (:rator t) opts)))
+        (subtype-TApp A s t opts)
 
         (and (r/TApp? s)
-             (r/TypeFn? (c/fully-resolve-type (:rator s))))
+             (r/TypeFn? (c/fully-resolve-type (:rator s) opts)))
         (let [rands (:rands s)
-              rator (c/fully-resolve-type (:rator s))]
+              rator (c/fully-resolve-type (:rator s) opts)]
           (cond
             (r/F? rator) (report-not-subtypes s t)
 
             (r/TypeFn? rator)
             (let [names (c/TypeFn-fresh-symbols* rator)
-                  bbnds (c/TypeFn-bbnds* names rator)
-                  res (c/instantiate-typefn rator rands :names names)]
+                  bbnds (c/TypeFn-bbnds* names rator opts)
+                  res (c/instantiate-typefn rator rands {:names names} opts)]
               (subtypeA* A res t))
 
-            :else (err/int-error (str "First argument to TApp must be TFn, actual: " (prs/unparse-type rator)))))
+            :else (err/int-error (str "First argument to TApp must be TFn, actual: " (prs/unparse-type rator opts)) opts)))
 
         (and (r/TApp? t)
-             (r/TypeFn? (c/fully-resolve-type (:rator t))))
+             (r/TypeFn? (c/fully-resolve-type (:rator t) opts)))
         (let [rands (:rands t)
-              rator (c/fully-resolve-type (:rator t))]
+              rator (c/fully-resolve-type (:rator t) opts)]
           (cond
             (r/F? rator) (report-not-subtypes s t)
 
             (r/TypeFn? rator)
             (let [names (c/TypeFn-fresh-symbols* rator)
-                  res (c/instantiate-typefn rator rands :names names)]
-              (recur A s res))
+                  res (c/instantiate-typefn rator rands {:names names} opts)]
+              (recur A s res opts))
 
-            :else (err/int-error (str "First argument to TApp must be TFn, actual: " (prs/unparse-type rator)))))
+            :else (err/int-error (str "First argument to TApp must be TFn, actual: " (prs/unparse-type rator opts)) opts)))
 
         (r/Union? s)
         (if (every? (fn union-left [s] (subtypeA* A s t)) (:types s))
@@ -879,19 +885,19 @@
           (let [arr1 (:types s)]
             (if (empty? arr2)
               A*
-              (if-let [A (supertype-of-one-arr A* (first arr2) arr1)]
+              (if-let [A (supertype-of-one-arr A* (first arr2) arr1 opts)]
                 (recur A (next arr2))
                 (report-not-subtypes s t)))))
 
 ;does it matter what order the Intersection cases are?
         (r/Intersection? t)
-        (let [ts (simplify-In t)]
+        (let [ts (simplify-In t opts)]
           (if (every? #(subtypeA* A s %) ts)
             A
             (report-not-subtypes s t)))
 
         (r/Intersection? s)
-        (let [ss (simplify-In s)]
+        (let [ss (simplify-In s opts)]
           (some #(subtypeA* A % t) ss))
 
         (AND (r/Extends? s)
@@ -950,25 +956,27 @@
 ; delegate to NotType
         (r/DifferenceType? s)
         (recur A
-               (apply c/In (:type s) (map r/NotType-maker (:without s)))
-               t)
+               (c/In (cons (:type s) (map r/NotType-maker (:without s))) opts)
+               t
+               opts)
 
         (r/DifferenceType? t)
         (recur A
                s
-               (apply c/In (:type t) (map r/NotType-maker (:without t))))
+               (c/In (cons (:type t) (map r/NotType-maker (:without t))) opts)
+               opts)
 
         (or (and (r/GetType? s)
-                 (c/Get-requires-resolving? s))
+                 (c/Get-requires-resolving? s opts))
             (and (r/MergeType? s)
-                 (c/Merge-requires-resolving? s)))
-        (recur A (c/-resolve s) t)
+                 (c/Merge-requires-resolving? s opts)))
+        (recur A (c/-resolve s opts) t opts)
 
         (or (and (r/GetType? t)
-                 (c/Get-requires-resolving? t))
+                 (c/Get-requires-resolving? t opts))
             (and (r/MergeType? t)
-                 (c/Merge-requires-resolving? t)))
-        (recur A s (c/-resolve t))
+                 (c/Merge-requires-resolving? t opts)))
+        (recur A s (c/-resolve t opts) opts)
 
         (AND (r/AssocType? s)
              (r/RClass? t)
@@ -996,8 +1004,9 @@
              (not-any? :dentries [s t]))
         (if (= (:target s) (:target t))
           (recur A
-                 (apply assoc-u/assoc-pairs-noret (c/-complete-hmap {}) (:entries s))
-                 (apply assoc-u/assoc-pairs-noret (c/-complete-hmap {}) (:entries t)))
+                 (assoc-u/assoc-pairs-noret (c/-complete-hmap {} opts) (:entries s) opts)
+                 (assoc-u/assoc-pairs-noret (c/-complete-hmap {} opts) (:entries t) opts)
+                 opts)
           (report-not-subtypes s t))
 
         (and (r/AssocType? s)
@@ -1008,61 +1017,62 @@
                         (str "Bounds not found for free variable: " (-> s :target :name)))]
           (if (subtypeA* A (:upper-bound bnds) t)
             (recur A
-                   (apply assoc-u/assoc-pairs-noret (c/-complete-hmap {}) (:entries s))
-                   t)
+                   (assoc-u/assoc-pairs-noret (c/-complete-hmap {} opts) (:entries s) opts)
+                   t
+                   opts)
             (report-not-subtypes s t)))
       
         ; avoids infinite expansion because associng an F is a fixed point
         (and (r/AssocType? s)
              (not (r/F? (:target s))))
-        (if-let [s-or-n (apply assoc-u/assoc-pairs-noret (:target s) (:entries s))]
-          (recur A s-or-n t)
+        (if-let [s-or-n (assoc-u/assoc-pairs-noret (:target s) (:entries s) opts)]
+          (recur A s-or-n t opts)
           (report-not-subtypes s t))
 
         ; avoids infinite expansion because associng an F is a fixed point
         (and (r/AssocType? t)
              (not (r/F? (:target t))))
-        (if-let [t-or-n (apply assoc-u/assoc-pairs-noret (:target t) (:entries t))]
-          (recur A s t-or-n)
+        (if-let [t-or-n (assoc-u/assoc-pairs-noret (:target t) (:entries t) opts)]
+          (recur A s t-or-n opts)
           (report-not-subtypes s t))
 
         :else (or (when (extends? SubtypeA*Protocol (class s))
-                    (subtypeA*-for-s s t A))
+                    (subtypeA*-for-s s t A opts))
                   ;; TODO (All [r x ...] [x ... x -> r]) <: (All [r x] [x * -> r]) ?
                   (report-not-subtypes s t))
-        ))))
+        )))))
 
-(defn ^:private resolve-JS-reference [sym]
+(defn ^:private resolve-JS-reference [sym opts]
   (impl/assert-cljs)
   (cond
-    (= "js" (namespace sym)) (c/JSNominal-with-unknown-params sym)
+    (= "js" (namespace sym)) (c/JSNominal-with-unknown-params sym opts)
     :else (let [_ (assert nil "FIXME typed.clj.checker.analyze-cljs/analyze-qualified-symbol has been deleted")
                 {{:keys [protocol-symbol name]} :info} ((requiring-resolve 'typed.clj.checker.analyze-cljs/analyze-qualified-symbol) sym)]
             (if protocol-symbol
-              (c/Protocol-with-unknown-params name)
-              (c/DataType-with-unknown-params name)))))
+              (c/Protocol-with-unknown-params name opts)
+              (c/DataType-with-unknown-params name opts)))))
 
 
-(defn protocol-extenders [p]
+(defn protocol-extenders [p opts]
   {:pre [(r/Protocol? p)]
    :post [(every? r/Type? %)]}
   (impl/impl-case
     :clojure (let [exts (c/Protocol-normal-extenders p)]
                (for [ext exts]
                  (cond
-                   (class? ext) (c/RClass-of-with-unknown-params ext)
+                   (class? ext) (c/RClass-of-with-unknown-params ext opts)
                    (nil? ext) r/-nil
                    :else (throw (Exception. (str "What is this?" ext))))))
     :cljs (let [exts ((requiring-resolve 'typed.clj.checker.analyze-cljs/extenders) (:the-var p))]
             (for [ext exts]
               (cond
-                (symbol? ext) (resolve-JS-reference ext)
+                (symbol? ext) (resolve-JS-reference ext opts)
                 (nil? ext) r/-nil
                 :else (throw (Exception. (str "What is this?" ext))))))))
 
 ;[(IPersistentSet '[Type Type]) (t/Seqable Type) (t/Seqable Type) (Option Type)
 ;  -> (IPersistentSet '[Type Type])]
-(defn ^:private subtypes*-varargs-info [A0 argtys dom rst kws]
+(defn ^:private subtypes*-varargs-info [A0 argtys dom rst kws opts]
   {:pre [(vector? argtys)
          (vector? dom)
          ((some-fn nil? r/Type?) rst)
@@ -1091,16 +1101,16 @@
           (zero? ndom)
           (cond rst
                 (let [fargty (nth argtys 0)]
-                  (if-some [A (subtypeA* A fargty rst)]
+                  (if-some [A (subtypeA* A fargty rst opts)]
                     (recur dom (subvec argtys 1) A found-kws)
                     (report-not-subtypes fargty rst)))
 
                 (and kws (<= 2 nargtys))
-                (let [kw (c/fully-resolve-type (nth argtys 0))
+                (let [kw (c/fully-resolve-type (nth argtys 0) opts)
                       val (nth argtys 1)
                       expected-val ((some-fn (:mandatory kws) (:optional kws))
                                     kw)]
-                  (if (and expected-val (subtypeA* A val expected-val))
+                  (if (and expected-val (subtypeA* A val expected-val opts))
                     (recur dom (subvec argtys 2) A (conj found-kws kw))
                     (report-not-subtypes (subvec argtys 0 2) kws)))
 
@@ -1109,18 +1119,18 @@
           :else
           (let [[arg-t] argtys
                 [dom-t] dom]
-            (if-some [A (subtypeA* A0 arg-t dom-t)]
+            (if-some [A (subtypeA* A0 arg-t dom-t opts)]
               (recur (subvec dom 1) (subvec argtys 1) A found-kws)
               (report-not-subtypes arg-t dom-t))))))))
 
 (defn ^:private subtypes*-varargs
-  [A0 argtys dom rst kws]
+  [A0 argtys dom rst kws opts]
   {:pre [(vector? argtys)
          (vector? dom)
          ((some-fn nil? r/Type?) rst)
          ((some-fn nil? r/KwArgs?) kws)]
    :post [((some-fn set? nil?) %)]}
-  (let [{:keys [result A]} (subtypes*-varargs-info A0 argtys dom rst kws)]
+  (let [{:keys [result A]} (subtypes*-varargs-info A0 argtys dom rst kws opts)]
     (when (= :ok result)
       A)))
 
@@ -1134,7 +1144,7 @@
 
 ;; simple co/contra-variance for ->
 ;[(IPersistentSet '[Type Type]) Function Function -> (IPersistentSet '[Type Type])]
-(defn ^:private arr-subtype [A0 s t]
+(defn ^:private arr-subtype [A0 s t opts]
   {:pre [(r/Function? s)
          (r/Function? t)]}
   ;; top for functions is above everything
@@ -1146,11 +1156,11 @@
     (if (and (= (count (:dom s))
                 (count (:dom t)))
              (some-> (reduce (fn [A* [s t]]
-                               (cond-> (subtypeA* A* s t)
+                               (cond-> (subtypeA* A* s t opts)
                                  nil? reduced))
                              A0
                              (map vector (:dom t) (:dom s)))
-                     (subtypeA* (:rng s) (:rng t))))
+                     (subtypeA* (:rng s) (:rng t) opts)))
       A0
       (report-not-subtypes s t))
 
@@ -1159,12 +1169,12 @@
     (if (and (= (count (:dom s))
                 (count (:dom t)))
              (some-> (reduce (fn [A* [s t]]
-                               (cond-> (subtypeA* A* s t)
+                               (cond-> (subtypeA* A* s t opts)
                                  nil? reduced))
                              A0
                              (map vector (:dom t) (:dom s)))
-                     (subtypeA* (:rng s) (:rng t)))
-             (subtypeA* A0 (:prest s) (:prest t)))
+                     (subtypeA* (:rng s) (:rng t) opts))
+             (subtypeA* A0 (:prest s) (:prest t) opts))
       A0
       (report-not-subtypes s t))
 
@@ -1174,7 +1184,7 @@
                           (every? identity
                                   (for [s s
                                         t t]
-                                    (subtypeA* A0 s t))))
+                                    (subtypeA* A0 s t opts))))
           s-dom (:dom s)
           s-dom-count (count s-dom)
           t-dom (:dom t)
@@ -1182,7 +1192,7 @@
           s-rest (:rest s)
           t-prest-types (-> t :prest :types)
           t-prest-types-count (count t-prest-types)]
-      (if-not (and (subtypeA* A0 (:rng s) (:rng t))
+      (if-not (and (subtypeA* A0 (:rng s) (:rng t) opts)
                    (subtype-list? (repeat t-prest-types-count s-rest) t-prest-types))
         (report-not-subtypes s t)
         (if (> s-dom-count t-dom-count)
@@ -1213,8 +1223,8 @@
     ;kw args
     (and (:kws s)
          (:kws t))
-    (if (and (every?' (partial subtypeA* A0) (:dom t) (:dom s))
-             (subtypeA* A0 (:rng s) (:rng t))
+    (if (and (every?' #(subtypeA* A0 %1 %2 opts) (:dom t) (:dom s))
+             (subtypeA* A0 (:rng s) (:rng t) opts)
              (subtype-kwargs* A0 (:kws t) (:kws s)))
       A0
       (report-not-subtypes s t))
@@ -1222,8 +1232,8 @@
     (and (:rest s)
          (= :fixed (:kind t)))
     (if (some-> A0
-                (subtypes*-varargs (:dom t) (:dom s) (:rest s) nil)
-                (subtypeA* (:rng s) (:rng t)))
+                (subtypes*-varargs (:dom t) (:dom s) (:rest s) nil opts)
+                (subtypeA* (:rng s) (:rng t) opts))
       A0
       (report-not-subtypes s t))
 
@@ -1234,9 +1244,9 @@
     (and (:rest s)
          (:rest t))
     (if (some-> A0
-                (subtypes*-varargs (:dom t) (:dom s) (:rest s) nil)
-                (subtypeA* (:rest t) (:rest s))
-                (subtypeA* (:rng s) (:rng t)))
+                (subtypes*-varargs (:dom t) (:dom s) (:rest s) nil opts)
+                (subtypeA* (:rest t) (:rest s) opts)
+                (subtypeA* (:rng s) (:rng t) opts))
       A0
       (report-not-subtypes s t))
 
@@ -1246,34 +1256,35 @@
          (:drest t)
          (= (-> s :drest :name)
             (-> t :drest :name)))
-    (if (and (subtypeA* A0 (-> t :drest :pre-type) (-> s :drest :pre-type))
+    (if (and (subtypeA* A0 (-> t :drest :pre-type) (-> s :drest :pre-type) opts)
              (some-> (reduce (fn [A* [s t]]
-                               (cond-> (subtypeA* A* s t)
+                               (cond-> (subtypeA* A* s t opts)
                                  nil? reduced))
                              A0 (map vector (:dom t) (:dom s)))
-                     (subtypeA* (:rng s) (:rng t))))
+                     (subtypeA* (:rng s) (:rng t) opts)))
       A0
       (report-not-subtypes s t))
     :else (report-not-subtypes s t)))
 
 ;[(IPersistentSet '[Type Type]) Function (t/Seqable Function) -> (Option (IPersistentSet '[Type Type]))]
-(defn supertype-of-one-arr [A s ts]
-  (some #(arr-subtype A % s) ts))
+(defn supertype-of-one-arr [A s ts opts]
+  (some #(arr-subtype A % s opts) ts))
 
-(defn fully-resolve-filter [fl]
+#_
+(defn fully-resolve-filter [fl opts]
   {:pre [(fr/Filter? fl)]
    :post [(fr/Filter? %)]}
   (cond
-    (fr/TypeFilter? fl) (update fl :type c/fully-resolve-type)
-    (fr/NotTypeFilter? fl) (update fl :type c/fully-resolve-type)
-    (fr/AndFilter? fl) (update fl :fs #(into #{} (map fully-resolve-filter) %))
-    (fr/OrFilter? fl) (update fl :fs #(into #{} (map fully-resolve-filter) %))
+    (fr/TypeFilter? fl) (update fl :type c/fully-resolve-type opts)
+    (fr/NotTypeFilter? fl) (update fl :type c/fully-resolve-type opts)
+    (fr/AndFilter? fl) (update fl :fs #(into #{} (map (fn [s] (fully-resolve-filter s opts))) %))
+    (fr/OrFilter? fl) (update fl :fs #(into #{} (map (fn [s] (fully-resolve-filter s opts))) %))
     (fr/ImpFilter? fl) (-> fl
-                           (update :a fully-resolve-filter)
-                           (update :c fully-resolve-filter))
+                           (update :a fully-resolve-filter opts)
+                           (update :c fully-resolve-filter opts))
     :else fl))
 
-(defn simplify-type-filter [f]
+(defn simplify-type-filter [f opts]
   {:pre [(fr/TypeFilter? f)]}
   (let [[fpth & rstpth] (:path f)]
     (cond 
@@ -1283,21 +1294,22 @@
       (pth-rep/KeyPE? fpth)
       (simplify-type-filter
         (fops/-filter 
-          (c/make-HMap :mandatory {(r/-val (:val fpth)) (:type f)})
+          (c/make-HMap opts {:mandatory {(r/-val (:val fpth)) (:type f)}})
           (:id f)
-          rstpth))
+          rstpth)
+        opts)
       :else f)))
 
-(defn ^:private subtype-type-filter* [A s t]
+(defn ^:private subtype-type-filter* [A s t opts]
   {:pre [(fr/TypeFilter? s)
          (fr/TypeFilter? t)]}
-  (let [s (simplify-type-filter s)
-        t (simplify-type-filter t)]
+  (let [s (simplify-type-filter s opts)
+        t (simplify-type-filter t opts)]
     (if (fr/equal-paths? s t)
-      (subtypeA* A (:type s) (:type t))
+      (subtypeA* A (:type s) (:type t) opts)
       (report-not-subtypes s t))))
 
-(defn simplify-not-type-filter [f]
+(defn simplify-not-type-filter [f opts]
   {:pre [(fr/NotTypeFilter? f)]}
   (let [[fpth & rstpth] (:path f)]
     (cond 
@@ -1308,22 +1320,23 @@
       (simplify-not-type-filter
         (fops/-not-filter 
           ; keys is optional
-          (c/make-HMap 
-            :optional {(r/-val (:val fpth)) (:type f)})
+          (c/make-HMap opts
+            {:optional {(r/-val (:val fpth)) (:type f)}})
           (:id f)
-          rstpth))
+          rstpth)
+        opts)
       :else f)))
 
-(defn ^:private subtype-not-type-filter* [A s t]
+(defn ^:private subtype-not-type-filter* [A s t opts]
   {:pre [(fr/NotTypeFilter? s)
          (fr/NotTypeFilter? t)]
    :post [(or (nil? %) (set? %))]}
-  (let [s (simplify-not-type-filter s)
-        t (simplify-not-type-filter t)]
+  (let [s (simplify-not-type-filter s opts)
+        t (simplify-not-type-filter t opts)]
     (and (fr/equal-paths? s t)
-         (subtypeA* A (:type t) (:type s)))))
+         (subtypeA* A (:type t) (:type s) opts))))
 
-(defn ^:private subtype-filter-set* [A f1 f2]
+(defn ^:private subtype-filter-set* [A f1 f2 opts]
   {:pre [(fr/FilterSet? f1)
          (fr/FilterSet? f2)]
    :post [(or (nil? %) (set? %))]}
@@ -1335,7 +1348,7 @@
                     fld2 (field f2)]
                 (when (and (pred fld1)
                            (pred fld2))
-                  (subf A fld1 fld2))))]
+                  (subf A fld1 fld2 opts))))]
       (or
         (and (sub-helper f1 f2 fr/TypeFilter? :then subtype-type-filter*)
              (sub-helper f1 f2 fr/TypeFilter? :else subtype-not-type-filter*))
@@ -1346,7 +1359,7 @@
         (and (sub-helper f1 f2 fr/NotTypeFilter? :then subtype-not-type-filter*)
              (sub-helper f1 f2 fr/TypeFilter? :else subtype-type-filter*))))))
 
-(defn ^:private subtype-filter* [A f1 f2]
+(defn ^:private subtype-filter* [A f1 f2 opts]
   {:pre [(fr/Filter? f1)
          (not (fr/NoFilter? f1))
          (fr/Filter? f2)
@@ -1361,27 +1374,27 @@
 
     (and (fr/TypeFilter? f1)
          (fr/TypeFilter? f2))
-    (subtype-type-filter* A f1 f2)
+    (subtype-type-filter* A f1 f2 opts)
 
     (and (fr/NotTypeFilter? f1)
          (fr/NotTypeFilter? f2))
-    (subtype-not-type-filter* A f1 f2)
+    (subtype-not-type-filter* A f1 f2 opts)
 
     (fr/AndFilter? f2) (if (every? (fn [f2*]
-                                     (subtype-filter* A f1 f2*))
+                                     (subtype-filter* A f1 f2* opts))
                                    (:fs f2))
                          A
                          (report-not-subtypes f1 f2))
     (fr/AndFilter? f1) (some (fn [f1*]
-                               (subtype-filter* A f1* f2))
+                               (subtype-filter* A f1* f2 opts))
                              (:fs f1))
     (fr/OrFilter? f1) (if (every? (fn [f1*]
-                                    (subtype-filter* A f1* f2))
+                                    (subtype-filter* A f1* f2 opts))
                                   (:fs f1))
                         A
                         (report-not-subtypes f1 f2))
     (fr/OrFilter? f2) (some (fn [f2*]
-                              (subtype-filter* A f1 f2*))
+                              (subtype-filter* A f1 f2* opts))
                             (:fs f2))
     :else (report-not-subtypes f1 f2)))
 
@@ -1389,21 +1402,22 @@
 (defn subtype-Result
   [A
    {t1 :t f1 :fl o1 :o :as s}
-   {t2 :t f2 :fl o2 :o :as t}]
+   {t2 :t f2 :fl o2 :o :as t}
+   opts]
   (cond
     ;trivial case
     (and (= o1 o2)
-         (subtype-filter-set* A f1 f2))
-    (subtypeA* A t1 t2)
+         (subtype-filter-set* A f1 f2 opts))
+    (subtypeA* A t1 t2 opts)
 
     ;we can ignore some interesting results
     (and (orep/EmptyObject? o2)
          (= f2 (fops/-FS fr/-top fr/-top)))
-    (subtypeA* A t1 t2)
+    (subtypeA* A t1 t2 opts)
 
     (and (orep/EmptyObject? o2)
          (= f1 f2))
-    (subtypeA* A t1 t2)
+    (subtypeA* A t1 t2 opts)
 
     ;special case for (& (is y sym) ...) <: (is y sym)
     (and (fr/AndFilter? (:then f1))
@@ -1414,13 +1428,13 @@
          (= o1 o2))
     (let [f1-tf (first (filter fr/TypeFilter? (:fs (:then f1))))]
       (if (= f1-tf (:then f2))
-        (subtypeA* A t1 t2)
+        (subtypeA* A t1 t2 opts)
         (report-not-subtypes t1 t2)))
 
     :else (report-not-subtypes t1 t2)))
 
 (defn ^:private subtype-TypeFn-rands
-  [A tfn rands1 rands2]
+  [A tfn rands1 rands2 opts]
   {:pre [(r/TypeFn? tfn)
          (every? r/Type? rands1)
          (every? r/Type? rands2)]
@@ -1433,100 +1447,102 @@
                              (r/Type? l)
                              (r/Type? r)]}
                       (case v
-                        (:covariant) (subtypeA* A l r)
-                        (:contravariant) (subtypeA* A r l)
-                        (:invariant) (and (subtypeA* A l r)
-                                          (subtypeA* A r l))
-                        (err/int-error (str "Unknown variance: " v))))
+                        (:covariant) (subtypeA* A l r opts)
+                        (:contravariant) (subtypeA* A r l opts)
+                        (:invariant) (and (subtypeA* A l r opts)
+                                          (subtypeA* A r l opts))
+                        (err/int-error (str "Unknown variance: " v) opts)))
                     (:variances tfn) rands1 rands2))
     A
     (report-not-subtypes rands1 rands2)))
 
 (defn subtype-TApp
-  [A s t]
-  (let [s (update s :rator c/fully-resolve-type)
-        t (update t :rator c/fully-resolve-type)
+  [A s t opts]
+  (let [s (update s :rator c/fully-resolve-type opts)
+        t (update t :rator c/fully-resolve-type opts)
         _ (assert (= (:rator s) (:rator t)))]
     (cond
       (and (r/F? (:rator s))
            (r/F? (:rator t)))
       (let [{:keys [upper-bound] :as bnd} (free-ops/free-with-name-bnds (-> s :rator :name))]
         (cond 
-          (not bnd) (err/int-error (str "No bounds for " (:name s)))
-          :else (let [upper-bound (c/fully-resolve-type upper-bound)]
+          (not bnd) (err/int-error (str "No bounds for " (:name s)) opts)
+          :else (let [upper-bound (c/fully-resolve-type upper-bound opts)]
                   (if (r/TypeFn? upper-bound)
-                    (subtype-TypeFn-rands A upper-bound (:rands s) (:rands t))
+                    (subtype-TypeFn-rands A upper-bound (:rands s) (:rands t) opts)
                     (report-not-subtypes s t)))))
       (r/TypeFn? (:rator s))
       (let [rator (:rator s)
             variances (:variances rator)
             names (repeatedly (:nbound rator) gensym)
-            bbnds (c/TypeFn-bbnds* names rator)]
+            bbnds (c/TypeFn-bbnds* names rator opts)]
         (if (and (= (count variances)
                     (count (:rands s))
                     (count (:rands t)))
                  (every?' (fn [variance {:keys [lower-bound upper-bound]} s t]
-                            (and (subtypeA* A lower-bound s)
-                                 (subtypeA* A lower-bound t)
-                                 (subtypeA* A s upper-bound)
-                                 (subtypeA* A t upper-bound)
+                            (and (subtypeA* A lower-bound s opts)
+                                 (subtypeA* A lower-bound t opts)
+                                 (subtypeA* A s upper-bound opts)
+                                 (subtypeA* A t upper-bound opts)
                                  (case variance
-                                   :covariant (subtypeA* A s t)
-                                   :contravariant (subtypeA* A t s)
-                                   :invariant (and (subtypeA* A s t)
-                                                   (subtypeA* A t s)))))
+                                   :covariant (subtypeA* A s t opts)
+                                   :contravariant (subtypeA* A t s opts)
+                                   :invariant (and (subtypeA* A s t opts)
+                                                   (subtypeA* A t s opts)))))
                           variances bbnds (:rands s) (:rands t)))
           A
           (report-not-subtypes s t)))
       :else (report-not-subtypes s t))))
 
 (defn subtype-TypeFn
-  [A S T]
+  [A S T opts]
   {:pre [(r/TypeFn? S)
          (r/TypeFn? T)]}
   (let [;instantiate both type functions with the same names
         names (repeatedly (:nbound S) gensym)
-        sbnds (c/TypeFn-bbnds* names S)
-        tbnds (c/TypeFn-bbnds* names T)
-        sbody (c/TypeFn-body* names sbnds S)
-        tbody (c/TypeFn-body* names tbnds T)]
+        sbnds (c/TypeFn-bbnds* names S opts)
+        tbnds (c/TypeFn-bbnds* names T opts)
+        sbody (c/TypeFn-body* names sbnds S opts)
+        tbody (c/TypeFn-body* names tbnds T opts)]
     (if (and (= (:nbound S) (:nbound T))
              (= (:variances S) (:variances T))
              (every?' (fn [lbnd rbnd]
-                        (and (subtypeA* A (:upper-bound lbnd) (:upper-bound rbnd))
-                             (subtypeA* A (:lower-bound rbnd) (:lower-bound lbnd))
-                             (subtypeA* A (:lower-bound lbnd) (:upper-bound lbnd))
-                             (subtypeA* A (:lower-bound rbnd) (:upper-bound rbnd))))
+                        (and (subtypeA* A (:upper-bound lbnd) (:upper-bound rbnd) opts)
+                             (subtypeA* A (:lower-bound rbnd) (:lower-bound lbnd) opts)
+                             (subtypeA* A (:lower-bound lbnd) (:upper-bound lbnd) opts)
+                             (subtypeA* A (:lower-bound rbnd) (:upper-bound rbnd) opts)))
                       sbnds tbnds))
-      (subtypeA* A sbody tbody)
+      (subtypeA* A sbody tbody opts)
       (report-not-subtypes S T))))
 
 (defn subtype-PrimitiveArray
-  [A s t]
+  [A s t opts]
   (if (and ;(= (.jtype s) (.jtype t))
            ;contravariant
            (subtypeA* A
                       (:input-type t)
-                      (:input-type s))
+                      (:input-type s)
+                      opts)
            ;covariant
            (subtypeA* A
                       (:output-type s)
-                      (:output-type t)))
+                      (:output-type t)
+                      opts))
     A
     (report-not-subtypes s t)))
 
 
 (defn ^:private subtype-rclass-or-datatype-with-protocol
-  [A s t]
+  [A s t opts]
   {:pre [((some-fn r/RClass? r/DataType?) s)
          ((some-fn r/Protocol? r/Satisfies?) t)]
    :post [(or (set? %) (nil? %))]}
   (let [s-kind (cond
                  (r/RClass? s) (do (impl/assert-clojure (str "subtype-rclass-or-datatype-with-protocol not yet implemented for implementations other than Clojure: "
-                                                             (prs/unparse-type s) " " (prs/unparse-type t)))
+                                                             (prs/unparse-type s opts) " " (prs/unparse-type t opts)))
                                    :RClass)
                  (r/DataType? s) :DataType
-                 :else (err/int-error (str "what is this? " s)))
+                 :else (err/int-error (str "what is this? " s) opts))
         ;first try and find the datatype in the protocol's extenders
         in-protocol-extenders? (boolean
                                  (seq
@@ -1536,14 +1552,15 @@
                                            (filter #{(:the-class s)}))
                                      (c/Protocol-normal-extenders t))))
         relevant-ancestor (some (fn [p] 
-                                  (let [p (c/fully-resolve-type p)]
+                                  (let [p (c/fully-resolve-type p opts)]
                                     (when (and ((some-fn r/Protocol? r/Satisfies?) p)
                                                (= (:the-var p) (:the-var t)))
                                       p)))
                                 ((case s-kind
                                    :RClass c/RClass-supers*
                                    :DataType c/Datatype-ancestors)
-                                 s))]
+                                 s
+                                 opts))]
     (cond
       ; the extension is via the protocol
       (or in-protocol-extenders?
@@ -1553,8 +1570,9 @@
                                            ((case s-kind
                                               :RClass c/RClass-of-with-unknown-params
                                               :DataType c/DataType-with-unknown-params)
-                                            (:the-class s)))]
-        (subtypeA* A relevant-protocol-extender t))
+                                            (:the-class s)
+                                            opts))]
+        (subtypeA* A relevant-protocol-extender t opts))
       :else (report-not-subtypes s t))))
 
 (defn subtype-Satisfies
@@ -1567,31 +1585,32 @@
 
 ;(t/ann subtype-datatype-rclass [DataType RClass -> Seen])
 (defn ^:private subtype-datatype-rclass
-  [A s t]
+  [A s t opts]
   {:pre [(r/DataType? s)
          (r/RClass? t)]}
   (impl/assert-clojure)
   (if-some [relevant-datatype-ancestor (some (fn [p]
-                                               (let [p (c/fully-resolve-type p)]
+                                               (let [p (c/fully-resolve-type p opts)]
                                                  (when (and (r/RClass? p)
                                                             (= (:the-class p) (:the-class t)))
                                                    p)))
-                                             (c/Datatype-ancestors s))]
-    (subtypeA* A s relevant-datatype-ancestor)
+                                             (c/Datatype-ancestors s opts))]
+    (subtypeA* A s relevant-datatype-ancestor opts)
     (report-not-subtypes s t)))
 
 (defn- subtype-datatypes-or-records
   [A
    {cls1 :the-class poly1 :poly? :as s} 
-   {cls2 :the-class poly2 :poly? :as t}]
+   {cls2 :the-class poly2 :poly? :as t}
+   opts]
   {:pre [(every? r/DataType? [s t])]}
   (if (and (= cls1 cls2)
            (every?' (fn [v l r]
                       (case v
-                        :covariant (subtypeA* A l r)
-                        :contravariant (subtypeA* A r l)
-                        :invariant (and (subtypeA* A l r)
-                                        (subtypeA* A r l))))
+                        :covariant (subtypeA* A l r opts)
+                        :contravariant (subtypeA* A r l opts)
+                        :invariant (and (subtypeA* A l r opts)
+                                        (subtypeA* A r l opts))))
                     (:variances s) poly1 poly2))
     A
     (report-not-subtypes s t)))
@@ -1605,21 +1624,23 @@
 ; (Cons Integer) <: (Seqable Integer)
 ; (ancestors (Seqable Integer)
 
-(defn- subtype-RClass-common-base 
+(defn- subtype-RClass-common-base
   [A
    {polyl? :poly? lcls-sym :the-class :as s}
-   {polyr? :poly? rcls-sym :the-class :as t}]
+   {polyr? :poly? rcls-sym :the-class :as t}
+   opts]
   (impl/assert-clojure)
-  (let [{variances :variances} s]
+  (let [subtypeA* #(subtypeA* A %1 %2 opts)
+        {variances :variances} s]
     (and (= lcls-sym rcls-sym)
          (or (and (empty? polyl?) (empty? polyr?))
              (and (seq polyl?)
                   (seq polyr?)
                   (every?' #(case %1
-                              :covariant (subtypeA* A %2 %3)
-                              :contravariant (subtypeA* A %3 %2)
-                              (and (subtypeA* A %2 %3)
-                                   (subtypeA* A %3 %2)))
+                              :covariant (subtypeA* %2 %3)
+                              :contravariant (subtypeA* %3 %2)
+                              (and (subtypeA* %2 %3)
+                                   (subtypeA* %3 %2)))
                            variances
                            polyl?
                            polyr?))))))
@@ -1637,13 +1658,13 @@
 
 ;[RClass RClass -> Boolean]
 (defn coerce-RClass-primitive
-  [s t]
+  [s t opts]
   (impl/assert-clojure)
   (cond
     ; (U Integer Long) <: (U int long)
     (and 
-      (#{(c/RClass-of Integer) (c/RClass-of Long)} s)
-      (#{(c/RClass-of 'int) (c/RClass-of 'long)} t))
+      (#{(c/RClass-of Integer opts) (c/RClass-of Long opts)} s)
+      (#{(c/RClass-of 'int opts) (c/RClass-of 'long opts)} t))
     true
 
     :else
@@ -1656,7 +1677,7 @@
       (class-isa? scls tcls))))
 
 (defn subtype-RClass
-  [A s t]
+  [A s t opts]
   {:pre [((some-fn r/RClass? r/Instance?) s)
          ((some-fn r/RClass? r/Instance?) t)]}
   (impl/assert-clojure)
@@ -1673,8 +1694,8 @@
         ;find a supertype of s that is the same base as t, and subtype of it
         (some #(when (and ((some-fn r/RClass? r/Instance?) %)
                           (= (:the-class t) (:the-class %)))
-                 (subtype-RClass-common-base A % t))
-              (map c/fully-resolve-type (c/RClass-supers* s))))
+                 (subtype-RClass-common-base A % t opts))
+              (map #(c/fully-resolve-type % opts) (c/RClass-supers* s opts))))
 
       :else
       ;; RClass <: RClass
@@ -1688,18 +1709,18 @@
 
               ;same base class
               (and (= scls tcls)
-                   (subtype-RClass-common-base A s t))
+                   (subtype-RClass-common-base A s t opts))
 
               ;one is a primitive, coerce
               (and (or (.isPrimitive scls)
                        (.isPrimitive tcls))
-                   (coerce-RClass-primitive s t))
+                   (coerce-RClass-primitive s t opts))
 
               ;find a supertype of s that is the same base as t, and subtype of it
               (some #(when (r/RClass? %)
                        (and (= (:the-class t) (:the-class %))
-                            (subtype-RClass-common-base A % t)))
-                    (map c/fully-resolve-type (c/RClass-supers* s))))
+                            (subtype-RClass-common-base A % t opts)))
+                    (map #(c/fully-resolve-type % opts) (c/RClass-supers* s opts))))
           A
           (report-not-subtypes s t))))))
 
@@ -1715,14 +1736,15 @@
     A
     (report-not-subtypes s t)))
 
+#_
 (defmacro sub-clj? [s t]
   `(impl/with-clojure-impl
      (subtype? (prs/parse-type '~s)
                (prs/parse-type '~t))))
 
-(defn has-kind? [t kind]
+(defn has-kind? [t kind opts]
   {:post [(boolean? %)]}
   (cond
-    (r/Bounds? kind) (and (subtype? (:lower-bound kind) t)
-                          (subtype? t (:upper-bound kind)))
+    (r/Bounds? kind) (and (subtype? (:lower-bound kind) t opts)
+                          (subtype? t (:upper-bound kind) opts))
     :else (err/nyi-error "non-type kinds")))

@@ -8,53 +8,60 @@
     [typed.cljc.checker.type-rep :refer []]
     [typed.clj.checker.parse-unparse :refer [parse-type]]
     [typed.clj.checker.subtype :refer [subtype-type-filter?]]
-            [clojure.test :refer :all]))
+    [clojure.test :refer :all]))
 
 (deftest and-filter
-  (is (= (-and -top)
+  (is-tc-e 1)
+  (is (= (-and [-top] clj-opts)
          -top))
-  (is (= (-and -top -top)
+  (is (= (-and [-top -top] clj-opts)
          -top))
-  (is (= (-and -bot -bot)
+  (is (= (-and [-bot -bot] clj-opts)
          -bot))
-  (is (= (-and -top -bot)
+  (is (= (-and [-top -bot] clj-opts)
          -bot))
   (clj
-    (let [f (-filter (parse-type `t/Num) 'x)]
-      (is (= (-and f)
+    (let [f (-filter (parse-type `t/Num clj-opts) 'x)]
+      (is (= (-and [f] clj-opts)
              f))
-      (is (= (-and f -top)
+      (is (= (-and [f -top] clj-opts)
              f))))
   (is-clj 
-    (let [pf (-filter (parse-type `t/NonEmptyCount) 0)
-          nf (-not-filter (parse-type nil) 0)]
-      (= (-and pf nf)
+    (let [pf (-filter (parse-type `t/NonEmptyCount clj-opts) 0)
+          nf (-not-filter (parse-type nil clj-opts) 0)]
+      (= (-and [pf nf] clj-opts)
          (make-AndFilter pf nf))))
   (is-clj
-    (subtype-type-filter? (-and (-filter (parse-type `(t/U nil (t/NonEmptyVec t/Num))) 0)
-                                (-filter (parse-type `(t/U nil t/EmptyCount)) 0))
-                          (-filter (parse-type `nil) 0))))
+    (subtype-type-filter? (-and [(-filter (parse-type `(t/U nil (t/NonEmptyVec t/Num)) clj-opts) 0)
+                                 (-filter (parse-type `(t/U nil t/EmptyCount) clj-opts) 0)]
+                                clj-opts)
+                          (-filter (parse-type `nil clj-opts) 0)
+                          clj-opts)))
 
 (deftest or-filter
-  (is (= (-or -bot -bot)
+  (is-tc-e 1)
+  (is (= (-or [-bot -bot] clj-opts)
          -bot))
-  (is (= (-or -top -top)
+  (is (= (-or [-top -top] clj-opts)
          -top))
-  (is (= (-or -top -bot)
+  (is (= (-or [-top -bot] clj-opts)
          -top))
-  (is (= (-or -top (-filter (parse-type `nil) 0))
+  (is (= (-or [-top (-filter (parse-type `nil clj-opts) 0)] clj-opts)
          -top))
 
   ;normalise to conjunctions of disjunctions
-  (is (= (-or (-and (-filter (parse-type nil) 0)
-                    (-filter (parse-type nil) 1))
-              (-and (-filter (parse-type nil) 2)
-                    (-filter (parse-type nil) 3)))
+  (is (= (-or [(-and [(-filter (parse-type nil clj-opts) 0)
+                      (-filter (parse-type nil clj-opts) 1)]
+                     clj-opts)
+               (-and [(-filter (parse-type nil clj-opts) 2)
+                      (-filter (parse-type nil clj-opts) 3)]
+                     clj-opts)]
+              clj-opts)
          (apply make-AndFilter
                 (for [l [0 1]
                       r [2 3]]
-                  (make-OrFilter (-filter (parse-type nil) l)
-                                 (-filter (parse-type nil) r)))))))
+                  (make-OrFilter (-filter (parse-type nil clj-opts) l)
+                                 (-filter (parse-type nil clj-opts) r)))))))
 
 
 ;(typed.cljc.checker.filter-ops/-and                                                                                         

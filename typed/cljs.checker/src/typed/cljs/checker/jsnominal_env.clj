@@ -33,7 +33,7 @@
 
 (defn jsnominal-env []
   {:post [(map? %)]}
-  (impl/jsnominal-env))
+  (impl/jsnominal-env (env/checker)))
 
 (def jsnominal-env?
   (con/hash-c? symbol?
@@ -94,47 +94,47 @@
   "search for the property in the interfaces ancestors
    method: (get-inherited-property get-method csym args method-sym)
    field:  (get-inherited-property get-field csym args field-sym)"
-  [f csym args method-sym]
+  [f csym args method-sym opts]
   ;(println (->> (get-in (impl/jsnominal-env) [csym :ancestors]) (map :id)))
-  (->> (get-in (impl/jsnominal-env) [csym :ancestors])
-       (map #(f (:id %) args method-sym))
+  (->> (get-in (impl/jsnominal-env (env/checker)) [csym :ancestors])
+       (map #(f (:id %) args method-sym opts))
        (filter identity)
        first))
 
-(t/ann ^:no-check get-method [t/Sym (t/U nil (t/Seqable r/Type)) t/Sym -> (t/U nil r/Type)])
-(defn get-method 
+(t/ann ^:no-check get-method [t/Sym (t/U nil (t/Seqable r/Type)) t/Sym t/Any -> (t/U nil r/Type)])
+(defn get-method
   "Returns the instantiated method type named method-sym on nominal csym."
-  [csym args method-sym]
+  [csym args method-sym opts]
   {:pre [(symbol? csym)
          (every? r/Type? args)
          (symbol? method-sym)]
    :post [((some-fn nil? r/Type?) %)]}
   ;(println (str "Searching " csym "#" method-sym))
-  (if-some [tscope (get-in (impl/jsnominal-env) [csym :methods method-sym])]
-    (c/inst-and-subst tscope args)
-    (get-inherited-property get-method csym args method-sym)))
+  (if-some [tscope (get-in (impl/jsnominal-env (env/checker)) [csym :methods method-sym])]
+    (c/inst-and-subst tscope args opts)
+    (get-inherited-property get-method csym args method-sym opts)))
 
 (t/ann ^:no-check get-field [t/Sym (t/U nil (t/Seqable r/Type)) t/Sym -> (t/U nil r/Type)])
-(defn get-field 
+(defn get-field
   "Returns the instantiated field type named field-sym on nominal csym."
-  [csym args field-sym]
+  [csym args field-sym opts]
   {:pre [(symbol? csym)
          (every? r/Type? args)
          (symbol? field-sym)]
    :post [((some-fn nil? r/Type?) %)]}
-  (if-some [tscope (get-in (impl/jsnominal-env) [csym :fields field-sym])]
-    (c/inst-and-subst tscope args)
-    (get-inherited-property get-method csym args field-sym)))
+  (if-some [tscope (get-in (impl/jsnominal-env (env/checker)) [csym :fields field-sym])]
+    (c/inst-and-subst tscope args opts)
+    (get-inherited-property get-field csym args field-sym opts)))
 
-(t/ann ^:no-check get-ctor [t/Sym (t/U nil (t/Seqable r/Type)) -> (t/U nil r/Type)])
+(t/ann ^:no-check get-ctor [t/Sym (t/U nil (t/Seqable r/Type)) t/Any -> (t/U nil r/Type)])
 (defn get-ctor
   "Returns the instantiated constructor type on nominal csym."
-  [csym args]
+  [csym args opts]
   {:pre [(symbol? csym)
          (every? r/Type? args)]
    :post [((some-fn nil? r/Type?) %)]}
-  (some-> (get-in (impl/jsnominal-env) [csym :ctor])
-          (c/inst-and-subst args)))
+  (some-> (get-in (impl/jsnominal-env (env/checker)) [csym :ctor])
+          (c/inst-and-subst args opts)))
 
 (t/ann ^:no-check reset-jsnominal! [JSNominalEnv -> nil])
 (defn reset-jsnominal! [m]

@@ -25,9 +25,9 @@
 (defn ast->pred
   "Returns syntax representing a runtime predicate on the
   given type ast."
-  ([t] (ast->pred t {}))
-  ([t opt]
-   (let [ast->pred #(ast->pred % opt)]
+  ([t opts] (ast->pred t {} opts))
+  ([t opt opts]
+   (let [ast->pred #(ast->pred % opt opts)]
      (letfn [(gen-inner [{:keys [op] :as t} arg]
                (case op
                  (:F) (int-error "Cannot generate predicate for free variable")
@@ -42,7 +42,7 @@
                            (cond 
                              ;needs resolving
                              (#{:Name} (:op rator))
-                             (gen-inner (update t :rator ops/resolve-Name) arg)
+                             (gen-inner (update t :rator ops/resolve-Name opts) arg)
                              ;polymorphic class
                              (#{:Class} (:op rator))
                              (let [{:keys [args pred] :as rcls} (get ((requiring-resolve 'clojure.core.typed.current-impl/rclass-env)
@@ -69,7 +69,7 @@
                  (:Class) `(instance? ~(:name t) ~arg)
                  (:Name) 
                  (case ((requiring-resolve 'clojure.core.typed.current-impl/current-impl))
-                   :clojure.core.typed.current-impl/clojure (gen-inner (ops/resolve-Name t) arg)
+                   :clojure.core.typed.current-impl/clojure (gen-inner (ops/resolve-Name t opts) arg)
                    (int-error (str "TODO CLJS Name")))
                  ;              (cond
                  ;                              (empty? (:poly? t)) `(instance? ~(:the-class t) ~arg)
@@ -159,7 +159,7 @@
 (defn ast->contract 
   "Returns syntax representing a runtime predicate on the
   given type ast."
-  [t]
+  [t opts]
   (letfn [(gen-inner [{:keys [op] :as t} arg]
             (case op
               (:F) (int-error "Cannot generate predicate for free variable")
@@ -179,7 +179,7 @@
                         (cond 
                           ;needs resolving
                           (#{:Name} (:op rator))
-                          (gen-inner (update t :rator ops/resolve-Name) arg)
+                          (gen-inner (update t :rator ops/resolve-Name opts) arg)
                           ;polymorphic class
                           ;(#{:Class} (:op rator))
                           ;  (let [{:keys [args pred] :as rcls} (get (impl/rclass-env ((requiring-resolve 'typed.cljc.runtime.env/checker))) (:name rator))
@@ -206,7 +206,7 @@
                          #(instance? ~(:name t) %))
               (:Name) 
               (case ((requiring-resolve 'clojure.core.typed.current-impl/current-impl))
-                :clojure.core.typed.current-impl/clojure (gen-inner (ops/resolve-Name t) arg)
+                :clojure.core.typed.current-impl/clojure (gen-inner (ops/resolve-Name t opts) arg)
                 (int-error (str "TODO CLJS Name")))
               ;              (cond
               ;                              (empty? (:poly? t)) `(instance? ~(:the-class t) ~arg)
@@ -289,14 +289,16 @@
   ([t opt]
    ((requiring-resolve 'clojure.core.typed.current-impl/with-impl*)
     :clojure.core.typed.current-impl/clojure
-    #(-> ((requiring-resolve 'clojure.core.typed.parse-ast/parse) t)
-         (ast->pred opt)))))
+    #(let [opts ((requiring-resolve 'typed.clj.runtime.env/clj-opts))]
+       (-> ((requiring-resolve 'clojure.core.typed.parse-ast/parse) t opts)
+           (ast->pred opt opts))))))
 
 (defn type-syntax->contract [t]
   ((requiring-resolve 'clojure.core.typed.current-impl/with-impl*)
    :clojure.core.typed.current-impl/clojure
-   #(-> ((requiring-resolve 'clojure.core.typed.parse-ast/parse) t)
-        ast->contract)))
+   #(let [opts ((requiring-resolve 'typed.clj.runtime.env/clj-opts))]
+      (-> ((requiring-resolve 'clojure.core.typed.parse-ast/parse) t opts)
+          (ast->contract opts)))))
 
 (comment
         (type-syntax->pred 'Any)

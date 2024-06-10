@@ -9,26 +9,26 @@
 (ns typed.cljc.checker.check.try
   (:require [typed.cljc.checker.utils :as u]
             [clojure.core.typed.util-vars :as vs]
-            [typed.cljc.checker.check :refer [check-expr]]
+            [typed.cljc.checker.check :as check]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.check-below :as below]
             [typed.cljc.checker.filter-ops :as fo]
             [typed.cljc.checker.object-rep :as o]
             [typed.cljc.checker.type-ctors :as c]))
 
-(defn combine-rets [rs]
+(defn combine-rets [rs opts]
   {:pre [(seq rs)
          (every? r/TCResult? rs)]
    :post [(r/TCResult? %)]}
-  (r/ret (apply c/Un (map r/ret-t rs))
-         (fo/-FS (apply fo/-or (map (comp :then r/ret-f) rs))
-                 (apply fo/-or (map (comp :else r/ret-f) rs)))
+  (r/ret (c/Un (map r/ret-t rs) opts)
+         (fo/-FS (fo/-or (map (comp :then r/ret-f) rs) opts)
+                 (fo/-or (map (comp :else r/ret-f) rs) opts))
          (if (apply = (map r/ret-o rs))
            (r/ret-o (first rs))
            o/-empty))) 
 
 ; filters don't propagate between components of a `try`, nor outside of it.
-(defn check-try [{:keys [body catches finally] :as expr} expected]
+(defn check-try [{:keys [body catches finally] :as expr} expected {::check/keys [check-expr] :as opts}]
   {:post [(vector? (:catches %))
           (-> % u/expr-type r/TCResult?)]}
   (let [chk #(check-expr % expected)
@@ -42,8 +42,10 @@
         ret (binding [vs/*current-expr* expr]
               (below/maybe-check-below
                 (combine-rets
-                  (map u/expr-type (concat [cbody] ccatches)))
-                expected))]
+                  (map u/expr-type (concat [cbody] ccatches))
+                  opts)
+                expected
+                opts))]
     ;(prn "try ret" ret)
     (assoc expr
            :body cbody

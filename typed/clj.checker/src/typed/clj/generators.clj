@@ -126,8 +126,9 @@
   (let [t->pred (fn [t]
                   (type-rep->pred t opts))
         pred `(let [t# (prs/parse-clj '~(:form t-ast))
+                    opts# ((requiring-resolve 'typed.clj.runtime.env/clj-opts))
                     nms# (c/Poly-fresh-symbols* t#)
-                    bbnds# (c/Poly-bbnds* nms# t#)
+                    bbnds# (c/Poly-bbnds* nms# t# opts#)
                     _# (assert (every? #{r/no-bounds} bbnds#))]
                 (fn [f#]
                   (:pass?
@@ -144,15 +145,16 @@
                                                                 (:lower-bound bnd#)
                                                                 r/-nil
                                                                 (r/-val :x)
-                                                                (c/Un (r/-val ::x)
-                                                                      (r/-val 1))
+                                                                (c/Un [(r/-val ::x)
+                                                                       (r/-val 1)]
+                                                                      opts#)
                                                                 (prs/parse-clj `t/Int)
                                                                 (:upper-bound bnd#)
                                                                 r/-any])))
                                                      bbnds#))]
-                        (let [body# (c/instantiate-poly t# inst#)
+                        (let [body# (c/instantiate-poly t# inst# opts#)
                               inst-pred# (apply ~t->pred [body#])]
-                          (prn body#)
+                          ;(prn body#)
                           (inst-pred# f#)))))))]
     (list pred target-arg-syntax)))
 
@@ -161,7 +163,7 @@
   (impl/with-clojure-impl
     (binding [vs/*verbose-types* true]
       (-> t
-          prs/unparse-type 
+          (prs/unparse-type opts) 
           ;; TODO do any other pred cases need parity flips?
           (type-contract/type-syntax->pred (assoc opts
                                                   ::type-contract/Fn-pred-syntax generative-Fn-pred-syntax
@@ -267,8 +269,8 @@
                   (throw (ex-info "Bug! Recursive alias does not have bound generator."
                                   {:opts opts
                                    :t t})))
-              container-gen (c/-resolve t)
-              [scalar-gen erased-frequencies] (nme-utils/erase-names container-gen #{id})]
+              container-gen (c/-resolve t opts)
+              [scalar-gen erased-frequencies] (nme-utils/erase-names container-gen #{id} opts)]
           (if-some [div (erased-frequencies id)]
             (gen/recursive-gen
               (fn [rec]
@@ -284,7 +286,7 @@
   TApp
   (-generator [t opts]
     ;;hmm what if the operator is recursive?
-    (generator (c/-resolve t) opts))
+    (generator (c/-resolve t opts) opts))
   
   HSequential
   (-generator [t opts]
@@ -353,8 +355,8 @@
   Mu
   (-generator [t opts]
     (let [f (r/make-F (gensym "mu"))
-          container-gen (c/unfold-Mu-with t f)
-          scalar-gen (generator (c/unfold-Mu-with t r/-nothing) opts)
+          container-gen (c/unfold-Mu-with t f opts)
+          scalar-gen (generator (c/unfold-Mu-with t r/-nothing opts) opts)
           opts (update opts ::f-occ-atom #(or % (atom {})))]
       (gen/recursive-gen
         (fn [rec]
@@ -389,9 +391,9 @@
     (assert nil "TODO Poly gen")
               #_
     (let [nms (c/Poly-fresh-symbols* t)
-          bbnds (c/Poly-bbnds* nms t)
+          bbnds (c/Poly-bbnds* nms t opts)
           _ (assert (every? #{r/no-bounds} bbnds))
-          body (c/Poly-body* nms t)]
+          body (c/Poly-body* nms t opts)]
       (assert nil 'TODO)
       (generator
         opts))))
@@ -412,9 +414,9 @@
    @load-delay
    (impl/with-impl impl/clojure
      (let [t (cond-> t
-               (not (r/AnyType? t)) prs/parse-type)]
+               (not (r/AnyType? t)) (prs/parse-type opts))]
        (assert (< (get (::trace-freq opts) t 0) 3)
-               (str "Already seen three times: " (binding [vs/*verbose-types* true] (prs/unparse-type t)) " " (class t)
+               (str "Already seen three times: " (binding [vs/*verbose-types* true] (prs/unparse-type t opts)) " " (class t)
                     " " (pr-str (::trace opts))))
        (-generator t (-> opts
                          (update ::trace (fnil conj []) t)

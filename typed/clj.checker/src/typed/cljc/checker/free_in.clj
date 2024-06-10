@@ -72,35 +72,35 @@
       ty)))
 
 ;[AnyInteger Type -> Boolean]
-(defn index-free-in? [k type]
+(defn index-free-in? [k type opts]
   (let [free-in? (volatile! false)]
     (letfn [(for-object
-              ([o _info] (for-object o))
-              ([o]
+              ([o] (for-object o opts))
+              ([o opts]
                (call-free-in-for-object
-                 o
+                 o opts
                  {:type-rec for-type
                   :free-in? free-in?
                   :k k})))
             (for-filter
-              ([f _info] (for-filter f))
-              ([f]
+              ([f] (for-filter f opts))
+              ([f opts]
                (call-free-in-for-filter
-                 f
+                 f opts
                  {:type-rec for-type
                   :filter-rec for-filter
                   :free-in? free-in?
                   :k k})))
             (for-type 
-              ([t _info] (for-type t))
-              ([t]
+              ([t] (for-type t opts))
+              ([t opts]
                (call-free-in-for-type
-                 t
+                 t opts
                  {:type-rec for-type
                   :filter-rec for-filter
                   :object-rec for-object
                   :free-in? free-in?
                   :k k
                   :for-type for-type})))]
-      (for-type type)
+      (for-type type opts)
       @free-in?)))

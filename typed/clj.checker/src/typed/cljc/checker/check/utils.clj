@@ -79,17 +79,20 @@
 
 
 ;(t/ann expected-error [r/Type r/TCResult -> nil])
-(defn expected-error [actual expected & opt]
-  {:pre [(r/Type? actual)
-         (r/TCResult? expected)]}
-  (prs/with-unparse-ns (or prs/*unparse-type-in-ns*
-                           (some-> vs/*current-expr* expr-ns))
-    (apply err/tc-delayed-error (str "Type mismatch:"
-                                     "\n\nExpected: \t" (pr-str (prs/unparse-type (:t expected)))
-                                     "\n\nActual: \t" (pr-str (prs/unparse-type actual)))
-           :expected expected
-           :actual actual
-           opt)))
+(defn expected-error
+  ([actual expected opts] (expected-error actual expected {} opts))
+  ([actual expected opt opts]
+   {:pre [(r/Type? actual)
+          (r/TCResult? expected)]}
+   (prs/with-unparse-ns (or prs/*unparse-type-in-ns*
+                            (some-> vs/*current-expr* expr-ns))
+     (err/tc-delayed-error (str "Type mismatch:"
+                                "\n\nExpected: \t" (pr-str (prs/unparse-type (:t expected) opts))
+                                "\n\nActual: \t" (pr-str (prs/unparse-type actual opts)))
+                           (into {:expected expected
+                                  :actual actual}
+                                 opt)
+                           opts))))
 
 
 ;(t/ann error-ret [(U nil TCResult) -> TCResult])
@@ -105,11 +108,12 @@
       (r/ret (r/TCError-maker))))
 
 ;[Type -> '[Type (Seqable t/Sym) (Seqable F) (Seqable (U Bounds Regex)) (Option (U :Poly :PolyDots))]
+; Opts
 ; -> Type]
 (defn unwrap-poly
   "Return a pair vector of the instantiated body of the possibly polymorphic
   type and the names used"
-  [t]
+  [t opts]
   {:pre [(r/Type? t)]
    :post [((con/hvector-c? r/Type? 
                            (some-fn nil? (con/every-c? r/F?))
@@ -118,10 +122,10 @@
   (cond
     (r/Poly? t) (let [new-nmes (c/Poly-fresh-symbols* t)
                       new-frees (map r/make-F new-nmes)]
-                  [(c/Poly-body* new-nmes t) new-frees (c/Poly-bbnds* new-nmes t) :Poly])
+                  [(c/Poly-body* new-nmes t opts) new-frees (c/Poly-bbnds* new-nmes t opts) :Poly])
     (r/PolyDots? t) (let [new-nmes (c/PolyDots-fresh-symbols* t)
                           new-frees (map r/make-F new-nmes)]
-                      [(c/PolyDots-body* new-nmes t) new-frees (c/PolyDots-bbnds* new-nmes t) :PolyDots])
+                      [(c/PolyDots-body* new-nmes t opts) new-frees (c/PolyDots-bbnds* new-nmes t opts) :PolyDots])
     :else [t nil nil nil]))
 
 (def not-special :default)
@@ -135,7 +139,7 @@
        (:fs v)
        (:objects v)))
 
-(defn- get-demunged-protocol-method [unwrapped-p mungedsym]
+(defn- get-demunged-protocol-method [unwrapped-p mungedsym opts]
   {:pre [(symbol? mungedsym)
          (r/Protocol? unwrapped-p)]
    :post [(r/Type? %)]}
@@ -146,7 +150,8 @@
         mth (get munged-methods mungedsym)
         _ (when-not mth
             (err/int-error (str "No matching annotation for protocol method implementation: "
-                              mungedsym)))]
+                                mungedsym)
+                           opts))]
     mth))
 
 ; don't check these implicit methods in a record
@@ -161,20 +166,21 @@
 (declare symbol->PArray)
 
 ;[t/Sym Boolean -> Type]
-(defn Java-symbol->Type [sym nilable?]
+(defn Java-symbol->Type [sym nilable? opts]
   {:pre [(symbol? sym)
          (boolean? nilable?)]
    :post [(r/Type? %)]}
-  (or ((prs/clj-primitives-fn) sym)
-      (symbol->PArray sym nilable?)
+  (or ((prs/clj-primitives-fn opts) sym)
+      (symbol->PArray sym nilable? opts)
       (when-let [cls (resolve sym)]
-        (apply c/Un (c/RClass-of-with-unknown-params cls)
-               (when nilable?
-                 [r/-nil])))
-      (err/tc-delayed-error (str "Method or field symbol " sym " does not resolve to a type"))))
+        (c/Un (cons (c/RClass-of-with-unknown-params cls opts)
+                    (when nilable?
+                      [r/-nil]))
+              opts))
+      (err/tc-delayed-error (str "Method or field symbol " sym " does not resolve to a type") opts)))
 
 ;[t/Sym Boolean -> (Option Type)]
-(defn- symbol->PArray [sym nilable?]
+(defn- symbol->PArray [sym nilable? opts]
   {:pre [(symbol? sym)
          (boolean? nilable?)]
    :post [((some-fn nil? r/PrimitiveArray?) %)]}
@@ -183,8 +189,8 @@
       (let [^String s-nosuffix (apply str (drop-last 2 s))]
         (assert (not (.contains s-nosuffix "<>")))
         ;Nullable elements
-        (let [t (Java-symbol->Type (symbol s-nosuffix) nilable?)
-              c (let [c (or (when-let [rclass ((prs/clj-primitives-fn) (symbol s-nosuffix))]
+        (let [t (Java-symbol->Type (symbol s-nosuffix) nilable? opts)
+              c (let [c (or (when-let [rclass ((prs/clj-primitives-fn opts) (symbol s-nosuffix))]
                               (r/RClass->Class rclass))
                             (resolve (symbol s-nosuffix)))
                       _ (assert (class? c) s-nosuffix)]
@@ -192,13 +198,13 @@
           (r/PrimitiveArray-maker c t t))))))
 
 ;[clojure.reflect.Field - Type]
-(defn Field->Type [{:keys [type flags] :as field}]
+(defn Field->Type [{:keys [type flags] :as field} opts]
   {:pre [(instance? clojure.reflect.Field field)
          flags]
    :post [(r/Type? %)]}
   (cond
-    (:enum flags) (Java-symbol->Type type false)
-    :else (Java-symbol->Type type true)))
+    (:enum flags) (Java-symbol->Type type false opts)
+    :else (Java-symbol->Type type true opts)))
 
 (def method-map?
   (con/hmap-c? :declaring-class symbol?
@@ -208,20 +214,20 @@
                :flags (con/set-c? keyword?)))
 
 ;[MethodMap -> Type]
-(defn instance-method->Function [{:keys [parameter-types declaring-class return-type] :as method}]
+(defn instance-method->Function [{:keys [parameter-types declaring-class return-type] :as method} opts]
   {:pre [(method-map? method)]
    :post [(r/FnIntersection? %)]}
   (assert (class? (resolve declaring-class)))
-  (r/make-FnIntersection (r/make-Function (into [(c/RClass-of-with-unknown-params declaring-class)]
-                                                (map #(Java-symbol->Type % false))
+  (r/make-FnIntersection (r/make-Function (into [(c/RClass-of-with-unknown-params declaring-class opts)]
+                                                (map #(Java-symbol->Type % false opts))
                                                 parameter-types)
-                                          (Java-symbol->Type return-type true))))
+                                          (Java-symbol->Type return-type true opts))))
 
 
 ;[Type TCResult -> Type]
 (defn extend-method-expected 
   "Returns the expected type with target-type intersected with the first argument"
-  [target-type expected]
+  [target-type expected opts]
   {:pre [(r/Type? target-type)
          (r/Type? expected)]
    :post [(r/Type? %)]}
@@ -234,46 +240,49 @@
                      (assert (<= 1 (count (:dom ftype))))
                      (-> ftype
                          (update :dom (fn [dom]
-                                        (update (vec dom) 0 (partial c/In target-type))))))
+                                        (update (vec dom) 0 (fn [t] (c/In [t target-type] opts)))))))
                    %)))
 
     (r/Poly? expected)
     (let [names (c/Poly-fresh-symbols* expected)
-          body (c/Poly-body* names expected)
-          body (extend-method-expected target-type body)]
+          body (c/Poly-body* names expected opts)
+          body (extend-method-expected target-type body opts)]
       (c/Poly* names 
-               (c/Poly-bbnds* names expected)
+               (c/Poly-bbnds* names expected opts)
                body
-               :named (:named expected)))
+               {:named (:named expected)}
+               opts))
 
     (r/PolyDots? expected)
     (let [names (c/PolyDots-fresh-symbols* expected)
-          body (c/PolyDots-body* names expected)
-          body (extend-method-expected target-type body)]
+          body (c/PolyDots-body* names expected opts)
+          body (extend-method-expected target-type body opts)]
       (c/PolyDots* names 
-                   (c/PolyDots-bbnds* names expected)
+                   (c/PolyDots-bbnds* names expected opts)
                    body
-                   :named (:named expected)))
-    :else (err/int-error (str "Expected Function type, found " (prs/unparse-type expected)))))
+                   {:named (:named expected)}
+                   opts))
+    :else (err/int-error (str "Expected Function type, found " (prs/unparse-type expected opts))
+                         opts)))
 
-(defn protocol-implementation-type [root-t {:keys [declaring-class] :as method-sig}]
+(defn protocol-implementation-type [root-t {:keys [declaring-class] :as method-sig} opts]
   (when-some [pvar (c/Protocol-interface->on-var declaring-class)]
     (when-not (pcl-env/get-protocol (env/checker) pvar)
       (err/int-error (str "Protocol " pvar " must be annotated via ann-protocol before its method implementations "
-                          "can be checked.")))
+                          "can be checked.")
+                     opts))
     (let [mungedsym (symbol (:name method-sig))
           gather-impl-type (fn gather-impl-type [t]
-                             (let [t (c/fully-resolve-type t)]
+                             (let [t (c/fully-resolve-type t opts)]
                                (cond
                                  (r/Protocol? t) (when (= pvar (:the-var t))
-                                                   (extend-method-expected root-t (get-demunged-protocol-method t mungedsym)))
-                                 (r/DataType? t) (some->> (seq (keep gather-impl-type (c/Datatype-ancestors t)))
-                                                          (apply c/In))
-                                 (r/Intersection? t) (some->> (seq (keep gather-impl-type (:types t)))
-                                                              (apply c/In))
-                                 (r/Union? t) (some->> (seq (keep gather-impl-type (:types t)))
-                                                       (apply c/Un)))
-                               ))
+                                                   (extend-method-expected root-t (get-demunged-protocol-method t mungedsym opts) opts))
+                                 (r/DataType? t) (some-> (seq (keep gather-impl-type (c/Datatype-ancestors t opts)))
+                                                         (c/In opts))
+                                 (r/Intersection? t) (some-> (seq (keep gather-impl-type (:types t)))
+                                                             (c/In opts))
+                                 (r/Union? t) (some-> (seq (keep gather-impl-type (:types t)))
+                                                      (c/Un opts)))))
           found (gather-impl-type root-t)]
       (when-not found
         (err/int-error
@@ -281,14 +290,15 @@
                " via ann-datatype. e.g., "
                (format "(ann-datatype %s :extends [(%s ...)])"
                        (apply str (->> (:the-class root-t) str (partition-by #{\.}) last))
-                       (-> pvar name symbol)))))
+                       (-> pvar name symbol)))
+          opts))
       found)))
 
-(defn type->method-expected [t method-sig]
+(defn type->method-expected [t method-sig opts]
   {:pre [(r/Type? t)]
    :post [(r/Type? %)]}
-  (or (protocol-implementation-type t method-sig)
-      (extend-method-expected t (instance-method->Function method-sig))))
+  (or (protocol-implementation-type t method-sig opts)
+      (extend-method-expected t (instance-method->Function method-sig opts) opts)))
 
 ;; TODO integrate reflecte-validated into run-passes
 (defn FieldExpr->Field [expr]
@@ -323,19 +333,19 @@
 (defn unwrap-datatype
   "Takes a DataType that might be wrapped in a TypeFn and returns the 
   DataType after instantiating it"
-  ([dt nms]
+  ([dt nms opts]
    {:pre [((some-fn r/DataType? r/TypeFn?) dt)
           (every? symbol? nms)]
     :post [(r/DataType? %)]}
    (if (r/TypeFn? dt)
-     (c/TypeFn-body* nms (c/TypeFn-bbnds* nms dt) dt)
+     (c/TypeFn-body* nms (c/TypeFn-bbnds* nms dt opts) dt opts)
      dt))
-  ([dt] (let [nms (when (r/TypeFn? dt)
-                    (c/TypeFn-fresh-symbols* dt))]
-          (unwrap-datatype dt nms))))
+  ([dt opts] (let [nms (when (r/TypeFn? dt)
+                         (c/TypeFn-fresh-symbols* dt))]
+               (unwrap-datatype dt nms opts))))
 
 ;[t/Sym -> Type]
-(defn DataType-ctor-type [sym]
+(defn DataType-ctor-type [sym opts]
   (letfn [(resolve-ctor [dtp]
             (cond
               ((some-fn r/DataType? r/Record?) dtp) 
@@ -346,18 +356,20 @@
                                                   dt))]
                 (apply r/make-FnIntersection 
                        (cond-> [(make-arity nil)]
-                         (r/Record? dtp) (conj (make-arity (vals (c/extra-Record-fields dt)))))))
+                         (r/Record? dtp) (conj (make-arity (vals (c/extra-Record-fields dt opts)))))))
 
               (r/TypeFn? dtp) (let [nms (c/TypeFn-fresh-symbols* dtp)
-                                    bbnds (c/TypeFn-bbnds* nms dtp)
-                                    body (c/TypeFn-body* nms bbnds dtp)]
+                                    bbnds (c/TypeFn-bbnds* nms dtp opts)
+                                    body (c/TypeFn-body* nms bbnds dtp opts)]
                                 (c/Poly* nms
                                          bbnds
                                          (free-ops/with-bounded-frees (zipmap (map r/make-F nms) bbnds)
-                                           (resolve-ctor body))))
+                                           (resolve-ctor body))
+                                         opts))
 
               :else (err/tc-delayed-error (str "Cannot generate constructor type for: " sym)
-                                        :return r/Err)))]
+                                          {:return r/Err}
+                                          opts)))]
     (resolve-ctor (dt-env/get-datatype (env/checker) sym))))
 
 ;[Method -> t/Sym]
@@ -375,7 +387,7 @@
   (mtd-ret-nil/nonnilable-return? msym nparams))
 
 ;[clojure.reflect.Method -> Type]
-(defn Method->Type [{{:keys [varargs]} :flags :keys [parameter-types return-type] :as method}]
+(defn Method->Type [{{:keys [varargs]} :flags :keys [parameter-types return-type] :as method} opts]
   {:pre [(instance? clojure.reflect.Method method)
          (vector? parameter-types)]
    :post [(r/FnIntersection? %)]}
@@ -384,27 +396,30 @@
     (r/make-FnIntersection (r/make-Function (into [] (map-indexed (fn [n tsym]
                                                                     (Java-symbol->Type
                                                                       tsym
-                                                                      (mtd-param-nil/nilable-param? msym nparams n))))
+                                                                      (mtd-param-nil/nilable-param? msym nparams n)
+                                                                      opts)))
                                                   (cond-> parameter-types
                                                     varargs pop))
                                             (Java-symbol->Type
                                               return-type
-                                              (not (mtd-ret-nil/nonnilable-return? msym nparams)))
+                                              (not (mtd-ret-nil/nonnilable-return? msym nparams))
+                                              opts)
                                             :rest
                                             (when varargs
                                               (Java-symbol->Type
                                                 (peek parameter-types)
-                                                (mtd-param-nil/nilable-param? msym nparams (dec nparams))))))))
+                                                (mtd-param-nil/nilable-param? msym nparams (dec nparams))
+                                                opts))))))
 
 ;[clojure.reflect.Constructor -> Type]
-(defn Constructor->Function [{:keys [declaring-class parameter-types] :as ctor}]
+(defn Constructor->Function [{:keys [declaring-class parameter-types] :as ctor} opts]
   {:pre [(instance? clojure.reflect.Constructor ctor)]
    :post [(r/FnIntersection? %)]}
   (let [cls (resolve declaring-class)
         _ (when-not (class? cls)
-            (err/tc-delayed-error (str "Constructor for unresolvable class " (:class ctor))))]
-    (r/make-FnIntersection (r/make-Function (mapv #(Java-symbol->Type % false) parameter-types)
-                                            (c/RClass-of-with-unknown-params cls)
+            (err/tc-delayed-error (str "Constructor for unresolvable class " (:class ctor)) opts))]
+    (r/make-FnIntersection (r/make-Function (mapv #(Java-symbol->Type % false opts) parameter-types)
+                                            (c/RClass-of-with-unknown-params cls opts)
                                             ;always a true value. Cannot construct nil
                                             ; or primitive false
                                             :filter (fo/-true-filter)))))
@@ -449,10 +464,10 @@
 (defn already-checked? [nsym]
   (boolean (@vs/*already-checked* nsym)))
 
-(t/ann check-ns-and-deps [t/Sym [t/Sym -> t/Any] -> nil])
+(t/ann check-ns-and-deps [t/Sym [t/Sym -> t/Any] t/Any -> nil])
 (defn check-ns-and-deps
   "Type check a namespace and its dependencies."
-  [nsym check-ns1]
+  [nsym check-ns1 opts]
   {:pre [(symbol? nsym)]
    :post [(nil? %)]}
   (cond
@@ -465,25 +480,25 @@
           _ (when (= :recheck (some-> vs/*check-config* :check-ns-dep))
               (checked-ns! nsym)
               ;check normal dependencies
-              (doseq [dep (ns-depsu/deps-for-ns nsym)]
+              (doseq [dep (ns-depsu/deps-for-ns nsym opts)]
                 ;; ensure namespace actually exists
-                (when (ns-depsu/should-check-ns? nsym)
-                  (check-ns-and-deps dep check-ns1))))
+                (when (ns-depsu/should-check-ns? nsym opts)
+                  (check-ns-and-deps dep check-ns1 opts))))
           ; ignore ns declaration
-          ns-form (ns-depsu/ns-form-for-ns nsym)
-          check? (some-> ns-form ns-depsu/should-check-ns-form?)]
+          ns-form (ns-depsu/ns-form-for-ns nsym opts)
+          check? (some-> ns-form (ns-depsu/should-check-ns-form? opts))]
       (cond
         (not check?)
         (println (str "Not checking " nsym 
                       (cond
                         (not ns-form) " (ns form missing)"
-                        (ns-depsu/ignore-ns? ns-form) " (tagged with :typed.clojure/ignore metadata)")))
+                        (ns-depsu/ignore-ns? ns-form opts) " (tagged with :typed.clojure/ignore metadata)")))
 
         :else
         (let [start (. System (nanoTime))
               _ (println "Start checking" nsym)
               _ (flush)
-              _ (check-ns1 nsym)
+              _ (check-ns1 nsym nil opts)
               _ (println "Checked" nsym "in" (/ (double (- (. System (nanoTime)) start)) 1000000.0) "msecs")
               _ (flush)]
           nil)))))
@@ -514,13 +529,13 @@
 (defn add-cast
   "Given an AST node and a type, return a new AST that
   casts the original expression to the given type"
-  [{:keys [env] :as expr} t {:keys [positive negative line column] :as opt}]
+  [{:keys [env] :as expr} t {:keys [positive negative line column] :as opt} opts]
   {:pre [(map? expr)
          (r/Type? t)]
    :post [(map? %)]}
   (impl/assert-clojure)
   (let [placeholder nil
-        pred-form `(t/cast ~(prs/unparse-type t) ~placeholder 
+        pred-form `(t/cast ~(prs/unparse-type t opts) ~placeholder 
                            {:positive ~(or (str positive)
                                            "cast")
                             :negative ~(or (str negative)
@@ -530,7 +545,8 @@
         pred-expr (ana/analyze1 ;; FIXME support CLJS
                     pred-form
                     env
-                    {:eval-fn (fn [ast _] ast)})]
+                    {:eval-fn (fn [ast _] ast)}
+                    opts)]
     (assert (= :do (:op pred-expr))
             (pr-str (:op pred-expr)))
     (assert (= :invoke (-> pred-expr :ret :op))
@@ -541,16 +557,16 @@
             (-> pred-expr :ret :args first :op))
     (assoc-in pred-expr [:ret :args 0] expr)))
 
-(defn TCResult->map [ret]
+(defn TCResult->map [ret opts]
   {:pre [(r/TCResult? ret)]
    :post [(map? %)]}
   (binding [vs/*verbose-types* true]
-    {:type (prs/unparse-type (:t ret))
-     :filters (prs/unparse-filter-set (:fl ret))
-     :object (prs/unparse-object (:o ret))
+    {:type (prs/unparse-type (:t ret) opts)
+     :filters (prs/unparse-filter-set (:fl ret) opts)
+     :object (prs/unparse-object (:o ret) opts)
      :opts (not-empty (:opts ret))}))
                                    
-(defn map->TCResult [expected]
+(defn map->TCResult [expected opts]
   {:pre [(not (r/TCResult? expected))
          (map? expected)
          (empty?
@@ -564,7 +580,7 @@
    :post [(r/TCResult? %)]}
   (->
     (r/ret (if-let [[_ t] (find expected :type)]
-             (prs/parse-type t)
+             (prs/parse-type t opts)
              (throw (Exception. "Must provide type")))
            (if-let [[_ fl] (find expected :filters)]
              (fo/-FS
@@ -580,8 +596,8 @@
              obj/-empty))
     (assoc :opts (or (:opts expected) {}))))
 
-(defn maybe-map->TCResult [m]
-  (some-> m map->TCResult))
+(defn maybe-map->TCResult [m opts]
+  (some-> m map->TCResult opts))
 
 (defn special-typed-expression [& args]
   )

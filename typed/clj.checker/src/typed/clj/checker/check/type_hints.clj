@@ -13,11 +13,11 @@
             [clojure.core.typed.coerce-utils :as coerce]
             [typed.clj.checker.reflect-utils :as reflect-u]))
 
-(defn suggest-type-hints [m-or-f targett argtys & {:keys [constructor-call]}]
+(defn suggest-type-hints [m-or-f targett argtys {:keys [constructor-call]} opts]
   {:pre [((some-fn nil? r/Type?) targett)
          (every? r/Type? argtys)]}
   (let [targett (when targett
-                  (c/fully-resolve-type targett))
+                  (c/fully-resolve-type targett opts))
         cls (cond
               constructor-call (coerce/symbol->Class constructor-call)
               :else (cu/Type->Class targett))]

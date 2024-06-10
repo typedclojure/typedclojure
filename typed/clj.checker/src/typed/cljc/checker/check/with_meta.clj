@@ -7,28 +7,29 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.cljc.checker.check.with-meta
-  (:require [typed.cljc.checker.check :refer [check-expr]]
+  (:require [typed.cljc.checker.check :as check]
             [typed.cljc.checker.type-rep :as r]
             [clojure.core.typed.errors :as err]
             [typed.cljc.checker.utils :as u]))
 
-(defn visit-tail-pos [ast f]
-  (let [rec #(visit-tail-pos % f)]
+(defn visit-tail-pos [ast f opts]
+  (let [rec #(visit-tail-pos % f opts)]
     (case (:op ast)
       :do (update ast :ret rec)
       ;; would be ambiguous when calculating whether to erase the :with-meta node
-      :if (err/int-error "Not allowed :with-meta around :if")
+      :if (err/int-error "Not allowed :with-meta around :if" opts)
       (:let :letfn) (update ast :body rec)
       ;; probably possible to handle, but seems likely to never occur in practice
-      :with-meta (err/int-error "Not allowed nested :with-meta")
+      :with-meta (err/int-error "Not allowed nested :with-meta" opts)
       (f ast))))
 
 (defn check-with-meta
-  [{:keys [expr meta] :as with-meta-expr} expected]
+  [{:keys [expr meta] :as with-meta-expr} expected {::check/keys [check-expr] :as opts}]
   {:post [(-> % u/expr-type r/TCResult?)]}
   (let [erase-atom (atom nil)
         expr (visit-tail-pos expr (fn [ast]
-                                    (assoc ast ::erase-atom erase-atom)))
+                                    (assoc ast ::erase-atom erase-atom))
+                             opts)
         cexpr (check-expr expr expected)
         cmeta (check-expr meta)]
     (if @erase-atom

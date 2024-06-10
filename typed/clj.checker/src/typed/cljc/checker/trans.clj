@@ -23,12 +23,12 @@
 
 ;tdr from Practical Variable-Arity Polymorphism paper
 ; Expand out dotted pretypes to fixed domain, using types bm, if (:name bound) = b
-(defn trans-dots [t b bm]
+(defn trans-dots [t b bm opts]
   (letfn [(tr
-            ([ty _info] (tr ty))
-            ([ty] (trans-dots ty b bm)))]
+            ([ty] (tr ty opts))
+            ([ty opts] (trans-dots ty b bm opts)))]
     (call-trans-dots*
-      t
+      t opts
       {:type-rec tr
        :b b
        :bm bm})))
@@ -37,7 +37,7 @@
   ITransDots trans-dots*
   HSequential
   (fn [{:keys [kind] :as t} b bm]
-    (let [tfn #(trans-dots % b bm)]
+    (let [tfn #(trans-dots % b bm opts)]
       (cond
         (:drest t)
         (let [{:keys [pre-type name]} (:drest t)]
@@ -51,7 +51,7 @@
                             (doall (map (fn [bk]
                                           {:post [(r/Type? %)]}
                                           ;replace free occurences of bound with bk
-                                          (-> (subst/substitute bk b pre-type)
+                                          (-> (subst/substitute bk b pre-type opts)
                                               tfn))
                                         bm))))
                   extra-fixed (- (count fixed)
@@ -85,7 +85,7 @@
   ITransDots trans-dots*
   AssocType
   (fn [{:keys [target entries dentries]} b bm]
-    (let [tfn #(trans-dots % b bm)
+    (let [tfn #(trans-dots % b bm opts)
           t-target (tfn target)
           t-entries (map (fn [ent]
                            [(tfn (first ent)) (tfn (second ent))])
@@ -97,7 +97,7 @@
                                    (->> bm
                                      (map (fn [bk]
                                             {:post [(r/Type? %)]}
-                                            (-> (subst/substitute bk b (:pre-type dentries))
+                                            (-> (subst/substitute bk b (:pre-type dentries) opts)
                                               tfn)))
                                      (partition 2)
                                      (map vec)))
@@ -112,7 +112,7 @@
   Function
   (fn [t b bm]
     {:pre [(#{:fixed :rest :drest :prest} (:kind t))]}
-    (let [tfn #(trans-dots % b bm)]
+    (let [tfn #(trans-dots % b bm opts)]
       (cond
         (:drest t)
         (let [{:keys [pre-type name]} (:drest t)]
@@ -125,7 +125,7 @@
                         (map (fn [bk]
                                {:post [(r/Type? %)]}
                                ;replace free occurences of bound with bk
-                               (-> (subst/substitute bk b pre-type)
+                               (-> (subst/substitute bk b pre-type opts)
                                    tfn)))
                         bm)]
               ;dotted pretype now expanded to fixed domain

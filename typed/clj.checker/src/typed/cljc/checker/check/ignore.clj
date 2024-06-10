@@ -11,8 +11,9 @@
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.utils :as u]))
 
-(defn tc-ignore-expr [expr expected]
+(defn tc-ignore-expr [expr expected opts]
   (-> expr
       (assoc u/expr-type (below/maybe-check-below
                            (r/ret r/-any)
-                           expected))))
+                           expected
+                           opts))))

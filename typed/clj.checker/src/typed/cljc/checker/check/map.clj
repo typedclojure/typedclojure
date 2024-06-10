@@ -11,27 +11,27 @@
             [typed.cljc.checker.utils :as u]
             [clojure.core.typed.current-impl :as impl]
             [typed.clj.checker.subtype :as sub]
-            [typed.cljc.checker.check :refer [check-expr]]
+            [typed.cljc.checker.check :as check]
             [typed.cljc.checker.check.utils :as cu]
             [typed.cljc.checker.check-below :as below]
             [typed.cljc.checker.filter-ops :as fo]
             [typed.cljc.checker.type-ctors :as c])
   (:import (clojure.lang APersistentMap)))
 
-;(ann expected-vals [(Coll Type) (Nilable TCResult) -> (Coll (Nilable TCResult))])
+;(ann expected-vals [(Coll Type) (Nilable TCResult) Opts -> (Coll (Nilable TCResult))])
 (defn expected-vals
   "Returns a sequence of (Nilable TCResults) to use as expected types for type
   checking the values of a literal map expression"
-  [key-types expected]
+  [key-types expected opts]
   {:pre [(every? r/Type? key-types)
          ((some-fn r/TCResult? nil?) expected)]
    :post [(every? (some-fn nil? r/TCResult?) %)
           (= (count %)
              (count key-types))]}
   (let [expected (when expected 
-                   (c/fully-resolve-type (r/ret-t expected)))
+                   (c/fully-resolve-type (r/ret-t expected) opts))
         flat-expecteds (when expected
-                         (mapv c/fully-resolve-type
+                         (mapv #(c/fully-resolve-type % opts)
                                (if (r/Union? expected)
                                  (:types expected)
                                  [expected])))
@@ -89,7 +89,7 @@
       ; otherwise we don't give expected types
       :else no-expecteds)))
 
-(defn check-map [{keyexprs :keys valexprs :vals :as expr} expected]
+(defn check-map [{keyexprs :keys valexprs :vals :as expr} expected {::check/keys [check-expr] :as opts}]
   {:post [(-> % u/expr-type r/TCResult?)
           (vector? (:keys %))
           (vector? (:vals %))]}
@@ -97,24 +97,26 @@
         key-types (map (comp r/ret-t u/expr-type) ckeyexprs)
 
         val-rets
-        (expected-vals key-types expected)
+        (expected-vals key-types expected opts)
 
         cvalexprs (mapv check-expr valexprs val-rets)
         val-types (map (comp r/ret-t u/expr-type) cvalexprs)
 
         ts (zipmap key-types val-types)
         actual-t (if (every? c/keyword-value? (keys ts))
-                   (c/-complete-hmap ts)
+                   (c/-complete-hmap ts opts)
                    (c/In
-                     (impl/impl-case
-                       :clojure (c/RClass-of APersistentMap [(apply c/Un (keys ts))
-                                                             (apply c/Un (vals ts))])
-                       :cljs (c/-name 'typed.clojure/Map
-                                      (apply c/Un (keys ts))
-                                      (apply c/Un (vals ts))))
-                     (r/make-ExactCountRange (count keyexprs))))
+                     [(impl/impl-case
+                        :clojure (c/RClass-of APersistentMap [(c/Un (keys ts) opts)
+                                                              (c/Un (vals ts) opts)]
+                                              opts)
+                        :cljs (c/-name 'typed.clojure/Map
+                                       (c/Un (keys ts) opts)
+                                       (c/Un (vals ts) opts)))
+                      (r/make-ExactCountRange (count keyexprs))]
+                     opts))
         actual-ret (r/ret actual-t (fo/-true-filter))]
     (assoc expr
            :keys ckeyexprs
            :vals cvalexprs
-           u/expr-type (below/maybe-check-below actual-ret expected))))
+           u/expr-type (below/maybe-check-below actual-ret expected opts))))
