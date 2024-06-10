@@ -141,7 +141,7 @@
    (let [upcast-ctor (fn [ks vs]
                        (let [ks (visit-ks-type ks)
                              vs (visit-vs-type vs)]
-                         (impl/impl-case
+                         (impl/impl-case opts
                            :clojure (RClass-of 'clojure.lang.APersistentMap [ks vs] opts)
                            :cljs (-name 'typed.clojure/Map ks vs))))]
      (if complete?
@@ -267,7 +267,7 @@
   (let [tp (if complete?
              (Un (:fixed hset) opts)
              r/-any)]
-    (impl/impl-case
+    (impl/impl-case opts
       :clojure (RClass-of 'clojure.lang.APersistentSet [tp] opts)
       :cljs (-name 'typed.clojure/Set tp))))
 
@@ -292,7 +292,7 @@
                 visit-elem-type)]
      (make-Intersection
        (cond->
-         [(impl/impl-case
+         [(impl/impl-case opts
             :clojure (case kind
                        :vector (RClass-of clojure.lang.APersistentVector [tp] opts)
                        :seq (-name 'typed.clojure/ASeq tp)
@@ -333,7 +333,7 @@
     (when max-count
       (assert (<= min-count max-count)))
     (In [(r/make-CountRange min-count max-count)
-         (impl/impl-case
+         (impl/impl-case opts
            :clojure (RClass-of ASeq [ss] opts)
            :cljs (Protocol-of 'cljs.core/ISeq [ss] opts))]
         opts)))
@@ -663,8 +663,7 @@
 
 (declare TypeFn-fresh-symbols*)
 
-(def ^:private get-jsnominal #((requiring-resolve 'typed.cljs.checker.jsnominal-env/get-jsnominal)
-                               %))
+(def ^:private get-jsnominal #((requiring-resolve 'typed.cljs.checker.jsnominal-env/get-jsnominal) %1 %2))
 
 (t/ann ^:no-check JSNominal-of (t/IFn [t/Sym t/Any -> r/Type]
                                       [t/Sym (t/Seqable r/Type) t/Any -> r/Type]))
@@ -674,7 +673,7 @@
    {:pre [(symbol? sym)
           (every? r/Type? args)]
     :post [(r/Type? %)]}
-   (let [p (get-jsnominal sym)]
+   (let [p (get-jsnominal sym opts)]
      (assert ((some-fn r/TypeFn? r/JSNominal? nil?) p))
      ; parameterised nominals must be previously annotated
      (assert (or (r/TypeFn? p) (empty? args))
@@ -708,9 +707,10 @@
   ([sym opts] (DataType-of sym nil opts))
   ([sym args opts]
    {:pre [(symbol? sym)
-          (every? r/Type? args)]
+          (every? r/Type? args)
+          (map? opts)]
     :post [(r/Type? %)]}
-   (let [checker (env/checker)
+   (let [checker (env/checker opts)
          p (dtenv/get-datatype checker sym)]
      (assert ((some-fn r/TypeFn? r/DataType? nil?) p))
      ; parameterised datatypes must be previously annotated
@@ -750,15 +750,15 @@
    :post [(symbol? %)]}
   (symbol (str (munge (namespace sym)) \. (name sym))))
 
-(t/ann ^:no-check Protocol-interface->on-var [t/Sym -> t/Sym])
+(t/ann ^:no-check Protocol-interface->on-var [t/Sym t/Any -> t/Sym])
 (defn Protocol-interface->on-var
   "Given the interface symbol of a protocol, returns the corresponding
   var the protocol is based on as a symbol, or nil if none. Assumes the interface is possible
   to demunge. Only useful for Clojure implementation."
-  [sym]
+  [sym opts]
   {:pre [(symbol? sym)]
    :post [((some-fn symbol? nil?) %)]}
-  (impl/assert-clojure)
+  (impl/assert-clojure opts)
   (let [clstr (repl/demunge (str sym))
         ;; replace final dot with /
         varstr (str/replace clstr #"\.([^.]+)$" "/$1")
@@ -766,30 +766,28 @@
     (when (var? (resolve var-sym))
       var-sym)))
 
-(t/ann resolve-Protocol [(t/U Satisfies Protocol) -> t/AnyVar])
+(t/ann resolve-Protocol [(t/U Satisfies Protocol) t/Any -> t/AnyVar])
 (defn resolve-Protocol
-  [{:keys [the-var] :as t}]
+  [{:keys [the-var] :as t} opts]
   {:pre [((some-fn r/Protocol? r/Satisfies?) t)]
    :post [(var? %)]}
-  (impl/assert-clojure)
+  (impl/assert-clojure opts)
   (let [v (requiring-resolve the-var)]
     (assert (var? v) (str "Cannot resolve protocol: " the-var))
     v))
 
-(t/ann Protocol-normal-extenders [(t/U Satisfies Protocol) -> (t/Set (t/U nil Class))])
-(defn Protocol-normal-extenders
-  [p]
-  (set (extenders @(resolve-Protocol p))))
+(t/ann Protocol-normal-extenders [(t/U Satisfies Protocol) t/Any -> (t/Set (t/U nil Class))])
+(defn Protocol-normal-extenders [p opts]
+  (set (extenders @(resolve-Protocol p opts))))
 
-(t/ann ^:no-check Protocol-of (t/IFn [t/Sym t/Any -> r/Type]
-                                     [t/Sym (t/Seqable r/Type) t/Any -> r/Type]))
+(t/ann ^:no-check Protocol-of [t/Sym (t/Seqable r/Type) :? t/Any -> r/Type])
 (defn Protocol-of
   ([sym opts] (Protocol-of sym nil opts))
   ([sym args opts]
    {:pre [(symbol? sym)
           (every? r/Type? args)]
     :post [(r/Type? %)]}
-   (let [p (prenv/get-protocol (env/checker) sym)]
+   (let [p (prenv/get-protocol (env/checker opts) sym)]
      (assert ((some-fn r/TypeFn? r/Protocol? nil?) p))
      ; parameterised protocols must be previously annotated
      (assert (or (r/TypeFn? p) (empty? args))
@@ -893,7 +891,7 @@
           (map? opts)]
     :post [;; checked by final cond
            ((some-fn r/RClass? r/DataType?) %)]}
-   (let [checker (env/checker)
+   (let [checker (env/checker opts)
          cls? (class? sym-or-cls)
          sym (if cls?
                (coerce/Class->symbol sym-or-cls)
@@ -959,7 +957,7 @@
   ([sym-or-cls {:keys [warn-msg]} opts]
    #_{:pre [((some-fn class? symbol?) sym-or-cls)]
       :post [((some-fn r/RClass? r/DataType? r/Instance?) %)]}
-   (let [checker (env/checker)
+   (let [checker (env/checker opts)
          sym (if (class? sym-or-cls)
                (coerce/Class->symbol sym-or-cls)
                (do #_(assert (symbol? sym-or-cls)) ;; checked by dtenv/get-datatype
@@ -990,21 +988,21 @@
   ([sym opts]
    {:pre [(symbol? sym)]
     :post [((some-fn r/DataType?) %)]}
-   (let [checker (env/checker)
+   (let [checker (env/checker opts)
          t (dtenv/get-datatype checker sym)
          args (when (r/TypeFn? t)
                 (let [syms (TypeFn-fresh-symbols* t)]
                   (most-general-on-variance (:variances t)
                                             (TypeFn-bbnds* syms t opts)
                                             opts)))]
-     (DataType-of sym args))))
+     (DataType-of sym args opts))))
 
 (t/ann ^:no-check JSNominal-with-unknown-params [t/Sym t/Any -> r/Type])
 (defn JSNominal-with-unknown-params
   ([sym opts]
    {:pre [(symbol? sym)]
     :post [((some-fn r/JSNominal?) %)]}
-   (let [t (get-jsnominal sym)
+   (let [t (get-jsnominal sym opts)
          args (when (r/TypeFn? t)
                 (let [syms (TypeFn-fresh-symbols* t)]
                   (most-general-on-variance (:variances t)
@@ -1046,7 +1044,7 @@
   ([sym opts]
    {:pre [(symbol? sym)]
     :post [((some-fn r/Protocol? r/Satisfies?) %)]}
-   (let [t (prenv/get-protocol (env/checker) sym)]
+   (let [t (prenv/get-protocol (env/checker opts) sym)]
      (cond
        (r/TypeFn? t) (let [{:keys [variances]} t]
                        (if (every? variant-variances variances)
@@ -1066,8 +1064,8 @@
   of a protocol (this happens when a protocol is extend directly in a deftype)."
   [{:keys [the-class] :as dt} opts]
   {:pre [(r/DataType? dt)]}
-  (impl/assert-clojure)
-  (let [checker (env/checker)
+  (impl/assert-clojure opts)
+  (let [checker (env/checker opts)
         overidden-by (fn [sym o]
                        ;(prn "overriden by" sym (class o) o)
                        (cond
@@ -1099,7 +1097,7 @@
                           ; either we override this ancestor ...
                           (if-let [o (some #(overidden-by sym %) overrides)]
                             o
-                            (if-some [protocol-varsym (Protocol-interface->on-var sym)]
+                            (if-some [protocol-varsym (Protocol-interface->on-var sym opts)]
                               ;... or we make a protocol type from the varified interface ...
                               (Protocol-with-unknown-params protocol-varsym opts)
                               ;... or we make an RClass from the actual ancestor.
@@ -1498,7 +1496,8 @@
                                            (str " with missing bounds")))
                                        (str "\n\nin: "
                                             (pr-str (or (-> tapp meta :syn)
-                                                        (list* t types)))))))))
+                                                        (list* t types)))))
+                                  opts))))
               nil
               (range 1 (inc cnt)) names types bbnds)]
       (free-ops/with-bounded-frees (zipmap (map r/make-F names) bbnds)
@@ -1525,11 +1524,12 @@
                                     (when-not (ind/has-kind? type bnd opts)
                                       (err/tc-error (str "Polymorphic type variable " (r/F-original-name (r/make-F nm))
                                                          " has kind " (pr-str bnd)
-                                                         " but given " (pr-str type)))))
+                                                         " but given " (pr-str type))
+                                                    opts)))
                                   nms types bbnds))
                       (subst-all (make-simple-substitution nms types) body opts)))
       ;PolyDots NYI
-      :else (err/nyi-error (str "instantiate-poly: requires Poly, and PolyDots NYI")))))
+      :else (err/nyi-error (str "instantiate-poly: requires Poly, and PolyDots NYI") opts))))
 
 ;; Resolve
 
@@ -1603,7 +1603,7 @@
    :post [(r/AnyType? %)]}
   (or (some-> (some #(ind/solve (r/ret target) % opts) clauses)
               :t)
-      (err/tc-error (str "No matching clause: " (pr-str t)))))
+      (err/tc-error (str "No matching clause: " (pr-str t)) opts)))
 
 (t/ann -resolve [r/Type t/Any -> r/Type])
 (defn -resolve [ty opts]
@@ -1857,20 +1857,20 @@
            t2 (fully-resolve-type t2 opts)
            eq (= t1 t2)
            hmap-and-seq? (fn [h s] (and (r/HeterogeneousMap? h)
-                                        (impl/impl-case
+                                        (impl/impl-case opts
                                           :clojure (and (r/RClass? s)
                                                         ('#{clojure.lang.ISeq} (:the-class s)))
                                           :cljs (and (r/Protocol? s)
                                                      ('#{cljs.core/ISeq} (:the-var s))))))
            hvec-and-seq? (fn [h s] (and (r/HeterogeneousVector? h)
-                                        (impl/impl-case
+                                        (impl/impl-case opts
                                           :clojure (and (r/RClass? s)
                                                         ('#{clojure.lang.ISeq} (:the-class s)))
                                           :cljs (and (r/Protocol? s)
                                                      ('#{cljs.core/ISeq} (:the-var s))))))
            record-and-iseq? (fn [r s]
                               (and (r/Record? r)
-                                   (ind/subtype? s (impl/impl-case
+                                   (ind/subtype? s (impl/impl-case opts
                                                      :clojure (RClass-of clojure.lang.ISeq [r/-any] opts)
                                                      :cljs (Protocol-of 'cljs.core/ISeq [r/-any] opts))
                                                  opts)))]
@@ -1932,7 +1932,7 @@
                 (:the-class t2))
            ;; TODO can we say there's no overlap if there are different invariant parameters?
            true
-           (let [_ (impl/assert-clojure)
+           (let [_ (impl/assert-clojure opts)
                  c1 (r/RClass->Class t1)
                  c2 (r/RClass->Class t2)
                  c1-mods (.getModifiers c1)
@@ -1961,7 +1961,7 @@
              (and (some (fn [pos] (overlap pos other-type)) (:extends the-extends))
                   (not-any? (fn [neg] (overlap neg other-type)) (:without the-extends)))))
 
-         (and (impl/checking-clojurescript?)
+         (and (impl/checking-clojurescript? opts)
               (or (and (r/JSNull? t1)
                        (r/JSUndefined? t2))
                   (and (r/JSNull? t2)
@@ -2473,7 +2473,7 @@
 (t/ann KeywordValue->Fn [Value t/Any -> r/Type])
 (defn KeywordValue->Fn [{:keys [val] :as t} opts]
   {:pre [(keyword-value? t)]}
-  (impl/assert-clojure)
+  (impl/assert-clojure opts)
   (keyword->Fn
     ;; workaround occurrence typing failing to propagate types
     (->> val
@@ -2493,7 +2493,7 @@
 (defn KwArgs->Type [kws opts]
   {:pre [(r/KwArgs? kws)]
    :post [(r/Type? %)]}
-  (impl/assert-clojure)
+  (impl/assert-clojure opts)
   (let [nilable-non-empty? (empty? (:mandatory kws))]
     (cond-> (r/-kw-args-seq :mandatory (:mandatory kws)
                             :optional (:optional kws)

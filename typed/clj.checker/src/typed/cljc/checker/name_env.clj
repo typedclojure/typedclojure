@@ -51,28 +51,28 @@
   (env/swap-checker! checker assoc impl/current-name-env-kw nme-env)
   nil)
 
-(t/ann ^:no-check find-type-name-entry [t/Sym -> (t/Nilable (t/MapEntry t/Sym (t/U t/Kw (t/Delay r/Type) [:-> r/Type])))])
-(defn find-type-name-entry [sym]
-  (or (find (name-env (env/checker)) sym)
-      (when-some [sym-nsym ((requiring-resolve (impl/impl-case
+(t/ann ^:no-check find-type-name-entry [t/Sym t/Any -> (t/Nilable (t/MapEntry t/Sym (t/U t/Kw (t/Delay r/Type) [:-> r/Type])))])
+(defn find-type-name-entry [sym opts]
+  (or (find (name-env (env/checker opts)) sym)
+      (when-some [sym-nsym ((requiring-resolve (impl/impl-case opts
                                                  :clojure 'typed.clj.checker.parse-unparse/ns-rewrites-clj
                                                  :cljs 'typed.clj.checker.parse-unparse/ns-rewrites-cljs))
                             (some-> sym namespace symbol))]
-        (find (name-env (env/checker))
+        (find (name-env (env/checker opts))
               (symbol (name sym-nsym) (name sym))))))
 
-(t/ann ^:no-check get-type-name [t/Sym -> (t/U nil t/Kw r/Type)])
+(t/ann ^:no-check get-type-name [t/Sym t/Any -> (t/U nil t/Kw r/Type)])
 (defn get-type-name
   "Return the name with var symbol sym.
   Returns nil if not found."
-  [sym]
+  [sym opts]
   {:pre [(symbol? sym)]
    :post [(or (assert (or (nil? %)
                           (keyword? %)
                           (r/Type? %))
                       (pr-str %))
               true)]}
-  (some-> (find-type-name-entry sym) val force-type))
+  (some-> (find-type-name-entry sym opts) val force-type))
 
 (t/ann ^:no-check add-type-name [t/Any t/Sym (t/U t/Kw r/Type) -> nil])
 (def add-type-name impl/add-tc-type-name)
@@ -80,36 +80,37 @@
 (t/ann ^:no-check declare-name* [t/Sym -> nil])
 (def declare-name* impl/declare-name*)
 
-(t/ann ^:no-check declared-name? [t/Sym -> t/Bool])
-(defn declared-name? [sym]
-  (= impl/declared-name-type (get-type-name sym)))
+(t/ann ^:no-check declared-name? [t/Sym t/Any -> t/Bool])
+(defn declared-name? [sym opts]
+  (= impl/declared-name-type (get-type-name sym opts)))
 
 (t/ann ^:no-check declare-protocol* [t/Any t/Sym -> nil])
 (def declare-protocol* impl/declare-protocol*)
 
-(t/ann ^:no-check declared-protocol? [t/Sym -> t/Bool])
-(defn declared-protocol? [sym]
-  (= impl/protocol-name-type (get-type-name sym)))
+(t/ann ^:no-check declared-protocol? [t/Sym t/Any -> t/Bool])
+(defn declared-protocol? [sym opts]
+  (= impl/protocol-name-type (get-type-name sym opts)))
 
 (t/ann ^:no-check declare-datatype* [t/Any t/Sym -> nil])
 (def declare-datatype* impl/declare-datatype*)
 
-(t/ann ^:no-check declared-datatype? [t/Sym -> t/Bool])
-(defn declared-datatype? [sym]
-  (= impl/datatype-name-type (get-type-name sym)))
+(t/ann ^:no-check declared-datatype? [t/Sym t/Any -> t/Bool])
+(defn declared-datatype? [sym opts]
+  (= impl/datatype-name-type (get-type-name sym opts)))
 
 (t/ann ^:no-check resolve-name* [t/Sym t/Any -> r/Type])
 (defn resolve-name* [sym opts]
   {:pre [(symbol? sym)]
    :post [(r/Type? %)]}
-  (let [checker (env/checker)
-        t (get-type-name sym)
+  (let [checker (env/checker opts)
+        t (get-type-name sym opts)
         tfn ((some-fn #(dtenv/get-datatype checker %)
                       #(prenv/get-protocol checker %)
-                      (impl/impl-case :clojure #(or (rcls/get-rclass checker %)
-                                                    (when (class? (resolve %))
-                                                      (c/RClass-of-with-unknown-params % opts)))
-                                      :cljs (requiring-resolve 'typed.cljs.checker.jsnominal-env/get-jsnominal))
+                      (impl/impl-case opts
+                        :clojure #(or (rcls/get-rclass checker %)
+                                      (when (class? (resolve %))
+                                        (c/RClass-of-with-unknown-params % opts)))
+                        :cljs #((requiring-resolve 'typed.cljs.checker.jsnominal-env/get-jsnominal) % opts))
                       ; during the definition of RClass's that reference
                       ; themselves in their definition, a temporary TFn is
                       ; added to the declared kind env which is enough to determine

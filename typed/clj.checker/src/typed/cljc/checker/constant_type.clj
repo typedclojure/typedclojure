@@ -52,13 +52,13 @@
 (extend-protocol ConstantType
   nil
   (constant-ret [v opts]
-    (impl/impl-case
+    (impl/impl-case opts
       :clojure (ret (r/-val nil))
       :cljs (ret (r/JSNull-maker))))
 
   java.util.regex.Pattern
   (constant-ret [v opts]
-    (impl/impl-case
+    (impl/impl-case opts
       :clojure (ret (c/RClass-of java.util.regex.Pattern opts))
       :cljs (assert nil "TODO: CLJS pattern in ConstantType")))
 
@@ -98,7 +98,7 @@
   ;base case
   Object
   (constant-ret [bse opts]
-    (impl/impl-case
+    (impl/impl-case opts
       :clojure (ret (c/RClass-of-with-unknown-params (class bse) opts))
       :cljs (cond
               (number? bse) (ret (r/JSNumber-maker))

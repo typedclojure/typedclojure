@@ -163,32 +163,32 @@
                                  [(c/-name `t/Num)]
                                  nil
                                  nil
-                                 {}))
+                                 clj-opts))
   (is-clj (not (sut/subtypes-varargs? []
                                       [(c/-name `t/Num)]
                                       nil
                                       nil
-                                      {})))
+                                      clj-opts)))
   (is-clj (not (sut/subtypes-varargs? [(c/-name `t/Num)]
                                       [(c/-name `t/Int)]
                                       nil
                                       nil
-                                      {})))
+                                      clj-opts)))
   (is-clj (sut/subtypes-varargs? [(c/-name `t/Int)]
                                  []
                                  (c/-name `t/Num)
                                  nil
-                                 {}))
+                                 clj-opts))
   (is-clj (not (sut/subtypes-varargs? [(c/-name `t/Num)]
                                       []
                                       (c/-name `t/Int)
                                       nil
-                                      {})))
+                                      clj-opts)))
   (is-clj (sut/subtypes-varargs? [(c/-name `t/Num) (c/-name `t/Int)]
                                  [(c/-name `t/Num)]
                                  (c/-name `t/Int)
                                  nil
-                                 {}))
+                                 clj-opts))
   )
 
 (deftest has-kind?-test

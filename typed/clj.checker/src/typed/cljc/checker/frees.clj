@@ -287,7 +287,7 @@
     [{:keys [rator rands] :as tapp} opts]
     (apply combine-freesresults
            (frees rator opts)
-           (let [checker (env/checker)
+           (let [checker (env/checker opts)
                  tfn (loop [rator rator]
                        (cond
                          (r/F? rator) (when-let [bnds (free-ops/free-with-name-bnds (:name rator))]
@@ -295,7 +295,7 @@
                                         (c/fully-resolve-type (:upper-bound bnds) opts))
                          (r/Name? rator) (let [{:keys [id]} rator]
                                            (cond
-                                             (nmenv/declared-name? id)
+                                             (nmenv/declared-name? id opts)
                                              (kinds/get-declared-kind checker id opts)
 
                                              ; alter class introduces temporary declared kinds for
@@ -519,7 +519,7 @@
     (case kind
       (:Poly :PolyDots)
       (let [_ (when-not (every? empty-frees-result? (map #(frees % opts) bbnds))
-                (err/nyi-error "NYI Handle frees in bounds"))]
+                (err/nyi-error "NYI Handle frees in bounds" opts))]
         (frees scope opts))))
 
   Mu

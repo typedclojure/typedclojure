@@ -57,8 +57,8 @@
    :post [(symbol? %)]}
   (symbol kw))
 
-(t/ann ns->file [t/Sym -> t/Str])
-(defn ns->file [nsym]
+(t/ann ns->file [t/Sym t/Any -> t/Str])
+(defn ns->file [nsym opts]
   {:pre [(symbol? nsym)]
    :post [(string? %)]}
   ;copied basic approach from tools.emitter.jvm
@@ -71,7 +71,7 @@
                                                        {}))
                                  :default (io/resource p))
                           p)))
-                    (impl/impl-case
+                    (impl/impl-case opts
                       :clojure [#?(:cljr ".cljr") ".clj"]
                       :cljs [".cljs"]))
               (str f ".cljc"))]
@@ -80,14 +80,14 @@
 
 ;; no equivalent of io/resource for CLR 
 #?(:cljr nil :default (do
-(t/ann ns->URL [t/Sym -> (t/Nilable java.net.URL)])
+(t/ann ns->URL [t/Sym t/Any -> (t/Nilable java.net.URL)])
 
-(defn ns->URL ^java.net.URL [nsym]
+(defn ns->URL ^java.net.URL [nsym opts]
   {:pre [(symbol? nsym)]
    :post [((some-fn #(instance? java.net.URL %)
                     nil?) 
            %)]}
-  (let [p (ns->file nsym)]
+  (let [p (ns->file nsym opts)]
     (io/resource p)))
 ))
 

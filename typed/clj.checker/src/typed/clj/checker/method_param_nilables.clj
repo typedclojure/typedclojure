@@ -29,9 +29,9 @@
   {:post [(map? %)]}
   (get (env/deref-checker checker) impl/method-param-nilable-env-kw {}))
 
-(defn nilable-param? [sym arity param]
+(defn nilable-param? [sym arity param opts]
   (boolean 
-    (when-some [nilables (env-utils/force-type (get (nilable-param-env (env/checker)) sym))]
+    (when-some [nilables (env-utils/force-type (get (nilable-param-env (env/checker opts)) sym))]
       (assert (set? nilables))
       (when-some [params (or (nilables :all)
                              (nilables arity))]

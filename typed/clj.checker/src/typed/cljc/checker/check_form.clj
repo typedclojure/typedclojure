@@ -50,7 +50,7 @@
 ;;                  with a :result entry attached, the result of evaluating it,
 ;;                  if no type errors occur.
 ;; - :unparse-ns    namespace in which to pretty-print type.  (FIXME Currently unused)
-;; - :emit-form     function from AST to equivalent form, returned in :out-form entry.
+;; - :emit-form     function from AST+opts to equivalent form, returned in :out-form entry.
 ;; - :runtime-check-expr    function taking AST and expected type and returns an AST with inserted
 ;;                          runtime checks.
 ;; - :runtime-infer-expr    function taking AST and expected type and returns an AST with inserted
@@ -113,7 +113,7 @@
   (assert opts)
   (assert (not (:opts m1)))
   (do
-    (impl/impl-case
+    (impl/impl-case opts
       :clojure @*register-clj-anns
       :cljs @*register-cljs-anns)
     (reset-caches/reset-caches)
@@ -158,7 +158,7 @@
             ;_ (prn "before c-ast")
             c-ast (try
                     (binding [vs/*check-config* check-config]
-                      (check-top-level form expected))
+                      (check-top-level form expected {} opts))
                     (catch Throwable e
                       (let [e (if (some-> e ex-data err/tc-error?)
                                 (try
@@ -183,13 +183,13 @@
           ;; fatal type error = nil
           checked-ast (assoc :checked-ast c-ast)
 
-          (and (impl/checking-clojure?)
+          (and (impl/checking-clojure? opts)
                (empty? delayed-errors)
                (not ex))
           (into (select-keys c-ast [:result]))
 
           (and c-ast emit-form (not ex))
-          (assoc :out-form (emit-form c-ast)))))))
+          (assoc :out-form (emit-form c-ast opts)))))))
 
 (defn check-form*
   [{:keys [impl unparse-ns] :as config} form expected type-provided? opt opts]

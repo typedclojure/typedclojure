@@ -451,7 +451,7 @@
   FnIntersection
   ;; hack for FnIntersection <: clojure.lang.IFn
   (subtypeA*-for-s [s t A opts]
-    (when (impl/checking-clojure?)
+    (when (impl/checking-clojure? opts)
       (subtypeA* A (c/RClass-of clojure.lang.IFn opts) t opts)))
 
   RClass
@@ -544,13 +544,13 @@
 
       (AND (= s r/-nil)
            (r/Protocol? t)
-           (impl/checking-clojure?)
-           (contains? (c/Protocol-normal-extenders t) nil))
+           (impl/checking-clojure? opts)
+           (contains? (c/Protocol-normal-extenders t opts) nil))
       A
 
       :else
       (let [sval (.val s)]
-        (impl/impl-case
+        (impl/impl-case opts
          :clojure (if (nil? sval)
                     ; this is after the nil <: Protocol case, so just add non-protocol ancestors here
                     (subtypeA* A (r/make-ExactCountRange 0) t opts)
@@ -987,7 +987,7 @@
               dentries (:dentries s)
               poly? (:poly? t)
               the-class (:the-class t)
-              ; _ (when-not (nil? dentries) (err/nyi-error (pr-str "NYI subtype of dentries AssocType " s)))
+              ; _ (when-not (nil? dentries) (err/nyi-error (pr-str "NYI subtype of dentries AssocType " s) opts))
               ; we assume its all right
               entries-keys (map first entries)
               entries-vals (map second entries)]
@@ -1043,7 +1043,7 @@
         )))))
 
 (defn ^:private resolve-JS-reference [sym opts]
-  (impl/assert-cljs)
+  (impl/assert-cljs opts)
   (cond
     (= "js" (namespace sym)) (c/JSNominal-with-unknown-params sym opts)
     :else (let [_ (assert nil "FIXME typed.clj.checker.analyze-cljs/analyze-qualified-symbol has been deleted")
@@ -1056,8 +1056,8 @@
 (defn protocol-extenders [p opts]
   {:pre [(r/Protocol? p)]
    :post [(every? r/Type? %)]}
-  (impl/impl-case
-    :clojure (let [exts (c/Protocol-normal-extenders p)]
+  (impl/impl-case opts
+    :clojure (let [exts (c/Protocol-normal-extenders p opts)]
                (for [ext exts]
                  (cond
                    (class? ext) (c/RClass-of-with-unknown-params ext opts)
@@ -1135,12 +1135,12 @@
       A)))
 
 ;FIXME
-(defn subtype-kwargs* [A s t]
+(defn subtype-kwargs* [A s t opts]
   {:pre [((some-fn r/KwArgs? nil?) s)
          ((some-fn r/KwArgs? nil?) t)]}
   (if (= s t)
     A
-    (err/nyi-error "subtype kwargs")))
+    (err/nyi-error "subtype kwargs" opts)))
 
 ;; simple co/contra-variance for ->
 ;[(IPersistentSet '[Type Type]) Function Function -> (IPersistentSet '[Type Type])]
@@ -1225,7 +1225,7 @@
          (:kws t))
     (if (and (every?' #(subtypeA* A0 %1 %2 opts) (:dom t) (:dom s))
              (subtypeA* A0 (:rng s) (:rng t) opts)
-             (subtype-kwargs* A0 (:kws t) (:kws s)))
+             (subtype-kwargs* A0 (:kws t) (:kws s) opts))
       A0
       (report-not-subtypes s t))
 
@@ -1539,7 +1539,8 @@
    :post [(or (set? %) (nil? %))]}
   (let [s-kind (cond
                  (r/RClass? s) (do (impl/assert-clojure (str "subtype-rclass-or-datatype-with-protocol not yet implemented for implementations other than Clojure: "
-                                                             (prs/unparse-type s opts) " " (prs/unparse-type t opts)))
+                                                             (prs/unparse-type s opts) " " (prs/unparse-type t opts))
+                                                        opts)
                                    :RClass)
                  (r/DataType? s) :DataType
                  :else (err/int-error (str "what is this? " s) opts))
@@ -1550,7 +1551,7 @@
                                      (comp (filter class?)
                                            (map coerce/Class->symbol)
                                            (filter #{(:the-class s)}))
-                                     (c/Protocol-normal-extenders t))))
+                                     (c/Protocol-normal-extenders t opts))))
         relevant-ancestor (some (fn [p] 
                                   (let [p (c/fully-resolve-type p opts)]
                                     (when (and ((some-fn r/Protocol? r/Satisfies?) p)
@@ -1588,7 +1589,7 @@
   [A s t opts]
   {:pre [(r/DataType? s)
          (r/RClass? t)]}
-  (impl/assert-clojure)
+  (impl/assert-clojure opts)
   (if-some [relevant-datatype-ancestor (some (fn [p]
                                                (let [p (c/fully-resolve-type p opts)]
                                                  (when (and (r/RClass? p)
@@ -1629,7 +1630,7 @@
    {polyl? :poly? lcls-sym :the-class :as s}
    {polyr? :poly? rcls-sym :the-class :as t}
    opts]
-  (impl/assert-clojure)
+  (impl/assert-clojure opts)
   (let [subtypeA* #(subtypeA* A %1 %2 opts)
         {variances :variances} s]
     (and (= lcls-sym rcls-sym)
@@ -1659,7 +1660,7 @@
 ;[RClass RClass -> Boolean]
 (defn coerce-RClass-primitive
   [s t opts]
-  (impl/assert-clojure)
+  (impl/assert-clojure opts)
   (cond
     ; (U Integer Long) <: (U int long)
     (and 
@@ -1680,7 +1681,7 @@
   [A s t opts]
   {:pre [((some-fn r/RClass? r/Instance?) s)
          ((some-fn r/RClass? r/Instance?) t)]}
-  (impl/assert-clojure)
+  (impl/assert-clojure opts)
   (let [scls (r/RClass->Class s)
         tcls (r/RClass->Class t)]
     (cond

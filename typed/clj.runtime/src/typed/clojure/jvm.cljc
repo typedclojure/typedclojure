@@ -36,11 +36,11 @@
   (let [[binder args] (take-when vector? args)
         [nme args] (take-when symbol? args)
         _ (assert (symbol? nme) (str "Missing name in override-class" [nme args]))
-        [opts args] (take-when map? args)
-        opts (if opts
-               (do (assert (empty? args) (str "Trailing args to override-class: " (pr-str args)))
-                   opts)
-               (apply hash-map args))
+        [opt args] (take-when map? args)
+        opt (if opt
+              (do (assert (empty? args) (str "Trailing args to override-class: " (pr-str args)))
+                  opt)
+              (apply hash-map args))
         this-ns (ns-name *ns*)]
     `(clojure.core.typed/tc-ignore
        (let [nme# (or (when-some [^#?(:cljr Type :default Class) c# (ns-resolve '~this-ns '~nme)]
@@ -61,10 +61,11 @@
                                       #((requiring-resolve 'typed.cljc.checker.base-env-helper/make-RClass)
                                         nme#
                                         '~binder
-                                        '~opts))))))))))
+                                        '~opt
+                                        ((requiring-resolve 'typed.clj.runtime.env/clj-opts))))))))))))
 
 (defmacro override-classes [& args]
   (assert (even? (count args)))
-  `(do ~@(map (fn [[nme [frees & {:as opts}]]]
-                `(override-class ~@(some-> (not-empty frees) vector) ~nme ~(or (not-empty opts) {})))
+  `(do ~@(map (fn [[nme [frees & {:as opt}]]]
+                `(override-class ~@(some-> (not-empty frees) vector) ~nme ~(or (not-empty opt) {})))
               (partition-all 2 args))))

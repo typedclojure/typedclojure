@@ -35,10 +35,10 @@
             [clojure.set :as set])
   (:import (clojure.lang MultiFn)))
 
-;(t/ann expr-ns [Any -> t/Sym])
-(defn expr-ns [expr]
+;(t/ann expr-ns [Any t/Any -> t/Sym])
+(defn expr-ns [expr opts]
   {:post [(symbol? %)]}
-  (impl/impl-case
+  (impl/impl-case opts
     :clojure (let [nsym (get-in expr [:env :ns])
                    _ (assert (symbol? nsym) (str "Bug! " (pr-str (:op expr)) " expr has no associated namespace: "
                                                  (pr-str nsym)))]
@@ -57,21 +57,21 @@
    :post [((some-fn nil? symbol?) %)]}
   (-> fexpr :local :name))
 
-;[MethodExpr -> (U nil NamespacedSymbol)]
-(defn MethodExpr->qualsym [{c :class :keys [op method] :as expr}]
+;[MethodExpr Any -> (U nil NamespacedSymbol)]
+(defn MethodExpr->qualsym [{c :class :keys [op method] :as expr} opts]
   {:pre [(#{:static-call :instance-call} op)]
    :post [((some-fn nil? symbol?) %)]}
-  (impl/assert-clojure)
+  (impl/assert-clojure opts)
   (when c
     (assert (class? c))
     (assert (symbol? method))
     (symbol (str (coerce/Class->symbol c)) (str method))))
 
 ;[FieldExpr -> (U nil NamespacedSymbol)]
-(defn FieldExpr->qualsym [{c :class :keys [op field] :as expr}]
+(defn FieldExpr->qualsym [{c :class :keys [op field] :as expr} opts]
   {:pre [(#{:static-field :instance-field} op)]
    :post [((some-fn nil? symbol?) %)]}
-  (impl/assert-clojure)
+  (impl/assert-clojure opts)
   (when c
     (assert (class? c))
     (assert (symbol? field))
@@ -85,7 +85,7 @@
    {:pre [(r/Type? actual)
           (r/TCResult? expected)]}
    (prs/with-unparse-ns (or prs/*unparse-type-in-ns*
-                            (some-> vs/*current-expr* expr-ns))
+                            (some-> vs/*current-expr* (expr-ns opts)))
      (err/tc-delayed-error (str "Type mismatch:"
                                 "\n\nExpected: \t" (pr-str (prs/unparse-type (:t expected) opts))
                                 "\n\nActual: \t" (pr-str (prs/unparse-type actual opts)))
@@ -266,8 +266,8 @@
                          opts)))
 
 (defn protocol-implementation-type [root-t {:keys [declaring-class] :as method-sig} opts]
-  (when-some [pvar (c/Protocol-interface->on-var declaring-class)]
-    (when-not (pcl-env/get-protocol (env/checker) pvar)
+  (when-some [pvar (c/Protocol-interface->on-var declaring-class opts)]
+    (when-not (pcl-env/get-protocol (env/checker opts) pvar)
       (err/int-error (str "Protocol " pvar " must be annotated via ann-protocol before its method implementations "
                           "can be checked.")
                      opts))
@@ -308,9 +308,9 @@
       ana/reflect-validated
       :reflected-field)) 
 
-(defn MethodExpr->Method [expr]
+(defn MethodExpr->Method [expr opts]
   {:post [(or (nil? %) (instance? clojure.reflect.Method %))]}
-  (impl/assert-clojure)
+  (impl/assert-clojure opts)
   (-> expr
       ana/reflect-validated
       :reflected-method))
@@ -370,7 +370,7 @@
               :else (err/tc-delayed-error (str "Cannot generate constructor type for: " sym)
                                           {:return r/Err}
                                           opts)))]
-    (resolve-ctor (dt-env/get-datatype (env/checker) sym))))
+    (resolve-ctor (dt-env/get-datatype (env/checker opts) sym))))
 
 ;[Method -> t/Sym]
 (defn Method->symbol [{name-sym :name :keys [declaring-class] :as method}]
@@ -378,13 +378,15 @@
    :post [((every-pred namespace symbol?) %)]}
   (symbol (name declaring-class) (name name-sym)))
 
-(defn method-nilable-param? [msym nparams n]
+#_
+(defn method-nilable-param? [msym nparams n opts]
   {:post [(boolean? %)]}
-  (mtd-param-nil/nilable-param? msym nparams n))
+  (mtd-param-nil/nilable-param? msym nparams n opts))
 
+#_
 (defn method-nonnilable-return? [msym nparams]
   {:post [(boolean? %)]}
-  (mtd-ret-nil/nonnilable-return? msym nparams))
+  (mtd-ret-nil/nonnilable-return? msym nparams opts))
 
 ;[clojure.reflect.Method -> Type]
 (defn Method->Type [{{:keys [varargs]} :flags :keys [parameter-types return-type] :as method} opts]
@@ -396,19 +398,19 @@
     (r/make-FnIntersection (r/make-Function (into [] (map-indexed (fn [n tsym]
                                                                     (Java-symbol->Type
                                                                       tsym
-                                                                      (mtd-param-nil/nilable-param? msym nparams n)
+                                                                      (mtd-param-nil/nilable-param? msym nparams n opts)
                                                                       opts)))
                                                   (cond-> parameter-types
                                                     varargs pop))
                                             (Java-symbol->Type
                                               return-type
-                                              (not (mtd-ret-nil/nonnilable-return? msym nparams))
+                                              (not (mtd-ret-nil/nonnilable-return? msym nparams opts))
                                               opts)
                                             :rest
                                             (when varargs
                                               (Java-symbol->Type
                                                 (peek parameter-types)
-                                                (mtd-param-nil/nilable-param? msym nparams (dec nparams))
+                                                (mtd-param-nil/nilable-param? msym nparams (dec nparams) opts)
                                                 opts))))))
 
 ;[clojure.reflect.Constructor -> Type]
@@ -533,7 +535,7 @@
   {:pre [(map? expr)
          (r/Type? t)]
    :post [(map? %)]}
-  (impl/assert-clojure)
+  (impl/assert-clojure opts)
   (let [placeholder nil
         pred-form `(t/cast ~(prs/unparse-type t opts) ~placeholder 
                            {:positive ~(or (str positive)

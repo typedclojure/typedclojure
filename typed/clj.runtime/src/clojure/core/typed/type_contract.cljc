@@ -46,7 +46,7 @@
                              ;polymorphic class
                              (#{:Class} (:op rator))
                              (let [{:keys [args pred] :as rcls} (get ((requiring-resolve 'clojure.core.typed.current-impl/rclass-env)
-                                                                      ((requiring-resolve 'typed.cljc.runtime.env/checker)))
+                                                                      ((requiring-resolve 'typed.cljc.runtime.env/checker) opts))
                                                                      (:name rator))
                                    _ (when-not rcls
                                        (int-error (str "Class does not take arguments: "
@@ -68,7 +68,7 @@
                              (int-error (str "Don't know how to apply type: " (:form t)))))
                  (:Class) `(instance? ~(:name t) ~arg)
                  (:Name) 
-                 (case ((requiring-resolve 'clojure.core.typed.current-impl/current-impl))
+                 (case ((requiring-resolve 'clojure.core.typed.current-impl/current-impl) opts)
                    :clojure.core.typed.current-impl/clojure (gen-inner (ops/resolve-Name t opts) arg)
                    (int-error (str "TODO CLJS Name")))
                  ;              (cond
@@ -182,7 +182,7 @@
                           (gen-inner (update t :rator ops/resolve-Name opts) arg)
                           ;polymorphic class
                           ;(#{:Class} (:op rator))
-                          ;  (let [{:keys [args pred] :as rcls} (get (impl/rclass-env ((requiring-resolve 'typed.cljc.runtime.env/checker))) (:name rator))
+                          ;  (let [{:keys [args pred] :as rcls} (get (impl/rclass-env ((requiring-resolve 'typed.cljc.runtime.env/checker) opts)) (:name rator))
                           ;        _ (when-not rcls
                           ;            (int-error (str "Class does not take arguments: "
                           ;                                (:name rator))))
@@ -205,7 +205,7 @@
                          ~(:name t)
                          #(instance? ~(:name t) %))
               (:Name) 
-              (case ((requiring-resolve 'clojure.core.typed.current-impl/current-impl))
+              (case ((requiring-resolve 'clojure.core.typed.current-impl/current-impl) opts)
                 :clojure.core.typed.current-impl/clojure (gen-inner (ops/resolve-Name t opts) arg)
                 (int-error (str "TODO CLJS Name")))
               ;              (cond

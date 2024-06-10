@@ -14,7 +14,7 @@
 
 (defn resolve-Name [{:keys [name] :as expr} opts]
   {:pre [(#{:Name} (:op expr))]}
-  (let [checker (env/checker)
+  (let [checker (env/checker opts)
         e ((requiring-resolve 'typed.cljc.runtime.env-utils/force-type)
            (get ((requiring-resolve 'clojure.core.typed.current-impl/alias-env) checker) name))
         _ (when-not e

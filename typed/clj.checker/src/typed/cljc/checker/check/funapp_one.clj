@@ -26,7 +26,7 @@
          (boolean? check?)]
    :post [(r/TCResult? %)]}
   (when drest 
-    (err/nyi-error "funapp with drest args NYI"))
+    (err/nyi-error "funapp with drest args NYI") opts)
   ;  (prn "check-funapp1")
   ;  (prn "argtys objects" (map r/ret-o argtys))
   ;checking
@@ -106,7 +106,7 @@
                   (err/tc-delayed-error (str "Undeclared keyword parameter " 
                                              (pr-str (prs/unparse-type kw-key-t opts)))
                                         opts))))))
-        (err/nyi-error (str "Function :kind " (:kind ftype0))))))
+        (err/nyi-error (str "Function :kind " (:kind ftype0)) opts))))
   (let [dom-count (count dom)
         arg-count (cond-> (+ dom-count (count optional-kw))
                     rest inc)

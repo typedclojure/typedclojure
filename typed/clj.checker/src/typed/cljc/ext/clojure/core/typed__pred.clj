@@ -27,10 +27,10 @@
         ; frees are not scoped when pred's are parsed at runtime,
         ; so we simulate the same here.
         (binding [tvar-env/*current-tvars* {}]
-          (prs/with-parse-ns (cu/expr-ns expr)
+          (prs/with-parse-ns (cu/expr-ns expr opts)
             (prs/parse-type tsyn opts)))]
     (assoc expr
            u/expr-type (below/maybe-check-below
-                         (r/ret (prs/predicate-for ptype))
+                         (r/ret (prs/predicate-for ptype opts))
                          expected
                          opts))))

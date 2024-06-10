@@ -10,12 +10,13 @@
   (:require [typed.cljc.runtime.env :as env]))
 
 (defn empty-clj-checker []
-  (assoc (env/empty-checker) :clojure.core.typed.current-impl/current-impl :clojure.core.typed.current-impl/clojure))
+  (env/empty-checker))
 
 (defonce clj-checker-atom (env/init-checker (empty-clj-checker)))
 
 (defn clear-clj-checker! []
   (reset! clj-checker-atom (empty-clj-checker)))
 
-(let [-opts {::env/checker clj-checker-atom}]
+(let [-opts {::env/checker clj-checker-atom
+             :clojure.core.typed.current-impl/current-impl :clojure.core.typed.current-impl/clojure}]
   (defn clj-opts [] -opts))

@@ -382,12 +382,12 @@ for checking namespaces, cf for checking individual forms."}
 
 (core/defn ^:no-doc rclass-pred
   "Do not use"
-  [rcls opts]
+  [rcls opt]
   (core/let
     [checker ((requiring-resolve 'clojure.core.typed.current-impl/clj-checker))
      add-rclass-env (requiring-resolve 'clojure.core.typed.current-impl/add-rclass-env)
      Class->symbol (requiring-resolve 'clojure.core.typed.current-impl/Class->symbol)]
-    (add-rclass-env checker (Class->symbol rcls) opts)))
+    (add-rclass-env checker (Class->symbol rcls) opt)))
 
 (defmacro ^:no-doc rclass-preds
   "Do not use"

@@ -108,7 +108,7 @@
           (map
             (fn [[k v :as kv]]
               (assert (= 2 (count kv)) kv)
-              [(if-let [c (ns-resolve (prs/parse-in-ns) k)]
+              [(if-let [c (ns-resolve (prs/parse-in-ns opts) k)]
                  (do (assert (class? c) (pr-str c))
                      (coerce/Class->symbol c))
                  (do (assert nil (str "Unknown rclass replacement: " k))
@@ -116,20 +116,20 @@
                (prs/parse-type v opts)]))
           m)))
 
-(defn resolve-class-symbol [the-class]
+(defn resolve-class-symbol [the-class opts]
   (impl/with-clojure-impl
-    (let [cls (when-let [c (ns-resolve (prs/parse-in-ns) the-class)]
+    (let [cls (when-let [c (ns-resolve (prs/parse-in-ns opts) the-class)]
                 (when (class? c)
                   c))]
       (assert cls (str "Cannot resolve class " the-class))
       (coerce/Class->symbol cls))))
 
-(defn make-RClass [the-class frees-syn opts]
+(defn make-RClass [the-class frees-syn opt opts]
   (impl/with-clojure-impl
     (let [{replacements-syn :replace
-           unchecked-ancestors-syn :unchecked-ancestors} (if (map? opts)
-                                                           opts
-                                                           (apply hash-map opts))
+           unchecked-ancestors-syn :unchecked-ancestors} (if (map? opt)
+                                                           opt
+                                                           (apply hash-map opt))
           _ (when unchecked-ancestors-syn
               (assert (vector? unchecked-ancestors-syn)))
           {variances :variances
@@ -147,7 +147,7 @@
                :nmes (map :nme b)
                :bnds (map :bound b)}))
           frees (map r/make-F nmes)
-          csym (resolve-class-symbol the-class)
+          csym (resolve-class-symbol the-class opts)
           frees-and-bnds (zipmap frees bnds)]
       (assert ((con/hash-c? r/F? r/Bounds?) frees-and-bnds) frees-and-bnds)
       (c/RClass* nmes variances frees csym

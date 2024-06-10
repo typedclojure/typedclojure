@@ -151,13 +151,13 @@
 (def clj-var-providers (delay (configs/clj-config-var-providers)))
 (def cljs-var-providers (delay (configs/cljs-config-var-providers)))
 
-(defn lookup-Var-nofail [nsym]
+(defn lookup-Var-nofail [nsym opts]
   {:pre [(symbol? nsym)]
    :post [((some-fn nil? r/Type?) %)]}
-  (let [checker (env/checker)]
+  (let [checker (env/checker opts)]
     (or (let [e (var-annotations checker)]
           (force-type (e nsym)))
-        (when (impl/checking-clojurescript?)
+        (when (impl/checking-clojurescript? opts)
           (force-type ((jsvar-annotations checker) nsym)))
         (when-some [ts (not-empty
                          (into (sorted-map) (map (fn [fsym]
@@ -165,7 +165,7 @@
                                                      (assert f fsym)
                                                      (some->> (f nsym)
                                                               (vector fsym)))))
-                               (impl/impl-case
+                               (impl/impl-case opts
                                  :clojure @clj-var-providers
                                  :cljs @cljs-var-providers)))]
           (let [chosen-entry (first ts)
@@ -178,7 +178,7 @@
 
 (defn lookup-Var [nsym opts]
   {:post [((some-fn nil? r/Type?) %)]}
-  (or (lookup-Var-nofail nsym)
+  (or (lookup-Var-nofail nsym opts)
       (err/int-error
         (str "Untyped var reference: " nsym)
         opts)))
@@ -189,7 +189,7 @@
   (or (when (and (not (namespace sym))
                  (not-any? #{\.} (str sym)))
         (lex/lookup-local sym opts))
-      (lookup-Var-nofail sym)))
+      (lookup-Var-nofail sym opts)))
 
 (defn type-of [sym opts]
   {:pre [(symbol? sym)]

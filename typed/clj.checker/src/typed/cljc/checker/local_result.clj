@@ -36,7 +36,7 @@
          ((some-fn nil? r/TCResult?) expected)]
    :post [(r/TCResult? %)]}
   (binding [vs/*current-expr* expr]
-    (prs/with-unparse-ns (cu/expr-ns expr)
+    (prs/with-unparse-ns (cu/expr-ns expr opts)
       (below/maybe-check-below
         (local-ret sym opts)
         expected

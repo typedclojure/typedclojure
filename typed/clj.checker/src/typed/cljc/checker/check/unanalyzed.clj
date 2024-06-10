@@ -16,11 +16,13 @@
 
 (defn install*
   [impl op impl-sym]
-  (let [info impl-sym
-        prev (let [checker (get-in (impl/bindings-for-impl) [impl #'env/*checker*])]
-               (-> (env/swap-checker-vals! checker assoc-in [impl/unanalyzed-special-kw op] impl-sym)
-                   first
-                   (get-in [impl/unanalyzed-special-kw op])))]
+  (let [{::env/keys [checker] :as opts} (case impl
+                                          :clojure ((requiring-resolve 'typed.clj.runtime.env/clj-opts))
+                                          :cljs ((requiring-resolve 'typed.cljs.runtime.env/cljs-opts)))
+        info impl-sym
+        prev (-> (env/swap-checker-vals! checker assoc-in [impl/unanalyzed-special-kw op] impl-sym)
+                 first
+                 (get-in [impl/unanalyzed-special-kw op]))]
     (when prev
       (when (not= info prev)
         (println (str "WARNING: Unanalyzed rule for "
@@ -113,14 +115,9 @@
         gopts (gensym 'opts)]
     (assert (vector? argv))
     (assert (not-any? #{'&} argv))
-    (case (count argv)
-      2 `(defn ~vsym
-           ~@(when doc [doc])
-           ~(conj argv gopts)
-           (some-> (do ~@args)
-                   (run-passes+propagate-expr-type ~gopts)))
-      3 `(defn ~vsym
-           ~@(when doc [doc])
-           ~(-> argv pop (conj gopts))
-           (some-> (let [~(peek argv) ~gopts] ~@args)
-                   (run-passes+propagate-expr-type ~gopts))))))
+    (assert (= 3 (count argv)))
+    `(defn ~vsym
+       ~@(when doc [doc])
+       ~(-> argv pop (conj gopts))
+       (some-> (let [~(peek argv) ~gopts] ~@args)
+               (run-passes+propagate-expr-type ~gopts)))))

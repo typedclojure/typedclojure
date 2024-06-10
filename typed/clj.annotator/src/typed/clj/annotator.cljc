@@ -15,6 +15,7 @@
                                when-fuel]]))
   (:require [#?(:clj clojure.pprint :cljs cljs.pprint) :as pp]
             [#?(:clj clojure.core :cljs cljs.core) :as core]
+            [typed.clj.runtime.env :refer [clj-opts]]
             [typed.clj.annotator.rep :refer [-val key-path map-vals-path
                                                       infer-result infer-results
                                                       -class type? -any fn-dom-path
@@ -1703,7 +1704,7 @@
                                 (some-> v meta :macro))
                      ]
               (when no-infer?
-                (println (str "Not instrumenting " (ast/def-var-name expr) " definition"))
+                (println (str "Not instrumenting " (ast/def-var-name expr (clj-opts)) " definition"))
                 (flush))
               (if (and (:init expr)
                        (not no-infer?))
@@ -1713,7 +1714,7 @@
                             (infer-arglists v init))
                           (-> init
                               check
-                              (wrap-def-init (ast/def-var-name expr) *ns*))))
+                              (wrap-def-init (ast/def-var-name expr (clj-opts)) *ns*))))
                 expr))
        :invoke (cond
                  (and (= :var (-> expr :fn :op))

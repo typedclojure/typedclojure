@@ -26,4 +26,4 @@
           ptype (-> pform (ana2/unanalyzed env)
                     check-expr u/expr-type r/ret-t)]
       (assoc expr
-             u/expr-type (inst/inst-from-targs-syn ptype targs-syn (cu/expr-ns expr) expected opts))))
+             u/expr-type (inst/inst-from-targs-syn ptype targs-syn (cu/expr-ns expr opts) expected opts))))

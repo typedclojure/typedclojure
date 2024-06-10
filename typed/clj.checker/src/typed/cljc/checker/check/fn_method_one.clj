@@ -59,7 +59,7 @@
           (-> % :cmethod :clojure.core.typed/ftype r/Function?)
           (:cmethod %)]}
   ;(prn "check-fn-method1" expected)
-  (impl/impl-case
+  (impl/impl-case opts
     :clojure (assert (#{:fn-method :method} (:op method))
                      (:op method))
     ; is there a better :op check here?
@@ -273,7 +273,7 @@
         cmethod (-> method
                     (assoc (ast-u/method-body-kw) crng
                            :clojure.core.typed/ftype ftype)
-                    (ast-u/reconstruct-arglist crequired-params crest-param))
+                    (ast-u/reconstruct-arglist crequired-params crest-param opts))
         _ (assert (vector? (:params cmethod)))
         _ (assert (every? (comp r/TCResult? u/expr-type) (:params cmethod)))]
      {:ftype ftype

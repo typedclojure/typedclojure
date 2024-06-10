@@ -26,7 +26,7 @@
         ts (map (comp #(c/fully-resolve-type % opts) r/ret-t u/expr-type) cargs)
         res-type (if (every? r/Value? ts)
                    (r/-hset (r/sorted-type-set ts))
-                   (impl/impl-case
+                   (impl/impl-case opts
                      :clojure (c/RClass-of PersistentHashSet [(c/Un ts opts)] opts)
                      :cljs (c/-name 'typed.clojure/Set (c/Un ts opts))))]
     (assoc expr

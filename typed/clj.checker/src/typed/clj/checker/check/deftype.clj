@@ -81,7 +81,7 @@
   ;TODO check fields match, handle extra fields in records
   ;TODO check that all protocols are accounted for
   (binding [vs/*current-env* env]
-    (let [checker (env/checker)
+    (let [checker (env/checker opts)
           compiled-class (:class-name expr)
           ;; jana2/validate turns :class-name into a class.
           ;; might not be run at this point.

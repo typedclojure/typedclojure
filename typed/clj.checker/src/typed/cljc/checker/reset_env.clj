@@ -18,10 +18,10 @@
 
 (defn reset-envs!
   "Reset all environments for the current implementation."
-  ([] (reset-envs! false))
-  ([cljs?]
+  ([opts] (reset-envs! false opts))
+  ([cljs? opts]
   (let []
-    (impl/impl-case
+    (impl/impl-case opts
       :clojure
       (do (bse-clj/reset-clojure-envs!)
           (mmenv/reset-mm-dispatch-env!)
@@ -34,12 +34,12 @@
           (ns-opts/reset-ns-opts! (impl/cljs-checker)))))
     nil)))
 
-(defn load-core-envs! 
+(defn load-core-envs!
   "Add core annotations to environments for the current implementation."
-  ([] (load-core-envs! false))
-  ([cljs?]
+  ([opts] (load-core-envs! false opts))
+  ([cljs? opts]
   (let []
-    (impl/impl-case
+    (impl/impl-case opts
       :clojure
       (do (bse-clj/refresh-core-clojure-envs!)
           ;(mmenv/reset-mm-dispatch-env!)

@@ -203,7 +203,7 @@
 
 (defn check-var
   [{vname :name :as expr} expected opts]
-  (impl/assert-cljs)
+  (impl/assert-cljs opts)
   (assoc expr expr-type
          (js-var-result expr vname expected opts)))
 
@@ -214,7 +214,7 @@
 
 (defmethod internal-special-form :default
   [expr expected opts]
-  (err/int-error (str "No such internal form: " (ast-u/emit-form-fn expr)) opts))
+  (err/int-error (str "No such internal form: " (ast-u/emit-form-fn expr opts)) opts))
 
 
 
@@ -242,7 +242,7 @@
 
 (defn check-new
   [{ctor :class :keys [args] :as expr} expected {::check/keys [check-expr] :as opts}]
-  (impl/assert-cljs)
+  (impl/assert-cljs opts)
   (let [;; TODO check ctor
         cargs (mapv check-expr args)]
     (u/tc-warning (str "`new` special form is Unchecked"))
@@ -366,7 +366,7 @@
 ; TODO check
 (defn check-the-var
   [expr expected opts]
-  (impl/assert-cljs)
+  (impl/assert-cljs opts)
   (u/tc-warning (str "`var` special form is Unchecked"))
   (assoc expr 
          u/expr-type (below/maybe-check-below
@@ -399,9 +399,7 @@
   fully analyzed core.typed.analyzer AST node (ie., containing no :unanalyzed nodes)
   with a u/expr-type entry giving its TCResult type, and a :result entry
   holding its evaluation result."
-  ([form] (check-top-level form nil))
-  ([form expected] (check-top-level form expected {}))
-  ([form expected {:keys [env] :as opts}]
+  ([form expected {:keys [env] :as opt} opts]
    ;(prn "check-top-level" form)
    ;(prn "*ns*" *ns*)
    ;(prn "*cljs-ns*" cljs-ana/*cljs-ns*)
@@ -422,7 +420,7 @@
   ([ns env opts]
    (uc/with-cljs-typed-env
      (let [env (or env (ana-api/empty-env))
-           res (coerce/ns->URL ns)]
+           res (coerce/ns->URL ns opts)]
        (assert res (str "Can't find " ns " in classpath"))
        (let [filename (str res)
              path     (.getPath res)]
@@ -440,13 +438,18 @@
                  (loop []
                    (let [form (binding [*ns* (do (when (:check-form-eval vs/*check-config*)
                                                    ;; see clj implementation
-                                                   (err/nyi-error ":check-form-eval in CLJS"))
+                                                   (err/nyi-error ":check-form-eval in CLJS" opts))
                                                  (create-ns cljs-ana/*cljs-ns*))
                                         reader/*data-readers* data-readers
                                         reader/*alias-map* (uc/get-aliases)]
                                 (reader/read read-opts pbr))]
                      (when-not (identical? form eof)
-                       (check-top-level form)
+                       (check-top-level form nil {}
+                                        #_ ;;TODO
+                                        {:env (assoc env :ns (ns-name *ns*))
+                                         :top-level-form-string sform
+                                         :ns-form-string ns-form-str}
+                                        opts)
                        (recur)))))))))))))
 
 (defn check-ns-and-deps [nsym opts] (cu/check-ns-and-deps nsym check-ns1 opts))

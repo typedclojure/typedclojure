@@ -193,12 +193,12 @@
                                                    (parse-type s opts))))]
                               {:pretty {parsed {:original-syntax s
                                                 :file *file*
-                                                :nsym (parse-in-ns)
+                                                :nsym (parse-in-ns opts)
                                                 :no-simpl (delay @t)
                                                 :no-simpl-verbose-syntax (delay
                                                                            (binding [vs/*verbose-types* true]
                                                                              (app #(vary-meta (unparse-type @t opts)
-                                                                                              assoc :file *file* :nsym (parse-in-ns)))))}}}))))
+                                                                                              assoc :file *file* :nsym (parse-in-ns opts)))))}}}))))
            (catch Throwable e
              ;(prn (err/any-tc-error? (ex-data e)))
              (if (err/any-tc-error? (ex-data e))
@@ -228,19 +228,19 @@
   (fn [[n] opts]
     {:post [((some-fn nil? symbol?) %)]}
     (when (symbol? n)
-      (or (impl/impl-case
+      (or (impl/impl-case opts
             :clojure (resolve-type-clj->sym n opts)
             :cljs (or ('#{quote Array Array2} n)
-                      (resolve-type-cljs n)))
+                      (resolve-type-cljs n opts)))
           n))))
 
 (defmulti parse-type-symbol
   (fn [n opts]
     {:pre [(symbol? n)]}
-    (or (impl/impl-case
+    (or (impl/impl-case opts
           :clojure (resolve-type-clj->sym n opts)
           ;;FIXME logic is all tangled
-          :cljs (resolve-type-cljs n))
+          :cljs (resolve-type-cljs n opts))
         n)))
 
 (def parsed-free-map? (con/hmap-c? :fname symbol?
@@ -362,7 +362,7 @@
   (get-in vs/*current-expr* [:env ::uniquify/locals-frame-val sym]))
 
 (defmethod parse-type-list 'typed.clojure/TypeOf [[_ sym :as t] opts]
-  (impl/assert-clojure)
+  (impl/assert-clojure opts)
   (when-not (= 2 (count t))
     (prs-error (str "Wrong number of arguments to TypeOf (" (count t) ")") opts))
   (when-not (symbol? sym)
@@ -395,9 +395,9 @@
     (assert (var? v) "RClass-of unbound")
     v))
 
-(defn predicate-for [on-type]
+(defn predicate-for [on-type opts]
   (r/make-FnIntersection
-    (r/make-Function [r/-any] (impl/impl-case
+    (r/make-Function [r/-any] (impl/impl-case opts
                                 :clojure (r/Name-maker 'java.lang.Boolean)
                                 :cljs    (r/JSBoolean-maker))
                      :filter (fl/-FS (fl/-filter on-type 0)
@@ -406,7 +406,7 @@
 (defn parse-Pred [[_ & [t-syn :as args]] opts]
   (when-not (= 1 (count args))
     (prs-error "Wrong arguments to predicate" opts))
-  (predicate-for (parse-type t-syn opts)))
+  (predicate-for (parse-type t-syn opts) opts))
 
 (defmethod parse-type-list 'typed.clojure/Pred [t opts] (parse-Pred t opts))
 
@@ -463,7 +463,7 @@
                            ;with dotted bound in scope as free
                            (free-ops/with-bounded-frees {(r/make-F drest-bnd)
                                                          ((requiring-resolve 'typed.cljc.checker.cs-gen/homogeneous-dbound->bound)
-                                                          bnd)}
+                                                          bnd opts)}
                              (parse-type drest-type opts))
                            (:name f)))))))
 
@@ -475,7 +475,7 @@
 (defmethod parse-type-list 'typed.clojure/Merge [t opts] (parse-Merge t opts))
 
 (defn parse-Instance [[_ tsyn :as all] opts]
-  (impl/assert-clojure)
+  (impl/assert-clojure opts)
   (when-not (= 2 (count all))
     (prs-error (str "Wrong arguments to t/Instance: " (pr-str all)) opts))
   (when-not (simple-symbol? tsyn)
@@ -488,7 +488,7 @@
 (defmethod parse-type-list 'typed.clojure/Instance [t opts] (parse-Instance t opts))
 
 (defn parse-Satisfies [[_ tsyn :as all] opts]
-  (impl/assert-clojure) ;; TODO resolve protocol in cljs
+  (impl/assert-clojure opts) ;; TODO resolve protocol in cljs
   (when-not (= 2 (count all))
     (prs-error (str "Wrong arguments to t/Satisfies: " (pr-str all)) opts))
   (when-not (symbol? tsyn)
@@ -712,7 +712,7 @@
   (when-not (empty? none)
     (prs-error "Expected 1 argument to Array" opts))
   (let [t (parse-type syn opts)]
-    (impl/impl-case
+    (impl/impl-case opts
       :clojure (let [jtype (if (r/RClass? t)
                              (r/RClass->Class t)
                              Object)]
@@ -727,7 +727,7 @@
   (when-not (empty? none) 
     (prs-error "Expected 1 argument to ReadOnlyArray" opts))
   (let [o (parse-type osyn opts)]
-    (impl/impl-case
+    (impl/impl-case opts
       :clojure (r/PrimitiveArray-maker Object (r/Bottom) o)
       :cljs (r/ArrayCLJS-maker (r/Bottom) o))))
 
@@ -740,13 +740,13 @@
     (prs-error "Expected 2 arguments to Array2" opts))
   (let [i (parse-type isyn opts)
         o (parse-type osyn opts)]
-    (impl/impl-case
+    (impl/impl-case opts
       :clojure (r/PrimitiveArray-maker Object i o)
       :cljs (r/ArrayCLJS-maker i o))))
 
 (defmethod parse-type-list 'Array3
   [[_ jsyn isyn osyn & none] opts]
-  (impl/assert-clojure)
+  (impl/assert-clojure opts)
   (when-not (empty? none) 
     (prs-error "Expected 3 arguments to Array3" opts))
   (let [jrclass (c/fully-resolve-type (parse-type jsyn opts) opts)
@@ -767,7 +767,7 @@
   (parse-fn-intersection-type syn opts))
 
 (defmethod parse-type-list 'Fn [t opts]
-  (err/deprecated-plain-op 'Fn 'IFn)
+  (err/deprecated-plain-op 'Fn 'IFn opts)
   (parse-Fn t opts))
 (defmethod parse-type-list 'typed.clojure/IFn [t opts] (parse-Fn t opts))
 
@@ -938,7 +938,7 @@
                         ;with dotted bound in scope as free
                         (free-ops/with-bounded-frees {(r/make-F drest-bnd)
                                                       ((requiring-resolve 'typed.cljc.checker.cs-gen/homogeneous-dbound->bound)
-                                                       bnd)}
+                                                       bnd opts)}
                           (parse-type drest-type opts))
                         (:name f))})
             :else {:fixed (mapv #(parse-type % opts) syns)})]
@@ -1109,10 +1109,10 @@
 
 (def ^:private cljs-ns #((requiring-resolve 'typed.cljs.checker.util/cljs-ns)))
 
-(defn parse-in-ns []
+(defn parse-in-ns [opts]
   {:post [(symbol? %)]}
   (or *parse-type-in-ns*
-      (impl/impl-case
+      (impl/impl-case opts
         :clojure (ns-name *ns*)
         :cljs (cljs-ns))))
 
@@ -1124,8 +1124,8 @@
   [sym opts]
   {:pre [(symbol? sym)]
    :post [((some-fn var? class? nil?) %)]}
-  (impl/assert-clojure)
-  (let [nsym (parse-in-ns)]
+  (impl/assert-clojure opts)
+  (let [nsym (parse-in-ns opts)]
     (if-some [ns (find-ns nsym)]
       (or (when-some [res (ns-resolve ns sym)]
             (or (when-some [rewrite-nsym (when (var? res)
@@ -1145,8 +1145,8 @@
   [sym opts]
   {:pre [(symbol? sym)]
    :post [((some-fn symbol? nil?) %)]}
-  (impl/assert-clojure)
-  (let [nsym (parse-in-ns)
+  (impl/assert-clojure opts)
+  (let [nsym (parse-in-ns opts)
         nsp (some-> (namespace sym) symbol)]
     (if-let [ns (find-ns nsym)]
       (when-let [qual (if nsp
@@ -1158,7 +1158,7 @@
                              (not (namespace qual))))
               qual (ns-rewrites-clj qual qual)
               qsym (symbol (name qual) (name sym))]
-          (when (contains? (nme-env/name-env (env/checker)) qsym)
+          (when (contains? (nme-env/name-env (env/checker opts)) qsym)
             qsym)))
       (err/int-error (str "Cannot find namespace: " sym) opts))))
 
@@ -1166,8 +1166,8 @@
   [sym opts]
   {:pre [(symbol? sym)]
    :post [(symbol? %)]}
-  (impl/assert-clojure)
-  (let [nsym (parse-in-ns)]
+  (impl/assert-clojure opts)
+  (let [nsym (parse-in-ns opts)]
     (if-some [ns (find-ns nsym)]
       (or (when (special-symbol? sym)
             sym)
@@ -1198,13 +1198,13 @@
 ;; TODO reconcile clj/cljs type resolution. neither should really be interning vars (breaking change for clj).
 (defn resolve-type-cljs
   "Returns a qualified symbol or nil"
-  [sym]
+  [sym opts]
   {:pre [(symbol? sym)]
    :post [((some-fn symbol?
                     nil?)
            %)]}
-  (impl/assert-cljs)
-  (let [nsym (parse-in-ns)
+  (impl/assert-cljs opts)
+  (let [nsym (parse-in-ns opts)
         ;; TODO does this handle imports?
         res (or ((requiring-resolve 'typed.cljs.checker.util/resolve-var) nsym sym)
                 (when-some [maybe-alias (some-> sym namespace symbol)]
@@ -1224,7 +1224,7 @@
   (when-not (= 2 (count all))
     (prs-error (str "Incorrect number of arguments to Value, " (count all)
                     ", expected 2: " all) opts))
-  (impl/impl-case
+  (impl/impl-case opts
     :clojure (const/constant-type syn false opts)
     :cljs (cond
             ((some-fn symbol? keyword? nil?) syn)
@@ -1292,29 +1292,29 @@
 
 ;; hmmm...a psuedo primitive?
 (defmethod parse-type-symbol 'typed.clojure/CLJSInteger [_ opts]
-  (impl/assert-cljs 'typed.clojure/CLJSInteger)
+  (impl/assert-cljs 'typed.clojure/CLJSInteger opts)
   (r/CLJSInteger-maker))
 (defmethod parse-type-symbol 'typed.clojure/JSnumber [_ opts]
-  (impl/assert-cljs 'typed.clojure/JSnumber)
+  (impl/assert-cljs 'typed.clojure/JSnumber opts)
   (r/JSNumber-maker))
 (defmethod parse-type-symbol 'typed.clojure/JSboolean [_ opts]
-  (impl/assert-cljs 'typed.clojure/JSboolean)
+  (impl/assert-cljs 'typed.clojure/JSboolean opts)
   (r/JSBoolean-maker))
 #_ ;; js/Object
 (defmethod parse-type-symbol 'typed.clojure/JSobject [_ opts]
-  (impl/assert-cljs 'typed.clojure/JSobject)
+  (impl/assert-cljs 'typed.clojure/JSobject opts)
   (r/JSObject-maker))
 (defmethod parse-type-symbol 'typed.clojure/JSstring [_ opts]
-  (impl/assert-cljs 'typed.clojure/JSstring)
+  (impl/assert-cljs 'typed.clojure/JSstring opts)
   (r/JSString-maker))
 (defmethod parse-type-symbol 'typed.clojure/JSundefined [_ opts]
-  (impl/assert-cljs 'typed.clojure/JSundefined)
+  (impl/assert-cljs 'typed.clojure/JSundefined opts)
   (r/JSUndefined-maker))
 (defmethod parse-type-symbol 'typed.clojure/JSnull [_ opts]
-  (impl/assert-cljs 'typed.clojure/JSnull)
+  (impl/assert-cljs 'typed.clojure/JSnull opts)
   (r/JSNull-maker))
 (defmethod parse-type-symbol 'typed.clojure/JSsymbol [_ opts]
-  (impl/assert-cljs 'typed.clojure/JSsymbol)
+  (impl/assert-cljs 'typed.clojure/JSsymbol opts)
   (r/JSSymbol-maker))
 
 (defn clj-primitives-fn [opts]
@@ -1331,13 +1331,13 @@
 
 (defn ^:dynamic parse-type-symbol-default
   [sym opts]
-  (let [primitives (impl/impl-case
+  (let [primitives (impl/impl-case opts
                      :clojure (clj-primitives-fn opts)
                      :cljs {})
         free (when (symbol? sym) 
                (free-ops/free-in-scope sym))
         rsym (when-not free
-               (impl/impl-case
+               (impl/impl-case opts
                  :clojure (let [res (when (symbol? sym)
                                       (resolve-type-clj sym opts))]
                             (cond
@@ -1346,7 +1346,7 @@
                               ;; name doesn't resolve, try declared protocol or datatype
                               ;; in the current namespace
                               :else (or (resolve-type-alias-clj sym opts)
-                                        (let [ns (parse-in-ns)
+                                        (let [ns (parse-in-ns opts)
                                               dprotocol (if (namespace sym)
                                                           sym
                                                           (symbol (str ns) (str sym)))
@@ -1354,10 +1354,10 @@
                                                           sym
                                                           (symbol (str (munge ns)) (str sym)))]
                                           (cond
-                                            (nme-env/declared-protocol? dprotocol) dprotocol
-                                            (nme-env/declared-datatype? ddatatype) ddatatype)))))
+                                            (nme-env/declared-protocol? dprotocol opts) dprotocol
+                                            (nme-env/declared-datatype? ddatatype opts) ddatatype)))))
                  :cljs (when (symbol? sym)
-                         (resolve-type-cljs sym))))
+                         (resolve-type-cljs sym opts))))
         _ (assert ((some-fn symbol? nil?) rsym))]
     ;(prn `parse-type-symbol-default sym rsym)
     (or free
@@ -1367,7 +1367,7 @@
           rsym (r/Name-maker rsym)
           :else (prs-error (str "Cannot resolve type: " (pr-str sym)
                                 "\nHint: Is " (pr-str sym) " in scope in namespace"
-                                " `" (parse-in-ns) "`?") opts)))))
+                                " `" (parse-in-ns opts) "`?") opts)))))
 
 (defmethod parse-type-symbol :default
   [sym opts]
@@ -1715,7 +1715,7 @@
                                   (recur (conj cat-dom (r/DottedPretype1-maker
                                                          (cond-> (free-ops/with-bounded-frees {(r/make-F drest-bnd)
                                                                                                ((requiring-resolve 'typed.cljc.checker.cs-gen/homogeneous-dbound->bound)
-                                                                                                bnd)}
+                                                                                                bnd opts)}
                                                                    (-> d1 allow-regex (parse-type opts)))
                                                            (= '<... d2) push-HSequential->regex)
                                                          (:name f)))
@@ -1803,10 +1803,10 @@
 (defonce ^:dynamic *unparse-type-in-ns* nil)
 (set-validator! #'*unparse-type-in-ns* (some-fn nil? symbol?))
 
-(defn unparse-in-ns []
+(defn unparse-in-ns [opts]
   {:post [((some-fn nil? symbol?) %)]}
   (or *unparse-type-in-ns*
-      (impl/impl-case
+      (impl/impl-case opts
         :clojure (ns-name *ns*)
         :cljs (cljs-ns)
         :unknown nil)))
@@ -1817,11 +1817,11 @@
 
 (defn alias-in-ns
   "Returns an alias for namespace nsym in namespace ns, or nil if none."
-  [ns nsym]
+  [ns nsym opts]
   {:pre [(plat-con/namespace? ns)
          (simple-symbol? nsym)]
    :post [((some-fn nil? symbol?) %)]}
-  (impl/assert-clojure)
+  (impl/assert-clojure opts)
   (reduce-kv (fn [earliest alias ans]
                (let [ans-sym (ns-name ans)]
                  (if (or (= nsym (ns-unrewrites-clj ans-sym))
@@ -1873,13 +1873,13 @@
                    (= sym (symbol v)))
           simple-sym)))))
 
-(defn unparse-Name-symbol-in-ns [sym]
+(defn unparse-Name-symbol-in-ns [sym opts]
   {:pre [(symbol? sym)]
    :post [(symbol? %)]}
   ;(prn "unparse-Name-symbol-in-ns" sym)
   (if-let [ns (and (not vs/*verbose-types*)
-                   (some-> (unparse-in-ns) find-ns))]
-    (impl/impl-case
+                   (some-> (unparse-in-ns opts) find-ns))]
+    (impl/impl-case opts
       :clojure
       (or ; use an import name
           (Class-symbol-intern sym ns)
@@ -1889,7 +1889,7 @@
           (when (namespace sym)
             (or (protocol-var-symbol-intern sym ns)
                 ; use aliased ns if not interned, but ns is aliased
-                (when-let [alias (alias-in-ns ns (symbol (namespace sym)))]
+                (when-let [alias (alias-in-ns ns (symbol (namespace sym)) opts)]
                   (symbol (str alias) (name sym)))))
           ; otherwise use fully qualified name
           sym)
@@ -1927,23 +1927,23 @@
 
 (extend-protocol IUnparseType
   Top
-  (unparse-type* [t opts] (unparse-Name-symbol-in-ns `t/Any))
+  (unparse-type* [t opts] (unparse-Name-symbol-in-ns `t/Any opts))
   Wildcard 
-  (unparse-type* [t opts] (unparse-Name-symbol-in-ns `t/Infer))
+  (unparse-type* [t opts] (unparse-Name-symbol-in-ns `t/Infer opts))
 ;; TODO qualify vsym in current ns
   TypeOf 
-  (unparse-type* [{:keys [vsym] :as t} opts] (list (unparse-Name-symbol-in-ns `t/TypeOf) vsym))
+  (unparse-type* [{:keys [vsym] :as t} opts] (list (unparse-Name-symbol-in-ns `t/TypeOf opts) vsym))
   Unchecked 
   (unparse-type* [{:keys [vsym] :as t} opts]
     (if vsym
       (list 'Unchecked vsym)
     'Unchecked))
   TCError 
-  (unparse-type* [_ opts] (unparse-Name-symbol-in-ns `t/TCError))
+  (unparse-type* [_ opts] (unparse-Name-symbol-in-ns `t/TCError opts))
   Name 
-  (unparse-type* [{:keys [id]} opts] (unparse-Name-symbol-in-ns id))
+  (unparse-type* [{:keys [id]} opts] (unparse-Name-symbol-in-ns id opts))
   AnyValue 
-  (unparse-type* [_ opts] (unparse-Name-symbol-in-ns `t/AnyValue))
+  (unparse-type* [_ opts] (unparse-Name-symbol-in-ns `t/AnyValue opts))
 
   DottedPretype
   (unparse-type* [t opts] (unparse-DottedPretype t false opts))
@@ -1951,9 +1951,9 @@
   CountRange 
   (unparse-type* [{:keys [lower upper]} opts]
     (cond
-      (= lower upper) (list (unparse-Name-symbol-in-ns `t/ExactCount)
+      (= lower upper) (list (unparse-Name-symbol-in-ns `t/ExactCount opts)
                             lower)
-      :else (list* (unparse-Name-symbol-in-ns `t/CountRange)
+      :else (list* (unparse-Name-symbol-in-ns `t/CountRange opts)
                    lower
                    (when upper [upper]))))
 
@@ -2000,8 +2000,8 @@
     (cond
       ; Prefer the user provided Name for this type. Needs more thinking?
       ;(-> u meta :from-name) (-> u meta :from-name)
-      (seq types) (list* (unparse-Name-symbol-in-ns `t/U) (mapv #(unparse-type % opts) types))
-      :else (unparse-Name-symbol-in-ns `t/Nothing)))
+      (seq types) (list* (unparse-Name-symbol-in-ns `t/U opts) (mapv #(unparse-type % opts) types))
+      :else (unparse-Name-symbol-in-ns `t/Nothing opts)))
 
   FnIntersection
   (unparse-type* 
@@ -2010,29 +2010,29 @@
     ; note: sugar is expected by unparse of t/Match
     (if (= 1 (count types))
       (unparse-type (first types) opts)
-      (list* (unparse-Name-symbol-in-ns `t/IFn)
+      (list* (unparse-Name-symbol-in-ns `t/IFn opts)
              (mapv #(unparse-type % opts) types))))
 
   Intersection
   (unparse-type* 
     [{types :types} opts]
-    (list* (unparse-Name-symbol-in-ns `t/I)
+    (list* (unparse-Name-symbol-in-ns `t/I opts)
            (mapv #(unparse-type % opts) types)))
 
   DifferenceType
   (unparse-type* 
     [{:keys [type without]} opts]
-    (list* (unparse-Name-symbol-in-ns `t/Difference)
+    (list* (unparse-Name-symbol-in-ns `t/Difference opts)
            (unparse-type type opts)
            (mapv #(unparse-type % opts) without)))
 
   NotType
   (unparse-type*
     [{:keys [type]} opts]
-    (list (unparse-Name-symbol-in-ns `t/Not) (unparse-type type opts)))
+    (list (unparse-Name-symbol-in-ns `t/Not opts) (unparse-type type opts)))
 
   TopFunction 
-  (unparse-type* [_ opts] (unparse-Name-symbol-in-ns `t/AnyFunction)))
+  (unparse-type* [_ opts] (unparse-Name-symbol-in-ns `t/AnyFunction opts)))
 
 (defn- unparse-kw-map [m opts]
   {:pre [((con/hash-c? r/Value? r/Type?) m)]}
@@ -2068,7 +2068,7 @@
                  types)]
     (cond->> ts
       (not (and flatten? (= :cat kind)))
-      (list* (unparse-Name-symbol-in-ns (symbol "typed.clojure" (name kind)))))))
+      (list* (unparse-Name-symbol-in-ns (symbol "typed.clojure" (name kind)) opts)))))
 
 (extend-protocol IUnparseType
   SymbolicClosure
@@ -2116,7 +2116,7 @@
   Protocol
   (unparse-type* 
     [{:keys [the-var poly?]} opts]
-    (let [s (unparse-Name-symbol-in-ns the-var)]
+    (let [s (unparse-Name-symbol-in-ns the-var opts)]
       (if poly?
         (list* s (mapv #(unparse-type % opts) poly?))
         s)))
@@ -2125,27 +2125,27 @@
   (unparse-type* 
     [{:keys [the-class poly?]} opts]
     (if poly?
-      (list* (unparse-Name-symbol-in-ns the-class) (mapv #(unparse-type % opts) poly?))
-      (unparse-Name-symbol-in-ns the-class)))
+      (list* (unparse-Name-symbol-in-ns the-class opts) (mapv #(unparse-type % opts) poly?))
+      (unparse-Name-symbol-in-ns the-class opts)))
 
   RClass
   (unparse-type* 
     [{:keys [the-class poly?] :as r} opts]
     (if (empty? poly?)
-      (unparse-Name-symbol-in-ns the-class)
-      (list* (unparse-Name-symbol-in-ns the-class) (mapv #(unparse-type % opts) poly?))))
+      (unparse-Name-symbol-in-ns the-class opts)
+      (list* (unparse-Name-symbol-in-ns the-class opts) (mapv #(unparse-type % opts) poly?))))
 
   Mu
   (unparse-type* 
     [m opts]
     (let [nme (-> (c/Mu-fresh-symbol* m) r/make-F unparse-F)
           body (c/Mu-body* nme m opts)]
-      (list (unparse-Name-symbol-in-ns `t/Rec) [nme] (unparse-type body opts))))
+      (list (unparse-Name-symbol-in-ns `t/Rec opts) [nme] (unparse-type body opts))))
 
   MatchType
   (unparse-type* 
     [m opts]
-    (list* (unparse-Name-symbol-in-ns `t/Match)
+    (list* (unparse-Name-symbol-in-ns `t/Match opts)
            (unparse-type (:target m) opts)
            (doall
              (mapcat (fn [t]
@@ -2162,13 +2162,13 @@
   Instance
   (unparse-type*
     [m opts]
-    (list (unparse-Name-symbol-in-ns `t/Instance)
-          (unparse-Name-symbol-in-ns (:the-class m))))
+    (list (unparse-Name-symbol-in-ns `t/Instance opts)
+          (unparse-Name-symbol-in-ns (:the-class m) opts)))
   Satisfies
   (unparse-type*
     [m opts]
-    (list (unparse-Name-symbol-in-ns `t/Satisfies)
-          (unparse-Name-symbol-in-ns (:the-var m)))))
+    (list (unparse-Name-symbol-in-ns `t/Satisfies opts)
+          (unparse-Name-symbol-in-ns (:the-var m) opts))))
 
 (defn Bounds->vector [{:keys [upper-bound lower-bound] :as bnds} opts]
   {:pre [(r/Bounds? bnds)]}
@@ -2228,12 +2228,12 @@
                   bbnds (c/Poly-bbnds* free-names p opts)
                   binder (unparse-poly-binder false free-names bbnds named opts)
                   body (c/Poly-body* free-names p opts)]
-              (list (unparse-Name-symbol-in-ns `t/All) binder (unparse-type body opts)))
+              (list (unparse-Name-symbol-in-ns `t/All opts) binder (unparse-type body opts)))
       :PolyDots (let [free-names (vec (c/PolyDots-fresh-symbols* p))
                       bbnds (c/PolyDots-bbnds* free-names p opts)
                       binder (unparse-poly-binder true free-names bbnds named opts)
                       body (c/PolyDots-body* free-names p opts)]
-                  (list (unparse-Name-symbol-in-ns `t/All) binder (unparse-type body opts))))))
+                  (list (unparse-Name-symbol-in-ns `t/All opts) binder (unparse-type body opts))))))
 
 ;(ann unparse-typefn-bounds-entry [t/Sym Bounds Variance Opts -> Any])
 (defn unparse-typefn-bounds-entry [name bnds v opts]
@@ -2251,14 +2251,14 @@
           bbnds (c/TypeFn-bbnds* free-names p opts)
           binder (mapv unparse-typefn-bounds-entry free-names bbnds (:variances p) (repeat opts))
           body (c/TypeFn-body* free-names bbnds p opts)]
-      (list (unparse-Name-symbol-in-ns `t/TFn) binder (unparse-type body opts))))
+      (list (unparse-Name-symbol-in-ns `t/TFn opts) binder (unparse-type body opts))))
 
   Bounds
   (unparse-type* 
     [{:keys [upper-bound lower-bound] :as bnds} opts]
     (if (= r/no-bounds bnds)
-      (unparse-Name-symbol-in-ns `t/Type)
-      (list* (unparse-Name-symbol-in-ns `t/Type)
+      (unparse-Name-symbol-in-ns `t/Type opts)
+      (list* (unparse-Name-symbol-in-ns `t/Type opts)
              (Bounds->vector bnds opts))))
 
   Value
@@ -2267,7 +2267,7 @@
     (if (and ((some-fn r/Nil? r/True? r/False?) v)
              (not vs/*verbose-types*))
       (:val v)
-      (list (unparse-Name-symbol-in-ns `t/Val) (:val v)))))
+      (list (unparse-Name-symbol-in-ns `t/Val opts) (:val v)))))
 
 (defn- unparse-map-of-types [m opts]
   (reduce-kv (fn [m k v]
@@ -2279,7 +2279,7 @@
   HeterogeneousMap
   (unparse-type* 
     [v opts]
-    (list* (unparse-Name-symbol-in-ns `t/HMap)
+    (list* (unparse-Name-symbol-in-ns `t/HMap opts)
            (concat
              ; only elide if other information is present
              (when (or (seq (:types v))
@@ -2327,10 +2327,10 @@
   (unparse-type* [v opts]
     (unparse-heterogeneous*
       (case (:kind v)
-        :list (unparse-Name-symbol-in-ns `t/HList)
-        :vector (unparse-Name-symbol-in-ns `t/HVec)
-        :seq (unparse-Name-symbol-in-ns `t/HSeq)
-        :sequential (unparse-Name-symbol-in-ns `t/HSequential))
+        :list (unparse-Name-symbol-in-ns `t/HList opts)
+        :vector (unparse-Name-symbol-in-ns `t/HVec opts)
+        :seq (unparse-Name-symbol-in-ns `t/HSeq opts)
+        :sequential (unparse-Name-symbol-in-ns `t/HSequential opts))
       v
       opts))
 
@@ -2338,7 +2338,7 @@
   (unparse-type* 
     [{:keys [fixed] :as v} opts]
     {:pre [(every? r/Value? fixed)]}
-    (list (unparse-Name-symbol-in-ns `t/HSet) (set (map :val fixed))))
+    (list (unparse-Name-symbol-in-ns `t/HSet opts) (set (map :val fixed))))
 
   KwArgsArray
   (unparse-type* 
@@ -2353,7 +2353,7 @@
   AssocType
   (unparse-type* 
     [{:keys [target entries dentries]} opts]
-    (list* (unparse-Name-symbol-in-ns `t/Assoc)
+    (list* (unparse-Name-symbol-in-ns `t/Assoc opts)
            (unparse-type target opts)
            (into
              (mapv #(unparse-type % opts) (apply concat entries))
@@ -2364,13 +2364,13 @@
   MergeType
   (unparse-type* 
     [{:keys [types]} opts]
-    (list* (unparse-Name-symbol-in-ns `t/Merge)
+    (list* (unparse-Name-symbol-in-ns `t/Merge opts)
            (mapv #(unparse-type % opts) types)))
 
   GetType
   (unparse-type* 
     [{:keys [target key not-found]} opts]
-    (list* (unparse-Name-symbol-in-ns `t/Get)
+    (list* (unparse-Name-symbol-in-ns `t/Get opts)
            (unparse-type target opts)
            (unparse-type key opts)
            (when (not= r/-nil not-found)
@@ -2379,23 +2379,23 @@
 ; CLJS Types
 
   JSNumber 
-  (unparse-type* [_ opts] (unparse-Name-symbol-in-ns 'typed.clojure/JSnumber))
+  (unparse-type* [_ opts] (unparse-Name-symbol-in-ns 'typed.clojure/JSnumber opts))
   JSBoolean 
-  (unparse-type* [_ opts] (unparse-Name-symbol-in-ns 'typed.clojure/JSboolean))
+  (unparse-type* [_ opts] (unparse-Name-symbol-in-ns 'typed.clojure/JSboolean opts))
   JSObject 
-  (unparse-type* [_ opts] (unparse-Name-symbol-in-ns 'typed.clojure/JSobject))
+  (unparse-type* [_ opts] (unparse-Name-symbol-in-ns 'typed.clojure/JSobject opts))
   CLJSInteger 
-  (unparse-type* [_ opts] (unparse-Name-symbol-in-ns 'typed.clojure/CLJSInteger))
+  (unparse-type* [_ opts] (unparse-Name-symbol-in-ns 'typed.clojure/CLJSInteger opts))
   JSString 
-  (unparse-type* [_ opts] (unparse-Name-symbol-in-ns 'typed.clojure/JSstring))
+  (unparse-type* [_ opts] (unparse-Name-symbol-in-ns 'typed.clojure/JSstring opts))
   JSSymbol 
-  (unparse-type* [_ opts] (unparse-Name-symbol-in-ns 'typed.clojure/JSsymbol))
+  (unparse-type* [_ opts] (unparse-Name-symbol-in-ns 'typed.clojure/JSsymbol opts))
   JSUndefined 
-  (unparse-type* [_ opts] (unparse-Name-symbol-in-ns 'typed.clojure/JSundefined))
+  (unparse-type* [_ opts] (unparse-Name-symbol-in-ns 'typed.clojure/JSundefined opts))
   JSNull 
-  (unparse-type* [_ opts] (unparse-Name-symbol-in-ns 'typed.clojure/JSnull))
+  (unparse-type* [_ opts] (unparse-Name-symbol-in-ns 'typed.clojure/JSnull opts))
   JSObj 
-  (unparse-type* [t opts] (list (unparse-Name-symbol-in-ns 'typed.clojure/JSObj)
+  (unparse-type* [t opts] (list (unparse-Name-symbol-in-ns 'typed.clojure/JSObj opts)
                                 (zipmap (keys (:types t))
                                         (map #(unparse-type % opts) (vals (:types t))))))
 

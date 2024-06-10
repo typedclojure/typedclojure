@@ -38,23 +38,26 @@
                                        ts)
                                      [%])))
 
-(def method? (some-fn ast-u/fn-method? ast-u/deftype-method?))
+(def method?
+  (fn [v opts]
+    (or (ast-u/fn-method? v)
+        (ast-u/deftype-method? v opts))))
 (def methods?
-  (fn [ms]
-    (impl/impl-case
-      :clojure ((con/vec-c? method?) ms)
-      :cljs (every? method? ms))))
+  (fn [ms opts]
+    (impl/impl-case opts
+      :clojure ((con/vec-c? #(method? % opts)) ms)
+      :cljs (every? #(method? % opts) ms))))
 
 (def opt-map? (con/hmap-c? (con/optional :recur-target-fn) ifn?
                            (con/optional :check-rest-fn) ifn?
                            (con/optional :validate-expected-fn) ifn?
                            (con/optional :self-name) (some-fn nil? symbol?)))
 
-(def method-return?
+(defn method-return? [opts]
   (con/hmap-c?
     :ifn function-type-union?
-    :methods methods?
-    :cmethods methods?))
+    :methods #(methods? % opts)
+    :cmethods #(methods? % opts)))
 
 (defn method->fixed-arity [{:keys [fixed-arity] :as method}]
   (cond-> fixed-arity
@@ -66,8 +69,9 @@
   against the Function, otherwise returns nil."
   [{:keys [variadic?] :as method}
    {:keys [dom rest drest kws pdot prest] :as f}
-   all-methods]
-  {:pre [(method? method)
+   all-methods
+   opts]
+  {:pre [(method? method opts)
          (r/Function? f)]
    :post [((some-fn nil? r/Function?) %)]}
   ;; fn-method-u/check-rest-fn, and check-fn-method1
@@ -113,9 +117,9 @@
     :as opt}
    opts]
   {:pre [(function-type? expected)
-         (methods? mthods)
+         (methods? mthods opts)
          (opt-map? opt)]
-   :post [(method-return? %)]}
+   :post [((method-return? opts) %)]}
   (let [; unwrap polymorphic expected types
         [fin inst-frees bnds poly?] (cu/unwrap-poly expected opts)
         ; this should never fail due to function-type? check
@@ -181,17 +185,17 @@
                                           ;; treat each method as separate functions
                                           :else (let [ms (into {}
                                                                (keep-indexed (fn [i m]
-                                                                               (when (expected-for-method m t mthods)
+                                                                               (when (expected-for-method m t mthods opts)
                                                                                  [i t])))
                                                                mthods)]
                                                   ;; it is a type error if no matching methods are found.
                                                   (when (empty? ms)
-                                                    (binding [vs/*current-expr* (impl/impl-case
+                                                    (binding [vs/*current-expr* (impl/impl-case opts
                                                                                   :clojure (first mthods)
                                                                                   ; fn-method is not printable in cljs
                                                                                   :cljs vs/*current-expr*)
                                                               vs/*current-env* (or (:env (first mthods)) vs/*current-env*)]
-                                                      (prs/with-unparse-ns (cu/expr-ns (first mthods))
+                                                      (prs/with-unparse-ns (cu/expr-ns (first mthods) opts)
                                                         (err/tc-delayed-error (str "No matching arities: " (prs/unparse-type t opts)) opts))))
                                                   ms))]
                                  [t ms])))
@@ -284,13 +288,13 @@
 ;                        -> (Coll FnMethod)])
 (defn check-fn-methods [mthods expected opt opts]
   {:pre [(r/Type? expected)
-         ((every-pred methods? seq) mthods)
+         ((every-pred #(methods? % opts) seq) mthods)
          (opt-map? opt)]
-   :post [(method-return? %)]}
+   :post [((method-return? opts) %)]}
   (let [ts (function-types expected opts)]
     (cond
       (empty? ts)
-      (prs/with-unparse-ns (cu/expr-ns (first mthods))
+      (prs/with-unparse-ns (cu/expr-ns (first mthods) opts)
         (err/tc-delayed-error (str (pr-str (prs/unparse-type expected opts)) " is not a function type")
                               {:return {:methods mthods
                                         :ifn r/-error

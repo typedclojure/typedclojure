@@ -163,7 +163,8 @@
 (core/defn- ^:no-doc
   ann-protocol*-macro-time
   [vbnd varsym mth form]
-  (core/let [checker ((requiring-resolve 'clojure.core.typed.current-impl/cljs-checker))
+  (core/let [opts ((requiring-resolve 'typed.cljs.runtime.env/cljs-opts))
+             checker ((requiring-resolve 'clojure.core.typed.current-impl/cljs-checker))
              add-protocol-env (requiring-resolve 'clojure.core.typed.current-impl/add-protocol-env)
              gen-protocol* (requiring-resolve 'clojure.core.typed.current-impl/gen-protocol*)
              qualsym (if (namespace varsym)
@@ -185,7 +186,8 @@
           varsym
           vbnd
           mth
-          checker))))
+          checker
+          opts))))
   nil)
 
 (defmacro 
@@ -241,7 +243,8 @@
   "Internal use only. Use ann-datatype."
   [vbnd dname fields opts form]
   (impl/with-cljs-impl
-    (core/let [checker ((requiring-resolve 'clojure.core.typed.current-impl/cljs-checker))
+    (core/let [opts ((requiring-resolve 'typed.cljs.runtime.env/cljs-opts))
+               checker ((requiring-resolve 'clojure.core.typed.current-impl/cljs-checker))
                add-datatype-env (requiring-resolve 'clojure.core.typed.current-impl/add-datatype-env)
                gen-datatype* (requiring-resolve 'clojure.core.typed.current-impl/gen-datatype*)
                dname-nsym (some-> dname namespace symbol)
@@ -263,7 +266,7 @@
          :fields fields
          :bnd vbnd})
       (with-current-location form
-        (gen-datatype* vs/*current-env* (cljs-ns) qname fields vbnd opts false checker))
+        (gen-datatype* vs/*current-env* (cljs-ns) qname fields vbnd opts false checker opts))
       nil)))
 
 (defmacro

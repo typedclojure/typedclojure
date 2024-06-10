@@ -35,7 +35,7 @@
   [mmsym dtype opts]
   {:pre [(symbol? mmsym)
          (r/Type? dtype)]}
-  (impl/assert-clojure)
+  (impl/assert-clojure opts)
   ;(prn `add-multimethod-dispatch-type mmsym dtype)
   (swap! MULTIMETHOD-DISPATCH-ENV
          update mmsym
@@ -48,19 +48,19 @@
            dtype))
   nil)
 
-(defn multimethod-dispatch-type 
+(defn multimethod-dispatch-type
   "Can return nil"
-  [mmsym]
+  [mmsym opts]
   {:pre [(symbol? mmsym)]
    :post [((some-fn nil? r/Type?) %)]}
-  (impl/assert-clojure)
+  (impl/assert-clojure opts)
   (@MULTIMETHOD-DISPATCH-ENV mmsym))
 
 #_
 (defn get-multimethod-dispatch-type [mmsym opts]
   {:pre [(symbol? mmsym)]
    :post [(r/Type? %)]}
-  (impl/assert-clojure)
+  (impl/assert-clojure opts)
   (let [t (@MULTIMETHOD-DISPATCH-ENV mmsym)]
     (when-not t 
       (err/int-error (str "Multimethod requires dispatch type: " mmsym) opts))

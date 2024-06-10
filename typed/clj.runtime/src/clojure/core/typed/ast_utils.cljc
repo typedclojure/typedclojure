@@ -18,8 +18,8 @@
 
 ;AnalysisExpr -> Form
 ;(ann emit-form-fn [Any -> Any])
-(defn emit-form-fn [expr]
-  (impl/impl-case
+(defn emit-form-fn [expr opts]
+  (impl/impl-case opts
     :clojure ((requiring-resolve 'typed.clj.analyzer.passes.emit-form/emit-form) expr)
     :cljs ((requiring-resolve 'typed.cljs.checker.util/emit-form) expr)))
 
@@ -28,12 +28,12 @@
          (#{:const} (:op (:expr expr)))]}
   (-> expr :expr :val))
 
-(defn map-expr-at [expr key]
-  (impl/impl-case
+(defn map-expr-at [expr key opts]
+  (impl/impl-case opts
     :clojure (case (:op expr)
                :map (let [const ((requiring-resolve 'typed.cljc.analyzer.passes.constant-lifter/constant-lift) expr)]
                       (assert (#{:const} (:op const)))
-                      (map-expr-at const key))
+                      (map-expr-at const key opts))
                :const (let [v (:val expr)]
                         (assert (contains? v key) key)
                         (get v key)))
@@ -138,8 +138,8 @@
     (:fn-method) ((if (:variadic? method) last (constantly nil))
                   (:params method))))
 
-(defn reconstruct-arglist [method required-params rest-param]
-  (impl/impl-case
+(defn reconstruct-arglist [method required-params rest-param opts]
+  (impl/impl-case opts
     :clojure (case (:op method) 
                :fn-method (assoc method
                                  :params (vec (concat required-params
@@ -158,9 +158,9 @@
 (defn let-body-kw []
   :body)
 
-(defn def-var-name [expr]
+(defn def-var-name [expr opts]
   {:post [(symbol? %)]}
-  (impl/impl-case
+  (impl/impl-case opts
     :clojure ((requiring-resolve 'clojure.core.typed.coerce-utils/var->symbol) (:var expr))
     :cljs (:name expr)))
 
@@ -176,8 +176,8 @@
   ; future tools.analyzer
   (-> expr :class :val))
 
-(def deftype-method? (fn [m]
-                       (impl/impl-case
+(def deftype-method? (fn [m opts]
+                       (impl/impl-case opts
                          :clojure ((every-pred map? (comp #{:method} :op))
                                    m)
                          ; FIXME should be nyi-error but c.c.t.errors depends on this namespace
@@ -186,26 +186,27 @@
 (def fn-method? (fn [m]
                   ((every-pred map? (comp #{:fn-method} :op))
                    m)))
-(def fn-methods? (fn [ms]
-                   (impl/impl-case
+#_
+(def fn-methods? (fn [ms opts]
+                   (impl/impl-case opts
                      :clojure ((con/vec-c? fn-method?) ms)
                      :cljs ((every-pred (con/every-c? fn-method?)
                                         seq?)
                             ms))))
 
-(defn variadic-method? [m]
-  {:pre [((some-fn fn-method? deftype-method?) m)]
+(defn variadic-method? [m opts]
+  {:pre [((some-fn fn-method? #(deftype-method? % opts)) m)]
    :post [(boolean? %)]}
   (cond
     (fn-method? m) (:variadic? m)
     ; :method does not have :variadic? field
     :else false))
 
-(defn fixed-arity 
+(defn fixed-arity
   "Returns the number of parameters for a :fn-method or :method.
   Note :method AST nodes include the 'this' parameter."
-  [m]
-  {:pre [((some-fn fn-method? deftype-method?) m)]
+  [m opts]
+  {:pre [((some-fn fn-method? #(deftype-method? % opts)) m)]
    :post [(integer? %)]}
   (let [fixed (:fixed-arity m)]
     (assert (integer? fixed))

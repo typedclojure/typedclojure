@@ -9,6 +9,7 @@
 (ns typed.clj.checker.experimental.infer-vars
   (:require 
     [clojure.core.typed.util-vars :as vs]
+    [typed.clj.runtime.env :as clj-env]
     [typed.cljc.checker.type-rep :as r]
     [typed.cljc.checker.type-ctors :as c]
     [typed.clj.checker.parse-unparse :as prs]
@@ -38,12 +39,12 @@
     (c/Un (map #(prs/parse-type % opts) ts) opts)
     r/-any))
 
-(defn using-alias-in-ns [nsym vsym]
+(defn using-alias-in-ns [nsym vsym opts]
   {:pre [(symbol? nsym)
          (symbol? vsym)
          (namespace vsym)]
    :post [(symbol? %)]}
-  (if-let [alias (some-> nsym find-ns (prs/alias-in-ns (symbol (namespace vsym))))]
+  (if-let [alias (some-> nsym find-ns (prs/alias-in-ns (symbol (namespace vsym)) opts))]
     (symbol (str alias) (name vsym))
     vsym))
 
@@ -53,14 +54,14 @@
   [checker nsym vsym opts]
   (let [t (inferred-var-in-ns checker nsym vsym opts)]
     (prs/with-unparse-ns nsym
-      (list (using-alias-in-ns nsym 'clojure.core.typed/ann)
-            (using-alias-in-ns nsym vsym)
+      (list (using-alias-in-ns nsym 'clojure.core.typed/ann opts)
+            (using-alias-in-ns nsym vsym opts)
             (prs/unparse-type t opts)))))
 
 (defn infer-unannotated-vars
   "Return a vector of syntax that can be spliced into the given namespace,
   that annotates the inferred untyped variables."
-  ([nsym] (infer-unannotated-vars (env/checker) nsym {}))
+  ([nsym] (infer-unannotated-vars clj-env/clj-checker-atom nsym (clj-env/clj-opts)))
   ([checker nsym opts]
    (mapv (fn [vsym] (prepare-inferred-untyped-var-expression checker nsym vsym opts))
          (keys (get-in (env/deref-checker checker) [:inferred-unchecked-vars nsym])))))

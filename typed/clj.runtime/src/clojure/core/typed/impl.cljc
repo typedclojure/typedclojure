@@ -685,10 +685,11 @@
 (core/defn ^:no-doc
   ann-datatype*
   "Internal use only. Use ann-datatype."
-  [defining-nsym vbnd dname fields opts form]
+  [defining-nsym vbnd dname fields opt form]
   (macros/when-bindable-defining-ns defining-nsym
     (with-clojure-impl
-      (core/let [checker ((requiring-resolve 'clojure.core.typed.current-impl/clj-checker))
+      (core/let [opts ((requiring-resolve 'typed.clj.runtime.env/clj-opts))
+                 checker ((requiring-resolve 'clojure.core.typed.current-impl/clj-checker))
                  add-datatype-env (requiring-resolve 'clojure.core.typed.current-impl/add-datatype-env)
                  gen-datatype* (requiring-resolve 'clojure.core.typed.current-impl/gen-datatype*)
                  qname (if (some #{\.} (str dname))
@@ -702,7 +703,7 @@
            :fields fields
            :bnd vbnd})
         (with-current-location form
-          (gen-datatype* @(requiring-resolve 'clojure.core.typed.util-vars/*current-env*) (ns-name *ns*) dname fields vbnd opts false checker))
+          (gen-datatype* @(requiring-resolve 'clojure.core.typed.util-vars/*current-env*) (ns-name *ns*) dname fields vbnd opt false checker opts))
         nil))))
 
 (core/defn
@@ -770,7 +771,8 @@
   [defining-nsym vbnd dname fields opt form]
   (macros/when-bindable-defining-ns defining-nsym
     (with-clojure-impl
-      (core/let [checker ((requiring-resolve 'clojure.core.typed.current-impl/clj-checker))
+      (core/let [opts ((requiring-resolve 'typed.clj.runtime.env/clj-opts))
+                 checker ((requiring-resolve 'clojure.core.typed.current-impl/clj-checker))
                  add-datatype-env (requiring-resolve 'clojure.core.typed.current-impl/add-datatype-env)
                  gen-datatype* (requiring-resolve 'clojure.core.typed.current-impl/gen-datatype*)
                  qname (if (some #{\.} (str dname))
@@ -784,7 +786,7 @@
            :fields fields
            :bnd vbnd})
         (with-current-location form
-          (gen-datatype* @(requiring-resolve 'clojure.core.typed.util-vars/*current-env*) (ns-name *ns*) dname fields vbnd opt true checker))
+          (gen-datatype* @(requiring-resolve 'clojure.core.typed.util-vars/*current-env*) (ns-name *ns*) dname fields vbnd opt true checker opts))
         nil))))
 
 (core/defn 
@@ -850,7 +852,8 @@
   [defining-nsym vbnd varsym mth form]
   (macros/when-bindable-defining-ns defining-nsym
     (with-clojure-impl
-      (core/let [checker ((requiring-resolve 'clojure.core.typed.current-impl/clj-checker))
+      (core/let [opts ((requiring-resolve 'typed.clj.runtime.env/clj-opts))
+                 checker ((requiring-resolve 'clojure.core.typed.current-impl/clj-checker))
                  add-protocol-env (requiring-resolve 'clojure.core.typed.current-impl/add-protocol-env)
                  gen-protocol* (requiring-resolve 'clojure.core.typed.current-impl/gen-protocol*)
                  qualsym (if (namespace varsym)
@@ -869,7 +872,8 @@
             varsym
             vbnd
             mth
-            checker)))))
+            checker
+            opts)))))
   nil)
 
 (core/defn
@@ -1047,13 +1051,14 @@
   "Internal use only. Use typed-deps."
   [args form]
   (with-clojure-impl
-    (core/let [checker ((requiring-resolve 'clojure.core.typed.current-impl/clj-checker))
+    (core/let [opts ((requiring-resolve 'typed.clj.runtime.env/clj-opts))
+               checker ((requiring-resolve 'clojure.core.typed.current-impl/clj-checker))
                ns->URL (requiring-resolve 'clojure.core.typed.coerce-utils/ns->URL)
                add-ns-deps (requiring-resolve 'clojure.core.typed.current-impl/add-ns-deps)]
       (with-current-location form
         (core/doseq [dep args]
-          (when-not (ns->URL dep)
-            (int-error (str "Cannot find dependency declared with typed-deps: " dep) ((requiring-resolve 'typed.clj.runtime.env/clj-opts)))))
+          (when-not (ns->URL dep opts)
+            (int-error (str "Cannot find dependency declared with typed-deps: " dep) opts)))
         (add-ns-deps checker (ns-name *ns*) (set args)))
       nil)))
 

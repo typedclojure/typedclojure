@@ -24,7 +24,7 @@
 
 (defn check-cast
   [expr expected {::check/keys [check-expr] :as opts}]
-  (assert (#{:do} (:op expr)))
+  (assert (= :do (:op expr)))
   (let [{[_ _ texpr :as statements] :statements :keys [env] frm :ret :as expr}
         (-> expr 
             ; don't need to check these statements because it's just metadata
@@ -32,18 +32,18 @@
             (update :statements #(mapv ana2/run-passes %))
             ; but we do want to check (a subset) of this, so just run pre-passes
             (update :ret (comp ana2/run-pre-passes ana2/analyze-outer-root)))
-        _ (assert (#{3} (count statements)))
-        tsyn-quoted (ast-u/map-expr-at texpr :type)
-        _ (impl/impl-case
+        _ (assert (= 3 (count statements)))
+        tsyn-quoted (ast-u/map-expr-at texpr :type opts)
+        _ (impl/impl-case opts
             :clojure (assert (and (seq? tsyn-quoted)
-                                  ('#{quote} (first tsyn-quoted)))
+                                  (= 'quote (first tsyn-quoted)))
                              (pr-str tsyn-quoted))
             :cljs nil)
-        tsyn (impl/impl-case
+        tsyn (impl/impl-case opts
                :clojure (second tsyn-quoted)
                :cljs tsyn-quoted)
         parsed-t (binding [vs/*current-env* env
-                           prs/*parse-type-in-ns* (cu/expr-ns expr)]
+                           prs/*parse-type-in-ns* (cu/expr-ns expr opts)]
                    ;; unwrap quoted syntax with second
                    (prs/parse-type tsyn opts))
         ;; frm is of the form ((fn [x] ...) x), we want to type check
