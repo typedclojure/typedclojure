@@ -56,7 +56,7 @@
   {:pre [(= :unanalyzed (:op fexpr))]
    :post [(map? %)
           (-> % u/expr-type r/TCResult?)]}
-  (let [-invoke-special (impl/impl-case
+  (let [-invoke-special (impl/impl-case opts
                           :clojure (requiring-resolve 'typed.clj.checker.check/-invoke-special)
                           :cljs (requiring-resolve 'typed.cljs.checker.check/invoke-special))]
     (or (-invoke-special expr expected opts)

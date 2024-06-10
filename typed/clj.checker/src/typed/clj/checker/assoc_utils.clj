@@ -71,7 +71,7 @@
   RClass
   (-assoc-pair
    [rc [kt vt] opts]
-   (let [_ (impl/assert-clojure)
+   (let [_ (impl/assert-clojure opts)
          rkt (-> kt r/ret-t (c/fully-resolve-type opts))]
      (case (:the-class rc)
        clojure.lang.IPersistentMap

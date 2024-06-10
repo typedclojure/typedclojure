@@ -30,10 +30,11 @@
   (u/internal-form? expr spec/special-form))
 
 (defn enforce-do-folding [{:keys [statements] :as expr} kw opts]
-  (when-not (#{0 1} (count 
-                      (filter #{kw}
-                              (map :val statements))))
-    (err/int-error (str "Folded special-forms detected " (ast-u/emit-form-fn expr)) opts)))
+  (when-not (<= 0 (count 
+                    (filter #{kw}
+                            (map :val statements)))
+                1)
+    (err/int-error (str "Folded special-forms detected " (ast-u/emit-form-fn expr opts)) opts)))
 
 (defn check-do [expr expected {::check/keys [check-expr] :as opts}]
   {:post [(-> % u/expr-type r/TCResult?)
@@ -41,7 +42,7 @@
   (assert check-expr)
   (enforce-do-folding expr spec/special-form opts)
   (let [internal-special-form
-        (impl/impl-case
+        (impl/impl-case opts
           :clojure (requiring-resolve 'typed.clj.checker.check/internal-special-form)
           :cljs (requiring-resolve 'typed.cljs.checker.check/internal-special-form))]
     (cond

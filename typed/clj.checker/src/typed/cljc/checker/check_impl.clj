@@ -64,28 +64,28 @@
 
 (defmethod -check ::ana2/var
   [expr expected opts]
-  ((impl/impl-case
+  ((impl/impl-case opts
     :clojure (requiring-resolve 'typed.clj.checker.check/check-var)
     :cljs (requiring-resolve 'typed.cljs.checker.check/check-var))
    expr expected opts))
 
 (defmethod -check ::ana2/the-var
   [expr expected opts]
-  ((impl/impl-case
+  ((impl/impl-case opts
     :clojure (requiring-resolve 'typed.clj.checker.check/check-the-var)
     :cljs (requiring-resolve 'typed.cljs.checker.check/check-the-var))
    expr expected opts))
 
 (defmethod -check ::ana2/def
   [expr expected opts]
-  ((impl/impl-case
+  ((impl/impl-case opts
     :clojure (requiring-resolve 'typed.clj.checker.check/check-def)
     :cljs (requiring-resolve 'typed.cljs.checker.check/check-def))
    expr expected opts))
 
 (defmethod -check ::ana2/new
   [expr expected opts]
-  ((impl/impl-case
+  ((impl/impl-case opts
     :clojure (requiring-resolve 'typed.clj.checker.check/check-new)
     :cljs (requiring-resolve 'typed.cljs.checker.check/check-new))
    expr expected opts))

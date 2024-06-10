@@ -30,7 +30,7 @@
         rest-arg (when rest
                    (last args))
         rest-arg-type (when rest-arg
-                        (impl/impl-case
+                        (impl/impl-case opts
                           :clojure (c/Un [r/-nil (c/In [(c/RClass-of clojure.lang.ISeq [rest] opts)
                                                         (r/make-CountRange 1)]
                                                        opts)]

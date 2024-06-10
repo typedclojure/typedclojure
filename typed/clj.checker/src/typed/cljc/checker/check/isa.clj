@@ -54,9 +54,9 @@
                      ;;   so the filters just claim the child1 is of type parent1.
                      (and (r/Value? ty)
                           (not (class? (:val ty)))
-                          (equiv/equivable ty))
-                     {:then (fo/-filter-at (equiv/equivable ty) obj)
-                      :else (fo/-not-filter-at (equiv/equivable ty) obj)}
+                          (equiv/equivable ty opts))
+                     {:then (fo/-filter-at (equiv/equivable ty opts) obj)
+                      :else (fo/-not-filter-at (equiv/equivable ty opts) obj)}
 
                      ;; - otherwise, give up
                      :else

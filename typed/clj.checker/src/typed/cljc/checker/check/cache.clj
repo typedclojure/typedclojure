@@ -59,8 +59,10 @@
                                    (do (when (some? r) (callback path r))
                                        r))))))))
 
-(defn with-recorded-deps [expr expected {::check/keys [check-expr] :as opts}]
+(defn with-recorded-deps [expr expected {::env/keys [checker]
+                                         ::check/keys [check-expr] :as opts}]
   (assert check-expr)
+  (assert checker (vec (keys opts)))
   (let [errors (volatile! nil)
         types (atom {})
         vars (atom {})
@@ -73,34 +75,34 @@
                               (binding [uvs/*verbose-types* true]
                                 (prs/unparse-type t opts))
                               t))))
-        instrumented-checker (when-some [^clojure.lang.IAtom2 checker env/*checker*]
-                               (reify
-                                 clojure.lang.IAtom2
-                                 (swapVals [_ f] (.swapVals checker f))
-                                 (swapVals [_ f arg] (.swapVals checker f arg))
-                                 (swapVals [_ f arg1 arg2] (.swapVals checker f arg1 arg2))
-                                 (swapVals [_ f x y args] (.swapVals checker f x y args))
-                                 (swap [_ f] (.swap checker f))
-                                 (swap [_ f arg] (.swap checker f arg))
-                                 (swap [_ f arg1 arg2] (.swap checker f arg1 arg2))
-                                 (swap [_ f x y args] (.swap checker f x y args))
-                                 (compareAndSet [_ old new] (.compareAndSet checker old new))
-                                 (reset [_ new] (.reset checker new))
-                                 clojure.lang.IDeref
-                                 (deref [_] (monitored-checker-map @checker #(swap! types update-in %1 (fn [prev] (or prev (->serialize %2) {}))) []))))
+        instrumented-checker (reify
+                               clojure.lang.IAtom2
+                               (swapVals [_ f] (.swapVals checker f))
+                               (swapVals [_ f arg] (.swapVals checker f arg))
+                               (swapVals [_ f arg1 arg2] (.swapVals checker f arg1 arg2))
+                               (swapVals [_ f x y args] (.swapVals checker f x y args))
+                               (swap [_ f] (.swap checker f))
+                               (swap [_ f arg] (.swap checker f arg))
+                               (swap [_ f arg1 arg2] (.swap checker f arg1 arg2))
+                               (swap [_ f x y args] (.swap checker f x y args))
+                               (compareAndSet [_ old new] (.compareAndSet checker old new))
+                               (reset [_ new] (.reset checker new))
+                               clojure.lang.IDeref
+                               (deref [_] (monitored-checker-map @checker #(swap! types update-in %1 (fn [prev] (or prev (->serialize %2) {}))) [])))
         check-expr (comp (fn [{:keys [op] :as cexpr}]
-                           (when (impl/checking-clojure?)
+                           (when (impl/checking-clojure? opts)
                              ;;TODO resolve actual method signatures
                              (case op
-                               (:instance-call :static-call) (swap! interop update op (fnil conj #{}) (cu/MethodExpr->qualsym cexpr))
-                               (:instance-field :static-field) (swap! interop update op (fnil conj #{}) (cu/FieldExpr->qualsym cexpr))
+                               (:instance-call :static-call) (swap! interop update op (fnil conj #{}) (cu/MethodExpr->qualsym cexpr opts))
+                               (:instance-field :static-field) (swap! interop update op (fnil conj #{}) (cu/FieldExpr->qualsym cexpr opts))
                                :new (swap! interop update op (fnil conj #{}) (cu/NewExpr->qualsym cexpr))
                                nil))
                            cexpr)
                          check-expr)
-        opts (assoc opts ::check/check-expr check-expr)]
-    (binding [env/*checker* instrumented-checker
-              ana2/resolve-sym (let [resolve-sym ana2/resolve-sym]
+        opts (-> opts
+                 (assoc ::check/check-expr check-expr)
+                 (assoc ::env/checker instrumented-checker))]
+    (binding [ana2/resolve-sym (let [resolve-sym ana2/resolve-sym]
                                  (fn [sym env]
                                    (let [r (resolve-sym sym env)]
                                      (when r
@@ -117,7 +119,7 @@
                                           (fn [sym opts]
                                             (let [res (resolve-type-clj->sym sym opts)]
                                               (when (not= res sym)
-                                                (swap! type-syms assoc-in [(prs/parse-in-ns) sym] res))
+                                                (swap! type-syms assoc-in [(prs/parse-in-ns opts) sym] res))
                                               res)))
               prs/resolve-type-clj (let [resolve-type-clj prs/resolve-type-clj]
                                      (fn [sym opts]
@@ -129,14 +131,14 @@
                                                        :else (assert nil (str "WIP prs/resolve-type-clj to sym: " sym res)))]
                                              (assert (symbol? res))
                                              (when (not= res sym)
-                                               (swap! type-syms assoc-in [(prs/parse-in-ns) sym] res))))
+                                               (swap! type-syms assoc-in [(prs/parse-in-ns opts) sym] res))))
                                          res)))
               prs/parse-type-symbol-default (let [parse-type-symbol-default prs/parse-type-symbol-default]
                                               (fn [sym opts]
                                                 (let [res (parse-type-symbol-default sym opts)]
                                                   (let [rep (->serialize res)]
                                                     (when (not= rep sym)
-                                                      (swap! type-syms assoc-in [(prs/parse-in-ns) sym] rep)))
+                                                      (swap! type-syms assoc-in [(prs/parse-in-ns opts) sym] rep)))
                                                   res)))]
       (let [result (check-expr expr expected opts)]
         (assoc result ::cache-info {::types (dissoc @types :clojure.core.typed.current-impl/current-nocheck-var?)
@@ -164,9 +166,9 @@
 (defn retrieve-form-cache-info [{:keys [env] :as expr}
                                 expected
                                 {:keys [top-level-form-string ns-form-string] :as opts}]
-  (get-in (env/deref-checker (env/checker)) (cache-info-id env opts)))
+  (get-in (env/deref-checker (env/checker opts)) (cache-info-id env opts)))
 
-(defn need-to-check-top-level-expr? [expr expected {:keys [top-level-form-string ns-form-string] :as opts}]
+(defn need-to-check-top-level-expr? [expr expected {:keys [top-level-form-string ns-form-string] :as opt} opts]
   (or (-> *ns* meta :typed.clojure :experimental :cache not)
       (some? expected)
       (not ns-form-string)
@@ -182,7 +184,8 @@
 
 (defn- record-cache! [{::keys [cache-info env] :as cexpr}
                       {:keys [form env] :as original}
-                      {:keys [top-level-form-string ns-form-string] :as opts}]
+                      {:keys [top-level-form-string ns-form-string] :as opt}
+                      opts]
   (when (-> *ns* meta :typed.clojure :experimental :cache)
     (if (::errors cache-info)
       (println "cache: Not caching form due to type error")
@@ -201,19 +204,19 @@
               *print-length* nil]
       (pp/pprint cache-info)))
   ;; communicate with need-to-check-top-level-expr?
-  (env/swap-checker! (env/checker) assoc-in (cache-info-id env opts) cache-info))
+  (env/swap-checker! (env/checker opts) assoc-in (cache-info-id env opts) cache-info))
 
-(defn remove-stale-cache-entries [nsym ns-form-str sforms slurped]
+(defn remove-stale-cache-entries [nsym ns-form-str sforms slurped opts]
   {:pre [(simple-symbol? nsym)]}
   (when ns-form-str
     (let [{{{forms-cache ns-form-str} nsym} ::check-form-cache}
-          (env/swap-checker! (env/checker) update-in [::check-form-cache nsym]
+          (env/swap-checker! (env/checker opts) update-in [::check-form-cache nsym]
                              (fn [m]
                                (some-> m
                                        (select-keys [ns-form-str])
                                        not-empty
                                        (update ns-form-str select-keys sforms))))]
-      (env/swap-checker! (env/checker) assoc-in [::check-ns-cache nsym]
+      (env/swap-checker! (env/checker opts) assoc-in [::check-ns-cache nsym]
                          (when (not-any? ::errors (vals forms-cache))
                            (-> (apply merge-with merge (map #(dissoc % :clojure.core.typed.current-impl/current-used-vars :clojure.core.typed.current-impl/current-impl
                                                                      ;;TODO
@@ -221,9 +224,9 @@
                                                             (vals forms-cache)))
                                (assoc :slurped slurped)))))))
 
-(defn check-top-level-expr [expr expected opts]
-  (if (need-to-check-top-level-expr? expr expected opts)
+(defn check-top-level-expr [expr expected opt opts]
+  (if (need-to-check-top-level-expr? expr expected opt opts)
     (let [cexpr (with-recorded-deps expr expected opts)]
-      (when (not expected) (record-cache! cexpr expr opts))
+      (when (not expected) (record-cache! cexpr expr opt opts))
       cexpr)
     expr))

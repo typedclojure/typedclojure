@@ -110,14 +110,14 @@
            u/expr-type ret-type)))
 
 (defn gen-defaults
-  ([expr] (gen-defaults expr r/-any))
-  ([{:keys [methods] :as expr} default-type]
+  ([expr opts] (gen-defaults expr r/-any opts))
+  ([{:keys [methods] :as expr} default-type opts]
    {:pre [((some-fn r/Type? nil?) default-type)]}
    (let [default-type (or default-type r/-any)
          ;; :infer-locals are enabled for this namespace, this
          ;; var dereference is the dynamic type
          infer-locals?
-         (-> (cu/expr-ns expr)
+         (-> (cu/expr-ns expr opts)
              find-ns
              meta
              :core.typed
@@ -125,8 +125,8 @@
              (contains? :infer-locals))]
      (apply merge-with (comp vec concat)
             (for [method methods]
-              (let [fixed-arity (ast-u/fixed-arity method)
-                    variadic? (ast-u/variadic-method? method)]
+              (let [fixed-arity (ast-u/fixed-arity method opts)
+                    variadic? (ast-u/variadic-method? method opts)]
                 {:doms [(vec (repeat fixed-arity (if infer-locals? 
                                                    (r/-unchecked nil)
                                                    default-type)))]
@@ -152,7 +152,7 @@
          defaults)))
 
 (defn prepare-expecteds [expr fn-anns opts]
-  (binding [prs/*parse-type-in-ns* (cu/expr-ns expr)]
+  (binding [prs/*parse-type-in-ns* (cu/expr-ns expr opts)]
     {:doms
      (->> fn-anns
           (map :dom)
@@ -238,7 +238,7 @@
           (r/TCResult? (u/expr-type %))]}
   ;(prn "check-core-fn-no-expected")
   (let [symb? (symbolic-closure-candidate? fexpr nil)
-        flat-expecteds (gen-defaults fexpr (when symb? r/-nothing))]
+        flat-expecteds (gen-defaults fexpr (when symb? r/-nothing) opts)]
     (lex/with-locals (some-> (cu/fn-self-name fexpr)
                              (hash-map (self-type flat-expecteds)))
       (-> (check-anon fexpr flat-expecteds nil opts)
@@ -247,7 +247,7 @@
 
 (defn check-special-fn*
   [expr fn-anns poly expected opts]
-  (binding [prs/*parse-type-in-ns* (cu/expr-ns expr)]
+  (binding [prs/*parse-type-in-ns* (cu/expr-ns expr opts)]
     (let [expr (-> expr
                    ana2/analyze-outer-root
                    ana2/run-pre-passes)

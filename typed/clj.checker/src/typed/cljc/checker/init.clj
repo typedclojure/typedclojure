@@ -7,7 +7,9 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.cljc.checker.init
+  (:refer-clojure :exclude [requiring-resolve])
   (:require [clojure.core.typed.current-impl :as impl]
+            [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]
             [typed.cljc.checker.reset-env :refer [load-core-envs!
                                                   reset-envs!]]))
 
@@ -21,7 +23,7 @@
      ;  (reset-envs!))
      (impl/register-clj!)
      (impl/with-clojure-impl
-       (load-core-envs!))
+       (load-core-envs! ((requiring-resolve 'typed.clj.runtime.env/clj-opts))))
      #_
      (when cljs?
        (impl/register-cljs!)

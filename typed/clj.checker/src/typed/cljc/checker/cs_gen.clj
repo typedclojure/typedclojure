@@ -40,9 +40,9 @@
 (t/typed-deps typed.cljc.checker.free-ops
               typed.cljc.checker.promote-demote)
 
-(t/ann ^:no-check typed.clj.checker.subtype/subtype? [r/AnyType r/AnyType -> Boolean])
-(t/ann ^:no-check clojure.core.typed.current-impl/current-impl [-> t/Any])
-(t/ann ^:no-check clojure.core.typed.current-impl/checking-clojure? [-> t/Any])
+(t/ann ^:no-check typed.clj.checker.subtype/subtype? [r/AnyType r/AnyType t/Any -> Boolean])
+(t/ann ^:no-check clojure.core.typed.current-impl/current-impl [t/Any -> t/Any])
+(t/ann ^:no-check clojure.core.typed.current-impl/checking-clojure? [t/Any -> t/Any])
 
 (t/ann gen-repeat (t/All [x] [t/Int (t/Seqable x) -> (t/Vec x)]))
 (defn ^:private gen-repeat [times repeated]
@@ -296,7 +296,7 @@
                       (gen-repeat (quot diff s-repeat-count) short-repeat)))
         merged-repeat))
 
-    :else (err/nyi-error (str "NYI dcon-meet " dc1 dc2))))
+    :else (err/nyi-error (str "NYI dcon-meet " dc1 dc2) opts)))
 
 (t/ann dmap-meet [dmap dmap t/Any -> dmap])
 (defn dmap-meet [dm1 dm2 opts]
@@ -337,13 +337,13 @@
          cs-gen-Function cs-gen-FnIntersection cs-gen-Result cs-gen-RClass
          cs-gen-Protocol get-c-from-cmap)
 
-(defn homogeneous-dbound->bound [dbnd]
+(defn homogeneous-dbound->bound [dbnd opts]
   {:pre [(r/Regex? dbnd)]
    :post [(r/Bounds? %)]}
   (let [fst (-> dbnd :types first)]
     (when-not (and (= :* (:kind dbnd))
                    (r/Bounds? fst))
-      (err/nyi-error "Inference with interesting dotted bounds"))
+      (err/nyi-error "Inference with interesting dotted bounds" opts))
     fst))
 
 (t/ann ^:no-check cs-gen 
@@ -378,9 +378,9 @@
         
         ;values are subtypes of their classes
         (and (r/Value? S)
-             (impl/checking-clojure?))
+             (impl/checking-clojure? opts))
         (let [sval (:val S)]
-          (impl/impl-case
+          (impl/impl-case opts
             :clojure (if (nil? sval)
                        (fail! S T)
                        (cs-gen V X Y
@@ -653,8 +653,7 @@
               T-entries (apply concat T-entries)
               entries-cset (cs-gen-list V X Y S-entries T-entries {} opts)
               _ (when (or S-dentries T-dentries)
-                  (err/nyi-error "NYI dentries of Assoc in cs-gen"))
-              ]
+                  (err/nyi-error "NYI dentries of Assoc in cs-gen" opts))]
           (cset-meet* [target-cset entries-cset] opts))
 
         (and (r/AssocType? S)
@@ -667,7 +666,7 @@
                               (when-not (Y dbound)
                                 (fail! S T))
                               ;(println "passed when")
-                              (let [merged-X (assoc X dbound (homogeneous-dbound->bound (Y dbound)))
+                              (let [merged-X (assoc X dbound (homogeneous-dbound->bound (Y dbound) opts))
                                     get-list-of-c (fn get-list-of-c [t-list]
                                                     (mapv #(get-c-from-cmap % dbound opts)
                                                           (for [t t-list]
@@ -708,7 +707,7 @@
         (let [;_ (prn "cs-gen Assoc HMap")
               {:keys [target entries dentries]} S
               {:keys [types absent-keys]} T
-              _ (when-not (nil? dentries) (err/nyi-error (pr-str "NYI cs-gen of dentries AssocType with HMap " S T)))
+              _ (when-not (nil? dentries) (err/nyi-error (pr-str "NYI cs-gen of dentries AssocType with HMap " S T) opts))
               Assoc-keys (map first entries)
               Tkeys (keys types)
               ; All keys must be keyword values
@@ -779,7 +778,7 @@
                               (when-not (Y dbound)
                                 (fail! S T))
                               ;(println "passed when")
-                              (let [merged-X (assoc X dbound (homogeneous-dbound->bound (Y dbound)))
+                              (let [merged-X (assoc X dbound (homogeneous-dbound->bound (Y dbound) opts))
                                     get-list-of-c (fn get-list-of-c [t-list]
                                                     (mapv #(get-c-from-cmap (cs-gen V merged-X Y dty % opts)
                                                                             dbound opts)
@@ -796,7 +795,7 @@
 
         (and (r/PrimitiveArray? S)
              (r/PrimitiveArray? T)
-             (impl/checking-clojure?))
+             (impl/checking-clojure? opts))
         (cs-gen-list 
           V X Y
           ;input contravariant
@@ -848,7 +847,7 @@
                                  (when (:drest S)
                                    [r/-any]))
                                opts)]
-                  (c/In [(impl/impl-case
+                  (c/In [(impl/impl-case opts
                            :clojure (case (:kind S)
                                       :vector (c/RClass-of clojure.lang.APersistentVector [ss] opts)
                                       :seq (c/RClass-of clojure.lang.ISeq [ss] opts)
@@ -944,7 +943,7 @@
                                                                      t-types-count)
                                                                   (:rest T)))
                                     {} opts)]
-                      (err/nyi-error (pr-str "NYI HSequential inference " S T))))
+                      (err/nyi-error (pr-str "NYI HSequential inference " S T) opts)))
 
                   ; repeat on left, drest on right
                   (and (:repeat S)
@@ -952,7 +951,7 @@
                   (let [{t-dty :pre-type dbound :name} (:drest T)
                         _ (when-not (Y dbound)
                             (fail! S T))
-                        merged-X (assoc X dbound (homogeneous-dbound->bound (Y dbound)))
+                        merged-X (assoc X dbound (homogeneous-dbound->bound (Y dbound) opts))
                         get-list-of-c (fn get-list-of-c [S-list]
                                         (mapv #(get-c-from-cmap (cs-gen V merged-X Y % t-dty opts) dbound opts)
                                               S-list))
@@ -974,7 +973,7 @@
                           new-s-hsequential (r/-hsequential (concat (:types S) new-tys))
                           new-cset (cs-gen-HSequential V 
                                                        ;move dotted lower/upper bounds to vars
-                                                       (merge X (zipmap vars (repeat (homogeneous-dbound->bound (Y dbound))))) Y new-s-hsequential T opts)]
+                                                       (merge X (zipmap vars (repeat (homogeneous-dbound->bound (Y dbound) opts)))) Y new-s-hsequential T opts)]
                       [(move-vars-to-dmap new-cset dbound vars opts)]))
 
                   ;; dotted on the right, nothing on the left
@@ -992,11 +991,11 @@
                           new-t-hsequential (r/-hsequential (concat (:types T) new-tys))
                           new-cset (cs-gen-HSequential V 
                                                        ;move dotted lower/upper bounds to vars
-                                                       (merge X (zipmap vars (repeat (homogeneous-dbound->bound (Y dbound))))) Y S new-t-hsequential opts)]
+                                                       (merge X (zipmap vars (repeat (homogeneous-dbound->bound (Y dbound) opts)))) Y S new-t-hsequential opts)]
                       [(move-vars-to-dmap new-cset dbound vars opts)]))
 
                   ;TODO cases
-                  :else (err/nyi-error (pr-str "NYI HSequential inference " S T)))
+                  :else (err/nyi-error (pr-str "NYI HSequential inference " S T) opts))
                 (map (fn [fs1 fs2]
                        (cs-gen-filter-set V X Y fs1 fs2 opts))
                      (:fs S) (:fs T))
@@ -1518,7 +1517,7 @@
         T-dom-count (count T-dom)
         S-prest-types (-> S :prest :types)
         S-prest-types-count (count S-prest-types)
-        merged-X (assoc X dbound (homogeneous-dbound->bound (Y dbound)))
+        merged-X (assoc X dbound (homogeneous-dbound->bound (Y dbound) opts))
         get-list-of-c (fn [S-list]
                         (mapv #(get-c-from-cmap (cs-gen V merged-X Y t-dty % opts) dbound opts)
                               S-list))
@@ -1565,7 +1564,7 @@
           new-s-arr (r/make-Function (into (:dom S) new-tys) (:rng S))
           new-cset (cs-gen-Function V
                                     ;move dotted lower/upper bounds to vars
-                                    (merge X (zipmap vars (repeat (homogeneous-dbound->bound (Y dbound))))) Y new-s-arr T opts)]
+                                    (merge X (zipmap vars (repeat (homogeneous-dbound->bound (Y dbound) opts)))) Y new-s-arr T opts)]
       (move-vars-to-dmap new-cset dbound vars opts))))
 
 (defn cs-gen-Function-dotted-right-nothing-left [V X Y S T opts]
@@ -1588,7 +1587,7 @@
           ;_ (prn "new-t-arr" (prs/unparse-type new-t-arr opts))
           new-cset (cs-gen-Function V
                                     ;move dotted lower/upper bounds to vars
-                                    (merge X (zipmap vars (repeat (homogeneous-dbound->bound (Y dbound))))) Y S new-t-arr opts)]
+                                    (merge X (zipmap vars (repeat (homogeneous-dbound->bound (Y dbound) opts)))) Y S new-t-arr opts)]
       (move-vars-to-dmap new-cset dbound vars opts))))
 
 ;; * <: ...
@@ -1601,7 +1600,7 @@
     (if (<= (count (:dom S)) (count (:dom T)))
       ;; the simple case
       (let [arg-mapping (cs-gen-list V X Y (:dom T) (u/pad-right (count (:dom T)) (:dom S) (:rest S)) {} opts)
-            darg-mapping (move-rest-to-dmap (cs-gen V (assoc X dbound (homogeneous-dbound->bound (Y dbound))) Y t-dty (:rest S) opts) dbound {} opts)
+            darg-mapping (move-rest-to-dmap (cs-gen V (assoc X dbound (homogeneous-dbound->bound (Y dbound) opts)) Y t-dty (:rest S) opts) dbound {} opts)
             ret-mapping (cg (:rng S) (:rng T))]
         (cset-meet* [arg-mapping darg-mapping ret-mapping] opts))
       ;; the hard case
@@ -1610,7 +1609,7 @@
                             (subst/substitute (r/make-F var) dbound t-dty opts))
                           vars)
             new-t-arr (r/make-Function (into (:dom T) new-tys) (:rng T) :drest (r/DottedPretype1-maker t-dty dbound))
-            new-cset (cs-gen-Function V (merge X (zipmap vars (repeat (homogeneous-dbound->bound (Y dbound)))) X) Y S new-t-arr opts)]
+            new-cset (cs-gen-Function V (merge X (zipmap vars (repeat (homogeneous-dbound->bound (Y dbound) opts))) X) Y S new-t-arr opts)]
         (move-vars+rest-to-dmap new-cset dbound vars {} opts)))))
 
 ;; ... <: *
@@ -1629,13 +1628,13 @@
                             (subst/substitute (r/make-F var) dbound s-dty opts))
                           vars)
             new-s-arr (r/make-Function (into (:dom S) new-tys) (:rng S) :drest (r/DottedPretype1-maker s-dty dbound))
-            new-cset (cs-gen-Function V (merge X (zipmap vars (repeat (homogeneous-dbound->bound (Y dbound)))) X) Y new-s-arr T opts)]
+            new-cset (cs-gen-Function V (merge X (zipmap vars (repeat (homogeneous-dbound->bound (Y dbound) opts))) X) Y new-s-arr T opts)]
         (move-vars+rest-to-dmap new-cset dbound vars {:exact true} opts))
 
       (= (count (:dom S)) (count (:dom T)))
       ;the simple case
       (let [arg-mapping (cs-gen-list V X Y (u/pad-right (count (:dom S)) (:dom T) (:rest T)) (:dom S) {} opts)
-            darg-mapping (move-rest-to-dmap (cs-gen V (assoc X dbound (homogeneous-dbound->bound (Y dbound))) Y (:rest T) s-dty opts) dbound {:exact true} opts)
+            darg-mapping (move-rest-to-dmap (cs-gen V (assoc X dbound (homogeneous-dbound->bound (Y dbound) opts)) Y (:rest T) s-dty opts) dbound {:exact true} opts)
             ret-mapping (cg (:rng S) (:rng T))]
         (cset-meet* [arg-mapping darg-mapping ret-mapping] opts))
 
@@ -1709,7 +1708,7 @@
       (cs-gen-Function-dots-<-star cg V X Y S T opts)
 
       :else 
-      (err/nyi-error (str "NYI Function inference " (pr-str (prs/unparse-type S opts)) " " (pr-str (prs/unparse-type T opts)))))))
+      (err/nyi-error (str "NYI Function inference " (pr-str (prs/unparse-type S opts)) " " (pr-str (prs/unparse-type T opts))) opts))))
 
 ;; C : cset? - set of constraints found by the inference engine
 ;; Y : (setof symbol?) - index variables that must have entries
@@ -1742,7 +1741,7 @@
                      (frees/variance-map? h)
                      ((some-fn nil? symbol?) variable)]}
               (when-not (subtype? S T opts) (fail! S T))
-              (when (some r/TypeFn? [upper-bound lower-bound]) (err/nyi-error "Higher kinds"))
+              (when (some r/TypeFn? [upper-bound lower-bound]) (err/nyi-error "Higher kinds" opts))
               (let [X (or variable X)
                     var (h X :constant)
                     ;_ (prn "variance" X var)
@@ -1853,7 +1852,7 @@
                     names (map first s)
                     images (map (comp :type second) s)]
                 (doseq [[nme {inferred :type :keys [bnds]}] t-substs]
-                  (when (some r/TypeFn? [(:upper-bound bnds) (:lower-bound bnds)]) (err/nyi-error "Higher kinds"))
+                  (when (some r/TypeFn? [(:upper-bound bnds) (:lower-bound bnds)]) (err/nyi-error "Higher kinds" opts))
                   (let [lower-bound (subst/substitute-many (:lower-bound bnds) images names opts)
                         upper-bound (subst/substitute-many (:upper-bound bnds) images names opts)]
                     (cond
@@ -2427,7 +2426,7 @@
         expected-cset (if (and expected (not (:rng short-deferred-fixed-args)))
                         (cs-gen #{} X {dotted-var dotted-bnd} R expected opts)
                         (cr/empty-cset {} {}))
-        cs-dotted (-> (cs-gen-list #{} (reduce #(assoc %1 %2 (homogeneous-dbound->bound dotted-bnd)) X new-vars)
+        cs-dotted (-> (cs-gen-list #{} (reduce #(assoc %1 %2 (homogeneous-dbound->bound dotted-bnd opts)) X new-vars)
                                    {dotted-var dotted-bnd} rest-S new-Ts
                                    {:expected-cset expected-cset} opts)
                       (move-vars-to-dmap dotted-var new-vars opts))

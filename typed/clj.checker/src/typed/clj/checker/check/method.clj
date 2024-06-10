@@ -34,10 +34,10 @@
   (binding [vs/*current-env* env
             vs/*current-expr* expr]
     (let [inst? (= :instance-call (:op expr))
-          method (cu/MethodExpr->Method expr)
-          msym (cu/MethodExpr->qualsym expr)
+          method (cu/MethodExpr->Method expr opts)
+          msym (cu/MethodExpr->qualsym expr opts)
           rfin-type (or method-override
-                        (some->> msym (mth-override/get-method-override (env/checker)))
+                        (some->> msym (mth-override/get-method-override (env/checker opts)))
                         (some-> method (cu/Method->Type opts)))
           _ (assert ((some-fn nil? r/Type?) rfin-type))
           ctarget (:instance expr)]
@@ -51,7 +51,7 @@
                                    {}
                                    opts)
                                  "\n\nHint: use *warn-on-reflection* to identify reflective calls")
-                              {:form (ast-u/emit-form-fn expr)
+                              {:form (ast-u/emit-form-fn expr opts)
                                :return (merge
                                          (assoc expr 
                                                 u/expr-type (cu/error-ret expected))
@@ -65,7 +65,7 @@
                     (when-not (sub/subtype? (r/ret-t (u/expr-type ctarget)) (c/RClass-of-with-unknown-params target-class opts) opts)
                       (err/tc-delayed-error (str "Cannot call instance method " (cu/Method->symbol method)
                                                " on type " (pr-str (prs/unparse-type (r/ret-t (u/expr-type ctarget)) opts)))
-                                            {:form (ast-u/emit-form-fn expr)}
+                                            {:form (ast-u/emit-form-fn expr opts)}
                                             opts))))
               result-type (funapp/check-funapp expr args (r/ret rfin-type) (map u/expr-type args) expected {} opts)
               _ (when expected
@@ -79,7 +79,7 @@
                                                  (str "\n\nHint: Use `non-nil-return` and `nilable-param` to configure "
                                                       "where `nil` is allowed in a Java method call. `method-type` "
                                                       "prints the current type of a method.")))
-                                          {:form (ast-u/emit-form-fn expr)}
+                                          {:form (ast-u/emit-form-fn expr opts)}
                                           opts)))]
           (assoc expr
                  u/expr-type result-type))))))

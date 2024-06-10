@@ -31,9 +31,9 @@
   "A map of symbols of JSNomainalEntry's"
   (t/Map t/Sym JSNominalEntry))
 
-(defn jsnominal-env []
+(defn jsnominal-env [opts]
   {:post [(map? %)]}
-  (impl/jsnominal-env (env/checker)))
+  (impl/jsnominal-env (env/checker opts)))
 
 (def jsnominal-env?
   (con/hash-c? symbol?
@@ -52,18 +52,19 @@
    :ctors nil
    :ancestors #{}})
 
-(t/ann ^:no-check get-jsnominal [t/Any -> (t/Nilable r/Type)])
+(t/ann ^:no-check get-jsnominal [t/Any t/Any -> (t/Nilable r/Type)])
 (defn get-jsnominal
   "Returns the nomainal JS type with class symbol csym.
   Returns nil if not found."
-  [csym]
+  [csym opts]
   {:post [((some-fn nil? r/Type?) %)]}
-  (-> (get (impl/jsnominal-env (env/checker)) csym) :jsnominal))
+  (-> (get (impl/jsnominal-env (env/checker opts)) csym) :jsnominal))
 
-(t/ann contains-jsnominal? [t/Any -> boolean])
+#_#_
+(t/ann contains-jsnominal? [t/Any t/Any -> boolean])
 (defn contains-jsnominal?
-  [csym]
-  (boolean (get-jsnominal csym)))
+  [csym opts]
+  (boolean (get-jsnominal csym opts)))
 
 ;(t/ann add-jsnominal [t/Sym r/Type -> nil])
 ;(defn add-jsnominal [csym type]
@@ -95,8 +96,7 @@
    method: (get-inherited-property get-method csym args method-sym)
    field:  (get-inherited-property get-field csym args field-sym)"
   [f csym args method-sym opts]
-  ;(println (->> (get-in (impl/jsnominal-env) [csym :ancestors]) (map :id)))
-  (->> (get-in (impl/jsnominal-env (env/checker)) [csym :ancestors])
+  (->> (get-in (impl/jsnominal-env (env/checker opts)) [csym :ancestors])
        (map #(f (:id %) args method-sym opts))
        (filter identity)
        first))
@@ -110,7 +110,7 @@
          (symbol? method-sym)]
    :post [((some-fn nil? r/Type?) %)]}
   ;(println (str "Searching " csym "#" method-sym))
-  (if-some [tscope (get-in (impl/jsnominal-env (env/checker)) [csym :methods method-sym])]
+  (if-some [tscope (get-in (impl/jsnominal-env (env/checker opts)) [csym :methods method-sym])]
     (c/inst-and-subst tscope args opts)
     (get-inherited-property get-method csym args method-sym opts)))
 
@@ -122,7 +122,7 @@
          (every? r/Type? args)
          (symbol? field-sym)]
    :post [((some-fn nil? r/Type?) %)]}
-  (if-some [tscope (get-in (impl/jsnominal-env (env/checker)) [csym :fields field-sym])]
+  (if-some [tscope (get-in (impl/jsnominal-env (env/checker opts)) [csym :fields field-sym])]
     (c/inst-and-subst tscope args opts)
     (get-inherited-property get-field csym args field-sym opts)))
 
@@ -133,7 +133,7 @@
   {:pre [(symbol? csym)
          (every? r/Type? args)]
    :post [((some-fn nil? r/Type?) %)]}
-  (some-> (get-in (impl/jsnominal-env (env/checker)) [csym :ctor])
+  (some-> (get-in (impl/jsnominal-env (env/checker opts)) [csym :ctor])
           (c/inst-and-subst args opts)))
 
 (t/ann ^:no-check reset-jsnominal! [JSNominalEnv -> nil])

@@ -31,8 +31,8 @@
             [typed.cljc.checker.check.unanalyzed :refer [defuspecial]]
             [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]))
 
-(defn emit-form [e]
-  (impl/impl-case
+(defn emit-form [e opts]
+  (impl/impl-case opts
     :clojure ((requiring-resolve 'typed.clj.analyzer.passes.emit-form/emit-form) e)
     :cljs ((requiring-resolve 'clojure.core.typed.emit-form-cljs/emit-form) e)))
 
@@ -82,7 +82,7 @@
                                                          identity
                                                          reduced)]
                                      (-> context
-                                         (update :expanded-bindings conj k (emit-form cv))
+                                         (update :expanded-bindings conj k (emit-form cv opts))
                                          (assoc :prop-env env-thn
                                                 :reachable reachable+)
                                          maybe-reduced))
@@ -126,7 +126,7 @@
                             reachable @is-reachable
                             maybe-reduced (if reachable identity reduced)]
                         (-> updated-context
-                            (assoc :expanded-bindings (conj expanded-bindings k (emit-form cv))
+                            (assoc :expanded-bindings (conj expanded-bindings k (emit-form cv opts))
                                    :reachable reachable)
                             (update :new-syms #(into new-syms %))
                             maybe-reduced)))))
@@ -182,7 +182,7 @@
                                  (fn [form]
                                    (-> form
                                        vec
-                                       (assoc 2 (emit-form cbody))
+                                       (assoc 2 (emit-form cbody opts))
                                        list*
                                        (with-meta (meta form))))))]
             (assoc expr

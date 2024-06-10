@@ -41,6 +41,7 @@
             [clojure.core.typed.internal]
             [typed.clj.checker.path-type :refer :all]
             [clojure.core.typed.load :as load]
+            [typed.cljs.runtime.env :as cljs-env]
             [typed.cljc.checker.ns-deps-utils :as ndu]
             [clojure.core.typed.parse-ast :as prs-ast])
   (:use [clojure.core.typed :as t :exclude [loop fn defprotocol let dotimes
@@ -4016,22 +4017,22 @@
 
 (deftest CTYP-256-test
   (is (= (impl/with-clojure-impl
-           (impl/impl-case
+           (impl/impl-case clj-opts
              :clojure 1
              :cljs 2))
          1))
   (is (= (impl/with-cljs-impl
-           (impl/impl-case
+           (impl/impl-case (cljs-env/cljs-opts)
              :clojure 1
              :cljs 2))
          2))
-  (is (= (impl/impl-case
+  (is (= (impl/impl-case {}
            :clojure 1
            :cljs 2
            :unknown 3)
          3))
   (is (thrown? AssertionError
-               (impl/impl-case
+               (impl/impl-case {}
                  :clojure 1
                  :cljs 2))))
 

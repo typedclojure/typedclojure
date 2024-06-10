@@ -68,7 +68,7 @@
          (every? r/Type? remain-dom)]
    :post [(r/Type? %)]}
   (when-not (<= 0 (count (filter some? (vals (dissoc ts* :kind)))) 1)
-    (err/nyi-error (str "Checking rest function with: " ts*)))
+    (err/nyi-error (str "Checking rest function with: " ts*) opts))
   (cond
     (or rest drest (= :fixed kind))
     ; rest argument is nilable non-empty seq, refine further based on remaining fixed domain
@@ -81,10 +81,10 @@
       ;TODO what about `drest`?
       (and rest (zero? (count remain-dom))) (as-> t (c/Un [t r/-nil] opts)))
 
-    (seq remain-dom) (err/nyi-error "Rest parameter with remaining fixed domain for prest/post/KwArgs")
+    (seq remain-dom) (err/nyi-error "Rest parameter with remaining fixed domain for prest/post/KwArgs" opts)
 
     (or prest pdot) (c/Un [r/-nil (or prest pdot)] opts)
 
     kws (c/KwArgs->Type kws opts)
     
-    :else (err/nyi-error (str "Function :kind " kind))))
+    :else (err/nyi-error (str "Function :kind " kind) opts)))

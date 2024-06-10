@@ -21,9 +21,9 @@
                  (update :class ana2/run-passes))
         ecls (ast-u/catch-op-class expr)
         local-sym (:name local)
-        local-type (impl/impl-case
+        local-type (impl/impl-case opts
                      :clojure (c/RClass-of-with-unknown-params ecls opts)
-                     :cljs (err/nyi-error "catch in CLJS"))
+                     :cljs (err/nyi-error "catch in CLJS" opts))
         chandler (lex/with-locals {local-sym local-type}
                    (check-expr handler expected))]
     (assoc expr

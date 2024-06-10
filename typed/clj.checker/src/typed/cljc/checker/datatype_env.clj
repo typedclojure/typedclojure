@@ -29,7 +29,7 @@
   {:post [(map? %)]}
   (get (env/deref-checker checker) impl/current-datatype-env-kw {}))
 
-(t/ann ^:no-check add-datatype [t/Any t/Sym r/Type -> nil])
+(t/ann ^:no-check add-datatype [t/Any t/Sym r/Type t/Any -> nil])
 (def add-datatype impl/add-datatype)
 
 (t/ann get-datatype [t/Any t/Sym -> (t/U nil r/Type)])

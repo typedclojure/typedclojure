@@ -88,7 +88,7 @@
                                                (keep (fn [{:keys [expr fn-stack]}]
                                                        (let [r (u/expr-type expr)]
                                                          (when (r/TCResult? r)
-                                                           (prs/with-unparse-ns (cu/expr-ns expr)
+                                                           (prs/with-unparse-ns (cu/expr-ns expr opts)
                                                              (str
                                                                "In context size " (count fn-stack) ":\n\t"
                                                                (pr-str (prs/unparse-type (r/ret-t r) opts))
@@ -97,7 +97,7 @@
                                 (apply str ms))
                               (let [{:keys [expr]} (first v)
                                     r (u/expr-type expr)]
-                                (prs/with-unparse-ns (cu/expr-ns expr)
+                                (prs/with-unparse-ns (cu/expr-ns expr opts)
                                   (when (r/TCResult? r)
                                     (pr-str (prs/unparse-type (r/ret-t r) opts))))))]
               [k msg])))

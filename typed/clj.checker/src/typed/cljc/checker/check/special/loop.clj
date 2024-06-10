@@ -42,7 +42,7 @@
                                          (map vector ks vs))]
                        tsyns))
         _ (assert (map? tsyns))
-        tbindings (binding [prs/*parse-type-in-ns* (cu/expr-ns expr)]
+        tbindings (binding [prs/*parse-type-in-ns* (cu/expr-ns expr opts)]
                     (mapv (comp #(prs/parse-type % opts) :type) (:params tsyns)))
         cfrm ;loop may be nested, type the first loop found
         (binding [recur-u/*loop-bnd-anns* tbindings]

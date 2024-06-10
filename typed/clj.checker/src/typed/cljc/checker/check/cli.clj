@@ -24,13 +24,13 @@
         (cgen/subst-gen #{} subst-in {} opts)
         (get-in ['a :type]))))
 
-(defn vector-args [expr]
+(defn vector-args [expr opts]
   (case (:op expr)
     :constant (when (vector? (:val expr))
                 (map (fn [f] [f nil]) (:val expr)))
     :vector (doall
               (map (fn [arg-expr]
-                     [(ast-u/emit-form-fn arg-expr) arg-expr])
+                     [(ast-u/emit-form-fn arg-expr opts) arg-expr])
                    (:args expr)))
     nil))
 
@@ -46,7 +46,7 @@
               (.startsWith x "--[no-]"))]
 
   (let [; (U nil (Seqable '[Form (U nil Expr)]))
-        raw-spec (vector-args spec-expr)]
+        raw-spec (vector-args spec-expr opts)]
     (cond
       (not raw-spec) (do
                        ;(prn "cli: not vector " spec-expr)

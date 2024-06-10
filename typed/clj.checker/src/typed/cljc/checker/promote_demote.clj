@@ -117,7 +117,7 @@
     (cond
       (r/Bounds? T) (pmt (:upper-bound T))
       (r/Regex? T) (update T :types #(mapv rec %))
-      :else (err/nyi-error (str "demote-Kind->Type: " (class T))))))
+      :else (err/nyi-error (str "demote-Kind->Type: " (class T)) opts))))
 
 (defn demote-Kind->Type [T V opts]
   {:pre [(r/Kind? T)]}
@@ -126,7 +126,7 @@
     (cond
       (r/Bounds? T) (dmt (:lower-bound T))
       (r/Regex? T) (update T :types #(mapv rec %))
-      :else (err/nyi-error (str "demote-Kind->Type: " (class T))))))
+      :else (err/nyi-error (str "demote-Kind->Type: " (class T)) opts))))
 
 (extend-type F
   IPromoteDemote

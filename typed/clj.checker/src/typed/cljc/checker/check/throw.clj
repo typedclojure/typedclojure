@@ -19,7 +19,7 @@
 
 (defn check-throw
   [{:keys [exception] :as expr} expected {::check/keys [check-expr] :as opts}]
-  (let [exception-expected (impl/impl-case
+  (let [exception-expected (impl/impl-case opts
                              :clojure (r/ret (c/RClass-of Throwable opts))
                              :cljs nil)
         cexception (check-expr exception exception-expected)

@@ -39,27 +39,30 @@
 ;; :unknown = ::unknown
 #?(:cljs :ignore
 :default
-(defmacro impl-case [& {clj-case :clojure cljs-case :cljs unknown :unknown :as opts}]
-  (let [bad (set/difference (set (keys opts)) #{:clojure :cljs :cljr :unknown})]
-    (assert (empty? bad)
-            (str "Incorrect cases to impl-case: " (pr-str bad))))
-  `(case (current-impl)
-     ~clojure ~clj-case
-     ~clojurescript ~cljs-case
-     ~(if (contains? opts :unknown)
-        unknown
-        `(assert nil (str "No case matched for impl-case " (current-impl))))))
+(defmacro impl-case [opts & {clj-case :clojure cljs-case :cljs unknown :unknown :as opt}]
+  (let [bad (set/difference (set (keys opt)) #{:clojure :cljs :cljr :unknown})
+        _ (assert (empty? bad) (str "Incorrect cases to impl-case: " (pr-str bad)))
+        gopts (gensym 'opts)
+        gimpl (gensym 'impl)]
+    `(let [~gopts ~opts
+           ~gimpl (current-impl ~gopts)]
+       (case ~gimpl
+         ~clojure ~clj-case
+         ~clojurescript ~cljs-case
+         ~(if (contains? opt :unknown)
+            unknown
+            `(assert nil (str "No case matched for impl-case: " ~gimpl
+                              " " ^:typed.clojure/ignore (-> ~gopts keys vec)
+                              )))))))
 )		
 		
 
 ;; copied to typed.clj{s}.runtime.env
 (def current-impl-kw ::current-impl)
 
-(defn current-impl []
+(defn current-impl [opts]
   {:post [(qualified-keyword? %)]}
-  (get (some-> (env/checker-or-nil) deref)
-       current-impl-kw
-       unknown))
+  (get opts current-impl-kw unknown))
 
 (def register-clj!
   (let [d (delay ((requiring-resolve 'clojure.core.typed.runtime.jvm.configs/register-clj-config-anns)))]
@@ -205,8 +208,8 @@
   (env/swap-checker! checker assoc-in [current-rclass-env-kw sym] t)
   nil)
 
-(defn add-datatype [checker sym t]
-  {:pre [(impl-case
+(defn add-datatype [checker sym t opts]
+  {:pre [(impl-case opts
            :clojure ((every-pred simple-symbol?
                                  (fn [k] (some #{\.} (str k))))
                      sym)
@@ -312,7 +315,7 @@
   clj-checker-atom)
 
 (defn clj-bindings []
-  {#'env/*checker* (clj-checker)})
+  {})
 
 #?(:cljs :ignore :default
 (defmacro with-clojure-impl [& body]
@@ -331,7 +334,7 @@
   cljs-checker-atom)
 
 (defn cljs-bindings []
-  {#'env/*checker* (cljs-checker)})
+  {})
 
 #?(:cljs :ignore :default
 (defmacro with-cljs-impl [& body]
@@ -349,35 +352,35 @@
   `(with-impl ~impl
      ~@body)))
 
-(defn implementation-specified? []
-  (not= unknown (current-impl)))
+(defn implementation-specified? [opts]
+  (not= unknown (current-impl opts)))
 
-(defn ensure-impl-specified []
-  (assert (implementation-specified?) "No implementation specified"))
+(defn ensure-impl-specified [opts]
+  (assert (implementation-specified? opts) "No implementation specified"))
 
-(defn checking-clojure? []
-  (ensure-impl-specified)
-  (= clojure (current-impl)))
+(defn checking-clojure? [opts]
+  (ensure-impl-specified opts)
+  (= clojure (current-impl opts)))
 
-(defn checking-clojurescript? []
-  (ensure-impl-specified)
-  (= clojurescript (current-impl)))
+(defn checking-clojurescript? [opts]
+  (ensure-impl-specified opts)
+  (= clojurescript (current-impl opts)))
 
-(defmacro assert-clojure 
-  ([] `(assert-clojure nil))
-  ([msg] `(assert (= clojure (current-impl))
-                  (let [msg# ~msg]
-                    (str "Clojure implementation only"
-                         (when (seq msg#)
-                           (str ": " msg#)))))))
+(defmacro assert-clojure
+  ([opts] `(assert-clojure nil ~opts))
+  ([msg opts] `(assert (= clojure (current-impl ~opts))
+                       (let [msg# ~msg]
+                         (str "Clojure implementation only"
+                              (when (seq msg#)
+                                (str ": " msg#)))))))
 
 (defmacro assert-cljs
-  ([] `(assert-cljs nil))
-  ([msg] `(assert (= clojurescript (current-impl))
-                  (let [msg# ~msg]
-                    (str "Clojurescript implementation only"
-                         (when (seq msg#)
-                           (str ": " msg#)))))))
+  ([opts] `(assert-cljs nil ~opts))
+  ([msg opts] `(assert (= clojurescript (current-impl ~opts))
+                       (let [msg# ~msg]
+                         (str "Clojurescript implementation only"
+                              (when (seq msg#)
+                                (str ": " msg#)))))))
 
 
 #?(:cljs :ignore :default
@@ -472,11 +475,10 @@
 (def ^:private subtype? #((requiring-resolve 'typed.clj.checker.subtype/subtype?) %1 %2 %3)))
 
 #?(:cljs :ignore :default
-(defn gen-protocol* [current-env current-ns vsym binder mths checker]
+(defn gen-protocol* [current-env current-ns vsym binder mths checker opts]
   {:pre [(symbol? current-ns)
          ((some-fn nil? map?) mths)]}
-  (let [opts {:typed.cljc.runtime.env/checker checker}
-        _ (when-not (symbol? vsym)
+  (let [_ (when-not (symbol? vsym)
             (int-error
               (str "First argument to ann-protocol must be a symbol: " vsym)
               opts))
@@ -592,12 +594,11 @@
 (def ^:private make-HMap #(apply (requiring-resolve 'typed.cljc.checker.type-ctors/make-HMap) %&)))
 
 #?(:cljs :ignore :default
-(defn gen-datatype* [current-env current-ns provided-name fields vbnd opt record? checker]
-  {:pre [(symbol? current-ns)
-         (impl-case
-           :clojure (simple-symbol? provided-name)
-           :cljs (qualified-symbol? provided-name))]}
-  (let [opts {:typed.cljc.runtime.env/checker checker}
+(defn gen-datatype* [current-env current-ns provided-name fields vbnd opt record? checker opts]
+  {:pre [(symbol? current-ns)]}
+  (let [_ (assert (impl-case opts
+                    :clojure (simple-symbol? provided-name)
+                    :cljs (qualified-symbol? provided-name)))
         {ancests :unchecked-ancestors} opt
         ancests (or ancests (:extends opt))
         parsed-binders (when vbnd
@@ -614,23 +615,23 @@
                (delay-type (seq (map :bnd (force-type parsed-binders)))))
         provided-name-str (str provided-name)
         ;_ (prn "provided-name-str" provided-name-str)
-        munged-ns-str (impl-case
+        munged-ns-str (impl-case opts
                         :clojure (if (some #(= \. %) provided-name-str)
                                    (apply str (butlast (apply concat (butlast (partition-by #(= \. %) provided-name-str)))))
                                    (str (munge current-ns)))
                         :cljs nil)
         ;_ (prn "munged-ns-str" munged-ns-str)
-        demunged-ns-str (impl-case
+        demunged-ns-str (impl-case opts
                           :clojure (str (demunge munged-ns-str))
                           :cljs (-> provided-name namespace))
         ;_ (prn "demunged-ns-str" demunged-ns-str)
-        local-name (impl-case
+        local-name (impl-case opts
                      :clojure (if (some #(= \. %) provided-name-str)
                                 (symbol (apply str (last (partition-by #(= \. %) (str provided-name-str)))))
                                 provided-name-str)
                      :cljs (-> provided-name name symbol))
         ;_ (prn "local-name" local-name)
-        s (impl-case
+        s (impl-case opts
             :clojure (symbol (str (name munged-ns-str) \. local-name))
             :cljs provided-name)
         fs (let [bfn (bound-fn []
@@ -665,7 +666,7 @@
         dt (let [bfn (bound-fn []
                        (DataType* (force-type args) (force-type vs) (map make-F (force-type args)) s (force-type bnds) (force-type fs) record? opts))]
              (delay-type (bfn)))
-        _ (add-datatype checker s dt)
+        _ (add-datatype checker s dt opts)
         pos-ctor (let [bfn (bound-fn []
                              (if args
                                (Poly* (force-type args) (force-type bnds)
@@ -704,7 +705,7 @@
                                        (make-FnIntersection
                                          (make-Function [hmap-arg] (DataType-of s opts))))))]
                          (delay-type (bfn)))]
-          (impl-case
+          (impl-case opts
             :clojure (add-method-override checker (symbol (str s) "create") map-ctor)
             :cljs nil)
           (add-tc-var-type checker map-ctor-name map-ctor)

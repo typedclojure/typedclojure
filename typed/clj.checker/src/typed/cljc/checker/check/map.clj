@@ -106,7 +106,7 @@
         actual-t (if (every? c/keyword-value? (keys ts))
                    (c/-complete-hmap ts opts)
                    (c/In
-                     [(impl/impl-case
+                     [(impl/impl-case opts
                         :clojure (c/RClass-of APersistentMap [(c/Un (keys ts) opts)
                                                               (c/Un (vals ts) opts)]
                                               opts)

@@ -47,7 +47,7 @@
          {::track/keys [deps] ::dir/keys [files] ::file/keys [filemap] :as tracker} (-> (or tracker (track/tracker))
                                                                                         (dir/scan-dirs 
                                                                                           dirs
-                                                                                          {:platform (impl/impl-case
+                                                                                          {:platform (impl/impl-case opts
                                                                                                        :clojure find/clj
                                                                                                        :cljs find/cljs)}))
          _ (assert (seq files) (str "No files found in " (pr-str dirs)))
@@ -65,7 +65,7 @@
 (defn check-dir* [dirs opts]
   (let [{:keys [nses]} (check-dir-plan dirs opts)]
     (println "Type checking namespaces:" nses)
-    ((impl/impl-case
+    ((impl/impl-case opts
        :clojure t/check-ns-clj
        :cljs t/check-ns-cljs)
      nses)))

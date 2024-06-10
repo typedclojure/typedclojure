@@ -22,13 +22,13 @@
 (defonce ^:dynamic *parse-type-in-ns* nil)
 
 ;(t/ann ^:no-check clojure.core.typed.current-impl/*current-impl* (t/U nil t/Kw))
-(t/ann ^:no-check clojure.core.typed.current-impl/current-impl [-> t/Kw])
+(t/ann ^:no-check clojure.core.typed.current-impl/current-impl [t/Any -> t/Kw])
 
-(t/ann parse-in-ns [-> t/Sym])
-(defn- parse-in-ns []
+(t/ann parse-in-ns [t/Any -> t/Sym])
+(defn- parse-in-ns [opts]
   {:post [(symbol? %)]}
   (or *parse-type-in-ns* 
-      (impl/impl-case
+      (impl/impl-case opts
         :clojure (ns-name *ns*)
         :cljs (t/tc-ignore ((requiring-resolve 'typed.cljs.checker.util/cljs-ns))))))
 
@@ -44,8 +44,8 @@
   [sym opts]
   {:pre [(symbol? sym)]
    :post [((some-fn var? class? nil?) %)]}
-  (impl/assert-clojure)
-  (let [nsym (parse-in-ns)]
+  (impl/assert-clojure opts)
+  (let [nsym (parse-in-ns opts)]
     (if-let [ns (find-ns nsym)]
       (ns-resolve ns sym)
       (err/int-error (str "Cannot find namespace: " sym) opts))))
@@ -57,9 +57,9 @@
   [sym opts]
   {:pre [(symbol? sym)]
    :post [((some-fn symbol? nil?) %)]}
-  (impl/assert-clojure)
+  (impl/assert-clojure opts)
   (let [checker (impl/clj-checker)
-        nsym (parse-in-ns)
+        nsym (parse-in-ns opts)
         nsp (some-> (namespace sym) symbol)]
     (if-let [ns (find-ns nsym)]
       (when-let [qual (if nsp
@@ -76,12 +76,12 @@
       (err/int-error (str "Cannot find namespace: " sym) opts))))
 
 (defn- resolve-type-clj->sym
-  [sym]
+  [sym opts]
   {:pre [(symbol? sym)]
    :post [(symbol? %)]}
-  (impl/assert-clojure)
+  (impl/assert-clojure opts)
   (let [opts ((requiring-resolve 'typed.clj.runtime.env/clj-opts))
-        nsym (parse-in-ns)]
+        nsym (parse-in-ns opts)]
     (if-some [ns (find-ns nsym)]
       (or (when (special-symbol? sym)
             sym)
@@ -680,8 +680,8 @@
   (fn [[n] opts]
     {:post [((some-fn nil? symbol?) %)]}
     (when (symbol? n)
-      (or (impl/impl-case
-            :clojure (resolve-type-clj->sym n)
+      (or (impl/impl-case opts
+            :clojure (resolve-type-clj->sym n opts)
             :cljs n)
           n))))
 
@@ -694,7 +694,7 @@
    :val (first args)})
 
 (defmethod parse-seq* 'Value [syn opts] 
-  (err/deprecated-plain-op 'Value 'Val)
+  (err/deprecated-plain-op 'Value 'Val opts)
   (parse-Value syn opts))
 (defmethod parse-seq* 'typed.clojure/Value [syn opts] (parse-Value syn opts))
 (defmethod parse-seq* 'typed.clojure/Val [syn opts] (parse-Value syn opts))
@@ -709,7 +709,7 @@
      :children [:type :without]}))
 
 (defmethod parse-seq* 'Difference [syn opts] 
-  (err/deprecated-plain-op 'Difference)
+  (err/deprecated-plain-op 'Difference opts)
   (parse-Difference syn opts))
 (defmethod parse-seq* 'typed.clojure/Difference [syn opts] (parse-Difference syn opts))
 
@@ -725,7 +725,7 @@
      :children [:type]}))
 
 (defmethod parse-seq* 'Rec [syn opts] 
-  (err/deprecated-plain-op 'Rec)
+  (err/deprecated-plain-op 'Rec opts)
   (parse-Rec syn opts))
 (defmethod parse-seq* 'typed.clojure/Rec [syn opts] (parse-Rec syn opts))
 
@@ -738,7 +738,7 @@
      :lower l}))
 
 (defmethod parse-seq* 'CountRange [syn opts] 
-  (err/deprecated-plain-op 'CountRange)
+  (err/deprecated-plain-op 'CountRange opts)
   (parse-CountRange syn opts))
 (defmethod parse-seq* 'typed.clojure/CountRange [syn opts] (parse-CountRange syn opts))
 
@@ -751,7 +751,7 @@
      :lower n}))
 
 (defmethod parse-seq* 'ExactCount [syn opts] 
-  (err/deprecated-plain-op 'ExactCount)
+  (err/deprecated-plain-op 'ExactCount opts)
   (parse-ExactCount syn opts))
 (defmethod parse-seq* 'typed.clojure/ExactCount [syn opts] (parse-ExactCount syn opts))
 
@@ -764,7 +764,7 @@
      :children [:type]}))
 
 (defmethod parse-seq* 'predicate [syn opts] 
-  (err/deprecated-plain-op 'predicate 'Pred)
+  (err/deprecated-plain-op 'predicate 'Pred opts)
   (parse-Pred syn opts))
 (defmethod parse-seq* 'typed.clojure/Pred [syn opts] (parse-Pred syn opts))
 
@@ -810,7 +810,7 @@
      :children (concat [:type :entries] (when ellipsis-pos [:dentries]))}))
 
 (defmethod parse-seq* 'Assoc [syn opts] 
-  (err/deprecated-plain-op 'Assoc)
+  (err/deprecated-plain-op 'Assoc opts)
   (parse-Assoc syn opts))
 (defmethod parse-seq* 'typed.clojure/Assoc [syn opts] (parse-Assoc syn opts))
 
@@ -836,7 +836,7 @@
 (defmethod parse-seq* 'typed.clojure/U [syn opts] (parse-U syn opts))
 
 (defmethod parse-seq* 'I [syn opts] 
-  (err/deprecated-plain-op 'I)
+  (err/deprecated-plain-op 'I opts)
   (parse-I syn opts))
 (defmethod parse-seq* 'typed.clojure/I [syn opts] (parse-I syn opts))
 
@@ -1053,31 +1053,31 @@
    :children [:arities]})
 
 (defmethod parse-seq* 'Fn [syn opts] 
-  (err/deprecated-plain-op 'Fn 'IFn)
+  (err/deprecated-plain-op 'Fn 'IFn opts)
   (parse-Fn syn opts))
 (defmethod parse-seq* 'typed.clojure/IFn [syn opts] (parse-Fn syn opts))
 
 (defmethod parse-seq* 'HMap [syn opts] 
-  (err/deprecated-plain-op 'HMap)
+  (err/deprecated-plain-op 'HMap opts)
   (parse-HMap syn opts))
 (defmethod parse-seq* 'typed.clojure/HMap [syn opts] (parse-HMap syn opts))
 
 (defmethod parse-seq* 'Seq* [syn opts] 
-  (err/deprecated-plain-op 'Seq* 'HSeq)
+  (err/deprecated-plain-op 'Seq* 'HSeq opts)
   (parse-quoted-hseq (rest syn) opts))
 
 (defmethod parse-seq* 'HVec [syn opts] 
-  (err/deprecated-plain-op 'HVec)
+  (err/deprecated-plain-op 'HVec opts)
   (parse-HVec syn opts))
 (defmethod parse-seq* 'typed.clojure/HVec [syn opts] (parse-HVec syn opts))
 
 (defmethod parse-seq* 'HSequential [syn opts] 
-  (err/deprecated-plain-op 'HSequential)
+  (err/deprecated-plain-op 'HSequential opts)
   (parse-HSequential syn opts))
 (defmethod parse-seq* 'typed.clojure/HSequential [syn opts] (parse-HSequential syn opts))
 
 (defmethod parse-seq* 'HSeq [syn opts] 
-  (err/deprecated-plain-op 'HSeq)
+  (err/deprecated-plain-op 'HSeq opts)
   (parse-HSeq syn opts))
 
 (defmethod parse-seq* 'typed.clojure/HSeq [syn opts] (parse-HSeq syn opts))
@@ -1111,8 +1111,8 @@
 (defmulti parse-symbol*
   (fn [n opts]
     {:pre [(symbol? n)]}
-    (or (impl/impl-case
-          :clojure (resolve-type-clj->sym n)
+    (or (impl/impl-case opts
+          :clojure (resolve-type-clj->sym n opts)
           ;TODO
           :cljs n)
         n)))
@@ -1132,8 +1132,8 @@
 
 (defmethod parse-symbol* :default
   [sym opts]
-  (let [checker ((requiring-resolve 'typed.cljc.runtime.env/checker))
-        primitives (impl/impl-case
+  (let [checker ((requiring-resolve 'typed.cljc.runtime.env/checker) opts)
+        primitives (impl/impl-case opts
                      :clojure clj-primitives
                      :cljs cljs-primitives)
         free (when (symbol? sym)
@@ -1143,7 +1143,7 @@
       (primitives sym) (assoc (primitives sym)
                               :form sym)
       :else 
-        (or (impl/impl-case
+        (or (impl/impl-case opts
               :clojure (let [res (when (symbol? sym)
                                    (resolve-type-clj sym opts))]
                          (cond 
@@ -1165,7 +1165,7 @@
                              ;an annotated datatype that hasn't been defined yet
                              ; assume it's in the current namespace
                                       ; do we want to munge the sym also?
-                             (let [qname (symbol (str (namespace-munge (parse-in-ns)) "." sym))]
+                             (let [qname (symbol (str (namespace-munge (parse-in-ns opts)) "." sym))]
                                (when (contains? (impl/datatype-env checker) qname)
                                  {:op :DataType :name qname :form sym})))))
               :cljs (assert nil)

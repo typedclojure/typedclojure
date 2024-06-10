@@ -293,15 +293,15 @@
                                          "eg., (fn ^{::t/- [t/Int :-> t/Int]} my-fn [foo] ...)\n\n"
                                          "See also: :doc/metadata-caveats")
                               nil))
-    (symbol? tsyn) (let [rsym (impl/impl-case
+    (symbol? tsyn) (let [rsym (impl/impl-case opts
                                 :clojure (prs/resolve-type-clj->sym tsyn opts)
-                                :cljs (prs/resolve-type-cljs tsyn))]
+                                :cljs (prs/resolve-type-cljs tsyn opts))]
                      (if-some [[k {:keys [doc forms]}] (find special-doc rsym)]
                        (with-out-str
                          (println "Special type:" k)
                          (println doc)
                          (println "Forms:" forms))
-                       (if-some [[alias-k alias-ty] (name-env/find-type-name-entry rsym)]
+                       (if-some [[alias-k alias-ty] (name-env/find-type-name-entry rsym opts)]
                          (let [alias-ty (force-type alias-ty)]
                            (with-out-str
                              (println "Type alias" alias-k)
@@ -310,19 +310,19 @@
                                           (prs/unparse-type alias-ty opts)))
                              (println "Metadata:")
                              (pp/pprint (meta alias-k))))
-                         (if-some [ty (impl/impl-case
+                         (if-some [ty (impl/impl-case opts
                                         :clojure (rcls/get-rclass checker rsym)
                                         :cljs nil)]
                            (with-out-str
                              (println "Class annotation for" rsym)
                              (pp/pprint (prs/unparse-type ty opts)))
-                           (let [cls (impl/impl-case
+                           (let [cls (impl/impl-case opts
                                        :clojure (prs/resolve-type-clj rsym opts)
                                        :cljs nil)]
                              (if (class? cls)
                                (with-out-str
                                  (println "Class" (coerce/Class->symbol cls)))
-                               (when-some [ty (var-env/lookup-Var-nofail rsym)]
+                               (when-some [ty (var-env/lookup-Var-nofail rsym opts)]
                                  (with-out-str
                                    (println "Printing the annotation for var" rsym "(see typed.clojure/TypeOf for usage in type syntax)")
                                    (pp/pprint (prs/unparse-type ty opts))))))))))

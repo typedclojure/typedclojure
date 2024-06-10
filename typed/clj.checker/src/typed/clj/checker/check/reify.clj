@@ -107,7 +107,7 @@
                                              msym (symbol (str declaring-class) (name method-name))
                                              {:keys [static-type] :as info} (get class->info (ju/maybe-class declaring-class))
                                              _ (assert info)
-                                             override-t (or (mth-override/get-method-override (env/checker) msym)
+                                             override-t (or (mth-override/get-method-override (env/checker opts) msym)
                                                             (cond
                                                               (= msym 'clojure.lang.IFn/invoke) (IFn-invoke-method-t this-t (:static-type info) opts)
                                                               (:protocol info) (let [static-type (c/fully-resolve-type static-type opts)

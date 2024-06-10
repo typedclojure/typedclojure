@@ -34,12 +34,12 @@
   "Checks a def that isn't a macro definition."
   [{:keys [meta init env] :as expr} expected {::check/keys [check-expr] :as opts}]
   {:post [(:init %)]}
-  (let [checker (env/checker)
+  (let [checker (env/checker opts)
         init-provided (init-provided? expr)
         _ (assert init-provided)
-        vsym (ast-u/def-var-name expr)
-        warn-if-unannotated? (ns-opts/warn-on-unannotated-vars? checker (cu/expr-ns expr))
-        t (var-env/lookup-Var-nofail vsym)
+        vsym (ast-u/def-var-name expr opts)
+        warn-if-unannotated? (ns-opts/warn-on-unannotated-vars? checker (cu/expr-ns expr opts))
+        t (var-env/lookup-Var-nofail vsym opts)
         ;_ (prn "lookup var" vsym t)
         check? (var-env/check-var? checker vsym)
         ;_ (prn "check? var" vsym check?)
@@ -57,12 +57,12 @@
                       (check-expr meta)))
             _ (when cinit
                 ; now consider this var as checked
-                (var-env/add-checked-var-def (env/checker) vsym))]
+                (var-env/add-checked-var-def (env/checker opts) vsym))]
         (assoc expr
                :init cinit
                :meta cmeta
                u/expr-type (below/maybe-check-below
-                             (impl/impl-case
+                             (impl/impl-case opts
                                :clojure (r/ret (c/-name `t/Var t)
                                                (fo/-true-filter))
                                :cljs cljs-ret)
@@ -79,7 +79,7 @@
                    "Not checking" vsym "definition")
           (assoc expr
                  u/expr-type (below/maybe-check-below
-                               (impl/impl-case
+                               (impl/impl-case opts
                                  :clojure (r/ret (c/-name `t/AnyVar)
                                                  (fo/-true-filter))
                                  :cljs cljs-ret)
@@ -112,14 +112,14 @@
             _ (when (and (not= unannotated-def :unchecked)
                          cinit)
                 ; now consider this var as checked
-                (var-env/add-checked-var-def (env/checker) vsym)
+                (var-env/add-checked-var-def (env/checker opts) vsym)
                 ; and add the inferred static type (might be Error)
-                (var-env/add-var-type (env/clj-checker) vsym inferred))]
+                (var-env/add-var-type (env/checker opts) vsym inferred))]
         (assoc expr
                :init cinit
                :meta cmeta
                u/expr-type (below/maybe-check-below
-                             (impl/impl-case
+                             (impl/impl-case opts
                                :clojure (r/ret (c/-name `t/Var inferred)
                                                (fo/-true-filter))
                                :cljs cljs-ret)
@@ -145,7 +145,7 @@
 (defn check-def
   "Check a def. If it is a declare or a defmacro, don't try and check it."
   [{:keys [var init env] :as expr} expected opts]
-  (impl/assert-clojure) ;;TODO cljs support
+  (impl/assert-clojure opts) ;;TODO cljs support
   ;(prn " Checking def" var)
   (cond 
     ;ignore macro definitions and declare
@@ -156,12 +156,12 @@
 (defn add-checks-normal-def
   "Add runtime checks to a def with an initial value."
   [expr expected {::check/keys [check-expr] :as opts}]
-  (let [checker (env/checker)
+  (let [checker (env/checker opts)
         _ (assert (init-provided? expr))
-        vsym (ast-u/def-var-name expr)
+        vsym (ast-u/def-var-name expr opts)
         check? (var-env/check-var? checker vsym)
         t (when check?
-            (var-env/lookup-Var-nofail vsym))]
+            (var-env/lookup-Var-nofail vsym opts))]
     (assoc expr
            :init (if t
                    ;;cast immediately, don't propagate type.

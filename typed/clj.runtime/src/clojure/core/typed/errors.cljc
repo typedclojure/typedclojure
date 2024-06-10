@@ -27,19 +27,18 @@
 (derive-error int-error-kw)
 (derive-error nyi-error-kw)
 
-;(t/ann ^:no-check env-for-error [Any -> Any])
-(defn env-for-error [env]
-  ; impl-case probably can't be done here
+;(t/ann ^:no-check env-for-error [Any t/Any -> Any])
+(defn env-for-error [env opts]
   (merge (select-keys env [:line :column])
-         ;clojure specific
-         (let [f (:file env)]
+         (impl/impl-case opts
+           :clojure (let [f (:file env)]
            (when (string? f)
              {:file f}))
-         ;cljs specific
-         ;FIXME filename?
-         (let [n (get-in env [:ns :name])]
-           (when (symbol? n)
-             {:ns n}))))
+           ;FIXME filename?
+           :cljs
+           (let [n (get-in env [:ns :name])]
+             (when (symbol? n)
+               {:ns n})))))
 
 (defn int-error
   ([estr opts] (int-error estr {} opts))
@@ -48,7 +47,7 @@
    (let [{:keys [line column file] :as env} *current-env*]
      (throw (ex-info (str "Internal Error "
                           "(" (or file 
-                                  (impl/impl-case
+                                  (impl/impl-case opts
                                     :clojure (or (:ns env) *file* (ns-name *ns*))
                                     :cljs (:name (:ns env))
                                     :unknown "?"))
@@ -63,7 +62,7 @@
                         :env (or (when (and uvs/*current-expr*
                                             (not use-current-env))
                                    (:env uvs/*current-expr*))
-                                 (env-for-error *current-env*))}
+                                 (env-for-error *current-env* opts))}
                        ;; don't want this to unwrap in the REPL, so don't use 3rd arg of ex-info
                        cause (assoc :cause cause))
                      ;; for when we *do* want to see the cause
@@ -130,7 +129,7 @@
                 (contains? (:opts expected) :blame-form) (-> expected :opts :blame-form)
                 (contains? opt :blame-form) (:blame-form opt)
                 (contains? opt :form) form
-                :else (or (some-> uvs/*current-expr* ast-u/emit-form-fn)
+                :else (or (some-> uvs/*current-expr* (ast-u/emit-form-fn opts))
                           '<NO-FORM>))
          msg (str (when-some [msg-fn (some-> (or (-> expected :opts :msg-fn)
                                                  (:msg-fn opt))
@@ -150,7 +149,8 @@
                                 (merge (or (:env uvs/*current-expr*)
                                            *current-env*)
                                        (when (contains? (:opts expected) :blame-form)
-                                         (meta (-> expected :opts :blame-form)))))
+                                         (meta (-> expected :opts :blame-form))))
+                                opts)
                          :form form})]
      (cond
        ;can't delay here
@@ -167,7 +167,7 @@
              @(requiring-resolve 'typed.cljc.checker.type-rep/-error)))))))
 
 (defn tc-error
-  [estr]
+  [estr opts]
   (let [env *current-env*]
     (throw (ex-info (str "Type Error "
                          "(" (:file env) ":" (or (:line env) "<NO LINE>")
@@ -177,7 +177,7 @@
                          estr)
                     (merge
                       {:type-error type-error-kw}
-                      {:env (env-for-error env)})))))
+                      {:env (env-for-error env opts)})))))
 
 (defn warn [msg]
   (println (str "WARNING: " msg)))
@@ -205,7 +205,7 @@
   nil)
 
 (defn nyi-error
-  [estr]
+  [estr opts]
   (let [env *current-env*]
     (throw (ex-info (str "core.typed Not Yet Implemented Error:"
                            "(" (:file env) ":" (or (:line env) "<NO LINE>")
@@ -214,7 +214,7 @@
                            ") "
                            estr)
                     {:type-error nyi-error-kw
-                     :env (env-for-error env)}))))
+                     :env (env-for-error env opts)}))))
 
 #?(:cljs :ignore :default
 (defmacro with-ex-info-handlers 
@@ -235,19 +235,21 @@
            result#
            (throw e#)))))))
 
-(defn var-for-impl [sym]
+(defn var-for-impl [sym opts]
   {:pre [((some-fn string? symbol?) sym)]
    :post [(symbol? %)]}
   (symbol
-    (impl/impl-case
+    (impl/impl-case opts
       :clojure "clojure.core.typed"
       :cljs "cljs.core.typed")
     (str sym)))
 
-(defn deprecated-plain-op [old & [new]]
-  {:pre [(symbol? old)
-         ((some-fn symbol? nil?) new)]}
-  (deprecated-warn (str old " syntax is deprecated, use " (var-for-impl (or new old)))))
+(defn deprecated-plain-op
+  ([old opts] (deprecated-plain-op old old opts))
+  ([old new opts]
+   {:pre [(symbol? old)
+          ((some-fn symbol? nil?) new)]}
+   (deprecated-warn (str old " syntax is deprecated, use " (var-for-impl (or new old) opts)))))
 
 (defn deprecated-macro-syntax [form msg]
   (binding [*current-env* {:file (or (-> form meta :file) (ns-name *ns*))

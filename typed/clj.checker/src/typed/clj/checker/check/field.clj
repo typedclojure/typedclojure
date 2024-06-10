@@ -29,9 +29,9 @@
   {:pre [(#{:static-field} (:op expr))]
    :post [(-> % u/expr-type r/TCResult?)]}
   (binding [vs/*current-expr* expr]
-    (let [checker (env/checker) 
+    (let [checker (env/checker opts) 
           field (cu/FieldExpr->Field expr)
-          fsym (cu/FieldExpr->qualsym expr)
+          fsym (cu/FieldExpr->qualsym expr opts)
           ftype (or (some->> fsym (fld-override/get-field-override checker))
                     (cu/Field->Type field opts))]
       (assoc expr
@@ -46,7 +46,7 @@
          (-> instance u/expr-type r/TCResult?)]
    :post [(-> % u/expr-type r/TCResult?)]}
   (binding [vs/*current-expr* expr]
-   (let [checker (env/checker)
+   (let [checker (env/checker opts)
          field (cu/FieldExpr->Field expr)]
     (if-not target-class
       ; I think target-class will never be false
@@ -59,7 +59,7 @@
                                  []
                                  {}
                                  opts))
-                            {:form (ast-u/emit-form-fn expr)
+                            {:form (ast-u/emit-form-fn expr opts)
                              :return (assoc expr
                                             u/expr-type (cu/error-ret expected))}
                             opts)
@@ -76,7 +76,7 @@
                   (err/tc-delayed-error (str "Instance field " fsym " expected "
                                            (pr-str target-class)
                                            ", actual " (pr-str (prs/unparse-type expr-ty opts)))
-                                        {:form (ast-u/emit-form-fn expr)}
+                                        {:form (ast-u/emit-form-fn expr opts)}
                                         opts)))
 
             ; datatype fields are special
@@ -96,7 +96,7 @@
                        (if field
                          (cu/Field->Type field opts)
                          (err/tc-delayed-error (str "Instance field " fsym " needs type hints")
-                                               {:form (ast-u/emit-form-fn expr)
+                                               {:form (ast-u/emit-form-fn expr opts)
                                                 :return (r/TCError-maker)}
                                                opts)))] 
         (assoc expr

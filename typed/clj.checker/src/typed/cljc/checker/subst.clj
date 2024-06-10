@@ -68,8 +68,8 @@
                  (crep/i-subst-starred? r) (substitute-dots (:types r) (:starred r) v t opts)
                  (and (crep/i-subst-dotted? r)
                       (empty? (:types r))) (substitute-dotted (:dty r) (:name (:dbound r)) v t opts)
-                 (crep/i-subst-dotted? r) (err/nyi-error "i-subst-dotted nyi")
-                 :else (err/nyi-error (str "Other substitutions NYI"))))
+                 (crep/i-subst-dotted? r) (err/nyi-error "i-subst-dotted nyi" opts)
+                 :else (err/nyi-error (str "Other substitutions NYI") opts)))
              t s))
 
 ;; Substitute dots
@@ -105,7 +105,7 @@
                        (sb rng)
                        :rest (some-> rest sb)
                        :drest (some-> drest (update :pre-type sb))
-                       :kws (when kws (err/nyi-error "substitute keyword args"))
+                       :kws (when kws (err/nyi-error "substitute keyword args" opts))
                        :prest (some-> prest sb)
                        :pdot (some-> pdot (update :pre-type sb))))))
 
@@ -203,9 +203,9 @@
                                                       (if (= name (:name drest))
                                                         name
                                                         (:name drest))))
-                     :kws (when kws (err/nyi-error "substitute-dotted with kw arguments"))
+                     :kws (when kws (err/nyi-error "substitute-dotted with kw arguments" opts))
                      :prest (some-> prest sb)
-                     :pdot (when pdot (err/nyi-error "NYI pdot of substitute-dotted for Function")))))
+                     :pdot (when pdot (err/nyi-error "NYI pdot of substitute-dotted for Function" opts)))))
 
 (f/add-fold-case
   ISubstituteDotted substitute-dotted*

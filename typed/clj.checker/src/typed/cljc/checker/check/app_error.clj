@@ -72,10 +72,10 @@
         static-method? (= :static-call (:op fexpr))
         instance-method? (= :instance-call (:op fexpr))
         method-sym (when (or static-method? instance-method?)
-                     (cu/MethodExpr->qualsym fexpr))]
+                     (cu/MethodExpr->qualsym fexpr opts))]
     (prs/with-unparse-ns (or prs/*unparse-type-in-ns*
-                             (or (some-> fexpr cu/expr-ns)
-                                 (some-> vs/*current-expr* cu/expr-ns)))
+                             (or (some-> fexpr (cu/expr-ns opts))
+                                 (some-> vs/*current-expr* (cu/expr-ns opts))))
       (err/tc-delayed-error
         (str
           (if poly?
@@ -90,7 +90,7 @@
                   instance-method?)  
             method-sym
             (if fexpr
-              (ast-u/emit-form-fn fexpr)
+              (ast-u/emit-form-fn fexpr opts)
               "<NO FORM>"))
           " could not be applied to arguments:\n"
           (when poly?
@@ -161,9 +161,9 @@
           #_#_"in: "
           (if fexpr
             (if (or static-method? instance-method?)
-              (ast-u/emit-form-fn fexpr)
-              (list* (ast-u/emit-form-fn fexpr)
-                     (map ast-u/emit-form-fn args)))
+              (ast-u/emit-form-fn fexpr opts)
+              (list* (ast-u/emit-form-fn fexpr opts)
+                     (map #(ast-u/emit-form-fn % opts) args)))
             "<NO FORM>"))
         {:expected expected
          :return (or expected (r/ret r/Err))}

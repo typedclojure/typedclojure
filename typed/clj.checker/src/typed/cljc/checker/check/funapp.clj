@@ -54,7 +54,7 @@
          arg-types (mapv r/ret-t arg-ret-types)
          fexpr-ifn-ancestor (delay (c/ifn-ancestor fexpr-type opts))]
      (prs/with-unparse-ns (or prs/*unparse-type-in-ns*
-                              (some-> fexpr cu/expr-ns))
+                              (some-> fexpr (cu/expr-ns opts)))
      ;(prn "check-funapp" (prs/unparse-type fexpr-type opts) (map #(prs/unparse-type % opts) arg-types) (some-> expected (prs/unparse-type opts)))
      (cond
        ;; a union of functions can be applied if we can apply all of the elements
@@ -157,10 +157,10 @@
        (let [{:keys [vsym]} fexpr-type]
          (when vsym
            (infer-vars/add-inferred-type
-             (env/checker)
+             (env/checker opts)
              (or prs/*unparse-type-in-ns*
                  (when fexpr
-                   (cu/expr-ns fexpr)))
+                   (cu/expr-ns fexpr opts)))
              vsym
              (r/make-FnIntersection
                (r/make-Function
@@ -369,7 +369,7 @@
                               ;                                 (set/difference (set (keys optional))
                               ;                                                 (set (keys paired-kw-argtys))))]
                               ;  (err/nyi-error (str "NYI POSSIBLE BUG?! Unused optional parameters"
-                              ;                    (pr-str (interpose ", " (map #(prs/unparse-type % opts) missing-optional-ks)))))
+                              ;                    (pr-str (interpose ", " (map #(prs/unparse-type % opts) missing-optional-ks)))) opts)
                               ;  )
                               ; infer keyword and fixed parameters all at once
                               (cgen/infer fs-names->bbnds {}

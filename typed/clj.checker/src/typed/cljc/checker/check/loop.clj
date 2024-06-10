@@ -20,7 +20,7 @@
   "Parse the raw type annotation tsyn in the context of expr"
   [tsyn {:keys [env] :as expr} opts]
   (let [parsed-t (binding [vs/*current-env* env
-                           prs/*parse-type-in-ns* (cu/expr-ns expr)]
+                           prs/*parse-type-in-ns* (cu/expr-ns expr opts)]
                    (prs/parse-type tsyn opts))]
     parsed-t))
 

@@ -47,15 +47,15 @@
      :ns (assoc expr :expr-type :any))))
 
 (defn check-top-level
-  ([form] (check-top-level form nil))
-  ([form expected] (check-top-level form expected {}))
+  ;([form] (check-top-level form nil))
+  ;([form expected] (check-top-level form expected {}))
   ([form expected {:keys [env] :as opts}]
    (let [env (or env (ana-api/empty-env))]
      (with-bindings (jsana2/default-thread-bindings)
        (env/with-compiler-env STATE
          (-> form
              (jsana2/unanalyzed env)
-             (check-expr expected)))))))
+             (check-expr expected opts)))))))
 
 (defmacro check-top-levels [& forms]
   `(binding [cljs-ana/*cljs-ns* '~'cljs.user]

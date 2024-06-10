@@ -91,23 +91,22 @@
                 ;-------------------------
                 ; Collection phase
                 ;-------------------------
-                (impl/impl-case
+                (impl/impl-case opts
                   :clojure @*register-clj-anns
                   :cljs @*register-cljs-anns)
                 (case (:check-ns-load check-config)
-                  :require-before-check (impl/impl-case
+                  :require-before-check (impl/impl-case opts
                                           :clojure (locking clojure.lang.RT/REQUIRE_LOCK
                                                      (apply require nsym-coll))
-                                          :cljs (err/nyi-error
-                                                  ":check-ns-load :require-before-check in CLJS"))
+                                          :cljs (err/nyi-error ":check-ns-load :require-before-check in CLJS" opts))
                   (nil :never) nil)
                 ;-------------------------
                 ; Check phase
                 ;-------------------------
-                (let [opts {::env/checker (impl/impl-case
-                                            :clojure (impl/clj-checker)
-                                            :cljs (impl/cljs-checker))}
-                      check-ns (impl/impl-case
+                (let [opts (impl/impl-case opts
+                             :clojure ((requiring-resolve 'typed.clj.runtime.env/clj-opts))
+                             :cljs ((requiring-resolve 'typed.cljs.runtime.env/cljs-opts)))
+                      check-ns (impl/impl-case opts
                                  :clojure chk-clj/check-ns-and-deps
                                  :cljs    (requiring-resolve 'typed.cljs.checker.check/check-ns-and-deps))
                       check-ns #(check-ns % opts)]

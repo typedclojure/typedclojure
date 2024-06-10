@@ -15,13 +15,13 @@
             [clojure.math.combinatorics :as comb]
             [clojure.core.typed.current-impl :as impl]))
 
-(defn equivable [t]
+(defn equivable [t opts]
   {:pre [(r/Type? t)]
    :post [((some-fn nil? r/Type?) %)]}
   (or (when (r/Value? t)
         (when ((some-fn string? number? symbol? keyword? nil? true? false? class?) (:val t))
           t))
-      (impl/impl-case
+      (impl/impl-case opts
         :clojure nil
         ; (if (= undefined a)
         ;   .. ; a :- nil
@@ -32,7 +32,7 @@
         :cljs (when ((some-fn r/JSNull? r/JSUndefined?) t)
                 (r/-val nil)))))
 
-(defn identicalable [branch t]
+(defn identicalable [branch t opts]
   {:pre [(#{:then :else} branch)
          (r/Type? t)]
    :post [((some-fn nil? r/Type?) %)]}
@@ -44,12 +44,12 @@
             :else (or (when ((some-fn true? false?) v)
                         t)
                       (when (nil? v)
-                        (impl/impl-case
+                        (impl/impl-case opts
                           :clojure t
                           ; when (identical? (ann-form ... nil) a) is false, we can't
                           ; say `a` is non-nil (either arg could be JSUndefined or JSNull).
                           :cljs nil))))))
-      (impl/impl-case
+      (impl/impl-case opts
         :clojure nil
         :cljs (when ((some-fn r/JSNull? r/JSUndefined?) t)
                 t))))
@@ -62,9 +62,9 @@
   (assert (seq vs))
   (let [[then-equivable else-equivable]
         (case comparator
-          (:= :not=) [equivable equivable]
-          :identical? [#(identicalable :then %)
-                       #(identicalable :else %)])
+          (:= :not=) [#(equivable % opts) #(equivable % opts)]
+          :identical? [#(identicalable :then % opts)
+                       #(identicalable :else % opts)])
         ; TODO sequence behaviour is subtle
         ; conservative for now
         vs-combinations (comb/combinations vs 2)

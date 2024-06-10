@@ -67,7 +67,7 @@
             (prs/prs-error "::t/inst must be a vector"))]
     (-> expr
         check-expr
-        (update u/expr-type #(inst/inst-from-targs-syn (:t %) targs-syn (cu/expr-ns expr) expected opts)))))
+        (update u/expr-type #(inst/inst-from-targs-syn (:t %) targs-syn (cu/expr-ns expr opts) expected opts)))))
 
 (def meta-keys
   [{:k ::t/dbg :f #'check-meta-debug :propagate-expected? true}

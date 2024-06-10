@@ -152,10 +152,10 @@
                                                       ;; might affect TypeFn variance inference
                                                       #'env-utils/*type-cache* (do (assert (not env-utils/*type-cache*))
                                                                                    (atom {})))
-                                  (check-top-level form nil {::env/checker checker
-                                                             :env (assoc env :ns (ns-name *ns*))
+                                  (check-top-level form nil {:env (assoc env :ns (ns-name *ns*))
                                                              :top-level-form-string sform
-                                                             :ns-form-string ns-form-str}))))
+                                                             :ns-form-string ns-form-str}
+                                                   opts))))
                             forms-info)
                    results (if-some [^java.util.concurrent.ExecutorService
                                      threadpool vs/*check-threadpool*]
@@ -165,7 +165,7 @@
                                             (throw (or (.getCause e) e)))))
                                    (.invokeAll threadpool exs))
                              (mapv #(%) exs))]
-               (cache/remove-stale-cache-entries ns ns-form-str (map :sform forms-info) slurped)))))))))
+               (cache/remove-stale-cache-entries ns ns-form-str (map :sform forms-info) slurped opts)))))))))
 
 (defn check-ns-and-deps [nsym opts] (cu/check-ns-and-deps nsym check-ns1 opts))
 
@@ -209,8 +209,8 @@
 
 
 
-(defn should-infer-vars? [expr]
-  (-> (cu/expr-ns expr)
+(defn should-infer-vars? [expr opts]
+  (-> (cu/expr-ns expr opts)
       find-ns
       meta
       :core.typed
@@ -220,13 +220,13 @@
 (defn check-var [{:keys [var] :as expr} expected opts]
   {:pre [(var? var)]}
   (binding [vs/*current-expr* expr]
-    (let [checker (cenv/checker)
+    (let [checker (cenv/checker opts)
           id (coerce/var->symbol var)
           _ (when-not (var-env/used-var? checker id)
               (var-env/add-used-var checker id))
           vsym id
-          ut (var-env/get-untyped-var checker (cu/expr-ns expr) vsym)
-          t (var-env/lookup-Var-nofail vsym)]
+          ut (var-env/get-untyped-var checker (cu/expr-ns expr opts) vsym)
+          t (var-env/lookup-Var-nofail vsym opts)]
       ;(prn " annotation" t)
       ;(prn " untyped annotation" ut)
       (cond
@@ -235,7 +235,7 @@
         (if (cu/should-rewrite?)
           (assoc (cu/add-cast expr ut
                               {:positive (str "Annotation for " vsym)
-                               :negative (str (cu/expr-ns expr))}
+                               :negative (str (cu/expr-ns expr opts))}
                               opts)
                  u/expr-type (below/maybe-check-below
                                (r/ret ut)
@@ -257,8 +257,8 @@
 
         ;; :infer-vars are enabled for this namespace, this
         ;; var dereference is the dynamic type
-        (or (should-infer-vars? expr)
-            (impl/impl-case
+        (or (should-infer-vars? expr opts)
+            (impl/impl-case opts
               :clojure (= :unchecked 
                           (some-> vs/*check-config* :unannotated-var))
               :cljs nil))
@@ -269,7 +269,7 @@
                                (r/ret (r/-unchecked vsym))
                                expected
                                opts)))
-        (impl/impl-case
+        (impl/impl-case opts
           :clojure (= :any (some-> vs/*check-config* :unannotated-var))
           :cljs nil)
         (do
@@ -297,22 +297,22 @@
 (defn check-the-var
   [{:keys [^Var var env] :as expr} expected opts]
   {:pre [(var? var)]}
-  (impl/assert-clojure)
-  (let [checker (cenv/checker)
+  (impl/assert-clojure opts)
+  (let [checker (cenv/checker opts)
         id (coerce/var->symbol var)
         macro? (.isMacro var)
         _ (when-not (or macro?
                         (var-env/used-var? checker id))
             (var-env/add-used-var checker id))
-        t (var-env/lookup-Var-nofail id)
+        t (var-env/lookup-Var-nofail id opts)
         t (cond
             t t
             macro? r/-any
             ;; :infer-vars are enabled for this namespace, this
             ;; var object is the dynamic type
-            (should-infer-vars? expr) (r/-unchecked id)
+            (should-infer-vars? expr opts) (r/-unchecked id)
             :else (err/tc-delayed-error (str "Unannotated var reference: " id)
-                                        {:form (ast-u/emit-form-fn expr)
+                                        {:form (ast-u/emit-form-fn expr opts)
                                          :return (r/TCError-maker)}
                                         opts))]
     (assoc expr
@@ -407,7 +407,7 @@
             (update-in [:args 0] ana2/run-passes))
         sym (ast-u/quote-expr-val sym-expr)
         _ (assert (symbol? sym))
-        t (var-env/lookup-Var-nofail sym)
+        t (var-env/lookup-Var-nofail sym opts)
         _ (when-not t
             (err/tc-delayed-error (str "Unannotated var: " sym) opts))]
     (-> expr
@@ -448,7 +448,7 @@
     (err/int-error (str "Wrong number of arguments to extend, expected at least one with an even "
                         "number of variable arguments, given " (count (:args expr)))
                    opts))
-  (let [checker (cenv/checker)
+  (let [checker (cenv/checker opts)
         {[catype & protos :as args] :args :as expr}
         (-> expr
             ;atype
@@ -535,12 +535,12 @@
         javat (let [syn (or (when has-java-syn? (ast-u/quote-expr-val javat-syn))  ; generalise javat-syn if provided, otherwise cljt-syn
                             (ast-u/quote-expr-val cljt-syn))
                     c (-> 
-                        (binding [prs/*parse-type-in-ns* (cu/expr-ns expr)]
+                        (binding [prs/*parse-type-in-ns* (cu/expr-ns expr opts)]
                           (prs/parse-type syn opts))
                         (arr-ops/Type->array-member-Class opts))]
                 (assert (class? c))
                 c)
-        cljt (binding [prs/*parse-type-in-ns* (cu/expr-ns expr)]
+        cljt (binding [prs/*parse-type-in-ns* (cu/expr-ns expr opts)]
                (prs/parse-type (ast-u/quote-expr-val cljt-syn) opts))
         ccoll (check-expr coll-expr (r/ret (c/Un [r/-nil (c/-name `t/Seqable cljt)]
                                                  opts)))]
@@ -717,7 +717,7 @@
   {:pre [(and (= :const (:op kw))
               (keyword? (:val kw)))]
    :post [(r/TCResult? (u/expr-type %))]}
-  (impl/assert-clojure)
+  (impl/assert-clojure opts)
   (let [ckw (check-expr kw opts)
         ctarget (check-expr target opts)]
     (assoc expr
@@ -747,7 +747,7 @@
 
 (defmethod -check ::ana2/protocol-invoke ; protocol methods
   [expr expected opts]
-  (impl/assert-clojure)
+  (impl/assert-clojure opts)
   (protocol-invoke expr expected opts))
 
 ;binding
@@ -769,7 +769,8 @@
                          (= #'hash-map (-> bindings-expr :fn :var))
                          (even? (count (-> bindings-expr :args))))
             (err/nyi-error (str "Can only check push-thread-bindings with a well-formed call to hash-map as first argument"
-                                " (like bindings expansion)")))
+                                " (like bindings expansion)")
+                           opts))
         new-bindings-exprs (partition 2 (-> bindings-expr :args))
         cargs
         [(assoc bindings-expr
@@ -917,7 +918,7 @@
                    ;:solve-subtype solve-subtype
                    :solve solve
                    :subtype? subtype?
-                   :emit-form ast-u/emit-form-fn
+                   :emit-form #(ast-u/emit-form-fn % opts)
                    :abbreviate-type (fn [t]
                                       (let [m (prs/parse-type t opts)]
                                         (binding [vs/*verbose-types* false]
@@ -1026,7 +1027,7 @@
    :post [(-> % u/expr-type r/TCResult?)]}
   (let [{[ctor-expr targs-exprs] :args :as expr} (-> expr
                                                      (update-in [:args 1] ana2/run-passes))
-        targs (binding [prs/*parse-type-in-ns* (cu/expr-ns expr)]
+        targs (binding [prs/*parse-type-in-ns* (cu/expr-ns expr opts)]
                 (mapv #(prs/parse-type % opts) (ast-u/quote-expr-val targs-exprs)))
         cexpr (binding [*inst-ctor-types* targs]
                 (check-expr ctor-expr))]
@@ -1047,7 +1048,7 @@
     ;DO NOT REMOVE
     (println (:val debug-string))
     (flush)
-    (prs/with-unparse-ns (cu/expr-ns expr)
+    (prs/with-unparse-ns (cu/expr-ns expr opts)
       (print-env/print-env* opts))
     ;DO NOT REMOVE
     (assoc expr
@@ -1073,7 +1074,7 @@
     (println (:val debug-string))
     (flush)
     ;(prn (:fl t))
-    (prs/with-unparse-ns (cu/expr-ns expr)
+    (prs/with-unparse-ns (cu/expr-ns expr opts)
       (if (fl/FilterSet? (:fl t))
         (do (pprint/pprint (prs/unparse-filter-set (:fl t) opts))
             (flush))
@@ -1110,7 +1111,7 @@
           ;; assumes there are never namespace aliases that shadow namespaces
           (when (var? (try (requiring-resolve sym)
                            (catch java.io.FileNotFoundException _)))
-            (if (var-env/lookup-Var-nofail sym)
+            (if (var-env/lookup-Var-nofail sym opts)
               (-> expr
                   (update :fn check-expr)
                   (assoc 
@@ -1420,7 +1421,7 @@
                                     (assoc-in [:types keyt] valt))
                                   ; resort to a general type
                                   (do
-                                    ;(prn "cli: giving up because of" (ast-u/emit-form-fn spec-expr)
+                                    ;(prn "cli: giving up because of" (ast-u/emit-form-fn spec-expr opts)
                                          ;"\n" spec-expr)
                                     (reduced 
                                       (c/RClass-of IPersistentMap [(c/RClass-of clojure.lang.Keyword opts) r/-any] opts)))))
@@ -1467,7 +1468,7 @@
    :post [#_(every? :post-done (cons (:target %) (:args %)))]}
   (when-not (= 2 (count (:args expr)))
     (err/int-error "Wrong arguments to clojure.lang.MultiFn/addMethod" opts))
-  (let [checker (cenv/checker)
+  (let [checker (cenv/checker opts)
         {[dispatch-val-expr _] :args target :target :keys [env] :as expr}
         (cond-> expr
           (-> expr :target :form symbol?) (update :target ana2/run-passes))
@@ -1482,20 +1483,20 @@
                                     (r/ret (c/RClass-of clojure.lang.MultiFn opts))
                                     expected
                                     opts)))
-        default? (cu/default-defmethod? var (ast-u/emit-form-fn dispatch-val-expr))
+        default? (cu/default-defmethod? var (ast-u/emit-form-fn dispatch-val-expr opts))
         unannotated-def (some-> vs/*check-config* :unannotated-def)]
     (cond
       (and (= :unchecked unannotated-def)
-           (not (var-env/lookup-Var-nofail mmsym)))
+           (not (var-env/lookup-Var-nofail mmsym opts)))
       (-> expr
           (update :args #(mapv ana2/run-passes %)))
 
       ;skip if warn-on-unannotated-vars is in effect
-      (or (and (ns-opts/warn-on-unannotated-vars? checker (cu/expr-ns expr))
-               (not (var-env/lookup-Var-nofail mmsym)))
+      (or (and (ns-opts/warn-on-unannotated-vars? checker (cu/expr-ns expr opts))
+               (not (var-env/lookup-Var-nofail mmsym opts)))
           (not (var-env/check-var? checker mmsym)))
       (do (u/tc-warning (str "Not checking defmethod " mmsym " with dispatch value: " 
-                             (pr-str (ast-u/emit-form-fn dispatch-val-expr))))
+                             (pr-str (ast-u/emit-form-fn dispatch-val-expr opts))))
           (-> expr
               (update :args #(mapv ana2/run-passes %))))
       :else
@@ -1507,7 +1508,7 @@
             _ (assert (= :var (:op target)))
             _ (when-not (= :fn (:op method-expr))
                 (err/int-error (str "Method must be a fn") opts))
-            dispatch-type (mm/multimethod-dispatch-type mmsym)]
+            dispatch-type (mm/multimethod-dispatch-type mmsym opts)]
         (if-not dispatch-type
           (binding [vs/*current-env* env]
             (err/tc-delayed-error (str "Multimethod requires dispatch type: " mmsym
@@ -1550,27 +1551,27 @@
 
 (defmethod -check ::ana2/host-interop
   [expr expected opts]
-  (impl/assert-clojure)
+  (impl/assert-clojure opts)
   (host-interop/check-host-interop expr expected opts))
 
 (defmethod -check ::ana2/host-call
   [expr expected opts]
-  (impl/assert-clojure)
+  (impl/assert-clojure opts)
   (host-interop/check-host-call -host-call-special expr expected opts))
 
 (defmethod -check ::ana2/host-field
   [expr expected opts]
-  (impl/assert-clojure)
+  (impl/assert-clojure opts)
   (host-interop/check-host-interop expr expected opts))
 
 (defmethod -check ::ana2/maybe-host-form
   [expr expected opts]
-  (impl/assert-clojure)
+  (impl/assert-clojure opts)
   (host-interop/check-maybe-host-form expr expected opts))
 
 (defmethod -check ::ana2/maybe-class
   [expr expected {::check/keys [check-expr] :as opts}]
-  (impl/assert-clojure)
+  (impl/assert-clojure opts)
   (let [expr (ana2/run-post-passes expr)]
     (if (= :maybe-class (:op expr))
       (err/tc-delayed-error (str "Unresolved host interop: " (:form expr)
@@ -1641,7 +1642,7 @@
 (defmethod -check ::jana2/instance?
   [{cls :class the-expr :target :as expr} expected {::check/keys [check-expr] :as opts}]
   ;(assert nil ":instance? node not used")
-  (impl/assert-clojure)
+  (impl/assert-clojure opts)
   (let [inst-of (c/RClass-of-with-unknown-params cls opts)
         cexpr (check-expr the-expr)
         expr-tr (u/expr-type cexpr)]
@@ -1697,9 +1698,9 @@
                                              (:types inferred-dispatch-t)))
                               inferred-dispatch-t)
         _ (when-not inferred-dispatch-t
-            (err/nyi-error (str "defmulti dispatch not a function: " (pr-str (r/ret-t (u/expr-type cdispatch-expr))))))
+            (err/nyi-error (str "defmulti dispatch not a function: " (pr-str (r/ret-t (u/expr-type cdispatch-expr)))) opts))
         _ (when ((some-fn r/Union? r/Intersection?) inferred-dispatch-t)
-            (err/nyi-error "defmulti dispatch function inferred as union or intersection"))
+            (err/nyi-error "defmulti dispatch function inferred as union or intersection" opts))
         ;_ (prn "inferred-dispatch-t" inferred-dispatch-t)
         ;_ (prn "expected-d" expected-d)
         resolved-dispatch-t (cond-> inferred-dispatch-t
@@ -1707,7 +1708,7 @@
                                                                            u/expr-type
                                                                            r/ret-t))
         ;_ (prn "resolved-dispatch-t" resolved-dispatch-t)
-        mm-qual (symbol (str (cu/expr-ns expr)) mm-name)
+        mm-qual (symbol (str (cu/expr-ns expr opts)) mm-name)
         _ (mm/add-multimethod-dispatch-type mm-qual resolved-dispatch-t opts)]
     (-> expr
         (assoc u/expr-type (below/maybe-check-below
@@ -1724,11 +1725,11 @@
   {:post [(-> % u/expr-type r/TCResult?)
           (vector? (:args %))]}
   ;(prn ":new" (mapv (juxt :op :tag) (cons (:class expr) (:args expr))))
-  (impl/assert-clojure)
+  (impl/assert-clojure opts)
   (binding [vs/*current-expr* expr
             vs/*current-env* (:env expr)]
     (or (-new-special expr expected opts)
-        (let [checker (cenv/checker)
+        (let [checker (cenv/checker opts)
               inst-types *inst-ctor-types*
               expr (-> expr
                        (update :class check-expr)
@@ -1748,7 +1749,7 @@
                                                        {:constructor-call clssym}
                                                        opts)
                                                      ".\n\nHint: add type hints")
-                                                {:form (ast-u/emit-form-fn expr)
+                                                {:form (ast-u/emit-form-fn expr opts)
                                                  :return (assoc expr
                                                                 u/expr-type (cu/error-ret expected))}
                                                 opts)))
@@ -1787,9 +1788,9 @@
 
 (defn check-def
   [{:keys [var env] :as expr} expected opts]
-  (impl/assert-clojure)
-  (let [checker (cenv/checker)
-        prs-ns (cu/expr-ns expr)
+  (impl/assert-clojure opts)
+  (let [checker (cenv/checker opts)
+        prs-ns (cu/expr-ns expr opts)
         mvar (meta var)
         qsym (coerce/var->symbol var)]
     ; annotation side effect
@@ -1938,8 +1939,7 @@
   fully analyzed core.typed.analyzer AST node (ie., containing no :unanalyzed nodes)
   with a u/expr-type entry giving its TCResult type, and a :result entry
   holding its evaluation result."
-  ([form expected] (check-top-level form expected {}))
-  ([form expected {:keys [env] :as opts}]
+  ([form expected {:keys [env] :as opt} opts]
    ;(prn "check-top-level" form)
    ;(prn "*ns*" *ns*)
    (let [extra (when (= :before (:check-form-eval vs/*check-config*))
@@ -1950,5 +1950,5 @@
        (env/ensure (jana2/global-env)
          (-> form
              (ana2/unanalyzed-top-level (or env (jana2/empty-env)))
-             (cache/check-top-level-expr expected opts)
+             (cache/check-top-level-expr expected opt opts)
              (into extra)))))))

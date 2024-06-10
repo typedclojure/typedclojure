@@ -20,10 +20,10 @@
 (defn ns-form-for-file
   "Returns the namespace declaration for the file, or
   nil if not found"
-  [file]
+  [file opts]
   (some-> (io/resource file)
           (ns-file/read-file-ns-decl
-            (impl/impl-case
+            (impl/impl-case opts
               :clojure ns-parse/clj-read-opts
               :cljs ns-parse/cljs-read-opts))))
 
@@ -32,8 +32,8 @@
   nil if not found."
   [nsym opts]
   {:pre [(symbol? nsym)]}
-  (let [f (-> nsym coerce/ns->file)
-        ns (ns-form-for-file f)]
+  (let [f (-> nsym (coerce/ns->file opts))
+        ns (ns-form-for-file f opts)]
     (or ns
         (err/int-error (str "File for " nsym " not found on classpath: " f) opts))))
 
@@ -55,14 +55,15 @@
     (ns-form-deps ns-form)
     #{}))
 
+#_
 (defn requires-tc?
   "Returns true if the ns-form refers to clojure.core.typed"
-  [ns-form]
+  [ns-form opts]
   {:pre [ns-form]
    :post [(boolean? %)]}
   (if-let [deps (ns-parse/deps-from-ns-decl ns-form)]
     (boolean
-      (some (impl/impl-case
+      (some (impl/impl-case opts
               :clojure '#{clojure.core.typed
                           typed.clojure}
               :cljs '#{clojure.core.typed
@@ -137,7 +138,7 @@
   [res opts]
   {:pre [(string? res)]
    :post [(boolean? %)]}
-  (if-let [ns-form (ns-form-for-file res)]
+  (if-let [ns-form (ns-form-for-file res opts)]
     (boolean (some-> ns-form (ns-has-core-typed-metadata? opts)))
     false))
 
@@ -146,6 +147,6 @@
   [res opts]
   {:pre [(string? res)]
    :post [(boolean? %)]}
-  (if-let [ns-form (ns-form-for-file res)]
+  (if-let [ns-form (ns-form-for-file res opts)]
     (boolean (some-> ns-form (should-use-typed-load? opts)))
     false))

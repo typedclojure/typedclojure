@@ -39,15 +39,14 @@
                   nil)
               (into {}
                     (for [[nme type-syn] (map vector (map :name bindings) (-> body :statements first :expr :val))]
-                      [nme (binding [prs/*parse-type-in-ns* (cu/expr-ns letfn-expr)]
+                      [nme (binding [prs/*parse-type-in-ns* (cu/expr-ns letfn-expr opts)]
                              (prs/parse-type type-syn opts))])))))]
     (if-not inits-expected
       (err/tc-delayed-error (str "letfn requires annotation, see: "
-                                 (impl/impl-case :clojure 'clojure :cljs 'cljs) ".core.typed/letfn>")
+                                 (impl/impl-case opts :clojure 'clojure :cljs 'cljs) ".core.typed/letfn>")
                             {:return (assoc letfn-expr
                                             u/expr-type (cu/error-ret expected))}
                             opts)
-
       (let [cbindings
             (lex/with-locals inits-expected
               (mapv
