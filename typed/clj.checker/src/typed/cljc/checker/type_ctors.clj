@@ -2751,6 +2751,24 @@
             c))
     c))
 
+(defn- mapv!= [coll f]
+  (when-not (nil? coll)
+    (let [it (.iterator ^Iterable coll)]
+      (loop [i 0, acc nil]
+        (if (.hasNext it)
+          (let [old (.next it)
+                new (f old)]
+            (recur (inc i)
+                   (if (nil? acc)
+                     (if (identical? old new)
+                       acc
+                       (conj (if (vector? coll)
+                               (subvec coll 0 i)
+                               (vec (take i coll)))
+                             new))
+                     (conj acc new))))
+          (or acc coll))))))
+
 (add-default-fold-case NotType
                        (fn [ty]
                          (r/update-NotType ty
@@ -2761,7 +2779,7 @@
                        (fn [ty]
                          ;(prn "fold-default Intersection" ty)
                          (let [ts (:types ty)
-                               ts' (into-identical [] type-rec ts)]
+                               ts' (mapv!= ts type-rec)]
                            (if (identical? ts ts')
                              ty
                              (In ts' opts)))))
@@ -2770,14 +2788,14 @@
                        (fn [ty]
                          ;(prn "union default" (typed.clj.checker.parse-unparse/unparse-type ty opts))
                          (let [ts (:types ty)
-                               ts' (into-identical [] type-rec ts)]
+                               ts' (mapv!= ts type-rec)]
                            (if (identical? ts ts')
                              ty
                              (Un ts' opts)))))
 
 (add-default-fold-case FnIntersection
                        (fn [ty]
-                         (r/update-FnIntersection ty [:types #(into-identical [] type-rec %)])))
+                         (r/update-FnIntersection ty [:types mapv!= type-rec])))
 
 (add-default-fold-case DottedPretype
                        (fn [ty]
@@ -2791,7 +2809,7 @@
                          ;(prn "fold Function" ty)
                          (r/update-Function
                            ty
-                           [:dom #(into-identical [] type-rec %)]
+                           [:dom mapv!= type-rec]
                            [:rng type-rec]
                            [:rest #(some-> % type-rec)]
                            [:drest #(some-> % type-rec)]
@@ -2808,25 +2826,25 @@
 (add-default-fold-case JSNominal
                        (fn [ty]
                          (r/update-JSNominal ty
-                           [:poly? #(some->> % (into-identical [] type-rec))])))
+                           [:poly? mapv!= type-rec])))
 
 (add-default-fold-case RClass
                        (fn [ty]
                          (r/update-RClass ty
-                           [:poly? #(some->> % (into-identical [] type-rec))])))
+                           [:poly? mapv!= type-rec])))
 
 (add-default-fold-case App
                        (fn [ty]
                          (r/update-App ty
                            [:rator type-rec]
-                           [:rands #(into-identical [] type-rec %)])))
+                           [:rands mapv!= type-rec])))
 
 (add-default-fold-case TApp
                        (fn [ty]
                          (r/update-TApp ty
                            [:rator type-rec]
                            ;;TODO variance
-                           [:rands #(into-identical [] type-rec %)])))
+                           [:rands mapv!= type-rec])))
 
 (add-default-fold-case PrimitiveArray
                        (fn [ty]
@@ -2854,16 +2872,14 @@
                          (r/update-DataType ty
                            [:poly? (poly?-visitor-DataType-or-Protocol variances type-rec)]
                            [:fields (fn [fs]
-                                      (return-if-changed
-                                        (fn [changed?]
-                                          (apply array-map
-                                                 (mapcat (fn [[k t]]
-                                                           (let [t' (type-rec t)]
-                                                             (when-not (identical? t t')
-                                                               (vreset! changed? true))
-                                                             [k t']))
-                                                         fs)))
-                                        fs))])))
+                                      (let [fs' (mapv!= fs (fn [[k t :as tuple]]
+                                                             (let [t' (type-rec t)]
+                                                               (if (identical? t t')
+                                                                 tuple
+                                                                 [k t']))))]
+                                        (if (identical? fs fs')
+                                          fs
+                                          (into {} fs'))))])))
 
 (add-default-fold-case Protocol
                        (fn [{:keys [variances] :as ty}]
@@ -2882,7 +2898,7 @@
                                bmap (zipmap (map r/make-F names) bbnds)
                                ;;FIXME type variables are scoped left-to-right in bounds
                                bbnds' (free-ops/with-bounded-frees bmap
-                                        (into-identical [] type-rec bbnds))
+                                        (mapv!= bbnds type-rec))
                                body' (free-ops/with-bounded-frees bmap
                                        (type-rec body))
                                changed? (or (not (identical? bbnds bbnds'))
@@ -2900,7 +2916,7 @@
                                        bmap (zipmap (map r/make-F names) bbnds)
                                        ;;FIXME type variables are scoped left-to-right in bounds
                                        bbnds' (free-ops/with-bounded-frees bmap
-                                                (into-identical [] type-rec bbnds))
+                                                (mapv!= bbnds type-rec))
                                        body' (free-ops/with-bounded-frees bmap
                                                (type-rec body))
                                        changed? (or (not (identical? bbnds bbnds'))
@@ -2914,7 +2930,7 @@
                                            bmap (zipmap (map r/make-F names) bbnds)
                                            ;;FIXME type variables are scoped left-to-right in bounds
                                            bbnds' (free-ops/with-bounded-frees bmap
-                                                    (into-identical [] type-rec bbnds))
+                                                    (mapv!= bbnds type-rec))
                                            body' (free-ops/with-bounded-frees bmap
                                                    (type-rec body))
                                            changed? (or (not (identical? bbnds bbnds'))
@@ -2935,9 +2951,9 @@
 
 (add-default-fold-case HSequential 
                        (fn [{:keys [types fs objects rest drest repeat kind] :as ty}]
-                         (let [types' (into-identical [] type-rec types)
-                               fs' (into-identical [] filter-rec fs)
-                               objects' (into-identical [] object-rec objects)
+                         (let [types' (mapv!= types type-rec)
+                               fs' (mapv!= fs filter-rec)
+                               objects' (mapv!= objects object-rec)
                                rest' (some-> rest type-rec)
                                drest' (some-> drest type-rec)
                                changed? (or (not (identical? types types'))
@@ -2985,7 +3001,7 @@
      m)))
 
 (defn- visit-type-paired-vector [v f]
-  (into-identical [] #(into-identical [] f %) v))
+  (mapv!= v #(mapv!= % f)))
 
 (add-default-fold-case HeterogeneousMap
                        (fn [ty]
@@ -3001,7 +3017,7 @@
                        (fn [ty]
                          (r/update-JSObj ty 
                            [:types #(let [vs (vals %)
-                                          vs' (into-identical [] type-rec vs)
+                                          vs' (mapv!= vs type-rec)
                                           changed? (not (identical? vs vs'))]
                                       (if changed?
                                         (zipmap (keys %) vs')
@@ -3075,7 +3091,7 @@
                        (fn [ty]
                          (r/update-MatchType ty
                            [:target type-rec]
-                           [:clauses #(into-identical [] type-rec %)])))
+                           [:clauses mapv!= type-rec])))
 
 (defmacro ^:private ret-first-many [& cls]
   `(do ~@(map #(list `add-default-fold-case % `ret-first) cls)))
@@ -3101,13 +3117,13 @@
                        (fn [ty]
                          (fr/update-TypeFilter ty
                            [:type type-rec]
-                           [:path #(some->> % (into-identical [] pathelem-rec))])))
+                           [:path mapv!= pathelem-rec])))
 
 (add-default-fold-case NotTypeFilter
                        (fn [ty]
                          (fr/update-NotTypeFilter ty
                            [:type type-rec #_{:variance :contravariant}]
-                           [:path #(some->> % (into-identical [] pathelem-rec))])))
+                           [:path mapv!= pathelem-rec])))
 
 (add-default-fold-case ImpFilter
                        (fn [ty]
@@ -3117,7 +3133,7 @@
 
 (add-default-fold-case AndFilter
                        (fn [{:keys [fs] :as ty}]
-                         (let [fs' (into-identical [] filter-rec (:fs ty))
+                         (let [fs' (mapv!= (:fs ty) filter-rec)
                                changed? (not (identical? fs fs'))]
                            (if changed?
                              (ind/-and fs' opts)
@@ -3125,7 +3141,7 @@
 
 (add-default-fold-case OrFilter
                        (fn [{:keys [fs] :as ty}]
-                         (let [fs' (into-identical [] filter-rec (:fs ty))
+                         (let [fs' (mapv!= (:fs ty) filter-rec)
                                changed? (not (identical? fs fs'))]
                            (if changed?
                              (ind/-or fs' opts)
@@ -3143,7 +3159,7 @@
 (add-default-fold-case Path
                        (fn [ty]
                          (or/update-Path ty
-                           [:path #(some->> % (into-identical [] pathelem-rec))])))
+                           [:path mapv!= pathelem-rec])))
 (add-default-fold-case NoObject ret-first)
 
 ;path-elems
@@ -3169,12 +3185,12 @@
 (add-default-fold-case MergeType
                        (fn [ty]
                          (r/update-MergeType ty
-                           [:types #(into-identical [] type-rec %)])))
+                           [:types mapv!= type-rec])))
 
 (add-default-fold-case Regex
                        (fn [ty]
                          (r/update-Regex ty
-                           [:types #(into-identical [] type-rec %)])))
+                           [:types mapv!= type-rec])))
 
 (add-default-fold-case Instance ret-first)
 (add-default-fold-case Satisfies ret-first)
