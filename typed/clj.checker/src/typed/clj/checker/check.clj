@@ -102,7 +102,6 @@
   (:import (clojure.lang IPersistentMap Var)))
 
 (t/ann ^:no-check typed.clj.checker.parse-unparse/*unparse-type-in-ns* (t/U nil t/Sym))
-(t/ann ^:no-check clojure.core.typed.util-vars/*already-checked* (t/U nil (t/Atom (t/Set t/Sym))))
 
 ;==========================================================
 ; # Type Checker

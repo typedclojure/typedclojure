@@ -72,7 +72,6 @@
         (assert (seq nsym-coll) "Nothing to check")
         (impl/with-impl impl
           (binding [vs/*delayed-errors* (err/-init-delayed-errors)
-                    vs/*already-checked* (atom #{})
                     vs/*trace-checker* trace
                     ; we only use this if we have exactly one namespace passed
                     vs/*checked-asts* (when (#{impl/clojure} impl)
@@ -82,7 +81,9 @@
                     vs/*in-check-form* false
                     vs/*check-threadpool* threadpool
                     vs/*check-config* check-config]
-            (let [opts (assoc opts ::vs/lexical-env (lex-env/init-lexical-env))
+            (let [opts (-> opts
+                           (assoc ::vs/lexical-env (lex-env/init-lexical-env))
+                           (assoc ::vs/already-checked (atom #{})))
                   terminal-error (atom nil)]
               ;(reset-env/reset-envs!)
               ;(reset-caches)
@@ -103,10 +104,7 @@
                 ;-------------------------
                 ; Check phase
                 ;-------------------------
-                (let [opts (impl/impl-case opts
-                             :clojure ((requiring-resolve 'typed.clj.runtime.env/clj-opts))
-                             :cljs ((requiring-resolve 'typed.cljs.runtime.env/cljs-opts)))
-                      check-ns (impl/impl-case opts
+                (let [check-ns (impl/impl-case opts
                                  :clojure chk-clj/check-ns-and-deps
                                  :cljs    (requiring-resolve 'typed.cljs.checker.check/check-ns-and-deps))
                       check-ns #(check-ns % opts)]

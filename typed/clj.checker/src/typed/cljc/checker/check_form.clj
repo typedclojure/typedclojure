@@ -117,8 +117,7 @@
       :clojure @*register-clj-anns
       :cljs @*register-cljs-anns)
     (reset-caches/reset-caches)
-    (binding [vs/*already-checked* (atom #{})
-              vs/*delayed-errors* (err/-init-delayed-errors)
+    (binding [vs/*delayed-errors* (err/-init-delayed-errors)
               vs/*in-check-form* true
               ;; custom expansions might not even evaluate
               vs/*can-rewrite* (not custom-expansions?)
@@ -126,7 +125,9 @@
               vs/*beta-count* (when custom-expansions?
                                 (atom {:count 0
                                        :limit (or beta-limit 500)}))]
-      (let [opts (assoc opts ::vs/lexical-env (lex-env/init-lexical-env))
+      (let [opts (-> opts
+                     (assoc ::vs/lexical-env (lex-env/init-lexical-env))
+                     (assoc ::vs/already-checked (atom #{})))
             expected (or
                        expected-ret
                        (when type-provided?

@@ -457,14 +457,16 @@
         default-val (.defaultDispatchVal multifn)]
     (= default-val dispatch-val)))
 
-(t/ann checked-ns! [t/Sym -> nil])
-(defn- checked-ns! [nsym]
-  (swap! vs/*already-checked* conj nsym)
+(t/ann checked-ns! [t/Sym t/Any -> nil])
+(defn- checked-ns! [nsym {::vs/keys [already-checked] :as opts}]
+  (assert already-checked (-> opts keys sort vec))
+  (swap! already-checked conj nsym)
   nil)
 
-(t/ann already-checked? [t/Sym -> t/Bool])
-(defn already-checked? [nsym]
-  (boolean (@vs/*already-checked* nsym)))
+(t/ann already-checked? [t/Sym t/Any -> t/Bool])
+(defn already-checked? [nsym {::vs/keys [already-checked] :as opts}]
+  (assert already-checked (-> opts keys sort vec))
+  (boolean (@already-checked nsym)))
 
 (t/ann check-ns-and-deps [t/Sym [t/Sym -> t/Any] t/Any -> nil])
 (defn check-ns-and-deps
@@ -473,14 +475,14 @@
   {:pre [(symbol? nsym)]
    :post [(nil? %)]}
   (cond
-    (already-checked? nsym) (do
-                              ;(println (str "Already checked " nsym ", skipping"))
-                              ;(flush)
-                              nil)
+    (already-checked? nsym opts) (do
+                                   ;(println (str "Already checked " nsym ", skipping"))
+                                   ;(flush)
+                                   nil)
     :else
     (let [; check deps
           _ (when (= :recheck (some-> vs/*check-config* :check-ns-dep))
-              (checked-ns! nsym)
+              (checked-ns! nsym opts)
               ;check normal dependencies
               (doseq [dep (ns-depsu/deps-for-ns nsym opts)]
                 ;; ensure namespace actually exists
