@@ -120,14 +120,14 @@
     (binding [vs/*already-checked* (atom #{})
               vs/*delayed-errors* (err/-init-delayed-errors)
               vs/*in-check-form* true
-              vs/*lexical-env* (lex-env/init-lexical-env)
               ;; custom expansions might not even evaluate
               vs/*can-rewrite* (not custom-expansions?)
               vs/*custom-expansions* custom-expansions?
               vs/*beta-count* (when custom-expansions?
                                 (atom {:count 0
                                        :limit (or beta-limit 500)}))]
-      (let [expected (or
+      (let [opts (assoc opts ::vs/lexical-env (lex-env/init-lexical-env))
+            expected (or
                        expected-ret
                        (when type-provided?
                          (r/ret (binding [prs/*parse-type-in-ns* unparse-ns]

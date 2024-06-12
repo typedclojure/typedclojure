@@ -251,7 +251,8 @@
                     (r/make-FnIntersection
                       (r/make-Function arg-types
                                        ;; blame application site for return errors (good strategy?)
-                                       r/-wild)))
+                                       r/-wild))
+                    opts)
              actual-ret-ifn (-> capp u/expr-type :t)
              fni (cond
                    (r/FnIntersection? actual-ret-ifn) actual-ret-ifn

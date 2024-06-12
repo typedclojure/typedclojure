@@ -33,14 +33,14 @@
         _ (when expected
             (println prefix (str "expected: " (pr-str (prs/unparse-TCResult expected opts)))))
         cexpr (binding [*meta-debug-depth* (inc *meta-debug-depth*)]
-                (check-expr expr expected))
+                (check-expr expr expected opts))
         _ (println prefix "result:" (binding [*print-namespace-maps* false]
                                       (pr-str (prs/unparse-TCResult (u/expr-type cexpr) opts))))]
     cexpr))
 
 (defn check-meta-unsafe-cast [expr tsyn expected {::check/keys [check-expr] :as opts}]
   (-> expr
-      check-expr
+      (check-expr nil opts)
       (assoc u/expr-type (below/maybe-check-below
                            (r/ret (prs/parse-type tsyn opts))
                            expected
@@ -48,7 +48,7 @@
 
 (defn check-meta-ann [expr tsyn expected {::check/keys [check-expr] :as opts}]
   (let [inner-expected (r/ret (prs/parse-type tsyn opts))]
-    (-> (check-expr expr inner-expected)
+    (-> (check-expr expr inner-expected opts)
         (update u/expr-type below/maybe-check-below expected opts))))
 
 (defn check-meta-ignore [expr ignore? expected opts]
@@ -66,7 +66,7 @@
         _ (when-not (vector? targs-syn)
             (prs/prs-error "::t/inst must be a vector"))]
     (-> expr
-        check-expr
+        (check-expr nil opts)
         (update u/expr-type #(inst/inst-from-targs-syn (:t %) targs-syn (cu/expr-ns expr opts) expected opts)))))
 
 (def meta-keys

@@ -43,7 +43,7 @@
           {:form form
            :args-syn args-syn
            :ana-env ana-env
-           :prop-env (lex/lexical-env)}
+           :prop-env (lex/lexical-env opts)}
           opts)
         expr (-> expr
                  (update :form
@@ -63,10 +63,9 @@
                                       (fo/-false-filter))
                                expected
                                opts))
-          (let [cbody (var-env/with-lexical-env prop-env
-                        (-> `(do ~@body-syns)
-                            (ana2/unanalyzed ana-env)
-                            check-expr))
+          (let [cbody (-> `(do ~@body-syns)
+                          (ana2/unanalyzed ana-env)
+                          (check-expr nil (var-env/with-lexical-env opts prop-env)))
                 expr (-> expr
                          (update :form
                                  (fn [form]

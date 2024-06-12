@@ -47,46 +47,43 @@
 (defn init-lexical-env []
   (-PropEnv))
 
-(defn lexical-env []
-  vs/*lexical-env*)
+(defn lexical-env [{::vs/keys [lexical-env] :as opts}]
+  (assert (PropEnv? lexical-env) (vec (keys opts)))
+  lexical-env)
 
-(set-validator! #'vs/*lexical-env* (fn [a]
-                                     (or (nil? a)
-                                         (PropEnv? a))))
-
-(defn lookup-alias [sym & {:keys [env]}]
-  {:pre [(con/local-sym? sym)
-         ((some-fn nil? PropEnv?) env)]
-   :post [(obj/RObject? %)]}
-  (or (get-in (or env (lexical-env)) [:aliases sym])
-      (obj/-id-path sym)))
+(defn lookup-alias
+  ([sym opts] (lookup-alias sym nil opts))
+  ([sym {:keys [env]} opts]
+   {:pre [(con/local-sym? sym)
+          ((some-fn nil? PropEnv?) env)]
+    :post [(obj/RObject? %)]}
+   (or (get-in (or env (lexical-env opts)) [:aliases sym])
+       (obj/-id-path sym))))
 
 (defn lookup-local [sym opts]
   {:pre [(con/local-sym? sym)]
    :post [((some-fn nil? r/Type?) %)]}
   (let [; see if sym is an alias for an object
         ; if not (-id-path sym) is returned
-        obj (lookup-alias sym)
+        obj (lookup-alias sym opts)
         [alias-path alias-id] (cond
                                 (obj/Path? obj) [(:path obj) (:id obj)]
                                 (obj/EmptyObject? obj) [nil sym]
                                 :else (err/int-error (str "what is this? " (pr-str obj)) opts))
         _ (assert (pr/path-elems? alias-path))
         _ (assert (fr/name-ref? alias-id))
-        lt (get-in (lexical-env) [:l alias-id])]
-    ;(prn "lex-env" (lexical-env))
+        lt (get-in (lexical-env opts) [:l alias-id])]
+    ;(prn "lex-env" (lexical-env opts))
     (some-> lt
             (path-type/path-type alias-path opts))))
 
 (defn merge-locals [env new]
   {:pre [(PropEnv? env)]
    :post [(PropEnv? %)]}
-  (-> env
-      (update :l into new)))
+  (update-PropEnv env [:l into new]))
 
-(defmacro with-locals [locals & body]
-  `(binding [vs/*lexical-env* (merge-locals (lexical-env) ~locals)]
-     (do ~@body)))
+(defn with-locals [opts locals]
+  (assoc opts ::vs/lexical-env (merge-locals (lexical-env opts) locals)))
 
 ; take an environment and (depending on the new object given) either record
 ; and alias to an existing local or extend the type env directly.

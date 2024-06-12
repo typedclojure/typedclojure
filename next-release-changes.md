@@ -37,3 +37,4 @@
 - enable parallel checking by default, one thread per top-level form
   - defaults to number of processors
   - configurable via options: `(check-ns *ns* {:max-processors 1})`
+- reset lexical type environment when checking ns dependency

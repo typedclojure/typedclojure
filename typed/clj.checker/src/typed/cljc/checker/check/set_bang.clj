@@ -17,8 +17,8 @@
             [typed.clj.checker.subtype :as sub]))
 
 (defn check-set! [{:keys [target val env] :as expr} expected {::check/keys [check-expr] :as opts}]
-  (let [ctarget (check-expr target expected)
-        cval (check-expr val (-> ctarget u/expr-type r/ret-t r/ret))]
+  (let [ctarget (check-expr target expected opts)
+        cval (check-expr val (-> ctarget u/expr-type r/ret-t r/ret) opts)]
     (assoc expr
            u/expr-type (u/expr-type cval)
            :target ctarget

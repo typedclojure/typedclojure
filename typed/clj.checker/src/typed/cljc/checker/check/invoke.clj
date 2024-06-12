@@ -29,7 +29,7 @@
          ((some-fn nil?
                    (con/vec-c? (comp r/TCResult? u/expr-type)))
           cargs)]}
-  (let [cfexpr (or cfexpr (check-expr fexpr))
+  (let [cfexpr (or cfexpr (check-expr fexpr nil opts))
         ftype (u/expr-type cfexpr)
         ;; keep Function arguments in checking mode
         expected-args (let [ft (c/fully-resolve-type (r/ret-t ftype) opts)]
@@ -43,7 +43,7 @@
                               (mapv (comp #(when (r/FnIntersection? %) (r/ret %))
                                           #(c/fully-resolve-type % opts))
                                     (:dom f))))))
-        cargs (or cargs (apply mapv check-expr args (some-> expected-args list)))
+        cargs (or cargs (mapv #(check-expr %1 %2 opts) args (or expected-args (repeat nil))))
         _ (assert (= (count cargs) (count args)))
         argtys (map u/expr-type cargs)
         actual (funapp/check-funapp fexpr args ftype argtys expected {:expr expr} opts)]
@@ -66,8 +66,8 @@
                  [ctarget cdefault] :args
                  :as expr}
                 (-> expr
-                    (update :fn check-expr)
-                    (update :args #(mapv check-expr %)))]
+                    (update :fn check-expr nil opts)
+                    (update :args #(mapv (fn [e] (check-expr e nil opts)) %)))]
             (assoc expr
                    u/expr-type (invoke-kw/invoke-keyword 
                                  expr

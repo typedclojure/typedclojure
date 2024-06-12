@@ -30,8 +30,8 @@
         expr (visit-tail-pos expr (fn [ast]
                                     (assoc ast ::erase-atom erase-atom))
                              opts)
-        cexpr (check-expr expr expected)
-        cmeta (check-expr meta)]
+        cexpr (check-expr expr expected opts)
+        cmeta (check-expr meta nil opts)]
     (if @erase-atom
       cexpr
       (assoc with-meta-expr 

@@ -146,7 +146,7 @@
                                         (cu/record-implicits (symbol (:name inst-method))))))]
           (update ret-expr
                   :methods (fn [methods]
-                             (lex/with-locals expected-fields
+                             (let [opts (lex/with-locals opts expected-fields)]
                                (free-ops/with-free-mappings 
                                  (into {}
                                        (map (fn [nm bnd]

@@ -22,4 +22,4 @@
   (-> expr
       (update :form internal/add-defmethod-destructure-blame-form)
       ana2/analyze-outer
-      (check-expr expected)))
+      (check-expr expected opts)))

@@ -29,4 +29,4 @@
                               (-> (list* (vary-meta (first form) assoc ::original-reify-expr original-expr)
                                          (rest form))
                                   (with-meta (meta form)))))))
-      (check-expr expected)))
+      (check-expr expected opts)))

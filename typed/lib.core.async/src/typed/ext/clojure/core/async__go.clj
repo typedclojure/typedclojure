@@ -28,7 +28,7 @@
   (let [;; type check the go body
         cbody (-> `(do ~@(rest form))
                   (ana2/unanalyzed env)
-                  check-expr)]
+                  (check-expr nil opts))]
     (-> expr
         ;; put expanded body back into go call
         (update :form #(-> (list (first %)

@@ -126,11 +126,11 @@
    :post [(or (nil? %)
               (-> % u/expr-type r/TCResult?))]}
   (let [{[ctarget] :args :as expr} (-> expr
-                                       (update :args #(mapv check-expr %))) ;FIXME possibly repeated type check
+                                       (update :args #(mapv (fn [e] (check-expr e nil opts)) %))) ;FIXME possibly repeated type check
         target-ret (u/expr-type ctarget)]
     (when-let [t (nthrest-type (r/ret-t target-ret) nrests opts)]
       (-> expr
-          (update :fn check-expr)
+          (update :fn check-expr nil opts)
           (assoc u/expr-type (below/maybe-check-below
                                (r/ret t (fo/-true-filter))
                                expected
@@ -140,7 +140,7 @@
   {:pre [(nat-int? nnexts)]
    :post [(or (nil? %)
               (-> % u/expr-type r/TCResult?))]}
-  (let [{[ctarget] :args :as expr} (update expr :args #(mapv check-expr %)) ;FIXME possibly repeated type check
+  (let [{[ctarget] :args :as expr} (update expr :args #(mapv (fn [e] (check-expr e nil opts)) %)) ;FIXME possibly repeated type check
         target-ret (u/expr-type ctarget)]
     (when-some [t (nthnext-type (r/ret-t target-ret) nnexts opts)]
       (let [res (r/ret t
@@ -173,7 +173,7 @@
                                                  opts)))
                          (fo/-simple-filter)))]
       (-> expr
-          (update :fn check-expr)
+          (update :fn check-expr nil opts)
           (assoc u/expr-type (below/maybe-check-below
                                res
                                expected

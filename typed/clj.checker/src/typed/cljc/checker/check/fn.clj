@@ -239,8 +239,8 @@
   ;(prn "check-core-fn-no-expected")
   (let [symb? (symbolic-closure-candidate? fexpr nil)
         flat-expecteds (gen-defaults fexpr (when symb? r/-nothing) opts)]
-    (lex/with-locals (some-> (cu/fn-self-name fexpr)
-                             (hash-map (self-type flat-expecteds)))
+    (let [opts (lex/with-locals opts (some-> (cu/fn-self-name fexpr)
+                                             (hash-map (self-type flat-expecteds))))]
       (-> (check-anon fexpr flat-expecteds nil opts)
           (cond-> symb? (update-in [u/expr-type :t] #(r/symbolic-closure fexpr % opts)))
           (update u/expr-type below/maybe-check-below expected opts)))))
@@ -286,11 +286,12 @@
         ;; otherwise check against the expected type after a call to check-anon.
         :else
         (let [;_ (prn "using anon-fn")
-              cexpr (lex/with-locals (when self-name
-                                       (let [this-type (self-type flat-expecteds)
-                                             ;_ (prn "this-type" this-type)
-                                             ]
-                                         {self-name this-type}))
+              cexpr (let [opts (lex/with-locals opts
+                                 (when self-name
+                                   (let [this-type (self-type flat-expecteds)
+                                         ;_ (prn "this-type" this-type)
+                                         ]
+                                     {self-name this-type})))]
                       (free-ops/with-bounded-frees new-bnded-frees
                         (check-anon
                           expr

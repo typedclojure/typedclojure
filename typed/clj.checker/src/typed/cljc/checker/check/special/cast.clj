@@ -55,7 +55,7 @@
                  ; just need to traverse :fn using the analyzer
                  (update-in [:ret :fn] ana2/run-passes)
                  ; check the expression being cast
-                 (update-in [:ret :args 0] check-expr)
+                 (update-in [:ret :args 0] check-expr nil opts)
                  ; top-level could be propagated here since this is a :do form,
                  ; so call eval-top-level
                  (update :ret (comp ana2/eval-top-level ana2/run-post-passes)))]

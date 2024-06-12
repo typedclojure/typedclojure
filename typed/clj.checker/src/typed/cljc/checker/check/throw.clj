@@ -22,7 +22,7 @@
   (let [exception-expected (impl/impl-case opts
                              :clojure (r/ret (c/RClass-of Throwable opts))
                              :cljs nil)
-        cexception (check-expr exception exception-expected)
+        cexception (check-expr exception exception-expected opts)
         ret (below/maybe-check-below
               (r/ret (r/Bottom)
                      ;never returns normally

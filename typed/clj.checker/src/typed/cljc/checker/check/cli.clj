@@ -15,6 +15,7 @@
             [typed.cljc.checker.free-ops :as free-ops]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.cljc.checker.constant-type :as const]
+            [typed.cljc.checker.check :as check]
             [typed.cljc.checker.type-ctors :as c]))
 
 (defn parse-fn-return-type [parse-fn-type opts]
@@ -37,7 +38,7 @@
 ; some code taken from tools.cli
 ; (All [x]
 ;   [CliSpec -> (U nil '[Value Type])])
-(defn parse-cli-spec [check-fn spec-expr opts]
+(defn parse-cli-spec [spec-expr {::check/keys [check-expr] :as opts}]
   (letfn [(opt? [^String x]
             (.startsWith x "-"))
           (name-for [k]
@@ -94,15 +95,16 @@
           (let [name (r/-val (keyword (last aliases)))
                 default-type (when-let [[frm default-expr] (:default options)]
                                (if default-expr
-                                 (-> (check-fn default-expr)
+                                 (-> (check-expr default-expr nil opts)
                                      u/expr-type
                                      r/ret-t)
                                  (const/constant-type frm false opts)))
                 parse-fn-type (when-let [[pfrm parse-fn-expr] (:parse-fn options)]
                                 (if parse-fn-expr
-                                  (-> (check-fn parse-fn-expr (r/ret (prs/parse-type
-                                                                       '[String -> Any]
-                                                                       opts)))
+                                  (-> (check-expr parse-fn-expr (r/ret (prs/parse-type
+                                                                         '[String -> Any]
+                                                                         opts))
+                                                  opts)
                                       u/expr-type
                                       r/ret-t)
                                   (const/constant-type pfrm false opts)))

@@ -208,6 +208,8 @@
   [{:keys [expr opts expected check delayed-error form with-updated-locals]}]
   (let [{:keys [sym msg-fn blame-form]} opts]
     (if expected
+      (assert nil "with-updated-locals removed when converting ::vs/lexical-env from dynamic var to opts map")
+      #_
       (with-updated-locals {sym (:type expected)}
         #(check expr expected))
       (do

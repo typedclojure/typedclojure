@@ -23,25 +23,24 @@
   
   Assumes collect-expr is already called on this AST."
   ([expr expected opts]
-   (let [check-expr (check/->check-expr check-expr opts)
-         opts (assoc opts ::check-expr check-expr)]
-     (binding [check-expr check-expr]
-       (case (:op expr)
-         (:def) (if (def/defmacro-or-declare? expr)
-                  ;; ignore defmacro and declare
-                  expr
-                  (def/add-checks-normal-def expr expected opts))
-         (:do) (letfn [(default-do [expr expected]
-                         (assoc expr
-                                :statements (mapv check-expr (:statements expr))
-                                :ret (check-expr (:ret expr) expected)))]
+   (let [opts (assoc opts ::check-expr check-expr)
+         check-expr (check/->check-expr check-expr opts)]
+     (case (:op expr)
+       (:def) (if (def/defmacro-or-declare? expr)
+                ;; ignore defmacro and declare
+                expr
+                (def/add-checks-normal-def expr expected opts))
+       (:do) (letfn [(default-do [expr expected]
+                       (assoc expr
+                              :statements (mapv check-expr (:statements expr))
+                              :ret (check-expr (:ret expr) expected)))]
 
-                 (if (do/internal-form? expr)
-                   (case (u/internal-dispatch-val expr)
-                     ;; could be an error or another special form, 
-                     ;; but we'll let it slide in runtime checking mode.
-                     expr)
-                   (default-do expr expected)))
-         (ast/walk-children check-expr expr))))))
+               (if (do/internal-form? expr)
+                 (case (u/internal-dispatch-val expr)
+                   ;; could be an error or another special form, 
+                   ;; but we'll let it slide in runtime checking mode.
+                   expr)
+                 (default-do expr expected)))
+       (ast/walk-children check-expr expr)))))
 
 (def runtime-check-expr check-expr)

@@ -196,7 +196,7 @@
                                             ;; defer eval to inlining -- would rather an bad type check than a botched eval
                                             ana2/unmark-top-level
                                             ana2/unmark-eval-top-level
-                                            (check-expr expected))]
+                                            (check-expr expected opts))]
                   (-> expr
                       (assoc :form (with-meta (cons (first form)
                                                     ;; technically we just need the :tag of these
@@ -378,15 +378,15 @@
               (and (r/TCResult? (u/expr-type %))
                    (vector? (:args %))))]}
   (when (= 2 (count args))
-    (let [cargs (mapv check-expr args)
+    (let [cargs (mapv #(check-expr % nil opts) args)
           ct (-> (first cargs) u/expr-type r/ret-t (c/fully-resolve-type opts))]
       (when (and (r/Value? ct) (class? (:val ct)))
-        (let [v-t (-> (check-expr (second args)) u/expr-type r/ret-t)
+        (let [v-t (-> (check-expr (second args) nil opts) u/expr-type r/ret-t)
               t (c/In [v-t (c/Un [r/-nil (c/RClass-of-with-unknown-params (:val ct) opts)]
                                  opts)]
                       opts)]
           (-> expr
-              (update :fn check-expr)
+              (update :fn check-expr nil opts)
               (assoc :args cargs
                      u/expr-type (below/maybe-check-below
                                    (r/ret t)
@@ -412,7 +412,7 @@
             (err/tc-delayed-error (str "Unannotated var: " sym) opts))]
     (-> expr
         ; var>* is internal, don't check
-        #_(update :fn check-expr)
+        #_(update :fn check-expr nil opts)
         (assoc u/expr-type (below/maybe-check-below
                              (r/ret (or t (r/TCError-maker)))
                              expected
@@ -427,8 +427,8 @@
   (when (= 1 (count args))
     (let [{[ctarget] :args :as cexpr}
           (-> expr
-              (update :fn check-expr)
-              (update :args #(mapv check-expr %)))
+              (update :fn check-expr nil opts)
+              (update :args #(mapv (fn [t] (check-expr t nil opts)) %)))
           targett (-> ctarget u/expr-type r/ret-t (c/fully-resolve-type opts))]
       (cond 
         ; records never extend ISeq
@@ -452,10 +452,10 @@
         {[catype & protos :as args] :args :as expr}
         (-> expr
             ;atype
-            (update-in [:args 0] check-expr))
+            (update-in [:args 0] check-expr nil opts))
         expr (-> expr
                  ; don't check extend
-                 ;(update :fn check-expr)
+                 ;(update :fn check-expr nil opts)
                  (assoc u/expr-type (below/maybe-check-below
                                       (r/ret r/-nil (fo/-false-filter))
                                       expected
@@ -504,8 +504,8 @@
             cargs (into [catype]
                         (mapcat
                           (fn [{:keys [mmap-expr expected-hmap prcl-expr]}]
-                            (let [cprcl-expr (check-expr prcl-expr)
-                                  cmmap-expr (check-expr mmap-expr (r/ret expected-hmap))]
+                            (let [cprcl-expr (check-expr prcl-expr nil opts)
+                                  cmmap-expr (check-expr mmap-expr (r/ret expected-hmap) opts)]
                               [cprcl-expr cmmap-expr])))
                         extends)
             _ (assert (== (count cargs)
@@ -543,10 +543,11 @@
         cljt (binding [prs/*parse-type-in-ns* (cu/expr-ns expr opts)]
                (prs/parse-type (ast-u/quote-expr-val cljt-syn) opts))
         ccoll (check-expr coll-expr (r/ret (c/Un [r/-nil (c/-name `t/Seqable cljt)]
-                                                 opts)))]
+                                                 opts))
+                          opts)]
     (-> expr
         ; into-array>* is internal, don't check it
-        #_(update :fn check-expr)
+        #_(update :fn check-expr nil opts)
         ; the coll is always last
         (assoc :args (-> args pop (conj ccoll))
                u/expr-type (below/maybe-check-below
@@ -561,7 +562,7 @@
               (and (-> % u/expr-type r/TCResult?)
                    (vector? (:args %))))]}
   (when (= 1 (count args)) 
-    (let [[ctarget :as cargs] (mapv check-expr args)
+    (let [[ctarget :as cargs] (mapv #(check-expr % nil opts) args)
           {fs+ :then fs- :else} (-> ctarget u/expr-type r/ret-f)]
       (assoc expr
              :args cargs
@@ -580,7 +581,7 @@
               (and (-> % u/expr-type r/TCResult?)
                    (vector? (:args %))))]}
   (when (= 1 (count args)) 
-    (let [[ctarget :as cargs] (mapv check-expr args)
+    (let [[ctarget :as cargs] (mapv #(check-expr % nil opts) args)
           targett (-> ctarget u/expr-type r/ret-t)]
       ;(prn "to-array" targett)
       (cond
@@ -632,7 +633,7 @@
   (when (= 1 (count (:args expr)))
     (binding [vs/*current-expr* expr]
       (let [{[target] :args :as expr} (-> expr
-                                          (update :args #(mapv check-expr %)))
+                                          (update :args #(mapv (fn [t] (check-expr t nil opts)) %)))
             targett (-> target u/expr-type r/ret-t (c/fully-resolve-type opts))]
         (cond
           (and (sub/subtype? targett (c/Un [r/-nil r/-any-kw-args-seq] opts) opts)
@@ -657,7 +658,7 @@
                 _ (assert (not (sub/subtype? res (r/Bottom) opts))
                           targett)]
             (-> expr
-                (update :target check-expr)
+                (update :target check-expr nil opts)
                 (assoc u/expr-type (below/maybe-check-below
                                      (r/ret res)
                                      expected
@@ -672,7 +673,7 @@
                             (c/-complete-hmap {} opts)
                             (:types targett))]
             (-> expr
-                (update :target check-expr)
+                (update :target check-expr nil opts)
                 (assoc u/expr-type (below/maybe-check-below
                                      (r/ret res)
                                      expected
@@ -688,14 +689,14 @@
   (when (= 1 (count (:args expr)))
     (binding [vs/*current-expr* expr]
       (let [{[target] :args :as expr} (-> expr
-                                          (update :args #(mapv check-expr %)))
+                                          (update :args #(mapv (fn [t] (check-expr t nil opts)) %)))
             targett (-> target u/expr-type r/ret-t (c/fully-resolve-type opts))]
         (cond
           ;; handle seq-to-map-for-destructuring expansion, which always passes
           ;; the result of to-array
           (r/KwArgsArray? targett)
           (-> expr
-              (update :target check-expr)
+              (update :target check-expr nil opts)
               (assoc u/expr-type (below/maybe-check-below
                                    (r/ret (c/KwArgsArray->HMap targett opts)
                                           (fo/-true-filter))
@@ -718,8 +719,8 @@
               (keyword? (:val kw)))]
    :post [(r/TCResult? (u/expr-type %))]}
   (impl/assert-clojure opts)
-  (let [ckw (check-expr kw opts)
-        ctarget (check-expr target opts)]
+  (let [ckw (check-expr kw nil opts)
+        ctarget (check-expr target nil opts)]
     (assoc expr
            :keyword ckw
            :target ctarget
@@ -733,9 +734,9 @@
 
 ;; TODO refactor into own file
 (defn protocol-invoke [{:keys [protocol-fn target args] :as expr} expected {::check/keys [check-expr] :as opts}]
-  (let [cprotocol-fn (check-expr protocol-fn)
-        ctarget (check-expr target)
-        cargs (mapv check-expr args)
+  (let [cprotocol-fn (check-expr protocol-fn nil opts)
+        ctarget (check-expr target nil opts)
+        cargs (mapv #(check-expr % nil opts) args)
         ftype (u/expr-type cprotocol-fn)
         argtys (map u/expr-type (cons ctarget cargs))
         actual (funapp/check-funapp cprotocol-fn (cons ctarget cargs) ftype argtys expected {} opts)]
@@ -781,8 +782,8 @@
                                   (when-not (= :the-var op)
                                     (err/int-error (str "push-thread-bindings must have var literals for keys") opts))
                                   (let [expected (var-env/type-of (coerce/var->symbol var) opts)
-                                        cvar-expr (check-expr var-expr)
-                                        cexpr (check-expr bnd-expr (r/ret expected))
+                                        cvar-expr (check-expr var-expr nil opts)
+                                        cexpr (check-expr bnd-expr (r/ret expected) opts)
                                         actual (-> cexpr u/expr-type r/ret-t)]
                                     (when-not (sub/subtype? actual expected opts)
                                       (err/tc-delayed-error (str "Expected binding for "
@@ -794,7 +795,7 @@
                       new-bindings-exprs))]]
     (-> expr
         ; push-thread-bindings is unannotated
-        #_(update :fn check-expr)
+        #_(update :fn check-expr nil opts)
         (assoc :args cargs
                u/expr-type (below/maybe-check-below
                              (r/ret r/-nil)
@@ -882,21 +883,12 @@
                                                [(gvs->vs k)
                                                 (unparse-type-verbose (:type v))])))
                                   substitution))))
-        with-updated-locals (fn [locals f]
-                              (let [locals (into {}
-                                                 (map (fn [[k v]]
-                                                        [(prs/uniquify-local k)
-                                                         (prs/parse-type v opts)]))
-                                                 locals)]
-                                (lex/with-locals locals
-                                  (f))))
         rule-args {:vsym vsym
                    :opts (typing-rule-opts expr)
                    :expr (typing-rule-expr-kw expr)
                    :locals (:locals env)
                    :expected (some-> expected (cu/TCResult->map opts))
                    ;:uniquify-local prs/uniquify-local
-                   :with-updated-locals with-updated-locals
                    :maybe-check-expected (fn [actual expected]
                                            {:pre [(map? actual)
                                                   ((some-fn nil? map?) expected)]
@@ -912,7 +904,7 @@
                             ([expr expected]
                              {:pre [((some-fn nil? map?) expected)]}
                              (let [ret (some-> expected cu/map->TCResult)
-                                   cexpr (check-expr expr ret)]
+                                   cexpr (check-expr expr ret opts)]
                                (assoc cexpr ::rules/expr-type (cu/TCResult->map (u/expr-type cexpr) opts)))))
                    ;:solve-subtype solve-subtype
                    :solve solve
@@ -951,9 +943,9 @@
   [{:keys [args] :as expr} expected {::check/keys [check-expr] :as opts}]
   {:post [(vector? (:args %))
           (-> % u/expr-type r/TCResult?)]}
-  (let [cargs (mapv check-expr args)]
+  (let [cargs (mapv #(check-expr % nil opts) args)]
     (-> expr
-        (update :fn check-expr)
+        (update :fn check-expr nil opts)
         (assoc :args cargs
                u/expr-type (equiv/tc-equiv := (map u/expr-type cargs) expected opts)))))
 
@@ -962,9 +954,9 @@
   [{:keys [args] :as expr} expected {::check/keys [check-expr] :as opts}]
   {:post [(vector? (:args %))
           (-> % u/expr-type r/TCResult?)]}
-  (let [cargs (mapv check-expr args)]
+  (let [cargs (mapv #(check-expr % nil opts) args)]
     (-> expr
-        (update :fn check-expr)
+        (update :fn check-expr nil opts)
         (assoc :args cargs
                u/expr-type (equiv/tc-equiv :not= (map u/expr-type cargs) expected opts)))))
 
@@ -975,8 +967,8 @@
    :post [(vector? (:args %))
           (-> % u/expr-type r/TCResult?)]}
   (let [{:keys [args] :as expr} (-> expr
-                                    (update :target check-expr)
-                                    (update :args #(mapv check-expr %)))]
+                                    (update :target check-expr nil opts)
+                                    (update :args #(mapv (fn [e] (check-expr e nil opts)) %)))]
     (assoc expr
            u/expr-type (equiv/tc-equiv :identical? (map u/expr-type args) expected opts))))
 
@@ -987,8 +979,8 @@
    :post [(vector? (:args %))
           (-> % u/expr-type r/TCResult?)]}
   (let [{:keys [args] :as expr} (-> expr
-                                    (update :target check-expr)
-                                    (update :args #(mapv check-expr %)))]
+                                    (update :target check-expr nil opts)
+                                    (update :args #(mapv (fn [e] (check-expr e nil opts)) %)))]
     (assoc expr
            u/expr-type (equiv/tc-equiv := (map u/expr-type args) expected opts))))
 
@@ -996,9 +988,9 @@
 (defmethod -invoke-special 'clojure.core/isa?
   [{:keys [args] :as expr} expected {::check/keys [check-expr] :as opts}]
   (when (= 2 (count args))
-    (let [[cchild-expr cparent-expr :as cargs] (mapv check-expr args)]
+    (let [[cchild-expr cparent-expr :as cargs] (mapv #(check-expr % nil opts) args)]
       (-> expr
-          (update :fn check-expr)
+          (update :fn check-expr nil opts)
           (assoc :args cargs
                  u/expr-type (isa/tc-isa? (u/expr-type cchild-expr)
                                           (u/expr-type cparent-expr)
@@ -1007,10 +999,10 @@
 
 ;apply
 (defmethod -invoke-special 'clojure.core/apply
-  [{:keys [args env] :as expr} expected {::check/keys [check-expr] :as opts}]
+  [{:keys [args env] :as expr} expected opts]
   {:post [(or (nil? %)
               (-> % u/expr-type r/TCResult?))]}
-  (apply/maybe-check-apply check-expr -invoke-apply expr expected opts))
+  (apply/maybe-check-apply -invoke-apply expr expected opts))
 
 (defonce ^:dynamic *inst-ctor-types* nil)
 (t/tc-ignore
@@ -1028,7 +1020,7 @@
         targs (binding [prs/*parse-type-in-ns* (cu/expr-ns expr opts)]
                 (mapv #(prs/parse-type % opts) (ast-u/quote-expr-val targs-exprs)))
         cexpr (binding [*inst-ctor-types* targs]
-                (check-expr ctor-expr))]
+                (check-expr ctor-expr nil opts))]
     (-> expr 
         (assoc-in [:args 0] cexpr)
         (assoc u/expr-type (u/expr-type cexpr)))))
@@ -1065,7 +1057,7 @@
                                                           (update-in [:args 0] ana2/run-passes))
         _ (when-not (= :const (:op debug-string)) 
             (err/int-error "Must pass print-filterset a string literal as the first argument." opts))
-        cform (check-expr form expected)
+        cform (check-expr form expected opts)
         cargs (assoc args 1 cform)
         t (u/expr-type cform)]
     ;DO NOT REMOVE
@@ -1100,7 +1092,7 @@
   ;; TODO guide the user with better error messages if any of these conditions fail.
   ;; currently complains that requiring-resolve is not annotated.
   (when (= 1 (count args))
-    (let [cargs (mapv check-expr args)
+    (let [cargs (mapv #(check-expr % nil opts) args)
           t (-> cargs first u/expr-type :t)]
       (when-some [sym (when (r/Value? t)
                         (let [v (:val t)]
@@ -1111,7 +1103,7 @@
                            (catch java.io.FileNotFoundException _)))
             (if (var-env/lookup-Var-nofail sym opts)
               (-> expr
-                  (update :fn check-expr)
+                  (update :fn check-expr nil opts)
                   (assoc 
                     :args cargs
                     u/expr-type (below/maybe-check-below
@@ -1130,9 +1122,9 @@
   [{:keys [args] :as expr} expected {::check/keys [check-expr] :as opts}]
   {:post [(-> % u/expr-type r/TCResult?)
           (vector? (:args %))]}
-  (let [cargs (mapv check-expr args)]
+  (let [cargs (mapv #(check-expr % nil opts) args)]
     (-> expr
-        (update :fn check-expr)
+        (update :fn check-expr nil opts)
         (assoc 
           :args cargs
           u/expr-type (below/maybe-check-below
@@ -1148,14 +1140,14 @@
   {:post [(or (nil? %)
               (and (-> % u/expr-type r/TCResult?)
                    (vector? (:args %))))]}
-  (let [cargs (mapv check-expr args) ;FIXME possible repeated check-expr
+  (let [cargs (mapv #(check-expr % nil opts) args) ;FIXME possible repeated check-expr
         tmap (when (= 1 (count cargs))
                (c/fully-resolve-type (r/ret-t (u/expr-type (last cargs))) opts))]
     (binding [vs/*current-expr* expr]
       (when (r/HeterogeneousMap? tmap)
         (let [r (c/HMap->KwArgsSeq tmap)]
           (-> expr
-              (update :fn check-expr)
+              (update :fn check-expr nil opts)
               (assoc u/expr-type (below/maybe-check-below
                                    (r/ret r (fo/-true-filter))
                                    expected
@@ -1167,13 +1159,13 @@
   {:post [(or (nil? %)
               (and (-> % u/expr-type r/TCResult?)
                    (vector? (:args %))))]}
-  (let [cargs (mapv check-expr args)
+  (let [cargs (mapv #(check-expr % nil opts) args)
         nargs (count cargs)]
     (cond
       (and (= 1 nargs)
            (r/KwArgsSeq? (u/expr-type (peek cargs))))
       (-> expr
-          (update :fn check-expr)
+          (update :fn check-expr nil opts)
           ;; FIXME add annotation for hash-map to check fn-expr
           (assoc :args (into [(ana2/run-passes fn-expr)] cargs)
                  u/expr-type (below/maybe-check-below
@@ -1192,7 +1184,7 @@
                  (and (even? (count kvs))
                       (every? (comp r/Value? first) (partition 2 kvs)))))))
       (-> expr
-          (update :fn check-expr)
+          (update :fn check-expr nil opts)
           ;; FIXME add annotation for hash-map to check fn-expr
           (assoc :args (into [(ana2/run-passes fn-expr)] cargs)
                  u/expr-type (below/maybe-check-below
@@ -1284,7 +1276,7 @@
                    opts))
   #_
   (when vs/*custom-expansions*
-    (let [[coll :as cargs] (mapv check-expr args)
+    (let [[coll :as cargs] (mapv #(check-expr % nil opts) args)
           ct (r/ret-t (u/expr-type coll))
           fres (first-result ct)]
       (when fres
@@ -1306,14 +1298,14 @@
         _ (when-not (even? (count keyvals))
             (err/int-error "assoc accepts an even number of keyvals" opts))
 
-        ctarget (check-expr target)
+        ctarget (check-expr target nil opts)
         targetun (-> ctarget u/expr-type r/ret-t)
-        ckeyvals (mapv check-expr keyvals)
+        ckeyvals (mapv #(check-expr % nil opts) keyvals)
         keypair-types (partition 2 (map u/expr-type ckeyvals))
         cargs (into [ctarget] ckeyvals)]
     (if-let [new-hmaps (assoc-u/assoc-type-pairs targetun keypair-types opts)]
       (-> expr
-        (update :fn check-expr)
+        (update :fn check-expr nil opts)
         (assoc
           :args cargs
           u/expr-type (below/maybe-check-below
@@ -1329,7 +1321,7 @@
                             ;; first argument is to blame, gather any blame information from there
                             {:expected (u/expr-type ctarget)
                              :return (-> expr
-                                         (update :fn check-expr)
+                                         (update :fn check-expr nil opts)
                                          (assoc
                                            :args cargs
                                            u/expr-type (cu/error-ret expected)))}
@@ -1342,12 +1334,12 @@
   (let [_ (when-not (seq args)
             (err/int-error (str "dissoc takes at least one argument, given: " (count args)) opts))
         ;FIXME possible repeated type checking
-        [ctarget & cdissoc-args :as cargs] (mapv check-expr args)
+        [ctarget & cdissoc-args :as cargs] (mapv #(check-expr % nil opts) args)
         ttarget (-> ctarget u/expr-type r/ret-t)
         targs (map u/expr-type cdissoc-args)]
     (when-let [new-t (assoc-u/dissoc-keys ttarget targs opts)]
       (-> expr
-          (update :fn check-expr)
+          (update :fn check-expr nil opts)
           (assoc
             :args cargs
             u/expr-type (below/maybe-check-below
@@ -1361,11 +1353,11 @@
   {:post [(or (nil? %)
               (-> % u/expr-type r/TCResult?))]}
   (let [;FIXME possible repeated type checking
-        cargs (mapv check-expr args)
+        cargs (mapv #(check-expr % nil opts) args)
         targs (map u/expr-type cargs)]
     (when-some [merged (apply assoc-u/merge-types opts targs)]
       (-> expr
-          (update :fn check-expr)
+          (update :fn check-expr nil opts)
           (assoc :args cargs
                  u/expr-type (below/maybe-check-below
                                (r/ret merged)
@@ -1376,12 +1368,12 @@
 (defmethod -invoke-special 'clojure.core/conj
   [{fexpr :fn :keys [args] :as expr} expected {::check/keys [check-expr] :as opts}]
   (let [;FIXME possible repeated type checking
-        [ctarget & cconj-args :as cargs] (mapv check-expr args)
+        [ctarget & cconj-args :as cargs] (mapv #(check-expr % nil opts) args)
         ttarget (-> ctarget u/expr-type r/ret-t)
         targs (map u/expr-type cconj-args)]
     (when-let [conjed (apply assoc-u/conj-types opts ttarget targs)]
       (-> expr
-          (update :fn check-expr)
+          (update :fn check-expr nil opts)
           (assoc :args cargs
                  u/expr-type (below/maybe-check-below
                                (r/ret conjed
@@ -1406,7 +1398,7 @@
   (binding [vs/*current-env* env]
     (let [args-expected-ty (prs/parse-type `(t/Seqable t/Str) opts)
           cargs-expr (binding [vs/*current-env* (:env args-expr)]
-                       (check-expr args-expr))
+                       (check-expr args-expr nil opts))
           _ (when-not (sub/subtype? 
                         (-> cargs-expr u/expr-type r/ret-t)
                         args-expected-ty
@@ -1414,7 +1406,7 @@
               (binding [vs/*current-env* (:env args-expr)]
                 (cu/expected-error (-> cargs-expr u/expr-type r/ret-t) (r/ret args-expected-ty) opts)))
           spec-map-ty (reduce (fn [t spec-expr]
-                                (if-let [[keyt valt] (cli/parse-cli-spec check-expr spec-expr opts)]
+                                (if-let [[keyt valt] (cli/parse-cli-spec spec-expr opts)]
                                   (-> t
                                     (assoc-in [:types keyt] valt))
                                   ; resort to a general type
@@ -1435,7 +1427,7 @@
                   actual expected opts)))
           cargs (vec (cons cargs-expr specs-exprs))]
       (-> expr
-          (update :fn check-expr)
+          (update :fn check-expr nil opts)
           (assoc :args cargs
                  u/expr-type (below/maybe-check-below
                                (r/ret actual)
@@ -1501,7 +1493,7 @@
       (let [{[dispatch-val-expr method-expr] :args :as expr}
             (-> expr
                 (update :args #(-> %
-                                   (update 0 check-expr)
+                                   (update 0 check-expr nil opts)
                                    (update 1 (comp ana2/run-pre-passes ana2/analyze-outer-root)))))
             _ (assert (= :var (:op target)))
             _ (when-not (= :fn (:op method-expr))
@@ -1520,7 +1512,7 @@
                           (when-not default?
                             {:dispatch-fn-type dispatch-type
                              :dispatch-val-ret (u/expr-type dispatch-val-expr)})]
-                  (check-expr method-expr (r/ret method-expected)))]
+                  (check-expr method-expr (r/ret method-expected) opts))]
             (-> expr
                 (assoc-in [:args 1] cmethod-expr))))))))
 
@@ -1595,8 +1587,10 @@
                        cls)))]
     (let [{[cls-expr cexpr] :args :as expr}
           (-> expr
-              (update :args #(mapv check-expr % [(r/ret (c/RClass-of Class opts))
-                                                 nil])))
+              (update :args #(mapv (fn [e t] (check-expr e t opts))
+                                   %
+                                   [(r/ret (c/RClass-of Class opts))
+                                    nil])))
           inst-of (c/RClass-of-with-unknown-params cls opts)
           expr-tr (u/expr-type cexpr)]
       (assoc expr
@@ -1624,7 +1618,7 @@
                       v)))]
     (let [{[_ cexpr] :args :as expr}
           (-> expr
-              (update-in [:args 1] check-expr))
+              (update-in [:args 1] check-expr nil opts))
           inst-of (c/Protocol-with-unknown-params (symbol v) opts)
           expr-tr (u/expr-type cexpr)]
       (assoc expr
@@ -1642,7 +1636,7 @@
   ;(assert nil ":instance? node not used")
   (impl/assert-clojure opts)
   (let [inst-of (c/RClass-of-with-unknown-params cls opts)
-        cexpr (check-expr the-expr)
+        cexpr (check-expr the-expr nil opts)
         expr-tr (u/expr-type cexpr)]
     (assoc expr
            :target cexpr
@@ -1674,15 +1668,15 @@
         expected-d (multi/expected-dispatch-type expected-t opts)
         {[nme-expr cdispatch-expr default-expr hierarchy-expr] :args :as expr}
         (-> expr
-            (update :class check-expr)
+            (update :class check-expr nil opts)
             ;name
-            (update-in [:args 0] check-expr)
+            (update-in [:args 0] check-expr nil opts)
             ;dispatch-expr
-            (update-in [:args 1] check-expr)
+            (update-in [:args 1] check-expr nil opts)
             ;default
-            (update-in [:args 2] check-expr)
+            (update-in [:args 2] check-expr nil opts)
             ;hierarchy
-            (update-in [:args 3] check-expr))
+            (update-in [:args 3] check-expr nil opts))
         _ (when-not (= (:val hierarchy-expr) #'clojure.core/global-hierarchy)
             (err/int-error "Multimethod hierarchy cannot be customised" opts))
         _ (when-not (= (:val default-expr) :default)
@@ -1702,7 +1696,7 @@
         ;_ (prn "inferred-dispatch-t" inferred-dispatch-t)
         ;_ (prn "expected-d" expected-d)
         resolved-dispatch-t (cond-> inferred-dispatch-t
-                              (r/SymbolicClosure? inferred-dispatch-t) (-> (sub/check-symbolic-closure expected-d)
+                              (r/SymbolicClosure? inferred-dispatch-t) (-> (sub/check-symbolic-closure expected-d opts)
                                                                            u/expr-type
                                                                            r/ret-t))
         ;_ (prn "resolved-dispatch-t" resolved-dispatch-t)
@@ -1730,9 +1724,9 @@
         (let [checker (cenv/checker opts)
               inst-types *inst-ctor-types*
               expr (-> expr
-                       (update :class check-expr)
+                       (update :class check-expr nil opts)
                        (update :args #(binding [*inst-ctor-types* nil]
-                                        (mapv check-expr %)))
+                                        (mapv (fn [e] (check-expr e nil opts)) %)))
                        ;delegate eval to check-expr
                        ana2/run-post-passes)
               ;; call when we're convinced there's no way to rewrite this AST node
@@ -1841,28 +1835,27 @@
   ; tests have no duplicates
   (binding [vs/*current-expr* expr
             vs/*current-env* (:env expr)]
-    (let [ctarget (check-expr target)
+    (let [ctarget (check-expr target nil opts)
           target-ret (u/expr-type ctarget)
           _ (assert (r/TCResult? target-ret))
-          ctests (mapv check-expr tests)
+          ctests (mapv #(check-expr % nil opts) tests)
           tests-rets (map u/expr-type ctests)
           ; Can we derive extra information from 'failed'
           ; tests? Delegate to check-case-thens for future enhancements.
-          cthens (case/check-case-thens check-expr target-ret tests-rets thens expected opts)
+          cthens (case/check-case-thens target-ret tests-rets thens expected opts)
           cdefault (let [flag+ (volatile! true)
                          neg-tst-fl (let [val-ts (map (comp #(c/fully-resolve-type % opts) r/ret-t) tests-rets)]
                                       (if (every? r/Value? val-ts)
                                         (fo/-not-filter-at (c/Un val-ts opts)
                                                            (r/ret-o target-ret))
                                         fl/-top))
-                         env-default (update/env+ (lex/lexical-env) [neg-tst-fl] flag+ opts)
+                         env-default (update/env+ (lex/lexical-env opts) [neg-tst-fl] flag+ opts)
                          _ (when-not @flag+
                              ;; FIXME should we ignore this branch?
                              (u/tc-warning "Local became bottom when checking case default"))]
                      ;(prn "neg-tst-fl" neg-tst-fl)
                      ;(prn "env-default" env-default)
-                     (var-env/with-lexical-env env-default
-                       (check-expr default expected)))
+                     (check-expr default expected (var-env/with-lexical-env opts env-default)))
           ;; FIXME this is a duplicated expected test, already done able
           case-result (let [type (c/Un (map (comp :t u/expr-type) (cons cdefault cthens)) opts)
                             ; TODO
@@ -1942,8 +1935,9 @@
    ;(prn "*ns*" *ns*)
    (let [extra (when (= :before (:check-form-eval vs/*check-config*))
                  {:result (eval form)})
-         check-expr (check/->check-expr check-expr opts)
-         opts (assoc opts ::check/check-expr check-expr)]
+         opts (-> opts
+                  (assoc ::check/check-expr check-expr)
+                  (assoc ::vs/lexical-env (lex/init-lexical-env)))]
      (with-bindings (dissoc (ana-clj/thread-bindings opts) #'*ns*) ; *ns* is managed by higher-level ops like check-ns1
        (env/ensure (jana2/global-env)
          (-> form

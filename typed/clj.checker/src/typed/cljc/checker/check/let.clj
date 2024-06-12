@@ -102,14 +102,14 @@
                :post [((con/maybe-reduced-c? (con/hvector-c? lex/PropEnv? vector?)) %)]}
               (let [expr (get cbindings n)
                     ; check rhs
-                    {sym :name :as cexpr} (var-env/with-lexical-env env
-                                            (check-expr expr (when is-loop
-                                                               (r/ret expected-bnd))))
+                    {sym :name :as cexpr} (check-expr expr (when is-loop
+                                                             (r/ret expected-bnd))
+                                                      (var-env/with-lexical-env opts env))
                     new-env (update-env env sym (u/expr-type cexpr) is-reachable opts)
                     maybe-reduced (if @is-reachable identity reduced)]
                 (maybe-reduced
                   [new-env (assoc cbindings n cexpr)])))
-            [(lex/lexical-env) bindings]
+            [(lex/lexical-env opts) bindings]
             (map vector
                  (range (count bindings))
                  (or expected-bnds
@@ -121,12 +121,12 @@
                                    u/expr-type (or expected (r/ret (r/Bottom))))
 
         :else
-        (let [cbody (var-env/with-lexical-env env
+        (let [cbody (let [opts (var-env/with-lexical-env opts env)]
                       (if is-loop
                         (binding [recur-u/*recur-target* (recur-u/RecurTarget-maker expected-bnds nil nil nil)]
-                          (check-expr body expected))
+                          (check-expr body expected opts))
                         (binding [vs/*current-expr* body]
-                          (check-expr body expected))))
+                          (check-expr body expected opts))))
              unshadowed-ret (erase-objects (into #{} (map :name) cbindings) (u/expr-type cbody) opts)]
           (assoc expr
                  :body cbody

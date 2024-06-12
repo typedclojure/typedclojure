@@ -77,17 +77,16 @@
     (assoc expr 
            u/expr-type (unreachable-ret))
     (binding [vs/*current-expr* expr]
-      (var-env/with-lexical-env lex-env
-        (check-expr expr expected)))))
+      (check-expr expr expected (var-env/with-lexical-env opts lex-env)))))
 
 (defn check-if [{:keys [test then else] :as expr} expected {::check/keys [check-expr] :as opts}]
   {:pre [((some-fn r/TCResult? nil?) expected)]
    :post [(-> % u/expr-type r/TCResult?)]}
-  (let [ctest (check-expr test)
+  (let [ctest (check-expr test nil opts)
         tst (u/expr-type ctest)
         {fs+ :then fs- :else :as tst-f} (r/ret-f tst)
 
-        lex-env (lex/lexical-env)
+        lex-env (lex/lexical-env opts)
         [env-thn reachable+] (update-lex+reachable lex-env fs+ opts)
         [env-els reachable-] (update-lex+reachable lex-env fs- opts)
 

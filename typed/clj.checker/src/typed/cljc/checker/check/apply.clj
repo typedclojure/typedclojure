@@ -8,25 +8,26 @@
 
 (ns typed.cljc.checker.check.apply
   (:require [typed.clojure :as t]
-            [clojure.core.typed.util-vars :as vs]
-            [typed.cljc.checker.type-rep :as r]
-            [typed.cljc.checker.utils :as u]
             [clojure.core.typed.errors :as err]
-            [typed.clj.checker.parse-unparse :as prs]
+            [clojure.core.typed.util-vars :as vs]
             [clojure.string :as str]
-            [typed.cljc.checker.check.utils :as cu]
+            [typed.clj.checker.parse-unparse :as prs]
             [typed.clj.checker.subtype :as sub]
-            [typed.cljc.checker.type-ctors :as c]
+            [typed.cljc.checker.check :as check]
+            [typed.cljc.checker.check.utils :as cu]
             [typed.cljc.checker.cs-gen :as cgen]
-            [typed.cljc.checker.subst :as subst]))
+            [typed.cljc.checker.subst :as subst]
+            [typed.cljc.checker.type-ctors :as c]
+            [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.checker.utils :as u]))
 
 ; we should be able to remove check-apply completely, but we should also instantiate all poly function in test case
 (defn maybe-check-apply
-  [check-fn -invoke-apply {[fexpr & args] :args :as expr} expected opts]
+  [-invoke-apply {[fexpr & args] :args :as expr} expected {::check/keys [check-expr] :as opts}]
   {:post [((some-fn nil? (comp r/TCResult? u/expr-type)) %)]}
   (or (-invoke-apply expr expected opts)
       (binding [vs/*current-expr* expr]
-        (let [cfexpr (check-fn fexpr)
+        (let [cfexpr (check-expr fexpr nil opts)
               ftype (r/ret-t (u/expr-type cfexpr))
               [fixed-args tail] [(butlast args) (last args)]]
           (cond
@@ -36,9 +37,9 @@
                   bbnds (c/Poly-bbnds* vars ftype opts)
                   body (c/Poly-body* vars ftype opts)
                   _ (assert (r/FnIntersection? body))
-                  fixed-args (mapv check-fn fixed-args)
+                  fixed-args (mapv #(check-expr % nil opts) fixed-args)
                   arg-tys (mapv (comp r/ret-t u/expr-type) fixed-args)
-                  ctail (check-fn tail)
+                  ctail (check-expr tail nil opts)
                   tail-ty (r/ret-t (u/expr-type ctail))
                   expr (assoc expr
                               :args (vec (cons cfexpr (conj fixed-args ctail))))]

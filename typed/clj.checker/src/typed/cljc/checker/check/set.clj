@@ -22,7 +22,7 @@
 (defn check-set [{:keys [items] :as expr} expected {::check/keys [check-expr] :as opts}]
   {:post [(-> % u/expr-type r/TCResult?)
           (vector? (:items %))]}
-  (let [cargs (mapv check-expr items)
+  (let [cargs (mapv #(check-expr % nil opts) items)
         ts (map (comp #(c/fully-resolve-type % opts) r/ret-t u/expr-type) cargs)
         res-type (if (every? r/Value? ts)
                    (r/-hset (r/sorted-type-set ts))

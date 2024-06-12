@@ -31,14 +31,14 @@
 (defn check-try [{:keys [body catches finally] :as expr} expected {::check/keys [check-expr] :as opts}]
   {:post [(vector? (:catches %))
           (-> % u/expr-type r/TCResult?)]}
-  (let [chk #(check-expr % expected)
+  (let [chk #(check-expr % expected opts)
         cbody (chk body)
         ;_ (prn "cbody ret" (u/expr-type cbody))
         ;_ (prn cbody)
         ccatches (mapv chk catches)
         ;_ (prn "ccatches ret" (mapv u/expr-type ccatches))
         ; finally result is thrown away
-        cfinally (some-> finally check-expr)
+        cfinally (some-> finally (check-expr nil opts))
         ret (binding [vs/*current-expr* expr]
               (below/maybe-check-below
                 (combine-rets

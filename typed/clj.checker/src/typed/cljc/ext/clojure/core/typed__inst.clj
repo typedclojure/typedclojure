@@ -24,6 +24,6 @@
     (let [_ (when-not (next form)
               (err/int-error "Wrong arguments to inst" opts))
           ptype (-> pform (ana2/unanalyzed env)
-                    check-expr u/expr-type r/ret-t)]
+                    (check-expr nil opts) u/expr-type r/ret-t)]
       (assoc expr
              u/expr-type (inst/inst-from-targs-syn ptype targs-syn (cu/expr-ns expr opts) expected opts))))

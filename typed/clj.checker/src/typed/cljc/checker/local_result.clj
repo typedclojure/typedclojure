@@ -21,7 +21,7 @@
 (defn local-ret [sym opts]
   {:pre [(symbol? sym)]
    :post [(r/TCResult? %)]}
-  (let [[obj t] ((juxt lex/lookup-alias #(lex/lookup-local % opts)) sym)]
+  (let [[obj t] ((juxt #(lex/lookup-alias % opts) #(lex/lookup-local % opts)) sym)]
     (when-not t
       (err/int-error (str "Could not find type for local variable " sym) opts))
     (r/ret t 

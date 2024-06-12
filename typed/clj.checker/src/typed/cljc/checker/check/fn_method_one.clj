@@ -115,7 +115,7 @@
                                 "rest parameter.")
                            opts))
 
-        props (:props (lex/lexical-env))
+        props (:props (lex/lexical-env opts))
         crequired-params (map (fn [p t] (assoc p u/expr-type (r/ret t)))
                               required-params
                               (concat dom 
@@ -162,7 +162,7 @@
 
         ;_ (prn "funapp1: inferred mm-filter" mm-filter)
 
-        env (let [env (-> (lex/lexical-env)
+        env (let [env (-> (lex/lexical-env opts)
                           ;add mm-filter
                           (assoc :props (cond-> (set props) mm-filter (conj mm-filter)))
                           ;add parameters to scope
@@ -178,7 +178,7 @@
         ; rng with inferred filters, and before manually inferring new filters
         crng-nopass
         (binding [multi-u/*current-mm* nil]
-          (var-env/with-lexical-env env
+          (let [opts (var-env/with-lexical-env opts env)]
             (let [rec (or ; if there's a custom recur behaviour, use the provided
                           ; keyword argument to generate the RecurTarget.
                           (when recur-target-fn
@@ -209,7 +209,7 @@
                                                            (:env method))})
                                    ana/run-passes))
                              body)]
-                  (check-expr body open-expected-rng-no-filters))))))
+                  (check-expr body open-expected-rng-no-filters opts))))))
 
         ; Apply the filters of computed rng to the environment and express
         ; changes to the lexical env as new filters, and conjoin with existing filters.
@@ -228,7 +228,7 @@
                                       (not= t (get-in env [:l sym]))
                                       ;new type, add positive proposition
                                       ;(otherwise, type hasn't changed, no new propositions)
-                                      (conj (fo/-filter-at t (lex/lookup-alias sym :env env)))))
+                                      (conj (fo/-filter-at t (lex/lookup-alias sym {:env env} opts)))))
                                   #{}
                                   (:l then-env))
 

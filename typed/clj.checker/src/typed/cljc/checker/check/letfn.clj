@@ -47,23 +47,20 @@
                             {:return (assoc letfn-expr
                                             u/expr-type (cu/error-ret expected))}
                             opts)
-      (let [cbindings
-            (lex/with-locals inits-expected
-              (mapv
-                (fn [{:keys [name init] :as b}]
-                  (let [expected-fn (inits-expected name)
-                        _ (assert expected-fn (str "No expected type for " name
-                                                   " " (vec (keys inits-expected))))
-                        ; we already uniquified bindings above, so I don't think
-                        ; we want to check the :binding node
-                        cinit (check-expr init (r/ret expected-fn))]
-                    (assoc b
-                           :init cinit
-                           u/expr-type (u/expr-type cinit))))
-                bindings))
+      (let [locals-opts (lex/with-locals opts inits-expected) 
+            cbindings (mapv (fn [{:keys [name init] :as b}]
+                              (let [expected-fn (inits-expected name)
+                                    _ (assert expected-fn (str "No expected type for " name
+                                                               " " (vec (keys inits-expected))))
+                                    ; we already uniquified bindings above, so I don't think
+                                    ; we want to check the :binding node
+                                    cinit (check-expr init (r/ret expected-fn) locals-opts)]
+                                (assoc b
+                                       :init cinit
+                                       u/expr-type (u/expr-type cinit))))
+                            bindings)
 
-            cbody (lex/with-locals inits-expected
-                    (check-expr body expected))
+            cbody (check-expr body expected locals-opts)
             unshadowed-ret (let/erase-objects (into #{} (map :name) cbindings) (u/expr-type cbody) opts)]
         (assoc letfn-expr
                :bindings cbindings

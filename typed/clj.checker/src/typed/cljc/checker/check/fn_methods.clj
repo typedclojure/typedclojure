@@ -131,7 +131,7 @@
         ;; cmethodss is a vector in the same order as the passed in methods,
         ;; but each method replaced with a vector of type checked methods."
         cmethodss
-        (lex/with-locals (some-> self-name (hash-map expected))
+        (let [opts (lex/with-locals opts (some-> self-name (hash-map expected)))]
           ;scope type variables from polymorphic type in body
           (free-ops/with-free-mappings (zipmap (map r/F-original-name inst-frees)
                                                (map #(hash-map :F %1 :bnds %2) inst-frees bnds))

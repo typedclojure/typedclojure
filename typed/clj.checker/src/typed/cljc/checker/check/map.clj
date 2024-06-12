@@ -93,13 +93,13 @@
   {:post [(-> % u/expr-type r/TCResult?)
           (vector? (:keys %))
           (vector? (:vals %))]}
-  (let [ckeyexprs (mapv check-expr keyexprs)
+  (let [ckeyexprs (mapv #(check-expr % nil opts) keyexprs)
         key-types (map (comp r/ret-t u/expr-type) ckeyexprs)
 
         val-rets
         (expected-vals key-types expected opts)
 
-        cvalexprs (mapv check-expr valexprs val-rets)
+        cvalexprs (mapv #(check-expr %1 %2 opts) valexprs val-rets)
         val-types (map (comp r/ret-t u/expr-type) cvalexprs)
 
         ts (zipmap key-types val-types)

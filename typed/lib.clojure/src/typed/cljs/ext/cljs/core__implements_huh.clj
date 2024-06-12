@@ -26,7 +26,7 @@
   (assert (= 3 (count form)))
   (let [[_ psym x] form
         ;;TODO grab the protocol's type (psym is syntax, not an expression)
-        cx (check-expr (ana2/unanalyzed x env))]
+        cx (check-expr (ana2/unanalyzed x env) nil opts)]
     (assoc expr
            u/expr-type (below/maybe-check-below
                          ;; TODO filters

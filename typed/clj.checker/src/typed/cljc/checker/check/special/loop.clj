@@ -46,7 +46,7 @@
                     (mapv (comp #(prs/parse-type % opts) :type) (:params tsyns)))
         cfrm ;loop may be nested, type the first loop found
         (binding [recur-u/*loop-bnd-anns* tbindings]
-          (check-expr frm expected))]
+          (check-expr frm expected opts))]
     (assoc expr
            :ret cfrm
            u/expr-type (u/expr-type cfrm))))

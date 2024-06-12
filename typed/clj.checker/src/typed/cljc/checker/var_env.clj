@@ -37,9 +37,8 @@
 (def checked-var-defs-con (con/set-c? (every-pred symbol? namespace)))
 (def cljs-jsvar-annotations-con (con/hash-c? symbol? r/Type?))
 
-(defmacro with-lexical-env [env & body]
-  `(binding [vs/*lexical-env* ~env]
-     (do ~@body)))
+(defn with-lexical-env [opts env]
+  (assoc opts ::vs/lexical-env env))
 
 (defn var-annotations [checker]
   {:post [(map? %)]}

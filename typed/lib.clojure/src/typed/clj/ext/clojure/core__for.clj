@@ -72,10 +72,9 @@
                   ;; false should be handled in the previous iteration
                   (assert (true? reachable))
                   (case k
-                    (:while :when) (let [cv (var-env/with-lexical-env prop-env
-                                              (-> v
-                                                  (ana2/unanalyzed ana-env)
-                                                  check-expr))
+                    (:while :when) (let [cv (-> v
+                                                (ana2/unanalyzed ana-env)
+                                                (check-expr nil (var-env/with-lexical-env opts prop-env)))
                                          fs+ (-> cv u/expr-type r/ret-f :then)
                                          [env-thn reachable+] (if/update-lex+reachable prop-env fs+ opts)
                                          maybe-reduced (if reachable+
@@ -105,10 +104,9 @@
                                maybe-reduced))
                     (if (keyword? k)
                       (throw (Exception. (format "Invalid '%s' keyword: %s" (first form) k)))
-                      (let [cv (var-env/with-lexical-env prop-env
-                                 (-> v
-                                     (ana2/unanalyzed ana-env)
-                                     check-expr))
+                      (let [cv (-> v
+                                   (ana2/unanalyzed ana-env)
+                                   (check-expr nil (var-env/with-lexical-env opts prop-env)))
                             binding-ret (or (cgen/solve
                                               (u/expr-type cv)
                                               (-seqable-elem-query opts)
@@ -150,7 +148,7 @@
           {:form form
            :args-syn args-syn
            :ana-env ana-env
-           :prop-env (lex/lexical-env)}
+           :prop-env (lex/lexical-env opts)}
           opts)
         expr (-> expr
                  (update :form
@@ -172,10 +170,9 @@
                                opts))
           (let [body-expected (some-> expected
                                       (cgen/solve (-seqable-elem-query opts) opts))
-                cbody (var-env/with-lexical-env prop-env
-                        (-> body-syn
-                            (ana2/unanalyzed ana-env)
-                            (check-expr body-expected)))
+                cbody (-> body-syn
+                          (ana2/unanalyzed ana-env)
+                          (check-expr body-expected (var-env/with-lexical-env opts prop-env)))
                 unshadowed-ret (let/erase-objects new-syms (u/expr-type cbody) opts)
                 expr (-> expr
                          (update :form

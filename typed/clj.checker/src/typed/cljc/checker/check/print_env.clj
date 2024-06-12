@@ -13,7 +13,7 @@
             [typed.clj.checker.parse-unparse :as prs]))
 
 (defn print-env*
-  ([opts] (print-env* (lex/lexical-env) opts))
+  ([opts] (print-env* (lex/lexical-env opts) opts))
   ([e opts]
    {:pre [(lex/PropEnv? e)]}
    ;; DO NOT REMOVE

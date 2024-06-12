@@ -125,6 +125,6 @@
                  ana2/analyze-outer)]
     (if annotated-t
       (-> expr
-          (check-expr (r/ret annotated-t))
+          (check-expr (r/ret annotated-t) opts)
           (update u/expr-type below/maybe-check-below expected opts))
-      (check-expr expr expected))))
+      (check-expr expr expected opts))))

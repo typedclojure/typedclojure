@@ -321,7 +321,8 @@
   (with-bindings (assoc (:bindings s)
                         #'vs/*delayed-errors* (err/-init-delayed-errors))
     (when (try (binding [*sub-current-seen* A]
-                 (check-expr (:fexpr s) (r/ret t)))
+                 (check-expr (:fexpr s) (r/ret t)
+                             (into opts (select-keys (:opts s) [::vs/lexical-env]))))
                (catch clojure.lang.ExceptionInfo e
                  ;(prn e) ;;tmp
                  (when-not (-> e ex-data err/tc-error?)
@@ -333,7 +334,7 @@
 (defn check-symbolic-closure
   "Check symbolic closure s against type t (propagating all errors to caller),
   returning the checked expression."
-  [{{::check/keys [check-expr]} :opts :as s} t]
+  [{{::vs/keys [lexical-env]} :opts :as s} t {::check/keys [check-expr] :as opts}]
   {:pre [(r/SymbolicClosure? s)
          (r/AnyType? t)]
    :post [(-> % u/expr-type r/TCResult?)]}
@@ -342,7 +343,7 @@
                          ;; hmm, additional error msg context needed to orient the user
                          ;; to the problem? symbolic closure will be blamed
                          #'vs/*delayed-errors*)
-    (check-expr (:fexpr s) (r/ret t))))
+    (check-expr (:fexpr s) (r/ret t) (assoc opts ::vs/lexical-env lexical-env))))
 
 (defn subtype-regex [A s t]
   {:pre [(r/Regex? s)

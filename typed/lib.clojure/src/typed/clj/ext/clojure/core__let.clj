@@ -101,10 +101,9 @@
            {:pre [(combined-env? combined-env)
                   ((some-fn nil? r/TCResult?) expected)]
             :post [(map? %)]}
-           (var-env/with-lexical-env prop-env
-             (-> form
-                 (ana2/unanalyzed ana-env)
-                 (check-expr expected)))))
+           (-> form
+               (ana2/unanalyzed ana-env)
+               (check-expr expected (var-env/with-lexical-env opts prop-env)))))
         (upd-combined-env-from-init-form [combined-env lhs init-form]
           {:pre [(combined-env? combined-env)
                  (simple-symbol? lhs) ]
@@ -294,7 +293,6 @@
   (assert (combined-env? combined-env)
           [(pr-str (mapv (fn [[k v]] [k (class v)]) combined-env))
            (pr-str combined-env)])
-  (assert check-expr)
   (let [res (reduce
               (fn [{:keys [new-syms prop-env ana-env expanded-bindings reachable]} [lhs rhs]]
                 {:pre [(boolean? reachable)
@@ -308,10 +306,9 @@
                          %)]}
                 (assert (true? reachable))
                 (let [; check rhs
-                      cexpr (var-env/with-lexical-env prop-env
-                              (-> rhs
-                                  (ana2/unanalyzed ana-env)
-                                  check-expr))
+                      cexpr (-> rhs
+                                (ana2/unanalyzed ana-env)
+                                (check-expr nil (var-env/with-lexical-env opts prop-env)))
                       inferred-tag (let [tag (:tag cexpr)]
                                      (cond-> tag
                                        (class? tag) coerce/Class->symbol))
@@ -359,7 +356,7 @@
         {:keys [prop-env ana-env expanded-bindings new-syms reachable]}
         (check-let-bindings
           {:new-syms #{}
-           :prop-env (lex/lexical-env)
+           :prop-env (lex/lexical-env opts)
            :ana-env ana-env}
           bvec
           opts)]
@@ -370,12 +367,12 @@
                                               body-syns)
                                        (with-meta (meta form)))
                              u/expr-type (or expected (r/ret (r/Bottom))))
-      :else (let [cbody (var-env/with-lexical-env prop-env
-                          (let [body (-> `(do ~@body-syns)
-                                         (ana2/unanalyzed ana-env))]
-                            (binding [vs/*current-expr* body]
-                              (-> body
-                                  (check-expr expected)))))
+      :else (let [cbody (let [body (-> `(do ~@body-syns)
+                                       (ana2/unanalyzed ana-env))
+                              opts (var-env/with-lexical-env opts prop-env)]
+                          (binding [vs/*current-expr* body]
+                            (-> body
+                                (check-expr expected opts))))
                   unshadowed-ret (let/erase-objects new-syms (u/expr-type cbody) opts)]
               (assoc expr
                      :form (-> (list (first form)

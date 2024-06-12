@@ -49,7 +49,6 @@
 (defonce ^{:doc "Internal use only"} ^:no-doc ^:dynamic *delayed-errors* nil)
 (defonce ^{:doc "Internal use only"} ^:no-doc ^:dynamic *analyze-ns-cache* nil)
 (defonce ^{:doc "Internal use only"} ^:no-doc ^:dynamic *checked-asts* nil)
-(defonce ^{:doc "Internal use only"} ^:no-doc ^:dynamic *lexical-env* nil)
 (defonce ^{:doc "Internal use only"} ^:no-doc ^:dynamic *can-rewrite* nil)
 (defonce ^{:doc "Internal use only"} ^:no-doc ^:dynamic *in-typed-load* nil)
 ;; keep track of state throughout a `load`

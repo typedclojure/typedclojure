@@ -22,7 +22,7 @@
   [{:keys [target] :as expr} expected {::check/keys [check-expr] :as opts}]
   {:pre [((some-fn nil? r/TCResult?) expected)]}
   (assoc expr
-         :target (check-expr target (r/ret (c/RClass-of Object opts)))
+         :target (check-expr target (r/ret (c/RClass-of Object opts)) opts)
          u/expr-type (below/maybe-check-below (r/ret r/-nil (fo/-false-filter))
                                               expected
                                               opts)))

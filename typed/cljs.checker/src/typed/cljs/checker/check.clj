@@ -74,7 +74,8 @@
                                                   (update 0 #(with-meta (list 'do %) {::fake-do true}))
                                                   list*
                                                   (with-meta (meta form))))
-                            expected))))))))
+                            expected
+                            opts))))))))
 
 (defn unanalyzed-top-level [form env]
   (tana2/unanalyzed form env))
@@ -119,7 +120,8 @@
                                                  :env env
                                                  :name js-op}
                                             :args args}
-                                           expected))]
+                                           expected
+                                           opts))]
             (assoc expr
                    u/expr-type res))
     :else (do (u/tc-warning (str "js-op missing, inferring Any"))
@@ -169,7 +171,7 @@
                                 (:op inst-of-expr))
                              opts))
           inst-of (c/DataType-with-unknown-params varsym opts)
-          cexpr (check-expr target-expr)
+          cexpr (check-expr target-expr nil opts)
           expr-tr (expr-type cexpr)
           final-ret (ret (r/JSBoolean-maker)
                          (fo/-FS (fo/-filter-at inst-of (ret-o expr-tr))
@@ -182,9 +184,9 @@
   [{:keys [args] :as expr} expected {::check/keys [check-expr] :as opts}]
   {:post [(vector? (:args %))
           (-> % u/expr-type r/TCResult?)]}
-  (let [cargs (mapv check-expr args)]
+  (let [cargs (mapv #(check-expr % nil opts) args)]
     (-> expr
-        (update :fn check-expr)
+        (update :fn check-expr nil opts)
         (assoc :args cargs
                u/expr-type (equiv/tc-equiv := (map u/expr-type cargs) expected)))))
 
@@ -244,7 +246,7 @@
   [{ctor :class :keys [args] :as expr} expected {::check/keys [check-expr] :as opts}]
   (impl/assert-cljs opts)
   (let [;; TODO check ctor
-        cargs (mapv check-expr args)]
+        cargs (mapv #(check-expr % nil opts) args)]
     (u/tc-warning (str "`new` special form is Unchecked"))
     (-> expr
         (assoc :args cargs
@@ -301,8 +303,8 @@
 ;; TODO check
 (defmethod -check ::tana2/host-call
   [{:keys [method target args] :as expr} expected {::check/keys [check-expr] :as opts}]
-  (let [ctarget (check-expr target)
-        cargs (mapv check-expr args)]
+  (let [ctarget (check-expr target nil opts)
+        cargs (mapv #(check-expr % nil opts) args)]
     #_(dot/check-dot ...)
     (u/tc-warning (str "`.` special form is Unchecked"))
     (assoc expr 
@@ -317,7 +319,7 @@
 ;; TODO check
 (defmethod -check ::tana2/host-field
   [{:keys [target] :as expr} expected {::check/keys [check-expr] :as opts}]
-  (let [ctarget (check-expr target)]
+  (let [ctarget (check-expr target nil opts)]
     #_(dot/check-dot ...)
     (u/tc-warning (str "`.` special form is Unchecked"))
     (assoc expr 
@@ -330,7 +332,7 @@
 ;; TODO check
 (defmethod -check ::tana2/js-array
   [{:keys [items] :as expr} expected {::check/keys [check-expr] :as opts}]
-  (let [citems (mapv check-expr items)]
+  (let [citems (mapv #(check-expr % nil opts) items)]
     #_(dot/check-dot ...)
     (u/tc-warning (str "`#js []` special form is Unchecked"))
     (assoc expr 
@@ -342,7 +344,7 @@
 
 (defmethod -check ::tana2/js-object
   [{:keys [keys vals] :as expr} expected {::check/keys [check-expr] :as opts}]
-  (let [cvals (mapv check-expr vals)]
+  (let [cvals (mapv #(check-expr % nil opts) vals)]
     (assoc expr
            :vals cvals
            u/expr-type (below/maybe-check-below
@@ -407,7 +409,9 @@
    (binding [ana2/scheduled-passes {:pre identity
                                     :post identity
                                     :init-ast identity}]
-     (let [opts (update opts ::check/check-expr #(or % (check/->check-expr check-expr opts)))
+     (let [opts (-> opts
+                    (assoc ::check/check-expr check-expr)
+                    (assoc ::vs/lexical-env (lex/init-lexical-env)))
            cexpr (uc/with-cljs-typed-env
                    (-> form
                        (unanalyzed-top-level (or env (ana-api/empty-env)))

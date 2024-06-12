@@ -47,7 +47,7 @@
   (let [{:keys [t]} (u/expr-type expr)
         cls (cu/Type->Class t)]
     (if (and cls
-             (#{:local} (:op expr)))
+             (= :local (:op expr)))
       (-> expr
           (assoc :o-tag cls
                  :tag cls)
@@ -61,12 +61,12 @@
 (defn check-host-interop
   [expr expected {::check/keys [check-expr] :as opts}]
   {:pre [(#{:host-interop :host-call :host-field} (:op expr))
-         (#{:unanalyzed} (:op (:target expr)))
+         (= :unanalyzed (:op (:target expr)))
          (every? (comp #{:unanalyzed} :op) (:args expr))]
    :post [(-> % u/expr-type r/TCResult?)]}
   (let [expr (-> expr
-                 (update :target check-expr)
-                 (update :args #(mapv check-expr %))
+                 (update :target check-expr nil opts)
+                 (update :args #(mapv (fn [e] (check-expr e nil opts)) %))
                  ana2/run-post-passes)
         expr (cond-> expr
                (and (= :host-interop (:op expr))
@@ -98,8 +98,8 @@
 
 (defn check-host-call
   [-host-call-special expr expected opts]
-  {:pre [(#{:host-call} (-> expr :op))
-         (#{:unanalyzed} (-> expr :target :op))
+  {:pre [(= :host-call (-> expr :op))
+         (= :unanalyzed (-> expr :target :op))
          (every? (comp #{:unanalyzed} :op) (:args expr))]
    :post [(-> % u/expr-type r/TCResult?)
           (#{:static-call :instance-call} (:op %))]}
@@ -125,7 +125,7 @@
 
 (defn check-maybe-host-form
   [expr expected {::check/keys [check-expr] :as opts}]
-  {:pre [(#{:maybe-host-form} (:op expr))]
+  {:pre [(= :maybe-host-form (:op expr))]
    :post [(-> % u/expr-type r/TCResult?)]}
   (let [expr (ana2/run-pre-passes expr)]
     (if (= :maybe-host-form (:op expr))

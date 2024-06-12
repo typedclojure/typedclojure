@@ -50,11 +50,11 @@
       (let [cinit (when init-provided
                     (binding [vs/*current-env* (:env init)
                               vs/*current-expr* init]
-                      (check-expr init (r/ret t))))
+                      (check-expr init (r/ret t) opts)))
             cmeta (when meta
                     (binding [vs/*current-env* (:env meta)
                               vs/*current-expr* meta]
-                      (check-expr meta)))
+                      (check-expr meta nil opts)))
             _ (when cinit
                 ; now consider this var as checked
                 (var-env/add-checked-var-def (env/checker opts) vsym))]
@@ -97,7 +97,7 @@
             cinit (when init-provided
                     (case unannotated-def
                       ;:unchecked (assoc init u/expr-type (r/ret (r/-unchecked vsym)))
-                      (check-expr init)))
+                      (check-expr init nil opts)))
             cmeta (when meta
                     (binding [vs/*current-env* (:env meta)
                               vs/*current-expr* meta
@@ -105,7 +105,7 @@
                               ;; emit :meta nodes in a :def. Don't
                               ;; try and rewrite it, just type check.
                               vs/*can-rewrite* false]
-                      (check-expr meta)))
+                      (check-expr meta nil opts)))
             inferred (r/ret-t (u/expr-type cinit))
             _ (assert (r/Type? inferred))
             #_#_ ;; old behavior, type should now only be annotated at runtime
@@ -166,10 +166,10 @@
            :init (if t
                    ;;cast immediately, don't propagate type.
                    (cu/add-cast
-                     (check-expr (:init expr) nil)
+                     (check-expr (:init expr) nil opts)
                      t
                      {:positive "cast"
                       :negative "cast"}
                      opts)
                    ;;
-                   (check-expr (:init expr) nil)))))
+                   (check-expr (:init expr) nil opts)))))

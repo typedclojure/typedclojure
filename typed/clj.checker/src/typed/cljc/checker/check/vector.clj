@@ -18,7 +18,7 @@
 (defn check-vector [{:keys [items] :as expr} expected {::check/keys [check-expr] :as opts}]
   {:post [(-> % u/expr-type r/TCResult?)
           (vector? (:items %))]}
-  (let [cargs (mapv check-expr items)
+  (let [cargs (mapv #(check-expr % nil opts) items)
         res-type (r/-hvec (mapv (comp r/ret-t u/expr-type) cargs)
                           :filters (mapv (comp r/ret-f u/expr-type) cargs)
                           :objects (mapv (comp r/ret-o u/expr-type) cargs))]

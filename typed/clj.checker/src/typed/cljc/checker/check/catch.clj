@@ -24,8 +24,7 @@
         local-type (impl/impl-case opts
                      :clojure (c/RClass-of-with-unknown-params ecls opts)
                      :cljs (err/nyi-error "catch in CLJS" opts))
-        chandler (lex/with-locals {local-sym local-type}
-                   (check-expr handler expected))]
+        chandler (check-expr handler expected (lex/with-locals opts {local-sym local-type}))]
     (assoc expr
            :body chandler
            u/expr-type (u/expr-type chandler))))

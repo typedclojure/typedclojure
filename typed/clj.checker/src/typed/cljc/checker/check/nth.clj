@@ -184,9 +184,9 @@
   (when (<= 2 (count (:args expr)) 3)
     (let [{[te ne de] :args :as expr} (cond-> (-> expr
                                                   ;TODO avoid repeated checks
-                                                  (update :args #(mapv check-expr %)))
+                                                  (update :args #(mapv (fn [e] (check-expr e nil opts)) %)))
                                         (#{:host-call} (:op expr))
-                                        (update :target check-expr))
+                                        (update :target check-expr nil opts))
           types (let [ts (c/fully-resolve-type (expr->type te) opts)]
                   (if (r/Union? ts)
                     (:types ts)

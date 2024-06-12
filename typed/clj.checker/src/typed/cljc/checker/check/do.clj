@@ -39,7 +39,6 @@
 (defn check-do [expr expected {::check/keys [check-expr] :as opts}]
   {:post [(-> % u/expr-type r/TCResult?)
           (vector? (:statements %))]}
-  (assert check-expr)
   (enforce-do-folding expr spec/special-form opts)
   (let [internal-special-form
         (impl/impl-case opts
@@ -76,11 +75,11 @@
                                                                  (:env expr)
                                                                  vs/*current-env*)
                                               vs/*current-expr* expr]
-                                      (var-env/with-lexical-env env
-                                        (check-expr expr
-                                                    ;propagate expected type only to final expression
-                                                    (when (= (inc n) nexprs)
-                                                      expected))))
+                                      (check-expr expr
+                                                  ;propagate expected type only to final expression
+                                                  (when (= (inc n) nexprs)
+                                                    expected)
+                                                  (var-env/with-lexical-env opts env)))
                               res (u/expr-type cexpr)
                               {fs+ :then fs- :else} (r/ret-f res)
                               nenv (update/env+ env [(fo/-or [fs+ fs-] opts)] reachable opts)
@@ -99,7 +98,7 @@
                                                     u/expr-type (r/ret (r/Bottom)
                                                                        (fo/-unreachable-filter)
                                                                        orep/-empty)))])))))
-                    [(lex/lexical-env) exprs] (range nexprs))
+                    [(lex/lexical-env opts) exprs] (range nexprs))
             _ (assert (= (count cexprs) nexprs))
             actual-types (mapv u/expr-type cexprs)
             _ (assert (lex/PropEnv? env))

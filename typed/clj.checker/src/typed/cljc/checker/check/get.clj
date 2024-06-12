@@ -32,9 +32,9 @@
   (when (#{2 3} (count args))
     (when (keyword? (-> args second :form))
       (let [expr (cond-> (-> expr
-                             (update :args #(mapv check-expr %)))
+                             (update :args #(mapv (fn [e] (check-expr e nil opts)) %)))
                    (#{:host-call} (:op expr))
-                   (update :target check-expr))
+                   (update :target check-expr nil opts))
             [ttarget kwr tdefault] (map u/expr-type (:args expr))]
         (assoc expr
                u/expr-type (invoke-kw/invoke-keyword

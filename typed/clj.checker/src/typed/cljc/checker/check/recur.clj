@@ -39,9 +39,10 @@
                                                      (r/make-CountRange 1)]
                                                     opts)]
                                       opts)))
-        cargs (mapv check-expr args (map r/ret
-                                         (concat dom
-                                                 (some-> rest-arg-type vector))))
+        cargs (mapv #(check-expr %1 %2 opts)
+                    args (map r/ret
+                              (concat dom
+                                      (some-> rest-arg-type vector))))
         _ (when-not (and (= (count fixed-args) (count dom))
                          (= (boolean rest) (boolean rest-arg)))
             (err/tc-delayed-error 
