@@ -2868,21 +2868,21 @@
                                   (:fixed :rest :drest :prest :pdot :kws :regex) true
                                   false)]}
                          ;(prn "fold Function" ty)
-                         (r/update-Function
-                           ty
-                           [:dom #(into-identical [] type-rec %)]
-                           [:rng type-rec]
-                           [:rest #(some-> % type-rec)]
-                           [:drest #(some-> % type-rec)]
-                           [:pdot #(some-> % type-rec)]
-                           [:kws #(some-> % type-rec)]
-                           [:prest #(when %
-                                      (let [t (type-rec %)]
-                                        ;; if we fully flatten out the prest, we're left
-                                        ;; with no prest
-                                        (when (not= r/-nothing t)
-                                          t)))]
-                           [:regex #(some-> % type-rec)])))
+                         ;;FIXME use r/update-Function, but need to handle computed :kind correctly
+                         (-> ty
+                           (update :dom #(into-identical [] type-rec %))
+                           (update :rng type-rec)
+                           (update :rest #(some-> % type-rec))
+                           (update :drest #(some-> % type-rec))
+                           (update :pdot #(some-> % type-rec))
+                           (update :kws #(some-> % type-rec))
+                           (update :prest #(when %
+                                             (let [t (type-rec %)]
+                                               ;; if we fully flatten out the prest, we're left
+                                               ;; with no prest
+                                               (when (not= r/-nothing t)
+                                                 t))))
+                           (update :regex #(some-> % type-rec)))))
 
 (add-default-fold-case JSNominal
                        (fn [ty]
