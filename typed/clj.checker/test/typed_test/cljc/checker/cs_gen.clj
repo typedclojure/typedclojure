@@ -15,86 +15,86 @@
   (is-tc-e 1) ;;load type system
   (is-clj (nil? (sut/solve (r/ret (parse-clj `t/Num))
                            (parse-clj `(t/All [x#] [t/Int :-> t/Int]))
-                           clj-opts)))
+                           (clj-opts))))
   (is-clj (nil? (sut/solve (r/ret (parse-clj `t/Num))
                            (parse-clj `(t/All [x#] [t/Int :-> t/Int]))
-                           clj-opts)))
+                           (clj-opts))))
   (is-clj (both-subtype?
             (:t (sut/solve (r/ret (parse-clj `[t/Int :-> t/Int]))
                            (parse-clj `(t/All [x#] [[t/Int :-> x#] :-> [t/Int :-> x#]]))
-                           clj-opts))
+                           (clj-opts)))
             (parse-clj `[t/Int :-> t/Int])))
   (is-clj (both-subtype?
             (:t (sut/solve (r/ret (parse-clj `[t/Int :-> t/Int]))
                            (parse-clj `(t/All [x#] [[(t/Val 1) :-> x#] :-> [(t/Val 1) :-> x#]]))
-                           clj-opts))
+                           (clj-opts)))
             (parse-clj `[(t/Val 1) :-> t/Int])))
   (is-clj (both-subtype?
             (:t (sut/solve (r/ret (parse-clj `[t/Int :-> [t/Bool :-> t/Int]]))
                            (parse-clj `(t/All [x#] [[t/Int :-> [x# :-> t/Int]] :-> [t/Int :-> [x# :-> t/Int]]]))
-                           clj-opts))
+                           (clj-opts)))
             (parse-clj `[t/Int :-> [t/Bool :-> t/Int]])))
   (is-clj (both-subtype?
             (:t (sut/solve (r/ret (parse-clj `[t/Int :-> [t/Int :-> t/Bool]]))
                            (parse-clj `(t/All [x#] [[t/Int :-> [t/Int :-> x#]] :-> [t/Int :-> [t/Int :-> x#]]]))
-                           clj-opts))
+                           (clj-opts)))
             (parse-clj `[t/Int :-> [t/Int :-> t/Bool]])))
   (is-clj (both-subtype?
             (:t (sut/solve (r/ret (parse-clj `[t/Bool :-> [t/Int :-> t/Int]]))
                            (parse-clj `(t/All [x#] [[x# :-> [t/Int :-> t/Int]] :-> [x# :-> [t/Int :-> t/Int]]]))
-                           clj-opts))
+                           (clj-opts)))
             (parse-clj `[t/Bool :-> [t/Int :-> t/Int]])))
   )
 
 (deftest wild->tv-test
   (is-tc-e true) ;load type system
-  (clj (let [{:keys [t tvs]} (sut/wild->tv (parse-clj `t/Int) clj-opts)]
+  (clj (let [{:keys [t tvs]} (sut/wild->tv (parse-clj `t/Int) (clj-opts))]
          (is (= (parse-clj `t/Int) t))
          (is (empty? tvs))))
-  (clj (let [{:keys [t tvs]} (sut/wild->tv r/-wild clj-opts)]
+  (clj (let [{:keys [t tvs]} (sut/wild->tv r/-wild (clj-opts))]
          (is (r/F? t))
          (is (= 1 (count tvs)))))
-  (clj (let [{:keys [t tvs]} (sut/wild->tv (parse-clj `[t/Int :-> [t/Infer :-> t/Int]]) clj-opts)]
+  (clj (let [{:keys [t tvs]} (sut/wild->tv (parse-clj `[t/Int :-> [t/Infer :-> t/Int]]) (clj-opts))]
          (when (is (= 1 (count tvs)))
            (is (= (parse-clj `[t/Int :-> [t/Bool :-> t/Int]])
                   (subst/subst-all
                     {(first tvs) (crep/t-subst-maker (parse-clj `t/Bool) r/no-bounds)}
                     t
-                    clj-opts)))
+                    (clj-opts))))
            (is (= (parse-clj `[t/Int :-> [t/Num :-> t/Int]])
                   (subst/subst-all
                     {(first tvs) (crep/t-subst-maker (parse-clj `t/Num) r/no-bounds)}
                     t
-                    clj-opts)))))))
+                    (clj-opts))))))))
 
 (deftest eliminate-wild-test
   (is-tc-e true) ;load type system
   (clj (let [t (parse-clj `(t/All [x#] [x# :-> x#]))]
-         (is (identical? t (sut/eliminate-wild (parse-clj `(t/All [x#] [x# :-> x#])) t clj-opts)))))
+         (is (identical? t (sut/eliminate-wild (parse-clj `(t/All [x#] [x# :-> x#])) t (clj-opts))))))
   (is-clj (both-subtype? (parse-clj `t/Bool)
-                         (sut/eliminate-wild (parse-clj `t/Bool) r/-wild clj-opts)))
+                         (sut/eliminate-wild (parse-clj `t/Bool) r/-wild (clj-opts))))
   (is-clj (both-subtype? (parse-clj `t/Int)
-                         (sut/eliminate-wild (parse-clj `t/Int) r/-wild clj-opts)))
+                         (sut/eliminate-wild (parse-clj `t/Int) r/-wild (clj-opts))))
   (is-clj (not (both-subtype? (parse-clj `t/Bool)
-                              (sut/eliminate-wild (parse-clj `t/Int) r/-wild clj-opts))))
+                              (sut/eliminate-wild (parse-clj `t/Int) r/-wild (clj-opts)))))
   (is-clj (both-subtype? (parse-clj `t/Num)
                          (sut/eliminate-wild (parse-clj `t/Int)
-                                             (parse-clj `t/Num) clj-opts)))
+                                             (parse-clj `t/Num) (clj-opts))))
   (is-clj (nil? (sut/eliminate-wild (parse-clj `t/Num)
-                                    (parse-clj `t/Int) clj-opts)))
+                                    (parse-clj `t/Int) (clj-opts))))
   (is-clj (nil? (sut/eliminate-wild (parse-clj `[t/Bool :-> t/Int])
-                                    (parse-clj `[t/Infer :-> t/Num]) clj-opts)))
+                                    (parse-clj `[t/Infer :-> t/Num]) (clj-opts))))
   (is-clj (nil? (sut/eliminate-wild (parse-clj `[t/Bool :-> t/Num])
-                                    (parse-clj `[t/Infer :-> t/Int]) clj-opts)))
+                                    (parse-clj `[t/Infer :-> t/Int]) (clj-opts))))
   (is-clj (nil? (sut/eliminate-wild (parse-clj `[t/Bool :-> t/Int])
-                                    (parse-clj `[t/Infer :-> t/Infer]) clj-opts)))
+                                    (parse-clj `[t/Infer :-> t/Infer]) (clj-opts))))
   (is-clj (both-subtype? (parse-clj `(t/Transducer t/Bool t/Int))
                          (sut/eliminate-wild (parse-clj `(t/Transducer t/Bool t/Int))
-                                             (parse-clj `(t/Transducer t/Bool t/Infer)) clj-opts)))
+                                             (parse-clj `(t/Transducer t/Bool t/Infer)) (clj-opts))))
   (is-clj (nil? (sut/eliminate-wild (parse-clj `(t/Transducer t/Bool t/Int))
-                                    (parse-clj `(t/Transducer t/Infer t/Int)) clj-opts)))
+                                    (parse-clj `(t/Transducer t/Infer t/Int)) (clj-opts))))
   (is-clj (nil? (sut/eliminate-wild (parse-clj `(t/Transducer t/Bool t/Int))
-                                    (parse-clj `(t/Transducer t/Infer t/Infer)) clj-opts))))
+                                    (parse-clj `(t/Transducer t/Infer t/Infer)) (clj-opts)))))
 
 (deftest prep-symbolic-closure-expected2-type-test
   (is-tc-e true) ;load type system
@@ -102,36 +102,36 @@
                    {'x (crep/t-subst-maker (r/-val 1) r/no-bounds)}
                    (r/make-FnIntersection
                      (r/make-Function [(r/make-F 'x)] (r/make-F 'x)))
-                   clj-opts)]
+                   (clj-opts))]
          (is (= (r/make-FnIntersection (r/make-Function [(r/-val 1)] r/-wild))
                 res))))
   (clj (let [res (sut/prep-symbolic-closure-expected-type2
                    {'x (crep/t-subst-maker (r/-val 1) r/no-bounds)}
                    (c/Poly* ['y] [r/no-bounds]
                             (r/make-FnIntersection (r/make-Function [(r/make-F 'x) (r/F-maker 'y)] (r/make-F 'x)))
-                            clj-opts)
-                   clj-opts)]
+                            (clj-opts))
+                   (clj-opts))]
          (is (= (c/Poly* ['y] [r/no-bounds]
                          (r/make-FnIntersection (r/make-Function [(r/-val 1) (r/F-maker 'y)] r/-wild))
-                         clj-opts)
+                         (clj-opts))
                 res))))
   (clj (let [res (sut/prep-symbolic-closure-expected-type2
                    {'x (crep/t-subst-maker (r/-val 1) r/no-bounds)}
                    (c/PolyDots* ['y 'z] [r/no-bounds r/dotted-no-bounds]
                                 (r/make-FnIntersection (r/make-Function [(r/make-F 'x) (r/F-maker 'y)] (r/make-F 'x)
                                                                         :drest (r/DottedPretype1-maker (r/F-maker 'z) 'z)))
-                                clj-opts)
-                   clj-opts)]
+                                (clj-opts))
+                   (clj-opts))]
          (is (= (c/PolyDots* ['y 'z] [r/no-bounds r/dotted-no-bounds]
                              (r/make-FnIntersection (r/make-Function [(r/-val 1) (r/F-maker 'y)] r/-wild
                                                                      :drest (r/DottedPretype1-maker (r/F-maker 'z) 'z)))
-                             clj-opts)
+                             (clj-opts))
                 res))))
   (clj (let [subst {'a (crep/t-subst-maker r/-nothing r/no-bounds)
                     'c (crep/t-subst-maker r/-nothing r/no-bounds)}
              t (r/make-FnIntersection (r/make-Function [(r/make-F 'a)] (r/make-F 'c)))
-             res (sut/prep-symbolic-closure-expected-type2 subst t clj-opts)]
-         (is (= (sut/prep-symbolic-closure-expected-type subst t clj-opts)
+             res (sut/prep-symbolic-closure-expected-type2 subst t (clj-opts))]
+         (is (= (sut/prep-symbolic-closure-expected-type subst t (clj-opts))
                 res))
          (is (= (r/make-FnIntersection (r/make-Function [r/-nothing] r/-wild))
                 res))))
@@ -139,11 +139,11 @@
   (clj (let [subst {'x (crep/t-subst-maker r/-nothing r/no-bounds)
                     'y (crep/t-subst-maker (r/-val 1) r/no-bounds)}
              t (r/TApp-maker (r/Name-maker `t/Transducer) [(r/make-F 'y) (r/make-F 'x)])
-             res (sut/prep-symbolic-closure-expected-type2 subst t clj-opts)
+             res (sut/prep-symbolic-closure-expected-type2 subst t (clj-opts))
              expected-t (r/TApp-maker (r/Name-maker `t/Transducer) [(r/-val 1) r/-wild])]
-         (is (both-subtype? (sut/prep-symbolic-closure-expected-type subst t clj-opts)
+         (is (both-subtype? (sut/prep-symbolic-closure-expected-type subst t (clj-opts))
                             expected-t))
-         (is (both-subtype? (c/fully-resolve-type expected-t clj-opts) res))
+         (is (both-subtype? (c/fully-resolve-type expected-t (clj-opts)) res))
          #_;;TODO
          (is (= (r/make-FnIntersection (r/make-Function [r/-nothing] r/-wild))
                 res))))
@@ -161,7 +161,7 @@
 (deftest separate-F-test
   (is-tc-e true) ;load type system
   (clj (let [t (r/make-Function [(r/make-F 'x)] (r/make-F 'x))
-             {t' :separated-t :keys [remap]} (sut/separate-F t {:fv #{'x}} clj-opts)
+             {t' :separated-t :keys [remap]} (sut/separate-F t {:fv #{'x}} (clj-opts))
              xfvs (get-in remap [:fv 'x])]
          (is (= {:fv {'x xfvs}} remap) remap)
          (is (vector? xfvs))
@@ -183,7 +183,7 @@
                                                                  'y))
                {t' :separated-t :keys [remap]} (sut/separate-F t {:fv #{'x}
                                                                   :idx #{'y 'z}}
-                                                               clj-opts)
+                                                               (clj-opts))
                ;_ (prn t)
                ;_ (prn t')
                ;_ (clojure.pprint/pprint remap)
@@ -222,7 +222,7 @@
   (clj (let [{:keys [separated-t remap]} (sut/separate-F
                                            (r/make-Function [] r/-any :drest (r/DottedPretype1-maker (r/-hvec [(r/make-F 'z) (r/make-F 'z)]) 'z))
                                            {:idx #{'z}}
-                                           clj-opts)
+                                           (clj-opts))
              {{[z] 'z} :idx} remap
              {{{[z1 z2] 'z} [z]} :idx-context} remap
              expected-t (r/make-Function [] r/-any :drest (r/DottedPretype1-maker (r/-hvec [(r/make-F z1) (r/make-F z2)]) z))]
@@ -237,7 +237,7 @@
                     d (crep/i-subst-maker [(r/-val 1) (r/-val 2)])}]
          (is (= (r/make-Function [(r/-val 0) (r/-val 1) (r/-val 2)]
                                  (r/make-F r))
-                (sut/subst-non-covariant subst t clj-opts)))))
+                (sut/subst-non-covariant subst t (clj-opts))))))
   (clj (let [d (gensym 'd)
              a (gensym 'a)
              r (gensym 'r)
@@ -248,7 +248,7 @@
                                   (r/-hvec [(r/-val 1) (r/-val 1)])
                                   (r/-hvec [(r/-val 2) (r/-val 2)])]
                                  (r/make-F r))
-                (sut/subst-non-covariant subst t clj-opts))))))
+                (sut/subst-non-covariant subst t (clj-opts)))))))
 
 (deftest infer-GetType-test
   (is-tc-e (fn [get' :- (t/All [m k] [m k :-> (t/Get m k)])]

@@ -46,8 +46,7 @@
                              :var-annotations (let [annots (var-env/clj-var-annotations)]
                                                 (into {} 
                                                       (comp (filter (fn [[k v]] (= (namespace k) (str nsym))))
-                                                            (map (fn [[k v]] [k (binding [vs/*verbose-types* true]
-                                                                                  (prs/unparse-type v opts))])))
+                                                            (map (fn [[k v]] [k (prs/unparse-type v (assoc opts ::vs/verbose-types true))])))
                                                       annots))}}])))
           {} nsyms))
 

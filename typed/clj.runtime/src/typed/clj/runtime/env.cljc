@@ -7,7 +7,8 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.clj.runtime.env
-  (:require [typed.cljc.runtime.env :as env]))
+  (:require [typed.cljc.runtime.env :as env]
+            [clojure.core.typed.util-vars :as vs]))
 
 (defn empty-clj-checker []
   (env/empty-checker))
@@ -19,4 +20,4 @@
 
 (let [-opts {::env/checker clj-checker-atom
              :clojure.core.typed.current-impl/current-impl :clojure.core.typed.current-impl/clojure}]
-  (defn clj-opts [] -opts))
+  (defn clj-opts [] (assoc -opts ::vs/verbose-types vs/*verbose-types*)))

@@ -161,7 +161,7 @@
 (defn- type-rep->pred [t opts]
   {:pre [(r/Type? t)]}
   (impl/with-clojure-impl
-    (binding [vs/*verbose-types* true]
+    (let [opts (assoc opts ::vs/verbose-types true)]
       (-> t
           (prs/unparse-type opts) 
           ;; TODO do any other pred cases need parity flips?
@@ -416,7 +416,7 @@
      (let [t (cond-> t
                (not (r/AnyType? t)) (prs/parse-type opts))]
        (assert (< (get (::trace-freq opts) t 0) 3)
-               (str "Already seen three times: " (binding [vs/*verbose-types* true] (prs/unparse-type t opts)) " " (class t)
+               (str "Already seen three times: " (prs/unparse-type t (assoc opts ::vs/verbose-types true)) " " (class t)
                     " " (pr-str (::trace opts))))
        (-generator t (-> opts
                          (update ::trace (fnil conj []) t)

@@ -202,8 +202,7 @@
                                                                        #'cu/special-typed-expression
                                                                        (:env method))
                                                                      [(ana/parse-quote
-                                                                        (binding [vs/*verbose-types* true]
-                                                                          (list 'quote (prs/unparse-type t opts)))
+                                                                        (list 'quote (prs/unparse-type t (assoc opts ::vs/verbose-types true)))
                                                                         (:env method))]
                                                                      (:env method)))
                                                                  dom)

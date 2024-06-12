@@ -8,33 +8,33 @@
 
 (defmacro overlap-prs [s1 s2]
   `(clj
-     (overlap (parse-type ~s1 clj-opts) (parse-type ~s2 clj-opts) clj-opts)))
+     (overlap (parse-type ~s1 (clj-opts)) (parse-type ~s2 (clj-opts)) (clj-opts))))
 
 (deftest overlap-test
   (is-tc-e :load)
-  (is-clj (not (overlap -false -true clj-opts)))
-  (is-clj (not (overlap (-val :a) (-val :b) clj-opts)))
+  (is-clj (not (overlap -false -true (clj-opts))))
+  (is-clj (not (overlap (-val :a) (-val :b) (clj-opts))))
   ;; classes overlap with their superclass
-  (is-clj (overlap (RClass-of Number clj-opts) (RClass-of Integer clj-opts) clj-opts))
-  (is-clj (not (overlap (RClass-of Number clj-opts) (RClass-of clojure.lang.Symbol clj-opts) clj-opts)))
+  (is-clj (overlap (RClass-of Number (clj-opts)) (RClass-of Integer (clj-opts)) (clj-opts)))
+  (is-clj (not (overlap (RClass-of Number (clj-opts)) (RClass-of clojure.lang.Symbol (clj-opts)) (clj-opts))))
   ;; different classes are disjoint
-  (is-clj (not (overlap (RClass-of clojure.lang.Keyword clj-opts) (RClass-of clojure.lang.Symbol clj-opts) clj-opts)))
+  (is-clj (not (overlap (RClass-of clojure.lang.Keyword (clj-opts)) (RClass-of clojure.lang.Symbol (clj-opts)) (clj-opts))))
   ;; different abstract and final classes are disjoint
-  (is-clj (not (overlap (RClass-of Number clj-opts) (RClass-of String clj-opts) clj-opts)))
+  (is-clj (not (overlap (RClass-of Number (clj-opts)) (RClass-of String (clj-opts)) (clj-opts))))
   ;; final classes are disjoint with any interfaces it doesn't implement
-  (is-clj (not (overlap (RClass-of clojure.lang.ISeq [-any] clj-opts) (RClass-of String clj-opts) clj-opts)))
+  (is-clj (not (overlap (RClass-of clojure.lang.ISeq [-any] (clj-opts)) (RClass-of String (clj-opts)) (clj-opts))))
   ;; covariant parameter 
-  (is-clj (overlap (RClass-of clojure.lang.ISeq [(RClass-of Number clj-opts)] clj-opts)
-                   (RClass-of clojure.lang.ISeq [(RClass-of String clj-opts)] clj-opts)
-                   clj-opts))
+  (is-clj (overlap (RClass-of clojure.lang.ISeq [(RClass-of Number (clj-opts))] (clj-opts))
+                   (RClass-of clojure.lang.ISeq [(RClass-of String (clj-opts))] (clj-opts))
+                   (clj-opts)))
   ;; final classes overlap with interfaces it implements
-  (is-clj (overlap (RClass-of clojure.lang.Atom [-any] clj-opts) (RClass-of clojure.lang.IMeta clj-opts) clj-opts))
+  (is-clj (overlap (RClass-of clojure.lang.Atom [-any] (clj-opts)) (RClass-of clojure.lang.IMeta (clj-opts)) (clj-opts)))
   ;; interfaces overlap
-  (is-clj (overlap (RClass-of Number clj-opts) (RClass-of CharSequence clj-opts) clj-opts))
+  (is-clj (overlap (RClass-of Number (clj-opts)) (RClass-of CharSequence (clj-opts)) (clj-opts)))
   ;; different abstract class are disjoint
-  (is-clj (not (overlap (RClass-of java.nio.Buffer clj-opts) (RClass-of Number clj-opts) clj-opts)))
-  (is-clj (overlap (-name `t/Seqable -any) (RClass-of clojure.lang.IMeta clj-opts) clj-opts))
-  (is-clj (overlap (-name `t/Seqable -any) (RClass-of clojure.lang.PersistentVector [-any] clj-opts) clj-opts)))
+  (is-clj (not (overlap (RClass-of java.nio.Buffer (clj-opts)) (RClass-of Number (clj-opts)) (clj-opts))))
+  (is-clj (overlap (-name `t/Seqable -any) (RClass-of clojure.lang.IMeta (clj-opts)) (clj-opts)))
+  (is-clj (overlap (-name `t/Seqable -any) (RClass-of clojure.lang.PersistentVector [-any] (clj-opts)) (clj-opts))))
 
 (deftest hmap-overlap-test
   (is-clj
@@ -156,13 +156,13 @@
 (deftest overlap-free-test
   (is-clj (overlap (make-F 'a)
                    (-val 'a)
-                   clj-opts))
+                   (clj-opts)))
   (is-clj (overlap (-val 'a)
                    (make-F 'a)
-                   clj-opts))
+                   (clj-opts)))
   (is-clj (overlap (make-F 'b)
                    (make-F 'a)
-                   clj-opts)))
+                   (clj-opts))))
 
 ;; TODO add tests for trailing map arg :maybe-trailing-nilable-non-empty-map?
 (deftest overlap-CountRange-KwArgsSeq-test
@@ -174,7 +174,7 @@
             (overlap
               (make-CountRange 0 1)
               (-kw-args-seq :mandatory {(-val :foo) -any})
-              clj-opts)))
+              (clj-opts))))
   ;; optional entries only, so knows nothing about its count except it's
   ;; even. this needs to be manually handled since there are currently
   ;; no types representing even-counted collections.
@@ -182,4 +182,4 @@
             (overlap
               (make-CountRange 1 1)
               (-kw-args-seq :optional {(-val :foo) -any})
-              clj-opts))))
+              (clj-opts)))))

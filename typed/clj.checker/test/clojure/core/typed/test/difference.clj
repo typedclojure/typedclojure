@@ -14,83 +14,83 @@
   (is-clj (not (subtype? (NotType-maker -nil) -nil)))
   (is-clj (subtype? (NotType-maker -nil) (NotType-maker -nil)))
   (is-clj (not (subtype? (NotType-maker -nil) (NotType-maker -false))))
-  (is-clj (subtype? (NotType-maker (Un [-false -nil] clj-opts)) (NotType-maker -false))))
+  (is-clj (subtype? (NotType-maker (Un [-false -nil] (clj-opts))) (NotType-maker -false))))
 
 (deftest Not-combine-test
-  (is-clj (= (In [-nil (NotType-maker -nil)] clj-opts)
-             (Un [] clj-opts)))
+  (is-clj (= (In [-nil (NotType-maker -nil)] (clj-opts))
+             (Un [] (clj-opts))))
   (is-clj (clj
-            (= (In [(RClass-of Integer clj-opts) (NotType-maker (RClass-of Number clj-opts))] clj-opts)
-               (Un [] clj-opts))))
+            (= (In [(RClass-of Integer (clj-opts)) (NotType-maker (RClass-of Number (clj-opts)))] (clj-opts))
+               (Un [] (clj-opts)))))
 
-  (is-clj (not (overlap (RClass-of Integer clj-opts) (NotType-maker (RClass-of Number clj-opts)) clj-opts)))
-  (is-clj (clj (overlap (RClass-of Number clj-opts) (NotType-maker -nil) clj-opts)))
+  (is-clj (not (overlap (RClass-of Integer (clj-opts)) (NotType-maker (RClass-of Number (clj-opts))) (clj-opts))))
+  (is-clj (clj (overlap (RClass-of Number (clj-opts)) (NotType-maker -nil) (clj-opts))))
 
-  (is-clj (overlap (NotType-maker (RClass-of Number clj-opts))
-                   (NotType-maker (RClass-of Integer clj-opts))
-                   clj-opts))
+  (is-clj (overlap (NotType-maker (RClass-of Number (clj-opts)))
+                   (NotType-maker (RClass-of Integer (clj-opts)))
+                   (clj-opts)))
 
-  (is-clj (not (overlap (NotType-maker (RClass-of Number clj-opts)) 
-                        (RClass-of Integer clj-opts)
-                        clj-opts)))
+  (is-clj (not (overlap (NotType-maker (RClass-of Number (clj-opts))) 
+                        (RClass-of Integer (clj-opts))
+                        (clj-opts))))
 
-  (is-clj (= (In [(RClass-of Number clj-opts) (NotType-maker -nil)] clj-opts)
-             (RClass-of Number clj-opts)))
+  (is-clj (= (In [(RClass-of Number (clj-opts)) (NotType-maker -nil)] (clj-opts))
+             (RClass-of Number (clj-opts))))
 
-  (is-clj (= (In [(Un [(RClass-of Number clj-opts) -nil] clj-opts) -nil] clj-opts)
+  (is-clj (= (In [(Un [(RClass-of Number (clj-opts)) -nil] (clj-opts)) -nil] (clj-opts))
              -nil))
-  (is-clj (= (In [(Un [(RClass-of Number clj-opts) -nil] clj-opts) (NotType-maker -nil)] clj-opts)
-             (RClass-of Number clj-opts)))
-  (is-clj (= (In [(RClass-of Number clj-opts) (NotType-maker -nil)] clj-opts)
-             (RClass-of Number clj-opts)))
+  (is-clj (= (In [(Un [(RClass-of Number (clj-opts)) -nil] (clj-opts)) (NotType-maker -nil)] (clj-opts))
+             (RClass-of Number (clj-opts))))
+  (is-clj (= (In [(RClass-of Number (clj-opts)) (NotType-maker -nil)] (clj-opts))
+             (RClass-of Number (clj-opts))))
 
-  (is-clj (clj (= (In [(Un [-nil (RClass-of Number clj-opts)] clj-opts) (NotType-maker (Un [-false -nil] clj-opts))] clj-opts)
-                  (RClass-of Number clj-opts))))
+  (is-clj (clj (= (In [(Un [-nil (RClass-of Number (clj-opts))] (clj-opts)) (NotType-maker (Un [-false -nil] (clj-opts)))] (clj-opts))
+                  (RClass-of Number (clj-opts)))))
 
-  (is-clj (overlap (Un [-nil (RClass-of Number clj-opts)] clj-opts) (NotType-maker (Un [-false -nil] clj-opts)) clj-opts))
+  (is-clj (overlap (Un [-nil (RClass-of Number (clj-opts))] (clj-opts)) (NotType-maker (Un [-false -nil] (clj-opts))) (clj-opts)))
 
-  (is-clj (= (In [(Un [-nil (RClass-of Number clj-opts)] clj-opts)
+  (is-clj (= (In [(Un [-nil (RClass-of Number (clj-opts))] (clj-opts))
                   (NotType-maker -nil)]
-                 clj-opts)
-             (RClass-of Number clj-opts)))
-  (is-clj (= (Un [(In [-nil (NotType-maker -nil)] clj-opts)
-                  (In [(RClass-of Number clj-opts) (NotType-maker -nil)] clj-opts)]
-                 clj-opts)
-             (RClass-of Number clj-opts)))
+                 (clj-opts))
+             (RClass-of Number (clj-opts))))
+  (is-clj (= (Un [(In [-nil (NotType-maker -nil)] (clj-opts))
+                  (In [(RClass-of Number (clj-opts)) (NotType-maker -nil)] (clj-opts))]
+                 (clj-opts))
+             (RClass-of Number (clj-opts))))
 
-  (is-clj (= (In [(NotType-maker (RClass-of Number clj-opts))
-                  (NotType-maker (RClass-of Integer clj-opts))]
-                 clj-opts)
-             (NotType-maker (RClass-of Number clj-opts))))
+  (is-clj (= (In [(NotType-maker (RClass-of Number (clj-opts)))
+                  (NotType-maker (RClass-of Integer (clj-opts)))]
+                 (clj-opts))
+             (NotType-maker (RClass-of Number (clj-opts)))))
 
-  (is-clj (subtype? (RClass-of Number clj-opts) (NotType-maker -nil)))
-  (is-clj (subtype? (RClass-of Number clj-opts) (NotType-maker (RClass-of Integer clj-opts))))
-  (is-clj (not (subtype? (RClass-of Integer clj-opts) (NotType-maker (RClass-of Number clj-opts)))))
-  (is-clj (not (subtype? (NotType-maker -nil) (RClass-of Number clj-opts))))
+  (is-clj (subtype? (RClass-of Number (clj-opts)) (NotType-maker -nil)))
+  (is-clj (subtype? (RClass-of Number (clj-opts)) (NotType-maker (RClass-of Integer (clj-opts)))))
+  (is-clj (not (subtype? (RClass-of Integer (clj-opts)) (NotType-maker (RClass-of Number (clj-opts))))))
+  (is-clj (not (subtype? (NotType-maker -nil) (RClass-of Number (clj-opts)))))
 
-  (is-clj (= (subst-all {'x (t-subst-maker (Un [(RClass-of Number clj-opts) -nil] clj-opts) no-bounds) 
+  (is-clj (= (subst-all {'x (t-subst-maker (Un [(RClass-of Number (clj-opts)) -nil] (clj-opts)) no-bounds) 
                          'y (t-subst-maker -nil no-bounds)} 
-                        (In [(make-F 'x) (NotType-maker (make-F 'y))] clj-opts)
-                        clj-opts)
-             (RClass-of Number clj-opts)))
+                        (In [(make-F 'x) (NotType-maker (make-F 'y))] (clj-opts))
+                        (clj-opts))
+             (RClass-of Number (clj-opts))))
 
   (is-clj (overlap (make-F 'x)
                    (NotType-maker (make-F 'y))
-                   clj-opts))
+                   (clj-opts)))
   (is-clj (overlap (B-maker 0)
                    (NotType-maker (B-maker 1))
-                   clj-opts))
+                   (clj-opts)))
   (is-clj (not (subtype? (B-maker 0)
                          (NotType-maker (B-maker 1)))))
   (is-clj (not= (In [(make-F 'x)
                      (NotType-maker (make-F 'y))]
-                    clj-opts)
-                (Un [] clj-opts))))
+                    (clj-opts))
+                (Un [] (clj-opts)))))
 
 ;(deftest difference-type-subtype
 ;  (is-clj (not (sub? (Difference Any nil) nil)))
 ;  (is-clj (sub? (Difference Any nil) (Difference Any nil)))
-;  (is-clj (overlap -any (NotType-maker -nil) clj-opts))
+;  (is-clj (overlap -any (NotType-maker -nil) (clj-opts)))
 ;  (is-clj (not (sub? (Difference Any nil) (Difference Any false))))
 ;  (is-clj (sub? (Difference Any (U false nil)) (Difference Any false)))
 ;  (is-clj (sub? (Difference Any false nil) (Difference Any false)))
@@ -103,15 +103,15 @@
 ;            (= (-difference (RClass-of Integer) (RClass-of Number))
 ;               (Un))))
 ;
-;  (is-clj (not (overlap (RClass-of Integer) (-difference -any (RClass-of Number)) clj-opts)))
-;  (is-clj (clj (overlap (RClass-of Number) (-difference -any -nil) clj-opts)))
+;  (is-clj (not (overlap (RClass-of Integer) (-difference -any (RClass-of Number)) (clj-opts))))
+;  (is-clj (clj (overlap (RClass-of Number) (-difference -any -nil) (clj-opts))))
 ;
 ;  (is-clj (overlap (-difference -any (RClass-of Number))
 ;                   (-difference -any (RClass-of Integer))
-;                   clj-opts))
+;                   (clj-opts)))
 ;
 ;  (is-clj (not (overlap (-difference -any (RClass-of Number))
-;                        (RClass-of Integer) clj-opts)))
+;                        (RClass-of Integer) (clj-opts))))
 ;
 ;  (is-clj (= (-difference (RClass-of Number) -nil)
 ;             (RClass-of Number)))
@@ -125,7 +125,7 @@
 ;                  (RClass-of Number))))
 ;
 ;  (is-clj (overlap (Un -nil (RClass-of Number)) 
-;                   (-difference -any (Un -false -nil)) clj-opts))
+;                   (-difference -any (Un -false -nil)) (clj-opts)))
 ;
 ;  (is-clj (= (-difference (Un -nil (RClass-of Number)) -nil)
 ;             (RClass-of Number)))
@@ -150,9 +150,9 @@
 ;             (RClass-of Number)))
 ;
 ;  (is-clj (overlap (make-F 'x)
-;                   (-difference -any (make-F 'y)) clj-opts))
+;                   (-difference -any (make-F 'y)) (clj-opts)))
 ;  (is-clj (overlap (B-maker 0)
-;                   (-difference -any (B-maker 1)) clj-opts))
+;                   (-difference -any (B-maker 1)) (clj-opts)))
 ;  (is-clj (not (subtype? (B-maker 0)
 ;                         (-difference -any (B-maker 1)))))
 ;  (is-clj (not= (-difference (make-F 'x)

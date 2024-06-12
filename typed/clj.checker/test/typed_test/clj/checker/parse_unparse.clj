@@ -11,13 +11,13 @@
 (def this-nsym (ns-name *ns*))
 
 (deftest parse-type-test
-  (is-clj (= (c/Poly-body* '(x) (prs/parse-type '(clojure.core.typed/All [x] x) clj-opts) clj-opts)
+  (is-clj (= (c/Poly-body* '(x) (prs/parse-type '(clojure.core.typed/All [x] x) (clj-opts)) (clj-opts))
              (r/make-F 'x)))
-  (is-clj (= (c/Poly-body* '(x y) (prs/parse-type '(clojure.core.typed/All [x y] x) clj-opts) clj-opts)
+  (is-clj (= (c/Poly-body* '(x y) (prs/parse-type '(clojure.core.typed/All [x y] x) (clj-opts)) (clj-opts))
              (r/make-F 'x)))
-  (is-clj (= (c/Poly-body* '(x y) (prs/parse-type '(clojure.core.typed/All [x y] y) clj-opts) clj-opts)
+  (is-clj (= (c/Poly-body* '(x y) (prs/parse-type '(clojure.core.typed/All [x y] y) (clj-opts)) (clj-opts))
              (r/make-F 'y)))
-  (is-clj (= (c/Poly-body* '(a b c d e f g h i) (prs/parse-type '(clojure.core.typed/All [a b c d e f g h i] e) clj-opts) clj-opts)
+  (is-clj (= (c/Poly-body* '(a b c d e f g h i) (prs/parse-type '(clojure.core.typed/All [a b c d e f g h i] e) (clj-opts)) (clj-opts))
              (r/make-F 'e))))
 
 (deftest polydots-unparse-test
@@ -25,8 +25,8 @@
              (second
                (prs/unparse-type
                  (prs/parse-type
-                   '(clojure.core.typed/All [a b ...]) clj-opts)
-                 clj-opts)))))
+                   '(clojure.core.typed/All [a b ...]) (clj-opts))
+                 (clj-opts))))))
 
 (deftest fn-type-parse-test
   (is (not= (fo/-FS fr/-bot fr/-bot)
@@ -52,43 +52,43 @@
           :types first :rng :fl :else fr/BotFilter?)))
 
 (deftest parse-type-fn-test
-  (is-clj (= (prs/parse-type '[nil :* -> nil] clj-opts)
+  (is-clj (= (prs/parse-type '[nil :* -> nil] (clj-opts))
              (r/make-FnIntersection (r/make-Function [] r/-nil :rest r/-nil))))
-  (is-clj (= (prs/parse-type '(clojure.core.typed/All [x :..] [nil :.. x -> nil]) clj-opts)
+  (is-clj (= (prs/parse-type '(clojure.core.typed/All [x :..] [nil :.. x -> nil]) (clj-opts))
              (c/PolyDots* '(x) [r/dotted-no-bounds]
                           (r/make-FnIntersection (r/make-Function [] r/-nil :drest (r/DottedPretype1-maker r/-nil 'x)))
-                          clj-opts))))
+                          (clj-opts)))))
 
 #_
 (deftest parse-tfn-test
   (is-tc-e 1)
-  (is-clj (= (clj (prs/with-unparse-ns this-nsym (prs/unparse-type (prs/parse-type `(t/TFn [[~'a :variance :covariant]] (t/U t/Int t/Bool ~'a)) clj-opts) clj-opts)))
+  (is-clj (= (clj (prs/with-unparse-ns this-nsym (prs/unparse-type (prs/parse-type `(t/TFn [[~'a :variance :covariant]] (t/U t/Int t/Bool ~'a)) (clj-opts)) (clj-opts))))
              '(t/TFn [[a :variance :covariant]] (t/U t/Int t/Bool a))))
-  (is-clj (= (clj (prs/with-unparse-ns this-nsym (prs/unparse-type (prs/parse-type `(t/TFn [[~'a :variance :covariant]] (t/U t/Bool t/Int ~'a)) clj-opts) clj-opts)))
+  (is-clj (= (clj (prs/with-unparse-ns this-nsym (prs/unparse-type (prs/parse-type `(t/TFn [[~'a :variance :covariant]] (t/U t/Bool t/Int ~'a)) (clj-opts)) (clj-opts))))
              '(t/TFn [[a :variance :covariant]] (t/U t/Bool t/Int a))))
-  (is-clj (= (clj (prs/with-unparse-ns this-nsym (prs/unparse-type (prs/parse-type `(t/TFn [[~'a :variance :covariant]] (t/I t/Int t/Bool ~'a)) clj-opts) clj-opts)))
+  (is-clj (= (clj (prs/with-unparse-ns this-nsym (prs/unparse-type (prs/parse-type `(t/TFn [[~'a :variance :covariant]] (t/I t/Int t/Bool ~'a)) (clj-opts)) (clj-opts))))
              '(t/TFn [[a :variance :covariant]] (t/I t/Int t/Bool a))))
-  (is-clj (= (clj (prs/with-unparse-ns this-nsym (prs/unparse-type (prs/parse-type `(t/TFn [[~'a :variance :covariant]] (t/I t/Bool t/Int ~'a)) clj-opts) clj-opts)))
+  (is-clj (= (clj (prs/with-unparse-ns this-nsym (prs/unparse-type (prs/parse-type `(t/TFn [[~'a :variance :covariant]] (t/I t/Bool t/Int ~'a)) (clj-opts)) (clj-opts))))
              '(t/TFn [[a :variance :covariant]] (t/I t/Bool t/Int a))))
-  (is-clj (= (clj (prs/with-unparse-ns this-nsym (prs/unparse-type (prs/parse-type `(t/TFn [[~'a :variance :covariant]] (t/SequentialSeq ~'a)) clj-opts) clj-opts)))
+  (is-clj (= (clj (prs/with-unparse-ns this-nsym (prs/unparse-type (prs/parse-type `(t/TFn [[~'a :variance :covariant]] (t/SequentialSeq ~'a)) (clj-opts)) (clj-opts))))
              '(t/TFn [[a :variance :covariant]] (t/SequentialSeq a))))
   (is-clj (= (clj (prs/with-unparse-ns this-nsym (prs/unparse-type (prs/parse-type `(t/TFn [[~'a :variance :covariant]]
                                                                                            (t/I (t/SequentialSeq ~'a)
                                                                                                 (Iterable ~'a)
                                                                                                 (java.util.Collection ~'a)
                                                                                                 (java.util.List ~'a)
-                                                                                                clojure.lang.IObj)) clj-opts) clj-opts)))
+                                                                                                clojure.lang.IObj)) (clj-opts)) (clj-opts))))
              '(t/TFn [[a :variance :covariant]] (t/I (t/SequentialSeq a) (Iterable a) (java.util.Collection a) (java.util.List a) IObj))))
-  (is-clj (= (prs/with-unparse-ns this-nsym (prs/unparse-type (prs/parse-type `(t/TFn [[~'a :variance :covariant]] t/Type) clj-opts) clj-opts))
+  (is-clj (= (prs/with-unparse-ns this-nsym (prs/unparse-type (prs/parse-type `(t/TFn [[~'a :variance :covariant]] t/Type) (clj-opts)) (clj-opts)))
              '(t/TFn [[a :variance :invariant]] t/Type))))
 
 (deftest unparse-free-scoping-test
   (is-clj (= (second
                (prs/unparse-type
                  (prs/parse-type 
-                   `(t/All ~'[a b] [t/Any t/Any :-> t/Any]) clj-opts) clj-opts))
+                   `(t/All ~'[a b] [t/Any t/Any :-> t/Any]) (clj-opts)) (clj-opts)))
              '[a b]))
-  (is-clj (= (rest (prs/unparse-type (prs/parse-type `(t/TFn ~'[[a :variance :covariant]] ~'a) clj-opts) clj-opts))
+  (is-clj (= (rest (prs/unparse-type (prs/parse-type `(t/TFn ~'[[a :variance :covariant]] ~'a) (clj-opts)) (clj-opts)))
              '([[a :variance :covariant]] a)))
   (is-clj (= '([a b] [a b :-> [a b :-> nil]])
              (with-delayed-remove-ns
@@ -101,7 +101,7 @@
                         y :- b]))
                    (t/All [a b] [a b :-> [a b :-> nil]]))
                  :t
-                 (prs/unparse-type clj-opts)
+                 (prs/unparse-type (clj-opts))
                  rest
                  )))))
 
@@ -148,12 +148,12 @@
 (deftest poly-named-test
   (is (= (prs/unparse-type
            (prs/parse-clj 
-             '(typed.clojure/All [:named [a b]] [a -> b])) clj-opts)
+             '(typed.clojure/All [:named [a b]] [a -> b])) (clj-opts))
          '(typed.clojure/All [:named [a b]] [a :-> b])))
   (is (= (prs/unparse-type
            (prs/parse-clj 
              '(typed.clojure/All [a ... :named [b c]]
-                                 [c b a ... a -> b])) clj-opts)
+                                 [c b a ... a -> b])) (clj-opts))
          '(typed.clojure/All [a :.. :named [b c]]
                              [c b a :.. a :-> b])))
   (is-tc-e (do (t/ann ^:no-check foo 
@@ -322,18 +322,18 @@
          (prs/parse-clj `[(t/* t/Int) t/Bool :* :-> t/Any])
          (prs/parse-clj `[(t/* t/Int) (t/* t/Bool) :-> t/Any])))
   (is (= `[t/Int :* t/Bool :* :-> t/Any]
-         (prs/unparse-type (prs/parse-clj `[(t/* t/Int) t/Bool :* :-> t/Any]) clj-opts)))
+         (prs/unparse-type (prs/parse-clj `[(t/* t/Int) t/Bool :* :-> t/Any]) (clj-opts))))
   (is (= `[t/Bool :* t/Bool :-> t/Any]
-         (prs/unparse-type (prs/parse-clj `[(t/* t/Bool) t/Bool :-> t/Any]) clj-opts)))
+         (prs/unparse-type (prs/parse-clj `[(t/* t/Bool) t/Bool :-> t/Any]) (clj-opts))))
   (is (= `[t/Int t/Int :* t/Bool t/Bool :* :-> t/Any]
-         (prs/unparse-type (prs/parse-clj `[(t/+ t/Int) (t/+ t/Bool) :-> t/Any]) clj-opts)))
+         (prs/unparse-type (prs/parse-clj `[(t/+ t/Int) (t/+ t/Bool) :-> t/Any]) (clj-opts))))
   (is (= `[t/Int t/Int :* t/Bool :* :-> t/Any]
-         (prs/unparse-type (prs/parse-clj `[(t/+ t/Int) (t/* t/Bool) :-> t/Any]) clj-opts)))
+         (prs/unparse-type (prs/parse-clj `[(t/+ t/Int) (t/* t/Bool) :-> t/Any]) (clj-opts))))
   (is (= `[t/Int :* t/Bool t/Bool :* :-> t/Any]
-         (prs/unparse-type (prs/parse-clj `[(t/* t/Int) (t/+ t/Bool) :-> t/Any]) clj-opts)))
+         (prs/unparse-type (prs/parse-clj `[(t/* t/Int) (t/+ t/Bool) :-> t/Any]) (clj-opts))))
   (is (= `(t/IFn [t/Bool :* :-> t/Any]
                  [t/Bool :* t/Bool :-> t/Any])
-         (prs/unparse-type (prs/parse-clj `[(t/* t/Bool) (t/? t/Bool) :-> t/Any]) clj-opts)))
+         (prs/unparse-type (prs/parse-clj `[(t/* t/Bool) (t/? t/Bool) :-> t/Any]) (clj-opts))))
   (is (= (prs/parse-clj `(t/All [y# :..] [y# :.. y# :-> t/Any]))
          (prs/parse-clj `(t/All [y# :..] [(t/cat y# :.. y#) :-> t/Any]))))
   (is (= (r/PolyDots-body-unsafe* (prs/parse-clj `(t/All [y# :..] [y# :.. y# :-> t/Any])))
@@ -359,13 +359,13 @@
              (prs/with-unparse-ns this-nsym
                (prs/unparse-type
                  (prs/parse-clj `(t/Match nil
-                                          nil :-> nil)) clj-opts))))
+                                          nil :-> nil)) (clj-opts)))))
   (is-clj (= '(t/Match nil
                        [S] (t/Seqable S) :-> S)
              (prs/with-unparse-ns this-nsym
                (prs/unparse-type
                  (prs/parse-clj `(t/Match nil
-                                          [~'S] (t/Seqable ~'S) :-> ~'S)) clj-opts))))
+                                          [~'S] (t/Seqable ~'S) :-> ~'S)) (clj-opts)))))
   (is-clj (= '(t/Match (t/Seqable t/Int)
                        [T] (t/NilableNonEmptySeq T) :-> T
                        [S] (t/Seqable S) :-> S)
@@ -373,13 +373,13 @@
                (prs/unparse-type
                  (prs/parse-clj `(t/Match (t/Seqable t/Int)
                                           [~'T] (t/NilableNonEmptySeq ~'T) :-> ~'T
-                                          [~'S] (t/Seqable ~'S) :-> ~'S)) clj-opts)))))
+                                          [~'S] (t/Seqable ~'S) :-> ~'S)) (clj-opts))))))
 
 (deftest parse-Instance-test
   (is-clj (= '(t/Instance Object)
              (prs/with-unparse-ns this-nsym
                (prs/unparse-type
-                 (prs/parse-clj `(t/Instance Object)) clj-opts)))))
+                 (prs/parse-clj `(t/Instance Object)) (clj-opts))))))
 
 (t/ann-protocol [[x :variance :invariant]]
                 InvariantProtocol)
@@ -389,13 +389,13 @@
   (is-clj (= 'typed.cljc.checker.impl-protocols/TCType
              (prs/with-unparse-ns this-nsym
                (prs/unparse-type
-                 (prs/parse-clj `(t/Satisfies typed.cljc.checker.impl-protocols/TCType)) clj-opts))))
+                 (prs/parse-clj `(t/Satisfies typed.cljc.checker.impl-protocols/TCType)) (clj-opts)))))
   (is-clj (= 'typed.cljc.checker.impl-protocols/TCType
              (prs/with-unparse-ns this-nsym
                (prs/unparse-type
                  (prs/with-parse-ns 'typed.cljc.checker.impl-protocols
-                   (prs/parse-clj `(t/Satisfies ~'TCType))) clj-opts))))
+                   (prs/parse-clj `(t/Satisfies ~'TCType))) (clj-opts)))))
   (is-clj (= '(t/Satisfies InvariantProtocol)
              (prs/with-unparse-ns this-nsym
                (prs/unparse-type
-                 (prs/parse-clj `(t/Satisfies InvariantProtocol)) clj-opts)))))
+                 (prs/parse-clj `(t/Satisfies InvariantProtocol)) (clj-opts))))))

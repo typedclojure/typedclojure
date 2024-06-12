@@ -562,7 +562,7 @@
 (defn TCResult->map [ret opts]
   {:pre [(r/TCResult? ret)]
    :post [(map? %)]}
-  (binding [vs/*verbose-types* true]
+  (let [opts (assoc opts ::vs/verbose-types true)]
     {:type (prs/unparse-type (:t ret) opts)
      :filters (prs/unparse-filter-set (:fl ret) opts)
      :object (prs/unparse-object (:o ret) opts)

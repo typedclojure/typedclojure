@@ -52,7 +52,7 @@
                               :objects [-empty]))
   
   (equal-types-noparse (assoc [0] 0 (if (clojure.core.typed/ann-form 1 clojure.core.typed/Any) 1 2))
-                       (-hvec [(Un [(-val 1) (-val 2)] clj-opts)]
+                       (-hvec [(Un [(-val 1) (-val 2)] (clj-opts))]
                               :filters [(-true-filter)]
                               :objects [-empty]))
   

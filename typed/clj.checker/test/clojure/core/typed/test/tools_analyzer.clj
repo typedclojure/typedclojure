@@ -25,7 +25,7 @@
 (ana/ast-for-form
   '(fn a [b])
   )
-clj-opts))
+(clj-opts)))
   )
 
 ;; records

@@ -26,8 +26,7 @@
   (env/swap-checker! checker update-in
                      [:inferred-unchecked-vars nsym vsym]
                      (fnil conj [])
-                     (binding [vs/*verbose-types* true]
-                       (prs/unparse-type t opts)))
+                     (prs/unparse-type t (assoc opts ::vs/verbose-types true)))
   nil)
 
 (defn inferred-var-in-ns

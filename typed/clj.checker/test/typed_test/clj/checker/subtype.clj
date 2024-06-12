@@ -28,8 +28,8 @@
 
 (deftest subtype-java-exceptions-test
   (is-tc-e :load)
-  (is-clj (subtype? (RClass-of IndexOutOfBoundsException clj-opts)
-                    (RClass-of Exception clj-opts))))
+  (is-clj (subtype? (RClass-of IndexOutOfBoundsException (clj-opts))
+                    (RClass-of Exception (clj-opts)))))
 
 ;TODO uncomment
 ; See CTYP-150
@@ -44,8 +44,8 @@
 
 (deftest subtype-Object
   (is-tc-e :load)
-  (is-clj (subtype? (RClass-of clojure.lang.IPersistentList [-any] clj-opts)
-                    (RClass-of Object clj-opts))))
+  (is-clj (subtype? (RClass-of clojure.lang.IPersistentList [-any] (clj-opts))
+                    (RClass-of Object (clj-opts)))))
 
 (deftest subtype-hmap
   (is-tc-e :load)
@@ -115,8 +115,8 @@
   (is-clj (not (sub? (ReadOnlyArray int) (Array int)))))
 
 (deftest top-function-subtype-test
-  (is-clj (subtype? (parse-type `[t/Any ~'-> t/Any] clj-opts)
-                    (parse-type `t/AnyFunction clj-opts))))
+  (is-clj (subtype? (parse-type `[t/Any ~'-> t/Any] (clj-opts))
+                    (parse-type `t/AnyFunction (clj-opts)))))
 
 (deftest complete-hash-subtype-test
   (is-clj (sub? (clojure.core.typed/HMap :complete? true)
@@ -163,85 +163,85 @@
                                  [(c/-name `t/Num)]
                                  nil
                                  nil
-                                 clj-opts))
+                                 (clj-opts)))
   (is-clj (not (sut/subtypes-varargs? []
                                       [(c/-name `t/Num)]
                                       nil
                                       nil
-                                      clj-opts)))
+                                      (clj-opts))))
   (is-clj (not (sut/subtypes-varargs? [(c/-name `t/Num)]
                                       [(c/-name `t/Int)]
                                       nil
                                       nil
-                                      clj-opts)))
+                                      (clj-opts))))
   (is-clj (sut/subtypes-varargs? [(c/-name `t/Int)]
                                  []
                                  (c/-name `t/Num)
                                  nil
-                                 clj-opts))
+                                 (clj-opts)))
   (is-clj (not (sut/subtypes-varargs? [(c/-name `t/Num)]
                                       []
                                       (c/-name `t/Int)
                                       nil
-                                      clj-opts)))
+                                      (clj-opts))))
   (is-clj (sut/subtypes-varargs? [(c/-name `t/Num) (c/-name `t/Int)]
                                  [(c/-name `t/Num)]
                                  (c/-name `t/Int)
                                  nil
-                                 clj-opts))
+                                 (clj-opts)))
   )
 
 (deftest has-kind?-test
-  (is-clj (sut/has-kind? r/-nil r/no-bounds clj-opts))
-  (is-clj (sut/has-kind? r/-nil (r/-bounds r/-nil r/-nil) clj-opts))
-  (is-clj (not (sut/has-kind? r/-nil (r/-bounds r/-nothing r/-nil) clj-opts)))
-  (is-clj (not (sut/has-kind? r/-nil (r/-bounds r/-nil r/-any) clj-opts)))
+  (is-clj (sut/has-kind? r/-nil r/no-bounds (clj-opts)))
+  (is-clj (sut/has-kind? r/-nil (r/-bounds r/-nil r/-nil) (clj-opts)))
+  (is-clj (not (sut/has-kind? r/-nil (r/-bounds r/-nothing r/-nil) (clj-opts))))
+  (is-clj (not (sut/has-kind? r/-nil (r/-bounds r/-nil r/-any) (clj-opts))))
   )
 
 (deftest Instance-subtype-test
   (is-tc-e 1)
   (is-clj (sut/subtype?
-            (c/Instance-of `java.lang.Comparable clj-opts)
-            (c/Instance-of `java.lang.Comparable clj-opts)
-            clj-opts))
+            (c/Instance-of `java.lang.Comparable (clj-opts))
+            (c/Instance-of `java.lang.Comparable (clj-opts))
+            (clj-opts)))
   (is-clj (sut/subtype?
-            (c/RClass-of `java.lang.Comparable [r/-any] clj-opts)
-            (c/Instance-of `java.lang.Comparable clj-opts)
-            clj-opts))
+            (c/RClass-of `java.lang.Comparable [r/-any] (clj-opts))
+            (c/Instance-of `java.lang.Comparable (clj-opts))
+            (clj-opts)))
   (is-clj (not (sut/subtype?
-                 (c/Instance-of `java.lang.Comparable clj-opts)
-                 (c/RClass-of `java.lang.Comparable [r/-any] clj-opts)
-                 clj-opts)))
+                 (c/Instance-of `java.lang.Comparable (clj-opts))
+                 (c/RClass-of `java.lang.Comparable [r/-any] (clj-opts))
+                 (clj-opts))))
   (is-clj (subtype?
-            (clj (c/Instance-of `clojure.lang.Atom clj-opts))
+            (clj (c/Instance-of `clojure.lang.Atom (clj-opts)))
             (c/-name `t/Deref r/-any)))
   (is-clj (sut/subtype?
-            (c/Instance-of `clojure.lang.IDeref clj-opts)
+            (c/Instance-of `clojure.lang.IDeref (clj-opts))
             (c/-name `t/Deref r/-any)
-            clj-opts))
+            (clj-opts)))
   (is-clj (not (sut/subtype?
-                 (c/Instance-of `clojure.lang.IDeref clj-opts)
+                 (c/Instance-of `clojure.lang.IDeref (clj-opts))
                  (c/-name `t/Deref r/-nothing)
-                 clj-opts)))
+                 (clj-opts))))
   (is-clj (sut/subtype?
             (c/-name `t/Deref r/-any)
-            (c/Instance-of `clojure.lang.IDeref clj-opts)
-            clj-opts))
+            (c/Instance-of `clojure.lang.IDeref (clj-opts))
+            (clj-opts)))
   )
 
 (deftest subtype-Instance-test
   (is-clj (subtype?
-            (c/Instance-of Object clj-opts)
-            (c/Instance-of Object clj-opts)))
+            (c/Instance-of Object (clj-opts))
+            (c/Instance-of Object (clj-opts))))
   (is-clj (subtype?
-            (c/Instance-of Number clj-opts)
-            (c/Instance-of Object clj-opts)))
+            (c/Instance-of Number (clj-opts))
+            (c/Instance-of Object (clj-opts))))
   (is-clj (subtype?
-            (c/RClass-of clojure.lang.IDeref [r/-any] clj-opts)
-            (c/Instance-of Object clj-opts)))
+            (c/RClass-of clojure.lang.IDeref [r/-any] (clj-opts))
+            (c/Instance-of Object (clj-opts))))
   (is-clj (subtype?
-            (c/Instance-of clojure.lang.IPersistentList clj-opts)
-            (c/Instance-of Object clj-opts))))
+            (c/Instance-of clojure.lang.IPersistentList (clj-opts))
+            (c/Instance-of Object (clj-opts)))))
 
 (t/ann-protocol [[x :variance :invariant]]
                 InvariantProtocol)
@@ -249,8 +249,8 @@
 
 (deftest subtype-Satisfies-test
   (is-clj (subtype?
-            (c/Protocol-of `InvariantProtocol [r/-any] clj-opts)
-            (c/Protocol-with-unknown-params `InvariantProtocol clj-opts)))
+            (c/Protocol-of `InvariantProtocol [r/-any] (clj-opts))
+            (c/Protocol-with-unknown-params `InvariantProtocol (clj-opts))))
   (is-clj (not (subtype?
-                 (c/Protocol-with-unknown-params `InvariantProtocol clj-opts)
-                 (c/Protocol-of `InvariantProtocol [r/-any] clj-opts)))))
+                 (c/Protocol-with-unknown-params `InvariantProtocol (clj-opts))
+                 (c/Protocol-of `InvariantProtocol [r/-any] (clj-opts))))))

@@ -7,7 +7,7 @@
 
 (deftest ctyp-255-test
   (testing "unknown implementation of unparse uses clojure.core.typed for special types"
-    (is (= (unparse-type r/-any clj-opts)
+    (is (= (unparse-type r/-any (clj-opts))
            'typed.clojure/Any)))
   (testing "can print a tc-e result with :unknown"
     (is (do (prn (tc-e 1))

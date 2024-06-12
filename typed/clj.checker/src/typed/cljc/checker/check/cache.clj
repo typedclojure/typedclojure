@@ -72,8 +72,7 @@
                       (let [t (force-type t)]
                         (or #_(some-> t meta :pretty (get t) :no-simpl-verbose-syntax deref)
                             (if (r/Type? t)
-                              (binding [uvs/*verbose-types* true]
-                                (prs/unparse-type t opts))
+                              (prs/unparse-type t (assoc opts ::uvs/verbose-types true))
                               t))))
         instrumented-checker (reify
                                clojure.lang.IAtom2

@@ -196,7 +196,7 @@
                                                 :nsym (parse-in-ns opts)
                                                 :no-simpl (delay @t)
                                                 :no-simpl-verbose-syntax (delay
-                                                                           (binding [vs/*verbose-types* true]
+                                                                           (let [opts (assoc opts ::vs/verbose-types true)]
                                                                              (app #(vary-meta (unparse-type @t opts)
                                                                                               assoc :file *file* :nsym (parse-in-ns opts)))))}}}))))
            (catch Throwable e
@@ -1873,11 +1873,11 @@
                    (= sym (symbol v)))
           simple-sym)))))
 
-(defn unparse-Name-symbol-in-ns [sym opts]
+(defn unparse-Name-symbol-in-ns [sym {::vs/keys [verbose-types] :as opts}]
   {:pre [(symbol? sym)]
    :post [(symbol? %)]}
   ;(prn "unparse-Name-symbol-in-ns" sym)
-  (if-let [ns (and (not vs/*verbose-types*)
+  (if-let [ns (and (not verbose-types)
                    (some-> (unparse-in-ns opts) find-ns))]
     (impl/impl-case opts
       :clojure
@@ -1898,10 +1898,10 @@
     sym))
 
 (t/ann unparse-type [r/AnyType t/Any :-> t/Any])
-(defn unparse-type [t opts]
+(defn unparse-type [t {::vs/keys [verbose-types] :as opts}]
   ; quick way of giving a Name that the user is familiar with
   ;(prn "unparse-type" (class t))
-  (or (when-not vs/*verbose-types*
+  (or (when-not verbose-types
         (-> t meta :source-Name))
       (binding [vs/*no-simpl* true]
         (unparse-type* (or (some-> t meta :pretty (get t) :no-simpl deref)
@@ -1910,9 +1910,9 @@
 
 (defn unp [t opts] (prn (unparse-type t opts)))
 
-(defn unparse-F [f]
+(defn unparse-F [f {::vs/keys [verbose-types] :as opts}]
   {:pre [(r/F? f)]}
-  (if (:unique-tvars vs/*verbose-types*)
+  (if (:unique-tvars verbose-types)
     (:name f)
     (r/F-original-name f)))
 
@@ -1920,7 +1920,7 @@
   {:pre [(r/DottedPretype? t)]}
   (let [p (unparse-type pre-type opts)
         n (cond-> name
-            (symbol? name) (-> r/make-F unparse-F))]
+            (symbol? name) (-> r/make-F (unparse-F opts)))]
     (if flat?
       [p :.. n]
       (list 'DottedPretype p n))))
@@ -1972,7 +1972,7 @@
   (unparse-type* [{:keys [t]} opts] (unparse-type t opts))
 
   F
-  (unparse-type* [f opts] (unparse-F f))
+  (unparse-type* [f opts] (unparse-F f opts))
 
   PrimitiveArray
   (unparse-type* 
@@ -2049,10 +2049,10 @@
     (not ((some-fn orep/NoObject? orep/EmptyObject?) o))
     (conj :object (unparse-object o opts))))
 
-(defn unparse-bound [name]
+(defn unparse-bound [name opts]
   {:pre [((some-fn symbol? nat-int?) name)]}
   (if (symbol? name)
-    (-> name r/make-F unparse-F)
+    (-> name r/make-F (unparse-F opts))
     `(~'B ~name)))
 
 (defn unparse-regex [{:keys [kind types]} flatten? opts]
@@ -2073,9 +2073,9 @@
 (extend-protocol IUnparseType
   SymbolicClosure
   (unparse-type* 
-    [{:keys [fexpr smallest-type]} opts]
+    [{:keys [fexpr smallest-type]} {::vs/keys [verbose-types] :as opts}]
     (cond->> (unparse-type smallest-type opts)
-      vs/*verbose-types*
+      verbose-types
       (list 'SymbolicClosure (binding [*print-length* 5
                                        *print-level* 5]
                                (pr-str (:form fexpr))))))
@@ -2095,7 +2095,7 @@
               drest (into (let [{:keys [pre-type name]} drest]
                             [(unparse-type pre-type opts)
                              :..
-                             (unparse-bound name)]))
+                             (unparse-bound name opts)]))
               kws (into (let [{:keys [optional mandatory]} kws]
                           (list* '&
                                  (concat
@@ -2107,7 +2107,7 @@
               pdot (into (let [{:keys [pre-type name]} pdot]
                            [(unparse-type pre-type opts)
                             '<...
-                            (unparse-bound name)]))))]
+                            (unparse-bound name opts)]))))]
       (-> before-arrow
           (conj :->)
           (into (unparse-result rng opts))))))
@@ -2138,7 +2138,7 @@
   Mu
   (unparse-type* 
     [m opts]
-    (let [nme (-> (c/Mu-fresh-symbol* m) r/make-F unparse-F)
+    (let [nme (-> (c/Mu-fresh-symbol* m) r/make-F (unparse-F opts))
           body (c/Mu-body* nme m opts)]
       (list (unparse-Name-symbol-in-ns `t/Rec opts) [nme] (unparse-type body opts))))
 
@@ -2178,14 +2178,14 @@
 
 (defn unparse-poly-bounds-entry [name bnds opts]
   {:pre [(r/Bounds? bnds)]}
-  (let [name (-> name r/make-F unparse-F)]
+  (let [name (-> name r/make-F (unparse-F opts))]
     (if (= r/no-bounds bnds)
       name
       (into [name] (Bounds->vector bnds opts)))))
 
-(defn unparse-poly-dotted-bounds-entry [free-name bbnd]
+(defn unparse-poly-dotted-bounds-entry [free-name bbnd opts]
   (assert (= r/dotted-no-bounds bbnd)) ;; TODO do something interesting
-  [(-> free-name r/make-F unparse-F) :..])
+  [(-> free-name r/make-F (unparse-F opts)) :..])
 
 (defn unparse-poly-binder [dotted? free-names bbnds named opts]
   (let [named-remappings (apply sorted-map (interleave (vals named) (keys named)))
@@ -2205,7 +2205,7 @@
         binder (into (mapv unp-inb fixed-inb)
                      (concat
                        (when-let [[_ free-name bbnd] dotted-inb]
-                         (unparse-poly-dotted-bounds-entry free-name bbnd))
+                         (unparse-poly-dotted-bounds-entry free-name bbnd opts))
                        (when named-inb
                          [:named (mapv unp-inb named-inb)])))]
     binder))
@@ -2238,7 +2238,7 @@
 ;(ann unparse-typefn-bounds-entry [t/Sym Bounds Variance Opts -> Any])
 (defn unparse-typefn-bounds-entry [name bnds v opts]
   {:pre [(r/Bounds? bnds)]}
-  (let [name (-> name r/make-F unparse-F)]
+  (let [name (-> name r/make-F (unparse-F opts))]
     (into [name :variance v]
           (when (not= r/no-bounds bnds)
             (Bounds->vector bnds opts)))))
@@ -2265,7 +2265,7 @@
   (unparse-type* 
     [v opts]
     (if (and ((some-fn r/Nil? r/True? r/False?) v)
-             (not vs/*verbose-types*))
+             (not (::vs/verbose-types opts)))
       (:val v)
       (list (unparse-Name-symbol-in-ns `t/Val opts) (:val v)))))
 
@@ -2311,7 +2311,7 @@
                      (when rest [(unparse-type rest opts) '*])
                      (when drest [(unparse-type (:pre-type drest) opts)
                                   :..
-                                  (unparse-bound (:name drest))]))]
+                                  (unparse-bound (:name drest) opts)]))]
     (list* sym
            (vec first-part)
            (concat
@@ -2359,7 +2359,7 @@
              (mapv #(unparse-type % opts) (apply concat entries))
              (when dentries [(unparse-type (:pre-type dentries) opts)
                              :..
-                             (unparse-bound (:name dentries))]))))
+                             (unparse-bound (:name dentries) opts)]))))
 
   MergeType
   (unparse-type* 

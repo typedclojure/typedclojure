@@ -18,19 +18,19 @@
   (is-clj (= [(prs/parse-clj `Ping) {}]
              (clj (erase-names (prs/parse-clj `Ping)
                                #{}
-                               clj-opts))))
+                               (clj-opts)))))
   (is-clj (= [r/-nothing {`Ping 1}]
              (erase-names (prs/parse-clj `Ping)
                           #{`Ping}
-                          clj-opts)))
+                          (clj-opts))))
   (is-clj (= [(prs/parse-clj `nil) {`Ping 1}]
-             (erase-names (c/-resolve (prs/parse-clj `Pong) clj-opts)
+             (erase-names (c/-resolve (prs/parse-clj `Pong) (clj-opts))
                           #{`Ping}
-                          clj-opts)))
+                          (clj-opts))))
   (is-clj (= [(prs/parse-clj `(t/U '[nil] nil)) {`Pong 1}]
-             (clj (erase-names (c/-resolve (prs/parse-clj `Pong) clj-opts)
+             (clj (erase-names (c/-resolve (prs/parse-clj `Pong) (clj-opts))
                                #{`Pong}
-                               clj-opts))))
+                               (clj-opts)))))
   
   ;; TFn's expand before occurrences are counted
   (is-clj (= [(prs/parse-clj `'[nil nil]) {`Pong 2}]
@@ -38,7 +38,7 @@
                                                        '[x x])
                                                 Ping))
                                #{`Pong}
-                               clj-opts)))))
+                               (clj-opts))))))
 
 (declare T P)
 (t/defalias E
@@ -69,11 +69,11 @@
 
 (deftest erase-names-mini-occ-test
   (is-clj (= {`T 8}
-             (clj (second (erase-names (c/-resolve (prs/parse-clj `T) clj-opts)
-                                       #{`T} clj-opts)))))
+             (clj (second (erase-names (c/-resolve (prs/parse-clj `T) (clj-opts))
+                                       #{`T} (clj-opts))))))
   (is-clj (= {`E 8}
-             (clj (second (erase-names (c/-resolve (prs/parse-clj `E) clj-opts)
-                                       #{`E} clj-opts)))))
+             (clj (second (erase-names (c/-resolve (prs/parse-clj `E) (clj-opts))
+                                       #{`E} (clj-opts))))))
   (is-clj (= {`P 6}
-             (clj (second (erase-names (c/-resolve (prs/parse-clj `P) clj-opts)
-                                       #{`P} clj-opts))))))
+             (clj (second (erase-names (c/-resolve (prs/parse-clj `P) (clj-opts))
+                                       #{`P} (clj-opts)))))))

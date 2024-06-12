@@ -818,8 +818,7 @@
 (defn invoke-typing-rule
   [vsym {:keys [env] :as expr} expected {::check/keys [check-expr] :as opts}]
   ;(prn "invoke-typing-rule" vsym)
-  (let [unparse-type-verbose #(binding [vs/*verbose-types* false]
-                                (prs/unparse-type % opts))
+  (let [unparse-type-verbose #(prs/unparse-type % (assoc opts ::vs/verbose-types false))
         subtype? (fn [s t]
                    (let [s (prs/parse-type s opts)
                          t (prs/parse-type t opts)]
@@ -921,8 +920,7 @@
                    :emit-form #(ast-u/emit-form-fn % opts)
                    :abbreviate-type (fn [t]
                                       (let [m (prs/parse-type t opts)]
-                                        (binding [vs/*verbose-types* false]
-                                          (prs/unparse-type m opts))))
+                                        (prs/unparse-type m (assoc opts ::vs/verbose-types false))))
                    :delayed-error (fn [s opt]
                                     (let [opt (-> opt
                                                   (update :expected cu/maybe-map->TCResult)

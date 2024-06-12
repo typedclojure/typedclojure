@@ -18,24 +18,22 @@
             [typed.cljc.runtime.env :as env]))
 
 (defn- name-env [checker opts]
-  (binding [vs/*verbose-types* true]
-    (into {}
-          (for [[k v] (nme-env/name-env checker)]
-            (when-not (keyword? v)
-              (when-some [t (force-type v)]
-                [k (unparse-type t opts)]))))))
-
-(defn- var-env [checker opts]
-  (binding [vs/*verbose-types* true]
-    (into {}
-          (for [[k v] (var-annotations checker)]
+  (into {}
+        (for [[k v] (nme-env/name-env checker)]
+          (when-not (keyword? v)
             (when-some [t (force-type v)]
               [k (unparse-type t opts)])))))
+
+(defn- var-env [checker opts]
+  (into {}
+        (for [[k v] (var-annotations checker)]
+          (when-some [t (force-type v)]
+            [k (unparse-type t opts)]))))
 
 (defn all-envs-clj []
   (load-if-needed)
   (impl/with-clojure-impl
-    (let [opts (clj-opts)
+    (let [opts (assoc (clj-opts) ::vs/verbose-types true)
           checker (impl/clj-checker)]
       {:aliases (name-env checker opts)
        :vars (var-env checker opts)})))
