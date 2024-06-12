@@ -195,22 +195,24 @@
       ;if dotted bound is in V, transfer to rest args
       (and (:drest T) (V (-> T :drest :name)))
       (r/-hsequential (mapv pmt (:types T))
-                      :filters (:fs T)
-                      :objects (:objects T)
-                      :rest (pmt (-> T :drest :pre-type))
-                      :kind (:kind T))
+                      {:filters (:fs T)
+                       :objects (:objects T)
+                       :rest (pmt (-> T :drest :pre-type))
+                       :kind (:kind T)}
+                      opts)
 
       :else
       (r/-hsequential (mapv pmt (:types T))
                       ; we know no filters contain V
-                      :filters (:fs T)
-                      :objects (:objects T)
-                      :rest (some-> (:rest T)
-                                    pmt)
-                      :drest (some-> (:drest T)
-                                     (update :pre-type pmt))
-                      :repeat (:repeat T)
-                      :kind (:kind T)))))
+                      {:filters (:fs T)
+                       :objects (:objects T)
+                       :rest (some-> (:rest T)
+                                     pmt)
+                       :drest (some-> (:drest T)
+                                      (update :pre-type pmt))
+                       :repeat (:repeat T)
+                       :kind (:kind T)}
+                      opts))))
 
 (promote-demote HSet
   [T V]

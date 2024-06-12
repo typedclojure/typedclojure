@@ -73,8 +73,9 @@
     (or rest drest (= :fixed kind))
     ; rest argument is nilable non-empty seq, refine further based on remaining fixed domain
     (cond-> (c/In [(r/-hseq remain-dom
-                            :rest rest
-                            :drest drest)
+                            {:rest rest
+                             :drest drest}
+                            opts)
                    ;; in addition to hseq's count knowledge
                    (r/make-CountRange 1)]
                   opts)

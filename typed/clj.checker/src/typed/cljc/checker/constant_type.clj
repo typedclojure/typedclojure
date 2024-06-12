@@ -74,13 +74,14 @@
   (constant-ret [iseq opts]
     (ret (r/-hsequential
            (mapv #(constant-type % opts) iseq)
-           :kind (cond
-                   (list? iseq) :list
-                   (seq? iseq) :seq
-                   :else :sequential))))
+           {:kind (cond
+                    (list? iseq) :list
+                    (seq? iseq) :seq
+                    :else :sequential)}
+           opts)))
 
   IPersistentVector
-  (constant-ret [cvec opts] (ret (r/-hvec (mapv #(constant-type % opts) cvec))))
+  (constant-ret [cvec opts] (ret (r/-hvec (mapv #(constant-type % opts) cvec) {} opts)))
 
   IPersistentMap
   (constant-ret [cmap opts]

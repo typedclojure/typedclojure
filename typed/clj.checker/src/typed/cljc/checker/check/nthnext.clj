@@ -22,7 +22,7 @@
 
 (defn drop-HSequential
   "Drop n elements from HSequential t."
-  [n t]
+  [n t opts]
   {:pre [(nat-int? n)
          (r/HSequential? t)]
    :post [(r/Type? %)]}
@@ -35,17 +35,18 @@
                                (nthrest (cycle e) n)))
                     (vec (nthrest e n)))))]
     (r/-hseq (shift :types)
-             :filters (shift :fs)
-             :objects (shift :objects)
-             :rest (:rest t)
-             :drest (:drest t)
-             :repeat (:repeat t))))
+             {:filters (shift :fs)
+              :objects (shift :objects)
+              :rest (:rest t)
+              :drest (:drest t)
+              :repeat (:repeat t)}
+             opts)))
 
 (defn nthnext-hsequential [t n opts]
   {:pre [(r/HSequential? t)
          (nat-int? n)]
    :post [(r/Type? %)]}
-  (let [res (drop-HSequential n t)]
+  (let [res (drop-HSequential n t opts)]
     (cond
       (or (:rest res)
           (:drest res)
@@ -55,11 +56,11 @@
       (empty? (:types res)) r/-nil
       :else res)))
 
-(defn nthrest-hsequential [t n]
+(defn nthrest-hsequential [t n opts]
   {:pre [(r/HSequential? t)
          (nat-int? n)]
    :post [(r/Type? %)]}
-  (drop-HSequential n t))
+  (drop-HSequential n t opts))
 
 (defn nthnext-kw-args-seq [t n opts]
   {:pre [(r/KwArgsSeq? t)
@@ -84,8 +85,8 @@
                          (c/Un ts opts)))
         (r/Intersection? t) (when-let [ts (seq (keep #(nthrest-type % n opts) (:types t)))]
                               (c/In ts opts))
-        (r/Nil? t) (r/-hseq [])
-        (r/HSequential? t) (nthrest-hsequential t n)
+        (r/Nil? t) (r/-hseq [] {} opts)
+        (r/HSequential? t) (nthrest-hsequential t n opts)
         :else (when-let [res (cgen/unify-or-nil
                                {:fresh [x]
                                 :out x

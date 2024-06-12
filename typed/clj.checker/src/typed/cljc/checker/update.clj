@@ -278,8 +278,10 @@
             path-expr (first lo)
             idx (:idx path-expr)
             fixed-types (conj (vec (repeat idx r/-any)) type)
-            restriction-type (r/-hsequential fixed-types :rest r/-any
-                                             :kind (:kind t))]
+            restriction-type (r/-hsequential fixed-types
+                                             {:rest r/-any
+                                              :kind (:kind t)}
+                                             opts)]
         (c/restrict t restriction-type opts))
 
       (and (not pos?)

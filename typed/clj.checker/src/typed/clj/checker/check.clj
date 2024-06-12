@@ -1003,11 +1003,6 @@
               (-> % u/expr-type r/TCResult?))]}
   (apply/maybe-check-apply -invoke-apply expr expected opts))
 
-(defonce ^:dynamic *inst-ctor-types* nil)
-(t/tc-ignore
-(set-validator! #'*inst-ctor-types* (some-fn nil? (con/every-c? r/Type?)))
-)
-
 ;TODO this should be a special :do op
 ;manual instantiation for calls to polymorphic constructors
 (defmethod -invoke-special 'clojure.core.typed/inst-poly-ctor
@@ -1018,8 +1013,7 @@
                                                      (update-in [:args 1] ana2/run-passes))
         targs (binding [prs/*parse-type-in-ns* (cu/expr-ns expr opts)]
                 (mapv #(prs/parse-type % opts) (ast-u/quote-expr-val targs-exprs)))
-        cexpr (binding [*inst-ctor-types* targs]
-                (check-expr ctor-expr nil opts))]
+        cexpr (check-expr ctor-expr nil (assoc opts ::inst-ctor-types targs))]
     (-> expr 
         (assoc-in [:args 0] cexpr)
         (assoc u/expr-type (u/expr-type cexpr)))))
@@ -1128,8 +1122,9 @@
           :args cargs
           u/expr-type (below/maybe-check-below
                         (r/ret (r/-hvec (mapv (comp r/ret-t u/expr-type) cargs)
-                                        :filters (mapv (comp r/ret-f u/expr-type) cargs)
-                                        :objects (mapv (comp r/ret-o u/expr-type) cargs)))
+                                        {:filters (mapv (comp r/ret-f u/expr-type) cargs)
+                                         :objects (mapv (comp r/ret-o u/expr-type) cargs)}
+                                        opts))
                         expected
                         opts)))))
 
@@ -1419,7 +1414,9 @@
 
           actual (r/-hvec [spec-map-ty 
                            (prs/parse-type `(t/Seqable t/Str) opts)
-                           (prs/parse-type `t/Str opts)])
+                           (prs/parse-type `t/Str opts)]
+                          {}
+                          opts)
           _ (when expected
               (when-not (sub/subtype? actual (r/ret-t expected) opts)
                 (cu/expected-error 
@@ -1721,10 +1718,10 @@
             vs/*current-env* (:env expr)]
     (or (-new-special expr expected opts)
         (let [checker (cenv/checker opts)
-              inst-types *inst-ctor-types*
+              inst-types (::inst-ctor-types opts)
               expr (-> expr
                        (update :class check-expr nil opts)
-                       (update :args #(binding [*inst-ctor-types* nil]
+                       (update :args #(let [opts (assoc opts ::inst-ctor-types nil)]
                                         (mapv (fn [e] (check-expr e nil opts)) %)))
                        ;delegate eval to check-expr
                        ana2/run-post-passes)

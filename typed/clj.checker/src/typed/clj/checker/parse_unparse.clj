@@ -189,8 +189,7 @@
                  #_
                  (vary-meta (fnil into {})
                             (let [;app *bound-f*
-                                  t (delay (app #(binding [vs/*no-simpl* true]
-                                                   (parse-type s opts))))]
+                                  t (delay (app #(parse-type s (assoc opts ::vs/no-simpl true))))]
                               {:pretty {parsed {:original-syntax s
                                                 :file *file*
                                                 :nsym (parse-in-ns opts)
@@ -696,14 +695,14 @@
 (defmethod parse-type-list 'typed.clojure/Match [t opts] (parse-Match t opts))
 
 (defn parse-union-type [[u & types] opts]
-  (c/make-Union (doall (map #(parse-type % opts) types))))
+  (c/make-Union (doall (map #(parse-type % opts) types)) opts))
 
 (defmethod parse-type-list 'typed.clojure/U [syn opts] (parse-union-type syn opts))
 
 ; don't do any simplification of the intersection because some types might
 ; not be resolved
 (defn parse-intersection-type [[i & types] opts]
-  (c/make-Intersection (map #(parse-type % opts) types)))
+  (c/make-Intersection (map #(parse-type % opts) types) opts))
 
 (defmethod parse-type-list 'typed.clojure/I [syn opts] (parse-intersection-type syn opts))
 
@@ -963,11 +962,12 @@
       (prs-error (str ":repeat must be boolean") opts))
     (let [{:keys [fixed drest rest]} (parse-h*-types syn opts)]
       (constructor fixed
-                   :filters (some->> filter-sets (mapv #(parse-filter-set % opts)))
-                   :objects (some->> objects (mapv #(parse-object % opts)))
-                   :drest drest
-                   :rest rest
-                   :repeat (true? repeat)))))
+                   {:filters (some->> filter-sets (mapv #(parse-filter-set % opts)))
+                    :objects (some->> objects (mapv #(parse-object % opts)))
+                    :drest drest
+                    :rest rest
+                    :repeat (true? repeat)}
+                   opts))))
 
 (def parse-HVec (parse-heterogeneous* parse-hvec-types #'r/-hvec))
 (def parse-HSequential (parse-heterogeneous* parse-hsequential-types #'r/-hsequential))
@@ -1023,8 +1023,9 @@
 (defn parse-quoted-hvec [syn opts]
   (let [{:keys [fixed drest rest]} (parse-hvec-types syn opts)]
     (r/-hvec fixed
-             :drest drest
-             :rest rest)))
+             {:drest drest
+              :rest rest}
+             opts)))
 
 (defn quoted? [v]
   (and (seq? v)
@@ -1256,7 +1257,7 @@
                 :let [m (into mandatory mopts)
                       kss (comb/permutations (keys m))]
                 ks kss
-                k (r/-hseq (mapcat #(find m %) ks))]
+                k (r/-hseq (mapcat #(find m %) ks) {} opts)]
             k)
           opts)))
 
@@ -1526,7 +1527,7 @@
   (case (:kind t)
     :cat (do (when (some r/Regex? (:types t))
                (prs-error (str "Regex not supported in t/cat in HSequential position: " (:kind t)) opts))
-             (r/-hsequential (:types t) :repeat repeat?))
+             (r/-hsequential (:types t) {:repeat repeat?} opts))
     (prs-error (str "Regex not supported in HSequential position: " (:kind t)) opts)))
 
 (defn push-HSequential->regex [{:keys [repeat types] :as t}]
@@ -1903,10 +1904,9 @@
   ;(prn "unparse-type" (class t))
   (or (when-not verbose-types
         (-> t meta :source-Name))
-      (binding [vs/*no-simpl* true]
-        (unparse-type* (or (some-> t meta :pretty (get t) :no-simpl deref)
-                           t)
-                       opts))))
+      (unparse-type* (or (some-> t meta :pretty (get t) :no-simpl deref)
+                         t)
+                     (assoc opts ::vs/no-simpl true))))
 
 (defn unp [t opts] (prn (unparse-type t opts)))
 

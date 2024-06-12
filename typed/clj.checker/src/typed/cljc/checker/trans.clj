@@ -57,29 +57,32 @@
                   extra-fixed (- (count fixed)
                                  (count (:types t)))]
               (r/-hsequential fixed
-                              :filters (vec
-                                         (concat (map tfn (:fs t))
-                                                 (repeat extra-fixed
-                                                         (fo/-simple-filter))))
-                              :objects (vec
-                                         (concat (map tfn (:objects t))
-                                                 (repeat extra-fixed
-                                                         or/-empty)))
-                              ;drest is expanded into fixed
-                              :kind kind))
+                              {:filters (vec
+                                          (concat (map tfn (:fs t))
+                                                  (repeat extra-fixed
+                                                          (fo/-simple-filter))))
+                               :objects (vec
+                                          (concat (map tfn (:objects t))
+                                                  (repeat extra-fixed
+                                                          or/-empty)))
+                               ;drest is expanded into fixed
+                               :kind kind}
+                              opts))
             (r/-hsequential (mapv tfn (:types t))
-                            :filters (mapv tfn (:fs t))
-                            :objects (mapv tfn (:objects t))
-                            :drest (some-> (:drest t)
-                                           (update :pre-type tfn)) ;translate pre-type
-                            :kind kind)))
+                            {:filters (mapv tfn (:fs t))
+                             :objects (mapv tfn (:objects t))
+                             :drest (some-> (:drest t)
+                                            (update :pre-type tfn)) ;translate pre-type
+                             :kind kind}
+                            opts)))
         :else
         (r/-hsequential (mapv tfn (:types t))
-                        :filters (mapv tfn (:fs t))
-                        :objects (mapv tfn (:objects t))
-                        :rest (some-> (:rest t) tfn)
-                        :repeat (:repeat t)
-                        :kind kind)))))
+                        {:filters (mapv tfn (:fs t))
+                         :objects (mapv tfn (:objects t))
+                         :rest (some-> (:rest t) tfn)
+                         :repeat (:repeat t)
+                         :kind kind}
+                        opts)))))
 
 (fold/add-fold-case
   ITransDots trans-dots*

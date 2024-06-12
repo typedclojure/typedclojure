@@ -18,13 +18,13 @@
             [typed.cljc.checker.check :as check]
             [typed.cljc.checker.check-below :as below]))
 
-(def ^:dynamic ^:private *meta-debug-depth* 0)
-
-(defn check-meta-debug [expr maybe-msg expected {::check/keys [check-expr] :as opts}]
+(defn check-meta-debug [expr maybe-msg expected {::keys [meta-debug-depth]
+                                                 :or {meta-debug-depth 0}
+                                                 ::check/keys [check-expr] :as opts}]
   (when-not ((some-fn true? string?) maybe-msg)
     (err/int-error (str "::t/dbg value must be a string, given: " (pr-str maybe-msg)) opts))
   (let [id (gensym)
-        prefix (str (apply str (repeat *meta-debug-depth* " ")) "::t/dbg id=" id)
+        prefix (str (apply str (repeat (or meta-debug-depth 0) " ")) "::t/dbg id=" id)
         _ (when (string? maybe-msg)
             (println prefix maybe-msg))
         _ (println prefix (binding [*print-namespace-maps* false]
@@ -32,8 +32,7 @@
 
         _ (when expected
             (println prefix (str "expected: " (pr-str (prs/unparse-TCResult expected opts)))))
-        cexpr (binding [*meta-debug-depth* (inc *meta-debug-depth*)]
-                (check-expr expr expected opts))
+        cexpr (check-expr expr expected (assoc opts ::meta-debug-depth (inc meta-debug-depth)))
         _ (println prefix "result:" (binding [*print-namespace-maps* false]
                                       (pr-str (prs/unparse-TCResult (u/expr-type cexpr) opts))))]
     cexpr))

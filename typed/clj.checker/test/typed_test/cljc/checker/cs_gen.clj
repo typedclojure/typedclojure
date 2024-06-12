@@ -220,12 +220,12 @@
                                                                             y1))]
              (is (= expected-t t'))))))
   (clj (let [{:keys [separated-t remap]} (sut/separate-F
-                                           (r/make-Function [] r/-any :drest (r/DottedPretype1-maker (r/-hvec [(r/make-F 'z) (r/make-F 'z)]) 'z))
+                                           (r/make-Function [] r/-any :drest (r/DottedPretype1-maker (r/-hvec [(r/make-F 'z) (r/make-F 'z)] {} (clj-opts)) 'z))
                                            {:idx #{'z}}
                                            (clj-opts))
              {{[z] 'z} :idx} remap
              {{{[z1 z2] 'z} [z]} :idx-context} remap
-             expected-t (r/make-Function [] r/-any :drest (r/DottedPretype1-maker (r/-hvec [(r/make-F z1) (r/make-F z2)]) z))]
+             expected-t (r/make-Function [] r/-any :drest (r/DottedPretype1-maker (r/-hvec [(r/make-F z1) (r/make-F z2)] {} (clj-opts)) z))]
          (is (= expected-t separated-t)))))
 
 (deftest subst-non-covariant-test
@@ -241,12 +241,12 @@
   (clj (let [d (gensym 'd)
              a (gensym 'a)
              r (gensym 'r)
-             t (r/make-Function [(r/make-F a)] (r/make-F r) :drest (r/DottedPretype1-maker (r/-hvec [(r/make-F d) (r/make-F d)]) d))
+             t (r/make-Function [(r/make-F a)] (r/make-F r) :drest (r/DottedPretype1-maker (r/-hvec [(r/make-F d) (r/make-F d)] {} (clj-opts)) d))
              subst {a (crep/t-subst-maker (r/-val 0) r/no-bounds)
                     d (crep/i-subst-maker [(r/-val 1) (r/-val 2)])}]
          (is (= (r/make-Function [(r/-val 0)
-                                  (r/-hvec [(r/-val 1) (r/-val 1)])
-                                  (r/-hvec [(r/-val 2) (r/-val 2)])]
+                                  (r/-hvec [(r/-val 1) (r/-val 1)] {} (clj-opts))
+                                  (r/-hvec [(r/-val 2) (r/-val 2)] {} (clj-opts))]
                                  (r/make-F r))
                 (sut/subst-non-covariant subst t (clj-opts)))))))
 

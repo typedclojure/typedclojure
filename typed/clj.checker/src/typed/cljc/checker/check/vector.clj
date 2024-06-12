@@ -20,8 +20,9 @@
           (vector? (:items %))]}
   (let [cargs (mapv #(check-expr % nil opts) items)
         res-type (r/-hvec (mapv (comp r/ret-t u/expr-type) cargs)
-                          :filters (mapv (comp r/ret-f u/expr-type) cargs)
-                          :objects (mapv (comp r/ret-o u/expr-type) cargs))]
+                          {:filters (mapv (comp r/ret-f u/expr-type) cargs)
+                           :objects (mapv (comp r/ret-o u/expr-type) cargs)}
+                          opts)]
     (assoc expr
            :items cargs
            u/expr-type (below/maybe-check-below

@@ -118,8 +118,9 @@
                  k (:val kt)]
              (when (and (integer? k) (<= k (count (:types v))))
                (r/-hvec (assoc (:types v) k (:t vt))
-                        :filters (assoc (:fs v) k (:fl vt))
-                        :objects (assoc (:objects v) k (:o vt)))))
+                        {:filters (assoc (:fs v) k (:fl vt))
+                         :objects (assoc (:objects v) k (:o vt))}
+                        opts)))
            (if (r/F? rkt)
              (r/AssocType-maker v [[rkt (r/ret-t vt)]] nil)
              (c/upcast-HSequential v {:visit-elem-type #(c/Un [% (r/ret-t vt)] opts)
@@ -401,8 +402,9 @@
 
     (ind/subtype? left r/-nil opts)
     (r/-hvec [(:t right)]
-             :filters [(:fl right)]
-             :objects [(:o right)])
+             {:filters [(:fl right)]
+              :objects [(:o right)]}
+             opts)
 
     ; other rules need to unwrap the rhs
     :else

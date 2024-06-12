@@ -27,6 +27,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Utils
 
+(defmacro OR
+  "Like `clojure.core/or` but produces better bytecode when used with
+  compile-time known booleans."
+  ([] nil)
+  ([x] `(if ~x true false))
+  ([x & next]
+   `(if ~x true (OR ~@next))))
+
 (defmacro ann-record 
   "Like ann-record, but also adds an unchecked annotation for core.contract's generated
   nme? predicate."

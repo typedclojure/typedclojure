@@ -6,7 +6,7 @@
 
 (deftest empty-intersection-test
   (testing "empty intersection should be Top, not Bottom"
-    (is (= (c/make-Intersection []) r/-any))
+    (is (= (c/make-Intersection [] (clj-opts)) r/-any))
     (is (= (c/In [] {}) r/-any)))
   (testing "intersection containing Bottom is Bottom"
     (is (= (c/In [r/-nothing r/-any] {})

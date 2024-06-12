@@ -145,17 +145,19 @@
           (into (mapv sb types)
                 (map (fn [img] (substitute img name expanded opts)))
                 images))
-        :filters (into (mapv sb fs) (repeat (count images) (fo/-FS fl/-top fl/-top)))
-        :objects (into (mapv sb objects) (repeat (count images) orep/-empty))
-        :kind kind)
+        {:filters (into (mapv sb fs) (repeat (count images) (fo/-FS fl/-top fl/-top)))
+         :objects (into (mapv sb objects) (repeat (count images) orep/-empty))
+         :kind kind}
+        opts)
       (r/-hsequential
         (mapv sb types)
-        :filters (mapv sb fs)
-        :objects (mapv sb objects)
-        :rest (some-> rest sb)
-        :drest (some-> drest (update :pre-type drest))
-        :repeat (:repeat ftype)
-        :kind kind))))
+        {:filters (mapv sb fs)
+         :objects (mapv sb objects)
+         :rest (some-> rest sb)
+         :drest (some-> drest (update :pre-type drest))
+         :repeat (:repeat ftype)
+         :kind kind}
+        opts))))
 
 ;; implements angle bracket substitution from the formalism
 ;; substitute-dots : Listof[Type] Option[type] Name Type -> Type
@@ -227,16 +229,17 @@
   (fn [{:keys [types fs objects rest drest kind] :as ftype} sb name image]
     (r/-hsequential
       (mapv sb types)
-      :filters (mapv sb fs))
-      :objects (mapv sb objects)
-      :rest (some-> rest sb)
-      :drest (when drest
-               (r/DottedPretype1-maker (substitute image (:name drest) (sb (:pretype drest)) opts)
-                                       (if (= name (:name drest))
-                                         name
-                                         (:name drest))))
-      :repeat (:repeat ftype)
-      :kind kind))
+      {:filters (mapv sb fs)
+       :objects (mapv sb objects)
+       :rest (some-> rest sb)
+       :drest (when drest
+                (r/DottedPretype1-maker (substitute image (:name drest) (sb (:pretype drest)) opts)
+                                        (if (= name (:name drest))
+                                          name
+                                          (:name drest))))
+       :repeat (:repeat ftype)
+       :kind kind}
+      opts)))
 
 ;; implements curly brace substitution from the formalism
 ;; substitute-dotted : Type Name Name Type -> Type

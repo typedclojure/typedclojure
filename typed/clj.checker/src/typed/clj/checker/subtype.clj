@@ -28,7 +28,7 @@
             [typed.cljc.checker.path-rep :as pth-rep]
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.type-rep :as r]
-            [typed.cljc.checker.utils :as u :refer [AND]])
+            [typed.cljc.checker.utils :as u :refer [AND OR]])
   (:import (typed.cljc.checker.type_rep Poly TApp F FnIntersection Intersection
                                         Extends NotType DifferenceType AssocType
                                         RClass Bounds HSequential HeterogeneousMap
@@ -118,7 +118,7 @@
       (and (do-top-level-subtype-using
              subtypes*-varargs (vec argtys-dom) dom nil nil opts)
            (do-top-level-subtype-using
-             subtypeA* (r/-hvec (vec argtys-rest)) prest opts)))))
+             subtypeA* (r/-hvec (vec argtys-rest) {} opts) prest opts)))))
 
 ;subtype and subtype? use *sub-current-seen* for remembering types (for Rec)
 ;subtypeA* takes an extra argument (the current-seen subtypes), called by subtype
@@ -350,15 +350,6 @@
          (r/Regex? t)]}
   ;;TODO
   (report-not-subtypes s t))
-
-
-(defmacro ^:private OR
-  "Like `clojure.core/or` but produces better bytecode when used with
-  compile-time known booleans."
-  ([] nil)
-  ([x] `(if ~x true false))
-  ([x & next]
-   `(if ~x true (OR ~@next))))
 
 (defn subtype-heterogeneous-map [A s t opts]
   (let [; convention: prefix things on left with l, right with r
@@ -718,11 +709,11 @@
         (recur A s (c/resolve-TypeOf t opts) opts)
 
         (AND (r/MatchType? s)
-             (c/Match-can-resolve? s))
+             (c/Match-can-resolve? s opts))
         (recur A (c/resolve-Match s opts) t opts)
 
         (AND (r/MatchType? t)
-             (c/Match-can-resolve? t))
+             (c/Match-can-resolve? t opts))
         (recur A s (c/resolve-Match t opts) opts)
 
         (AND (r/Value? s)

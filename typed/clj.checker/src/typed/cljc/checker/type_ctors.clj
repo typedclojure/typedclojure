@@ -37,7 +37,7 @@
             [typed.cljc.checker.protocol-env :as prenv]
             [typed.cljc.checker.tvar-bnds :as bnds]
             [typed.cljc.checker.type-rep :as r :refer [ret-t]]
-            [typed.cljc.checker.utils :as u]
+            [typed.cljc.checker.utils :as u :refer [OR AND]]
             typed.cljc.checker.coerce-ann)
   (:import (clojure.lang ASeq)
            java.lang.reflect.Modifier
@@ -83,11 +83,11 @@
 (def ^:private bottom (r/Union-maker (sorted-set)))
 
 ;;TODO accepts IReduce
-(t/ann ^:no-check make-Union [(t/Seqable r/Type) -> r/Type])
+(t/ann ^:no-check make-Union [(t/Seqable r/Type) t/Any -> r/Type])
 (defn make-Union
   "Does not resolve types."
-  [args]
-  (if vs/*no-simpl*
+  [args {::vs/keys [no-simpl] :as opts}]
+  (if no-simpl
     (r/Union-maker (vec args))
     (let [ts (flatten-unions args)]
       (case (count ts)
@@ -287,7 +287,8 @@
                   (make-Union
                     (concat types
                             (when rest
-                              [rest])))
+                              [rest]))
+                    opts)
                   r/-any)
                 visit-elem-type)]
      (make-Intersection
@@ -311,7 +312,8 @@
               (not elide-count)) (conj (r/make-CountRange
                                          (count types)
                                          (when-not rest
-                                           (count types)))))))))
+                                           (count types)))))
+       opts))))
 
 (defn upcast-kw-args-seq [{kws :kw-args-regex
                            :as kwseq}
@@ -357,10 +359,10 @@
 (declare flatten-intersections)
 
 (t/ann ^:no-check Un [(t/Seqable r/Type) t/Any :-> r/Type])
-(defn Un [types opts]
+(defn Un [types {::vs/keys [no-simpl] :as opts}]
   {:post [(r/Type? %)]}
-  (if vs/*no-simpl*
-    (make-Union types)
+  (if no-simpl
+    (make-Union types opts)
     (let [cache-key (into #{} (map r/assert-Type) types)]
       (if-let [hit (get @Un-cache cache-key)]
         hit
@@ -373,7 +375,7 @@
                                    (not (r/Union? a))]
                              :post [(set? %)]}
                             #_(prn "merge-type" a b)
-                            (let [b* (make-Union b)
+                            (let [b* (make-Union b opts)
                                   ;_ (prn "merge-type" a b*)
                                   res (cond
                                         ; don't resolve type applications in case types aren't
@@ -395,7 +397,8 @@
                         (make-Union
                           (reduce (fn [acc t] (merge-type t acc))
                                   (sorted-set)
-                                  types)))))]
+                                  types)
+                          opts))))]
           (swap! Un-cache assoc cache-key res)
           res)))))
 
@@ -418,8 +421,8 @@
 (t/ann ^:no-check make-Intersection [(t/Seqable r/Type) -> r/Type])
 (defn make-Intersection
   "Does not resolve types."
-  [types]
-  (if vs/*no-simpl*
+  [types {::vs/keys [no-simpl] :as opts}]
+  (if no-simpl
     (r/Intersection-maker (vec types))
     (let [ts (flatten-intersections types)]
       (case (count ts)
@@ -486,7 +489,7 @@
                 ; of everything
                 (or (and (r/Unchecked? t1) (not (r/Unchecked? t2)))
                     (and (not (r/Unchecked? t1)) (r/Unchecked? t2)))
-                (make-Intersection [t1 t2])
+                (make-Intersection [t1 t2] opts)
 
                 (and (r/HeterogeneousMap? t1)
                      (r/HeterogeneousMap? t2))
@@ -516,8 +519,8 @@
                 (ind/subtype? t1 t2 opts) t1
                 (ind/subtype? t2 t1 opts) t2
                 :else (do
-                        #_(prn "failed to eliminate intersection" (make-Intersection [t1 t2]))
-                        (make-Intersection [t1 t2])))]
+                        #_(prn "failed to eliminate intersection" (make-Intersection [t1 t2] opts))
+                        (make-Intersection [t1 t2] opts)))]
         (swap! intersect-cache assoc cache-key t)
         ;(prn "intersect miss" (ind/unparse-type t opts))
         t))))
@@ -549,10 +552,10 @@
           (sorted-set) types))
 
 (t/ann ^:no-check In [(t/Seqable r/Type) t/Any :-> r/Type])
-(defn In [types opts]
+(defn In [types {::vs/keys [no-simpl] :as opts}]
   {:post [(r/Type? %)]}
-  (if vs/*no-simpl*
-    (make-Intersection types)
+  (if no-simpl
+    (make-Intersection types opts)
     (let [res (let [ts (flatten-intersections (eduction (map (comp #(fully-resolve-type % opts) r/assert-Type)) types))]
                 (cond
                   ; empty intersection is Top
@@ -804,9 +807,6 @@
 
 ;; RClass
 
-(t/ann *current-RClass-super* (t/U nil t/Sym))
-(defonce ^:dynamic *current-RClass-super* nil)
-
 ;smart constructor
 (t/ann ^:no-check RClass* 
   (t/IFn [(t/Seqable t/Sym) (t/Seqable r/Variance) (t/Seqable r/Type) t/Sym (t/Map t/Sym r/Type) t/Any -> r/Type]
@@ -913,8 +913,8 @@
                      (do (when args?
                            (err/int-error
                              (str "Cannot instantiate non-polymorphic RClass " sym
-                                  (when *current-RClass-super*
-                                    (str " when checking supertypes of RClass " *current-RClass-super*)))
+                                  (when-some [current-RClass-super (::current-RClass-super opts)]
+                                    (str " when checking supertypes of RClass " current-RClass-super)))
                              opts))
                          (if (nil? rc)
                            (let [cls (if cls?
@@ -1185,7 +1185,7 @@
                                                (str "RClass ancestor for " (pr-str rcls) " defaulting "
                                                     "to most general parameters")))} 
                   res (as-> (sorted-set) res
-                        (binding [*current-RClass-super* the-class]
+                        (let [opts (assoc opts ::current-RClass-super the-class)]
                           (reduce (fn [res csym]
                                     (if (replacements csym)
                                       res
@@ -1512,7 +1512,7 @@
                               (str "Wrong number of types (" (count types) 
                                    ") used to instantiate polymorphic type: "
                                    (ind/unparse-type t opts)
-                                   (when-some [current-RClass-super *current-RClass-super*]
+                                   (when-some [current-RClass-super (::current-RClass-super opts)]
                                      (str " when checking ancestors of " current-RClass-super)))
                               opts))
                         nms (Poly-fresh-symbols* t)
@@ -1609,16 +1609,7 @@
 (defn -resolve [ty opts]
   {:pre [(r/AnyType? ty)]
    :post [(r/AnyType? %)]}
-  (cond 
-    (r/Name? ty) (resolve-Name ty opts)
-    (r/Mu? ty) (unfold ty opts)
-    (r/App? ty) (resolve-App ty opts)
-    (r/TApp? ty) (resolve-TApp ty opts)
-    (r/GetType? ty) (resolve-Get ty opts)
-    (r/MergeType? ty) (resolve-Merge ty opts)
-    (r/TypeOf? ty) (resolve-TypeOf ty opts)
-    (r/MatchType? ty) (resolve-Match ty opts)
-    :else ty))
+  (p/-resolve ty opts))
 
 (defn Get-requires-resolving? [ty opts]
   {:pre [(r/GetType? ty)]}
@@ -1628,25 +1619,15 @@
   {:pre [(r/MergeType? ty)]}
   (not-any? (comp r/F? #(fully-resolve-type % opts)) (:types ty)))
 
-(defn Match-can-resolve? [ty]
+(defn Match-can-resolve? [ty opts]
   {:pre [(r/MatchType? ty)]}
   (not (r/F? (:target ty))))
+
 
 (t/ann requires-resolving? [r/Type -> t/Any])
 (defn requires-resolving? [ty opts]
   {:pre [(r/AnyType? ty)]}
-  (or (r/Name? ty)
-      (r/App? ty)
-      (and (r/TApp? ty)
-           (not (r/F? (fully-resolve-type (:rator ty) opts))))
-      (and (r/GetType? ty)
-           (Get-requires-resolving? ty opts))
-      (and (r/MergeType? ty)
-           (Merge-requires-resolving? ty opts))
-      (r/Mu? ty)
-      (r/TypeOf? ty)
-      (and (r/MatchType? ty)
-           (Match-can-resolve? ty))))
+  (p/-requires-resolving? ty opts))
 
 (t/ann ^:no-check resolve-Name [Name t/Any -> r/Type])
 (defn resolve-Name [nme opts]
@@ -1822,8 +1803,6 @@
     ;; ---->>
     true))
 
-(def ^:dynamic *overlap-seen* #{})
-
 (defn overlap-CountRange-KwArgsSeq?
   [A {:keys [lower upper] :as cr} kws opts]
   {:pre [(r/CountRange? cr)
@@ -1843,15 +1822,14 @@
 (t/ann ^:no-check overlap (t/IFn [r/Type r/Type t/Any -> t/Any]
                                  [t/Any r/Type r/Type t/Any -> t/Any]))
 (defn overlap
-  ([t1 t2 opts] (overlap *overlap-seen* t1 t2 opts))
+  ([t1 t2 opts] (overlap (::overlap-seen opts #{}) t1 t2 opts))
   ([A t1 t2 opts]
    (if (contains? A [t1 t2])
      true
      (let [A* (conj A [t1 t2])
            overlap #(overlap A* %1 %2 opts)
            ;; handle mutual recursion between subtyping and overlap
-           subtype? #(binding [*overlap-seen* A*]
-                       (ind/subtype? %1 %2 opts))
+           subtype? #(ind/subtype? %1 %2 (assoc opts ::overlap-seen A*))
 
            t1 (fully-resolve-type t1 opts)
            t2 (fully-resolve-type t2 opts)
@@ -2075,34 +2053,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Variable rep
 
-(t/ann ^:no-check add-scopes [t/AnyInteger r/Type -> (t/U r/Type Scope)])
-(defn add-scopes 
-  "Wrap type in n Scopes"
-  [n t]
-  {:pre [(nat-int? n)
-         ((some-fn r/Type? r/Kind?) t)]
-   :post [((some-fn r/Scope? r/Type?) %)]}
-  (last 
-    (take (inc n) (iterate r/Scope-maker t))))
-
-(t/ann ^:no-check remove-scopes [t/AnyInteger (t/U Scope r/Type) -> (t/U Scope r/Type)])
-(defn remove-scopes 
-  "Unwrap n Scopes"
-  [^long n sc]
-  {:pre [(nat-int? n)
-         (or (zero? n)
-             (r/Scope? sc))]
-   :post [((some-fn r/Type? r/Kind?) %)]}
-  (loop [n n
-         sc sc]
-    (if (zero? n)
-      (do
-        (assert (not (r/Scope? sc)) (str "Did not remove enough scopes " sc))
-        sc)
-      (do
-        (assert (r/Scope? sc) (str "Tried to remove too many Scopes: " sc))
-        (recur (dec n) (:body sc))))))
-
 (t/ann ^:no-check rev-indexed (t/All [x] [(t/Seqable x) -> (t/Seqable '[t/AnyInteger x])]))
 (defn- rev-indexed 
   "'(a b c) -> '([2 a] [1 b] [0 c])"
@@ -2110,20 +2060,20 @@
   (map vector (iterate dec (dec (count c))) c))
 
 (t/tc-ignore
-(f/def-derived-fold IAbstractMany ^:private abstract-many* [name count outer sb name-to])
+(f/def-derived-fold IAbstractMany ^:private abstract-many* [f->b outer sb name-to])
 
 (f/add-fold-case
   IAbstractMany abstract-many*
   F
-  (fn [{name* :name :as t} name count outer sb name-to]
-    (if (= name name*)
-      (r/B-maker (+ count outer))
+  (fn [{name* :name :as t} f->b outer sb name-to]
+    (if-some [b (f->b name*)]
+      (r/B-maker (+ b outer))
       t)))
 
 (f/add-fold-case
   IAbstractMany abstract-many*
   Function
-  (fn [{:keys [dom rng rest drest kws prest pdot regex] :as ty} name count outer sb name-to]
+  (fn [{:keys [dom rng rest drest kws prest pdot regex] :as ty} f->b outer sb name-to]
     {:pre [(case (:kind ty)
              (:fixed :rest :drest :kws :prest :pdot :regex) true
              false)]}
@@ -2133,8 +2083,8 @@
                      :drest (some-> drest
                                     (r/update-DottedPretype
                                       [:pre-type sb]
-                                      [:name #(if (= % name)
-                                                (+ count outer)
+                                      [:name #(if-some [b (f->b %)]
+                                                (+ b outer)
                                                 %)]))
                      :kws (letfn [(abstract-kw-map [m]
                                     {:pre [(map? m)]}
@@ -2147,74 +2097,72 @@
                      :pdot (some-> pdot
                                    (r/update-DottedPretype
                                      [:pre-type sb]
-                                     [:name #(if (= % name)
-                                               (+ count outer)
+                                     [:name #(if-some [b (f->b %)]
+                                               (+ b outer)
                                                %)]))
                      :regex (some-> regex sb))))
 
 (f/add-fold-case
   IAbstractMany abstract-many*
   HSequential
-  (fn [ty name count outer sb name-to]
-    (r/-hsequential 
+  (fn [ty f->b outer sb name-to]
+    (r/-hsequential
       (mapv sb (:types ty))
-      :filters (mapv sb (:fs ty))
-      :objects (mapv sb (:objects ty))
-      :rest (some-> (:rest ty) sb)
-      :drest (some-> (:drest ty)
-                     (r/update-DottedPretype
-                       [:pre-type sb]
-                       [:name #(if (= % name)
-                                 (+ count outer)
-                                 %)]))
-      :repeat (:repeat ty)
-      :kind (:kind ty))))
+      {:filters (mapv sb (:fs ty))
+       :objects (mapv sb (:objects ty))
+       :rest (some-> (:rest ty) sb)
+       :drest (some-> (:drest ty)
+                      (r/update-DottedPretype
+                        [:pre-type sb]
+                        [:name #(if-some [b (f->b %)]
+                                  (+ b outer)
+                                  %)]))
+       :repeat (:repeat ty)
+       :kind (:kind ty)}
+      opts)))
 
 (f/add-fold-case
   IAbstractMany abstract-many*
   AssocType
-  (fn [{:keys [target entries dentries]} name count outer sb name-to]
+  (fn [{:keys [target entries dentries]} f->b outer sb name-to]
    (r/AssocType-maker (sb target)
                       (mapv (fn [[k v]] [(sb k) (sb v)]) entries)
                       (some-> dentries
                               (r/update-DottedPretype
                                 [:pre-type sb]
-                                [:name #(if (= % name)
-                                          (+ count outer)
+                                [:name #(if-some [b (f->b %)]
+                                          (+ b outer)
                                           %)])))))
 
 (f/add-fold-case
   IAbstractMany abstract-many*
-  MergeType
-  (fn [{:keys [types]} name count outer sb name-to]
-    (r/MergeType-maker (mapv sb types))))
-
-(f/add-fold-case
-  IAbstractMany abstract-many*
   Mu
-  (fn [{:keys [scope] :as mu} name count outer sb name-to]
-   (let [body (remove-scopes 1 scope)]
-     (r/Mu-maker (r/Scope-maker (name-to name count (inc outer) body opts))
-                 (meta mu)))))
+  (fn [{:keys [scope] :as mu} f->b outer sb name-to]
+   (let [body (r/remove-scopes 1 scope)
+         body' (name-to body f->b (inc outer) opts)]
+     (if (identical? body body')
+       mu
+       (r/Mu-maker (r/add-scopes 1 body')
+                   (meta mu))))))
 
 (f/add-fold-case
   IAbstractMany abstract-many*
   Poly
-  (fn [{:keys [named kind] bbnds* :bbnds n :nbound body* :scope :as poly} name count outer sb name-to]
+  (fn [{:keys [named kind] bbnds* :bbnds n :nbound body* :scope :as poly} f->b outer sb name-to]
    (case kind
-     :Poly (let [rs #(remove-scopes n %)
+     :Poly (let [rs #(r/remove-scopes n %)
                  body (rs body*)
                  bbnds (mapv rs bbnds*)
-                 as #(add-scopes n (name-to name count (+ n outer) % opts))]
+                 as #(r/add-scopes n (name-to % f->b (+ n outer) opts))]
              (r/Poly-maker n
                            (mapv as bbnds)
                            (as body)
                            named
                            (meta poly)))
-     :PolyDots (let [rs #(remove-scopes n %)
+     :PolyDots (let [rs #(r/remove-scopes n %)
                      body (rs body*)
                      bbnds (mapv rs bbnds*)
-                     as #(add-scopes n (name-to name count (+ n outer) % opts))]
+                     as #(r/add-scopes n (name-to % f->b (+ n outer) opts))]
                  (r/PolyDots-maker n
                                    (mapv as bbnds)
                                    (as body)
@@ -2225,11 +2173,11 @@
   IAbstractMany abstract-many*
   TypeFn
   (fn [{bbnds* :bbnds n :nbound body* :scope :keys [variances] :as t}
-       name count outer sb name-to]
-  (let [rs #(remove-scopes n %)
+       f->b outer sb name-to]
+  (let [rs #(r/remove-scopes n %)
         body (rs body*)
         bbnds (mapv rs bbnds*)
-        as #(add-scopes n (name-to name count (+ n outer) % opts))]
+        as #(r/add-scopes n (name-to % f->b (+ n outer) opts))]
      (r/TypeFn-maker n 
                      variances
                      (mapv as bbnds)
@@ -2241,49 +2189,60 @@
   "Names Type -> Scope^n  where n is (count names)"
   [names ty opts]
   {:pre [((some-fn r/Type? r/TypeFn? r/Kind?) ty)]}
-  (letfn [(name-to
-            ([name count type opts] (name-to name count 0 type opts))
-            ([name count outer ty opts]
-             (assert (symbol? name))
-             (letfn [(sb
-                       ([t] (sb t opts))
-                       ([t opts] (name-to name count outer t opts)))]
-               (call-abstract-many*
-                 ty opts
-                 {:type-rec sb
-                  :filter-rec (f/sub-f sb `call-abstract-many* opts)
-                  :object-rec (f/sub-o sb `call-abstract-many* opts)
-                  :name name
-                  :count count
-                  :outer outer
-                  :sb sb
-                  :name-to name-to}))))]
-    (if (empty? names)
-      ty
+  (if (empty? names)
+    ty
+    (letfn [(name-to [t f->b outer opts]
+              (letfn [(sb
+                        ([t] (sb t opts))
+                        ([t opts] (name-to t f->b outer opts)))]
+                (call-abstract-many*
+                  t opts
+                  {:type-rec sb
+                   :filter-rec (f/sub-f sb `call-abstract-many* opts)
+                   :object-rec (f/sub-o sb `call-abstract-many* opts)
+                   :f->b f->b
+                   :outer outer
+                   :sb sb
+                   :name-to name-to})))]
       (let [n (count names)]
-        (loop [ty ty
-               names names
-               count (dec n)]
-          (if (zero? count)
-            (add-scopes n (name-to (first names) 0 ty opts))
-            (recur (name-to (first names) count ty opts)
-                   (next names)
-                   (dec count))))))))
+        (r/add-scopes
+          n
+          (name-to ty
+                   (loop [names names
+                          count (dec n)
+                          res (transient {})]
+                     (if (zero? count)
+                       (persistent! (assoc! res (first names) count))
+                       (recur (next names)
+                              (dec count)
+                              (assoc! res (first names) count))))
+                   0
+                   opts))))))
 
-(f/def-derived-fold IInstantiateMany instantiate-many* [count outer image sb replace])
+(f/def-derived-fold IInstantiateMany instantiate-many* [b->f outer sb replace])
+
+(defn lookup-b->f' [idx ^objects b->f outer]
+  (let [i (- idx outer)]
+    (when (AND (<= 0 i)
+               (< i (alength b->f)))
+      (aget b->f i))))
+
+(defn lookup-b->f [idx b->f outer]
+  (or (lookup-b->f' idx b->f outer)
+      idx))
 
 (f/add-fold-case
   IInstantiateMany instantiate-many*
   B
-  (fn [{:keys [idx] :as t} count outer image sb replace]
-    (if (= (+ count outer) idx)
+  (fn [{:keys [idx] :as t} b->f outer sb replace]
+    (if-some [image (lookup-b->f' idx b->f outer)]
       (r/F-maker image)
       t)))
 
 (f/add-fold-case
   IInstantiateMany instantiate-many*
   Function
-  (fn [{:keys [dom rng rest drest kws prest pdot kind regex]} count outer image sb replace]
+  (fn [{:keys [dom rng rest drest kws prest pdot kind regex]} b->f outer sb replace]
     {:pre [(case kind
              (:fixed :rest :drest :kws :prest :pdot :regex) true
              false)]}
@@ -2294,9 +2253,7 @@
       :drest (some-> drest
                      (r/update-DottedPretype
                        [:pre-type sb]
-                       [:name #(if (= (+ count outer) %)
-                                 image
-                                 %)]))
+                       [:name lookup-b->f b->f outer]))
       :kws (letfn [(instantiate-kw-map [m]
                      {:pre [(map? m)]}
                      (reduce-kv (fn [m k v]
@@ -2310,69 +2267,67 @@
       :pdot (some-> pdot
                     (r/update-DottedPretype
                       [:pre-type sb]
-                      [:name #(if (= (+ count outer) %)
-                                image
-                                %)]))
+                      [:name lookup-b->f b->f outer]))
       :regex (some-> regex sb))))
 
 (f/add-fold-case
   IInstantiateMany instantiate-many*
   HSequential
-  (fn [ty count outer image sb replace]
+  (fn [ty b->f outer sb replace]
     (r/-hsequential 
       (mapv sb (:types ty))
-      :filters (mapv sb (:fs ty))
-      :objects (mapv sb (:objects ty))
-      :rest (some-> (:rest ty) sb)
-      :drest (some-> (:drest ty)
-                     (r/update-DottedPretype
-                       [:pre-type sb]
-                       [:name #(if (= (+ count outer) %)
-                                 image
-                                 %)]))
-      :repeat (:repeat ty)
-      :kind (:kind ty))))
+      {:filters (mapv sb (:fs ty))
+       :objects (mapv sb (:objects ty))
+       :rest (some-> (:rest ty) sb)
+       :drest (some-> (:drest ty)
+                      (r/update-DottedPretype
+                        [:pre-type sb]
+                        [:name lookup-b->f b->f outer]))
+       :repeat (:repeat ty)
+       :kind (:kind ty)}
+      opts)))
 
 (f/add-fold-case
   IInstantiateMany instantiate-many*
   AssocType
-  (fn [{:keys [target entries dentries]} count outer image sb replace]
+  (fn [{:keys [target entries dentries]} b->f outer sb replace]
     (r/AssocType-maker (sb target)
                        (mapv (fn [[k v]] [(sb k) (sb v)]) entries)
                        (some-> dentries
                                (r/update-DottedPretype
                                  [:pre-type sb]
-                                 [:name #(if (= (+ count outer) %)
-                                           image
-                                           %)])))))
+                                 [:name lookup-b->f b->f outer])))))
 
 (f/add-fold-case
   IInstantiateMany instantiate-many*
   Mu
-  (fn [{:keys [scope] :as mu} count outer image sb replace]
-    (let [body (remove-scopes 1 scope)]
-      (r/Mu-maker (r/Scope-maker (replace image count (inc outer) body opts))
-                  (meta mu)))))
+  (fn [{:keys [scope] :as mu} b->f outer sb replace]
+    (let [body (r/remove-scopes 1 scope)
+          body' (replace body b->f (inc outer) opts)]
+      (if (identical? body body')
+        mu
+        (r/Mu-maker (r/add-scopes 1 body')
+                    (meta mu))))))
 
 (f/add-fold-case
   IInstantiateMany instantiate-many*
   Poly
   (fn [{:keys [named kind] bbnds* :bbnds n :nbound body* :scope :as poly} 
-       count outer image sb replace]
+       b->f outer sb replace]
     (case kind
-      :Poly (let [rs #(remove-scopes n %)
+      :Poly (let [rs #(r/remove-scopes n %)
                   body (rs body*)
                   bbnds (mapv rs bbnds*)
-                  as #(add-scopes n (replace image count (+ n outer) % opts))]
+                  as #(r/add-scopes n (replace % b->f (+ n outer) opts))]
               (r/Poly-maker n 
                             (mapv as bbnds)
                             (as body)
                             named
                             (meta poly)))
-      :PolyDots (let [rs #(remove-scopes n %)
+      :PolyDots (let [rs #(r/remove-scopes n %)
                       body (rs body*)
                       bbnds (mapv rs bbnds*)
-                      as #(add-scopes n (replace image count (+ n outer) % opts))]
+                      as #(r/add-scopes n (replace % b->f (+ n outer) opts))]
                   (r/PolyDots-maker n 
                                     (mapv as bbnds)
                                     (as body)
@@ -2383,12 +2338,12 @@
   IInstantiateMany instantiate-many*
   TypeFn
   (fn [{bbnds* :bbnds n :nbound body* :scope :keys [variances] :as t}
-       count outer image sb replace]
-    (let [rs #(remove-scopes n %)
+       b->f outer sb replace]
+    (let [rs #(r/remove-scopes n %)
           body (rs body*)
           bbnds (mapv rs bbnds*)
-          as #(add-scopes n (replace image count (+ n outer) % opts))]
-      (r/TypeFn-maker n 
+          as #(r/add-scopes n (replace % b->f (+ n outer) opts))]
+      (r/TypeFn-maker n
                       variances
                       (mapv as bbnds)
                       (as body)
@@ -2396,7 +2351,7 @@
 )
 
 (t/ann ^:no-check instantiate-many [(t/Seqable t/Sym) p/IScope t/Any -> r/Type])
-(defn instantiate-many 
+(defn instantiate-many
   "instantiate-many : List[Symbols] Scope^n -> Type
   Instantiate de Bruijn indices in sc to frees named by
   images, preserving upper/lower bounds"
@@ -2404,35 +2359,25 @@
   {:pre [(or (r/Scope? sc)
              (empty? images))]
    :post [((some-fn r/Type? r/TypeFn? r/Kind?) %)]}
-  (letfn [(replace 
-            ([image count type opts] (replace image count 0 type opts))
-            ([image count outer ty opts]
-             (assert (symbol? image))
-             (letfn [(sb 
-                       ([t] (sb t opts))
-                       ([t opts] (replace image count outer t opts)))]
-               (let [sf (f/sub-f sb `call-instantiate-many* opts)]
-                 (call-instantiate-many*
-                   ty opts
-                   {:type-rec sb
-                    :filter-rec sf
-                    :object-rec (f/sub-o sb `call-instantiate-many* opts)
-                    :count count
-                    :outer outer
-                    :image image
-                    :sb sb
-                    :replace replace})))))]
-    (let [n (count images)]
+  (letfn [(replace [t b->f outer opts]
+            (letfn [(sb
+                      ([t] (sb t opts))
+                      ([t opts] (replace t b->f outer opts)))]
+              (let [sf (f/sub-f sb `call-instantiate-many* opts)]
+                (call-instantiate-many*
+                  t opts
+                  {:type-rec sb
+                   :filter-rec sf
+                   :object-rec (f/sub-o sb `call-instantiate-many* opts)
+                   :outer outer
+                   :b->f b->f
+                   :sb sb
+                   :replace replace}))))]
+    (let [images (vec images)
+          n (count images)]
       (if (zero? n)
         sc
-        (loop [ty (remove-scopes n sc)
-               images images
-               count (dec n)]
-          (if (zero? count)
-            (replace (first images) 0 ty opts)
-            (recur (replace (first images) count ty opts)
-                   (next images)
-                   (dec count))))))))
+        (replace (r/remove-scopes n sc) (object-array (rseq images)) 0 opts)))))
 
 (t/ann abstract [t/Sym r/Type t/Any -> Scope])
 (defn abstract
@@ -2809,6 +2754,31 @@
                    or/-empty)))
 )
 
+(t/tc-ignore
+  (extend Name p/IResolve {:-resolve resolve-Name})
+  (extend Mu p/IResolve {:-resolve unfold})
+  (extend App p/IResolve {:-resolve resolve-App})
+  (extend TApp p/IResolve {:-resolve resolve-TApp})
+  (extend GetType p/IResolve {:-resolve resolve-Get})
+  (extend MergeType p/IResolve {:-resolve resolve-Merge})
+  (extend TypeOf p/IResolve {:-resolve resolve-TypeOf})
+  (extend MatchType p/IResolve {:-resolve resolve-Match})
+  (extend Object p/IResolve {:-resolve (fn [t opts] t)}))
+
+(t/tc-ignore
+  (let [T (fn [_ _] true)
+        F (fn [_ _] false)]
+    (extend Name p/IRequiresResolving {:-requires-resolving? T})
+    (extend App p/IRequiresResolving {:-requires-resolving? T})
+    (extend TApp p/IRequiresResolving {:-requires-resolving? (fn [ty opts]
+                                                               (not (r/F? (fully-resolve-type (:rator ty) opts))))})
+    (extend GetType p/IRequiresResolving {:-requires-resolving? Get-requires-resolving?})
+    (extend MergeType p/IRequiresResolving {:-requires-resolving? Merge-requires-resolving?})
+    (extend Mu p/IRequiresResolving {:-requires-resolving? T})
+    (extend TypeOf p/IRequiresResolving {:-requires-resolving? T})
+    (extend MatchType p/IRequiresResolving {:-requires-resolving? Match-can-resolve?})
+    (extend Object p/IRequiresResolving {:-requires-resolving? F})))
+
 ;; =====================================================
 ;; Fold defaults
 
@@ -3036,12 +3006,13 @@
                                             (not (identical? drest drest')))]
                            (if changed?
                              (r/-hsequential types'
-                                             :filters fs'
-                                             :objects objects'
-                                             :rest rest'
-                                             :drest drest'
-                                             :repeat repeat
-                                             :kind kind)
+                                             {:filters fs'
+                                              :objects objects'
+                                              :rest rest'
+                                              :drest drest'
+                                              :repeat repeat
+                                              :kind kind}
+                                             opts)
                              ty))))
 
 (add-default-fold-case HSet

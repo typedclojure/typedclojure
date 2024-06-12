@@ -761,7 +761,7 @@
                                 (when (:drest T)
                                   [r/-any]))
                               opts)
-              vec-any (r/-hvec [] :rest r/-any)
+              vec-any (r/-hvec [] {:rest r/-any} opts)
               num-type (c/RClass-of 'java.lang.Number opts)
               target-cset (cs-gen V X Y (:target S) vec-any opts)
               entries-key (map first (:entries S))
@@ -970,7 +970,7 @@
                                                              (count (:types S))))
                           new-tys (doall (for [var vars]
                                            (subst/substitute (r/make-F var) dbound dty opts)))
-                          new-s-hsequential (r/-hsequential (concat (:types S) new-tys))
+                          new-s-hsequential (r/-hsequential (concat (:types S) new-tys) {} opts)
                           new-cset (cs-gen-HSequential V 
                                                        ;move dotted lower/upper bounds to vars
                                                        (merge X (zipmap vars (repeat (homogeneous-dbound->bound (Y dbound) opts)))) Y new-s-hsequential T opts)]
@@ -988,7 +988,7 @@
                           new-tys (doall
                                     (for [var vars]
                                       (subst/substitute (r/make-F var) dbound dty opts)))
-                          new-t-hsequential (r/-hsequential (concat (:types T) new-tys))
+                          new-t-hsequential (r/-hsequential (concat (:types T) new-tys) {} opts)
                           new-cset (cs-gen-HSequential V 
                                                        ;move dotted lower/upper bounds to vars
                                                        (merge X (zipmap vars (repeat (homogeneous-dbound->bound (Y dbound) opts)))) Y S new-t-hsequential opts)]
@@ -2543,7 +2543,7 @@
   (and (>= (count S) (count T))
        (let [[short-S rest-S] (split-at (count T) S)
              ; wrap rest-S into HeterogeneousVector, this is semantic meaning of <*
-             new-rest-S (r/-hvec (vec rest-S))
+             new-rest-S (r/-hvec (vec rest-S) {} opts)
              new-S (concat short-S [new-rest-S])
              new-T (concat T [T-var])]
          (infer X Y new-S new-T R expected {:expr expr} opts))))

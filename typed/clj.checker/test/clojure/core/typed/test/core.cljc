@@ -60,14 +60,14 @@
                body)))
   (is-clj (let [body (make-F 'a)]
             (= (add-scopes 1 body)
-               (Scope-maker body))))
+               (Scope-maker body 1))))
   (is-clj (let [body (make-F 'a)]
             (= (add-scopes 3 body)
-               (-> body Scope-maker Scope-maker Scope-maker)))))
+               (Scope-maker body 3)))))
 
 (deftest remove-scopes-test
   (is-clj (let [body (make-F 'a)]
-            (= (remove-scopes 1 (Scope-maker body))
+            (= (remove-scopes 1 (Scope-maker body 1))
                body))))
 
 (deftest poly-constructor-test
@@ -303,7 +303,7 @@
 
 (deftest check-do-test
   (is-clj (= (ety (do 1 2))
-         (-val 2))))
+             (-val 2))))
 
 (deftest tc-var-test
   (is-clj (subtype? (ret-t (tc-t seq?))
@@ -323,17 +323,17 @@
     (subtype? (parse-clj `(t/HList [(t/Value 1) (t/Value 2)]))
               (RClass-of ISeq [-any] (clj-opts))))
   (is-clj (= (tc-t [1 2])
-             (ret (-hvec [(-val 1) (-val 2)] :filters [(-true-filter) (-true-filter)]) (-true-filter) -empty)))
+             (ret (-hvec [(-val 1) (-val 2)] {:filters [(-true-filter) (-true-filter)]} (clj-opts)) (-true-filter) -empty)))
   (is-clj (= (tc-t '(1 2))
-         (ret (HeterogeneousList-maker [(-val 1) (-val 2)]) (-true-filter) -empty)))
+             (ret (HeterogeneousList-maker [(-val 1) (-val 2)] (clj-opts)) (-true-filter) -empty)))
   (is-clj (= (tc-t {:a 1})
              (ret (-complete-hmap {(-val :a) (-val 1)} (clj-opts)) (-true-filter) -empty)))
   (is-clj (= (tc-t {})
              (ret (-complete-hmap {} (clj-opts)) (-true-filter) -empty)))
   (is-clj (= (tc-t [])
-         (ret (-hvec []) (-true-filter) -empty)))
+             (ret (-hvec [] {} (clj-opts)) (-true-filter) -empty)))
   (is-clj (= (tc-t '())
-         (ret (HeterogeneousList-maker []) (-true-filter) -empty)))
+             (ret (HeterogeneousList-maker [] (clj-opts)) (-true-filter) -empty)))
   (is-cf '(a b) (clojure.core.typed/HList [clojure.lang.Symbol clojure.lang.Symbol])))
 
 (deftest implied-atomic?-test
@@ -853,10 +853,10 @@
                      (make-F 'x) ;T
                      (clj-opts))
              (cset-maker [(make-cset-entry {'x (c-maker (-val 1) 'x -any no-bounds)
-                                        'y (c-maker (Bottom) 'y -any no-bounds)})])))
+                                            'y (c-maker (Bottom) 'y -any no-bounds)})])))
   ;intersections correctly inferred
   (is-clj (= (cs-gen '#{} {'x no-bounds} '{} 
-                     (-hvec [(RClass-of Number (clj-opts))])
+                     (-hvec [(RClass-of Number (clj-opts))] {} (clj-opts))
                      (In [(-name `t/Seqable (make-F 'x)) (make-CountRange 1)]
                          (clj-opts))
                      (clj-opts))
@@ -900,7 +900,7 @@
                                      no-bounds)})) 
   (is-clj (= (cgen/infer {'x no-bounds} ;tv env
                          {}
-                         [(-hvec [(-val 1) (-val 2) (-val 3)])] ;actual
+                         [(-hvec [(-val 1) (-val 2) (-val 3)] {} (clj-opts))] ;actual
                          [(-name `t/Seqable (make-F 'x))] ;expected
                          (RClass-of clojure.lang.ASeq [(make-F 'x)] (clj-opts)) ;result
                          (clj-opts))
@@ -974,21 +974,27 @@
                            [a b c]))
                     (-hvec [(Un [-nil (RClass-of Number (clj-opts))] (clj-opts))
                             (Un [-nil (RClass-of Number (clj-opts))] (clj-opts))
-                            (-name `t/Seqable (RClass-of Number (clj-opts)))])))
+                            (-name `t/Seqable (RClass-of Number (clj-opts)))]
+                           {}
+                           (clj-opts))))
   (is-clj (= (ety (let [[a b :as c] [1 2]] 
                     [a b c]))
              (-hvec [(-val 1)
                      (-val 2)
                      (-hvec [(-val 1) (-val 2)]
-                            :filters [(-true-filter) (-true-filter)])]
-                    :filters [(-true-filter) (-true-filter) (-true-filter)])))
+                            {:filters [(-true-filter) (-true-filter)]}
+                            (clj-opts))]
+                    {:filters [(-true-filter) (-true-filter) (-true-filter)]}
+                    (clj-opts))))
   ;Map destructuring of vector
   ;FIXME needs implementing, but gives a decent error msg
   #_(is-clj (= (ret-t (tc-t (let [{a 0 b 1 :as c} [1 2]] 
                         [a b c])))
          (-hvec [(-val 1)
                  (-val 2)
-                 (-hvec [(-val 1) (-val 2)])]))))
+                 (-hvec [(-val 1) (-val 2)] {} (clj-opts))]
+                {}
+                (clj-opts)))))
 
 (deftest vararg-subtyping-test
   (is-clj (subtype? (parse-clj '[nil * -> nil])
@@ -2020,23 +2026,26 @@
   ; need to manually build hvec to match filters/objects
   (equal-types-noparse (conj nil nil)
                        (-hvec [-nil]
-                              :filters [(-false-filter)]
-                              :objects [-empty]))
+                              {:filters [(-false-filter)]
+                               :objects [-empty]}
+                              (clj-opts)))
   
   (equal-types-noparse (conj [1] 2 3)
                        (-hvec [(-val 1) (-val 2) (-val 3)]
-                              :filters [(-true-filter)
-                                        (-true-filter)
-                                        (-true-filter)]
-                              :objects [-empty -empty -empty]))
+                              {:filters [(-true-filter)
+                                         (-true-filter)
+                                         (-true-filter)]
+                               :objects [-empty -empty -empty]}
+                              (clj-opts)))
   (equal-types-noparse (conj [1]
                              (ann-form nil (t/U nil '2))
                              3)
                        (-hvec [(-val 1) (Un [-nil (-val 2)] (clj-opts)) (-val 3)]
-                              :filters [(-true-filter)
-                                        (-FS -top -top)
-                                        (-true-filter)]
-                              :objects [-empty -empty -empty]))
+                              {:filters [(-true-filter)
+                                         (-FS -top -top)
+                                         (-true-filter)]
+                               :objects [-empty -empty -empty]}
+                              (clj-opts)))
   
   (equal-types (conj (ann-form nil (t/U nil '['1]))
                      (ann-form nil (t/U nil '2)))
@@ -2231,7 +2240,7 @@
 ;(reset-caches)
 
 ;(chk/abstract-result
-;  (ret (-hvec [-any] :filters [(-FS (-filter (parse-clj 'Number) 'a) -top)] :objects [(-path nil 'a)])
+;  (ret (-hvec [-any] {:filters [(-FS (-filter (parse-clj 'Number) 'a) -top)] :objects [(-path nil 'a)]} (clj-opts))
 ;       (-FS (-filter (parse-clj 'Number) 'a) -top))
 ;  ['a])
 
@@ -3374,24 +3383,24 @@
                                          [(CountPE-maker)]
                                          (clj-opts)))
                          (Name-maker `t/Int)))
-  (is-clj (= (path-type (-hvec [(-val :a) (-val :b) (-val :c)])
+  (is-clj (= (path-type (-hvec [(-val :a) (-val :b) (-val :c)] {} (clj-opts))
                         [(NthPE-maker 0)]
                         (clj-opts))
              (-val :a)))
-  (is-clj (= (path-type (-hvec [(-val :a) (-val :b) (-val :c)])
+  (is-clj (= (path-type (-hvec [(-val :a) (-val :b) (-val :c)] {} (clj-opts))
                         [(NthPE-maker 1)]
                         (clj-opts))
              (-val :b)))
-  (is-clj (= (path-type (-hvec [(-val :a) (-val :b) (-val :c)])
+  (is-clj (= (path-type (-hvec [(-val :a) (-val :b) (-val :c)] {} (clj-opts))
                         [(NthPE-maker 2)]
                         (clj-opts))
              (-val :c)))
-  (is-clj (= (path-type (-hvec [(-val :a) (-val :b) (-val :c)])
+  (is-clj (= (path-type (-hvec [(-val :a) (-val :b) (-val :c)] {} (clj-opts))
                         [(NthPE-maker 3)]
                         (clj-opts))
              -any))
-  (is-clj (= (path-type (Un [(-hvec [(-val :b)])
-                             (-hvec [(-val :a) (-val :b) (-val :c)])]
+  (is-clj (= (path-type (Un [(-hvec [(-val :b)] {} (clj-opts))
+                             (-hvec [(-val :a) (-val :b) (-val :c)] {} (clj-opts))]
                             (clj-opts))
                         [(NthPE-maker 0)]
                         (clj-opts))

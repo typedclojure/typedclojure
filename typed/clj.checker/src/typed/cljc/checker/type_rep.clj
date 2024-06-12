@@ -15,7 +15,7 @@
             [clojure.set :as set]
             [typed.cljc.checker.impl-protocols :as p]
             [typed.cljc.checker.indirect-ops :as ind]
-            [typed.cljc.checker.utils :as u]
+            [typed.cljc.checker.utils :as u :refer [AND OR]]
             [clojure.core.typed.util-vars :as vs]
             clojure.core.typed.contract-ann))
 
@@ -248,11 +248,13 @@
   (or (-> f :name meta :original-name)
       (:name f)))
 
-(u/def-type Scope [body :- MaybeScopedType]
+(u/def-type Scope [body :- MaybeScopedType
+                   scopes :- t/Int]
   "A scope that contains one bound variable, can be nested. Not used directly"
-  [(or (Scope? body)
-       (Type? body)
-       (Kind? body))]
+  [(or (Type? body)
+       (Kind? body))
+   (integer? scopes)
+   (pos? scopes)]
   :methods
   [p/IScope])
 
@@ -265,12 +267,15 @@
 (t/ann scope-depth? [Scope Number [t/Any :-> t/Bool] :-> t/Bool])
 (defn scope-depth?
   "True if scope is has depth number of scopes nested"
-  [scope depth pred]
-  {:pre [(Scope? scope)
+  [^Scope scope depth pred]
+  {:pre [(OR (Scope? scope)
+             (Type? scope))
          (nat-int? depth)]}
-  (pred (last (take (inc depth) (iterate #(and (Scope? %)
-                                               (:body %))
-                                         scope)))))
+  (if (Scope? scope)
+    (AND (= depth (.scopes scope))
+         (pred (.body scope)))
+    (AND (zero? depth)
+         (pred scope))))
 
 (u/def-type Instance [the-class :- t/Sym]
   "An instance of the-class. Superclass to all RClass's on this class."
@@ -459,7 +464,7 @@
 
 (declare Regex?)
 
-(u/def-type Poly [nbound :- Number,
+(u/def-type Poly [nbound :- t/Int,
                   bbnds :- (t/Vec Kind),
                   scope :- p/IScope
                   named :- (t/Map t/Sym t/Int)
@@ -494,7 +499,7 @@
             Poly? PolyDots?)
 (defn Poly? [p] (and (-Poly? p) (= :Poly (:kind p))))
 (defn PolyDots? [p] (and (-Poly? p) (= :PolyDots (:kind p))))
-(t/ann-many [Number (t/Seqable Kind) p/IScope (t/Map t/Sym t/Int) (t/? (t/Option (t/Map t/Any t/Any)))
+(t/ann-many [t/Int (t/Seqable Kind) p/IScope (t/Map t/Sym t/Int) (t/? (t/Option (t/Map t/Any t/Any)))
              :-> Poly]
             ^:force-check Poly-maker
             ;;TODO assoc-in support
@@ -511,29 +516,48 @@
     :post [(PolyDots? %)]}
    (-Poly-maker nbound (vec bbnds) scope named :PolyDots meta)))
 
-(t/ann unsafe-body [[t/Any :-> t/Any] Poly :-> Type])
-(defn ^:private unsafe-body [pred p]
-  {:pre [(pred p)]
-   :post [((every-pred Type? (complement Scope?)) %)]}
-  (let [sc (t/atom :- MaybeScopedType, (:scope p))
-        _ (t/tc-ignore
-            ;;TODO dotimes type rule
-            (dotimes [n (:nbound p)]
-              (let [s @sc
-                    _ (assert (Scope? s))]
-                (reset! sc (:body s)))))
-        t @sc]
-    (assert (not (p/IScope? t)))
-    t))
+(t/ann ^:no-check add-scopes [t/AnyInteger Type -> (t/U Type Scope)])
+(defn add-scopes 
+  "Wrap type in n Scopes"
+  [n t]
+  {:pre [(nat-int? n)
+         (OR (Type? t)
+             (Kind? t))
+         (not (Scope? t))]
+   :post [(OR (Scope? %) (Type? %))]}
+  (if (zero? n)
+    t
+    (Scope-maker t n)))
+
+(t/ann ^:no-check remove-scopes [t/AnyInteger (t/U Scope Type) -> (t/U Scope Type)])
+(defn remove-scopes 
+  "Unwrap n Scopes"
+  [n ^Scope sc]
+  {:pre [(nat-int? n)
+         (OR (zero? n)
+             (Scope? sc))]
+   :post [(OR (Type? %) (Kind? %))]}
+  (if (zero? n)
+    sc
+    (do (assert (= n (.scopes sc)) (str "Did not remove enough scopes " sc))
+        (.body sc))))
+
+(t/ann ^:no-check unsafe-body [Poly :-> Type])
+(defn ^:private unsafe-body [p]
+  {:pre [(-Poly? p)]
+   :post [(Type? %)
+          (not (p/IScope? %))]}
+  (remove-scopes (:nbound p) (:scope p)))
 
 (t/ann Poly-body-unsafe* [Poly :-> Type])
 (defn Poly-body-unsafe* [p]
-  (unsafe-body Poly? p))
+  {:pre [(Poly? p)]}
+  (unsafe-body p))
 
 (t/ann PolyDots-body-unsafe* [Poly :-> Type])
 (defn PolyDots-body-unsafe* [p]
   {:pre [(PolyDots? p)]}
-  (unsafe-body PolyDots? p))
+  (unsafe-body p))
 
 (u/def-type Name [id :- t/Sym]
   "A late bound name"
@@ -709,13 +733,15 @@
 (def -any-hsequential (TopHSequential-maker))
 
 (t/ann ^:no-check -hsequential
-       [(t/Seqable Type) & :optional {:filters (t/Seqable p/IFilterSet) :objects (t/Seqable p/IRObject)
-                                      :rest (t/U nil Type) :drest (t/U nil DottedPretype) :repeat t/Bool
-                                      :kind HSequentialKind}
+       [(t/Seqable Type)
+        (t/HMap :optional {:filters (t/Seqable p/IFilterSet) :objects (t/Seqable p/IRObject)
+                           :rest (t/U nil Type) :drest (t/U nil DottedPretype) :repeat t/Bool
+                           :kind HSequentialKind})
+        t/Any
         -> Type])
 (defn -hsequential
-  [types & {:keys [filters objects rest drest kind] repeat? :repeat}]
-  (if (and (not repeat?) (some Bottom? types) (not vs/*no-simpl*))
+  [types {:keys [filters objects rest drest kind] repeat? :repeat} {::vs/keys [no-simpl] :as opts}]
+  (if (and (not repeat?) (some Bottom? types) (not no-simpl))
     (Bottom)
     (HSequential-maker types
                        (vec (or filters
@@ -742,9 +768,9 @@
   (and (HSequential? t)
        (= :list (:kind t))))
 
-(t/ann HeterogeneousList-maker [(t/Seqable Type) :-> Type])
-(defn HeterogeneousList-maker [types]
-  (-hsequential types :kind :list))
+(t/ann HeterogeneousList-maker [(t/Seqable Type) t/Any :-> Type])
+(defn HeterogeneousList-maker [types opts]
+  (-hsequential types {:kind :list} opts))
 
 (t/ann HeterogeneousSeq? [t/Any :-> t/Bool :filters {:then (is HSequential 0)}])
 (defn HeterogeneousSeq? [t]
@@ -752,12 +778,14 @@
        (= :seq (:kind t))))
 
 (t/ann ^:no-check -hseq
-       [(t/Seqable Type) & :optional {:filters (t/Seqable p/IFilterSet) :objects (t/Seqable p/IRObject)
-                                      :rest (t/Nilable Type) :drest (t/Nilable DottedPretype) :repeat t/Bool}
+       [(t/Seqable Type)
+        (t/HMap :optional {:filters (t/Seqable p/IFilterSet) :objects (t/Seqable p/IRObject)
+                           :rest (t/Nilable Type) :drest (t/Nilable DottedPretype) :repeat t/Bool})
+        t/Any
         -> Type])
 (defn -hseq
-  [types & opts]
-  (apply -hsequential types (concat opts [:kind :seq])))
+  [types opt opts]
+  (-hsequential types (assoc opt :kind :seq) opts))
 
 (t/ann HeterogeneousVector? [t/Any :-> t/Bool :filters {:then (is HSequential 0)}])
 (defn HeterogeneousVector? [t]
@@ -765,12 +793,13 @@
        (= :vector (:kind t))))
 
 (t/ann ^:no-check -hvec
-       [(t/Vec Type) & :optional {:filters (t/Seqable p/IFilterSet) :objects (t/Seqable p/IRObject)
-                                  :rest (t/Nilable Type) :drest (t/Nilable DottedPretype) :repeat t/Bool}
+       [(t/Vec Type) (t/HMap :optional {:filters (t/Seqable p/IFilterSet) :objects (t/Seqable p/IRObject)
+                                        :rest (t/Nilable Type) :drest (t/Nilable DottedPretype) :repeat t/Bool})
+        t/Any
         -> Type])
 (defn -hvec
-  [types & opts]
-  (apply -hsequential types (concat opts [:kind :vector])))
+  [types opt opts]
+  (-hsequential types (assoc opt :kind :vector) opts))
 
 (u/def-type HSet [fixed :- (t/Set Type)
                   complete? :- t/Bool]

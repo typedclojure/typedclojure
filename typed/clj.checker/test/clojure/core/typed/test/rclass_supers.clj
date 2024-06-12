@@ -41,10 +41,10 @@
                        ;(RClass-of clojure.lang.IMapEntry [num num] (clj-opts)) num
                        (RClass-of clojure.lang.AMapEntry [num num] (clj-opts)) num
                        (RClass-of clojure.lang.MapEntry [num num] (clj-opts)) num
-                       (RClass-of IPersistentMap [num num] (clj-opts)) (Un [-nil (-hvec [num num])] (clj-opts))
-                       (RClass-of APersistentMap [num num] (clj-opts)) (Un [-nil (-hvec [num num])] (clj-opts))
-                       (RClass-of PersistentHashMap [num num] (clj-opts)) (Un [-nil (-hvec [num num])] (clj-opts))
-                       (RClass-of PersistentTreeMap [num num] (clj-opts)) (Un [-nil (-hvec [num num])] (clj-opts))}]
+                       (RClass-of IPersistentMap [num num] (clj-opts)) (Un [-nil (-hvec [num num] {} (clj-opts))] (clj-opts))
+                       (RClass-of APersistentMap [num num] (clj-opts)) (Un [-nil (-hvec [num num] {} (clj-opts))] (clj-opts))
+                       (RClass-of PersistentHashMap [num num] (clj-opts)) (Un [-nil (-hvec [num num] {} (clj-opts))] (clj-opts))
+                       (RClass-of PersistentTreeMap [num num] (clj-opts)) (Un [-nil (-hvec [num num] {} (clj-opts))] (clj-opts))}]
           (t/check-form* '(fn [a] (first a))
                          (unparse-type
                            (make-FnIntersection

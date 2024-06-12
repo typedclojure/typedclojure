@@ -69,3 +69,15 @@
 (t/ann ^:no-check IRObject? (t/Pred IRObject))
 (defn IRObject? [a]
   (instance? typed.cljc.checker.impl_protocols.IRObject a))
+
+(t/ann-protocol IResolve
+                -resolve
+                [TCType t/Any -> TCType])
+(u/defprotocol IResolve
+  (-resolve [ty opts]))
+
+(t/ann-protocol IRequiresResolving
+                -requires-resolving?
+                [TCType t/Any -> TCType])
+(u/defprotocol IRequiresResolving
+  (-requires-resolving? [ty opts]))
