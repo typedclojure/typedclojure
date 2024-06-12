@@ -2131,22 +2131,25 @@
                      (sb rng)
                      :rest (some-> rest sb)
                      :drest (some-> drest
-                                    (update :pre-type sb)
-                                    (update :name #(if (= % name)
-                                                     (+ count outer)
-                                                     %)))
+                                    (r/update-DottedPretype
+                                      [:pre-type sb]
+                                      [:name #(if (= % name)
+                                                (+ count outer)
+                                                %)]))
                      :kws (letfn [(abstract-kw-map [m]
                                     {:pre [(map? m)]}
                                     (update-vals m sb))]
                             (some-> kws
-                              (update :mandatory abstract-kw-map)
-                              (update :optional abstract-kw-map)))
+                              (r/update-KwArgs
+                                [:mandatory abstract-kw-map]
+                                [:optional abstract-kw-map])))
                      :prest (some-> prest sb)
                      :pdot (some-> pdot
-                                   (update :pre-type sb)
-                                   (update :name #(if (= % name)
-                                                    (+ count outer)
-                                                    %)))
+                                   (r/update-DottedPretype
+                                     [:pre-type sb]
+                                     [:name #(if (= % name)
+                                               (+ count outer)
+                                               %)]))
                      :regex (some-> regex sb))))
 
 (f/add-fold-case
@@ -2159,10 +2162,11 @@
       :objects (mapv sb (:objects ty))
       :rest (some-> (:rest ty) sb)
       :drest (some-> (:drest ty)
-                     (update :pre-type sb)
-                     (update :name #(if (= % name)
-                                      (+ count outer)
-                                      %)))
+                     (r/update-DottedPretype
+                       [:pre-type sb]
+                       [:name #(if (= % name)
+                                 (+ count outer)
+                                 %)]))
       :repeat (:repeat ty)
       :kind (:kind ty))))
 
@@ -2173,10 +2177,11 @@
    (r/AssocType-maker (sb target)
                       (mapv (fn [[k v]] [(sb k) (sb v)]) entries)
                       (some-> dentries
-                              (update :pre-type sb)
-                              (update :name #(if (= % name)
-                                               (+ count outer)
-                                               %))))))
+                              (r/update-DottedPretype
+                                [:pre-type sb]
+                                [:name #(if (= % name)
+                                          (+ count outer)
+                                          %)])))))
 
 (f/add-fold-case
   IAbstractMany abstract-many*
@@ -2287,24 +2292,27 @@
       (sb rng)
       :rest (some-> rest sb)
       :drest (some-> drest
-                     (update :pre-type sb)
-                     (update :name #(if (= (+ count outer) %)
-                                      image
-                                      %)))
+                     (r/update-DottedPretype
+                       [:pre-type sb]
+                       [:name #(if (= (+ count outer) %)
+                                 image
+                                 %)]))
       :kws (letfn [(instantiate-kw-map [m]
                      {:pre [(map? m)]}
                      (reduce-kv (fn [m k v]
                                   (assoc m k (sb v)))
                                 {} m))]
              (some-> kws
-               (update :mandatory instantiate-kw-map)
-               (update :optional instantiate-kw-map)))
+               (r/update-KwArgs
+                 [:mandatory instantiate-kw-map]
+                 [:optional instantiate-kw-map])))
       :prest (some-> prest sb)
       :pdot (some-> pdot
-                    (update :pre-type sb)
-                    (update :name #(if (= (+ count outer) %)
-                                     image
-                                     %)))
+                    (r/update-DottedPretype
+                      [:pre-type sb]
+                      [:name #(if (= (+ count outer) %)
+                                image
+                                %)]))
       :regex (some-> regex sb))))
 
 (f/add-fold-case
@@ -2317,10 +2325,11 @@
       :objects (mapv sb (:objects ty))
       :rest (some-> (:rest ty) sb)
       :drest (some-> (:drest ty)
-                     (update :pre-type sb)
-                     (update :name #(if (= (+ count outer) %)
-                                      image
-                                      %)))
+                     (r/update-DottedPretype
+                       [:pre-type sb]
+                       [:name #(if (= (+ count outer) %)
+                                 image
+                                 %)]))
       :repeat (:repeat ty)
       :kind (:kind ty))))
 
@@ -2331,10 +2340,11 @@
     (r/AssocType-maker (sb target)
                        (mapv (fn [[k v]] [(sb k) (sb v)]) entries)
                        (some-> dentries
-                               (update :pre-type sb)
-                               (update :name #(if (= (+ count outer) %)
-                                                image
-                                                %))))))
+                               (r/update-DottedPretype
+                                 [:pre-type sb]
+                                 [:name #(if (= (+ count outer) %)
+                                           image
+                                           %)])))))
 
 (f/add-fold-case
   IInstantiateMany instantiate-many*
@@ -2826,15 +2836,15 @@
 
 (add-default-fold-case NotType
                        (fn [ty]
-                         (-> ty
-                             ; are negative types covariant?
-                             (update :type type-rec #_{:variance :contravariant}))))
+                         (r/update-NotType ty
+                           ; are negative types covariant?
+                           [:type type-rec #_{:variance :contravariant}])))
 
 (add-default-fold-case DifferenceType
                        (fn [ty]
-                         (-> ty
-                           (update :type type-rec)
-                           (update :without #(into-identical [] type-rec %)))))
+                         (r/update-DifferenceType ty
+                           [:type type-rec]
+                           [:without #(into-identical [] type-rec %)])))
 
 (add-default-fold-case Intersection
                        (fn [ty]
@@ -2925,33 +2935,33 @@
             variances))
     args))
 
-(defn visit-DataType-or-Protocol-args [{:keys [variances] :as ty} type-rec]
-  (-> ty
-      (update :poly? #(some-> % (visit-args+variances variances type-rec)))))
+(defn poly?-visitor-DataType-or-Protocol [variances type-rec]
+  #(some-> % (visit-args+variances variances type-rec)))
 
 (add-default-fold-case DataType
-                       (fn [ty]
-                         (-> ty
-                             (visit-DataType-or-Protocol-args type-rec)
-                             (update :fields (fn [fs]
-                                               (return-if-changed
-                                                 (fn [changed?]
-                                                   (apply array-map
-                                                          (mapcat (fn [[k t]]
-                                                                    (let [t' (type-rec t)]
-                                                                      (when-not (identical? t t')
-                                                                        (vreset! changed? true))
-                                                                      [k t']))
-                                                                  fs)))
-                                                 fs))))))
+                       (fn [{:keys [variances] :as ty}]
+                         (r/update-DataType ty
+                           [:poly? (poly?-visitor-DataType-or-Protocol variances type-rec)]
+                           [:fields (fn [fs]
+                                      (return-if-changed
+                                        (fn [changed?]
+                                          (apply array-map
+                                                 (mapcat (fn [[k t]]
+                                                           (let [t' (type-rec t)]
+                                                             (when-not (identical? t t')
+                                                               (vreset! changed? true))
+                                                             [k t']))
+                                                         fs)))
+                                        fs))])))
 
 (add-default-fold-case Protocol
-                       (fn [ty]
-                         (-> ty
-                             (visit-DataType-or-Protocol-args type-rec)
-                             ;FIXME this should probably be left alone in fold
-                             ; same in promote/demote
-                             (update :methods update-vals type-rec))))
+                       (fn [{:keys [variances] :as ty}]
+                         (r/update-Protocol ty
+                           [:poly? (poly?-visitor-DataType-or-Protocol variances type-rec)]
+                           ;FIXME this should probably be left alone in fold
+                           ; same in promote/demote
+                           ; should use return-if-changed
+                           [:methods update-vals type-rec])))
 
 (add-default-fold-case TypeFn
                        (fn [ty]
@@ -3156,22 +3166,6 @@
                          (r/update-MatchType ty
                            [:target type-rec]
                            [:clauses #(into-identical [] type-rec %)])))
-
-(comment
-  (repeatedly)
-  (cycle)
-  (->
-    (iterate
-      macroexpand-1
-      '(add-default-fold-case Result 
-                              (fn [ty]
-                                (-> ty
-                                    (update :t type-rec)
-                                    (update :fl filter-rec)
-                                    (update :o object-rec)))))
-    (nth 2)
-    clojure.pprint/pprint)
-)
 
 (defmacro ^:private ret-first-many [& cls]
   `(do ~@(map #(list `add-default-fold-case % `ret-first) cls)))
