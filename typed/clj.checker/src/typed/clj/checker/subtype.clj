@@ -28,7 +28,7 @@
             [typed.cljc.checker.path-rep :as pth-rep]
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.type-rep :as r]
-            [typed.cljc.checker.utils :as u])
+            [typed.cljc.checker.utils :as u :refer [AND]])
   (:import (typed.cljc.checker.type_rep Poly TApp F FnIntersection Intersection
                                         Extends NotType DifferenceType AssocType
                                         RClass Bounds HSequential HeterogeneousMap
@@ -350,15 +350,6 @@
   ;;TODO
   (report-not-subtypes s t))
 
-
-(defmacro ^:private AND
-  "Like `clojure.core/and` but produces better bytecode when used with
-  compile-time known booleans."
-  ([] true)
-  ([x] `(if ~x true false))
-  ([x & next]
-   `(let [and# ~x]
-      (if ~x (AND ~@next) false))))
 
 (defmacro ^:private OR
   "Like `clojure.core/or` but produces better bytecode when used with

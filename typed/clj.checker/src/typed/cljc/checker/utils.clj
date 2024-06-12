@@ -173,6 +173,58 @@
 
        ~@methods*)))
 
+(defmacro AND
+  "Like `clojure.core/and` but produces better bytecode when used with
+  compile-time known booleans."
+  ([] true)
+  ([x] `(if ~x true false))
+  ([x & next]
+   `(let [and# ~x]
+      (if ~x (AND ~@next) false))))
+
+(defn update-deftype-maker [maker compute-valAt fields meta-field clsym this cases]
+  {:pre [(symbol? clsym)
+         (every? vector? cases)]}
+  (let [ks (map first cases)
+        fset (into #{} (map keyword) fields)
+        _ (assert (every? simple-keyword? ks))
+        _ (assert (apply distinct? ks))
+        kw->case (zipmap (map first cases)
+                         (map rest cases))
+        gthis (with-meta (gensym 'this) {:tag clsym})
+        lookup-kw (fn [k]
+                    {:pre [(simple-keyword? k)]}
+                    (assert (fset k) (str "Can only update fields " fset ": " k))
+                    (if-some [f (get compute-valAt k)]
+                      ((eval f) gthis)
+                      (list (symbol (str ".-" (name k))) gthis)))
+        gchanged? (gensym 'changed)
+        lcases (into {} (map (fn [k]
+                               (let [c (kw->case k)
+                                     _ (assert (seq c))]
+                                 [k [;; local
+                                     (gensym (symbol (name k)))
+                                     ;; rhs
+                                     `(let [prev# ~(lookup-kw k)
+                                            next# (~(first c) prev# ~@(rest c))]
+                                        (when-not (identical? prev# next#)
+                                          (vreset! ~gchanged? true))
+                                        next#)]])))
+                     ks)]
+    `(let [~gthis ~this
+           ~gchanged? (volatile! false)
+           ~@(mapcat lcases ks)]
+       (if (deref ~gchanged?)
+         (~maker ~@(sequence (comp
+                               (map keyword)
+                               (map (fn [kw]
+                                      (if-let [[_ [lhs]] (find lcases kw)]
+                                        lhs
+                                        (lookup-kw kw)))))
+                             fields)
+                 (. ~gthis ~(symbol (str "-" meta-field))))
+         ~gthis))))
+
 (defn emit-deftype [original-ns def-kind name-sym fields invariants {methods* :methods :keys [computed-fields ctor-meta compute-valAt compare-self] :as opt}]
   (assert (symbol? name-sym))
   (let [classname (with-meta (symbol (str (namespace-munge *ns*) "." name-sym)) (meta name-sym))
@@ -180,6 +232,7 @@
         maker (with-meta (or (:maker-name opt)
                              (symbol (str name-sym "-maker")))
                          ctor-meta)
+        qmaker (symbol (-> *ns* ns-name name) (name maker))
         _ (assert (apply distinct? maker fields))
         pred (or (:pred-name opt) (symbol (str name-sym "?")))
         this (gensym)
@@ -203,6 +256,11 @@
          {:inline (fn [a#] (list 'instance? '~(with-meta classname nil) a#))}
          [a#]
          (instance? ~name-sym a#))
+
+       (let [gcompute-valAt# ~compute-valAt]
+         (defmacro ~(symbol (str "update-" (name name-sym)))
+           [this# & cases#]
+           (update-deftype-maker '~qmaker gcompute-valAt# '~fields '~meta-field '~classname this# cases#)))
 
        (defn ~maker
          ([~@fields]

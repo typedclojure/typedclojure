@@ -1027,7 +1027,7 @@
                        (with-meta (assoc (meta dom) ::valid-Function-dom tie)))]
            (vreset! tie dom)
            dom))]
-  :ctor-meta {:private true}
+  ;;:ctor-meta {:private true}
   :methods
   [p/TCAnyType])
 
