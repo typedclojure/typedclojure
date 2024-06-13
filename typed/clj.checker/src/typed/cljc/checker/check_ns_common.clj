@@ -70,6 +70,7 @@
                               [ns-or-syms]
                               ns-or-syms))]
         (assert (seq nsym-coll) "Nothing to check")
+        (assert (not vs/*delayed-errors*))
         (impl/with-impl impl
           (binding [vs/*delayed-errors* (err/-init-delayed-errors)
                     vs/*trace-checker* trace
@@ -113,10 +114,10 @@
                     (let [check-ns (bound-fn*
                                      #(binding [vs/*delayed-errors* (err/-init-delayed-errors)]
                                         (try (check-ns %)
-                                             {:delayed @vs/*delayed-errors*}
+                                             {:errors @vs/*delayed-errors*}
                                              (catch ExceptionInfo e
                                                (if (-> e ex-data :type-error)
-                                                 {:thrown e}
+                                                 {:errors (conj @vs/*delayed-errors* e)}
                                                  (throw e))))))
                           results (if-not threadpool
                                     (mapv check-ns nsym-coll)
@@ -127,9 +128,7 @@
                                           (.invokeAll threadpool (map (fn [nsym]
                                                                         #(check-ns nsym))
                                                                       nsym-coll))))
-                          delayed (swap! vs/*delayed-errors* into (mapcat :delayed) results)
-                          terminals (some->> (some :thrown results)
-                                             (reset! terminal-error))])))
+                          _ (swap! vs/*delayed-errors* into (mapcat :errors) results)])))
                 (catch ExceptionInfo e
                   (if (-> e ex-data :type-error)
                     (reset! terminal-error e)

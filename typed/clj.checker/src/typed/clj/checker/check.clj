@@ -142,6 +142,7 @@
                                                (conj forms-info {:ns-form-str ns-form-str :sform sform :form form})))))))
 
                    ns-form-str (some :ns-form-str forms-info)
+                   _ (assert vs/*delayed-errors*)
                    bndings (get-thread-bindings)
                    exs (map (fn [{:keys [form sform]}]
                               (fn []
@@ -151,10 +152,15 @@
                                                       ;; might affect TypeFn variance inference
                                                       #'env-utils/*type-cache* (do (assert (not env-utils/*type-cache*))
                                                                                    (atom {})))
-                                  (check-top-level form nil {:env (assoc env :ns (ns-name *ns*))
-                                                             :top-level-form-string sform
-                                                             :ns-form-string ns-form-str}
-                                                   opts))))
+                                  (try (check-top-level form nil {:env (assoc env :ns (ns-name *ns*))
+                                                                  :top-level-form-string sform
+                                                                  :ns-form-string ns-form-str}
+                                                        opts)
+                                       {:errors @vs/*delayed-errors*}
+                                       (catch clojure.lang.ExceptionInfo e
+                                         (if (-> e ex-data :type-error)
+                                           {:errors (conj @vs/*delayed-errors* e)}
+                                           (throw e)))))))
                             forms-info)
                    results (if-some [^java.util.concurrent.ExecutorService
                                      threadpool vs/*check-threadpool*]
@@ -163,7 +169,8 @@
                                           (catch java.util.concurrent.ExecutionException e
                                             (throw (or (.getCause e) e)))))
                                    (.invokeAll threadpool exs))
-                             (mapv #(%) exs))]
+                             (mapv #(%) exs))
+                   _ (swap! vs/*delayed-errors* into (mapcat :errors) results)]
                (cache/remove-stale-cache-entries ns ns-form-str (map :sform forms-info) slurped opts)))))))))
 
 (defn check-ns-and-deps [nsym opts] (cu/check-ns-and-deps nsym check-ns1 opts))
