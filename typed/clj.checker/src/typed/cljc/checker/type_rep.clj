@@ -1108,23 +1108,6 @@
   :methods
   [p/TCType])
 
-(u/def-type DifferenceType [type :- Type
-                            without :- (t/SortedSet Type)]
-  "A type that does not include type"
-  [(Type? type)
-   (every? Type? without)
-   (set? without)
-   (sorted? without)]
-  :methods
-  [p/TCType]
-  :compare-self
-  {without vec})
-
-(t/ann -difference [Type :+ -> DifferenceType])
-(defn -difference [t & without]
-  {:pre [without]}
-  (DifferenceType-maker t (sorted-type-set without)))
-
 (u/def-type Result [t :- Type,
                     fl :- p/IFilterSet
                     o :- p/IRObject]

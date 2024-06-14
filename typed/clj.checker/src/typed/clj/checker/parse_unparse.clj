@@ -34,7 +34,7 @@
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.runtime.env-utils :as env-utils]
             [typed.cljc.runtime.env :as env])
-  (:import (typed.cljc.checker.type_rep NotType DifferenceType Intersection Union FnIntersection
+  (:import (typed.cljc.checker.type_rep NotType Intersection Union FnIntersection
                                         DottedPretype Function Regex RClass App TApp
                                         PrimitiveArray DataType Protocol TypeFn Poly
                                         Mu HeterogeneousMap
@@ -418,7 +418,9 @@
 (defn parse-Difference [[_ tsyn & dsyns :as all] opts]
   (when-not (<= 3 (count all))
     (prs-error (str "Wrong arguments to Difference (expected at least 2): " all) opts))
-  (apply r/-difference (parse-type tsyn opts) (mapv #(parse-type % opts) dsyns)))
+  (c/make-Intersection (cons (parse-type tsyn opts)
+                             (doall (map #(r/NotType-maker (parse-type % opts)) dsyns)))
+                       opts))
 
 (defmethod parse-type-list 'typed.clojure/Difference [t opts] (parse-Difference t opts))
 
@@ -2019,13 +2021,6 @@
     [{types :types} opts]
     (list* (unparse-Name-symbol-in-ns `t/I opts)
            (mapv #(unparse-type % opts) types)))
-
-  DifferenceType
-  (unparse-type* 
-    [{:keys [type without]} opts]
-    (list* (unparse-Name-symbol-in-ns `t/Difference opts)
-           (unparse-type type opts)
-           (mapv #(unparse-type % opts) without)))
 
   NotType
   (unparse-type*

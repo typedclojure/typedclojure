@@ -46,7 +46,7 @@
                                         RClass Bounds Name Scope CountRange Intersection DataType
                                         JSNominal Protocol GetType HSequential
                                         HSet AssocType TypeOf MergeType
-                                        NotType DifferenceType Intersection Union FnIntersection
+                                        NotType Intersection Union FnIntersection
                                         DottedPretype Function JSNominal App TApp
                                         PrimitiveArray DataType Satisfies Instance TypeFn Poly
                                         Mu HeterogeneousMap
@@ -2791,12 +2791,6 @@
                          (r/update-NotType ty
                            ; are negative types covariant?
                            [:type type-rec #_{:variance :contravariant}])))
-
-(add-default-fold-case DifferenceType
-                       (fn [ty]
-                         (r/update-DifferenceType ty
-                           [:type type-rec]
-                           [:without #(into-identical [] type-rec %)])))
 
 (add-default-fold-case Intersection
                        (fn [ty]

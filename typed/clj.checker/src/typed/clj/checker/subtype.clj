@@ -30,7 +30,7 @@
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.utils :as u :refer [AND OR]])
   (:import (typed.cljc.checker.type_rep Poly TApp F FnIntersection Intersection
-                                        NotType DifferenceType AssocType
+                                        NotType AssocType
                                         RClass Bounds HSequential HeterogeneousMap
                                         Protocol JSObj)))
 
@@ -900,19 +900,6 @@
                  (not (subtypeA* A s (:type t))))
           A
           (report-not-subtypes s t))
-
-; delegate to NotType
-        (r/DifferenceType? s)
-        (recur A
-               (c/In (cons (:type s) (map r/NotType-maker (:without s))) opts)
-               t
-               opts)
-
-        (r/DifferenceType? t)
-        (recur A
-               s
-               (c/In (cons (:type t) (map r/NotType-maker (:without t))) opts)
-               opts)
 
         (or (and (r/GetType? s)
                  (c/Get-requires-resolving? s opts))

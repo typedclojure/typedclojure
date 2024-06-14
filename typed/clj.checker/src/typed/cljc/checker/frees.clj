@@ -22,7 +22,7 @@
             [typed.cljc.checker.name-env :as nmenv]
             [typed.cljc.checker.declared-kind-env :as kinds]
             [typed.cljc.runtime.env :as env])
-  (:import (typed.cljc.checker.type_rep NotType DifferenceType Intersection Union FnIntersection Bounds
+  (:import (typed.cljc.checker.type_rep NotType Intersection Union FnIntersection Bounds
                                         Function RClass App TApp
                                         PrimitiveArray DataType Protocol TypeFn Poly
                                         Mu HeterogeneousMap KwArgs
@@ -410,12 +410,6 @@
   (frees 
     [{:keys [types]} opts]
     (apply combine-freesresults (map #(frees % opts) types)))
-
-; are negative types covariant?
-  DifferenceType
-  (frees 
-    [{:keys [type without]} opts]
-    (apply combine-freesresults (frees type opts) (map #(frees % opts) without)))
 
   Union
   (frees 
