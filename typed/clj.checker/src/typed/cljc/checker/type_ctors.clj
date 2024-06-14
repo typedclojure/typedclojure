@@ -1577,13 +1577,13 @@
 
 (declare resolve-Name unfold fully-resolve-type find-val-type)
 
-(t/ann ^:no-check resolve-Get [GetType -> r/Type])
+(t/ann ^:no-check resolve-Get [GetType t/Any -> r/Type])
 (defn resolve-Get [{:keys [target key not-found] :as t} opts]
   {:pre [(r/GetType? t)]
    :post [(r/Type? %)]}
   (find-val-type target key not-found #{} opts))
 
-(t/ann ^:no-check resolve-Merge [MergeType -> r/Type])
+(t/ann ^:no-check resolve-Merge [MergeType t/Any -> r/Type])
 (defn resolve-Merge [{:keys [types] :as t} opts]
   {:pre [(r/MergeType? t)]
    :post [(r/Type? %)]}

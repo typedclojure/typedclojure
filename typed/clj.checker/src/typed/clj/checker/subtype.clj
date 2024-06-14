@@ -30,11 +30,15 @@
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.utils :as u :refer [AND OR]])
   (:import (typed.cljc.checker.type_rep Poly TApp F FnIntersection Intersection
-                                        NotType AssocType
+                                        NotType AssocType DissocType
                                         RClass Bounds HSequential HeterogeneousMap
                                         Protocol JSObj B F Top NotType SymbolicClosure
                                         TopKwArgsSeq TopHSequential MergeType Wildcard MatchType
-                                        GetType JSNumber FnIntersection JSBoolean JSString JSNull)))
+                                        GetType JSNumber FnIntersection JSBoolean JSSymbol JSString JSNull JSUndefined
+                                        Regex CountRange Instance DataType Result PrimitiveArray TypeFn
+                                        Satisfies HSet Value Union Name Unchecked TCError TypeOf
+                                        CLJSInteger Mu TopFunction Function DottedPretype App Scope AnyValue JSNominal KwArgs
+                                        KwArgsSeq HSequential KwArgsArray ArrayCLJS JSObject)))
 
 (set! *warn-on-reflection* true)
 
@@ -190,6 +194,7 @@
     A
     (report-not-subtypes s t)))
 
+;; TODO add repeat support
 (defn subtype-compatible-HSequential [A s t opts]
   {:pre [(r/HSequential? s)
          (r/HSequential? t)
@@ -414,47 +419,245 @@
       A
       (report-not-subtypes s t))))
 
-(defprotocol SubtypeA*Protocol
+(defn subtype-Union-left [A s t opts]
+  {:pre [(r/Union? s)]}
+  (if (every? (fn union-left [s] (subtypeA* A s t opts)) (:types s))
+    A
+    (report-not-subtypes s t)))
+
+(defn subtype-Intersection-right [A s t opts]
+  {:pre [(r/Intersection? t)]}
+  (let [ts (simplify-In t opts)]
+    (if (every? #(subtypeA* A s % opts) ts)
+      A
+      (report-not-subtypes s t))))
+
+;;only pay cost of dynamic binding when absolutely necessary (eg., before unfolding Mu)
+(defn subtype-Mu-left [A s t opts]
+  {:pre [(r/Mu? s)]}
+  (binding [*sub-current-seen* A]
+    (subtypeA* A (c/unfold s opts) t opts)))
+
+(defonce unknown-result (Object.))
+
+(defprotocol SubtypeA*SameProtocol
+  "When (identical? (class s) (class t))"
+  (subtypeA*-same [s t A opts]))
+
+(extend-protocol SubtypeA*SameProtocol
+  ;;TODO
+  Bounds (subtypeA*-same [s t A opts] (throw (ex-info "TODO SubtypeA*SameProtocol Bounds" {})))
+  Function (subtypeA*-same [s t A opts] (throw (ex-info "TODO SubtypeA*SameProtocol Function" {})))
+  DottedPretype (subtypeA*-same [s t A opts] (throw (ex-info "TODO SubtypeA*SameProtocol DottedPretype" {})))
+  Scope (subtypeA*-same [s t A opts] (throw (ex-info "TODO SubtypeA*SameProtocol Scope" {})))
+  JSNominal (subtypeA*-same [s t A opts] (throw (ex-info "TODO SubtypeA*SameProtocol JSNominal" {})))
+  KwArgs (subtypeA*-same [s t A opts] (throw (ex-info "TODO SubtypeA*SameProtocol KwArgs" {})))
+
+  ;;unknown
+  ArrayCLJS (subtypeA*-same [s t A opts] unknown-result)
+  JSObject (subtypeA*-same [s t A opts] unknown-result)
+  Name (subtypeA*-same [s t A opts] unknown-result)
+  F (subtypeA*-same [s t A opts] unknown-result)
+  B (subtypeA*-same [s t A opts] unknown-result)
+  TypeOf (subtypeA*-same [s t A opts] unknown-result)
+  MatchType (subtypeA*-same [s t A opts] unknown-result)
+  Poly (subtypeA*-same [s t A opts] unknown-result)
+  ;;TODO port conditional logic
+  AssocType (subtypeA*-same [s t A opts] unknown-result)
+  ;;TODO
+  DissocType (subtypeA*-same [s t A opts] unknown-result)
+  ;;TODO
+  KwArgsSeq (subtypeA*-same [s t A opts] unknown-result)
+  ;;TODO
+  KwArgsArray (subtypeA*-same [s t A opts] unknown-result)
+
+  ;;true
+  Top (subtypeA*-same [s t A opts] A)
+  Wildcard (subtypeA*-same [s t A opts] A)
+  Unchecked (subtypeA*-same [s t A opts] A)
+  TCError (subtypeA*-same [s t A opts] A)
+  TopKwArgsSeq (subtypeA*-same [s t A opts] A)
+  TopFunction (subtypeA*-same [s t A opts] A)
+  AnyValue (subtypeA*-same [s t A opts] A)
+  TopHSequential (subtypeA*-same [s t A opts] A)
+  JSUndefined (subtypeA*-same [s t A opts] A)
+
+  ;;false
+  ;; note: already (not= s t)
+  Value (subtypeA*-same [s t A opts] (report-not-subtypes s t))
+  SymbolicClosure (subtypeA*-same [s t A opts] (report-not-subtypes s t))
+  CLJSInteger (subtypeA*-same [s t A opts] (report-not-subtypes s t))
+  JSBoolean (subtypeA*-same [s t A opts] (report-not-subtypes s t))
+  JSNull (subtypeA*-same [s t A opts] (report-not-subtypes s t))
+  JSNumber (subtypeA*-same [s t A opts] (report-not-subtypes s t))
+  JSString (subtypeA*-same [s t A opts] (report-not-subtypes s t))
+  JSSymbol (subtypeA*-same [s t A opts] (report-not-subtypes s t))
+
+  Regex (subtypeA*-same [s t A opts] (subtype-regex A s t))
+  CountRange (subtypeA*-same [s t A opts] (subtype-CountRange A s t))
+  RClass (subtypeA*-same [s t A opts] (subtype-RClass A s t opts))
+  Instance (subtypeA*-same [s t A opts] (subtype-RClass A s t opts))
+  DataType (subtypeA*-same [s t A opts] (subtype-datatypes-or-records A s t opts))
+  Result (subtypeA*-same [s t A opts] (subtype-Result A s t opts))
+  PrimitiveArray (subtypeA*-same [s t A opts] (subtype-PrimitiveArray A s t opts))
+  TypeFn (subtypeA*-same [s t A opts] (subtype-TypeFn A s t opts))
+  HSet (subtypeA*-same [s t A opts] (subtype-HSet A s t))
+  HeterogeneousMap (subtypeA*-same [s t A opts] (subtype-heterogeneous-map A s t opts))
+
+  MergeType
+  (subtypeA*-same [s t A opts]
+    (if (c/Merge-requires-resolving? s opts)
+      (subtypeA* A (c/resolve-Merge s opts) t opts)
+      unknown-result))
+
+  GetType
+  (subtypeA*-same [s t A opts]
+    (if (c/Get-requires-resolving? s opts)
+      (subtypeA* A (c/resolve-Get s opts) t opts)
+      unknown-result))
+
+  ;; The order of checking protocols and datatypes is subtle.
+  ;; It is easier to calculate the ancestors of a datatype than
+  ;; the descendants of a protocol, so Datatype <: Any comes
+  ;; before Protocol <: Any.
+  Satisfies (subtypeA*-same [s t A opts] (subtype-Satisfies A s t))
+
+  Protocol
+  (subtypeA*-same
+    [s ^Protocol t A opts]
+    (let [var1 (.the-var s)
+          variances* (.variances s)
+          poly1 (.poly? s)
+          var2 (.the-var t)
+          poly2 (.poly? t)]
+      ;(prn "protocols subtype" s t)
+      (when (AND (= var1 var2)
+                 (every?' (fn _prcol-variance [v l r]
+                            (case v
+                              :covariant (subtypeA* A l r opts)
+                              :contravariant (subtypeA* A r l opts)
+                              :invariant (and (subtypeA* A l r opts)
+                                              (subtypeA* A r l opts))))
+                          variances* poly1 poly2))
+        A)))
+
+  FnIntersection
+  (subtypeA*-same
+    [s t A opts]
+    (loop [A* A
+           arr2 (:types t)]
+      (let [arr1 (:types s)]
+        (if (empty? arr2)
+          A*
+          (if-let [A (supertype-of-one-arr A* (first arr2) arr1 opts)]
+            (recur A (next arr2))
+            (report-not-subtypes s t))))))
+
+  ;; JSObj is covariant, taking after TypeScript & Google Closure. Obviously unsound.
+  JSObj
+  (subtypeA*-same
+    [s ^JSObj t A opts]
+    (let [; convention: prefix things on left with l, right with r
+          ltypes (.types s)
+          rtypes (.types t)]
+      (when (every? (fn [[k rt]]
+                      (when-let [lt (get ltypes k)]
+                        (subtypeA* A lt rt opts)))
+                    rtypes)
+        A)))
+
+  TApp
+  (subtypeA*-same
+    [s t A opts]
+    (if (= (c/fully-resolve-type (:rator s) opts)
+           (c/fully-resolve-type (:rator t) opts))
+      (subtype-TApp A s t opts)
+      unknown-result))
+
+  App
+  (subtypeA*-same
+    [s t A opts]
+    (subtypeA* A (c/resolve-App s opts) t opts))
+
+  Union
+  (subtypeA*-same [s t A opts]
+    (subtype-Union-left A s t opts))
+
+  Intersection
+  (subtypeA*-same [s t A opts]
+    (subtype-Intersection-right A s t opts))
+
+  Mu
+  (subtypeA*-same [s t A opts]
+    (subtype-Mu-left A s t opts))
+
+  ;       B <: A
+  ;_______________________________
+  ; (Not A) <: (Not B)
+  NotType
+  (subtypeA*-same [s t A opts]
+    (subtypeA* A (:type t) (:type s) opts))
+
+  HSequential
+  (subtypeA*-same [s ^HSequential t A opts]
+    (when (r/compatible-HSequential-kind? (.kind s) (.kind t))
+      (subtype-compatible-HSequential A s t opts)))
+)
+
+(defprotocol SubtypeA*LeftProtocol
+  "Assume that (not= (class s) (class t))"
   (subtypeA*-for-s [s t A opts]))
 
-(extend-protocol SubtypeA*Protocol
-  typed.cljc.checker.type_rep.Regex
-  (subtypeA*-for-s [s t A opts]
-    (when (r/Regex? t)
-      (subtype-regex A s t)))
+(extend-protocol SubtypeA*LeftProtocol
+  App (subtypeA*-for-s [s t A opts] (throw (ex-info "TODO SubtypeA*LeftProtocol App" {})))
+  ArrayCLJS (subtypeA*-for-s [s t A opts] (throw (ex-info "TODO SubtypeA*LeftProtocol ArrayCLJS" {})))
+  AssocType (subtypeA*-for-s [s t A opts] (throw (ex-info "TODO SubtypeA*LeftProtocol AssocType" {})))
+  Bounds (subtypeA*-for-s [s t A opts] (throw (ex-info "TODO SubtypeA*LeftProtocol Bounds" {})))
+  DottedPretype (subtypeA*-for-s [s t A opts] (throw (ex-info "TODO SubtypeA*LeftProtocol DottedPretype" {})))
+  Function (subtypeA*-for-s [s t A opts] (throw (ex-info "TODO SubtypeA*LeftProtocol Function" {})))
+  Intersection (subtypeA*-for-s [s t A opts] (throw (ex-info "TODO SubtypeA*LeftProtocol Intersection" {})))
+  JSNominal (subtypeA*-for-s [s t A opts] (throw (ex-info "TODO SubtypeA*LeftProtocol JSNominal" {})))
+  JSObject (subtypeA*-for-s [s t A opts] (throw (ex-info "TODO SubtypeA*LeftProtocol JSObject" {})))
+  KwArgs (subtypeA*-for-s [s t A opts] (throw (ex-info "TODO SubtypeA*LeftProtocol KwArgs" {})))
+  Mu (subtypeA*-for-s [s t A opts] (throw (ex-info "TODO SubtypeA*LeftProtocol Mu" {})))
+  Name (subtypeA*-for-s [s t A opts] (throw (ex-info "TODO SubtypeA*LeftProtocol Name" {})))
+  Name (subtypeA*-for-s [s t A opts] (throw (ex-info "TODO SubtypeA*LeftProtocol Name" {})))
+  Scope (subtypeA*-for-s [s t A opts] (throw (ex-info "TODO SubtypeA*LeftProtocol Scope" {})))
+  TApp (subtypeA*-for-s [s t A opts] (throw (ex-info "TODO SubtypeA*LeftProtocol TApp" {})))
+  TypeOf (subtypeA*-for-s [s t A opts] (throw (ex-info "TODO SubtypeA*LeftProtocol Name" {})))
+  Union (subtypeA*-for-s [s t A opts] (throw (ex-info "TODO SubtypeA*LeftProtocol Union" {})))
 
-  typed.cljc.checker.type_rep.CountRange
-  (subtypeA*-for-s [s t A opts]
-    (when (r/CountRange? t)
-      (subtype-CountRange A s t)))
+  CountRange (subtypeA*-for-s [s t A opts] (report-not-subtypes s t))
+  JSObj (subtypeA*-for-s [s t A opts] (report-not-subtypes s t))
+  Regex (subtypeA*-for-s [s t A opts] (report-not-subtypes s t))
+  Result (subtypeA*-for-s [s t A opts] (report-not-subtypes s t))
+  Satisfies (subtypeA*-for-s [s t A opts] (report-not-subtypes s t))
+  TypeFn (subtypeA*-for-s [s t A opts] (report-not-subtypes s t))
+  DissocType (subtypeA*-for-s [s t A opts] (report-not-subtypes s t))
+  TopFunction (subtypeA*-for-s [s t A opts] (report-not-subtypes s t))
+  AnyValue (subtypeA*-for-s [s t A opts] (report-not-subtypes s t))
+  KwArgsSeq (subtypeA*-for-s [s t A opts] (report-not-subtypes s t)) ;;TODO
+  KwArgsArray (subtypeA*-for-s [s t A opts] (report-not-subtypes s t)) ;;TODO
 
-  typed.cljc.checker.type_rep.CLJSInteger
+  TCError (subtypeA*-for-s [s t A opts] A)
+
+  CLJSInteger
   (subtypeA*-for-s [s t A opts]
     (when (r/JSNumber? t)
       A))
 
   FnIntersection
-  ;; hack for FnIntersection <: clojure.lang.IFn
   (subtypeA*-for-s [s t A opts]
-    (if (r/FnIntersection? t)
-      (loop [A* A
-             arr2 (:types t)]
-        (let [arr1 (:types s)]
-          (if (empty? arr2)
-            A*
-            (if-let [A (supertype-of-one-arr A* (first arr2) arr1 opts)]
-              (recur A (next arr2))
-              (report-not-subtypes s t)))))
-      (if (r/TopFunction? t)
-        A
-        (when (impl/checking-clojure? opts)
-          (subtypeA* A (c/RClass-of clojure.lang.IFn opts) t opts)))))
+    (if (r/TopFunction? t)
+      A
+      (when (impl/checking-clojure? opts)
+        ;; hack for FnIntersection <: clojure.lang.IFn
+        (subtypeA* A (c/RClass-of clojure.lang.IFn opts) t opts))))
 
   RClass
   (subtypeA*-for-s [s t A opts]
     (cond
-      (OR (r/RClass? t)
-          (r/Instance? t))
+      (r/Instance? t)
       (subtype-RClass A s t opts)
 
       (OR (r/Protocol? t)
@@ -488,39 +691,23 @@
                  (subtypeA* A s t opts)))
             (c/RClass-supers* s opts))))
 
-  typed.cljc.checker.type_rep.Instance
+  Instance
   (subtypeA*-for-s [s t A opts]
-    (when (OR (r/RClass? t)
-              (r/Instance? t))
+    (when (r/RClass? t)
       (subtype-RClass A s t opts)))
 
-  typed.cljc.checker.type_rep.DataType
+  DataType
   (subtypeA*-for-s [s t A opts]
-    (cond (r/DataType? t)
-          (subtype-datatypes-or-records A s t opts)
-
-          (r/RClass? t)
+    (cond (r/RClass? t)
           (subtype-datatype-rclass A s t opts)
 
           (OR (r/Protocol? t)
               (r/Satisfies? t))
           (subtype-rclass-or-datatype-with-protocol A s t opts)))
 
-  typed.cljc.checker.type_rep.Result
+  PrimitiveArray
   (subtypeA*-for-s [s t A opts]
-    (when (r/Result? t)
-      (subtype-Result A s t opts)))
-
-  typed.cljc.checker.type_rep.PrimitiveArray
-  (subtypeA*-for-s [s t A opts]
-    (if (r/PrimitiveArray? t)
-      (subtype-PrimitiveArray A s t opts)
-      (subtypeA* A (c/upcast-PrimitiveArray s opts) t opts)))
-
-  typed.cljc.checker.type_rep.TypeFn
-  (subtypeA*-for-s [s t A opts]
-    (when (r/TypeFn? t)
-      (subtype-TypeFn A s t opts)))
+    (subtypeA* A (c/upcast-PrimitiveArray s opts) t opts))
 
   typed.cljc.checker.type_rep.JSNull
   (subtypeA*-for-s [s t A opts] (subtypeA* A r/-nil t opts))
@@ -569,60 +756,17 @@
                  (keyword? sval) (subtypeA* A (c/DataType-of 'cljs.core/Keyword opts) t opts)
                  :else (report-not-subtypes s t))))))
 
-  ;; The order of checking protocols and datatypes is subtle.
-  ;; It is easier to calculate the ancestors of a datatype than
-  ;; the descendants of a protocol, so Datatype <: Any comes
-  ;; before Protocol <: Any.
   Protocol
-  (subtypeA*-for-s [s ^Protocol t A opts]
-    (cond
-      (r/Protocol? t)
-      (let [var1 (.the-var s)
-            variances* (.variances s)
-            poly1 (.poly? s)
-            var2 (.the-var t)
-            poly2 (.poly? t)]
-        ;(prn "protocols subtype" s t)
-        (when (AND (= var1 var2)
-                   (every?' (fn _prcol-variance [v l r]
-                              (case v
-                                :covariant (subtypeA* A l r opts)
-                                :contravariant (subtypeA* A r l opts)
-                                :invariant (and (subtypeA* A l r opts)
-                                                (subtypeA* A r l opts))))
-                            variances* poly1 poly2))
-          A))
-
-      (r/Satisfies? t)
-      (subtype-Satisfies A s t)))
-
-  typed.cljc.checker.type_rep.Satisfies
   (subtypeA*-for-s [s t A opts]
     (when (r/Satisfies? t)
       (subtype-Satisfies A s t)))
 
-  HeterogeneousMap
-  (subtypeA*-for-s [s t A opts]
-    (subtypeA* A (c/upcast-hmap s opts) t opts))
-
-  ;; JSObj is covariant, taking after TypeScript & Google Closure. Obviously unsound.
   JSObj
-  (subtypeA*-for-s [s ^JSObj t A opts]
-    (when (r/JSObj? t)
-      (let [; convention: prefix things on left with l, right with r
-            ltypes (.types s)
-            rtypes (.types t)]
-        (when (every? (fn [[k rt]]
-                        (when-let [lt (get ltypes k)]
-                          (subtypeA* A lt rt opts)))
-                      rtypes)
-          A))))
+  (subtypeA*-for-s [s t A opts] (report-not-subtypes s t))
 
   typed.cljc.checker.type_rep.HSet
   (subtypeA*-for-s [s t A opts]
-    (if (r/HSet? t)
-      (subtype-HSet A s t)
-      (subtypeA* A (c/upcast-hset s opts) t opts)))
+    (subtypeA* A (c/upcast-hset s opts) t opts))
 
   typed.cljc.checker.type_rep.KwArgsSeq
   (subtypeA*-for-s [s t A opts]
@@ -630,18 +774,11 @@
       A
       (subtypeA* A (c/upcast-kw-args-seq s opts) t opts)))
 
-  ;; TODO add repeat support
   HSequential
   (subtypeA*-for-s [s ^HSequential t A opts]
-    (cond (and (r/HSequential? t)
-               (r/compatible-HSequential-kind? (.kind s)
-                                               (.kind t)))
-          (subtype-compatible-HSequential A s t opts)
-
-          (r/TopHSequential? t) A
-
-          :else
-          (subtypeA* A (c/upcast-HSequential s opts) t opts)))
+    (if (r/TopHSequential? t)
+      A
+      (subtypeA* A (c/upcast-HSequential s opts) t opts)))
 
   ;;every rtype entry must be in ltypes
   ;;eg. {:a 1, :b 2, :c 3} <: {:a 1, :b 2}
@@ -666,6 +803,8 @@
           (free-ops/with-bounded-frees (zipmap (map r/F-maker names) bbnds1)
             (subtypeA* A b1 b2 opts))))))
 
+  Unchecked (subtypeA*-for-s [s t A opts] A)
+
   B (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
   F (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
   NotType (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
@@ -679,8 +818,20 @@
   JSNumber (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
   JSString (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
   JSBoolean (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
+  JSSymbol (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
   JSNull (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
   Top (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
+  )
+
+(comment
+  (doseq [clsym (disj (deref u/all-types)
+                      'typed.cljc.checker.type_rep.FunctionCLJS
+                      'typed.cljc.checker.type_rep.TCResult)
+          :when (clojure.string/starts-with? (name clsym) "typed.cljc.checker.type_rep.")
+          :let [c (resolve clsym)]]
+    (assert (class? c))
+    (assert (extends? SubtypeA*SameProtocol c) c)
+    (assert (extends? SubtypeA*LeftProtocol c) c))
   )
 
 ;;TODO replace hardcoding cases for unfolding Mu? etc. with a single case for unresolved types.
@@ -706,8 +857,14 @@
           (= s t)
           (contains? A [s t]))
     A
-    (let [A (conj A [s t])]
+    (let [A (conj A [s t])
+          short-circuit-same (if (identical? (class s) (class t))
+                               (subtypeA*-same s t A opts)
+                               unknown-result)]
       (cond
+        (not (identical? unknown-result short-circuit-same))
+        short-circuit-same
+
         #_#_
         (OR (r/TCResult? s)
             (r/TCResult? t))
@@ -744,11 +901,6 @@
         (AND (r/MatchType? t)
              (c/Match-can-resolve? t opts))
         (recur A s (c/resolve-Match t opts) opts)
-
-        (AND (r/Value? s)
-             (r/Value? t))
-        ;already (not= s t)
-        (report-not-subtypes s t)
 
         ;; handle before unwrapping polymorphic types
         (AND (r/SymbolicClosure? s)
@@ -827,11 +979,9 @@
         (r/Name? t)
         (recur A s (c/resolve-Name t opts) opts)
 
-        ;;only pay cost of dynamic binding when absolutely necessary (eg., before unfolding Mu)
-        (r/Mu? s)
-        (binding [*sub-current-seen* A]
-          (subtypeA* A (c/unfold s opts) t))
+        (r/Mu? s) (subtype-Mu-left A s t opts)
 
+        ;;only pay cost of dynamic binding when absolutely necessary (eg., before unfolding Mu)
         (r/Mu? t)
         (binding [*sub-current-seen* A]
           (subtypeA* A s (c/unfold t opts)))
@@ -844,12 +994,6 @@
 
         (= r/empty-union t)
         (report-not-subtypes s t)
-
-        (AND (r/TApp? s)
-             (r/TApp? t)
-             (= (c/fully-resolve-type (:rator s) opts)
-                (c/fully-resolve-type (:rator t) opts)))
-        (subtype-TApp A s t opts)
 
         (and (r/TApp? s)
              (r/TypeFn? (c/fully-resolve-type (:rator s) opts)))
@@ -880,31 +1024,17 @@
 
             :else (err/int-error (str "First argument to TApp must be TFn, actual: " (prs/unparse-type rator opts)) opts)))
 
-        (r/Union? s)
-        (if (every? (fn union-left [s] (subtypeA* A s t)) (:types s))
-          A
-          (report-not-subtypes s t))
+        (r/Union? s) (subtype-Union-left A s t opts)
 
         (r/Union? t)
         (some (fn union-right [t] (subtypeA* A s t)) (:types t))
 
-;does it matter what order the Intersection cases are?
-        (r/Intersection? t)
-        (let [ts (simplify-In t opts)]
-          (if (every? #(subtypeA* A s %) ts)
-            A
-            (report-not-subtypes s t)))
+;does it matter which order the Intersection cases are?
+        (r/Intersection? t) (subtype-Intersection-right A s t opts)
 
         (r/Intersection? s)
         (let [ss (simplify-In s opts)]
           (some #(subtypeA* A % t) ss))
-
-        ;       B <: A
-        ;_______________________________
-        ; (Not A) <: (Not B)
-        (AND (r/NotType? s)
-             (r/NotType? t))
-        (subtypeA* A (:type t) (:type s))
 
         ;  A <!: B  A is not free  B is not free
         ;________________________________________
@@ -973,11 +1103,11 @@
             (report-not-subtypes s t)))
       
         ; avoids infinite expansion because associng an F is a fixed point
-        (and (r/AssocType? s)
-             (not (r/F? (:target s))))
-        (if-let [s-or-n (assoc-u/assoc-pairs-noret (:target s) (:entries s) opts)]
-          (recur A s-or-n t opts)
-          (report-not-subtypes s t))
+        (r/AssocType? s)
+        (when (not (r/F? (:target s)))
+          (if-let [s-or-n (assoc-u/assoc-pairs-noret (:target s) (:entries s) opts)]
+            (recur A s-or-n t opts)
+            (report-not-subtypes s t)))
 
         ; avoids infinite expansion because associng an F is a fixed point
         (and (r/AssocType? t)
