@@ -864,8 +864,7 @@
   (if (OR ; FIXME TypeFn's are probably not between Top/Bottom
           (r/Top? t)
           (r/Wildcard? t)
-          (and (r/Union? s)
-               (= r/empty-union s))
+          (r/Bottom? s)
           ;; Unchecked is both bottom and top
           (r/Unchecked? s)
           (r/Unchecked? t)
@@ -996,7 +995,7 @@
         (r/App? t)
         (recur A s (c/resolve-App t opts) opts)
 
-        (= r/empty-union t)
+        (r/Bottom? t)
         (report-not-subtypes s t)
 
         (and (r/TApp? s)

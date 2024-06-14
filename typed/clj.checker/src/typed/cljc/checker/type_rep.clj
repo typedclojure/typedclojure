@@ -144,7 +144,8 @@
 
 (t/ann Bottom? [t/Any -> t/Bool])
 (defn Bottom? [a]
-  (= empty-union a))
+  (and (Union? a)
+       (= empty-union a)))
 
 (u/def-type TCError []
   "Use *only* when a type error occurs"
