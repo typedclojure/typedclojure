@@ -30,7 +30,7 @@
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.utils :as u :refer [AND OR]])
   (:import (typed.cljc.checker.type_rep Poly TApp F FnIntersection Intersection
-                                        Extends NotType DifferenceType AssocType
+                                        NotType DifferenceType AssocType
                                         RClass Bounds HSequential HeterogeneousMap
                                         Protocol JSObj)))
 
@@ -678,6 +678,7 @@
     A
     (let [A (conj A [s t])]
       (cond
+        #_#_
         (OR (r/TCResult? s)
             (r/TCResult? t))
         (assert nil "Cannot give TCResult to subtype")
@@ -687,8 +688,7 @@
         (AND (r/F? s)
              (if-some [^Bounds bnd
                        (free-ops/free-with-name-bnds (:name s))]
-               (and (subtypeA* A (:upper-bound bnd) t)
-                    (subtypeA* A (:lower-bound bnd) t))
+               (subtypeA* A (:upper-bound bnd) t)
                (do #_(err/int-error (str "No bounds for " (:name s)) opts)
                    false)))
         A
@@ -696,8 +696,7 @@
         (AND (r/F? t)
              (if-some [^Bounds bnd
                        (free-ops/free-with-name-bnds (:name t))]
-               (and (subtypeA* A s (:upper-bound bnd))
-                    (subtypeA* A s (:lower-bound bnd)))
+               (subtypeA* A s (:lower-bound bnd))
                (do #_(err/int-error (str "No bounds for " (:name s)) opts)
                    false)))
         A
@@ -745,33 +744,31 @@
             (report-not-subtypes s t)))
 
         ;use unification to see if we can use the Poly type here
-        (and (r/Poly? s)
-             (let [names (c/Poly-fresh-symbols* s)
-                   bnds (c/Poly-bbnds* names s opts)
-                   b1 (c/Poly-body* names s opts)
-                   ;_ (prn "try unify on left")
-                   X (zipmap names bnds)
-                   u (free-ops/with-bounded-frees (update-keys X r/make-F)
-                       (unify X {} [b1] [t] r/-any opts))]
-               ;(prn "unified on left")
-               u))
-        A
-
-        (and (r/PolyDots? s)
-             (let [names (c/PolyDots-fresh-symbols* s)
-                   bnds (c/PolyDots-bbnds* names s opts)
-                   b1 (c/PolyDots-body* names s opts)
-                   ;_ (prn "try PolyDots unify on left")
-                   X (zipmap (pop names) (pop bnds))
-                   Y {(peek names) (peek bnds)}
-                   u (free-ops/with-bounded-frees (update-keys (into X Y) r/make-F)
-                       (unify X Y [b1] [t] r/-any opts))]
-               ;(prn "unified on left" u)
-               u))
+        (when (r/-Poly? s)
+          (case (:kind s)
+            :Poly (let [names (c/Poly-fresh-symbols* s)
+                        bnds (c/Poly-bbnds* names s opts)
+                        b1 (c/Poly-body* names s opts)
+                        ;_ (prn "try unify on left")
+                        X (zipmap names bnds)
+                        u (free-ops/with-bounded-frees (update-keys X r/make-F)
+                            (unify X {} [b1] [t] r/-any opts))]
+                    ;(prn "unified on left")
+                    u)
+            :PolyDots (let [names (c/PolyDots-fresh-symbols* s)
+                            bnds (c/PolyDots-bbnds* names s opts)
+                            b1 (c/PolyDots-body* names s opts)
+                            ;_ (prn "try PolyDots unify on left")
+                            X (zipmap (pop names) (pop bnds))
+                            Y {(peek names) (peek bnds)}
+                            u (free-ops/with-bounded-frees (update-keys (into X Y) r/make-F)
+                                (unify X Y [b1] [t] r/-any opts))]
+                        ;(prn "unified on left" u)
+                        u)))
         A
 
         ;; go after presumably cheaper unification cases
-        (and (or (r/Poly? s) (r/PolyDots? s))
+        (and (r/-Poly? s)
              (r/FnIntersection? t)
              (= 1 (count (:types t)))
              (every? #(= :fixed (:kind %)) (:types t))
@@ -882,38 +879,6 @@
         (r/Intersection? s)
         (let [ss (simplify-In s opts)]
           (some #(subtypeA* A % t) ss))
-
-        (AND (r/Extends? s)
-             (r/Extends? t))
-        (if (and ;all positive information matches.
-                 ; Each t should occur in at least one s.
-                 (every? (fn _extends-t [t*]
-                           (some #(subtypeA* A % t*) (:extends s)))
-                         (:extends t))
-                 ;lhs does not explicitly implement any forbidden types.
-                 ; No negative t should be a supertype of a positive s
-                 (not-any? (fn extends-not-t [not-t*]
-                             (some #(subtypeA* A % not-t*) (:extends s)))
-                           (:without t))
-                 ;lhs explicitly disallows same types as rhs
-                 ; Each negative t should be a supertype of some negative s
-                 (every? (fn _extends-without-t [not-t*]
-                           (some #(subtypeA* A % not-t*) (:without s)))
-                         (:without t)))
-          A
-          (report-not-subtypes s t))
-
-        (r/Extends? s)
-        (if (and (some #(subtypeA* A % t) (:extends s))
-                 (not-any? #(subtypeA* A % t) (:without s)))
-          A
-          (report-not-subtypes s t))
-
-        (r/Extends? t)
-        (if (and (every? #(subtypeA* A s %) (:extends t))
-                 (not-any? #(subtypeA* A s %) (:without t)))
-          A
-          (report-not-subtypes s t))
 
         (AND (r/TopFunction? t)
              (r/FnIntersection? s))

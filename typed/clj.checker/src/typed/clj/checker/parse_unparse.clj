@@ -39,7 +39,7 @@
                                         PrimitiveArray DataType Protocol TypeFn Poly
                                         Mu HeterogeneousMap
                                         CountRange Name Value Top Wildcard TypeOf Unchecked TopFunction B F Result AnyValue
-                                        KwArgsSeq KwArgsArray TCError Extends JSNumber JSBoolean SymbolicClosure
+                                        KwArgsSeq KwArgsArray TCError JSNumber JSBoolean SymbolicClosure
                                         CLJSInteger ArrayCLJS JSNominal JSString TCResult AssocType MergeType
                                         GetType HSequential HSet JSUndefined JSNull JSSymbol JSObject
                                         JSObj Bounds MatchType Instance Satisfies)
@@ -653,8 +653,9 @@
     (prs-error (str "Invalid options to Extends:" (keys popts)) opts))
   (when-not (vector? extends) 
     (prs-error (str "Extends takes a vector of types: " (pr-str syn)) opts))
-  (c/-extends (doall (map #(parse-type % opts) extends))
-              :without (doall (map #(parse-type % opts) without))))
+  (c/make-Intersection (concat (doall (map #(parse-type % opts) extends))
+                               (doall (map #(r/NotType-maker (parse-type % opts)) without)))
+                       opts))
 
 (defn parse-All [[_All_ bnds syn & more :as all] opts]
   ;(prn "All syntax" all)
@@ -2211,14 +2212,6 @@
     binder))
 
 (extend-protocol IUnparseType
-  Extends
-  (unparse-type* 
-    [{:keys [extends without]} opts]
-    (list* 'Extends
-           (mapv #(unparse-type % opts) extends)
-           (when (seq without)
-             [:without (mapv #(unparse-type % opts) without)])))
-
   Poly
   (unparse-type*
     [{:keys [nbound named kind] :as p} opts]

@@ -1125,23 +1125,6 @@
   {:pre [without]}
   (DifferenceType-maker t (sorted-type-set without)))
 
-(u/def-type Extends [extends :- (t/I (t/SortedSet Type)
-                                     t/NonEmptyCount)
-                     without :- (t/SortedSet Type)]
-  "A set of ancestors that always and never occur."
-  [(every? Type? extends)
-   (set? extends)
-   (sorted? extends)
-   (seq extends)
-   (every? Type? without)
-   (set? without)
-   (sorted? without)]
-  :methods
-  [p/TCType]
-  :compare-self
-  {extends vec
-   without vec})
-
 (u/def-type Result [t :- Type,
                     fl :- p/IFilterSet
                     o :- p/IRObject]

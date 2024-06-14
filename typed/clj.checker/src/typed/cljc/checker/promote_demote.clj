@@ -23,7 +23,7 @@
                                         PrimitiveArray DataType Protocol TypeFn Poly
                                         Mu HeterogeneousMap Bounds
                                         CountRange Name Value Top Wildcard Unchecked TopFunction B F Result AnyValue
-                                        TCError Extends JSNominal
+                                        TCError JSNominal
                                         JSString JSBoolean JSNumber CLJSInteger JSObject
                                         ArrayCLJS FunctionCLJS KwArgsSeq HSequential HSet
                                         AnyValue TopFunction Scope DissocType AssocType MergeType
@@ -317,12 +317,6 @@
   (demote [T V opts]
     (-> T
         (update :type promote V opts))))
-
-(promote-demote Extends
-  [T V] 
-  (c/-extends
-    (map promote (:extends T) (repeat V))
-    :without (map demote (:without T) (repeat V))))
 
 (promote-demote Intersection
   [T V] 

@@ -43,7 +43,7 @@
            java.lang.reflect.Modifier
            (typed.cljc.checker.type_rep HeterogeneousMap Poly TypeFn TApp App Value
                                         Union Intersection F Function Mu B KwArgs KwArgsSeq KwArgsArray
-                                        RClass Bounds Name Scope CountRange Intersection DataType Extends
+                                        RClass Bounds Name Scope CountRange Intersection DataType
                                         JSNominal Protocol GetType HSequential
                                         HSet AssocType TypeOf MergeType
                                         NotType DifferenceType Intersection Union FnIntersection
@@ -51,7 +51,7 @@
                                         PrimitiveArray DataType Satisfies Instance TypeFn Poly
                                         Mu HeterogeneousMap
                                         CountRange Name Value Top Wildcard Unchecked TopFunction B F Result
-                                        TCResult TCError Extends
+                                        TCResult TCError
                                         JSNumber CLJSInteger JSObject JSString ArrayCLJS
                                         JSBoolean AssocType GetType KwArgsSeq KwArgs HSequential HSet
                                         JSUndefined JSNull JSSymbol JSObj TypeOf SymbolicClosure Regex
@@ -1929,16 +1929,6 @@
                (not (or (Modifier/isInterface c1-mods) (Modifier/isInterface c2-mods))) false
                :else true)))
 
-         (some r/Extends? [t1 t2])
-         (let [[the-extends other-type] (if (r/Extends? t1)
-                                          [t1 t2]
-                                          [t2 t1])]
-           ; returns true if at least one +ve type overlaps, and if
-           ; no negative types overlap, else false
-           (boolean
-             (and (some (fn [pos] (overlap pos other-type)) (:extends the-extends))
-                  (not-any? (fn [neg] (overlap neg other-type)) (:without the-extends)))))
-
          (and (impl/checking-clojurescript? opts)
               (or (and (r/JSNull? t1)
                        (r/JSUndefined? t2))
@@ -2433,13 +2423,6 @@
     (->> val
          #_(t/cast t/Keyword))
     opts))
-
-;; Extends
-
-(t/tc-ignore
-(defn -extends [clss & {:keys [without]}]
-  (r/Extends-maker (r/sorted-type-set clss) (r/sorted-type-set without)))
-  )
 
 ;;; KwArgs
 
@@ -3073,16 +3056,6 @@
                        (fn [ty]
                          (r/update-KwArgsSeq ty 
                            [:kw-args-regex type-rec])))
-
-(add-default-fold-case Extends
-                       (fn [{:keys [extends without] :as ty}]
-                         (let [extends' (into-identical [] type-rec extends)
-                               without' (into-identical [] type-rec without)
-                               changed? (or (not (identical? extends extends'))
-                                            (not (identical? without without')))]
-                           (if changed?
-                             (-extends extends' :without without')
-                             ty))))
 
 (add-default-fold-case GetType
                        (fn [ty]

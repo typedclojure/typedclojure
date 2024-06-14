@@ -481,47 +481,6 @@
                 cs)
             (fail! S T)))
 
-        (and (r/Extends? S)
-             (r/Extends? T))
-        (let [;_ (prn "Extends" (prs/unparse-type S opts) (prs/unparse-type T opts)
-              ;       V X Y)
-              ; FIXME handle negative information
-              cs (cset-meet*
-                   (mapv
-                     ; for each element of T, we need at least one element of S that works
-                     (fn [t*]
-                       (if-let [results (not-empty
-                                         (into [] (keep #(handle-failure
-                                                           (cs-gen V X Y % t* opts)))
-                                               (:extends S)))]
-                         (cset-meet* results)
-                         (fail! S T)))
-                     (:extends T))
-                   opts)]
-          cs)
-
-        ;; find *an* element of S which can be made a subtype of T
-        ;; we don't care about what S does *not* implement, so we don't
-        ;; use the "without" field of Extends
-        (r/Extends? S)
-        (if-let [cs (some #(handle-failure (cs-gen V X Y % T opts))
-                          (:extends S))]
-          cs
-          (fail! S T))
-
-        ;constrain *every* element of T to be above S, and then meet the constraints
-        ; also ensure T's negative information is reflected in S
-        (r/Extends? T)
-        (let [cs (cset-meet*
-                   (cons (cr/empty-cset X Y)
-                         (mapv #(cs-gen V X Y S % opts) (:extends T)))
-                   opts)
-              satisfies-without? (not-any? #(handle-failure (cs-gen V X Y % T opts))
-                                           (:without T))]
-          (if satisfies-without?
-            cs
-            (fail! S T)))
-
         (r/App? S) (cs-gen V X Y (c/resolve-App S opts) T opts)
         (r/App? T) (cs-gen V X Y S (c/resolve-App T opts opts))
 
