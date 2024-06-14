@@ -34,7 +34,7 @@
                                         RClass Bounds HSequential HeterogeneousMap
                                         Protocol JSObj B F Top NotType SymbolicClosure
                                         TopKwArgsSeq TopHSequential MergeType Wildcard MatchType
-                                        GetType JSNumber FnIntersection JSBoolean)))
+                                        GetType JSNumber FnIntersection JSBoolean JSString JSNull)))
 
 (set! *warn-on-reflection* true)
 
@@ -677,7 +677,9 @@
   MatchType (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
   GetType (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
   JSNumber (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
+  JSString (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
   JSBoolean (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
+  JSNull (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
   Top (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
   )
 
