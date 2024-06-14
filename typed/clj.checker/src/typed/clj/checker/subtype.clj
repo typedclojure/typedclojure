@@ -32,7 +32,9 @@
   (:import (typed.cljc.checker.type_rep Poly TApp F FnIntersection Intersection
                                         NotType AssocType
                                         RClass Bounds HSequential HeterogeneousMap
-                                        Protocol JSObj)))
+                                        Protocol JSObj B F Top NotType SymbolicClosure
+                                        TopKwArgsSeq TopHSequential MergeType Wildcard MatchType
+                                        GetType JSNumber FnIntersection)))
 
 (set! *warn-on-reflection* true)
 
@@ -434,8 +436,17 @@
   FnIntersection
   ;; hack for FnIntersection <: clojure.lang.IFn
   (subtypeA*-for-s [s t A opts]
-    (when (impl/checking-clojure? opts)
-      (subtypeA* A (c/RClass-of clojure.lang.IFn opts) t opts)))
+    (if (r/FnIntersection? t)
+      (loop [A* A
+             arr2 (:types t)]
+        (let [arr1 (:types s)]
+          (if (empty? arr2)
+            A*
+            (if-let [A (supertype-of-one-arr A* (first arr2) arr1 opts)]
+              (recur A (next arr2))
+              (report-not-subtypes s t)))))
+      (when (impl/checking-clojure? opts)
+        (subtypeA* A (c/RClass-of clojure.lang.IFn opts) t opts))))
 
   RClass
   (subtypeA*-for-s [s t A opts]
@@ -651,7 +662,21 @@
             b2 (c/PolyDots-body* names t opts)]
         (when (= bbnds1 bbnds2)
           (free-ops/with-bounded-frees (zipmap (map r/F-maker names) bbnds1)
-            (subtypeA* A b1 b2 opts)))))))
+            (subtypeA* A b1 b2 opts))))))
+
+  B (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
+  F (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
+  NotType (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
+  SymbolicClosure (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
+  TopKwArgsSeq (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
+  TopHSequential (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
+  MergeType (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
+  Wildcard (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
+  MatchType (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
+  GetType (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
+  JSNumber (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
+  Top (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
+  )
 
 ;;TODO replace hardcoding cases for unfolding Mu? etc. with a single case for unresolved types.
 ;;[(t/Set '[Type Type]) Type Type -> (t/Nilable (t/Set '[Type Type]))]
@@ -858,17 +883,6 @@
         (r/Union? t)
         (some (fn union-right [t] (subtypeA* A s t)) (:types t))
 
-        (AND (r/FnIntersection? s)
-             (r/FnIntersection? t))
-        (loop [A* A
-               arr2 (:types t)]
-          (let [arr1 (:types s)]
-            (if (empty? arr2)
-              A*
-              (if-let [A (supertype-of-one-arr A* (first arr2) arr1 opts)]
-                (recur A (next arr2))
-                (report-not-subtypes s t)))))
-
 ;does it matter what order the Intersection cases are?
         (r/Intersection? t)
         (let [ts (simplify-In t opts)]
@@ -971,11 +985,8 @@
           (recur A s t-or-n opts)
           (report-not-subtypes s t))
 
-        :else (or (when (extends? SubtypeA*Protocol (class s))
-                    (subtypeA*-for-s s t A opts))
-                  ;; TODO (All [r x ...] [x ... x -> r]) <: (All [r x] [x * -> r]) ?
-                  (report-not-subtypes s t))
-        )))))
+        ;; TODO (All [r x ...] [x ... x -> r]) <: (All [r x] [x * -> r]) ?
+        :else (subtypeA*-for-s s t A opts))))))
 
 (defn ^:private resolve-JS-reference [sym opts]
   (impl/assert-cljs opts)
