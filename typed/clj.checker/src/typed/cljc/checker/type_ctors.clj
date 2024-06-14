@@ -3018,6 +3018,7 @@
 (add-default-fold-case HeterogeneousMap
                        (fn [ty]
                          (let [mandatory (visit-type-map (:types ty) type-rec)]
+                           ;;TODO add this check to visit-type-map
                            (if (reduce-kv (fn [_ k v]
                                             (when (OR (r/Bottom? k)
                                                       (r/Bottom? v))
