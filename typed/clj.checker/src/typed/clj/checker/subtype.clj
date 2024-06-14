@@ -461,7 +461,6 @@
   B (subtypeA*-same [s t A opts] unknown-result)
   TypeOf (subtypeA*-same [s t A opts] unknown-result)
   MatchType (subtypeA*-same [s t A opts] unknown-result)
-  Poly (subtypeA*-same [s t A opts] unknown-result)
   ;;TODO port conditional logic
   AssocType (subtypeA*-same [s t A opts] unknown-result)
   ;;TODO
@@ -492,6 +491,24 @@
   JSNumber (subtypeA*-same [s t A opts] (report-not-subtypes s t))
   JSString (subtypeA*-same [s t A opts] (report-not-subtypes s t))
   JSSymbol (subtypeA*-same [s t A opts] (report-not-subtypes s t))
+
+  Poly
+  (subtypeA*-same [s t A opts]
+    (if (AND (= :Poly (:kind s))
+             (= :Poly (:kind t)))
+      (if (AND (= (:nbound s) (:nbound t))
+               (= (:bbnds s) (:bbnds t)))
+        (let [;instantiate both sides with the same fresh variables
+              names (repeatedly (:nbound s) gensym)
+              bbnds1 (c/Poly-bbnds* names s opts)
+              b1 (c/Poly-body* names s opts)
+              b2 (c/Poly-body* names t opts)]
+          (if (free-ops/with-bounded-frees (zipmap (map r/F-maker names) bbnds1)
+                (subtypeA* A b1 b2 opts))
+            A
+            (report-not-subtypes s t)))
+        unknown-result)
+      unknown-result))
 
   Regex (subtypeA*-same [s t A opts] (subtype-regex A s t))
   CountRange (subtypeA*-same [s t A opts] (subtype-CountRange A s t))
@@ -847,7 +864,8 @@
   (if (OR ; FIXME TypeFn's are probably not between Top/Bottom
           (r/Top? t)
           (r/Wildcard? t)
-          (= r/empty-union s)
+          (and (r/Union? s)
+               (= r/empty-union s))
           ;; Unchecked is both bottom and top
           (r/Unchecked? s)
           (r/Unchecked? t)
@@ -910,20 +928,6 @@
                    (r/PolyDots? frt))))
         (or (subtype-symbolic-closure A s t opts)
             (report-not-subtypes s t))
-
-        (AND (r/Poly? s)
-             (r/Poly? t)
-             (= (:nbound s) (:nbound t))
-             (= (:bbnds s) (:bbnds t)))
-        (let [;instantiate both sides with the same fresh variables
-              names (repeatedly (:nbound s) gensym)
-              bbnds1 (c/Poly-bbnds* names s opts)
-              b1 (c/Poly-body* names s opts)
-              b2 (c/Poly-body* names t opts)]
-          (if (free-ops/with-bounded-frees (zipmap (map r/F-maker names) bbnds1)
-                (subtypeA* A b1 b2))
-            A
-            (report-not-subtypes s t)))
 
         ;use unification to see if we can use the Poly type here
         (when (r/-Poly? s)
