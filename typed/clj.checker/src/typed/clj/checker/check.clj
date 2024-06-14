@@ -672,7 +672,7 @@
           (r/HeterogeneousSeq? targett)
           (let [res (reduce (fn [t [kt vt]]
                               {:pre [(r/HeterogeneousMap? t)]}
-                              (if (= (r/Bottom) vt)
+                              (if (r/Bottom? vt)
                                 ;preserve bottom
                                 (reduced vt)
                                 (assoc-in t [:types kt] vt)))

@@ -111,7 +111,7 @@
                 (recur (cons new-or derived-props) derived-atoms (next worklist))
                 (recur derived-props derived-atoms (cons new-or (next worklist)))))
             (and (fl/TypeFilter? p)
-                 (= (r/Bottom) (:type p)))
+                 (r/Bottom? (:type p)))
             (do 
               ;(prn "Variable set to bottom:" p)
               (vreset! flag false)
@@ -458,8 +458,7 @@
                                                             opts))
                                            (update-with-filter t f opts)))]
                   ; update flag if a variable is now bottom
-                  (when-let [bs (seq (filter (comp #{(r/Bottom)} val) (:l new-env)))]
-                    ;(prn "Variables now bottom:" (keys bs))
+                  (when (some (comp r/Bottom? val) (:l new-env))
                     (vreset! flag false))
                   new-env)
 
@@ -476,8 +475,7 @@
                                                       (:fs f))
                                                  opts)))]
                   ; update flag if a variable is now bottom
-                  (when-some [bs (seq (filter (comp #{(r/Bottom)} val) (:l new-env)))]
-                    ;(prn "Variables now bottom:" (keys bs))
+                  (when (some (comp r/Bottom? val) (:l new-env))
                     (vreset! flag false))
                   new-env)
                 :else env))

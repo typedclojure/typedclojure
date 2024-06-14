@@ -143,9 +143,10 @@
 (def -nothing (Bottom))
 
 (t/ann Bottom? [t/Any -> t/Bool])
-(defn Bottom? [a]
-  (and (Union? a)
-       (= empty-union a)))
+(defn Bottom? [^Union a]
+  (if (Union? a)
+    (zero? (count (.types a)))
+    false))
 
 (u/def-type TCError []
   "Use *only* when a type error occurs"

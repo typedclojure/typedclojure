@@ -116,7 +116,7 @@
                                                    (concat [nme]
                                                            (when-not (= r/-any upper-bound)
                                                              [:< (prs/unparse-type upper-bound opts)])
-                                                           (when-not (= r/-nothing lower-bound)
+                                                           (when-not (r/Bottom? lower-bound)
                                                              [:> (prs/unparse-type lower-bound opts)])))))
                                        bnds (map (comp #(prs/unparse-type % opts) r/make-F) names)))))))
           "\n\nDomains:\n\t" 

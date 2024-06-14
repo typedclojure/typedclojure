@@ -31,8 +31,8 @@
                     {us :t fs3 :fl os3 :o :as else-ret}
                     env-els
                     opts]
-  (let [then-reachable? (not= r/-nothing ts)
-        else-reachable? (not= r/-nothing us)
+  (let [then-reachable? (not (r/Bottom? ts))
+        else-reachable? (not (r/Bottom? us))
         type (c/Un [ts us] opts)
         filter (let [{f2+ :then f2- :else} fs2
                      {f3+ :then f3- :else} fs3

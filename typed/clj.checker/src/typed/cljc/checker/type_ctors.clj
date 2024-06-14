@@ -2836,7 +2836,7 @@
                                       (let [t (type-rec %)]
                                         ;; if we fully flatten out the prest, we're left
                                         ;; with no prest
-                                        (when (not= r/-nothing t)
+                                        (when-not (r/Bottom? t)
                                           t)))]
                            [:regex #(some-> % type-rec)])))
 
@@ -3018,7 +3018,11 @@
 (add-default-fold-case HeterogeneousMap
                        (fn [ty]
                          (let [mandatory (visit-type-map (:types ty) type-rec)]
-                           (if (some #{r/-nothing} (apply concat mandatory))
+                           (if (reduce-kv (fn [_ k v]
+                                            (when (OR (r/Bottom? k)
+                                                      (r/Bottom? v))
+                                              (reduced true)))
+                                          nil mandatory)
                              r/-nothing
                              (r/update-HeterogeneousMap ty 
                                [:types (fn [_] mandatory)]

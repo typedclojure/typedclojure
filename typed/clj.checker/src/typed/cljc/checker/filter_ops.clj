@@ -28,7 +28,7 @@
    :post [(fr/Filter? %)]}
   (cond
     (= r/-any t) fr/-top
-    (= r/-nothing t) fr/-bot
+    (r/Bottom? t) fr/-bot
     :else (fr/TypeFilter-maker t (seq p) i)))
 
 (defn -not-filter [t i & [p]]
@@ -37,7 +37,7 @@
          ((some-fn nil? #(every? pr/PathElem? %)) p)]
    :post [(fr/Filter? %)]}
   (cond
-    (= r/-nothing t) fr/-top
+    (r/Bottom? t) fr/-top
     (= r/-any t) fr/-bot
     :else (fr/NotTypeFilter-maker t (seq p) i)))
 
