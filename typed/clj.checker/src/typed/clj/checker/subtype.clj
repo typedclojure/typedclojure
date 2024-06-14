@@ -34,7 +34,7 @@
                                         RClass Bounds HSequential HeterogeneousMap
                                         Protocol JSObj B F Top NotType SymbolicClosure
                                         TopKwArgsSeq TopHSequential MergeType Wildcard MatchType
-                                        GetType JSNumber FnIntersection)))
+                                        GetType JSNumber FnIntersection JSBoolean)))
 
 (set! *warn-on-reflection* true)
 
@@ -445,8 +445,10 @@
             (if-let [A (supertype-of-one-arr A* (first arr2) arr1 opts)]
               (recur A (next arr2))
               (report-not-subtypes s t)))))
-      (when (impl/checking-clojure? opts)
-        (subtypeA* A (c/RClass-of clojure.lang.IFn opts) t opts))))
+      (if (r/TopFunction? t)
+        A
+        (when (impl/checking-clojure? opts)
+          (subtypeA* A (c/RClass-of clojure.lang.IFn opts) t opts)))))
 
   RClass
   (subtypeA*-for-s [s t A opts]
@@ -675,6 +677,7 @@
   MatchType (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
   GetType (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
   JSNumber (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
+  JSBoolean (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
   Top (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
   )
 
@@ -893,10 +896,6 @@
         (r/Intersection? s)
         (let [ss (simplify-In s opts)]
           (some #(subtypeA* A % t) ss))
-
-        (AND (r/TopFunction? t)
-             (r/FnIntersection? s))
-        A
 
         ;       B <: A
         ;_______________________________
