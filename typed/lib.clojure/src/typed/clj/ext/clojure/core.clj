@@ -11,6 +11,13 @@
   (:require [typed.clj.checker.check.unanalyzed :as un-clj]))
 
 ;;==================
+;; clojure.core/assert
+
+(un-clj/install-defuspecial
+  'clojure.core/assert
+  'typed.clj.ext.clojure.core__assert/defuspecial__assert)
+
+;;==================
 ;; clojure.core/defmacro
 
 (un-clj/install-defuspecial

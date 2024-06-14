@@ -38,3 +38,4 @@
   - defaults to number of processors
   - configurable via options: `(check-ns *ns* {:max-processors 1})`
 - reset lexical type environment when checking ns dependency
+- type check `clojure.core/assert` as if `*assert*` is true
