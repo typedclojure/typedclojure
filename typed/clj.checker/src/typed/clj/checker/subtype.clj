@@ -1080,15 +1080,15 @@
         (let [target (:target s)
               entries (:entries s)
               dentries (:dentries s)
-              poly? (:poly? t)
+              [l r] (:poly? t)
               the-class (:the-class t)
               ; _ (when-not (nil? dentries) (err/nyi-error (pr-str "NYI subtype of dentries AssocType " s) opts))
-              ; we assume its all right
-              entries-keys (map first entries)
-              entries-vals (map second entries)]
+              ]
           (if (and (subtypeA* A target t)
-                   (every?' (partial subtypeA* A) entries-keys (repeat (first poly?)))
-                   (every?' (partial subtypeA* A) entries-vals (repeat (second poly?))))
+                   (every? #(let [[k v] %]
+                              (AND (subtypeA* A k l)
+                                   (subtypeA* A v r)))
+                           entries))
             A
             (report-not-subtypes s t)))
 
