@@ -461,8 +461,6 @@
   B (subtypeA*-same [s t A opts] unknown-result)
   TypeOf (subtypeA*-same [s t A opts] unknown-result)
   MatchType (subtypeA*-same [s t A opts] unknown-result)
-  ;;TODO port conditional logic
-  AssocType (subtypeA*-same [s t A opts] unknown-result)
   ;;TODO
   DissocType (subtypeA*-same [s t A opts] unknown-result)
   ;;TODO
@@ -491,6 +489,20 @@
   JSNumber (subtypeA*-same [s t A opts] (report-not-subtypes s t))
   JSString (subtypeA*-same [s t A opts] (report-not-subtypes s t))
   JSSymbol (subtypeA*-same [s t A opts] (report-not-subtypes s t))
+
+  AssocType
+  (subtypeA*-same [s ^AssocType t A opts]
+    (if (AND (r/F? (.target s))
+             (r/F? (.target t))
+             (not (.dentries s))
+             (not (.dentries t)))
+      (if (= (.target s) (.target t))
+        (subtypeA* A
+                   (assoc-u/assoc-pairs-noret (c/-complete-hmap {} opts) (.entries s) opts)
+                   (assoc-u/assoc-pairs-noret (c/-complete-hmap {} opts) (.entries t) opts)
+                   opts)
+        (report-not-subtypes s t))
+      unknown-result))
 
   Poly
   (subtypeA*-same [s t A opts]
@@ -1079,18 +1091,6 @@
                    (every?' (partial subtypeA* A) entries-vals (repeat (second poly?))))
             A
             (report-not-subtypes s t)))
-
-        (AND (r/AssocType? s)
-             (r/AssocType? t)
-             (r/F? (:target s))
-             (r/F? (:target t))
-             (not-any? :dentries [s t]))
-        (if (= (:target s) (:target t))
-          (recur A
-                 (assoc-u/assoc-pairs-noret (c/-complete-hmap {} opts) (:entries s) opts)
-                 (assoc-u/assoc-pairs-noret (c/-complete-hmap {} opts) (:entries t) opts)
-                 opts)
-          (report-not-subtypes s t))
 
         (and (r/AssocType? s)
              (r/F? (:target s))
