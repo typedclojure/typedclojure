@@ -71,7 +71,7 @@
   (is-clj (= {`T 8}
              (clj (second (erase-names (c/-resolve (prs/parse-clj `T) (clj-opts))
                                        #{`T} (clj-opts))))))
-  (is-clj (= {`E 8}
+  (is-clj (= {`E 5}
              (clj (second (erase-names (c/-resolve (prs/parse-clj `E) (clj-opts))
                                        #{`E} (clj-opts))))))
   (is-clj (= {`P 6}

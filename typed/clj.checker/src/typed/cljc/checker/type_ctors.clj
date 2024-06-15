@@ -2999,34 +2999,37 @@
                              (r/-hset fixed')
                              ty))))
 
-(defn visit-type-map [m f]
-  (return-if-changed
-    (fn [changed?]
-      (reduce-kv (fn [m k v]
-                   (let [k' (f k)
-                         v' (f v)]
-                     (when-not (and (identical? k k')
-                                    (identical? v v'))
-                       (vreset! changed? true))
-                     (assoc m k' v')))
-                 {} m))
-    m))
+(defn visit-type-map
+  ([m f] (visit-type-map m f false))
+  ([m f bottom-preserving]
+   (return-if-changed
+     (fn [changed?]
+       (reduce-kv (fn [m k v]
+                    (let [k' (f k)
+                          v' (f v)]
+                      (if (AND bottom-preserving
+                               (OR (r/Bottom? k')
+                                   (r/Bottom? v')))
+                        (do (vreset! changed? true)
+                            (reduced nil))
+                        (do (when-not (and (identical? k k')
+                                           (identical? v v'))
+                              (vreset! changed? true))
+                            (assoc m k' v')))))
+                  {} m))
+     m)))
 
 (defn- visit-type-paired-vector [v f]
   (into-identical [] #(into-identical [] f %) v))
 
 (add-default-fold-case HeterogeneousMap
                        (fn [ty]
-                         (let [mandatory (visit-type-map (:types ty) type-rec)]
-                           ;;TODO add this check to visit-type-map
-                           (if (reduce-kv (fn [_ k v]
-                                            (when (OR (r/Bottom? k)
-                                                      (r/Bottom? v))
-                                              (reduced true)))
-                                          nil mandatory)
+                         (let [mandatory (visit-type-map (:types ty) type-rec (not (::vs/no-simpl opts)))]
+                           (if (nil? mandatory)
                              r/-nothing
                              (r/update-HeterogeneousMap ty 
                                [:types (fn [_] mandatory)]
+                               ;;TODO move bottom keys to absent if not :complete?
                                [:optional visit-type-map type-rec])))))
 
 (add-default-fold-case JSObj
