@@ -887,7 +887,7 @@
           (contains? A [s t]))
     A
     (let [A (conj A [s t])
-          short-circuit-same (if (identical? (class s) (class t))
+          short-circuit-same (if (identical? (.getClass ^Object s) (.getClass ^Object t))
                                (subtypeA*-same s t A opts)
                                unknown-result)]
       (cond
