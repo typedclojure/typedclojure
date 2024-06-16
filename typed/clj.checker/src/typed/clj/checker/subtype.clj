@@ -640,7 +640,6 @@
 (extend-protocol SubtypeA*LeftProtocol
   App (subtypeA*-for-s [s t A opts] (throw (ex-info "TODO SubtypeA*LeftProtocol App" {})))
   ArrayCLJS (subtypeA*-for-s [s t A opts] (throw (ex-info "TODO SubtypeA*LeftProtocol ArrayCLJS" {})))
-  AssocType (subtypeA*-for-s [s t A opts] (throw (ex-info "TODO SubtypeA*LeftProtocol AssocType" {})))
   Bounds (subtypeA*-for-s [s t A opts] (throw (ex-info "TODO SubtypeA*LeftProtocol Bounds" {})))
   DottedPretype (subtypeA*-for-s [s t A opts] (throw (ex-info "TODO SubtypeA*LeftProtocol DottedPretype" {})))
   Function (subtypeA*-for-s [s t A opts] (throw (ex-info "TODO SubtypeA*LeftProtocol Function" {})))
@@ -669,6 +668,41 @@
   KwArgsArray (subtypeA*-for-s [s t A opts] (report-not-subtypes s t)) ;;TODO
 
   TCError (subtypeA*-for-s [s t A opts] A)
+
+  AssocType
+  (subtypeA*-for-s
+    [s t A opts]
+    (if (r/RClass? t)
+      (if (= 'clojure.lang.IPersistentMap (.the-class ^RClass t))
+        (let [target (.target s)
+              entries (.entries s)
+              dentries (.dentries s)
+              ; (Map xx yy)
+              [l r] (.poly? ^RClass t)
+              the-class (.the-class ^RClass t)
+              ; _ (when-not (nil? dentries) (err/nyi-error (pr-str "NYI subtype of dentries AssocType " s) opts))
+              ]
+          (if (and (subtypeA* A target t opts)
+                   (every? #(let [[k v] %]
+                              (AND (subtypeA* A k l opts)
+                                   (subtypeA* A v r opts)))
+                           entries))
+            A
+            (report-not-subtypes s t)))
+        (report-not-subtypes s t))
+      (if (r/F? (.target s)) ; avoids infinite expansion because associng an F is a fixed point
+        (let [bnds (free-ops/free-with-name-bnds (-> s .target :name))
+              _ (assert bnds
+                        (str "Bounds not found for free variable: " (-> s .target :name)))]
+          (if (subtypeA* A (:upper-bound bnds) t opts)
+            (subtypeA* A
+                       (assoc-u/assoc-pairs-noret (c/-complete-hmap {} opts) (.entries s) opts)
+                       t
+                       opts)
+            (report-not-subtypes s t)))
+        (if-let [s-or-n (assoc-u/assoc-pairs-noret (.target s) (.entries s) opts)]
+          (subtypeA* A s-or-n t opts)
+          (report-not-subtypes s t)))))
 
   CLJSInteger
   (subtypeA*-for-s [s t A opts]
@@ -935,8 +969,7 @@
         (AND (r/SymbolicClosure? s)
              (let [frt (c/fully-resolve-type t opts)]
                (OR (r/FnIntersection? frt)
-                   (r/Poly? frt)
-                   (r/PolyDots? frt))))
+                   (r/-Poly? frt))))
         (or (subtype-symbolic-closure A s t opts)
             (report-not-subtypes s t))
 
@@ -1072,45 +1105,6 @@
             (and (r/MergeType? t)
                  (c/Merge-requires-resolving? t opts)))
         (recur A s (c/-resolve t opts) opts)
-
-        (AND (r/AssocType? s)
-             (r/RClass? t)
-             ; (Map xx yy)
-             (= 'clojure.lang.IPersistentMap (:the-class t)))
-        (let [target (:target s)
-              entries (:entries s)
-              dentries (:dentries s)
-              [l r] (:poly? t)
-              the-class (:the-class t)
-              ; _ (when-not (nil? dentries) (err/nyi-error (pr-str "NYI subtype of dentries AssocType " s) opts))
-              ]
-          (if (and (subtypeA* A target t)
-                   (every? #(let [[k v] %]
-                              (AND (subtypeA* A k l)
-                                   (subtypeA* A v r)))
-                           entries))
-            A
-            (report-not-subtypes s t)))
-
-        (and (r/AssocType? s)
-             (r/F? (:target s))
-             (not (r/AssocType? t)))
-        (let [bnds (free-ops/free-with-name-bnds (-> s :target :name))
-              _ (assert bnds
-                        (str "Bounds not found for free variable: " (-> s :target :name)))]
-          (if (subtypeA* A (:upper-bound bnds) t)
-            (recur A
-                   (assoc-u/assoc-pairs-noret (c/-complete-hmap {} opts) (:entries s) opts)
-                   t
-                   opts)
-            (report-not-subtypes s t)))
-      
-        ; avoids infinite expansion because associng an F is a fixed point
-        (r/AssocType? s)
-        (when (not (r/F? (:target s)))
-          (if-let [s-or-n (assoc-u/assoc-pairs-noret (:target s) (:entries s) opts)]
-            (recur A s-or-n t opts)
-            (report-not-subtypes s t)))
 
         ; avoids infinite expansion because associng an F is a fixed point
         (and (r/AssocType? t)
