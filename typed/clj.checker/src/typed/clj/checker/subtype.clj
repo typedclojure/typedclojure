@@ -649,7 +649,6 @@
   KwArgs (subtypeA*-for-s [s t A opts] (throw (ex-info "TODO SubtypeA*LeftProtocol KwArgs" {})))
   Mu (subtypeA*-for-s [s t A opts] (throw (ex-info "TODO SubtypeA*LeftProtocol Mu" {})))
   Name (subtypeA*-for-s [s t A opts] (throw (ex-info "TODO SubtypeA*LeftProtocol Name" {})))
-  Name (subtypeA*-for-s [s t A opts] (throw (ex-info "TODO SubtypeA*LeftProtocol Name" {})))
   Scope (subtypeA*-for-s [s t A opts] (throw (ex-info "TODO SubtypeA*LeftProtocol Scope" {})))
   TApp (subtypeA*-for-s [s t A opts] (throw (ex-info "TODO SubtypeA*LeftProtocol TApp" {})))
   TypeOf (subtypeA*-for-s [s t A opts] (throw (ex-info "TODO SubtypeA*LeftProtocol Name" {})))
