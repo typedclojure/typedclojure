@@ -537,13 +537,13 @@
   (subtypeA*-same [s t A opts]
     (if (c/Merge-requires-resolving? s opts)
       (subtypeA* A (c/resolve-Merge s opts) t opts)
-      unknown-result))
+      (report-not-subtypes s t)))
 
   GetType
   (subtypeA*-same [s t A opts]
     (if (c/Get-requires-resolving? s opts)
       (subtypeA* A (c/resolve-Get s opts) t opts)
-      unknown-result))
+      (report-not-subtypes s t)))
 
   ;; The order of checking protocols and datatypes is subtle.
   ;; It is easier to calculate the ancestors of a datatype than
@@ -919,10 +919,16 @@
   NotType (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
   TopKwArgsSeq (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
   TopHSequential (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
-  MergeType (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
+  MergeType
+  (subtypeA*-for-s [s t A opts]
+                   (if (c/Merge-requires-resolving? s opts)
+                     (subtypeA* A (c/resolve-Merge s opts) t opts)
+                     (report-not-subtypes s t)))
   Wildcard (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
   MatchType (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
-  GetType (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
+  GetType (subtypeA*-for-s [s t A opts] (if (c/Get-requires-resolving? s opts)
+                                          (subtypeA* A (c/resolve-Get s opts) t opts)
+                                          (report-not-subtypes s t)))
   JSNumber (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
   JSString (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
   JSBoolean (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
@@ -1091,12 +1097,6 @@
                  (not (subtypeA* A s (:type t))))
           A
           (report-not-subtypes s t))
-
-        (or (and (r/GetType? s)
-                 (c/Get-requires-resolving? s opts))
-            (and (r/MergeType? s)
-                 (c/Merge-requires-resolving? s opts)))
-        (recur A (c/-resolve s opts) t opts)
 
         (or (and (r/GetType? t)
                  (c/Get-requires-resolving? t opts))
