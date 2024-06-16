@@ -853,25 +853,70 @@
 
   Poly
   (subtypeA*-for-s [s ^Poly t A opts]
-    (when (AND (r/PolyDots? t) ;; test t first to short-circuit if -Poly? fails
-               (= :PolyDots (.kind s))
-               (= (.nbound s) (.nbound t)))
-      (let [;instantiate both sides with the same fresh variables
-            names (repeatedly (.nbound s) gensym)
-            bbnds1 (c/PolyDots-bbnds* names s opts)
-            bbnds2 (c/PolyDots-bbnds* names t opts)
-            b1 (c/PolyDots-body* names s opts)
-            b2 (c/PolyDots-body* names t opts)]
-        (when (= bbnds1 bbnds2)
-          (free-ops/with-bounded-frees (zipmap (map r/F-maker names) bbnds1)
-            (subtypeA* A b1 b2 opts))))))
+    (if (r/-Poly? t)
+      (when (AND (= :PolyDots (.kind s))
+                 (= :PolyDots (.kind t))
+                 (= (.nbound s) (.nbound t)))
+        (let [;instantiate both sides with the same fresh variables
+              names (repeatedly (.nbound s) gensym)
+              bbnds1 (c/PolyDots-bbnds* names s opts)
+              bbnds2 (c/PolyDots-bbnds* names t opts)
+              b1 (c/PolyDots-body* names s opts)
+              b2 (c/PolyDots-body* names t opts)]
+          (when (= bbnds1 bbnds2)
+            (free-ops/with-bounded-frees (zipmap (map r/F-maker names) bbnds1)
+              (subtypeA* A b1 b2 opts)))))
+      (if (OR ;use unification to see if we can use the Poly type here
+              (case (.kind s) 
+                :Poly (let [names (c/Poly-fresh-symbols* s)
+                            bnds (c/Poly-bbnds* names s opts)
+                            b1 (c/Poly-body* names s opts)
+                            ;_ (prn "try unify on left")
+                            X (zipmap names bnds)
+                            u (free-ops/with-bounded-frees (update-keys X r/make-F)
+                                (unify X {} [b1] [t] r/-any opts))]
+                        ;(prn "unified on left")
+                        u)
+                :PolyDots (let [names (c/PolyDots-fresh-symbols* s)
+                                bnds (c/PolyDots-bbnds* names s opts)
+                                b1 (c/PolyDots-body* names s opts)
+                                ;_ (prn "try PolyDots unify on left")
+                                X (zipmap (pop names) (pop bnds))
+                                Y {(peek names) (peek bnds)}
+                                u (free-ops/with-bounded-frees (update-keys (into X Y) r/make-F)
+                                    (unify X Y [b1] [t] r/-any opts))]
+                            ;(prn "unified on left" u)
+                            u))
+              ;; go after presumably cheaper unification cases
+              (AND (r/FnIntersection? t)
+                   (= 1 (count (:types t)))
+                   (every? #(= :fixed (:kind %)) (:types t))
+                   (binding [vs/*delayed-errors* (err/-init-delayed-errors)]
+                     ((requiring-resolve 'typed.cljc.checker.check.funapp/check-funapp)
+                      nil nil
+                      (r/ret s)
+                      (mapv r/ret (-> t :types first :dom))
+                      (-> t :types first :rng r/Result->TCResult)
+                      {} opts)
+                     (empty? @vs/*delayed-errors*))))
+        A
+        (report-not-subtypes s t))))
+
+  SymbolicClosure
+  (subtypeA*-for-s
+    [s t A opts]
+    (let [frt (c/fully-resolve-type t opts)]
+      (if (OR (r/FnIntersection? frt)
+              (r/-Poly? frt)) ;; handle before unwrapping polymorphic types
+        (or (subtype-symbolic-closure A s t opts)
+            (report-not-subtypes s t))
+        (report-not-subtypes s t))))
 
   Unchecked (subtypeA*-for-s [s t A opts] A)
 
   B (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
   F (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
   NotType (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
-  SymbolicClosure (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
   TopKwArgsSeq (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
   TopHSequential (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
   MergeType (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
@@ -964,53 +1009,6 @@
         (AND (r/MatchType? t)
              (c/Match-can-resolve? t opts))
         (recur A s (c/resolve-Match t opts) opts)
-
-        ;; handle before unwrapping polymorphic types
-        (AND (r/SymbolicClosure? s)
-             (let [frt (c/fully-resolve-type t opts)]
-               (OR (r/FnIntersection? frt)
-                   (r/-Poly? frt))))
-        (or (subtype-symbolic-closure A s t opts)
-            (report-not-subtypes s t))
-
-        ;use unification to see if we can use the Poly type here
-        (when (r/-Poly? s)
-          (case (:kind s)
-            :Poly (let [names (c/Poly-fresh-symbols* s)
-                        bnds (c/Poly-bbnds* names s opts)
-                        b1 (c/Poly-body* names s opts)
-                        ;_ (prn "try unify on left")
-                        X (zipmap names bnds)
-                        u (free-ops/with-bounded-frees (update-keys X r/make-F)
-                            (unify X {} [b1] [t] r/-any opts))]
-                    ;(prn "unified on left")
-                    u)
-            :PolyDots (let [names (c/PolyDots-fresh-symbols* s)
-                            bnds (c/PolyDots-bbnds* names s opts)
-                            b1 (c/PolyDots-body* names s opts)
-                            ;_ (prn "try PolyDots unify on left")
-                            X (zipmap (pop names) (pop bnds))
-                            Y {(peek names) (peek bnds)}
-                            u (free-ops/with-bounded-frees (update-keys (into X Y) r/make-F)
-                                (unify X Y [b1] [t] r/-any opts))]
-                        ;(prn "unified on left" u)
-                        u)))
-        A
-
-        ;; go after presumably cheaper unification cases
-        (and (r/-Poly? s)
-             (r/FnIntersection? t)
-             (= 1 (count (:types t)))
-             (every? #(= :fixed (:kind %)) (:types t))
-             (binding [vs/*delayed-errors* (err/-init-delayed-errors)]
-               ((requiring-resolve 'typed.cljc.checker.check.funapp/check-funapp)
-                nil nil
-                (r/ret s)
-                (mapv r/ret (-> t :types first :dom))
-                (-> t :types first :rng r/Result->TCResult)
-                {} opts)
-               (empty? @vs/*delayed-errors*)))
-        A
 
         (and (r/Poly? t)
              (empty? (frees/fv-variances t opts))
