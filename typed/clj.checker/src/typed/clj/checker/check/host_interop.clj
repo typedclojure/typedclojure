@@ -70,7 +70,7 @@
                  ana2/run-post-passes)
         expr (cond-> expr
                (and (= :host-interop (:op expr))
-                    (cu/should-rewrite?))
+                    (cu/should-rewrite? opts))
                (-> (update :target add-type-hints)
                    (update :args #(mapv add-type-hints %))
                    try-resolve-reflection))]

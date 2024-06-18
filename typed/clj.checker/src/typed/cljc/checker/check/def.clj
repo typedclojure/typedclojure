@@ -98,12 +98,14 @@
                       ;:unchecked (assoc init u/expr-type (r/ret (r/-unchecked vsym)))
                       (check-expr init nil opts)))
             cmeta (when meta
-                    (binding [vs/*current-expr* meta
-                              ;; emit-form does not currently
-                              ;; emit :meta nodes in a :def. Don't
-                              ;; try and rewrite it, just type check.
-                              vs/*can-rewrite* false]
-                      (check-expr meta nil (assoc opts ::vs/current-env (:env meta)))))
+                    (binding [vs/*current-expr* meta]
+                      (check-expr meta nil
+                                  (-> opts
+                                      ;; emit-form does not currently
+                                      ;; emit :meta nodes in a :def. Don't
+                                      ;; try and rewrite it, just type check.
+                                      (assoc ::vs/can-rewrite false)
+                                      (assoc ::vs/current-env (:env meta))))))
             inferred (r/ret-t (u/expr-type cinit))
             _ (assert (r/Type? inferred))
             #_#_ ;; old behavior, type should now only be annotated at runtime

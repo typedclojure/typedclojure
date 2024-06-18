@@ -240,7 +240,7 @@
       (cond
         ;; we have an untyped annotation
         ut
-        (if (cu/should-rewrite?)
+        (if (cu/should-rewrite? opts)
           (assoc (cu/add-cast expr ut
                               {:positive (str "Annotation for " vsym)
                                :negative (str (cu/expr-ns expr opts))}
@@ -1774,13 +1774,13 @@
             (cond
               (:validated? expr) (check-validated expr)
 
-              (cu/should-rewrite?) (let [expr (update expr :args #(mapv host-interop/add-type-hints %))
-                                         rexpr (host-interop/try-resolve-reflection expr)]
-                                     ;; rexpr can only be :new
-                                     (case (:op rexpr)
-                                       (:new) (if (:validated? rexpr)
-                                                (check-validated rexpr)
-                                                (give-up rexpr))))
+              (cu/should-rewrite? opts) (let [expr (update expr :args #(mapv host-interop/add-type-hints %))
+                                              rexpr (host-interop/try-resolve-reflection expr)]
+                                          ;; rexpr can only be :new
+                                          (case (:op rexpr)
+                                            (:new) (if (:validated? rexpr)
+                                                     (check-validated rexpr)
+                                                     (give-up rexpr))))
               :else (give-up expr)))))))
 
 (defn check-def

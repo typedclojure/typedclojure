@@ -118,11 +118,11 @@
       :cljs @*register-cljs-anns)
     (reset-caches/reset-caches)
     (binding [vs/*in-check-form* true
-              ;; custom expansions might not even evaluate
-              vs/*can-rewrite* (not custom-expansions?)
               vs/*custom-expansions* custom-expansions?]
       (let [delayed-errors (err/-init-delayed-errors)
             opts (-> opts
+                     ;; custom expansions might not even evaluate
+                     (assoc ::vs/can-rewrite (not custom-expansions?))
                      (assoc ::vs/lexical-env (lex-env/init-lexical-env))
                      (assoc ::vs/already-checked (atom #{}))
                      (assoc ::vs/delayed-errors delayed-errors))

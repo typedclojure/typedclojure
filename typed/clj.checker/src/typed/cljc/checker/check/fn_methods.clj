@@ -212,7 +212,7 @@
                                     [ifn-index expected-type]))
                                 (map-indexed vector fn-matches))
                               cmethods
-                              (u/rewrite-when (== 1 (count expecteds))
+                              (let [opts (update opts ::vs/can-rewrite #(and (= 1 (count expecteds)) %))]
                                 (mapv (fn [[ifn-index expected-type]]
                                         {:pre [(integer? ifn-index)
                                                (r/Function? expected-type)]}
@@ -306,15 +306,15 @@
 
       ;; disable rewriting in case we recheck a method arity
       :else
-      (binding [vs/*can-rewrite* nil]
-        (let [method-returns+errors (mapv (fn [t]
-                                            (let [delayed-errors (err/-init-delayed-errors)]
-                                              (let [res (check-fni t mthods opt (assoc opts ::vs/delayed-errors delayed-errors))]
-                                                {:errors (seq @delayed-errors)
-                                                 :res res})))
-                                          ts)
-              _ (when (every? :errors method-returns+errors)
-                  (swap! (::vs/delayed-errors opts) into (mapcat :errors) method-returns+errors))]
-          {:methods mthods
-           :ifn (c/Un (map (comp :ifn :res) method-returns+errors) opts)
-           :cmethods (into [] (mapcat (comp :cmethods :res)) method-returns+errors)})))))
+      (let [opts (assoc opts ::vs/can-rewrite nil)
+            method-returns+errors (mapv (fn [t]
+                                          (let [delayed-errors (err/-init-delayed-errors)]
+                                            (let [res (check-fni t mthods opt (assoc opts ::vs/delayed-errors delayed-errors))]
+                                              {:errors (seq @delayed-errors)
+                                               :res res})))
+                                        ts)
+            _ (when (every? :errors method-returns+errors)
+                (swap! (::vs/delayed-errors opts) into (mapcat :errors) method-returns+errors))]
+        {:methods mthods
+         :ifn (c/Un (map (comp :ifn :res) method-returns+errors) opts)
+         :cmethods (into [] (mapcat (comp :cmethods :res)) method-returns+errors)}))))
