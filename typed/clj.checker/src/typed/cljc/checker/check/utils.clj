@@ -507,15 +507,15 @@
               _ (flush)]
           nil)))))
 
-(defn find-updated-locals [env1 env2]
+(defn find-updated-locals [env1 env2 opts]
   {:pre [(map? env1)
          (map? env2)]}
   (into #{}
         (keep
           (fn [[k v1]]
             (when-some [v2 (get env2 k)]
-              (when (and (sub/subtype? v1 v2)
-                         (not (sub/subtype? v2 v1)))
+              (when (and (sub/subtype? v1 v2 opts)
+                         (not (sub/subtype? v2 v1 opts)))
                 k))))
         env1))
 

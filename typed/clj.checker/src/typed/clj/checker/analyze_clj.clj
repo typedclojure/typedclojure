@@ -357,7 +357,8 @@
 (defn analyze1 [form env {:keys [bindings-atom analyze-bindings-fn] :as opt} opts]
   {:pre [((some-fn nil? plat-con/atom?) bindings-atom)
          ((some-fn nil? ifn?) analyze-bindings-fn)]}
-  (u/trace "Analyze1 form" *file* form)
+  (u/trace (str "Analyze1 form " *file* " " form)
+           opts)
   (let [old-bindings (or (some-> bindings-atom deref) {})
         analyze-fn (fn [form env opt]
                      (let [env (assoc env :ns (ns-name *ns*))

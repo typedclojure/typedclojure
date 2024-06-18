@@ -42,7 +42,8 @@
          (= :method (:op inst-method))]
    :post [(= :method (:op %))]}
   (u/trace
-    (println "Checking" (name kind) "method:" (:name inst-method)))
+    (str "Checking " (name kind) " method: " (:name inst-method))
+    opts)
   (let [opts (assoc opts ::vs/current-env env)
         method-nme (:name inst-method)
         _ (assert (symbol? method-nme))

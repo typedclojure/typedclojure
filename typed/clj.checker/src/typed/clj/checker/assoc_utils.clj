@@ -210,7 +210,8 @@
          (r/HeterogeneousMap? right)]}
   ;; want to know how often complete HMap's help with merging.
   (u/trace-when (c/complete-hmap? right)
-    "Merge: complete used on the right")
+    "Merge: complete used on the right"
+    opts)
   (c/make-HMap opts
    {:mandatory
       (let [m (:types left)

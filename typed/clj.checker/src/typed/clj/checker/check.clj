@@ -1902,10 +1902,12 @@
           ; subexpression during type checking
           {:keys [env] :as expr} (assoc-in expr [:env :ns] (ns-name *ns*))]
       (u/trace
-        (println (str "Checking line " (:line env) ":" (:column env) ":" (:file env)))
-        (println (str "> " (binding [*print-level* (or *print-level* 10)
-                                     *print-length* (or *print-length* 10)]
-                             (pr-str (:form expr))))))
+        (str "Checking line " (:line env) ":" (:column env) ":" (:file env)
+             "\n"
+             "> " (binding [*print-level* (or *print-level* 10)
+                            *print-length* (or *print-length* 10)]
+                    (pr-str (:form expr))))
+        opts)
       (if (= :unanalyzed (:op expr))
         ;; Type checks the :unanalyzed expr at expected type.
         ;; The return expr will be fully expanded, analyzed, evaluated (if top-level),

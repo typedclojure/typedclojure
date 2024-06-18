@@ -363,35 +363,37 @@
 
 (defn- trace? [] (= "true" (System/getProperty "typed.cljc.checker.utils.trace")))
 
-(defmacro trace [& ss]
+(defmacro trace [ss opts]
   (when (trace?)
-    `(do
-       (println 
-         "TRACE: " 
-         " "
-         #_(get-in opts [::uvs/current-env :line]) ;;TODO
-         ~@ss)
-       (flush))))
+    `(let [opts# ~opts]
+       (when (::uvs/trace opts#)
+         (println
+           "TRACE: " 
+           " "
+           (get-in opts# [::uvs/current-env :line])
+           ~ss)))))
 
-(defmacro trace-when [p & ss]
+(defmacro trace-when [p ss opts]
   (when (trace?)
-    `(when ~p
-       (println 
-         "TRACE: " 
-         " "
-         #_(get-in opts [::uvs/current-env :line]) ;;TODO
-         ~@ss)
-       (flush))))
+    `(let [opts# ~opts]
+       (when (::uvs/trace opts#)
+         (when ~p
+           (println 
+             "TRACE: " 
+             " "
+             (get-in opts# [::uvs/current-env :line])
+             ~ss))))))
 
-(defmacro trace-when-let [p & ss]
+(defmacro trace-when-let [p ss opts]
   (when (trace?)
-    `(when-let ~p
-       (println 
-         "TRACE: " 
-         " "
-         #_(get-in opts [::uvs/current-env :line]) ;;TODO
-         ~@ss)
-       (flush))))
+    `(let [opts# ~opts]
+       (when (::uvs/trace opts#)
+         (when-let ~p
+           (println 
+             "TRACE: "
+             " "
+             (get-in opts# [::uvs/current-env :line])
+             ~ss))))))
 
 (defn pad-right
   "Pad s with v until length cnt."

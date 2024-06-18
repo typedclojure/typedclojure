@@ -959,6 +959,7 @@
    ;:post [(or (set? %) (nil? %))]
    }
   ;(prn "subtypeA*" s t)
+  (u/trace (str (pr-str s) " < " (pr-str t)) opts)
   (let [subtypeA* #(subtypeA* %1 %2 %3 opts)]
   (if (OR ; FIXME TypeFn's are probably not between Top/Bottom
           (r/Top? t)

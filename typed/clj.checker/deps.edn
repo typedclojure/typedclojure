@@ -34,7 +34,8 @@
   :spec-skip-macros
   {:jvm-opts ["-Dclojure.spec.skip-macros=true"]}
   :test
-  {:jvm-opts ["-Djdk.attach.allowAttachSelf"]
+  {:jvm-opts ["-Djdk.attach.allowAttachSelf"
+              "-Dtyped.cljc.checker.utils.trace=true"]
    :extra-paths ["test" "test-resources"],
    :extra-deps
    {;; for typed.clj.generate

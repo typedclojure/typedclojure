@@ -69,7 +69,9 @@
     "typed/lib.core.async/test"
     "typed/lib.spec.alpha/test"
     "typed/malli/test"],
-   :jvm-opts ["-Djdk.attach.allowAttachSelf"]},
+   :jvm-opts
+   ["-Djdk.attach.allowAttachSelf"
+    "-Dtyped.cljc.checker.utils.trace=true"]},
   :typed
   {:exec-args
    {:dirs

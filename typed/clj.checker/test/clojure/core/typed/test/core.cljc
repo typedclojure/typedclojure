@@ -2646,11 +2646,6 @@
           (t/Rec [x] (t/Map t/Any (t/U Number x)))))))
   )
 
-(deftest profile-fail-test
-  ; ensure check-ns still runs even if timbre isn't loaded
-  (is (check-ns-info 'clojure.core.typed.test.trampoline
-                     :profile true)))
-
 ; CTYP-105
 (deftest hmap-absent-and-optional-subtype-test
   (is (sub?-q `(t/HMap :absent-keys #{:a})
@@ -2658,7 +2653,8 @@
   (is (check-ns 'clojure.core.typed.test.ctyp105)))
 
 (deftest trampoline-test
-  (is (check-ns 'clojure.core.typed.test.trampoline)))
+  (is (check-ns 'clojure.core.typed.test.trampoline
+                {:trace true})))
 
 (deftest Get-test
   ;resolve

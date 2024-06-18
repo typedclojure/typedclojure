@@ -43,7 +43,9 @@
   [impl ns-or-syms {:keys [trace file-mapping check-config max-parallelism] :as opt} opts]
   (assert (not (:opts opt)))
   (assert opts)
-  (assert (not trace) "To enable tracing set system property -Dtyped.cljc.checker.utils.trace=true on startup")
+  (when trace
+    (assert (= "true" (System/getProperty "typed.cljc.checker.utils.trace"))
+            "To enable tracing set system property -Dtyped.cljc.checker.utils.trace=true on startup"))
   (let [start (. System (nanoTime))
         threadpool vs/*check-threadpool*
         shutdown-threadpool? (not threadpool)
@@ -85,7 +87,8 @@
                   opts (-> opts
                            (assoc ::vs/lexical-env (lex-env/init-lexical-env))
                            (assoc ::vs/already-checked (atom #{}))
-                           (assoc ::vs/delayed-errors delayed-errors))
+                           (assoc ::vs/delayed-errors delayed-errors)
+                           (assoc ::vs/trace trace))
                   terminal-error (atom nil)]
               ;(reset-env/reset-envs!)
               ;(reset-caches)

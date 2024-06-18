@@ -85,8 +85,9 @@
                               {fs+ :then fs- :else} (r/ret-f res)
                               nenv (update/env+ env [(fo/-or [fs+ fs-] opts)] reachable opts)
                               _ (u/trace-when-let
-                                  [ls (seq (cu/find-updated-locals (:l env) (:l nenv)))]
-                                  (str "Updated local in exceptional control flow (do): " ls))
+                                  [ls (seq (cu/find-updated-locals (:l env) (:l nenv) opts))]
+                                  (str "Updated local in exceptional control flow (do): " ls)
+                                  opts)
                               ;_ (prn "check-do" nenv)
                               ]
                           (if @reachable
