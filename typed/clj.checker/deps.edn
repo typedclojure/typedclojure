@@ -34,7 +34,8 @@
   :spec-skip-macros
   {:jvm-opts ["-Dclojure.spec.skip-macros=true"]}
   :test
-  {:extra-paths ["test" "test-resources"],
+  {:jvm-opts ["-Djdk.attach.allowAttachSelf"]
+   :extra-paths ["test" "test-resources"],
    :extra-deps
    {;; for typed.clj.generate
     org.clojure/test.check
@@ -44,6 +45,7 @@
     org.clojure/tools.nrepl
     {:mvn/version "0.2.6", :exclusions [org.clojure/clojure]}
     com.clojure-goes-fast/clj-java-decompiler {:mvn/version "0.3.0"}
+    com.clojure-goes-fast/clj-async-profiler {:mvn/version "1.2.2"}
     ;; for shared tests
     org.typedclojure/typed.cljs.checker {:local/root "../cljs.checker" :deps/manifest :deps}
     ;; optional typed.lib.clojure dep

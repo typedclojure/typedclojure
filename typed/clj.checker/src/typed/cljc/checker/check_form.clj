@@ -117,23 +117,24 @@
       :clojure @*register-clj-anns
       :cljs @*register-cljs-anns)
     (reset-caches/reset-caches)
-    (binding [vs/*delayed-errors* (err/-init-delayed-errors)
-              vs/*in-check-form* true
+    (binding [vs/*in-check-form* true
               ;; custom expansions might not even evaluate
               vs/*can-rewrite* (not custom-expansions?)
               vs/*custom-expansions* custom-expansions?
               vs/*beta-count* (when custom-expansions?
                                 (atom {:count 0
                                        :limit (or beta-limit 500)}))]
-      (let [opts (-> opts
+      (let [delayed-errors (err/-init-delayed-errors)
+            opts (-> opts
                      (assoc ::vs/lexical-env (lex-env/init-lexical-env))
-                     (assoc ::vs/already-checked (atom #{})))
+                     (assoc ::vs/already-checked (atom #{}))
+                     (assoc ::vs/delayed-errors delayed-errors))
             expected (or
                        expected-ret
                        (when type-provided?
                          (r/ret (binding [prs/*parse-type-in-ns* unparse-ns]
                                   (prs/parse-type expected opts)))))
-            delayed-errors-fn (fn [] (seq @vs/*delayed-errors*))
+            delayed-errors-fn (fn [] (seq @delayed-errors))
             file-mapping-atom (atom [])
             should-runtime-check? (and runtime-check-expr
                                        (u/should-runtime-check-ns? *ns*))

@@ -263,7 +263,7 @@
                            (r/make-CountRange (first ns)
                                               (last ns)))))]
           (c/restrict t cnt opts)
-          (do (u/tc-warning "Cannot infer Count from type " (prs/unparse-type u opts))
+          (do (u/tc-warning (str "Cannot infer Count from type " (prs/unparse-type u opts)) opts)
               t)))
 
       ;can't do much without a NotCountRange type or difference type

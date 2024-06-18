@@ -38,8 +38,8 @@
 
 ; Updated for Clojure 1.8
 ;  https://github.com/clojure/clojure/commit/7f79ac9ee85fe305e4d9cbb76badf3a8bad24ea0
-(t/ann ^:no-check *typed-macros* (t/Map t/Any t/Any))
-(def ^:dynamic *typed-macros*
+(t/ann ^:no-check typed-macros (t/Map t/Any t/Any))
+(def typed-macros
   {;; add positional information for destructured bindings
    #'clojure.core/loop
    (fn [&form &env bindings & body]
@@ -98,7 +98,7 @@
                                    (merge (custom-expansion-opts env opts)
                                           {:vsym vsym
                                            :locals locals}))))))
-      (get *typed-macros* var)
+      (get typed-macros var)
       var))
 
 ;; copied from tools.analyzer.jvm to insert `*typed-macros*`
@@ -281,8 +281,8 @@
 (declare scheduled-passes-for-custom-expansions)
 
 ;; (All [x ...] [-> '{(Var x) x ...})])
-(defn thread-bindings [opts] ;;FIXME is this the right opts?
-  (let [ns (the-ns (or (-> opts :env :ns)
+(defn thread-bindings [opt {::vs/keys [delayed-errors] :as opts}]
+  (let [ns (the-ns (or (-> opt :env :ns)
                        *ns*))
         side-effects? (case (:check-form-eval vs/*check-config*)
                         (:never :before) false
@@ -301,9 +301,9 @@
                                                                        sym (ns-name ns))
                                                                opts)))))
         (assoc #'ana2/eval-ast (fn [ast]
-                                 ; don't evaluate a form if there are delayed type errors
-                                 (let [throw-this (atom nil)
-                                       _ (swap! vs/*delayed-errors*
+                                 (let [; don't evaluate a form if there are delayed type errors
+                                       throw-this (atom nil)
+                                       _ (swap! delayed-errors
                                                 (fn [delayed]
                                                   {:pre [(vector? delayed)]
                                                    :post [(vector? %)]}
@@ -313,12 +313,14 @@
                                                         (pop delayed))
                                                     delayed)))
                                        _ (when-some [e @throw-this]
-                                           (throw e))]
+                                           (throw e))
+                                       ]
                                    (eval-ast ast)))
                #'ana2/macroexpand-1 (->macroexpand-1 opts)
                #'ana2/scheduled-passes (if vs/*custom-expansions*
                                          @scheduled-passes-for-custom-expansions
                                          @jana2/scheduled-default-passes)))))
+
 (defn will-custom-expand? [form env]
   (boolean
     (when vs/*custom-expansions*
@@ -371,7 +373,7 @@
                     (merge-with merge opt
                                 {:bindings (if analyze-bindings-fn
                                              (analyze-bindings-fn)
-                                             (thread-bindings opts))
+                                             (thread-bindings opt opts))
                                  :special-form? special-form?})
                     (assoc
                       ;; if this is a typed special form like an ann-form, don't treat like

@@ -325,18 +325,20 @@
          (r/AnyType? t)]
    :post [((some-fn nil? set?) %)]}
   ;(prn :subtype-symbolic-closure s t)
-  (with-bindings (assoc (:bindings s)
-                        #'vs/*delayed-errors* (err/-init-delayed-errors))
-    (when (try (binding [*sub-current-seen* A]
-                 (check-expr (:fexpr s) (r/ret t)
-                             (into opts (select-keys (:opts s) [::vs/lexical-env]))))
-               (catch clojure.lang.ExceptionInfo e
-                 ;(prn e) ;;tmp
-                 (when-not (-> e ex-data err/tc-error?)
-                   (throw e))))
-      ;(prn @vs/*delayed-errors*) ;;tmp
-      (when (empty? @vs/*delayed-errors*)
-        A))))
+  (with-bindings (:bindings s)
+    (let [delayed-errors (err/-init-delayed-errors)]
+      (when (try (binding [*sub-current-seen* A]
+                   (check-expr (:fexpr s) (r/ret t)
+                               (-> opts
+                                   (assoc ::vs/delayed-errors delayed-errors)
+                                   (into (select-keys (:opts s) [::vs/lexical-env])))))
+                 (catch clojure.lang.ExceptionInfo e
+                   ;(prn e) ;;tmp
+                   (when-not (-> e ex-data err/tc-error?)
+                     (throw e))))
+        ;(prn @delayed-errors) ;;tmp
+        (when (empty? @delayed-errors)
+          A)))))
 
 (defn check-symbolic-closure
   "Check symbolic closure s against type t (propagating all errors to caller),
@@ -346,11 +348,12 @@
          (r/AnyType? t)]
    :post [(-> % u/expr-type r/TCResult?)]}
   ;(prn :check-symbolic-closure s t)
-  (with-bindings (dissoc (:bindings s)
-                         ;; hmm, additional error msg context needed to orient the user
-                         ;; to the problem? symbolic closure will be blamed
-                         #'vs/*delayed-errors*)
-    (check-expr (:fexpr s) (r/ret t) (assoc opts ::vs/lexical-env lexical-env))))
+  (with-bindings (:bindings s)
+    (check-expr (:fexpr s) (r/ret t)
+                ;; keep :delayed-errors
+                ;; hmm, additional error msg context needed to orient the user
+                ;; to the problem? symbolic closure will be blamed
+                (assoc opts ::vs/lexical-env lexical-env))))
 
 (defn subtype-regex [A s t]
   {:pre [(r/Regex? s)
@@ -890,14 +893,14 @@
               (AND (r/FnIntersection? t)
                    (= 1 (count (:types t)))
                    (every? #(= :fixed (:kind %)) (:types t))
-                   (binding [vs/*delayed-errors* (err/-init-delayed-errors)]
+                   (let [delayed-errors (err/-init-delayed-errors)]
                      ((requiring-resolve 'typed.cljc.checker.check.funapp/check-funapp)
                       nil nil
                       (r/ret s)
                       (mapv r/ret (-> t :types first :dom))
                       (-> t :types first :rng r/Result->TCResult)
-                      {} opts)
-                     (empty? @vs/*delayed-errors*))))
+                      {} (assoc opts ::vs/delayed-errors delayed-errors))
+                     (empty? @delayed-errors))))
         A
         (report-not-subtypes s t))))
 

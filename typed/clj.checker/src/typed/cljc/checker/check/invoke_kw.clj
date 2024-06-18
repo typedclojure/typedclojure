@@ -66,7 +66,8 @@
                        (update o :path #(seq (concat % [this-pelem])))
                        obj/-empty))
               (do (u/tc-warning (str "Keyword lookup gave bottom type: "
-                                     (:val kwt) " " (prs/unparse-type targett opts)))
+                                     (:val kwt) " " (prs/unparse-type targett opts))
+                                opts)
                   (r/ret r/-any)))
             expected-ret
             opts)))

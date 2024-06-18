@@ -19,10 +19,8 @@
 (defn parse-annotation
   "Parse the raw type annotation tsyn in the context of expr"
   [tsyn {:keys [env] :as expr} opts]
-  (let [parsed-t (binding [vs/*current-env* env
-                           prs/*parse-type-in-ns* (cu/expr-ns expr opts)]
-                   (prs/parse-type tsyn opts))]
-    parsed-t))
+  (binding [prs/*parse-type-in-ns* (cu/expr-ns expr opts)]
+    (prs/parse-type tsyn (assoc opts ::vs/current-env env))))
 
 (defn inline-annotations [expr opts]
   {:pre [(= :loop (:op expr))]

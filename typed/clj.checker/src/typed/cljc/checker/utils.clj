@@ -349,47 +349,47 @@
 
 (def expr-type ::expr-type)
 
-(t/ann tc-warning [t/Any :* :-> nil])
-(defn tc-warning [& ss]
-  (let [env uvs/*current-env*]
+(t/ann tc-warning [t/Any t/Any :-> nil])
+(defn tc-warning [msg opts]
+  {:pre [(map? opts)]}
+  (let [env (::uvs/current-env opts)]
     (binding [*out* *err*]
       (println 
-        (apply str "WARNING (" (:file env) ":" (:line env) 
-               (when-let [col (:column env)]
-                 (str ":" col))
-               "): " ss))
+        (str "WARNING (" (:file env) ":" (:line env) 
+             (when-let [col (:column env)]
+               (str ":" col))
+             "): " msg))
       (flush))))
 
-(defmacro with-tracing [& body]
-  `(binding [uvs/*trace-checker* true]
-     ~@body))
+(defn- trace? [] (= "true" (System/getProperty "typed.cljc.checker.utils.trace")))
 
 (defmacro trace [& ss]
-  `(when uvs/*trace-checker*
-     (println 
-       "TRACE: " 
-       " "
-       (:line uvs/*current-env*)
-       ~@ss)
-     (flush)))
-
-(defmacro trace-when [p & ss]
-  `(when uvs/*trace-checker*
-     (when ~p
+  (when (trace?)
+    `(do
        (println 
          "TRACE: " 
          " "
-         (:line uvs/*current-env*)
+         #_(get-in opts [::uvs/current-env :line]) ;;TODO
+         ~@ss)
+       (flush))))
+
+(defmacro trace-when [p & ss]
+  (when (trace?)
+    `(when ~p
+       (println 
+         "TRACE: " 
+         " "
+         #_(get-in opts [::uvs/current-env :line]) ;;TODO
          ~@ss)
        (flush))))
 
 (defmacro trace-when-let [p & ss]
-  `(when uvs/*trace-checker*
-     (when-let ~p
+  (when (trace?)
+    `(when-let ~p
        (println 
          "TRACE: " 
          " "
-         (:line uvs/*current-env*)
+         #_(get-in opts [::uvs/current-env :line]) ;;TODO
          ~@ss)
        (flush))))
 

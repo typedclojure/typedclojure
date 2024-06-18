@@ -40,12 +40,6 @@
   *verbose-forms* 
   nil)
 
-(defonce ^:dynamic
-  ^{:doc "If true, print tracing information during type checking."}
-  *trace-checker*
-  nil)
-
-(defonce ^{:doc "Internal use only"} ^:no-doc ^:dynamic *delayed-errors* nil)
 (defonce ^{:doc "Internal use only"} ^:no-doc ^:dynamic *analyze-ns-cache* nil)
 (defonce ^{:doc "Internal use only"} ^:no-doc ^:dynamic *checked-asts* nil)
 (defonce ^{:doc "Internal use only"} ^:no-doc ^:dynamic *can-rewrite* nil)

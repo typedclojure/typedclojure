@@ -190,13 +190,13 @@
                                                                mthods)]
                                                   ;; it is a type error if no matching methods are found.
                                                   (when (empty? ms)
-                                                    (binding [vs/*current-expr* (impl/impl-case opts
-                                                                                  :clojure (first mthods)
-                                                                                  ; fn-method is not printable in cljs
-                                                                                  :cljs vs/*current-expr*)
-                                                              vs/*current-env* (or (:env (first mthods)) vs/*current-env*)]
-                                                      (prs/with-unparse-ns (cu/expr-ns (first mthods) opts)
-                                                        (err/tc-delayed-error (str "No matching arities: " (prs/unparse-type t opts)) opts))))
+                                                    (let [opts (assoc opts ::vs/current-env (impl/impl-case opts
+                                                                                              :clojure (first mthods)
+                                                                                              ; fn-method is not printable in cljs
+                                                                                              :cljs vs/*current-expr*))]
+                                                      (let [opts (update opts ::vs/current-env #(or (:env (first mthods)) %))]
+                                                        (prs/with-unparse-ns (cu/expr-ns (first mthods) opts)
+                                                          (err/tc-delayed-error (str "No matching arities: " (prs/unparse-type t opts)) opts)))))
                                                   ms))]
                                  [t ms])))
                         (:types fin))]
@@ -308,13 +308,13 @@
       :else
       (binding [vs/*can-rewrite* nil]
         (let [method-returns+errors (mapv (fn [t]
-                                            (binding [vs/*delayed-errors* (err/-init-delayed-errors)]
-                                              (let [res (check-fni t mthods opt opts)]
-                                                {:errors (seq @vs/*delayed-errors*)
+                                            (let [delayed-errors (err/-init-delayed-errors)]
+                                              (let [res (check-fni t mthods opt (assoc opts ::vs/delayed-errors delayed-errors))]
+                                                {:errors (seq @delayed-errors)
                                                  :res res})))
                                           ts)
               _ (when (every? :errors method-returns+errors)
-                  (swap! vs/*delayed-errors* into (mapcat :errors) method-returns+errors))]
+                  (swap! (::vs/delayed-errors opts) into (mapcat :errors) method-returns+errors))]
           {:methods mthods
            :ifn (c/Un (map (comp :ifn :res) method-returns+errors) opts)
            :cmethods (into [] (mapcat (comp :cmethods :res)) method-returns+errors)})))))

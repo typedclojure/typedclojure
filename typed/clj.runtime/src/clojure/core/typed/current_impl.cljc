@@ -513,7 +513,7 @@
                                  mtype 
                                  (delay-type
                                    (let [mtype (with-bounded-frees* (zipmap (force-type fs) (force-type bnds))
-                                                 #(binding [vs/*current-env* current-env]
+                                                 #(let [opts (assoc opts ::vs/current-env current-env)]
                                                     (with-parse-ns* current-ns
                                                       (fn []
                                                         (parse-type v* opts)))))
@@ -635,7 +635,7 @@
             :clojure (symbol (str (name munged-ns-str) \. local-name))
             :cljs provided-name)
         fs (let [bfn (bound-fn []
-                       (let [parse-field (fn [[n colon t]]
+                       (let [parse-field (fn [[n colon t] opts]
                                            (when (not= :- colon)
                                              (int-error (format "Missing :- after field %s in ann-record."
                                                                 n)
@@ -643,9 +643,9 @@
                                            [n (parse-type t opts)])]
                          (apply array-map (apply concat (with-frees* (mapv make-F (force-type args))
                                                           (fn []
-                                                            (binding [vs/*current-env* current-env]
+                                                            (let [opts (assoc opts ::vs/current-env current-env)]
                                                               (with-parse-ns* current-ns
-                                                                #(mapv parse-field (partition 3 fields))))))))))]
+                                                                #(mapv (fn [s] (parse-field s opts)) (partition 3 fields))))))))))]
              (delay-type (bfn)))
         as (into {}
                  (map
@@ -653,7 +653,7 @@
                      [an (let [bfn (bound-fn []
                                      (with-frees* (mapv make-F (force-type args))
                                        (fn []
-                                         (binding [vs/*current-env* current-env]
+                                         (let [opts (assoc opts ::vs/current-env current-env)]
                                            (with-parse-ns* current-ns
                                              #(let [t (parse-type an opts)]
                                                 (abstract-many (force-type args) t opts)))))))]

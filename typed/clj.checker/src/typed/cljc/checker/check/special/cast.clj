@@ -42,10 +42,9 @@
         tsyn (impl/impl-case opts
                :clojure (second tsyn-quoted)
                :cljs tsyn-quoted)
-        parsed-t (binding [vs/*current-env* env
-                           prs/*parse-type-in-ns* (cu/expr-ns expr opts)]
+        parsed-t (binding [prs/*parse-type-in-ns* (cu/expr-ns expr opts)]
                    ;; unwrap quoted syntax with second
-                   (prs/parse-type tsyn opts))
+                   (prs/parse-type tsyn (assoc opts ::vs/current-env env)))
         ;; frm is of the form ((fn [x] ...) x), we want to type check
         ;; x, but not the lambda.
         _ (assert (= :invoke (:op frm)))

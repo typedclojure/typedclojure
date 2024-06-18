@@ -112,7 +112,8 @@
 
 (defn check-ns1
   "Type checks an entire namespace."
-  ([ns env {::cenv/keys [checker] :as opts}]
+  ([ns env {::vs/keys [delayed-errors]
+            ::cenv/keys [checker] :as opts}]
    (env/ensure (jana2/global-env)
      (let [env (or env (jana2/empty-env))
            ^java.net.URL res (jtau/ns-url ns)
@@ -142,25 +143,26 @@
                                                (conj forms-info {:ns-form-str ns-form-str :sform sform :form form})))))))
 
                    ns-form-str (some :ns-form-str forms-info)
-                   _ (assert vs/*delayed-errors*)
+                   _ (assert delayed-errors)
                    bndings (get-thread-bindings)
                    exs (map (fn [{:keys [form sform]}]
                               (fn []
-                                (with-bindings (assoc bndings
-                                                      #'vs/*delayed-errors* (err/-init-delayed-errors)
-                                                      ;; force types to reparse to detect dependencies in per-form cache
-                                                      ;; might affect TypeFn variance inference
-                                                      #'env-utils/*type-cache* (do (assert (not env-utils/*type-cache*))
-                                                                                   (atom {})))
-                                  (try (check-top-level form nil {:env (assoc env :ns (ns-name *ns*))
-                                                                  :top-level-form-string sform
-                                                                  :ns-form-string ns-form-str}
-                                                        opts)
-                                       {:errors @vs/*delayed-errors*}
-                                       (catch clojure.lang.ExceptionInfo e
-                                         (if (-> e ex-data :type-error)
-                                           {:errors (conj @vs/*delayed-errors* e)}
-                                           (throw e)))))))
+                                (let [delayed-errors (err/-init-delayed-errors)
+                                      opts (assoc opts ::vs/delayed-errors delayed-errors)]
+                                  (with-bindings (assoc bndings
+                                                        ;; force types to reparse to detect dependencies in per-form cache
+                                                        ;; might affect TypeFn variance inference
+                                                        #'env-utils/*type-cache* (do (assert (not env-utils/*type-cache*))
+                                                                                     (atom {})))
+                                    (try (check-top-level form nil {:env (assoc env :ns (ns-name *ns*))
+                                                                    :top-level-form-string sform
+                                                                    :ns-form-string ns-form-str}
+                                                          opts)
+                                         {:errors @delayed-errors}
+                                         (catch clojure.lang.ExceptionInfo e
+                                           (if (-> e ex-data :type-error)
+                                             {:errors (conj @delayed-errors e)}
+                                             (throw e))))))))
                             forms-info)
                    results (if-some [^java.util.concurrent.ExecutorService
                                      threadpool vs/*check-threadpool*]
@@ -170,7 +172,7 @@
                                             (throw (or (.getCause e) e)))))
                                    (.invokeAll threadpool exs))
                              (mapv #(%) exs))
-                   _ (swap! vs/*delayed-errors* into (mapcat :errors) results)]
+                   _ (swap! delayed-errors into (mapcat :errors) results)]
                (cache/remove-stale-cache-entries ns ns-form-str (map :sform forms-info) slurped opts)))))))))
 
 (defn check-ns-and-deps [nsym opts] (cu/check-ns-and-deps nsym check-ns1 opts))
@@ -1396,46 +1398,46 @@
   [{[args-expr & specs-exprs] :args :keys [env] :as expr} expected {::check/keys [check-expr] :as opts}]
   {:post [(-> % u/expr-type r/TCResult?)
           (vector? (:args %))]}
-  (binding [vs/*current-env* env]
-    (let [args-expected-ty (prs/parse-type `(t/Seqable t/Str) opts)
-          cargs-expr (binding [vs/*current-env* (:env args-expr)]
-                       (check-expr args-expr nil opts))
-          _ (when-not (sub/subtype? 
-                        (-> cargs-expr u/expr-type r/ret-t)
-                        args-expected-ty
-                        opts)
-              (binding [vs/*current-env* (:env args-expr)]
-                (cu/expected-error (-> cargs-expr u/expr-type r/ret-t) (r/ret args-expected-ty) opts)))
-          spec-map-ty (reduce (fn [t spec-expr]
-                                (if-let [[keyt valt] (cli/parse-cli-spec spec-expr opts)]
-                                  (-> t
-                                    (assoc-in [:types keyt] valt))
-                                  ; resort to a general type
-                                  (do
-                                    ;(prn "cli: giving up because of" (ast-u/emit-form-fn spec-expr opts)
-                                         ;"\n" spec-expr)
-                                    (reduced 
-                                      (c/RClass-of IPersistentMap [(c/RClass-of clojure.lang.Keyword opts) r/-any] opts)))))
-                              (c/-complete-hmap {} opts)
-                              specs-exprs)
+  (let [opts (assoc opts ::vs/current-env env)
+        args-expected-ty (prs/parse-type `(t/Seqable t/Str) opts)
+        cargs-expr (check-expr args-expr nil (assoc opts ::vs/current-env (:env args-expr)))
+        _ (when-not (sub/subtype? 
+                      (-> cargs-expr u/expr-type r/ret-t)
+                      args-expected-ty
+                      opts)
+            (cu/expected-error (-> cargs-expr u/expr-type r/ret-t)
+                               (r/ret args-expected-ty)
+                               (assoc opts ::vs/current-env (:env args-expr))))
+        spec-map-ty (reduce (fn [t spec-expr]
+                              (if-let [[keyt valt] (cli/parse-cli-spec spec-expr opts)]
+                                (-> t
+                                  (assoc-in [:types keyt] valt))
+                                ; resort to a general type
+                                (do
+                                  ;(prn "cli: giving up because of" (ast-u/emit-form-fn spec-expr opts)
+                                       ;"\n" spec-expr)
+                                  (reduced 
+                                    (c/RClass-of IPersistentMap [(c/RClass-of clojure.lang.Keyword opts) r/-any] opts)))))
+                            (c/-complete-hmap {} opts)
+                            specs-exprs)
 
-          actual (r/-hvec [spec-map-ty 
-                           (prs/parse-type `(t/Seqable t/Str) opts)
-                           (prs/parse-type `t/Str opts)]
-                          {}
-                          opts)
-          _ (when expected
-              (when-not (sub/subtype? actual (r/ret-t expected) opts)
-                (cu/expected-error 
-                  actual expected opts)))
-          cargs (vec (cons cargs-expr specs-exprs))]
-      (-> expr
-          (update :fn check-expr nil opts)
-          (assoc :args cargs
-                 u/expr-type (below/maybe-check-below
-                               (r/ret actual)
-                               expected
-                               opts))))))
+        actual (r/-hvec [spec-map-ty 
+                         (prs/parse-type `(t/Seqable t/Str) opts)
+                         (prs/parse-type `t/Str opts)]
+                        {}
+                        opts)
+        _ (when expected
+            (when-not (sub/subtype? actual (r/ret-t expected) opts)
+              (cu/expected-error 
+                actual expected opts)))
+        cargs (vec (cons cargs-expr specs-exprs))]
+    (-> expr
+        (update :fn check-expr nil opts)
+        (assoc :args cargs
+               u/expr-type (below/maybe-check-below
+                             (r/ret actual)
+                             expected
+                             opts)))))
 
 (defmethod -invoke-special 'typed.cljc.checker.check.utils/special-typed-expression
   [expr expected opts]
@@ -1489,7 +1491,8 @@
                (not (var-env/lookup-Var-nofail mmsym opts)))
           (not (var-env/check-var? checker mmsym)))
       (do (u/tc-warning (str "Not checking defmethod " mmsym " with dispatch value: " 
-                             (pr-str (ast-u/emit-form-fn dispatch-val-expr opts))))
+                             (pr-str (ast-u/emit-form-fn dispatch-val-expr opts)))
+                        opts)
           (-> expr
               (update :args #(mapv ana2/run-passes %))))
       :else
@@ -1503,12 +1506,11 @@
                 (err/int-error (str "Method must be a fn") opts))
             dispatch-type (mm/multimethod-dispatch-type mmsym opts)]
         (if-not dispatch-type
-          (binding [vs/*current-env* env]
-            (err/tc-delayed-error (str "Multimethod requires dispatch type: " mmsym
-                                       "\n\nHint: defmulti must be checked before its defmethods")
-                                  {:return (-> expr
-                                               (update-in [:args 1] ana2/run-passes))}
-                                  opts))
+          (err/tc-delayed-error (str "Multimethod requires dispatch type: " mmsym
+                                     "\n\nHint: defmulti must be checked before its defmethods")
+                                {:return (-> expr
+                                             (update-in [:args 1] ana2/run-passes))}
+                                (assoc opts ::vs/current-env env))
           (let [method-expected (var-env/type-of mmsym opts)
                 cmethod-expr 
                 (binding [multi-u/*current-mm* 
@@ -1721,65 +1723,65 @@
           (vector? (:args %))]}
   ;(prn ":new" (mapv (juxt :op :tag) (cons (:class expr) (:args expr))))
   (impl/assert-clojure opts)
-  (binding [vs/*current-expr* expr
-            vs/*current-env* (:env expr)]
-    (or (-new-special expr expected opts)
-        (let [checker (cenv/checker opts)
-              inst-types (::inst-ctor-types opts)
-              expr (-> expr
-                       (update :class check-expr nil opts)
-                       (update :args #(let [opts (assoc opts ::inst-ctor-types nil)]
-                                        (mapv (fn [e] (check-expr e nil opts)) %)))
-                       ;delegate eval to check-expr
-                       ana2/run-post-passes)
-              ;; call when we're convinced there's no way to rewrite this AST node
-              ;; in a non-reflective way.
-              give-up (fn [expr]
-                        (let [clssym (cu/NewExpr->qualsym expr)]
-                          (err/tc-delayed-error (str "Unresolved constructor invocation " 
-                                                     (type-hints/suggest-type-hints 
-                                                       nil 
-                                                       nil 
-                                                       (map (comp r/ret-t u/expr-type) (:args expr))
-                                                       {:constructor-call clssym}
-                                                       opts)
-                                                     ".\n\nHint: add type hints")
-                                                {:form (ast-u/emit-form-fn expr opts)
-                                                 :return (assoc expr
-                                                                u/expr-type (cu/error-ret expected))}
-                                                opts)))
-              ;; returns the function type for this constructor, or nil if
-              ;; it is reflective.
-              ctor-fn (fn [expr]
-                        (when (:validated? expr)
+  (binding [vs/*current-expr* expr]
+    (let [opts (assoc opts ::vs/current-env (:env expr))]
+      (or (-new-special expr expected opts)
+          (let [checker (cenv/checker opts)
+                inst-types (::inst-ctor-types opts)
+                expr (-> expr
+                         (update :class check-expr nil opts)
+                         (update :args #(let [opts (assoc opts ::inst-ctor-types nil)]
+                                          (mapv (fn [e] (check-expr e nil opts)) %)))
+                         ;delegate eval to check-expr
+                         ana2/run-post-passes)
+                ;; call when we're convinced there's no way to rewrite this AST node
+                ;; in a non-reflective way.
+                give-up (fn [expr]
                           (let [clssym (cu/NewExpr->qualsym expr)]
-                            (or (ctor-override/get-constructor-override checker clssym)
-                                (and (dt-env/get-datatype checker clssym)
-                                     (cu/DataType-ctor-type clssym opts))
-                                (when-let [ctor (cu/NewExpr->Ctor expr)]
-                                  (cu/Constructor->Function ctor opts))))))
-              ;; check a non-reflective constructor
-              check-validated (fn [expr]
-                                (let [ifn (-> (ctor-fn expr)
-                                              (cond-> inst-types
-                                                (inst/manual-inst inst-types {} opts))
-                                              r/ret)
-                                      ;_ (prn "Expected constructor" (prs/unparse-type (r/ret-t ifn) opts))
-                                      res-type (funapp/check-funapp expr (:args expr) ifn (map u/expr-type (:args expr)) expected {} opts)]
-                                  (assoc expr
-                                         u/expr-type res-type)))]
-          ;; try to rewrite, otherwise error on reflection
-          (cond
-            (:validated? expr) (check-validated expr)
+                            (err/tc-delayed-error (str "Unresolved constructor invocation " 
+                                                       (type-hints/suggest-type-hints 
+                                                         nil 
+                                                         nil 
+                                                         (map (comp r/ret-t u/expr-type) (:args expr))
+                                                         {:constructor-call clssym}
+                                                         opts)
+                                                       ".\n\nHint: add type hints")
+                                                  {:form (ast-u/emit-form-fn expr opts)
+                                                   :return (assoc expr
+                                                                  u/expr-type (cu/error-ret expected))}
+                                                  opts)))
+                ;; returns the function type for this constructor, or nil if
+                ;; it is reflective.
+                ctor-fn (fn [expr]
+                          (when (:validated? expr)
+                            (let [clssym (cu/NewExpr->qualsym expr)]
+                              (or (ctor-override/get-constructor-override checker clssym)
+                                  (and (dt-env/get-datatype checker clssym)
+                                       (cu/DataType-ctor-type clssym opts))
+                                  (when-let [ctor (cu/NewExpr->Ctor expr)]
+                                    (cu/Constructor->Function ctor opts))))))
+                ;; check a non-reflective constructor
+                check-validated (fn [expr]
+                                  (let [ifn (-> (ctor-fn expr)
+                                                (cond-> inst-types
+                                                  (inst/manual-inst inst-types {} opts))
+                                                r/ret)
+                                        ;_ (prn "Expected constructor" (prs/unparse-type (r/ret-t ifn) opts))
+                                        res-type (funapp/check-funapp expr (:args expr) ifn (map u/expr-type (:args expr)) expected {} opts)]
+                                    (assoc expr
+                                           u/expr-type res-type)))]
+            ;; try to rewrite, otherwise error on reflection
+            (cond
+              (:validated? expr) (check-validated expr)
 
-            (cu/should-rewrite?) (let [expr (update expr :args #(mapv host-interop/add-type-hints %))
-                                       rexpr (host-interop/try-resolve-reflection expr)]
-                                   ;; rexpr can only be :new
-                                   (case (:op rexpr)
-                                     (:new) (if (:validated? rexpr)
-                                              (check-validated rexpr)
-                                              (give-up rexpr))))
-            :else (give-up expr))))))
+              (cu/should-rewrite?) (let [expr (update expr :args #(mapv host-interop/add-type-hints %))
+                                         rexpr (host-interop/try-resolve-reflection expr)]
+                                     ;; rexpr can only be :new
+                                     (case (:op rexpr)
+                                       (:new) (if (:validated? rexpr)
+                                                (check-validated rexpr)
+                                                (give-up rexpr))))
+              :else (give-up expr)))))))
 
 (defn check-def
   [{:keys [var env] :as expr} expected opts]
@@ -1791,9 +1793,8 @@
     ; annotation side effect
     ;; TODO convert to type provider
     (when-let [[_ tsyn] (find mvar :ann)]
-      (let [ann-type (binding [vs/*current-env* env
-                               prs/*parse-type-in-ns* prs-ns]
-                       (prs/parse-type tsyn opts))]
+      (let [ann-type (binding [prs/*parse-type-in-ns* prs-ns]
+                       (prs/parse-type tsyn (assoc opts ::vs/current-env env)))]
         (var-env/add-var-type checker qsym ann-type)))
     (when (:no-check mvar)
       (var-env/add-nocheck-var checker qsym))
@@ -1836,9 +1837,9 @@
            (:thens %))
           (-> % u/expr-type r/TCResult?)]}
   ; tests have no duplicates
-  (binding [vs/*current-expr* expr
-            vs/*current-env* (:env expr)]
-    (let [ctarget (check-expr target nil opts)
+  (binding [vs/*current-expr* expr]
+    (let [opts (assoc opts ::vs/current-env (:env expr))
+          ctarget (check-expr target nil opts)
           target-ret (u/expr-type ctarget)
           _ (assert (r/TCResult? target-ret))
           ctests (mapv #(check-expr % nil opts) tests)
@@ -1855,7 +1856,7 @@
                          env-default (update/env+ (lex/lexical-env opts) [neg-tst-fl] flag+ opts)
                          _ (when-not @flag+
                              ;; FIXME should we ignore this branch?
-                             (u/tc-warning "Local became bottom when checking case default"))]
+                             (u/tc-warning "Local became bottom when checking case default" opts))]
                      ;(prn "neg-tst-fl" neg-tst-fl)
                      ;(prn "env-default" env-default)
                      (check-expr default expected (var-env/with-lexical-env opts env-default)))
@@ -1900,7 +1901,7 @@
     (let [; update namespace, as it might have changed when evaluating a previous
           ; subexpression during type checking
           {:keys [env] :as expr} (assoc-in expr [:env :ns] (ns-name *ns*))]
-      (when vs/*trace-checker*
+      (u/trace
         (println (str "Checking line " (:line env) ":" (:column env) ":" (:file env)))
         (println (str "> " (binding [*print-level* (or *print-level* 10)
                                      *print-length* (or *print-length* 10)]
@@ -1912,21 +1913,21 @@
         (let [;register typing rules (ie., implementations of -unanalyzed-top-level
               ; and -unanalyzed-special)
               _ @*register-exts]
-          (or (binding [vs/*current-env* (if (:line env) env vs/*current-env*)
-                        vs/*current-expr* expr]
-                (or (meta-ann/maybe-check-meta-ann expr expected opts)
-                    (unanalyzed/-unanalyzed-special expr expected opts)
-                    (maybe-check-inlineable expr expected opts)))
+          (or (binding [vs/*current-expr* expr]
+                (let [opts (update opts ::vs/current-env #(if (:line env) env %))]
+                  (or (meta-ann/maybe-check-meta-ann expr expected opts)
+                      (unanalyzed/-unanalyzed-special expr expected opts)
+                      (maybe-check-inlineable expr expected opts))))
               (-> expr
                   ana2/analyze-outer
                   recur)))
-        (binding [vs/*current-env* (if (:line env) env vs/*current-env*)
-                  vs/*current-expr* expr]
-          (-> expr
-              ana2/run-pre-passes
-              (-check expected opts)
-              ana2/run-post-passes
-              ana2/eval-top-level))))))
+        (binding [vs/*current-expr* expr]
+          (let [opts (update opts ::vs/current-env #(if (:line env) env %))]
+            (-> expr
+                ana2/run-pre-passes
+                (-check expected opts)
+                ana2/run-post-passes
+                ana2/eval-top-level)))))))
 
 (defn check-top-level
   "Type check a top-level form at an expected type, returning a
@@ -1941,7 +1942,7 @@
          opts (-> opts
                   (assoc ::check/check-expr check-expr)
                   (assoc ::vs/lexical-env (lex/init-lexical-env)))]
-     (with-bindings (dissoc (ana-clj/thread-bindings opts) #'*ns*) ; *ns* is managed by higher-level ops like check-ns1
+     (with-bindings (dissoc (ana-clj/thread-bindings {} opts) #'*ns*) ; *ns* is managed by higher-level ops like check-ns1
        (env/ensure (jana2/global-env)
          (-> form
              (ana2/unanalyzed-top-level (or env (jana2/empty-env)))

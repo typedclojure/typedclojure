@@ -31,7 +31,7 @@
                   env-thn (update/env+ (lex/lexical-env opts) [fs+] flag+ opts)
                   _ (when-not @flag+
                       ;; FIXME should we ignore this branch?
-                      (u/tc-warning "Local became bottom when checking case then"))
+                      (u/tc-warning "Local became bottom when checking case then" opts))
                   cthen (check-expr then expected (var-env/with-lexical-env opts env-thn))]
               (assoc case-then
                      :then cthen

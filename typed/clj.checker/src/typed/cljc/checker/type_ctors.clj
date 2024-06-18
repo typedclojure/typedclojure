@@ -1468,7 +1468,7 @@
         cnt (count types)]
     (when-not (r/TypeFn? t) (err/int-error (str "instantiate-typefn requires a TypeFn: " (ind/unparse-type t opts)) opts))
     (when-not (= (:nbound t) cnt)
-      (binding [vs/*current-env* (-> tapp meta :env)]
+      (let [opts (assoc opts ::vs/current-env (-> tapp meta :env))]
         (err/int-error
           (str "Wrong number of arguments passed to type function. Expected "
                (:nbound t) ", actual " cnt ": "
@@ -1484,7 +1484,7 @@
               (fn [_ argn nm type bnd]
                 {:pre [(r/Type? type)]}
                 (when-not (ind/has-kind? type bnd opts)
-                  (binding [vs/*current-env* (-> tapp meta :env)]
+                  (let [opts (assoc opts ::vs/current-env (-> tapp meta :env))]
                     (err/tc-error (str "Type function argument number " argn
                                        " (" (r/F-original-name (r/make-F nm)) ")"
                                        " has kind " (pr-str bnd)
@@ -1548,7 +1548,7 @@
         _ (when-not (r/TypeFn? rator) 
             (err/int-error (str "First argument to TApp must be TFn, actual: " (ind/unparse-type rator opts)) opts))]
     (when-not (= (count rands) (:nbound rator))
-      (binding [vs/*current-env* (-> tapp meta :env)] ;must override env, or clear it
+      (let [opts (assoc opts ::vs/current-env (-> tapp meta :env))] ;must override env, or clear it
         (err/int-error (str "Wrong number of arguments (" (count rands) ") passed to type function: "
                             (ind/unparse-type tapp opts) 
                             (when-some [syn (-> tapp meta :syn)]
@@ -1571,8 +1571,8 @@
                                            opts))
                           (instantiate-poly rator rands opts))
       ;PolyDots NYI
-      :else (throw (Exception. (str (when vs/*current-env*
-                                      (str (:line vs/*current-env*) ": "))
+      :else (throw (Exception. (str (when-some [env (::vs/current-env opts)]
+                                      (str (:line env) ": "))
                                     "Cannot apply non-polymorphic type " (ind/unparse-type rator opts)))))))
 
 (declare resolve-Name unfold fully-resolve-type find-val-type)
@@ -2646,9 +2646,10 @@
                                   ((:absent-keys t) k)
                                   (do
                                     #_(tc-warning
-                                        "Looking up key " (ind/unparse-type k opts) 
-                                        " in heterogeneous map type " (ind/unparse-type t opts)
-                                        " that declares the key always absent.")
+                                        (str "Looking up key " (ind/unparse-type k opts) 
+                                             " in heterogeneous map type " (ind/unparse-type t opts)
+                                             " that declares the key always absent.")
+                                        opts)
                                     default)
 
                                   ; if key is optional the result is the val or the default
@@ -2658,9 +2659,10 @@
                                   (complete-hmap? t) default
 
                                   :else
-                                  (do #_(tc-warning "Looking up key " (ind/unparse-type k opts)
-                                                    " in heterogeneous map type " (ind/unparse-type t opts)
-                                                    " which does not declare the key absent ")
+                                  (do #_(tc-warning (str "Looking up key " (ind/unparse-type k opts)
+                                                         " in heterogeneous map type " (ind/unparse-type t opts)
+                                                         " which does not declare the key absent ")
+                                                    opts)
                                       r/-any)))
 
       (r/Record? t) (find-val-type (Record->HMap t opts) k default)

@@ -160,52 +160,42 @@
     (when ((every-pred :line :column) m)
       m)))
 
-(defn with-tsyn-env* [tsyn f]
-  (let [menv (tsyn->env tsyn)]
-    (with-bindings (cond-> {}
-                     menv (assoc #'vs/*current-env* menv))
-      (f))))
-
-(defmacro with-tsyn-env [tsyn & body]
-  `(with-tsyn-env* ~tsyn #(let [res# (do ~@body)] res#)))
-
 (defn prs-error
   ([msg opts] (prs-error msg nil opts))
   ([msg opt opts]
    (let [[_ tsyn :as tsyn?] (find opt ::tsyn)
-         f #(err/int-error msg (into {:use-current-env true} opt) opts)]
-     (if tsyn?
-       (with-tsyn-env tsyn
-         (f))
-       (f)))))
+         menv (when tsyn? (tsyn->env tsyn))]
+     (err/int-error msg (into {:use-current-env true} opt)
+                    (cond-> opts
+                      menv (assoc ::vs/current-env menv))))))
 
 (declare parse-in-ns)
 
 (defn parse-type [s opts]
-  (let [env (or (tsyn->env s) vs/*current-env*)]
-    (binding [vs/*current-env* env]
-      (try (let [parsed (parse-type* s opts)]
-             (-> parsed
-                 #_
-                 (vary-meta (fnil into {})
-                            (let [;app *bound-f*
-                                  t (delay (app #(parse-type s (assoc opts ::vs/no-simpl true))))]
-                              {:pretty {parsed {:original-syntax s
-                                                :file *file*
-                                                :nsym (parse-in-ns opts)
-                                                :no-simpl (delay @t)
-                                                :no-simpl-verbose-syntax (delay
-                                                                           (let [opts (assoc opts ::vs/verbose-types true)]
-                                                                             (app #(vary-meta (unparse-type @t opts)
-                                                                                              assoc :file *file* :nsym (parse-in-ns opts)))))}}}))))
-           (catch Throwable e
-             ;(prn (err/any-tc-error? (ex-data e)))
-             (if (err/any-tc-error? (ex-data e))
-               (throw e)
-               (err/int-error (format "parse-type error while parsing %s! Please report to help improve this error message."
-                                      (pr-str s))
-                              {:visible-cause e}
-                              opts)))))))
+  (let [env (or (tsyn->env s) (::vs/current-env opts))
+        opts (assoc opts ::vs/current-env env)]
+    (try (let [parsed (parse-type* s opts)]
+           (-> parsed
+               #_
+               (vary-meta (fnil into {})
+                          (let [;app *bound-f*
+                                t (delay (app #(parse-type s (assoc opts ::vs/no-simpl true))))]
+                            {:pretty {parsed {:original-syntax s
+                                              :file *file*
+                                              :nsym (parse-in-ns opts)
+                                              :no-simpl (delay @t)
+                                              :no-simpl-verbose-syntax (delay
+                                                                         (let [opts (assoc opts ::vs/verbose-types true)]
+                                                                           (app #(vary-meta (unparse-type @t opts)
+                                                                                            assoc :file *file* :nsym (parse-in-ns opts)))))}}}))))
+         (catch Throwable e
+           ;(prn (err/any-tc-error? (ex-data e)))
+           (if (err/any-tc-error? (ex-data e))
+             (throw e)
+             (err/int-error (format "parse-type error while parsing %s! Please report to help improve this error message."
+                                    (pr-str s))
+                            {:visible-cause e}
+                            opts))))))
 
 (defn delay-parse-type [s opts]
   ((resolve `parse-type) s opts))
@@ -255,7 +245,7 @@
      :variance :invariant}
     (let [[n & {:keys [< > variance] :as popts}] f]
       (when (contains? popts :kind)
-        (err/deprecated-warn "Kind annotation for TFn parameters"))
+        (err/deprecated-warn "Kind annotation for TFn parameters" opts))
       (when-not (r/variance? variance)
         (prs-error (str "Invalid variance " (pr-str variance) " in free binder: " f) opts))
       {:fname n 
@@ -809,7 +799,7 @@
       (prs-error (str "Unknown t/TFn option: " (pr-str (first extra-keys))
                       ". Known options are :variance, :<, and :>.") opts))
     (when (contains? popts :kind)
-      (err/deprecated-warn "Kind annotation for TFn parameters"))
+      (err/deprecated-warn "Kind annotation for TFn parameters" opts))
     (when-some [[_ provided] (find popts :variance)]
       (when-not (r/variance? provided)
         (prs-error (str "Invalid variance: " (pr-str provided)) opts)))
@@ -872,7 +862,7 @@
                variances
                (map :bound free-maps)
                bodyt
-               {:meta {:env vs/*current-env*}}
+               {:meta {:env (::vs/current-env opts)}}
                opts)))
 
 (defmethod parse-type-list 'typed.clojure/TFn [syn opts] (parse-type-fn syn opts))
@@ -1068,7 +1058,7 @@
         ; support deprecated syntax (HMap {}), which is now (HMap :mandatory {})
         deprecated-mandatory (when (map? (first flat-opts))
                                (err/deprecated-warn
-                                 "(HMap {}) syntax has changed, use (HMap :mandatory {})")
+                                 "(HMap {}) syntax has changed, use (HMap :mandatory {})" opts)
                                (first flat-opts))
         flat-opts (cond-> flat-opts
                     deprecated-mandatory next)
@@ -1274,7 +1264,7 @@
       (prs-error (str "Invalid operator to type application: " syn) opts))
     (with-meta (r/TApp-maker op (mapv #(parse-type % opts) args))
                {:syn syn
-                :env vs/*current-env*})))
+                :env (::vs/current-env opts)})))
 
 (defmethod parse-type-list :default 
   [syn opts]
@@ -1667,7 +1657,7 @@
         & (case (count to-process)
             1 (prs-error "Must provide syntax after &" opts)
             2 (if (map? d2)
-                (do (err/deprecated-warn "[& {} :-> ] function syntax is deprecated. Use [& :optional {} :-> ]")
+                (do (err/deprecated-warn "[& {} :-> ] function syntax is deprecated. Use [& :optional {} :-> ]" opts)
                     (recur (conj cat-dom (r/-kw-args :optional (parse-kw-map d2 opts)))
                            (subvec to-process 2)))
                 (prs-error "Must provide key-value syntax after &" opts))
@@ -1697,7 +1687,8 @@
         (case d2
           (:? :+ :* * <*) (if (or (not= '* d2)
                                   (and (= 2 (count to-process))
-                                       (do (err/deprecated-warn "* function syntax is deprecated and only supported as final arguments. Use :* instead.")
+                                       (do (err/deprecated-warn "* function syntax is deprecated and only supported as final arguments. Use :* instead."
+                                                                opts)
                                            true)))
                             (recur (conj cat-dom (case d2
                                                    <* (r/regex [(-> d1 allow-regex (parse-type opts) push-HSequential->regex)] :*)
@@ -1707,7 +1698,8 @@
                                    (subvec to-process 1)))
           (:.. :... ... <...) (if (or (= :.. d2)
                                       (when (not= '<... d2)
-                                        (err/deprecated-warn (str d2 " function syntax is deprecated and only supported as final arguments. Use :.. instead.")))
+                                        (err/deprecated-warn (str d2 " function syntax is deprecated and only supported as final arguments. Use :.. instead.")
+                                                             opts))
                                       (= 3 (count to-process)))
                                 (let [drest-bnd d3
                                       _ (when-not (simple-symbol? drest-bnd)

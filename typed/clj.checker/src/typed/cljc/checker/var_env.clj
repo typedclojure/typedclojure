@@ -194,8 +194,8 @@
   {:pre [(symbol? sym)]
    :post [(r/Type? %)]}
   (or (type-of-nofail sym opts)
-      (err/int-error (str (when vs/*current-env*
-                            (str (:line vs/*current-env*) ": "))
+      (err/int-error (str (when-some [env (::vs/current-env opts)]
+                            (str (:line env) ": "))
                           "Missing type for binding: " (pr-str sym))
                      opts)))
 

@@ -506,7 +506,7 @@
      :bounds any-bounds}
     (let [[n & {:keys [< >] :as fopts}] f]
       (when (contains? fopts :kind)
-        (err/deprecated-warn "kind annotation for TFn parameters is removed"))
+        (err/deprecated-warn "kind annotation for TFn parameters is removed" opts))
       (when (:variance fopts) 
         (err/int-error "Variance not supported for variables introduced with All" opts))
       {:op :F
@@ -527,7 +527,7 @@
     (when-not (symbol? nme)
       (err/int-error "Must provide a name symbol to TFn" opts))
     (when (contains? fopts :kind)
-      (err/deprecated-warn "kind annotation for TFn parameters is removed"))
+      (err/deprecated-warn "kind annotation for TFn parameters is removed" opts))
     #_(when-not (r/variance? variance)
       (err/int-error (str "Invalid variance: " (pr-str variance)) opts))
     {:name gsym :variance variance
@@ -577,7 +577,8 @@
         ; support deprecated syntax (HMap {}), which is now (HMap :mandatory {})
         deprecated-mandatory (when (map? (first flat-opts))
                                (err/deprecated-warn
-                                 "HMap syntax changed. Use :mandatory keyword argument instead of initial map")
+                                 "HMap syntax changed. Use :mandatory keyword argument instead of initial map"
+                                 opts)
                                (first flat-opts))
         flat-opts (if deprecated-mandatory
                     (next flat-opts)
@@ -992,7 +993,7 @@
           ; support deprecated syntax [& {} -> ] to be equivalent to [& :optional {} -> ]
           (if (and kwsyn
                    (map? (first kwsyn)))
-            (do (err/deprecated-warn "[& {} -> ] function syntax is deprecated. Use [& :optional {} -> ]")
+            (do (err/deprecated-warn "[& {} -> ] function syntax is deprecated. Use [& :optional {} -> ]" opts)
                 (cons :optional kwsyn))
             kwsyn))
 
@@ -1181,11 +1182,11 @@
 
 (defn parse [syn opts]
   @register!
-  (binding [vs/*current-env* (let [ne (when-let [m (meta syn)]
-                                        (select-keys m [:file :line :column :end-line :end-column]))]
-                               (or (when ((every-pred :file :line :column) ne)
-                                     ne)
-                                   vs/*current-env*))]
+  (let [opts (update opts ::vs/current-env #(let [ne (when-let [m (meta syn)]
+                                                       (select-keys m [:file :line :column :end-line :end-column]))]
+                                              (or (when ((every-pred :file :line :column) ne)
+                                                    ne)
+                                                  %)))]
     (cond
       ((some-fn nil? true? false?) syn) {:op :singleton :val syn :form syn}
       (vector? syn) {:op :Fn 

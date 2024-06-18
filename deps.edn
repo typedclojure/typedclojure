@@ -39,7 +39,8 @@
   :spec-skip-macros {:jvm-opts ["-Dclojure.spec.skip-macros=true"]},
   :test
   {:extra-deps
-   {com.clojure-goes-fast/clj-java-decompiler {:mvn/version "0.3.0"},
+   {com.clojure-goes-fast/clj-async-profiler {:mvn/version "1.2.2"},
+    com.clojure-goes-fast/clj-java-decompiler {:mvn/version "0.3.0"},
     com.gfredericks/test.chuck {:mvn/version "0.2.12"},
     criterium/criterium {:mvn/version "0.4.5"},
     org.clojure/clojurescript {:mvn/version "1.11.60"},
@@ -67,7 +68,8 @@
     "typed/lib.clojure/test"
     "typed/lib.core.async/test"
     "typed/lib.spec.alpha/test"
-    "typed/malli/test"]},
+    "typed/malli/test"],
+   :jvm-opts ["-Djdk.attach.allowAttachSelf"]},
   :typed
   {:exec-args
    {:dirs

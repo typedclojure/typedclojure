@@ -43,6 +43,7 @@
   [impl ns-or-syms {:keys [trace file-mapping check-config max-parallelism] :as opt} opts]
   (assert (not (:opts opt)))
   (assert opts)
+  (assert (not trace) "To enable tracing set system property -Dtyped.cljc.checker.utils.trace=true on startup")
   (let [start (. System (nanoTime))
         threadpool vs/*check-threadpool*
         shutdown-threadpool? (not threadpool)
@@ -70,11 +71,9 @@
                               [ns-or-syms]
                               ns-or-syms))]
         (assert (seq nsym-coll) "Nothing to check")
-        (assert (not vs/*delayed-errors*))
+        (assert (not (::vs/delayed-errors opts)))
         (impl/with-impl impl
-          (binding [vs/*delayed-errors* (err/-init-delayed-errors)
-                    vs/*trace-checker* trace
-                    ; we only use this if we have exactly one namespace passed
+          (binding [; we only use this if we have exactly one namespace passed
                     vs/*checked-asts* (when (#{impl/clojure} impl)
                                         (when (= 1 (count nsym-coll))
                                           (atom {})))
@@ -82,9 +81,11 @@
                     vs/*in-check-form* false
                     vs/*check-threadpool* threadpool
                     vs/*check-config* check-config]
-            (let [opts (-> opts
+            (let [delayed-errors (err/-init-delayed-errors)
+                  opts (-> opts
                            (assoc ::vs/lexical-env (lex-env/init-lexical-env))
-                           (assoc ::vs/already-checked (atom #{})))
+                           (assoc ::vs/already-checked (atom #{}))
+                           (assoc ::vs/delayed-errors delayed-errors))
                   terminal-error (atom nil)]
               ;(reset-env/reset-envs!)
               ;(reset-caches)
@@ -107,17 +108,16 @@
                 ;-------------------------
                 (let [check-ns (impl/impl-case opts
                                  :clojure chk-clj/check-ns-and-deps
-                                 :cljs    (requiring-resolve 'typed.cljs.checker.check/check-ns-and-deps))
-                      check-ns #(check-ns % opts)]
+                                 :cljs    (requiring-resolve 'typed.cljs.checker.check/check-ns-and-deps))]
                   (if (= 1 (count nsym-coll))
-                    (check-ns (nth nsym-coll 0))
+                    (check-ns (nth nsym-coll 0) opts)
                     (let [check-ns (bound-fn*
-                                     #(binding [vs/*delayed-errors* (err/-init-delayed-errors)]
-                                        (try (check-ns %)
-                                             {:errors @vs/*delayed-errors*}
+                                     #(let [delayed-errors (err/-init-delayed-errors)]
+                                        (try (check-ns % (assoc opts ::vs/delayed-errors delayed-errors))
+                                             {:errors @delayed-errors}
                                              (catch ExceptionInfo e
                                                (if (-> e ex-data :type-error)
-                                                 {:errors (conj @vs/*delayed-errors* e)}
+                                                 {:errors (conj @delayed-errors e)}
                                                  (throw e))))))
                           results (if-not threadpool
                                     (mapv check-ns nsym-coll)
@@ -128,13 +128,13 @@
                                           (.invokeAll threadpool (map (fn [nsym]
                                                                         #(check-ns nsym))
                                                                       nsym-coll))))
-                          _ (swap! vs/*delayed-errors* into (mapcat :errors) results)])))
+                          _ (swap! delayed-errors into (mapcat :errors) results)])))
                 (catch ExceptionInfo e
                   (if (-> e ex-data :type-error)
                     (reset! terminal-error e)
                     (throw e))))
               (into
-                {:delayed-errors (vec (concat (some-> vs/*delayed-errors* deref)
+                {:delayed-errors (vec (concat @delayed-errors
                                               (when-let [e @terminal-error]
                                                 [e])))}
                 (when (= impl/clojure impl)

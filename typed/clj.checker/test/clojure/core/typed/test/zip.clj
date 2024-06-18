@@ -87,7 +87,7 @@
            :requires [[clojure.zip :refer [rights]]])
   (is-tc-err #(rights [1 2 3]) [-> t/Str]
              :requires [[clojure.zip :refer [rights]]])
-  (is-tc-err (rights 1)
+  (is-tc-err #(rights 1)
              :requires [[clojure.zip :refer [rights]]]))
 
 (deftest replace-test

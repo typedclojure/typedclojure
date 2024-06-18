@@ -124,7 +124,7 @@
                                            opts))]
             (assoc expr
                    u/expr-type res))
-    :else (do (u/tc-warning (str "js-op missing, inferring Any"))
+    :else (do (u/tc-warning "js-op missing, inferring Any" opts)
               (assoc expr
                      u/expr-type (below/maybe-check-below
                                    (r/ret r/-any)
@@ -160,9 +160,9 @@
   (assert (= 2 (count args)) "Wrong arguments to instance?")
   ; are arguments the correct way round?
   (assert (:from-js-op expr) "instance? without inlining NYI")
-  (binding [vs/*current-env* (:env expr)
-            vs/*current-expr* expr]
-    (let [target-expr (first args)
+  (binding [vs/*current-expr* expr]
+    (let [opts (assoc opts ::vs/current-env (:env expr))
+          target-expr (first args)
           inst-of-expr (second args)
           varsym (when (#{:var} (:op inst-of-expr))
                    (-> inst-of-expr :name))
@@ -247,7 +247,7 @@
   (impl/assert-cljs opts)
   (let [;; TODO check ctor
         cargs (mapv #(check-expr % nil opts) args)]
-    (u/tc-warning (str "`new` special form is Unchecked"))
+    (u/tc-warning "`new` special form is Unchecked" opts)
     (-> expr
         (assoc :args cargs
                u/expr-type (below/maybe-check-below
@@ -283,7 +283,7 @@
 ;TODO
 (defmethod -check ::tana2/defrecord
   [expr expected opts]
-  (u/tc-warning (str "`defrecord` special form is Unchecked"))
+  (u/tc-warning "`defrecord` special form is Unchecked" opts)
   (assoc expr
          u/expr-type (below/maybe-check-below
                        (r/ret (r/-unchecked))
@@ -292,7 +292,7 @@
 
 (defmethod -check ::tana2/deftype
   [expr expected opts]
-  (u/tc-warning (str "`deftype` special form is Unchecked"))
+  (u/tc-warning "`deftype` special form is Unchecked" opts)
   (assoc expr
          u/expr-type (below/maybe-check-below
                        (r/ret (r/-unchecked))
@@ -306,7 +306,7 @@
   (let [ctarget (check-expr target nil opts)
         cargs (mapv #(check-expr % nil opts) args)]
     #_(dot/check-dot ...)
-    (u/tc-warning (str "`.` special form is Unchecked"))
+    (u/tc-warning "`.` special form is Unchecked" opts)
     (assoc expr 
            :target ctarget
            :args cargs
@@ -321,7 +321,7 @@
   [{:keys [target] :as expr} expected {::check/keys [check-expr] :as opts}]
   (let [ctarget (check-expr target nil opts)]
     #_(dot/check-dot ...)
-    (u/tc-warning (str "`.` special form is Unchecked"))
+    (u/tc-warning "`.` special form is Unchecked" opts)
     (assoc expr 
            :target ctarget
            u/expr-type (below/maybe-check-below
@@ -334,7 +334,7 @@
   [{:keys [items] :as expr} expected {::check/keys [check-expr] :as opts}]
   (let [citems (mapv #(check-expr % nil opts) items)]
     #_(dot/check-dot ...)
-    (u/tc-warning (str "`#js []` special form is Unchecked"))
+    (u/tc-warning "`#js []` special form is Unchecked" opts)
     (assoc expr 
            :items citems
            u/expr-type (below/maybe-check-below
@@ -357,7 +357,7 @@
 ; TODO check
 (defmethod -check ::tana2/js-var
   [{:keys [name] :as expr} expected opts]
-  (u/tc-warning (str "Assuming JS variable is unchecked " name))
+  (u/tc-warning (str "Assuming JS variable is unchecked " name) opts)
   (assoc expr 
          u/expr-type (below/maybe-check-below
                        (r/ret (r/-unchecked))
@@ -369,7 +369,7 @@
 (defn check-the-var
   [expr expected opts]
   (impl/assert-cljs opts)
-  (u/tc-warning (str "`var` special form is Unchecked"))
+  (u/tc-warning "`var` special form is Unchecked" opts)
   (assoc expr 
          u/expr-type (below/maybe-check-below
                        (r/ret (r/-unchecked))
@@ -392,9 +392,8 @@
        (do @*register-exts
            (or (maybe-check-unanalyzed expr expected opts)
                (recur (tana2/analyze-outer expr) (max -1 (dec fuel)))))
-       (binding [vs/*current-env* (if (:line env) env vs/*current-env*)
-                 vs/*current-expr* expr]
-         (-check expr expected opts))))))
+       (binding [vs/*current-expr* expr]
+         (-check expr expected (update opts ::vs/current-env #(if (:line env) env %))))))))
 
 (defn check-top-level
   "Type check a top-level form at an expected type, returning a

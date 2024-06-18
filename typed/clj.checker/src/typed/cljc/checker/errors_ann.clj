@@ -9,6 +9,6 @@
 (ns typed.cljc.checker.errors-ann
   (:require [typed.clojure :as t]))
 
-(t/ann ^:no-check clojure.core.typed.errors/deprecated-warn [t/Str -> nil])
+(t/ann ^:no-check clojure.core.typed.errors/deprecated-warn [t/Str t/Any -> nil])
 (t/ann ^:no-check clojure.core.typed.errors/int-error [t/Str -> t/Nothing])
 

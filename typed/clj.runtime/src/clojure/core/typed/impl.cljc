@@ -1245,7 +1245,8 @@
   (core/let [m (-> (if (= 1 (count kws))
                      (do
                        ((requiring-resolve 'clojure.core.typed.errors/deprecated-warn)
-                        "runtime-infer with 1 arg: use {:ns <ns>}")
+                        "runtime-infer with 1 arg: use {:ns <ns>}"
+                        ((requiring-resolve 'typed.clj.runtime.env/clj-opts)))
                        {:ns (first kws)})
                      (apply hash-map kws))
                    (update :ns #(or % *ns*)))]
@@ -1317,7 +1318,8 @@
   (core/let [m (-> (if (= 1 (count kws))
                      (do
                        ((requiring-resolve 'clojure.core.typed.errors/deprecated-warn)
-                        "runtime-infer with 1 arg: use {:ns <ns>}")
+                        "runtime-infer with 1 arg: use {:ns <ns>}"
+                        ((requiring-resolve 'typed.clj.runtime.env/clj-opts)))
                        {:ns (first kws)})
                      (apply hash-map kws))
                    (update :ns #(or % *ns*)))]

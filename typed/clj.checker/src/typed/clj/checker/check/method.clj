@@ -31,9 +31,9 @@
          ((some-fn nil? r/Type?) method-override)]
    :post [(-> % u/expr-type r/TCResult?)
           (vector? (:args %))]}
-  (binding [vs/*current-env* env
-            vs/*current-expr* expr]
-    (let [inst? (= :instance-call (:op expr))
+  (binding [vs/*current-expr* expr]
+    (let [opts (assoc opts ::vs/current-env env)
+          inst? (= :instance-call (:op expr))
           method (cu/MethodExpr->Method expr opts)
           msym (cu/MethodExpr->qualsym expr opts)
           rfin-type (or method-override

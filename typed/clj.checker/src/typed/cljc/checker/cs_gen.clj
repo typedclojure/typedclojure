@@ -305,12 +305,6 @@
    :post [(cr/dmap? %)]}
   (cr/dmap-maker (merge-with #(dcon-meet %1 %2 opts) (:map dm1) (:map dm2))))
 
-
-;current seen subtype relations, for recursive types
-;(Set [Type Type])
-(t/ann *cs-current-seen* (t/Set '[r/AnyType r/AnyType]))
-(defonce ^:dynamic *cs-current-seen* #{})
-
 (t/defalias NoMentions
   "A set of variables not to mention in the constraints"
   (t/Set t/Sym))
@@ -353,19 +347,20 @@
         r/AnyType
         r/AnyType
         -> cset])
-(defn cs-gen [V X Y S T opts]
+(defn cs-gen [V X Y S T {::keys [cs-current-seen] :as opts
+                         :or {cs-current-seen #{}}}]
   {:pre [((con/set-c? symbol?) V)
          (X? X)
          (Y? Y)
          (r/AnyType? S)
          (r/AnyType? T)]
    :post [(cr/cset? %)]}
-  ;(prn "cs-gen" (class S) (class T) S T (count *cs-current-seen*))
-  (if (or (*cs-current-seen* [S T])
+  ;(prn "cs-gen" (class S) (class T) S T (count cs-current-seen))
+  (if (or (cs-current-seen [S T])
           (subtype? S T opts))
     ;already been around this loop, is a subtype
     (cr/empty-cset X Y)
-    (binding [*cs-current-seen* (conj *cs-current-seen* [S T])]
+    (let [opts (assoc opts ::cs-current-seen (conj cs-current-seen [S T]))]
       (cond
         ;IMPORTANT: handle frees first
         (and (r/F? S)
@@ -2124,17 +2119,17 @@
          (r/SymbolicClosure? arg-t)
          (r/Type? #_inferrable-symbolic-closure-expected-type? dom-t)]
    :post [(r/AnyType? %)]}
-  (with-bindings (assoc (:bindings arg-t)
-                        #'vs/*delayed-errors* (err/-init-delayed-errors))
-    (let [expected (r/ret (prep-symbolic-closure-expected-type3 substitution-without-symb dom-t opts))
+  (with-bindings (:bindings arg-t)
+    (let [delayed-errors (err/-init-delayed-errors)
+          expected (r/ret (prep-symbolic-closure-expected-type3 substitution-without-symb dom-t opts))
           ;_ (prn :app-symbolic-closure expected)
           res (-> (check-expr
                     (:fexpr arg-t)
                     expected
                     ;;TODO add symbolic closure's lexical scope from (:opts arg-t)
-                    opts)
+                    (assoc opts ::vs/delayed-errors delayed-errors))
                   u/expr-type r/ret-t)]
-      (when-some [errs (seq @vs/*delayed-errors*)]
+      (when-some [errs (seq @delayed-errors)]
         #_
         (prn "symbolic closure failed to check"
              errs)
@@ -2234,7 +2229,8 @@
                                                             (and (not= :rng i)
                                                                  (r/FnIntersection? t)
                                                                  (= 1 (count (:types t))))
-                                                            (binding [vs/*delayed-errors* (err/-init-delayed-errors)]
+                                                            (let [delayed-errors (err/-init-delayed-errors)
+                                                                  opts (assoc opts ::vs/delayed-errors delayed-errors)]
                                                               ;(prn "Deferred Poly <: " s t)
                                                               (let [t (prep-symbolic-closure-expected-type3 subst t opts)
                                                                     ;_ (prn "t" t)
@@ -2252,7 +2248,7 @@
                                                                                     (-> t :types first :rng r/Result->TCResult)
                                                                                     {} opts))
                                                                     ;_ (prn "after check-funapp" inferred-rng)
-                                                                    _ (when-some [errs (seq @vs/*delayed-errors*)]
+                                                                    _ (when-some [errs (seq @delayed-errors)]
                                                                         #_
                                                                         (prn "deferred Poly argument failed to check"
                                                                              errs)

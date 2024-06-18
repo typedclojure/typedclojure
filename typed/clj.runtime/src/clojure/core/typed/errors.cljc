@@ -8,7 +8,7 @@
 
 (ns ^:no-doc clojure.core.typed.errors
   #?(:clj (:refer-clojure :exclude [requiring-resolve]))
-  (:require [clojure.core.typed.util-vars :refer [*current-env*] :as uvs]
+  (:require [clojure.core.typed.util-vars :as uvs]
             [clojure.core.typed.current-impl :as impl]
             [clojure.pprint :as pp]
             [clojure.core.typed.ast-utils :as ast-u]
@@ -44,7 +44,7 @@
   ([estr opts] (int-error estr {} opts))
   ([estr {:keys [cause visible-cause use-current-env] :as opt} opts]
    (assert (not (and cause visible-cause)))
-   (let [{:keys [line column file] :as env} *current-env*]
+   (let [{:keys [line column file] :as env} (::uvs/current-env opts)]
      (throw (ex-info (str "Internal Error "
                           "(" (or file 
                                   (impl/impl-case opts
@@ -59,27 +59,18 @@
                           estr)
                      (cond->
                        {:type-error int-error-kw
-                        :env (or (when (and uvs/*current-expr*
+                        :env (or (when (and env
                                             (not use-current-env))
                                    (:env uvs/*current-expr*))
-                                 (env-for-error *current-env* opts))}
+                                 (env-for-error env opts))}
                        ;; don't want this to unwrap in the REPL, so don't use 3rd arg of ex-info
                        cause (assoc :cause cause))
                      ;; for when we *do* want to see the cause
                      visible-cause)))))
 
-;[Any * -> String]
-(defn ^String error-msg 
-  [& msg]
-  (apply str (when *current-env*
-               (str (:line *current-env*) ":"
-                    (:col *current-env*)
-                    " "))
-         (concat msg)))
-
 ;errors from check-ns or cf
 (defn top-level-error? [{:keys [type-error] :as exdata}]
-  (boolean (#{:top-level-error} type-error)))
+  (= :top-level-error type-error))
 
 #?(:clj
 (defmacro top-level-error-thrown? [& body]
@@ -124,7 +115,7 @@
 (defn tc-delayed-error
   "Supports kw args or single optional map."
   ([msg opts] (tc-delayed-error msg {} opts))
-  ([msg {:keys [return form expected] :as opt} opts]
+  ([msg {:keys [return form expected] :as opt} {::uvs/keys [delayed-errors] :as opts}]
    (let [form (cond
                 (contains? (:opts expected) :blame-form) (-> expected :opts :blame-form)
                 (contains? opt :blame-form) (:blame-form opt)
@@ -147,28 +138,26 @@
          e (ex-info msg {:type-error type-error-kw
                          :env (env-for-error
                                 (merge (or (:env uvs/*current-expr*)
-                                           *current-env*)
+                                           (::uvs/current-env opts))
                                        (when (contains? (:opts expected) :blame-form)
                                          (meta (-> expected :opts :blame-form))))
                                 opts)
                          :form form})]
      (cond
        ;can't delay here
-       (not uvs/*delayed-errors*)
+       (not delayed-errors)
        (throw e)
 
        :else
        (do
-         (if-let [delayed-errors uvs/*delayed-errors*]
-           (swap! delayed-errors conj e)
-           (throw (Exception. (str "*delayed-errors* not rebound"))))
+         (swap! delayed-errors conj e)
          (or (when (contains? opt :return)
                return)
              @(requiring-resolve 'typed.cljc.checker.type-rep/-error)))))))
 
 (defn tc-error
   [estr opts]
-  (let [env *current-env*]
+  (let [env (::uvs/current-env opts)]
     (throw (ex-info (str "Type Error "
                          "(" (:file env) ":" (or (:line env) "<NO LINE>")
                          (when-let [col (:column env)]
@@ -183,8 +172,8 @@
   (println (str "WARNING: " msg)))
 
 (defn deprecated-warn
-  [msg]
-  (let [env *current-env*
+  [msg opts]
+  (let [env (::uvs/current-env opts)
         file (:file env)]
     (println 
       (str
@@ -206,7 +195,7 @@
 
 (defn nyi-error
   [estr opts]
-  (let [env *current-env*]
+  (let [env (::uvs/current-env opts)]
     (throw (ex-info (str "core.typed Not Yet Implemented Error:"
                            "(" (:file env) ":" (or (:line env) "<NO LINE>")
                            (when-let [col (:column env)]
@@ -249,19 +238,7 @@
   ([old new opts]
    {:pre [(symbol? old)
           ((some-fn symbol? nil?) new)]}
-   (deprecated-warn (str old " syntax is deprecated, use " (var-for-impl (or new old) opts)))))
-
-(defn deprecated-macro-syntax [form msg]
-  (binding [*current-env* {:file (or (-> form meta :file) (ns-name *ns*))
-                           :line (-> form meta :line)
-                           :colomn (-> form meta :column)}]
-    (deprecated-warn msg)))
-
-(defn deprecated-renamed-macro [form old new]
-  (deprecated-macro-syntax 
-    form
-    (str "Renamed macro: clojure.core.typed/" old
-         " -> clojure.core.typed/" new)))
+   (deprecated-warn (str old " syntax is deprecated, use " (var-for-impl (or new old) opts)) opts)))
 
 (defn print-errors!
   "Internal use only"

@@ -15,7 +15,7 @@
             [typed.clojure :as t]
             [typed.cljc.runtime.env :as env]))
 
-(t/ann ^:no-check clojure.core.typed.errors/deprecated-warn [String -> nil])
+(t/ann ^:no-check clojure.core.typed.errors/deprecated-warn [String t/Any -> nil])
 (t/ann ^:no-check clojure.core.typed.errors/int-error [String -> t/Nothing])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

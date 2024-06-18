@@ -59,7 +59,8 @@
                                    (do (when (some? r) (callback path r))
                                        r))))))))
 
-(defn with-recorded-deps [expr expected {::env/keys [checker]
+(defn with-recorded-deps [expr expected {::uvs/keys [delayed-errors]
+                                         ::env/keys [checker]
                                          ::check/keys [check-expr] :as opts}]
   (assert check-expr)
   (assert checker (vec (keys opts)))
@@ -141,7 +142,7 @@
                                                   res)))]
       (let [result (check-expr expr expected opts)]
         (assoc result ::cache-info {::types (dissoc @types :clojure.core.typed.current-impl/current-nocheck-var?)
-                                    ::vars @vars ::errors (pos? (count @uvs/*delayed-errors*)) ::interop @interop
+                                    ::vars @vars ::errors (pos? (count @delayed-errors)) ::interop @interop
                                     ::type-syms @type-syms})))))
 
 (defn ns-check-cached? [checker nsym slurped]

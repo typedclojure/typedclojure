@@ -192,7 +192,7 @@
                                     (= :fixed (:kind expected)))
                              ;; substitute away the rest argument to try and trigger
                              ;; any beta reductions
-                             (with-bindings (ana-clj/thread-bindings {:env (:env method)})
+                             (with-bindings (ana-clj/thread-bindings {:env (:env method)} opts)
                                (-> body
                                    (beta-reduce/subst-locals 
                                      {(:name rest-param) (beta-reduce/fake-seq-invoke
