@@ -1,4 +1,5 @@
 (ns typed-test.cljc.checker.check.cache-test-ns1
+  {:typed.clojure {:experimental #{:cache}}}
   (:require [typed.clojure :as t]))
 
 (t/ann foo t/Int)
