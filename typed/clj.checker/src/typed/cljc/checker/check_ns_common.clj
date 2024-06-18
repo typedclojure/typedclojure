@@ -75,11 +75,7 @@
         (assert (seq nsym-coll) "Nothing to check")
         (assert (not (::vs/delayed-errors opts)))
         (impl/with-impl impl
-          (binding [; we only use this if we have exactly one namespace passed
-                    vs/*checked-asts* (when (#{impl/clojure} impl)
-                                        (when (= 1 (count nsym-coll))
-                                          (atom {})))
-                    ;; nested check-ns inside check-form switches off check-form
+          (binding [;; nested check-ns inside check-form switches off check-form
                     vs/*in-check-form* false
                     vs/*check-threadpool* threadpool]
             (let [delayed-errors (err/-init-delayed-errors)
@@ -136,17 +132,9 @@
                   (if (-> e ex-data :type-error)
                     (reset! terminal-error e)
                     (throw e))))
-              (into
-                {:delayed-errors (vec (concat @delayed-errors
-                                              (when-let [e @terminal-error]
-                                                [e])))}
-                (when (= impl/clojure impl)
-                  (when (and file-mapping
-                             (= 1 (count nsym-coll)))
-                    {:file-mapping (apply merge
-                                          (map #(impl/with-impl impl
-                                                  (file-map/ast->file-mapping % opts))
-                                               (get (some-> vs/*checked-asts* deref) (first nsym-coll))))})))))))
+              {:delayed-errors (vec (concat @delayed-errors
+                                            (when-let [e @terminal-error]
+                                              [e])))}))))
       (finally
         (when shutdown-threadpool?
           (some-> threadpool .shutdown))))))
