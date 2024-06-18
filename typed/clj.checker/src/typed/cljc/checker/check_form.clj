@@ -120,10 +120,7 @@
     (binding [vs/*in-check-form* true
               ;; custom expansions might not even evaluate
               vs/*can-rewrite* (not custom-expansions?)
-              vs/*custom-expansions* custom-expansions?
-              vs/*beta-count* (when custom-expansions?
-                                (atom {:count 0
-                                       :limit (or beta-limit 500)}))]
+              vs/*custom-expansions* custom-expansions?]
       (let [delayed-errors (err/-init-delayed-errors)
             opts (-> opts
                      (assoc ::vs/lexical-env (lex-env/init-lexical-env))
