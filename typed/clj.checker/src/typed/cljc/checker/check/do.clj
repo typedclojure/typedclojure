@@ -77,7 +77,7 @@
                                                     expected)
                                                   (-> opts
                                                       ; always prefer envs with :line information, even if inaccurate
-                                                      (update ::vs/lexical-env #(if (:line (:env expr))
+                                                      (update ::vs/current-env #(if (:line (:env expr))
                                                                                   (:env expr)
                                                                                   %))
                                                       (var-env/with-lexical-env env))))
