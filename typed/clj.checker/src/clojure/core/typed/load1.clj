@@ -58,7 +58,6 @@
        (assert file-url (str "Cannot find file " orig-filename))
        (binding [*ns* *ns*
                  *file* filename
-                 vs/*in-typed-load* true
                  vs/*typed-load-atom* (atom {})
                  vs/*prepare-infer-ns* nil
                  vs/*instrument-infer-config* nil]
