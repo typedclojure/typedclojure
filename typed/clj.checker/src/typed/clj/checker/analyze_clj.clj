@@ -281,10 +281,10 @@
 (declare scheduled-passes-for-custom-expansions)
 
 ;; (All [x ...] [-> '{(Var x) x ...})])
-(defn thread-bindings [opt {::vs/keys [delayed-errors] :as opts}]
+(defn thread-bindings [opt {::vs/keys [check-config delayed-errors] :as opts}]
   (let [ns (the-ns (or (-> opt :env :ns)
                        *ns*))
-        side-effects? (case (:check-form-eval vs/*check-config*)
+        side-effects? (case (:check-form-eval check-config)
                         (:never :before) false
                         (:after nil) true)
         eval-ast (if side-effects? jana2/eval-ast2 identity)]

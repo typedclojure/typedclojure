@@ -81,10 +81,10 @@
                                           (atom {})))
                     ;; nested check-ns inside check-form switches off check-form
                     vs/*in-check-form* false
-                    vs/*check-threadpool* threadpool
-                    vs/*check-config* check-config]
+                    vs/*check-threadpool* threadpool]
             (let [delayed-errors (err/-init-delayed-errors)
                   opts (-> opts
+                           (assoc ::vs/check-config check-config)
                            (assoc ::vs/lexical-env (lex-env/init-lexical-env))
                            (assoc ::vs/already-checked (atom #{}))
                            (assoc ::vs/delayed-errors delayed-errors)

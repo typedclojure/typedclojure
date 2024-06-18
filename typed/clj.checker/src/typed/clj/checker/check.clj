@@ -112,7 +112,7 @@
 
 (defn check-ns1
   "Type checks an entire namespace."
-  ([ns env {::vs/keys [delayed-errors]
+  ([ns env {::vs/keys [delayed-errors check-config]
             ::cenv/keys [checker] :as opts}]
    (env/ensure (jana2/global-env)
      (let [env (or env (jana2/empty-env))
@@ -121,7 +121,7 @@
            slurped (slurp (io/reader res))]
        (when-not (cache/ns-check-cached? checker ns slurped)
          (let [filename (str res)
-               {:keys [check-form-eval]} vs/*check-config*]
+               {:keys [check-form-eval]} check-config]
            (binding [*ns*   (if (= :never check-form-eval)
                               (the-ns ns) ;; assumes ns == clojure.core/ns and ns is the same throughout file
                               *ns*)
@@ -225,7 +225,7 @@
       :experimental
       (contains? :infer-vars)))
 
-(defn check-var [{:keys [var] :as expr} expected opts]
+(defn check-var [{:keys [var] :as expr} expected {::vs/keys [check-config] :as opts}]
   {:pre [(var? var)]}
   (binding [vs/*current-expr* expr]
     (let [checker (cenv/checker opts)
@@ -267,8 +267,7 @@
         ;; var dereference is the dynamic type
         (or (should-infer-vars? expr opts)
             (impl/impl-case opts
-              :clojure (= :unchecked 
-                          (some-> vs/*check-config* :unannotated-var))
+              :clojure (= :unchecked (:unannotated-var check-config))
               :cljs nil))
         (do
           (println (str "Inferring " vsym " dereference as Unchecked"))
@@ -278,7 +277,7 @@
                                expected
                                opts)))
         (impl/impl-case opts
-          :clojure (= :any (some-> vs/*check-config* :unannotated-var))
+          :clojure (= :any (:unannotated-var check-config))
           :cljs nil)
         (do
           (println (str "Inferring " vsym " dereference as Any"))
@@ -1456,7 +1455,8 @@
 
 ; FIXME this needs a line number from somewhere!
 (defmethod -host-call-special '[:instance-call clojure.lang.MultiFn/addMethod]
-  [expr expected {::check/keys [check-expr] :as opts}]
+  [expr expected {::vs/keys [check-config]
+                  ::check/keys [check-expr] :as opts}]
   {:pre [(every? (every-pred (complement u/expr-type)
                              (comp #{:unanalyzed} :op))
                  (cons (:target expr) (:args expr)))]
@@ -1479,7 +1479,7 @@
                                     expected
                                     opts)))
         default? (cu/default-defmethod? var (ast-u/emit-form-fn dispatch-val-expr opts))
-        unannotated-def (some-> vs/*check-config* :unannotated-def)]
+        unannotated-def (:unannotated-def check-config)]
     (cond
       (and (= :unchecked unannotated-def)
            (not (var-env/lookup-Var-nofail mmsym opts)))
@@ -1936,10 +1936,10 @@
   fully analyzed core.typed.analyzer AST node (ie., containing no :unanalyzed nodes)
   with a u/expr-type entry giving its TCResult type, and a :result entry
   holding its evaluation result."
-  ([form expected {:keys [env] :as opt} opts]
+  ([form expected {:keys [env] :as opt} {::vs/keys [check-config] :as opts}]
    ;(prn "check-top-level" form)
    ;(prn "*ns*" *ns*)
-   (let [extra (when (= :before (:check-form-eval vs/*check-config*))
+   (let [extra (when (= :before (:check-form-eval check-config))
                  {:result (eval form)})
          opts (-> opts
                   (assoc ::check/check-expr check-expr)

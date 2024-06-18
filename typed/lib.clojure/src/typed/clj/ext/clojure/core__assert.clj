@@ -20,9 +20,9 @@
 
 (defuspecial defuspecial__assert
   "defuspecial implementation for clojure.core/assert"
-  [expr expected {::check/keys [check-expr] :as opts}]
-  (let [{:keys [check-form-eval]} vs/*check-config*]
-    (when (= :never check-form-eval)
-      (let [expr (binding [*assert* true]
-                   (ana2/analyze-outer expr))]
-        (check-expr expr expected opts)))))
+  [expr expected {{:keys [check-form-eval]} ::vs/check-config
+                  ::check/keys [check-expr] :as opts}]
+  (when (= :never check-form-eval)
+    (let [expr (binding [*assert* true]
+                 (ana2/analyze-outer expr))]
+      (check-expr expr expected opts))))

@@ -420,7 +420,7 @@
 
 (defn check-ns1
   "Type checks an entire namespace."
-  ([ns env opts]
+  ([ns env {::vs/keys [check-config] :as opts}]
    (uc/with-cljs-typed-env
      (let [env (or env (ana-api/empty-env))
            res (coerce/ns->URL ns opts)]
@@ -439,7 +439,7 @@
                      read-opts (cond-> {:eof eof :features #{:cljs}}
                                  (.endsWith filename "cljc") (assoc :read-cond :allow))]
                  (loop []
-                   (let [form (binding [*ns* (do (when (:check-form-eval vs/*check-config*)
+                   (let [form (binding [*ns* (do (when (:check-form-eval check-config)
                                                    ;; see clj implementation
                                                    (err/nyi-error ":check-form-eval in CLJS" opts))
                                                  (create-ns cljs-ana/*cljs-ns*))

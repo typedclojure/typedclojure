@@ -156,8 +156,7 @@
             terminal-error (atom nil)
             ;_ (prn "before c-ast")
             c-ast (try
-                    (binding [vs/*check-config* check-config]
-                      (check-top-level form expected {} opts))
+                    (check-top-level form expected {} (assoc opts ::vs/check-config check-config))
                     (catch Throwable e
                       (let [e (if (some-> e ex-data err/tc-error?)
                                 (try

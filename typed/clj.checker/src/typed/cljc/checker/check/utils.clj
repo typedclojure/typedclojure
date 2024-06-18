@@ -471,7 +471,7 @@
 (t/ann check-ns-and-deps [t/Sym [t/Sym -> t/Any] t/Any -> nil])
 (defn check-ns-and-deps
   "Type check a namespace and its dependencies."
-  [nsym check-ns1 opts]
+  [nsym check-ns1 {::vs/keys [check-config] :as opts}]
   {:pre [(symbol? nsym)]
    :post [(nil? %)]}
   (cond
@@ -481,7 +481,7 @@
                                    nil)
     :else
     (let [; check deps
-          _ (when (= :recheck (some-> vs/*check-config* :check-ns-dep))
+          _ (when (= :recheck (:check-ns-dep check-config))
               (checked-ns! nsym opts)
               ;check normal dependencies
               (doseq [dep (ns-depsu/deps-for-ns nsym opts)]

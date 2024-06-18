@@ -32,7 +32,8 @@
 ;[Expr (Option TCResult) -> Expr]
 (defn check-normal-def
   "Checks a def that isn't a macro definition."
-  [{:keys [meta init env] :as expr} expected {::check/keys [check-expr] :as opts}]
+  [{:keys [meta init env] :as expr} expected {::vs/keys [check-config]
+                                              ::check/keys [check-expr] :as opts}]
   {:post [(:init %)]}
   (let [checker (env/checker opts)
         init-provided (init-provided? expr)
@@ -90,7 +91,7 @@
                          (str line ": "))
                        "WARNING: Checking" vsym "definition without an expected type.")
             _ (assert (not t))
-            unannotated-def (some-> vs/*check-config* :unannotated-def)
+            unannotated-def (:unannotated-def check-config)
             ;_ (prn "unannotated-def" unannotated-def)
             cinit (when init-provided
                     (case unannotated-def
