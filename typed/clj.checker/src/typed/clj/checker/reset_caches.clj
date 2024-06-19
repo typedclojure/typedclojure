@@ -15,7 +15,6 @@
   "Reset internal type caches."
   []
   (sub/reset-subtype-cache)
-  (c/reset-In-cache)
   (c/reset-supers-cache!)
   (c/reset-RClass-of-cache!)
   (cgen/reset-dotted-var-store!)

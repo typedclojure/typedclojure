@@ -399,18 +399,6 @@
 
 (declare overlap In)
 
-(t/ann In-cache (t/Atom TypeCache))
-(def In-cache (atom {}))
-
-(t/ann intersect-cache (t/Atom TypeCache))
-(def intersect-cache (atom {}))
-
-(t/ann reset-In-cache [-> nil])
-(defn reset-In-cache []
-  (reset! In-cache {})
-  (reset! intersect-cache {})
-  nil)
-
 (t/ann ^:no-check make-Intersection [(t/Seqable r/Type) -> r/Type])
 (defn make-Intersection
   "Does not resolve types."
@@ -468,14 +456,14 @@
       (r/make-CountRange lower upper))))
 
 (t/ann ^:no-check intersect [r/Type r/Type -> r/Type])
-(defn intersect [t1 t2 opts]
+(defn intersect [t1 t2 {::keys [intersect-cache] :as opts}]
   {:pre [(r/Type? t1)
          (r/Type? t2)
          #_(not (r/Union? t1))
          #_(not (r/Union? t2))]
    :post [(r/Type? %)]}
   (let [cache-key (hash-set t1 t2)]
-    (if-let [hit (@intersect-cache cache-key)]
+    (if-let [hit (when intersect-cache (@intersect-cache cache-key))]
       hit
       (let [t (cond
                 ; Unchecked is "sticky" even though it's a subtype/supertype
