@@ -40,4 +40,5 @@
                      :schema])
             (malli->Type (assoc (clj-env/clj-opts)
                                 ::s->t/mode :validator-type
-                                ::s->t/source var-qsym)))))
+                                ::s->t/source var-qsym
+                                :typed.clj.checker.parse-unparse/parse-type-in-ns (ns-name *ns*))))))
