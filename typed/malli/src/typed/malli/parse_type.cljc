@@ -167,6 +167,7 @@
   "Returns an unevaluated malli schema."
   [t]
   (impl/with-impl impl/clojure
-    (let [opts ((requiring-resolve 'typed.clj.runtime.env/clj-opts))]
+    (let [opts (assoc ((requiring-resolve 'typed.clj.runtime.env/clj-opts))
+                      :typed.clj.checker.parse-unparse/parse-type-in-ns (ns-name *ns*))]
       (-> (ast/parse t opts)
           (ast->malli-syntax opts)))))
