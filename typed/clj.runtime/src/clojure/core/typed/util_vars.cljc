@@ -10,7 +10,6 @@
 
 (defonce ^:no-doc ^:dynamic *current-env* nil)
 (defonce ^:no-doc ^:dynamic *current-expr* nil)
-(defonce ^:no-doc ^:dynamic *in-check-form* nil)
 
 (defonce ^:dynamic 
   ^{:doc 

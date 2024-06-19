@@ -115,77 +115,77 @@
     (impl/impl-case opts
       :clojure @*register-clj-anns
       :cljs @*register-cljs-anns)
-    (binding [vs/*in-check-form* true]
-      (let [delayed-errors (err/-init-delayed-errors)
-            opts (-> opts
-                     ;; custom expansions might not even evaluate
-                     (assoc ::vs/can-rewrite (not custom-expansions?))
-                     (assoc ::vs/lexical-env (lex-env/init-lexical-env))
-                     (assoc ::vs/already-checked (atom #{}))
-                     (assoc ::vs/delayed-errors delayed-errors)
-                     (assoc ::prs/parse-type-in-ns unparse-ns)
-                     (assoc ::vs/custom-expansions custom-expansions?))
-            expected (or
-                       expected-ret
-                       (when type-provided?
-                         (r/ret (prs/parse-type expected opts))))
-            delayed-errors-fn (fn [] (seq @delayed-errors))
-            file-mapping-atom (atom [])
-            should-runtime-check? (and runtime-check-expr
-                                       (u/should-runtime-check-ns? *ns*))
-            _ (assert (not (and should-runtime-infer? (not runtime-infer-expr)))
-                      "Missing runtime inference function when inference is forced.")
-            should-runtime-infer? (and runtime-infer-expr
-                                       (or (u/should-runtime-infer-ns? *ns*)
-                                           should-runtime-infer?))
-            ;_ (prn "should-runtime-check?" should-runtime-check?)
-            ;_ (prn "should-runtime-infer?" should-runtime-infer?)
-            ;_ (prn "ns" *ns*)
-            _ (assert (and (not should-runtime-infer?)
-                           (not should-runtime-check?))
-                      "FIXME")
-            #_#_
-            check-expr (or (when should-runtime-infer?
-                             #(binding [vs/*instrument-infer-config* instrument-infer-config]
-                                (runtime-infer-expr %1 %2)))
-                           (when should-runtime-check?
-                             runtime-check-expr)
-                           check-expr)
-            terminal-error (atom nil)
-            ;_ (prn "before c-ast")
-            c-ast (try
-                    (check-top-level form expected {} (assoc opts ::vs/check-config check-config))
-                    (catch Throwable e
-                      (let [e (if (some-> e ex-data err/tc-error?)
-                                (try
-                                  ;(prn "printing errors")
-                                  (err/print-errors! (vec (concat (delayed-errors-fn) [e])))
-                                  (catch Throwable e
-                                    e))
-                                (throw e))]
-                        ;(prn "reset terminal-error")
-                        (reset! terminal-error e)
-                        nil)))
-            ;_ (prn "err" @terminal-error)
-            res (some-> c-ast u/expr-type)
-            delayed-errors (delayed-errors-fn)
-            ex @terminal-error]
-        (cond->
-          {:delayed-errors (vec delayed-errors)
-           :ret (or res (r/ret r/-error))}
+    (let [delayed-errors (err/-init-delayed-errors)
+          opts (-> opts
+                   ;; custom expansions might not even evaluate
+                   (assoc ::vs/can-rewrite (not custom-expansions?))
+                   (assoc ::vs/lexical-env (lex-env/init-lexical-env))
+                   (assoc ::vs/already-checked (atom #{}))
+                   (assoc ::vs/delayed-errors delayed-errors)
+                   (assoc ::prs/parse-type-in-ns unparse-ns)
+                   (assoc ::vs/custom-expansions custom-expansions?)
+                   (assoc ::vs/in-check-form true))
+          expected (or
+                     expected-ret
+                     (when type-provided?
+                       (r/ret (prs/parse-type expected opts))))
+          delayed-errors-fn (fn [] (seq @delayed-errors))
+          file-mapping-atom (atom [])
+          should-runtime-check? (and runtime-check-expr
+                                     (u/should-runtime-check-ns? *ns*))
+          _ (assert (not (and should-runtime-infer? (not runtime-infer-expr)))
+                    "Missing runtime inference function when inference is forced.")
+          should-runtime-infer? (and runtime-infer-expr
+                                     (or (u/should-runtime-infer-ns? *ns*)
+                                         should-runtime-infer?))
+          ;_ (prn "should-runtime-check?" should-runtime-check?)
+          ;_ (prn "should-runtime-infer?" should-runtime-infer?)
+          ;_ (prn "ns" *ns*)
+          _ (assert (and (not should-runtime-infer?)
+                         (not should-runtime-check?))
+                    "FIXME")
+          #_#_
+          check-expr (or (when should-runtime-infer?
+                           #(binding [vs/*instrument-infer-config* instrument-infer-config]
+                              (runtime-infer-expr %1 %2)))
+                         (when should-runtime-check?
+                           runtime-check-expr)
+                         check-expr)
+          terminal-error (atom nil)
+          ;_ (prn "before c-ast")
+          c-ast (try
+                  (check-top-level form expected {} (assoc opts ::vs/check-config check-config))
+                  (catch Throwable e
+                    (let [e (if (some-> e ex-data err/tc-error?)
+                              (try
+                                ;(prn "printing errors")
+                                (err/print-errors! (vec (concat (delayed-errors-fn) [e])))
+                                (catch Throwable e
+                                  e))
+                              (throw e))]
+                      ;(prn "reset terminal-error")
+                      (reset! terminal-error e)
+                      nil)))
+          ;_ (prn "err" @terminal-error)
+          res (some-> c-ast u/expr-type)
+          delayed-errors (delayed-errors-fn)
+          ex @terminal-error]
+      (cond->
+        {:delayed-errors (vec delayed-errors)
+         :ret (or res (r/ret r/-error))}
 
-          ex (assoc :ex ex)
+        ex (assoc :ex ex)
 
-          ;; fatal type error = nil
-          checked-ast (assoc :checked-ast c-ast)
+        ;; fatal type error = nil
+        checked-ast (assoc :checked-ast c-ast)
 
-          (and (impl/checking-clojure? opts)
-               (empty? delayed-errors)
-               (not ex))
-          (into (select-keys c-ast [:result]))
+        (and (impl/checking-clojure? opts)
+             (empty? delayed-errors)
+             (not ex))
+        (into (select-keys c-ast [:result]))
 
-          (and c-ast emit-form (not ex))
-          (assoc :out-form (emit-form c-ast opts)))))))
+        (and c-ast emit-form (not ex))
+        (assoc :out-form (emit-form c-ast opts))))))
 
 (defn check-form*
   [{:keys [impl unparse-ns] :as config} form expected type-provided? opt opts]

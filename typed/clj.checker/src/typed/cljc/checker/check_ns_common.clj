@@ -75,75 +75,75 @@
         (assert (seq nsym-coll) "Nothing to check")
         (assert (not (::vs/delayed-errors opts)))
         (impl/with-impl impl
-          (binding [;; nested check-ns inside check-form switches off check-form
-                    vs/*in-check-form* false]
-            (let [delayed-errors (err/-init-delayed-errors)
-                  opts (-> opts
-                           (assoc ::vs/check-config check-config)
-                           (assoc ::vs/lexical-env (lex-env/init-lexical-env))
-                           (assoc ::vs/already-checked (atom #{}))
-                           (assoc ::vs/delayed-errors delayed-errors)
-                           (assoc ::vs/trace trace)
-                           (assoc ::vs/check-threadpool threadpool))
-                  terminal-error (atom nil)]
-              ;(reset-env/reset-envs!)
-              ;; handle terminal type error
-              (try
-                ;-------------------------
-                ; Collection phase
-                ;-------------------------
-                (impl/impl-case opts
-                  :clojure @*register-clj-anns
-                  :cljs @*register-cljs-anns)
-                (case (:check-ns-load check-config)
-                  :require-before-check (impl/impl-case opts
-                                          :clojure (locking clojure.lang.RT/REQUIRE_LOCK
-                                                     (apply require nsym-coll))
-                                          :cljs (err/nyi-error ":check-ns-load :require-before-check in CLJS" opts))
-                  (nil :never) nil)
-                ;-------------------------
-                ; Check phase
-                ;-------------------------
-                (let [check-ns (impl/impl-case opts
-                                 :clojure chk-clj/check-ns-and-deps
-                                 :cljs    (requiring-resolve 'typed.cljs.checker.check/check-ns-and-deps))]
-                  (if (= 1 (count nsym-coll))
-                    (check-ns (nth nsym-coll 0) opts)
-                    (let [check-ns (bound-fn*
-                                     #(let [delayed-errors (err/-init-delayed-errors)
-                                            ex (volatile! nil)
-                                            chk (fn [] (try (check-ns % (assoc opts ::vs/delayed-errors delayed-errors))
-                                                            (catch Throwable e (vreset! ex e))))
-                                            out (if threadpool
-                                                  (with-out-str (chk))
-                                                  (do (chk) nil))]
-                                        (-> (if-let [ex @ex]
-                                              (if (-> ex ex-data :type-error)
-                                                {:errors (conj @delayed-errors ex)}
-                                                {:ex ex})
-                                              {:errors @delayed-errors})
-                                            (assoc :out out))))
-                          results (if-not threadpool
-                                    (mapv check-ns nsym-coll)
-                                    (mapv (fn [^java.util.concurrent.Future future]
-                                            (try (.get future)
-                                                 (catch java.util.concurrent.ExecutionException e
-                                                   (throw (or (.getCause e) e)))))
-                                          (.invokeAll threadpool (map (fn [nsym]
-                                                                        #(check-ns nsym))
-                                                                      nsym-coll))))
-                          _ (swap! delayed-errors into (mapcat (fn [{:keys [ex errors out]}]
-                                                                 (some-> out str/trim not-empty println)
-                                                                 (some-> ex throw)
-                                                                 errors))
-                                   results)])))
-                (catch ExceptionInfo e
-                  (if (-> e ex-data :type-error)
-                    (reset! terminal-error e)
-                    (throw e))))
-              {:delayed-errors (vec (concat @delayed-errors
-                                            (when-let [e @terminal-error]
-                                              [e])))}))))
+          (let [delayed-errors (err/-init-delayed-errors)
+                opts (-> opts
+                         (assoc ::vs/check-config check-config)
+                         (assoc ::vs/lexical-env (lex-env/init-lexical-env))
+                         (assoc ::vs/already-checked (atom #{}))
+                         (assoc ::vs/delayed-errors delayed-errors)
+                         (assoc ::vs/trace trace)
+                         (assoc ::vs/check-threadpool threadpool)
+                         ;; nested check-ns inside check-form switches off check-form
+                         (assoc ::vs/in-check-form false))
+                terminal-error (atom nil)]
+            ;(reset-env/reset-envs!)
+            ;; handle terminal type error
+            (try
+              ;-------------------------
+              ; Collection phase
+              ;-------------------------
+              (impl/impl-case opts
+                :clojure @*register-clj-anns
+                :cljs @*register-cljs-anns)
+              (case (:check-ns-load check-config)
+                :require-before-check (impl/impl-case opts
+                                        :clojure (locking clojure.lang.RT/REQUIRE_LOCK
+                                                   (apply require nsym-coll))
+                                        :cljs (err/nyi-error ":check-ns-load :require-before-check in CLJS" opts))
+                (nil :never) nil)
+              ;-------------------------
+              ; Check phase
+              ;-------------------------
+              (let [check-ns (impl/impl-case opts
+                               :clojure chk-clj/check-ns-and-deps
+                               :cljs    (requiring-resolve 'typed.cljs.checker.check/check-ns-and-deps))]
+                (if (= 1 (count nsym-coll))
+                  (check-ns (nth nsym-coll 0) opts)
+                  (let [check-ns (bound-fn*
+                                   #(let [delayed-errors (err/-init-delayed-errors)
+                                          ex (volatile! nil)
+                                          chk (fn [] (try (check-ns % (assoc opts ::vs/delayed-errors delayed-errors))
+                                                          (catch Throwable e (vreset! ex e))))
+                                          out (if threadpool
+                                                (with-out-str (chk))
+                                                (do (chk) nil))]
+                                      (-> (if-let [ex @ex]
+                                            (if (-> ex ex-data :type-error)
+                                              {:errors (conj @delayed-errors ex)}
+                                              {:ex ex})
+                                            {:errors @delayed-errors})
+                                          (assoc :out out))))
+                        results (if-not threadpool
+                                  (mapv check-ns nsym-coll)
+                                  (mapv (fn [^java.util.concurrent.Future future]
+                                          (try (.get future)
+                                               (catch java.util.concurrent.ExecutionException e
+                                                 (throw (or (.getCause e) e)))))
+                                        (.invokeAll threadpool (map (fn [nsym]
+                                                                      #(check-ns nsym))
+                                                                    nsym-coll))))
+                        _ (swap! delayed-errors into (mapcat (fn [{:keys [ex errors out]}]
+                                                               (some-> out str/trim not-empty println)
+                                                               (some-> ex throw)
+                                                               errors))
+                                 results)])))
+              (catch ExceptionInfo e
+                (if (-> e ex-data :type-error)
+                  (reset! terminal-error e)
+                  (throw e))))
+            {:delayed-errors (vec (concat @delayed-errors
+                                          (when-let [e @terminal-error]
+                                            [e])))})))
       (finally
         (when shutdown-threadpool?
           (some-> threadpool .shutdown))))))

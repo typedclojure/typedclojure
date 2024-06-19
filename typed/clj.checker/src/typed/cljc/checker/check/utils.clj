@@ -526,9 +526,8 @@
     (r/RClass? t) (r/RClass->Class t)
     (r/Value? t) (class (:val t))))
 
-(defn should-rewrite? [{::vs/keys [can-rewrite] :as opts}]
-  (and vs/*in-check-form*
-       can-rewrite))
+(defn should-rewrite? [{::vs/keys [in-check-form can-rewrite] :as opts}]
+  (and in-check-form can-rewrite))
 
 (defn add-cast
   "Given an AST node and a type, return a new AST that
