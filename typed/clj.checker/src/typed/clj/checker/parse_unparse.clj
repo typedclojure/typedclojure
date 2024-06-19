@@ -1320,21 +1320,24 @@
 
 (defn clj-primitives-fn [opts]
   (let [RClass-of @(RClass-of-var)]
-    {'byte (RClass-of 'byte opts)
-     'short (RClass-of 'short opts)
-     'int (RClass-of 'int opts)
-     'long (RClass-of 'long opts)
-     'float (RClass-of 'float opts)
-     'double (RClass-of 'double opts)
-     'boolean (RClass-of 'boolean opts)
-     'char (RClass-of 'char opts)
-     'void r/-nil}))
+    (fn [sym]
+      (case sym
+        byte (RClass-of 'byte opts)
+        short (RClass-of 'short opts)
+        int (RClass-of 'int opts)
+        long (RClass-of 'long opts)
+        float (RClass-of 'float opts)
+        double (RClass-of 'double opts)
+        boolean (RClass-of 'boolean opts)
+        char (RClass-of 'char opts)
+        void r/-nil
+        nil))))
 
 (defn -parse-type-symbol-default
   [sym opts]
   (let [primitives (impl/impl-case opts
                      :clojure (clj-primitives-fn opts)
-                     :cljs {})
+                     :cljs (constantly nil))
         free (when (symbol? sym) 
                (free-ops/free-in-scope sym opts))
         rsym (when-not free

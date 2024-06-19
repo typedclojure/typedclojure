@@ -19,7 +19,7 @@
 (def rclass-env-kw ::rclass-env)
 
 (defn- rclasses [checker]
-  (get (env/deref-checker checker) impl/current-rclass-env-kw {}))
+  (impl/current-rclass-env-kw (env/deref-checker checker) {}))
 
 (defn get-rclass
   "Returns the RClass with class symbol csym.
