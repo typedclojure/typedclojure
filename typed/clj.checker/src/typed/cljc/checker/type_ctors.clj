@@ -1126,26 +1126,15 @@
    :post [((con/sorted-set-c? r/Type?) %)]}
   ((requiring-resolve 'typed.clj.checker.rclass-ancestor-env/rclass-ancestors) rcls opts))
 
-(t/ann ^:no-check supers-cache (t/Atom (t/Map Number (t/SortedSet r/Type))))
-(def ^:private supers-cache (atom {}
-                                  #_#_
-                                  :validator (con/hash-c? r/RClass?
-                                                          (con/sorted-set-c? r/Type?))))
-
-(t/ann reset-supers-cache! [-> nil])
-(defn reset-supers-cache! []
-  (reset! supers-cache {})
-  nil)
-
 (t/ann ^:no-check RClass-supers* [RClass t/Any -> (t/SortedSet r/Type)])
 (defn RClass-supers*
   "Return a set of ancestors to the RClass"
-  [{:keys [the-class] :as rcls} opts]
+  [{:keys [the-class] :as rcls} {::keys [supers-cache] :as opts}]
   {:pre [((some-fn r/RClass? r/Instance?) rcls)]
    :post [((con/sorted-set-c? r/Type?) %)]}
   (let [rclass? (r/RClass? rcls)
         cache-key rcls]
-    (or (@supers-cache cache-key)
+    (or (when supers-cache (@supers-cache cache-key))
         (let [cls (-> the-class coerce/symbol->Class)]
           (if (identical? Object cls)
             (sorted-set (RClass-of Object opts))
@@ -1195,7 +1184,7 @@
                          "\nNot replaced:" not-replaced)
                     opts)))
               (t/tc-ignore
-                (swap! supers-cache assoc cache-key res))
+                (some-> supers-cache (swap! assoc cache-key res)))
               res))))))
 
 (t/ann ^:no-check DataType-fields* [DataType -> (t/Map t/Sym r/Type)])

@@ -15,6 +15,5 @@
   "Reset internal type caches."
   []
   (sub/reset-subtype-cache)
-  (c/reset-supers-cache!)
   (cgen/reset-dotted-var-store!)
   nil)
