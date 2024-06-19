@@ -115,22 +115,13 @@
            :form t/Any
            :children (t/Vec t/Kw)})))
 
-;Map from scoped vars to unique names
-(t/ann *tvar-scope* (t/Map t/Sym t/Sym))
-(def ^:dynamic *tvar-scope* {})
-
-(t/ann *dotted-scope* (t/Map t/Sym t/Sym))
-(def ^:dynamic *dotted-scope* {})
+#?(:cljs :ignore :default
+(defmacro with-frees [opts fs]
+  `(update ~opts ::tvar-scope merge ~fs)))
 
 #?(:cljs :ignore :default
-(defmacro with-frees [fs & args]
-  `(binding [*tvar-scope* (merge *tvar-scope* ~fs)]
-     ~@args)))
-
-#?(:cljs :ignore :default
-(defmacro with-dfrees [fs & args]
-  `(binding [*dotted-scope* (merge *dotted-scope* ~fs)]
-     ~@args)))
+(defmacro with-dfrees [opts fs]
+  `(update ~opts ::dotted-scope merge ~fs)))
 
 (t/defalias Filter
   (t/Rec [Filter]
@@ -330,7 +321,7 @@
                    :drest (t/U nil DottedPretype)}))
 
 (t/ann parse-with-rest-drest [t/Str (t/Seq t/Any) t/Any -> RestDrest])
-(defn parse-with-rest-drest [msg syns opts]
+(defn parse-with-rest-drest [msg syns {::keys [dotted-scope] :as opts}]
   (let [syns (vec syns)
         rest? (#{:* '*} (peek syns))
         dotted? (and (#{:... '...} (some-> (not-empty syns) pop peek))
@@ -353,7 +344,7 @@
                     (err/int-error "Dotted rest bound after ... must be a symbol" opts))
                 _ (when-not (#{3} (count dot-syntax))
                     (err/int-error (str "Bad vector syntax: " dot-syntax) opts))
-                bnd (*dotted-scope* drest-bnd)
+                bnd (get dotted-scope drest-bnd)
                 _ (when-not bnd 
                     (err/int-error (str (pr-str drest-bnd) " is not in scope as a dotted variable") opts))
                 gdrest-bnd (gensym bnd)]
@@ -361,8 +352,8 @@
              :drest (t/ann-form
                       {:op :dotted-pretype
                        :f {:op :F :name gdrest-bnd}
-                       :drest (with-frees {drest-bnd gdrest-bnd} ;with dotted bound in scope as free
-                                (parse drest-type opts))
+                       ;with dotted bound in scope as free
+                       :drest (parse drest-type (with-frees opts {drest-bnd gdrest-bnd}))
                        :name gdrest-bnd}
                       DottedPretype)})
           :else {:types (mapv #(parse % opts) syns)})]
@@ -547,12 +538,10 @@
                                  _ (assert (symbol? sym))
                                  gsym (gensym sym)
                                  fs (conj fs [sym gsym])]
-                             (with-frees fs
-                               [fs (conj prsed (parse-tfn-binder b gsym opts))])))
+                             [fs (conj prsed (parse-tfn-binder b gsym (with-frees opts fs)))]))
                          [{} []]
                          binder)
-        bodyt (with-frees fs
-                (parse bodysyn opts))]
+        bodyt (parse bodysyn (with-frees opts fs))]
     {:op :TFn
      :binder free-maps
      :body bodyt}))
@@ -625,8 +614,7 @@
                                              _ (assert (symbol? sym))
                                              gsym (gensym sym)
                                              fs (conj fs [sym gsym])]
-                                         (with-frees fs
-                                           [fs (conj prsed (parse-free fsyn gsym opts))])))
+                                         [fs (conj prsed (parse-free fsyn gsym (with-frees opts fs)))]))
                                      [{} []]
                                      (if dotted?
                                        (drop-last 2 bnds)
@@ -636,18 +624,19 @@
         _ (assert ((some-fn nil? symbol?) dvar-plain-name))
         gdvar (gensym dvar-plain-name)
         dvar (when dotted?
-               (parse-free dvar-plain-name gdvar opts))]
-    (with-frees fs
-      (with-dfrees (if dvar 
-                     {dvar-plain-name (:name dvar)}
-                     {})
-        {:op (if dotted? :PolyDots :Poly)
-         :binder (concat frees-with-bnds
-                         (when dotted?
-                           [dvar]))
-         :named (or named {})
-         :type (parse type opts)
-         :children [:type]}))))
+               (parse-free dvar-plain-name gdvar opts))
+        opts (-> opts
+                 (with-frees fs)
+                 (with-dfrees (if dvar
+                                {dvar-plain-name (:name dvar)}
+                                {})))]
+    {:op (if dotted? :PolyDots :Poly)
+     :binder (concat frees-with-bnds
+                     (when dotted?
+                       [dvar]))
+     :named (or named {})
+     :type (parse type opts)
+     :children [:type]}))
 
 (defn parse-Extends
   [[_Extends_ & args :as syn] opts]
@@ -712,14 +701,13 @@
 (defmethod parse-seq* 'typed.clojure/Difference [syn opts] (parse-Difference syn opts))
 
 (defn parse-Rec [[f & args :as syn] opts]
-  (let [_ (when-not (#{2} (count args))
+  (let [_ (when-not (= 2 (count args))
             (err/int-error "Wrong arguments to Rec" opts))
         [[sym :as binder] t] args
         gsym (gensym sym)]
     {:op :Rec
      :f {:op :F :name gsym}
-     :type (with-frees {sym gsym}
-             (parse t opts))
+     :type (parse t (with-frees opts {sym gsym}))
      :children [:type]}))
 
 (defmethod parse-seq* 'Rec [syn opts] 
@@ -766,7 +754,7 @@
   (parse-Pred syn opts))
 (defmethod parse-seq* 'typed.clojure/Pred [syn opts] (parse-Pred syn opts))
 
-(defn parse-Assoc [[f & args :as syn] opts]
+(defn parse-Assoc [[f & args :as syn] {::keys [dotted-scope] :as opts}]
   (let [_ (when-not (<= 1 (count args))
             (err/int-error "Wrong arguments to Assoc" opts))
         [t & entries] args
@@ -794,7 +782,7 @@
      :type (parse t opts)
      :entries (mapv #(parse % opts) entries)
      :dentries (when ellipsis-pos
-                 (let [bnd (*dotted-scope* drest-bnd)
+                 (let [bnd (get dotted-scope drest-bnd)
                        _ (when-not (symbol? bnd)
                            (err/int-error (str (pr-str drest-bnd)
                                                " is not in scope as a dotted variable") opts))
@@ -802,8 +790,8 @@
                    {:drest
                     {:op :dotted-pretype
                      :f {:op :F :name gbnd}
-                     :drest (with-frees {drest-bnd gbnd} ;with dotted bound in scope as free
-                              (parse drest-type opts))
+                     ;with dotted bound in scope as free
+                     :drest (parse drest-type (with-frees opts {drest-bnd gbnd}))
                      :name gbnd}}))
      :children (concat [:type :entries] (when ellipsis-pos [:dentries]))}))
 
@@ -923,7 +911,7 @@
            :drest DottedPretype}))
 
 (t/ann parse-function [t/Any t/Any -> Function])
-(defn parse-function [f opts]
+(defn parse-function [f {::keys [dotted-scope] :as opts}]
   (when-not (vector? f) 
     (err/int-error "Function arity must be a vector" opts))
   (let [is-arrow '#{-> :->}
@@ -1020,28 +1008,28 @@
       (when asterix-pos
         {:rest (parse rest-type opts)})
       (when ellipsis-pos
-        (let [bnd (*dotted-scope* drest-bnd)
+        (let [bnd (get dotted-scope drest-bnd)
               _ (when-not (symbol? bnd)
                   (err/int-error (str (pr-str drest-bnd) " is not in scope as a dotted variable") opts))
               gbnd (gensym bnd)]
           {:drest
            {:op :dotted-pretype
             :f {:op :F :name gbnd}
-            :drest (with-frees {drest-bnd gbnd} ;with dotted bound in scope as free
-                     (parse drest-type opts))
+            ;with dotted bound in scope as free
+            :drest (parse drest-type (with-frees opts {drest-bnd gbnd}))
             :name gbnd}}))
       (when push-rest-pos
         {:prest (parse prest-type opts)})
       (when push-dot-pos
-        (let [bnd (*dotted-scope* pdot-bnd)
+        (let [bnd (get dotted-scope pdot-bnd)
               _ (when-not (symbol? bnd)
                   (err/int-error (str (pr-str pdot-bnd) " is not in scope as a dotted variable") opts))
               gbnd (gensym bnd)]
           {:pdot
            {:op :dotted-pretype
             :f {:op :F :name gbnd}
-            :drest (with-frees {pdot-bnd gbnd} ;with dotted bound in scope as free
-                     (parse pdot-type opts))
+            ;with dotted bound in scope as free
+            :drest (parse pdot-type (with-frees opts {pdot-bnd gbnd}))
             :name gbnd}})))))
 
 (defn parse-Fn [[_ & args :as syn] opts]
@@ -1129,13 +1117,13 @@
 (defmethod parse-symbol* 'typed.clojure/AnyFunction [s opts] (parse-AnyFunction s))
 
 (defmethod parse-symbol* :default
-  [sym opts]
+  [sym {::keys [tvar-scope] :as opts}]
   (let [checker ((requiring-resolve 'typed.cljc.runtime.env/checker) opts)
         primitives (impl/impl-case opts
                      :clojure clj-primitives
                      :cljs cljs-primitives)
         free (when (symbol? sym)
-               (*tvar-scope* sym))]
+               (get tvar-scope sym))]
     (cond
       free {:op :F :name free :form sym}
       (primitives sym) (assoc (primitives sym)
