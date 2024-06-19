@@ -12,7 +12,9 @@
                     typed.cljc.checker.name-env
                     clojure.core.typed.util-vars
                     ;typed.cljc.checker.type-ctors
-                    typed.cljc.dir]))))
+                    typed.cljc.dir]
+                  #_
+                  {:max-parallelism 1}))))
 
 #_ ;;WIP
 (deftest analyzer-test

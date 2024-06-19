@@ -60,7 +60,8 @@
                             (.. Runtime getRuntime availableProcessors))
         _ (when max-parallelism (assert (pos? max-parallelism) max-parallelism))
         threadpool (or threadpool
-                       (some-> max-parallelism java.util.concurrent.Executors/newWorkStealingPool))]
+                       (when (some-> max-parallelism (> 1))
+                         (java.util.concurrent.Executors/newWorkStealingPool max-parallelism)))]
     (try
       (let [nsym-coll (mapv #(if (symbol? %)
                                ; namespace might not exist yet, so ns-name is not appropriate

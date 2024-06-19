@@ -144,6 +144,7 @@
 
                    ns-form-str (some :ns-form-str forms-info)
                    _ (assert delayed-errors)
+                   ^java.util.concurrent.ExecutorService threadpool vs/*check-threadpool*
                    bndings (get-thread-bindings)
                    exs (map (fn [{:keys [form sform]}]
                               (fn []
@@ -151,17 +152,21 @@
                                       opts (-> opts
                                                (assoc ::vs/delayed-errors delayed-errors))
                                       ex (volatile! nil)
+                                      chk (fn []
+                                            (try (check-top-level form nil {:env (assoc env :ns (ns-name *ns*))
+                                                                            :top-level-form-string sform
+                                                                            :ns-form-string ns-form-str}
+                                                                  opts)
+                                                 (catch Throwable e (vreset! ex e))))
                                       out (with-bindings (assoc bndings
                                                                 ;; force types to reparse to detect dependencies in per-form cache
                                                                 ;; might affect TypeFn variance inference
                                                                 #'env-utils/*type-cache* (do (assert (not env-utils/*type-cache*))
                                                                                              (atom {})))
-                                            (with-out-str
-                                              (try (check-top-level form nil {:env (assoc env :ns (ns-name *ns*))
-                                                                              :top-level-form-string sform
-                                                                              :ns-form-string ns-form-str}
-                                                                    opts)
-                                                   (catch Throwable e (vreset! ex e)))))]
+                                            (if threadpool
+                                              (with-out-str
+                                                (chk))
+                                              (do (chk) nil)))]
                                   (-> (if-let [ex @ex]
                                         (if (-> ex ex-data :type-error)
                                           {:errors (conj @delayed-errors ex)}
@@ -169,8 +174,7 @@
                                         {:errors @delayed-errors})
                                       (assoc :out out)))))
                             forms-info)
-                   results (if-some [^java.util.concurrent.ExecutorService
-                                     threadpool vs/*check-threadpool*]
+                   results (if threadpool
                              (mapv (fn [^java.util.concurrent.Future future]
                                      (try (.get future)
                                           (catch java.util.concurrent.ExecutionException e
