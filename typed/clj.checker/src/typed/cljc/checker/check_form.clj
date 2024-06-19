@@ -123,12 +123,12 @@
                      (assoc ::vs/can-rewrite (not custom-expansions?))
                      (assoc ::vs/lexical-env (lex-env/init-lexical-env))
                      (assoc ::vs/already-checked (atom #{}))
-                     (assoc ::vs/delayed-errors delayed-errors))
+                     (assoc ::vs/delayed-errors delayed-errors)
+                     (assoc ::prs/parse-type-in-ns unparse-ns))
             expected (or
                        expected-ret
                        (when type-provided?
-                         (r/ret (binding [prs/*parse-type-in-ns* unparse-ns]
-                                  (prs/parse-type expected opts)))))
+                         (r/ret (prs/parse-type expected opts))))
             delayed-errors-fn (fn [] (seq @delayed-errors))
             file-mapping-atom (atom [])
             should-runtime-check? (and runtime-check-expr

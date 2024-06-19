@@ -25,7 +25,8 @@
 (defn check-cast
   [expr expected {::check/keys [check-expr] :as opts}]
   (assert (= :do (:op expr)))
-  (let [{[_ _ texpr :as statements] :statements :keys [env] frm :ret :as expr}
+  (let [opts (assoc opts ::prs/parse-type-in-ns (cu/expr-ns expr opts))
+        {[_ _ texpr :as statements] :statements :keys [env] frm :ret :as expr}
         (-> expr 
             ; don't need to check these statements because it's just metadata
             ; embedded in the expression by the `t/cast` macro
@@ -42,9 +43,8 @@
         tsyn (impl/impl-case opts
                :clojure (second tsyn-quoted)
                :cljs tsyn-quoted)
-        parsed-t (binding [prs/*parse-type-in-ns* (cu/expr-ns expr opts)]
-                   ;; unwrap quoted syntax with second
-                   (prs/parse-type tsyn (assoc opts ::vs/current-env env)))
+        ;; unwrap quoted syntax with second
+        parsed-t (prs/parse-type tsyn (assoc opts ::vs/current-env env))
         ;; frm is of the form ((fn [x] ...) x), we want to type check
         ;; x, but not the lambda.
         _ (assert (= :invoke (:op frm)))

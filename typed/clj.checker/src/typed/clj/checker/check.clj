@@ -543,25 +543,23 @@
                (vector? (:args %)))]}
   (when-not (#{2 3 4} (count args)) 
     (err/int-error "Wrong number of args to into-array>*" opts))
-  (let [has-java-syn? (#{3 4} (count args))
+  (let [has-java-syn? (<= 3 (count args) 4)
         [javat-syn cljt-syn coll-expr]
         (cond 
           (= 3 (count args)) args
           (= 4 (count args)) (next args) ;handle temporary hacky case
           :else (cons nil args))
-
+        opts (assoc opts ::prs/parse-type-in-ns (cu/expr-ns expr opts))
         javat-syn (some-> javat-syn ana2/run-passes)
         cljt-syn (some-> cljt-syn ana2/run-passes)
         javat (let [syn (or (when has-java-syn? (ast-u/quote-expr-val javat-syn))  ; generalise javat-syn if provided, otherwise cljt-syn
                             (ast-u/quote-expr-val cljt-syn))
                     c (-> 
-                        (binding [prs/*parse-type-in-ns* (cu/expr-ns expr opts)]
-                          (prs/parse-type syn opts))
+                        (prs/parse-type syn opts)
                         (arr-ops/Type->array-member-Class opts))]
                 (assert (class? c))
                 c)
-        cljt (binding [prs/*parse-type-in-ns* (cu/expr-ns expr opts)]
-               (prs/parse-type (ast-u/quote-expr-val cljt-syn) opts))
+        cljt (prs/parse-type (ast-u/quote-expr-val cljt-syn) opts)
         ccoll (check-expr coll-expr (r/ret (c/Un [r/-nil (c/-name `t/Seqable cljt)]
                                                  opts))
                           opts)]
@@ -1032,8 +1030,8 @@
    :post [(-> % u/expr-type r/TCResult?)]}
   (let [{[ctor-expr targs-exprs] :args :as expr} (-> expr
                                                      (update-in [:args 1] ana2/run-passes))
-        targs (binding [prs/*parse-type-in-ns* (cu/expr-ns expr opts)]
-                (mapv #(prs/parse-type % opts) (ast-u/quote-expr-val targs-exprs)))
+        opts (assoc opts ::prs/parse-type-in-ns (cu/expr-ns expr opts))
+        targs (mapv #(prs/parse-type % opts) (ast-u/quote-expr-val targs-exprs))
         cexpr (check-expr ctor-expr nil (assoc opts ::inst-ctor-types targs))]
     (-> expr 
         (assoc-in [:args 0] cexpr)
@@ -1802,12 +1800,14 @@
   (let [checker (cenv/checker opts)
         prs-ns (cu/expr-ns expr opts)
         mvar (meta var)
-        qsym (coerce/var->symbol var)]
+        qsym (coerce/var->symbol var)
+        opts (-> opts
+                 (assoc ::vs/current-env env)
+                 (assoc ::prs/parse-type-in-ns prs-ns))]
     ; annotation side effect
     ;; TODO convert to type provider
     (when-let [[_ tsyn] (find mvar :ann)]
-      (let [ann-type (binding [prs/*parse-type-in-ns* prs-ns]
-                       (prs/parse-type tsyn (assoc opts ::vs/current-env env)))]
+      (let [ann-type (prs/parse-type tsyn opts)]
         (var-env/add-var-type checker qsym ann-type)))
     (when (:no-check mvar)
       (var-env/add-nocheck-var checker qsym))
@@ -1952,7 +1952,9 @@
   ([form expected {:keys [env] :as opt} {::vs/keys [check-config] :as opts}]
    ;(prn "check-top-level" form)
    ;(prn "*ns*" *ns*)
-   (let [extra (when (= :before (:check-form-eval check-config))
+   (let [nsym (or (:ns env) (::prs/parse-type-in-ns opts))
+         _ (assert (symbol? nsym))
+         extra (when (= :before (:check-form-eval check-config))
                  {:result (eval form)})
          opts (-> opts
                   (assoc ::check/check-expr check-expr)
@@ -1963,7 +1965,8 @@
                   (assoc ::c/RClass-of-cache (atom {}))
                   (assoc ::c/supers-cache (atom {}))
                   (assoc ::sub/subtype-cache (atom {}))
-                  (assoc ::cgen/dotted-var-store (atom {})))]
+                  (assoc ::cgen/dotted-var-store (atom {}))
+                  (assoc ::prs/parse-type-in-ns nsym))]
      (with-bindings (dissoc (ana-clj/thread-bindings {} opts) #'*ns*) ; *ns* is managed by higher-level ops like check-ns1
        (env/ensure (jana2/global-env)
          (-> form

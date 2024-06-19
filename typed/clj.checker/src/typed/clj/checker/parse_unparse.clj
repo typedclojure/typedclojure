@@ -60,9 +60,6 @@
 (defprotocol IUnparseFilter
   (unparse-filter* [fl opts]))
 
-(defonce ^:dynamic *parse-type-in-ns* nil)
-(set-validator! #'*parse-type-in-ns* (some-fn nil? symbol? plat-con/namespace?))
-
 (declare unparse-type unparse-filter unparse-filter-set unparse-TCResult)
 
 ; Types print by unparsing them
@@ -144,15 +141,6 @@
                         ([x writer options] (-> x ((resolve `massage-before-fipp-pprint)) (fipp-pretty writer options)))))))
   (System/setProperty "typed.clj.checker.parse-unparse.fipp-override" "false"))
 
-(defmacro with-parse-ns [sym & body]
-  `(binding [*parse-type-in-ns* ~sym]
-     ~@body))
-
-(defn with-parse-ns* [sym f]
-  {:pre [(symbol? sym)]}
-  (binding [*parse-type-in-ns* sym]
-    (f)))
-
 (declare parse-type* ^:dynamic resolve-type-clj->sym ^:dynamic resolve-type-clj resolve-type-cljs)
 
 (defn tsyn->env [s]
@@ -201,7 +189,8 @@
   ((resolve `parse-type) s opts))
 
 (defn parse-clj
-  ([s] (parse-clj s ((requiring-resolve 'typed.clj.runtime.env/clj-opts))))
+  ([s] (parse-clj s (assoc ((requiring-resolve 'typed.clj.runtime.env/clj-opts))
+                           ::parse-type-in-ns (ns-name *ns*))))
   ([s opts]
    (impl/with-clojure-impl
      (parse-type s opts))))
@@ -1103,9 +1092,10 @@
 
 (def ^:private cljs-ns #((requiring-resolve 'typed.cljs.checker.util/cljs-ns)))
 
-(defn parse-in-ns [opts]
+(defn parse-in-ns [{::keys [parse-type-in-ns] :as opts}]
   {:post [(symbol? %)]}
-  (or *parse-type-in-ns*
+  (or parse-type-in-ns
+      (assert nil "parse-type-in-ns unbound")
       (impl/impl-case opts
         :clojure (ns-name *ns*)
         :cljs (cljs-ns))))

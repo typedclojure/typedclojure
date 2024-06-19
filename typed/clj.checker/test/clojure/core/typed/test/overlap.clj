@@ -8,7 +8,10 @@
 
 (defmacro overlap-prs [s1 s2]
   `(clj
-     (overlap (parse-type ~s1 (clj-opts)) (parse-type ~s2 (clj-opts)) (clj-opts))))
+     (let [opts# (assoc (clj-opts) :typed.clj.checker.parse-unparse/parse-type-in-ns (ns-name *ns*))]
+       (overlap (parse-type ~s1 opts#)
+                (parse-type ~s2 opts#)
+                opts#))))
 
 (deftest overlap-test
   (is-tc-e :load)

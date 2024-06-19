@@ -428,8 +428,6 @@
 #?(:cljs :ignore :default
 (def ^:private parse-free-binder-with-variance #((requiring-resolve 'typed.clj.checker.parse-unparse/parse-free-binder-with-variance) %1 %2)))
 #?(:cljs :ignore :default
-(def ^:private with-parse-ns* #((requiring-resolve 'typed.clj.checker.parse-unparse/with-parse-ns*) %1 %2)))
-#?(:cljs :ignore :default
 (def ^:private with-bounded-frees* #((requiring-resolve 'typed.cljc.checker.free-ops/with-bounded-frees*) %1 %2)))
 #?(:cljs :ignore :default
 (def ^:private unparse-type #((requiring-resolve 'typed.clj.checker.parse-unparse/unparse-type) %1 %2)))
@@ -478,7 +476,8 @@
 (defn gen-protocol* [current-env current-ns vsym binder mths checker opts]
   {:pre [(symbol? current-ns)
          ((some-fn nil? map?) mths)]}
-  (let [_ (when-not (symbol? vsym)
+  (let [opts (assoc opts :typed.clj.checker.parse-unparse/parse-type-in-ns current-ns)
+        _ (when-not (symbol? vsym)
             (int-error
               (str "First argument to ann-protocol must be a symbol: " vsym)
               opts))
@@ -500,8 +499,7 @@
         _ (declare-protocol* checker s)
         parsed-binder (when binder 
                         (delay-type
-                          (with-parse-ns* current-ns
-                            #(parse-free-binder-with-variance binder opts))))
+                          (parse-free-binder-with-variance binder opts)))
         fs (when parsed-binder
              (delay-type 
                (map (comp make-F :fname) (force-type parsed-binder))))
@@ -514,9 +512,7 @@
                                  (delay-type
                                    (let [mtype (with-bounded-frees* (zipmap (force-type fs) (force-type bnds))
                                                  #(let [opts (assoc opts ::vs/current-env current-env)]
-                                                    (with-parse-ns* current-ns
-                                                      (fn []
-                                                        (parse-type v* opts)))))
+                                                    (parse-type v* opts)))
                                          _ (let [rt (fully-resolve-type mtype opts)
                                                  fin? (fn [f]
                                                         (let [f (fully-resolve-type f opts)]
@@ -599,12 +595,12 @@
   (let [_ (assert (impl-case opts
                     :clojure (simple-symbol? provided-name)
                     :cljs (qualified-symbol? provided-name)))
+        opts (assoc opts :typed.clj.checker.parse-unparse/parse-type-in-ns current-ns)
         {ancests :unchecked-ancestors} opt
         ancests (or ancests (:extends opt))
         parsed-binders (when vbnd
                          (let [bfn (fn []
-                                     (with-parse-ns* current-ns
-                                       #(parse-free-binder-with-variance vbnd opts)))]
+                                     (parse-free-binder-with-variance vbnd opts))]
                            (delay-type (bfn))))
         ;variances
         vs (when parsed-binders
@@ -644,8 +640,7 @@
                          (apply array-map (apply concat (with-frees* (mapv make-F (force-type args))
                                                           (fn []
                                                             (let [opts (assoc opts ::vs/current-env current-env)]
-                                                              (with-parse-ns* current-ns
-                                                                #(mapv (fn [s] (parse-field s opts)) (partition 3 fields))))))))))]
+                                                              (mapv (fn [s] (parse-field s opts)) (partition 3 fields)))))))))]
              (delay-type (bfn)))
         as (into {}
                  (map
@@ -654,9 +649,8 @@
                                      (with-frees* (mapv make-F (force-type args))
                                        (fn []
                                          (let [opts (assoc opts ::vs/current-env current-env)]
-                                           (with-parse-ns* current-ns
-                                             #(let [t (parse-type an opts)]
-                                                (abstract-many (force-type args) t opts)))))))]
+                                           (let [t (parse-type an opts)]
+                                             (abstract-many (force-type args) t opts))))))]
                            (delay-type (bfn)))]))
                  ancests)
         ;_ (prn "collected ancestors" as)

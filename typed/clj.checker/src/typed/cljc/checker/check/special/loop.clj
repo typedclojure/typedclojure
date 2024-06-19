@@ -21,7 +21,8 @@
 (defn check-special-loop
   [expr expected {::check/keys [check-expr] :as opts}]
   {:pre [(= 3 (count (:statements expr)))]}
-  (let [{[_ _ vexpr :as statements] :statements frm :ret, :keys [env], :as expr}
+  (let [opts (assoc opts ::prs/parse-type-in-ns (cu/expr-ns expr opts))
+        {[_ _ vexpr :as statements] :statements frm :ret, :keys [env], :as expr}
         (-> expr
             (update-in [:statements 2] ana2/run-passes))
         ; tools.analyzer does constanst folding
@@ -42,8 +43,7 @@
                                          (map vector ks vs))]
                        tsyns))
         _ (assert (map? tsyns))
-        tbindings (binding [prs/*parse-type-in-ns* (cu/expr-ns expr opts)]
-                    (mapv (comp #(prs/parse-type % opts) :type) (:params tsyns)))
+        tbindings (mapv (comp #(prs/parse-type % opts) :type) (:params tsyns))
         cfrm ;loop may be nested, type the first loop found
         (binding [recur-u/*loop-bnd-anns* tbindings]
           (check-expr frm expected opts))]

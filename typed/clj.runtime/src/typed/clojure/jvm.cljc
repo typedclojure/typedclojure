@@ -46,7 +46,9 @@
        (let [nme# (or (when-some [^#?(:cljr Type :default Class) c# (ns-resolve '~this-ns '~nme)]
                         (when (class? c#)
                           (-> c# #?(:cljr .FullName :default .getName) symbol)))
-                      (throw (ex-info (str "Could not resolve class: " '~nme) {:class-name '~nme})))]
+                      (throw (ex-info (str "Could not resolve class: " '~nme) {:class-name '~nme})))
+             opts# (assoc ((requiring-resolve 'typed.clj.runtime.env/clj-opts))
+                          :typed.clj.checker.parse-unparse/parse-type-in-ns '~this-ns)]
           ;; TODO runtime env
          #_
          (impl/add-rclass-env (impl/clj-checker) nme# {:op :RClass})
@@ -56,13 +58,11 @@
            (impl/with-clojure-impl
              (impl/add-rclass (impl/clj-checker)
                               nme# (delay-type
-                                     ((requiring-resolve 'typed.clj.checker.parse-unparse/with-parse-ns*)
-                                      '~this-ns
-                                      #((requiring-resolve 'typed.cljc.checker.base-env-helper/make-RClass)
-                                        nme#
-                                        '~binder
-                                        '~opt
-                                        ((requiring-resolve 'typed.clj.runtime.env/clj-opts))))))))))))
+                                     ((requiring-resolve 'typed.cljc.checker.base-env-helper/make-RClass)
+                                      nme#
+                                      '~binder
+                                      '~opt
+                                      opts#)))))))))
 
 (defmacro override-classes [& args]
   (assert (even? (count args)))

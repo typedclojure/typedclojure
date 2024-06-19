@@ -377,9 +377,11 @@
 
 (deftest parse-Instance-test
   (is-clj (= '(t/Instance Object)
-             (prs/with-unparse-ns this-nsym
-               (prs/unparse-type
-                 (prs/parse-clj `(t/Instance Object)) (clj-opts))))))
+             (let [opts (assoc (clj-opts) :typed.clj.checker.parse-unparse/parse-type-in-ns this-nsym)]
+               (prs/with-unparse-ns this-nsym
+                 (prs/unparse-type
+                   (prs/parse-clj `(t/Instance Object) opts)
+                   opts))))))
 
 (t/ann-protocol [[x :variance :invariant]]
                 InvariantProtocol)
@@ -393,8 +395,9 @@
   (is-clj (= 'typed.cljc.checker.impl-protocols/TCType
              (prs/with-unparse-ns this-nsym
                (prs/unparse-type
-                 (prs/with-parse-ns 'typed.cljc.checker.impl-protocols
-                   (prs/parse-clj `(t/Satisfies ~'TCType))) (clj-opts)))))
+                 (prs/parse-clj `(t/Satisfies ~'TCType)
+                                (assoc (clj-opts) ::prs/parse-type-in-ns 'typed.cljc.checker.impl-protocols))
+                 (clj-opts)))))
   (is-clj (= '(t/Satisfies InvariantProtocol)
              (prs/with-unparse-ns this-nsym
                (prs/unparse-type

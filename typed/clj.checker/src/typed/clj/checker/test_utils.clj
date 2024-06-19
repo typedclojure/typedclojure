@@ -143,16 +143,18 @@
 
 (defmacro sub? [s t]
   `(impl/with-clojure-impl
-     (binding [*ns* (the-ns '~'clojure.core.typed)]
-       (subtype? (parse-type '~s (clj-opts))
-                 (parse-type '~t (clj-opts))))))
+     (let [opts# (assoc (clj-opts) :typed.clj.checker.parse-unparse/parse-type-in-ns '~'clojure.core.typed)]
+       (subtype? (parse-type '~s opts#)
+                 (parse-type '~t opts#)))))
 
 (defmacro sub?-q [s t]
   `(impl/with-clojure-impl
-     (subtype? (parse-type ~s (clj-opts))
-               (parse-type ~t (clj-opts)))))
+     (let [opts# (assoc (clj-opts) :typed.clj.checker.parse-unparse/parse-type-in-ns '~'clojure.core.typed)]
+       (subtype? (parse-type ~s opts#)
+                 (parse-type ~t opts#)))))
 
-(def clj-opts clj-env/clj-opts)
+(defn clj-opts []
+  (assoc (clj-env/clj-opts) :typed.clj.checker.parse-unparse/parse-type-in-ns (ns-name *ns*)))
 
 (defn subtype? [s t]
   (impl/with-clojure-impl

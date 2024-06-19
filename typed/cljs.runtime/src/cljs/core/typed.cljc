@@ -48,18 +48,17 @@
 ; the CLJS ns cljs.core.typed
 
 (def ^:private cljs-ns #((requiring-resolve 'typed.cljs.checker.util/cljs-ns)))
-(def ^:private with-parse-ns* #(apply (requiring-resolve 'typed.clj.checker.parse-unparse/with-parse-ns*) %&))
 
 (defmacro ^:private delay-tc-parse
   [t]
   `(core/let [t# ~t
-              app-outer-context# (bound-fn [f#] (f#))]
+              app-outer-context# (bound-fn [f#] (f#))
+              opts# ((requiring-resolve 'typed.cljs.runtime.env/cljs-opts))]
      (delay
        (app-outer-context#
          (core/fn []
-           (with-parse-ns*
-             (cljs-ns)
-             #((requiring-resolve 'typed.clj.checker.parse-unparse/parse-cljs) t#)))))))
+           ((requiring-resolve 'typed.clj.checker.parse-unparse/parse-cljs) t#
+            (assoc opts# :typed.clj.checker.parse-unparse/parse-type-in-ns (cljs-ns))))))))
 
 (def ^:private int-error #(apply (requiring-resolve 'clojure.core.typed.errors/int-error) %&)) 
 

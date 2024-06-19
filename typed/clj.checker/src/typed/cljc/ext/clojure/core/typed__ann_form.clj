@@ -23,8 +23,8 @@
   [{[_ body tsyn :as form] :form :keys [env] :as expr} expected {::check/keys [check-expr] :as opts}]
   (assert (= 3 (count form))
           (str "Incorrect number of arguments to ann-form: " form))
-  (let [parsed-t (binding [prs/*parse-type-in-ns* (cu/expr-ns expr opts)]
-                   (prs/parse-type tsyn opts))
+  (let [opts (assoc opts ::prs/parse-type-in-ns (cu/expr-ns expr opts))
+        parsed-t (prs/parse-type tsyn opts)
         ;; TODO let users add expected filters etc
         this-expected (or (some-> expected (assoc :t parsed-t))
                           (r/ret parsed-t))

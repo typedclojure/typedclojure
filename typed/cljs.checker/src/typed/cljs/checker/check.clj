@@ -409,7 +409,9 @@
    (binding [ana2/scheduled-passes {:pre identity
                                     :post identity
                                     :init-ast identity}]
-     (let [opts (-> opts
+     (let [nsym (::prs/parse-type-in-ns opts)
+           _ (assert (symbol? nsym))
+           opts (-> opts
                     (assoc ::check/check-expr check-expr)
                     (assoc ::vs/lexical-env (lex/init-lexical-env))
                     ;; also copied to typed.cljs.checker.check/check-top-level
@@ -418,7 +420,8 @@
                     (assoc ::c/RClass-of-cache (atom {}))
                     (assoc ::c/supers-cache (atom {}))
                     (assoc ::sub/subtype-cache (atom {}))
-                    (assoc ::cgen/dotted-var-store (atom {})))
+                    (assoc ::cgen/dotted-var-store (atom {}))
+                    (assoc ::prs/parse-type-in-ns nsym))
            cexpr (uc/with-cljs-typed-env
                    (-> form
                        (unanalyzed-top-level (or env (ana-api/empty-env)))
@@ -430,7 +433,7 @@
   "Type checks an entire namespace."
   ([ns env {::vs/keys [check-config] :as opts}]
    (uc/with-cljs-typed-env
-     (let [env (or env (ana-api/empty-env))
+     (let [env (or env (assoc-in (ana-api/empty-env) [:ns :name] ns))
            res (coerce/ns->URL ns opts)]
        (assert res (str "Can't find " ns " in classpath"))
        (let [filename (str res)
@@ -460,7 +463,7 @@
                                         {:env (assoc env :ns (ns-name *ns*))
                                          :top-level-form-string sform
                                          :ns-form-string ns-form-str}
-                                        opts)
+                                        (assoc opts ::prs/parse-type-in-ns ns))
                        (recur)))))))))))))
 
 (defn check-ns-and-deps [nsym opts] (cu/check-ns-and-deps nsym check-ns1 opts))

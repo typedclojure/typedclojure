@@ -60,7 +60,8 @@
 (defn infer-unannotated-vars
   "Return a vector of syntax that can be spliced into the given namespace,
   that annotates the inferred untyped variables."
-  ([nsym] (infer-unannotated-vars clj-env/clj-checker-atom nsym (clj-env/clj-opts)))
+  ([nsym] (infer-unannotated-vars clj-env/clj-checker-atom nsym
+                                  (assoc (clj-env/clj-opts) ::prs/parse-type-in-ns nsym)))
   ([checker nsym opts]
    (mapv (fn [vsym] (prepare-inferred-untyped-var-expression checker nsym vsym opts))
          (keys (get-in (env/deref-checker checker) [:inferred-unchecked-vars nsym])))))

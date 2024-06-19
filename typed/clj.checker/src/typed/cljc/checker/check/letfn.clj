@@ -23,7 +23,8 @@
 (defn check-letfn [{:keys [bindings body] :as letfn-expr} expected {::check/keys [check-expr] :as opts}]
   {:post [(-> % u/expr-type r/TCResult?)
           (vector? (:bindings %))]}
-  (let [;; must pass over bindings first to uniquify
+  (let [opts (assoc opts ::prs/parse-type-in-ns (cu/expr-ns letfn-expr opts))
+        ;; must pass over bindings first to uniquify
         bindings (mapv ana2/run-pre-passes bindings)
         inits-expected
         ;try and find annotations, and throw a delayed error if not found
@@ -39,8 +40,7 @@
                   nil)
               (into {}
                     (for [[nme type-syn] (map vector (map :name bindings) (-> body :statements first :expr :val))]
-                      [nme (binding [prs/*parse-type-in-ns* (cu/expr-ns letfn-expr opts)]
-                             (prs/parse-type type-syn opts))])))))]
+                      [nme (prs/parse-type type-syn opts)])))))]
     (if-not inits-expected
       (err/tc-delayed-error (str "letfn requires annotation, see: "
                                  (impl/impl-case opts :clojure 'clojure :cljs 'cljs) ".core.typed/letfn>")

@@ -206,28 +206,32 @@
   "We can type check c.c.t/parse-ast if we replace all instances
   of parse-ast in clojure.core.typed with delay-parse. Otherwise
   there is a circular dependency."
-  [t]
-  `(core/let [t# ~t]
+  [t opts]
+  `(core/let [t# ~t
+              opts# (assoc ~opts :typed.clj.checker.parse-unparse/parse-type-in-ns (ns-name *ns*))]
      ((requiring-resolve `typed.cljc.runtime.env-utils/delay-type*)
-      (bound-fn [] ((requiring-resolve 'clojure.core.typed.parse-ast/parse-clj) t#)))))
+      (bound-fn [] ((requiring-resolve 'clojure.core.typed.parse-ast/parse-clj) t# opts#)))))
 
 ;;TODO implement reparsing on internal ns reload
 (defmacro ^:private delay-tc-parse
-  [t]
-  `(core/let [t# ~t]
+  [t opts]
+  `(core/let [t# ~t
+              opts# (assoc ~opts :typed.clj.checker.parse-unparse/parse-type-in-ns (ns-name *ns*))]
      ((requiring-resolve `typed.cljc.runtime.env-utils/delay-type*)
       (bound-fn []
-        ((requiring-resolve 'typed.clj.checker.parse-unparse/with-parse-ns*)
-         (ns-name *ns*)
-         #((requiring-resolve 'typed.clj.checker.parse-unparse/parse-clj) t#))))))
+        ((requiring-resolve 'typed.clj.checker.parse-unparse/parse-clj)
+         t#
+         opts#)))))
 
 (core/defn ^:no-doc add-to-rt-alias-env [form qsym t]
-  (with-clojure-impl
-    ((requiring-resolve 'clojure.core.typed.current-impl/add-alias-env)
-     ((requiring-resolve 'clojure.core.typed.current-impl/clj-checker))
-     qsym
-     (with-current-location form
-       (delay-rt-parse t))))
+  (core/let [opts (assoc ((requiring-resolve 'typed.clj.runtime.env/clj-opts))
+                         :typed.clj.checker.parse-unparse/parse-type-in-ns (ns-name *ns*))]
+    (with-clojure-impl
+      ((requiring-resolve 'clojure.core.typed.current-impl/add-alias-env)
+       ((requiring-resolve 'clojure.core.typed.current-impl/clj-checker))
+       qsym
+       (with-current-location form
+         (delay-rt-parse t opts)))))
   nil)
 
 (def ^:private int-error #(apply (requiring-resolve 'clojure.core.typed.errors/int-error) %&)) 
@@ -237,7 +241,8 @@
   (with-clojure-impl
     (core/let
       [checker ((requiring-resolve 'clojure.core.typed.current-impl/clj-checker))
-       opts ((requiring-resolve 'typed.clj.runtime.env/clj-opts))
+       opts (assoc ((requiring-resolve 'typed.clj.runtime.env/clj-opts))
+                   :typed.clj.checker.parse-unparse/parse-type-in-ns (ns-name *ns*))
        ;; preserve *ns*
        bfn (bound-fn [f] (f))
        t ((requiring-resolve `typed.cljc.runtime.env-utils/delay-type*)
@@ -247,7 +252,7 @@
                 t (bfn
                     #(with-current-location form
                        ((requiring-resolve 'typed.cljc.runtime.env-utils/force-type)
-                        (delay-tc-parse t))))
+                        (delay-tc-parse t opts))))
                 _ (with-clojure-impl
                     (when-let [tfn ((requiring-resolve 'typed.cljc.checker.declared-kind-env/declared-kind-or-nil) checker qsym)]
                       (when-not ((requiring-resolve 'typed.clj.checker.subtype/subtype?) t tfn)
@@ -579,17 +584,19 @@
 ;; Annotations
 
 (core/defn ^:no-doc
-  untyped-var* 
+  untyped-var*
   "Internal use only. Use untyped-var."
   [varsym typesyn prs-ns form]
   (with-clojure-impl
     (core/let
-      [checker ((requiring-resolve 'clojure.core.typed.current-impl/clj-checker))
+      [opts (assoc ((requiring-resolve 'typed.clj.runtime.env/clj-opts))
+                   :typed.clj.checker.parse-unparse/parse-type-in-ns prs-ns)
+       checker ((requiring-resolve 'clojure.core.typed.current-impl/clj-checker))
        var (resolve varsym)
        _ (assert (var? var) (str varsym " must resolve to a var."))
        qsym ((requiring-resolve 'clojure.core.typed.coerce-utils/var->symbol) var)
        expected-type (with-current-location form
-                       (delay-tc-parse typesyn))
+                       (delay-tc-parse typesyn opts))
        _ ((requiring-resolve 'clojure.core.typed.current-impl/add-untyped-var) checker prs-ns qsym expected-type)]
       nil)))
 
@@ -607,7 +614,7 @@
 (core/defn ^:no-doc
   ann*
   "Internal use only. Use ann."
-  [defining-nsym qsym typesyn check? form opts]
+  [defining-nsym qsym typesyn check? form opt]
   (macros/when-bindable-defining-ns defining-nsym
     (with-clojure-impl
       (core/let
@@ -619,10 +626,12 @@
          check-var? (requiring-resolve 'clojure.core.typed.current-impl/check-var?)
          remove-nocheck-var (requiring-resolve 'clojure.core.typed.current-impl/remove-nocheck-var)
          add-nocheck-var (requiring-resolve 'clojure.core.typed.current-impl/add-nocheck-var)
+         opts (assoc ((requiring-resolve 'typed.clj.runtime.env/clj-opts))
+                     :typed.clj.checker.parse-unparse/parse-type-in-ns (ns-name *ns*))
          _ (when (and (contains? (var-env checker) qsym)
                       (not (check-var? checker qsym))
                       check?)
-             (when-not (get opts :force-check)
+             (when-not (get opt :force-check)
                (warn (str "Removing :no-check from var " qsym)))
              (remove-nocheck-var checker qsym))
          _ (when-not check?
@@ -633,9 +642,9 @@
                              (first form)])
                       form)
          ast (with-current-location loc-form
-               (delay-rt-parse typesyn))
+               (delay-rt-parse typesyn opts))
          tc-type (with-current-location loc-form
-                   (delay-tc-parse typesyn))]
+                   (delay-tc-parse typesyn opts))]
         (add-var-env checker qsym ast)
         (add-tc-var-type checker qsym tc-type))))
   nil)
@@ -759,7 +768,7 @@
        ((requiring-resolve 'ann-datatype*) '~(ns-name *ns*) '~vbnd '~dname '~fields '~opts '~&form))))
 
 (core/defn ^:no-doc
-  ann-record* 
+  ann-record*
   "Internal use only. Use ann-record"
   [defining-nsym vbnd dname fields opt form]
   (macros/when-bindable-defining-ns defining-nsym
@@ -985,12 +994,13 @@
   [defining-nsym ctorsym typesyn form]
   (macros/when-bindable-defining-ns defining-nsym
     (core/let [checker ((requiring-resolve 'clojure.core.typed.current-impl/clj-checker))
-               add-constructor-override (requiring-resolve 'clojure.core.typed.current-impl/add-constructor-override)]
+               add-constructor-override (requiring-resolve 'clojure.core.typed.current-impl/add-constructor-override)
+               opts ((requiring-resolve 'typed.clj.runtime.env/clj-opts))]
       (add-constructor-override 
         checker
         ctorsym
         (with-current-location form
-          (delay-tc-parse typesyn)))
+          (delay-tc-parse typesyn opts)))
       nil)))
 
 (core/defn override-constructor 
@@ -1006,12 +1016,13 @@
   [defining-nsym methodsym typesyn form]
   (macros/when-bindable-defining-ns defining-nsym
     (core/let [checker ((requiring-resolve 'clojure.core.typed.current-impl/clj-checker))
-               add-method-override (requiring-resolve 'clojure.core.typed.current-impl/add-method-override)]
+               add-method-override (requiring-resolve 'clojure.core.typed.current-impl/add-method-override)
+               opts ((requiring-resolve 'typed.clj.runtime.env/clj-opts))]
       (add-method-override 
         checker
         methodsym
         (with-current-location form
-          (delay-tc-parse typesyn)))
+          (delay-tc-parse typesyn opts)))
       nil)))
 
 (core/defn override-method 

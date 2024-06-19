@@ -289,14 +289,16 @@
   ([t opt]
    ((requiring-resolve 'clojure.core.typed.current-impl/with-impl*)
     :clojure.core.typed.current-impl/clojure
-    #(let [opts ((requiring-resolve 'typed.clj.runtime.env/clj-opts))]
+    #(let [opts (assoc ((requiring-resolve 'typed.clj.runtime.env/clj-opts))
+                       :typed.clj.checker.parse-unparse/parse-type-in-ns (ns-name *ns*))]
        (-> ((requiring-resolve 'clojure.core.typed.parse-ast/parse) t opts)
            (ast->pred opt opts))))))
 
 (defn type-syntax->contract [t]
   ((requiring-resolve 'clojure.core.typed.current-impl/with-impl*)
    :clojure.core.typed.current-impl/clojure
-   #(let [opts ((requiring-resolve 'typed.clj.runtime.env/clj-opts))]
+   #(let [opts (assoc ((requiring-resolve 'typed.clj.runtime.env/clj-opts))
+                      :typed.clj.checker.parse-unparse/parse-type-in-ns (ns-name *ns*))]
       (-> ((requiring-resolve 'clojure.core.typed.parse-ast/parse) t opts)
           (ast->contract opts)))))
 

@@ -18,16 +18,14 @@
             #?(:clj [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]])
             #?(:clj [io.github.frenchy64.fully-satisfies.safe-locals-clearing :refer [delay]])))
 
-(t/ann *parse-type-in-ns* (t/U nil t/Sym))
-(defonce ^:dynamic *parse-type-in-ns* nil)
-
 ;(t/ann ^:no-check clojure.core.typed.current-impl/*current-impl* (t/U nil t/Kw))
 (t/ann ^:no-check clojure.core.typed.current-impl/current-impl [t/Any -> t/Kw])
 
 (t/ann parse-in-ns [t/Any -> t/Sym])
 (defn- parse-in-ns [opts]
   {:post [(symbol? %)]}
-  (or *parse-type-in-ns* 
+  (or (:typed.clj.checker.parse-unparse/parse-type-in-ns opts)
+      (assert nil (str "parse-in-ns unbound " (keys opts)))
       (impl/impl-case opts
         :clojure (ns-name *ns*)
         :cljs (t/tc-ignore ((requiring-resolve 'typed.cljs.checker.util/cljs-ns))))))
@@ -80,8 +78,7 @@
   {:pre [(symbol? sym)]
    :post [(symbol? %)]}
   (impl/assert-clojure opts)
-  (let [opts ((requiring-resolve 'typed.clj.runtime.env/clj-opts))
-        nsym (parse-in-ns opts)]
+  (let [nsym (parse-in-ns opts)]
     (if-some [ns (find-ns nsym)]
       (or (when (special-symbol? sym)
             sym)
@@ -1199,9 +1196,12 @@
                         :form syn)
       :else (err/int-error (str "Bad type syntax: " syn) opts))))
 
-(defn parse-clj [syn]
-  (impl/with-impl impl/clojure
-    (parse syn ((requiring-resolve 'typed.clj.runtime.env/clj-opts)))))
+(defn parse-clj
+  ([syn] (parse-clj syn (assoc ((requiring-resolve 'typed.clj.runtime.env/clj-opts))
+                               :typed.clj.checker.parse-unparse/parse-type-in-ns (ns-name *ns*))))
+  ([syn opts]
+   (impl/with-impl impl/clojure
+     (parse syn opts))))
 
 (comment
   (parse-clj `'[String ~'* t/Any])

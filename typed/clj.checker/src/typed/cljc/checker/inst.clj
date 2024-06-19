@@ -146,9 +146,10 @@
             (subst/substitute-many (subvec argtys 0 dotted-argtys-start) (pop names) opts)))))))
 
 (defn inst-from-targs-syn [ptype targs-syn prs-ns expected opts]
-  (binding [prs/*parse-type-in-ns* prs-ns
-            prs/*unparse-type-in-ns* prs-ns]
-    (let [ptype (c/fully-resolve-type ptype opts)
+  (binding [prs/*unparse-type-in-ns* prs-ns]
+    (let [opts (-> opts
+                   (assoc ::prs/parse-type-in-ns prs-ns))
+          ptype (c/fully-resolve-type ptype opts)
           ptype (or (when (r/Intersection? ptype)
                       (some #(when ((some-fn r/Poly? r/PolyDots?) %)
                                %)

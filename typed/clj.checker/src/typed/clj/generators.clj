@@ -409,7 +409,8 @@
                      are functions taking the overriden type and opts and returns
                      a generator. If alias is recursive must extend ::name->gen.
                      eg., :alias-overrides {'clojure.core.typed/Int (fn [_ _] gen/large-integer)}"
-  ([t] (generator t ((requiring-resolve 'typed.clj.runtime.env/clj-opts))))
+  ([t] (generator t (assoc ((requiring-resolve 'typed.clj.runtime.env/clj-opts))
+                           ::prs/parse-type-in-ns (ns-name *ns*))))
   ([t opts]
    @load-delay
    (impl/with-impl impl/clojure

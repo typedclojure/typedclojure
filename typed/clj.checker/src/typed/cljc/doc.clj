@@ -333,8 +333,11 @@
   ((requiring-resolve 'clojure.core.typed/load-if-needed))
   ((requiring-resolve 'clojure.core.typed/register!))
   (impl/with-clojure-impl
-    (binding [prs/*unparse-type-in-ns* (ns-name *ns*)]
-      (type-doc* (impl/clj-checker) v ((requiring-resolve 'typed.clj.runtime.env/clj-opts))))))
+    (let [nsym (ns-name *ns*)]
+      (binding [prs/*unparse-type-in-ns* nsym]
+        (type-doc* (impl/clj-checker) v
+                   (assoc ((requiring-resolve 'typed.clj.runtime.env/clj-opts))
+                          :typed.clj.checker.parse-unparse/parse-type-in-ns nsym))))))
 
 (defn type-doc-clj [v] (println (type-doc-clj* v)))
 
@@ -342,6 +345,8 @@
   ((requiring-resolve 'cljs.core.typed/load-if-needed))
   ((requiring-resolve 'cljs.core.typed/register!))
   (impl/with-cljs-impl
-    (type-doc* (impl/cljs-checker) v ((requiring-resolve 'typed.cljs.runtime.env/cljs-opts)))))
+    (type-doc* (impl/cljs-checker) v
+               (assoc ((requiring-resolve 'typed.cljs.runtime.env/cljs-opts))
+                      :typed.clj.checker.parse-unparse/parse-type-in-ns ((requiring-resolve 'typed.cljs.checker.util/cljs-ns))))))
 
 (defn type-doc-cljs [v] (println (type-doc-cljs* v)))

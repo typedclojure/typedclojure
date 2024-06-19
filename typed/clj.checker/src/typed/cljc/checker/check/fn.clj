@@ -152,7 +152,7 @@
          defaults)))
 
 (defn prepare-expecteds [expr fn-anns opts]
-  (binding [prs/*parse-type-in-ns* (cu/expr-ns expr opts)]
+  (let [opts (assoc opts ::prs/parse-type-in-ns (cu/expr-ns expr opts))]
     {:doms
      (->> fn-anns
           (map :dom)
@@ -247,60 +247,60 @@
 
 (defn check-special-fn*
   [expr fn-anns poly expected opts]
-  (binding [prs/*parse-type-in-ns* (cu/expr-ns expr opts)]
-    (let [expr (-> expr
-                   ana2/analyze-outer-root
-                   ana2/run-pre-passes)
-          _ (assert (= :fn (:op expr))
-                    ((juxt :op :form) expr))
-          _ (assert (vector? fn-anns) (pr-str fn-anns))
-          self-name (cu/fn-self-name expr)
-          _ (assert ((some-fn nil? symbol?) self-name)
-                    self-name)
-          ;_ (prn "self-name" self-name)
-          [frees-with-bnds dvar] (parse-poly poly opts)
-          new-bnded-frees (into {} (map (fn [[n bnd]] [(r/make-F n) bnd]))
-                                (cond-> frees-with-bnds
-                                  dvar (conj dvar)))
-          flat-expecteds 
-          (free-ops/with-bounded-frees new-bnded-frees
-            (prepare-expecteds expr fn-anns opts))
-          ;_ (prn "flat-expecteds" flat-expecteds)
-          _ (assert ((some-fn nil? vector?) poly))
+  (let [opts (assoc opts ::prs/parse-type-in-ns (cu/expr-ns expr opts))
+        expr (-> expr
+                 ana2/analyze-outer-root
+                 ana2/run-pre-passes)
+        _ (assert (= :fn (:op expr))
+                  ((juxt :op :form) expr))
+        _ (assert (vector? fn-anns) (pr-str fn-anns))
+        self-name (cu/fn-self-name expr)
+        _ (assert ((some-fn nil? symbol?) self-name)
+                  self-name)
+        ;_ (prn "self-name" self-name)
+        [frees-with-bnds dvar] (parse-poly poly opts)
+        new-bnded-frees (into {} (map (fn [[n bnd]] [(r/make-F n) bnd]))
+                              (cond-> frees-with-bnds
+                                dvar (conj dvar)))
+        flat-expecteds 
+        (free-ops/with-bounded-frees new-bnded-frees
+          (prepare-expecteds expr fn-anns opts))
+        ;_ (prn "flat-expecteds" flat-expecteds)
+        _ (assert ((some-fn nil? vector?) poly))
 
-          no-annotations? (all-defaults? fn-anns poly)
-          sym-clos-candidate? (symbolic-closure-candidate? expr expected)
-          ;_ (prn "sym-clos-candidate?" sym-clos-candidate?)
-          useful-expected-type? (boolean
-                                  (when expected
-                                    (seq (fn-methods/function-types (r/ret-t expected) opts))))]
-      (cond
-        ;; don't need to check anything, return a symbolic closure
-        (and no-annotations? sym-clos-candidate?)
-        (check-core-fn-no-expected expr expected opts)
+        no-annotations? (all-defaults? fn-anns poly)
+        sym-clos-candidate? (symbolic-closure-candidate? expr expected)
+        ;_ (prn "sym-clos-candidate?" sym-clos-candidate?)
+        useful-expected-type? (boolean
+                                (when expected
+                                  (seq (fn-methods/function-types (r/ret-t expected) opts))))]
+    (cond
+      ;; don't need to check anything, return a symbolic closure
+      (and no-annotations? sym-clos-candidate?)
+      (check-core-fn-no-expected expr expected opts)
 
-        ;; If we have an unannotated fn macro and a good expected type, use the expected type via check-fn
-        (and no-annotations? useful-expected-type?)
-        (check-fn* expr expected opts)
+      ;; If we have an unannotated fn macro and a good expected type, use the expected type via check-fn
+      (and no-annotations? useful-expected-type?)
+      (check-fn* expr expected opts)
 
-        ;; otherwise check against the expected type after a call to check-anon.
-        :else
-        (let [;_ (prn "using anon-fn")
-              cexpr (let [opts (lex/with-locals opts
-                                 (when self-name
-                                   (let [this-type (self-type flat-expecteds)
-                                         ;_ (prn "this-type" this-type)
-                                         ]
-                                     {self-name this-type})))]
-                      (free-ops/with-bounded-frees new-bnded-frees
-                        (check-anon
-                          expr
-                          flat-expecteds
-                          {:frees-with-bnds frees-with-bnds
-                           :dvar dvar}
-                          opts)))]
-          ;;TODO unit test check below
-          (update cexpr u/expr-type below/maybe-check-below expected opts))))))
+      ;; otherwise check against the expected type after a call to check-anon.
+      :else
+      (let [;_ (prn "using anon-fn")
+            cexpr (let [opts (lex/with-locals opts
+                               (when self-name
+                                 (let [this-type (self-type flat-expecteds)
+                                       ;_ (prn "this-type" this-type)
+                                       ]
+                                   {self-name this-type})))]
+                    (free-ops/with-bounded-frees new-bnded-frees
+                      (check-anon
+                        expr
+                        flat-expecteds
+                        {:frees-with-bnds frees-with-bnds
+                         :dvar dvar}
+                        opts)))]
+        ;;TODO unit test check below
+        (update cexpr u/expr-type below/maybe-check-below expected opts)))))
 
 (defn check-fn
   "If expected provided, check a fn to be under expected and annotate the inferred type.
