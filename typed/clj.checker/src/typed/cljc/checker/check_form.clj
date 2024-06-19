@@ -115,8 +115,7 @@
     (impl/impl-case opts
       :clojure @*register-clj-anns
       :cljs @*register-cljs-anns)
-    (binding [vs/*in-check-form* true
-              vs/*custom-expansions* custom-expansions?]
+    (binding [vs/*in-check-form* true]
       (let [delayed-errors (err/-init-delayed-errors)
             opts (-> opts
                      ;; custom expansions might not even evaluate
@@ -124,7 +123,8 @@
                      (assoc ::vs/lexical-env (lex-env/init-lexical-env))
                      (assoc ::vs/already-checked (atom #{}))
                      (assoc ::vs/delayed-errors delayed-errors)
-                     (assoc ::prs/parse-type-in-ns unparse-ns))
+                     (assoc ::prs/parse-type-in-ns unparse-ns)
+                     (assoc ::vs/custom-expansions custom-expansions?))
             expected (or
                        expected-ret
                        (when type-provided?

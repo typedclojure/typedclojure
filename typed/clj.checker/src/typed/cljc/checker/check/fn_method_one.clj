@@ -53,7 +53,8 @@
 ;[MethodExpr Function -> {:ftype Function :cmethod Expr}]
 (defn check-fn-method1 [method {:keys [dom rest drest kws prest pdot] :as expected}
                         {:keys [recur-target-fn] :as opt}
-                        {::check/keys [check-expr] :as opts}]
+                        {::vs/keys [custom-expansions]
+                         ::check/keys [check-expr] :as opts}]
   {:pre [(r/Function? expected)]
    :post [(r/Function? (:ftype %))
           (-> % :cmethod :clojure.core.typed/ftype r/Function?)
@@ -187,7 +188,7 @@
                           (recur-u/RecurTarget-maker dom rest drest nil))
                   _ (assert (recur-u/RecurTarget? rec))]
               (recur-u/with-recur-target rec
-                (let [body (if (and vs/*custom-expansions*
+                (let [body (if (and custom-expansions
                                     rest-param
                                     (= :fixed (:kind expected)))
                              ;; substitute away the rest argument to try and trigger

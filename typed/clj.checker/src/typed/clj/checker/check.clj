@@ -1290,7 +1290,7 @@
                         (count args))
                    opts))
   #_
-  (when vs/*custom-expansions*
+  (when (::vs/custom-expansions opts)
     (let [[coll :as cargs] (mapv #(check-expr % nil opts) args)
           ct (r/ret-t (u/expr-type coll))
           fres (first-result ct)]

@@ -88,9 +88,9 @@
      :emit-form emit-form/emit-form}))
 
 (t/ann ^:no-check typed-macro-lookup [t/Any t/Any t/Any :-> t/Any])
-(defn typed-macro-lookup [var env opts]
+(defn typed-macro-lookup [var env {::vs/keys [custom-expansions] :as opts}]
   {:post [(ifn? %)]}
-  (or (when vs/*custom-expansions*
+  (or (when custom-expansions
         (let [vsym (coerce/var->symbol var)]
           (when (expand/custom-expansion? vsym)
             (fn [form locals & _args_]
@@ -108,7 +108,7 @@
 (defn ->macroexpand-1
   "If form represents a macro form or an inlinable function, returns its expansion,
    else returns form."
-  [opts]
+  [{::vs/keys [custom-expansions] :as opts}]
   (fn macroexpand-1
     ([form] (macroexpand-1 form (taj/empty-env)))
     ([form env]
@@ -126,7 +126,7 @@
                              inline-arities-f (:inline-arities m)
                              ;; disable :inline with custom expansions to avoid arity errors
                              ;; in symbolic execution.
-                             inline? (if vs/*custom-expansions*
+                             inline? (if custom-expansions
                                        (when (and (not local?) (var? v))
                                          (let [vsym (coerce/var->symbol v)]
                                            (when (expand/custom-inline? vsym)
@@ -281,7 +281,7 @@
 (declare scheduled-passes-for-custom-expansions)
 
 ;; (All [x ...] [-> '{(Var x) x ...})])
-(defn thread-bindings [opt {::vs/keys [check-config delayed-errors] :as opts}]
+(defn thread-bindings [opt {::vs/keys [check-config delayed-errors custom-expansions] :as opts}]
   (let [ns (the-ns (or (-> opt :env :ns)
                        *ns*))
         side-effects? (case (:check-form-eval check-config)
@@ -317,13 +317,13 @@
                                        ]
                                    (eval-ast ast)))
                #'ana2/macroexpand-1 (->macroexpand-1 opts)
-               #'ana2/scheduled-passes (if vs/*custom-expansions*
+               #'ana2/scheduled-passes (if custom-expansions
                                          @scheduled-passes-for-custom-expansions
                                          @jana2/scheduled-default-passes)))))
 
-(defn will-custom-expand? [form env]
+(defn will-custom-expand? [form env {::vs/keys [custom-expansions] :as opts}]
   (boolean
-    (when vs/*custom-expansions*
+    (when custom-expansions
       (when (seq? form)
         (let [[op & args] form]
           (when-not (taj/specials op)
@@ -385,7 +385,7 @@
                       :stop-gildardi-check 
                       ;; cut off custom expansions to preserve :original-form's
                       (fn [mform env]
-                        (will-custom-expand? mform env))
+                        (will-custom-expand? mform env opts))
                       ;; propagate inner types to outer `do`
                       :annotate-do
                       (fn [a _ ret]
@@ -412,11 +412,11 @@
 (defn eval' [frm]
   (. clojure.lang.Compiler (eval frm)))
 
-(defn eval-ast [ast opts]
+(defn eval-ast [ast {::vs/keys [custom-expansions] :as opts}]
   ;; based on jvm/analyze+eval
   (let [; FIXME don't allow mixing of runtime inference and custom expansions,
         ; since we want to evaluate the modified AST in runtime inference.
-        frm (if vs/*custom-expansions*
+        frm (if custom-expansions
               (:original-form opts)
               (emit-form/emit-form ast))
         ;_ (prn "form" frm)
