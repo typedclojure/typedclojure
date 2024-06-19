@@ -450,13 +450,13 @@
                                                                (repeat r/-nothing)))))
                 ((some-fn fl/TypeFilter? fl/NotTypeFilter?) f)
                 (let [;_ (prn "Update filter" f)
-                      new-env (update-in env [:l (:id f)]
-                                         (fn [t]
-                                           (when-not t
-                                             (err/int-error (str "Updating local not in scope: " (:id f)
-                                                                 " " (-> env :l keys vec))
-                                                            opts))
-                                           (update-with-filter t f opts)))]
+                      new-env (update env :l update (:id f)
+                                      (fn [t]
+                                        (when-not t
+                                          (err/int-error (str "Updating local not in scope: " (:id f)
+                                                              " " (-> env :l keys vec))
+                                                         opts))
+                                        (update-with-filter t f opts)))]
                   ; update flag if a variable is now bottom
                   (when (some (comp r/Bottom? val) (:l new-env))
                     (vreset! flag false))
@@ -467,13 +467,13 @@
                      (apply = (map fl/filter-id (:fs f))))
                 (let [id (-> f :fs first fl/filter-id)
                       _ (assert (symbol? id))
-                      new-env (update-in env [:l id]
-                                         (fn [t]
-                                           (when-not t
-                                             (err/int-error (str "Updating local not in scope: " (:id f)) opts))
-                                           (c/Un (map (fn [f] (update-with-filter t f opts)) 
-                                                      (:fs f))
-                                                 opts)))]
+                      new-env (update env :l update id
+                                      (fn [t]
+                                        (when-not t
+                                          (err/int-error (str "Updating local not in scope: " (:id f)) opts))
+                                        (c/Un (map (fn [f] (update-with-filter t f opts))
+                                                   (:fs f))
+                                              opts)))]
                   ; update flag if a variable is now bottom
                   (when (some (comp r/Bottom? val) (:l new-env))
                     (vreset! flag false))

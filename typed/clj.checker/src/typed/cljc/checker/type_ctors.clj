@@ -23,7 +23,7 @@
             [clojure.reflect :as reflect]
             [clojure.repl :as repl]
             [clojure.set :as set]
-            [typed.cljc.runtime.perf-utils :refer [repeatedly reduce4]]
+            [typed.cljc.runtime.perf-utils :refer [repeatedly reduce2 reduce4]]
             [typed.clj.checker.rclass-env :as rcls]
             [typed.cljc.checker.cs-rep :as crep]
             [typed.cljc.checker.datatype-env :as dtenv]
@@ -1416,11 +1416,13 @@
 (defn make-simple-substitution [vs ts]
   {:pre [(= (count vs)
             (count ts))]}
-  (into {} (map (fn [[v t]]
-                  {:pre [(symbol? v)
-                         (r/Type? t)]}
-                  [v (crep/t-subst-maker t r/no-bounds)]))
-        (map vector vs ts)))
+  (persistent!
+   (reduce2 (fn [acc v t]
+              {:pre [(symbol? v)
+                     (r/Type? t)]}
+              (assoc! acc v (crep/t-subst-maker t r/no-bounds)))
+            (transient {})
+            vs ts)))
 
 (t/ann ^:no-check instantiate-typefn [TypeFn (t/Seqable r/Type) t/Any t/Any -> r/Type])
 (defn instantiate-typefn [t types {:keys [names tapp]
