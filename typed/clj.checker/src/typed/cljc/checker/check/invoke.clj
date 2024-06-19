@@ -21,7 +21,9 @@
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.type-rep :as r]))
 
-(defn normal-invoke [expr fexpr args expected {:keys [cfexpr cargs]} {::check/keys [check-expr] :as opts}]
+(defn normal-invoke [expr fexpr args expected {:keys [cfexpr cargs]}
+                     {::vs/keys [^java.util.concurrent.ExecutorService check-threadpool]
+                      ::check/keys [check-expr] :as opts}]
   {:pre [((some-fn nil? r/TCResult?) expected)
          (map? fexpr)
          (vector? args)
@@ -31,8 +33,7 @@
          ((some-fn nil?
                    (con/vec-c? (comp r/TCResult? u/expr-type)))
           cargs)]}
-  (let [^java.util.concurrent.ExecutorService threadpool vs/*check-threadpool*
-        cfexpr (or cfexpr (check-expr fexpr nil opts))
+  (let [cfexpr (or cfexpr (check-expr fexpr nil opts))
         ftype (u/expr-type cfexpr)
         ;; keep Function arguments in checking mode
         expected-args (let [ft (c/fully-resolve-type (r/ret-t ftype) opts)]
@@ -48,7 +49,7 @@
                                     (:dom f))))))
         cargs (or cargs
                   (let [fs (mapv #(fn [] (check-expr %1 %2 opts)) args (or expected-args (repeat nil)))]
-                    (if (and threadpool (< 1 (count args)))
+                    (if (and check-threadpool (< 1 (count args)))
                       (let [bs (get-thread-bindings)]
                         (mapv (fn [^java.util.concurrent.Future future]
                                 (try (let [{:keys [out res ex]} (.get future)]
@@ -57,18 +58,18 @@
                                        res)
                                      (catch java.util.concurrent.ExecutionException e
                                        (throw (or (.getCause e) e)))))
-                              (.invokeAll threadpool (map (fn [f]
-                                                            (fn []
-                                                              (with-bindings bs
-                                                                (let [ex (volatile! nil)
-                                                                      res (volatile! nil)
-                                                                      out (with-out-str
-                                                                            (try (vreset! res (f))
-                                                                                 (catch Throwable e (vreset! ex e))))]
-                                                                  {:out out
-                                                                   :res @res
-                                                                   :ex @ex}))))
-                                                          fs))))
+                              (.invokeAll check-threadpool (map (fn [f]
+                                                                  (fn []
+                                                                    (with-bindings bs
+                                                                      (let [ex (volatile! nil)
+                                                                            res (volatile! nil)
+                                                                            out (with-out-str
+                                                                                  (try (vreset! res (f))
+                                                                                       (catch Throwable e (vreset! ex e))))]
+                                                                        {:out out
+                                                                         :res @res
+                                                                         :ex @ex}))))
+                                                                fs))))
                       (mapv #(%) fs))))
         _ (assert (= (count cargs) (count args)))
         argtys (map u/expr-type cargs)

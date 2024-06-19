@@ -47,7 +47,7 @@
     (assert (= "true" (System/getProperty "typed.cljc.checker.utils.trace"))
             "To enable tracing set system property -Dtyped.cljc.checker.utils.trace=true on startup"))
   (let [start (. System (nanoTime))
-        threadpool vs/*check-threadpool*
+        threadpool (::vs/check-threadpool opts)
         shutdown-threadpool? (not threadpool)
         ^java.util.concurrent.ExecutorService
         max-parallelism (or (when (= :available-processors max-parallelism)
@@ -76,15 +76,15 @@
         (assert (not (::vs/delayed-errors opts)))
         (impl/with-impl impl
           (binding [;; nested check-ns inside check-form switches off check-form
-                    vs/*in-check-form* false
-                    vs/*check-threadpool* threadpool]
+                    vs/*in-check-form* false]
             (let [delayed-errors (err/-init-delayed-errors)
                   opts (-> opts
                            (assoc ::vs/check-config check-config)
                            (assoc ::vs/lexical-env (lex-env/init-lexical-env))
                            (assoc ::vs/already-checked (atom #{}))
                            (assoc ::vs/delayed-errors delayed-errors)
-                           (assoc ::vs/trace trace))
+                           (assoc ::vs/trace trace)
+                           (assoc ::vs/check-threadpool threadpool))
                   terminal-error (atom nil)]
               ;(reset-env/reset-envs!)
               ;; handle terminal type error

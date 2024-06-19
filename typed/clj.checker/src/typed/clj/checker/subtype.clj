@@ -417,10 +417,10 @@
       A
       (report-not-subtypes s t))))
 
-(defn subtype-Union-left [A {:keys [types] :as s} t opts]
+(defn subtype-Union-left [A {:keys [types] :as s} t
+                          {::vs/keys [^java.util.concurrent.ExecutorService check-threadpool] :as opts}]
   {:pre [(r/Union? s)]}
-  (let [^java.util.concurrent.ExecutorService threadpool vs/*check-threadpool*
-        good? (if false #_(and threadpool (< 1 (count types)))
+  (let [good? (if false #_(and check-threadpool (< 1 (count types)))
                 (let [fs (mapv (fn [s] (fn [] (subtypeA* A s t opts))) types)
                       bs (get-thread-bindings)]
                   (reduce (fn [acc ^java.util.concurrent.Future future]
@@ -430,18 +430,18 @@
                               (some-> out str/trim not-empty println)
                               (some-> ex throw)
                               (and acc res)))
-                          true (.invokeAll threadpool (map (fn [f]
-                                                             (fn []
-                                                               (with-bindings bs
-                                                                 (let [ex (volatile! nil)
-                                                                       res (volatile! nil)
-                                                                       out (with-out-str
-                                                                             (try (vreset! res (f))
-                                                                                  (catch Throwable e (vreset! ex e))))]
-                                                                   {:ex @ex
-                                                                    :res @res
-                                                                    :out out}))))
-                                                           fs))))
+                          true (.invokeAll check-threadpool (map (fn [f]
+                                                                   (fn []
+                                                                     (with-bindings bs
+                                                                       (let [ex (volatile! nil)
+                                                                             res (volatile! nil)
+                                                                             out (with-out-str
+                                                                                   (try (vreset! res (f))
+                                                                                        (catch Throwable e (vreset! ex e))))]
+                                                                         {:ex @ex
+                                                                          :res @res
+                                                                          :out out}))))
+                                                                 fs))))
                 (every? (fn [s] (subtypeA* A s t opts)) types))]
     (if good?
       A

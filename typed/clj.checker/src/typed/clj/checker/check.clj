@@ -112,7 +112,8 @@
 
 (defn check-ns1
   "Type checks an entire namespace."
-  ([ns env {::vs/keys [delayed-errors check-config]
+  ([ns env {::vs/keys [delayed-errors check-config
+                       ^java.util.concurrent.ExecutorService check-threadpool]
             ::cenv/keys [checker] :as opts}]
    (env/ensure (jana2/global-env)
      (let [env (or env (jana2/empty-env))
@@ -144,7 +145,6 @@
 
                    ns-form-str (some :ns-form-str forms-info)
                    _ (assert delayed-errors)
-                   ^java.util.concurrent.ExecutorService threadpool vs/*check-threadpool*
                    bndings (get-thread-bindings)
                    exs (map (fn [{:keys [form sform]}]
                               (fn []
@@ -165,7 +165,7 @@
                                                                                            ;; forkjoin pool makes bindings bleed across threads
                                                                                            #_(assert (not env-utils/*type-cache*))
                                                                                            (atom {})))
-                                            (if threadpool
+                                            (if check-threadpool
                                               (with-out-str
                                                 (chk))
                                               (do (chk) nil)))]
@@ -176,12 +176,12 @@
                                         {:errors @delayed-errors})
                                       (assoc :out out)))))
                             forms-info)
-                   results (if threadpool
+                   results (if check-threadpool
                              (mapv (fn [^java.util.concurrent.Future future]
                                      (try (.get future)
                                           (catch java.util.concurrent.ExecutionException e
                                             (throw (or (.getCause e) e)))))
-                                   (.invokeAll threadpool exs))
+                                   (.invokeAll check-threadpool exs))
                              (mapv #(%) exs))
                    _ (swap! delayed-errors into (mapcat (fn [{:keys [ex errors out]}]
                                                           (some-> out str/trim not-empty println)

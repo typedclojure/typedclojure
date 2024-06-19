@@ -80,11 +80,12 @@
     (binding [vs/*current-expr* expr]
       (check-expr expr expected (var-env/with-lexical-env opts lex-env)))))
 
-(defn check-if [{:keys [test then else] :as expr} expected {::check/keys [check-expr] :as opts}]
+(defn check-if [{:keys [test then else] :as expr} expected
+                {::vs/keys [^java.util.concurrent.ExecutorService check-threadpool]
+                 ::check/keys [check-expr] :as opts}]
   {:pre [((some-fn r/TCResult? nil?) expected)]
    :post [(-> % u/expr-type r/TCResult?)]}
-  (let [^java.util.concurrent.ExecutorService threadpool vs/*check-threadpool*
-        ctest (check-expr test nil opts)
+  (let [ctest (check-expr test nil opts)
         tst (u/expr-type ctest)
         {fs+ :then fs- :else :as tst-f} (r/ret-f tst)
         lex-env (lex/lexical-env opts)
@@ -94,7 +95,7 @@
         chk-els #(let [[env-els reachable-] (update-lex+reachable lex-env fs- opts)]
                    {:env-els env-els
                     :celse (check-if-reachable else env-els reachable- expected opts)})
-        [{:keys [cthen env-thn]} {:keys [celse env-els]}] (if threadpool
+        [{:keys [cthen env-thn]} {:keys [celse env-els]}] (if check-threadpool
                                                             (let [^java.util.concurrent.Callable f (bound-fn []
                                                                                                      (let [res (volatile! nil)
                                                                                                            ex (volatile! nil)
@@ -104,7 +105,7 @@
                                                                                                        {:out out
                                                                                                         :ex @ex
                                                                                                         :els @res}))
-                                                                  fut (.submit threadpool f)
+                                                                  fut (.submit check-threadpool f)
                                                                   thn (chk-thn)
                                                                   {:keys [ex out els]} (try (.get fut)
                                                                                             (catch java.util.concurrent.ExecutionException e
