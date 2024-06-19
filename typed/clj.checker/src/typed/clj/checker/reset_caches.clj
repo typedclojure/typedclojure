@@ -14,6 +14,5 @@
 (defn reset-caches 
   "Reset internal type caches."
   []
-  (sub/reset-subtype-cache)
   (cgen/reset-dotted-var-store!)
   nil)

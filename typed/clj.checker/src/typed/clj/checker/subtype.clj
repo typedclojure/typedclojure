@@ -133,13 +133,6 @@
 
 (declare subtype-filter*)
 
-(def subtype-cache (atom {}))
-
-; (ann reset-subtype-cache [-> nil])
-(defn reset-subtype-cache []
-  (reset! subtype-cache {})
-  nil)
-
 ;[Type Type -> Boolean]
 (defn subtype? [s t opts]
   {:post [(boolean? %)]}
@@ -148,12 +141,13 @@
               (do-top-level-subtype-using subtypeA* s t opts)))]
     (if true ;; true == disable cache
       (do-subtype)
-      (if-let [[_ res] (find @subtype-cache [s t])]
-        res
-        (let [res (do-subtype)]
-          (when-not (currently-subtyping?)
-            (swap! subtype-cache assoc [s t] res))
-          res)))))
+      (let [{::keys [subtype-cache]} opts]
+        (if-let [[_ res] (when subtype-cache (find @subtype-cache [s t]))]
+          res
+          (let [res (do-subtype)]
+            (when-not (currently-subtyping?)
+              (some-> subtype-cache (swap! assoc [s t] res)))
+            res))))))
 
 (defn subtype-filter? [f1 f2 opts]
   (boolean

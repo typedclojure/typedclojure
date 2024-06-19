@@ -94,12 +94,10 @@
 
 (defmacro subtype? [s t]
   `(impl/with-cljs-impl
-     (sub/reset-subtype-cache)
      (sub/subtype? ~s ~t cljs-opts)))
 
 (defmacro sub? [s t]
   `(impl/with-cljs-impl
-     (sub/reset-subtype-cache)
      (subtype? (prs/parse-type '~s cljs-opts)
                (prs/parse-type '~t cljs-opts))))
 
