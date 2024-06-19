@@ -70,17 +70,17 @@
                         :else
                         (let [expr (get cexprs n)
                               _ (assert (map? expr))
-                              cexpr (binding [vs/*current-expr* expr]
-                                      (check-expr expr
-                                                  ;propagate expected type only to final expression
-                                                  (when (= (inc n) nexprs)
-                                                    expected)
-                                                  (-> opts
-                                                      ; always prefer envs with :line information, even if inaccurate
-                                                      (update ::vs/current-env #(if (:line (:env expr))
-                                                                                  (:env expr)
-                                                                                  %))
-                                                      (var-env/with-lexical-env env))))
+                              cexpr (check-expr expr
+                                                ;propagate expected type only to final expression
+                                                (when (= (inc n) nexprs)
+                                                  expected)
+                                                (-> opts
+                                                    ; always prefer envs with :line information, even if inaccurate
+                                                    (update ::vs/current-env #(if (:line (:env expr))
+                                                                                (:env expr)
+                                                                                %))
+                                                    (assoc ::vs/current-expr expr)
+                                                    (var-env/with-lexical-env env)))
                               res (u/expr-type cexpr)
                               {fs+ :then fs- :else} (r/ret-f res)
                               nenv (update/env+ env [(fo/-or [fs+ fs-] opts)] reachable opts)

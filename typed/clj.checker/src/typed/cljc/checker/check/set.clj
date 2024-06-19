@@ -31,8 +31,7 @@
                      :cljs (c/-name 'typed.clojure/Set (c/Un ts opts))))]
     (assoc expr
            :items cargs
-           u/expr-type (binding [vs/*current-expr* expr]
-                         (below/maybe-check-below
-                           (r/ret res-type (fo/-true-filter))
-                           expected
-                           opts)))))
+           u/expr-type (below/maybe-check-below
+                         (r/ret res-type (fo/-true-filter))
+                         expected
+                         (assoc opts ::vs/current-expr expr)))))

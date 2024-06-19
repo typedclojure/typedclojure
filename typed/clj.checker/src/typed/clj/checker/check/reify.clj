@@ -94,7 +94,7 @@
                         (assoc clojure.lang.IObj {:static-type (c/RClass-of clojure.lang.IObj opts)}
                                Object {:static-type (c/RClass-of Object opts)}))
         this-t (c/In (map (comp :static-type val) class->info) opts)]
-    (binding [vs/*current-expr* original-reify-expr]
+    (let [opts (assoc opts ::vs/current-expr original-reify-expr)]
       (-> expr
           (update :methods (fn [methods]
                              (let [methods (map #(into % (select-keys (ana2/run-passes %) [:methods])) methods)]

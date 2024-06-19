@@ -39,13 +39,12 @@
         ;_ (prn "ccatches ret" (mapv u/expr-type ccatches))
         ; finally result is thrown away
         cfinally (some-> finally (check-expr nil opts))
-        ret (binding [vs/*current-expr* expr]
-              (below/maybe-check-below
-                (combine-rets
-                  (map u/expr-type (concat [cbody] ccatches))
-                  opts)
-                expected
-                opts))]
+        ret (below/maybe-check-below
+              (combine-rets
+                (map u/expr-type (concat [cbody] ccatches))
+                opts)
+              expected
+              (assoc opts ::vs/current-expr expr))]
     ;(prn "try ret" ret)
     (assoc expr
            :body cbody

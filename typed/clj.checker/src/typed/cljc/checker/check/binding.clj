@@ -13,8 +13,7 @@
 
 (defn check-binding
   [{:keys [init] :as expr} expected {::check/keys [check-expr] :as opts}]
-  (let [cinit (binding [vs/*current-expr* init]
-                (check-expr init expected opts))]
+  (let [cinit (check-expr init expected (assoc opts ::vs/current-expr init))]
     (assoc expr
            :init cinit
            u/expr-type (u/expr-type cinit))))

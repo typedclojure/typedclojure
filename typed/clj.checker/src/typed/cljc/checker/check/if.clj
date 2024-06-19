@@ -77,8 +77,10 @@
   (if (not reachable?)
     (assoc expr 
            u/expr-type (unreachable-ret))
-    (binding [vs/*current-expr* expr]
-      (check-expr expr expected (var-env/with-lexical-env opts lex-env)))))
+    (check-expr expr expected
+                (-> opts
+                    (assoc ::vs/current-expr expr)
+                    (var-env/with-lexical-env lex-env)))))
 
 (defn check-if [{:keys [test then else] :as expr} expected
                 {::vs/keys [^java.util.concurrent.ExecutorService check-threadpool]

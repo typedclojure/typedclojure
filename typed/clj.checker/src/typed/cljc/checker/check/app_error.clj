@@ -75,7 +75,7 @@
                      (cu/MethodExpr->qualsym fexpr opts))]
     (prs/with-unparse-ns (or prs/*unparse-type-in-ns*
                              (or (some-> fexpr (cu/expr-ns opts))
-                                 (some-> vs/*current-expr* (cu/expr-ns opts))))
+                                 (some-> (::vs/current-expr opts) (cu/expr-ns opts))))
       (err/tc-delayed-error
         (str
           (if poly?

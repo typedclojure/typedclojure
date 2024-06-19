@@ -370,7 +370,7 @@
       :else (let [cbody (let [body (-> `(do ~@body-syns)
                                        (ana2/unanalyzed ana-env))
                               opts (var-env/with-lexical-env opts prop-env)]
-                          (binding [vs/*current-expr* body]
+                          (let [opts (assoc opts ::vs/current-expr body)]
                             (-> body
                                 (check-expr expected opts))))
                   unshadowed-ret (let/erase-objects new-syms (u/expr-type cbody) opts)]

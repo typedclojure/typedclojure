@@ -26,46 +26,46 @@
   [-invoke-apply {[fexpr & args] :args :as expr} expected {::check/keys [check-expr] :as opts}]
   {:post [((some-fn nil? (comp r/TCResult? u/expr-type)) %)]}
   (or (-invoke-apply expr expected opts)
-      (binding [vs/*current-expr* expr]
-        (let [cfexpr (check-expr fexpr nil opts)
-              ftype (r/ret-t (u/expr-type cfexpr))
-              [fixed-args tail] [(butlast args) (last args)]]
-          (cond
-            ;; apply of a simple polymorphic function
-            (r/Poly? ftype)
-            (let [vars (c/Poly-fresh-symbols* ftype)
-                  bbnds (c/Poly-bbnds* vars ftype opts)
-                  body (c/Poly-body* vars ftype opts)
-                  _ (assert (r/FnIntersection? body))
-                  fixed-args (mapv #(check-expr % nil opts) fixed-args)
-                  arg-tys (mapv (comp r/ret-t u/expr-type) fixed-args)
-                  ctail (check-expr tail nil opts)
-                  tail-ty (r/ret-t (u/expr-type ctail))
-                  expr (assoc expr
-                              :args (vec (cons cfexpr (conj fixed-args ctail))))]
-              (loop [[{:keys [dom rng rest] :as ftype0} :as fs] (:types body)]
-                (cond
-                  (empty? fs) (err/tc-delayed-error (str "Bad arguments to polymorphic function in apply")
-                                                    {:return (assoc expr
-                                                                    u/expr-type (cu/error-ret expected))}
-                                                    opts)
+      (let [opts (assoc opts ::vs/current-expr expr)
+            cfexpr (check-expr fexpr nil opts)
+            ftype (r/ret-t (u/expr-type cfexpr))
+            [fixed-args tail] [(butlast args) (last args)]]
+        (cond
+          ;; apply of a simple polymorphic function
+          (r/Poly? ftype)
+          (let [vars (c/Poly-fresh-symbols* ftype)
+                bbnds (c/Poly-bbnds* vars ftype opts)
+                body (c/Poly-body* vars ftype opts)
+                _ (assert (r/FnIntersection? body))
+                fixed-args (mapv #(check-expr % nil opts) fixed-args)
+                arg-tys (mapv (comp r/ret-t u/expr-type) fixed-args)
+                ctail (check-expr tail nil opts)
+                tail-ty (r/ret-t (u/expr-type ctail))
+                expr (assoc expr
+                            :args (vec (cons cfexpr (conj fixed-args ctail))))]
+            (loop [[{:keys [dom rng rest] :as ftype0} :as fs] (:types body)]
+              (cond
+                (empty? fs) (err/tc-delayed-error (str "Bad arguments to polymorphic function in apply")
+                                                  {:return (assoc expr
+                                                                  u/expr-type (cu/error-ret expected))}
+                                                  opts)
 
-                  (not (#{:fixed :rest} (:kind ftype0))) nil
+                (not (#{:fixed :rest} (:kind ftype0))) nil
 
-                  ;the actual work, when we have a * function and a list final argument
-                  :else 
-                  (if-let [substitution (cgen/handle-failure
-                                          (and rest
-                                               (<= (count dom)
-                                                   (count arg-tys))
-                                               (cgen/infer-vararg (zipmap vars bbnds)
-                                                                  {}
-                                                                  (cons tail-ty arg-tys)
-                                                                  (cons (c/Un [r/-nil (c/-name `t/Seqable rest)] opts) dom)
-                                                                  rest
-                                                                  (r/Result-type* rng)
-                                                                  (some-> expected r/ret-t)
-                                                                  opts)))]
-                    (assoc expr
-                           u/expr-type (r/ret (subst/subst-all substitution (r/Result-type* rng) opts)))
-                    (recur (next fs)))))))))))
+                ;the actual work, when we have a * function and a list final argument
+                :else 
+                (if-let [substitution (cgen/handle-failure
+                                        (and rest
+                                             (<= (count dom)
+                                                 (count arg-tys))
+                                             (cgen/infer-vararg (zipmap vars bbnds)
+                                                                {}
+                                                                (cons tail-ty arg-tys)
+                                                                (cons (c/Un [r/-nil (c/-name `t/Seqable rest)] opts) dom)
+                                                                rest
+                                                                (r/Result-type* rng)
+                                                                (some-> expected r/ret-t)
+                                                                opts)))]
+                  (assoc expr
+                         u/expr-type (r/ret (subst/subst-all substitution (r/Result-type* rng) opts)))
+                  (recur (next fs))))))))))

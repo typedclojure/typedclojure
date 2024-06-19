@@ -61,7 +61,7 @@
                                 (configs/register-cljs-config-exts)))
 
 (defn maybe-check-unanalyzed [{:keys [form env] :as expr} expected {::check/keys [check-expr] :as opts}]
-  (binding [vs/*current-expr* expr]
+  (let [opts (assoc opts ::vs/current-expr expr)]
     (or (unanalyzed/-unanalyzed-special expr expected opts)
         ;; don't expand macros that inline raw js
         (when-some [rsym (when (seq? form) (ana2/resolve-sym (first form) env))]
@@ -161,24 +161,25 @@
   (assert (= 2 (count args)) "Wrong arguments to instance?")
   ; are arguments the correct way round?
   (assert (:from-js-op expr) "instance? without inlining NYI")
-  (binding [vs/*current-expr* expr]
-    (let [opts (assoc opts ::vs/current-env (:env expr))
-          target-expr (first args)
-          inst-of-expr (second args)
-          varsym (when (#{:var} (:op inst-of-expr))
-                   (-> inst-of-expr :name))
-          _ (when-not varsym
-              (err/int-error (str "First argument to instance? must be a datatype var "
-                                (:op inst-of-expr))
-                             opts))
-          inst-of (c/DataType-with-unknown-params varsym opts)
-          cexpr (check-expr target-expr nil opts)
-          expr-tr (expr-type cexpr)
-          final-ret (ret (r/JSBoolean-maker)
-                         (fo/-FS (fo/-filter-at inst-of (ret-o expr-tr))
-                                 (fo/-not-filter-at inst-of (ret-o expr-tr))))]
-      (assoc expr
-             expr-type final-ret))))
+  (let [opts (-> opts
+                 (assoc ::vs/current-env (:env expr))
+                 (assoc ::vs/current-expr expr))
+        target-expr (first args)
+        inst-of-expr (second args)
+        varsym (when (#{:var} (:op inst-of-expr))
+                 (-> inst-of-expr :name))
+        _ (when-not varsym
+            (err/int-error (str "First argument to instance? must be a datatype var "
+                              (:op inst-of-expr))
+                           opts))
+        inst-of (c/DataType-with-unknown-params varsym opts)
+        cexpr (check-expr target-expr nil opts)
+        expr-tr (expr-type cexpr)
+        final-ret (ret (r/JSBoolean-maker)
+                       (fo/-FS (fo/-filter-at inst-of (ret-o expr-tr))
+                               (fo/-not-filter-at inst-of (ret-o expr-tr))))]
+    (assoc expr
+           expr-type final-ret)))
 
 ;=
 (defmethod invoke-special 'cljs.core/= 
@@ -197,12 +198,12 @@
   {:pre [((every-pred symbol? namespace) vname)
          ((some-fn nil? r/TCResult?) expected)]
    :post [(r/TCResult? %)]}
-  (binding [vs/*current-expr* expr]
-    (let [t (var-env/type-of vname opts)]
-      (below/maybe-check-below
-        (ret t)
-        expected
-        opts))))
+  (let [opts (assoc ::vs/current-expr expr)
+        t (var-env/type-of vname opts)]
+    (below/maybe-check-below
+      (ret t)
+      expected
+      opts)))
 
 (defn check-var
   [{vname :name :as expr} expected opts]
@@ -393,8 +394,10 @@
        (do @*register-exts
            (or (maybe-check-unanalyzed expr expected opts)
                (recur (tana2/analyze-outer expr) (max -1 (dec fuel)))))
-       (binding [vs/*current-expr* expr]
-         (-check expr expected (update opts ::vs/current-env #(if (:line env) env %))))))))
+       (-check expr expected
+               (-> opts
+                   (update ::vs/current-env #(if (:line env) env %))
+                   (assoc ::vs/current-expr expr)))))))
 
 (defn check-top-level
   "Type check a top-level form at an expected type, returning a

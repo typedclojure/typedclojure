@@ -125,8 +125,7 @@
                       (if is-loop
                         (binding [recur-u/*recur-target* (recur-u/RecurTarget-maker expected-bnds nil nil nil)]
                           (check-expr body expected opts))
-                        (binding [vs/*current-expr* body]
-                          (check-expr body expected opts))))
+                        (check-expr body expected (assoc opts ::vs/current-expr body))))
              unshadowed-ret (erase-objects (into #{} (map :name) cbindings) (u/expr-type cbody) opts)]
           (assoc expr
                  :body cbody

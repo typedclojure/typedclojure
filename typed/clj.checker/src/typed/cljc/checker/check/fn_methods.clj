@@ -190,13 +190,14 @@
                                                                mthods)]
                                                   ;; it is a type error if no matching methods are found.
                                                   (when (empty? ms)
-                                                    (let [opts (assoc opts ::vs/current-env (impl/impl-case opts
-                                                                                              :clojure (first mthods)
-                                                                                              ; fn-method is not printable in cljs
-                                                                                              :cljs vs/*current-expr*))]
-                                                      (let [opts (update opts ::vs/current-env #(or (:env (first mthods)) %))]
-                                                        (prs/with-unparse-ns (cu/expr-ns (first mthods) opts)
-                                                          (err/tc-delayed-error (str "No matching arities: " (prs/unparse-type t opts)) opts)))))
+                                                    (let [opts (-> opts
+                                                                   (update ::vs/current-env #(or (:env (first mthods)) %))
+                                                                   (update ::vs/current-expr #(impl/impl-case opts
+                                                                                                :clojure (first mthods)
+                                                                                                ; fn-method is not printable in cljs
+                                                                                                :cljs %)))]
+                                                      (prs/with-unparse-ns (cu/expr-ns (first mthods) opts)
+                                                        (err/tc-delayed-error (str "No matching arities: " (prs/unparse-type t opts)) opts))))
                                                   ms))]
                                  [t ms])))
                         (:types fin))]

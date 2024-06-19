@@ -42,7 +42,7 @@
             _ (assert ((some-fn obj/Path? obj/EmptyObject?) o))
             this-pelem (pe/-kpe (:val kwt))
             val-type (c/find-val-type targett kwt defaultt #{} opts)]
-        (binding [vs/*current-expr* (or expr vs/*current-expr*)]
+        (let [opts (update opts ::vs/current-env #(or expr %))]
           (below/maybe-check-below
             (if (or (r/Bottom? targett)
                     (not (r/Bottom? val-type)))

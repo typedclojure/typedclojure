@@ -336,8 +336,8 @@
 
 (defmethod parse-type-list 'typed.clojure/CountRange [t opts] (parse-CountRange t opts))
 
-(defn uniquify-local [sym]
-  (get-in vs/*current-expr* [:env ::uniquify/locals-frame-val sym]))
+(defn uniquify-local [sym {::vs/keys [current-expr] :as opts}]
+  (get-in current-expr [:env ::uniquify/locals-frame-val sym]))
 
 (defmethod parse-type-list 'typed.clojure/TypeOf [[_ sym :as t] opts]
   (impl/assert-clojure opts)
@@ -345,7 +345,7 @@
     (prs-error (str "Wrong number of arguments to TypeOf (" (count t) ")") opts))
   (when-not (symbol? sym)
     (prs-error "Argument to TypeOf must be a symbol." opts))
-  (let [uniquified-local (uniquify-local sym)
+  (let [uniquified-local (uniquify-local sym opts)
         vsym (let [r (resolve-type-clj sym opts)]
                (when (var? r)
                  (coerce/var->symbol r)))]

@@ -42,7 +42,7 @@
 
 (defn int-error
   ([estr opts] (int-error estr {} opts))
-  ([estr {:keys [cause visible-cause use-current-env] :as opt} opts]
+  ([estr {:keys [cause visible-cause use-current-env] :as opt} {::uvs/keys [current-expr] :as opts}]
    (assert (not (and cause visible-cause)))
    (let [{:keys [line column file] :as env} (::uvs/current-env opts)]
      (throw (ex-info (str "Internal Error "
@@ -61,7 +61,7 @@
                        {:type-error int-error-kw
                         :env (or (when (and env
                                             (not use-current-env))
-                                   (:env uvs/*current-expr*))
+                                   (:env current-expr))
                                  (env-for-error env opts))}
                        ;; don't want this to unwrap in the REPL, so don't use 3rd arg of ex-info
                        cause (assoc :cause cause))
@@ -115,12 +115,12 @@
 (defn tc-delayed-error
   "Supports kw args or single optional map."
   ([msg opts] (tc-delayed-error msg {} opts))
-  ([msg {:keys [return form expected] :as opt} {::uvs/keys [delayed-errors] :as opts}]
+  ([msg {:keys [return form expected] :as opt} {::uvs/keys [delayed-errors current-expr] :as opts}]
    (let [form (cond
                 (contains? (:opts expected) :blame-form) (-> expected :opts :blame-form)
                 (contains? opt :blame-form) (:blame-form opt)
                 (contains? opt :form) form
-                :else (or (some-> uvs/*current-expr* (ast-u/emit-form-fn opts))
+                :else (or (some-> current-expr (ast-u/emit-form-fn opts))
                           '<NO-FORM>))
          msg (str (when-some [msg-fn (some-> (or (-> expected :opts :msg-fn)
                                                  (:msg-fn opt))
@@ -137,7 +137,7 @@
                   msg)
          e (ex-info msg {:type-error type-error-kw
                          :env (env-for-error
-                                (merge (or (:env uvs/*current-expr*)
+                                (merge (or (:env current-expr)
                                            (::uvs/current-env opts))
                                        (when (contains? (:opts expected) :blame-form)
                                          (meta (-> expected :opts :blame-form))))
