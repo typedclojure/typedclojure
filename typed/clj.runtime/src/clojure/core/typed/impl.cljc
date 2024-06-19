@@ -191,16 +191,15 @@
   nil)
 
 (defmacro ^:no-doc with-current-location
-  [form & body]
+  [opts form]
   `(core/let [form# ~form]
-     (with-bindings {(requiring-resolve 'clojure.core.typed.util-vars/*current-env*)
-                     {:ns {:name (ns-name *ns*)}
-                      :file *file*
-                      :line (or (-> form# meta :line)
-                                #?(:cljr @Compiler/LineVar :default @Compiler/LINE))
-                      :column (or (-> form# meta :column)
-                                  #?(:cljr @Compiler/ColumnVar :default @Compiler/COLUMN))}}
-       (do ~@body))))
+     (assoc ~opts :clojure.core.typed.util-vars/current-env
+            {:ns {:name (ns-name *ns*)}
+             :file *file*
+             :line (or (-> form# meta :line)
+                       #?(:cljr @Compiler/LineVar :default @Compiler/LINE))
+             :column (or (-> form# meta :column)
+                         #?(:cljr @Compiler/ColumnVar :default @Compiler/COLUMN))})))
 
 (defmacro ^:private delay-rt-parse
   "We can type check c.c.t/parse-ast if we replace all instances
@@ -230,7 +229,7 @@
       ((requiring-resolve 'clojure.core.typed.current-impl/add-alias-env)
        ((requiring-resolve 'clojure.core.typed.current-impl/clj-checker))
        qsym
-       (with-current-location form
+       (core/let [opts (with-current-location opts form)]
          (delay-rt-parse t opts)))))
   nil)
 
@@ -250,7 +249,7 @@
              (core/let
                [unparse-type (requiring-resolve 'typed.clj.checker.parse-unparse/unparse-type)
                 t (bfn
-                    #(with-current-location form
+                    #(core/let [opts (with-current-location opts form)]
                        ((requiring-resolve 'typed.cljc.runtime.env-utils/force-type)
                         (delay-tc-parse t opts))))
                 _ (with-clojure-impl
@@ -595,7 +594,7 @@
        var (resolve varsym)
        _ (assert (var? var) (str varsym " must resolve to a var."))
        qsym ((requiring-resolve 'clojure.core.typed.coerce-utils/var->symbol) var)
-       expected-type (with-current-location form
+       expected-type (core/let [opts (with-current-location opts form)]
                        (delay-tc-parse typesyn opts))
        _ ((requiring-resolve 'clojure.core.typed.current-impl/add-untyped-var) checker prs-ns qsym expected-type)]
       nil)))
@@ -641,9 +640,9 @@
                             [(second form)
                              (first form)])
                       form)
-         ast (with-current-location loc-form
+         ast (core/let [opts (with-current-location opts loc-form)]
                (delay-rt-parse typesyn opts))
-         tc-type (with-current-location loc-form
+         tc-type (core/let [opts (with-current-location opts loc-form)]
                    (delay-tc-parse typesyn opts))]
         (add-var-env checker qsym ast)
         (add-tc-var-type checker qsym tc-type))))
@@ -704,8 +703,8 @@
            :name qname
            :fields fields
            :bnd vbnd})
-        (with-current-location form
-          (gen-datatype* @(requiring-resolve 'clojure.core.typed.util-vars/*current-env*) (ns-name *ns*) dname fields vbnd opt false checker opts))
+        (core/let [opts (with-current-location opts form)]
+          (gen-datatype* (:clojure.core.typed.util-vars/current-env opts) (ns-name *ns*) dname fields vbnd opt false checker opts))
         nil))))
 
 (core/defn
@@ -787,8 +786,8 @@
            :name qname
            :fields fields
            :bnd vbnd})
-        (with-current-location form
-          (gen-datatype* @(requiring-resolve 'clojure.core.typed.util-vars/*current-env*) (ns-name *ns*) dname fields vbnd opt true checker opts))
+        (core/let [opts (with-current-location opts form)]
+          (gen-datatype* (:clojure.core.typed.util-vars/current-env opts) (ns-name *ns*) dname fields vbnd opt true checker opts))
         nil))))
 
 (core/defn 
@@ -867,9 +866,9 @@
           {:name qualsym
            :methods mth
            :bnds vbnd})
-        (with-current-location form
+        (core/let [opts (with-current-location opts form)]
           (gen-protocol*
-            @(requiring-resolve 'clojure.core.typed.util-vars/*current-env*)
+            (:clojure.core.typed.util-vars/current-env opts)
             (ns-name *ns*)
             varsym
             vbnd
@@ -999,7 +998,7 @@
       (add-constructor-override 
         checker
         ctorsym
-        (with-current-location form
+        (core/let [opts (with-current-location opts form)]
           (delay-tc-parse typesyn opts)))
       nil)))
 
@@ -1021,7 +1020,7 @@
       (add-method-override 
         checker
         methodsym
-        (with-current-location form
+        (core/let [opts (with-current-location opts form)]
           (delay-tc-parse typesyn opts)))
       nil)))
 
@@ -1055,15 +1054,14 @@
   "Internal use only. Use typed-deps."
   [args form]
   (with-clojure-impl
-    (core/let [opts ((requiring-resolve 'typed.clj.runtime.env/clj-opts))
+    (core/let [opts (-> ((requiring-resolve 'typed.clj.runtime.env/clj-opts))
+                        (with-current-location form))
                checker ((requiring-resolve 'clojure.core.typed.current-impl/clj-checker))
                ns->URL (requiring-resolve 'clojure.core.typed.coerce-utils/ns->URL)
                add-ns-deps (requiring-resolve 'clojure.core.typed.current-impl/add-ns-deps)]
-      (with-current-location form
-        (core/doseq [dep args]
-          (when-not (ns->URL dep opts)
-            (int-error (str "Cannot find dependency declared with typed-deps: " dep) opts)))
-        (add-ns-deps checker (ns-name *ns*) (set args)))
+      (core/doseq [dep args]
+        (when-not (ns->URL dep opts)
+          (int-error (str "Cannot find dependency declared with typed-deps: " dep) opts)))
       nil)))
 
 (core/defn typed-deps 
@@ -1344,8 +1342,12 @@
       ;=> true"
   [&form t]
   (register!)
-  (with-current-location &form
-    ((requiring-resolve 'clojure.core.typed.type-contract/type-syntax->pred) t)))
+  ((requiring-resolve 'clojure.core.typed.type-contract/type-syntax->pred)
+   t
+   {}
+   (-> ((requiring-resolve 'typed.clj.runtime.env/clj-opts))
+       (with-current-location &form)
+       (assoc :typed.clj.checker.parse-unparse/parse-type-in-ns (ns-name *ns*)))))
 
 (core/defn cast
   "Cast a value to a type. Returns a new value that conforms
@@ -1394,9 +1396,11 @@
         ;; - clojure.core.typed.check.special.cast
         ((core/fn [x#]
            ((requiring-resolve 'clojure.core.typed.contract/contract*)
-             ~(with-current-location &form
-                ((requiring-resolve 'clojure.core.typed.type-contract/type-syntax->contract)
-                 t))
+            ~((requiring-resolve 'clojure.core.typed.type-contract/type-syntax->contract)
+              t
+              (-> ((requiring-resolve 'typed.clj.runtime.env/clj-opts))
+                  (with-current-location &form)
+                  (assoc :typed.clj.checker.parse-unparse/parse-type-in-ns (ns-name *ns*))))
              x#
              (core/let [opt# ~opt]
                ((requiring-resolve 'clojure.core.typed.contract/make-blame)

@@ -8,8 +8,6 @@
 
 (ns clojure.core.typed.util-vars)
 
-(defonce ^:no-doc ^:dynamic *current-env* nil)
-
 (defonce ^:dynamic 
   ^{:doc 
   "If true, print fully qualified types in error messages

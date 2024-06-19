@@ -165,9 +165,10 @@
       (-> t
           (prs/unparse-type opts) 
           ;; TODO do any other pred cases need parity flips?
-          (type-contract/type-syntax->pred (assoc opts
-                                                  ::type-contract/Fn-pred-syntax generative-Fn-pred-syntax
-                                                  ::type-contract/Poly-pred-syntax generative-Poly-pred-syntax))
+          (type-contract/type-syntax->pred
+            {::type-contract/Fn-pred-syntax generative-Fn-pred-syntax
+             ::type-contract/Poly-pred-syntax generative-Poly-pred-syntax}
+            (assoc opts :typed.clj.checker.parse-unparse/parse-type-in-ns (ns-name *ns*)))
           eval))))
 
 (defn- sub-bottom? [t opts]

@@ -50,10 +50,10 @@
 (def ^:private cljs-ns #((requiring-resolve 'typed.cljs.checker.util/cljs-ns)))
 
 (defmacro ^:private delay-tc-parse
-  [t]
+  [t opts]
   `(core/let [t# ~t
               app-outer-context# (bound-fn [f#] (f#))
-              opts# ((requiring-resolve 'typed.cljs.runtime.env/cljs-opts))]
+              opts# ~opts]
      (delay
        (app-outer-context#
          (core/fn []
@@ -63,16 +63,18 @@
 (def ^:private int-error #(apply (requiring-resolve 'clojure.core.typed.errors/int-error) %&)) 
 
 (defmacro ^:private ^:no-doc with-current-location
-  [{:keys [form env]} & body]
-  `(core/let [form# ~form
+  [opts {:keys [form env] :as m}]
+  (assert (map? m))
+  `(core/let [opts# ~opts
+              form# ~form
               env# ~env]
-     (binding [vs/*current-env* {:ns (or (:ns env#)
-                                         {:name (cljs-ns)})
-                                 :line (or (-> form# meta :line)
-                                           (:line env#)
-                                           :column (or (-> form# meta :column)
-                                                       (:column env#)))}]
-       ~@body)))
+     (assoc opts# ::vs/current-env
+            {:ns (or (:ns env#)
+                     {:name (cljs-ns)})
+             :line (or (-> form# meta :line)
+                       (:line env#)
+                       :column (or (-> form# meta :column)
+                                   (:column env#)))})))
 
 (core/defn ^:no-doc add-tc-type-name [form qsym t]
   {:pre [(seq? form)
@@ -80,9 +82,10 @@
   (impl/with-cljs-impl
     (core/let
       [;; preserve *ns*
+       opts ((requiring-resolve 'typed.cljs.runtime.env/cljs-opts))
        bfn (bound-fn []
-             (with-current-location form
-               @(delay-tc-parse t)))
+             (core/let [opts (with-current-location opts {:form form :env nil})]
+               @(delay-tc-parse t opts)))
        t (delay
            ;(prn "CLJS" qsym t)
            (core/let [;unparse-type (requiring-resolve 'typed.clj.checker.parse-unparse/unparse-type)
@@ -103,7 +106,10 @@
   ann*-macro-time
   "Internal use only. Use ann."
   [qsym typesyn check? form env]
-  (core/let [checker (impl/cljs-checker)
+  (core/let [opts (with-current-location
+                    ((requiring-resolve 'typed.cljs.runtime.env/cljs-opts))
+                    {:form form :env env})
+             checker (impl/cljs-checker)
              _ (when (and (contains? (impl/var-env checker) qsym)
                           (not (impl/check-var? checker qsym))
                           check?)
@@ -111,10 +117,8 @@
                  (impl/remove-nocheck-var checker qsym))
              _ (when-not check?
                  (impl/add-nocheck-var checker qsym))
-             #_#_ast (with-current-location {:form form :env env}
-                       (delay-rt-parse typesyn))
-             tc-type (with-current-location {:form form :env env}
-                       (delay-tc-parse typesyn))]
+             #_#_ast (delay-rt-parse typesyn)
+             tc-type (delay-tc-parse typesyn opts)]
     #_(impl/with-impl impl/clojurescript
         (impl/add-var-env checker qsym ast))
     (impl/with-impl impl/clojurescript
@@ -176,9 +180,9 @@
          :methods mth
          :bnds vbnd}))
     (impl/with-cljs-impl
-      (with-current-location form
+      (core/let [opts (with-current-location opts {:form form :env nil})]
         (gen-protocol*
-          vs/*current-env*
+          (::vs/current-env opts)
           (cljs-ns)
           varsym
           vbnd
@@ -262,8 +266,8 @@
          :name qname
          :fields fields
          :bnd vbnd})
-      (with-current-location form
-        (gen-datatype* vs/*current-env* (cljs-ns) qname fields vbnd opts false checker opts))
+      (core/let [opts (with-current-location opts {:form form :env nil})]
+        (gen-datatype* (::vs/current-env opts) (cljs-ns) qname fields vbnd opts false checker opts))
       nil)))
 
 (defmacro
