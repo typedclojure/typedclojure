@@ -85,15 +85,16 @@
   (let [ctest (check-expr test nil opts)
         tst (u/expr-type ctest)
         {fs+ :then fs- :else :as tst-f} (r/ret-f tst)
-
         lex-env (lex/lexical-env opts)
-        [env-thn reachable+] (update-lex+reachable lex-env fs+ opts)
-        [env-els reachable-] (update-lex+reachable lex-env fs- opts)
+        ;;TODO parallelize
+        {:keys [cthen env-thn]} (let [[env-thn reachable+] (update-lex+reachable lex-env fs+ opts)]
+                                  {:env-thn env-thn
+                                   :cthen (check-if-reachable then env-thn reachable+ expected opts)})
+        {:keys [celse env-els]} (let [[env-els reachable-] (update-lex+reachable lex-env fs- opts)]
+                                   {:env-els env-els
+                                    :celse (check-if-reachable else env-els reachable- expected opts)})
 
-        cthen (check-if-reachable then env-thn reachable+ expected opts)
         then-ret (u/expr-type cthen)
-
-        celse (check-if-reachable else env-els reachable- expected opts)
         else-ret (u/expr-type celse)]
     (let [if-ret (combine-rets tst-f then-ret env-thn else-ret env-els opts)]
       (assoc expr
