@@ -12,6 +12,7 @@
   (:require [clojure.core.typed.coerce-utils :as coerce]
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.errors :as err]
+            [clojure.string :as str]
             [typed.cljc.runtime.perf-utils :refer [repeatedly]]
             [clojure.set :as set]
             [clojure.core.typed.util-vars :as vs]
@@ -416,11 +417,35 @@
       A
       (report-not-subtypes s t))))
 
-(defn subtype-Union-left [A s t opts]
+(defn subtype-Union-left [A {:keys [types] :as s} t opts]
   {:pre [(r/Union? s)]}
-  (if (every? (fn union-left [s] (subtypeA* A s t opts)) (:types s))
-    A
-    (report-not-subtypes s t)))
+  (let [^java.util.concurrent.ExecutorService threadpool vs/*check-threadpool*
+        good? (if false #_(and threadpool (< 1 (count types)))
+                (let [fs (mapv (fn [s] (fn [] (subtypeA* A s t opts))) types)
+                      bs (get-thread-bindings)]
+                  (reduce (fn [acc ^java.util.concurrent.Future future]
+                            (let [{:keys [ex res out]} (try (.get future)
+                                                            (catch java.util.concurrent.ExecutionException e
+                                                              (throw (or (.getCause e) e))))]
+                              (some-> out str/trim not-empty println)
+                              (some-> ex throw)
+                              (and acc res)))
+                          true (.invokeAll threadpool (map (fn [f]
+                                                             (fn []
+                                                               (with-bindings bs
+                                                                 (let [ex (volatile! nil)
+                                                                       res (volatile! nil)
+                                                                       out (with-out-str
+                                                                             (try (vreset! res (f))
+                                                                                  (catch Throwable e (vreset! ex e))))]
+                                                                   {:ex @ex
+                                                                    :res @res
+                                                                    :out out}))))
+                                                           fs))))
+                (every? (fn [s] (subtypeA* A s t opts)) types))]
+    (if good?
+      A
+      (report-not-subtypes s t))))
 
 (defn subtype-Intersection-right [A s t opts]
   {:pre [(r/Intersection? t)]}
