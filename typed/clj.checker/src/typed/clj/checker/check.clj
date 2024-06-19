@@ -706,7 +706,7 @@
               (and (-> % u/expr-type r/TCResult?)
                    (-> % :target u/expr-type r/TCResult?)))]}
   (when (= 1 (count (:args expr)))
-    (let [opts (assoc expr ::vs/current-expr expr)
+    (let [opts (assoc opts ::vs/current-expr expr)
           {[target] :args :as expr} (-> expr
                                         (update :args #(mapv (fn [t] (check-expr t nil opts)) %)))
           targett (-> target u/expr-type r/ret-t (c/fully-resolve-type opts))]

@@ -14,7 +14,7 @@
                    :cljr (instance? clojure.lang.IAtom2 c)
                    :cljs (instance? Atom c))
                 (delay? c))
-            (str "No checker state: " (pr-str c)))
+            (str "No checker state: " (pr-str c) " " (pr-str (class opts)) " " (keys opts)))
     c))
 
 (defn empty-checker []
