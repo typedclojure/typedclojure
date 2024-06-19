@@ -2875,7 +2875,7 @@
   (return-if-changed
     (fn [changed?]
       (mapv (fn [arg v]
-              (let [arg' (type-rec arg {:variance v})]
+              (let [arg' (type-rec arg #_{:variance v})]
                 (when-not (identical? arg arg')
                   (vreset! changed? true))
                 arg'))
@@ -3143,7 +3143,7 @@
 (add-default-fold-case NotTypeFilter
                        (fn [ty]
                          (fr/update-NotTypeFilter ty
-                           [:type type-rec {:variance :contravariant}]
+                           [:type type-rec #_{:variance :contravariant}]
                            [:path #(some->> % (into-identical [] pathelem-rec))])))
 
 (add-default-fold-case ImpFilter
