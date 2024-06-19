@@ -161,8 +161,10 @@
                                       out (with-bindings (assoc bndings
                                                                 ;; force types to reparse to detect dependencies in per-form cache
                                                                 ;; might affect TypeFn variance inference
-                                                                #'env-utils/*type-cache* (do (assert (not env-utils/*type-cache*))
-                                                                                             (atom {})))
+                                                                #'env-utils/*type-cache* (do 
+                                                                                           ;; forkjoin pool makes bindings bleed across threads
+                                                                                           #_(assert (not env-utils/*type-cache*))
+                                                                                           (atom {})))
                                             (if threadpool
                                               (with-out-str
                                                 (chk))
