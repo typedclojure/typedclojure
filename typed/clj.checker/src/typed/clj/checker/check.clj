@@ -149,35 +149,32 @@
                               (fn []
                                 (let [delayed-errors (err/-init-delayed-errors)
                                       opts (-> opts
-                                               (assoc ::vs/delayed-errors delayed-errors))]
-                                  (with-bindings (assoc bndings
-                                                        ;; force types to reparse to detect dependencies in per-form cache
-                                                        ;; might affect TypeFn variance inference
-                                                        #'env-utils/*type-cache* (do (assert (not env-utils/*type-cache*))
-                                                                                     (atom {})))
-                                    (try (check-top-level form nil {:env (assoc env :ns (ns-name *ns*))
-                                                                    :top-level-form-string sform
-                                                                    :ns-form-string ns-form-str}
-                                                          opts)
-                                         {:errors @delayed-errors}
-                                         (catch clojure.lang.ExceptionInfo e
-                                           (if (-> e ex-data :type-error)
-                                             {:errors (conj @delayed-errors e)}
-                                             (throw e))))))))
+                                               (assoc ::vs/delayed-errors delayed-errors))
+                                      ex (volatile! nil)
+                                      out (with-bindings (assoc bndings
+                                                                ;; force types to reparse to detect dependencies in per-form cache
+                                                                ;; might affect TypeFn variance inference
+                                                                #'env-utils/*type-cache* (do (assert (not env-utils/*type-cache*))
+                                                                                             (atom {})))
+                                            (with-out-str
+                                              (try (check-top-level form nil {:env (assoc env :ns (ns-name *ns*))
+                                                                              :top-level-form-string sform
+                                                                              :ns-form-string ns-form-str}
+                                                                    opts)
+                                                   (catch Throwable e (vreset! ex e)))))]
+                                  (-> (if-let [ex @ex]
+                                        (if (-> ex ex-data :type-error)
+                                          {:errors (conj @delayed-errors ex)}
+                                          {:ex ex})
+                                        {:errors @delayed-errors})
+                                      (assoc :out out)))))
                             forms-info)
                    results (if-some [^java.util.concurrent.ExecutorService
                                      threadpool vs/*check-threadpool*]
                              (mapv (fn [^java.util.concurrent.Future future]
-                                     (let [ex (volatile! nil)
-                                           res (volatile! nil)
-                                           out (with-out-str
-                                                 (try (vreset! res (.get future))
-                                                      (catch java.util.concurrent.ExecutionException e
-                                                        (vreset! ex (or (.getCause e) e)))))]
-                                       (-> (if-let [ex @ex]
-                                             {:ex ex}
-                                             @res)
-                                           (assoc :out out))))
+                                     (try (.get future)
+                                          (catch java.util.concurrent.ExecutionException e
+                                            (throw (or (.getCause e) e)))))
                                    (.invokeAll threadpool exs))
                              (mapv #(%) exs))
                    _ (swap! delayed-errors into (mapcat (fn [{:keys [ex errors out]}]
