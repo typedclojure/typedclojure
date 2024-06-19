@@ -9,6 +9,7 @@
 (ns typed.cljc.checker.check-ns-common
   (:refer-clojure :exclude [requiring-resolve delay])
   (:require [clojure.core.cache :as cache]
+            [clojure.string :as str]
             [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]
             [io.github.frenchy64.fully-satisfies.safe-locals-clearing :refer [delay]]
             [typed.clj.checker.check :as chk-clj]
@@ -108,13 +109,19 @@
                   (if (= 1 (count nsym-coll))
                     (check-ns (nth nsym-coll 0) opts)
                     (let [check-ns (bound-fn*
-                                     #(let [delayed-errors (err/-init-delayed-errors)]
-                                        (try (check-ns % (assoc opts ::vs/delayed-errors delayed-errors))
-                                             {:errors @delayed-errors}
-                                             (catch ExceptionInfo e
-                                               (if (-> e ex-data :type-error)
-                                                 {:errors (conj @delayed-errors e)}
-                                                 (throw e))))))
+                                     #(let [delayed-errors (err/-init-delayed-errors)
+                                            ex (volatile! nil)
+                                            chk (fn [] (try (check-ns % (assoc opts ::vs/delayed-errors delayed-errors))
+                                                            (catch Throwable e (vreset! ex e))))
+                                            out (if threadpool
+                                                  (with-out-str (chk))
+                                                  (do (chk) nil))]
+                                        (-> (if-let [ex @ex]
+                                              (if (-> ex ex-data :type-error)
+                                                {:errors (conj @delayed-errors ex)}
+                                                {:ex ex})
+                                              {:errors @delayed-errors})
+                                            (assoc :out out))))
                           results (if-not threadpool
                                     (mapv check-ns nsym-coll)
                                     (mapv (fn [^java.util.concurrent.Future future]
@@ -124,7 +131,11 @@
                                           (.invokeAll threadpool (map (fn [nsym]
                                                                         #(check-ns nsym))
                                                                       nsym-coll))))
-                          _ (swap! delayed-errors into (mapcat :errors) results)])))
+                          _ (swap! delayed-errors into (mapcat (fn [{:keys [ex errors out]}]
+                                                                 (some-> out str/trim not-empty println)
+                                                                 (some-> ex throw)
+                                                                 errors))
+                                   results)])))
                 (catch ExceptionInfo e
                   (if (-> e ex-data :type-error)
                     (reset! terminal-error e)

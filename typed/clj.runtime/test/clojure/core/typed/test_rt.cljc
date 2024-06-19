@@ -10,8 +10,7 @@
 (deftest ^:typed/skip-from-repo-root checking-ops
   (is (thrown? #?(:cljr System.IO.FileNotFoundException :default java.io.FileNotFoundException)
         (t/load-if-needed)))
-  (is (thrown? #?(:cljr System.IO.FileNotFoundException :default java.io.FileNotFoundException)
-        (t/reset-caches)))
+  (is (nil? (t/reset-caches)))
   (is (thrown? #?(:cljr System.IO.FileNotFoundException :default java.io.FileNotFoundException)
         (t/method-type 'foo)))
   (is (thrown? #?(:cljr System.IO.FileNotFoundException :default java.io.FileNotFoundException)

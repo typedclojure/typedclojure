@@ -168,12 +168,23 @@
                    results (if-some [^java.util.concurrent.ExecutorService
                                      threadpool vs/*check-threadpool*]
                              (mapv (fn [^java.util.concurrent.Future future]
-                                     (try (.get future)
-                                          (catch java.util.concurrent.ExecutionException e
-                                            (throw (or (.getCause e) e)))))
+                                     (let [ex (volatile! nil)
+                                           res (volatile! nil)
+                                           out (with-out-str
+                                                 (try (vreset! res (.get future))
+                                                      (catch java.util.concurrent.ExecutionException e
+                                                        (vreset! ex (or (.getCause e) e)))))]
+                                       (-> (if-let [ex @ex]
+                                             {:ex ex}
+                                             @res)
+                                           (assoc :out out))))
                                    (.invokeAll threadpool exs))
                              (mapv #(%) exs))
-                   _ (swap! delayed-errors into (mapcat :errors) results)]
+                   _ (swap! delayed-errors into (mapcat (fn [{:keys [ex errors out]}]
+                                                          (some-> out str/trim not-empty println)
+                                                          (some-> ex throw)
+                                                          errors))
+                            results)]
                (cache/remove-stale-cache-entries ns ns-form-str (map :sform forms-info) slurped opts)))))))))
 
 (defn check-ns-and-deps [nsym opts] (cu/check-ns-and-deps nsym check-ns1 opts))

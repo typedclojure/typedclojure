@@ -9,8 +9,7 @@
     (is true)
     (do (is (thrown? java.io.FileNotFoundException
                      (tcljs/load-if-needed)))
-        (is (thrown? java.io.FileNotFoundException
-                     (tcljs/reset-caches)))
+        (is (nil? (tcljs/reset-caches)))
         (is (thrown? java.io.FileNotFoundException
                      (tcljs/check-form* 1 nil nil)))
         (is (thrown? java.io.FileNotFoundException
