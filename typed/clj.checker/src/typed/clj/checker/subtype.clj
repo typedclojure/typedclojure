@@ -1533,18 +1533,18 @@
          (every? r/Type? rands1)
          (every? r/Type? rands2)]
    :post [(or (nil? %) (set? %))]}
-  (if (and (== (count rands1)
-               (count rands2)
-               (count (:variances tfn)))
+  (if (and (= (count rands1)
+              (count rands2)
+              (count (:variances tfn)))
            (every?' (fn [v l r]
                       {:pre [(r/variance? v)
                              (r/Type? l)
                              (r/Type? r)]}
                       (case v
-                        (:covariant) (subtypeA* A l r opts)
-                        (:contravariant) (subtypeA* A r l opts)
-                        (:invariant) (and (subtypeA* A l r opts)
-                                          (subtypeA* A r l opts))
+                        :covariant (subtypeA* A l r opts)
+                        :contravariant (subtypeA* A r l opts)
+                        :invariant (and (subtypeA* A l r opts)
+                                        (subtypeA* A r l opts))
                         (err/int-error (str "Unknown variance: " v) opts)))
                     (:variances tfn) rands1 rands2))
     A
@@ -1574,15 +1574,15 @@
                     (count (:rands s))
                     (count (:rands t)))
                  (every?' (fn [variance {:keys [lower-bound upper-bound]} s t]
-                            (and (subtypeA* A lower-bound s opts)
-                                 (subtypeA* A lower-bound t opts)
-                                 (subtypeA* A s upper-bound opts)
-                                 (subtypeA* A t upper-bound opts)
-                                 (case variance
-                                   :covariant (subtypeA* A s t opts)
-                                   :contravariant (subtypeA* A t s opts)
-                                   :invariant (and (subtypeA* A s t opts)
-                                                   (subtypeA* A t s opts)))))
+                            (let [chk (fn [s t]
+                                        (and (subtypeA* A lower-bound s opts)
+                                             (subtypeA* A t upper-bound opts)
+                                             (subtypeA* A s t opts)))]
+                              (case variance
+                                :covariant (chk s t)
+                                :contravariant (chk t s)
+                                :invariant (and (chk s t)
+                                                (chk t s)))))
                           variances bbnds (:rands s) (:rands t)))
           A
           (report-not-subtypes s t)))
