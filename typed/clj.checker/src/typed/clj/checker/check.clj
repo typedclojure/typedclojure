@@ -149,12 +149,7 @@
                               (fn []
                                 (let [delayed-errors (err/-init-delayed-errors)
                                       opts (-> opts
-                                               (assoc ::vs/delayed-errors delayed-errors)
-                                               (assoc ::c/Un-cache (atom c/initial-Un-cache))
-                                               (assoc ::c/In-cache (atom {}))
-                                               (assoc ::c/RClass-of-cache (atom {}))
-                                               (assoc ::c/supers-cache (atom {}))
-                                               (assoc ::sub/subtype-cache (atom {})))]
+                                               (assoc ::vs/delayed-errors delayed-errors))]
                                   (with-bindings (assoc bndings
                                                         ;; force types to reparse to detect dependencies in per-form cache
                                                         ;; might affect TypeFn variance inference
@@ -1949,7 +1944,14 @@
                  {:result (eval form)})
          opts (-> opts
                   (assoc ::check/check-expr check-expr)
-                  (assoc ::vs/lexical-env (lex/init-lexical-env)))]
+                  (assoc ::vs/lexical-env (lex/init-lexical-env))
+                  ;; also copied to typed.cljs.checker.check/check-top-level
+                  (assoc ::c/Un-cache (atom c/initial-Un-cache))
+                  (assoc ::c/In-cache (atom {}))
+                  (assoc ::c/RClass-of-cache (atom {}))
+                  (assoc ::c/supers-cache (atom {}))
+                  (assoc ::sub/subtype-cache (atom {}))
+                  (assoc ::cgen/dotted-var-store (atom {})))]
      (with-bindings (dissoc (ana-clj/thread-bindings {} opts) #'*ns*) ; *ns* is managed by higher-level ops like check-ns1
        (env/ensure (jana2/global-env)
          (-> form

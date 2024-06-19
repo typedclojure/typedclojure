@@ -31,6 +31,7 @@
             [typed.cljc.analyzer.ast :as ast]
             [typed.cljc.checker.check :as check]
             [typed.cljc.checker.check-impl :refer [-check]]
+            [typed.cljc.checker.cs-gen :as cgen]
             [typed.cljc.checker.check-below :as below]
             [typed.cljc.checker.check.def :as def]
             [typed.cljc.checker.check.print-env :as pr-env]
@@ -410,7 +411,14 @@
                                     :init-ast identity}]
      (let [opts (-> opts
                     (assoc ::check/check-expr check-expr)
-                    (assoc ::vs/lexical-env (lex/init-lexical-env)))
+                    (assoc ::vs/lexical-env (lex/init-lexical-env))
+                    ;; also copied to typed.cljs.checker.check/check-top-level
+                    (assoc ::c/Un-cache (atom c/initial-Un-cache))
+                    (assoc ::c/In-cache (atom {}))
+                    (assoc ::c/RClass-of-cache (atom {}))
+                    (assoc ::c/supers-cache (atom {}))
+                    (assoc ::sub/subtype-cache (atom {}))
+                    (assoc ::cgen/dotted-var-store (atom {})))
            cexpr (uc/with-cljs-typed-env
                    (-> form
                        (unanalyzed-top-level (or env (ana-api/empty-env)))

@@ -52,13 +52,6 @@
   []
   ((requiring-resolve 'clojure.core.typed.load-if-needed/load-if-needed)))
 
-(core/defn reset-caches
-  "Reset internal type caches."
-  []
-  (load-if-needed)
-  ((requiring-resolve 'typed.clj.checker.reset-caches/reset-caches))
-  nil)
-
 ;(ann method-type [Symbol -> nil])
 (core/defn method-type
   "Given a method symbol, print the core.typed types assigned to it.

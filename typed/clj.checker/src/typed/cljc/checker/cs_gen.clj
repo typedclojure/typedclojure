@@ -921,7 +921,8 @@
                     (when-not (<= (count (:types S)) (count (:types T)))
                       (fail! S T))
                     (let [vars (var-store-take dbound dty (- (count (:types T))
-                                                             (count (:types S))))
+                                                             (count (:types S)))
+                                               opts)
                           new-tys (doall (for [var vars]
                                            (subst/substitute (r/make-F var) dbound dty opts)))
                           new-s-hsequential (r/-hsequential (concat (:types S) new-tys) {} opts)
@@ -938,7 +939,7 @@
                       (fail! S T))
                     (when-not (<= (count (:types T)) (count (:types S)))
                       (fail! S T))
-                    (let [vars (var-store-take dbound dty (- (count (:types S)) (count (:types T))))
+                    (let [vars (var-store-take dbound dty (- (count (:types S)) (count (:types T))) opts)
                           new-tys (doall
                                     (for [var vars]
                                       (subst/substitute (r/make-F var) dbound dty opts)))
@@ -1344,29 +1345,23 @@
 ;; The domain of this map is pairs (var . dotted-type).
 ;; The range is this map is a list of symbols generated on demand, as we need
 ;; more dots.
-(t/ann DOTTED-VAR-STORE (t/Atom (t/Map '[r/Type t/Sym] (t/Seq t/Sym))))
-;;FIXME remove global atom
-(defonce ^:private DOTTED-VAR-STORE (atom {}))
-
-(t/ann reset-dotted-var-store! [-> nil])
-(defn reset-dotted-var-store! []
-  (reset! DOTTED-VAR-STORE {})
-  nil)
 
 ;; Take (generate as needed) n symbols that correspond to variable var used in
 ;; the context of type t.
 ;FIXME no-check, trans-dots needs to be generalised
-(t/ann ^:no-check var-store-take [t/Sym r/Type t/Int -> (t/Seqable t/Sym)])
-(defn- var-store-take [var t n]
+(t/ann ^:no-check var-store-take [t/Sym r/Type t/Int t/Any -> (t/Seqable t/Sym)])
+(defn- var-store-take [var t n {::keys [dotted-var-store] :as opts}]
+  (assert dotted-var-store (keys opts))
+  ;(t/ann-form dotted-var-store (t/Atom (t/Map '[r/Type t/Sym] (t/Seq t/Sym))))
   (let [key [t n]
-        res (@DOTTED-VAR-STORE key)]
+        res (@dotted-var-store key)]
     (if (>= (count res) n)
       ;; there are enough symbols already, take n
       (take n res)
       ;; we need to generate more
       (let [new (repeatedly (- n (count res)) #(gensym var))
             all (concat res new)]
-        (swap! DOTTED-VAR-STORE assoc key all)
+        (swap! dotted-var-store assoc key all)
         all))))
 
 (defn cs-gen-Function-just-rests [V X Y S T opts]
@@ -1511,7 +1506,8 @@
     (when-not (<= (count (:dom S)) (count (:dom T)))
       (fail! S T))
     (let [vars (var-store-take dbound dty (- (count (:dom T))
-                                             (count (:dom S))))
+                                             (count (:dom S)))
+                               opts)
           new-tys (mapv (fn [var]
                           (subst/substitute (r/make-F var) dbound dty opts))
                         vars)
@@ -1529,7 +1525,7 @@
       (fail! S T))
     (when-not (<= (count (:dom T)) (count (:dom S)))
       (fail! S T))
-    (let [vars (var-store-take dbound dty (- (count (:dom S)) (count (:dom T))))
+    (let [vars (var-store-take dbound dty (- (count (:dom S)) (count (:dom T))) opts)
           new-tys (mapv
                     (fn [var]
                       (subst/substitute (r/make-F var) dbound dty opts))
@@ -1558,7 +1554,7 @@
             ret-mapping (cg (:rng S) (:rng T))]
         (cset-meet* [arg-mapping darg-mapping ret-mapping] opts))
       ;; the hard case
-      (let [vars (var-store-take dbound t-dty (- (count (:dom S)) (count (:dom T))))
+      (let [vars (var-store-take dbound t-dty (- (count (:dom S)) (count (:dom T))) opts)
             new-tys (mapv (fn [var]
                             (subst/substitute (r/make-F var) dbound t-dty opts))
                           vars)
@@ -1577,7 +1573,7 @@
     (cond 
       (< (count (:dom S)) (count (:dom T)))
       ;; the hard case
-      (let [vars (var-store-take dbound s-dty (- (count (:dom T)) (count (:dom S))))
+      (let [vars (var-store-take dbound s-dty (- (count (:dom T)) (count (:dom S))) opts)
             new-tys (mapv (fn [var]
                             (subst/substitute (r/make-F var) dbound s-dty opts))
                           vars)
@@ -2360,7 +2356,7 @@
   ;(prn :infer-dots S T)
   (let [T (vec T)
         [short-S rest-S] (map vec (split-at (count T) S))
-        new-vars (var-store-take dotted-var T-dotted (count rest-S))
+        new-vars (var-store-take dotted-var T-dotted (count rest-S) opts)
         new-Ts (mapv (fn [v]
                        (let [target (subst/substitute-dots (map r/make-F new-vars) nil dotted-var T-dotted opts)]
                          #_(prn "replace" v "with" dotted-var "in" (prs/unparse-type target opts))
@@ -2444,7 +2440,7 @@
         cs-short (cs-gen-list #{} X {dotted-var dotted-bnd} short-S T
                               {:expected-cset expected-cset} opts)
         ;_ (prn "cs-short" cs-short)
-        new-vars (var-store-take dotted-var T-dotted (count rest-S))
+        new-vars (var-store-take dotted-var T-dotted (count rest-S) opts)
         new-Ts (doall
                  (let [list-of-vars (partition-by-nth (-> T-dotted :types count) new-vars)
                        ;_ (println "list-of-vars" list-of-vars)

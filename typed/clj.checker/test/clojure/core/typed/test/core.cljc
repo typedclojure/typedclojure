@@ -2237,8 +2237,6 @@
   (is-tc-e {:a #(+ %1 %2)}
            (t/Map t/Any [t/Num t/Num -> t/Num])))
 
-;(reset-caches)
-
 ;(chk/abstract-result
 ;  (ret (-hvec [-any] {:filters [(-FS (-filter (parse-clj 'Number) 'a) -top)] :objects [(-path nil 'a)]} (clj-opts))
 ;       (-FS (-filter (parse-clj 'Number) 'a) -top))

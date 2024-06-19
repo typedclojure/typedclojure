@@ -13,7 +13,6 @@
             [io.github.frenchy64.fully-satisfies.safe-locals-clearing :refer [delay]]
             [typed.clj.checker.check :as chk-clj]
             [typed.clj.checker.file-mapping :as file-map]
-            [typed.clj.checker.reset-caches :as reset-caches]
             [typed.cljc.checker.lex-env :as lex-env]
             [typed.cljc.checker.ns-deps-utils :as ns-deps-u]
             [typed.cljc.checker.reset-env :as reset-env]
@@ -62,7 +61,6 @@
         threadpool (or threadpool
                        (some-> max-parallelism java.util.concurrent.Executors/newWorkStealingPool))]
     (try
-      (reset-caches/reset-caches)
       (let [nsym-coll (mapv #(if (symbol? %)
                                ; namespace might not exist yet, so ns-name is not appropriate
                                ; to convert to symbol
@@ -87,7 +85,6 @@
                            (assoc ::vs/trace trace))
                   terminal-error (atom nil)]
               ;(reset-env/reset-envs!)
-              ;(reset-caches)
               ;; handle terminal type error
               (try
                 ;-------------------------

@@ -57,7 +57,7 @@ for checking namespaces, cf for checking individual forms."}
 (core/defn reset-caches
   "Reset internal type caches."
   []
-  ((requiring-resolve 'clojure.core.typed.impl/reset-caches)))
+  nil)
 
 ;(ann method-type [Symbol -> nil])
 (core/defn method-type

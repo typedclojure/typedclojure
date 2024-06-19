@@ -39,12 +39,10 @@
   []
   (load/load-if-needed true))
 
-(core/let [rc #((requiring-resolve 'typed.clj.checker.reset-caches/reset-caches))]
-  (core/defn reset-caches
-    "Reset internal type caches."
-    []
-    (load-if-needed)
-    (rc)))
+(core/defn reset-caches
+  "Reset internal type caches."
+  []
+  nil)
 
 ; many of these macros resolve to CLJS functions in 
 ; the CLJS ns cljs.core.typed

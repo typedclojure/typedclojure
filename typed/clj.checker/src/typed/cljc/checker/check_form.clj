@@ -19,7 +19,6 @@
             [typed.clj.analyzer.passes.beta-reduce :as beta-reduce]
             [typed.clj.checker.check :as chk]
             [typed.clj.checker.parse-unparse :as prs]
-            [typed.clj.checker.reset-caches :as reset-caches]
             [typed.cljc.analyzer :as ana]
             [typed.cljc.checker.lex-env :as lex-env]
             [typed.cljc.checker.type-rep :as r]
@@ -116,7 +115,6 @@
     (impl/impl-case opts
       :clojure @*register-clj-anns
       :cljs @*register-cljs-anns)
-    (reset-caches/reset-caches)
     (binding [vs/*in-check-form* true
               vs/*custom-expansions* custom-expansions?]
       (let [delayed-errors (err/-init-delayed-errors)
