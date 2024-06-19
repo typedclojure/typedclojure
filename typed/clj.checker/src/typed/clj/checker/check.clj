@@ -151,7 +151,8 @@
                                       opts (-> opts
                                                (assoc ::vs/delayed-errors delayed-errors)
                                                (assoc ::c/Un-cache (atom c/initial-Un-cache))
-                                               (assoc ::c/In-cache (atom {})))]
+                                               (assoc ::c/In-cache (atom {}))
+                                               (assoc ::c/RClass-of-cache (atom {})))]
                                   (with-bindings (assoc bndings
                                                         ;; force types to reparse to detect dependencies in per-form cache
                                                         ;; might affect TypeFn variance inference

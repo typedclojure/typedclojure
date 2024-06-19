@@ -850,19 +850,11 @@
                    (vals (:fields r)))]
     (make-HMap opts {:mandatory kf})))
 
-(t/ann RClass-of-cache (t/Atom (t/Map t/Any r/Type)))
-(defonce ^:private RClass-of-cache (atom {}))
-
-(t/ann reset-RClass-of-cache! [-> nil])
-(defn reset-RClass-of-cache! []
-  (reset! RClass-of-cache {})
-  nil)
-
 (t/ann ^:no-check RClass-of (t/IFn [(t/U t/Sym Class) t/Any -> r/Type]
                                    [(t/U t/Sym Class) (t/Seqable r/Type) t/Any -> r/Type]))
 (defn RClass-of
   ([sym-or-cls opts] (RClass-of sym-or-cls nil opts))
-  ([sym-or-cls args opts]
+  ([sym-or-cls args {::keys [RClass-of-cache] :as opts}]
    {:pre [#_
           ((some-fn class? symbol?) sym-or-cls)
           ;; checked by instantiate-typefn
@@ -882,7 +874,7 @@
          cache-key (if args?
                      [sym args]
                      sym)]
-     (or (@RClass-of-cache cache-key)
+     (or (when RClass-of-cache (@RClass-of-cache cache-key))
          (let [rc (or (dtenv/get-datatype checker sym)
                       (rcls/get-rclass checker sym))
                ;; checked by dtenv/get-datatype and rcls/get-rclass
@@ -913,7 +905,7 @@
                                (r/RClass-maker sym nil nil {} (sorted-set))))
                            (do #_(assert (or (r/RClass? res) (r/DataType? res)))
                                rc))))]
-           (swap! RClass-of-cache assoc cache-key res)
+           (some-> RClass-of-cache (swap! assoc cache-key res))
            res)))))
 
 (t/ann ^:no-check most-general-on-variance [(t/Seqable r/Variance) (t/Seqable Bounds) t/Any -> r/Type])
