@@ -346,25 +346,18 @@
   (t/Map (t/Set r/Type) r/Type))
 
 (t/ann ^:no-check initial-Un-cache TypeCache)
-(def ^:private initial-Un-cache (cache/lu-cache-factory {} :threshold 256))
-
-(t/ann ^:no-check Un-cache (t/Atom TypeCache))
-(def Un-cache (atom initial-Un-cache))
-
-(t/ann ^:no-check reset-Un-cache [-> nil])
-(defn reset-Un-cache []
-  (reset! Un-cache initial-Un-cache)
-  nil)
+(def initial-Un-cache (cache/lu-cache-factory {} :threshold 256))
 
 (declare flatten-intersections)
 
 (t/ann ^:no-check Un [(t/Seqable r/Type) t/Any :-> r/Type])
-(defn Un [types {::vs/keys [no-simpl] :as opts}]
+(defn Un [types {::keys [Un-cache]
+                 ::vs/keys [no-simpl] :as opts}]
   {:post [(r/Type? %)]}
   (if no-simpl
     (make-Union types opts)
     (let [cache-key (into #{} (map r/assert-Type) types)]
-      (if-let [hit (get @Un-cache cache-key)]
+      (if-let [hit (when Un-cache (get @Un-cache cache-key))]
         hit
         (let [res (letfn [;; a is a Type (not a union type)
                           ;; b is a Set[Type] (non overlapping, non Union-types)
@@ -399,7 +392,7 @@
                                   (sorted-set)
                                   types)
                           opts))))]
-          (swap! Un-cache assoc cache-key res)
+          (some-> Un-cache (swap! assoc cache-key res))
           res)))))
 
 ;; Intersections
@@ -521,7 +514,7 @@
                 :else (do
                         #_(prn "failed to eliminate intersection" (make-Intersection [t1 t2] opts))
                         (make-Intersection [t1 t2] opts)))]
-        (swap! intersect-cache assoc cache-key t)
+        (some-> intersect-cache (swap! assoc cache-key t))
         ;(prn "intersect miss" (ind/unparse-type t opts))
         t))))
 
