@@ -7,7 +7,8 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.cljc.checker.check.if
-  (:require [typed.cljc.checker.check :as check]
+  (:require [clojure.string :as str]
+            [typed.cljc.checker.check :as check]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.utils :as u]
@@ -82,18 +83,32 @@
 (defn check-if [{:keys [test then else] :as expr} expected {::check/keys [check-expr] :as opts}]
   {:pre [((some-fn r/TCResult? nil?) expected)]
    :post [(-> % u/expr-type r/TCResult?)]}
-  (let [ctest (check-expr test nil opts)
+  (let [^java.util.concurrent.ExecutorService threadpool vs/*check-threadpool*
+        ctest (check-expr test nil opts)
         tst (u/expr-type ctest)
         {fs+ :then fs- :else :as tst-f} (r/ret-f tst)
         lex-env (lex/lexical-env opts)
-        ;;TODO parallelize
-        {:keys [cthen env-thn]} (let [[env-thn reachable+] (update-lex+reachable lex-env fs+ opts)]
-                                  {:env-thn env-thn
-                                   :cthen (check-if-reachable then env-thn reachable+ expected opts)})
-        {:keys [celse env-els]} (let [[env-els reachable-] (update-lex+reachable lex-env fs- opts)]
-                                   {:env-els env-els
-                                    :celse (check-if-reachable else env-els reachable- expected opts)})
-
+        chk-thn #(let [[env-thn reachable+] (update-lex+reachable lex-env fs+ opts)]
+                   {:env-thn env-thn
+                    :cthen (check-if-reachable then env-thn reachable+ expected opts)})
+        chk-els #(let [[env-els reachable-] (update-lex+reachable lex-env fs- opts)]
+                   {:env-els env-els
+                    :celse (check-if-reachable else env-els reachable- expected opts)})
+        [{:keys [cthen env-thn]} {:keys [celse env-els]}] (if threadpool
+                                                            (let [^java.util.concurrent.Callable f (bound-fn []
+                                                                                                     (let [res (volatile! nil)
+                                                                                                           out (with-out-str
+                                                                                                                 (vreset! res (chk-els)))]
+                                                                                                       {:out out
+                                                                                                        :els @res}))
+                                                                  fut (.submit threadpool f)
+                                                                  thn (chk-thn)
+                                                                  {:keys [out els]} (try (.get fut)
+                                                                                         (catch java.util.concurrent.ExecutionException e
+                                                                                           (throw (or (.getCause e) e))))]
+                                                              (some-> out str/trim not-empty println)
+                                                              [thn els])
+                                                            [(chk-thn) (chk-els)])
         then-ret (u/expr-type cthen)
         else-ret (u/expr-type celse)]
     (let [if-ret (combine-rets tst-f then-ret env-thn else-ret env-els opts)]
