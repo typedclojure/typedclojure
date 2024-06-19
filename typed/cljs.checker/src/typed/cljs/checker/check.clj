@@ -198,7 +198,7 @@
   {:pre [((every-pred symbol? namespace) vname)
          ((some-fn nil? r/TCResult?) expected)]
    :post [(r/TCResult? %)]}
-  (let [opts (assoc ::vs/current-expr expr)
+  (let [opts (assoc opts ::vs/current-expr expr)
         t (var-env/type-of vname opts)]
     (below/maybe-check-below
       (ret t)
