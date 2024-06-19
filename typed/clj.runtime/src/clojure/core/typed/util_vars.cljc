@@ -33,7 +33,7 @@
   (binding [*verbose-forms* true]
     (cf ['deep ['deep ['deep ['deep]]]] Number))
   ;=> <full form in error>"}
-  *verbose-forms* 
+  *verbose-forms*
   nil)
 
 ;; keep track of state throughout a `load`

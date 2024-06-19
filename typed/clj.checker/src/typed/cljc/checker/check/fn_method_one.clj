@@ -23,7 +23,7 @@
             [typed.cljc.checker.check.fn-method-utils :as fn-method-u]
             [typed.cljc.checker.check.funapp :as funapp]
             [typed.cljc.checker.check.isa :as isa]
-            [typed.cljc.checker.check.multi-utils :as multi-u]
+            [typed.cljc.checker.check.multi-utils :as-alias multi-u]
             [typed.cljc.checker.check.recur-utils :as recur-u]
             [typed.cljc.checker.check.utils :as cu]
             [typed.cljc.checker.filter-ops :as fo]
@@ -143,7 +143,7 @@
 
         ; if this fn method is a multimethod dispatch method, then infer
         ; a new filter that results from being dispatched "here"
-        mm-filter (when-let [{:keys [dispatch-fn-type dispatch-val-ret]} multi-u/*current-mm*]
+        mm-filter (when-let [{:keys [dispatch-fn-type dispatch-val-ret]} (::multi-u/current-mm opts)]
                     (assert (and dispatch-fn-type dispatch-val-ret))
                     (assert (= :fixed (:kind expected)))
                     (assert (not rest-param))
@@ -159,7 +159,7 @@
                           then-filter (-> isa-ret r/ret-f :then)
                           _ (assert then-filter)]
                       then-filter))
-        ;_ (prn "^^^ mm-filter" multi-u/*current-mm*)
+        ;_ (prn "^^^ mm-filter" (::multi-u/current-mm opts))
 
         ;_ (prn "funapp1: inferred mm-filter" mm-filter)
 
@@ -178,39 +178,40 @@
 
         ; rng with inferred filters, and before manually inferring new filters
         crng-nopass
-        (binding [multi-u/*current-mm* nil]
-          (let [opts (var-env/with-lexical-env opts env)]
-            (let [rec (or ; if there's a custom recur behaviour, use the provided
-                          ; keyword argument to generate the RecurTarget.
-                          (when recur-target-fn
-                            (recur-target-fn expected))
-                          ; Otherwise, assume we are checking a regular `fn` method
-                          (recur-u/RecurTarget-maker dom rest drest nil))
-                  _ (assert (recur-u/RecurTarget? rec))]
-              (recur-u/with-recur-target rec
-                (let [body (if (and custom-expansions
-                                    rest-param
-                                    (= :fixed (:kind expected)))
-                             ;; substitute away the rest argument to try and trigger
-                             ;; any beta reductions
-                             (with-bindings (ana-clj/thread-bindings {:env (:env method)} opts)
-                               (-> body
-                                   (beta-reduce/subst-locals 
-                                     {(:name rest-param) (beta-reduce/fake-seq-invoke
-                                                           (mapv (fn [t]
-                                                                   (beta-reduce/make-invoke-expr
-                                                                     (beta-reduce/make-var-expr
-                                                                       #'cu/special-typed-expression
-                                                                       (:env method))
-                                                                     [(ana/parse-quote
-                                                                        (list 'quote (prs/unparse-type t (assoc opts ::vs/verbose-types true)))
-                                                                        (:env method))]
-                                                                     (:env method)))
-                                                                 dom)
-                                                           (:env method))})
-                                   ana/run-passes))
-                             body)]
-                  (check-expr body open-expected-rng-no-filters opts))))))
+        (let [opts (-> opts
+                       (assoc ::multi-u/current-mm nil)
+                       (var-env/with-lexical-env env))
+              rec (or ; if there's a custom recur behaviour, use the provided
+                        ; keyword argument to generate the RecurTarget.
+                        (when recur-target-fn
+                          (recur-target-fn expected))
+                        ; Otherwise, assume we are checking a regular `fn` method
+                        (recur-u/RecurTarget-maker dom rest drest nil))
+              _ (assert (recur-u/RecurTarget? rec))]
+          (recur-u/with-recur-target rec
+            (let [body (if (and custom-expansions
+                                rest-param
+                                (= :fixed (:kind expected)))
+                         ;; substitute away the rest argument to try and trigger
+                         ;; any beta reductions
+                         (with-bindings (ana-clj/thread-bindings {:env (:env method)} opts)
+                           (-> body
+                               (beta-reduce/subst-locals 
+                                 {(:name rest-param) (beta-reduce/fake-seq-invoke
+                                                       (mapv (fn [t]
+                                                               (beta-reduce/make-invoke-expr
+                                                                 (beta-reduce/make-var-expr
+                                                                   #'cu/special-typed-expression
+                                                                   (:env method))
+                                                                 [(ana/parse-quote
+                                                                    (list 'quote (prs/unparse-type t (assoc opts ::vs/verbose-types true)))
+                                                                    (:env method))]
+                                                                 (:env method)))
+                                                             dom)
+                                                       (:env method))})
+                               ana/run-passes))
+                         body)]
+              (check-expr body open-expected-rng-no-filters opts))))
 
         ; Apply the filters of computed rng to the environment and express
         ; changes to the lexical env as new filters, and conjoin with existing filters.
@@ -239,11 +240,9 @@
         ;_ (prn "open-expected-filters" open-expected-filters)
         crng (if (= open-expected-filters (fo/-infer-filter))
                ;; infer mode
-               (do ;(prn "infer mode" multi-u/*current-mm*)
-                   crng+inferred-filters)
+               crng+inferred-filters
                ;; check actual filters and fill in expected filters
-               (let [;_ (prn "check mode" multi-u/*current-mm*)
-                     {actual-filters :fl :as actual-ret} (u/expr-type crng+inferred-filters)
+               (let [{actual-filters :fl :as actual-ret} (u/expr-type crng+inferred-filters)
                      _ (when-not (below/filter-better? actual-filters open-expected-filters opts)
                          (below/bad-filter-delayed-error
                            actual-ret

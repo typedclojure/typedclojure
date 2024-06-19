@@ -64,7 +64,7 @@
             [typed.cljc.checker.check.meta-ann :as meta-ann]
             [typed.cljc.checker.check.monitor :as monitor]
             [typed.cljc.checker.check.multi :as multi]
-            [typed.cljc.checker.check.multi-utils :as multi-u]
+            [typed.cljc.checker.check.multi-utils :as-alias multi-u]
             [typed.cljc.checker.check.nth :as nth]
             [typed.cljc.checker.check.nthnext :as nthnext]
             [typed.cljc.checker.check.print-env :as print-env]
@@ -1524,10 +1524,9 @@
                                 (assoc opts ::vs/current-env env))
           (let [method-expected (var-env/type-of mmsym opts)
                 cmethod-expr 
-                (binding [multi-u/*current-mm* 
-                          (when-not default?
-                            {:dispatch-fn-type dispatch-type
-                             :dispatch-val-ret (u/expr-type dispatch-val-expr)})]
+                (let [opts (assoc opts ::multi-u/current-mm (when-not default?
+                                                              {:dispatch-fn-type dispatch-type
+                                                               :dispatch-val-ret (u/expr-type dispatch-val-expr)}))]
                   (check-expr method-expr (r/ret method-expected) opts))]
             (-> expr
                 (assoc-in [:args 1] cmethod-expr))))))))
