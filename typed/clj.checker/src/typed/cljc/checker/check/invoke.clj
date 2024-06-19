@@ -8,11 +8,13 @@
 
 (ns typed.cljc.checker.check.invoke
   (:refer-clojure :exclude [requiring-resolve])
-  (:require [typed.cljc.analyzer :as ana2]
+  (:require [clojure.string :as str]
+            [typed.cljc.analyzer :as ana2]
             [clojure.core.typed.current-impl :as impl]
             [typed.cljc.checker.utils :as u]
             [clojure.core.typed.contract-utils :as con]
             [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]
+            [clojure.core.typed.util-vars :as vs]
             [typed.cljc.checker.check :as check]
             [typed.cljc.checker.check.funapp :as funapp]
             [typed.cljc.checker.check.invoke-kw :as invoke-kw]
@@ -29,7 +31,8 @@
          ((some-fn nil?
                    (con/vec-c? (comp r/TCResult? u/expr-type)))
           cargs)]}
-  (let [cfexpr (or cfexpr (check-expr fexpr nil opts))
+  (let [^java.util.concurrent.ExecutorService threadpool vs/*check-threadpool*
+        cfexpr (or cfexpr (check-expr fexpr nil opts))
         ftype (u/expr-type cfexpr)
         ;; keep Function arguments in checking mode
         expected-args (let [ft (c/fully-resolve-type (r/ret-t ftype) opts)]
@@ -43,7 +46,30 @@
                               (mapv (comp #(when (r/FnIntersection? %) (r/ret %))
                                           #(c/fully-resolve-type % opts))
                                     (:dom f))))))
-        cargs (or cargs (mapv #(check-expr %1 %2 opts) args (or expected-args (repeat nil))))
+        cargs (or cargs
+                  (let [fs (mapv #(fn [] (check-expr %1 %2 opts)) args (or expected-args (repeat nil)))]
+                    (if (and threadpool (< 1 (count args)))
+                      (let [bs (get-thread-bindings)]
+                        (mapv (fn [^java.util.concurrent.Future future]
+                                (try (let [{:keys [out res ex]} (.get future)]
+                                       (some-> out str/trim not-empty println)
+                                       (some-> ex throw)
+                                       res)
+                                     (catch java.util.concurrent.ExecutionException e
+                                       (throw (or (.getCause e) e)))))
+                              (.invokeAll threadpool (map (fn [f]
+                                                            (fn []
+                                                              (with-bindings bs
+                                                                (let [ex (volatile! nil)
+                                                                      res (volatile! nil)
+                                                                      out (with-out-str
+                                                                            (try (vreset! res (f))
+                                                                                 (catch Throwable e (vreset! ex e))))]
+                                                                  {:out out
+                                                                   :res @res
+                                                                   :ex @ex}))))
+                                                          fs))))
+                      (mapv #(%) fs))))
         _ (assert (= (count cargs) (count args)))
         argtys (map u/expr-type cargs)
         actual (funapp/check-funapp fexpr args ftype argtys expected {:expr expr} opts)]
