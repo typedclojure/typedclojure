@@ -97,16 +97,20 @@
         [{:keys [cthen env-thn]} {:keys [celse env-els]}] (if threadpool
                                                             (let [^java.util.concurrent.Callable f (bound-fn []
                                                                                                      (let [res (volatile! nil)
+                                                                                                           ex (volatile! nil)
                                                                                                            out (with-out-str
-                                                                                                                 (vreset! res (chk-els)))]
+                                                                                                                 (try (vreset! res (chk-els))
+                                                                                                                      (catch Throwable e (vreset! ex e))))]
                                                                                                        {:out out
+                                                                                                        :ex @ex
                                                                                                         :els @res}))
                                                                   fut (.submit threadpool f)
                                                                   thn (chk-thn)
-                                                                  {:keys [out els]} (try (.get fut)
-                                                                                         (catch java.util.concurrent.ExecutionException e
-                                                                                           (throw (or (.getCause e) e))))]
+                                                                  {:keys [ex out els]} (try (.get fut)
+                                                                                            (catch java.util.concurrent.ExecutionException e
+                                                                                              (throw (or (.getCause e) e))))]
                                                               (some-> out str/trim not-empty println)
+                                                              (some-> ex throw)
                                                               [thn els])
                                                             [(chk-thn) (chk-els)])
         then-ret (u/expr-type cthen)
