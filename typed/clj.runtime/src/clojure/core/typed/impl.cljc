@@ -214,8 +214,8 @@
   `(core/let [t# ~t
               opts# (assoc ~opts :typed.clj.checker.parse-unparse/parse-type-in-ns (ns-name *ns*))]
      ((requiring-resolve `typed.cljc.runtime.env-utils/delay-type*)
-      (bound-fn []
-        ((requiring-resolve 'typed.clj.checker.parse-unparse/parse-clj)
+      (core/fn []
+        ((requiring-resolve 'typed.clj.checker.parse-unparse/parse-type)
          t#
          opts#)))))
 
