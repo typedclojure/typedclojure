@@ -162,7 +162,7 @@
                     (let [e (if (some-> e ex-data err/tc-error?)
                               (try
                                 ;(prn "printing errors")
-                                (err/print-errors! (vec (concat (delayed-errors-fn) [e])))
+                                (err/print-errors! (vec (concat (delayed-errors-fn) [e])) opts)
                                 (catch Throwable e
                                   e))
                               (throw e))]
@@ -199,7 +199,7 @@
                                                                opt)
                                                          opts)]
     (if-let [errors (seq delayed-errors)]
-      (err/print-errors! errors)
+      (err/print-errors! errors opts)
       (if ex
         (throw ex)
         (prs/unparse-TCResult-in-ns ret unparse-ns opts)))))

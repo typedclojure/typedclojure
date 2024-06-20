@@ -40,7 +40,7 @@
 ;; - :file-mapping      a map from namespace symbols to vectors of AST nodes
 ;;                      Added if true :file-mapping keyword is passed as an option
 (defn check-ns-info
-  [impl ns-or-syms {:keys [trace file-mapping check-config max-parallelism verbose-types] :as opt} opts]
+  [impl ns-or-syms {:keys [trace file-mapping check-config max-parallelism verbose-types verbose-forms] :as opt} opts]
   (assert (not (:opts opt)))
   (assert opts)
   (when trace
@@ -84,6 +84,7 @@
                          (assoc ::vs/trace trace)
                          (assoc ::vs/check-threadpool threadpool)
                          (assoc ::vs/verbose-types verbose-types)
+                         (assoc ::vs/verbose-forms verbose-forms)
                          ;; nested check-ns inside check-form switches off check-form
                          (assoc ::vs/in-check-form false))
                 terminal-error (atom nil)]
@@ -153,5 +154,5 @@
   (let [{:keys [delayed-errors]} (check-ns-info impl ns-or-syms opt opts)]
     (impl/with-impl impl
       (if-let [errors (seq delayed-errors)]
-        (err/print-errors! errors)
+        (err/print-errors! errors opts)
         :ok))))

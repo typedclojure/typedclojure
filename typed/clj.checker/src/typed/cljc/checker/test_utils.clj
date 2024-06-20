@@ -23,26 +23,28 @@
                   first option as a type, as above.
     :ret          Check the return TCResult of this expression against this ret. Evaluated
                   in the current namespace."
-  [tc-common* frm & opts]
-  (let [[opts t has-t?] (if (and opts (not (keyword? (first opts))))
-                          [(rest opts) (first opts) true]
-                          [opts])
-        _ (assert (even? (count opts))
+  [tc-common* frm & opt]
+  (let [[opt t has-t?] (if (and opt (not (keyword? (first opt))))
+                          [(rest opt) (first opt) true]
+                          [opt])
+        _ (assert (even? (count opt))
                   "Uneven arguments to tc-e")
-        {:as opts} opts
-        _ (assert (not (and has-t? (contains? opts :expected)))
+        {:as opt} opt
+        _ (assert (not (and has-t? (contains? opt :expected)))
                   "Can't provide both implicit expected type and :expected kw to tc-e")
-        has-t? (or has-t? (contains? opts :expected))
-        t (or t (:expected opts))
-        has-ret? (contains? opts :ret)
-        _ (assert (not (and has-t? (contains? opts :expected-ret)))
+        has-t? (or has-t? (contains? opt :expected))
+        t (or t (:expected opt))
+        has-ret? (contains? opt :ret)
+        _ (assert (not (and has-t? (contains? opt :expected-ret)))
                   "Can't provide both expected type and expected ret")
         actual-ret (gensym 'ret)]
-    `(let [{~actual-ret :ret ex# :ex delayed-errors# :delayed-errors} ~(tc-common* frm (assoc opts
+    `(let [{~actual-ret :ret ex# :ex delayed-errors# :delayed-errors} ~(tc-common* frm (assoc opt
                                                                                               :expected-syntax {:provided? has-t?
                                                                                                                 :syn t}))
            _# (some-> ex# throw)
-           _# (some-> (seq delayed-errors#) err/print-errors!)
+           _# (some-> (seq delayed-errors#) (err/print-errors!
+                                              ;;TODO opts
+                                              {}))
            _# ~(when has-ret?
                  `(assert (= ~actual-ret ~(:ret opts))))
            _# (assert ~actual-ret)] ;; should be a true value

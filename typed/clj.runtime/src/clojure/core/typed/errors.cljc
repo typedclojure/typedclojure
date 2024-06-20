@@ -242,7 +242,7 @@
 
 (defn print-errors!
   "Internal use only"
-  [errors]
+  [errors opts]
   {:pre [(seq errors)
          (every? #(instance? clojure.lang.ExceptionInfo %) errors)]}
   (binding [*out* *err*]
@@ -266,9 +266,9 @@
         (let [[_ form :as has-form?] (find data :form)]
           (when has-form?
             (print "\n\nin:\n")
-            (binding [*print-length* (when-not uvs/*verbose-forms*
+            (binding [*print-length* (when-not (::uvs/verbose-forms opts)
                                        10)
-                      *print-level* (when-not uvs/*verbose-forms*
+                      *print-level* (when-not (::uvs/verbose-forms opts)
                                       10)]
               (pp/pprint form)
               (println))

@@ -39,5 +39,5 @@
   - configurable via options: `(check-ns *ns* {:max-processors 1})`
 - reset lexical type environment when checking ns dependency
 - type check `clojure.core/assert` as if `*assert*` is true
-- remove `*verbose-types*`
-  - use `:verbose-types true` option
+- remove `*verbose-{types,forms}*`
+  - use `:verbose-{types,forms} true` option
