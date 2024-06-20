@@ -76,7 +76,7 @@
               ])
   )
 
-(defn var-type [var-qsym]
+(defn var-type [var-qsym opts]
   {:pre [(qualified-symbol? var-qsym)]}
   (let [rs (cljs-eval ['(require 'typed.cljs.provider.malli-cljs
                                  #_'malli.instrument.cljs)
