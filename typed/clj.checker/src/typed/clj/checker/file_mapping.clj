@@ -14,17 +14,13 @@
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.utils :as u]))
 
-; (Vec '{:ftype Type :fn-expr Expr})
-(def ^:private ^:dynamic *fn-stack* [])
-;(set-validator! #'*fn-stack* vector?)
-
 ;(t/defalias InfoEntry '{:msg t/Str :fn-stack (t/Vec {:ftype Type :fn-expr Expr})})
 ;(t/defalias MappingKey '{:line Int :column Int :file Str})
 ;(t/defalias InfoMap (Map MappingKey (Vec InfoEntry)))
 
 ;[Expr -> InfoMap]
-(defn ast->info-map 
-  [ast]
+(defn ast->info-map
+  [ast opts]
   (letfn [(mapping-key [{:keys [env] :as ast}]
             (let [ks [:line :column :file]]
               (when ((apply every-pred ks) env)
@@ -38,10 +34,12 @@
                                         ;floc (mapping-key ast)
                                         ;_ (assert floc (select-keys (:env ast) [:line :file :column]))
                                         ]
-                                    (binding [*fn-stack* (conj *fn-stack* {;:loc floc
-                                                                           :name (cu/fn-self-name ast)
-                                                                           :ftype ftype})]
-                                      (ast->info-map method))))
+                                    (ast->info-map method (update opts
+                                                                  ; (Vec '{:ftype Type :fn-expr Expr})
+                                                                  ::fn-stack (fnil conj [])
+                                                                  {;:loc floc
+                                                                   :name (cu/fn-self-name ast)
+                                                                   :ftype ftype}))))
                 v [{:expr ast
                     :fn-stack *fn-stack*}]
                 this-file (-> ast :env :file)
@@ -57,7 +55,7 @@
                   (when-let [k (mapping-key ast)]
                     {k v})))))
       (apply merge 
-             (concat (map ast->info-map (ast/children ast))
+             (concat (map #(ast->info-map % opts) (ast/children ast))
                      (let [{:keys [line column end-line end-column]} (-> ast :form meta)
                            this-file (-> ast :env :file)
                            _ (assert (string? this-file))
@@ -104,4 +102,4 @@
         info-map))
 
 (defn ast->file-mapping [ast opts]
-  (-> ast ast->info-map info-map->msg-map))
+  (-> ast (ast->info-map opts) info-map->msg-map))
