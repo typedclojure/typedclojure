@@ -58,7 +58,7 @@
 (defn delay-type*
   "Automatic bound-fn"
   [f]
-  (delay-type** (bound-fn* f)))
+  (delay-type** (fn [] (f))))
 
 (defmacro delay-type'
   "Manual bound-fn"
