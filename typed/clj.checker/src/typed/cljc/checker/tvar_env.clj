@@ -35,35 +35,22 @@
 (t/ann initial-tvar-env TVarEnv)
 (def initial-tvar-env {})
 
-(t/ann ^:no-check *current-tvar* TVarEnv)
+(t/ann ^:no-check *current-tvars* TVarEnv)
 (defonce ^:dynamic *current-tvars* initial-tvar-env)
 (t/tc-ignore
 (set-validator! #'*current-tvars* tvar-env?)
   )
 
-(defmacro with-extended-tvars
+(defn with-extended-tvars
   "Takes a list of vars and extends the current tvar environment."
-  [vars & body]
-  `(binding [*current-tvars* (extend-many *current-tvars* ~vars)]
-     ~@body))
+  [opts vars]
+  (update opts ::current-tvars (fnil extend-many initial-tvar-env) vars))
 
 (defmacro with-extended-new-tvars
   "Extends with new type variables (provided by (e.g., Poly-fresh))"
   [vars fresh-vars & body]
   `(binding [*current-tvars* (extend-many *current-tvars* ~vars ~fresh-vars)]
      ~@body))
-
-(t/ann bound-tvar? [t/Sym -> Boolean])
-(defn bound-tvar?
-  "Returns true if the current type variable is bound"
-  [var]
-  (contains? *current-tvars* var))
-
-(t/ann lookup-tvar [t/Sym -> (t/Nilable r/Type)])
-(defn lookup-tvar
-  "Returns the mapped-to type, or nil"
-  [var]
-  (*current-tvars* var))
 
 (t/ann extend-one (t/IFn 
                     [TVarEnv t/Sym -> TVarEnv]

@@ -880,8 +880,7 @@
                         (let [gvs (map gensym vs)
                               gvs->vs (zipmap gvs vs)
                               syns (apply f gvs)
-                              [lhs rhs] (tvar-env/with-extended-tvars gvs
-                                          (mapv #(prs/parse-type % opts) syns))
+                              [lhs rhs] (mapv #(prs/parse-type % (tvar-env/with-extended-tvars opts gvs)) syns)
                               substitution
                               (cgen/handle-failure
                                 (cgen/infer
