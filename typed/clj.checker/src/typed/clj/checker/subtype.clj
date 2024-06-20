@@ -91,22 +91,23 @@
 ;; nil => not subtyping
 ;; set => subtyping, contains the 'seen' pairs since the last subtype? call.
 ;;        internal functions like subtypeA* don't update *sub-current-seen*.
-(defonce ^:dynamic *sub-current-seen* nil)
-
-(defn currently-subtyping? []
-  (some? *sub-current-seen*))
+(defn currently-subtyping? [{::keys [sub-current-seen] :as opts}]
+  (some? sub-current-seen))
 
 (declare subtypeA* supertype-of-one-arr subtypes*-varargs subtype?)
 
 (defmacro ^:private do-top-level-subtype-using [f & args]
-  ;; maintain *sub-current-seen* for subtyping checks that span
+  ;; maintain sub-current-seen for subtyping checks that span
   ;; beyond just this file (eg., subtyping => cs-gen => subtyping)
-  `(let [f# (fn [A#] (~f A# ~@args))]
-     (if-some [A# *sub-current-seen*]
-       (f# A#)
-       (let [A# #{}]
-         (binding [*sub-current-seen* A#]
-           (f# A#))))))
+  (let [opts (last args)
+        args (butlast args)]
+    (assert (= 'opts opts) opts)
+    `(let [opts# ~opts
+           f# (fn [A# opts#] (~f A# ~@args opts#))]
+       (if-some [A# (::sub-current-seen opts#)]
+         (f# A# opts#)
+         (let [A# #{}]
+           (f# A# (assoc opts# ::sub-current-seen A#)))))))
 
 ;[(t/Vec Type) (t/Vec Type) Type -> Boolean]
 (defn subtypes-varargs?
@@ -127,7 +128,7 @@
            (do-top-level-subtype-using
              subtypeA* (r/-hvec (vec argtys-rest) {} opts) prest opts)))))
 
-;subtype and subtype? use *sub-current-seen* for remembering types (for Rec)
+;subtype and subtype? use sub-current-seen for remembering types (for Rec)
 ;subtypeA* takes an extra argument (the current-seen subtypes), called by subtype
 ;
 ; In short, only call subtype (or subtype?)
@@ -146,7 +147,7 @@
         (if-let [[_ res] (when subtype-cache (find @subtype-cache [s t]))]
           res
           (let [res (do-subtype)]
-            (when-not (currently-subtyping?)
+            (when-not (currently-subtyping? opts)
               (some-> subtype-cache (swap! assoc [s t] res)))
             res))))))
 
@@ -322,11 +323,11 @@
   ;(prn :subtype-symbolic-closure s t)
   (with-bindings (:bindings s)
     (let [delayed-errors (err/-init-delayed-errors)]
-      (when (try (binding [*sub-current-seen* A]
-                   (check-expr (:fexpr s) (r/ret t)
-                               (-> opts
-                                   (assoc ::vs/delayed-errors delayed-errors)
-                                   (into (select-keys (:opts s) [::vs/lexical-env])))))
+      (when (try (check-expr (:fexpr s) (r/ret t)
+                             (-> opts
+                                 (assoc ::vs/delayed-errors delayed-errors)
+                                 (assoc ::sub-current-seen A)
+                                 (into (select-keys (:opts s) [::vs/lexical-env]))))
                  (catch clojure.lang.ExceptionInfo e
                    ;(prn e) ;;tmp
                    (when-not (-> e ex-data err/tc-error?)
@@ -457,8 +458,7 @@
 ;;only pay cost of dynamic binding when absolutely necessary (eg., before unfolding Mu)
 (defn subtype-Mu-left [A s t opts]
   {:pre [(r/Mu? s)]}
-  (binding [*sub-current-seen* A]
-    (subtypeA* A (c/unfold s opts) t opts)))
+  (subtypeA* A (c/unfold s opts) t (assoc opts ::sub-current-seen A)))
 
 (defonce unknown-result (Object.))
 
@@ -979,7 +979,9 @@
    }
   ;(prn "subtypeA*" s t)
   (u/trace (str (pr-str s) " < " (pr-str t)) opts)
-  (let [subtypeA* #(subtypeA* %1 %2 %3 opts)]
+  (let [subtypeA* (fn
+                    ([A s t] (subtypeA* A s t opts))
+                    ([A s t opts] (subtypeA* A s t opts)))]
   (if (OR ; FIXME TypeFn's are probably not between Top/Bottom
           (r/Top? t)
           (r/Wildcard? t)
@@ -1057,8 +1059,7 @@
 
         ;;only pay cost of dynamic binding when absolutely necessary (eg., before unfolding Mu)
         (r/Mu? t)
-        (binding [*sub-current-seen* A]
-          (subtypeA* A s (c/unfold t opts)))
+        (subtypeA* A s (c/unfold t opts) (assoc opts ::sub-current-seen A))
 
         (r/App? s)
         (recur A (c/resolve-App s opts) t opts)
