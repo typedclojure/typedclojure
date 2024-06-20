@@ -196,7 +196,8 @@
      (parse-type s opts))))
 
 (defn parse-cljs
-  ([s] (parse-cljs s ((requiring-resolve 'typed.cljs.runtime.env/cljs-opts))))
+  ([s] (parse-cljs s (assoc ((requiring-resolve 'typed.cljs.runtime.env/cljs-opts))
+                            ::parse-type-in-ns (cljs-ns))))
   ([s opts]
    (impl/with-cljs-impl
      (parse-type s opts))))
