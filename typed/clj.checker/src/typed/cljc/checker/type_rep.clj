@@ -435,10 +435,10 @@
   (t/If t/Fn
         [:-> '{:cache t/Bool :variances (t/Seqable Variance)}]
         (t/Seqable Variance))
-  (t/U (t/I t/Fn [t/Any :? :-> '{:cache t/Bool :variances (t/Seqable Variance)}])
+  (t/U (t/I t/Fn [:-> '{:cache t/Bool :variances (t/Seqable Variance)}])
        (t/I (t/Not t/Fn) (t/Seqable Variance))))
 
-(t/ann ^:no-check TypeFn-maker
+(t/ann ^:force-check TypeFn-maker
        [Number TFnVariancesMaybeFn (t/Seqable Kind) p/IScope (t/Option (t/Map t/Any t/Any)) :?
         :-> TypeFn])
 (defn TypeFn-maker
@@ -447,21 +447,16 @@
   ([nbound variances bbnds scope mta]
    (-TypeFn-maker nbound
                   (if (fn? variances)
-                    (let [vol (volatile! (t/ann-form nil (t/Seqable Variance)))
-                          f (fn [n opts]
-                              (or (do @vol)
-                                  (let [{vs :variances :keys [cache]} (case n
-                                                                        0 (variances)
-                                                                        1 (variances opts))]
-                                    (t/ann-form vs (t/Seqable Variance))
-                                    (assert (every? variance? vs) [nbound variances bbnds scope])
-                                    (assert (apply = nbound (map count [vs bbnds])))
-                                    (assert (boolean? cache))
-                                    (when cache (vreset! vol vs))
-                                    vs)))]
-                      (fn
-                        ([] (f 0 nil))
-                        ([opts] (f 1 opts))))
+                    (let [vol (volatile! (t/ann-form nil (t/Seqable Variance)))]
+                      (fn []
+                        (or (do @vol)
+                            (let [{vs :variances :keys [cache]} (variances)]
+                              (t/ann-form vs (t/Seqable Variance))
+                              (assert (every? variance? vs) [nbound variances bbnds scope])
+                              (assert (apply = nbound (map count [vs bbnds])))
+                              (assert (boolean? cache))
+                              (when cache (vreset! vol vs))
+                              vs))))
                     ;; FIXME issues with (t/I (t/Not t/Fn) (t/Seqable Variance)) :< (t/Seqable Variance)
                     ^{::t/unsafe-cast (t/Seqable Variance)}
                     variances)

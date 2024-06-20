@@ -820,33 +820,32 @@
         ;; at some point we should remove this requirement (this is checked by parse-tfn-binder)
         id (gensym)
         infer-variances? (some #(= :infer (:variance %)) free-maps)
-        variances (fn rec
-                    ([] (rec opts))
-                    ([opts]
-                     (let [currently-inferring-TypeFns (or (::vs/currently-inferring-TypeFns opts) #{})]
-                       (if (currently-inferring-TypeFns id)
-                         (if infer-variances?
-                           (prs-error "Cannot infer variances on recursive t/TFn, please add :variance annotations" opts)
-                           {:cache false
-                            :variances (map :variance free-maps)})
-                         (let [opts (assoc opts ::vs/currently-inferring-TypeFns (conj currently-inferring-TypeFns id))
-                               vs (free-ops/with-bounded-frees (into {} (map (fn [{:keys [nme bound]}] [(r/make-F nme) bound]))
-                                                                     free-maps)
-                                    ((requiring-resolve 'typed.cljc.checker.frees/fv-variances) bodyt opts))]
-                           {:cache true
-                            :variances (mapv (fn [{:keys [nme variance]}]
-                                               (if-some [actual-v (vs nme)]
-                                                 (if (and variance
-                                                          (not= :infer variance)
-                                                          (not= actual-v variance))
-                                                   (prs-error (str "Type variable " nme " occurs with " (name actual-v) " variance "
-                                                                   "when declared " (name variance))
-                                                              opts)
-                                                   actual-v)
-                                                 ;;not great support for :constant, use :invariant for now
-                                                 ;:constant
-                                                 :invariant))
-                                             free-maps)})))))]
+        variances (let [prs-error (bound-fn* prs-error)]
+                    (fn []
+                      (let [currently-inferring-TypeFns vs/*currently-inferring-TypeFns*]
+                        (if (currently-inferring-TypeFns id)
+                          (if infer-variances?
+                            (when (currently-inferring-TypeFns id)
+                              (prs-error "Cannot infer variances on recursive t/TFn, please add :variance annotations" opts))
+                            {:cache false
+                             :variances (map :variance free-maps)})
+                          (binding [vs/*currently-inferring-TypeFns* (conj currently-inferring-TypeFns id)]
+                            (let [vs (free-ops/with-bounded-frees (into {} (map (fn [{:keys [nme bound]}] [(r/make-F nme) bound]))
+                                                                        free-maps)
+                                       ((requiring-resolve 'typed.cljc.checker.frees/fv-variances) bodyt opts))]
+                              {:cache true
+                               :variances (mapv (fn [{:keys [nme variance]}]
+                                                  (if-some [actual-v (vs nme)]
+                                                    (if (and variance
+                                                             (not= :infer variance)
+                                                             (not= actual-v variance))
+                                                      (prs-error (str "Type variable " nme " occurs with " (name actual-v) " variance "
+                                                                      "when declared " (name variance)) opts)
+                                                      actual-v)
+                                                    ;;not great support for :constant, use :invariant for now
+                                                    ;:constant
+                                                    :invariant))
+                                                free-maps)}))))))]
     (c/TypeFn* (map :nme free-maps)
                variances
                (map :bound free-maps)

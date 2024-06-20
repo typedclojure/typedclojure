@@ -314,17 +314,13 @@
                  _ (when-not (r/TypeFn? tfn)
                      (err/int-error (str "First argument to TApp must be TypeFn: "
                                          (prs/unparse-type tapp opts))
-                                    opts))
-                 vs (let [f (.-variances ^TypeFn tfn)]
-                      (if (fn? f)
-                        (f opts)
-                        f))]
+                                    opts))]
              (map (fn [v ^FreesResult fr]
                     (case v
                       :covariant fr
                       :contravariant (flip-variances fr)
                       :invariant (invariant-variances fr)))
-                  vs
+                  (:variances tfn)
                   (map #(frees % opts) rands)))))
 
   PrimitiveArray
