@@ -163,7 +163,7 @@
                          (into (sorted-map) (map (fn [fsym]
                                                    (let [f (requiring-resolve fsym)]
                                                      (assert f fsym)
-                                                     (some->> (f nsym)
+                                                     (some->> (f nsym opts)
                                                               (vector fsym)))))
                                (impl/impl-case opts
                                  :clojure @clj-var-providers

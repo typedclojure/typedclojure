@@ -32,13 +32,13 @@
    (s->t/malli->type (eval m) opts)
    opts))
 
-(defn var-type [var-qsym]
+(defn var-type [var-qsym opts]
   (when (qualified-symbol? var-qsym)
     (some-> (get-in (m/function-schemas)
                     [(symbol (namespace var-qsym))
                      (symbol (name var-qsym))
                      :schema])
-            (malli->Type (assoc (clj-env/clj-opts)
+            (malli->Type (assoc opts
                                 ::s->t/mode :validator-type
                                 ::s->t/source var-qsym
                                 :typed.clj.checker.parse-unparse/parse-type-in-ns (ns-name *ns*))))))

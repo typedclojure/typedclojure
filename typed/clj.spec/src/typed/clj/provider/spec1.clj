@@ -17,6 +17,6 @@
    (s->t/spec->type m opts)
    opts))
 
-(defn var-type [var-qsym]
+(defn var-type [var-qsym opts]
   (some-> (spec1/get-spec var-qsym)
-          (spec->Type (assoc (clj-env/clj-opts) ::s->t/source var-qsym))))
+          (spec->Type (assoc opts ::s->t/source var-qsym))))
