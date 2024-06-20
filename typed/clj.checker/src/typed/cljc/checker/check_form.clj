@@ -98,7 +98,7 @@
            analyze-bindings-fn] :as m1}
    form {:keys [expected-ret expected type-provided?
                 checked-ast no-eval bindings-atom beta-limit
-                check-config]
+                check-config verbose-types trace]
          {:keys [check-form-eval]
           :or {check-form-eval :after} :as check-config} :check-config
          :as opt}
@@ -124,6 +124,9 @@
                    (assoc ::vs/delayed-errors delayed-errors)
                    (assoc ::prs/parse-type-in-ns unparse-ns)
                    (assoc ::vs/custom-expansions custom-expansions?)
+                   (assoc ::vs/check-config check-config)
+                   (assoc ::vs/verbose-types verbose-types)
+                   (assoc ::vs/trace trace)
                    (assoc ::vs/in-check-form true))
           expected (or
                      expected-ret
@@ -154,7 +157,7 @@
           terminal-error (atom nil)
           ;_ (prn "before c-ast")
           c-ast (try
-                  (check-top-level form expected {} (assoc opts ::vs/check-config check-config))
+                  (check-top-level form expected {} opts)
                   (catch Throwable e
                     (let [e (if (some-> e ex-data err/tc-error?)
                               (try

@@ -169,56 +169,55 @@
          (let [[x1 x2] xfvs
                expected-t (r/make-Function [(r/make-F x1)] (r/make-F x2))]
            (is (= expected-t t')))))
-  (binding [vs/*verbose-types* true]
-    (clj (let [t (r/make-Function [(r/make-F 'x) (r/make-F 'y)] (r/make-F 'x)
-                                  :drest (r/DottedPretype1-maker (r/make-FnIntersection
-                                                                   (r/make-Function [(r/make-F 'x) (r/make-F 'y)] (r/make-F 'y)
-                                                                                    :drest 
-                                                                                    (r/DottedPretype1-maker (r/make-FnIntersection (r/make-Function [(r/make-F 'x)] (r/make-F 'y)))
-                                                                                                            'z))
-                                                                   (r/make-Function [(r/make-F 'x) (r/make-F 'y)] (r/make-F 'y)
-                                                                                    :drest 
-                                                                                    (r/DottedPretype1-maker (r/make-FnIntersection (r/make-Function [(r/make-F 'x)] (r/make-F 'y)))
-                                                                                                            'z)))
-                                                                 'y))
-               {t' :separated-t :keys [remap]} (sut/separate-F t {:fv #{'x}
-                                                                  :idx #{'y 'z}}
-                                                               (clj-opts))
-               ;_ (prn t)
-               ;_ (prn t')
-               ;_ (clojure.pprint/pprint remap)
-               {{[x1 x2] 'x} :fv
-                {[y1] 'y [z1 z2] 'z} :idx} remap
-               {{{[y1_x1 y1_x2] 'x
-                  [y1_y1 y1_y2 y1_y3 y1_y4] 'y} [y1]
-                 {[z1_x1] 'x
-                  [z1_y1] 'y} [y1 z1]
-                 {[z2_x1] 'x
-                  [z2_y1] 'y} [y1 z2]} :idx-context} remap]
-           (is (= {:fv {'x [x1 x2]}
-                   :idx {'y [y1]
-                         'z [z1 z2]}
-                   :idx-context {[y1] {'x [y1_x1 y1_x2]
-                                       'y [y1_y1 y1_y2 y1_y3 y1_y4]}
-                                 [y1 z1] {'x [z1_x1]
-                                          'y [z1_y1]}
-                                 [y1 z2] {'x [z2_x1]
-                                          'y [z2_y1]}}}
-                  remap))
-           (let [expected-t (r/make-Function [(r/make-F x1) (r/make-F 'y)] (r/make-F x2)
-                                             :drest (r/DottedPretype1-maker (r/make-FnIntersection
-                                                                              (r/make-Function [(r/make-F y1_x1) (r/make-F y1_y1)] (r/make-F y1_y2)
-                                                                                               :drest 
-                                                                                               (r/DottedPretype1-maker (r/make-FnIntersection (r/make-Function [(r/make-F z1_x1)] 
-                                                                                                                                                               (r/make-F z1_y1)))
-                                                                                                                       z1))
-                                                                              (r/make-Function [(r/make-F y1_x2) (r/make-F y1_y3)] (r/make-F y1_y4)
-                                                                                               :drest 
-                                                                                               (r/DottedPretype1-maker (r/make-FnIntersection (r/make-Function [(r/make-F z2_x1)]
-                                                                                                                                                               (r/make-F z2_y1)))
-                                                                                                                       z2)))
-                                                                            y1))]
-             (is (= expected-t t'))))))
+  (clj (let [t (r/make-Function [(r/make-F 'x) (r/make-F 'y)] (r/make-F 'x)
+                                :drest (r/DottedPretype1-maker (r/make-FnIntersection
+                                                                 (r/make-Function [(r/make-F 'x) (r/make-F 'y)] (r/make-F 'y)
+                                                                                  :drest 
+                                                                                  (r/DottedPretype1-maker (r/make-FnIntersection (r/make-Function [(r/make-F 'x)] (r/make-F 'y)))
+                                                                                                          'z))
+                                                                 (r/make-Function [(r/make-F 'x) (r/make-F 'y)] (r/make-F 'y)
+                                                                                  :drest 
+                                                                                  (r/DottedPretype1-maker (r/make-FnIntersection (r/make-Function [(r/make-F 'x)] (r/make-F 'y)))
+                                                                                                          'z)))
+                                                               'y))
+             {t' :separated-t :keys [remap]} (sut/separate-F t {:fv #{'x}
+                                                                :idx #{'y 'z}}
+                                                             (clj-opts))
+             ;_ (prn t)
+             ;_ (prn t')
+             ;_ (clojure.pprint/pprint remap)
+             {{[x1 x2] 'x} :fv
+              {[y1] 'y [z1 z2] 'z} :idx} remap
+             {{{[y1_x1 y1_x2] 'x
+                [y1_y1 y1_y2 y1_y3 y1_y4] 'y} [y1]
+               {[z1_x1] 'x
+                [z1_y1] 'y} [y1 z1]
+               {[z2_x1] 'x
+                [z2_y1] 'y} [y1 z2]} :idx-context} remap]
+         (is (= {:fv {'x [x1 x2]}
+                 :idx {'y [y1]
+                       'z [z1 z2]}
+                 :idx-context {[y1] {'x [y1_x1 y1_x2]
+                                     'y [y1_y1 y1_y2 y1_y3 y1_y4]}
+                               [y1 z1] {'x [z1_x1]
+                                        'y [z1_y1]}
+                               [y1 z2] {'x [z2_x1]
+                                        'y [z2_y1]}}}
+                remap))
+         (let [expected-t (r/make-Function [(r/make-F x1) (r/make-F 'y)] (r/make-F x2)
+                                           :drest (r/DottedPretype1-maker (r/make-FnIntersection
+                                                                            (r/make-Function [(r/make-F y1_x1) (r/make-F y1_y1)] (r/make-F y1_y2)
+                                                                                             :drest 
+                                                                                             (r/DottedPretype1-maker (r/make-FnIntersection (r/make-Function [(r/make-F z1_x1)] 
+                                                                                                                                                             (r/make-F z1_y1)))
+                                                                                                                     z1))
+                                                                            (r/make-Function [(r/make-F y1_x2) (r/make-F y1_y3)] (r/make-F y1_y4)
+                                                                                             :drest 
+                                                                                             (r/DottedPretype1-maker (r/make-FnIntersection (r/make-Function [(r/make-F z2_x1)]
+                                                                                                                                                             (r/make-F z2_y1)))
+                                                                                                                     z2)))
+                                                                          y1))]
+           (is (= expected-t t')))))
   (clj (let [{:keys [separated-t remap]} (sut/separate-F
                                            (r/make-Function [] r/-any :drest (r/DottedPretype1-maker (r/-hvec [(r/make-F 'z) (r/make-F 'z)] {} (clj-opts)) 'z))
                                            {:idx #{'z}}

@@ -2277,8 +2277,8 @@
                                                   S-symb' (vals (into (sorted-map) (dissoc inferred-deferred-arg-types :rng)))
                                                   T-symb' (mapv #(subst-non-covariant subst % opts) T-symb)
                                                   ;_ (prn "S-symb'" S-symb')
-                                                  ;_ (binding [vs/*verbose-types* true] (prn "T-symb" T-symb))
-                                                  ;_ (binding [vs/*verbose-types* true] (prn "T-symb'" T-symb'))
+                                                  ;_ (prn "T-symb" T-symb)
+                                                  ;_ (prn "T-symb'" T-symb')
                                                   ;_ (prn "deferred-fixed-args" deferred-fixed-args)
                                                   cs (-> (cs-gen-list #{} X Y S-symb' T-symb' {} opts)
                                                          (cond->

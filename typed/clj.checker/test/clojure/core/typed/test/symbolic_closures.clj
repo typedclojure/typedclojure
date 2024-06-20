@@ -223,11 +223,10 @@
                (def app #((%1 %2) %2))
                (app #(do % (cc/fn [x] (t/ann-form x (t/Val 1)) true))
                     1)))
-  (binding [vs/*verbose-types* false #_true]
-    (is-tc-e (do (t/ann app (t/All [x y] [[x :-> [x :-> y]] x :-> y]))
-                 (def app #((%1 %2) %2))
-                 (app #(do % (fn [x] (t/ann-form x (t/Val 1)) true))
-                      1))))
+  (is-tc-e (do (t/ann app (t/All [x y] [[x :-> [x :-> y]] x :-> y]))
+               (def app #((%1 %2) %2))
+               (app #(do % (fn [x] (t/ann-form x (t/Val 1)) true))
+                    1)))
   (is-tc-e (do (t/ann app (t/All [x y] [[x :-> [x :-> y]] x :-> y]))
                (def app #((%1 %2) %2))
                (app #(do % (fn [x] (t/ann-form x (t/Val 1)) true)) 1))
@@ -531,22 +530,20 @@
                  res (into [] xf [1])]
              (t/ann-form res (t/Vec (t/Val 1)))
              nil))
-  (binding [clojure.core.typed.util-vars/*verbose-types* true]
-    (is-tc-e (let [into (t/ann-form into (t/All [x y :named [a]] [(t/Vec x) (t/Transducer y x) (t/Seqable y) :-> (t/Vec x)]))
-                   res (into [] (map #(do %)) [1])]
-               (clojure.core.typed/print-env "foo")
-               (t/ann-form res (t/Vec (t/Val 1)))
-               nil)))
+  (is-tc-e (let [into (t/ann-form into (t/All [x y :named [a]] [(t/Vec x) (t/Transducer y x) (t/Seqable y) :-> (t/Vec x)]))
+                 res (into [] (map #(do %)) [1])]
+             (clojure.core.typed/print-env "foo")
+             (t/ann-form res (t/Vec (t/Val 1)))
+             nil))
   )
 
 (deftest reduce-test
   (is-tc-e (reduce (fn [a :- t/Int, b :- t/Int] (+ a b)) 0 [1])
            t/Int)
   ;; (All [a c] [[a c :-> (t/U (t/Reduced a) a)] a (t/Seqable c) :-> a])
-  (binding [vs/*verbose-types* true]
-    (is-tc-e (fn [reduce :- (t/All [a] [[a a :-> a] (t/NonEmptySeqable a) :-> a])]
-               ;:- t/Int
-               (reduce (fn [a b] (+ a b)) [1]))))
+  (is-tc-e (fn [reduce :- (t/All [a] [[a a :-> a] (t/NonEmptySeqable a) :-> a])]
+             ;:- t/Int
+             (reduce (fn [a b] (+ a b)) [1])))
   (is-tc-e (reduce (fn [a b] (+ a b)) [1]))
   (is-tc-e (reduce (fn [a b] (+ a b)) [1]) Long)
   (is-tc-e (reduce (fn [a b]

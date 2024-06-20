@@ -20,4 +20,4 @@
 
 (let [-opts {::env/checker cljs-checker-atom
              :clojure.core.typed.current-impl/current-impl :clojure.core.typed.current-impl/clojurescript}]
-  (defn cljs-opts [] (assoc -opts ::vs/verbose-types vs/*verbose-types*)))
+  (defn cljs-opts [] -opts))

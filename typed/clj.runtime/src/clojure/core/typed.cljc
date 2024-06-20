@@ -810,6 +810,8 @@ for checking namespaces, cf for checking individual forms."}
   Keyword arguments:
   - :trace         If true, print some basic tracing of the type checker
                    Default: nil
+  - :verbose-types       If true, print fully qualified types. {:unique-tvars true} to print type variables with unique internal names.
+                         Default: nil
   - :check-config   Configuration map for the type checker.
     - :check-ns-dep  If `:recheck`, always check dependencies.
                      If `:never`, ns dependencies are ignored.
@@ -857,7 +859,6 @@ for checking namespaces, cf for checking individual forms."}
   If providing keyword arguments, the namespace to check must be provided
   as the first argument.
 
-  Bind clojure.core.typed.util-vars/*verbose-types* to true to print fully qualified types.
   Bind clojure.core.typed.util-vars/*verbose-forms* to print full forms in error messages.
   
   eg. (check-ns 'myns.typed)

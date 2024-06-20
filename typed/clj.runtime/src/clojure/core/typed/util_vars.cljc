@@ -10,22 +10,6 @@
 
 (defonce ^:dynamic 
   ^{:doc 
-  "If true, print fully qualified types in error messages
-  and return values. Bind around a type checking form like 
-  cf or check-ns.
-
-  Can also be a map. Known options:
-  - :unique-tvars if true, print type variables as globally unique
-  
-  eg. 
-  (binding [*verbose-types* true] 
-    (cf 1 Number))
-  ;=> java.lang.Number"}
-  *verbose-types* 
-  nil)
-
-(defonce ^:dynamic 
-  ^{:doc 
   "If true, print complete forms in error messages. Bind
   around a type checking form like cf or check-ns.
   

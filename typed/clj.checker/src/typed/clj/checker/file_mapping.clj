@@ -41,7 +41,7 @@
                                                                    :name (cu/fn-self-name ast)
                                                                    :ftype ftype}))))
                 v [{:expr ast
-                    :fn-stack *fn-stack*}]
+                    :fn-stack (::fn-stack opts)}]
                 this-file (-> ast :env :file)
                 _ (assert (string? this-file))]
             (merge
@@ -60,10 +60,10 @@
                            this-file (-> ast :env :file)
                            _ (assert (string? this-file))
                            v [{:expr ast
-                               :fn-stack *fn-stack*}]]
+                               :fn-stack (::fn-stack opts)}]]
                        (if (and line column end-line end-column)
                          (if (and (symbol? (:form ast))
-                                  (== line end-line))
+                                  (= line end-line))
                            (for [c (range column end-column)]
                              {{:file this-file :line line :column c} v})
                            [{{:file this-file :line line :column column} v}

@@ -550,7 +550,7 @@
                   ; try and simplify to disjunctive normal form
                   ; normalise (I t1 t2 (t/U t3 t4))
                   ; to (t/U (I t1 t2 t3) (t/I t1 t2 t4))
-                  :else (let [;_ (binding [vs/*verbose-types* true] (prn "before ts" ts))
+                  :else (let [;_ (prn "before ts" ts)
                               ;; only move common elements of all inner unions to outer union
                               ; (I (U nil t1) (U nil t2))
                               ; =>
