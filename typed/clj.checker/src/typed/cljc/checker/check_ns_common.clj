@@ -133,11 +133,12 @@
                                       (.invokeAll threadpool (map (fn [nsym]
                                                                     #(check-ns nsym))
                                                                   nsym-coll))))
-                      _ (swap! delayed-errors into (mapcat (fn [{:keys [ex errors out]}]
-                                                             (some-> out str/trim not-empty println)
-                                                             (some-> ex throw)
-                                                             errors))
-                               results)])))
+                      _ (swap! delayed-errors into
+                               (into [] (mapcat (fn [{:keys [ex errors out]}]
+                                                  (some-> out str/trim not-empty println)
+                                                  (some-> ex throw)
+                                                  errors))
+                                     results))])))
             (catch ExceptionInfo e
               (if (-> e ex-data :type-error)
                 (reset! terminal-error e)

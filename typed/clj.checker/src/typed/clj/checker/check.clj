@@ -180,11 +180,12 @@
                                             (throw (or (.getCause e) e)))))
                                    (.invokeAll check-threadpool exs))
                              (mapv #(%) exs))
-                   _ (swap! delayed-errors into (mapcat (fn [{:keys [ex errors out]}]
-                                                          (some-> out str/trim not-empty println)
-                                                          (some-> ex throw)
-                                                          errors))
-                            results)]
+                   _ (swap! delayed-errors into
+                            (into [] (mapcat (fn [{:keys [ex errors out]}]
+                                               (some-> out str/trim not-empty println)
+                                               (some-> ex throw)
+                                               errors))
+                                  results))]
                (cache/remove-stale-cache-entries ns ns-form-str (map :sform forms-info) slurped opts)))))))))
 
 (defn check-ns-and-deps [nsym opts] (cu/check-ns-and-deps nsym check-ns1 opts))
