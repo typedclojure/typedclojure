@@ -41,11 +41,6 @@
 (set-validator! #'*current-tvars* tvar-env?)
   )
 
-(defn with-extended-tvars
-  "Takes a list of vars and extends the current tvar environment."
-  [opts vars]
-  (update opts ::current-tvars (fnil extend-many initial-tvar-env) vars))
-
 (defmacro with-extended-new-tvars
   "Extends with new type variables (provided by (e.g., Poly-fresh))"
   [vars fresh-vars & body]
@@ -80,3 +75,9 @@
                        ((some-fn nil? symbol?) fresh-var)]}
                 (extend-one env var fresh-var))
               env vars fresh-vars))))
+
+#_
+(defn with-extended-tvars
+  "Takes a list of vars and extends the current tvar environment."
+  [opts vars]
+  (update opts ::current-tvars (fnil extend-many initial-tvar-env) vars))
