@@ -88,7 +88,8 @@
       (println "Exception thrown while retrieving malli type from CLJS:" res)
       (when-some [tsyn (-> (:val res) edn/read-string)]
         ((requiring-resolve 'typed.clj.checker.parse-unparse/parse-type)
-         tsyn)))))
+         tsyn
+         opts)))))
 
 (comment
   (require '[clojure.core.typed.current-impl :as impl])
