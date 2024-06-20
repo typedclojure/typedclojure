@@ -206,7 +206,7 @@
   `(core/let [t# ~t
               opts# (assoc ~opts :typed.clj.checker.parse-unparse/parse-type-in-ns (ns-name *ns*))]
      ((requiring-resolve `typed.cljc.runtime.env-utils/delay-type*)
-      (bound-fn [] ((requiring-resolve 'clojure.core.typed.parse-ast/parse-clj) t# opts#)))))
+      (core/fn [] ((requiring-resolve 'clojure.core.typed.parse-ast/parse-clj) t# opts#)))))
 
 ;;TODO implement reparsing on internal ns reload
 (defmacro ^:private delay-tc-parse
