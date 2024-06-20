@@ -2904,11 +2904,10 @@
 #?(:clj
 (defn instrument-top-level-form
   [form]
-  (impl/with-clojure-impl
-    (jana2/analyze+eval form (jana2/empty-env) {:eval-fn (fn [ast opts]
-                                                           (-> ast
-                                                               runtime-infer-expr
-                                                               (jana2/eval-ast opts)))})))
+  (jana2/analyze+eval form (jana2/empty-env) {:eval-fn (fn [ast opts]
+                                                         (-> ast
+                                                             runtime-infer-expr
+                                                             (jana2/eval-ast opts)))}))
 )
 
 ;; TESTS

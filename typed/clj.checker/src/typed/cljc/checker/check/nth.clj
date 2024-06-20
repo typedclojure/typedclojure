@@ -144,28 +144,26 @@
   (let [; gensyms are too ugly to read in errors
         x 'x
         y 'y]
-    (impl/with-clojure-impl
-      (prs/parse-type
-        `(t/All [~x ~y]
-          (t/IFn 
-            [(t/U (clojure.lang.Indexed ~x) (t/SequentialSeqable ~x)) t/Int :-> ~x]
-            [(t/I (t/U (clojure.lang.Indexed ~x) (t/SequentialSeqable ~x))
-                  (t/CountRange ~(inc n)))
-             (t/Val ~n) t/Any :-> ~x]
-            [(t/U (clojure.lang.Indexed ~x) (t/SequentialSeqable ~x) nil) t/Int ~y :-> (t/U ~x ~y)]
-            [(t/U (clojure.lang.Indexed ~x) (t/SequentialSeqable ~x) nil) t/Int :-> (t/U ~x nil)]))
-        opts))))
+    (prs/parse-type
+      `(t/All [~x ~y]
+        (t/IFn 
+          [(t/U (clojure.lang.Indexed ~x) (t/SequentialSeqable ~x)) t/Int :-> ~x]
+          [(t/I (t/U (clojure.lang.Indexed ~x) (t/SequentialSeqable ~x))
+                (t/CountRange ~(inc n)))
+           (t/Val ~n) t/Any :-> ~x]
+          [(t/U (clojure.lang.Indexed ~x) (t/SequentialSeqable ~x) nil) t/Int ~y :-> (t/U ~x ~y)]
+          [(t/U (clojure.lang.Indexed ~x) (t/SequentialSeqable ~x) nil) t/Int :-> (t/U ~x nil)]))
+      opts)))
 
 (defn valid-first-arg-for-3-arity-nth? [t opts]
   {:pre [(r/Type? t)]
    :post [(boolean? %)]}
   (ind/subtype? t
-                (impl/with-clojure-impl
-                  (prs/parse-type
-                    `(t/U (clojure.lang.Indexed t/Any)
-                          (t/SequentialSeqable t/Any)
-                          nil)
-                    opts))
+                (prs/parse-type
+                  `(t/U (clojure.lang.Indexed t/Any)
+                        (t/SequentialSeqable t/Any)
+                        nil)
+                  opts)
                 opts))
 
 (defn invoke-nth [expr expected {::check/keys [check-expr] :as opts}]

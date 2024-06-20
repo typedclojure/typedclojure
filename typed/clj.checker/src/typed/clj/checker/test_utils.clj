@@ -142,23 +142,20 @@
      false))
 
 (defmacro sub? [s t]
-  `(impl/with-clojure-impl
-     (let [opts# (assoc (clj-opts) :typed.clj.checker.parse-unparse/parse-type-in-ns '~'clojure.core.typed)]
-       (subtype? (parse-type '~s opts#)
-                 (parse-type '~t opts#)))))
+  `(let [opts# (assoc (clj-opts) :typed.clj.checker.parse-unparse/parse-type-in-ns '~'clojure.core.typed)]
+     (subtype? (parse-type '~s opts#)
+               (parse-type '~t opts#))))
 
 (defmacro sub?-q [s t]
-  `(impl/with-clojure-impl
-     (let [opts# (assoc (clj-opts) :typed.clj.checker.parse-unparse/parse-type-in-ns '~'clojure.core.typed)]
-       (subtype? (parse-type ~s opts#)
-                 (parse-type ~t opts#)))))
+  `(let [opts# (assoc (clj-opts) :typed.clj.checker.parse-unparse/parse-type-in-ns '~'clojure.core.typed)]
+     (subtype? (parse-type ~s opts#)
+               (parse-type ~t opts#))))
 
 (defn clj-opts []
   (assoc (clj-env/clj-opts) :typed.clj.checker.parse-unparse/parse-type-in-ns (ns-name *ns*)))
 
 (defn subtype? [s t]
-  (impl/with-clojure-impl
-    (sub/subtype? s t (clj-opts))))
+  (sub/subtype? s t (clj-opts)))
 
 (defn both-subtype? [s t]
   (and (not= r/-error s)
@@ -171,8 +168,7 @@
                   (parse-clj '~t)))
 
 (defn check [& as]
-  (impl/with-clojure-impl
-    (apply chk/check-expr as)))
+  (apply chk/check-expr as))
 
 (defmacro is-cf [& args]
   `(is (do
@@ -183,10 +179,10 @@
   `(clj (is ~@args)))
 
 (defmacro cljs [& body]
-  `(impl/with-cljs-impl ~@body))
+  `(do ~@body))
 
 (defmacro clj [& body]
-  `(impl/with-clojure-impl ~@body))
+  `(do ~@body))
 
 ;return ret for an expression f
 (defmacro eret [f]
@@ -225,8 +221,7 @@
        ret#)))
 
 (defmacro tc [form]
-  `(impl/with-clojure-impl
-     (t/check-form* '~form)))
+  `(t/check-form* '~form))
 
 ;; from clojure.test-helper
 (defmacro with-err-string-writer

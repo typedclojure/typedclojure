@@ -95,37 +95,36 @@
                 *err* (@session #'*err*)]
         (try
           (t/load-if-needed)
-          (impl/with-clojure-impl
-            (let [{:keys [ret result ex]}
-                  (t/check-form-info rcode
-                                     :eval-out-ast #(ana-clj/eval-ast % {})
-                                     :bindings-atom session)]
-              (if ex
-                (let [root-ex (#'clojure.main/root-cause ex)]
-                  (when-not (instance? ThreadDeath root-ex)
-                    (do
-                      (flush)
-                      (swap! session assoc #'*e ex)
-                      (transport/send transport 
-                                      (misc/response-for msg {:status :eval-error
-                                                              :ex (-> ex class str)
-                                                              :root-ex (-> root-ex class str)}))
-                      (main/repl-caught ex)
-                      (flush))))
-                (do
-                  (swap! session assoc
-                         #'*3 (@session #'*2)
-                         #'*2 (@session #'*1)
-                         #'*1 result)
-                  (prn :- (:t ret))
-                  (flush)
-                  (transport/send transport 
-                                  (misc/response-for msg {:value (pr-str result)
-                                                          :ns (-> (@session #'*ns*) ns-name str)}))))
-              (when maybe-explicit-ns
-                (swap! session assoc #'*ns* original-ns))
-              (transport/send transport 
-                              (misc/response-for msg {:status :done}))))
+          (let [{:keys [ret result ex]}
+                (t/check-form-info rcode
+                                   :eval-out-ast #(ana-clj/eval-ast % {})
+                                   :bindings-atom session)]
+            (if ex
+              (let [root-ex (#'clojure.main/root-cause ex)]
+                (when-not (instance? ThreadDeath root-ex)
+                  (do
+                    (flush)
+                    (swap! session assoc #'*e ex)
+                    (transport/send transport 
+                                    (misc/response-for msg {:status :eval-error
+                                                            :ex (-> ex class str)
+                                                            :root-ex (-> root-ex class str)}))
+                    (main/repl-caught ex)
+                    (flush))))
+              (do
+                (swap! session assoc
+                       #'*3 (@session #'*2)
+                       #'*2 (@session #'*1)
+                       #'*1 result)
+                (prn :- (:t ret))
+                (flush)
+                (transport/send transport 
+                                (misc/response-for msg {:value (pr-str result)
+                                                        :ns (-> (@session #'*ns*) ns-name str)}))))
+            (when maybe-explicit-ns
+              (swap! session assoc #'*ns* original-ns))
+            (transport/send transport 
+                            (misc/response-for msg {:status :done})))
           (finally
             (flush))))
       :else (handler msg))))
@@ -152,44 +151,43 @@
       (binding [*out* (@session #'*out*)
                 *err* (@session #'*err*)]
         (t/load-if-needed)
-        (impl/with-clojure-impl
-          (let [eof (Object.)
-                rdr (readers/indexing-push-back-reader file 1 file-path)]
-            (binding [*ns* *ns*
-                      *file* file-path
-                      *source-path* file-name]
-              (loop [result nil]
-                (let [rcode (rd/read rdr false eof)]
-                  ;(prn "rcode" rcode)
-                  (if (not= eof rcode)
-                    (do
-                      ;(prn "before" rcode (@session #'*ns*))
-                      (let [{:keys [ret result ex]}
-                            (t/check-form-info rcode
-                                               ;:eval-out-ast #(ana-clj/eval-ast % {})
-                                               :bindings-atom session)]
-                        ;(prn "after" ex result)
-                        (if ex
-                          (let [root-ex (#'clojure.main/root-cause ex)]
-                            (when-not (instance? ThreadDeath root-ex)
-                              (swap! session assoc #'*e ex)
-                              (transport/send transport 
-                                              (misc/response-for msg {:status :eval-error
-                                                                      :ex (-> ex class str)
-                                                                      :root-ex (-> root-ex class str)}))
-                              (main/repl-caught ex)
-                              (flush)))
-                          (do
-                            (recur result)))))
-                    (do
-                      (swap! session assoc
-                             #'*3 (@session #'*2)
-                             #'*2 (@session #'*1)
-                             #'*1 result)
-                      (transport/send transport 
-                                      (misc/response-for msg {:value (pr-str result)}))))))
-              (transport/send transport 
-                              (misc/response-for msg {:status :done}))))))
+        (let [eof (Object.)
+              rdr (readers/indexing-push-back-reader file 1 file-path)]
+          (binding [*ns* *ns*
+                    *file* file-path
+                    *source-path* file-name]
+            (loop [result nil]
+              (let [rcode (rd/read rdr false eof)]
+                ;(prn "rcode" rcode)
+                (if (not= eof rcode)
+                  (do
+                    ;(prn "before" rcode (@session #'*ns*))
+                    (let [{:keys [ret result ex]}
+                          (t/check-form-info rcode
+                                             ;:eval-out-ast #(ana-clj/eval-ast % {})
+                                             :bindings-atom session)]
+                      ;(prn "after" ex result)
+                      (if ex
+                        (let [root-ex (#'clojure.main/root-cause ex)]
+                          (when-not (instance? ThreadDeath root-ex)
+                            (swap! session assoc #'*e ex)
+                            (transport/send transport 
+                                            (misc/response-for msg {:status :eval-error
+                                                                    :ex (-> ex class str)
+                                                                    :root-ex (-> root-ex class str)}))
+                            (main/repl-caught ex)
+                            (flush)))
+                        (do
+                          (recur result)))))
+                  (do
+                    (swap! session assoc
+                           #'*3 (@session #'*2)
+                           #'*2 (@session #'*1)
+                           #'*1 result)
+                    (transport/send transport 
+                                    (misc/response-for msg {:value (pr-str result)}))))))
+            (transport/send transport 
+                            (misc/response-for msg {:status :done})))))
       :else (handler msg))))
 
 (defn wrap-clj-repl [handler]

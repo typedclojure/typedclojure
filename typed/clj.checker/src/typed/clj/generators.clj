@@ -160,16 +160,15 @@
 
 (defn- type-rep->pred [t opts]
   {:pre [(r/Type? t)]}
-  (impl/with-clojure-impl
-    (let [opts (assoc opts ::vs/verbose-types true)]
-      (-> t
-          (prs/unparse-type opts) 
-          ;; TODO do any other pred cases need parity flips?
-          (type-contract/type-syntax->pred
-            {::type-contract/Fn-pred-syntax generative-Fn-pred-syntax
-             ::type-contract/Poly-pred-syntax generative-Poly-pred-syntax}
-            (assoc opts :typed.clj.checker.parse-unparse/parse-type-in-ns (ns-name *ns*)))
-          eval))))
+  (let [opts (assoc opts ::vs/verbose-types true)]
+    (-> t
+        (prs/unparse-type opts) 
+        ;; TODO do any other pred cases need parity flips?
+        (type-contract/type-syntax->pred
+          {::type-contract/Fn-pred-syntax generative-Fn-pred-syntax
+           ::type-contract/Poly-pred-syntax generative-Poly-pred-syntax}
+          (assoc opts :typed.clj.checker.parse-unparse/parse-type-in-ns (ns-name *ns*)))
+        eval)))
 
 (defn- sub-bottom? [t opts]
   (sub/subtype? t r/-nothing opts))
@@ -414,22 +413,20 @@
                            ::prs/parse-type-in-ns (ns-name *ns*))))
   ([t opts]
    @load-delay
-   (impl/with-impl impl/clojure
-     (let [t (cond-> t
-               (not (r/AnyType? t)) (prs/parse-type opts))]
-       (assert (< (get (::trace-freq opts) t 0) 3)
-               (str "Already seen three times: " (prs/unparse-type t (assoc opts ::vs/verbose-types true)) " " (class t)
-                    " " (pr-str (::trace opts))))
-       (-generator t (-> opts
-                         (update ::trace (fnil conj []) t)
-                         (update-in [::trace-freq t] (fnil inc 0))))))))
+   (let [t (cond-> t
+             (not (r/AnyType? t)) (prs/parse-type opts))]
+     (assert (< (get (::trace-freq opts) t 0) 3)
+             (str "Already seen three times: " (prs/unparse-type t (assoc opts ::vs/verbose-types true)) " " (class t)
+                  " " (pr-str (::trace opts))))
+     (-generator t (-> opts
+                       (update ::trace (fnil conj []) t)
+                       (update-in [::trace-freq t] (fnil inc 0)))))))
 
 (defn check
   "Dev helper to generatively test whether value v has type t."
   [t v]
   (t/load-if-needed)
-  (impl/with-clojure-impl
-    (let [t (cond-> t
-              (not (r/Type? t)) prs/parse-clj)
-          pred (type-rep->pred t (assoc ((requiring-resolve 'typed.clj.runtime.env/clj-opts))) ::parity :input)]
-      (boolean (pred v)))))
+  (let [t (cond-> t
+            (not (r/Type? t)) prs/parse-clj)
+        pred (type-rep->pred t (assoc ((requiring-resolve 'typed.clj.runtime.env/clj-opts))) ::parity :input)]
+    (boolean (pred v))))

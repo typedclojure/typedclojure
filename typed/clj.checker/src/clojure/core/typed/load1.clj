@@ -71,17 +71,16 @@
                                :env env
                                :should-runtime-infer? should-runtime-infer?
                                :instrument-infer-config instrument-infer-config)]
-             (impl/with-impl (:impl config)
-               (loop []
-                 (let [form (reader/read read-opts pbr)]
-                   (when-not (identical? form eof)
-                     (if (skip-check-form? form)
-                       (lang/default-eval form)
-                       (let [{:keys [ex]} (chk-frm/check-form-info
-                                            config form {:check-config (t/default-check-config)}
-                                            opts)]
-                         (some-> ex ex-handler)))
-                     (recur))))))))))))
+             (loop []
+               (let [form (reader/read read-opts pbr)]
+                 (when-not (identical? form eof)
+                   (if (skip-check-form? form)
+                     (lang/default-eval form)
+                     (let [{:keys [ex]} (chk-frm/check-form-info
+                                          config form {:check-config (t/default-check-config)}
+                                          opts)]
+                       (some-> ex ex-handler)))
+                   (recur)))))))))))
 
 (defn typed-load1
   "For each path, checks if the given file is typed, and loads it with core.typed if so,
@@ -93,9 +92,8 @@
   (let [opts (clj-env/clj-opts)]
     (doseq [base-resource-path base-resource-paths]
       (cond
-        (impl/with-clojure-impl
-          (or (ns-utils/file-should-use-typed-load? (str base-resource-path ".clj") opts)
-              (ns-utils/file-should-use-typed-load? (str base-resource-path ".cljc") opts)))
+        (or (ns-utils/file-should-use-typed-load? (str base-resource-path ".clj") opts)
+            (ns-utils/file-should-use-typed-load? (str base-resource-path ".cljc") opts))
         (do
           (when @#'clojure.core/*loading-verbosely*
             (printf "Loading typed file\n" base-resource-path))

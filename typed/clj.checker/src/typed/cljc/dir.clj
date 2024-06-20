@@ -71,15 +71,12 @@
      nses)))
 
 (defn check-dir-clj [dirs]
-  (impl/with-clojure-impl
-    (check-dir* dirs ((requiring-resolve 'typed.clj.runtime.env/clj-opts)))))
+  (check-dir* dirs ((requiring-resolve 'typed.clj.runtime.env/clj-opts))))
 
 (defn check-dir-cljs [dirs]
-  (impl/with-cljs-impl
-    (check-dir* dirs ((requiring-resolve 'typed.cljs.runtime.env/cljs-opts)))))
+  (check-dir* dirs ((requiring-resolve 'typed.cljs.runtime.env/cljs-opts))))
 
 (comment
-  (impl/with-clojure-impl
-    (check-dir-plan "typed/clj.checker/src" ((requiring-resolve 'typed.clj.runtime.env/clj-opts))))
+  (check-dir-plan "typed/clj.checker/src" ((requiring-resolve 'typed.clj.runtime.env/clj-opts)))
   (check-dir-clj "typed/clj.checker/src")
   )

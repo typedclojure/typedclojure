@@ -25,32 +25,30 @@
 (defmacro method-nonnilable-return-mappings [& args]
   (assert (even? (count args)))
   (let [this-nsym (ns-name *ns*)]
-    `(impl/with-clojure-impl
-       (let [ts# (partition-all 2 '~args)]
-         (into {}
-               (map
-                 (fn [[s# t# :as kv#]]
-                   (assert (and (symbol? s#)
-                                (namespace s#))
-                           "Need fully qualified symbol")
-                   (macros/when-bindable-defining-ns '~this-nsym
-                     [s# (env-utils/delay-type' t#)])))
-               ts#)))))
+    `(let [ts# (partition-all 2 '~args)]
+       (into {}
+             (map
+               (fn [[s# t# :as kv#]]
+                 (assert (and (symbol? s#)
+                              (namespace s#))
+                         "Need fully qualified symbol")
+                 (macros/when-bindable-defining-ns '~this-nsym
+                   [s# (env-utils/delay-type' t#)])))
+             ts#))))
 
 (defmacro method-nilable-param-mappings [& args]
   (assert (even? (count args)))
   (let [this-nsym (ns-name *ns*)]
-    `(impl/with-clojure-impl
-       (let [ts# (partition-all 2 '~args)]
-         (into {}
-               (map
-                 (fn [[s# t# :as kv#]]
-                   (assert (and (symbol? s#)
-                                (namespace s#))
-                           "Need fully qualified symbol")
-                   (macros/when-bindable-defining-ns '~this-nsym
-                     [s# (env-utils/delay-type' t#)])))
-               ts#)))))
+    `(let [ts# (partition-all 2 '~args)]
+       (into {}
+             (map
+               (fn [[s# t# :as kv#]]
+                 (assert (and (symbol? s#)
+                              (namespace s#))
+                         "Need fully qualified symbol")
+                 (macros/when-bindable-defining-ns '~this-nsym
+                   [s# (env-utils/delay-type' t#)])))
+             ts#))))
 
 (defmacro method-override-mappings [& args]
   (assert (even? (count args)))
@@ -103,57 +101,54 @@
 ;; Alter class
 
 (defn- build-replacement-syntax [m opts]
-  (impl/with-clojure-impl
-    (into {}
-          (map
-            (fn [[k v :as kv]]
-              (assert (= 2 (count kv)) kv)
-              [(if-let [c (ns-resolve (prs/parse-in-ns opts) k)]
-                 (do (assert (class? c) (pr-str c))
-                     (coerce/Class->symbol c))
-                 (do (assert nil (str "Unknown rclass replacement: " k))
-                     k))
-               (prs/parse-type v opts)]))
-          m)))
+  (into {}
+        (map
+          (fn [[k v :as kv]]
+            (assert (= 2 (count kv)) kv)
+            [(if-let [c (ns-resolve (prs/parse-in-ns opts) k)]
+               (do (assert (class? c) (pr-str c))
+                   (coerce/Class->symbol c))
+               (do (assert nil (str "Unknown rclass replacement: " k))
+                   k))
+             (prs/parse-type v opts)]))
+        m))
 
 (defn resolve-class-symbol [the-class opts]
-  (impl/with-clojure-impl
-    (let [cls (when-let [c (ns-resolve (prs/parse-in-ns opts) the-class)]
-                (when (class? c)
-                  c))]
-      (assert cls (str "Cannot resolve class " the-class))
-      (coerce/Class->symbol cls))))
+  (let [cls (when-let [c (ns-resolve (prs/parse-in-ns opts) the-class)]
+              (when (class? c)
+                c))]
+    (assert cls (str "Cannot resolve class " the-class))
+    (coerce/Class->symbol cls)))
 
 (defn make-RClass [the-class frees-syn opt opts]
-  (impl/with-clojure-impl
-    (let [{replacements-syn :replace
-           unchecked-ancestors-syn :unchecked-ancestors} (if (map? opt)
-                                                           opt
-                                                           (apply hash-map opt))
-          _ (when unchecked-ancestors-syn
-              (assert (vector? unchecked-ancestors-syn)))
-          {variances :variances
-           nmes :nmes
-           bnds :bnds}
-          (when-some [fs (seq frees-syn)]
-            ; don't bound frees because mutually dependent bounds are problematic
-            (let [b (free-ops/with-free-symbols (mapv (fn [s]
-                                                        {:pre [(vector? s)]
-                                                         :post [(symbol? %)]}
-                                                        (first s))
-                                                      fs)
-                      (mapv #(prs/parse-tfn-binder % opts) fs))]
-              {:variances (map :variance b)
-               :nmes (map :nme b)
-               :bnds (map :bound b)}))
-          frees (map r/make-F nmes)
-          csym (resolve-class-symbol the-class opts)
-          frees-and-bnds (zipmap frees bnds)]
-      (assert ((con/hash-c? r/F? r/Bounds?) frees-and-bnds) frees-and-bnds)
-      (c/RClass* nmes variances frees csym
-                 (free-ops/with-bounded-frees frees-and-bnds
-                   (build-replacement-syntax replacements-syn opts))
-                 (free-ops/with-bounded-frees frees-and-bnds
-                   (into (r/sorted-type-set []) (map #(prs/parse-type % opts)) unchecked-ancestors-syn))
-                 bnds
-                 opts))))
+  (let [{replacements-syn :replace
+         unchecked-ancestors-syn :unchecked-ancestors} (if (map? opt)
+                                                         opt
+                                                         (apply hash-map opt))
+        _ (when unchecked-ancestors-syn
+            (assert (vector? unchecked-ancestors-syn)))
+        {variances :variances
+         nmes :nmes
+         bnds :bnds}
+        (when-some [fs (seq frees-syn)]
+          ; don't bound frees because mutually dependent bounds are problematic
+          (let [b (free-ops/with-free-symbols (mapv (fn [s]
+                                                      {:pre [(vector? s)]
+                                                       :post [(symbol? %)]}
+                                                      (first s))
+                                                    fs)
+                    (mapv #(prs/parse-tfn-binder % opts) fs))]
+            {:variances (map :variance b)
+             :nmes (map :nme b)
+             :bnds (map :bound b)}))
+        frees (map r/make-F nmes)
+        csym (resolve-class-symbol the-class opts)
+        frees-and-bnds (zipmap frees bnds)]
+    (assert ((con/hash-c? r/F? r/Bounds?) frees-and-bnds) frees-and-bnds)
+    (c/RClass* nmes variances frees csym
+               (free-ops/with-bounded-frees frees-and-bnds
+                 (build-replacement-syntax replacements-syn opts))
+               (free-ops/with-bounded-frees frees-and-bnds
+                 (into (r/sorted-type-set []) (map #(prs/parse-type % opts)) unchecked-ancestors-syn))
+               bnds
+               opts)))

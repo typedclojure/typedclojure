@@ -1834,12 +1834,6 @@
     A
     (report-not-subtypes s t)))
 
-#_
-(defmacro sub-clj? [s t]
-  `(impl/with-clojure-impl
-     (subtype? (prs/parse-type '~s)
-               (prs/parse-type '~t))))
-
 (defn has-kind? [t kind opts]
   {:post [(boolean? %)]}
   (cond

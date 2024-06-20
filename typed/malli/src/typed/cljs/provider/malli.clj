@@ -93,6 +93,6 @@
 
 (comment
   (require '[clojure.core.typed.current-impl :as impl])
-  (some-> (impl/with-cljs-impl (var-type `provider-cljs/var-type-syntax))
+  (some-> (var-type `provider-cljs/var-type-syntax #_opts)
           ((requiring-resolve 'typed.clj.checker.parse-unparse/unparse-type)))
   )

@@ -25,9 +25,6 @@ for checking namespaces, cf for checking individual forms."}
             ;; must be present as clojure.core.typed.impl expands to use it
             #?(:clj [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]])))
 
-(defmacro ^:private with-clojure-impl [& body]
-  `((requiring-resolve 'clojure.core.typed.current-impl/with-clojure-impl*) (core/fn [] (do ~@body))))
-
 ;=============================================================
 ; # core.typed
 ;

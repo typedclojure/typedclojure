@@ -79,27 +79,25 @@
 (core/defn ^:no-doc add-tc-type-name [form qsym t]
   {:pre [(seq? form)
          (qualified-symbol? qsym)]}
-  (impl/with-cljs-impl
-    (core/let
-      [;; preserve *ns*
-       opts ((requiring-resolve 'typed.cljs.runtime.env/cljs-opts))
-       bfn (bound-fn []
-             (core/let [opts (with-current-location opts {:form form :env nil})]
-               @(delay-tc-parse t opts)))
-       t (delay
-           ;(prn "CLJS" qsym t)
-           (core/let [;unparse-type (requiring-resolve 'typed.clj.checker.parse-unparse/unparse-type)
-                      t (bfn)
-                      #_#_
-                      _ (impl/with-cljs-impl
-                          (when-let [tfn ((requiring-resolve 'typed.cljc.checker.declared-kind-env/declared-kind-or-nil) checker qsym opts)]
-                            (when-not ((requiring-resolve 'typed.clj.checker.subtype/subtype?) t tfn)
-                              (int-error (str "Declared kind " (unparse-type tfn)
-                                              " does not match actual kind " (unparse-type t))))))]
-             t))]
-      ((requiring-resolve 'clojure.core.typed.current-impl/add-tc-type-name)
-       ((requiring-resolve 'clojure.core.typed.current-impl/cljs-checker))
-       qsym t)))
+  (core/let
+    [;; preserve *ns*
+     opts ((requiring-resolve 'typed.cljs.runtime.env/cljs-opts))
+     bfn (bound-fn []
+           (core/let [opts (with-current-location opts {:form form :env nil})]
+             @(delay-tc-parse t opts)))
+     t (delay
+         ;(prn "CLJS" qsym t)
+         (core/let [;unparse-type (requiring-resolve 'typed.clj.checker.parse-unparse/unparse-type)
+                    t (bfn)
+                    #_#_
+                    _ (when-let [tfn ((requiring-resolve 'typed.cljc.checker.declared-kind-env/declared-kind-or-nil) checker qsym opts)]
+                        (when-not ((requiring-resolve 'typed.clj.checker.subtype/subtype?) t tfn)
+                          (int-error (str "Declared kind " (unparse-type tfn)
+                                          " does not match actual kind " (unparse-type t)))))]
+           t))]
+    ((requiring-resolve 'clojure.core.typed.current-impl/add-tc-type-name)
+     ((requiring-resolve 'clojure.core.typed.current-impl/cljs-checker))
+     qsym t))
   nil)
 
 (core/defn ^:no-doc
@@ -119,10 +117,8 @@
                  (impl/add-nocheck-var checker qsym))
              #_#_ast (delay-rt-parse typesyn)
              tc-type (delay-tc-parse typesyn opts)]
-    #_(impl/with-impl impl/clojurescript
-        (impl/add-var-env checker qsym ast))
-    (impl/with-impl impl/clojurescript
-      (impl/add-tc-var-type checker qsym tc-type)))
+    #_(impl/add-var-env checker qsym ast)
+    (impl/add-tc-var-type checker qsym tc-type))
   nil)
 
 #?(:clj
@@ -172,23 +168,21 @@
                        varsym
                        (symbol (name (cljs-ns)) (name varsym)))]
     #_
-    (impl/with-cljs-impl
-      (add-protocol-env
+    (add-protocol-env
+      checker
+      qualsym
+      {:name qualsym
+       :methods mth
+       :bnds vbnd})
+    (core/let [opts (with-current-location opts {:form form :env nil})]
+      (gen-protocol*
+        (::vs/current-env opts)
+        (cljs-ns)
+        varsym
+        vbnd
+        mth
         checker
-        qualsym
-        {:name qualsym
-         :methods mth
-         :bnds vbnd}))
-    (impl/with-cljs-impl
-      (core/let [opts (with-current-location opts {:form form :env nil})]
-        (gen-protocol*
-          (::vs/current-env opts)
-          (cljs-ns)
-          varsym
-          vbnd
-          mth
-          checker
-          opts))))
+        opts)))
   nil)
 
 (defmacro 
@@ -243,32 +237,31 @@
   ann-datatype*-macro-time
   "Internal use only. Use ann-datatype."
   [vbnd dname fields opts form]
-  (impl/with-cljs-impl
-    (core/let [opts ((requiring-resolve 'typed.cljs.runtime.env/cljs-opts))
-               checker ((requiring-resolve 'clojure.core.typed.current-impl/cljs-checker))
-               add-datatype-env (requiring-resolve 'clojure.core.typed.current-impl/add-datatype-env)
-               gen-datatype* (requiring-resolve 'clojure.core.typed.current-impl/gen-datatype*)
-               dname-nsym (some-> dname namespace symbol)
-               qname (with-meta
-                       (symbol (name
-                                 (or (get ((requiring-resolve 'typed.cljs.checker.util/get-aliases)
-                                           (cljs-ns))
-                                          dname-nsym)
-                                     dname-nsym
-                                     (cljs-ns)))
-                               (name dname))
-                       (meta dname))]
-      #_
-      (add-datatype-env 
-        checker
-        qname
-        {:record? false
-         :name qname
-         :fields fields
-         :bnd vbnd})
-      (core/let [opts (with-current-location opts {:form form :env nil})]
-        (gen-datatype* (::vs/current-env opts) (cljs-ns) qname fields vbnd opts false checker opts))
-      nil)))
+  (core/let [opts ((requiring-resolve 'typed.cljs.runtime.env/cljs-opts))
+             checker ((requiring-resolve 'clojure.core.typed.current-impl/cljs-checker))
+             add-datatype-env (requiring-resolve 'clojure.core.typed.current-impl/add-datatype-env)
+             gen-datatype* (requiring-resolve 'clojure.core.typed.current-impl/gen-datatype*)
+             dname-nsym (some-> dname namespace symbol)
+             qname (with-meta
+                     (symbol (name
+                               (or (get ((requiring-resolve 'typed.cljs.checker.util/get-aliases)
+                                         (cljs-ns))
+                                        dname-nsym)
+                                   dname-nsym
+                                   (cljs-ns)))
+                             (name dname))
+                     (meta dname))]
+    #_
+    (add-datatype-env 
+      checker
+      qname
+      {:record? false
+       :name qname
+       :fields fields
+       :bnd vbnd})
+    (core/let [opts (with-current-location opts {:form form :env nil})]
+      (gen-datatype* (::vs/current-env opts) (cljs-ns) qname fields vbnd opts false checker opts))
+    nil))
 
 (defmacro
   ^{:forms '[(ann-datatype dname [field :- type*] opts*)

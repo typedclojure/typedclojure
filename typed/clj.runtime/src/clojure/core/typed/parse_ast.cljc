@@ -1187,9 +1187,7 @@
 (defn parse-clj
   ([syn] (parse-clj syn (assoc ((requiring-resolve 'typed.clj.runtime.env/clj-opts))
                                :typed.clj.checker.parse-unparse/parse-type-in-ns (ns-name *ns*))))
-  ([syn opts]
-   (impl/with-impl impl/clojure
-     (parse syn opts))))
+  ([syn opts] (parse syn opts)))
 
 (comment
   (parse-clj `'[String ~'* t/Any])
@@ -1206,7 +1204,4 @@
      {:op :singleton
       :val true
       :form true})
-
-  (impl/with-impl impl/clojure
-    (parse 'a))
   )

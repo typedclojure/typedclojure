@@ -422,12 +422,11 @@
 
 
 (defn delete-generated-annotations [ns config]
-  (impl/with-clojure-impl
-    (update-file (ns-file-name (if (symbol? ns)
-                                 ns ;; avoid `the-ns` call in case ns does not exist yet.
-                                 (ns-name ns)))
-                 nil
-                 delete-generated-annotations-in-str)))
+  (update-file (ns-file-name (if (symbol? ns)
+                               ns ;; avoid `the-ns` call in case ns does not exist yet.
+                               (ns-name ns)))
+               nil
+               delete-generated-annotations-in-str))
 
 (defn prepare-ann [requires top-level config]
   {:post [(string? %)]}
@@ -451,20 +450,19 @@
     (str cp-root "/" dir-name)))
 
 (defn insert-or-replace-generated-annotations [ns {:keys [out-dir] :as config}]
-  (impl/with-clojure-impl
-    (let [nsym (ns-name ns)
-          ^java.net.URL
-          file-in (ns-file-name nsym)]
-      (update-file file-in
-                   (when (or out-dir 
-                             (not= "file" (.getProtocol file-in)))
-                     (str (or out-dir
-                              (default-out-dir config))
-                          "/" 
-                          (coerce/ns->file nsym clj-opts)))
-                   insert-generated-annotations-in-str
-                   ns
-                   config))))
+  (let [nsym (ns-name ns)
+        ^java.net.URL
+        file-in (ns-file-name nsym)]
+    (update-file file-in
+                 (when (or out-dir 
+                           (not= "file" (.getProtocol file-in)))
+                   (str (or out-dir
+                            (default-out-dir config))
+                        "/" 
+                        (coerce/ns->file nsym clj-opts)))
+                 insert-generated-annotations-in-str
+                 ns
+                 config)))
 
 (defn insert-generated-annotations [ns config]
   (insert-or-replace-generated-annotations ns config))

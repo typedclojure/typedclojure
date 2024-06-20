@@ -32,8 +32,7 @@
 
 (defn all-envs-clj []
   (load-if-needed)
-  (impl/with-clojure-impl
-    (let [opts (assoc (clj-opts) ::vs/verbose-types true)
-          checker (impl/clj-checker)]
-      {:aliases (name-env checker opts)
-       :vars (var-env checker opts)})))
+  (let [opts (assoc (clj-opts) ::vs/verbose-types true)
+        checker (impl/clj-checker)]
+    {:aliases (name-env checker opts)
+     :vars (var-env checker opts)}))

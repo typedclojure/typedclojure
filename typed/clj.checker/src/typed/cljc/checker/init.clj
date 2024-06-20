@@ -19,17 +19,13 @@
    (do
      ;(println "Building core.typed base environments ...")
      ;(flush)
-     ;(impl/with-clojure-impl
-     ;  (reset-envs!))
      (impl/register-clj!)
-     (impl/with-clojure-impl
-       (load-core-envs! ((requiring-resolve 'typed.clj.runtime.env/clj-opts))))
+     (load-core-envs! ((requiring-resolve 'typed.clj.runtime.env/clj-opts)))
      #_
      (when cljs?
        (impl/register-cljs!)
-       (impl/with-cljs-impl
-         ;; FIXME should be load-core-envs!
-         (reset-envs! cljs?))
+       ;; FIXME should be load-core-envs!
+       (reset-envs! cljs?)
        ;; note: don't do below, need to move the reset-envs! call instead
        ;(reset! cljs-loaded? true)
        )

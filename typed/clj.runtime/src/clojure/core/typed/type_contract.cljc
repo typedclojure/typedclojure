@@ -286,16 +286,12 @@
 
 (defn type-syntax->pred
   ([t opt opts]
-   ((requiring-resolve 'clojure.core.typed.current-impl/with-impl*)
-    :clojure.core.typed.current-impl/clojure
-    #(-> ((requiring-resolve 'clojure.core.typed.parse-ast/parse) t opts)
-         (ast->pred opt opts)))))
+   (-> ((requiring-resolve 'clojure.core.typed.parse-ast/parse) t opts)
+       (ast->pred opt opts))))
 
 (defn type-syntax->contract [t opts]
-  ((requiring-resolve 'clojure.core.typed.current-impl/with-impl*)
-   :clojure.core.typed.current-impl/clojure
-   #(-> ((requiring-resolve 'clojure.core.typed.parse-ast/parse) t opts)
-        (ast->contract opts))))
+  (-> ((requiring-resolve 'clojure.core.typed.parse-ast/parse) t opts)
+      (ast->contract opts)))
 
 (comment
         (type-syntax->pred 'Any)

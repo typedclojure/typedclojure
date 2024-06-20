@@ -72,9 +72,8 @@ goog.events.EventTarget [[]]
     ))
 
 (defn reset-jsnominal-env! []
-  (impl/with-cljs-impl
-    (jsnominal/reset-jsnominal!
-     (init-jsnominals))))
+  (jsnominal/reset-jsnominal!
+    (init-jsnominals)))
 
 ;;; vars specific to cljs
 (delay-and-cache-env ^:private init-var-env
@@ -188,7 +187,7 @@ goog.events.EventType.MOUSEMOVE cljs.core.typed/JSString
 #_
 (defn reset-envs! []
   (ucljs/with-cljs-typed-env
-    (impl/with-cljs-impl
+    (do
       ;(var-env/reset-var-type-env! (init-var-env) (init-var-nochecks))
       (var-env/reset-jsvar-type-env! (impl/cljs-checker) (init-jsvar-env))
       (reset-jsnominal-env!)

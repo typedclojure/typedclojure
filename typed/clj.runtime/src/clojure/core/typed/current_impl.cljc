@@ -297,34 +297,10 @@
     (assert (var? var) (str "Cannot find var: " vsym))
     var)))
 
-
-(declare bindings-for-impl)
-
-(defn with-impl* [impl f]
-  (with-bindings (or (get (bindings-for-impl) impl)
-                     (throw (ex-info (str "No impl found for " (pr-str impl)))))
-     (f)))
-
-#?(:cljs :ignore :default
-(defmacro with-impl [impl & body]
-  `(with-impl* ~impl #(do ~@body))))
-
 (def clj-checker-atom clj-env/clj-checker-atom)
 
 (defn clj-checker []
   clj-checker-atom)
-
-(defn clj-bindings []
-  {})
-
-#?(:cljs :ignore :default
-(defmacro with-clojure-impl [& body]
-  `(with-impl clojure
-     ~@body)))
-
-(defn with-clojure-impl* [f]
-  (with-clojure-impl
-    (f)))
 
 (def cljs-checker-atom cljs-env/cljs-checker-atom)
 
@@ -332,25 +308,6 @@
   {:post [#?(:clj (instance? clojure.lang.IAtom %)
              :cljs (instance? Atom %))]}
   cljs-checker-atom)
-
-(defn cljs-bindings []
-  {})
-
-#?(:cljs :ignore :default
-(defmacro with-cljs-impl [& body]
-  `(with-impl clojurescript
-     ~@body)))
-
-(defn bindings-for-impl []
-  {:clojure (clj-bindings)
-   :cljs (cljs-bindings)
-   clojure (clj-bindings)
-   clojurescript (cljs-bindings)})
-
-#?(:cljs :ignore :default
-(defmacro with-full-impl [impl & body]
-  `(with-impl ~impl
-     ~@body)))
 
 (defn implementation-specified? [opts]
   (not= unknown (current-impl opts)))
@@ -631,7 +588,7 @@
         s (impl-case opts
             :clojure (symbol (str (name munged-ns-str) \. local-name))
             :cljs provided-name)
-        fs (let [bfn (bound-fn []
+        fs (let [bfn (fn []
                        (let [parse-field (fn [[n colon t] opts]
                                            (when (not= :- colon)
                                              (int-error (format "Missing :- after field %s in ann-record."
@@ -646,7 +603,7 @@
         as (into {}
                  (map
                    (fn [an]
-                     [an (let [bfn (bound-fn []
+                     [an (let [bfn (fn []
                                      (with-frees* (mapv make-F (force-type args opts))
                                        (fn []
                                          (let [opts (assoc opts ::vs/current-env current-env)]
@@ -658,11 +615,11 @@
         _ (add-datatype-ancestors checker s as)
         pos-ctor-name (symbol demunged-ns-str (str "->" local-name))
         map-ctor-name (symbol demunged-ns-str (str "map->" local-name))
-        dt (let [bfn (bound-fn []
+        dt (let [bfn (fn []
                        (DataType* (force-type args opts) (force-type vs opts) (map make-F (force-type args opts)) s (force-type bnds opts) (force-type fs opts) record? opts))]
              (delay-type (bfn)))
         _ (add-datatype checker s dt opts)
-        pos-ctor (let [bfn (bound-fn []
+        pos-ctor (let [bfn (fn []
                              (if args
                                (Poly* (force-type args opts) (force-type bnds opts)
                                       (make-FnIntersection
@@ -681,7 +638,7 @@
       (add-tc-var-type checker pos-ctor-name pos-ctor)
       (add-nocheck-var checker pos-ctor-name)
       (when record?
-        (let [map-ctor (let [bfn (bound-fn []
+        (let [map-ctor (let [bfn (fn []
                                    (let [hmap-arg ; allow omission of keys if nil is allowed and field is monomorphic
                                          (let [{optional true mandatory false} 
                                                (group-by (fn [[_ t]] (and (empty? (fv t opts))

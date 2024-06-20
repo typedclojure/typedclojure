@@ -55,14 +55,13 @@
          ;; type env
          ;inline when-bindable-defining-ns
          (macros/when-bindable-defining-ns '~this-ns
-           (impl/with-clojure-impl
-             (impl/add-rclass (impl/clj-checker)
-                              nme# (delay-type
-                                     ((requiring-resolve 'typed.cljc.checker.base-env-helper/make-RClass)
-                                      nme#
-                                      '~binder
-                                      '~opt
-                                      opts#)))))))))
+           (impl/add-rclass (impl/clj-checker)
+                            nme# (delay-type
+                                   ((requiring-resolve 'typed.cljc.checker.base-env-helper/make-RClass)
+                                    nme#
+                                    '~binder
+                                    '~opt
+                                    opts#))))))))
 
 (defmacro override-classes [& args]
   (assert (even? (count args)))

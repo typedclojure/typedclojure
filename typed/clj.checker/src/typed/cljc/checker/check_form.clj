@@ -208,13 +208,11 @@
   [config form opt opts]
   {:pre [(map? config)
          (map? opt)]}
-  (impl/with-impl (:impl config)
-    ((:check-form-info config) config
-     form opt opts)))
+  ((:check-form-info config) config
+   form opt opts))
 
 (defn check-form*-with-config
   [config form expected type-provided? opt opts]
   {:pre [(map? opt)]}
-  (impl/with-impl (:impl config)
-    ((:check-form* config) config
-     form expected type-provided? opt opts)))
+  ((:check-form* config) config
+   form expected type-provided? opt opts))

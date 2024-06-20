@@ -19,9 +19,8 @@
   (:import [java.net Socket ServerSocket SocketTimeoutException]))
 
 (defmacro cljs [& body]
-  `(impl/with-cljs-impl
-     (ucljs/with-cljs-typed-env
-       ~@body)))
+  `(ucljs/with-cljs-typed-env
+     ~@body))
 
 (defmacro is-cljs [& body]
   `(cljs (test/is ~@body)))
@@ -93,13 +92,11 @@
   (apply common-test/tc-err tc-common* frm opts))
 
 (defmacro subtype? [s t]
-  `(impl/with-cljs-impl
-     (sub/subtype? ~s ~t cljs-opts)))
+  `(sub/subtype? ~s ~t cljs-opts))
 
 (defmacro sub? [s t]
-  `(impl/with-cljs-impl
-     (subtype? (prs/parse-cljs '~s)
-               (prs/parse-cljs '~t))))
+  `(subtype? (prs/parse-cljs '~s)
+             (prs/parse-cljs '~t)))
 
 (defn cljs-eval
   ([exprs] (cljs-eval 5 5000 exprs))

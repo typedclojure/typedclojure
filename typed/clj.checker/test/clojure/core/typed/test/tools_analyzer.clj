@@ -20,12 +20,11 @@
   :name
   )
 
-(impl/with-clojure-impl
 (u/emit-form-fn
 (ana/ast-for-form
   '(fn a [b])
   )
-(clj-opts)))
+(clj-opts))
   )
 
 ;; records

@@ -4019,15 +4019,13 @@
   (is-tc-e #(long (+ 2 (int 123)))))
 
 (deftest CTYP-256-test
-  (is (= (impl/with-clojure-impl
-           (impl/impl-case (clj-opts)
-             :clojure 1
-             :cljs 2))
+  (is (= (impl/impl-case (clj-opts)
+           :clojure 1
+           :cljs 2)
          1))
-  (is (= (impl/with-cljs-impl
-           (impl/impl-case (cljs-env/cljs-opts)
-             :clojure 1
-             :cljs 2))
+  (is (= (impl/impl-case (cljs-env/cljs-opts)
+           :clojure 1
+           :cljs 2)
          2))
   (is (= (impl/impl-case {}
            :clojure 1
@@ -4116,8 +4114,7 @@
   )
 
 (deftest subtype-heterogeneous*-with-repeat
-  (let [t (impl/with-clojure-impl
-            (parse-clj `(t/HSequential [Number String] :repeat true)))]
+  (let [t (parse-clj `(t/HSequential [Number String] :repeat true))]
     ; t/HVec, t/HSeq are all rely on t/HSequential to implement subtype
     (is-clj (subtype? (parse-clj `(t/HSequential [Number String])) t))
 
@@ -4176,10 +4173,8 @@
 
 
 (deftest nil-empty-with-repeat
-  (let [t (impl/with-clojure-impl
-            (parse-clj `(t/HSequential [Number String] :repeat true)))
-        tt (impl/with-clojure-impl
-             (parse-clj `(t/All [k# v#] (t/HSequential [k# v#] :repeat true))))
+  (let [t (parse-clj `(t/HSequential [Number String] :repeat true))
+        tt (parse-clj `(t/All [k# v#] (t/HSequential [k# v#] :repeat true)))
         cg #(cs-gen #{} ;V
                     (zipmap '[k v] (repeat no-bounds)) ;X
                     {} ;Y

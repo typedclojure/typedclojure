@@ -70,10 +70,7 @@
                               split
                               (or focus
                                   (:nses
-                                    (impl/with-impl (case platform
-                                                      :clj :clojure
-                                                      :cljs :cljs)
-                                      (tdir/check-dir-plan dirs)))))))
+                                    (tdir/check-dir-plan dirs))))))
                   platforms)]
     (assert (seq plan) "No namespaces to check")
     (reduce (fn [acc {:keys [platform nsym] :as info}]

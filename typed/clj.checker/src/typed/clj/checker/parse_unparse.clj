@@ -191,18 +191,14 @@
 (defn parse-clj
   ([s] (parse-clj s (assoc ((requiring-resolve 'typed.clj.runtime.env/clj-opts))
                            ::parse-type-in-ns (ns-name *ns*))))
-  ([s opts]
-   (impl/with-clojure-impl
-     (parse-type s opts))))
+  ([s opts] (parse-type s opts)))
 
 (def ^:private cljs-ns #((requiring-resolve 'typed.cljs.checker.util/cljs-ns)))
 
 (defn parse-cljs
   ([s] (parse-cljs s (assoc ((requiring-resolve 'typed.cljs.runtime.env/cljs-opts))
                             ::parse-type-in-ns (cljs-ns))))
-  ([s opts]
-   (impl/with-cljs-impl
-     (parse-type s opts))))
+  ([s opts] (parse-type s opts)))
 
 (defmulti parse-type* (fn [s opts] (class s)))
 (defmulti parse-type-list 
