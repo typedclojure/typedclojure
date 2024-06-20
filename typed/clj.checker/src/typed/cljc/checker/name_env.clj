@@ -72,7 +72,7 @@
                           (r/Type? %))
                       (pr-str %))
               true)]}
-  (some-> (find-type-name-entry sym opts) val force-type))
+  (some-> (find-type-name-entry sym opts) val (force-type opts)))
 
 (t/ann ^:no-check add-type-name [t/Any t/Sym (t/U t/Kw r/Type) -> nil])
 (def add-type-name impl/add-tc-type-name)
@@ -104,10 +104,10 @@
    :post [(r/Type? %)]}
   (let [checker (env/checker opts)
         t (get-type-name sym opts)
-        tfn ((some-fn #(dtenv/get-datatype checker %)
-                      #(prenv/get-protocol checker %)
+        tfn ((some-fn #(dtenv/get-datatype checker % opts)
+                      #(prenv/get-protocol checker % opts)
                       (impl/impl-case opts
-                        :clojure #(or (rcls/get-rclass checker %)
+                        :clojure #(or (rcls/get-rclass checker % opts)
                                       (when (class? (resolve %))
                                         (c/RClass-of-with-unknown-params % opts)))
                         :cljs #((requiring-resolve 'typed.cljs.checker.jsnominal-env/get-jsnominal) % opts))
@@ -115,7 +115,7 @@
                       ; themselves in their definition, a temporary TFn is
                       ; added to the declared kind env which is enough to determine
                       ; type rank and variance.
-                      #(kinds/declared-kind-or-nil checker %)) 
+                      #(kinds/declared-kind-or-nil checker % opts)) 
              sym)]
     (or tfn
         (cond

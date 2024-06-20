@@ -302,7 +302,7 @@
                                              ; computing variance when referencing an RClass inside
                                              ; its own definition.
                                              (and (class? (resolve id))
-                                                  (kinds/has-declared-kind? checker id))
+                                                  (kinds/has-declared-kind? checker id opts))
                                              (kinds/get-declared-kind checker id opts)
 
                                              :else

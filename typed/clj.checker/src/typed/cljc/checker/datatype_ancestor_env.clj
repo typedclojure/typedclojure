@@ -39,7 +39,7 @@
    :post [((con/set-c? r/Type?) %)]}
   (into #{}
         (map (fn [[_ t]]
-               (c/inst-and-subst (force-type t) poly opts)))
+               (c/inst-and-subst (force-type t opts) poly opts)))
         anctrs))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

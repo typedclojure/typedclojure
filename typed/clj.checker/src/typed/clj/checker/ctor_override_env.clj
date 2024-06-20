@@ -31,6 +31,6 @@
   {:post [(map? %)]}
   (get (env/deref-checker checker) impl/constructor-override-env-kw {}))
 
-(defn get-constructor-override [checker sym]
+(defn get-constructor-override [checker sym opts]
   {:post [((some-fn nil? r/Type?) %)]}
-  (force-type (get (constructor-override-env checker) sym)))
+  (force-type (get (constructor-override-env checker) sym) opts))

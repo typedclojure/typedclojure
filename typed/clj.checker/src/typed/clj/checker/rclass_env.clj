@@ -24,6 +24,6 @@
 (defn get-rclass
   "Returns the RClass with class symbol csym.
   Returns nil if not found."
-  [checker csym]
+  [checker csym opts]
   {:post [((some-fn nil? r/RClass? r/TypeFn?) %)]}
-  (force-type (get (rclasses checker) csym)))
+  (force-type (get (rclasses checker) csym) opts))

@@ -30,7 +30,7 @@
   (get (env/deref-checker checker) impl/method-return-nonnilable-env-kw {}))
 
 (defn nonnilable-return? [sym arity opts]
-  (let [as (env-utils/force-type (get (nonnilable-method-return-env (env/checker opts)) sym))]
+  (let [as (env-utils/force-type (get (nonnilable-method-return-env (env/checker opts)) sym) opts)]
     (assert ((some-fn nil? set? #{:all}) as))
     (boolean (or (= :all as)
                  (contains? as arity)))))

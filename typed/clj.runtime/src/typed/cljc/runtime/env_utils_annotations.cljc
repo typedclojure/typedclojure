@@ -27,4 +27,5 @@
 (t/ann env-utils/delay-type* (t/All [x] [(env-utils/ReparsableDelayedType x) :-> [:-> (t/Nilable x)]]))
 (t/ann env-utils/force-type (t/All [x] [(t/U (env-utils/DelayedType x)
                                              [:-> (env-utils/DelayedType x)])
+                                        t/Any
                                         :-> x]))

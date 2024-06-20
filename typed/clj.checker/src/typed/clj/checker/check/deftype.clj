@@ -93,7 +93,7 @@
         field-syms (map :name fields)
         _ (assert (every? symbol? field-syms))
         ; unannotated datatypes are handled below
-        dtp (dt-env/get-datatype checker nme)
+        dtp (dt-env/get-datatype checker nme opts)
         [nms bbnds dt] (if (r/TypeFn? dtp)
                          (let [nms (c/TypeFn-fresh-symbols* dtp)
                                bbnds (c/TypeFn-bbnds* nms dtp opts)]

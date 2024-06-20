@@ -150,7 +150,10 @@
                               (fn []
                                 (let [delayed-errors (err/-init-delayed-errors)
                                       opts (-> opts
-                                               (assoc ::vs/delayed-errors delayed-errors))
+                                               (assoc ::vs/delayed-errors delayed-errors)
+                                               ;; force types to reparse to detect dependencies in per-form cache
+                                               ;; might affect TypeFn variance inference
+                                               (assoc ::env-utils/type-cache (atom {})))
                                       ex (volatile! nil)
                                       chk (fn []
                                             (try (check-top-level form nil {:env (assoc env :ns (ns-name *ns*))
@@ -158,13 +161,7 @@
                                                                             :ns-form-string ns-form-str}
                                                                   opts)
                                                  (catch Throwable e (vreset! ex e))))
-                                      out (with-bindings (assoc bndings
-                                                                ;; force types to reparse to detect dependencies in per-form cache
-                                                                ;; might affect TypeFn variance inference
-                                                                #'env-utils/*type-cache* (do 
-                                                                                           ;; forkjoin pool makes bindings bleed across threads
-                                                                                           #_(assert (not env-utils/*type-cache*))
-                                                                                           (atom {})))
+                                      out (with-bindings bndings
                                             (if check-threadpool
                                               (with-out-str
                                                 (chk))
@@ -248,7 +245,7 @@
         _ (when-not (var-env/used-var? checker id)
             (var-env/add-used-var checker id))
         vsym id
-        ut (var-env/get-untyped-var checker (cu/expr-ns expr opts) vsym)
+        ut (var-env/get-untyped-var checker (cu/expr-ns expr opts) vsym opts)
         t (var-env/lookup-Var-nofail vsym opts)]
     ;(prn " annotation" t)
     ;(prn " untyped annotation" ut)
@@ -1765,8 +1762,8 @@
               ctor-fn (fn [expr]
                         (when (:validated? expr)
                           (let [clssym (cu/NewExpr->qualsym expr)]
-                            (or (ctor-override/get-constructor-override checker clssym)
-                                (and (dt-env/get-datatype checker clssym)
+                            (or (ctor-override/get-constructor-override checker clssym opts)
+                                (and (dt-env/get-datatype checker clssym opts)
                                      (cu/DataType-ctor-type clssym opts))
                                 (when-let [ctor (cu/NewExpr->Ctor expr)]
                                   (cu/Constructor->Function ctor opts))))))
@@ -1807,7 +1804,7 @@
     ;; TODO convert to type provider
     (when-let [[_ tsyn] (find mvar :ann)]
       (let [ann-type (prs/parse-type tsyn opts)]
-        (var-env/add-var-type checker qsym ann-type)))
+        (var-env/add-var-type checker qsym ann-type opts)))
     (when (:no-check mvar)
       (var-env/add-nocheck-var checker qsym))
     (def/check-def expr expected opts)))

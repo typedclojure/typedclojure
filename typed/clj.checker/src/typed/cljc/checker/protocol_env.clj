@@ -48,19 +48,19 @@
 (t/ann ^:no-check add-protocol [t/Any t/Sym r/Type -> nil])
 (def add-protocol impl/add-protocol)
 
-(t/ann get-protocol [t/Any t/Sym -> (t/U nil r/Type)])
+(t/ann get-protocol [t/Any t/Sym t/Any -> (t/U nil r/Type)])
 (defn get-protocol
   "Returns the protocol with var symbol sym.
   Returns nil if not found."
-  [checker sym]
+  [checker sym opts]
   {:pre [(symbol? sym)]
    :post [((some-fn nil? r/Protocol? r/TypeFn?) %)]}
-  (force-type (get (protocol-env checker) sym)))
+  (force-type (get (protocol-env checker) sym) opts))
 
 (t/ann resolve-protocol [t/Any t/Sym t/Any -> r/Type])
 (defn resolve-protocol [checker sym opts]
   {:post [(r/Type? %)]}
-  (let [p (get-protocol checker sym)]
+  (let [p (get-protocol checker sym opts)]
     (when-not p 
       (err/int-error (str "Could not resolve Protocol: " sym
                           "\n\nHint: Add protocol annotations with ann-protocol")

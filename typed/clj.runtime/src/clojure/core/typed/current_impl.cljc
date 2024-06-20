@@ -234,7 +234,7 @@
 
 #?(:cljs :ignore 
 :default
-(def ^:private force-type #((requiring-resolve 'typed.cljc.runtime.env-utils/force-type) %)))
+(def ^:private force-type #((requiring-resolve 'typed.cljc.runtime.env-utils/force-type) %1 %2)))
 #?(:cljs :ignore :default
 (defmacro ^:private delay-type [& body]
   `((requiring-resolve 'typed.cljc.runtime.env-utils/delay-type*)
@@ -502,15 +502,15 @@
                           (parse-free-binder-with-variance binder opts)))
         fs (when parsed-binder
              (delay-type 
-               (map (comp make-F :fname) (force-type parsed-binder))))
+               (map (comp make-F :fname) (force-type parsed-binder opts))))
         bnds (when parsed-binder
-               (delay-type (map :bnd (force-type parsed-binder))))
+               (delay-type (map :bnd (force-type parsed-binder opts))))
         ms (into {} (map (fn [[knq v*]]
                            (let [_ (when (namespace knq)
                                      (int-error "Protocol method should be unqualified" opts))
                                  mtype 
                                  (delay-type
-                                   (let [mtype (with-bounded-frees* (zipmap (force-type fs) (force-type bnds))
+                                   (let [mtype (with-bounded-frees* (zipmap (force-type fs opts) (force-type bnds opts))
                                                  #(let [opts (assoc opts ::vs/current-env current-env)]
                                                     (parse-type v* opts)))
                                          _ (let [rt (fully-resolve-type mtype opts)
@@ -538,10 +538,10 @@
                  mths)
         ;_ (prn "collect protocol methods" (into {} ms))
         t (delay-type
-            (Protocol* (map :name (force-type fs)) (map :variance (force-type parsed-binder))
-                       (force-type fs) s (Protocol-var->on-class s) 
-                       (into {} (map (fn [[k v]] [k (force-type v)])) ms) 
-                       (map :bnd (force-type parsed-binder))
+            (Protocol* (map :name (force-type fs opts)) (map :variance (force-type parsed-binder opts))
+                       (force-type fs opts) s (Protocol-var->on-class s) 
+                       (into {} (map (fn [[k v]] [k (force-type v opts)])) ms) 
+                       (map :bnd (force-type parsed-binder opts))
                        opts))]
     ;(prn "Adding protocol" s t)
     (add-protocol checker s t)
@@ -554,12 +554,13 @@
       ;qualify method names when adding methods as vars
       (let [kq (symbol protocol-defined-in-nstr (name kuq))
             mt-ann (delay-type 
-                     (protocol-method-var-ann (force-type mt) (map :name (force-type fs)) (force-type bnds) opts))]
+                     (protocol-method-var-ann (force-type mt opts) (map :name (force-type fs opts)) (force-type bnds opts) opts))]
         (add-nocheck-var checker kq)
         (add-tc-var-type checker kq mt-ann)))
     #_
     (prn "end gen-protocol" s (when (= "cljs.core" (namespace s))
-                                (force-type (get-in (env/deref-checker checker) [current-protocol-env-kw s]))))
+                                (force-type (get-in (env/deref-checker checker) [current-protocol-env-kw s])
+                                            opts)))
     nil)))
 
 (defn add-datatype-ancestors
@@ -604,11 +605,11 @@
                            (delay-type (bfn))))
         ;variances
         vs (when parsed-binders
-             (delay-type (seq (map :variance (force-type parsed-binders)))))
+             (delay-type (seq (map :variance (force-type parsed-binders opts)))))
         args (when parsed-binders
-               (delay-type (seq (map :fname (force-type parsed-binders)))))
+               (delay-type (seq (map :fname (force-type parsed-binders opts)))))
         bnds (when parsed-binders
-               (delay-type (seq (map :bnd (force-type parsed-binders)))))
+               (delay-type (seq (map :bnd (force-type parsed-binders opts)))))
         provided-name-str (str provided-name)
         ;_ (prn "provided-name-str" provided-name-str)
         munged-ns-str (impl-case opts
@@ -637,7 +638,7 @@
                                                                 n)
                                                         opts))
                                            [n (parse-type t opts)])]
-                         (apply array-map (apply concat (with-frees* (mapv make-F (force-type args))
+                         (apply array-map (apply concat (with-frees* (mapv make-F (force-type args opts))
                                                           (fn []
                                                             (let [opts (assoc opts ::vs/current-env current-env)]
                                                               (mapv (fn [s] (parse-field s opts)) (partition 3 fields)))))))))]
@@ -646,11 +647,11 @@
                  (map
                    (fn [an]
                      [an (let [bfn (bound-fn []
-                                     (with-frees* (mapv make-F (force-type args))
+                                     (with-frees* (mapv make-F (force-type args opts))
                                        (fn []
                                          (let [opts (assoc opts ::vs/current-env current-env)]
                                            (let [t (parse-type an opts)]
-                                             (abstract-many (force-type args) t opts))))))]
+                                             (abstract-many (force-type args opts) t opts))))))]
                            (delay-type (bfn)))]))
                  ancests)
         ;_ (prn "collected ancestors" as)
@@ -658,25 +659,25 @@
         pos-ctor-name (symbol demunged-ns-str (str "->" local-name))
         map-ctor-name (symbol demunged-ns-str (str "map->" local-name))
         dt (let [bfn (bound-fn []
-                       (DataType* (force-type args) (force-type vs) (map make-F (force-type args)) s (force-type bnds) (force-type fs) record? opts))]
+                       (DataType* (force-type args opts) (force-type vs opts) (map make-F (force-type args opts)) s (force-type bnds opts) (force-type fs opts) record? opts))]
              (delay-type (bfn)))
         _ (add-datatype checker s dt opts)
         pos-ctor (let [bfn (bound-fn []
                              (if args
-                               (Poly* (force-type args) (force-type bnds)
+                               (Poly* (force-type args opts) (force-type bnds opts)
                                       (make-FnIntersection
-                                        (make-Function (vec (vals (force-type fs)))
-                                                       (with-bounded-frees* (zipmap (map make-F (force-type args)) (force-type bnds))
-                                                         #(DataType-of s (map make-F (force-type args)) opts))))
+                                        (make-Function (vec (vals (force-type fs opts)))
+                                                       (with-bounded-frees* (zipmap (map make-F (force-type args opts)) (force-type bnds opts))
+                                                         #(DataType-of s (map make-F (force-type args opts)) opts))))
                                       opts)
                                (make-FnIntersection
-                                 (make-Function (vec (vals (force-type fs))) (DataType-of s opts)))))]
+                                 (make-Function (vec (vals (force-type fs opts))) (DataType-of s opts)))))]
                    (delay-type (bfn)))]
     (do 
       ;(when vs
       ;  (let [f (mapv r/make-F (repeatedly (count vs) gensym))]
       ;    ;TODO replacements and unchecked-ancestors go here
-      ;    (rcls/alter-class* s (c/RClass* (map :name f) (force-type vs) f s {} {} (force-type bnds) opts))))
+      ;    (rcls/alter-class* s (c/RClass* (map :name f) (force-type vs opts) f s {} {} (force-type bnds opts) opts))))
       (add-tc-var-type checker pos-ctor-name pos-ctor)
       (add-nocheck-var checker pos-ctor-name)
       (when record?
@@ -686,15 +687,15 @@
                                                (group-by (fn [[_ t]] (and (empty? (fv t opts))
                                                                           (empty? (fi t opts))
                                                                           (subtype? (-nil) t opts)))
-                                                         (zipmap (map (comp -val keyword) (keys (force-type fs)))
-                                                                 (vals (force-type fs))))]
+                                                         (zipmap (map (comp -val keyword) (keys (force-type fs opts)))
+                                                                 (vals (force-type fs opts))))]
                                            (make-HMap opts
                                                       {:optional (into {} optional)
                                                        :mandatory (into {} mandatory)}))]
                                      (if args
-                                       (Poly* (force-type args) (force-type bnds)
+                                       (Poly* (force-type args opts) (force-type bnds opts)
                                               (make-FnIntersection
-                                                (make-Function [hmap-arg] (DataType-of s (map make-F (force-type args)) opts)))
+                                                (make-Function [hmap-arg] (DataType-of s (map make-F (force-type args opts)) opts)))
                                               opts)
                                        (make-FnIntersection
                                          (make-Function [hmap-arg] (DataType-of s opts))))))]

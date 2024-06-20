@@ -251,9 +251,10 @@
                 t (bfn
                     #(core/let [opts (with-current-location opts form)]
                        ((requiring-resolve 'typed.cljc.runtime.env-utils/force-type)
-                        (delay-tc-parse t opts))))
+                        (delay-tc-parse t opts)
+                        opts)))
                 _ (with-clojure-impl
-                    (when-let [tfn ((requiring-resolve 'typed.cljc.checker.declared-kind-env/declared-kind-or-nil) checker qsym)]
+                    (when-let [tfn ((requiring-resolve 'typed.cljc.checker.declared-kind-env/declared-kind-or-nil) checker qsym opts)]
                       (when-not ((requiring-resolve 'typed.clj.checker.subtype/subtype?) t tfn)
                         (int-error (str "Declared kind " (unparse-type tfn opts)
                                         " does not match actual kind " (unparse-type t opts))

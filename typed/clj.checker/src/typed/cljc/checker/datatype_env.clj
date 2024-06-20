@@ -32,14 +32,14 @@
 (t/ann ^:no-check add-datatype [t/Any t/Sym r/Type t/Any -> nil])
 (def add-datatype impl/add-datatype)
 
-(t/ann get-datatype [t/Any t/Sym -> (t/U nil r/Type)])
+(t/ann get-datatype [t/Any t/Sym t/Any -> (t/U nil r/Type)])
 (defn get-datatype
   "Get the datatype with class symbol sym.
   Returns nil if not found."
-  [checker sym]
+  [checker sym opts]
   {:pre [(symbol? sym)]
    :post [(or (nil? %) (r/DataType? %) (r/TypeFn? %))]}
-  (force-type (get (datatype-env checker) sym)))
+  (force-type (get (datatype-env checker) sym) opts))
 
 (t/ann resolve-datatype [t/Any t/Sym t/Any -> r/Type])
 (defn resolve-datatype 
@@ -47,7 +47,7 @@
   [checker sym opts]
   {:pre [(symbol? sym)]
    :post [(r/Type? %)]}
-  (let [d (get-datatype checker sym)]
+  (let [d (get-datatype checker sym opts)]
     (when-not d 
       (err/int-error (str "Could not resolve DataType: " sym) opts))
     d))

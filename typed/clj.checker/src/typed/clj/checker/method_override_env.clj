@@ -33,6 +33,6 @@
   {:post [(map? %)]}
   (get (env/deref-checker checker) impl/method-override-env-kw {}))
 
-(defn get-method-override [checker m]
+(defn get-method-override [checker m opts]
   {:post [((some-fn r/Poly? r/FnIntersection? nil?) %)]}
-  (force-type (get (method-override-env checker) m)))
+  (force-type (get (method-override-env checker) m) opts))

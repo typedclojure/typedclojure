@@ -32,7 +32,7 @@
         checker (env/checker opts) 
         field (cu/FieldExpr->Field expr)
         fsym (cu/FieldExpr->qualsym expr opts)
-        ftype (or (some->> fsym (fld-override/get-field-override checker))
+        ftype (or (when fsym (fld-override/get-field-override checker fsym opts))
                   (cu/Field->Type field opts))]
     (assoc expr
            u/expr-type (below/maybe-check-below
@@ -80,7 +80,7 @@
                                        opts)))
 
            ; datatype fields are special
-           result-t (if-let [override (when-let [dtp (dt-env/get-datatype checker (coerce/Class->symbol target-class))]
+           result-t (if-let [override (when-let [dtp (dt-env/get-datatype checker (coerce/Class->symbol target-class) opts)]
                                         (let [dt (if (r/Poly? dtp)
                                                    ;generate new names
                                                    (cu/unwrap-datatype dtp (repeatedly (:nbound dtp) gensym) opts)

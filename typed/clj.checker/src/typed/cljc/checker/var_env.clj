@@ -59,14 +59,15 @@
   {:post [(map? %)]}
   (get (env/deref-checker checker) impl/untyped-var-annotations-kw {}))
 
-(defn add-var-type [checker sym type]
+(defn add-var-type [checker sym type opts]
   (when-let [old-t ((var-annotations checker) sym)]
     ;; if old type is realized, it's probably been
     ;; used. We should force the new type to ensure
     ;; it's the same.
     (when (and (delay? old-t)
                (realized? old-t))
-      (when (not= (force-type old-t) (force-type type))
+      (when (not= (force-type old-t opts)
+                  (force-type type opts))
         (println (str "WARNING: Duplicate var annotation: " sym))
         (flush))))
   (env/swap-checker! checker assoc-in [impl/current-var-annotations-kw sym] type)
@@ -155,9 +156,9 @@
    :post [((some-fn nil? r/Type?) %)]}
   (let [checker (env/checker opts)]
     (or (let [e (var-annotations checker)]
-          (force-type (e nsym)))
+          (force-type (e nsym) opts))
         (when (impl/checking-clojurescript? opts)
-          (force-type ((jsvar-annotations checker) nsym)))
+          (force-type ((jsvar-annotations checker) nsym) opts))
         (when-some [ts (not-empty
                          (into (sorted-map) (map (fn [fsym]
                                                    (let [f (requiring-resolve fsym)]
@@ -199,7 +200,7 @@
                           "Missing type for binding: " (pr-str sym))
                      opts)))
 
-(defn get-untyped-var [checker nsym sym]
+(defn get-untyped-var [checker nsym sym opts]
   {:pre [(symbol? nsym)
          (symbol? sym)]
    :post [(or (nil? %)
@@ -207,4 +208,4 @@
   (some-> (untyped-var-annotations checker)
           (get nsym)
           (get sym)
-          force-type))
+          (force-type opts)))

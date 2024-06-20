@@ -38,7 +38,7 @@
         method (cu/MethodExpr->Method expr opts)
         msym (cu/MethodExpr->qualsym expr opts)
         rfin-type (or method-override
-                      (some->> msym (mth-override/get-method-override (env/checker opts)))
+                      (when msym (mth-override/get-method-override (env/checker opts) msym opts))
                       (some-> method (cu/Method->Type opts)))
         _ (assert ((some-fn nil? r/Type?) rfin-type))
         ctarget (:instance expr)]

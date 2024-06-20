@@ -92,7 +92,7 @@
                       t (bfn)
                       #_#_
                       _ (impl/with-cljs-impl
-                          (when-let [tfn ((requiring-resolve 'typed.cljc.checker.declared-kind-env/declared-kind-or-nil) qsym)]
+                          (when-let [tfn ((requiring-resolve 'typed.cljc.checker.declared-kind-env/declared-kind-or-nil) checker qsym opts)]
                             (when-not ((requiring-resolve 'typed.clj.checker.subtype/subtype?) t tfn)
                               (int-error (str "Declared kind " (unparse-type tfn)
                                               " does not match actual kind " (unparse-type t))))))]

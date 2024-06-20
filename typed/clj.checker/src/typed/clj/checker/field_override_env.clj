@@ -30,6 +30,6 @@
   {:post [(map? %)]}
   (get (env/deref-checker checker) impl/field-override-env-kw {}))
 
-(defn get-field-override [checker m]
+(defn get-field-override [checker m opts]
   {:post [((some-fn r/Type? nil?) %)]}
-  (force-type (get (field-override-env checker) m)))
+  (force-type (get (field-override-env checker) m) opts))

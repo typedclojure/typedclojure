@@ -695,7 +695,7 @@
           (map? opts)]
     :post [(r/Type? %)]}
    (let [checker (env/checker opts)
-         p (dtenv/get-datatype checker sym)]
+         p (dtenv/get-datatype checker sym opts)]
      (assert ((some-fn r/TypeFn? r/DataType? nil?) p))
      ; parameterised datatypes must be previously annotated
      (assert (or (r/TypeFn? p) (empty? args))
@@ -771,7 +771,7 @@
    {:pre [(symbol? sym)
           (every? r/Type? args)]
     :post [(r/Type? %)]}
-   (let [p (prenv/get-protocol (env/checker opts) sym)]
+   (let [p (prenv/get-protocol (env/checker opts) sym opts)]
      (assert ((some-fn r/TypeFn? r/Protocol? nil?) p))
      ; parameterised protocols must be previously annotated
      (assert (or (r/TypeFn? p) (empty? args))
@@ -875,8 +875,8 @@
                      [sym args]
                      sym)]
      (or (when RClass-of-cache (@RClass-of-cache cache-key))
-         (let [rc (or (dtenv/get-datatype checker sym)
-                      (rcls/get-rclass checker sym))
+         (let [rc (or (dtenv/get-datatype checker sym opts)
+                      (rcls/get-rclass checker sym opts))
                ;; checked by dtenv/get-datatype and rcls/get-rclass
                ;_ (assert ((some-fn r/TypeFn? r/RClass? r/DataType? nil?) rc))
                res (if (r/TypeFn? rc)
@@ -935,8 +935,8 @@
                (coerce/Class->symbol sym-or-cls)
                (do #_(assert (symbol? sym-or-cls)) ;; checked by dtenv/get-datatype
                    sym-or-cls))
-         rc (or (dtenv/get-datatype checker sym)
-                (rcls/get-rclass checker sym))]
+         rc (or (dtenv/get-datatype checker sym opts)
+                (rcls/get-rclass checker sym opts))]
      (if (r/TypeFn? rc)
        (let [{:keys [variances]} rc]
          (when warn-msg
@@ -962,7 +962,7 @@
    {:pre [(symbol? sym)]
     :post [((some-fn r/DataType?) %)]}
    (let [checker (env/checker opts)
-         t (dtenv/get-datatype checker sym)
+         t (dtenv/get-datatype checker sym opts)
          args (when (r/TypeFn? t)
                 (let [syms (TypeFn-fresh-symbols* t)]
                   (most-general-on-variance (:variances t)
@@ -1017,7 +1017,7 @@
   ([sym opts]
    {:pre [(symbol? sym)]
     :post [((some-fn r/Protocol? r/Satisfies?) %)]}
-   (let [t (prenv/get-protocol (env/checker opts) sym)]
+   (let [t (prenv/get-protocol (env/checker opts) sym opts)]
      (cond
        (r/TypeFn? t) (let [{:keys [variances]} t]
                        (if (every? variant-variances variances)
@@ -2641,7 +2641,8 @@
                           nil
                           (r/ret
                             (env-utils/force-type
-                              ((requiring-resolve 'typed.clj.checker.base-env/get-type))))
+                              ((requiring-resolve 'typed.clj.checker.base-env/get-type))
+                              opts))
                           [(r/ret t) (r/ret k) (r/ret default)]
                           nil
                           {}

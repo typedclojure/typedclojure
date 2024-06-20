@@ -267,7 +267,7 @@
 
 (defn protocol-implementation-type [root-t {:keys [declaring-class] :as method-sig} opts]
   (when-some [pvar (c/Protocol-interface->on-var declaring-class opts)]
-    (when-not (pcl-env/get-protocol (env/checker opts) pvar)
+    (when-not (pcl-env/get-protocol (env/checker opts) pvar opts)
       (err/int-error (str "Protocol " pvar " must be annotated via ann-protocol before its method implementations "
                           "can be checked.")
                      opts))
@@ -370,7 +370,7 @@
               :else (err/tc-delayed-error (str "Cannot generate constructor type for: " sym)
                                           {:return r/Err}
                                           opts)))]
-    (resolve-ctor (dt-env/get-datatype (env/checker opts) sym))))
+    (resolve-ctor (dt-env/get-datatype (env/checker opts) sym opts))))
 
 ;[Method -> t/Sym]
 (defn Method->symbol [{name-sym :name :keys [declaring-class] :as method}]

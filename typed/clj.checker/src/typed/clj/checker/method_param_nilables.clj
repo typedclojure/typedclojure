@@ -31,7 +31,7 @@
 
 (defn nilable-param? [sym arity param opts]
   (boolean 
-    (when-some [nilables (env-utils/force-type (get (nilable-param-env (env/checker opts)) sym))]
+    (when-some [nilables (env-utils/force-type (get (nilable-param-env (env/checker opts)) sym) opts)]
       (assert (set? nilables))
       (when-some [params (or (nilables :all)
                              (nilables arity))]

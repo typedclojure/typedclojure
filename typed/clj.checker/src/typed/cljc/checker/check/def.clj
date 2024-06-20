@@ -118,7 +118,7 @@
                 ; now consider this var as checked
                 (var-env/add-checked-var-def (env/checker opts) vsym)
                 ; and add the inferred static type (might be Error)
-                (var-env/add-var-type (env/checker opts) vsym inferred))]
+                (var-env/add-var-type (env/checker opts) vsym inferred opts))]
         (assoc expr
                :init cinit
                :meta cmeta
