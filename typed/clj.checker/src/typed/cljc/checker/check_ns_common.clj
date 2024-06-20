@@ -49,7 +49,6 @@
   (let [start (. System (nanoTime))
         threadpool (::vs/check-threadpool opts)
         shutdown-threadpool? (not threadpool)
-        ^java.util.concurrent.ExecutorService
         max-parallelism (or (when (= :available-processors max-parallelism)
                               (.. Runtime getRuntime availableProcessors))
                             max-parallelism
@@ -59,6 +58,7 @@
                                 (Integer/parseInt max-parallelism)))
                             (.. Runtime getRuntime availableProcessors))
         _ (when max-parallelism (assert (pos? max-parallelism) max-parallelism))
+        ^java.util.concurrent.ExecutorService
         threadpool (or threadpool
                        (when (some-> max-parallelism (> 1))
                          (java.util.concurrent.Executors/newWorkStealingPool max-parallelism)))]
