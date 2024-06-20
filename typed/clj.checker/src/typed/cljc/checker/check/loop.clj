@@ -42,18 +42,17 @@
                     (seq (map (fn [t] (or t r/-any)) maybe-anns)))]
     normalize))
 
-;; `recur-u/*loop-bnd-anns*` is populated in `typed.cljc.checker.check.special.loop`
-(defn check-loop [expr expected opts]
+;; `::recur-u/loop-bnd-anns` is populated in `typed.cljc.checker.check.special.loop`
+(defn check-loop [expr expected {::recur-u/keys [loop-bnd-anns] :as opts}]
   {:post [(-> % u/expr-type r/TCResult?)
           (vector? (:bindings %))]}
-  (let [loop-bnd-anns recur-u/*loop-bnd-anns*
-        inlines (inline-annotations expr opts)
+  (let [inlines (inline-annotations expr opts)
         _ (when (and loop-bnd-anns inlines)
             (err/int-error "Cannot provide both an annotation with t/loop and inline loop" opts))
         ;_ (prn "inlines" inlines)
-        anns (or loop-bnd-anns inlines)]
-    (binding [recur-u/*loop-bnd-anns* nil]
-      (let/check-let expr expected 
-                     {:expected-bnds anns
-                      :loop? true}
-                     opts))))
+        anns (or loop-bnd-anns inlines)
+        opts (assoc opts ::recur-u/loop-bnd-anns nil)]
+    (let/check-let expr expected 
+                   {:expected-bnds anns
+                    :loop? true}
+                   opts)))

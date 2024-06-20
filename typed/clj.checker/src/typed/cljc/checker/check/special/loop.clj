@@ -17,7 +17,7 @@
 
 ; corresponds to a c.c.t/loop macro.
 ; Extra the :ann annotations for loop variables and propagate to actual loop construct checking
-; via `recur-u/*loop-bnd-anns*`.
+; via `::recur-u/loop-bnd-anns`.
 (defn check-special-loop
   [expr expected {::check/keys [check-expr] :as opts}]
   {:pre [(= 3 (count (:statements expr)))]}
@@ -45,8 +45,7 @@
         _ (assert (map? tsyns))
         tbindings (mapv (comp #(prs/parse-type % opts) :type) (:params tsyns))
         cfrm ;loop may be nested, type the first loop found
-        (binding [recur-u/*loop-bnd-anns* tbindings]
-          (check-expr frm expected opts))]
+        (check-expr frm expected (assoc opts ::recur-u/loop-bnd-anns tbindings))]
     (assoc expr
            :ret cfrm
            u/expr-type (u/expr-type cfrm))))
