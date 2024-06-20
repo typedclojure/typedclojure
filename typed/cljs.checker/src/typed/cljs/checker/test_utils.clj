@@ -98,8 +98,8 @@
 
 (defmacro sub? [s t]
   `(impl/with-cljs-impl
-     (subtype? (prs/parse-type '~s cljs-opts)
-               (prs/parse-type '~t cljs-opts))))
+     (subtype? (prs/parse-cljs '~s)
+               (prs/parse-cljs '~t))))
 
 (defn cljs-eval
   ([exprs] (cljs-eval 5 5000 exprs))
