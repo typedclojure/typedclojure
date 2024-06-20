@@ -46,7 +46,7 @@
                                               ;;TODO opts
                                               {}))
            _# ~(when has-ret?
-                 `(assert (= ~actual-ret ~(:ret opts))))
+                 `(assert (= ~actual-ret ~(:ret opt))))
            _# (assert ~actual-ret)] ;; should be a true value
        ;; return inferred type
        ~actual-ret)))
