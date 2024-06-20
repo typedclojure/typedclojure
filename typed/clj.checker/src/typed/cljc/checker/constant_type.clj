@@ -22,18 +22,16 @@
 (defprotocol ConstantType 
   (constant-ret [this opts]))
 
-(def ^:dynamic *quoted?* false)
-
 (defn constant-type
   ([s opts] (constant-type s false opts))
   ([s quoted? opts]
-   (binding [*quoted?* (or quoted? *quoted?*)]
-     (if (and (not *quoted?*)
+   (let [quoted? (or quoted? (::quoted? opts))]
+     (if (and (not quoted?)
               (seq? s)
               (= 'quote (first s))
               (= 2 (count s)))
-       (binding [*quoted?* true]
-         (r/ret-t (constant-ret (second s) opts)))
+       (r/ret-t (constant-ret (second s)
+                              (assoc opts ::quoted? true)))
        (r/ret-t (constant-ret s opts))))))
 
 ;[Any -> Type]
