@@ -30,12 +30,8 @@
                                               (pr-str a#)))
                           true)))
 
-(defonce ^:dynamic *recur-target* nil)
-(set-validator-doc! #'*recur-target* (some-fn nil? RecurTarget?))
-
-(defmacro with-recur-target [tgt & body]
-  `(binding [*recur-target* ~tgt]
-     ~@body))
+(defmacro with-recur-target [opts tgt]
+  `(assoc ~opts ::recur-target ~tgt))
 
 (defonce ^:dynamic *loop-bnd-anns* nil)
 (set-validator! #'*loop-bnd-anns* #(or (nil? %)

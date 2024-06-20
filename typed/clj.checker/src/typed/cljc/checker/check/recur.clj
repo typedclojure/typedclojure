@@ -20,9 +20,10 @@
 
 ;Arguments passed to recur must match recur target exactly. Rest parameter
 ;equals 1 extra argument, either a Seqable or nil.
-(defn check-recur [{args :exprs :keys [env] :as recur-expr} expected {::check/keys [check-expr] :as opts}]
+(defn check-recur [{args :exprs :keys [env] :as recur-expr} expected {::recur-u/keys [recur-target]
+                                                                      ::check/keys [check-expr] :as opts}]
   {:post [(vector? (:exprs %))]}
-  (let [{:keys [dom rest] :as recur-target} (or recur-u/*recur-target*
+  (let [{:keys [dom rest] :as recur-target} (or recur-target
                                                 (err/int-error "No recur target" opts))
         _ (assert (not ((some-fn :drest :kws) recur-target)) "NYI")
         fixed-args (cond-> args
