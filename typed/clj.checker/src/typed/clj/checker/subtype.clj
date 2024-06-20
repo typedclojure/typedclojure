@@ -458,7 +458,8 @@
 ;;only pay cost of dynamic binding when absolutely necessary (eg., before unfolding Mu)
 (defn subtype-Mu-left [A s t opts]
   {:pre [(r/Mu? s)]}
-  (subtypeA* A (c/unfold s opts) t (assoc opts ::sub-current-seen A)))
+  (let [opts (assoc opts ::sub-current-seen A)]
+    (subtypeA* A (c/unfold s opts) t opts)))
 
 (defonce unknown-result (Object.))
 
@@ -1059,7 +1060,8 @@
 
         ;;only pay cost of dynamic binding when absolutely necessary (eg., before unfolding Mu)
         (r/Mu? t)
-        (subtypeA* A s (c/unfold t opts) (assoc opts ::sub-current-seen A))
+        (let [opts (assoc opts ::sub-current-seen A)]
+          (subtypeA* A s (c/unfold t opts) opts))
 
         (r/App? s)
         (recur A (c/resolve-App s opts) t opts)
