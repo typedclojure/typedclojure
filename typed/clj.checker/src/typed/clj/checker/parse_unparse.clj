@@ -195,6 +195,8 @@
    (impl/with-clojure-impl
      (parse-type s opts))))
 
+(def ^:private cljs-ns #((requiring-resolve 'typed.cljs.checker.util/cljs-ns)))
+
 (defn parse-cljs
   ([s] (parse-cljs s (assoc ((requiring-resolve 'typed.cljs.runtime.env/cljs-opts))
                             ::parse-type-in-ns (cljs-ns))))
@@ -1090,8 +1092,6 @@
     (r/JSObj-maker parsed-types)))
 
 (defmethod parse-type-list 'typed.clojure/JSObj [t opts] (parse-JSObj t opts))
-
-(def ^:private cljs-ns #((requiring-resolve 'typed.cljs.checker.util/cljs-ns)))
 
 (defn parse-in-ns [{::keys [parse-type-in-ns] :as opts}]
   {:post [(symbol? %)]}
