@@ -70,7 +70,7 @@
 
 (defn custom-expansion-opts [env opts]
   (let [analyze (fn [form & [env1]]
-                  (#'ana2/run-passes (ana2/analyze-form form (or env1 env))))]
+                  (ana2/run-passes (ana2/analyze-form form (or env1 env)) opts))]
     {:internal-error (fn [s & [aopts]]
                        ;; TODO aopts (line numbers, blame form etc.)
                        (let [;; can't access check.utils ns from here (circular deps)
@@ -79,13 +79,13 @@
      :splice-seqable-form (fn [form & [env1]]
                             (some->> (beta-reduce/splice-seqable-expr (analyze form (or env1 env)))
                                      (mapv (fn [e]
-                                             (let [form (emit-form/emit-form (:expr e))]
+                                             (let [form (emit-form/emit-form (:expr e) opts)]
                                                (-> e
                                                    (dissoc :expr)
                                                    (assoc :form form)))))))
      :analyze-env env
      :analyze analyze
-     :emit-form emit-form/emit-form}))
+     :emit-form #(emit-form/emit-form % opts)}))
 
 (t/ann ^:no-check typed-macro-lookup [t/Any t/Any t/Any :-> t/Any])
 (defn typed-macro-lookup [var env {::vs/keys [custom-expansions] :as opts}]
@@ -102,85 +102,81 @@
       var))
 
 ;; copied from tools.analyzer.jvm to insert `*typed-macros*`
-(t/ann ^:no-check ->macroexpand-1 
-       [t/Any :-> (t/IFn [t/Any -> t/Any] 
-                         [t/Any (t/Map t/Any t/Any) -> t/Any])])
-(defn ->macroexpand-1
+(t/ann ^:no-check macroexpand-1 [t/Any (t/Map t/Any t/Any) -> t/Any])
+(defn macroexpand-1
   "If form represents a macro form or an inlinable function, returns its expansion,
    else returns form."
-  [{::vs/keys [custom-expansions] :as opts}]
-  (fn macroexpand-1
-    ([form] (macroexpand-1 form (taj/empty-env)))
-    ([form env]
-     ;(prn "macroexpand-1" form)
-     (env/ensure (jana2/global-env)
-                 (cond
-                   (seq? form)
-                   (let [[op & args] form]
-                     (if (taj/specials op)
-                       form
-                       (let [v (ana2/resolve-sym op env)
-                             m (meta v)
-                             local? (-> env :locals (get op))
-                             macro? (and (not local?) (:macro m)) ;; locals shadow macros
-                             inline-arities-f (:inline-arities m)
-                             ;; disable :inline with custom expansions to avoid arity errors
-                             ;; in symbolic execution.
-                             inline? (if custom-expansions
-                                       (when (and (not local?) (var? v))
-                                         (let [vsym (coerce/var->symbol v)]
-                                           (when (expand/custom-inline? vsym)
-                                             (fn [& _args_]
-                                               (expand/expand-inline form
-                                                                     (merge (custom-expansion-opts env opts)
-                                                                            {:vsym vsym}))))))
-                                       (and (not local?)
-                                            (or (not inline-arities-f)
-                                                (inline-arities-f (count args)))
-                                            (:inline m)))
-                             t (:tag m)]
-                         (cond
+  ;([form] (macroexpand-1 form (taj/empty-env)))
+  ([form env {::vs/keys [custom-expansions] :as opts}]
+   ;(prn "macroexpand-1" form)
+   (env/ensure (jana2/global-env)
+     (cond
+       (seq? form)
+       (let [[op & args] form]
+         (if (taj/specials op)
+           form
+           (let [v (ana2/resolve-sym op env)
+                 m (meta v)
+                 local? (-> env :locals (get op))
+                 macro? (and (not local?) (:macro m)) ;; locals shadow macros
+                 inline-arities-f (:inline-arities m)
+                 ;; disable :inline with custom expansions to avoid arity errors
+                 ;; in symbolic execution.
+                 inline? (if custom-expansions
+                           (when (and (not local?) (var? v))
+                             (let [vsym (coerce/var->symbol v)]
+                               (when (expand/custom-inline? vsym)
+                                 (fn [& _args_]
+                                   (expand/expand-inline form
+                                                         (merge (custom-expansion-opts env opts)
+                                                                {:vsym vsym}))))))
+                           (and (not local?)
+                                (or (not inline-arities-f)
+                                    (inline-arities-f (count args)))
+                                (:inline m)))
+                 t (:tag m)]
+             (cond
 
-                           macro?
-                           (let [locals (cond->> (:locals env)
-                                          ;; fake Compiler.java's locals so tools.analyzer doesn't think there's a recursive go macro,
-                                          ;; and because typed.clj.analyzer AST's are incompatible with tools.analyzer's.
-                                          ('#{clojure.core.async/go
-                                              typed.lib.clojure.core.async/go}
-                                            (symbol v))
-                                          (into {}
-                                                (map (fn [[sym e]]
-                                                       {:pre [(symbol? sym)]}
-                                                       (let [tag (-> e :tag)]
-                                                         [sym (Compiler$LocalBinding.
-                                                                0
-                                                                sym
-                                                                tag
-                                                                nil ;; init
-                                                                false ;; isArg
-                                                                nil ;; clearPathRoot
-                                                                )])))))
-                                 res (apply (typed-macro-lookup v env opts) form locals (rest form))] ; (m &form &env & args)
-                             (if (ta-utils/obj? res)
-                               (vary-meta res merge (meta form))
-                               res))
+               macro?
+               (let [locals (cond->> (:locals env)
+                              ;; fake Compiler.java's locals so tools.analyzer doesn't think there's a recursive go macro,
+                              ;; and because typed.clj.analyzer AST's are incompatible with tools.analyzer's.
+                              ('#{clojure.core.async/go
+                                  typed.lib.clojure.core.async/go}
+                                (symbol v))
+                              (into {}
+                                    (map (fn [[sym e]]
+                                           {:pre [(symbol? sym)]}
+                                           (let [tag (-> e :tag)]
+                                             [sym (Compiler$LocalBinding.
+                                                    0
+                                                    sym
+                                                    tag
+                                                    nil ;; init
+                                                    false ;; isArg
+                                                    nil ;; clearPathRoot
+                                                    )])))))
+                     res (apply (typed-macro-lookup v env opts) form locals (rest form))] ; (m &form &env & args)
+                 (if (ta-utils/obj? res)
+                   (vary-meta res merge (meta form))
+                   res))
 
-                           inline?
-                           (let [res (apply inline? args)]
-                             (if (ta-utils/obj? res)
-                               (vary-meta res merge
-                                          (and t {:tag t})
-                                          (meta form))
-                               res))
+               inline?
+               (let [res (apply inline? args)]
+                 (if (ta-utils/obj? res)
+                   (vary-meta res merge
+                              (and t {:tag t})
+                              (meta form))
+                   res))
 
-                           :else
-                           (jana2/desugar-host-expr form env)))))
+               :else
+               (jana2/desugar-host-expr form env)))))
 
-                   (symbol? form)
-                   (jana2/desugar-symbol form env)
+       (symbol? form)
+       (jana2/desugar-symbol form env opts)
 
-                   :else
-                   form)))))
+       :else
+       form))))
 
 (t/ann ^:no-check special-form? [t/Any :-> t/Any])
 (defn special-form? [mform]
@@ -287,7 +283,7 @@
         side-effects? (case (:check-form-eval check-config)
                         (:never :before) false
                         (:after nil) true)
-        eval-ast (if side-effects? jana2/eval-ast2 identity)]
+        eval-ast (if side-effects? jana2/eval-ast2 (fn [ast _] ast))]
     (-> (jana2/default-thread-bindings {:ns (ns-name ns)})
         (cond->
           ;; reify* also imports a class name, but it's gensym'd.
@@ -300,7 +296,7 @@
                                                                (format "Could not find var %s in namespace %s"
                                                                        sym (ns-name ns))
                                                                opts)))))
-        (assoc #'ana2/eval-ast (fn [ast]
+        (assoc #'ana2/eval-ast (fn [ast opts]
                                  (let [; don't evaluate a form if there are delayed type errors
                                        throw-this (atom nil)
                                        _ (swap! delayed-errors
@@ -315,8 +311,8 @@
                                        _ (when-some [e @throw-this]
                                            (throw e))
                                        ]
-                                   (eval-ast ast)))
-               #'ana2/macroexpand-1 (->macroexpand-1 opts)
+                                   (eval-ast ast opts)))
+               #'ana2/macroexpand-1 macroexpand-1
                #'ana2/scheduled-passes (if custom-expansions
                                          @scheduled-passes-for-custom-expansions
                                          @jana2/scheduled-default-passes)))))
@@ -365,13 +361,13 @@
                            opt (-> opt
                                    (dissoc :bindings-atom)
                                    (assoc-in [:bindings #'*ns*] *ns*))]
-                       (jana2/analyze form env opt)))]
+                       (jana2/analyze form env (into opts opt))))]
     (with-bindings old-bindings
       ;(prn "analyze1 namespace" *ns*)
       (let [ana (jana2/analyze+eval 
                   form (or env (taj/empty-env))
                   (->
-                    (merge-with merge opt
+                    (merge-with merge (into opts opt)
                                 {:bindings (if analyze-bindings-fn
                                              (analyze-bindings-fn)
                                              (thread-bindings opt opts))
@@ -418,7 +414,7 @@
         ; since we want to evaluate the modified AST in runtime inference.
         frm (if custom-expansions
               (:original-form opts)
-              (emit-form/emit-form ast))
+              (emit-form/emit-form ast opts))
         ;_ (prn "form" frm)
         #_#_
         _ (binding [;*print-meta* true

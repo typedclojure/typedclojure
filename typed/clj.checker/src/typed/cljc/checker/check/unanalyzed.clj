@@ -45,7 +45,7 @@
 
 (defn run-passes+propagate-expr-type [expr opts]
   (-> expr
-      ana2/run-passes
+      (ana2/run-passes opts)
       (into (select-keys expr [u/expr-type]))))
 
 (defn -unanalyzed-special [expr expected opts]

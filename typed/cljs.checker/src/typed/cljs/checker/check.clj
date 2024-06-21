@@ -78,14 +78,14 @@
                             expected
                             opts))))))))
 
-(defn unanalyzed-top-level [form env]
-  (tana2/unanalyzed form env))
+(defn unanalyzed-top-level [form env opts]
+  (tana2/unanalyzed form env opts))
 
 (defn flush-analysis-side-effects [cexpr opts]
   (reduce (fn [ast pass] (pass (:env ast) ast opts))
           (ast/walk cexpr
                     identity
-                    ana2/analyze-outer-root)
+                    #(ana2/analyze-outer-root % opts))
           cljs-ana/default-passes))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -393,7 +393,7 @@
      (if (= :unanalyzed (:op expr))
        (do @*register-exts
            (or (maybe-check-unanalyzed expr expected opts)
-               (recur (tana2/analyze-outer expr) (max -1 (dec fuel)))))
+               (recur (tana2/analyze-outer expr opts) (max -1 (dec fuel)))))
        (-check expr expected
                (-> opts
                    (update ::vs/current-env #(if (:line env) env %))
@@ -409,9 +409,9 @@
    ;(prn "*ns*" *ns*)
    ;(prn "*cljs-ns*" cljs-ana/*cljs-ns*)
    ;; TODO any bindings needed to be pinned here?
-   (binding [ana2/scheduled-passes {:pre identity
-                                    :post identity
-                                    :init-ast identity}]
+   (binding [ana2/scheduled-passes {:pre (fn [ast _] ast)
+                                    :post (fn [ast _] ast)
+                                    :init-ast (fn [ast _] ast)}]
      (let [nsym (::prs/parse-type-in-ns opts)
            _ (assert (symbol? nsym))
            opts (-> opts
@@ -427,7 +427,7 @@
                     (assoc ::prs/parse-type-in-ns nsym))
            cexpr (uc/with-cljs-typed-env
                    (-> form
-                       (unanalyzed-top-level (or env (ana-api/empty-env)))
+                       (unanalyzed-top-level (or env (ana-api/empty-env)) opts)
                        (check-expr expected opts)))]
        (flush-analysis-side-effects cexpr opts)
        cexpr))))

@@ -19,10 +19,10 @@
             [typed.cljc.checker.utils :as u]
             [clojure.core.typed.errors :as err]))
 
-(defn try-resolve-reflection [ast]
+(defn try-resolve-reflection [ast opts]
   (-> ast
-      ana-host/analyze-host-expr
-      validate/validate))
+      (ana-host/analyze-host-expr opts)
+      (validate/validate opts)))
 
 ;; from clojure.tools.analyzer.utils
 (defn- obj?
@@ -67,13 +67,13 @@
   (let [expr (-> expr
                  (update :target check-expr nil opts)
                  (update :args #(mapv (fn [e] (check-expr e nil opts)) %))
-                 ana2/run-post-passes)
+                 (ana2/run-post-passes opts))
         expr (cond-> expr
                (and (= :host-interop (:op expr))
                     (cu/should-rewrite? opts))
                (-> (update :target add-type-hints)
                    (update :args #(mapv add-type-hints %))
-                   try-resolve-reflection))]
+                   (try-resolve-reflection opts)))]
     (case (:op expr)
       (:instance-call :static-call) (method/check-invoke-method expr expected {} opts)
       :static-field (field/check-static-field expr expected opts)
@@ -105,7 +105,7 @@
           (#{:static-call :instance-call} (:op %))]}
   (or (when-some [expr (-host-call-special expr expected opts)]
         (let [expr (-> expr
-                       ana2/run-post-passes
+                       (ana2/run-post-passes opts)
                        (assoc u/expr-type (u/expr-type expr)))]
           (case (:op expr)
             (:static-call :instance-call) expr
@@ -127,7 +127,7 @@
   [expr expected {::check/keys [check-expr] :as opts}]
   {:pre [(= :maybe-host-form (:op expr))]
    :post [(-> % u/expr-type r/TCResult?)]}
-  (let [expr (ana2/run-pre-passes expr)]
+  (let [expr (ana2/run-pre-passes expr opts)]
     (if (= :maybe-host-form (:op expr))
       (err/tc-delayed-error (str "Unresolved host interop: " (:form expr)
                                  "\n\nHint: use *warn-on-reflection* to identify reflective calls")

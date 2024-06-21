@@ -249,8 +249,8 @@
   [expr fn-anns poly expected opts]
   (let [opts (assoc opts ::prs/parse-type-in-ns (cu/expr-ns expr opts))
         expr (-> expr
-                 ana2/analyze-outer-root
-                 ana2/run-pre-passes)
+                 (ana2/analyze-outer-root opts)
+                 (ana2/run-pre-passes opts))
         _ (assert (= :fn (:op expr))
                   ((juxt :op :form) expr))
         _ (assert (vector? fn-anns) (pr-str fn-anns))

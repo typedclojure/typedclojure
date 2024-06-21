@@ -33,7 +33,7 @@
             expected
             opts)
         cret (-> body
-                 (ana2/unanalyzed env)
+                 (ana2/unanalyzed env opts)
                  (ana2/inherit-top-level expr)
                  (check-expr this-expected opts))]
     cret))

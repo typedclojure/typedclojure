@@ -210,7 +210,7 @@
         ; rewrite nth type to be more useful when we have an exact (and interesting) index.
         (nat-value? num-t)
         (let [ft (nth-function-type (-> num-t :val) opts)
-              expr (ana2/run-post-passes expr)]
+              expr (ana2/run-post-passes expr opts)]
           (case (:op expr)
             :invoke (invoke/normal-invoke
                       expr

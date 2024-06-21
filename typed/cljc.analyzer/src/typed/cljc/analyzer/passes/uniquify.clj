@@ -147,7 +147,8 @@
   * :uniquify/uniquify-env  If true, uniquifies the :env :locals map"
   {:pass-info {:walk :pre :depends #{}}}
   [{{::keys [locals-counter locals-frame locals-frame-val]} :env
-    :as ast}]
+    :as ast}
+   opts]
   (-> ast
       ;; initialize top of AST tree
       (cond->

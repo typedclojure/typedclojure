@@ -280,7 +280,7 @@
                                       #'analyze-host-expr/analyze-host-expr
                                       ;; validate-recur doesn't seem to play nicely with core.async/go
                                       #_#'validate-recur/validate-recur}}}
-  [{:keys [tag] :as ast}]
+  [{:keys [tag] :as ast} opts]
   (let [{:keys [o-tag return-tag] :as ast} (-validate ast)
         tag (or tag (:tag ast))]
     (cond-> ast

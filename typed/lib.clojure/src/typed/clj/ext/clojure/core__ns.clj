@@ -45,7 +45,7 @@
   "-unanalyzed-special implementation for clojure.core/ns"
   [expr expected opts]
   (-> expr
-      ana2/eval-top-level
+      (ana2/eval-top-level opts)
       (assoc
         u/expr-type (below/maybe-check-below
                       (r/ret r/-nil

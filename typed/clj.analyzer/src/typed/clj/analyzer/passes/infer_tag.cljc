@@ -298,10 +298,9 @@
                                       #'analyze-host-expr/analyze-host-expr} 
                ; trim is incompatible with core.typed
                #_#_:after #{#'trim}}}
-  [{:keys [tag form] :as ast}]
+  [{:keys [tag form] :as ast} opts]
   (let [tag (or tag (:tag (meta form)))]
     (-> ast
         -infer-tag 
         (cond->
           tag (assoc :tag tag)))))
-

@@ -207,10 +207,10 @@
                        (or (not inline-arities-f)
                            (inline-arities-f (count (rest form))))))
             ;; TODO unit test (lack of) double expand/eval
-            (let [expr-noinline (binding [ana2/macroexpand-1 (fn [form _] form)]
+            (let [expr-noinline (binding [ana2/macroexpand-1 (fn [form _ _] form)]
                                   ;; could pull out the ana2/unmark-top-level to here.
                                   ;; probably would avoid the need for ana2/unmark-eval-top-level.
-                                  (ana2/analyze-outer expr))]
+                                  (ana2/analyze-outer expr opts))]
               (when (= :invoke (:op expr-noinline))
                 (let [{cargs :args
                        res u/expr-type} (-> expr-noinline
@@ -222,10 +222,10 @@
                       (assoc :form (with-meta (cons (first form)
                                                     ;; technically we just need the :tag of these
                                                     ;; args, could infer from checked expr-noinline.
-                                                    (map emit-form/emit-form cargs))
+                                                    (map #(emit-form/emit-form % opts) cargs))
                                               (meta form)))
-                      ana2/analyze-outer-root
-                      ana2/run-passes
+                      (ana2/analyze-outer-root opts)
+                      (ana2/run-passes opts)
                       (assoc u/expr-type res)))))))))))
 
 
@@ -359,7 +359,7 @@
                                 (ana2/resolve-sym env)
                                 ana2/var->sym))))
 
-(defn host-call-qname [{:keys [target] :as expr} _expected _opts]
+(defn host-call-qname [{:keys [target] :as expr} _expected opts]
   {:pre [(= :host-call (:op expr))
          (= :unanalyzed (:op target))]
    :post [((some-fn nil?
@@ -368,7 +368,7 @@
                                     symbol?))
            %)]}
   (when ((some-fn symbol? class?) (:form target))
-    (let [target (ana2/run-passes target)]
+    (let [target (ana2/run-passes target opts)]
       (or (when-let [csym (and (= :const (:op target))
                                (= :class (:type target))
                                (:form target))]
@@ -423,7 +423,7 @@
                    opts))
   (let [{[sym-expr :as args] :args fexpr :fn :as expr}
         (-> expr
-            (update-in [:args 0] ana2/run-passes))
+            (update-in [:args 0] ana2/run-passes opts))
         sym (ast-u/quote-expr-val sym-expr)
         _ (assert (symbol? sym))
         t (var-env/lookup-Var-nofail sym opts)
@@ -502,7 +502,7 @@
                             (c/RClass-of-with-unknown-params v opts)))
             ; build expected types for each method map
             extends (for [[prcl-expr mmap-expr] (partition 2 protos)]
-                      (let [prcl-expr (ana2/run-pre-passes (ana2/analyze-outer-root prcl-expr))
+                      (let [prcl-expr (-> prcl-expr (ana2/analyze-outer-root opts) (ana2/run-pre-passes opts))
                             protocol (do (when-not (= :var (:op prcl-expr))
                                            (err/int-error "Must reference protocol directly with var in extend" opts))
                                          (ptl-env/resolve-protocol checker (coerce/var->symbol (:var prcl-expr)) opts))
@@ -549,8 +549,8 @@
           (= 4 (count args)) (next args) ;handle temporary hacky case
           :else (cons nil args))
         opts (assoc opts ::prs/parse-type-in-ns (cu/expr-ns expr opts))
-        javat-syn (some-> javat-syn ana2/run-passes)
-        cljt-syn (some-> cljt-syn ana2/run-passes)
+        javat-syn (some-> javat-syn (ana2/run-passes opts))
+        cljt-syn (some-> cljt-syn (ana2/run-passes opts))
         javat (let [syn (or (when has-java-syn? (ast-u/quote-expr-val javat-syn))  ; generalise javat-syn if provided, otherwise cljt-syn
                             (ast-u/quote-expr-val cljt-syn))
                     c (-> 
@@ -777,10 +777,10 @@
           (-> % u/expr-type r/TCResult?)]}
   (when-not (= 1 (count args))
     (err/int-error (str "push-thread-bindings expected one argument, given " (count args)) opts))
-  (let [bindings-expr (ana2/run-pre-passes (ana2/analyze-outer-root bindings-expr))
+  (let [bindings-expr (-> bindings-expr (ana2/analyze-outer-root opts) (ana2/run-pre-passes opts))
         bindings-expr (cond-> bindings-expr 
                         (= :invoke (-> bindings-expr :op))
-                        (update :fn ana2/run-passes))
+                        (update :fn ana2/run-passes opts))
         ; only support (push-thread-bindings (hash-map ~@[var bnd ...]))
         ; like `binding`s expansion
         _ (when-not (and (= :invoke (-> bindings-expr :op))
@@ -795,7 +795,7 @@
                 :args
                 (into []
                       (mapcat (fn [[var-expr bnd-expr]]
-                                (let [{:keys [op var] :as var-expr} (ana2/run-pre-passes (ana2/analyze-outer-root var-expr))]
+                                (let [{:keys [op var] :as var-expr} (-> var-expr (ana2/analyze-outer-root opts) (ana2/run-pre-passes opts))]
                                   (when-not (= :the-var op)
                                     (err/int-error (str "push-thread-bindings must have var literals for keys") opts))
                                   (let [expected (var-env/type-of (coerce/var->symbol var) opts)
@@ -1027,7 +1027,7 @@
   {:pre [(= 2 (count (:args expr)))]
    :post [(-> % u/expr-type r/TCResult?)]}
   (let [{[ctor-expr targs-exprs] :args :as expr} (-> expr
-                                                     (update-in [:args 1] ana2/run-passes))
+                                                     (update-in [:args 1] ana2/run-passes opts))
         opts (assoc opts ::prs/parse-type-in-ns (cu/expr-ns expr opts))
         targs (mapv #(prs/parse-type % opts) (ast-u/quote-expr-val targs-exprs))
         cexpr (check-expr ctor-expr nil (assoc opts ::inst-ctor-types targs))]
@@ -1042,7 +1042,7 @@
   (when-not (= 1 (count (:args expr)))
     (err/int-error (str "Wrong arguments to print-env, Expected 1, found " (count (:args expr))) opts))
   (let [{[debug-string :as args] :args :as expr} (-> expr
-                                                     (update-in [:args 0] ana2/run-passes))]
+                                                     (update-in [:args 0] ana2/run-passes opts))]
     (when-not (= :const (:op debug-string))
       (err/int-error "Must pass print-env a string literal" opts))
     ;DO NOT REMOVE
@@ -1064,7 +1064,7 @@
   (when-not (= 2 (count (:args expr)))
     (err/int-error (str "Wrong arguments to print-filterset. Expected 2, found " (count (:args expr))) opts))
   (let [{[debug-string form :as args] :args :as expr} (-> expr
-                                                          (update-in [:args 0] ana2/run-passes))
+                                                          (update-in [:args 0] ana2/run-passes opts))
         _ (when-not (= :const (:op debug-string)) 
             (err/int-error "Must pass print-filterset a string literal as the first argument." opts))
         cform (check-expr form expected opts)
@@ -1178,7 +1178,7 @@
       (-> expr
           (update :fn check-expr nil opts)
           ;; FIXME add annotation for hash-map to check fn-expr
-          (assoc :args (into [(ana2/run-passes fn-expr)] cargs)
+          (assoc :args (into [(ana2/run-passes fn-expr opts)] cargs)
                  u/expr-type (below/maybe-check-below
                                (r/ret (c/KwArgsSeq->HMap (-> cargs peek u/expr-type r/ret-t) opts))
                                expected
@@ -1197,7 +1197,7 @@
       (-> expr
           (update :fn check-expr nil opts)
           ;; FIXME add annotation for hash-map to check fn-expr
-          (assoc :args (into [(ana2/run-passes fn-expr)] cargs)
+          (assoc :args (into [(ana2/run-passes fn-expr opts)] cargs)
                  u/expr-type (below/maybe-check-below
                                (r/ret (c/-complete-hmap
                                         (apply hash-map (concat (map (comp r/ret-t u/expr-type) (pop cargs))
@@ -1451,7 +1451,7 @@
   [expr expected opts]
   (let [_ (assert (= 1 (count (:args expr))))
         {[type-expr] :args :keys [env] :as expr} (-> expr
-                                                     (update-in [:args 0] ana2/run-passes))
+                                                     (update-in [:args 0] ana2/run-passes opts))
         _ (assert (= :quote (:op type-expr)))
         _ (assert (= :const (-> type-expr :expr :op))
                   (-> type-expr :expr :op))
@@ -1475,7 +1475,7 @@
   (let [checker (cenv/checker opts)
         {[dispatch-val-expr _] :args target :target :keys [env] :as expr}
         (cond-> expr
-          (-> expr :target :form symbol?) (update :target ana2/run-passes))
+          (-> expr :target :form symbol?) (update :target ana2/run-passes opts))
         _ (when-not (= :var (:op target))
             (err/int-error "Must call addMethod with a literal var" opts))
         var (:var target)
@@ -1492,7 +1492,7 @@
       (and (= :unchecked unannotated-def)
            (not (var-env/lookup-Var-nofail mmsym opts)))
       (-> expr
-          (update :args #(mapv ana2/run-passes %)))
+          (update :args #(mapv (fn [e] (ana2/run-passes e opts)) %)))
 
       ;skip if warn-on-unannotated-vars is in effect
       (or (and (ns-opts/warn-on-unannotated-vars? checker (cu/expr-ns expr opts))
@@ -1502,13 +1502,13 @@
                              (pr-str (ast-u/emit-form-fn dispatch-val-expr opts)))
                         opts)
           (-> expr
-              (update :args #(mapv ana2/run-passes %))))
+              (update :args #(mapv (fn [e] (ana2/run-passes e opts)) %))))
       :else
       (let [{[dispatch-val-expr method-expr] :args :as expr}
             (-> expr
                 (update :args #(-> %
                                    (update 0 check-expr nil opts)
-                                   (update 1 (comp ana2/run-pre-passes ana2/analyze-outer-root)))))
+                                   (update 1 (fn [e] (-> e (ana2/analyze-outer-root opts) (ana2/run-pre-passes opts)))))))
             _ (assert (= :var (:op target)))
             _ (when-not (= :fn (:op method-expr))
                 (err/int-error (str "Method must be a fn") opts))
@@ -1517,7 +1517,7 @@
           (err/tc-delayed-error (str "Multimethod requires dispatch type: " mmsym
                                      "\n\nHint: defmulti must be checked before its defmethods")
                                 {:return (-> expr
-                                             (update-in [:args 1] ana2/run-passes))}
+                                             (update-in [:args 1] ana2/run-passes opts))}
                                 (assoc opts ::vs/current-env env))
           (let [method-expected (var-env/type-of mmsym opts)
                 cmethod-expr 
@@ -1573,7 +1573,7 @@
 (defmethod -check ::ana2/maybe-class
   [expr expected {::check/keys [check-expr] :as opts}]
   (impl/assert-clojure opts)
-  (let [expr (ana2/run-post-passes expr)]
+  (let [expr (ana2/run-post-passes expr opts)]
     (if (= :maybe-class (:op expr))
       (err/tc-delayed-error (str "Unresolved host interop: " (:form expr)
                                  "\n\nHint: use *warn-on-reflection* to identify reflective calls")
@@ -1740,7 +1740,7 @@
                        (update :args #(let [opts (assoc opts ::inst-ctor-types nil)]
                                         (mapv (fn [e] (check-expr e nil opts)) %)))
                        ;delegate eval to check-expr
-                       ana2/run-post-passes)
+                       (ana2/run-post-passes opts))
               ;; call when we're convinced there's no way to rewrite this AST node
               ;; in a non-reflective way.
               give-up (fn [expr]
@@ -1782,7 +1782,7 @@
             (:validated? expr) (check-validated expr)
 
             (cu/should-rewrite? opts) (let [expr (update expr :args #(mapv host-interop/add-type-hints %))
-                                            rexpr (host-interop/try-resolve-reflection expr)]
+                                            rexpr (host-interop/try-resolve-reflection expr opts)]
                                         ;; rexpr can only be :new
                                         (case (:op rexpr)
                                           (:new) (if (:validated? rexpr)
@@ -1932,16 +1932,16 @@
                     (unanalyzed/-unanalyzed-special expr expected opts)
                     (maybe-check-inlineable expr expected opts)))
               (-> expr
-                  ana2/analyze-outer
+                  (ana2/analyze-outer opts)
                   recur)))
         (let [opts (-> opts
                        (update ::vs/current-env #(if (:line env) env %))
                        (assoc ::vs/current-expr expr))]
           (-> expr
-              ana2/run-pre-passes
+              (ana2/run-pre-passes opts)
               (-check expected opts)
-              ana2/run-post-passes
-              ana2/eval-top-level))))))
+              (ana2/run-post-passes opts)
+              (ana2/eval-top-level opts)))))))
 
 (defn check-top-level
   "Type check a top-level form at an expected type, returning a
@@ -1969,6 +1969,6 @@
      (with-bindings (dissoc (ana-clj/thread-bindings {} opts) #'*ns*) ; *ns* is managed by higher-level ops like check-ns1
        (env/ensure (jana2/global-env)
          (-> form
-             (ana2/unanalyzed-top-level (or env (jana2/empty-env)))
+             (ana2/unanalyzed-top-level (or env (jana2/empty-env)) opts)
              (cache/check-top-level-expr expected opt opts)
              (into extra)))))))

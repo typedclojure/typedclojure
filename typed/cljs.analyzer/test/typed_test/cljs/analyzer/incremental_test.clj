@@ -54,7 +54,7 @@
      (with-bindings (jsana2/default-thread-bindings)
        (env/with-compiler-env STATE
          (-> form
-             (jsana2/unanalyzed env)
+             (jsana2/unanalyzed env opts)
              (check-expr expected opts)))))))
 
 (defmacro check-top-levels [& forms]

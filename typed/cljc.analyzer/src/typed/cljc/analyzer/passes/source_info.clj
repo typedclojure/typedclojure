@@ -17,6 +17,6 @@
 (defn source-info
   "Adds (when available) :line, :column, :end-line, :end-column and :file info to the AST :env"
   {:pass-info {:walk :pre :depends #{}}}
-  [ast]
+  [ast opts]
   (let [source-info (-source-info (:form ast) (:env ast))]
     (update ast :env merge' source-info)))

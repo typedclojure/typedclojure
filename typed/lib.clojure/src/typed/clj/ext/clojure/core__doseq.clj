@@ -64,7 +64,7 @@
                                expected
                                opts))
           (let [cbody (-> `(do ~@body-syns)
-                          (ana2/unanalyzed ana-env)
+                          (ana2/unanalyzed ana-env opts)
                           (check-expr nil (var-env/with-lexical-env opts prop-env)))
                 expr (-> expr
                          (update :form
@@ -72,7 +72,7 @@
                                    (-> form
                                        vec
                                        (subvec 0 2)
-                                       (conj (emit-form/emit-form cbody))
+                                       (conj (emit-form/emit-form cbody opts))
                                        list*
                                        (with-meta (meta form))))))]
             (assoc expr

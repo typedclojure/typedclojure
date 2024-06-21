@@ -1624,7 +1624,7 @@
             (case (:op expr)
               :var (or (-> (:var expr) meta :arglists)
                        (get @alternative-arglists (coerce/var->symbol (:var expr))))
-              :fn (let [frm (emit-form/emit-form expr)]
+              :fn (let [frm (emit-form/emit-form expr (jana2/default-opts))]
                     (@#'clojure.core/sigs (next frm)))
               :with-meta (arglists-for (:expr expr))
               :do (arglists-for (:ret expr))

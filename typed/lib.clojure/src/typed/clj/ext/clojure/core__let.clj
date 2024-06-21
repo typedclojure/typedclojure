@@ -102,7 +102,7 @@
                   ((some-fn nil? r/TCResult?) expected)]
             :post [(map? %)]}
            (-> form
-               (ana2/unanalyzed ana-env)
+               (ana2/unanalyzed ana-env opts)
                (check-expr expected (var-env/with-lexical-env opts prop-env)))))
         (upd-combined-env-from-init-form [combined-env lhs init-form]
           {:pre [(combined-env? combined-env)
@@ -307,7 +307,7 @@
                 (assert (true? reachable))
                 (let [; check rhs
                       cexpr (-> rhs
-                                (ana2/unanalyzed ana-env)
+                                (ana2/unanalyzed ana-env opts)
                                 (check-expr nil (var-env/with-lexical-env opts prop-env)))
                       inferred-tag (let [tag (:tag cexpr)]
                                      (cond-> tag
@@ -325,7 +325,7 @@
                   (-> updated-context
                       (assoc :expanded-bindings (conj expanded-bindings
                                                       ;; preserve original lhs
-                                                      lhs (emit-form/emit-form cexpr))
+                                                      lhs (emit-form/emit-form cexpr opts))
                              :reachable reachable)
                       (update :new-syms #(into new-syms %))
                       maybe-reduced)))
@@ -368,7 +368,7 @@
                                        (with-meta (meta form)))
                              u/expr-type (or expected (r/ret (r/Bottom))))
       :else (let [cbody (let [body (-> `(do ~@body-syns)
-                                       (ana2/unanalyzed ana-env))
+                                       (ana2/unanalyzed ana-env opts))
                               opts (var-env/with-lexical-env opts prop-env)]
                           (let [opts (assoc opts ::vs/current-expr body)]
                             (-> body
@@ -377,6 +377,6 @@
               (assoc expr
                      :form (-> (list (first form)
                                      expanded-bindings
-                                     (emit-form/emit-form cbody))
+                                     (emit-form/emit-form cbody opts))
                                (with-meta (meta form)))
                      u/expr-type unshadowed-ret)))))

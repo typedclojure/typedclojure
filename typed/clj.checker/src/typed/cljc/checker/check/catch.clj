@@ -18,7 +18,7 @@
 
 (defn check-catch [{handler :body :keys [local] :as expr} expected {::check/keys [check-expr] :as opts}]
   (let [expr (-> expr
-                 (update :class ana2/run-passes))
+                 (update :class ana2/run-passes opts))
         ecls (ast-u/catch-op-class expr)
         local-sym (:name local)
         local-type (impl/impl-case opts

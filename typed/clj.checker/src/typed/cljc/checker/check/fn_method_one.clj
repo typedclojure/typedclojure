@@ -67,8 +67,8 @@
     :cljs (assert method))
   (let [check-rest-fn (or (:check-rest-fn opt) fn-method-u/check-rest-fn)
         method (-> method
-                   ana2/run-pre-passes
-                   (ast-u/visit-method-params ana2/run-passes))
+                   (ana2/run-pre-passes opts)
+                   (ast-u/visit-method-params #(ana2/run-passes % opts)))
         body ((ast-u/method-body-kw) method)
         required-params (ast-u/method-required-params method)
         rest-param (ast-u/method-rest-param method)

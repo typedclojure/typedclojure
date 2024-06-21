@@ -190,14 +190,14 @@
                   (-> expr
                       (assoc :op :unanalyzed)
                       infer-ana-op
-                      ana/analyze-outer-root
+                      (ana/analyze-outer-root opts)
                       infer-ana-op))))))
 
 (declare analyze-outer)
 
 (defn parse-let [op env form nme opts]
   (-> (inner-parse op env form nme opts)
-      (update :body analyze-outer)))
+      (update :body analyze-outer opts)))
 
 (defmethod parse 'let*
   [op env form nme opts]
@@ -215,10 +215,10 @@
   [op env form nme opts]
   (let [ast (-> (inner-parse op env form nme opts)
                 infer-ana-op
-                (update :body analyze-outer))]
+                (update :body analyze-outer opts))]
     (cond-> ast
-      (:catch ast) (update :catch analyze-outer)
-      (:finally ast) (update :finally analyze-outer))))
+      (:catch ast) (update :catch analyze-outer opts)
+      (:finally ast) (update :finally analyze-outer opts))))
 
 (defmethod parse 'fn*
   [op env form nme opts]
@@ -227,7 +227,7 @@
       (update :methods (fn [methods]
                          (mapv #(-> %
                                     infer-ana-op
-                                    (update :body analyze-outer))
+                                    (update :body analyze-outer opts))
                                methods)))))
 
 (defmethod parse 'quote
@@ -239,17 +239,17 @@
   [op env form nme opts]
   (-> (inner-parse op env form nme opts)
       infer-ana-op
-      (update :body analyze-outer)
+      (update :body analyze-outer opts)
       add-bindings-op))
 
 (defmethod parse 'case*
-  [op env [_ sym tests thens default :as form] name _]
+  [op env [_ sym tests thens default :as form] name opts]
   (assert (symbol? sym) "case* must switch on symbol")
   (assert (every? vector? tests) "case* tests must be grouped in vectors")
   (let [expr-env (assoc env :context :expr)
-        v        (ana-cljs/disallowing-recur (ana-cljs/analyze expr-env sym))
-        tests    (mapv #(mapv (fn [t] (ana/analyze-outer-root (ana-cljs/analyze expr-env t))) %) tests)
-        thens    (mapv #(ana-cljs/analyze env %) thens)
+        v        (ana-cljs/disallowing-recur (ana-cljs/analyze expr-env sym nil opts))
+        tests    (mapv #(mapv (fn [t] (ana/analyze-outer-root (ana-cljs/analyze expr-env t nil opts) opts)) %) tests)
+        thens    (mapv #(ana-cljs/analyze env % nil opts) thens)
         nodes    (mapv (fn [tests then]
                          {:op :case-node
                           ::ana/op ::case-node
@@ -272,7 +272,7 @@
                           :children [:tests :then]})
                        tests
                        thens)
-        default  (ana-cljs/analyze env default)]
+        default  (ana-cljs/analyze env default nil opts)]
     (assert (every? (fn [t]
                       (or
                         (-> t :info :const)
@@ -333,11 +333,11 @@
                             #'ana-cljs'/*unchecked-arrays* 
                             ])}))
 
-(defn unanalyzed [form env]
+(defn unanalyzed [form env opts]
   {:pre [(map? env)]}
   (unanalyzed-env-first env form))
 
-(defn analyze-outer [ast]
+(defn analyze-outer [ast opts]
   (case (:op ast)
     :unanalyzed (with-bindings (:bindings ast)
                   (cond-> (analyze (:env ast)
@@ -374,7 +374,7 @@
 (defn default-thread-bindings []
   {#'ana-cljs/parse parse
    #'ana-cljs/analyze unanalyzed-env-first
-   #'ana/parse (fn [form env] (parse (first form) env form nil nil))
+   #'ana/parse (fn [form env opts] (parse (first form) env form nil opts))
    #'ana/analyze-outer analyze-outer
    #'ana/unanalyzed unanalyzed
    #'ana/resolve-sym resolve-sym
@@ -387,3 +387,5 @@
   [form env]
   (when (seq? form)
     (resolve-sym (first form) env)))
+
+(defn default-opts [] {})

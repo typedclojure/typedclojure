@@ -21,5 +21,5 @@
   [{:keys [form] :as expr} expected {::check/keys [check-expr] :as opts}]
   (-> expr
       (update :form internal/add-defmethod-destructure-blame-form)
-      ana2/analyze-outer
+      (ana2/analyze-outer opts)
       (check-expr expected opts)))

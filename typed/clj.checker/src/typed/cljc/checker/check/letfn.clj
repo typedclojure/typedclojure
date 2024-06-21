@@ -25,14 +25,14 @@
           (vector? (:bindings %))]}
   (let [opts (assoc opts ::prs/parse-type-in-ns (cu/expr-ns letfn-expr opts))
         ;; must pass over bindings first to uniquify
-        bindings (mapv ana2/run-pre-passes bindings)
+        bindings (mapv #(ana2/run-pre-passes % opts) bindings)
         inits-expected
         ;try and find annotations, and throw a delayed error if not found
         ;(this expression returns nil)
         (let [;throw away pass result so we can check body later
-              body (update-in body [:statements 0] ana2/run-passes)]
-          (when (and (#{:quote} (-> body :statements first :op))
-                     (#{:const} (-> body :statements first :expr :op))
+              body (update-in body [:statements 0] ana2/run-passes opts)]
+          (when (and (= :quote (-> body :statements first :op))
+                     (= :const (-> body :statements first :expr :op))
                      (vector? (-> body :statements first :expr :val)))
             (if-not (= (count (-> body :statements first :expr :val))
                        (count bindings))

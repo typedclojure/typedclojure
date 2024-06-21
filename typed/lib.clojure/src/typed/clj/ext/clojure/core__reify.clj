@@ -20,7 +20,7 @@
   "defuspecial implementation for clojure.core/reify"
   [{original-reify-form :form :as original-expr} expected {::check/keys [check-expr] :as opts}]
   (-> original-expr
-      ana2/analyze-outer
+      (ana2/analyze-outer opts)
       ((fn [expr]
          {:pre [(= :unanalyzed (:op expr))]
           :post [(= :unanalyzed (:op %))]}

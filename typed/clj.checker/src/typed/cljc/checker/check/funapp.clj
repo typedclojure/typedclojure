@@ -232,7 +232,7 @@
                                           false)]}
                                  #_
                                  (prn "arg-ret-types"
-                                      (mapv (comp #(mapv (juxt :env typed.clj.analyzer.passes.emit-form/emit-form) %) :origin-exprs meta)
+                                      (mapv (comp #(mapv (juxt :env (fn [e] (typed.clj.analyzer.passes.emit-form/emit-form e opts))) %) :origin-exprs meta)
                                             arg-ret-types))
                                  (when (if prest
                                          (sub/subtypes-prest? arg-types dom prest opts)

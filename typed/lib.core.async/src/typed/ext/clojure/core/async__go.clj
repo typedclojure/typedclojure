@@ -27,15 +27,15 @@
   [{:keys [form env] :as expr} expected {::check/keys [check-expr] :as opts}]
   (let [;; type check the go body
         cbody (-> `(do ~@(rest form))
-                  (ana2/unanalyzed env)
+                  (ana2/unanalyzed env opts)
                   (check-expr nil opts))]
     (-> expr
         ;; put expanded body back into go call
         (update :form #(-> (list (first %)
-                                 (emit-form/emit-form cbody))
+                                 (emit-form/emit-form cbody opts))
                            (with-meta (meta %))))
         ;; evaluate partially expanded go call if top-level
-        ana2/eval-top-level
+        (ana2/eval-top-level opts)
         ;; use checked body to populate return type and check against expected
         (assoc
           u/expr-type (below/maybe-check-below

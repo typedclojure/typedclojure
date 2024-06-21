@@ -24,7 +24,7 @@
   (let [opts (assoc opts ::prs/parse-type-in-ns (cu/expr-ns expr opts))
         {[_ _ vexpr :as statements] :statements frm :ret, :keys [env], :as expr}
         (-> expr
-            (update-in [:statements 2] ana2/run-passes))
+            (update-in [:statements 2] ana2/run-passes opts))
         ; tools.analyzer does constanst folding
         tsyns (case (:op vexpr)
                 :const (let [{{tsyns-quoted :ann} :val} vexpr

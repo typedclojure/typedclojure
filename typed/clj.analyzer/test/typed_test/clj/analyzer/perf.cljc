@@ -18,43 +18,43 @@
 (declare check-expr)
 
 (defprotocol ICheck
-  (-check [expr expected]))
+  (-check [expr expected opts]))
 
 (extend-protocol ICheck
   Object
-  (-check [expr expected]
+  (-check [expr expected opts]
     (-> expr
-        (ast/update-children #(check-expr % nil)))))
+        (ast/update-children #(check-expr % nil opts)))))
 
 (defn check-expr
-  ([expr] (check-expr expr nil))
-  ([expr expected]
+  ;([expr] (check-expr expr nil))
+  ([expr expected opts]
    (let [expr (assoc-in expr [:env :ns] (ns-name *ns*))]
      (assert (record? expr))
      (if (instance? UnanalyzedExpr expr)
        (let [{:keys [form env]} expr]
          (case (jana2/resolve-op-sym form env)
-           (recur (ana2/analyze-outer expr) expected)))
+           (recur (ana2/analyze-outer expr opts) expected opts)))
        (-> expr
-           ana2/run-pre-passes
-           (-check expected)
-           ana2/run-post-passes
-           ana2/eval-top-level)))))
+           (ana2/run-pre-passes opts)
+           (-check expected opts)
+           (ana2/run-post-passes opts)
+           (ana2/eval-top-level opts))))))
 
 (defn check-top-level
-  ([form] (check-top-level form nil {}))
-  ([form expected] (check-top-level form expected {}))
+  ([form] (check-top-level form nil (jana2/default-opts)))
+  ([form expected] (check-top-level form expected (jana2/default-opts)))
   ([form expected {:keys [env] :as opts}]
    (let [env (or env (jana2/empty-env))]
      (with-bindings (jana2/default-thread-bindings env)
        (env/ensure (jana2/global-env)
          (-> form
              (ana2/unanalyzed-top-level env)
-             (check-expr expected)))))))
+             (check-expr expected opts)))))))
 
 (defn check-top-levels
-  ([forms] (check-top-levels forms nil {}))
-  ([forms expected] (check-top-levels forms expected {}))
+  ([forms] (check-top-levels forms nil (jana2/default-opts)))
+  ([forms expected] (check-top-levels forms expected (jana2/default-opts)))
   ([forms expected {:keys [env] :as opts}]
    (let [env (or env (jana2/empty-env))]
      (with-bindings (jana2/default-thread-bindings env)
@@ -62,7 +62,7 @@
          (run! #(do
                   (-> %
                       (ana2/unanalyzed-top-level env)
-                      (check-expr expected))
+                      (check-expr expected opts))
                   nil)
                forms))))))
 

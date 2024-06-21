@@ -20,7 +20,7 @@
 ;(ann emit-form-fn [Any -> Any])
 (defn emit-form-fn [expr opts]
   (impl/impl-case opts
-    :clojure ((requiring-resolve 'typed.clj.analyzer.passes.emit-form/emit-form) expr)
+    :clojure ((requiring-resolve 'typed.clj.analyzer.passes.emit-form/emit-form) expr opts)
     :cljs ((requiring-resolve 'typed.cljs.checker.util/emit-form) expr)))
 
 (defn constant-expr [expr]

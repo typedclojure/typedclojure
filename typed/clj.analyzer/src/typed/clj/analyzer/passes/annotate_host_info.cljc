@@ -31,7 +31,7 @@
    the reflected informations for the required methods, replaces
    (catch :default ..) forms with (catch Throwable ..)"
   {:pass-info {:walk :pre :depends #{} :after #{#'elide-meta/elide-meta}}}
-  [{:keys [op methods interfaces class env] :as ast}]
+  [{:keys [op methods interfaces class env] :as ast} opts]
   (case op
     (:reify :deftype)
     (let [all-methods
@@ -69,7 +69,7 @@
 
           ast (if the-class
                 (-> ast
-                  (assoc :class (assoc (ana/analyze-const the-class env :class)
+                  (assoc :class (assoc (ana/analyze-const the-class env :class opts)
                                   :form  (:form class)
                                   :tag   #?(:cljr Type :default Class)
                                   :o-tag #?(:cljr Type :default Class))))

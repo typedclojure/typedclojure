@@ -18,26 +18,29 @@
   {:pre [(seq body)]}
   `(binding [cljs-ana/*cljs-ns* '~'cljs.user]
      (with-bindings (jsana2/default-thread-bindings)
-       (env/with-compiler-env STATE
-         (comp-api/with-core-cljs)
-         (jsana2/analyze-outer
-           (jsana2/unanalyzed
-             '~(list 'ns (identity #_gensym 'foo.bar))
-             (ana-api/empty-env)))
-         ~@body))))
+       (let [opts# (jsana2/default-opts)]
+         (env/with-compiler-env STATE
+           (comp-api/with-core-cljs)
+           (jsana2/analyze-outer
+             (jsana2/unanalyzed
+               '~(list 'ns (identity #_gensym 'foo.bar))
+               (ana-api/empty-env)
+               opts#)
+             opts#)
+           ~@body)))))
 
 (defn analyze1 [form]
   (with-bindings (jsana2/default-thread-bindings)
-    (-> (ana/unanalyzed
-          form
-          (ana-api/empty-env))
-        ana/analyze-outer-root)))
+    (let [opts (jsana2/default-opts)]
+      (-> form
+          (ana/unanalyzed (ana-api/empty-env) opts)
+          (ana/analyze-outer-root opts)))))
 
 (defn analyze-outer-root
   "cljs helper"
   [ast]
   (with-bindings (jsana2/default-thread-bindings)
-    (ana/analyze-outer-root ast)))
+    (ana/analyze-outer-root ast (jsana2/default-opts))))
 
 (defn trim-unanalyzed [ast]
   (select-keys ast [:op :form :body? ::ana/op]))
@@ -51,12 +54,12 @@
 (defn unanalyzed [form env]
   (with-bindings (jsana2/default-thread-bindings)
     (env/with-compiler-env STATE
-      (jsana2/unanalyzed form env))))
+      (jsana2/unanalyzed form env (jsana2/default-opts)))))
 
 (defn analyze-outer [ast]
   (with-bindings (jsana2/default-thread-bindings)
     (env/with-compiler-env STATE
-      (jsana2/analyze-outer ast))))
+      (jsana2/analyze-outer ast (jsana2/default-opts)))))
 
 (deftest unanalyzed-test
   (is (= {:op :unanalyzed

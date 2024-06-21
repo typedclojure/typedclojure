@@ -14,7 +14,7 @@
   "If the node is a :case-test, annotates in the atom shared
    by the binding and the local node with :case-test"
   {:pass-info {:walk :pre :depends #{#'add-binding-atom/add-binding-atom}}}
-  [ast]
+  [ast opts]
   (when (:case-test ast)
     (swap! (:atom ast) assoc :case-test true))
   ast)

@@ -33,7 +33,7 @@
 
 (defn emit-form [e opts]
   (impl/impl-case opts
-    :clojure ((requiring-resolve 'typed.clj.analyzer.passes.emit-form/emit-form) e)
+    :clojure ((requiring-resolve 'typed.clj.analyzer.passes.emit-form/emit-form) e opts)
     :cljs ((requiring-resolve 'clojure.core.typed.emit-form-cljs/emit-form) e)))
 
 ;;==================
@@ -73,7 +73,7 @@
                   (assert (true? reachable))
                   (case k
                     (:while :when) (let [cv (-> v
-                                                (ana2/unanalyzed ana-env)
+                                                (ana2/unanalyzed ana-env opts)
                                                 (check-expr nil (var-env/with-lexical-env opts prop-env)))
                                          fs+ (-> cv u/expr-type r/ret-f :then)
                                          [env-thn reachable+] (if/update-lex+reachable prop-env fs+ opts)
@@ -105,7 +105,7 @@
                     (if (keyword? k)
                       (throw (Exception. (format "Invalid '%s' keyword: %s" (first form) k)))
                       (let [cv (-> v
-                                   (ana2/unanalyzed ana-env)
+                                   (ana2/unanalyzed ana-env opts)
                                    (check-expr nil (var-env/with-lexical-env opts prop-env)))
                             binding-ret (or (cgen/solve
                                               (u/expr-type cv)
@@ -171,7 +171,7 @@
           (let [body-expected (some-> expected
                                       (cgen/solve (-seqable-elem-query opts) opts))
                 cbody (-> body-syn
-                          (ana2/unanalyzed ana-env)
+                          (ana2/unanalyzed ana-env opts)
                           (check-expr body-expected (var-env/with-lexical-env opts prop-env)))
                 unshadowed-ret (let/erase-objects new-syms (u/expr-type cbody) opts)
                 expr (-> expr

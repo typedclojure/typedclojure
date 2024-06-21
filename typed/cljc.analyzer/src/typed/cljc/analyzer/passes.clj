@@ -49,21 +49,21 @@
                                      pass (cond
                                             ;; passes with :state meta take 2 arguments: state and ast
                                             (:state i)
-                                            (fn [ast]
+                                            (fn [ast opts]
                                               (let [pass-state (-> ast :env ::ana/state (get pass))]
                                                 (pass-fn pass-state ast)))
                                             ;; otherwise, a pass just takes ast
                                             :else pass-fn)]
-                                 #(pass (f %))))
-                             (fn [ast] ast)
+                                 (fn _inner [ast opts] (pass (f ast opts) opts))))
+                             (fn _outer [ast opts] ast)
                              passes))
         pre-passes  (pfns-fn pre-passes)
         post-passes (pfns-fn post-passes)
-        init-ast (fn [ast]
+        init-ast (fn _init-ast [ast opts]
                    (let [; immediately when starting to analyze an AST, generate
                          ; atoms for each pass that requires state. these will
                          ; be passed around in (-> ast :env ::ana/state).
-                         state-fn (fn [root-state]
+                         state-fn (fn _state-fn [root-state]
                                     (or root-state
                                         ; this line assumes that ::ana/state is correctly propagated from its
                                         ; inception at the root of the AST.

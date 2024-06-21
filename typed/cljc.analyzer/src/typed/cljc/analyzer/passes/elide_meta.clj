@@ -85,7 +85,7 @@
   "If elides is not empty and the AST node contains metadata,
    dissoc all the keys in elides from the metadata."
   {:pass-info {:walk :any :depends #{} :after #{#'source-info}}}
-  [ast]
+  [ast opts]
   (if (some #(if (seq? %) (seq %) %) (vals elides))
     (-elide-meta ast)
     ast))

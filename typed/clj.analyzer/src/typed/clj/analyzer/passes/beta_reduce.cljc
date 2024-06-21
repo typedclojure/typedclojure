@@ -101,7 +101,7 @@
   eg. #{:a :b}
   [{:op :unordered :expr #{:a :b} :min-count 2 :max-count 2}]
   "
-  [{:keys [op env] :as ast}]
+  [{:keys [op env] :as ast} opts]
   {:post [((some-fn nil? vector?) %)]}
   ;(prn "splice-seqable-expr" op (emit-form/emit-form ast))
   (case op
@@ -117,7 +117,7 @@
     :const (when (seqable? (:val ast))
              [{:op (if (sequential? (:val ast)) :sequential :unordered)
                :ordered (sequential? (:val ast))
-               :expr (ana/analyze-const (:val ast) env)
+               :expr (ana/analyze-const (:val ast) env opts)
                :min-count (count (:val ast))
                :max-count (count (:val ast))}])
     :do (splice-seqable-expr (:ret ast))

@@ -30,7 +30,7 @@
      clojure.lang.IFn$[primitive interface], transform the node in a :prim-invoke
      node"
   {:pass-info {:walk :post :depends #{#'validate/validate}}}
-  [{:keys [op] :as ast}]
+  [{:keys [op] :as ast} opts]
   (if-not (= op :invoke)
     ast
     (let [{:keys [args tag env form] :as ast} ast

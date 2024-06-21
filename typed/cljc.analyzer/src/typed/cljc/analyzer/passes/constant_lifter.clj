@@ -15,10 +15,10 @@
   "If the node represents a collection with no metadata, and every item of that
    collection is a literal, transform the node to an equivalent :const node."
   {:pass-info {:walk :post :depends #{}}}
-  :op)
+  (fn [ast opts] (:op ast)))
 
 (defmethod constant-lift :vector
-  [{:keys [items form env] :as ast}]
+  [{:keys [items form env] :as ast} opts]
   (if (and (every? :literal? items)
            (empty? (meta form)))
     (merge (dissoc ast :items :children)
@@ -30,7 +30,7 @@
     ast))
 
 (defmethod constant-lift :map
-  [{:keys [keys vals form env] :as ast}]
+  [{:keys [keys vals form env] :as ast} opts]
   (if (and (every? :literal? keys)
            (every? :literal? vals)
            (empty? (meta form)))
@@ -49,7 +49,7 @@
     ast))
 
 (defmethod constant-lift :set
-  [{:keys [items form env] :as ast}]
+  [{:keys [items form env] :as ast} opts]
   (if (and (every? :literal? items)
            (empty? (meta form)))
     (merge (dissoc ast :items :children)
@@ -60,4 +60,4 @@
             :literal? true})
     ast))
 
-(defmethod constant-lift :default [ast] ast)
+(defmethod constant-lift :default [ast opts] ast)

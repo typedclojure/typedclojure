@@ -1,13 +1,12 @@
 (ns typed-test.clj.analyzer
   (:require [clojure.test :refer :all]
-            [typed.clj.analyzer.passes.emit-form :refer [emit-form]]
             [typed.clj.analyzer :as ana]))
 
 (defmacro ast' [form]
-  `(ana/analyze '~form))
+  `(ana/analyze '~form (ana/empty-env) (ana/default-opts)))
 
 (defmacro ast [form]
-  `(ana/analyze+eval '~form))
+  `(ana/analyze+eval '~form (ana/empty-env) (ana/default-opts)))
 
 (deftest analyzer-test
   (is (= 1

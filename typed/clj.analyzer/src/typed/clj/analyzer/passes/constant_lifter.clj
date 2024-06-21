@@ -15,22 +15,21 @@
             [typed.clj.analyzer.passes.analyze-host-expr :as analyze-host-expr]))
 
 (defn constant-lift*
-  [ast]
+  [ast opts]
   (if (= :var (:op ast))
     (let [{:keys [var env form meta]} ast]
      (if (cu/constant? var meta)
        (let [val @var]
-         (assoc (ana2/analyze-const val env (cu/classify val))
+         (assoc (ana2/analyze-const val env (cu/classify val) opts)
            :form form))
        ast))
-    (orig/constant-lift ast)))
+    (orig/constant-lift ast opts)))
 
 (defn constant-lift
   "Like typed.cljc.analyzer.passes.constant-lifter/constant-lift but
    transforms also :var nodes where the var has :const in the metadata
    into :const nodes and preserves tag info"
   {:pass-info {:walk :post :depends #{} :after #{#'elide-meta/elide-meta #'analyze-host-expr/analyze-host-expr}}}
-  [ast]
-  (merge (constant-lift* ast)
+  [ast opts]
+  (merge (constant-lift* ast opts)
          (select-keys ast [:tag :o-tag :return-tag :arglists])))
-

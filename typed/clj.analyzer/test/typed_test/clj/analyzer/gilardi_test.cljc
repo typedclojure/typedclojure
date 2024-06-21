@@ -46,45 +46,44 @@
 ;; of (fully expanded) AST node.
 ;; 
 ;; See typed.clj.checker.check/-check for a real example.
-(defmulti -check (fn [expr expected] (::ana2/op expr)))
+(defmulti -check (fn [expr expected opts] (::ana2/op expr)))
 
 (defn type-for-val [v] :any)
 
 ;; type checking constants (eg., symbols, keywords, numbers)
-(defmethod -check ::ana2/const [expr expected]
+(defmethod -check ::ana2/const [expr expected opts]
   (-> expr
       (assoc ::type (-> (type-for-val (:val expr))
                         (verify-expected expected)))))
 
 ;; type check function calls
-(defmethod -check ::ana2/invoke [expr expected]
+(defmethod -check ::ana2/invoke [expr expected opts]
   (let [check-fcall (fn [cexpr ftype argtypes]
                       ;; subtyping checks or inference goes here
                       (let [inferred :any]
                         (-> cexpr
                             (assoc ::type (verify-expected inferred expected)))))
         cexpr (-> expr
-                  (update :fn check-expr)
-                  (update :args #(mapv check-expr %)))]
+                  (update :fn check-expr nil opts)
+                  (update :args #(mapv (fn [e] (check-expr e nil opts)) %)))]
     (check-fcall cexpr
                  (-> cexpr :fn ::type)
                  (->> cexpr :args (mapv ::type)))))
 
 ;; in real implementations, this catch-all case should be type error
-(defmethod -check :default [expr expected]
+(defmethod -check :default [expr expected opts]
   (-> expr
       ;; blindly expand and type check everything.
       ;; just here for demonstration purposes, should handle
       ;; individually each AST op using -check.
-      (ast/update-children #(check-expr % nil))
+      (ast/update-children #(check-expr % nil opts))
       (assoc ::type (verify-expected :any expected))))
 
 (def ^:dynamic *intermediate-forms* nil)
 (def ^:dynamic *found-defns* nil)
 
 (defn check-expr
-  ([expr] (check-expr expr nil))
-  ([expr expected]
+  ([expr expected opts]
    (let [;; important to save ns pre-expansion, as arbitrary effects
          ;; may happen during macroexpansion.
          expr (assoc-in expr [:env :ns] (ns-name *ns*))]
@@ -116,11 +115,11 @@
                                        expected (when (= (inc i) (count arg-forms))
                                                   expected)]
                                    (-> form
-                                       (unanalyzed env)
-                                       (check-expr expected)))))
+                                       (unanalyzed env opts)
+                                       (check-expr expected opts)))))
                              arg-forms)
                  cexpr (-> expr
-                           (assoc :form (list* (first form) (map emit-form/emit-form cargs))))
+                           (assoc :form (list* (first form) (map #(emit-form/emit-form % opts) cargs))))
                  ; returns nil on no args
                  final-result (get (peek cargs) :result nil)]
              (-> cexpr
@@ -135,32 +134,32 @@
            ;; by recurring with ana2/analyze-outer.
            clojure.core/defn (do (some-> *found-defns*
                                          (swap! update (second form) (fnil inc 0)))
-                                 (recur (ana2/analyze-outer expr) expected))
+                                 (recur (ana2/analyze-outer expr opts) expected opts))
            ;; completely expand this without type checking it via ana2/run-passes.
            clojure.core/ns
            (let [;_ (prn "old ns:" *ns*)
-                 expr (ana2/run-passes expr)]
+                 expr (ana2/run-passes expr opts)]
              ;(prn "new ns:" *ns*)
              (-> expr
                  (assoc ::type :any)))
            #_:else
-           (recur (ana2/analyze-outer expr) expected)))
+           (recur (ana2/analyze-outer expr opts) expected opts)))
        (-> expr
-           ana2/run-pre-passes
-           (-check expected)
-           ana2/run-post-passes
-           ana2/eval-top-level)))))
+           (ana2/run-pre-passes opts)
+           (-check expected opts)
+           (ana2/run-post-passes opts)
+           (ana2/eval-top-level opts))))))
 
 (defn check-top-level
-  ([form expected] (check-top-level form expected {}))
-  ([form expected {:keys [env] :as opts}]
+  ([form expected] (check-top-level form expected (jana2/default-opts)))
+  ([form expected opts]
    {:post [(-> % ::type type?)]}
-   (let [env (or env (jana2/empty-env))]
+   (let [env (jana2/empty-env)]
      (with-bindings (jana2/default-thread-bindings env)
        (env/ensure (jana2/global-env)
          (-> form
-             (ana2/unanalyzed-top-level env)
-             (check-expr expected)))))))
+             (ana2/unanalyzed-top-level env opts)
+             (check-expr expected opts)))))))
 
 (defn check-top-level-fresh-ns [& args]
   (binding [*ns* (create-ns (gensym 'test-ns))]

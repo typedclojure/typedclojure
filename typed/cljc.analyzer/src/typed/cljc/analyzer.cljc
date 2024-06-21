@@ -22,13 +22,13 @@
 (set! *warn-on-reflection* true)
 
 (def ^{:dynamic  true
-       :arglists '([form env])
+       :arglists '([form env opts])
        :doc      "If form represents a macro form, returns its expansion,
                   else returns form."}
   macroexpand-1)
 
 (def ^{:dynamic  true
-       :arglists '([[op & args] env])
+       :arglists '([[op & args] env opts])
        :doc      "Multimethod that dispatches on op, should default to -parse"}
   parse)
 
@@ -82,32 +82,32 @@
 
 (def ^{:dynamic  true
        :doc      "If ast is :unanalyzed, then call analyze-form on it, otherwise returns ast."
-       :arglists '([ast])}
+       :arglists '([ast opts])}
   analyze-outer)
 
 (def ^{:dynamic  true
        :doc      "Create an AST node for a form without expanding it."
-       :arglists '([form env])}
+       :arglists '([form env opts])}
   unanalyzed)
 
 (declare analyze-outer-root)
 
 (defn run-pre-passes
-  [ast]
-  ((:pre scheduled-passes) ast))
+  [ast opts]
+  ((:pre scheduled-passes) ast opts))
 
 (defn run-post-passes
-  [ast]
-  ((:post scheduled-passes) ast))
+  [ast opts]
+  ((:post scheduled-passes) ast opts))
 
 (declare eval-top-level)
 
 (defn run-passes
   "Function that will be invoked on the AST tree immediately after it has been constructed."
-  [ast]
+  [ast opts]
   (ast/walk ast
-            (comp run-pre-passes analyze-outer-root)
-            (comp eval-top-level run-post-passes)))
+            #(-> % (analyze-outer-root opts) (run-pre-passes opts))
+            #(-> % (run-post-passes opts) (eval-top-level opts))))
 
 (def specials
   '#{do if new quote set! try var
@@ -123,18 +123,18 @@
 
 (defn analyze-form
   "Like analyze, but does not mark the form with :top-level true"
-  [form env]
+  [form env opts]
   (cond
-    (symbol? form) (analyze-symbol form env)
-    #?@(:clj [(instance? IType form) (analyze-const form env :type)])
-    (record? form) (analyze-const form env :record)
+    (symbol? form) (analyze-symbol form env opts)
+    #?@(:clj [(instance? IType form) (analyze-const form env :type opts)])
+    (record? form) (analyze-const form env :record opts)
     (seq? form) (if-let [form (seq form)]
-                  (analyze-seq form env)
-                  (analyze-const form env))
-    (map? form) (analyze-map form env)
-    (vector? form) (analyze-vector form env)
-    (set? form) (analyze-set form env)
-    :else (analyze-const form env)))
+                  (analyze-seq form env opts)
+                  (analyze-const form env nil opts))
+    (map? form) (analyze-map form env opts)
+    (vector? form) (analyze-vector form env opts)
+    (set? form) (analyze-set form env opts)
+    :else (analyze-const form env nil opts)))
 
 (defn analyze
   "Given a top-level form to analyze and an environment, a map containing:
@@ -148,8 +148,8 @@
 
    returns one level of the AST for that form, with all children
    stubbed out with :unanalyzed nodes."
-  [form env]
-  (assoc (analyze-form form env) :top-level true))
+  [form env opts]
+  (assoc (analyze-form form env opts) :top-level true))
 
 (def defexpr-info {})
 
@@ -265,8 +265,8 @@
   (boolean (get ast ::eval-gilardi?)))
 
 (defn unanalyzed-top-level
-  [form env]
-  (mark-top-level (unanalyzed form env)))
+  [form env opts]
+  (mark-top-level (unanalyzed form env opts)))
 
 (defn inherit-top-level
   "Return new-expr with equivalent top-level status
@@ -303,26 +303,26 @@
 (defn eval-top-level
   "Evaluate `eval-top-level?` nodes and unanalyzed `top-level?` nodes.
   Otherwise, propagate result from children."
-  [ast]
+  [ast opts]
   {:pre [(:op ast)]}
   (if (or (eval-top-level? ast)
           (and (top-level? ast)
                (= :unanalyzed (:op ast))))
-    (eval-ast ast)
+    (eval-ast ast opts)
     (propagate-result ast)))
 
 (defn analyze-outer-root
   "Repeatedly call analyze-outer to a fixed point."
-  [ast]
-  (let [ast' (analyze-outer ast)]
+  [ast opts]
+  (let [ast' (analyze-outer ast opts)]
     (if (identical? ast ast')
       ast'
-      (recur ast'))))
+      (recur ast' opts))))
 
 (defn unanalyzed-in-env
   "Takes an env map and returns a function that analyzes a form in that env"
-  [env]
-  (fn [form] (unanalyzed form env)))
+  [env opts]
+  (fn [form] (unanalyzed form env opts)))
 
 (declare ^:private update-withmetaexpr-children)
 
@@ -339,7 +339,7 @@
 ;; this node wraps non-quoted collections literals with metadata attached
 ;; to them, the metadata will be evaluated at run-time, not treated like a constant
 (defn wrapping-meta
-  [{:keys [form env] :as expr}]
+  [{:keys [form env] :as expr} opts]
   (let [meta (meta form)]
     (if (and (u/obj? form)
              (seq meta))
@@ -348,7 +348,7 @@
          ::op      ::with-meta
          :env      env
          :form     form
-         :meta     (unanalyzed meta (u/ctx env :ctx/expr))
+         :meta     (unanalyzed meta (u/ctx env :ctx/expr) opts)
          :expr     (assoc-in expr [:env :context] :ctx/expr)
          :children [:meta :expr]}
         (create-expr WithMetaExpr))
@@ -368,7 +368,7 @@
                    [:meta (f->maybe-f f)])))
 
 (defn analyze-const
-  [form env & [type]]
+  [form env type opts]
   (let [type (or type (u/classify form))
         m (when (u/obj? form)
             (not-empty (meta form)))]
@@ -380,8 +380,8 @@
        :literal? true
        :val      form
        :form     form
-       :meta    (some-> m (analyze-const (u/ctx env :ctx/expr) :map)) ;; metadata on a constant literal will not be evaluated at
-       :children (when m [:meta])}                                    ;; runtime, this is also true for metadata on quoted collection literals
+       :meta    (some-> m (analyze-const (u/ctx env :ctx/expr) :map opts)) ;; metadata on a constant literal will not be evaluated at
+       :children (when m [:meta])}                                         ;; runtime, this is also true for metadata on quoted collection literals
       (create-expr ConstExpr))))
 
 (declare ^:private update-vectorexpr-children)
@@ -397,9 +397,9 @@
                    [:items (f->fs f)])))
 
 (defn analyze-vector
-  [form env]
+  [form env opts]
   (let [items-env (u/ctx env :ctx/expr)
-        items (mapv (unanalyzed-in-env items-env) form)]
+        items (mapv (unanalyzed-in-env items-env opts) form)]
     (->
      {:op       :vector
       ::op      ::vector
@@ -408,7 +408,7 @@
       :form     form
       :children [:items]}
      (create-expr VectorExpr)
-     wrapping-meta)))
+     (wrapping-meta opts))))
 
 (declare ^:private update-mapexpr-children)
 
@@ -423,13 +423,13 @@
         (update-expr MapExpr [:keys fs] [:vals fs]))))
 
 (defn analyze-map
-  [form env]
+  [form env opts]
   (let [kv-env (u/ctx env :ctx/expr)
         [keys vals] (reduce-kv (fn [[keys vals] k v]
                                  [(conj keys k) (conj vals v)])
                                [[] []] form)
-        ks (mapv (unanalyzed-in-env kv-env) keys)
-        vs (mapv (unanalyzed-in-env kv-env) vals)]
+        ks (mapv (unanalyzed-in-env kv-env opts) keys)
+        vs (mapv (unanalyzed-in-env kv-env opts) vals)]
     (->
      {:op       :map
       ::op      ::map
@@ -439,7 +439,7 @@
       :form     form
       :children [:keys :vals]}
      (create-expr MapExpr)
-     wrapping-meta)))
+     (wrapping-meta opts))))
 
 (defexpr SetExpr [op env items form children top-level]
   ast/IASTWalk
@@ -449,9 +449,9 @@
         (u/update-record-children :items f))))
 
 (defn analyze-set
-  [form env]
+  [form env opts]
   (let [items-env (u/ctx env :ctx/expr)
-        items (mapv (unanalyzed-in-env items-env) form)]
+        items (mapv (unanalyzed-in-env items-env opts) form)]
     (->
      {:op       :set
       ::op      ::set
@@ -460,7 +460,7 @@
       :form     form
       :children [:items]}
      (create-expr SetExpr)
-     wrapping-meta)))
+     (wrapping-meta opts))))
 
 (defrecord LocalExpr [op env form assignable? children top-level tag o-tag atom case-test]
   ast/IASTWalk
@@ -487,8 +487,8 @@
   (ast/update-children* [this f] this))
 
 (defn analyze-symbol
-  [sym env]
-  (let [mform (macroexpand-1 sym env)] ;; t.a.j/macroexpand-1 macroexpands Class/Field into (. Class Field)
+  [sym env opts]
+  (let [mform (macroexpand-1 sym env opts)] ;; t.a.j/macroexpand-1 macroexpands Class/Field into (. Class Field)
     (if (= mform sym)
       (into
         (if-let [{:keys [mutable children] :as local-binding} (-> env :locals sym)] ;; locals shadow globals
@@ -526,21 +526,21 @@
         ;; TODO inline this
         {:env  env
          :form mform})
-      (-> (unanalyzed mform env)
+      (-> (unanalyzed mform env opts)
         (update :raw-forms (fnil conj ()) sym)))))
 
 (defn analyze-seq
-  [form env]
+  [form env opts]
   ;(prn "analyze-seq" form)
   (let [op (first form)]
     (when (nil? op)
       (throw (ex-info "Can't call nil"
                       (merge {:form form}
                              (u/-source-info form env)))))
-    (let [mform (macroexpand-1 form env)]
+    (let [mform (macroexpand-1 form env opts)]
       (if (= form mform) ;; function/special-form invocation
-        (parse mform env)
-        (-> (unanalyzed mform env)
+        (parse mform env opts)
+        (-> (unanalyzed mform env opts)
             (update :raw-forms (fnil conj ())
                     (vary-meta form assoc ::resolved-op (resolve-sym op env))))))))
 
@@ -561,14 +561,14 @@
                      [:ret f]))))
 
 (defn parse-do
-  [[_ & exprs :as form] env]
+  [[_ & exprs :as form] env opts]
   (let [statements-env (u/ctx env :ctx/statement)
         [statements ret] (loop [statements [] [e & exprs] exprs]
                            (if (seq exprs)
                              (recur (conj statements e) exprs)
                              [statements e]))
-        statements (mapv (unanalyzed-in-env statements-env) statements)
-        ret (unanalyzed ret env)]
+        statements (mapv (unanalyzed-in-env statements-env opts) statements)
+        ret (unanalyzed ret env opts)]
     (->
       {:op         :do
        ::op        ::do
@@ -594,15 +594,15 @@
                    [:else f])))
 
 (defn parse-if
-  [[_ test then else :as form] env]
+  [[_ test then else :as form] env opts]
   (let [formc (count form)]
     (when-not (or (= formc 3) (= formc 4))
       (throw (ex-info (str "Wrong number of args to if, had: " (dec (count form)))
                       (merge {:form form}
                              (u/-source-info form env))))))
-  (let [test-expr (unanalyzed test (u/ctx env :ctx/expr))
-        then-expr (unanalyzed then env)
-        else-expr (unanalyzed else env)]
+  (let [test-expr (unanalyzed test (u/ctx env :ctx/expr) opts)
+        then-expr (unanalyzed then env opts)
+        else-expr (unanalyzed else env opts)]
     (->
       {:op       :if
        ::op      ::if
@@ -629,19 +629,19 @@
                      [:args fs]))))
 
 (defn parse-new
-  [[_ class & args :as form] env]
+  [[_ class & args :as form] env opts]
   (when-not (>= (count form) 2)
     (throw (ex-info (str "Wrong number of args to new, had: " (dec (count form)))
                     (merge {:form form}
                            (u/-source-info form env)))))
   (let [args-env (u/ctx env :ctx/expr)
-        args (mapv (unanalyzed-in-env args-env) args)]
+        args (mapv (unanalyzed-in-env args-env opts) args)]
     (->
       {:op          :new
        ::op         ::new
        :env         env
        :form        form
-       :class       (analyze-form class (assoc env :locals {})) ;; avoid shadowing
+       :class       (analyze-form class (assoc env :locals {}) opts) ;; avoid shadowing
        :args        args
        :children    [:class :args]}
       (create-expr NewExpr))))
@@ -659,12 +659,12 @@
                    [:expr f])))
 
 (defn parse-quote
-  [[_ expr :as form] env]
+  [[_ expr :as form] env opts]
   (when-not (= 2 (count form))
     (throw (ex-info (str "Wrong number of args to quote, had: " (dec (count form)))
                     (merge {:form form}
                            (u/-source-info form env)))))
-  (let [const (analyze-const expr env)]
+  (let [const (analyze-const expr env nil opts)]
     (->
       {:op       :quote
        ::op      ::quote
@@ -689,13 +689,13 @@
                    [:val f])))
 
 (defn parse-set!
-  [[_ target val :as form] env]
+  [[_ target val :as form] env opts]
   (when-not (= 3 (count form))
     (throw (ex-info (str "Wrong number of args to set!, had: " (dec (count form)))
                     (merge {:form form}
                            (u/-source-info form env)))))
-  (let [target (unanalyzed target (u/ctx env :ctx/expr))
-        val (unanalyzed val (u/ctx env :ctx/expr))]
+  (let [target (unanalyzed target (u/ctx env :ctx/expr) opts)
+        val (unanalyzed val (u/ctx env :ctx/expr) opts)]
     (->
       {:op       :set!
        ::op      ::set!
@@ -706,9 +706,9 @@
        :children [:target :val]}
       (create-expr Set!Expr))))
 
-(defn analyze-body [body env]
+(defn analyze-body [body env opts]
   ;; :body is used by emit-form to remove the artificial 'do
-  (assoc (parse (cons 'do body) env) :body? true))
+  (assoc (parse (cons 'do body) env opts) :body? true))
 
 (defn valid-binding-symbol? [s]
   (and (symbol? s)
@@ -743,7 +743,7 @@
 
 (declare parse-catch)
 (defn parse-try
-  [[_ & body :as form] env]
+  [[_ & body :as form] env opts]
   (let [catch? (every-pred seq? #(= (first %) 'catch))
         finally? (every-pred seq? #(= (first %) 'finally))
         [body tail'] (split-with' (complement (some-fn catch? finally?)) body)
@@ -760,11 +760,11 @@
                               :form form}
                              (u/-source-info form env)))))
     (let [env' (assoc env :in-try true)
-          body (analyze-body body env')
+          body (analyze-body body env' opts)
           cenv (u/ctx env' :ctx/expr)
-          cblocks (mapv #(parse-catch % cenv) cblocks)
+          cblocks (mapv #(parse-catch % cenv opts) cblocks)
           fblock (when-not (empty? fblock)
-                   (analyze-body (rest fblock) (u/ctx env :ctx/statement)))]
+                   (analyze-body (rest fblock) (u/ctx env :ctx/statement) opts))]
       (->
         {:op      :try
          ::op     ::try
@@ -804,7 +804,7 @@
       (u/update-record-child :init f))))
 
 (defn parse-catch
-  [[_ etype ename & body :as form] env]
+  [[_ etype ename & body :as form] env opts]
   (when-not (valid-binding-symbol? ename)
     (throw (ex-info (str "Bad binding form: " ename)
                     (merge {:sym ename
@@ -821,11 +821,11 @@
     (->
       {:op          :catch
        ::op         ::catch
-       :class       (unanalyzed etype (assoc env :locals {}))
+       :class       (unanalyzed etype (assoc env :locals {}) opts)
        :local       local
        :env         env
        :form        form
-       :body        (analyze-body body (assoc-in env [:locals ename] (u/dissoc-env local)))
+       :body        (analyze-body body (assoc-in env [:locals ename] (u/dissoc-env local)) opts)
        :children    [:class :local :body]}
       (create-expr CatchExpr))))
 
@@ -837,7 +837,7 @@
         (u/update-record-child :exception f))))
 
 (defn parse-throw
-  [[_ throw :as form] env]
+  [[_ throw :as form] env opts]
   (when-not (= 2 (count form))
     (throw (ex-info (str "Wrong number of args to throw, had: " (dec (count form)))
                     (merge {:form form}
@@ -847,7 +847,7 @@
      ::op       ::throw
      :env       env
      :form      form
-     :exception (unanalyzed throw (u/ctx env :ctx/expr))
+     :exception (unanalyzed throw (u/ctx env :ctx/expr) opts)
      :children  [:exception]}
     (create-expr ThrowExpr)))
 
@@ -882,7 +882,7 @@
                      [:body f]))))
 
 (defn parse-letfn*
-  [[_ bindings & body :as form] env]
+  [[_ bindings & body :as form] env opts]
   (validate-bindings form env)
   (let [bindings (apply array-map bindings) ;; pick only one local with the same name, if more are present.
         fns      (keys bindings)]
@@ -905,11 +905,12 @@
                              (assoc binds name
                                     (assoc bind
                                            :init (unanalyzed (bindings name)
-                                                             (u/ctx e :ctx/expr))
+                                                             (u/ctx e :ctx/expr)
+                                                             opts)
                                            :children [:init])))
                            {} binds)
           e (update env :locals merge (u/update-vals binds u/dissoc-env))
-          body (analyze-body body e)]
+          body (analyze-body body e opts)]
       (->
         {:op       :letfn
          ::op      ::letfn
@@ -921,7 +922,7 @@
         (create-expr LetFnExpr)))))
 
 (defn analyze-let
-  [[op bindings & body :as form] {:keys [context loop-id] :as env}]
+  [[op bindings & body :as form] {:keys [context loop-id] :as env} opts]
   (validate-bindings form env)
   (let [loop? (= 'loop* op)]
     (loop [bindings bindings
@@ -933,7 +934,7 @@
                           (into {:form form
                                  :sym  name}
                                 (u/-source-info form env))))
-          (let [init-expr (unanalyzed init env)
+          (let [init-expr (unanalyzed init env opts)
                 bind-expr (->
                             {:op       :binding
                              ::op      ::binding
@@ -950,7 +951,8 @@
         (let [body-env (assoc env :context (if loop? :ctx/return context))
               body (analyze-body body (cond-> body-env
                                         loop? (assoc :loop-id loop-id
-                                                     :loop-locals (count binds))))]
+                                                     :loop-locals (count binds)))
+                                 opts)]
           {:body     body
            :bindings binds
            :children [:bindings :body]})))))
@@ -970,8 +972,8 @@
                      [:body f]))))
 
 (defn parse-let*
-  [form env]
-  (let [{:keys [body bindings children]} (analyze-let form env)]
+  [form env opts]
+  (let [{:keys [body bindings children]} (analyze-let form env opts)]
     (-> {:op   :let
          ::op  ::let
          :form form
@@ -996,10 +998,10 @@
                      [:body f]))))
 
 (defn parse-loop*
-  [form env]
+  [form env opts]
   (let [loop-id (gensym "loop_") ;; can be used to find matching recur
         env (assoc env :loop-id loop-id)
-        {:keys [body bindings children]} (analyze-let form env)]
+        {:keys [body bindings children]} (analyze-let form env opts)]
     (-> {:op      :loop
          ::op     ::loop
          :form    form
@@ -1019,7 +1021,7 @@
 
 (defn parse-recur
   [[_ & exprs :as form] {:keys [context loop-locals loop-id]
-                         :as env}]
+                         :as env} opts]
   (when-let [error-msg
              (cond
               (not (isa? context :ctx/return))
@@ -1033,7 +1035,7 @@
                             :form  form}
                            (u/-source-info form env)))))
 
-  (let [exprs (mapv (unanalyzed-in-env (u/ctx env :ctx/expr)) exprs)]
+  (let [exprs (mapv (unanalyzed-in-env (u/ctx env :ctx/expr) opts) exprs)]
     (->
       {:op          :recur
        ::op         ::recur
@@ -1058,7 +1060,7 @@
                      [:params fs]
                      [:body f]))))
 
-(defn analyze-fn-method [[params & body :as form] {:keys [locals local] :as env}]
+(defn analyze-fn-method [[params & body :as form] {:keys [locals local] :as env} opts]
   (when-not (vector? params)
     (throw (ex-info "Parameter declaration should be a vector"
                     (merge {:params params
@@ -1098,7 +1100,7 @@
                      (assoc :context     :ctx/return
                             :loop-id     loop-id
                             :loop-locals (count params-expr)))
-        body (analyze-body body body-env)]
+        body (analyze-body body body-env opts)]
     (when variadic?
       (let [x (drop-while #(not= % '&) params)]
         (when (contains? #{nil '&} (second x))
@@ -1144,7 +1146,7 @@
                      [:methods fs]))))
 
 (defn parse-fn*
-  [[op & args :as form] env]
+  [[op & args :as form] env opts]
   (wrapping-meta
    (let [[n meths] (if (symbol? (first args))
                      [(first args) (next args)]
@@ -1167,7 +1169,7 @@
          ;;turn (fn [] ...) into (fn ([]...))
          meths (cond-> meths
                  (vector? (first meths)) list)
-         methods-exprs (mapv #(analyze-fn-method % menv) meths)
+         methods-exprs (mapv #(analyze-fn-method % menv opts) meths)
          variadic (seq (filter :variadic? methods-exprs))
          variadic? (boolean variadic)
          fixed-arities (seq (sequence
@@ -1202,7 +1204,8 @@
         :once            once?
         :children (conj (if n [:local] []) :methods)
         :local (when n name-expr)}
-       (create-expr FnExpr)))))
+       (create-expr FnExpr)))
+   opts))
 
 (declare ^:private update-defexpr-children)
 
@@ -1219,7 +1222,7 @@
                      [:init maybe-f]))))
 
 (defn parse-def
-  [[_ sym & expr :as form] {:keys [ns] :as env}]
+  [[_ sym & expr :as form] {:keys [ns] :as env} opts]
   (when (not (symbol? sym))
     (throw (ex-info (str "First argument to def must be a symbol, had: " (#?(:cljs type :default class) sym))
                     (into {:form form}
@@ -1258,10 +1261,10 @@
                     (when arglists
                       {:arglists (list 'quote arglists)}))
 
-        meta-expr (when meta (unanalyzed meta (u/ctx env :ctx/expr))) ;; meta on def sym will be evaluated
+        meta-expr (when meta (unanalyzed meta (u/ctx env :ctx/expr) opts)) ;; meta on def sym will be evaluated
 
         args (when-let [[_ init] (find args :init)]
-               (assoc args :init (unanalyzed init (u/ctx env :ctx/expr))))
+               (assoc args :init (unanalyzed init (u/ctx env :ctx/expr) opts)))
         init? (:init args)
         children (cond-> [] 
                    meta (conj :meta)
@@ -1318,7 +1321,7 @@
                    [:target f])))
 
 (defn parse-dot
-  [[_ target & [m-or-f & args] :as form] env]
+  [[_ target & [m-or-f & args] :as form] env opts]
   (when-not (>= (count form) 3)
     (throw (ex-info (str "Wrong number of args to ., had: " (dec (count form)))
                     (into {:form form}
@@ -1327,7 +1330,7 @@
                                  (= \- (first (name m-or-f))))
                           [(-> m-or-f name (subs 1) symbol) true]
                           [(if args (cons m-or-f args) m-or-f) false])
-        target-expr (unanalyzed target (u/ctx env :ctx/expr))
+        target-expr (unanalyzed target (u/ctx env :ctx/expr) opts)
         call? (and (not field?) (seq? m-or-f))]
 
     (when (and call? (not (symbol? (first m-or-f))))
@@ -1341,7 +1344,7 @@
         {:op       :host-call
          ::op      ::host-call
          :method   (symbol (name (first m-or-f)))
-         :args     (mapv (unanalyzed-in-env (u/ctx env :ctx/expr)) (next m-or-f))
+         :args     (mapv (unanalyzed-in-env (u/ctx env :ctx/expr) opts) (next m-or-f))
          :children [:target :args]
          ;; common fields
          :form   form
@@ -1390,10 +1393,10 @@
                      [:args fs]))))
 
 (defn parse-invoke
-  [[f & args :as form] env]
+  [[f & args :as form] env opts]
   (let [fenv (u/ctx env :ctx/expr)
-        fn-expr (unanalyzed f fenv)
-        args-expr (mapv (unanalyzed-in-env fenv) args)
+        fn-expr (unanalyzed f fenv opts)
+        args-expr (mapv (unanalyzed-in-env fenv opts) args)
         m (meta form)]
     (->
       {:op   :invoke
@@ -1413,7 +1416,7 @@
     this))
 
 (defn parse-var
-  [[_ var :as form] env]
+  [[_ var :as form] env opts]
   (when-not (= 2 (count form))
     (throw (ex-info (str "Wrong number of args to var, had: " (dec (count form)))
                     (into {:form form}
@@ -1431,7 +1434,7 @@
 (defn -parse
   "Takes a form and an env map and dispatches on the head of the form, that is
    a special form."
-  [form env]
+  [form env opts]
   ((case (first form)
      do      parse-do
      if      parse-if
@@ -1449,4 +1452,4 @@
      fn*     parse-fn*
      var     parse-var
      #_:else parse-invoke)
-   form env))
+   form env opts))

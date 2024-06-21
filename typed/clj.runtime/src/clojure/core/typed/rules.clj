@@ -152,7 +152,7 @@
 ;                          )
 ;        ]
 ;    (-> `(def ~sym ~(emit-form cinit))
-;        (ana2/unanalyzed (:env expr))
+;        (ana2/unanalyzed (:env expr) opts)
 ;        (ana2/inherit-top-level expr)
 ;        (assoc ::untyped true
 ;               ::expr-type (maybe-check-below
@@ -170,7 +170,7 @@
 ;        out-body (emit-form cbody)
 ;        _ (assert (-> out-body first #{'do}))]
 ;    (-> `(locking ~(emit-form cx) ~@(rest out-body))
-;        (ana2/unanalyzed (:env expr))
+;        (ana2/unanalyzed (:env expr) opts)
 ;        (ana2/inherit-top-level expr)
 ;        (merge {::untyped true}
 ;               (select-keys cbody [::expr-type])))))

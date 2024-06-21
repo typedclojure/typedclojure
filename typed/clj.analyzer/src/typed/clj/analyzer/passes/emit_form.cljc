@@ -29,7 +29,7 @@
     * :qualified-vars (DEPRECATED, use :qualified-symbols instead)
     * :qualified-symbols"
   {:pass-info {:walk :none :depends #{#'uniquify-locals} :compiler true}}
-  ([ast] (emit-form ast #{}))
+  ;([ast] (emit-form ast #{}))
   ([ast opts]
      (binding [default/-emit-form* -emit-form*]
        (-emit-form* ast opts))))

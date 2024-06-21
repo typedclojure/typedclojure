@@ -24,5 +24,5 @@
                   ::check/keys [check-expr] :as opts}]
   (when (= :never check-form-eval)
     (let [expr (binding [*assert* true]
-                 (ana2/analyze-outer expr))]
+                 (ana2/analyze-outer expr opts))]
       (check-expr expr expected opts))))

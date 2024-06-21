@@ -122,7 +122,7 @@
         annotated-t (metas->maybe-expected-type metas opts)
         expr (-> expr
                  (assoc :form form)
-                 ana2/analyze-outer)]
+                 (ana2/analyze-outer opts))]
     (if annotated-t
       (-> expr
           (check-expr (r/ret annotated-t) opts)

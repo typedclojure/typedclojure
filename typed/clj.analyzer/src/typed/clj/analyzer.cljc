@@ -42,7 +42,7 @@
 (declare resolve-ns)
 
 ;; copied from tools.analyzer.jvm to replace `resolve-ns` and `taj-utils/maybe-class-literal`
-(defn desugar-symbol [form env]
+(defn desugar-symbol [form env opts]
   (let [sym-ns (namespace form)]
     (if-let [target (and sym-ns
                          (not (resolve-ns (symbol sym-ns) env))
@@ -100,8 +100,8 @@
 (defn macroexpand-1
   "If form represents a macro form or an inlineable function, returns its expansion,
    else returns form."
-  ([form] (macroexpand-1 form (empty-env)))
-  ([form env]
+  ;([form] (macroexpand-1 form (empty-env)))
+  ([form env opts]
        (cond
 
         (seq? form)
@@ -138,7 +138,7 @@
                (desugar-host-expr form env)))))
 
         (symbol? form)
-        (desugar-symbol form env)
+        (desugar-symbol form env opts)
 
         :else
         form)))
@@ -282,7 +282,7 @@
             var->sym)))))
 
 (defn parse-monitor-enter
-  [[_ target :as form] env]
+  [[_ target :as form] env opts]
   (when-not (= 2 (count form))
     (throw (ex-info (str "Wrong number of args to monitor-enter, had: " (dec (count form)))
                     (into {:form form}
@@ -291,11 +291,11 @@
    ::common/op ::monitor-enter
    :env      env
    :form     form
-   :target   (ana/unanalyzed target (u/ctx env :ctx/expr))
+   :target   (ana/unanalyzed target (u/ctx env :ctx/expr) opts)
    :children [:target]})
 
 (defn parse-monitor-exit
-  [[_ target :as form] env]
+  [[_ target :as form] env opts]
   (when-not (= 2 (count form))
     (throw (ex-info (str "Wrong number of args to monitor-exit, had: " (dec (count form)))
                     (into {:form form}
@@ -304,11 +304,11 @@
    ::common/op ::monitor-exit
    :env      env
    :form     form
-   :target   (ana/unanalyzed target (u/ctx env :ctx/expr))
+   :target   (ana/unanalyzed target (u/ctx env :ctx/expr) opts)
    :children [:target]})
 
 (defn parse-import*
-  [[_ class :as form] env]
+  [[_ class :as form] env opts]
   (when-not (= 2 (count form))
     (throw (ex-info (str "Wrong number of args to import*, had: " (dec (count form)))
                     (merge {:form form}
@@ -320,7 +320,7 @@
    :class class})
 
 (defn analyze-method-impls
-  [[method [this & params :as args] & body :as form] env]
+  [[method [this & params :as args] & body :as form] env opts]
   (when-let [error-msg (cond
                         (not (symbol? method))
                         (str "Method method must be a symbol, had: " (class method))
@@ -344,7 +344,7 @@
                      :tag   (:this env)
                      :local :this}
         env         (assoc-in (dissoc env :this) [:locals this] (u/dissoc-env this-expr))
-        method-expr (ana/analyze-fn-method meth env)]
+        method-expr (ana/analyze-fn-method meth env opts)]
     (assoc (dissoc method-expr :variadic?)
       :op       :method
       ::common/op ::common/method
@@ -369,13 +369,13 @@
                 (list 'import class-name)))))
 
 (defn parse-reify*
-  [[_ interfaces & methods :as form] env]
+  [[_ interfaces & methods :as form] env opts]
   (let [interfaces (conj (disj (set (mapv ju/maybe-class interfaces)) Object)
                          IObj)
         name (gensym "reify__")
         class-name (symbol (str (namespace-munge *ns*) "$" name))
         menv (assoc env :this class-name)
-        methods (mapv #(assoc (analyze-method-impls % menv) :interfaces interfaces)
+        methods (mapv #(assoc (analyze-method-impls % menv opts) :interfaces interfaces)
                       methods)]
 
     (-deftype name class-name [] interfaces)
@@ -388,7 +388,8 @@
       :class-name class-name
       :methods    methods
       :interfaces interfaces
-      :children   [:methods]})))
+      :children   [:methods]}
+     opts)))
 
 (defn parse-opts+methods [methods]
   (loop [opts {} methods methods]
@@ -397,7 +398,7 @@
       [opts methods])))
 
 (defn parse-deftype*
-  [[_ name class-name fields _ interfaces & methods :as form] env]
+  [[_ name class-name fields _ interfaces & methods :as form] env opts]
   (let [interfaces (disj (set (mapv ju/maybe-class interfaces)) Object)
         fields-expr (mapv (fn [name]
                             {:env     env
@@ -417,7 +418,7 @@
                :locals  (zipmap fields (map u/dissoc-env fields-expr))
                :this    class-name)
         [opts methods] (parse-opts+methods methods)
-        methods (mapv #(assoc (analyze-method-impls % menv) :interfaces interfaces)
+        methods (mapv #(assoc (analyze-method-impls % menv opts) :interfaces interfaces)
                       methods)]
 
     (or (when *parse-deftype-with-existing-class*
@@ -436,13 +437,13 @@
      :children   [:fields :methods]}))
 
 (defn parse-case*
-  [[_ expr shift mask default case-map switch-type test-type & [skip-check?] :as form] env]
+  [[_ expr shift mask default case-map switch-type test-type & [skip-check?] :as form] env opts]
   (let [[low high] ((juxt first last) (keys case-map)) ;;case-map is a sorted-map
         e (u/ctx env :ctx/expr)
-        test-expr (ana/unanalyzed expr e)
+        test-expr (ana/unanalyzed expr e opts)
         [tests thens] (reduce (fn [[te th] [min-hash [test then]]]
-                                (let [test-expr (ana/analyze-const test e)
-                                      then-expr (ana/unanalyzed then env)]
+                                (let [test-expr (ana/analyze-const test e nil opts)
+                                      then-expr (ana/unanalyzed then env opts)]
                                   [(conj te {:op       :case-test
                                              ::common/op ::case-test
                                              :form     test
@@ -458,7 +459,7 @@
                                              :then     then-expr
                                              :children [:then]})]))
                               [[] []] case-map)
-        default-expr (ana/unanalyzed default env)]
+        default-expr (ana/unanalyzed default env opts)]
     {:op          :case
      ::common/op  ::case
      :form        form
@@ -478,7 +479,7 @@
 
 (defn parse
   "Extension to clojure.core.typed.analyzer/-parse for JVM special forms"
-  [form env]
+  [form env opts]
   ((case (first form)
      monitor-enter        parse-monitor-enter
      monitor-exit         parse-monitor-exit
@@ -487,9 +488,7 @@
      deftype*             parse-deftype*
      case*                parse-case*
      #_:else              ana/-parse)
-   form env))
-
-(declare parse)
+   form env opts))
 
 (ana/defexpr UnanalyzedExpr [op form env top-level children raw-forms]
   ast/IASTWalk
@@ -497,7 +496,7 @@
   (ast/update-children* [this f] this))
 
 (defn unanalyzed
-  [form env]
+  [form env opts]
   {:pre [(map? env)]}
   (let [init-ast (:init-ast ana/scheduled-passes)
         _ (assert init-ast "scheduled-passes must bind :init-ast")]
@@ -510,7 +509,7 @@
        ;; this :unanalyzed node becomes when analyzed
        ::ana/config {}}
       (ana/create-expr UnanalyzedExpr)
-      init-ast)))
+      (init-ast opts))))
 
 (comment
   (assert
@@ -537,11 +536,11 @@
 
 (defn analyze-outer
   "If ast is :unanalyzed, then call analyze-form on it, otherwise returns ast."
-  [ast]
+  [ast opts]
   (case (:op ast)
     :unanalyzed (let [{:keys [form env ::ana/config]} ast
                       ast (-> form
-                              (ana/analyze-form env)
+                              (ana/analyze-form env opts)
                               ;TODO rename to ::inherited
                               (assoc ::ana/config config)
                               ana/propagate-top-level
@@ -567,8 +566,8 @@
 
    E.g.
    (analyze form env {:bindings  {#'ana/macroexpand-1 my-mexpand-1}})"
-  ([form] (analyze form (empty-env) {}))
-  ([form env] (analyze form env {}))
+  ;([form] (analyze form (empty-env) {}))
+  ;([form env] (analyze form env {}))
   ([form env opts]
    (with-bindings (-> {#'ana/macroexpand-1 macroexpand-1
                        #'ana/create-var    create-var
@@ -586,7 +585,7 @@
                       (into (:bindings opts)))
        (env/ensure (global-env)
          (env/with-env (u/mmerge (env/deref-env) {:passes-opts (get opts :passes-opts default-passes-opts)})
-           (ana/run-passes (ana/unanalyzed form env)))))))
+           (ana/run-passes (ana/unanalyzed form env opts) opts))))))
 
 (deftype ExceptionThrown [e ast])
 
@@ -595,8 +594,8 @@
 
 (defn eval-ast2
   "Evaluate an AST node, attaching result to :result."
-  [ast]
-  (let [form (emit-form/emit-form ast)
+  [ast opts]
+  (let [form (emit-form/emit-form ast opts)
         result (Compiler/eval form)]
     (assoc ast :result result)))
 
@@ -625,14 +624,12 @@
   #_(prn (str "WARNING: emit-form: did not analyze: " form))
   form)
 
-(defn eval-ast [a {:keys [handle-evaluation-exception]
-                   :or {handle-evaluation-exception throw!}
-                   :as opts}]
-  (let [frm (emit-form/emit-form a)
+(defn eval-ast [a opts]
+  (let [frm (emit-form/emit-form a opts)
         ;_ (prn "frm" frm)
         result (try (eval frm) ;; eval the emitted form rather than directly the form to avoid double macroexpansion
                     (catch Exception e
-                      (handle-evaluation-exception (ExceptionThrown. e a))))]
+                      (throw! (ExceptionThrown. e a))))]
     (assoc a :result result)))
 
 (defn analyze+eval
@@ -650,8 +647,8 @@
    Unrolls `do` forms to handle the Gilardi scenario.
 
    Useful when analyzing whole files/namespaces."
-  ([form] (analyze+eval form (empty-env) {}))
-  ([form env] (analyze+eval form env {}))
+  ;([form] (analyze+eval form (empty-env) {}))
+  ;([form env] (analyze+eval form env {}))
   ([form env {:keys [additional-gilardi-condition
                      eval-fn
                      annotate-do
@@ -677,7 +674,7 @@
                                  (loop [form form raw-forms []]
                                    (let [mform (if (stop-gildardi-check form env)
                                                  form
-                                                 (ana/macroexpand-1 form env))]
+                                                 (ana/macroexpand-1 form env opts))]
                                      (if (= mform form)
                                        [mform (seq raw-forms)]
                                        (recur mform (conj raw-forms
@@ -712,3 +709,5 @@
            (let [a (analyze-fn mform env opts)
                  e (eval-fn a (assoc opts :original-form mform))]
              (merge e {:raw-forms raw-forms})))))))
+
+(defn default-opts [] {})

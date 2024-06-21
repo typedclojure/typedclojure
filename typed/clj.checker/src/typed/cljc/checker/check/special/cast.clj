@@ -30,9 +30,9 @@
         (-> expr 
             ; don't need to check these statements because it's just metadata
             ; embedded in the expression by the `t/cast` macro
-            (update :statements #(mapv ana2/run-passes %))
+            (update :statements #(mapv (fn [e] (ana2/run-passes e opts)) %))
             ; but we do want to check (a subset) of this, so just run pre-passes
-            (update :ret (comp ana2/run-pre-passes ana2/analyze-outer-root)))
+            (update :ret #(-> % (ana2/analyze-outer-root opts) (ana2/run-pre-passes opts))))
         _ (assert (= 3 (count statements)))
         tsyn-quoted (ast-u/map-expr-at texpr :type opts)
         _ (impl/impl-case opts
@@ -52,11 +52,11 @@
         ;; allows silly down casts, might want to change that.
         expr (-> expr
                  ; just need to traverse :fn using the analyzer
-                 (update-in [:ret :fn] ana2/run-passes)
+                 (update-in [:ret :fn] ana2/run-passes opts)
                  ; check the expression being cast
                  (update-in [:ret :args 0] check-expr nil opts)
                  ; top-level could be propagated here since this is a :do form,
                  ; so call eval-top-level
-                 (update :ret (comp ana2/eval-top-level ana2/run-post-passes)))]
+                 (update :ret #(-> % (ana2/run-post-passes opts) (ana2/eval-top-level opts))))]
     (assoc expr
            u/expr-type (r/ret parsed-t))))

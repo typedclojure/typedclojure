@@ -97,7 +97,7 @@
     (let [opts (assoc opts ::vs/current-expr original-reify-expr)]
       (-> expr
           (update :methods (fn [methods]
-                             (let [methods (map #(into % (select-keys (ana2/run-passes %) [:methods])) methods)]
+                             (let [methods (map #(into % (select-keys (ana2/run-passes % opts) [:methods])) methods)]
                                (doseq [[method-name methods] (group-by :name methods)
                                        :let [inst-methods (mapcat :methods methods)
                                              declaring-class (-> inst-methods first :declaring-class)

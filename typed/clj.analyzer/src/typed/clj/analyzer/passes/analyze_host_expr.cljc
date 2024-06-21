@@ -162,13 +162,13 @@
 
    A :host-interop node represents either an instance-field or a no-arg instance-method. "
   {:pass-info {:walk :post :depends #{}}}
-  [{:keys [op target form tag env class] :as ast}]
+  [{:keys [op target form tag env class] :as ast} opts]
   (case op
     (:host-interop :host-call :host-field)
     (let [target (if-let [the-class (and (= :local (:op target))
                                          (u/maybe-class-literal (:form target)))]
                    (merge target
-                          (assoc (ana/analyze-const the-class env :class)
+                          (assoc (ana/analyze-const the-class env :class opts)
                             :tag   #?(:cljr Type :default Class)
                             :o-tag #?(:cljr Type :default Class)))
                    target)
@@ -196,13 +196,12 @@
     (if-let [the-class (and (not (namespace form))
                             (pos? (#?(:cljr .IndexOf :default .indexOf) (str form) "."))
                             (u/maybe-class-literal form))]
-      (assoc (ana/analyze-const the-class env :class) :form form)
+      (assoc (ana/analyze-const the-class env :class opts) :form form)
       ast)
 
     :maybe-class
     (if-let [the-class (u/maybe-class-literal class)]
-      (assoc (ana/analyze-const the-class env :class) :form form)
+      (assoc (ana/analyze-const the-class env :class opts) :form form)
       ast)
 
     ast))
-
