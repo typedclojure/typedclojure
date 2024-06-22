@@ -245,7 +245,7 @@
 (defn create-var
   "Creates a Var for sym and returns it.
    The Var gets interned in the env namespace."
-  [sym {:keys [ns]}]
+  [sym {:keys [ns]} opts]
   {:post [(var? %)]}
   (let [meta (dissoc (meta sym) :inline :inline-arities :macro)
         meta (if-let [arglists (:arglists meta)]
@@ -564,7 +564,6 @@
   ;([form env] (analyze form env {}))
   ([form env opts]
    (with-bindings (-> {#'ana/macroexpand-1 macroexpand-1
-                       #'ana/create-var    create-var
                        #'ana/scheduled-passes    @scheduled-default-passes
                        #'ana/var?          var?
                        #'ana/resolve-sym   resolve-sym
@@ -592,7 +591,6 @@
 
 (defn default-thread-bindings [env]
   (-> {#'ana/macroexpand-1 macroexpand-1
-       #'ana/create-var    create-var
        #'ana/scheduled-passes    @scheduled-default-passes
        #'ana/var?          var?
        #'ana/resolve-sym   resolve-sym
@@ -706,4 +704,5 @@
   {::ana/resolve-ns resolve-ns
    ::ana/current-ns-name current-ns-name
    ::ana/parse parse
-   ::ana/eval-ast eval-ast2})
+   ::ana/eval-ast eval-ast2
+   ::ana/create-var create-var})

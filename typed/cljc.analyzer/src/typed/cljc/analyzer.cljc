@@ -28,11 +28,6 @@
   macroexpand-1)
 
 (def ^{:dynamic  true
-       :arglists '([sym env])
-       :doc      "Creates a var for sym and returns it"}
-  create-var)
-
-(def ^{:dynamic  true
        :arglists '([obj])
        :doc      "Returns true if obj represent a var form as returned by create-var"}
   var?)
@@ -1201,7 +1196,7 @@
                      [:init maybe-f]))))
 
 (defn parse-def
-  [[_ sym & expr :as form] {:keys [ns] :as env} opts]
+  [[_ sym & expr :as form] {:keys [ns] :as env} {::keys [create-var] :as opts}]
   (when (not (symbol? sym))
     (throw (ex-info (str "First argument to def must be a symbol, had: " (#?(:cljs type :default class) sym))
                     (into {:form form}
@@ -1234,7 +1229,7 @@
                        {:doc doc})
                      (u/-source-info form env)))
 
-        var (create-var sym env) ;; interned var will have quoted arglists, replaced on evaluation
+        var (create-var sym env opts) ;; interned var will have quoted arglists, replaced on evaluation
 
         meta (merge (meta sym)
                     (when arglists

@@ -286,15 +286,7 @@
     (-> (jana2/default-thread-bindings {:ns (ns-name ns)})
         (cond->
           ;; reify* also imports a class name, but it's gensym'd.
-          (not side-effects?) (assoc #'jana2/*parse-deftype-with-existing-class* true
-                                     #'ana2/create-var (fn [sym {:keys [ns]}]
-                                                         (or (find-var
-                                                               (symbol (-> ns ns-name name)
-                                                                       (name sym)))
-                                                             (err/int-error
-                                                               (format "Could not find var %s in namespace %s"
-                                                                       sym (ns-name ns))
-                                                               opts)))))
+          (not side-effects?) (assoc #'jana2/*parse-deftype-with-existing-class* true))
         (assoc #'ana2/macroexpand-1 macroexpand-1
                #'ana2/scheduled-passes (if custom-expansions
                                          @scheduled-passes-for-custom-expansions

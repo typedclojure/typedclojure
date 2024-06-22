@@ -396,4 +396,6 @@
    ::ana/parse (fn [form env opts] (parse (first form) env form nil opts))
    ::ana/eval-ast (fn [ast opts]
                     (throw (ex-info "TODO typed.cljs.analyzer/eval-ast" {})))
+   ::ana/create-var (fn [sym env opts]
+                      (throw (ex-info "TODO typed.cljs.analyzer/create-var" {})))
    })

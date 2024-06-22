@@ -1987,7 +1987,17 @@
                                                     ]
                                                 (if side-effects?
                                                   (eval-ast ast opts)
-                                                  ast))))))]
+                                                  ast)))))
+                  (cond->
+                    (not side-effects?)
+                    (assoc ::ana2/create-var (fn [sym {:keys [ns]} opts]
+                                               (or (find-var
+                                                     (symbol (-> ns ns-name name)
+                                                             (name sym)))
+                                                   (err/int-error
+                                                     (format "Could not find var %s in namespace %s"
+                                                             sym (ns-name ns))
+                                                     opts))))))]
      (with-bindings (dissoc (ana-clj/thread-bindings {} opts) #'*ns*) ; *ns* is managed by higher-level ops like check-ns1
        (env/ensure (jana2/global-env)
          (-> form
