@@ -13,7 +13,7 @@
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.errors :as err]
             [clojure.string :as str]
-            [typed.cljc.runtime.perf-utils :refer [repeatedly]]
+            [typed.cljc.runtime.perf-utils :refer [repeatedly every?]]
             [clojure.set :as set]
             [clojure.core.typed.util-vars :as vs]
             [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]

@@ -1121,11 +1121,11 @@
   ;(prn :cs-gen-list-with-variances ss ts)
   (cset-meet*
     (cons (cr/empty-cset X Y)
-          (map (t/fn [variance :- r/Variance
-                      si :- r/AnyType 
-                      ti :- r/AnyType]
-                 (cs-gen-with-variance V X Y variance si ti opts))
-               variances ss ts))
+          (mapv (t/fn [variance :- r/Variance
+                       si :- r/AnyType
+                       ti :- r/AnyType]
+                  (cs-gen-with-variance V X Y variance si ti opts))
+                variances ss ts))
     opts))
 
 (defn cs-gen-RClass
@@ -1852,22 +1852,22 @@
     ;; constraint explosion.
     (cons
       (cr/empty-cset X Y)
-      (map (fn [s t]
-             (let [c (cs-gen V X Y s t opts)
-                   ;_ (prn "csgen-list 1")
-                   ;_ (prn "V" V)
-                   ;_ (prn "X" X)
-                   ;_ (prn "Y" Y)
-                   ;_ (prn "s" (prs/unparse-type s opts))
-                   ;_ (prn "t" (prs/unparse-type t opts))
-                   ;_ (prn "c" c)
-                   ;_ (prn "expected cset" expected-cset)
-                   m (cset-meet c expected-cset opts)]
-               ;(prn "meet:")
-               ;(prn m)
-               ;(flush)
-               m))
-           S T))
+      (mapv (fn [s t]
+              (let [c (cs-gen V X Y s t opts)
+                    ;_ (prn "csgen-list 1")
+                    ;_ (prn "V" V)
+                    ;_ (prn "X" X)
+                    ;_ (prn "Y" Y)
+                    ;_ (prn "s" (prs/unparse-type s opts))
+                    ;_ (prn "t" (prs/unparse-type t opts))
+                    ;_ (prn "c" c)
+                    ;_ (prn "expected cset" expected-cset)
+                    m (cset-meet c expected-cset opts)]
+                ;(prn "meet:")
+                ;(prn m)
+                ;(flush)
+                m))
+            S T))
     opts))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

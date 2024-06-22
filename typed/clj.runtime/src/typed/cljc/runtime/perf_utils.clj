@@ -10,6 +10,17 @@
         (or (f (.next it))
             (recur))))))
 
+(defn every?
+  "Like `clojure.core/every?`, but uses an iterator over `lst`."
+  [f ^Iterable lst]
+  (let [it (.iterator lst)]
+    (loop []
+      (if (.hasNext it)
+        (if (f (.next it))
+          (recur)
+          false)
+        true))))
+
 (defn repeatedly
   "Like `clojure.core/repeatedly`, but eager and more efficient."
   [^long n f]
