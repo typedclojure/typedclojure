@@ -39,26 +39,24 @@
   (into ana/specials
         '#{monitor-enter monitor-exit clojure.core/import* reify* deftype* case*}))
 
-(declare resolve-ns)
-
 ;; copied from tools.analyzer.jvm to replace `resolve-ns` and `taj-utils/maybe-class-literal`
-(defn desugar-symbol [form env opts]
+(defn desugar-symbol [form env {::ana/keys [resolve-ns] :as opts}]
   (let [sym-ns (namespace form)]
     (if-let [target (and sym-ns
-                         (not (resolve-ns (symbol sym-ns) env))
+                         (not (resolve-ns (symbol sym-ns) env opts))
                          (ju/maybe-class-literal sym-ns))]          ;; Class/field
       (with-meta (list '. target (symbol (str "-" (name form)))) ;; transform to (. Class -field)
                  (meta form))
       form)))
 
 ;; copied from tools.analyzer.jvm to replace `resolve-ns` and `taj-utils/maybe-class-literal`
-(defn desugar-host-expr [form env]
+(defn desugar-host-expr [form env {::ana/keys [resolve-ns] :as opts}]
   (let [[op & expr] form]
     (if (symbol? op)
       (let [opname (name op)
             opns   (namespace op)]
         (if-let [target (and opns
-                             (not (resolve-ns (symbol opns) env))
+                             (not (resolve-ns (symbol opns) env opts))
                              (ju/maybe-class-literal opns))] ; (class/field ..)
 
           (let [op (symbol opname)]
@@ -135,7 +133,7 @@
                    res))
 
                :else
-               (desugar-host-expr form env)))))
+               (desugar-host-expr form env opts)))))
 
         (symbol? form)
         (desugar-symbol form env opts)
@@ -200,7 +198,7 @@
 ; (U Sym nil) -> (U Sym nil)
 (defn resolve-ns
   "Resolves the ns mapped by the given sym in the global env"
-  [ns-sym {:keys [ns]}]
+  [ns-sym {:keys [ns]} opts]
   {:pre [((some-fn symbol? nil?) ns-sym)]
    :post [(or (and (symbol? %)
                    (not (namespace %)))
@@ -574,7 +572,6 @@
                        #'ana/scheduled-passes    @scheduled-default-passes
                        #'ana/parse         parse
                        #'ana/var?          var?
-                       #'ana/resolve-ns    resolve-ns
                        #'ana/resolve-sym   resolve-sym
                        #'ana/unanalyzed unanalyzed
                        #'ana/analyze-outer analyze-outer
@@ -605,7 +602,6 @@
        #'ana/scheduled-passes    @scheduled-default-passes
        #'ana/parse         parse
        #'ana/var?          var?
-       #'ana/resolve-ns    resolve-ns
        #'ana/resolve-sym   resolve-sym
        #'ana/var->sym      var->sym
        #'ana/eval-ast      eval-ast2
@@ -665,7 +661,6 @@
      (env/ensure (global-env)
        (let [env (merge env (u/-source-info form env))
              [mform raw-forms] (with-bindings (-> {;#'*ns*              (the-ns (:ns env))
-                                                   #'ana/resolve-ns    resolve-ns
                                                    #'ana/resolve-sym   resolve-sym
                                                    #'ana/current-ns-name current-ns-name
                                                    #'ana/macroexpand-1 (get-in opts [:bindings #'ana/macroexpand-1]
@@ -710,4 +705,5 @@
                  e (eval-fn a (assoc opts :original-form mform))]
              (merge e {:raw-forms raw-forms})))))))
 
-(defn default-opts [] {})
+(defn default-opts []
+  {::ana/resolve-ns resolve-ns})

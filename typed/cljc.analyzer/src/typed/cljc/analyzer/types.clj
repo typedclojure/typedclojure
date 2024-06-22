@@ -16,12 +16,17 @@
 
 (defalias ana/Env (t/Map t/Kw t/Any))
 (defalias ana/Config (t/HMap :optional {:top-level t/Bool}))
+(defalias ana/Opts
+  "
+  :typed.cljc.analyzer/resolve-ns
+  Resolves the ns mapped by the given sym in the global env.
+  If sym is shadowed by a local in env, returns nil."
+  (t/HMap :mandatory {::ana/resolve-ns [t/Sym ana/Env ana/Opts :-> t/Any]}))
 (defalias ana/Expr (t/Merge
                      (t/HMap :mandatory {;:op t/Kw
                                          :env ana/Env}
                              :optional {::ana/config ana/Config
-                                        :result t/Any}
-                             )
+                                        :result t/Any})
                      (t/U (t/HMap :mandatory {:op ':do
                                               :ret ana/Expr}
                                   ;;FIXME causes stackoverflow
@@ -48,7 +53,6 @@
                             :pre ast/Pre
                             :post ast/Post})
 (ann ana/resolve-sym [t/Sym :-> t/Any])
-(ann ana/resolve-ns [t/Sym :-> t/Any])
 (ann ana/current-ns-name [t/Env :-> t/Sym])
 (ann ana/eval-ast (t/All [[x :< ana/Expr]] [x t/Any :-> (t/Assoc x ':result t/Any)]))
 (ann ana/var->sym [t/Any :-> (t/Nilable t/Sym)])

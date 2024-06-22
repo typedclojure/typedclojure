@@ -388,4 +388,6 @@
   (when (seq? form)
     (resolve-sym (first form) env)))
 
-(defn default-opts [] {})
+(defn default-opts []
+  {::ana/resolve-ns (fn [sym env opts]
+                      (throw (ex-info "TODO typed.cljs.analyzer/resolve-ns" {})))})

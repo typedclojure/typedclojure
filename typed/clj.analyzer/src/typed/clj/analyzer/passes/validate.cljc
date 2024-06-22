@@ -23,10 +23,10 @@
             [typed.clj.analyzer.utils :as ju])
   (:import (clojure.lang IFn)))
 
-(defmulti -validate :op)
+(defmulti -validate (fn [ast opts] (:op ast)))
 
 (defmethod -validate :maybe-class
-  [{:keys [class env] :as ast}]
+  [{:keys [class env] :as ast} opts]
   (if-let [handle (-> (env/deref-env) :passes-opts :validate/unresolvable-symbol-handler)]
     (handle nil class ast)
     (if (not (#?(:cljr .Contains :default .contains) (str class) "."))
@@ -39,10 +39,10 @@
                             (cu/source-info env)))))))
 
 (defmethod -validate :maybe-host-form
-  [{:keys [class field form env] :as ast}]
+  [{:keys [class field form env] :as ast} {::ana2/keys [resolve-ns] :as opts}]
   (if-let [handle (-> (env/deref-env) :passes-opts :validate/unresolvable-symbol-handler)]
     (handle class field ast)
-    (if (ana2/resolve-ns class env)
+    (if (resolve-ns class env opts)
       (throw (ex-info (str "No such var: " class)
                       (into {:form form}
                             (cu/source-info env))))
@@ -52,7 +52,7 @@
                             (cu/source-info env)))))))
 
 (defmethod -validate :set!
-  [{:keys [target form env] :as ast}]
+  [{:keys [target form env] :as ast} opts]
   (when (not (:assignable? target))
     (throw (ex-info "Cannot set! non-assignable target"
                     (into {:target (ast/prewalk target cleanup/cleanup)
@@ -61,7 +61,7 @@
   ast)
 
 (defmethod -validate :new
-  [{:keys [args] :as ast}]
+  [{:keys [args] :as ast} opts]
   (if (:validated? ast)
     ast
     (if-not (= :class (-> ast :class :type))
@@ -136,31 +136,31 @@
                               (cu/source-info env))))))))
 
 (defmethod -validate :static-call
-  [ast]
+  [ast opts]
   (if (:validated? ast)
     ast
     (validate-call (assoc ast :class (ju/maybe-class (:class ast))))))
 
 (defmethod -validate :static-field
-  [ast]
+  [ast opts]
   (if (:validated? ast)
     ast
     (assoc ast :class (ju/maybe-class (:class ast)))))
 
 (defmethod -validate :instance-call
-  [{:keys [class validated? instance] :as ast}]
+  [{:keys [class validated? instance] :as ast} opts]
   (let [class (or class (:tag instance))]
     (if (and class (not validated?))
       (validate-call (assoc ast :class (ju/maybe-class class)))
       ast)))
 
 (defmethod -validate :instance-field
-  [{:keys [instance class] :as ast}]
+  [{:keys [instance class] :as ast} opts]
   (let [class (ju/maybe-class class)]
     (assoc ast :class class :instance (assoc instance :tag class))))
 
 (defmethod -validate :import
-  [{:keys [^String class validated? env form] :as ast}]
+  [{:keys [^String class validated? env form] :as ast} opts]
   (if-not validated?
     (let [class-sym (-> class (subs (inc #?(:cljr (.LastIndexOf class ".") :default (.lastIndexOf class ".")))) symbol)
           sym-val (ana2/resolve-sym class-sym env)]
@@ -177,7 +177,7 @@
     ast))
 
 (defmethod -validate :def
-  [ast]
+  [ast opts]
   (when-not (var? (:var ast))
     (throw (ex-info (str "Cannot def " (:name ast) " as it refers to the class "
                          #?(:cljr  (.FullName ^Type (:var ast)) :default (.getName ^Class (:var ast))))
@@ -197,7 +197,7 @@
                                (cu/source-info (:env ast))))))))))
 
 (defmethod -validate :invoke
-  [{:keys [args env fn form] :as ast}]
+  [{:keys [args env fn form] :as ast} opts]
   (let [argc (count args)]
     (when (and (= :const (:op fn))
                (not (instance? IFn (:form fn))))
@@ -221,16 +221,16 @@
                           (cu/source-info env))))))
 
 (defmethod -validate :deftype
-  [{:keys [class-name] :as ast}]
+  [{:keys [class-name] :as ast} opts]
   (validate-interfaces ast)
   (assoc ast :class-name (ju/maybe-class class-name)))
 
 (defmethod -validate :reify
-  [{:keys [class-name] :as ast}]
+  [{:keys [class-name] :as ast} opts]
   (validate-interfaces ast)
   (assoc ast :class-name (ju/maybe-class class-name)))
 
-(defmethod -validate :default [ast] ast)
+(defmethod -validate :default [ast opts] ast)
 
 (defn validate-tag' [t tag ast]
   (or (ju/maybe-class tag)
@@ -281,7 +281,7 @@
                                       ;; validate-recur doesn't seem to play nicely with core.async/go
                                       #_#'validate-recur/validate-recur}}}
   [{:keys [tag] :as ast} opts]
-  (let [{:keys [o-tag return-tag] :as ast} (-validate ast)
+  (let [{:keys [o-tag return-tag] :as ast} (-validate ast opts)
         tag (or tag (:tag ast))]
     (cond-> ast
       tag (assoc :tag (validate-tag' :tag tag ast))

@@ -170,7 +170,7 @@
                    res))
 
                :else
-               (jana2/desugar-host-expr form env)))))
+               (jana2/desugar-host-expr form env opts)))))
 
        (symbol? form)
        (jana2/desugar-symbol form env opts)
