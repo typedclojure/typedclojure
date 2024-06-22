@@ -20,6 +20,7 @@
             [typed.clj.lang :as lang]
             [typed.clj.runtime.env :as clj-env]
             [typed.cljc.analyzer.env :as env]
+            [typed.clj.checker.utils :refer [->opts]]
             [typed.cljc.checker.check-form :as chk-frm]
             [typed.cljc.checker.ns-deps-utils :as ns-utils])
   (:import java.net.URL))
@@ -44,7 +45,7 @@
    ;(prn "load-typed-file" filename)
     (t/load-if-needed)
     (env/ensure (jana2/global-env)
-     (let [opts (clj-env/clj-opts)
+     (let [opts (->opts)
            ex-handler (or ex-handler #(throw %))
            skip-check-form? (or skip-check-form? (fn [_] false))
            env (or env (jana2/empty-env))
@@ -89,7 +90,7 @@
   {:pre [(every? string? base-resource-paths)]
    :post [(nil? %)]}
   ;(prn "typed load" base-resource-paths)
-  (let [opts (clj-env/clj-opts)]
+  (let [opts (->opts)]
     (doseq [base-resource-path base-resource-paths]
       (cond
         (or (ns-utils/file-should-use-typed-load? (str base-resource-path ".clj") opts)

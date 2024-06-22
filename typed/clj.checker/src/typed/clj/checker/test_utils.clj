@@ -13,7 +13,8 @@
             [typed.cljc.checker.test-utils :as common-test]
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.type-rep :as r]
-            [typed.cljc.checker.utils :as u]))
+            [typed.cljc.checker.utils :as u]
+            [typed.clj.checker.utils :refer [->opts]]))
 
 (defn check-opt [opt]
   #_(assert (empty? (set/difference (set (keys opt))
@@ -152,7 +153,7 @@
                (parse-type ~t opts#))))
 
 (defn clj-opts []
-  (assoc (clj-env/clj-opts) :typed.clj.checker.parse-unparse/parse-type-in-ns (ns-name *ns*)))
+  (assoc (->opts) :typed.clj.checker.parse-unparse/parse-type-in-ns (ns-name *ns*)))
 
 (defn subtype? [s t]
   (sub/subtype? s t (clj-opts)))

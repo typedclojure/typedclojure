@@ -3,6 +3,7 @@
             [cljs.analyzer.api :as ana-api]
             [cljs.core.typed :as cljs-t]
             [cljs.core.typed :as t]
+            [typed.cljs.checker.utils :refer [->opts]]
             [typed.cljs.runtime.env :as cljs-env]
             [clojure.core.typed.current-impl :as impl]
             [clojure.set :as set]
@@ -134,4 +135,4 @@
                                             :form expr}))))))))
              exprs)))))
 
-(def cljs-opts (cljs-env/cljs-opts))
+(def cljs-opts (->opts))
