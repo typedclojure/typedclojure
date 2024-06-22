@@ -410,7 +410,7 @@
                :context :ctx/expr
                :locals  (zipmap fields (map u/dissoc-env fields-expr))
                :this    class-name)
-        [opts methods] (parse-opts+methods methods)
+        [_opt methods] (parse-opts+methods methods)
         methods (mapv #(assoc (analyze-method-impls % menv opts) :interfaces interfaces)
                       methods)]
 
@@ -531,7 +531,8 @@
   "If ast is :unanalyzed, then call analyze-form on it, otherwise returns ast."
   [ast {::ana/keys [current-ns-name] :as opts}]
   (case (:op ast)
-    :unanalyzed (let [{:keys [form env ::ana/config]} ast
+    :unanalyzed (let [{::ana/keys [config]
+                       :keys [form env]} ast
                       ast (-> form
                               (ana/analyze-form env opts)
                               ;TODO rename to ::inherited
@@ -565,7 +566,6 @@
    (with-bindings (-> {#'ana/macroexpand-1 macroexpand-1
                        #'ana/create-var    create-var
                        #'ana/scheduled-passes    @scheduled-default-passes
-                       #'ana/parse         parse
                        #'ana/var?          var?
                        #'ana/resolve-sym   resolve-sym
                        #'ana/unanalyzed unanalyzed
@@ -594,7 +594,6 @@
   (-> {#'ana/macroexpand-1 macroexpand-1
        #'ana/create-var    create-var
        #'ana/scheduled-passes    @scheduled-default-passes
-       #'ana/parse         parse
        #'ana/var?          var?
        #'ana/resolve-sym   resolve-sym
        #'ana/var->sym      var->sym
@@ -704,4 +703,5 @@
 
 (defn default-opts []
   {::ana/resolve-ns resolve-ns
-   ::ana/current-ns-name current-ns-name})
+   ::ana/current-ns-name current-ns-name
+   ::ana/parse parse})

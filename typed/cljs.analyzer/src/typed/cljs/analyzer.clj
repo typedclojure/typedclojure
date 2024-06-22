@@ -343,6 +343,7 @@
                   (cond-> (analyze (:env ast)
                                    (:form ast)
                                    (:name ast)
+                                   ;;FIXME should be opts ?
                                    (:opts ast))
                     (:body? ast) (assoc :body? true)))
     ast))
@@ -374,7 +375,6 @@
 (defn default-thread-bindings []
   {#'ana-cljs/parse parse
    #'ana-cljs/analyze unanalyzed-env-first
-   #'ana/parse (fn [form env opts] (parse (first form) env form nil opts))
    #'ana/analyze-outer analyze-outer
    #'ana/unanalyzed unanalyzed
    #'ana/resolve-sym resolve-sym
@@ -393,4 +393,5 @@
                       (throw (ex-info "TODO typed.cljs.analyzer/resolve-ns" {})))
    ::ana/current-ns-name (fn [sym env opts]
                            (throw (ex-info "TODO typed.cljs.analyzer/current-ns-name" {})))
+   ::ana/parse (fn [form env opts] (parse (first form) env form nil opts))
    })

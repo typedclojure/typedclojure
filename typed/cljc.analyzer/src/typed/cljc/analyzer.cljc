@@ -28,11 +28,6 @@
   macroexpand-1)
 
 (def ^{:dynamic  true
-       :arglists '([[op & args] env opts])
-       :doc      "Multimethod that dispatches on op, should default to -parse"}
-  parse)
-
-(def ^{:dynamic  true
        :arglists '([sym env])
        :doc      "Creates a var for sym and returns it"}
   create-var)
@@ -519,7 +514,7 @@
         (update :raw-forms (fnil conj ()) sym)))))
 
 (defn analyze-seq
-  [form env opts]
+  [form env {::keys [parse] :as opts}]
   ;(prn "analyze-seq" form)
   (let [op (first form)]
     (when (nil? op)
@@ -695,7 +690,7 @@
        :children [:target :val]}
       (create-expr Set!Expr))))
 
-(defn analyze-body [body env opts]
+(defn analyze-body [body env {::keys [parse] :as opts}]
   ;; :body is used by emit-form to remove the artificial 'do
   (assoc (parse (cons 'do body) env opts) :body? true))
 

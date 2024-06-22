@@ -24,9 +24,13 @@
 
   :typed.cljc.analyzer/current-ns-name
   Returns the name symbol of the current namespace.
+
+  :typed.cljc.analyzer/parse
+  Multimethod that dispatches on op, should default to -parse
   "
   (t/HMap :mandatory {::ana/resolve-ns [t/Sym ana/Env ana/Opts :-> t/Any]
-                      ::ana/current-ns-name [t/Env ana/Opts :-> t/Sym]}))
+                      ::ana/current-ns-name [t/Env ana/Opts :-> t/Sym]
+                      ::ana/parse [(t/Seq t/Any) ana/Env ana/Opts :-> t/Any]}))
 (defalias ana/Expr (t/Merge
                      (t/HMap :mandatory {;:op t/Kw
                                          :env ana/Env}
@@ -51,7 +55,6 @@
 (defalias u/Ctx (t/U ':ctx/expr))
 
 (ann ana/macroexpand-1 [t/Any ana/Env t/Any :-> t/Any])
-(ann ana/parse [(t/Seq t/Any) ana/Env t/Any :-> t/Any])
 (ann ana/create-var [t/Sym ana/Env :-> t/Any])
 (ann ana/var? [t/Any :-> t/Bool])
 (ann ana/scheduled-passes '{:init-ast [t/Any t/Any :-> t/Any]
