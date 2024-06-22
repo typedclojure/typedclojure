@@ -1148,7 +1148,7 @@
                   (fn [f#]
                     (try (instrument-top-level-form f#)
                          (catch Throwable e#
-                           (println (str "Failed to evaluate " f# " with error " e#))
+                           (println (str "Failed to evaluate " f# " with error " (pr-str e#)))
                            (reset! result# nil))))
                   (concat defs# tests#))]
          (when @result#

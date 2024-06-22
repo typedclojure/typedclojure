@@ -2904,10 +2904,12 @@
 #?(:clj
 (defn instrument-top-level-form
   [form]
-  (jana2/analyze+eval form (jana2/empty-env) {:eval-fn (fn [ast opts]
-                                                         (-> ast
-                                                             runtime-infer-expr
-                                                             (jana2/eval-ast opts)))}))
+  (jana2/analyze+eval form (jana2/empty-env)
+                      (assoc (jana2/default-opts)
+                             :eval-fn (fn [ast opts]
+                                        (-> ast
+                                            runtime-infer-expr
+                                            (jana2/eval-ast opts))))))
 )
 
 ;; TESTS
