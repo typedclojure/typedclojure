@@ -160,8 +160,9 @@
         )
     false))
 
-(defn cache-info-id [env {:keys [top-level-form-string ns-form-string] :as opts}]
-  [::check-form-cache (ana2/current-ns-name env) ns-form-string top-level-form-string])
+(defn cache-info-id [env {::ana2/keys [current-ns-name]
+                          :keys [top-level-form-string ns-form-string] :as opts}]
+  [::check-form-cache (current-ns-name env opts) ns-form-string top-level-form-string])
 
 (defn retrieve-form-cache-info [{:keys [env] :as expr}
                                 expected

@@ -20,8 +20,13 @@
   "
   :typed.cljc.analyzer/resolve-ns
   Resolves the ns mapped by the given sym in the global env.
-  If sym is shadowed by a local in env, returns nil."
-  (t/HMap :mandatory {::ana/resolve-ns [t/Sym ana/Env ana/Opts :-> t/Any]}))
+  If sym is shadowed by a local in env, returns nil.
+
+  :typed.cljc.analyzer/current-ns-name
+  Returns the name symbol of the current namespace.
+  "
+  (t/HMap :mandatory {::ana/resolve-ns [t/Sym ana/Env ana/Opts :-> t/Any]
+                      ::ana/current-ns-name [t/Env ana/Opts :-> t/Sym]}))
 (defalias ana/Expr (t/Merge
                      (t/HMap :mandatory {;:op t/Kw
                                          :env ana/Env}

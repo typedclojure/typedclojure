@@ -216,11 +216,6 @@
   (when (symbol? sym)
     (ns-resolve ns locals sym)))
 
-(defn current-ns-name
-  "Returns the current namespace symbol."
-  [env]
-  (ns-name *ns*))
-
 (defn var->sym
   "If given a var, returns the fully qualified symbol for that var, otherwise nil."
   [^clojure.lang.Var v]
@@ -534,7 +529,7 @@
 
 (defn analyze-outer
   "If ast is :unanalyzed, then call analyze-form on it, otherwise returns ast."
-  [ast opts]
+  [ast {::ana/keys [current-ns-name] :as opts}]
   (case (:op ast)
     :unanalyzed (let [{:keys [form env ::ana/config]} ast
                       ast (-> form
@@ -542,7 +537,7 @@
                               ;TODO rename to ::inherited
                               (assoc ::ana/config config)
                               ana/propagate-top-level
-                              (assoc-in [:env :ns] (ana/current-ns-name env)))]
+                              (assoc-in [:env :ns] (current-ns-name env opts)))]
                     ast)
     ast))
 
@@ -575,7 +570,6 @@
                        #'ana/resolve-sym   resolve-sym
                        #'ana/unanalyzed unanalyzed
                        #'ana/analyze-outer analyze-outer
-                       #'ana/current-ns-name current-ns-name
                        ;#'*ns*              (the-ns (:ns env))
                        }
                       #?@(:cljr [] :default [(assoc Compiler/LOADER (RT/makeClassLoader))])
@@ -605,7 +599,6 @@
        #'ana/resolve-sym   resolve-sym
        #'ana/var->sym      var->sym
        #'ana/eval-ast      eval-ast2
-       #'ana/current-ns-name current-ns-name
        #'ana/analyze-outer analyze-outer
        #'ana/unanalyzed unanalyzed
        ;#'*ns*              (the-ns (:ns env))
@@ -662,7 +655,6 @@
        (let [env (merge env (u/-source-info form env))
              [mform raw-forms] (with-bindings (-> {;#'*ns*              (the-ns (:ns env))
                                                    #'ana/resolve-sym   resolve-sym
-                                                   #'ana/current-ns-name current-ns-name
                                                    #'ana/macroexpand-1 (get-in opts [:bindings #'ana/macroexpand-1]
                                                                                macroexpand-1)}
                                                   #?@(:cljr [] :default [(assoc Compiler/LOADER (RT/makeClassLoader))]))
@@ -705,5 +697,11 @@
                  e (eval-fn a (assoc opts :original-form mform))]
              (merge e {:raw-forms raw-forms})))))))
 
+(defn current-ns-name
+  "Returns the current namespace symbol."
+  [env opts]
+  (ns-name *ns*))
+
 (defn default-opts []
-  {::ana/resolve-ns resolve-ns})
+  {::ana/resolve-ns resolve-ns
+   ::ana/current-ns-name current-ns-name})

@@ -60,17 +60,6 @@
   resolve-sym)
 
 (def ^{:dynamic  true
-       :doc      "Resolves the ns mapped by the given sym in the global env.
-                 If sym is shadowed by a local in env, returns nil."
-       :arglists '([ns-sym env])}
-  resolve-ns)
-
-(def ^{:dynamic  true
-       :doc      "Returns the name symbol of the current namespace."
-       :arglists '([env])}
-  current-ns-name)
-
-(def ^{:dynamic  true
        :doc      "Evaluates an AST node, attaching result to :result."
        :arglists '([a opts])}
   eval-ast)
