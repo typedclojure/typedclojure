@@ -1955,6 +1955,9 @@
          _ (assert (symbol? nsym))
          extra (when (= :before (:check-form-eval check-config))
                  {:result (eval form)})
+         side-effects? (case (get-in opts [::vs/check-config :check-form-eval])
+                         (:never :before) false
+                         (:after nil) true)
          opts (-> opts
                   (assoc ::check/check-expr check-expr)
                   (assoc ::vs/lexical-env (lex/init-lexical-env))
@@ -1965,7 +1968,26 @@
                   (assoc ::c/supers-cache (atom {}))
                   (assoc ::sub/subtype-cache (atom {}))
                   (assoc ::cgen/dotted-var-store (atom {}))
-                  (assoc ::prs/parse-type-in-ns nsym))]
+                  (assoc ::prs/parse-type-in-ns nsym)
+                  (update ::ana2/eval-ast (fn [eval-ast]
+                                            (fn [ast {::vs/keys [delayed-errors] :as opts}]
+                                              (let [; don't evaluate a form if there are delayed type errors
+                                                    throw-this (atom nil)
+                                                    _ (swap! delayed-errors
+                                                             (fn [delayed]
+                                                               {:pre [(vector? delayed)]
+                                                                :post [(vector? %)]}
+                                                               (if (seq delayed)
+                                                                 ; take the last type error to throw
+                                                                 (do (reset! throw-this (peek delayed))
+                                                                     (pop delayed))
+                                                                 delayed)))
+                                                    _ (when-some [e @throw-this]
+                                                        (throw e))
+                                                    ]
+                                                (if side-effects?
+                                                  (eval-ast ast opts)
+                                                  ast))))))]
      (with-bindings (dissoc (ana-clj/thread-bindings {} opts) #'*ns*) ; *ns* is managed by higher-level ops like check-ns1
        (env/ensure (jana2/global-env)
          (-> form

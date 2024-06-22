@@ -188,29 +188,7 @@
                         ; Otherwise, assume we are checking a regular `fn` method
                         (recur-u/RecurTarget-maker dom rest drest nil))
               _ (assert (recur-u/RecurTarget? rec))]
-          (let [opts (recur-u/with-recur-target opts rec)
-                body (if (and custom-expansions
-                              rest-param
-                              (= :fixed (:kind expected)))
-                       ;; substitute away the rest argument to try and trigger
-                       ;; any beta reductions
-                       (with-bindings (ana-clj/thread-bindings {:env (:env method)} opts)
-                         (-> body
-                             (beta-reduce/subst-locals 
-                               {(:name rest-param) (beta-reduce/fake-seq-invoke
-                                                     (mapv (fn [t]
-                                                             (beta-reduce/make-invoke-expr
-                                                               (beta-reduce/make-var-expr
-                                                                 #'cu/special-typed-expression
-                                                                 (:env method))
-                                                               [(ana/parse-quote
-                                                                  (list 'quote (prs/unparse-type t (assoc opts ::vs/verbose-types true)))
-                                                                  (:env method))]
-                                                               (:env method)))
-                                                           dom)
-                                                     (:env method))})
-                             ana/run-passes))
-                       body)]
+          (let [opts (recur-u/with-recur-target opts rec)]
             (check-expr body open-expected-rng-no-filters opts)))
 
         ; Apply the filters of computed rng to the environment and express

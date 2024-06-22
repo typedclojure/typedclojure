@@ -597,7 +597,6 @@
        #'ana/var?          var?
        #'ana/resolve-sym   resolve-sym
        #'ana/var->sym      var->sym
-       #'ana/eval-ast      eval-ast2
        #'ana/analyze-outer analyze-outer
        #'ana/unanalyzed unanalyzed
        ;#'*ns*              (the-ns (:ns env))
@@ -644,14 +643,16 @@
                      stop-gildardi-check
                      analyze-fn]
               :or {additional-gilardi-condition (fn [form env] true)
-                   eval-fn eval-ast
                    annotate-do (fn [a _ _] a)
                    statement-opts-fn identity
                    stop-gildardi-check (fn [form env] false)
                    analyze-fn analyze}
               :as opts}]
      (env/ensure (global-env)
-       (let [env (merge env (u/-source-info form env))
+       (let [eval-fn (or eval-fn
+                         (::ana/eval-ast opts)
+                         eval-ast)
+             env (merge env (u/-source-info form env))
              [mform raw-forms] (with-bindings (-> {;#'*ns*              (the-ns (:ns env))
                                                    #'ana/resolve-sym   resolve-sym
                                                    #'ana/macroexpand-1 (get-in opts [:bindings #'ana/macroexpand-1]
@@ -704,4 +705,5 @@
 (defn default-opts []
   {::ana/resolve-ns resolve-ns
    ::ana/current-ns-name current-ns-name
-   ::ana/parse parse})
+   ::ana/parse parse
+   ::ana/eval-ast eval-ast2})

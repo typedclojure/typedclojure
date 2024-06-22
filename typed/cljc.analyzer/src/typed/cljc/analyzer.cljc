@@ -55,11 +55,6 @@
   resolve-sym)
 
 (def ^{:dynamic  true
-       :doc      "Evaluates an AST node, attaching result to :result."
-       :arglists '([a opts])}
-  eval-ast)
-
-(def ^{:dynamic  true
        :doc      "If given a var, returns the fully qualified symbol for that var, otherwise nil."
        :arglists '([v])}
   var->sym)
@@ -287,7 +282,7 @@
 (defn eval-top-level
   "Evaluate `eval-top-level?` nodes and unanalyzed `top-level?` nodes.
   Otherwise, propagate result from children."
-  [ast opts]
+  [ast {::keys [eval-ast] :as opts}]
   {:pre [(:op ast)]}
   (if (or (eval-top-level? ast)
           (and (top-level? ast)

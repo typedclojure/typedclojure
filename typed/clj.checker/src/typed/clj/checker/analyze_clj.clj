@@ -282,8 +282,7 @@
                        *ns*))
         side-effects? (case (:check-form-eval check-config)
                         (:never :before) false
-                        (:after nil) true)
-        eval-ast (if side-effects? jana2/eval-ast2 (fn [ast _] ast))]
+                        (:after nil) true)]
     (-> (jana2/default-thread-bindings {:ns (ns-name ns)})
         (cond->
           ;; reify* also imports a class name, but it's gensym'd.
@@ -296,23 +295,7 @@
                                                                (format "Could not find var %s in namespace %s"
                                                                        sym (ns-name ns))
                                                                opts)))))
-        (assoc #'ana2/eval-ast (fn [ast opts]
-                                 (let [; don't evaluate a form if there are delayed type errors
-                                       throw-this (atom nil)
-                                       _ (swap! delayed-errors
-                                                (fn [delayed]
-                                                  {:pre [(vector? delayed)]
-                                                   :post [(vector? %)]}
-                                                  (if (seq delayed)
-                                                    ; take the last type error to throw
-                                                    (do (reset! throw-this (peek delayed))
-                                                        (pop delayed))
-                                                    delayed)))
-                                       _ (when-some [e @throw-this]
-                                           (throw e))
-                                       ]
-                                   (eval-ast ast opts)))
-               #'ana2/macroexpand-1 macroexpand-1
+        (assoc #'ana2/macroexpand-1 macroexpand-1
                #'ana2/scheduled-passes (if custom-expansions
                                          @scheduled-passes-for-custom-expansions
                                          @jana2/scheduled-default-passes)))))

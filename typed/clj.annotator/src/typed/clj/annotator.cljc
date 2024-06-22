@@ -1703,7 +1703,7 @@
                                 (some-> v meta :macro))
                      ]
               (when no-infer?
-                (println (str "Not instrumenting " (ast/def-var-name expr (->opts)) " definition"))
+                (println (str "Not instrumenting " (ast/def-var-name expr (jana2/default-opts)) " definition"))
                 (flush))
               (if (and (:init expr)
                        (not no-infer?))
@@ -1713,7 +1713,7 @@
                             (infer-arglists v init))
                           (-> init
                               check
-                              (wrap-def-init (ast/def-var-name expr (->opts)) *ns*))))
+                              (wrap-def-init (ast/def-var-name expr (jana2/default-opts)) *ns*))))
                 expr))
        :invoke (cond
                  (and (= :var (-> expr :fn :op))
