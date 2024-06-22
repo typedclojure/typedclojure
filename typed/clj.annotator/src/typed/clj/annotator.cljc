@@ -15,7 +15,6 @@
                                when-fuel]]))
   (:require [#?(:clj clojure.pprint :cljs cljs.pprint) :as pp]
             [#?(:clj clojure.core :cljs cljs.core) :as core]
-            [typed.clj.checker.utils :refer [->opts]]
             [typed.clj.annotator.rep :refer [-val key-path map-vals-path
                                                       infer-result infer-results
                                                       -class type? -any fn-dom-path
