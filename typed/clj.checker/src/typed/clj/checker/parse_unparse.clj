@@ -251,9 +251,9 @@
              :post [(every? parsed-free-map? %)]}
             ;(prn "parse-free-binder-with-variance" (map :fname fs))
             (conj fs
-                  (free-ops/with-bounded-frees 
-                    (zipmap (map (comp r/make-F :fname) fs)
-                            (map :bnd fs))
+                  (let [opts (free-ops/with-bounded-frees opts
+                               (zipmap (map (comp r/make-F :fname) fs)
+                                       (map :bnd fs)))]
                     (parse-free-with-variance fsyn opts))))
           [] binder))
 
@@ -318,8 +318,7 @@
         _ (when-not (= 1 (count bnder)) 
             (prs-error "Only one variable allowed: Rec" opts))
         f (r/make-F free-symbol)
-        body (free-ops/with-frees [f]
-               (parse-type type opts))
+        body (parse-type type (free-ops/with-frees opts [f]))
         _ (check-forbidden-rec f body opts)]
     (Mu* (:name f) body opts)))
 
@@ -433,16 +432,17 @@
                                  (partition-all 2))
                            entries)
                      (when ellipsis-pos
-                       (let [bnd (free-ops/free-in-scope-bnds drest-bnd)
-                             f (free-ops/free-in-scope drest-bnd)
+                       (let [bnd (free-ops/free-in-scope-bnds drest-bnd opts)
+                             f (free-ops/free-in-scope drest-bnd opts)
                              _ (when-not (r/Regex? bnd)
                                  (prs-error (str (pr-str drest-bnd) " is not in scope as a dotted variable") opts))
                              _ (assert (r/F? f))]
                          (r/DottedPretype1-maker
                            ;with dotted bound in scope as free
-                           (free-ops/with-bounded-frees {(r/make-F drest-bnd)
-                                                         ((requiring-resolve 'typed.cljc.checker.cs-gen/homogeneous-dbound->bound)
-                                                          bnd opts)}
+                           (let [opts (free-ops/with-bounded-frees opts
+                                        {(r/make-F drest-bnd)
+                                         ((requiring-resolve 'typed.cljc.checker.cs-gen/homogeneous-dbound->bound)
+                                          bnd opts)})]
                              (parse-type drest-type opts))
                            (:name f)))))))
 
@@ -525,9 +525,10 @@
                   {:pre [(vector? fs)]
                    :post [(every? (con/hvector-c? symbol? r/Kind?) %)]}
                   (conj fs
-                        (free-ops/with-bounded-frees (into {}
-                                                           (map (fn [[n bnd]] [(r/make-F n) bnd]))
-                                                           fs)
+                        (let [opts (free-ops/with-bounded-frees opts
+                                     (into {}
+                                           (map (fn [[n bnd]] [(r/make-F n) bnd]))
+                                           fs))]
                           (parse-free fsyn :type opts))))
                 [] bnds)]
     [frees-with-bnds nil]))
@@ -607,8 +608,7 @@
                   (map (fn [[n bnd]] [(r/make-F n) bnd]))
                   (cond-> frees-with-bnds
                     dvar (conj dvar)))
-        body (free-ops/with-bounded-frees bfs
-               (parse-type type opts))]
+        body (parse-type type (free-ops/with-bounded-frees opts bfs))]
     (if dvar
       (c/PolyDots* (map first (concat frees-with-bnds [dvar]))
                    (map second (concat frees-with-bnds [dvar]))
@@ -806,16 +806,17 @@
         {:keys [free-maps]} (reduce (fn [{:keys [free-maps free-symbs]} binder]
                                       (when-not ((some-fn symbol? vector?) binder)
                                         (prs-error (str "TFn binder element must be a symbol or vector: " (pr-str binder)) opts))
-                                      (free-ops/with-free-symbols free-symbs
+                                      (let [opts (free-ops/with-free-symbols opts free-symbs)]
                                         {:free-maps (conj free-maps (parse-tfn-binder binder opts))
                                          :free-symbs (conj free-symbs (cond-> binder
                                                                         (vector? binder) first))}))
                                     {:free-maps []
                                      :free-symbs #{}}
                                     binder)
-        bodyt (free-ops/with-bounded-frees (into {}
-                                                 (map (fn [{:keys [nme bound]}] [(r/make-F nme) bound]))
-                                                 free-maps)
+        bodyt (let [opts (free-ops/with-bounded-frees opts
+                           (into {}
+                                 (map (fn [{:keys [nme bound]}] [(r/make-F nme) bound]))
+                                 free-maps))]
                 (parse-type bodysyn opts))
         ;; at some point we should remove this requirement (this is checked by parse-tfn-binder)
         id (gensym)
@@ -828,8 +829,9 @@
                           {:cache false
                            :variances (map :variance free-maps)})
                         (binding [vs/*currently-inferring-TypeFns* (conj currently-inferring-TypeFns id)]
-                          (let [vs (free-ops/with-bounded-frees (into {} (map (fn [{:keys [nme bound]}] [(r/make-F nme) bound]))
-                                                                      free-maps)
+                          (let [vs (let [opts (free-ops/with-bounded-frees opts
+                                                (into {} (map (fn [{:keys [nme bound]}] [(r/make-F nme) bound]))
+                                                      free-maps))]
                                      ((requiring-resolve 'typed.cljc.checker.frees/fv-variances) bodyt opts))]
                             {:cache true
                              :variances (mapv (fn [{:keys [nme variance]}]
@@ -907,16 +909,17 @@
                   ; useful to keep around.
                   _ (when-not (= 3 (count dot-syntax))
                       (prs-error (str "Bad vector syntax: " dot-syntax) opts))
-                  bnd (free-ops/free-in-scope-bnds drest-bnd)
-                  f (free-ops/free-in-scope drest-bnd)
+                  bnd (free-ops/free-in-scope-bnds drest-bnd opts)
+                  f (free-ops/free-in-scope drest-bnd opts)
                   _ (when-not (r/Regex? bnd)
                       (prs-error (str (pr-str drest-bnd) " is not in scope as a dotted variable") opts))]
               {:fixed fixed
                :drest (r/DottedPretype1-maker
                         ;with dotted bound in scope as free
-                        (free-ops/with-bounded-frees {(r/make-F drest-bnd)
-                                                      ((requiring-resolve 'typed.cljc.checker.cs-gen/homogeneous-dbound->bound)
-                                                       bnd opts)}
+                        (let [opts (free-ops/with-bounded-frees opts
+                                     {(r/make-F drest-bnd)
+                                      ((requiring-resolve 'typed.cljc.checker.cs-gen/homogeneous-dbound->bound)
+                                       bnd opts)})]
                           (parse-type drest-type opts))
                         (:name f))})
             :else {:fixed (mapv #(parse-type % opts) syns)})]
@@ -1314,7 +1317,7 @@
                      :clojure (clj-primitives-fn opts)
                      :cljs {})
         free (when (symbol? sym) 
-               (free-ops/free-in-scope sym))
+               (free-ops/free-in-scope sym opts))
         rsym (when-not free
                (impl/impl-case opts
                  :clojure (let [res (when (symbol? sym)
@@ -1689,14 +1692,15 @@
                                 (let [drest-bnd d3
                                       _ (when-not (simple-symbol? drest-bnd)
                                           (prs-error (str "Bound after " d2 " must be simple symbol: " (pr-str drest-bnd)) opts))
-                                      bnd (free-ops/free-in-scope-bnds drest-bnd)
-                                      f (free-ops/free-in-scope drest-bnd)
+                                      bnd (free-ops/free-in-scope-bnds drest-bnd opts)
+                                      f (free-ops/free-in-scope drest-bnd opts)
                                       _ (when-not (r/Regex? bnd)
                                           (prs-error (str "Bound " (pr-str drest-bnd) " after " d2 " is not in scope as a dotted variable") opts))]
                                   (recur (conj cat-dom (r/DottedPretype1-maker
-                                                         (cond-> (free-ops/with-bounded-frees {(r/make-F drest-bnd)
-                                                                                               ((requiring-resolve 'typed.cljc.checker.cs-gen/homogeneous-dbound->bound)
-                                                                                                bnd opts)}
+                                                         (cond-> (let [opts (free-ops/with-bounded-frees opts
+                                                                              {(r/make-F drest-bnd)
+                                                                               ((requiring-resolve 'typed.cljc.checker.cs-gen/homogeneous-dbound->bound)
+                                                                                bnd opts)})]
                                                                    (-> d1 allow-regex (parse-type opts)))
                                                            (= '<... d2) push-HSequential->regex)
                                                          (:name f)))

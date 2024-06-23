@@ -116,12 +116,12 @@
            :children (t/Vec t/Kw)})))
 
 #?(:cljs :ignore :default
-(defmacro with-frees [opts fs]
-  `(update ~opts ::tvar-scope merge ~fs)))
+(defn with-frees [opts fs]
+  (update opts ::tvar-scope merge fs)))
 
 #?(:cljs :ignore :default
-(defmacro with-dfrees [opts fs]
-  `(update ~opts ::dotted-scope merge ~fs)))
+(defn with-dfrees [opts fs]
+  (update opts ::dotted-scope merge fs)))
 
 (t/defalias Filter
   (t/Rec [Filter]

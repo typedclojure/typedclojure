@@ -262,9 +262,7 @@
         new-bnded-frees (into {} (map (fn [[n bnd]] [(r/make-F n) bnd]))
                               (cond-> frees-with-bnds
                                 dvar (conj dvar)))
-        flat-expecteds 
-        (free-ops/with-bounded-frees new-bnded-frees
-          (prepare-expecteds expr fn-anns opts))
+        flat-expecteds (prepare-expecteds expr fn-anns (free-ops/with-bounded-frees opts new-bnded-frees))
         ;_ (prn "flat-expecteds" flat-expecteds)
         _ (assert ((some-fn nil? vector?) poly))
 
@@ -286,19 +284,20 @@
       ;; otherwise check against the expected type after a call to check-anon.
       :else
       (let [;_ (prn "using anon-fn")
-            cexpr (let [opts (lex/with-locals opts
-                               (when self-name
-                                 (let [this-type (self-type flat-expecteds)
-                                       ;_ (prn "this-type" this-type)
-                                       ]
-                                   {self-name this-type})))]
-                    (free-ops/with-bounded-frees new-bnded-frees
-                      (check-anon
-                        expr
-                        flat-expecteds
-                        {:frees-with-bnds frees-with-bnds
-                         :dvar dvar}
-                        opts)))]
+            cexpr (let [opts (-> opts
+                                 (lex/with-locals
+                                   (when self-name
+                                     (let [this-type (self-type flat-expecteds)
+                                           ;_ (prn "this-type" this-type)
+                                           ]
+                                       {self-name this-type})))
+                                 (free-ops/with-bounded-frees new-bnded-frees))]
+                    (check-anon
+                      expr
+                      flat-expecteds
+                      {:frees-with-bnds frees-with-bnds
+                       :dvar dvar}
+                      opts))]
         ;;TODO unit test check below
         (update cexpr u/expr-type below/maybe-check-below expected opts)))))
 

@@ -24,10 +24,12 @@
         _ (when-not (= 1 nargs)
             (err/int-error (str "Wrong arguments to pred: Expected 1, found " nargs) opts))
         ptype
-        ; frees are not scoped when pred's are parsed at runtime,
-        ; so we simulate the same here.
-        (binding [tvar-env/*current-tvars* {}]
-          (prs/parse-type tsyn (assoc opts ::prs/parse-type-in-ns (cu/expr-ns expr opts))))]
+        (prs/parse-type tsyn
+                        (-> opts
+                            (assoc ::prs/parse-type-in-ns (cu/expr-ns expr opts))
+                            ; frees are not scoped when pred's are parsed at runtime,
+                            ; so we simulate the same here.
+                            (assoc ::tvar-env/current-tvars {})))]
     (assoc expr
            u/expr-type (below/maybe-check-below
                          (r/ret (prs/predicate-for ptype opts))

@@ -1244,9 +1244,8 @@
   {:pre [(every? symbol? names)
          (r/TypeFn? typefn)]}
   (assert (= (:nbound typefn) (count names)) "Wrong number of names")
-  (free-ops/with-bounded-frees
-    (zipmap (map r/make-F names) bbnds)
-    (instantiate-many names (:scope typefn) opts)))
+  (instantiate-many names (:scope typefn)
+                    (free-ops/with-bounded-frees opts (zipmap (map r/make-F names) bbnds))))
 
 (t/ann ^:no-check TypeFn-bbnds* [(t/Seqable t/Sym) TypeFn t/Any -> (t/Vec r/Kind)])
 (defn TypeFn-bbnds* [names typefn opts]
@@ -1343,9 +1342,10 @@
          (r/Poly? poly)]}
   (let [bbnds (Poly-bbnds* names poly opts)]
     (assert (= (:nbound poly) (count names)) "Wrong number of names")
-    (free-ops/with-bounded-frees
-      (zipmap (map r/make-F names) bbnds)
-      (instantiate-many names (:scope poly) opts))))
+    (instantiate-many names (:scope poly)
+                      (free-ops/with-bounded-frees
+                        opts 
+                        (zipmap (map r/make-F names) bbnds)))))
 
 ;; PolyDots
 
@@ -1452,8 +1452,7 @@
                                        " has kind " (pr-str bnd)
                                        " but given " (pr-str type)
                                        (when (r/F? type)
-                                         (if-some [kind (free-ops/free-with-name-bnds
-                                                         (:name type))]
+                                         (if-some [kind (free-ops/free-with-name-bnds (:name type) opts)]
                                            (str " with kind " kind)
                                            (str " with missing bounds")))
                                        (str "\n\nin: "
@@ -1461,9 +1460,9 @@
                                                         (list* t types)))))
                                   opts))))
               nil
-              (range 1 (inc cnt)) names types bbnds)]
-      (free-ops/with-bounded-frees (zipmap (map r/make-F names) bbnds)
-        (subst-all (make-simple-substitution names types) body opts)))))
+              (range 1 (inc cnt)) names types bbnds)
+          opts (-> opts (free-ops/with-bounded-frees (zipmap (map r/make-F names) bbnds)))]
+      (subst-all (make-simple-substitution names types) body opts))))
 
 (t/ann ^:no-check instantiate-poly [Poly (t/Seqable r/Type) t/Any -> r/Type])
 (defn instantiate-poly [t types opts]
@@ -1479,17 +1478,16 @@
                               opts))
                         nms (Poly-fresh-symbols* t)
                         bbnds (Poly-bbnds* nms t opts)
-                        body (Poly-body* nms t opts)]
-                    (free-ops/with-bounded-frees
-                      (zipmap (map r/make-F nms) bbnds)
-                      (dorun (map (fn [nm type bnd]
-                                    (when-not (ind/has-kind? type bnd opts)
-                                      (err/tc-error (str "Polymorphic type variable " (r/F-original-name (r/make-F nm))
-                                                         " has kind " (pr-str bnd)
-                                                         " but given " (pr-str type))
-                                                    opts)))
-                                  nms types bbnds))
-                      (subst-all (make-simple-substitution nms types) body opts)))
+                        body (Poly-body* nms t opts)
+                        opts (-> opts (free-ops/with-bounded-frees
+                                        (zipmap (map r/make-F nms) bbnds)))]
+                    (dorun (map (fn [nm type bnd]
+                                  (when-not (ind/has-kind? type bnd opts)
+                                    (err/tc-error (str "Polymorphic type variable " (r/F-original-name (r/make-F nm))
+                                                       " has kind " (pr-str bnd)
+                                                       " but given " (pr-str type))
+                                                  opts)))
+                                nms types bbnds)))
       ;PolyDots NYI
       :else (err/nyi-error (str "instantiate-poly: requires Poly, and PolyDots NYI") opts))))
 
@@ -2577,9 +2575,9 @@
       ((some-fn r/TCError? r/Bottom?) t) t
       ((some-fn r/TCError? r/Bottom?) k) k
       ((every-pred r/wild?) t k) r/-wild
-      (r/F? t) (let [bnd (free-ops/free-with-name-bnds (:name t))
+      (r/F? t) (let [bnd (free-ops/free-with-name-bnds (:name t) opts)
                      _ (when-not bnd
-                         (err/int-error (str "No bounds for type variable: " name bnds/*current-tvar-bnds*) opts))]
+                         (err/int-error (str "No bounds for type variable: " name " " (::bnds/current-tvar-bnds opts)) opts))]
                  (find-val-type (:upper-bound bnd) k default
                                 #{}))
       (ind/subtype? t r/-nil opts) default
@@ -2881,10 +2879,9 @@
                                body (TypeFn-body* names bbnds ty opts)
                                bmap (zipmap (map r/make-F names) bbnds)
                                ;;FIXME type variables are scoped left-to-right in bounds
-                               bbnds' (free-ops/with-bounded-frees bmap
-                                        (into-identical [] type-rec bbnds))
-                               body' (free-ops/with-bounded-frees bmap
-                                       (type-rec body))
+                               bbnds' (let [opts (free-ops/with-bounded-frees opts bmap)] 
+                                        (into-identical [] #(type-rec % opts) bbnds))
+                               body' (type-rec body (free-ops/with-bounded-frees opts bmap))
                                changed? (or (not (identical? bbnds bbnds'))
                                             (not (identical? body body')))]
                            (if changed?
@@ -2899,10 +2896,9 @@
                                        bbnds (Poly-bbnds* names ty opts)
                                        bmap (zipmap (map r/make-F names) bbnds)
                                        ;;FIXME type variables are scoped left-to-right in bounds
-                                       bbnds' (free-ops/with-bounded-frees bmap
-                                                (into-identical [] type-rec bbnds))
-                                       body' (free-ops/with-bounded-frees bmap
-                                               (type-rec body))
+                                       bbnds' (let [opts (free-ops/with-bounded-frees opts bmap)]
+                                                (into-identical [] #(type-rec % opts) bbnds))
+                                       body' (type-rec body (free-ops/with-bounded-frees opts bmap))
                                        changed? (or (not (identical? bbnds bbnds'))
                                                     (not (identical? body body')))]
                                    (if changed?
@@ -2913,10 +2909,9 @@
                                            bbnds (PolyDots-bbnds* names ty opts)
                                            bmap (zipmap (map r/make-F names) bbnds)
                                            ;;FIXME type variables are scoped left-to-right in bounds
-                                           bbnds' (free-ops/with-bounded-frees bmap
-                                                    (into-identical [] type-rec bbnds))
-                                           body' (free-ops/with-bounded-frees bmap
-                                                   (type-rec body))
+                                           bbnds' (let [opts (free-ops/with-bounded-frees opts bmap)]
+                                                    (into-identical [] #(type-rec % opts) bbnds))
+                                           body' (type-rec body (free-ops/with-bounded-frees opts bmap))
                                            changed? (or (not (identical? bbnds bbnds'))
                                                         (not (identical? body body')))]
                                        (if changed?

@@ -282,115 +282,116 @@
              _ (assert (r/FnIntersection? fin))
              ;; Only infer free variables in the return type
              ret-type
-             (free-ops/with-bounded-frees (zipmap (map r/F-maker fs-names) bbnds)
-               (let [fs-names->bbnds (zipmap fs-names bbnds)
-                     expected-t (some-> expected r/ret-t (c/fully-resolve-type opts))]
-                 (loop [[{:keys [dom rng rest drest kws prest] :as ftype} & ftypes] (:types fin)]
-                   (when ftype
-                     ;; only try inference if argument types are appropriate
-                     (if-let
-                       [substitution
-                        (cgen/handle-failure
-                          (cond
-                            ;possibly present rest argument, or no rest parameter
-                            (and (not (or drest kws prest))
-                                 ((if rest <= =) (count dom) (count arg-types)))
-                            (cgen/infer-vararg fs-names->bbnds {}
-                                               arg-types dom rest
-                                               (r/Result-type* rng)
-                                               (some-> expected r/ret-t)
-                                               {:expr expr}
-                                               opts)
+             (let [opts (free-ops/with-bounded-frees opts
+                          (zipmap (map r/F-maker fs-names) bbnds))
+                   fs-names->bbnds (zipmap fs-names bbnds)
+                   expected-t (some-> expected r/ret-t (c/fully-resolve-type opts))]
+               (loop [[{:keys [dom rng rest drest kws prest] :as ftype} & ftypes] (:types fin)]
+                 (when ftype
+                   ;; only try inference if argument types are appropriate
+                   (if-let
+                     [substitution
+                      (cgen/handle-failure
+                        (cond
+                          ;possibly present rest argument, or no rest parameter
+                          (and (not (or drest kws prest))
+                               ((if rest <= =) (count dom) (count arg-types)))
+                          (cgen/infer-vararg fs-names->bbnds {}
+                                             arg-types dom rest
+                                             (r/Result-type* rng)
+                                             (some-> expected r/ret-t)
+                                             {:expr expr}
+                                             opts)
 
-                            (and prest
-                                 (<= (count dom) (count arg-types)))
-                            (cgen/infer-prest fs-names->bbnds {}
-                                              arg-types dom prest
-                                              (r/Result-type* rng) expected-t
-                                              {:expr expr}
-                                              opts)
+                          (and prest
+                               (<= (count dom) (count arg-types)))
+                          (cgen/infer-prest fs-names->bbnds {}
+                                            arg-types dom prest
+                                            (r/Result-type* rng) expected-t
+                                            {:expr expr}
+                                            opts)
 
-                            ;keyword parameters
-                            kws
-                            (let [{:keys [mandatory optional]} kws
-                                  [normal-argtys flat-kw-argtys] (split-at (count dom) arg-types)
-                                  _ (when (odd? (count flat-kw-argtys))
-                                      ; move to next arity
-                                      (cgen/fail! nil nil)
-                                      #_(err/int-error (str "Uneven number of keyword arguments "
-                                                            "provided to polymorphic function "
-                                                            "with keyword parameters.")
-                                                       opts))
-                                  paired-kw-argtys (apply hash-map flat-kw-argtys)
+                          ;keyword parameters
+                          kws
+                          (let [{:keys [mandatory optional]} kws
+                                [normal-argtys flat-kw-argtys] (split-at (count dom) arg-types)
+                                _ (when (odd? (count flat-kw-argtys))
+                                    ; move to next arity
+                                    (cgen/fail! nil nil)
+                                    #_(err/int-error (str "Uneven number of keyword arguments "
+                                                          "provided to polymorphic function "
+                                                          "with keyword parameters.")
+                                                     opts))
+                                paired-kw-argtys (apply hash-map flat-kw-argtys)
 
-                                  ;generate two vectors identical in length with actual kw val types
-                                  ;on the left, and expected kw val types on the right.
+                                ;generate two vectors identical in length with actual kw val types
+                                ;on the left, and expected kw val types on the right.
 
-                                  [kw-val-actual-tys kw-val-expected-tys]
-                                  (reduce (fn [[kw-val-actual-tys kw-val-expected-tys]
-                                               [kw-key-t kw-val-t]]
-                                            {:pre [(vector? kw-val-actual-tys)
-                                                   (vector? kw-val-expected-tys)
-                                                   (r/Type? kw-key-t)
-                                                   (r/Type? kw-val-t)]
-                                             :post [((con/hvector-c? (every-pred vector? (con/every-c? r/Type?)) 
-                                                                     (every-pred vector? (con/every-c? r/Type?)))
-                                                     %)]}
-                                            (when-not (r/Value? kw-key-t)
-                                              ; move to next arity
-                                              (cgen/fail! nil nil)
-                                              #_(err/int-error 
-                                                  (str "Can only check keyword arguments with Value keys, found"
-                                                       (pr-str (prs/unparse-type kw-key-t opts)))
-                                                  opts))
-                                            (if-some [expected-val-t ((some-fn optional mandatory) kw-key-t)]
+                                [kw-val-actual-tys kw-val-expected-tys]
+                                (reduce (fn [[kw-val-actual-tys kw-val-expected-tys]
+                                             [kw-key-t kw-val-t]]
+                                          {:pre [(vector? kw-val-actual-tys)
+                                                 (vector? kw-val-expected-tys)
+                                                 (r/Type? kw-key-t)
+                                                 (r/Type? kw-val-t)]
+                                           :post [((con/hvector-c? (every-pred vector? (con/every-c? r/Type?)) 
+                                                                   (every-pred vector? (con/every-c? r/Type?)))
+                                                   %)]}
+                                          (when-not (r/Value? kw-key-t)
+                                            ; move to next arity
+                                            (cgen/fail! nil nil)
+                                            #_(err/int-error 
+                                                (str "Can only check keyword arguments with Value keys, found"
+                                                     (pr-str (prs/unparse-type kw-key-t opts)))
+                                                opts))
+                                          (if-some [expected-val-t ((some-fn optional mandatory) kw-key-t)]
+                                            [(conj kw-val-actual-tys kw-val-t)
+                                             (conj kw-val-expected-tys expected-val-t)]
+                                            (do 
+                                              ; Using undeclared keyword keys is an error because we want to treat
+                                              ; the rest param as a complete hash map when checking 
+                                              ; fn bodies.
+                                              (err/tc-delayed-error (str "Undeclared keyword parameter " 
+                                                                         (pr-str (prs/unparse-type kw-key-t opts)))
+                                                                    opts)
                                               [(conj kw-val-actual-tys kw-val-t)
-                                               (conj kw-val-expected-tys expected-val-t)]
-                                              (do 
-                                                ; Using undeclared keyword keys is an error because we want to treat
-                                                ; the rest param as a complete hash map when checking 
-                                                ; fn bodies.
-                                                (err/tc-delayed-error (str "Undeclared keyword parameter " 
-                                                                           (pr-str (prs/unparse-type kw-key-t opts)))
-                                                                      opts)
-                                                [(conj kw-val-actual-tys kw-val-t)
-                                                 (conj kw-val-expected-tys r/-any)])))
-                                          [[] []]
-                                          paired-kw-argtys)]
-                              ;make sure all mandatory keys are present
-                              (when-some [missing-ks (not-empty
-                                                       (apply disj (set (keys mandatory)) (keys paired-kw-argtys)))]
-                                ; move to next arity
-                                (cgen/fail! nil nil))
-                                ;(err/tc-delayed-error (str "Missing mandatory keyword keys: "
-                                ;                         (pr-str (vec (interpose ", "
-                                ;                                                 (map #(prs/unparse-type % opts) missing-ks))))) opts)
-                              ;; it's probably a bug to not infer for unused optional args, revisit this
-                              ;(when-let [missing-optional-ks (seq
-                              ;                                 (set/difference (set (keys optional))
-                              ;                                                 (set (keys paired-kw-argtys))))]
-                              ;  (err/nyi-error (str "NYI POSSIBLE BUG?! Unused optional parameters"
-                              ;                    (pr-str (interpose ", " (map #(prs/unparse-type % opts) missing-optional-ks)))) opts)
-                              ;  )
-                              ; infer keyword and fixed parameters all at once
-                              (cgen/infer fs-names->bbnds {}
-                                          (concat normal-argtys kw-val-actual-tys)
-                                          (concat dom kw-val-expected-tys) 
-                                          (r/Result-type* rng)
-                                          (some-> expected r/ret-t)
-                                          {:expr expr}
-                                          opts))))]
-                       (if (r/SymbolicClosure? substitution)
-                         (r/ret substitution)
-                         (let [;_ (prn "subst:" substitution)
-                               new-ftype (subst/subst-all substitution ftype opts)]
-                           ;(prn "substituted type" new-ftype)
-                           (funapp1/check-funapp1 fexpr args new-ftype
-                                                  arg-ret-types expected {:check? false} opts)))
-                       (if drest
-                         (do (err/tc-delayed-error (str "Cannot infer arguments to polymorphic functions with dotted rest") opts)
-                             nil)
-                         (recur ftypes)))))))]
+                                               (conj kw-val-expected-tys r/-any)])))
+                                        [[] []]
+                                        paired-kw-argtys)]
+                            ;make sure all mandatory keys are present
+                            (when-some [missing-ks (not-empty
+                                                     (apply disj (set (keys mandatory)) (keys paired-kw-argtys)))]
+                              ; move to next arity
+                              (cgen/fail! nil nil))
+                              ;(err/tc-delayed-error (str "Missing mandatory keyword keys: "
+                              ;                         (pr-str (vec (interpose ", "
+                              ;                                                 (map #(prs/unparse-type % opts) missing-ks))))) opts)
+                            ;; it's probably a bug to not infer for unused optional args, revisit this
+                            ;(when-let [missing-optional-ks (seq
+                            ;                                 (set/difference (set (keys optional))
+                            ;                                                 (set (keys paired-kw-argtys))))]
+                            ;  (err/nyi-error (str "NYI POSSIBLE BUG?! Unused optional parameters"
+                            ;                    (pr-str (interpose ", " (map #(prs/unparse-type % opts) missing-optional-ks)))) opts)
+                            ;  )
+                            ; infer keyword and fixed parameters all at once
+                            (cgen/infer fs-names->bbnds {}
+                                        (concat normal-argtys kw-val-actual-tys)
+                                        (concat dom kw-val-expected-tys) 
+                                        (r/Result-type* rng)
+                                        (some-> expected r/ret-t)
+                                        {:expr expr}
+                                        opts))))]
+                     (if (r/SymbolicClosure? substitution)
+                       (r/ret substitution)
+                       (let [;_ (prn "subst:" substitution)
+                             new-ftype (subst/subst-all substitution ftype opts)]
+                         ;(prn "substituted type" new-ftype)
+                         (funapp1/check-funapp1 fexpr args new-ftype
+                                                arg-ret-types expected {:check? false} opts)))
+                     (if drest
+                       (do (err/tc-delayed-error (str "Cannot infer arguments to polymorphic functions with dotted rest") opts)
+                           nil)
+                       (recur ftypes))))))]
          (or ret-type
              (app-err/polyapp-type-error fexpr args fexpr-type arg-ret-types expected opts)))
 
@@ -431,7 +432,7 @@
          (let [;_ (prn "polydots, no kw args")
                _ (assert (= 1 (count dotted-map)))
                inferred-rng
-               (free-ops/with-bounded-frees (update-keys fixed-map r/make-F)
+               (let [opts (free-ops/with-bounded-frees opts (update-keys fixed-map r/make-F))]
                  ;(dvar-env/with-dotted-mappings (zipmap (keys dotted-map) (map r/make-F (vals dotted-map)))
                  (some (fn [{:keys [dom rest drest rng prest pdot] :as ftype}]
                          ;only try inference if argument types match

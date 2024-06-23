@@ -346,7 +346,7 @@
 
 ;[t/Sym -> Type]
 (defn DataType-ctor-type [sym opts]
-  (letfn [(resolve-ctor [dtp]
+  (letfn [(resolve-ctor [dtp opts]
             (cond
               ((some-fn r/DataType? r/Record?) dtp) 
               (let [dt dtp
@@ -363,14 +363,13 @@
                                     body (c/TypeFn-body* nms bbnds dtp opts)]
                                 (c/Poly* nms
                                          bbnds
-                                         (free-ops/with-bounded-frees (zipmap (map r/make-F nms) bbnds)
-                                           (resolve-ctor body))
+                                         (resolve-ctor body (free-ops/with-bounded-frees opts (zipmap (map r/make-F nms) bbnds)))
                                          opts))
 
               :else (err/tc-delayed-error (str "Cannot generate constructor type for: " sym)
                                           {:return r/Err}
                                           opts)))]
-    (resolve-ctor (dt-env/get-datatype (env/checker opts) sym opts))))
+    (resolve-ctor (dt-env/get-datatype (env/checker opts) sym opts) opts)))
 
 ;[Method -> t/Sym]
 (defn Method->symbol [{name-sym :name :keys [declaring-class] :as method}]

@@ -14,15 +14,15 @@
 
 (defn print-env*
   ([opts] (print-env* (lex/lexical-env opts) opts))
-  ([e opts]
+  ([e {tvar-scope ::tvar-env/current-tvars
+       tvar-bounds ::tvar-bnds/current-tvar-bnds 
+       :as opts}]
    {:pre [(lex/PropEnv? e)]}
    ;; DO NOT REMOVE
-   (let [tvar-scope tvar-env/*current-tvars*
-         tvar-bounds tvar-bnds/*current-tvar-bnds*
-         scoped-names (keys tvar-scope)
+   (let [scoped-names (keys tvar-scope)
          actual-names (map :name (vals tvar-scope))
          _ (every? symbol? actual-names)
-         actual-bnds (map tvar-bounds actual-names)]
+         actual-bnds (map #(get tvar-bounds %) actual-names)]
      (prn {:env (into {} (for [[k v] (:l e)]
                            [k (prs/unparse-type v opts)]))
            :props (map #(prs/unparse-filter % opts) (:props e))

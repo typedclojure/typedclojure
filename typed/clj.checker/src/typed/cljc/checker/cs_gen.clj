@@ -436,8 +436,7 @@
               bbnds (c/Poly-bbnds* names T opts)
               S' (c/Poly-body* names S opts)
               T' (c/Poly-body* names T opts)]
-          (free-ops/with-bounded-frees (zipmap (map r/make-F names) bbnds)
-            (cs-gen V X Y S' T' opts)))
+          (cs-gen V X Y S' T' (-> opts (free-ops/with-bounded-frees (zipmap (map r/make-F names) bbnds)))))
 
 
         ;constrain *each* element of S to be below T, and then combine the constraints
@@ -484,8 +483,8 @@
         (let [nms (c/Poly-fresh-symbols* S)
               body (c/Poly-body* nms S opts)
               bbnds (c/Poly-bbnds* nms S opts)]
-          (free-ops/with-bounded-frees (zipmap (map r/make-F nms) bbnds)
-            (cs-gen (set/union (set nms) V) X Y body T opts)))
+          (cs-gen (set/union (set nms) V) X Y body T
+                  (-> opts (free-ops/with-bounded-frees (zipmap (map r/make-F nms) bbnds)))))
 
         (and (r/DataType? S)
              (r/DataType? T)) (cs-gen-datatypes-or-records V X Y S T)
@@ -1185,7 +1184,7 @@
   ;constrain T to be below S (but don't mention V)
   (assert (contains? X name) (str X name))
   (when (and (r/F? T)
-             (free-ops/free-in-scope (:name T)))
+             (free-ops/free-in-scope (:name T) opts))
     (fail! S T))
   (let [dt (prmt/demote-var T V opts)
         bnd (X name)
@@ -1201,7 +1200,7 @@
   ;constrain T to be above S (but don't mention V)
   (assert (contains? X name) (str X T))
   (when (and (r/F? S)
-             (free-ops/free-in-scope (:name S)))
+             (free-ops/free-in-scope (:name S) opts))
     (fail! S T))
   (let [ps (prmt/promote-var S V opts)
         bnd (X name)
@@ -2068,14 +2067,14 @@
                                                        types))))
       (r/Poly? t) (let [names (c/Poly-fresh-symbols* t)
                         bbnds (c/Poly-bbnds* names t opts)
-                        body (c/Poly-body* names t opts)]
-                   (free-ops/with-bounded-frees (zipmap (map r/make-F names) bbnds)
-                     (c/Poly* names bbnds (prep-symbolic-closure-expected-type2 subst body opts) opts)))
+                        body (c/Poly-body* names t opts)
+                        opts (free-ops/with-bounded-frees opts (zipmap (map r/make-F names) bbnds))]
+                   (c/Poly* names bbnds (prep-symbolic-closure-expected-type2 subst body opts) opts))
       (r/PolyDots? t) (let [names (c/PolyDots-fresh-symbols* t)
                             bbnds (c/PolyDots-bbnds* names t opts)
-                            body  (c/PolyDots-body* names t opts)]
-                        (free-ops/with-bounded-frees (zipmap (map r/make-F names) bbnds)
-                          (c/PolyDots* names bbnds (prep-symbolic-closure-expected-type2 subst body opts) opts)))
+                            body  (c/PolyDots-body* names t opts)
+                            opts (free-ops/with-bounded-frees opts (zipmap (map r/make-F names) bbnds))]
+                        (c/PolyDots* names bbnds (prep-symbolic-closure-expected-type2 subst body opts) opts))
       :else (do ;(prn "unsupported type in prep-symbolic-closure-expected-type: " t)
                 (fail! nil nil)))))
 
@@ -2654,14 +2653,13 @@
         out (:t (:rng arity))
         ;_ (prn {:lhs lhs :rhs rhs :out out})
         substitution (handle-failure
-                       (free-ops/with-bounded-frees (zipmap (map r/make-F names) bbnds)
-                         (infer
-                           (zipmap names bbnds)
-                           {}
-                           [lhs]
-                           [rhs]
-                           out
-                           opts)))]
+                       (infer
+                         (zipmap names bbnds)
+                         {}
+                         [lhs]
+                         [rhs]
+                         out
+                         (free-ops/with-bounded-frees opts (zipmap (map r/make-F names) bbnds))))]
     (when substitution
       (r/ret (subst/subst-all substitution out opts)))))
 

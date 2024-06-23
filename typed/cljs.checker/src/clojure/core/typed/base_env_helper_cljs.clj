@@ -71,7 +71,7 @@
                      bnds# (when (seq fields#)
                              (repeat (count fields#) r/no-bounds))
                      frees# (map r/make-F names#)
-                     methods# (free-ops/with-bounded-frees (zipmap frees# bnds#)
+                     methods# (let [opts# (free-ops/with-bounded-frees opts# (zipmap frees# bnds#))]
                                 (into {}
                                       (for [[mname# mtype#] (:methods popts#)]
                                         [mname# (prs/parse-type mtype# opts#)])))
@@ -90,27 +90,27 @@
         (when (seq binder)
           ; don't bound frees because mutually dependent bounds are problematic
           ; FIXME ... Or is this just laziness? 
-          (let [b (free-ops/with-free-symbols names
-                     (mapv #(prs/parse-tfn-binder % opts) binder))]
+          (let [opts (-> opts (free-ops/with-free-symbols names))
+                b (mapv #(prs/parse-tfn-binder % opts) binder)]
             {:variances (map :variance b)
              :names (map :nme b)
              :bnds (map :bound b)}))
         frees (map r/make-F names)
-        methods (free-ops/with-bounded-frees (zipmap frees bnds)
+        methods (let [opts (free-ops/with-bounded-frees opts (zipmap frees bnds))]
                    (into {}
                          (for [[mname mtype] (:methods jopts)]
                            [mname (c/abstract-many names (prs/parse-type mtype opts) opts)])))
-        fields (free-ops/with-bounded-frees (zipmap frees bnds)
+        fields (let [opts (free-ops/with-bounded-frees opts (zipmap frees bnds))]
                   (into {}
                         (for [[mname mtype] (:fields jopts)]
                           [mname (c/abstract-many names (prs/parse-type mtype opts) opts)])))
         ctor (when-let [ctor (:ctor jopts)]
-                (free-ops/with-bounded-frees (zipmap frees bnds)
+                (let [opts (free-ops/with-bounded-frees opts (zipmap frees bnds))]
                   (c/abstract-many names (prs/parse-type ctor opts) opts)))
-        ancestors (free-ops/with-bounded-frees (zipmap frees bnds)
-                     (into #{}
-                           (for [mtype (:ancestors jopts)]
-                             (c/abstract-many names (prs/parse-type mtype opts) opts))))]
+        ancestors (let [opts (free-ops/with-bounded-frees opts (zipmap frees bnds))]
+                    (into #{}
+                          (for [mtype (:ancestors jopts)]
+                            (c/abstract-many names (prs/parse-type mtype opts) opts))))]
     (decl-env/remove-declared-kind (impl/cljs-checker) n)
     [n {:jsnominal (c/JSNominal* names vs frees n bnds opts)
          :fields fields
@@ -141,13 +141,13 @@
                      (when (seq binder#)
                        ; don't bound frees because mutually dependent bounds are problematic
                        ; FIXME ... Or is this just laziness? 
-                       (let [b# (free-ops/with-free-symbols names#
-                                  (mapv #(prs/parse-tfn-binder % opts#) binder#))]
+                       (let [opts# (-> opts# (free-ops/with-free-symbols names#))
+                             b# (mapv #(prs/parse-tfn-binder % opts#) binder#)]
                          {:variances (seq (map :variance b#))
                           :names (seq (map :nme b#))
                           :bnds (seq (map :bound b#))}))
                      frees# (seq (map r/make-F names#))
-                     fields# (free-ops/with-bounded-frees (zipmap frees# bnds#)
+                     fields# (let [opts# (free-ops/with-bounded-frees opts# (zipmap frees# bnds#))]
                                (into {}
                                      (for [[mname# mtype#] (:fields dopts#)]
                                        [mname# (prs/parse-type mtype# opts#)])))]

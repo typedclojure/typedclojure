@@ -538,8 +538,7 @@
               bbnds1 (c/Poly-bbnds* names s opts)
               b1 (c/Poly-body* names s opts)
               b2 (c/Poly-body* names t opts)]
-          (if (free-ops/with-bounded-frees (zipmap (map r/F-maker names) bbnds1)
-                (subtypeA* A b1 b2 opts))
+          (if (subtypeA* A b1 b2 (-> opts (free-ops/with-bounded-frees (zipmap (map r/F-maker names) bbnds1))))
             A
             (report-not-subtypes s t)))
         unknown-result)
@@ -713,7 +712,7 @@
             (report-not-subtypes s t)))
         (report-not-subtypes s t))
       (if (r/F? (.target s)) ; avoids infinite expansion because associng an F is a fixed point
-        (let [bnds (free-ops/free-with-name-bnds (-> s .target :name))
+        (let [bnds (free-ops/free-with-name-bnds (-> s .target :name) opts)
               _ (assert bnds
                         (str "Bounds not found for free variable: " (-> s .target :name)))]
           (if (subtypeA* A (:upper-bound bnds) t opts)
@@ -886,8 +885,7 @@
               b1 (c/PolyDots-body* names s opts)
               b2 (c/PolyDots-body* names t opts)]
           (when (= bbnds1 bbnds2)
-            (free-ops/with-bounded-frees (zipmap (map r/F-maker names) bbnds1)
-              (subtypeA* A b1 b2 opts)))))
+            (subtypeA* A b1 b2 (-> opts (free-ops/with-bounded-frees (zipmap (map r/F-maker names) bbnds1)))))))
       (if (OR ;use unification to see if we can use the Poly type here
               (case (.kind s) 
                 :Poly (let [names (c/Poly-fresh-symbols* s)
@@ -895,8 +893,7 @@
                             b1 (c/Poly-body* names s opts)
                             ;_ (prn "try unify on left")
                             X (zipmap names bnds)
-                            u (free-ops/with-bounded-frees (update-keys X r/make-F)
-                                (unify X {} [b1] [t] r/-any opts))]
+                            u (unify X {} [b1] [t] r/-any (-> opts (free-ops/with-bounded-frees (update-keys X r/make-F))))]
                         ;(prn "unified on left")
                         u)
                 :PolyDots (let [names (c/PolyDots-fresh-symbols* s)
@@ -905,8 +902,8 @@
                                 ;_ (prn "try PolyDots unify on left")
                                 X (zipmap (pop names) (pop bnds))
                                 Y {(peek names) (peek bnds)}
-                                u (free-ops/with-bounded-frees (update-keys (into X Y) r/make-F)
-                                    (unify X Y [b1] [t] r/-any opts))]
+                                u (unify X Y [b1] [t] r/-any (-> opts
+                                                                 (free-ops/with-bounded-frees (update-keys (into X Y) r/make-F))))]
                             ;(prn "unified on left" u)
                             u))
               ;; go after presumably cheaper unification cases
@@ -1013,7 +1010,7 @@
         ; 2 frees of the same name are handled in the (= s t) case.
         (AND (r/F? s)
              (if-some [^Bounds bnd
-                       (free-ops/free-with-name-bnds (:name s))]
+                       (free-ops/free-with-name-bnds (:name s) opts)]
                (subtypeA* A (:upper-bound bnd) t)
                (do #_(err/int-error (str "No bounds for " (:name s)) opts)
                    false)))
@@ -1021,7 +1018,7 @@
 
         (AND (r/F? t)
              (if-some [^Bounds bnd
-                       (free-ops/free-with-name-bnds (:name t))]
+                       (free-ops/free-with-name-bnds (:name t) opts)]
                (subtypeA* A s (:lower-bound bnd))
                (do #_(err/int-error (str "No bounds for " (:name s)) opts)
                    false)))
@@ -1046,8 +1043,8 @@
              (let [names (c/Poly-fresh-symbols* t)
                    bbnds (c/Poly-bbnds* names t opts)
                    b (c/Poly-body* names t opts)]
-               (free-ops/with-bounded-frees (zipmap (map r/F-maker names) bbnds)
-                 (subtypeA* A s b))))
+               (subtypeA* A s b
+                          (-> opts (free-ops/with-bounded-frees (zipmap (map r/F-maker names) bbnds))))))
         A
 
         (r/Name? s)
@@ -1561,7 +1558,7 @@
     (cond
       (and (r/F? (:rator s))
            (r/F? (:rator t)))
-      (let [{:keys [upper-bound] :as bnd} (free-ops/free-with-name-bnds (-> s :rator :name))]
+      (let [{:keys [upper-bound] :as bnd} (free-ops/free-with-name-bnds (-> s :rator :name) opts)]
         (cond 
           (not bnd) (err/int-error (str "No bounds for " (:name s)) opts)
           :else (let [upper-bound (c/fully-resolve-type upper-bound opts)]

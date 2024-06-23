@@ -345,7 +345,7 @@
 
             ; solve for x:  t <: (Seqable x)
             x (gensym)
-            subst (free-ops/with-bounded-frees {(r/make-F x) r/no-bounds}
+            subst (let [opts (free-ops/with-bounded-frees opts {(r/make-F x) r/no-bounds})]
                     (u/handle-cs-gen-failure
                       (cgen/infer {x r/no-bounds} {} 
                                   [u]

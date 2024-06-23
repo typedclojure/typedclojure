@@ -385,7 +385,7 @@
 #?(:cljs :ignore :default
 (def ^:private parse-free-binder-with-variance #((requiring-resolve 'typed.clj.checker.parse-unparse/parse-free-binder-with-variance) %1 %2)))
 #?(:cljs :ignore :default
-(def ^:private with-bounded-frees* #((requiring-resolve 'typed.cljc.checker.free-ops/with-bounded-frees*) %1 %2)))
+(def ^:private with-bounded-frees #((requiring-resolve 'typed.cljc.checker.free-ops/with-bounded-frees) %1 %2)))
 #?(:cljs :ignore :default
 (def ^:private unparse-type #((requiring-resolve 'typed.clj.checker.parse-unparse/unparse-type) %1 %2)))
 #?(:cljs :ignore :default
@@ -467,9 +467,10 @@
                                      (int-error "Protocol method should be unqualified" opts))
                                  mtype 
                                  (delay-type
-                                   (let [mtype (with-bounded-frees* (zipmap (force-type fs opts) (force-type bnds opts))
-                                                 #(let [opts (assoc opts ::vs/current-env current-env)]
-                                                    (parse-type v* opts)))
+                                   (let [mtype (let [opts (-> opts
+                                                              (with-bounded-frees (zipmap (force-type fs opts) (force-type bnds opts)))
+                                                              (assoc ::vs/current-env current-env))]
+                                                 (parse-type v* opts))
                                          _ (let [rt (fully-resolve-type mtype opts)
                                                  fin? (fn [f]
                                                         (let [f (fully-resolve-type f opts)]
@@ -535,7 +536,7 @@
 #?(:cljs :ignore :default
 (def ^:private abstract-many #((requiring-resolve 'typed.cljc.checker.type-ctors/abstract-many) %1 %2 %3)))
 #?(:cljs :ignore :default
-(def ^:private with-frees* #((requiring-resolve 'typed.cljc.checker.free-ops/with-frees*) %1 %2)))
+(def ^:private with-frees #((requiring-resolve 'typed.cljc.checker.free-ops/with-frees) %1 %2)))
 #?(:cljs :ignore :default
 (def ^:private -val #((requiring-resolve 'typed.cljc.checker.type-rep/-val) %1)))
 #?(:cljs :ignore :default
@@ -588,28 +589,26 @@
         s (impl-case opts
             :clojure (symbol (str (name munged-ns-str) \. local-name))
             :cljs provided-name)
-        fs (let [bfn (fn []
-                       (let [parse-field (fn [[n colon t] opts]
-                                           (when (not= :- colon)
-                                             (int-error (format "Missing :- after field %s in ann-record."
-                                                                n)
-                                                        opts))
-                                           [n (parse-type t opts)])]
-                         (apply array-map (apply concat (with-frees* (mapv make-F (force-type args opts))
-                                                          (fn []
-                                                            (let [opts (assoc opts ::vs/current-env current-env)]
-                                                              (mapv (fn [s] (parse-field s opts)) (partition 3 fields)))))))))]
-             (delay-type (bfn)))
+        fs (delay-type
+             (let [parse-field (fn [[n colon t] opts]
+                                 (when (not= :- colon)
+                                   (int-error (format "Missing :- after field %s in ann-record."
+                                                      n)
+                                              opts))
+                                 [n (parse-type t opts)])]
+               (apply array-map (apply concat (let [opts (-> opts
+                                                             (assoc ::vs/current-env current-env)
+                                                             (with-frees (mapv make-F (force-type args opts))))]
+                                                (mapv #(parse-field % opts) (partition 3 fields)))))))
         as (into {}
                  (map
                    (fn [an]
-                     [an (let [bfn (fn []
-                                     (with-frees* (mapv make-F (force-type args opts))
-                                       (fn []
-                                         (let [opts (assoc opts ::vs/current-env current-env)]
-                                           (let [t (parse-type an opts)]
-                                             (abstract-many (force-type args opts) t opts))))))]
-                           (delay-type (bfn)))]))
+                     [an (delay-type
+                           (let [opts (-> opts
+                                          (assoc ::vs/current-env current-env)
+                                          (with-frees (mapv make-F (force-type args opts))))
+                                 t (parse-type an opts)]
+                             (abstract-many (force-type args opts) t opts)))]))
                  ancests)
         ;_ (prn "collected ancestors" as)
         _ (add-datatype-ancestors checker s as)
@@ -624,8 +623,8 @@
                                (Poly* (force-type args opts) (force-type bnds opts)
                                       (make-FnIntersection
                                         (make-Function (vec (vals (force-type fs opts)))
-                                                       (with-bounded-frees* (zipmap (map make-F (force-type args opts)) (force-type bnds opts))
-                                                         #(DataType-of s (map make-F (force-type args opts)) opts))))
+                                                       (let [opts (with-bounded-frees opts (zipmap (map make-F (force-type args opts)) (force-type bnds opts)))]
+                                                         (DataType-of s (map make-F (force-type args opts)) opts))))
                                       opts)
                                (make-FnIntersection
                                  (make-Function (vec (vals (force-type fs opts))) (DataType-of s opts)))))]
