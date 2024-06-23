@@ -141,7 +141,7 @@
                         ([x writer options] (-> x ((resolve `massage-before-fipp-pprint)) (fipp-pretty writer options)))))))
   (System/setProperty "typed.clj.checker.parse-unparse.fipp-override" "false"))
 
-(declare parse-type* ^:dynamic resolve-type-clj->sym ^:dynamic resolve-type-clj resolve-type-cljs)
+(declare parse-type* resolve-type-clj->sym ^:dynamic resolve-type-clj resolve-type-cljs)
 
 (defn tsyn->env [s]
   (let [m (meta s)]
@@ -1144,7 +1144,7 @@
             qsym)))
       (err/int-error (str "Cannot find namespace: " sym) opts))))
 
-(defn ^:dynamic resolve-type-clj->sym
+(defn -resolve-type-clj->sym
   [sym opts]
   {:pre [(symbol? sym)]
    :post [(symbol? %)]}
@@ -1172,6 +1172,12 @@
                              nsym)]
             (symbol (name (ns-rewrites-clj sym-nsym sym-nsym)) (name sym))))
       (err/int-error (str "Cannot find namespace: " nsym) opts))))
+
+(defn resolve-type-clj->sym
+  [sym {::keys [resolve-type-clj->sym]
+        :or {resolve-type-clj->sym -resolve-type-clj->sym}
+        :as opts}]
+  (resolve-type-clj->sym sym opts))
 
 (def ^:private ns-rewrites-cljs {'cljs.core.typed 'typed.clojure})
 (def ^:private ns-unrewrites-cljs (set/map-invert ns-rewrites-cljs))

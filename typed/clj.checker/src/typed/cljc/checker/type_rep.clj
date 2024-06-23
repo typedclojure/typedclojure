@@ -1266,7 +1266,7 @@
 
 ;; Symbolic closures
 
-(t/def ^:dynamic enable-symbolic-closures? :- t/Bool, true #_false)
+(t/def enable-symbolic-closures? :- t/Bool, true #_false)
 
 (u/def-type SymbolicClosure [bindings :- (t/Map t/Any t/Any)
                              fexpr :- (t/Map t/Any t/Any)

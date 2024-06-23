@@ -101,7 +101,15 @@
                          check-expr)
         opts (-> opts
                  (assoc ::check/check-expr check-expr)
-                 (assoc ::env/checker instrumented-checker))]
+                 (assoc ::env/checker instrumented-checker)
+                ;; preserve the namespace resolutions that occur while parsing during type checking, like t/ann-form
+                 (assoc ::prs/resolve-type-clj->sym
+                        (let [resolve-type-clj->sym prs/-resolve-type-clj->sym]
+                          (fn [sym opts]
+                            (let [res (resolve-type-clj->sym sym opts)]
+                              (when (not= res sym)
+                                (swap! type-syms assoc-in [(prs/parse-in-ns opts) sym] res))
+                              res)))))]
     (binding [ana2/resolve-sym (let [resolve-sym ana2/resolve-sym]
                                  (fn [sym env]
                                    (let [r (resolve-sym sym env)]
@@ -114,13 +122,6 @@
                                          (when (not= v sym)
                                            (swap! vars assoc sym v))))
                                      r)))
-              ;; preserve the namespace resolutions that occur while parsing during type checking, like t/ann-form
-              prs/resolve-type-clj->sym (let [resolve-type-clj->sym prs/resolve-type-clj->sym]
-                                          (fn [sym opts]
-                                            (let [res (resolve-type-clj->sym sym opts)]
-                                              (when (not= res sym)
-                                                (swap! type-syms assoc-in [(prs/parse-in-ns opts) sym] res))
-                                              res)))
               prs/resolve-type-clj (let [resolve-type-clj prs/resolve-type-clj]
                                      (fn [sym opts]
                                        (let [res (resolve-type-clj sym opts)]
