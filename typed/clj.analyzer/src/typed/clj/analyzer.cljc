@@ -177,9 +177,10 @@
 ;KEEP
     })
 
-(def scheduled-default-passes
-  (delay
-    (passes/schedule default-passes)))
+(let [d (delay
+          (passes/schedule default-passes))]
+  (defn scheduled-default-passes [opts]
+    @d))
 
 (comment
   (clojure.pprint/pprint
@@ -491,7 +492,7 @@
 (defn unanalyzed
   [form env opts]
   {:pre [(map? env)]}
-  (let [init-ast (:init-ast ana/scheduled-passes)
+  (let [init-ast (:init-ast (ana/scheduled-passes opts))
         _ (assert init-ast "scheduled-passes must bind :init-ast")]
     (->
       {:op :unanalyzed
@@ -563,7 +564,7 @@
   ;([form] (analyze form (empty-env) {}))
   ;([form env] (analyze form env {}))
   ([form env opts]
-   (with-bindings (-> {#'ana/scheduled-passes    @scheduled-default-passes
+   (with-bindings (-> {
                        #'ana/var?          var?
                        #'ana/resolve-sym   resolve-sym
                        ;#'*ns*              (the-ns (:ns env))
@@ -587,8 +588,7 @@
     (assoc ast :result result)))
 
 (defn default-thread-bindings [env]
-  (-> {#'ana/scheduled-passes    @scheduled-default-passes
-       #'ana/var?          var?
+  (-> {#'ana/var?          var?
        #'ana/resolve-sym   resolve-sym
        #'ana/var->sym      var->sym
        ;#'*ns*              (the-ns (:ns env))
@@ -700,4 +700,5 @@
    ::ana/create-var create-var
    ::ana/unanalyzed unanalyzed
    ::ana/macroexpand-1 macroexpand-1
-   ::ana/analyze-outer -analyze-outer})
+   ::ana/analyze-outer -analyze-outer
+   ::ana/scheduled-passes scheduled-default-passes})

@@ -370,9 +370,7 @@
    #'ana-cljs/analyze unanalyzed-env-first
    #'ana/resolve-sym resolve-sym
    #'ana/var->sym var->sym
-   #'ana/scheduled-passes {:pre identity
-                           :post identity
-                           :init-ast identity}})
+   })
 
 (defn resolve-op-sym
   [form env]
@@ -397,4 +395,8 @@
    ::ana/macroexpand-1 (fn [form env opts]
                          (throw (ex-info "TODO typed.cljs.analyzer/macroexpand-1" {})))
    ::ana/analyze-outer -analyze-outer
+   ::ana/scheduled-passes (fn [opts]
+                            {:pre (fn [x opts] x)
+                             :post (fn [x opts] x)
+                             :init-ast (fn [x opts] x)})
    })

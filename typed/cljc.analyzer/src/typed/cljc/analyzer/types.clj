@@ -42,15 +42,25 @@
   else returns form.
   
   :typed.cljc.analyzer/analyze-outer
-  If ast is :unanalyzed, then call analyze-form on it, otherwise returns ast."
+  If ast is :unanalyzed, then call analyze-form on it, otherwise returns ast.
+  
+  :typed.cljc.analyzer/scheduled-passes
+  A map of functions such that
+   (ast/walk ast (:pre scheduled-passes) (:post scheduled-passes))
+  runs the passes currently scheduled, and
+   ((:init-ast scheduled-passes) ast)
+  initializes the AST for traversal."
   (t/HMap :mandatory {::ana/resolve-ns [t/Sym ana/Env ana/Opts :-> t/Any]
                       ::ana/current-ns-name [t/Env ana/Opts :-> t/Sym]
                       ::ana/parse [(t/Seq t/Any) ana/Env ana/Opts :-> t/Any]
                       ::ana/eval-ast [ana/Expr ana/Opts :-> (t/Assoc ana/Expr ':result t/Any)]
                       ::ana/create-var [t/Sym ana/Env ana/Opts :-> t/Any]
-                      ::ana/unanalyzed [t/Any ana/Env t/Opts :-> ana/Unanalyzed]
-                      ::ana/macroexpand-1 [t/Any ana/Env t/Opts :-> t/Any]
-                      ::ana/analyze-outer [ana/Expr t/Opts :-> ana/Expr]}))
+                      ::ana/unanalyzed [t/Any ana/Env ana/Opts :-> ana/Unanalyzed]
+                      ::ana/macroexpand-1 [t/Any ana/Env ana/Opts :-> t/Any]
+                      ::ana/analyze-outer [ana/Expr ana/Opts :-> ana/Expr]
+                      ::ana/scheduled-passes [ana/Opts :-> '{:init-ast ast/InitAst
+                                                             :pre ast/Pre
+                                                             :post ast/Post}]}))
 (defalias ana/Expr (t/Merge
                      (t/HMap :mandatory {;:op t/Kw
                                          :env ana/Env}
@@ -66,23 +76,24 @@
                                   )
                           )
                      ))
-(defalias ast/Pre [ana/Expr t/Any :-> ana/Expr])
-(defalias ast/Post [ana/Expr t/Any :-> ana/Expr])
+(defalias ast/InitAst [ana/Expr ana/Opts :-> ana/Expr])
+(defalias ast/Pre [ana/Expr ana/Opts :-> ana/Expr])
+(defalias ast/Post [ana/Expr ana/Opts :-> ana/Expr])
 (defalias ana/Unanalyzed ana/Expr)
 (defalias ana/Form t/Any)
 (defalias ana/Op t/Kw)
 (defalias u/Classification t/Kw)
 (defalias u/Ctx (t/U ':ctx/expr))
 
-(ann ana/macroexpand-1 [t/Any ana/Env t/Opts :-> t/Any])
+(ann ana/macroexpand-1 [t/Any ana/Env ana/Opts :-> t/Any])
 (ann ana/var? [t/Any :-> t/Bool])
-(ann ana/scheduled-passes '{:init-ast [t/Any t/Any :-> t/Any]
-                            :pre ast/Pre
-                            :post ast/Post})
+(ann ana/scheduled-passes [ana/Opts :-> '{:init-ast ast/InitAst
+                                          :pre ast/Pre
+                                          :post ast/Post}])
 (ann ana/resolve-sym [t/Sym :-> t/Any])
 (ann ana/current-ns-name [t/Env :-> t/Sym])
 (ann ana/var->sym [t/Any :-> (t/Nilable t/Sym)])
-(ann ana/analyze-outer [ana/Expr t/Opts :-> ana/Expr])
+(ann ana/analyze-outer [ana/Expr ana/Opts :-> ana/Expr])
 (ann ana/run-pre-passes [ana/Expr t/Any :-> ana/Expr])
 (ann ana/run-post-passes [ana/Expr t/Any :-> ana/Expr])
 (ann ana/run-passes [ana/Expr t/Any :-> ana/Expr])

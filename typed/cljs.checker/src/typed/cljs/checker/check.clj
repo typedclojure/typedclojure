@@ -409,28 +409,25 @@
    ;(prn "*ns*" *ns*)
    ;(prn "*cljs-ns*" cljs-ana/*cljs-ns*)
    ;; TODO any bindings needed to be pinned here?
-   (binding [ana2/scheduled-passes {:pre (fn [ast _] ast)
-                                    :post (fn [ast _] ast)
-                                    :init-ast (fn [ast _] ast)}]
-     (let [nsym (::prs/parse-type-in-ns opts)
-           _ (assert (symbol? nsym))
-           opts (-> opts
-                    (assoc ::check/check-expr check-expr)
-                    (assoc ::vs/lexical-env (lex/init-lexical-env))
-                    ;; also copied to typed.cljs.checker.check/check-top-level
-                    (assoc ::c/Un-cache (atom c/initial-Un-cache))
-                    (assoc ::c/In-cache (atom {}))
-                    (assoc ::c/RClass-of-cache (atom {}))
-                    (assoc ::c/supers-cache (atom {}))
-                    (assoc ::sub/subtype-cache (atom {}))
-                    (assoc ::cgen/dotted-var-store (atom {}))
-                    (assoc ::prs/unparse-type-in-ns nsym))
-           cexpr (uc/with-cljs-typed-env
-                   (-> form
-                       (unanalyzed-top-level (or env (ana-api/empty-env)) opts)
-                       (check-expr expected opts)))]
-       (flush-analysis-side-effects cexpr opts)
-       cexpr))))
+   (let [nsym (::prs/parse-type-in-ns opts)
+         _ (assert (symbol? nsym))
+         opts (-> opts
+                  (assoc ::check/check-expr check-expr)
+                  (assoc ::vs/lexical-env (lex/init-lexical-env))
+                  ;; also copied to typed.cljs.checker.check/check-top-level
+                  (assoc ::c/Un-cache (atom c/initial-Un-cache))
+                  (assoc ::c/In-cache (atom {}))
+                  (assoc ::c/RClass-of-cache (atom {}))
+                  (assoc ::c/supers-cache (atom {}))
+                  (assoc ::sub/subtype-cache (atom {}))
+                  (assoc ::cgen/dotted-var-store (atom {}))
+                  (assoc ::prs/unparse-type-in-ns nsym))
+         cexpr (uc/with-cljs-typed-env
+                 (-> form
+                     (unanalyzed-top-level (or env (ana-api/empty-env)) opts)
+                     (check-expr expected opts)))]
+     (flush-analysis-side-effects cexpr opts)
+     cexpr)))
 
 (defn check-ns1
   "Type checks an entire namespace."

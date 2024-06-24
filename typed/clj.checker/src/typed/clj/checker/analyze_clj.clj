@@ -277,7 +277,7 @@
 (declare scheduled-passes-for-custom-expansions)
 
 ;; (All [x ...] [-> '{(Var x) x ...})])
-(defn thread-bindings [opt {::vs/keys [check-config delayed-errors custom-expansions] :as opts}]
+(defn thread-bindings [opt {::vs/keys [check-config] :as opts}]
   (let [ns (the-ns (or (-> opt :env :ns)
                        *ns*))
         side-effects? (case (:check-form-eval check-config)
@@ -286,10 +286,7 @@
     (-> (jana2/default-thread-bindings {:ns (ns-name ns)})
         (cond->
           ;; reify* also imports a class name, but it's gensym'd.
-          (not side-effects?) (assoc #'jana2/*parse-deftype-with-existing-class* true))
-        (assoc #'ana2/scheduled-passes (if custom-expansions
-                                         @scheduled-passes-for-custom-expansions
-                                         @jana2/scheduled-default-passes)))))
+          (not side-effects?) (assoc #'jana2/*parse-deftype-with-existing-class* true)))))
 
 (defn will-custom-expand? [form env {::vs/keys [custom-expansions] :as opts}]
   (boolean
@@ -316,11 +313,12 @@
                     {:debug? true}))
   )
 
-(def scheduled-passes-for-custom-expansions
-  (delay
-    (passes/schedule (conj jana2/default-passes
-                          ;#'beta-reduce/push-invoke
-                          ))))
+(let [d (delay
+          (passes/schedule (conj jana2/default-passes
+                                 ;#'beta-reduce/push-invoke
+                                 )))]
+  (defn scheduled-passes-for-custom-expansions [opts]
+    @d))
 
 ;; bindings is an atom that records any side effects during macroexpansion. Useful
 ;; for nREPL middleware.

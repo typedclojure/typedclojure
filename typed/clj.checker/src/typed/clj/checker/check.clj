@@ -1945,7 +1945,7 @@
   fully analyzed core.typed.analyzer AST node (ie., containing no :unanalyzed nodes)
   with a u/expr-type entry giving its TCResult type, and a :result entry
   holding its evaluation result."
-  ([form expected {:keys [env] :as opt} {::vs/keys [check-config] :as opts}]
+  ([form expected {:keys [env] :as opt} {::vs/keys [check-config custom-expansions] :as opts}]
    ;(prn "check-top-level" form)
    ;(prn "*ns*" *ns*)
    (let [nsym (or (:ns env) (::prs/parse-type-in-ns opts))
@@ -1996,7 +1996,10 @@
                                                      (format "Could not find var %s in namespace %s"
                                                              sym (ns-name ns))
                                                      opts)))))
-                  (assoc ::ana2/macroexpand-1 ana-clj/macroexpand-1))]
+                  (assoc ::ana2/macroexpand-1 ana-clj/macroexpand-1)
+                  (update ::ana2/scheduled-passes #(if custom-expansions
+                                                     ana-clj/scheduled-passes-for-custom-expansions
+                                                     %)))]
      (with-bindings (dissoc (ana-clj/thread-bindings {} opts) #'*ns*) ; *ns* is managed by higher-level ops like check-ns1
        (env/ensure (jana2/global-env)
          (-> form

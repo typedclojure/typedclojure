@@ -32,17 +32,18 @@
        :doc      "Returns true if obj represent a var form as returned by create-var"}
   var?)
 
-(def ^{:dynamic  true
-       :doc      "A map of functions such that
+(defn scheduled-passes
+  "A map of functions such that
 
-                 (ast/walk ast (:pre scheduled-passes) (:post scheduled-passes))
+  (ast/walk ast (:pre (scheduled-passes opts)) (:post (scheduled-passes opts)))
 
-                 runs the passes currently scheduled, and
-                 
-                 ((:init-ast scheduled-passes) ast)
-                 
-                 initializes the AST for traversal."}
-  scheduled-passes)
+  runs the passes currently scheduled, and
+
+  ((:init-ast (scheduled-passes opts)) ast)
+
+  initializes the AST for traversal."
+  [{::keys [scheduled-passes] :as opts}]
+  (scheduled-passes opts))
 
 (def ^{:dynamic  true
        :doc      "Resolves the value mapped by the given sym in the global env"
@@ -63,11 +64,11 @@
 
 (defn run-pre-passes
   [ast opts]
-  ((:pre scheduled-passes) ast opts))
+  ((:pre (scheduled-passes opts)) ast opts))
 
 (defn run-post-passes
   [ast opts]
-  ((:post scheduled-passes) ast opts))
+  ((:post (scheduled-passes opts)) ast opts))
 
 (declare eval-top-level)
 
