@@ -122,6 +122,14 @@
                                   (assert (symbol? res))
                                   (when (not= res sym)
                                     (swap! type-syms assoc-in [(prs/parse-in-ns opts) sym] res))))
+                              res))))
+                 (assoc ::prs/parse-type-symbol-default
+                        (let [parse-type-symbol-default prs/-parse-type-symbol-default]
+                          (fn [sym opts]
+                            (let [res (parse-type-symbol-default sym opts)]
+                              (let [rep (->serialize res)]
+                                (when (not= rep sym)
+                                  (swap! type-syms assoc-in [(prs/parse-in-ns opts) sym] rep)))
                               res)))))]
     (binding [ana2/resolve-sym (let [resolve-sym ana2/resolve-sym]
                                  (fn [sym env]
@@ -134,15 +142,7 @@
                                                    r))]
                                          (when (not= v sym)
                                            (swap! vars assoc sym v))))
-                                     r)))
-              
-              prs/parse-type-symbol-default (let [parse-type-symbol-default prs/parse-type-symbol-default]
-                                              (fn [sym opts]
-                                                (let [res (parse-type-symbol-default sym opts)]
-                                                  (let [rep (->serialize res)]
-                                                    (when (not= rep sym)
-                                                      (swap! type-syms assoc-in [(prs/parse-in-ns opts) sym] rep)))
-                                                  res)))]
+                                     r)))]
       (let [result (check-expr expr expected opts)]
         (assoc result ::cache-info {::types (dissoc @types :clojure.core.typed.current-impl/current-nocheck-var?)
                                     ::vars @vars ::errors (pos? (count @delayed-errors)) ::interop @interop

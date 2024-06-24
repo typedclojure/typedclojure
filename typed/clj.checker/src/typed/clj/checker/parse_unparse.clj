@@ -1324,7 +1324,7 @@
      'char (RClass-of 'char opts)
      'void r/-nil}))
 
-(defn ^:dynamic parse-type-symbol-default
+(defn -parse-type-symbol-default
   [sym opts]
   (let [primitives (impl/impl-case opts
                      :clojure (clj-primitives-fn opts)
@@ -1363,6 +1363,12 @@
           :else (prs-error (str "Cannot resolve type: " (pr-str sym)
                                 "\nHint: Is " (pr-str sym) " in scope in namespace"
                                 " `" (parse-in-ns opts) "`?") opts)))))
+
+(defn parse-type-symbol-default
+  [sym {::keys [parse-type-symbol-default]
+        :or {parse-type-symbol-default -parse-type-symbol-default}
+        :as opts}]
+  (parse-type-symbol-default sym opts))
 
 (defmethod parse-type-symbol :default
   [sym opts]
