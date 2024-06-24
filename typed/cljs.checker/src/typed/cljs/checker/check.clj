@@ -424,7 +424,7 @@
                     (assoc ::c/supers-cache (atom {}))
                     (assoc ::sub/subtype-cache (atom {}))
                     (assoc ::cgen/dotted-var-store (atom {}))
-                    (assoc ::prs/parse-type-in-ns nsym))
+                    (assoc ::prs/unparse-type-in-ns nsym))
            cexpr (uc/with-cljs-typed-env
                    (-> form
                        (unanalyzed-top-level (or env (ana-api/empty-env)) opts)

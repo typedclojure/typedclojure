@@ -101,8 +101,6 @@
             [typed.cljc.runtime.env-utils :as env-utils])
   (:import (clojure.lang IPersistentMap Var)))
 
-(t/ann ^:no-check typed.clj.checker.parse-unparse/*unparse-type-in-ns* (t/U nil t/Sym))
-
 ;==========================================================
 ; # Type Checker
 ;
@@ -1048,8 +1046,7 @@
     ;DO NOT REMOVE
     (println (:val debug-string))
     (flush)
-    (prs/with-unparse-ns (cu/expr-ns expr opts)
-      (print-env/print-env* opts))
+    (print-env/print-env* (prs/with-unparse-ns opts (cu/expr-ns expr opts)))
     ;DO NOT REMOVE
     (assoc expr
            u/expr-type (below/maybe-check-below
@@ -1074,7 +1071,7 @@
     (println (:val debug-string))
     (flush)
     ;(prn (:fl t))
-    (prs/with-unparse-ns (cu/expr-ns expr opts)
+    (let [opts (prs/with-unparse-ns opts (cu/expr-ns expr opts))] 
       (if (fl/FilterSet? (:fl t))
         (do (pprint/pprint (prs/unparse-filter-set (:fl t) opts))
             (flush))
@@ -1969,6 +1966,7 @@
                   (assoc ::sub/subtype-cache (atom {}))
                   (assoc ::cgen/dotted-var-store (atom {}))
                   (assoc ::prs/parse-type-in-ns nsym)
+                  (assoc ::prs/unparse-type-in-ns nsym)
                   (update ::ana2/eval-ast (fn [eval-ast]
                                             (fn [ast {::vs/keys [delayed-errors] :as opts}]
                                               (let [; don't evaluate a form if there are delayed type errors

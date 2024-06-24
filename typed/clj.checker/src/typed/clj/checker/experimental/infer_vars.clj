@@ -52,11 +52,11 @@
   "Return an expression to eval in namespace nsym, which declares
   untyped var vsym as its inferred type."
   [checker nsym vsym opts]
-  (let [t (inferred-var-in-ns checker nsym vsym opts)]
-    (prs/with-unparse-ns nsym
-      (list (using-alias-in-ns nsym 'clojure.core.typed/ann opts)
-            (using-alias-in-ns nsym vsym opts)
-            (prs/unparse-type t opts)))))
+  (let [t (inferred-var-in-ns checker nsym vsym opts)
+        opts (prs/with-unparse-ns opts nsym)]
+    (list (using-alias-in-ns nsym 'clojure.core.typed/ann opts)
+          (using-alias-in-ns nsym vsym opts)
+          (prs/unparse-type t opts))))
 
 (defn infer-unannotated-vars
   "Return a vector of syntax that can be spliced into the given namespace,

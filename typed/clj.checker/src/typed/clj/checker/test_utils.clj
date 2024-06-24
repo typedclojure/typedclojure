@@ -6,7 +6,7 @@
             [clojure.set :as set]
             [clojure.test :as test :refer [is]]
             [typed.clj.checker.check :as chk]
-            [typed.clj.checker.parse-unparse :refer [parse-type parse-clj]]
+            [typed.clj.checker.parse-unparse :refer [parse-type parse-clj] :as prs]
             [typed.clj.checker.subtype :as sub]
             [typed.clj.lang :as lang]
             [typed.clj.runtime.env :as clj-env]
@@ -153,7 +153,9 @@
                (parse-type ~t opts#))))
 
 (defn clj-opts []
-  (assoc (->opts) :typed.clj.checker.parse-unparse/parse-type-in-ns (ns-name *ns*)))
+  (-> (->opts)
+      (assoc :typed.clj.checker.parse-unparse/parse-type-in-ns (ns-name *ns*))
+      (prs/with-unparse-ns (ns-name *ns*))))
 
 (defn subtype? [s t]
   (sub/subtype? s t (clj-opts)))

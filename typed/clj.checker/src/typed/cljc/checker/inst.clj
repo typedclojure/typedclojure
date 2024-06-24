@@ -146,42 +146,42 @@
             (subst/substitute-many (subvec argtys 0 dotted-argtys-start) (pop names) opts))))))
 
 (defn inst-from-targs-syn [ptype targs-syn prs-ns expected opts]
-  (binding [prs/*unparse-type-in-ns* prs-ns]
-    (let [opts (-> opts
-                   (assoc ::prs/parse-type-in-ns prs-ns))
-          ptype (c/fully-resolve-type ptype opts)
-          ptype (or (when (r/Intersection? ptype)
-                      (some #(when ((some-fn r/Poly? r/PolyDots?) %)
-                               %)
-                            (:types ptype)))
-                    ptype)
-          ; support (inst :kw ...)
-          ptype (cond-> ptype
-                  (c/keyword-value? ptype) (c/KeywordValue->Fn opts))]
-      (if-not ((some-fn r/Poly? r/PolyDots?) ptype)
-        (err/tc-delayed-error (str "Cannot instantiate non-polymorphic type: " (prs/unparse-type ptype opts))
-                              {:return (cu/error-ret expected)}
-                              opts)
-        (let [[targs-syn kwargs] (split-with (complement keyword?) targs-syn)
-              _ (when-not (even? (count kwargs))
-                  (err/int-error (str "Expected an even number of keyword options to inst, given: " (vec kwargs)) opts))
-              _ (when (seq kwargs)
-                  (when-not (apply distinct? (map first (partition 2 kwargs)))
-                    (err/int-error (str "Gave repeated keyword args to inst: " (vec kwargs)) opts)))
-              {:keys [named] :as kwargs} kwargs
-              _ (let [unsupported (set/difference (set (keys kwargs)) #{:named})]
-                  (when (seq unsupported)
-                    (err/int-error (str "Unsupported keyword argument(s) to inst " unsupported) opts)))
-              _ (when (contains? kwargs :named)
-                  (when-not (and (map? named)
-                                 (every? symbol? (keys named)))
-                    (err/int-error (str ":named keyword argument to inst must be a map of symbols to types, given: " (pr-str named)) opts)))
-              named (into {}
-                          (map (fn [[k v]]
-                                 [k (prs/parse-type v opts)]))
-                          named)
-              targs (mapv #(prs/parse-type % opts) targs-syn)]
-          (below/maybe-check-below
-            (r/ret (manual-inst ptype targs named opts))
-            expected
-            opts))))))
+  (let [opts (-> opts
+                 (assoc ::prs/parse-type-in-ns prs-ns)
+                 (prs/with-unparse-ns prs-ns))
+        ptype (c/fully-resolve-type ptype opts)
+        ptype (or (when (r/Intersection? ptype)
+                    (some #(when ((some-fn r/Poly? r/PolyDots?) %)
+                             %)
+                          (:types ptype)))
+                  ptype)
+        ; support (inst :kw ...)
+        ptype (cond-> ptype
+                (c/keyword-value? ptype) (c/KeywordValue->Fn opts))]
+    (if-not ((some-fn r/Poly? r/PolyDots?) ptype)
+      (err/tc-delayed-error (str "Cannot instantiate non-polymorphic type: " (prs/unparse-type ptype opts))
+                            {:return (cu/error-ret expected)}
+                            opts)
+      (let [[targs-syn kwargs] (split-with (complement keyword?) targs-syn)
+            _ (when-not (even? (count kwargs))
+                (err/int-error (str "Expected an even number of keyword options to inst, given: " (vec kwargs)) opts))
+            _ (when (seq kwargs)
+                (when-not (apply distinct? (map first (partition 2 kwargs)))
+                  (err/int-error (str "Gave repeated keyword args to inst: " (vec kwargs)) opts)))
+            {:keys [named] :as kwargs} kwargs
+            _ (let [unsupported (set/difference (set (keys kwargs)) #{:named})]
+                (when (seq unsupported)
+                  (err/int-error (str "Unsupported keyword argument(s) to inst " unsupported) opts)))
+            _ (when (contains? kwargs :named)
+                (when-not (and (map? named)
+                               (every? symbol? (keys named)))
+                  (err/int-error (str ":named keyword argument to inst must be a map of symbols to types, given: " (pr-str named)) opts)))
+            named (into {}
+                        (map (fn [[k v]]
+                               [k (prs/parse-type v opts)]))
+                        named)
+            targs (mapv #(prs/parse-type % opts) targs-syn)]
+        (below/maybe-check-below
+          (r/ret (manual-inst ptype targs named opts))
+          expected
+          opts)))))

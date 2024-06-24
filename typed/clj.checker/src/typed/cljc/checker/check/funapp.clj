@@ -52,9 +52,8 @@
     :post [(r/TCResult? %)]}
    (let [fexpr-type (c/fully-resolve-type (r/ret-t fexpr-ret-type) opts)
          arg-types (mapv r/ret-t arg-ret-types)
-         fexpr-ifn-ancestor (delay (c/ifn-ancestor fexpr-type opts))]
-     (prs/with-unparse-ns (or prs/*unparse-type-in-ns*
-                              (some-> fexpr (cu/expr-ns opts)))
+         fexpr-ifn-ancestor (delay (c/ifn-ancestor fexpr-type opts))
+         opts (update opts ::prs/unparse-type-in-ns #(or % (some-> fexpr (cu/expr-ns opts))))]
      ;(prn "check-funapp" (prs/unparse-type fexpr-type opts) (map #(prs/unparse-type % opts) arg-types) (some-> expected (prs/unparse-type opts)))
      (cond
        ;; a union of functions can be applied if we can apply all of the elements
@@ -158,7 +157,7 @@
          (when vsym
            (infer-vars/add-inferred-type
              (env/checker opts)
-             (or prs/*unparse-type-in-ns*
+             (or (::prs/unparse-type-in-ns opts)
                  (when fexpr
                    (cu/expr-ns fexpr opts)))
              vsym
@@ -505,4 +504,4 @@
 
          (err/tc-delayed-error (str "Cannot invoke type: " (pr-str (prs/unparse-type fexpr-type opts)))
                                {:return (or expected (r/ret (r/Bottom)))}
-                               opts)))))))
+                               opts))))))

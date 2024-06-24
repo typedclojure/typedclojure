@@ -196,9 +196,9 @@
                                                                (update ::vs/current-expr #(impl/impl-case opts
                                                                                             :clojure (first mthods)
                                                                                             ; fn-method is not printable in cljs
-                                                                                            :cljs %)))]
-                                                  (prs/with-unparse-ns (cu/expr-ns (first mthods) opts)
-                                                    (err/tc-delayed-error (str "No matching arities: " (prs/unparse-type t opts)) opts))))
+                                                                                            :cljs %))
+                                                               (prs/with-unparse-ns (cu/expr-ns (first mthods) opts)))]
+                                                  (err/tc-delayed-error (str "No matching arities: " (prs/unparse-type t opts)) opts)))
                                               ms))]
                              [t ms])))
                     (:types fin))]
@@ -296,7 +296,7 @@
   (let [ts (function-types expected opts)]
     (cond
       (empty? ts)
-      (prs/with-unparse-ns (cu/expr-ns (first mthods) opts)
+      (let [opts (prs/with-unparse-ns opts (cu/expr-ns (first mthods) opts))]
         (err/tc-delayed-error (str (pr-str (prs/unparse-type expected opts)) " is not a function type")
                               {:return {:methods mthods
                                         :ifn r/-error

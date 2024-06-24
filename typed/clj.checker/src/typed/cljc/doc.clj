@@ -332,19 +332,21 @@
 (defn type-doc-clj* [v]
   ((requiring-resolve 'clojure.core.typed/load-if-needed))
   ((requiring-resolve 'clojure.core.typed/register!))
-  (let [nsym (ns-name *ns*)]
-    (binding [prs/*unparse-type-in-ns* nsym]
-      (type-doc* (impl/clj-checker) v
-                 (assoc ((requiring-resolve 'typed.clj.runtime.env/clj-opts))
-                        :typed.clj.checker.parse-unparse/parse-type-in-ns nsym)))))
+  (let [nsym (ns-name *ns*)
+        opts (-> ((requiring-resolve 'typed.clj.runtime.env/clj-opts))
+                 (assoc :typed.clj.checker.parse-unparse/parse-type-in-ns nsym)
+                 (prs/with-unparse-ns nsym))]
+    (type-doc* (impl/clj-checker) v opts)))
 
 (defn type-doc-clj [v] (println (type-doc-clj* v)))
 
 (defn type-doc-cljs* [v]
   ((requiring-resolve 'cljs.core.typed/load-if-needed))
   ((requiring-resolve 'cljs.core.typed/register!))
-  (type-doc* (impl/cljs-checker) v
-             (assoc ((requiring-resolve 'typed.cljs.runtime.env/cljs-opts))
-                    :typed.clj.checker.parse-unparse/parse-type-in-ns ((requiring-resolve 'typed.cljs.checker.util/cljs-ns)))))
+  (let [nsym ((requiring-resolve 'typed.cljs.checker.util/cljs-ns))]
+    (type-doc* (impl/cljs-checker) v
+               (-> ((requiring-resolve 'typed.cljs.runtime.env/cljs-opts))
+                   (assoc :typed.clj.checker.parse-unparse/parse-type-in-ns nsym)
+                   (prs/with-unparse-ns nsym)))))
 
 (defn type-doc-cljs [v] (println (type-doc-cljs* v)))

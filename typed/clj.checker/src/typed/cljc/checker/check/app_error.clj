@@ -72,102 +72,104 @@
         static-method? (= :static-call (:op fexpr))
         instance-method? (= :instance-call (:op fexpr))
         method-sym (when (or static-method? instance-method?)
-                     (cu/MethodExpr->qualsym fexpr opts))]
-    (prs/with-unparse-ns (or prs/*unparse-type-in-ns*
-                             (or (some-> fexpr (cu/expr-ns opts))
-                                 (some-> (::vs/current-expr opts) (cu/expr-ns opts))))
-      (err/tc-delayed-error
-        (str
-          (if poly?
-            (str "Polymorphic " 
-                 (cond static-method? "static method "
-                       instance-method? "instance method "
-                       :else "function "))
-            (cond static-method? "Static method "
-                  instance-method? "Instance method "
-                  :else "Function "))
-          (if (or static-method?
-                  instance-method?)  
-            method-sym
-            (if fexpr
-              (ast-u/emit-form-fn fexpr opts)
-              "<NO FORM>"))
-          " could not be applied to arguments:\n"
-          (when poly?
-            (let [names (cond 
-                          (r/Poly? poly?) (c/Poly-fresh-symbols* poly?)
-                          ;PolyDots
-                          :else (c/PolyDots-fresh-symbols* poly?))
-                  bnds (if (r/Poly? poly?)
-                         (c/Poly-bbnds* names poly? opts)
-                         (c/PolyDots-bbnds* names poly? opts))]
-              (str "Polymorphic Variables:\n\t"
-                   (str/join "\n\t"
-                             (map (partial apply pr-str)
-                                  (map (fn [bnd nme]
-                                         {:pre [((some-fn r/Bounds? r/Regex?) bnd)
-                                                (symbol? nme)]}
-                                         (cond
-                                           (r/Regex? bnd) (do (assert (= r/dotted-no-bounds bnd)
-                                                                      "TODO interesting dotted bounds")
-                                                              [nme :..])
-                                           :else (let [_ (assert (r/Bounds? bnd) [(pr-str bnd)])
-                                                       {:keys [lower-bound upper-bound]} bnd]
-                                                   (concat [nme]
-                                                           (when-not (= r/-any upper-bound)
-                                                             [:< (prs/unparse-type upper-bound opts)])
-                                                           (when-not (r/Bottom? lower-bound)
-                                                             [:> (prs/unparse-type lower-bound opts)])))))
-                                       bnds (map (comp #(prs/unparse-type % opts) r/make-F) names)))))))
-          "\n\nDomains:\n\t" 
-          (str/join "\n\t" 
-                    (map (partial apply pr-str) 
-                         (map (fn [{:keys [dom rest drest kws prest pdot]}]
-                                (concat (map #(prs/unparse-type % opts) dom)
-                                        (when rest
-                                          [(prs/unparse-type rest opts) :*])
-                                        (when-some [{:keys [pre-type name]} drest]
-                                          [(prs/unparse-type pre-type opts)
-                                           :..
-                                           (-> name r/make-F r/F-original-name)])
-                                        (letfn [(readable-kw-map [m]
-                                                  (reduce-kv (fn [m k v]
-                                                               {:keys [(r/Value? k)]}
-                                                               (assoc m (:val k) (prs/unparse-type v opts)))
-                                                             {} m))]
-                                          (when-some [{:keys [mandatory optional]} kws]
-                                            (concat ['&]
-                                                    (when (seq mandatory)
-                                                      [:mandatory (readable-kw-map mandatory)])
-                                                    (when (seq optional)
-                                                      [:optional (readable-kw-map optional)]))))
-                                        (when prest
-                                          [(prs/unparse-type prest opts) '<*])
-                                        (when-some [{:keys [pre-type name]} pdot]
-                                          [(prs/unparse-type pre-type opts)
-                                           '<...
-                                           (-> name r/make-F r/F-original-name)])))
-                              (:types fin))))
-          "\n\n"
-          "Arguments:\n\t" (apply prn-str (mapv (comp #(prs/unparse-type % opts) r/ret-t) arg-ret-types))
-          "\n"
-          "Ranges:\n\t"
-          (str/join "\n\t" 
-                    (map (partial apply pr-str) (map (comp #(prs/unparse-result % opts) :rng) (:types fin))))
-          "\n\n"
-          (when-some [t (some-> expected r/ret-t)]
-            (when-not (r/wild? t) 
-              (str "with expected type:\n\t" (pr-str (prs/unparse-type t opts)) "\n\n")))
-          #_#_"in: "
+                     (cu/MethodExpr->qualsym fexpr opts))
+        opts (update opts
+                     ::prs/unparse-type-in-ns
+                     #(or %
+                          (some-> fexpr (cu/expr-ns opts))
+                          (some-> (::vs/current-expr opts) (cu/expr-ns opts))))]
+    (err/tc-delayed-error
+      (str
+        (if poly?
+          (str "Polymorphic " 
+               (cond static-method? "static method "
+                     instance-method? "instance method "
+                     :else "function "))
+          (cond static-method? "Static method "
+                instance-method? "Instance method "
+                :else "Function "))
+        (if (or static-method?
+                instance-method?)  
+          method-sym
           (if fexpr
-            (if (or static-method? instance-method?)
-              (ast-u/emit-form-fn fexpr opts)
-              (list* (ast-u/emit-form-fn fexpr opts)
-                     (map #(ast-u/emit-form-fn % opts) args)))
+            (ast-u/emit-form-fn fexpr opts)
             "<NO FORM>"))
-        {:expected expected
-         :return (or expected (r/ret r/Err))}
-        opts))))
+        " could not be applied to arguments:\n"
+        (when poly?
+          (let [names (cond 
+                        (r/Poly? poly?) (c/Poly-fresh-symbols* poly?)
+                        ;PolyDots
+                        :else (c/PolyDots-fresh-symbols* poly?))
+                bnds (if (r/Poly? poly?)
+                       (c/Poly-bbnds* names poly? opts)
+                       (c/PolyDots-bbnds* names poly? opts))]
+            (str "Polymorphic Variables:\n\t"
+                 (str/join "\n\t"
+                           (map (partial apply pr-str)
+                                (map (fn [bnd nme]
+                                       {:pre [((some-fn r/Bounds? r/Regex?) bnd)
+                                              (symbol? nme)]}
+                                       (cond
+                                         (r/Regex? bnd) (do (assert (= r/dotted-no-bounds bnd)
+                                                                    "TODO interesting dotted bounds")
+                                                            [nme :..])
+                                         :else (let [_ (assert (r/Bounds? bnd) [(pr-str bnd)])
+                                                     {:keys [lower-bound upper-bound]} bnd]
+                                                 (concat [nme]
+                                                         (when-not (= r/-any upper-bound)
+                                                           [:< (prs/unparse-type upper-bound opts)])
+                                                         (when-not (r/Bottom? lower-bound)
+                                                           [:> (prs/unparse-type lower-bound opts)])))))
+                                     bnds (map (comp #(prs/unparse-type % opts) r/make-F) names)))))))
+        "\n\nDomains:\n\t" 
+        (str/join "\n\t" 
+                  (map (partial apply pr-str) 
+                       (map (fn [{:keys [dom rest drest kws prest pdot]}]
+                              (concat (map #(prs/unparse-type % opts) dom)
+                                      (when rest
+                                        [(prs/unparse-type rest opts) :*])
+                                      (when-some [{:keys [pre-type name]} drest]
+                                        [(prs/unparse-type pre-type opts)
+                                         :..
+                                         (-> name r/make-F r/F-original-name)])
+                                      (letfn [(readable-kw-map [m]
+                                                (reduce-kv (fn [m k v]
+                                                             {:keys [(r/Value? k)]}
+                                                             (assoc m (:val k) (prs/unparse-type v opts)))
+                                                           {} m))]
+                                        (when-some [{:keys [mandatory optional]} kws]
+                                          (concat ['&]
+                                                  (when (seq mandatory)
+                                                    [:mandatory (readable-kw-map mandatory)])
+                                                  (when (seq optional)
+                                                    [:optional (readable-kw-map optional)]))))
+                                      (when prest
+                                        [(prs/unparse-type prest opts) '<*])
+                                      (when-some [{:keys [pre-type name]} pdot]
+                                        [(prs/unparse-type pre-type opts)
+                                         '<...
+                                         (-> name r/make-F r/F-original-name)])))
+                            (:types fin))))
+        "\n\n"
+        "Arguments:\n\t" (apply prn-str (mapv (comp #(prs/unparse-type % opts) r/ret-t) arg-ret-types))
+        "\n"
+        "Ranges:\n\t"
+        (str/join "\n\t" 
+                  (map (partial apply pr-str) (map (comp #(prs/unparse-result % opts) :rng) (:types fin))))
+        "\n\n"
+        (when-some [t (some-> expected r/ret-t)]
+          (when-not (r/wild? t) 
+            (str "with expected type:\n\t" (pr-str (prs/unparse-type t opts)) "\n\n")))
+        #_#_"in: "
+        (if fexpr
+          (if (or static-method? instance-method?)
+            (ast-u/emit-form-fn fexpr opts)
+            (list* (ast-u/emit-form-fn fexpr opts)
+                   (map #(ast-u/emit-form-fn % opts) args)))
+          "<NO FORM>"))
+      {:expected expected
+       :return (or expected (r/ret r/Err))}
+      opts)))
 
 (defn polyapp-type-error [fexpr args fexpr-type arg-ret-types expected opts]
   {:pre [((some-fn r/Poly? r/PolyDots?) fexpr-type)]

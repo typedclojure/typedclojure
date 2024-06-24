@@ -62,40 +62,44 @@
 
 (declare unparse-type unparse-filter unparse-filter-set unparse-TCResult)
 
+(defn- ->unparse-opts []
+  (assoc ((requiring-resolve 'typed.clj.runtime.env/clj-opts))
+         ::unparse-type-in-ns (ns-name *ns*)))
+
 ; Types print by unparsing them
 (do (defmethod print-method typed.cljc.checker.impl_protocols.TCType [s writer]
-      (print-method (unparse-type s ((requiring-resolve 'typed.clj.runtime.env/clj-opts))) writer))
+      (print-method (unparse-type s (->unparse-opts)) writer))
     (prefer-method print-method typed.cljc.checker.impl_protocols.TCType clojure.lang.IRecord)
     (prefer-method print-method typed.cljc.checker.impl_protocols.TCType java.util.Map)
     (prefer-method print-method typed.cljc.checker.impl_protocols.TCType clojure.lang.IPersistentMap)
 
     (defmethod print-method typed.cljc.checker.impl_protocols.TCAnyType [s writer]
-      (print-method (unparse-type s ((requiring-resolve 'typed.clj.runtime.env/clj-opts))) writer))
+      (print-method (unparse-type s (->unparse-opts)) writer))
     (prefer-method print-method typed.cljc.checker.impl_protocols.TCAnyType clojure.lang.IRecord)
     (prefer-method print-method typed.cljc.checker.impl_protocols.TCAnyType java.util.Map)
     (prefer-method print-method typed.cljc.checker.impl_protocols.TCAnyType clojure.lang.IPersistentMap)
 
     (defmethod print-method TCResult [s writer]
-      (print-method (unparse-TCResult s ((requiring-resolve 'typed.clj.runtime.env/clj-opts))) writer))
+      (print-method (unparse-TCResult s (->unparse-opts)) writer))
     (prefer-method print-method TCResult java.util.Map)
     (prefer-method print-method TCResult clojure.lang.IPersistentMap)
 
     (defmethod print-method typed.cljc.checker.impl_protocols.IFilter [s writer]
       (cond 
-        (f/FilterSet? s) (print-method (unparse-filter-set s ((requiring-resolve 'typed.clj.runtime.env/clj-opts))) writer)
-        :else (print-method (unparse-filter s ((requiring-resolve 'typed.clj.runtime.env/clj-opts))) writer)))
+        (f/FilterSet? s) (print-method (unparse-filter-set s (->unparse-opts)) writer)
+        :else (print-method (unparse-filter s (->unparse-opts)) writer)))
     (prefer-method print-method typed.cljc.checker.impl_protocols.IFilter clojure.lang.IRecord)
     (prefer-method print-method typed.cljc.checker.impl_protocols.IFilter java.util.Map)
     (prefer-method print-method typed.cljc.checker.impl_protocols.IFilter clojure.lang.IPersistentMap)
 
     (defmethod print-method typed.cljc.checker.impl_protocols.IRObject [s writer]
-      (print-method (unparse-object s ((requiring-resolve 'typed.clj.runtime.env/clj-opts))) writer))
+      (print-method (unparse-object s (->unparse-opts)) writer))
     (prefer-method print-method typed.cljc.checker.impl_protocols.IRObject clojure.lang.IRecord)
     (prefer-method print-method typed.cljc.checker.impl_protocols.IRObject java.util.Map)
     (prefer-method print-method typed.cljc.checker.impl_protocols.IRObject clojure.lang.IPersistentMap)
 
     (defmethod print-method typed.cljc.checker.path_rep.IPathElem [s writer]
-      (print-method (unparse-path-elem s ((requiring-resolve 'typed.clj.runtime.env/clj-opts))) writer))
+      (print-method (unparse-path-elem s (->unparse-opts)) writer))
     (prefer-method print-method typed.cljc.checker.path_rep.IPathElem clojure.lang.IRecord)
     (prefer-method print-method typed.cljc.checker.path_rep.IPathElem java.util.Map)
     (prefer-method print-method typed.cljc.checker.path_rep.IPathElem clojure.lang.IPersistentMap)
@@ -107,7 +111,7 @@
 ;; it's necessary to convert to edn before calling to circumvent fipp's defaults for printing maps.
 ;; this makes extending fipp.edn/IEdn useless for types.
 (defn- massage-before-fipp-pprint [x]
-  (let [opts ((requiring-resolve 'typed.clj.runtime.env/clj-opts))
+  (let [opts (->unparse-opts)
         contains-special-print? (volatile! nil)
         special-pprint (fn [t]
                          (cond
@@ -1804,20 +1808,17 @@
 ;; Special types are unparsed under clojure.core.typed in the :unknown
 ;; implementation. All other types are verbosely printed under :unknown.
 
-(defonce ^:dynamic *unparse-type-in-ns* nil)
-(set-validator! #'*unparse-type-in-ns* (some-fn nil? symbol?))
-
-(defn unparse-in-ns [opts]
+(defn unparse-in-ns [{::keys [unparse-type-in-ns] :as opts}]
   {:post [((some-fn nil? symbol?) %)]}
-  (or *unparse-type-in-ns*
+  (or unparse-type-in-ns
+      (throw (Exception. "unparse-type-in-ns unbound"))
       (impl/impl-case opts
         :clojure (ns-name *ns*)
         :cljs (cljs-ns)
         :unknown nil)))
 
-(defmacro with-unparse-ns [sym & body]
-  `(binding [*unparse-type-in-ns* ~sym]
-     ~@body))
+(defn with-unparse-ns [opts sym]
+  (assoc opts ::unparse-type-in-ns sym))
 
 (defn alias-in-ns
   "Returns an alias for namespace nsym in namespace ns, or nil if none."
@@ -2488,10 +2489,10 @@
 
 (defn unparse-TCResult-in-ns [r ns opts]
   {:pre [((some-fn plat-con/namespace? symbol?) ns)]}
-  (binding [*unparse-type-in-ns* (if (symbol? ns)
-                                   ns
-                                   (ns-name ns))]
-    (unparse-TCResult r opts)))
+  (unparse-TCResult r (with-unparse-ns opts
+                        (if (symbol? ns)
+                          ns
+                          (ns-name ns)))))
 
 (extend-protocol IUnparseType
   TCResult
