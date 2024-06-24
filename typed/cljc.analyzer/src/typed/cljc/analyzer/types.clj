@@ -36,13 +36,17 @@
 
   :typed.cljc.analyzer/unanalyzed
   Create an AST node for a form without expanding it.
-  "
+
+  :typed.cljc.analyzer/macroexpand-1
+  If form represents a macro form, returns its expansion,
+  else returns form."
   (t/HMap :mandatory {::ana/resolve-ns [t/Sym ana/Env ana/Opts :-> t/Any]
                       ::ana/current-ns-name [t/Env ana/Opts :-> t/Sym]
                       ::ana/parse [(t/Seq t/Any) ana/Env ana/Opts :-> t/Any]
                       ::ana/eval-ast [ana/Expr ana/Opts :-> (t/Assoc ana/Expr ':result t/Any)]
                       ::ana/create-var [t/Sym ana/Env ana/Opts :-> t/Any]
-                      ::ana/unanalyzed [t/Any ana/Env t/Opts :-> ana/Unanalyzed]}))
+                      ::ana/unanalyzed [t/Any ana/Env t/Opts :-> ana/Unanalyzed]
+                      ::ana/macroexpand-1 [t/Any ana/Env t/Opts :-> t/Any]}))
 (defalias ana/Expr (t/Merge
                      (t/HMap :mandatory {;:op t/Kw
                                          :env ana/Env}
@@ -66,7 +70,7 @@
 (defalias u/Classification t/Kw)
 (defalias u/Ctx (t/U ':ctx/expr))
 
-(ann ana/macroexpand-1 [t/Any ana/Env t/Any :-> t/Any])
+(ann ana/macroexpand-1 [t/Any ana/Env t/Opts :-> t/Any])
 (ann ana/var? [t/Any :-> t/Bool])
 (ann ana/scheduled-passes '{:init-ast [t/Any t/Any :-> t/Any]
                             :pre ast/Pre

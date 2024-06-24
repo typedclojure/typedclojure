@@ -287,8 +287,7 @@
         (cond->
           ;; reify* also imports a class name, but it's gensym'd.
           (not side-effects?) (assoc #'jana2/*parse-deftype-with-existing-class* true))
-        (assoc #'ana2/macroexpand-1 macroexpand-1
-               #'ana2/scheduled-passes (if custom-expansions
+        (assoc #'ana2/scheduled-passes (if custom-expansions
                                          @scheduled-passes-for-custom-expansions
                                          @jana2/scheduled-default-passes)))))
 

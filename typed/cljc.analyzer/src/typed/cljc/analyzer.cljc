@@ -21,11 +21,11 @@
 
 (set! *warn-on-reflection* true)
 
-(def ^{:dynamic  true
-       :arglists '([form env opts])
-       :doc      "If form represents a macro form, returns its expansion,
-                  else returns form."}
-  macroexpand-1)
+(defn macroexpand-1
+  "If form represents a macro form, returns its expansion,
+  else returns form."
+  [form env {::keys [macroexpand-1] :as opts}]
+  (macroexpand-1 form env opts))
 
 (def ^{:dynamic  true
        :arglists '([obj])

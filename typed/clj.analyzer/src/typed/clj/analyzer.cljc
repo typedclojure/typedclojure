@@ -563,8 +563,7 @@
   ;([form] (analyze form (empty-env) {}))
   ;([form env] (analyze form env {}))
   ([form env opts]
-   (with-bindings (-> {#'ana/macroexpand-1 macroexpand-1
-                       #'ana/scheduled-passes    @scheduled-default-passes
+   (with-bindings (-> {#'ana/scheduled-passes    @scheduled-default-passes
                        #'ana/var?          var?
                        #'ana/resolve-sym   resolve-sym
                        #'ana/analyze-outer analyze-outer
@@ -589,8 +588,7 @@
     (assoc ast :result result)))
 
 (defn default-thread-bindings [env]
-  (-> {#'ana/macroexpand-1 macroexpand-1
-       #'ana/scheduled-passes    @scheduled-default-passes
+  (-> {#'ana/scheduled-passes    @scheduled-default-passes
        #'ana/var?          var?
        #'ana/resolve-sym   resolve-sym
        #'ana/var->sym      var->sym
@@ -650,9 +648,7 @@
                          eval-ast)
              env (merge env (u/-source-info form env))
              [mform raw-forms] (with-bindings (-> {;#'*ns*              (the-ns (:ns env))
-                                                   #'ana/resolve-sym   resolve-sym
-                                                   #'ana/macroexpand-1 (get-in opts [:bindings #'ana/macroexpand-1]
-                                                                               macroexpand-1)}
+                                                   #'ana/resolve-sym   resolve-sym}
                                                   #?@(:cljr [] :default [(assoc Compiler/LOADER (RT/makeClassLoader))]))
                                  (loop [form form raw-forms []]
                                    (let [mform (if (stop-gildardi-check form env)
@@ -704,4 +700,5 @@
    ::ana/parse parse
    ::ana/eval-ast eval-ast2
    ::ana/create-var create-var
-   ::ana/unanalyzed unanalyzed})
+   ::ana/unanalyzed unanalyzed
+   ::ana/macroexpand-1 macroexpand-1})

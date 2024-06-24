@@ -398,4 +398,6 @@
    ::ana/create-var (fn [sym env opts]
                       (throw (ex-info "TODO typed.cljs.analyzer/create-var" {})))
    ::ana/unanalyzed unanalyzed
+   ::ana/macroexpand-1 (fn [form env opts]
+                         (throw (ex-info "TODO typed.cljs.analyzer/macroexpand-1" {})))
    })

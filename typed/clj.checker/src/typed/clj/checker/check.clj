@@ -205,10 +205,10 @@
                        (or (not inline-arities-f)
                            (inline-arities-f (count (rest form))))))
             ;; TODO unit test (lack of) double expand/eval
-            (let [expr-noinline (binding [ana2/macroexpand-1 (fn [form _ _] form)]
-                                  ;; could pull out the ana2/unmark-top-level to here.
-                                  ;; probably would avoid the need for ana2/unmark-eval-top-level.
-                                  (ana2/analyze-outer expr opts))]
+            (let [expr-noinline 
+                  ;; could pull out the ana2/unmark-top-level to here.
+                  ;; probably would avoid the need for ana2/unmark-eval-top-level.
+                  (ana2/analyze-outer expr (assoc opts ::ana2/macroexpand-1 (fn [form _ _] form)))]
               (when (= :invoke (:op expr-noinline))
                 (let [{cargs :args
                        res u/expr-type} (-> expr-noinline
@@ -1995,7 +1995,8 @@
                                                    (err/int-error
                                                      (format "Could not find var %s in namespace %s"
                                                              sym (ns-name ns))
-                                                     opts))))))]
+                                                     opts)))))
+                  (assoc ::ana2/macroexpand-1 ana-clj/macroexpand-1))]
      (with-bindings (dissoc (ana-clj/thread-bindings {} opts) #'*ns*) ; *ns* is managed by higher-level ops like check-ns1
        (env/ensure (jana2/global-env)
          (-> form
