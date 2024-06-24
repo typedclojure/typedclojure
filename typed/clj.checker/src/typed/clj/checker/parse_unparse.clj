@@ -141,7 +141,7 @@
                         ([x writer options] (-> x ((resolve `massage-before-fipp-pprint)) (fipp-pretty writer options)))))))
   (System/setProperty "typed.clj.checker.parse-unparse.fipp-override" "false"))
 
-(declare parse-type* resolve-type-clj->sym ^:dynamic resolve-type-clj resolve-type-cljs)
+(declare parse-type* resolve-type-clj->sym resolve-type-clj resolve-type-cljs)
 
 (defn tsyn->env [s]
   (let [m (meta s)]
@@ -1101,7 +1101,7 @@
 (def ns-rewrites-clj {'clojure.core.typed 'typed.clojure})
 (def ^:private ns-unrewrites-clj (set/map-invert ns-rewrites-clj))
 
-(defn ^:dynamic resolve-type-clj
+(defn -resolve-type-clj
   "Returns a var, class or nil"
   [sym opts]
   {:pre [(symbol? sym)]
@@ -1121,6 +1121,13 @@
             (find-var (symbol (name (ns-rewrites-clj alias-sym alias-sym))
                               (name sym)))))
       (err/int-error (str "Cannot find namespace: " sym) opts))))
+
+(defn resolve-type-clj
+  "Returns a var, class or nil"
+  [sym {::keys [resolve-type-clj]
+        :or {resolve-type-clj -resolve-type-clj}
+        :as opts}]
+  (resolve-type-clj sym opts))
 
 (defn- resolve-type-alias-clj
   "Returns a symbol if sym maps to a type alias, otherwise nil"

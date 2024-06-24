@@ -105,10 +105,23 @@
                 ;; preserve the namespace resolutions that occur while parsing during type checking, like t/ann-form
                  (assoc ::prs/resolve-type-clj->sym
                         (let [resolve-type-clj->sym prs/-resolve-type-clj->sym]
-                          (fn [sym opts]
+                          (fn __resolve-type-clj->sym [sym opts]
                             (let [res (resolve-type-clj->sym sym opts)]
                               (when (not= res sym)
                                 (swap! type-syms assoc-in [(prs/parse-in-ns opts) sym] res))
+                              res))))
+                 (assoc ::prs/resolve-type-clj
+                        (let [resolve-type-clj prs/-resolve-type-clj]
+                          (fn __resolve-type-clj [sym opts]
+                            (let [res (resolve-type-clj sym opts)]
+                              (when res
+                                (let [res (cond
+                                            (var? res) (symbol res)
+                                            (class? res) (-> ^Class res .getName symbol)
+                                            :else (assert nil (str "WIP prs/resolve-type-clj to sym: " sym " " res)))]
+                                  (assert (symbol? res))
+                                  (when (not= res sym)
+                                    (swap! type-syms assoc-in [(prs/parse-in-ns opts) sym] res))))
                               res)))))]
     (binding [ana2/resolve-sym (let [resolve-sym ana2/resolve-sym]
                                  (fn [sym env]
@@ -122,18 +135,7 @@
                                          (when (not= v sym)
                                            (swap! vars assoc sym v))))
                                      r)))
-              prs/resolve-type-clj (let [resolve-type-clj prs/resolve-type-clj]
-                                     (fn [sym opts]
-                                       (let [res (resolve-type-clj sym opts)]
-                                         (when res
-                                           (let [res (cond
-                                                       (var? res) (symbol res)
-                                                       (class? res) (-> ^Class res .getName symbol)
-                                                       :else (assert nil (str "WIP prs/resolve-type-clj to sym: " sym res)))]
-                                             (assert (symbol? res))
-                                             (when (not= res sym)
-                                               (swap! type-syms assoc-in [(prs/parse-in-ns opts) sym] res))))
-                                         res)))
+              
               prs/parse-type-symbol-default (let [parse-type-symbol-default prs/parse-type-symbol-default]
                                               (fn [sym opts]
                                                 (let [res (parse-type-symbol-default sym opts)]
