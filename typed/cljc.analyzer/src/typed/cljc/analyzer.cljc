@@ -54,10 +54,10 @@
        :arglists '([v])}
   var->sym)
 
-(def ^{:dynamic  true
-       :doc      "If ast is :unanalyzed, then call analyze-form on it, otherwise returns ast."
-       :arglists '([ast opts])}
-  analyze-outer)
+(defn analyze-outer
+  "If ast is :unanalyzed, then call analyze-form on it, otherwise returns ast."
+  [ast {::keys [analyze-outer] :as opts}]
+  (analyze-outer ast opts))
 
 (declare analyze-outer-root)
 

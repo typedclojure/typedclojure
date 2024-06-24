@@ -193,11 +193,9 @@
                       (ana/analyze-outer-root opts)
                       infer-ana-op))))))
 
-(declare analyze-outer)
-
 (defn parse-let [op env form nme opts]
   (-> (inner-parse op env form nme opts)
-      (update :body analyze-outer opts)))
+      (update :body ana/analyze-outer opts)))
 
 (defmethod parse 'let*
   [op env form nme opts]
@@ -215,10 +213,10 @@
   [op env form nme opts]
   (let [ast (-> (inner-parse op env form nme opts)
                 infer-ana-op
-                (update :body analyze-outer opts))]
+                (update :body ana/analyze-outer opts))]
     (cond-> ast
-      (:catch ast) (update :catch analyze-outer opts)
-      (:finally ast) (update :finally analyze-outer opts))))
+      (:catch ast) (update :catch ana/analyze-outer opts)
+      (:finally ast) (update :finally ana/analyze-outer opts))))
 
 (defmethod parse 'fn*
   [op env form nme opts]
@@ -227,7 +225,7 @@
       (update :methods (fn [methods]
                          (mapv #(-> %
                                     infer-ana-op
-                                    (update :body analyze-outer opts))
+                                    (update :body ana/analyze-outer opts))
                                methods)))))
 
 (defmethod parse 'quote
@@ -239,7 +237,7 @@
   [op env form nme opts]
   (-> (inner-parse op env form nme opts)
       infer-ana-op
-      (update :body analyze-outer opts)
+      (update :body ana/analyze-outer opts)
       add-bindings-op))
 
 (defmethod parse 'case*
@@ -333,14 +331,13 @@
                             #'ana-cljs'/*unchecked-arrays* 
                             ])}))
 
-(defn analyze-outer [ast opts]
+(defn -analyze-outer [ast opts]
   (case (:op ast)
     :unanalyzed (with-bindings (:bindings ast)
                   (cond-> (analyze (:env ast)
                                    (:form ast)
                                    (:name ast)
-                                   ;;FIXME should be opts ?
-                                   (:opts ast))
+                                   opts)
                     (:body? ast) (assoc :body? true)))
     ast))
 
@@ -351,7 +348,7 @@
           (unanalyzed
             (ana-api/empty-env)
             (list '+ (list '- 1) 2)))
-        analyze-outer)
+        ana/analyze-outer)
     [:form :op])
   )
 
@@ -371,7 +368,6 @@
 (defn default-thread-bindings []
   {#'ana-cljs/parse parse
    #'ana-cljs/analyze unanalyzed-env-first
-   #'ana/analyze-outer analyze-outer
    #'ana/resolve-sym resolve-sym
    #'ana/var->sym var->sym
    #'ana/scheduled-passes {:pre identity
@@ -400,4 +396,5 @@
    ::ana/unanalyzed unanalyzed
    ::ana/macroexpand-1 (fn [form env opts]
                          (throw (ex-info "TODO typed.cljs.analyzer/macroexpand-1" {})))
+   ::ana/analyze-outer -analyze-outer
    })

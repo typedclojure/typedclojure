@@ -39,14 +39,18 @@
 
   :typed.cljc.analyzer/macroexpand-1
   If form represents a macro form, returns its expansion,
-  else returns form."
+  else returns form.
+  
+  :typed.cljc.analyzer/analyze-outer
+  If ast is :unanalyzed, then call analyze-form on it, otherwise returns ast."
   (t/HMap :mandatory {::ana/resolve-ns [t/Sym ana/Env ana/Opts :-> t/Any]
                       ::ana/current-ns-name [t/Env ana/Opts :-> t/Sym]
                       ::ana/parse [(t/Seq t/Any) ana/Env ana/Opts :-> t/Any]
                       ::ana/eval-ast [ana/Expr ana/Opts :-> (t/Assoc ana/Expr ':result t/Any)]
                       ::ana/create-var [t/Sym ana/Env ana/Opts :-> t/Any]
                       ::ana/unanalyzed [t/Any ana/Env t/Opts :-> ana/Unanalyzed]
-                      ::ana/macroexpand-1 [t/Any ana/Env t/Opts :-> t/Any]}))
+                      ::ana/macroexpand-1 [t/Any ana/Env t/Opts :-> t/Any]
+                      ::ana/analyze-outer [ana/Expr t/Opts :-> ana/Expr]}))
 (defalias ana/Expr (t/Merge
                      (t/HMap :mandatory {;:op t/Kw
                                          :env ana/Env}
@@ -78,7 +82,7 @@
 (ann ana/resolve-sym [t/Sym :-> t/Any])
 (ann ana/current-ns-name [t/Env :-> t/Sym])
 (ann ana/var->sym [t/Any :-> (t/Nilable t/Sym)])
-(ann ana/analyze-outer [ana/Expr t/Any :-> ana/Expr])
+(ann ana/analyze-outer [ana/Expr t/Opts :-> ana/Expr])
 (ann ana/run-pre-passes [ana/Expr t/Any :-> ana/Expr])
 (ann ana/run-post-passes [ana/Expr t/Any :-> ana/Expr])
 (ann ana/run-passes [ana/Expr t/Any :-> ana/Expr])

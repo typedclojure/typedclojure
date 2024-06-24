@@ -527,7 +527,7 @@
             (update :asdf inc)))))
   )
 
-(defn analyze-outer
+(defn -analyze-outer
   "If ast is :unanalyzed, then call analyze-form on it, otherwise returns ast."
   [ast {::ana/keys [current-ns-name] :as opts}]
   (case (:op ast)
@@ -566,7 +566,6 @@
    (with-bindings (-> {#'ana/scheduled-passes    @scheduled-default-passes
                        #'ana/var?          var?
                        #'ana/resolve-sym   resolve-sym
-                       #'ana/analyze-outer analyze-outer
                        ;#'*ns*              (the-ns (:ns env))
                        }
                       #?@(:cljr [] :default [(assoc Compiler/LOADER (RT/makeClassLoader))])
@@ -592,7 +591,6 @@
        #'ana/var?          var?
        #'ana/resolve-sym   resolve-sym
        #'ana/var->sym      var->sym
-       #'ana/analyze-outer analyze-outer
        ;#'*ns*              (the-ns (:ns env))
        }
       #?@(:cljr [] :default [(assoc Compiler/LOADER (RT/makeClassLoader))])))
@@ -701,4 +699,5 @@
    ::ana/eval-ast eval-ast2
    ::ana/create-var create-var
    ::ana/unanalyzed unanalyzed
-   ::ana/macroexpand-1 macroexpand-1})
+   ::ana/macroexpand-1 macroexpand-1
+   ::ana/analyze-outer -analyze-outer})

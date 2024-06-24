@@ -393,7 +393,7 @@
      (if (= :unanalyzed (:op expr))
        (do @*register-exts
            (or (maybe-check-unanalyzed expr expected opts)
-               (recur (tana2/analyze-outer expr opts) (max -1 (dec fuel)))))
+               (recur (ana2/analyze-outer expr opts) (max -1 (dec fuel)))))
        (-check expr expected
                (-> opts
                    (update ::vs/current-env #(if (:line env) env %))
