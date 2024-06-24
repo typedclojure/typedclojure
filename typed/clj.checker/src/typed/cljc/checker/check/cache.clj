@@ -136,7 +136,7 @@
                                    (let [r (resolve-sym sym env)]
                                      (when r
                                        (let [v (if (ana2/var? r opts)
-                                                 (ana2/var->sym r)
+                                                 (ana2/var->sym r opts)
                                                  (if (class? r)
                                                    (coerce/Class->symbol r)
                                                    r))]

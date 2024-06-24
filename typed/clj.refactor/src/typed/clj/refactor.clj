@@ -205,7 +205,7 @@
   (let [refactor-form* (fn [expr]
                          (kw-case (::ana-cljc/op expr)
                            ::ana-cljc/unanalyzed (let [{:keys [form env]} expr
-                                                       op-sym (ana/resolve-op-sym form env)]
+                                                       op-sym (ana/resolve-op-sym form env (ana/default-opts))]
                                                    (when op-sym
                                                      (let [mta (meta (first form))]
                                                        (when ((every-pred :line :column) mta)

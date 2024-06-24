@@ -33,7 +33,7 @@
      (assert (record? expr))
      (if (instance? UnanalyzedExpr expr)
        (let [{:keys [form env]} expr]
-         (case (jana2/resolve-op-sym form env)
+         (case (jana2/resolve-op-sym form env opts)
            (recur (ana2/analyze-outer expr opts) expected opts)))
        (-> expr
            (ana2/run-pre-passes opts)

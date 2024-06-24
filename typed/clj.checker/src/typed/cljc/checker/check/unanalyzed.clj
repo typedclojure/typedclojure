@@ -33,13 +33,13 @@
                       (pr-str info)))))
     nil))
 
-(defn -unanalyzed-special-dispatch [{:keys [op form env] :as expr} expected]
+(defn -unanalyzed-special-dispatch [{:keys [op form env] :as expr} expected opts]
   {:pre [(#{:unanalyzed} op)]
    :post [((some-fn nil? qualified-symbol?) %)]}
   (let [res (when (seq? form)
               (-> (first form)
                   (ana2/resolve-sym env)
-                  ana2/var->sym))]
+                  (ana2/var->sym opts)))]
     ;(prn `-unanalyzed-special-dispatch form res)
     res))
 
@@ -49,7 +49,7 @@
       (into (select-keys expr [u/expr-type]))))
 
 (defn -unanalyzed-special [expr expected opts]
-  (when-some [vsym (-unanalyzed-special-dispatch expr expected)]
+  (when-some [vsym (-unanalyzed-special-dispatch expr expected opts)]
     (when-some [impl-sym (get-in (env/deref-checker (env/checker opts)) [impl/unanalyzed-special-kw vsym])]
       ((requiring-resolve impl-sym) expr expected opts))))
 

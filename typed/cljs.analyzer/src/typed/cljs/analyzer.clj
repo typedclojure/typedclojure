@@ -361,7 +361,7 @@
     (:name (doto (ana-api/resolve env op)
              #_(prn "ana-api/resolve" op (:ns env))))))
 
-(defn var->sym [sym]
+(defn var->sym [sym opts]
   (when (qualified-symbol? sym)
     sym))
 
@@ -369,11 +369,10 @@
   {#'ana-cljs/parse parse
    #'ana-cljs/analyze unanalyzed-env-first
    #'ana/resolve-sym resolve-sym
-   #'ana/var->sym var->sym
    })
 
 (defn resolve-op-sym
-  [form env]
+  [form env opts]
   (when (seq? form)
     (resolve-sym (first form) env)))
 
@@ -401,4 +400,5 @@
                              :init-ast (fn [x opts] x)})
    ::ana/var? (fn [x opts]
                 (throw (ex-info "TODO typed.cljs.analyzer/var?" {})))
+   ::ana/var->sym var->sym
    })

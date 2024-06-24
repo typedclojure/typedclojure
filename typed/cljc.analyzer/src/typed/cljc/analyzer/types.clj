@@ -53,6 +53,9 @@
 
   :typed.cljc.analyzer/var?
   Returns true if obj represent a var form as returned by create-var
+
+  :typed.cljc.analyzer/var->sym
+  If given a var, returns the fully qualified symbol for that var, otherwise nil.
   "
   (t/HMap :mandatory {::ana/resolve-ns [t/Sym ana/Env ana/Opts :-> t/Any]
                       ::ana/current-ns-name [t/Env ana/Opts :-> t/Sym]
@@ -65,7 +68,8 @@
                       ::ana/scheduled-passes [ana/Opts :-> '{:init-ast ast/InitAst
                                                              :pre ast/Pre
                                                              :post ast/Post}]
-                      ::ana/var? [t/Any ana/Opts :-> t/Bool]}))
+                      ::ana/var? [t/Any ana/Opts :-> t/Bool]
+                      ::ana/var->sym [t/Any ana/Opts :-> (t/Nilable t/Sym)]}))
 (defalias ana/Expr (t/Merge
                      (t/HMap :mandatory {;:op t/Kw
                                          :env ana/Env}
@@ -97,7 +101,7 @@
                                           :post ast/Post}])
 (ann ana/resolve-sym [t/Sym :-> t/Any])
 (ann ana/current-ns-name [t/Env :-> t/Sym])
-(ann ana/var->sym [t/Any :-> (t/Nilable t/Sym)])
+(ann ana/var->sym [t/Any ana/Opts :-> (t/Nilable t/Sym)])
 (ann ana/analyze-outer [ana/Expr ana/Opts :-> ana/Expr])
 (ann ana/run-pre-passes [ana/Expr t/Any :-> ana/Expr])
 (ann ana/run-post-passes [ana/Expr t/Any :-> ana/Expr])

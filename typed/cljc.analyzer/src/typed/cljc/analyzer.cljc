@@ -50,10 +50,10 @@
        :arglists '([sym env])}
   resolve-sym)
 
-(def ^{:dynamic  true
-       :doc      "If given a var, returns the fully qualified symbol for that var, otherwise nil."
-       :arglists '([v])}
-  var->sym)
+(defn var->sym
+  "If given a var, returns the fully qualified symbol for that var, otherwise nil."
+  [v {::keys [var->sym] :as opts}]
+  (var->sym v opts))
 
 (defn analyze-outer
   "If ast is :unanalyzed, then call analyze-form on it, otherwise returns ast."

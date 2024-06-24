@@ -25,7 +25,7 @@
   ([expr expected]
    (prn (ana-api/current-ns))
    (case (:op expr)
-     :unanalyzed (let [op (doto (jsana2/resolve-op-sym (:form expr) (:env expr))
+     :unanalyzed (let [op (doto (jsana2/resolve-op-sym (:form expr) (:env expr) (jsana2/default-opts))
                             prn)]
                    (case op
                      cljs.core/inc (check-expr
@@ -33,7 +33,7 @@
                                              :form #(with-meta (apply list (list 'var op) (rest %))
                                                                (meta %)))
                                      expected)
-                     (check-expr (jsana2/analyze-outer expr) expected)))
+                     (check-expr (jsana2/-analyze-outer expr) expected)))
      :do (let [cexpr (-> expr
                          (update :statements #(mapv check-expr %))
                          (update :ret check-expr expected))]

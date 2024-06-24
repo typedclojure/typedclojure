@@ -346,7 +346,7 @@
                              :post [((some-fn nil? symbol?) %)]}
                             (-> form
                                 (ana2/resolve-sym env)
-                                ana2/var->sym)))
+                                (ana2/var->sym opts))))
 
 (defmulti -invoke-apply (fn [{[{:keys [op form env] :as fexpr} :as args] :args :as expr} expected opts]
                           {:pre [(= :invoke (:op expr))]
@@ -355,7 +355,7 @@
                             (assert (= :unanalyzed op))
                             (-> form
                                 (ana2/resolve-sym env)
-                                ana2/var->sym))))
+                                (ana2/var->sym opts)))))
 
 (defn host-call-qname [{:keys [target] :as expr} _expected opts]
   {:pre [(= :host-call (:op expr))

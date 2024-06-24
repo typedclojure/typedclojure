@@ -100,7 +100,7 @@
              ;_ (prn "*ns*" (ns-name *ns*))
              _ (when *intermediate-forms*
                  (swap! *intermediate-forms* conj form))]
-         (case (jana2/resolve-op-sym form env)
+         (case (jana2/resolve-op-sym form env opts)
            ;; example of type checking a macro that relies on top-level 'do'
            ;; evaluation order, so the results of evaluating previous expressions
            ;; can be used to macroexpand subsequent ones.

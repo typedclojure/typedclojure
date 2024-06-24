@@ -219,7 +219,7 @@
 
 (defn var->sym
   "If given a var, returns the fully qualified symbol for that var, otherwise nil."
-  [^clojure.lang.Var v]
+  [^clojure.lang.Var v opts]
   (when (var? v)
     (symbol (when (.ns v)
               (str (ns-name (.ns v))))
@@ -264,7 +264,7 @@
   
   In environment env, if form is an invocation of
   a global var, return the fully qualified symbol of that var."
-  [form env]
+  [form env opts]
   (when (seq? form)
     (let [op (first form)]
       (when (and (symbol? op)
@@ -273,7 +273,7 @@
                  (not (get (:locals env) op)))
         ;TODO call these dynamic vars in common ns
         (-> (resolve-sym op env)
-            var->sym)))))
+            (ana/var->sym opts))))))
 
 (defn parse-monitor-enter
   [[_ target :as form] env opts]
@@ -588,7 +588,6 @@
 
 (defn default-thread-bindings [env]
   (-> {#'ana/resolve-sym   resolve-sym
-       #'ana/var->sym      var->sym
        ;#'*ns*              (the-ns (:ns env))
        }
       #?@(:cljr [] :default [(assoc Compiler/LOADER (RT/makeClassLoader))])))
@@ -701,4 +700,5 @@
    ::ana/analyze-outer -analyze-outer
    ::ana/scheduled-passes scheduled-default-passes
    ::ana/var? (fn [x opts] (var? x))
+   ::ana/var->sym var->sym
    })
