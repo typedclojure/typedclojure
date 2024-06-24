@@ -49,7 +49,11 @@
    (ast/walk ast (:pre scheduled-passes) (:post scheduled-passes))
   runs the passes currently scheduled, and
    ((:init-ast scheduled-passes) ast)
-  initializes the AST for traversal."
+  initializes the AST for traversal.
+
+  :typed.cljc.analyzer/var?
+  Returns true if obj represent a var form as returned by create-var
+  "
   (t/HMap :mandatory {::ana/resolve-ns [t/Sym ana/Env ana/Opts :-> t/Any]
                       ::ana/current-ns-name [t/Env ana/Opts :-> t/Sym]
                       ::ana/parse [(t/Seq t/Any) ana/Env ana/Opts :-> t/Any]
@@ -60,7 +64,8 @@
                       ::ana/analyze-outer [ana/Expr ana/Opts :-> ana/Expr]
                       ::ana/scheduled-passes [ana/Opts :-> '{:init-ast ast/InitAst
                                                              :pre ast/Pre
-                                                             :post ast/Post}]}))
+                                                             :post ast/Post}]
+                      ::ana/var? [t/Any ana/Opts :-> t/Bool]}))
 (defalias ana/Expr (t/Merge
                      (t/HMap :mandatory {;:op t/Kw
                                          :env ana/Env}
@@ -86,7 +91,7 @@
 (defalias u/Ctx (t/U ':ctx/expr))
 
 (ann ana/macroexpand-1 [t/Any ana/Env ana/Opts :-> t/Any])
-(ann ana/var? [t/Any :-> t/Bool])
+(ann ana/var? [t/Any ana/Opts :-> t/Bool])
 (ann ana/scheduled-passes [ana/Opts :-> '{:init-ast ast/InitAst
                                           :pre ast/Pre
                                           :post ast/Post}])

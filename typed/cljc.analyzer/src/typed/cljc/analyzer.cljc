@@ -27,10 +27,10 @@
   [form env {::keys [macroexpand-1] :as opts}]
   (macroexpand-1 form env opts))
 
-(def ^{:dynamic  true
-       :arglists '([obj])
-       :doc      "Returns true if obj represent a var form as returned by create-var"}
-  var?)
+(defn var?
+  "Returns true if obj represent a var form as returned by create-var"
+  [obj {::keys [var?] :as opts}]
+  (var? obj opts))
 
 (defn scheduled-passes
   "A map of functions such that
@@ -478,7 +478,7 @@
                    :children    (into [] (remove #(= :init %)) children)})
             map->LocalExpr)
           (if-let [var (let [v (resolve-sym sym env)]
-                         (and (var? v) v))]
+                         (and (var? v opts) v))]
             (let [m (meta var)]
               (->
                 {:op          :var

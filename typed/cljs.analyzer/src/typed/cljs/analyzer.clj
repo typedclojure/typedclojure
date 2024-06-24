@@ -399,4 +399,6 @@
                             {:pre (fn [x opts] x)
                              :post (fn [x opts] x)
                              :init-ast (fn [x opts] x)})
+   ::ana/var? (fn [x opts]
+                (throw (ex-info "TODO typed.cljs.analyzer/var?" {})))
    })

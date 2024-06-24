@@ -565,7 +565,6 @@
   ;([form env] (analyze form env {}))
   ([form env opts]
    (with-bindings (-> {
-                       #'ana/var?          var?
                        #'ana/resolve-sym   resolve-sym
                        ;#'*ns*              (the-ns (:ns env))
                        }
@@ -588,8 +587,7 @@
     (assoc ast :result result)))
 
 (defn default-thread-bindings [env]
-  (-> {#'ana/var?          var?
-       #'ana/resolve-sym   resolve-sym
+  (-> {#'ana/resolve-sym   resolve-sym
        #'ana/var->sym      var->sym
        ;#'*ns*              (the-ns (:ns env))
        }
@@ -701,4 +699,6 @@
    ::ana/unanalyzed unanalyzed
    ::ana/macroexpand-1 macroexpand-1
    ::ana/analyze-outer -analyze-outer
-   ::ana/scheduled-passes scheduled-default-passes})
+   ::ana/scheduled-passes scheduled-default-passes
+   ::ana/var? (fn [x opts] (var? x))
+   })
