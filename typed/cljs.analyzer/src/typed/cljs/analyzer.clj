@@ -333,10 +333,6 @@
                             #'ana-cljs'/*unchecked-arrays* 
                             ])}))
 
-(defn unanalyzed [form env opts]
-  {:pre [(map? env)]}
-  (unanalyzed-env-first env form))
-
 (defn analyze-outer [ast opts]
   (case (:op ast)
     :unanalyzed (with-bindings (:bindings ast)
@@ -376,7 +372,6 @@
   {#'ana-cljs/parse parse
    #'ana-cljs/analyze unanalyzed-env-first
    #'ana/analyze-outer analyze-outer
-   #'ana/unanalyzed unanalyzed
    #'ana/resolve-sym resolve-sym
    #'ana/var->sym var->sym
    #'ana/scheduled-passes {:pre identity
@@ -388,6 +383,10 @@
   (when (seq? form)
     (resolve-sym (first form) env)))
 
+(defn unanalyzed [form env opts]
+  {:pre [(map? env)]}
+  (unanalyzed-env-first env form))
+
 (defn default-opts []
   {::ana/resolve-ns (fn [sym env opts]
                       (throw (ex-info "TODO typed.cljs.analyzer/resolve-ns" {})))
@@ -398,4 +397,5 @@
                     (throw (ex-info "TODO typed.cljs.analyzer/eval-ast" {})))
    ::ana/create-var (fn [sym env opts]
                       (throw (ex-info "TODO typed.cljs.analyzer/create-var" {})))
+   ::ana/unanalyzed unanalyzed
    })

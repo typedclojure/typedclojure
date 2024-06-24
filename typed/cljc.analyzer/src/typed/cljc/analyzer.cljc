@@ -59,11 +59,6 @@
        :arglists '([ast opts])}
   analyze-outer)
 
-(def ^{:dynamic  true
-       :doc      "Create an AST node for a form without expanding it."
-       :arglists '([form env opts])}
-  unanalyzed)
-
 (declare analyze-outer-root)
 
 (defn run-pre-passes
@@ -82,6 +77,13 @@
   (ast/walk ast
             #(-> % (analyze-outer-root opts) (run-pre-passes opts))
             #(-> % (run-post-passes opts) (eval-top-level opts))))
+
+(defn unanalyzed 
+  "Create an AST node for a form without expanding it."
+  [form env {::keys [unanalyzed] :as opts}]
+  (when-not unanalyzed
+    (throw (ex-info "unanalyzed not bound")))
+  (unanalyzed form env opts))
 
 (def specials
   '#{do if new quote set! try var

@@ -567,7 +567,6 @@
                        #'ana/scheduled-passes    @scheduled-default-passes
                        #'ana/var?          var?
                        #'ana/resolve-sym   resolve-sym
-                       #'ana/unanalyzed unanalyzed
                        #'ana/analyze-outer analyze-outer
                        ;#'*ns*              (the-ns (:ns env))
                        }
@@ -596,7 +595,6 @@
        #'ana/resolve-sym   resolve-sym
        #'ana/var->sym      var->sym
        #'ana/analyze-outer analyze-outer
-       #'ana/unanalyzed unanalyzed
        ;#'*ns*              (the-ns (:ns env))
        }
       #?@(:cljr [] :default [(assoc Compiler/LOADER (RT/makeClassLoader))])))
@@ -705,4 +703,5 @@
    ::ana/current-ns-name current-ns-name
    ::ana/parse parse
    ::ana/eval-ast eval-ast2
-   ::ana/create-var create-var})
+   ::ana/create-var create-var
+   ::ana/unanalyzed unanalyzed})

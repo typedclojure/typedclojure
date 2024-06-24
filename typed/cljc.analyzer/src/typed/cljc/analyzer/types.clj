@@ -32,12 +32,17 @@
   Evaluates an AST node, attaching result to :result.
 
   :typed.cljc.analyzer/create-var
-  Creates a var for sym and returns it."
+  Creates a var for sym and returns it.
+
+  :typed.cljc.analyzer/unanalyzed
+  Create an AST node for a form without expanding it.
+  "
   (t/HMap :mandatory {::ana/resolve-ns [t/Sym ana/Env ana/Opts :-> t/Any]
                       ::ana/current-ns-name [t/Env ana/Opts :-> t/Sym]
                       ::ana/parse [(t/Seq t/Any) ana/Env ana/Opts :-> t/Any]
                       ::ana/eval-ast [ana/Expr ana/Opts :-> (t/Assoc ana/Expr ':result t/Any)]
-                      ::ana/create-var [t/Sym ana/Env ana/Opts :-> t/Any]}))
+                      ::ana/create-var [t/Sym ana/Env ana/Opts :-> t/Any]
+                      ::ana/unanalyzed [t/Any ana/Env t/Opts :-> ana/Unanalyzed]}))
 (defalias ana/Expr (t/Merge
                      (t/HMap :mandatory {;:op t/Kw
                                          :env ana/Env}
@@ -70,7 +75,6 @@
 (ann ana/current-ns-name [t/Env :-> t/Sym])
 (ann ana/var->sym [t/Any :-> (t/Nilable t/Sym)])
 (ann ana/analyze-outer [ana/Expr t/Any :-> ana/Expr])
-(ann ana/unanalyzed [t/Any ana/Env t/Any :-> ana/Unanalyzed])
 (ann ana/run-pre-passes [ana/Expr t/Any :-> ana/Expr])
 (ann ana/run-post-passes [ana/Expr t/Any :-> ana/Expr])
 (ann ana/run-passes [ana/Expr t/Any :-> ana/Expr])
