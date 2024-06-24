@@ -93,7 +93,7 @@
   (apply common-test/tc-err tc-common* frm opts))
 
 (defmacro subtype? [s t]
-  `(sub/subtype? ~s ~t cljs-opts))
+  `(sub/subtype? ~s ~t (cljs-opts)))
 
 (defmacro sub? [s t]
   `(subtype? (prs/parse-cljs '~s)
@@ -135,4 +135,6 @@
                                             :form expr}))))))))
              exprs)))))
 
-(def cljs-opts (->opts))
+(defn cljs-opts []
+  (-> (->opts)
+      (prs/with-unparse-ns ((requiring-resolve 'typed.cljs.checker.util/cljs-ns)))))

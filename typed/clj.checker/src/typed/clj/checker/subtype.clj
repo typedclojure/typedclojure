@@ -321,20 +321,19 @@
          (r/AnyType? t)]
    :post [((some-fn nil? set?) %)]}
   ;(prn :subtype-symbolic-closure s t)
-  (with-bindings (:bindings s)
-    (let [delayed-errors (err/-init-delayed-errors)]
-      (when (try (check-expr (:fexpr s) (r/ret t)
-                             (-> opts
-                                 (assoc ::vs/delayed-errors delayed-errors)
-                                 (assoc ::sub-current-seen A)
-                                 (into (select-keys (:opts s) [::vs/lexical-env]))))
-                 (catch clojure.lang.ExceptionInfo e
-                   ;(prn e) ;;tmp
-                   (when-not (-> e ex-data err/tc-error?)
-                     (throw e))))
-        ;(prn @delayed-errors) ;;tmp
-        (when (empty? @delayed-errors)
-          A)))))
+  (let [delayed-errors (err/-init-delayed-errors)]
+    (when (try (check-expr (:fexpr s) (r/ret t)
+                           (-> opts
+                               (assoc ::vs/delayed-errors delayed-errors)
+                               (assoc ::sub-current-seen A)
+                               (into (select-keys (:opts s) [::vs/lexical-env]))))
+               (catch clojure.lang.ExceptionInfo e
+                 ;(prn e) ;;tmp
+                 (when-not (-> e ex-data err/tc-error?)
+                   (throw e))))
+      ;(prn @delayed-errors) ;;tmp
+      (when (empty? @delayed-errors)
+        A))))
 
 (defn check-symbolic-closure
   "Check symbolic closure s against type t (propagating all errors to caller),
@@ -344,12 +343,11 @@
          (r/AnyType? t)]
    :post [(-> % u/expr-type r/TCResult?)]}
   ;(prn :check-symbolic-closure s t)
-  (with-bindings (:bindings s)
-    (check-expr (:fexpr s) (r/ret t)
-                ;; keep :delayed-errors
-                ;; hmm, additional error msg context needed to orient the user
-                ;; to the problem? symbolic closure will be blamed
-                (assoc opts ::vs/lexical-env lexical-env))))
+  (check-expr (:fexpr s) (r/ret t)
+              ;; keep :delayed-errors
+              ;; hmm, additional error msg context needed to orient the user
+              ;; to the problem? symbolic closure will be blamed
+              (assoc opts ::vs/lexical-env lexical-env)))
 
 (defn subtype-regex [A s t]
   {:pre [(r/Regex? s)

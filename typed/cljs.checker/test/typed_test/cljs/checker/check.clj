@@ -49,7 +49,7 @@
 (deftest Protocol-of-test
   (is-cljs (c/Protocol-of 'cljs.core/IMapEntry [(r/JSNumber-maker)
                                                 (r/JSNumber-maker)]
-                          cljs-opts)))
+                          (cljs-opts))))
 
 (deftest do-test
   (is-tc-e (do) nil)
@@ -184,7 +184,7 @@
 
 (deftest ctyp-255-cljs-test
   (testing "unparsing protocols is fully qualified in :unknown"
-    (is-cljs (= (prs/unparse-type (c/Protocol-of 'cljs.core/ISet cljs-opts) cljs-opts)
+    (is-cljs (= (prs/unparse-type (c/Protocol-of 'cljs.core/ISet (cljs-opts)) (cljs-opts))
                 'cljs.core/ISet))))
 
 

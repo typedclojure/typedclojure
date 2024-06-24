@@ -2114,25 +2114,24 @@
          (r/SymbolicClosure? arg-t)
          (r/Type? #_inferrable-symbolic-closure-expected-type? dom-t)]
    :post [(r/AnyType? %)]}
-  (with-bindings (:bindings arg-t)
-    (let [delayed-errors (err/-init-delayed-errors)
-          expected (r/ret (prep-symbolic-closure-expected-type3 substitution-without-symb dom-t opts))
-          ;_ (prn :app-symbolic-closure expected)
-          res (-> (check-expr
-                    (:fexpr arg-t)
-                    expected
-                    ;;TODO add symbolic closure's lexical scope from (:opts arg-t)
-                    (assoc opts ::vs/delayed-errors delayed-errors))
-                  u/expr-type r/ret-t)]
-      (when-some [errs (seq @delayed-errors)]
-        #_
-        (prn "symbolic closure failed to check"
-             errs)
-        ;; move to next arity, symbolic closure failed to check
-        (fail! nil nil))
-      ;(prn :arg-t arg-t)
-      ;(prn :res res)
-      res)))
+  (let [delayed-errors (err/-init-delayed-errors)
+        expected (r/ret (prep-symbolic-closure-expected-type3 substitution-without-symb dom-t opts))
+        ;_ (prn :app-symbolic-closure expected)
+        res (-> (check-expr
+                  (:fexpr arg-t)
+                  expected
+                  ;;TODO add symbolic closure's lexical scope from (:opts arg-t)
+                  (assoc opts ::vs/delayed-errors delayed-errors))
+                u/expr-type r/ret-t)]
+    (when-some [errs (seq @delayed-errors)]
+      #_
+      (prn "symbolic closure failed to check"
+           errs)
+      ;; move to next arity, symbolic closure failed to check
+      (fail! nil nil))
+    ;(prn :arg-t arg-t)
+    ;(prn :res res)
+    res))
 
 ;; substitute all variables in non-covariant positions (and all index variables for now)
 (defn subst-non-covariant [subst t opts]
