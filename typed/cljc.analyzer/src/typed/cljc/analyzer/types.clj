@@ -78,8 +78,8 @@
                                                              :post ast/Post}]
                       ::ana/var? [t/Any ana/Opts :-> t/Bool]
                       ::ana/var->sym [t/Any ana/Opts :-> (t/Nilable t/Sym)]
-                      ::ana/resolve-sym [t/Sym ana/Env ana/Opts :-> t/Any]
-                      ::jana/parse-deftype-with-existing-class t/Any}))
+                      ::ana/resolve-sym [t/Sym ana/Env ana/Opts :-> t/Any]}
+          :optional {::jana/parse-deftype-with-existing-class t/Bool}))
 (defalias ana/Expr (t/Merge
                      (t/HMap :mandatory {;:op t/Kw
                                          :env ana/Env}
