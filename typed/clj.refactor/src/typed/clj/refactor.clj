@@ -231,11 +231,10 @@
           (not (:file-map-atom opt)) (assoc :file-map-atom (atom {})))
         env (ana/empty-env)]
     (with-bindings (ana/default-thread-bindings env)
-      (let [opts (ana/default-opts)]
-        (ana-env/ensure (ana/global-env)
-          (-> form
-              (ana-cljc/unanalyzed-top-level env)
-              (refactor-form* rdr-ast opt)))))
+      (let [opts (ana-env/ensure (ana/default-opts) (ana/global-env))]
+        (-> form
+            (ana-cljc/unanalyzed-top-level env)
+            (refactor-form* rdr-ast opt))))
     @file-map-atom))
 
 ;; pre pass

@@ -79,7 +79,7 @@
 (defn uniquify-locals-around
   [{:keys [env] :as ast} opts]
   (let [ast (cond-> ast
-              (-> (env/deref-env) :passes-opts :uniquify/uniquify-env)
+              (-> (env/deref-env opts) :passes-opts :uniquify/uniquify-env)
               (update-in [:env :locals]
                          u/update-vals #(update % :name normalize env)))]
    (-uniquify-locals ast)))

@@ -561,9 +561,9 @@
                        }
                       #?@(:cljr [] :default [(assoc Compiler/LOADER (RT/makeClassLoader))])
                       (into (:bindings opts)))
-     (env/ensure (global-env)
-       (env/with-env (u/mmerge (env/deref-env) {:passes-opts (get opts :passes-opts default-passes-opts)})
-         (ana/run-passes (ana/unanalyzed form env opts) opts))))))
+     (let [opts (env/ensure opts (global-env))
+           opts (env/with-env opts (u/mmerge (env/deref-env opts) {:passes-opts (get opts :passes-opts default-passes-opts)}))]
+       (ana/run-passes (ana/unanalyzed form env opts) opts)))))
 
 (deftype ExceptionThrown [e ast])
 
@@ -627,52 +627,52 @@
                    stop-gildardi-check (fn [form env] false)
                    analyze-fn analyze}
               :as opts}]
-     (env/ensure (global-env)
-       (let [eval-fn (or eval-fn
-                         (::ana/eval-ast opts)
-                         eval-ast)
-             env (merge env (u/-source-info form env))
-             [mform raw-forms] (with-bindings (-> {;#'*ns*              (the-ns (:ns env))
-                                                   }
-                                                  #?@(:cljr [] :default [(assoc Compiler/LOADER (RT/makeClassLoader))]))
-                                 (loop [form form raw-forms []]
-                                   (let [mform (if (stop-gildardi-check form env)
-                                                 form
-                                                 (ana/macroexpand-1 form env opts))]
-                                     (if (= mform form)
-                                       [mform (seq raw-forms)]
-                                       (recur mform (conj raw-forms
-                                                          (if-let [[op & r] (and (seq? form) form)]
-                                                            (if (or (ju/macro? op env)
-                                                                    (ju/inline? op r env))
-                                                              (vary-meta form assoc ::ana/resolved-op (ana/resolve-sym op env opts))
-                                                              form)
-                                                            form)))))))]
-         (if (and (seq? mform) (= 'do (first mform)) (next mform)
-                  (additional-gilardi-condition mform env))
-           ;; handle the Gilardi scenario
-           (let [[statements ret] (u/butlast+last (rest mform))
-                 statements-expr (mapv (fn [s] (analyze+eval s (-> env
-                                                                (u/ctx :ctx/statement)
-                                                                (assoc :ns (ns-name *ns*)))
-                                                            (statement-opts-fn opts)))
-                                       statements)
-                 ret-expr (analyze+eval ret (assoc env :ns (ns-name *ns*)) opts)]
-             (annotate-do
-               {:op         :do
-                :top-level  true
-                :form       mform
-                :statements statements-expr
-                :ret        ret-expr
-                :children   [:statements :ret]
-                :env        env
-                :result     (:result ret-expr)
-                :raw-forms  raw-forms}
-               statements-expr
-               ret-expr))
-           (let [a (analyze-fn mform env opts)
-                 e (eval-fn a (assoc opts :original-form mform))]
-             (merge e {:raw-forms raw-forms})))))))
+     (let [opts (env/ensure opts (global-env))
+           eval-fn (or eval-fn
+                       (::ana/eval-ast opts)
+                       eval-ast)
+           env (merge env (u/-source-info form env))
+           [mform raw-forms] (with-bindings (-> {;#'*ns*              (the-ns (:ns env))
+                                                 }
+                                                #?@(:cljr [] :default [(assoc Compiler/LOADER (RT/makeClassLoader))]))
+                               (loop [form form raw-forms []]
+                                 (let [mform (if (stop-gildardi-check form env)
+                                               form
+                                               (ana/macroexpand-1 form env opts))]
+                                   (if (= mform form)
+                                     [mform (seq raw-forms)]
+                                     (recur mform (conj raw-forms
+                                                        (if-let [[op & r] (and (seq? form) form)]
+                                                          (if (or (ju/macro? op env)
+                                                                  (ju/inline? op r env))
+                                                            (vary-meta form assoc ::ana/resolved-op (ana/resolve-sym op env opts))
+                                                            form)
+                                                          form)))))))]
+       (if (and (seq? mform) (= 'do (first mform)) (next mform)
+                (additional-gilardi-condition mform env))
+         ;; handle the Gilardi scenario
+         (let [[statements ret] (u/butlast+last (rest mform))
+               statements-expr (mapv (fn [s] (analyze+eval s (-> env
+                                                              (u/ctx :ctx/statement)
+                                                              (assoc :ns (ns-name *ns*)))
+                                                          (statement-opts-fn opts)))
+                                     statements)
+               ret-expr (analyze+eval ret (assoc env :ns (ns-name *ns*)) opts)]
+           (annotate-do
+             {:op         :do
+              :top-level  true
+              :form       mform
+              :statements statements-expr
+              :ret        ret-expr
+              :children   [:statements :ret]
+              :env        env
+              :result     (:result ret-expr)
+              :raw-forms  raw-forms}
+             statements-expr
+             ret-expr))
+         (let [a (analyze-fn mform env opts)
+               e (eval-fn a (assoc opts :original-form mform))]
+           (merge e {:raw-forms raw-forms}))))))
 
 (defn current-ns-name
   "Returns the current namespace symbol."

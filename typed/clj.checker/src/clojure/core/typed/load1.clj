@@ -44,44 +44,43 @@
     :post [(nil? %)]}
    ;(prn "load-typed-file" filename)
     (t/load-if-needed)
-    (let [opts (->opts)]
-      (env/ensure (jana2/global-env)
-     (let [ex-handler (or ex-handler #(throw %))
-           skip-check-form? (or skip-check-form? (fn [_] false))
-           env (or env (jana2/empty-env))
-           should-runtime-infer? vs/*prepare-infer-ns*
-           instrument-infer-config vs/*instrument-infer-config*
-           _ (when should-runtime-infer?
-               (println "Refreshing runtime inference")
-               (t/refresh-runtime-infer))
-           orig-filename filename
-           [file-url filename] (base-resource-path->resource filename)]
-       (assert file-url (str "Cannot find file " orig-filename))
-       (binding [*ns* *ns*
-                 *file* filename
-                 vs/*typed-load-atom* (atom {})
-                 vs/*prepare-infer-ns* nil
-                 vs/*instrument-infer-config* nil]
-         (with-open [rdr (io/reader file-url)]
-           (let [pbr (readers/indexing-push-back-reader
-                       (java.io.PushbackReader. rdr) 1 filename)
-                 eof (Object.)
-                 read-opts (cond-> {:eof eof :features #{:clj :t.a.jvm}}
-                             (.endsWith ^String filename "cljc") (assoc :read-cond :allow))
-                 config (assoc (chk-frm-clj/config-map2)
-                               :env env
-                               :should-runtime-infer? should-runtime-infer?
-                               :instrument-infer-config instrument-infer-config)]
-             (loop []
-               (let [form (reader/read read-opts pbr)]
-                 (when-not (identical? form eof)
-                   (if (skip-check-form? form)
-                     (lang/default-eval form)
-                     (let [{:keys [ex]} (chk-frm/check-form-info
-                                          config form {:check-config (t/default-check-config)}
-                                          opts)]
-                       (some-> ex ex-handler)))
-                   (recur))))))))))))
+    (let [opts (env/ensure (->opts) (jana2/global-env))
+          ex-handler (or ex-handler #(throw %))
+          skip-check-form? (or skip-check-form? (fn [_] false))
+          env (or env (jana2/empty-env))
+          should-runtime-infer? vs/*prepare-infer-ns*
+          instrument-infer-config vs/*instrument-infer-config*
+          _ (when should-runtime-infer?
+              (println "Refreshing runtime inference")
+              (t/refresh-runtime-infer))
+          orig-filename filename
+          [file-url filename] (base-resource-path->resource filename)]
+      (assert file-url (str "Cannot find file " orig-filename))
+      (binding [*ns* *ns*
+                *file* filename
+                vs/*typed-load-atom* (atom {})
+                vs/*prepare-infer-ns* nil
+                vs/*instrument-infer-config* nil]
+        (with-open [rdr (io/reader file-url)]
+          (let [pbr (readers/indexing-push-back-reader
+                      (java.io.PushbackReader. rdr) 1 filename)
+                eof (Object.)
+                read-opts (cond-> {:eof eof :features #{:clj :t.a.jvm}}
+                            (.endsWith ^String filename "cljc") (assoc :read-cond :allow))
+                config (assoc (chk-frm-clj/config-map2)
+                              :env env
+                              :should-runtime-infer? should-runtime-infer?
+                              :instrument-infer-config instrument-infer-config)]
+            (loop []
+              (let [form (reader/read read-opts pbr)]
+                (when-not (identical? form eof)
+                  (if (skip-check-form? form)
+                    (lang/default-eval form)
+                    (let [{:keys [ex]} (chk-frm/check-form-info
+                                         config form {:check-config (t/default-check-config)}
+                                         opts)]
+                      (some-> ex ex-handler)))
+                  (recur))))))))))
 
 (defn typed-load1
   "For each path, checks if the given file is typed, and loads it with core.typed if so,

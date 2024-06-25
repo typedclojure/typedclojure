@@ -64,7 +64,7 @@
                    (select-keys (meta name) [:tag :arglists]))]
     (when (and (seq info)
                (not (:dynamic (meta name)))
-               (= :global (-> (env/deref-env) :passes-opts :infer-tag/level)))
+               (= :global (-> (env/deref-env opts) :passes-opts :infer-tag/level)))
       (alter-meta! var cu/merge' (set/rename-keys info {:return-tag :tag})))
     (-> ast
         (into info)

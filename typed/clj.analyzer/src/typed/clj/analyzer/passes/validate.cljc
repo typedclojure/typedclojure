@@ -27,7 +27,7 @@
 
 (defmethod -validate :maybe-class
   [{:keys [class env] :as ast} opts]
-  (if-let [handle (-> (env/deref-env) :passes-opts :validate/unresolvable-symbol-handler)]
+  (if-let [handle (-> (env/deref-env opts) :passes-opts :validate/unresolvable-symbol-handler)]
     (handle nil class ast)
     (if (not (#?(:cljr .Contains :default .contains) (str class) "."))
       (throw (ex-info (str "Could not resolve var: " class)
@@ -40,7 +40,7 @@
 
 (defmethod -validate :maybe-host-form
   [{:keys [class field form env] :as ast} {::ana2/keys [resolve-ns] :as opts}]
-  (if-let [handle (-> (env/deref-env) :passes-opts :validate/unresolvable-symbol-handler)]
+  (if-let [handle (-> (env/deref-env opts) :passes-opts :validate/unresolvable-symbol-handler)]
     (handle class field ast)
     (if (resolve-ns class env opts)
       (throw (ex-info (str "No such var: " class)
@@ -190,7 +190,7 @@
        ;; we cannot validate all tags since :tag might contain a function call that returns
        ;; a valid tag at runtime, however if tag is one of ju/specials or ju/special-arrays
        ;; we know that it's a wrong tag as it's going to be evaluated as a clojure.core function
-       (if-let [handle (-> (env/deref-env) :passes-opts :validate/wrong-tag-handler)]
+       (if-let [handle (-> (env/deref-env opts) :passes-opts :validate/wrong-tag-handler)]
          (handle :name/tag ast)
          (throw (ex-info (str "Wrong tag: " (eval tag) " in def: " (:name ast))
                          (into {:ast (ast/prewalk ast cleanup/cleanup)}
@@ -206,7 +206,7 @@
                             (cu/source-info env)))))
     (if (and (:arglists fn)
              (not (cu/arglist-for-arity fn argc)))
-      (if (-> (env/deref-env) :passes-opts :validate/throw-on-arity-mismatch)
+      (if (-> (env/deref-env opts) :passes-opts :validate/throw-on-arity-mismatch)
         (throw (ex-info (str "No matching arity found for function: " (:name fn))
                         {:arity (count args)
                          :fn    fn}))
@@ -232,18 +232,18 @@
 
 (defmethod -validate :default [ast opts] ast)
 
-(defn validate-tag' [t tag ast]
+(defn validate-tag' [t tag ast opts]
   (or (ju/maybe-class tag)
-      (if-let [handle (-> (env/deref-env) :passes-opts :validate/wrong-tag-handler)]
+      (if-let [handle (-> (env/deref-env opts) :passes-opts :validate/wrong-tag-handler)]
         (handle t ast)
         (throw (ex-info (str "Class not found: " tag)
                         (into {:class    tag
                                :ast      (ast/prewalk ast cleanup/cleanup)}
                               (cu/source-info (:env ast))))))))
 
-(defn validate-tag [t ast]
+(defn validate-tag [t ast opts]
   (let [tag (get ast t)
-        the-class (validate-tag' t tag ast)]
+        the-class (validate-tag' t tag ast opts)]
     {t the-class}))
 
 ;;important that this pass depends our `uniquify-locals`
@@ -284,6 +284,6 @@
   (let [{:keys [o-tag return-tag] :as ast} (-validate ast opts)
         tag (or tag (:tag ast))]
     (cond-> ast
-      tag (assoc :tag (validate-tag' :tag tag ast))
-      o-tag (assoc :o-tag (validate-tag' :o-tag o-tag ast))
-      return-tag (assoc :return-tag (validate-tag' :return-tag return-tag ast)))))
+      tag (assoc :tag (validate-tag' :tag tag ast opts))
+      o-tag (assoc :o-tag (validate-tag' :o-tag o-tag ast opts))
+      return-tag (assoc :return-tag (validate-tag' :return-tag return-tag ast opts)))))

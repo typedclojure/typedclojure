@@ -156,7 +156,7 @@
    {:post [(-> % ::type type?)]}
    (let [env (jana2/empty-env)]
      (with-bindings (jana2/default-thread-bindings env)
-       (env/ensure (jana2/global-env)
+       (let [opts (env/ensure opts (jana2/global-env))]
          (-> form
              (ana2/unanalyzed-top-level env opts)
              (check-expr expected opts)))))))

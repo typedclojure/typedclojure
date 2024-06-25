@@ -109,7 +109,7 @@
   ;([form] (macroexpand-1 form (taj/empty-env)))
   ([form env {::vs/keys [custom-expansions] :as opts}]
    ;(prn "macroexpand-1" form)
-   (env/ensure (jana2/global-env)
+   (let [opts (env/ensure opts (jana2/global-env))] 
      (cond
        (seq? form)
        (let [[op & args] form]

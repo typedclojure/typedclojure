@@ -47,7 +47,7 @@
   ([form expected {:keys [env] :as opts}]
    (let [env (or env (jana2/empty-env))]
      (with-bindings (jana2/default-thread-bindings env)
-       (env/ensure (jana2/global-env)
+       (let [opts (env/ensure opts (jana2/global-env))]
          (-> form
              (ana2/unanalyzed-top-level env)
              (check-expr expected opts)))))))
@@ -58,7 +58,7 @@
   ([forms expected {:keys [env] :as opts}]
    (let [env (or env (jana2/empty-env))]
      (with-bindings (jana2/default-thread-bindings env)
-       (env/ensure (jana2/global-env)
+       (let [opts (env/ensure opts (jana2/global-env))] 
          (run! #(do
                   (-> %
                       (ana2/unanalyzed-top-level env)
@@ -135,11 +135,11 @@
     (with-fresh-ns
       (let [env (jana2/empty-env)]
         (with-bindings (jana2/default-thread-bindings env)
-          (env/ensure (jana2/global-env)
-                      (run! #(-> %
-                                 (ana2/unanalyzed-top-level env)
-                                 ana2/run-passes)
-                            forms1))))))
+          (let [opts (env/ensure opts (jana2/global-env))] 
+            (run! #(-> %
+                       (ana2/unanalyzed-top-level env)
+                       ana2/run-passes)
+                  forms1))))))
   ;; 1500ms
 
   (with-fresh-ns

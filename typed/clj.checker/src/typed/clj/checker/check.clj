@@ -113,78 +113,78 @@
   ([ns env {::vs/keys [delayed-errors check-config
                        ^java.util.concurrent.ExecutorService check-threadpool]
             ::cenv/keys [checker] :as opts}]
-   (env/ensure (jana2/global-env)
-     (let [env (or env (jana2/empty-env))
-           ^java.net.URL res (jtau/ns-url ns)
-           _ (assert res (str "Can't find " ns " in classpath"))
-           slurped (slurp (io/reader res))]
-       (when-not (cache/ns-check-cached? checker ns slurped)
-         (let [filename (str res)
-               {:keys [check-form-eval]} check-config]
-           (binding [*ns*   (if (= :never check-form-eval)
-                              (the-ns ns) ;; assumes ns == clojure.core/ns and ns is the same throughout file
-                              *ns*)
-                     *file* filename]
-             (let [forms-info (with-open [rdr (io/reader res)]
-                                (let [pbr (readers/source-logging-push-back-reader
-                                            (java.io.PushbackReader. rdr) 1 filename)
-                                      eof (Object.)
-                                      read-opts (cond-> {:eof eof :features #{:clj}}
-                                                  (.endsWith filename "cljc") (assoc :read-cond :allow))]
-                                  (loop [ns-form-str nil
-                                         forms-info []]
-                                    (let [[form sform] (reader/read+string read-opts pbr)]
-                                      (if (identical? form eof)
-                                        forms-info
-                                        (recur (or ns-form-str
-                                                   (when (and (seq? form) (= 'ns (first form)))
-                                                     sform))
-                                               (conj forms-info {:ns-form-str ns-form-str :sform sform :form form})))))))
+   (let [opts (env/ensure opts (jana2/global-env))
+         env (or env (jana2/empty-env))
+         ^java.net.URL res (jtau/ns-url ns)
+         _ (assert res (str "Can't find " ns " in classpath"))
+         slurped (slurp (io/reader res))]
+     (when-not (cache/ns-check-cached? checker ns slurped)
+       (let [filename (str res)
+             {:keys [check-form-eval]} check-config]
+         (binding [*ns*   (if (= :never check-form-eval)
+                            (the-ns ns) ;; assumes ns == clojure.core/ns and ns is the same throughout file
+                            *ns*)
+                   *file* filename]
+           (let [forms-info (with-open [rdr (io/reader res)]
+                              (let [pbr (readers/source-logging-push-back-reader
+                                          (java.io.PushbackReader. rdr) 1 filename)
+                                    eof (Object.)
+                                    read-opts (cond-> {:eof eof :features #{:clj}}
+                                                (.endsWith filename "cljc") (assoc :read-cond :allow))]
+                                (loop [ns-form-str nil
+                                       forms-info []]
+                                  (let [[form sform] (reader/read+string read-opts pbr)]
+                                    (if (identical? form eof)
+                                      forms-info
+                                      (recur (or ns-form-str
+                                                 (when (and (seq? form) (= 'ns (first form)))
+                                                   sform))
+                                             (conj forms-info {:ns-form-str ns-form-str :sform sform :form form})))))))
 
-                   ns-form-str (some :ns-form-str forms-info)
-                   _ (assert delayed-errors)
-                   bndings (get-thread-bindings)
-                   exs (map (fn [{:keys [form sform]}]
-                              (fn []
-                                (let [delayed-errors (err/-init-delayed-errors)
-                                      opts (-> opts
-                                               (assoc ::vs/delayed-errors delayed-errors)
-                                               ;; force types to reparse to detect dependencies in per-form cache
-                                               ;; might affect TypeFn variance inference
-                                               (assoc ::env-utils/type-cache (atom {})))
-                                      ex (volatile! nil)
-                                      chk (fn []
-                                            (try (check-top-level form nil {:env (assoc env :ns (ns-name *ns*))
-                                                                            :top-level-form-string sform
-                                                                            :ns-form-string ns-form-str}
-                                                                  opts)
-                                                 (catch Throwable e (vreset! ex e))))
-                                      out (with-bindings bndings
-                                            (if check-threadpool
-                                              (with-out-str
-                                                (chk))
-                                              (do (chk) nil)))]
-                                  (-> (if-let [ex @ex]
-                                        (if (-> ex ex-data :type-error)
-                                          {:errors (conj @delayed-errors ex)}
-                                          {:ex ex})
-                                        {:errors @delayed-errors})
-                                      (assoc :out out)))))
-                            forms-info)
-                   results (if check-threadpool
-                             (mapv (fn [^java.util.concurrent.Future future]
-                                     (try (.get future)
-                                          (catch java.util.concurrent.ExecutionException e
-                                            (throw (or (.getCause e) e)))))
-                                   (.invokeAll check-threadpool exs))
-                             (mapv #(%) exs))
-                   _ (swap! delayed-errors into
-                            (into [] (mapcat (fn [{:keys [ex errors out]}]
-                                               (some-> out str/trim not-empty println)
-                                               (some-> ex throw)
-                                               errors))
-                                  results))]
-               (cache/remove-stale-cache-entries ns ns-form-str (map :sform forms-info) slurped opts)))))))))
+                 ns-form-str (some :ns-form-str forms-info)
+                 _ (assert delayed-errors)
+                 bndings (get-thread-bindings)
+                 exs (map (fn [{:keys [form sform]}]
+                            (fn []
+                              (let [delayed-errors (err/-init-delayed-errors)
+                                    opts (-> opts
+                                             (assoc ::vs/delayed-errors delayed-errors)
+                                             ;; force types to reparse to detect dependencies in per-form cache
+                                             ;; might affect TypeFn variance inference
+                                             (assoc ::env-utils/type-cache (atom {})))
+                                    ex (volatile! nil)
+                                    chk (fn []
+                                          (try (check-top-level form nil {:env (assoc env :ns (ns-name *ns*))
+                                                                          :top-level-form-string sform
+                                                                          :ns-form-string ns-form-str}
+                                                                opts)
+                                               (catch Throwable e (vreset! ex e))))
+                                    out (with-bindings bndings
+                                          (if check-threadpool
+                                            (with-out-str
+                                              (chk))
+                                            (do (chk) nil)))]
+                                (-> (if-let [ex @ex]
+                                      (if (-> ex ex-data :type-error)
+                                        {:errors (conj @delayed-errors ex)}
+                                        {:ex ex})
+                                      {:errors @delayed-errors})
+                                    (assoc :out out)))))
+                          forms-info)
+                 results (if check-threadpool
+                           (mapv (fn [^java.util.concurrent.Future future]
+                                   (try (.get future)
+                                        (catch java.util.concurrent.ExecutionException e
+                                          (throw (or (.getCause e) e)))))
+                                 (.invokeAll check-threadpool exs))
+                           (mapv #(%) exs))
+                 _ (swap! delayed-errors into
+                          (into [] (mapcat (fn [{:keys [ex errors out]}]
+                                             (some-> out str/trim not-empty println)
+                                             (some-> ex throw)
+                                             errors))
+                                results))]
+             (cache/remove-stale-cache-entries ns ns-form-str (map :sform forms-info) slurped opts))))))))
 
 (defn check-ns-and-deps [nsym opts] (cu/check-ns-and-deps nsym check-ns1 opts))
 
@@ -2005,10 +2005,9 @@
                   (update ::ana2/scheduled-passes #(if custom-expansions
                                                      ana-clj/scheduled-passes-for-custom-expansions
                                                      %))
-                  )]
+                  (env/ensure (jana2/global-env)))]
      (with-bindings (dissoc (ana-clj/thread-bindings {} opts) #'*ns*) ; *ns* is managed by higher-level ops like check-ns1
-       (env/ensure (jana2/global-env)
-         (-> form
-             (ana2/unanalyzed-top-level (or env (jana2/empty-env)) opts)
-             (cache/check-top-level-expr expected opt opts)
-             (into extra)))))))
+       (-> form
+           (ana2/unanalyzed-top-level (or env (jana2/empty-env)) opts)
+           (cache/check-top-level-expr expected opt opts)
+           (into extra))))))
