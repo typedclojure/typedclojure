@@ -562,9 +562,7 @@
   ;([form] (analyze form (empty-env) {}))
   ;([form env] (analyze form env {}))
   ([form env opts]
-   (with-bindings (-> {
-                       #'ana/resolve-sym    resolve-sym
-                       ;#'*ns*              (the-ns (:ns env))
+   (with-bindings (-> {;#'*ns*              (the-ns (:ns env))
                        }
                       #?@(:cljr [] :default [(assoc Compiler/LOADER (RT/makeClassLoader))])
                       (into (:bindings opts)))
@@ -585,8 +583,7 @@
     (assoc ast :result result)))
 
 (defn default-thread-bindings [env]
-  (-> {#'ana/resolve-sym    resolve-sym
-       ;#'*ns*              (the-ns (:ns env))
+  (-> {;#'*ns*              (the-ns (:ns env))
        }
       #?@(:cljr [] :default [(assoc Compiler/LOADER (RT/makeClassLoader))])))
 
@@ -641,7 +638,7 @@
                          eval-ast)
              env (merge env (u/-source-info form env))
              [mform raw-forms] (with-bindings (-> {;#'*ns*              (the-ns (:ns env))
-                                                   #'ana/resolve-sym    resolve-sym}
+                                                   }
                                                   #?@(:cljr [] :default [(assoc Compiler/LOADER (RT/makeClassLoader))]))
                                  (loop [form form raw-forms []]
                                    (let [mform (if (stop-gildardi-check form env)
@@ -699,4 +696,5 @@
    ::ana/scheduled-passes scheduled-default-passes
    ::ana/var? (fn [x opts] (var? x))
    ::ana/var->sym var->sym
+   ::ana/resolve-sym resolve-sym
    })

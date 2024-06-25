@@ -45,10 +45,10 @@
   [{::keys [scheduled-passes] :as opts}]
   (scheduled-passes opts))
 
-(def ^{:dynamic  true
-       :doc      "Resolves the value mapped by the given sym in the global env"
-       :arglists '([sym env opts])}
-  resolve-sym)
+(defn resolve-sym
+  "Resolves the value mapped by the given sym in the global env"
+  [sym env {::keys [resolve-sym] :as opts}]
+  (resolve-sym sym env opts))
 
 (defn var->sym
   "If given a var, returns the fully qualified symbol for that var, otherwise nil."

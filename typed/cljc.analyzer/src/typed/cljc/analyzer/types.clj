@@ -56,6 +56,9 @@
 
   :typed.cljc.analyzer/var->sym
   If given a var, returns the fully qualified symbol for that var, otherwise nil.
+
+  :typed.cljc.analyzer/resolve-sym
+  Resolves the value mapped by the given sym in the global env
   "
   (t/HMap :mandatory {::ana/resolve-ns [t/Sym ana/Env ana/Opts :-> t/Any]
                       ::ana/current-ns-name [ana/Env ana/Opts :-> t/Sym]
@@ -69,7 +72,8 @@
                                                              :pre ast/Pre
                                                              :post ast/Post}]
                       ::ana/var? [t/Any ana/Opts :-> t/Bool]
-                      ::ana/var->sym [t/Any ana/Opts :-> (t/Nilable t/Sym)]}))
+                      ::ana/var->sym [t/Any ana/Opts :-> (t/Nilable t/Sym)]
+                      ::ana/resolve-sym [t/Sym ana/Env ana/Opts :-> t/Any]}))
 (defalias ana/Expr (t/Merge
                      (t/HMap :mandatory {;:op t/Kw
                                          :env ana/Env}

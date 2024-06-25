@@ -368,7 +368,6 @@
 (defn default-thread-bindings []
   {#'ana-cljs/parse parse
    #'ana-cljs/analyze unanalyzed-env-first
-   #'ana/resolve-sym resolve-sym
    })
 
 (defn resolve-op-sym
@@ -401,4 +400,5 @@
    ::ana/var? (fn [x opts]
                 (throw (ex-info "TODO typed.cljs.analyzer/var?" {})))
    ::ana/var->sym var->sym
+   ::ana/resolve-sym resolve-sym
    })

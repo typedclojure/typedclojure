@@ -130,23 +130,23 @@
                               (let [rep (->serialize res)]
                                 (when (not= rep sym)
                                   (swap! type-syms assoc-in [(prs/parse-in-ns opts) sym] rep)))
-                              res)))))]
-    (binding [ana2/resolve-sym (let [resolve-sym ana2/resolve-sym]
-                                 (fn [sym env opts]
-                                   (let [r (resolve-sym sym env opts)]
-                                     (when r
-                                       (let [v (if (ana2/var? r opts)
-                                                 (ana2/var->sym r opts)
-                                                 (if (class? r)
-                                                   (coerce/Class->symbol r)
-                                                   r))]
-                                         (when (not= v sym)
-                                           (swap! vars assoc sym v))))
-                                     r)))]
-      (let [result (check-expr expr expected opts)]
-        (assoc result ::cache-info {::types (dissoc @types :clojure.core.typed.current-impl/current-nocheck-var?)
-                                    ::vars @vars ::errors (pos? (count @delayed-errors)) ::interop @interop
-                                    ::type-syms @type-syms})))))
+                              res))))
+                 (update ::ana2/resolve-sym (fn [resolve-sym]
+                                              (fn [sym env opts]
+                                                (let [r (resolve-sym sym env opts)]
+                                                  (when r
+                                                    (let [v (if (ana2/var? r opts)
+                                                              (ana2/var->sym r opts)
+                                                              (if (class? r)
+                                                                (coerce/Class->symbol r)
+                                                                r))]
+                                                      (when (not= v sym)
+                                                        (swap! vars assoc sym v))))
+                                                  r)))))
+        result (check-expr expr expected opts)]
+    (assoc result ::cache-info {::types (dissoc @types :clojure.core.typed.current-impl/current-nocheck-var?)
+                                ::vars @vars ::errors (pos? (count @delayed-errors)) ::interop @interop
+                                ::type-syms @type-syms})))
 
 (defn ns-check-cached? [checker nsym slurped]
   {:pre [(simple-symbol? nsym)
