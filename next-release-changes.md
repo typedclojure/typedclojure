@@ -41,3 +41,4 @@
 - type check `clojure.core/assert` as if `*assert*` is true
 - remove `*verbose-{types,forms}*`
   - use `:verbose-{types,forms} true` option
+- remove system property `clojure.core.typed.intern-defaliases`
