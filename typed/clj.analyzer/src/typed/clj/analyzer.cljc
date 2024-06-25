@@ -651,8 +651,8 @@
                                        [mform (seq raw-forms)]
                                        (recur mform (conj raw-forms
                                                           (if-let [[op & r] (and (seq? form) form)]
-                                                            (if (or (ju/macro? op env opts)
-                                                                    (ju/inline? op r env opts))
+                                                            (if (or (ju/macro? op env)
+                                                                    (ju/inline? op r env))
                                                               (vary-meta form assoc ::ana/resolved-op (ana/resolve-sym op env opts))
                                                               form)
                                                             form)))))))]

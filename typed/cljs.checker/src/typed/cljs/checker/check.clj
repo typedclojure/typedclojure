@@ -132,7 +132,7 @@
                                    expected
                                    opts)))))
 
-(defmulti invoke-special (fn [{{:keys [op] :as fexpr} :fn :keys [env] :as expr} _expected _opts]
+(defmulti invoke-special (fn [{{:keys [op] :as fexpr} :fn :keys [env] :as expr} _expected opts]
                            (case op
                              :var (:name fexpr)
                              :unanalyzed (let [{:keys [form]} fexpr]
