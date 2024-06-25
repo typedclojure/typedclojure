@@ -183,10 +183,10 @@
   defalias*
   "Internal use only. Use defalias."
   [m]
-  (core/let [{:keys [qsym t line col]} (if (string? m)
-                                         (binding [*read-eval* false]
-                                           (read-string m))
-                                         m)]
+  (core/let [[qsym t line col] (if (string? m)
+                                 (binding [*read-eval* false]
+                                   (read-string m))
+                                 m)]
     (add-to-rt-alias-env qsym t line col)
     (add-tc-type-name qsym t line col))
   nil)
@@ -297,10 +297,10 @@
    (assert (symbol? sym) (str "First argument to defalias must be a symbol: " sym))
    (core/let
      [qsym (qualify-sym sym)
-      m {:qsym qsym 
-         :t t
-         :line (-> &form meta :line)
-         :column (-> &form meta :column)}]
+      m [#_:qsym qsym 
+         #_:t t
+         #_:line (-> &form meta :line)
+         #_:column (-> &form meta :column)]]
      `(clojure.core.typed/tc-ignore
         (clojure.core.typed/-defalias 
           '~(if *compile-files*
@@ -617,10 +617,10 @@
   ann*
   "Internal use only. Use ann."
   [m]
-  (core/let [{:keys [defining-nsym qsym typesyn opt line col]} (if (string? m)
-                                                                 (binding [*read-eval* false]
-                                                                   (read-string m))
-                                                                 m)]
+  (core/let [[defining-nsym qsym typesyn opt line col] (if (string? m)
+                                                         (binding [*read-eval* false]
+                                                           (read-string m))
+                                                         m)]
     (macros/when-bindable-defining-ns defining-nsym
       (core/let
         [check? (not (:no-check opt))
@@ -679,12 +679,12 @@
                             (first &form)])
                      &form)
         {:keys [line column]} (meta loc-form)
-        m {:defining-nsym (ns-name *ns*)
-           :qsym qsym
-           :typesyn typesyn
-           :opt opts
-           :line line
-           :col column}]
+        m [#_:defining-nsym (ns-name *ns*)
+           #_:qsym qsym
+           #_:typesyn typesyn
+           #_:opt opts
+           #_:line line
+           #_:col column]]
     `(clojure.core.typed/tc-ignore
        (clojure.core.typed/-ann
          '~(if *compile-files*
