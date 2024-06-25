@@ -44,9 +44,9 @@
     :post [(nil? %)]}
    ;(prn "load-typed-file" filename)
     (t/load-if-needed)
-    (env/ensure (jana2/global-env)
-     (let [opts (->opts)
-           ex-handler (or ex-handler #(throw %))
+    (let [opts (->opts)]
+      (env/ensure (jana2/global-env)
+     (let [ex-handler (or ex-handler #(throw %))
            skip-check-form? (or skip-check-form? (fn [_] false))
            env (or env (jana2/empty-env))
            should-runtime-infer? vs/*prepare-infer-ns*
@@ -81,7 +81,7 @@
                                           config form {:check-config (t/default-check-config)}
                                           opts)]
                        (some-> ex ex-handler)))
-                   (recur)))))))))))
+                   (recur))))))))))))
 
 (defn typed-load1
   "For each path, checks if the given file is typed, and loads it with core.typed if so,

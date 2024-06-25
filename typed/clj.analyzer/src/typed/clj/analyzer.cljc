@@ -561,9 +561,9 @@
                        }
                       #?@(:cljr [] :default [(assoc Compiler/LOADER (RT/makeClassLoader))])
                       (into (:bindings opts)))
-       (env/ensure (global-env)
-         (env/with-env (u/mmerge (env/deref-env) {:passes-opts (get opts :passes-opts default-passes-opts)})
-           (ana/run-passes (ana/unanalyzed form env opts) opts))))))
+     (env/ensure (global-env)
+       (env/with-env (u/mmerge (env/deref-env) {:passes-opts (get opts :passes-opts default-passes-opts)})
+         (ana/run-passes (ana/unanalyzed form env opts) opts))))))
 
 (deftype ExceptionThrown [e ast])
 

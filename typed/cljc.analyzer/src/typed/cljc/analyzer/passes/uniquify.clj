@@ -77,7 +77,7 @@
               ::locals-counter locals-counter)))
 
 (defn uniquify-locals-around
-  [{:keys [env] :as ast}]
+  [{:keys [env] :as ast} opts]
   (let [ast (cond-> ast
               (-> (env/deref-env) :passes-opts :uniquify/uniquify-env)
               (update-in [:env :locals]
@@ -156,4 +156,4 @@
         (not locals-frame) (assoc-in [:env ::locals-frame] (atom {}))
         ;; immutable copy for type resolution later
         (not locals-frame-val) (assoc-in [:env ::locals-frame-val] {}))
-      uniquify-locals-around))
+      (uniquify-locals-around opts)))
