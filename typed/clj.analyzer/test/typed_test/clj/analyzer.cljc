@@ -3,10 +3,10 @@
             [typed.clj.analyzer :as ana]))
 
 (defmacro ast' [form]
-  `(ana/analyze '~form (ana/empty-env) (ana/default-opts)))
+  `(ana/analyze '~form (ana/empty-env (ns-name *ns*)) (ana/default-opts)))
 
 (defmacro ast [form]
-  `(ana/analyze+eval '~form (ana/empty-env) (ana/default-opts)))
+  `(ana/analyze+eval '~form (ana/empty-env (ns-name *ns*)) (ana/default-opts)))
 
 (deftest analyzer-test
   (is (= 1

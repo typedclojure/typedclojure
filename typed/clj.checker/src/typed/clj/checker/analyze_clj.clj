@@ -331,7 +331,7 @@
     (with-bindings old-bindings
       ;(prn "analyze1 namespace" *ns*)
       (let [ana (jana2/analyze+eval 
-                  form (or env (taj/empty-env))
+                  form (or env (taj/empty-env (ns-name *ns*)))
                   (->
                     (merge-with merge (into opts opt)
                                 {:bindings (if analyze-bindings-fn
@@ -368,7 +368,7 @@
   "Returns an AST node for the form"
   ([form] (ast-for-form form {}))
   ([form opt]
-   (analyze1 form (taj/empty-env) opt)))
+   (analyze1 form (taj/empty-env (ns-name *ns*)) opt)))
 
 ; eval might already be monkey-patched, eval' avoids infinite looping
 (defn eval' [frm]

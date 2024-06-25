@@ -229,7 +229,7 @@
   (let [{:keys [file-map-atom] :as opt}
         (cond-> opt
           (not (:file-map-atom opt)) (assoc :file-map-atom (atom {})))
-        env (ana/empty-env)]
+        env (ana/empty-env (ns-name *ns*))]
     (with-bindings (ana/default-thread-bindings env)
       (let [opts (ana-env/ensure (ana/default-opts) (ana/global-env))]
         (-> form
