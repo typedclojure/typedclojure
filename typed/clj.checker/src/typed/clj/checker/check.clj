@@ -1991,18 +1991,21 @@
                                                   ast)))))
                   (cond->
                     (not side-effects?)
-                    (assoc ::ana2/create-var (fn [sym {:keys [ns]} opts]
-                                               (or (find-var
-                                                     (symbol (-> ns ns-name name)
-                                                             (name sym)))
-                                                   (err/int-error
-                                                     (format "Could not find var %s in namespace %s"
-                                                             sym (ns-name ns))
-                                                     opts)))))
+                    (-> (assoc ::ana2/create-var (fn [sym {:keys [ns]} opts]
+                                                   (or (find-var
+                                                         (symbol (-> ns ns-name name)
+                                                                 (name sym)))
+                                                       (err/int-error
+                                                         (format "Could not find var %s in namespace %s"
+                                                                 sym (ns-name ns))
+                                                         opts))))
+                        ;; reify* also imports a class name, but it's gensym'd.
+                        (assoc ::jana2/parse-deftype-with-existing-class true)))
                   (assoc ::ana2/macroexpand-1 ana-clj/macroexpand-1)
                   (update ::ana2/scheduled-passes #(if custom-expansions
                                                      ana-clj/scheduled-passes-for-custom-expansions
-                                                     %)))]
+                                                     %))
+                  )]
      (with-bindings (dissoc (ana-clj/thread-bindings {} opts) #'*ns*) ; *ns* is managed by higher-level ops like check-ns1
        (env/ensure (jana2/global-env)
          (-> form

@@ -10,6 +10,7 @@
 (ns typed.cljc.analyzer.types
   (:refer-clojure :exclude [macroexpand-1 var?])
   (:require [typed.clojure :refer [ann defalias] :as t]
+            [typed.clj.analyzer :as-alias jana]
             [typed.cljc.analyzer :as-alias ana]
             [typed.cljc.analyzer.ast :as-alias ast]
             [typed.cljc.analyzer.utils :as u]))
@@ -59,6 +60,10 @@
 
   :typed.cljc.analyzer/resolve-sym
   Resolves the value mapped by the given sym in the global env
+
+  :typed.clj.analyzer/parse-deftype-with-existing-class
+  If true, don't generate a new class when analyzing deftype* if a class
+  of the same name already exists.
   "
   (t/HMap :mandatory {::ana/resolve-ns [t/Sym ana/Env ana/Opts :-> t/Any]
                       ::ana/current-ns-name [ana/Env ana/Opts :-> t/Sym]
@@ -73,7 +78,8 @@
                                                              :post ast/Post}]
                       ::ana/var? [t/Any ana/Opts :-> t/Bool]
                       ::ana/var->sym [t/Any ana/Opts :-> (t/Nilable t/Sym)]
-                      ::ana/resolve-sym [t/Sym ana/Env ana/Opts :-> t/Any]}))
+                      ::ana/resolve-sym [t/Sym ana/Env ana/Opts :-> t/Any]
+                      ::jana/parse-deftype-with-existing-class t/Any}))
 (defalias ana/Expr (t/Merge
                      (t/HMap :mandatory {;:op t/Kw
                                          :env ana/Env}

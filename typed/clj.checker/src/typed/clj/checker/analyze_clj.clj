@@ -279,14 +279,8 @@
 ;; (All [x ...] [-> '{(Var x) x ...})])
 (defn thread-bindings [opt {::vs/keys [check-config] :as opts}]
   (let [ns (the-ns (or (-> opt :env :ns)
-                       *ns*))
-        side-effects? (case (:check-form-eval check-config)
-                        (:never :before) false
-                        (:after nil) true)]
-    (-> (jana2/default-thread-bindings {:ns (ns-name ns)})
-        (cond->
-          ;; reify* also imports a class name, but it's gensym'd.
-          (not side-effects?) (assoc #'jana2/*parse-deftype-with-existing-class* true)))))
+                       *ns*))]
+    (jana2/default-thread-bindings {:ns (ns-name ns)})))
 
 (defn will-custom-expand? [form env {::vs/keys [custom-expansions] :as opts}]
   (boolean
@@ -399,4 +393,3 @@
         ;; TODO support `handle-evaluation-exception`
         result (eval' frm)]  ;; eval the emitted form rather than directly the form to avoid double macroexpansion
     (merge ast {:result result})))
-

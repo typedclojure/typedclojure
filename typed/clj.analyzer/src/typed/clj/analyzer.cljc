@@ -29,11 +29,6 @@
             #?(:clj [io.github.frenchy64.fully-satisfies.safe-locals-clearing :refer [delay]]))
   (:import [clojure.lang IObj RT Var Compiler]))
 
-(def ^:dynamic *parse-deftype-with-existing-class*
-  "If true, don't generate a new class when analyzing deftype* if a class
-  of the same name already exists."
-  nil)
-
 (def specials
   "Set of the special forms for clojure in the JVM"
   (into ana/specials
@@ -390,7 +385,7 @@
       [opts methods])))
 
 (defn parse-deftype*
-  [[_ name class-name fields _ interfaces & methods :as form] env opts]
+  [[_ name class-name fields _ interfaces & methods :as form] env {::keys [parse-deftype-with-existing-class] :as opts}]
   (let [interfaces (disj (into #{} (map ju/maybe-class) interfaces) Object)
         fields-expr (mapv (fn [name]
                             {:env     env
@@ -413,7 +408,7 @@
         methods (mapv #(assoc (analyze-method-impls % menv opts) :interfaces interfaces)
                       methods)]
 
-    (or (when *parse-deftype-with-existing-class*
+    (or (when parse-deftype-with-existing-class
           (class? (resolve class-name)))
         (-deftype name class-name fields interfaces))
 
