@@ -47,7 +47,7 @@
 
 (def ^{:dynamic  true
        :doc      "Resolves the value mapped by the given sym in the global env"
-       :arglists '([sym env])}
+       :arglists '([sym env opts])}
   resolve-sym)
 
 (defn var->sym
@@ -477,7 +477,7 @@
                    ;; don't walk :init, but keep in AST
                    :children    (into [] (remove #(= :init %)) children)})
             map->LocalExpr)
-          (if-let [var (let [v (resolve-sym sym env)]
+          (if-let [var (let [v (resolve-sym sym env opts)]
                          (and (var? v opts) v))]
             (let [m (meta var)]
               (->
@@ -519,7 +519,7 @@
         (parse mform env opts)
         (-> (unanalyzed mform env opts)
             (update :raw-forms (fnil conj ())
-                    (vary-meta form assoc ::resolved-op (resolve-sym op env))))))))
+                    (vary-meta form assoc ::resolved-op (resolve-sym op env opts))))))))
 
 (declare ^:private update-doexpr-children)
 
@@ -1398,7 +1398,7 @@
     (throw (ex-info (str "Wrong number of args to var, had: " (dec (count form)))
                     (into {:form form}
                           (u/-source-info form env)))))
-  (if-let [var (resolve-sym var env)]
+  (if-let [var (resolve-sym var env opts)]
     (->
       {:op   :the-var
        ::op  ::the-var

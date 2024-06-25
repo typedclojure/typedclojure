@@ -106,7 +106,7 @@
         (let [[op & args] form]
           (if (specials op)
             form
-            (let [v (ana/resolve-sym op env)
+            (let [v (ana/resolve-sym op env opts)
                   m (meta v)
                   local? (-> env :locals (get op))
                   macro? (when-not local? (:macro m)) ;; locals shadow macros
@@ -213,9 +213,8 @@
 (defn resolve-sym
   "Resolves the value mapped by the given sym in the global env
   If sym is shadowed by a local in env, returns nil."
-  [sym {:keys [ns locals] :as env}]
-  (when (symbol? sym)
-    (ns-resolve ns locals sym)))
+  [sym {:keys [ns locals] :as env} opts]
+  (ju/resolve-sym sym env))
 
 (defn var->sym
   "If given a var, returns the fully qualified symbol for that var, otherwise nil."
@@ -272,7 +271,7 @@
                  (not (specials op))
                  (not (get (:locals env) op)))
         ;TODO call these dynamic vars in common ns
-        (-> (resolve-sym op env)
+        (-> (ana/resolve-sym op env opts)
             (ana/var->sym opts))))))
 
 (defn parse-monitor-enter
@@ -364,8 +363,7 @@
 
 (defn parse-reify*
   [[_ interfaces & methods :as form] env opts]
-  (let [interfaces (conj (disj (set (mapv ju/maybe-class interfaces)) Object)
-                         IObj)
+  (let [interfaces (disj (into #{IObj} (map ju/maybe-class) interfaces) Object)
         name (gensym "reify__")
         class-name (symbol (str (namespace-munge *ns*) "$" name))
         menv (assoc env :this class-name)
@@ -393,7 +391,7 @@
 
 (defn parse-deftype*
   [[_ name class-name fields _ interfaces & methods :as form] env opts]
-  (let [interfaces (disj (set (mapv ju/maybe-class interfaces)) Object)
+  (let [interfaces (disj (into #{} (map ju/maybe-class) interfaces) Object)
         fields-expr (mapv (fn [name]
                             {:env     env
                              :form    name
@@ -565,7 +563,7 @@
   ;([form env] (analyze form env {}))
   ([form env opts]
    (with-bindings (-> {
-                       #'ana/resolve-sym   resolve-sym
+                       #'ana/resolve-sym    resolve-sym
                        ;#'*ns*              (the-ns (:ns env))
                        }
                       #?@(:cljr [] :default [(assoc Compiler/LOADER (RT/makeClassLoader))])
@@ -587,7 +585,7 @@
     (assoc ast :result result)))
 
 (defn default-thread-bindings [env]
-  (-> {#'ana/resolve-sym   resolve-sym
+  (-> {#'ana/resolve-sym    resolve-sym
        ;#'*ns*              (the-ns (:ns env))
        }
       #?@(:cljr [] :default [(assoc Compiler/LOADER (RT/makeClassLoader))])))
@@ -643,7 +641,7 @@
                          eval-ast)
              env (merge env (u/-source-info form env))
              [mform raw-forms] (with-bindings (-> {;#'*ns*              (the-ns (:ns env))
-                                                   #'ana/resolve-sym   resolve-sym}
+                                                   #'ana/resolve-sym    resolve-sym}
                                                   #?@(:cljr [] :default [(assoc Compiler/LOADER (RT/makeClassLoader))]))
                                  (loop [form form raw-forms []]
                                    (let [mform (if (stop-gildardi-check form env)
@@ -653,9 +651,9 @@
                                        [mform (seq raw-forms)]
                                        (recur mform (conj raw-forms
                                                           (if-let [[op & r] (and (seq? form) form)]
-                                                            (if (or (ju/macro? op  env)
-                                                                    (ju/inline? op r env))
-                                                              (vary-meta form assoc ::ana/resolved-op (ana/resolve-sym op env))
+                                                            (if (or (ju/macro? op env opts)
+                                                                    (ju/inline? op r env opts))
+                                                              (vary-meta form assoc ::ana/resolved-op (ana/resolve-sym op env opts))
                                                               form)
                                                             form)))))))]
          (if (and (seq? mform) (= 'do (first mform)) (next mform)

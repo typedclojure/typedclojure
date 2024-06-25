@@ -38,7 +38,7 @@
    :post [((some-fn nil? qualified-symbol?) %)]}
   (let [res (when (seq? form)
               (-> (first form)
-                  (ana2/resolve-sym env)
+                  (ana2/resolve-sym env opts)
                   (ana2/var->sym opts)))]
     ;(prn `-unanalyzed-special-dispatch form res)
     res))

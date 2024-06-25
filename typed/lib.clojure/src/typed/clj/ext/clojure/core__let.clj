@@ -79,7 +79,7 @@
                                      ;:children [:init]
                                      :local :arg}
                               ;; TODO :o-tag ?
-                              tag (assoc :tag ((some-fn ana-utils/maybe-class identity) tag)))))))
+                              tag (assoc :tag (or (ana-utils/maybe-class tag) tag)))))))
         ;; this is similar to analyzing a :fn :binding expr.
         ;; must uniquify! and normalize 
         (upd-combined-env [combined-env lhs rhs-ret]

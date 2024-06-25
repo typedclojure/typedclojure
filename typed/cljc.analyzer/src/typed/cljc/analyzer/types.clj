@@ -58,7 +58,7 @@
   If given a var, returns the fully qualified symbol for that var, otherwise nil.
   "
   (t/HMap :mandatory {::ana/resolve-ns [t/Sym ana/Env ana/Opts :-> t/Any]
-                      ::ana/current-ns-name [t/Env ana/Opts :-> t/Sym]
+                      ::ana/current-ns-name [ana/Env ana/Opts :-> t/Sym]
                       ::ana/parse [(t/Seq t/Any) ana/Env ana/Opts :-> t/Any]
                       ::ana/eval-ast [ana/Expr ana/Opts :-> (t/Assoc ana/Expr ':result t/Any)]
                       ::ana/create-var [t/Sym ana/Env ana/Opts :-> t/Any]
@@ -99,8 +99,8 @@
 (ann ana/scheduled-passes [ana/Opts :-> '{:init-ast ast/InitAst
                                           :pre ast/Pre
                                           :post ast/Post}])
-(ann ana/resolve-sym [t/Sym :-> t/Any])
-(ann ana/current-ns-name [t/Env :-> t/Sym])
+(ann ana/resolve-sym [t/Sym ana/Env ana/Opts :-> t/Any])
+(ann ana/current-ns-name [ana/Env :-> t/Sym])
 (ann ana/var->sym [t/Any ana/Opts :-> (t/Nilable t/Sym)])
 (ann ana/analyze-outer [ana/Expr ana/Opts :-> ana/Expr])
 (ann ana/run-pre-passes [ana/Expr t/Any :-> ana/Expr])

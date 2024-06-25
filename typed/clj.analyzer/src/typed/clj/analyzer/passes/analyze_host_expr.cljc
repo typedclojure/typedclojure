@@ -64,7 +64,7 @@
   (let [[op common-op] (case target-type
                          :static   [:static-call ::jvm/static-call]
                          :instance [:instance-call ::jvm/instance-call])]
-    (merge
+    (into
      {:op     op
       ::common/op common-op
       :method method

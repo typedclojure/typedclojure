@@ -83,7 +83,7 @@
     (let [{:keys [name class tag form params fixed-arity env]} ast]
       (if interfaces
         (let [tags (mapv (comp ju/maybe-class :tag meta :form) params)
-              methods-set (set (mapv (fn [x] (dissoc x :declaring-class :flags)) methods))]
+              methods-set (into #{} (map (fn [x] (dissoc x :declaring-class :flags))) methods)]
           (let [[m & rest :as matches] (ju/try-best-match tags methods)]
             (if m
               (let [ret-tag  (ju/maybe-class (:return-type m))

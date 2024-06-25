@@ -197,7 +197,7 @@
   {:pre [(= :unanalyzed op)]}
   (when (seq? form)
     (let [v (-> (first form)
-                (ana2/resolve-sym env))]
+                (ana2/resolve-sym env opts))]
       (when (var? v)
         (let [m (meta v)]
           (when (and (:inline m)
@@ -345,7 +345,7 @@
                                    (= :unanalyzed (:op fexpr))]
                              :post [((some-fn nil? symbol?) %)]}
                             (-> form
-                                (ana2/resolve-sym env)
+                                (ana2/resolve-sym env opts)
                                 (ana2/var->sym opts))))
 
 (defmulti -invoke-apply (fn [{[{:keys [op form env] :as fexpr} :as args] :args :as expr} expected opts]
@@ -354,7 +354,7 @@
                           (when (seq args)
                             (assert (= :unanalyzed op))
                             (-> form
-                                (ana2/resolve-sym env)
+                                (ana2/resolve-sym env opts)
                                 (ana2/var->sym opts)))))
 
 (defn host-call-qname [{:keys [target] :as expr} _expected opts]
@@ -1590,7 +1590,8 @@
                    opts))
   (when-let [cls (when (symbol? (:form cls-expr))
                    (let [cls (ana2/resolve-sym (:form cls-expr)
-                                               (:env cls-expr))]
+                                               (:env cls-expr)
+                                               opts)]
                      (when (class? cls)
                        cls)))]
     (let [{[cls-expr cexpr] :args :as expr}
@@ -1621,7 +1622,8 @@
                    opts))
   (when-some [v (when (symbol? (:form cls-expr))
                   (let [v (ana2/resolve-sym (:form cls-expr)
-                                            (:env cls-expr))]
+                                            (:env cls-expr)
+                                            opts)]
                     (when (var? v)
                       v)))]
     (let [{[_ cexpr] :args :as expr}
@@ -1660,7 +1662,8 @@
                           :post [((some-fn nil? symbol?) %)]}
                          (let [cls (ana2/resolve-sym form
                                                      ; `new` ignores locals
-                                                     (assoc env :locals {}))]
+                                                     (assoc env :locals {})
+                                                     opts)]
                            (when (class? cls)
                              (coerce/Class->symbol cls)))))
 

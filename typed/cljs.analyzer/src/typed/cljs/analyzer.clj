@@ -353,7 +353,7 @@
   )
 
 (defn resolve-sym
-  [op env]
+  [op env opts]
   ;;TODO use `api-ana/ns-resolve` ?
   (when (and (symbol? op)
              (not (ana-cljs'/specials op))
@@ -374,7 +374,7 @@
 (defn resolve-op-sym
   [form env opts]
   (when (seq? form)
-    (resolve-sym (first form) env)))
+    (resolve-sym (first form) env opts)))
 
 (defn unanalyzed [form env opts]
   {:pre [(map? env)]}

@@ -64,7 +64,7 @@
   (let [opts (assoc opts ::vs/current-expr expr)]
     (or (unanalyzed/-unanalyzed-special expr expected opts)
         ;; don't expand macros that inline raw js
-        (when-some [rsym (when (seq? form) (ana2/resolve-sym (first form) env))]
+        (when-some [rsym (when (seq? form) (ana2/resolve-sym (first form) env opts))]
           (when-some [cljsvar-ann (var-env/type-of-nofail rsym opts)]
             ;(prn "cljsvar-ann" rsym cljsvar-ann)
             (let [macro-var (find-var rsym)]
@@ -137,7 +137,7 @@
                              :var (:name fexpr)
                              :unanalyzed (let [{:keys [form]} fexpr]
                                            (when (symbol? form)
-                                             (ana2/resolve-sym form env)))
+                                             (ana2/resolve-sym form env opts)))
                              nil)))
 
 (defmethod invoke-special :default [expr expected _opts])

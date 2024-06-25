@@ -97,10 +97,10 @@
       (let [tags (mapv :tag args)
             [m & rest :as matching] (ju/try-best-match tags matching-methods)]
         (if m
-          (let [all-ret-equals? (apply = (mapv :return-type matching))]
+          (let [all-ret-equals? (apply = (map :return-type matching))]
             (if (or (empty? rest)
                     (and all-ret-equals? ;; if the method signature is the same just pick the first one
-                         (apply = (mapv #(mapv ju/maybe-class (:parameter-types %)) matching))))
+                         (apply = (map #(mapv ju/maybe-class (:parameter-types %)) matching))))
              (let [ret-tag  (:return-type m)
                    arg-tags (mapv ju/maybe-class (:parameter-types m))
                    args (mapv (fn [arg tag] (assoc arg :tag tag)) args arg-tags)
@@ -163,7 +163,7 @@
   [{:keys [^String class validated? env form] :as ast} opts]
   (if-not validated?
     (let [class-sym (-> class (subs (inc #?(:cljr (.LastIndexOf class ".") :default (.lastIndexOf class ".")))) symbol)
-          sym-val (ana2/resolve-sym class-sym env)]
+          sym-val (ana2/resolve-sym class-sym env opts)]
       (if (and (class? sym-val) (not= #?(:cljr (.FullName ^Type sym-val) 
 	                                     :default (.getName ^Class sym-val)) class)) ;; allow deftype redef
         (throw (ex-info (str class-sym " already refers to: " sym-val

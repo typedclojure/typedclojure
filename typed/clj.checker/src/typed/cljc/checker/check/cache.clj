@@ -132,8 +132,8 @@
                                   (swap! type-syms assoc-in [(prs/parse-in-ns opts) sym] rep)))
                               res)))))]
     (binding [ana2/resolve-sym (let [resolve-sym ana2/resolve-sym]
-                                 (fn [sym env]
-                                   (let [r (resolve-sym sym env)]
+                                 (fn [sym env opts]
+                                   (let [r (resolve-sym sym env opts)]
                                      (when r
                                        (let [v (if (ana2/var? r opts)
                                                  (ana2/var->sym r opts)
@@ -199,7 +199,7 @@
               *print-length* 10]
       (println (str "ns form:\n>>>>\n" ns-form-string "\n<<<<"))
       (println (str "cache: on disk:\n>>>>\n" (if (and (seq? form)
-                                                       (= #'comment (-> (first form) (ana2/resolve-sym env))))
+                                                       (= #'comment (-> (first form) (ana2/resolve-sym env opts))))
                                                 (str (subs top-level-form-string 0 (min 10 (count top-level-form-string))) "...")
                                                 top-level-form-string)
                     "\n<<<<")))
