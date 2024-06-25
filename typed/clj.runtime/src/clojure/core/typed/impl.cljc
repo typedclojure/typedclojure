@@ -182,21 +182,21 @@
 (core/defn ^:no-doc
   defalias*
   "Internal use only. Use defalias."
-  [qsym t line col]
-  (add-to-rt-alias-env qsym t line col)
-  (add-tc-type-name qsym t line col)
+  [qsym t form]
+  (add-to-rt-alias-env form qsym t)
+  (add-tc-type-name form qsym t)
   nil)
 
-(core/defn with-current-location
-  ([opts form] (with-current-location opts (-> form meta :line) (-> form meta :column)))
-  ([opts line col]
-   (assoc opts :clojure.core.typed.util-vars/current-env
-          {:ns {:name (ns-name *ns*)}
-           :file *file*
-           :line (or line
-                     #?(:cljr @Compiler/LineVar :default @Compiler/LINE))
-           :column (or col
-                       #?(:cljr @Compiler/ColumnVar :default @Compiler/COLUMN))})))
+(defmacro ^:no-doc with-current-location
+  [opts form]
+  `(core/let [form# ~form]
+     (assoc ~opts :clojure.core.typed.util-vars/current-env
+            {:ns {:name (ns-name *ns*)}
+             :file *file*
+             :line (or (-> form# meta :line)
+                       #?(:cljr @Compiler/LineVar :default @Compiler/LINE))
+             :column (or (-> form# meta :column)
+                         #?(:cljr @Compiler/ColumnVar :default @Compiler/COLUMN))})))
 
 (defmacro ^:private delay-rt-parse
   "We can type check c.c.t/parse-ast if we replace all instances
@@ -219,20 +219,20 @@
          t#
          opts#)))))
 
-(core/defn ^:no-doc add-to-rt-alias-env [qsym t line col]
+(core/defn ^:no-doc add-to-rt-alias-env [form qsym t]
   (core/let [opts (assoc ((requiring-resolve 'typed.clj.runtime.env/clj-opts))
                          :typed.clj.checker.parse-unparse/parse-type-in-ns (ns-name *ns*))]
     ((requiring-resolve 'clojure.core.typed.current-impl/add-alias-env)
      ((requiring-resolve 'clojure.core.typed.current-impl/clj-checker))
      qsym
-     (core/let [opts (with-current-location opts line col)]
+     (core/let [opts (with-current-location opts form)]
        (delay-rt-parse t opts))))
   nil)
 
 (def ^:private int-error #(apply (requiring-resolve 'clojure.core.typed.errors/int-error) %&)) 
 
 ;;TODO implement reparsing on internal ns reload
-(core/defn ^:no-doc add-tc-type-name [qsym t line col]
+(core/defn ^:no-doc add-tc-type-name [form qsym t]
   (core/let
     [checker ((requiring-resolve 'clojure.core.typed.current-impl/clj-checker))
      opts (assoc ((requiring-resolve 'typed.clj.runtime.env/clj-opts))
@@ -244,7 +244,7 @@
           (core/let
             [unparse-type (requiring-resolve 'typed.clj.checker.parse-unparse/unparse-type)
              t (bfn
-                 #(core/let [opts (with-current-location opts line col)]
+                 #(core/let [opts (with-current-location opts form)]
                     ((requiring-resolve 'typed.cljc.runtime.env-utils/force-type)
                      (delay-tc-parse t opts)
                      opts)))
@@ -294,9 +294,10 @@
    (core/let
      [qsym (qualify-sym sym)]
      `(clojure.core.typed/tc-ignore
-        (clojure.core.typed/-defalias '~qsym '~t
-                                      ~(-> &form meta :line)
-                                      ~(-> &form meta :column))))))
+        (when (= "true" (#?(:cljr Environment/GetEnvironmentVariable :default System/getProperty) "clojure.core.typed.intern-defaliases"))
+          (intern '~qsym '~(with-meta (symbol (name sym))
+                                      (meta sym))))
+        ((requiring-resolve 'defalias*) '~qsym '~t '~&form)))))
 
 (defmacro ^:private defspecial [& body]
   (when (= "true" (#?(:cljr Environment/GetEnvironmentVariable :default System/getProperty) "clojure.core.typed.special-vars"))

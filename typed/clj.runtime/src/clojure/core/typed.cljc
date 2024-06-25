@@ -163,11 +163,6 @@ for checking namespaces, cf for checking individual forms."}
   [& syms]
   ((requiring-resolve 'clojure.core.typed.impl/declare-names) syms))
 
-;; internal
-(core/defn -defalias [qsym t line col]
-  ((requiring-resolve 'clojure.core.typed.impl/defalias*)
-   qsym t line col))
-
 (defmacro defalias 
   "Define a recursive type alias on a qualified symbol. Takes an optional doc-string as a second
   argument.
