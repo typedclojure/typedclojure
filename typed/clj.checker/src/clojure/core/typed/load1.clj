@@ -37,7 +37,7 @@
 ;;      [String ToolsAnalyzerEnv ToolsReaderOpts -> nil])
 (defn load-typed-file
   "Loads a whole typed namespace, returns nil. Assumes the file is typed."
-  ([filename] (load-typed-file filename (jana2/empty-env) {}))
+  ([filename] (load-typed-file filename (jana2/empty-env (ns-name *ns*)) {}))
   ([filename env] (load-typed-file filename env {}))
   ([filename env {:keys [ex-handler skip-check-form?] :as check-opts}]
    {:pre [(string? filename)]
@@ -47,7 +47,7 @@
     (let [opts (env/ensure (->opts) (jana2/global-env))
           ex-handler (or ex-handler #(throw %))
           skip-check-form? (or skip-check-form? (fn [_] false))
-          env (or env (jana2/empty-env))
+          env (or env (jana2/empty-env (ns-name *ns*)))
           should-runtime-infer? vs/*prepare-infer-ns*
           instrument-infer-config vs/*instrument-infer-config*
           _ (when should-runtime-infer?

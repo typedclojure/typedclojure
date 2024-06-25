@@ -45,7 +45,7 @@
   ([form] (check-top-level form nil (jana2/default-opts)))
   ([form expected] (check-top-level form expected (jana2/default-opts)))
   ([form expected {:keys [env] :as opts}]
-   (let [env (or env (jana2/empty-env))]
+   (let [env (or env (jana2/empty-env (ns-name *ns*)))]
      (with-bindings (jana2/default-thread-bindings env)
        (let [opts (env/ensure opts (jana2/global-env))]
          (-> form
@@ -56,7 +56,7 @@
   ([forms] (check-top-levels forms nil (jana2/default-opts)))
   ([forms expected] (check-top-levels forms expected (jana2/default-opts)))
   ([forms expected {:keys [env] :as opts}]
-   (let [env (or env (jana2/empty-env))]
+   (let [env (or env (jana2/empty-env (ns-name *ns*)))]
      (with-bindings (jana2/default-thread-bindings env)
        (let [opts (env/ensure opts (jana2/global-env))] 
          (run! #(do
@@ -133,7 +133,7 @@
 
   (time
     (with-fresh-ns
-      (let [env (jana2/empty-env)]
+      (let [env (jana2/empty-env (ns-name *ns*))]
         (with-bindings (jana2/default-thread-bindings env)
           (let [opts (env/ensure opts (jana2/global-env))] 
             (run! #(-> %

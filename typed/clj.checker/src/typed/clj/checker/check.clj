@@ -114,7 +114,7 @@
                        ^java.util.concurrent.ExecutorService check-threadpool]
             ::cenv/keys [checker] :as opts}]
    (let [opts (env/ensure opts (jana2/global-env))
-         env (or env (jana2/empty-env))
+         env (or env (jana2/empty-env ns))
          ^java.net.URL res (jtau/ns-url ns)
          _ (assert res (str "Can't find " ns " in classpath"))
          slurped (slurp (io/reader res))]
@@ -2008,6 +2008,6 @@
                   (env/ensure (jana2/global-env)))]
      (with-bindings (dissoc (ana-clj/thread-bindings {} opts) #'*ns*) ; *ns* is managed by higher-level ops like check-ns1
        (-> form
-           (ana2/unanalyzed-top-level (or env (jana2/empty-env)) opts)
+           (ana2/unanalyzed-top-level (or env (jana2/empty-env nsym)) opts)
            (cache/check-top-level-expr expected opt opts)
            (into extra))))))

@@ -2908,7 +2908,7 @@
 #?(:clj
 (defn instrument-top-level-form
   [form]
-  (jana2/analyze+eval form (jana2/empty-env)
+  (jana2/analyze+eval form (jana2/empty-env (ns-name *ns*))
                       (assoc (->opts)
                              :eval-fn (fn [ast opts]
                                         (-> ast

@@ -154,7 +154,7 @@
   ([form expected] (check-top-level form expected (jana2/default-opts)))
   ([form expected opts]
    {:post [(-> % ::type type?)]}
-   (let [env (jana2/empty-env)]
+   (let [env (jana2/empty-env (ns-name *ns*))]
      (with-bindings (jana2/default-thread-bindings env)
        (let [opts (env/ensure opts (jana2/global-env))]
          (-> form

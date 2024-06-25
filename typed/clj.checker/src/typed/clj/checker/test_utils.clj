@@ -214,7 +214,7 @@
                       nil))))))
 
 (defmacro equal-types [l r]
-  `(equal-types-noparse ~l (binding [*ns* (the-ns '~'clojure.core.typed)] (parse-type (quote ~r) (clj-opts)))))
+  `(equal-types-noparse ~l (parse-type (quote ~r) (assoc (clj-opts) :typed.clj.checker.parse-unparse/parse-type-in-ns '~'clojure.core.typed))))
 
 (defmacro tc-t [form]
   `(let [{ex# :ex ret# :ret}

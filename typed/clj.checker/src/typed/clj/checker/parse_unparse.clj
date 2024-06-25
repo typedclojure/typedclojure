@@ -166,20 +166,7 @@
 (defn parse-type [s opts]
   (let [env (or (tsyn->env s) (::vs/current-env opts))
         opts (assoc opts ::vs/current-env env)]
-    (try (let [parsed (parse-type* s opts)]
-           (-> parsed
-               #_
-               (vary-meta (fnil into {})
-                          (let [;app *bound-f*
-                                t (delay (app #(parse-type s (assoc opts ::vs/no-simpl true))))]
-                            {:pretty {parsed {:original-syntax s
-                                              :file *file*
-                                              :nsym (parse-in-ns opts)
-                                              :no-simpl (delay @t)
-                                              :no-simpl-verbose-syntax (delay
-                                                                         (let [opts (assoc opts ::vs/verbose-types true)]
-                                                                           (app #(vary-meta (unparse-type @t opts)
-                                                                                            assoc :file *file* :nsym (parse-in-ns opts)))))}}}))))
+    (try (parse-type* s opts)
          (catch Throwable e
            ;(prn (err/any-tc-error? (ex-data e)))
            (if (err/any-tc-error? (ex-data e))

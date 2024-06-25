@@ -82,10 +82,10 @@
 ;copied from clojure.tools.analyzer.jvm
 (defn empty-env
   "Returns an empty env map"
-  []
+  [nsym]
   {:context    :ctx/expr
    :locals     {}
-   :ns         (ns-name *ns*)})
+   :ns         nsym})
 
 ;; Note: typed.clj currently uses typed.clj.checker.analyze-clj/macroexpand-1.
 ;; This function is not compatible with core.async, since &env looks slightly like tools.analyzer,
@@ -409,7 +409,7 @@
                       methods)]
 
     (or (when parse-deftype-with-existing-class
-          (class? (resolve class-name)))
+          (class? (ns-resolve (:ns env) class-name)))
         (-deftype name class-name fields interfaces))
 
     {:op         :deftype
