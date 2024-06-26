@@ -683,6 +683,7 @@
            #_:qsym qsym
            #_:typesyn typesyn
            #_:opt opts
+           ;;FIXME almost always nil
            #_:line line
            #_:col column]]
     `(clojure.core.typed/tc-ignore
