@@ -297,7 +297,7 @@
    (assert (symbol? sym) (str "First argument to defalias must be a symbol: " sym))
    (core/let
      [qsym (qualify-sym sym)
-      m [#_:qsym qsym 
+      m [#_:qsym qsym
          #_:t t
          #_:line (-> &form meta :line)
          #_:column (-> &form meta :column)]]
@@ -679,7 +679,7 @@
                             (first &form)])
                      &form)
         {:keys [line column]} (meta loc-form)
-        m [#_:defining-nsym (ns-name *ns*)
+        m [#_:defining-nsym (with-meta (ns-name *ns*) nil)
            #_:qsym qsym
            #_:typesyn typesyn
            #_:opt opts
