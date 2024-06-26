@@ -108,6 +108,44 @@
 
 (declare check-top-level)
 
+(defn ignored-macro-call? [form env opts]
+  (and #_(seq? form)
+       (when-some [^Var v (ana2/resolve-sym (first form) env opts)]
+         (and (.isMacro v)
+              (-> v meta ::t/ignore)))))
+
+(def defn-vars `#{defn defn-})
+(def defn-var-names (into #{} (map name) defn-vars))
+
+(def defmacro-vars `#{defmacro})
+(def defmacro-var-names (into #{} (map name) defmacro-vars))
+
+(defn ignored-def? [form env opts]
+  (and #_(seq? form)
+       (let [[sym vsym] form]
+         (and (symbol? sym)
+              (symbol? vsym)
+              (let [nme (name sym)]
+                (if (defmacro-var-names nme)
+                  (defmacro-var-names (ana2/var->sym (ana2/resolve-sym sym env opts) opts))
+                  ;;TODO needs to interact with the cache so a check is forced when ^:no-check removed
+                  (and (or (= 'def sym)
+                           (and (defn-var-names nme)
+                                (defn-vars (ana2/var->sym (ana2/resolve-sym sym env opts) opts))))
+                       (when-some [^Var v (ana2/resolve-sym vsym env opts)]
+                         (when (var? v)
+                           (or (and (.isMacro v)
+                                    (-> v meta ::t/ignore))
+                               (let [qvsym (symbol v)]
+                                 (and (var-env/lookup-Var-nofail qvsym opts)
+                                      (not (var-env/check-var? (cenv/checker opts) qvsym))))))))))))))
+
+(defn skip-form? [form env opts]
+  (and (seq? form)
+       (or (-> form meta ::t/ignore)
+           (ignored-macro-call? form env opts)
+           (ignored-def? form env opts))))
+
 (defn check-ns1
   "Type checks an entire namespace."
   ([ns env {::vs/keys [delayed-errors check-config
@@ -145,39 +183,45 @@
                  _ (assert delayed-errors)
                  bndings {#'*ns* *ns*
                           #'*file* *file*}
-                 exs (map (fn [{:keys [form sform]}]
-                            (fn []
-                              (let [delayed-errors (err/-init-delayed-errors)
-                                    opts (-> opts
-                                             (assoc ::vs/delayed-errors delayed-errors)
-                                             ;; force types to reparse to detect dependencies in per-form cache
-                                             ;; might affect TypeFn variance inference
-                                             (assoc ::env-utils/type-cache (atom {})))
-                                    ex (volatile! nil)
-                                    chk (fn []
-                                          (try (check-top-level form nil {:env (assoc env :ns (ns-name *ns*))
-                                                                          :top-level-form-string sform
-                                                                          :ns-form-string ns-form-str}
-                                                                opts)
-                                               (catch Throwable e (vreset! ex e))))
-                                    out (with-bindings bndings
-                                          (if check-threadpool
-                                            (with-out-str
-                                              (chk))
-                                            (do (chk) nil)))]
-                                (-> (if-let [ex @ex]
-                                      (if (-> ex ex-data :type-error)
-                                        {:errors (conj @delayed-errors ex)}
-                                        {:ex ex})
-                                      {:errors @delayed-errors})
-                                    (assoc :out out)))))
-                          forms-info)
+                 exs (eduction
+                       (keep (fn [{:keys [form sform]}]
+                               (if (skip-form? form env opts)
+                                 (do #_(println "Skipping" (binding [*print-length* 2 *print-level* 2] (pr-str form)))
+                                     nil)
+                                 (do
+                                   #_(println "checking" form)
+                                   (fn []
+                                     (let [delayed-errors (err/-init-delayed-errors)
+                                           opts (-> opts
+                                                    (assoc ::vs/delayed-errors delayed-errors)
+                                                    ;; force types to reparse to detect dependencies in per-form cache
+                                                    ;; might affect TypeFn variance inference
+                                                    (assoc ::env-utils/type-cache (atom {})))
+                                           ex (volatile! nil)
+                                           chk (fn []
+                                                 (try (check-top-level form nil {:env (assoc env :ns (ns-name *ns*))
+                                                                                 :top-level-form-string sform
+                                                                                 :ns-form-string ns-form-str}
+                                                                       opts)
+                                                      (catch Throwable e (vreset! ex e))))
+                                           out (with-bindings bndings
+                                                 (if check-threadpool
+                                                   (with-out-str
+                                                     (chk))
+                                                   (do (chk) nil)))]
+                                       (-> (if-let [ex @ex]
+                                             (if (-> ex ex-data :type-error)
+                                               {:errors (conj @delayed-errors ex)}
+                                               {:ex ex})
+                                             {:errors @delayed-errors})
+                                           (assoc :out out)))))))
+                             forms-info))
                  results (if check-threadpool
                            (mapv (fn [^java.util.concurrent.Future future]
                                    (try (.get future)
                                         (catch java.util.concurrent.ExecutionException e
                                           (throw (or (.getCause e) e)))))
-                                 (.invokeAll check-threadpool exs))
+                                 (.invokeAll check-threadpool (or (seq exs) ())))
                            (mapv #(%) exs))
                  _ (swap! delayed-errors into
                           (into [] (mapcat (fn [{:keys [ex errors out]}]
