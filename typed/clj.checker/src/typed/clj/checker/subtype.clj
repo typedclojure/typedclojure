@@ -421,7 +421,8 @@
   {:pre [(r/Union? s)]}
   (let [good? (if false #_(and check-threadpool (< 1 (count types)))
                 (let [fs (mapv (fn [s] (fn [] (subtypeA* A s t opts))) types)
-                      bs {#'*ns* *ns*}]
+                      bs {#'*ns* *ns*
+                          #'*file* *file*}]
                   (reduce (fn [acc ^java.util.concurrent.Future future]
                             (let [{:keys [ex res out]} (try (.get future)
                                                             (catch java.util.concurrent.ExecutionException e

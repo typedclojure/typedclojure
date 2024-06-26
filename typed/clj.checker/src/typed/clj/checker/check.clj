@@ -143,7 +143,8 @@
 
                  ns-form-str (some :ns-form-str forms-info)
                  _ (assert delayed-errors)
-                 bndings {#'*ns* *ns*}
+                 bndings {#'*ns* *ns*
+                          #'*file* *file*}
                  exs (map (fn [{:keys [form sform]}]
                             (fn []
                               (let [delayed-errors (err/-init-delayed-errors)
