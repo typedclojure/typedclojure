@@ -117,8 +117,8 @@
 (def defn-vars `#{defn defn-})
 (def defn-var-names (into #{} (map name) defn-vars))
 
-(def defmacro-vars `#{defmacro})
-(def defmacro-var-names (into #{} (map name) defmacro-vars))
+(def ignored-def-vars `#{defmacro declare})
+(def ignored-def-var-names (into #{} (map name) ignored-def-vars))
 
 (defn ignored-def? [form env opts]
   (and #_(seq? form)
@@ -126,8 +126,8 @@
          (and (symbol? sym)
               (symbol? vsym)
               (let [nme (name sym)]
-                (if (defmacro-var-names nme)
-                  (defmacro-var-names (ana2/var->sym (ana2/resolve-sym sym env opts) opts))
+                (if (ignored-def-var-names nme)
+                  (ignored-def-vars (ana2/var->sym (ana2/resolve-sym sym env opts) opts))
                   ;;TODO needs to interact with the cache so a check is forced when ^:no-check removed
                   (and (or (= 'def sym)
                            (and (defn-var-names nme)
