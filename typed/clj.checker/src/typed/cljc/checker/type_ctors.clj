@@ -2916,8 +2916,10 @@
                                        bbnds (Poly-bbnds* names ty opts)
                                        bmap (zipmap (map r/make-F names) bbnds)
                                        ;;FIXME type variables are scoped left-to-right in bounds
-                                       bbnds' (mapv!= bbnds type-rec)
-                                       body' (type-rec body (free-ops/with-bounded-frees opts bmap))
+                                       bbnds' (free-ops/with-bounded-frees bmap
+                                                (mapv!= bbnds type-rec))
+                                       body' (free-ops/with-bounded-frees bmap
+                                               (type-rec body (free-ops/with-bounded-frees opts bmap)))
                                        changed? (or (not (identical? bbnds bbnds'))
                                                     (not (identical? body body')))]
                                    (if changed?
@@ -2928,8 +2930,10 @@
                                            bbnds (PolyDots-bbnds* names ty opts)
                                            bmap (zipmap (map r/make-F names) bbnds)
                                            ;;FIXME type variables are scoped left-to-right in bounds
-                                           bbnds' (mapv!= bbnds type-rec)
-                                           body' (type-rec body (free-ops/with-bounded-frees opts bmap))
+                                           bbnds' (free-ops/with-bounded-frees bmap
+                                                    (mapv!= bbnds type-rec))
+                                           body' (free-ops/with-bounded-frees bmap
+                                                   (type-rec body (free-ops/with-bounded-frees opts bmap)))
                                            changed? (or (not (identical? bbnds bbnds'))
                                                         (not (identical? body body')))]
                                        (if changed?
