@@ -1,5 +1,5 @@
 (ns ^:no-doc typed.cljc.runtime.perf-utils
-  (:refer-clojure :exclude [some repeatedly]))
+  (:refer-clojure :exclude [every? some repeatedly]))
 
 (defn some
   "Like `clojure.core/some`, but uses an iterator over `lst`."

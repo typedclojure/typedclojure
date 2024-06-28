@@ -737,7 +737,7 @@
 (declare parse-function)
 
 (defn parse-fn-intersection-type [[Fn & types] opts]
-  (r/FnIntersection-maker (into [] (comp (map #(parse-function % opts)) cat) types)))
+  (r/FnIntersection-maker (into [] (mapcat #(parse-function % opts)) types)))
 
 (defn parse-Fn [[_ & types :as syn] opts]
   (when-not (seq types) 
