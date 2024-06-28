@@ -2766,7 +2766,7 @@
                        acc
                        (conj (if (vector? coll)
                                (subvec coll 0 i)
-                               (vec (take i coll)))
+                               (into [] (take i) coll))
                              new))
                      (conj acc new))))
           (or acc coll))))))
