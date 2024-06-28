@@ -2881,7 +2881,8 @@
                                                                  [k t']))))]
                                         (if (identical? fs fs')
                                           fs
-                                          (apply array-map fs'))))])))
+                                          ;;TODO don't require array map
+                                          (apply array-map (apply concat fs')))))])))
 
 (add-default-fold-case Protocol
                        (fn [{:keys [variances] :as ty}]
