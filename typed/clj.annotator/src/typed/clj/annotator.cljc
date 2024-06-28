@@ -15,7 +15,6 @@
                                when-fuel]]))
   (:require [#?(:clj clojure.pprint :cljs cljs.pprint) :as pp]
             [#?(:clj clojure.core :cljs cljs.core) :as core]
-            [typed.clj.runtime.env :refer [clj-opts]]
             [typed.clj.annotator.rep :refer [-val key-path map-vals-path
                                                       infer-result infer-results
                                                       -class type? -any fn-dom-path
@@ -124,6 +123,7 @@
                                                          unp-str]]
             [typed.clj.annotator.parse :refer [parse-type prs]]
             [clojure.walk :as walk]
+            [typed.clj.runtime.env :as clj-env]
             #?@(:clj [[clojure.tools.namespace.parse :as nprs]
                       [clojure.tools.reader.reader-types :as rdrt]
                       [clojure.java.io :as io]
@@ -134,6 +134,10 @@
                        :refer [replace-generated-annotations]]
                       [clojure.core.typed.coerce-utils :as coerce]])))
 
+
+(defn- ->opts []
+  (into (clj-env/clj-opts)
+        (jana2/default-opts)))
 
 #_
 (defalias Type
@@ -1624,7 +1628,7 @@
             (case (:op expr)
               :var (or (-> (:var expr) meta :arglists)
                        (get @alternative-arglists (coerce/var->symbol (:var expr))))
-              :fn (let [frm (emit-form/emit-form expr (jana2/default-opts))]
+              :fn (let [frm (emit-form/emit-form expr (->opts))]
                     (@#'clojure.core/sigs (next frm)))
               :with-meta (arglists-for (:expr expr))
               :do (arglists-for (:ret expr))
@@ -1704,7 +1708,7 @@
                                 (some-> v meta :macro))
                      ]
               (when no-infer?
-                (println (str "Not instrumenting " (ast/def-var-name expr (clj-opts)) " definition"))
+                (println (str "Not instrumenting " (ast/def-var-name expr (->opts)) " definition"))
                 (flush))
               (if (and (:init expr)
                        (not no-infer?))
@@ -1714,7 +1718,7 @@
                             (infer-arglists v init))
                           (-> init
                               check
-                              (wrap-def-init (ast/def-var-name expr (clj-opts)) *ns*))))
+                              (wrap-def-init (ast/def-var-name expr (->opts)) *ns*))))
                 expr))
        :invoke (cond
                  (and (= :var (-> expr :fn :op))
@@ -2904,10 +2908,12 @@
 #?(:clj
 (defn instrument-top-level-form
   [form]
-  (jana2/analyze+eval form (jana2/empty-env) {:eval-fn (fn [ast opts]
-                                                         (-> ast
-                                                             runtime-infer-expr
-                                                             (jana2/eval-ast opts)))}))
+  (jana2/analyze+eval form (jana2/empty-env (ns-name *ns*))
+                      (assoc (->opts)
+                             :eval-fn (fn [ast opts]
+                                        (-> ast
+                                            runtime-infer-expr
+                                            (jana2/eval-ast opts))))))
 )
 
 ;; TESTS

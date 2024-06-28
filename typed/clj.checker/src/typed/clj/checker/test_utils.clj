@@ -6,14 +6,15 @@
             [clojure.set :as set]
             [clojure.test :as test :refer [is]]
             [typed.clj.checker.check :as chk]
-            [typed.clj.checker.parse-unparse :refer [parse-type parse-clj]]
+            [typed.clj.checker.parse-unparse :refer [parse-type parse-clj] :as prs]
             [typed.clj.checker.subtype :as sub]
             [typed.clj.lang :as lang]
             [typed.clj.runtime.env :as clj-env]
             [typed.cljc.checker.test-utils :as common-test]
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.type-rep :as r]
-            [typed.cljc.checker.utils :as u]))
+            [typed.cljc.checker.utils :as u]
+            [typed.clj.checker.utils :refer [->opts]]))
 
 (defn check-opt [opt]
   #_(assert (empty? (set/difference (set (keys opt))
@@ -152,7 +153,9 @@
                (parse-type ~t opts#))))
 
 (defn clj-opts []
-  (assoc (clj-env/clj-opts) :typed.clj.checker.parse-unparse/parse-type-in-ns (ns-name *ns*)))
+  (-> (->opts)
+      (assoc :typed.clj.checker.parse-unparse/parse-type-in-ns (ns-name *ns*))
+      (prs/with-unparse-ns (ns-name *ns*))))
 
 (defn subtype? [s t]
   (sub/subtype? s t (clj-opts)))
@@ -211,7 +214,7 @@
                       nil))))))
 
 (defmacro equal-types [l r]
-  `(equal-types-noparse ~l (binding [*ns* (the-ns '~'clojure.core.typed)] (parse-type (quote ~r) (clj-opts)))))
+  `(equal-types-noparse ~l (parse-type (quote ~r) (assoc (clj-opts) :typed.clj.checker.parse-unparse/parse-type-in-ns '~'clojure.core.typed))))
 
 (defmacro tc-t [form]
   `(let [{ex# :ex ret# :ret}

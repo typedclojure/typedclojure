@@ -109,13 +109,13 @@
   ;([form] (macroexpand-1 form (taj/empty-env)))
   ([form env {::vs/keys [custom-expansions] :as opts}]
    ;(prn "macroexpand-1" form)
-   (env/ensure (jana2/global-env)
+   (let [opts (env/ensure opts (jana2/global-env))] 
      (cond
        (seq? form)
        (let [[op & args] form]
          (if (taj/specials op)
            form
-           (let [v (ana2/resolve-sym op env)
+           (let [v (ana2/resolve-sym op env opts)
                  m (meta v)
                  local? (-> env :locals (get op))
                  macro? (and (not local?) (:macro m)) ;; locals shadow macros
@@ -170,7 +170,7 @@
                    res))
 
                :else
-               (jana2/desugar-host-expr form env)))))
+               (jana2/desugar-host-expr form env opts)))))
 
        (symbol? form)
        (jana2/desugar-symbol form env opts)
@@ -277,45 +277,10 @@
 (declare scheduled-passes-for-custom-expansions)
 
 ;; (All [x ...] [-> '{(Var x) x ...})])
-(defn thread-bindings [opt {::vs/keys [check-config delayed-errors custom-expansions] :as opts}]
+(defn thread-bindings [opt {::vs/keys [check-config] :as opts}]
   (let [ns (the-ns (or (-> opt :env :ns)
-                       *ns*))
-        side-effects? (case (:check-form-eval check-config)
-                        (:never :before) false
-                        (:after nil) true)
-        eval-ast (if side-effects? jana2/eval-ast2 (fn [ast _] ast))]
-    (-> (jana2/default-thread-bindings {:ns (ns-name ns)})
-        (cond->
-          ;; reify* also imports a class name, but it's gensym'd.
-          (not side-effects?) (assoc #'jana2/*parse-deftype-with-existing-class* true
-                                     #'ana2/create-var (fn [sym {:keys [ns]}]
-                                                         (or (find-var
-                                                               (symbol (-> ns ns-name name)
-                                                                       (name sym)))
-                                                             (err/int-error
-                                                               (format "Could not find var %s in namespace %s"
-                                                                       sym (ns-name ns))
-                                                               opts)))))
-        (assoc #'ana2/eval-ast (fn [ast opts]
-                                 (let [; don't evaluate a form if there are delayed type errors
-                                       throw-this (atom nil)
-                                       _ (swap! delayed-errors
-                                                (fn [delayed]
-                                                  {:pre [(vector? delayed)]
-                                                   :post [(vector? %)]}
-                                                  (if (seq delayed)
-                                                    ; take the last type error to throw
-                                                    (do (reset! throw-this (peek delayed))
-                                                        (pop delayed))
-                                                    delayed)))
-                                       _ (when-some [e @throw-this]
-                                           (throw e))
-                                       ]
-                                   (eval-ast ast opts)))
-               #'ana2/macroexpand-1 macroexpand-1
-               #'ana2/scheduled-passes (if custom-expansions
-                                         @scheduled-passes-for-custom-expansions
-                                         @jana2/scheduled-default-passes)))))
+                       *ns*))]
+    (jana2/default-thread-bindings {:ns (ns-name ns)})))
 
 (defn will-custom-expand? [form env {::vs/keys [custom-expansions] :as opts}]
   (boolean
@@ -323,7 +288,7 @@
       (when (seq? form)
         (let [[op & args] form]
           (when-not (taj/specials op)
-            (let [v (ana2/resolve-sym op env)
+            (let [v (ana2/resolve-sym op env opts)
                   m (meta v)
                   local? (-> env :locals (get op))
                   macro? (and (not local?) (:macro m)) ;; locals shadow macros
@@ -342,11 +307,12 @@
                     {:debug? true}))
   )
 
-(def scheduled-passes-for-custom-expansions
-  (delay
-    (passes/schedule (conj jana2/default-passes
-                          ;#'beta-reduce/push-invoke
-                          ))))
+(let [d (delay
+          (passes/schedule (conj jana2/default-passes
+                                 ;#'beta-reduce/push-invoke
+                                 )))]
+  (defn scheduled-passes-for-custom-expansions [opts]
+    @d))
 
 ;; bindings is an atom that records any side effects during macroexpansion. Useful
 ;; for nREPL middleware.
@@ -365,7 +331,7 @@
     (with-bindings old-bindings
       ;(prn "analyze1 namespace" *ns*)
       (let [ana (jana2/analyze+eval 
-                  form (or env (taj/empty-env))
+                  form (or env (taj/empty-env (ns-name *ns*)))
                   (->
                     (merge-with merge (into opts opt)
                                 {:bindings (if analyze-bindings-fn
@@ -402,7 +368,7 @@
   "Returns an AST node for the form"
   ([form] (ast-for-form form {}))
   ([form opt]
-   (analyze1 form (taj/empty-env) opt)))
+   (analyze1 form (taj/empty-env (ns-name *ns*)) opt)))
 
 ; eval might already be monkey-patched, eval' avoids infinite looping
 (defn eval' [frm]
@@ -427,4 +393,3 @@
         ;; TODO support `handle-evaluation-exception`
         result (eval' frm)]  ;; eval the emitted form rather than directly the form to avoid double macroexpansion
     (merge ast {:result result})))
-

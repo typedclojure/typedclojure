@@ -94,94 +94,94 @@
       (r/Poly? ptype)
       (let [names (c/Poly-fresh-symbols* ptype)
             body (c/Poly-body* names ptype opts)
-            bbnds (c/Poly-bbnds* names ptype opts)]
-        (free-ops/with-bounded-frees (zipmap (map r/make-F names) bbnds)
-          (doseq [[i nme ty bnds] (map vector (range) names argtys bbnds)]
-            (assert (instance? Bounds bnds) "TODO other kinds")
-            (let [lower-bound (subst/substitute-many (:lower-bound bnds) (take i argtys) (take i names) opts)
-                  upper-bound (subst/substitute-many (:upper-bound bnds) (take i argtys) (take i names) opts)]
-              (when-not (sub/subtype? lower-bound upper-bound opts)
-                (err/int-error
-                  (str "Lower-bound " (prs/unparse-type lower-bound opts)
-                       " is not below upper-bound " (prs/unparse-type upper-bound opts))
-                  opts))
-              (when-not (and (sub/subtype? ty upper-bound opts)
-                             (sub/subtype? lower-bound ty opts))
-                (err/int-error
-                  (str "Manually instantiated type " (prs/unparse-type ty opts)
-                       " is not between bounds " (prs/unparse-type lower-bound opts)
-                       " and " (prs/unparse-type upper-bound opts))
-                  opts))))
-          (subst/substitute-many body argtys names opts)))
+            bbnds (c/Poly-bbnds* names ptype opts)
+            opts (free-ops/with-bounded-frees opts (zipmap (map r/make-F names) bbnds))
+            _ (doseq [[i nme ty bnds] (map vector (range) names argtys bbnds)]
+                (assert (instance? Bounds bnds) "TODO other kinds")
+                (let [lower-bound (subst/substitute-many (:lower-bound bnds) (take i argtys) (take i names) opts)
+                      upper-bound (subst/substitute-many (:upper-bound bnds) (take i argtys) (take i names) opts)]
+                  (when-not (sub/subtype? lower-bound upper-bound opts)
+                    (err/int-error
+                      (str "Lower-bound " (prs/unparse-type lower-bound opts)
+                           " is not below upper-bound " (prs/unparse-type upper-bound opts))
+                      opts))
+                  (when-not (and (sub/subtype? ty upper-bound opts)
+                                 (sub/subtype? lower-bound ty opts))
+                    (err/int-error
+                      (str "Manually instantiated type " (prs/unparse-type ty opts)
+                           " is not between bounds " (prs/unparse-type lower-bound opts)
+                           " and " (prs/unparse-type upper-bound opts))
+                      opts))))]
+        (subst/substitute-many body argtys names opts))
 
       (r/PolyDots? ptype)
       (let [names (vec (c/PolyDots-fresh-symbols* ptype))
             body (c/PolyDots-body* names ptype opts)
             bbnds (c/PolyDots-bbnds* names ptype opts)
             _ (assert (= r/dotted-no-bounds (peek bbnds)) "TODO interesting dotted bound")
-            dotted-argtys-start (dec (:nbound ptype))]
-        (free-ops/with-bounded-frees (zipmap (-> (map r/make-F names) butlast) (pop bbnds))
-          (doseq [[i nme ty bnds] (map vector (range) (pop names) argtys bbnds)]
-            (assert (instance? Bounds bnds) "TODO other kinds")
-            (let [lower-bound (subst/substitute-many (:lower-bound bnds) (take i argtys) (take i names) opts)
-                  upper-bound (subst/substitute-many (:upper-bound bnds) (take i argtys) (take i names) opts)]
-              (when-not (sub/subtype? lower-bound upper-bound opts)
-                (err/int-error
-                  (str "Lower-bound " (prs/unparse-type lower-bound opts)
-                       " is not below upper-bound " (prs/unparse-type upper-bound opts))
-                  opts))
-              (when-not (and (sub/subtype? ty upper-bound opts)
-                             (sub/subtype? lower-bound ty opts))
-                (err/int-error
-                  (str "Manually instantiated type " (prs/unparse-type ty opts)
-                       " is not between bounds " (prs/unparse-type lower-bound opts)
-                       " and " (prs/unparse-type upper-bound opts))
-                  opts))))
-          (-> body
+            dotted-argtys-start (dec (:nbound ptype))
+            opts (free-ops/with-bounded-frees opts (zipmap (-> (map r/make-F names) butlast) (pop bbnds)))
+            _ (doseq [[i nme ty bnds] (map vector (range) (pop names) argtys bbnds)]
+                (assert (instance? Bounds bnds) "TODO other kinds")
+                (let [lower-bound (subst/substitute-many (:lower-bound bnds) (take i argtys) (take i names) opts)
+                      upper-bound (subst/substitute-many (:upper-bound bnds) (take i argtys) (take i names) opts)]
+                  (when-not (sub/subtype? lower-bound upper-bound opts)
+                    (err/int-error
+                      (str "Lower-bound " (prs/unparse-type lower-bound opts)
+                           " is not below upper-bound " (prs/unparse-type upper-bound opts))
+                      opts))
+                  (when-not (and (sub/subtype? ty upper-bound opts)
+                                 (sub/subtype? lower-bound ty opts))
+                    (err/int-error
+                      (str "Manually instantiated type " (prs/unparse-type ty opts)
+                           " is not between bounds " (prs/unparse-type lower-bound opts)
+                           " and " (prs/unparse-type upper-bound opts))
+                      opts))))]
+        (-> body
             ; expand dotted pre-types in body
             (trans/trans-dots (peek names) ;the bound
                               (subvec argtys dotted-argtys-start)  ;the types to expand pre-type with
                               opts)
             ; substitute normal variables
-            (subst/substitute-many (subvec argtys 0 dotted-argtys-start) (pop names) opts)))))))
+            (subst/substitute-many (subvec argtys 0 dotted-argtys-start) (pop names) opts))))))
 
 (defn inst-from-targs-syn [ptype targs-syn prs-ns expected opts]
-  (binding [prs/*unparse-type-in-ns* prs-ns]
-    (let [opts (-> opts
-                   (assoc ::prs/parse-type-in-ns prs-ns))
-          ptype (c/fully-resolve-type ptype opts)
-          ptype (or (when (r/Intersection? ptype)
-                      (some #(when ((some-fn r/Poly? r/PolyDots?) %)
-                               %)
-                            (:types ptype)))
-                    ptype)
-          ; support (inst :kw ...)
-          ptype (cond-> ptype
-                  (c/keyword-value? ptype) (c/KeywordValue->Fn opts))]
-      (if-not ((some-fn r/Poly? r/PolyDots?) ptype)
-        (err/tc-delayed-error (str "Cannot instantiate non-polymorphic type: " (prs/unparse-type ptype opts))
-                              {:return (cu/error-ret expected)}
-                              opts)
-        (let [[targs-syn kwargs] (split-with (complement keyword?) targs-syn)
-              _ (when-not (even? (count kwargs))
-                  (err/int-error (str "Expected an even number of keyword options to inst, given: " (vec kwargs)) opts))
-              _ (when (seq kwargs)
-                  (when-not (apply distinct? (map first (partition 2 kwargs)))
-                    (err/int-error (str "Gave repeated keyword args to inst: " (vec kwargs)) opts)))
-              {:keys [named] :as kwargs} kwargs
-              _ (let [unsupported (set/difference (set (keys kwargs)) #{:named})]
-                  (when (seq unsupported)
-                    (err/int-error (str "Unsupported keyword argument(s) to inst " unsupported) opts)))
-              _ (when (contains? kwargs :named)
-                  (when-not (and (map? named)
-                                 (every? symbol? (keys named)))
-                    (err/int-error (str ":named keyword argument to inst must be a map of symbols to types, given: " (pr-str named)) opts)))
-              named (into {}
-                          (map (fn [[k v]]
-                                 [k (prs/parse-type v opts)]))
-                          named)
-              targs (mapv #(prs/parse-type % opts) targs-syn)]
-          (below/maybe-check-below
-            (r/ret (manual-inst ptype targs named opts))
-            expected
-            opts))))))
+  (let [opts (-> opts
+                 (assoc ::prs/parse-type-in-ns prs-ns)
+                 (prs/with-unparse-ns prs-ns))
+        ptype (c/fully-resolve-type ptype opts)
+        ptype (or (when (r/Intersection? ptype)
+                    (some #(when ((some-fn r/Poly? r/PolyDots?) %)
+                             %)
+                          (:types ptype)))
+                  ptype)
+        ; support (inst :kw ...)
+        ptype (cond-> ptype
+                (c/keyword-value? ptype) (c/KeywordValue->Fn opts))]
+    (if-not ((some-fn r/Poly? r/PolyDots?) ptype)
+      (err/tc-delayed-error (str "Cannot instantiate non-polymorphic type: " (prs/unparse-type ptype opts))
+                            {:return (cu/error-ret expected)}
+                            opts)
+      (let [[targs-syn kwargs] (split-with (complement keyword?) targs-syn)
+            _ (when-not (even? (count kwargs))
+                (err/int-error (str "Expected an even number of keyword options to inst, given: " (vec kwargs)) opts))
+            _ (when (seq kwargs)
+                (when-not (apply distinct? (map first (partition 2 kwargs)))
+                  (err/int-error (str "Gave repeated keyword args to inst: " (vec kwargs)) opts)))
+            {:keys [named] :as kwargs} kwargs
+            _ (let [unsupported (set/difference (set (keys kwargs)) #{:named})]
+                (when (seq unsupported)
+                  (err/int-error (str "Unsupported keyword argument(s) to inst " unsupported) opts)))
+            _ (when (contains? kwargs :named)
+                (when-not (and (map? named)
+                               (every? symbol? (keys named)))
+                  (err/int-error (str ":named keyword argument to inst must be a map of symbols to types, given: " (pr-str named)) opts)))
+            named (into {}
+                        (map (fn [[k v]]
+                               [k (prs/parse-type v opts)]))
+                        named)
+            targs (mapv #(prs/parse-type % opts) targs-syn)]
+        (below/maybe-check-below
+          (r/ret (manual-inst ptype targs named opts))
+          expected
+          opts)))))

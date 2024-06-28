@@ -163,6 +163,10 @@ for checking namespaces, cf for checking individual forms."}
   [& syms]
   ((requiring-resolve 'clojure.core.typed.impl/declare-names) syms))
 
+;; internal
+(core/defn -defalias [m]
+  ((requiring-resolve 'clojure.core.typed.impl/defalias*) m))
+
 (defmacro defalias 
   "Define a recursive type alias on a qualified symbol. Takes an optional doc-string as a second
   argument.
@@ -456,6 +460,10 @@ for checking namespaces, cf for checking individual forms."}
   [varsym typesyn]
   ((requiring-resolve 'clojure.core.typed.impl/untyped-var)
    &form varsym typesyn))
+
+;;internal
+(core/defn -ann [m]
+  ((requiring-resolve 'clojure.core.typed.impl/ann*) m))
 
 (defmacro ann
   "Annotate varsym with type. If unqualified, qualify in the current namespace.

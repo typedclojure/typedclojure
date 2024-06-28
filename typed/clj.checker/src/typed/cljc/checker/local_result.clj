@@ -35,9 +35,10 @@
   {:pre [(con/local-sym? sym)
          ((some-fn nil? r/TCResult?) expected)]
    :post [(r/TCResult? %)]}
-  (let [opts (assoc opts ::vs/current-expr expr)]
-    (prs/with-unparse-ns (cu/expr-ns expr opts)
-      (below/maybe-check-below
-        (local-ret sym opts)
-        expected
-        opts))))
+  (let [opts (-> opts
+                 (assoc ::vs/current-expr expr)
+                 (prs/with-unparse-ns (cu/expr-ns expr opts)))]
+    (below/maybe-check-below
+      (local-ret sym opts)
+      expected
+      opts)))

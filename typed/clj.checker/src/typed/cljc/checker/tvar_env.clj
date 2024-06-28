@@ -35,21 +35,7 @@
 (t/ann initial-tvar-env TVarEnv)
 (def initial-tvar-env {})
 
-(t/ann ^:no-check *current-tvars* TVarEnv)
-(defonce ^:dynamic *current-tvars* initial-tvar-env)
-(t/tc-ignore
-(set-validator! #'*current-tvars* tvar-env?)
-  )
-
-(defmacro with-extended-new-tvars
-  "Extends with new type variables (provided by (e.g., Poly-fresh))"
-  [vars fresh-vars & body]
-  `(binding [*current-tvars* (extend-many *current-tvars* ~vars ~fresh-vars)]
-     ~@body))
-
-(t/ann extend-one (t/IFn 
-                    [TVarEnv t/Sym -> TVarEnv]
-                    [TVarEnv t/Sym (t/Nilable t/Sym) -> TVarEnv]))
+(t/ann extend-one [TVarEnv t/Sym (t/Nilable t/Sym) :? -> TVarEnv])
 (defn extend-one
   "Extend a tvar environment. Adds an entry mapping var to itself,
   or if fresh-var is provided, mapping var to fresh-var"
@@ -75,6 +61,11 @@
                        ((some-fn nil? symbol?) fresh-var)]}
                 (extend-one env var fresh-var))
               env vars fresh-vars))))
+
+(defn with-extended-new-tvars
+  "Extends with new type variables (provided by (e.g., Poly-fresh))"
+  [opts vars fresh-vars]
+  (update opts ::current-tvars (fnil extend-many initial-tvar-env) vars fresh-vars))
 
 #_
 (defn with-extended-tvars

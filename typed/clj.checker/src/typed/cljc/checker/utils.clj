@@ -305,7 +305,8 @@
            [t1# t2#]
            (neg? (compare t1# t2#)))
          (def ~all-entries (atom #{}))
-         (defmacro ~(symbol (str "def-" name))
+         (defmacro ~(with-meta (symbol (str "def-" name))
+                               {::t/ignore true})
            [name# fields# doc# invariants# & opts#]
            `(mk ~'~(ns-name *ns*)
                 ~'~name

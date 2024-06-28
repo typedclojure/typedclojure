@@ -101,49 +101,52 @@
                          check-expr)
         opts (-> opts
                  (assoc ::check/check-expr check-expr)
-                 (assoc ::env/checker instrumented-checker))]
-    (binding [ana2/resolve-sym (let [resolve-sym ana2/resolve-sym]
-                                 (fn [sym env]
-                                   (let [r (resolve-sym sym env)]
-                                     (when r
-                                       (let [v (if (ana2/var? r)
-                                                 (ana2/var->sym r)
-                                                 (if (class? r)
-                                                   (coerce/Class->symbol r)
-                                                   r))]
-                                         (when (not= v sym)
-                                           (swap! vars assoc sym v))))
-                                     r)))
-              ;; preserve the namespace resolutions that occur while parsing during type checking, like t/ann-form
-              prs/resolve-type-clj->sym (let [resolve-type-clj->sym prs/resolve-type-clj->sym]
-                                          (fn [sym opts]
-                                            (let [res (resolve-type-clj->sym sym opts)]
-                                              (when (not= res sym)
-                                                (swap! type-syms assoc-in [(prs/parse-in-ns opts) sym] res))
-                                              res)))
-              prs/resolve-type-clj (let [resolve-type-clj prs/resolve-type-clj]
-                                     (fn [sym opts]
-                                       (let [res (resolve-type-clj sym opts)]
-                                         (when res
-                                           (let [res (cond
-                                                       (var? res) (symbol res)
-                                                       (class? res) (-> ^Class res .getName symbol)
-                                                       :else (assert nil (str "WIP prs/resolve-type-clj to sym: " sym res)))]
-                                             (assert (symbol? res))
-                                             (when (not= res sym)
-                                               (swap! type-syms assoc-in [(prs/parse-in-ns opts) sym] res))))
-                                         res)))
-              prs/parse-type-symbol-default (let [parse-type-symbol-default prs/parse-type-symbol-default]
-                                              (fn [sym opts]
-                                                (let [res (parse-type-symbol-default sym opts)]
-                                                  (let [rep (->serialize res)]
-                                                    (when (not= rep sym)
-                                                      (swap! type-syms assoc-in [(prs/parse-in-ns opts) sym] rep)))
-                                                  res)))]
-      (let [result (check-expr expr expected opts)]
-        (assoc result ::cache-info {::types (dissoc @types :clojure.core.typed.current-impl/current-nocheck-var?)
-                                    ::vars @vars ::errors (pos? (count @delayed-errors)) ::interop @interop
-                                    ::type-syms @type-syms})))))
+                 (assoc ::env/checker instrumented-checker)
+                ;; preserve the namespace resolutions that occur while parsing during type checking, like t/ann-form
+                 (assoc ::prs/resolve-type-clj->sym
+                        (let [resolve-type-clj->sym prs/-resolve-type-clj->sym]
+                          (fn __resolve-type-clj->sym [sym opts]
+                            (let [res (resolve-type-clj->sym sym opts)]
+                              (when (not= res sym)
+                                (swap! type-syms assoc-in [(prs/parse-in-ns opts) sym] res))
+                              res))))
+                 (assoc ::prs/resolve-type-clj
+                        (let [resolve-type-clj prs/-resolve-type-clj]
+                          (fn __resolve-type-clj [sym opts]
+                            (let [res (resolve-type-clj sym opts)]
+                              (when res
+                                (let [res (cond
+                                            (var? res) (symbol res)
+                                            (class? res) (-> ^Class res .getName symbol)
+                                            :else (assert nil (str "WIP prs/resolve-type-clj to sym: " sym " " res)))]
+                                  (assert (symbol? res))
+                                  (when (not= res sym)
+                                    (swap! type-syms assoc-in [(prs/parse-in-ns opts) sym] res))))
+                              res))))
+                 (assoc ::prs/parse-type-symbol-default
+                        (let [parse-type-symbol-default prs/-parse-type-symbol-default]
+                          (fn [sym opts]
+                            (let [res (parse-type-symbol-default sym opts)]
+                              (let [rep (->serialize res)]
+                                (when (not= rep sym)
+                                  (swap! type-syms assoc-in [(prs/parse-in-ns opts) sym] rep)))
+                              res))))
+                 (update ::ana2/resolve-sym (fn [resolve-sym]
+                                              (fn [sym env opts]
+                                                (let [r (resolve-sym sym env opts)]
+                                                  (when r
+                                                    (let [v (if (ana2/var? r opts)
+                                                              (ana2/var->sym r opts)
+                                                              (if (class? r)
+                                                                (coerce/Class->symbol r)
+                                                                r))]
+                                                      (when (not= v sym)
+                                                        (swap! vars assoc sym v))))
+                                                  r)))))
+        result (check-expr expr expected opts)]
+    (assoc result ::cache-info {::types (dissoc @types :clojure.core.typed.current-impl/current-nocheck-var?)
+                                ::vars @vars ::errors (pos? (count @delayed-errors)) ::interop @interop
+                                ::type-syms @type-syms})))
 
 (defn ns-check-cached? [checker nsym slurped]
   {:pre [(simple-symbol? nsym)
@@ -160,8 +163,9 @@
         )
     false))
 
-(defn cache-info-id [env {:keys [top-level-form-string ns-form-string] :as opts}]
-  [::check-form-cache (ana2/current-ns-name env) ns-form-string top-level-form-string])
+(defn cache-info-id [env {::ana2/keys [current-ns-name]
+                          :keys [top-level-form-string ns-form-string] :as opts}]
+  [::check-form-cache (current-ns-name env opts) ns-form-string top-level-form-string])
 
 (defn retrieve-form-cache-info [{:keys [env] :as expr}
                                 expected
@@ -195,7 +199,7 @@
               *print-length* 10]
       (println (str "ns form:\n>>>>\n" ns-form-string "\n<<<<"))
       (println (str "cache: on disk:\n>>>>\n" (if (and (seq? form)
-                                                       (= #'comment (-> (first form) (ana2/resolve-sym env))))
+                                                       (= #'comment (-> (first form) (ana2/resolve-sym env opts))))
                                                 (str (subs top-level-form-string 0 (min 10 (count top-level-form-string))) "...")
                                                 top-level-form-string)
                     "\n<<<<")))

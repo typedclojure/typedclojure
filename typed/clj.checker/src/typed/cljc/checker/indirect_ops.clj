@@ -13,7 +13,9 @@
 
 (defmacro ^:private make-indirection [& vs]
   (assert (apply distinct? (map name vs)) (vec vs))
-  `(do 
+  `(do
+     (defn ~'collect-indirect-annotations []
+       (run! requiring-resolve '[~@vs]))
      ~@(map (fn [v]
               (assert (qualified-symbol? v) (pr-str v))
               `(do 

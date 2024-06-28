@@ -205,7 +205,7 @@
   (let [refactor-form* (fn [expr]
                          (kw-case (::ana-cljc/op expr)
                            ::ana-cljc/unanalyzed (let [{:keys [form env]} expr
-                                                       op-sym (ana/resolve-op-sym form env)]
+                                                       op-sym (ana/resolve-op-sym form env (ana/default-opts))]
                                                    (when op-sym
                                                      (let [mta (meta (first form))]
                                                        (when ((every-pred :line :column) mta)
@@ -229,12 +229,12 @@
   (let [{:keys [file-map-atom] :as opt}
         (cond-> opt
           (not (:file-map-atom opt)) (assoc :file-map-atom (atom {})))
-        env (ana/empty-env)]
+        env (ana/empty-env (ns-name *ns*))]
     (with-bindings (ana/default-thread-bindings env)
-      (ana-env/ensure (ana/global-env)
-                      (-> form
-                          (ana-cljc/unanalyzed-top-level env)
-                          (refactor-form* rdr-ast opt))))
+      (let [opts (ana-env/ensure (ana/default-opts) (ana/global-env))]
+        (-> form
+            (ana-cljc/unanalyzed-top-level env)
+            (refactor-form* rdr-ast opt))))
     @file-map-atom))
 
 ;; pre pass

@@ -22,6 +22,13 @@
 
 (set! *warn-on-reflection* true)
 
+(defn resolve-sym
+  "Resolves the value mapped by the given sym in the global env
+  If sym is shadowed by a local in env, returns nil."
+  [sym {:keys [ns locals] :as env}]
+  (when (symbol? sym)
+    (ns-resolve ns locals sym)))
+
 #?(
 :cljr 
 
@@ -41,16 +48,16 @@
 )
 
 
-;difference: use ana2/resolve-sym
+;difference: use resolve-sym
 (defn macro? [sym env]
-  (when-let [v (ana2/resolve-sym sym env)]
+  (when-let [v (resolve-sym sym env)]
     (and (not (-> env :locals (get sym)))
          (u/macro? v)
          v)))
 
-;difference: use ana2/resolve-sym
+;difference: use resolve-sym
 (defn inline? [sym args env]
-  (when-let [v (ana2/resolve-sym sym env)]
+  (when-let [v (resolve-sym sym env)]
     (let [inline-arities-f (:inline-arities (meta v))]
       (and (not (-> env :locals (get sym)))
            (or (not inline-arities-f)
@@ -152,11 +159,11 @@
                              (.replace \/ \.))))))
 
 
-;difference: always use ana2/resolve-sym
+;difference: always use resolve-sym
 (defn maybe-class-from-string [^String s]
   (or (when-let [maybe-class (and (neg? (#?(:cljr .IndexOf  :default .indexOf) s "."))
                                   (not= \[ (first s))
-                                  (ana2/resolve-sym (symbol s) {:ns (ns-name *ns*)}))]
+                                  (resolve-sym (symbol s) {:ns (ns-name *ns*)}))]
         (when (class? maybe-class) maybe-class))
       (try (RT/classForName s)
            (catch #?(:cljr Exception :default ClassNotFoundException) _))))
@@ -181,8 +188,8 @@
 (defn maybe-class-literal [x]
   (cond
    (class? x) x
-   (symbol? x) (and (not (namespace x))
-                    (maybe-class-from-string (name x)))
+   (symbol? x) (when-not (namespace x)
+                 (maybe-class-from-string (name x)))
    (string? x) (maybe-class-from-string x)))
 
 (def primitive?

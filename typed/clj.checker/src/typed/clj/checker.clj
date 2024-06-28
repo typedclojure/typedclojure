@@ -9,7 +9,7 @@
 (ns typed.clj.checker
   (:require [clojure.core :as core]
             [clojure.core.typed.load-if-needed :refer [load-if-needed]]
-            [typed.clj.runtime.env :as clj-env]
+            [typed.clj.checker.utils :refer [->opts]]
             [typed.clj.checker.check-form :as check-form-clj]
             [typed.clj.checker.check-ns :as check-ns-clj]))
 
@@ -50,7 +50,7 @@
   [form & {:as opt}]
   (load-if-needed)
   (check-form-clj/check-form-info form (update opt :check-config #(into (default-check-config) %))
-                                  (clj-env/clj-opts)))
+                                  (->opts)))
 
 (core/defn check-form*
   "Function that takes a form and optional expected type syntax and
@@ -65,7 +65,7 @@
   ([form expected type-provided? & {:as opt}]
    (load-if-needed)
    (check-form-clj/check-form* form expected type-provided? (update opt :check-config #(into (default-check-config) %))
-                               (clj-env/clj-opts))))
+                               (->opts))))
 
 (defmacro cf
   "Takes a form and an optional expected type and
@@ -108,7 +108,7 @@
   ([] (check-ns-info *ns*))
   ([ns-or-syms & {:as opt}]
    (load-if-needed)
-   (check-ns-clj/check-ns-info ns-or-syms (update opt :check-config #(into (default-check-config) %)) (clj-env/clj-opts))))
+   (check-ns-clj/check-ns-info ns-or-syms (update opt :check-config #(into (default-check-config) %)) (->opts))))
 
 (core/defn check-ns
   "Type check a namespace/s (a symbol or Namespace, or collection).
@@ -183,7 +183,7 @@
   ([] (check-ns *ns*))
   ([ns-or-syms & {:as opt}]
    (load-if-needed)
-   (check-ns-clj/check-ns ns-or-syms (update opt :check-config #(into (default-check-config) %)) (clj-env/clj-opts))))
+   (check-ns-clj/check-ns ns-or-syms (update opt :check-config #(into (default-check-config) %)) (->opts))))
 
 (core/defn check-ns2 
   ([] (check-ns2 *ns*))
@@ -195,7 +195,7 @@
                                                      :unannotated-var :unchecked
                                                      :unannotated-arg :unchecked}
                                                     %))
-                          (clj-env/clj-opts))))
+                          (->opts))))
 
 (core/defn check-ns3 
   ([] (check-ns3 *ns*))
@@ -204,7 +204,7 @@
    (check-ns-clj/check-ns ns-or-syms (update opt :check-config
                                              #(into {:check-ns-dep :never}
                                                     %))
-                          (clj-env/clj-opts))))
+                          (->opts))))
 
 (core/defn check-ns4
   ([] (check-ns4 *ns*))
@@ -215,4 +215,4 @@
                                                      :check-form-eval :never
                                                      :check-ns-load :require-before-check}
                                                     %))
-                          (clj-env/clj-opts))))
+                          (->opts))))

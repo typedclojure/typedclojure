@@ -132,23 +132,23 @@
          bnds :bnds}
         (when-some [fs (seq frees-syn)]
           ; don't bound frees because mutually dependent bounds are problematic
-          (let [b (free-ops/with-free-symbols (mapv (fn [s]
-                                                      {:pre [(vector? s)]
-                                                       :post [(symbol? %)]}
-                                                      (first s))
-                                                    fs)
-                    (mapv #(prs/parse-tfn-binder % opts) fs))]
+          (let [opts (-> opts
+                         (free-ops/with-free-symbols (mapv (fn [s]
+                                                             {:pre [(vector? s)]
+                                                              :post [(symbol? %)]}
+                                                             (first s))
+                                                           fs)))
+                b (mapv #(prs/parse-tfn-binder % opts) fs)]
             {:variances (map :variance b)
              :nmes (map :nme b)
              :bnds (map :bound b)}))
         frees (map r/make-F nmes)
         csym (resolve-class-symbol the-class opts)
-        frees-and-bnds (zipmap frees bnds)]
+        frees-and-bnds (zipmap frees bnds)
+        opts' (free-ops/with-bounded-frees opts frees-and-bnds)]
     (assert ((con/hash-c? r/F? r/Bounds?) frees-and-bnds) frees-and-bnds)
     (c/RClass* nmes variances frees csym
-               (free-ops/with-bounded-frees frees-and-bnds
-                 (build-replacement-syntax replacements-syn opts))
-               (free-ops/with-bounded-frees frees-and-bnds
-                 (into (r/sorted-type-set []) (map #(prs/parse-type % opts)) unchecked-ancestors-syn))
+               (build-replacement-syntax replacements-syn opts')
+               (into (r/sorted-type-set []) (map #(prs/parse-type % opts')) unchecked-ancestors-syn)
                bnds
                opts)))

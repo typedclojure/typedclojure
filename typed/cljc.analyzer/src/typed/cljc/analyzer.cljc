@@ -21,84 +21,54 @@
 
 (set! *warn-on-reflection* true)
 
-(def ^{:dynamic  true
-       :arglists '([form env opts])
-       :doc      "If form represents a macro form, returns its expansion,
-                  else returns form."}
-  macroexpand-1)
+(defn macroexpand-1
+  "If form represents a macro form, returns its expansion,
+  else returns form."
+  [form env {::keys [macroexpand-1] :as opts}]
+  (macroexpand-1 form env opts))
 
-(def ^{:dynamic  true
-       :arglists '([[op & args] env opts])
-       :doc      "Multimethod that dispatches on op, should default to -parse"}
-  parse)
+(defn var?
+  "Returns true if obj represent a var form as returned by create-var"
+  [obj {::keys [var?] :as opts}]
+  (var? obj opts))
 
-(def ^{:dynamic  true
-       :arglists '([sym env])
-       :doc      "Creates a var for sym and returns it"}
-  create-var)
+(defn scheduled-passes
+  "A map of functions such that
 
-(def ^{:dynamic  true
-       :arglists '([obj])
-       :doc      "Returns true if obj represent a var form as returned by create-var"}
-  var?)
+  (ast/walk ast (:pre (scheduled-passes opts)) (:post (scheduled-passes opts)))
 
-(def ^{:dynamic  true
-       :doc      "A map of functions such that
+  runs the passes currently scheduled, and
 
-                 (ast/walk ast (:pre scheduled-passes) (:post scheduled-passes))
+  ((:init-ast (scheduled-passes opts)) ast)
 
-                 runs the passes currently scheduled, and
-                 
-                 ((:init-ast scheduled-passes) ast)
-                 
-                 initializes the AST for traversal."}
-  scheduled-passes)
+  initializes the AST for traversal."
+  [{::keys [scheduled-passes] :as opts}]
+  (scheduled-passes opts))
 
-(def ^{:dynamic  true
-       :doc      "Resolves the value mapped by the given sym in the global env"
-       :arglists '([sym env])}
-  resolve-sym)
+(defn resolve-sym
+  "Resolves the value mapped by the given sym in the global env"
+  [sym env {::keys [resolve-sym] :as opts}]
+  (resolve-sym sym env opts))
 
-(def ^{:dynamic  true
-       :doc      "Resolves the ns mapped by the given sym in the global env.
-                 If sym is shadowed by a local in env, returns nil."
-       :arglists '([ns-sym env])}
-  resolve-ns)
+(defn var->sym
+  "If given a var, returns the fully qualified symbol for that var, otherwise nil."
+  [v {::keys [var->sym] :as opts}]
+  (var->sym v opts))
 
-(def ^{:dynamic  true
-       :doc      "Returns the name symbol of the current namespace."
-       :arglists '([env])}
-  current-ns-name)
-
-(def ^{:dynamic  true
-       :doc      "Evaluates an AST node, attaching result to :result."
-       :arglists '([a opts])}
-  eval-ast)
-
-(def ^{:dynamic  true
-       :doc      "If given a var, returns the fully qualified symbol for that var, otherwise nil."
-       :arglists '([v])}
-  var->sym)
-
-(def ^{:dynamic  true
-       :doc      "If ast is :unanalyzed, then call analyze-form on it, otherwise returns ast."
-       :arglists '([ast opts])}
-  analyze-outer)
-
-(def ^{:dynamic  true
-       :doc      "Create an AST node for a form without expanding it."
-       :arglists '([form env opts])}
-  unanalyzed)
+(defn analyze-outer
+  "If ast is :unanalyzed, then call analyze-form on it, otherwise returns ast."
+  [ast {::keys [analyze-outer] :as opts}]
+  (analyze-outer ast opts))
 
 (declare analyze-outer-root)
 
 (defn run-pre-passes
   [ast opts]
-  ((:pre scheduled-passes) ast opts))
+  ((:pre (scheduled-passes opts)) ast opts))
 
 (defn run-post-passes
   [ast opts]
-  ((:post scheduled-passes) ast opts))
+  ((:post (scheduled-passes opts)) ast opts))
 
 (declare eval-top-level)
 
@@ -108,6 +78,13 @@
   (ast/walk ast
             #(-> % (analyze-outer-root opts) (run-pre-passes opts))
             #(-> % (run-post-passes opts) (eval-top-level opts))))
+
+(defn unanalyzed 
+  "Create an AST node for a form without expanding it."
+  [form env {::keys [unanalyzed] :as opts}]
+  (when-not unanalyzed
+    (throw (ex-info "unanalyzed not bound")))
+  (unanalyzed form env opts))
 
 (def specials
   '#{do if new quote set! try var
@@ -303,7 +280,7 @@
 (defn eval-top-level
   "Evaluate `eval-top-level?` nodes and unanalyzed `top-level?` nodes.
   Otherwise, propagate result from children."
-  [ast opts]
+  [ast {::keys [eval-ast] :as opts}]
   {:pre [(:op ast)]}
   (if (or (eval-top-level? ast)
           (and (top-level? ast)
@@ -500,8 +477,8 @@
                    ;; don't walk :init, but keep in AST
                    :children    (into [] (remove #(= :init %)) children)})
             map->LocalExpr)
-          (if-let [var (let [v (resolve-sym sym env)]
-                         (and (var? v) v))]
+          (if-let [var (let [v (resolve-sym sym env opts)]
+                         (and (var? v opts) v))]
             (let [m (meta var)]
               (->
                 {:op          :var
@@ -530,7 +507,7 @@
         (update :raw-forms (fnil conj ()) sym)))))
 
 (defn analyze-seq
-  [form env opts]
+  [form env {::keys [parse] :as opts}]
   ;(prn "analyze-seq" form)
   (let [op (first form)]
     (when (nil? op)
@@ -542,7 +519,7 @@
         (parse mform env opts)
         (-> (unanalyzed mform env opts)
             (update :raw-forms (fnil conj ())
-                    (vary-meta form assoc ::resolved-op (resolve-sym op env))))))))
+                    (vary-meta form assoc ::resolved-op (resolve-sym op env opts))))))))
 
 (declare ^:private update-doexpr-children)
 
@@ -706,7 +683,7 @@
        :children [:target :val]}
       (create-expr Set!Expr))))
 
-(defn analyze-body [body env opts]
+(defn analyze-body [body env {::keys [parse] :as opts}]
   ;; :body is used by emit-form to remove the artificial 'do
   (assoc (parse (cons 'do body) env opts) :body? true))
 
@@ -1222,7 +1199,7 @@
                      [:init maybe-f]))))
 
 (defn parse-def
-  [[_ sym & expr :as form] {:keys [ns] :as env} opts]
+  [[_ sym & expr :as form] {:keys [ns] :as env} {::keys [create-var] :as opts}]
   (when (not (symbol? sym))
     (throw (ex-info (str "First argument to def must be a symbol, had: " (#?(:cljs type :default class) sym))
                     (into {:form form}
@@ -1255,7 +1232,7 @@
                        {:doc doc})
                      (u/-source-info form env)))
 
-        var (create-var sym env) ;; interned var will have quoted arglists, replaced on evaluation
+        var (create-var sym env opts) ;; interned var will have quoted arglists, replaced on evaluation
 
         meta (merge (meta sym)
                     (when arglists
@@ -1421,7 +1398,7 @@
     (throw (ex-info (str "Wrong number of args to var, had: " (dec (count form)))
                     (into {:form form}
                           (u/-source-info form env)))))
-  (if-let [var (resolve-sym var env)]
+  (if-let [var (resolve-sym var env opts)]
     (->
       {:op   :the-var
        ::op  ::the-var

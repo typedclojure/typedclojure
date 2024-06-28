@@ -10,6 +10,7 @@
   (:require 
     [clojure.core.typed.util-vars :as vs]
     [typed.clj.runtime.env :as clj-env]
+    [typed.clj.checker.utils :refer [->opts]]
     [typed.cljc.checker.type-rep :as r]
     [typed.cljc.checker.type-ctors :as c]
     [typed.clj.checker.parse-unparse :as prs]
@@ -51,17 +52,17 @@
   "Return an expression to eval in namespace nsym, which declares
   untyped var vsym as its inferred type."
   [checker nsym vsym opts]
-  (let [t (inferred-var-in-ns checker nsym vsym opts)]
-    (prs/with-unparse-ns nsym
-      (list (using-alias-in-ns nsym 'clojure.core.typed/ann opts)
-            (using-alias-in-ns nsym vsym opts)
-            (prs/unparse-type t opts)))))
+  (let [t (inferred-var-in-ns checker nsym vsym opts)
+        opts (prs/with-unparse-ns opts nsym)]
+    (list (using-alias-in-ns nsym 'clojure.core.typed/ann opts)
+          (using-alias-in-ns nsym vsym opts)
+          (prs/unparse-type t opts))))
 
 (defn infer-unannotated-vars
   "Return a vector of syntax that can be spliced into the given namespace,
   that annotates the inferred untyped variables."
   ([nsym] (infer-unannotated-vars clj-env/clj-checker-atom nsym
-                                  (assoc (clj-env/clj-opts) ::prs/parse-type-in-ns nsym)))
+                                  (assoc (->opts) ::prs/parse-type-in-ns nsym)))
   ([checker nsym opts]
    (mapv (fn [vsym] (prepare-inferred-untyped-var-expression checker nsym vsym opts))
          (keys (get-in (env/deref-checker checker) [:inferred-unchecked-vars nsym])))))

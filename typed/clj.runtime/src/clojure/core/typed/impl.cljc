@@ -182,21 +182,25 @@
 (core/defn ^:no-doc
   defalias*
   "Internal use only. Use defalias."
-  [qsym t form]
-  (add-to-rt-alias-env form qsym t)
-  (add-tc-type-name form qsym t)
+  [m]
+  (core/let [[qsym t line col] (if (string? m)
+                                 (binding [*read-eval* false]
+                                   (read-string m))
+                                 m)]
+    (add-to-rt-alias-env qsym t line col)
+    (add-tc-type-name qsym t line col))
   nil)
 
-(defmacro ^:no-doc with-current-location
-  [opts form]
-  `(core/let [form# ~form]
-     (assoc ~opts :clojure.core.typed.util-vars/current-env
-            {:ns {:name (ns-name *ns*)}
-             :file *file*
-             :line (or (-> form# meta :line)
-                       #?(:cljr @Compiler/LineVar :default @Compiler/LINE))
-             :column (or (-> form# meta :column)
-                         #?(:cljr @Compiler/ColumnVar :default @Compiler/COLUMN))})))
+(core/defn with-current-location
+  ([opts form] (with-current-location opts (-> form meta :line) (-> form meta :column)))
+  ([opts line col]
+   (assoc opts :clojure.core.typed.util-vars/current-env
+          {:ns {:name (ns-name *ns*)}
+           :file *file*
+           :line (or line
+                     #?(:cljr @Compiler/LineVar :default @Compiler/LINE))
+           :column (or col
+                       #?(:cljr @Compiler/ColumnVar :default @Compiler/COLUMN))})))
 
 (defmacro ^:private delay-rt-parse
   "We can type check c.c.t/parse-ast if we replace all instances
@@ -219,20 +223,20 @@
          t#
          opts#)))))
 
-(core/defn ^:no-doc add-to-rt-alias-env [form qsym t]
+(core/defn ^:no-doc add-to-rt-alias-env [qsym t line col]
   (core/let [opts (assoc ((requiring-resolve 'typed.clj.runtime.env/clj-opts))
                          :typed.clj.checker.parse-unparse/parse-type-in-ns (ns-name *ns*))]
     ((requiring-resolve 'clojure.core.typed.current-impl/add-alias-env)
      ((requiring-resolve 'clojure.core.typed.current-impl/clj-checker))
      qsym
-     (core/let [opts (with-current-location opts form)]
+     (core/let [opts (with-current-location opts line col)]
        (delay-rt-parse t opts))))
   nil)
 
 (def ^:private int-error #(apply (requiring-resolve 'clojure.core.typed.errors/int-error) %&)) 
 
 ;;TODO implement reparsing on internal ns reload
-(core/defn ^:no-doc add-tc-type-name [form qsym t]
+(core/defn ^:no-doc add-tc-type-name [qsym t line col]
   (core/let
     [checker ((requiring-resolve 'clojure.core.typed.current-impl/clj-checker))
      opts (assoc ((requiring-resolve 'typed.clj.runtime.env/clj-opts))
@@ -244,7 +248,7 @@
           (core/let
             [unparse-type (requiring-resolve 'typed.clj.checker.parse-unparse/unparse-type)
              t (bfn
-                 #(core/let [opts (with-current-location opts form)]
+                 #(core/let [opts (with-current-location opts line col)]
                     ((requiring-resolve 'typed.cljc.runtime.env-utils/force-type)
                      (delay-tc-parse t opts)
                      opts)))
@@ -292,12 +296,19 @@
   ([&form sym t]
    (assert (symbol? sym) (str "First argument to defalias must be a symbol: " sym))
    (core/let
-     [qsym (qualify-sym sym)]
+     [qsym (qualify-sym sym)
+      m [#_:qsym qsym
+         #_:t t
+         #_:line (-> &form meta :line)
+         #_:column (-> &form meta :column)]]
      `(clojure.core.typed/tc-ignore
-        (when (= "true" (#?(:cljr Environment/GetEnvironmentVariable :default System/getProperty) "clojure.core.typed.intern-defaliases"))
-          (intern '~qsym '~(with-meta (symbol (name sym))
-                                      (meta sym))))
-        ((requiring-resolve 'defalias*) '~qsym '~t '~&form)))))
+        (clojure.core.typed/-defalias 
+          '~(if *compile-files*
+              (binding [*print-meta* true
+                        *print-level* nil
+                        *print-length* nil]
+                (pr-str m))
+              m))))))
 
 (defmacro ^:private defspecial [& body]
   (when (= "true" (#?(:cljr Environment/GetEnvironmentVariable :default System/getProperty) "clojure.core.typed.special-vars"))
@@ -605,38 +616,38 @@
 (core/defn ^:no-doc
   ann*
   "Internal use only. Use ann."
-  [defining-nsym qsym typesyn check? form opt]
-  (macros/when-bindable-defining-ns defining-nsym
-    (core/let
-      [checker ((requiring-resolve 'clojure.core.typed.current-impl/clj-checker))
-       warn (requiring-resolve 'clojure.core.typed.errors/warn)
-       var-env (requiring-resolve 'clojure.core.typed.current-impl/var-env)
-       add-var-env (requiring-resolve 'clojure.core.typed.current-impl/add-var-env)
-       add-tc-var-type (requiring-resolve 'clojure.core.typed.current-impl/add-tc-var-type)
-       check-var? (requiring-resolve 'clojure.core.typed.current-impl/check-var?)
-       remove-nocheck-var (requiring-resolve 'clojure.core.typed.current-impl/remove-nocheck-var)
-       add-nocheck-var (requiring-resolve 'clojure.core.typed.current-impl/add-nocheck-var)
-       opts (assoc ((requiring-resolve 'typed.clj.runtime.env/clj-opts))
-                   :typed.clj.checker.parse-unparse/parse-type-in-ns (ns-name *ns*))
-       _ (when (and (contains? (var-env checker) qsym)
-                    (not (check-var? checker qsym))
-                    check?)
-           (when-not (get opt :force-check)
-             (warn (str "Removing :no-check from var " qsym)))
-           (remove-nocheck-var checker qsym))
-       _ (when-not check?
-           (add-nocheck-var checker qsym))
-       loc-form (or (some #(when ((every-pred :line :column) (meta %))
-                             %)
-                          [(second form)
-                           (first form)])
-                    form)
-       ast (core/let [opts (with-current-location opts loc-form)]
-             (delay-rt-parse typesyn opts))
-       tc-type (core/let [opts (with-current-location opts loc-form)]
-                 (delay-tc-parse typesyn opts))]
-      (add-var-env checker qsym ast)
-      (add-tc-var-type checker qsym tc-type)))
+  [m]
+  (core/let [[defining-nsym qsym typesyn opt line col] (if (string? m)
+                                                         (binding [*read-eval* false]
+                                                           (read-string m))
+                                                         m)]
+    (macros/when-bindable-defining-ns defining-nsym
+      (core/let
+        [check? (not (:no-check opt))
+         checker ((requiring-resolve 'clojure.core.typed.current-impl/clj-checker))
+         warn (requiring-resolve 'clojure.core.typed.errors/warn)
+         var-env (requiring-resolve 'clojure.core.typed.current-impl/var-env)
+         add-var-env (requiring-resolve 'clojure.core.typed.current-impl/add-var-env)
+         add-tc-var-type (requiring-resolve 'clojure.core.typed.current-impl/add-tc-var-type)
+         check-var? (requiring-resolve 'clojure.core.typed.current-impl/check-var?)
+         remove-nocheck-var (requiring-resolve 'clojure.core.typed.current-impl/remove-nocheck-var)
+         add-nocheck-var (requiring-resolve 'clojure.core.typed.current-impl/add-nocheck-var)
+         opts (assoc ((requiring-resolve 'typed.clj.runtime.env/clj-opts))
+                     :typed.clj.checker.parse-unparse/parse-type-in-ns (ns-name *ns*))
+         _ (when (and (contains? (var-env checker) qsym)
+                      (not (check-var? checker qsym))
+                      check?)
+             (when-not (get opt :force-check)
+               (warn (str "Removing :no-check from var " qsym)))
+             (remove-nocheck-var checker qsym))
+         _ (when-not check?
+             (add-nocheck-var checker qsym))
+         ast (core/let [opts (with-current-location opts line col)]
+               (delay-rt-parse typesyn opts))
+         tc-type (core/let [opts (with-current-location opts line col)]
+                   (delay-tc-parse typesyn opts))]
+        (add-var-env checker qsym ast)
+        (add-tc-var-type checker qsym tc-type))))
   nil)
 
 (core/defn ann
@@ -662,9 +673,27 @@
                        (name varsym))
                (symbol (-> *ns* ns-name str) (str varsym)))
         opts (meta varsym)
-        check? (not (:no-check opts))]
+        loc-form (or (some #(when ((every-pred :line :column) (meta %))
+                              %)
+                           [(second &form)
+                            (first &form)])
+                     &form)
+        {:keys [line column]} (meta loc-form)
+        m [#_:defining-nsym (with-meta (ns-name *ns*) nil)
+           #_:qsym qsym
+           #_:typesyn typesyn
+           #_:opt opts
+           ;;FIXME almost always nil
+           #_:line line
+           #_:col column]]
     `(clojure.core.typed/tc-ignore
-       ((requiring-resolve 'ann*) '~(ns-name *ns*) '~qsym '~typesyn '~check? '~&form '~opts))))
+       (clojure.core.typed/-ann
+         '~(if *compile-files*
+             (binding [*print-meta* true
+                       *print-level* nil
+                       *print-length* nil]
+               (pr-str m))
+             m)))))
 
 (core/defn ann-many
   "Annotate several vars with type t.

@@ -62,40 +62,44 @@
 
 (declare unparse-type unparse-filter unparse-filter-set unparse-TCResult)
 
+(defn- ->unparse-opts []
+  (assoc ((requiring-resolve 'typed.clj.runtime.env/clj-opts))
+         ::unparse-type-in-ns (ns-name *ns*)))
+
 ; Types print by unparsing them
 (do (defmethod print-method typed.cljc.checker.impl_protocols.TCType [s writer]
-      (print-method (unparse-type s ((requiring-resolve 'typed.clj.runtime.env/clj-opts))) writer))
+      (print-method (unparse-type s (->unparse-opts)) writer))
     (prefer-method print-method typed.cljc.checker.impl_protocols.TCType clojure.lang.IRecord)
     (prefer-method print-method typed.cljc.checker.impl_protocols.TCType java.util.Map)
     (prefer-method print-method typed.cljc.checker.impl_protocols.TCType clojure.lang.IPersistentMap)
 
     (defmethod print-method typed.cljc.checker.impl_protocols.TCAnyType [s writer]
-      (print-method (unparse-type s ((requiring-resolve 'typed.clj.runtime.env/clj-opts))) writer))
+      (print-method (unparse-type s (->unparse-opts)) writer))
     (prefer-method print-method typed.cljc.checker.impl_protocols.TCAnyType clojure.lang.IRecord)
     (prefer-method print-method typed.cljc.checker.impl_protocols.TCAnyType java.util.Map)
     (prefer-method print-method typed.cljc.checker.impl_protocols.TCAnyType clojure.lang.IPersistentMap)
 
     (defmethod print-method TCResult [s writer]
-      (print-method (unparse-TCResult s ((requiring-resolve 'typed.clj.runtime.env/clj-opts))) writer))
+      (print-method (unparse-TCResult s (->unparse-opts)) writer))
     (prefer-method print-method TCResult java.util.Map)
     (prefer-method print-method TCResult clojure.lang.IPersistentMap)
 
     (defmethod print-method typed.cljc.checker.impl_protocols.IFilter [s writer]
       (cond 
-        (f/FilterSet? s) (print-method (unparse-filter-set s ((requiring-resolve 'typed.clj.runtime.env/clj-opts))) writer)
-        :else (print-method (unparse-filter s ((requiring-resolve 'typed.clj.runtime.env/clj-opts))) writer)))
+        (f/FilterSet? s) (print-method (unparse-filter-set s (->unparse-opts)) writer)
+        :else (print-method (unparse-filter s (->unparse-opts)) writer)))
     (prefer-method print-method typed.cljc.checker.impl_protocols.IFilter clojure.lang.IRecord)
     (prefer-method print-method typed.cljc.checker.impl_protocols.IFilter java.util.Map)
     (prefer-method print-method typed.cljc.checker.impl_protocols.IFilter clojure.lang.IPersistentMap)
 
     (defmethod print-method typed.cljc.checker.impl_protocols.IRObject [s writer]
-      (print-method (unparse-object s ((requiring-resolve 'typed.clj.runtime.env/clj-opts))) writer))
+      (print-method (unparse-object s (->unparse-opts)) writer))
     (prefer-method print-method typed.cljc.checker.impl_protocols.IRObject clojure.lang.IRecord)
     (prefer-method print-method typed.cljc.checker.impl_protocols.IRObject java.util.Map)
     (prefer-method print-method typed.cljc.checker.impl_protocols.IRObject clojure.lang.IPersistentMap)
 
     (defmethod print-method typed.cljc.checker.path_rep.IPathElem [s writer]
-      (print-method (unparse-path-elem s ((requiring-resolve 'typed.clj.runtime.env/clj-opts))) writer))
+      (print-method (unparse-path-elem s (->unparse-opts)) writer))
     (prefer-method print-method typed.cljc.checker.path_rep.IPathElem clojure.lang.IRecord)
     (prefer-method print-method typed.cljc.checker.path_rep.IPathElem java.util.Map)
     (prefer-method print-method typed.cljc.checker.path_rep.IPathElem clojure.lang.IPersistentMap)
@@ -107,7 +111,7 @@
 ;; it's necessary to convert to edn before calling to circumvent fipp's defaults for printing maps.
 ;; this makes extending fipp.edn/IEdn useless for types.
 (defn- massage-before-fipp-pprint [x]
-  (let [opts ((requiring-resolve 'typed.clj.runtime.env/clj-opts))
+  (let [opts (->unparse-opts)
         contains-special-print? (volatile! nil)
         special-pprint (fn [t]
                          (cond
@@ -141,7 +145,7 @@
                         ([x writer options] (-> x ((resolve `massage-before-fipp-pprint)) (fipp-pretty writer options)))))))
   (System/setProperty "typed.clj.checker.parse-unparse.fipp-override" "false"))
 
-(declare parse-type* ^:dynamic resolve-type-clj->sym ^:dynamic resolve-type-clj resolve-type-cljs)
+(declare parse-type* resolve-type-clj->sym resolve-type-clj resolve-type-cljs)
 
 (defn tsyn->env [s]
   (let [m (meta s)]
@@ -162,20 +166,7 @@
 (defn parse-type [s opts]
   (let [env (or (tsyn->env s) (::vs/current-env opts))
         opts (assoc opts ::vs/current-env env)]
-    (try (let [parsed (parse-type* s opts)]
-           (-> parsed
-               #_
-               (vary-meta (fnil into {})
-                          (let [;app *bound-f*
-                                t (delay (app #(parse-type s (assoc opts ::vs/no-simpl true))))]
-                            {:pretty {parsed {:original-syntax s
-                                              :file *file*
-                                              :nsym (parse-in-ns opts)
-                                              :no-simpl (delay @t)
-                                              :no-simpl-verbose-syntax (delay
-                                                                         (let [opts (assoc opts ::vs/verbose-types true)]
-                                                                           (app #(vary-meta (unparse-type @t opts)
-                                                                                            assoc :file *file* :nsym (parse-in-ns opts)))))}}}))))
+    (try (parse-type* s opts)
          (catch Throwable e
            ;(prn (err/any-tc-error? (ex-data e)))
            (if (err/any-tc-error? (ex-data e))
@@ -251,9 +242,9 @@
              :post [(every? parsed-free-map? %)]}
             ;(prn "parse-free-binder-with-variance" (map :fname fs))
             (conj fs
-                  (free-ops/with-bounded-frees 
-                    (zipmap (map (comp r/make-F :fname) fs)
-                            (map :bnd fs))
+                  (let [opts (free-ops/with-bounded-frees opts
+                               (zipmap (map (comp r/make-F :fname) fs)
+                                       (map :bnd fs)))]
                     (parse-free-with-variance fsyn opts))))
           [] binder))
 
@@ -318,8 +309,7 @@
         _ (when-not (= 1 (count bnder)) 
             (prs-error "Only one variable allowed: Rec" opts))
         f (r/make-F free-symbol)
-        body (free-ops/with-frees [f]
-               (parse-type type opts))
+        body (parse-type type (free-ops/with-frees opts [f]))
         _ (check-forbidden-rec f body opts)]
     (Mu* (:name f) body opts)))
 
@@ -433,16 +423,17 @@
                                  (partition-all 2))
                            entries)
                      (when ellipsis-pos
-                       (let [bnd (free-ops/free-in-scope-bnds drest-bnd)
-                             f (free-ops/free-in-scope drest-bnd)
+                       (let [bnd (free-ops/free-in-scope-bnds drest-bnd opts)
+                             f (free-ops/free-in-scope drest-bnd opts)
                              _ (when-not (r/Regex? bnd)
                                  (prs-error (str (pr-str drest-bnd) " is not in scope as a dotted variable") opts))
                              _ (assert (r/F? f))]
                          (r/DottedPretype1-maker
                            ;with dotted bound in scope as free
-                           (free-ops/with-bounded-frees {(r/make-F drest-bnd)
-                                                         ((requiring-resolve 'typed.cljc.checker.cs-gen/homogeneous-dbound->bound)
-                                                          bnd opts)}
+                           (let [opts (free-ops/with-bounded-frees opts
+                                        {(r/make-F drest-bnd)
+                                         ((requiring-resolve 'typed.cljc.checker.cs-gen/homogeneous-dbound->bound)
+                                          bnd opts)})]
                              (parse-type drest-type opts))
                            (:name f)))))))
 
@@ -525,9 +516,10 @@
                   {:pre [(vector? fs)]
                    :post [(every? (con/hvector-c? symbol? r/Kind?) %)]}
                   (conj fs
-                        (free-ops/with-bounded-frees (into {}
-                                                           (map (fn [[n bnd]] [(r/make-F n) bnd]))
-                                                           fs)
+                        (let [opts (free-ops/with-bounded-frees opts
+                                     (into {}
+                                           (map (fn [[n bnd]] [(r/make-F n) bnd]))
+                                           fs))]
                           (parse-free fsyn :type opts))))
                 [] bnds)]
     [frees-with-bnds nil]))
@@ -607,8 +599,7 @@
                   (map (fn [[n bnd]] [(r/make-F n) bnd]))
                   (cond-> frees-with-bnds
                     dvar (conj dvar)))
-        body (free-ops/with-bounded-frees bfs
-               (parse-type type opts))]
+        body (parse-type type (free-ops/with-bounded-frees opts bfs))]
     (if dvar
       (c/PolyDots* (map first (concat frees-with-bnds [dvar]))
                    (map second (concat frees-with-bnds [dvar]))
@@ -806,16 +797,17 @@
         {:keys [free-maps]} (reduce (fn [{:keys [free-maps free-symbs]} binder]
                                       (when-not ((some-fn symbol? vector?) binder)
                                         (prs-error (str "TFn binder element must be a symbol or vector: " (pr-str binder)) opts))
-                                      (free-ops/with-free-symbols free-symbs
+                                      (let [opts (free-ops/with-free-symbols opts free-symbs)]
                                         {:free-maps (conj free-maps (parse-tfn-binder binder opts))
                                          :free-symbs (conj free-symbs (cond-> binder
                                                                         (vector? binder) first))}))
                                     {:free-maps []
                                      :free-symbs #{}}
                                     binder)
-        bodyt (free-ops/with-bounded-frees (into {}
-                                                 (map (fn [{:keys [nme bound]}] [(r/make-F nme) bound]))
-                                                 free-maps)
+        bodyt (let [opts (free-ops/with-bounded-frees opts
+                           (into {}
+                                 (map (fn [{:keys [nme bound]}] [(r/make-F nme) bound]))
+                                 free-maps))]
                 (parse-type bodysyn opts))
         ;; at some point we should remove this requirement (this is checked by parse-tfn-binder)
         id (gensym)
@@ -828,8 +820,9 @@
                           {:cache false
                            :variances (map :variance free-maps)})
                         (binding [vs/*currently-inferring-TypeFns* (conj currently-inferring-TypeFns id)]
-                          (let [vs (free-ops/with-bounded-frees (into {} (map (fn [{:keys [nme bound]}] [(r/make-F nme) bound]))
-                                                                      free-maps)
+                          (let [vs (let [opts (free-ops/with-bounded-frees opts
+                                                (into {} (map (fn [{:keys [nme bound]}] [(r/make-F nme) bound]))
+                                                      free-maps))]
                                      ((requiring-resolve 'typed.cljc.checker.frees/fv-variances) bodyt opts))]
                             {:cache true
                              :variances (mapv (fn [{:keys [nme variance]}]
@@ -907,16 +900,17 @@
                   ; useful to keep around.
                   _ (when-not (= 3 (count dot-syntax))
                       (prs-error (str "Bad vector syntax: " dot-syntax) opts))
-                  bnd (free-ops/free-in-scope-bnds drest-bnd)
-                  f (free-ops/free-in-scope drest-bnd)
+                  bnd (free-ops/free-in-scope-bnds drest-bnd opts)
+                  f (free-ops/free-in-scope drest-bnd opts)
                   _ (when-not (r/Regex? bnd)
                       (prs-error (str (pr-str drest-bnd) " is not in scope as a dotted variable") opts))]
               {:fixed fixed
                :drest (r/DottedPretype1-maker
                         ;with dotted bound in scope as free
-                        (free-ops/with-bounded-frees {(r/make-F drest-bnd)
-                                                      ((requiring-resolve 'typed.cljc.checker.cs-gen/homogeneous-dbound->bound)
-                                                       bnd opts)}
+                        (let [opts (free-ops/with-bounded-frees opts
+                                     {(r/make-F drest-bnd)
+                                      ((requiring-resolve 'typed.cljc.checker.cs-gen/homogeneous-dbound->bound)
+                                       bnd opts)})]
                           (parse-type drest-type opts))
                         (:name f))})
             :else {:fixed (mapv #(parse-type % opts) syns)})]
@@ -1098,7 +1092,7 @@
 (def ns-rewrites-clj {'clojure.core.typed 'typed.clojure})
 (def ^:private ns-unrewrites-clj (set/map-invert ns-rewrites-clj))
 
-(defn ^:dynamic resolve-type-clj
+(defn -resolve-type-clj
   "Returns a var, class or nil"
   [sym opts]
   {:pre [(symbol? sym)]
@@ -1118,6 +1112,13 @@
             (find-var (symbol (name (ns-rewrites-clj alias-sym alias-sym))
                               (name sym)))))
       (err/int-error (str "Cannot find namespace: " sym) opts))))
+
+(defn resolve-type-clj
+  "Returns a var, class or nil"
+  [sym {::keys [resolve-type-clj]
+        :or {resolve-type-clj -resolve-type-clj}
+        :as opts}]
+  (resolve-type-clj sym opts))
 
 (defn- resolve-type-alias-clj
   "Returns a symbol if sym maps to a type alias, otherwise nil"
@@ -1141,7 +1142,7 @@
             qsym)))
       (err/int-error (str "Cannot find namespace: " sym) opts))))
 
-(defn ^:dynamic resolve-type-clj->sym
+(defn -resolve-type-clj->sym
   [sym opts]
   {:pre [(symbol? sym)]
    :post [(symbol? %)]}
@@ -1169,6 +1170,12 @@
                              nsym)]
             (symbol (name (ns-rewrites-clj sym-nsym sym-nsym)) (name sym))))
       (err/int-error (str "Cannot find namespace: " nsym) opts))))
+
+(defn resolve-type-clj->sym
+  [sym {::keys [resolve-type-clj->sym]
+        :or {resolve-type-clj->sym -resolve-type-clj->sym}
+        :as opts}]
+  (resolve-type-clj->sym sym opts))
 
 (def ^:private ns-rewrites-cljs {'cljs.core.typed 'typed.clojure})
 (def ^:private ns-unrewrites-cljs (set/map-invert ns-rewrites-cljs))
@@ -1308,13 +1315,13 @@
      'char (RClass-of 'char opts)
      'void r/-nil}))
 
-(defn ^:dynamic parse-type-symbol-default
+(defn -parse-type-symbol-default
   [sym opts]
   (let [primitives (impl/impl-case opts
                      :clojure (clj-primitives-fn opts)
                      :cljs {})
         free (when (symbol? sym) 
-               (free-ops/free-in-scope sym))
+               (free-ops/free-in-scope sym opts))
         rsym (when-not free
                (impl/impl-case opts
                  :clojure (let [res (when (symbol? sym)
@@ -1347,6 +1354,12 @@
           :else (prs-error (str "Cannot resolve type: " (pr-str sym)
                                 "\nHint: Is " (pr-str sym) " in scope in namespace"
                                 " `" (parse-in-ns opts) "`?") opts)))))
+
+(defn parse-type-symbol-default
+  [sym {::keys [parse-type-symbol-default]
+        :or {parse-type-symbol-default -parse-type-symbol-default}
+        :as opts}]
+  (parse-type-symbol-default sym opts))
 
 (defmethod parse-type-symbol :default
   [sym opts]
@@ -1689,14 +1702,15 @@
                                 (let [drest-bnd d3
                                       _ (when-not (simple-symbol? drest-bnd)
                                           (prs-error (str "Bound after " d2 " must be simple symbol: " (pr-str drest-bnd)) opts))
-                                      bnd (free-ops/free-in-scope-bnds drest-bnd)
-                                      f (free-ops/free-in-scope drest-bnd)
+                                      bnd (free-ops/free-in-scope-bnds drest-bnd opts)
+                                      f (free-ops/free-in-scope drest-bnd opts)
                                       _ (when-not (r/Regex? bnd)
                                           (prs-error (str "Bound " (pr-str drest-bnd) " after " d2 " is not in scope as a dotted variable") opts))]
                                   (recur (conj cat-dom (r/DottedPretype1-maker
-                                                         (cond-> (free-ops/with-bounded-frees {(r/make-F drest-bnd)
-                                                                                               ((requiring-resolve 'typed.cljc.checker.cs-gen/homogeneous-dbound->bound)
-                                                                                                bnd opts)}
+                                                         (cond-> (let [opts (free-ops/with-bounded-frees opts
+                                                                              {(r/make-F drest-bnd)
+                                                                               ((requiring-resolve 'typed.cljc.checker.cs-gen/homogeneous-dbound->bound)
+                                                                                bnd opts)})]
                                                                    (-> d1 allow-regex (parse-type opts)))
                                                            (= '<... d2) push-HSequential->regex)
                                                          (:name f)))
@@ -1781,20 +1795,17 @@
 ;; Special types are unparsed under clojure.core.typed in the :unknown
 ;; implementation. All other types are verbosely printed under :unknown.
 
-(defonce ^:dynamic *unparse-type-in-ns* nil)
-(set-validator! #'*unparse-type-in-ns* (some-fn nil? symbol?))
-
-(defn unparse-in-ns [opts]
+(defn unparse-in-ns [{::keys [unparse-type-in-ns] :as opts}]
   {:post [((some-fn nil? symbol?) %)]}
-  (or *unparse-type-in-ns*
+  (or unparse-type-in-ns
+      (throw (Exception. "unparse-type-in-ns unbound"))
       (impl/impl-case opts
         :clojure (ns-name *ns*)
         :cljs (cljs-ns)
         :unknown nil)))
 
-(defmacro with-unparse-ns [sym & body]
-  `(binding [*unparse-type-in-ns* ~sym]
-     ~@body))
+(defn with-unparse-ns [opts sym]
+  (assoc opts ::unparse-type-in-ns sym))
 
 (defn alias-in-ns
   "Returns an alias for namespace nsym in namespace ns, or nil if none."
@@ -2465,10 +2476,10 @@
 
 (defn unparse-TCResult-in-ns [r ns opts]
   {:pre [((some-fn plat-con/namespace? symbol?) ns)]}
-  (binding [*unparse-type-in-ns* (if (symbol? ns)
-                                   ns
-                                   (ns-name ns))]
-    (unparse-TCResult r opts)))
+  (unparse-TCResult r (with-unparse-ns opts
+                        (if (symbol? ns)
+                          ns
+                          (ns-name ns)))))
 
 (extend-protocol IUnparseType
   TCResult

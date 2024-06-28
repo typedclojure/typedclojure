@@ -298,7 +298,7 @@
                          #'analyze-host-expr/analyze-host-expr
                          #'classify-invoke/classify-invoke}
                :state (fn [] (atom {::expansions 0}))}}
-  [state {:keys [op] :as ast}]
+  [state {:keys [op] :as ast} opts]
   {:post [(:op %)]}
   ;(prn "expansions" (::expansions @state))
   (if (reached-beta-limit? state)
@@ -356,6 +356,6 @@
                             (ana/run-passes
                               (-> (ana/analyze-form mform env)
                                   (update :raw-forms (fnil conj ())
-                                          (vary-meta form assoc ::ana/resolved-op (ana/resolve-sym (first form) env)))))))))))
+                                          (vary-meta form assoc ::ana/resolved-op (ana/resolve-sym (first form) env opts)))))))))))
       ast)))
 

@@ -31,20 +31,10 @@
 (t/ann initial-tvar-bnds-env TVarBndsEnv)
 (def initial-tvar-bnds-env {})
 
-(t/ann ^:no-check *current-tvar-bnds* TVarBndsEnv)
-(defonce ^:dynamic *current-tvar-bnds* initial-tvar-bnds-env)
-(set-validator! #'*current-tvar-bnds* tvar-bnds-env?)
-
 (defn lookup-tvar-bnds
   "Returns the bounds of tvar or nil"
-  [var]
-  (*current-tvar-bnds* var))
-
-(defn tvar-bnds-fail
-  "Returns the bounds of tvar. Throws an exception if not found"
-  [var]
-  {:post [%]}
-  (lookup-tvar-bnds var))
+  [var {::keys [current-tvar-bnds] :as opts}]
+  (get current-tvar-bnds var))
 
 (defn extend-one
   "Extend a tvar bounds environment."
@@ -60,9 +50,8 @@
    :post [(tvar-bnds-env? %)]}
   (reduce2 assoc env vars bndss))
 
-(defmacro with-extended-bnds
+(defn with-extended-bnds
   "Takes a list of vars and bnds extends the current tvar environment.
   vars are the fresh names of the frees, rather than the scoped names."
-  [vars bndss & body]
-  `(binding [*current-tvar-bnds* (extend-many *current-tvar-bnds* ~vars ~bndss)]
-     (do ~@body)))
+  [opts vars bndss]
+  (update opts ::current-tvar-bnds (fnil extend-many initial-tvar-bnds-env) vars bndss))

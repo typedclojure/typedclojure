@@ -64,7 +64,7 @@
   (let [opts (assoc opts ::vs/current-expr expr)]
     (or (unanalyzed/-unanalyzed-special expr expected opts)
         ;; don't expand macros that inline raw js
-        (when-some [rsym (when (seq? form) (ana2/resolve-sym (first form) env))]
+        (when-some [rsym (when (seq? form) (ana2/resolve-sym (first form) env opts))]
           (when-some [cljsvar-ann (var-env/type-of-nofail rsym opts)]
             ;(prn "cljsvar-ann" rsym cljsvar-ann)
             (let [macro-var (find-var rsym)]
@@ -132,12 +132,12 @@
                                    expected
                                    opts)))))
 
-(defmulti invoke-special (fn [{{:keys [op] :as fexpr} :fn :keys [env] :as expr} _expected _opts]
+(defmulti invoke-special (fn [{{:keys [op] :as fexpr} :fn :keys [env] :as expr} _expected opts]
                            (case op
                              :var (:name fexpr)
                              :unanalyzed (let [{:keys [form]} fexpr]
                                            (when (symbol? form)
-                                             (ana2/resolve-sym form env)))
+                                             (ana2/resolve-sym form env opts)))
                              nil)))
 
 (defmethod invoke-special :default [expr expected _opts])
@@ -393,7 +393,7 @@
      (if (= :unanalyzed (:op expr))
        (do @*register-exts
            (or (maybe-check-unanalyzed expr expected opts)
-               (recur (tana2/analyze-outer expr opts) (max -1 (dec fuel)))))
+               (recur (ana2/analyze-outer expr opts) (max -1 (dec fuel)))))
        (-check expr expected
                (-> opts
                    (update ::vs/current-env #(if (:line env) env %))
@@ -409,28 +409,25 @@
    ;(prn "*ns*" *ns*)
    ;(prn "*cljs-ns*" cljs-ana/*cljs-ns*)
    ;; TODO any bindings needed to be pinned here?
-   (binding [ana2/scheduled-passes {:pre (fn [ast _] ast)
-                                    :post (fn [ast _] ast)
-                                    :init-ast (fn [ast _] ast)}]
-     (let [nsym (::prs/parse-type-in-ns opts)
-           _ (assert (symbol? nsym))
-           opts (-> opts
-                    (assoc ::check/check-expr check-expr)
-                    (assoc ::vs/lexical-env (lex/init-lexical-env))
-                    ;; also copied to typed.cljs.checker.check/check-top-level
-                    (assoc ::c/Un-cache (atom c/initial-Un-cache))
-                    (assoc ::c/In-cache (atom {}))
-                    (assoc ::c/RClass-of-cache (atom {}))
-                    (assoc ::c/supers-cache (atom {}))
-                    (assoc ::sub/subtype-cache (atom {}))
-                    (assoc ::cgen/dotted-var-store (atom {}))
-                    (assoc ::prs/parse-type-in-ns nsym))
-           cexpr (uc/with-cljs-typed-env
-                   (-> form
-                       (unanalyzed-top-level (or env (ana-api/empty-env)) opts)
-                       (check-expr expected opts)))]
-       (flush-analysis-side-effects cexpr opts)
-       cexpr))))
+   (let [nsym (::prs/parse-type-in-ns opts)
+         _ (assert (symbol? nsym))
+         opts (-> opts
+                  (assoc ::check/check-expr check-expr)
+                  (assoc ::vs/lexical-env (lex/init-lexical-env))
+                  ;; also copied to typed.cljs.checker.check/check-top-level
+                  (assoc ::c/Un-cache (atom c/initial-Un-cache))
+                  (assoc ::c/In-cache (atom {}))
+                  (assoc ::c/RClass-of-cache (atom {}))
+                  (assoc ::c/supers-cache (atom {}))
+                  (assoc ::sub/subtype-cache (atom {}))
+                  (assoc ::cgen/dotted-var-store (atom {}))
+                  (assoc ::prs/unparse-type-in-ns nsym))
+         cexpr (uc/with-cljs-typed-env
+                 (-> form
+                     (unanalyzed-top-level (or env (ana-api/empty-env)) opts)
+                     (check-expr expected opts)))]
+     (flush-analysis-side-effects cexpr opts)
+     cexpr)))
 
 (defn check-ns1
   "Type checks an entire namespace."

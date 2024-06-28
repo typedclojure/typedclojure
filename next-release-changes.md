@@ -41,3 +41,6 @@
 - type check `clojure.core/assert` as if `*assert*` is true
 - remove `*verbose-{types,forms}*`
   - use `:verbose-{types,forms} true` option
+- remove system property `clojure.core.typed.intern-defaliases`
+- support `:typed.clojure/ignore true` metadata on macro vars which is
+  a hint to the checker that it always expands to ignored forms

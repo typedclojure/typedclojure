@@ -132,14 +132,14 @@
   IPromoteDemote
   (promote [{:keys [name] :as T} V opts]
     (if (V name)
-      (let [bnd (free-ops/free-in-scope-bnds name)]
+      (let [bnd (free-ops/free-in-scope-bnds name opts)]
         (when-not bnd
           (err/int-error (str "Missing kind for type variable " name) opts))
         (promote-Kind->Type bnd V opts))
       T))
   (demote [{:keys [name] :as T} V opts]
     (if (V name)
-      (let [bnd (free-ops/free-in-scope-bnds name)]
+      (let [bnd (free-ops/free-in-scope-bnds name opts)]
         (when-not bnd
           (err/int-error (str "Missing kind for type variable " name) opts))
         (demote-Kind->Type bnd V opts))

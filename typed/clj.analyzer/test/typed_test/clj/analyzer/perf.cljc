@@ -33,7 +33,7 @@
      (assert (record? expr))
      (if (instance? UnanalyzedExpr expr)
        (let [{:keys [form env]} expr]
-         (case (jana2/resolve-op-sym form env)
+         (case (jana2/resolve-op-sym form env opts)
            (recur (ana2/analyze-outer expr opts) expected opts)))
        (-> expr
            (ana2/run-pre-passes opts)
@@ -45,9 +45,9 @@
   ([form] (check-top-level form nil (jana2/default-opts)))
   ([form expected] (check-top-level form expected (jana2/default-opts)))
   ([form expected {:keys [env] :as opts}]
-   (let [env (or env (jana2/empty-env))]
+   (let [env (or env (jana2/empty-env (ns-name *ns*)))]
      (with-bindings (jana2/default-thread-bindings env)
-       (env/ensure (jana2/global-env)
+       (let [opts (env/ensure opts (jana2/global-env))]
          (-> form
              (ana2/unanalyzed-top-level env)
              (check-expr expected opts)))))))
@@ -56,9 +56,9 @@
   ([forms] (check-top-levels forms nil (jana2/default-opts)))
   ([forms expected] (check-top-levels forms expected (jana2/default-opts)))
   ([forms expected {:keys [env] :as opts}]
-   (let [env (or env (jana2/empty-env))]
+   (let [env (or env (jana2/empty-env (ns-name *ns*)))]
      (with-bindings (jana2/default-thread-bindings env)
-       (env/ensure (jana2/global-env)
+       (let [opts (env/ensure opts (jana2/global-env))] 
          (run! #(do
                   (-> %
                       (ana2/unanalyzed-top-level env)
@@ -133,13 +133,13 @@
 
   (time
     (with-fresh-ns
-      (let [env (jana2/empty-env)]
+      (let [env (jana2/empty-env (ns-name *ns*))]
         (with-bindings (jana2/default-thread-bindings env)
-          (env/ensure (jana2/global-env)
-                      (run! #(-> %
-                                 (ana2/unanalyzed-top-level env)
-                                 ana2/run-passes)
-                            forms1))))))
+          (let [opts (env/ensure opts (jana2/global-env))] 
+            (run! #(-> %
+                       (ana2/unanalyzed-top-level env)
+                       ana2/run-passes)
+                  forms1))))))
   ;; 1500ms
 
   (with-fresh-ns

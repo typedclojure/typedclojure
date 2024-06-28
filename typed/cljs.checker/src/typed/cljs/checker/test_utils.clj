@@ -3,6 +3,7 @@
             [cljs.analyzer.api :as ana-api]
             [cljs.core.typed :as cljs-t]
             [cljs.core.typed :as t]
+            [typed.cljs.checker.utils :refer [->opts]]
             [typed.cljs.runtime.env :as cljs-env]
             [clojure.core.typed.current-impl :as impl]
             [clojure.set :as set]
@@ -92,7 +93,7 @@
   (apply common-test/tc-err tc-common* frm opts))
 
 (defmacro subtype? [s t]
-  `(sub/subtype? ~s ~t cljs-opts))
+  `(sub/subtype? ~s ~t (cljs-opts)))
 
 (defmacro sub? [s t]
   `(subtype? (prs/parse-cljs '~s)
@@ -134,4 +135,6 @@
                                             :form expr}))))))))
              exprs)))))
 
-(def cljs-opts (cljs-env/cljs-opts))
+(defn cljs-opts []
+  (-> (->opts)
+      (prs/with-unparse-ns ((requiring-resolve 'typed.cljs.checker.util/cljs-ns)))))

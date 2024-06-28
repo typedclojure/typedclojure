@@ -147,17 +147,18 @@
                                       (cu/record-implicits (symbol (:name inst-method))))))]
         (update ret-expr
                 :methods (fn [methods]
-                           (let [opts (lex/with-locals opts expected-fields)]
-                             (free-ops/with-free-mappings 
-                               (into {}
-                                     (map (fn [nm bnd]
-                                            [(-> nm r/make-F r/F-original-name)
-                                             {:F (r/make-F nm) :bnds bnd}])
-                                          nms bbnds))
-                               (into []
-                                     (map #(cond-> %
-                                             (check-method? %) (check-method {:kind :deftype
-                                                                              :expected-type dt
-                                                                              :nme nme}
-                                                                             opts)))
-                                     methods)))))))))
+                           (let [opts (-> opts
+                                          (lex/with-locals expected-fields)
+                                          (free-ops/with-free-mappings 
+                                            (into {}
+                                                  (map (fn [nm bnd]
+                                                         [(-> nm r/make-F r/F-original-name)
+                                                          {:F (r/make-F nm) :bnds bnd}])
+                                                       nms bbnds))))]
+                             (into []
+                                   (map #(cond-> %
+                                           (check-method? %) (check-method {:kind :deftype
+                                                                            :expected-type dt
+                                                                            :nme nme}
+                                                                           opts)))
+                                   methods))))))))

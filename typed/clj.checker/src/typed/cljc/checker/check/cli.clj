@@ -19,8 +19,9 @@
             [typed.cljc.checker.type-ctors :as c]))
 
 (defn parse-fn-return-type [parse-fn-type opts]
-  (let [subst-in (free-ops/with-free-symbols 
-                   #{'a} (prs/parse-type '[String -> a] opts))] 
+  (let [subst-in (prs/parse-type '[String -> a]
+                                 (-> opts
+                                     (free-ops/with-free-symbols #{'a})))] 
     (-> (cgen/cs-gen #{} {'a r/no-bounds} {} parse-fn-type subst-in) 
         (cgen/subst-gen #{} subst-in {} opts)
         (get-in ['a :type]))))

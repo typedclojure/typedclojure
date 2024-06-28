@@ -815,17 +815,17 @@
 
 (deftest promote-demote-test
   (is-tc-e 1)
-  (is-clj (= (with-bounded-frees {(make-F 'x) no-bounds}
-               (promote-var (make-F 'x) '#{x} (clj-opts)))
+  (is-clj (= (promote-var (make-F 'x) '#{x}
+                          (with-bounded-frees (clj-opts) {(make-F 'x) no-bounds}))
              -any))
-  (is-clj (= (with-bounded-frees {(make-F 'x) no-bounds}
-               (demote-var (make-F 'x) '#{x} (clj-opts)))
+  (is-clj (= (demote-var (make-F 'x) '#{x}
+                         (with-bounded-frees (clj-opts) {(make-F 'x) no-bounds}))
              (Bottom)))
-  (is-clj (= (with-bounded-frees {(make-F 'x) no-bounds}
-               (promote-var (RClass-of clojure.lang.ISeq [(make-F 'x)] (clj-opts)) '#{x} (clj-opts)))
+  (is-clj (= (promote-var (RClass-of clojure.lang.ISeq [(make-F 'x)] (clj-opts)) '#{x}
+                          (with-bounded-frees (clj-opts) {(make-F 'x) no-bounds}))
              (RClass-of clojure.lang.ISeq [-any] (clj-opts))))
-  (is-clj (= (with-bounded-frees {(make-F 'x) no-bounds}
-               (demote-var (RClass-of clojure.lang.ISeq [(make-F 'x)] (clj-opts)) '#{x} (clj-opts)))
+  (is-clj (= (demote-var (RClass-of clojure.lang.ISeq [(make-F 'x)] (clj-opts)) '#{x}
+                         (with-bounded-frees (clj-opts) {(make-F 'x) no-bounds}))
              (RClass-of clojure.lang.ISeq [(Bottom)] (clj-opts)))))
 
 (deftest variances-test
@@ -2377,14 +2377,14 @@
                  [(Name-maker 'java.lang.Number)] (clj-opts)))))
 
 (deftest protocol-method-ann-test
-  (is-clj (let [x1 (gensym 'x1)
+  (is-clj (let [opts (clj-opts)
+                x1 (gensym 'x1)
                 x2 (gensym 'x2)
                 names [x1 x2]
                 bnds [no-bounds no-bounds]
-                mt (with-bounded-frees (zipmap (map make-F names)
-                                               bnds)
-                     (parse-clj `(t/All [m1#]
-                                    [t/Any ~x1 m1# ~'-> ~x2])))]
+                mt (parse-clj `(t/All [m1#] [t/Any ~x1 m1# ~'-> ~x2])
+                              (with-bounded-frees opts (zipmap (map make-F names)
+                                                               bnds)))]
             (both-subtype? (collect-u/protocol-method-var-ann
                              mt names bnds (clj-opts))
                            (parse-clj

@@ -193,11 +193,9 @@
                       (ana/analyze-outer-root opts)
                       infer-ana-op))))))
 
-(declare analyze-outer)
-
 (defn parse-let [op env form nme opts]
   (-> (inner-parse op env form nme opts)
-      (update :body analyze-outer opts)))
+      (update :body ana/analyze-outer opts)))
 
 (defmethod parse 'let*
   [op env form nme opts]
@@ -215,10 +213,10 @@
   [op env form nme opts]
   (let [ast (-> (inner-parse op env form nme opts)
                 infer-ana-op
-                (update :body analyze-outer opts))]
+                (update :body ana/analyze-outer opts))]
     (cond-> ast
-      (:catch ast) (update :catch analyze-outer opts)
-      (:finally ast) (update :finally analyze-outer opts))))
+      (:catch ast) (update :catch ana/analyze-outer opts)
+      (:finally ast) (update :finally ana/analyze-outer opts))))
 
 (defmethod parse 'fn*
   [op env form nme opts]
@@ -227,7 +225,7 @@
       (update :methods (fn [methods]
                          (mapv #(-> %
                                     infer-ana-op
-                                    (update :body analyze-outer opts))
+                                    (update :body ana/analyze-outer opts))
                                methods)))))
 
 (defmethod parse 'quote
@@ -239,7 +237,7 @@
   [op env form nme opts]
   (-> (inner-parse op env form nme opts)
       infer-ana-op
-      (update :body analyze-outer opts)
+      (update :body ana/analyze-outer opts)
       add-bindings-op))
 
 (defmethod parse 'case*
@@ -333,17 +331,13 @@
                             #'ana-cljs'/*unchecked-arrays* 
                             ])}))
 
-(defn unanalyzed [form env opts]
-  {:pre [(map? env)]}
-  (unanalyzed-env-first env form))
-
-(defn analyze-outer [ast opts]
+(defn -analyze-outer [ast opts]
   (case (:op ast)
     :unanalyzed (with-bindings (:bindings ast)
                   (cond-> (analyze (:env ast)
                                    (:form ast)
                                    (:name ast)
-                                   (:opts ast))
+                                   opts)
                     (:body? ast) (assoc :body? true)))
     ast))
 
@@ -354,12 +348,12 @@
           (unanalyzed
             (ana-api/empty-env)
             (list '+ (list '- 1) 2)))
-        analyze-outer)
+        ana/analyze-outer)
     [:form :op])
   )
 
 (defn resolve-sym
-  [op env]
+  [op env opts]
   ;;TODO use `api-ana/ns-resolve` ?
   (when (and (symbol? op)
              (not (ana-cljs'/specials op))
@@ -367,25 +361,44 @@
     (:name (doto (ana-api/resolve env op)
              #_(prn "ana-api/resolve" op (:ns env))))))
 
-(defn var->sym [sym]
+(defn var->sym [sym opts]
   (when (qualified-symbol? sym)
     sym))
 
 (defn default-thread-bindings []
   {#'ana-cljs/parse parse
    #'ana-cljs/analyze unanalyzed-env-first
-   #'ana/parse (fn [form env opts] (parse (first form) env form nil opts))
-   #'ana/analyze-outer analyze-outer
-   #'ana/unanalyzed unanalyzed
-   #'ana/resolve-sym resolve-sym
-   #'ana/var->sym var->sym
-   #'ana/scheduled-passes {:pre identity
-                           :post identity
-                           :init-ast identity}})
+   })
 
 (defn resolve-op-sym
-  [form env]
+  [form env opts]
   (when (seq? form)
-    (resolve-sym (first form) env)))
+    (resolve-sym (first form) env opts)))
 
-(defn default-opts [] {})
+(defn unanalyzed [form env opts]
+  {:pre [(map? env)]}
+  (unanalyzed-env-first env form))
+
+(defn default-opts []
+  {::ana/resolve-ns (fn [sym env opts]
+                      (throw (ex-info "TODO typed.cljs.analyzer/resolve-ns" {})))
+   ::ana/current-ns-name (fn [sym env opts]
+                           (throw (ex-info "TODO typed.cljs.analyzer/current-ns-name" {})))
+   ::ana/parse (fn [form env opts] (parse (first form) env form nil opts))
+   ::ana/eval-ast (fn [ast opts]
+                    (throw (ex-info "TODO typed.cljs.analyzer/eval-ast" {})))
+   ::ana/create-var (fn [sym env opts]
+                      (throw (ex-info "TODO typed.cljs.analyzer/create-var" {})))
+   ::ana/unanalyzed unanalyzed
+   ::ana/macroexpand-1 (fn [form env opts]
+                         (throw (ex-info "TODO typed.cljs.analyzer/macroexpand-1" {})))
+   ::ana/analyze-outer -analyze-outer
+   ::ana/scheduled-passes (fn [opts]
+                            {:pre (fn [x opts] x)
+                             :post (fn [x opts] x)
+                             :init-ast (fn [x opts] x)})
+   ::ana/var? (fn [x opts]
+                (throw (ex-info "TODO typed.cljs.analyzer/var?" {})))
+   ::ana/var->sym var->sym
+   ::ana/resolve-sym resolve-sym
+   })

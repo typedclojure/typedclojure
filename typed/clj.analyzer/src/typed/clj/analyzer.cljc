@@ -29,36 +29,29 @@
             #?(:clj [io.github.frenchy64.fully-satisfies.safe-locals-clearing :refer [delay]]))
   (:import [clojure.lang IObj RT Var Compiler]))
 
-(def ^:dynamic *parse-deftype-with-existing-class*
-  "If true, don't generate a new class when analyzing deftype* if a class
-  of the same name already exists."
-  nil)
-
 (def specials
   "Set of the special forms for clojure in the JVM"
   (into ana/specials
         '#{monitor-enter monitor-exit clojure.core/import* reify* deftype* case*}))
 
-(declare resolve-ns)
-
 ;; copied from tools.analyzer.jvm to replace `resolve-ns` and `taj-utils/maybe-class-literal`
-(defn desugar-symbol [form env opts]
+(defn desugar-symbol [form env {::ana/keys [resolve-ns] :as opts}]
   (let [sym-ns (namespace form)]
     (if-let [target (and sym-ns
-                         (not (resolve-ns (symbol sym-ns) env))
+                         (not (resolve-ns (symbol sym-ns) env opts))
                          (ju/maybe-class-literal sym-ns))]          ;; Class/field
       (with-meta (list '. target (symbol (str "-" (name form)))) ;; transform to (. Class -field)
                  (meta form))
       form)))
 
 ;; copied from tools.analyzer.jvm to replace `resolve-ns` and `taj-utils/maybe-class-literal`
-(defn desugar-host-expr [form env]
+(defn desugar-host-expr [form env {::ana/keys [resolve-ns] :as opts}]
   (let [[op & expr] form]
     (if (symbol? op)
       (let [opname (name op)
             opns   (namespace op)]
         (if-let [target (and opns
-                             (not (resolve-ns (symbol opns) env))
+                             (not (resolve-ns (symbol opns) env opts))
                              (ju/maybe-class-literal opns))] ; (class/field ..)
 
           (let [op (symbol opname)]
@@ -89,10 +82,10 @@
 ;copied from clojure.tools.analyzer.jvm
 (defn empty-env
   "Returns an empty env map"
-  []
+  [nsym]
   {:context    :ctx/expr
    :locals     {}
-   :ns         (ns-name *ns*)})
+   :ns         nsym})
 
 ;; Note: typed.clj currently uses typed.clj.checker.analyze-clj/macroexpand-1.
 ;; This function is not compatible with core.async, since &env looks slightly like tools.analyzer,
@@ -108,7 +101,7 @@
         (let [[op & args] form]
           (if (specials op)
             form
-            (let [v (ana/resolve-sym op env)
+            (let [v (ana/resolve-sym op env opts)
                   m (meta v)
                   local? (-> env :locals (get op))
                   macro? (when-not local? (:macro m)) ;; locals shadow macros
@@ -135,7 +128,7 @@
                    res))
 
                :else
-               (desugar-host-expr form env)))))
+               (desugar-host-expr form env opts)))))
 
         (symbol? form)
         (desugar-symbol form env opts)
@@ -179,9 +172,10 @@
 ;KEEP
     })
 
-(def scheduled-default-passes
-  (delay
-    (passes/schedule default-passes)))
+(let [d (delay
+          (passes/schedule default-passes))]
+  (defn scheduled-default-passes [opts]
+    @d))
 
 (comment
   (clojure.pprint/pprint
@@ -200,7 +194,7 @@
 ; (U Sym nil) -> (U Sym nil)
 (defn resolve-ns
   "Resolves the ns mapped by the given sym in the global env"
-  [ns-sym {:keys [ns]}]
+  [ns-sym {:keys [ns]} opts]
   {:pre [((some-fn symbol? nil?) ns-sym)]
    :post [(or (and (symbol? %)
                    (not (namespace %)))
@@ -214,18 +208,12 @@
 (defn resolve-sym
   "Resolves the value mapped by the given sym in the global env
   If sym is shadowed by a local in env, returns nil."
-  [sym {:keys [ns locals] :as env}]
-  (when (symbol? sym)
-    (ns-resolve ns locals sym)))
-
-(defn current-ns-name
-  "Returns the current namespace symbol."
-  [env]
-  (ns-name *ns*))
+  [sym {:keys [ns locals] :as env} opts]
+  (ju/resolve-sym sym env))
 
 (defn var->sym
   "If given a var, returns the fully qualified symbol for that var, otherwise nil."
-  [^clojure.lang.Var v]
+  [^clojure.lang.Var v opts]
   (when (var? v)
     (symbol (when (.ns v)
               (str (ns-name (.ns v))))
@@ -252,7 +240,7 @@
 (defn create-var
   "Creates a Var for sym and returns it.
    The Var gets interned in the env namespace."
-  [sym {:keys [ns]}]
+  [sym {:keys [ns]} opts]
   {:post [(var? %)]}
   (let [meta (dissoc (meta sym) :inline :inline-arities :macro)
         meta (if-let [arglists (:arglists meta)]
@@ -270,7 +258,7 @@
   
   In environment env, if form is an invocation of
   a global var, return the fully qualified symbol of that var."
-  [form env]
+  [form env opts]
   (when (seq? form)
     (let [op (first form)]
       (when (and (symbol? op)
@@ -278,8 +266,8 @@
                  (not (specials op))
                  (not (get (:locals env) op)))
         ;TODO call these dynamic vars in common ns
-        (-> (resolve-sym op env)
-            var->sym)))))
+        (-> (ana/resolve-sym op env opts)
+            (ana/var->sym opts))))))
 
 (defn parse-monitor-enter
   [[_ target :as form] env opts]
@@ -370,8 +358,7 @@
 
 (defn parse-reify*
   [[_ interfaces & methods :as form] env opts]
-  (let [interfaces (conj (disj (set (mapv ju/maybe-class interfaces)) Object)
-                         IObj)
+  (let [interfaces (disj (into #{IObj} (map ju/maybe-class) interfaces) Object)
         name (gensym "reify__")
         class-name (symbol (str (namespace-munge *ns*) "$" name))
         menv (assoc env :this class-name)
@@ -398,8 +385,8 @@
       [opts methods])))
 
 (defn parse-deftype*
-  [[_ name class-name fields _ interfaces & methods :as form] env opts]
-  (let [interfaces (disj (set (mapv ju/maybe-class interfaces)) Object)
+  [[_ name class-name fields _ interfaces & methods :as form] env {::keys [parse-deftype-with-existing-class] :as opts}]
+  (let [interfaces (disj (into #{} (map ju/maybe-class) interfaces) Object)
         fields-expr (mapv (fn [name]
                             {:env     env
                              :form    name
@@ -417,12 +404,12 @@
                :context :ctx/expr
                :locals  (zipmap fields (map u/dissoc-env fields-expr))
                :this    class-name)
-        [opts methods] (parse-opts+methods methods)
+        [_opt methods] (parse-opts+methods methods)
         methods (mapv #(assoc (analyze-method-impls % menv opts) :interfaces interfaces)
                       methods)]
 
-    (or (when *parse-deftype-with-existing-class*
-          (class? (resolve class-name)))
+    (or (when parse-deftype-with-existing-class
+          (class? (ns-resolve (:ns env) class-name)))
         (-deftype name class-name fields interfaces))
 
     {:op         :deftype
@@ -498,7 +485,7 @@
 (defn unanalyzed
   [form env opts]
   {:pre [(map? env)]}
-  (let [init-ast (:init-ast ana/scheduled-passes)
+  (let [init-ast (:init-ast (ana/scheduled-passes opts))
         _ (assert init-ast "scheduled-passes must bind :init-ast")]
     (->
       {:op :unanalyzed
@@ -534,17 +521,18 @@
             (update :asdf inc)))))
   )
 
-(defn analyze-outer
+(defn -analyze-outer
   "If ast is :unanalyzed, then call analyze-form on it, otherwise returns ast."
-  [ast opts]
+  [ast {::ana/keys [current-ns-name] :as opts}]
   (case (:op ast)
-    :unanalyzed (let [{:keys [form env ::ana/config]} ast
+    :unanalyzed (let [{::ana/keys [config]
+                       :keys [form env]} ast
                       ast (-> form
                               (ana/analyze-form env opts)
                               ;TODO rename to ::inherited
                               (assoc ::ana/config config)
                               ana/propagate-top-level
-                              (assoc-in [:env :ns] (ana/current-ns-name env)))]
+                              (assoc-in [:env :ns] (current-ns-name env opts)))]
                     ast)
     ast))
 
@@ -569,23 +557,13 @@
   ;([form] (analyze form (empty-env) {}))
   ;([form env] (analyze form env {}))
   ([form env opts]
-   (with-bindings (-> {#'ana/macroexpand-1 macroexpand-1
-                       #'ana/create-var    create-var
-                       #'ana/scheduled-passes    @scheduled-default-passes
-                       #'ana/parse         parse
-                       #'ana/var?          var?
-                       #'ana/resolve-ns    resolve-ns
-                       #'ana/resolve-sym   resolve-sym
-                       #'ana/unanalyzed unanalyzed
-                       #'ana/analyze-outer analyze-outer
-                       #'ana/current-ns-name current-ns-name
-                       ;#'*ns*              (the-ns (:ns env))
+   (with-bindings (-> {;#'*ns*              (the-ns (:ns env))
                        }
                       #?@(:cljr [] :default [(assoc Compiler/LOADER (RT/makeClassLoader))])
                       (into (:bindings opts)))
-       (env/ensure (global-env)
-         (env/with-env (u/mmerge (env/deref-env) {:passes-opts (get opts :passes-opts default-passes-opts)})
-           (ana/run-passes (ana/unanalyzed form env opts) opts))))))
+     (let [opts (env/ensure opts (global-env))
+           opts (env/with-env opts (u/mmerge (env/deref-env opts) {:passes-opts (get opts :passes-opts default-passes-opts)}))]
+       (ana/run-passes (ana/unanalyzed form env opts) opts)))))
 
 (deftype ExceptionThrown [e ast])
 
@@ -600,19 +578,7 @@
     (assoc ast :result result)))
 
 (defn default-thread-bindings [env]
-  (-> {#'ana/macroexpand-1 macroexpand-1
-       #'ana/create-var    create-var
-       #'ana/scheduled-passes    @scheduled-default-passes
-       #'ana/parse         parse
-       #'ana/var?          var?
-       #'ana/resolve-ns    resolve-ns
-       #'ana/resolve-sym   resolve-sym
-       #'ana/var->sym      var->sym
-       #'ana/eval-ast      eval-ast2
-       #'ana/current-ns-name current-ns-name
-       #'ana/analyze-outer analyze-outer
-       #'ana/unanalyzed unanalyzed
-       ;#'*ns*              (the-ns (:ns env))
+  (-> {;#'*ns*              (the-ns (:ns env))
        }
       #?@(:cljr [] :default [(assoc Compiler/LOADER (RT/makeClassLoader))])))
 
@@ -656,58 +622,74 @@
                      stop-gildardi-check
                      analyze-fn]
               :or {additional-gilardi-condition (fn [form env] true)
-                   eval-fn eval-ast
                    annotate-do (fn [a _ _] a)
                    statement-opts-fn identity
                    stop-gildardi-check (fn [form env] false)
                    analyze-fn analyze}
               :as opts}]
-     (env/ensure (global-env)
-       (let [env (merge env (u/-source-info form env))
-             [mform raw-forms] (with-bindings (-> {;#'*ns*              (the-ns (:ns env))
-                                                   #'ana/resolve-ns    resolve-ns
-                                                   #'ana/resolve-sym   resolve-sym
-                                                   #'ana/current-ns-name current-ns-name
-                                                   #'ana/macroexpand-1 (get-in opts [:bindings #'ana/macroexpand-1]
-                                                                               macroexpand-1)}
-                                                  #?@(:cljr [] :default [(assoc Compiler/LOADER (RT/makeClassLoader))]))
-                                 (loop [form form raw-forms []]
-                                   (let [mform (if (stop-gildardi-check form env)
-                                                 form
-                                                 (ana/macroexpand-1 form env opts))]
-                                     (if (= mform form)
-                                       [mform (seq raw-forms)]
-                                       (recur mform (conj raw-forms
-                                                          (if-let [[op & r] (and (seq? form) form)]
-                                                            (if (or (ju/macro? op  env)
-                                                                    (ju/inline? op r env))
-                                                              (vary-meta form assoc ::ana/resolved-op (ana/resolve-sym op env))
-                                                              form)
-                                                            form)))))))]
-         (if (and (seq? mform) (= 'do (first mform)) (next mform)
-                  (additional-gilardi-condition mform env))
-           ;; handle the Gilardi scenario
-           (let [[statements ret] (u/butlast+last (rest mform))
-                 statements-expr (mapv (fn [s] (analyze+eval s (-> env
-                                                                (u/ctx :ctx/statement)
-                                                                (assoc :ns (ns-name *ns*)))
-                                                            (statement-opts-fn opts)))
-                                       statements)
-                 ret-expr (analyze+eval ret (assoc env :ns (ns-name *ns*)) opts)]
-             (annotate-do
-               {:op         :do
-                :top-level  true
-                :form       mform
-                :statements statements-expr
-                :ret        ret-expr
-                :children   [:statements :ret]
-                :env        env
-                :result     (:result ret-expr)
-                :raw-forms  raw-forms}
-               statements-expr
-               ret-expr))
-           (let [a (analyze-fn mform env opts)
-                 e (eval-fn a (assoc opts :original-form mform))]
-             (merge e {:raw-forms raw-forms})))))))
+     (let [opts (env/ensure opts (global-env))
+           eval-fn (or eval-fn
+                       (::ana/eval-ast opts)
+                       eval-ast)
+           env (merge env (u/-source-info form env))
+           [mform raw-forms] (with-bindings (-> {;#'*ns*              (the-ns (:ns env))
+                                                 }
+                                                #?@(:cljr [] :default [(assoc Compiler/LOADER (RT/makeClassLoader))]))
+                               (loop [form form raw-forms []]
+                                 (let [mform (if (stop-gildardi-check form env)
+                                               form
+                                               (ana/macroexpand-1 form env opts))]
+                                   (if (= mform form)
+                                     [mform (seq raw-forms)]
+                                     (recur mform (conj raw-forms
+                                                        (if-let [[op & r] (and (seq? form) form)]
+                                                          (if (or (ju/macro? op env)
+                                                                  (ju/inline? op r env))
+                                                            (vary-meta form assoc ::ana/resolved-op (ana/resolve-sym op env opts))
+                                                            form)
+                                                          form)))))))]
+       (if (and (seq? mform) (= 'do (first mform)) (next mform)
+                (additional-gilardi-condition mform env))
+         ;; handle the Gilardi scenario
+         (let [[statements ret] (u/butlast+last (rest mform))
+               statements-expr (mapv (fn [s] (analyze+eval s (-> env
+                                                              (u/ctx :ctx/statement)
+                                                              (assoc :ns (ns-name *ns*)))
+                                                          (statement-opts-fn opts)))
+                                     statements)
+               ret-expr (analyze+eval ret (assoc env :ns (ns-name *ns*)) opts)]
+           (annotate-do
+             {:op         :do
+              :top-level  true
+              :form       mform
+              :statements statements-expr
+              :ret        ret-expr
+              :children   [:statements :ret]
+              :env        env
+              :result     (:result ret-expr)
+              :raw-forms  raw-forms}
+             statements-expr
+             ret-expr))
+         (let [a (analyze-fn mform env opts)
+               e (eval-fn a (assoc opts :original-form mform))]
+           (merge e {:raw-forms raw-forms}))))))
 
-(defn default-opts [] {})
+(defn current-ns-name
+  "Returns the current namespace symbol."
+  [env opts]
+  (ns-name *ns*))
+
+(defn default-opts []
+  {::ana/resolve-ns resolve-ns
+   ::ana/current-ns-name current-ns-name
+   ::ana/parse parse
+   ::ana/eval-ast eval-ast2
+   ::ana/create-var create-var
+   ::ana/unanalyzed unanalyzed
+   ::ana/macroexpand-1 macroexpand-1
+   ::ana/analyze-outer -analyze-outer
+   ::ana/scheduled-passes scheduled-default-passes
+   ::ana/var? (fn [x opts] (var? x))
+   ::ana/var->sym var->sym
+   ::ana/resolve-sym resolve-sym
+   })

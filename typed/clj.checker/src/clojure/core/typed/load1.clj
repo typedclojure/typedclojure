@@ -20,6 +20,7 @@
             [typed.clj.lang :as lang]
             [typed.clj.runtime.env :as clj-env]
             [typed.cljc.analyzer.env :as env]
+            [typed.clj.checker.utils :refer [->opts]]
             [typed.cljc.checker.check-form :as chk-frm]
             [typed.cljc.checker.ns-deps-utils :as ns-utils])
   (:import java.net.URL))
@@ -36,51 +37,50 @@
 ;;      [String ToolsAnalyzerEnv ToolsReaderOpts -> nil])
 (defn load-typed-file
   "Loads a whole typed namespace, returns nil. Assumes the file is typed."
-  ([filename] (load-typed-file filename (jana2/empty-env) {}))
+  ([filename] (load-typed-file filename (jana2/empty-env (ns-name *ns*)) {}))
   ([filename env] (load-typed-file filename env {}))
   ([filename env {:keys [ex-handler skip-check-form?] :as check-opts}]
    {:pre [(string? filename)]
     :post [(nil? %)]}
    ;(prn "load-typed-file" filename)
     (t/load-if-needed)
-    (env/ensure (jana2/global-env)
-     (let [opts (clj-env/clj-opts)
-           ex-handler (or ex-handler #(throw %))
-           skip-check-form? (or skip-check-form? (fn [_] false))
-           env (or env (jana2/empty-env))
-           should-runtime-infer? vs/*prepare-infer-ns*
-           instrument-infer-config vs/*instrument-infer-config*
-           _ (when should-runtime-infer?
-               (println "Refreshing runtime inference")
-               (t/refresh-runtime-infer))
-           orig-filename filename
-           [file-url filename] (base-resource-path->resource filename)]
-       (assert file-url (str "Cannot find file " orig-filename))
-       (binding [*ns* *ns*
-                 *file* filename
-                 vs/*typed-load-atom* (atom {})
-                 vs/*prepare-infer-ns* nil
-                 vs/*instrument-infer-config* nil]
-         (with-open [rdr (io/reader file-url)]
-           (let [pbr (readers/indexing-push-back-reader
-                       (java.io.PushbackReader. rdr) 1 filename)
-                 eof (Object.)
-                 read-opts (cond-> {:eof eof :features #{:clj :t.a.jvm}}
-                             (.endsWith ^String filename "cljc") (assoc :read-cond :allow))
-                 config (assoc (chk-frm-clj/config-map2)
-                               :env env
-                               :should-runtime-infer? should-runtime-infer?
-                               :instrument-infer-config instrument-infer-config)]
-             (loop []
-               (let [form (reader/read read-opts pbr)]
-                 (when-not (identical? form eof)
-                   (if (skip-check-form? form)
-                     (lang/default-eval form)
-                     (let [{:keys [ex]} (chk-frm/check-form-info
-                                          config form {:check-config (t/default-check-config)}
-                                          opts)]
-                       (some-> ex ex-handler)))
-                   (recur)))))))))))
+    (let [opts (env/ensure (->opts) (jana2/global-env))
+          ex-handler (or ex-handler #(throw %))
+          skip-check-form? (or skip-check-form? (fn [_] false))
+          env (or env (jana2/empty-env (ns-name *ns*)))
+          should-runtime-infer? vs/*prepare-infer-ns*
+          instrument-infer-config vs/*instrument-infer-config*
+          _ (when should-runtime-infer?
+              (println "Refreshing runtime inference")
+              (t/refresh-runtime-infer))
+          orig-filename filename
+          [file-url filename] (base-resource-path->resource filename)]
+      (assert file-url (str "Cannot find file " orig-filename))
+      (binding [*ns* *ns*
+                *file* filename
+                vs/*typed-load-atom* (atom {})
+                vs/*prepare-infer-ns* nil
+                vs/*instrument-infer-config* nil]
+        (with-open [rdr (io/reader file-url)]
+          (let [pbr (readers/indexing-push-back-reader
+                      (java.io.PushbackReader. rdr) 1 filename)
+                eof (Object.)
+                read-opts (cond-> {:eof eof :features #{:clj :t.a.jvm}}
+                            (.endsWith ^String filename "cljc") (assoc :read-cond :allow))
+                config (assoc (chk-frm-clj/config-map2)
+                              :env env
+                              :should-runtime-infer? should-runtime-infer?
+                              :instrument-infer-config instrument-infer-config)]
+            (loop []
+              (let [form (reader/read read-opts pbr)]
+                (when-not (identical? form eof)
+                  (if (skip-check-form? form)
+                    (lang/default-eval form)
+                    (let [{:keys [ex]} (chk-frm/check-form-info
+                                         config form {:check-config (t/default-check-config)}
+                                         opts)]
+                      (some-> ex ex-handler)))
+                  (recur))))))))))
 
 (defn typed-load1
   "For each path, checks if the given file is typed, and loads it with core.typed if so,
@@ -89,7 +89,7 @@
   {:pre [(every? string? base-resource-paths)]
    :post [(nil? %)]}
   ;(prn "typed load" base-resource-paths)
-  (let [opts (clj-env/clj-opts)]
+  (let [opts (->opts)]
     (doseq [base-resource-path base-resource-paths]
       (cond
         (or (ns-utils/file-should-use-typed-load? (str base-resource-path ".clj") opts)

@@ -1266,26 +1266,22 @@
 
 ;; Symbolic closures
 
-(t/def ^:dynamic enable-symbolic-closures? :- t/Bool, true #_false)
+(t/def enable-symbolic-closures? :- t/Bool, true #_false)
 
-(u/def-type SymbolicClosure [bindings :- (t/Map t/Any t/Any)
-                             fexpr :- (t/Map t/Any t/Any)
+(u/def-type SymbolicClosure [fexpr :- (t/Map t/Any t/Any)
                              smallest-type :- Type
                              opts :- t/Any]
   "Symbolic closure"
-  [(map? bindings)
-   (map? fexpr)
+  [(map? fexpr)
    (Type? smallest-type)
    (map? opts)]
   :methods
-  [p/TCType]
-  :compare-self
-  {bindings (fn [_] (gensym 'unordered))})
+  [p/TCType])
 
 (t/ann symbolic-closure [(t/Map t/Any t/Any) Type t/Any :-> SymbolicClosure])
 (defn symbolic-closure [fexpr smallest-type opts]
   ;(prn "creating symbolic-closure")
-  (SymbolicClosure-maker (get-thread-bindings) fexpr smallest-type opts))
+  (SymbolicClosure-maker fexpr smallest-type opts))
 
 ;;;;;;;;;;;;;;;;;
 ;; Clojurescript types

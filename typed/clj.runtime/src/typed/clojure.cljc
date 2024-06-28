@@ -23,7 +23,7 @@
             [clojure.core.typed.platform-case :refer [platform-case]]
             #?(:clj [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]])))
 
-(defmacro ann
+(defmacro ^::ignore ann
   "Annotate varsym with type. If unqualified, qualify in the current namespace.
   If varsym has metadata {:no-check true}, ignore definitions of varsym 
   while type checking. Supports namespace aliases and fully qualified namespaces
@@ -42,7 +42,7 @@
     :clj `(clojure.core.typed/ann ~varsym ~typesyn)
     :cljs `(cljs.core.typed/ann ~varsym ~typesyn)))
 
-(defmacro ann-many [& args]
+(defmacro ^::ignore ann-many [& args]
   (platform-case
     :clj `(clojure.core.typed/ann-many ~@args)
     :cljs (throw (ex-info "ann-many not yet implemented in CLJS" {}))))
@@ -62,7 +62,7 @@
     :clj `(clojure.core.typed/ann-record ~@args)
     :cljs (throw (ex-info "TODO ann-record in CLJS" {}))))
 
-(defmacro defalias [& args]
+(defmacro ^::ignore defalias [& args]
   (platform-case
     :clj `(clojure.core.typed/defalias ~@args)
     :cljs `(cljs.core.typed/defalias ~@args)))
@@ -118,7 +118,7 @@
     :clj `(clojure.core.typed/ann-form ~@args)
     :cljs `(cljs.core.typed/ann-form ~@args)))
 
-(defmacro tc-ignore [& args]
+(defmacro ^::ignore tc-ignore [& args]
   (platform-case
     :clj `(clojure.core.typed/tc-ignore ~@args)
     :cljs `(cljs.core.typed/tc-ignore ~@args)))

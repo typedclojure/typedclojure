@@ -100,7 +100,7 @@
              ;_ (prn "*ns*" (ns-name *ns*))
              _ (when *intermediate-forms*
                  (swap! *intermediate-forms* conj form))]
-         (case (jana2/resolve-op-sym form env)
+         (case (jana2/resolve-op-sym form env opts)
            ;; example of type checking a macro that relies on top-level 'do'
            ;; evaluation order, so the results of evaluating previous expressions
            ;; can be used to macroexpand subsequent ones.
@@ -154,9 +154,9 @@
   ([form expected] (check-top-level form expected (jana2/default-opts)))
   ([form expected opts]
    {:post [(-> % ::type type?)]}
-   (let [env (jana2/empty-env)]
+   (let [env (jana2/empty-env (ns-name *ns*))]
      (with-bindings (jana2/default-thread-bindings env)
-       (env/ensure (jana2/global-env)
+       (let [opts (env/ensure opts (jana2/global-env))]
          (-> form
              (ana2/unanalyzed-top-level env opts)
              (check-expr expected opts)))))))

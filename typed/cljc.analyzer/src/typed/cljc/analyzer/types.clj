@@ -10,18 +10,81 @@
 (ns typed.cljc.analyzer.types
   (:refer-clojure :exclude [macroexpand-1 var?])
   (:require [typed.clojure :refer [ann defalias] :as t]
+            [typed.clj.analyzer :as-alias jana]
             [typed.cljc.analyzer :as-alias ana]
             [typed.cljc.analyzer.ast :as-alias ast]
             [typed.cljc.analyzer.utils :as u]))
 
 (defalias ana/Env (t/Map t/Kw t/Any))
 (defalias ana/Config (t/HMap :optional {:top-level t/Bool}))
+(defalias ana/Opts
+  "
+  :typed.cljc.analyzer/resolve-ns
+  Resolves the ns mapped by the given sym in the global env.
+  If sym is shadowed by a local in env, returns nil.
+
+  :typed.cljc.analyzer/current-ns-name
+  Returns the name symbol of the current namespace.
+
+  :typed.cljc.analyzer/parse
+  Multimethod that dispatches on op, should default to -parse
+
+  :typed.cljc.analyzer/eval-ast
+  Evaluates an AST node, attaching result to :result.
+
+  :typed.cljc.analyzer/create-var
+  Creates a var for sym and returns it.
+
+  :typed.cljc.analyzer/unanalyzed
+  Create an AST node for a form without expanding it.
+
+  :typed.cljc.analyzer/macroexpand-1
+  If form represents a macro form, returns its expansion,
+  else returns form.
+  
+  :typed.cljc.analyzer/analyze-outer
+  If ast is :unanalyzed, then call analyze-form on it, otherwise returns ast.
+  
+  :typed.cljc.analyzer/scheduled-passes
+  A map of functions such that
+   (ast/walk ast (:pre scheduled-passes) (:post scheduled-passes))
+  runs the passes currently scheduled, and
+   ((:init-ast scheduled-passes) ast)
+  initializes the AST for traversal.
+
+  :typed.cljc.analyzer/var?
+  Returns true if obj represent a var form as returned by create-var
+
+  :typed.cljc.analyzer/var->sym
+  If given a var, returns the fully qualified symbol for that var, otherwise nil.
+
+  :typed.cljc.analyzer/resolve-sym
+  Resolves the value mapped by the given sym in the global env
+
+  :typed.clj.analyzer/parse-deftype-with-existing-class
+  If true, don't generate a new class when analyzing deftype* if a class
+  of the same name already exists.
+  "
+  (t/HMap :mandatory {::ana/resolve-ns [t/Sym ana/Env ana/Opts :-> t/Any]
+                      ::ana/current-ns-name [ana/Env ana/Opts :-> t/Sym]
+                      ::ana/parse [(t/Seq t/Any) ana/Env ana/Opts :-> t/Any]
+                      ::ana/eval-ast [ana/Expr ana/Opts :-> (t/Assoc ana/Expr ':result t/Any)]
+                      ::ana/create-var [t/Sym ana/Env ana/Opts :-> t/Any]
+                      ::ana/unanalyzed [t/Any ana/Env ana/Opts :-> ana/Unanalyzed]
+                      ::ana/macroexpand-1 [t/Any ana/Env ana/Opts :-> t/Any]
+                      ::ana/analyze-outer [ana/Expr ana/Opts :-> ana/Expr]
+                      ::ana/scheduled-passes [ana/Opts :-> '{:init-ast ast/InitAst
+                                                             :pre ast/Pre
+                                                             :post ast/Post}]
+                      ::ana/var? [t/Any ana/Opts :-> t/Bool]
+                      ::ana/var->sym [t/Any ana/Opts :-> (t/Nilable t/Sym)]
+                      ::ana/resolve-sym [t/Sym ana/Env ana/Opts :-> t/Any]}
+          :optional {::jana/parse-deftype-with-existing-class t/Bool}))
 (defalias ana/Expr (t/Merge
                      (t/HMap :mandatory {;:op t/Kw
                                          :env ana/Env}
                              :optional {::ana/config ana/Config
-                                        :result t/Any}
-                             )
+                                        :result t/Any})
                      (t/U (t/HMap :mandatory {:op ':do
                                               :ret ana/Expr}
                                   ;;FIXME causes stackoverflow
@@ -32,28 +95,24 @@
                                   )
                           )
                      ))
-(defalias ast/Pre [ana/Expr t/Any :-> ana/Expr])
-(defalias ast/Post [ana/Expr t/Any :-> ana/Expr])
+(defalias ast/InitAst [ana/Expr ana/Opts :-> ana/Expr])
+(defalias ast/Pre [ana/Expr ana/Opts :-> ana/Expr])
+(defalias ast/Post [ana/Expr ana/Opts :-> ana/Expr])
 (defalias ana/Unanalyzed ana/Expr)
 (defalias ana/Form t/Any)
 (defalias ana/Op t/Kw)
 (defalias u/Classification t/Kw)
 (defalias u/Ctx (t/U ':ctx/expr))
 
-(ann ana/macroexpand-1 [t/Any ana/Env t/Any :-> t/Any])
-(ann ana/parse [(t/Seq t/Any) ana/Env t/Any :-> t/Any])
-(ann ana/create-var [t/Sym ana/Env :-> t/Any])
-(ann ana/var? [t/Any :-> t/Bool])
-(ann ana/scheduled-passes '{:init-ast [t/Any t/Any :-> t/Any]
-                            :pre ast/Pre
-                            :post ast/Post})
-(ann ana/resolve-sym [t/Sym :-> t/Any])
-(ann ana/resolve-ns [t/Sym :-> t/Any])
-(ann ana/current-ns-name [t/Env :-> t/Sym])
-(ann ana/eval-ast (t/All [[x :< ana/Expr]] [x t/Any :-> (t/Assoc x ':result t/Any)]))
-(ann ana/var->sym [t/Any :-> (t/Nilable t/Sym)])
-(ann ana/analyze-outer [ana/Expr t/Any :-> ana/Expr])
-(ann ana/unanalyzed [t/Any ana/Env t/Any :-> ana/Unanalyzed])
+(ann ana/macroexpand-1 [t/Any ana/Env ana/Opts :-> t/Any])
+(ann ana/var? [t/Any ana/Opts :-> t/Bool])
+(ann ana/scheduled-passes [ana/Opts :-> '{:init-ast ast/InitAst
+                                          :pre ast/Pre
+                                          :post ast/Post}])
+(ann ana/resolve-sym [t/Sym ana/Env ana/Opts :-> t/Any])
+(ann ana/current-ns-name [ana/Env :-> t/Sym])
+(ann ana/var->sym [t/Any ana/Opts :-> (t/Nilable t/Sym)])
+(ann ana/analyze-outer [ana/Expr ana/Opts :-> ana/Expr])
 (ann ana/run-pre-passes [ana/Expr t/Any :-> ana/Expr])
 (ann ana/run-post-passes [ana/Expr t/Any :-> ana/Expr])
 (ann ana/run-passes [ana/Expr t/Any :-> ana/Expr])

@@ -10,7 +10,7 @@
   (:require [typed.clojure :as t]
             [clojure.core.typed.current-impl :as impl]
             [typed.cljc.runtime.env-utils :as env-utils]
-            [typed.clj.runtime.env :refer [clj-opts]]
+            [typed.clj.checker.utils :refer [->opts]]
             [typed.clj.checker.ctor-override-env :as ctor-override-env]
             [typed.clj.checker.field-override-env :as field-override-env]
             [typed.clj.checker.method-override-env :as method-override-env]
@@ -35,7 +35,7 @@
 
 (defn- aset-*-type [t]
   (env-utils/delay-type'
-    (let [opts (assoc (clj-opts) ::prs/parse-type-in-ns (ns-name *ns*))
+    (let [opts (assoc (->opts) ::prs/parse-type-in-ns (ns-name *ns*))
           arr-t (prs/delay-parse-type `(~'Array ~t) opts)
           rtn-type (prs/delay-parse-type t opts)
           num-t (prs/delay-parse-type `t/Num opts)]
@@ -56,7 +56,7 @@
 
 (defn ^:private count-type []
   (env-utils/delay-type'
-    (let [opts (assoc (clj-opts) ::prs/parse-type-in-ns (ns-name *ns*))]
+    (let [opts (assoc (->opts) ::prs/parse-type-in-ns (ns-name *ns*))]
       ((resolve `r/make-FnIntersection)
        ((resolve `r/make-Function)
         [(prs/delay-parse-type `(t/U (t/Seqable t/Any) clojure.lang.Counted) opts)]
@@ -65,7 +65,7 @@
 
 (defn ^:private nth-type []
   (env-utils/delay-type'
-    (let [opts (assoc (clj-opts) ::prs/parse-type-in-ns (ns-name *ns*))]
+    (let [opts (assoc (->opts) ::prs/parse-type-in-ns (ns-name *ns*))]
       (prs/delay-parse-type
         ;;TODO port this type from clojure.lang.RT/nthFrom properly. Try not to use Indexed as a fake ancestor.
         ;; maybe even remove Seqable fake ancestors and move to t/Seqable.
@@ -79,7 +79,7 @@
 ;; public -- used in type-ctors via requiring-resolve
 (defn get-type []
   (env-utils/delay-type'
-    (let [opts (assoc (clj-opts) ::prs/parse-type-in-ns (ns-name *ns*))]
+    (let [opts (assoc (->opts) ::prs/parse-type-in-ns (ns-name *ns*))]
       (prs/delay-parse-type
         (let [x 'x
               y 'y]
@@ -107,14 +107,14 @@
 
 (defn ^:private reduced?-type []
   (env-utils/delay-type'
-    (let [opts (assoc (clj-opts) ::prs/parse-type-in-ns (ns-name *ns*))]
+    (let [opts (assoc (->opts) ::prs/parse-type-in-ns (ns-name *ns*))]
       (prs/delay-parse-type
         `(t/Pred (Reduced t/Any))
         opts))))
 
 (defn ^:private zero?-type []
   (env-utils/delay-type'
-    (let [opts (assoc (clj-opts) ::prs/parse-type-in-ns (ns-name *ns*))]
+    (let [opts (assoc (->opts) ::prs/parse-type-in-ns (ns-name *ns*))]
       (prs/delay-parse-type
         `[t/Num :-> t/Bool
           :filters {:then (~'is (t/Value 0) 0)
@@ -123,7 +123,7 @@
 
 (defn ^:private compare-type []
   (env-utils/delay-type'
-    (let [opts (assoc (clj-opts) ::prs/parse-type-in-ns (ns-name *ns*))]
+    (let [opts (assoc (->opts) ::prs/parse-type-in-ns (ns-name *ns*))]
       (prs/delay-parse-type
         ;;TODO use t/Comparable
         (let [x 'x]

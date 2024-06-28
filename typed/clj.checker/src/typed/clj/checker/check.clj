@@ -101,8 +101,6 @@
             [typed.cljc.runtime.env-utils :as env-utils])
   (:import (clojure.lang IPersistentMap Var)))
 
-(t/ann ^:no-check typed.clj.checker.parse-unparse/*unparse-type-in-ns* (t/U nil t/Sym))
-
 ;==========================================================
 ; # Type Checker
 ;
@@ -110,83 +108,154 @@
 
 (declare check-top-level)
 
+(defn ignored-macro-call? [form env opts]
+  (and (seq? form)
+       (when-some [^Var v (ana2/resolve-sym (first form) env opts)]
+         (and (.isMacro v)
+              (-> v meta ::t/ignore)))))
+
+(def defn-vars `#{defn defn-})
+(def defn-var-names (into #{} (map name) defn-vars))
+
+(def ignored-def-vars `#{defmacro declare})
+(def ignored-def-var-names (into #{} (map name) ignored-def-vars))
+
+(defn classify-def [form env opts]
+  (when (seq? form)
+    (let [[sym vsym] form]
+      (when (and (symbol? sym)
+                 (symbol? vsym))
+        (let [nme (name sym)]
+          (if (ignored-def-var-names nme)
+            (when (ignored-def-vars (ana2/var->sym (ana2/resolve-sym sym env opts) opts))
+              :skip)
+            ;;TODO needs to interact with the cache so a check is forced when ^:no-check removed
+            (let [def? (= 'def sym)]
+              (when (or def?
+                        (and (defn-var-names nme)
+                             (defn-vars (ana2/var->sym (ana2/resolve-sym sym env opts) opts))))
+                (when-some [^Var v (ana2/resolve-sym vsym env opts)]
+                  (when (var? v)
+                    (if (or (and (.isMacro v)
+                                 (-> v meta ::t/ignore))
+                            (let [qvsym (symbol v)]
+                              (and (var-env/lookup-Var-nofail qvsym opts)
+                                   (not (var-env/check-var? (cenv/checker opts) qvsym)))))
+                      :skip
+                      (if def?
+                        (do :fan #_:serial)
+                        :fan))))))))))))
+
+(defn classify-form [form env opts]
+  (or (when (seq? form)
+        (if (or (-> form meta ::t/ignore)
+                (ignored-macro-call? form env opts))
+          :skip
+          (classify-def form env opts)))
+      :fan))
+
 (defn check-ns1
   "Type checks an entire namespace."
   ([ns env {::vs/keys [delayed-errors check-config
-                       ^java.util.concurrent.ExecutorService check-threadpool]
+                       ^java.util.concurrent.ExecutorService check-threadpool
+                       check-threadpool-parallelism]
             ::cenv/keys [checker] :as opts}]
-   (env/ensure (jana2/global-env)
-     (let [env (or env (jana2/empty-env))
-           ^java.net.URL res (jtau/ns-url ns)
-           _ (assert res (str "Can't find " ns " in classpath"))
-           slurped (slurp (io/reader res))]
-       (when-not (cache/ns-check-cached? checker ns slurped)
-         (let [filename (str res)
-               {:keys [check-form-eval]} check-config]
-           (binding [*ns*   (if (= :never check-form-eval)
-                              (the-ns ns) ;; assumes ns == clojure.core/ns and ns is the same throughout file
-                              *ns*)
-                     *file* filename]
-             (let [forms-info (with-open [rdr (io/reader res)]
-                                (let [pbr (readers/source-logging-push-back-reader
-                                            (java.io.PushbackReader. rdr) 1 filename)
-                                      eof (Object.)
-                                      read-opts (cond-> {:eof eof :features #{:clj}}
-                                                  (.endsWith filename "cljc") (assoc :read-cond :allow))]
-                                  (loop [ns-form-str nil
-                                         forms-info []]
-                                    (let [[form sform] (reader/read+string read-opts pbr)]
-                                      (if (identical? form eof)
-                                        forms-info
-                                        (recur (or ns-form-str
-                                                   (when (and (seq? form) (= 'ns (first form)))
-                                                     sform))
-                                               (conj forms-info {:ns-form-str ns-form-str :sform sform :form form})))))))
+   (let [opts (-> opts
+                  (assoc ::prs/parse-type-in-ns ns)
+                  (env/ensure (jana2/global-env)))
+         env (or env (jana2/empty-env ns))
+         ^java.net.URL res (jtau/ns-url ns)
+         _ (assert res (str "Can't find " ns " in classpath"))
+         slurped (slurp (io/reader res))]
+     (when-not (cache/ns-check-cached? checker ns slurped)
+       (let [filename (str res)
+             {:keys [check-form-eval]} check-config]
+         (binding [*ns*   (if (= :never check-form-eval)
+                            (the-ns ns) ;; assumes ns == clojure.core/ns and ns is the same throughout file
+                            *ns*)
+                   *file* filename]
+           (let [[forms-info groups] (with-open [rdr (io/reader res)]
+                                       (let [pbr (readers/source-logging-push-back-reader
+                                                   (java.io.PushbackReader. rdr) 1 filename)
+                                             eof (Object.)
+                                             read-opts (cond-> {:eof eof :features #{:clj}}
+                                                         (.endsWith filename "cljc") (assoc :read-cond :allow))]
+                                         (loop [ns-form-str nil
+                                                pos 0
+                                                forms-info []
+                                                groups {:skip []
+                                                        :serial []
+                                                        :fan []}]
+                                           (let [[form sform] (reader/read+string read-opts pbr)]
+                                             (if (identical? form eof)
+                                               [forms-info groups]
+                                               (let [form-info {:pos pos :ns-form-str ns-form-str :sform sform :form form}]
+                                                 (recur (or ns-form-str
+                                                            (when (and (seq? form) (= 'ns (first form)))
+                                                              sform))
+                                                        (inc pos)
+                                                        (conj forms-info form-info)
+                                                        (update groups (classify-form form env opts) conj form-info))))))))
 
-                   ns-form-str (some :ns-form-str forms-info)
-                   _ (assert delayed-errors)
-                   bndings (get-thread-bindings)
-                   exs (map (fn [{:keys [form sform]}]
-                              (fn []
-                                (let [delayed-errors (err/-init-delayed-errors)
-                                      opts (-> opts
-                                               (assoc ::vs/delayed-errors delayed-errors)
-                                               ;; force types to reparse to detect dependencies in per-form cache
-                                               ;; might affect TypeFn variance inference
-                                               (assoc ::env-utils/type-cache (atom {})))
-                                      ex (volatile! nil)
-                                      chk (fn []
-                                            (try (check-top-level form nil {:env (assoc env :ns (ns-name *ns*))
-                                                                            :top-level-form-string sform
-                                                                            :ns-form-string ns-form-str}
-                                                                  opts)
-                                                 (catch Throwable e (vreset! ex e))))
-                                      out (with-bindings bndings
-                                            (if check-threadpool
-                                              (with-out-str
-                                                (chk))
-                                              (do (chk) nil)))]
-                                  (-> (if-let [ex @ex]
-                                        (if (-> ex ex-data :type-error)
-                                          {:errors (conj @delayed-errors ex)}
-                                          {:ex ex})
-                                        {:errors @delayed-errors})
-                                      (assoc :out out)))))
-                            forms-info)
-                   results (if check-threadpool
-                             (mapv (fn [^java.util.concurrent.Future future]
-                                     (try (.get future)
-                                          (catch java.util.concurrent.ExecutionException e
-                                            (throw (or (.getCause e) e)))))
-                                   (.invokeAll check-threadpool exs))
-                             (mapv #(%) exs))
-                   _ (swap! delayed-errors into
-                            (into [] (mapcat (fn [{:keys [ex errors out]}]
-                                               (some-> out str/trim not-empty println)
-                                               (some-> ex throw)
-                                               errors))
-                                  results))]
-               (cache/remove-stale-cache-entries ns ns-form-str (map :sform forms-info) slurped opts)))))))))
+                 ns-form-str (some :ns-form-str forms-info)
+                 _ (assert delayed-errors)
+                 ;_ (prn "groups" (binding [*print-level* 4
+                 ;                          *print-length* 3]
+                 ;                  (clojure.pprint/pprint (update-vals groups count #_#(mapv :form %)))))
+                 bndings (get-thread-bindings)
+                 chker1 (fn [{:keys [form sform pos]}]
+                          (fn []
+                            (let [delayed-errors (err/-init-delayed-errors)
+                                  opts (-> opts
+                                           (assoc ::vs/delayed-errors delayed-errors)
+                                           ;; force types to reparse to detect dependencies in per-form cache
+                                           ;; might affect TypeFn variance inference
+                                           (assoc ::env-utils/type-cache (atom {})))
+                                  ex (volatile! nil)
+                                  chk (fn []
+                                        (try (check-top-level form nil {:env (assoc env :ns (ns-name *ns*))
+                                                                        :top-level-form-string sform
+                                                                        :ns-form-string ns-form-str}
+                                                              opts)
+                                             (catch Throwable e (vreset! ex e))))
+                                  out (with-bindings bndings
+                                        (if check-threadpool
+                                          (with-out-str
+                                            (chk))
+                                          (do (chk) nil)))]
+                              (-> (if-let [ex @ex]
+                                    (if (-> ex ex-data :type-error)
+                                      {:errors (conj @delayed-errors ex)}
+                                      {:ex ex})
+                                    {:errors @delayed-errors})
+                                  (assoc :out out :pos pos)))))
+                 _ (assert (= #{:fan :serial :skip} (set (keys groups))))
+                 check-group (fn [g]
+                               (if check-threadpool
+                                 (mapv (fn [^java.util.concurrent.Future future]
+                                         (try (.get future)
+                                              (catch java.util.concurrent.ExecutionException e
+                                                (throw (or (.getCause e) e)))))
+                                       (.invokeAll check-threadpool g))
+                                 (mapv #(%) g)))
+                 parallelism (or #_(some-> check-threadpool-parallelism
+                                         ;(quot 2)
+                                         (max 1))
+                                 (count (:fan groups)))
+                 ;_ (prn "check-form parallelism" parallelism)
+                 results (-> []
+                             (into (comp (map chker1)
+                                         (partition-all parallelism)
+                                         (mapcat check-group))
+                                   (doto (:fan groups) assert))
+                             (into (check-group (map chker1 (doto (:serial groups) assert)))))
+                 _ (swap! delayed-errors into
+                          (into [] (mapcat (fn [{:keys [ex errors out]}]
+                                             (some-> out str/trim not-empty println)
+                                             (some-> ex throw)
+                                             errors))
+                                (sort-by :pos results)))]
+             (cache/remove-stale-cache-entries ns ns-form-str (map :sform forms-info) slurped opts))))))))
 
 (defn check-ns-and-deps [nsym opts] (cu/check-ns-and-deps nsym check-ns1 opts))
 
@@ -199,7 +268,7 @@
   {:pre [(= :unanalyzed op)]}
   (when (seq? form)
     (let [v (-> (first form)
-                (ana2/resolve-sym env))]
+                (ana2/resolve-sym env opts))]
       (when (var? v)
         (let [m (meta v)]
           (when (and (:inline m)
@@ -207,10 +276,10 @@
                        (or (not inline-arities-f)
                            (inline-arities-f (count (rest form))))))
             ;; TODO unit test (lack of) double expand/eval
-            (let [expr-noinline (binding [ana2/macroexpand-1 (fn [form _ _] form)]
-                                  ;; could pull out the ana2/unmark-top-level to here.
-                                  ;; probably would avoid the need for ana2/unmark-eval-top-level.
-                                  (ana2/analyze-outer expr opts))]
+            (let [expr-noinline 
+                  ;; could pull out the ana2/unmark-top-level to here.
+                  ;; probably would avoid the need for ana2/unmark-eval-top-level.
+                  (ana2/analyze-outer expr (assoc opts ::ana2/macroexpand-1 (fn [form _ _] form)))]
               (when (= :invoke (:op expr-noinline))
                 (let [{cargs :args
                        res u/expr-type} (-> expr-noinline
@@ -347,8 +416,8 @@
                                    (= :unanalyzed (:op fexpr))]
                              :post [((some-fn nil? symbol?) %)]}
                             (-> form
-                                (ana2/resolve-sym env)
-                                ana2/var->sym)))
+                                (ana2/resolve-sym env opts)
+                                (ana2/var->sym opts))))
 
 (defmulti -invoke-apply (fn [{[{:keys [op form env] :as fexpr} :as args] :args :as expr} expected opts]
                           {:pre [(= :invoke (:op expr))]
@@ -356,8 +425,8 @@
                           (when (seq args)
                             (assert (= :unanalyzed op))
                             (-> form
-                                (ana2/resolve-sym env)
-                                ana2/var->sym))))
+                                (ana2/resolve-sym env opts)
+                                (ana2/var->sym opts)))))
 
 (defn host-call-qname [{:keys [target] :as expr} _expected opts]
   {:pre [(= :host-call (:op expr))
@@ -1048,8 +1117,7 @@
     ;DO NOT REMOVE
     (println (:val debug-string))
     (flush)
-    (prs/with-unparse-ns (cu/expr-ns expr opts)
-      (print-env/print-env* opts))
+    (print-env/print-env* (prs/with-unparse-ns opts (cu/expr-ns expr opts)))
     ;DO NOT REMOVE
     (assoc expr
            u/expr-type (below/maybe-check-below
@@ -1074,7 +1142,7 @@
     (println (:val debug-string))
     (flush)
     ;(prn (:fl t))
-    (prs/with-unparse-ns (cu/expr-ns expr opts)
+    (let [opts (prs/with-unparse-ns opts (cu/expr-ns expr opts))] 
       (if (fl/FilterSet? (:fl t))
         (do (pprint/pprint (prs/unparse-filter-set (:fl t) opts))
             (flush))
@@ -1593,7 +1661,8 @@
                    opts))
   (when-let [cls (when (symbol? (:form cls-expr))
                    (let [cls (ana2/resolve-sym (:form cls-expr)
-                                               (:env cls-expr))]
+                                               (:env cls-expr)
+                                               opts)]
                      (when (class? cls)
                        cls)))]
     (let [{[cls-expr cexpr] :args :as expr}
@@ -1624,7 +1693,8 @@
                    opts))
   (when-some [v (when (symbol? (:form cls-expr))
                   (let [v (ana2/resolve-sym (:form cls-expr)
-                                            (:env cls-expr))]
+                                            (:env cls-expr)
+                                            opts)]
                     (when (var? v)
                       v)))]
     (let [{[_ cexpr] :args :as expr}
@@ -1663,7 +1733,8 @@
                           :post [((some-fn nil? symbol?) %)]}
                          (let [cls (ana2/resolve-sym form
                                                      ; `new` ignores locals
-                                                     (assoc env :locals {}))]
+                                                     (assoc env :locals {})
+                                                     opts)]
                            (when (class? cls)
                              (coerce/Class->symbol cls)))))
 
@@ -1948,13 +2019,16 @@
   fully analyzed core.typed.analyzer AST node (ie., containing no :unanalyzed nodes)
   with a u/expr-type entry giving its TCResult type, and a :result entry
   holding its evaluation result."
-  ([form expected {:keys [env] :as opt} {::vs/keys [check-config] :as opts}]
+  ([form expected {:keys [env] :as opt} {::vs/keys [check-config custom-expansions] :as opts}]
    ;(prn "check-top-level" form)
    ;(prn "*ns*" *ns*)
    (let [nsym (or (:ns env) (::prs/parse-type-in-ns opts))
          _ (assert (symbol? nsym))
          extra (when (= :before (:check-form-eval check-config))
                  {:result (eval form)})
+         side-effects? (case (get-in opts [::vs/check-config :check-form-eval])
+                         (:never :before) false
+                         (:after nil) true)
          opts (-> opts
                   (assoc ::check/check-expr check-expr)
                   (assoc ::vs/lexical-env (lex/init-lexical-env))
@@ -1965,10 +2039,46 @@
                   (assoc ::c/supers-cache (atom {}))
                   (assoc ::sub/subtype-cache (atom {}))
                   (assoc ::cgen/dotted-var-store (atom {}))
-                  (assoc ::prs/parse-type-in-ns nsym))]
+                  (assoc ::prs/parse-type-in-ns nsym)
+                  (assoc ::prs/unparse-type-in-ns nsym)
+                  (update ::ana2/eval-ast (fn [eval-ast]
+                                            (fn [ast {::vs/keys [delayed-errors] :as opts}]
+                                              (let [; don't evaluate a form if there are delayed type errors
+                                                    throw-this (atom nil)
+                                                    _ (swap! delayed-errors
+                                                             (fn [delayed]
+                                                               {:pre [(vector? delayed)]
+                                                                :post [(vector? %)]}
+                                                               (if (seq delayed)
+                                                                 ; take the last type error to throw
+                                                                 (do (reset! throw-this (peek delayed))
+                                                                     (pop delayed))
+                                                                 delayed)))
+                                                    _ (when-some [e @throw-this]
+                                                        (throw e))
+                                                    ]
+                                                (if side-effects?
+                                                  (eval-ast ast opts)
+                                                  ast)))))
+                  (cond->
+                    (not side-effects?)
+                    (-> (assoc ::ana2/create-var (fn [sym {:keys [ns]} opts]
+                                                   (or (find-var
+                                                         (symbol (-> ns ns-name name)
+                                                                 (name sym)))
+                                                       (err/int-error
+                                                         (format "Could not find var %s in namespace %s"
+                                                                 sym (ns-name ns))
+                                                         opts))))
+                        ;; reify* also imports a class name, but it's gensym'd.
+                        (assoc ::jana2/parse-deftype-with-existing-class true)))
+                  (assoc ::ana2/macroexpand-1 ana-clj/macroexpand-1)
+                  (update ::ana2/scheduled-passes #(if custom-expansions
+                                                     ana-clj/scheduled-passes-for-custom-expansions
+                                                     %))
+                  (env/ensure (jana2/global-env)))]
      (with-bindings (dissoc (ana-clj/thread-bindings {} opts) #'*ns*) ; *ns* is managed by higher-level ops like check-ns1
-       (env/ensure (jana2/global-env)
-         (-> form
-             (ana2/unanalyzed-top-level (or env (jana2/empty-env)) opts)
-             (cache/check-top-level-expr expected opt opts)
-             (into extra)))))))
+       (-> form
+           (ana2/unanalyzed-top-level (or env (jana2/empty-env nsym)) opts)
+           (cache/check-top-level-expr expected opt opts)
+           (into extra))))))

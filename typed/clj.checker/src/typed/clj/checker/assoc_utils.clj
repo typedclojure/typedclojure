@@ -43,9 +43,9 @@
   F
   (-assoc-pair
     [{:keys [name] :as f} assoc-entry opts]
-    (let [bnd (free-ops/free-with-name-bnds name)
+    (let [bnd (free-ops/free-with-name-bnds name opts)
           _ (when-not bnd
-              (err/int-error (str "No bounds for type variable: " name bnds/*current-tvar-bnds*) opts))]
+              (err/int-error (str "No bounds for type variable: " name " " (::bnds/current-tvar-bnds opts)) opts))]
       (when (ind/subtype? (:upper-bound bnd)
                           (c/-name `t/Map r/-any r/-any)
                           opts)

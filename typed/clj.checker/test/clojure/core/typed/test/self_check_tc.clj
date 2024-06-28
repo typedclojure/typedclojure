@@ -4,7 +4,7 @@
             [clojure.core.typed :as t :refer [check-ns]]))
 
 (deftest check-tc
-  (binding [*assert* false]
+  (time (binding [*assert* false]
     (is (check-ns '[clojure.core.typed.coerce-utils
                     typed.cljc.checker.utils
                     typed.cljc.checker.type-rep
@@ -14,7 +14,7 @@
                     ;typed.cljc.checker.type-ctors
                     typed.cljc.dir]
                   #_
-                  {:max-parallelism 1}))))
+                  {:max-parallelism 1})))))
 
 #_ ;;WIP
 (deftest analyzer-test

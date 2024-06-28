@@ -59,28 +59,32 @@
                           (r/make-FnIntersection (r/make-Function [] r/-nil :drest (r/DottedPretype1-maker r/-nil 'x)))
                           (clj-opts)))))
 
+(defn unparse-in-opts []
+  (prs/with-unparse-ns (clj-opts) this-nsym))
+
 #_
 (deftest parse-tfn-test
   (is-tc-e 1)
-  (is-clj (= (clj (prs/with-unparse-ns this-nsym (prs/unparse-type (prs/parse-type `(t/TFn [[~'a :variance :covariant]] (t/U t/Int t/Bool ~'a)) (clj-opts)) (clj-opts))))
-             '(t/TFn [[a :variance :covariant]] (t/U t/Int t/Bool a))))
-  (is-clj (= (clj (prs/with-unparse-ns this-nsym (prs/unparse-type (prs/parse-type `(t/TFn [[~'a :variance :covariant]] (t/U t/Bool t/Int ~'a)) (clj-opts)) (clj-opts))))
-             '(t/TFn [[a :variance :covariant]] (t/U t/Bool t/Int a))))
-  (is-clj (= (clj (prs/with-unparse-ns this-nsym (prs/unparse-type (prs/parse-type `(t/TFn [[~'a :variance :covariant]] (t/I t/Int t/Bool ~'a)) (clj-opts)) (clj-opts))))
-             '(t/TFn [[a :variance :covariant]] (t/I t/Int t/Bool a))))
-  (is-clj (= (clj (prs/with-unparse-ns this-nsym (prs/unparse-type (prs/parse-type `(t/TFn [[~'a :variance :covariant]] (t/I t/Bool t/Int ~'a)) (clj-opts)) (clj-opts))))
-             '(t/TFn [[a :variance :covariant]] (t/I t/Bool t/Int a))))
-  (is-clj (= (clj (prs/with-unparse-ns this-nsym (prs/unparse-type (prs/parse-type `(t/TFn [[~'a :variance :covariant]] (t/SequentialSeq ~'a)) (clj-opts)) (clj-opts))))
-             '(t/TFn [[a :variance :covariant]] (t/SequentialSeq a))))
-  (is-clj (= (clj (prs/with-unparse-ns this-nsym (prs/unparse-type (prs/parse-type `(t/TFn [[~'a :variance :covariant]]
-                                                                                           (t/I (t/SequentialSeq ~'a)
-                                                                                                (Iterable ~'a)
-                                                                                                (java.util.Collection ~'a)
-                                                                                                (java.util.List ~'a)
-                                                                                                clojure.lang.IObj)) (clj-opts)) (clj-opts))))
-             '(t/TFn [[a :variance :covariant]] (t/I (t/SequentialSeq a) (Iterable a) (java.util.Collection a) (java.util.List a) IObj))))
-  (is-clj (= (prs/with-unparse-ns this-nsym (prs/unparse-type (prs/parse-type `(t/TFn [[~'a :variance :covariant]] t/Type) (clj-opts)) (clj-opts)))
-             '(t/TFn [[a :variance :invariant]] t/Type))))
+  (is (= (prs/unparse-type (prs/parse-type `(t/TFn [[~'a :variance :covariant]] (t/U t/Int t/Bool ~'a)) (clj-opts)) (unparse-in-opts))
+         '(t/TFn [[a :variance :covariant]] (t/U t/Int t/Bool a))))
+  (is (= (prs/unparse-type (prs/parse-type `(t/TFn [[~'a :variance :covariant]] (t/U t/Bool t/Int ~'a)) (clj-opts)) (unparse-in-opts))
+         '(t/TFn [[a :variance :covariant]] (t/U t/Bool t/Int a))))
+  (is (= (prs/unparse-type (prs/parse-type `(t/TFn [[~'a :variance :covariant]] (t/I t/Int t/Bool ~'a)) (clj-opts)) (unparse-in-opts))
+         '(t/TFn [[a :variance :covariant]] (t/I t/Int t/Bool a))))
+  (is (= (prs/unparse-type (prs/parse-type `(t/TFn [[~'a :variance :covariant]] (t/I t/Bool t/Int ~'a)) (clj-opts)) (unparse-in-opts))
+         '(t/TFn [[a :variance :covariant]] (t/I t/Bool t/Int a))))
+  (is (= (prs/unparse-type (prs/parse-type `(t/TFn [[~'a :variance :covariant]] (t/SequentialSeq ~'a)) (clj-opts)) (unparse-in-opts))
+         '(t/TFn [[a :variance :covariant]] (t/SequentialSeq a))))
+  (is (= (prs/unparse-type (prs/parse-type `(t/TFn [[~'a :variance :covariant]]
+                                                   (t/I (t/SequentialSeq ~'a)
+                                                        (Iterable ~'a)
+                                                        (java.util.Collection ~'a)
+                                                        (java.util.List ~'a)
+                                                        clojure.lang.IObj)) (clj-opts))
+                           (unparse-in-opts))
+         '(t/TFn [[a :variance :covariant]] (t/I (t/SequentialSeq a) (Iterable a) (java.util.Collection a) (java.util.List a) IObj))))
+  (is (= (prs/unparse-type (prs/parse-type `(t/TFn [[~'a :variance :covariant]] t/Type) (clj-opts)) (unparse-in-opts))
+         '(t/TFn [[a :variance :invariant]] t/Type))))
 
 (deftest unparse-free-scoping-test
   (is-clj (= (second
@@ -356,32 +360,31 @@
   (is-tc-e :load-checker)
   (is-clj (= '(t/Match nil
                        nil :-> nil)
-             (prs/with-unparse-ns this-nsym
-               (prs/unparse-type
-                 (prs/parse-clj `(t/Match nil
-                                          nil :-> nil)) (clj-opts)))))
+             (prs/unparse-type
+               (prs/parse-clj `(t/Match nil
+                                        nil :-> nil))
+               (unparse-in-opts))))
   (is-clj (= '(t/Match nil
                        [S] (t/Seqable S) :-> S)
-             (prs/with-unparse-ns this-nsym
-               (prs/unparse-type
-                 (prs/parse-clj `(t/Match nil
-                                          [~'S] (t/Seqable ~'S) :-> ~'S)) (clj-opts)))))
+             (prs/unparse-type
+               (prs/parse-clj `(t/Match nil
+                                        [~'S] (t/Seqable ~'S) :-> ~'S))
+               (unparse-in-opts))))
   (is-clj (= '(t/Match (t/Seqable t/Int)
                        [T] (t/NilableNonEmptySeq T) :-> T
                        [S] (t/Seqable S) :-> S)
-             (prs/with-unparse-ns this-nsym
-               (prs/unparse-type
-                 (prs/parse-clj `(t/Match (t/Seqable t/Int)
-                                          [~'T] (t/NilableNonEmptySeq ~'T) :-> ~'T
-                                          [~'S] (t/Seqable ~'S) :-> ~'S)) (clj-opts))))))
+             (prs/unparse-type
+               (prs/parse-clj `(t/Match (t/Seqable t/Int)
+                                        [~'T] (t/NilableNonEmptySeq ~'T) :-> ~'T
+                                        [~'S] (t/Seqable ~'S) :-> ~'S))
+               (unparse-in-opts)))))
 
 (deftest parse-Instance-test
   (is-clj (= '(t/Instance Object)
-             (let [opts (assoc (clj-opts) :typed.clj.checker.parse-unparse/parse-type-in-ns this-nsym)]
-               (prs/with-unparse-ns this-nsym
-                 (prs/unparse-type
-                   (prs/parse-clj `(t/Instance Object) opts)
-                   opts))))))
+             (let [opts (assoc (unparse-in-opts) :typed.clj.checker.parse-unparse/parse-type-in-ns this-nsym)]
+               (prs/unparse-type
+                 (prs/parse-clj `(t/Instance Object) opts)
+                 opts)))))
 
 (t/ann-protocol [[x :variance :invariant]]
                 InvariantProtocol)
@@ -389,16 +392,15 @@
 
 (deftest parse-Satisfies-test
   (is-clj (= 'typed.cljc.checker.impl-protocols/TCType
-             (prs/with-unparse-ns this-nsym
-               (prs/unparse-type
-                 (prs/parse-clj `(t/Satisfies typed.cljc.checker.impl-protocols/TCType)) (clj-opts)))))
+             (prs/unparse-type
+               (prs/parse-clj `(t/Satisfies typed.cljc.checker.impl-protocols/TCType))
+               (unparse-in-opts))))
   (is-clj (= 'typed.cljc.checker.impl-protocols/TCType
-             (prs/with-unparse-ns this-nsym
-               (prs/unparse-type
-                 (prs/parse-clj `(t/Satisfies ~'TCType)
-                                (assoc (clj-opts) ::prs/parse-type-in-ns 'typed.cljc.checker.impl-protocols))
-                 (clj-opts)))))
+             (prs/unparse-type
+               (prs/parse-clj `(t/Satisfies ~'TCType)
+                              (assoc (clj-opts) ::prs/parse-type-in-ns 'typed.cljc.checker.impl-protocols))
+               (unparse-in-opts))))
   (is-clj (= '(t/Satisfies InvariantProtocol)
-             (prs/with-unparse-ns this-nsym
-               (prs/unparse-type
-                 (prs/parse-clj `(t/Satisfies InvariantProtocol)) (clj-opts))))))
+             (prs/unparse-type
+               (prs/parse-clj `(t/Satisfies InvariantProtocol))
+               (unparse-in-opts)))))
