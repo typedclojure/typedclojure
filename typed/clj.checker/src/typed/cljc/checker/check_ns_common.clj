@@ -82,6 +82,7 @@
                        (assoc ::vs/delayed-errors delayed-errors)
                        (assoc ::vs/trace trace)
                        (assoc ::vs/check-threadpool threadpool)
+                       (assoc ::vs/check-threadpool-parallelism max-parallelism)
                        (assoc ::vs/verbose-types verbose-types)
                        (assoc ::vs/verbose-forms verbose-forms)
                        ;; nested check-ns inside check-form switches off check-form
@@ -124,15 +125,23 @@
                                             {:ex ex})
                                           {:errors @delayed-errors})
                                         (assoc :out out))))
-                      results (if-not threadpool
-                                (mapv check-ns nsym-coll)
-                                (mapv (fn [^java.util.concurrent.Future future]
-                                        (try (.get future)
-                                             (catch java.util.concurrent.ExecutionException e
-                                               (throw (or (.getCause e) e)))))
-                                      (.invokeAll threadpool (map (fn [nsym]
-                                                                    #(check-ns nsym))
-                                                                  nsym-coll))))
+                      check-ns-group (fn [nsym-coll]
+                                       (if-not threadpool
+                                         (mapv check-ns nsym-coll)
+                                         (mapv (fn [^java.util.concurrent.Future future]
+                                                 (try (.get future)
+                                                      (catch java.util.concurrent.ExecutionException e
+                                                        (throw (or (.getCause e) e)))))
+                                               (.invokeAll threadpool
+                                                           (map (fn [nsym]
+                                                                  #(check-ns nsym))
+                                                                nsym-coll)))))
+                      results (into [] (comp (partition-all (if false #_(and threadpool
+                                                                     (< 3 max-parallelism))
+                                                              2
+                                                              (count nsym-coll)))
+                                             (mapcat check-ns-group))
+                                    nsym-coll)
                       _ (swap! delayed-errors into
                                (into [] (mapcat (fn [{:keys [ex errors out]}]
                                                   (some-> out str/trim not-empty println)

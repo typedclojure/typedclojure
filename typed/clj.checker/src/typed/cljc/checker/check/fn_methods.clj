@@ -309,6 +309,7 @@
       ;; disable rewriting in case we recheck a method arity
       :else
       (let [opts (assoc opts ::vs/can-rewrite nil)
+            ;;TODO fan out
             method-returns+errors (mapv (fn [t]
                                           (let [delayed-errors (err/-init-delayed-errors)]
                                             (let [res (check-fni t mthods opt (assoc opts ::vs/delayed-errors delayed-errors))]

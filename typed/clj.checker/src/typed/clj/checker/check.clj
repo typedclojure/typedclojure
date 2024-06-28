@@ -109,7 +109,7 @@
 (declare check-top-level)
 
 (defn ignored-macro-call? [form env opts]
-  (and #_(seq? form)
+  (and (seq? form)
        (when-some [^Var v (ana2/resolve-sym (first form) env opts)]
          (and (.isMacro v)
               (-> v meta ::t/ignore)))))
@@ -120,36 +120,45 @@
 (def ignored-def-vars `#{defmacro declare})
 (def ignored-def-var-names (into #{} (map name) ignored-def-vars))
 
-(defn ignored-def? [form env opts]
-  (and #_(seq? form)
-       (let [[sym vsym] form]
-         (and (symbol? sym)
-              (symbol? vsym)
-              (let [nme (name sym)]
-                (if (ignored-def-var-names nme)
-                  (ignored-def-vars (ana2/var->sym (ana2/resolve-sym sym env opts) opts))
-                  ;;TODO needs to interact with the cache so a check is forced when ^:no-check removed
-                  (and (or (= 'def sym)
-                           (and (defn-var-names nme)
-                                (defn-vars (ana2/var->sym (ana2/resolve-sym sym env opts) opts))))
-                       (when-some [^Var v (ana2/resolve-sym vsym env opts)]
-                         (when (var? v)
-                           (or (and (.isMacro v)
-                                    (-> v meta ::t/ignore))
-                               (let [qvsym (symbol v)]
-                                 (and (var-env/lookup-Var-nofail qvsym opts)
-                                      (not (var-env/check-var? (cenv/checker opts) qvsym))))))))))))))
+(defn classify-def [form env opts]
+  (when (seq? form)
+    (let [[sym vsym] form]
+      (when (and (symbol? sym)
+                 (symbol? vsym))
+        (let [nme (name sym)]
+          (if (ignored-def-var-names nme)
+            (when (ignored-def-vars (ana2/var->sym (ana2/resolve-sym sym env opts) opts))
+              :skip)
+            ;;TODO needs to interact with the cache so a check is forced when ^:no-check removed
+            (let [def? (= 'def sym)]
+              (when (or def?
+                        (and (defn-var-names nme)
+                             (defn-vars (ana2/var->sym (ana2/resolve-sym sym env opts) opts))))
+                (when-some [^Var v (ana2/resolve-sym vsym env opts)]
+                  (when (var? v)
+                    (if (or (and (.isMacro v)
+                                 (-> v meta ::t/ignore))
+                            (let [qvsym (symbol v)]
+                              (and (var-env/lookup-Var-nofail qvsym opts)
+                                   (not (var-env/check-var? (cenv/checker opts) qvsym)))))
+                      :skip
+                      (if def?
+                        (do :fan #_:serial)
+                        :fan))))))))))))
 
-(defn skip-form? [form env opts]
-  (and (seq? form)
-       (or (-> form meta ::t/ignore)
-           (ignored-macro-call? form env opts)
-           (ignored-def? form env opts))))
+(defn classify-form [form env opts]
+  (or (when (seq? form)
+        (if (or (-> form meta ::t/ignore)
+                (ignored-macro-call? form env opts))
+          :skip
+          (classify-def form env opts)))
+      :fan))
 
 (defn check-ns1
   "Type checks an entire namespace."
   ([ns env {::vs/keys [delayed-errors check-config
-                       ^java.util.concurrent.ExecutorService check-threadpool]
+                       ^java.util.concurrent.ExecutorService check-threadpool
+                       check-threadpool-parallelism]
             ::cenv/keys [checker] :as opts}]
    (let [opts (env/ensure opts (jana2/global-env))
          env (or env (jana2/empty-env ns))
@@ -163,65 +172,87 @@
                             (the-ns ns) ;; assumes ns == clojure.core/ns and ns is the same throughout file
                             *ns*)
                    *file* filename]
-           (let [forms-info (with-open [rdr (io/reader res)]
-                              (let [pbr (readers/source-logging-push-back-reader
-                                          (java.io.PushbackReader. rdr) 1 filename)
-                                    eof (Object.)
-                                    read-opts (cond-> {:eof eof :features #{:clj}}
-                                                (.endsWith filename "cljc") (assoc :read-cond :allow))]
-                                (loop [ns-form-str nil
-                                       forms-info []]
-                                  (let [[form sform] (reader/read+string read-opts pbr)]
-                                    (if (identical? form eof)
-                                      forms-info
-                                      (recur (or ns-form-str
-                                                 (when (and (seq? form) (= 'ns (first form)))
-                                                   sform))
-                                             (conj forms-info {:ns-form-str ns-form-str :sform sform :form form})))))))
+           (let [[forms-info groups] (with-open [rdr (io/reader res)]
+                                       (let [pbr (readers/source-logging-push-back-reader
+                                                   (java.io.PushbackReader. rdr) 1 filename)
+                                             eof (Object.)
+                                             read-opts (cond-> {:eof eof :features #{:clj}}
+                                                         (.endsWith filename "cljc") (assoc :read-cond :allow))]
+                                         (loop [ns-form-str nil
+                                                pos 0
+                                                forms-info []
+                                                groups {:skip []
+                                                        :serial []
+                                                        :fan []}]
+                                           (let [[form sform] (reader/read+string read-opts pbr)]
+                                             (if (identical? form eof)
+                                               [forms-info groups]
+                                               (let [form-info {:pos pos :ns-form-str ns-form-str :sform sform :form form}]
+                                                 (recur (or ns-form-str
+                                                            (when (and (seq? form) (= 'ns (first form)))
+                                                              sform))
+                                                        (inc pos)
+                                                        (conj forms-info form-info)
+                                                        (update groups (classify-form form env opts) conj form-info))))))))
 
                  ns-form-str (some :ns-form-str forms-info)
                  _ (assert delayed-errors)
+                 ;_ (prn "groups" (binding [*print-level* 4
+                 ;                          *print-length* 3]
+                 ;                  (clojure.pprint/pprint (update-vals groups count #_#(mapv :form %)))))
                  bndings (get-thread-bindings)
-                 exs (map (fn [{:keys [form sform]}]
-                            (fn []
-                              (let [delayed-errors (err/-init-delayed-errors)
-                                    opts (-> opts
-                                             (assoc ::vs/delayed-errors delayed-errors)
-                                             ;; force types to reparse to detect dependencies in per-form cache
-                                             ;; might affect TypeFn variance inference
-                                             (assoc ::env-utils/type-cache (atom {})))
-                                    ex (volatile! nil)
-                                    chk (fn []
-                                          (try (check-top-level form nil {:env (assoc env :ns (ns-name *ns*))
-                                                                          :top-level-form-string sform
-                                                                          :ns-form-string ns-form-str}
-                                                                opts)
-                                               (catch Throwable e (vreset! ex e))))
-                                    out (with-bindings bndings
-                                          (if check-threadpool
-                                            (with-out-str
-                                              (chk))
-                                            (do (chk) nil)))]
-                                (-> (if-let [ex @ex]
-                                      (if (-> ex ex-data :type-error)
-                                        {:errors (conj @delayed-errors ex)}
-                                        {:ex ex})
-                                      {:errors @delayed-errors})
-                                    (assoc :out out)))))
-                          forms-info)
-                 results (if check-threadpool
-                           (mapv (fn [^java.util.concurrent.Future future]
-                                   (try (.get future)
-                                        (catch java.util.concurrent.ExecutionException e
-                                          (throw (or (.getCause e) e)))))
-                                 (.invokeAll check-threadpool (or (seq exs) ())))
-                           (mapv #(%) exs))
+                 chker1 (fn [{:keys [form sform pos]}]
+                          (fn []
+                            (let [delayed-errors (err/-init-delayed-errors)
+                                  opts (-> opts
+                                           (assoc ::vs/delayed-errors delayed-errors)
+                                           ;; force types to reparse to detect dependencies in per-form cache
+                                           ;; might affect TypeFn variance inference
+                                           (assoc ::env-utils/type-cache (atom {})))
+                                  ex (volatile! nil)
+                                  chk (fn []
+                                        (try (check-top-level form nil {:env (assoc env :ns (ns-name *ns*))
+                                                                        :top-level-form-string sform
+                                                                        :ns-form-string ns-form-str}
+                                                              opts)
+                                             (catch Throwable e (vreset! ex e))))
+                                  out (with-bindings bndings
+                                        (if check-threadpool
+                                          (with-out-str
+                                            (chk))
+                                          (do (chk) nil)))]
+                              (-> (if-let [ex @ex]
+                                    (if (-> ex ex-data :type-error)
+                                      {:errors (conj @delayed-errors ex)}
+                                      {:ex ex})
+                                    {:errors @delayed-errors})
+                                  (assoc :out out :pos pos)))))
+                 _ (assert (= #{:fan :serial :skip} (set (keys groups))))
+                 check-group (fn [g]
+                               (if check-threadpool
+                                 (mapv (fn [^java.util.concurrent.Future future]
+                                         (try (.get future)
+                                              (catch java.util.concurrent.ExecutionException e
+                                                (throw (or (.getCause e) e)))))
+                                       (.invokeAll check-threadpool g))
+                                 (mapv #(%) g)))
+                 parallelism (or #_(some-> check-threadpool-parallelism
+                                         ;(quot 2)
+                                         (max 1))
+                                 (count (:fan groups)))
+                 ;_ (prn "check-form parallelism" parallelism)
+                 results (-> []
+                             (into (comp (map chker1)
+                                         (partition-all parallelism)
+                                         (mapcat check-group))
+                                   (doto (:fan groups) assert))
+                             (into (check-group (map chker1 (doto (:serial groups) assert)))))
                  _ (swap! delayed-errors into
                           (into [] (mapcat (fn [{:keys [ex errors out]}]
                                              (some-> out str/trim not-empty println)
                                              (some-> ex throw)
                                              errors))
-                                results))]
+                                (sort-by :pos results)))]
              (cache/remove-stale-cache-entries ns ns-form-str (map :sform forms-info) slurped opts))))))))
 
 (defn check-ns-and-deps [nsym opts] (cu/check-ns-and-deps nsym check-ns1 opts))
