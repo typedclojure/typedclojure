@@ -2898,10 +2898,9 @@
                                body (TypeFn-body* names bbnds ty opts)
                                bmap (zipmap (map r/make-F names) bbnds)
                                ;;FIXME type variables are scoped left-to-right in bounds
-                               bbnds' (free-ops/with-bounded-frees bmap
-                                        (mapv!= bbnds type-rec))
-                               body' (free-ops/with-bounded-frees bmap
-                                       (type-rec body (free-ops/with-bounded-frees opts bmap)))
+                               opts' (free-ops/with-bounded-frees opts bmap)
+                               bbnds' (mapv!= bbnds #(type-rec % opts'))
+                               body' (type-rec body opts')
                                changed? (or (not (identical? bbnds bbnds'))
                                             (not (identical? body body')))]
                            (if changed?
@@ -2916,10 +2915,9 @@
                                        bbnds (Poly-bbnds* names ty opts)
                                        bmap (zipmap (map r/make-F names) bbnds)
                                        ;;FIXME type variables are scoped left-to-right in bounds
-                                       bbnds' (free-ops/with-bounded-frees bmap
-                                                (mapv!= bbnds type-rec))
-                                       body' (free-ops/with-bounded-frees bmap
-                                               (type-rec body (free-ops/with-bounded-frees opts bmap)))
+                                       opts' (free-ops/with-bounded-frees opts bmap)
+                                       bbnds' (mapv!= bbnds #(type-rec % opts'))
+                                       body' (type-rec body opts')
                                        changed? (or (not (identical? bbnds bbnds'))
                                                     (not (identical? body body')))]
                                    (if changed?
@@ -2930,10 +2928,9 @@
                                            bbnds (PolyDots-bbnds* names ty opts)
                                            bmap (zipmap (map r/make-F names) bbnds)
                                            ;;FIXME type variables are scoped left-to-right in bounds
-                                           bbnds' (free-ops/with-bounded-frees bmap
-                                                    (mapv!= bbnds type-rec))
-                                           body' (free-ops/with-bounded-frees bmap
-                                                   (type-rec body (free-ops/with-bounded-frees opts bmap)))
+                                           opts' (free-ops/with-bounded-frees opts bmap)
+                                           bbnds' (mapv!= bbnds #(type-rec % opts'))
+                                           body' (type-rec body opts')
                                            changed? (or (not (identical? bbnds bbnds'))
                                                         (not (identical? body body')))]
                                        (if changed?
