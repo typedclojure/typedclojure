@@ -160,7 +160,9 @@
                        ^java.util.concurrent.ExecutorService check-threadpool
                        check-threadpool-parallelism]
             ::cenv/keys [checker] :as opts}]
-   (let [opts (env/ensure opts (jana2/global-env))
+   (let [opts (-> opts
+                  (assoc ::prs/parse-type-in-ns ns)
+                  (env/ensure (jana2/global-env)))
          env (or env (jana2/empty-env ns))
          ^java.net.URL res (jtau/ns-url ns)
          _ (assert res (str "Can't find " ns " in classpath"))
