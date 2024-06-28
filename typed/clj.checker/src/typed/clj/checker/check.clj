@@ -181,7 +181,7 @@
 
                  ns-form-str (some :ns-form-str forms-info)
                  _ (assert delayed-errors)
-                 bndings {#'*ns* *ns*}
+                 bndings (get-thread-bindings)
                  exs (map (fn [{:keys [form sform]}]
                             (fn []
                               (let [delayed-errors (err/-init-delayed-errors)

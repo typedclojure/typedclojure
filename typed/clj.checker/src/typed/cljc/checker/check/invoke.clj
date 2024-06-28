@@ -50,7 +50,7 @@
         cargs (or cargs
                   (let [fs (mapv #(fn [] (check-expr %1 %2 opts)) args (or expected-args (repeat nil)))]
                     (if (and check-threadpool (< 1 (count args)))
-                      (let [bs {#'*ns* *ns*}]
+                      (let [bs (get-thread-bindings)]
                         (mapv (fn [^java.util.concurrent.Future future]
                                 (try (let [{:keys [out res ex]} (.get future)]
                                        (some-> out str/trim not-empty println)
