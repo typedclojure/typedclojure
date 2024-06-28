@@ -181,41 +181,34 @@
 
                  ns-form-str (some :ns-form-str forms-info)
                  _ (assert delayed-errors)
-                 bndings {#'*ns* *ns*
-                          #'*file* *file*}
-                 exs (eduction
-                       (keep (fn [{:keys [form sform]}]
-                               (if (skip-form? form env opts)
-                                 (do #_(println "Skipping" (binding [*print-length* 2 *print-level* 2] (pr-str form)))
-                                     nil)
-                                 (do
-                                   #_(println "checking" form)
-                                   (fn []
-                                     (let [delayed-errors (err/-init-delayed-errors)
-                                           opts (-> opts
-                                                    (assoc ::vs/delayed-errors delayed-errors)
-                                                    ;; force types to reparse to detect dependencies in per-form cache
-                                                    ;; might affect TypeFn variance inference
-                                                    (assoc ::env-utils/type-cache (atom {})))
-                                           ex (volatile! nil)
-                                           chk (fn []
-                                                 (try (check-top-level form nil {:env (assoc env :ns (ns-name *ns*))
-                                                                                 :top-level-form-string sform
-                                                                                 :ns-form-string ns-form-str}
-                                                                       opts)
-                                                      (catch Throwable e (vreset! ex e))))
-                                           out (with-bindings bndings
-                                                 (if check-threadpool
-                                                   (with-out-str
-                                                     (chk))
-                                                   (do (chk) nil)))]
-                                       (-> (if-let [ex @ex]
-                                             (if (-> ex ex-data :type-error)
-                                               {:errors (conj @delayed-errors ex)}
-                                               {:ex ex})
-                                             {:errors @delayed-errors})
-                                           (assoc :out out)))))))
-                             forms-info))
+                 bndings {#'*ns* *ns*}
+                 exs (map (fn [{:keys [form sform]}]
+                            (fn []
+                              (let [delayed-errors (err/-init-delayed-errors)
+                                    opts (-> opts
+                                             (assoc ::vs/delayed-errors delayed-errors)
+                                             ;; force types to reparse to detect dependencies in per-form cache
+                                             ;; might affect TypeFn variance inference
+                                             (assoc ::env-utils/type-cache (atom {})))
+                                    ex (volatile! nil)
+                                    chk (fn []
+                                          (try (check-top-level form nil {:env (assoc env :ns (ns-name *ns*))
+                                                                          :top-level-form-string sform
+                                                                          :ns-form-string ns-form-str}
+                                                                opts)
+                                               (catch Throwable e (vreset! ex e))))
+                                    out (with-bindings bndings
+                                          (if check-threadpool
+                                            (with-out-str
+                                              (chk))
+                                            (do (chk) nil)))]
+                                (-> (if-let [ex @ex]
+                                      (if (-> ex ex-data :type-error)
+                                        {:errors (conj @delayed-errors ex)}
+                                        {:ex ex})
+                                      {:errors @delayed-errors})
+                                    (assoc :out out)))))
+                          forms-info)
                  results (if check-threadpool
                            (mapv (fn [^java.util.concurrent.Future future]
                                    (try (.get future)
