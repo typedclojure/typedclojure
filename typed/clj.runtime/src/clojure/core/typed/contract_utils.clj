@@ -10,7 +10,7 @@
 ;; via ./script/regen-kondo.sh
 ;; the canonical version is in the src folder
 (ns ^:no-doc clojure.core.typed.contract-utils
-  (:require [typed.cljc.runtime.perf-utils :refer [reduce2]]))
+  (:require [typed.cljc.runtime.perf-utils :as perf]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Constraint shorthands
@@ -26,11 +26,11 @@
 (defn hvector-c? [& ps]
   (every-pred vector?
               (fn [v]
-                (reduce2 (fn [res p el]
-                           (if (p el)
-                             res
-                             (reduced false)))
-                         true ps v))))
+                (perf/reduce (fn [res p el]
+                               (if (p el)
+                                 res
+                                 (reduced false)))
+                             true ps v))))
 
 (defn reduced-c? [c]
   (fn [r]

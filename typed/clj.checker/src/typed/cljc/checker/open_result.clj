@@ -11,7 +11,8 @@
             [typed.cljc.checker.object-rep :as obj]
             [typed.cljc.checker.filter-rep :as fl]
             [clojure.core.typed.contract-utils :as con]
-            [typed.cljc.checker.subst-obj :as subst-obj]))
+            [typed.cljc.checker.subst-obj :as subst-obj]
+            [typed.cljc.runtime.perf-utils :as perf]))
 
 ;; Used to "instantiate" a Result from a function call.
 ;; eg. (let [a (ann-form [1] (U nil (Seqable Number)))]
@@ -53,27 +54,26 @@
    ;  (prn "result (old) object" old-obj)
    ;  (prn "objs" objs)
    ;  (prn "ts" (mapv #(prs/unparse-type % opts) ts))
-   (reduce (fn [[t fs old-obj] [[o k] arg-ty]]
-             {:pre [(r/Type? t)
-                    ((some-fn fl/FilterSet? fl/NoFilter?) fs)
-                    (obj/RObject? old-obj)
-                    (integer? k)
-                    (obj/RObject? o)
-                    ((some-fn false? r/Type?) arg-ty)]
-              :post [((con/hvector-c? r/Type? fl/FilterSet? obj/RObject?) %)]}
-             (let [r [(subst-obj/subst-type t k o true opts)
-                      (subst-obj/subst-filter-set fs k o true arg-ty opts)
-                      (subst-obj/subst-object old-obj k o true opts)]]
-               ;              (prn [(prs/unparse-type t opts) (prs/unparse-filter-set fs opts) old-obj])
-               ;              (prn "r" r)
-               r))
-           [t fs old-obj]
-           ; this is just a sequence of pairs of [not-neg? RObject] and Type?
-           ; Represents the object and type of each argument, and its position
-           (map vector 
-                (map-indexed #(vector %2 %1) ;racket's is opposite..
-                             objs)
-                (or ts (repeat false))))))
+   (perf/reduce
+    (fn [[t fs old-obj] o k arg-ty]
+      {:pre [(r/Type? t)
+             ((some-fn fl/FilterSet? fl/NoFilter?) fs)
+             (obj/RObject? old-obj)
+             (integer? k)
+             (obj/RObject? o)
+             ((some-fn false? r/Type?) arg-ty)]
+       :post [((con/hvector-c? r/Type? fl/FilterSet? obj/RObject?) %)]}
+      (let [r [(subst-obj/subst-type t k o true opts)
+               (subst-obj/subst-filter-set fs k o true arg-ty opts)
+               (subst-obj/subst-object old-obj k o true opts)]]
+        ;; (prn [(prs/unparse-type t opts) (prs/unparse-filter-set fs opts) old-obj])
+        ;; (prn "r" r)
+        r))
+    [t fs old-obj]
+    ;; this is just a sequence of pairs of [not-neg? RObject] and Type?
+    ;; The following sequences represents the object, its position, and
+    ;; type of the argument.
+    objs (range) (or ts (repeat false)))))
 
 (defn open-Result->TCResult
   ([r objs opts] (open-Result->TCResult r objs nil opts))
