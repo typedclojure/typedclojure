@@ -1,0 +1,7 @@
+#!/bin/bash
+
+set -ex
+
+cd typed/clj.checker
+./script/profile 10 cpu
+./script/profile 10 alloc
