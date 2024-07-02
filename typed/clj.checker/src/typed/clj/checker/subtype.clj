@@ -1004,11 +1004,6 @@
         (not (identical? unknown-result short-circuit-same))
         short-circuit-same
 
-        #_#_
-        (OR (r/TCResult? s)
-            (r/TCResult? t))
-        (assert nil "Cannot give TCResult to subtype")
-
         ; use bounds to determine subtyping between frees and types
         ; 2 frees of the same name are handled in the (= s t) case.
         (AND (r/F? s)
