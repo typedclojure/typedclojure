@@ -1462,7 +1462,7 @@
          (fr/Filter? f2)
          (not (fr/NoFilter? f2))]
    :post [(or (nil? %) (set? %))]}
-  ; assume conjunctive normal form
+  ; assume disjunctive normal form
   ; ie. (V (^ ...) (^ ...))
   (cond
     (= f1 f2) A
