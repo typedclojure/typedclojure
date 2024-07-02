@@ -975,7 +975,6 @@
 ; assumes s is a Type
 (defn subtype-of-all-types? [s]
   (OR (r/Bottom? s)
-      (r/Wildcard? s)
       (r/Unchecked? s)
       (r/TCError? s)))
 
