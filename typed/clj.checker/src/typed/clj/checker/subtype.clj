@@ -178,7 +178,7 @@
 (declare protocol-extenders
          subtype-datatypes-or-records subtype-Result subtype-PrimitiveArray
          subtype-CountRange subtype-TypeFn subtype-RClass subtype-rclass-or-datatype-with-protocol
-         boxed-primitives subtype-datatype-rclass subtype-TApp
+         subtype-datatype-rclass subtype-TApp
          subtype-Satisfies)
 
 (defn subtype-HSet [A s t]
