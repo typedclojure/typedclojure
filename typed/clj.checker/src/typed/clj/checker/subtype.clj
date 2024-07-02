@@ -965,6 +965,20 @@
     (assert (extends? SubtypeA*LeftProtocol c) c))
   )
 
+; assumes t is a Type
+(defn supertype-of-all-types? [t]
+  (OR (r/Top? t)
+      (r/Wildcard? t)
+      (r/Unchecked? t)
+      (r/TCError? t)))
+
+; assumes s is a Type
+(defn subtype-of-all-types? [s]
+  (OR (r/Bottom? s)
+      (r/Wildcard? s)
+      (r/Unchecked? s)
+      (r/TCError? s)))
+
 ;;TODO replace hardcoding cases for unfolding Mu? etc. with a single case for unresolved types.
 ;;[(t/Set '[Type Type]) Type Type -> (t/Nilable (t/Set '[Type Type]))]
 (defn ^:private subtypeA* [A s t opts]
@@ -978,16 +992,8 @@
   (let [subtypeA* (fn
                     ([A s t] (subtypeA* A s t opts))
                     ([A s t opts] (subtypeA* A s t opts)))]
-  (if (OR ; FIXME TypeFn's are probably not between Top/Bottom
-          (r/Top? t)
-          (r/Wildcard? t)
-          (r/Bottom? s)
-          ;; Unchecked is both bottom and top
-          (r/Unchecked? s)
-          (r/Unchecked? t)
-          ;TCError is top and bottom
-          (r/TCError? s)
-          (r/TCError? t)
+  (if (OR (supertype-of-all-types? t)
+          (subtype-of-all-types? s)
           (= s t)
           (contains? A [s t]))
     A
