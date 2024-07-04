@@ -8,6 +8,7 @@
 
 (ns typed.cljc.checker.check.apply
   (:require [typed.clojure :as t]
+            [typed.cljc.checker.free-ops :as free-ops]
             [clojure.core.typed.errors :as err]
             [clojure.core.typed.util-vars :as vs]
             [clojure.string :as str]
@@ -36,6 +37,7 @@
           (let [vars (c/Poly-fresh-symbols* ftype)
                 bbnds (c/Poly-bbnds* vars ftype opts)
                 body (c/Poly-body* vars ftype opts)
+                opts (free-ops/with-bounded-frees opts (zipmap (map r/make-F vars) bbnds))
                 _ (assert (r/FnIntersection? body))
                 fixed-args (mapv #(check-expr % nil opts) fixed-args)
                 arg-tys (mapv (comp r/ret-t u/expr-type) fixed-args)

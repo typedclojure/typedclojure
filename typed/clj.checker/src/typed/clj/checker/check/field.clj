@@ -83,7 +83,7 @@
            result-t (if-let [override (when-let [dtp (dt-env/get-datatype checker (coerce/Class->symbol target-class) opts)]
                                         (let [dt (if (r/Poly? dtp)
                                                    ;generate new names
-                                                   (cu/unwrap-datatype dtp (repeatedly (:nbound dtp) gensym) opts)
+                                                   (cu/unwrap-datatype dtp (repeatedly (:nbound dtp) #(gensym "check-instance-field")) opts)
                                                    dtp)
                                               _ (assert ((some-fn r/DataType? r/Record?) dt))
                                               field-lookup (-> (c/DataType-fields* dt)

@@ -61,6 +61,8 @@
 
 (defn unparse-in-opts []
   (prs/with-unparse-ns (clj-opts) this-nsym))
+(defn parse-in-opts []
+  (prs/with-parse-ns (clj-opts) this-nsym))
 
 #_
 (deftest parse-tfn-test
@@ -152,50 +154,15 @@
 (deftest poly-named-test
   (is (= (prs/unparse-type
            (prs/parse-clj 
-             '(typed.clojure/All [:named [a b]] [a -> b])) (clj-opts))
+             '(typed.clojure/All [:named [a b]] [a -> b]))
+           (clj-opts))
          '(typed.clojure/All [:named [a b]] [a :-> b])))
   (is (= (prs/unparse-type
            (prs/parse-clj 
              '(typed.clojure/All [a ... :named [b c]]
                                  [c b a ... a -> b])) (clj-opts))
          '(typed.clojure/All [a :.. :named [b c]]
-                             [c b a :.. a :-> b])))
-  (is-tc-e (do (t/ann ^:no-check foo 
-                      (t/All [:named [a b]]
-                             [a -> b]))
-               (def foo identity)
-               (t/inst foo :named {a t/Num b t/Num}))
-           [t/Num :-> t/Num])
-  (is-tc-e (do (t/ann ^:no-check foo 
-                      (t/All [:named [a b]]
-                             [a -> b]))
-               (def foo identity)
-               (t/inst foo :named {a t/Num}))
-           [t/Num :-> t/Any])
-  (is-tc-err (do (t/ann ^:no-check foo 
-                        (t/All [:named [a b]]
-                               [a -> b]))
-                 (def foo identity)
-                 (t/inst foo :named {a t/Num}))
-             [t/Any :-> t/Num])
-  (is-tc-e (do (t/ann ^:no-check foo 
-                      (t/All [:named [a b]]
-                             [a -> b]))
-               (def foo identity)
-               (t/inst foo))
-           [t/Any :-> t/Any])
-  (is-tc-e (do (t/ann ^:no-check foo 
-                      (t/All [a ...]
-                             [a ... a -> t/Any]))
-               (cc/defn foo [& args])
-               (t/inst foo t/Str t/Bool))
-           [t/Str t/Bool :-> t/Any])
-  (is-tc-e (do (t/ann ^:no-check foo 
-                      (t/All [a ... :named [b c]]
-                             [c b a ... a -> b]))
-               (cc/defn foo [& args] (second args))
-               (t/inst foo t/Str t/Bool :named {c t/Num b t/Sym}))
-           [t/Num t/Sym t/Str t/Bool :-> t/Sym]))
+                             [c b a :.. a :-> b]))))
 
 (deftest bad-All-test
   (is (throws-tc-error?

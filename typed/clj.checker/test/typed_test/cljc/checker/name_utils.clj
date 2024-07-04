@@ -15,30 +15,30 @@
 
 (deftest erase-names-ping-pong-test
   (is-tc-e 1)
-  (is-clj (= [(prs/parse-clj `Ping) {}]
-             (clj (erase-names (prs/parse-clj `Ping)
-                               #{}
-                               (clj-opts)))))
-  (is-clj (= [r/-nothing {`Ping 1}]
-             (erase-names (prs/parse-clj `Ping)
-                          #{`Ping}
-                          (clj-opts))))
-  (is-clj (= [(prs/parse-clj `nil) {`Ping 1}]
-             (erase-names (c/-resolve (prs/parse-clj `Pong) (clj-opts))
-                          #{`Ping}
-                          (clj-opts))))
-  (is-clj (= [(prs/parse-clj `(t/U '[nil] nil)) {`Pong 1}]
-             (clj (erase-names (c/-resolve (prs/parse-clj `Pong) (clj-opts))
-                               #{`Pong}
-                               (clj-opts)))))
+  (is (= [(prs/parse-clj `Ping) {}]
+         (erase-names (prs/parse-clj `Ping)
+                      #{}
+                      (clj-opts))))
+  (is (= [r/-nothing {`Ping 1}]
+         (erase-names (prs/parse-clj `Ping)
+                      #{`Ping}
+                      (clj-opts))))
+  (is (= [(prs/parse-clj `nil) {`Ping 1}]
+         (erase-names (c/-resolve (prs/parse-clj `Pong) (clj-opts))
+                      #{`Ping}
+                      (clj-opts))))
+  (is (= [(prs/parse-clj `(t/U '[nil] nil)) {`Pong 1}]
+         (erase-names (c/-resolve (prs/parse-clj `Pong) (clj-opts))
+                      #{`Pong}
+                      (clj-opts))))
   
   ;; TFn's expand before occurrences are counted
-  (is-clj (= [(prs/parse-clj `'[nil nil]) {`Pong 2}]
-             (clj (erase-names (prs/parse-clj `((t/TFn [[x :variance :covariant]]
-                                                       '[x x])
-                                                Ping))
-                               #{`Pong}
-                               (clj-opts))))))
+  (is (= [(prs/parse-clj `'[nil nil]) {`Pong 2}]
+         (clj (erase-names (prs/parse-clj `((t/TFn [[x# :variance :covariant]]
+                                                   '[x# x#])
+                                            Ping))
+                           #{`Pong}
+                           (clj-opts))))))
 
 (declare T P)
 (t/defalias E
@@ -68,12 +68,12 @@
        '{:P ':not, :p P}))
 
 (deftest erase-names-mini-occ-test
-  (is-clj (= {`T 8}
-             (clj (second (erase-names (c/-resolve (prs/parse-clj `T) (clj-opts))
-                                       #{`T} (clj-opts))))))
-  (is-clj (= {`E 5}
-             (clj (second (erase-names (c/-resolve (prs/parse-clj `E) (clj-opts))
-                                       #{`E} (clj-opts))))))
-  (is-clj (= {`P 6}
-             (clj (second (erase-names (c/-resolve (prs/parse-clj `P) (clj-opts))
-                                       #{`P} (clj-opts)))))))
+  (is (= {`T 8}
+         (second (erase-names (c/-resolve (prs/parse-clj `T) (clj-opts))
+                              #{`T} (clj-opts)))))
+  (is (= {`E 5}
+         (second (erase-names (c/-resolve (prs/parse-clj `E) (clj-opts))
+                              #{`E} (clj-opts)))))
+  (is (= {`P 6}
+         (second (erase-names (c/-resolve (prs/parse-clj `P) (clj-opts))
+                              #{`P} (clj-opts))))))

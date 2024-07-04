@@ -109,7 +109,9 @@ for checking namespaces, cf for checking individual forms."}
 (defmacro inst 
   "Instantiate a polymorphic type with a number of types.
   
-  eg. (inst foo-fn t1 t2 t3 ...)"
+  eg., (inst foo-fn t1 t2 t3 ...)
+  
+  To instantiate dotted variable to T1 T2, use (t/cat T1 T2)."
   [inst-of & types]
   inst-of)
 

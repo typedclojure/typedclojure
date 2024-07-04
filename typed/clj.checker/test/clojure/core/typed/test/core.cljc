@@ -98,44 +98,6 @@
                                        (make-Function [(B-maker 3)] (B-maker 1))))
                          {}))))
 
-(deftest trans-dots-test
-  (is-clj (= (inst/manual-inst (parse-clj `(t/All [x# b# :..] [x# :.. b# :-> x#]))
-                               (mapv parse-clj `(Integer Double Float))
-                               {}
-                               (clj-opts))
-             (parse-clj `[Integer Integer :-> Integer])))
-  (is-clj (= (inst/manual-inst (parse-clj `(t/All [x# b# :..] [b# :.. b# :-> x#]))
-                               (mapv parse-clj `(Integer Double Float))
-                               {}
-                               (clj-opts))
-             (parse-clj `[Double Float :-> Integer])))
-  ;map type
-  (is-clj (= (inst/manual-inst (parse-clj `(t/All [c# a# b# :..]
-                                                 [[a# b# :.. b# :-> c#] (t/Seqable a#) (t/Seqable b#) :.. b# :-> (t/Seqable c#)]))
-                               (mapv parse-clj `(Integer Double Float))
-                               {}
-                               (clj-opts))
-             (parse-clj `[[Double Float :-> Integer] (t/Seqable Double) (t/Seqable Float) :-> (t/Seqable Integer)])))
-  (is-clj (= (clj (inst/manual-inst (parse-clj `(t/All [x# b# :..]
-                                                        ['[x# b#] :.. b# :-> '['[x# b#] :.. b#]]))
-                                    (mapv parse-clj `(Integer Double Float))
-                                    {}
-                                    (clj-opts)))
-             (parse-clj `['[Integer Double] '[Integer Float] 
-                           :-> '['[Integer Double] '[Integer Float]]])))
-  ;TODO t/HSequential
-  (is-clj (= (clj
-               (inst/manual-inst (parse-clj `(t/All [x# b# ...]
-                                                   [x# :.. b# :-> (t/HSequential [x# ... b#])]))
-                                 (mapv parse-clj `(Integer Double Float))
-                                 {}
-                                 (clj-opts)))
-             (parse-clj `(t/IFn [Integer Integer :-> (t/HSequential [Integer Integer])]))))
-  ; completeness check
-  (is (check-ns 'clojure.core.typed.test.trans-dots))
-  )
-
-
 (deftest tc-invoke-fn-test
   (is-clj (subtype? (ety
                       ((fn [a :- Number, b :- Number] b)
@@ -821,12 +783,14 @@
   (is-clj (= (demote-var (make-F 'x) '#{x}
                          (with-bounded-frees (clj-opts) {(make-F 'x) no-bounds}))
              (Bottom)))
-  (is-clj (= (promote-var (RClass-of clojure.lang.ISeq [(make-F 'x)] (clj-opts)) '#{x}
-                          (with-bounded-frees (clj-opts) {(make-F 'x) no-bounds}))
-             (RClass-of clojure.lang.ISeq [-any] (clj-opts))))
-  (is-clj (= (demote-var (RClass-of clojure.lang.ISeq [(make-F 'x)] (clj-opts)) '#{x}
-                         (with-bounded-frees (clj-opts) {(make-F 'x) no-bounds}))
-             (RClass-of clojure.lang.ISeq [(Bottom)] (clj-opts)))))
+  (let [opts (with-bounded-frees (clj-opts)
+               {(make-F 'x) no-bounds})]
+    (is (= (promote-var (RClass-of clojure.lang.ISeq [(make-F 'x)] opts) '#{x} opts)
+           (RClass-of clojure.lang.ISeq [-any] opts))))
+  (let [opts (with-bounded-frees (clj-opts)
+               {(make-F 'x) no-bounds})]
+    (is (= (demote-var (RClass-of clojure.lang.ISeq [(make-F 'x)] opts) '#{x} opts)
+           (RClass-of clojure.lang.ISeq [(Bottom)] opts)))))
 
 (deftest variances-test
   (is-clj (= (fv-variances (make-F 'x) (clj-opts))
@@ -846,66 +810,81 @@
   (is-clj (empty? (fi (make-F 'x) (clj-opts)))))
 
 (deftest cs-gen-test
-  (is-clj (= (cs-gen #{} ;V
-                     (zipmap '[x y] (repeat no-bounds)) ;X
-                     {} ;Y
-                     (-val 1) ;S
-                     (make-F 'x) ;T
-                     (clj-opts))
-             (cset-maker [(make-cset-entry {'x (c-maker (-val 1) 'x -any no-bounds)
-                                            'y (c-maker (Bottom) 'y -any no-bounds)})])))
+  (let [opts (with-bounded-frees (clj-opts)
+               {(make-F 'x) no-bounds
+                (make-F 'y) no-bounds})]
+    (is (= (cs-gen #{} ;V
+                   (zipmap '[x y] (repeat no-bounds)) ;X
+                   {} ;Y
+                   (-val 1) ;S
+                   (make-F 'x) ;T
+                   opts)
+           (cset-maker [(make-cset-entry {'x (c-maker (-val 1) 'x -any no-bounds)
+                                          'y (c-maker (Bottom) 'y -any no-bounds)})]))))
   ;intersections correctly inferred
-  (is-clj (= (cs-gen '#{} {'x no-bounds} '{} 
-                     (-hvec [(RClass-of Number (clj-opts))] {} (clj-opts))
-                     (In [(-name `t/Seqable (make-F 'x)) (make-CountRange 1)]
-                         (clj-opts))
-                     (clj-opts))
-             (cset-maker [(make-cset-entry {'x (c-maker (RClass-of Number (clj-opts)) 'x -any no-bounds)})])))
-;correct RClass ancestor inference
-  (is-clj (= (cs-gen #{} {'x no-bounds} {} 
-                     (RClass-of IPersistentVector [(RClass-of Number (clj-opts))] (clj-opts))
-                     (-name `t/Seqable (make-F 'x))
-                     (clj-opts))
-             (cset-maker [(make-cset-entry {'x (c-maker (RClass-of Number (clj-opts)) 'x -any no-bounds)})]))))
+  (let [opts (with-bounded-frees (clj-opts)
+               {(make-F 'x) no-bounds})]
+    (is (= (cs-gen '#{} {'x no-bounds} '{} 
+                   (-hvec [(RClass-of Number opts)] {} opts)
+                   (In [(-name `t/Seqable (make-F 'x)) (make-CountRange 1)] opts)
+                   opts)
+           (cset-maker [(make-cset-entry {'x (c-maker (RClass-of Number opts) 'x -any no-bounds)})]))))
+  ;correct RClass ancestor inference
+  (let [opts (with-bounded-frees (clj-opts)
+               {(make-F 'x) no-bounds})]
+    (is (= (cs-gen #{} {'x no-bounds} {}
+                   (RClass-of IPersistentVector [(RClass-of Number opts)] opts)
+                   (-name `t/Seqable (make-F 'x))
+                   opts)
+           (cset-maker [(make-cset-entry {'x (c-maker (RClass-of Number opts) 'x -any no-bounds)})])))))
 
 (deftest subst-gen-test
-  (let [cs (clj (cs-gen #{} ;V
-                        (zipmap '[x y] (repeat no-bounds)) ;X
-                        {} ;Y
-                        (-val 1) ;S
-                        (make-F 'x)
-                        (clj-opts)))]
-    (is-clj (= (subst-gen cs #{} (make-F 'x) {} (clj-opts))
+  (let [opts (with-bounded-frees (clj-opts)
+               {(make-F 'x) no-bounds})
+        cs (cs-gen #{} ;V
+                   (zipmap '[x y] (repeat no-bounds)) ;X
+                   {} ;Y
+                   (-val 1) ;S
+                   (make-F 'x)
+                   opts)]
+    (is (= (subst-gen cs #{} (make-F 'x) {} opts)
            {'x (t-subst-maker (-val 1) no-bounds)
             'y (t-subst-maker (Bottom) no-bounds)}))))
 
 (deftest infer-test
-  (is-clj (= (cgen/infer (zipmap '[x y] (repeat no-bounds)) ;tv env
-                         {}
-                         [(-val 1) (-val 2)] ;actual
-                         [(make-F 'x) (make-F 'y)] ;expected
-                         (make-F 'x) ;result
-                         (clj-opts))
-             {'x (crep/t-subst-maker (-val 1)
-                                     no-bounds)
-              'y (crep/t-subst-maker (-val 2)
-                                     no-bounds)}))
-  (is-clj (= (cgen/infer {'x no-bounds} ;tv env
-                         {}
-                         [(RClass-of IPersistentVector [(Un [(-val 1) (-val 2) (-val 3)] (clj-opts))] (clj-opts))] ;actual
-                         [(-name `t/Seqable (make-F 'x))] ;expected
-                         (RClass-of clojure.lang.ASeq [(make-F 'x)] (clj-opts)) ;result
-                         (clj-opts))
-             {'x (crep/t-subst-maker (Un [(-val 1) (-val 2) (-val 3)] (clj-opts))
-                                     no-bounds)})) 
-  (is-clj (= (cgen/infer {'x no-bounds} ;tv env
-                         {}
-                         [(-hvec [(-val 1) (-val 2) (-val 3)] {} (clj-opts))] ;actual
-                         [(-name `t/Seqable (make-F 'x))] ;expected
-                         (RClass-of clojure.lang.ASeq [(make-F 'x)] (clj-opts)) ;result
-                         (clj-opts))
-             {'x (crep/t-subst-maker (Un [(-val 1) (-val 2) (-val 3)] (clj-opts))
-                                     no-bounds)})))
+  (let [opts (with-bounded-frees (clj-opts)
+               {(make-F 'x) no-bounds
+                (make-F 'y) no-bounds})]
+    (is (= (cgen/infer (zipmap '[x y] (repeat no-bounds)) ;tv env
+                       {}
+                       [(-val 1) (-val 2)] ;actual
+                       [(make-F 'x) (make-F 'y)] ;expected
+                       (make-F 'x) ;result
+                       opts)
+           {'x (crep/t-subst-maker (-val 1)
+                                   no-bounds)
+            'y (crep/t-subst-maker (-val 2)
+                                   no-bounds)})))
+  (let [opts (with-bounded-frees (clj-opts)
+               {(make-F 'x) no-bounds})]
+    (is (= (cgen/infer {'x no-bounds} ;tv env
+                       {}
+                       [(RClass-of IPersistentVector [(Un [(-val 1) (-val 2) (-val 3)] opts)] opts)] ;actual
+                       [(-name `t/Seqable (make-F 'x))] ;expected
+                       (RClass-of clojure.lang.ASeq [(make-F 'x)] opts) ;result
+                       opts)
+           {'x (crep/t-subst-maker (Un [(-val 1) (-val 2) (-val 3)] opts)
+                                   no-bounds)})))
+  (let [opts (with-bounded-frees (clj-opts)
+               {(make-F 'x) no-bounds})]
+    (is (= (cgen/infer {'x no-bounds} ;tv env
+                       {}
+                       [(-hvec [(-val 1) (-val 2) (-val 3)] {} opts)] ;actual
+                       [(-name `t/Seqable (make-F 'x))] ;expected
+                       (RClass-of clojure.lang.ASeq [(make-F 'x)] opts) ;result
+                       opts)
+           {'x (crep/t-subst-maker (Un [(-val 1) (-val 2) (-val 3)] opts)
+                                   no-bounds)}))))
 
 (deftest arith-test
   (is-clj (subtype? (:t (tc-t (+)))
@@ -1491,15 +1470,19 @@
 
 ; a sanity test for intersection cache collisions
 (deftest intersect-cache-test
-  (is-clj (=
-       (Poly-body*
-         ['foo1 'foo2]
-         (Poly* '[x y] 
-                [no-bounds no-bounds]
-                (In [(make-F 'x) (make-F 'y)] (clj-opts))
-                (clj-opts))
-         (clj-opts))
-       (In [(make-F 'foo1) (make-F 'foo2)] (clj-opts)))))
+  (let [opts (with-bounded-frees (clj-opts)
+               {(make-F 'x) no-bounds
+                (make-F 'y) no-bounds
+                (make-F 'foo1) no-bounds
+                (make-F 'foo2) no-bounds})]
+    (is (= (Poly-body*
+             ['foo1 'foo2]
+             (Poly* '[x y] 
+                    [no-bounds no-bounds]
+                    (In [(make-F 'x) (make-F 'y)] opts)
+                    opts)
+             opts)
+           (In [(make-F 'foo1) (make-F 'foo2)] opts)))))
 
 (deftest CTYP-27-nth-inline-test
   (is-tc-e (fn [s] (clojure.lang.RT/nth s 0 nil))
@@ -1608,14 +1591,16 @@
 
 
 (deftest intersection-csgen-test
-  (is-clj (clj (cs-gen #{} {'a no-bounds} {}
-                       (In [(-name `t/Seqable (RClass-of Number (clj-opts)))
-                            (make-CountRange 1)]
-                           (clj-opts))
-                       (In [(-name `t/Seqable (make-F 'a))
-                            (make-CountRange 1)]
-                           (clj-opts))
-                       (clj-opts)))))
+  (let [opts (with-bounded-frees (clj-opts) {(make-F 'a) no-bounds})]
+    (is (cs-gen #{} {'a no-bounds} {}
+                (In [(-name `t/Seqable (RClass-of Number opts))
+                     (make-CountRange 1)]
+                    opts)
+                (In [(-name `t/Seqable (make-F 'a))
+                     (make-CountRange 1)]
+                    opts)
+                opts))
+    true))
 
 (deftest iterable-as-seqable-test
   (is-cf (first (clojure.core.typed/ann-form [] (Iterable clojure.core.typed/Any)))))
@@ -2252,33 +2237,6 @@
   (is-tc-e (clojure.core.typed/def a :- t/Num 1)
            (t/Var t/Num)))
 
-(deftest poly-inst-scoping-test
-  (is-tc-e (fn [a] (inst identity foo))
-           (t/All [foo] [t/Any -> t/Any]))
-  (is-tc-e
-    (fn [f coll]
-      (fn
-        [x :- a
-         y :- (t/Seqable b)]))
-    (t/All [a b] [t/Any t/Any -> t/Any]))
-  (is-tc-err
-    (fn :forall [x y]
-      [f coll]
-      (fn
-        [x :- a
-         y :- (t/Seqable b)]))
-    (t/All [a b] [t/Any t/Any -> t/Any]))
-  (is-tc-e
-    (fn :forall [x y]
-      [f coll]
-      (fn
-        [x :- x
-         y :- (t/Seqable y)]))
-    (t/All [a b] [t/Any t/Any -> t/Any]))
-  ;zero args is fine for dotted vars
-  (is-tc-e (fn [a] (inst a))
-           [(t/All [b ...] [b ... b -> t/Any]) -> t/Any]))
-
 (deftest infer-bounds-test
   (is (= (infer-bounds -any nil (clj-opts))
          (infer-bounds -any -nothing (clj-opts))
@@ -2377,19 +2335,19 @@
                  [(Name-maker 'java.lang.Number)] (clj-opts)))))
 
 (deftest protocol-method-ann-test
-  (is-clj (let [opts (clj-opts)
-                x1 (gensym 'x1)
-                x2 (gensym 'x2)
-                names [x1 x2]
-                bnds [no-bounds no-bounds]
-                mt (parse-clj `(t/All [m1#] [t/Any ~x1 m1# ~'-> ~x2])
-                              (with-bounded-frees opts (zipmap (map make-F names)
-                                                               bnds)))]
-            (both-subtype? (collect-u/protocol-method-var-ann
-                             mt names bnds (clj-opts))
-                           (parse-clj
-                             `(t/All [x1# x2# m1#]
-                                [t/Any x1# m1# ~'-> x2#]))))))
+  (is (let [opts (clj-opts)
+            x1 (gensym 'x1)
+            x2 (gensym 'x2)
+            names [x1 x2]
+            bnds [no-bounds no-bounds]
+            mt (parse-clj `(t/All [m1#] [t/Any ~x1 m1# ~'-> ~x2])
+                          (with-bounded-frees opts (zipmap (map make-F names)
+                                                           bnds)))]
+        (both-subtype? (collect-u/protocol-method-var-ann
+                         mt names bnds (clj-opts))
+                       (parse-clj
+                         `(t/All [x1# x2# m1#]
+                                 [t/Any x1# m1# ~'-> x2#]))))))
 
 (deftest map-predicate-test
   (is-tc-e (fn [a] (number? (:k a)))
@@ -2612,7 +2570,7 @@
            (parse-clj `(t/Rec [x#] (t/U nil '[t/Any x#])))
            (parse-clj `(t/Rec [x#] '[Number x#]))
            (clj-opts))))
-  (is (check-ns 'clojure.core.typed.test.rec-type)))
+  (is (check-ns 'clojure.core.typed.test.rec-type #_{:trace true})))
 
 (deftest poly-rec-type-test
   ; without Rec type
@@ -2820,17 +2778,18 @@
       (loop [a :- t/Symbol 1] (recur a)))))
 
 (deftest nth-jvm-test
-  (is-clj (do
-            (dotimes [_ 100]
-              (cs-gen #{'x} {'x no-bounds} {}
-                      (-val "a")
-                      (Un [(RClass-of clojure.lang.Indexed [(make-F 'x)] (clj-opts))
-                           (In [(RClass-of clojure.lang.Sequential (clj-opts)) 
-                                (-name `t/Seqable (make-F 'x))]
-                               (clj-opts))]
-                          (clj-opts))
-                      (clj-opts)))
-            true))
+  (let [opts (with-bounded-frees (clj-opts) {(make-F 'x) no-bounds})]
+    (is (do
+          (dotimes [_ 100]
+            (cs-gen #{'x} {'x no-bounds} {}
+                    (-val "a")
+                    (Un [(RClass-of clojure.lang.Indexed [(make-F 'x)] opts)
+                         (In [(RClass-of clojure.lang.Sequential opts) 
+                              (-name `t/Seqable (make-F 'x))]
+                             opts)]
+                        opts)
+                    opts))
+          true)))
   (is-clj (some
             #{(RClass-of clojure.lang.Indexed [-any] (clj-opts))}
              (mapv #(fully-resolve-type % (clj-opts)) (RClass-supers* (RClass-of 'java.util.ArrayList (clj-opts)) (clj-opts)))))

@@ -44,3 +44,6 @@
 - remove system property `clojure.core.typed.intern-defaliases`
 - support `:typed.clojure/ignore true` metadata on macro vars which is
   a hint to the checker that it always expands to ignored forms
+- use `(t/cat T1 T2 T3)` to instantiate dotted variables via `t/inst`
+  - polymorphic binders with one trailing dotted variable still support the old style of `T1 T2 T3`
+- assert `t/Rec` binder must have simple symbols

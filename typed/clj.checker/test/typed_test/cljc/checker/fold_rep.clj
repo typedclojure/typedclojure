@@ -47,7 +47,7 @@
              {:keys [t' F-count]} (count-F t (clj-opts))]
          (is (= 3 F-count))
          (is (identical? t t'))))
-  (clj (let [t (parse-type `(t/All [t#] [:-> ((t/TFn [x] t#) t#)]) (clj-opts))
+  (clj (let [t (parse-type `(t/All [t#] [:-> ((t/TFn [x#] t#) t#)]) (clj-opts))
              {:keys [t' F-count]} (count-F t (clj-opts))]
          (is (= 2 F-count))
          (is (identical? t t'))))

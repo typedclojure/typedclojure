@@ -276,15 +276,15 @@
              (not-any? (some-fn :drest :pdot) (:types body)))))
        (let [fs-names (c/Poly-fresh-symbols* fexpr-type)
              _ (assert (every? symbol? fs-names))
-             fin (c/Poly-body* fs-names fexpr-type opts)
              bbnds (c/Poly-bbnds* fs-names fexpr-type opts)
+             opts (free-ops/with-bounded-frees opts
+                    (zipmap (map r/F-maker fs-names) bbnds))
+             fin (c/Poly-body* fs-names fexpr-type opts)
              _ (assert (r/FnIntersection? fin))
              ;; Only infer free variables in the return type
              ret-type
-             (let [opts (free-ops/with-bounded-frees opts
-                          (zipmap (map r/F-maker fs-names) bbnds))
-                   fs-names->bbnds (zipmap fs-names bbnds)
-                   expected-t (some-> expected r/ret-t (c/fully-resolve-type opts))]
+             (let [fs-names->bbnds (zipmap fs-names bbnds)
+                   expected-t (some-> expected r/ret-t #_(c/fully-resolve-type opts))]
                (loop [[{:keys [dom rng rest drest kws prest] :as ftype} & ftypes] (:types fin)]
                  (when ftype
                    ;; only try inference if argument types are appropriate
@@ -399,9 +399,10 @@
                 (letfn [(should-infer? [t]
                           (and (r/PolyDots? t)
                                (r/FnIntersection?
-                                 (c/PolyDots-body* (c/PolyDots-fresh-symbols* t)
-                                                   t
-                                                   opts))))
+                                 (let [names (c/PolyDots-fresh-symbols* t)
+                                       bbnds (c/PolyDots-bbnds* names t opts)
+                                       opts (free-ops/with-bounded-frees opts (zipmap (map r/make-F names) bbnds))]
+                                   (c/PolyDots-body* names t opts)))))
                         (collect-polydots [t]
                           {:post [((con/hvector-c? r/Type?
                                                    (con/hash-c? symbol? r/Bounds?)
@@ -412,8 +413,9 @@
                                  dotted {}]
                             (cond 
                               (r/PolyDots? pbody)
-                              (let [vars (vec (c/PolyDots-fresh-symbols* pbody))
+                              (let [vars (c/PolyDots-fresh-symbols* pbody)
                                     bbnds (c/PolyDots-bbnds* vars pbody opts)
+                                    opts (free-ops/with-bounded-frees opts (zipmap (map r/make-F vars) bbnds))
                                     pbody (c/PolyDots-body* vars pbody opts)]
                                 (recur (c/fully-resolve-type pbody opts)
                                        (reduce (fn [fixed i]
@@ -431,8 +433,9 @@
          (let [;_ (prn "polydots, no kw args")
                _ (assert (= 1 (count dotted-map)))
                inferred-rng
-               (let [opts (free-ops/with-bounded-frees opts (update-keys fixed-map r/make-F))]
-                 ;(dvar-env/with-dotted-mappings (zipmap (keys dotted-map) (map r/make-F (vals dotted-map)))
+               (let [opts (-> opts
+                              (free-ops/with-bounded-frees (update-keys fixed-map r/make-F))
+                              (free-ops/with-bounded-frees (update-keys dotted-map r/make-F)))]
                  (some (fn [{:keys [dom rest drest rng prest pdot] :as ftype}]
                          ;only try inference if argument types match
                          (when (cond

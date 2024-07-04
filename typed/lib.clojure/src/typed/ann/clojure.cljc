@@ -1251,6 +1251,12 @@ cc/list* (t/All [x] (t/IFn [(t/Seqable x) :-> (t/NilableNonEmptyASeq x)]
                            [x x x x x x x x (t/Seqable x) :-> (t/NonEmptyASeq x)]
                            [x x x x x x x x x (t/Seqable x) :-> (t/NonEmptyASeq x)]
                            [x x x x x x x x x x (t/Seqable x) :-> (t/NonEmptyASeq x)]))
+#_
+(case i
+  0 `(t/All [x#] [(t/Seqable x#) :-> (t/NilableNonEmptyASeq x#)])
+  (let [x (gensym 'x)]
+    `(t/All ~(conj as :..)
+            [(t/Seqable ~x) :-> (t/NilableNonEmptyASeq ~x)])))
 
 cc/list? (t/Pred (t/List t/Any))
 #?@(:cljs [] :default [
@@ -1333,6 +1339,19 @@ cc/comp (t/All [a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 b :..]
                       [[a1 :-> a0] [a2 :-> a1] [a3 :-> a2] [a4 :-> a3] [a5 :-> a4] [a6 :-> a5] [a7 :-> a6]                         [b :.. b :-> a7] :-> [b :.. b :-> a0]]
                       [[a1 :-> a0] [a2 :-> a1] [a3 :-> a2] [a4 :-> a3] [a5 :-> a4] [a6 :-> a5] [a7 :-> a6] [a8 :-> a7]             [b :.. b :-> a8] :-> [b :.. b :-> a0]]
                       [[a1 :-> a0] [a2 :-> a1] [a3 :-> a2] [a4 :-> a3] [a5 :-> a4] [a6 :-> a5] [a7 :-> a6] [a8 :-> a7] [a9 :-> a8] [b :.. b :-> a9] :-> [b :.. b :-> a0]]))
+#_
+(case i
+  :* `(t/All [a#] [[a# :-> a#] :* :-> [a# :-> a#]])
+  ;:.. `(t/All [a#] [[a# :-> a#] :* :-> [a# :-> a#]])
+  0 `(t/All [a#] [:-> [a# :-> a#]])
+  (let [b (gensym 'b)
+        as (mapv gensym (range i))]
+    `(t/All ~(conj as b :..)
+            ~(-> (into (map (fn [idx]
+                              [(nth as idx) :-> (nth as (dec idx))]))
+                       (range i 0 -1))
+                 (conj [b :.. b :-> (peek as)] :->
+                       [b :.. b :-> (first as)])))))
 
 
 ;apply: wishful thinking
@@ -1352,6 +1371,17 @@ cc/apply
               [[a b r :* :-> y] a b (t/Seqable r) :-> y]
               [[a b c r :* :-> y] a b c (t/Seqable r) :-> y]
               [[a b c d r :* :-> y] a b c d (t/Seqable r) :-> y]))
+#_
+(case i
+  (0 1) (err/tc-delayed-error "apply takes 2 or more arguments" opts)
+  (let [y (gensym 'y)
+        r (gensym 'r)
+        z (gensym 'z)
+        as (mapv gensym (range (- i 3)))]
+    `(t/All ~(conj as y r z :..)
+            (t/IFn
+              [[~@as ~z :.. ~z :-> ~y] ~@as (t/U nil (t/HSequential [~z :.. ~z])) :-> ~y]
+              [[~@as ~r :* :-> ~y] ~@as (t/Seqable ~r) :-> ~y]))))
 
 ;partial: wishful thinking (replaces the first 4 arities)
 ; (t/All [r b1 :.. b2 :..]
@@ -1365,6 +1395,15 @@ cc/partial
               [[a b c z :.. z :-> y] a b c :-> [z :.. z :-> y]]
               [[a b c d z :.. z :-> y] a b c d :-> [z :.. z :-> y]]
               [[a :* :-> y] a :* :-> [a :* :-> y]]))
+#_
+(case i
+  :rest `(t/All [y# a#] [[a# :* :-> y#] a# :* :-> [a# :* :-> y#]])
+  0 (err/tc-delayed-error "partial takes 1 or more arguments" opts)
+  (let [y (gensym 'y)
+        z (gensym 'z)
+        as (mapv gensym (range (dec i)))]
+    `(t/All ~(conj as y z :..)
+            [[~@as ~z :.. ~z :-> ~y] ~@as :-> [~z :.. ~z :-> ~y]])))
 
 cc/str [t/Any :* :-> t/Str]
 cc/prn-str [t/Any :* :-> t/Str]

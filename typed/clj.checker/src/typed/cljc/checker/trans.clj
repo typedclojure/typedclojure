@@ -43,17 +43,16 @@
         (let [{:keys [pre-type name]} (:drest t)]
           (assert (symbol? name))
           (if (= b name) ;identical bounds
-            (let [fixed (vec
-                          (concat 
-                            ;keep fixed entries
-                            (doall (map tfn (:types t)))
-                            ;expand dotted type to fixed entries
-                            (doall (map (fn [bk]
-                                          {:post [(r/Type? %)]}
-                                          ;replace free occurences of bound with bk
-                                          (-> (subst/substitute bk b pre-type opts)
-                                              tfn))
-                                        bm))))
+            (let [fixed (into 
+                          ;keep fixed entries
+                          (mapv tfn (:types t))
+                          ;expand dotted type to fixed entries
+                          (map (fn [bk]
+                                 {:post [(r/Type? %)]}
+                                 ;replace free occurrences of bound with bk
+                                 (-> (subst/substitute bk b pre-type opts)
+                                     tfn)))
+                          bm)
                   extra-fixed (- (count fixed)
                                  (count (:types t)))]
               (r/-hsequential fixed
@@ -127,21 +126,19 @@
                         ;expand dotted type to fixed domain
                         (map (fn [bk]
                                {:post [(r/Type? %)]}
-                               ;replace free occurences of bound with bk
+                               ;replace free occurrences of bound with bk
                                (-> (subst/substitute bk b pre-type opts)
                                    tfn)))
                         bm)]
               ;dotted pretype now expanded to fixed domain
               (r/make-Function dom (tfn (:rng t))))
             (-> t
-                (update :dom #(doall (map tfn %)))
+                (update :dom #(mapv tfn %))
                 (update :rng tfn)
-                (update :drest (fn [drest]
-                                 (some-> drest
-                                         (update :pre-type tfn))))))) ;translate pre-type
+                (update :drest #(some-> % (update :pre-type tfn)))))) ;translate pre-type
         :else
         (-> t
-            (update :dom #(doall (map tfn %)))
+            (update :dom #(mapv tfn %))
             (update :rng tfn)
             (update :rest #(some-> % tfn))
             (update :prest #(some-> % tfn)))))))

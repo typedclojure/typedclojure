@@ -179,7 +179,7 @@
          subtype-datatypes-or-records subtype-Result subtype-PrimitiveArray
          subtype-CountRange subtype-TypeFn subtype-RClass subtype-rclass-or-datatype-with-protocol
          subtype-datatype-rclass subtype-TApp
-         subtype-Satisfies)
+         subtype-Satisfies has-Type-kind?)
 
 (defn subtype-HSet [A s t]
   {:pre [(r/HSet? s)
@@ -532,7 +532,7 @@
       (if (AND (= (:nbound s) (:nbound t))
                (= (:bbnds s) (:bbnds t)))
         (let [;instantiate both sides with the same fresh variables
-              names (repeatedly (:nbound s) gensym)
+              names (repeatedly (:nbound s) #(gensym "Poly-Poly"))
               bbnds1 (c/Poly-bbnds* names s opts)
               b1 (c/Poly-body* names s opts)
               b2 (c/Poly-body* names t opts)]
@@ -877,7 +877,7 @@
                  (= :PolyDots (.kind t))
                  (= (.nbound s) (.nbound t)))
         (let [;instantiate both sides with the same fresh variables
-              names (repeatedly (.nbound s) gensym)
+              names (repeatedly (.nbound s) #(gensym "Poly-for-s"))
               bbnds1 (c/PolyDots-bbnds* names s opts)
               bbnds2 (c/PolyDots-bbnds* names t opts)
               b1 (c/PolyDots-body* names s opts)
@@ -888,6 +888,7 @@
               (case (.kind s) 
                 :Poly (let [names (c/Poly-fresh-symbols* s)
                             bnds (c/Poly-bbnds* names s opts)
+                            opts (free-ops/with-bounded-frees opts (zipmap (map r/make-F names) bnds))
                             b1 (c/Poly-body* names s opts)
                             ;_ (prn "try unify on left")
                             X (zipmap names bnds)
@@ -896,6 +897,7 @@
                         u)
                 :PolyDots (let [names (c/PolyDots-fresh-symbols* s)
                                 bnds (c/PolyDots-bbnds* names s opts)
+                                opts (free-ops/with-bounded-frees opts (zipmap (map r/make-F names) bnds))
                                 b1 (c/PolyDots-body* names s opts)
                                 ;_ (prn "try PolyDots unify on left")
                                 X (zipmap (pop names) (pop bnds))
@@ -965,14 +967,12 @@
     (assert (extends? SubtypeA*LeftProtocol c) c))
   )
 
-; assumes t is a Type
 (defn supertype-of-all-types? [t]
   (OR (r/Top? t)
       (r/Wildcard? t)
       (r/Unchecked? t)
       (r/TCError? t)))
 
-; assumes s is a Type
 (defn subtype-of-all-types? [s]
   (OR (r/Bottom? s)
       (r/Unchecked? s)
@@ -991,8 +991,12 @@
   (let [subtypeA* (fn
                     ([A s t] (subtypeA* A s t opts))
                     ([A s t opts] (subtypeA* A s t opts)))]
-  (if (OR (supertype-of-all-types? t)
-          (subtype-of-all-types? s)
+  (if (OR (AND (supertype-of-all-types? t)
+               ;; expensive, should only be called by Type's anyway
+               #_(has-Type-kind? s opts))
+          (AND (subtype-of-all-types? s)
+               ;; expensive, should only be called by Type's anyway
+               #_(has-Type-kind? t opts))
           (= s t)
           (contains? A [s t]))
     A
@@ -1000,6 +1004,7 @@
           short-circuit-same (if (identical? (.getClass ^Object s) (.getClass ^Object t))
                                (subtypeA*-same s t A opts)
                                unknown-result)]
+      ;(prn "short-circuit-same" short-circuit-same)
       (cond
         (not (identical? unknown-result short-circuit-same))
         short-circuit-same
@@ -1007,19 +1012,21 @@
         ; use bounds to determine subtyping between frees and types
         ; 2 frees of the same name are handled in the (= s t) case.
         (AND (r/F? s)
-             (if-some [^Bounds bnd
-                       (free-ops/free-with-name-bnds (:name s) opts)]
-               (subtypeA* A (:upper-bound bnd) t)
-               (do #_(err/int-error (str "No bounds for " (:name s)) opts)
-                   false)))
+             (if-some [bnd (free-ops/free-with-name-bnds (:name s) opts)]
+               ;;TODO other kinds?
+               (and (r/Bounds? bnd)
+                    (has-Type-kind? t opts)
+                    (subtypeA* A (:upper-bound bnd) t))
+               (err/int-error (str "No bounds for " (:name s)) opts)))
         A
 
         (AND (r/F? t)
-             (if-some [^Bounds bnd
-                       (free-ops/free-with-name-bnds (:name t) opts)]
-               (subtypeA* A s (:lower-bound bnd))
-               (do #_(err/int-error (str "No bounds for " (:name s)) opts)
-                   false)))
+             (if-some [bnd (free-ops/free-with-name-bnds (:name t) opts)]
+               ;;TODO other kinds?
+               (and (r/Bounds? bnd)
+                    (has-Type-kind? s opts)
+                    (subtypeA* A s (:lower-bound bnd)))
+               (err/int-error (str "No bounds for " (:name t)) opts)))
         A
 
         (r/TypeOf? s)
@@ -1566,13 +1573,16 @@
       (r/TypeFn? (:rator s))
       (let [rator (:rator s)
             variances (:variances rator)
-            names (repeatedly (:nbound rator) gensym)
+            names (repeatedly (:nbound rator) #(gensym "TypeFn-sub"))
             bbnds (c/TypeFn-bbnds* names rator opts)]
         (if (and (= (count variances)
                     (count (:rands s))
                     (count (:rands t)))
-                 (every?' (fn [variance {:keys [lower-bound upper-bound]} s t]
-                            (let [chk (fn [s t]
+                 (every?' (fn [variance bnd s t]
+                            (when-not (r/Bounds? bnd)
+                              (err/nyi-error (str "TypeFn bounds " (class bnd)) opts))
+                            (let [{:keys [lower-bound upper-bound]} bnd
+                                  chk (fn [s t]
                                         (and (subtypeA* A lower-bound s opts)
                                              (subtypeA* A t upper-bound opts)
                                              (subtypeA* A s t opts)))]
@@ -1586,12 +1596,20 @@
           (report-not-subtypes s t)))
       :else (report-not-subtypes s t))))
 
+(defn subtype-Bounds [A S T opts]
+  {:pre [(r/Bounds? S)
+         (r/Bounds? T)]}
+  (and (subtypeA* A (:upper-bound S) (:upper-bound T) opts)
+       (subtypeA* A (:lower-bound T) (:lower-bound S) opts)
+       #_(subtypeA* A (:lower-bound S) (:upper-bound S) opts)
+       #_(subtypeA* A (:lower-bound T) (:upper-bound T) opts)))
+
 (defn subtype-TypeFn
   [A S T opts]
   {:pre [(r/TypeFn? S)
          (r/TypeFn? T)]}
   (let [;instantiate both type functions with the same names
-        names (repeatedly (:nbound S) gensym)
+        names (repeatedly (:nbound S) #(gensym "subtype-TypeFn"))
         sbnds (c/TypeFn-bbnds* names S opts)
         tbnds (c/TypeFn-bbnds* names T opts)
         sbody (c/TypeFn-body* names sbnds S opts)
@@ -1599,12 +1617,13 @@
     (if (and (= (:nbound S) (:nbound T))
              (= (:variances S) (:variances T))
              (every?' (fn [lbnd rbnd]
-                        (and (subtypeA* A (:upper-bound lbnd) (:upper-bound rbnd) opts)
-                             (subtypeA* A (:lower-bound rbnd) (:lower-bound lbnd) opts)
-                             (subtypeA* A (:lower-bound lbnd) (:upper-bound lbnd) opts)
-                             (subtypeA* A (:lower-bound rbnd) (:upper-bound rbnd) opts)))
+                        ;;TODO register kind of frees
+                        (subtype-Bounds A rbnd lbnd opts))
                       sbnds tbnds))
-      (subtypeA* A sbody tbody opts)
+      (subtypeA* A sbody tbody (free-ops/with-bounded-frees opts
+                                 (zipmap (map r/make-F names)
+                                         ;;FIXME which side?
+                                         sbnds)))
       (report-not-subtypes S T))))
 
 (defn subtype-PrimitiveArray
@@ -1829,9 +1848,31 @@
     A
     (report-not-subtypes s t)))
 
+;; assume Mu/Poly are Types
+(defn has-Type-kind? [t opts]
+  (let [t (c/fully-resolve-non-rec-type t (assoc opts ::vs/no-simpl true))]
+    (if (r/F? t)
+      (if-some [bnd (free-ops/free-with-name-bnds (:name t) opts)]
+        (r/Bounds? bnd)
+        (err/int-error (str "No bounds for " (:name t)
+                            " " (binding [*print-meta* true] (pr-str (:typed.cljc.checker.tvar-bnds/current-tvar-bnds opts))))
+                       opts))
+      (not (r/Kind? t)))))
+
 (defn has-kind? [t kind opts]
   {:post [(boolean? %)]}
   (cond
-    (r/Bounds? kind) (and (subtype? (:lower-bound kind) t opts)
-                          (subtype? t (:upper-bound kind) opts))
-    :else (err/nyi-error "non-type kinds")))
+    (r/Bounds? kind) (AND (has-Type-kind? t opts)
+                          (OR (= kind r/no-bounds)
+                              (AND (subtype? (:lower-bound kind) t opts)
+                                   (subtype? t (:upper-bound kind) opts))))
+    (r/Regex? kind) (case (:kind kind)
+                      :* (let [inner-kind (-> kind :types first)]
+                           ;(prn "inner-kind" inner-kind)
+                           (AND (r/Regex? t)
+                                (case (:kind t)
+                                  :cat (every? #(has-kind? % inner-kind opts) (:types t))
+                                  ;;TODO
+                                  (err/nyi-error (str "non cat regex kinds " (prs/unparse-type kind opts)) opts))))
+                      (err/nyi-error (str "non * regex kinds " (prs/unparse-type kind opts)) opts))
+    :else (err/nyi-error (str "non-type kinds: " (prs/unparse-type kind opts)) opts)))

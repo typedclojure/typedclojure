@@ -415,15 +415,7 @@
              (not (r/F? (:rator T))))
         (cs-gen V X Y S (c/resolve-TApp T opts) opts)
 
-        ; copied from TR's infer-unit
-        ;; if we have two mu's, we rename them to have the same variable
-        ;; and then compare the bodies
-        ;; This relies on (B 0) only unifying with itself, and thus only hitting the first case of this `match'
-        (and (r/Mu? S)
-             (r/Mu? T))
-        (cs-gen V X Y (r/Mu-body-unsafe S) (r/Mu-body-unsafe T) opts)
-
-        ;; other mu's just get unfolded
+        (and (r/Mu? S) (r/Mu? T)) (cs-gen V X Y (c/unfold S opts) (c/unfold T opts) opts)
         (r/Mu? S) (cs-gen V X Y (c/unfold S opts) T opts)
         (r/Mu? T) (cs-gen V X Y S (c/unfold T opts) opts)
 
@@ -434,9 +426,10 @@
              (= (:bbnds S) (:bbnds T)))
         (let [names (c/Poly-fresh-symbols* T)
               bbnds (c/Poly-bbnds* names T opts)
+              opts (free-ops/with-bounded-frees opts (zipmap (map r/make-F names) bbnds))
               S' (c/Poly-body* names S opts)
               T' (c/Poly-body* names T opts)]
-          (cs-gen V X Y S' T' (-> opts (free-ops/with-bounded-frees (zipmap (map r/make-F names) bbnds)))))
+          (cs-gen V X Y S' T' opts))
 
 
         ;constrain *each* element of S to be below T, and then combine the constraints
@@ -481,10 +474,10 @@
         ;; constrain body to be below T, but don't mention the new vars
         (r/Poly? S)
         (let [nms (c/Poly-fresh-symbols* S)
-              body (c/Poly-body* nms S opts)
-              bbnds (c/Poly-bbnds* nms S opts)]
-          (cs-gen (set/union (set nms) V) X Y body T
-                  (-> opts (free-ops/with-bounded-frees (zipmap (map r/make-F nms) bbnds)))))
+              bbnds (c/Poly-bbnds* nms S opts)
+              opts (free-ops/with-bounded-frees opts (zipmap (map r/make-F nms) bbnds))
+              body (c/Poly-body* nms S opts)]
+          (cs-gen (set/union (set nms) V) X Y body T opts))
 
         (and (r/DataType? S)
              (r/DataType? T)) (cs-gen-datatypes-or-records V X Y S T)
@@ -922,12 +915,13 @@
                     (let [vars (var-store-take dbound dty (- (count (:types T))
                                                              (count (:types S)))
                                                opts)
-                          new-tys (doall (for [var vars]
-                                           (subst/substitute (r/make-F var) dbound dty opts)))
+                          bbnds (repeat (count vars) (homogeneous-dbound->bound (Y dbound) opts))
+                          opts (free-ops/with-bounded-frees opts (zipmap (map r/make-F vars) bbnds))
+                          new-tys (mapv #(subst/substitute (r/make-F %) dbound dty opts) vars)
                           new-s-hsequential (r/-hsequential (concat (:types S) new-tys) {} opts)
                           new-cset (cs-gen-HSequential V 
                                                        ;move dotted lower/upper bounds to vars
-                                                       (merge X (zipmap vars (repeat (homogeneous-dbound->bound (Y dbound) opts)))) Y new-s-hsequential T opts)]
+                                                       (merge X (zipmap vars bbnds)) Y new-s-hsequential T opts)]
                       [(move-vars-to-dmap new-cset dbound vars opts)]))
 
                   ;; dotted on the right, nothing on the left
@@ -939,13 +933,13 @@
                     (when-not (<= (count (:types T)) (count (:types S)))
                       (fail! S T))
                     (let [vars (var-store-take dbound dty (- (count (:types S)) (count (:types T))) opts)
-                          new-tys (doall
-                                    (for [var vars]
-                                      (subst/substitute (r/make-F var) dbound dty opts)))
+                          bbnds (repeat (count vars) (homogeneous-dbound->bound (Y dbound) opts))
+                          opts (free-ops/with-bounded-frees opts (zipmap (map r/make-F vars) bbnds))
+                          new-tys (mapv #(subst/substitute (r/make-F %) dbound dty opts) vars)
                           new-t-hsequential (r/-hsequential (concat (:types T) new-tys) {} opts)
                           new-cset (cs-gen-HSequential V 
                                                        ;move dotted lower/upper bounds to vars
-                                                       (merge X (zipmap vars (repeat (homogeneous-dbound->bound (Y dbound) opts)))) Y S new-t-hsequential opts)]
+                                                       (merge X (zipmap vars bbnds)) Y S new-t-hsequential opts)]
                       [(move-vars-to-dmap new-cset dbound vars opts)]))
 
                   ;TODO cases
@@ -1507,13 +1501,13 @@
     (let [vars (var-store-take dbound dty (- (count (:dom T))
                                              (count (:dom S)))
                                opts)
-          new-tys (mapv (fn [var]
-                          (subst/substitute (r/make-F var) dbound dty opts))
-                        vars)
+          bbnds (repeat (count vars) (homogeneous-dbound->bound (Y dbound) opts))
+          opts (free-ops/with-bounded-frees opts (zipmap (map r/make-F vars) bbnds))
+          new-tys (mapv #(subst/substitute (r/make-F %) dbound dty opts) vars)
           new-s-arr (r/make-Function (into (:dom S) new-tys) (:rng S))
           new-cset (cs-gen-Function V
                                     ;move dotted lower/upper bounds to vars
-                                    (merge X (zipmap vars (repeat (homogeneous-dbound->bound (Y dbound) opts)))) Y new-s-arr T opts)]
+                                    (merge X (zipmap vars bbnds)) Y new-s-arr T opts)]
       (move-vars-to-dmap new-cset dbound vars opts))))
 
 (defn cs-gen-Function-dotted-right-nothing-left [V X Y S T opts]
@@ -1525,10 +1519,9 @@
     (when-not (<= (count (:dom T)) (count (:dom S)))
       (fail! S T))
     (let [vars (var-store-take dbound dty (- (count (:dom S)) (count (:dom T))) opts)
-          new-tys (mapv
-                    (fn [var]
-                      (subst/substitute (r/make-F var) dbound dty opts))
-                    vars)
+          bbnds (repeat (count vars) (homogeneous-dbound->bound (Y dbound) opts))
+          opts (free-ops/with-bounded-frees opts (zipmap (map r/make-F vars) bbnds))
+          new-tys (mapv #(subst/substitute (r/make-F %) dbound dty opts) vars)
           ;_ (prn "dotted on the right, nothing on the left")
           ;_ (prn "vars" vars)
           new-t-arr (r/make-Function (into (:dom T) new-tys) (:rng T))
@@ -1536,7 +1529,7 @@
           ;_ (prn "new-t-arr" (prs/unparse-type new-t-arr opts))
           new-cset (cs-gen-Function V
                                     ;move dotted lower/upper bounds to vars
-                                    (merge X (zipmap vars (repeat (homogeneous-dbound->bound (Y dbound) opts)))) Y S new-t-arr opts)]
+                                    (merge X (zipmap vars bbnds)) Y S new-t-arr opts)]
       (move-vars-to-dmap new-cset dbound vars opts))))
 
 ;; * <: ...
@@ -1554,11 +1547,11 @@
         (cset-meet* [arg-mapping darg-mapping ret-mapping] opts))
       ;; the hard case
       (let [vars (var-store-take dbound t-dty (- (count (:dom S)) (count (:dom T))) opts)
-            new-tys (mapv (fn [var]
-                            (subst/substitute (r/make-F var) dbound t-dty opts))
-                          vars)
+            bbnds (repeat (count vars) (homogeneous-dbound->bound (Y dbound) opts))
+            opts (free-ops/with-bounded-frees opts (zipmap (map r/make-F vars) bbnds))
+            new-tys (mapv #(subst/substitute (r/make-F %) dbound t-dty opts) vars)
             new-t-arr (r/make-Function (into (:dom T) new-tys) (:rng T) :drest (r/DottedPretype1-maker t-dty dbound))
-            new-cset (cs-gen-Function V (merge X (zipmap vars (repeat (homogeneous-dbound->bound (Y dbound) opts))) X) Y S new-t-arr opts)]
+            new-cset (cs-gen-Function V (merge X (zipmap vars bbnds) X) Y S new-t-arr opts)]
         (move-vars+rest-to-dmap new-cset dbound vars {} opts)))))
 
 ;; ... <: *
@@ -1573,11 +1566,11 @@
       (< (count (:dom S)) (count (:dom T)))
       ;; the hard case
       (let [vars (var-store-take dbound s-dty (- (count (:dom T)) (count (:dom S))) opts)
-            new-tys (mapv (fn [var]
-                            (subst/substitute (r/make-F var) dbound s-dty opts))
-                          vars)
+            bbnds (repeat (count vars) (homogeneous-dbound->bound (Y dbound) opts))
+            opts (free-ops/with-bounded-frees opts (zipmap (map r/make-F vars) bbnds))
+            new-tys (mapv #(subst/substitute (r/make-F %) dbound s-dty opts) vars)
             new-s-arr (r/make-Function (into (:dom S) new-tys) (:rng S) :drest (r/DottedPretype1-maker s-dty dbound))
-            new-cset (cs-gen-Function V (merge X (zipmap vars (repeat (homogeneous-dbound->bound (Y dbound) opts))) X) Y new-s-arr T opts)]
+            new-cset (cs-gen-Function V (merge X (zipmap vars bbnds) X) Y new-s-arr T opts)]
         (move-vars+rest-to-dmap new-cset dbound vars {:exact true} opts))
 
       (= (count (:dom S)) (count (:dom T)))
@@ -1967,7 +1960,7 @@
     (if-not (contains? (:fv replace-fs) (:name t))
       t
       (let [t' (-> t
-                   (update :name gensym))]
+                   (update :name #(gensym (str % "__separate-F*_F"))))]
         (swap! remap-atom update-in
                (-> (if idx-context
                      [:idx-context idx-context]
@@ -1982,7 +1975,7 @@
   (fn [{:keys [name] :as t} replace-fs remap-atom _ in-idx-context]
     (if-not (contains? (:idx replace-fs) (:name t))
       t
-      (let [name' (gensym name)
+      (let [name' (gensym (str name "__separate-F*_DottedPretype"))
             t' (-> t
                    (update :pre-type in-idx-context name name')
                    (assoc :name name'))]
@@ -1997,19 +1990,22 @@
    :post [(r/AnyType? (:separated-t %))
           (map? (:remap %))]}
   (let [remap-atom (atom {})
-        separated-t (letfn [(rec [t replace-fs idx-context]
-                              (call-separate-F* t opts
-                                                {:in-idx-context (partial in-idx-context replace-fs idx-context)
-                                                 :idx-context idx-context
-                                                 :replace-fs replace-fs
-                                                 :remap-atom remap-atom}))
-                            (in-idx-context [replace-fs idx-context t idx idx']
-                              (rec t
-                                   (-> replace-fs
-                                       ;; scope dotted as normal var
-                                       (update :fv (fnil conj #{}) idx))
-                                   (conj (or idx-context []) idx')))]
-                      (rec t replace-fs nil))
+        separated-t (let [;; when we rename type variables they will not have bounds registered in opts
+                          ;; so we must avoid calling subtyping.
+                          opts (assoc opts ::vs/no-simpl true)]
+                      (letfn [(rec [t replace-fs idx-context]
+                                (call-separate-F* t opts
+                                                  {:in-idx-context (partial in-idx-context replace-fs idx-context)
+                                                   :idx-context idx-context
+                                                   :replace-fs replace-fs
+                                                   :remap-atom remap-atom}))
+                              (in-idx-context [replace-fs idx-context t idx idx']
+                                (rec t
+                                     (-> replace-fs
+                                         ;; scope dotted as normal var
+                                         (update :fv (fnil conj #{}) idx))
+                                     (conj (or idx-context []) idx')))]
+                        (rec t replace-fs nil)))
         remap @remap-atom
         separated-fv->original (reduce (fn [separated-fv->original [original separateds]]
                                          (reduce #(assoc %1 %2 original) separated-fv->original separateds))
@@ -2020,6 +2016,12 @@
                                                                 (mapcat identity (vals original->separateds))))
                                                       {} (:idx-context remap))
         {free-variances :frees idx-variances :idxs} (frees/free-variances separated-t opts)
+        opts (reduce (fn [opts [separated original]]
+                       (free-ops/with-bounded-frees opts
+                         {(r/make-F separated) (or (free-ops/free-with-name-bnds original opts)
+                                                   (err/int-error (str "Missing bounds: " original)
+                                                                  opts))}))
+                     opts separated-fv->original)
         ;_ (prn "remap" remap)
         ;_ (prn "separated-t" separated-t)
         ;_ (prn "separated-fv->original" separated-fv->original)
@@ -2027,7 +2029,9 @@
         ;_ (prn "free-variances" free-variances)
         ;_ (prn "idx-variances" idx-variances)
         ]
-    {:separated-t separated-t :remap remap
+    {:opts opts
+     :separated-t separated-t
+     :remap remap
      :separated-fv->original separated-fv->original
      :separated-fv->original-idx-context separated-fv->original-idx-context
      :free-variances free-variances
@@ -2067,13 +2071,13 @@
                                                        types))))
       (r/Poly? t) (let [names (c/Poly-fresh-symbols* t)
                         bbnds (c/Poly-bbnds* names t opts)
-                        body (c/Poly-body* names t opts)
-                        opts (free-ops/with-bounded-frees opts (zipmap (map r/make-F names) bbnds))]
+                        opts (free-ops/with-bounded-frees opts (zipmap (map r/make-F names) bbnds))
+                        body (c/Poly-body* names t opts)]
                    (c/Poly* names bbnds (prep-symbolic-closure-expected-type2 subst body opts) opts))
       (r/PolyDots? t) (let [names (c/PolyDots-fresh-symbols* t)
                             bbnds (c/PolyDots-bbnds* names t opts)
-                            body  (c/PolyDots-body* names t opts)
-                            opts (free-ops/with-bounded-frees opts (zipmap (map r/make-F names) bbnds))]
+                            opts  (free-ops/with-bounded-frees opts (zipmap (map r/make-F names) bbnds))
+                            body  (c/PolyDots-body* names t opts)]
                         (c/PolyDots* names bbnds (prep-symbolic-closure-expected-type2 subst body opts) opts))
       :else (do ;(prn "unsupported type in prep-symbolic-closure-expected-type: " t)
                 (fail! nil nil)))))
@@ -2085,7 +2089,7 @@
                                 (update replace-fs (if (cr/t-subst? sbst) :fv :idx) (fnil conj #{}) sym))
                               {} subst)
         {:keys [separated-t remap separated-fv->original separated-fv->original-idx-context
-                free-variances idx-variances]} (separate-F t replace-fs opts)
+                free-variances idx-variances opts]} (separate-F t replace-fs opts)
 
         subst-infer-covariant (reduce-kv (fn [subst-infer-covariant sym variance]
                                            (cond-> subst-infer-covariant
@@ -2141,7 +2145,7 @@
   (let [replace-fs (reduce-kv (fn [replace-fs sym sbst]
                                 (update replace-fs (if (cr/t-subst? sbst) :fv :idx) (fnil conj #{}) sym))
                               {} subst)
-        {:keys [separated-t remap free-variances idx-variances separated-fv->original]} (separate-F t replace-fs opts)
+        {:keys [separated-t remap free-variances idx-variances separated-fv->original opts]} (separate-F t replace-fs opts)
         non-covariant-frees (into {} (remove (comp #{:covariant} val)) free-variances)
         non-covariant-idxs (into {} (remove (comp #{:covariant} val)) idx-variances)]
     (-> separated-t
@@ -2324,6 +2328,12 @@
             (r/symbolic-closure expr smallest opts))
           cs)))))
 
+(defn dotted-bnd->fixed-bnd [bnd opts]
+  {:pre [(r/Regex? bnd)]}
+  (case (:kind bnd)
+    :* (-> bnd :types first)
+    (err/nyi-error (str "dotted-bnd->fixed-bnd: " bnd) opts)))
+
 ;; like infer, but dotted-var is the bound on the ...
 ;; and T-dotted is the repeated type
 (t/ann infer-dots
@@ -2355,6 +2365,8 @@
   (let [T (vec T)
         [short-S rest-S] (map vec (split-at (count T) S))
         new-vars (var-store-take dotted-var T-dotted (count rest-S) opts)
+        bbnds (repeat (count new-vars) (homogeneous-dbound->bound dotted-bnd opts))
+        opts (free-ops/with-bounded-frees opts (zipmap (map r/make-F new-vars) bbnds))
         new-Ts (mapv (fn [v]
                        (let [target (subst/substitute-dots (map r/make-F new-vars) nil dotted-var T-dotted opts)]
                          #_(prn "replace" v "with" dotted-var "in" (prs/unparse-type target opts))
@@ -2375,7 +2387,7 @@
         expected-cset (if (and expected (not (:rng short-deferred-fixed-args)))
                         (cs-gen #{} X {dotted-var dotted-bnd} R expected opts)
                         (cr/empty-cset {} {}))
-        cs-dotted (-> (cs-gen-list #{} (reduce #(assoc %1 %2 (homogeneous-dbound->bound dotted-bnd opts)) X new-vars)
+        cs-dotted (-> (cs-gen-list #{} (merge X (zipmap new-vars bbnds))
                                    {dotted-var dotted-bnd} rest-S new-Ts
                                    {:expected-cset expected-cset} opts)
                       (move-vars-to-dmap dotted-var new-vars opts))
@@ -2439,6 +2451,8 @@
                               {:expected-cset expected-cset} opts)
         ;_ (prn "cs-short" cs-short)
         new-vars (var-store-take dotted-var T-dotted (count rest-S) opts)
+        bbnds (repeat (count new-vars) (homogeneous-dbound->bound dotted-bnd opts))
+        opts (free-ops/with-bounded-frees opts (zipmap (map r/make-F new-vars) bbnds))
         new-Ts (doall
                  (let [list-of-vars (partition-by-nth (-> T-dotted :types count) new-vars)
                        ;_ (println "list-of-vars" list-of-vars)
@@ -2451,7 +2465,7 @@
                                            list-of-vars
                                            (:types T-dotted))]
                    (apply interleave list-of-result)))
-        cs-dotted (cs-gen-list #{} (reduce #(assoc %1 %2 dotted-bnd) X new-vars)
+        cs-dotted (cs-gen-list #{} (merge X (zipmap new-vars bbnds))
                                {dotted-var dotted-bnd} rest-S new-Ts
                                {:expected-cset expected-cset} opts)
         ;_ (prn "cs-dotted" cs-dotted)
@@ -2597,14 +2611,19 @@
      ;(prn :infer res)
      res)))
 
-(defmacro unify-or-nil [{:keys [fresh out opts]} s t]
+(defmacro unify-or-nil [{:keys [fresh bnds out opts]} s t]
   (assert opts)
   (assert (every? simple-symbol? fresh))
   (assert (apply distinct? fresh))
   (assert (some #{out} fresh))
-  (let [fresh-names (map (juxt identity gensym) fresh)
+  (assert (= (count fresh) (count bnds)))
+  (assert (vector? bnds))
+  (let [fresh-names (map (juxt identity #(gensym (str % "__unify-or-nil"))) fresh)
         name-lookup (into {} fresh-names)]
-    `(let [opts# ~opts
+    `(let [bnds# ~bnds
+           ~'opts (free-ops/with-bounded-frees ~opts
+                    (zipmap (map r/make-F (quote ~(map second fresh-names)))
+                            bnds#))
            [lhs# rhs#] (let ~(into []
                                    (mapcat (fn [[fresh name]]
                                              [fresh `(r/make-F '~name)]))
@@ -2620,7 +2639,7 @@
                [lhs#]
                [rhs#]
                r/-any
-               opts#))
+               ~'opts))
            res# (when substitution#
                   (when-let [s# (get substitution# '~(name-lookup out))]
                     (:type s#)))
@@ -2636,6 +2655,8 @@
         poly? (r/Poly? query)
         names (when poly? (c/Poly-fresh-symbols* query))
         bbnds (when poly? (c/Poly-bbnds* names query opts))
+        opts (cond-> opts
+               poly? (free-ops/with-bounded-frees (zipmap (map r/make-F names) bbnds)))
         body (if poly? (c/Poly-body* names query opts) query)
         _ (assert (r/FnIntersection? body) (class body))
         _ (assert (= 1 (count (:types body))))
@@ -2668,7 +2689,7 @@
   IInferToTV wild->tv*
   Wildcard
   (fn [t tvs-atom]
-    (let [sym (gensym 'tv)]
+    (let [sym (gensym "wild->tv*")]
       (swap! tvs-atom conj sym)
       (r/F-maker sym))))
 

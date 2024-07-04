@@ -44,24 +44,40 @@
   (and (sub/subtype? t (:upper-bound bnds) opts)
        (sub/subtype? (:lower-bound bnds) t opts)))
 
+(defn nfixed-args [ptype]
+  {:pre [(r/-Poly? ptype)]}
+  (- (:nbound ptype) (count (:named ptype))))
+
 (defn manual-inst
   "Poly (Vec Type) (Map Sym Type) -> Type
   Substitute the type parameters of the polymorphic type
   with given types"
   [ptype argtys named opts]
-  {:pre [((some-fn r/Poly? r/PolyDots?) ptype)
+  {:pre [(r/-Poly? ptype)
          (vector? argtys)
-         (every? r/Type? argtys)
+         (every? r/AnyType? argtys)
          (every? symbol? (keys named))
-         (every? r/Type? (vals named))]
+         (every? r/AnyType? (vals named))]
    :post [(r/Type? %)]}
-  (let [dotted? (r/PolyDots? ptype)
-        nrequired ((if dotted? dec identity)
-                   (- (:nbound ptype) (count (:named ptype))))
-        _ (when-not ((if dotted? <= =) nrequired (count argtys))
+  (let [kind (:kind ptype)
+        nrequired (nfixed-args ptype)
+        argtys (case kind
+                 :PolyDots (if (or (< (count argtys) (dec nrequired)) ;; insufficient fixed args, will fail with int-error
+                                   ;; already correct format
+                                   (and (= nrequired (count argtys))
+                                        (r/Regex? (peek argtys))))
+                             argtys
+                             ;; backwards compat with single dotted arg
+                             ;; (inst f)       => (inst f (t/cat))
+                             ;; (inst f A B C) => (inst f (t/cat A B C))
+                             (conj (subvec argtys 0 (dec nrequired))
+                                   (r/regex
+                                     (subvec argtys (dec nrequired))
+                                     :cat)))
+                 argtys)
+        _ (when-not (= nrequired (count argtys))
             (err/int-error
               (str "Wrong number of arguments to instantiate polymorphic type (expected " 
-                   (when dotted? "at least ")
                    nrequired
                    ", actual " (count argtys)
                    "\n\nTarget:\n" (prs/unparse-type ptype opts)
@@ -73,13 +89,12 @@
               (err/int-error (str "Passed :named types to instantiate first argument of inst, but this type doesn't have :named arguments: "
                                   (pr-str ptype))
                              opts)))
-        ;; splice :named arguments between fixed and dotted params
-        argtys-before-named-subst (let [[fixedtys dottedtys] [(subvec argtys 0 nrequired)
-                                                              (subvec argtys nrequired)]]
-                                    ;; :named arguments default to t/Any
-                                    (into fixedtys
-                                          (concat (repeat (count expected-named) r/-any)
-                                                  dottedtys)))
+        argtys-before-named-subst (-> argtys
+                                      (cond-> (= :PolyDots kind) pop)
+                                      ;; :named arguments default to t/Any
+                                      (into (repeat (count expected-named) r/-any))
+                                      ;; dotted arg goes last
+                                      (cond-> (= :PolyDots kind) (conj (peek argtys))))
         ;; fill in provided :named arguments
         argtys (reduce (fn [argtys [k v]]
                          (if-let [i (get expected-named k)]
@@ -90,12 +105,12 @@
                                           opts)))
                        argtys-before-named-subst
                        named)]
-    (cond
-      (r/Poly? ptype)
+    (case kind
+      :Poly
       (let [names (c/Poly-fresh-symbols* ptype)
-            body (c/Poly-body* names ptype opts)
             bbnds (c/Poly-bbnds* names ptype opts)
             opts (free-ops/with-bounded-frees opts (zipmap (map r/make-F names) bbnds))
+            body (c/Poly-body* names ptype opts)
             _ (doseq [[i nme ty bnds] (map vector (range) names argtys bbnds)]
                 (assert (instance? Bounds bnds) "TODO other kinds")
                 (let [lower-bound (subst/substitute-many (:lower-bound bnds) (take i argtys) (take i names) opts)
@@ -114,36 +129,36 @@
                       opts))))]
         (subst/substitute-many body argtys names opts))
 
-      (r/PolyDots? ptype)
-      (let [names (vec (c/PolyDots-fresh-symbols* ptype))
-            body (c/PolyDots-body* names ptype opts)
+      :PolyDots
+      (let [names (c/PolyDots-fresh-symbols* ptype)
             bbnds (c/PolyDots-bbnds* names ptype opts)
-            _ (assert (= r/dotted-no-bounds (peek bbnds)) "TODO interesting dotted bound")
-            dotted-argtys-start (dec (:nbound ptype))
-            opts (free-ops/with-bounded-frees opts (zipmap (-> (map r/make-F names) butlast) (pop bbnds)))
-            _ (doseq [[i nme ty bnds] (map vector (range) (pop names) argtys bbnds)]
-                (assert (instance? Bounds bnds) "TODO other kinds")
-                (let [lower-bound (subst/substitute-many (:lower-bound bnds) (take i argtys) (take i names) opts)
-                      upper-bound (subst/substitute-many (:upper-bound bnds) (take i argtys) (take i names) opts)]
-                  (when-not (sub/subtype? lower-bound upper-bound opts)
-                    (err/int-error
-                      (str "Lower-bound " (prs/unparse-type lower-bound opts)
-                           " is not below upper-bound " (prs/unparse-type upper-bound opts))
-                      opts))
-                  (when-not (and (sub/subtype? ty upper-bound opts)
-                                 (sub/subtype? lower-bound ty opts))
+            opts (free-ops/with-bounded-frees opts (zipmap (map r/make-F names) bbnds))
+            body (c/PolyDots-body* names ptype opts)
+            _ (when-not (= r/dotted-no-bounds (peek bbnds))
+                (err/nyi-error "TODO interesting dotted bound" opts))
+            dotted-cat (peek argtys)
+            _ (when-not (and (r/Regex? dotted-cat)
+                             (= :cat (:kind dotted-cat))
+                             (not-any? r/Regex? (:types dotted-cat)))
+                (err/int-error
+                  (str "Must instantiate dotted variable with flat (t/cat ...): "
+                       (prs/unparse-type dotted-cat opts))
+                  opts))
+            opts (free-ops/with-bounded-frees opts (zipmap (map r/make-F names) bbnds))
+            _ (doseq [[i nme ty bnds] (map vector (range) names argtys bbnds)]
+                (let [bnds (subst/substitute-many bnds (take i argtys) (take i names) opts)]
+                  (when-not (sub/has-kind? ty bnds opts)
                     (err/int-error
                       (str "Manually instantiated type " (prs/unparse-type ty opts)
-                           " is not between bounds " (prs/unparse-type lower-bound opts)
-                           " and " (prs/unparse-type upper-bound opts))
+                           " is not of kind " (prs/unparse-type bnds opts))
                       opts))))]
         (-> body
             ; expand dotted pre-types in body
             (trans/trans-dots (peek names) ;the bound
-                              (subvec argtys dotted-argtys-start)  ;the types to expand pre-type with
+                              (:types dotted-cat)  ;the types to expand pre-type with
                               opts)
             ; substitute normal variables
-            (subst/substitute-many (subvec argtys 0 dotted-argtys-start) (pop names) opts))))))
+            (subst/substitute-many (pop argtys) (pop names) opts))))))
 
 (defn inst-from-targs-syn [ptype targs-syn prs-ns expected opts]
   (let [opts (-> opts
@@ -151,14 +166,13 @@
                  (prs/with-unparse-ns prs-ns))
         ptype (c/fully-resolve-type ptype opts)
         ptype (or (when (r/Intersection? ptype)
-                    (some #(when ((some-fn r/Poly? r/PolyDots?) %)
-                             %)
+                    (some #(when (r/-Poly? %) %)
                           (:types ptype)))
                   ptype)
         ; support (inst :kw ...)
         ptype (cond-> ptype
                 (c/keyword-value? ptype) (c/KeywordValue->Fn opts))]
-    (if-not ((some-fn r/Poly? r/PolyDots?) ptype)
+    (if-not (r/-Poly? ptype)
       (err/tc-delayed-error (str "Cannot instantiate non-polymorphic type: " (prs/unparse-type ptype opts))
                             {:return (cu/error-ret expected)}
                             opts)
@@ -169,18 +183,22 @@
                 (when-not (apply distinct? (map first (partition 2 kwargs)))
                   (err/int-error (str "Gave repeated keyword args to inst: " (vec kwargs)) opts)))
             {:keys [named] :as kwargs} kwargs
-            _ (let [unsupported (set/difference (set (keys kwargs)) #{:named})]
-                (when (seq unsupported)
-                  (err/int-error (str "Unsupported keyword argument(s) to inst " unsupported) opts)))
+            _ (when-some [unsupported (not-empty (disj (set (keys kwargs)) :named))]
+                (err/int-error (str "Unsupported keyword argument(s) to inst " unsupported) opts))
             _ (when (contains? kwargs :named)
                 (when-not (and (map? named)
                                (every? symbol? (keys named)))
                   (err/int-error (str ":named keyword argument to inst must be a map of symbols to types, given: " (pr-str named)) opts)))
-            named (into {}
-                        (map (fn [[k v]]
-                               [k (prs/parse-type v opts)]))
-                        named)
-            targs (mapv #(prs/parse-type % opts) targs-syn)]
+            named (update-vals named #(prs/parse-type % opts))
+            allowed-regex-pos (when (= :PolyDots (:kind ptype))
+                                (let [nrequired (nfixed-args ptype)]
+                                  (when (= (count targs-syn) nrequired)
+                                    #{(dec nrequired)})))
+            targs (into [] (map-indexed (fn [i tsyn]
+                                          (prs/parse-type (cond-> tsyn
+                                                            (contains? allowed-regex-pos i) prs/allow-regex)
+                                                          opts)))
+                        targs-syn)]
         (below/maybe-check-below
           (r/ret (manual-inst ptype targs named opts))
           expected

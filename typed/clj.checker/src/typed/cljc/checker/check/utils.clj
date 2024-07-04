@@ -120,11 +120,15 @@
                            (some-fn nil? #{:Poly :PolyDots})) %)]}
   (cond
     (r/Poly? t) (let [new-nmes (c/Poly-fresh-symbols* t)
-                      new-frees (map r/make-F new-nmes)]
-                  [(c/Poly-body* new-nmes t opts) new-frees (c/Poly-bbnds* new-nmes t opts) :Poly])
+                      new-frees (map r/make-F new-nmes)
+                      bnds (c/Poly-bbnds* new-nmes t opts)
+                      opts (free-ops/with-bounded-frees opts (zipmap new-frees bnds))]
+                  [(c/Poly-body* new-nmes t opts) new-frees bnds :Poly])
     (r/PolyDots? t) (let [new-nmes (c/PolyDots-fresh-symbols* t)
-                          new-frees (map r/make-F new-nmes)]
-                      [(c/PolyDots-body* new-nmes t opts) new-frees (c/PolyDots-bbnds* new-nmes t opts) :PolyDots])
+                          new-frees (map r/make-F new-nmes)
+                          bnds (c/PolyDots-bbnds* new-nmes t opts)
+                          opts (free-ops/with-bounded-frees opts (zipmap new-frees bnds))]
+                      [(c/PolyDots-body* new-nmes t opts) new-frees bnds :PolyDots])
     :else [t nil nil nil]))
 
 (def not-special :default)

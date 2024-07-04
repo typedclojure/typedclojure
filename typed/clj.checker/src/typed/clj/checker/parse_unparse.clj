@@ -165,7 +165,9 @@
 
 (defn parse-type [s opts]
   (let [env (or (tsyn->env s) (::vs/current-env opts))
-        opts (assoc opts ::vs/current-env env)]
+        opts (-> opts
+                 (assoc ::vs/current-env env)
+                 #_(assoc ::vs/no-simpl true))]
     (try (parse-type* s opts)
          (catch Throwable e
            ;(prn (err/any-tc-error? (ex-data e)))
@@ -308,8 +310,11 @@
   (let [Mu* @(Mu*-var)
         _ (when-not (= 1 (count bnder)) 
             (prs-error "Only one variable allowed: Rec" opts))
+        _ (when-not (simple-symbol? free-symbol)
+            (prs-error (str "Binder for Rec must contain simple symbol: " (pr-str bnder)) opts))
         f (r/make-F free-symbol)
-        body (parse-type type (free-ops/with-frees opts [f]))
+        opts (free-ops/with-bounded-frees opts {f r/no-bounds})
+        body (parse-type type opts)
         _ (check-forbidden-rec f body opts)]
     (Mu* (:name f) body opts)))
 
@@ -599,7 +604,8 @@
                   (map (fn [[n bnd]] [(r/make-F n) bnd]))
                   (cond-> frees-with-bnds
                     dvar (conj dvar)))
-        body (parse-type type (free-ops/with-bounded-frees opts bfs))]
+        opts (free-ops/with-bounded-frees opts bfs)
+        body (parse-type type opts)]
     (if dvar
       (c/PolyDots* (map first (concat frees-with-bnds [dvar]))
                    (map second (concat frees-with-bnds [dvar]))
@@ -793,7 +799,8 @@
   [[_ binder bodysyn :as tfn] opts]
   (when-not (= 3 (count tfn))
     (prs-error (str "Wrong number of arguments to TFn: " (pr-str tfn)) opts))
-  (let [;; variable bounds has all variables to the left of it in scope
+  (let [opts (assoc opts ::vs/no-simpl true)
+        ;; variable bounds has all variables to the left of it in scope
         {:keys [free-maps]} (reduce (fn [{:keys [free-maps free-symbs]} binder]
                                       (when-not ((some-fn symbol? vector?) binder)
                                         (prs-error (str "TFn binder element must be a symbol or vector: " (pr-str binder)) opts))
@@ -810,7 +817,7 @@
                                  free-maps))]
                 (parse-type bodysyn opts))
         ;; at some point we should remove this requirement (this is checked by parse-tfn-binder)
-        id (gensym)
+        id (gensym "currently-inferring-TypeFns")
         infer-variances? (some #(= :infer (:variance %)) free-maps)
         variances (fn []
                     (let [currently-inferring-TypeFns vs/*currently-inferring-TypeFns*]
@@ -1806,6 +1813,8 @@
 
 (defn with-unparse-ns [opts sym]
   (assoc opts ::unparse-type-in-ns sym))
+(defn with-parse-ns [opts sym]
+  (assoc opts ::parse-type-in-ns sym))
 
 (defn alias-in-ns
   "Returns an alias for namespace nsym in namespace ns, or nil if none."
@@ -2123,6 +2132,7 @@
   (unparse-type* 
     [m opts]
     (let [nme (-> (c/Mu-fresh-symbol* m) r/make-F (unparse-F opts))
+          opts (free-ops/with-bounded-frees opts {(r/make-F nme) r/no-bounds})
           body (c/Mu-body* nme m opts)]
       (list (unparse-Name-symbol-in-ns `t/Rec opts) [nme] (unparse-type body opts))))
 

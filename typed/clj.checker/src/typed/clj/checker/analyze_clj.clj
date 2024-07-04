@@ -55,7 +55,7 @@
                                  b 
                                  ;; preserve positional metadata
                                  (with-meta 
-                                   (gensym) 
+                                   (gensym "loop") 
                                    (meta b))))
                        bs)
                bfs (reduce (fn [ret [b v g]]
