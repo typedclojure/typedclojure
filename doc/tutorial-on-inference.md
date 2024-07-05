@@ -106,7 +106,7 @@ type of arguments are all subtype of `Number`.
 
 Drest function is a little difficult to understand. Simplified `map` has type
 
-    (All [c a b ...]
+    (All [c a b :..]
       [[a b ... b -> c]
        (Seqable a)
        (Seqable b)
@@ -201,7 +201,7 @@ like prest, except that it contains dotted type and behave like dotted type.
 
 For example, simplified `assoc` function is annotated as:
 
-    (All [m k v c ...]
+    (All [m k v c :..]
       [m k v (HSeq [c c] :repeat true) <... c
        -> (Assoc m k v c ... c)])
 

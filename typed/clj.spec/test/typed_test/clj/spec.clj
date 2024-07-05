@@ -261,7 +261,7 @@
                               :list (s/nilable (s/coll-of (tv :x))))
                  :ret (tapp ::nilable-nonempty-aseq (tv :x)))))
 
-;clojure.core/vector (All [r b ...]
+;clojure.core/vector (All [r b :..]
 ;                         (IFn [b ... b -> '[b ... b]]
 ;                              [r * -> (t/AVec r)]))
 

@@ -1971,7 +1971,7 @@ cc/halt-when (t/All [x] (t/IFn [[x :-> t/Any]
                                ))
 
 #?@(:clj [
-; (t/All [x ...] [(t/Transducer x y) (t/Seqable x) :-> (Iterable y)])
+; (t/All [x :..] [(t/Transducer x y) (t/Seqable x) :-> (Iterable y)])
 cc/eduction (t/All [x y z a b] (t/IFn [(t/Seqable x) :-> (Iterable x)]
                                       [(t/Transducer x y) (t/Seqable x) :-> (Iterable y)]
                                       [(t/Transducer x y) (t/Transducer y z) (t/Seqable x) :-> (Iterable z)]

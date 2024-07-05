@@ -155,9 +155,10 @@
 (defn prs-error
   ([msg opts] (prs-error msg nil opts))
   ([msg opt opts]
-   (let [[_ tsyn :as tsyn?] (find opt ::tsyn)
+   (let [[_ tsyn :as tsyn?] (find opts ::parsing-tsyn)
          menv (when tsyn? (tsyn->env tsyn))]
-     (err/int-error msg (into {:use-current-env true} opt)
+     (err/int-error (str msg (when tsyn? (str " while parsing type " (pr-str tsyn))))
+                    (into {:use-current-env true} opt)
                     (cond-> opts
                       menv (assoc ::vs/current-env menv))))))
 
@@ -167,6 +168,7 @@
   (let [env (or (tsyn->env s) (::vs/current-env opts))
         opts (-> opts
                  (assoc ::vs/current-env env)
+                 (assoc ::parsing-tsyn s)
                  #_(assoc ::vs/no-simpl true))]
     (try (parse-type* s opts)
          (catch Throwable e
@@ -319,11 +321,11 @@
     (Mu* (:name f) body opts)))
 
 (defn parse-CountRange [[_ & [n u :as args]] opts]
-  (when-not (#{1 2} (count args))
+  (when-not (<= 1 (count args) 2)
     (prs-error "Wrong arguments to CountRange" opts))
   (when-not (integer? n)
     (prs-error "First argument to CountRange must be an integer" opts))
-  (when-not (or (#{1} (count args))
+  (when-not (or (= 1 (count args))
                 (integer? u))
     (prs-error "Second argument to CountRange must be an integer" opts))
   (r/make-CountRange n u))
@@ -548,11 +550,15 @@
   {:pre [(vector? bnds)]}
   (let [[positional kwargs] (split-with (complement keyword?) bnds)
         ;; allow trailing :.. in positional vars before kw args
-        [positional kwargs] (if (#{:... :..} (first kwargs))
+        _ (when (= :... (first kwargs))
+            (prs-error ":... syntax has changed to :.." opts))
+        [positional kwargs] (if (= :.. (first kwargs))
                               [(conj (vec positional) (first kwargs))
                                (next kwargs)]
                               [(vec positional) kwargs])
-        dotted? (boolean (#{:... :.. '...} (peek positional)))
+        _ (when (#{:... '...} (peek positional))
+            (prs-error (str (peek positional) " syntax has changed to :..") opts))
+        dotted? (= :.. (peek positional))
         _ (when-not (even? (count kwargs))
             (prs-error (str "Expected an even number of keyword options to All, given: " (vec kwargs)) opts))
         _ (when (seq kwargs)

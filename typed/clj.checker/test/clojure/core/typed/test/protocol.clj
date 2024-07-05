@@ -49,4 +49,4 @@
                :> FunctorLB
                :< Functor]]
   Functor
-  ([a b c ...] fmap [fv :- (F a), g :- [a :-> b]] :- (F b)))
+  ([a b c :..] fmap [fv :- (F a), g :- [a :-> b]] :- (F b)))

@@ -10,7 +10,7 @@
 ;; added
 #_
 (t/ann ^:no-check map
-     (t/All [c a b ...]
+     (t/All [c a b :..]
           (t/IFn 
             [[a :-> c] :-> (t/Transducer a c)]
             [[a b ... b -> c] (t/NonEmptySeqable a) (t/NonEmptySeqable b) ... b -> (t/NonEmptyASeq c)]
@@ -21,7 +21,7 @@
 
 #_#_
 (t/ann ^:no-check mapcat
-     (t/All [c a b ...]
+     (t/All [c a b :..]
        (t/IFn
           [[a :-> (t/Option (t/Seqable c))] :-> (t/Transducer a c)]
           [[a b ... b -> (t/Option (t/Seqable c))] (t/Option (t/Seqable a)) (t/Option (t/Seqable b)) ... b -> (t/ASeq c)])))

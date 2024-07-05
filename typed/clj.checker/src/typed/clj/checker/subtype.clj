@@ -1138,7 +1138,7 @@
           (recur A s t-or-n opts)
           (report-not-subtypes s t))
 
-        ;; TODO (All [r x ...] [x ... x -> r]) <: (All [r x] [x * -> r]) ?
+        ;; TODO (All [r x :..] [x ... x -> r]) <: (All [r x] [x * -> r]) ?
         :else (subtypeA*-for-s s t A opts))))))
 
 (defn ^:private resolve-JS-reference [sym opts]

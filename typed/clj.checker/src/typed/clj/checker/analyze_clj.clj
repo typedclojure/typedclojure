@@ -276,7 +276,7 @@
 
 (declare scheduled-passes-for-custom-expansions)
 
-;; (All [x ...] [-> '{(Var x) x ...})])
+;; (All [x :..] [-> '{(Var x) x ...})])
 (defn thread-bindings [opt {::vs/keys [check-config] :as opts}]
   (let [ns (the-ns (or (-> opt :env :ns)
                        *ns*))]

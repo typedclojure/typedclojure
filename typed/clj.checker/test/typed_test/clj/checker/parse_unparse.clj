@@ -25,7 +25,7 @@
              (second
                (prs/unparse-type
                  (prs/parse-type
-                   '(clojure.core.typed/All [a b ...]) (clj-opts))
+                   '(clojure.core.typed/All [a b :..]) (clj-opts))
                  (clj-opts))))))
 
 (deftest fn-type-parse-test
@@ -114,7 +114,7 @@
 (deftest bad-dots-Poly-test
   ;; no dots in variable
   (is (throws-tc-error?
-        (prs/parse-clj '(clojure.core.typed/All [... a] [a -> a]))))
+        (prs/parse-clj '(clojure.core.typed/All [:.. a] [a -> a]))))
   (is (throws-tc-error?
         (prs/parse-clj '(clojure.core.typed/All [. a] [a -> a]))))
   (is (throws-tc-error?
@@ -159,8 +159,8 @@
          '(typed.clojure/All [:named [a b]] [a :-> b])))
   (is (= (prs/unparse-type
            (prs/parse-clj 
-             '(typed.clojure/All [a ... :named [b c]]
-                                 [c b a ... a -> b])) (clj-opts))
+             '(typed.clojure/All [a :.. :named [b c]]
+                                 [c b a :.. a -> b])) (clj-opts))
          '(typed.clojure/All [a :.. :named [b c]]
                              [c b a :.. a :-> b]))))
 

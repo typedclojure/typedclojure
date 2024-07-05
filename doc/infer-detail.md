@@ -35,7 +35,7 @@ So if we support `repeat` in `HeterogeneousList` someday, and people use
 `infer-pdot` in cs_gen.clj is the function to infer function type with `<...`
 syntax, like `assoc` with following type:
 
-    (All [m k v c ...]
+    (All [m k v c :..]
        [m k v (HSeq [c c] :repeat true) <... c
         -> (Assoc m k v c ... c)])
 
@@ -76,7 +76,7 @@ function). So, when we do
 
 Right now we annotate `assoc` as
 
-    (All [m k v c ...]
+    (All [m k v c :..]
        [m k v (HSeq [c c] :repeat true) <... c
         -> (Assoc m k v c ... c)])
 
