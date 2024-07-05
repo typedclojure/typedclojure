@@ -98,10 +98,10 @@
                           (m2 [this t] [this t y]))
           :ann-protocol '(clojure.core.typed/ann-protocol Name
                            m1
-                           (clojure.core.typed/IFn [Name clojure.core.typed/Any -> clojure.core.typed/Any])
+                           (clojure.core.typed/IFn [Name clojure.core.typed/Any :-> clojure.core.typed/Any])
                            m2
-                           (clojure.core.typed/IFn [Name clojure.core.typed/Any -> clojure.core.typed/Any]
-                               [Name clojure.core.typed/Any clojure.core.typed/Any -> clojure.core.typed/Any]))}))
+                           (clojure.core.typed/IFn [Name clojure.core.typed/Any :-> clojure.core.typed/Any]
+                               [Name clojure.core.typed/Any clojure.core.typed/Any :-> clojure.core.typed/Any]))}))
   ; fully annotated, no poly
   (is (= (internal/parse-defprotocol*
            '(Name (m1 [this t :- Foo] :- Bar)
@@ -112,10 +112,10 @@
                           (m2 [this t] [this t y]))
           :ann-protocol '(clojure.core.typed/ann-protocol Name
                            m1
-                           (clojure.core.typed/IFn [Name Foo -> Bar])
+                           (clojure.core.typed/IFn [Name Foo :-> Bar])
                            m2
-                           (clojure.core.typed/IFn [Name Number -> Baz]
-                               [Name Number Blah -> Bar]))}))
+                           (clojure.core.typed/IFn [Name Number :-> Baz]
+                               [Name Number Blah :-> Bar]))}))
   ; method intersections
   (is (= (internal/parse-defprotocol*
            '(Name (m1 [this t :- Foo] :- Bar
@@ -125,9 +125,9 @@
                           (m1 [this t]))
           :ann-protocol '(clojure.core.typed/ann-protocol Name
                            m1
-                           (clojure.core.typed/IFn [Name Foo -> Bar]
-                               [Name Foo1 -> Bar1]
-                               [Name Foo2 -> Bar2]))}))
+                           (clojure.core.typed/IFn [Name Foo :-> Bar]
+                               [Name Foo1 :-> Bar1]
+                               [Name Foo2 :-> Bar2]))}))
   ;polymorphic protocols with doc
   (is (= (internal/parse-defprotocol*
            '([[x :variance :covariant]]
@@ -141,9 +141,9 @@
                            [[x :variance :covariant]]
                            Name
                            m1
-                           (clojure.core.typed/IFn [(Name x) Foo -> Bar]
-                               [(Name x) Foo1 -> Bar1]
-                               [(Name x) Foo2 -> Bar2]))}))
+                           (clojure.core.typed/IFn [(Name x) Foo :-> Bar]
+                               [(Name x) Foo1 :-> Bar1]
+                               [(Name x) Foo2 :-> Bar2]))}))
   ; polymorphic method
   (is (= (internal/parse-defprotocol*
            '([[x :variance :covariant]]
@@ -160,9 +160,9 @@
                            m1
                            (clojure.core.typed/All [y]
                                 (clojure.core.typed/IFn
-                                  [(Name x) Foo -> Bar]
-                                  [(Name x) Foo1 -> Bar1]
-                                  [(Name x) Foo2 -> Bar2])))}))
+                                  [(Name x) Foo :-> Bar]
+                                  [(Name x) Foo1 :-> Bar1]
+                                  [(Name x) Foo2 :-> Bar2])))}))
   (is (= (-> (internal/parse-defprotocol*
                '([[x :variance :covariant]]
                  Name ([y] 
