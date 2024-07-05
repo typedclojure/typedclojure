@@ -55,7 +55,7 @@
                                  b 
                                  ;; preserve positional metadata
                                  (with-meta 
-                                   (gensym) 
+                                   (gensym "loop") 
                                    (meta b))))
                        bs)
                bfs (reduce (fn [ret [b v g]]
@@ -276,7 +276,7 @@
 
 (declare scheduled-passes-for-custom-expansions)
 
-;; (All [x ...] [-> '{(Var x) x ...})])
+;; (All [x :..] [-> '{(Var x) x ...})])
 (defn thread-bindings [opt {::vs/keys [check-config] :as opts}]
   (let [ns (the-ns (or (-> opt :env :ns)
                        *ns*))]

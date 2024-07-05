@@ -3,8 +3,8 @@
 
 (declare vector*)
 
-(t/ann ^:no-check vector* (t/All [x ...]
-                            [x ... x -> '[x ... x]]))
+(t/ann ^:no-check vector* (t/All [x :..]
+                            [x :.. x -> '[x :.. x]]))
 
 (t/ann foo [-> '[t/Num t/Num t/Num]])
 (defn foo []

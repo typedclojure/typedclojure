@@ -10,6 +10,7 @@
   typed.cljc.checker.name-utils
   (:require [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.type-ctors :as c]
+            [typed.cljc.checker.free-ops :as free-ops]
             [typed.cljc.checker.fold-rep :as fold])
   (:import [typed.cljc.checker.type_rep Name]))
 
@@ -60,7 +61,8 @@
           (swap! used-f assoc f true)
           f)
         ;; create a Mu that is like t except erases all instances of Name.
-        (let [f (r/make-F (gensym (str (namespace id) "_" (name id))))
+        (let [f (r/make-F (gensym (str "erase-names*__" (name id))))
+              opts (free-ops/with-bounded-frees opts {f r/no-bounds})
               body (erase-names
                      (c/-resolve t opts)
                      should-erase

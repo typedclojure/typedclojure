@@ -465,12 +465,12 @@
         ms (into {} (map (fn [[knq v*]]
                            (let [_ (when (namespace knq)
                                      (int-error "Protocol method should be unqualified" opts))
-                                 mtype 
+                                 mtype
                                  (delay-type
-                                   (let [mtype (let [opts (-> opts
-                                                              (with-bounded-frees (zipmap (force-type fs opts) (force-type bnds opts)))
-                                                              (assoc ::vs/current-env current-env))]
-                                                 (parse-type v* opts))
+                                   (let [opts (-> opts
+                                                  (with-bounded-frees (zipmap (force-type fs opts) (force-type bnds opts)))
+                                                  (assoc ::vs/current-env current-env))
+                                         mtype (parse-type v* opts)
                                          _ (let [rt (fully-resolve-type mtype opts)
                                                  fin? (fn [f]
                                                         (let [f (fully-resolve-type f opts)]
@@ -536,8 +536,6 @@
 #?(:cljs :ignore :default
 (def ^:private abstract-many #((requiring-resolve 'typed.cljc.checker.type-ctors/abstract-many) %1 %2 %3)))
 #?(:cljs :ignore :default
-(def ^:private with-frees #((requiring-resolve 'typed.cljc.checker.free-ops/with-frees) %1 %2)))
-#?(:cljs :ignore :default
 (def ^:private -val #((requiring-resolve 'typed.cljc.checker.type-rep/-val) %1)))
 #?(:cljs :ignore :default
 (def ^:private -nil #(deref (requiring-resolve 'typed.cljc.checker.type-rep/-nil))))
@@ -598,7 +596,8 @@
                                  [n (parse-type t opts)])]
                (apply array-map (apply concat (let [opts (-> opts
                                                              (assoc ::vs/current-env current-env)
-                                                             (with-frees (mapv make-F (force-type args opts))))]
+                                                             (with-bounded-frees (zipmap (map make-F (force-type args opts))
+                                                                                         (force-type bnds opts))))]
                                                 (mapv #(parse-field % opts) (partition 3 fields)))))))
         as (into {}
                  (map
@@ -606,7 +605,8 @@
                      [an (delay-type
                            (let [opts (-> opts
                                           (assoc ::vs/current-env current-env)
-                                          (with-frees (mapv make-F (force-type args opts))))
+                                          (with-bounded-frees (zipmap (map make-F (force-type args opts))
+                                                                      (force-type bnds opts))))
                                  t (parse-type an opts)]
                              (abstract-many (force-type args opts) t opts)))]))
                  ancests)
@@ -620,12 +620,14 @@
         _ (add-datatype checker s dt opts)
         pos-ctor (let [bfn (fn []
                              (if args
-                               (Poly* (force-type args opts) (force-type bnds opts)
-                                      (make-FnIntersection
-                                        (make-Function (vec (vals (force-type fs opts)))
-                                                       (let [opts (with-bounded-frees opts (zipmap (map make-F (force-type args opts)) (force-type bnds opts)))]
-                                                         (DataType-of s (map make-F (force-type args opts)) opts))))
-                                      opts)
+                               (let [args (force-type args opts)
+                                     bnds (force-type bnds opts)
+                                     opts (with-bounded-frees opts (zipmap (map make-F args) bnds))]
+                                 (Poly* args bnds
+                                        (make-FnIntersection
+                                          (make-Function (vec (vals (force-type fs opts)))
+                                                         (DataType-of s (map make-F args) opts)))
+                                        opts))
                                (make-FnIntersection
                                  (make-Function (vec (vals (force-type fs opts))) (DataType-of s opts)))))]
                    (delay-type (bfn)))]
@@ -649,10 +651,13 @@
                                                       {:optional (into {} optional)
                                                        :mandatory (into {} mandatory)}))]
                                      (if args
-                                       (Poly* (force-type args opts) (force-type bnds opts)
-                                              (make-FnIntersection
-                                                (make-Function [hmap-arg] (DataType-of s (map make-F (force-type args opts)) opts)))
-                                              opts)
+                                       (let [args (force-type args opts)
+                                             bnds (force-type bnds opts)
+                                             opts (with-bounded-frees opts (zipmap (map make-F args) bnds))]
+                                         (Poly* args bnds
+                                                (make-FnIntersection
+                                                  (make-Function [hmap-arg] (DataType-of s (map make-F args) opts)))
+                                                opts))
                                        (make-FnIntersection
                                          (make-Function [hmap-arg] (DataType-of s opts))))))]
                          (delay-type (bfn)))]

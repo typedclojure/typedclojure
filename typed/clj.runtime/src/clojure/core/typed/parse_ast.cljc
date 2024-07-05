@@ -324,7 +324,11 @@
 (defn parse-with-rest-drest [msg syns {::keys [dotted-scope] :as opts}]
   (let [syns (vec syns)
         rest? (#{:* '*} (peek syns))
-        dotted? (and (#{:... '...} (some-> (not-empty syns) pop peek))
+        maybe-dots (some-> (not-empty syns) pop peek)
+        _ (when (#{:... '...} maybe-dots)
+            (throw (ex-info (str maybe-dots " syntax has changed to :..")
+                            {:form syns})))
+        dotted? (and (= :.. maybe-dots)
                      (<= 3 (count syns)))
         _ (when (and rest? dotted?)
             (err/int-error (str msg syns) opts))
@@ -341,7 +345,7 @@
                 ; should never fail, if the logic changes above it's probably
                 ; useful to keep around.
                 _ (when-not (symbol? drest-bnd)
-                    (err/int-error "Dotted rest bound after ... must be a symbol" opts))
+                    (err/int-error "Dotted rest bound after :.. must be a symbol" opts))
                 _ (when-not (#{3} (count dot-syntax))
                     (err/int-error (str "Bad vector syntax: " dot-syntax) opts))
                 bnd (get dotted-scope drest-bnd)
@@ -605,8 +609,7 @@
         _ (when-not (even? (count kwargs))
             (err/int-error "Wrong arguments to All" opts))
         {:keys [named] :as kwargs} kwargs
-        dotted? (boolean 
-                  ('#{...} (last bnds)))
+        dotted? (= :.. (peek bnds))
         [fs frees-with-bnds] (reduce (fn [[fs prsed] fsyn]
                                        (let [sym (if (symbol? fsyn)
                                                    fsyn
@@ -758,7 +761,7 @@
   (let [_ (when-not (<= 1 (count args))
             (err/int-error "Wrong arguments to Assoc" opts))
         [t & entries] args
-        {ellipsis-pos '...}
+        {ellipsis-pos :..}
         (zipmap entries (range))
 
         [entries dentries] (split-at (if ellipsis-pos
@@ -928,7 +931,7 @@
 
         fopts (apply hash-map opts-flat)
 
-        {ellipsis-pos '...
+        {ellipsis-pos :..
          asterix-pos '*
          ampersand-pos '&
          push-rest-pos '<*
@@ -936,7 +939,7 @@
         (zipmap all-dom (range))
 
         _ (when-not (#{0 1} (count (filter identity [asterix-pos ellipsis-pos ampersand-pos push-rest-pos push-dot-pos])))
-            (err/int-error "Can only provide one rest argument option: & ... * or <*" opts))
+            (err/int-error "Can only provide one rest argument option: & :.. * or <*" opts))
 
         _ (when-let [ks (seq (remove #{:filters :object} (keys fopts)))]
             (err/int-error (str "Invalid function keyword option/s: " ks) opts))

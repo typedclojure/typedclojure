@@ -20,6 +20,7 @@
             [clojure.test.check.generators :as gen]
             [com.gfredericks.test.chuck.generators :as gen']
             [com.gfredericks.test.chuck.properties :as prop']
+            [typed.cljc.checker.free-ops :as free-ops]
             [clojure.test.check.generators :as gen]
             [clojure.core.typed :as t]
             [typed.clj.checker.subtype :as sub]
@@ -355,6 +356,7 @@
   Mu
   (-generator [t opts]
     (let [f (r/make-F (gensym "mu"))
+          opts (free-ops/with-bounded-frees opts {f r/no-bounds})
           container-gen (c/unfold-Mu-with t f opts)
           scalar-gen (generator (c/unfold-Mu-with t r/-nothing opts) opts)
           opts (update opts ::f-occ-atom #(or % (atom {})))]

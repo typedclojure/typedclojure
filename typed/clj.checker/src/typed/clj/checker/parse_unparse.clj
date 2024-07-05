@@ -155,9 +155,10 @@
 (defn prs-error
   ([msg opts] (prs-error msg nil opts))
   ([msg opt opts]
-   (let [[_ tsyn :as tsyn?] (find opt ::tsyn)
+   (let [[_ tsyn :as tsyn?] (find opts ::parsing-tsyn)
          menv (when tsyn? (tsyn->env tsyn))]
-     (err/int-error msg (into {:use-current-env true} opt)
+     (err/int-error (str msg (when tsyn? (str " while parsing type " (pr-str tsyn))))
+                    (into {:use-current-env true} opt)
                     (cond-> opts
                       menv (assoc ::vs/current-env menv))))))
 
@@ -165,7 +166,10 @@
 
 (defn parse-type [s opts]
   (let [env (or (tsyn->env s) (::vs/current-env opts))
-        opts (assoc opts ::vs/current-env env)]
+        opts (-> opts
+                 (assoc ::vs/current-env env)
+                 (assoc ::parsing-tsyn s)
+                 #_(assoc ::vs/no-simpl true))]
     (try (parse-type* s opts)
          (catch Throwable e
            ;(prn (err/any-tc-error? (ex-data e)))
@@ -308,17 +312,20 @@
   (let [Mu* @(Mu*-var)
         _ (when-not (= 1 (count bnder)) 
             (prs-error "Only one variable allowed: Rec" opts))
+        _ (when-not (simple-symbol? free-symbol)
+            (prs-error (str "Binder for Rec must contain simple symbol: " (pr-str bnder)) opts))
         f (r/make-F free-symbol)
-        body (parse-type type (free-ops/with-frees opts [f]))
+        opts (free-ops/with-bounded-frees opts {f r/no-bounds})
+        body (parse-type type opts)
         _ (check-forbidden-rec f body opts)]
     (Mu* (:name f) body opts)))
 
 (defn parse-CountRange [[_ & [n u :as args]] opts]
-  (when-not (#{1 2} (count args))
+  (when-not (<= 1 (count args) 2)
     (prs-error "Wrong arguments to CountRange" opts))
   (when-not (integer? n)
     (prs-error "First argument to CountRange must be an integer" opts))
-  (when-not (or (#{1} (count args))
+  (when-not (or (= 1 (count args))
                 (integer? u))
     (prs-error "Second argument to CountRange must be an integer" opts))
   (r/make-CountRange n u))
@@ -533,7 +540,9 @@
 (defn parse-unknown-binder [bnds opts]
   {:pre [((some-fn nil? vector?) bnds)]}
   (when bnds
-    ((if (#{:... :.. '...} (peek bnds))
+    (when (#{:... '...} (peek bnds))
+      (prs-error (str (peek bnds) " syntax has changed to :..") opts))
+    ((if (= :.. (peek bnds))
        parse-dotted-binder
        parse-normal-binder)
      bnds
@@ -543,11 +552,15 @@
   {:pre [(vector? bnds)]}
   (let [[positional kwargs] (split-with (complement keyword?) bnds)
         ;; allow trailing :.. in positional vars before kw args
-        [positional kwargs] (if (#{:... :..} (first kwargs))
+        _ (when (= :... (first kwargs))
+            (prs-error ":... syntax has changed to :.." opts))
+        [positional kwargs] (if (= :.. (first kwargs))
                               [(conj (vec positional) (first kwargs))
                                (next kwargs)]
                               [(vec positional) kwargs])
-        dotted? (boolean (#{:... :.. '...} (peek positional)))
+        _ (when (#{:... '...} (peek positional))
+            (prs-error (str (peek positional) " syntax has changed to :..") opts))
+        dotted? (= :.. (peek positional))
         _ (when-not (even? (count kwargs))
             (prs-error (str "Expected an even number of keyword options to All, given: " (vec kwargs)) opts))
         _ (when (seq kwargs)
@@ -599,7 +612,8 @@
                   (map (fn [[n bnd]] [(r/make-F n) bnd]))
                   (cond-> frees-with-bnds
                     dvar (conj dvar)))
-        body (parse-type type (free-ops/with-bounded-frees opts bfs))]
+        opts (free-ops/with-bounded-frees opts bfs)
+        body (parse-type type opts)]
     (if dvar
       (c/PolyDots* (map first (concat frees-with-bnds [dvar]))
                    (map second (concat frees-with-bnds [dvar]))
@@ -793,7 +807,8 @@
   [[_ binder bodysyn :as tfn] opts]
   (when-not (= 3 (count tfn))
     (prs-error (str "Wrong number of arguments to TFn: " (pr-str tfn)) opts))
-  (let [;; variable bounds has all variables to the left of it in scope
+  (let [opts (assoc opts ::vs/no-simpl true)
+        ;; variable bounds has all variables to the left of it in scope
         {:keys [free-maps]} (reduce (fn [{:keys [free-maps free-symbs]} binder]
                                       (when-not ((some-fn symbol? vector?) binder)
                                         (prs-error (str "TFn binder element must be a symbol or vector: " (pr-str binder)) opts))
@@ -810,7 +825,7 @@
                                  free-maps))]
                 (parse-type bodysyn opts))
         ;; at some point we should remove this requirement (this is checked by parse-tfn-binder)
-        id (gensym)
+        id (gensym "currently-inferring-TypeFns")
         infer-variances? (some #(= :infer (:variance %)) free-maps)
         variances (fn []
                     (let [currently-inferring-TypeFns vs/*currently-inferring-TypeFns*]
@@ -1694,29 +1709,27 @@
                                    (subvec to-process 2))
                             (recur (conj cat-dom (-> d1 allow-regex (parse-type opts)))
                                    (subvec to-process 1)))
-          (:.. :... ... <...) (if (or (= :.. d2)
-                                      (when (not= '<... d2)
-                                        (err/deprecated-warn (str d2 " function syntax is deprecated and only supported as final arguments. Use :.. instead.")
-                                                             opts))
-                                      (= 3 (count to-process)))
-                                (let [drest-bnd d3
-                                      _ (when-not (simple-symbol? drest-bnd)
-                                          (prs-error (str "Bound after " d2 " must be simple symbol: " (pr-str drest-bnd)) opts))
-                                      bnd (free-ops/free-in-scope-bnds drest-bnd opts)
-                                      f (free-ops/free-in-scope drest-bnd opts)
-                                      _ (when-not (r/Regex? bnd)
-                                          (prs-error (str "Bound " (pr-str drest-bnd) " after " d2 " is not in scope as a dotted variable") opts))]
-                                  (recur (conj cat-dom (r/DottedPretype1-maker
-                                                         (cond-> (let [opts (free-ops/with-bounded-frees opts
-                                                                              {(r/make-F drest-bnd)
-                                                                               ((requiring-resolve 'typed.cljc.checker.cs-gen/homogeneous-dbound->bound)
-                                                                                bnd opts)})]
-                                                                   (-> d1 allow-regex (parse-type opts)))
-                                                           (= '<... d2) push-HSequential->regex)
-                                                         (:name f)))
-                                         (subvec to-process 3)))
-                                (recur (conj cat-dom (-> d1 allow-regex (parse-type opts)))
-                                       (subvec to-process 1)))
+          (:... ...) (prs-error (str d1 " syntax has chnaged to :..") opts)
+          (:.. <...) (if (or (= :.. d2)
+                             (= 3 (count to-process)))
+                       (let [drest-bnd d3
+                             _ (when-not (simple-symbol? drest-bnd)
+                                 (prs-error (str "Bound after " d2 " must be simple symbol: " (pr-str drest-bnd)) opts))
+                             bnd (free-ops/free-in-scope-bnds drest-bnd opts)
+                             f (free-ops/free-in-scope drest-bnd opts)
+                             _ (when-not (r/Regex? bnd)
+                                 (prs-error (str "Bound " (pr-str drest-bnd) " after " d2 " is not in scope as a dotted variable") opts))]
+                         (recur (conj cat-dom (r/DottedPretype1-maker
+                                                (cond-> (let [opts (free-ops/with-bounded-frees opts
+                                                                     {(r/make-F drest-bnd)
+                                                                      ((requiring-resolve 'typed.cljc.checker.cs-gen/homogeneous-dbound->bound)
+                                                                       bnd opts)})]
+                                                          (-> d1 allow-regex (parse-type opts)))
+                                                  (= '<... d2) push-HSequential->regex)
+                                                (:name f)))
+                                (subvec to-process 3)))
+                       (recur (conj cat-dom (-> d1 allow-regex (parse-type opts)))
+                              (subvec to-process 1)))
 
           (recur (conj cat-dom (-> d1 allow-regex (parse-type opts)))
                  (subvec to-process 1)))))))
@@ -1806,6 +1819,8 @@
 
 (defn with-unparse-ns [opts sym]
   (assoc opts ::unparse-type-in-ns sym))
+(defn with-parse-ns [opts sym]
+  (assoc opts ::parse-type-in-ns sym))
 
 (defn alias-in-ns
   "Returns an alias for namespace nsym in namespace ns, or nil if none."
@@ -2123,6 +2138,7 @@
   (unparse-type* 
     [m opts]
     (let [nme (-> (c/Mu-fresh-symbol* m) r/make-F (unparse-F opts))
+          opts (free-ops/with-bounded-frees opts {(r/make-F nme) r/no-bounds})
           body (c/Mu-body* nme m opts)]
       (list (unparse-Name-symbol-in-ns `t/Rec opts) [nme] (unparse-type body opts))))
 

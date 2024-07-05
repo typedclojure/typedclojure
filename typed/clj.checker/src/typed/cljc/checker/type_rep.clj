@@ -229,7 +229,7 @@
 ; Same with bounds.
 (u/def-type F [name :- t/Sym]
   "A named free variable"
-  [(symbol? name)]
+  [(simple-symbol? name)]
   :methods
   [p/TCType])
 
@@ -475,7 +475,6 @@
   `named` is a map of free variable names to de Bruijn indices (range nbound)"
   [(nat-int? nbound)
    (vector? bbnds)
-   (every? #(scope-depth? % nbound Kind?) bbnds)
    (= nbound (count bbnds))
    (scope-depth? scope nbound Type?)
    (map? named)
@@ -488,7 +487,8 @@
      :PolyDots (and (every? #(scope-depth? % nbound Bounds?) (pop bbnds))
                     (scope-depth? (peek bbnds)
                                   nbound
-                                  Regex?)))]
+                                  Regex?))
+     :PolyKinds (every? #(scope-depth? % nbound Kind?) bbnds))]
   :pred-name -Poly?
   :maker-name -Poly-maker
   :ctor-meta {:private true}
@@ -517,6 +517,13 @@
    {:pre [(pos? nbound)]
     :post [(PolyDots? %)]}
    (-Poly-maker nbound (vec bbnds) scope named :PolyDots meta)))
+
+(defn PolyKinds-maker
+  ([nbound bbnds scope named] (PolyDots-maker nbound bbnds scope named nil))
+  ([nbound bbnds scope named meta]
+   {:pre [(pos? nbound)]
+    :post [(PolyDots? %)]}
+   (-Poly-maker nbound (vec bbnds) scope named :PolyKinds meta)))
 
 (t/ann ^:no-check add-scopes [t/AnyInteger Type -> (t/U Type Scope)])
 (defn add-scopes 
@@ -676,8 +683,6 @@
   [p/TCType]
   :compare-self
   {types (comp vec sort)})
-
-(declare Regex?)
 
 (u/def-type DottedPretype [pre-type :- (t/U Type Regex)
                            name :- (t/U t/Sym Number)]

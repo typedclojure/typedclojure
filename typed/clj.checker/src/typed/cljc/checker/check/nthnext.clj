@@ -89,6 +89,7 @@
         (r/HSequential? t) (nthrest-hsequential t n opts)
         :else (when-let [res (cgen/unify-or-nil
                                {:fresh [x]
+                                :bnds [r/no-bounds]
                                 :out x
                                 :opts opts}
                                t
@@ -111,6 +112,7 @@
       (r/KwArgsSeq? t) (nthnext-kw-args-seq t n opts)
       :else (when-let [res (cgen/unify-or-nil
                              {:fresh [x]
+                              :bnds [r/no-bounds]
                               :out x
                               :opts opts}
                              t

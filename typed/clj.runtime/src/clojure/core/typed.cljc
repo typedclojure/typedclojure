@@ -109,7 +109,9 @@ for checking namespaces, cf for checking individual forms."}
 (defmacro inst 
   "Instantiate a polymorphic type with a number of types.
   
-  eg. (inst foo-fn t1 t2 t3 ...)"
+  eg., (inst foo-fn t1 t2 t3 ...)
+  
+  To instantiate dotted variable to T1 T2, use (t/cat T1 T2)."
   [inst-of & types]
   inst-of)
 
@@ -275,10 +277,10 @@ for checking namespaces, cf for checking individual forms."}
          of clojure.core.typed/HSequential."
     :forms '[(HVec [fixed*] :filter-sets [FS*] :objects [obj*])
              (HVec [fixed* type *] :filter-sets [FS*] :objects [obj*])
-             (HVec [fixed* type ... bound] :filter-sets [FS*] :objects [obj*])
+             (HVec [fixed* type :.. bound] :filter-sets [FS*] :objects [obj*])
              '[fixed*]
              '[fixed* type *]
-             '[fixed* type ... bound]]
+             '[fixed* type :.. bound]]
     ::special-type true}
   HVec)
 
@@ -297,7 +299,7 @@ for checking namespaces, cf for checking individual forms."}
          It extends IPersistentCollection and Sequential"
     :forms '[(HSequential [fixed*] :filter-sets [FS*] :objects [obj*])
              (HSequential [fixed* rest *] :filter-sets [FS*] :objects [obj*])
-             (HSequential [fixed* drest ... bound] :filter-sets [FS*] :objects [obj*])]
+             (HSequential [fixed* drest :.. bound] :filter-sets [FS*] :objects [obj*])]
     ::special-type true}
   HSequential)
 
@@ -305,7 +307,7 @@ for checking namespaces, cf for checking individual forms."}
   ^{:doc "HSeq is a type for heterogeneous seqs"
     :forms '[(HSeq [fixed*] :filter-sets [FS*] :objects [obj*])
              (HSeq [fixed* rest *] :filter-sets [FS*] :objects [obj*])
-             (HSeq [fixed* drest ... bound] :filter-sets [FS*] :objects [obj*])]
+             (HSeq [fixed* drest :.. bound] :filter-sets [FS*] :objects [obj*])]
     ::special-type true}
   HSeq)
 
@@ -313,7 +315,7 @@ for checking namespaces, cf for checking individual forms."}
   ^{:doc "HList is a type for heterogeneous lists. Is a supertype of HSeq that implements IPersistentList."
     :forms '[(HList [fixed*] :filter-sets [FS*] :objects [obj*])
              (HList [fixed* rest *] :filter-sets [FS*] :objects [obj*])
-             (HList [fixed* drest ... bound] :filter-sets [FS*] :objects [obj*])]
+             (HList [fixed* drest :.. bound] :filter-sets [FS*] :objects [obj*])]
     ::special-type true}
   HList)
 
@@ -332,7 +334,7 @@ for checking namespaces, cf for checking individual forms."}
     :forms '[(IFn ArityVec+)
              [fixed* -> ret :filters {:then fl :else fl} :object {:id Foo :path Bar}]
              [fixed* rest * -> ret :filters {:then fl :else fl} :object {:id Foo :path Bar}]
-             [fixed* drest ... bound -> ret :filters {:then fl :else fl} :object {:id Foo :path Bar}]]
+             [fixed* drest :.. bound -> ret :filters {:then fl :else fl} :object {:id Foo :path Bar}]]
     ::special-type true}
   IFn)
 

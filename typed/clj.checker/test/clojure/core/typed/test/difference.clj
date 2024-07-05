@@ -6,6 +6,7 @@
             [typed.cljc.checker.cs-gen :refer :all]
             [typed.cljc.checker.cs-rep :refer :all]
             [typed.cljc.checker.subst :refer [subst-all]]
+            [typed.cljc.checker.free-ops :as free-ops]
             [clojure.test :refer :all]))
 
 ;; When Difference is ready, uncomment tests at the bottom
@@ -68,11 +69,13 @@
   (is-clj (not (subtype? (RClass-of Integer (clj-opts)) (NotType-maker (RClass-of Number (clj-opts))))))
   (is-clj (not (subtype? (NotType-maker -nil) (RClass-of Number (clj-opts)))))
 
-  (is-clj (= (subst-all {'x (t-subst-maker (Un [(RClass-of Number (clj-opts)) -nil] (clj-opts)) no-bounds) 
-                         'y (t-subst-maker -nil no-bounds)} 
-                        (In [(make-F 'x) (NotType-maker (make-F 'y))] (clj-opts))
-                        (clj-opts))
-             (RClass-of Number (clj-opts))))
+  (let [opts (free-ops/with-bounded-frees (clj-opts) (zipmap (map make-F '[x y]) (repeat no-bounds)))]
+    (is (= (subst-all {'x (t-subst-maker (Un [(RClass-of Number opts) -nil] opts) no-bounds) 
+                       'y (t-subst-maker -nil no-bounds)} 
+                      (In [(make-F 'x)
+                           (NotType-maker (make-F 'y))] opts)
+                      opts)
+           (RClass-of Number opts))))
 
   (is-clj (overlap (make-F 'x)
                    (NotType-maker (make-F 'y))
@@ -82,10 +85,10 @@
                    (clj-opts)))
   (is-clj (not (subtype? (B-maker 0)
                          (NotType-maker (B-maker 1)))))
-  (is-clj (not= (In [(make-F 'x)
-                     (NotType-maker (make-F 'y))]
-                    (clj-opts))
-                (Un [] (clj-opts)))))
+  (let [opts (free-ops/with-bounded-frees (clj-opts) (zipmap (map make-F '[x y]) (repeat no-bounds)))]
+    (is (not (Bottom? (In [(make-F 'x)
+                           (NotType-maker (make-F 'y))]
+                          opts))))))
 
 ;(deftest difference-type-subtype
 ;  (is-clj (not (sub? (Difference Any nil) nil)))

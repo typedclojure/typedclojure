@@ -344,7 +344,7 @@
             ;_ (prn "u" (prs/unparse-type u opts))
 
             ; solve for x:  t <: (Seqable x)
-            x (gensym)
+            x (gensym "x-KeysValsPE")
             subst (let [opts (free-ops/with-bounded-frees opts {(r/make-F x) r/no-bounds})]
                     (u/handle-cs-gen-failure
                       (cgen/infer {x r/no-bounds} {} 

@@ -290,9 +290,7 @@
            (let [checker (env/checker opts)
                  tfn (loop [rator rator]
                        (cond
-                         (r/F? rator) (when-let [bnds (free-ops/free-with-name-bnds (:name rator) opts)]
-                                        ;assume upper/lower bound variance agree
-                                        (c/fully-resolve-type (:upper-bound bnds) opts))
+                         (r/F? rator) (free-ops/free-with-name-bnds (:name rator) opts)
                          (r/Name? rator) (let [{:keys [id]} rator]
                                            (cond
                                              (nmenv/declared-name? id opts)

@@ -192,11 +192,28 @@
   )
 
 (deftest has-kind?-test
-  (is-clj (sut/has-kind? r/-nil r/no-bounds (clj-opts)))
-  (is-clj (sut/has-kind? r/-nil (r/-bounds r/-nil r/-nil) (clj-opts)))
-  (is-clj (not (sut/has-kind? r/-nil (r/-bounds r/-nothing r/-nil) (clj-opts))))
-  (is-clj (not (sut/has-kind? r/-nil (r/-bounds r/-nil r/-any) (clj-opts))))
-  )
+  ;; Type
+  (is (sut/has-kind? r/-nil r/no-bounds (clj-opts)))
+  (is (sut/has-kind? r/-nil (r/-bounds r/-nil r/-nil) (clj-opts)))
+  (is (not (sut/has-kind? r/-nil (r/-bounds r/-nothing r/-nil) (clj-opts))))
+  (is (not (sut/has-kind? r/-nil (r/-bounds r/-nil r/-any) (clj-opts))))
+  ;; Regex
+  (is (sut/has-kind? (prs/parse-clj (prs/allow-regex `(t/cat)))
+                     (prs/parse-clj (prs/allow-regex `(t/* t/Type)))
+                     (clj-opts)))
+  (is (sut/has-kind? (prs/parse-clj (prs/allow-regex `(t/cat nil)))
+                     (prs/parse-clj (prs/allow-regex `(t/* t/Type)))
+                     (clj-opts)))
+  (is (sut/has-kind? (prs/parse-clj (prs/allow-regex `(t/cat nil t/Int)))
+                     (prs/parse-clj (prs/allow-regex `(t/* t/Type)))
+                     (clj-opts)))
+  (is (not (sut/has-kind? (prs/parse-clj (prs/allow-regex `(t/cat t/Type)))
+                          (prs/parse-clj (prs/allow-regex `(t/* t/Type)))
+                          (clj-opts))))
+  (is (not (sut/has-kind? (prs/parse-clj (prs/allow-regex `(t/cat nil t/Type)))
+                          (prs/parse-clj (prs/allow-regex `(t/* t/Type)))
+                          (clj-opts))))
+)
 
 (deftest Instance-subtype-test
   (is-tc-e 1)

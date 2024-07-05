@@ -11,8 +11,8 @@
              [(t/U x (Foo x) (Bar x)) :.. b :-> t/Any]))
 (defn foo [& args])
 
-;(defn [x b ...] foo 
-;  [& args :- (U x Foo) ... b] :- t/Any)
+;(defn [x b :..] foo 
+;  [& args :- (U x Foo) :.. b] :- t/Any)
 
 (inst foo t/Any)
 (inst foo t/Any t/Any)

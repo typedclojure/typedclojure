@@ -13,7 +13,7 @@
             [typed.clojure :as t]
             [typed.cljc.checker.tvar-env :as tvar]
             [typed.cljc.checker.tvar-bnds :as bnds])
-  (:import (typed.cljc.checker.type_rep F Bounds Regex)))
+  (:import (typed.cljc.checker.type_rep F Bounds Regex TypeFn)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Parse Type syntax
@@ -31,13 +31,13 @@
 ;            f))
 ;        *free-scope*))
 
-(t/ann free-with-name-bnds [t/Sym t/Any -> (t/U nil Bounds)])
+(t/ann free-with-name-bnds [t/Sym t/Any -> (t/U nil Bounds Regex TypeFn)])
 (defn free-with-name-bnds
   "Find the bounds for the free with the actual name name, as opposed to
   the alias used for scoping"
   [name opts]
   {:pre [(symbol? name)]
-   :post [((some-fn nil? r/Bounds?) %)]}
+   :post [((some-fn nil? r/Kind?) %)]}
   (bnds/lookup-tvar-bnds name opts))
 
 (t/ann free-in-scope [t/Sym t/Any -> (t/U nil F)])
@@ -48,12 +48,12 @@
    :post [((some-fn nil? r/F?) %)]}
   (get current-tvars name))
 
-(t/ann free-in-scope-bnds [t/Sym t/Any -> (t/U nil (t/U Bounds Regex))])
+(t/ann free-in-scope-bnds [t/Sym t/Any -> (t/U nil (t/U Bounds Regex TypeFn))])
 (defn free-in-scope-bnds
   "Find the bounds for the free scoped as name"
   [name opts]
   {:pre [(symbol? name)]
-   :post [((some-fn nil? r/Bounds? r/Regex?) %)]}
+   :post [((some-fn nil? r/Kind?) %)]}
   (when-let [f (free-in-scope name opts)]
     (bnds/lookup-tvar-bnds (:name f) opts)))
 
@@ -65,7 +65,7 @@
 ;
 ; Once this works we should use a more consistent interface
 ;
-;frees-map :- '{t/Sym '{:F F :bnds (U Bounds Regex)}}
+;frees-map :- '{t/Sym '{:F F :bnds (U Bounds Regex TypeFn)}}
 (defn with-free-mappings
   [opts frees-map]
   (let [_ (assert (frees-map? frees-map) frees-map)
@@ -78,7 +78,7 @@
         (bnds/with-extended-bnds fresh-names bndss))))
 
 (def bounded-frees-key? r/F?)
-(def bounded-frees-val? (some-fn r/Bounds? r/Regex?))
+(def bounded-frees-val? r/Kind?)
 ;; extremely slow
 (def bounded-frees? map? #_(con/hash-c? bounded-frees-key? bounded-frees-val?))
 
@@ -92,16 +92,6 @@
                    (assert (bounded-frees-val? bnds) (class bnds))
                    (assoc m (:name f) {:F f :bnds bnds}))
                  {} bfrees))))
-
-(defn with-frees
-  "Scopes frees, which are instances of F, inside body, with
-  default bounds."
-  [opts frees]
-  (with-free-mappings opts
-    (reduce (fn [m f]
-              (assert (r/F? f) (class f))
-              (assoc m (:name f) {:F f :bnds r/no-bounds}))
-            {} frees)))
 
 (defn with-free-symbols
   "Scopes sfrees, a sequence of symbols, inside body as free variables, with default bounds."

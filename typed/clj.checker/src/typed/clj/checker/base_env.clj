@@ -172,16 +172,16 @@
 ;       (Label [rec]
 ;              (t/All [w [v :< w] :dotted [b]]
 ;                   [(Array w _) t/AnyInteger v -> v]
-;                   [(Array _ r) t/AnyInteger b ... b
-;                    :recur (rec r b ... b)]))
+;                   [(Array _ r) t/AnyInteger b :.. b
+;                    :recur (rec r b :.. b)]))
 ;
 ;  clojure.core/aget 
 ;       (Label [rec]
 ;              (t/All [x :dotted [b]] 
 ;                   (t/IFn [(Array _ x) t/AnyInteger -> x]
-;                       [(Array _ x) t/AnyInteger b ... b
+;                       [(Array _ x) t/AnyInteger b :.. b
 ;                        :recur 
-;                        (rec x b ... b)])))
+;                        (rec x b :.. b)])))
 ;
 ;  clojure.core/assoc 
 ;       (t/All [[h <: (t/Map t/Any t/Any)]
@@ -192,10 +192,10 @@
 ;              (t/All [[h :< (HMap {})] x y [k :< (t/I AnyValue t/Keyword)] [e :< k] :dotted [b]]
 ;                   [h k v -> (t/I h (HMap k v))]
 ;                   [(Associative y x) y x -> (Associative y x)]
-;                   [h k v b ... b
-;                    :recur (rec (t/I h (HMap {k v})) b ... b)]
-;                   [(Associative y x) y x b ... b
-;                    :recur (rec (Associative y x) b ... b)]
+;                   [h k v b :.. b
+;                    :recur (rec (t/I h (HMap {k v})) b :.. b)]
+;                   [(Associative y x) y x b :.. b
+;                    :recur (rec (Associative y x) b :.. b)]
 ;                   ))
 ;
 ;  clojure.core/dissoc
@@ -203,9 +203,9 @@
 ;              (t/All [[m :< (Associative _ _)] :dotted [b]]
 ;                   [nil t/Any * -> nil]
 ;                   [m -> m]
-;                   [m k b ... b
+;                   [m k b :.. b
 ;                    :recur
-;                    (rec (t/I m (HMap {} :without [k])) b ... b)]))
+;                    (rec (t/I m (HMap {} :without [k])) b :.. b)]))
 ;
 ;  (update-in {:a {:b 1}} [:a :b] inc)
 ;  (update-in 
@@ -217,17 +217,17 @@
 ;       (FixedPoint
 ;         (t/All [[x :< (t/U nil (Associative t/Any t/Any))] k [l :< k] v r e
 ;               :dotted [a b]]
-;              (t/IFn [(HMap {l v}) (t/HSequential [k]) [v a ... a -> r] a ... a -> (t/I x (HMap {l r}))]
-;                  [(HMap {l r}) (t/HSequential [k b ... b]) [v a ... a -> e] a ... a
+;              (t/IFn [(HMap {l v}) (t/HSequential [k]) [v a :.. a -> r] a :.. a -> (t/I x (HMap {l r}))]
+;                  [(HMap {l r}) (t/HSequential [k b :.. b]) [v a :.. a -> e] a :.. a
 ;                   :recur
-;                   [r (t/HSequential [b ... b]) [v a ... a -> e] a ... a]])))
+;                   [r (t/HSequential [b :.. b]) [v a :.. a -> e] a :.. a]])))
 ;
 ;  ;clojure.core/get-in 
 ;  ;     (Label [rec]
 ;  ;       (t/All [[x :< (t/U nil (Associative t/Any t/Any))] k :dotted [b]]
 ;  ;            (t/IFn [x (t/HSequential []) -> x]
 ;  ;                [x (t/HSequential []) _ -> x]
-;  ;                [(t/U nil (Associative _ y) (t/HSequential [k b ... b]) a -> x
+;  ;                [(t/U nil (Associative _ y) (t/HSequential [k b :.. b]) a -> x
 ;  ;                ;TODO
 ;  ;                [(t/U nil (Associative t/Any y)) (t/HSequential [k]) -> (t/U nil x)]
 ;  ;                    ))))
@@ -235,20 +235,20 @@
 ;  clojure.core/partial 
 ;       (Label [rec]
 ;              (t/All [x [a :< x] r :dotted [b c]]
-;                   (t/IFn [[x c ... c -> r] a -> [c ... c -> r]]
-;                       [[x c ... c -> r] a b ... b
+;                   (t/IFn [[x c :.. c -> r] a -> [c :.. c -> r]]
+;                       [[x c :.. c -> r] a b :.. b
 ;                        :recur
-;                        (rec [c ... c -> r] b ... b)])))
+;                        (rec [c :.. c -> r] b :.. b)])))
 ;
-;  ;                                [[y -> x] [b ... b -> y] -> [b ... b -> x]]
-;  ;                                [[y -> x] [z -> y] [b ... b -> z] -> [b ... b -> x]]
-;  ;                                [[y -> x] [z -> y] [k -> z] [b ... b -> k] -> [b ... b -> x]]
-;  ;                                [[y -> x] [z -> y] [k -> z] [l -> k] [b ... b -> l] -> [b ... b -> x]]
-;  ;                                [[y -> x] [z -> y] [k -> z] [l -> k] [m -> l] [b ... b -> m] -> [b ... b -> x]]
+;  ;                                [[y -> x] [b :.. b -> y] -> [b :.. b -> x]]
+;  ;                                [[y -> x] [z -> y] [b :.. b -> z] -> [b :.. b -> x]]
+;  ;                                [[y -> x] [z -> y] [k -> z] [b :.. b -> k] -> [b :.. b -> x]]
+;  ;                                [[y -> x] [z -> y] [k -> z] [l -> k] [b :.. b -> l] -> [b :.. b -> x]]
+;  ;                                [[y -> x] [z -> y] [k -> z] [l -> k] [m -> l] [b :.. b -> m] -> [b :.. b -> x]]
 ;
 ;  clojure.core/juxt
-;                  (t/All [y b ... c ...]
-;                       [[b ... b -> y] [b ... b -> c] ... c -> [b ... b -> (DottedVec y c ... c)]])
+;                  (t/All [y b :.. c :..]
+;                       [[b :.. b -> y] [b :.. b -> c] :.. c -> [b :.. b -> (DottedVec y c :.. c)]])
 ;  )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -344,7 +344,8 @@
   [{:keys [variances] :as T} V]
   (let [names (c/TypeFn-fresh-symbols* T)
         bbnds (c/TypeFn-bbnds* names T opts)
-        pmt-body (promote (c/TypeFn-body* names bbnds T opts) V)]
+        opts (free-ops/with-bounded-frees opts {(map r/make-F names) bbnds})
+        pmt-body (promote (c/TypeFn-body* names bbnds T opts) V opts)]
     (c/TypeFn* names 
                variances
                bbnds
@@ -356,7 +357,8 @@
     :Poly (let [names (c/Poly-fresh-symbols* T)
                 ;;TODO promote?
                 bbnds (c/Poly-bbnds* names T opts)
-                pmt-body (promote (c/Poly-body* names T opts) V)]
+                opts (free-ops/with-bounded-frees opts (zipmap (map r/make-F names) bbnds))
+                pmt-body (promote (c/Poly-body* names T opts) V opts)]
             (c/Poly* names 
                      bbnds
                      pmt-body
@@ -364,7 +366,8 @@
     :PolyDots (let [names (c/PolyDots-fresh-symbols* T)
                     ;;TODO promote?
                     bbnds (c/PolyDots-bbnds* names T opts)
-                    pmt-body (promote (c/PolyDots-body* names T opts) V)]
+                    opts (free-ops/with-bounded-frees opts (zipmap (map r/make-F names) bbnds))
+                    pmt-body (promote (c/PolyDots-body* names T opts) V opts)]
                 (c/PolyDots* names 
                              bbnds
                              pmt-body
@@ -373,8 +376,9 @@
 (promote-demote Mu 
   [T V]
   (let [name (c/Mu-fresh-symbol* T)
+        opts (free-ops/with-bounded-frees opts {(r/make-F name) r/no-bounds})
         body (c/Mu-body* name T opts)]
-    (c/Mu* name (promote body V) opts)))
+    (c/Mu* name (promote body V opts) opts)))
 
 ;; Note: ignores path elements
 (extend-type Function

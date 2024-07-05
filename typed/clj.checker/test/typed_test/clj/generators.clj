@@ -163,7 +163,7 @@
                         (pred (first x)))))]
     (checking
       "Mu"
-      [x (sut/generator `(t/Rec [x] (t/U nil '[x])))]
+      [x (sut/generator `(t/Rec [x#] (t/U nil '[x#])))]
       (is (pred x))))
   ;; Name
   (letfn [(ping? [x]

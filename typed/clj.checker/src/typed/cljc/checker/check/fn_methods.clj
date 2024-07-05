@@ -127,15 +127,15 @@
         _ (when validate-expected-fn
             (validate-expected-fn fin))
 
+        opts ;scope type variables from polymorphic type in body
+        (free-ops/with-free-mappings opts
+          (zipmap (map r/F-original-name inst-frees)
+                  (map #(hash-map :F %1 :bnds %2) inst-frees bnds)))
         out-fn-matches (atom (vec (repeat (count (:types fin)) nil)))
         ;; cmethodss is a vector in the same order as the passed in methods,
         ;; but each method replaced with a vector of type checked methods."
         cmethodss
-        (let [opts (-> opts
-                       (lex/with-locals (some-> self-name (hash-map expected)))
-                       ;scope type variables from polymorphic type in body
-                       (free-ops/with-free-mappings (zipmap (map r/F-original-name inst-frees)
-                                                            (map #(hash-map :F %1 :bnds %2) inst-frees bnds))))
+        (let [opts (lex/with-locals opts (some-> self-name (hash-map expected)))
               ;; ordered pairs from function type to a map of matching methods (integers) to expected types.
               fn-matches
               (into []

@@ -14,7 +14,8 @@
             [typed.cljc.checker.type-rep :as r]
             [clojure.core.typed.contract-utils :as con]
             [typed.cljc.checker.type-ctors :as c]
-            [typed.cljc.runtime.perf-utils :refer [repeatedly]])
+            [typed.cljc.runtime.perf-utils :refer [repeatedly]]
+            [typed.cljc.checker.free-ops :as free-ops])
   (:import [typed.cljc.checker.type_rep RClass]))
 
 (t/ann ^:no-check rclass-ancestors [RClass t/Any -> (t/SortedSet r/Type)])
@@ -22,7 +23,9 @@
   {:pre [(r/RClass? rcls)]
    :post [((con/sorted-set-c? r/Type?) %)]}
   (let [names (repeatedly (count poly) #(gensym "unchecked-ancestor"))
-        fs (map r/make-F names)]
+        fs (map r/make-F names)
+        ;; assumes unchecked-ancestors are Type's
+        opts (free-ops/with-bounded-frees opts (zipmap fs (repeat r/no-bounds)))]
     (r/sorted-type-set
       (for [u unchecked-ancestors]
         (let [t (c/instantiate-many names u opts)
@@ -35,14 +38,16 @@
    :post [((con/hash-c? symbol? r/Type?) %)]}
   (update-vals replacements #(c/inst-and-subst % poly opts)))
 
-(t/ann ^:no-check abstract-rclass-ancestors [RClass (t/Seqable r/Type) t/Any -> nil])
-(defn abstract-rclass-ancestors [rsym names as opts]
+(t/ann ^:no-check abstract-rclass-ancestors [RClass (t/Seqable t/Symbol) (t/Seqable r/Kind) (t/Seqable r/Type) t/Any -> nil])
+(defn abstract-rclass-ancestors [rsym names bnds as opts]
   {:pre [(symbol? rsym)]}
-  (r/sorted-type-set
-    (for [u as]
-      (c/abstract-many names u opts))))
+  (let [opts (free-ops/with-bounded-frees opts (zipmap (map r/make-F names) bnds))]
+    (r/sorted-type-set
+      (for [u as]
+        (c/abstract-many names u opts)))))
 
-(t/ann ^:no-check abstract-rclass-replacements [RClass (t/Map t/Symbol r/Type) t/Any -> nil])
-(defn abstract-rclass-replacements [rsym names as opts]
+(t/ann ^:no-check abstract-rclass-replacements [RClass (t/Seqable t/Symbol) (t/Seqable r/Kind) (t/Map t/Symbol r/Type) t/Any -> nil])
+(defn abstract-rclass-replacements [rsym names bnds as opts]
   {:pre [(symbol? rsym)]}
-  (update-vals as #(c/abstract-many names % opts)))
+  (let [opts (free-ops/with-bounded-frees opts (zipmap (map r/make-F names) bnds))]
+    (update-vals as #(c/abstract-many names % opts))))

@@ -72,10 +72,12 @@
   (-> t meta ::names))
 
 (t/ann fresh-symbol [t/Sym -> t/Sym])
-(defn fresh-symbol [s]
-  {:pre [(symbol? s)]
-   :post [(symbol? %)]}
-  (with-meta (gensym s) {:original-name s}))
+(defn fresh-symbol
+  ([s] (fresh-symbol s nil))
+  ([s hint]
+   {:pre [(symbol? s)]
+    :post [(symbol? %)]}
+   (with-meta (gensym (str s hint)) {:original-name s})))
 
 (declare Un make-Union make-Intersection fully-resolve-type fully-resolve-non-rec-type flatten-unions)
 
@@ -792,7 +794,7 @@
 (t/ann ^:no-check RClass* 
   (t/IFn [(t/Seqable t/Sym) (t/Seqable r/Variance) (t/Seqable r/Type) t/Sym (t/Map t/Sym r/Type) t/Any -> r/Type]
          [(t/Seqable t/Sym) (t/Seqable r/Variance) (t/Seqable r/Type) t/Sym (t/Map t/Sym r/Type) (t/Set r/Type) t/Any -> r/Type]
-         [(t/Seqable t/Sym) (t/Seqable r/Variance) (t/Seqable r/Type) t/Sym (t/Map t/Sym r/Type) (t/Set r/Type) Bounds t/Any -> r/Type]))
+         [(t/Seqable t/Sym) (t/Seqable r/Variance) (t/Seqable r/Type) t/Sym (t/Map t/Sym r/Type) (t/Set r/Type) (t/Seqable Bounds) t/Any -> r/Type]))
 (defn RClass*
   ([names variances poly? the-class replacements opts]
    (RClass* names variances poly? the-class replacements (r/sorted-type-set []) opts))
@@ -801,7 +803,7 @@
   ([names variances poly? the-class replacements unchecked-ancestors bnds opts]
    {:pre [(every? symbol? names)
           (every? r/variance? variances)
-          (= (count variances) (count poly?))
+          (= (count variances) (count poly?) (count bnds))
           (every? r/Type? poly?)
           (every? r/Bounds? bnds)
           (symbol? the-class)]
@@ -809,11 +811,13 @@
    (let [replacements ((requiring-resolve 'typed.clj.checker.rclass-ancestor-env/abstract-rclass-replacements)
                        the-class
                        names
+                       bnds
                        replacements
                        opts)
          unchecked-ancestors ((requiring-resolve 'typed.clj.checker.rclass-ancestor-env/abstract-rclass-ancestors)
                               the-class
                               names
+                              bnds
                               unchecked-ancestors
                               opts)]
      (if (seq variances)
@@ -1101,12 +1105,16 @@
   types ts."
   [target ts opts]
   {:pre [((some-fn r/Type? r/Scope?) target)
-         (every? r/Type? ts)]
+         (every? r/Type? ts)
+         (every? #(ind/has-kind? % r/no-bounds opts) ts)]
    :post [(r/Type? %)]}
   (let [subst-all @(subst-all-var)
         ; these names are eliminated immediately, they don't need to be
         ; created with fresh-symbol
-        names (mapv (fn [_] (gensym)) (range (count ts)))
+        names (mapv (fn [_] (gensym "inst-and-subst")) (range (count ts)))
+        opts (free-ops/with-bounded-frees opts (zipmap (map r/make-F names)
+                                                       ;; asserted as precondition
+                                                       (repeat r/no-bounds)))
         t (r/assert-Type (instantiate-many names target opts))
         subst (make-simple-substitution names ts)]
     (subst-all subst t opts)))
@@ -1230,7 +1238,9 @@
          ((some-fn nil? map?) meta)]
    :post [(r/Type? %)]}
   (let [original-names (mapv (comp r/F-original-name r/make-F) names)
-        ab #(abstract-many names % opts)
+        ab (let [opts (free-ops/with-bounded-frees opts
+                        (zipmap (map r/make-F names) bbnds))]
+             #(abstract-many names % opts))
         t (r/TypeFn-maker (count names)
                           variances
                           (mapv ab bbnds)
@@ -1318,14 +1328,14 @@
            %)]}
   (get-original-names poly))
 
-(t/ann ^:no-check Poly-fresh-symbols* [Poly -> (t/Seqable t/Sym)])
+(t/ann ^:no-check Poly-fresh-symbols* [Poly -> (t/Vec t/Sym)])
 (defn Poly-fresh-symbols* [poly]
   {:pre [(r/Poly? poly)]
    :post [((every-pred seq (con/every-c? symbol?)) %)]}
   ;(prn "Poly-fresh-symbols*" (:scope poly))
-  (map fresh-symbol (or (Poly-free-names* poly)
-                        ;(assert nil "no poly free names")
-                        (repeatedly (:nbound poly) #(gensym "Poly-fresh-sym")))))
+  (mapv fresh-symbol (or (Poly-free-names* poly)
+                         ;(assert nil "no poly free names")
+                         (repeatedly (:nbound poly) #(gensym "Poly-fresh-sym")))))
 
 (t/ann ^:no-check Poly-bbnds* [(t/Seqable t/Sym) Poly t/Any -> (t/Vec Bounds)])
 (defn Poly-bbnds* [names poly opts]
@@ -1408,7 +1418,7 @@
   {:pre [(r/PolyDots? poly)]
    :post [((every-pred seq (con/every-c? symbol?)) %)]}
   (mapv fresh-symbol (or (PolyDots-free-names* poly)
-                         (repeatedly (:nbound poly) gensym))))
+                         (repeatedly (:nbound poly) #(gensym "PolyDots-fresh-symbols*")))))
 
 ;; Instantiate ops
 
@@ -1428,6 +1438,7 @@
 (defn instantiate-typefn [t types {:keys [names tapp]
                                    :or {names (TypeFn-fresh-symbols* t)}}
                           opts]
+  ;(assert (not (::vs/no-simpl opts)))
   (let [subst-all @(subst-all-var)
         cnt (count types)]
     (when-not (r/TypeFn? t) (err/int-error (str "instantiate-typefn requires a TypeFn: " (ind/unparse-type t opts)) opts))
@@ -1437,12 +1448,13 @@
           (str "Wrong number of arguments passed to type function. Expected "
                (:nbound t) ", actual " cnt ": "
                (ind/unparse-type t opts) " " (mapv #(ind/unparse-type % opts) types)
-               (str "\n\nin: "
-                    (pr-str (or (-> tapp meta :syn)
-                                (list* t types)))))
+               "\n\nin: "
+               (pr-str (or (-> tapp meta :syn)
+                           (list* t types))))
           opts)))
     (let [bbnds (TypeFn-bbnds* names t opts)
           body (TypeFn-body* names bbnds t opts)
+          opts (-> opts (free-ops/with-bounded-frees (zipmap (map r/make-F names) bbnds)))
           ;;check bounds
           _ (reduce4
               (fn [_ argn nm type bnd]
@@ -1457,13 +1469,12 @@
                                          (if-some [kind (free-ops/free-with-name-bnds (:name type) opts)]
                                            (str " with kind " kind)
                                            (str " with missing bounds")))
-                                       (str "\n\nin: "
-                                            (pr-str (or (-> tapp meta :syn)
-                                                        (list* t types)))))
+                                       "\n\nin: "
+                                       (pr-str (or (-> tapp meta :syn)
+                                                   (list* t types))))
                                   opts))))
               nil
-              (range 1 (inc cnt)) names types bbnds)
-          opts (-> opts (free-ops/with-bounded-frees (zipmap (map r/make-F names) bbnds)))]
+              (range 1 (inc cnt)) names types bbnds)]
       (subst-all (make-simple-substitution names types) body opts))))
 
 (t/ann ^:no-check instantiate-poly [Poly (t/Seqable r/Type) t/Any -> r/Type])
@@ -1585,7 +1596,6 @@
   {:pre [(r/MatchType? ty)]}
   (not (r/F? (:target ty))))
 
-
 (t/ann requires-resolving? [r/Type -> t/Any])
 (defn requires-resolving? [ty opts]
   {:pre [(r/AnyType? ty)]}
@@ -1602,7 +1612,7 @@
 (defn fully-resolve-type
   ([t opts] (fully-resolve-type t #{} opts))
   ([t seen opts]
-   {:pre [(r/Type? t)
+   {:pre [(r/AnyType? t)
           (set? seen)]}
    (let [_ (assert (not (seen t)) "Infinite non-Rec type detected")]
      (if (requires-resolving? t opts)
@@ -1610,8 +1620,9 @@
        t))))
 
 (t/ann fully-resolve-non-rec-type
-       [r/Type (t/Set r/Type) t/Any -> r/Type])
+       [r/Type (t/Set r/Type) :? t/Any -> r/Type])
 (defn fully-resolve-non-rec-type
+  ([t opts] (fully-resolve-non-rec-type t #{} opts))
   ([t seen opts]
    (let [_ (assert (not (seen t)) "Infinite non-Rec type detected")]
      (if (and (not (r/Mu? t))
@@ -1648,8 +1659,8 @@
   {:pre [(r/Mu? t)]
    :post [(symbol? %)]}
   (let [s (or (Mu-free-name* t)
-              (gensym))]
-    (fresh-symbol s)))
+              (gensym "Mu-fresh-symbol*"))]
+    (fresh-symbol s "_Mu-fresh-symbol*")))
 
 (t/tc-ignore
 (defn- substitute-var []
@@ -1664,6 +1675,7 @@
    :post [(r/Type? %)]}
   (let [substitute @(substitute-var)
         sym (Mu-fresh-symbol* t)
+        opts (free-ops/with-bounded-frees opts {(r/make-F sym) r/no-bounds})
         body (Mu-body* sym t opts)]
     (substitute tsubst sym body opts)))
 
@@ -2356,25 +2368,26 @@
 (defn keyword->Fn [kw opts]
   {:pre [(keyword? kw)]
    :post [(r/Type? %)]}
-  (Poly* ['x]
-         [r/no-bounds]
-         (r/make-FnIntersection
-           (r/make-Function
-             [(-partial-hmap opts {(r/-val kw) (r/make-F 'x)})]
-             (r/make-F 'x)
-             :object (or/-path [(path/-kpe kw)] 0))
-           (r/make-Function
-             [(Un [(make-HMap opts
-                              {:optional {(r/-val kw) (r/make-F 'x)}})
-                   r/-nil]
-                  opts)]
-             (Un [r/-nil (r/make-F 'x)] opts)
-             :object (or/-path [(path/-kpe kw)] 0))
-           (r/make-Function
-             [r/-any]
-             r/-any
-             :object (or/-path [(path/-kpe kw)] 0)))
-         opts))
+  (let [opts (free-ops/with-bounded-frees opts {(r/make-F 'x) r/no-bounds})]
+    (Poly* ['x]
+           [r/no-bounds]
+           (r/make-FnIntersection
+             (r/make-Function
+               [(-partial-hmap opts {(r/-val kw) (r/make-F 'x)})]
+               (r/make-F 'x)
+               :object (or/-path [(path/-kpe kw)] 0))
+             (r/make-Function
+               [(Un [(make-HMap opts
+                                {:optional {(r/-val kw) (r/make-F 'x)}})
+                     r/-nil]
+                    opts)]
+               (Un [r/-nil (r/make-F 'x)] opts)
+               :object (or/-path [(path/-kpe kw)] 0))
+             (r/make-Function
+               [r/-any]
+               r/-any
+               :object (or/-path [(path/-kpe kw)] 0)))
+           opts)))
 
 (t/ann KeywordValue->Fn [Value t/Any -> r/Type])
 (defn KeywordValue->Fn [{:keys [val] :as t} opts]
@@ -2516,6 +2529,7 @@
       (r/App? t) (fnd-bnd (resolve-App t opts))
       (r/TApp? t) (fnd-bnd (resolve-TApp t opts))
       (r/Mu? t) (let [name (Mu-fresh-symbol* t)
+                      opts (free-ops/with-bounded-frees opts {(r/make-F name) r/no-bounds})
                       body (Mu-body* name t opts)
                       new-body (fnd-bnd body)]
                   (Mu* name new-body opts))
@@ -2784,9 +2798,9 @@
                              ty
                              (In ts' opts)))))
 
-(add-default-fold-case Union 
+(add-default-fold-case Union
                        (fn [ty]
-                         ;(prn "union default" (typed.clj.checker.parse-unparse/unparse-type ty opts))
+                         ;(prn "union default" ty)
                          (let [ts (:types ty)
                                ts' (mapv!= ts type-rec)]
                            (if (identical? ts ts')
@@ -2940,8 +2954,9 @@
 (add-default-fold-case Mu
                        (fn [ty]
                          (let [name (Mu-fresh-symbol* ty)
+                               opts (free-ops/with-bounded-frees opts {(r/make-F name) r/no-bounds})
                                body (Mu-body* name ty opts)
-                               body' (type-rec body)
+                               body' (type-rec body opts)
                                changed? (not (identical? body body'))]
                            (if changed?
                              (Mu* name body' opts)

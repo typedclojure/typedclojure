@@ -23,7 +23,7 @@
                                                  ::check/keys [check-expr] :as opts}]
   (when-not ((some-fn true? string?) maybe-msg)
     (err/int-error (str "::t/dbg value must be a string, given: " (pr-str maybe-msg)) opts))
-  (let [id (gensym)
+  (let [id (gensym "check-meta-debug")
         prefix (str (apply str (repeat (or meta-debug-depth 0) " ")) "::t/dbg id=" id)
         _ (when (string? maybe-msg)
             (println prefix maybe-msg))
