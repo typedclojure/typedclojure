@@ -540,7 +540,9 @@
 (defn parse-unknown-binder [bnds opts]
   {:pre [((some-fn nil? vector?) bnds)]}
   (when bnds
-    ((if (#{:... :.. '...} (peek bnds))
+    (when (#{:... '...} (peek bnds))
+      (prs-error (str (peek bnds) " syntax has changed to :..") opts))
+    ((if (= :.. (peek bnds))
        parse-dotted-binder
        parse-normal-binder)
      bnds
@@ -1707,29 +1709,27 @@
                                    (subvec to-process 2))
                             (recur (conj cat-dom (-> d1 allow-regex (parse-type opts)))
                                    (subvec to-process 1)))
-          (:.. :... ... <...) (if (or (= :.. d2)
-                                      (when (not= '<... d2)
-                                        (err/deprecated-warn (str d2 " function syntax is deprecated and only supported as final arguments. Use :.. instead.")
-                                                             opts))
-                                      (= 3 (count to-process)))
-                                (let [drest-bnd d3
-                                      _ (when-not (simple-symbol? drest-bnd)
-                                          (prs-error (str "Bound after " d2 " must be simple symbol: " (pr-str drest-bnd)) opts))
-                                      bnd (free-ops/free-in-scope-bnds drest-bnd opts)
-                                      f (free-ops/free-in-scope drest-bnd opts)
-                                      _ (when-not (r/Regex? bnd)
-                                          (prs-error (str "Bound " (pr-str drest-bnd) " after " d2 " is not in scope as a dotted variable") opts))]
-                                  (recur (conj cat-dom (r/DottedPretype1-maker
-                                                         (cond-> (let [opts (free-ops/with-bounded-frees opts
-                                                                              {(r/make-F drest-bnd)
-                                                                               ((requiring-resolve 'typed.cljc.checker.cs-gen/homogeneous-dbound->bound)
-                                                                                bnd opts)})]
-                                                                   (-> d1 allow-regex (parse-type opts)))
-                                                           (= '<... d2) push-HSequential->regex)
-                                                         (:name f)))
-                                         (subvec to-process 3)))
-                                (recur (conj cat-dom (-> d1 allow-regex (parse-type opts)))
-                                       (subvec to-process 1)))
+          (:... ...) (prs-error (str d1 " syntax has chnaged to :..") opts)
+          (:.. <...) (if (or (= :.. d2)
+                             (= 3 (count to-process)))
+                       (let [drest-bnd d3
+                             _ (when-not (simple-symbol? drest-bnd)
+                                 (prs-error (str "Bound after " d2 " must be simple symbol: " (pr-str drest-bnd)) opts))
+                             bnd (free-ops/free-in-scope-bnds drest-bnd opts)
+                             f (free-ops/free-in-scope drest-bnd opts)
+                             _ (when-not (r/Regex? bnd)
+                                 (prs-error (str "Bound " (pr-str drest-bnd) " after " d2 " is not in scope as a dotted variable") opts))]
+                         (recur (conj cat-dom (r/DottedPretype1-maker
+                                                (cond-> (let [opts (free-ops/with-bounded-frees opts
+                                                                     {(r/make-F drest-bnd)
+                                                                      ((requiring-resolve 'typed.cljc.checker.cs-gen/homogeneous-dbound->bound)
+                                                                       bnd opts)})]
+                                                          (-> d1 allow-regex (parse-type opts)))
+                                                  (= '<... d2) push-HSequential->regex)
+                                                (:name f)))
+                                (subvec to-process 3)))
+                       (recur (conj cat-dom (-> d1 allow-regex (parse-type opts)))
+                              (subvec to-process 1)))
 
           (recur (conj cat-dom (-> d1 allow-regex (parse-type opts)))
                  (subvec to-process 1)))))))

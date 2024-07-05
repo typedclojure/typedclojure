@@ -99,17 +99,17 @@
                          It extends IPersistentCollection and Sequential"
                     :forms '[(HSequential [fixed*] :filter-sets [FS*] :objects [obj*])
                              (HSequential [fixed* rest *] :filter-sets [FS*] :objects [obj*])
-                             (HSequential [fixed* drest ... bound] :filter-sets [FS*] :objects [obj*])]
+                             (HSequential [fixed* drest :.. bound] :filter-sets [FS*] :objects [obj*])]
                     ::special-type true}
     `t/HSeq {:doc "HSeq is a type for heterogeneous seqs"
              :forms '[(HSeq [fixed*] :filter-sets [FS*] :objects [obj*])
                       (HSeq [fixed* rest *] :filter-sets [FS*] :objects [obj*])
-                      (HSeq [fixed* drest ... bound] :filter-sets [FS*] :objects [obj*])]
+                      (HSeq [fixed* drest :.. bound] :filter-sets [FS*] :objects [obj*])]
              ::special-type true}
     `t/HList {:doc "HList is a type for heterogeneous lists. Is a supertype of HSeq that implements IPersistentList."
               :forms '[(HList [fixed*] :filter-sets [FS*] :objects [obj*])
                        (HList [fixed* rest *] :filter-sets [FS*] :objects [obj*])
-                       (HList [fixed* drest ... bound] :filter-sets [FS*] :objects [obj*])]
+                       (HList [fixed* drest :.. bound] :filter-sets [FS*] :objects [obj*])]
               ::special-type true}
     `t/HSet {:doc "HSet is a type for heterogeneous sets.
                   Takes a set of simple values. By default

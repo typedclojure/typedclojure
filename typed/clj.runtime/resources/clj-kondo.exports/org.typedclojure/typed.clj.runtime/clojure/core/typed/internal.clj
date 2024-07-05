@@ -182,7 +182,7 @@
                                             (map :type dom)
                                             (cond
                                               rest [(:type rest) :*]
-                                              drest [(-> drest :pretype :type) :... (:bound drest)])
+                                              drest [(-> drest :pretype :type) :.. (:bound drest)])
                                             [:-> (:type rng)])))
                                       (map :ann parsed-methods)))
         reassembled-fn-type (if-let [forall poly]

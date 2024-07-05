@@ -107,7 +107,7 @@ type of arguments are all subtype of `Number`.
 Drest function is a little difficult to understand. Simplified `map` has type
 
     (All [c a b :..]
-      [[a b ... b -> c]
+      [[a b :.. b -> c]
        (Seqable a)
        (Seqable b)
        ...
@@ -124,12 +124,12 @@ indicated by `...` following it.
 
 Let us analysis its arguments type.
 
-The first argument is a function type, it accepts type `a b ... b` and produces
-type `c` as it result, other arguments is `(Seqable a) (Seqable b) ... b`, and
+The first argument is a function type, it accepts type `a b :.. b` and produces
+type `c` as it result, other arguments is `(Seqable a) (Seqable b) :.. b`, and
 `map` function returns type `(t/Seq c)`.
 
-The only thing that is difficult to understand is `b ... b` and
-`(Seqable b) ... b`. This is called dotted type, the first item of this is
+The only thing that is difficult to understand is `b :.. b` and
+`(Seqable b) :.. b`. This is called dotted type, the first item of this is
 called dotted pre-type, it servers as a type template, and the last item of
 this is called bound variable, it indicated what type variable should be
 constrain on.
@@ -149,10 +149,10 @@ the order here is important, and `c` is of type `Number`. After this we check
 other arguments to `map`: `a` is a vector of `Number`, and vector implements
 `Seqable` interface in Clojure, so vector of `Number` is subtype of
 `(Seqable Number)`. So `a` is still of type `Number` (cset-meet will not cause
-error), `(Seqable b) ... b` here is very interesting, because `(Seqable b)`
+error), `(Seqable b) :.. b` here is very interesting, because `(Seqable b)`
 servers as template, so we should first expand type according to that template
 before we check its type. We have two arguments remain, so we should first
-expand `(Seqable b) ... b` into `(Seqable b1) (Seqable b2)`, and then check
+expand `(Seqable b) :.. b` into `(Seqable b1) (Seqable b2)`, and then check
 with arguments, so we get `b1` as `String` and `b2` as `Number`, so b is still
 of type `[String Number]` (cset-meet will not cause error).
 
@@ -203,7 +203,7 @@ For example, simplified `assoc` function is annotated as:
 
     (All [m k v c :..]
       [m k v (HSeq [c c] :repeat true) <... c
-       -> (Assoc m k v c ... c)])
+       -> (Assoc m k v c :.. c)])
 
 the only thing we have not met in this documentation is
 `(HSeq [c c] :repeat true) <... c`, `<...` here is pdot, and it looks just like

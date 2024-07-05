@@ -401,10 +401,10 @@
          of clojure.core.typed/HSequential."
     :forms '[(HVec [fixed*] :filter-sets [FS*] :objects [obj*])
              (HVec [fixed* type *] :filter-sets [FS*] :objects [obj*])
-             (HVec [fixed* type ... bound] :filter-sets [FS*] :objects [obj*])
+             (HVec [fixed* type :.. bound] :filter-sets [FS*] :objects [obj*])
              '[fixed*]
              '[fixed* type *]
-             '[fixed* type ... bound]]
+             '[fixed* type :.. bound]]
     :clojure.core.typed/special-type true}
   HVec)
 
@@ -423,7 +423,7 @@
          It extends IPersistentCollection and Sequential"
     :forms '[(HSequential [fixed*] :filter-sets [FS*] :objects [obj*])
              (HSequential [fixed* rest *] :filter-sets [FS*] :objects [obj*])
-             (HSequential [fixed* drest ... bound] :filter-sets [FS*] :objects [obj*])]
+             (HSequential [fixed* drest :.. bound] :filter-sets [FS*] :objects [obj*])]
     :clojure.core.typed/special-type true}
   HSequential)
 
@@ -431,7 +431,7 @@
   ^{:doc "HSeq is a type for heterogeneous seqs"
     :forms '[(HSeq [fixed*] :filter-sets [FS*] :objects [obj*])
              (HSeq [fixed* rest *] :filter-sets [FS*] :objects [obj*])
-             (HSeq [fixed* drest ... bound] :filter-sets [FS*] :objects [obj*])]
+             (HSeq [fixed* drest :.. bound] :filter-sets [FS*] :objects [obj*])]
     :clojure.core.typed/special-type true}
   HSeq)
 
@@ -439,7 +439,7 @@
   ^{:doc "HList is a type for heterogeneous lists. Is a supertype of HSeq that implements IPersistentList."
     :forms '[(HList [fixed*] :filter-sets [FS*] :objects [obj*])
              (HList [fixed* rest *] :filter-sets [FS*] :objects [obj*])
-             (HList [fixed* drest ... bound] :filter-sets [FS*] :objects [obj*])]
+             (HList [fixed* drest :.. bound] :filter-sets [FS*] :objects [obj*])]
     :clojure.core.typed/special-type true}
   HList)
 
@@ -458,7 +458,7 @@
     :forms '[(IFn ArityVec+)
              [fixed* -> ret :filters {:then fl :else fl} :object {:id Foo :path Bar}]
              [fixed* rest * -> ret :filters {:then fl :else fl} :object {:id Foo :path Bar}]
-             [fixed* drest ... bound -> ret :filters {:then fl :else fl} :object {:id Foo :path Bar}]]
+             [fixed* drest :.. bound -> ret :filters {:then fl :else fl} :object {:id Foo :path Bar}]]
     :clojure.core.typed/special-type true}
   IFn)
 

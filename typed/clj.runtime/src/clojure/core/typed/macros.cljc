@@ -96,7 +96,7 @@
       (fn [a :- String & b :- Number *] body)
 
       ;dotted rest parameter
-      (fn [a :- String & b :- Number ... x] body)
+      (fn [a :- String & b :- Number :.. x] body)
 
       ;multi-arity
       (fn fname 

@@ -1554,7 +1554,7 @@
             new-cset (cs-gen-Function V (merge X (zipmap vars bbnds) X) Y S new-t-arr opts)]
         (move-vars+rest-to-dmap new-cset dbound vars {} opts)))))
 
-;; ... <: *
+;; :.. <: *
 ; Typed Racket notes that this might not be a correct subtyping case?
 (defn cs-gen-Function-dots-<-star [cg V X Y S T opts]
   {:pre [(:drest S)
@@ -1638,12 +1638,12 @@
            (:drest T))
       (cs-gen-Function-dotted-right-nothing-left V X Y S T opts)
 
-      ;; * <: ...
+      ;; * <: :..
       (and (:rest S)
            (:drest T))
       (cs-gen-Function-star-<-dots cg V X Y S T opts)
 
-      ;; ... <: *
+      ;; :.. <: *
       ; Typed Racket notes that this might not be a correct subtyping case?
       (and (:drest S)
            (:rest T))

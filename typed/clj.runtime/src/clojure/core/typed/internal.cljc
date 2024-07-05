@@ -234,6 +234,8 @@
 
                                                  (#{:.. '...} (second rst-params))
                                                  (let [[pretype dots bound & after-rst] rst-params]
+                                                   (when (= '... (second rst-params))
+                                                     (println (str "WARNING: ... syntax has changed to :.. in t/fn: " (pr-str form))))
                                                    (recur after-rst
                                                           (conj pvec amp p)
                                                           (conj ann-info amp {:drest {:pretype {:type pretype}

@@ -36,7 +36,7 @@
                           :-> '['[Integer Double] '[Integer Float]]])))
   ;TODO t/HSequential
   (is (= (inst/manual-inst (prs/parse-clj `(t/All [x# b# :..]
-                                              [x# :.. b# :-> (t/HSequential [x# ... b#])]))
+                                              [x# :.. b# :-> (t/HSequential [x# :.. b#])]))
                            (mapv (comp prs/parse-clj prs/allow-regex) `(Integer (t/cat Double Float)))
                            {}
                            (clj-opts))

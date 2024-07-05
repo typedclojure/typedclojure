@@ -4,7 +4,7 @@
 (ann my-atom (t/Atom (t/HMap :mandatory {:a t/Num})))
 (def my-atom (atom {:a 1}))
 
-(ann my-fn (t/All [x a :..] [t/Any x a ... a -> t/Any]))
+(ann my-fn (t/All [x a :..] [t/Any x a :.. a -> t/Any]))
 (defn my-fn [a b & c]
   {:a 2})
 

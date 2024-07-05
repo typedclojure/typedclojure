@@ -14,7 +14,7 @@
 
 ; this map1 must accept at least 2 list, this is correspond one case in our hard mode in cs-gen-Function
 (t/ann ^:no-check map1 (t/All [a b r c :..]
-                         [[a b c ... c -> r] (t/Seqable a) (t/Seqable b) (t/Seqable c) ... c -> (t/Seqable r)]))
+                         [[a b c :.. c -> r] (t/Seqable a) (t/Seqable b) (t/Seqable c) :.. c -> (t/Seqable r)]))
 (defn map1 [f a b & rst]
   (apply map f a b rst))
 

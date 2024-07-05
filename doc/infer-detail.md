@@ -37,7 +37,7 @@ syntax, like `assoc` with following type:
 
     (All [m k v c :..]
        [m k v (HSeq [c c] :repeat true) <... c
-        -> (Assoc m k v c ... c)])
+        -> (Assoc m k v c :.. c)])
 
 syntax of `<...` is similar to `...` syntax, which requires type on its left,
 and bounded symbol on its right.
@@ -68,7 +68,7 @@ sure if this works.
 This case is very difficult to handle, not only because `HMap` has so many
 attributes, but also because `Assoc` is not a complete type(it just simulate a
 function). So, when we do
-`(cs-gen (Assoc m k v c ... c) (HMap :mandatory {:a Number :b String}))`
+`(cs-gen (Assoc m k v c :.. c) (HMap :mandatory {:a Number :b String}))`
 `m` could be either `{}`, `{:a Number}`, `{:b String}` or
 `{:a Number :b String}`, and type of `k`, `v` and `c` is also uncertain.
 
@@ -78,7 +78,7 @@ Right now we annotate `assoc` as
 
     (All [m k v c :..]
        [m k v (HSeq [c c] :repeat true) <... c
-        -> (Assoc m k v c ... c)])
+        -> (Assoc m k v c :.. c)])
 
 and if we do
 

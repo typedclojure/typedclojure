@@ -24,7 +24,7 @@
 (defn- spec-syntax->arg-lists
   [s {::keys [source] :as opts}]
   (let [assert-no-rest-arg (fn [argv]
-                             (assert (not-any? #{:* :... '& '<* '<...} argv)
+                             (assert (not-any? #{:* :.. :... '& '<* '<...} argv)
                                      (str "Spec1 regex is too complex to convert to type"
                                           (when source
                                             (str " (sourced from spec for " source ", use t/ann to annotate instead)")))))]

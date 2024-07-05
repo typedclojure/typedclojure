@@ -2713,7 +2713,7 @@
 
 (deftest annotate-user-defined-polydot
   (is-tc-e (fn [x & y] x) 
-           (t/All [x y :..] [x y ... y -> x]))
+           (t/All [x y :..] [x y :.. y -> x]))
   (is-tc-e (fn [f a] (f a))
            [(t/All [x] [(t/HSequential [x *]) -> x])
             (t/HSequential [t/Any *]) -> t/Any])
@@ -2724,12 +2724,12 @@
   (is-tc-e (fn [& y] (when-not (empty? y) (first y))) 
            (t/All [x y] [y * -> (t/U nil y)]))
   (is-tc-e (fn [x & y] x) 
-           (t/All [a b :..] [a b ... b -> a]))
+           (t/All [a b :..] [a b :.. b -> a]))
 
   (is (check-ns 'clojure.core.typed.test.hsequential))
 
   (is-tc-err (fn [x c & y] x) 
-             (t/All [x y :..] [x y ... y -> x])))
+             (t/All [x y :..] [x y :.. y -> x])))
 
 (deftest kw-args-seq-complete-test
   (is-tc-err
@@ -2807,21 +2807,21 @@
                  (Poly* ['x] [no-bounds] -any (clj-opts))
                  (clj-opts)))
   (is (parse-clj '(clojure.core.typed/All [b] [clojure.core.typed/Any -> (clojure.core.typed/All [b :..] [clojure.core.typed/Any -> clojure.core.typed/Any])])))
-  (is (parse-clj '(clojure.core.typed/All [b] [b -> (clojure.core.typed/All [b :..] [b ... b -> clojure.core.typed/Any])])))
-  (is (parse-clj '(clojure.core.typed/All [b :..] [b ... b -> (clojure.core.typed/All [b :..] [b ... b -> clojure.core.typed/Any])])))
-  (is (parse-clj '(clojure.core.typed/All [b :..] [b ... b -> (clojure.core.typed/All [b :..] '[])]))))
+  (is (parse-clj '(clojure.core.typed/All [b] [b -> (clojure.core.typed/All [b :..] [b :.. b -> clojure.core.typed/Any])])))
+  (is (parse-clj '(clojure.core.typed/All [b :..] [b :.. b -> (clojure.core.typed/All [b :..] [b :.. b -> clojure.core.typed/Any])])))
+  (is (parse-clj '(clojure.core.typed/All [b :..] [b :.. b -> (clojure.core.typed/All [b :..] '[])]))))
 
 (deftest instantiate-polydots-test
   (is (let [sym (gensym)]
         (= sym
-           (-> (PolyDots-body* [sym] (parse-clj '(clojure.core.typed/All [b :..] ['[b ... b] -> clojure.core.typed/Any])) (clj-opts))
+           (-> (PolyDots-body* [sym] (parse-clj '(clojure.core.typed/All [b :..] ['[b :.. b] -> clojure.core.typed/Any])) (clj-opts))
                :types
                first
                :dom
                first
                :drest
                :name))))
-  (is (= (-> (parse-clj '(clojure.core.typed/All [b :..] ['[b ... b] -> clojure.core.typed/Any]))
+  (is (= (-> (parse-clj '(clojure.core.typed/All [b :..] ['[b :.. b] -> clojure.core.typed/Any]))
              :scope
              :body
              :types
@@ -2840,10 +2840,10 @@
                               ['[b :.. b] :.. b -> [b :.. b -> t/Any]])] 
                (f [1 2] [1 2])))
   (is-tc-e (fn [f :- (t/All [b :..]
-                          [-> (t/HVec [b ... b])])] 
+                          [-> (t/HVec [b :.. b])])] 
              (f)))
   (is-tc-e (fn [f :- (t/All [b :..]
-                          [-> (t/HSequential [b ... b])])]
+                          [-> (t/HSequential [b :.. b])])]
              (f))))
 
 ;FIXME
@@ -2853,10 +2853,10 @@
     [(clojure.core.typed/All [b]
           [b -> b])
      -> '1])
-  ; ensure b ... b does not leak into the return type
+  ; ensure b :.. b does not leak into the return type
   (is (cf (fn [f] (f))
           [(clojure.core.typed/All [b :..]
-                [-> [b ... b -> clojure.core.typed/Any]])
+                [-> [b :.. b -> clojure.core.typed/Any]])
            -> clojure.core.typed/Any]))
   (is
     (tc-e 
@@ -2879,7 +2879,7 @@
       [-> [clojure.core.typed/Any * -> clojure.core.typed/Any]]))
   (is
     (tc-e 
-      (do (ann ^:no-check foo (clojure.core.typed/All [b :..] [-> [b ... b -> clojure.core.typed/Any]]))
+      (do (ann ^:no-check foo (clojure.core.typed/All [b :..] [-> [b :.. b -> clojure.core.typed/Any]]))
           (def foo)
           (fn []
             (foo)))
@@ -2887,7 +2887,7 @@
   (is
     (= 
       (tc-e 
-        (do (ann ^:no-check foo (clojure.core.typed/All [b :..] [-> '[b ... b]]))
+        (do (ann ^:no-check foo (clojure.core.typed/All [b :..] [-> '[b :.. b]]))
             (def foo)
             (fn []
               (foo))))
@@ -2896,36 +2896,36 @@
            -empty)))
   (is
     (tc-e 
-      (do (ann ^:no-check foo (clojure.core.typed/All [b :..] [-> (t/HSequential [b ... b])]))
+      (do (ann ^:no-check foo (clojure.core.typed/All [b :..] [-> (t/HSequential [b :.. b])]))
           (def foo)
           (fn []
             (foo)))))
   (is
     (tc-e 
-      (do (ann ^:no-check foo (clojure.core.typed/All [b :..] [-> '[b ... b]]))
+      (do (ann ^:no-check foo (clojure.core.typed/All [b :..] [-> '[b :.. b]]))
           (def foo)
           (fn []
             (foo)))))
   (is (cf (fn [f] (f))
           [(clojure.core.typed/All [b :..]
-                [-> '[b ... b]])
+                [-> '[b :.. b]])
            -> clojure.core.typed/Any]))
   (is (cf (fn [f] (f [1 2]))
           [(clojure.core.typed/All [b :..]
-                ['[b ... b] -> '[b ... b]])
+                ['[b :.. b] -> '[b :.. b]])
            -> '['1 '2]]))
   (is (cf (fn [f] (f (fn [a] a)))
           [(clojure.core.typed/All [b :..]
-                [[b ... b -> clojure.core.typed/Any] -> [b ... b -> clojure.core.typed/Any]])
+                [[b :.. b -> clojure.core.typed/Any] -> [b :.. b -> clojure.core.typed/Any]])
            -> [clojure.core.typed/Any clojure.core.typed/Any -> clojure.core.typed/Any]]))
   (is (cf (fn [f] (f))
           [(clojure.core.typed/All [b :..]
-                [-> [b ... b -> clojure.core.typed/Any]])
+                [-> [b :.. b -> clojure.core.typed/Any]])
            -> clojure.core.typed/Any #_['1 '2 -> clojure.core.typed/Any]]))
   (is-tc-err
     (fn [f] (second (f [1 2])))
     [(clojure.core.typed/All [b :..]
-          ['[b ... b] -> '[b ... b]])
+          ['[b :.. b] -> '[b :.. b]])
      -> '1]))
 
 (deftest deref-var-test
@@ -3157,9 +3157,9 @@
   (is
     (FnIntersection? (Poly-body-unsafe* (parse-clj `(t/All [a# b# c# d# x#] [x# :-> nil])))))
   (is
-    (FnIntersection? (PolyDots-body-unsafe* (parse-clj `(t/All [x# :..] [nil ... x# :-> nil])))))
+    (FnIntersection? (PolyDots-body-unsafe* (parse-clj `(t/All [x# :..] [nil :.. x# :-> nil])))))
   (is
-    (FnIntersection? (PolyDots-body-unsafe* (parse-clj `(t/All [a# b# c# d# x# :..] [nil ... x# :-> nil]))))))
+    (FnIntersection? (PolyDots-body-unsafe* (parse-clj `(t/All [a# b# c# d# x# :..] [nil :.. x# :-> nil]))))))
 
 #_(deftest reduce-test
   (is-tc-err (reduce (fn ([] :- nil) ([x :- t/Num y :- t/Num] :- nil)) [1]))
@@ -3249,7 +3249,7 @@
 
 ;(deftest dotted-apply-test
 ;  (is-tc-e
-;    (do (ann foo (t/All [x y :..] [[y ... y -> x] -> [y ... y -> x]]))
+;    (do (ann foo (t/All [x y :..] [[y :.. y -> x] -> [y :.. y -> x]]))
 ;        (defn foo
 ;          [f]
 ;          (let [mem (memoize (fn [& args] #(apply f args)))]
@@ -3263,7 +3263,7 @@
 #_(cf (t/juxt first :- [(t/Seq Number) -> (t/U nil Number)]
               rest :- [(t/Seq Number) -> (t/Seq Number)]))
 
-;(clojure.core.typed/All [b :..] [b ... b -> (t/HVec [b ... b])]) <: [java.lang.Number * -> (t/HVec [java.lang.Number])]
+;(clojure.core.typed/All [b :..] [b :.. b -> (t/HVec [b :.. b])]) <: [java.lang.Number * -> (t/HVec [java.lang.Number])]
 
 (deftest locking-test
   (testing "return value is the final expr"

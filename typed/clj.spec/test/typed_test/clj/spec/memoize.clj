@@ -12,7 +12,7 @@
             [clojure.test :refer :all]))
 
 ;clojure.core/memoize (All [x y :..]
-;                            [[y ... y -> x] -> [y ... y -> x]])
+;                            [[y :.. y -> x] -> [y :.. y -> x]])
 
 (s/def ::memoize
   (all :binder
