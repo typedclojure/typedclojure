@@ -60,7 +60,7 @@
    :extra-paths ["script"]
    :main-opts ["-m" "gen-doc"]}
   :profile
-  {:extra-deps {com.clojure-goes-fast/clj-async-profiler {:mvn/version "1.2.0"}}
+  {:extra-deps {com.clojure-goes-fast/clj-async-profiler {:mvn/version "1.2.2"}}
    :extra-paths ["script"]
    :main-opts ["-m" "profile"]}
   :eastwood

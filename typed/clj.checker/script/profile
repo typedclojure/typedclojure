@@ -3,7 +3,7 @@
 # ./script/profile 10 cpu
 # ./script/profile 10 alloc
 #
-# Then view the reuslts in file:///tmp/clj-async-profiler/results/
+# Then view the results in file:///tmp/clj-async-profiler/results/
 
 set -x
 
