@@ -9,7 +9,8 @@
 ;; note: this file is copied into resources/clj-kondo.exports/org.typedclojure/typed.clj.runtime
 ;; via ./script/regen-kondo.sh
 ;; the canonical version is in the src folder
-(ns ^:no-doc clojure.core.typed.contract-utils)
+(ns ^:no-doc clojure.core.typed.contract-utils
+  (:require [typed.cljc.runtime.perf-utils :refer [reduce2]]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Constraint shorthands
@@ -23,8 +24,13 @@
   #(apply = (concat as %&)))
 
 (defn hvector-c? [& ps]
-  (apply every-pred vector?
-         (map (fn [p i] #(p (nth % i false))) ps (range))))
+  (every-pred vector?
+              (fn [v]
+                (reduce2 (fn [res p el]
+                           (if (p el)
+                             res
+                             (reduced false)))
+                         true ps v))))
 
 (defn reduced-c? [c]
   (fn [r]
