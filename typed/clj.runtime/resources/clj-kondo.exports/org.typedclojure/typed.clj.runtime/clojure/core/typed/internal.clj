@@ -11,7 +11,7 @@
 ;; the canonical version is in the src folder
 (ns ^:no-doc clojure.core.typed.internal
   #?(:clj (:refer-clojure :exclude [requiring-resolve]))
-  #?(:clj [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]))
+  #?(:clj (:require [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]])))
 
 (defn take-when
   "When pred is true of the head of seq, return [head tail]. Otherwise
@@ -226,21 +226,23 @@
                                            (if (= :- (second ann-params))
                                              (let [[p colon & rst-params] ann-params]
                                                (cond
-                                                 (= '* (second rst-params))
+                                                 (#{:* '*} (second rst-params))
                                                  (let [[t star & after-rst] rst-params]
                                                    (recur after-rst
                                                           (conj pvec amp p)
                                                           (conj ann-info amp {:rest {:type t}})))
 
-                                                 (= '... (second rst-params))
+                                                 (#{:.. '...} (second rst-params))
                                                  (let [[pretype dots bound & after-rst] rst-params]
+                                                   (when (= '... (second rst-params))
+                                                     (println (str "WARNING: ... syntax has changed to :.. in t/fn: " (pr-str form))))
                                                    (recur after-rst
                                                           (conj pvec amp p)
                                                           (conj ann-info amp {:drest {:pretype {:type pretype}
                                                                                       :bound bound}})))
 
                                                  :else
-                                                 (throw (ex-info "Rest annotation must be followed with * or ..." {:form method}))))
+                                                 (throw (ex-info "Rest annotation must be followed with :* or :.." {:form method}))))
                                              (let [[p & after-rst] ann-params]
                                                (recur after-rst
                                                       (conj pvec amp p)
@@ -334,11 +336,12 @@
 
 (defn binder-names [binder]
   {:post [(every? symbol? %)]}
-  (map (fn [v]
-         (if (vector? v)
-           (first v)
-           v))
-       binder))
+  (keep (fn [v]
+          (if (vector? v)
+            (first v)
+            (when-not (#{:* :.. '* '...} v)
+              v)))
+        binder))
 
 (defn gen-ann-protocol [{:keys [name methods binder] :as dp-ann}]
   (let [tvars (set (binder-names binder))
@@ -362,7 +365,7 @@
                                                  actual-this (if (:default provided-this)
                                                                this-type
                                                                (:type provided-this))]
-                                             `[~actual-this ~@(map :type argts) ~'-> ~(:type ret)]))
+                                             `[~actual-this ~@(map :type argts) :-> ~(:type ret)]))
                                          arities))]
                    [name (if poly
                            `(clojure.core.typed/All ~poly ~fn-type)
