@@ -166,8 +166,6 @@
 
     <module>typed/clj.annotator</module>
 
-    <module>typed/clj.lang</module>
-
     <module>typed/malli</module>
     <module>typed/clj.spec</module>
 
@@ -247,11 +245,6 @@
       <dependency>
         <groupId>org.typedclojure</groupId>
         <artifactId>typed.clj.annotator</artifactId>
-        <version>1.2.2-SNAPSHOT</version>
-      </dependency>
-      <dependency>
-        <groupId>org.typedclojure</groupId>
-        <artifactId>typed.clj.lang</artifactId>
         <version>1.2.2-SNAPSHOT</version>
       </dependency>
       <dependency>

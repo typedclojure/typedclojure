@@ -68,10 +68,6 @@
       <artifactId>tools.reader</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.typedclojure</groupId>
-      <artifactId>typed.clj.lang</artifactId>
-    </dependency>
-    <dependency>
       <groupId>org.clojure</groupId>
       <artifactId>core.cache</artifactId>
     </dependency>

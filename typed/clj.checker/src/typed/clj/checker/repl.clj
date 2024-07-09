@@ -15,7 +15,6 @@
             [clojure.core.typed :as t]
             [clojure.core.typed.current-impl :as impl]
             [typed.cljc.checker.ns-deps-utils :as ns-utils]
-            ;[clojure.core.typed.load :as load]
             [typed.clj.checker.analyze-clj :as ana-clj]
             [clojure.tools.reader :as rd]
             [clojure.tools.reader.reader-types :as readers]
@@ -191,7 +190,6 @@
       :else (handler msg))))
 
 (defn wrap-clj-repl [handler]
-  ;(load/monkeypatch-typed-load)
   (fn [{:keys [op] :as msg}]
     ;(prn "wrap-clj-repl" op)
     (cond 

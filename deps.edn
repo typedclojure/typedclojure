@@ -56,7 +56,6 @@
     "typed/clj.annotator/test"
     "typed/clj.checker/test"
     "typed/clj.checker/test-resources"
-    "typed/clj.lang/test"
     "typed/clj.runtime/test"
     "typed/clj.spec/test"
     "typed/cljc.analyzer/test"
@@ -76,7 +75,6 @@
     ["typed/clj.analyzer/src"
      "typed/clj.annotator/src"
      "typed/clj.checker/src"
-     "typed/clj.lang/src"
      "typed/clj.runtime/resources"
      "typed/clj.runtime/src"
      "typed/clj.spec/src"
@@ -92,7 +90,6 @@
     ("typed/clj.analyzer/src"
      "typed/clj.annotator/src"
      "typed/clj.checker/src"
-     "typed/clj.lang/src"
      "typed/clj.runtime/resources"
      "typed/clj.runtime/src"
      "typed/clj.spec/src"
@@ -108,7 +105,6 @@
      "typed/clj.annotator/test"
      "typed/clj.checker/test"
      "typed/clj.checker/test-resources"
-     "typed/clj.lang/test"
      "typed/clj.runtime/test"
      "typed/clj.spec/test"
      "typed/cljc.analyzer/test"
@@ -123,7 +119,6 @@
     ("typed/clj.analyzer/src"
      "typed/clj.annotator/src"
      "typed/clj.checker/src"
-     "typed/clj.lang/src"
      "typed/clj.runtime/resources"
      "typed/clj.runtime/src"
      "typed/clj.spec/src"
@@ -138,7 +133,6 @@
      "typed/clj.analyzer/test"
      "typed/clj.annotator/test"
      "typed/clj.checker/test"
-     "typed/clj.lang/test"
      "typed/clj.runtime/test"
      "typed/clj.spec/test"
      "typed/cljc.analyzer/test"
@@ -155,8 +149,6 @@
   org.clojure/clojure {:mvn/version "1.12.0-beta1"},
   org.typedclojure/typed.clj.checker
   {:deps/manifest :deps, :local/root "typed/clj.checker"},
-  org.typedclojure/typed.clj.lang
-  {:deps/manifest :deps, :local/root "typed/clj.lang"},
   org.typedclojure/typed.clj.analyzer
   {:deps/manifest :deps, :local/root "typed/clj.analyzer"},
   org.typedclojure/typed.lib.core.async

@@ -2,13 +2,11 @@
   (:require [clojure.core.typed :as t]
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.errors :as err]
-            [clojure.core.typed.load :as load]
             [clojure.set :as set]
             [clojure.test :as test :refer [is]]
             [typed.clj.checker.check :as chk]
             [typed.clj.checker.parse-unparse :refer [parse-type parse-clj] :as prs]
             [typed.clj.checker.subtype :as sub]
-            [typed.clj.lang :as lang]
             [typed.clj.runtime.env :as clj-env]
             [typed.cljc.checker.test-utils :as common-test]
             [typed.cljc.checker.type-ctors :as c]
@@ -255,12 +253,6 @@
   `(binding [*warn-on-reflection* true]
      (is (nil? (re-find #"^Reflection warning" (with-err-string-writer ~form))))
      (is (nil? (re-find #"^Reflection warning" (with-err-print-writer ~form))))))
-
-(defmacro with-typed-load [& body]
-  `(do
-     (load/install-typed-load)
-     (with-redefs [load #'lang/extensible-load]
-       ~@body)))
 
 ;Aliases used in unit tests
 (defmacro is-with-aliases [tst]

@@ -64,29 +64,6 @@ for checking namespaces, cf for checking individual forms."}
   ((requiring-resolve 'clojure.core.typed.impl/method-type)
    mname))
 
-(core/defn install
-  "Install the :core.typed :lang. Takes an optional set of features
-  to install, defaults to `:all`, which is equivalent to the set of
-  all features.
-
-  Features:
-    - :load    Installs typed `load` over `clojure.core/load`, which type checks files
-               on the presence of a {:lang :core.typed} metadata entry in the `ns` form.
-               The metadata must be inserted in the actual `ns` form saved to disk,
-               as it is read directly from the file instead of the current Namespace
-               metadata.
-    - :eval    Installs typed `eval` over `clojure.core/eval`.
-               If `(= :core.typed (:lang (meta *ns*)))` is true, the form will be implicitly
-               type checked. The syntax save to disk is ignored however.
-
-  eg. (install)            ; installs `load` and `eval`
-  eg. (install :all)       ; installs `load` and `eval`
-  eg. (install #{:eval})   ; installs `eval`
-  eg. (install #{:load})   ; installs `load`"
-  ([] (install :all))
-  ([features]
-   ((requiring-resolve 'clojure.core.typed.load/install) features)))
-
 ;=============================================================
 ; Special functions
 
@@ -942,129 +919,6 @@ for checking namespaces, cf for checking individual forms."}
   []
   ((requiring-resolve 'clojure.core.typed.impl/refresh-runtime-infer)))
 
-(core/defn runtime-infer 
-  "Infer and insert annotations for a given namespace.
-
-  There are two ways to instrument your namespace.
-
-  Call `prepare-infer-ns` function on the namespace
-  of your choosing.
-
-  Alternatively, use the :runtime-infer
-  feature in your namespace metadata. Note: core.typed
-  must be installed via `clojure.core.typed/install`.
-
-  eg. (ns my-ns
-        {:lang :core.typed
-         :core.typed {:features #{:runtime-infer}}}
-        (:require [clojure.core.typed :as t]))
-
-  After your namespace is instrumented, run your tests
-  and/or exercise the functions in your namespace.
-
-  Then call `runtime-infer` to populate the namespace's
-  corresponding file with these generated annotations.
-
-  Optional keys:
-    :ns     The namespace to infer types for. (Symbol/Namespace)
-            Default: *ns*
-    :fuel   Number of iterations to perform in inference algorithm
-            (integer)
-            Default: nil (don't restrict iterations)
-    :debug  Perform print debugging. (:all/:iterations/nil)
-            Default: nil
-    :track-depth   Maximum nesting depth data will be tracked.
-                   Default: nil (don't restrict nestings)
-    :track-count   Maximum number of elements of a single collection
-                   will be tracked.
-                   Default: nil (don't restrict elements)
-    :root-results  Maximum number of inference results collected per top-level
-                   root form, from the perspective of the tracker (eg. vars, local functions).
-                   Default: nil (don't restrict)
-    :preserve-unknown  If true, output the symbol `?` where inference was cut off
-                       or never reached.
-                       Default: nil (convert to unknown to `clojure.core.typed/Any`)
-    :out-dir       A classpath-relative directory (string) to which to dump changes to files,
-                   instead of modifying the original file.
-                   Default: nil (modify original file)
-    :no-squash-vertically     If true, disable the `squash-vertically` pass.
-                              Default: nil
-
-  eg. (runtime-infer) ; infer for *ns*
-
-      (runtime-infer :ns 'my-ns) ; infer for my-ns
-
-      (runtime-infer :fuel 0) ; iterations in type inference algorithm
-                              ; (higher = smaller types + more recursive)
-
-      (runtime-infer :debug :iterations) ; enable iteration debugging"
-  [& kws]
-  (apply (requiring-resolve 'clojure.core.typed.impl/runtime-infer) kws))
-
-(core/defn spec-infer 
-  "Infer and insert specs for a given namespace.
-
-  There are two ways to instrument your namespace.
-
-  Call `prepare-infer-ns` function on the namespace
-  of your choosing.
-
-  Alternatively, use the :runtime-infer
-  feature in your namespace metadata. Note: core.typed
-  must be installed via `clojure.core.typed/install`.
-
-  eg. (ns my-ns
-        {:lang :core.typed
-         :core.typed {:features #{:runtime-infer}}}
-        (:require [clojure.core.typed :as t]))
-
-  After your namespace is instrumented, run your tests
-  and/or exercise the functions in your namespace.
-
-  Then call `spec-infer` to populate the namespace's
-  corresponding file with these generated specs.
-
-  Optional keys:
-    :ns     The namespace to infer specs for. (Symbol/Namespace)
-            Default: *ns*
-    :fuel   Number of iterations to perform in inference algorithm
-            (integer)
-            Default: nil (don't restrict iterations)
-    :debug  Perform print debugging. (:all/:iterations/nil)
-            Default: nil
-    :track-depth   Maximum nesting depth data will be tracked.
-                   Default: nil (don't restrict nestings)
-    :track-count   Maximum number of elements of a single collection
-                   will be tracked.
-                   Default: nil (don't restrict elements)
-    :root-results  Maximum number of inference results collected per top-level
-                   root form, from the perspective of the tracker (eg. vars, local functions).
-                   Default: nil (don't restrict)
-    :preserve-unknown  If true, output the symbol `?` where inference was cut off
-                       or never reached.
-                       Default: nil (convert to unknown to `clojure.core/any?`)
-    :higher-order-fspec   If true, generate higher-order fspecs.
-                          Default: false
-    :out-dir       A classpath-relative directory (string) to which to dump changes to files,
-                   instead of modifying the original file.
-                   Default: nil (modify original file)
-    :no-squash-vertically     If true, disable the `squash-vertically` pass.
-                              Default: nil
-    :spec-macros   If true, output specs for macros.
-                   Default: nil (elide macro specs)
-
-  eg. (spec-infer) ; infer for *ns*
-
-      (spec-infer :ns 'my-ns) ; infer for my-ns
-
-      (spec-infer :fuel 0) ; iterations in spec inference algorithm
-                           ; (higher = smaller specs + more recursive)
-
-      (spec-infer :debug :iterations) ; enable iteration debugging
-  "
-  [& kws]
-  (apply (requiring-resolve 'clojure.core.typed.impl/spec-infer) kws))
-
 (core/defn ^:internal register!
   "Internal -- Do not use"
   []
@@ -1121,33 +975,6 @@ for checking namespaces, cf for checking individual forms."}
   - :column     column number where contract is checked, (U Int nil)"
   ([t x] ((requiring-resolve 'clojure.core.typed.impl/cast) &form t x {}))
   ([t x opt] ((requiring-resolve 'clojure.core.typed.impl/cast) &form t x opt)))
-
-(core/defn infer-unannotated-vars
-  "EXPERIMENTAL
-
-  Return a vector of potential var annotations in the given
-  namespace, or the current namespace.
-
-  To enable for the current namespace, add the :infer-vars
-  :experimental feature to the ns metadata like so:
-
-    (ns infer-me
-      {:lang :core.typed
-       :core.typed {:experimental #{:infer-vars
-                                    :infer-locals}}}
-      ...)
-
-  Then run check-ns like usual, and infer-unannotated-vars
-  will return the inferred vars without annotations.
-
-  (t/infer-unannotated-vars)
-  => [(t/ann u/bar t/Int)
-      (t/ann u/foo (t/U [t/Any -> t/Any] Int))]
-                                "
-
-  ([] (infer-unannotated-vars (ns-name *ns*)))
-  ([nsym-or-ns]
-   ((requiring-resolve 'clojure.core.typed.impl/infer-unannotated-vars) (ns-name nsym-or-ns))))
 
 ;============================================================
 ; Define clojure.core typed wrappers below here to ensure we don't use them above

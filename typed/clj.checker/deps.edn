@@ -4,7 +4,6 @@
  {org.clojure/clojure {:mvn/version "1.12.0-beta1"},
   org.clojure/core.cache {:mvn/version "1.0.225"},
   org.typedclojure/typed.clj.analyzer {:local/root "../clj.analyzer" :deps/manifest :deps},
-  org.typedclojure/typed.clj.lang {:local/root "../clj.lang" :deps/manifest :deps},
   org.typedclojure/typed.lib.clojure {:local/root "../lib.clojure" :deps/manifest :deps},
   org.typedclojure/typed.lib.spec.alpha {:local/root "../lib.spec.alpha" :deps/manifest :deps},
   org.typedclojure/typed.clj.runtime {:local/root "../clj.runtime" :deps/manifest :deps},

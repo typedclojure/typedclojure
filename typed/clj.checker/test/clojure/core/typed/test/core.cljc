@@ -40,7 +40,6 @@
             [clojure.core.typed.test.person]
             [clojure.core.typed.internal]
             [typed.clj.checker.path-type :refer :all]
-            [clojure.core.typed.load :as load]
             [typed.cljs.runtime.env :as cljs-env]
             [typed.cljc.checker.ns-deps-utils :as ndu]
             [clojure.core.typed.parse-ast :as prs-ast])
@@ -3996,24 +3995,6 @@
                  :clojure 1
                  :cljs 2))))
 
-(deftest gradual-untyped-import-test
-  (is (try
-        (do (load/load-typed-file "clojure/core/typed/test/gradual/import_untyped")
-            (locking clojure.lang.RT/REQUIRE_LOCK
-              ((requiring-resolve 'clojure.core.typed.test.gradual.import-untyped/bad))))
-        false
-        (catch ExceptionInfo e
-          ;(prn (ex-data e))
-          (and (-> (ex-data e) :blame)
-               (= (select-keys (-> (ex-data e) :blame)
-                               [:file :line :column :positive :negative])
-                  {:line 16
-                   :column 3
-                   :file "clojure/core/typed/test/gradual/import_untyped.clj"
-                   :negative "clojure.core.typed.test.gradual.import-untyped"
-                   :positive "Annotation for clojure.core.typed.test.gradual.untyped/b"}))))))
-
-
 (deftest CTYP-313-substitution-in-optional-hmap
   (is-tc-e (do
              (t/defalias OptMap
@@ -4022,16 +4003,6 @@
              (t/defn z-getter
                [m :- (OptMap Integer)] :- (t/Option Integer)
                (:z m)))))
-
-(deftest ctyp-294-infer-unannotated-vars
-  (do (check-ns 'clojure.core.typed.test.ctyp-294.typed)
-      (let [ts (t/infer-unannotated-vars 'clojure.core.typed.test.ctyp-294.typed)]
-        (is (= 
-              ;;FIXME
-              ;2
-              1
-              (count ts))
-            ts))))
 
 (deftest override-ctor-test
   ;; dumb override
