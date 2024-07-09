@@ -7,7 +7,6 @@
    :kaocha/ns-patterns [".*"],
    :kaocha/source-paths
    ["typed/clj.analyzer/src"
-    "typed/clj.annotator/src"
     "typed/clj.checker/src"
     "typed/clj.runtime/resources"
     "typed/clj.runtime/src"
@@ -23,7 +22,6 @@
    :kaocha.filter/skip-meta [:typed/skip-from-repo-root],
    :kaocha/test-paths
    ["typed/clj.analyzer/test"
-    "typed/clj.annotator/test"
     "typed/clj.checker/test"
     "typed/clj.runtime/test"
     "typed/clj.spec/test"
@@ -40,7 +38,6 @@
    :kaocha/ns-patterns [".*"],
    :kaocha/source-paths
    ["typed/clj.analyzer/src"
-    "typed/clj.annotator/src"
     "typed/clj.checker/src"
     "typed/clj.runtime/resources"
     "typed/clj.runtime/src"
@@ -62,7 +59,6 @@
    :kaocha/ns-patterns [".*"],
    :kaocha/source-paths
    ["typed/clj.analyzer/src"
-    "typed/clj.annotator/src"
     "typed/clj.checker/src"
     "typed/clj.runtime/resources"
     "typed/clj.runtime/src"
@@ -82,7 +78,6 @@
    :kaocha/ns-patterns [".*"],
    :kaocha/source-paths
    ["typed/clj.analyzer/src"
-    "typed/clj.annotator/src"
     "typed/clj.checker/src"
     "typed/clj.runtime/resources"
     "typed/clj.runtime/src"

@@ -22,8 +22,6 @@
    :check-top-level chk-clj/check-top-level
    :unparse-ns (ns-name *ns*)
    :runtime-check-expr rt-chk/runtime-check-expr
-   :runtime-infer-expr (fn [& args]
-                         (apply (requiring-resolve 'typed.clj.annotator/runtime-infer-expr) args))
    :eval-out-ast (fn eval-out-ast
                    ([ast] (eval-out-ast ast {}))
                    ([ast opts] (ana-clj/eval-ast ast opts)))

@@ -70,7 +70,6 @@ See modules for specific version coordinates:
 * [typed.clj.checker](typed/clj.checker/README.md): The JVM type checker
 * [typed.clj.runtime](typed/clj.runtime/README.md): JVM Runtime dependencies
 * [typed.clj.analyzer](typed/clj.analyzer/README.md): Analyzer for JVM Clojure
-* [typed.clj.annotator](typed/clj.annotator/README.md): Automatic annotator
 * [typed.clj.spec](typed/clj.spec/README.md): Type-like specs.
 * [typed.malli](typed/malli/README.md): Malli integration.
 

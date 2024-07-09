@@ -9,7 +9,4 @@
 (ns clojure.core.typed.util-vars)
 
 ;; keep track of state throughout a `load`
-(defonce ^{:doc "Internal use only"} ^:no-doc ^:dynamic *typed-load-atom* nil)
-(defonce ^{:doc "Internal use only"} ^:no-doc ^:dynamic *prepare-infer-ns* nil)
-(defonce ^{:doc "Internal use only"} ^:no-doc ^:dynamic *instrument-infer-config* nil)
 (defonce ^{:doc "Internal use only"} ^:no-doc ^:dynamic *currently-inferring-TypeFns* #{})

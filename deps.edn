@@ -53,7 +53,6 @@
     {:exclusions [org.clojure/clojure], :mvn/version "0.2.6"}},
    :extra-paths
    ["typed/clj.analyzer/test"
-    "typed/clj.annotator/test"
     "typed/clj.checker/test"
     "typed/clj.checker/test-resources"
     "typed/clj.runtime/test"
@@ -73,7 +72,6 @@
   {:exec-args
    {:dirs
     ["typed/clj.analyzer/src"
-     "typed/clj.annotator/src"
      "typed/clj.checker/src"
      "typed/clj.runtime/resources"
      "typed/clj.runtime/src"
@@ -88,7 +86,6 @@
      "typed/malli/src"],
     :watch-dirs
     ("typed/clj.analyzer/src"
-     "typed/clj.annotator/src"
      "typed/clj.checker/src"
      "typed/clj.runtime/resources"
      "typed/clj.runtime/src"
@@ -102,7 +99,6 @@
      "typed/lib.spec.alpha/src"
      "typed/malli/src"
      "typed/clj.analyzer/test"
-     "typed/clj.annotator/test"
      "typed/clj.checker/test"
      "typed/clj.checker/test-resources"
      "typed/clj.runtime/test"
@@ -117,7 +113,6 @@
      "typed/malli/test"),
     :refresh-dirs
     ("typed/clj.analyzer/src"
-     "typed/clj.annotator/src"
      "typed/clj.checker/src"
      "typed/clj.runtime/resources"
      "typed/clj.runtime/src"
@@ -131,7 +126,6 @@
      "typed/lib.spec.alpha/src"
      "typed/malli/src"
      "typed/clj.analyzer/test"
-     "typed/clj.annotator/test"
      "typed/clj.checker/test"
      "typed/clj.runtime/test"
      "typed/clj.spec/test"
@@ -165,8 +159,6 @@
   {:deps/manifest :deps, :local/root "typed/clj.spec"},
   org.typedclojure/typed.cljs.analyzer
   {:deps/manifest :deps, :local/root "typed/cljs.analyzer"},
-  org.typedclojure/typed.clj.annotator
-  {:deps/manifest :deps, :local/root "typed/clj.annotator"},
   org.typedclojure/typed.cljs.checker
   {:deps/manifest :deps, :local/root "typed/cljs.checker"},
   org.typedclojure/typed.cljs.runtime

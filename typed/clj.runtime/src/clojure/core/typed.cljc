@@ -887,38 +887,6 @@ for checking namespaces, cf for checking individual forms."}
   []
   ((requiring-resolve 'clojure.core.typed.impl/envs)))
 
-(core/defn prepare-infer-ns
-  "Instruments the current namespace to prepare for runtime type
-  or spec inference.
-
-  Optional keys:
-    :ns     The namespace to infer types for. (Symbol/Namespace)
-            Default: *ns*
-    :strategy  Choose which inference preparation strategy to use.
-               - :compile      recompile the namespace and wrap at compilation-time.
-                               Supports local annotation inference. Source is analyzed
-                               via core.typed's custom analyzer.
-               - :instrument   wrap top-level vars without recompilation.
-                               No support for local annotations, but the default
-                               Clojure analyzer is used.
-               Default: :compile
-    :track-strategy  Choose which track strategy to use.
-                     - :lazy    wrap hash maps and possibly other data structures, and
-                                lazily track values as they are used.
-                     - :eager   eagerly walk over all values, a la clojure.spec checking.
-                     Default: :lazy
-  "
-  [& {:keys [ns strategy] :as config
-      :or {strategy :compile
-           ns *ns*}}]
-  ((requiring-resolve 'clojure.core.typed.impl/prepare-infer-ns) config))
-
-(core/defn refresh-runtime-infer 
-  "Clean the current state of runtime inference.
-  Will forget the results of any tests on instrumented code."
-  []
-  ((requiring-resolve 'clojure.core.typed.impl/refresh-runtime-infer)))
-
 (core/defn ^:internal register!
   "Internal -- Do not use"
   []

@@ -164,8 +164,6 @@
     <module>typed/clj.runtime</module>
     <module>typed/cljs.runtime</module>
 
-    <module>typed/clj.annotator</module>
-
     <module>typed/malli</module>
     <module>typed/clj.spec</module>
 
@@ -240,11 +238,6 @@
       <dependency>
         <groupId>{◊typedclojure-group-id◊}</groupId>
         <artifactId>typed.lib.spec.alpha</artifactId>
-        <version>{◊typedclojure-current-mvn-version◊}</version>
-      </dependency>
-      <dependency>
-        <groupId>{◊typedclojure-group-id◊}</groupId>
-        <artifactId>typed.clj.annotator</artifactId>
         <version>{◊typedclojure-current-mvn-version◊}</version>
       </dependency>
       <dependency>

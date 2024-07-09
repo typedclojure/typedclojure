@@ -24,8 +24,6 @@
    :check-top-level chk-cljs/check-top-level
    :unparse-ns (ucljs/cljs-ns)
    ;:runtime-check-expr rt-chk/runtime-check-expr
-   ;:runtime-infer-expr (fn [& args]
-   ;                      (apply @runtime-infer-expr args))
    :eval-out-ast (fn eval-out-ast
                    ([ast] (eval-out-ast ast {}))
                    ([ast opts] (assert nil "TODO eval cljs") nil #_(ana-clj/eval-ast ast opts)))

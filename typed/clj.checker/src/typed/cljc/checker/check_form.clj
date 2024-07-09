@@ -51,10 +51,6 @@
 ;; - :emit-form     function from AST+opts to equivalent form, returned in :out-form entry.
 ;; - :runtime-check-expr    function taking AST and expected type and returns an AST with inserted
 ;;                          runtime checks.
-;; - :runtime-infer-expr    function taking AST and expected type and returns an AST with inserted
-;;                          runtime instrumentation.
-;; - :should-runtime-infer?  If true, instrument this expression for runtime inference.
-;;
 ;;  (From here, copied from clojure.core.typed/check-form-info)
 ;; Keyword arguments
 ;;  Options
@@ -88,9 +84,6 @@
            env
            eval-out-ast 
            runtime-check-expr
-           runtime-infer-expr 
-           should-runtime-infer?
-           instrument-infer-config
            unparse-ns
            analyze-bindings-fn] :as m1}
    form {:keys [expected-ret expected type-provided?
@@ -131,24 +124,6 @@
           file-mapping-atom (atom [])
           should-runtime-check? (and runtime-check-expr
                                      (u/should-runtime-check-ns? *ns*))
-          _ (assert (not (and should-runtime-infer? (not runtime-infer-expr)))
-                    "Missing runtime inference function when inference is forced.")
-          should-runtime-infer? (and runtime-infer-expr
-                                     (or (u/should-runtime-infer-ns? *ns*)
-                                         should-runtime-infer?))
-          ;_ (prn "should-runtime-check?" should-runtime-check?)
-          ;_ (prn "should-runtime-infer?" should-runtime-infer?)
-          ;_ (prn "ns" *ns*)
-          _ (assert (and (not should-runtime-infer?)
-                         (not should-runtime-check?))
-                    "FIXME")
-          #_#_
-          check-expr (or (when should-runtime-infer?
-                           #(binding [vs/*instrument-infer-config* instrument-infer-config]
-                              (runtime-infer-expr %1 %2)))
-                         (when should-runtime-check?
-                           runtime-check-expr)
-                         check-expr)
           terminal-error (atom nil)
           ;_ (prn "before c-ast")
           c-ast (try
