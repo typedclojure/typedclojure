@@ -46,7 +46,6 @@
           <namespaces>
             <namespace>clojure.core.typed</namespace>
             <namespace>!clojure.core.typed.runtime.jvm.configs</namespace>
-            <namespace>!clojure.core.typed.all-envs</namespace>
             <namespace>!clojure.core.typed.rules</namespace>
             <namespace>!io.github.frenchy64.*</namespace>
           </namespaces>
