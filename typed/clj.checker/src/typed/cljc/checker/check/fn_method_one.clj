@@ -14,7 +14,6 @@
             [clojure.core.typed.util-vars :as vs]
             [typed.cljc.analyzer :as ana2]
             [typed.cljc.checker.check-below :as below]
-            [typed.clj.analyzer.passes.beta-reduce :as beta-reduce]
             [typed.clj.checker.analyze-clj :as ana-clj]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.clj.checker.subtype :as sub]

@@ -27,7 +27,6 @@
             [clojure.tools.reader.reader-types :as readers]
             [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]
             [typed.clj.analyzer :as jana2]
-            [typed.clj.analyzer.passes.beta-reduce :as beta-reduce]
             [typed.clj.analyzer.passes.emit-form :as emit-form]
             [typed.clj.analyzer.utils :as jtau]
             [typed.clj.checker.analyze-clj :as ana-clj]

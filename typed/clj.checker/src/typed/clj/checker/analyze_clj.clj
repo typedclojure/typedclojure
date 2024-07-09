@@ -21,7 +21,6 @@
             [clojure.string :as str]
             [typed.clj.analyzer :as jana2]
             [typed.clj.analyzer :as taj]
-            [typed.clj.analyzer.passes.beta-reduce :as beta-reduce]
             [typed.clj.analyzer.passes.emit-form :as emit-form]
             [typed.clj.analyzer.passes.validate :as validate]
             [typed.clj.analyzer.utils :as taj-utils]
@@ -240,14 +239,6 @@
   (let [ns (the-ns (or (-> opt :env :ns)
                        *ns*))]
     (jana2/default-thread-bindings {:ns (ns-name ns)})))
-
-(comment
-  (clojure.pprint/pprint
-    (passes/schedule (conj jana2/default-passes
-                          #'beta-reduce/push-invoke
-                          )
-                    {:debug? true}))
-  )
 
 ;; bindings is an atom that records any side effects during macroexpansion. Useful
 ;; for nREPL middleware.

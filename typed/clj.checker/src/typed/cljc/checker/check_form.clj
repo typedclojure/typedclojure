@@ -16,7 +16,6 @@
             [clojure.core.typed.runtime.jvm.configs :as configs]
             [clojure.core.typed.util-vars :as vs]
             [clojure.repl :as repl]
-            [typed.clj.analyzer.passes.beta-reduce :as beta-reduce]
             [typed.clj.checker.check :as chk]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.cljc.analyzer :as ana]
