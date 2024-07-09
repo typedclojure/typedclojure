@@ -619,12 +619,6 @@
   :compare-self
   {val (fn [v] [(some-> (class v) .getName) v])})
 
-(u/def-type AnyValue []
-  "Any Value"
-  []
-  :methods
-  [p/TCType])
-
 (t/ann -val [t/Any -> Type])
 (def -val Value-maker)
 

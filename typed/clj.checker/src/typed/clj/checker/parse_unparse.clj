@@ -38,7 +38,7 @@
                                         DottedPretype Function Regex RClass TApp
                                         PrimitiveArray DataType Protocol TypeFn Poly
                                         Mu HeterogeneousMap
-                                        CountRange Name Value Top Wildcard TypeOf Unchecked TopFunction B F Result AnyValue
+                                        CountRange Name Value Top Wildcard TypeOf Unchecked TopFunction B F Result
                                         KwArgsSeq KwArgsArray TCError JSNumber JSBoolean SymbolicClosure
                                         CLJSInteger ArrayCLJS JSNominal JSString TCResult AssocType MergeType
                                         GetType HSequential HSet JSUndefined JSNull JSSymbol JSObject
@@ -1948,8 +1948,6 @@
   (unparse-type* [_ opts] (unparse-Name-symbol-in-ns `t/TCError opts))
   Name 
   (unparse-type* [{:keys [id]} opts] (unparse-Name-symbol-in-ns id opts))
-  AnyValue 
-  (unparse-type* [_ opts] (unparse-Name-symbol-in-ns `t/AnyValue opts))
 
   DottedPretype
   (unparse-type* [t opts] (unparse-DottedPretype t false opts))

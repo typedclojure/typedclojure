@@ -38,7 +38,7 @@
                                         GetType JSNumber FnIntersection JSBoolean JSSymbol JSString JSNull JSUndefined
                                         Regex CountRange Instance DataType Result PrimitiveArray TypeFn
                                         Satisfies HSet Value Union Name Unchecked TCError TypeOf
-                                        CLJSInteger Mu TopFunction Function DottedPretype Scope AnyValue JSNominal KwArgs
+                                        CLJSInteger Mu TopFunction Function DottedPretype Scope JSNominal KwArgs
                                         KwArgsSeq HSequential KwArgsArray ArrayCLJS JSObject)))
 
 (set! *warn-on-reflection* true)
@@ -496,7 +496,6 @@
   TCError (subtypeA*-same [s t A opts] A)
   TopKwArgsSeq (subtypeA*-same [s t A opts] A)
   TopFunction (subtypeA*-same [s t A opts] A)
-  AnyValue (subtypeA*-same [s t A opts] A)
   TopHSequential (subtypeA*-same [s t A opts] A)
   JSUndefined (subtypeA*-same [s t A opts] A)
 
@@ -676,7 +675,6 @@
   TypeFn (subtypeA*-for-s [s t A opts] (report-not-subtypes s t))
   DissocType (subtypeA*-for-s [s t A opts] (report-not-subtypes s t))
   TopFunction (subtypeA*-for-s [s t A opts] (report-not-subtypes s t))
-  AnyValue (subtypeA*-for-s [s t A opts] (report-not-subtypes s t))
   KwArgsSeq (subtypeA*-for-s [s t A opts] (report-not-subtypes s t)) ;;TODO
   KwArgsArray (subtypeA*-for-s [s t A opts] (report-not-subtypes s t)) ;;TODO
 

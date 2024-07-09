@@ -26,7 +26,7 @@
                                         Function RClass TApp
                                         PrimitiveArray DataType Protocol TypeFn Poly
                                         Mu HeterogeneousMap KwArgs
-                                        CountRange Name Value Top Wildcard Unchecked TopFunction B F Result AnyValue
+                                        CountRange Name Value Top Wildcard Unchecked TopFunction B F Result
                                         Scope TCError AssocType GetType MergeType Regex HSequential HSet
                                         JSObj TypeOf MatchType Instance Satisfies)
            (typed.cljc.checker.filter_rep FilterSet TypeFilter NotTypeFilter ImpFilter
@@ -246,8 +246,6 @@
   CountRange 
   (frees [t opts] -empty-frees-result)
   Value 
-  (frees [t opts] -empty-frees-result)
-  AnyValue 
   (frees [t opts] -empty-frees-result)
   Top 
   (frees [t opts] -empty-frees-result)

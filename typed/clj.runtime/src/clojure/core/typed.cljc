@@ -174,12 +174,6 @@ for checking namespaces, cf for checking individual forms."}
   Any)
 
 (defspecial
-  ^{:doc "AnyValue contains all Value singleton types"
-    :forms '[AnyValue]
-    ::special-type true}
-  AnyValue)
-
-(defspecial
   ^{:doc "TCError is the type of a type error in the type checker. Use only after
          a type error has been thrown. Only ever use this type in a custom typing rule."
     :forms '[TCError]

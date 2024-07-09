@@ -33,9 +33,6 @@
                    type is inferred as the final return type of the function."
               :forms '[Infer]
               ::special-type true}
-    `t/AnyValue {:doc "AnyValue contains all Value singleton types"
-                 :forms '[AnyValue]
-                 ::special-type true}
     `t/TCError {:doc "TCError is the type of a type error in the type checker. Use only after
                      a type error has been thrown. Only ever use this type in a custom typing rule."
                 :forms '[TCError]
@@ -220,7 +217,7 @@
                                    "Quoted vectors like '[T1 T2] stand for heterogenous vector types. See t/HVec.\n\n"
                                    "Quoted maps like '{:k1 T1 :k2 T2} stand for heterogenous map types. See t/HMap.\n\n"
                                    "A set of special primitive types are identified by qualified symbols.\n"
-                                   "Some are used in a list like (t/Val 1), others stand alone like t/AnyValue.\n"
+                                   "Some are used in a list like (t/Val 1), others stand alone like t/Tyupe.\n"
                                    "See :doc/specials for the full list.\n\n"
                                    "Non-special symbols resolve to type aliases defined by t/defalias or platform-specific types\n"
                                    "like classes.")

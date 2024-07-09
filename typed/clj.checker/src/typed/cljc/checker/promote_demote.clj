@@ -22,11 +22,11 @@
                                         DottedPretype Function RClass TApp
                                         PrimitiveArray DataType Protocol TypeFn Poly
                                         Mu HeterogeneousMap Bounds
-                                        CountRange Name Value Top Wildcard Unchecked TopFunction B F Result AnyValue
+                                        CountRange Name Value Top Wildcard Unchecked TopFunction B F Result
                                         TCError JSNominal
                                         JSString JSBoolean JSNumber CLJSInteger JSObject
                                         ArrayCLJS FunctionCLJS KwArgsSeq HSequential HSet
-                                        AnyValue TopFunction Scope DissocType AssocType MergeType
+                                        TopFunction Scope DissocType AssocType MergeType
                                         GetType JSUndefined JSNull JSSymbol JSObj TypeOf
                                         SymbolicClosure Instance Satisfies)
            (typed.cljc.checker.filter_rep TopFilter BotFilter TypeFilter NotTypeFilter AndFilter OrFilter
@@ -248,7 +248,7 @@
 
 (promote-demote-id B Name Top Wildcard Unchecked TCError CountRange JSString
                    JSBoolean JSNumber JSObject CLJSInteger
-                   FunctionCLJS AnyValue TopFunction JSUndefined
+                   FunctionCLJS TopFunction JSUndefined
                    JSNull JSSymbol TypeOf
                    ;;FIXME ???
                    SymbolicClosure Instance Satisfies)

@@ -775,10 +775,6 @@
              (r/Result? T))
         (cs-gen-Result V X Y S T opts)
 
-        (and (r/Value? S)
-             (r/AnyValue? T))
-        (cr/empty-cset X Y)
-
         ; TODO add :repeat support
         (and (r/HSequential? S)
              (r/RClass? T))
