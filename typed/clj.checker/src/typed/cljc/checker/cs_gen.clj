@@ -468,9 +468,6 @@
                 cs)
             (fail! S T)))
 
-        (r/App? S) (cs-gen V X Y (c/resolve-App S opts) T opts)
-        (r/App? T) (cs-gen V X Y S (c/resolve-App T opts opts))
-
         ;; constrain body to be below T, but don't mention the new vars
         (r/Poly? S)
         (let [nms (c/Poly-fresh-symbols* S)

@@ -38,7 +38,7 @@
                                         GetType JSNumber FnIntersection JSBoolean JSSymbol JSString JSNull JSUndefined
                                         Regex CountRange Instance DataType Result PrimitiveArray TypeFn
                                         Satisfies HSet Value Union Name Unchecked TCError TypeOf
-                                        CLJSInteger Mu TopFunction Function DottedPretype App Scope AnyValue JSNominal KwArgs
+                                        CLJSInteger Mu TopFunction Function DottedPretype Scope AnyValue JSNominal KwArgs
                                         KwArgsSeq HSequential KwArgsArray ArrayCLJS JSObject)))
 
 (set! *warn-on-reflection* true)
@@ -623,11 +623,6 @@
       (subtype-TApp A s t opts)
       unknown-result))
 
-  App
-  (subtypeA*-same
-    [s t A opts]
-    (subtypeA* A (c/resolve-App s opts) t opts))
-
   Union
   (subtypeA*-same [s t A opts]
     (subtype-Union-left A s t opts))
@@ -658,7 +653,6 @@
   (subtypeA*-for-s [s t A opts]))
 
 (extend-protocol SubtypeA*LeftProtocol
-  App (subtypeA*-for-s [s t A opts] (throw (ex-info "TODO SubtypeA*LeftProtocol App" {})))
   ArrayCLJS (subtypeA*-for-s [s t A opts] (throw (ex-info "TODO SubtypeA*LeftProtocol ArrayCLJS" {})))
   Bounds (subtypeA*-for-s [s t A opts] (throw (ex-info "TODO SubtypeA*LeftProtocol Bounds" {})))
   DottedPretype (subtypeA*-for-s [s t A opts] (throw (ex-info "TODO SubtypeA*LeftProtocol DottedPretype" {})))
@@ -1064,12 +1058,6 @@
         (r/Mu? t)
         (let [opts (assoc opts ::sub-current-seen A)]
           (subtypeA* A s (c/unfold t opts) opts))
-
-        (r/App? s)
-        (recur A (c/resolve-App s opts) t opts)
-
-        (r/App? t)
-        (recur A s (c/resolve-App t opts) opts)
 
         (r/Bottom? t)
         (report-not-subtypes s t)

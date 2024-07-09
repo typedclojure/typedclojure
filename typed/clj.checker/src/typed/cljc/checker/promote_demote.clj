@@ -19,7 +19,7 @@
             [typed.cljc.checker.impl-protocols :as p]
             typed.cljc.checker.filter-rep)
   (:import (typed.cljc.checker.type_rep NotType Intersection Union FnIntersection
-                                        DottedPretype Function RClass App TApp
+                                        DottedPretype Function RClass TApp
                                         PrimitiveArray DataType Protocol TypeFn Poly
                                         Mu HeterogeneousMap Bounds
                                         CountRange Name Value Top Wildcard Unchecked TopFunction B F Result AnyValue
@@ -292,12 +292,6 @@
       (update :body #(promote % V))))
 
 (promote-demote TApp
-  [T V]
-  (-> T
-      (update :rator #(promote % V))
-      (update :rands (fn [rands] (mapv #(promote % V) rands)))))
-
-(promote-demote App
   [T V]
   (-> T
       (update :rator #(promote % V))

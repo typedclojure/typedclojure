@@ -35,7 +35,7 @@
             [typed.cljc.runtime.env-utils :as env-utils]
             [typed.cljc.runtime.env :as env])
   (:import (typed.cljc.checker.type_rep NotType Intersection Union FnIntersection
-                                        DottedPretype Function Regex RClass App TApp
+                                        DottedPretype Function Regex RClass TApp
                                         PrimitiveArray DataType Protocol TypeFn Poly
                                         Mu HeterogeneousMap
                                         CountRange Name Value Top Wildcard TypeOf Unchecked TopFunction B F Result AnyValue
@@ -1962,10 +1962,6 @@
       :else (list* (unparse-Name-symbol-in-ns `t/CountRange opts)
                    lower
                    (when upper [upper]))))
-
-  App 
-  (unparse-type* [{:keys [rator rands]} opts]
-    (list* (unparse-type rator opts) (mapv #(unparse-type % opts) rands)))
 
   TApp 
   (unparse-type* [{:keys [rator rands] :as tapp} opts]

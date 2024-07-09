@@ -41,13 +41,13 @@
             typed.cljc.checker.coerce-ann)
   (:import (clojure.lang ASeq)
            java.lang.reflect.Modifier
-           (typed.cljc.checker.type_rep HeterogeneousMap Poly TypeFn TApp App Value
+           (typed.cljc.checker.type_rep HeterogeneousMap Poly TypeFn TApp Value
                                         Union Intersection F Function Mu B KwArgs KwArgsSeq KwArgsArray
                                         RClass Bounds Name Scope CountRange Intersection DataType
                                         JSNominal Protocol GetType HSequential
                                         HSet AssocType TypeOf MergeType
                                         NotType Intersection Union FnIntersection
-                                        DottedPretype Function JSNominal App TApp
+                                        DottedPretype Function JSNominal
                                         PrimitiveArray DataType Satisfies Instance TypeFn Poly
                                         Mu HeterogeneousMap
                                         CountRange Name Value Top Wildcard Unchecked TopFunction B F Result
@@ -1529,11 +1529,6 @@
                        opts)))
     (instantiate-typefn rator rands {:tapp tapp} opts)))
 
-(t/ann ^:no-check resolve-App [App t/Any -> r/Type])
-(defn resolve-App [app opts]
-  {:pre [(r/App? app)]}
-  (resolve-app* (:rator app) (:rands app) opts))
-
 (t/ann ^:no-check resolve-app* [r/Type (t/Seqable r/Type) t/Any -> r/Type])
 (defn resolve-app* [rator rands opts]
   (let [rator (fully-resolve-type rator opts)]
@@ -2526,7 +2521,6 @@
         t t*]
     (cond
       (r/Name? t) (fnd-bnd (resolve-Name t opts))
-      (r/App? t) (fnd-bnd (resolve-App t opts))
       (r/TApp? t) (fnd-bnd (resolve-TApp t opts))
       (r/Mu? t) (let [name (Mu-fresh-symbol* t)
                       opts (free-ops/with-bounded-frees opts {(r/make-F name) r/no-bounds})
@@ -2718,7 +2712,6 @@
 (t/tc-ignore
   (extend Name p/IResolve {:-resolve resolve-Name})
   (extend Mu p/IResolve {:-resolve unfold})
-  (extend App p/IResolve {:-resolve resolve-App})
   (extend TApp p/IResolve {:-resolve resolve-TApp})
   (extend GetType p/IResolve {:-resolve resolve-Get})
   (extend MergeType p/IResolve {:-resolve resolve-Merge})
@@ -2730,7 +2723,6 @@
   (let [T (fn [_ _] true)
         F (fn [_ _] false)]
     (extend Name p/IRequiresResolving {:-requires-resolving? T})
-    (extend App p/IRequiresResolving {:-requires-resolving? T})
     (extend TApp p/IRequiresResolving {:-requires-resolving? (fn [ty opts]
                                                                (not (r/F? (fully-resolve-type (:rator ty) opts))))})
     (extend GetType p/IRequiresResolving {:-requires-resolving? Get-requires-resolving?})
@@ -2846,12 +2838,6 @@
                        (fn [ty]
                          (r/update-RClass ty
                            [:poly? mapv!= type-rec])))
-
-(add-default-fold-case App
-                       (fn [ty]
-                         (r/update-App ty
-                           [:rator type-rec]
-                           [:rands mapv!= type-rec])))
 
 (add-default-fold-case TApp
                        (fn [ty]

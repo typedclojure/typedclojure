@@ -23,7 +23,7 @@
             [typed.cljc.checker.declared-kind-env :as kinds]
             [typed.cljc.runtime.env :as env])
   (:import (typed.cljc.checker.type_rep NotType Intersection Union FnIntersection Bounds
-                                        Function RClass App TApp
+                                        Function RClass TApp
                                         PrimitiveArray DataType Protocol TypeFn Poly
                                         Mu HeterogeneousMap KwArgs
                                         CountRange Name Value Top Wildcard Unchecked TopFunction B F Result AnyValue
@@ -276,11 +276,6 @@
                                            :invariant (invariant-variances fr))))
                                      args
                                      varis)))
-
-  App
-  (frees
-    [{:keys [rator rands]} opts]
-    (apply combine-freesresults (map #(frees % opts) (cons rator rands))))
 
   TApp
   (frees

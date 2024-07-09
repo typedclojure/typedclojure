@@ -586,16 +586,6 @@
   :compare-self
   {rands vec})
 
-(u/def-type App [rator :- Type,
-                 rands :- (t/Seqable Type)]
-  "An application of a polymorphic type to type arguments"
-  [(Type? rator)
-   (every? Type? rands)]
-  :methods
-  [p/TCType]
-  :compare-self
-  {rands vec})
-
 (u/def-type Mu [scope :- p/IScope]
   "A recursive type containing one bound variable, itself"
   [(Scope? scope)]
