@@ -16,7 +16,6 @@
             [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.errors :as err]
-            [clojure.core.typed.rules :as rules]
             [clojure.core.typed.runtime.jvm.configs :as configs]
             [clojure.core.typed.special-form :as spec]
             [clojure.core.typed.util-vars :as vs]
@@ -900,129 +899,6 @@
     ; (quote {...})
     (second opts)))
 
-(def typing-rule-expr-kw :ret)
-
-(defn invoke-typing-rule
-  [vsym {:keys [env] :as expr} expected {::check/keys [check-expr] :as opts}]
-  ;(prn "invoke-typing-rule" vsym)
-  (let [unparse-type-verbose #(prs/unparse-type % (assoc opts ::vs/verbose-types false))
-        subtype? (fn [s t]
-                   (let [s (prs/parse-type s opts)
-                         t (prs/parse-type t opts)]
-                     (sub/subtype? s t opts)))
-        solve (fn [t q]
-                {:pre [(map? t)
-                       (contains? t :type)]
-                 :post [((some-fn nil? map?) %)]}
-                (let [;; atm only support query = (All [x+] [in :-> out])
-                      query (prs/parse-type q opts)
-                      _ (assert (r/Poly? query))
-                      names (c/Poly-fresh-symbols* query)
-                      bbnds (c/Poly-bbnds* names query opts)
-                      body (c/Poly-body* names query opts)
-                      _ (assert (r/FnIntersection? body))
-                      _ (assert (= 1 (count (:types body))))
-                      arity (first (:types body))
-                      _ (assert (r/Function? arity))
-                      _ (assert (= 1 (count (:dom arity))))
-                      _ (assert (= :fixed (:kind arity)))
-                      _ (assert (= (fo/-simple-filter) (:fl (:rng arity))))
-                      _ (assert (= obj/-empty (:o (:rng arity))))
-
-                      lhs (prs/parse-type (:type t) opts)
-                      rhs (first (:dom arity))
-                      out (:t (:rng arity))
-                      substitution (cgen/handle-failure
-                                     (cgen/infer
-                                       (zipmap names bbnds)
-                                       {}
-                                       [lhs]
-                                       [rhs]
-                                       out
-                                       opts))]
-                  (when substitution
-                    {:type (unparse-type-verbose
-                             (subst/subst-all substitution out opts))})))
-        #_#_
-        solve-subtype (fn [vs f]
-                        {:pre [(apply distinct? vs)
-                               (every? symbol? vs)]}
-                        (let [gvs (map gensym vs)
-                              gvs->vs (zipmap gvs vs)
-                              syns (apply f gvs)
-                              [lhs rhs] (mapv #(prs/parse-type % (tvar-env/with-extended-tvars opts gvs)) syns)
-                              substitution
-                              (cgen/handle-failure
-                                (cgen/infer
-                                  (zipmap gvs (repeat r/no-bounds))
-                                  {}
-                                  [lhs]
-                                  [rhs]
-                                  r/-any
-                                  opts))]
-                          (when substitution
-                            (into {}
-                                  (comp (filter (every-pred (comp (set gvs) key)
-                                                            (comp crep/t-subst? val)))
-                                        (map (fn [[k v]]
-                                               [(gvs->vs k)
-                                                (unparse-type-verbose (:type v))])))
-                                  substitution))))
-        rule-args {:vsym vsym
-                   :opts (typing-rule-opts expr)
-                   :expr (typing-rule-expr-kw expr)
-                   :locals (:locals env)
-                   :expected (some-> expected (cu/TCResult->map opts))
-                   ;:uniquify-local prs/uniquify-local
-                   :maybe-check-expected (fn [actual expected]
-                                           {:pre [(map? actual)
-                                                  ((some-fn nil? map?) expected)]
-                                            :post [(map? %)]}
-                                           (->
-                                             (below/maybe-check-below
-                                               (cu/map->TCResult actual)
-                                               (cu/maybe-map->TCResult expected)
-                                               opts)
-                                             (cu/TCResult->map opts)))
-                   :check (fn check-fn
-                            ([expr] (check-fn expr nil))
-                            ([expr expected]
-                             {:pre [((some-fn nil? map?) expected)]}
-                             (let [ret (some-> expected cu/map->TCResult)
-                                   cexpr (check-expr expr ret opts)]
-                               (assoc cexpr ::rules/expr-type (cu/TCResult->map (u/expr-type cexpr) opts)))))
-                   ;:solve-subtype solve-subtype
-                   :solve solve
-                   :subtype? subtype?
-                   :emit-form #(ast-u/emit-form-fn % opts)
-                   :abbreviate-type (fn [t]
-                                      (let [m (prs/parse-type t opts)]
-                                        (prs/unparse-type m (assoc opts ::vs/verbose-types false))))
-                   :delayed-error (fn [s opt]
-                                    (let [opt (-> opt
-                                                  (update :expected cu/maybe-map->TCResult)
-                                                  (cond->
-                                                    (contains? opt :actual)
-                                                    (update :actual prs/parse-type opt)))]
-                                      (err/tc-delayed-error s opt opts)))
-                   :expected-error (fn [s t opt]
-                                     (let [s (prs/parse-type s opts)
-                                           t (cu/map->TCResult t)
-                                           opt (update opt :expected cu/map->TCResult)]
-                                       (cu/expected-error s t opt opts)))
-                   :internal-error (fn [s opt]
-                                     ;; TODO args
-                                     (let [opt (update opt :expected cu/maybe-map->TCResult)]
-                                       (err/int-error s opt opts)))}
-
-        {out-expr-type ::rules/expr-type :as cexpr} (rules/typing-rule rule-args)
-        out-tcresult (cu/map->TCResult out-expr-type)]
-    (-> expr
-        (assoc u/expr-type out-tcresult
-               typing-rule-expr-kw (-> cexpr
-                                       (dissoc ::rules/expr-type)
-                                       (assoc u/expr-type out-tcresult))))))
-
 ;=
 (defmethod -invoke-special 'clojure.core/=
   [{:keys [args] :as expr} expected {::check/keys [check-expr] :as opts}]
@@ -1613,7 +1489,11 @@
 
 (defmethod internal-special-form :default
   [expr expected opts]
-  (invoke-typing-rule (coerce/kw->symbol (u/internal-dispatch-val expr)) expr expected (assoc opts ::vs/current-expr expr)))
+  (err/tc-delayed-error
+    "Unknown special form"
+    {:return (assoc expr
+                    u/expr-type (cu/error-ret expected))}
+    opts))
 
 (defmethod -check ::jana2/monitor-enter [expr expected opts] (monitor/check-monitor expr expected opts))
 (defmethod -check ::jana2/monitor-exit  [expr expected opts] (monitor/check-monitor expr expected opts))

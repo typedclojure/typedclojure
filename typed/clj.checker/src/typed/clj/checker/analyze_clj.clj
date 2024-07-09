@@ -15,7 +15,6 @@
             [clojure.core.typed.contract-utils-platform-specific :as plat-con]
             [clojure.core.typed.errors :as err]
             [clojure.core.typed.expand :as expand]
-            [clojure.core.typed.rules :as rules]
             [clojure.core.typed.special-form :as spec]
             [clojure.core.typed.util-vars :as vs]
             [clojure.pprint :as pp]
