@@ -17,7 +17,6 @@
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.utils :as u]))
 
-;; TODO clojure.core.typed.expand/expand-ann-form has ideas on improving error msgs
 ;; TODO move to defuspecial
 (defn -unanalyzed-special__ann-form
   [{[_ body tsyn :as form] :form :keys [env] :as expr} expected {::check/keys [check-expr] :as opts}]

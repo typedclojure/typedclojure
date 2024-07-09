@@ -6,7 +6,6 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-;; TODO clojure.core.typed.expand/tc-ignore-typing-rule has ideas on improving error msgs
 (ns ^:no-doc typed.clj.ext.clojure.core.typed__tc-ignore
   "Typing rules for clojure.core.typed/tc-ignore"
   (:require [typed.cljc.checker.check.ignore :as ignore]

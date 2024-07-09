@@ -137,7 +137,6 @@
     (-> res
         (update :expanded-bindings ext-let/pad-vector args-syn))))
 
-;; see also clojure.core.typed.expand
 (defuspecial defuspecial__for
   "defuspecial implementation for clojure.core/for"
   [{ana-env :env :keys [form] :as expr} expected {::check/keys [check-expr] :as opts}]
