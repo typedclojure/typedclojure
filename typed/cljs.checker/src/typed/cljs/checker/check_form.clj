@@ -29,7 +29,6 @@
    :eval-out-ast (fn eval-out-ast
                    ([ast] (eval-out-ast ast {}))
                    ([ast opts] (assert nil "TODO eval cljs") nil #_(ana-clj/eval-ast ast opts)))
-   :custom-expansions? true
    :emit-form ast-u/emit-form-fn
    :check-form-info chk-form2/check-form-info
    :check-form* chk-form2/check-form*

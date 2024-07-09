@@ -53,8 +53,7 @@
 ;[MethodExpr Function -> {:ftype Function :cmethod Expr}]
 (defn check-fn-method1 [method {:keys [dom rest drest kws prest pdot] :as expected}
                         {:keys [recur-target-fn] :as opt}
-                        {::vs/keys [custom-expansions]
-                         ::check/keys [check-expr] :as opts}]
+                        {::check/keys [check-expr] :as opts}]
   {:pre [(r/Function? expected)]
    :post [(r/Function? (:ftype %))
           (-> % :cmethod :clojure.core.typed/ftype r/Function?)

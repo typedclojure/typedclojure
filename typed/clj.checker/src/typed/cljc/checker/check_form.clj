@@ -55,7 +55,6 @@
 ;; - :runtime-infer-expr    function taking AST and expected type and returns an AST with inserted
 ;;                          runtime instrumentation.
 ;; - :should-runtime-infer?  If true, instrument this expression for runtime inference.
-;; - :custom-expansions?     If true, we are using custom expansions to type check forms.
 ;;
 ;;  (From here, copied from clojure.core.typed/check-form-info)
 ;; Keyword arguments
@@ -86,7 +85,6 @@
 ;;                     added as a dependency.
 (defn check-form-info
   [{:keys [check-top-level 
-           custom-expansions?
            emit-form 
            env
            eval-out-ast 
@@ -117,13 +115,11 @@
       :cljs @*register-cljs-anns)
     (let [delayed-errors (err/-init-delayed-errors)
           opts (-> opts
-                   ;; custom expansions might not even evaluate
-                   (assoc ::vs/can-rewrite (not custom-expansions?))
+                   (assoc ::vs/can-rewrite true)
                    (assoc ::vs/lexical-env (lex-env/init-lexical-env))
                    (assoc ::vs/already-checked (atom #{}))
                    (assoc ::vs/delayed-errors delayed-errors)
                    (assoc ::prs/parse-type-in-ns unparse-ns)
-                   (assoc ::vs/custom-expansions custom-expansions?)
                    (assoc ::vs/check-config check-config)
                    (assoc ::vs/verbose-types verbose-types)
                    (assoc ::vs/trace trace)

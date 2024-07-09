@@ -1229,15 +1229,6 @@
     (err/int-error (str "'first' accepts 1 argument, found "
                         (count args))
                    opts))
-  #_
-  (when (::vs/custom-expansions opts)
-    (let [[coll :as cargs] (mapv #(check-expr % nil opts) args)
-          ct (r/ret-t (u/expr-type coll))
-          fres (first-result ct)]
-      (when fres
-        (assoc expr
-               :args cargs
-               u/expr-type (r/Result->TCResult fres)))))
   nil)
 
 ;assoc
@@ -1899,7 +1890,7 @@
   fully analyzed core.typed.analyzer AST node (ie., containing no :unanalyzed nodes)
   with a u/expr-type entry giving its TCResult type, and a :result entry
   holding its evaluation result."
-  ([form expected {:keys [env] :as opt} {::vs/keys [check-config custom-expansions] :as opts}]
+  ([form expected {:keys [env] :as opt} {::vs/keys [check-config] :as opts}]
    ;(prn "check-top-level" form)
    ;(prn "*ns*" *ns*)
    (let [nsym (or (:ns env) (::prs/parse-type-in-ns opts))
@@ -1953,9 +1944,6 @@
                         ;; reify* also imports a class name, but it's gensym'd.
                         (assoc ::jana2/parse-deftype-with-existing-class true)))
                   (assoc ::ana2/macroexpand-1 ana-clj/macroexpand-1)
-                  (update ::ana2/scheduled-passes #(if custom-expansions
-                                                     ana-clj/scheduled-passes-for-custom-expansions
-                                                     %))
                   (env/ensure (jana2/global-env)))]
      (with-bindings (dissoc (ana-clj/thread-bindings {} opts) #'*ns*) ; *ns* is managed by higher-level ops like check-ns1
        (-> form

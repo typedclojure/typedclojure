@@ -103,14 +103,6 @@
   (and (boolean ns-form)
        (not (ignore-ns? ns-form opts))))
 
-#_
-(defn should-custom-expand-ns-form?
-  [ns-form opts]
-  {:post [(boolean? %)]}
-  (let [m (ns-meta ns-form opts)]
-    (-> m :core.typed :experimental
-        (contains? :custom-expansions))))
-
 (defn should-check-ns?
   "Returns true if the given namespace should be type checked"
   [nsym opts]

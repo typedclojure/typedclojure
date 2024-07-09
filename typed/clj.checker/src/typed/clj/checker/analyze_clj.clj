@@ -14,7 +14,6 @@
             [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.contract-utils-platform-specific :as plat-con]
             [clojure.core.typed.errors :as err]
-            [clojure.core.typed.expand :as expand]
             [clojure.core.typed.special-form :as spec]
             [clojure.core.typed.util-vars :as vs]
             [clojure.pprint :as pp]
@@ -67,37 +66,10 @@
                      (let ~(vec (interleave bs gs))
                        ~@body)))))))})
 
-(defn custom-expansion-opts [env opts]
-  (let [analyze (fn [form & [env1]]
-                  (ana2/run-passes (ana2/analyze-form form (or env1 env)) opts))]
-    {:internal-error (fn [s & [aopts]]
-                       ;; TODO aopts (line numbers, blame form etc.)
-                       (let [;; can't access check.utils ns from here (circular deps)
-                             #_#_aopts (update aopts :expected cu/maybe-map->TCResult)]
-                         (err/int-error s aopts opts)))
-     :splice-seqable-form (fn [form & [env1]]
-                            (some->> (beta-reduce/splice-seqable-expr (analyze form (or env1 env)))
-                                     (mapv (fn [e]
-                                             (let [form (emit-form/emit-form (:expr e) opts)]
-                                               (-> e
-                                                   (dissoc :expr)
-                                                   (assoc :form form)))))))
-     :analyze-env env
-     :analyze analyze
-     :emit-form #(emit-form/emit-form % opts)}))
-
 (t/ann ^:no-check typed-macro-lookup [t/Any t/Any t/Any :-> t/Any])
-(defn typed-macro-lookup [var env {::vs/keys [custom-expansions] :as opts}]
+(defn typed-macro-lookup [var env opts]
   {:post [(ifn? %)]}
-  (or (when custom-expansions
-        (let [vsym (coerce/var->symbol var)]
-          (when (expand/custom-expansion? vsym)
-            (fn [form locals & _args_]
-              (expand/expand-macro form 
-                                   (merge (custom-expansion-opts env opts)
-                                          {:vsym vsym
-                                           :locals locals}))))))
-      (get typed-macros var)
+  (or (get typed-macros var)
       var))
 
 ;; copied from tools.analyzer.jvm to insert `*typed-macros*`
@@ -106,7 +78,7 @@
   "If form represents a macro form or an inlinable function, returns its expansion,
    else returns form."
   ;([form] (macroexpand-1 form (taj/empty-env)))
-  ([form env {::vs/keys [custom-expansions] :as opts}]
+  ([form env opts]
    ;(prn "macroexpand-1" form)
    (let [opts (env/ensure opts (jana2/global-env))] 
      (cond
@@ -119,20 +91,10 @@
                  local? (-> env :locals (get op))
                  macro? (and (not local?) (:macro m)) ;; locals shadow macros
                  inline-arities-f (:inline-arities m)
-                 ;; disable :inline with custom expansions to avoid arity errors
-                 ;; in symbolic execution.
-                 inline? (if custom-expansions
-                           (when (and (not local?) (var? v))
-                             (let [vsym (coerce/var->symbol v)]
-                               (when (expand/custom-inline? vsym)
-                                 (fn [& _args_]
-                                   (expand/expand-inline form
-                                                         (merge (custom-expansion-opts env opts)
-                                                                {:vsym vsym}))))))
-                           (and (not local?)
-                                (or (not inline-arities-f)
-                                    (inline-arities-f (count args)))
-                                (:inline m)))
+                 inline? (and (not local?)
+                              (or (not inline-arities-f)
+                                  (inline-arities-f (count args)))
+                              (:inline m))
                  t (:tag m)]
              (cond
 
@@ -273,30 +235,11 @@
     ast))
 ;========================
 
-(declare scheduled-passes-for-custom-expansions)
-
 ;; (All [x :..] [-> '{(Var x) x ...})])
 (defn thread-bindings [opt {::vs/keys [check-config] :as opts}]
   (let [ns (the-ns (or (-> opt :env :ns)
                        *ns*))]
     (jana2/default-thread-bindings {:ns (ns-name ns)})))
-
-(defn will-custom-expand? [form env {::vs/keys [custom-expansions] :as opts}]
-  (boolean
-    (when custom-expansions
-      (when (seq? form)
-        (let [[op & args] form]
-          (when-not (taj/specials op)
-            (let [v (ana2/resolve-sym op env opts)
-                  m (meta v)
-                  local? (-> env :locals (get op))
-                  macro? (and (not local?) (:macro m)) ;; locals shadow macros
-                  vsym (when (var? v)
-                         (coerce/var->symbol v))]
-              (or (when (and (not local?) vsym)
-                    (expand/custom-inline? vsym))
-                  (when (and macro? vsym)
-                    (expand/custom-expansion? vsym))))))))))
 
 (comment
   (clojure.pprint/pprint
@@ -305,13 +248,6 @@
                           )
                     {:debug? true}))
   )
-
-(let [d (delay
-          (passes/schedule (conj jana2/default-passes
-                                 ;#'beta-reduce/push-invoke
-                                 )))]
-  (defn scheduled-passes-for-custom-expansions [opts]
-    @d))
 
 ;; bindings is an atom that records any side effects during macroexpansion. Useful
 ;; for nREPL middleware.
@@ -343,10 +279,6 @@
                       :additional-gilardi-condition 
                       (fn [mform env]
                         (not (special-form? mform)))
-                      :stop-gildardi-check 
-                      ;; cut off custom expansions to preserve :original-form's
-                      (fn [mform env]
-                        (will-custom-expand? mform env opts))
                       ;; propagate inner types to outer `do`
                       :annotate-do
                       (fn [a _ ret]
@@ -373,13 +305,9 @@
 (defn eval' [frm]
   (. clojure.lang.Compiler (eval frm)))
 
-(defn eval-ast [ast {::vs/keys [custom-expansions] :as opts}]
+(defn eval-ast [ast opts]
   ;; based on jvm/analyze+eval
-  (let [; FIXME don't allow mixing of runtime inference and custom expansions,
-        ; since we want to evaluate the modified AST in runtime inference.
-        frm (if custom-expansions
-              (:original-form opts)
-              (emit-form/emit-form ast opts))
+  (let [frm (emit-form/emit-form ast opts)
         ;_ (prn "form" frm)
         #_#_
         _ (binding [;*print-meta* true
