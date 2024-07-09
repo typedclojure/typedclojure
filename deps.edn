@@ -58,7 +58,6 @@
     "typed/clj.checker/test-resources"
     "typed/clj.lang/test"
     "typed/clj.reader/test"
-    "typed/clj.refactor/test"
     "typed/clj.runtime/test"
     "typed/clj.spec/test"
     "typed/cljc.analyzer/test"
@@ -80,7 +79,6 @@
      "typed/clj.checker/src"
      "typed/clj.lang/src"
      "typed/clj.reader/src"
-     "typed/clj.refactor/src"
      "typed/clj.runtime/resources"
      "typed/clj.runtime/src"
      "typed/clj.spec/src"
@@ -98,7 +96,6 @@
      "typed/clj.checker/src"
      "typed/clj.lang/src"
      "typed/clj.reader/src"
-     "typed/clj.refactor/src"
      "typed/clj.runtime/resources"
      "typed/clj.runtime/src"
      "typed/clj.spec/src"
@@ -116,7 +113,6 @@
      "typed/clj.checker/test-resources"
      "typed/clj.lang/test"
      "typed/clj.reader/test"
-     "typed/clj.refactor/test"
      "typed/clj.runtime/test"
      "typed/clj.spec/test"
      "typed/cljc.analyzer/test"
@@ -133,7 +129,6 @@
      "typed/clj.checker/src"
      "typed/clj.lang/src"
      "typed/clj.reader/src"
-     "typed/clj.refactor/src"
      "typed/clj.runtime/resources"
      "typed/clj.runtime/src"
      "typed/clj.spec/src"
@@ -150,7 +145,6 @@
      "typed/clj.checker/test"
      "typed/clj.lang/test"
      "typed/clj.reader/test"
-     "typed/clj.refactor/test"
      "typed/clj.runtime/test"
      "typed/clj.spec/test"
      "typed/cljc.analyzer/test"
@@ -183,8 +177,6 @@
   {:deps/manifest :deps, :local/root "typed/lib.spec.alpha"},
   org.typedclojure/typed.lib.clojure
   {:deps/manifest :deps, :local/root "typed/lib.clojure"},
-  org.typedclojure/typed.clj.refactor
-  {:deps/manifest :deps, :local/root "typed/clj.refactor"},
   org.typedclojure/typed.clj.spec
   {:deps/manifest :deps, :local/root "typed/clj.spec"},
   org.typedclojure/typed.cljs.analyzer

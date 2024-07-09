@@ -71,7 +71,6 @@ See modules for specific version coordinates:
 * [typed.clj.runtime](typed/clj.runtime/README.md): JVM Runtime dependencies
 * [typed.clj.analyzer](typed/clj.analyzer/README.md): Analyzer for JVM Clojure
 * [typed.clj.annotator](typed/clj.annotator/README.md): Automatic annotator
-* [typed.clj.refactor](typed/clj.refactor/README.md): Refactoring for JVM Clojure (unreleased)
 * [typed.clj.reader](typed/clj.reader/README.md): Reader for JVM Clojure (unreleased)
 * [typed.clj.lang](typed/clj.lang/README.md): Extensible languages
 * [typed.clj.spec](typed/clj.spec/README.md): Type-like specs.
