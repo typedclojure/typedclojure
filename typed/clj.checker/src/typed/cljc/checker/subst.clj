@@ -16,35 +16,43 @@
             [typed.cljc.checker.filter-rep :as fl]
             [typed.cljc.checker.filter-ops :as fo]
             [typed.cljc.checker.object-rep :as orep]
+            [typed.cljc.runtime.perf-utils :refer [reduce2]]
             [typed.clj.checker.assoc-utils :as assoc-u])
   (:import (typed.cljc.checker.type_rep F Function HSequential AssocType)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Variable substitution
 
-(f/def-derived-fold ISubstitute substitute* [images names name->pos recur?])
-
-(declare substitute-many)
+(f/def-derived-fold ISubstitute substitute* [image name])
 
 (f/add-fold-case
-  ISubstitute substitute*
-  F
-  (fn [f images names name->pos recur?]
-    (if-some [i (name->pos (:name f))]
-      (cond-> (nth images i)
-        recur? (substitute-many (subvec images i) (subvec names i) opts))
-      f)))
+ ISubstitute substitute*
+ F
+ (fn [f image name]
+   (if (= (:name f) name)
+     image
+     f)))
 
 (t/ann ^:no-check substitute-many [r/Type (t/Seqable r/Type) (t/Seqable t/Sym) t/Any -> r/Type])
-(defn substitute-many [target images names opts]
-  (let [images (vec images)
-        names (vec names)]
-    (assert (= (count images) (count names)) [names images])
-    (cond-> target
-      (seq images) (call-substitute* opts {:recur? true
-                                           :images images
-                                           :names names
-                                           :name->pos (zipmap names (range))}))))
+(defn substitute-many
+  ([target images names opts]
+   (substitute-many target images names opts true))
+  ([target images names opts recur?]
+   (let [images (vec images)
+         names (vec names)]
+     (assert (= (count images) (count names)) [names images])
+     ;; First, recursively try to substitute F's in images themselves.
+     (let [images (if recur?
+                    (reduce (fn [images i]
+                              (update images i
+                                      #(substitute-many % images names opts false)))
+                            images
+                            (range (count images)))
+                    images)]
+       (reduce2 (fn [target image name]
+                  (call-substitute* target opts {:image image
+                                                 :name name}))
+                target images names)))))
 
 (t/ann ^:no-check substitute [r/Type t/Sym r/Type t/Any -> r/Type])
 (defn substitute [image name target opts]
@@ -52,7 +60,7 @@
          (symbol? name)
          (r/AnyType? target)]
    :post [(r/AnyType? %)]}
-  (substitute-many target [image] [name] opts))
+  (call-substitute* target opts {:image image, :name name}))
 
 (declare substitute-dots substitute-dotted)
 
