@@ -27,8 +27,8 @@
 (f/add-fold-case
   ISubstituteMany substitute-many*
   F
-  (fn [f name->image]
-    (name->image (:name f) f)))
+  (fn [^F f name->image]
+    (name->image (.-name f) f)))
 
 (t/ann ^:no-check substitute-many [r/Type (t/Seqable r/Type) (t/Seqable t/Sym) t/Any -> r/Type])
 (defn substitute-many [target images names opts]
@@ -41,8 +41,8 @@
 (f/add-fold-case
  ISubstitute substitute*
  F
- (fn [f image name]
-   (if (= (:name f) name)
+ (fn [^F f image name]
+   (if (= (.-name f) name)
      image
      f)))
 
