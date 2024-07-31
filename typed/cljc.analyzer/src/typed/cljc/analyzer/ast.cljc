@@ -27,6 +27,7 @@
   (when children
     (mapv #(find ast %) children)))
 
+;; note: typed.cljc.analyzer.passes.uniquify has an optimization based on this impl
 (defn children
   "Return a vector of the children expression of the AST node, if it has any.
    The children expressions are kept in order and flattened so that the returning
