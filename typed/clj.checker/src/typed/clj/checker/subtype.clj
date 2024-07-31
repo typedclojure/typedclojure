@@ -630,6 +630,12 @@
   (subtypeA*-same [s t A opts]
     (subtype-Intersection-right A s t opts))
 
+  ;; TODO here we might want to take advantage of the locally nameless representation of Mu's
+  ;; to avoid having to instantiate them.
+  ;; i.e., the fact that (Mu (Scope (Vec (B 0)))) <: (Mu (Scope (Seqable (B 0)))) can be
+  ;; reduced to (Scope (Vec (B 0))) :< (Scope (Seqable (B 0)))
+  ;; but we must not cache bound variables outside of this call!
+  ;; in fact, I'm not sure if it's even safe to have any caches at all with B's floating about.
   Mu
   (subtypeA*-same [s t A opts]
     (subtype-Mu-left A s t opts))
@@ -862,6 +868,7 @@
       (subtype-heterogeneous-map A s t opts)
       (subtypeA* A (c/upcast-hmap s opts) t opts)))
 
+  ;; TODO see Mu Mu case on alpha-equivalent types
   Poly
   (subtypeA*-for-s [s ^Poly t A opts]
     (if (r/-Poly? t)
