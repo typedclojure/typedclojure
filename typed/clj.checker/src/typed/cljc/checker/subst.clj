@@ -16,12 +16,25 @@
             [typed.cljc.checker.filter-rep :as fl]
             [typed.cljc.checker.filter-ops :as fo]
             [typed.cljc.checker.object-rep :as orep]
-            [typed.cljc.runtime.perf-utils :refer [reduce2]]
             [typed.clj.checker.assoc-utils :as assoc-u])
   (:import (typed.cljc.checker.type_rep F Function HSequential AssocType)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Variable substitution
+
+(f/def-derived-fold ISubstituteMany substitute-many* [name->image])
+
+(f/add-fold-case
+  ISubstituteMany substitute-many*
+  F
+  (fn [f name->image]
+    (name->image (:name f) f)))
+
+(t/ann ^:no-check substitute-many [r/Type (t/Seqable r/Type) (t/Seqable t/Sym) t/Any -> r/Type])
+(defn substitute-many [target images names opts]
+  (assert (= (count images) (count names)) [names images])
+  (cond-> target
+    (seq images) (call-substitute-many* opts {:name->image (zipmap names images)})))
 
 (f/def-derived-fold ISubstitute substitute* [image name])
 
@@ -32,27 +45,6 @@
    (if (= (:name f) name)
      image
      f)))
-
-(t/ann ^:no-check substitute-many [r/Type (t/Seqable r/Type) (t/Seqable t/Sym) t/Any -> r/Type])
-(defn substitute-many
-  ([target images names opts]
-   (substitute-many target images names opts true))
-  ([target images names opts recur?]
-   (let [images (vec images)
-         names (vec names)]
-     (assert (= (count images) (count names)) [names images])
-     ;; First, recursively try to substitute F's in images themselves.
-     (let [images (if recur?
-                    (reduce (fn [images i]
-                              (update images i
-                                      #(substitute-many % images names opts false)))
-                            images
-                            (range (count images)))
-                    images)]
-       (reduce2 (fn [target image name]
-                  (call-substitute* target opts {:image image
-                                                 :name name}))
-                target images names)))))
 
 (t/ann ^:no-check substitute [r/Type t/Sym r/Type t/Any -> r/Type])
 (defn substitute [image name target opts]
