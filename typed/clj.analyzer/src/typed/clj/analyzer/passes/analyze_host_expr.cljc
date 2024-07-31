@@ -163,53 +163,55 @@
    A :host-interop node represents either an instance-field or a no-arg instance-method. "
   {:pass-info {:walk :post :depends #{}}}
   [ast opts]
-  (case (:op ast)
-    (:host-interop :host-call :host-field)
-    (let [target (:target ast)
-          tag (:tag ast)
-          env (:env ast)
-          target (if-let [the-class (and (= :local (:op target))
-                                         (u/maybe-class-literal (:form target)))]
-                   (merge target
-                          (assoc (ana/analyze-const the-class env :class opts)
-                            :tag   #?(:cljr Type :default Class)
-                            :o-tag #?(:cljr Type :default Class)))
-                   target)
-          class? (and (= :const (:op target))
-                      (= :class (:type target))
-                      (:form target))
-          target-type (if class? :static :instance)]
-      (merge' (dissoc ast :assignable? :target :args :children)
-              (case (:op ast)
+  (let [op (:op ast)]
+    (case op
+      (:host-interop :host-call :host-field)
+      (let [target (:target ast)
+            tag (:tag ast)
+            env (:env ast)
+            target-op (:op target)
+            target (if-let [the-class (and (= :local target-op)
+                                           (u/maybe-class-literal (:form target)))]
+                     (merge target
+                            (assoc (ana/analyze-const the-class env :class opts)
+                              :tag   #?(:cljr Type :default Class)
+                              :o-tag #?(:cljr Type :default Class)))
+                     target)
+            class? (and (= :const target-op)
+                        (= :class (:type target))
+                        (:form target))
+            target-type (if class? :static :instance)]
+        (merge' (dissoc ast :assignable? :target :args :children)
+                (case op
 
-                :host-call
-                (analyze-host-call target-type (:method ast)
-                                   (:args ast) target class? env)
+                  :host-call
+                  (analyze-host-call target-type (:method ast)
+                                     (:args ast) target class? env)
 
-                :host-field
-                (analyze-host-field target-type (:field ast)
-                                    target (or class? (:tag target)) env)
+                  :host-field
+                  (analyze-host-field target-type (:field ast)
+                                      target (or class? (:tag target)) env)
 
-                :host-interop
-                (-analyze-host-expr target-type (:m-or-f ast)
-                                    target class? env))
-              (when tag
-                {:tag tag})))
-    :var
-    (let [form (:form ast)
-          env (:env ast)]
-      (if-let [the-class (and (not (namespace form))
-                              (pos? (#?(:cljr .IndexOf :default .indexOf) (str form) "."))
-                              (u/maybe-class-literal form))]
-        (assoc (ana/analyze-const the-class env :class opts) :form form)
-        ast))
+                  :host-interop
+                  (-analyze-host-expr target-type (:m-or-f ast)
+                                      target class? env))
+                (when tag
+                  {:tag tag})))
+      :var
+      (let [form (:form ast)
+            env (:env ast)]
+        (if-let [the-class (and (not (namespace form))
+                                (pos? (#?(:cljr .IndexOf :default .indexOf) (str form) "."))
+                                (u/maybe-class-literal form))]
+          (assoc (ana/analyze-const the-class env :class opts) :form form)
+          ast))
 
-    :maybe-class
-    (let [form (:form ast)
-          env (:env ast)
-          class (:class ast)]
-     (if-let [the-class (u/maybe-class-literal class)]
-       (assoc (ana/analyze-const the-class env :class opts) :form form)
-       ast))
+      :maybe-class
+      (let [form (:form ast)
+            env (:env ast)
+            class (:class ast)]
+       (if-let [the-class (u/maybe-class-literal class)]
+         (assoc (ana/analyze-const the-class env :class opts) :form form)
+         ast))
 
-    ast))
+      ast)))
