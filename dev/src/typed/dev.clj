@@ -90,3 +90,7 @@
   #_
   ((requiring-resolve 'cider.piggieback/cljs-repl)
    ((requiring-resolve 'cljs.repl.node/repl-env))))
+
+(defmacro d [& body]
+  (require 'clj-java-decompiler.core)
+  `(clj-java-decompiler.core/decompile ~@body))

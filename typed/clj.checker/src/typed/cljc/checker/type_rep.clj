@@ -206,6 +206,40 @@
   :methods [p/TCKind
             p/TCAnyType])
 
+;; # Locally nameless syntax
+;; 
+;; B/F/Scope are adapted from "I am not a number: I am a free variable", Conor McBride and James McKinna
+;; http://www.e-pig.org/downloads/notanum.pdf
+;; 
+;; (B i) is a bound variable whose index i is the number of Scope's we need to traverse to find who binds
+;; this type variable.
+;;
+;; Scope is slightly different from the paper. It contains a positive number which designates
+;; how many B's (bound type variables) are bound by this scope.
+;;
+;; We always choose globally fresh names for F so we never need to rename variables.
+;;
+;; Poly, TypeFn, and Mu are the only types allowed to contain B.
+;;
+;; We convert back and forth between B and F (usually from B->F).
+;; 
+;; F->B usually happens during parsing. For example, parsing:
+;;  '(All [x y] [x :-> y])
+;; first results in
+;;  [(F x) :-> (F y)]
+;; before the "smart constructor" Poly*
+;; converts it to its locally nameless representation:
+;;  (Poly 2 (Scope 2 [(B 0) :-> (B 1)]))
+;;
+;; When we're ready to use the body, we instantiate it with fresh free variables via `instantiate-many`:
+;;  [(F x__123) :-> (F y__123)]
+;;
+;; Note: substitution is based directly from the paper, which notes the algorithm could be improved.
+;; In particular, if we want to instantiate (B 0) to Foo, we usually instantiate
+;; (B 0) to a free type variable (F ...) first, and _then_ substitute away the free variable.
+;; We could save an entire pass over the type if we directly replace (B 0) with Foo.
+
+;; [B]ound type variable
 (u/def-type B [idx :- Number]
   "de Bruijn indices - should never appear outside of this file.
   Bound type variables"
@@ -213,20 +247,7 @@
   :methods
   [p/TCType])
 
-; Always naming frees as fresh is crucial in Typed Clojure.
-; Typed Clojure has bounded-polymorphism, which means we need to be very careful
-; when caching results of subtyping, intersections and similar. 
-;
-; We use bounds to our advantage to make subtyping between free variables more useful
-;
-; eg. 
-; In 
-;   (All [[x :< Long]] [-> x]) <: (All [[y :< Number]] [-> y])
-; x <: y
-;
-; Because of the way we check function return values, we cache this result.
-
-; Same with bounds.
+;; [F]ree type variable
 (u/def-type F [name :- t/Sym]
   "A named free variable"
   [(simple-symbol? name)]
@@ -576,8 +597,8 @@
   :methods
   [p/TCType])
 
-(u/def-type TApp [rator :- Type,
-                  rands :- (t/Seqable Type)]
+(u/def-type TApp [rator :- Type, ;; [ope]rator
+                  rands :- (t/Seqable Type)] ;; [ope]rands
   "An application of a type function to arguments."
   [(Type? rator)
    (every? Type? rands)]

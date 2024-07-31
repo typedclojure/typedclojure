@@ -1506,14 +1506,6 @@
 
 ;; Resolve
 
-(declare resolve-tapp* resolve-app*)
-
-(t/ann ^:no-check resolve-TApp [TApp t/Any -> r/Type])
-(defn resolve-TApp [app opts]
-  {:pre [(r/TApp? app)]
-   :post [(r/Type? %)]}
-  (resolve-tapp* (:rator app) (:rands app) {:tapp app} opts))
-
 (t/ann ^:no-check resolve-tapp* [r/Type (t/Seqable r/Type) t/Any t/Any -> r/Type])
 (defn resolve-tapp* [rator rands {:keys [tapp]} opts]
   {:pre [(r/TApp? tapp)]}
@@ -1529,21 +1521,13 @@
                        opts)))
     (instantiate-typefn rator rands {:tapp tapp} opts)))
 
-(t/ann ^:no-check resolve-app* [r/Type (t/Seqable r/Type) t/Any -> r/Type])
-(defn resolve-app* [rator rands opts]
-  (let [rator (fully-resolve-type rator opts)]
-    (cond
-      (r/Poly? rator) (do (when-not (= (count rands) (:nbound rator))
-                            (err/int-error (str "Wrong number of arguments provided to polymorphic type"
-                                              (ind/unparse-type rator opts))
-                                           opts))
-                          (instantiate-poly rator rands opts))
-      ;PolyDots NYI
-      :else (throw (Exception. (str (when-some [env (::vs/current-env opts)]
-                                      (str (:line env) ": "))
-                                    "Cannot apply non-polymorphic type " (ind/unparse-type rator opts)))))))
+(t/ann ^:no-check resolve-TApp [TApp t/Any -> r/Type])
+(defn resolve-TApp [app opts]
+  {:pre [(r/TApp? app)]
+   :post [(r/Type? %)]}
+  (resolve-tapp* (:rator app) (:rands app) {:tapp app} opts))
 
-(declare resolve-Name unfold fully-resolve-type find-val-type)
+(declare find-val-type)
 
 (t/ann ^:no-check resolve-Get [GetType t/Any -> r/Type])
 (defn resolve-Get [{:keys [target key not-found] :as t} opts]
