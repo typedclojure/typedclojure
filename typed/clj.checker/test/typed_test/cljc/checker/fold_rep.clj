@@ -11,14 +11,19 @@
             [typed.clojure :as t])
   (:import (typed.cljc.checker.type_rep F)))
 
+;; creates a walking algorithm that is just a generic tree-walk over types...
 (f/def-derived-fold ICountF count-F* [count-atom])
 
+;; ... except for free type variables F, executes the given function.
 (f/add-fold-case
   ICountF count-F*
   F
   (fn [t count-atom]
     (swap! count-atom inc)
     t))
+
+;; all other types use the default walking algorithm for the "current level",
+;; and attempts to use ICountF for the children (and so on...).
 
 (defn count-F [t opts]
   {:pre [(r/AnyType? t)]}

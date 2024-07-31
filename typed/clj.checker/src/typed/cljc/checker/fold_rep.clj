@@ -12,6 +12,27 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Type Folding
 
+;; Here we define generic functions that recursively prewalk types.
+;;
+;; This is currently implemented via protocols but all of the implementation details are hidden via macros.
+;; The main reason is so we can use fixed arguments under the hood instead of allocating map arguments for configuration.
+;;
+;; Each type implements IFoldDefault whose fold-default* function knows how to prewalk itself.
+;; The `type-rec` argument is a function that prewalks the type's children.
+;; 
+;; However, the fold-default* function is also implementation detail.
+;; The entry point here for creating your own type walking algorithms is `def-derived-fold`, which creates
+;; _another_ protocol whose default Object case calls `fold-default*` with the correct arguments
+;; to ensure `type-rec` continues walking the "derived" algorithm.
+;;
+;; The "base" algorithm here is IFoldDefault and other folds (walking algorithms) are "derived" from it
+;; since if the derived algorithm doesn't define a case for a particular type, it uses IFoldDefault
+;; for the "current level" before jumping back to the derived algorithm.
+;;
+;; Along with `def-derived-fold`, `add-fold-case` extends a walking algorithm with a case for a particular type.
+;;
+;; See typed-test.cljc.checker.fold-rep for an example.
+
 ;1. fold-rhs calls sends
 ; a. Type to type-rec
 ; b. Filter to filter-rec
