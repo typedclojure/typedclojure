@@ -68,13 +68,16 @@
 (defmulti -uniquify-locals :op)
 
 (defn pre-uniquify-child
-  [child-ast {::keys [locals-frame locals-frame-val locals-counter] :as _env}]
-  (-> child-ast
-      (update :env assoc
-              ::locals-frame locals-frame
-              ;; immutable copy for type resolution later
-              ::locals-frame-val @locals-frame
-              ::locals-counter locals-counter)))
+  [child-ast env]
+  (let [locals-counter (::locals-counter env)
+        locals-frame (::locals-frame env)
+        locals-frame-val (::locals-frame-val env)]
+    (assoc child-ast :env
+           (-> (:env child-ast)
+               (assoc ::locals-frame locals-frame)
+               ;; immutable copy for type resolution later
+               (assoc ::locals-frame-val @locals-frame)
+               (assoc ::locals-counter locals-counter)))))
 
 (defn uniquify-locals-around
   [{:keys [env] :as ast} opts]
@@ -126,12 +129,34 @@
     (-> ast
         (update :name uniquify! env))))
 
+(defn- is-binding? [node]
+  (= (:op node) :binding))
+
+(defn -some
+  "Like `clojure.core/some`, but uses an iterator over `lst`."
+  [f ^Iterable lst]
+  (when-let [it (some-> lst .iterator)]
+    (loop []
+      (when (.hasNext it)
+        (or (f (.next it))
+            (recur))))))
+
+(defn- some-child-is-binding? [ast]
+  ;; More efficient version of:
+  ;; (some #(= :binding (:op %)) (children ast))
+  (-some (fn [x]
+           (let [child (get ast x)]
+             (if (vector? child)
+               (-some is-binding? child)
+               (is-binding? child))))
+         (:children ast)))
+
 (defmethod -uniquify-locals :default
   [{:keys [env] :as ast}]
   (-> ast
       (cond->
         ;; if some expr that introduces new bindings
-        (some #(= :binding (:op %)) (children ast))
+        (some-child-is-binding? ast)
         ;; then set up frame so locals won't leak
         (update :env push-new-locals-frame))
       uniquify-locals*))
@@ -146,14 +171,16 @@
   Passes opts:
   * :uniquify/uniquify-env  If true, uniquifies the :env :locals map"
   {:pass-info {:walk :pre :depends #{}}}
-  [{{::keys [locals-counter locals-frame locals-frame-val]} :env
-    :as ast}
-   opts]
-  (-> ast
-      ;; initialize top of AST tree
-      (cond->
-        (not locals-counter) (assoc-in [:env ::locals-counter] (atom {}))
-        (not locals-frame) (assoc-in [:env ::locals-frame] (atom {}))
-        ;; immutable copy for type resolution later
-        (not locals-frame-val) (assoc-in [:env ::locals-frame-val] {}))
-      (uniquify-locals-around opts)))
+  [ast opts]
+  (let [env (:env ast)
+        locals-counter (::locals-counter env)
+        locals-frame (::locals-frame env)
+        locals-frame-val (::locals-frame-val env)]
+    (-> ast
+        ;; initialize top of AST tree
+        (cond->
+            (not locals-counter) (assoc-in [:env ::locals-counter] (atom {}))
+            (not locals-frame) (assoc-in [:env ::locals-frame] (atom {}))
+            ;; immutable copy for type resolution later
+            (not locals-frame-val) (assoc-in [:env ::locals-frame-val] {}))
+        (uniquify-locals-around opts))))

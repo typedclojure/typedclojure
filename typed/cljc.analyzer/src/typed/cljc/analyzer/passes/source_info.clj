@@ -10,13 +10,10 @@
 (ns typed.cljc.analyzer.passes.source-info
   (:require [typed.cljc.analyzer.utils :refer [-source-info merge']]))
 
-(defn -merge-source-info [source-info]
-  (fn [ast]
-    (update ast :env merge' source-info)))
-
 (defn source-info
   "Adds (when available) :line, :column, :end-line, :end-column and :file info to the AST :env"
   {:pass-info {:walk :pre :depends #{}}}
   [ast opts]
-  (let [source-info (-source-info (:form ast) (:env ast))]
-    (update ast :env merge' source-info)))
+  (let [env (:env ast)
+        env-with-source-info (-source-info (:form ast) env env)]
+    (assoc ast :env env-with-source-info)))

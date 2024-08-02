@@ -73,8 +73,8 @@
             c-name #?(:cljr '.ctor :default (symbol (.getName class)))  ;;                                                                  ;; in .NET, ctors are named .ctor, not with the class name
             argc (count args)
             tags (mapv :tag args)]
-        (let [[ctor & rest] (->> (filter #(= (count (:parameter-types %)) argc)
-                                         (ju/members class c-name))
+        (let [[ctor & rest] (->> (eduction (filter #(= (count (:parameter-types %)) argc))
+                                           (ju/members class c-name))
                                  (ju/try-best-match tags))]
           (if ctor
             (if (empty? rest)
@@ -92,10 +92,10 @@
 (defn validate-call [{:keys [class instance method args tag env op] :as ast}]
   (let [argc (count args)
         instance? (= :instance-call op)
-        f (if instance? ju/instance-methods ju/static-methods)]
-    (if-let [matching-methods (not-empty (f class method argc))]
-      (let [tags (mapv :tag args)
-            [m & rest :as matching] (ju/try-best-match tags matching-methods)]
+        f (if instance? ju/instance-methods ju/static-methods)
+        tags (mapv :tag args)]
+    (if-let [matching-methods (not-empty (into [] (f class method argc)))]
+      (let [[m & rest :as matching] (ju/try-best-match tags matching-methods)]
         (if m
           (let [all-ret-equals? (apply = (map :return-type matching))]
             (if (or (empty? rest)

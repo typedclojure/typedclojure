@@ -86,6 +86,8 @@
    dissoc all the keys in elides from the metadata."
   {:pass-info {:walk :any :depends #{} :after #{#'source-info}}}
   [ast opts]
-  (if (some #(if (seq? %) (seq %) %) (vals elides))
+  ;; Nothing in the code rebinds the `elides` dynvar, so it is enough to check
+  ;; for the global *compiler-options* here.
+  (if (:elide-meta *compiler-options*)
     (-elide-meta ast)
     ast))

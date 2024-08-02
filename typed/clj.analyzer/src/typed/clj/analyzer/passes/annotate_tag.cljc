@@ -74,18 +74,23 @@
   "If the AST node type is a constant object or contains :tag metadata,
    attach the appropriate :tag and :o-tag to the node."
   {:pass-info {:walk :post :depends #{} :after #{#'constant-lift/constant-lift}}}
-  [{:keys [op atom tag o-tag] :as ast} opts]
-  (let [ast (cond-> ast
+  [ast opts]
+  (let [op (:op ast)
+        atom (:atom ast)
+        tag (:tag ast)
+        o-tag (:o-tag ast)
+
+        ast (cond-> ast
               (and atom (:case-test @atom))
               (update :form vary-meta dissoc :tag))
 
-        ast (cond-> ast
-              (not (and o-tag tag))
-              (-> -annotate-tag
-                  (into (when-let [tag (or tag
-                                           (-> ast :val meta :tag)
-                                           (-> ast :form meta :tag))]
-                          {:tag tag}))))]
+        ast (if (and o-tag tag)
+              ast
+              (let [tag (or tag
+                            (-> ast :val meta :tag)
+                            (-> ast :form meta :tag))]
+                (cond-> (-annotate-tag ast)
+                  tag (assoc :tag tag))))]
     (when (= op :binding)
       (assert atom)
       (swap! atom assoc :tag (:tag ast)))

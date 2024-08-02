@@ -31,10 +31,14 @@
    the reflected informations for the required methods, replaces
    (catch :default ..) forms with (catch Throwable ..)"
   {:pass-info {:walk :pre :depends #{} :after #{#'elide-meta/elide-meta}}}
-  [{:keys [op methods interfaces class env] :as ast} opts]
-  (case op
+  [ast opts]
+  (case (:op ast)
     (:reify :deftype)
-    (let [all-methods
+    (let [methods (:methods ast)
+          interfaces (:interfaces ast)
+          class (:class ast)
+          env (:env ast)
+          all-methods
           (into #{}
                 (mapcat (fn [class]
                           (mapv (fn [method]
@@ -58,7 +62,9 @@
 
 
     :catch
-    (let [the-class (cond
+    (let [class (:class ast)
+          env (:env ast)
+          the-class (cond
 
                      (and (= :const (:op class))
                           (= :default (:form class)))
@@ -80,7 +86,14 @@
     :method
     ;; this should actually be in validate but it's here since it needs to be prewalked
     ;; for infer-tag purposes
-    (let [{:keys [name class tag form params fixed-arity env]} ast]
+    (let [methods (:methods ast)
+          interfaces (:interfaces ast)
+          class (:class ast)
+          env (:env ast)
+          name (:name ast)
+          tag (:tag ast)
+          form (:form ast)
+          params (:params ast)]
       (if interfaces
         (let [tags (mapv (comp ju/maybe-class :tag meta :form) params)
               methods-set (into #{} (map (fn [x] (dissoc x :declaring-class :flags))) methods)]
