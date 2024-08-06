@@ -71,7 +71,7 @@
                      bnds# (when (seq fields#)
                              (repeat (count fields#) r/no-bounds))
                      frees# (map r/make-F names#)
-                     methods# (let [opts# (free-ops/with-bounded-frees opts# (zipmap frees# bnds#))]
+                     methods# (let [opts# (free-ops/with-bounded-frees opts# names# bnds#)]
                                 (into {}
                                       (for [[mname# mtype#] (:methods popts#)]
                                         [mname# (prs/parse-type mtype# opts#)])))
@@ -83,7 +83,7 @@
 
 (defn jsnominal-entry [[n [binder & {:as jopts}]] opts]
   (let [names (when (seq binder)
-                    (map first binder))
+                    (mapv first binder))
         {vs :variances
          names :names
          bnds :bnds} 
@@ -95,19 +95,19 @@
             {:variances (map :variance b)
              :names (map :nme b)
              :bnds (map :bound b)}))
-        frees (map r/make-F names)
-        methods (let [opts (free-ops/with-bounded-frees opts (zipmap frees bnds))]
+        frees (mapv r/make-F names)
+        methods (let [opts (free-ops/with-bounded-frees opts names bnds)]
                    (into {}
                          (for [[mname mtype] (:methods jopts)]
                            [mname (c/abstract-many names (prs/parse-type mtype opts) opts)])))
-        fields (let [opts (free-ops/with-bounded-frees opts (zipmap frees bnds))]
+        fields (let [opts (free-ops/with-bounded-frees opts names bnds)]
                   (into {}
                         (for [[mname mtype] (:fields jopts)]
                           [mname (c/abstract-many names (prs/parse-type mtype opts) opts)])))
         ctor (when-let [ctor (:ctor jopts)]
-                (let [opts (free-ops/with-bounded-frees opts (zipmap frees bnds))]
+                (let [opts (free-ops/with-bounded-frees opts names bnds)]
                   (c/abstract-many names (prs/parse-type ctor opts) opts)))
-        ancestors (let [opts (free-ops/with-bounded-frees opts (zipmap frees bnds))]
+        ancestors (let [opts (free-ops/with-bounded-frees opts names bnds)]
                     (into #{}
                           (for [mtype (:ancestors jopts)]
                             (c/abstract-many names (prs/parse-type mtype opts) opts))))]
@@ -134,7 +134,7 @@
            (doall
              (for [[n# [binder# & {record?# :record? :as dopts#}]] ts#]
                (let [names# (when (seq binder#)
-                              (map first binder#))
+                              (mapv first binder#))
                      {vs# :variances
                       names# :names
                       bnds# :bnds} 
@@ -146,8 +146,8 @@
                          {:variances (seq (map :variance b#))
                           :names (seq (map :nme b#))
                           :bnds (seq (map :bound b#))}))
-                     frees# (seq (map r/make-F names#))
-                     fields# (let [opts# (free-ops/with-bounded-frees opts# (zipmap frees# bnds#))]
+                     frees# (mapv r/make-F names#)
+                     fields# (let [opts# (free-ops/with-bounded-frees opts# names# bnds#)]
                                (into {}
                                      (for [[mname# mtype#] (:fields dopts#)]
                                        [mname# (prs/parse-type mtype# opts#)])))]

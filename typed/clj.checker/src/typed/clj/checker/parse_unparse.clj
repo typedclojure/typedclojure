@@ -247,8 +247,8 @@
             ;(prn "parse-free-binder-with-variance" (map :fname fs))
             (conj fs
                   (let [opts (free-ops/with-bounded-frees opts
-                               (zipmap (map (comp r/make-F :fname) fs)
-                                       (map :bnd fs)))]
+                               (mapv :fname fs)
+                               (mapv :bnd fs))]
                     (parse-free-with-variance fsyn opts))))
           [] binder))
 

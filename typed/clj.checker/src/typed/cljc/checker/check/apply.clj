@@ -37,7 +37,7 @@
           (let [vars (c/Poly-fresh-symbols* ftype)
                 bbnds (c/Poly-bbnds* vars ftype opts)
                 body (c/Poly-body* vars ftype opts)
-                opts (free-ops/with-bounded-frees opts (zipmap (map r/make-F vars) bbnds))
+                opts (free-ops/with-bounded-frees opts vars bbnds)
                 _ (assert (r/FnIntersection? body))
                 fixed-args (mapv #(check-expr % nil opts) fixed-args)
                 arg-tys (mapv (comp r/ret-t u/expr-type) fixed-args)

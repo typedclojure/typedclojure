@@ -109,7 +109,7 @@
       :Poly
       (let [names (c/Poly-fresh-symbols* ptype)
             bbnds (c/Poly-bbnds* names ptype opts)
-            opts (free-ops/with-bounded-frees opts (zipmap (map r/make-F names) bbnds))
+            opts (free-ops/with-bounded-frees opts names bbnds)
             body (c/Poly-body* names ptype opts)
             _ (doseq [[i nme ty bnds] (map vector (range) names argtys bbnds)]
                 (assert (instance? Bounds bnds) "TODO other kinds")
@@ -132,7 +132,7 @@
       :PolyDots
       (let [names (c/PolyDots-fresh-symbols* ptype)
             bbnds (c/PolyDots-bbnds* names ptype opts)
-            opts (free-ops/with-bounded-frees opts (zipmap (map r/make-F names) bbnds))
+            opts (free-ops/with-bounded-frees opts names bbnds)
             body (c/PolyDots-body* names ptype opts)
             _ (when-not (= r/dotted-no-bounds (peek bbnds))
                 (err/nyi-error "TODO interesting dotted bound" opts))
@@ -144,7 +144,7 @@
                   (str "Must instantiate dotted variable with flat (t/cat ...): "
                        (prs/unparse-type dotted-cat opts))
                   opts))
-            opts (free-ops/with-bounded-frees opts (zipmap (map r/make-F names) bbnds))
+            opts (free-ops/with-bounded-frees opts names bbnds)
             _ (doseq [[i nme ty bnds] (map vector (range) names argtys bbnds)]
                 (let [bnds (subst/substitute-many bnds (take i argtys) (take i names) opts)]
                   (when-not (sub/has-kind? ty bnds opts)
