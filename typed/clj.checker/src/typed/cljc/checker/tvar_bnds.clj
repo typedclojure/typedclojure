@@ -36,22 +36,18 @@
   [var {::keys [current-tvar-bnds] :as opts}]
   (get current-tvar-bnds var))
 
-(defn extend-one
-  "Extend a tvar bounds environment."
-  [env var bnds]
-  (assoc env var bnds))
-
 (defn extend-many
-  "Extend env with pairwise mappings from vars to bndss"
-  [env vars bndss]
-  {:pre [(every? symbol? vars)
+  "Extend env with pairwise mappings from vars to bndss derived from `frees-map`."
+  [env syms bndss]
+  {:pre [(every? symbol? syms)
          (every? (some-fn r/Bounds? r/Regex?) bndss)
-         (= (count vars) (count bndss))]
+         (= (count syms) (count bndss))]
    :post [(tvar-bnds-env? %)]}
-  (perf/reduce assoc env vars bndss))
+  (perf/reduce assoc env syms bndss))
 
 (defn with-extended-bnds
   "Takes a list of vars and bnds extends the current tvar environment.
   vars are the fresh names of the frees, rather than the scoped names."
-  [opts vars bndss]
-  (update opts ::current-tvar-bnds (fnil extend-many initial-tvar-bnds-env) vars bndss))
+  [opts syms bndss]
+  (let [current-bnds (::current-tvar-bnds opts initial-tvar-bnds-env)]
+    (assoc opts ::current-tvar-bnds (extend-many current-bnds syms bndss))))

@@ -62,10 +62,20 @@
                     (extend-one env var fresh-var))
                   env vars fresh-vars))))
 
+(defn- extend-many-fresh-names
+  "Extends env with vars given as `fresh-names`."
+  [env fresh-names]
+  {:pre [(every? symbol? fresh-names)]
+   :post [(tvar-env? %)]}
+  (reduce #(assoc %1 %2 (r/make-F %2)) env fresh-names))
+
 (defn with-extended-new-tvars
   "Extends with new type variables (provided by (e.g., Poly-fresh))"
-  [opts vars fresh-vars]
-  (update opts ::current-tvars (fnil extend-many initial-tvar-env) vars fresh-vars))
+  ([opts vars fresh-vars]
+   (update opts ::current-tvars (fnil extend-many initial-tvar-env) vars fresh-vars))
+  ([opts fresh-names]
+   (let [current-tvars (::current-tvars opts initial-tvar-env)]
+     (assoc opts ::current-tvars (extend-many-fresh-names current-tvars fresh-names)))))
 
 #_
 (defn with-extended-tvars

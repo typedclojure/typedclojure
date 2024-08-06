@@ -535,7 +535,7 @@
               bbnds1 (c/Poly-bbnds* names s opts)
               b1 (c/Poly-body* names s opts)
               b2 (c/Poly-body* names t opts)]
-          (if (subtypeA* A b1 b2 (-> opts (free-ops/with-bounded-frees (zipmap (map r/F-maker names) bbnds1))))
+          (if (subtypeA* A b1 b2 (-> opts (free-ops/with-bounded-frees names bbnds1)))
             A
             (report-not-subtypes s t)))
         unknown-result)
@@ -882,12 +882,12 @@
               b1 (c/PolyDots-body* names s opts)
               b2 (c/PolyDots-body* names t opts)]
           (when (= bbnds1 bbnds2)
-            (subtypeA* A b1 b2 (-> opts (free-ops/with-bounded-frees (zipmap (map r/F-maker names) bbnds1)))))))
+            (subtypeA* A b1 b2 (free-ops/with-bounded-frees opts names bbnds1)))))
       (if (OR ;use unification to see if we can use the Poly type here
               (case (.kind s) 
                 :Poly (let [names (c/Poly-fresh-symbols* s)
                             bnds (c/Poly-bbnds* names s opts)
-                            opts (free-ops/with-bounded-frees opts (zipmap (map r/make-F names) bnds))
+                            opts (free-ops/with-bounded-frees opts names bnds)
                             b1 (c/Poly-body* names s opts)
                             ;_ (prn "try unify on left")
                             X (zipmap names bnds)
@@ -896,7 +896,7 @@
                         u)
                 :PolyDots (let [names (c/PolyDots-fresh-symbols* s)
                                 bnds (c/PolyDots-bbnds* names s opts)
-                                opts (free-ops/with-bounded-frees opts (zipmap (map r/make-F names) bnds))
+                                opts (free-ops/with-bounded-frees opts names bnds)
                                 b1 (c/PolyDots-body* names s opts)
                                 ;_ (prn "try PolyDots unify on left")
                                 X (zipmap (pop names) (pop bnds))
@@ -1048,7 +1048,7 @@
                    bbnds (c/Poly-bbnds* names t opts)
                    b (c/Poly-body* names t opts)]
                (subtypeA* A s b
-                          (-> opts (free-ops/with-bounded-frees (zipmap (map r/F-maker names) bbnds))))))
+                          (-> opts (free-ops/with-bounded-frees names bbnds)))))
         A
 
         (r/Name? s)
@@ -1613,10 +1613,9 @@
                         ;;TODO register kind of frees
                         (subtype-Bounds A rbnd lbnd opts))
                       sbnds tbnds))
-      (subtypeA* A sbody tbody (free-ops/with-bounded-frees opts
-                                 (zipmap (map r/make-F names)
-                                         ;;FIXME which side?
-                                         sbnds)))
+      (subtypeA* A sbody tbody (free-ops/with-bounded-frees opts names
+                                 ;;FIXME which side?
+                                 sbnds))
       (report-not-subtypes S T))))
 
 (defn subtype-PrimitiveArray

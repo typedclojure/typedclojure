@@ -426,7 +426,7 @@
              (= (:bbnds S) (:bbnds T)))
         (let [names (c/Poly-fresh-symbols* T)
               bbnds (c/Poly-bbnds* names T opts)
-              opts (free-ops/with-bounded-frees opts (zipmap (map r/make-F names) bbnds))
+              opts (free-ops/with-bounded-frees opts names bbnds)
               S' (c/Poly-body* names S opts)
               T' (c/Poly-body* names T opts)]
           (cs-gen V X Y S' T' opts))
@@ -472,7 +472,7 @@
         (r/Poly? S)
         (let [nms (c/Poly-fresh-symbols* S)
               bbnds (c/Poly-bbnds* nms S opts)
-              opts (free-ops/with-bounded-frees opts (zipmap (map r/make-F nms) bbnds))
+              opts (free-ops/with-bounded-frees opts nms bbnds)
               body (c/Poly-body* nms S opts)]
           (cs-gen (set/union (set nms) V) X Y body T opts))
 
@@ -909,7 +909,7 @@
                                                              (count (:types S)))
                                                opts)
                           bbnds (repeat (count vars) (homogeneous-dbound->bound (Y dbound) opts))
-                          opts (free-ops/with-bounded-frees opts (zipmap (map r/make-F vars) bbnds))
+                          opts (free-ops/with-bounded-frees opts vars bbnds)
                           new-tys (mapv #(subst/substitute (r/make-F %) dbound dty opts) vars)
                           new-s-hsequential (r/-hsequential (concat (:types S) new-tys) {} opts)
                           new-cset (cs-gen-HSequential V 
@@ -927,7 +927,7 @@
                       (fail! S T))
                     (let [vars (var-store-take dbound dty (- (count (:types S)) (count (:types T))) opts)
                           bbnds (repeat (count vars) (homogeneous-dbound->bound (Y dbound) opts))
-                          opts (free-ops/with-bounded-frees opts (zipmap (map r/make-F vars) bbnds))
+                          opts (free-ops/with-bounded-frees opts vars bbnds)
                           new-tys (mapv #(subst/substitute (r/make-F %) dbound dty opts) vars)
                           new-t-hsequential (r/-hsequential (concat (:types T) new-tys) {} opts)
                           new-cset (cs-gen-HSequential V 
@@ -1340,13 +1340,13 @@
   (assert dotted-var-store (keys opts))
   ;(t/ann-form dotted-var-store (t/Atom (t/Map '[r/Type t/Sym] (t/Seq t/Sym))))
   (let [key [t n]
-        res (@dotted-var-store key)]
+        res (vec (@dotted-var-store key))]
     (if (>= (count res) n)
       ;; there are enough symbols already, take n
-      (take n res)
+      (subvec res 0 n)
       ;; we need to generate more
       (let [new (repeatedly (- n (count res)) #(gensym var))
-            all (concat res new)]
+            all (into res new)]
         (swap! dotted-var-store assoc key all)
         all))))
 
@@ -1495,7 +1495,7 @@
                                              (count (:dom S)))
                                opts)
           bbnds (repeat (count vars) (homogeneous-dbound->bound (Y dbound) opts))
-          opts (free-ops/with-bounded-frees opts (zipmap (map r/make-F vars) bbnds))
+          opts (free-ops/with-bounded-frees opts vars bbnds)
           new-tys (mapv #(subst/substitute (r/make-F %) dbound dty opts) vars)
           new-s-arr (r/make-Function (into (:dom S) new-tys) (:rng S))
           new-cset (cs-gen-Function V
@@ -1513,7 +1513,7 @@
       (fail! S T))
     (let [vars (var-store-take dbound dty (- (count (:dom S)) (count (:dom T))) opts)
           bbnds (repeat (count vars) (homogeneous-dbound->bound (Y dbound) opts))
-          opts (free-ops/with-bounded-frees opts (zipmap (map r/make-F vars) bbnds))
+          opts (free-ops/with-bounded-frees opts vars bbnds)
           new-tys (mapv #(subst/substitute (r/make-F %) dbound dty opts) vars)
           ;_ (prn "dotted on the right, nothing on the left")
           ;_ (prn "vars" vars)

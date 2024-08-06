@@ -351,7 +351,7 @@
     :Poly (let [names (c/Poly-fresh-symbols* T)
                 ;;TODO promote?
                 bbnds (c/Poly-bbnds* names T opts)
-                opts (free-ops/with-bounded-frees opts (zipmap (map r/make-F names) bbnds))
+                opts (free-ops/with-bounded-frees opts names bbnds)
                 pmt-body (promote (c/Poly-body* names T opts) V opts)]
             (c/Poly* names 
                      bbnds
@@ -360,7 +360,7 @@
     :PolyDots (let [names (c/PolyDots-fresh-symbols* T)
                     ;;TODO promote?
                     bbnds (c/PolyDots-bbnds* names T opts)
-                    opts (free-ops/with-bounded-frees opts (zipmap (map r/make-F names) bbnds))
+                    opts (free-ops/with-bounded-frees opts names bbnds)
                     pmt-body (promote (c/PolyDots-body* names T opts) V opts)]
                 (c/PolyDots* names 
                              bbnds

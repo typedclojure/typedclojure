@@ -140,13 +140,11 @@
                                                            fs)))
                 b (mapv #(prs/parse-tfn-binder % opts) fs)]
             {:variances (map :variance b)
-             :nmes (map :nme b)
-             :bnds (map :bound b)}))
-        frees (map r/make-F nmes)
+             :nmes (mapv :nme b)
+             :bnds (mapv :bound b)}))
+        frees (mapv r/make-F nmes)
         csym (resolve-class-symbol the-class opts)
-        frees-and-bnds (zipmap frees bnds)
-        opts' (free-ops/with-bounded-frees opts frees-and-bnds)]
-    (assert ((con/hash-c? r/F? r/Bounds?) frees-and-bnds) frees-and-bnds)
+        opts' (free-ops/with-bounded-frees opts nmes bnds)]
     (c/RClass* nmes variances frees csym
                (build-replacement-syntax replacements-syn opts')
                (into (r/sorted-type-set []) (map #(prs/parse-type % opts')) unchecked-ancestors-syn)

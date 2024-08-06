@@ -120,14 +120,14 @@
                            (some-fn nil? #{:Poly :PolyDots})) %)]}
   (cond
     (r/Poly? t) (let [new-nmes (c/Poly-fresh-symbols* t)
-                      new-frees (map r/make-F new-nmes)
+                      new-frees (mapv r/make-F new-nmes)
                       bnds (c/Poly-bbnds* new-nmes t opts)
-                      opts (free-ops/with-bounded-frees opts (zipmap new-frees bnds))]
+                      opts (free-ops/with-bounded-frees opts new-nmes bnds)]
                   [(c/Poly-body* new-nmes t opts) new-frees bnds :Poly])
     (r/PolyDots? t) (let [new-nmes (c/PolyDots-fresh-symbols* t)
-                          new-frees (map r/make-F new-nmes)
+                          new-frees (mapv r/make-F new-nmes)
                           bnds (c/PolyDots-bbnds* new-nmes t opts)
-                          opts (free-ops/with-bounded-frees opts (zipmap new-frees bnds))]
+                          opts (free-ops/with-bounded-frees opts new-nmes bnds)]
                       [(c/PolyDots-body* new-nmes t opts) new-frees bnds :PolyDots])
     :else [t nil nil nil]))
 
@@ -366,7 +366,7 @@
                                     body (c/TypeFn-body* nms bbnds dtp opts)]
                                 (c/Poly* nms
                                          bbnds
-                                         (resolve-ctor body (free-ops/with-bounded-frees opts (zipmap (map r/make-F nms) bbnds)))
+                                         (resolve-ctor body (free-ops/with-bounded-frees opts nms bbnds))
                                          opts))
 
               :else (err/tc-delayed-error (str "Cannot generate constructor type for: " sym)

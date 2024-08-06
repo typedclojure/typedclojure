@@ -67,15 +67,19 @@
 ;
 ;frees-map :- '{t/Sym '{:F F :bnds (U Bounds Regex TypeFn)}}
 (defn with-free-mappings
-  [opts frees-map]
-  (let [_ (assert (frees-map? frees-map) frees-map)
-        scoped-names (keys frees-map)
-        vals (vals frees-map)
-        fresh-names (mapv (comp :name :F) vals)
-        bndss (mapv :bnds vals)]
-    (-> opts
-        (tvar/with-extended-new-tvars scoped-names fresh-names)
-        (bnds/with-extended-bnds fresh-names bndss))))
+  ([opts frees-map]
+   (let [_ (assert (frees-map? frees-map) frees-map)
+         scoped-names (keys frees-map)
+         vals (vals frees-map)
+         fresh-names (mapv (comp :name :F) vals)
+         bndss (mapv :bnds vals)]
+     (-> opts
+         (tvar/with-extended-new-tvars scoped-names fresh-names)
+         (bnds/with-extended-bnds fresh-names bndss))))
+  ([opts fresh-names bndss]
+   (-> opts
+       (tvar/with-extended-new-tvars fresh-names)
+       (bnds/with-extended-bnds fresh-names bndss))))
 
 (def bounded-frees-key? r/F?)
 (def bounded-frees-val? r/Kind?)
@@ -83,21 +87,20 @@
 (def bounded-frees? map? #_(con/hash-c? bounded-frees-key? bounded-frees-val?))
 
 (defn with-bounded-frees
-  "Scopes bfrees, a map of instances of F to their bounds, inside body."
-  [opts bfrees]
-  (let [_ (assert (bounded-frees? bfrees) bfrees)]
-    (with-free-mappings opts
-      (reduce-kv (fn [m f bnds]
-                   (assert (bounded-frees-key? f) (class f))
-                   (assert (bounded-frees-val? bnds) (class bnds))
-                   (assoc m (:name f) {:F f :bnds bnds}))
-                 {} bfrees))))
+  "Scopes bfrees, a map of instances of F to their bounds, inside body.
+The other arity takes fresh symbols to bounds separately."
+  ([opts bfrees]
+   (assert (bounded-frees? bfrees) bfrees)
+   (with-free-mappings opts
+     (reduce-kv (fn [m f bnds]
+                  (assert (bounded-frees-key? f) (class f))
+                  (assert (bounded-frees-val? bnds) (class bnds))
+                  (assoc m (:name f) {:F f :bnds bnds}))
+                {} bfrees)))
+  ([opts fresh-vars bndss]
+   (with-free-mappings opts fresh-vars bndss)))
 
 (defn with-free-symbols
   "Scopes sfrees, a sequence of symbols, inside body as free variables, with default bounds."
   [opts sfrees]
-  (with-free-mappings
-    opts
-    (into {} (map (fn [f]
-                    [f {:F (r/F-maker f) :bnds r/no-bounds}]))
-          sfrees)))
+  (with-free-mappings opts sfrees (repeat (count sfrees) r/no-bounds)))
