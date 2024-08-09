@@ -99,17 +99,18 @@
                                                    `(fn [~vlocal] 
                                                       ~(gen-inner (:rest t) vlocal opts)))
                                                 rstvec#))])))
-                (:CountRange) (let [cnt (gensym "cnt")]
+                (:CountRange) (let [cnt (gensym "cnt")
+                                    {:keys [lower upper]} t]
                                 `(and ;; immutable collections only
                                       (or (nil? ~arg)
                                           (coll? ~arg)
                                           (string? ~arg))
-                                      ;;TODO bounded counting
-                                      (let [~cnt (count ~arg)]
-                                        (<= ~@(let [{:keys [lower upper]} t]
-                                                (concat [lower cnt]
-                                                        (when upper
-                                                          [upper])))))))
+                                      (let [~cnt (bounded-count ~(if (and lower upper)
+                                                                   (max lower upper)
+                                                                   (inc (or lower upper)))
+                                                                ~arg)]
+                                        (<= ~@(cond-> [lower cnt]
+                                                upper (conj upper))))))
                 (:singleton) (let [v (:val t)]
                                (cond
                                  (nil? v) `(nil? ~arg)

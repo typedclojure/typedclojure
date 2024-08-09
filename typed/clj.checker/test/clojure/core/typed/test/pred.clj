@@ -154,7 +154,11 @@
   (is (string1<=10? "012345"))
   (is (string1<=10? "012345678"))
   (is (string1<=10? "0123456789"))
-  (is (not (string1<=10? "0123456789ten"))))
+  (is (not (string1<=10? "0123456789ten")))
+  (is ((t/pred (t/CountRange 1)) (range)))
+  (is ((t/pred (t/CountRange 1 10)) (range)))
+  ;; eductions not supported, not immutable
+  (is (not ((t/pred (t/CountRange 0)) (eduction)))))
 
 (deftest intersect-pred-test
   (is ((every-pred

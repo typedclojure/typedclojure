@@ -57,3 +57,7 @@
 (is (string1<=10? "012345"))
 (is (not (string1<=10? "0123456789ten")))
 ```
+- use `bounded-count` in `t/CountRange` predicates to support infinite collections
+```clojure
+(is ((t/pred (t/CountRange 1)) (range)))
+```
