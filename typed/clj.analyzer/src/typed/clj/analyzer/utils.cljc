@@ -500,10 +500,10 @@
    subset of methods that match best the given tags"
   [tags methods]
   (let [o-tags (mapv #(or (maybe-class %) Object) tags)]
-    (if-let [methods' (or (not-empty
+    (if-let [methods (or (not-empty
                            (filterv #(= o-tags (mapv maybe-class (:parameter-types %)))
                                     methods))
-                          (not-empty
+                         (not-empty
                            (filterv #(tag-match? tags %) methods)))]
       (reduce (fn [[prev & _ :as p] next]
                 (let [prev-params (mapv maybe-class (:parameter-types prev))
@@ -535,7 +535,7 @@
                         (not-any? true? (map subsumes? prev-params next-params)))
                    [next]
                    :else
-                   (conj p next)))) [] methods')
+                   (conj p next)))) [] methods)
       methods)))
 
 (defn ns->relpath [s]
