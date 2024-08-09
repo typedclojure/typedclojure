@@ -83,6 +83,7 @@
                               (AND `(instance? ~(:name rator) ~arg)
                                    (apply pred arg rands-p)))
                             ;substitute
+                            ;;FIXME infinite types, see self-name-test
                             (#{:TFn} (:op rator))
                             (gen-inner (ops/instantiate-TFn rator rands) arg opts)
                             :else
@@ -90,7 +91,13 @@
                 (:Class) `(instance? ~(:name t) ~arg)
                 (:Name) 
                 (case ((requiring-resolve 'clojure.core.typed.current-impl/current-impl) opts)
-                  :clojure.core.typed.current-impl/clojure (gen-inner (ops/resolve-Name t opts) arg opts)
+                  :clojure.core.typed.current-impl/clojure (if-some [seen (get-in opts [::inside-Name (:name t)])]
+                                                             `(~(deref seen) ~arg)
+                                                             (let [rec (delay (gensym))
+                                                                   p (gen-inner (ops/resolve-Name t opts) arg (assoc-in opts [::inside-Name (:name t)] rec))]
+                                                               (if (realized? rec)
+                                                                 `((fn ~(deref rec) [~arg] ~p) ~arg)
+                                                                 p)))
                   (int-error (str "TODO CLJS Name") opts))
                 ;              (cond
                 ;                              (empty? (:poly? t)) `(instance? ~(:the-class t) ~arg)

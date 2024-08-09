@@ -62,3 +62,4 @@
 (is ((t/pred (t/CountRange 1)) (range)))
 ```
 - leaner bytecode in `t/pred` output
+- support infinite Names types in `t/pred`

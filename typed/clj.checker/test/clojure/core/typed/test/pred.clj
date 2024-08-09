@@ -95,6 +95,39 @@
        '[1 1]
        '[[1] [1]])))
 
+(t/defalias A
+  (t/U '[A] Number))
+(t/defalias B
+  (t/U '{:a B} Number))
+(t/defalias C
+  (t/TFn [[x :variance :invariant]] (t/U '{:a (C x)} x)))
+
+(deftest self-name-test
+  (is ((every-pred
+         (t/pred A))
+       1
+       '[1]
+       '[[1]]
+       '[[[[[2.2]]]]]))
+  (is ((every-pred
+         (t/pred B))
+       1
+       '{:a 1}
+       '{:a {:a 1}}
+       '{:a {:a {:a {:a {:a 1}}}}}))
+  (is ((every-pred
+         (complement
+           (t/pred A)))
+       '[1 1]
+       '[[1] [1]]))
+  #_ ;;FIXME infinite TApp types
+  (is ((every-pred
+         (complement
+           (t/pred (C Number))))
+       '[1 1]
+       '[[1] [1]]))
+)
+
 (deftest singleton-pred-test
   (is ((t/pred true)
        true))
