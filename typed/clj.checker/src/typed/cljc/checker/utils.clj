@@ -30,10 +30,16 @@
 (defmacro OR
   "Like `clojure.core/or` but produces better bytecode when used with
   compile-time known booleans."
-  ([] nil)
+  ([] false)
   ([x] `(if ~x true false))
-  ([x & next]
-   `(if ~x true (OR ~@next))))
+  ([x & next] `(if ~x true (OR ~@next))))
+
+(defmacro AND
+  "Like `clojure.core/and` but produces better bytecode when used with
+  compile-time known booleans."
+  ([] true)
+  ([x] `(if ~x true false))
+  ([x & next] `(if ~x (AND ~@next) false)))
 
 (defmacro ann-record 
   "Like ann-record, but also adds an unchecked annotation for core.contract's generated
@@ -180,15 +186,6 @@
              (compare (.getName (class ~this)) (.getName (class ~that))))))
 
        ~@methods*)))
-
-(defmacro AND
-  "Like `clojure.core/and` but produces better bytecode when used with
-  compile-time known booleans."
-  ([] true)
-  ([x] `(if ~x true false))
-  ([x & next]
-   `(let [and# ~x]
-      (if ~x (AND ~@next) false))))
 
 (defn update-deftype-maker [maker compute-valAt fields meta-field clsym this cases]
   {:pre [(symbol? clsym)

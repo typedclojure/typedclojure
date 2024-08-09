@@ -61,3 +61,4 @@
 ```clojure
 (is ((t/pred (t/CountRange 1)) (range)))
 ```
+- leaner bytecode in `t/pred` output

@@ -138,6 +138,12 @@
 (t/defalias String1<=10 (t/I t/Str (t/CountRange 1 10)))
 (def string1<=10? (t/pred String1<=10))
 
+;;not counted?
+(defn lazy-len [n]
+  (lazy-seq
+    (when (pos? n)
+      (cons n (lazy-len (dec n))))))
+
 (deftest countrange-pred-test
   (is ((every-pred
          (t/pred (t/CountRange 0)))
@@ -156,7 +162,9 @@
   (is (string1<=10? "0123456789"))
   (is (not (string1<=10? "0123456789ten")))
   (is ((t/pred (t/CountRange 1)) (range)))
-  (is ((t/pred (t/CountRange 1 10)) (range)))
+  (is ((t/pred (t/CountRange 1 10)) (range 10)))
+  (is ((t/pred (t/CountRange 1 10)) (lazy-len 10)))
+  (is (not ((t/pred (t/CountRange 1 9)) (lazy-len 10))))
   ;; eductions not supported, not immutable
   (is (not ((t/pred (t/CountRange 0)) (eduction)))))
 
