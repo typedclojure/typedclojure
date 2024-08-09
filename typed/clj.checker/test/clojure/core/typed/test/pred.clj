@@ -216,4 +216,7 @@
 (deftest any-pred-test
   (is ((every-pred
          (t/pred t/Any))
+       1 2 nil [1]))
+  (is ((every-pred
+         (t/pred (t/U t/Any t/Num)))
        1 2 nil [1])))

@@ -22,17 +22,25 @@
 
 (defn- AND
   "Like `clojure.core/and` but produces better bytecode when used with
-  compile-time known booleans."
+  compile-time known booleans. Must take boolean test."
   ([] true)
-  ([x] `(if ~x true false))
-  ([x & next] `(if ~x ~(apply AND next) false)))
+  ([x] x)
+  ([x & next]
+   (cond
+     (true? x) (apply AND next)
+     (false? x) false
+     :else `(if ~x ~(apply AND next) false))))
 
 (defn- OR
   "Like `clojure.core/or` but produces better bytecode when used with
-  compile-time known booleans."
+  compile-time known booleans. Must take boolean test."
   ([] false)
-  ([x] `(if ~x true false))
-  ([x & next] `(if ~x true ~(apply OR next))))
+  ([x] x)
+  ([x & next]
+   (cond
+     (true? x) true
+     (false? x) (apply OR next)
+     :else `(if ~x true ~(apply OR next)))))
 
 (defn ast->pred
   "Returns syntax representing a runtime predicate on the
@@ -99,7 +107,7 @@
                                  (:drest t)
                                  (int-error (str "Cannot generate predicate for dotted HVec") opts)
                                  :else
-                                 `(== ~(count (:types t)) (count ~arg)))
+                                 `(= ~(count (:types t)) (count ~arg)))
                                (concat
                                  (map-indexed 
                                    (fn [i t*]
