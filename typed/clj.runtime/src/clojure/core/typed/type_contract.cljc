@@ -100,8 +100,11 @@
                                                       ~(gen-inner (:rest t) vlocal opts)))
                                                 rstvec#))])))
                 (:CountRange) (let [cnt (gensym "cnt")]
-                                `(and (or (nil? ~arg)
-                                          (coll? ~arg))
+                                `(and ;; immutable collections only
+                                      (or (nil? ~arg)
+                                          (coll? ~arg)
+                                          (string? ~arg))
+                                      ;;TODO bounded counting
                                       (let [~cnt (count ~arg)]
                                         (<= ~@(let [{:keys [lower upper]} t]
                                                 (concat [lower cnt]

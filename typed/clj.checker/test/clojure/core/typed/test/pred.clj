@@ -135,6 +135,9 @@
   (is (false? ((t/pred (t/Value 1))
                nil))))
 
+(t/defalias String1<=10 (t/I t/Str (t/CountRange 1 10)))
+(def string1<=10? (t/pred String1<=10))
+
 (deftest countrange-pred-test
   (is ((every-pred
          (t/pred (t/CountRange 0)))
@@ -146,8 +149,12 @@
          (complement 
            (t/pred (t/CountRange 0))))
        ; only supports clojure collections
-       (into-array [])
-       )))
+       (into-array [])))
+  (is (not (string1<=10? "")))
+  (is (string1<=10? "012345"))
+  (is (string1<=10? "012345678"))
+  (is (string1<=10? "0123456789"))
+  (is (not (string1<=10? "0123456789ten"))))
 
 (deftest intersect-pred-test
   (is ((every-pred
