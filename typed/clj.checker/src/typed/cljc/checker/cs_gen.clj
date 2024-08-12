@@ -1332,23 +1332,35 @@
 ;; The range is this map is a list of symbols generated on demand, as we need
 ;; more dots.
 
-;; Take (generate as needed) n symbols that correspond to variable var used in
+;; Take (generate as needed) n symbols that correspond to variable dotted-var used in
 ;; the context of type t.
 ;FIXME no-check, trans-dots needs to be generalised
-(t/ann ^:no-check var-store-take [t/Sym r/Type t/Int t/Any -> (t/Seqable t/Sym)])
-(defn- var-store-take [var t n {::keys [dotted-var-store] :as opts}]
-  (assert dotted-var-store (keys opts))
-  ;(t/ann-form dotted-var-store (t/Atom (t/Map '[r/Type t/Sym] (t/Seq t/Sym))))
-  (let [key [t n]
-        res (vec (@dotted-var-store key))]
-    (if (>= (count res) n)
-      ;; there are enough symbols already, take n
-      (subvec res 0 n)
-      ;; we need to generate more
-      (let [new (repeatedly (- n (count res)) #(gensym var))
-            all (into res new)]
-        (swap! dotted-var-store assoc key all)
-        all))))
+(t/ann ^:no-check var-store-take [t/Sym r/Type t/Int t/Any -> (t/Vec t/Sym)])
+(defn- var-store-take [dotted-var t n opts]
+  {:pre [(simple-symbol? dotted-var)
+         (r/Type? t)
+         (nat-int? n)]
+   :post [(vector? %)]}
+  (if (zero? n)
+    []
+    (let [dotted-var-store (::dotted-var-store opts)
+          ;_ (t/ann-form dotted-var-store (t/Atom (t/Map '[r/Type t/Sym] (t/Vec t/Sym))))
+          k [t n]
+          res (@dotted-var-store k)]
+      (if (>= (count res) n)
+        ;; there are enough symbols already, take n
+        (subvec res 0 n)
+        ;; we need to generate more
+        (-> (swap! dotted-var-store 
+                   (fn [m]
+                     (let [res (m k)
+                           cnt (count res)]
+                       (cond-> m
+                         (< cnt n)
+                         (assoc k (into (or res []) (map (fn [_] (gensym dotted-var)))
+                                        (range (- n cnt))))))))
+            (get k)
+            (subvec 0 n))))))
 
 (defn cs-gen-Function-just-rests [V X Y S T opts]
   {:pre [(every? #(#{:fixed :rest} (:kind %)) [S T])]}
