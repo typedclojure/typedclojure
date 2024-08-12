@@ -74,18 +74,25 @@
 (t/ann fresh-symbol [t/Sym -> t/Sym])
 (defn fresh-symbol
   ([s]
-   {:pre [(symbol? s)]
-    :post [(symbol? %)]}
-   (-> (.concat (str s) (str (clojure.lang.RT/nextID)))
-       clojure.lang.Symbol/intern
-       (with-meta {:original-name s})))
+   {:pre [(simple-symbol? s)]
+    :post [(simple-symbol? %)]}
+   (with-meta
+     (clojure.lang.Symbol/intern
+       nil
+       (-> (name s)
+           (.concat (Integer/toString (clojure.lang.RT/nextID)))))
+     {:original-name s}))
   ([s hint]
-   {:pre [(symbol? s)]
-    :post [(symbol? %)]}
-   (-> (.concat (str s) (str hint))
-       (.concat (str (clojure.lang.RT/nextID)))
-       clojure.lang.Symbol/intern
-       (with-meta {:original-name s}))))
+   {:pre [(simple-symbol? s)
+          (string? hint)]
+    :post [(simple-symbol? %)]}
+   (with-meta
+     (clojure.lang.Symbol/intern
+       nil
+       (-> (name s)
+           (.concat hint)
+           (.concat (Integer/toString (clojure.lang.RT/nextID)))))
+     {:original-name s})))
 
 (declare Un make-Union make-Intersection fully-resolve-type fully-resolve-non-rec-type flatten-unions)
 
