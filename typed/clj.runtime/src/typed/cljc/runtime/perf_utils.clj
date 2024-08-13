@@ -4,7 +4,7 @@
 (defn some
   "Like `clojure.core/some`, but uses an iterator over `lst`."
   [f ^Iterable lst]
-  (let [it (.iterator lst)]
+  (when-let [it (some-> lst .iterator)]
     (loop []
       (when (.hasNext it)
         (or (f (.next it))
@@ -13,13 +13,15 @@
 (defn every?
   "Like `clojure.core/every?`, but uses an iterator over `lst`."
   [f ^Iterable lst]
-  (let [it (.iterator lst)]
-    (loop []
-      (if (.hasNext it)
-        (if (f (.next it))
-          (recur)
-          false)
-        true))))
+  (if (nil? lst)
+    true
+    (let [it (.iterator lst)]
+      (loop []
+        (if (.hasNext it)
+          (if (f (.next it))
+            (recur)
+            false)
+          true)))))
 
 (defn repeatedly
   "Like `clojure.core/repeatedly`, but eager and more efficient."

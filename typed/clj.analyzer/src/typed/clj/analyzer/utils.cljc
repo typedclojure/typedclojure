@@ -435,14 +435,14 @@
   (eduction (remove (comp :static :flags)) (members2 class f)))
 
 (defn static-methods [class method argc]
-  (into [] (filter #(and (instance? clojure.reflect.Method %)
-                         (= argc (count (:parameter-types %)))))
-        (static-members class method)))
+  (eduction (filter #(and (instance? clojure.reflect.Method %)
+                          (= argc (count (:parameter-types %)))))
+            (static-members class method)))
 
 (defn instance-methods [class method argc]
-  (into [] (filter #(and (instance? clojure.reflect.Method %)
-                         (= argc (count (:parameter-types %)))))
-        (instance-members class method)))
+  (eduction (filter #(and (instance? clojure.reflect.Method %)
+                          (= argc (count (:parameter-types %)))))
+            (instance-members class method)))
 
 (defn- field [member]
   (when (instance? clojure.reflect.Field member)
@@ -500,8 +500,8 @@
    subset of methods that match best the given tags"
   [tags methods]
   (let [o-tags (mapv #(or (maybe-class %) Object) tags)]
-    (if-let [methods (or (seq (filterv #(= o-tags (mapv maybe-class (:parameter-types %))) methods))
-                         (seq (filterv #(tag-match? tags %) methods)))]
+    (if-let [methods (or (not-empty (filterv #(= o-tags (mapv maybe-class (:parameter-types %))) methods))
+                         (not-empty (filterv #(tag-match? tags %) methods)))]
       (reduce (fn [[prev & _ :as p] next]
                 (let [prev-params (mapv maybe-class (:parameter-types prev))
                       next-params (mapv maybe-class (:parameter-types next))
