@@ -385,8 +385,6 @@
 #?(:cljs :ignore :default
 (def ^:private parse-free-binder-with-variance #((requiring-resolve 'typed.clj.checker.parse-unparse/parse-free-binder-with-variance) %1 %2)))
 #?(:cljs :ignore :default
-(def ^:private with-bounded-frees #((requiring-resolve 'typed.cljc.checker.free-ops/with-bounded-frees) %1 %2)))
-#?(:cljs :ignore :default
 (def ^:private with-bounded-frees #((requiring-resolve 'typed.cljc.checker.free-ops/with-bounded-frees) %1 %2 %3)))
 #?(:cljs :ignore :default
 (def ^:private unparse-type #((requiring-resolve 'typed.clj.checker.parse-unparse/unparse-type) %1 %2)))
