@@ -104,6 +104,7 @@
     (assert (= 'opts opts) opts)
     `(let [opts# ~opts
            f# (fn [A# opts#] (~f A# ~@args opts#))]
+       (assert (not (::vs/under-scope opts#)))
        (if-some [A# (::sub-current-seen opts#)]
          (f# A# opts#)
          (let [A# #{}]
@@ -479,7 +480,7 @@
   JSObject (subtypeA*-same [s t A opts] unknown-result)
   Name (subtypeA*-same [s t A opts] unknown-result)
   F (subtypeA*-same [s t A opts] unknown-result)
-  B (subtypeA*-same [s t A opts] unknown-result)
+  B (subtypeA*-same [s t A opts] (throw (ex-info "B unsupported in subtype" {})))
   TypeOf (subtypeA*-same [s t A opts] unknown-result)
   MatchType (subtypeA*-same [s t A opts] unknown-result)
   ;;TODO
@@ -932,7 +933,7 @@
 
   Unchecked (subtypeA*-for-s [s t A opts] A)
 
-  B (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
+  B (subtypeA*-for-s [s t _ _] (throw (ex-info "B unsupported in subtype" {})))
   F (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
   NotType (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
   TopKwArgsSeq (subtypeA*-for-s [s t _ _] (report-not-subtypes s t))
@@ -1844,7 +1845,7 @@
 
 ;; assume Mu/Poly are Types
 (defn has-Type-kind? [t opts]
-  (let [t (c/fully-resolve-non-rec-type t (assoc opts ::vs/no-simpl true))]
+  (let [t (c/fully-resolve-non-rec-type t opts)]
     (if (r/F? t)
       (if-some [bnd (free-ops/free-with-name-bnds (:name t) opts)]
         (r/Bounds? bnd)

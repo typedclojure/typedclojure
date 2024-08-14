@@ -9,6 +9,7 @@
 (ns ^:no-doc typed.cljc.checker.filter-ops
   (:refer-clojure :exclude [delay])
   (:require [clojure.set :as set]
+            [clojure.core.typed.util-vars :as vs]
             [typed.clojure :as t]
             [typed.cljc.checker.filter-rep :as fr]
             [typed.cljc.checker.object-rep :as or]
@@ -63,6 +64,8 @@
    :post [(boolean? %)]}
   (let [subtype? @(subtype?-var)]
     (cond
+      (::vs/under-scope opts) false
+
       (and (fr/TypeFilter? f1)
            (fr/NotTypeFilter? f2))
       (let [{t1 :type p1 :path i1 :id} f1
@@ -298,7 +301,7 @@
   {:pre [(every? fr/Filter? args)
          (not (fr/Filter? opts))]
    :post [(fr/Filter? %)]}
-  (letfn [(mk [& fs]
+  (letfn [(mk [fs]
             {:pre [(every? fr/Filter? fs)]
              :post [(fr/Filter? %)]}
             (cond
@@ -308,7 +311,7 @@
           (distribute [args]
             (let [{ands true others false} (group-by fr/AndFilter? args)]
               (if (empty? ands)
-                (apply mk others)
+                (mk others)
                 (let [{elems :fs} (first ands)] ;an AndFilter
                   (-and (for [a elems]
                           (-or (cons a (concat (next ands) others)) opts))
@@ -329,13 +332,15 @@
           (fr/BotFilter? (first fs)) (recur (next fs) result)
           :else (let [t (first fs)]
                   (assert (fr/Filter? t))
-                  (cond 
+                  (cond
                     (some (fn [f] (opposite? f t opts)) (concat (rest fs) result))
                     fr/-top
+
                     (some (fn [f] (or (= f t)
                                       (implied-atomic? f t opts)))
                           result)
                     (recur (next fs) result)
+
                     :else
                     (recur (next fs) (cons t result)))))))))
 
@@ -372,7 +377,7 @@
 (defn -and [args opts]
   {:pre [(every? fr/Filter? args)]
    :post [(fr/Filter? %)]}
-  (letfn [(mk [& fs]
+  (letfn [(mk [fs]
             {:pre [(every? fr/Filter? fs)]
              :post [(fr/Filter? %)]}
             (cond
@@ -392,7 +397,7 @@
                                    fr/-bot
                                    (if (= f1 f2)
                                      f1
-                                     (apply mk (compact [f1 f2] false opts)))))
+                                     (mk (compact [f1 f2] false opts)))))
           :else
            ;; first, remove anything implied by the atomic propositions
            ;; We commonly see: (And (Or P Q) (Or P R) (Or P S) ... P), which this fixes
@@ -403,7 +408,7 @@
                               p)]
             ;(prn "not-atomic*" not-atomic*)
              ;; `compact' takes care of implications between atomic props
-            (apply mk (compact (concat not-atomic* atomic) false opts))))
+            (mk (compact (concat not-atomic* atomic) false opts))))
         (let [ffs (first fs)]
           (cond
             (fr/BotFilter? ffs) ffs
@@ -472,6 +477,8 @@
         (and (fr/OrFilter? f1)
              (fr/OrFilter? f2))
         (empty? (set/difference (:fs f2) (:fs f1)))
+
+        (::vs/under-scope opts) false
 
         (fr/OrFilter? f1) (contains? (:fs f1) f2)
         (and (fr/TypeFilter? f1)

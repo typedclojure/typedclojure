@@ -353,7 +353,11 @@
          (X? X)
          (Y? Y)
          (r/AnyType? S)
-         (r/AnyType? T)]
+         (r/AnyType? T)
+         (not (r/B? S))
+         (not (r/Scope? S))
+         (not (r/B? T))
+         (not (r/Scope? T))]
    :post [(cr/cset? %)]}
   ;(prn "cs-gen" (class S) (class T) S T (count cs-current-seen))
   (if (or (cs-current-seen [S T])
@@ -1997,7 +2001,7 @@
   (let [remap-atom (atom {})
         separated-t (let [;; when we rename type variables they will not have bounds registered in opts
                           ;; so we must avoid calling subtyping.
-                          opts (assoc opts ::vs/no-simpl true)]
+                          opts (assoc opts ::vs/under-scope true)]
                       (letfn [(rec [t replace-fs idx-context]
                                 (call-separate-F* t opts
                                                   {:in-idx-context (partial in-idx-context replace-fs idx-context)

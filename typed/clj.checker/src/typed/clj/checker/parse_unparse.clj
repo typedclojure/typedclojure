@@ -168,8 +168,7 @@
   (let [env (or (tsyn->env s) (::vs/current-env opts))
         opts (-> opts
                  (assoc ::vs/current-env env)
-                 (assoc ::parsing-tsyn s)
-                 #_(assoc ::vs/no-simpl true))]
+                 (assoc ::parsing-tsyn s))]
     (try (parse-type* s opts)
          (catch Throwable e
            ;(prn (err/any-tc-error? (ex-data e)))
@@ -807,8 +806,7 @@
   [[_ binder bodysyn :as tfn] opts]
   (when-not (= 3 (count tfn))
     (prs-error (str "Wrong number of arguments to TFn: " (pr-str tfn)) opts))
-  (let [opts (assoc opts ::vs/no-simpl true)
-        ;; variable bounds has all variables to the left of it in scope
+  (let [;; variable bounds has all variables to the left of it in scope
         {:keys [free-maps]} (reduce (fn [{:keys [free-maps free-symbs]} binder]
                                       (when-not ((some-fn symbol? vector?) binder)
                                         (prs-error (str "TFn binder element must be a symbol or vector: " (pr-str binder)) opts))
@@ -1915,7 +1913,7 @@
         (-> t meta :source-Name))
       (unparse-type* (or (some-> t meta :pretty (get t) :no-simpl deref)
                          t)
-                     (assoc opts ::vs/no-simpl true))))
+                     opts)))
 
 (defn unp [t opts] (prn (unparse-type t opts)))
 

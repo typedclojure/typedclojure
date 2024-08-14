@@ -107,20 +107,16 @@
   {:pre [(symbol? vsym)]}
   (TypeOf-maker vsym))
 
-(u/def-type Union [types :- (t/U (t/SortedSet Type)
-                                 (t/Vec Type))]
+(u/def-type Union [types :- (t/SortedSet Type)]
   "An flattened, sorted union of types"
-  [(or (vector? types)
-       (and (set? types)
-            (sorted? types)
-            (not-any? Union? types)))
+  [(and (set? types)
+        (sorted? types)
+        (not-any? Union? types))
    (every? Type? types)]
   :methods
   [p/TCType]
   :compare-self
-  {types (fn [v]
-           [(if (vector? v) :vector :set)
-            (vec v)])})
+  {types vec})
 
 ;;TODO remove this fn and used (sorted-set) directly
 (t/ann ^:no-check sorted-type-set [(t/Seqable Type) -> (t/SortedSet Type)])
@@ -159,21 +155,17 @@
 (def Err (TCError-maker))
 (def -error Err)
 
-(u/def-type Intersection [types :- (t/U (t/I t/NonEmptyCount 
-                                             (t/SortedSet Type))
-                                        (t/NonEmptyVec Type))]
+(u/def-type Intersection [types :- (t/I t/NonEmptyCount 
+                                        (t/SortedSet Type))]
   "An unordered intersection of types."
-  [(or (vector? types)
-       (and (sorted? types)
-            (set? types)))
+  [(and (sorted? types)
+        (set? types))
    (seq types)
    (every? Type? types)]
   :methods 
   [p/TCType]
   :compare-self
-  {types (fn [v]
-           [(if (vector? v) :vector :set)
-            (vec v)])})
+  {types vec})
 
 (t/defalias Variance
   "Keywords that represent a certain variance"
@@ -470,7 +462,7 @@
                   (if (fn? variances)
                     (let [vol (volatile! (t/ann-form nil (t/Seqable Variance)))]
                       (fn []
-                        (or (do @vol)
+                        (or @vol
                             (let [{vs :variances :keys [cache]} (variances)]
                               (t/ann-form vs (t/Seqable Variance))
                               (assert (every? variance? vs) [nbound variances bbnds scope])
@@ -571,6 +563,9 @@
     sc
     (do (assert (= n (.scopes sc)) (str "Did not remove enough scopes " sc))
         (.body sc))))
+
+(defn under-scope [opts]
+  (assoc opts ::vs/under-scope true))
 
 (t/ann ^:no-check unsafe-body [Poly :-> Type])
 (defn ^:private unsafe-body [p]
@@ -752,8 +747,8 @@
         t/Any
         -> Type])
 (defn -hsequential
-  [types {:keys [filters objects rest drest kind] repeat? :repeat} {::vs/keys [no-simpl] :as opts}]
-  (if (and (not repeat?) (some Bottom? types) (not no-simpl))
+  [types {:keys [filters objects rest drest kind] repeat? :repeat} opts]
+  (if (and (not repeat?) (some Bottom? types))
     (Bottom)
     (HSequential-maker types
                        (vec (or filters

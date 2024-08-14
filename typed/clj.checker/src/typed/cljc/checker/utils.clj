@@ -85,7 +85,7 @@
     `(deftype ~name-sym [~@fields ~(with-meta hash-field {:unsynchronized-mutable true}) ~meta-field]
        clojure.lang.IHashEq
        (equals [~this ~that]
-         (and (instance? ~name-sym ~that)
+         (AND (instance? ~name-sym ~that)
               ~@(let [that (with-meta that {:tag name-sym})]
                   (for [f fields
                         :let [f (symbol (str "-" f))]]
@@ -159,7 +159,7 @@
        (empty [this#] this#)
        (cons [this# e#] (throw (UnsupportedOperationException. ~(str "cons on " name-sym))))
        (equiv [~this ~that]
-         (and (instance? ~name-sym ~that)
+         (AND (instance? ~name-sym ~that)
               ~@(let [that (with-meta that {:tag name-sym})]
                   (for [f fields
                         :let [f (symbol (str "-" f))]]
