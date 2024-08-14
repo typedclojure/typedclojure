@@ -42,7 +42,7 @@
                                         symbol?)
                             (some-fn r/Type? #(isa? % temp-binding))))
 
-(t/ann ^:no-check name-env [-> NameEnv])
+(t/ann ^:no-check name-env [t/Any -> NameEnv])
 (defn name-env [checker]
   (get (env/deref-checker checker) impl/current-name-env-kw {}))
 
@@ -51,28 +51,42 @@
   (env/swap-checker! checker assoc impl/current-name-env-kw nme-env)
   nil)
 
-(t/ann ^:no-check find-type-name-entry [t/Sym t/Any -> (t/Nilable (t/MapEntry t/Sym (t/U t/Kw (t/Delay r/Type) [:-> r/Type])))])
+(t/ann ^:no-check find-type-name-entry [t/Sym t/Any -> (t/Nilable (t/MapEntry t/Sym (t/U t/Kw r/Type)))])
 (defn find-type-name-entry [sym opts]
-  (or (find (name-env (env/checker opts)) sym)
-      (when-some [sym-nsym ((requiring-resolve (impl/impl-case opts
-                                                 :clojure 'typed.clj.checker.parse-unparse/ns-rewrites-clj
-                                                 :cljs 'typed.clj.checker.parse-unparse/ns-rewrites-cljs))
-                            (some-> sym namespace symbol))]
-        (find (name-env (env/checker opts))
-              (symbol (name sym-nsym) (name sym))))))
+  (let [env (name-env (env/checker opts))]
+    (some->
+      (or (find env sym)
+          (when-some [sym-nsym (some-> (namespace sym) symbol
+                                       ((requiring-resolve
+                                          (impl/impl-case opts
+                                                          :clojure 'typed.clj.checker.parse-unparse/ns-rewrites-clj
+                                                          :cljs 'typed.clj.checker.parse-unparse/ns-rewrites-cljs))))]
+            (find env (symbol (name sym-nsym) (name sym)))))
+      (update 1 #(force-type % opts)))))
+
+(t/ann ^:no-check get-type-name* [t/Sym t/Any -> (t/Nilable (t/U t/Kw (t/Delay r/Type) [:-> r/Type]))])
+(defn- get-type-name*
+  "Does not resolve type."
+  [sym opts]
+  (let [env (name-env (env/checker opts))]
+    (or (env sym)
+        (when-some [sym-nsym (some-> (namespace sym) symbol
+                                     ((requiring-resolve
+                                        (impl/impl-case opts
+                                          :clojure 'typed.clj.checker.parse-unparse/ns-rewrites-clj
+                                          :cljs 'typed.clj.checker.parse-unparse/ns-rewrites-cljs))))]
+          (env (symbol (name sym-nsym) (name sym)))))))
 
 (t/ann ^:no-check get-type-name [t/Sym t/Any -> (t/U nil t/Kw r/Type)])
 (defn get-type-name
-  "Return the name with var symbol sym.
+  "Return the (forced) type mapped to var with symbol sym.
   Returns nil if not found."
   [sym opts]
   {:pre [(symbol? sym)]
-   :post [(or (assert (or (nil? %)
-                          (keyword? %)
-                          (r/Type? %))
-                      (pr-str %))
-              true)]}
-  (some-> (find-type-name-entry sym opts) val (force-type opts)))
+   :post [(or (nil? %)
+              (keyword? %)
+              (r/Type? %))]}
+  (some-> (get-type-name* sym opts) (force-type opts)))
 
 (t/ann ^:no-check add-type-name [t/Any t/Sym (t/U t/Kw r/Type) -> nil])
 (def add-type-name impl/add-tc-type-name)
@@ -103,26 +117,24 @@
   {:pre [(symbol? sym)]
    :post [(r/Type? %)]}
   (let [checker (env/checker opts)
-        t (get-type-name sym opts)
-        tfn ((some-fn #(dtenv/get-datatype checker % opts)
-                      #(prenv/get-protocol checker % opts)
-                      (impl/impl-case opts
-                        :clojure #(or (rcls/get-rclass checker % opts)
-                                      (when (class? (resolve %))
-                                        (c/RClass-of-with-unknown-params % opts)))
-                        :cljs #((requiring-resolve 'typed.cljs.checker.jsnominal-env/get-jsnominal) % opts))
-                      ; during the definition of RClass's that reference
-                      ; themselves in their definition, a temporary TFn is
-                      ; added to the declared kind env which is enough to determine
-                      ; type rank and variance.
-                      #(kinds/declared-kind-or-nil checker % opts)) 
-             sym)]
-    (or tfn
+        t (get-type-name sym opts)]
+    (or (dtenv/get-datatype checker sym opts)
+        (prenv/get-protocol checker sym opts)
+        (impl/impl-case opts
+          :clojure (or (rcls/get-rclass checker sym opts)
+                       (when (class? (resolve sym))
+                         (c/RClass-of-with-unknown-params sym opts)))
+          :cljs ((requiring-resolve 'typed.cljs.checker.jsnominal-env/get-jsnominal) sym opts))
+        ; during the definition of RClass's that reference
+        ; themselves in their definition, a temporary TFn is
+        ; added to the declared kind env which is enough to determine
+        ; type rank and variance.
+        (kinds/declared-kind-or-nil checker sym opts)
         (cond
           (= impl/protocol-name-type t) (prenv/resolve-protocol checker sym opts)
           (= impl/datatype-name-type t) (dtenv/resolve-datatype checker sym opts)
           (= impl/declared-name-type t) (throw (IllegalArgumentException. (str "Reference to declared but undefined name " sym)))
-          (r/Type? t) (vary-meta t assoc :source-Name sym)
+          (r/Type? t) (with-meta t (assoc (meta t) :source-Name sym))
           :else (err/int-error (str "Cannot resolve name " (pr-str sym)
                                     (when t
                                       (str " (Resolved to instance of)" (pr-str (class t)))))

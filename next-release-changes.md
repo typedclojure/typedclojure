@@ -49,3 +49,17 @@
 - assert `t/Rec` binder must have simple symbols
 - BREAKING: remove support for `...` and `:...` syntax in `t/All` binder, `t/IFn`, `t/cat`, and `t/HSequential`
   - now `:..`
+- support bounded strings in `t/pred`
+```clojure
+(t/defalias String1<=10 (t/I t/Str (t/CountRange 1 10)))
+(def string1<=10? (t/pred String1<=10))
+(is (not (string1<=10? "")))
+(is (string1<=10? "012345"))
+(is (not (string1<=10? "0123456789ten")))
+```
+- use `bounded-count` in `t/CountRange` predicates to support infinite collections
+```clojure
+(is ((t/pred (t/CountRange 1)) (range)))
+```
+- leaner bytecode in `t/pred` output
+- support infinite Names types in `t/pred`

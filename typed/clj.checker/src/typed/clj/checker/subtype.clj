@@ -8,12 +8,12 @@
 
 (ns ^:no-doc typed.clj.checker.subtype
   "Use [[subtype?]] to check if s <: t, and [[subtype-filter?]] for filters."
-  (:refer-clojure :exclude [every? requiring-resolve repeatedly])
+  (:refer-clojure :exclude [every? requiring-resolve repeatedly some])
   (:require [clojure.core.typed.coerce-utils :as coerce]
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.errors :as err]
             [clojure.string :as str]
-            [typed.cljc.runtime.perf-utils :refer [repeatedly every?]]
+            [typed.cljc.runtime.perf-utils :refer [repeatedly every? some]]
             [clojure.set :as set]
             [clojure.core.typed.util-vars :as vs]
             [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]
@@ -1788,7 +1788,7 @@
   (let [scls (r/RClass->Class s)
         tcls (r/RClass->Class t)]
     (cond
-      ((some-fn r/Instance?) s t)
+      (or (r/Instance? s) (r/Instance? t))
       (if (r/Instance? t)
         ;; (U RClass Instance) <: Instance
         (if (class-isa? scls tcls)
@@ -1796,10 +1796,11 @@
           (report-not-subtypes s t))
         ;;  :< (U RClass Instance)
         ;find a supertype of s that is the same base as t, and subtype of it
-        (some #(when (and ((some-fn r/RClass? r/Instance?) %)
-                          (= (:the-class t) (:the-class %)))
-                 (subtype-RClass-common-base A % t opts))
-              (map #(c/fully-resolve-type % opts) (c/RClass-supers* s opts))))
+        (some #(let [frt (c/fully-resolve-type % opts)]
+                 (when (and (or (r/RClass? frt) (r/Instance? frt))
+                            (= (:the-class t) (:the-class frt)))
+                   (subtype-RClass-common-base A frt t opts)))
+              (c/RClass-supers* s opts)))
 
       :else
       ;; RClass <: RClass

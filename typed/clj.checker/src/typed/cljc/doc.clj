@@ -299,14 +299,13 @@
                          (println doc)
                          (println "Forms:" forms))
                        (if-some [[alias-k alias-ty] (name-env/find-type-name-entry rsym opts)]
-                         (let [alias-ty (force-type alias-ty opts)]
-                           (with-out-str
-                             (println "Type alias" alias-k)
-                             (pp/pprint (if (keyword? alias-ty)
-                                          alias-ty
-                                          (prs/unparse-type alias-ty opts)))
-                             (println "Metadata:")
-                             (pp/pprint (meta alias-k))))
+                         (with-out-str
+                           (println "Type alias" alias-k)
+                           (pp/pprint (if (keyword? alias-ty)
+                                        alias-ty
+                                        (prs/unparse-type alias-ty opts)))
+                           (println "Metadata:")
+                           (pp/pprint (meta alias-k)))
                          (if-some [ty (impl/impl-case opts
                                         :clojure (rcls/get-rclass checker rsym opts)
                                         :cljs nil)]

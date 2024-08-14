@@ -20,6 +20,28 @@
 
 (def ^:private int-error #((requiring-resolve 'clojure.core.typed.errors/int-error) %1 %2))
 
+(defn- AND
+  "Like `clojure.core/and` but produces better bytecode when used with
+  compile-time known booleans. Must take boolean test."
+  ([] true)
+  ([x] x)
+  ([x & next]
+   (cond
+     (true? x) (apply AND next)
+     (false? x) false
+     :else `(if ~x ~(apply AND next) false))))
+
+(defn- OR
+  "Like `clojure.core/or` but produces better bytecode when used with
+  compile-time known booleans. Must take boolean test."
+  ([] false)
+  ([x] x)
+  ([x & next]
+   (cond
+     (true? x) true
+     (false? x) (apply OR next)
+     :else `(if ~x true ~(apply OR next)))))
+
 (defn ast->pred
   "Returns syntax representing a runtime predicate on the
   given type ast."
@@ -58,9 +80,10 @@
                                   rands-p (mapv (fn [ast gsym]
                                                   `(fn [~gsym] ~(gen-inner ast gsym opts))) 
                                                 rands rands-args)]
-                              `(and (instance? ~(:name rator) ~arg)
-                                    ~(apply pred arg rands-p)))
+                              (AND `(instance? ~(:name rator) ~arg)
+                                   (apply pred arg rands-p)))
                             ;substitute
+                            ;;FIXME infinite types, see self-name-test
                             (#{:TFn} (:op rator))
                             (gen-inner (ops/instantiate-TFn rator rands) arg opts)
                             :else
@@ -68,54 +91,66 @@
                 (:Class) `(instance? ~(:name t) ~arg)
                 (:Name) 
                 (case ((requiring-resolve 'clojure.core.typed.current-impl/current-impl) opts)
-                  :clojure.core.typed.current-impl/clojure (gen-inner (ops/resolve-Name t opts) arg opts)
+                  :clojure.core.typed.current-impl/clojure (if-some [seen (get-in opts [::inside-Name (:name t)])]
+                                                             `(~(deref seen) ~arg)
+                                                             (let [rec (delay (gensym))
+                                                                   p (gen-inner (ops/resolve-Name t opts) arg (assoc-in opts [::inside-Name (:name t)] rec))]
+                                                               (if (realized? rec)
+                                                                 `((fn ~(deref rec) [~arg] ~p) ~arg)
+                                                                 p)))
                   (int-error (str "TODO CLJS Name") opts))
                 ;              (cond
                 ;                              (empty? (:poly? t)) `(instance? ~(:the-class t) ~arg)
                 ;                              :else (int-error (str "Cannot generate predicate for polymorphic Class") opts))
-                (:Any) `true
+                (:Any) true
                 ;TODO special case for union of HMap, and unions of constants
-                (:U) `(or ~@(mapv #(gen-inner % arg opts) (:types t)))
-                (:I) `(and ~@(mapv #(gen-inner % arg opts) (:types t)))
-                (:HVec) `(and (vector? ~arg)
-                              ~(cond
+                (:U) (apply OR (map #(gen-inner % arg opts) (:types t)))
+                (:I) (apply AND (map #(gen-inner % arg opts) (:types t)))
+                (:HVec) (apply AND
+                               `(vector? ~arg)
+                               (cond
                                  (:rest t)
                                  `(<= ~(count (:types t)) (count ~arg))
                                  (:drest t)
                                  (int-error (str "Cannot generate predicate for dotted HVec") opts)
                                  :else
-                                 `(== ~(count (:types t)) (count ~arg)))
-                              ~@(doall
-                                  (map-indexed 
-                                    (fn [i t*]
-                                      (let [vlocal (gensym "vlocal")]
-                                        `(let [~vlocal (nth ~arg ~i)]
-                                           ~(gen-inner t* vlocal opts))))
-                                    (:types t)))
-                              ~@(when (:rest t)
-                                  (let [nfixed (count (:types t))]
-                                    [`(let [rstvec# (subvec ~arg ~nfixed)]
-                                        (every? ~(let [vlocal (gensym "vlocal")]
-                                                   `(fn [~vlocal] 
-                                                      ~(gen-inner (:rest t) vlocal opts)))
-                                                rstvec#))])))
-                (:CountRange) (let [cnt (gensym "cnt")]
-                                `(and (or (nil? ~arg)
-                                          (coll? ~arg))
-                                      (let [~cnt (count ~arg)]
-                                        (<= ~@(let [{:keys [lower upper]} t]
-                                                (concat [lower cnt]
-                                                        (when upper
-                                                          [upper])))))))
+                                 `(= ~(count (:types t)) (count ~arg)))
+                               (concat
+                                 (map-indexed 
+                                   (fn [i t*]
+                                     (let [vlocal (gensym "vlocal")]
+                                       `(let [~vlocal (nth ~arg ~i)]
+                                          ~(gen-inner t* vlocal opts))))
+                                   (:types t))
+                                 (when (:rest t)
+                                   (let [nfixed (count (:types t))]
+                                     [`(let [rstvec# (subvec ~arg ~nfixed)]
+                                         (every? ~(let [vlocal (gensym "vlocal")]
+                                                    `(fn [~vlocal] 
+                                                       ~(gen-inner (:rest t) vlocal opts)))
+                                                 rstvec#))]))))
+                (:CountRange) (let [cnt (gensym "cnt")
+                                    {:keys [lower upper]} t]
+                                (AND ;; immutable collections only
+                                     (OR `(nil? ~arg)
+                                         `(coll? ~arg)
+                                         `(string? ~arg))
+                                     (let [cnt `(bounded-count ~(inc (if (and lower upper)
+                                                                      (max lower upper)
+                                                                      (or lower upper)))
+                                                               ~arg)]
+                                       `(<= ~@(cond-> [lower cnt]
+                                                upper (conj upper))))))
                 (:singleton) (let [v (:val t)]
                                (cond
                                  (nil? v) `(nil? ~arg)
                                  ((some-fn symbol? string?) v) `(= '~v ~arg)
                                  (keyword? v) `(identical? '~v ~arg)
                                  ((some-fn true? false?) v) `(identical? '~v ~arg)
-                                 (number? v) `(when (number? ~arg)
+                                 (number? v) `(if (number? ~arg)
                                                 ; I think = models the type system's behaviour better than ==
-                                                (= '~v ~arg))
+                                                (= '~v ~arg)
+                                                false)
                                  :else (int-error 
                                          (str "Cannot generate predicate for value type: " (pr-str v))
                                          opts)))
@@ -152,8 +187,7 @@
                 (int-error (str op " not supported in type->pred: " (:form t)) opts))))]
      (let [arg (gensym "arg")]
        `(fn [~arg] 
-          (boolean
-            ~(gen-inner t arg opts)))))))
+          ~(gen-inner t arg opts))))))
 
 (defn ast->contract 
   "Returns syntax representing a runtime predicate on the

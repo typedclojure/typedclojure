@@ -95,6 +95,39 @@
        '[1 1]
        '[[1] [1]])))
 
+(t/defalias A
+  (t/U '[A] Number))
+(t/defalias B
+  (t/U '{:a B} Number))
+(t/defalias C
+  (t/TFn [[x :variance :invariant]] (t/U '{:a (C x)} x)))
+
+(deftest self-name-test
+  (is ((every-pred
+         (t/pred A))
+       1
+       '[1]
+       '[[1]]
+       '[[[[[2.2]]]]]))
+  (is ((every-pred
+         (t/pred B))
+       1
+       '{:a 1}
+       '{:a {:a 1}}
+       '{:a {:a {:a {:a {:a 1}}}}}))
+  (is ((every-pred
+         (complement
+           (t/pred A)))
+       '[1 1]
+       '[[1] [1]]))
+  #_ ;;FIXME infinite TApp types
+  (is ((every-pred
+         (complement
+           (t/pred (C Number))))
+       '[1 1]
+       '[[1] [1]]))
+)
+
 (deftest singleton-pred-test
   (is ((t/pred true)
        true))
@@ -135,6 +168,15 @@
   (is (false? ((t/pred (t/Value 1))
                nil))))
 
+(t/defalias String1<=10 (t/I t/Str (t/CountRange 1 10)))
+(def string1<=10? (t/pred String1<=10))
+
+;;not counted?
+(defn lazy-len [n]
+  (lazy-seq
+    (when (pos? n)
+      (cons n (lazy-len (dec n))))))
+
 (deftest countrange-pred-test
   (is ((every-pred
          (t/pred (t/CountRange 0)))
@@ -146,8 +188,18 @@
          (complement 
            (t/pred (t/CountRange 0))))
        ; only supports clojure collections
-       (into-array [])
-       )))
+       (into-array [])))
+  (is (not (string1<=10? "")))
+  (is (string1<=10? "012345"))
+  (is (string1<=10? "012345678"))
+  (is (string1<=10? "0123456789"))
+  (is (not (string1<=10? "0123456789ten")))
+  (is ((t/pred (t/CountRange 1)) (range)))
+  (is ((t/pred (t/CountRange 1 10)) (range 10)))
+  (is ((t/pred (t/CountRange 1 10)) (lazy-len 10)))
+  (is (not ((t/pred (t/CountRange 1 9)) (lazy-len 10))))
+  ;; eductions not supported, not immutable
+  (is (not ((t/pred (t/CountRange 0)) (eduction)))))
 
 (deftest intersect-pred-test
   (is ((every-pred
@@ -197,4 +249,7 @@
 (deftest any-pred-test
   (is ((every-pred
          (t/pred t/Any))
+       1 2 nil [1]))
+  (is ((every-pred
+         (t/pred (t/U t/Any t/Num)))
        1 2 nil [1])))
