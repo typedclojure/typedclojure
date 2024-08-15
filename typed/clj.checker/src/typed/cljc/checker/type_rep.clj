@@ -398,7 +398,8 @@
   :methods
   [p/TCType])
 
-(u/def-type Protocol [the-var :- t/Sym, variances :- (t/U nil (t/NonEmptySeqable Variance)),
+(u/def-type Protocol [the-var :- t/Sym,
+                      variances :- (t/U nil (t/NonEmptySeqable Variance)),
                       poly? :- (t/U nil (t/NonEmptySeqable Type)),
                       on-class :- t/Sym,
                       methods :- (t/Map t/Sym Type)]
