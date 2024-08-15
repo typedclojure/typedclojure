@@ -253,7 +253,7 @@
 
 (t/ann original-name [t/Sym -> t/Sym])
 (defn original-name [sym]
-  {:pre [(simple-symbol? f)]
+  {:pre [(simple-symbol? sym)]
    :post [(simple-symbol? %)]}
   (:original-name (meta sym) sym))
 
