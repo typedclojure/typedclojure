@@ -1381,7 +1381,7 @@
 (defn PolyDots*
   ([names bbnds body opts] (PolyDots* names bbnds body {} opts))
   ([names bbnds body {:keys [original-names named] 
-                      :or {original-names (map (comp r/F-original-name r/make-F) names)}
+                      :or {original-names (mapv r/original-name names)}
                       :as opt}
     opts]
    {:pre [(or (empty? opts)

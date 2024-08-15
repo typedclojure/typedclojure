@@ -128,7 +128,6 @@
             (validate-expected-fn fin))
 
         opts ;scope type variables from polymorphic type in body
-        ;; TODO
         (free-ops/with-free-mappings opts
           (zipmap (map r/F-original-name inst-frees)
                   (map #(hash-map :F %1 :bnds %2) inst-frees bnds)))

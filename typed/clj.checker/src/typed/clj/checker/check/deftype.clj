@@ -149,7 +149,12 @@
                 :methods (fn [methods]
                            (let [opts (-> opts
                                           (lex/with-locals expected-fields)
-                                          (free-ops/with-free-mappings nms bbnds))]
+                                          (free-ops/with-free-mappings 
+                                            (into {}
+                                                  (map (fn [nm bnd]
+                                                         [(r/original-name nm)
+                                                          {:F (r/make-F nm) :bnds bnd}])
+                                                       nms bbnds))))]
                              (into []
                                    (map #(cond-> %
                                            (check-method? %) (check-method {:kind :deftype
