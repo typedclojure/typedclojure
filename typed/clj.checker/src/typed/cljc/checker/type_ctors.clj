@@ -71,10 +71,11 @@
 (defn get-original-names [t]
   (-> t meta ::names))
 
-(t/ann fresh-symbol [t/Sym -> t/Sym])
+(t/ann fresh-symbol [(t/U t/Sym t/Str) t/Str :? -> t/Sym])
 (defn fresh-symbol
   ([s]
-   {:pre [(simple-symbol? s)]
+   {:pre [(or (simple-symbol? s)
+              (string? s))]
     :post [(simple-symbol? %)]}
    (with-meta
      (clojure.lang.Symbol/intern
@@ -83,7 +84,8 @@
            (.concat (Integer/toString (clojure.lang.RT/nextID)))))
      {:original-name s}))
   ([s hint]
-   {:pre [(simple-symbol? s)
+   {:pre [(or (simple-symbol? s)
+              (string? s))
           (string? hint)]
     :post [(simple-symbol? %)]}
    (with-meta
@@ -1125,7 +1127,7 @@
         ; these names are eliminated immediately, they don't need to be
         ; created with fresh-symbol
         n (count ts)
-        names (repeatedly n #(gensym "inst-and-subst"))
+        names (repeatedly n #(fresh-symbol "inst-and-subst"))
         opts (free-ops/with-bounded-frees opts names
                ;; asserted as precondition
                (repeat n r/no-bounds))
@@ -1291,9 +1293,9 @@
 (defn TypeFn-fresh-symbols* [tfn]
   {:pre [(r/TypeFn? tfn)]
    :post [((every-pred seq (con/every-c? symbol?)) %)]}
-  (if-let [free-names (TypeFn-free-names* tfn)]
+  (if-some [free-names (TypeFn-free-names* tfn)]
     (mapv fresh-symbol free-names)
-    (repeatedly (:nbound tfn) #(fresh-symbol 'fresh-sym))))
+    (repeatedly (:nbound tfn) #(fresh-symbol "fresh-sym"))))
 
 ;; Poly
 
@@ -1347,9 +1349,9 @@
   {:pre [(r/Poly? poly)]
    :post [((every-pred seq (con/every-c? symbol?)) %)]}
   ;(prn "Poly-fresh-symbols*" (:scope poly))
-  (mapv fresh-symbol (or (Poly-free-names* poly)
-                         ;(assert nil "no poly free names")
-                         (repeatedly (:nbound poly) #(gensym "Poly-fresh-sym")))))
+  (if-some [fnmes (Poly-free-names* poly)]
+    (mapv fresh-symbol fnmes)
+    (repeatedly (:nbound poly) #(fresh-symbol "Poly-fresh-sym"))))
 
 (t/ann ^:no-check Poly-bbnds* [(t/Seqable t/Sym) Poly t/Any -> (t/Vec Bounds)])
 (defn Poly-bbnds* [names poly opts]
@@ -1429,8 +1431,9 @@
 (defn PolyDots-fresh-symbols* [poly]
   {:pre [(r/PolyDots? poly)]
    :post [((every-pred seq (con/every-c? symbol?)) %)]}
-  (mapv fresh-symbol (or (PolyDots-free-names* poly)
-                         (repeatedly (:nbound poly) #(gensym "PolyDots-fresh-symbols*")))))
+  (if-some [fnmes (PolyDots-free-names* poly)]
+    (mapv fresh-symbol fnmes)
+    (repeatedly (:nbound poly) #(fresh-symbol "PolyDots-fresh-symbols*"))))
 
 ;; Instantiate ops
 
@@ -1648,9 +1651,9 @@
 (defn Mu-fresh-symbol* [t]
   {:pre [(r/Mu? t)]
    :post [(symbol? %)]}
-  (let [s (or (Mu-free-name* t)
-              (gensym "Mu-fresh-symbol*"))]
-    (fresh-symbol s "_Mu-fresh-symbol*")))
+  (if-some [s (Mu-free-name* t)]
+    (fresh-symbol s "_Mu-fresh-symbol*")
+    (fresh-symbol "Mu-fresh-symbol*")))
 
 (t/tc-ignore
 (defn- substitute-var []
