@@ -1317,7 +1317,7 @@
   ([names bbnds body opts] (Poly* names bbnds body {} opts))
   ([names bbnds body {:keys [original-names named]
                       :or {original-names 
-                           (map (comp r/F-original-name r/make-F) names)}}
+                           (mapv r/original-name names)}}
     opts]
    {:pre [(every? simple-symbol? names)
           (every? r/Bounds? bbnds)
@@ -1474,7 +1474,7 @@
                   (when-not (ind/has-kind? type bnd opts)
                     (let [opts (assoc opts ::vs/current-env (-> tapp meta :env))]
                       (err/tc-error (str "Type function argument number " argn
-                                         " (" (r/F-original-name (r/make-F nm)) ")"
+                                         " (" (r/original-name nm) ")"
                                          " has kind " (pr-str bnd)
                                          " but given " (pr-str type)
                                          (when (r/F? type)
@@ -1507,7 +1507,7 @@
                         opts (-> opts (free-ops/with-bounded-frees nms bbnds))]
                     (dorun (map (fn [nm type bnd]
                                   (when-not (ind/has-kind? type bnd opts)
-                                    (err/tc-error (str "Polymorphic type variable " (r/F-original-name (r/make-F nm))
+                                    (err/tc-error (str "Polymorphic type variable " (r/original-name nm)
                                                        " has kind " (pr-str bnd)
                                                        " but given " (pr-str type))
                                                   opts)))
@@ -1627,7 +1627,7 @@
 ;smart constructor
 (t/ann Mu* [t/Sym r/Type t/Any -> r/Type])
 (defn Mu* [name body opts]
-  (let [original-name (-> name r/make-F r/F-original-name)
+  (let [original-name (r/original-name name)
         v (r/Mu-maker (abstract name body opts))]
     (with-original-names v original-name)))
 
