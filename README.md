@@ -91,7 +91,7 @@ See modules for specific version coordinates:
 
 ## Compatibility
 
-Typed Clojure supports Clojure 1.12.0-beta1 and JDK 1.8+.
+Typed Clojure supports Clojure 1.12.0-rc1 and JDK 1.8+.
 
 ## Mailing List and Chat
 
