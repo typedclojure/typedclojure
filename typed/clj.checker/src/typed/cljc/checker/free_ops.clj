@@ -76,6 +76,7 @@
      (-> opts
          (tvar/with-extended-new-tvars scoped-names fresh-names)
          (bnds/with-extended-bnds fresh-names bndss))))
+  ;; TODO 4-arity [opts scoped-names fresh-names bndss]
   ([opts fresh-names bndss]
    (-> opts
        (tvar/with-extended-new-tvars fresh-names)
@@ -97,6 +98,7 @@ The other arity takes fresh symbols to bounds separately."
                   (assert (bounded-frees-val? bnds) (class bnds))
                   (assoc m (:name f) {:F f :bnds bnds}))
                 {} bfrees)))
+  ;; TODO 4-arity [opts scoped-names fresh-names bndss]
   ([opts fresh-vars bndss]
    (with-free-mappings opts fresh-vars bndss)))
 
