@@ -70,7 +70,7 @@
                      ; FIXME specify bounds
                      bnds# (when (seq fields#)
                              (repeat (count fields#) r/no-bounds))
-                     frees# (map r/make-F names#)
+                     frees# (not-empty (mapv r/make-F names#))
                      methods# (let [opts# (free-ops/with-bounded-frees opts# names# bnds#)]
                                 (into {}
                                       (for [[mname# mtype#] (:methods popts#)]
@@ -83,7 +83,7 @@
 
 (defn jsnominal-entry [[n [binder & {:as jopts}]] opts]
   (let [names (when (seq binder)
-                    (mapv first binder))
+                (mapv first binder))
         {vs :variances
          names :names
          bnds :bnds} 
@@ -146,7 +146,7 @@
                          {:variances (seq (map :variance b#))
                           :names (seq (map :nme b#))
                           :bnds (seq (map :bound b#))}))
-                     frees# (mapv r/make-F names#)
+                     frees# (not-empty (mapv r/make-F names#))
                      fields# (let [opts# (free-ops/with-bounded-frees opts# names# bnds#)]
                                (into {}
                                      (for [[mname# mtype#] (:fields dopts#)]
