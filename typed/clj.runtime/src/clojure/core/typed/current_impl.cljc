@@ -385,7 +385,7 @@
 #?(:cljs :ignore :default
 (def ^:private parse-free-binder-with-variance #((requiring-resolve 'typed.clj.checker.parse-unparse/parse-free-binder-with-variance) %1 %2)))
 #?(:cljs :ignore :default
-(def ^:private with-bounded-frees #((requiring-resolve 'typed.cljc.checker.free-ops/with-bounded-frees) %1 %2)))
+(def ^:private with-bounded-frees #((requiring-resolve 'typed.cljc.checker.free-ops/with-bounded-frees) %1 %2 %3)))
 #?(:cljs :ignore :default
 (def ^:private unparse-type #((requiring-resolve 'typed.clj.checker.parse-unparse/unparse-type) %1 %2)))
 #?(:cljs :ignore :default
@@ -468,7 +468,7 @@
                                  mtype
                                  (delay-type
                                    (let [opts (-> opts
-                                                  (with-bounded-frees (zipmap (force-type fs opts) (force-type bnds opts)))
+                                                  (with-bounded-frees (mapv :name (force-type fs opts)) (force-type bnds opts))
                                                   (assoc ::vs/current-env current-env))
                                          mtype (parse-type v* opts)
                                          _ (let [rt (fully-resolve-type mtype opts)
@@ -596,8 +596,9 @@
                                  [n (parse-type t opts)])]
                (apply array-map (apply concat (let [opts (-> opts
                                                              (assoc ::vs/current-env current-env)
-                                                             (with-bounded-frees (zipmap (map make-F (force-type args opts))
-                                                                                         (force-type bnds opts))))]
+                                                             (with-bounded-frees
+                                                               (force-type args opts)
+                                                               (force-type bnds opts)))]
                                                 (mapv #(parse-field % opts) (partition 3 fields)))))))
         as (into {}
                  (map
@@ -605,8 +606,9 @@
                      [an (delay-type
                            (let [opts (-> opts
                                           (assoc ::vs/current-env current-env)
-                                          (with-bounded-frees (zipmap (map make-F (force-type args opts))
-                                                                      (force-type bnds opts))))
+                                          (with-bounded-frees
+                                            (force-type args opts)
+                                            (force-type bnds opts)))
                                  t (parse-type an opts)]
                              (abstract-many (force-type args opts) t opts)))]))
                  ancests)
@@ -622,7 +624,7 @@
                              (if args
                                (let [args (force-type args opts)
                                      bnds (force-type bnds opts)
-                                     opts (with-bounded-frees opts (zipmap (map make-F args) bnds))]
+                                     opts (with-bounded-frees opts args bnds)]
                                  (Poly* args bnds
                                         (make-FnIntersection
                                           (make-Function (vec (vals (force-type fs opts)))
@@ -653,7 +655,7 @@
                                      (if args
                                        (let [args (force-type args opts)
                                              bnds (force-type bnds opts)
-                                             opts (with-bounded-frees opts (zipmap (map make-F args) bnds))]
+                                             opts (with-bounded-frees opts args bnds)]
                                          (Poly* args bnds
                                                 (make-FnIntersection
                                                   (make-Function [hmap-arg] (DataType-of s (map make-F args) opts)))

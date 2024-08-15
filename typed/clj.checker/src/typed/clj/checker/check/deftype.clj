@@ -152,7 +152,7 @@
                                           (free-ops/with-free-mappings 
                                             (into {}
                                                   (map (fn [nm bnd]
-                                                         [(-> nm r/make-F r/F-original-name)
+                                                         [(r/original-name nm)
                                                           {:F (r/make-F nm) :bnds bnd}])
                                                        nms bbnds))))]
                              (into []

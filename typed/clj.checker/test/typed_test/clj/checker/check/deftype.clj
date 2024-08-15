@@ -146,7 +146,11 @@
 
 (deftest deftype-bounded-vars-test
   (is-tc-e (do (ann-datatype [[x :variance :covariant :< t/Num]] SomeData [count :- x])
-               (deftype SomeData [count])
+               (deftype SomeData [count]
+                 Object
+                 (toString [this]
+                   (t/ann-form [] (t/Seqable x))
+                   "foo"))
                (SomeData. 1)))
   (is-tc-err (do (ann-datatype [[x :variance :covariant :< t/Num]] SomeData [count :- x])
                  (deftype SomeData [count])

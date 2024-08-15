@@ -131,7 +131,7 @@
                                       (when-some [{:keys [pre-type name]} drest]
                                         [(prs/unparse-type pre-type opts)
                                          :..
-                                         (-> name r/make-F r/F-original-name)])
+                                         (-> name r/original-name)])
                                       (letfn [(readable-kw-map [m]
                                                 (reduce-kv (fn [m k v]
                                                              {:keys [(r/Value? k)]}
@@ -148,7 +148,7 @@
                                       (when-some [{:keys [pre-type name]} pdot]
                                         [(prs/unparse-type pre-type opts)
                                          '<...
-                                         (-> name r/make-F r/F-original-name)])))
+                                         (-> name r/original-name)])))
                             (:types fin))))
         "\n\n"
         "Arguments:\n\t" (apply prn-str (mapv (comp #(prs/unparse-type % opts) r/ret-t) arg-ret-types))

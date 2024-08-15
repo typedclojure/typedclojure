@@ -277,8 +277,7 @@
        (let [fs-names (c/Poly-fresh-symbols* fexpr-type)
              _ (assert (every? symbol? fs-names))
              bbnds (c/Poly-bbnds* fs-names fexpr-type opts)
-             opts (free-ops/with-bounded-frees opts
-                    (zipmap (map r/F-maker fs-names) bbnds))
+             opts (free-ops/with-bounded-frees opts fs-names bbnds)
              fin (c/Poly-body* fs-names fexpr-type opts)
              _ (assert (r/FnIntersection? fin))
              ;; Only infer free variables in the return type
@@ -401,7 +400,7 @@
                                (r/FnIntersection?
                                  (let [names (c/PolyDots-fresh-symbols* t)
                                        bbnds (c/PolyDots-bbnds* names t opts)
-                                       opts (free-ops/with-bounded-frees opts (zipmap (map r/make-F names) bbnds))]
+                                       opts (free-ops/with-bounded-frees opts names bbnds)]
                                    (c/PolyDots-body* names t opts)))))
                         (collect-polydots [t]
                           {:post [((con/hvector-c? r/Type?
@@ -415,7 +414,7 @@
                               (r/PolyDots? pbody)
                               (let [vars (c/PolyDots-fresh-symbols* pbody)
                                     bbnds (c/PolyDots-bbnds* vars pbody opts)
-                                    opts (free-ops/with-bounded-frees opts (zipmap (map r/make-F vars) bbnds))
+                                    opts (free-ops/with-bounded-frees opts vars bbnds)
                                     pbody (c/PolyDots-body* vars pbody opts)]
                                 (recur (c/fully-resolve-type pbody opts)
                                        (reduce (fn [fixed i]

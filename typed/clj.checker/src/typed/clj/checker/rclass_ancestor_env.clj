@@ -22,10 +22,10 @@
 (defn rclass-ancestors [{:keys [unchecked-ancestors] poly :poly? :as rcls} opts]
   {:pre [(r/RClass? rcls)]
    :post [((con/sorted-set-c? r/Type?) %)]}
-  (let [names (repeatedly (count poly) #(gensym "unchecked-ancestor"))
-        fs (map r/make-F names)
+  (let [n (count poly)
+        names (repeatedly n #(gensym "unchecked-ancestor"))
         ;; assumes unchecked-ancestors are Type's
-        opts (free-ops/with-bounded-frees opts (zipmap fs (repeat r/no-bounds)))]
+        opts (free-ops/with-bounded-frees opts names (repeat n r/no-bounds))]
     (r/sorted-type-set
       (for [u unchecked-ancestors]
         (let [t (c/instantiate-many names u opts)
@@ -41,7 +41,7 @@
 (t/ann ^:no-check abstract-rclass-ancestors [RClass (t/Seqable t/Symbol) (t/Seqable r/Kind) (t/Seqable r/Type) t/Any -> nil])
 (defn abstract-rclass-ancestors [rsym names bnds as opts]
   {:pre [(symbol? rsym)]}
-  (let [opts (free-ops/with-bounded-frees opts (zipmap (map r/make-F names) bnds))]
+  (let [opts (free-ops/with-bounded-frees opts names bnds)]
     (r/sorted-type-set
       (for [u as]
         (c/abstract-many names u opts)))))
@@ -49,5 +49,5 @@
 (t/ann ^:no-check abstract-rclass-replacements [RClass (t/Seqable t/Symbol) (t/Seqable r/Kind) (t/Map t/Symbol r/Type) t/Any -> nil])
 (defn abstract-rclass-replacements [rsym names bnds as opts]
   {:pre [(symbol? rsym)]}
-  (let [opts (free-ops/with-bounded-frees opts (zipmap (map r/make-F names) bnds))]
+  (let [opts (free-ops/with-bounded-frees opts names bnds)]
     (update-vals as #(c/abstract-many names % opts))))

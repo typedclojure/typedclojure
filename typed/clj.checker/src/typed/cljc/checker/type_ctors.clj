@@ -71,10 +71,11 @@
 (defn get-original-names [t]
   (-> t meta ::names))
 
-(t/ann fresh-symbol [t/Sym -> t/Sym])
+(t/ann fresh-symbol [(t/U t/Sym t/Str) t/Str :? -> t/Sym])
 (defn fresh-symbol
   ([s]
-   {:pre [(simple-symbol? s)]
+   {:pre [(or (simple-symbol? s)
+              (string? s))]
     :post [(simple-symbol? %)]}
    (with-meta
      (clojure.lang.Symbol/intern
@@ -83,7 +84,8 @@
            (.concat (Integer/toString (clojure.lang.RT/nextID)))))
      {:original-name s}))
   ([s hint]
-   {:pre [(simple-symbol? s)
+   {:pre [(or (simple-symbol? s)
+              (string? s))
           (string? hint)]
     :post [(simple-symbol? %)]}
    (with-meta
@@ -1124,10 +1126,11 @@
   (let [subst-all @(subst-all-var)
         ; these names are eliminated immediately, they don't need to be
         ; created with fresh-symbol
-        names (mapv (fn [_] (gensym "inst-and-subst")) (range (count ts)))
-        opts (free-ops/with-bounded-frees opts (zipmap (map r/make-F names)
-                                                       ;; asserted as precondition
-                                                       (repeat r/no-bounds)))
+        n (count ts)
+        names (repeatedly n #(fresh-symbol "inst-and-subst"))
+        opts (free-ops/with-bounded-frees opts names
+               ;; asserted as precondition
+               (repeat n r/no-bounds))
         t (r/assert-Type (instantiate-many names target opts))
         subst (make-simple-substitution names ts)]
     (subst-all subst t opts)))
@@ -1250,9 +1253,8 @@
          ((some-fn r/TypeFn? r/Type? r/Kind?) body)
          ((some-fn nil? map?) meta)]
    :post [(r/Type? %)]}
-  (let [original-names (mapv (comp r/F-original-name r/make-F) names)
-        ab (let [opts (free-ops/with-bounded-frees opts
-                        (zipmap (map r/make-F names) bbnds))]
+  (let [original-names (mapv r/original-name names)
+        ab (let [opts (free-ops/with-bounded-frees opts names bbnds)]
              #(abstract-many names % opts))
         t (r/TypeFn-maker (count names)
                           variances
@@ -1268,7 +1270,7 @@
          (r/TypeFn? typefn)]}
   (assert (= (:nbound typefn) (count names)) "Wrong number of names")
   (instantiate-many names (:scope typefn)
-                    (free-ops/with-bounded-frees opts (zipmap (map r/make-F names) bbnds))))
+                    (free-ops/with-bounded-frees opts names bbnds)))
 
 (t/ann ^:no-check TypeFn-bbnds* [(t/Seqable t/Sym) TypeFn t/Any -> (t/Vec r/Kind)])
 (defn TypeFn-bbnds* [names typefn opts]
@@ -1291,9 +1293,9 @@
 (defn TypeFn-fresh-symbols* [tfn]
   {:pre [(r/TypeFn? tfn)]
    :post [((every-pred seq (con/every-c? symbol?)) %)]}
-  (if-let [free-names (TypeFn-free-names* tfn)]
+  (if-some [free-names (TypeFn-free-names* tfn)]
     (mapv fresh-symbol free-names)
-    (repeatedly (:nbound tfn) #(fresh-symbol 'fresh-sym))))
+    (repeatedly (:nbound tfn) #(fresh-symbol "fresh-sym"))))
 
 ;; Poly
 
@@ -1317,7 +1319,7 @@
   ([names bbnds body opts] (Poly* names bbnds body {} opts))
   ([names bbnds body {:keys [original-names named]
                       :or {original-names 
-                           (map (comp r/F-original-name r/make-F) names)}}
+                           (mapv r/original-name names)}}
     opts]
    {:pre [(every? simple-symbol? names)
           (every? r/Bounds? bbnds)
@@ -1347,9 +1349,9 @@
   {:pre [(r/Poly? poly)]
    :post [((every-pred seq (con/every-c? symbol?)) %)]}
   ;(prn "Poly-fresh-symbols*" (:scope poly))
-  (mapv fresh-symbol (or (Poly-free-names* poly)
-                         ;(assert nil "no poly free names")
-                         (repeatedly (:nbound poly) #(gensym "Poly-fresh-sym")))))
+  (if-some [fnmes (Poly-free-names* poly)]
+    (mapv fresh-symbol fnmes)
+    (repeatedly (:nbound poly) #(fresh-symbol "Poly-fresh-sym"))))
 
 (t/ann ^:no-check Poly-bbnds* [(t/Seqable t/Sym) Poly t/Any -> (t/Vec Bounds)])
 (defn Poly-bbnds* [names poly opts]
@@ -1367,9 +1369,7 @@
   (let [bbnds (Poly-bbnds* names poly opts)]
     (assert (= (:nbound poly) (count names)) "Wrong number of names")
     (instantiate-many names (:scope poly)
-                      (free-ops/with-bounded-frees
-                        opts 
-                        (zipmap (map r/make-F names) bbnds)))))
+                      (free-ops/with-bounded-frees opts names bbnds))))
 
 ;; PolyDots
 
@@ -1383,7 +1383,7 @@
 (defn PolyDots*
   ([names bbnds body opts] (PolyDots* names bbnds body {} opts))
   ([names bbnds body {:keys [original-names named] 
-                      :or {original-names (map (comp r/F-original-name r/make-F) names)}
+                      :or {original-names (mapv r/original-name names)}
                       :as opt}
     opts]
    {:pre [(or (empty? opts)
@@ -1431,8 +1431,9 @@
 (defn PolyDots-fresh-symbols* [poly]
   {:pre [(r/PolyDots? poly)]
    :post [((every-pred seq (con/every-c? symbol?)) %)]}
-  (mapv fresh-symbol (or (PolyDots-free-names* poly)
-                         (repeatedly (:nbound poly) #(gensym "PolyDots-fresh-symbols*")))))
+  (if-some [fnmes (PolyDots-free-names* poly)]
+    (mapv fresh-symbol fnmes)
+    (repeatedly (:nbound poly) #(fresh-symbol "PolyDots-fresh-symbols*"))))
 
 ;; Instantiate ops
 
@@ -1467,7 +1468,7 @@
           opts)))
     (let [bbnds (TypeFn-bbnds* names t opts)
           body (TypeFn-body* names bbnds t opts)
-          opts (-> opts (free-ops/with-bounded-frees (zipmap (map r/make-F names) bbnds)))
+          opts (free-ops/with-bounded-frees opts names bbnds)
           ;;check bounds
           _ (when-not under-scope
               (perf/reduce
@@ -1476,7 +1477,7 @@
                   (when-not (ind/has-kind? type bnd opts)
                     (let [opts (assoc opts ::vs/current-env (-> tapp meta :env))]
                       (err/tc-error (str "Type function argument number " argn
-                                         " (" (r/F-original-name (r/make-F nm)) ")"
+                                         " (" (r/original-name nm) ")"
                                          " has kind " (pr-str bnd)
                                          " but given " (pr-str type)
                                          (when (r/F? type)
@@ -1506,11 +1507,10 @@
                         nms (Poly-fresh-symbols* t)
                         bbnds (Poly-bbnds* nms t opts)
                         body (Poly-body* nms t opts)
-                        opts (-> opts (free-ops/with-bounded-frees
-                                        (zipmap (map r/make-F nms) bbnds)))]
+                        opts (-> opts (free-ops/with-bounded-frees nms bbnds))]
                     (dorun (map (fn [nm type bnd]
                                   (when-not (ind/has-kind? type bnd opts)
-                                    (err/tc-error (str "Polymorphic type variable " (r/F-original-name (r/make-F nm))
+                                    (err/tc-error (str "Polymorphic type variable " (r/original-name nm)
                                                        " has kind " (pr-str bnd)
                                                        " but given " (pr-str type))
                                                   opts)))
@@ -1630,7 +1630,7 @@
 ;smart constructor
 (t/ann Mu* [t/Sym r/Type t/Any -> r/Type])
 (defn Mu* [name body opts]
-  (let [original-name (-> name r/make-F r/F-original-name)
+  (let [original-name (r/original-name name)
         v (r/Mu-maker (abstract name body opts))]
     (with-original-names v original-name)))
 
@@ -1651,9 +1651,9 @@
 (defn Mu-fresh-symbol* [t]
   {:pre [(r/Mu? t)]
    :post [(symbol? %)]}
-  (let [s (or (Mu-free-name* t)
-              (gensym "Mu-fresh-symbol*"))]
-    (fresh-symbol s "_Mu-fresh-symbol*")))
+  (if-some [s (Mu-free-name* t)]
+    (fresh-symbol s "_Mu-fresh-symbol*")
+    (fresh-symbol "Mu-fresh-symbol*")))
 
 (t/tc-ignore
 (defn- substitute-var []
@@ -2897,9 +2897,8 @@
                          (let [names (TypeFn-fresh-symbols* ty)
                                bbnds (TypeFn-bbnds* names ty opts)
                                body (TypeFn-body* names bbnds ty opts)
-                               bmap (zipmap (map r/make-F names) bbnds)
                                ;;FIXME type variables are scoped left-to-right in bounds
-                               opts' (free-ops/with-bounded-frees opts bmap)
+                               opts' (free-ops/with-bounded-frees opts names bbnds)
                                bbnds' (mapv!= bbnds #(type-rec % opts'))
                                body' (type-rec body opts')
                                changed? (or (not (identical? bbnds bbnds'))
@@ -2914,9 +2913,8 @@
                            :Poly (let [names (Poly-fresh-symbols* ty)
                                        body (Poly-body* names ty opts)
                                        bbnds (Poly-bbnds* names ty opts)
-                                       bmap (zipmap (map r/make-F names) bbnds)
                                        ;;FIXME type variables are scoped left-to-right in bounds
-                                       opts' (free-ops/with-bounded-frees opts bmap)
+                                       opts' (free-ops/with-bounded-frees opts names bbnds)
                                        bbnds' (mapv!= bbnds #(type-rec % opts'))
                                        body' (type-rec body opts')
                                        changed? (or (not (identical? bbnds bbnds'))
@@ -2927,9 +2925,8 @@
                            :PolyDots (let [names (PolyDots-fresh-symbols* ty)
                                            body (PolyDots-body* names ty opts)
                                            bbnds (PolyDots-bbnds* names ty opts)
-                                           bmap (zipmap (map r/make-F names) bbnds)
                                            ;;FIXME type variables are scoped left-to-right in bounds
-                                           opts' (free-ops/with-bounded-frees opts bmap)
+                                           opts' (free-ops/with-bounded-frees opts names bbnds)
                                            bbnds' (mapv!= bbnds #(type-rec % opts'))
                                            body' (type-rec body opts')
                                            changed? (or (not (identical? bbnds bbnds'))

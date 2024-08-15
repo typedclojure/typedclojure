@@ -251,6 +251,12 @@
   "Make a free variable "
   [name] (F-maker name))
 
+(t/ann original-name [t/Sym -> t/Sym])
+(defn original-name [sym]
+  {:pre [(simple-symbol? sym)]
+   :post [(simple-symbol? %)]}
+  (:original-name (meta sym) sym))
+
 (t/ann F-original-name [F -> t/Sym])
 (defn F-original-name 
   "Get the printable name of a free variable.
@@ -259,9 +265,8 @@
   an instance of F with this name for explicit scoping."
   [f]
   {:pre [(F? f)]
-   :post [(symbol? %)]}
-  (or (-> f :name meta :original-name)
-      (:name f)))
+   :post [(simple-symbol? %)]}
+  (original-name (:name f)))
 
 (u/def-type Scope [body :- MaybeScopedType
                    scopes :- t/Int]
