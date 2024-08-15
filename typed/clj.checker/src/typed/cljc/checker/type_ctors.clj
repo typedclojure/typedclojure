@@ -1251,7 +1251,7 @@
          ((some-fn r/TypeFn? r/Type? r/Kind?) body)
          ((some-fn nil? map?) meta)]
    :post [(r/Type? %)]}
-  (let [original-names (mapv #(or (:original-name (clojure.core/meta %)) %) names)
+  (let [original-names (mapv r/original-name names)
         ab (let [opts (free-ops/with-bounded-frees opts names bbnds)]
              #(abstract-many names % opts))
         t (r/TypeFn-maker (count names)
