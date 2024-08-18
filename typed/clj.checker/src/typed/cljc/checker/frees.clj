@@ -7,6 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.cljc.checker.frees
+  (:refer-clojure :exclude [assert defn defn- fn])
   (:require [typed.clojure :as t]
             [typed.cljc.checker.type-rep :as r]
             [clojure.core.typed.current-impl :as impl]
@@ -17,6 +18,7 @@
             [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.errors :as err]
             [typed.clj.checker.parse-unparse :as prs]
+            [typed.cljc.checker.custom-assertions :refer [assert defn defn- fn]]
             [typed.cljc.checker.filter-rep :as fr]
             [typed.cljc.checker.free-ops :as free-ops]
             [typed.cljc.checker.name-env :as nmenv]

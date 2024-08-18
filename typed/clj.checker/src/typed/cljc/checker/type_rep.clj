@@ -7,12 +7,13 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.cljc.checker.type-rep
-  (:refer-clojure :exclude [defrecord defprotocol])
+  (:refer-clojure :exclude [defrecord defprotocol assert defn defn- fn])
   (:require [typed.clojure :as t]
             [clojure.core.typed.coerce-utils :as coerce]
             [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.contract-utils-platform-specific :as plat-con]
             [clojure.set :as set]
+            [typed.cljc.checker.custom-assertions :refer [assert defn defn- fn]]
             [typed.cljc.checker.impl-protocols :as p]
             [typed.cljc.checker.indirect-ops :as ind]
             [typed.cljc.checker.utils :as u :refer [AND OR]]
@@ -252,13 +253,13 @@
   [name] (F-maker name))
 
 (t/ann original-name [t/Sym -> t/Sym])
-(defn original-name [sym]
+(clojure.core/defn original-name [sym]
   {:pre [(simple-symbol? sym)]
    :post [(simple-symbol? %)]}
   (:original-name (meta sym) sym))
 
 (t/ann F-original-name [F -> t/Sym])
-(defn F-original-name 
+(clojure.core/defn F-original-name 
   "Get the printable name of a free variable.
   
   Used for pretty-printing errors or similar, only instantiate
@@ -573,7 +574,7 @@
   (assoc opts ::vs/under-scope true))
 
 (t/ann ^:no-check unsafe-body [Poly :-> Type])
-(defn ^:private unsafe-body [p]
+(clojure.core/defn ^:private unsafe-body [p]
   {:pre [(-Poly? p)]
    :post [(Type? %)
           (not (p/IScope? %))]}
@@ -626,7 +627,7 @@
   [p/TCType])
 
 (t/ann Mu-body-unsafe [Mu -> Type])
-(defn Mu-body-unsafe [mu]
+(clojure.core/defn Mu-body-unsafe [mu]
   {:pre [(Mu? mu)]
    :post [(Type? %)
           (not (p/IScope? %))]}
@@ -995,7 +996,7 @@
 (defn regex [types kind]
   {:post [(Regex? %)]}
   (case kind
-    :+ (do (assert (= 1 (count types)))
+    :+ (do (clojure.core/assert (= 1 (count types)))
            (regex [(first types) (regex types :*)] :cat))
     :cat (Regex-maker :cat
                       (into [] (mapcat (fn [t]
@@ -1060,7 +1061,7 @@
    ;; expensive, cache result
    dom (if (some-> dom meta ::valid-Function-dom deref (identical? dom))
          dom
-         (let [_ (assert (every? (every-pred Type? (complement Regex?))
+         (let [_ (clojure.core/assert (every? (every-pred Type? (complement Regex?))
                                 dom))
                tie (volatile! nil)
                dom (-> dom
@@ -1111,7 +1112,7 @@
 (defn make-FnIntersection [& fns]
   {:pre [(every? Function? fns)]}
   (let [fns (vec fns)]
-    (assert (seq fns))
+    (clojure.core/assert (seq fns))
     (FnIntersection-maker fns)))
 
 (u/def-type NotType [type :- Type]

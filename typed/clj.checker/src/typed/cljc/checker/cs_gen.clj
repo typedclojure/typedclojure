@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.cljc.checker.cs-gen
-  (:refer-clojure :exclude [requiring-resolve])
+  (:refer-clojure :exclude [requiring-resolve repeatedly assert defn defn- fn])
   (:require [clojure.core.typed :as t :refer [letfn>]]
             [clojure.core.typed.coerce-utils :as coerce]
             [clojure.core.typed.contract-utils :as con]
@@ -20,6 +20,7 @@
             [typed.clj.checker.subtype :as sub] ; use subtype? utility defined in this namespace
             [typed.cljc.checker.check :as check]
             [typed.cljc.checker.cs-rep :as cr]
+            [typed.cljc.checker.custom-assertions :refer [assert defn defn- fn]]
             [typed.cljc.checker.filter-ops :as fo]
             [typed.cljc.checker.filter-rep :as fr]
             [typed.cljc.checker.fold-rep :as f]

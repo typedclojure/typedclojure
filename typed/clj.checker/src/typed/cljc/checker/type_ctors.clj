@@ -7,7 +7,8 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.cljc.checker.type-ctors
-  (:refer-clojure :exclude [defrecord replace type requiring-resolve repeatedly])
+  (:refer-clojure :exclude [defrecord replace type requiring-resolve repeatedly
+                            assert defn defn- fn])
   (:require [clojure.core.cache :as cache]
             [typed.clojure :as t]
             [clojure.string :as str]
@@ -26,6 +27,7 @@
             [typed.cljc.runtime.perf-utils :as perf :refer [vrepeatedly]]
             [typed.clj.checker.rclass-env :as rcls]
             [typed.cljc.checker.cs-rep :as crep]
+            [typed.cljc.checker.custom-assertions :refer [assert defn defn- fn]]
             [typed.cljc.checker.datatype-env :as dtenv]
             [typed.cljc.checker.filter-rep :as fr]
             [typed.cljc.checker.fold-rep :as f :refer [add-default-fold-case]]
