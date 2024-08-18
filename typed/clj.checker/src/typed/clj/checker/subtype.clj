@@ -13,7 +13,7 @@
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.errors :as err]
             [clojure.string :as str]
-            [typed.cljc.runtime.perf-utils :refer [repeatedly every? some]]
+            [typed.cljc.runtime.perf-utils :refer [vrepeatedly every? some]]
             [clojure.set :as set]
             [clojure.core.typed.util-vars :as vs]
             [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]
@@ -532,7 +532,7 @@
       (if (AND (= (:nbound s) (:nbound t))
                (= (:bbnds s) (:bbnds t)))
         (let [;instantiate both sides with the same fresh variables
-              names (repeatedly (:nbound s) #(gensym "Poly-Poly"))
+              names (vrepeatedly (:nbound s) #(gensym "Poly-Poly"))
               bbnds1 (c/Poly-bbnds* names s opts)
               b1 (c/Poly-body* names s opts)
               b2 (c/Poly-body* names t opts)]
@@ -877,7 +877,7 @@
                  (= :PolyDots (.kind t))
                  (= (.nbound s) (.nbound t)))
         (let [;instantiate both sides with the same fresh variables
-              names (repeatedly (.nbound s) #(gensym "Poly-for-s"))
+              names (vrepeatedly (.nbound s) #(gensym "Poly-for-s"))
               bbnds1 (c/PolyDots-bbnds* names s opts)
               bbnds2 (c/PolyDots-bbnds* names t opts)
               b1 (c/PolyDots-body* names s opts)
@@ -1567,7 +1567,7 @@
       (r/TypeFn? (:rator s))
       (let [rator (:rator s)
             variances (:variances rator)
-            names (repeatedly (:nbound rator) #(gensym "TypeFn-sub"))
+            names (vrepeatedly (:nbound rator) #(gensym "TypeFn-sub"))
             bbnds (c/TypeFn-bbnds* names rator opts)]
         (if (and (= (count variances)
                     (count (:rands s))
@@ -1603,7 +1603,7 @@
   {:pre [(r/TypeFn? S)
          (r/TypeFn? T)]}
   (let [;instantiate both type functions with the same names
-        names (repeatedly (:nbound S) #(gensym "subtype-TypeFn"))
+        names (vrepeatedly (:nbound S) #(gensym "subtype-TypeFn"))
         sbnds (c/TypeFn-bbnds* names S opts)
         tbnds (c/TypeFn-bbnds* names T opts)
         sbody (c/TypeFn-body* names sbnds S opts)

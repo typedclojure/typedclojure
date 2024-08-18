@@ -21,7 +21,8 @@
           false)
         true))))
 
-(defn repeatedly
+;(t/ann vrepeatedly (t/All [x] [t/Int [:-> x] :-> (t/Vec x)]))
+(defn vrepeatedly
   "Like `clojure.core/repeatedly`, but eager and more efficient."
   [^long n f]
   (let [arr (object-array n)]

@@ -14,7 +14,7 @@
             [typed.cljc.checker.type-rep :as r]
             [clojure.core.typed.contract-utils :as con]
             [typed.cljc.checker.type-ctors :as c]
-            [typed.cljc.runtime.perf-utils :refer [repeatedly]]
+            [typed.cljc.runtime.perf-utils :refer [vrepeatedly]]
             [typed.cljc.checker.free-ops :as free-ops])
   (:import [typed.cljc.checker.type_rep RClass]))
 
@@ -23,7 +23,7 @@
   {:pre [(r/RClass? rcls)]
    :post [((con/sorted-set-c? r/Type?) %)]}
   (let [n (count poly)
-        names (repeatedly n #(gensym "unchecked-ancestor"))
+        names (vrepeatedly n #(gensym "unchecked-ancestor"))
         ;; assumes unchecked-ancestors are Type's
         opts (free-ops/with-bounded-frees opts names (repeat n r/no-bounds))]
     (r/sorted-type-set

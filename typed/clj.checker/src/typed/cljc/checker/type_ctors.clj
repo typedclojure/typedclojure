@@ -23,7 +23,7 @@
             [clojure.reflect :as reflect]
             [clojure.repl :as repl]
             [clojure.set :as set]
-            [typed.cljc.runtime.perf-utils :as perf :refer [repeatedly]]
+            [typed.cljc.runtime.perf-utils :as perf :refer [vrepeatedly]]
             [typed.clj.checker.rclass-env :as rcls]
             [typed.cljc.checker.cs-rep :as crep]
             [typed.cljc.checker.datatype-env :as dtenv]
@@ -1127,7 +1127,7 @@
         ; these names are eliminated immediately, they don't need to be
         ; created with fresh-symbol
         n (count ts)
-        names (repeatedly n #(fresh-symbol "inst-and-subst"))
+        names (vrepeatedly n #(fresh-symbol "inst-and-subst"))
         opts (free-ops/with-bounded-frees opts names
                ;; asserted as precondition
                (repeat n r/no-bounds))
@@ -1295,7 +1295,7 @@
    :post [((every-pred seq (con/every-c? symbol?)) %)]}
   (if-some [free-names (TypeFn-free-names* tfn)]
     (mapv fresh-symbol free-names)
-    (repeatedly (:nbound tfn) #(fresh-symbol "fresh-sym"))))
+    (vrepeatedly (:nbound tfn) #(fresh-symbol "fresh-sym"))))
 
 ;; Poly
 
@@ -1351,7 +1351,7 @@
   ;(prn "Poly-fresh-symbols*" (:scope poly))
   (if-some [fnmes (Poly-free-names* poly)]
     (mapv fresh-symbol fnmes)
-    (repeatedly (:nbound poly) #(fresh-symbol "Poly-fresh-sym"))))
+    (vrepeatedly (:nbound poly) #(fresh-symbol "Poly-fresh-sym"))))
 
 (t/ann ^:no-check Poly-bbnds* [(t/Seqable t/Sym) Poly t/Any -> (t/Vec Bounds)])
 (defn Poly-bbnds* [names poly opts]
@@ -1433,7 +1433,7 @@
    :post [((every-pred seq (con/every-c? symbol?)) %)]}
   (if-some [fnmes (PolyDots-free-names* poly)]
     (mapv fresh-symbol fnmes)
-    (repeatedly (:nbound poly) #(fresh-symbol "PolyDots-fresh-symbols*"))))
+    (vrepeatedly (:nbound poly) #(fresh-symbol "PolyDots-fresh-symbols*"))))
 
 ;; Instantiate ops
 
