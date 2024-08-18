@@ -2018,20 +2018,20 @@
   (map vector (iterate dec (dec (count c))) c))
 
 (t/tc-ignore
-(f/def-derived-fold IAbstractMany ^:private abstract-many* [name count outer sb name-to])
+(f/def-derived-fold IAbstractMany ^:private abstract-many* [name->count outer sb name-to])
 
 (f/add-fold-case
   IAbstractMany abstract-many*
   F
-  (fn [{name* :name :as t} name count outer sb name-to]
-    (if (= name name*)
+  (fn [{name* :name :as t} name->count outer sb name-to]
+    (if-some [count (name->count name*)]
       (r/B-maker (+ count outer))
       t)))
 
 (f/add-fold-case
   IAbstractMany abstract-many*
   Function
-  (fn [{:keys [dom rng rest drest kws prest pdot regex] :as ty} name count outer sb name-to]
+  (fn [{:keys [dom rng rest drest kws prest pdot regex] :as ty} name->count outer sb name-to]
     {:pre [(case (:kind ty)
              (:fixed :rest :drest :kws :prest :pdot :regex) true
              false)]}
@@ -2041,7 +2041,7 @@
                      :drest (some-> drest
                                     (r/update-DottedPretype
                                       [:pre-type sb]
-                                      [:name #(if (= % name)
+                                      [:name #(if-some [count (name->count %)]
                                                 (+ count outer)
                                                 %)]))
                      :kws (letfn [(abstract-kw-map [m]
@@ -2055,7 +2055,7 @@
                      :pdot (some-> pdot
                                    (r/update-DottedPretype
                                      [:pre-type sb]
-                                     [:name #(if (= % name)
+                                     [:name #(if-some [count (name->count %)]
                                                (+ count outer)
                                                %)]))
                      :regex (some-> regex sb))))
@@ -2063,8 +2063,8 @@
 (f/add-fold-case
   IAbstractMany abstract-many*
   HSequential
-  (fn [ty name count outer sb name-to]
-    (r/-hsequential 
+  (fn [ty name->count outer sb name-to]
+    (r/-hsequential
       (mapv sb (:types ty))
       {:filters (mapv sb (:fs ty))
        :objects (mapv sb (:objects ty))
@@ -2072,7 +2072,7 @@
        :drest (some-> (:drest ty)
                       (r/update-DottedPretype
                         [:pre-type sb]
-                        [:name #(if (= % name)
+                        [:name #(if-some [count (name->count %)]
                                   (+ count outer)
                                   %)]))
        :repeat (:repeat ty)
@@ -2082,22 +2082,22 @@
 (f/add-fold-case
   IAbstractMany abstract-many*
   AssocType
-  (fn [{:keys [target entries dentries]} name count outer sb name-to]
+  (fn [{:keys [target entries dentries]} name->count outer sb name-to]
    (r/AssocType-maker (sb target)
                       (mapv (fn [[k v]] [(sb k) (sb v)]) entries)
                       (some-> dentries
                               (r/update-DottedPretype
                                 [:pre-type sb]
-                                [:name #(if (= % name)
+                                [:name #(if-some [count (name->count %)]
                                           (+ count outer)
                                           %)])))))
 
 (f/add-fold-case
   IAbstractMany abstract-many*
   Mu
-  (fn [{:keys [scope] :as mu} name count outer sb name-to]
+  (fn [{:keys [scope] :as mu} name->count outer sb name-to]
    (let [body (r/remove-scopes 1 scope)
-         body' (name-to name count (inc outer) body opts)]
+         body' (name-to name->count (inc outer) body opts)]
      (if (identical? body body')
        mu
        (r/Mu-maker (r/add-scopes 1 body')
@@ -2106,12 +2106,12 @@
 (f/add-fold-case
   IAbstractMany abstract-many*
   Poly
-  (fn [{:keys [named kind] bbnds* :bbnds n :nbound body* :scope :as poly} name count outer sb name-to]
+  (fn [{:keys [named kind] bbnds* :bbnds n :nbound body* :scope :as poly} name->count outer sb name-to]
    (case kind
      :Poly (let [rs #(r/remove-scopes n %)
                  body (rs body*)
                  bbnds (mapv rs bbnds*)
-                 as #(r/add-scopes n (name-to name count (+ n outer) % opts))]
+                 as #(r/add-scopes n (name-to name->count (+ n outer) % opts))]
              (r/Poly-maker n
                            (mapv as bbnds)
                            (as body)
@@ -2120,7 +2120,7 @@
      :PolyDots (let [rs #(r/remove-scopes n %)
                      body (rs body*)
                      bbnds (mapv rs bbnds*)
-                     as #(r/add-scopes n (name-to name count (+ n outer) % opts))]
+                     as #(r/add-scopes n (name-to name->count (+ n outer) % opts))]
                  (r/PolyDots-maker n
                                    (mapv as bbnds)
                                    (as body)
@@ -2131,11 +2131,11 @@
   IAbstractMany abstract-many*
   TypeFn
   (fn [{bbnds* :bbnds n :nbound body* :scope :keys [variances] :as t}
-       name count outer sb name-to]
+       name->count outer sb name-to]
   (let [rs #(r/remove-scopes n %)
         body (rs body*)
         bbnds (mapv rs bbnds*)
-        as #(r/add-scopes n (name-to name count (+ n outer) % opts))]
+        as #(r/add-scopes n (name-to name->count (+ n outer) % opts))]
      (r/TypeFn-maker n 
                      variances
                      (mapv as bbnds)
@@ -2148,19 +2148,17 @@
   [names ty opts]
   {:pre [((some-fn r/Type? r/TypeFn? r/Kind?) ty)]}
   (letfn [(name-to
-            ([name count type opts] (name-to name count 0 type opts))
-            ([name count outer ty opts]
-             (assert (symbol? name))
+            ([name->count type opts]  (name-to name->count 0 type opts))
+            ([name->count outer ty opts]
              (letfn [(sb
                        ([t] (sb t opts))
-                       ([t opts] (name-to name count outer t opts)))]
+                       ([t opts] (name-to name->count outer t opts)))]
                (call-abstract-many*
                  ty opts
                  {:type-rec sb
                   :filter-rec (f/sub-f sb `call-abstract-many* opts)
                   :object-rec (f/sub-o sb `call-abstract-many* opts)
-                  :name name
-                  :count count
+                  :name->count name->count
                   :outer outer
                   :sb sb
                   :name-to name-to}))))]
@@ -2170,12 +2168,13 @@
             n (count names)]
         (loop [ty ty
                names names
-               count (dec n)]
+               count n]
           (if (zero? count)
-            (r/add-scopes n (name-to (first names) 0 ty opts))
-            (recur (name-to (first names) count ty opts)
-                   (next names)
-                   (dec count))))))))
+            (r/add-scopes n ty)
+            (let [count (dec count)]
+              (recur (name-to {(first names) count} ty opts)
+                     (next names)
+                     count))))))))
 
 (f/def-derived-fold IInstantiateMany instantiate-many* [b->f outer sb replace])
 
