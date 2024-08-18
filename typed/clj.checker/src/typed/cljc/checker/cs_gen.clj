@@ -34,8 +34,11 @@
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.utils :as u])
   (:import (typed.cljc.checker.cs_rep c cset dcon dmap cset-entry)
-           (typed.cljc.checker.type_rep Top Wildcard DottedPretype F DataType Function Protocol Bounds TCResult HSequential SymbolicClosure
-                                        GetType MergeType AssocType Regex MatchType)))
+           (typed.cljc.checker.type_rep ArrayCLJS AssocType B Bounds CLJSInteger CountRange DataType DissocType DottedPretype F FnIntersection
+                                        Function GetType HSequential HSet HeterogeneousMap Instance Intersection JSBoolean JSNominal JSNull
+                                        JSNumber JSObj JSObject JSString JSSymbol JSUndefined KwArgs KwArgsArray KwArgsSeq MatchType MergeType
+                                        Mu Name NotType Poly PrimitiveArray Protocol RClass Regex Result Satisfies Scope SymbolicClosure TApp
+                                        TCError TCResult Top TopFunction TopHSequential TopKwArgsSeq TypeFn TypeOf Unchecked Union Value Wildcard)))
 
 (t/typed-deps typed.cljc.checker.free-ops
               typed.cljc.checker.promote-demote)
@@ -329,7 +332,7 @@
 (declare cs-gen-right-F cs-gen-left-F cs-gen-datatypes-or-records cs-gen-list
          cs-gen-filter-set cs-gen-object cs-gen-HSequential cs-gen-TApp
          cs-gen-Function cs-gen-FnIntersection cs-gen-Result cs-gen-RClass
-         cs-gen-Protocol get-c-from-cmap)
+         cs-gen-Protocol get-c-from-cmap cs-gen)
 
 (defn homogeneous-dbound->bound [dbnd opts]
   {:pre [(r/Regex? dbnd)]
@@ -339,6 +342,226 @@
                    (r/Bounds? fst))
       (err/nyi-error "Inference with interesting dotted bounds" opts))
     fst))
+
+(defn cs-gen-HeterogeneousMap [V X Y S T opts]
+  {:pre [(r/HeterogeneousMap? S)
+         (r/HeterogeneousMap? T)]}
+  ; assumes optional/mandatory/absent keys are disjoint
+  (let [Skeys (set (keys (:types S)))
+        Tkeys (set (keys (:types T)))
+        Soptk (set (keys (:optional S)))
+        Toptk (set (keys (:optional T)))
+        Sabsk (:absent-keys S)
+        Tabsk (:absent-keys T)]
+    ; All keys must be values
+    (when-not (every? r/Value? 
+                      (concat
+                        Skeys Tkeys
+                        Soptk Toptk
+                        Sabsk Tabsk))
+      (fail! S T))
+    ; If the right is complete, the left must also be complete
+    (when (c/complete-hmap? T)
+      (when-not (c/complete-hmap? S)
+        (fail! S T)))
+    ; check mandatory keys
+    (if (c/complete-hmap? T)
+      ; If right is complete, mandatory keys must be identical
+      (when-not (= Tkeys Skeys)
+        (fail! S T))
+      ; If right is partial, all mandatory keys on the right must also appear mandatory on the left
+      (when-not (empty? (set/difference Tkeys 
+                          Skeys))
+        (fail! S T)))
+    ; All optional keys on the right must appear either absent, mandatory or optional
+    ; on the left
+    (when-not (empty? (set/difference Toptk 
+                        (set/union Skeys 
+                                   Soptk 
+                                   Sabsk)))
+      (fail! S T))
+    ; All absent keys on the right must appear absent on the left
+    (when-not (empty? (set/difference Tabsk
+                        Sabsk))
+      (fail! S T))
+    ; now check the values with cs-gen
+    (let [;only check mandatory entries that appear on the right
+          check-mandatory-keys Tkeys
+          Svals (map (:types S) check-mandatory-keys)
+          Tvals (map (:types T) check-mandatory-keys)
+          _ (assert (every? r/Type? Svals))
+          _ (assert (every? r/Type? Tvals))
+          ;only check optional entries that appear on the right
+          ; and also appear as mandatory or optional on the left
+          check-optional-keys (set/intersection
+                                Toptk (set/union Skeys Soptk))
+          Sopts (map (some-fn (:types S) (:optional S)) check-optional-keys)
+          Topts (map (:optional T) check-optional-keys)
+          _ (assert (every? r/Type? Sopts))
+          _ (assert (every? r/Type? Topts))]
+      (cset-meet* [(cs-gen-list V X Y Svals Tvals {} opts)
+                   (cs-gen-list V X Y Sopts Topts {} opts)]
+                  opts))))
+
+(defn cs-gen-Name-left [V X Y S T opts]
+  {:pre [(r/Name? S)]}
+  (cs-gen V X Y (c/resolve-Name S opts) T opts))
+
+;constrain *each* element of S to be below T, and then combine the constraints
+(defn cs-gen-Union-left [V X Y S T opts]
+  {:pre [(r/Union? S)]}
+  (cset-meet*
+    (cons (cr/empty-cset X Y)
+          (mapv #(cs-gen V X Y % T opts) (:types S)))
+    opts))
+
+;constrain *every* element of T to be above S, and then meet the constraints
+; we meet instead of cset-combine because we want all elements of T to be under
+; S simultaneously.
+(defn cs-gen-Intersection-right [V X Y S T opts]
+  {:pre [(r/Intersection? T)]}
+  (let [ts (sub/simplify-In T opts)]
+    (cset-meet*
+      (cons (cr/empty-cset X Y)
+            (mapv #(cs-gen V X Y S % opts) ts))
+      opts)))
+
+(defn cs-gen-HSet-left [V X Y S T opts]
+  {:pre [(r/HSet? S)]}
+  (cs-gen V X Y (c/upcast-hset S opts) T opts))
+
+(defn cs-gen-Assoc [V X Y S T opts]
+  {:pre [(r/AssocType? S)
+         (r/AssocType? T)]}
+  (let [{S-target :target S-entries :entries S-dentries :dentries} S
+        {T-target :target T-entries :entries T-dentries :dentries} T
+        cg #(cs-gen V X Y %1 %2 opts)
+        target-cset (cg S-target T-target)
+        S-entries (apply concat S-entries)
+        T-entries (apply concat T-entries)
+        entries-cset (cs-gen-list V X Y S-entries T-entries {} opts)
+        _ (when (or S-dentries T-dentries)
+            (err/nyi-error "NYI dentries of Assoc in cs-gen" opts))]
+    (cset-meet* [target-cset entries-cset] opts)))
+
+(defprotocol ConstraintGenSameProtocol
+  "When (identical? (class T) (class T))"
+  (cs-gen-same* [S T V X Y opts]))
+
+(extend-protocol ConstraintGenSameProtocol
+  ArrayCLJS (cs-gen-same* [S T V X Y opts] (fail! S T))
+  AssocType (cs-gen-same* [S T V X Y opts] (cs-gen-Assoc V X Y S T))
+  B (cs-gen-same* [S T V X Y opts] (throw (ex-info "B disallowed in cs-gen" {})))
+  Bounds (cs-gen-same* [S T V X Y opts] (fail! S T))
+  CLJSInteger (cs-gen-same* [S T V X Y opts] (fail! S T))
+  CountRange (cs-gen-same* [S T V X Y opts] (fail! S T))
+  DataType (cs-gen-same* [S T V X Y opts] (cs-gen-datatypes-or-records V X Y S T))
+  DissocType (cs-gen-same* [S T V X Y opts] (fail! S T))
+  DottedPretype (cs-gen-same* [S T V X Y opts] (fail! S T))
+  F (cs-gen-same* [S T V X Y opts]
+      (if (contains? X (:name S))
+        (cs-gen-left-F V X Y S T opts)
+        (when (contains? X (:name T))
+          (cs-gen-right-F V X Y S T opts))))
+  FnIntersection (cs-gen-same* [S T V X Y opts] (cs-gen-FnIntersection V X Y S T opts))
+  Function (cs-gen-same* [S T V X Y opts] (cs-gen-Function V X Y S T opts))
+  GetType (cs-gen-same* [S T V X Y opts]
+            (cset-meet* [(cs-gen V X Y (:target S) (:target T) opts)
+                         (cs-gen V X Y (:key S) (:key T) opts)
+                         (cs-gen V X Y (:not-found S) (:not-found T) opts)]
+                        opts))
+  HSequential (cs-gen-same* [S T V X Y opts] (cs-gen-HSequential V X Y S T opts))
+  HSet (cs-gen-same* [S T V X Y opts] (cs-gen-HSet-left V X Y S T opts))
+  HeterogeneousMap (cs-gen-same* [S T V X Y opts] (cs-gen-HeterogeneousMap V X Y S T opts))
+  Instance (cs-gen-same* [S T V X Y opts] (cs-gen-RClass V X Y S T opts))
+  Intersection (cs-gen-same* [S T V X Y opts] (cs-gen-Intersection-right V X Y S T opts))
+  JSBoolean (cs-gen-same* [S T V X Y opts] (fail! S T))
+  JSNominal (cs-gen-same* [S T V X Y opts] (fail! S T))
+  JSNull (cs-gen-same* [S T V X Y opts] (fail! S T))
+  JSNumber (cs-gen-same* [S T V X Y opts] (fail! S T))
+  JSObj (cs-gen-same* [S T V X Y opts]
+          ; covariant, as in TS and GClosure
+          (let [{Stypes :types} S
+                {Ttypes :types} T
+                Svals (map Stypes (keys Ttypes))
+                Tvals (vals Ttypes)]
+            (if (every? r/Type? Svals)
+              (cs-gen-list V X Y Svals Tvals {} opts)
+              (fail! S T))))
+  JSObject (cs-gen-same* [S T V X Y opts] (fail! S T))
+  JSString (cs-gen-same* [S T V X Y opts] (fail! S T))
+  JSSymbol (cs-gen-same* [S T V X Y opts] (fail! S T))
+  JSUndefined (cs-gen-same* [S T V X Y opts] (fail! S T))
+  KwArgs (cs-gen-same* [S T V X Y opts] (fail! S T))
+  KwArgsArray (cs-gen-same* [S T V X Y opts] (fail! S T))
+  KwArgsSeq (cs-gen-same* [S T V X Y opts] (fail! S T))
+  MatchType (cs-gen-same* [S T V X Y opts] (fail! S T))
+  MergeType (cs-gen-same* [S T V X Y opts]
+              (when (c/Merge-requires-resolving? S opts)
+                (cs-gen V X Y (c/-resolve S opts) T opts)))
+  Mu (cs-gen-same* [S T V X Y opts] (cs-gen V X Y (c/unfold S opts) (c/unfold T opts) opts))
+  Name (cs-gen-same* [S T V X Y opts] (cs-gen-Name-left V X Y S T opts))
+  NotType (cs-gen-same* [S T V X Y opts] (fail! S T))
+  Poly (cs-gen-same* [S T V X Y opts]
+         ;; similar to Mu+Mu case
+         (when (and (= (:nbound S) (:nbound T))
+                    (= (:bbnds S) (:bbnds T)))
+           (let [names (c/Poly-fresh-symbols* T)
+                 bbnds (c/Poly-bbnds* names T opts)
+                 opts (free-ops/with-bounded-frees opts names bbnds)
+                 S' (c/Poly-body* names S opts)
+                 T' (c/Poly-body* names T opts)]
+             (cs-gen V X Y S' T' opts))))
+  PrimitiveArray (cs-gen-same* [S T V X Y opts] 
+                   (when-not (impl/checking-clojure? opts)
+                     (err/int-error "PrimitiveArray only supported in Clojure checker" opts))
+                   (cs-gen-list 
+                     V X Y
+                     ;input contravariant
+                     ;output covariant
+                     [(:input-type T) (:output-type S)]
+                     [(:input-type S) (:output-type T)]
+                     {} opts))
+  Protocol (cs-gen-same* [S T V X Y opts] (cs-gen-Protocol V X Y S T opts))
+  RClass (cs-gen-same* [S T V X Y opts] (cs-gen-RClass V X Y S T opts))
+  Regex (cs-gen-same* [S T V X Y opts] (fail! S T))
+  Result (cs-gen-same* [S T V X Y opts] (cs-gen-Result V X Y S T opts))
+  Satisfies (cs-gen-same* [S T V X Y opts] (fail! S T))
+  Scope (cs-gen-same* [S T V X Y opts] (throw (ex-info "Scope disallowed in cs-gen" {})))
+  SymbolicClosure (cs-gen-same* [S T V X Y opts] (fail! S T))
+  TApp (cs-gen-same* [S T V X Y opts]
+         (if (= (:rator S) (:rator T))
+           (cs-gen-TApp V X Y S T opts)
+           (if (not (r/F? (:rator S)))
+             (cs-gen V X Y (c/resolve-TApp S opts) T opts)
+             (when (not (r/F? (:rator T)))
+               (cs-gen V X Y S (c/resolve-TApp T opts) opts)))))
+  TCError (cs-gen-same* [S T V X Y opts] (fail! S T))
+  Top (cs-gen-same* [S T V X Y opts] (fail! S T))
+  TopFunction (cs-gen-same* [S T V X Y opts] (fail! S T))
+  TopHSequential (cs-gen-same* [S T V X Y opts] (fail! S T))
+  TopKwArgsSeq (cs-gen-same* [S T V X Y opts] (fail! S T))
+  TypeFn (cs-gen-same* [S T V X Y opts] (fail! S T))
+  TypeOf (cs-gen-same* [S T V X Y opts] (fail! S T))
+  Unchecked (cs-gen-same* [S T V X Y opts] (fail! S T))
+  Union (cs-gen-same* [S T V X Y opts] (cs-gen-Union-left V X Y S T opts))
+  Value (cs-gen-same* [S T V X Y opts] (fail! S T))
+  Wildcard (cs-gen-same* [S T V X Y opts] (fail! S T)))
+
+(comment
+  (doseq [clsym (sort-by name (disj (deref u/all-types)
+                            'typed.cljc.checker.type_rep.FunctionCLJS
+                            'typed.cljc.checker.type_rep.TCResult))
+          :when (clojure.string/starts-with? (name clsym) "typed.cljc.checker.type_rep.")
+          :let [^Class c (resolve clsym)
+                nme (.getSimpleName c)]]
+    #_
+    (println nme)
+    (assert (class? c))
+    (when-not (extends? ConstraintGenSameProtocol c)
+      (println nme
+               (pr-str '(cs-gen-same* [S T V X Y opts]
+                                      (throw (ex-info (str "TODO ConstraintGenSameProtocol " (class S)) {}))))))))
 
 (t/ann ^:no-check cs-gen 
        [(t/Set t/Sym) 
@@ -360,12 +583,17 @@
          (not (r/Scope? T))]
    :post [(cr/cset? %)]}
   ;(prn "cs-gen" (class S) (class T) S T (count cs-current-seen))
-  (if (or (cs-current-seen [S T])
+  (let [cache-key [S T]]
+  (if (or (cs-current-seen cache-key)
           (subtype? S T opts))
     ;already been around this loop, is a subtype
     (cr/empty-cset X Y)
-    (let [opts (assoc opts ::cs-current-seen (conj cs-current-seen [S T]))]
+    (let [opts (assoc opts ::cs-current-seen (conj cs-current-seen cache-key))
+          short-circuit-same (when (identical? (.getClass ^Object S) (.getClass ^Object T))
+                               (cs-gen-same* S T V X Y opts))]
       (cond
+        (some? short-circuit-same) short-circuit-same
+
         ;IMPORTANT: handle frees first
         (and (r/F? S)
              (contains? X (:name S)))
@@ -401,15 +629,10 @@
                     :else (fail! S T))))
 
         (r/Name? S)
-        (cs-gen V X Y (c/resolve-Name S opts) T opts)
+        (cs-gen-Name-left V X Y S T opts)
 
         (r/Name? T)
         (cs-gen V X Y S (c/resolve-Name T opts) opts)
-
-        (and (r/TApp? S)
-             (r/TApp? T)
-             (= (:rator S) (:rator T)))
-        (cs-gen-TApp V X Y S T opts)
 
         (and (r/TApp? S)
              (not (r/F? (:rator S))))
@@ -419,29 +642,11 @@
              (not (r/F? (:rator T))))
         (cs-gen V X Y S (c/resolve-TApp T opts) opts)
 
-        (and (r/Mu? S) (r/Mu? T)) (cs-gen V X Y (c/unfold S opts) (c/unfold T opts) opts)
         (r/Mu? S) (cs-gen V X Y (c/unfold S opts) T opts)
         (r/Mu? T) (cs-gen V X Y S (c/unfold T opts) opts)
 
-        ;; similar to Mu+Mu case
-        (and (r/Poly? S)
-             (r/Poly? T)
-             (= (:nbound S) (:nbound T))
-             (= (:bbnds S) (:bbnds T)))
-        (let [names (c/Poly-fresh-symbols* T)
-              bbnds (c/Poly-bbnds* names T opts)
-              opts (free-ops/with-bounded-frees opts names bbnds)
-              S' (c/Poly-body* names S opts)
-              T' (c/Poly-body* names T opts)]
-          (cs-gen V X Y S' T' opts))
-
-
         ;constrain *each* element of S to be below T, and then combine the constraints
-        (r/Union? S)
-        (cset-meet*
-          (cons (cr/empty-cset X Y)
-                (mapv #(cs-gen V X Y % T opts) (:types S)))
-          opts)
+        (r/Union? S) (cs-gen-Union-left V X Y S T opts)
 
         ;; find *an* element of T which can be made a supertype of S
         (r/Union? T)
@@ -457,11 +662,7 @@
         ; we meet instead of cset-combine because we want all elements of T to be under
         ; S simultaneously.
         (r/Intersection? T)
-        (let [ts (sub/simplify-In T opts)]
-          (cset-meet*
-            (cons (cr/empty-cset X Y)
-                  (mapv #(cs-gen V X Y S % opts) ts))
-            opts))
+        (cs-gen-Intersection-right V X Y S T opts)
 
         ;; find *an* element of S which can be made a subtype of T
         (r/Intersection? S)
@@ -480,9 +681,6 @@
               body (c/Poly-body* nms S opts)]
           (cs-gen (set/union (set nms) V) X Y body T opts))
 
-        (and (r/DataType? S)
-             (r/DataType? T)) (cs-gen-datatypes-or-records V X Y S T)
-
         (and ((some-fn r/RClass? r/DataType?) S)
              (r/Protocol? T))
         (or (some #(when (and (r/Protocol? %)
@@ -498,86 +696,6 @@
         ; handle Record as HMap
         (r/Record? S) (cs-gen V X Y (c/Record->HMap S) T opts)
 
-        (and (r/HSequential? S)
-             (r/HSequential? T))
-        (cs-gen-HSequential V X Y S T opts)
-
-        (and (r/HeterogeneousMap? S)
-             (r/HeterogeneousMap? T))
-    ; assumes optional/mandatory/absent keys are disjoint
-        (let [Skeys (set (keys (:types S)))
-              Tkeys (set (keys (:types T)))
-              Soptk (set (keys (:optional S)))
-              Toptk (set (keys (:optional T)))
-              Sabsk (:absent-keys S)
-              Tabsk (:absent-keys T)]
-          ; All keys must be values
-          (when-not (every? r/Value? 
-                            (concat
-                              Skeys Tkeys
-                              Soptk Toptk
-                              Sabsk Tabsk))
-            (fail! S T))
-          ; If the right is complete, the left must also be complete
-          (when (c/complete-hmap? T)
-            (when-not (c/complete-hmap? S)
-              (fail! S T)))
-          ; check mandatory keys
-          (if (c/complete-hmap? T)
-            ; If right is complete, mandatory keys must be identical
-            (when-not (= Tkeys Skeys)
-              (fail! S T))
-            ; If right is partial, all mandatory keys on the right must also appear mandatory on the left
-            (when-not (empty? (set/difference Tkeys 
-                                Skeys))
-              (fail! S T)))
-          ; All optional keys on the right must appear either absent, mandatory or optional
-          ; on the left
-          (when-not (empty? (set/difference Toptk 
-                              (set/union Skeys 
-                                         Soptk 
-                                         Sabsk)))
-            (fail! S T))
-          ; All absent keys on the right must appear absent on the left
-          (when-not (empty? (set/difference Tabsk
-                              Sabsk))
-            (fail! S T))
-          ; now check the values with cs-gen
-          (let [;only check mandatory entries that appear on the right
-                check-mandatory-keys Tkeys
-                Svals (map (:types S) check-mandatory-keys)
-                Tvals (map (:types T) check-mandatory-keys)
-                _ (assert (every? r/Type? Svals))
-                _ (assert (every? r/Type? Tvals))
-                ;only check optional entries that appear on the right
-                ; and also appear as mandatory or optional on the left
-                check-optional-keys (set/intersection
-                                      Toptk (set/union Skeys Soptk))
-                Sopts (map (some-fn (:types S) (:optional S)) check-optional-keys)
-                Topts (map (:optional T) check-optional-keys)
-                _ (assert (every? r/Type? Sopts))
-                _ (assert (every? r/Type? Topts))]
-            (cset-meet* [(cs-gen-list V X Y Svals Tvals {} opts)
-                         (cs-gen-list V X Y Sopts Topts {} opts)]
-                        opts)))
-
-        ; covariant, as in TS and GClosure
-        (and (r/JSObj? S)
-             (r/JSObj? T))
-        (let [{Stypes :types} S
-              {Ttypes :types} T
-              Svals (map Stypes (keys Ttypes))
-              Tvals (vals Ttypes)]
-          (if (every? r/Type? Svals)
-            (cs-gen-list V X Y Svals Tvals {} opts)
-            (fail! S T)))
-
-        ((every-pred r/GetType?) S T)
-        (cset-meet* [(cs-gen V X Y (:target S) (:target T) opts)
-                     (cs-gen V X Y (:key S) (:key T) opts)
-                     (cs-gen V X Y (:not-found S) (:not-found T) opts)]
-                    opts)
-
         (or (and (r/GetType? S)
                  (c/Get-requires-resolving? S opts))
             (and (r/MergeType? S)
@@ -589,19 +707,6 @@
             (and (r/MergeType? T)
                  (c/Merge-requires-resolving? T opts)))
         (cs-gen V X Y S (c/-resolve T opts) opts)
-
-        (and (r/AssocType? S)
-             (r/AssocType? T))
-        (let [{S-target :target S-entries :entries S-dentries :dentries} S
-              {T-target :target T-entries :entries T-dentries :dentries} T
-              cg #(cs-gen V X Y %1 %2 opts)
-              target-cset (cg S-target T-target)
-              S-entries (apply concat S-entries)
-              T-entries (apply concat T-entries)
-              entries-cset (cs-gen-list V X Y S-entries T-entries {} opts)
-              _ (when (or S-dentries T-dentries)
-                  (err/nyi-error "NYI dentries of Assoc in cs-gen" opts))]
-          (cset-meet* [target-cset entries-cset] opts))
 
         (and (r/AssocType? S)
              (r/RClass? T)
@@ -740,17 +845,6 @@
                               (when dentries-cset [dentries-cset]))
                       opts))
 
-        (and (r/PrimitiveArray? S)
-             (r/PrimitiveArray? T)
-             (impl/checking-clojure? opts))
-        (cs-gen-list 
-          V X Y
-          ;input contravariant
-          ;output covariant
-          [(:input-type T) (:output-type S)]
-          [(:input-type S) (:output-type T)]
-          {} opts)
-
         ; some RClass's have heterogeneous vector ancestors (in "unchecked ancestors")
         ; It's useful to also trigger this case with HSequential, as that's more likely
         ; to be on the right.
@@ -760,24 +854,12 @@
                         (filter r/HSequential? (map #(c/fully-resolve-type % opts) (c/RClass-supers* S opts))))]
           (cs-gen V X Y Sv T opts)
           (fail! S T))
-        
-        (and (r/FnIntersection? S)
-             (r/FnIntersection? T))
-        (cs-gen-FnIntersection V X Y S T opts)
 
         ;; extract IFn unchecked ancestor
         (and (r/RClass? S)
              (c/ifn-ancestor S opts) ;;FIXME don't recalculate in consequent
              (r/FnIntersection? T))
         (cs-gen V X Y (c/ifn-ancestor S opts) T opts)
-
-        (and (r/Function? S)
-             (r/Function? T))
-        (cs-gen-Function V X Y S T opts)
-
-        (and (r/Result? S)
-             (r/Result? T))
-        (cs-gen-Result V X Y S T opts)
 
         ; TODO add :repeat support
         (and (r/HSequential? S)
@@ -804,22 +886,16 @@
                         opts))
                 T opts)
 
-
         (and ((some-fn r/RClass? r/Instance?) S)
              ((some-fn r/RClass? r/Instance?) T))
         (cs-gen-RClass V X Y S T opts)
-
-        (and (r/Protocol? S)
-             (r/Protocol? T))
-        (cs-gen-Protocol V X Y S T opts)
 
         (r/HeterogeneousMap? S)
         (let [new-S (c/upcast-hmap S opts)]
           (cs-gen V X Y new-S T opts))
 
         (r/HSet? S)
-        (let [new-S (c/upcast-hset S opts)]
-          (cs-gen V X Y new-S T opts))
+        (cs-gen-HSet-left V X Y S T opts)
 
         (r/HSequential? S)
         (cs-gen V X Y (c/upcast-HSequential S opts) T opts)
@@ -828,7 +904,7 @@
              (r/Protocol? T))
         (cs-gen V X Y (:target S) T opts)
 
-        :else (fail! S T)))))
+        :else (fail! S T))))))
 
 (declare var-store-take move-vars-to-dmap)
 
