@@ -4,22 +4,25 @@
 (defn some
   "Like `clojure.core/some`, but uses an iterator over `lst`."
   [f ^Iterable lst]
-  (let [it (.iterator lst)]
-    (loop []
-      (when (.hasNext it)
-        (or (f (.next it))
-            (recur))))))
+  (when (some? lst)
+    (let [it (.iterator lst)]
+      (loop []
+        (when (.hasNext it)
+          (or (f (.next it))
+              (recur)))))))
 
 (defn every?
   "Like `clojure.core/every?`, but uses an iterator over `lst`."
   [f ^Iterable lst]
-  (let [it (.iterator lst)]
-    (loop []
-      (if (.hasNext it)
-        (if (f (.next it))
-          (recur)
-          false)
-        true))))
+  (if (some? lst)
+    (let [it (.iterator lst)]
+      (loop []
+        (if (.hasNext it)
+          (if (f (.next it))
+            (recur)
+            false)
+          true)))
+    true))
 
 ;(t/ann vrepeatedly (t/All [x] [t/Int [:-> x] :-> (t/Vec x)]))
 (defn vrepeatedly
