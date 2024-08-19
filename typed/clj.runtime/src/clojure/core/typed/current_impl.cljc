@@ -51,9 +51,9 @@
          ~clojurescript ~cljs-case
          ~(if (contains? opt :unknown)
             unknown
-            `(assert nil (str "No case matched for impl-case: " ~gimpl
-                              " " ^:typed.clojure/ignore (-> ~gopts keys vec)
-                              )))))))
+            `(throw (ex-info (str "No case matched for impl-case: " ~gimpl
+                                  " " ^:typed.clojure/ignore (-> ~gopts keys vec))
+                             {})))))))
 )		
 		
 

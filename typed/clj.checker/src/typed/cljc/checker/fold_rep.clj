@@ -7,7 +7,9 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.cljc.checker.fold-rep
-  (:require [clojure.set :as set]))
+  (:refer-clojure :exclude [defn defn- fn assert])
+  (:require [clojure.set :as set]
+            [typed.cljc.checker.custom-assertions :refer [defn defn- fn assert]]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Type Folding
@@ -52,10 +54,10 @@
 ;; (Map QSym (Vec Sym))
 
 (defmacro def-derived-fold [pname mname extra-params]
-  {:pre [(simple-symbol? pname)
-         (simple-symbol? mname)
-         (vector? extra-params)
-         (apply distinct? (concat default-params extra-params))]}
+  (assert (simple-symbol? pname))
+  (assert (simple-symbol? mname))
+  (assert (vector? extra-params))
+  (assert (apply distinct? (concat default-params extra-params)))
   (let [default-gs (map gensym default-params)
         extra-gs (map gensym extra-params)
         default-f (gensym 'default-f)
@@ -65,7 +67,7 @@
         call-mname-defmacro 
         (let [m (gensym 'm)]
           `(defmacro ~(symbol (str "call-" mname)) [t# opts# ~m]
-             {:pre [(map? ~m)]}
+             (assert (map? ~m))
              (let [extra# (set/difference (set (keys ~m))
                                           '~(into #{} (map keyword) (concat default-params extra-params)))]
                (assert (empty? extra#) (str "Extra keys: " extra#)))
