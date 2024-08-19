@@ -3,13 +3,13 @@
   (:require [clojure.core :as core]))
 
 (defmacro assert [& args]
-  (when (= (System/getProperty "typed-clojure.assertions") "true")
+  (when (= (System/getProperty "typed.clojure.internal-assertions") "true")
     `(core/assert ~@args)))
 
 (core/defn- expand-pre-post-conditions [arity-body]
-  (if (map? (first arity-body))
-    (let [body (rest arity-body)
-          {:keys [pre post]} (first arity-body)]
+  (if-some [body (when (map? (first arity-body))
+                   (next arity-body))]
+    (let [{:keys [pre post]} (first arity-body)]
       (concat
        (dissoc (first arity-body) :pre :post)
        (map (core/fn [assertion] (list `assert assertion)) pre)
@@ -41,3 +41,8 @@
 (defmacro defn- [& args]
   (replace-fn-like `core/defn- args))
 (alter-meta! #'defn- merge (select-keys (meta #'core/defn-) [:arglists :doc :forms]))
+
+(comment
+  (defn a [] {:pre [1]})
+  (defn a [] {:pre [1]} {})
+  )
