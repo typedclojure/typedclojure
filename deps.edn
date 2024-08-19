@@ -68,7 +68,7 @@
    :jvm-opts
    ["-Djdk.attach.allowAttachSelf"
     "-Dtyped.cljc.checker.utils.trace=true"
-    "-Dtyped.clojure.internal-assertions=true"]},
+    "-Dtyped.clojure.internal-assertions=false"]},
   :typed
   {:exec-args
    {:dirs

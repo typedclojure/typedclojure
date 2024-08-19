@@ -1,8 +1,10 @@
+;; typing rules in  typed.cljc.checker.custom-assertions-rules
 (ns typed.cljc.checker.custom-assertions
   (:refer-clojure :exclude [defn defn- fn assert])
   (:require [clojure.core :as core]))
 
-(defmacro assert [& args]
+(defmacro ^{:typed.clojure/check-like 'clojure.core/assert}
+  assert [& args]
   (when (= (System/getProperty "typed.clojure.internal-assertions") "true")
     `(core/assert ~@args)))
 
@@ -30,19 +32,23 @@
         `(~macro ~@before ~@(expand-one after))
         `(~macro ~@before ~@(map expand-one after))))))
 
-(defmacro ^{:typed.clojure/check-like 'clojure.core/fn} [& args]
+(defmacro ^{:typed.clojure/check-like 'clojure.core/fn}
+  fn [& args]
   (replace-fn-like `core/fn args))
 (alter-meta! #'fn merge (select-keys (meta #'core/fn) [:arglists :doc :forms]))
 
-(defmacro ^{:typed.clojure/check-like 'clojure.core/defn} defn [& args]
+(defmacro ^{:typed.clojure/check-like 'clojure.core/defn}
+  defn [& args]
   (replace-fn-like `core/defn args))
 (alter-meta! #'defn merge (select-keys (meta #'core/defn) [:arglists :doc :forms]))
 
-(defmacro ^{:typed.clojure/check-like 'clojure.core/defn-} defn- [& args]
+(defmacro ^{:typed.clojure/check-like 'clojure.core/defn-}
+  defn- [& args]
   (replace-fn-like `core/defn- args))
 (alter-meta! #'defn- merge (select-keys (meta #'core/defn-) [:arglists :doc :forms]))
 
 (comment
+  ;;TODO support meta map for typed.cljc.checker.utils' clojure.core/defn ~pred
   (defn a [] {:pre [1]})
   (defn a [] {:pre [1]} {})
   )
