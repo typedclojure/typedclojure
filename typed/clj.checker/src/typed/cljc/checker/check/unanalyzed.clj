@@ -36,12 +36,11 @@
 (defn -unanalyzed-special-dispatch [{:keys [op form env] :as expr} expected opts]
   {:pre [(#{:unanalyzed} op)]
    :post [((some-fn nil? qualified-symbol?) %)]}
-  (let [res (when (seq? form)
-              (-> (first form)
-                  (ana2/resolve-sym env opts)
-                  (ana2/var->sym opts)))]
-    ;(prn `-unanalyzed-special-dispatch form res)
-    res))
+  (when-some [v (when (seq? form)
+                  (-> (first form)
+                      (ana2/resolve-sym env opts)))]
+    (or (:typed.clojure/check-like (meta v))
+        (ana2/var->sym v opts))))
 
 (defn run-passes+propagate-expr-type [expr opts]
   (-> expr

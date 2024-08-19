@@ -258,7 +258,7 @@
        (alter-meta! (var ~->ctor) assoc :private true)
 
        (t/ann ~pred (t/Pred ~name-sym))
-       (clojure.core/defn ~pred
+       (defn ~pred
          {:inline (fn [a#] (list 'instance? '~(with-meta classname nil) a#))}
          [a#]
          (instance? ~name-sym a#))

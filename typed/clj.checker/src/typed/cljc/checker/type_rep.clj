@@ -253,13 +253,13 @@
   [name] (F-maker name))
 
 (t/ann original-name [t/Sym -> t/Sym])
-(clojure.core/defn original-name [sym]
+(defn original-name [sym]
   {:pre [(simple-symbol? sym)]
    :post [(simple-symbol? %)]}
   (:original-name (meta sym) sym))
 
 (t/ann F-original-name [F -> t/Sym])
-(clojure.core/defn F-original-name 
+(defn F-original-name 
   "Get the printable name of a free variable.
   
   Used for pretty-printing errors or similar, only instantiate
@@ -574,7 +574,7 @@
   (assoc opts ::vs/under-scope true))
 
 (t/ann ^:no-check unsafe-body [Poly :-> Type])
-(clojure.core/defn ^:private unsafe-body [p]
+(defn ^:private unsafe-body [p]
   {:pre [(-Poly? p)]
    :post [(Type? %)
           (not (p/IScope? %))]}
@@ -627,7 +627,7 @@
   [p/TCType])
 
 (t/ann Mu-body-unsafe [Mu -> Type])
-(clojure.core/defn Mu-body-unsafe [mu]
+(defn Mu-body-unsafe [mu]
   {:pre [(Mu? mu)]
    :post [(Type? %)
           (not (p/IScope? %))]}
@@ -996,7 +996,7 @@
 (defn regex [types kind]
   {:post [(Regex? %)]}
   (case kind
-    :+ (do (clojure.core/assert (= 1 (count types)))
+    :+ (do (assert (= 1 (count types)))
            (regex [(first types) (regex types :*)] :cat))
     :cat (Regex-maker :cat
                       (into [] (mapcat (fn [t]
@@ -1061,8 +1061,8 @@
    ;; expensive, cache result
    dom (if (some-> dom meta ::valid-Function-dom deref (identical? dom))
          dom
-         (let [_ (clojure.core/assert (every? (every-pred Type? (complement Regex?))
-                                dom))
+         (let [_ (assert (every? (every-pred Type? (complement Regex?))
+                                 dom))
                tie (volatile! nil)
                dom (-> dom
                        vec
@@ -1112,7 +1112,7 @@
 (defn make-FnIntersection [& fns]
   {:pre [(every? Function? fns)]}
   (let [fns (vec fns)]
-    (clojure.core/assert (seq fns))
+    (assert (seq fns))
     (FnIntersection-maker fns)))
 
 (u/def-type NotType [type :- Type]

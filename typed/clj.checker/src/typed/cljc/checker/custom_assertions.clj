@@ -9,7 +9,7 @@
 (core/defn- expand-pre-post-conditions [arity-body]
   (if-some [body (when (map? (first arity-body))
                    (next arity-body))]
-    (let [{:keys [pre post]} (first arity-body)]
+    (let [{:keys [pre post] :as m} (first arity-body)]
       (concat
        (dissoc (first arity-body) :pre :post)
        (map (core/fn [assertion] (list `assert assertion)) pre)
@@ -30,15 +30,15 @@
         `(~macro ~@before ~@(expand-one after))
         `(~macro ~@before ~@(map expand-one after))))))
 
-(defmacro fn [& args]
+(defmacro ^{:typed.clojure/check-like 'clojure.core/fn} [& args]
   (replace-fn-like `core/fn args))
 (alter-meta! #'fn merge (select-keys (meta #'core/fn) [:arglists :doc :forms]))
 
-(defmacro defn [& args]
+(defmacro ^{:typed.clojure/check-like 'clojure.core/defn} defn [& args]
   (replace-fn-like `core/defn args))
 (alter-meta! #'defn merge (select-keys (meta #'core/defn) [:arglists :doc :forms]))
 
-(defmacro defn- [& args]
+(defmacro ^{:typed.clojure/check-like 'clojure.core/defn-} defn- [& args]
   (replace-fn-like `core/defn- args))
 (alter-meta! #'defn- merge (select-keys (meta #'core/defn-) [:arglists :doc :forms]))
 
