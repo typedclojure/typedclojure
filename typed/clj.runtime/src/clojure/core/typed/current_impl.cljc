@@ -8,14 +8,15 @@
 
 ; untyped, clojure.core.typed depends on this namespace
 (ns ^:no-doc clojure.core.typed.current-impl
-  #?(:clj (:refer-clojure :exclude [requiring-resolve delay])
-     :cljs (:refer-clojure :exclude [-val]))
+  #?(:clj (:refer-clojure :exclude [assert defn defn- fn requiring-resolve delay])
+     :cljs (:refer-clojure :exclude [assert defn defn- fn -val]))
   (:require [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.util-vars :as vs]
             [clojure.set :as set]
             #?(:clj [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]])
             #?(:clj [io.github.frenchy64.fully-satisfies.safe-locals-clearing :refer [delay]])
             [typed.cljc.runtime.env :as env]
+            [typed.cljc.checker.custom-assertions :refer [assert defn defn- fn]]
             [typed.clj.runtime.env :as clj-env]
             [typed.cljs.runtime.env :as cljs-env]))
 
@@ -246,7 +247,7 @@
   "For name n, creates defs for {n}, {n}-kw, add-{n},
   and reset-{n}!"
   [n]
-  {:pre [(simple-symbol? n)]}
+  (assert (simple-symbol? n))
   (let [kw-def (symbol (str n "-kw"))
         add-def (symbol (str "add-" n))
         reset-def (symbol (str "reset-" n "!"))]

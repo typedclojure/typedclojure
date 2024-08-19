@@ -377,31 +377,32 @@
         cache-key (when Un-cache (into #{} (map r/assert-Type) types))]
     (if-let [hit (when Un-cache (get @Un-cache cache-key))]
       hit
-      (let [res (letfn [;; a is a Type (not a union type)
-                        ;; b is a Set[Type] (non overlapping, non Union-types)
-                        ;; The output is a non overlapping list of non Union types.
-                        (merge-type [a b]
-                          {:pre [(set? b)
-                                 (r/Type? a)
-                                 (not (r/Union? a))]
-                           :post [(set? %)]}
-                          #_(prn "merge-type" a b)
-                          (let [b* (make-Union b opts)
-                                ;_ (prn "merge-type" a b*)
-                                res (cond
-                                      ; don't resolve type applications in case types aren't
-                                      ; fully defined yet
-                                      ; TODO basic error checking, eg. number of params
-                                      (some (some-fn r/Name? r/TApp?) (conj b a)) (conj b a)
-                                      (and (not under-scope) (ind/subtype? a b* opts)) b
-                                      (and (not under-scope) (ind/subtype? b* a opts)) #{a}
-                                      :else (into #{a}
-                                                  (if under-scope
-                                                    identity
-                                                    (remove #(ind/subtype? % a opts)))
-                                                  b))]
-                            ;(prn "res" res)
-                            res))]
+      (let [res (let [;; a is a Type (not a union type)
+                      ;; b is a Set[Type] (non overlapping, non Union-types)
+                      ;; The output is a non overlapping list of non Union types.
+                      merge-type
+                      (fn [a b]
+                        {:pre [(set? b)
+                               (r/Type? a)
+                               (not (r/Union? a))]
+                         :post [(set? %)]}
+                        #_(prn "merge-type" a b)
+                        (let [b* (make-Union b opts)
+                              ;_ (prn "merge-type" a b*)
+                              res (cond
+                                    ; don't resolve type applications in case types aren't
+                                    ; fully defined yet
+                                    ; TODO basic error checking, eg. number of params
+                                    (some (some-fn r/Name? r/TApp?) (conj b a)) (conj b a)
+                                    (and (not under-scope) (ind/subtype? a b* opts)) b
+                                    (and (not under-scope) (ind/subtype? b* a opts)) #{a}
+                                    :else (into #{a}
+                                                (if under-scope
+                                                  identity
+                                                  (remove #(ind/subtype? % a opts)))
+                                                b))]
+                          ;(prn "res" res)
+                          res))]
                   (let [types (flatten-unions (eduction (map #(fully-resolve-non-rec-type % #{} opts)) types))]
                     (cond
                       (empty? types) r/empty-union
@@ -2046,9 +2047,9 @@
                                       [:name #(if-some [count (name->count %)]
                                                 (+ count outer)
                                                 %)]))
-                     :kws (letfn [(abstract-kw-map [m]
-                                    {:pre [(map? m)]}
-                                    (update-vals m sb))]
+                     :kws (let [abstract-kw-map (fn [m]
+                                                  {:pre [(map? m)]}
+                                                  (update-vals m sb))]
                             (some-> kws
                               (r/update-KwArgs
                                 [:mandatory abstract-kw-map]
@@ -2213,11 +2214,11 @@
                      (r/update-DottedPretype
                        [:pre-type sb]
                        [:name lookup-b->f b->f outer]))
-      :kws (letfn [(instantiate-kw-map [m]
-                     {:pre [(map? m)]}
-                     (reduce-kv (fn [m k v]
-                                  (assoc m k (sb v)))
-                                {} m))]
+      :kws (let [instantiate-kw-map (fn [m]
+                                      {:pre [(map? m)]}
+                                      (reduce-kv (fn [m k v]
+                                                   (assoc m k (sb v)))
+                                                 {} m))]
              (some-> kws
                (r/update-KwArgs
                  [:mandatory instantiate-kw-map]

@@ -5,18 +5,18 @@
             [typed.clojure :as t]
             [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]))
 
-(defn detect-typed-ns [form]
+(defn detect-typed-ns [env form]
   (when (.contains (name (ns-name *ns*)) "typed")
-    (println (ns-name *ns*) " contains call to clojure.core/assert: " form)))
+    (println (ns-name *ns*) " contains call to clojure.core/assert: " (binding [*print-meta* true] (pr-str form)))))
 
 (defmacro printing-assert
   ([x]
-   (detect-typed-ns &form)
+   (detect-typed-ns &env &form)
    (when *assert*
      `(when-not ~x
         (throw (new AssertionError (str "Assert failed: " (pr-str '~x)))))))
   ([x message]
-   (detect-typed-ns &form)
+   (detect-typed-ns &env &form)
    (when *assert*
      `(when-not ~x
         (throw (new AssertionError (str "Assert failed: " ~message "\n" (pr-str '~x))))))))
