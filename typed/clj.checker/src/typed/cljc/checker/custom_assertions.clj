@@ -3,9 +3,15 @@
   (:refer-clojure :exclude [defn defn- fn assert])
   (:require [clojure.core :as core]))
 
+(def assertions (= (System/getProperty "typed.clojure.internal-assertions") "true"))
+
+(if assertions
+  (println "Typed Clojure internal assertions are on")
+  (println "Typed Clojure internal assertions are off, use -Dtyped.clojure.internal-assertions=true to turn on"))
+
 (defmacro ^{:typed.clojure/check-like 'clojure.core/assert}
   assert [& args]
-  (when (= (System/getProperty "typed.clojure.internal-assertions") "true")
+  (when assertions
     `(core/assert ~@args)))
 
 (core/defn- expand-pre-post-conditions [arity-body]

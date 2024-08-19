@@ -5,15 +5,15 @@
 
 (deftest check-tc
   (time (is (check-ns '[clojure.core.typed.coerce-utils
-                  typed.cljc.checker.utils
-                  typed.cljc.checker.type-rep
-                  typed.cljc.checker.cs-rep
-                  typed.cljc.checker.name-env
-                  clojure.core.typed.util-vars
-                  ;typed.cljc.checker.type-ctors
-                  typed.cljc.dir]
-                      #_
-                {:max-parallelism 1}))))
+                    typed.cljc.checker.utils
+                    typed.cljc.checker.type-rep
+                    typed.cljc.checker.cs-rep
+                    typed.cljc.checker.name-env
+                    clojure.core.typed.util-vars
+                    ;typed.cljc.checker.type-ctors
+                    typed.cljc.dir]
+                  #_
+                  {:max-parallelism 1}))))
 
 #_ ;;WIP
 (deftest analyzer-test
