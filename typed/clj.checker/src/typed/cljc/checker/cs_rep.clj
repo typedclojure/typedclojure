@@ -7,9 +7,10 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.cljc.checker.cs-rep
-  (:refer-clojure :exclude [defrecord])
+  (:refer-clojure :exclude [defrecord assert defn defn- fn])
   (:require [typed.cljc.checker.utils :as u]
             [clojure.core.typed.contract-utils :as con]
+            [typed.cljc.checker.custom-assertions :refer [assert defn defn- fn]]
             [typed.cljc.checker.type-rep :as r]
             [typed.clojure :as t])
   (:import (typed.cljc.checker.type_rep Bounds F)))

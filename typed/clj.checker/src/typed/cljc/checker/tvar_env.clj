@@ -8,10 +8,12 @@
 
 (ns ^:no-doc
   typed.cljc.checker.tvar-env
+  (:refer-clojure :exclude [defn defn- fn assert])
   (:require [clojure.core.typed.contract-utils :as con]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.runtime.perf-utils :as perf]
-            [typed.clojure :as t])
+            [typed.clojure :as t]
+            [typed.cljc.checker.custom-assertions :refer [defn defn- fn assert]])
   (:import (typed.cljc.checker.type_rep F)))
 
 ;; this implements the Delta environment from the TOPLAS paper

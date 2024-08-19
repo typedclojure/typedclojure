@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.cljc.checker.check.fn-methods
-  (:refer-clojure :exclude [methods rest])
+  (:refer-clojure :exclude [methods rest assert defn defn- fn])
   (:require [typed.cljc.checker.type-rep :as r]
             [clojure.set :as set]
             [clojure.string :as str]
@@ -20,6 +20,7 @@
             [typed.cljc.checker.check.utils :as cu]
             [clojure.core.typed.errors :as err]
             [typed.clj.checker.parse-unparse :as prs]
+            [typed.cljc.checker.custom-assertions :refer [assert defn defn- fn]]
             [typed.cljc.checker.lex-env :as lex]
             [typed.cljc.checker.free-ops :as free-ops]
             [typed.cljc.checker.check.fn-method-one :as fn-method1]))

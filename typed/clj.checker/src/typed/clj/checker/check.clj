@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.clj.checker.check
-  (:refer-clojure :exclude [requiring-resolve])
+  (:refer-clojure :exclude [requiring-resolve assert defn defn- fn])
   (:require [typed.clojure :as t]
             [typed.cljc.checker.check.cache :as cache]
             [typed.cljc.checker.filter-ops :as fo]
@@ -73,6 +73,7 @@
             [typed.cljc.checker.check.with-meta :as with-meta]
             [typed.cljc.checker.cs-gen :as cgen]
             [typed.cljc.checker.cs-rep :as crep]
+            [typed.cljc.checker.custom-assertions :refer [assert defn defn- fn]]
             [typed.cljc.checker.datatype-env :as dt-env]
             [typed.cljc.checker.filter-ops :as fo]
             [typed.cljc.checker.filter-rep :as fl]

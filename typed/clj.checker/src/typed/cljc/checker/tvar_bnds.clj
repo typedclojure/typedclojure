@@ -8,8 +8,10 @@
 
 (ns ^:no-doc 
   typed.cljc.checker.tvar-bnds
+  (:refer-clojure :exclude [assert defn defn- fn])
   (:require [typed.clojure :as t]
             [clojure.core.typed.contract-utils :as con]
+            [typed.cljc.checker.custom-assertions :refer [assert defn defn- fn]]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.runtime.perf-utils :as perf])
   (:import (typed.cljc.checker.type_rep Bounds Regex)))

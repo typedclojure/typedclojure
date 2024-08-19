@@ -7,9 +7,10 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.cljc.checker.utils
-  (:refer-clojure :exclude [defrecord defprotocol])
+  (:refer-clojure :exclude [defrecord defprotocol assert defn defn- fn])
   (:require [typed.clojure :as t]
             [clojure.core.typed.util-vars :as uvs]
+            [typed.cljc.checker.custom-assertions :refer [assert defn  defn- fn]]
             [typed.cljc.runtime.env-utils :as env-utils]
             [clojure.repl :as repl]
             [clojure.set :as set]))
@@ -257,7 +258,7 @@
        (alter-meta! (var ~->ctor) assoc :private true)
 
        (t/ann ~pred (t/Pred ~name-sym))
-       (defn ~pred
+       (clojure.core/defn ~pred
          {:inline (fn [a#] (list 'instance? '~(with-meta classname nil) a#))}
          [a#]
          (instance? ~name-sym a#))

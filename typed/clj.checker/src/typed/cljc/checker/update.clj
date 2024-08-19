@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.cljc.checker.update
-  (:refer-clojure :exclude [requiring-resolve])
+  (:refer-clojure :exclude [requiring-resolve assert defn defn- fn])
   (:require [typed.clojure :as t]
             [typed.cljc.checker.filter-rep :as fl]
             [typed.cljc.checker.path-rep :as pe]
@@ -15,6 +15,7 @@
             [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]
             [clojure.core.typed.errors :as err]
             [typed.cljc.checker.check.utils :as cu]
+            [typed.cljc.checker.custom-assertions :refer [assert defn defn- fn]]
             [typed.cljc.checker.filter-ops :as fo]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.cljc.checker.free-ops :as free-ops]

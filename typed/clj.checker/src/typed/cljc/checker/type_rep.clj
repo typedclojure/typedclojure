@@ -7,12 +7,13 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.cljc.checker.type-rep
-  (:refer-clojure :exclude [defrecord defprotocol])
+  (:refer-clojure :exclude [defrecord defprotocol assert defn defn- fn])
   (:require [typed.clojure :as t]
             [clojure.core.typed.coerce-utils :as coerce]
             [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.contract-utils-platform-specific :as plat-con]
             [clojure.set :as set]
+            [typed.cljc.checker.custom-assertions :refer [assert defn defn- fn]]
             [typed.cljc.checker.impl-protocols :as p]
             [typed.cljc.checker.indirect-ops :as ind]
             [typed.cljc.checker.utils :as u :refer [AND OR]]
@@ -1061,7 +1062,7 @@
    dom (if (some-> dom meta ::valid-Function-dom deref (identical? dom))
          dom
          (let [_ (assert (every? (every-pred Type? (complement Regex?))
-                                dom))
+                                 dom))
                tie (volatile! nil)
                dom (-> dom
                        vec

@@ -21,7 +21,7 @@ download_deps (){
 }
 export -f download_deps
 run_tests (){
-  ./script/test -Sdeps '{:deps {org.clojure/clojure {:mvn/version "'$CLOJURE_VERSION'"}} :mvn/repos {"sonatype-oss-public" {:url "https://oss.sonatype.org/content/groups/public/"}}}'
+  ./script/test -Sdeps '{:deps {org.clojure/clojure {:mvn/version "'$CLOJURE_VERSION'"}} :mvn/repos {"sonatype-oss-public" {:url "https://oss.sonatype.org/content/groups/public/"}} :jvm-opts ["-Dtyped.clojure.internal-assertions=false"]}'
 }
 export -f run_tests
 if [[ "${SKIP_DOWNLOAD}" != "true" ]]; then

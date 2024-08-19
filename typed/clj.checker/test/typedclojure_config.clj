@@ -11,4 +11,5 @@
        typed.cljc.checker.filter-rep
        typed.cljc.checker.lex-env
        typed.cljc.checker.object-rep
-       typed.cljc.checker.var-env]}
+       typed.cljc.checker.var-env
+       typed.cljc.checker.custom-assertions-rules]}

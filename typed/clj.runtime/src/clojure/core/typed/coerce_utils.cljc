@@ -7,8 +7,10 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc clojure.core.typed.coerce-utils
+  (:refer-clojure :exclude [assert defn defn- fn])
   (:require [typed.clojure :as t]
             [clojure.string :as str]
+            [typed.cljc.checker.custom-assertions :refer [assert defn defn- fn]]
             #?(:cljr [clojure.clr.io] :default [clojure.java.io :as io])
             [clojure.core.typed.current-impl :as impl])
   (:import (clojure.lang RT Var)))
@@ -40,8 +42,8 @@
 
 (t/ann Class->symbol [#?(:cljr Type :default Class) -> t/Sym])
 (defn Class->symbol [^#?(:cljr Type :default Class) cls]
-  #_{:pre [(class? cls)]
-     :post [(symbol? %)]}
+  {:pre [(class? cls)]
+   :post [(symbol? %)]}
   (symbol (#?(:cljr .FullName :default .getName) cls)))
 
 (t/ann var->symbol [t/AnyVar -> t/Sym])
