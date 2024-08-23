@@ -9,8 +9,10 @@
 ; copied from tools.analyzer.jvm
 ; - replace calls to `maybe-class-literal`
 (ns typed.clj.analyzer.passes.analyze-host-expr
+  (:refer-clojure :exclude [assert defn defn- fn let])
   (:require [typed.cljc.analyzer :as ana]
             [typed.cljc.analyzer :as common]
+            [typed.cljc.analyzer.custom-defn :refer [assert defn defn- fn let]]
             [typed.cljc.analyzer.utils :refer [ctx source-info merge']]
             [typed.clj.analyzer.utils :as u]))
 

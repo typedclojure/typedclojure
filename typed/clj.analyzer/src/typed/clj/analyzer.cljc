@@ -8,10 +8,12 @@
 
 ;; adapted from tools.analyzer.jvm
 (ns typed.clj.analyzer
-  (:refer-clojure :exclude [macroexpand-1 #?(:clj requiring-resolve) #?(:clj delay)])
+  (:refer-clojure :exclude [macroexpand-1 #?(:clj requiring-resolve) #?(:clj delay)
+                            assert defn defn- fn let])
   (:require [typed.cljc.analyzer :as ana]
             [typed.cljc.analyzer.ast :as ast]
             [typed.cljc.analyzer :as common]
+            [typed.cljc.analyzer.custom-defn :refer [assert defn defn- fn let]]
             [typed.cljc.analyzer.env :as env]
             [typed.cljc.analyzer.passes :as passes]
             [typed.cljc.analyzer.passes.constant-lifter :as constant-lift]

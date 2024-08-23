@@ -7,7 +7,9 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns typed.cljc.analyzer.passes.uniquify
+  (:refer-clojure :exclude [assert defn defn- fn let])
   (:require [typed.cljc.analyzer.ast :refer [update-children children]]
+            [typed.cljc.analyzer.custom-defn :refer [assert defn defn- fn let]]
             [typed.cljc.analyzer.env :as env]
             [typed.cljc.analyzer.utils :as u]))
 
