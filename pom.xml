@@ -333,7 +333,7 @@
       <dependency>
         <groupId>io.github.frenchy64</groupId>
         <artifactId>fully-satisfies</artifactId>
-        <version>1.12.0</version>
+        <version>1.12.1-SNAPSHOT</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
