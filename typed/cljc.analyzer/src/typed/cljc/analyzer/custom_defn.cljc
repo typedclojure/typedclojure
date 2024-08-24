@@ -1,14 +1,13 @@
 (ns typed.cljc.analyzer.custom-defn
-  (:refer-clojure :exclude [defn defn- fn assert destructure let])
+  (:refer-clojure :exclude [defn defn- fn assert destructure let defmacro defmethod if-let])
   (:require [clojure.core :as core]
-            [clojure.spec.alpha :as s]
-            [clojure.core.specs.alpha :as core-specs]))
+            [io.github.frenchy64.fully-satisfies.configurable-core-macros :as ccm]))
 
-(defmacro assert [& args]
+(core/defmacro assert [& args]
   (when (= (System/getProperty "typed-clojure.assertions") "true")
     `(core/assert ~@args)))
 
-(core/defn- destructure [bindings]
+(core/defn destructure [bindings]
   (letfn [(pvec [bvec b val]
             (core/let [gvec (gensym "vec__")
                        gseq (gensym "seq__")
@@ -104,55 +103,14 @@
         bindings
         (reduce (core/fn [bvec [b v]] (pb bvec b v)) [] bents)))))
 
-(core/defn- expand-pre-post-conditions [arity-body]
-  (if (and (map? (first arity-body)) (next arity-body))
-    (core/let [body (rest arity-body)
-               {:keys [pre post]} (first arity-body)]
-      (concat
-       (dissoc (first arity-body) :pre :post)
-       (map (core/fn [assertion] (list `assert assertion)) pre)
-       (if post
-         `((core/let [~'% ~(if (< 1 (count body))
-                             `(do ~@body)
-                             (first body))]
-             ~@(map (core/fn [c] `(assert ~c)) post)
-             ~'%))
-         body)))
-    arity-body))
+;;TODO
+(core/defmacro defn-
+  "same as defn, yielding non-public def"
+  {:added "1.0"}
+  [name & decls]
+    (list* `defn (with-meta name (assoc (meta name) :private true)) decls))
 
-(core/defn- replace-fn-tail [tail]
-  (letfn [(expand-one [[arglist & body]]
-            (core/let [body (expand-pre-post-conditions body)]
-              (if (every? symbol? arglist)
-                (list* arglist body)
-                (core/let [simple-args (mapv #(symbol (str "arg" %)) (range (count arglist)))]
-                  `(~simple-args
-                    (core/let [~@(destructure (mapcat vector arglist simple-args))]
-                      ~@body))))))]
-    (if (vector? (first tail))
-      (expand-one tail)
-      (map expand-one tail))))
+(def opts {:replace {'clojure.core/destructure `destructure
+                     'clojure.core/assert `assert}})
 
-(defmacro fn [& args]
-  (core/let [[fn-name fn-tail] (if (symbol? (first args))
-                                 [(take 1 args) (rest args)]
-                                 [[] args])]
-    `(core/fn ~@fn-name ~@(replace-fn-tail fn-tail))))
-(alter-meta! #'fn merge (select-keys (meta #'core/fn) [:arglists :doc :forms]))
-
-(defmacro defn [& args]
-  (core/let [{:keys [name fn-name docstring meta] :as parsed} (s/conform ::core-specs/defn-args args)
-             prefix (remove nil? [(or name fn-name) docstring meta])
-             fn-tail (drop (count prefix) args)]
-    `(core/defn ~@prefix ~@(replace-fn-tail fn-tail))))
-(alter-meta! #'defn merge (select-keys (meta #'core/defn) [:arglists :doc :forms]))
-
-(defmacro defn- [& args]
-  (core/let [{:keys [name fn-name docstring meta]} (s/conform ::core-specs/defn-args args)
-             prefix (remove nil? [(or name fn-name) docstring meta])
-             fn-tail (drop (count prefix) args)]
-    `(core/defn- ~@prefix ~@(replace-fn-tail fn-tail))))
-(alter-meta! #'defn- merge (select-keys (meta #'core/defn-) [:arglists :doc :forms]))
-
-(defmacro let [bindings & body]
-  `(core/let ~(destructure bindings) ~@body))
+(ccm/->clojure-core `opts)
