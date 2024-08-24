@@ -10,6 +10,7 @@ on:
 env:
   CLOJURE_CLI_VERSION: "1.11.1.1347"
   BABASHKA_VERSION: "1.3.182"
+  DEP_CACHE_INVALIDATOR: "1"
 
 jobs:
   setup:
@@ -47,12 +48,12 @@ jobs:
           path: |
             ~/.m2/repository
             ~/.gitlibs
-          key: ${{ runner.os }}-test-deps-${{ matrix.submodule_hash }}-${{ hashFiles('**/pom.xml') }}-${{ hashFiles('**/deps.edn') }}-${{ env.CLOJURE_CLI_VERSION }} 
+          key: ${{ runner.os }}-${{ env.DEP_CACHE_INVALIDATOR }}-test-deps-${{ matrix.submodule_hash }}-${{ hashFiles('**/pom.xml') }}-${{ hashFiles('**/deps.edn') }}-${{ env.CLOJURE_CLI_VERSION }} 
           restore-keys: |
-            ${{ runner.os }}-test-deps-${{ matrix.submodule_hash }}-${{ hashFiles('**/pom.xml') }}-${{ hashFiles('**/deps.edn') }}-
-            ${{ runner.os }}-test-deps-${{ matrix.submodule_hash }}-${{ hashFiles('**/pom.xml') }}-
-            ${{ runner.os }}-test-deps-${{ matrix.submodule_hash }}-
-            ${{ runner.os }}-test-deps-
+            ${{ runner.os }}-${{ env.DEP_CACHE_INVALIDATOR }}-test-deps-${{ matrix.submodule_hash }}-${{ hashFiles('**/pom.xml') }}-${{ hashFiles('**/deps.edn') }}-
+            ${{ runner.os }}-${{ env.DEP_CACHE_INVALIDATOR }}-test-deps-${{ matrix.submodule_hash }}-${{ hashFiles('**/pom.xml') }}-
+            ${{ runner.os }}-${{ env.DEP_CACHE_INVALIDATOR }}-test-deps-${{ matrix.submodule_hash }}-
+            ${{ runner.os }}-${{ env.DEP_CACHE_INVALIDATOR }}-test-deps-
       - name: Set up JDK ${{ matrix.jdk }}
         uses: actions/setup-java@v3
         with:
@@ -96,12 +97,12 @@ jobs:
           path: |
             ~/.m2/repository
             ~/.gitlibs
-          key: ${{ runner.os }}-deploy-deps-${{ matrix.submodule_hash }}-${{ hashFiles('**/pom.xml') }}-${{ hashFiles('**/deps.edn') }}-${{ env.CLOJURE_CLI_VERSION }} 
+          key: ${{ runner.os }}-${{ env.DEP_CACHE_INVALIDATOR }}-deploy-deps-${{ matrix.submodule_hash }}-${{ hashFiles('**/pom.xml') }}-${{ hashFiles('**/deps.edn') }}-${{ env.CLOJURE_CLI_VERSION }} 
           restore-keys: |
-            ${{ runner.os }}-deploy-deps-${{ matrix.submodule_hash }}-${{ hashFiles('**/pom.xml') }}-${{ hashFiles('**/deps.edn') }}-
-            ${{ runner.os }}-deploy-deps-${{ matrix.submodule_hash }}-${{ hashFiles('**/pom.xml') }}-
-            ${{ runner.os }}-deploy-deps-${{ matrix.submodule_hash }}-
-            ${{ runner.os }}-deploy-deps-
+            ${{ runner.os }}-${{ env.DEP_CACHE_INVALIDATOR }}-deploy-deps-${{ matrix.submodule_hash }}-${{ hashFiles('**/pom.xml') }}-${{ hashFiles('**/deps.edn') }}-
+            ${{ runner.os }}-${{ env.DEP_CACHE_INVALIDATOR }}-deploy-deps-${{ matrix.submodule_hash }}-${{ hashFiles('**/pom.xml') }}-
+            ${{ runner.os }}-${{ env.DEP_CACHE_INVALIDATOR }}-deploy-deps-${{ matrix.submodule_hash }}-
+            ${{ runner.os }}-${{ env.DEP_CACHE_INVALIDATOR }}-deploy-deps-
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2.2.0
         with:

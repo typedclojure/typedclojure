@@ -8,8 +8,10 @@
 
 ;copied from clojure.tools.analyzer.passes.jvm.annotate-host-info
 (ns typed.clj.analyzer.passes.annotate-host-info
+  (:refer-clojure :exclude [assert defn defn- fn let])
   (:require [typed.cljc.analyzer :as ana]
             [typed.cljc.analyzer.ast :as ast]
+            [typed.cljc.analyzer.custom-defn :refer [assert defn defn- fn let]]
             [typed.cljc.analyzer.passes.cleanup :as cleanup]
             [typed.cljc.analyzer.passes.elide-meta :as elide-meta]
             [typed.cljc.analyzer.utils :as cu]

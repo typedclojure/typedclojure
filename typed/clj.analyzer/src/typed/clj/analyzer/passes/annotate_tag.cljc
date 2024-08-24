@@ -8,7 +8,9 @@
 
 ; copied from clojure.tools.analyzer.passes.jvm.annotate-tag
 (ns typed.clj.analyzer.passes.annotate-tag
-  (:require [typed.clj.analyzer.utils :as ju]
+  (:refer-clojure :exclude [assert defn defn- fn let])
+  (:require [typed.cljc.analyzer.custom-defn :refer [assert defn defn- fn let]]
+            [typed.clj.analyzer.utils :as ju]
             [typed.clj.analyzer.passes.constant-lifter :as constant-lift :refer [constant-lift]])
   (:import (clojure.lang ISeq Var AFunction)))
 
