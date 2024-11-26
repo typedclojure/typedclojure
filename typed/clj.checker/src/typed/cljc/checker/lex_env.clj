@@ -7,11 +7,13 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.cljc.checker.lex-env
+  (:refer-clojure :exclude [assert defn defn- fn])
   (:require [typed.clojure :as t]
             [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.errors :as err]
             [clojure.core.typed.util-vars :as vs]
             [typed.clj.checker.path-type :as path-type]
+            [typed.cljc.checker.custom-assertions :refer [assert defn defn- fn]]
             [typed.cljc.checker.filter-rep :as fr]
             [typed.cljc.checker.object-rep :as obj]
             [typed.cljc.checker.path-rep :as pr]

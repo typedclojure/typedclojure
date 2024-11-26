@@ -7,7 +7,9 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:no-doc typed.cljc.checker.subst-obj
-  (:require [typed.cljc.checker.filter-rep :as fl]
+  (:refer-clojure :exclude [assert defn defn- fn])
+  (:require [typed.cljc.checker.custom-assertions :refer [assert defn defn- fn]]
+            [typed.cljc.checker.filter-rep :as fl]
             [typed.cljc.checker.filter-ops :as fo]
             [typed.cljc.checker.fold-rep :as fold]
             [clojure.core.typed.errors :as err]
