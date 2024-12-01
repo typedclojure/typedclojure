@@ -26,9 +26,9 @@ jobs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
       - uses: actions/checkout@v4
-      - uses: turtlequeue/setup-babashka@1e886ef84f68692d42c5128245ac83e7dd38ce70
+      - uses: DeLaGuardo/setup-clojure@13.0
         with:
-          babashka-version: ${{env.BABASHKA_VERSION}}
+          bb: ${{env.BABASHKA_VERSION}}
       - run: bb --version
       - run: ./script-test/test_runner.clj
       - name: Print test matrix
@@ -58,7 +58,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: ${{ matrix.jdk }}
-      - uses: DeLaGuardo/setup-clojure@0fc99a3bcdd086349bfb01a9262382fe3d37cd6d
+      - uses: DeLaGuardo/setup-clojure@13.0
         with:
           cli: ${{ env.CLOJURE_CLI_VERSION }} 
       - name: Run ${{ matrix.submodule }} tests
@@ -74,9 +74,9 @@ jobs:
          }}
     steps:
       - uses: actions/checkout@v4
-      - uses: turtlequeue/setup-babashka@1e886ef84f68692d42c5128245ac83e7dd38ce70
+      - uses: DeLaGuardo/setup-clojure@13.0
         with:
-          babashka-version: ${{env.BABASHKA_VERSION}}
+          bb: ${{env.BABASHKA_VERSION}}
       - run: bb --version
       - run: ./script-test/test_runner.clj
       - run: ./script/check_docs.clj
@@ -113,12 +113,10 @@ jobs:
         with:
           distribution: 'adopt'
           java-version: ${{ env.DEPLOY_JDK }}
-      - uses: DeLaGuardo/setup-clojure@0fc99a3bcdd086349bfb01a9262382fe3d37cd6d
+      - uses: DeLaGuardo/setup-clojure@13.0
         with:
           cli: ${{ env.CLOJURE_CLI_VERSION }}
-      - uses: turtlequeue/setup-babashka@83e81711f784e0dcb593e53b642fc9850067f234
-        with:
-          babashka-version: ${{env.BABASHKA_VERSION}}
+          bb: ${{env.BABASHKA_VERSION}}
       - run: bb --version
       - name: Configure settings.xml
         run: |
