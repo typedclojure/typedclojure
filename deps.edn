@@ -67,7 +67,8 @@
     "typed/malli/test"],
    :jvm-opts
    ["-Djdk.attach.allowAttachSelf"
-    "-Dtyped.cljc.checker.utils.trace=true"]},
+    "-Dtyped.cljc.checker.utils.trace=true"
+    "-Dtyped.cljc.analyzer.passes/direct-link=false"]},
   :typed
   {:exec-args
    {:dirs
