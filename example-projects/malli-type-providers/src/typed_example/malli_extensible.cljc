@@ -10,7 +10,7 @@
 (def Over
   (m/-simple-schema
     {:compile
-     (fn [{:keys [value]} _]
+     (fn [{:keys [value]} _ _]
        (assert (int? value))
        {:type ::over
         :pred #(and (int? %) (> % value))
