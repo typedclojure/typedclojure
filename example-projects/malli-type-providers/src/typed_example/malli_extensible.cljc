@@ -9,7 +9,7 @@
 ^::t/ignore
 (def Over
   (m/-simple-schema
-    {:compiled
+    {:compile
      (fn [{:keys [value]} _]
        (assert (int? value))
        {:type ::over
