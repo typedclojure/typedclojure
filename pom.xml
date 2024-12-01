@@ -318,7 +318,7 @@
       <dependency>
         <groupId>metosin</groupId>
         <artifactId>malli</artifactId>
-        <version>0.13.0</version>
+        <version>0.16.4</version>
       </dependency>
       <dependency>
         <groupId>com.nextjournal</groupId>
@@ -328,7 +328,7 @@
       <dependency>
         <groupId>babashka</groupId>
         <artifactId>process</artifactId>
-        <version>0.5.21</version>
+        <version>0.5.22</version>
       </dependency>
       <dependency>
         <groupId>io.github.frenchy64</groupId>
