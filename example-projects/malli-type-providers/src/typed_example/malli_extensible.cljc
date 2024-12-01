@@ -9,11 +9,12 @@
 ^::t/ignore
 (def Over
   (m/-simple-schema
-    (fn [{:keys [value]} _]
-      (assert (int? value))
-      {:type ::over
-       :pred #(and (int? %) (> % value))
-       :type-properties {:error/fn (fn [error _] (str "should be over " value ", was " (:value error)))}})))
+    {:compile
+     (fn [{:keys [value]} _ _]
+       (assert (int? value))
+       {:type ::over
+        :pred #(and (int? %) (> % value))
+        :type-properties {:error/fn (fn [error _] (str "should be over " value ", was " (:value error)))}})}))
 
 ;; [Over ...] schemas are of m/type ::over, which is registered in typed-example.register-malli-extensions
 (m/=> foo [:=> [:cat [Over {:value 0}]] [Over {:value 1}]])

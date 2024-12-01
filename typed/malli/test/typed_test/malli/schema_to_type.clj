@@ -255,17 +255,18 @@
 
 (def Over
   (m/-simple-schema
-    (fn [{:keys [value]} _]
-      (assert (int? value))
-      {:type ::over
-       :pred #(and (int? %) (> % value))
-       :type-properties {:error/fn (fn [error _] (str "should be over " value ", was " (:value error)))
-                         ;:decode/string mt/-string->long
-                         :json-schema/type "integer"
-                         :json-schema/format "int64"
-                         :json-schema/minimum value
-                         ;:gen/gen (gen/large-integer* {:min (inc value)})
-                         }})))
+    {:compile
+     (fn [{:keys [value]} _ _]
+       (assert (int? value))
+       {:type ::over
+        :pred #(and (int? %) (> % value))
+        :type-properties {:error/fn (fn [error _] (str "should be over " value ", was " (:value error)))
+                          ;:decode/string mt/-string->long
+                          :json-schema/type "integer"
+                          :json-schema/format "int64"
+                          :json-schema/minimum value
+                          ;:gen/gen (gen/large-integer* {:min (inc value)})
+                          }})}))
 
 (sut/register-malli->type-extension ::over [m _] `t/Int)
 

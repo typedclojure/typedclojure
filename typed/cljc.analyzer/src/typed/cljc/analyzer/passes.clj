@@ -33,7 +33,10 @@
 
 ;; performance optimization
 ;; set to false to develop/debug passes while avoiding recompilation
-(def ^:const direct-link true)
+(def direct-link (case (System/getProperty "typed.cljc.analyzer.passes/direct-link")
+                   "true" true
+                   "false" false
+                   nil true))
 
 ;modified from tools.analyzer
 (defn compile-passes [pre-passes post-passes info]

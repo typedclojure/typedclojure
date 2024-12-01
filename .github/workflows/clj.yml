@@ -26,9 +26,9 @@ jobs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
       - uses: actions/checkout@v4
-      - uses: turtlequeue/setup-babashka@1e886ef84f68692d42c5128245ac83e7dd38ce70
+      - uses: DeLaGuardo/setup-clojure@13.0
         with:
-          babashka-version: ${{env.BABASHKA_VERSION}}
+          bb: ${{env.BABASHKA_VERSION}}
       - run: bb --version
       - run: ./script-test/test_runner.clj
       - name: Print test matrix
@@ -41,7 +41,7 @@ jobs:
       matrix: ${{ fromJson(needs.setup.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         id: test-deps-cache
         with:
           path: |
@@ -54,11 +54,11 @@ jobs:
             ${{ runner.os }}-test-deps-${{ matrix.submodule_hash }}-
             ${{ runner.os }}-test-deps-
       - name: Set up JDK ${{ matrix.jdk }}
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: ${{ matrix.jdk }}
-      - uses: DeLaGuardo/setup-clojure@0fc99a3bcdd086349bfb01a9262382fe3d37cd6d
+      - uses: DeLaGuardo/setup-clojure@13.0
         with:
           cli: ${{ env.CLOJURE_CLI_VERSION }} 
       - name: Run ${{ matrix.submodule }} tests
@@ -74,9 +74,9 @@ jobs:
          }}
     steps:
       - uses: actions/checkout@v4
-      - uses: turtlequeue/setup-babashka@1e886ef84f68692d42c5128245ac83e7dd38ce70
+      - uses: DeLaGuardo/setup-clojure@13.0
         with:
-          babashka-version: ${{env.BABASHKA_VERSION}}
+          bb: ${{env.BABASHKA_VERSION}}
       - run: bb --version
       - run: ./script-test/test_runner.clj
       - run: ./script/check_docs.clj
@@ -91,7 +91,7 @@ jobs:
       DEPLOY_JDK: 11
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: |
             ~/.m2/repository
@@ -109,16 +109,14 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-west-2
       - name: Set up JDK ${{ env.DEPLOY_JDK }}
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
-          distribution: 'adopt'
+          distribution: 'temurin'
           java-version: ${{ env.DEPLOY_JDK }}
-      - uses: DeLaGuardo/setup-clojure@0fc99a3bcdd086349bfb01a9262382fe3d37cd6d
+      - uses: DeLaGuardo/setup-clojure@13.0
         with:
           cli: ${{ env.CLOJURE_CLI_VERSION }}
-      - uses: turtlequeue/setup-babashka@83e81711f784e0dcb593e53b642fc9850067f234
-        with:
-          babashka-version: ${{env.BABASHKA_VERSION}}
+          bb: ${{env.BABASHKA_VERSION}}
       - run: bb --version
       - name: Configure settings.xml
         run: |

@@ -52,9 +52,9 @@
    :kaocha-git-url "https://github.com/lambdaisland/kaocha.git"
    :kaocha-sha "24e2e02d0848160343a6f9ac629f0f8e27a682ea"
    :typedclojure-homepage "https://typedclojure.org"
-   :malli-mvn-version "0.13.0"
+   :malli-mvn-version "0.16.4"
    :beholder-mvn-version "1.0.2"
-   :process-mvn-version "0.5.21"
+   :process-mvn-version "0.5.22"
    :fully-satisfies-mvn-version "1.12.0"
    :clj-async-profiler-mvn-version "1.2.2"
    })
