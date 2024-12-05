@@ -117,8 +117,10 @@
              ::special-type true}
     `t/IFn {:doc "An ordered intersection type of function arities.
                  :filters  a pair of propositions. :then/:else is true when return value is true/false. See :doc/filter-syntax.
-                 :object  symbolic representation of return value in terms of lexical environment. See :doc/object-syntax."
+                 :object  symbolic representation of return value in terms of lexical environment. See :doc/object-syntax.
+                 Use & :optional/:mandatory for keyword arguments."
             :forms '[(IFn ArityVec+)
+                     [fixed* & :optional {} :mandatory {} :-> ret :filters {:then fl :else fl} :object {:id Foo :path Bar}]
                      [fixed* :-> ret :filters {:then fl :else fl} :object {:id Foo :path Bar}]
                      [fixed* rest :* :-> ret :filters {:then fl :else fl} :object {:id Foo :path Bar}]
                      [fixed* rest :+ :-> ret :filters {:then fl :else fl} :object {:id Foo :path Bar}]
