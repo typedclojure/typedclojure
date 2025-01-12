@@ -10,8 +10,8 @@
            {:extra-paths ["test"]}
            :nREPL
            {:extra-deps
-            {nrepl/nrepl {:mvn/version "1.1.1"}
-             cider/cider-nrepl {:mvn/version "0.47.0"}},
+            {nrepl/nrepl {:mvn/version "1.3.1"}
+             cider/cider-nrepl {:mvn/version "0.52.0"}},
             :main-opts ["-m" "nrepl.cmdline"
                         "--interactive"
                         "--middleware" "[\"cider.nrepl/cider-middleware\"]"]}
