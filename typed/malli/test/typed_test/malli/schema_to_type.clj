@@ -278,3 +278,27 @@
   (is (= `t/Int
          (sut/malli-syntax->validator-type
            `[Over {:value 12}]))))
+
+;; s <: t <==> (m/validate s v) implies (m/validate t v).
+(defn malli-validator-sub? [s t]
+  (subtype?
+    (prs/parse-clj (sut/malli-syntax->validator-type (m/schema s)))
+    (prs/parse-clj (sut/malli-syntax->validator-type (m/schema t)))))
+
+(deftest validator-subtype-test
+  (is (malli-validator-sub? :int :any))
+  (is (not (malli-validator-sub? :any :int)))
+  (is (malli-validator-sub? :int number?))
+  (is (not (malli-validator-sub? number? :int)))
+  (is (not (malli-validator-sub? vector? :int)))
+  (is (not (malli-validator-sub? :int vector?)))
+  (is (not (malli-validator-sub? [:= 1] [:= 2])))
+  (is (malli-validator-sub? [:= 1] [:enum 1 2]))
+  (is (not (malli-validator-sub? [:enum 1 2] [:= 1])))
+  (is (malli-validator-sub? [:map-of :int :int] [:map-of :any :any]))
+  (is (malli-validator-sub? [:map-of :int :int] [:map-of number? number?]))
+  (is (malli-validator-sub? :map :map))
+  (is (malli-validator-sub? [:map [:a :int]] :map))
+  (is (not (malli-validator-sub? :map [:map [:a :int]])))
+  (is (malli-validator-sub? [:map [:a :int]] [:map [:a number?]]))
+  )

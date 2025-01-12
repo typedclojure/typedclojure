@@ -126,10 +126,11 @@
                                   (first arities)
                                   `(t/IFn ~@arities)))
                     :vector `(t/Vec ~(gen-inner (first (m/children m))))
+                    vector? `(t/Vec t/Any)
                     :set `(t/Set ~(gen-inner (first (m/children m))))
                     :sequential `(t/SequentialColl ~(gen-inner (first (m/children m))))
                     ;;TODO :tuple
-                    ;;TODO :enum
+                    :enum `(t/U ~@(map (fn [v] (list `t/Val v)) (m/children m)))
                     ;;TODO :multi
                     :fn `t/Any
                     :maybe `(t/Nilable ~(gen-inner (first (m/children m))))
@@ -196,19 +197,20 @@
 #?(:clj
    (defn- malli-syntax->type*
      [m opts]
-     (malli->type (-> m eval m/schema)
+     (malli->type (cond-> m
+                    (not (m/schema? m)) (-> eval m/schema))
                   opts)))
 
 #?(:clj
    (defn malli-syntax->parser-type
      "The types of values returned by malli.core/parse as Typed Clojure syntax.
-     Takes unevalated malli syntax.  Uses *ns* for resolution."
+     Takes unevaluated malli syntax, or a value satisfying malli.core/schema?.  Uses *ns* for resolution."
      [m]
      (malli-syntax->type* m {::mode :parser-type})))
 
 #?(:clj
    (defn malli-syntax->validator-type
      "The types of values that succeed for malli.core/validate as Typed Clojure syntax.
-     Takes unevalated malli syntax. Uses *ns* for resolution."
+     Takes unevaluated malli syntax, or a value satisfying malli.core/schema?. Uses *ns* for resolution."
      [m]
      (malli-syntax->type* m {::mode :validator-type})))
