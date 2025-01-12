@@ -62,9 +62,10 @@
      `(defmethod -malli->type ~dval ~argv ~@body)))
 
 (defmethod -malli->type ::default [m opts]
-  (println (str "WARNING: No conversion from malli to Typed Clojure for "
-                (pr-str (m/type m)) " in " `-malli->type " (" #?(:clj "Clojure" :cljs "ClojureScript") " implementation)"))
-  nil)
+  (if (m/-ref-schema? m)
+    (malli->type (m/deref m) opts)
+    (println (str "WARNING: No conversion from malli to Typed Clojure for "
+                  (pr-str (m/type m)) " in " `-malli->type " (" #?(:clj "Clojure" :cljs "ClojureScript") " implementation)"))))
 
 (comment
   (malli->type :int {::mode :validator-type})
@@ -94,10 +95,13 @@
                     (int? pos-int? neg-int?) `t/Num
                     (:nil nil?) `(t/Val nil)
                     (:boolean boolean?) `t/Bool
+                    ;; TODO :min/max
                     (:string string?) `t/Str
+                    ;; TODO :min/max (?)
                     :map-of (let [[kt vt :as cts] (map gen-inner (m/children m))
                                   _ (assert (= 2 (count cts)) (m/children m))]
                               `(t/Map ~kt ~vt))
+                    ;; TODO :min/max
                     :map (let [{req true opt false} (->> (m/children m) (group-by (m/-comp not :optional second)))
                                opt (not-empty (apply array-map (mapcat (fn [[k _ s]] [k (gen-inner s)]) opt)))
                                req (not-empty (apply array-map (mapcat (fn [[k _ s]] [k (gen-inner s)]) req)))]
@@ -125,6 +129,7 @@
                                 (if (= 1 (count arities))
                                   (first arities)
                                   `(t/IFn ~@arities)))
+                    ;; TODO :min/max
                     :vector `(t/Vec ~(gen-inner (first (m/children m))))
                     vector? `(t/Vec t/Any)
                     :set `(t/Set ~(gen-inner (first (m/children m))))
@@ -158,6 +163,7 @@
                                         :else (throw (ex-info (str "What is this? " (pr-str n)))))
                                       (with-meta {::ref-name n}))]
                            `(t/Rec [~gn] ~(gen-inner (m/-deref m) (assoc-in opts [::schema-form->free (m/form m)] gn))))
+                    ;; TODO :min/max
                     :int `t/AnyInteger
                     (keyword? :keyword simple-keyword? #_:simple-keyword qualified-keyword? :qualified-keyword) `t/Kw
                     (symbol? :symbol simple-symbol? #_:simple-symbol qualified-symbol? :qualified-symbol) `t/Sym
@@ -184,8 +190,7 @@
                     :not= `(t/Not (t/Val ~(first (m/children m))))
                     := `(t/Val ~(first (m/children m)))
                     :uuid `t/UUID
-                    (:merge :union :select-keys) (throw (ex-info (str "FIXME want to expand :merge/:union/:select keys in " `malli->type)
-                                                                 {}))
+                    (:merge :union :select-keys) (gen-inner (m/deref m))
                     (or (-malli->type m opts)
                         `t/Any)))))]
     (let [inner-t (gen-inner m opts)]

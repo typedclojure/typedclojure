@@ -1,5 +1,6 @@
 (ns typed-test.malli.schema-to-type
   (:require [clojure.test :refer [deftest is]]
+            [malli.util :as mu]
             [malli.error :as me]
             [typed.clojure :as t]
             [typed.malli :as tm]
@@ -282,8 +283,8 @@
 ;; s <: t <==> (m/validate s v) implies (m/validate t v).
 (defn malli-validator-sub? [s t]
   (subtype?
-    (prs/parse-clj (sut/malli-syntax->validator-type (m/schema s)))
-    (prs/parse-clj (sut/malli-syntax->validator-type (m/schema t)))))
+    (prs/parse-clj (sut/malli-syntax->validator-type (m/schema s {:registry (merge (m/default-schemas) (mu/schemas))})))
+    (prs/parse-clj (sut/malli-syntax->validator-type (m/schema t {:registry (merge (m/default-schemas) (mu/schemas))})))))
 
 (deftest validator-subtype-test
   (is (malli-validator-sub? :int :any))
@@ -301,4 +302,6 @@
   (is (malli-validator-sub? [:map [:a :int]] :map))
   (is (not (malli-validator-sub? :map [:map [:a :int]])))
   (is (malli-validator-sub? [:map [:a :int]] [:map [:a number?]]))
-  )
+  (is (malli-validator-sub? [:map [:a :int]] [:map [:a number?]]))
+  (is (malli-validator-sub? [:merge [:map [:a :any]] [:map [:a :int]]] [:map [:a number?]]))
+  (is (not (malli-validator-sub? [:merge [:map [:a :int]] [:map [:a :any]]] [:map [:a number?]]))))
