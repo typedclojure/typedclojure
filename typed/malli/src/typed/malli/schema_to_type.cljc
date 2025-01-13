@@ -11,7 +11,7 @@
   (:require [typed.clojure :as t]
             [malli.core :as m]))
 
-(declare ^:private malli-syntax->type*)
+(declare ^:private malli-syntax->type* malli->type)
 
 (defn- malli->arg-lists
   [m {::keys [source] :as opts}]
