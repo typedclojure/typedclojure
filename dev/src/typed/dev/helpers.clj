@@ -25,7 +25,7 @@
    :typedclojure-alpha-spec-git-sha "9da58ec60f5a4a3bfc61fa19f54bf1d160b49dfc"
    :typedclojure-group-id "org.typedclojure"
    :selmer-mvn-version "1.12.50"
-   :core-memoize-mvn-version "1.0.257"
+   :core-memoize-mvn-version "1.1.266"
    :nrepl-mvn-version "1.3.1"
    :reply-mvn-version "0.5.1"
    :parsley-mvn-version "0.9.3"
