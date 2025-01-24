@@ -40,8 +40,12 @@
     (if-let [target (and sym-ns
                          (not (resolve-ns (symbol sym-ns) env opts))
                          (ju/maybe-class-literal sym-ns))]          ;; Class/field
-      (with-meta (list '. target (symbol (str "-" (name form)))) ;; transform to (. Class -field)
-                 (meta form))
+      (let [opname (name form)]
+        (if (and (= (count opname) 1)
+                 (Character/isDigit (first opname)))
+          form ;; Array/<n>
+          (with-meta (list '. target (symbol (str "-" opname))) ;; transform to (. Class -field)
+                     (meta form))))
       form)))
 
 ;; copied from tools.analyzer.jvm to replace `resolve-ns` and `taj-utils/maybe-class-literal`

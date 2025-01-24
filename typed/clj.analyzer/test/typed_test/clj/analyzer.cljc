@@ -43,7 +43,7 @@
             ((juxt :op :val) (ast Number)))))
   (is (= [:const clojure.lang.Compiler]
          ((juxt :op :val) (ast clojure.lang.Compiler))))
-		 
+
   #?(:cljr
      (is (= [:static-field 'specials]
             ((juxt :op :field) (ast clojure.lang.Compiler/specials))))
@@ -102,3 +102,10 @@
       (is (= :def (:op def-ast)))
       (is (nil? (:init def-ast)))
       (is (= [:meta] (:children def-ast))))))
+
+(when (>= (compare ((juxt :major :minor) *clojure-version*) [1 12]) 0)
+  (deftest clojure-1.12-features-test
+    (is (= [:const (clojure.lang.RT/classForName "[[B")]
+           ;; Using `read-string` here because 'byte/2 is not even a valid
+           ;; symbol for pre-1.12 reader.
+           ((juxt :op :result) (ana/analyze+eval (read-string "byte/2") (ana/empty-env (ns-name *ns*)) (ana/default-opts)))))))

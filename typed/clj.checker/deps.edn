@@ -9,7 +9,7 @@
   org.typedclojure/typed.clj.runtime {:local/root "../clj.runtime" :deps/manifest :deps},
   org.clojure/math.combinatorics {:mvn/version "0.2.0", :exclusions [org.clojure/clojure]},
   org.clojure/tools.namespace {:mvn/version "1.4.4"},
-  org.clojure/tools.reader {:mvn/version "1.4.1"}
+  org.clojure/tools.reader {:mvn/version "1.5.0"}
   com.nextjournal/beholder {:mvn/version "1.0.2"}
   babashka/process {:mvn/version "0.5.22"}
   io.github.frenchy64/fully-satisfies {:mvn/version "1.12.0"}},

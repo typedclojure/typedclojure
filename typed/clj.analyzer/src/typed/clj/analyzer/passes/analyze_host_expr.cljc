@@ -157,7 +157,7 @@
 (defn analyze-host-expr
   "Performing some reflection, transforms :host-interop/:host-call/:host-field
    nodes in either: :static-field, :static-call, :instance-call, :instance-field
-   or :host-interop nodes, and a :var or :maybe-class node in a :const :class node,
+   or :host-interop nodes, and a :var/:maybe-class/:maybe-host-form node in a :const :class node,
    if necessary (class literals shadow Vars).
 
    A :host-interop node represents either an instance-field or a no-arg instance-method. "
@@ -201,6 +201,12 @@
 
     :maybe-class
     (if-let [the-class (u/maybe-class-literal class)]
+      (assoc (ana/analyze-const the-class env :class opts) :form form)
+      ast)
+
+    :maybe-host-form
+    (if-let [the-class (u/maybe-array-class-sym (symbol (str (:class ast))
+                                                        (str (:field ast))))]
       (assoc (ana/analyze-const the-class env :class opts) :form form)
       ast)
 

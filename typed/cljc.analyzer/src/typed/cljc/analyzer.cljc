@@ -83,7 +83,7 @@
   "Create an AST node for a form without expanding it."
   [form env {::keys [unanalyzed] :as opts}]
   (when-not unanalyzed
-    (throw (ex-info "unanalyzed not bound")))
+    (throw (ex-info "unanalyzed not bound" {})))
   (unanalyzed form env opts))
 
 (def specials
