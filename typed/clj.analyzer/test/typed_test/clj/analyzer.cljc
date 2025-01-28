@@ -109,7 +109,7 @@
 
 (when array-class-literal-feature?
   (deftest array-class-literal-test
-    #?(:cljr (throw (ex-info "TODO clojure-1-12-features-test for cljr" {}))
+    #?(:cljr (throw (ex-info "TODO array-class-literal-test for cljr" {}))
        :default (is (= [:const (clojure.lang.RT/classForName "[[B")]
                        ;; Using `read-string` here because 'byte/2 is not even a valid
                        ;; symbol for pre-1.12 reader.
