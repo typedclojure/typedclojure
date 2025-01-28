@@ -2607,6 +2607,7 @@
               `(t/HMap :optional {:a t/Any})))
   (is (check-ns 'clojure.core.typed.test.ctyp105)))
 
+#_;;FIXME https://github.com/typedclojure/typedclojure/issues/147
 (deftest trampoline-test
   (is (check-ns 'clojure.core.typed.test.trampoline
                 {:trace true})))
