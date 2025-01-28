@@ -103,9 +103,14 @@
       (is (nil? (:init def-ast)))
       (is (= [:meta] (:children def-ast))))))
 
-(when (>= (compare ((juxt :major :minor) *clojure-version*) [1 12]) 0)
-  (deftest clojure-1.12-features-test
-    (is (= [:const (clojure.lang.RT/classForName "[[B")]
-           ;; Using `read-string` here because 'byte/2 is not even a valid
-           ;; symbol for pre-1.12 reader.
-           ((juxt :op :result) (ana/analyze+eval (read-string "byte/2") (ana/empty-env (ns-name *ns*)) (ana/default-opts)))))))
+(def array-class-literal-feature? (try (read-string "byte/2")
+                                       true
+                                       (catch Exception _ false)))
+
+(when array-class-literal-feature?
+  (deftest array-class-literal-test
+    #?(:cljr (throw (ex-info "TODO clojure-1-12-features-test for cljr" {}))
+       :default (is (= [:const (clojure.lang.RT/classForName "[[B")]
+                       ;; Using `read-string` here because 'byte/2 is not even a valid
+                       ;; symbol for pre-1.12 reader.
+                       ((juxt :op :result) (ana/analyze+eval (read-string "byte/2") (ana/empty-env (ns-name *ns*)) (ana/default-opts))))))))
