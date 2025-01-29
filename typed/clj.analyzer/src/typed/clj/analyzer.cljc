@@ -29,6 +29,8 @@
             #?(:clj [io.github.frenchy64.fully-satisfies.safe-locals-clearing :refer [delay]]))
   (:import [clojure.lang IObj RT Var Compiler]))
 
+(set! *warn-on-reflection* true)
+
 (def specials
   "Set of the special forms for clojure in the JVM"
   (into ana/specials
@@ -42,8 +44,8 @@
                          (ju/maybe-class-literal sym-ns))]          ;; Class/field
       (let [opname (name form)]
         (if (and (= (count opname) 1)
-                 #?(:cljr (Char/IsDigit (first opname))
-                    :default (Character/isDigit (first opname))))
+                 #?(:cljr (Char/IsDigit (char (first opname)))
+                    :default (Character/isDigit (char (first opname)))))
           form ;; Array/<n>
           (with-meta (list '. target (symbol (str "-" opname))) ;; transform to (. Class -field)
                      (meta form))))
