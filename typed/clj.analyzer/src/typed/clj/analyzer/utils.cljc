@@ -187,10 +187,10 @@
                           :default (Integer/parseInt sname)) c))))))
 
 (defmethod maybe-class Symbol [sym]
-  (let [sname (name sym)
-        snamec (count sname)]
-    (if (namespace sym)
-      (maybe-array-class-sym sym)
+  (if (namespace sym)
+    (maybe-array-class-sym sym)
+    (let [sname (name sym)
+          snamec (count sname)]
       (if-let [base-type (and (#?(:cljr .EndsWith :default .endsWith) sname "<>")
                               (maybe-class (subs sname 0 (- snamec 2))))]
         ;; TODO: we're leaking into the syntax
