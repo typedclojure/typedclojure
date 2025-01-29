@@ -176,22 +176,27 @@
   (maybe-class (symbol s)))
 
 (defn maybe-array-class-sym [x]
-  (when-some [c (namespace x)]
-    (let [sname (name x)]
-      (when (and (= (count sname) 1)
-                 #?(:cljr (Char/IsDigit (char (first sname)))
-                    :default (Character/isDigit (char (first sname)))))
-        (when-some [c (or (specials c)
-                          (maybe-class-from-string c))]
-          (array-class (#?(:cljr Int32/ParseInt :default Integer/parseInt) sname) c))))))
+  (let [sname (name x)]
+    (if-let [c (and (= (count sname) 1)
+                    (Character/isDigit (first sname))
+                    (namespace x))]
+      (when-let [c (or (specials c)
+                       (maybe-class-from-string c))]
+        (array-class (Integer/parseInt sname) c)))))
 
 (defmethod maybe-class Symbol [sym]
-  (if (namespace sym)
-    (maybe-array-class-sym sym)
-    (let [sname (name sym)]
-      (or (specials sname)
-          (special-arrays sname)
-          (maybe-class-from-string sname)))))
+  (let [sname (name sym)
+        snamec (count sname)]
+    (or (maybe-array-class-sym sym)
+        (when-not (namespace sym)
+          (if-let [base-type (and (#?(:cljr .EndsWith :default .endsWith) sname "<>")
+                                  (maybe-class (subs sname 0 (- snamec 2))))]
+            ;; TODO: we're leaking into the syntax
+            (array-class base-type)
+            (if-let [ret (or (specials sname)
+                             (special-arrays sname))]
+              ret
+              (maybe-class-from-string sname)))))))
 
 (defn maybe-class-literal [x]
   (cond

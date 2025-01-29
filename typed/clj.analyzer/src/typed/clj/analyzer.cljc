@@ -42,8 +42,8 @@
                          (ju/maybe-class-literal sym-ns))]          ;; Class/field
       (let [opname (name form)]
         (if (and (= (count opname) 1)
-                 #?(:cljr (Char/IsDigit (char (first opname)))
-                    :default (Character/isDigit (char (first opname)))))
+                 #?(:cljr (Char/IsDigit (first opname))
+                    :default (Character/isDigit (first opname))))
           form ;; Array/<n>
           (with-meta (list '. target (symbol (str "-" opname))) ;; transform to (. Class -field)
                      (meta form))))
