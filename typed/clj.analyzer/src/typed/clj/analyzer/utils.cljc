@@ -455,9 +455,17 @@
                          (= argc (count (:parameter-types %)))))
         (static-members class method)))
 
+(defn all-static-methods [class method]
+  (into [] (filter #(instance? clojure.reflect.Method %))
+        (static-members class method)))
+
 (defn instance-methods [class method argc]
   (into [] (filter #(and (instance? clojure.reflect.Method %)
                          (= argc (count (:parameter-types %)))))
+        (instance-members class method)))
+
+(defn all-instance-methods [class method]
+  (into [] (filter #(instance? clojure.reflect.Method %))
         (instance-members class method)))
 
 (defn- field [member]

@@ -113,4 +113,12 @@
        :default (is (= [:const (clojure.lang.RT/classForName "[[B")]
                        ;; Using `read-string` here because 'byte/2 is not even a valid
                        ;; symbol for pre-1.12 reader.
-                       ((juxt :op :result) (ana/analyze+eval (read-string "byte/2") (ana/empty-env (ns-name *ns*)) (ana/default-opts))))))))
+                       ((juxt :op :result) (ana/analyze+eval (read-string "byte/2") (ana/empty-env (ns-name *ns*)) (ana/default-opts)))))))
+
+  (deftest method-reference-test
+    #?@(:cljr ((throw (ex-info "TODO method-reference-test for cljr" {})))
+        :default
+        [(is (= [:static-method-reference String 'join]
+                ((juxt :op :class :method) (ast' String/join))))
+         (is (= [:instance-method-reference java.lang.String 'substring]
+                ((juxt :op :class :method) (ast' String/.substring))))])))

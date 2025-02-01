@@ -9,7 +9,8 @@
 ; copied from tools.analyzer.jvm
 ; - replace calls to `maybe-class-literal`
 (ns typed.clj.analyzer.passes.analyze-host-expr
-  (:require [typed.cljc.analyzer :as ana]
+  (:require [clojure.string :as str]
+            [typed.cljc.analyzer :as ana]
             [typed.cljc.analyzer :as common]
             [typed.cljc.analyzer.utils :refer [ctx source-info merge']]
             [typed.clj.analyzer.utils :as u]))
@@ -36,6 +37,13 @@
      :class   class
      :method  name}))
 
+(defn maybe-static-method-reference [class sym]
+  (when (seq (u/all-static-methods class sym))
+    {:op      :static-method-reference
+     ::common/op  ::jvm/static-method-reference
+     :class   class
+     :method  sym}))
+
 (defn maybe-instance-method [target-expr class sym]
   (when-let [{:keys [return-type]} (u/instance-method class sym)]
     {:op       :instance-call
@@ -46,6 +54,15 @@
      :class    class
      :method   sym
      :children [:instance]}))
+
+(defn maybe-instance-method-reference [class sym]
+  (let [sym-str (name sym)
+        sym (and (str/starts-with? sym-str ".") (symbol (subs sym-str 1)))]
+    (when (seq (u/all-instance-methods class sym))
+      {:op       :instance-method-reference
+       ::common/op  ::jvm/instance-method-reference
+       :class    class
+       :method   sym})))
 
 (defn maybe-instance-field [target-expr class sym]
   (when-let [{:keys [flags name type]} (u/instance-field class sym)]
@@ -208,6 +225,10 @@
     (if-let [the-class (u/maybe-array-class-sym (symbol (str (:class ast))
                                                         (str (:field ast))))]
       (assoc (ana/analyze-const the-class env :class opts) :form form)
-      ast)
+      (if-let [the-class (u/maybe-class-literal (:class ast))]
+        (or (maybe-static-method-reference the-class (:field ast))
+            (maybe-instance-method-reference the-class (:field ast))
+            ast)
+        ast))
 
     ast))

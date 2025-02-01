@@ -43,12 +43,16 @@
                          (not (resolve-ns (symbol sym-ns) env opts))
                          (ju/maybe-class-literal sym-ns))]          ;; Class/field
       (let [opname (name form)]
-        (if (and (= (count opname) 1)
-                 #?(:cljr (Char/IsDigit (char (first opname)))
-                    :default (Character/isDigit (char (first opname)))))
-          form ;; Array/<n>
-          (with-meta (list '. target (symbol (str "-" opname))) ;; transform to (. Class -field)
-                     (meta form))))
+        (cond (and (= (count opname) 1)
+                   #?(:cljr (Char/IsDigit (char (first opname)))
+                      :default (Character/isDigit (char (first opname)))))
+              form ;; Array/<n>
+
+              (ju/static-field target opname)
+              (with-meta (list '. target (symbol (str "-" opname))) ;; transform to (. Class -field)
+                         (meta form))
+
+              :else form)) ;; Supposedly, a method reference Class/staticMethod or Class/.method
       form)))
 
 ;; copied from tools.analyzer.jvm to replace `resolve-ns` and `taj-utils/maybe-class-literal`
