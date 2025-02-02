@@ -141,9 +141,9 @@
     ast
     (validate-call (assoc ast :class (ju/maybe-class (:class ast))))))
 
-(defmethod -validate :static-method
-  [ast opts]
-  (throw (ex-info "TODO validate :static-method" {})))
+;(defmethod -validate :static-method
+;  [ast opts]
+;  (throw (ex-info "TODO validate :static-method" {})))
 
 (defmethod -validate :static-field
   [ast opts]
@@ -158,9 +158,9 @@
       (validate-call (assoc ast :class (ju/maybe-class class)))
       ast)))
 
-(defmethod -validate :instance-method
-  [{:keys [class validated?] :as ast} opts]
-  (throw (ex-info "TODO validate :instance-method" {})))
+;(defmethod -validate :instance-method
+;  [{:keys [class validated?] :as ast} opts]
+;  (throw (ex-info "TODO validate :instance-method" {})))
 
 (defmethod -validate :instance-field
   [{:keys [instance class] :as ast} opts]
