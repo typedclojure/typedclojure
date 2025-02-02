@@ -149,7 +149,7 @@
 ;; reflect-validated from eastwood
 ;========================
 (t/ann ^:no-check reflect-validated [(t/Map t/Any t/Any) :-> t/Any])
-(defmulti reflect-validated 
+(defmulti reflect-validated
   {:pass-info {:walk :any :depends #{#'validate/validate}}}
   :op)
 
@@ -225,6 +225,9 @@
     (assoc ast :reflected-method (@#'reflect/method->map (get-method ast)))
     ast))
 
+(defmethod reflect-validated :instance-method [ast]
+  (throw (ex-info "TODO reflect-validated :instance-method")))
+
 (defmethod reflect-validated :static-field [ast]
   (assoc ast :reflected-field (@#'reflect/field->map (get-field ast))))
 
@@ -232,6 +235,10 @@
   (if (:validated? ast)
     (assoc ast :reflected-method (@#'reflect/method->map (get-method ast)))
     ast))
+
+(defmethod reflect-validated :static-method [ast]
+  (throw (ex-info "TODO reflect-validated :static-method")))
+
 ;========================
 
 ;; (All [x :..] [-> '{(Var x) x ...})])

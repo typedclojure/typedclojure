@@ -28,7 +28,7 @@
      :o-tag       type
      :tag         type}))
 
-(defn maybe-static-method [[_ class sym]]
+(defn maybe-static-method-call [[_ class sym]]
   (when-let [{:keys [name return-type]} (u/static-method class sym)]
     {:op      :static-call
      ::common/op  ::jvm/static-call
@@ -37,14 +37,15 @@
      :class   class
      :method  name}))
 
-(defn maybe-static-method-reference [class sym]
+(defn maybe-static-method [class sym]
   (when (seq (u/all-static-methods class sym))
-    {:op      :static-method-reference
-     ::common/op  ::jvm/static-method-reference
+    {:op      :static-method
+     ::common/op  ::jvm/static-method
+     :param-tags (-> sym meta :param-tags)
      :class   class
      :method  sym}))
 
-(defn maybe-instance-method [target-expr class sym]
+(defn maybe-instance-method-call [target-expr class sym]
   (when-let [{:keys [return-type]} (u/instance-method class sym)]
     {:op       :instance-call
      ::common/op  ::jvm/instance-call
@@ -55,12 +56,13 @@
      :method   sym
      :children [:instance]}))
 
-(defn maybe-instance-method-reference [class sym]
+(defn maybe-instance-method [class sym]
   (let [sym-str (name sym)
         sym (and (str/starts-with? sym-str ".") (symbol (subs sym-str 1)))]
     (when (seq (u/all-instance-methods class sym))
-      {:op       :instance-method-reference
-       ::common/op  ::jvm/instance-method-reference
+      {:op       :instance-method
+       ::common/op  ::jvm/instance-method
+       :param-tags (-> sym meta :param-tags)
        :class    class
        :method   sym})))
 
@@ -128,10 +130,10 @@
   (let [target-class (-> target-expr :tag)
         [field method] (if class
                          [(maybe-static-field (list '. class m-or-f))
-                          (maybe-static-method (list '. class m-or-f))]
+                          (maybe-static-method-call (list '. class m-or-f))]
                          (when target-class
                            [(maybe-instance-field target-expr target-class m-or-f)
-                            (maybe-instance-method target-expr target-class m-or-f)]))]
+                            (maybe-instance-method-call target-expr target-class m-or-f)]))]
     (cond
 
      (not (or class target-class))
@@ -226,8 +228,8 @@
                                                         (str (:field ast))))]
       (assoc (ana/analyze-const the-class env :class opts) :form form)
       (if-let [the-class (u/maybe-class-literal (:class ast))]
-        (or (maybe-static-method-reference the-class (:field ast))
-            (maybe-instance-method-reference the-class (:field ast))
+        (or (maybe-static-method the-class (:field ast))
+            (maybe-instance-method the-class (:field ast))
             ast)
         ast))
 

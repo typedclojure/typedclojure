@@ -59,13 +59,18 @@
 
 ;[MethodExpr Any -> (U nil NamespacedSymbol)]
 (defn MethodExpr->qualsym [{c :class :keys [op method] :as expr} opts]
-  {:pre [(#{:static-call :instance-call} op)]
+  {:pre [(#{:static-call :instance-call :static-method :instance-method} op)]
    :post [((some-fn nil? symbol?) %)]}
   (impl/assert-clojure opts)
   (when c
     (assert (class? c))
     (assert (symbol? method))
-    (symbol (str (coerce/Class->symbol c)) (str method))))
+    (symbol (str (coerce/Class->symbol c))
+            (str (when (= :instance-method op)
+                   ;;TODO perhaps use 1.12 syntax for overriding method types?
+                   (throw (ex-info "TODO MethodExpr->qualsym :instance-call :instance-method"))
+                   ".")
+                 method))))
 
 ;[FieldExpr -> (U nil NamespacedSymbol)]
 (defn FieldExpr->qualsym [{c :class :keys [op field] :as expr} opts]

@@ -70,7 +70,7 @@
                              :ast   ast}
                             (cu/source-info (:env ast)))))
       (let [^#?(:cljr Type :default Class) class (-> ast :class :val)
-            c-name #?(:cljr '.ctor :default (symbol (.getName class)))  ;;                                                                  ;; in .NET, ctors are named .ctor, not with the class name
+            c-name #?(:cljr '.ctor :default (symbol (.getName class)))  ;; in .NET, ctors are named .ctor, not with the class name
             argc (count args)
             tags (mapv :tag args)]
         (let [[ctor & rest] (->> (filter #(= (count (:parameter-types %)) argc)
@@ -141,6 +141,10 @@
     ast
     (validate-call (assoc ast :class (ju/maybe-class (:class ast))))))
 
+(defmethod -validate :static-method
+  [ast opts]
+  (throw (ex-info "TODO validate :static-method" {})))
+
 (defmethod -validate :static-field
   [ast opts]
   (if (:validated? ast)
@@ -153,6 +157,10 @@
     (if (and class (not validated?))
       (validate-call (assoc ast :class (ju/maybe-class class)))
       ast)))
+
+(defmethod -validate :instance-method
+  [{:keys [class validated?] :as ast} opts]
+  (throw (ex-info "TODO validate :instance-method" {})))
 
 (defmethod -validate :instance-field
   [{:keys [instance class] :as ast} opts]

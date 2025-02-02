@@ -1949,3 +1949,11 @@
            (ana2/unanalyzed-top-level (or env (jana2/empty-env nsym)) opts)
            (cache/check-top-level-expr expected opt opts)
            (into extra))))))
+
+(defmethod -check ::jana2/instance-method
+  [expr expected opts]
+  (method/check-method expr expected {} opts))
+
+(defmethod -check ::jana2/static-method
+  [expr expected opts]
+  (method/check-method expr expected {} opts))

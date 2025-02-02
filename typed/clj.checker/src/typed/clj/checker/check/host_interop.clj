@@ -127,7 +127,10 @@
   [expr expected {::check/keys [check-expr] :as opts}]
   {:pre [(= :maybe-host-form (:op expr))]
    :post [(-> % u/expr-type r/TCResult?)]}
-  (let [expr (ana2/run-pre-passes expr opts)]
+  (let [expr (-> expr
+                 (ana2/run-pre-passes opts)
+                 ;;resolve reflection
+                 (ana2/run-post-passes opts))]
     (if (= :maybe-host-form (:op expr))
       (err/tc-delayed-error (str "Unresolved host interop: " (:form expr)
                                  "\n\nHint: use *warn-on-reflection* to identify reflective calls")

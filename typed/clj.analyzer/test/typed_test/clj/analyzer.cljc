@@ -118,7 +118,7 @@
   (deftest method-reference-test
     #?@(:cljr ((throw (ex-info "TODO method-reference-test for cljr" {})))
         :default
-        [(is (= [:static-method-reference String 'join]
+        [(is (= [:static-method String 'join]
                 ((juxt :op :class :method) (ast' String/join))))
-         (is (= [:instance-method-reference java.lang.String 'substring]
+         (is (= [:instance-method java.lang.String 'substring]
                 ((juxt :op :class :method) (ast' String/.substring))))])))

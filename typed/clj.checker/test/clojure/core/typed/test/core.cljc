@@ -2262,7 +2262,23 @@
                        :objects [{:path [Class], :id 0} {:path [Class], :id 1}])]))
 
 (deftest interop-test
-  (is (check-ns 'clojure.core.typed.test.interop)))
+  (is (check-ns 'clojure.core.typed.test.interop))
+  (testing "array class syntax"
+    (is-tc-e String/1 Class)
+    (is-tc-err String/1 t/Sym))
+  ;;TODO :instance-method
+  ;;;;unambiguous
+  ;(is-tc-e (do String/.toUpperCase))
+  ;;;reflection due to overload on same arity
+  ;(is-tc-err (do String/.contentEquals))
+  ;(is-tc-err (do ^[_ _] String/.contentEquals))
+  ;;;reflection due to ambiguous arity
+  ;(is-tc-err (do String/.getBytes))
+  ;(is-tc-e (do ^[] String/.getBytes))
+  ;;;; ambiguous
+  ;(is-tc-err (do ^[_] String/.getBytes))
+  ;(is-tc-e (do ^[String] String/.getBytes))
+  )
 
 ;(sub? (clojure.core.typed/All [x] (t/TFn [[a :variance :covariant]] clojure.core.typed/Any))
 ;      (t/Rec [m] (t/TFn [[a :variance :covariant]] m)))

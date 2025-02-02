@@ -21,6 +21,27 @@
             [typed.clj.checker.method-override-env :as mth-override]
             [typed.cljc.runtime.env :as env]))
 
+(defn method->Type [expr {:keys [method-override] :as opt} opts]
+  {:post [((some-fn nil? r/Type?) (:rfin-type %))]}
+  (let [method (when (#{:static-call :instance-call} (:op expr))
+                 (cu/MethodExpr->Method expr opts))
+        msym (cu/MethodExpr->qualsym expr opts)
+        rfin-type (or method-override
+                      (when msym (mth-override/get-method-override (env/checker opts) msym opts))
+                      (some-> method (cu/Method->Type opts)))]
+    {:rfin-type rfin-type
+     :method method
+     :msym msym}))
+
+(defn check-method [expr expected {:keys [method-override] :as opt} opts]
+  {:pre [(#{:static-method :instance-method} (:op expr))
+         ((some-fn nil? r/TCResult?) expected)
+         ((some-fn nil? r/Type?) method-override)]
+   :post [(-> % u/expr-type r/TCResult?)]}
+  (let [{:keys [method msym rfin-type]} (method->Type expr opt opts)]
+    (assert rfin-type)
+    (throw (ex-info (str "TODO " `check-method " " (:op expr))))))
+
 ;[MethodExpr Type Any -> Expr]
 (defn check-invoke-method [{method-name :method :keys [args env] :as expr} expected
                            {:keys [method-override] :as opt} opts]
@@ -35,12 +56,7 @@
                  (assoc ::vs/current-env env)
                  (assoc ::vs/current-expr expr))
         inst? (= :instance-call (:op expr))
-        method (cu/MethodExpr->Method expr opts)
-        msym (cu/MethodExpr->qualsym expr opts)
-        rfin-type (or method-override
-                      (when msym (mth-override/get-method-override (env/checker opts) msym opts))
-                      (some-> method (cu/Method->Type opts)))
-        _ (assert ((some-fn nil? r/Type?) rfin-type))
+        {:keys [method msym rfin-type]} (method->Type expr opt opts)
         ctarget (:instance expr)]
     (if-not rfin-type
       (err/tc-delayed-error (str "Unresolved " (if inst? "instance" "static") 
