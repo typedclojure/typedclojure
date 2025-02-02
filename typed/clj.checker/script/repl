@@ -1,8 +1,8 @@
 #!/bin/sh
 # 
-# ./script/repl -Sdeps '{:deps {org.clojure/clojure {:mvn/version "1.11.1}}}' 
-# ./script/repl -Sdeps '{:deps {org.clojure/clojure {:mvn/version "1.12.0-master-SNAPSHOT"}} :mvn/repos {"sonatype-oss-public" {:url "https://oss.sonatype.org/content/groups/public/" }}}' 
+# ./script/repl -Sdeps '{:deps {org.clojure/clojure {:mvn/version "1.12.0}}}' 
+# ./script/repl -Sdeps '{:deps {org.clojure/clojure {:mvn/version "1.13.0-master-SNAPSHOT"}} :mvn/repos {"sonatype-oss-public" {:url "https://oss.sonatype.org/content/groups/public/" }}}' 
 
-set -x
+set -xe
 
 clj "$@" -M:test:nREPL:spec-skip-macros

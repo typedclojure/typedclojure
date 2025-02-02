@@ -20,9 +20,9 @@
                 (.listFiles (io/file "example-projects")))))
 
 ;; TODO grab from typed.dev.helpers
-(def clojure-stable "1.11.1")
+(def clojure-stable "1.12.0")
 (def clojure-next-release nil #_"1.12.0-alpha1")
-(def clojure-next-snapshot "1.12.0-master-SNAPSHOT")
+(def clojure-next-snapshot "1.13.0-master-SNAPSHOT")
 
 (def matrix? (con/hmap-c? :include (con/every-c? (con/hmap-c?
                                                    :submodule_hash string?
