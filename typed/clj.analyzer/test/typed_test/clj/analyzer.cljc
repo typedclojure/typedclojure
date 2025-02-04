@@ -123,17 +123,17 @@
                (ast' String/join))))
        (is (= [:static-method String 'join [CharSequence Iterable]]
               ((juxt :op :class :method :param-tags)
-               (ast' ^[CharSequence Iterable] String/join))))
+               (ast' ^{:param-tags [CharSequence Iterable]} String/join))))
        (is (= [:static-method String 'join [CharSequence nil]]
               ((juxt :op :class :method :param-tags)
-               (ast' ^[CharSequence _] String/join))))
+               (ast' ^{:param-tags [CharSequence _]} String/join))))
        (is (= [:static-method String 'join [nil nil]]
               ((juxt :op :class :method :param-tags)
-               (ast' ^[_ _] String/join))))
+               (ast' ^{:param-tags [_ _]} String/join))))
 
        (is (= [:instance-method java.lang.String 'substring nil]
               ((juxt :op :class :method :param-tags) (ast' String/.substring))))
        (is (= [:instance-method java.lang.String 'substring [Integer/TYPE Integer/TYPE]]
-              ((juxt :op :class :method :param-tags) (ast' ^[int int] String/.substring))))
+              ((juxt :op :class :method :param-tags) (ast' ^{:param-tags [int int]} String/.substring))))
        (is (= [:instance-method java.lang.String 'substring [nil nil]]
-              ((juxt :op :class :method :param-tags) (ast' ^[_ _] String/.substring))))])))
+              ((juxt :op :class :method :param-tags) (ast' ^{:param-tags [_ _]} String/.substring))))])))
