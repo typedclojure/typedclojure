@@ -116,9 +116,24 @@
                        ((juxt :op :result) (ana/analyze+eval (read-string "byte/2") (ana/empty-env (ns-name *ns*)) (ana/default-opts)))))))
 
   (deftest method-reference-test
-    #?@(:cljr ((throw (ex-info "TODO method-reference-test for cljr" {})))
-        :default
-        [(is (= [:static-method String 'join]
-                ((juxt :op :class :method) (ast' String/join))))
-         (is (= [:instance-method java.lang.String 'substring]
-                ((juxt :op :class :method) (ast' String/.substring))))])))
+  #?@(:cljr ((throw (ex-info "TODO method-reference-test for cljr" {})))
+      :default
+      [(is (= [:static-method String 'join nil]
+              ((juxt :op :class :method :param-tags)
+               (ast' String/join))))
+       (is (= [:static-method String 'join [CharSequence Iterable]]
+              ((juxt :op :class :method :param-tags)
+               (ast' ^[CharSequence Iterable] String/join))))
+       (is (= [:static-method String 'join [CharSequence nil]]
+              ((juxt :op :class :method :param-tags)
+               (ast' ^[CharSequence _] String/join))))
+       (is (= [:static-method String 'join [nil nil]]
+              ((juxt :op :class :method :param-tags)
+               (ast' ^[_ _] String/join))))
+
+       (is (= [:instance-method java.lang.String 'substring nil]
+              ((juxt :op :class :method :param-tags) (ast' String/.substring))))
+       (is (= [:instance-method java.lang.String 'substring [Integer/TYPE Integer/TYPE]]
+              ((juxt :op :class :method :param-tags) (ast' ^[int int] String/.substring))))
+       (is (= [:instance-method java.lang.String 'substring [nil nil]]
+              ((juxt :op :class :method :param-tags) (ast' ^[_ _] String/.substring))))])))

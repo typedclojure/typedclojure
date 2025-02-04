@@ -37,11 +37,11 @@
      :class   class
      :method  name}))
 
-(defn maybe-static-method [class sym]
+(defn maybe-static-method [class sym form]
   (when (seq (u/all-static-methods class sym))
     {:op      :static-method
      ::common/op  ::jvm/static-method
-     :param-tags (-> sym meta :param-tags)
+     :param-tags (some-> form meta :param-tags u/resolve-param-tags)
      :class   class
      :method  sym}))
 
@@ -56,13 +56,13 @@
      :method   sym
      :children [:instance]}))
 
-(defn maybe-instance-method [class sym]
+(defn maybe-instance-method [class sym form]
   (let [sym-str (name sym)
         sym (and (str/starts-with? sym-str ".") (symbol (subs sym-str 1)))]
     (when (seq (u/all-instance-methods class sym))
       {:op       :instance-method
        ::common/op  ::jvm/instance-method
-       :param-tags (-> sym meta :param-tags)
+       :param-tags (some-> form meta :param-tags u/resolve-param-tags)
        :class    class
        :method   sym})))
 
@@ -228,8 +228,8 @@
                                                         (str (:field ast))))]
       (assoc (ana/analyze-const the-class env :class opts) :form form)
       (if-let [the-class (u/maybe-class-literal (:class ast))]
-        (or (maybe-static-method the-class (:field ast))
-            (maybe-instance-method the-class (:field ast))
+        (or (maybe-static-method the-class (:field ast) form)
+            (maybe-instance-method the-class (:field ast) form)
             ast)
         ast))
 

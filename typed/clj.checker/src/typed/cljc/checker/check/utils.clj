@@ -68,7 +68,7 @@
     (symbol (str (coerce/Class->symbol c))
             (str (when (= :instance-method op)
                    ;;TODO perhaps use 1.12 syntax for overriding method types?
-                   (throw (ex-info "TODO MethodExpr->qualsym :instance-call :instance-method"))
+                   (throw (ex-info "TODO MethodExpr->qualsym :instance-call :instance-method" {}))
                    ".")
                  method))))
 

@@ -491,6 +491,12 @@
     tag
     #?(:cljr System.Object :default java.lang.Object)))
 
+(defn resolve-param-tags
+  "Given a vector of `:param-tags` (from Clojure 1.12+), resolve it into a vector
+  of actual classes. Converts `_` to `nil`."
+  [param-tags]
+  (mapv #(when-not (= % '_) (maybe-class %)) param-tags))
+
 #?(
 :cljr
 
