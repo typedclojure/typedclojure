@@ -1,7 +1,7 @@
 ;; DO NOT EDIT! Instead, edit `dev/resources/root-templates/typed/cljs.runtime/deps.edn` and run `./script/regen-selmer.sh`
 {:paths ["src"]
  :deps {org.clojure/clojure {:mvn/version "1.12.0"}
-        org.clojure/clojurescript {:mvn/version "1.11.60"}
+        org.clojure/clojurescript {:mvn/version "1.11.132"}
         io.github.frenchy64/fully-satisfies {:mvn/version "1.12.0"}
         org.typedclojure/typed.clj.runtime {:local/root "../clj.runtime" :deps/manifest :deps}}
  :mvn/repos {"sonatype-oss-public"

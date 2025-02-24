@@ -26,7 +26,7 @@ jobs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
       - uses: actions/checkout@v4
-      - uses: DeLaGuardo/setup-clojure@13.0
+      - uses: DeLaGuardo/setup-clojure@13.1
         with:
           bb: ${{env.BABASHKA_VERSION}}
       - run: bb --version
@@ -58,7 +58,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: ${{ matrix.jdk }}
-      - uses: DeLaGuardo/setup-clojure@13.0
+      - uses: DeLaGuardo/setup-clojure@13.1
         with:
           cli: ${{ env.CLOJURE_CLI_VERSION }} 
       - name: Run ${{ matrix.submodule }} tests
@@ -74,7 +74,7 @@ jobs:
          }}
     steps:
       - uses: actions/checkout@v4
-      - uses: DeLaGuardo/setup-clojure@13.0
+      - uses: DeLaGuardo/setup-clojure@13.1
         with:
           bb: ${{env.BABASHKA_VERSION}}
       - run: bb --version
@@ -103,7 +103,7 @@ jobs:
             ${{ runner.os }}-deploy-deps-${{ matrix.submodule_hash }}-
             ${{ runner.os }}-deploy-deps-
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2.2.0
+        uses: aws-actions/configure-aws-credentials@v4.1.0
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -113,7 +113,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: ${{ env.DEPLOY_JDK }}
-      - uses: DeLaGuardo/setup-clojure@13.0
+      - uses: DeLaGuardo/setup-clojure@13.1
         with:
           cli: ${{ env.CLOJURE_CLI_VERSION }}
           bb: ${{env.BABASHKA_VERSION}}

@@ -4,7 +4,7 @@
         io.github.frenchy64/fully-satisfies {:mvn/version "1.12.0"}}
  :aliases {:test
            {:extra-paths ["test"]
-            :extra-deps {org.clojure/clojurescript {:mvn/version "1.11.60"}}}
+            :extra-deps {org.clojure/clojurescript {:mvn/version "1.11.132"}}}
            :nREPL
            {:extra-deps
             {nrepl/nrepl {:mvn/version "1.3.1"}
