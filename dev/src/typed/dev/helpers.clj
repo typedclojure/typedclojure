@@ -53,5 +53,5 @@
    :beholder-mvn-version "1.0.2"
    :process-mvn-version "0.5.22"
    :fully-satisfies-mvn-version "1.12.0"
-   :clj-async-profiler-mvn-version "1.2.2"
+   :clj-async-profiler-mvn-version "1.6.1"
    })

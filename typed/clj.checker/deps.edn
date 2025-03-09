@@ -43,7 +43,7 @@
     com.gfredericks/test.chuck
     {:mvn/version "0.2.12"}
     com.clojure-goes-fast/clj-java-decompiler {:mvn/version "0.3.0"}
-    com.clojure-goes-fast/clj-async-profiler {:mvn/version "1.2.2"}
+    com.clojure-goes-fast/clj-async-profiler {:mvn/version "1.6.1"}
     ;; for shared tests
     org.typedclojure/typed.cljs.checker {:local/root "../cljs.checker" :deps/manifest :deps}
     ;; optional typed.lib.clojure dep
@@ -57,7 +57,7 @@
    :extra-paths ["script"]
    :main-opts ["-m" "gen-doc"]}
   :profile
-  {:extra-deps {com.clojure-goes-fast/clj-async-profiler {:mvn/version "1.2.2"}}
+  {:extra-deps {com.clojure-goes-fast/clj-async-profiler {:mvn/version "1.6.1"}}
    :extra-paths ["script"]
    :main-opts ["-m" "profile"]}
   :eastwood
