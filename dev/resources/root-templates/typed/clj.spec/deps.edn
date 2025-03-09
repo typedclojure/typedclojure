@@ -13,6 +13,7 @@
                          {:local/root "../clj.checker"
                           :deps/manifest :deps}
                          org.clojure/test.check {:mvn/version "{◊test-check-mvn-version◊}"}
+                         org.clojure/core.logic {:mvn/version "{◊core-logic-mvn-version◊}"}
                          org.clojure/math.combinatorics {:mvn/version "0.1.6"
                                                          :exclusions [org.clojure/clojure]}}}
            :nREPL

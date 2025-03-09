@@ -41,6 +41,7 @@
    :core-async-mvn-version "1.7.701"
    :test-check-mvn-version "1.1.1"
    :test-chuck-mvn-version "0.2.12"
+   :core-logic-mvn-version "1.1.0"
    :cognitect-test-runner-coordinates "io.github.cognitect-labs/test-runner"
    :cognitect-test-runner-git-url "https://github.com/cognitect-labs/test-runner"
    :cognitect-test-runner-sha "dd6da11611eeb87f08780a30ac8ea6012d4c05ce"
