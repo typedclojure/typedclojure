@@ -1,4 +1,4 @@
-(ns typed-test.cljc.checker.cs-gen
+(ns ^:typed.clojure typed-test.cljc.checker.cs-gen
   (:require [clojure.data :as data]
             [clojure.core.typed.util-vars :as vs]
             [typed.clj.checker.test-utils :refer :all]

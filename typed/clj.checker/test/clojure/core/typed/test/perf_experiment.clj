@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.perf-experiment
+(ns ^:typed.clojure clojure.core.typed.test.perf-experiment
   (:refer-clojure :exclude [run!])
   (:require [clojure.test :refer :all]
             ;[criterium.core :as bench]

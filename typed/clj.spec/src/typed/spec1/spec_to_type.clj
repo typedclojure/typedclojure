@@ -1,4 +1,4 @@
-(ns typed.spec1.spec-to-type
+(ns ^:typed.clojure typed.spec1.spec-to-type
   (:require [clojure.spec.alpha :as spec1]
             [typed.clojure :as t]))
 

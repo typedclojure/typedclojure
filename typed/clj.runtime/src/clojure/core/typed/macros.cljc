@@ -9,7 +9,7 @@
 ;; note: this file is copied into resources/clj-kondo.exports/org.typedclojure/typed.clj.runtime
 ;; via ./script/regen-kondo.sh
 ;; the canonical version is in the src folder
-(ns ^:no-doc clojure.core.typed.macros
+(ns ^:typed.clojure ^:no-doc clojure.core.typed.macros
   (:refer-clojure :exclude [type defprotocol fn loop dotimes let for doseq
                             defn atom ref #?(:clj requiring-resolve)])
   (:require [clojure.core :as core]

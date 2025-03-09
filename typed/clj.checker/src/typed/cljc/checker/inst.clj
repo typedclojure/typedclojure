@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc typed.cljc.checker.inst
+(ns ^:typed.clojure ^:no-doc typed.cljc.checker.inst
   (:require [clojure.core.typed.errors :as err]
             [clojure.set :as set]
             [clojure.string :as str]

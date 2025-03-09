@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc typed.clj.ext.clojure.core__reify
+(ns ^:typed.clojure ^:no-doc typed.clj.ext.clojure.core__reify
   "Typing rules clojure.core/reify"
   (:require [clojure.core.typed.internal :as internal]
             [typed.cljc.checker.check :as check]

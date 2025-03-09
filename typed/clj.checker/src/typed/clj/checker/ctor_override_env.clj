@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.clj.checker.ctor-override-env
+(ns ^:typed.clojure typed.clj.checker.ctor-override-env
   (:require [clojure.core.typed.contract-utils :as con]
             [typed.cljc.runtime.env :as env]
             [typed.cljc.runtime.env-utils :refer [force-type]]

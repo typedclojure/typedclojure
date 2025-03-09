@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.clj.checker.file-mapping
+(ns ^:typed.clojure typed.clj.checker.file-mapping
   (:require [typed.clojure :as t]
             [typed.cljc.analyzer.ast :as ast]
             [typed.cljc.checker.check.utils :as cu]

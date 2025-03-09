@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.internal-test
+(ns ^:typed.clojure clojure.core.typed.test.internal-test
   "Tests for c.c.t.internal"
   (:require [clojure.test :refer :all]
             [typed.clj.checker.test-utils :refer :all]

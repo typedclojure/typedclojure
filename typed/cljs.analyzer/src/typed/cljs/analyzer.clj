@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.cljs.analyzer
+(ns ^:typed.clojure typed.cljs.analyzer
   "Analyzer for clojurescript code."
   (:require [cljs.analyzer :as ana-cljs']
             [cljs.analyzer.api :as ana-api]

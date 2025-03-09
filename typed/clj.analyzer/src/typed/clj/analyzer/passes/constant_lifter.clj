@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 ; copied from clojure.tools.analyzer.passes.jvm.constant-lifter
-(ns typed.clj.analyzer.passes.constant-lifter
+(ns ^:typed.clojure typed.clj.analyzer.passes.constant-lifter
   (:require [typed.cljc.analyzer :as ana2]
             [typed.cljc.analyzer.passes.constant-lifter :as orig]
             [typed.cljc.analyzer.passes.elide-meta :as elide-meta]

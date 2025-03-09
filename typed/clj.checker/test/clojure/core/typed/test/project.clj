@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.project
+(ns ^:typed.clojure clojure.core.typed.test.project
   (:require [clojure.core.typed :refer [ann check-ns] :as t]))
 
 (ann my-atom (t/Atom (t/HMap :mandatory {:a t/Num})))

@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc typed.ann-macros.clojure
+(ns ^:typed.clojure ^:no-doc typed.ann-macros.clojure
   (:require [typed.clojure :as t]))
 
 (defmacro anns [& body]

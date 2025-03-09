@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.cljc.checker.check.loop
+(ns ^:typed.clojure typed.cljc.checker.check.loop
   (:require [clojure.core.typed.errors :as err]
             [clojure.core.typed.util-vars :as vs]
             [typed.cljc.checker.utils :as u]

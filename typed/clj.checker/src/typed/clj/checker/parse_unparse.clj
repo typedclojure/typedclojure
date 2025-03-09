@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc typed.clj.checker.parse-unparse
+(ns ^:typed.clojure ^:no-doc typed.clj.checker.parse-unparse
   (:refer-clojure :exclude [requiring-resolve])
   (:require [clojure.core.typed.coerce-utils :as coerce]
             [typed.clojure :as t]

@@ -1,4 +1,4 @@
-(ns typed-test.ann.clojure
+(ns ^:typed.clojure typed-test.ann.clojure
   (:require [clojure.test :refer [deftest is]]
             [typed.clj.checker.test-utils :as clj]
             [typed.cljs.checker.test-utils :as cljs]

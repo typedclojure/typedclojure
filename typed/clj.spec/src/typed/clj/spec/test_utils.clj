@@ -1,4 +1,4 @@
-(ns typed.clj.spec.test-utils
+(ns ^:typed.clojure typed.clj.spec.test-utils
   "Helpers for unit testing typed.clj.spec definitions
   with clojure.test."
   (:require [clojure.alpha.spec :as s]

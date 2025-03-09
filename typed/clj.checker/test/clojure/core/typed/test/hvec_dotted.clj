@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.hvec-dotted
+(ns ^:typed.clojure clojure.core.typed.test.hvec-dotted
   (:require [typed.clojure :as t]))
 
 (declare vector*)

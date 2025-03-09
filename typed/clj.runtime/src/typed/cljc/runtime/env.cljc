@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.cljc.runtime.env)
+(ns ^:typed.clojure typed.cljc.runtime.env)
 
 (defn checker [opts]
   (let [c (::checker opts)]

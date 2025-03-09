@@ -1,4 +1,4 @@
-(ns ^:no-doc typed-test.ext.clojure.spec.alpha__def
+(ns ^:typed.clojure ^:no-doc typed-test.ext.clojure.spec.alpha__def
   (:require [clojure.test :refer [deftest is testing]]
             typed.ext.clojure.spec.alpha
             [typed.clj.checker.parse-unparse :as prs]

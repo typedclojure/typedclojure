@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns clojure.core.typed.contract
+(ns ^:typed.clojure clojure.core.typed.contract
   "A contract system a la racket/contract.
 
   Main entry point is the `contract` macro."

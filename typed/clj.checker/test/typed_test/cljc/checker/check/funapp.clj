@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed-test.cljc.checker.check.funapp
+(ns ^:typed.clojure typed-test.cljc.checker.check.funapp
   (:require [clojure.test :refer [deftest is]]
             [typed.clj.checker.test-utils :refer :all]))
 

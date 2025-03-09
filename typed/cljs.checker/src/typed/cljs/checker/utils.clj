@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc typed.cljs.checker.utils
+(ns ^:typed.clojure ^:no-doc typed.cljs.checker.utils
   (:require [typed.clojure :as t]
             [typed.cljs.runtime.env :as cljs-env]
             [typed.cljs.analyzer :as ana]))

@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.fail.record-poly-no-optional
+(ns ^:typed.clojure clojure.core.typed.test.fail.record-poly-no-optional
   (:require [typed.clojure :as t]))
 
 ; all map->* keys are mandatory in polymorphic records

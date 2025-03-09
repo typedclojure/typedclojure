@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns clojure.core.typed.check.dot-cljs
+(ns ^:typed.clojure clojure.core.typed.check.dot-cljs
   (:require [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.utils :as u]
             [typed.cljc.checker.type-ctors :as c]

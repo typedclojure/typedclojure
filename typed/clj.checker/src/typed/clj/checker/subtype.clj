@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc typed.clj.checker.subtype
+(ns ^:typed.clojure ^:no-doc typed.clj.checker.subtype
   "Use [[subtype?]] to check if s <: t, and [[subtype-filter?]] for filters."
   (:refer-clojure :exclude [every? requiring-resolve repeatedly some])
   (:require [clojure.core.typed.coerce-utils :as coerce]

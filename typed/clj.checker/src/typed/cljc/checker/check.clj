@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc typed.cljc.checker.check
+(ns ^:typed.clojure ^:no-doc typed.cljc.checker.check
   (:require [typed.cljc.analyzer :as ana2]))
 
 (defn ->check-expr [check-expr opts]

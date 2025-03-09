@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.ctyp-263
+(ns ^:typed.clojure clojure.core.typed.test.ctyp-263
   (:require [clojure.test :refer :all]
             [typed.clj.checker.test-utils :refer :all]))
 

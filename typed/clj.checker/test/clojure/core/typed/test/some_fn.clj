@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.some-fn
+(ns ^:typed.clojure clojure.core.typed.test.some-fn
   (:require [clojure.core.typed :as t]))
 
 (let [s (t/ann-form (some-fn number? symbol?) (predicate (U t/Num t/Symbol)))]

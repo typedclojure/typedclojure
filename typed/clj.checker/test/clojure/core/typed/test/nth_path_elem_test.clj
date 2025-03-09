@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.nth-path-elem-test
+(ns ^:typed.clojure clojure.core.typed.test.nth-path-elem-test
   (:require [typed.clj.checker.test-utils :refer :all]
             [clojure.test :refer :all]))
 

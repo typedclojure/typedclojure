@@ -10,7 +10,7 @@
 ;; use that namespace in clj-kondo hooks, which seems to only recognize
 ;; reader conditions in .clj files, and where PersistentArrayMap doesn't
 ;; exist.
-(ns ^:no-doc clojure.core.typed.contract-utils-platform-specific
+(ns ^:typed.clojure ^:no-doc clojure.core.typed.contract-utils-platform-specific
   #?(:clj (:require [clojure.core.typed.contract-utils :as con])
      :cljr (:require [clojure.core.typed.contract-utils :as con]))
   #?(:clj (:import (clojure.lang PersistentArrayMap))

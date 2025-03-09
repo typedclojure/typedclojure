@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.javadoc
+(ns ^:typed.clojure clojure.core.typed.test.javadoc
   (:require [typed.clojure :as t] 
             [clojure.test :refer :all]                
             [typed.clj.checker.test-utils :refer :all]))

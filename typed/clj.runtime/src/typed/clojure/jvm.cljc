@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.clojure.jvm
+(ns ^:typed.clojure typed.clojure.jvm
   "JVM-specific annotations and operations.
   See typed.clojure for cross-platform ops."
   #?(:clj (:refer-clojure :exclude [requiring-resolve]))

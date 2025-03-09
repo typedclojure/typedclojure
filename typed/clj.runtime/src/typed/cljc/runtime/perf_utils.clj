@@ -1,4 +1,4 @@
-(ns ^:no-doc typed.cljc.runtime.perf-utils
+(ns ^:typed.clojure ^:no-doc typed.cljc.runtime.perf-utils
   (:refer-clojure :exclude [every? some repeatedly reduce]))
 
 (defn some

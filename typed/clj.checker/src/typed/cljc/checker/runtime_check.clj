@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.cljc.checker.runtime-check
+(ns ^:typed.clojure typed.cljc.checker.runtime-check
   "Adds runtime checks where annotations are instead of type checking"
   (:require [typed.cljc.checker.check.do :as do]
             [typed.cljc.checker.utils :as u]

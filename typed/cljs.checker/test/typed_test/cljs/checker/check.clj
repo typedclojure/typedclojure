@@ -1,4 +1,5 @@
 (ns
+  ^:typed.clojure
   ;;FIXME
   ^:typed/skip-from-repo-root
   typed-test.cljs.checker.check

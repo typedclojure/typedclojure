@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc typed.clj.checker.reflect-utils
+(ns ^:typed.clojure ^:no-doc typed.clj.checker.reflect-utils
   (:require [clojure.reflect :as reflect]
             [clojure.string :as str])
   (:import (clojure.lang RT)))

@@ -1,4 +1,4 @@
-(ns typed.clj.provider.spec1
+(ns ^:typed.clojure typed.clj.provider.spec1
   (:refer-clojure :exclude [requiring-resolve delay])
   (:require [typed.spec1.spec-to-type :as s->t]
             [clojure.spec.alpha :as spec1]

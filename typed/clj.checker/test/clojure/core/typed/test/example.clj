@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.example
+(ns ^:typed.clojure clojure.core.typed.test.example
   (:refer-clojure :exclude [< not=])
   (:import (java.io File))
   (:require [clojure.core.typed :refer [ann inst cf check-ns ann-form]

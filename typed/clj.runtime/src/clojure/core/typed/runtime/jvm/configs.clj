@@ -7,7 +7,7 @@
 ;   You must not remove this notice, or any other, from this software.
 
 ; mostly copied from clojure.core's data-reader discovery impl
-(ns ^:no-doc clojure.core.typed.runtime.jvm.configs
+(ns ^:typed.clojure ^:no-doc clojure.core.typed.runtime.jvm.configs
   "Alpha - wip, subject to change"
   (:refer-clojure :exclude [requiring-resolve delay])
   (:require [clojure.tools.reader :as rdr]

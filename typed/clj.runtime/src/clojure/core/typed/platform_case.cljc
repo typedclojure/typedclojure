@@ -8,7 +8,7 @@
 
 ;; in its own namespace so we can make another version of this for
 ;; clj-kondo hooks, which doesn't recognize .cljc files.
-(ns ^:no-doc clojure.core.typed.platform-case)
+(ns ^:typed.clojure ^:no-doc clojure.core.typed.platform-case)
 
 ;https://github.com/cgrand/macrovich/blob/master/src/net/cgrand/macrovich.cljc
 (defmacro platform-case

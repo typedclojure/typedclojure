@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.cljc.checker.check.letfn
+(ns ^:typed.clojure typed.cljc.checker.check.letfn
   (:require [clojure.core.typed.current-impl :as impl]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.cljc.checker.check.utils :as cu]

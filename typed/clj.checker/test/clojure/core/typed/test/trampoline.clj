@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.trampoline
+(ns ^:typed.clojure clojure.core.typed.test.trampoline
   (:require [typed.clojure :as t]))
 
 (declare funb)

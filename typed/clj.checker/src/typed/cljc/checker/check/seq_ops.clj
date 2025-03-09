@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.cljc.checker.check.seq-ops
+(ns ^:typed.clojure typed.cljc.checker.check.seq-ops
   (:require [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.type-ctors :as c]
             [typed.clj.checker.parse-unparse :as prs]

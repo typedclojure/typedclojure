@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed-test.clj.checker.check.deftype
+(ns ^:typed.clojure typed-test.clj.checker.check.deftype
   (:require [clojure.test :refer [deftest is testing]]
             [clojure.core.typed :as t]
             [clojure.core.typed.errors :as err]

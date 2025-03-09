@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.cljc.checker.constant-type
+(ns ^:typed.clojure typed.cljc.checker.constant-type
   (:require [typed.cljc.checker.type-rep :as r :refer [ret]]
             [typed.cljc.checker.type-ctors :as c]
             [typed.clojure :as t]

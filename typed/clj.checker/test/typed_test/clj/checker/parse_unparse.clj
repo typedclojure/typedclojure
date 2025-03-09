@@ -1,4 +1,4 @@
-(ns typed-test.clj.checker.parse-unparse
+(ns ^:typed.clojure typed-test.clj.checker.parse-unparse
   (:require [typed.clojure :as t]
             [clojure.test :refer :all]
             [typed.cljc.checker.type-ctors :as c]

@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 ;; FIXME make implementation-agnostic (use typed.cljc.runtime.env)
-(ns ^:no-doc typed.clj.checker.mm-env
+(ns ^:typed.clojure ^:no-doc typed.clj.checker.mm-env
   (:require [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.errors :as err]
             [clojure.core.typed.current-impl :as impl]

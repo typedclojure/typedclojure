@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.cljs.checker
+(ns ^:typed.clojure typed.cljs.checker
   (:refer-clojure :exclude [requiring-resolve])
   (:require [clojure.core.typed.load-if-needed :refer [load-if-needed]]
             [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]

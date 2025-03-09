@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.ctyp-257
+(ns ^:typed.clojure clojure.core.typed.test.ctyp-257
   (:require [clojure.test :refer :all]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.type-ctors :as c]

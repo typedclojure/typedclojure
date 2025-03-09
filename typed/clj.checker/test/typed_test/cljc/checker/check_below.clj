@@ -1,4 +1,4 @@
-(ns typed-test.cljc.checker.check-below
+(ns ^:typed.clojure typed-test.cljc.checker.check-below
   (:require [typed.clj.checker.test-utils :refer :all]
             [typed.cljc.checker.check-below :as sut]
             [typed.cljc.checker.type-rep :as r]

@@ -9,7 +9,7 @@
 ;copied from tools.analyzer.jvm
 ; - changed :pass-info for `infer-tag`
 ; - use analyzer.env
-(ns typed.clj.analyzer.passes.infer-tag
+(ns ^:typed.clojure typed.clj.analyzer.passes.infer-tag
   (:require [typed.cljc.analyzer.env :as env]
             [typed.cljc.analyzer.utils :as cu]
             [typed.clj.analyzer.passes.analyze-host-expr :as analyze-host-expr]

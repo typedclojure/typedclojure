@@ -1,4 +1,4 @@
-(ns typed-test.clj.spec.subtype
+(ns ^:typed.clojure typed-test.clj.spec.subtype
   (:require [typed.clj.spec.subtype :as sub]
             [clojure.alpha.spec :as s]))
 

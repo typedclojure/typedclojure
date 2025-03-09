@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.set-new
+(ns ^:typed.clojure clojure.core.typed.test.set-new
   (:require [typed.clojure :as t]
             [clojure.set :as set] 
             [clojure.test :refer :all]                

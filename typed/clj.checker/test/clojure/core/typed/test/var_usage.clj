@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.var-usage
+(ns ^:typed.clojure clojure.core.typed.test.var-usage
   (:require [clojure.core.typed :refer [ann check-ns]]))
 
 (ann foo [Number -> Number])

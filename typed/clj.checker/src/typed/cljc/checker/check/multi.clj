@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.cljc.checker.check.multi
+(ns ^:typed.clojure typed.cljc.checker.check.multi
   (:require [typed.cljc.checker.fold-rep :as fold]
             [typed.cljc.checker.filter-rep :as fl]
             [typed.cljc.checker.type-rep :as r]

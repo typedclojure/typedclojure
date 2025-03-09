@@ -1,4 +1,4 @@
-(ns typed.clj.spec.protocols)
+(ns ^:typed.clojure typed.clj.spec.protocols)
 
 (defprotocol ITypeFn
   (apply-typefn* [this arg-map]))

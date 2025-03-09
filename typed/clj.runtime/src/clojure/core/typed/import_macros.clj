@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc clojure.core.typed.import-macros
+(ns ^:typed.clojure ^:no-doc clojure.core.typed.import-macros
   (:require [clojure.core :as core]))
 
 ;copied from ClojureScript

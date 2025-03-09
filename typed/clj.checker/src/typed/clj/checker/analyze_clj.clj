@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc typed.clj.checker.analyze-clj
+(ns ^:typed.clojure ^:no-doc typed.clj.checker.analyze-clj
   (:refer-clojure :exclude [macroexpand-1 get-method eval delay])
   (:require [clojure.core :as core]
             [typed.clojure :as t]

@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.dyn-propagate
+(ns ^:typed.clojure clojure.core.typed.test.dyn-propagate
   (:require [clojure.core.typed :as t]))
 
 (t/tc-ignore

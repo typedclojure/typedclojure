@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 ;; don't require the checker from here
-(ns ^:no-doc typed.clj.checker.rclass-env
+(ns ^:typed.clojure ^:no-doc typed.clj.checker.rclass-env
   (:require [typed.cljc.runtime.env :as env]
             [typed.cljc.runtime.env-utils :refer [force-type]]
             [typed.cljc.checker.type-rep :as r]

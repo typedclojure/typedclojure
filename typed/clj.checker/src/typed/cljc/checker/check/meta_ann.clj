@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.cljc.checker.check.meta-ann
+(ns ^:typed.clojure typed.cljc.checker.check.meta-ann
   (:require [typed.clojure :as-alias t]
             [typed.cljc.checker.check.utils :as cu]
             [typed.cljc.checker.inst :as inst]

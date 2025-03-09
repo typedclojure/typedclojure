@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc typed.cljc.runtime.env-utils
+(ns ^:typed.clojure ^:no-doc typed.cljc.runtime.env-utils
   ;; annotations live in typed.cljc.runtime.env-utils-annotations to avoid cyclic
   ;; load dependencies when using clojure.core.typed without typed.clojure
   ;;DON'T require typed.clojure here

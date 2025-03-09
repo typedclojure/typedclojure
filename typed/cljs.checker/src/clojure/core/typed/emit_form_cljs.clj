@@ -8,7 +8,7 @@
 
 ;; FIXME make a typed.cljs.analyzer version
 ;copied from clojure.tools.analyzer.passes.js.emit-form
-(ns ^:no-doc clojure.core.typed.emit-form-cljs
+(ns ^:typed.clojure ^:no-doc clojure.core.typed.emit-form-cljs
   (:require [clojure.tools.analyzer.passes.emit-form :as default]
             [clojure.tools.analyzer.passes.uniquify :refer [uniquify-locals]]
             [clojure.string :as s]

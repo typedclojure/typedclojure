@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.clj.spec.impl.shim
+(ns ^:typed.clojure typed.clj.spec.impl.shim
   (:require [clojure.alpha.spec :as s]
             [clojure.alpha.spec :as s2]
             [clojure.spec.alpha :as s1]

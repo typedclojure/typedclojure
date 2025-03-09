@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.edn-parser
+(ns ^:typed.clojure clojure.core.typed.test.edn-parser
   "Tools for loading runtime settings."
   (:require [clojure.edn :as edn]
             [clojure.java.io :as io]

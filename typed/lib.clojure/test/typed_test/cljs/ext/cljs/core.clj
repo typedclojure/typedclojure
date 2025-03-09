@@ -1,4 +1,4 @@
-(ns ^:no-doc typed-test.cljs.ext.cljs.core
+(ns ^:typed.clojure ^:no-doc typed-test.cljs.ext.cljs.core
   (:require [clojure.test :refer [deftest is testing]]
             [clojure.template :refer [do-template]]
             [typed.clojure :as t]

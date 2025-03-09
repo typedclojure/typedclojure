@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.overlap
+(ns ^:typed.clojure clojure.core.typed.test.overlap
   (:require [clojure.test :refer :all]
             [typed.clj.checker.test-utils :refer :all]
             [typed.clojure :as t]

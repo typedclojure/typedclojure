@@ -1,4 +1,4 @@
-(ns typed-test.clj.checker.subtype
+(ns ^:typed.clojure typed-test.clj.checker.subtype
   (:require [typed.clojure :as t]
             [typed.clj.checker.subtype :as sut]
             [typed.cljc.checker.type-rep :as r :refer :all]

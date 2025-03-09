@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.cljs-core
+(ns ^:typed.clojure clojure.core.typed.test.cljs-core
   (:require [cljs.core :as core]
             [cljs.core.typed :as t]
             [clojure.test :refer :all]

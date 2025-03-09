@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc typed.cljc.checker.cs-gen
+(ns ^:typed.clojure ^:no-doc typed.cljc.checker.cs-gen
   (:refer-clojure :exclude [requiring-resolve])
   (:require [clojure.core.typed :as t :refer [letfn>]]
             [clojure.core.typed.coerce-utils :as coerce]

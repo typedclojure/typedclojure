@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.rbt-types
+(ns ^:typed.clojure clojure.core.typed.test.rbt-types
   (:require [typed.clojure :as t :refer [defalias]]))
 
 ;-------------------------------

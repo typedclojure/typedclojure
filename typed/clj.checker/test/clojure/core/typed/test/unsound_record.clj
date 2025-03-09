@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.unsound-record
+(ns ^:typed.clojure clojure.core.typed.test.unsound-record
   (:require [typed.clojure :as t]))
 
 (t/ann-record Foo [a :- t/Num])

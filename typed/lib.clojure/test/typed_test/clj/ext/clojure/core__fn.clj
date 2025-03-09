@@ -1,4 +1,4 @@
-(ns typed-test.clj.ext.clojure.core__fn
+(ns ^:typed.clojure typed-test.clj.ext.clojure.core__fn
   (:require [clojure.test :refer [deftest is]]
             [typed.clojure :as t]
             [typed.clj.ext.clojure.core__fn :as sut]))

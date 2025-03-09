@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns 
+(ns ^:typed.clojure 
   ^{:see-also [["http://matthew.brecknell.net/post/hole-driven-haskell/" "Hole Driven Development"]]
     :doc "This namespace contains easy tools for hole driven development"}
   clojure.core.typed.hole

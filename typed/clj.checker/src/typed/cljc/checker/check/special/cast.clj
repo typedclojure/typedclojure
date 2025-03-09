@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.cljc.checker.check.special.cast
+(ns ^:typed.clojure typed.cljc.checker.check.special.cast
   (:require [clojure.core.typed.util-vars :as vs]
             [clojure.core.typed.ast-utils :as ast-u]
             [typed.cljc.checker.object-rep :as obj]

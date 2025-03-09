@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc typed.cljc.checker.datatype-ancestor-env
+(ns ^:typed.clojure ^:no-doc typed.cljc.checker.datatype-ancestor-env
   (:require [typed.cljc.checker.utils :as u]
             [clojure.core.typed.contract-utils :as con]
             [typed.cljc.runtime.env-utils :refer [force-type]]

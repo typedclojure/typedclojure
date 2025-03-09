@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test-contract
+(ns ^:typed.clojure clojure.core.typed.test-contract
   (:require [clojure.core.typed.contract :as con
              :refer :all]
             [clojure.test :refer :all]))

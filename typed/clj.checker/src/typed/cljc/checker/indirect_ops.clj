@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.cljc.checker.indirect-ops
+(ns ^:typed.clojure typed.cljc.checker.indirect-ops
   (:refer-clojure :exclude [requiring-resolve])
   (:require [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]
             [typed.clojure :as t]))

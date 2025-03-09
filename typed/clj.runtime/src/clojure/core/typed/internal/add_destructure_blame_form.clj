@@ -8,7 +8,7 @@
 
 ;; moved outside clojure.core.typed.internal so we can make another version of this for
 ;; clj-kondo hooks, which doesn't recognize .cljc files and doesn't have IObj.
-(ns ^:no-doc clojure.core.typed.internal.add-destructure-blame-form
+(ns ^:typed.clojure ^:no-doc clojure.core.typed.internal.add-destructure-blame-form
   (:require [clojure.walk :as walk])
   (:import [clojure.lang IObj]))
 

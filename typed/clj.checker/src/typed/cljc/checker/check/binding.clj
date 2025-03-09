@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.cljc.checker.check.binding
+(ns ^:typed.clojure typed.cljc.checker.check.binding
   (:require [clojure.core.typed.util-vars :as vs]
             [typed.cljc.checker.check :as check]
             [typed.cljc.checker.utils :as u]))

@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.filter-simplify
+(ns ^:typed.clojure clojure.core.typed.test.filter-simplify
   (:require [clojure.core.typed :as t]))
 
 (t/fn [a :- (t/Nilable (t/NonEmptyVec Number))

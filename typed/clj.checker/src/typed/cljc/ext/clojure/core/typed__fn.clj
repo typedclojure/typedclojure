@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc typed.cljc.ext.clojure.core.typed__fn
+(ns ^:typed.clojure ^:no-doc typed.cljc.ext.clojure.core.typed__fn
   "Type rule for clojure.core.typed/fn"
   (:require [clojure.core.typed.internal :as internal]
             [typed.cljc.checker.check.fn :as fn]

@@ -1,4 +1,4 @@
-(ns typed-test.malli.schema-to-type
+(ns ^:typed.clojure typed-test.malli.schema-to-type
   (:require [clojure.test :refer [deftest is]]
             [malli.util :as mu]
             [malli.error :as me]

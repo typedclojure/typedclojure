@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.hole
+(ns ^:typed.clojure clojure.core.typed.test.hole
   (:require [clojure.repl :refer [pst]]
             [typed.clojure :as t :refer [ann ann-form]]
             [clojure.core.typed.hole :refer [noisy-hole silent-hole]]

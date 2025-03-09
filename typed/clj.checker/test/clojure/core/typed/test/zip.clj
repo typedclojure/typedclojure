@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.zip
+(ns ^:typed.clojure clojure.core.typed.test.zip
   (:require [typed.clojure :as t] 
             [clojure.test :refer :all]                
             [typed.clj.checker.test-utils :refer :all]))

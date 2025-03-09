@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 ;; adapted from clojure.tools.analyzer
-(ns typed.cljc.analyzer
+(ns ^:typed.clojure typed.cljc.analyzer
   (:refer-clojure :exclude [macroexpand-1 var?])
   (:require #?@(:clj []
                 :default [[typed.clojure :as-alias t]])

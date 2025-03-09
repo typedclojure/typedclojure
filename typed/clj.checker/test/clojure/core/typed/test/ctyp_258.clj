@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.ctyp-258
+(ns ^:typed.clojure clojure.core.typed.test.ctyp-258
   (:require [clojure.test :refer :all]
             [typed.cljc.checker.type-rep :refer :all]
             [typed.cljc.checker.filter-rep :refer :all]

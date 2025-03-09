@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.protocol-monads
+(ns ^:typed.clojure clojure.core.typed.test.protocol-monads
   (:refer-clojure :exclude [do seq map])
   (:require [clojure.set :as set]
             [typed.clojure :as t]))

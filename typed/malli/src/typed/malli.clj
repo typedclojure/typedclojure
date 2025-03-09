@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 ;; converts types to malli.
-(ns typed.malli
+(ns ^:typed.clojure typed.malli
   "Public API for typed ops in `malli.core`.
 
   In general these operations:

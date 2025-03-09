@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.swap-bang
+(ns ^:typed.clojure clojure.core.typed.test.swap-bang
   (:require [typed.clojure :as t]))
 
 (t/ann foo (t/Atom (t/Map ':a t/Num)))

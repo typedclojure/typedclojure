@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.malli.swagger
+(ns ^:typed.clojure typed.malli.swagger
   "Public API for typed `malli.swagger` ops."
   (:refer-clojure :exclude [requiring-resolve])
   (:require [malli.swagger :as msw]

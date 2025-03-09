@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 ;copied from clojure.tools.analyzer.passes.jvm.fix-case-test
-(ns typed.clj.analyzer.passes.fix-case-test
+(ns ^:typed.clojure typed.clj.analyzer.passes.fix-case-test
   (:require [typed.cljc.analyzer.passes.add-binding-atom :as add-binding-atom]))
 
 (defn fix-case-test

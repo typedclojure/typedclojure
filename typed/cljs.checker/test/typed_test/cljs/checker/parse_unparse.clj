@@ -1,4 +1,4 @@
-(ns typed-test.cljs.checker.parse-unparse
+(ns ^:typed.clojure typed-test.cljs.checker.parse-unparse
   (:require [clojure.test :refer [deftest]]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.cljc.checker.type-rep :as r]

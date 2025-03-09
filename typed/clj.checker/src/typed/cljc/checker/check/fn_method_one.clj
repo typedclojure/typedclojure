@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.cljc.checker.check.fn-method-one
+(ns ^:typed.clojure typed.cljc.checker.check.fn-method-one
   (:require [clojure.core.typed.ast-utils :as ast-u]
             [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.current-impl :as impl]

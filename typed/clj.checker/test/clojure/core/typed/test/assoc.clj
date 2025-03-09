@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.assoc
+(ns ^:typed.clojure clojure.core.typed.test.assoc
   (:require [clojure.core.typed :refer [check-ns]]
             [typed.clj.checker.test-utils :refer :all]
             [typed.cljc.checker.type-rep :refer :all :as r]

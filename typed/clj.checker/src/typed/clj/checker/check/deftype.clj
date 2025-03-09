@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 ;;TODO reify is better implemented, share with typed.clj.checker.check.reify
-(ns typed.clj.checker.check.deftype
+(ns ^:typed.clojure typed.clj.checker.check.deftype
   (:require [clojure.core.typed.coerce-utils :as coerce]
             [clojure.core.typed.errors :as err]
             [clojure.core.typed.util-vars :as vs]

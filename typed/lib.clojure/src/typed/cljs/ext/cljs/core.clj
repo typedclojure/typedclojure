@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc typed.cljs.ext.cljs.core
+(ns ^:typed.clojure ^:no-doc typed.cljs.ext.cljs.core
   "Typing rules for cljs.core."
   (:require [typed.cljs.checker.check.unanalyzed :as un-cljs]))
 

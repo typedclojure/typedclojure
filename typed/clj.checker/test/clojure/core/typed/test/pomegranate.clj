@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.pomegranate
+(ns ^:typed.clojure clojure.core.typed.test.pomegranate
   (:require [clojure.core.typed :as t]))
 
 #_(t/non-nil-return java.lang.Class/getDeclaredMethod :all)

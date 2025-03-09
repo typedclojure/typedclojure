@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.letfn-runtime
+(ns ^:typed.clojure clojure.core.typed.test.letfn-runtime
   (:use clojure.test)
   (:require [clojure.core.typed :as t]))
 

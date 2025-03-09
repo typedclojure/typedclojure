@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc typed.clj.checker.path-type
+(ns ^:typed.clojure ^:no-doc typed.clj.checker.path-type
   (:require [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.path-rep :as pe]
             [typed.cljc.checker.check.utils :as cu]

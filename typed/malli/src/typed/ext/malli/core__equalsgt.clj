@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.ext.malli.core__equalsgt
+(ns ^:typed.clojure typed.ext.malli.core__equalsgt
   "Type rules for malli.core/=>"
   (:require [typed.clojure :as-alias t]
             [typed.cljc.checker.check-below :as below]

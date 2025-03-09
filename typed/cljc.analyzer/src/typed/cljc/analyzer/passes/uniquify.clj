@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.cljc.analyzer.passes.uniquify
+(ns ^:typed.clojure typed.cljc.analyzer.passes.uniquify
   (:require [typed.cljc.analyzer.ast :refer [update-children children]]
             [typed.cljc.analyzer.env :as env]
             [typed.cljc.analyzer.utils :as u]))

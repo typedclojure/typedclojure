@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.cljc.checker.base-env-common
+(ns ^:typed.clojure typed.cljc.checker.base-env-common
   "Utilities for all implementations of the type checker"
   (:require [typed.cljc.runtime.env-utils :as env-utils]))
 

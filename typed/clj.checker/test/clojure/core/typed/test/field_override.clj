@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.field-override
+(ns ^:typed.clojure clojure.core.typed.test.field-override
   (:require 
     [typed.clj.checker.test-utils :refer :all]
     [clojure.test :refer :all]

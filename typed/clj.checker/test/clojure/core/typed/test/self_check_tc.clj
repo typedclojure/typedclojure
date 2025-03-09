@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.self-check-tc
+(ns ^:typed.clojure clojure.core.typed.test.self-check-tc
   (:require [clojure.test :refer :all]
             [typed.clj.checker :refer [check-ns4]]
             [clojure.core.typed :as t :refer [check-ns]]))

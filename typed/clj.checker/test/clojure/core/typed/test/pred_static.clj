@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.pred-static
+(ns ^:typed.clojure clojure.core.typed.test.pred-static
   (:require [clojure.core.typed :as t]))
 
 (let [a (t/ann-form {:a 1} t/Any)

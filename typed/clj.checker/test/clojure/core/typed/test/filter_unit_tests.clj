@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.filter-unit-tests
+(ns ^:typed.clojure clojure.core.typed.test.filter-unit-tests
   (:require [typed.clojure :as t]
             [typed.clj.checker.test-utils :refer :all]
             [clojure.test :refer :all]

@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns clojure.core.typed.analyzer-api-intercept
+(ns ^:typed.clojure clojure.core.typed.analyzer-api-intercept
   (:require [cljs.analyzer.api :as api]
             [clojure.core.typed.ast-utils :as ast-u]))
 

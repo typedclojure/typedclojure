@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.heterogeneous-restarg
+(ns ^:typed.clojure clojure.core.typed.test.heterogeneous-restarg
   (:require [clojure.core.typed :refer [ann check-ns ann-form]
              :as t]))
 

@@ -1,5 +1,5 @@
 ; some old tests that don't type check anymore but look useful
-(ns clojure.core.typed.test.array-old
+(ns ^:typed.clojure clojure.core.typed.test.array-old
   (:require [clojure.core.typed :refer [ann check-ns into-array> cf print-env ann-form]
              :as t]
             [clojure.repl :refer [pst]]))

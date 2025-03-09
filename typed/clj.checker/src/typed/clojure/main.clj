@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.clojure.main
+(ns ^:typed.clojure typed.clojure.main
   (:refer-clojure :exclude [requiring-resolve])
   (:require [clojure.core.typed.errors :as err]
             [clojure.edn :as edn]
@@ -56,42 +56,46 @@
     (print e))
   (flush))
 
-(defn- exec1 [{:keys [split dirs focus platform watch] :or {platform :clj split [0 1]}}]
+(defn- exec1 [{:keys [split dirs focus platform watch] :or {platform :clj split [0 1]}} opts]
   (let [focus (cond-> focus
                 (symbol? focus) vector)
         platforms (sort (cond-> platform
                           (keyword? platform) vector))
         _ (assert (seq platforms) (str "Must provide at least one platform: " (pr-str platform)))
-        plan (mapcat (fn [platform]
-                       (map (fn [nsym]
-                              {:platform platform 
-                               :nsym nsym})
-                            (nses-for-this-split
-                              split
-                              (or focus
-                                  (:nses
-                                    (tdir/check-dir-plan dirs))))))
-                  platforms)]
-    (assert (seq plan) "No namespaces to check")
-    (reduce (fn [acc {:keys [platform nsym] :as info}]
-              {:pre [(map? info)
-                     (keyword? platform)
-                     (simple-symbol? nsym)
-                     (= :ok (:result acc))]}
-              (let [chk #((case platform
-                            :clj t/check-ns-clj
-                            :cljs t/check-ns-cljs)
-                          nsym)
-                    res (try (chk)
-                             (assoc info :result :ok)
-                             (catch Throwable e
-                               (assoc info :result :fail :ex e)))
-                    acc (-> acc
-                            (update :checks (fnil conj []) res)
-                            (cond-> (not= :ok (:result res)) (into res)))]
-                (cond-> acc
-                  (not= :ok (:result acc)) reduced)))
-            {:result :ok} plan)))
+        plan (eduction (mapcat (fn [platform]
+                                 (eduction
+                                   (map (fn [nsym]
+                                          {:platform platform 
+                                           :nsym nsym}))
+                                   (nses-for-this-split
+                                     split
+                                     (or focus
+                                         (:nses
+                                           (tdir/check-dir-plan dirs opts)))))))
+                       platforms)
+        checked (volatile! false)
+        res (reduce (fn [acc {:keys [platform nsym] :as info}]
+                      {:pre [(map? info)
+                             (keyword? platform)
+                             (simple-symbol? nsym)
+                             (= :ok (:result acc))]}
+                      (vreset! checked true)
+                      (let [chk #((case platform
+                                    :clj t/check-ns-clj
+                                    :cljs t/check-ns-cljs)
+                                  nsym)
+                            res (try (chk)
+                                     (assoc info :result :ok)
+                                     (catch Throwable e
+                                       (assoc info :result :fail :ex e)))
+                            acc (-> acc
+                                    (update :checks (fnil conj []) res)
+                                    (cond-> (not= :ok (:result res)) (into res)))]
+                        (cond-> acc
+                          (not= :ok (:result acc)) reduced)))
+                    {:result :ok} plan)]
+    (assert @checked "No namespaces to check")
+    res))
 
 (defn- watch [{:keys [dirs refresh refresh-dirs watch-dirs] :as m}]
   (let [opts ((requiring-resolve 'typed.clj.runtime.env/clj-opts))
@@ -112,7 +116,7 @@
                          (when (contains? #{:modify :create} type)
                            (deliver @rescan true)))
                        watch-dirs)]
-    (try (loop [last-result (exec1 m)]
+    (try (loop [last-result (exec1 m opts)]
            (when (= :fail (:result last-result))
              (println "[watch] Caught error")
              (print-error (:ex last-result))
@@ -130,7 +134,8 @@
                                 ;; don't focus if deleted
                                 (ns-depsu/should-check-ns? (:nsym last-result) opts))
                            (assoc :focus (:nsym last-result)
-                                  :platform (:platform last-result))))))
+                                  :platform (:platform last-result)))
+                         opts)))
          (finally ((dynavar `beholder/stop) watcher)))))
 
 (defn exec
@@ -173,22 +178,31 @@
                        {:out :inherit
                         :err :inherit}))))
     (:watch m) (watch m)
-    :else (let [{:keys [result ex]} (exec1 m)]
+    :else (let [opts ((requiring-resolve 'typed.clj.runtime.env/clj-opts))
+                {:keys [result ex]} (exec1 m opts)]
             (if (= :fail result)
               (throw ex)
               result))))
 
-(defn -main
+(defn main
   "Same args as exec."
   [& args]
   (let [{:as m} (map edn/read-string args)]
     (try (exec m)
-         (System/exit 0)
+         0
          (catch Throwable e
            (print-error e)
-           (System/exit 1)))))
+           1))))
+
+(defn -main
+  "Same args as exec."
+  [& args]
+  (try (System/exit (apply main args))
+       (finally
+         (System/exit 1))))
 
 (comment
   (exec {:dirs "src"})
-  (-main ":dirs" "[\"typed\"]")
+  ;; also looks under "target" ... use .gitignore or classpath?
+  (main ":dirs" "[\"typed\"]")
   )

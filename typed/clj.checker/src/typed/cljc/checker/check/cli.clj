@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.cljc.checker.check.cli
+(ns ^:typed.clojure typed.cljc.checker.check.cli
   (:require [clojure.core.typed.ast-utils :as ast-u]
             [typed.cljc.checker.utils :as u]
             [typed.cljc.checker.type-rep :as r]

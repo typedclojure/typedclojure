@@ -1,4 +1,4 @@
-(ns typed-test.clj.analyzer.gilardi-test
+(ns ^:typed.clojure typed-test.clj.analyzer.gilardi-test
   (:require [typed.cljc.analyzer :as ana2]
             [typed.cljc.analyzer.ast :as ast]
             [typed.cljc.analyzer.env :as env]

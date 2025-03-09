@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.pprint
+(ns ^:typed.clojure clojure.core.typed.test.pprint
   (:require [clojure.test :refer :all]                
             [typed.clj.checker.test-utils :refer :all]))
 

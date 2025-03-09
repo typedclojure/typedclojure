@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc clojure.core.typed.errors
+(ns ^:typed.clojure ^:no-doc clojure.core.typed.errors
   #?(:clj (:refer-clojure :exclude [requiring-resolve]))
   (:require [clojure.core.typed.util-vars :as uvs]
             [clojure.core.typed.current-impl :as impl]

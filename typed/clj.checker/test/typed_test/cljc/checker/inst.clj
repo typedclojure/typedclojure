@@ -1,4 +1,4 @@
-(ns typed-test.cljc.checker.inst
+(ns ^:typed.clojure typed-test.cljc.checker.inst
   (:require 
     ; this loads the type system, must go first
     [typed.clj.checker.test-utils :refer :all]

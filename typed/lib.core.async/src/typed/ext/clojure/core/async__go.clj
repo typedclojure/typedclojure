@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc typed.ext.clojure.core.async__go
+(ns ^:typed.clojure ^:no-doc typed.ext.clojure.core.async__go
   "Typing rules for clojure.core.async/go"
   (:require [clojure.core.typed.util-vars :as vs]
             [typed.clj.analyzer.passes.emit-form :as emit-form]

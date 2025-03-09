@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.cljs.provider.malli
+(ns ^:typed.clojure typed.cljs.provider.malli
   "Automatically convert malli annotations into types."
   (:refer-clojure :exclude [requiring-resolve delay])
   (:require [typed.malli.schema-to-type :as-alias s->t]

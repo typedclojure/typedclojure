@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns clojure.core.typed.contract-ann
+(ns ^:typed.clojure clojure.core.typed.contract-ann
   (:require [typed.clojure :as t]))
 
 (t/ann ^:no-check clojure.core.typed.contract-utils/nat? [t/Any :* :-> Boolean])

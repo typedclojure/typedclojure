@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.ext.malli
+(ns ^:typed.clojure typed.ext.malli
   (:require [typed.cljc.checker.check.unanalyzed :as un-cljc]))
 
 (un-cljc/install-defuspecial

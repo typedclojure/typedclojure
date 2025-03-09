@@ -1,4 +1,4 @@
-(ns typed-test.clj.spec.identity
+(ns ^:typed.clojure typed-test.clj.spec.identity
   (:require [clojure.alpha.spec :as s]
             [clojure.alpha.spec.protocols :as protocols
              :refer [Spec conform* unform* explain* gen* with-gen* describe*

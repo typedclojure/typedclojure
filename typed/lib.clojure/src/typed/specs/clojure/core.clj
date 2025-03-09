@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.specs.clojure.core
+(ns ^:typed.clojure typed.specs.clojure.core
   "Public API
 
   Spec definitions for clojure.core"

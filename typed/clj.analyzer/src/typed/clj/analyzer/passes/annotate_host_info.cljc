@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 ;copied from clojure.tools.analyzer.passes.jvm.annotate-host-info
-(ns typed.clj.analyzer.passes.annotate-host-info
+(ns ^:typed.clojure typed.clj.analyzer.passes.annotate-host-info
   (:require [typed.cljc.analyzer :as ana]
             [typed.cljc.analyzer.ast :as ast]
             [typed.cljc.analyzer.passes.cleanup :as cleanup]

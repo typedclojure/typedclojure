@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.cljc.checker.check.fn-methods
+(ns ^:typed.clojure typed.cljc.checker.check.fn-methods
   (:refer-clojure :exclude [methods rest])
   (:require [typed.cljc.checker.type-rep :as r]
             [clojure.set :as set]

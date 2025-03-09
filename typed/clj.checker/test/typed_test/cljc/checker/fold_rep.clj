@@ -1,4 +1,4 @@
-(ns typed-test.cljc.checker.fold-rep
+(ns ^:typed.clojure typed-test.cljc.checker.fold-rep
   (:require [typed.clj.checker.test-utils :refer :all]
             [typed.cljc.checker.cs-gen :as sut]
             [typed.cljc.checker.type-rep :as r]

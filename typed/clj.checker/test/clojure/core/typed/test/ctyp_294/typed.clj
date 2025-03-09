@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.ctyp-294.typed
+(ns ^:typed.clojure clojure.core.typed.test.ctyp-294.typed
   {:lang :core.typed
    :core.typed {:experimental #{:infer-vars
                                 :infer-locals}}}

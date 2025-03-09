@@ -1,4 +1,4 @@
-(ns typed-test.provider.malli
+(ns ^:typed.clojure typed-test.provider.malli
   (:require [clojure.test :refer [deftest is]]
             [typed.clojure :as t]
             [clojure.core.typed.errors :as err]

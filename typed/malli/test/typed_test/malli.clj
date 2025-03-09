@@ -1,4 +1,4 @@
-(ns typed-test.malli
+(ns ^:typed.clojure typed-test.malli
   (:require [clojure.test :refer [deftest is]]
             [clojure.core.typed :as t]
             [typed.malli :as sut] ;:as tm

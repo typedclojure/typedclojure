@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.poly
+(ns ^:typed.clojure clojure.core.typed.test.poly
   (:require [typed.clojure :as t]))
 
 (t/ann repeatedly'

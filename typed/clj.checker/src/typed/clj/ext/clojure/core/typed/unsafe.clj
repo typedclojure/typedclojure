@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc typed.clj.ext.clojure.core.typed.unsafe
+(ns ^:typed.clojure ^:no-doc typed.clj.ext.clojure.core.typed.unsafe
   (:require [typed.cljc.checker.check.unanalyzed :refer [install-defuspecial defuspecial]]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.cljc.checker.check-below :as below]

@@ -1,4 +1,4 @@
-(ns ^:no-doc typed-test.clj.ext.clojure.core.typed.unsafe
+(ns ^:typed.clojure ^:no-doc typed-test.clj.ext.clojure.core.typed.unsafe
   (:require [clojure.test :refer [deftest is]]
             typed.clj.ext.clojure.core.typed.unsafe ;; load
             [typed.clojure :as t]

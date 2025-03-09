@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc typed.cljs.ext.cljs.core__implements_huh
+(ns ^:typed.clojure ^:no-doc typed.cljs.ext.cljs.core__implements_huh
   "Typing rules for cljs.core/implements?"
   (:require [typed.cljc.checker.check :as check]
             [typed.cljc.checker.check-below :as below]

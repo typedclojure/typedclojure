@@ -1,4 +1,4 @@
-(ns typed.clj.checker.test-utils
+(ns ^:typed.clojure typed.clj.checker.test-utils
   (:require [clojure.core.typed :as t]
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.errors :as err]

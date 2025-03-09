@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.cast
+(ns ^:typed.clojure clojure.core.typed.test.cast
   (:refer-clojure :exclude [cast])
   (:require 
     [typed.clj.checker.test-utils :refer :all]

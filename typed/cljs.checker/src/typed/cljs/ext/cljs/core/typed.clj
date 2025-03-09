@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc typed.cljs.ext.cljs.core.typed
+(ns ^:typed.clojure ^:no-doc typed.cljs.ext.cljs.core.typed
   "Typing rules for cljs.core.typed ops."
   (:require [typed.cljs.checker.check.unanalyzed :refer [install-defuspecial install-unanalyzed-special]]))
 

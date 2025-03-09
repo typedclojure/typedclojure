@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.CTYP-234.dep
+(ns ^:typed.clojure clojure.core.typed.test.CTYP-234.dep
   (:require [typed.clojure :as t]))
 
 (t/defalias MyType

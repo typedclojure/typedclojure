@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc typed.clj.ext.clojure.core__doseq
+(ns ^:typed.clojure ^:no-doc typed.clj.ext.clojure.core__doseq
   "Typing rules clojure.core/doseq"
   (:require [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.errors :as err]

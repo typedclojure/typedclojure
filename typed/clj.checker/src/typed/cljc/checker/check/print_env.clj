@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.cljc.checker.check.print-env
+(ns ^:typed.clojure typed.cljc.checker.check.print-env
   (:require [typed.cljc.checker.lex-env :as lex]
             [typed.cljc.checker.tvar-env :as tvar-env]
             [typed.cljc.checker.tvar-bnds :as tvar-bnds]

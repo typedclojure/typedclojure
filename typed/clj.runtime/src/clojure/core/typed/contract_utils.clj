@@ -9,7 +9,7 @@
 ;; note: this file is copied into resources/clj-kondo.exports/org.typedclojure/typed.clj.runtime
 ;; via ./script/regen-kondo.sh
 ;; the canonical version is in the src folder
-(ns ^:no-doc clojure.core.typed.contract-utils
+(ns ^:typed.clojure ^:no-doc clojure.core.typed.contract-utils
   (:require [typed.cljc.runtime.perf-utils :as perf]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

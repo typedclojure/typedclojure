@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.typed-load.eval
+(ns ^:typed.clojure clojure.core.typed.test.typed-load.eval
   {:lang :core.typed}
   (:require [clojure.core.typed :as t]))
 

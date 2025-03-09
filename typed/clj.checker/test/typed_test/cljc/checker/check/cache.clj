@@ -1,4 +1,4 @@
-(ns typed-test.cljc.checker.check.cache
+(ns ^:typed.clojure typed-test.cljc.checker.check.cache
   (:require [typed.clj.checker.test-utils :refer :all]
             [clojure.walk :as walk]
             [typed.clojure :as t]

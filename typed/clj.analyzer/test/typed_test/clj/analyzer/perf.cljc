@@ -1,4 +1,4 @@
-(ns typed-test.clj.analyzer.perf
+(ns ^:typed.clojure typed-test.clj.analyzer.perf
   (:refer-clojure :exclude [run!])
   (:require [typed.cljc.analyzer :as ana2]
             [typed.cljc.analyzer.ast :as ast]

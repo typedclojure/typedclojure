@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc typed.cljc.checker.object-rep
+(ns ^:typed.clojure ^:no-doc typed.cljc.checker.object-rep
   (:refer-clojure :exclude [defrecord])
   (:require [typed.clojure :as t]
             [typed.cljc.checker.filter-rep :as fr]

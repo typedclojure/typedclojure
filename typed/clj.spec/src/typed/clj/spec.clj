@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.clj.spec
+(ns ^:typed.clojure typed.clj.spec
   "Public API"
   (:require [clojure.alpha.spec :as s]
             typed.clj.spec.impl))

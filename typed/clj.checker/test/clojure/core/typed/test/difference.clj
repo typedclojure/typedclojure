@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.difference
+(ns ^:typed.clojure clojure.core.typed.test.difference
   (:require [clojure.core.typed :as tc :refer []]
             [typed.clj.checker.test-utils :refer :all]
             [typed.cljc.checker.type-rep :refer :all]

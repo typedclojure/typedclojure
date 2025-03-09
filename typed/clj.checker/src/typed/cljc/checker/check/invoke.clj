@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.cljc.checker.check.invoke
+(ns ^:typed.clojure typed.cljc.checker.check.invoke
   (:refer-clojure :exclude [requiring-resolve])
   (:require [clojure.string :as str]
             [typed.cljc.analyzer :as ana2]

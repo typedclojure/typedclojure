@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc typed.cljc.ext.clojure.core.typed__pred
+(ns ^:typed.clojure ^:no-doc typed.cljc.ext.clojure.core.typed__pred
   "Type rule for clojure.core.typed/pred."
   (:require [clojure.core.typed.util-vars :as vs]
             [typed.cljc.checker.check.utils :as cu]

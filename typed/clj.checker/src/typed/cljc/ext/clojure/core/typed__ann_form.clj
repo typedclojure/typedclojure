@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc typed.cljc.ext.clojure.core.typed__ann-form
+(ns ^:typed.clojure ^:no-doc typed.cljc.ext.clojure.core.typed__ann-form
   "Typing rules for clojure.core.typed ops."
   (:require [clojure.core.typed.util-vars :as vs]
             [typed.clj.checker.parse-unparse :as prs]

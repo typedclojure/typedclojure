@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 ;copied from clojure.tools.analyzer.passes.elide-meta
-(ns typed.cljc.analyzer.passes.elide-meta
+(ns ^:typed.clojure typed.cljc.analyzer.passes.elide-meta
   (:require [typed.cljc.analyzer :as common]
             [typed.cljc.analyzer.passes.source-info :refer [source-info]]))
 

@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.collatz
+(ns ^:typed.clojure clojure.core.typed.test.collatz
   (:require [typed.clojure :as t]))
 
 (t/ann collatz [t/Num -> t/Num])

@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.cljc.checker.check.def
+(ns ^:typed.clojure typed.cljc.checker.check.def
   (:require [typed.clojure :as t]
             [clojure.core.typed.coerce-utils :as coerce]
             [typed.cljc.checker.ns-options :as ns-opts]

@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.tools-analyzer-jvm-ann
+(ns ^:typed.clojure clojure.core.typed.test.tools-analyzer-jvm-ann
   (:require [clojure.core.typed :as t]))
 
 (t/defalias NsMap

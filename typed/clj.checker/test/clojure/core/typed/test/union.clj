@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.union
+(ns ^:typed.clojure clojure.core.typed.test.union
   (:import (java.io LineNumberReader InputStreamReader PushbackReader)
            (clojure.lang RT LineNumberingPushbackReader Compiler$DefExpr Compiler$LocalBinding Compiler$BindingInit Compiler$LetExpr
                          Compiler$LetFnExpr Compiler$StaticMethodExpr Compiler$InstanceMethodExpr Compiler$StaticFieldExpr

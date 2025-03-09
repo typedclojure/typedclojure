@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.core-match
+(ns ^:typed.clojure clojure.core.typed.test.core-match
   (:refer-clojure :exclude [macroexpand])
   (:import (clojure.lang Keyword))
   (:require [clojure.core.typed :refer [check-ns ann ann-form typed-deps]]

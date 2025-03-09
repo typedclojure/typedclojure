@@ -1,4 +1,4 @@
-(ns typed-test.cljc.checker.check.invoke
+(ns ^:typed.clojure typed-test.cljc.checker.check.invoke
   (:require [clojure.test :refer :all]
             [typed.clj.checker.test-utils :refer :all]))
 

@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc typed.clj.ext.clojure.core__assert
+(ns ^:typed.clojure ^:no-doc typed.clj.ext.clojure.core__assert
   "Typing rules clojure.core/assert"
   (:require [typed.cljc.checker.check :as check]
             [typed.cljc.checker.type-rep :as r]

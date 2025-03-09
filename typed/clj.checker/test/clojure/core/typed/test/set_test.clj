@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.set-test
+(ns ^:typed.clojure clojure.core.typed.test.set-test
   (:require [typed.clj.checker.test-utils :refer :all]
             [clojure.test :refer :all]))
 

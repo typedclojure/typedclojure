@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 ; copied from clojure.tools.analyzer.ast
-(ns typed.cljc.analyzer.ast
+(ns ^:typed.clojure typed.cljc.analyzer.ast
   "Utilities for AST walking/updating"
   (:require [typed.cljc.analyzer.utils :refer [into! rseqv mapv']]))
 

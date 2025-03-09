@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc clojure.core.typed.unsafe)
+(ns ^:typed.clojure ^:no-doc clojure.core.typed.unsafe)
 
 (defmacro ignore-with-unchecked-cast
   "Assumes the form is well typed and annotates it with the provided

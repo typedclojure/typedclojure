@@ -1,5 +1,5 @@
 ;; tests live in clj.checker for is-tc-e etc
-(ns typed-test.cljc.runtime.env-utils
+(ns ^:typed.clojure typed-test.cljc.runtime.env-utils
   (:require [clojure.test :refer [deftest is testing]]
             [typed.clojure :as t]
             [typed.cljc.checker.var-env :as var-env]

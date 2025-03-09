@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.clj.spec.gen
+(ns ^:typed.clojure typed.clj.spec.gen
   "Defines test.check generators for working with
   the spec subtyping lattice."
   (:require [typed.clj.spec.subtype :as sub]

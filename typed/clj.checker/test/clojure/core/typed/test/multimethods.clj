@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.multimethods
+(ns ^:typed.clojure clojure.core.typed.test.multimethods
   (:require [typed.clj.checker.test-utils :refer :all]
             [typed.cljc.checker.type-rep :as r]
             [typed.clj.checker.parse-unparse :as prs]

@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc typed.cljc.checker.type-ctors
+(ns ^:typed.clojure ^:no-doc typed.cljc.checker.type-ctors
   (:refer-clojure :exclude [defrecord replace type requiring-resolve repeatedly])
   (:require [clojure.core.cache :as cache]
             [typed.clojure :as t]

@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.rclass-supers
+(ns ^:typed.clojure clojure.core.typed.test.rclass-supers
   (:require [typed.clj.checker.test-utils :refer :all]
             [clojure.test :refer :all]
             [clojure.core.typed :as t]

@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.person
+(ns ^:typed.clojure clojure.core.typed.test.person
   (:require 
     [clojure.core.typed :refer [check-ns cf ann-datatype ann ann-protocol]
      :as t]))

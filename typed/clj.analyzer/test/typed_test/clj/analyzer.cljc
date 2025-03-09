@@ -1,4 +1,4 @@
-(ns typed-test.clj.analyzer
+(ns ^:typed.clojure typed-test.clj.analyzer
   (:require [clojure.test :refer :all]
             [typed.clj.analyzer :as ana]))
 

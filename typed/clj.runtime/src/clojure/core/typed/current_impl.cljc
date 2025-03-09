@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 ; untyped, clojure.core.typed depends on this namespace
-(ns ^:no-doc clojure.core.typed.current-impl
+(ns ^:typed.clojure ^:no-doc clojure.core.typed.current-impl
   #?(:clj (:refer-clojure :exclude [requiring-resolve delay])
      :cljs (:refer-clojure :exclude [-val]))
   (:require [clojure.core.typed.contract-utils :as con]

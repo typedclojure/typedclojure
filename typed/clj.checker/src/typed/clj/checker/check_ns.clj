@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.clj.checker.check-ns
+(ns ^:typed.clojure typed.clj.checker.check-ns
   (:require [clojure.core.typed.errors :as err]
             [clojure.core.typed.current-impl :as impl]
             [typed.cljc.checker.check-ns-common :as chk-ns]))

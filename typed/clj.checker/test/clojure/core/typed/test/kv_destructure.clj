@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.kv-destructure
+(ns ^:typed.clojure clojure.core.typed.test.kv-destructure
   (:require 
     [typed.clj.checker.test-utils :refer :all]
     [clojure.test :refer :all]

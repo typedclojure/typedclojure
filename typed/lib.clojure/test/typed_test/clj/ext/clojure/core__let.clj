@@ -1,4 +1,4 @@
-(ns ^:no-doc typed-test.clj.ext.clojure.core__let
+(ns ^:typed.clojure ^:no-doc typed-test.clj.ext.clojure.core__let
   (:require [clojure.test :refer [deftest is testing]]
             [clojure.core.typed :as t]
             [typed.clj.checker.parse-unparse :as prs]

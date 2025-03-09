@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc 
+(ns ^:typed.clojure ^:no-doc 
   typed.clj.checker.rclass-ancestor-env
   (:refer-clojure :exclude [repeatedly])
   (:require [typed.clojure :as t]

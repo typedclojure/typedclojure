@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.cljc.checker.check-ns-common
+(ns ^:typed.clojure typed.cljc.checker.check-ns-common
   (:refer-clojure :exclude [requiring-resolve delay])
   (:require [clojure.core.cache :as cache]
             [clojure.string :as str]

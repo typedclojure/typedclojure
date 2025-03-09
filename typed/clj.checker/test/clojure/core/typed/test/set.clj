@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.set
+(ns ^:typed.clojure clojure.core.typed.test.set
   (:require [clojure.core.typed :refer [check-ns ann cf tc-ignore print-env ann-form]
              :as t])
   (:import (clojure.lang APersistentSet)))

@@ -8,7 +8,7 @@
 
 ; copied from tools.analyzer.jvm
 ; - replace calls to `maybe-class-literal`
-(ns typed.clj.analyzer.passes.analyze-host-expr
+(ns ^:typed.clojure typed.clj.analyzer.passes.analyze-host-expr
   (:require [clojure.string :as str]
             [typed.cljc.analyzer :as ana]
             [typed.cljc.analyzer :as common]

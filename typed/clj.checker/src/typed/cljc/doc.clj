@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.cljc.doc
+(ns ^:typed.clojure typed.cljc.doc
   (:refer-clojure :exclude [requiring-resolve])
   (:require [clojure.core.typed.current-impl :as impl]
             [clojure.pprint :as pp]

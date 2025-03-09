@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc clojure.core.typed.all-envs
+(ns ^:typed.clojure ^:no-doc clojure.core.typed.all-envs
   (:require [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.load-if-needed :refer [load-if-needed]]
             [clojure.core.typed.util-vars :as vs]

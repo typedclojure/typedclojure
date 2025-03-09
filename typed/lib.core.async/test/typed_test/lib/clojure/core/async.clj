@@ -1,4 +1,4 @@
-(ns typed-test.lib.clojure.core.async
+(ns ^:typed.clojure typed-test.lib.clojure.core.async
   (:require [typed.clj.checker.test-utils :as tu]
             [clojure.test :refer :all]
             [clojure.core.typed :as t]))

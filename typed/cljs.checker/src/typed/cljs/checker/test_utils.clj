@@ -1,4 +1,4 @@
-(ns typed.cljs.checker.test-utils
+(ns ^:typed.clojure typed.cljs.checker.test-utils
   (:require [cljs.analyzer :as ana]
             [cljs.analyzer.api :as ana-api]
             [cljs.core.typed :as cljs-t]

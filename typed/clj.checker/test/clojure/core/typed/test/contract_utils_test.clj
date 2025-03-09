@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.contract-utils-test
+(ns ^:typed.clojure clojure.core.typed.test.contract-utils-test
   (:refer-clojure :exclude [boolean?])
   (:require [typed.clj.checker.test-utils :refer :all]
             [clojure.test :refer :all]

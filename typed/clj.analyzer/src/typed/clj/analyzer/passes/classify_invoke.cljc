@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 ;copied from clojure.tools.analyzer.passes.jvm.classify-invoke
-(ns typed.clj.analyzer.passes.classify-invoke
+(ns ^:typed.clojure typed.clj.analyzer.passes.classify-invoke
   (:require [typed.cljc.analyzer :as common]
             [typed.cljc.analyzer.utils :as cu]
             [typed.clj.analyzer.utils :as ju]

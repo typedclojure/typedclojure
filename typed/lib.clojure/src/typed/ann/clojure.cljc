@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc typed.ann.clojure
+(ns ^:typed.clojure ^:no-doc typed.ann.clojure
   "Type annotations for the base Clojure distribution."
   #?(:cljs (:require-macros [typed.ann-macros.clojure :as macros]))
   (:require [clojure.core :as cc]

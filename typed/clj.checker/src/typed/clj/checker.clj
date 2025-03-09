@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.clj.checker
+(ns ^:typed.clojure typed.clj.checker
   (:require [clojure.core :as core]
             [clojure.core.typed.load-if-needed :refer [load-if-needed]]
             [typed.clj.checker.utils :refer [->opts]]

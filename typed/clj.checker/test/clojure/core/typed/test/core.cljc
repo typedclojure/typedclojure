@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.core
+(ns ^:typed.clojure clojure.core.typed.test.core
   (:refer-clojure :exclude [cast])
   (:require 
     ; this loads the type system, must go first

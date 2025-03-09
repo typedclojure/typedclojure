@@ -1,4 +1,4 @@
-(ns typed-test.cljc.doc
+(ns ^:typed.clojure typed-test.cljc.doc
   (:require [clojure.test :refer [are deftest is]]
             [clojure.string :as str]
             [typed.cljc.doc :as sut]))

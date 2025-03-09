@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.last-test
+(ns ^:typed.clojure clojure.core.typed.test.last-test
   (:refer-clojure :exclude [fn])
   (:require [typed.clj.checker.test-utils :refer :all]
             [clojure.test :refer :all]

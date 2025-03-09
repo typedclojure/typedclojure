@@ -8,7 +8,7 @@
 
 ;; adapted from clojure.core.tools.analyzer
 ;TODO port tests from clojure.tools.analyzer.passes-test
-(ns typed.cljc.analyzer.passes
+(ns ^:typed.clojure typed.cljc.analyzer.passes
   (:require [typed.cljc.analyzer :as ana]
             [typed.cljc.analyzer.utils :as u]))
 

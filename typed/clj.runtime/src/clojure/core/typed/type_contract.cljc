@@ -9,7 +9,7 @@
 ;flat contracts only
 ;; important! any runtime dependencies declared here must be explicitly required by clojure.core.typed
 ;; for AOT compatibility. This is why ast->pred uses requiring-resolve--so cct can load faster.
-(ns ^:no-doc clojure.core.typed.type-contract
+(ns ^:typed.clojure ^:no-doc clojure.core.typed.type-contract
   #?(:clj (:refer-clojure :exclude [requiring-resolve]))
   (:require [clojure.core.typed.ast-ops :as ops]
             #?(:clj [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]])))

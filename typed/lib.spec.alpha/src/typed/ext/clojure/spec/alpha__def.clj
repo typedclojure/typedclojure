@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc typed.ext.clojure.spec.alpha__def
+(ns ^:typed.clojure ^:no-doc typed.ext.clojure.spec.alpha__def
   "Typing rules for clojure.spec.alpha/def."
   (:require [typed.cljc.checker.check-below :as below]
             [typed.cljc.checker.filter-ops :as fo]

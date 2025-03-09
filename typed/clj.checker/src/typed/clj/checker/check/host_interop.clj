@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.clj.checker.check.host-interop
+(ns ^:typed.clojure typed.clj.checker.check.host-interop
   (:require [typed.cljc.analyzer :as ana2]
             [typed.clj.analyzer.passes.analyze-host-expr :as ana-host]
             [typed.clj.analyzer.passes.validate :as validate]

@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.symbolic-closures
+(ns ^:typed.clojure clojure.core.typed.test.symbolic-closures
   (:require
     [typed.clojure :as t]
     [typed.clj.checker.test-utils :refer [is-tc-e is-tc-err tc-e is-tc-err-messages]]

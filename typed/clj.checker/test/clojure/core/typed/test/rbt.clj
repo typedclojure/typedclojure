@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.rbt
+(ns ^:typed.clojure clojure.core.typed.test.rbt
   (:refer-clojure :exclude [let])
   (:require [clojure.core.typed 
              :refer [ann print-env print-filterset ann-form defalias let]

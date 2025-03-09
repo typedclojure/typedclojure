@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc typed.ext.clojure.core.async
+(ns ^:typed.clojure ^:no-doc typed.ext.clojure.core.async
   "Typing rules for core.async"
   (:require [typed.clj.checker.check.unanalyzed :refer [install-unanalyzed-special]]))
 

@@ -1,4 +1,4 @@
-(ns cljs.core.typed.test-rt
+(ns ^:typed.clojure cljs.core.typed.test-rt
   (:require [cljs.core.typed :as tcljs]
             [clojure.core.typed.errors :as err]
             [clojure.java.io :as io])

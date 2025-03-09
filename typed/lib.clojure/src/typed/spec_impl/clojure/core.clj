@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.spec-impl.clojure.core
+(ns ^:typed.clojure typed.spec-impl.clojure.core
   "Implementation details for typed.spec.clojure.core"
   (:refer-clojure :exclude [requiring-resolve delay])
   (:require [clojure.alpha.spec :as s]

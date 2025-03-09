@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc typed.clj.ext.clojure.core__defn
+(ns ^:typed.clojure ^:no-doc typed.clj.ext.clojure.core__defn
   "Typing rules for clojure.core/defn"
   (:require [clojure.core.typed.internal :as internal]
             [typed.cljc.checker.check :as check]

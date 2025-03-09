@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.conj-experiment
+(ns ^:typed.clojure clojure.core.typed.test.conj-experiment
   (:refer-clojure :exclude [conj into with-meta])
   (:require [typed.clojure :as t])
   (:import (clojure.lang IMapEntry)))

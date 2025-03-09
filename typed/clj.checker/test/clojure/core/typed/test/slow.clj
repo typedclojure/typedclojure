@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.slow
+(ns ^:typed.clojure clojure.core.typed.test.slow
   (:require
     [clojure.core.typed :refer [ann defalias]
      :as t]))

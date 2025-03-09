@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc typed.cljc.checker.promote-demote
+(ns ^:typed.clojure ^:no-doc typed.cljc.checker.promote-demote
   (:require [typed.cljc.checker.utils :as u]
             [clojure.core.typed.errors :as err]
             [typed.cljc.checker.type-rep :as r]

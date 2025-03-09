@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.conduit
+(ns ^:typed.clojure clojure.core.typed.test.conduit
   (:import (clojure.lang IMeta IPersistentMap LazySeq ISeq))
   (:require [clojure.core.typed :as t
              :refer [check-ns ann defalias tc-ignore ann-form declare-names inst

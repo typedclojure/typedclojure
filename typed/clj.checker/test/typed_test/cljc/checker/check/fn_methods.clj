@@ -1,4 +1,4 @@
-(ns typed-test.cljc.checker.check.fn-methods
+(ns ^:typed.clojure typed-test.cljc.checker.check.fn-methods
   (:require [clojure.test :refer [deftest is]]
             [typed.clj.checker.test-utils :refer :all]
             [typed.cljs.checker.test-utils :as cljs]))

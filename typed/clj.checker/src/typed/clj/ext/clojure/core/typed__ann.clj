@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc typed.clj.ext.clojure.core.typed__ann
+(ns ^:typed.clojure ^:no-doc typed.clj.ext.clojure.core.typed__ann
   "Typing rules for clojure.core.typed/ann"
   (:require [typed.cljc.checker.check.ignore :as ignore]
             [typed.cljc.checker.check.unanalyzed :refer [defuspecial]]))

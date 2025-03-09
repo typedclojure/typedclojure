@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.bug1
+(ns ^:typed.clojure clojure.core.typed.test.bug1
   (:require [clojure.core.typed :as t]
             [typed.cljc.checker.type_rep])
   (:import [typed.cljc.checker.type_rep Result]

@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 ;; copied from clojure.tools.analyzer.passes.add-binding-atom
-(ns typed.cljc.analyzer.passes.add-binding-atom
+(ns ^:typed.clojure typed.cljc.analyzer.passes.add-binding-atom
   (:require [typed.cljc.analyzer.ast :refer [prewalk]]
             [typed.cljc.analyzer.passes.uniquify :refer [uniquify-locals]]))
 

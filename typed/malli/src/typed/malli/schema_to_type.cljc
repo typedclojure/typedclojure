@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.malli.schema-to-type
+(ns ^:typed.clojure typed.malli.schema-to-type
   "Parsing malli schemas to Typed Clojure syntax"
   (:require [typed.clojure :as t]
             [malli.core :as m]))

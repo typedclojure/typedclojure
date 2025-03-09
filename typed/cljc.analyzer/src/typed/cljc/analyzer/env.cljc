@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 ; copied from tools.analyzer
-(ns typed.cljc.analyzer.env
+(ns ^:typed.clojure typed.cljc.analyzer.env
   (:refer-clojure :exclude [ensure]))
 
 ;;  "Global env atom

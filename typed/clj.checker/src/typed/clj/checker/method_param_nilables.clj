@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.clj.checker.method-param-nilables
+(ns ^:typed.clojure typed.clj.checker.method-param-nilables
   (:require [typed.cljc.runtime.env :as env]
             [clojure.core.typed.current-impl :as impl]
             [typed.cljc.runtime.env-utils :as env-utils]))

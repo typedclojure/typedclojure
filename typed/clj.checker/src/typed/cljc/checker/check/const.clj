@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.cljc.checker.check.const
+(ns ^:typed.clojure typed.cljc.checker.check.const
   (:require [typed.cljc.checker.object-rep :as obj]
             [typed.cljc.checker.lex-env :as lex]
             [typed.cljc.checker.utils :as u]

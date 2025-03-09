@@ -1,4 +1,4 @@
-(ns typed-test.clj.spec
+(ns ^:typed.clojure typed-test.clj.spec
   (:require [clojure.alpha.spec :as s]
             [clojure.alpha.spec.gen :as gen]
             [clojure.alpha.spec.test :as stest]

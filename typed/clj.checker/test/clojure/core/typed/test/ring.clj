@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.ring
+(ns ^:typed.clojure clojure.core.typed.test.ring
   (:require [clojure.core.typed :refer [ann check-ns ann-form print-env cf]])
   (:import (clojure.lang IPersistentMap IPersistentVector)))
 

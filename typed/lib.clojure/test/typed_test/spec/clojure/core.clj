@@ -1,4 +1,4 @@
-(ns typed-test.spec.clojure.core
+(ns ^:typed.clojure typed-test.spec.clojure.core
   (:require [typed.spec.clojure.core :as api]
             [clojure.alpha.spec :as s]
             [clojure.alpha.spec.gen :as gen]

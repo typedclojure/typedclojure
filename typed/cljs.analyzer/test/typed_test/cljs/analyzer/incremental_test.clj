@@ -1,4 +1,4 @@
-(ns typed-test.cljs.analyzer.incremental-test
+(ns ^:typed.clojure typed-test.cljs.analyzer.incremental-test
   (:require [typed.cljc.analyzer :as ana2]
             [typed.cljc.analyzer.ast :as ast]
             [typed.cljs.analyzer :as jsana2]

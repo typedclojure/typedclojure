@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc typed.cljs.checker.jsnominal-env
+(ns ^:typed.clojure ^:no-doc typed.cljs.checker.jsnominal-env
   (:refer-clojure :exclude [get-method])
   (:require [typed.clojure :as t]
             [clojure.core.typed.contract-utils :as con]

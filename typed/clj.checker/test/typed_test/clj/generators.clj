@@ -1,4 +1,4 @@
-(ns typed-test.clj.generators
+(ns ^:typed.clojure typed-test.clj.generators
   (:require [clojure.test :refer [deftest is]]
             [typed.clojure :as t]
             [clojure.test.check.generators :as gen]

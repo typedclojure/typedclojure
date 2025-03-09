@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.gradual.import-untyped
+(ns ^:typed.clojure clojure.core.typed.test.gradual.import-untyped
   "Docstring" ;; WARNING don't change the line numbers in this file otherwise tests will fail
   {:lang :core.typed}
   (:require [clojure.core.typed :as t]

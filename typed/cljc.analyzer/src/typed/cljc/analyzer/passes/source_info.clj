@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 ;copied from clojure.tools.analyzer.passes.source-info
-(ns typed.cljc.analyzer.passes.source-info
+(ns ^:typed.clojure typed.cljc.analyzer.passes.source-info
   (:require [typed.cljc.analyzer.utils :refer [-source-info merge']]))
 
 (defn -merge-source-info [source-info]

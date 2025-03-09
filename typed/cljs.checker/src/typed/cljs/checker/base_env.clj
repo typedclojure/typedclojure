@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.cljs.checker.base-env
+(ns ^:typed.clojure typed.cljs.checker.base-env
   (:require [cljs.analyzer :as ana]
             [cljs.env :as env]
             [clojure.core.typed.base-env-helper-cljs :as h]

@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test-rt
+(ns ^:typed.clojure clojure.core.typed.test-rt
   (:require [clojure.core.typed :as t]
             [clojure.core.typed.errors :as err]
             #?(:cljr [clojure.clr.io :as io] :default [clojure.java.io :as io])

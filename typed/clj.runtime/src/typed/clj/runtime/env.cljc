@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.clj.runtime.env
+(ns ^:typed.clojure typed.clj.runtime.env
   (:require [typed.cljc.runtime.env :as env]
             [clojure.core.typed.util-vars :as vs]))
 

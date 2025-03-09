@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.filter-ops
+(ns ^:typed.clojure clojure.core.typed.test.filter-ops
   (:require 
     ; this loads the type system, must go first
     [typed.clj.checker.test-utils :refer :all]

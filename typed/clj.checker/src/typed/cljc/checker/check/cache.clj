@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.cljc.checker.check.cache
+(ns ^:typed.clojure typed.cljc.checker.check.cache
   (:require [typed.cljc.checker.check :as check]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.cljc.runtime.env-utils :refer [force-type]]

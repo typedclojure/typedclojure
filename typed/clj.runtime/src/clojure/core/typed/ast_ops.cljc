@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc clojure.core.typed.ast-ops
+(ns ^:typed.clojure ^:no-doc clojure.core.typed.ast-ops
   #?(:clj (:refer-clojure :exclude [requiring-resolve]))
   (:require [clojure.core.typed.errors :as err]
             [typed.cljc.runtime.env :as env]

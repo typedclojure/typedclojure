@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.ctyp-255
+(ns ^:typed.clojure clojure.core.typed.test.ctyp-255
   (:require [clojure.test :refer :all]
             [typed.clj.checker.parse-unparse :refer :all]
             [typed.clj.checker.test-utils :refer :all]

@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.pred
+(ns ^:typed.clojure clojure.core.typed.test.pred
   (:require 
     [clojure.test :refer :all]
     [clojure.core.typed :as t]))

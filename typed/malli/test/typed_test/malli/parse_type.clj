@@ -1,4 +1,4 @@
-(ns typed-test.malli.parse-type
+(ns ^:typed.clojure typed-test.malli.parse-type
   (:require [clojure.test :refer [deftest is]]
             [malli.error :as me]
             [typed.clojure :as t]

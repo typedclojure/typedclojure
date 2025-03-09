@@ -1,4 +1,4 @@
-(ns typed-test.clj.checker.check.reify
+(ns ^:typed.clojure typed-test.clj.checker.check.reify
   (:require [clojure.test :refer [deftest is testing]]
             [typed.cljc.checker.filter-ops :as fops]
             [typed.cljc.checker.type-ctors :as c]

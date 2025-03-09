@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.clj.checker.experimental.infer-vars
+(ns ^:typed.clojure typed.clj.checker.experimental.infer-vars
   (:require 
     [clojure.core.typed.util-vars :as vs]
     [typed.clj.runtime.env :as clj-env]

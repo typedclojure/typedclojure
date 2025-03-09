@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.cljc.checker.check.vector
+(ns ^:typed.clojure typed.cljc.checker.check.vector
   (:require [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.check-below :as below]
             [typed.cljc.checker.utils :as u]

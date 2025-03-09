@@ -33,10 +33,7 @@
   nil if not found."
   [nsym opts]
   {:pre [(symbol? nsym)]}
-  (let [f (-> nsym (coerce/ns->file opts))
-        ns (ns-form-for-file f opts)]
-    (or ns
-        (err/int-error (str "File for " nsym " not found on classpath: " f) opts))))
+  (-> nsym (coerce/ns->file opts) (ns-form-for-file opts)))
 
 (defn ns-form-deps
   "Given a ns-form, returns a set of dependencies"

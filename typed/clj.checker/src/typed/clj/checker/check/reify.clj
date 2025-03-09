@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 ;;TODO share with typed.clj.checker.check.deftype
-(ns typed.clj.checker.check.reify
+(ns ^:typed.clojure typed.clj.checker.check.reify
   (:require [clojure.core.typed.errors :as err]
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.type-rep :as r]

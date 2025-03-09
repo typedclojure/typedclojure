@@ -1,3 +1,3 @@
-(ns clojure.core.typed.test.ann-qualify.parent)
+(ns ^:typed.clojure clojure.core.typed.test.ann-qualify.parent)
 
 (def a 1)

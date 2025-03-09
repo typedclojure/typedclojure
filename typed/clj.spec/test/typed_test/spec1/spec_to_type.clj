@@ -1,4 +1,4 @@
-(ns typed-test.spec1.spec-to-type
+(ns ^:typed.clojure typed-test.spec1.spec-to-type
   (:require [clojure.test :refer [deftest is]]
             [typed.spec1.spec-to-type :as sut]
             [clojure.spec.alpha :as s]

@@ -1,4 +1,4 @@
-(ns typed-test.cljc.checker.path-rep
+(ns ^:typed.clojure typed-test.cljc.checker.path-rep
   (:require [clojure.test :refer [deftest is]]
             [typed.clj.checker.test-utils :refer [is-tc-e]]))
 

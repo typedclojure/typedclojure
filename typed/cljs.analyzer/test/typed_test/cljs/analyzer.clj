@@ -1,4 +1,4 @@
-(ns typed-test.cljs.analyzer
+(ns ^:typed.clojure typed-test.cljs.analyzer
   (:require [clojure.test :refer [is deftest testing]]
             [typed.cljc.analyzer :as ana]
             [typed.cljs.analyzer :as jsana2]

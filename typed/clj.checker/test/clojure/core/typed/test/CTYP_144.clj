@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.CTYP-144
+(ns ^:typed.clojure clojure.core.typed.test.CTYP-144
   (:require [typed.clj.checker.test-utils :refer :all]
             [typed.clj.checker.analyze-clj :as ana]
             [clojure.test :refer :all]))

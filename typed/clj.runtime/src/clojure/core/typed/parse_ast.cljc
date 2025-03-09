@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 ;; TODO unparse functionality
-(ns ^:no-doc clojure.core.typed.parse-ast
+(ns ^:typed.clojure ^:no-doc clojure.core.typed.parse-ast
   #?(:clj (:refer-clojure :exclude [requiring-resolve delay]))
   (:require [clojure.core.typed :as t]
             [clojure.core.typed.current-impl :as impl]

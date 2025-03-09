@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.malli.generator
+(ns ^:typed.clojure typed.malli.generator
   "Public API for typed `malli.generator` ops."
   (:refer-clojure :exclude [requiring-resolve])
   (:require [malli.generator :as mg]

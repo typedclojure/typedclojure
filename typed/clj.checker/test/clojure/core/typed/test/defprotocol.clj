@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.defprotocol
+(ns ^:typed.clojure clojure.core.typed.test.defprotocol
   (:refer-clojure :exclude [defprotocol fn])
   (:require [clojure.core.typed :as t :refer [defprotocol fn]]))
 

@@ -12,7 +12,7 @@
 ; - use typed.clj.analyzer.passes.infer-tag
 ; - use typed.clj.analyzer.passes.analyze-host-expr
 ; - remove clojure.tools.analyzer.passes.jvm.validate-recur
-(ns typed.clj.analyzer.passes.validate
+(ns ^:typed.clojure typed.clj.analyzer.passes.validate
   (:require [typed.cljc.analyzer :as ana2]
             [typed.cljc.analyzer.ast :as ast]
             [typed.cljc.analyzer.env :as env]

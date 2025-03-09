@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.browse
+(ns ^:typed.clojure clojure.core.typed.test.browse
   (:require [typed.clojure :as t]
             [clojure.test :refer :all]                
             [typed.clj.checker.test-utils :refer :all]))

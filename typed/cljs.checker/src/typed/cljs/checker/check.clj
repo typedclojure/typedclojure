@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.cljs.checker.check
+(ns ^:typed.clojure typed.cljs.checker.check
   (:refer-clojure :exclude [delay])
   (:require [cljs.analyzer :as cljs-ana]
             [cljs.analyzer.api :as ana-api]

@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.jvm.array
+(ns ^:typed.clojure clojure.core.typed.test.jvm.array
   (:require [clojure.core.typed :refer [ann check-ns into-array> cf print-env ann-form]
              :as t]
             [typed.clj.checker.test-utils :refer :all]

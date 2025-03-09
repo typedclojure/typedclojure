@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.clj.spec.impl
+(ns ^:typed.clojure typed.clj.spec.impl
   "Implementation details for typed.clj.spec{1,2}"
   (:refer-clojure :exclude [requiring-resolve delay])
   (:require [clojure.alpha.spec :as s]

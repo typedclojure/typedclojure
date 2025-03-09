@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.namespaced-specials
+(ns ^:typed.clojure clojure.core.typed.test.namespaced-specials
   (:require [typed.clj.checker.test-utils :refer :all]
             [clojure.test :refer :all]
             [typed.clojure :as t]))

@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc typed.clj.ext.clojure.core__ns
+(ns ^:typed.clojure ^:no-doc typed.clj.ext.clojure.core__ns
   "Typing rules clojure.core/ns"
   (:require [typed.cljc.analyzer :as ana2]
             [typed.cljc.checker.check-below :as below]

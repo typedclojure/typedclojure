@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.filter-expected
+(ns ^:typed.clojure clojure.core.typed.test.filter-expected
   (:refer-clojure :exclude [cast])
   (:require 
     ; this loads the type system, must go first
