@@ -39,7 +39,7 @@
   :spec-skip-macros {:jvm-opts ["-Dclojure.spec.skip-macros=true"]},
   :test
   {:extra-deps
-   {com.clojure-goes-fast/clj-async-profiler {:mvn/version "1.2.2"},
+   {com.clojure-goes-fast/clj-async-profiler {:mvn/version "1.6.1"},
     com.clojure-goes-fast/clj-java-decompiler {:mvn/version "0.3.0"},
     com.gfredericks/test.chuck {:mvn/version "0.2.12"},
     criterium/criterium {:mvn/version "0.4.5"},
@@ -138,7 +138,7 @@
      "typed/malli/test")},
    :exec-fn typed.clojure.main/exec}},
  :deps
- {selmer/selmer {:mvn/version "1.12.50"},
+ {selmer/selmer {:mvn/version "1.12.62"},
   org.clojure/clojure {:mvn/version "1.12.0"},
   org.typedclojure/typed.clj.checker
   {:deps/manifest :deps, :local/root "typed/clj.checker"},

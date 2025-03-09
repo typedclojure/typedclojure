@@ -3,7 +3,7 @@
  :deps {org.clojure/clojure {:mvn/version "{◊clojure-mvn-version◊}"}
         io.github.frenchy64/fully-satisfies {:mvn/version "{◊fully-satisfies-mvn-version◊}"}
         org.clojure/tools.cli {:mvn/version "1.0.206"}
-        selmer/selmer {:mvn/version "1.12.44"}
+        selmer/selmer {:mvn/version "{◊selmer-mvn-version◊}"}
         hickory/hickory {:mvn/version "0.7.1"}}
  :resource-paths ["resources"]
  :aliases {:nREPL
