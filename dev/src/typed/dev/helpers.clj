@@ -45,7 +45,7 @@
    :cognitect-test-runner-coordinates "io.github.cognitect-labs/test-runner"
    :cognitect-test-runner-git-url "https://github.com/cognitect-labs/test-runner"
    :cognitect-test-runner-sha "dd6da11611eeb87f08780a30ac8ea6012d4c05ce"
-   :codox-mvn-version "0.10.7"
+   :codox-mvn-version "0.10.8"
    :kaocha-git-url "https://github.com/lambdaisland/kaocha.git"
    :kaocha-sha "24e2e02d0848160343a6f9ac629f0f8e27a682ea"
    :typedclojure-homepage "https://typedclojure.org"
