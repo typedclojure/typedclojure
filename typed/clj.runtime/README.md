@@ -7,14 +7,14 @@ Runtime dependency needed to annotate Typed Clojure code in JVM Clojure.
 
 ## Releases and Dependency Information
 
-Latest stable release is 1.2.1.
+Latest stable release is 1.3.0.
 
 * [All Released Versions](https://clojars.org/org.typedclojure/typed.clj.runtime)
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) JAR dependency information:
 
 ```clj
-  org.typedclojure/typed.clj.runtime {:mvn/version "1.2.1"}
+  org.typedclojure/typed.clj.runtime {:mvn/version "1.3.0"}
  ```
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) Git dependency information:
@@ -25,13 +25,13 @@ Latest stable release is 1.2.1.
   org.typedclojure/typed.clj.runtime
   {:git/url "https://github.com/typedclojure/typedclojure"
    :deps/root "typed/clj.runtime"
-   :git/tag "1.2.1"}
+   :git/tag "1.3.0"}
 ```
 
 [Leiningen](https://github.com/technomancy/leiningen) dependency information:
 
 ```clojure
-[org.typedclojure/typed.clj.runtime "1.2.1"]
+[org.typedclojure/typed.clj.runtime "1.3.0"]
 ```
 
 [Maven](https://maven.apache.org/) dependency information:
@@ -40,7 +40,7 @@ Latest stable release is 1.2.1.
 <dependency>
   <groupId>org.typedclojure</groupId>
   <artifactId>typed.clj.runtime</artifactId>
-  <version>1.2.1</version>
+  <version>1.3.0</version>
 </dependency>
 ```
 
