@@ -8,8 +8,8 @@ on:
     - cron: "0 13 * * 1,5"
 
 env:
-  CLOJURE_CLI_VERSION: "1.11.1.1347"
-  BABASHKA_VERSION: "1.3.182"
+  CLOJURE_CLI_VERSION: "1.12.0.1530"
+  BABASHKA_VERSION: "1.12.197"
 
 jobs:
   setup:
@@ -21,7 +21,7 @@ jobs:
             (github.repository == 'typedclojure/typedclojure' ||
              github.event_name != 'schedule')
          }}
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
@@ -36,7 +36,7 @@ jobs:
         run: ./script/print-actions-matrix.clj
   test:
     needs: setup
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     strategy:
       matrix: ${{ fromJson(needs.setup.outputs.matrix) }}
     steps:
@@ -68,7 +68,7 @@ jobs:
           SUBMODULE: ${{ matrix.submodule }}
           SKIP_DOWNLOAD: false #${{ steps.test-deps-cache.outputs.cache-hit }}
   check-docs:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     if: ${{ github.repository == 'typedclojure/typedclojure'
             && github.event_name == 'schedule'
          }}
@@ -86,7 +86,7 @@ jobs:
             && github.repository == 'typedclojure/typedclojure'
             && github.event_name == 'push'
          }}
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     env:
       DEPLOY_JDK: 11
     steps:
