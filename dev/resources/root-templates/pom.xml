@@ -301,11 +301,6 @@
         <version>{◊test-check-mvn-version◊}</version>
       </dependency>
       <dependency>
-        <groupId>org.clojure</groupId>
-        <artifactId>core.logic</artifactId>
-        <version>{◊core-logic-mvn-version◊}</version>
-      </dependency>
-      <dependency>
         <groupId>metosin</groupId>
         <artifactId>malli</artifactId>
         <version>{◊malli-mvn-version◊}</version>
