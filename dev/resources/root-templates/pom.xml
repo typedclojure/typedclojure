@@ -297,11 +297,6 @@
       </dependency>
       <dependency>
         <groupId>org.clojure</groupId>
-        <artifactId>tools.nrepl</artifactId>
-        <version>{◊tools-nrepl-mvn-version◊}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.clojure</groupId>
         <artifactId>test.check</artifactId>
         <version>{◊test-check-mvn-version◊}</version>
       </dependency>

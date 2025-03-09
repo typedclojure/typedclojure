@@ -48,9 +48,7 @@
     org.clojure/math.combinatorics
     {:exclusions [org.clojure/clojure], :mvn/version "0.1.6"},
     org.clojure/test.check {:mvn/version "1.1.1"},
-    org.clojure/tools.analyzer.jvm {:mvn/version "1.2.3"},
-    org.clojure/tools.nrepl
-    {:exclusions [org.clojure/clojure], :mvn/version "0.2.6"}},
+    org.clojure/tools.analyzer.jvm {:mvn/version "1.2.3"}},
    :extra-paths
    ["typed/clj.analyzer/test"
     "typed/clj.checker/test"
