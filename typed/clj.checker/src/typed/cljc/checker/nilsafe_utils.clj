@@ -20,5 +20,5 @@
 (t/ann ^:no-check set-difference 
        (t/All [x]
               (t/IFn [(t/U nil (t/Set x)) -> (t/Set x)]
-                     [(t/U nil (t/Set x)) (t/Set t/Any) * -> (t/Set x)])))
+                     [(t/U nil (t/Set x)) (t/Set t/Any) :* -> (t/Set x)])))
 (def set-difference (fnil set/difference #{}))

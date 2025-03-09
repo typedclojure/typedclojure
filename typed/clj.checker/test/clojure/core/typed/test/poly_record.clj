@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.poly-record
+(ns ^:typed.clojure clojure.core.typed.test.poly-record
   (:require [typed.clojure :as t]))
 
 (t/ann-record [[foo :variance :invariant]] Foo [b :- (t/U nil t/Num)])

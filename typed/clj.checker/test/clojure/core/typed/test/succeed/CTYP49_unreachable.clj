@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.succeed.CTYP49-unreachable
+(ns ^:typed.clojure clojure.core.typed.test.succeed.CTYP49-unreachable
   (:require [typed.clojure :as t]))
 
 (t/ann ^:no-check request 

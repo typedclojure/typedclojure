@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.kw-args
+(ns ^:typed.clojure clojure.core.typed.test.kw-args
   (:require [clojure.core.typed :refer [ann check-ns ann-form cf] :as t]))
 
 (ann empty-kw [& :optional {} -> nil])

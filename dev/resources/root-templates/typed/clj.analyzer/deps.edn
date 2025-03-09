@@ -21,6 +21,7 @@
 
            :test
            {:extra-paths ["test"]
+            :jvm-opts ["-Dtyped.clojure.preserve-check-ns-after-opt-in=true"]
             :extra-deps
             {org.clojure/tools.analyzer.jvm {:mvn/version "{◊tools-analyzer-jvm-mvn-version◊}"}
              criterium/criterium {:mvn/version "0.4.5"}}}

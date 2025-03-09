@@ -1,4 +1,4 @@
-(ns typed-example.spec1-extensible
+(ns ^:typed.clojure typed-example.spec1-extensible
   (:require [typed.clojure :as t]
             [clojure.spec.alpha :as s]))
 

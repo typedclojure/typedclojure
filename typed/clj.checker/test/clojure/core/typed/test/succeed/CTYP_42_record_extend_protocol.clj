@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.succeed.CTYP-42-record-extend-protocol
+(ns ^:typed.clojure clojure.core.typed.test.succeed.CTYP-42-record-extend-protocol
   (:require [clojure.core.typed :as t]
             [clojure.repl :as repl]))
 

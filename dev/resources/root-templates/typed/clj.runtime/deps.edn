@@ -4,6 +4,7 @@
         io.github.frenchy64/fully-satisfies {:mvn/version "{◊fully-satisfies-mvn-version◊}"}}
  :aliases {:test
            {:extra-paths ["test"]
+            :jvm-opts ["-Dtyped.clojure.preserve-check-ns-after-opt-in=true"]
             :extra-deps {org.clojure/clojurescript {:mvn/version "{◊clojurescript-mvn-version◊}"}}}
            :nREPL
            {:extra-deps

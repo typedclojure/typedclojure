@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc clojure.core.typed.coerce-utils
+(ns ^:typed.clojure ^:no-doc clojure.core.typed.coerce-utils
   (:require [typed.clojure :as t]
             [clojure.string :as str]
             #?(:cljr [clojure.clr.io] :default [clojure.java.io :as io])

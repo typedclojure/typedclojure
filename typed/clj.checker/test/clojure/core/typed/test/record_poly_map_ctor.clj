@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.record-poly-map-ctor
+(ns ^:typed.clojure clojure.core.typed.test.record-poly-map-ctor
   (:require [typed.clojure :as t]))
 
 ; can omit fields with ground types

@@ -1,4 +1,4 @@
-(ns typed-test.provider.spec1__test1
+(ns ^:typed.clojure typed-test.provider.spec1__test1
   (:require [clojure.spec.alpha :as s]
             [typed.clojure :as t]))
 

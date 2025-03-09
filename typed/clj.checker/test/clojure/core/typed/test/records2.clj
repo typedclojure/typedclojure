@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.records2
+(ns ^:typed.clojure clojure.core.typed.test.records2
   (:require [clojure.core.typed :as t :refer [ann ann-form ann-record]]))
 
 (ann-record Point [lat :- t/Num

@@ -7,7 +7,8 @@
  :mvn/repos {"sonatype-oss-public"
              {:url "{◊sonatype-oss-public-url◊}"}}
  :aliases {:test
-           {:extra-paths ["test"]}
+           {:jvm-opts ["-Dtyped.clojure.preserve-check-ns-after-opt-in=true"]
+            :extra-paths ["test"]}
            :nREPL
            {:extra-deps
             {nrepl/nrepl {:mvn/version "{◊nrepl-mvn-version◊}"}

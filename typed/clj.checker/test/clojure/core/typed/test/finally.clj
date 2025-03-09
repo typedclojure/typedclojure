@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.finally
+(ns ^:typed.clojure clojure.core.typed.test.finally
   (:require [typed.clojure :as t]))
 
 (t/ann f [-> t/Str])

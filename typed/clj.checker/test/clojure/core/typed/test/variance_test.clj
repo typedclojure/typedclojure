@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.variance-test
+(ns ^:typed.clojure clojure.core.typed.test.variance-test
   (:require [typed.clojure :as t]))
 
 

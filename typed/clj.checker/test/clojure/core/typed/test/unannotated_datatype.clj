@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.unannotated-datatype
+(ns ^:typed.clojure clojure.core.typed.test.unannotated-datatype
   (:require [clojure.core.typed :refer [ann tc-ignore check-ns]]))
 
 (tc-ignore (deftype NoAnnotate [a]))

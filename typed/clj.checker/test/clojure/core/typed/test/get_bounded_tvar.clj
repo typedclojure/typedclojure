@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.get-bounded-tvar
+(ns ^:typed.clojure clojure.core.typed.test.get-bounded-tvar
   (:require [typed.clojure :as t]))
 
 (t/defalias QuilSketch Number)

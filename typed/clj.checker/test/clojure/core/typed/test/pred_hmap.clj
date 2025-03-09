@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.pred-hmap
+(ns ^:typed.clojure clojure.core.typed.test.pred-hmap
   (:require [clojure.core.typed :as t]))
  
 (t/defalias Cow '{:type ':cow})

@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.protocol-munge
+(ns ^:typed.clojure clojure.core.typed.test.protocol-munge
   (:require [typed.clojure :as t]))
 
 (t/defprotocol Foo

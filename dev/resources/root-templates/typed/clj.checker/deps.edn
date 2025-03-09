@@ -34,6 +34,7 @@
   {:jvm-opts ["-Dclojure.spec.skip-macros=true"]}
   :test
   {:jvm-opts ["-Djdk.attach.allowAttachSelf"
+              "-Dtyped.clojure.preserve-check-ns-after-opt-in=true"
               "-Dtyped.cljc.checker.utils.trace=true"]
    :extra-paths ["test" "test-resources"],
    :extra-deps

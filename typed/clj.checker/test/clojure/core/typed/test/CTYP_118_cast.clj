@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.CTYP-118-cast
+(ns ^:typed.clojure clojure.core.typed.test.CTYP-118-cast
   (:require [typed.clojure :as t]))
 
 (t/ann i1 String)

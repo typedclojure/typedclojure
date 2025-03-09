@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.promise
+(ns ^:typed.clojure clojure.core.typed.test.promise
   (:require [typed.clojure :as t]))
 
 (t/ann p (t/Promise t/Num))

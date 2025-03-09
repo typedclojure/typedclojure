@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.munge-record-field
+(ns ^:typed.clojure clojure.core.typed.test.munge-record-field
   (:require [clojure.core.typed :as t :refer [ann ann-form ann-record ann-datatype]]))
 
 (ann-datatype FooDT [normal :- Number

@@ -31,7 +31,7 @@
    :parsley-mvn-version "0.9.3"
    :piggieback-mvn-version "0.6.0"
    :tools-namespace-mvn-version "1.5.0"
-   :cider-nrepl-mvn-version "0.52.0"
+   :cider-nrepl-mvn-version "0.52.1"
    :asm-mvn-version "9.2"
    :tools-analyzer-mvn-version "1.1.1"
    :tools-analyzer-jvm-mvn-version "1.2.3"

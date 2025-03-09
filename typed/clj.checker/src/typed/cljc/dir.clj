@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns typed.cljc.dir
+(ns ^:typed.clojure typed.cljc.dir
   (:require [typed.clojure :as t]
             [typed.cljc.checker.ns-deps-utils :as ndepsu]
             [clojure.core.typed.current-impl :as impl]

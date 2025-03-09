@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.protocol-fail
+(ns ^:typed.clojure clojure.core.typed.test.protocol-fail
   (:require [clojure.core.typed :refer [ann-datatype] :as t]))
 
 (t/defprotocol AddProtoc

@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.non-literal-val-fn
+(ns ^:typed.clojure clojure.core.typed.test.non-literal-val-fn
   (:require [typed.clojure :as t]))
 
 (t/ann kw-invoke [t/Kw -> (t/U nil t/Num)])

@@ -1,4 +1,5 @@
-(ns typed-example.malli-extensible
+
+(ns ^:typed.clojure typed-example.malli-extensible
   (:require [typed.clojure :as-alias t]
             [malli.core :as m]))
 

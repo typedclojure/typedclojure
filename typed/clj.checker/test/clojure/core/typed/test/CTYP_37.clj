@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.CTYP-37
+(ns ^:typed.clojure clojure.core.typed.test.CTYP-37
   (:require [clojure.core.typed :as t]))
 
 ; this used to fail with jvm.tools.analyzer, now seems

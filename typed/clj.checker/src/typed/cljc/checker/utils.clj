@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc typed.cljc.checker.utils
+(ns ^:typed.clojure ^:no-doc typed.cljc.checker.utils
   (:refer-clojure :exclude [defrecord defprotocol])
   (:require [typed.clojure :as t]
             [clojure.core.typed.util-vars :as uvs]

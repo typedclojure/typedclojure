@@ -1,4 +1,4 @@
-(ns typed-test.clj.ext.clojure.core.succeed.destructure
+(ns ^:typed.clojure typed-test.clj.ext.clojure.core.succeed.destructure
   (:import (clojure.lang APersistentVector APersistentMap))
   (:require [typed.clojure :as t :refer [ann-form]]))
 

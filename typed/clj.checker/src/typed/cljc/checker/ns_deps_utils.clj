@@ -15,6 +15,7 @@
             [clojure.core.typed.errors :as err]
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.internal :as internal]
+            [clojure.string :as str]
             [clojure.java.io :as io]))
 
 (defn ns-form-for-file
@@ -80,11 +81,36 @@
     (or (true? (:typed.clojure/ignore nmeta))
         (-> nmeta :typed.clojure :ignore true?))))
 
+(def fixup? (= "true" (System/getProperty "typed.clojure.preserve-check-ns-after-opt-in")))
+
+(defn fixup-ns [nsym opts]
+  (if-some [f (-> nsym (coerce/ns->URL opts))]
+    (let [s (slurp f)]
+      (spit f
+            (cond
+              (str/includes? s "(ns ") (str/replace-first s "(ns " "(ns ^:typed.clojure ")
+              (str/includes? s "(ns\n") (str/replace-first s "(ns\n" "(ns\n  ^:typed.clojure\n")
+              :else (throw (ex-info (str "Could not fix :typed.clojure meta for " nsym " (could not find ns form)") {}))))
+      true)
+    (do (println (str "WARNING: Could not fix :typed.clojure meta for " nsym " (could not find file)"))
+        false)))
+
+(defn check-ns? [ns-form opts]
+  (let [nmeta (ns-meta ns-form opts)]
+    (if (ignore-ns? ns-form opts)
+      false
+      (if-some [[_ v] (find nmeta :typed.clojure)]
+        (boolean v)
+        (if fixup?
+          (fixup-ns (second ns-form) opts)
+          (do (println (str "WARNING: " (second ns-form) " not being checked, consider setting -Dtyped.clojure.preserve-check-ns-after-opt-in=true"))
+              false))))))
+
 (defn should-check-ns-form?
   [ns-form opts]
   {:post [(boolean? %)]}
   (and (boolean ns-form)
-       (not (ignore-ns? ns-form opts))))
+       (check-ns? ns-form opts)))
 
 (defn should-check-ns?
   "Returns true if the given namespace should be type checked"

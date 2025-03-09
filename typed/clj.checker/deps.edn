@@ -21,7 +21,7 @@
   :nREPL
   {:extra-deps
    {nrepl/nrepl {:mvn/version "1.3.1"}
-    cider/cider-nrepl {:mvn/version "0.52.0"}},
+    cider/cider-nrepl {:mvn/version "0.52.1"}},
    :main-opts ["-m" "nrepl.cmdline" "--interactive"
                #_"
                Note:
@@ -34,6 +34,7 @@
   {:jvm-opts ["-Dclojure.spec.skip-macros=true"]}
   :test
   {:jvm-opts ["-Djdk.attach.allowAttachSelf"
+              "-Dtyped.clojure.preserve-check-ns-after-opt-in=true"
               "-Dtyped.cljc.checker.utils.trace=true"]
    :extra-paths ["test" "test-resources"],
    :extra-deps

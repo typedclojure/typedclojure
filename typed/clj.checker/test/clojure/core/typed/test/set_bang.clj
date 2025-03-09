@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.set-bang
+(ns ^:typed.clojure clojure.core.typed.test.set-bang
   (:require [typed.clojure :as t]))
 
 (t/ann foo t/Keyword)

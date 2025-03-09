@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.warn-on-unannotated-var
+(ns ^:typed.clojure clojure.core.typed.test.warn-on-unannotated-var
   (:require [clojure.core.typed :as t :refer [ann check-ns ann-form print-env cf]])
   (:import (clojure.lang IPersistentMap IPersistentVector)))
 

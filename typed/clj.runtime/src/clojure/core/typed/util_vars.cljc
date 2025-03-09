@@ -6,7 +6,7 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns clojure.core.typed.util-vars)
+(ns ^:typed.clojure clojure.core.typed.util-vars)
 
 ;; keep track of state throughout a `load`
 (defonce ^{:doc "Internal use only"} ^:no-doc ^:dynamic *currently-inferring-TypeFns* #{})

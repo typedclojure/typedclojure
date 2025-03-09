@@ -1,4 +1,4 @@
-(ns typed-example.minimal
+(ns ^:typed.clojure typed-example.minimal
   "This file can be type checked as either Clojure or ClojureScript via t/check-ns-clj{s}."
   (:require [typed.clojure :as t]))
 

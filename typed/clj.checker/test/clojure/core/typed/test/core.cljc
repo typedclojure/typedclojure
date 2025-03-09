@@ -3961,19 +3961,13 @@
         (let [x :- (t/Promise t/Int) (promise)])))))
 
 (deftest should-check-ns-form-test
-  (is-clj
-    (= true
-       (ndu/should-check-ns-form?
-         '(ns foo)
-         (clj-opts))))
-  (is-clj
-    (= false
-       (ndu/should-check-ns-form?
-         '(ns ^:typed.clojure/ignore foo)
-         (clj-opts))
-       (ndu/should-check-ns-form?
-         '(ns ^{:typed.clojure {:ignore true}} foo)
-         (clj-opts)))))
+  (is (true? (ndu/should-check-ns-form? '(ns ^:typed.clojure foo) (clj-opts))))
+  (is (true? (ndu/should-check-ns-form? '(ns foo {:typed.clojure true}) (clj-opts))))
+  (is (false? (ndu/should-check-ns-form? '(ns ^:typed.clojure ^:typed.clojure/ignore foo) (clj-opts))))
+  (is (false? (ndu/should-check-ns-form? '(ns foo {:typed.clojure false}) (clj-opts))))
+  (is (false? (ndu/should-check-ns-form? '(ns foo) (clj-opts))))
+  (is (false? (ndu/should-check-ns-form? '(ns ^:typed.clojure/ignore foo) (clj-opts))))
+  (is (false? (ndu/should-check-ns-form? '(ns ^{:typed.clojure {:ignore true}} foo) (clj-opts)))))
 
 (deftest CTYP-234-test
   (is (check-ns 'clojure.core.typed.test.CTYP-234.core)))

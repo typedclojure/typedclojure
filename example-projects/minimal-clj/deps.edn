@@ -1,6 +1,7 @@
 {:deps {org.clojure/clojure {:mvn/version "1.12.0"}
         org.typedclojure/typed.clj.runtime {:local/root "../../typed/clj.runtime"}}
- :aliases {:dev {:extra-paths ["test"]
+ :aliases {:dev {:jvm-opts ["-Dtyped.clojure.preserve-check-ns-after-opt-in=true"]
+                 :extra-paths ["test"]
                  :extra-deps {org.typedclojure/typed.clj.checker {:local/root "../../typed/clj.checker"}}}
            :test {:extra-deps {io.github.cognitect-labs/test-runner 
                                {:git/tag "v0.5.0" :git/sha "b3fd0d2"}}

@@ -498,21 +498,11 @@
           ; ignore ns declaration
           ns-form (ns-depsu/ns-form-for-ns nsym opts)
           check? (some-> ns-form (ns-depsu/should-check-ns-form? opts))]
-      (cond
-        (not check?)
-        (println (str "Not checking " nsym 
-                      (cond
-                        (not ns-form) " (ns form missing)"
-                        (ns-depsu/ignore-ns? ns-form opts) " (tagged with :typed.clojure/ignore metadata)")))
-
-        :else
-        (let [start (. System (nanoTime))
-              _ (println "Start checking" nsym)
-              _ (flush)
-              _ (check-ns1 nsym nil opts)
-              _ (println "Checked" nsym "in" (/ (double (- (. System (nanoTime)) start)) 1000000.0) "msecs")
-              _ (flush)]
-          nil)))))
+      (when check?
+        (let [start (. System (nanoTime))]
+          (println "Start checking" nsym)
+          (check-ns1 nsym nil opts)
+          (println "Checked" nsym "in" (/ (double (- (. System (nanoTime)) start)) 1000000.0) "msecs"))))))
 
 (defn find-updated-locals [env1 env2 opts]
   {:pre [(map? env1)

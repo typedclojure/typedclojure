@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.transducer
+(ns ^:typed.clojure clojure.core.typed.test.transducer
   (:refer-clojure :exclude [])
   (:require [typed.clojure :as t]
             [clojure.core :as core]))

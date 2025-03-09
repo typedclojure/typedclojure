@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.util-aliases
+(ns ^:typed.clojure clojure.core.typed.test.util-aliases
   (:require [typed.clojure :as t]))
 
 (t/defalias MyName (t/HMap :mandatory {:a (t/Value 1)}))

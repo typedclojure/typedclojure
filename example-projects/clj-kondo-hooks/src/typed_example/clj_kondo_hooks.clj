@@ -1,6 +1,6 @@
 ;; use (inc :expected-failure) for an expected failure
 ;; use (inc "unexpected-failure") for an unexpected failure
-(ns typed-example.clj-kondo-hooks
+(ns ^:typed.clojure/ignore typed-example.clj-kondo-hooks
   (:require [clojure.core.typed :as ct]
             [typed.clojure :as t]))
 

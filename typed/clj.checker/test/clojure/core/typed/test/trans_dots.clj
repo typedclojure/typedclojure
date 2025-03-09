@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.trans-dots
+(ns ^:typed.clojure clojure.core.typed.test.trans-dots
   (:refer-clojure :exclude [defprotocol])
   (:require [clojure.core.typed :as t :refer [defprotocol inst]]))
 

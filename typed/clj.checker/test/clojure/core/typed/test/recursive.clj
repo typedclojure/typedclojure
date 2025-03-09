@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.recursive
+(ns ^:typed.clojure clojure.core.typed.test.recursive
   (:require [typed.clojure :as t :refer [ann-record ann-protocol]]))
 
 (t/declare-protocols IValidator)

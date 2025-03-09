@@ -1,4 +1,5 @@
-(ns typed-example.malli-type-providers
+
+(ns ^:typed.clojure typed-example.malli-type-providers
   (:require [typed.clojure :as-alias t]
             [malli.core :as m]))
 

@@ -15,7 +15,8 @@
                         "--interactive"]}
            :spec-skip-macros
            {:jvm-opts ["-Dclojure.spec.skip-macros=true"]}
-           :test {:extra-deps {org.typedclojure/typed.clj.checker
+           :test {:jvm-opts ["-Dtyped.clojure.preserve-check-ns-after-opt-in=true"]
+                  :extra-deps {org.typedclojure/typed.clj.checker
                                {:local/root "../clj.checker"
                                 :deps/manifest :deps}}
                   :extra-paths ["test"]}

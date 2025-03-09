@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.datatype-recur
+(ns ^:typed.clojure clojure.core.typed.test.datatype-recur
   (:require [clojure.core.typed :as t]))
 
 (t/defprotocol PBar

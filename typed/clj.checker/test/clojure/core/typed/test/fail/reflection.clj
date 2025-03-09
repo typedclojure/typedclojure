@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.fail.reflection
+(ns ^:typed.clojure clojure.core.typed.test.fail.reflection
   (:require [typed.clojure :as t]))
 
 (t/fn [a :- java.io.File]

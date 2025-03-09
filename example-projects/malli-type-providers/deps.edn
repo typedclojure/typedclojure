@@ -2,7 +2,8 @@
         org.typedclojure/typed.clj.runtime {:local/root "../../typed/clj.runtime"}
         org.typedclojure/typed.cljs.runtime {:local/root "../../typed/cljs.runtime"}
         org.typedclojure/typed.malli {:local/root "../../typed/malli"}}
- :aliases {:dev {:extra-paths ["test"]
+ :aliases {:dev {:jvm-opts ["-Dtyped.clojure.preserve-check-ns-after-opt-in=true"]
+                 :extra-paths ["test"]
                  :extra-deps {org.typedclojure/typed.clj.checker {:local/root "../../typed/clj.checker"}
                               org.typedclojure/typed.cljs.checker {:local/root "../../typed/cljs.checker"}}}
            :test {:extra-deps {io.github.cognitect-labs/test-runner 

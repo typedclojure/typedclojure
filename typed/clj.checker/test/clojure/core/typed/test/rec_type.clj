@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.rec-type
+(ns ^:typed.clojure clojure.core.typed.test.rec-type
   (:require [typed.clojure :as t])
   (:import (clojure.lang IMapEntry)))
 

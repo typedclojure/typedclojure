@@ -1,4 +1,5 @@
-(ns typed-example.malli-global-registry
+
+(ns ^:typed.clojure typed-example.malli-global-registry
   "How to use Malli's default global registry as a type
   provider to Typed Clojure."
   (:require [malli.core :as m]

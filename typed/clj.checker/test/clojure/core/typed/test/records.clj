@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.records
+(ns ^:typed.clojure clojure.core.typed.test.records
   (:require [clojure.core.typed :refer [check-ns ann-record ann-form cf]]
             [clojure.repl :refer [pst]]))
 

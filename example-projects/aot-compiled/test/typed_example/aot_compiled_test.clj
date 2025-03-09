@@ -2,5 +2,4 @@
   (:require [clojure.test :refer [deftest is]]))
 
 (deftest aot-compiled-test
-  (compile 'typed-example.aot-compiled)
- )
+  (compile 'typed-example.aot-compiled))

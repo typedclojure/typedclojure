@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.prest-cs-gen
+(ns ^:typed.clojure clojure.core.typed.test.prest-cs-gen
   (:require [typed.clojure :as t]))
 
 (t/ann foo (t/All [k v r] [[k v -> r] k v -> r]))

@@ -18,7 +18,8 @@
                         "-e" "(assert,(=,nil,(resolve,'typed.clojure/check-ns-cljs)))"
                         "-e" "(prn,:cljs-runtime-test/typedclojure-not-loaded)"
                         "-e" ":cljs-runtime-test/ok"]}
-           :dev {:extra-paths ["test"]
+           :dev {:jvm-opts ["-Dtyped.clojure.preserve-check-ns-after-opt-in=true"]
+                 :extra-paths ["test"]
                  :extra-deps {org.typedclojure/typed.clj.checker {:local/root "../../typed/clj.checker"}
                               org.typedclojure/typed.cljs.checker {:local/root "../../typed/cljs.checker"}}}
            :test {:extra-deps {io.github.cognitect-labs/test-runner 

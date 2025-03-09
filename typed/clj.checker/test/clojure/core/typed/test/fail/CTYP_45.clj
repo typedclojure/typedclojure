@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.fail.CTYP-45
+(ns ^:typed.clojure clojure.core.typed.test.fail.CTYP-45
   (:require [clojure.core.typed :as t]))
 
 ; using defprotocol shouldn't throw an internal error

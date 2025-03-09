@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.protocol-untyped-extend
+(ns ^:typed.clojure clojure.core.typed.test.protocol-untyped-extend
   (:require [clojure.core.typed :refer [ann-protocol tc-ignore
                                         ann-datatype ann check-ns]
              :as t]

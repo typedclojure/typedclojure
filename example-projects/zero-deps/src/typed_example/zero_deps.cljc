@@ -1,4 +1,4 @@
-(ns typed-example.zero-deps
+(ns ^:typed.clojure typed-example.zero-deps
   "We want to distribute this ns in a jar that does not depend
   on Typed Clojure, but we need to add local annotations."
   (:require ;; alias typed.clojure as t without loading in Clojure

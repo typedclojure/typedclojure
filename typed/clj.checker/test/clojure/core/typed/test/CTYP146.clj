@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.CTYP146
+(ns ^:typed.clojure clojure.core.typed.test.CTYP146
   (:require [typed.clojure :refer [ann] :as t]))
 
 (ann distinct-except

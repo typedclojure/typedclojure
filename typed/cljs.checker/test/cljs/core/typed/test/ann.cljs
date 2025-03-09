@@ -1,4 +1,4 @@
-(ns cljs.core.typed.test.ann
+(ns ^:typed.clojure cljs.core.typed.test.ann
   (:require [cljs.core.typed :as t :refer-macros [ann check-ns]]))
 
 (ann foo cljs.core.typed/Num)

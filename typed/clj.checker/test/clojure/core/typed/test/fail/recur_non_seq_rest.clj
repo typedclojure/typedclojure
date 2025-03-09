@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.fail.recur-non-seq-rest
+(ns ^:typed.clojure clojure.core.typed.test.fail.recur-non-seq-rest
   (:require [typed.clojure :as t]))
 
 (t/ann recur-args-fail [t/Num :* :-> t/Any])

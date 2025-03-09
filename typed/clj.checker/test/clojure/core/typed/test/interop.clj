@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.interop
+(ns ^:typed.clojure clojure.core.typed.test.interop
   (:import (java.io File))
   (:require [clojure.core.typed :as t]))
 

@@ -10,7 +10,8 @@
              cider/piggieback {:mvn/version "0.6.0"}}
             :main-opts ["-m" "nrepl.cmdline"
                         "--interactive"]}
-           :test {:extra-deps {org.typedclojure/typed.clj.checker
+           :test {:jvm-opts ["-Dtyped.clojure.preserve-check-ns-after-opt-in=true"]
+                  :extra-deps {org.typedclojure/typed.clj.checker
                                {:local/root "../clj.checker"
                                 :deps/manifest :deps}
                                ;;shared tests

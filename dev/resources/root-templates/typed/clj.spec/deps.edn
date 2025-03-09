@@ -8,7 +8,8 @@
  :mvn/repos {"sonatype-oss-public"
              {:url "{◊sonatype-oss-public-url◊}"}}
  :aliases {:test
-           {:extra-paths ["test"]
+           {:jvm-opts ["-Dtyped.clojure.preserve-check-ns-after-opt-in=true"]
+            :extra-paths ["test"]
             :extra-deps {{◊typedclojure-group-id◊}/typed.clj.checker
                          {:local/root "../clj.checker"
                           :deps/manifest :deps}

@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.nested-tfn-operator
+(ns ^:typed.clojure clojure.core.typed.test.nested-tfn-operator
   (:require [typed.clojure :as t]))
 
 (t/defalias Indirect0

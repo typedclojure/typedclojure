@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.mm
+(ns ^:typed.clojure clojure.core.typed.test.mm
   (:require [typed.clojure :as t]))
 
 (t/defalias Expr

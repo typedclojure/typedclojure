@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.def-arrow
+(ns ^:typed.clojure clojure.core.typed.test.def-arrow
   (:require [clojure.core.typed :as t]))
 
 (t/def a :- Number, 1)

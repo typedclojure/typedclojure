@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.CTYP-83-performance
+(ns ^:typed.clojure clojure.core.typed.test.CTYP-83-performance
   (:require [typed.clojure :as t]))
 
 (defmacro pf [frm]

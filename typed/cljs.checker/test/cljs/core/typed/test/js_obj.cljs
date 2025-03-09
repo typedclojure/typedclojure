@@ -1,4 +1,4 @@
-(ns cljs.core.typed.test.js-obj
+(ns ^:typed.clojure cljs.core.typed.test.js-obj
   (:require [cljs.core.typed :as t]))
 
 (t/ann jo [-> (t/JSObj {:a t/JSnumber})])

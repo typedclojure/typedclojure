@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.ctyp97-tvar-scoping
+(ns ^:typed.clojure clojure.core.typed.test.ctyp97-tvar-scoping
   (:import (clojure.lang ASeq LazySeq))
   (:require [clojure.core.typed :as t :refer [ann]]))
 

@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.extend-record
+(ns ^:typed.clojure clojure.core.typed.test.extend-record
   (:require [clojure.core.typed :as t :refer [ann-protocol ann-record]]
             #_[typed.clj.checker.subtype :as sub]
             #_[typed.clj.checker.parse-unparse :as prs]

@@ -1,4 +1,4 @@
-(ns typed-example.spec1-type-providers
+(ns ^:typed.clojure typed-example.spec1-type-providers
   (:require [typed.clojure :as t]
             [clojure.spec.alpha :as s]))
 

@@ -1,4 +1,4 @@
-(ns typed-test.provider.malli__test1
+(ns ^:typed.clojure typed-test.provider.malli__test1
   (:require [malli.core :as m]
             [typed.clojure :as t]))
 

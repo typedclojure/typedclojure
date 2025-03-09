@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.ctyp105
+(ns ^:typed.clojure clojure.core.typed.test.ctyp105
   (:require [clojure.string :as str]
             [typed.clojure :as t]))
 

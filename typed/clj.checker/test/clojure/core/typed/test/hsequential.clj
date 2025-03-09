@@ -1,4 +1,4 @@
-(ns clojure.core.typed.test.hsequential
+(ns ^:typed.clojure clojure.core.typed.test.hsequential
   (:require [typed.clojure :as t]))
 
 ; currently we can't test if (HSequential [z t/Any *]) is subtype of
