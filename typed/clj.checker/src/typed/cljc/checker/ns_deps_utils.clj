@@ -55,23 +55,6 @@
     (ns-form-deps ns-form)
     #{}))
 
-#_
-(defn requires-tc?
-  "Returns true if the ns-form refers to clojure.core.typed"
-  [ns-form opts]
-  {:pre [ns-form]
-   :post [(boolean? %)]}
-  (if-let [deps (ns-parse/deps-from-ns-decl ns-form)]
-    (boolean
-      (some (impl/impl-case opts
-              :clojure '#{clojure.core.typed
-                          typed.clojure}
-              :cljs '#{clojure.core.typed
-                       cljs.core.typed
-                       typed.clojure})
-            deps))
-    false))
-
 (defn ns-form-name
   "Returns the symbol naming this namespace, with any
   metadata attached."
@@ -109,36 +92,3 @@
   {:pre [(symbol? nsym)]
    :post [(boolean? %)]}
   (should-check-ns-form? (ns-form-for-ns nsym opts) opts))
-
-(defn ns-has-core-typed-metadata?
-  "Returns true if the given ns form has :core.typed metadata."
-  [rcode opts]
-  {:post [(boolean? %)]}
-  (boolean (-> (ns-meta rcode opts) :core.typed)))
-
-(defn should-use-typed-load?
-  "Returns true if typed load should be triggered for this namespace."
-  [ns-form opts]
-  {:post [(boolean? %)]}
-  (let [m (ns-meta ns-form opts)]
-    (and (= :core.typed (:lang m))
-         (not (-> m :core.typed :no-typed-load)))))
-
-#_
-(defn file-has-core-typed-metadata?
-  "Returns true if the given file has :core.typed metadata."
-  [res opts]
-  {:pre [(string? res)]
-   :post [(boolean? %)]}
-  (if-let [ns-form (ns-form-for-file res opts)]
-    (boolean (some-> ns-form (ns-has-core-typed-metadata? opts)))
-    false))
-
-(defn file-should-use-typed-load?
-  "Returns true if the given file should be loaded with typed load."
-  [res opts]
-  {:pre [(string? res)]
-   :post [(boolean? %)]}
-  (if-let [ns-form (ns-form-for-file res opts)]
-    (boolean (some-> ns-form (should-use-typed-load? opts)))
-    false))
