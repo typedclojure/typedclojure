@@ -8,7 +8,7 @@ checks and improve performance.
 ## Identical namespace caching
 
 The most common case is that a namepsace has not changed textually. This is the main
-case targetted by tools.namespace, and while we do could do more granular caching, this
+case targeted by tools.namespace, and while we do could do more granular caching, this
 should always be checked first to avoid extra work.
 
 If an entire namespace is exactly the same as the last time it was type checked,
@@ -43,7 +43,7 @@ If a namespace has textual changes, we need to recheck the parts of the namespac
 that changed.
 
 The order of forms in a namespace often does not change the way each form type checks.
-For example, if the the entire namespace is a series of `defn`'s, we could theoretically type check
+For example, if the entire namespace is a series of `defn`'s, we could theoretically type check
 it in any order, or skip some.
 
 When it's true, this insight simplifies identifying a form, which gives some flexibility
