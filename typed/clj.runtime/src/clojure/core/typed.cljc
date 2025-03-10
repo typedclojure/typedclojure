@@ -691,12 +691,8 @@ for checking namespaces, cf for checking individual forms."}
   - :ret             TCResult inferred for the current form
   - :out-form        The macroexpanded result of type-checking, if successful. 
   - :result          The evaluated result of :out-form, if any.
-  - :ex              If an exception was thrown during evaluation, this key will be present
-                     with the exception as the value.
-  DEPRECATED
-  - :delayed-errors  A sequence of delayed errors (ex-info instances)
-  - :profile         Use Timbre to profile the type checker. Timbre must be
-                     added as a dependency. Must use the \"slim\" JAR."
+  - :ex              A fatal exception thrown during checking, if any.
+  - :type-errors     A non-empty vector of delayed errors."
   [form & {:as opt}]
   ((requiring-resolve 'typed.clj.checker/check-form-info) form (or opt {})))
 
@@ -743,15 +739,14 @@ for checking namespaces, cf for checking individual forms."}
 
   Options
   - :type-provided?  If true, use the expected type to check the form
-  - :profile         Use Timbre to profile the type checker. Timbre must be
-  added as a dependency. Must use the \"slim\" JAR.
   - :file-mapping    If true, return map provides entry :file-mapping, a hash-map
   of (Map '{:line Int :column Int :file Str} Str).
   - :check-deps      If true, recursively type check namespace dependencies.
   Default: true
 
-  Default return map
-  - :delayed-errors  A sequence of delayed errors (ex-info instances)"
+  Return map
+  - :ex           A fatal exception thrown during checking, if any.
+  - :type-errors  If present, a non-empty vector of delayed errors. See [[doc/errors.md]]."
   ([] ((requiring-resolve 'typed.clj.checker/check-ns-info)))
   ([ns-or-syms & opt]
    (apply (requiring-resolve 'typed.clj.checker/check-ns-info) ns-or-syms opt)))
@@ -810,11 +805,6 @@ for checking namespaces, cf for checking individual forms."}
     - :check-ns-load     If :require-before-check, `require` all checked namespaces before checking.
                          If :never, don't load files before checking.
                          Default: :require-before-check
-
-  Removed:
-  - :profile       If true, use Timbre to profile the type checker. Timbre must be
-                   added as a dependency. Must use the \"slim\" JAR.
-                   Default: nil
 
 
   If providing keyword arguments, the namespace to check must be provided

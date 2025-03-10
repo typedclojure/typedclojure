@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:typed.clojure ^:no-doc typed.clj.checker.parse-unparse
-  (:refer-clojure :exclude [requiring-resolve])
+  (:refer-clojure :exclude [requiring-resolve type])
   (:require [clojure.core.typed.coerce-utils :as coerce]
             [typed.clojure :as t]
             [clojure.core.typed.contract-utils :as con]
@@ -2478,16 +2478,22 @@
     (list 'when (unparse-filter a opts) (unparse-filter c opts))))
 
 ;[TCResult -> Any]
-(defn unparse-TCResult [r opts]
-  (let [t (unparse-type (r/ret-t r) opts)
-        fs (unparse-filter-set (r/ret-f r) opts)
-        o (unparse-object (r/ret-o r) opts)]
+(defn unparse-TCResult-map [r opts]
+  (let [base {:type (unparse-type (r/ret-t r) opts)}]
     (if (and (= (fl/-FS f/-top f/-top) (r/ret-f r))
              (= (r/ret-o r) orep/-empty))
-      t
-      (if (= (r/ret-o r) orep/-empty)
-        [t fs]
-        [t fs o]))))
+      base
+      (cond-> (assoc base :filter-set (unparse-filter-set (r/ret-f r) opts))
+        (not= (r/ret-o r) orep/-empty)
+        (assoc :object (unparse-object (r/ret-o r) opts))))))
+
+(defn unparse-TCResult [r opts]
+  (let [{:keys [type] :as m} (unparse-TCResult-map r opts)]
+    (if-some [[_ o] (find m :object)]
+      [type (:filter-set m) o]
+      (if-some [[_ fs] (find m :filter-set)]
+        [type fs]
+        type))))
 
 (defn unparse-TCResult-in-ns [r ns opts]
   {:pre [((some-fn plat-con/namespace? symbol?) ns)]}

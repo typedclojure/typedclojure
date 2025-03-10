@@ -27,6 +27,7 @@
   
   quoted? should be true if this :const node is nested inside a
   :quote node, otherwise should be false"
+  ([expr expected opts] (check-const expr expected false opts))
   ([{:keys [val] :as expr} expected quoted? opts]
    {:pre [(#{:const} (:op expr))
           ((some-fn nil? r/TCResult?) expected)]

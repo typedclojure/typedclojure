@@ -81,54 +81,55 @@
           ret
           syms))
 
-(defn check-let [{:keys [body bindings] :as expr} expected {is-loop :loop? :keys [expected-bnds]} {::check/keys [check-expr] :as opts}]
-  {:post [(-> % u/expr-type r/TCResult?)
-          (vector? (:bindings %))]}
-  (cond
-    (and is-loop (seq bindings) (not expected-bnds))
-    (do
-      (err/tc-delayed-error "Loop requires more annotations" opts)
-      (assoc expr
-             u/expr-type (or expected (r/ret (r/Bottom)))))
-    :else
-    (let [is-reachable (volatile! true)
-          [env cbindings]
-          (reduce
-            (fn [[env cbindings] [n expected-bnd]]
-              {:pre [@is-reachable
-                     (lex/PropEnv? env)
-                     ((some-fn nil? r/Type?) expected-bnd)
-                     (= (boolean expected-bnd) (boolean is-loop))]
-               :post [((con/maybe-reduced-c? (con/hvector-c? lex/PropEnv? vector?)) %)]}
-              (let [expr (get cbindings n)
-                    ; check rhs
-                    {sym :name :as cexpr} (check-expr expr (when is-loop
-                                                             (r/ret expected-bnd))
-                                                      (var-env/with-lexical-env opts env))
-                    new-env (update-env env sym (u/expr-type cexpr) is-reachable opts)
-                    maybe-reduced (if @is-reachable identity reduced)]
-                (maybe-reduced
-                  [new-env (assoc cbindings n cexpr)])))
-            [(lex/lexical-env opts) bindings]
-            (map vector
-                 (range (count bindings))
-                 (or expected-bnds
-                     (repeat nil))))
-          _ (assert (= (count bindings) (count cbindings)))]
-      (cond
-        (not @is-reachable) (assoc expr 
-                                   :bindings cbindings
-                                   u/expr-type (or expected (r/ret (r/Bottom))))
+(defn check-let
+  ([expr expected opts] (check-let expr expected {} opts))
+  ([{:keys [body bindings] :as expr} expected {is-loop :loop? :keys [expected-bnds]} {::check/keys [check-expr] :as opts}]
+   {:post [(-> % u/expr-type r/TCResult?)
+           (vector? (:bindings %))]}
+   (cond
+     (and is-loop (seq bindings) (not expected-bnds))
+     (do
+       (err/tc-delayed-error "Loop requires more annotations" opts)
+       (assoc expr
+              u/expr-type (or expected (r/ret (r/Bottom)))))
+     :else
+     (let [is-reachable (volatile! true)
+           [env cbindings]
+           (reduce
+             (fn [[env cbindings] [n expected-bnd]]
+               {:pre [@is-reachable
+                      (lex/PropEnv? env)
+                      ((some-fn nil? r/Type?) expected-bnd)
+                      (= (boolean expected-bnd) (boolean is-loop))]
+                :post [((con/maybe-reduced-c? (con/hvector-c? lex/PropEnv? vector?)) %)]}
+               (let [expr (get cbindings n)
+                     ; check rhs
+                     {sym :name :as cexpr} (check-expr expr (when is-loop
+                                                              (r/ret expected-bnd))
+                                                       (var-env/with-lexical-env opts env))
+                     new-env (update-env env sym (u/expr-type cexpr) is-reachable opts)
+                     maybe-reduced (if @is-reachable identity reduced)]
+                 (maybe-reduced
+                   [new-env (assoc cbindings n cexpr)])))
+             [(lex/lexical-env opts) bindings]
+             (map vector
+                  (range (count bindings))
+                  (or expected-bnds
+                      (repeat nil))))
+           _ (assert (= (count bindings) (count cbindings)))]
+       (cond
+         (not @is-reachable) (assoc expr 
+                                    :bindings cbindings
+                                    u/expr-type (or expected (r/ret (r/Bottom))))
 
-        :else
-        (let [cbody (let [opts (var-env/with-lexical-env opts env)]
-                      (if is-loop
-                        (let [opts (assoc opts ::recur-u/recur-target (recur-u/RecurTarget-maker expected-bnds nil nil nil))]
-                          (check-expr body expected opts))
-                        (check-expr body expected (assoc opts ::vs/current-expr body))))
-             unshadowed-ret (erase-objects (into #{} (map :name) cbindings) (u/expr-type cbody) opts)]
-          (assoc expr
-                 :body cbody
-                 :bindings cbindings
-                 u/expr-type unshadowed-ret))))))
-
+         :else
+         (let [cbody (let [opts (var-env/with-lexical-env opts env)]
+                       (if is-loop
+                         (let [opts (assoc opts ::recur-u/recur-target (recur-u/RecurTarget-maker expected-bnds nil nil nil))]
+                           (check-expr body expected opts))
+                         (check-expr body expected (assoc opts ::vs/current-expr body))))
+               unshadowed-ret (erase-objects (into #{} (map :name) cbindings) (u/expr-type cbody) opts)]
+           (assoc expr
+                  :body cbody
+                  :bindings cbindings
+                  u/expr-type unshadowed-ret)))))))

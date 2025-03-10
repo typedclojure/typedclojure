@@ -82,6 +82,8 @@
     (assert (symbol? field))
     (symbol (str (coerce/Class->symbol c)) (str field))))
 
+(def type-mismatch-error :typed.clojure/type-mismatch-error)
+(err/derive-type-error type-mismatch-error)
 
 ;(t/ann expected-error [r/Type r/TCResult -> nil])
 (defn expected-error
@@ -89,13 +91,18 @@
   ([actual expected opt opts]
    {:pre [(r/Type? actual)
           (r/TCResult? expected)]}
-   (let [opts (update opts ::prs/unparse-type-in-ns #(or % (some-> (::vs/current-expr opts) (expr-ns opts))))]
+   (let [opts (update opts ::prs/unparse-type-in-ns #(or % (some-> (::vs/current-expr opts) (expr-ns opts))))
+         expected-type (prs/unparse-type (:t expected) opts)
+         actual-type (prs/unparse-type actual opts)]
      (err/tc-delayed-error (str "Type mismatch:"
-                                "\n\nExpected: \t" (pr-str (prs/unparse-type (:t expected) opts))
-                                "\n\nActual: \t" (pr-str (prs/unparse-type actual opts)))
-                           (into {:expected expected
-                                  :actual actual}
-                                 opt)
+                                "\n\nExpected: \t" (pr-str expected-type)
+                                "\n\nActual: \t" (pr-str actual-type))
+                           (-> {:expected expected
+                                :actual actual}
+                               (into opt)
+                               (assoc :type-error type-mismatch-error
+                                      :data {:expected-type expected-type
+                                             :actual-type actual-type}))
                            opts))))
 
 

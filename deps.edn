@@ -39,7 +39,8 @@
   :spec-skip-macros {:jvm-opts ["-Dclojure.spec.skip-macros=true"]},
   :test
   {:extra-deps
-   {com.clojure-goes-fast/clj-async-profiler {:mvn/version "1.6.1"},
+   {babashka/fs {:mvn/version "0.5.24"},
+    com.clojure-goes-fast/clj-async-profiler {:mvn/version "1.6.1"},
     com.clojure-goes-fast/clj-java-decompiler {:mvn/version "0.3.0"},
     com.gfredericks/test.chuck {:mvn/version "0.2.12"},
     criterium/criterium {:mvn/version "0.4.5"},

@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:typed.clojure ^:no-doc clojure.core.typed.errors
-  #?(:clj (:refer-clojure :exclude [requiring-resolve]))
+  (:refer-clojure :exclude [#?(:clj requiring-resolve) type])
   (:require [clojure.core.typed.util-vars :as uvs]
             [clojure.core.typed.current-impl :as impl]
             [clojure.pprint :as pp]
@@ -20,12 +20,15 @@
 
 (def tc-error-parent ::tc-error-parent)
 
-(defn derive-error [kw]
+(defn- derive-error [kw]
   (derive kw tc-error-parent))
 
 (derive-error type-error-kw)
 (derive-error int-error-kw)
 (derive-error nyi-error-kw)
+
+(defn derive-type-error [kw]
+  (derive kw type-error-kw))
 
 ;(t/ann ^:no-check env-for-error [Any t/Any -> Any])
 (defn env-for-error [env opts]
@@ -80,17 +83,6 @@
      false)))
 
 #?(:clj
-(defmacro top-level-type-error-thrown?
-  "Succeeds if a top-level error thrown by check-ns is due to a type error."
-  [& body]
-  `(with-ex-info-handlers
-     [top-level-error? (fn [exd# _#]
-                         (some->> (seq (:errors exd#))
-                                  (every? #(some-> % ex-data type-error?))))]
-     ~@body
-     false)))
-
-#?(:clj
 (defmacro tc-error-thrown? [& body]
   `(with-ex-info-handlers
      [tc-error? (constantly true)]
@@ -103,7 +95,7 @@
 
 (defn type-error? [exdata]
   (assert (not (instance? clojure.lang.ExceptionInfo exdata)))
-  (= (:type-error exdata) type-error-kw))
+  (isa? (:type-error exdata) type-error-kw))
 
 (defn any-tc-error? [exdata]
   (assert (not (instance? clojure.lang.ExceptionInfo exdata)))
@@ -115,7 +107,7 @@
 (defn tc-delayed-error
   "Supports kw args or single optional map."
   ([msg opts] (tc-delayed-error msg {} opts))
-  ([msg {:keys [return form expected] :as opt} {::uvs/keys [delayed-errors current-expr] :as opts}]
+  ([msg {:keys [return form expected type-error data] :or {type-error type-error-kw} :as opt} {::uvs/keys [type-errors current-expr] :as opts}]
    (let [form (cond
                 (contains? (:opts expected) :blame-form) (-> expected :opts :blame-form)
                 (contains? opt :blame-form) (:blame-form opt)
@@ -135,22 +127,24 @@
                              "  More information  \n"
                              "====================\n\n"))))
                   msg)
-         e (ex-info msg {:type-error type-error-kw
-                         :env (env-for-error
-                                (merge (or (:env current-expr)
-                                           (::uvs/current-env opts))
-                                       (when (contains? (:opts expected) :blame-form)
-                                         (meta (-> expected :opts :blame-form))))
-                                opts)
-                         :form form})]
+         e {:type-error type-error
+            :env (env-for-error
+                   (merge (or (:env current-expr)
+                              (::uvs/current-env opts))
+                          (when (contains? (:opts expected) :blame-form)
+                            (meta (-> expected :opts :blame-form))))
+                   opts)
+            :form form
+            :data data
+            :message msg}]
      (cond
        ;can't delay here
-       (not delayed-errors)
-       (throw e)
+       (not type-errors)
+       (throw (ex-info msg (dissoc e :message)))
 
        :else
        (do
-         (swap! delayed-errors conj e)
+         (swap! type-errors conj e)
          (or (when (contains? opt :return)
                return)
              @(requiring-resolve 'typed.cljc.checker.type-rep/-error)))))))
@@ -240,51 +234,58 @@
           ((some-fn symbol? nil?) new)]}
    (deprecated-warn (str old " syntax is deprecated, use " (var-for-impl (or new old) opts)) opts)))
 
+(defn print-errors->summary-message
+  "Returns a string to print to stderr if you can't throw it in an exception."
+  [errors opts]
+  {:pre [(seq errors)
+         (every? (every-pred map? (complement #(instance? clojure.lang.ExceptionInfo %)))
+                 errors)]
+   :post [(string? %)]}
+  (binding [*out* *err*]
+    (doseq [{{:keys [file line column] :as env} :env :keys [message] :as data} errors]
+      (print "Type Error ")
+      (print (str "(" (or file
+                          (let [nsym (-> env :ns)]
+                            (when (symbol? nsym)
+                              nsym))
+                          "NO_SOURCE_FILE")
+                  (when line
+                    (str ":" line
+                         (when column
+                           (str ":" column))))
+                  ") "))
+      (println)
+      (print message)
+      (println)
+      (flush)
+      (let [[_ form :as has-form?] (find data :form)]
+        (when has-form?
+          (print "\n\nin:\n")
+          (binding [*print-length* (when-not (::uvs/verbose-forms opts)
+                                     10)
+                    *print-level* (when-not (::uvs/verbose-forms opts)
+                                    10)]
+            (pp/pprint form)
+            (println))
+          (println)
+          (println)
+          (flush)))
+      (flush)))
+  (str "Type Checker: Found " (count errors) " error" (when (< 1 (count errors)) "s")))
+
 (defn print-errors!
   "Internal use only"
   [errors opts]
-  {:pre [(seq errors)
-         (every? #(instance? clojure.lang.ExceptionInfo %) errors)]}
-  (binding [*out* *err*]
-    (doseq [^Exception e errors]
-      (let [{{:keys [file line column] :as env} :env :as data} (ex-data e)]
-        (print "Type Error ")
-        (print (str "(" (or file 
-                            (let [nsym (-> env :ns)]
-                              (when (symbol? nsym)
-                                nsym))
-                            "NO_SOURCE_FILE")
-                    (when line
-                      (str ":" line
-                           (when column
-                             (str ":" column))))
-                    ") "))
-        (println)
-        (print (#?(:cljr .Message :default .getMessage) e))
-        (println)
-        (flush)
-        (let [[_ form :as has-form?] (find data :form)]
-          (when has-form?
-            (print "\n\nin:\n")
-            (binding [*print-length* (when-not (::uvs/verbose-forms opts)
-                                       10)
-                      *print-level* (when-not (::uvs/verbose-forms opts)
-                                      10)]
-              (pp/pprint form)
-              (println))
-            (println)
-            (println)
-            (flush)))
-        (flush))))
-  (throw (ex-info (str "Type Checker: Found " (count errors) " error" (when (< 1 (count errors)) "s"))
+  (throw (ex-info (print-errors->summary-message errors opts)
                   {:type-error :top-level-error
                    :errors errors})))
 
 (defn ^:no-doc
-  -init-delayed-errors 
+  -init-type-errors 
   "Internal use only"
   []
   (atom [] :validator #(and (vector? %)
                             (every? (fn [a] 
-                                      (instance? clojure.lang.ExceptionInfo a))
+                                      (and (map? a)
+                                           (not (instance? clojure.lang.ExceptionInfo a))))
                                     %))))

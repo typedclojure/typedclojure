@@ -2199,16 +2199,16 @@
          (r/SymbolicClosure? arg-t)
          (r/Type? #_inferrable-symbolic-closure-expected-type? dom-t)]
    :post [(r/AnyType? %)]}
-  (let [delayed-errors (err/-init-delayed-errors)
+  (let [type-errors (err/-init-type-errors)
         expected (r/ret (prep-symbolic-closure-expected-type3 substitution-without-symb dom-t opts))
         ;_ (prn :app-symbolic-closure expected)
         res (-> (check-expr
                   (:fexpr arg-t)
                   expected
                   ;;TODO add symbolic closure's lexical scope from (:opts arg-t)
-                  (assoc opts ::vs/delayed-errors delayed-errors))
+                  (assoc opts ::vs/type-errors type-errors))
                 u/expr-type r/ret-t)]
-    (when-some [errs (seq @delayed-errors)]
+    (when-some [errs (seq @type-errors)]
       #_
       (prn "symbolic closure failed to check"
            errs)
@@ -2308,8 +2308,8 @@
                                                             (and (not= :rng i)
                                                                  (r/FnIntersection? t)
                                                                  (= 1 (count (:types t))))
-                                                            (let [delayed-errors (err/-init-delayed-errors)
-                                                                  opts (assoc opts ::vs/delayed-errors delayed-errors)]
+                                                            (let [type-errors (err/-init-type-errors)
+                                                                  opts (assoc opts ::vs/type-errors type-errors)]
                                                               ;(prn "Deferred Poly <: " s t)
                                                               (let [t (prep-symbolic-closure-expected-type3 subst t opts)
                                                                     ;_ (prn "t" t)
@@ -2327,7 +2327,7 @@
                                                                                     (-> t :types first :rng r/Result->TCResult)
                                                                                     {} opts))
                                                                     ;_ (prn "after check-funapp" inferred-rng)
-                                                                    _ (when-some [errs (seq @delayed-errors)]
+                                                                    _ (when-some [errs (seq @type-errors)]
                                                                         #_
                                                                         (prn "deferred Poly argument failed to check"
                                                                              errs)

@@ -14,10 +14,10 @@
             [typed.clj.runtime.env :as clj-env]
             [typed.clj.checker.analyze-clj :as ana-clj]
             [typed.clj.checker.check :as chk-clj]
-            [typed.cljc.checker.check-form :as chk-form2]
+            [typed.cljc.checker.check-form :as chk-form]
             [typed.cljc.checker.runtime-check :as rt-chk]))
 
-(defn config-map2 []
+(defn config-map []
   {:impl impl/clojure
    :check-top-level chk-clj/check-top-level
    :unparse-ns (ns-name *ns*)
@@ -26,19 +26,19 @@
                    ([ast] (eval-out-ast ast {}))
                    ([ast opts] (ana-clj/eval-ast ast opts)))
    :emit-form ast-u/emit-form-fn
-   :check-form-info chk-form2/check-form-info
-   :check-form* chk-form2/check-form*})
+   :check-form-info chk-form/check-form-info
+   :check-form* chk-form/check-form*})
 
 (defn check-form-info
   [form opt opts]
   (assert (map? opt))
-  (let [config (config-map2)]
-    (chk-form2/check-form-info-with-config
+  (let [config (config-map)]
+    (chk-form/check-form-info-with-config
       config form opt opts)))
 
 (defn check-form*
   [form expected type-provided? opt opts]
   {:pre [(map? opt)]}
-  (let [config (config-map2)]
-    (chk-form2/check-form*-with-config
+  (let [config (config-map)]
+    (chk-form/check-form*-with-config
       config form expected type-provided? opt opts)))

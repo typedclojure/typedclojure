@@ -97,7 +97,7 @@
  :kaocha.plugin.profiling/count 3,
  :kaocha.plugin.profiling/profiling? true,
  :kaocha/fail-fast? true,
- :kaocha/color? true,
+ :kaocha/color? false,
  :kaocha.plugin.randomize/randomize? true,
  :kaocha/plugins
  [:kaocha.plugin/randomize

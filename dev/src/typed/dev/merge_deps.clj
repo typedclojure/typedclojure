@@ -160,7 +160,7 @@
                                                                    (.contains p "analyzer"))
                                                                  (non-resource-test-paths))}]
    :kaocha/fail-fast?                  true
-   :kaocha/color?                      true
+   :kaocha/color?                      false
    :kaocha/reporter                    ['kaocha.report/dots]
    ;:kaocha/reporter                    ['kaocha.report/documentation]
    :kaocha/plugins                     [:kaocha.plugin/randomize

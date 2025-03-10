@@ -311,13 +311,13 @@
       (let [opts (assoc opts ::vs/can-rewrite nil)
             ;;TODO fan out
             method-returns+errors (mapv (fn [t]
-                                          (let [delayed-errors (err/-init-delayed-errors)]
-                                            (let [res (check-fni t mthods opt (assoc opts ::vs/delayed-errors delayed-errors))]
-                                              {:errors (seq @delayed-errors)
+                                          (let [type-errors (err/-init-type-errors)]
+                                            (let [res (check-fni t mthods opt (assoc opts ::vs/type-errors type-errors))]
+                                              {:errors (seq @type-errors)
                                                :res res})))
                                         ts)
             _ (when (every? :errors method-returns+errors)
-                (swap! (::vs/delayed-errors opts) into (mapcat :errors) method-returns+errors))]
+                (swap! (::vs/type-errors opts) into (mapcat :errors) method-returns+errors))]
         {:methods mthods
          :ifn (c/Un (map (comp :ifn :res) method-returns+errors) opts)
          :cmethods (into [] (mapcat (comp :cmethods :res)) method-returns+errors)}))))

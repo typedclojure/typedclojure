@@ -18,7 +18,7 @@
         res (t/check-form-info form
                                :expected expected
                                :type-provided? true)]
-    (is (-> res :delayed-errors empty?))
+    (is (-> res :type-errors empty?))
     (is (not (:ex res))))
   ; type error
   (let [form `(t/tc-ignore 1)
@@ -26,14 +26,7 @@
         res (t/check-form-info form
                                :expected expected
                                :type-provided? true)]
-    (is (= form
-           (some-> res
-                   :ex
-                   ex-data
-                   :errors
-                   first
-                   ex-data
-                   :form))
+    (is (= form (-> res :type-errors first :form))
         res))
   ; eval
   (let [form `(t/tc-ignore 1)
@@ -50,7 +43,7 @@
         res (t/check-form-info form
                                :expected expected
                                :type-provided? true)]
-    (is (-> res :delayed-errors empty?))
+    (is (-> res :type-errors empty?))
     (is (not (:ex res))))
   ; type error
   ;; inner form does not have ascribed type
@@ -59,7 +52,7 @@
         res (t/check-form-info form
                                :expected expected
                                :type-provided? true)]
-    (is (or (seq (:delayed-errors res))
+    (is (or (seq (:type-errors res))
             (:ex res))
         res))
   ;; expected type not a supertype of ascribed type
@@ -68,19 +61,7 @@
         res (t/check-form-info form
                                :expected expected
                                :type-provided? true)]
-    (is (= form
-           (or (some-> res
-                       :delayed-errors
-                       first
-                       ex-data
-                       :form)
-               (some-> res
-                       :ex
-                       ex-data
-                       :errors
-                       first
-                       ex-data
-                       :form)))
+    (is (= form (some-> res :type-errors first :form))
         res))
   ; eval
   (let [form `(t/ann-form 1 t/Int)
@@ -100,10 +81,15 @@
              (find :result))))))
 
 (deftest fn-vector-destructure-error-msg-test
-  (is (= (is-tc-err-messages
-           (fn [[a] :- (t/Set t/Any)]))
-         {:delayed-errors [[(extcc__let/bad-vector-destructure-error-msg
-                              "(IPersistentSet t/Any)"
-                              "[a]")
-                            {:type-error :clojure.core.typed.errors/type-error
-                             :form '(fn [[a] :- (t/Set t/Any)])}]]})))
+  (is (= '{:type-errors
+           [{:type-error :clojure.core.typed.errors/type-error,
+             :env
+             {:line "REMOVED_LINE" ,
+              :column 12,
+              :file "typed.clj"},
+             :form (fn [[a] :- (t/Set t/Any)]),
+             :data nil,
+             :message
+             "The type `(IPersistentSet t/Any)` cannot be destructured via syntax `[a]` because the type cannot be passed as the first argument of `nth`.`"}]}
+         (is-tc-err-messages
+           (fn [[a] :- (t/Set t/Any)])))))

@@ -38,11 +38,11 @@
         _ (assert (not (and has-t? (contains? opt :expected-ret)))
                   "Can't provide both expected type and expected ret")
         actual-ret (gensym 'ret)]
-    `(let [{~actual-ret :ret ex# :ex delayed-errors# :delayed-errors} ~(tc-common* frm (assoc opt
+    `(let [{~actual-ret :ret ex# :ex type-errors# :type-errors} ~(tc-common* frm (assoc opt
                                                                                               :expected-syntax {:provided? has-t?
                                                                                                                 :syn t}))
            _# (some-> ex# throw)
-           _# (some-> (seq delayed-errors#) (err/print-errors!
+           _# (some-> (seq type-errors#) (err/print-errors!
                                               ;;TODO opts
                                               {}))
            _# ~(when has-ret?
@@ -68,7 +68,7 @@
         _ (assert (not (and has-t? (contains? opts :expected-ret)))
                   "Can't provide both expected type and expected ret")
         actual-ret (gensym 'ret)]
-    `(let [{~actual-ret :ret ex# :ex delayed-errors# :delayed-errors :as check-result#}
+    `(let [{~actual-ret :ret ex# :ex type-errors# :type-errors :as check-result#}
            ~(tc-common* frm 
                         (assoc 
                           opts
@@ -78,9 +78,10 @@
           ;;FIXME do we want the opposite here?
           `(assert (= ~actual-ret ~(:ret opts))))
        (-> check-result#
-           (select-keys #{:ex :delayed-errors})
+           (select-keys #{:ex :type-errors})
            (cond->
-             ;; FIXME delayed-errors shouldn't be empty
-             (empty? delayed-errors#) (dissoc :delayed-errors)
-             (some-> ex# ex-data err/top-level-error? not) (dissoc :ex))
+             ;; FIXME type-errors shouldn't be empty
+             (empty? type-errors#) (dissoc :type-errors)
+             ;;FIXME check something specific
+             (not ex#) (dissoc :ex))
            not-empty))))

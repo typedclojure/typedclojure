@@ -145,12 +145,12 @@
   ;;
   ;; For example, here's a Y-combinator encoding of an infinite loop---which the type
   ;; checker follows indefinitely.
-  (is (thrown? StackOverflowError
-               (is-tc-err #(let [Y (fn [f]
-                                     ((fn [g] (fn [x] (f (g g) x)))
-                                      (fn [g] (fn [x] (f (g g) x)))))]
-                             (let [compute (Y (fn [f x] (+ 1 (f x))))]
-                               (compute 1))))))
+  (is (instance? StackOverflowError
+                 (:ex (is-tc-err #(let [Y (fn [f]
+                                            ((fn [g] (fn [x] (f (g g) x)))
+                                             (fn [g] (fn [x] (f (g g) x)))))]
+                                    (let [compute (Y (fn [f x] (+ 1 (f x))))]
+                                      (compute 1)))))))
 
   ;; Note that symbolic closures are not created for thunks, since they can be checked immediately.
   (is-tc-err #(inc nil))

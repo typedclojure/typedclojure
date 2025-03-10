@@ -61,23 +61,30 @@
         ;if we remove all the arities, default to all of them
         arities)))
 
+(def app-type-error-kw :typed.clojure/app-type-error)
+
+(err/derive-type-error app-type-error-kw)
+
 ;[Expr (Seqable Expr) (Seqable TCResult) (Option TCResult) Boolean
 ; -> Any]
-(defn app-type-error [fexpr args fin arg-ret-types expected poly? opts]
+(defn app-type-error [{:keys [fexpr args fin arg-ret-types expected poly? opts]}]
   {:pre [(r/FnIntersection? fin)
-         (or (not poly?)
+         (or (nil? poly?)
              ((some-fn r/Poly? r/PolyDots?) poly?))]
    :post [(r/TCResult? %)]}
-  (let [fin (apply r/make-FnIntersection (trim-arities (:types fin) arg-ret-types opts))
-        static-method? (= :static-call (:op fexpr))
-        instance-method? (= :instance-call (:op fexpr))
-        method-sym (when (or static-method? instance-method?)
-                     (cu/MethodExpr->qualsym fexpr opts))
-        opts (update opts
+  (let [opts (update opts
                      ::prs/unparse-type-in-ns
                      #(or %
                           (some-> fexpr (cu/expr-ns opts))
-                          (some-> (::vs/current-expr opts) (cu/expr-ns opts))))]
+                          (some-> (::vs/current-expr opts) (cu/expr-ns opts))))
+        data (cond-> {:fn-result {:type (prs/unparse-type (or poly? fin) opts)}
+                      :args-results (mapv #(prs/unparse-TCResult-map % opts) arg-ret-types)}
+               expected (assoc :expected-result (prs/unparse-TCResult-map expected opts)))
+        fin (apply r/make-FnIntersection (trim-arities (:types fin) arg-ret-types opts))
+        static-method? (= :static-call (:op fexpr))
+        instance-method? (= :instance-call (:op fexpr))
+        method-sym (when (or static-method? instance-method?)
+                     (cu/MethodExpr->qualsym fexpr opts))]
     (err/tc-delayed-error
       (str
         (if poly?
@@ -167,7 +174,9 @@
             (list* (ast-u/emit-form-fn fexpr opts)
                    (map #(ast-u/emit-form-fn % opts) args)))
           "<NO FORM>"))
-      {:expected expected
+      {:type-error app-type-error-kw
+       :expected expected
+       :data data
        :return (or expected (r/ret r/Err))}
       opts)))
 
@@ -177,9 +186,11 @@
   (let [fin (if (r/Poly? fexpr-type)
               (c/Poly-body* (c/Poly-fresh-symbols* fexpr-type) fexpr-type opts)
               (c/PolyDots-body* (c/PolyDots-fresh-symbols* fexpr-type) fexpr-type opts))]
-    (app-type-error fexpr args fin arg-ret-types expected fexpr-type opts)))
+    (app-type-error {:fexpr fexpr :args args :fin fin :arg-ret-types arg-ret-types
+                     :expected expected :poly? fexpr-type :opts opts})))
 
 (defn plainapp-type-error [fexpr args fexpr-type arg-ret-types expected opts]
   {:pre [(r/FnIntersection? fexpr-type)]
    :post [(r/TCResult? %)]}
-  (app-type-error fexpr args fexpr-type arg-ret-types expected false opts))
+  (app-type-error {:fexpr fexpr :args args :fin fexpr-type :arg-ret-types arg-ret-types
+                   :expected expected :poly? nil :opts opts}))

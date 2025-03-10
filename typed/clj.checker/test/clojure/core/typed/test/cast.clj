@@ -12,11 +12,6 @@
   (is-tc-e (cast '{:a t/Int} {:a 1}) '{:a t/Int})
   (is-tc-e #(cast t/Int nil) [:-> t/Int])
   ;; runtime errors
-  (is (thrown? Exception (t/check-form-info `(t/cast t/Int nil))))
-  (is (thrown? Exception
-               (tc-e (cast '{:a t/Int} {:a nil}))))
-  (is (thrown? Exception
-               (tc-e
-                 ((:a (cast '{:a [t/Int :-> t/Int]} {:a str}))
-                  1))))
-  )
+  (is (:blame (ex-data (:ex (t/check-form-info `(t/cast t/Int nil))))))
+  (is (:blame (ex-data (:ex (tc-err (cast '{:a t/Int} {:a nil}))))))
+  (is (:blame (ex-data (:ex (tc-err ((:a (cast '{:a [t/Int :-> t/Int]} {:a str})) 1)))))))

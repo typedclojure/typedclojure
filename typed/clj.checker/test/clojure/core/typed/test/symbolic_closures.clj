@@ -315,13 +315,19 @@
              (t/ann-form res (t/Transducer t/Any t/Any))))
   (is-tc-e (let [res (map #(do %))]
              (t/ann-form res (t/Transducer t/Any t/Any))))
-  (is-tc-err-messages
-    (= {:ex [[(str "Type mismatch:\n\n"
-                   "Expected: \t(t/Transducer t/Any t/Nothing)\n\n"
-                   "Actual: \t(t/Transducer t/Nothing t/Nothing)")
-              {:type-error :clojure.core.typed.errors/type-error, :form 'res}]]}
-       (let [res (map #(do %))]
-         (t/ann-form res (t/Transducer t/Any t/Nothing)))))
+  (is (= '{:type-errors
+           [{:type-error :typed.clojure/type-mismatch-error,
+             :env
+             {:line "REMOVED_LINE", :column 14, :file "symbolic_closures.clj"},
+             :form res,
+             :data
+             {:expected-type (t/Transducer t/Any t/Nothing),
+              :actual-type (t/Transducer t/Nothing t/Nothing)},
+             :message
+             "Type mismatch:\n\nExpected: \t(t/Transducer t/Any t/Nothing)\n\nActual: \t(t/Transducer t/Nothing t/Nothing)"}]}
+         (is-tc-err-messages
+           (let [res (map #(do %))]
+             (t/ann-form res (t/Transducer t/Any t/Nothing))))))
   (is-tc-e (map #(do %)) (t/Transducer t/Int t/Int))
   (is-tc-e (let [map (t/ann-form map (t/All [c a b :..] [[a :-> c] :-> (t/Transducer a c)]))
                  res (map #(do %))]
@@ -729,9 +735,24 @@
   ;; expected: t/Int
   ;; actual: nil
   ;; in: a
-  (is-tc-err-messages
-    (fn [a :- (t/Atom (t/Nilable t/Int))]
-      (swap! a (fn [a] (inc a)))))
+  (is (= '{:type-errors
+           [{:type-error :typed.clojure/app-type-error,
+             :env
+             {:line "REMOVED_LINE",
+              :column 14,
+              :file "symbolic_closures.clj"},
+             :form (swap! a (fn [a] (inc a))),
+             :data
+             {:fn-result {:type (t/All [x b :..] [(t/Atom x) [x b :.. b :-> x] b :.. b :-> x])},
+              :args-results [{:type (Atom (t/Nilable t/Int)), :filter-set {:then tt, :else ff}, :object {:id a__#0}}
+                             {:type (t/I [t/Nothing :-> Long] Fn),
+                              :filter-set {:then tt, :else ff}}],
+              :expected-result {:type t/Infer}},
+             :message
+             "Polymorphic function swap! could not be applied to arguments:\nPolymorphic Variables:\n\tx\n\tb :..\n\nDomains:\n\t(t/Atom x) [x b :.. b :-> x] b :.. b\n\nArguments:\n\t(Atom (t/Nilable t/Int)) (t/I [t/Nothing :-> Long] Fn)\n\nRanges:\n\tx\n\n"}]}
+         (is-tc-err-messages
+           (fn [a :- (t/Atom (t/Nilable t/Int))]
+             (swap! a (fn [a] (inc a)))))))
   (is-tc-e
     (fn [a :- (t/Atom t/Int)]
       (swap! a (fn [a b c] (+ a b c)) 2 3)))
@@ -739,17 +760,60 @@
   ;; expected: t/Int
   ;; actual: nil
   ;; in: a
-  (is-tc-err-messages
-    (fn [a :- (t/Atom (t/Nilable t/Int))]
-      (swap! a (fn [a b c] (+ a b c)) 2 3)))
+  (is (= '{:type-errors
+           [{:type-error :typed.clojure/app-type-error,
+             :env
+             {:line "REMOVED_LINE",
+              :column 14,
+              :file "symbolic_closures.clj"},
+             :form (swap! a (fn [a b c] (+ a b c)) 2 3),
+             :data
+             {:fn-result
+              {:type
+               (t/All [x b :..] [(t/Atom x) [x b :.. b :-> x] b :.. b :-> x])},
+              :args-results
+              [{:type (Atom (t/Nilable t/Int)),
+                :filter-set {:then tt, :else ff},
+                :object {:id a__#0}}
+               {:type (t/I [t/Nothing t/Nothing t/Nothing :-> Long] Fn),
+                :filter-set {:then tt, :else ff}}
+               {:type (t/Val 2), :filter-set {:then tt, :else ff}}
+               {:type (t/Val 3), :filter-set {:then tt, :else ff}}],
+              :expected-result {:type t/Infer}},
+             :message
+             "Polymorphic function swap! could not be applied to arguments:\nPolymorphic Variables:\n\tx\n\tb :..\n\nDomains:\n\t(t/Atom x) [x b :.. b :-> x] b :.. b\n\nArguments:\n\t(Atom (t/Nilable t/Int)) (t/I [t/Nothing t/Nothing t/Nothing :-> Long] Fn) (t/Val 2) (t/Val 3)\n\nRanges:\n\tx\n\n"}]}
+         (is-tc-err-messages
+           (fn [a :- (t/Atom (t/Nilable t/Int))]
+             (swap! a (fn [a b c] (+ a b c)) 2 3)))))
   ;;TODO
   ;; expected: t/Int
   ;; actual: nil
   ;; in: b
-  (is-tc-err-messages
-    (fn [a :- (t/Atom t/Int)]
-      (swap! a (fn [a b c] (+ a b c)) nil 3)))
-  )
+  (is (= '{:type-errors
+           [{:type-error :typed.clojure/app-type-error,
+             :env
+             {:line "REMOVED_LINE",
+              :column 14,
+              :file "symbolic_closures.clj"},
+             :form (swap! a (fn [a b c] (+ a b c)) nil 3),
+             :data
+             {:fn-result
+              {:type
+               (t/All [x b :..] [(t/Atom x) [x b :.. b :-> x] b :.. b :-> x])},
+              :args-results
+              [{:type (Atom t/Int),
+                :filter-set {:then tt, :else ff},
+                :object {:id a__#0}}
+               {:type (t/I [t/Nothing t/Nothing t/Nothing :-> Long] Fn),
+                :filter-set {:then tt, :else ff}}
+               {:type nil, :filter-set {:then ff, :else tt}}
+               {:type (t/Val 3), :filter-set {:then tt, :else ff}}],
+              :expected-result {:type t/Infer}},
+             :message
+             "Polymorphic function swap! could not be applied to arguments:\nPolymorphic Variables:\n\tx\n\tb :..\n\nDomains:\n\t(t/Atom x) [x b :.. b :-> x] b :.. b\n\nArguments:\n\t(Atom t/Int) (t/I [t/Nothing t/Nothing t/Nothing :-> Long] Fn) nil (t/Val 3)\n\nRanges:\n\tx\n\n"}]}
+         (is-tc-err-messages
+           (fn [a :- (t/Atom t/Int)]
+             (swap! a (fn [a b c] (+ a b c)) nil 3))))))
 
 (deftest keyword-functions-test
   (is-tc-e (map #(:a %) [{:a 1}])
@@ -797,7 +861,24 @@
   ;; actual: nil
   ;; in: (inc nil)
   ;;          ^^^
-  (is-tc-err-messages (inc nil))
+  (is (= '{:type-errors
+           [{:type-error :typed.clojure/app-type-error,
+             :env
+             {:line "REMOVED_LINE", :column 31, :file "symbolic_closures.clj"},
+             :form (inc nil),
+             :data
+             {:fn-result
+              {:type
+               (t/IFn
+                 [Long :-> Long]
+                 [Double :-> Double]
+                 [t/AnyInteger :-> t/AnyInteger]
+                 [t/Num :-> t/Num])},
+              :args-results [{:type nil, :filter-set {:then ff, :else tt}}],
+              :expected-result {:type t/Infer}},
+             :message
+             "Function inc could not be applied to arguments:\n\n\nDomains:\n\tt/Num\n\nArguments:\n\tnil\n\nRanges:\n\tt/Num\n\n"}]}
+         (is-tc-err-messages #(inc nil))))
   ;;TODO
   ;; expected: [nil -> t/Any]
   ;; actual:   [Num -> Num]
@@ -812,27 +893,106 @@
   ;; to function inc:
   ;;   (map inc [nil])
   ;;        ^^^
-  (is-tc-err-messages (map inc [nil]))
+  (is (= '{:type-errors
+           [{:type-error :typed.clojure/app-type-error,
+             :env
+             {:line "REMOVED_LINE",
+              :column 30,
+              :file "symbolic_closures.clj"},
+             :form (map inc [nil]),
+             :data
+             {:fn-result
+              {:type (t/All [c a b :..] (t/IFn [[a :-> c] :-> (t/Transducer a c)]
+                                               [[a b :.. b :-> c] (t/NonEmptySeqable a) (t/NonEmptySeqable b) :.. b :-> (t/NonEmptyASeq c)]
+                                               [[a b :.. b :-> c] (t/Seqable a) (t/Seqable b) :.. b :-> (t/ASeq c)]))},
+              :args-results [{:type (t/IFn [Long :-> Long] [Double :-> Double] [t/AnyInteger :-> t/AnyInteger] [t/Num :-> t/Num])}
+                             {:type (t/HVec [nil] :filter-sets [{:then ff, :else tt}]), :filter-set {:then tt, :else ff}}]},
+             :message
+             "Polymorphic function map could not be applied to arguments:\nPolymorphic Variables:\n\tc\n\ta\n\tb :..\n\nDomains:\n\t[a b :.. b :-> c] (t/NonEmptySeqable a) (t/NonEmptySeqable b) :.. b\n\t[a b :.. b :-> c] (t/Seqable a) (t/Seqable b) :.. b\n\nArguments:\n\t(t/IFn [Long :-> Long] [Double :-> Double] [t/AnyInteger :-> t/AnyInteger] [t/Num :-> t/Num]) (t/HVec [nil] :filter-sets [{:then ff, :else tt}])\n\nRanges:\n\t(t/NonEmptyASeq c)\n\t(t/ASeq c)\n\n"}]}
+         (is-tc-err-messages (map inc [nil]))))
   ;;TODO
   ;; expected: (t/Seqable t/Any)
   ;; actual:   (Val 1)
   ;; in: 1
-  (is-tc-err-messages (reduce (fn [a v]) {} 1))
+  (is (= '{:type-errors
+           [{:type-error :typed.clojure/app-type-error,
+             :env
+             {:line "REMOVED_LINE",
+              :column 30,
+              :file "symbolic_closures.clj"},
+             :form (reduce (fn [a v]) {} 1),
+             :data
+             {:fn-result
+              {:type (t/All [a c] (t/IFn [[a a :-> (t/U a (Reduced a))] (t/NonEmptySeqable a) :-> a]
+                                         [(t/IFn [a a :-> (t/U a (Reduced a))] [:-> a]) (t/Seqable a) :-> a]
+                                         [[a c :-> (t/U a (Reduced a))] a (t/Seqable c) :-> a]))},
+              :args-results [{:type (t/I [t/Nothing t/Nothing :-> nil :filters {:then ff, :else tt}] Fn), :filter-set {:then tt, :else ff}}
+                             {:type (t/HMap :complete? true), :filter-set {:then tt, :else ff}}
+                             {:type (t/Val 1), :filter-set {:then tt, :else ff}}]},
+             :message
+             "Polymorphic function reduce could not be applied to arguments:\nPolymorphic Variables:\n\ta\n\tc\n\nDomains:\n\t[a c :-> (t/U a (Reduced a))] a (t/Seqable c)\n\nArguments:\n\t(t/I [t/Nothing t/Nothing :-> nil :filters {:then ff, :else tt}] Fn) (t/HMap :complete? true) (t/Val 1)\n\nRanges:\n\ta\n\n"}],
+           :ex {:message "Don't know how to create ISeq from: java.lang.Long"}}
+         (is-tc-err-messages (reduce (fn [a v]) {} 1))))
   ;;TODO return TCError if symbolic closure fails to check with most specific args
   ;; expected: t/Num
   ;; actual:   nil
   ;; in: nil
-  (is-tc-err-messages (reduce (fn [a v]
-                                (+ a v nil))
-                              1 [1]))
-  (is (= {:ex [[(str "Type mismatch:\n\n"
-                     "Expected: \tnil\n\n"
-                     "Actual: \tLong")
-                {:type-error :clojure.core.typed.errors/type-error, :form '(inc 1)}]]}
+  (is (= '{:type-errors
+           [{:type-error :typed.clojure/app-type-error,
+             :env
+             {:line "REMOVED_LINE", :column 41, :file "symbolic_closures.clj"},
+             :form (+ a v nil),
+             :data
+             {:fn-result
+              {:type (t/IFn [Long :* :-> Long] [(t/U Double Long) :* :-> Double] [t/AnyInteger :* :-> t/AnyInteger] [t/Num :* :-> t/Num])},
+              :args-results [{:type t/Nothing, :filter-set {:then tt, :else ff}, :object {:id a__#0}}
+                             {:type t/Nothing, :filter-set {:then tt, :else ff}, :object {:id v__#0}}
+                             {:type nil, :filter-set {:then ff, :else tt}}],
+              :expected-result {:type t/Infer}},
+             :message
+             "Function + could not be applied to arguments:\n\n\nDomains:\n\tLong :*\n\t(t/U Double Long) :*\n\tt/AnyInteger :*\n\tt/Num :*\n\nArguments:\n\tt/Nothing t/Nothing nil\n\nRanges:\n\tLong\n\tDouble\n\tt/AnyInteger\n\tt/Num\n\n"}
+            {:type-error :typed.clojure/app-type-error,
+             :env
+             {:line "REMOVED_LINE", :column 31, :file "symbolic_closures.clj"},
+             :form (reduce (fn [a v] (+ a v nil)) 1 [1]),
+             :data
+             {:fn-result
+              {:type (t/All [a c] (t/IFn [[a a :-> (t/U a (Reduced a))] (t/NonEmptySeqable a) :-> a] [(t/IFn [a a :-> (t/U a (Reduced a))] [:-> a]) (t/Seqable a) :-> a] [[a c :-> (t/U a (Reduced a))] a (t/Seqable c) :-> a]))},
+              :args-results [{:type (t/I [t/Nothing t/Nothing :-> t/Infer] Fn), :filter-set {:then tt, :else ff}}
+                             {:type (t/Val 1), :filter-set {:then tt, :else ff}}
+                             {:type (t/HVec [(t/Val 1)] :filter-sets [{:then tt, :else ff}]),
+                              :filter-set {:then tt, :else ff}}],
+              :expected-result {:type t/Infer}},
+             :message
+             "Polymorphic function reduce could not be applied to arguments:\nPolymorphic Variables:\n\ta\n\tc\n\nDomains:\n\t[a c :-> (t/U a (Reduced a))] a (t/Seqable c)\n\nArguments:\n\t(t/I [t/Nothing t/Nothing :-> t/Infer] Fn) (t/Val 1) (t/HVec [(t/Val 1)] :filter-sets [{:then tt, :else ff}])\n\nRanges:\n\ta\n\n"}]}
+         (is-tc-err-messages #(reduce (fn [a v]
+                                        (+ a v nil))
+                                      1 [1]))))
+  (is (= '{:type-errors
+           [{:type-error :typed.clojure/type-mismatch-error,
+             :env
+             {:line "REMOVED_LINE", :column 30, :file "symbolic_closures.clj"},
+             :form (inc 1),
+             :data {:expected-type nil, :actual-type Long},
+             :message "Type mismatch:\n\nExpected: \tnil\n\nActual: \tLong"}]}
          (is-tc-err-messages (inc 1) nil)))
   ;;TODO
   ;; expected: nil
   ;; actual: (Val 1)
   ;; in: 1
-  (is-tc-err-messages (identity 1) nil)
-  )
+  (is (= '{:type-errors
+           [{:type-error :typed.clojure/app-type-error,
+             :env
+             {:line "REMOVED_LINE",
+              :column 30,
+              :file "symbolic_closures.clj"},
+             :form (identity 1),
+             :data
+             {:fn-result
+              {:type (t/All [x] [x :-> x :filters {:then (! (t/U nil false) 0), :else (is (t/U nil false) 0)} :object {:id 0}])},
+              :args-results
+              [{:type (t/Val 1), :filter-set {:then tt, :else ff}}],
+              :expected-result {:type nil}},
+             :message
+             "Polymorphic function identity could not be applied to arguments:\nPolymorphic Variables:\n\tx\n\nDomains:\n\tx\n\nArguments:\n\t(t/Val 1)\n\nRanges:\n\tx :filters {:then (! (t/U nil false) 0), :else (is (t/U nil false) 0)} :object {:id 0}\n\nwith expected type:\n\tnil\n\n"}]}
+         (is-tc-err-messages (identity 1) nil))))

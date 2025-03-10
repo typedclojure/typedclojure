@@ -45,6 +45,7 @@
     {:mvn/version "{◊test-chuck-mvn-version◊}"}
     com.clojure-goes-fast/clj-java-decompiler {:mvn/version "0.3.0"}
     com.clojure-goes-fast/clj-async-profiler {:mvn/version "{◊clj-async-profiler-mvn-version◊}"}
+    babashka/fs {:mvn/version "{◊fs-mvn-version◊}"}
     ;; for shared tests
     {◊typedclojure-group-id◊}/typed.cljs.checker {:local/root "../cljs.checker" :deps/manifest :deps}
     ;; optional typed.lib.clojure dep

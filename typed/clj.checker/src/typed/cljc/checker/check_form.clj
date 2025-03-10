@@ -72,20 +72,15 @@
 ;;  - :ret             TCResult inferred for the current form
 ;;  - :out-form        The macroexpanded result of type-checking, if successful. 
 ;;  - :result          The evaluated result of :out-form, unless :no-eval is provided.
-;;  - :ex              If an exception was thrown during evaluation, this key will be present
-;;                     with the exception as the value.
-;;  DEPRECATED
-;;  - :delayed-errors  A sequence of delayed errors (ex-info instances)
-;;  - :profile         Use Timbre to profile the type checker. Timbre must be
-;;                     added as a dependency.
+;;  - :ex              A fatal exception thrown during checking, if any.
+;;  - :type-errors     A non-empty vector of delayed errors
 (defn check-form-info
   [{:keys [check-top-level 
            emit-form 
            env
            eval-out-ast 
            runtime-check-expr
-           unparse-ns
-           analyze-bindings-fn] :as m1}
+           unparse-ns] :as m1}
    form {:keys [expected-ret expected type-provided?
                 checked-ast no-eval bindings-atom beta-limit
                 check-config verbose-types trace]
@@ -93,7 +88,7 @@
           :or {check-form-eval :after} :as check-config} :check-config
          :as opt}
    opts]
-  {:pre [(nil? analyze-bindings-fn)
+  {:pre [(nil? (:analyze-bindings-fn m1))
          ((some-fn nil? plat-con/atom?) bindings-atom)
          ((some-fn nil? symbol?) unparse-ns)
          (map? opt)
@@ -105,12 +100,12 @@
     (impl/impl-case opts
       :clojure @*register-clj-anns
       :cljs @*register-cljs-anns)
-    (let [delayed-errors (err/-init-delayed-errors)
+    (let [type-errors (err/-init-type-errors)
           opts (-> opts
                    (assoc ::vs/can-rewrite true)
                    (assoc ::vs/lexical-env (lex-env/init-lexical-env))
                    (assoc ::vs/already-checked (atom #{}))
-                   (assoc ::vs/delayed-errors delayed-errors)
+                   (assoc ::vs/type-errors type-errors)
                    (assoc ::prs/parse-type-in-ns unparse-ns)
                    (assoc ::vs/check-config check-config)
                    (assoc ::vs/verbose-types verbose-types)
@@ -120,7 +115,7 @@
                      expected-ret
                      (when type-provided?
                        (r/ret (prs/parse-type expected opts))))
-          delayed-errors-fn (fn [] (seq @delayed-errors))
+          type-errors-fn (fn [] (seq @type-errors))
           file-mapping-atom (atom [])
           should-runtime-check? (and runtime-check-expr
                                      (u/should-runtime-check-ns? *ns*))
@@ -129,22 +124,16 @@
           c-ast (try
                   (check-top-level form expected {} opts)
                   (catch Throwable e
-                    (let [e (if (some-> e ex-data err/tc-error?)
-                              (try
-                                ;(prn "printing errors")
-                                (err/print-errors! (vec (concat (delayed-errors-fn) [e])) opts)
-                                (catch Throwable e
-                                  e))
-                              (throw e))]
+                    (let [e e]
                       ;(prn "reset terminal-error")
                       (reset! terminal-error e)
                       nil)))
           ;_ (prn "err" @terminal-error)
           res (some-> c-ast u/expr-type)
-          delayed-errors (delayed-errors-fn)
+          type-errors (type-errors-fn)
           ex @terminal-error]
       (cond->
-        {:delayed-errors (vec delayed-errors)
+        {:type-errors (vec type-errors)
          :ret (or res (r/ret r/-error))}
 
         ex (assoc :ex ex)
@@ -153,7 +142,7 @@
         checked-ast (assoc :checked-ast c-ast)
 
         (and (impl/checking-clojure? opts)
-             (empty? delayed-errors)
+             (empty? type-errors)
              (not ex))
         (into (select-keys c-ast [:result]))
 
@@ -163,15 +152,20 @@
 (defn check-form*
   [{:keys [impl unparse-ns] :as config} form expected type-provided? opt opts]
   {:pre [(map? opt)]}
-  (let [{:keys [ex delayed-errors ret]} (check-form-info config form
+  (let [{:keys [ex type-errors ret]} (check-form-info config form
                                                          (into {:expected expected 
                                                                 :type-provided? type-provided?}
                                                                opt)
                                                          opts)]
-    (if-let [errors (seq delayed-errors)]
-      (err/print-errors! errors opts)
-      (if ex
-        (throw ex)
+    (if ex
+      (do (when (seq type-errors)
+            (let [s (err/print-errors->summary-message type-errors opts)]
+              (binding [*out* *err*]
+                (println s)
+                (println "A fatal error was thrown during type checking, rethrowing."))))
+          (throw ex))
+      (if (seq type-errors)
+        (err/print-errors! type-errors opts)
         (prs/unparse-TCResult-in-ns ret unparse-ns opts)))))
 
 (defn check-form-info-with-config

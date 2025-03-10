@@ -22,8 +22,8 @@
   (is (t/check-ns-clj 'typed-test.clojure.succeed-clj-fail-cljs))
   ;; TODO test that this should fail when run in cljs
   (is (t/cns 'typed-test.clojure.succeed-clj-fail-cljs))
-  (is (err/top-level-type-error-thrown? (t/check-ns-cljs 'typed-test.clojure.succeed-clj-fail-cljs)))
-  (is (err/top-level-type-error-thrown? (t/check-ns-clj 'typed-test.clojure.succeed-cljs-fail-clj)))
+  (is (err/top-level-error-thrown? (t/check-ns-cljs 'typed-test.clojure.succeed-clj-fail-cljs)))
+  (is (err/top-level-error-thrown? (t/check-ns-clj 'typed-test.clojure.succeed-cljs-fail-clj)))
   (testing "t/cns fail in cljs"
     (let [rs (cljs-eval 20 15000
                         [(prep-temp-cljs-ns-form)
@@ -32,8 +32,8 @@
              (get-in (edn/read-string {:readers {'error identity}} (:val (peek rs)))
                      [:data :type-error]))
           rs)))
-  (is (err/top-level-type-error-thrown? (eval `(t/cns 'typed-test.clojure.succeed-cljs-fail-clj))))
-  (is (err/top-level-type-error-thrown? (eval `(t/cns 'typed-test.clojure.succeed-cljs-fail-clj))))
+  (is (err/top-level-error-thrown? (eval `(t/cns 'typed-test.clojure.succeed-cljs-fail-clj))))
+  (is (err/top-level-error-thrown? (eval `(t/cns 'typed-test.clojure.succeed-cljs-fail-clj))))
   (is (t/check-ns-cljs 'typed-test.clojure.succeed-cljs-fail-clj))
   (testing "t/cns succeed in cljs"
     (let [rs (cljs-eval 20 15000
@@ -43,8 +43,8 @@
           rs))))
 
 (deftest check-ns-even-if-not-dependent-on-tc-test
-  (is (err/top-level-type-error-thrown? (t/check-ns-clj 'typed-test.clojure.does-not-depend-on-tc)))
-  (is (err/top-level-type-error-thrown? (t/check-ns-cljs 'typed-test.clojure.does-not-depend-on-tc))))
+  (is (err/top-level-error-thrown? (t/check-ns-clj 'typed-test.clojure.does-not-depend-on-tc)))
+  (is (err/top-level-error-thrown? (t/check-ns-cljs 'typed-test.clojure.does-not-depend-on-tc))))
 
 (deftest check-ns-ignore-test
   (is (t/check-ns-clj 'typed-test.clojure.tc-ignore-ns))

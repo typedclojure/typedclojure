@@ -322,18 +322,18 @@
          (r/AnyType? t)]
    :post [((some-fn nil? set?) %)]}
   ;(prn :subtype-symbolic-closure s t)
-  (let [delayed-errors (err/-init-delayed-errors)]
+  (let [type-errors (err/-init-type-errors)]
     (when (try (check-expr (:fexpr s) (r/ret t)
                            (-> opts
-                               (assoc ::vs/delayed-errors delayed-errors)
+                               (assoc ::vs/type-errors type-errors)
                                (assoc ::sub-current-seen A)
                                (into (select-keys (:opts s) [::vs/lexical-env]))))
                (catch clojure.lang.ExceptionInfo e
                  ;(prn e) ;;tmp
                  (when-not (-> e ex-data err/tc-error?)
                    (throw e))))
-      ;(prn @delayed-errors) ;;tmp
-      (when (empty? @delayed-errors)
+      ;(prn @type-errors) ;;tmp
+      (when (empty? @type-errors)
         A))))
 
 (defn check-symbolic-closure
@@ -345,7 +345,7 @@
    :post [(-> % u/expr-type r/TCResult?)]}
   ;(prn :check-symbolic-closure s t)
   (check-expr (:fexpr s) (r/ret t)
-              ;; keep :delayed-errors
+              ;; keep :type-errors
               ;; hmm, additional error msg context needed to orient the user
               ;; to the problem? symbolic closure will be blamed
               (assoc opts ::vs/lexical-env lexical-env)))
@@ -910,14 +910,14 @@
               (AND (r/FnIntersection? t)
                    (= 1 (count (:types t)))
                    (every? #(= :fixed (:kind %)) (:types t))
-                   (let [delayed-errors (err/-init-delayed-errors)]
+                   (let [type-errors (err/-init-type-errors)]
                      ((requiring-resolve 'typed.cljc.checker.check.funapp/check-funapp)
                       nil nil
                       (r/ret s)
                       (mapv r/ret (-> t :types first :dom))
                       (-> t :types first :rng r/Result->TCResult)
-                      {} (assoc opts ::vs/delayed-errors delayed-errors))
-                     (empty? @delayed-errors))))
+                      {} (assoc opts ::vs/type-errors type-errors))
+                     (empty? @type-errors))))
         A
         (report-not-subtypes s t))))
 

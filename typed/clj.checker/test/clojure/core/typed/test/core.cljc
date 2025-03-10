@@ -988,7 +988,7 @@
             (parse-clj `(t/U t/AnyInteger (t/Value ~'a))))))
 
 ;TODO how to handle casts. CTYP-12
-;Also need tc-t to bind *delayed-errors*
+;Also need tc-t to bind *type-errors*
 #_(deftest prims-test
   (is-clj (= (ret-t (tc-t (Math/sqrt 1)))
          (parse-clj 'double))))
@@ -4282,13 +4282,6 @@
                        1))]
              (inc (f)))))
 
-(deftest cf-throws-test
-  (is (thrown? Throwable (cf (nil))))
-  (is (thrown? Throwable (cf (clojure.core/fn [:- :a])))))
-
-(deftest check-form-info-result-test
-  (is (= 1 (:result (check-form-info '(do (do (do 1))))))))
-
 ;; here instead of typed.clj.analyzer to ensure they don't throw type errors
 (deftest validate-pass-test
   (is (thrown-with-msg? ExceptionInfo
@@ -4323,12 +4316,13 @@
 
 (deftest TFn-syntax-check-test
   ;; unknown option
-  (is (->> (is-tc-err-messages (do (defalias T
-                                     (t/TFn [[x :invariant :covariant]] (t/Seqable x)))
-                                   (fn [a :- (T t/Int)] :- (T t/Int) a)))
-           :ex
-           ffirst
-           (re-find #"Unknown t/TFn option: :invariant\."))))
+  ;;FIXME line+file missing
+  (is (-> (is-tc-err-messages (do (defalias T
+                                    (t/TFn [[x :invariant :covariant]] (t/Seqable x)))
+                                  (fn [a :- (T t/Int)] :- (T t/Int) a)))
+          :ex
+          :message
+          (str/includes? "Unknown t/TFn option: :invariant. Known options are :variance, :<, and :>. while parsing type (t/TFn [[x :invariant :covariant]] (t/Seqable x))"))))
 
 (deftest TFn-variance-check-test
   ;; covariant good
@@ -4337,39 +4331,42 @@
                (fn [a :- (T t/Int)] :- (T t/Num)
                  a)))
   ;; covariant bad (actually contravariant)
-  (is (->> (is-tc-err-messages (do (defalias T
-                                     (t/TFn [[x :variance :covariant]] [(t/Seqable x) :-> t/Any]))
-                                   (fn [a :- (T t/Int)] :- (T t/Int)
-                                     a)))
-           :ex
-           ffirst
-           (re-find #"Type variable x occurs with contravariant variance when declared covariant")))
+  ;;FIXME line+file missing
+  (is (-> (is-tc-err-messages (do (defalias T
+                                    (t/TFn [[x :variance :covariant]] [(t/Seqable x) :-> t/Any]))
+                                  (fn [a :- (T t/Int)] :- (T t/Int)
+                                    a)))
+          :ex
+          :message
+          (str/includes? "Type variable x occurs with contravariant variance when declared covariant while parsing type (t/TFn [[x :variance :covariant]] [(t/Seqable x) :-> t/Any])")))
   ;; contravariant good
   (is-tc-e (do (defalias T
                  (t/TFn [[x :variance :contravariant]] [(t/Seqable x) :-> t/Any]))
                (fn [a :- (T t/Num)] :- (T t/Int)
                  a)))
   ;; contravariant bad (actually covariant)
-  (is (->> (is-tc-err-messages (do (defalias T
-                                     (t/TFn [[x :variance :contravariant]] (t/Seqable x)))
-                                   (fn [a :- (T t/Int)] :- (T t/Int)
-                                     a)))
-           :ex
-           ffirst
-           (re-find #"Type variable x occurs with covariant variance when declared contravariant")))
+  ;;FIXME line+file missing
+  (is (-> (is-tc-err-messages (do (defalias T
+                                    (t/TFn [[x :variance :contravariant]] (t/Seqable x)))
+                                  (fn [a :- (T t/Int)] :- (T t/Int)
+                                    a)))
+          :ex
+          :message
+          (str/includes? "Type variable x occurs with covariant variance when declared contravariant while parsing type (t/TFn [[x :variance :contravariant]] (t/Seqable x))")))
   ;; invariant good
   (is-tc-e (do (defalias T
                  (t/TFn [[x :variance :invariant]] [x :-> x]))
                (fn [a :- (T t/Int)] :- (T t/Int)
                  a)))
   ;; invariant bad (actually covariant)
-  (is (->> (is-tc-err-messages (do (defalias T
-                                     (t/TFn [[x :variance :invariant]] (t/Seqable x)))
-                                   (fn [a :- (T t/Int)] :- (T t/Int)
-                                     a)))
-           :ex
-           ffirst
-           (re-find #"Type variable x occurs with covariant variance when declared invariant")))
+  ;;FIXME line+file missing
+  (is (-> (is-tc-err-messages (do (defalias T
+                                    (t/TFn [[x :variance :invariant]] (t/Seqable x)))
+                                  (fn [a :- (T t/Int)] :- (T t/Int)
+                                    a)))
+          :ex
+          :message
+          (str/includes? "Type variable x occurs with covariant variance when declared invariant while parsing type (t/TFn [[x :variance :invariant]] (t/Seqable x))")))
   ;;recursive good (covariant)
   (is-tc-e (do (defalias T
                  (t/TFn [[x :variance :covariant]]
@@ -4445,13 +4442,14 @@
                  (fn [a :- (T t/Int)] :- (T t/Num)
                    a)))
   ;; recursive disallowed
-  (is (->> (is-tc-err-messages (do (defalias T
-                                     (t/TFn [x] (t/Option [:-> (T x)])))
-                                   (fn [a :- (T t/Int)] :- (T t/Num)
-                                     a)))
-           :ex
-           ffirst
-           (re-find #"Cannot infer variances on recursive t/TFn, please add :variance annotations"))))
+  ;;FIXME line+file missing
+  (is (-> (is-tc-err-messages (do (defalias T
+                                    (t/TFn [x] (t/Option [:-> (T x)])))
+                                  (fn [a :- (T t/Int)] :- (T t/Num)
+                                    a)))
+          :ex
+          :message
+          (str/includes? "Cannot infer variances on recursive t/TFn, please add :variance annotations while parsing type (t/TFn [x] (t/Option [:-> (T x)]))"))))
 
 
 (deftest comparable-test
@@ -4527,10 +4525,13 @@
   (is-tc-e (do (t/defalias Foo
                  (t/TFn [[x :< t/Int]] x))
                (t/ann-form 1 (Foo t/Int))))
-  (let [{[[msg]] :ex} (is-tc-err-messages (do (t/defalias Foo
-                                                (t/TFn [[x :< t/Int]] x))
-                                              (t/ann-form 1 (Foo t/Bool))))]
-    (is (str/starts-with? msg "Type Error (:<NO LINE>) Type function argument number 1 (x) has kind (t/Type :< t/Int) but given t/Bool"))))
+  ;;FIXME line+file missing
+  (is (= "Type Error (:<NO LINE>) Type function argument number 1 (x) has kind (t/Type :< t/Int) but given t/Bool\n\nin: (clojure.core.typed.temp/Foo t/Bool)"
+         (-> (is-tc-err-messages (do (t/defalias Foo
+                                       (t/TFn [[x :< t/Int]] x))
+                                     (t/ann-form 1 (Foo t/Bool))))
+             :ex
+             :message))))
 
 (deftest SeqOn-test
   (is-clj (= r/-nil (fully-resolve-type (-name `t/SeqOn r/-nil) (clj-opts))))

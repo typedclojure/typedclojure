@@ -23,7 +23,7 @@
               (t/check-form-info form
                                  :expected expected
                                  :type-provided? true))]
-    (is (-> res :delayed-errors empty?))
+    (is (-> res :type-errors empty?))
     (is (not (:ex res))))
   ; type error
   (let [form `(ns ~'foo)
@@ -31,18 +31,9 @@
         res (binding [*ns* *ns*]
               (t/check-form-info form
                                  :expected expected
-                                 :type-provided? true))
-        err ((some-fn (comp first
-                            :errors
-                            ex-data
-                            :ex)
-                      (comp first
-                            :delayed-errors))
-             res)]
-    (is (-> err
-            ex-data
-            :form
-            #{form})))
+                                 :type-provided? true))]
+    (is (= form (-> res :type-errors first :form))
+        res))
   ; eval
   (binding [*ns* *ns*]
     (let [form `(ns ~'foo)
@@ -58,7 +49,7 @@
   (let [form `(defmacro ~'foo [] 1)
         res (eval-in-ns
               #(t/check-form-info form))]
-    (is (-> res :delayed-errors empty?))
+    (is (-> res :type-errors empty?))
     (is (not (:ex res))))
   ; type error
   (let [form `(defmacro ~'foo [] 1)
@@ -67,14 +58,7 @@
               #(t/check-form-info form
                                   :expected expected
                                   :type-provided? true))]
-    (is (= form
-           (some-> res
-                   :ex
-                   ex-data
-                   :errors
-                   first
-                   ex-data
-                   :form))
+    (is (= form (-> res :type-errors first :form))
         res))
   ; eval
   (eval-in-ns
@@ -94,116 +78,137 @@
 ;; tests for clojure.core.typed macros in typed-test.clj.ext.clojure.core.typed
 (deftest vector-destructure-error-msg-test
   (testing "let"
-    (is (= (is-tc-err-messages
+    (is (= '{:type-errors
+             [{:type-error :clojure.core.typed.errors/type-error,
+               :env {:line "REMOVED_LINE", :column 15, :file "core.clj"},
+               :form (clojure.core/let [[a] #{1}] a),
+               :data nil,
+               :message
+               "The type `(t/HSet #{1})` cannot be destructured via syntax `[a]` because the type cannot be passed as the first argument of `nth`.`"}]}
+           (is-tc-err-messages
              #(let [[a] #{1}]
-                a))
-           {:ex [[(ext-let/bad-vector-destructure-error-msg
-                    "(t/HSet #{1})"
-                    "[a]")
-                  {:type-error :clojure.core.typed.errors/type-error
-                   :form '(clojure.core/let [[a] #{1}]
-                            a)}]]}))
-    (is (= (is-tc-err-messages
+                a))))
+    (is (= '{:type-errors
+             [{:type-error :clojure.core.typed.errors/type-error,
+               :env {:line "REMOVED_LINE", :column 15, :file "core.clj"},
+               :form (clojure.core/let [{[a] :foo} {:foo #{1}}] a),
+               :data nil,
+               :message
+               "The type `(t/HSet #{1})` cannot be destructured via syntax `[a]` because the type cannot be passed as the first argument of `nth`.`"}]}
+           (is-tc-err-messages
              #(let [{[a] :foo} {:foo #{1}}]
-                a))
-           {:ex [[(ext-let/bad-vector-destructure-error-msg
-                    "(t/HSet #{1})"
-                    "[a]")
-                  {:type-error :clojure.core.typed.errors/type-error
-                   :form '(clojure.core/let [{[a] :foo} {:foo #{1}}]
-                            a)}]]})))
+                a)))))
   (testing "for"
-    (is (= (is-tc-err-messages
+    (is (= '{:type-errors
+             [{:type-error :clojure.core.typed.errors/type-error,
+               :env {:line "REMOVED_LINE", :column 15, :file "core.clj"},
+               :form (cc/for [[a] [#{1}]] a),
+               :data nil,
+               :message
+               "The type `(t/HSet #{1})` cannot be destructured via syntax `[a]` because the type cannot be passed as the first argument of `nth`.`"}]}
+           (is-tc-err-messages
              #(cc/for [[a] [#{1}]]
-                a))
-           {:ex [[(ext-let/bad-vector-destructure-error-msg
-                    "(t/HSet #{1})"
-                    "[a]")
-                  {:type-error :clojure.core.typed.errors/type-error
-                   :form '(cc/for [[a] [#{1}]]
-                            a)}]]}))
-    (is (= (is-tc-err-messages
+                a))))
+    (is (= '{:type-errors
+             [{:type-error :clojure.core.typed.errors/type-error,
+               :env {:line "REMOVED_LINE", :column 15, :file "core.clj"},
+               :form (cc/for [{[a] :foo} [{:foo #{1}}]] a),
+               :data nil,
+               :message
+               "The type `(t/HSet #{1})` cannot be destructured via syntax `[a]` because the type cannot be passed as the first argument of `nth`.`"}]}
+           (is-tc-err-messages
              #(cc/for [{[a] :foo} [{:foo #{1}}]]
-                a))
-           {:ex [[(ext-let/bad-vector-destructure-error-msg
-                    "(t/HSet #{1})"
-                    "[a]")
-                  {:type-error :clojure.core.typed.errors/type-error
-                   :form '(cc/for [{[a] :foo} [{:foo #{1}}]]
-                            a)}]]})))
+                a)))))
   (testing "doseq"
-    (is (= (is-tc-err-messages
+    (is (= '{:type-errors
+             [{:type-error :clojure.core.typed.errors/type-error,
+               :env {:line "REMOVED_LINE", :column 15, :file "core.clj"},
+               :form (cc/doseq [[a] [#{1}]] a),
+               :data nil,
+               :message
+               "The type `(t/HSet #{1})` cannot be destructured via syntax `[a]` because the type cannot be passed as the first argument of `nth`.`"}]}
+           (is-tc-err-messages
              #(cc/doseq [[a] [#{1}]]
-                a))
-           {:ex [[(ext-let/bad-vector-destructure-error-msg
-                    "(t/HSet #{1})"
-                    "[a]")
-                  {:type-error :clojure.core.typed.errors/type-error
-                   :form '(cc/doseq [[a] [#{1}]]
-                            a)}]]}))
-    (is (= (is-tc-err-messages
+                a))))
+    (is (= '{:type-errors
+             [{:type-error :clojure.core.typed.errors/type-error,
+               :env {:line "REMOVED_LINE", :column 15, :file "core.clj"},
+               :form (cc/doseq [{[a] :foo} [{:foo #{1}}]] a),
+               :data nil,
+               :message
+               "The type `(t/HSet #{1})` cannot be destructured via syntax `[a]` because the type cannot be passed as the first argument of `nth`.`"}]}
+           (is-tc-err-messages
              #(cc/doseq [{[a] :foo} [{:foo #{1}}]]
-                a))
-           {:ex [[(ext-let/bad-vector-destructure-error-msg
-                    "(t/HSet #{1})"
-                    "[a]")
-                  {:type-error :clojure.core.typed.errors/type-error
-                   :form '(cc/doseq [{[a] :foo} [{:foo #{1}}]]
-                            a)}]]})))
+                a)))))
   (testing "fn"
-    (is (= (is-tc-err-messages
+    (is (= '{:type-errors
+             [{:type-error :clojure.core.typed.errors/type-error,
+               :env {:line "REMOVED_LINE", :column 24, :file "core.clj"},
+               :form (cc/fn [[a]]),
+               :data nil,
+               :message
+               "The type `(IPersistentSet t/Any)` cannot be destructured via syntax `[a]` because the type cannot be passed as the first argument of `nth`.`"}]}
+           (is-tc-err-messages
              (ann-form (cc/fn [[a]])
-                       [(t/Set t/Any) -> t/Any]))
-           {:ex [[(ext-let/bad-vector-destructure-error-msg
-                    "(IPersistentSet t/Any)"
-                    "[a]")
-                  {:type-error :clojure.core.typed.errors/type-error
-                   :form '(cc/fn [[a]])}]]})))
+                       [(t/Set t/Any) -> t/Any])))))
   (testing "defn"
-    (is (= (is-tc-err-messages
+    (is (= '{:type-errors
+             [{:type-error :clojure.core.typed.errors/type-error,
+               :env {:line "REMOVED_LINE", :column 18, :file "core.clj"},
+               :form (cc/defn foo [[a]]),
+               :data nil,
+               :message
+               "The type `(IPersistentSet t/Any)` cannot be destructured via syntax `[a]` because the type cannot be passed as the first argument of `nth`.`"}]}
+           (is-tc-err-messages
              (do (t/ann foo [(t/Set t/Any) :-> t/Any])
-                 (cc/defn foo [[a]])))
-           {:ex [[(ext-let/bad-vector-destructure-error-msg
-                    "(IPersistentSet t/Any)"
-                    "[a]")
-                  {:type-error :clojure.core.typed.errors/type-error
-                   :form '(cc/defn foo [[a]])}]]})))
+                 (cc/defn foo [[a]]))))))
   (testing "defmethod"
-    (is (= (is-tc-err-messages
+    (is (= '{:type-errors
+            [{:type-error :clojure.core.typed.errors/type-error,
+              :env {:line "REMOVED_LINE", :column 18, :file "core.clj"},
+              :form (defmethod f nil [[a]]),
+              :data nil,
+              :message
+              "The type `(IPersistentSet t/Any)` cannot be destructured via syntax `[a]` because the type cannot be passed as the first argument of `nth`.`"}]}
+           (is-tc-err-messages
              (do (t/ann f [(t/Set t/Any) -> t/Any])
                  (defmulti f (fn [_] nil))
-                 (defmethod f nil [[a]])))
-           {:ex [[(ext-let/bad-vector-destructure-error-msg
-                    "(IPersistentSet t/Any)"
-                    "[a]")
-                  {:type-error :clojure.core.typed.errors/type-error
-                   :form '(defmethod f nil [[a]])}]]}))))
+                 (defmethod f nil [[a]])))))))
 
 (deftest inlined-nth-error-msg-test
-  (is (= '(clojure.core/nth :a :a)
-         ;; top-level
-         (-> (is-tc-err-messages (clojure.core/nth :a :a))
-             :ex
-             first
-             second
-             :form)))
-  (is (= '(clojure.core/nth :a :a)
-         ;; non top-level
-         (-> (is-tc-err-messages (let [x (clojure.core/nth :a :a)]
-                                   x))
-             :ex
-             first
-             second
-             :form)))
-  (is (= '(cc/nth (and :a :b) :a)
-         ;; top-level
-         (-> (is-tc-err-messages
-               (do (alias 'cc 'clojure.core)
-                   (cc/nth (and :a :b) :a)))
-             :ex
-             first
-             second
-             :form))))
+  (is (= '{:type-errors
+           [{:type-error :typed.clojure/app-type-error,
+             :env {:line "REMOVED_LINE", :column 31, :file "core.clj"},
+             :form (clojure.core/nth :a :a),
+             :data
+             {:fn-result
+              {:type (t/All [x y] (t/IFn [(t/U (t/I (Seqable (t/NilableNonEmptySeq x)) Sequential) (t/I Sequential nil) (Indexed x)) t/AnyInteger :-> x] [(t/U (t/I (Seqable (t/NilableNonEmptySeq x)) Sequential) (t/I Sequential nil) (Indexed x) nil) t/AnyInteger y :-> (t/U x y)] [(t/U (t/I (Seqable (t/NilableNonEmptySeq x)) Sequential) (t/I Sequential nil) (Indexed x) nil) t/AnyInteger :-> (t/U x nil)]))},
+              :args-results
+              [{:type (t/Val :a), :filter-set {:then tt, :else ff}}
+               {:type (t/Val :a), :filter-set {:then tt, :else ff}}],
+              :expected-result {:type t/Infer}},
+             :message
+             "Polymorphic function clojure.core/nth could not be applied to arguments:\nPolymorphic Variables:\n\tx\n\ty\n\nDomains:\n\t(t/U (t/I (Seqable (t/NilableNonEmptySeq x)) Sequential) (t/I Sequential nil) (Indexed x) nil) t/AnyInteger\n\nArguments:\n\t(t/Val :a) (t/Val :a)\n\nRanges:\n\t(t/U x nil)\n\n"}]}
+         (is-tc-err-messages #(clojure.core/nth :a :a))))
+  (is (= '{:ex
+           {:message
+            "class clojure.lang.Keyword cannot be cast to class java.lang.Number (clojure.lang.Keyword is in unnamed module of loader 'app'; java.lang.Number is in module java.base of loader 'bootstrap')"},
+           :type-errors
+           [{:type-error :typed.clojure/app-type-error,
+             :env {:line "REMOVED_LINE", :column 16, :file "core.clj"},
+             :form (cc/nth (and :a :b) :a),
+             :data
+             {:fn-result
+              {:type
+               (t/All [x y] (t/IFn [(t/U (t/I (Seqable (t/NilableNonEmptySeq x)) Sequential) (t/I Sequential nil) (Indexed x)) t/AnyInteger :-> x] [(t/U (t/I (Seqable (t/NilableNonEmptySeq x)) Sequential) (t/I Sequential nil) (Indexed x) nil) t/AnyInteger y :-> (t/U x y)] [(t/U (t/I (Seqable (t/NilableNonEmptySeq x)) Sequential) (t/I Sequential nil) (Indexed x) nil) t/AnyInteger :-> (t/U x nil)]))},
+              :args-results
+              [{:type (t/Val :b), :filter-set {:then tt, :else ff}}
+               {:type (t/Val :a), :filter-set {:then tt, :else ff}}]},
+             :message
+             "Polymorphic function cc/nth could not be applied to arguments:\nPolymorphic Variables:\n\tx\n\ty\n\nDomains:\n\t(t/U (t/I (Seqable (t/NilableNonEmptySeq x)) Sequential) (t/I Sequential nil) (Indexed x) nil) t/AnyInteger\n\nArguments:\n\t(t/Val :b) (t/Val :a)\n\nRanges:\n\t(t/U x nil)\n\n"}]}
+         (is-tc-err-messages
+           (do (alias 'cc 'clojure.core)
+               (cc/nth (and :a :b) :a))))))
 
 ;; note: the following fns intentionally omitted as they are annotated to accept all arguments
 ;; - clojure.core/get 
@@ -215,9 +220,8 @@
                                           (fn [] FORM)))]
                             (is (= 'FORM
                                    (-> res
-                                       :delayed-errors
+                                       :type-errors
                                        first
-                                       second
                                        :form))
                                 (pr-str res))))
                  (cc/zero? :a)
@@ -307,9 +311,8 @@
                                           (fn [] FORM)))]
                             (is (= (first 'FORM)
                                    (-> res
-                                       :delayed-errors
+                                       :type-errors
                                        first
-                                       second
                                        :form))
                                 (pr-str res))))
                  (cc/unchecked-char :a)

@@ -209,6 +209,7 @@
                (source-info-into-transient! (meta x)))]
     (if-let [file (let [file #?(:cljs cljs-ana/*cljs-file*
                                 :default *file*)]
+                    ;;TODO NO_SOURCE_PATH
                     (and (not= file "NO_SOURCE_FILE")
                          file))]
       (assoc! t :file file)

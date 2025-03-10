@@ -1,8 +1,10 @@
 (ns ^:typed.clojure typed.clj.checker.test-utils
-  (:require [clojure.core.typed :as t]
+  (:require [babashka.fs :as fs]
+            [clojure.core.typed :as t]
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.errors :as err]
             [clojure.set :as set]
+            [clojure.string :as str]
             [clojure.test :as test :refer [is]]
             [typed.clj.checker.check :as chk]
             [typed.clj.checker.parse-unparse :refer [parse-type parse-clj] :as prs]
@@ -28,7 +30,8 @@
 
 (defn tc-common* [frm {{:keys [syn provided?]} :expected-syntax :keys [expected-ret requires ns-meta check-config] :as opt}]
   (check-opt opt)
-  (let [nsym (gensym 'clojure.core.typed.test.temp)
+  (let [file *file*
+        nsym (gensym 'clojure.core.typed.test.temp)
         ns-form 
         `(ns ~nsym
            ~@(when ns-meta [ns-meta])
@@ -44,7 +47,7 @@
     `(do
        (t/load-if-needed)
        (binding [*ns* *ns*
-                 *file* *file*]
+                 *file* ~file]
          (let [expected-ret# (clj ~expected-ret)
                check-config# ~check-config
                {ex# :ex} (t/check-form-info '~ns-form
@@ -112,21 +115,30 @@
        res#)))
 
 (defn extract-error-messages [tc-err-res]
-  (let [extract-errors (fn [errors]
-                         (mapv (juxt ex-message
-                                     (comp #(dissoc % :env) ex-data))
-                               errors))]
-    (some-> tc-err-res
-            (update :ex (comp extract-errors
-                              :errors
-                              ex-data))
-            (update :delayed-errors extract-errors)
-            (cond-> 
-              (nil? (:ex tc-err-res))
-              (dissoc :ex)
-
-              (empty? (:delayed-errors tc-err-res))
-              (dissoc :delayed-errors)))))
+  (let [ungensym-ns (fn [msg] (str/replace msg #"clojure\.core\.typed\.test\.temp\d+/" "clojure.core.typed.temp/"))
+        ;;TODO reparse line numbers in relation to is-tc-err-messages
+        remove-line-number (fn [msg line] (str/replace msg (str ":" line ":") ":REMOVED_LINE:"))
+        cp-relative-file (fn [msg line] (str/replace msg (str ":" line ":") ":REMOVED_LINE:"))
+        mask-line-number (fn [m]
+                           (let [line (-> m :env :line)
+                                 file (-> m :env :file)
+                                 file-name (if (= file "NO_SOURCE_FILE")
+                                             file
+                                             (some-> file fs/file-name))]
+                             (cond-> m
+                               (contains? m :env) (-> (update-in [:env :line] #(when (integer? %) "REMOVED_LINE"))
+                                                      (assoc-in [:env :file] file-name))
+                               (:message m) (-> (update :message remove-line-number line)
+                                                (update :message ungensym-ns)
+                                                (cond-> file (update :message str/replace file file-name))))))]
+    (-> tc-err-res
+        (update :type-errors #(mapv mask-line-number %))
+        (cond->
+          (:ex tc-err-res) (update :ex (fn [ex]
+                                         (let [d (ex-data ex)
+                                               _ (assert (not (contains? d :message)) d)]
+                                           (mask-line-number
+                                             (assoc d :message (ex-message ex))))))))))
 
 (defmacro is-tc-err-messages
   "Performs an is-tc-err and returns error messages"

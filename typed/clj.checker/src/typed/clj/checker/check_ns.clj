@@ -23,11 +23,7 @@
   Options
   - :type-provided?  If true, use the expected type to check the form
   - :file-mapping    If true, return map provides entry :file-mapping, a hash-map
-                     of (Map '{:line Int :column Int :file Str} Str).
-  
-  Deprecated:
-  - :profile         Use Timbre to profile the type checker. Timbre must be
-                     added as a dependency."
+                     of (Map '{:line Int :column Int :file Str} Str)."
   [ns-or-syms opt opts]
   (chk-ns/check-ns-info impl/clojure ns-or-syms
                         (update opt :check-config #(into (default-check-config) %))

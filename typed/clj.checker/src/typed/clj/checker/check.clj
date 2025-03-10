@@ -154,7 +154,7 @@
 
 (defn check-ns1
   "Type checks an entire namespace."
-  ([ns env {::vs/keys [delayed-errors check-config
+  ([ns env {::vs/keys [type-errors check-config
                        ^java.util.concurrent.ExecutorService check-threadpool
                        check-threadpool-parallelism]
             ::cenv/keys [checker] :as opts}]
@@ -196,16 +196,16 @@
                                                         (update groups (classify-form form env opts) conj form-info))))))))
 
                  ns-form-str (some :ns-form-str forms-info)
-                 _ (assert delayed-errors)
+                 _ (assert type-errors)
                  ;_ (prn "groups" (binding [*print-level* 4
                  ;                          *print-length* 3]
                  ;                  (clojure.pprint/pprint (update-vals groups count #_#(mapv :form %)))))
                  bndings (get-thread-bindings)
                  chker1 (fn [{:keys [form sform pos]}]
                           (fn []
-                            (let [delayed-errors (err/-init-delayed-errors)
+                            (let [type-errors (err/-init-type-errors)
                                   opts (-> opts
-                                           (assoc ::vs/delayed-errors delayed-errors)
+                                           (assoc ::vs/type-errors type-errors)
                                            ;; force types to reparse to detect dependencies in per-form cache
                                            ;; might affect TypeFn variance inference
                                            (assoc ::env-utils/type-cache (atom {})))
@@ -223,9 +223,9 @@
                                           (do (chk) nil)))]
                               (-> (if-let [ex @ex]
                                     (if (-> ex ex-data :type-error)
-                                      {:errors (conj @delayed-errors ex)}
+                                      {:errors (conj @type-errors ex)}
                                       {:ex ex})
-                                    {:errors @delayed-errors})
+                                    {:errors @type-errors})
                                   (assoc :out out :pos pos)))))
                  _ (assert (= #{:fan :serial :skip} (set (keys groups))))
                  check-group (fn [g]
@@ -247,7 +247,7 @@
                                          (mapcat check-group))
                                    (doto (:fan groups) assert))
                              (into (check-group (map chker1 (doto (:serial groups) assert)))))
-                 _ (swap! delayed-errors into
+                 _ (swap! type-errors into
                           (into [] (mapcat (fn [{:keys [ex errors out]}]
                                              (some-> out str/trim not-empty println)
                                              (some-> ex throw)
@@ -1887,24 +1887,14 @@
                   (assoc ::prs/parse-type-in-ns nsym)
                   (assoc ::prs/unparse-type-in-ns nsym)
                   (update ::ana2/eval-ast (fn [eval-ast]
-                                            (fn [ast {::vs/keys [delayed-errors] :as opts}]
-                                              (let [; don't evaluate a form if there are delayed type errors
-                                                    throw-this (atom nil)
-                                                    _ (swap! delayed-errors
-                                                             (fn [delayed]
-                                                               {:pre [(vector? delayed)]
-                                                                :post [(vector? %)]}
-                                                               (if (seq delayed)
-                                                                 ; take the last type error to throw
-                                                                 (do (reset! throw-this (peek delayed))
-                                                                     (pop delayed))
-                                                                 delayed)))
-                                                    _ (when-some [e @throw-this]
-                                                        (throw e))
-                                                    ]
-                                                (if side-effects?
-                                                  (eval-ast ast opts)
-                                                  ast)))))
+                                            (fn [ast {::vs/keys [type-errors] :as opts}]
+                                              (if side-effects?
+                                                (do #_(when (seq @type-errors)
+                                                      ;; TODO is this a good idea?
+                                                      (throw (ex-info "Not evaluating form after detecting static type errors"
+                                                                      {})))
+                                                    (eval-ast ast opts))
+                                                ast))))
                   (cond->
                     (not side-effects?)
                     (-> (assoc ::ana2/create-var (fn [sym {:keys [ns]} opts]

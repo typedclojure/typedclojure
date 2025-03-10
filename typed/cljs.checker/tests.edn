@@ -5,7 +5,7 @@
                  :kaocha/source-paths  ["src"]
                  :kaocha/test-paths    ["test"]}]
  :kaocha/fail-fast? true
- :kaocha/color? true
+ :kaocha/color? false
  :kaocha/reporter [kaocha.report/dots]
  :kaocha/plugins [;:kaocha.plugin/randomize
                   :kaocha.plugin/filter

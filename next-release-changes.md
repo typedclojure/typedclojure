@@ -7,5 +7,8 @@
     4. the JVM property can be removed
 - BREAKING: remove `clojure.core.typed/var>`
   - use `clojure.core/requiring-resolve`
-- BREAKING: remove `clojure.core/typed-deps
+- BREAKING: remove `clojure.core/typed-deps`
   - no longer useful
+- Change how exceptions and type errors are returned from `check-{ns,form}-info`
+  - `:type-errors` is a non-empty vector of maps describing type errors
+  - `:ex` is a fatal error

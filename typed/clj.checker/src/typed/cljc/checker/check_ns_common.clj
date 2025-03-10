@@ -73,13 +73,13 @@
                               [ns-or-syms]
                               ns-or-syms))]
         (assert (seq nsym-coll) "Nothing to check")
-        (assert (not (::vs/delayed-errors opts)))
-        (let [delayed-errors (err/-init-delayed-errors)
+        (assert (not (::vs/type-errors opts)))
+        (let [type-errors (err/-init-type-errors)
               opts (-> opts
                        (assoc ::vs/check-config check-config)
                        (assoc ::vs/lexical-env (lex-env/init-lexical-env))
                        (assoc ::vs/already-checked (atom #{}))
-                       (assoc ::vs/delayed-errors delayed-errors)
+                       (assoc ::vs/type-errors type-errors)
                        (assoc ::vs/trace trace)
                        (assoc ::vs/check-threadpool threadpool)
                        (assoc ::vs/check-threadpool-parallelism max-parallelism)
@@ -112,18 +112,18 @@
               (if (= 1 (count nsym-coll))
                 (check-ns (nth nsym-coll 0) opts)
                 (let [check-ns (bound-fn*
-                                 #(let [delayed-errors (err/-init-delayed-errors)
+                                 #(let [type-errors (err/-init-type-errors)
                                         ex (volatile! nil)
-                                        chk (fn [] (try (check-ns % (assoc opts ::vs/delayed-errors delayed-errors))
+                                        chk (fn [] (try (check-ns % (assoc opts ::vs/type-errors type-errors))
                                                         (catch Throwable e (vreset! ex e))))
                                         out (if threadpool
                                               (with-out-str (chk))
                                               (do (chk) nil))]
                                     (-> (if-let [ex @ex]
                                           (if (-> ex ex-data :type-error)
-                                            {:errors (conj @delayed-errors ex)}
+                                            {:errors (conj @type-errors ex)}
                                             {:ex ex})
-                                          {:errors @delayed-errors})
+                                          {:errors @type-errors})
                                         (assoc :out out))))
                       check-ns-group (fn [nsym-coll]
                                        (if-not threadpool
@@ -142,7 +142,7 @@
                                                               (count nsym-coll)))
                                              (mapcat check-ns-group))
                                     nsym-coll)
-                      _ (swap! delayed-errors into
+                      _ (swap! type-errors into
                                (into [] (mapcat (fn [{:keys [ex errors out]}]
                                                   (some-> out str/trim not-empty println)
                                                   (some-> ex throw)
@@ -152,7 +152,7 @@
               (if (-> e ex-data :type-error)
                 (reset! terminal-error e)
                 (throw e))))
-          {:delayed-errors (vec (concat @delayed-errors
+          {:type-errors (vec (concat @type-errors
                                         (when-let [e @terminal-error]
                                           [e])))}))
       (finally
@@ -160,7 +160,7 @@
           (some-> threadpool .shutdown))))))
 
 (defn check-ns [impl ns-or-syms opt opts]
-  (let [{:keys [delayed-errors]} (check-ns-info impl ns-or-syms opt opts)]
-    (if-let [errors (seq delayed-errors)]
+  (let [{:keys [type-errors]} (check-ns-info impl ns-or-syms opt opts)]
+    (if-let [errors (seq type-errors)]
       (err/print-errors! errors opts)
       :ok)))

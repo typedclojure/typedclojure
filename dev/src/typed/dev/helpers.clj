@@ -52,6 +52,7 @@
    :malli-mvn-version "0.17.0"
    :beholder-mvn-version "1.0.2"
    :process-mvn-version "0.5.22"
+   :fs-mvn-version "0.5.24"
    :fully-satisfies-mvn-version "1.12.0"
    :clj-async-profiler-mvn-version "1.6.1"
    })
