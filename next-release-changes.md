@@ -7,3 +7,5 @@
     4. the JVM property can be removed
 - BREAKING: remove `clojure.core.typed/var>`
   - use `clojure.core/requiring-resolve`
+- BREAKING: remove `clojure.core/typed-deps
+  - no longer useful

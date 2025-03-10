@@ -39,9 +39,6 @@
                                         Mu Name NotType Poly PrimitiveArray Protocol RClass Regex Result Satisfies Scope SymbolicClosure TApp
                                         TCError TCResult Top TopFunction TopHSequential TopKwArgsSeq TypeFn TypeOf Unchecked Union Value Wildcard)))
 
-(t/typed-deps typed.cljc.checker.free-ops
-              typed.cljc.checker.promote-demote)
-
 (t/ann ^:no-check typed.clj.checker.subtype/subtype? [r/AnyType r/AnyType t/Any -> Boolean])
 (t/ann ^:no-check clojure.core.typed.current-impl/current-impl [t/Any -> t/Any])
 (t/ann ^:no-check clojure.core.typed.current-impl/checking-clojure? [t/Any -> t/Any])

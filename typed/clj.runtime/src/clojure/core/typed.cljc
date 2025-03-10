@@ -655,16 +655,6 @@ for checking namespaces, cf for checking individual forms."}
   ((requiring-resolve 'clojure.core.typed.impl/override-method)
    &form methodsym typesyn))
 
-(defmacro typed-deps 
-  "Declare namespaces which should be checked before the current namespace.
-  Accepts any number of symbols. Only has effect via check-ns.
-  
-  eg. (typed-deps clojure.core.typed.holes
-                  myns.types)"
-  [& args]
-  ((requiring-resolve 'clojure.core.typed.impl/typed-deps)
-   &form args))
-
 (defmacro warn-on-unannotated-vars
   "Allow unannotated vars in the current namespace. 
   

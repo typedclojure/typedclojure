@@ -10,7 +10,7 @@
   (:require-macros [typed.clojure :as t]
                    [cljs.core.async.macros :refer [alt!]]
                    [cljs.core.typed.async :refer [chan> go>]]
-                   [cljs.core.typed :refer [defalias typed-deps ann]])
+                   [cljs.core.typed :refer [defalias ann]])
   (:import goog.events.EventType))
 
 (ann ^:no-check atom? (predicate (Atom Nothing Any)))

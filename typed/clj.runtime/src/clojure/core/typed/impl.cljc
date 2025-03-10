@@ -1061,30 +1061,6 @@
       '~(ns-name *ns*) '~methodsym '~typesyn '~&form)))
 
 (core/defn ^:no-doc
-  typed-deps* 
-  "Internal use only. Use typed-deps."
-  [args form]
-  (core/let [opts (-> ((requiring-resolve 'typed.clj.runtime.env/clj-opts))
-                      (with-current-location form))
-             checker ((requiring-resolve 'clojure.core.typed.current-impl/clj-checker))
-             ns->URL (requiring-resolve 'clojure.core.typed.coerce-utils/ns->URL)
-             add-ns-deps (requiring-resolve 'clojure.core.typed.current-impl/add-ns-deps)]
-    (core/doseq [dep args]
-      (when-not (ns->URL dep opts)
-        (int-error (str "Cannot find dependency declared with typed-deps: " dep) opts)))
-    nil))
-
-(core/defn typed-deps 
-  "Declare namespaces which should be checked before the current namespace.
-  Accepts any number of symbols. Only has effect via check-ns.
-  
-  eg. (typed-deps clojure.core.typed.holes
-                  myns.types)"
-  [&form args]
-  `(clojure.core.typed/tc-ignore
-     ((requiring-resolve 'typed-deps*) '~args '~&form)))
-
-(core/defn ^:no-doc
   warn-on-unannotated-vars*
   "Internal use only. Use allow-unannotated-vars"
   [nsym]

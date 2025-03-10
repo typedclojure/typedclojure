@@ -1676,9 +1676,6 @@
 (deftest ignore-macro-def-test
   (is-cf (defmacro foobar [])))
 
-(deftest typed-deps-fail-gracefully-test
-  (is-tc-err (clojure.core.typed/typed-deps no.exist.fail)))
-
 (deftest def-expected-test
   (is-cf (do
            (clojure.core.typed/ann foo1 clojure.core.typed/Any)

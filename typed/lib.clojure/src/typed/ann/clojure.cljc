@@ -947,7 +947,6 @@ clojure.core.typed.current-impl/clojurescript t/Any
 clojure.core.typed/ann* [t/Any t/Any t/Any :-> t/Any]
 clojure.core.typed/untyped-var* [t/Any t/Any :-> t/Any]
 clojure.core.typed/declare-names* [t/Any :-> t/Any]
-clojure.core.typed/typed-deps* [t/Any :-> t/Any]
 clojure.core.typed/warn-on-unannotated-vars* [:-> t/Any]
 clojure.core.typed/ann-datatype* [t/Any t/Any t/Any t/Any :-> t/Any]
 clojure.core.typed/ann-protocol* [t/Any t/Any t/Any :-> t/Any]
@@ -959,7 +958,6 @@ clojure.core.typed/non-nil-return* [t/Any t/Any :-> t/Any]
 clojure.core.typed/nilable-param* [t/Any t/Any :-> t/Any]
 clojure.core.typed/override-constructor* [t/Any t/Any :-> t/Any]
 clojure.core.typed/override-method* [t/Any t/Any :-> t/Any]
-clojure.core.typed/typed-deps* [t/Any :-> t/Any]
 clojure.core.typed/load-if-needed [:-> t/Any]
 clojure.core.typed/*collect-on-eval* t/Any
 ])
