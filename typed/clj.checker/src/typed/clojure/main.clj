@@ -19,11 +19,13 @@
             [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]
             [typed.cljc.checker.ns-deps-utils :as ns-depsu]))
 
+(t/ann dynavar [t/Symbol :-> t/Any])
 (defn- dynavar [sym]
   (doto (requiring-resolve sym)
     (assert (str "Unresolable: " (pr-str sym)))))
 
 ; Algorithm By Mark Dickinson https://stackoverflow.com/a/2660138
+(t/ann partition-fairly [t/Int (t/Vec t/Any) :-> t/Any])
 (defn- partition-fairly
   "Partition coll into n chunks such that each chunk's
   count is within one of eachother. Puts its larger chunks first.
@@ -47,15 +49,18 @@
                    (indices (inc %)))
           (range n))))
 
+(t/ann nses-for-this-split ['[t/Int t/Int] (t/Seqable t/Any) :-> t/Any])
 (defn- nses-for-this-split [[this-split num-splits] nses]
   (nth (partition-fairly num-splits nses) this-split))
 
+(t/ann print-error [Throwable :-> nil])
 (defn- print-error [^Throwable e]
   (if (some-> (ex-data e) err/top-level-error?)
     (print (.getMessage e))
     (print e))
   (flush))
 
+(t/ann exec1 [t/Any t/Any :-> t/Any])
 (defn- exec1 [{:keys [split dirs focus platform watch] :or {platform :clj split [0 1]}} opts]
   (let [focus (cond-> focus
                 (symbol? focus) vector)

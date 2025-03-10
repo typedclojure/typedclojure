@@ -665,15 +665,6 @@ for checking namespaces, cf for checking individual forms."}
   ((requiring-resolve 'clojure.core.typed.impl/typed-deps)
    &form args))
 
-(defmacro var>
-  "Like var, but resolves at runtime like ns-resolve and is understood by
-  the type checker. sym must be fully qualified (without aliases).
-  
-  eg. (var> clojure.core/+)"
-  [sym]
-  ((requiring-resolve 'clojure.core.typed.impl/var>)
-   sym))
-
 (defmacro warn-on-unannotated-vars
   "Allow unannotated vars in the current namespace. 
   

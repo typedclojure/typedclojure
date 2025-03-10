@@ -1084,17 +1084,6 @@
   `(clojure.core.typed/tc-ignore
      ((requiring-resolve 'typed-deps*) '~args '~&form)))
 
-(core/defn ^:no-doc var>* [sym]
-  ((requiring-resolve 'clojure.core.typed.current-impl/the-var) sym))
-
-(core/defn var>
-  "Like var, but resolves at runtime like ns-resolve and is understood by
-  the type checker. sym must be fully qualified (without aliases).
-  
-  eg. (var> clojure.core/+)"
-  [sym]
-  `((requiring-resolve 'var>*) '~sym))
-
 (core/defn ^:no-doc
   warn-on-unannotated-vars*
   "Internal use only. Use allow-unannotated-vars"

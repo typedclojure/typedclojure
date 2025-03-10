@@ -39,9 +39,9 @@
                                         PrimitiveArray DataType Protocol TypeFn Poly
                                         Mu HeterogeneousMap
                                         CountRange Name Value Top Wildcard TypeOf Unchecked TopFunction B F Result
-                                        KwArgsSeq KwArgsArray TCError JSNumber JSBoolean SymbolicClosure
+                                        TopKwArgsSeq KwArgsSeq KwArgsArray TCError JSNumber JSBoolean SymbolicClosure
                                         CLJSInteger ArrayCLJS JSNominal JSString TCResult AssocType MergeType
-                                        GetType HSequential HSet JSUndefined JSNull JSSymbol JSObject
+                                        GetType TopHSequential HSequential HSet JSUndefined JSNull JSSymbol JSObject
                                         JSObj Bounds MatchType Instance Satisfies)
            (typed.cljc.checker.filter_rep TopFilter BotFilter TypeFilter NotTypeFilter AndFilter OrFilter
                                           ImpFilter NoFilter)
@@ -2310,6 +2310,10 @@
                [:objects (mapv #(unparse-object % opts) objects)])))))
 
 (extend-protocol IUnparseType
+  ;; TODO cannot parse these
+  TopHSequential (unparse-type* [v opts] `t/AnyHSequential)
+  TopKwArgsSeq (unparse-type* [v opts] `t/AnyKwArgsSeq)
+
   HSequential 
   (unparse-type* [v opts]
     (unparse-heterogeneous*

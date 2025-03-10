@@ -479,31 +479,6 @@
                                    expected
                                    opts))))))))
 
-(defmethod -invoke-special 'clojure.core.typed/var>*
-  [expr expected {::check/keys [check-expr] :as opts}]
-  {:post [(or (nil? %)
-              (and (r/TCResult? (u/expr-type %))
-                   (vector? (:args %))))]}
-  (when-not (= 1 (count (:args expr)))
-    (err/int-error (str "Wrong number of arguments to clojure.core.typed/var>,"
-                        " expected 1, given " (count (:args expr)))
-                   opts))
-  (let [{[sym-expr :as args] :args fexpr :fn :as expr}
-        (-> expr
-            (update-in [:args 0] ana2/run-passes opts))
-        sym (ast-u/quote-expr-val sym-expr)
-        _ (assert (symbol? sym))
-        t (var-env/lookup-Var-nofail sym opts)
-        _ (when-not t
-            (err/tc-delayed-error (str "Unannotated var: " sym) opts))]
-    (-> expr
-        ; var>* is internal, don't check
-        #_(update :fn check-expr nil opts)
-        (assoc u/expr-type (below/maybe-check-below
-                             (r/ret (or t (r/TCError-maker)))
-                             expected
-                             opts)))))
-
 ; ignore some keyword argument related intersections
 (defmethod -invoke-special 'clojure.core/seq?
   [{:keys [args] :as expr} expected {::check/keys [check-expr] :as opts}]
