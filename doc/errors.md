@@ -4,7 +4,7 @@
 
 ## :typed.clojure/type-mismatch-error
 
-```clojure
+```
 - :data :expected-type   the expected type, as data, relative to the current ns
 - :data :actual-type     the actual type, as data, relative to the current ns
 ```
@@ -31,7 +31,7 @@ Example:
 
 ## :typed.clojure/app-type-error
 
-```clojure
+```
 - :data :fn-type           the type of the function, as data, relative to the current ns
 - :data :args-results      the type checking results of the arguments, as data, relative to the current ns.
 - :data :expected-result   (optional) the expected type checking result of calling the function with the arguments, as data, relative to the current ns
