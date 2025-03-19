@@ -20,7 +20,7 @@ Example:
    {:line 329,
     :column 38,
     :file
-    "/Users/ambrose/Projects/typedclojure-local-dev/delayed-errors/typed/clj.checker/test/clojure/core/typed/test/symbolic_closures.clj"},
+    "clojure/core/typed/test/symbolic_closures.clj"},
    :form 1,
    :data {:expected-type t/Str, :actual-type (t/Val 1)},
    :message
@@ -42,7 +42,7 @@ Example:
 ```
 (check-form-info '#(+ 1 "oops"))
 =>
-{:delayed-errors
+{:type-errors
  [{:type-error :typed.clojure/app-type-error,
    :env
    {:line 61,
@@ -91,7 +91,7 @@ Example:
 ;;with non-trivial :expected-result
 (check-form-info '#(t/ann-form (+ 1 "oops") nil))
 =>
-{:delayed-errors
+{:type-errors
  [{:type-error :typed.clojure/app-type-error,
    :env
    {:line 61,
