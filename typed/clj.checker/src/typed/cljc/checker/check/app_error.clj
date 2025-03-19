@@ -77,7 +77,7 @@
                      #(or %
                           (some-> fexpr (cu/expr-ns opts))
                           (some-> (::vs/current-expr opts) (cu/expr-ns opts))))
-        data (cond-> {:fn-result {:type (prs/unparse-type (or poly? fin) opts)}
+        data (cond-> {:fn-type (prs/unparse-type (or poly? fin) opts)
                       :args-results (mapv #(prs/unparse-TCResult-map % opts) arg-ret-types)}
                expected (assoc :expected-result (prs/unparse-TCResult-map expected opts)))
         fin (apply r/make-FnIntersection (trim-arities (:types fin) arg-ret-types opts))

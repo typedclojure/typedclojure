@@ -41,7 +41,7 @@
           (is (:line env))
           (is (:column env))
           (is (:file env))
-          (is (= data '{:fn-result {:type [& :optional {:foo t/Any} :-> nil]},
+          (is (= data '{:fn-type [& :optional {:foo t/Any} :-> nil],
                         :args-results
                         [{:type (t/Val :blah), :filter-set {:then tt, :else ff}}
                          {:type (t/Val a), :filter-set {:then tt, :else ff}}]})))))))
@@ -72,12 +72,12 @@
             (is (:column env))
             (is (string? (:file env)))
             (is (string? message))
-            (is (= '{:fn-result
-                     {:type (t/IFn
-                              [Long :* :-> Long]
-                              [(t/U Double Long) :* :-> Double]
-                              [t/AnyInteger :* :-> t/AnyInteger]
-                              [t/Num :* :-> t/Num])},
+            (is (= '{:fn-type
+                     (t/IFn
+                       [Long :* :-> Long]
+                       [(t/U Double Long) :* :-> Double]
+                       [t/AnyInteger :* :-> t/AnyInteger]
+                       [t/Num :* :-> t/Num]),
                      :args-results
                      [{:type (t/Val 1), :filter-set {:then tt, :else ff}}
                       {:type (t/Val "oops"), :filter-set {:then tt, :else ff}}]}
@@ -91,12 +91,12 @@
           (is (:line env))
           (is (:column env))
           (is (:file env))
-          (is (= '{:fn-result
-                   {:type (t/IFn
-                            [Long :* :-> Long]
-                            [(t/U Double Long) :* :-> Double]
-                            [t/AnyInteger :* :-> t/AnyInteger]
-                            [t/Num :* :-> t/Num])},
+          (is (= '{:fn-type
+                   (t/IFn
+                     [Long :* :-> Long]
+                     [(t/U Double Long) :* :-> Double]
+                     [t/AnyInteger :* :-> t/AnyInteger]
+                     [t/Num :* :-> t/Num]),
                    :args-results
                    [{:type (t/Val 1), :filter-set {:then tt, :else ff}}
                     {:type (t/Val "oops"), :filter-set {:then tt, :else ff}}],

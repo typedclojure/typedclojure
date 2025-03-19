@@ -4,14 +4,14 @@
 
 ## :typed.clojure/type-mismatch-error
 
-```
+```clojure
 - :data :expected-type   the expected type, as data, relative to the current ns
 - :data :actual-type     the actual type, as data, relative to the current ns
 ```
 
 Example:
 
-```
+```clojure
 (check-form-info '(t/ann-form 1 t/Str))
 =>
 {:type-errors
@@ -31,15 +31,15 @@ Example:
 
 ## :typed.clojure/app-type-error
 
-```
-- :data :fn-result         the type checking result of the function, as data, relative to the current ns
-- :data :args-results      the type checking results of the arguments, as data, relative to the current ns
+```clojure
+- :data :fn-type           the type of the function, as data, relative to the current ns
+- :data :args-results      the type checking results of the arguments, as data, relative to the current ns.
 - :data :expected-result   (optional) the expected type checking result of calling the function with the arguments, as data, relative to the current ns
 ```
 
 Example:
 
-```
+```clojure
 (check-form-info '#(+ 1 "oops"))
 =>
 {:type-errors
@@ -51,13 +51,12 @@ Example:
     "clojure/core/typed/test/error_msg.clj"},
    :form (+ 1 "oops"),
    :data
-   {:fn-result
-    {:type
-     (t/IFn
-      [Long :* :-> Long]
-      [(t/U Double Long) :* :-> Double]
-      [t/AnyInteger :* :-> t/AnyInteger]
-      [t/Num :* :-> t/Num])},
+   {:fn-type
+    (t/IFn
+     [Long :* :-> Long]
+     [(t/U Double Long) :* :-> Double]
+     [t/AnyInteger :* :-> t/AnyInteger]
+     [t/Num :* :-> t/Num]),
     :args-results
     [{:type (t/Val 1), :filter-set {:then tt, :else ff}}
      {:type (t/Val "oops"), :filter-set {:then tt, :else ff}}],
@@ -100,13 +99,12 @@ Example:
     "clojure/core/typed/test/error_msg.clj"},
    :form (+ 1 "oops"),
    :data
-   {:fn-result
-    {:type
-     (t/IFn
-      [Long :* :-> Long]
-      [(t/U Double Long) :* :-> Double]
-      [t/AnyInteger :* :-> t/AnyInteger]
-      [t/Num :* :-> t/Num])},
+   {:fn-type
+    (t/IFn
+     [Long :* :-> Long]
+     [(t/U Double Long) :* :-> Double]
+     [t/AnyInteger :* :-> t/AnyInteger]
+     [t/Num :* :-> t/Num]),
     :args-results
     [{:type (t/Val 1), :filter-set {:then tt, :else ff}}
      {:type (t/Val "oops"), :filter-set {:then tt, :else ff}}],

@@ -181,8 +181,8 @@
              :env {:line "REMOVED_LINE", :column 31, :file "core.clj"},
              :form (clojure.core/nth :a :a),
              :data
-             {:fn-result
-              {:type (t/All [x y] (t/IFn [(t/U (t/I (Seqable (t/NilableNonEmptySeq x)) Sequential) (t/I Sequential nil) (Indexed x)) t/AnyInteger :-> x] [(t/U (t/I (Seqable (t/NilableNonEmptySeq x)) Sequential) (t/I Sequential nil) (Indexed x) nil) t/AnyInteger y :-> (t/U x y)] [(t/U (t/I (Seqable (t/NilableNonEmptySeq x)) Sequential) (t/I Sequential nil) (Indexed x) nil) t/AnyInteger :-> (t/U x nil)]))},
+             {:fn-type
+              (t/All [x y] (t/IFn [(t/U (t/I (Seqable (t/NilableNonEmptySeq x)) Sequential) (t/I Sequential nil) (Indexed x)) t/AnyInteger :-> x] [(t/U (t/I (Seqable (t/NilableNonEmptySeq x)) Sequential) (t/I Sequential nil) (Indexed x) nil) t/AnyInteger y :-> (t/U x y)] [(t/U (t/I (Seqable (t/NilableNonEmptySeq x)) Sequential) (t/I Sequential nil) (Indexed x) nil) t/AnyInteger :-> (t/U x nil)])),
               :args-results
               [{:type (t/Val :a), :filter-set {:then tt, :else ff}}
                {:type (t/Val :a), :filter-set {:then tt, :else ff}}],
@@ -198,9 +198,8 @@
              :env {:line "REMOVED_LINE", :column 16, :file "core.clj"},
              :form (cc/nth (and :a :b) :a),
              :data
-             {:fn-result
-              {:type
-               (t/All [x y] (t/IFn [(t/U (t/I (Seqable (t/NilableNonEmptySeq x)) Sequential) (t/I Sequential nil) (Indexed x)) t/AnyInteger :-> x] [(t/U (t/I (Seqable (t/NilableNonEmptySeq x)) Sequential) (t/I Sequential nil) (Indexed x) nil) t/AnyInteger y :-> (t/U x y)] [(t/U (t/I (Seqable (t/NilableNonEmptySeq x)) Sequential) (t/I Sequential nil) (Indexed x) nil) t/AnyInteger :-> (t/U x nil)]))},
+             {:fn-type
+              (t/All [x y] (t/IFn [(t/U (t/I (Seqable (t/NilableNonEmptySeq x)) Sequential) (t/I Sequential nil) (Indexed x)) t/AnyInteger :-> x] [(t/U (t/I (Seqable (t/NilableNonEmptySeq x)) Sequential) (t/I Sequential nil) (Indexed x) nil) t/AnyInteger y :-> (t/U x y)] [(t/U (t/I (Seqable (t/NilableNonEmptySeq x)) Sequential) (t/I Sequential nil) (Indexed x) nil) t/AnyInteger :-> (t/U x nil)])),
               :args-results
               [{:type (t/Val :b), :filter-set {:then tt, :else ff}}
                {:type (t/Val :a), :filter-set {:then tt, :else ff}}]},
