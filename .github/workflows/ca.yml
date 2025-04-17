@@ -6,7 +6,7 @@ env:
   CLOJURE_CLI_VERSION: "1.11.1.1347"
 
 jobs:
-  build:
+  check-ca:
     if: (github.actor != 'frenchy64' || github.actor != 'dependabot') && github.repository == 'typedclojure/typedclojure'
     runs-on: ubuntu-latest
     steps:
