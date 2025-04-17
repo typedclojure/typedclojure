@@ -80,8 +80,13 @@ jobs:
       - run: bb --version
       - run: ./script-test/test_runner.clj
       - run: ./script/check_docs.clj
-  deploy:
+  all-pr-checks:
     needs: test
+    runs-on: ubuntu-24.04
+    steps:
+      - run: echo "All tests pass!"
+  deploy:
+    needs: all-pr-checks
     if: ${{ github.ref == 'refs/heads/main'
             && github.repository == 'typedclojure/typedclojure'
             && github.event_name == 'push'
