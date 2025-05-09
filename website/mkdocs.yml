@@ -1,0 +1,74 @@
+site_name: Typed Clojure
+nav:
+  - Introduction:
+    - What is Typed Clojure?: typed-clojure.md
+    - How to read this document: how-to-read-this-document.md
+  - Getting Started:
+    - Installing Typed Clojure: installing.md
+    - Using Documentation: documentation.md
+    - Editor Integration: editor-integration.md
+  - Concepts and Design:
+    - Situating Typed Clojure: situating-typed-clojure.md
+    - Misuses of Typed Clojure: misuses-of-typed-clojure.md
+    - Local inference only: local-inference-only.md
+    - The Type Checking Procedure: type-checking-procedure.md
+    - Design and Restrictions: checker-design-and-restrictions.md
+  - Checker:
+    - Checking namespaces: checking-namespaces.md
+    - Checking forms: checking-forms.md
+    - Checking Macros: macros.md
+    - Bidirectional Type Checking: bidirectional-type-checking.md
+    - Subtyping: subtyping.md
+    - Checking Function Invocations: checking-function-invocations
+    - Symbolic Execution: symbolic-execution.md
+    - Parallel Type Checking: parallel-checking.md
+    - Java Interop: java-interop.md
+    - Occurrence Typing: occurrence-typing.md
+    - Collecting Type Annotations: collecting-type-annotations.md
+    - Ignoring code: ignoring-code.md
+  - Type Errors:
+    - Type Mismatch Errors: type-mismatch-errors.md
+    - Function Applications Errors: function-application-errors.md
+    - Polymorphic Function Application Errors: polymorphic-function-application-errors.md
+  - Types:
+    - Syntax: types-index.md
+    - Namespace Resolution Rules: namespace-resolution.md
+    - Java Classes: java-classes.md
+    - nil: nil.md
+    - Ordered Function Intersection Types: ordered-function-intersection-types.md
+    - Polymorphic Function Types: polymorphic-function-types.md
+    - Union Types: union-types.md
+    - Intersection Types: intersection-types.md
+    - Heterogeneous Map Types: hmap-types.md
+    - Heterogeneous Sequential Types: hvec-types.md
+    - Heterogeneous Vector Types: hvec-types.md
+    - Type Functions: type-functions.md
+    - Symbolic Closure Types: symbolic-closure-types.md
+    - Equirecursive Types: equirecursive-types.md
+  - Type Annotations:
+    - Type aliases: type-aliases.md
+    - Local Annotations: local-annotations.md
+    - Var annotations: var-annotations.md
+    - Protocol annotations: protocol-annotations.md
+    - deftype and defrecord annotations: type-annotations.md
+  - Deployment:
+    - Removing Typed Clojure: removing-typed-clojure.md
+    - Exporting Type Annotations: exporting-type-annotations.md
+  - Known issues:
+    - Annotating Multimethod Dispatch functions: annotation-multimethod-dispatch.md
+    - ClojureScript support is not ready: typed-clojurescript-status.md
+    - Occurrence Typing Bugs: occurrence-typing-bugs.md
+    - Incomplete typed.clojure namespace: incomplete-typed-clojure-ns.md
+    - Incomplete data interface for type errors: incomplete-errors-as-data.md
+    - Line numbers for non-IMeta syntax: line-numbers-for-non-imeta.md
+  - FAQ:
+    - How does Typed Clojure compare to Clojure?: typed-clojure-vs-clojure.md
+    - Does Typed Clojure improve runtime performance?: typed-clojure-performance.md
+    - How does Typed Clojure compare to clj-kondo?: typed-clojure-vs-clj-kondo.md
+    - How does Typed Clojure compare to Eastwood?: typed-clojure-vs-eastwood.md
+    - How does Typed Clojure compare to spec?: typed-clojure-vs-spec.md
+    - How does Typed Clojure compare to Plumatic Schema?: typed-clojure-vs-plumatic-spec.md
+    - How does Typed Clojure compare to Malli?: typed-clojure-vs-malli.md
+  - Meta:
+    - About: about.md
+theme: readthedocs
