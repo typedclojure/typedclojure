@@ -89,6 +89,7 @@
                    ;; root-relative
                    :dest dest
                    :typedclojure-stable-mvn-version (h/typedclojure-stable-version)
+                   :typedclojure-stable-sha (h/typedclojure-stable-sha)
                    :typedclojure-current-mvn-version (h/typedclojure-current-version)})
             {;; {◊var◊} instead of {{var}}
              :filter-open \◊
