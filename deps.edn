@@ -4,7 +4,7 @@
  {:eastwood
   {:extra-deps
    {jonase/eastwood
-    {:git/sha "bbe8610",
+    {:git/sha "bbe86101e2bf81c54b611c296def355e40d68c06",
      :git/tag "Release-0.9.9",
      :git/url "https://github.com/jonase/eastwood.git"}},
    :main-opts

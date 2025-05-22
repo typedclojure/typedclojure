@@ -35,7 +35,7 @@
                               (sorted-map
                                 :git/url "https://github.com/jonase/eastwood.git"
                                 :git/tag "Release-0.9.9"
-                                :git/sha "bbe8610")))
+                                :git/sha "bbe86101e2bf81c54b611c296def355e40d68c06")))
     :nREPL-runner
     {:main-opts ["-m" "nrepl.cmdline" "--interactive"
                  #_"

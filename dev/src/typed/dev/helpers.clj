@@ -8,6 +8,12 @@
       slurp
       str/trim))
 
+(defn typedclojure-stable-sha []
+  {:post [(= 40 (count %))]}
+  (-> (str repo-root "/stable-sha")
+      slurp
+      str/trim))
+
 (defn typedclojure-current-version []
   (-> (str repo-root "/current-version")
       slurp

@@ -19,13 +19,12 @@ Latest stable release is 1.3.0.
 
 [deps.edn](https://clojure.org/reference/deps_and_cli) Git dependency information:
 
-- Note: use `clj -Sresolve` to resolve the `:git/tag` to a `:git/sha`
-
 ```clj
   org.typedclojure/typed.cljc.analyzer
   {:git/url "https://github.com/typedclojure/typedclojure"
    :deps/root "typed/cljc.analyzer"
-   :git/tag "1.3.0"}
+   :git/tag "1.3.0"
+   :git/sha "b35a73fe51301f1f5188f249dabb1d2d689522e9"}
 ```
 
 [Leiningen](https://github.com/technomancy/leiningen) dependency information:

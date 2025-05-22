@@ -64,6 +64,7 @@ mvn release:prepare release:perform \
   )
 
 echo $RELEASE_VERSION > stable-version
+echo "$(git rev-parse "$RELEASE_VERSION")" > stable-sha
 echo $DEVELOPMENT_VERSION > current-version
 
 ./script/regen-selmer.sh

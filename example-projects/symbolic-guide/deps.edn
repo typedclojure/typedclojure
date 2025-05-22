@@ -3,7 +3,7 @@
  :aliases {:dev {:jvm-opts ["-Dtyped.clojure.preserve-check-ns-after-opt-in=true"]
                  :extra-paths ["test"]}
            :test {:extra-deps {io.github.cognitect-labs/test-runner 
-                               {:git/tag "v0.5.0" :git/sha "b3fd0d2"}}
+                               {:git/tag "v0.5.1" :git/sha "dfb30dd6605cb6c0efc275e1df1736f6e90d4d73"}}
                   :main-opts ["-m" "cognitect.test-runner"
                               "-d" "test"
                               "-r" ".*"]
