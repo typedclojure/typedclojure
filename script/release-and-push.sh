@@ -74,4 +74,5 @@ git add .
 git commit -m "Bump README versions for $RELEASE_VERSION"
 
 # DON'T PRINT HERE
-git push "https://${GITHUB_ACTOR}:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" main --tags
+git push "https://${GITHUB_ACTOR}:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" main
+git push "https://${GITHUB_ACTOR}:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" tag "$RELEASE_VERSION"

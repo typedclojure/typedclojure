@@ -9,7 +9,7 @@
 ; note: this file is copied into resources/clj-kondo.exports/org.typedclojure/typed.clj.runtime
 ;; via ./script/regen-kondo.sh
 ;; the canonical version is in the src folder
-(ns ^:no-doc clojure.core.typed.special-form)
+(ns ^:typed.clojure ^:no-doc clojure.core.typed.special-form)
 
 ;; note: copied into clojure.core.typed, clojure.core.typed.macros
 (def special-form :clojure.core.typed.special-form/special-form)

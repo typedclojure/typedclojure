@@ -9,7 +9,7 @@
 ; note: this file is copied into resources/clj-kondo.exports/org.typedclojure/typed.clj.runtime
 ;; via ./script/regen-kondo.sh
 ;; the canonical version is in the src folder
-(ns ^:no-doc clojure.core.typed.internal
+(ns ^:typed.clojure ^:no-doc clojure.core.typed.internal
   #?(:clj (:refer-clojure :exclude [requiring-resolve]))
   #?(:clj (:require [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]])))
 

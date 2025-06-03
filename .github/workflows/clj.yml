@@ -1,6 +1,7 @@
 name: Test and deploy
 
 on:
+  #FIXME double builds on self pull requests
   pull_request:
   push:
   schedule:
@@ -118,7 +119,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: ${{ env.DEPLOY_JDK }}
-      - uses: DeLaGuardo/setup-clojure@13.1
+      - uses: DeLaGuardo/setup-clojure@13.4
         with:
           cli: ${{ env.CLOJURE_CLI_VERSION }}
           bb: ${{env.BABASHKA_VERSION}}

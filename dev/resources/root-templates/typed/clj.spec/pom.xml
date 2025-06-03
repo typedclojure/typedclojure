@@ -6,7 +6,6 @@
   <artifactId>typed.clj.spec</artifactId>
   <description>Type-like specs.</description>
   <name>typed.clj.spec</name>
-  <version>{◊typedclojure-current-mvn-version◊}</version>
 
   <licenses>
     <license>
@@ -19,7 +18,7 @@
   <parent>
     <groupId>{◊typedclojure-group-id◊}</groupId>
     <artifactId>pom.typed</artifactId>
-    <version>{◊typedclojure-current-mvn-version◊}</version>
+    <version>${revision}</version>
     <relativePath>../..</relativePath>
   </parent>
 

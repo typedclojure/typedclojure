@@ -30,3 +30,6 @@ junit-output.xml
 node_modules
 package-lock.json
 package.json
+.flattened-pom.xml
+release.properties
+*.releaseBackup

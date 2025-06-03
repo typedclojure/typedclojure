@@ -4,7 +4,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>{◊typedclojure-group-id◊}</groupId>
   <artifactId>pom.typed</artifactId>
-  <version>{◊typedclojure-current-mvn-version◊}</version>
+  <version>${revision}</version>
   <name>pom</name>
   <description>An optional type system for Clojure</description>
   <packaging>pom</packaging>
@@ -17,20 +17,17 @@
     </license>
   </licenses>
 
-  <!--
-  <parent>
-    <groupId>org.clojure</groupId>
-    <artifactId>pom.contrib</artifactId>
-    <version>0.3.0</version>
-  </parent>
-  -->
-
   <properties>
     <clojure.warnOnReflection>true</clojure.warnOnReflection>
     <clojure.version>{◊clojure-mvn-version◊}</clojure.version>
     <clojure.source.dir>src</clojure.source.dir>
     <clojure.testSource.dir>test</clojure.testSource.dir>
+    <!-- https://maven.apache.org/guides/mini/guide-reproducible-builds.html -->
+    <!--<project.build.outputTimestamp>${git.commit.time}</project.build.outputTimestamp>-->
+    <project.build.outputTimestamp>2023-01-01T00:00:00Z</project.build.outputTimestamp>
+    <dateFormatTimeZone>UTC</dateFormatTimeZone>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <revision>{◊typedclojure-current-mvn-version◊}</revision>
   </properties>
 
   <distributionManagement>
@@ -47,25 +44,78 @@
   </distributionManagement>
 
   <build>
+    <!--
     <sourceDirectory>java-src</sourceDirectory>
     <scriptSourceDirectory>scripts-src</scriptSourceDirectory>
     <testSourceDirectory>java-test</testSourceDirectory>
+    -->
     <resources>
       <resource>
         <directory>resources</directory>
       </resource>
     </resources>
+    <!--
     <testResources>
       <testResource>
         <directory>resources-test</directory>
       </testResource>
     </testResources>
+      -->
     <plugins>
+      <!--
+      <plugin>
+        <groupId>io.github.git-commit-id</groupId>
+        <artifactId>git-commit-id-maven-plugin</artifactId>
+        <version>9.0.2</version>
+        <executions>
+          <execution>
+            <id>get-the-git-infos</id>
+            <goals>
+              <goal>revision</goal>
+            </goals>
+            <phase>initialize</phase>
+          </execution>
+        </executions>
+        <configuration>
+          <generateGitPropertiesFile>true</generateGitPropertiesFile>
+          <generateGitPropertiesFilename>${project.build.outputDirectory}/git.properties</generateGitPropertiesFilename>
+          <includeOnlyProperties>
+            <includeOnlyProperty>^git.branch$</includeOnlyProperty>
+            <includeOnlyProperty>^git.commit.id$</includeOnlyProperty>
+          </includeOnlyProperties>
+        </configuration>
+      </plugin>
+      -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>flatten-maven-plugin</artifactId>
+        <version>1.7.0</version>
+        <configuration>
+          <updatePomFile>true</updatePomFile>
+          <flattenMode>oss</flattenMode>
+        </configuration>
+        <executions>
+          <execution>
+            <id>flatten</id>
+            <phase>process-resources</phase>
+            <goals>
+              <goal>flatten</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>flatten.clean</id>
+            <phase>clean</phase>
+            <goals>
+              <goal>clean</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <!-- Add Clojure sources to the project's source directories -->
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>build-helper-maven-plugin</artifactId>
-        <version>3.3.0</version>
+        <version>3.6.0</version>
         <executions>
           <execution>
             <id>add-clojure-source-dirs</id>
@@ -116,6 +166,7 @@
           <encoding>${project.build.sourceEncoding}</encoding>
         </configuration>
       </plugin>
+      <!--
       <plugin>
         <groupId>com.theoryinpractise</groupId>
         <artifactId>clojure-maven-plugin</artifactId>
@@ -137,10 +188,11 @@
           </execution>
         </executions>
       </plugin>
+      -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-release-plugin</artifactId>
-        <version>2.5.3</version>
+        <version>3.1.1</version>
         <configuration>
           <autoVersionSubmodules>true</autoVersionSubmodules>
           <tagNameFormat>@{project.version}</tagNameFormat>
@@ -187,68 +239,67 @@
       <dependency>
         <groupId>org.clojars.typedclojure-clojars</groupId>
         <artifactId>alpha.spec</artifactId>
-        <!-- sha: {◊typedclojure-alpha-spec-git-sha◊} -->
         <version>{◊typedclojure-alpha-spec-mvn-version◊}</version>
       </dependency>
       <dependency>
         <groupId>{◊typedclojure-group-id◊}</groupId>
         <artifactId>typed.cljc.analyzer</artifactId>
-        <version>{◊typedclojure-current-mvn-version◊}</version>
+        <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>{◊typedclojure-group-id◊}</groupId>
         <artifactId>typed.cljs.analyzer</artifactId>
-        <version>{◊typedclojure-current-mvn-version◊}</version>
+        <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>{◊typedclojure-group-id◊}</groupId>
         <artifactId>typed.clj.analyzer</artifactId>
-        <version>{◊typedclojure-current-mvn-version◊}</version>
+        <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>{◊typedclojure-group-id◊}</groupId>
         <artifactId>typed.cljs.checker</artifactId>
-        <version>{◊typedclojure-current-mvn-version◊}</version>
+        <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>{◊typedclojure-group-id◊}</groupId>
         <artifactId>typed.clj.checker</artifactId>
-        <version>{◊typedclojure-current-mvn-version◊}</version>
+        <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>{◊typedclojure-group-id◊}</groupId>
         <artifactId>typed.clj.runtime</artifactId>
-        <version>{◊typedclojure-current-mvn-version◊}</version>
+        <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>{◊typedclojure-group-id◊}</groupId>
         <artifactId>typed.cljs.runtime</artifactId>
-        <version>{◊typedclojure-current-mvn-version◊}</version>
+        <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>{◊typedclojure-group-id◊}</groupId>
         <artifactId>typed.lib.clojure</artifactId>
-        <version>{◊typedclojure-current-mvn-version◊}</version>
+        <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>{◊typedclojure-group-id◊}</groupId>
         <artifactId>typed.lib.core.async</artifactId>
-        <version>{◊typedclojure-current-mvn-version◊}</version>
+        <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>{◊typedclojure-group-id◊}</groupId>
         <artifactId>typed.lib.spec.alpha</artifactId>
-        <version>{◊typedclojure-current-mvn-version◊}</version>
+        <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>{◊typedclojure-group-id◊}</groupId>
         <artifactId>typed.clj.spec</artifactId>
-        <version>{◊typedclojure-current-mvn-version◊}</version>
+        <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>{◊typedclojure-group-id◊}</groupId>
         <artifactId>typed.malli</artifactId>
-        <version>{◊typedclojure-current-mvn-version◊}</version>
+        <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>org.clojure</groupId>
@@ -336,10 +387,12 @@
   </developers>
 
   <repositories>
+    <!--
     <repository>
       <id>sonatype-oss-public</id>
       <url>{◊sonatype-oss-public-url◊}</url>
     </repository>
+    -->
     <repository>
       <id>clojars</id>
       <url>{◊clojars-url◊}</url>
@@ -347,8 +400,8 @@
   </repositories>
 
   <scm>
-    <connection>scm:git:git://github.com/typedclojure/typedclojure.git</connection>
-    <developerConnection>scm:git:git://github.com/typedclojure/typedclojure.git</developerConnection>
+    <connection>{◊typedclojure-scm-connection◊}</connection>
+    <developerConnection>{◊typedclojure-scm-developerConnection◊}</developerConnection>
     <url>{◊typedclojure-git-https-url◊}</url>
     <tag>HEAD</tag>
   </scm>

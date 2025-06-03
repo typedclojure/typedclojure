@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 set -e
 
@@ -9,13 +9,13 @@ if [ -z $1 ]; then
 fi
 
 cd $START
-COORD=`./script/current-coord.sh`
-VERSION=`./script/current-version.sh`
+COORD=$(./script/current-coord.sh)
+VERSION=$(./script/current-version.sh)
 cd ..
 
 while read line
 do
-  NAME=`basename ${line}`
+  NAME=$(basename ${line})
   cd $NAME
   echo "grepping: $NAME"
   ./script/update-dep.sh $COORD $VERSION

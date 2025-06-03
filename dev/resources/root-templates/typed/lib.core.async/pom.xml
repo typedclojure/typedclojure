@@ -6,7 +6,6 @@
   <artifactId>typed.lib.core.async</artifactId>
   <name>typed.lib.core.async</name>
   <description>Type annotations and macros for core.async.</description>
-  <version>{◊typedclojure-current-mvn-version◊}</version>
 
   <licenses>
     <license>
@@ -19,7 +18,7 @@
   <parent>
     <groupId>{◊typedclojure-group-id◊}</groupId>
     <artifactId>pom.typed</artifactId>
-    <version>{◊typedclojure-current-mvn-version◊}</version>
+    <version>${revision}</version>
     <relativePath>../..</relativePath>
   </parent>
 

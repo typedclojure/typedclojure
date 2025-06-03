@@ -6,8 +6,6 @@
   <artifactId>typed.clj.runtime</artifactId>
   <description>An optional type system for Clojure — zero-dependency artifact for annotations only.</description>
   <name>typed.clj.runtime</name>
-  <version>1.4.0-SNAPSHOT</version>
-  <packaging>clojure</packaging>
 
   <licenses>
     <license>
@@ -20,7 +18,7 @@
   <parent>
     <groupId>org.typedclojure</groupId>
     <artifactId>pom.typed</artifactId>
-    <version>1.4.0-SNAPSHOT</version>
+    <version>${revision}</version>
     <relativePath>../..</relativePath>
   </parent>
 
@@ -35,6 +33,7 @@
     </repository>
   </repositories>
 
+  <!--
   <build>
     <plugins>
       <plugin>
@@ -52,6 +51,7 @@
       </plugin>
     </plugins>
   </build>
+  -->
 
   <dependencies>
     <dependency>
