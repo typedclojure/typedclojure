@@ -23,6 +23,7 @@
   {:clojure-mvn-version "1.12.1"
    :min-supported-jdk "1.8"
    :analyzer-clojure-mvn-version "1.9.0"
+   :clojars-cdn-url "https://repo.clojars.org"
    :clojars-url "https://clojars.org/repo"
    :sonatype-oss-public-url "https://oss.sonatype.org/content/groups/public/"
    :clojurescript-mvn-version "1.11.132"

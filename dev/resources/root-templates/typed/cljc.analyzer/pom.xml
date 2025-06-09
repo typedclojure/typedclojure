@@ -26,6 +26,7 @@
     <dependency>
       <groupId>org.clojure</groupId>
       <artifactId>clojure</artifactId>
+      <version>{◊clojure-mvn-version◊}</version>
     </dependency>
   </dependencies>
 </project>

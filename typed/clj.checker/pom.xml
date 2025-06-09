@@ -37,46 +37,57 @@
     <dependency>
       <groupId>org.clojure</groupId>
       <artifactId>clojure</artifactId>
+      <version>1.12.1</version>
     </dependency>
     <dependency>
       <groupId>org.typedclojure</groupId>
       <artifactId>typed.clj.analyzer</artifactId>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>org.typedclojure</groupId>
       <artifactId>typed.lib.clojure</artifactId>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>org.typedclojure</groupId>
       <artifactId>typed.lib.spec.alpha</artifactId>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>org.clojure</groupId>
       <artifactId>tools.namespace</artifactId>
+      <version>1.5.0</version>
     </dependency>
     <dependency>
       <groupId>org.typedclojure</groupId>
       <artifactId>typed.clj.runtime</artifactId>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>org.clojure</groupId>
       <artifactId>math.combinatorics</artifactId>
+      <version>0.2.0</version>
     </dependency>
     <dependency>
       <groupId>org.clojure</groupId>
       <artifactId>tools.reader</artifactId>
+      <version>1.5.0</version>
     </dependency>
     <dependency>
       <groupId>org.clojure</groupId>
       <artifactId>core.cache</artifactId>
+      <version>1.1.234</version>
     </dependency>
     <dependency>
       <groupId>com.nextjournal</groupId>
       <artifactId>beholder</artifactId>
+      <version>1.0.2</version>
     </dependency>
     <dependency>
       <groupId>io.github.frenchy64</groupId>
       <artifactId>fully-satisfies</artifactId>
+      <version>1.12.0</version>
     </dependency>
   </dependencies>
 </project>

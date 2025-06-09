@@ -27,15 +27,18 @@
       <groupId>org.typedclojure</groupId>
       <artifactId>typed.clj.runtime</artifactId>
       <scope>provided</scope>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>org.typedclojure</groupId>
       <artifactId>typed.clj.spec</artifactId>
       <scope>provided</scope>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>io.github.frenchy64</groupId>
       <artifactId>fully-satisfies</artifactId>
+      <version>1.12.0</version>
     </dependency>
   </dependencies>
 </project>

@@ -18,10 +18,6 @@
   </licenses>
 
   <properties>
-    <clojure.warnOnReflection>true</clojure.warnOnReflection>
-    <clojure.version>{◊clojure-mvn-version◊}</clojure.version>
-    <clojure.source.dir>src</clojure.source.dir>
-    <clojure.testSource.dir>test</clojure.testSource.dir>
     <!-- https://maven.apache.org/guides/mini/guide-reproducible-builds.html -->
     <!--<project.build.outputTimestamp>${git.commit.time}</project.build.outputTimestamp>-->
     <project.build.outputTimestamp>2023-01-01T00:00:00Z</project.build.outputTimestamp>
@@ -44,48 +40,13 @@
   </distributionManagement>
 
   <build>
-    <!--
-    <sourceDirectory>java-src</sourceDirectory>
-    <scriptSourceDirectory>scripts-src</scriptSourceDirectory>
-    <testSourceDirectory>java-test</testSourceDirectory>
-    -->
+    <sourceDirectory>src</sourceDirectory>
     <resources>
       <resource>
         <directory>resources</directory>
       </resource>
     </resources>
-    <!--
-    <testResources>
-      <testResource>
-        <directory>resources-test</directory>
-      </testResource>
-    </testResources>
-      -->
     <plugins>
-      <!--
-      <plugin>
-        <groupId>io.github.git-commit-id</groupId>
-        <artifactId>git-commit-id-maven-plugin</artifactId>
-        <version>9.0.2</version>
-        <executions>
-          <execution>
-            <id>get-the-git-infos</id>
-            <goals>
-              <goal>revision</goal>
-            </goals>
-            <phase>initialize</phase>
-          </execution>
-        </executions>
-        <configuration>
-          <generateGitPropertiesFile>true</generateGitPropertiesFile>
-          <generateGitPropertiesFilename>${project.build.outputDirectory}/git.properties</generateGitPropertiesFilename>
-          <includeOnlyProperties>
-            <includeOnlyProperty>^git.branch$</includeOnlyProperty>
-            <includeOnlyProperty>^git.commit.id$</includeOnlyProperty>
-          </includeOnlyProperties>
-        </configuration>
-      </plugin>
-      -->
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>flatten-maven-plugin</artifactId>
@@ -112,50 +73,6 @@
         </executions>
       </plugin>
       <plugin>
-        <!-- Add Clojure sources to the project's source directories -->
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>build-helper-maven-plugin</artifactId>
-        <version>3.6.0</version>
-        <executions>
-          <execution>
-            <id>add-clojure-source-dirs</id>
-            <phase>generate-sources</phase>
-            <goals>
-              <goal>add-source</goal>
-              <goal>add-resource</goal>
-            </goals>
-            <configuration>
-              <sources>
-                <source>${clojure.source.dir}</source>
-              </sources>
-              <resources>
-                <resource>
-                  <directory>${clojure.source.dir}</directory>
-                </resource>
-              </resources>
-            </configuration>
-          </execution>
-          <execution>
-            <id>add-clojure-test-source-dirs</id>
-            <phase>generate-sources</phase>
-            <goals>
-              <goal>add-test-source</goal>
-              <goal>add-test-resource</goal>
-            </goals>
-            <configuration>
-              <sources>
-                <source>${clojure.testSource.dir}</source>
-              </sources>
-              <resources>
-                <resource>
-                  <directory>${clojure.testSource.dir}</directory>
-                </resource>
-              </resources>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
         <!-- Clojure targets Java 1.8+ -->
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
@@ -166,29 +83,6 @@
           <encoding>${project.build.sourceEncoding}</encoding>
         </configuration>
       </plugin>
-      <!--
-      <plugin>
-        <groupId>com.theoryinpractise</groupId>
-        <artifactId>clojure-maven-plugin</artifactId>
-        <version>1.9.2</version>
-        <extensions>true</extensions>
-        <configuration>
-          <sourceDirectories>
-            <sourceDirectory>${clojure.source.dir}</sourceDirectory>
-          </sourceDirectories>
-        </configuration>
-        <executions>
-          <execution>
-            <id>clojure-compile</id>
-            <phase>none</phase>
-          </execution>
-          <execution>
-            <id>clojure-test</id>
-            <phase>none</phase>
-          </execution>
-        </executions>
-      </plugin>
-      -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-release-plugin</artifactId>
@@ -224,161 +118,6 @@
     <module>typed/lib.spec.alpha</module>
   </modules>
 
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <groupId>org.clojure</groupId>
-        <artifactId>clojure</artifactId>
-        <version>${clojure.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.clojure</groupId>
-        <artifactId>clojurescript</artifactId>
-        <version>{◊clojurescript-mvn-version◊}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.clojars.typedclojure-clojars</groupId>
-        <artifactId>alpha.spec</artifactId>
-        <version>{◊typedclojure-alpha-spec-mvn-version◊}</version>
-      </dependency>
-      <dependency>
-        <groupId>{◊typedclojure-group-id◊}</groupId>
-        <artifactId>typed.cljc.analyzer</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>{◊typedclojure-group-id◊}</groupId>
-        <artifactId>typed.cljs.analyzer</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>{◊typedclojure-group-id◊}</groupId>
-        <artifactId>typed.clj.analyzer</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>{◊typedclojure-group-id◊}</groupId>
-        <artifactId>typed.cljs.checker</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>{◊typedclojure-group-id◊}</groupId>
-        <artifactId>typed.clj.checker</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>{◊typedclojure-group-id◊}</groupId>
-        <artifactId>typed.clj.runtime</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>{◊typedclojure-group-id◊}</groupId>
-        <artifactId>typed.cljs.runtime</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>{◊typedclojure-group-id◊}</groupId>
-        <artifactId>typed.lib.clojure</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>{◊typedclojure-group-id◊}</groupId>
-        <artifactId>typed.lib.core.async</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>{◊typedclojure-group-id◊}</groupId>
-        <artifactId>typed.lib.spec.alpha</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>{◊typedclojure-group-id◊}</groupId>
-        <artifactId>typed.clj.spec</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>{◊typedclojure-group-id◊}</groupId>
-        <artifactId>typed.malli</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.clojure</groupId>
-        <artifactId>core.memoize</artifactId>
-        <version>{◊core-memoize-mvn-version◊}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.clojure</groupId>
-        <artifactId>tools.namespace</artifactId>
-        <version>{◊tools-namespace-mvn-version◊}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.ow2.asm</groupId>
-        <artifactId>asm</artifactId>
-        <version>{◊asm-mvn-version◊}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.clojure</groupId>
-        <artifactId>tools.analyzer</artifactId>
-        <version>{◊tools-analyzer-mvn-version◊}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.clojure</groupId>
-        <artifactId>tools.analyzer.jvm</artifactId>
-        <version>{◊tools-analyzer-jvm-mvn-version◊}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.clojure</groupId>
-        <artifactId>math.combinatorics</artifactId>
-        <version>{◊math-combinatorics-mvn-version◊}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.clojure</groupId>
-        <artifactId>tools.reader</artifactId>
-        <version>{◊tools-reader-mvn-version◊}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.clojure</groupId>
-        <artifactId>core.cache</artifactId>
-        <version>{◊core-cache-mvn-version◊}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.clojure</groupId>
-        <artifactId>core.async</artifactId>
-        <version>{◊core-async-mvn-version◊}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.clojure</groupId>
-        <artifactId>test.check</artifactId>
-        <version>{◊test-check-mvn-version◊}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.clojure</groupId>
-        <artifactId>core.logic</artifactId>
-        <version>{◊core-logic-mvn-version◊}</version>
-      </dependency>
-      <dependency>
-        <groupId>metosin</groupId>
-        <artifactId>malli</artifactId>
-        <version>{◊malli-mvn-version◊}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.nextjournal</groupId>
-        <artifactId>beholder</artifactId>
-        <version>{◊beholder-mvn-version◊}</version>
-      </dependency>
-      <dependency>
-        <groupId>babashka</groupId>
-        <artifactId>process</artifactId>
-        <version>{◊process-mvn-version◊}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.github.frenchy64</groupId>
-        <artifactId>fully-satisfies</artifactId>
-        <version>{◊fully-satisfies-mvn-version◊}</version>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
-
   <developers>
     <developer>
       <id>frenchy64</id>
@@ -387,15 +126,9 @@
   </developers>
 
   <repositories>
-    <!--
-    <repository>
-      <id>sonatype-oss-public</id>
-      <url>{◊sonatype-oss-public-url◊}</url>
-    </repository>
-    -->
     <repository>
       <id>clojars</id>
-      <url>{◊clojars-url◊}</url>
+      <url>{◊clojars-cdn-url◊}</url>
     </repository>
   </repositories>
 

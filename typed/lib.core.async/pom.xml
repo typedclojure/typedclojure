@@ -26,14 +26,17 @@
     <dependency>
       <groupId>org.clojure</groupId>
       <artifactId>clojure</artifactId>
+      <version>1.12.1</version>
     </dependency>
     <dependency>
       <groupId>org.clojure</groupId>
       <artifactId>core.async</artifactId>
+      <version>1.7.701</version>
     </dependency>
     <dependency>
       <groupId>org.typedclojure</groupId>
       <artifactId>typed.clj.runtime</artifactId>
+      <version>${project.version}</version>
     </dependency>
   </dependencies>
 </project>

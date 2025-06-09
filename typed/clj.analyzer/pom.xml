@@ -26,18 +26,22 @@
     <dependency>
       <groupId>org.typedclojure</groupId>
       <artifactId>typed.cljc.analyzer</artifactId>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>org.clojure</groupId>
       <artifactId>core.memoize</artifactId>
+      <version>1.1.266</version>
     </dependency>
     <dependency>
       <groupId>org.ow2.asm</groupId>
       <artifactId>asm</artifactId>
+      <version>9.2</version>
     </dependency>
     <dependency>
       <groupId>io.github.frenchy64</groupId>
       <artifactId>fully-satisfies</artifactId>
+      <version>1.12.0</version>
     </dependency>
   </dependencies>
 </project>

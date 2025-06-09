@@ -26,18 +26,22 @@
     <dependency>
       <groupId>{◊typedclojure-group-id◊}</groupId>
       <artifactId>typed.cljs.runtime</artifactId>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>{◊typedclojure-group-id◊}</groupId>
       <artifactId>typed.clj.checker</artifactId>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>org.clojure</groupId>
       <artifactId>clojurescript</artifactId>
+      <version>{◊clojurescript-mvn-version◊}</version>
     </dependency>
     <dependency>
       <groupId>io.github.frenchy64</groupId>
       <artifactId>fully-satisfies</artifactId>
+      <version>{◊fully-satisfies-mvn-version◊}</version>
     </dependency>
   </dependencies>
 </project>
