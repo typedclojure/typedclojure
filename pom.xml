@@ -24,10 +24,10 @@
     <clojure.testSource.dir>test</clojure.testSource.dir>
     <!-- https://maven.apache.org/guides/mini/guide-reproducible-builds.html -->
     <!--<project.build.outputTimestamp>${git.commit.time}</project.build.outputTimestamp>-->
-    <project.build.outputTimestamp>2025-06-09T04:44:31Z</project.build.outputTimestamp>
+    <project.build.outputTimestamp>2023-01-01T00:00:00Z</project.build.outputTimestamp>
     <dateFormatTimeZone>UTC</dateFormatTimeZone>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <revision>1.4.0-SNAPSHOT</revision>
+    <revision>1.4.2-SNAPSHOT</revision>
   </properties>
 
   <distributionManagement>
