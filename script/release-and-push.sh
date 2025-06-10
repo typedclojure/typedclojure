@@ -57,22 +57,19 @@ fi
 # was partially deployed. The correct fix (wrt clojars) is to simply
 # deploy a new version (eg., if 1.0.0 fails, try 1.0.1 next).
 ( set -x;
-mvn release:prepare release:perform \
-  -DreleaseVersion="$RELEASE_VERSION" \
-  -Dtag="$RELEASE_VERSION" \
-  -DdevelopmentVersion="$DEVELOPMENT_VERSION"
+mvn releaser:release
   )
 
 echo $RELEASE_VERSION > stable-version
 echo "$(git rev-parse "$RELEASE_VERSION")" > stable-sha
 echo $DEVELOPMENT_VERSION > current-version
 
-./script/regen-selmer.sh
-./script/update_release_notes.clj
+#./script/regen-selmer.sh
+#./script/update_release_notes.clj
 
-git add .
-git commit -m "Bump README versions for $RELEASE_VERSION"
+#git add .
+#git commit -m "Bump README versions for $RELEASE_VERSION"
 
 # DON'T PRINT HERE
-git push "https://${GITHUB_ACTOR}:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" main
-git push "https://${GITHUB_ACTOR}:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" tag "$RELEASE_VERSION"
+#git push "https://${GITHUB_ACTOR}:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" main
+#git push "https://${GITHUB_ACTOR}:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" tag "$RELEASE_VERSION"

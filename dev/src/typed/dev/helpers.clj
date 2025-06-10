@@ -29,7 +29,7 @@
    :clojurescript-mvn-version "1.11.132"
    :typedclojure-alpha-spec-mvn-version "0.2.177-typedclojure-2"
    :typedclojure-scm-connection "scm:git:https://github.com/typedclojure/typedclojure.git"
-   :typedclojure-scm-developerConnection "scm:git:ssh://git@github.com:typedclojure/typedclojure.git"
+   :typedclojure-scm-developerConnection "scm:git:git@github.com:typedclojure/typedclojure.git"
    :typedclojure-git-https-url "https://github.com/typedclojure/typedclojure"
    :typedclojure-alpha-spec-git-sha "9da58ec60f5a4a3bfc61fa19f54bf1d160b49dfc"
    :typedclojure-group-id "org.typedclojure"

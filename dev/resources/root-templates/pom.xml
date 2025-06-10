@@ -84,15 +84,21 @@
         </configuration>
       </plugin>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-release-plugin</artifactId>
-        <version>3.1.1</version>
+        <groupId>com.github.danielflower.mavenplugins</groupId>
+        <artifactId>multi-module-maven-release-plugin</artifactId>
+        <version>3.8.0</version>
         <configuration>
-          <autoVersionSubmodules>true</autoVersionSubmodules>
-          <tagNameFormat>@{project.version}</tagNameFormat>
-          <!-- allow local cleanup if deploy fails -->
-          <pushChanges>false</pushChanges>
-          <localCheckout>true</localCheckout>
+          <releaseGoals>
+            <releaseGoal>deploy</releaseGoal>
+          </releaseGoals>
+          <versionReports>
+            <versionReport>
+              <versionsReportFilePath>version-report.json</versionsReportFilePath>
+              <versionsReportFormat>JSON</versionsReportFormat>
+              <releasedModulesOnly>false</releasedModulesOnly>
+            </versionReport>
+          </versionReports>
+          <tagNameFormat>@{version}</tagNameFormat>
         </configuration>
       </plugin>
     </plugins>
