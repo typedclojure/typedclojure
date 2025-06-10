@@ -140,7 +140,7 @@
 
   <scm>
     <connection>scm:git:https://github.com/typedclojure/typedclojure.git</connection>
-    <developerConnection>scm:git:git@github.com:typedclojure/typedclojure.git</developerConnection>
+    <developerConnection>scm:git:https://github.com/typedclojure/typedclojure.git</developerConnection>
     <url>https://github.com/typedclojure/typedclojure</url>
     <tag>HEAD</tag>
   </scm>
