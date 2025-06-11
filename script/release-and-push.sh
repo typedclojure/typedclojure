@@ -52,10 +52,11 @@ if [[ -z "$DEVELOPMENT_VERSION" ]]; then
 fi
 
 clojure -T:build deploy-release
+git tag "$RELEASE_VERSION"
 
-echo $RELEASE_VERSION > stable-version
-echo "$(git rev-parse "$RELEASE_VERSION")" > stable-sha
-echo $DEVELOPMENT_VERSION > current-version
+#echo $RELEASE_VERSION > stable-version
+#echo "$(git rev-parse "$RELEASE_VERSION")" > stable-sha
+#echo $DEVELOPMENT_VERSION > current-version
 
 #./script/regen-selmer.sh
 #./script/update_release_notes.clj
