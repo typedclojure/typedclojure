@@ -23,7 +23,7 @@
     <project.build.outputTimestamp>2023-01-01T00:00:00Z</project.build.outputTimestamp>
     <dateFormatTimeZone>UTC</dateFormatTimeZone>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <revision>1.4-SNAPSHOT</revision>
+    <revision>1.4.0-SNAPSHOT</revision>
   </properties>
 
   <distributionManagement>

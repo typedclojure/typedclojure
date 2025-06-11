@@ -51,14 +51,7 @@ if [[ -z "$DEVELOPMENT_VERSION" ]]; then
   exit 1
 fi
 
-# there's a chance this can fail and we have a partial
-# release to Clojars. We minimize the damage by avoiding
-# pushing back to main, but there's a chance the version
-# was partially deployed. The correct fix (wrt clojars) is to simply
-# deploy a new version (eg., if 1.0.0 fails, try 1.0.1 next).
-( set -x;
-mvn releaser:release
-  )
+clojure -T:build deploy-release
 
 echo $RELEASE_VERSION > stable-version
 echo "$(git rev-parse "$RELEASE_VERSION")" > stable-sha
@@ -72,4 +65,4 @@ echo $DEVELOPMENT_VERSION > current-version
 
 # DON'T PRINT HERE
 #git push "https://${GITHUB_ACTOR}:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" main
-#git push "https://${GITHUB_ACTOR}:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" tag "$RELEASE_VERSION"
+git push "https://${GITHUB_ACTOR}:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" tag "$RELEASE_VERSION"

@@ -1,7 +1,8 @@
 (ns typed.dev.helpers
-  (:require [clojure.string :as str]))
+  (:require [clojure.string :as str]
+            [clojure.java.io :as io]))
 
-(def ^String repo-root "..")
+(def ^String repo-root (if (.exists (io/file "CODE_OF_CONDUCT.md")) "." ".."))
 
 (defn typedclojure-stable-version []
   (-> (str repo-root "/stable-version")
@@ -20,7 +21,8 @@
       str/trim))
 
 (def selmer-input-map
-  {:clojure-mvn-version "1.12.1"
+  {;;TODO share with script/print-actions-matrix.clj
+   :clojure-mvn-version "1.12.1"
    :min-supported-jdk "1.8"
    :analyzer-clojure-mvn-version "1.9.0"
    :clojars-cdn-url "https://repo.clojars.org"
