@@ -581,7 +581,9 @@
   ;(prn "cs-gen" (class S) (class T) S T (count cs-current-seen))
   (let [cache-key [S T]]
   (if (or (cs-current-seen cache-key)
-          (subtype? S T opts))
+          (subtype? S T opts)
+          ; Any (Top) can satisfy any parameterized type
+          (and (r/Top? S) (r/TApp? T)))
     ;already been around this loop, is a subtype
     (cr/empty-cset X Y)
     (let [opts (assoc opts ::cs-current-seen (conj cs-current-seen cache-key))
