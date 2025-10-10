@@ -1,6 +1,6 @@
 # Using the Binary Search Scripts
 
-This directory contains two automated scripts for finding bugs in clj-kondo releases and commits.
+This directory contains automated scripts for finding bugs in clj-kondo releases, commits, and dependencies.
 
 ## Quick Start
 
@@ -36,6 +36,26 @@ This will:
 - Use git dependencies to test specific commits
 - Perform binary search on commits between the releases
 - Output the exact commit that introduced the bug
+- Verify that found commits are adjacent (distance = 0)
+
+### 3. (Optional) Bisect a Dependency
+
+**Only if** you've identified that the bad commit is a dependency version bump (e.g., "Bump SCI"), you can bisect the dependency itself:
+
+```bash
+./script/bisect-dependency <main-sha> <dep-coordinate> <good-dep-sha> <bad-dep-sha>
+
+# Example:
+./script/bisect-dependency e43c24186 org.babashka/sci a1b2c3d e5f6g7h
+```
+
+This will:
+- Clone the dependency repository
+- Binary search through dependency commits
+- Test each dependency commit with the main project SHA
+- Find the exact dependency commit that introduced the bug
+
+**Warning:** Only use this when you're certain a dependency is at fault. It's time-consuming and should be used judiciously.
 
 ## How It Works
 
@@ -57,7 +77,26 @@ This will:
    - Ensuring the clj-kondo binary doesn't take precedence
    - Running `./script/test` with the git dependency
 3. Outputs the exact commit that introduced the bug
-4. Shows the commit message and suggests viewing the diff
+4. Verifies that found commits are adjacent (distance = 0)
+5. Shows the commit message and suggests viewing the diff
+
+### bisect-dependency
+
+1. Takes a main project commit SHA and dependency information
+2. Clones the dependency repository
+3. Finds all commits between GOOD and BAD dependency SHAs
+4. Performs binary search by:
+   - Updating `deps.edn` to use the main SHA with each dependency commit
+   - Running the test scripts
+   - Determining if each commit is GOOD or BAD
+5. Outputs the first BAD dependency commit
+6. Checks if the found commits are adjacent
+
+**When to use bisect-dependency:**
+- The main project's BAD commit is a dependency version bump
+- You've verified the old dependency version works
+- You're certain the dependency is at fault
+- You have time for thorough investigation
 
 ## Example Output
 

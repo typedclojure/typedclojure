@@ -682,6 +682,134 @@ Once you find the version (or commit) where it broke:
 - If it's a **clj-kondo bug**: Report via PR comment with exact version/commit and issue details
 - If **hooks need fixing**: Update canonical source files, regenerate, and test
 
+### Bisecting Dependencies (Advanced)
+
+**IMPORTANT:** Only perform dependency-level bisection if you are absolutely convinced a dependency is to blame, not the main project itself. Otherwise, you risk wasting significant time.
+
+When you've identified that a main project commit (e.g., clj-kondo) introduces a bug, but suspect it's actually caused by a dependency update (e.g., SCI version bump), you can bisect the dependency to find the exact dependency commit that introduced the issue.
+
+**When to Bisect Dependencies:**
+
+1. The main project's BAD commit contains a dependency version bump
+2. The commit message or diff explicitly mentions upgrading a dependency
+3. No other significant code changes occurred in the BAD commit
+4. You have strong evidence the dependency is at fault
+
+**Strategy:**
+
+1. First identify adjacent main project commits (GOOD → BAD) using `bisect-commit`
+2. Inspect the BAD commit - if it's a dependency bump, note the dependency coordinate and versions
+3. Use `bisect-dependency` script to find the exact dependency commit
+4. Iteratively bisect each suspected dependency in the tree
+
+**Using the bisect-dependency Script:**
+
+Located at: `example-projects/clj-kondo-hooks/script/bisect-dependency`
+
+```bash
+./script/bisect-dependency <main-sha> <dep-coordinate> <good-dep-sha> <bad-dep-sha>
+
+# Example: Bisect SCI dependency when clj-kondo commit e43c24186 bumped SCI
+./script/bisect-dependency e43c24186 org.babashka/sci a1b2c3d e5f6g7h
+```
+
+**How it works:**
+
+1. Clones the dependency repository
+2. Finds all commits between GOOD and BAD dependency SHAs
+3. Binary searches through commits, testing each one
+4. Updates test reproduction to use main project SHA + tested dependency SHA
+5. Reports the first BAD dependency commit
+
+**Minimizing Dependency Trees:**
+
+For a truly "minimal" reproduction when dependencies are involved:
+
+- **Distance between commits** should be 0 (adjacent) for EACH component:
+  - Main project commits (e.g., clj-kondo)
+  - Each suspected dependency (e.g., SCI)
+  - Transitive dependencies if needed
+
+- **Dependency tree precision**:
+  ```
+  GOOD state:
+    clj-kondo: 99bb37c4 (commit before bump)
+    └─ sci: 0.9.44 (old version)
+  
+  BAD state:
+    clj-kondo: e43c24186 (commit with bump)
+    └─ sci: 0.10.47 (new version that breaks)
+  
+  After dependency bisect:
+    clj-kondo: e43c24186 (same)
+    └─ sci: abc123 → def456 (adjacent commits in SCI)
+  ```
+
+**Creating Test Scripts for Dependency Bisection:**
+
+In your minimal reproduction, add aliases for different dependency versions:
+
+```clojure
+{:deps {clj-kondo/clj-kondo {:git/url "https://github.com/clj-kondo/clj-kondo"
+                             :git/sha "e43c24186"}}  ; BAD main commit
+ :aliases
+ {:good-sci {:override-deps {org.babashka/sci {:git/url "https://github.com/babashka/sci"
+                                                :git/sha "abc123"}}}  ; Last GOOD SCI
+  :bad-sci  {:override-deps {org.babashka/sci {:git/url "https://github.com/babashka/sci"
+                                                :git/sha "def456"}}}}} ; First BAD SCI
+```
+
+Then create test scripts:
+- `test-good-sci.sh` - Uses BAD main + GOOD dependency (should work)
+- `test-bad-sci.sh` - Uses BAD main + BAD dependency (should fail)
+
+**Example Multi-Level Bisection:**
+
+```bash
+# 1. Find bad main project commit
+cd example-projects/clj-kondo-hooks
+./script/bisect  # Finds clj-kondo commit e43c24186
+
+# 2. Inspect that commit - see it's a SCI bump from 0.9.44 to 0.10.47
+git show e43c24186
+
+# 3. Bisect SCI dependency
+# First find the commit SHAs for SCI versions 0.9.44 and 0.10.47
+cd /tmp
+git clone https://github.com/babashka/sci
+cd sci
+GOOD_SCI=$(git log --all --grep="0.9.44" --format="%H" | head -1)
+BAD_SCI=$(git log --all --grep="0.10.47" --format="%H" | head -1)
+
+# 4. Run dependency bisect
+cd /path/to/typedclojure/example-projects/clj-kondo-hooks
+./script/bisect-dependency e43c24186 org.babashka/sci $GOOD_SCI $BAD_SCI
+
+# 5. If another transitive dependency is suspected, repeat the process
+```
+
+**Important Notes:**
+
+- Only bisect dependencies when you have strong evidence they're at fault
+- Dependency bisection can be time-consuming - use judiciously
+- Document all findings in the reproduction README
+- Update deps.edn comments to explain the dependency tree
+- The goal is adjacent commits at ALL levels of the dependency tree
+
+**Warning Signs to Avoid Wasting Time:**
+
+❌ Don't bisect dependencies if:
+- The main commit has substantial code changes beyond dependency bumps
+- You're not confident about which dependency is at fault
+- The time cost outweighs the benefit
+- Initial evidence suggests it's a main project bug, not dependency
+
+✅ Do bisect dependencies if:
+- Commit message says "Bump \<dep\>" with minimal other changes
+- Diff shows only version number changes in deps.edn or pom.xml
+- You've verified the issue disappears with old dependency version
+- You have time to investigate thoroughly
+
 ## Key Files to Study
 
 For deeper understanding, examine these files:

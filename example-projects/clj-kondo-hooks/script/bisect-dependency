@@ -1,0 +1,156 @@
+#!/usr/bin/env bash
+
+# Binary search to find the first BAD commit of a dependency when the main project (e.g., clj-kondo) commit is already known.
+# This script helps narrow down which dependency version introduced a bug.
+#
+# Usage: ./bisect-dependency <main-project-sha> <dependency-coordinate> <good-dep-sha> <bad-dep-sha>
+# Example: ./bisect-dependency e43c24186bd77c659357f2ed1f862f80077d0f6a org.babashka/sci abc123 def456
+#
+# The script will:
+# 1. Clone the dependency repo if needed
+# 2. Find commits between good and bad SHAs
+# 3. Binary search to find the first BAD commit
+# 4. Update deps.edn with the narrowed commits for testing
+
+set -e
+
+if [ "$#" -lt 4 ]; then
+  echo "Usage: $0 <main-project-sha> <dependency-coordinate> <good-dep-sha> <bad-dep-sha>"
+  echo ""
+  echo "Example: $0 e43c24186 org.babashka/sci a1b2c3d4 e5f6g7h8"
+  echo ""
+  echo "This script bisects a dependency to find the exact commit that introduced a bug."
+  echo "It requires that you've already identified the BAD main project commit."
+  exit 1
+fi
+
+MAIN_SHA="$1"
+DEP_COORDINATE="$2"
+GOOD_DEP_SHA="$3"
+BAD_DEP_SHA="$4"
+
+# Parse dependency coordinate to get repo info
+# org.babashka/sci -> babashka/sci
+DEP_REPO=$(echo "$DEP_COORDINATE" | sed 's/^[^\/]*\///' | sed 's/\./\//')
+
+echo "========================================="
+echo "Dependency Bisect"
+echo "========================================="
+echo "Main project SHA: $MAIN_SHA"
+echo "Dependency: $DEP_COORDINATE"
+echo "Dependency repo: $DEP_REPO"
+echo "GOOD dep SHA: $GOOD_DEP_SHA"
+echo "BAD dep SHA: $BAD_DEP_SHA"
+echo ""
+
+# Clone dependency repo if not exists
+DEP_DIR="/tmp/dep-bisect-$DEP_REPO"
+DEP_DIR=$(echo "$DEP_DIR" | tr '/' '-')
+
+if [ ! -d "$DEP_DIR" ]; then
+  echo "Cloning dependency repo..."
+  git clone "https://github.com/$DEP_REPO.git" "$DEP_DIR" 2>/dev/null || {
+    echo "Error: Could not clone https://github.com/$DEP_REPO"
+    exit 1
+  }
+fi
+
+cd "$DEP_DIR"
+
+# Get list of commits between GOOD and BAD
+echo "Finding commits between $GOOD_DEP_SHA and $BAD_DEP_SHA..."
+COMMITS=$(git rev-list --reverse "$GOOD_DEP_SHA..$BAD_DEP_SHA" 2>/dev/null || {
+  echo "Error: Could not find commits between $GOOD_DEP_SHA and $BAD_DEP_SHA"
+  exit 1
+})
+
+COMMIT_ARRAY=($COMMITS)
+NUM_COMMITS=${#COMMIT_ARRAY[@]}
+
+echo "Found $NUM_COMMITS commits to bisect"
+echo ""
+
+if [ "$NUM_COMMITS" -eq 0 ]; then
+  echo "✅ Commits are already adjacent!"
+  echo "GOOD: $GOOD_DEP_SHA"
+  echo "BAD: $BAD_DEP_SHA"
+  exit 0
+fi
+
+# Binary search
+LEFT=0
+RIGHT=$((NUM_COMMITS - 1))
+LAST_GOOD="$GOOD_DEP_SHA"
+FIRST_BAD="$BAD_DEP_SHA"
+
+cd - > /dev/null  # Back to original directory
+
+test_dependency_commit() {
+  local dep_sha="$1"
+  echo "Testing dependency commit: $dep_sha"
+  
+  # Update deps.edn to use main project SHA with this dependency SHA
+  # This assumes deps.edn has a structure where we can override the dependency
+  cat > ../clj-kondo-bug-reproduction/deps.edn <<EOF
+{:deps {clj-kondo/clj-kondo {:git/url "https://github.com/clj-kondo/clj-kondo"
+                             :git/sha "$MAIN_SHA"
+                             :deps/manifest :deps
+                             :deps/root "."}}
+ :aliases {:test-dep {:extra-deps {$DEP_COORDINATE {:git/url "https://github.com/$DEP_REPO"
+                                                     :git/sha "$dep_sha"}}}}}
+EOF
+  
+  # Run the test
+  cd ../clj-kondo-bug-reproduction
+  if ./test-bad.sh > /dev/null 2>&1; then
+    echo "  → GOOD"
+    return 0
+  else
+    echo "  → BAD"
+    return 1
+  fi
+}
+
+echo "Starting binary search..."
+echo ""
+
+while [ $LEFT -le $RIGHT ]; do
+  MID=$(( (LEFT + RIGHT) / 2 ))
+  TEST_SHA="${COMMIT_ARRAY[$MID]}"
+  
+  echo "Step: Testing commit $((MID + 1))/$NUM_COMMITS"
+  
+  if test_dependency_commit "$TEST_SHA"; then
+    LAST_GOOD="$TEST_SHA"
+    LEFT=$((MID + 1))
+  else
+    FIRST_BAD="$TEST_SHA"
+    RIGHT=$((MID - 1))
+  fi
+  
+  echo ""
+done
+
+echo "========================================="
+echo "Bisect Complete!"
+echo "========================================="
+echo "GOOD dependency commit: $LAST_GOOD"
+echo "BAD dependency commit: $FIRST_BAD"
+echo ""
+
+# Check if adjacent
+cd "$DEP_DIR"
+DISTANCE=$(git rev-list --count "$LAST_GOOD..$FIRST_BAD" 2>/dev/null || echo "unknown")
+
+if [ "$DISTANCE" = "1" ]; then
+  echo "✅ Commits are adjacent!"
+elif [ "$DISTANCE" = "unknown" ]; then
+  echo "⚠️  Could not determine distance"
+else
+  echo "⚠️  Distance: $DISTANCE commits (not adjacent yet)"
+  echo "    Consider running bisect again between these commits"
+fi
+
+echo ""
+echo "Inspect the BAD commit with:"
+echo "  cd $DEP_DIR && git show $FIRST_BAD"
