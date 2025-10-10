@@ -423,6 +423,32 @@ When encountering a clj-kondo-hooks test failure, follow this workflow:
    
    **Each file should be as small as possible with no superfluous code.**
    
+   **Using commit SHAs in deps.edn:**
+   - **Always use the exact commit SHA found by bisect-commit** (if available), not just release tags
+   - **Minimize the distance between GOOD and BAD commits** - ideally they should be adjacent commits
+   - **Add line comments explaining the commits** - Since SHA1s are opaque to humans, add comments explaining:
+     - When the commit was made (date)
+     - Its relationship to releases (e.g., "2 commits after v2025.06.05" or "first commit in v2025.07.26")
+     - Brief description of what changed if known
+   
+   Example:
+   ```clojure
+   {:aliases {:good-clj-kondo
+              {:replace-deps {clj-kondo/clj-kondo 
+                              ;; Commit from 2025-07-25, last commit before bug introduction
+                              ;; This is the immediate parent of the first bad commit
+                              {:git/url "https://github.com/clj-kondo/clj-kondo"
+                               :git/sha "abc123..."}}
+               :main-opts ["-m" "clj-kondo.main"]}
+              :bad-clj-kondo
+              {:replace-deps {clj-kondo/clj-kondo 
+                              ;; Commit from 2025-07-26, first commit exhibiting the bug
+                              ;; Introduced in PR #2574 "Get rid of caching"
+                              {:git/url "https://github.com/clj-kondo/clj-kondo"
+                               :git/sha "def456..."}}
+               :main-opts ["-m" "clj-kondo.main"]}}}
+   ```
+   
    **Macro minimization**: If `requiring-resolve` is suspected, the minimal reproduction is:
    ```clojure
    (defmacro reprod [])
