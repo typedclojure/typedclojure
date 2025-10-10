@@ -366,7 +366,32 @@ This script:
 
 If tests fail, it typically means clj-kondo changed its implementation causing incompatibility with Typed Clojure's hooks.
 
-**Step 1: Verify clj-kondo version**
+**IMPORTANT: The most likely scenarios are:**
+1. **clj-kondo has introduced a bug** - The most valuable information is the exact release version where the bug was introduced.
+2. **clj-kondo changed its error message printing** - We simply need to update our expected printed messages in `output/expected-output`.
+
+**Always assume one of these situations first. Only attempt intricate changes to macro hook definitions if explicitly prompted.**
+
+#### Finding clj-kondo Release Versions
+
+**DO NOT guess the names of clj-kondo releases** - they are irregularly spaced. Instead, check releases directly:
+
+**Option 1: Clone the clj-kondo repo and check tags**
+```bash
+cd /tmp
+git clone --depth 100 https://github.com/clj-kondo/clj-kondo.git clj-kondo-repo
+cd clj-kondo-repo
+git tag --sort=-version:refname | head -30
+```
+
+**Option 2: Browse releases on GitHub**
+Visit https://github.com/clj-kondo/clj-kondo/releases
+
+**Note:** Release names are dates (e.g., v2025.09.22 for September 22, 2025). Use this to refine your binary search.
+
+#### Binary Search to Find the Problematic Version
+
+**Step 1: Verify current clj-kondo version**
 ```bash
 clj-kondo --version
 ```
@@ -379,10 +404,13 @@ cd example-projects/clj-kondo-hooks
 diff output/expected-output /tmp/actual-output
 ```
 
-**Step 3: Binary search to find the problematic clj-kondo version**
+**Step 3: Get list of releases for binary search**
+```bash
+cd /tmp/clj-kondo-repo
+git tag --sort=version:refname | grep "^v202" | tail -20
+```
 
-Use GitHub Actions build history to narrow down the version range, then perform a binary search:
-
+**Step 4: Test specific versions**
 ```bash
 # Install a specific version to test
 CLJ_KONDO_VERSION="2024.09.27"
@@ -398,19 +426,44 @@ cd /path/to/example-projects/clj-kondo-hooks
 ./script/test
 ```
 
-Use the exit status to determine if this version is "good" (exit 0) or "bad" (non-zero exit).
+Use the exit status to determine if this version is "good" (exit 0) or "bad" (non-zero exit). Use release dates to refine the binary search.
 
-**Step 4: Analyze the root cause**
+#### Modifying Macro Hooks (If Needed)
+
+**IMPORTANT: Macro hooks in `typed/clj.runtime/resources/clj-kondo.exports/` are GENERATED files.**
+
+Look for comments like:
+```clojure
+;; note: this file is copied into resources/clj-kondo.exports/org.typedclojure/typed.clj.runtime
+;; via ./script/regen-kondo.sh
+;; the canonical version is in the src folder
+```
+
+**To make changes to macro hooks:**
+
+1. **Find the canonical source file** (mentioned in the comment at the top of the exported file)
+2. **Edit the canonical source file** in `typed/clj.runtime/src/`
+3. **Regenerate the exports** by running:
+   ```bash
+   ./script/regen-kondo.sh
+   ```
+4. **Test your changes** with the clj-kondo-hooks tests
+
+**For short-term experimentation only**, you may directly manipulate the exported hooks, but **for final changes**, you MUST use the regeneration procedure above.
+
+#### Analyzing the Root Cause
 
 Once you find the version where it broke:
-- Review the clj-kondo changelog for that version
-- Check if it's a bug in clj-kondo or if Typed Clojure's hooks need updating
-- Look at the macro hooks in `typed/clj.runtime/resources/clj-kondo.exports/`
+1. Review the clj-kondo changelog for that version
+2. Check if it's just a printing change (compare error messages)
+3. If it's an internal clj-kondo error, report the bug
+4. Only if explicitly directed, attempt to fix the macro hooks
 
-**Step 5: Fix or report**
+#### Reporting Findings
 
-- If Typed Clojure's hooks need fixing: update the hooks in `typed/clj.runtime/resources/clj-kondo.exports/`
-- If it's a clj-kondo bug: report findings to maintainers via PR comment with the exact version and issue details
+- If it's a **printing change**: Update `output/expected-output` with the new error messages
+- If it's a **clj-kondo bug**: Report via PR comment with exact version and issue details
+- If **hooks need fixing**: Update canonical source files, regenerate, and test
 
 ## Key Files to Study
 
