@@ -127,6 +127,46 @@ clojure --version
 
 Official installation guide: https://clojure.org/guides/install_clojure#_linux_instructions
 
+### 4. Install clj-kondo (Optional but Recommended)
+
+clj-kondo is a Clojure linter used by Typed Clojure's clj-kondo-hooks subproject. Install to a local directory:
+
+```bash
+# Download and install to /tmp/clj-kondo-install (or your preferred location)
+curl -sLO https://raw.githubusercontent.com/clj-kondo/clj-kondo/master/script/install-clj-kondo
+chmod +x install-clj-kondo
+./install-clj-kondo --dir /tmp/clj-kondo-install
+rm install-clj-kondo
+
+# Add to PATH
+export PATH="/tmp/clj-kondo-install:$PATH"
+
+# Verify installation
+clj-kondo --version
+```
+
+#### Installing Specific Versions of clj-kondo
+
+To install a specific version of clj-kondo (useful for debugging compatibility issues):
+
+```bash
+# Set the desired version
+CLJ_KONDO_VERSION="2024.09.27"
+
+# Download and install specific version
+curl -sLO "https://github.com/clj-kondo/clj-kondo/releases/download/v${CLJ_KONDO_VERSION}/clj-kondo-${CLJ_KONDO_VERSION}-linux-static-amd64.zip"
+mkdir -p /tmp/clj-kondo-install
+unzip -o "clj-kondo-${CLJ_KONDO_VERSION}-linux-static-amd64.zip" -d /tmp/clj-kondo-install
+rm "clj-kondo-${CLJ_KONDO_VERSION}-linux-static-amd64.zip"
+
+# Verify the version
+/tmp/clj-kondo-install/clj-kondo --version
+```
+
+**Note:** The clj-kondo-hooks subproject uses the clj-kondo binary if available, otherwise falls back to the version specified in `example-projects/clj-kondo-hooks/deps.edn`. The binary is preferred for performance.
+
+Alternative installation methods: https://github.com/clj-kondo/clj-kondo/blob/master/doc/install.md
+
 ## Repository-Specific Setup
 
 ### Understanding the Testing Infrastructure
@@ -305,6 +345,72 @@ export PATH="/tmp/bb-install:/tmp/clojure-install/bin:$PATH"
 1. Check that all dependencies are downloaded (first run may be slow)
 2. Review test output for specific failures
 3. Check if tests pass in CI to rule out environment issues
+
+### Debugging clj-kondo-hooks Failures
+
+The clj-kondo-hooks subproject (`example-projects/clj-kondo-hooks/`) tests Typed Clojure's custom clj-kondo macro hooks to ensure compatibility with the latest clj-kondo release.
+
+#### Running clj-kondo-hooks Tests
+
+```bash
+cd example-projects/clj-kondo-hooks
+./script/test
+```
+
+This script:
+1. Runs `./script/prep-lint` to copy configs
+2. Runs `./script/lint` to lint the test file
+3. Compares output with `output/expected-output`
+
+#### Debugging Test Failures
+
+If tests fail, it typically means clj-kondo changed its implementation causing incompatibility with Typed Clojure's hooks.
+
+**Step 1: Verify clj-kondo version**
+```bash
+clj-kondo --version
+```
+
+**Step 2: Check the actual vs expected output**
+```bash
+cd example-projects/clj-kondo-hooks
+./script/prep-lint
+./script/lint > /tmp/actual-output
+diff output/expected-output /tmp/actual-output
+```
+
+**Step 3: Binary search to find the problematic clj-kondo version**
+
+Use GitHub Actions build history to narrow down the version range, then perform a binary search:
+
+```bash
+# Install a specific version to test
+CLJ_KONDO_VERSION="2024.09.27"
+curl -sLO "https://github.com/clj-kondo/clj-kondo/releases/download/v${CLJ_KONDO_VERSION}/clj-kondo-${CLJ_KONDO_VERSION}-linux-static-amd64.zip"
+unzip -o "clj-kondo-${CLJ_KONDO_VERSION}-linux-static-amd64.zip" -d /tmp/clj-kondo-install
+rm "clj-kondo-${CLJ_KONDO_VERSION}-linux-static-amd64.zip"
+
+# Verify the version
+clj-kondo --version
+
+# Run the test
+cd /path/to/example-projects/clj-kondo-hooks
+./script/test
+```
+
+Use the exit status to determine if this version is "good" (exit 0) or "bad" (non-zero exit).
+
+**Step 4: Analyze the root cause**
+
+Once you find the version where it broke:
+- Review the clj-kondo changelog for that version
+- Check if it's a bug in clj-kondo or if Typed Clojure's hooks need updating
+- Look at the macro hooks in `typed/clj.runtime/resources/clj-kondo.exports/`
+
+**Step 5: Fix or report**
+
+- If Typed Clojure's hooks need fixing: update the hooks in `typed/clj.runtime/resources/clj-kondo.exports/`
+- If it's a clj-kondo bug: report findings to maintainers via PR comment with the exact version and issue details
 
 ## Key Files to Study
 
