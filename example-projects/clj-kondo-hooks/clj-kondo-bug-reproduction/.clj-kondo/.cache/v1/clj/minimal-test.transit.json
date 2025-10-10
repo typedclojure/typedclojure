@@ -1,1 +1,0 @@
-["^ ","~$x",["^ ","~:row",6,"~:col",1,"~:name","~$x","~:ns","~$minimal-test","~:top-ns","^4","~:type","~:pos-int"],"~$foo",["^ ","^0",9,"^1",1,"~:fixed-arities",["~#set",[0]],"^2","^8","^3","^4","^5","^4","~:arities",["^ ","~i0",["^ ","~:ret","~:number"]]],"~:filename","src/minimal_test.clj"]
