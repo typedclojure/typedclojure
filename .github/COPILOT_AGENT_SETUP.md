@@ -413,7 +413,7 @@ When encountering a clj-kondo-hooks test failure, follow this workflow:
 
 5. **Prepare a minimal reproduction** for clj-kondo maintainers:
    
-   The ideal minimal reproduction consists of exactly 5 files:
+   The ideal minimal reproduction consists of exactly 6 files:
    - `deps.edn` - Git dependencies with `:good-clj-kondo` and `:bad-clj-kondo` aliases
    - `test-good.sh` - Script to test with good commit
    - `test-bad.sh` - Script to test with bad commit  
