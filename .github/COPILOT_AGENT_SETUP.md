@@ -442,8 +442,9 @@ When encountering a clj-kondo-hooks test failure, follow this workflow:
    - Verify the almost-exact error message is displayed (not unrelated warnings)
    - Ensure both scripts have no superfluous errors
    - Ensure reproducible output by including expected output as HEREDOCs in both scripts
-   - Have the scripts check actual output against expected output
-   - Exit with failed status if output doesn't match
+   - Have the scripts check actual output against expected output **verbatim** - the entire expected output must match line-by-line
+   - Print the ACTUAL_OUTPUT in the script output (not just the expected), so users can see what actually happened
+   - Exit with failed status (non-zero exit code) if output doesn't match expected
    
    Create directory: `example-projects/clj-kondo-hooks/clj-kondo-bug-reproduction/`
    
