@@ -1,0 +1,173 @@
+#!/bin/bash
+
+# Script to perform binary search on clj-kondo commits to find the first commit
+# that breaks the clj-kondo-hooks tests.
+#
+# Usage: ./script/bisect-commit [GOOD_COMMIT] [BAD_COMMIT]
+#
+# If no arguments provided, uses the known good/bad releases:
+# - GOOD: v2025.06.05 (341364fe5befe7e5908c085a6bf80a9042134c15)
+# - BAD:  v2025.07.26 (b77888454e0695905f225b2e88f6d3b1dd75259a)
+
+set -e
+
+# Default commits (from v2025.06.05 to v2025.07.26)
+DEFAULT_GOOD_COMMIT="341364fe5befe7e5908c085a6bf80a9042134c15"
+DEFAULT_BAD_COMMIT="b77888454e0695905f225b2e88f6d3b1dd75259a"
+
+GOOD_COMMIT="${1:-$DEFAULT_GOOD_COMMIT}"
+BAD_COMMIT="${2:-$DEFAULT_BAD_COMMIT}"
+
+CLJ_KONDO_REPO="/tmp/clj-kondo-repo"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+
+echo "=== clj-kondo Commit Binary Search ==="
+echo "GOOD commit: $GOOD_COMMIT"
+echo "BAD commit:  $BAD_COMMIT"
+echo ""
+
+# Ensure clj-kondo repo is cloned
+if [ ! -d "$CLJ_KONDO_REPO" ]; then
+    echo "Cloning clj-kondo repository..."
+    git clone https://github.com/clj-kondo/clj-kondo.git "$CLJ_KONDO_REPO"
+fi
+
+cd "$CLJ_KONDO_REPO"
+git fetch origin
+
+# Get the list of commits between good and bad
+echo "Finding commits between GOOD and BAD..."
+COMMIT_LIST=$(git rev-list --reverse "$GOOD_COMMIT".."$BAD_COMMIT")
+COMMIT_ARRAY=($COMMIT_LIST)
+TOTAL_COMMITS=${#COMMIT_ARRAY[@]}
+
+echo "Total commits to search: $TOTAL_COMMITS"
+echo ""
+
+if [ $TOTAL_COMMITS -eq 0 ]; then
+    echo "No commits between GOOD and BAD. They might be the same commit."
+    exit 0
+fi
+
+# Binary search function
+test_commit() {
+    local commit=$1
+    echo "Testing commit: $commit"
+    
+    # Update deps.edn with the commit
+    cd "$PROJECT_DIR"
+    
+    # Backup original deps.edn
+    cp deps.edn deps.edn.backup
+    
+    # Create new deps.edn with git dependency
+    cat > deps.edn << EOF
+{:deps {org.clojure/clojure {:mvn/version "1.12.0"}
+        org.typedclojure/typed.clj.runtime {:local/root "../../typed/clj.runtime"}}
+ :aliases {:dev {:extra-paths ["test"]}
+           :clj-kondo
+           {:replace-deps {clj-kondo/clj-kondo 
+                           {:git/url "https://github.com/clj-kondo/clj-kondo"
+                            :git/sha "$commit"}}
+            :main-opts ["-m" "clj-kondo.main"]}
+           :test {:extra-deps {io.github.cognitect-labs/test-runner 
+                               {:git/tag "v0.5.1" :git/sha "dfb30dd6605cb6c0efc275e1df1736f6e90d4d73"}}
+                  :main-opts ["-m" "cognitect.test-runner"]
+                  :exec-fn cognitect.test-runner.api/test}
+           :nREPL
+           {:extra-deps
+            {cider/cider-nrepl {:mvn/version "0.28.2"},
+             cider/piggieback {:mvn/version "0.5.3"},
+             net.cgrand/parsley {:mvn/version "0.9.3"},
+             nrepl/nrepl {:mvn/version "0.8.3"},
+             reply/reply {:mvn/version "0.5.1"}},
+            :jvm-opts ["-XX:-OmitStackTraceInFastThrow"]
+            :main-opts ["-m" "nrepl.cmdline" "--interactive"]}}}
+EOF
+    
+    # Ensure clj-kondo binary is not on PATH by temporarily renaming it
+    if [ -f "/tmp/clj-kondo-install/clj-kondo" ]; then
+        mv /tmp/clj-kondo-install/clj-kondo /tmp/clj-kondo-install/clj-kondo.backup 2>/dev/null || true
+    fi
+    
+    # Run the test
+    set +e
+    ./script/test > /dev/null 2>&1
+    local result=$?
+    set -e
+    
+    # Restore clj-kondo binary
+    if [ -f "/tmp/clj-kondo-install/clj-kondo.backup" ]; then
+        mv /tmp/clj-kondo-install/clj-kondo.backup /tmp/clj-kondo-install/clj-kondo 2>/dev/null || true
+    fi
+    
+    # Restore original deps.edn
+    mv deps.edn.backup deps.edn
+    
+    if [ $result -eq 0 ]; then
+        echo "  Result: GOOD ✓"
+        return 0
+    else
+        echo "  Result: BAD ✗"
+        return 1
+    fi
+}
+
+# Binary search
+left=0
+right=$((TOTAL_COMMITS - 1))
+first_bad=-1
+
+echo "Starting binary search..."
+echo ""
+
+while [ $left -le $right ]; do
+    mid=$(((left + right) / 2))
+    commit="${COMMIT_ARRAY[$mid]}"
+    
+    echo "[$((mid + 1))/$TOTAL_COMMITS] Checking midpoint..."
+    
+    if test_commit "$commit"; then
+        # This commit is good, search in the right half
+        left=$((mid + 1))
+    else
+        # This commit is bad, search in the left half
+        first_bad=$mid
+        right=$((mid - 1))
+    fi
+    echo ""
+done
+
+# Report results
+cd "$CLJ_KONDO_REPO"
+echo "=== Binary Search Complete ==="
+echo ""
+
+if [ $first_bad -ge 0 ]; then
+    BAD_COMMIT_SHA="${COMMIT_ARRAY[$first_bad]}"
+    echo "First BAD commit found: $BAD_COMMIT_SHA"
+    echo ""
+    echo "Commit details:"
+    git log -1 --pretty=format:"  Commit: %H%n  Author: %an <%ae>%n  Date:   %ad%n  %n  %s%n%n%b" "$BAD_COMMIT_SHA"
+    echo ""
+    echo ""
+    echo "Previous (GOOD) commit:"
+    if [ $first_bad -gt 0 ]; then
+        PREV_COMMIT="${COMMIT_ARRAY[$((first_bad - 1))]}"
+        git log -1 --oneline "$PREV_COMMIT"
+    else
+        echo "  $GOOD_COMMIT (starting point)"
+    fi
+    echo ""
+    echo "To see the diff that introduced the bug:"
+    echo "  cd $CLJ_KONDO_REPO"
+    if [ $first_bad -gt 0 ]; then
+        echo "  git diff ${COMMIT_ARRAY[$((first_bad - 1))]} $BAD_COMMIT_SHA"
+    else
+        echo "  git diff $GOOD_COMMIT $BAD_COMMIT_SHA"
+    fi
+else
+    echo "No bad commit found in the range. This shouldn't happen!"
+    exit 1
+fi

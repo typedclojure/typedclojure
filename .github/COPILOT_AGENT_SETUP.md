@@ -428,6 +428,21 @@ cd /path/to/example-projects/clj-kondo-hooks
 
 Use the exit status to determine if this version is "good" (exit 0) or "bad" (non-zero exit). Use release dates to refine the binary search.
 
+**Automated Scripts:**
+
+Two scripts are available to automate the binary search process:
+
+1. **`./script/bisect-release`** - Binary search on clj-kondo releases
+   - Faster because it uses pre-compiled binaries
+   - Start here to find the first bad release
+   - Usage: `cd example-projects/clj-kondo-hooks && ./script/bisect-release`
+
+2. **`./script/bisect-commit`** - Binary search on commits between releases
+   - More precise, finds the exact commit that introduced the bug
+   - Use after finding the bad release with bisect-release
+   - Usage: `./script/bisect-commit [GOOD_COMMIT] [BAD_COMMIT]`
+   - If no arguments provided, uses known good/bad commits from v2025.06.05 to v2025.07.26
+
 #### Modifying Macro Hooks (If Needed)
 
 **IMPORTANT: Macro hooks in `typed/clj.runtime/resources/clj-kondo.exports/` are GENERATED files.**
@@ -451,9 +466,82 @@ Look for comments like:
 
 **For short-term experimentation only**, you may directly manipulate the exported hooks, but **for final changes**, you MUST use the regeneration procedure above.
 
+#### Finding the Exact Commit (After Finding the Bad Release)
+
+Once you've identified the first bad release, it's even more valuable to find the exact commit that introduced the bug. This provides more precise information for reporting upstream.
+
+**Why commit-level search is valuable:**
+- Pinpoints the exact change that caused the issue
+- Makes it easier for maintainers to understand and fix the bug
+- Provides definitive proof of when the regression was introduced
+
+**Strategy:**
+1. First, perform binary search on releases (faster to test)
+2. Once you find the first bad release, perform binary search on commits
+
+**Using Git Dependencies for Commit-Level Testing**
+
+Clojure's tools.deps supports git dependencies, which allows testing specific commits without compiling clj-kondo yourself.
+
+**Git Dependency Format:**
+```clojure
+{:deps {clj-kondo/clj-kondo 
+        {:git/url "https://github.com/clj-kondo/clj-kondo"
+         :git/sha "COMMIT_SHA_HERE"}}}
+```
+
+**Steps to test a specific commit:**
+
+1. **Find the commit range** between last GOOD release and first BAD release:
+   ```bash
+   cd /tmp/clj-kondo-repo
+   git log --oneline v2025.06.05..v2025.07.26
+   # Count commits: git log --oneline v2025.06.05..v2025.07.26 | wc -l
+   # Get commit SHAs:
+   GOOD_SHA=$(git rev-parse v2025.06.05)
+   BAD_SHA=$(git rev-parse v2025.07.26)
+   ```
+
+2. **Update deps.edn** in `example-projects/clj-kondo-hooks/`:
+   ```clojure
+   {:deps {org.clojure/clojure {:mvn/version "1.12.0"}
+           org.typedclojure/typed.clj.runtime {:local/root "../../typed/clj.runtime"}}
+    :aliases {:clj-kondo
+              {:replace-deps {clj-kondo/clj-kondo 
+                              {:git/url "https://github.com/clj-kondo/clj-kondo"
+                               :git/sha "COMMIT_SHA_TO_TEST"}}}
+              ;; ... other aliases
+              }}
+   ```
+
+3. **CRUCIAL: Ensure clj-kondo binary is NOT on PATH**
+   
+   The `script/clj-kondo` checks for a binary first. Remove it temporarily:
+   ```bash
+   # Rename the binary to prevent it from being used
+   mv /tmp/clj-kondo-install/clj-kondo /tmp/clj-kondo-install/clj-kondo.backup
+   ```
+
+4. **Run the test:**
+   ```bash
+   cd example-projects/clj-kondo-hooks
+   ./script/test
+   ```
+   
+   This will use the git dependency from deps.edn instead of the binary.
+
+5. **Perform binary search** on commits:
+   - Start with midpoint commit between GOOD and BAD
+   - Update deps.edn with that commit SHA
+   - Run test to determine if GOOD or BAD
+   - Repeat, narrowing down to the first bad commit
+
+**Example automated script:**
+See `example-projects/clj-kondo-hooks/script/bisect-commit` for a script that automates this process.
+
 #### Analyzing the Root Cause
 
-Once you find the version where it broke:
+Once you find the version (or commit) where it broke:
 1. Review the clj-kondo changelog for that version
 2. Check if it's just a printing change (compare error messages)
 3. If it's an internal clj-kondo error, report the bug
@@ -462,7 +550,7 @@ Once you find the version where it broke:
 #### Reporting Findings
 
 - If it's a **printing change**: Update `output/expected-output` with the new error messages
-- If it's a **clj-kondo bug**: Report via PR comment with exact version and issue details
+- If it's a **clj-kondo bug**: Report via PR comment with exact version/commit and issue details
 - If **hooks need fixing**: Update canonical source files, regenerate, and test
 
 ## Key Files to Study
