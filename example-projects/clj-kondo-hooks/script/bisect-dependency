@@ -1,156 +1,198 @@
-#!/usr/bin/env bash
+#!/usr/bin/env bb
 
-# Binary search to find the first BAD commit of a dependency when the main project (e.g., clj-kondo) commit is already known.
-# This script helps narrow down which dependency version introduced a bug.
-#
-# Usage: ./bisect-dependency <main-project-sha> <dependency-coordinate> <good-dep-sha> <bad-dep-sha>
-# Example: ./bisect-dependency e43c24186bd77c659357f2ed1f862f80077d0f6a org.babashka/sci abc123 def456
-#
-# The script will:
-# 1. Clone the dependency repo if needed
-# 2. Find commits between good and bad SHAs
-# 3. Binary search to find the first BAD commit
-# 4. Update deps.edn with the narrowed commits for testing
+;; Binary search to find the first BAD commit of a dependency given a full dependency tree specification.
+;;
+;; This script takes an EDN map specifying the full dependency tree with git deps and bisects one dependency
+;; to find the exact commit where it became BAD.
+;;
+;; Usage: ./bisect-dependency '<edn-spec>' <dependency-symbol>
+;;
+;; Example:
+;;   ./bisect-dependency '{clj-kondo/clj-kondo {:git/url "https://github.com/clj-kondo/clj-kondo" :git/sha "e43c24186bd77c659357f2ed1f862f80077d0f6a"} 
+;;                         org.babashka/sci {:git/url "https://github.com/babashka/sci" :git/tag "v0.10.47"}}' 
+;;                        org.babashka/sci
+;;
+;; Output: Structured EDN with the first BAD commit SHA
+;;
+;; The script will:
+;; 1. Parse the EDN dependency spec
+;; 2. For the dependency being bisected, infer its current commit from tag if needed
+;; 3. Clone the dependency repo
+;; 4. Find the GOOD version (previous tag/commit before BAD)
+;; 5. Binary search to find first BAD commit
+;; 6. Verify the previous commit is GOOD (fail if not)
+;; 7. Output the first BAD commit SHA
 
-set -e
+(require '[clojure.java.shell :as shell]
+         '[clojure.string :as str]
+         '[clojure.edn :as edn]
+         '[clojure.java.io :as io])
 
-if [ "$#" -lt 4 ]; then
-  echo "Usage: $0 <main-project-sha> <dependency-coordinate> <good-dep-sha> <bad-dep-sha>"
-  echo ""
-  echo "Example: $0 e43c24186 org.babashka/sci a1b2c3d4 e5f6g7h8"
-  echo ""
-  echo "This script bisects a dependency to find the exact commit that introduced a bug."
-  echo "It requires that you've already identified the BAD main project commit."
-  exit 1
-fi
+(defn shell-exec [& args]
+  (let [result (apply shell/sh args)]
+    (if (zero? (:exit result))
+      (:out result)
+      (throw (ex-info (str "Shell command failed: " (str/join " " args))
+                      {:exit (:exit result)
+                       :err (:err result)})))))
 
-MAIN_SHA="$1"
-DEP_COORDINATE="$2"
-GOOD_DEP_SHA="$3"
-BAD_DEP_SHA="$4"
+(defn git-in-dir [dir & args]
+  (apply shell-exec (concat ["git" "-C" dir] args)))
 
-# Parse dependency coordinate to get repo info
-# org.babashka/sci -> babashka/sci
-DEP_REPO=$(echo "$DEP_COORDINATE" | sed 's/^[^\/]*\///' | sed 's/\./\//')
+(defn parse-dep-coordinate [dep-sym]
+  (let [dep-str (str dep-sym)
+        parts (str/split dep-str #"/")]
+    (if (= 2 (count parts))
+      {:org (first parts) :artifact (second parts)}
+      {:org nil :artifact dep-str})))
 
-echo "========================================="
-echo "Dependency Bisect"
-echo "========================================="
-echo "Main project SHA: $MAIN_SHA"
-echo "Dependency: $DEP_COORDINATE"
-echo "Dependency repo: $DEP_REPO"
-echo "GOOD dep SHA: $GOOD_DEP_SHA"
-echo "BAD dep SHA: $BAD_DEP_SHA"
-echo ""
+(defn infer-github-repo [dep-sym]
+  ;; Common heuristics for GitHub repos
+  (let [{:keys [org artifact]} (parse-dep-coordinate dep-sym)]
+    (cond
+      (= org "org.babashka") (str "babashka/" artifact)
+      org (str org "/" artifact)
+      :else (throw (ex-info "Cannot infer GitHub repo" {:dep dep-sym})))))
 
-# Clone dependency repo if not exists
-DEP_DIR="/tmp/dep-bisect-$DEP_REPO"
-DEP_DIR=$(echo "$DEP_DIR" | tr '/' '-')
+(defn tag-to-commit [repo-dir tag]
+  (str/trim (git-in-dir repo-dir "rev-list" "-n" "1" tag)))
 
-if [ ! -d "$DEP_DIR" ]; then
-  echo "Cloning dependency repo..."
-  git clone "https://github.com/$DEP_REPO.git" "$DEP_DIR" 2>/dev/null || {
-    echo "Error: Could not clone https://github.com/$DEP_REPO"
-    exit 1
-  }
-fi
+(defn get-previous-tag [repo-dir current-tag]
+  ;; Get all tags sorted by version, find the one before current
+  (let [tags (str/split-lines (git-in-dir repo-dir "tag" "-l" "--sort=-version:refname"))
+        idx (.indexOf tags current-tag)]
+    (when (and (>= idx 0) (< (inc idx) (count tags)))
+      (nth tags (inc idx)))))
 
-cd "$DEP_DIR"
+(defn clone-repo-if-needed [github-repo]
+  (let [repo-dir (str "/tmp/dep-bisect-" (str/replace github-repo "/" "-"))]
+    (when-not (.exists (io/file repo-dir))
+      (println (str "Cloning " github-repo "..."))
+      (shell-exec "git" "clone" (str "https://github.com/" github-repo ".git") repo-dir))
+    repo-dir))
 
-# Get list of commits between GOOD and BAD
-echo "Finding commits between $GOOD_DEP_SHA and $BAD_DEP_SHA..."
-COMMITS=$(git rev-list --reverse "$GOOD_DEP_SHA..$BAD_DEP_SHA" 2>/dev/null || {
-  echo "Error: Could not find commits between $GOOD_DEP_SHA and $BAD_DEP_SHA"
-  exit 1
-})
+(defn get-dep-sha [dep-spec dep-sym]
+  (let [dep-info (get dep-spec dep-sym)]
+    (cond
+      (:git/sha dep-info) (:git/sha dep-info)
+      (:git/tag dep-info) (let [repo-dir (clone-repo-if-needed (infer-github-repo dep-sym))]
+                             (tag-to-commit repo-dir (:git/tag dep-info)))
+      :else (throw (ex-info "Dependency must have :git/sha or :git/tag" {:dep dep-sym})))))
 
-COMMIT_ARRAY=($COMMITS)
-NUM_COMMITS=${#COMMIT_ARRAY[@]}
+(defn find-good-commit [repo-dir bad-sha dep-spec dep-sym]
+  ;; If the dep-spec has a tag, get the previous tag
+  ;; Otherwise, we need user input for GOOD
+  (let [dep-info (get dep-spec dep-sym)]
+    (if-let [bad-tag (:git/tag dep-info)]
+      (if-let [prev-tag (get-previous-tag repo-dir bad-tag)]
+        (do
+          (println (str "Found previous tag: " prev-tag))
+          (tag-to-commit repo-dir prev-tag))
+        (throw (ex-info "Could not find previous tag" {:tag bad-tag})))
+      (throw (ex-info "Cannot infer GOOD commit without tag information. Please provide GOOD commit manually." {})))))
 
-echo "Found $NUM_COMMITS commits to bisect"
-echo ""
+(defn get-commits-between [repo-dir good-sha bad-sha]
+  (let [commits-str (git-in-dir repo-dir "rev-list" "--reverse" (str good-sha ".." bad-sha))]
+    (remove empty? (str/split-lines commits-str))))
 
-if [ "$NUM_COMMITS" -eq 0 ]; then
-  echo "✅ Commits are already adjacent!"
-  echo "GOOD: $GOOD_DEP_SHA"
-  echo "BAD: $BAD_DEP_SHA"
-  exit 0
-fi
+(defn write-test-deps [deps-file dep-spec test-dep-sym test-sha]
+  (let [updated-spec (assoc-in dep-spec [test-dep-sym :git/sha] test-sha)
+        updated-spec (update updated-spec test-dep-sym dissoc :git/tag)]
+    (spit deps-file (pr-str {:deps updated-spec}))))
 
-# Binary search
-LEFT=0
-RIGHT=$((NUM_COMMITS - 1))
-LAST_GOOD="$GOOD_DEP_SHA"
-FIRST_BAD="$BAD_DEP_SHA"
+(defn test-commit [deps-file test-script dep-spec test-dep-sym test-sha]
+  (write-test-deps deps-file dep-spec test-dep-sym test-sha)
+  (let [result (shell/sh test-script :dir (str (.getParent (io/file deps-file))))]
+    (zero? (:exit result))))
 
-cd - > /dev/null  # Back to original directory
+(defn binary-search [deps-file test-script dep-spec dep-sym good-sha bad-sha commits]
+  (println (str "Binary searching " (count commits) " commits..."))
+  (loop [left 0
+         right (dec (count commits))
+         last-good good-sha
+         first-bad bad-sha]
+    (if (> left right)
+      {:good last-good :bad first-bad}
+      (let [mid (quot (+ left right) 2)
+            test-sha (nth commits mid)]
+        (println (str "Testing commit " (inc mid) "/" (count commits) ": " test-sha))
+        (if (test-commit deps-file test-script dep-spec dep-sym test-sha)
+          (do
+            (println "  → GOOD")
+            (recur (inc mid) right test-sha first-bad))
+          (do
+            (println "  → BAD")
+            (recur left (dec mid) last-good test-sha)))))))
 
-test_dependency_commit() {
-  local dep_sha="$1"
-  echo "Testing dependency commit: $dep_sha"
+(defn verify-adjacent [repo-dir good-sha bad-sha]
+  (let [distance (str/trim (git-in-dir repo-dir "rev-list" "--count" (str good-sha ".." bad-sha)))]
+    (= "1" distance)))
+
+(defn -main [& args]
+  (when (< (count args) 2)
+    (println "Usage: ./bisect-dependency '<edn-spec>' <dependency-symbol>")
+    (println "")
+    (println "Example:")
+    (println "  ./bisect-dependency '{clj-kondo/clj-kondo {:git/url \"...\" :git/sha \"abc123\"}")
+    (println "                        org.babashka/sci {:git/url \"...\" :git/tag \"v0.10.47\"}}'")
+    (println "                       org.babashka/sci")
+    (System/exit 1))
   
-  # Update deps.edn to use main project SHA with this dependency SHA
-  # This assumes deps.edn has a structure where we can override the dependency
-  cat > ../clj-kondo-bug-reproduction/deps.edn <<EOF
-{:deps {clj-kondo/clj-kondo {:git/url "https://github.com/clj-kondo/clj-kondo"
-                             :git/sha "$MAIN_SHA"
-                             :deps/manifest :deps
-                             :deps/root "."}}
- :aliases {:test-dep {:extra-deps {$DEP_COORDINATE {:git/url "https://github.com/$DEP_REPO"
-                                                     :git/sha "$dep_sha"}}}}}
-EOF
-  
-  # Run the test
-  cd ../clj-kondo-bug-reproduction
-  if ./test-bad.sh > /dev/null 2>&1; then
-    echo "  → GOOD"
-    return 0
-  else
-    echo "  → BAD"
-    return 1
-  fi
-}
+  (let [edn-str (first args)
+        dep-sym (edn/read-string (second args))
+        dep-spec (edn/read-string edn-str)
+        _ (println (str "Bisecting dependency: " dep-sym))
+        _ (println (str "Full dependency spec: " (pr-str dep-spec)))
+        
+        ;; Get repo info
+        github-repo (infer-github-repo dep-sym)
+        repo-dir (clone-repo-if-needed github-repo)
+        _ (println (str "Using repo: " github-repo " at " repo-dir))
+        
+        ;; Get BAD commit (current in spec)
+        bad-sha (get-dep-sha dep-spec dep-sym)
+        _ (println (str "BAD commit (from spec): " bad-sha))
+        
+        ;; Find GOOD commit
+        good-sha (find-good-commit repo-dir bad-sha dep-spec dep-sym)
+        _ (println (str "GOOD commit (inferred): " good-sha))
+        
+        ;; Get commits to bisect
+        commits (get-commits-between repo-dir good-sha bad-sha)
+        _ (println (str "Found " (count commits) " commits to bisect"))
+        
+        ;; Paths for testing
+        deps-file "../clj-kondo-bug-reproduction/deps.edn"
+        test-script "../clj-kondo-bug-reproduction/test-bad.sh"]
+    
+    (if (empty? commits)
+      (do
+        (println "\n✅ Commits are already adjacent!")
+        (println (str "GOOD: " good-sha))
+        (println (str "BAD: " bad-sha))
+        (println (str "\nFound bad commit:\n" bad-sha)))
+      (let [result (binary-search deps-file test-script dep-spec dep-sym good-sha bad-sha commits)
+            final-good (:good result)
+            final-bad (:bad result)]
+        
+        (println "\n=========================================")
+        (println "Bisect Complete!")
+        (println "=========================================")
+        (println (str "GOOD commit: " final-good))
+        (println (str "BAD commit: " final-bad))
+        
+        ;; Verify previous commit is GOOD
+        (when-not (= final-good good-sha)
+          (println "\n⚠️  Verifying previous commit is GOOD...")
+          (when-not (test-commit deps-file test-script dep-spec dep-sym final-good)
+            (println "❌ ERROR: Previous commit is not GOOD!")
+            (System/exit 1)))
+        
+        ;; Check adjacency
+        (if (verify-adjacent repo-dir final-good final-bad)
+          (println "\n✅ Commits are adjacent!")
+          (println "\n⚠️  Commits are not adjacent - consider bisecting further"))
+        
+        (println (str "\nFound bad commit:\n" final-bad))))))
 
-echo "Starting binary search..."
-echo ""
-
-while [ $LEFT -le $RIGHT ]; do
-  MID=$(( (LEFT + RIGHT) / 2 ))
-  TEST_SHA="${COMMIT_ARRAY[$MID]}"
-  
-  echo "Step: Testing commit $((MID + 1))/$NUM_COMMITS"
-  
-  if test_dependency_commit "$TEST_SHA"; then
-    LAST_GOOD="$TEST_SHA"
-    LEFT=$((MID + 1))
-  else
-    FIRST_BAD="$TEST_SHA"
-    RIGHT=$((MID - 1))
-  fi
-  
-  echo ""
-done
-
-echo "========================================="
-echo "Bisect Complete!"
-echo "========================================="
-echo "GOOD dependency commit: $LAST_GOOD"
-echo "BAD dependency commit: $FIRST_BAD"
-echo ""
-
-# Check if adjacent
-cd "$DEP_DIR"
-DISTANCE=$(git rev-list --count "$LAST_GOOD..$FIRST_BAD" 2>/dev/null || echo "unknown")
-
-if [ "$DISTANCE" = "1" ]; then
-  echo "✅ Commits are adjacent!"
-elif [ "$DISTANCE" = "unknown" ]; then
-  echo "⚠️  Could not determine distance"
-else
-  echo "⚠️  Distance: $DISTANCE commits (not adjacent yet)"
-  echo "    Consider running bisect again between these commits"
-fi
-
-echo ""
-echo "Inspect the BAD commit with:"
-echo "  cd $DEP_DIR && git show $FIRST_BAD"
+(apply -main *command-line-args*)
