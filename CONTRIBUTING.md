@@ -11,6 +11,15 @@ All pull requests should have an associated [issue](https://github.com/typedcloj
 Please describe the change you'd like to have at a high level in the issue,
 and then open a pull request to discuss implementation details.
 
+## Verifying code blocks in documentation
+
+When updating documentation in `website/docs/`, code blocks can be automatically tested with the bidirectional documentation sync system. See [BIDIRECTIONAL_DOC_TESTING.md](BIDIRECTIONAL_DOC_TESTING.md) for details on:
+
+- Adding code blocks that will be automatically type-checked
+- Syncing changes between documentation and test files
+- Capturing type errors from the type checker
+- Running documentation tests with `./script/run-doc-tests.clj`
+
 ## Ideas
 
 If you have an idea that you would like to discuss, you can either:
