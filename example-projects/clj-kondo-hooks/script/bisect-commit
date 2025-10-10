@@ -148,25 +148,41 @@ if [ $first_bad -ge 0 ]; then
     BAD_COMMIT_SHA="${COMMIT_ARRAY[$first_bad]}"
     echo "First BAD commit found: $BAD_COMMIT_SHA"
     echo ""
-    echo "Commit details:"
-    git log -1 --pretty=format:"  Commit: %H%n  Author: %an <%ae>%n  Date:   %ad%n  %n  %s%n%n%b" "$BAD_COMMIT_SHA"
-    echo ""
-    echo ""
-    echo "Previous (GOOD) commit:"
+    
+    # Determine the GOOD commit (previous commit)
     if [ $first_bad -gt 0 ]; then
-        PREV_COMMIT="${COMMIT_ARRAY[$((first_bad - 1))]}"
-        git log -1 --oneline "$PREV_COMMIT"
+        GOOD_COMMIT_SHA="${COMMIT_ARRAY[$((first_bad - 1))]}"
     else
-        echo "  $GOOD_COMMIT (starting point)"
+        GOOD_COMMIT_SHA="$GOOD_COMMIT"
     fi
+    
+    # Verify commits are adjacent
+    COMMITS_BETWEEN=$(git rev-list --count "$GOOD_COMMIT_SHA".."$BAD_COMMIT_SHA")
+    echo "Commits between GOOD and BAD: $COMMITS_BETWEEN"
+    
+    if [ "$COMMITS_BETWEEN" -eq 1 ]; then
+        echo "✓ SUCCESS: Found adjacent commits (distance = 0)"
+    else
+        echo "✗ WARNING: Commits are not adjacent (distance = $((COMMITS_BETWEEN - 1)))"
+        echo "  This should not happen with proper binary search!"
+    fi
+    echo ""
+    
+    echo "GOOD commit: $GOOD_COMMIT_SHA"
+    git log -1 --pretty=format:"  Author: %an%n  Date:   %ad%n  Subject: %s%n" "$GOOD_COMMIT_SHA"
+    echo ""
+    echo ""
+    echo "BAD commit: $BAD_COMMIT_SHA"
+    git log -1 --pretty=format:"  Author: %an%n  Date:   %ad%n  Subject: %s%n" "$BAD_COMMIT_SHA"
+    echo ""
     echo ""
     echo "To see the diff that introduced the bug:"
     echo "  cd $CLJ_KONDO_REPO"
-    if [ $first_bad -gt 0 ]; then
-        echo "  git diff ${COMMIT_ARRAY[$((first_bad - 1))]} $BAD_COMMIT_SHA"
-    else
-        echo "  git diff $GOOD_COMMIT $BAD_COMMIT_SHA"
-    fi
+    echo "  git diff $GOOD_COMMIT_SHA $BAD_COMMIT_SHA"
+    echo ""
+    echo "To see what changed:"
+    echo "  cd $CLJ_KONDO_REPO"
+    echo "  git show $BAD_COMMIT_SHA"
 else
     echo "No bad commit found in the range. This shouldn't happen!"
     exit 1

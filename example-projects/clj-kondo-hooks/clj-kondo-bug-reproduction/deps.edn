@@ -1,16 +1,19 @@
 {:deps {org.clojure/clojure {:mvn/version "1.12.0"}}
  :aliases {:good-clj-kondo
            {:replace-deps {clj-kondo/clj-kondo 
-                           ;; Release v2025.06.05 (June 5, 2025) - Last working version
-                           ;; This is the last release before the bug was introduced
+                           ;; Committed July 24, 2025 11:20 AM - "minor whitespace"
+                           ;; Part of v2025.07.26 release (but before the bug)
+                           ;; Uses SCI 0.9.44 - requiring-resolve works correctly
                            {:git/url "https://github.com/clj-kondo/clj-kondo"
-                            :git/sha "341364fe5befe7e5908c085a6bf80a9042134c15"}}
+                            :git/sha "99bb37c4a03c6c036067a5b24a8fe2d937f541e4"}}
             :main-opts ["-m" "clj-kondo.main"]}
            :bad-clj-kondo
            {:replace-deps {clj-kondo/clj-kondo 
-                           ;; Release v2025.07.26 (July 26, 2025) - First version with bug
-                           ;; Bug introduced: SCI context not initialized for macro hooks using requiring-resolve
-                           ;; Likely related to PR #2574 "Get rid of caching" (commit ff760b85)
+                           ;; Committed July 24, 2025 11:37 AM - "Bump SCI"
+                           ;; Part of v2025.07.26 release
+                           ;; Bumped SCI from 0.9.44 to 0.10.47 - this breaks requiring-resolve
+                           ;; Bug: SCI context not initialized for macro hooks
+                           ;; Distance from GOOD: 0 commits (adjacent)
                            {:git/url "https://github.com/clj-kondo/clj-kondo"
-                            :git/sha "b77888454e0695905f225b2e88f6d3b1dd75259a"}}
+                            :git/sha "e43c24186bd77c659357f2ed1f862f80077d0f6a"}}
             :main-opts ["-m" "clj-kondo.main"]}}}

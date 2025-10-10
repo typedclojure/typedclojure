@@ -425,27 +425,34 @@ When encountering a clj-kondo-hooks test failure, follow this workflow:
    
    **Using commit SHAs in deps.edn:**
    - **Always use the exact commit SHA found by bisect-commit** (if available), not just release tags
-   - **Minimize the distance between GOOD and BAD commits** - ideally they should be adjacent commits
+   - **CRITICAL: Minimize the distance between GOOD and BAD commits to 0** - They MUST be adjacent commits
+   - Treat this like `git bisect` - keep searching until you have two adjacent commits where one works and the next one breaks
+   - If you find commits with distance > 0, continue the binary search until they are adjacent
    - **Add line comments explaining the commits** - Since SHA1s are opaque to humans, add comments explaining:
-     - When the commit was made (date)
-     - Its relationship to releases (e.g., "2 commits after v2025.06.05" or "first commit in v2025.07.26")
-     - Brief description of what changed if known
+     - When the commit was made (date and time if available)
+     - Its relationship to releases (e.g., "Part of v2025.07.26 release")
+     - What changed (e.g., "Bumped SCI from 0.9.44 to 0.10.47")
+     - Distance from GOOD commit: "Distance from GOOD: 0 commits (adjacent)" 
    
    Example:
    ```clojure
    {:aliases {:good-clj-kondo
               {:replace-deps {clj-kondo/clj-kondo 
-                              ;; Commit from 2025-07-25, last commit before bug introduction
-                              ;; This is the immediate parent of the first bad commit
+                              ;; Committed July 24, 2025 11:20 AM - "minor whitespace"
+                              ;; Part of v2025.07.26 release (but before the bug)
+                              ;; Uses SCI 0.9.44 - requiring-resolve works correctly
                               {:git/url "https://github.com/clj-kondo/clj-kondo"
-                               :git/sha "abc123..."}}
+                               :git/sha "99bb37c4a03c6c036067a5b24a8fe2d937f541e4"}}
                :main-opts ["-m" "clj-kondo.main"]}
               :bad-clj-kondo
               {:replace-deps {clj-kondo/clj-kondo 
-                              ;; Commit from 2025-07-26, first commit exhibiting the bug
-                              ;; Introduced in PR #2574 "Get rid of caching"
+                              ;; Committed July 24, 2025 11:37 AM - "Bump SCI"
+                              ;; Part of v2025.07.26 release
+                              ;; Bumped SCI from 0.9.44 to 0.10.47 - this breaks requiring-resolve
+                              ;; Bug: SCI context not initialized for macro hooks
+                              ;; Distance from GOOD: 0 commits (adjacent)
                               {:git/url "https://github.com/clj-kondo/clj-kondo"
-                               :git/sha "def456..."}}
+                               :git/sha "e43c24186bd77c659357f2ed1f862f80077d0f6a"}}
                :main-opts ["-m" "clj-kondo.main"]}}}
    ```
    
@@ -556,6 +563,14 @@ Two scripts are available to automate the binary search process:
    - Use after finding the bad release with bisect-release
    - Usage: `./script/bisect-commit [GOOD_COMMIT] [BAD_COMMIT]`
    - If no arguments provided, uses known good/bad commits from v2025.06.05 to v2025.07.26
+   - **IMPORTANT**: The script will continue searching until the GOOD and BAD commits are **adjacent** (distance = 0 commits between them)
+   - The script verifies adjacency and warns if commits are not adjacent
+   - **Always aim for adjacent commits** in your final minimal reproduction - this is like `git bisect` where 0 commits between GOOD/BAD is ideal
+
+3. **`./script/bisect`** - Combined script that chains release and commit search
+   - Automatically runs bisect-release then bisect-commit
+   - Finds the exact adjacent commits with minimal manual intervention
+   - Usage: `cd example-projects/clj-kondo-hooks && ./script/bisect`
 
 #### Modifying Macro Hooks (If Needed)
 
