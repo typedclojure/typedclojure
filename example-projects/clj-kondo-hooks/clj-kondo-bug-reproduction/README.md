@@ -11,24 +11,24 @@ error: No context found in: sci.ctx-store/*ctx*. Please set it using sci.ctx-sto
 
 ## Files
 
-- `reproduction.clj` (7 lines) - Defines and uses a minimal macro with `requiring-resolve`
-- `.clj-kondo/reprod/reprod/hooks/reprod_hooks.clj` (6 lines) - Minimal macro hook
+- `reprod/test.clj` (6 lines) - Minimal macro definition and usage
+- `.clj-kondo/reprod/reprod/hooks/reprod_hooks.clj` (6 lines) - Minimal macro hook with `requiring-resolve`
 - `.clj-kondo/reprod/reprod/config.edn` (1 line) - Config mapping
 - `deps.edn` (11 lines) - Git dependencies for GOOD (v2025.06.05) and BAD (v2025.07.26) commits
 - `test-good.sh` / `test-bad.sh` - Test scripts with expected output validation
 
-Total: 25 lines of code + test scripts
+Total: 24 lines of code + test scripts
 
 ## Run
 
 Prerequisites: Java and Clojure CLI
 
 ```bash
-./test-good.sh  # PASS - No SCI context errors (v2025.06.05)
+./test-good.sh  # PASS - No errors (v2025.06.05)
 ./test-bad.sh   # PASS - Shows expected SCI context error (v2025.07.26)
 ```
 
-Both scripts validate output against expected results and exit with appropriate status codes.
+Both scripts validate output against expected results and exit with appropriate status codes. No superfluous warnings.
 
 ## Root Cause
 

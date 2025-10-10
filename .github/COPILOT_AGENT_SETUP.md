@@ -425,13 +425,17 @@ When encountering a clj-kondo-hooks test failure, follow this workflow:
    
    **Macro minimization**: If `requiring-resolve` is suspected, the minimal reproduction is:
    ```clojure
-   (defmacro reprod []
-     (requiring-resolve 'clojure.core/identity)
-     nil)
+   (defmacro reprod [])
    
    (reprod)
    ```
-   Remove all unnecessary complexity. Consider it from a busy clj-kondo maintainer's perspective - they want a tiny, precise bug report that's easy to replicate. If there's any chance they might ask for a more minimal reproduction, make it more minimal before presenting.
+   Remove all unnecessary complexity. **Important**: Since clj-kondo does not execute macro bodies (only macro hooks), the macro body can be empty. Macro bodies and hook bodies don't need to match beyond the number of arguments they take. Always minimize both the macro and the hook separately.
+   
+   **Fix superfluous warnings**: Always ensure the reproduction has no unrelated warnings or errors. For example:
+   - Fix "Namespace name does not match file name" by naming files according to Clojure conventions (e.g., `reprod/test.clj` for namespace `reprod.test`)
+   - Don't use generic names like `reproduction.clj` - use proper namespace-based file names
+   
+   Consider it from a busy clj-kondo maintainer's perspective - they want a tiny, precise bug report that's easy to replicate. If there's any chance they might ask for a more minimal reproduction, make it more minimal before presenting.
    
    **Test script validation**: You MUST:
    - Run both `test-good.sh` and `test-bad.sh` yourself to ensure they exhibit the same problems as the original issue
