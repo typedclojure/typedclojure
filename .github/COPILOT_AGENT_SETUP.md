@@ -418,10 +418,28 @@ When encountering a clj-kondo-hooks test failure, follow this workflow:
    - `test-good.sh` - Script to test with good commit
    - `test-bad.sh` - Script to test with bad commit  
    - `reproduction.clj` - Minimal code using the problematic macro hook (skip if the issue is loading hooks)
-   - `.clj-kondo/reprod/reprod/hooks.clj` - The minimal macro hook that exhibits the bug
+   - `.clj-kondo/reprod/reprod/hooks/reprod_hooks.clj` - The minimal macro hook that exhibits the bug
    - `.clj-kondo/reprod/reprod/config.edn` - Minimal config mapping the macro to the hook
    
-   Each file should be as small as possible with no superfluous code.
+   **Each file should be as small as possible with no superfluous code.**
+   
+   **Macro minimization**: If `requiring-resolve` is suspected, the minimal reproduction is:
+   ```clojure
+   (defmacro reprod []
+     (requiring-resolve 'clojure.core/identity)
+     nil)
+   
+   (reprod)
+   ```
+   Remove all unnecessary complexity. Consider it from a busy clj-kondo maintainer's perspective - they want a tiny, precise bug report that's easy to replicate. If there's any chance they might ask for a more minimal reproduction, make it more minimal before presenting.
+   
+   **Test script validation**: You MUST:
+   - Run both `test-good.sh` and `test-bad.sh` yourself to ensure they exhibit the same problems as the original issue
+   - Verify the almost-exact error message is displayed (not unrelated warnings)
+   - Ensure both scripts have no superfluous errors
+   - Ensure reproducible output by including expected output as HEREDOCs in both scripts
+   - Have the scripts check actual output against expected output
+   - Exit with failed status if output doesn't match
    
    Create directory: `example-projects/clj-kondo-hooks/clj-kondo-bug-reproduction/`
    

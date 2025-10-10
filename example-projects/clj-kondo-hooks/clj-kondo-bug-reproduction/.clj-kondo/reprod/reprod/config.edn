@@ -1,1 +1,1 @@
-{:hooks {:macroexpand {reprod.test/typed-def hooks.reprod-hooks/typed-def}}}
+{:hooks {:macroexpand {reprod.test/reprod hooks.reprod-hooks/reprod}}}
