@@ -1,0 +1,46 @@
+#!/bin/bash
+
+# Combined script that performs release-level binary search followed by commit-level
+# binary search to find the exact commit that introduced a bug in clj-kondo.
+#
+# Usage: ./script/bisect
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+
+echo "=== Combined clj-kondo Binary Search ===" 
+echo "This will first search for the bad release, then the exact commit."
+echo ""
+
+# Step 1: Find the bad release
+echo "Step 1: Finding bad release..."
+echo ""
+
+RELEASE_RESULT=$("$SCRIPT_DIR/bisect-release" --quiet)
+
+if [ "$RELEASE_RESULT" = "NONE" ]; then
+    echo "No bad release found. All releases passed!"
+    exit 0
+fi
+
+# Parse the result
+read GOOD_RELEASE GOOD_COMMIT BAD_RELEASE BAD_COMMIT <<< "$RELEASE_RESULT"
+
+if [ "$GOOD_RELEASE" = "NONE" ]; then
+    echo "Bad release found: $BAD_RELEASE (commit: $BAD_COMMIT)"
+    echo "But no previous good release found. Cannot narrow down to specific commit."
+    exit 0
+fi
+
+echo "Release search complete:"
+echo "  GOOD: $GOOD_RELEASE (commit: $GOOD_COMMIT)"
+echo "  BAD:  $BAD_RELEASE (commit: $BAD_COMMIT)"
+echo ""
+
+# Step 2: Find the exact commit
+echo "Step 2: Finding exact commit between releases..."
+echo ""
+
+"$SCRIPT_DIR/bisect-commit" "$GOOD_COMMIT" "$BAD_COMMIT"

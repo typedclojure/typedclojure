@@ -3,49 +3,63 @@
 # Script to perform binary search on clj-kondo releases to find the first release
 # that breaks the clj-kondo-hooks tests.
 #
-# Usage: ./script/bisect-release
+# Usage: ./script/bisect-release [--quiet]
+#
+# With --quiet flag, outputs only: GOOD_RELEASE GOOD_COMMIT BAD_RELEASE BAD_COMMIT
+# or "NONE" if no bad release found
 
 set -e
+
+QUIET_MODE=false
+if [ "$1" = "--quiet" ]; then
+    QUIET_MODE=true
+fi
+
+log() {
+    if [ "$QUIET_MODE" = false ]; then
+        echo "$@"
+    fi
+}
 
 CLJ_KONDO_REPO="/tmp/clj-kondo-repo"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
-echo "=== clj-kondo Release Binary Search ==="
-echo ""
+log "=== clj-kondo Release Binary Search ==="
+log ""
 
 # Ensure clj-kondo repo is cloned
 if [ ! -d "$CLJ_KONDO_REPO" ]; then
-    echo "Cloning clj-kondo repository..."
-    git clone https://github.com/clj-kondo/clj-kondo.git "$CLJ_KONDO_REPO"
+    log "Cloning clj-kondo repository..."
+    git clone https://github.com/clj-kondo/clj-kondo.git "$CLJ_KONDO_REPO" >/dev/null 2>&1
 fi
 
 cd "$CLJ_KONDO_REPO"
-git fetch origin --tags
+git fetch origin --tags >/dev/null 2>&1
 
 # Get all release tags from 2024-2025, sorted by version
-echo "Finding release tags..."
+log "Finding release tags..."
 RELEASE_TAGS=$(git tag --sort=version:refname | grep "^v202[45]")
 RELEASE_ARRAY=($RELEASE_TAGS)
 TOTAL_RELEASES=${#RELEASE_ARRAY[@]}
 
-echo "Total releases found: $TOTAL_RELEASES"
-echo "Release range: ${RELEASE_ARRAY[0]} to ${RELEASE_ARRAY[$((TOTAL_RELEASES - 1))]}"
-echo ""
+log "Total releases found: $TOTAL_RELEASES"
+log "Release range: ${RELEASE_ARRAY[0]} to ${RELEASE_ARRAY[$((TOTAL_RELEASES - 1))]}"
+log ""
 
 # Test a specific release
 test_release() {
     local version=$1
     local version_num="${version#v}"  # Remove 'v' prefix
     
-    echo "Testing release: $version ($version_num)"
+    log "Testing release: $version ($version_num)"
     
     # Install the release
     cd /tmp
     curl -sLO "https://github.com/clj-kondo/clj-kondo/releases/download/${version}/clj-kondo-${version_num}-linux-static-amd64.zip" 2>/dev/null
     
     if [ $? -ne 0 ]; then
-        echo "  Result: SKIP (release not available)"
+        log "  Result: SKIP (release not available)"
         return 2
     fi
     
@@ -75,10 +89,10 @@ test_release() {
     set -e
     
     if [ "$expected_md5" = "$actual_md5" ]; then
-        echo "  Result: GOOD ✓"
+        log "  Result: GOOD ✓"
         return 0
     else
-        echo "  Result: BAD ✗"
+        log "  Result: BAD ✗"
         return 1
     fi
 }
@@ -88,14 +102,14 @@ left=0
 right=$((TOTAL_RELEASES - 1))
 first_bad=-1
 
-echo "Starting binary search..."
-echo ""
+log "Starting binary search..."
+log ""
 
 while [ $left -le $right ]; do
     mid=$(((left + right) / 2))
     release="${RELEASE_ARRAY[$mid]}"
     
-    echo "[$((mid + 1))/$TOTAL_RELEASES] Checking midpoint..."
+    log "[$((mid + 1))/$TOTAL_RELEASES] Checking midpoint..."
     
     result=0
     test_release "$release" || result=$?
@@ -111,36 +125,52 @@ while [ $left -le $right ]; do
         first_bad=$mid
         right=$((mid - 1))
     fi
-    echo ""
+    log ""
 done
 
 # Report results
 cd "$CLJ_KONDO_REPO"
-echo "=== Binary Search Complete ==="
-echo ""
 
 if [ $first_bad -ge 0 ]; then
     BAD_RELEASE="${RELEASE_ARRAY[$first_bad]}"
-    echo "First BAD release found: $BAD_RELEASE"
-    echo ""
-    
-    # Get commit for this release
     BAD_COMMIT=$(git rev-parse "$BAD_RELEASE")
-    echo "Release commit: $BAD_COMMIT"
-    echo ""
     
     if [ $first_bad -gt 0 ]; then
         GOOD_RELEASE="${RELEASE_ARRAY[$((first_bad - 1))]}"
         GOOD_COMMIT=$(git rev-parse "$GOOD_RELEASE")
-        echo "Previous GOOD release: $GOOD_RELEASE"
-        echo "Previous GOOD commit:  $GOOD_COMMIT"
-        echo ""
-        echo "To find the exact commit that introduced the bug, run:"
-        echo "  cd $PROJECT_DIR"
-        echo "  ./script/bisect-commit $GOOD_COMMIT $BAD_COMMIT"
+        
+        if [ "$QUIET_MODE" = true ]; then
+            echo "$GOOD_RELEASE $GOOD_COMMIT $BAD_RELEASE $BAD_COMMIT"
+        else
+            log "=== Binary Search Complete ==="
+            log ""
+            log "First BAD release found: $BAD_RELEASE"
+            log ""
+            log "Release commit: $BAD_COMMIT"
+            log ""
+            log "Previous GOOD release: $GOOD_RELEASE"
+            log "Previous GOOD commit:  $GOOD_COMMIT"
+            log ""
+            log "To find the exact commit that introduced the bug, run:"
+            log "  cd $PROJECT_DIR"
+            log "  ./script/bisect-commit $GOOD_COMMIT $BAD_COMMIT"
+        fi
     else
-        echo "This is the first release tested. Cannot determine previous good release."
+        if [ "$QUIET_MODE" = true ]; then
+            echo "NONE NONE $BAD_RELEASE $BAD_COMMIT"
+        else
+            log "=== Binary Search Complete ==="
+            log ""
+            log "First BAD release found: $BAD_RELEASE"
+            log "This is the first release tested. Cannot determine previous good release."
+        fi
     fi
 else
-    echo "No bad release found in the range. All releases passed!"
+    if [ "$QUIET_MODE" = true ]; then
+        echo "NONE"
+    else
+        log "=== Binary Search Complete ==="
+        log ""
+        log "No bad release found in the range. All releases passed!"
+    fi
 fi

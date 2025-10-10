@@ -403,17 +403,36 @@ When encountering a clj-kondo-hooks test failure, follow this workflow:
    ```
    
    Check surrounding PR/issue discussion for motivation.
+   
+   **AI Agent should analyze:**
+   - **GOOD commit analysis**: Why does it succeed? What SCI context initialization is present?
+   - **BAD commit analysis**: Why does it fail? What changed that breaks the macro hook?
+   - Identify the specific lines/functions that are the culprit
+   - Explain the behavior that the macro hook depends on
+   - Example: "The GOOD commit initializes SCI context in function X before macro expansion. The BAD commit refactored this to use caching in function Y, which delays context initialization until after macros are expanded."
 
 5. **Prepare a minimal reproduction** for clj-kondo maintainers:
-   - Create directory: `example-projects/clj-kondo-hooks/clj-kondo-bug-reproduction/`
-   - Include minimal Clojure file exhibiting the bug
-   - Add `deps.edn` with git dependencies for GOOD and BAD commits
-   - Create executable bash scripts: `test-good.sh` and `test-bad.sh`
-   - Add `README.md` explaining the bug and how to reproduce
-   - Ensure it only requires Java and Clojure CLI
+   
+   The ideal minimal reproduction consists of exactly 5 files:
+   - `deps.edn` - Git dependencies with `:good-clj-kondo` and `:bad-clj-kondo` aliases
+   - `test-good.sh` - Script to test with good commit
+   - `test-bad.sh` - Script to test with bad commit  
+   - `reproduction.clj` - Minimal code using the problematic macro hook (skip if the issue is loading hooks)
+   - `.clj-kondo/reprod/reprod/hooks.clj` - The minimal macro hook that exhibits the bug
+   - `.clj-kondo/reprod/reprod/config.edn` - Minimal config mapping the macro to the hook
+   
+   Each file should be as small as possible with no superfluous code.
+   
+   Create directory: `example-projects/clj-kondo-hooks/clj-kondo-bug-reproduction/`
+   
+   Only requires Java and Clojure CLI to run.
 
 6. **Write a report** explaining:
    - The exact commit(s) where the bug was introduced
+   - **Detailed commit analysis**:
+     - Why the GOOD commit succeeds (what mechanism/initialization it has)
+     - Why the BAD commit fails (what specific change broke the dependency)
+     - The exact line(s) or function(s) that are the culprit
    - Root cause analysis (or most likely reason if inconclusive)
    - Steps to reproduce with the minimal test case
    - Expected vs actual behavior
