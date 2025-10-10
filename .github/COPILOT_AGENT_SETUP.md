@@ -367,10 +367,56 @@ This script:
 If tests fail, it typically means clj-kondo changed its implementation causing incompatibility with Typed Clojure's hooks.
 
 **IMPORTANT: The most likely scenarios are:**
-1. **clj-kondo has introduced a bug** - The most valuable information is the exact release version where the bug was introduced.
+1. **clj-kondo has introduced a bug** - The most valuable information is the exact release version (or commit) where the bug was introduced.
 2. **clj-kondo changed its error message printing** - We simply need to update our expected printed messages in `output/expected-output`.
 
 **Always assume one of these situations first. Only attempt intricate changes to macro hook definitions if explicitly prompted.**
+
+#### AI Agent Workflow for Test Failures
+
+When encountering a clj-kondo-hooks test failure, follow this workflow:
+
+1. **Inspect the test failure output** - Compare `output/expected-output` with the actual output
+   
+2. **Make a judgement**:
+   - **Printing change**: If error messages have same meaning but different formatting, update `output/expected-output`
+   - **Bug suspected**: If seeing internal errors (like "No context found in: sci.ctx-store/*ctx*") or unexpected behavior
+
+3. **If bug suspected**, use the automated binary search scripts:
+   ```bash
+   cd example-projects/clj-kondo-hooks
+   ./script/bisect-release  # Fast: find bad release
+   # This typically takes 5-10 tests
+   ```
+   
+   If this used relatively few resources (time), continue to find the exact commit:
+   ```bash
+   ./script/bisect-commit [GOOD_COMMIT] [BAD_COMMIT]
+   # Or use defaults from bisect-release output
+   ```
+
+4. **Inspect the problematic commit** to diagnose the problem:
+   ```bash
+   cd /tmp/clj-kondo-repo
+   git log -1 --pretty=full COMMIT_SHA
+   git show COMMIT_SHA
+   ```
+   
+   Check surrounding PR/issue discussion for motivation.
+
+5. **Prepare a minimal reproduction** for clj-kondo maintainers:
+   - Create directory: `example-projects/clj-kondo-hooks/clj-kondo-bug-reproduction/`
+   - Include minimal Clojure file exhibiting the bug
+   - Add `deps.edn` with git dependencies for GOOD and BAD commits
+   - Create executable bash scripts: `test-good.sh` and `test-bad.sh`
+   - Add `README.md` explaining the bug and how to reproduce
+   - Ensure it only requires Java and Clojure CLI
+
+6. **Write a report** explaining:
+   - The exact commit(s) where the bug was introduced
+   - Root cause analysis (or most likely reason if inconclusive)
+   - Steps to reproduce with the minimal test case
+   - Expected vs actual behavior
 
 #### Finding clj-kondo Release Versions
 

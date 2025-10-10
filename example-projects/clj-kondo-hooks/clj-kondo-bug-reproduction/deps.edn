@@ -1,0 +1,12 @@
+{:deps {org.clojure/clojure {:mvn/version "1.12.0"}
+        org.typedclojure/typed.clj.runtime {:local/root "../../../typed/clj.runtime"}}
+ :aliases {:good-clj-kondo
+           {:replace-deps {clj-kondo/clj-kondo 
+                           {:git/url "https://github.com/clj-kondo/clj-kondo"
+                            :git/sha "341364fe5befe7e5908c085a6bf80a9042134c15"}}
+            :main-opts ["-m" "clj-kondo.main"]}
+           :bad-clj-kondo
+           {:replace-deps {clj-kondo/clj-kondo 
+                           {:git/url "https://github.com/clj-kondo/clj-kondo"
+                            :git/sha "b77888454e0695905f225b2e88f6d3b1dd75259a"}}
+            :main-opts ["-m" "clj-kondo.main"]}}}
