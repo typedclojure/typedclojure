@@ -1,0 +1,11 @@
+{:deps {org.clojure/clojure {:mvn/version "1.12.0"}}
+ :aliases {:test-sci
+           {:replace-deps {clj-kondo/clj-kondo 
+                           {:git/url "https://github.com/clj-kondo/clj-kondo"
+                            :git/sha "e43c24186bd77c659357f2ed1f862f80077d0f6a"
+                            :deps/manifest :deps
+                            :deps/root "."}
+                           org.babashka/sci 
+                           {:git/url "https://github.com/babashka/sci"
+                            :git/sha "a51cbc93ee5a1ba9132396be3d35d1716a6598a1"}}
+            :main-opts ["-m" "clj-kondo.main"]}}}
