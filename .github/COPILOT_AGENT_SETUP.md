@@ -853,6 +853,133 @@ bb script/run-doc-tests.clj
 bb script/sync-doc-tests.clj /tmp/test.md
 ```
 
+## Reporting clj-kondo Regressions
+
+If you detect a regression in clj-kondo (not a Typed Clojure issue), create a bug report using this template:
+
+**version**
+
+The regression was introduced via [commit message and link to commit].
+
+In terms of releases, regression has been confirmed on binary releases starting from v[VERSION]. Used git deps with JVM version to find the specific commit.
+
+**platform**
+
+Tested on [platform details, e.g., "amd64 Linux platforms"].
+
+**problem**
+
+[Brief description of the issue, e.g., "`requiring-resolve` in a `:macroexpand` hook triggers the internal sci error: No context found in: sci.ctx-store/*ctx*..."]
+
+**repro**
+
+```clojure
+;; deps.edn
+{:deps {org.clojure/clojure {:mvn/version "1.12.3"}}
+ :aliases {:bad-clj-kondo
+           {:replace-deps {clj-kondo/clj-kondo 
+                           {:git/url "https://github.com/clj-kondo/clj-kondo"
+                            :git/sha "[BAD_COMMIT_SHA]"}}
+            :main-opts ["-m" "clj-kondo.main"]}}}
+```
+
+```clojure
+;; .clj-kondo/[namespace]/[namespace]/config.edn
+{:hooks {:macroexpand {[ns]/[macro-name] hooks.[hook-ns]/[hook-name]}}}
+```
+
+```clojure
+;; .clj-kondo/[namespace]/[namespace]/hooks/[hook-file].clj
+(ns hooks.[hook-ns])
+[minimal hook implementation demonstrating the bug]
+```
+
+```clojure
+;; [namespace]/[file].clj
+(ns [namespace])
+[minimal code using the macro]
+```
+
+```bash
+# Invoke clj-kondo
+clojure -M:bad-clj-kondo --lint [namespace]/[file].clj
+# Show actual error output
+```
+
+**config**
+
+[Paste relevant .clj-kondo/config.edn if applicable]
+
+**expected behavior**
+
+[What behavior you expected]
+
+### Example Bug Report
+
+Here's a concrete example from PR #188:
+
+**version**
+
+The regression was introduced via [Bump SCI](https://github.com/clj-kondo/clj-kondo/commit/e43c24186bd77c659357f2ed1f862f80077d0f6a).
+
+In terms of releases, regression has been confirmed on binary releases starting from v2025.07.26. I used git deps using JVM version to find the specific commit.
+
+**platform**
+
+Tested on amd64 Linux platforms.
+
+**problem**
+
+`requiring-resolve` in a `:macroexpand` hook triggers the internal sci error:
+
+```
+error: No context found in: sci.ctx-store/*ctx*. Please set it using sci.ctx-store/reset-ctx!
+```
+
+**repro**
+
+```clojure
+;; deps.edn
+{:deps {org.clojure/clojure {:mvn/version "1.12.3"}}
+ :aliases {:bad-clj-kondo
+           {:replace-deps {clj-kondo/clj-kondo 
+                           {:git/url "https://github.com/clj-kondo/clj-kondo"
+                            :git/sha "e43c24186bd77c659357f2ed1f862f80077d0f6a"}}
+            :main-opts ["-m" "clj-kondo.main"]}}}
+```
+
+```clojure
+;; .clj-kondo/reprod/reprod/config.edn
+{:hooks {:macroexpand {reprod.test/reprod hooks.reprod-hooks/reprod}}}
+```
+
+```clojure
+;; .clj-kondo/reprod/reprod/hooks/reprod_hooks.clj
+(ns hooks.reprod-hooks)
+(defmacro reprod []
+  (requiring-resolve 'clojure.core/identity))
+```
+
+```clojure
+;; reprod/test.clj
+(ns reprod.test)
+(defmacro reprod [])
+(reprod)
+```
+
+```bash
+$ clojure -M:bad-clj-kondo --lint reprod/test.clj
+reprod/test.clj:4:1: error: No context found in: sci.ctx-store/*ctx*...
+```
+
+**config**
+
+See `.clj-kondo/reprod/reprod/config.edn` above.
+
+**expected behavior**
+
+The hook should execute without internal SCI errors. This worked in v2025.06.05 and earlier versions.
+
 ## Additional Resources
 
 - [Clojure CLI Guide](https://clojure.org/guides/deps_and_cli)
