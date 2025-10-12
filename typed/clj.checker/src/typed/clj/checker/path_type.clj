@@ -101,7 +101,21 @@
        (path-type (r/Name-maker `t/Int) (next ps) opts)
 
        (pe/ClassPE? (first ps))
-       (path-type (c/Un [r/-nil (c/RClass-of Class opts)] opts) (next ps) opts)
+       (path-type
+         (cond
+           ;; if t is nil, class returns nil
+           (sub/subtype? t r/-nil opts)
+           r/-nil
+
+           ;; if t cannot be nil (no overlap with nil), class returns non-nil Class
+           (not (c/overlap t r/-nil opts))
+           (c/RClass-of Class opts)
+
+           ;; otherwise, t might be nil, so class returns (U nil Class)
+           :else
+           (c/Un [r/-nil (c/RClass-of Class opts)] opts))
+         (next ps)
+         opts)
 
        (and (pe/NthPE? (first ps))
             (sub/subtype? t r/-any-hsequential opts))

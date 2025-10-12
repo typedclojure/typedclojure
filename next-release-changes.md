@@ -12,3 +12,4 @@
 - Change how exceptions and type errors are returned from `check-{ns,form}-info`
   - `:type-errors` is a non-empty vector of maps describing type errors
   - `:ex` is a fatal error
+- Improve local inference involving refined locals passed to `clojure.core/class`
