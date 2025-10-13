@@ -13,3 +13,5 @@
   - `:type-errors` is a non-empty vector of maps describing type errors
   - `:ex` is a fatal error
 - Improve local inference involving refined locals passed to `clojure.core/class`
+- Fix https://github.com/typedclojure/typedclojure/issues/135
+  - Improve path-type to handle safe downcast from t/Map to t/HMap

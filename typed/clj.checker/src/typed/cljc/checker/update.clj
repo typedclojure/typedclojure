@@ -218,7 +218,11 @@
           (let [; KeyPE are only used for `get` operations where `nil` is the
                 ; not-found value. If the filter does not hold when updating
                 ; it to nil, then we can assume this key path is present.
-                update-to-mandatory? (r/Bottom? (update-inner r/-nil))
+                ; However, for nested paths (rstpth not empty), we should be
+                ; conservative and make the key optional with type Any, since
+                ; we can't infer much about nested structure in HMaps.
+                update-to-mandatory? (and (empty? rstpth)
+                                          (r/Bottom? (update-inner r/-nil)))
                 old-type (or ((:optional t) fpth) r/-any)]
             (if update-to-mandatory?
               (c/make-HMap opts
@@ -239,6 +243,23 @@
            (pe/KeyPE? (first lo))
            (r/Nil? t))
       (update* r/-nil ft pos? (next lo) opts)
+
+      ; nil with positive KeyPE filter
+      ; Accessing a key on nil always returns nil
+      ; For nested paths, we need to continue recursing
+      ; For single-level paths, check if the filter overlaps with nil
+      (and pos?
+           (pe/KeyPE? (first lo))
+           (r/Nil? t))
+      (if (seq (next lo))
+        ; Nested path: recurse with nil since (:key nil) = nil
+        (update* r/-nil ft pos? (next lo) opts)
+        ; Single-level path: check if filter overlaps with nil
+        (if (or (r/Nil? ft)
+                (and (r/Union? ft) (some r/Nil? (:types ft)))
+                (c/overlap ft r/-nil opts))
+          r/-nil
+          r/-nothing))
 
       ; update count information based on a call to `count`
       ; eg. (= 1 (count a))
@@ -329,11 +350,42 @@
           :else t))
 
       ; keyword invoke of non-hmaps
-      ; (let [a (ann-form {} (Map Any Any))]
-      ;   (number? (-> a :a :b)))
-      ; 
-      ; I don't think there's anything interesting worth encoding:
-      ; use HMap for accurate updating.
+      ; When we have a generic map like (Map Kw Any) and we're updating
+      ; with specific key information, we should create an HMap with that key.
+      ; This enables occurrence typing with intermediate variables.
+      (and (pe/KeyPE? (first lo))
+           (r/RClass? t)
+           (= 'clojure.lang.IPersistentMap (:the-class t)))
+      (let [[fkeype & rstpth] lo
+            fpth (cu/KeyPE->Type fkeype)
+            ; For a generic map (Map K V), when updating key fpth:
+            ; - If nil is NOT part of the update, make it a mandatory key
+            ; - The key type should be the union of the update with nil (for not-found)
+            update-inner (fn [old-type]
+                          (update* old-type ft pos? rstpth opts))
+            ; Extract value type from map (second type parameter)
+            old-val-type (if (and (seq (:poly? t))
+                                 (= 2 (count (:poly? t))))
+                          (second (:poly? t))
+                          r/-any)
+            updated-val-type (update-inner old-val-type)
+            ; Check if the update would make nil impossible
+            update-to-mandatory? (r/Bottom? (update-inner r/-nil))]
+        (if update-to-mandatory?
+          ; Key must be present with the updated type
+          (c/make-HMap opts
+            {:mandatory {fpth updated-val-type}
+             :optional {}
+             :absent-keys #{}
+             :complete? false})
+          ; Key could be absent (returns nil) or present with updated type
+          (c/make-HMap opts
+            {:mandatory {}
+             :optional {fpth updated-val-type}
+             :absent-keys #{}
+             :complete? false})))
+
+      ; Other map types with KeyPE: return unchanged
       (pe/KeyPE? (first lo))
       t
 
