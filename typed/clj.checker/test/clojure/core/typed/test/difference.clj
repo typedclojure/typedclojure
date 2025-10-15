@@ -162,7 +162,7 @@
 ;                             (make-F 'y))
 ;                (Un))))
 ;
-;(deftest negative-filter-test
+;(deftest negative-proposition-test
 ;  (is-tc-e ;need to instantiate negative types for now
 ;         (fn [a] 
 ;           ((inst a (U nil Number) nil)

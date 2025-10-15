@@ -12,7 +12,7 @@
             [typed.cljc.checker.check-below :as below]
             [typed.cljc.checker.check.utils :as cu]
             [typed.cljc.checker.cs-gen :as cgen]
-            [typed.cljc.checker.filter-ops :as fo]
+            [typed.cljc.checker.proposition-ops :as fo]
             [typed.cljc.checker.indirect-ops :as ind]
             [typed.cljc.checker.object-rep :as orep]
             [typed.cljc.checker.type-ctors :as c]
@@ -135,7 +135,7 @@
       (-> expr
           (update :fn check-expr nil opts)
           (assoc u/expr-type (below/maybe-check-below
-                               (r/ret t (fo/-true-filter))
+                               (r/ret t (fo/-true-proposition))
                                expected
                                opts))))))
 
@@ -151,12 +151,12 @@
                          (cond
                            ; first arity of `seq
                            ;[(NonEmptyColl x) -> (NonEmptyASeq x) :filters {:then tt :else ff}]
-                           (ind/subtype? t (r/make-CountRange (inc nnexts)) opts) (fo/-true-filter)
+                           (ind/subtype? t (r/make-CountRange (inc nnexts)) opts) (fo/-true-proposition)
 
                            ; handle empty collection with no object
                            (and (= orep/-empty (:o target-ret))
                                 (ind/subtype? t (c/Un [r/-nil (r/make-CountRange 0 nnexts)] opts) opts))
-                           (fo/-false-filter)
+                           (fo/-false-proposition)
 
                            ; second arity of `seq
                            ;[(Option (Coll x)) -> (Option (NonEmptyASeq x))
@@ -164,17 +164,17 @@
                            ;                    (! nil 0))
                            ;           :else (or (is nil 0)
                            ;                     (is EmptyCount 0))}]
-                           :else (fo/-FS (fo/-and [(fo/-filter-at (r/make-CountRange (inc nnexts))
+                           :else (fo/-FS (fo/-and [(fo/-proposition-at (r/make-CountRange (inc nnexts))
                                                                   (:o target-ret))
-                                                   (fo/-not-filter-at r/-nil
+                                                   (fo/-not-proposition-at r/-nil
                                                                       (:o target-ret))]
                                                   opts)
-                                         (fo/-or [(fo/-filter-at r/-nil
+                                         (fo/-or [(fo/-proposition-at r/-nil
                                                                  (:o target-ret))
-                                                  (fo/-filter-at (r/make-CountRange 0 nnexts)
+                                                  (fo/-proposition-at (r/make-CountRange 0 nnexts)
                                                                  (:o target-ret))]
                                                  opts)))
-                         (fo/-simple-filter)))]
+                         (fo/-simple-proposition)))]
       (-> expr
           (update :fn check-expr nil opts)
           (assoc u/expr-type (below/maybe-check-below

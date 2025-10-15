@@ -13,8 +13,8 @@
             [typed.cljc.checker.fold-rep :as f]
             [typed.cljc.checker.frees :as frees]
             [typed.cljc.checker.cs-rep :as crep]
-            [typed.cljc.checker.filter-rep :as fl]
-            [typed.cljc.checker.filter-ops :as fo]
+            [typed.cljc.checker.proposition-rep :as fl]
+            [typed.cljc.checker.proposition-ops :as fo]
             [typed.cljc.checker.object-rep :as orep]
             [typed.clj.checker.assoc-utils :as assoc-u])
   (:import (typed.cljc.checker.type_rep F Function HSequential AssocType)))
@@ -176,7 +176,7 @@
           ((frees/fv target opts) name))
       (call-substitute-dots* opts
         {:type-rec sb
-         :filter-rec (f/sub-f sb `call-substitute-dots* opts)
+         :proposition-rec (f/sub-f sb `call-substitute-dots* opts)
          :name name
          :sb sb
          :images images
@@ -257,7 +257,7 @@
       ((frees/fi target opts) name)
       (call-substitute-dotted* opts
         {:type-rec sb 
-         :filter-rec (f/sub-f sb `call-substitute-dotted* opts)
+         :proposition-rec (f/sub-f sb `call-substitute-dotted* opts)
          :name name
          :sb sb
          :image image}))))

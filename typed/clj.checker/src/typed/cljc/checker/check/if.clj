@@ -12,8 +12,8 @@
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.utils :as u]
-            [typed.cljc.checker.filter-ops :as fo]
-            [typed.cljc.checker.filter-rep :as fl]
+            [typed.cljc.checker.proposition-ops :as fo]
+            [typed.cljc.checker.proposition-rep :as fl]
             [typed.cljc.checker.object-rep :as obj]
             [typed.cljc.checker.update :as update]
             [typed.cljc.checker.lex-env :as lex]
@@ -68,7 +68,7 @@
 
 (defn unreachable-ret []
   (r/ret r/-nothing
-         (fo/-unreachable-filter)
+         (fo/-unreachable-proposition)
          obj/-empty))
 
 (defn check-if-reachable [expr lex-env reachable? expected {::check/keys [check-expr] :as opts}]

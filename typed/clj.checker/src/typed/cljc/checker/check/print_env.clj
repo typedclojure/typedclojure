@@ -25,7 +25,7 @@
          actual-bnds (map #(get tvar-bounds %) actual-names)]
      (prn {:env (into {} (for [[k v] (:l e)]
                            [k (prs/unparse-type v opts)]))
-           :props (map #(prs/unparse-filter % opts) (:props e))
+           :props (map #(prs/unparse-proposition % opts) (:props e))
            :aliases (:aliases e)
            ;:frees (map (t/fn
            ;              [nme :- t/Sym, bnd :- (U nil Bounds)]

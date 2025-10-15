@@ -7,8 +7,8 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:typed.clojure ^:no-doc typed.cljc.checker.subst-obj
-  (:require [typed.cljc.checker.filter-rep :as fl]
-            [typed.cljc.checker.filter-ops :as fo]
+  (:require [typed.cljc.checker.proposition-rep :as fl]
+            [typed.cljc.checker.proposition-ops :as fo]
             [typed.cljc.checker.fold-rep :as fold]
             [clojure.core.typed.errors :as err]
             [typed.cljc.checker.free-in :as free-in]
@@ -18,18 +18,18 @@
 
 (declare subst-type)
 
-;[Filter (U Number t/Sym) RObject Boolean Opts -> Filter]
-(defn subst-filter [f k o polarity opts]
-  {:pre [(fl/Filter? f)
+;[Proposition (U Number t/Sym) RObject Boolean Opts -> Proposition]
+(defn subst-proposition [f k o polarity opts]
+  {:pre [(fl/Proposition? f)
          (fl/name-ref? k)
          (obj/RObject? o)
          (boolean? polarity)]
-   :post [(fl/Filter? %)]}
-  (letfn [(ap [f] (subst-filter f k o polarity opts))
+   :post [(fl/Proposition? %)]}
+  (letfn [(ap [f] (subst-proposition f k o polarity opts))
           (tf-matcher [t p i k o polarity maker]
             {:pre [(r/Type? t)
                    ((some-fn obj/EmptyObject? obj/NoObject? obj/Path?) o)]
-             :post [(fl/Filter? %)]}
+             :post [(fl/Proposition? %)]}
             (cond
               ((some-fn obj/EmptyObject? obj/NoObject?)
                o)
@@ -50,59 +50,59 @@
                                 :else f))
               :else (err/int-error (str "what is this? " o) opts)))]
     (cond
-      (fl/ImpFilter? f) (let [{ant :a consq :c} f]
-                          (fo/-imp (subst-filter ant k o (not polarity) opts) (ap consq)))
-      (fl/AndFilter? f) (let [fs (:fs f)] 
+      (fl/ImpProposition? f) (let [{ant :a consq :c} f]
+                          (fo/-imp (subst-proposition ant k o (not polarity) opts) (ap consq)))
+      (fl/AndProposition? f) (let [fs (:fs f)] 
                           (fo/-and (map ap fs) opts))
-      (fl/OrFilter? f) (let [fs (:fs f)]
+      (fl/OrProposition? f) (let [fs (:fs f)]
                          (fo/-or (map ap fs) opts))
-      (fl/BotFilter? f) f
+      (fl/BotProposition? f) f
       ;; preserve -infer-top
-      (fl/TopFilter? f) f
+      (fl/TopProposition? f) f
 
-      (fl/TypeFilter? f) 
+      (fl/TypeProposition? f) 
       (let [{t :type p :path i :id} f]
-        (tf-matcher t p i k o polarity fo/-filter))
+        (tf-matcher t p i k o polarity fo/-proposition))
 
-      (fl/NotTypeFilter? f) 
+      (fl/NotTypeProposition? f) 
       (let [{t :type p :path i :id} f]
-        (tf-matcher t p i k o polarity fo/-not-filter))
-      (fl/NoFilter? f) f)))
+        (tf-matcher t p i k o polarity fo/-not-proposition))
+      (fl/NoProposition? f) f)))
 
-(defn- add-extra-filter
-  "If provided a type t, then add the filter (is t k).
+(defn- add-extra-proposition
+  "If provided a type t, then add the proposition (is t k).
   Helper function."
   [fl k t opts]
-  {:pre [(fl/Filter? fl)
+  {:pre [(fl/Proposition? fl)
          (fl/name-ref? k)
          ((some-fn false? nil? r/Type?) t)]
-   :post [(fl/Filter? %)]}
-  (let [extra-filter (if t (fl/TypeFilter-maker t nil k) fl/-top)]
-    (letfn [(add-extra-filter [f]
-              {:pre [(fl/Filter? f)]
-               :post [(fl/Filter? %)]}
-              (let [f* (fo/-and [extra-filter f] opts)]
-                (if (fl/BotFilter? f*)
+   :post [(fl/Proposition? %)]}
+  (let [extra-proposition (if t (fl/TypeProposition-maker t nil k) fl/-top)]
+    (letfn [(add-extra-proposition [f]
+              {:pre [(fl/Proposition? f)]
+               :post [(fl/Proposition? %)]}
+              (let [f* (fo/-and [extra-proposition f] opts)]
+                (if (fl/BotProposition? f*)
                   f*
                   f)))]
-      (add-extra-filter fl))))
+      (add-extra-proposition fl))))
 
-;[FilterSet Number RObject Boolean (Option Type) -> FilterSet]
-(defn subst-filter-set [fs k o polarity t opts]
-  {:pre [((some-fn fl/FilterSet? fl/NoFilter?) fs)
+;[PropositionSet Number RObject Boolean (Option Type) -> PropositionSet]
+(defn subst-proposition-set [fs k o polarity t opts]
+  {:pre [((some-fn fl/PropositionSet? fl/NoProposition?) fs)
          (fl/name-ref? k)
          (obj/RObject? o)
          ((some-fn false? nil? r/Type?) t)]
-   :post [(fl/FilterSet? %)]}
-  ;  (prn "subst-filter-set")
-  ;  (prn "fs" (prs/unparse-filter-set fs opts))
+   :post [(fl/PropositionSet? %)]}
+  ;  (prn "subst-proposition-set")
+  ;  (prn "fs" (prs/unparse-proposition-set fs opts))
   ;  (prn "k" k) 
   ;  (prn "o" o)
   ;  (prn "polarity" polarity) 
   ;  (prn "t" (when t (prs/unparse-type t opts)))
   (cond
-    (fl/FilterSet? fs) (fo/-FS (subst-filter (add-extra-filter (:then fs) k t opts) k o polarity opts)
-                               (subst-filter (add-extra-filter (:else fs) k t opts) k o polarity opts))
+    (fl/PropositionSet? fs) (fo/-FS (subst-proposition (add-extra-proposition (:then fs) k t opts) k o polarity opts)
+                                    (subst-proposition (add-extra-proposition (:else fs) k t opts) k o polarity opts))
     :else (fo/-FS fl/-top fl/-top)))
 
 ;[RObject NameRef RObject Boolean -> RObject]
@@ -169,16 +169,16 @@
           (sf
             ([fs] (sf fs opts))
             ([fs opts] 
-             {:pre [(fl/FilterSet? fs)] 
-              :post [(fl/FilterSet? %)]}
-             (subst-filter-set fs k o polarity nil opts)))
+             {:pre [(fl/PropositionSet? fs)] 
+              :post [(fl/PropositionSet? %)]}
+             (subst-proposition-set fs k o polarity nil opts)))
           (object-rec 
             ([f] (object-rec f opts))
             ([f opts] (subst-object f k o polarity opts)))]
     (call-subst-type*
       t opts
       {:type-rec st
-       :filter-rec sf
+       :proposition-rec sf
        :object-rec object-rec
        :st st
        :k k

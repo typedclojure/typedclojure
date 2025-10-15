@@ -1,12 +1,12 @@
-(ns ^:typed.clojure clojure.core.typed.test.filter-expected
+(ns ^:typed.clojure clojure.core.typed.test.proposition-expected
   (:refer-clojure :exclude [cast])
   (:require 
     ; this loads the type system, must go first
     [typed.clj.checker.test-utils :refer :all]
     [typed.cljc.checker.type-rep :refer :all]
     [typed.clj.checker.parse-unparse :refer :all]
-    [typed.cljc.checker.filter-rep :refer :all]
-    [typed.cljc.checker.filter-ops :refer :all]
+    [typed.cljc.checker.proposition-rep :refer :all]
+    [typed.cljc.checker.proposition-ops :refer :all]
     [typed.cljc.checker.object-rep :refer :all]
     [typed.cljc.checker.path-rep :refer :all]
     [clojure.test :refer :all])
@@ -33,11 +33,11 @@
     (is-tc-err 1
                :expected-ret (ret (parse-clj `t/Sym)))
     (is (= (ret (parse-clj `t/Num)
-                (-true-filter))
+                (-true-proposition))
            (tc-e 1
                  :expected-ret
                  (ret (parse-clj `t/Num)
-                      (-true-filter)
+                      (-true-proposition)
                       -no-object)))))
   (testing "nil is falsy"
     (is-tc-e nil
@@ -89,49 +89,49 @@
   (testing "functions are truthy"
     (is-tc-e (fn [])
              :expected-ret (ret -any
-                                (-true-filter)))
+                                (-true-proposition)))
     (is-tc-err (fn [])
                :expected-ret (ret -any
-                                  (-true-filter)
+                                  (-true-proposition)
                                   (-path nil 'a)))
     (is-tc-err (fn [])
              :expected-ret (ret -any
-                                (-false-filter)))
+                                (-false-proposition)))
     ;TODO
     #_(is-tc-e (core/fn [])
              :expected-ret (ret -any
-                                (-false-filter))))
+                                (-false-proposition))))
   (testing "quote"
     (is-tc-e 'a 
              :expected-ret
              (ret (parse-clj `t/Sym)
-                  (-true-filter)))
+                  (-true-proposition)))
     (is-tc-err 'a 
                :expected-ret
                (ret (parse-clj `t/Sym)
-                    (-false-filter)))
+                    (-false-proposition)))
     (is-tc-err 'a 
                :expected-ret
                (ret (parse-clj `t/Sym)
-                    (-true-filter)
+                    (-true-proposition)
                     (-path nil 'a)))
     (is-tc-e ''a 
              :expected-ret
              (ret (parse-clj `(t/Coll t/Sym))
-                  (-true-filter)))
+                  (-true-proposition)))
     (is-tc-e '''a 
              :expected-ret
              (ret (parse-clj `(t/Coll (t/U t/Sym (t/Coll t/Sym))))
-                  (-true-filter))))
+                  (-true-proposition))))
   (testing "do"
     (is-tc-e (do 1 2)
              :expected-ret
              (ret (parse-clj `t/Num)
-                  (-true-filter)))
+                  (-true-proposition)))
     (is-tc-err (do 1 2)
                :expected-ret
                (ret (parse-clj `t/Num)
-                    (-true-filter)
+                    (-true-proposition)
                     (-path nil 'a)))
     (is-tc-e #(do 1 (throw (Exception.)) 2)
              :expected-ret
@@ -140,7 +140,7 @@
     (is-tc-err (do 1 2)
                :expected-ret
                (ret (parse-clj `t/Num)
-                    (-false-filter)))
+                    (-false-proposition)))
     (is-tc-e #(do nil %)
              :expected-ret
              (ret (parse-clj `[t/Num :-> t/Num :object {:id 0}])))
@@ -154,43 +154,43 @@
     (is-tc-e (let [] 1)
              :expected-ret
              (ret (parse-clj `t/Num)
-                  (-true-filter)))
+                  (-true-proposition)))
     (is-tc-err (let [] 1)
                :expected-ret
                (ret (parse-clj `t/Num)
-                    (-false-filter)))
+                    (-false-proposition)))
     (is-tc-err (let [] 1)
                :expected-ret
                (ret (parse-clj `t/Num)
-                    (-true-filter)
+                    (-true-proposition)
                     (-path nil 'a))))
   (testing "map values"
     (is-tc-e {:a 1}
              :expected-ret
              (ret (parse-clj `'{:a t/Num})
-                  (-true-filter)))
+                  (-true-proposition)))
     (is-tc-err {:a 1}
                :expected-ret
                (ret (parse-clj `'{:a t/Num})
-                    (-false-filter)))
+                    (-false-proposition)))
     (is-tc-err {:a 1}
                :expected-ret
                (ret (parse-clj `'{:a t/Num})
-                    (-true-filter)
+                    (-true-proposition)
                     (-path nil 'a))))
   (testing "map expressions"
     (is-tc-e (let [a 1] {:a a})
              :expected-ret
              (ret (parse-clj `'{:a t/Num})
-                  (-true-filter)))
+                  (-true-proposition)))
     (is-tc-err (let [a 1] {:a a})
                :expected-ret
                (ret (parse-clj `'{:a t/Num})
-                    (-false-filter)))
+                    (-false-proposition)))
     (is-tc-err (let [a 1] {:a a})
                :expected-ret
                (ret (parse-clj `'{:a t/Num})
-                    (-true-filter)
+                    (-true-proposition)
                     (-path nil 'a))))
   (testing "set values"
     (is-tc-e #{1})
@@ -200,15 +200,15 @@
     (is-tc-e #{1} 
              :expected-ret
              (ret (parse-clj `(t/Set t/Num))
-                  (-true-filter)))
+                  (-true-proposition)))
     (is-tc-err #{1} 
                :expected-ret
                (ret (parse-clj `(t/Set t/Num))
-                    (-false-filter)))
+                    (-false-proposition)))
     (is-tc-err #{1} 
                :expected-ret
                (ret (parse-clj `(t/Set t/Num))
-                    (-true-filter)
+                    (-true-proposition)
                     (-path nil 'a))))
   (testing "set expression"
     (is-tc-e (let [a 1] #{a}))
@@ -219,15 +219,15 @@
     (is-tc-e (let [a 1] #{a})
              :expected-ret
              (ret (parse-clj `(t/Set t/Num))
-                  (-true-filter)))
+                  (-true-proposition)))
     (is-tc-err (let [a 1] #{a})
                :expected-ret
                (ret (parse-clj `(t/Set t/Num))
-                    (-false-filter)))
+                    (-false-proposition)))
     (is-tc-err (let [a 1] #{a})
                :expected-ret
                (ret (parse-clj `(t/Set t/Num))
-                    (-true-filter)
+                    (-true-proposition)
                     (-path nil 'a))))
   (testing "vector values"
     (is-tc-e [1])
@@ -236,15 +236,15 @@
     (is-tc-e [1]
              :expected-ret
              (ret (parse-clj `(t/Vec t/Num))
-                  (-true-filter)))
+                  (-true-proposition)))
     (is-tc-err [1]
                :expected-ret
                (ret (parse-clj `(t/Vec t/Num))
-                    (-false-filter)))
+                    (-false-proposition)))
     (is-tc-err [1]
                :expected-ret
                (ret (parse-clj `(t/Vec t/Num))
-                    (-true-filter)
+                    (-true-proposition)
                     (-path nil 'a))))
   (testing "vector expressions"
     (is-tc-e (let [a 1] [a]))
@@ -253,26 +253,26 @@
     (is-tc-e (let [a 1] [a])
              :expected-ret
              (ret (parse-clj `(t/Vec t/Num))
-                  (-true-filter)))
+                  (-true-proposition)))
     (is-tc-err (let [a 1] [a])
                :expected-ret
                (ret (parse-clj `(t/Vec t/Num))
-                    (-false-filter)))
+                    (-false-proposition)))
     (is-tc-err (let [a 1] [a])
                :expected-ret
                (ret (parse-clj `(t/Vec t/Num))
-                    (-true-filter)
+                    (-true-proposition)
                     (-path nil 'a))))
   (testing "ann-form"
     (is-tc-e (ann-form 1 t/Num)
              :expected-ret
              (ret (parse-clj `t/Num)
-                  (-true-filter)
+                  (-true-proposition)
                   -empty))
     (is-tc-err (ann-form 1 t/Num)
                :expected-ret
                (ret (parse-clj `t/Num)
-                    (-false-filter))))
+                    (-false-proposition))))
   (testing "loop"
     (is-tc-e (loop [a :- t/Num 1] a)
              :expected-ret
@@ -280,11 +280,11 @@
     (is-tc-e (loop [a :- t/Num 1] a)
              :expected-ret
              (ret (parse-clj `t/Num)
-                  (-true-filter)))
+                  (-true-proposition)))
     (is-tc-err (loop [a :- t/Num 1] a)
                :expected-ret
                (ret (parse-clj `t/Num)
-                    (-false-filter)))
+                    (-false-proposition)))
     ;TODO better gensyms?
     #_(is-tc-err (loop [a :- t/Num 1] a)
              :expected-ret
@@ -298,15 +298,15 @@
     (is-tc-err ((fn []))
              :expected-ret
              (ret (parse-clj 'nil)
-                  (-true-filter)))
+                  (-true-proposition)))
     (is-tc-e ((fn []))
              :expected-ret
              (ret (parse-clj 'nil)
-                  (-false-filter)))
+                  (-false-proposition)))
     (is-tc-err ((fn []))
              :expected-ret
              (ret (parse-clj 'nil)
-                  (-false-filter)
+                  (-false-proposition)
                   (-path nil 'a))))
   (testing "instance method"
     (is-tc-e (.getParent (java.io.File. "a"))
@@ -315,11 +315,11 @@
     (is-tc-err (.getParent (java.io.File. "a"))
                :expected-ret
                (ret (parse-clj `(t/U nil t/Str))
-                    (-true-filter)))
+                    (-true-proposition)))
     (is-tc-err (.getParent (java.io.File. "a"))
                :expected-ret
                (ret (parse-clj `(t/U nil t/Str))
-                    (-false-filter)))
+                    (-false-proposition)))
     (is-tc-err (.getParent (java.io.File. "a"))
                :expected-ret
                (ret (parse-clj `(t/U nil t/Str))
@@ -335,11 +335,11 @@
     (is-tc-err Long/SIZE
                :expected-ret
                (ret (parse-clj `t/Num)
-                    (-false-filter)))
+                    (-false-proposition)))
     (is-tc-err Long/SIZE
                :expected-ret
                (ret (parse-clj `t/Num)
-                    (-true-filter)))
+                    (-true-proposition)))
     (is-tc-err Long/SIZE
                :expected-ret
                (ret (parse-clj `t/Num)
@@ -366,13 +366,13 @@
                    (.a (A. 1)))
                :expected-ret
                (ret (parse-clj `t/Num)
-                    (-true-filter)))
+                    (-true-proposition)))
     (is-tc-err (do (ann-datatype A [a :- t/Num])
                    (deftype A [a])
                    (.a (A. 1)))
                :expected-ret
                (ret (parse-clj `t/Num)
-                    (-false-filter)))
+                    (-false-proposition)))
     (is-tc-err (do (ann-datatype A [a :- t/Num])
                    (deftype A [a])
                    (.a (A. 1)))
@@ -387,11 +387,11 @@
     (is-tc-err (Long/valueOf 1)
              :expected-ret
              (ret (parse-clj `(t/U nil t/Num))
-                  (-true-filter)))
+                  (-true-proposition)))
     (is-tc-err (Long/valueOf 1)
              :expected-ret
              (ret (parse-clj `(t/U nil t/Num))
-                  (-false-filter)))
+                  (-false-proposition)))
     (is-tc-err (Long/valueOf 1)
              :expected-ret
              (ret (parse-clj `(t/U nil t/Num))
@@ -405,9 +405,9 @@
                  (instance? Long a))
                :expected-ret
                (ret (parse-clj `Boolean)
-                    (-FS (-filter (parse-clj `Long)
+                    (-FS (-proposition (parse-clj `Long)
                                   'a__#0)
-                         (-not-filter (parse-clj `Long)
+                         (-not-proposition (parse-clj `Long)
                                   'a__#0))))
     (is-tc-e (fn [a] (instance? Long a))
              (t/Pred Long)))
@@ -425,15 +425,15 @@
     (is-tc-e (Boolean. true)
              :expected-ret
              (ret (parse-clj `Boolean)
-                  (-true-filter)))
+                  (-true-proposition)))
     (is-tc-err (Boolean. true)
              :expected-ret
              (ret (parse-clj `Boolean)
-                  (-false-filter)))
+                  (-false-proposition)))
     (is-tc-err (Boolean. true)
              :expected-ret
              (ret (parse-clj `Boolean)
-                  (-true-filter)
+                  (-true-proposition)
                   (-path nil 'a))))
   (testing "throw"
     (is-tc-e (fn [a :- Throwable] :- t/Nothing
@@ -484,12 +484,12 @@
                   (catch Exception e))
              :expected-ret
              (ret -nil
-                  (-false-filter)))
+                  (-false-proposition)))
     (is-tc-err (try (throw (Exception.))
                     (catch Exception e))
                :expected-ret
                (ret -nil
-                    (-true-filter))))
+                    (-true-proposition))))
   (testing "finally"
     (is-tc-e (try (throw (Exception.))
                   (catch Exception e
@@ -507,14 +507,14 @@
                   (finally nil))
              :expected-ret
              (ret (parse-clj `t/Num)
-                  (-true-filter)))
+                  (-true-proposition)))
     (is-tc-err (try (throw (Exception.))
                   (catch Exception e
                     2)
                   (finally nil))
              :expected-ret
              (ret (parse-clj `t/Num)
-                  (-false-filter))))
+                  (-false-proposition))))
   (testing "var"
     (is-tc-e (do (t/def foo :- t/Num 1)
                  foo))
@@ -550,17 +550,17 @@
                  #'foo)
              :expected-ret
              (ret (parse-clj `(t/Var t/Num))
-                  (-true-filter)))
+                  (-true-proposition)))
     (is-tc-err (do (t/def foo :- t/Num 1)
                    #'foo)
                :expected-ret
                (ret (parse-clj `(t/Var t/Num))
-                    (-false-filter)))
+                    (-false-proposition)))
     (is-tc-err (do (t/def foo :- t/Num 1)
                    #'foo)
                :expected-ret
                (ret (parse-clj `(t/Var t/Num))
-                    (-true-filter)
+                    (-true-proposition)
                     (-path nil 'a))))
   (testing "cast"
     (is-tc-e (core/cast Number 1))
@@ -569,11 +569,11 @@
     (is-tc-err (core/cast Number 1)
              :expected-ret
              (ret (parse-clj `t/Num)
-                  (-true-filter)))
+                  (-true-proposition)))
     (is-tc-err (core/cast Number 1)
              :expected-ret
              (ret (parse-clj `t/Num)
-                  (-false-filter)))
+                  (-false-proposition)))
     (is-tc-err (core/cast Number 1)
              :expected-ret
              (ret (parse-clj `t/Num)
@@ -587,11 +587,11 @@
     (is-tc-err (tc-ignore 1)
                :expected-ret
                (ret (parse-clj `t/Any)
-                    (-true-filter)))
+                    (-true-proposition)))
     (is-tc-err (tc-ignore 1)
                :expected-ret
                (ret (parse-clj `t/Any)
-                    (-false-filter)))
+                    (-false-proposition)))
     (is-tc-err (tc-ignore 1)
                :expected-ret
                (ret (parse-clj `t/Any)
@@ -609,11 +609,11 @@
     (is-tc-e (let [a 1] a)
              :expected-ret
              (ret (parse-clj `t/Any)
-                  (-true-filter)))
+                  (-true-proposition)))
     (is-tc-err (let [a 1] a)
                :expected-ret
                (ret (parse-clj `t/Any)
-                    (-false-filter)))
+                    (-false-proposition)))
     (is-tc-err (let [a 1] a)
                :expected-ret
                (ret (parse-clj `t/Any)

@@ -9,8 +9,8 @@
 (ns ^:typed.clojure ^:no-doc typed.ext.clojure.spec.alpha__fdef
   "Typing rules for clojure.spec.alpha/fdef."
   (:require [typed.cljc.checker.check-below :as below]
-            [typed.cljc.checker.filter-ops :as fo]
-            [typed.cljc.checker.filter-rep :as fl]
+            [typed.cljc.checker.proposition-ops :as fo]
+            [typed.cljc.checker.proposition-rep :as fl]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.utils :as u]
             [typed.cljc.checker.check.unanalyzed :refer [defuspecial]]))

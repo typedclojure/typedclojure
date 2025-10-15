@@ -17,10 +17,10 @@
             [typed.cljc.checker.utils :as u]
             [typed.cljc.checker.check-below :as below]
             [typed.clj.checker.subtype :as sub]
-            [typed.cljc.checker.filter-ops :as fo]
+            [typed.cljc.checker.proposition-ops :as fo]
             [clojure.core.typed.current-impl :as impl]
             [typed.cljc.analyzer :as ana2]
-            [typed.cljc.checker.filter-rep :as fl]))
+            [typed.cljc.checker.proposition-rep :as fl]))
 
 (defn check-cast
   [expr expected {::check/keys [check-expr] :as opts}]

@@ -11,9 +11,9 @@
             [typed.cljc.checker.check :as check]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.check-below :as below]
-            [typed.cljc.checker.filter-ops :as fo]
+            [typed.cljc.checker.proposition-ops :as fo]
             [typed.cljc.checker.type-ctors :as c]
-            [typed.cljc.checker.filter-rep :as fl]
+            [typed.cljc.checker.proposition-rep :as fl]
             [typed.cljc.checker.object-rep :as obj]
             [typed.cljc.checker.utils :as u]))
 
@@ -26,7 +26,7 @@
         ret (below/maybe-check-below
               (r/ret (r/Bottom)
                      ;never returns normally
-                     (fo/-unreachable-filter)
+                     (fo/-unreachable-proposition)
                      ;;FIXME need an unreachable object
                      obj/-empty)
               expected

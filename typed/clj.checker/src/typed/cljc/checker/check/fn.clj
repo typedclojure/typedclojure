@@ -14,8 +14,8 @@
             [typed.cljc.checker.check.fn-method-one :as fn-method-one]
             [typed.cljc.checker.check.fn-methods :as fn-methods]
             [typed.cljc.checker.check.utils :as cu]
-            [typed.cljc.checker.filter-ops :as fo]
-            [typed.cljc.checker.filter-rep :as fl]
+            [typed.cljc.checker.proposition-ops :as fo]
+            [typed.cljc.checker.proposition-rep :as fl]
             [typed.cljc.checker.free-ops :as free-ops]
             [typed.cljc.checker.lex-env :as lex]
             [typed.cljc.checker.object-rep :as or]
@@ -42,7 +42,7 @@
     (assoc fexpr
            :methods methods
            :clojure.core.typed/cmethods cmethods
-           u/expr-type (r/ret (c/In [(c/-name `t/Fn) ifn] opts) (fo/-true-filter)))))
+           u/expr-type (r/ret (c/In [(c/-name `t/Fn) ifn] opts) (fo/-true-proposition)))))
 
 (declare wrap-poly)
 
@@ -88,7 +88,7 @@
                                          r/-wild)
                                  :rest rest
                                  :drest drest
-                                 :filter (some-> rng r/Result-filter*)
+                                 :filter (some-> rng r/Result-proposition*)
                                  :object (or (some-> rng r/Result-object*)
                                              or/-infer-obj))
                 {}

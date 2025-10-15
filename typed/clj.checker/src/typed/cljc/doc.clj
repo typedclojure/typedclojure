@@ -74,9 +74,9 @@
     `t/HVec {:doc "HVec is a type for heterogeneous vectors.
                   It extends typed.clojure/Vec and is a subtype
                   of typed.clojure/HSequential."
-             :forms '[(HVec [fixed*] :filter-sets [FS*] :objects [obj*])
-                      (HVec [fixed* type :*] :filter-sets [FS*] :objects [obj*])
-                      (HVec [fixed* type :.. bound] :filter-sets [FS*] :objects [obj*])
+             :forms '[(HVec [fixed*] :proposition-sets [FS*] :objects [obj*])
+                      (HVec [fixed* type :*] :proposition-sets [FS*] :objects [obj*])
+                      (HVec [fixed* type :.. bound] :proposition-sets [FS*] :objects [obj*])
                       '[fixed*]
                       '[fixed* type :*]
                       '[fixed* type :.. bound]]
@@ -94,19 +94,19 @@
              ::special-type true}
     `t/HSequential {:doc "HSequential is a type for heterogeneous sequential persistent collections.
                          It extends IPersistentCollection and Sequential"
-                    :forms '[(HSequential [fixed*] :filter-sets [FS*] :objects [obj*])
-                             (HSequential [fixed* rest *] :filter-sets [FS*] :objects [obj*])
-                             (HSequential [fixed* drest :.. bound] :filter-sets [FS*] :objects [obj*])]
+                    :forms '[(HSequential [fixed*] :proposition-sets [FS*] :objects [obj*])
+                             (HSequential [fixed* rest *] :proposition-sets [FS*] :objects [obj*])
+                             (HSequential [fixed* drest :.. bound] :proposition-sets [FS*] :objects [obj*])]
                     ::special-type true}
     `t/HSeq {:doc "HSeq is a type for heterogeneous seqs"
-             :forms '[(HSeq [fixed*] :filter-sets [FS*] :objects [obj*])
-                      (HSeq [fixed* rest *] :filter-sets [FS*] :objects [obj*])
-                      (HSeq [fixed* drest :.. bound] :filter-sets [FS*] :objects [obj*])]
+             :forms '[(HSeq [fixed*] :proposition-sets [FS*] :objects [obj*])
+                      (HSeq [fixed* rest *] :proposition-sets [FS*] :objects [obj*])
+                      (HSeq [fixed* drest :.. bound] :proposition-sets [FS*] :objects [obj*])]
              ::special-type true}
     `t/HList {:doc "HList is a type for heterogeneous lists. Is a supertype of HSeq that implements IPersistentList."
-              :forms '[(HList [fixed*] :filter-sets [FS*] :objects [obj*])
-                       (HList [fixed* rest *] :filter-sets [FS*] :objects [obj*])
-                       (HList [fixed* drest :.. bound] :filter-sets [FS*] :objects [obj*])]
+              :forms '[(HList [fixed*] :proposition-sets [FS*] :objects [obj*])
+                       (HList [fixed* rest *] :proposition-sets [FS*] :objects [obj*])
+                       (HList [fixed* drest :.. bound] :proposition-sets [FS*] :objects [obj*])]
               ::special-type true}
     `t/HSet {:doc "HSet is a type for heterogeneous sets.
                   Takes a set of simple values. By default
@@ -116,16 +116,16 @@
              :forms '[(HSet #{fixed*} :complete? Boolean)]
              ::special-type true}
     `t/IFn {:doc "An ordered intersection type of function arities.
-                 :filters  a pair of propositions. :then/:else is true when return value is true/false. See :doc/filter-syntax.
+                 :propositions  a pair of propositions. :then/:else is true when return value is true/false. See :doc/proposition-syntax.
                  :object  symbolic representation of return value in terms of lexical environment. See :doc/object-syntax.
                  Use & :optional/:mandatory for keyword arguments."
             :forms '[(IFn ArityVec+)
-                     [fixed* & :optional {} :mandatory {} :-> ret :filters {:then fl :else fl} :object {:id Foo :path Bar}]
-                     [fixed* :-> ret :filters {:then fl :else fl} :object {:id Foo :path Bar}]
-                     [fixed* rest :* :-> ret :filters {:then fl :else fl} :object {:id Foo :path Bar}]
-                     [fixed* rest :+ :-> ret :filters {:then fl :else fl} :object {:id Foo :path Bar}]
-                     [fixed* opt :? :-> ret :filters {:then fl :else fl} :object {:id Foo :path Bar}]
-                     [fixed* drest :.. bound :-> ret :filters {:then fl :else fl} :object {:id Foo :path Bar}]]
+                     [fixed* & :optional {} :mandatory {} :-> ret :propositions {:then fl :else fl} :object {:id Foo :path Bar}]
+                     [fixed* :-> ret :propositions {:then fl :else fl} :object {:id Foo :path Bar}]
+                     [fixed* rest :* :-> ret :propositions {:then fl :else fl} :object {:id Foo :path Bar}]
+                     [fixed* rest :+ :-> ret :propositions {:then fl :else fl} :object {:id Foo :path Bar}]
+                     [fixed* opt :? :-> ret :propositions {:then fl :else fl} :object {:id Foo :path Bar}]
+                     [fixed* drest :.. bound :-> ret :propositions {:then fl :else fl} :object {:id Foo :path Bar}]]
             ::special-type true}
 
     `t/Pred {:doc "A predicate for the given type.
@@ -200,14 +200,14 @@
                          (vector? (second tsyn)) (type-doc* `t/HVec)
                          (map? (second tsyn)) (type-doc* `t/HMap))
     (keyword? tsyn) (some-> (case tsyn
-                              (:-> :* :? :.. :filters :then :else :object :id :path) (type-doc* `t/IFn)
+                              (:-> :* :? :.. :propositions :then :else :object :id :path) (type-doc* `t/IFn)
                               :fake-quote (str "Attaching ^:fake-quote metadata to a quoted type is equivalent to the type itself.\n"
                                                "ie., ^:fake-quote 'TYPE <=> TYPE\n\n"
                                                "This is usually done to prevent the type being evaluated when using metadata annotations.\n"
                                                "See also: :doc/metadata-caveats")
                               :doc/index (str "Documentation index\n"
                                               " :doc/{type-}syntax   An overview of the syntax for types.\n"
-                                              " :doc/filter-syntax   An overview of the syntax for propositions.\n"
+                                              " :doc/proposition-syntax   An overview of the syntax for propositions.\n"
                                               " :doc/object-syntax   An overview of the syntax for symbolic objects.\n"
                                               " :doc/meta{data}   How to use use metadata to annotate expressions.\n")
                               (:doc/syntax :doc/type-syntax)
@@ -223,9 +223,8 @@
                                    "See :doc/specials for the full list.\n\n"
                                    "Non-special symbols resolve to type aliases defined by t/defalias or platform-specific types\n"
                                    "like classes.")
-                              (:doc/filter-syntax
-                                :doc/prop-syntax 
-                                :doc/proposition-syntax) (str "Proposition syntax\n\n"
+                              (:doc/proposition-syntax
+                                :doc/prop-syntax) (str "Proposition syntax\n\n"
                                                               "tt   true proposition\n"
                                                               "ff   false proposition\n"
                                                               "(is T obj-id obj-path-elem ...)  Object has type T. See :doc/object-syntax\n"

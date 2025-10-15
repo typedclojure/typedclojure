@@ -16,7 +16,7 @@
             [typed.cljc.checker.check.recur-utils :as recur-u]
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.type-rep :as r]
-            [typed.cljc.checker.filter-ops :as fo]))
+            [typed.cljc.checker.proposition-ops :as fo]))
 
 ;Arguments passed to recur must match recur target exactly. Rest parameter
 ;equals 1 extra argument, either a Seqable or nil.
@@ -56,6 +56,6 @@
     (assoc recur-expr
            :exprs cargs
            u/expr-type (check-below/maybe-check-below
-                         (r/ret r/-nothing (fo/-unreachable-filter))
+                         (r/ret r/-nothing (fo/-unreachable-proposition))
                          expected
                          opts))))

@@ -313,7 +313,7 @@
                 ~@opts#)))))
 
 (defspecial type)
-(defspecial filter)
+(defspecial proposition)
 (defspecial object)
 (defspecial path)
 

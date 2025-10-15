@@ -13,7 +13,7 @@
             [typed.cljc.checker.check :as check]
             [typed.cljc.checker.check-below :as below]
             [typed.cljc.checker.check.utils :as cu]
-            [typed.cljc.checker.filter-ops :as fo]
+            [typed.cljc.checker.proposition-ops :as fo]
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.utils :as u])
@@ -32,6 +32,6 @@
     (assoc expr
            :items cargs
            u/expr-type (below/maybe-check-below
-                         (r/ret res-type (fo/-true-filter))
+                         (r/ret res-type (fo/-true-proposition))
                          expected
                          (assoc opts ::vs/current-expr expr)))))

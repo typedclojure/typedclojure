@@ -15,8 +15,8 @@
             [typed.cljc.checker.path-rep :as pe]
             [typed.clj.checker.subtype :as sub]
             [typed.cljc.checker.check.utils :as cu]
-            [typed.cljc.checker.filter-rep :as fl]
-            [typed.cljc.checker.filter-ops :as fo]
+            [typed.cljc.checker.proposition-rep :as fl]
+            [typed.cljc.checker.proposition-ops :as fo]
             [typed.cljc.checker.object-rep :as obj]
             [typed.clj.checker.parse-unparse :as prs]
             [clojure.core.typed.errors :as err]))
@@ -52,14 +52,14 @@
                                ;; if val-type is falsey, this will simplify to ff
                                (let [obj (obj/-path (concat path-hm [this-pelem]) id-hm)]
                                  (fo/-and
-                                   [(fo/-filter-at val-type obj)
-                                    (fo/-not-filter-at r/-falsy obj)]
+                                   [(fo/-proposition-at val-type obj)
+                                    (fo/-not-proposition-at r/-falsy obj)]
                                    opts))
                                fl/-top)
                              (if (and (obj/Path? o)
                                       (= r/-nil defaultt))
-                               (fo/-or [(fo/-filter (c/make-HMap opts {:absent-keys #{kwt}}) id-hm path-hm) ; this map doesn't have a kwt key or...
-                                        (fo/-filter r/-falsy id-hm (concat path-hm [this-pelem]))]  ; this map has a false kwt key
+                               (fo/-or [(fo/-proposition (c/make-HMap opts {:absent-keys #{kwt}}) id-hm path-hm) ; this map doesn't have a kwt key or...
+                                        (fo/-proposition r/-falsy id-hm (concat path-hm [this-pelem]))]  ; this map has a false kwt key
                                        opts)
                                fl/-top))
                      (if (and (obj/Path? o) (= r/-nil defaultt))

@@ -35,10 +35,10 @@
 
 ;1. fold-rhs calls sends
 ; a. Type to type-rec
-; b. Filter to filter-rec
+; b. Proposition to proposition-rec
 ; c. Object to object-rec
 
-(def default-params '[type-rec type-rec+flip type-rec+invariant filter-rec object-rec pathelem-rec])
+(def default-params '[type-rec type-rec+flip type-rec+invariant proposition-rec object-rec pathelem-rec])
 
 (defonce all-extra-params (atom {`IFoldDefault []}))
 
@@ -70,7 +70,7 @@
                                           '~(into #{} (map keyword) (concat default-params extra-params)))]
                (assert (empty? extra#) (str "Extra keys: " extra#)))
              (list '~qmname t# opts#
-                   ; (:type-rec m) (:filter-rec m) ... (:locals m) ...
+                   ; (:type-rec m) (:proposition-rec m) ... (:locals m) ...
                    ~@(map #(list (keyword %) m) (concat default-params extra-params)))))]
     (swap! all-extra-params assoc qpname extra-params)
     `(do (defprotocol ~pname
@@ -140,7 +140,7 @@
                  ([ty#] (rec# ty# opts#))
                  ([ty# opts#] (~f ty# opts#
                                   {:type-rec st#
-                                   :filter-rec (~sub-f st# opts#)
+                                   :proposition-rec (~sub-f st# opts#)
                                    :pathelem-rec (~sub-pe st# opts#)}))))
              (~sub-o [st# opts#]
                (fn rec#
@@ -176,7 +176,7 @@
 (defn sub-f [st f]
   #(f %
       {:type-rec st
-       :filter-rec (sub-f st f)
+       :proposition-rec (sub-f st f)
        :pathelem-rec (sub-pe st f)}))
 
 (defn sub-o [st f]

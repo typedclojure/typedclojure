@@ -28,7 +28,7 @@
   (reset! MULTIMETHOD-DISPATCH-ENV initial-mm-dispatch-env)
   nil)
 
-; [Symbol Filter -> nil]
+; [Symbol Proposition -> nil]
 (defn add-multimethod-dispatch-type
   "Add the type of the dispatch function of the multimethod named by mmsym
   to the environment. If already exists, must be identical."

@@ -122,7 +122,7 @@
   (is-clj (sub? (clojure.core.typed/HMap :complete? true)
                 (clojure.core.typed/Map Integer Long))))
 
-(deftest latent-filter-subtype-test
+(deftest latent-proposition-subtype-test
   (is-clj (not (sub?-q `[t/Any :-> t/Any :filters {:then (~'is Number 0)}]
                        `[t/Any :-> t/Any :filters {:then (~'is t/Nothing 0)}]))))
 

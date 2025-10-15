@@ -14,7 +14,7 @@
             [typed.cljc.checker.check :as check]
             [typed.cljc.checker.check.utils :as cu]
             [typed.cljc.checker.check-below :as below]
-            [typed.cljc.checker.filter-ops :as fo]
+            [typed.cljc.checker.proposition-ops :as fo]
             [typed.cljc.checker.type-ctors :as c])
   (:import (clojure.lang APersistentMap)))
 
@@ -115,7 +115,7 @@
                                        (c/Un (vals ts) opts)))
                       (r/make-ExactCountRange (count keyexprs))]
                      opts))
-        actual-ret (r/ret actual-t (fo/-true-filter))]
+        actual-ret (r/ret actual-t (fo/-true-proposition))]
     (assoc expr
            :keys ckeyexprs
            :vals cvalexprs

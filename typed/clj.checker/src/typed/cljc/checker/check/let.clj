@@ -18,8 +18,8 @@
             [typed.cljc.checker.check.print-env :as print-env]
             [typed.cljc.checker.check.recur-utils :as recur-u]
             [typed.cljc.checker.check.utils :as cu]
-            [typed.cljc.checker.filter-ops :as fo]
-            [typed.cljc.checker.filter-rep :as fl]
+            [typed.cljc.checker.proposition-ops :as fo]
+            [typed.cljc.checker.proposition-rep :as fl]
             [typed.cljc.checker.lex-env :as lex]
             [typed.cljc.checker.object-rep :as obj]
             [typed.cljc.checker.subst-obj :as subst-obj]
@@ -51,10 +51,10 @@
 
              ;; init does not have an object so remember new binding `sym`
              ;; in our propositions
-             :else [(fo/-or [(fo/-and [(fo/-not-filter r/-falsy sym)
+             :else [(fo/-or [(fo/-and [(fo/-not-proposition r/-falsy sym)
                                        then]
                                       opts)
-                             (fo/-and [(fo/-filter r/-falsy sym) 
+                             (fo/-and [(fo/-proposition r/-falsy sym) 
                                        else]
                                       opts)]
                             opts)])
@@ -76,7 +76,7 @@
                    (simple-symbol? sym)]}
             (-> ty
                 (update :t subst-obj/subst-type sym obj/-empty true opts)
-                (update :fl subst-obj/subst-filter-set sym obj/-empty true nil opts)
+                (update :fl subst-obj/subst-proposition-set sym obj/-empty true nil opts)
                 (update :o subst-obj/subst-object sym obj/-empty true opts)))
           ret
           syms))

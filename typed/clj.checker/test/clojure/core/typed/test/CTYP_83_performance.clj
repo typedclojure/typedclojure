@@ -3,7 +3,7 @@
 
 (defmacro pf [frm]
   frm
-  #_`(t/print-filterset ~(str frm) ~frm))
+  #_`(t/print-propositionset ~(str frm) ~frm))
 
 (t/defalias VersionVector (t/NonEmptyVec Number))
 (t/ann version-less [(t/U nil VersionVector) (t/U nil VersionVector) -> t/Any])
@@ -29,8 +29,8 @@
 ;  (future
 ;       (do
 ;         (require '[clojure.tools.trace])
-;         (clojure.tools.trace/trace-vars typed.cljc.checker.filter-ops/-and
-;                       typed.cljc.checker.filter-ops/-or)
+;         (clojure.tools.trace/trace-vars typed.cljc.checker.proposition-ops/-and
+;                       typed.cljc.checker.proposition-ops/-or)
 ;         (spit "combine"
 ;               (with-out-str
 ;                 (t/check-ns 'clojure.core.typed.test.CTYP-83-performance))))))

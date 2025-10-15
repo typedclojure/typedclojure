@@ -22,8 +22,8 @@
             [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]
             [typed.cljc.checker.constant-type :as const]
             [typed.cljc.analyzer.passes.uniquify :as uniquify]
-            [typed.cljc.checker.filter-ops :as fl]
-            [typed.cljc.checker.filter-rep :as f]
+            [typed.cljc.checker.proposition-ops :as fl]
+            [typed.cljc.checker.proposition-rep :as f]
             [typed.cljc.checker.free-ops :as free-ops]
             [typed.cljc.checker.hset-utils :as hset]
             [typed.cljc.checker.indirect-ops :as ind]
@@ -43,8 +43,8 @@
                                         CLJSInteger ArrayCLJS JSNominal JSString TCResult AssocType MergeType
                                         GetType TopHSequential HSequential HSet JSUndefined JSNull JSSymbol JSObject
                                         JSObj Bounds MatchType Instance Satisfies)
-           (typed.cljc.checker.filter_rep TopFilter BotFilter TypeFilter NotTypeFilter AndFilter OrFilter
-                                          ImpFilter NoFilter)
+           (typed.cljc.checker.proposition_rep TopProposition BotProposition TypeProposition NotTypeProposition AndProposition
+                                               OrProposition ImpProposition NoProposition)
            (typed.cljc.checker.object_rep NoObject EmptyObject Path)
            (typed.cljc.checker.path_rep KeyPE CountPE ClassPE KeysPE ValsPE NthPE KeywordPE SeqPE)
            (clojure.lang Cons IPersistentList Symbol IPersistentVector)))
@@ -57,10 +57,10 @@
   (unparse-object [o opts]))
 (defprotocol IUnparsePathElem
   (unparse-path-elem [p opts]))
-(defprotocol IUnparseFilter
-  (unparse-filter* [fl opts]))
+(defprotocol IUnparseProposition
+  (unparse-proposition* [fl opts]))
 
-(declare unparse-type unparse-filter unparse-filter-set unparse-TCResult)
+(declare unparse-type unparse-proposition unparse-proposition-set unparse-TCResult)
 
 (defn- ->unparse-opts []
   (assoc ((requiring-resolve 'typed.clj.runtime.env/clj-opts))
@@ -84,13 +84,13 @@
     (prefer-method print-method TCResult java.util.Map)
     (prefer-method print-method TCResult clojure.lang.IPersistentMap)
 
-    (defmethod print-method typed.cljc.checker.impl_protocols.IFilter [s writer]
+    (defmethod print-method typed.cljc.checker.impl_protocols.IProposition [s writer]
       (cond 
-        (f/FilterSet? s) (print-method (unparse-filter-set s (->unparse-opts)) writer)
-        :else (print-method (unparse-filter s (->unparse-opts)) writer)))
-    (prefer-method print-method typed.cljc.checker.impl_protocols.IFilter clojure.lang.IRecord)
-    (prefer-method print-method typed.cljc.checker.impl_protocols.IFilter java.util.Map)
-    (prefer-method print-method typed.cljc.checker.impl_protocols.IFilter clojure.lang.IPersistentMap)
+        (f/PropositionSet? s) (print-method (unparse-proposition-set s (->unparse-opts)) writer)
+        :else (print-method (unparse-proposition s (->unparse-opts)) writer)))
+    (prefer-method print-method typed.cljc.checker.impl_protocols.IProposition clojure.lang.IRecord)
+    (prefer-method print-method typed.cljc.checker.impl_protocols.IProposition java.util.Map)
+    (prefer-method print-method typed.cljc.checker.impl_protocols.IProposition clojure.lang.IPersistentMap)
 
     (defmethod print-method typed.cljc.checker.impl_protocols.IRObject [s writer]
       (print-method (unparse-object s (->unparse-opts)) writer))
@@ -119,11 +119,11 @@
                                (instance? typed.cljc.checker.impl_protocols.TCAnyType t))
                            [(unparse-type t opts)]
                            (instance? TCResult t) [(unparse-TCResult t opts)]
-                           (instance? typed.cljc.checker.impl_protocols.IFilter t) [((if (f/FilterSet? t)
-                                                                                       unparse-filter-set
-                                                                                       unparse-filter)
-                                                                                     t
-                                                                                     opts)]
+                           (instance? typed.cljc.checker.impl_protocols.IProposition t) [((if (f/PropositionSet? t)
+                                                                                            unparse-proposition-set
+                                                                                            unparse-proposition)
+                                                                                          t
+                                                                                          opts)]
                            (instance? typed.cljc.checker.impl_protocols.IRObject t) [(unparse-object t opts)]
                            (instance? typed.cljc.checker.path_rep.IPathElem t) [(unparse-path-elem t opts)]))
         pprint-types (fn pprint-types [x]
@@ -373,8 +373,8 @@
     (r/make-Function [r/-any] (impl/impl-case opts
                                 :clojure (r/Name-maker 'java.lang.Boolean)
                                 :cljs    (r/JSBoolean-maker))
-                     :filter (fl/-FS (fl/-filter on-type 0)
-                                     (fl/-not-filter on-type 0)))))
+                     :filter (fl/-FS (fl/-proposition on-type 0)
+                                     (fl/-not-proposition on-type 0)))))
 
 (defn parse-Pred [[_ & [t-syn :as args]] opts]
   (when-not (= 1 (count args))
@@ -940,15 +940,15 @@
 (def parse-hlist-types (parse-types-with-rest-drest
                          "Invalid heterogeneous list syntax:"))
 
-(declare parse-object parse-filter-set)
+(declare parse-object parse-proposition-set)
 
 (defn parse-heterogeneous* [parse-h*-types constructor]
-  (fn [[_ syn & {:keys [filter-sets objects repeat] :or {repeat false}}] opts]
+  (fn [[_ syn & {:keys [proposition-sets objects repeat] :or {repeat false}}] opts]
     (when-not (boolean? repeat)
       (prs-error (str ":repeat must be boolean") opts))
     (let [{:keys [fixed drest rest]} (parse-h*-types syn opts)]
       (constructor fixed
-                   {:filters (some->> filter-sets (mapv #(parse-filter-set % opts)))
+                   {:filters (some->> proposition-sets (mapv #(parse-proposition-set % opts)))
                     :objects (some->> objects (mapv #(parse-object % opts)))
                     :drest drest
                     :rest rest
@@ -1385,13 +1385,13 @@
 (defmethod parse-type* Boolean [v opts] (if v r/-true r/-false)) 
 (defmethod parse-type* nil [_ opts] r/-nil)
 
-(declare parse-path-elem parse-filter*)
+(declare parse-path-elem parse-proposition*)
 
-(defn parse-filter [f opts]
+(defn parse-proposition [f opts]
   (cond
     (= 'tt f) f/-top
     (= 'ff f) f/-bot
-    (= 'no-filter f) f/-no-filter
+    (= 'no-proposition f) f/-no-proposition
     (not (seq? f)) (prs-error (str "Malformed filter expression: " (pr-str f)) opts)
 
     (when-some [op (first f)]
@@ -1399,9 +1399,9 @@
            (or (= 'or op)
                ;; clojure-clr treats pipes in symbols as special
                (= "|" (name op)))))
-    (fl/-or (mapv #(parse-filter % opts) (next f)) opts)
+    (fl/-or (mapv #(parse-proposition % opts) (next f)) opts)
 
-    :else (parse-filter* f opts)))
+    :else (parse-proposition* f opts)))
 
 (defn parse-object-path [{:keys [id path]} opts]
   (when-not (f/name-ref? id)
@@ -1414,53 +1414,53 @@
     no-object orep/-no-object
     (parse-object-path obj opts)))
 
-(defn parse-filter-set [{:keys [then else] :as fsyn} opts]
+(defn parse-proposition-set [{:keys [then else] :as fsyn} opts]
   (when-not (map? fsyn)
-    (prs-error "Filter set must be a map" opts))
+    (prs-error "Proposition set must be a map" opts))
   (when-some [extra (not-empty (set/difference (set (keys fsyn)) #{:then :else}))]
     (prs-error (str "Invalid filter set options: " extra) opts))
   (fl/-FS (if (contains? fsyn :then)
-            (parse-filter then opts)
+            (parse-proposition then opts)
             f/-top)
           (if (contains? fsyn :else)
-            (parse-filter else opts)
+            (parse-proposition else opts)
             f/-top)))
 
-(defmulti parse-filter* 
+(defmulti parse-proposition* 
   (fn [s opts]
     (when (coll? s)
       (first s))))
 
-(defmethod parse-filter* :default
+(defmethod parse-proposition* :default
   [syn opts]
   (prs-error (str "Malformed filter expression: " (pr-str syn)) opts))
 
-(defmethod parse-filter* 'is
+(defmethod parse-proposition* 'is
   [[_ & [tsyn nme psyns :as all]] opts]
   (when-not (<= 2 (count all) 3)
     (prs-error (str "Wrong number of arguments to is") opts))
   (let [t (parse-type tsyn opts)
         p (when (= 3 (count all))
             (mapv #(parse-path-elem % opts) psyns))]
-    (fl/-filter t nme p)))
+    (fl/-proposition t nme p)))
 
-(defmethod parse-filter* '!
+(defmethod parse-proposition* '!
   [[_ & [tsyn nme psyns :as all]] opts]
   (when-not (<= 2 (count all) 3)
     (prs-error (str "Wrong number of arguments to !") opts))
   (let [t (parse-type tsyn opts)
         p (when (= 3 (count all))
             (mapv #(parse-path-elem % opts) psyns))]
-    (fl/-not-filter t nme p)))
+    (fl/-not-proposition t nme p)))
 
-(defmethod parse-filter* '& [[_ & fsyns] opts]
-  (fl/-and (mapv #(parse-filter % opts) fsyns) opts))
+(defmethod parse-proposition* '& [[_ & fsyns] opts]
+  (fl/-and (mapv #(parse-proposition % opts) fsyns) opts))
 
-(defmethod parse-filter* 'when
+(defmethod parse-proposition* 'when
   [[_ & [a c :as args] :as all] opts]
   (when-not (= 2 (count args))
     (prs-error (str "Wrong number of arguments to when: " all) opts))
-  (fl/-imp (parse-filter a opts) (parse-filter c opts)))
+  (fl/-imp (parse-proposition a opts) (parse-proposition c opts)))
 
 ;FIXME clean up the magic. eg. handle (Class foo bar) as an error
 (defmulti parse-path-elem
@@ -1779,7 +1779,7 @@
                          (prs-error ":filters only allowed once per function type." opts))
                        (when (< (count to-process) 2)
                          (prs-error "Missing filter set after :filters in function type." opts))
-                       (recur (parse-filter-set d2 opts) object (subvec to-process 2)))
+                       (recur (parse-proposition-set d2 opts) object (subvec to-process 2)))
           :object (do (when object
                         (prs-error ":object only allowed once per function type." opts))
                       (when (< (count to-process) 2)
@@ -2037,8 +2037,8 @@
 (defn unparse-result [{:keys [t fl o] :as rng} opts]
   {:pre [(r/Result? rng)]}
   (cond-> [(unparse-type t opts)]
-    (not-every? (some-fn f/TopFilter? f/NoFilter?) [(:then fl) (:else fl)])
-    (conj :filters (unparse-filter-set fl opts))
+    (not-every? (some-fn f/TopProposition? f/NoProposition?) [(:then fl) (:else fl)])
+    (conj :filters (unparse-proposition-set fl opts))
 
     (not ((some-fn orep/NoObject? orep/EmptyObject?) o))
     (conj :object (unparse-object o opts))))
@@ -2305,7 +2305,7 @@
              (when repeat
                [:repeat true])
              (when-not (every? #{(fl/-FS f/-top f/-top)} fs)
-               [:filter-sets (mapv #(unparse-filter-set % opts) fs)])
+               [:proposition-sets (mapv #(unparse-proposition-set % opts) fs)])
              (when-not (every? #{orep/-empty} objects)
                [:objects (mapv #(unparse-object % opts) objects)])))))
 
@@ -2435,47 +2435,47 @@
   SeqPE 
   (unparse-path-elem [t opts] 'Seq))
 
-; Filters
+; Propositions
 
-(defn unparse-filter [f opts]
-  (unparse-filter* f opts))
+(defn unparse-proposition [f opts]
+  (unparse-proposition* f opts))
 
-(defn unparse-filter-set [{:keys [then else] :as fs} opts]
-  {:pre [(f/FilterSet? fs)]}
-  {:then (unparse-filter then opts)
-   :else (unparse-filter else opts)})
+(defn unparse-proposition-set [{:keys [then else] :as fs} opts]
+  {:pre [(f/PropositionSet? fs)]}
+  {:then (unparse-proposition then opts)
+   :else (unparse-proposition else opts)})
 
-(extend-protocol IUnparseFilter
-  TopFilter 
-  (unparse-filter* [f opts] 'tt)
-  BotFilter 
-  (unparse-filter* [f opts] 'ff)
-  NoFilter 
-  (unparse-filter* [f opts] 'no-filter)
+(extend-protocol IUnparseProposition
+  TopProposition 
+  (unparse-proposition* [f opts] 'tt)
+  BotProposition 
+  (unparse-proposition* [f opts] 'ff)
+  NoProposition 
+  (unparse-proposition* [f opts] 'no-proposition)
 
-  TypeFilter
-  (unparse-filter*
+  TypeProposition
+  (unparse-proposition*
     [{:keys [type path id]} opts]
     (concat (list 'is (unparse-type type opts) id)
             (when (seq path)
               [(mapv #(unparse-path-elem % opts) path)])))
 
-  NotTypeFilter
-  (unparse-filter* 
+  NotTypeProposition
+  (unparse-proposition* 
     [{:keys [type path id]} opts]
     (concat (list '! (unparse-type type opts) id)
             (when (seq path)
               [(mapv #(unparse-path-elem % opts) path)])))
 
-  AndFilter 
-  (unparse-filter* [{:keys [fs]} opts] (apply list '& (map #(unparse-filter % opts) fs)))
-  OrFilter 
-  (unparse-filter* [{:keys [fs]} opts] (apply list 'or (map #(unparse-filter % opts) fs)))
+  AndProposition 
+  (unparse-proposition* [{:keys [fs]} opts] (apply list '& (map #(unparse-proposition % opts) fs)))
+  OrProposition 
+  (unparse-proposition* [{:keys [fs]} opts] (apply list 'or (map #(unparse-proposition % opts) fs)))
 
-  ImpFilter
-  (unparse-filter* 
+  ImpProposition
+  (unparse-proposition* 
     [{:keys [a c]} opts]
-    (list 'when (unparse-filter a opts) (unparse-filter c opts))))
+    (list 'when (unparse-proposition a opts) (unparse-proposition c opts))))
 
 ;[TCResult -> Any]
 (defn unparse-TCResult-map [r opts]
@@ -2483,15 +2483,15 @@
     (if (and (= (fl/-FS f/-top f/-top) (r/ret-f r))
              (= (r/ret-o r) orep/-empty))
       base
-      (cond-> (assoc base :filter-set (unparse-filter-set (r/ret-f r) opts))
+      (cond-> (assoc base :proposition-set (unparse-proposition-set (r/ret-f r) opts))
         (not= (r/ret-o r) orep/-empty)
         (assoc :object (unparse-object (r/ret-o r) opts))))))
 
 (defn unparse-TCResult [r opts]
   (let [{:keys [type] :as m} (unparse-TCResult-map r opts)]
     (if-some [[_ o] (find m :object)]
-      [type (:filter-set m) o]
-      (if-some [[_ fs] (find m :filter-set)]
+      [type (:proposition-set m) o]
+      (if-some [[_ fs] (find m :proposition-set)]
         [type fs]
         type))))
 

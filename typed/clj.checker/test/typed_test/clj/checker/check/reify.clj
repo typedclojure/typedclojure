@@ -1,6 +1,6 @@
 (ns ^:typed.clojure typed-test.clj.checker.check.reify
   (:require [clojure.test :refer [deftest is testing]]
-            [typed.cljc.checker.filter-ops :as fops]
+            [typed.cljc.checker.proposition-ops :as fops]
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.object-rep :as orep]
@@ -12,17 +12,17 @@
            :expected-ret (r/ret (c/RClass-of Object (clj-opts))))
   (is-tc-e (reify)
            :expected-ret (r/ret (c/RClass-of Object (clj-opts))
-                                (fops/-true-filter)))
+                                (fops/-true-proposition)))
   (is-tc-err (reify)
              :expected-ret (r/ret (c/RClass-of Object (clj-opts))
-                                  (fops/-false-filter)))
+                                  (fops/-false-proposition)))
   (is-tc-e (reify)
            :expected-ret (r/ret (c/RClass-of Object (clj-opts))
-                                (fops/-true-filter)
+                                (fops/-true-proposition)
                                 orep/-empty))
   (is-tc-err (reify)
              :expected-ret (r/ret (c/RClass-of Object (clj-opts))
-                                  (fops/-true-filter)
+                                  (fops/-true-proposition)
                                   (orep/-path nil 'a)))
   (is-tc-e ^:foo (reify))
   (is-tc-e (reify) Object)

@@ -10,16 +10,16 @@
   (:require [typed.cljc.checker.fold-rep :as fold]
             [typed.cljc.checker.type-rep :as r]
             typed.cljc.checker.object-rep
-            typed.cljc.checker.filter-rep)
+            typed.cljc.checker.proposition-rep)
   (:import (typed.cljc.checker.object_rep Path)
-           (typed.cljc.checker.filter_rep NotTypeFilter TypeFilter)
+           (typed.cljc.checker.proposition_rep NotTypeProposition TypeProposition)
            (typed.cljc.checker.type_rep Function)))
 
 (fold/def-derived-fold IFreeInForObject
   free-in-for-object
   [k free-in?])
-(fold/def-derived-fold IFreeInForFilter
-  free-in-for-filter
+(fold/def-derived-fold IFreeInForProposition
+  free-in-for-proposition
   [k free-in?])
 (fold/def-derived-fold IFreeInForType
   free-in-for-type
@@ -34,16 +34,16 @@
     o))
 
 (fold/add-fold-case
-  IFreeInForFilter free-in-for-filter
-  NotTypeFilter
+  IFreeInForProposition free-in-for-proposition
+  NotTypeProposition
   (fn [{i :id :as f} k free-in?]
     (when (= i k)
       (vreset! free-in? true))
     f))
 
 (fold/add-fold-case
-  IFreeInForFilter free-in-for-filter
-  TypeFilter
+  IFreeInForProposition free-in-for-proposition
+  TypeProposition
   (fn [{i :id :as f} k free-in?]
     (when (= i k)
       (vreset! free-in? true))
@@ -82,13 +82,13 @@
                  {:type-rec for-type
                   :free-in? free-in?
                   :k k})))
-            (for-filter
-              ([f] (for-filter f opts))
+            (for-proposition
+              ([f] (for-proposition f opts))
               ([f opts]
-               (call-free-in-for-filter
+               (call-free-in-for-proposition
                  f opts
                  {:type-rec for-type
-                  :filter-rec for-filter
+                  :proposition-rec for-proposition
                   :free-in? free-in?
                   :k k})))
             (for-type 
@@ -97,7 +97,7 @@
                (call-free-in-for-type
                  t opts
                  {:type-rec for-type
-                  :filter-rec for-filter
+                  :proposition-rec for-proposition
                   :object-rec for-object
                   :free-in? free-in?
                   :k k

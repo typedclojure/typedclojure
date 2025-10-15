@@ -25,7 +25,7 @@
 
 (deftest check-ns-info-result-test
   (testing "ok"
-    (let [{:keys [ex type-errors]} (check-ns-info 'clojure.core.typed.test.filter-combine)]
+    (let [{:keys [ex type-errors]} (check-ns-info 'clojure.core.typed.test.proposition-combine)]
       (is (nil? ex))
       (is (empty? type-errors))))
   (testing "check-ns-info does not print errors"
@@ -43,8 +43,8 @@
           (is (:file env))
           (is (= data '{:fn-type [& :optional {:foo t/Any} :-> nil],
                         :args-results
-                        [{:type (t/Val :blah), :filter-set {:then tt, :else ff}}
-                         {:type (t/Val a), :filter-set {:then tt, :else ff}}]})))))))
+                        [{:type (t/Val :blah), :proposition-set {:then tt, :else ff}}
+                         {:type (t/Val a), :proposition-set {:then tt, :else ff}}]})))))))
 
 (deftest check-form-info-result-test
   (binding [*ns* (the-ns this-nsym)]
@@ -79,8 +79,8 @@
                        [t/AnyInteger :* :-> t/AnyInteger]
                        [t/Num :* :-> t/Num]),
                      :args-results
-                     [{:type (t/Val 1), :filter-set {:then tt, :else ff}}
-                      {:type (t/Val "oops"), :filter-set {:then tt, :else ff}}]}
+                     [{:type (t/Val 1), :proposition-set {:then tt, :else ff}}
+                      {:type (t/Val "oops"), :proposition-set {:then tt, :else ff}}]}
                    data))))))
     (let [{:keys [ex type-errors]} (check-form-info '#(+ 1 "oops"))]
       (is (nil? ex))
@@ -98,7 +98,7 @@
                      [t/AnyInteger :* :-> t/AnyInteger]
                      [t/Num :* :-> t/Num]),
                    :args-results
-                   [{:type (t/Val 1), :filter-set {:then tt, :else ff}}
-                    {:type (t/Val "oops"), :filter-set {:then tt, :else ff}}],
+                   [{:type (t/Val 1), :proposition-set {:then tt, :else ff}}
+                    {:type (t/Val "oops"), :proposition-set {:then tt, :else ff}}],
                    :expected-result {:type t/Infer}}
                  data)))))))

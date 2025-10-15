@@ -20,7 +20,7 @@
             [typed.cljc.checker.check.let :as let]
             [typed.cljc.checker.check-below :as below]
             [typed.cljc.checker.check.if :as if]
-            [typed.cljc.checker.filter-ops :as fo]
+            [typed.cljc.checker.proposition-ops :as fo]
             [typed.cljc.checker.lex-env :as lex]
             [typed.cljc.checker.var-env :as var-env]
             [typed.cljc.checker.type-rep :as r]
@@ -60,7 +60,7 @@
           (assoc expr
                  u/expr-type (below/maybe-check-below
                                (r/ret r/-nil
-                                      (fo/-false-filter))
+                                      (fo/-false-proposition))
                                expected
                                opts))
           (let [cbody (-> `(do ~@body-syns)
@@ -78,6 +78,6 @@
             (assoc expr
                    u/expr-type (below/maybe-check-below
                                  (r/ret r/-nil
-                                        (fo/-false-filter))
+                                        (fo/-false-proposition))
                                  expected
                                  opts))))))

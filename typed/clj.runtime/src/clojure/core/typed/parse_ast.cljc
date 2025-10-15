@@ -123,22 +123,22 @@
 (defn with-dfrees [opts fs]
   (update opts ::dotted-scope merge fs)))
 
-(t/defalias Filter
-  (t/Rec [Filter]
-  (t/U '{:op ':top-filter}
-       '{:op ':bot-filter}
-       '{:op ':or-filter
-         :fs (t/Vec Filter)}
-       '{:op ':and-filter
-         :fs (t/Vec Filter)}
-       '{:op ':impl-filter
-         :a Filter
-         :c Filter}
-       (HMap :mandatory {:op ':type-filter
+(t/defalias Proposition
+  (t/Rec [Proposition]
+  (t/U '{:op ':top-proposition}
+       '{:op ':bot-proposition}
+       '{:op ':or-proposition
+         :fs (t/Vec Proposition)}
+       '{:op ':and-proposition
+         :fs (t/Vec Proposition)}
+       '{:op ':impl-proposition
+         :a Proposition
+         :c Proposition}
+       (HMap :mandatory {:op ':type-proposition
                          :type Type
                          :id NameRef}
              :optional {:path (t/Vec PathElem)})
-       (HMap :mandatory {:op ':not-type-filter
+       (HMap :mandatory {:op ':not-type-proposition
                          :type Type
                          :id NameRef}
              :optional {:path (t/Vec PathElem)}))))
@@ -151,11 +151,11 @@
 
 )
 
-(t/ann parse-filter [t/Any t/Any -> Filter])
-(defn parse-filter [syn opts]
+(t/ann parse-proposition [t/Any t/Any -> Proposition])
+(defn parse-proposition [syn opts]
   (case syn
-    tt {:op :top-filter}
-    ff {:op :bot-filter}
+    tt {:op :top-proposition}
+    ff {:op :bot-proposition}
     (let [m (when ((every-pred seq? sequential?) syn)
               (let [[f & args] syn]
                 (case f
@@ -173,7 +173,7 @@
                         p (when (= 3 (count args))
                             (mapv #(parse-path-elem % opts) psyns))]
                     (cond-> 
-                      {:op :type-filter
+                      {:op :type-proposition
                        :type t
                        :id nme}
                       p (assoc :path p)))
@@ -191,28 +191,28 @@
                         p (when (= 3 (count args))
                             (mapv #(parse-path-elem % opts) psyns))]
                     (cond-> 
-                      {:op :not-type-filter
+                      {:op :not-type-proposition
                        :type t
                        :id nme}
                       p (assoc :path p)))
                   &
-                  {:op :and-filter
-                   :fs (mapv #(parse-filter % opts) args)}
+                  {:op :and-proposition
+                   :fs (mapv #(parse-proposition % opts) args)}
                   when
                   (let [[a c] args]
                     (when-not (= 2 (count args))
                       (throw (ex-info "Bad arguments to 'when'"
                                       {:form syn})))
-                    {:op :impl-filter
-                     :a (parse-filter a opts)
-                     :c (parse-filter c opts)})
+                    {:op :impl-proposition
+                     :a (parse-proposition a opts)
+                     :c (parse-proposition c opts)})
                   (cond
                     (or (= 'or f)
                         (and (simple-symbol? f)
                              ;; clojure-clr treats pipes in symbols as special
                              (= "|" (name f))))
-                    {:op :or-filter
-                     :fs (mapv #(parse-filter % opts) args)}))))]
+                    {:op :or-proposition
+                     :fs (mapv #(parse-proposition % opts) args)}))))]
       (if m
         m
         (err/int-error (str "Bad filter syntax: " syn) opts)))))
@@ -223,24 +223,24 @@
   (.bindRoot #'*allow-symbol-escape* init-symbol-escape)
 )
 
-(t/defalias FilterSet
-  '{:op ':filter-set
-    :then Filter
-    :else Filter})
+(t/defalias PropositionSet
+  '{:op ':proposition-set
+    :then Proposition
+    :else Proposition})
 
-(t/ann parse-filter-set [t/Any t/Any -> FilterSet])
-(defn parse-filter-set [syn opts]
+(t/ann parse-proposition-set [t/Any t/Any -> PropositionSet])
+(defn parse-proposition-set [syn opts]
   (when-not (map? syn)
-    (err/int-error "Filter set must be a map" opts))
+    (err/int-error "Proposition set must be a map" opts))
   (let [then (:then syn)
         else (:else syn)]
-    {:op :filter-set
+    {:op :proposition-set
      :then (if then
-             (parse-filter then opts)
-             {:op :top-filter})
+             (parse-proposition then opts)
+             {:op :top-proposition})
      :else (if else
-             (parse-filter else opts)
-             {:op :top-filter})}))
+             (parse-proposition else opts)
+             {:op :top-proposition})}))
 
 (t/defalias NameRef (t/U t/Sym t/Int))
 
@@ -366,7 +366,7 @@
      :drest drest}))
 
 (defn parse-h* [op msg]
-  (fn [[_ fixed & {:keys [filter-sets objects repeat]}] opts]
+  (fn [[_ fixed & {:keys [proposition-sets objects repeat]}] opts]
     (let [{:keys [types drest rest]}
           (parse-with-rest-drest msg fixed opts)]
       (merge
@@ -378,8 +378,8 @@
                             [:drest])
                           (when rest
                             [:rest])
-                          (when filter-sets
-                            [:filter-sets])
+                          (when proposition-sets
+                            [:proposition-sets])
                           (when objects
                             [:objects])
                           (when (true? repeat) [:repeat])))}
@@ -387,8 +387,8 @@
           {:drest drest})
         (when rest
           {:rest rest})
-        (when filter-sets
-          {:filter-sets (mapv #(parse-filter-set % opts) filter-sets)})
+        (when proposition-sets
+          {:proposition-sets (mapv #(parse-proposition-set % opts) proposition-sets)})
         (when objects
           {:objects (mapv #(parse-object % opts) objects)})
         (when (true? repeat) {:repeat true})))))
@@ -906,7 +906,7 @@
           {:op ':Fn-method
            :dom (t/Vec Type)
            :rng Type
-           :filter FilterSet
+           :filter PropositionSet
            :object FObject
            :children (t/Vec t/Kw)}
           :optional
@@ -945,7 +945,7 @@
             (err/int-error (str "Invalid function keyword option/s: " ks) opts))
 
         filters (when-let [[_ fsyn] (find fopts :filters)]
-                  (parse-filter-set fsyn opts))
+                  (parse-proposition-set fsyn opts))
 
         object (when-let [[_ obj] (find fopts :object)]
                  (parse-object obj opts))

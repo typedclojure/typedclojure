@@ -2,7 +2,7 @@
   (:require [clojure.core.typed :refer [check-ns]]
             [typed.clj.checker.test-utils :refer :all]
             [typed.cljc.checker.type-rep :refer :all :as r]
-            [typed.cljc.checker.filter-ops :refer :all]
+            [typed.cljc.checker.proposition-ops :refer :all]
             [typed.cljc.checker.object-rep :refer :all]
             [typed.cljc.checker.type-ctors :refer :all]
             [clojure.test :refer :all]))
@@ -37,26 +37,26 @@
   ; HVecs
   (equal-types-noparse (assoc [] 0 1)
                        (-hvec [(-val 1)]
-                              {:filters [(-true-filter)]
+                              {:filters [(-true-proposition)]
                                :objects [-empty]}
                               (clj-opts)))
   
   (equal-types-noparse (assoc [3] 1 2)
                        (-hvec [(-val 3) (-val 2)]
-                              {:filters [(-true-filter)
-                                         (-true-filter)]
+                              {:filters [(-true-proposition)
+                                         (-true-proposition)]
                                :objects [-empty -empty]}
                               (clj-opts)))
   
   (equal-types-noparse (assoc [0] 0 1)
                        (-hvec [(-val 1)]
-                              {:filters [(-true-filter)]
+                              {:filters [(-true-proposition)]
                                :objects [-empty]}
                               (clj-opts)))
   
   (equal-types-noparse (assoc [0] 0 (if (clojure.core.typed/ann-form 1 clojure.core.typed/Any) 1 2))
                        (-hvec [(Un [(-val 1) (-val 2)] (clj-opts))]
-                              {:filters [(-true-filter)]
+                              {:filters [(-true-proposition)]
                                :objects [-empty]}
                               (clj-opts)))
   

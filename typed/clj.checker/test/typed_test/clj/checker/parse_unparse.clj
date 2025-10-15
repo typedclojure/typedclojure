@@ -3,8 +3,8 @@
             [clojure.test :refer :all]
             [typed.cljc.checker.type-ctors :as c]
             [typed.clj.checker.parse-unparse :as prs]
-            [typed.cljc.checker.filter-rep :as fr]
-            [typed.cljc.checker.filter-ops :as fo]
+            [typed.cljc.checker.proposition-rep :as fr]
+            [typed.cljc.checker.proposition-ops :as fo]
             [typed.cljc.checker.type-rep :as r]
             [typed.clj.checker.test-utils :refer :all]))
 
@@ -46,10 +46,10 @@
           (= (fo/-FS fr/-bot fr/-bot))))
   (is (-> (prs/parse-clj `[t/Any :-> t/Any
                            :filters {:then ~'ff :else ~'ff}])
-          :types first :rng :fl :then fr/BotFilter?))
+          :types first :rng :fl :then fr/BotProposition?))
   (is (-> (prs/parse-clj `[t/Any :-> t/Any
                            :filters {:then ~'ff :else ~'ff}])
-          :types first :rng :fl :else fr/BotFilter?)))
+          :types first :rng :fl :else fr/BotProposition?)))
 
 (deftest parse-type-fn-test
   (is-clj (= (prs/parse-type '[nil :* -> nil] (clj-opts))

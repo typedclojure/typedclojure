@@ -9,7 +9,7 @@
 (ns ^:typed.clojure ^:no-doc typed.cljc.checker.object-rep
   (:refer-clojure :exclude [defrecord])
   (:require [typed.clojure :as t]
-            [typed.cljc.checker.filter-rep :as fr]
+            [typed.cljc.checker.proposition-rep :as fr]
             [typed.cljc.checker.impl-protocols :as p]
             [typed.cljc.checker.path-rep :as pr]
             [typed.cljc.checker.type-rep :as r]

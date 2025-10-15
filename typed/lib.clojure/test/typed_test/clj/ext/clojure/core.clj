@@ -184,8 +184,8 @@
              {:fn-type
               (t/All [x y] (t/IFn [(t/U (t/I (Seqable (t/NilableNonEmptySeq x)) Sequential) (t/I Sequential nil) (Indexed x)) t/AnyInteger :-> x] [(t/U (t/I (Seqable (t/NilableNonEmptySeq x)) Sequential) (t/I Sequential nil) (Indexed x) nil) t/AnyInteger y :-> (t/U x y)] [(t/U (t/I (Seqable (t/NilableNonEmptySeq x)) Sequential) (t/I Sequential nil) (Indexed x) nil) t/AnyInteger :-> (t/U x nil)])),
               :args-results
-              [{:type (t/Val :a), :filter-set {:then tt, :else ff}}
-               {:type (t/Val :a), :filter-set {:then tt, :else ff}}],
+              [{:type (t/Val :a), :proposition-set {:then tt, :else ff}}
+               {:type (t/Val :a), :proposition-set {:then tt, :else ff}}],
               :expected-result {:type t/Infer}},
              :message
              "Polymorphic function clojure.core/nth could not be applied to arguments:\nPolymorphic Variables:\n\tx\n\ty\n\nDomains:\n\t(t/U (t/I (Seqable (t/NilableNonEmptySeq x)) Sequential) (t/I Sequential nil) (Indexed x) nil) t/AnyInteger\n\nArguments:\n\t(t/Val :a) (t/Val :a)\n\nRanges:\n\t(t/U x nil)\n\n"}]}
@@ -201,8 +201,8 @@
              {:fn-type
               (t/All [x y] (t/IFn [(t/U (t/I (Seqable (t/NilableNonEmptySeq x)) Sequential) (t/I Sequential nil) (Indexed x)) t/AnyInteger :-> x] [(t/U (t/I (Seqable (t/NilableNonEmptySeq x)) Sequential) (t/I Sequential nil) (Indexed x) nil) t/AnyInteger y :-> (t/U x y)] [(t/U (t/I (Seqable (t/NilableNonEmptySeq x)) Sequential) (t/I Sequential nil) (Indexed x) nil) t/AnyInteger :-> (t/U x nil)])),
               :args-results
-              [{:type (t/Val :b), :filter-set {:then tt, :else ff}}
-               {:type (t/Val :a), :filter-set {:then tt, :else ff}}]},
+              [{:type (t/Val :b), :proposition-set {:then tt, :else ff}}
+               {:type (t/Val :a), :proposition-set {:then tt, :else ff}}]},
              :message
              "Polymorphic function cc/nth could not be applied to arguments:\nPolymorphic Variables:\n\tx\n\ty\n\nDomains:\n\t(t/U (t/I (Seqable (t/NilableNonEmptySeq x)) Sequential) (t/I Sequential nil) (Indexed x) nil) t/AnyInteger\n\nArguments:\n\t(t/Val :b) (t/Val :a)\n\nRanges:\n\t(t/U x nil)\n\n"}]}
          (is-tc-err-messages

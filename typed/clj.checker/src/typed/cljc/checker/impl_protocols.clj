@@ -39,27 +39,27 @@
 (u/defprotocol IMu
   (mu-scope [this]))
 
-;; Filter protocols
+;; Proposition protocols
 
-(t/ann-protocol IFilter)
-(u/defprotocol IFilter)
+(t/ann-protocol IProposition)
+(u/defprotocol IProposition)
 
-(t/ann ^:no-check IFilter? (t/Pred IFilter))
-(defn IFilter? [a]
-  (instance? typed.cljc.checker.impl_protocols.IFilter a))
+(t/ann ^:no-check IProposition? (t/Pred IProposition))
+(defn IProposition? [a]
+  (instance? typed.cljc.checker.impl_protocols.IProposition a))
 
-(t/ann-protocol IFilterSet
-                then-filter
-                [IFilterSet -> IFilter]
-                else-filter
-                [IFilterSet -> IFilter])
-(u/defprotocol IFilterSet
-  (then-filter [this])
-  (else-filter [this]))
+(t/ann-protocol IPropositionSet
+                then-proposition
+                [IPropositionSet -> IProposition]
+                else-proposition
+                [IPropositionSet -> IProposition])
+(u/defprotocol IPropositionSet
+  (then-proposition [this])
+  (else-proposition [this]))
 
-(t/ann ^:no-check IFilterSet? (t/Pred IFilterSet))
-(defn IFilterSet? [a]
-  (instance? typed.cljc.checker.impl_protocols.IFilterSet a))
+(t/ann ^:no-check IPropositionSet? (t/Pred IPropositionSet))
+(defn IPropositionSet? [a]
+  (instance? typed.cljc.checker.impl_protocols.IPropositionSet a))
 
 ;; Object protocols
 

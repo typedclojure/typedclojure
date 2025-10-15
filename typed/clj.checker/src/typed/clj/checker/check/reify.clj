@@ -12,7 +12,7 @@
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.type-rep :as r]
             [clojure.core.typed.util-vars :as vs]
-            [typed.cljc.checker.filter-ops :as fo]
+            [typed.cljc.checker.proposition-ops :as fo]
             [typed.cljc.analyzer :as ana2]
             [typed.cljc.checker.utils :as u]
             [typed.cljc.checker.check-below :as below]
@@ -146,6 +146,6 @@
                              methods))
           (assoc u/expr-type (below/maybe-check-below
                                (r/ret this-t
-                                      (fo/-true-filter))
+                                      (fo/-true-proposition))
                                expected
                                opts))))))

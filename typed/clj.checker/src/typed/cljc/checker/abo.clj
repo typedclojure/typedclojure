@@ -11,9 +11,9 @@
             [typed.cljc.checker.fold-rep :as fold]
             [typed.cljc.checker.object-rep :as obj]
             [clojure.core.typed.contract-utils :as con]
-            [typed.cljc.checker.filter-rep :as fl]
-            [typed.cljc.checker.filter-ops :as fo])
-  (:import (typed.cljc.checker.filter_rep NotTypeFilter TypeFilter FilterSet)))
+            [typed.cljc.checker.proposition-rep :as fl]
+            [typed.cljc.checker.proposition-ops :as fo])
+  (:import (typed.cljc.checker.proposition_rep NotTypeProposition TypeProposition PropositionSet)))
 
 (declare abstract-object abstract-type abo)
 
@@ -40,7 +40,7 @@
     (call-abo-fold*
       t opts
       {:type-rec sb-t
-       :filter-rec sb-f
+       :proposition-rec sb-f
        :object-rec sb-o})))
 
 ;[(Seqable t/Sym) (Seqable AnyInteger) RObject -> RObject]
@@ -70,43 +70,43 @@
            (lookup (:id o))) (update o :id lookup)
       :else obj/-empty)))
 
-;[(Seqable t/Sym) (Seqable AnyInteger) (U NoFilter FilterSet) 
-;  -> (U NoFilter FilterSet)]
-(defn abstract-filter [ids keys fs opts]
+;[(Seqable t/Sym) (Seqable AnyInteger) (U NoProposition PropositionSet) 
+;  -> (U NoProposition PropositionSet)]
+(defn abstract-proposition [ids keys fs opts]
   {:pre [(every? symbol? ids)
          (every? integer? keys)
-         ((some-fn fl/NoFilter? fl/FilterSet?) fs)]
-   :post [((some-fn fl/NoFilter? fl/FilterSet?) %)]}
+         ((some-fn fl/NoProposition? fl/PropositionSet?) fs)]
+   :post [((some-fn fl/NoProposition? fl/PropositionSet?) %)]}
   ;(prn "abstract filter" ids keys fs)
   (cond
-    (fl/FilterSet? fs)
+    (fl/PropositionSet? fs)
     (let [{fs+ :then fs- :else} fs]
       (fo/-FS (abo ids keys fs+ opts)
               (abo ids keys fs- opts)))
-    (fl/NoFilter? fs) (fo/-FS fl/-top fl/-top)))
+    (fl/NoProposition? fs) (fo/-FS fl/-top fl/-top)))
 
 (fold/add-fold-case IAboFold abo-fold*
-  TypeFilter
+  TypeProposition
   (fn [{:keys [type path id] :as fl} lookup]
-    ;if variable goes out of scope, replace filter with fl/-top
+    ;if variable goes out of scope, replace proposition with fl/-top
     (if-let [scoped (lookup id)]
-      (fo/-filter type scoped path)
+      (fo/-proposition type scoped path)
       fl/-top)))
 
 (fold/add-fold-case IAboFold abo-fold*
-  NotTypeFilter
+  NotTypeProposition
   (fn [{:keys [type path id] :as fl} lookup]
-    ;if variable goes out of scope, replace filter with fl/-top
+    ;if variable goes out of scope, replace proposition with fl/-top
     (if-let [scoped (lookup id)]
-      (fo/-not-filter type scoped path)
+      (fo/-not-proposition type scoped path)
       fl/-top)))
 
-;[(Seqable t/Sym) (Seqable AnyInteger) Filter -> Filter]
+;[(Seqable t/Sym) (Seqable AnyInteger) Proposition -> Proposition]
 (defn abo [xs idxs f opts]
   {:pre [(every? symbol? xs)
          (every? integer? idxs)
-         (fl/Filter? f)]
-   :post [(fl/Filter? %)]}
+         (fl/Proposition? f)]
+   :post [(fl/Proposition? %)]}
   ;(prn "abo" xs idxs f)
   (letfn [(lookup [y]
             ; Difference from Typed Racket:
@@ -132,7 +132,7 @@
     (call-abo-fold*
       f opts
       {:type-rec sb-t
-       :filter-rec rec
+       :proposition-rec rec
        :lookup lookup})))
 
 ; Difference from Typed Racket
@@ -151,5 +151,5 @@
   (let [keys (range (count arg-names))]
     (r/make-Result
       (abstract-type   arg-names keys (r/ret-t result) opts)
-      (abstract-filter arg-names keys (r/ret-f result) opts)
+      (abstract-proposition arg-names keys (r/ret-f result) opts)
       (abstract-object arg-names keys (r/ret-o result) opts))))

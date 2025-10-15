@@ -25,8 +25,8 @@
             [typed.cljc.checker.check.multi-utils :as-alias multi-u]
             [typed.cljc.checker.check.recur-utils :as recur-u]
             [typed.cljc.checker.check.utils :as cu]
-            [typed.cljc.checker.filter-ops :as fo]
-            [typed.cljc.checker.filter-rep :as fl]
+            [typed.cljc.checker.proposition-ops :as fo]
+            [typed.cljc.checker.proposition-rep :as fl]
             [typed.cljc.checker.lex-env :as lex]
             [typed.cljc.checker.object-rep :as obj]
             [typed.cljc.checker.open-result :as open-result]
@@ -95,12 +95,12 @@
                                  (concat required-params
                                          (some-> rest-param list)))
                             opts)
-        open-expected-filters (:fl open-expected-rng)
-        _ (assert (fl/FilterSet? open-expected-filters))
-        open-expected-rng-no-filters (assoc open-expected-rng :fl (fo/-infer-filter))
-        _ (assert (r/TCResult? open-expected-rng-no-filters))
-        ;_ (prn "open-result open-expected-rng-no-filters" open-expected-rng-no-filters expected)
-        ;_ (prn "open-result open-expected-rng filters" (some->> open-expected-rng-no-filters :fl ((juxt :then :else)) (map fl/infer-top?)))
+        open-expected-propositions (:fl open-expected-rng)
+        _ (assert (fl/PropositionSet? open-expected-propositions))
+        open-expected-rng-no-propositions (assoc open-expected-rng :fl (fo/-infer-proposition))
+        _ (assert (r/TCResult? open-expected-rng-no-propositions))
+        ;_ (prn "open-result open-expected-rng-no-propositions" open-expected-rng-no-propositions expected)
+        ;_ (prn "open-result open-expected-rng filters" (some->> open-expected-rng-no-propositions :fl ((juxt :then :else)) (map fl/infer-top?)))
         ;ensure Function fits method
         _ (when-not (or ((case (:kind expected)
                            (:rest :drest :kws :prest :pdot) <=
@@ -141,7 +141,7 @@
 
         ; if this fn method is a multimethod dispatch method, then infer
         ; a new filter that results from being dispatched "here"
-        mm-filter (when-let [{:keys [dispatch-fn-type dispatch-val-ret]} (::multi-u/current-mm opts)]
+        mm-proposition (when-let [{:keys [dispatch-fn-type dispatch-val-ret]} (::multi-u/current-mm opts)]
                     (assert (and dispatch-fn-type dispatch-val-ret))
                     (assert (= :fixed (:kind expected)))
                     (assert (not rest-param))
@@ -154,22 +154,22 @@
                           ;_ (prn "disp-fn-type" (prs/unparse-type dispatch-fn-type opts))
                           ;_ (prn "dom" dom)
                           isa-ret (isa/tc-isa? disp-app-ret dispatch-val-ret nil opts)
-                          then-filter (-> isa-ret r/ret-f :then)
-                          _ (assert then-filter)]
-                      then-filter))
-        ;_ (prn "^^^ mm-filter" (::multi-u/current-mm opts))
+                          then-proposition (-> isa-ret r/ret-f :then)
+                          _ (assert then-proposition)]
+                      then-proposition))
+        ;_ (prn "^^^ mm-proposition" (::multi-u/current-mm opts))
 
-        ;_ (prn "funapp1: inferred mm-filter" mm-filter)
+        ;_ (prn "funapp1: inferred mm-proposition" mm-proposition)
 
         env (let [env (-> (lex/lexical-env opts)
-                          ;add mm-filter
-                          (assoc :props (cond-> (set props) mm-filter (conj mm-filter)))
+                          ;add mm-proposition
+                          (assoc :props (cond-> (set props) mm-proposition (conj mm-proposition)))
                           ;add parameters to scope
                           ;IF UNHYGIENIC order important, (fn [a a & a]) prefers rightmost name
                           (update :l merge (into {} fixed-entry) (into {} rest-entry)))
                   flag (volatile! true)
                   env (cond-> env
-                        mm-filter (update/env+ [mm-filter] flag opts))]
+                        mm-proposition (update/env+ [mm-proposition] flag opts))]
               (when-not @flag
                 (err/int-error "Unreachable method: Local inferred to be bottom when applying multimethod filter" opts))
               env)
@@ -187,7 +187,7 @@
                         (recur-u/RecurTarget-maker dom rest drest nil))
               _ (assert (recur-u/RecurTarget? rec))]
           (let [opts (recur-u/with-recur-target opts rec)]
-            (check-expr body open-expected-rng-no-filters opts)))
+            (check-expr body open-expected-rng-no-propositions opts)))
 
         ; Apply the filters of computed rng to the environment and express
         ; changes to the lexical env as new filters, and conjoin with existing filters.
@@ -195,36 +195,36 @@
         flag (volatile! true)
         then-env (let [{:keys [then]} (-> crng-nopass u/expr-type r/ret-f)]
                    (cond-> env
-                     (not (fl/NoFilter? then))
+                     (not (fl/NoProposition? then))
                      (update/env+ [then] flag opts)))
         ;TODO
         ;_ (when-not @flag
         ;    (err/int-error "Unreachable method: Local inferred to be bottom when applying multimethod filter" opts))
         new-then-props (reduce-kv (fn [fs sym t]
-                                    {:pre [((con/set-c? fl/Filter?) fs)]}
+                                    {:pre [((con/set-c? fl/Proposition?) fs)]}
                                     (cond-> fs
                                       (not= t (get-in env [:l sym]))
                                       ;new type, add positive proposition
                                       ;(otherwise, type hasn't changed, no new propositions)
-                                      (conj (fo/-filter-at t (lex/lookup-alias sym {:env env} opts)))))
+                                      (conj (fo/-proposition-at t (lex/lookup-alias sym {:env env} opts)))))
                                   #{}
                                   (:l then-env))
 
-        crng+inferred-filters (update-in crng-nopass [u/expr-type :fl :then]
+        crng+inferred-propositions (update-in crng-nopass [u/expr-type :fl :then]
                                          (fn [f]
                                            (fo/-and (cons f new-then-props) opts)))
-        ;_ (prn "open-expected-filters" open-expected-filters)
-        crng (if (= open-expected-filters (fo/-infer-filter))
+        ;_ (prn "open-expected-propositions" open-expected-propositions)
+        crng (if (= open-expected-propositions (fo/-infer-proposition))
                ;; infer mode
-               crng+inferred-filters
+               crng+inferred-propositions
                ;; check actual filters and fill in expected filters
-               (let [{actual-filters :fl :as actual-ret} (u/expr-type crng+inferred-filters)
-                     _ (when-not (below/filter-better? actual-filters open-expected-filters opts)
-                         (below/bad-filter-delayed-error
+               (let [{actual-propositions :fl :as actual-ret} (u/expr-type crng+inferred-propositions)
+                     _ (when-not (below/filter-better? actual-propositions open-expected-propositions opts)
+                         (below/bad-proposition-delayed-error
                            actual-ret
-                           (assoc open-expected-rng-no-filters :fl open-expected-filters)
+                           (assoc open-expected-rng-no-propositions :fl open-expected-propositions)
                            opts))]
-                 (assoc-in crng+inferred-filters [u/expr-type :fl] open-expected-filters)))
+                 (assoc-in crng+inferred-propositions [u/expr-type :fl] open-expected-propositions)))
         ;_ (prn "crng" (u/expr-type crng))
         rest-param-name (some-> rest-param :name)
 

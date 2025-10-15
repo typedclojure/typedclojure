@@ -7,8 +7,8 @@
        typed.cljc.checker.check
        typed.cljc.checker.check.funapp
        typed.cljc.checker.cs-gen
-       typed.cljc.checker.filter-ops
-       typed.cljc.checker.filter-rep
+       typed.cljc.checker.proposition-ops
+       typed.cljc.checker.proposition-rep
        typed.cljc.checker.lex-env
        typed.cljc.checker.object-rep
        typed.cljc.checker.var-env]}

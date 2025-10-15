@@ -27,7 +27,7 @@
             [typed.clj.checker.rclass-env :as rcls]
             [typed.cljc.checker.cs-rep :as crep]
             [typed.cljc.checker.datatype-env :as dtenv]
-            [typed.cljc.checker.filter-rep :as fr]
+            [typed.cljc.checker.proposition-rep :as fr]
             [typed.cljc.checker.fold-rep :as f :refer [add-default-fold-case]]
             [typed.cljc.checker.free-ops :as free-ops]
             [typed.cljc.checker.impl-protocols :as p]
@@ -56,8 +56,8 @@
                                         JSBoolean AssocType GetType KwArgsSeq KwArgs HSequential HSet
                                         JSUndefined JSNull JSSymbol JSObj TypeOf SymbolicClosure Regex
                                         MatchType)
-           (typed.cljc.checker.filter_rep NoFilter TopFilter BotFilter TypeFilter NotTypeFilter
-                                          ImpFilter AndFilter OrFilter FilterSet)
+           (typed.cljc.checker.proposition_rep NoProposition TopProposition BotProposition TypeProposition NotTypeProposition
+                                               ImpProposition AndProposition OrProposition PropositionSet)
            (typed.cljc.checker.object_rep NoObject EmptyObject Path)
            (typed.cljc.checker.path_rep KeyPE KeysPE ValsPE ClassPE NthPE CountPE KeywordPE SeqPE)))
 
@@ -2156,7 +2156,7 @@
                (call-abstract-many*
                  ty opts
                  {:type-rec sb
-                  :filter-rec (f/sub-f sb `call-abstract-many* opts)
+                  :proposition-rec (f/sub-f sb `call-abstract-many* opts)
                   :object-rec (f/sub-o sb `call-abstract-many* opts)
                   :name->count name->count
                   :outer outer
@@ -2324,7 +2324,7 @@
                 (call-instantiate-many*
                   t opts
                   {:type-rec sb
-                   :filter-rec sf
+                   :proposition-rec sf
                    :object-rec (f/sub-o sb `call-instantiate-many* opts)
                    :outer outer
                    :b->f b->f
@@ -2948,7 +2948,7 @@
 (add-default-fold-case HSequential 
                        (fn [{:keys [types fs objects rest drest repeat kind] :as ty}]
                          (let [types' (mapv!= types type-rec)
-                               fs' (mapv!= fs filter-rec)
+                               fs' (mapv!= fs proposition-rec)
                                objects' (mapv!= objects object-rec)
                                rest' (some-> rest type-rec)
                                drest' (some-> drest type-rec)
@@ -3042,7 +3042,7 @@
                            [:target type-rec]
                            [:key type-rec]
                            [:not-found type-rec]
-                           [:target-fs filter-rec]
+                           [:target-fs proposition-rec]
                            [:target-object object-rec])))
 
 (add-default-fold-case AssocType
@@ -3080,7 +3080,7 @@
                        (fn [ty]
                          (r/update-Result ty
                            [:t type-rec]
-                           [:fl filter-rec]
+                           [:fl proposition-rec]
                            [:o object-rec])))
 
 (add-default-fold-case MatchType
@@ -3105,49 +3105,49 @@
 
 ;filters
 
-(add-default-fold-case NoFilter ret-first)
-(add-default-fold-case TopFilter ret-first)
-(add-default-fold-case BotFilter ret-first)
+(add-default-fold-case NoProposition ret-first)
+(add-default-fold-case TopProposition ret-first)
+(add-default-fold-case BotProposition ret-first)
 
-(add-default-fold-case TypeFilter
+(add-default-fold-case TypeProposition
                        (fn [ty]
-                         (fr/update-TypeFilter ty
+                         (fr/update-TypeProposition ty
                            [:type type-rec]
                            [:path mapv!= pathelem-rec])))
 
-(add-default-fold-case NotTypeFilter
+(add-default-fold-case NotTypeProposition
                        (fn [ty]
-                         (fr/update-NotTypeFilter ty
+                         (fr/update-NotTypeProposition ty
                            [:type type-rec #_{:variance :contravariant}]
                            [:path mapv!= pathelem-rec])))
 
-(add-default-fold-case ImpFilter
+(add-default-fold-case ImpProposition
                        (fn [ty]
-                         (fr/update-ImpFilter ty
-                           [:a filter-rec]
-                           [:c filter-rec])))
+                         (fr/update-ImpProposition ty
+                           [:a proposition-rec]
+                           [:c proposition-rec])))
 
-(add-default-fold-case AndFilter
+(add-default-fold-case AndProposition
                        (fn [{:keys [fs] :as ty}]
-                         (let [fs' (mapv!= (:fs ty) filter-rec)
+                         (let [fs' (mapv!= (:fs ty) proposition-rec)
                                changed? (not (identical? fs fs'))]
                            (if changed?
                              (ind/-and fs' opts)
                              ty))))
 
-(add-default-fold-case OrFilter
+(add-default-fold-case OrProposition
                        (fn [{:keys [fs] :as ty}]
-                         (let [fs' (mapv!= (:fs ty) filter-rec)
+                         (let [fs' (mapv!= (:fs ty) proposition-rec)
                                changed? (not (identical? fs fs'))]
                            (if changed?
                              (ind/-or fs' opts)
                              ty))))
 
-(add-default-fold-case FilterSet
+(add-default-fold-case PropositionSet
                        (fn [ty]
-                         (fr/update-FilterSet ty
-                           [:then filter-rec]
-                           [:else filter-rec])))
+                         (fr/update-PropositionSet ty
+                           [:then proposition-rec]
+                           [:else proposition-rec])))
 
 
 ;objects
@@ -3175,7 +3175,7 @@
                        (fn [ty]
                          (r/update-TCResult ty
                            [:t type-rec]
-                           [:fl filter-rec]
+                           [:fl proposition-rec]
                            [:o object-rec])))
 
 (add-default-fold-case MergeType

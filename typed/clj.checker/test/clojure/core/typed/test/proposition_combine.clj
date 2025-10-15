@@ -1,4 +1,4 @@
-(ns ^:typed.clojure clojure.core.typed.test.filter-combine
+(ns ^:typed.clojure clojure.core.typed.test.proposition-combine
   (:require [typed.clojure :as t :refer [ann-form]]))
 
 ; macroexpansion of `or` is understood

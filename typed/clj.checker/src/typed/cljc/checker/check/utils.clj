@@ -27,8 +27,8 @@
             [typed.cljc.checker.protocol-env :as pcl-env]
             [typed.clj.checker.method-param-nilables :as mtd-param-nil]
             [typed.clj.checker.method-return-nilables :as mtd-ret-nil]
-            [typed.cljc.checker.filter-rep :as fl]
-            [typed.cljc.checker.filter-ops :as fo]
+            [typed.cljc.checker.proposition-rep :as fl]
+            [typed.cljc.checker.proposition-ops :as fo]
             [typed.clj.checker.subtype :as sub]
             [typed.cljc.runtime.env :as env]
             [clojure.core.typed.ast-utils :as ast-u]
@@ -438,7 +438,7 @@
                                             (c/RClass-of-with-unknown-params cls opts)
                                             ;always a true value. Cannot construct nil
                                             ; or primitive false
-                                            :filter (fo/-true-filter)))))
+                                            :filter (fo/-true-proposition)))))
 
 ;[(Seqable Expr) (Option Expr) FnIntersection -> (Seqable Function)]
 (defn relevant-Fns
@@ -569,7 +569,7 @@
    :post [(map? %)]}
   (let [opts (assoc opts ::vs/verbose-types true)]
     {:type (prs/unparse-type (:t ret) opts)
-     :filters (prs/unparse-filter-set (:fl ret) opts)
+     :filters (prs/unparse-proposition-set (:fl ret) opts)
      :object (prs/unparse-object (:o ret) opts)
      :opts (not-empty (:opts ret))}))
                                    
@@ -592,12 +592,12 @@
            (if-let [[_ fl] (find expected :filters)]
              (fo/-FS
                (if-let [[_ f] (find fl :then)]
-                 (prs/parse-filter f)
+                 (prs/parse-proposition f)
                  fl/-top)
                (if-let [[_ f] (find fl :else)]
-                 (prs/parse-filter f)
+                 (prs/parse-proposition f)
                  fl/-top))
-             (fo/-simple-filter))
+             (fo/-simple-proposition))
            (if-let [[_ o] (find expected :object)]
              (prs/parse-object o)
              obj/-empty))

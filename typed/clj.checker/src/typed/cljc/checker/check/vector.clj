@@ -13,7 +13,7 @@
             [typed.clj.checker.subtype :as sub]
             [typed.cljc.checker.check :as check]
             [typed.cljc.checker.check.utils :as cu]
-            [typed.cljc.checker.filter-ops :as fo]))
+            [typed.cljc.checker.proposition-ops :as fo]))
 
 (defn check-vector [{:keys [items] :as expr} expected {::check/keys [check-expr] :as opts}]
   {:post [(-> % u/expr-type r/TCResult?)
@@ -26,6 +26,6 @@
     (assoc expr
            :items cargs
            u/expr-type (below/maybe-check-below
-                         (r/ret res-type (fo/-true-filter))
+                         (r/ret res-type (fo/-true-proposition))
                          expected
                          opts))))

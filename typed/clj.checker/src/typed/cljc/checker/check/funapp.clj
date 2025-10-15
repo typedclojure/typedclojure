@@ -28,7 +28,7 @@
             [typed.cljc.checker.check.utils :as cu]
             [typed.cljc.checker.cs-rep :as crep]
             [typed.cljc.checker.cs-gen :as cgen]
-            [typed.cljc.checker.filter-ops :as fops]
+            [typed.cljc.checker.proposition-ops :as fops]
             [typed.cljc.checker.free-ops :as free-ops]
             [typed.cljc.checker.frees :as frees]
             [typed.cljc.checker.hset-utils :as hset]
@@ -201,8 +201,8 @@
                                                opts)]
                          (r/ret set-return
                                 (fops/-FS
-                                  (fops/-filter-at filter-type (r/ret-o argt))
-                                  (fops/-not-filter-at filter-type (r/ret-o argt)))))
+                                  (fops/-proposition-at filter-type (r/ret-o argt))
+                                  (fops/-not-proposition-at filter-type (r/ret-o argt)))))
                        (r/ret set-return))))]
          (below/maybe-check-below
            ret
@@ -493,7 +493,7 @@
                                    ;_ (prn "args" (map #(prs/unparse-type % opts) arg-types))
                                    ]
                                (or (when (r/SymbolicClosure? substituted-type)
-                                     (r/ret substituted-type (fops/-true-filter)))
+                                     (r/ret substituted-type (fops/-true-proposition)))
                                    (and substitution
                                         (funapp1/check-funapp1 fexpr args 
                                                                substituted-type arg-ret-types expected {:check? false} opts))

@@ -17,7 +17,7 @@
             [typed.cljc.checker.hset-utils :as hset]
             [clojure.set :as set]
             [typed.cljc.checker.impl-protocols :as p]
-            typed.cljc.checker.filter-rep)
+            typed.cljc.checker.proposition-rep)
   (:import (typed.cljc.checker.type_rep NotType Intersection Union FnIntersection
                                         DottedPretype Function RClass TApp
                                         PrimitiveArray DataType Protocol TypeFn Poly
@@ -29,8 +29,8 @@
                                         TopFunction Scope DissocType AssocType MergeType
                                         GetType JSUndefined JSNull JSSymbol JSObj TypeOf
                                         SymbolicClosure Instance Satisfies)
-           (typed.cljc.checker.filter_rep TopFilter BotFilter TypeFilter NotTypeFilter AndFilter OrFilter
-                                          ImpFilter)))
+           (typed.cljc.checker.proposition_rep TopProposition BotProposition TypeProposition NotTypeProposition AndProposition OrProposition
+                                          ImpProposition)))
 
 ;TODO automatically check for completeness
 
@@ -179,11 +179,11 @@
 (promote-demote HSequential
   [T V]
   (let [pmt #(promote % V)
-        latent-filter-vs (set/intersection (into #{} (mapcat #(frees/fv % opts)) (:fs T))
+        latent-proposition-vs (set/intersection (into #{} (mapcat #(frees/fv % opts)) (:fs T))
                                            (into #{} (mapcat #(frees/fi % opts)) (:fs T)))]
     (cond
       ;if filter contains V, give up
-      (seq (set/intersection V latent-filter-vs)) (case (:kind T)
+      (seq (set/intersection V latent-proposition-vs)) (case (:kind T)
                                                     :vector (c/RClass-of clojure.lang.IPersistentVector [r/-any] opts)
                                                     :seq (c/RClass-of clojure.lang.ISeq [r/-any] opts)
                                                     :list (c/RClass-of clojure.lang.IPersistentList [r/-any] opts)
@@ -384,12 +384,12 @@
           dmt #(demote % V opts)
           dmt-kw #(into {} (for [[k v] %]
                              [k (dmt v)]))
-          latent-filter-vs (let [f (r/Result-filter* rng)]
+          latent-proposition-vs (let [f (r/Result-proposition* rng)]
                              (set/intersection (frees/fv f opts)
                                                (frees/fi f opts)))]
       (cond 
         ;if filter contains V, give up
-        (seq (set/intersection V latent-filter-vs)) (r/TopFunction-maker)
+        (seq (set/intersection V latent-proposition-vs)) (r/TopFunction-maker)
 
         ;if dotted bound is in V, transfer to rest args
         (and drest (V (:name drest)))
@@ -420,12 +420,12 @@
           dmt #(demote % V opts)
           pmt-kw #(into {} (for [[k v] %]
                              [k (pmt v)]))
-          latent-filter-vs (let [f (r/Result-filter* rng)]
+          latent-proposition-vs (let [f (r/Result-proposition* rng)]
                              (set/intersection (frees/fv f opts)
                                                (frees/fi f opts)))]
       (cond 
         ;if filter contains V, give up
-        (seq (set/intersection V latent-filter-vs)) (r/TopFunction-maker)
+        (seq (set/intersection V latent-proposition-vs)) (r/TopFunction-maker)
 
         ;if dotted bound is in V, transfer to rest args
         (and drest (V (:name drest)))

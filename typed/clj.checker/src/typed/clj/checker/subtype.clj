@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:typed.clojure ^:no-doc typed.clj.checker.subtype
-  "Use [[subtype?]] to check if s <: t, and [[subtype-filter?]] for filters."
+  "Use [[subtype?]] to check if s <: t, and [[subtype-proposition?]] for filters."
   (:refer-clojure :exclude [every? requiring-resolve repeatedly some])
   (:require [clojure.core.typed.coerce-utils :as coerce]
             [clojure.core.typed.current-impl :as impl]
@@ -20,8 +20,8 @@
             [typed.cljc.checker.check :as check]
             [typed.clj.checker.assoc-utils :as assoc-u]
             [typed.clj.checker.parse-unparse :as prs]
-            [typed.cljc.checker.filter-ops :as fops]
-            [typed.cljc.checker.filter-rep :as fr]
+            [typed.cljc.checker.proposition-ops :as fops]
+            [typed.cljc.checker.proposition-rep :as fr]
             [typed.cljc.checker.free-ops :as free-ops]
             [typed.cljc.checker.frees :as frees]
             [typed.cljc.checker.indirect-ops :as ind]
@@ -134,7 +134,7 @@
 ;
 ; In short, only call subtype (or subtype?)
 
-(declare subtype-filter*)
+(declare subtype-proposition*)
 
 ;[Type Type -> Boolean]
 (defn subtype? [s t opts]
@@ -152,22 +152,22 @@
               (some-> subtype-cache (swap! assoc [s t] res)))
             res))))))
 
-(defn subtype-filter? [f1 f2 opts]
+(defn subtype-proposition? [f1 f2 opts]
   (boolean
     (do-top-level-subtype-using
-      subtype-filter* f1 f2 opts)))
+      subtype-proposition* f1 f2 opts)))
 
-(declare subtype-type-filter* subtype-not-type-filter*)
+(declare subtype-type-proposition* subtype-not-type-proposition*)
 
-(defn subtype-type-filter? [f1 f2 opts]
+(defn subtype-type-proposition? [f1 f2 opts]
   (boolean
     (do-top-level-subtype-using
-      subtype-type-filter* f1 f2 opts)))
+      subtype-type-proposition* f1 f2 opts)))
 
-(defn subtype-not-type-filter? [f1 f2 opts]
+(defn subtype-not-type-proposition? [f1 f2 opts]
   (boolean
     (do-top-level-subtype-using
-      subtype-not-type-filter* f1 f2 opts)))
+      subtype-not-type-proposition* f1 f2 opts)))
 
 ;[(Map Symbol Bounds) (Map Symbol Bounds) (t/Seqable Type) (t/Seqable Type)
 ;  -> Boolean]
@@ -1364,54 +1364,54 @@
   (some #(arr-subtype A % s opts) ts))
 
 #_
-(defn fully-resolve-filter [fl opts]
-  {:pre [(fr/Filter? fl)]
-   :post [(fr/Filter? %)]}
+(defn fully-resolve-proposition [fl opts]
+  {:pre [(fr/Proposition? fl)]
+   :post [(fr/Proposition? %)]}
   (cond
-    (fr/TypeFilter? fl) (update fl :type c/fully-resolve-type opts)
-    (fr/NotTypeFilter? fl) (update fl :type c/fully-resolve-type opts)
-    (fr/AndFilter? fl) (update fl :fs #(into #{} (map (fn [s] (fully-resolve-filter s opts))) %))
-    (fr/OrFilter? fl) (update fl :fs #(into #{} (map (fn [s] (fully-resolve-filter s opts))) %))
-    (fr/ImpFilter? fl) (-> fl
-                           (update :a fully-resolve-filter opts)
-                           (update :c fully-resolve-filter opts))
+    (fr/TypeProposition? fl) (update fl :type c/fully-resolve-type opts)
+    (fr/NotTypeProposition? fl) (update fl :type c/fully-resolve-type opts)
+    (fr/AndProposition? fl) (update fl :fs #(into #{} (map (fn [s] (fully-resolve-proposition s opts))) %))
+    (fr/OrProposition? fl) (update fl :fs #(into #{} (map (fn [s] (fully-resolve-proposition s opts))) %))
+    (fr/ImpProposition? fl) (-> fl
+                           (update :a fully-resolve-proposition opts)
+                           (update :c fully-resolve-proposition opts))
     :else fl))
 
-(defn simplify-type-filter [f opts]
-  {:pre [(fr/TypeFilter? f)]}
+(defn simplify-type-proposition [f opts]
+  {:pre [(fr/TypeProposition? f)]}
   (let [[fpth & rstpth] (:path f)]
     (cond 
       (empty? (:path f)) 
       f
 
       (pth-rep/KeyPE? fpth)
-      (simplify-type-filter
-        (fops/-filter 
+      (simplify-type-proposition
+        (fops/-proposition 
           (c/make-HMap opts {:mandatory {(r/-val (:val fpth)) (:type f)}})
           (:id f)
           rstpth)
         opts)
       :else f)))
 
-(defn ^:private subtype-type-filter* [A s t opts]
-  {:pre [(fr/TypeFilter? s)
-         (fr/TypeFilter? t)]}
-  (let [s (simplify-type-filter s opts)
-        t (simplify-type-filter t opts)]
+(defn ^:private subtype-type-proposition* [A s t opts]
+  {:pre [(fr/TypeProposition? s)
+         (fr/TypeProposition? t)]}
+  (let [s (simplify-type-proposition s opts)
+        t (simplify-type-proposition t opts)]
     (if (fr/equal-paths? s t)
       (subtypeA* A (:type s) (:type t) opts)
       (report-not-subtypes s t))))
 
-(defn simplify-not-type-filter [f opts]
-  {:pre [(fr/NotTypeFilter? f)]}
+(defn simplify-not-type-proposition [f opts]
+  {:pre [(fr/NotTypeProposition? f)]}
   (let [[fpth & rstpth] (:path f)]
     (cond 
       (empty? (:path f)) 
       f
 
       (pth-rep/KeyPE? fpth)
-      (simplify-not-type-filter
-        (fops/-not-filter 
+      (simplify-not-type-proposition
+        (fops/-not-proposition 
           ; keys is optional
           (c/make-HMap opts
             {:optional {(r/-val (:val fpth)) (:type f)}})
@@ -1420,21 +1420,21 @@
         opts)
       :else f)))
 
-(defn ^:private subtype-not-type-filter* [A s t opts]
-  {:pre [(fr/NotTypeFilter? s)
-         (fr/NotTypeFilter? t)]
+(defn ^:private subtype-not-type-proposition* [A s t opts]
+  {:pre [(fr/NotTypeProposition? s)
+         (fr/NotTypeProposition? t)]
    :post [(or (nil? %) (set? %))]}
-  (let [s (simplify-not-type-filter s opts)
-        t (simplify-not-type-filter t opts)]
+  (let [s (simplify-not-type-proposition s opts)
+        t (simplify-not-type-proposition t opts)]
     (and (fr/equal-paths? s t)
          (subtypeA* A (:type t) (:type s) opts))))
 
-(defn ^:private subtype-filter-set* [A f1 f2 opts]
-  {:pre [(fr/FilterSet? f1)
-         (fr/FilterSet? f2)]
+(defn ^:private subtype-proposition-set* [A f1 f2 opts]
+  {:pre [(fr/PropositionSet? f1)
+         (fr/PropositionSet? f2)]
    :post [(or (nil? %) (set? %))]}
-  ;(prn `subtype-filter-set* f1 f2)
-  (if (= f2 (fops/-simple-filter))
+  ;(prn `subtype-proposition-set* f1 f2)
+  (if (= f2 (fops/-simple-proposition))
     A
     (letfn [(sub-helper [f1 f2 pred field subf]
               (let [fld1 (field f1)
@@ -1443,51 +1443,51 @@
                            (pred fld2))
                   (subf A fld1 fld2 opts))))]
       (or
-        (and (sub-helper f1 f2 fr/TypeFilter? :then subtype-type-filter*)
-             (sub-helper f1 f2 fr/TypeFilter? :else subtype-not-type-filter*))
-        (and (sub-helper f1 f2 fr/TypeFilter? :then subtype-type-filter*)
-             (sub-helper f1 f2 fr/NotTypeFilter? :else subtype-not-type-filter*))
-        (and (sub-helper f1 f2 fr/NotTypeFilter? :then subtype-not-type-filter*)
-             (sub-helper f1 f2 fr/NotTypeFilter? :else subtype-not-type-filter*))
-        (and (sub-helper f1 f2 fr/NotTypeFilter? :then subtype-not-type-filter*)
-             (sub-helper f1 f2 fr/TypeFilter? :else subtype-type-filter*))))))
+        (and (sub-helper f1 f2 fr/TypeProposition? :then subtype-type-proposition*)
+             (sub-helper f1 f2 fr/TypeProposition? :else subtype-not-type-proposition*))
+        (and (sub-helper f1 f2 fr/TypeProposition? :then subtype-type-proposition*)
+             (sub-helper f1 f2 fr/NotTypeProposition? :else subtype-not-type-proposition*))
+        (and (sub-helper f1 f2 fr/NotTypeProposition? :then subtype-not-type-proposition*)
+             (sub-helper f1 f2 fr/NotTypeProposition? :else subtype-not-type-proposition*))
+        (and (sub-helper f1 f2 fr/NotTypeProposition? :then subtype-not-type-proposition*)
+             (sub-helper f1 f2 fr/TypeProposition? :else subtype-type-proposition*))))))
 
-(defn ^:private subtype-filter* [A f1 f2 opts]
-  {:pre [(fr/Filter? f1)
-         (not (fr/NoFilter? f1))
-         (fr/Filter? f2)
-         (not (fr/NoFilter? f2))]
+(defn ^:private subtype-proposition* [A f1 f2 opts]
+  {:pre [(fr/Proposition? f1)
+         (not (fr/NoProposition? f1))
+         (fr/Proposition? f2)
+         (not (fr/NoProposition? f2))]
    :post [(or (nil? %) (set? %))]}
   ; assume disjunctive normal form
   ; ie. (V (^ ...) (^ ...))
   (cond
     (= f1 f2) A
-    (fr/TopFilter? f2) A
-    (fr/BotFilter? f1) A
+    (fr/TopProposition? f2) A
+    (fr/BotProposition? f1) A
 
-    (and (fr/TypeFilter? f1)
-         (fr/TypeFilter? f2))
-    (subtype-type-filter* A f1 f2 opts)
+    (and (fr/TypeProposition? f1)
+         (fr/TypeProposition? f2))
+    (subtype-type-proposition* A f1 f2 opts)
 
-    (and (fr/NotTypeFilter? f1)
-         (fr/NotTypeFilter? f2))
-    (subtype-not-type-filter* A f1 f2 opts)
+    (and (fr/NotTypeProposition? f1)
+         (fr/NotTypeProposition? f2))
+    (subtype-not-type-proposition* A f1 f2 opts)
 
-    (fr/AndFilter? f2) (if (every? (fn [f2*]
-                                     (subtype-filter* A f1 f2* opts))
+    (fr/AndProposition? f2) (if (every? (fn [f2*]
+                                     (subtype-proposition* A f1 f2* opts))
                                    (:fs f2))
                          A
                          (report-not-subtypes f1 f2))
-    (fr/AndFilter? f1) (some (fn [f1*]
-                               (subtype-filter* A f1* f2 opts))
+    (fr/AndProposition? f1) (some (fn [f1*]
+                               (subtype-proposition* A f1* f2 opts))
                              (:fs f1))
-    (fr/OrFilter? f1) (if (every? (fn [f1*]
-                                    (subtype-filter* A f1* f2 opts))
+    (fr/OrProposition? f1) (if (every? (fn [f1*]
+                                    (subtype-proposition* A f1* f2 opts))
                                   (:fs f1))
                         A
                         (report-not-subtypes f1 f2))
-    (fr/OrFilter? f2) (some (fn [f2*]
-                              (subtype-filter* A f1 f2* opts))
+    (fr/OrProposition? f2) (some (fn [f2*]
+                              (subtype-proposition* A f1 f2* opts))
                             (:fs f2))
     :else (report-not-subtypes f1 f2)))
 
@@ -1500,7 +1500,7 @@
   (cond
     ;trivial case
     (and (= o1 o2)
-         (subtype-filter-set* A f1 f2 opts))
+         (subtype-proposition-set* A f1 f2 opts))
     (subtypeA* A t1 t2 opts)
 
     ;we can ignore some interesting results
@@ -1513,13 +1513,13 @@
     (subtypeA* A t1 t2 opts)
 
     ;special case for (& (is y sym) ...) <: (is y sym)
-    (and (fr/AndFilter? (:then f1))
-         (fr/TypeFilter? (:then f2))
-         (every? fops/atomic-filter? (:fs (:then f1)))
-         (= 1 (count (filter fr/TypeFilter? (:fs (:then f1)))))
+    (and (fr/AndProposition? (:then f1))
+         (fr/TypeProposition? (:then f2))
+         (every? fops/atomic-proposition? (:fs (:then f1)))
+         (= 1 (count (filter fr/TypeProposition? (:fs (:then f1)))))
          (= fr/-top (:else f2))
          (= o1 o2))
-    (let [f1-tf (first (filter fr/TypeFilter? (:fs (:then f1))))]
+    (let [f1-tf (first (filter fr/TypeProposition? (:fs (:then f1))))]
       (if (= f1-tf (:then f2))
         (subtypeA* A t1 t2 opts)
         (report-not-subtypes t1 t2)))

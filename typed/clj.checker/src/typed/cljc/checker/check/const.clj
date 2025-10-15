@@ -10,8 +10,8 @@
   (:require [typed.cljc.checker.object-rep :as obj]
             [typed.cljc.checker.lex-env :as lex]
             [typed.cljc.checker.utils :as u]
-            [typed.cljc.checker.filter-rep :as fl]
-            [typed.cljc.checker.filter-ops :as fo]
+            [typed.cljc.checker.proposition-rep :as fl]
+            [typed.cljc.checker.proposition-ops :as fo]
             [typed.cljc.checker.check-below :as below]
             [typed.cljc.checker.constant-type :refer [constant-type]]
             [typed.cljc.checker.type-rep :as r]))

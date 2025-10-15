@@ -1,7 +1,7 @@
 (ns ^:typed.clojure clojure.core.typed.test.rbt
   (:refer-clojure :exclude [let])
   (:require [clojure.core.typed 
-             :refer [ann print-env print-filterset ann-form defalias let]
+             :refer [ann print-env print-propositionset ann-form defalias let]
              :as t]))
 
 ;-------------------------------

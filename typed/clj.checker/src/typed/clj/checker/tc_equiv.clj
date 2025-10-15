@@ -9,8 +9,8 @@
 (ns ^:typed.clojure typed.clj.checker.tc-equiv
   (:require [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.type-ctors :as c]
-            [typed.cljc.checker.filter-rep :as fl]
-            [typed.cljc.checker.filter-ops :as fo]
+            [typed.cljc.checker.proposition-rep :as fl]
+            [typed.cljc.checker.proposition-ops :as fo]
             [typed.cljc.checker.check-below :as below]
             [clojure.math.combinatorics :as comb]
             [clojure.core.typed.current-impl :as impl]))
@@ -69,42 +69,42 @@
         ; conservative for now
         vs-combinations (comb/combinations vs 2)
         ;_ (prn (count vs-combinations))
-        then-filter (fo/-and (apply concat
+        then-proposition (fo/-and (apply concat
                                     (for [[{t1 :t fl1 :fl o1 :o}
                                            {t2 :t fl2 :fl o2 :o}] vs-combinations]
                                       (concat
                                         (when-some [t1 (then-equivable t1)]
-                                          [(fo/-filter-at t1 o2)])
+                                          [(fo/-proposition-at t1 o2)])
                                         (when-some [t2 (then-equivable t2)]
-                                          [(fo/-filter-at t2 o1)]))))
+                                          [(fo/-proposition-at t2 o1)]))))
                              opts)
-        ;_ (prn "then" then-filter)
-        else-filter (fo/-or (if-let [fs (seq (apply concat
+        ;_ (prn "then" then-proposition)
+        else-proposition (fo/-or (if-let [fs (seq (apply concat
                                                     (for [[{t1 :t fl1 :fl o1 :o}
                                                            {t2 :t fl2 :fl o2 :o}] vs-combinations]
                                                       (concat
                                                         (when-some [t1 (else-equivable t1)]
-                                                          ;(prn "else t1" t1 o2 (fo/-not-filter-at t1 o2))
-                                                          [(fo/-not-filter-at t1 o2)])
+                                                          ;(prn "else t1" t1 o2 (fo/-not-proposition-at t1 o2))
+                                                          [(fo/-not-proposition-at t1 o2)])
                                                         (when-some [t2 (else-equivable t2)]
-                                                          ;(prn "else t2" t2 o1 (fo/-not-filter-at t2 o1))
-                                                          [(fo/-not-filter-at t2 o1)])))))]
+                                                          ;(prn "else t2" t2 o1 (fo/-not-proposition-at t2 o1))
+                                                          [(fo/-not-proposition-at t2 o1)])))))]
                               fs
                               ; ensure we don't simplify to ff if we have more than one
                               ; argument to = (1 arg is always a true value)
                               (when (< 1 (count vs))
                                 [fl/-top]))
                             opts)
-        ;_ (prn "else" else-filter)
-        [then-filter else-filter]  (case comparator
-                                     :not= [else-filter then-filter]
-                                     (:= :identical?) [then-filter else-filter])]
+        ;_ (prn "else" else-proposition)
+        [then-proposition else-proposition]  (case comparator
+                                     :not= [else-proposition then-proposition]
+                                     (:= :identical?) [then-proposition else-proposition])]
     (below/maybe-check-below
-      (r/ret (c/Un (concat (when (not= then-filter fl/-bot)
+      (r/ret (c/Un (concat (when (not= then-proposition fl/-bot)
                              [r/-true])
-                           (when (not= else-filter fl/-bot)
+                           (when (not= else-proposition fl/-bot)
                              [r/-false]))
                    opts)
-             (fo/-FS then-filter else-filter))
+             (fo/-FS then-proposition else-proposition))
       expected
       opts)))

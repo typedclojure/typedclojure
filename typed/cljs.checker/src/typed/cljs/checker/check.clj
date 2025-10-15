@@ -38,9 +38,9 @@
             [typed.cljc.checker.check.special.loop :as special-loop]
             [typed.cljc.checker.check.unanalyzed :as unanalyzed]
             [typed.cljc.checker.check.utils :as cu]
-            [typed.cljc.checker.filter-ops :as fl]
-            [typed.cljc.checker.filter-ops :as fo]
-            [typed.cljc.checker.filter-rep :as f]
+            [typed.cljc.checker.proposition-ops :as fl]
+            [typed.cljc.checker.proposition-ops :as fo]
+            [typed.cljc.checker.proposition-rep :as f]
             [typed.cljc.checker.inst :as inst]
             [typed.cljc.checker.lex-env :as lex]
             [typed.cljc.checker.local-result :as local-result]
@@ -176,8 +176,8 @@
         cexpr (check-expr target-expr nil opts)
         expr-tr (expr-type cexpr)
         final-ret (ret (r/JSBoolean-maker)
-                       (fo/-FS (fo/-filter-at inst-of (ret-o expr-tr))
-                               (fo/-not-filter-at inst-of (ret-o expr-tr))))]
+                       (fo/-FS (fo/-proposition-at inst-of (ret-o expr-tr))
+                               (fo/-not-proposition-at inst-of (ret-o expr-tr))))]
     (assoc expr
            expr-type final-ret)))
 
@@ -352,7 +352,7 @@
            u/expr-type (below/maybe-check-below
                          (r/ret (r/JSObj-maker (zipmap (map keyword keys)
                                                        (map (comp r/ret-t u/expr-type) cvals)))
-                                (fo/-true-filter))
+                                (fo/-true-proposition))
                          expected
                          opts))))
 

@@ -9,7 +9,7 @@
 (ns ^:typed.clojure ^:no-doc typed.cljc.checker.open-result
   (:require [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.object-rep :as obj]
-            [typed.cljc.checker.filter-rep :as fl]
+            [typed.cljc.checker.proposition-rep :as fl]
             [clojure.core.typed.contract-utils :as con]
             [typed.cljc.checker.subst-obj :as subst-obj]
             [typed.cljc.runtime.perf-utils :as perf]))
@@ -37,36 +37,36 @@
 ;; Notice the objects are instantiated from 0 -> a
 ;
 ;[Result (Seqable RObject) (Option (Seqable Type)) 
-;  -> '[Type FilterSet RObject]]
+;  -> '[Type PropositionSet RObject]]
 (defn open-Result 
   "Substitute ids for objs in Result t"
   ([r objs opts] (open-Result r objs nil opts))
   ([{t :t fs :fl old-obj :o :as r} objs ts opts]
    {:pre [(r/Result? r)
           (every? obj/RObject? objs)
-          ((some-fn fl/FilterSet? fl/NoFilter?) fs)
+          ((some-fn fl/PropositionSet? fl/NoProposition?) fs)
           (obj/RObject? old-obj)
           ((some-fn nil? (con/every-c? r/Type?)) ts)]
-    :post [((con/hvector-c? r/Type? fl/FilterSet? obj/RObject?) %)]}
+    :post [((con/hvector-c? r/Type? fl/PropositionSet? obj/RObject?) %)]}
    ;  (prn "open-result")
    ;  (prn "result type" (prs/unparse-type t opts))
-   ;  (prn "result filterset" (prs/unparse-filter-set fs opts))
+   ;  (prn "result filterset" (prs/unparse-proposition-set fs opts))
    ;  (prn "result (old) object" old-obj)
    ;  (prn "objs" objs)
    ;  (prn "ts" (mapv #(prs/unparse-type % opts) ts))
    (perf/reduce
     (fn [[t fs old-obj] o k arg-ty]
       {:pre [(r/Type? t)
-             ((some-fn fl/FilterSet? fl/NoFilter?) fs)
+             ((some-fn fl/PropositionSet? fl/NoProposition?) fs)
              (obj/RObject? old-obj)
              (integer? k)
              (obj/RObject? o)
              ((some-fn false? r/Type?) arg-ty)]
-       :post [((con/hvector-c? r/Type? fl/FilterSet? obj/RObject?) %)]}
+       :post [((con/hvector-c? r/Type? fl/PropositionSet? obj/RObject?) %)]}
       (let [r [(subst-obj/subst-type t k o true opts)
-               (subst-obj/subst-filter-set fs k o true arg-ty opts)
+               (subst-obj/subst-proposition-set fs k o true arg-ty opts)
                (subst-obj/subst-object old-obj k o true opts)]]
-        ;; (prn [(prs/unparse-type t opts) (prs/unparse-filter-set fs opts) old-obj])
+        ;; (prn [(prs/unparse-type t opts) (prs/unparse-proposition-set fs opts) old-obj])
         ;; (prn "r" r)
         r))
     [t fs old-obj]

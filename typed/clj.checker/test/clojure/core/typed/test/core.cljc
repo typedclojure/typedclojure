@@ -17,15 +17,15 @@
             [typed.clj.checker.check :as chk]
             [typed.cljc.checker.check.funapp :as funapp]
             [typed.cljc.checker.check.utils :as cu]
-            [typed.cljc.checker.update :as update :refer [env+ update-with-filter]]
+            [typed.cljc.checker.update :as update :refer [env+ update-with-proposition]]
             [typed.clj.checker.tc-equiv :refer [tc-equiv]]
             [typed.cljc.checker.collect-utils :as collect-u]
             [typed.cljc.checker.inst :as inst]
             [typed.clj.checker.subtype :as sub]
             [typed.cljc.checker.type-ctors :refer :all]
             [typed.cljc.checker.type-rep :refer :all :as r]
-            [typed.cljc.checker.filter-rep :refer :all]
-            [typed.cljc.checker.filter-ops :refer :all]
+            [typed.cljc.checker.proposition-rep :refer :all]
+            [typed.cljc.checker.proposition-ops :refer :all]
             [typed.cljc.checker.object-rep :refer :all]
             [typed.cljc.checker.path-rep :refer :all]
             [typed.clj.checker.parse-unparse :refer :all]
@@ -198,7 +198,7 @@
            (ret (make-FnIntersection
                   (r/make-Function [-any]
                                    (make-Result (-val 1)
-                                                (-true-filter)
+                                                (-true-proposition)
                                                 -empty)))
                 (-FS -top -bot) -empty))
   (is-clj (= (tc-t (let [a nil] a))
@@ -246,11 +246,11 @@
                        (clj-opts))]
                   (Un [-nil (make-HMap (clj-opts) {:mandatory {(-val :op) (-val :if)}})]
                       (clj-opts))
-                  :filter (-FS (-and [(-filter (-val :if) 0 [(-kpe :op)])
-                                      (-filter (make-HMap (clj-opts) {:mandatory {(-val :op) (-val :if)}}) 0)]
+                  :filter (-FS (-and [(-proposition (-val :if) 0 [(-kpe :op)])
+                                      (-proposition (make-HMap (clj-opts) {:mandatory {(-val :op) (-val :if)}}) 0)]
                                      (clj-opts))
-                               (-not-filter (-val :if) 0 [(-kpe :op)]))))
-              (-true-filter)))))
+                               (-not-proposition (-val :if) 0 [(-kpe :op)]))))
+              (-true-proposition)))))
 
 
 #_(deftest dotted-infer-test
@@ -284,46 +284,46 @@
     (subtype? (parse-clj `(t/HList [(t/Value 1) (t/Value 2)]))
               (RClass-of ISeq [-any] (clj-opts))))
   (is-clj (= (tc-t [1 2])
-             (ret (-hvec [(-val 1) (-val 2)] {:filters [(-true-filter) (-true-filter)]} (clj-opts)) (-true-filter) -empty)))
+             (ret (-hvec [(-val 1) (-val 2)] {:filters [(-true-proposition) (-true-proposition)]} (clj-opts)) (-true-proposition) -empty)))
   (is-clj (= (tc-t '(1 2))
-             (ret (HeterogeneousList-maker [(-val 1) (-val 2)] (clj-opts)) (-true-filter) -empty)))
+             (ret (HeterogeneousList-maker [(-val 1) (-val 2)] (clj-opts)) (-true-proposition) -empty)))
   (is-clj (= (tc-t {:a 1})
-             (ret (-complete-hmap {(-val :a) (-val 1)} (clj-opts)) (-true-filter) -empty)))
+             (ret (-complete-hmap {(-val :a) (-val 1)} (clj-opts)) (-true-proposition) -empty)))
   (is-clj (= (tc-t {})
-             (ret (-complete-hmap {} (clj-opts)) (-true-filter) -empty)))
+             (ret (-complete-hmap {} (clj-opts)) (-true-proposition) -empty)))
   (is-clj (= (tc-t [])
-             (ret (-hvec [] {} (clj-opts)) (-true-filter) -empty)))
+             (ret (-hvec [] {} (clj-opts)) (-true-proposition) -empty)))
   (is-clj (= (tc-t '())
-             (ret (HeterogeneousList-maker [] (clj-opts)) (-true-filter) -empty)))
+             (ret (HeterogeneousList-maker [] (clj-opts)) (-true-proposition) -empty)))
   (is-cf '(a b) (clojure.core.typed/HList [clojure.lang.Symbol clojure.lang.Symbol])))
 
 (deftest implied-atomic?-test
   (is-clj (implied-atomic? -top -bot (clj-opts)))
   (is-clj (not (implied-atomic? -bot -top (clj-opts))))
   (is-clj (implied-atomic? -top
-                           (-filter (RClass-of Long (clj-opts)) 0) (clj-opts)))
+                           (-proposition (RClass-of Long (clj-opts)) 0) (clj-opts)))
   (is-clj (not
-            (implied-atomic? (-filter (RClass-of Long (clj-opts)) 0)
+            (implied-atomic? (-proposition (RClass-of Long (clj-opts)) 0)
                            -top (clj-opts))))
-  (is-clj (implied-atomic? (-filter (RClass-of Long (clj-opts)) 0)
-                           (-filter (RClass-of Long (clj-opts)) 0) (clj-opts)))
-  (is-clj (implied-atomic? (-filter (RClass-of Long (clj-opts)) 'a__#0)
-                           (-filter (RClass-of Long (clj-opts)) 'a__#0) (clj-opts)))
-  (is-clj (implied-atomic? (-not-filter (Name-maker `Long) 'a__#0)
-                           (-not-filter (RClass-of Long (clj-opts)) 'a__#0) (clj-opts)))
-  (is-clj (implied-atomic? (-not-filter (RClass-of Long (clj-opts)) 'a__#0)
-                           (-not-filter (Name-maker `Long) 'a__#0) (clj-opts)))
-  (is-clj (implied-atomic? (-not-filter -false 'a) (-not-filter (Un [-nil -false] (clj-opts)) 'a) (clj-opts)))
+  (is-clj (implied-atomic? (-proposition (RClass-of Long (clj-opts)) 0)
+                           (-proposition (RClass-of Long (clj-opts)) 0) (clj-opts)))
+  (is-clj (implied-atomic? (-proposition (RClass-of Long (clj-opts)) 'a__#0)
+                           (-proposition (RClass-of Long (clj-opts)) 'a__#0) (clj-opts)))
+  (is-clj (implied-atomic? (-not-proposition (Name-maker `Long) 'a__#0)
+                           (-not-proposition (RClass-of Long (clj-opts)) 'a__#0) (clj-opts)))
+  (is-clj (implied-atomic? (-not-proposition (RClass-of Long (clj-opts)) 'a__#0)
+                           (-not-proposition (Name-maker `Long) 'a__#0) (clj-opts)))
+  (is-clj (implied-atomic? (-not-proposition -false 'a) (-not-proposition (Un [-nil -false] (clj-opts)) 'a) (clj-opts)))
   (is-clj (implied-atomic?
             (clj
-              (parse-filter
+              (parse-proposition
                 '(or (! ':Red   tmap [(Key :right) (Key :left) (Key :tree)]) 
                      (! ':Black tmap [(Key :tree)]) 
                      (! ':Red   tmap [(Key :right) (Key :tree)]) 
                      (! ':Red   tmap [(Key :left)  (Key :tree)]))
                 (clj-opts)))
             (clj 
-              (parse-filter
+              (parse-proposition
                 '(or (! ':Red   tmap [(Key :right) (Key :left) (Key :tree)]) 
                      (! ':Black tmap [(Key :tree)]) 
                      (! ':Red   tmap [(Key :right) (Key :tree)]))
@@ -332,13 +332,13 @@
 
   (is-clj 
     (let [f1 (clj 
-               (parse-filter
+               (parse-proposition
                  '(or (! ':Red   tmap [(Key :right) (Key :left) (Key :tree)]) 
                       (! ':Black tmap [(Key :tree)]) 
                       (! ':Red   tmap [(Key :right) (Key :tree)]))
                  (clj-opts)))
           f2 (clj
-               (parse-filter
+               (parse-proposition
                  '(or (! ':Red   tmap [(Key :right) (Key :left) (Key :tree)]) 
                       (! ':Black tmap [(Key :tree)]) 
                       (! ':Red   tmap [(Key :right) (Key :tree)]) 
@@ -349,25 +349,25 @@
          f1)))
   (is-clj 
     (not (implied-atomic?
-           (parse-filter
+           (parse-proposition
              '(or (! ':Red   tmap [(Key :right) (Key :right) (Key :tree)]) 
                   (! ':Black tmap [(Key :tree)]) 
                   (! ':Red   tmap [(Key :right) (Key :tree)]))
              (clj-opts))
-           (parse-filter
+           (parse-proposition
              '(or (! ':Red   tmap [(Key :right) (Key :right) (Key :tree)]) 
                   (! ':Black tmap [(Key :tree)]) 
                   (! ':Red   tmap [(Key :right) (Key :tree)])
                   (! ':Red   tmap [(Key :left)  (Key :tree)]))
              (clj-opts)) (clj-opts))))
   (is-clj (implied-atomic?
-                 (parse-filter
+                 (parse-proposition
                    '(or (! ':Red   tmap [(Key :right) (Key :right) (Key :tree)]) 
                         (! ':Black tmap [(Key :tree)]) 
                         (! ':Red   tmap [(Key :right) (Key :tree)]) 
                         (! ':Red   tmap [(Key :left)  (Key :tree)]))
                    (clj-opts))
-                 (parse-filter
+                 (parse-proposition
                    '(or (! ':Red   tmap [(Key :right) (Key :right) (Key :tree)]) 
                         (! ':Black tmap [(Key :tree)]) 
                         (! ':Red   tmap [(Key :right) (Key :tree)]))
@@ -375,13 +375,13 @@
   (is-clj (= (clj
                (-and
                  [(clj
-                    (parse-filter
+                    (parse-proposition
                       '(or (! ':Red   tmap [(Key :right) (Key :right) (Key :tree)]) 
                            (! ':Black tmap [(Key :tree)]) 
                            (! ':Red   tmap [(Key :right) (Key :tree)]))
                       (clj-opts)))
                   (clj
-                    (parse-filter
+                    (parse-proposition
                       '(or (! ':Red   tmap [(Key :right) (Key :right) (Key :tree)]) 
                            (! ':Black tmap [(Key :tree)]) 
                            (! ':Red   tmap [(Key :right) (Key :tree)]) 
@@ -391,20 +391,20 @@
              (clj
                (-and
                  [(clj
-                    (parse-filter
+                    (parse-proposition
                       '(or (! ':Red   tmap [(Key :right) (Key :right) (Key :tree)]) 
                            (! ':Black tmap [(Key :tree)]) 
                            (! ':Red   tmap [(Key :right) (Key :tree)]) 
                            (! ':Red   tmap [(Key :left)  (Key :tree)]))
                       (clj-opts)))
                   (clj
-                    (parse-filter
+                    (parse-proposition
                       '(or (! ':Red   tmap [(Key :right) (Key :right) (Key :tree)]) 
                            (! ':Black tmap [(Key :tree)]) 
                            (! ':Red   tmap [(Key :right) (Key :tree)]))
                       (clj-opts)))]
                  (clj-opts)))
-             (parse-filter
+             (parse-proposition
                '(or (! ':Red   tmap [(Key :right) (Key :right) (Key :tree)]) 
                     (! ':Black tmap [(Key :tree)]) 
                     (! ':Red   tmap [(Key :right) (Key :tree)]))
@@ -414,19 +414,19 @@
 
 (deftest combine-props-test
   (let [vol (volatile! true)]
-    (is-clj (= (map set (update/combine-props [(ImpFilter-maker (-not-filter -false 'a)
-                                                                (-filter -true 'b))]
-                                              [(-not-filter (Un [-nil -false] (clj-opts)) 'a)]
+    (is-clj (= (map set (update/combine-props [(ImpProposition-maker (-not-proposition -false 'a)
+                                                                (-proposition -true 'b))]
+                                              [(-not-proposition (Un [-nil -false] (clj-opts)) 'a)]
                                               (volatile! true)
                                               (clj-opts)))
-               [#{} #{(-not-filter (Un [-nil -false] (clj-opts)) 'a)
-                      (-filter -true 'b)}]))
+               [#{} #{(-not-proposition (Un [-nil -false] (clj-opts)) 'a)
+                      (-proposition -true 'b)}]))
     (is @vol)))
 
 (deftest env+-test
-  ;test basic TypeFilter
+  ;test basic TypeProposition
   ;update a from clojure.core.typed/Any to (t/Value :a)
-  (is-clj (let [props [(-filter (-val :a) 'a)]
+  (is-clj (let [props [(-proposition (-val :a) 'a)]
                 flag (volatile! true)]
             (and (= (let [env {'a -any}
                           lenv (-PropEnv env props)]
@@ -435,7 +435,7 @@
                  @flag)))
   ;test positive KeyPE
   ;update a from (t/U (t/HMap :mandatory {:op :if}) (t/HMap :mandatory {:op :var})) => (t/HMap :mandatory {:op :if})
-  (is-clj (let [props [(-filter (-val :if) 'a [(-kpe :op)])]
+  (is-clj (let [props [(-proposition (-val :if) 'a [(-kpe :op)])]
                 flag (volatile! true)]
             (and (= (let [env {'a (Un [(make-HMap (clj-opts) {:mandatory {(-val :op) (-val :if)}})
                                        (make-HMap (clj-opts) {:mandatory {(-val :op) (-val :var)}})]
@@ -445,7 +445,7 @@
                     (-PropEnv {'a (make-HMap (clj-opts) {:mandatory {(-val :op) (-val :if)}})} props))
                  @flag)))
   ;test negative KeyPE
-  (is-clj (let [props [(-not-filter (-val :if) 'a [(-kpe :op)])]
+  (is-clj (let [props [(-not-proposition (-val :if) 'a [(-kpe :op)])]
                 flag (volatile! true)]
             (and (= (let [env {'a (Un [(make-HMap (clj-opts) {:mandatory {(-val :op) (-val :if)}})
                                        (make-HMap (clj-opts) {:mandatory {(-val :op) (-val :var)}})]
@@ -458,15 +458,15 @@
   (clj (let [{:keys [l props]}
              (env+ (-PropEnv {'a (Un [-false -true] (clj-opts))
                               'b (Un [-nil -true] (clj-opts))}
-                             [(ImpFilter-maker (-not-filter -false 'a)
-                                               (-filter -true 'b))])
-                   [(-not-filter (Un [-nil -false] (clj-opts)) 'a)]
+                             [(ImpProposition-maker (-not-proposition -false 'a)
+                                               (-proposition -true 'b))])
+                   [(-not-proposition (Un [-nil -false] (clj-opts)) 'a)]
                    (volatile! true)
                    (clj-opts))]
          (is (= l {'a -true, 'b -true}))
          (is (= (set props)
-                #{(-not-filter (Un [-nil -false] (clj-opts)) 'a)
-                  (-filter -true 'b)}))))
+                #{(-not-proposition (Un [-nil -false] (clj-opts)) 'a)
+                  (-proposition -true 'b)}))))
   ; more complex impfilter
   (is-with-aliases
     (=
@@ -474,31 +474,31 @@
                 'tmap (make-HMap (clj-opts)
                                  {:mandatory {(-val :type) (-val :MapStruct2)
                                               (-val :b) (Name-maker 'clojure.core.typed.test.util-aliases/MyName)}})}
-               #{(-not-filter (-val :MapStruct1)
+               #{(-not-proposition (-val :MapStruct1)
                               'tmap
                               [(-kpe :type)])
-                 (-filter (Un [-false -nil] (clj-opts))
+                 (-proposition (Un [-false -nil] (clj-opts))
                           'and1)
-                 (ImpFilter-maker (-not-filter (Un [-nil -false] (clj-opts)) 'and1)
-                                  (-filter (-val :MapStruct1)
+                 (ImpProposition-maker (-not-proposition (Un [-nil -false] (clj-opts)) 'and1)
+                                  (-proposition (-val :MapStruct1)
                                            'tmap
                                            [(-kpe :type)]))})
      (env+ (-PropEnv {'and1 (Un [-false -true] (clj-opts))
                       'tmap (Name-maker 'clojure.core.typed.test.util-aliases/UnionName)}
-                     [(ImpFilter-maker (-filter (Un [-nil -false] (clj-opts)) 'and1)
-                                       (-not-filter (-val :MapStruct1)
+                     [(ImpProposition-maker (-proposition (Un [-nil -false] (clj-opts)) 'and1)
+                                       (-not-proposition (-val :MapStruct1)
                                                     'tmap
                                                     [(-kpe :type)]))
-                      (ImpFilter-maker (-not-filter (Un [-nil -false] (clj-opts)) 'and1)
-                                       (-filter (-val :MapStruct1)
+                      (ImpProposition-maker (-not-proposition (Un [-nil -false] (clj-opts)) 'and1)
+                                       (-proposition (-val :MapStruct1)
                                                 'tmap
                                                 [(-kpe :type)]))])
-           [(-filter (Un [-nil -false] (clj-opts)) 'and1)]
+           [(-proposition (Un [-nil -false] (clj-opts)) 'and1)]
            (volatile! true)
            (clj-opts))))
   ; refine a subtype
   (is-clj (= (:l (env+ (-PropEnv {'and1 (-name `t/Seqable -any)} [])
-                       [(-filter (RClass-of IPersistentVector [-any] (clj-opts)) 'and1)]
+                       [(-proposition (RClass-of IPersistentVector [-any] (clj-opts)) 'and1)]
                        (volatile! true)
                        (clj-opts)))
              {'and1 (RClass-of IPersistentVector [-any] (clj-opts))}))
@@ -512,7 +512,7 @@
   ;FIXME for destructuring rest args
 ;  (is-clj (= (tc-t (let [a '(a b)]
 ;                 (seq? a)))
-;         (ret -true (-true-filter) -empty)))
+;         (ret -true (-true-proposition) -empty)))
   (is-clj (= (-> 
                (tc-t (let [a {:a 1}]
                        (if (seq? a)
@@ -527,7 +527,7 @@
                   (make-Function
                     [(make-HMap (clj-opts) {:mandatory {(-val :a) (-val 1)}})]
                     (-val 1) 
-                    :filter (-true-filter)
+                    :filter (-true-proposition)
                     :object (-path [(-kpe :a)] 0)))
                 (-FS -top -bot)
                 -empty))
@@ -538,13 +538,13 @@
          (make-FnIntersection
            (r/make-Function [(Name-maker 'clojure.core.typed.test.util-aliases/UnionName)]
                             (make-Result -false 
-                                         ;FIXME why isn't this (-FS -bot (-not-filter (RClass-of ISeq [-any] (clj-opts)) 0)) ?
+                                         ;FIXME why isn't this (-FS -bot (-not-proposition (RClass-of ISeq [-any] (clj-opts)) 0)) ?
                                          (-FS -bot -top)
                                          -empty)))))
   (is-clj (= (tc-t (let [{a :a} {:a 1}]
                  a))
              (ret (-val 1) 
-                  (-true-filter)
+                  (-true-proposition)
                   -empty)))
   ;FIXME should be (-FS -bot (! ISeq 0))
   #_(is-tc-e (clojure.core.typed/fn [a :- (t/HMap :mandatory {:a (t/Value 1)})]
@@ -552,7 +552,7 @@
              :expected-ret
              (ret (make-FnIntersection
                     (r/make-Function [(make-HMap (clj-opts) {:mandatory {(-val :a) (-val 1)}})]
-                                     (make-Result -false (-false-filter) -empty)))
+                                     (make-Result -false (-false-proposition) -empty)))
                              (-FS -top -bot)
                              -empty))
   ;roughly the macroexpansion of map destructuring
@@ -591,14 +591,14 @@
                                        (make-HMap (clj-opts) {:mandatory {(-val :b) (-val 2)}})]
                                       (clj-opts))]
                                  -any
-                                 :filter (-FS (-and [(-not-filter (Un [-nil -false] (clj-opts)) 0 [(-kpe :a)])
-                                                     (-filter 
+                                 :filter (-FS (-and [(-not-proposition (Un [-nil -false] (clj-opts)) 0 [(-kpe :a)])
+                                                     (-proposition 
                                                        (parse-clj
                                                          `(t/U (t/HMap :mandatory {:a (t/Val 1)}) 
                                                                (t/HMap :mandatory {:a t/Any, :b (t/Val 2)})))
                                                        0)]
                                                     (clj-opts))
-                                              (-filter (Un [-nil -false] (clj-opts)) 0 [(-kpe :a)]))
+                                              (-proposition (Un [-nil -false] (clj-opts)) 0 [(-kpe :a)]))
                                  :object (-path [(-kpe :a)] 0))))))
 
 (deftest Name-resolve-test
@@ -612,9 +612,9 @@
                   (make-Function
                     [(Name-maker 'clojure.core.typed.test.util-aliases/MyName)]
                     (-val 1) 
-                    :filter (-true-filter)
+                    :filter (-true-proposition)
                     :object (-path [(-kpe :a)] 0)))
-                (-true-filter)))
+                (-true-proposition)))
   (is-tc-e
     (fn [tmap :- clojure.core.typed.test.util-aliases/MapName]
       (let [{e :a} tmap]
@@ -626,8 +626,8 @@
              (make-HMap (clj-opts)
                         {:mandatory {(-val :a) (-val 1)
                                      (-val :c) (-val :b)}})
-             :filter (-true-filter)))
-         (-true-filter)))
+             :filter (-true-proposition)))
+         (-true-proposition)))
   ; Name representing union of two maps, both with :type key
   (is-clj (subtype? 
             (-> (tc-t (fn [tmap :- clojure.core.typed.test.util-aliases/UnionName]
@@ -648,14 +648,14 @@
                 :filter (let [t (-val :MapStruct1)
                               path [(-kpe :type)]]
                           (-FS (-and 
-                                 [(-filter (make-HMap (clj-opts)
+                                 [(-proposition (make-HMap (clj-opts)
                                                       {:mandatory {(-val :type) (-val :MapStruct1)
                                                                    (-val :a) (Name-maker 'clojure.core.typed.test.util-aliases/MyName)}})
                                            0)
-                                  (-filter (-val :MapStruct1) 0 path)
-                                  (-filter t 0 path)]
+                                  (-proposition (-val :MapStruct1) 0 path)
+                                  (-proposition t 0 path)]
                                  (clj-opts))
-                               (-not-filter t 0 path)))))))
+                               (-not-proposition t 0 path)))))))
   ; using filters derived by =
   (is-clj (subtype? (-> (tc-t (fn [tmap :- clojure.core.typed.test.util-aliases/UnionName]
                                 (if (= :MapStruct1 (:type tmap))
@@ -668,23 +668,23 @@
   (is-tc-e (fn [tmap :- clojure.core.typed.test.util-aliases/UnionName]
              ; (and (= :MapStruct1 (-> tmap :type))
              ;      (= 1 1))
-             (if (print-filterset 
+             (if (print-propositionset 
                    "final filters"
-                   (let [and1 (print-filterset
+                   (let [and1 (print-propositionset
                                 "first and1"
                                 (= :MapStruct1 (-> tmap :type)))]
                      (print-env "first conjunct")
-                     (print-filterset
+                     (print-propositionset
                        "second and1"
-                       (if (print-filterset
+                       (if (print-propositionset
                              "second test"
                              and1)
                          (do (print-env "second conjunct")
-                             (print-filterset
+                             (print-propositionset
                                "third and1"
                                (= 1 1)))
                          (do (print-env "fail conjunct")
-                             (print-filterset
+                             (print-propositionset
                                "fail and1"
                                and1))))))
                (do (print-env "follow then")
@@ -700,8 +700,8 @@
                                                       (-val :c) (-val :d)
                                                       (-val :a) (Name-maker 'clojure.core.typed.test.util-aliases/MyName)}})]
                              (clj-opts))
-                         :filter (-true-filter)))
-                     (-true-filter) -empty))))
+                         :filter (-true-proposition)))
+                     (-true-proposition) -empty))))
 
 
 (deftest assoc-test
@@ -960,9 +960,9 @@
              (-hvec [(-val 1)
                      (-val 2)
                      (-hvec [(-val 1) (-val 2)]
-                            {:filters [(-true-filter) (-true-filter)]}
+                            {:filters [(-true-proposition) (-true-proposition)]}
                             (clj-opts))]
-                    {:filters [(-true-filter) (-true-filter) (-true-filter)]}
+                    {:filters [(-true-proposition) (-true-proposition) (-true-proposition)]}
                     (clj-opts))))
   ;Map destructuring of vector
   ;FIXME needs implementing, but gives a decent error msg
@@ -979,7 +979,7 @@
                     (parse-clj '[nil -> nil])))
   (is-cf (clojure.core.typed/ann-form (clojure.core.typed/inst merge clojure.core.typed/Any clojure.core.typed/Any) [nil -> nil])))
 
-(deftest poly-filter-test
+(deftest poly-proposition-test
   (is-clj (both-subtype? 
             (ety (let [a :- (t/Coll t/Int), [1]]
                    (if (seq a)
@@ -1013,11 +1013,11 @@
               [(make-Function
                  [-any]
                  (RClass-of 'boolean (clj-opts))
-                 :filter (-FS (-and [(-filter (-val Number) 0 [(ClassPE-maker)])
+                 :filter (-FS (-and [(-proposition (-val Number) 0 [(ClassPE-maker)])
                                      ;the important filter, updates first argument to be Number if predicate is true
-                                     (-filter (RClass-of Number (clj-opts)) 0)]
+                                     (-proposition (RClass-of Number (clj-opts)) 0)]
                                     (clj-opts))
-                              (-not-filter (-val Number) 0 [(ClassPE-maker)])))]))))
+                              (-not-proposition (-val Number) 0 [(ClassPE-maker)])))]))))
 
 ;TODO ^--
 ;(-> (tc-t #(let [a (class %)]
@@ -1046,7 +1046,7 @@
   (is-tc-e (isa? {:parents {} :ancestors {} :descendants {}} 1 1))
   (is-tc-e #(isa? (class %) Number))
   (is (= (ret (parse-clj `(t/U (t/Value 1) (t/Value 2)))
-              (-true-filter))
+              (-true-proposition))
          (tc-e (let [m {:a :b}
                      a :- t/Any 1
                      b :- t/Any 2]
@@ -1054,7 +1054,7 @@
                    1
                    2)))))
   (is (= (ret (parse-clj `(t/U (t/Value 1) (t/Value 2)))
-              (-true-filter))
+              (-true-proposition))
          (tc-e
            (let [c clojure.lang.Keyword]
              (if (isa? c Object)
@@ -1093,7 +1093,7 @@
   ;               (not (isa? (-> x class class) Object)))))
   )
 
-(deftest equiv-filters-test
+(deftest equiv-propositions-test
   (is-tc-e (do (ann a? (t/Pred ':a))
                (cc/defn a? [x]
                  (= :a x))))
@@ -1185,7 +1185,7 @@
 ;;;;
 
 ;FIXME CTYP-71
-;(deftest let-filter-unscoping-test
+;(deftest let-proposition-unscoping-test
 ;  (is-cf (fn [a]
 ;            (and (< 1 2) a))
 ;         [(t/U nil Number) -> clojure.core.typed/Any :filters {:then (is Number 0)}]))
@@ -1283,19 +1283,19 @@
   (is (caught-top-level-errors #{1}
         (check-ns 'clojure.core.typed.test.kw-args-undeclared-fail))))
 
-(deftest filter-combine-test
-  (is (check-ns 'clojure.core.typed.test.filter-combine)))
+(deftest proposition-combine-test
+  (is (check-ns 'clojure.core.typed.test.proposition-combine)))
 
-(deftest or-filter-simplify-test
+(deftest or-proposition-simplify-test
   ;(or (is T  a)
   ;    (is T' a))
   ; simplifies to
   ;(is (t/U T T') a)
   (is-clj 
-    (= (-or [(-filter (RClass-of clojure.lang.Symbol (clj-opts)) 'id)
-             (-filter (RClass-of String (clj-opts)) 'id)]
+    (= (-or [(-proposition (RClass-of clojure.lang.Symbol (clj-opts)) 'id)
+             (-proposition (RClass-of String (clj-opts)) 'id)]
             (clj-opts))
-       (-filter (Un [(RClass-of clojure.lang.Symbol (clj-opts))
+       (-proposition (Un [(RClass-of clojure.lang.Symbol (clj-opts))
                      (RClass-of String (clj-opts))]
                     (clj-opts))
                 'id)))
@@ -1305,10 +1305,10 @@
   ; simplifies to
   ;(is (t/U T T') a pth)
   (is-clj 
-    (= (-or [(-filter (RClass-of clojure.lang.Symbol (clj-opts)) 'id [(-kpe :a)])
-             (-filter (RClass-of String (clj-opts)) 'id [(-kpe :a)])]
+    (= (-or [(-proposition (RClass-of clojure.lang.Symbol (clj-opts)) 'id [(-kpe :a)])
+             (-proposition (RClass-of String (clj-opts)) 'id [(-kpe :a)])]
             (clj-opts))
-       (-filter (Un [(RClass-of clojure.lang.Symbol (clj-opts))
+       (-proposition (Un [(RClass-of clojure.lang.Symbol (clj-opts))
                      (RClass-of String (clj-opts))]
                     (clj-opts))
                 'id [(-kpe :a)])))
@@ -1321,11 +1321,11 @@
   ;   (is T' 'b))
   ;  FIXME
 ;  (is-clj 
-;    (= (-and (-filter (RClass-of clojure.lang.Symbol) 'id [(-kpe :a)])
-;             (-imp (-filter (RClass-of clojure.lang.Symbol) 'id [(-kpe :a)])
-;               (-filter (RClass-of String) 'id2 [(-kpe :a) (-kpe :b)])))
-;       (-and (-filter (RClass-of clojure.lang.Symbol) 'id [(-kpe :a)])
-;             (-filter (RClass-of String) 'id2 [(-kpe :a) (-kpe :b)]))))
+;    (= (-and (-proposition (RClass-of clojure.lang.Symbol) 'id [(-kpe :a)])
+;             (-imp (-proposition (RClass-of clojure.lang.Symbol) 'id [(-kpe :a)])
+;               (-proposition (RClass-of String) 'id2 [(-kpe :a) (-kpe :b)])))
+;       (-and (-proposition (RClass-of clojure.lang.Symbol) 'id [(-kpe :a)])
+;             (-proposition (RClass-of String) 'id2 [(-kpe :a) (-kpe :b)]))))
   )
 
 (deftest instance-field-test
@@ -1355,7 +1355,7 @@
   (is-clj (= (parse-clj `(t/HMap :absent-keys #{:op}))
              (make-HMap (clj-opts) {:absent-keys #{(-val :op)} :complete? false}))))
 
-(deftest map-filter-test
+(deftest map-proposition-test
   (is-tc-e 
     (ann-form (fn [a] (:op a))
               [(t/U '{:op ':if} '{:op ':case})
@@ -1381,7 +1381,7 @@
                false)))
   (is-tc-e (fn [a b] 
              (let [and__3941__auto__ (clojure.core/symbol? a)] 
-               (if (print-filterset "test" and__3941__auto__)
+               (if (print-propositionset "test" and__3941__auto__)
                  (clojure.core/number? b) 
                  and__3941__auto__)))))
 
@@ -1502,19 +1502,19 @@
   (is-tc-e ((inst core/filter (t/U nil Number) nil) identity [1 nil])
            (t/Seqable Number))
 
-  (is-tc-e (filter-identity :in (t/U nil Number) [1 nil])
+  (is-tc-e (proposition-identity :in (t/U nil Number) [1 nil])
            (t/Seqable Number))
-  (is (= (filter-identity :in (t/U nil Number) [1 nil])
+  (is (= (proposition-identity :in (t/U nil Number) [1 nil])
          [1]))
 
-  (is-tc-e (filter-identity :in (t/U false nil Number) [1 nil])
+  (is-tc-e (proposition-identity :in (t/U false nil Number) [1 nil])
            (t/Seqable Number))
-  (is (= (filter-identity :in (t/U false nil Number) [1 nil])
+  (is (= (proposition-identity :in (t/U false nil Number) [1 nil])
          [1]))
 
-  (is-tc-err (filter-identity :in Number [1 nil])
+  (is-tc-err (proposition-identity :in Number [1 nil])
              (t/Seqable Number))
-  (is (= (filter-identity :in Number [1 nil])
+  (is (= (proposition-identity :in Number [1 nil])
          [1]))
 
   (is-tc-e (let [filter (ann-form core/filter
@@ -1703,7 +1703,7 @@
 
 ;; FIXME this doesn't seem to test what it claims
 (deftest HMap-absent-key-update-test
-  ;ensure absent keys are preserved when passed through occurrence typing's `update-with-filter`
+  ;ensure absent keys are preserved when passed through occurrence typing's `update-with-proposition`
   (is-tc-e
     (let [a :- (t/HMap :mandatory {:a t/Num}
                      :optional {:b t/Num,
@@ -1764,9 +1764,9 @@
      :object {:id 0}])
   (is 
     (clj
-      (let [t1 (clj (update-with-filter
+      (let [t1 (clj (update-with-proposition
                       (parse-clj `(t/HMap))
-                      (parse-filter `(~'is (t/Vec t/Any) ~'m [(~'Key :foo)]) (clj-opts))
+                      (parse-proposition `(~'is (t/Vec t/Any) ~'m [(~'Key :foo)]) (clj-opts))
                       (clj-opts)))
             t2 (clj (parse-clj `(t/HMap :mandatory {:foo (t/Vec t/Any)})))]
         (both-subtype? t1 t2)))))
@@ -1944,11 +1944,11 @@
   (is-tc-err (merge nil)
              :expected-ret
              (ret (parse-clj nil)
-                  (-false-filter)))
+                  (-false-proposition)))
   (is-tc-err (merge nil)
              :expected-ret
              (ret (parse-clj nil)
-                  (-true-filter)))
+                  (-true-proposition)))
   (is-tc-err (merge nil)
              :expected-ret
              (ret (parse-clj nil)
@@ -2007,24 +2007,24 @@
   ; need to manually build hvec to match filters/objects
   (equal-types-noparse (conj nil nil)
                        (-hvec [-nil]
-                              {:filters [(-false-filter)]
+                              {:filters [(-false-proposition)]
                                :objects [-empty]}
                               (clj-opts)))
   
   (equal-types-noparse (conj [1] 2 3)
                        (-hvec [(-val 1) (-val 2) (-val 3)]
-                              {:filters [(-true-filter)
-                                         (-true-filter)
-                                         (-true-filter)]
+                              {:filters [(-true-proposition)
+                                         (-true-proposition)
+                                         (-true-proposition)]
                                :objects [-empty -empty -empty]}
                               (clj-opts)))
   (equal-types-noparse (conj [1]
                              (ann-form nil (t/U nil '2))
                              3)
                        (-hvec [(-val 1) (Un [-nil (-val 2)] (clj-opts)) (-val 3)]
-                              {:filters [(-true-filter)
+                              {:filters [(-true-proposition)
                                          (-FS -top -top)
-                                         (-true-filter)]
+                                         (-true-proposition)]
                                :objects [-empty -empty -empty]}
                               (clj-opts)))
   
@@ -2076,8 +2076,8 @@
   (is-tc-e (clojure.core.typed/fn [a :- (t/U nil (clojure.core.typed/Nilable java.util.Date))] 
                                  (when a (clojure.core.typed/ann-form a java.util.Date)))))
 
-;(clj (compact [(-filter (parse-clj 'Number) 0)
-;               (-not-filter (Un -false -nil) 0)]
+;(clj (compact [(-proposition (parse-clj 'Number) 0)
+;               (-not-proposition (Un -false -nil) 0)]
 ;              false))
 
 ; See CTYP-150
@@ -2142,7 +2142,7 @@
   (is-tc-err {:a 1} (t/Merge '{:a t/Int} '{:a t/Bool})))
 
 ;(clj
-;  (parse-filter 
+;  (parse-proposition 
 ;    '(&
 ;      (when
 ;        (! (t/U nil false) b69880)
@@ -2159,7 +2159,7 @@
 ;        (is (t/U clojure.core.typed/EmptyCount nil) b)))))
 ;
 ;(clj
-;  (parse-filter 
+;  (parse-proposition 
 ;    '(&
 ;      (when (! (t/U nil false) b69880)
 ;        (& (is clojure.core.typed/NonEmptyCount b) (! nil b)))
@@ -2167,9 +2167,9 @@
 ;
 ;(clj
 ;  (compact
-;    [(parse-filter '(when (! (t/U nil false) b69880)
+;    [(parse-proposition '(when (! (t/U nil false) b69880)
 ;                      (& (is clojure.core.typed/NonEmptyCount b) (! nil b))))
-;     (parse-filter '(! (t/U nil false) b69880))]
+;     (parse-proposition '(! (t/U nil false) b69880))]
 ;    false))
 
 (deftest hvec-ops
@@ -2219,8 +2219,8 @@
            (t/Map t/Any [t/Num t/Num -> t/Num])))
 
 ;(chk/abstract-result
-;  (ret (-hvec [-any] {:filters [(-FS (-filter (parse-clj 'Number) 'a) -top)] :objects [(-path nil 'a)]} (clj-opts))
-;       (-FS (-filter (parse-clj 'Number) 'a) -top))
+;  (ret (-hvec [-any] {:filters [(-FS (-proposition (parse-clj 'Number) 'a) -top)] :objects [(-path nil 'a)]} (clj-opts))
+;       (-FS (-proposition (parse-clj 'Number) 'a) -top))
 ;  ['a])
 
 
@@ -2386,15 +2386,15 @@
         `(t/Pred (t/HMap :mandatory {:k Number})))))
 
   (is-clj 
-    (sub/subtype-type-filter?
-      (parse-filter `(~'is Number 0 [(~'Key :k)]) (clj-opts))
-      (parse-filter `(~'is (t/HMap :mandatory {:k Number}) 0) (clj-opts))
+    (sub/subtype-type-proposition?
+      (parse-proposition `(~'is Number 0 [(~'Key :k)]) (clj-opts))
+      (parse-proposition `(~'is (t/HMap :mandatory {:k Number}) 0) (clj-opts))
       (clj-opts)))
 
   (is-clj 
-    (sub/subtype-not-type-filter?
-      (parse-filter `(~'! Number 0 [(~'Key :k)]) (clj-opts))
-      (parse-filter `(~'! (t/HMap :mandatory {:k Number}) 0) (clj-opts))
+    (sub/subtype-not-type-proposition?
+      (parse-proposition `(~'! Number 0 [(~'Key :k)]) (clj-opts))
+      (parse-proposition `(~'! (t/HMap :mandatory {:k Number}) 0) (clj-opts))
       (clj-opts))))
 
 (deftest function-as-ifn-test
@@ -2905,7 +2905,7 @@
             (fn []
               (foo))))
       (ret (parse-clj '[-> '[clojure.core.typed/Any *]])
-           (-true-filter)
+           (-true-proposition)
            -empty)))
   (is
     (tc-e 
@@ -3183,68 +3183,68 @@
 
 
 
-(deftest subtype-filter-test
+(deftest subtype-proposition-test
   (testing "top and bot"
-    (is (sub/subtype-filter? -top -top (clj-opts)))
-    (is (sub/subtype-filter? -bot -top (clj-opts)))
-    (is (sub/subtype-filter? -bot -bot (clj-opts)))
-    (is (not (sub/subtype-filter? -top -bot (clj-opts)))))
+    (is (sub/subtype-proposition? -top -top (clj-opts)))
+    (is (sub/subtype-proposition? -bot -top (clj-opts)))
+    (is (sub/subtype-proposition? -bot -bot (clj-opts)))
+    (is (not (sub/subtype-proposition? -top -bot (clj-opts)))))
   (testing "this simplifies to top"
-    (is (= (-filter -any 'a) -top)))
+    (is (= (-proposition -any 'a) -top)))
   (testing "this doesn't simplify to top"
-    (is (not= (-filter -true 'a) -top)))
-  (testing "combine type-filter and top/bot"
-    (is (sub/subtype-filter? (-filter -true 'a) -top (clj-opts)))
-    (is (sub/subtype-filter? -bot (-filter -true 'a) (clj-opts)))
-    (is (not (sub/subtype-filter? -top (-filter -true 'a) (clj-opts))))
-    (is (not (sub/subtype-filter? (-filter -true 'a) -bot (clj-opts)))))
-  (testing "simple type-filters"
-    (is-clj (sub/subtype-filter? (-filter -true 'a) (-filter -true 'a) (clj-opts)))
+    (is (not= (-proposition -true 'a) -top)))
+  (testing "combine type-proposition and top/bot"
+    (is (sub/subtype-proposition? (-proposition -true 'a) -top (clj-opts)))
+    (is (sub/subtype-proposition? -bot (-proposition -true 'a) (clj-opts)))
+    (is (not (sub/subtype-proposition? -top (-proposition -true 'a) (clj-opts))))
+    (is (not (sub/subtype-proposition? (-proposition -true 'a) -bot (clj-opts)))))
+  (testing "simple type-propositions"
+    (is-clj (sub/subtype-proposition? (-proposition -true 'a) (-proposition -true 'a) (clj-opts)))
     (testing "different types, that are subtypes"
-      (is-clj (sub/subtype-filter? (-filter -false 'a) (-filter (parse-clj `Boolean) 'a) (clj-opts)))
-      (is-clj (sub/subtype-filter? (-filter -false 'a [(-kpe :a)]) (-filter (parse-clj `Boolean) 'a [(-kpe :a)]) (clj-opts))))
+      (is-clj (sub/subtype-proposition? (-proposition -false 'a) (-proposition (parse-clj `Boolean) 'a) (clj-opts)))
+      (is-clj (sub/subtype-proposition? (-proposition -false 'a [(-kpe :a)]) (-proposition (parse-clj `Boolean) 'a [(-kpe :a)]) (clj-opts))))
     (testing "different types, not subtypes"
-      (is-clj (not (sub/subtype-filter? (-filter -false 'a) (-filter -true 'a) (clj-opts))))
-      (is-clj (not (sub/subtype-filter? (-filter -false 'a [(-kpe :a)]) 
-                                        (-filter -true 'a [(-kpe :a)])
+      (is-clj (not (sub/subtype-proposition? (-proposition -false 'a) (-proposition -true 'a) (clj-opts))))
+      (is-clj (not (sub/subtype-proposition? (-proposition -false 'a [(-kpe :a)]) 
+                                        (-proposition -true 'a [(-kpe :a)])
                                         (clj-opts)))))
     (testing "different paths, but types happen to be subtypes (still should fail)"
-      (is-clj (not (sub/subtype-filter? (-filter -true 'a) (-filter -true 'b) (clj-opts))))
-      (is-clj (not (sub/subtype-filter? (-filter -false 'a) (-filter (parse-clj `Boolean) 'b) (clj-opts))))
-      (is-clj (not (sub/subtype-filter? (-filter -false 'a) (-filter (parse-clj `Boolean) 'a [(-kpe :a)]) (clj-opts)))))
+      (is-clj (not (sub/subtype-proposition? (-proposition -true 'a) (-proposition -true 'b) (clj-opts))))
+      (is-clj (not (sub/subtype-proposition? (-proposition -false 'a) (-proposition (parse-clj `Boolean) 'b) (clj-opts))))
+      (is-clj (not (sub/subtype-proposition? (-proposition -false 'a) (-proposition (parse-clj `Boolean) 'a [(-kpe :a)]) (clj-opts)))))
     )
   (testing "or filter"
-    (is-clj (sub/subtype-filter? (-filter -true 'a) (-or [(-filter -true 'a) (-filter -false 'b)] (clj-opts)) (clj-opts)))
-    (is-clj (not (sub/subtype-filter? (-filter -false 'a) (-or [(-filter -true 'a) (-filter -false 'b)] (clj-opts)) (clj-opts))))
-    (is-clj (not (sub/subtype-filter? (-or [(-filter -true 'a) (-filter -false 'b)] (clj-opts)) (-filter -true 'a) (clj-opts))))
-    (is-clj (sub/subtype-filter? (-or [(-filter -true 'a) (-filter -false 'b)] (clj-opts))
-                                 (-or [(-filter -true 'a) (-filter -false 'b)] (clj-opts))
+    (is-clj (sub/subtype-proposition? (-proposition -true 'a) (-or [(-proposition -true 'a) (-proposition -false 'b)] (clj-opts)) (clj-opts)))
+    (is-clj (not (sub/subtype-proposition? (-proposition -false 'a) (-or [(-proposition -true 'a) (-proposition -false 'b)] (clj-opts)) (clj-opts))))
+    (is-clj (not (sub/subtype-proposition? (-or [(-proposition -true 'a) (-proposition -false 'b)] (clj-opts)) (-proposition -true 'a) (clj-opts))))
+    (is-clj (sub/subtype-proposition? (-or [(-proposition -true 'a) (-proposition -false 'b)] (clj-opts))
+                                 (-or [(-proposition -true 'a) (-proposition -false 'b)] (clj-opts))
                                  (clj-opts)))
-    (is-clj (sub/subtype-filter? (-or [(-filter -true 'a) (-filter -false 'b)]
+    (is-clj (sub/subtype-proposition? (-or [(-proposition -true 'a) (-proposition -false 'b)]
                                       (clj-opts)) 
-                                 (-or [(-filter (parse-clj `Boolean) 'a) (-filter (parse-clj `Boolean) 'b)]
+                                 (-or [(-proposition (parse-clj `Boolean) 'a) (-proposition (parse-clj `Boolean) 'b)]
                                       (clj-opts))
                                  (clj-opts)))
     (is-clj (not
-              (sub/subtype-filter? (-or [(-filter (parse-clj `Boolean) 'a) (-filter (parse-clj `Boolean) 'b)]
+              (sub/subtype-proposition? (-or [(-proposition (parse-clj `Boolean) 'a) (-proposition (parse-clj `Boolean) 'b)]
                                         (clj-opts))
-                                   (-or [(-filter -true 'a) (-filter -false 'b)]
+                                   (-or [(-proposition -true 'a) (-proposition -false 'b)]
                                         (clj-opts))
                                    (clj-opts)))))
   (testing "and filter"
     (is-clj (not
-              (sub/subtype-filter? (-filter -true 'a) 
-                                   (-and [(-filter -true 'a) (-filter -false 'b)] (clj-opts))
+              (sub/subtype-proposition? (-proposition -true 'a) 
+                                   (-and [(-proposition -true 'a) (-proposition -false 'b)] (clj-opts))
                                    (clj-opts))))
-    (is-clj (sub/subtype-filter? (-and [(-filter -true 'a) (-filter -false 'b)] (clj-opts))
-                                 (-filter -true 'a)
+    (is-clj (sub/subtype-proposition? (-and [(-proposition -true 'a) (-proposition -false 'b)] (clj-opts))
+                                 (-proposition -true 'a)
                                  (clj-opts)))
     (is-clj (not
-              (sub/subtype-filter? (-and [(-filter (parse-clj `Boolean) 'a) (-filter (parse-clj `Boolean) 'b)] (clj-opts))
-                                   (-and [(-filter -true 'a) (-filter -false 'b)] (clj-opts))
+              (sub/subtype-proposition? (-and [(-proposition (parse-clj `Boolean) 'a) (-proposition (parse-clj `Boolean) 'b)] (clj-opts))
+                                   (-and [(-proposition -true 'a) (-proposition -false 'b)] (clj-opts))
                                    (clj-opts))))
-    (is-clj (sub/subtype-filter? (-and [(-filter -true 'a) (-filter -false 'b)] (clj-opts))
-                                 (-and [(-filter (parse-clj `Boolean) 'a) (-filter (parse-clj `Boolean) 'b)] (clj-opts))
+    (is-clj (sub/subtype-proposition? (-and [(-proposition -true 'a) (-proposition -false 'b)] (clj-opts))
+                                 (-and [(-proposition (parse-clj `Boolean) 'a) (-proposition (parse-clj `Boolean) 'b)] (clj-opts))
                                  (clj-opts)))))
 
 (deftest reduced?-test
@@ -3393,7 +3393,7 @@
       (ann-form b Number)))
   (is-tc-e
     (let [m {}
-          b (if (print-filterset "a" (:b m)) (:b m) 3)]
+          b (if (print-propositionset "a" (:b m)) (:b m) 3)]
       (ann-form b Number)))
   (is-tc-e
     (do
@@ -3495,12 +3495,12 @@
           (inc a))))
     (is-tc-e
       (fn [{:keys [a] :as m} :- (t/HMap :optional {:a t/Num})]
-        (when (print-filterset "a" a)
+        (when (print-propositionset "a" a)
           (inc a))))
     (is-tc-e
       (fn [{:keys [a] :as m} :- (t/U (t/HMap :mandatory {:a t/Num})
                                    (t/HMap :absent-keys #{:a}))]
-        (when (print-filterset "a" a)
+        (when (print-propositionset "a" a)
           (inc a))))
     (is-tc-e
       (fn [{:keys [a b]} :- (t/U (t/HMap :mandatory {:a t/Num}
@@ -4548,7 +4548,7 @@
   (is-tc-e (seq [1 2 3]) (t/NonEmptyASeq t/Int))
   )
 
-(deftest or-filter-syntax-test
+(deftest or-proposition-syntax-test
   #?(:cljr nil
      :default (is (prs-ast/parse-clj `[:-> t/Any :filters {:then (~(symbol "|") (~'is (t/U nil false) 0 [(~'Key :a)])
                                                                                 (~'is (t/HMap :absent-keys #{:a}) 0))}])))

@@ -12,7 +12,7 @@
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.subst :as subst]
             [typed.cljc.checker.fold-rep :as fold]
-            [typed.cljc.checker.filter-ops :as fo]
+            [typed.cljc.checker.proposition-ops :as fo]
             [typed.cljc.checker.object-rep :as or])
   (:import (typed.cljc.checker.type_rep HSequential Function AssocType)))
 
@@ -59,7 +59,7 @@
                               {:filters (vec
                                           (concat (map tfn (:fs t))
                                                   (repeat extra-fixed
-                                                          (fo/-simple-filter))))
+                                                          (fo/-simple-proposition))))
                                :objects (vec
                                           (concat (map tfn (:objects t))
                                                   (repeat extra-fixed

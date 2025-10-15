@@ -422,7 +422,7 @@
 ;(defmacro def-arr [name args & body]
 ;  `(def ~name (a-arr (fn ~name ~args ~@body))))
 ;
-;(defn a-filter [f]
+;(defn a-proposition [f]
 ;  (with-meta
 ;    (fn curr-fn [x]
 ;      (if (f x)
@@ -430,7 +430,7 @@
 ;                   (when c
 ;                     (c [x])))]
 ;        [curr-fn abort-c]))
-;    {:created-by :a-filter
+;    {:created-by :a-proposition
 ;     :args f}))
 ;
 ;(defn tap [p]

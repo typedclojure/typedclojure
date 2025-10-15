@@ -744,9 +744,9 @@
              :form (swap! a (fn [a] (inc a))),
              :data
              {:fn-type (t/All [x b :..] [(t/Atom x) [x b :.. b :-> x] b :.. b :-> x]),
-              :args-results [{:type (Atom (t/Nilable t/Int)), :filter-set {:then tt, :else ff}, :object {:id a__#0}}
+              :args-results [{:type (Atom (t/Nilable t/Int)), :proposition-set {:then tt, :else ff}, :object {:id a__#0}}
                              {:type (t/I [t/Nothing :-> Long] Fn),
-                              :filter-set {:then tt, :else ff}}],
+                              :proposition-set {:then tt, :else ff}}],
               :expected-result {:type t/Infer}},
              :message
              "Polymorphic function swap! could not be applied to arguments:\nPolymorphic Variables:\n\tx\n\tb :..\n\nDomains:\n\t(t/Atom x) [x b :.. b :-> x] b :.. b\n\nArguments:\n\t(Atom (t/Nilable t/Int)) (t/I [t/Nothing :-> Long] Fn)\n\nRanges:\n\tx\n\n"}]}
@@ -772,12 +772,12 @@
               (t/All [x b :..] [(t/Atom x) [x b :.. b :-> x] b :.. b :-> x]),
               :args-results
               [{:type (Atom (t/Nilable t/Int)),
-                :filter-set {:then tt, :else ff},
+                :proposition-set {:then tt, :else ff},
                 :object {:id a__#0}}
                {:type (t/I [t/Nothing t/Nothing t/Nothing :-> Long] Fn),
-                :filter-set {:then tt, :else ff}}
-               {:type (t/Val 2), :filter-set {:then tt, :else ff}}
-               {:type (t/Val 3), :filter-set {:then tt, :else ff}}],
+                :proposition-set {:then tt, :else ff}}
+               {:type (t/Val 2), :proposition-set {:then tt, :else ff}}
+               {:type (t/Val 3), :proposition-set {:then tt, :else ff}}],
               :expected-result {:type t/Infer}},
              :message
              "Polymorphic function swap! could not be applied to arguments:\nPolymorphic Variables:\n\tx\n\tb :..\n\nDomains:\n\t(t/Atom x) [x b :.. b :-> x] b :.. b\n\nArguments:\n\t(Atom (t/Nilable t/Int)) (t/I [t/Nothing t/Nothing t/Nothing :-> Long] Fn) (t/Val 2) (t/Val 3)\n\nRanges:\n\tx\n\n"}]}
@@ -800,12 +800,12 @@
               (t/All [x b :..] [(t/Atom x) [x b :.. b :-> x] b :.. b :-> x]),
               :args-results
               [{:type (Atom t/Int),
-                :filter-set {:then tt, :else ff},
+                :proposition-set {:then tt, :else ff},
                 :object {:id a__#0}}
                {:type (t/I [t/Nothing t/Nothing t/Nothing :-> Long] Fn),
-                :filter-set {:then tt, :else ff}}
-               {:type nil, :filter-set {:then ff, :else tt}}
-               {:type (t/Val 3), :filter-set {:then tt, :else ff}}],
+                :proposition-set {:then tt, :else ff}}
+               {:type nil, :proposition-set {:then ff, :else tt}}
+               {:type (t/Val 3), :proposition-set {:then tt, :else ff}}],
               :expected-result {:type t/Infer}},
              :message
              "Polymorphic function swap! could not be applied to arguments:\nPolymorphic Variables:\n\tx\n\tb :..\n\nDomains:\n\t(t/Atom x) [x b :.. b :-> x] b :.. b\n\nArguments:\n\t(Atom t/Int) (t/I [t/Nothing t/Nothing t/Nothing :-> Long] Fn) nil (t/Val 3)\n\nRanges:\n\tx\n\n"}]}
@@ -871,7 +871,7 @@
                 [Double :-> Double]
                 [t/AnyInteger :-> t/AnyInteger]
                 [t/Num :-> t/Num]),
-              :args-results [{:type nil, :filter-set {:then ff, :else tt}}],
+              :args-results [{:type nil, :proposition-set {:then ff, :else tt}}],
               :expected-result {:type t/Infer}},
              :message
              "Function inc could not be applied to arguments:\n\n\nDomains:\n\tt/Num\n\nArguments:\n\tnil\n\nRanges:\n\tt/Num\n\n"}]}
@@ -903,9 +903,9 @@
                                         [[a b :.. b :-> c] (t/NonEmptySeqable a) (t/NonEmptySeqable b) :.. b :-> (t/NonEmptyASeq c)]
                                         [[a b :.. b :-> c] (t/Seqable a) (t/Seqable b) :.. b :-> (t/ASeq c)])),
               :args-results [{:type (t/IFn [Long :-> Long] [Double :-> Double] [t/AnyInteger :-> t/AnyInteger] [t/Num :-> t/Num])}
-                             {:type (t/HVec [nil] :filter-sets [{:then ff, :else tt}]), :filter-set {:then tt, :else ff}}]},
+                             {:type (t/HVec [nil] :proposition-sets [{:then ff, :else tt}]), :proposition-set {:then tt, :else ff}}]},
              :message
-             "Polymorphic function map could not be applied to arguments:\nPolymorphic Variables:\n\tc\n\ta\n\tb :..\n\nDomains:\n\t[a b :.. b :-> c] (t/NonEmptySeqable a) (t/NonEmptySeqable b) :.. b\n\t[a b :.. b :-> c] (t/Seqable a) (t/Seqable b) :.. b\n\nArguments:\n\t(t/IFn [Long :-> Long] [Double :-> Double] [t/AnyInteger :-> t/AnyInteger] [t/Num :-> t/Num]) (t/HVec [nil] :filter-sets [{:then ff, :else tt}])\n\nRanges:\n\t(t/NonEmptyASeq c)\n\t(t/ASeq c)\n\n"}]}
+             "Polymorphic function map could not be applied to arguments:\nPolymorphic Variables:\n\tc\n\ta\n\tb :..\n\nDomains:\n\t[a b :.. b :-> c] (t/NonEmptySeqable a) (t/NonEmptySeqable b) :.. b\n\t[a b :.. b :-> c] (t/Seqable a) (t/Seqable b) :.. b\n\nArguments:\n\t(t/IFn [Long :-> Long] [Double :-> Double] [t/AnyInteger :-> t/AnyInteger] [t/Num :-> t/Num]) (t/HVec [nil] :proposition-sets [{:then ff, :else tt}])\n\nRanges:\n\t(t/NonEmptyASeq c)\n\t(t/ASeq c)\n\n"}]}
          (is-tc-err-messages (map inc [nil]))))
   ;;TODO
   ;; expected: (t/Seqable t/Any)
@@ -923,9 +923,9 @@
               (t/All [a c] (t/IFn [[a a :-> (t/U a (Reduced a))] (t/NonEmptySeqable a) :-> a]
                                   [(t/IFn [a a :-> (t/U a (Reduced a))] [:-> a]) (t/Seqable a) :-> a]
                                   [[a c :-> (t/U a (Reduced a))] a (t/Seqable c) :-> a])),
-              :args-results [{:type (t/I [t/Nothing t/Nothing :-> nil :filters {:then ff, :else tt}] Fn), :filter-set {:then tt, :else ff}}
-                             {:type (t/HMap :complete? true), :filter-set {:then tt, :else ff}}
-                             {:type (t/Val 1), :filter-set {:then tt, :else ff}}]},
+              :args-results [{:type (t/I [t/Nothing t/Nothing :-> nil :filters {:then ff, :else tt}] Fn), :proposition-set {:then tt, :else ff}}
+                             {:type (t/HMap :complete? true), :proposition-set {:then tt, :else ff}}
+                             {:type (t/Val 1), :proposition-set {:then tt, :else ff}}]},
              :message
              "Polymorphic function reduce could not be applied to arguments:\nPolymorphic Variables:\n\ta\n\tc\n\nDomains:\n\t[a c :-> (t/U a (Reduced a))] a (t/Seqable c)\n\nArguments:\n\t(t/I [t/Nothing t/Nothing :-> nil :filters {:then ff, :else tt}] Fn) (t/HMap :complete? true) (t/Val 1)\n\nRanges:\n\ta\n\n"}],
            :ex {:message "Don't know how to create ISeq from: java.lang.Long"}}
@@ -942,9 +942,9 @@
              :data
              {:fn-type
               (t/IFn [Long :* :-> Long] [(t/U Double Long) :* :-> Double] [t/AnyInteger :* :-> t/AnyInteger] [t/Num :* :-> t/Num]),
-              :args-results [{:type t/Nothing, :filter-set {:then tt, :else ff}, :object {:id a__#0}}
-                             {:type t/Nothing, :filter-set {:then tt, :else ff}, :object {:id v__#0}}
-                             {:type nil, :filter-set {:then ff, :else tt}}],
+              :args-results [{:type t/Nothing, :proposition-set {:then tt, :else ff}, :object {:id a__#0}}
+                             {:type t/Nothing, :proposition-set {:then tt, :else ff}, :object {:id v__#0}}
+                             {:type nil, :proposition-set {:then ff, :else tt}}],
               :expected-result {:type t/Infer}},
              :message
              "Function + could not be applied to arguments:\n\n\nDomains:\n\tLong :*\n\t(t/U Double Long) :*\n\tt/AnyInteger :*\n\tt/Num :*\n\nArguments:\n\tt/Nothing t/Nothing nil\n\nRanges:\n\tLong\n\tDouble\n\tt/AnyInteger\n\tt/Num\n\n"}
@@ -955,13 +955,13 @@
              :data
              {:fn-type
               (t/All [a c] (t/IFn [[a a :-> (t/U a (Reduced a))] (t/NonEmptySeqable a) :-> a] [(t/IFn [a a :-> (t/U a (Reduced a))] [:-> a]) (t/Seqable a) :-> a] [[a c :-> (t/U a (Reduced a))] a (t/Seqable c) :-> a])),
-              :args-results [{:type (t/I [t/Nothing t/Nothing :-> t/Infer] Fn), :filter-set {:then tt, :else ff}}
-                             {:type (t/Val 1), :filter-set {:then tt, :else ff}}
-                             {:type (t/HVec [(t/Val 1)] :filter-sets [{:then tt, :else ff}]),
-                              :filter-set {:then tt, :else ff}}],
+              :args-results [{:type (t/I [t/Nothing t/Nothing :-> t/Infer] Fn), :proposition-set {:then tt, :else ff}}
+                             {:type (t/Val 1), :proposition-set {:then tt, :else ff}}
+                             {:type (t/HVec [(t/Val 1)] :proposition-sets [{:then tt, :else ff}]),
+                              :proposition-set {:then tt, :else ff}}],
               :expected-result {:type t/Infer}},
              :message
-             "Polymorphic function reduce could not be applied to arguments:\nPolymorphic Variables:\n\ta\n\tc\n\nDomains:\n\t[a c :-> (t/U a (Reduced a))] a (t/Seqable c)\n\nArguments:\n\t(t/I [t/Nothing t/Nothing :-> t/Infer] Fn) (t/Val 1) (t/HVec [(t/Val 1)] :filter-sets [{:then tt, :else ff}])\n\nRanges:\n\ta\n\n"}]}
+             "Polymorphic function reduce could not be applied to arguments:\nPolymorphic Variables:\n\ta\n\tc\n\nDomains:\n\t[a c :-> (t/U a (Reduced a))] a (t/Seqable c)\n\nArguments:\n\t(t/I [t/Nothing t/Nothing :-> t/Infer] Fn) (t/Val 1) (t/HVec [(t/Val 1)] :proposition-sets [{:then tt, :else ff}])\n\nRanges:\n\ta\n\n"}]}
          (is-tc-err-messages #(reduce (fn [a v]
                                         (+ a v nil))
                                       1 [1]))))
@@ -988,7 +988,7 @@
              {:fn-type
               (t/All [x] [x :-> x :filters {:then (! (t/U nil false) 0), :else (is (t/U nil false) 0)} :object {:id 0}]),
               :args-results
-              [{:type (t/Val 1), :filter-set {:then tt, :else ff}}],
+              [{:type (t/Val 1), :proposition-set {:then tt, :else ff}}],
               :expected-result {:type nil}},
              :message
              "Polymorphic function identity could not be applied to arguments:\nPolymorphic Variables:\n\tx\n\nDomains:\n\tx\n\nArguments:\n\t(t/Val 1)\n\nRanges:\n\tx :filters {:then (! (t/U nil false) 0), :else (is (t/U nil false) 0)} :object {:id 0}\n\nwith expected type:\n\tnil\n\n"}]}

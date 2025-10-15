@@ -17,8 +17,8 @@
             [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]
             [typed.cljc.checker.check :as check]
             [typed.cljc.checker.check.utils :as cu]
-            [typed.cljc.checker.filter-ops :as fo]
-            [typed.cljc.checker.filter-rep :as fl]
+            [typed.cljc.checker.proposition-ops :as fo]
+            [typed.cljc.checker.proposition-rep :as fl]
             [typed.cljc.checker.lex-env :as lex]
             [typed.cljc.checker.object-rep :as orep]
             [typed.cljc.checker.type-rep :as r]
@@ -65,7 +65,7 @@
                       (cond
                         (not @reachable) [env (assoc-in cexprs [n u/expr-type]
                                                         (r/ret (r/Bottom)
-                                                               (fo/-unreachable-filter)
+                                                               (fo/-unreachable-proposition)
                                                                orep/-empty))]
                         :else
                         (let [expr (get cexprs n)
@@ -98,7 +98,7 @@
                                 [nenv (assoc cexprs n
                                              (assoc cexpr 
                                                     u/expr-type (r/ret (r/Bottom)
-                                                                       (fo/-unreachable-filter)
+                                                                       (fo/-unreachable-proposition)
                                                                        orep/-empty)))])))))
                     [(lex/lexical-env opts) exprs] (range nexprs))
             _ (assert (= (count cexprs) nexprs))

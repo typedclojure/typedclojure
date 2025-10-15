@@ -1,4 +1,4 @@
-(ns ^:typed.clojure clojure.core.typed.test.filter-simplify
+(ns ^:typed.clojure clojure.core.typed.test.proposition-simplify
   (:require [clojure.core.typed :as t]))
 
 (t/fn [a :- (t/Nilable (t/NonEmptyVec Number))
@@ -8,6 +8,6 @@
         fa (first a)
         fb (first b)]
     (t/print-env "before")
-    (t/print-filterset 
+    (t/print-propositionset 
       "and"
       (and a b))))

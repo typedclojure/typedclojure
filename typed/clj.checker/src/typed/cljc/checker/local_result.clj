@@ -15,7 +15,7 @@
             [typed.clj.checker.parse-unparse :as prs]
             [typed.cljc.checker.check-below :as below]
             [typed.cljc.checker.type-ctors :as c]
-            [typed.cljc.checker.filter-ops :as fo]
+            [typed.cljc.checker.proposition-ops :as fo]
             [typed.cljc.checker.check.utils :as cu]))
 
 (defn local-ret [sym opts]
@@ -26,9 +26,9 @@
       (err/int-error (str "Could not find type for local variable " sym) opts))
     (r/ret t 
            (if (c/overlap t (c/Un [r/-nil r/-false] opts) opts)
-             (fo/-FS (fo/-not-filter-at r/-falsy obj)
-                     (fo/-filter-at r/-falsy obj))
-             (fo/-true-filter))
+             (fo/-FS (fo/-not-proposition-at r/-falsy obj)
+                     (fo/-proposition-at r/-falsy obj))
+             (fo/-true-proposition))
            obj)))
 
 (defn local-result [expr sym expected opts]

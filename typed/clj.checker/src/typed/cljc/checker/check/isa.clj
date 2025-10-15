@@ -9,9 +9,9 @@
 (ns ^:typed.clojure ^:no-doc typed.cljc.checker.check.isa
   (:require [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.check-below :as below]
-            [typed.cljc.checker.filter-ops :as fo]
+            [typed.cljc.checker.proposition-ops :as fo]
             [clojure.core.typed.contract-utils :as con]
-            [typed.cljc.checker.filter-rep :as fl]
+            [typed.cljc.checker.proposition-rep :as fl]
             [typed.cljc.checker.check.utils :as cu]
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.object-rep :as obj]
@@ -29,11 +29,11 @@
          (r/TCResult? parent-ret)
          ((some-fn r/TCResult? nil?) parent-ret)]
    :post [(r/TCResult? %)]}
-  (letfn [;fs :- [TCResult TCResult -> '{:then IFilter :else IFilter}]
+  (letfn [;fs :- [TCResult TCResult -> '{:then IProposition :else IProposition}]
              (fs [child1 parent1]
                  {:pre [(r/TCResult? child1)
                         (r/TCResult? parent1)]
-                  :post [((con/hmap-c? :then fl/Filter? :else fl/Filter?) %)]}
+                  :post [((con/hmap-c? :then fl/Proposition? :else fl/Proposition?) %)]}
                  (let [obj (r/ret-o child1)
                        ty (c/fully-resolve-type (r/ret-t parent1) opts)]
                    (cond
@@ -47,16 +47,16 @@
                           (class? (:val ty)))
                      (let [obj (obj/without-final-elem obj)
                            ty (c/RClass-of (:val ty) opts)]
-                       {:then (fo/-filter-at ty obj)
-                        :else (fo/-not-filter-at ty obj)})
+                       {:then (fo/-proposition-at ty obj)
+                        :else (fo/-not-proposition-at ty obj)})
 
                      ;; - if we have a singleton type that is not a Class, then we're in equality mode
                      ;;   so the filters just claim the child1 is of type parent1.
                      (and (r/Value? ty)
                           (not (class? (:val ty)))
                           (equiv/equivable ty opts))
-                     {:then (fo/-filter-at (equiv/equivable ty opts) obj)
-                      :else (fo/-not-filter-at (equiv/equivable ty opts) obj)}
+                     {:then (fo/-proposition-at (equiv/equivable ty opts) obj)
+                      :else (fo/-not-proposition-at (equiv/equivable ty opts) obj)}
 
                      ;; - otherwise, give up
                      :else

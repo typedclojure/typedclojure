@@ -20,7 +20,7 @@
             [typed.cljc.checker.utils :as u]
             [clojure.core.typed.ast-utils :as ast-u]
             [clojure.core.typed.util-vars :as vs]
-            [typed.cljc.checker.filter-ops :as fo]
+            [typed.cljc.checker.proposition-ops :as fo]
             [typed.cljc.checker.check-below :as below]
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.runtime.env :as env])
@@ -67,7 +67,7 @@
                u/expr-type (below/maybe-check-below
                              (impl/impl-case opts
                                :clojure (r/ret (c/-name `t/Var t)
-                                               (fo/-true-filter))
+                                               (fo/-true-proposition))
                                :cljs cljs-ret)
                              expected
                              opts)))
@@ -84,7 +84,7 @@
                  u/expr-type (below/maybe-check-below
                                (impl/impl-case opts
                                  :clojure (r/ret (c/-name `t/AnyVar)
-                                                 (fo/-true-filter))
+                                                 (fo/-true-proposition))
                                  :cljs cljs-ret)
                                expected
                                opts)))
@@ -125,7 +125,7 @@
                u/expr-type (below/maybe-check-below
                              (impl/impl-case opts
                                :clojure (r/ret (c/-name `t/Var inferred)
-                                               (fo/-true-filter))
+                                               (fo/-true-proposition))
                                :cljs cljs-ret)
                              expected
                              opts))))))

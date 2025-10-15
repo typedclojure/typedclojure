@@ -14,7 +14,7 @@
             [typed.cljc.checker.type-ctors :as c]
             [typed.clj.checker.subtype :as sub]
             [typed.cljc.checker.check.utils :as cu]
-            [typed.cljc.checker.filter-ops :as fo]
+            [typed.cljc.checker.proposition-ops :as fo]
             [typed.cljc.checker.check-below :as below]))
 
 (defn check-monitor
@@ -23,6 +23,6 @@
   {:pre [((some-fn nil? r/TCResult?) expected)]}
   (assoc expr
          :target (check-expr target (r/ret (c/RClass-of Object opts)) opts)
-         u/expr-type (below/maybe-check-below (r/ret r/-nil (fo/-false-filter))
+         u/expr-type (below/maybe-check-below (r/ret r/-nil (fo/-false-proposition))
                                               expected
                                               opts)))

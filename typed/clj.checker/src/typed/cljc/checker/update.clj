@@ -9,13 +9,13 @@
 (ns ^:typed.clojure typed.cljc.checker.update
   (:refer-clojure :exclude [requiring-resolve])
   (:require [typed.clojure :as t]
-            [typed.cljc.checker.filter-rep :as fl]
+            [typed.cljc.checker.proposition-rep :as fl]
             [typed.cljc.checker.path-rep :as pe]
             [typed.cljc.checker.utils :as u]
             [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]
             [clojure.core.typed.errors :as err]
             [typed.cljc.checker.check.utils :as cu]
-            [typed.cljc.checker.filter-ops :as fo]
+            [typed.cljc.checker.proposition-ops :as fo]
             [typed.clj.checker.parse-unparse :as prs]
             [typed.cljc.checker.free-ops :as free-ops]
             [typed.cljc.checker.cs-gen :as cgen]
@@ -29,14 +29,14 @@
             [clojure.set :as set])
   (:import (clojure.lang IPersistentMap Keyword)))
 
-;[(Seqable Filter) Filter -> Filter]
+;[(Seqable Proposition) Proposition -> Proposition]
 (defn resolve* [atoms prop opts]
-  {:pre [(every? fl/Filter? atoms)
-         (fl/Filter? prop)]
-   :post [(fl/Filter? %)]}
+  {:pre [(every? fl/Proposition? atoms)
+         (fl/Proposition? prop)]
+   :post [(fl/Proposition? %)]}
   (reduce (fn [prop a]
             (cond
-              (fl/AndFilter? a)
+              (fl/AndProposition? a)
               (loop [ps (:fs a)
                      result []]
                 (if (empty? ps)
@@ -50,27 +50,27 @@
           prop
           atoms))
 
-;[(Seqable Filter) -> (Seqable Filter)]
+;[(Seqable Proposition) -> (Seqable Proposition)]
 (defn flatten-props [ps]
-  {:post [(every? fl/Filter? %)]}
+  {:post [(every? fl/Proposition? %)]}
   (loop [acc #{}
          ps ps]
     (cond
       (empty? ps) acc
-      (fl/AndFilter? (first ps)) (recur acc (concat (-> ps first :fs) (next ps)))
+      (fl/AndProposition? (first ps)) (recur acc (concat (-> ps first :fs) (next ps)))
       :else (recur (conj acc (first ps)) (next ps)))))
 
-;[(Seqable Filter) (Seqable Filter) (Atom Boolean) 
-;  -> '[(Seqable (U ImpFilter fl/OrFilter AndFilter))
-;       (Seqable (U TypeFilter NotTypeFilter))]]
+;[(Seqable Proposition) (Seqable Proposition) (Atom Boolean) 
+;  -> '[(Seqable (U ImpProposition fl/OrProposition AndProposition))
+;       (Seqable (U TypeProposition NotTypeProposition))]]
 (defn combine-props [new-props old-props flag opts]
-  {:pre [(every? fl/Filter? (concat new-props old-props))
+  {:pre [(every? fl/Proposition? (concat new-props old-props))
          (instance? clojure.lang.Volatile flag)
          (boolean? @flag)]
    :post [(let [[derived-props derived-atoms] %]
-            (and (every? (some-fn fl/ImpFilter? fl/OrFilter? fl/AndFilter?) derived-props)
-                 (every? (some-fn fl/TypeFilter? fl/NotTypeFilter?) derived-atoms)))]}
-  (let [atomic-prop? (some-fn fl/TypeFilter? fl/NotTypeFilter?)
+            (and (every? (some-fn fl/ImpProposition? fl/OrProposition? fl/AndProposition?) derived-props)
+                 (every? (some-fn fl/TypeProposition? fl/NotTypeProposition?) derived-atoms)))]}
+  (let [atomic-prop? (some-fn fl/TypeProposition? fl/NotTypeProposition?)
         {new-atoms true new-formulas false} (group-by (comp boolean atomic-prop?) (flatten-props new-props))]
     (loop [derived-props []
            derived-atoms new-atoms
@@ -80,17 +80,17 @@
         (let [p (first worklist)
               p (resolve* derived-atoms p opts)]
           (cond
-            (fl/AndFilter? p) (recur derived-props derived-atoms (concat (:fs p) (next worklist)))
-            (fl/ImpFilter? p) 
+            (fl/AndProposition? p) (recur derived-props derived-atoms (concat (:fs p) (next worklist)))
+            (fl/ImpProposition? p) 
             (let [{:keys [a c]} p
                   implied? (some (fn [p] (fo/implied-atomic? a p opts)) (concat derived-props derived-atoms))]
-              #_(prn "combining " (unparse-filter p opts) " with " (map #(unparse-filter % opts) (concat derived-props
+              #_(prn "combining " (unparse-proposition p opts) " with " (map #(unparse-proposition % opts) (concat derived-props
                                                                                                          derived-atoms))
                      " and implied:" implied?)
               (if implied?
                 (recur derived-props derived-atoms (cons c (rest worklist)))
                 (recur (cons p derived-props) derived-atoms (next worklist))))
-            (fl/OrFilter? p)
+            (fl/OrProposition? p)
             (let [ps (:fs p)
                   new-or (if (some (fn [f] (fo/implied-atomic? p f opts))
                                    (disj (set/union (set worklist) (set derived-props)) 
@@ -107,25 +107,25 @@
                                      derived-atoms)
                                fl/-top
                                :else (recur (next ps) (cons (first ps) result)))))]
-              (if (fl/OrFilter? new-or)
+              (if (fl/OrProposition? new-or)
                 (recur (cons new-or derived-props) derived-atoms (next worklist))
                 (recur derived-props derived-atoms (cons new-or (next worklist)))))
-            (and (fl/TypeFilter? p)
+            (and (fl/TypeProposition? p)
                  (r/Bottom? (:type p)))
             (do 
               ;(prn "Variable set to bottom:" p)
               (vreset! flag false)
               [derived-props derived-atoms])
-            (fl/TypeFilter? p) (recur derived-props (cons p derived-atoms) (next worklist))
-            (and (fl/NotTypeFilter? p)
+            (fl/TypeProposition? p) (recur derived-props (cons p derived-atoms) (next worklist))
+            (and (fl/NotTypeProposition? p)
                  (= r/-any (:type p)))
             (do 
               ;(prn "Variable set to bottom:" p)
               (vreset! flag false)
               [derived-props derived-atoms])
-            (fl/NotTypeFilter? p) (recur derived-props (cons p derived-atoms) (next worklist))
-            (fl/TopFilter? p) (recur derived-props derived-atoms (next worklist))
-            (fl/BotFilter? p) (do 
+            (fl/NotTypeProposition? p) (recur derived-props (cons p derived-atoms) (next worklist))
+            (fl/TopProposition? p) (recur derived-props derived-atoms (next worklist))
+            (fl/BotProposition? p) (do 
                                 ;(prn "Bot filter found")
                                 (vreset! flag false)
                                 [derived-props derived-atoms])
@@ -145,8 +145,8 @@
 ; t is the old type
 ; ft is the new type to update with
 ; pos? indicates polarity
-; - if true, we're updating with a TypeFilter so we use restrict
-; - if false, we're updating with a NotTypeFilter so we use remove
+; - if true, we're updating with a TypeProposition so we use restrict
+; - if false, we're updating with a NotTypeProposition so we use remove
 ; lo is a sequence of path elements, in the same order as -> (left to right)
 ;[Type Type Boolean PathElems -> Type]
 (defn update* [t ft pos? lo opts]
@@ -424,7 +424,7 @@
                      (c/RClass-of IPersistentMap [element-t r/-any] opts)
                      (c/RClass-of IPersistentMap [r/-any element-t] opts))
                    pos? nil opts)
-          ; can we do anything for a NotTypeFilter?
+          ; can we do anything for a NotTypeProposition?
           t))))
 
       (pe/KeywordPE? (first lo))
@@ -473,16 +473,16 @@
 
       :else (err/int-error (str "update along ill-typed path " (pr-str (prs/unparse-type t opts)) " " (mapv #(prs/unparse-path-elem % opts) lo)) opts))))
 
-(defn update-with-filter [t lo opts]
-  {:pre [((some-fn fl/TypeFilter? fl/NotTypeFilter?) lo)]
+(defn update-with-proposition [t lo opts]
+  {:pre [((some-fn fl/TypeProposition? fl/NotTypeProposition?) lo)]
    :post [(r/Type? %)]}
-  (update* t (:type lo) (fl/TypeFilter? lo) (fl/filter-path lo) opts))
+  (update* t (:type lo) (fl/TypeProposition? lo) (fl/proposition-path lo) opts))
 
 ;; sets the flag box to #f if anything becomes (U)
-;[PropEnv (Seqable Filter) (Atom Boolean) -> PropEnv]
+;[PropEnv (Seqable Proposition) (Atom Boolean) -> PropEnv]
 (defn env+ [env fs flag opts]
   {:pre [(lex/PropEnv? env)
-         (every? (every-pred fl/Filter? (complement fl/NoFilter?)) 
+         (every? (every-pred fl/Proposition? (complement fl/NoProposition?)) 
                  fs)
          (instance? clojure.lang.Volatile flag)
          (boolean? @flag)]
@@ -493,14 +493,14 @@
     (reduce (fn [env f]
               ;post-condition checked in env+
               {:pre [(lex/PropEnv? env)
-                     (fl/Filter? f)]}
+                     (fl/Proposition? f)]}
               (cond
-                (fl/BotFilter? f) (do ;(prn "Bot filter found in env+")
+                (fl/BotProposition? f) (do ;(prn "Bot filter found in env+")
                                       (vreset! flag false)
                                       (update env :l (fn [l] 
                                                        (zipmap (keys l)
                                                                (repeat r/-nothing)))))
-                ((some-fn fl/TypeFilter? fl/NotTypeFilter?) f)
+                ((some-fn fl/TypeProposition? fl/NotTypeProposition?) f)
                 (let [;_ (prn "Update filter" f)
                       new-env (update env :l update (:id f)
                                       (fn [t]
@@ -508,22 +508,22 @@
                                           (err/int-error (str "Updating local not in scope: " (:id f)
                                                               " " (-> env :l keys vec))
                                                          opts))
-                                        (update-with-filter t f opts)))]
+                                        (update-with-proposition t f opts)))]
                   ; update flag if a variable is now bottom
                   (when (some (comp r/Bottom? val) (:l new-env))
                     (vreset! flag false))
                   new-env)
 
-                (and (fl/OrFilter? f)
-                     (every? (some-fn fl/TypeFilter? fl/NotTypeFilter?) (:fs f))
-                     (apply = (map fl/filter-id (:fs f))))
-                (let [id (-> f :fs first fl/filter-id)
+                (and (fl/OrProposition? f)
+                     (every? (some-fn fl/TypeProposition? fl/NotTypeProposition?) (:fs f))
+                     (apply = (map fl/proposition-id (:fs f))))
+                (let [id (-> f :fs first fl/proposition-id)
                       _ (assert (symbol? id))
                       new-env (update env :l update id
                                       (fn [t]
                                         (when-not t
                                           (err/int-error (str "Updating local not in scope: " (:id f)) opts))
-                                        (c/Un (map (fn [f] (update-with-filter t f opts))
+                                        (c/Un (map (fn [f] (update-with-proposition t f opts))
                                                    (:fs f))
                                               opts)))]
                   ; update flag if a variable is now bottom

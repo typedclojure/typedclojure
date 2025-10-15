@@ -17,7 +17,7 @@
             [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.errors :as err]
             [typed.clj.checker.parse-unparse :as prs]
-            [typed.cljc.checker.filter-rep :as fr]
+            [typed.cljc.checker.proposition-rep :as fr]
             [typed.cljc.checker.free-ops :as free-ops]
             [typed.cljc.checker.name-env :as nmenv]
             [typed.cljc.checker.declared-kind-env :as kinds]
@@ -29,8 +29,8 @@
                                         CountRange Name Value Top Wildcard Unchecked TopFunction B F Result
                                         Scope TCError AssocType GetType MergeType Regex HSequential HSet
                                         JSObj TypeOf MatchType Instance Satisfies)
-           (typed.cljc.checker.filter_rep FilterSet TypeFilter NotTypeFilter ImpFilter
-                                          AndFilter OrFilter TopFilter BotFilter)
+           (typed.cljc.checker.proposition_rep PropositionSet TypeProposition NotTypeProposition ImpProposition
+                                          AndProposition OrProposition TopProposition BotProposition)
            (typed.cljc.checker.object_rep Path EmptyObject NoObject)
            (typed.cljc.checker.path_rep NthPE NextPE ClassPE CountPE KeyPE KeysPE ValsPE KeywordPE SeqPE)))
 
@@ -173,34 +173,34 @@
       (combine-freesresults (frees t opts)
                             (frees fl opts)
                             (frees o opts))))
-  ;; Filters
-  FilterSet
+  ;; Propositions
+  PropositionSet
   (frees [{:keys [then else]} opts]
     (combine-freesresults (frees then opts)
                           (frees else opts)))
 
-  TypeFilter
+  TypeProposition
   (frees [{:keys [type]} opts] (frees type opts))
 
-  NotTypeFilter
+  NotTypeProposition
   (frees [{:keys [type]} opts] (flip-variances (frees type opts)))
 
-  ImpFilter
+  ImpProposition
   (frees [{:keys [a c]} opts]
     (combine-freesresults (frees a opts)
                           (frees c opts)))
-  AndFilter
+  AndProposition
   (frees [{:keys [fs]} opts]
     (apply combine-freesresults (map #(frees % opts) fs)))
 
-  OrFilter
+  OrProposition
   (frees [{:keys [fs]} opts]
     (apply combine-freesresults (map #(frees % opts) fs)))
 
-  TopFilter 
+  TopProposition 
   (frees [t opts] -empty-frees-result)
 
-  BotFilter 
+  BotProposition 
   (frees [t opts] -empty-frees-result)
 
   ;; Objects

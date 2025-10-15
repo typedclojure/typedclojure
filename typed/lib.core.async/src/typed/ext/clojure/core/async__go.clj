@@ -13,8 +13,8 @@
             [typed.cljc.checker.check :as check]
             [typed.cljc.analyzer :as ana2]
             [typed.cljc.checker.check-below :as below]
-            [typed.cljc.checker.filter-ops :as fo]
-            [typed.cljc.checker.filter-rep :as fl]
+            [typed.cljc.checker.proposition-ops :as fo]
+            [typed.cljc.checker.proposition-rep :as fl]
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.utils :as u]
@@ -40,7 +40,7 @@
         (assoc
           u/expr-type (below/maybe-check-below
                         (r/ret (c/-name `tasync/Chan (-> cbody u/expr-type :t))
-                               (fo/-true-filter))
+                               (fo/-true-proposition))
                         expected
                         opts)
           :tag nil))))

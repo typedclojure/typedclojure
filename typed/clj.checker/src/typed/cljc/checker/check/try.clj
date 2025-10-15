@@ -12,7 +12,7 @@
             [typed.cljc.checker.check :as check]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.check-below :as below]
-            [typed.cljc.checker.filter-ops :as fo]
+            [typed.cljc.checker.proposition-ops :as fo]
             [typed.cljc.checker.object-rep :as o]
             [typed.cljc.checker.type-ctors :as c]))
 

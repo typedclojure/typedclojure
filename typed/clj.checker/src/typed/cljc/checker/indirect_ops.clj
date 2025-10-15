@@ -32,12 +32,12 @@
   typed.clj.checker.assoc-utils/assoc-pairs-noret
   typed.clj.checker.subtype/subtype?
   typed.clj.checker.subtype/has-kind?
-  typed.cljc.checker.filter-ops/-FS
-  typed.cljc.checker.filter-rep/-top-fn
+  typed.cljc.checker.proposition-ops/-FS
+  typed.cljc.checker.proposition-rep/-top-fn
   typed.cljc.checker.object-rep/-empty-fn
   typed.cljc.checker.cs-gen/infer
   typed.cljc.checker.cs-gen/solve
   typed.cljc.checker.lex-env/PropEnv?
-  typed.cljc.checker.filter-ops/-or
-  typed.cljc.checker.filter-ops/-and
+  typed.cljc.checker.proposition-ops/-or
+  typed.cljc.checker.proposition-ops/-and
   typed.cljc.checker.var-env/type-of-nofail)

@@ -20,8 +20,8 @@ fi
 # 3. ending in newline
 # 4. ending in paren
 # 5. ending in square bracket
-git grep -l $OLD_NAMESPACE | xargs sed -i '' "s/${OLD_NAMESPACE}\//${NEW_NAMESPACE}\//g"
-git grep -l $OLD_NAMESPACE | xargs sed -i '' "s/${OLD_NAMESPACE} /${NEW_NAMESPACE} /g"
-git grep -l $OLD_NAMESPACE | xargs sed -i '' "s/${OLD_NAMESPACE}\$/${NEW_NAMESPACE}/g"
-git grep -l $OLD_NAMESPACE | xargs sed -i '' "s/${OLD_NAMESPACE})/${NEW_NAMESPACE})/g"
-git grep -l $OLD_NAMESPACE | xargs sed -i '' "s/${OLD_NAMESPACE}]/${NEW_NAMESPACE}]/g"
+git grep -l $OLD_NAMESPACE | xargs sed -i "s/${OLD_NAMESPACE}\//${NEW_NAMESPACE}\//g"
+git grep -l $OLD_NAMESPACE | xargs sed -i "s/${OLD_NAMESPACE} /${NEW_NAMESPACE} /g"
+git grep -l $OLD_NAMESPACE | xargs sed -i "s/${OLD_NAMESPACE}\$/${NEW_NAMESPACE}/g"
+git grep -l $OLD_NAMESPACE | xargs sed -i "s/${OLD_NAMESPACE})/${NEW_NAMESPACE})/g"
+git grep -l $OLD_NAMESPACE | xargs sed -i "s/${OLD_NAMESPACE}]/${NEW_NAMESPACE}]/g"

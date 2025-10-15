@@ -67,13 +67,13 @@ for checking namespaces, cf for checking individual forms."}
 ;=============================================================
 ; Special functions
 
-(core/defn print-filterset
+(core/defn print-propositionset
   "During type checking, print the filter set attached to form, 
   preceeded by literal string debug-string.
   Returns nil.
   
   eg. (let [s (seq (get-a-seqable))]
-        (print-filterset \"Here now\" s))"
+        (print-propositionset \"Here now\" s))"
   [debug-string frm]
   frm)
 
@@ -246,9 +246,9 @@ for checking namespaces, cf for checking individual forms."}
   ^{:doc "HVec is a type for heterogeneous vectors.
          It extends clojure.core.typed/Vec and is a subtype
          of clojure.core.typed/HSequential."
-    :forms '[(HVec [fixed*] :filter-sets [FS*] :objects [obj*])
-             (HVec [fixed* type *] :filter-sets [FS*] :objects [obj*])
-             (HVec [fixed* type :.. bound] :filter-sets [FS*] :objects [obj*])
+    :forms '[(HVec [fixed*] :proposition-sets [FS*] :objects [obj*])
+             (HVec [fixed* type *] :proposition-sets [FS*] :objects [obj*])
+             (HVec [fixed* type :.. bound] :proposition-sets [FS*] :objects [obj*])
              '[fixed*]
              '[fixed* type *]
              '[fixed* type :.. bound]]
@@ -268,25 +268,25 @@ for checking namespaces, cf for checking individual forms."}
 (defspecial
   ^{:doc "HSequential is a type for heterogeneous sequential persistent collections.
          It extends IPersistentCollection and Sequential"
-    :forms '[(HSequential [fixed*] :filter-sets [FS*] :objects [obj*])
-             (HSequential [fixed* rest *] :filter-sets [FS*] :objects [obj*])
-             (HSequential [fixed* drest :.. bound] :filter-sets [FS*] :objects [obj*])]
+    :forms '[(HSequential [fixed*] :proposition-sets [FS*] :objects [obj*])
+             (HSequential [fixed* rest *] :proposition-sets [FS*] :objects [obj*])
+             (HSequential [fixed* drest :.. bound] :proposition-sets [FS*] :objects [obj*])]
     ::special-type true}
   HSequential)
 
 (defspecial
   ^{:doc "HSeq is a type for heterogeneous seqs"
-    :forms '[(HSeq [fixed*] :filter-sets [FS*] :objects [obj*])
-             (HSeq [fixed* rest *] :filter-sets [FS*] :objects [obj*])
-             (HSeq [fixed* drest :.. bound] :filter-sets [FS*] :objects [obj*])]
+    :forms '[(HSeq [fixed*] :proposition-sets [FS*] :objects [obj*])
+             (HSeq [fixed* rest *] :proposition-sets [FS*] :objects [obj*])
+             (HSeq [fixed* drest :.. bound] :proposition-sets [FS*] :objects [obj*])]
     ::special-type true}
   HSeq)
 
 (defspecial
   ^{:doc "HList is a type for heterogeneous lists. Is a supertype of HSeq that implements IPersistentList."
-    :forms '[(HList [fixed*] :filter-sets [FS*] :objects [obj*])
-             (HList [fixed* rest *] :filter-sets [FS*] :objects [obj*])
-             (HList [fixed* drest :.. bound] :filter-sets [FS*] :objects [obj*])]
+    :forms '[(HList [fixed*] :proposition-sets [FS*] :objects [obj*])
+             (HList [fixed* rest *] :proposition-sets [FS*] :objects [obj*])
+             (HList [fixed* drest :.. bound] :proposition-sets [FS*] :objects [obj*])]
     ::special-type true}
   HList)
 

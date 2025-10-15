@@ -10,7 +10,7 @@
   (:refer-clojure :exclude [requiring-resolve])
   (:require [typed.clojure :as t]
             [typed.cljc.checker.check.cache :as cache]
-            [typed.cljc.checker.filter-ops :as fo]
+            [typed.cljc.checker.proposition-ops :as fo]
             [clojure.core.typed.ast-utils :as ast-u]
             [clojure.core.typed.coerce-utils :as coerce]
             [clojure.core.typed.contract-utils :as con]
@@ -74,8 +74,8 @@
             [typed.cljc.checker.cs-gen :as cgen]
             [typed.cljc.checker.cs-rep :as crep]
             [typed.cljc.checker.datatype-env :as dt-env]
-            [typed.cljc.checker.filter-ops :as fo]
-            [typed.cljc.checker.filter-rep :as fl]
+            [typed.cljc.checker.proposition-ops :as fo]
+            [typed.cljc.checker.proposition-rep :as fl]
             [typed.cljc.checker.fold-rep :as fold]
             [typed.cljc.checker.frees :as frees]
             [typed.cljc.checker.inst :as inst]
@@ -405,7 +405,7 @@
     (assoc expr
            u/expr-type (below/maybe-check-below
                          (r/ret (c/-name `t/Var t)
-                                (fo/-true-filter))
+                                (fo/-true-proposition))
                          expected
                          (assoc opts ::vs/current-expr expr)))))
 
@@ -497,7 +497,7 @@
         (r/Record? targett)
         (assoc cexpr
                u/expr-type (below/maybe-check-below
-                             (r/ret r/-false (fo/-false-filter))
+                             (r/ret r/-false (fo/-false-proposition))
                              expected
                              opts))))))
 
@@ -518,7 +518,7 @@
                  ; don't check extend
                  ;(update :fn check-expr nil opts)
                  (assoc u/expr-type (below/maybe-check-below
-                                      (r/ret r/-nil (fo/-false-filter))
+                                      (r/ret r/-nil (fo/-false-proposition))
                                       expected
                                       opts)))
         ; this is a Value type containing a java.lang.Class instance representing
@@ -758,7 +758,7 @@
             (update :target check-expr nil opts)
             (assoc u/expr-type (below/maybe-check-below
                                  (r/ret (c/KwArgsArray->HMap targett opts)
-                                        (fo/-true-filter))
+                                        (fo/-true-proposition))
                                  expected
                                  opts)))))))
 
@@ -971,20 +971,20 @@
     ;DO NOT REMOVE
     (assoc expr
            u/expr-type (below/maybe-check-below
-                         (r/ret r/-nil (fo/-false-filter) obj/-empty)
+                         (r/ret r/-nil (fo/-false-proposition) obj/-empty)
                          expected
                          opts))))
 
 ;filter printing
-(defmethod -invoke-special 'clojure.core.typed/print-filterset
+(defmethod -invoke-special 'clojure.core.typed/print-propositionset
   [expr expected {::check/keys [check-expr] :as opts}]
   {:post [(-> % u/expr-type r/TCResult?)]}
   (when-not (= 2 (count (:args expr)))
-    (err/int-error (str "Wrong arguments to print-filterset. Expected 2, found " (count (:args expr))) opts))
+    (err/int-error (str "Wrong arguments to print-propositionset. Expected 2, found " (count (:args expr))) opts))
   (let [{[debug-string form :as args] :args :as expr} (-> expr
                                                           (update-in [:args 0] ana2/run-passes opts))
         _ (when-not (= :const (:op debug-string)) 
-            (err/int-error "Must pass print-filterset a string literal as the first argument." opts))
+            (err/int-error "Must pass print-propositionset a string literal as the first argument." opts))
         cform (check-expr form expected opts)
         cargs (assoc args 1 cform)
         t (u/expr-type cform)]
@@ -993,8 +993,8 @@
     (flush)
     ;(prn (:fl t))
     (let [opts (prs/with-unparse-ns opts (cu/expr-ns expr opts))] 
-      (if (fl/FilterSet? (:fl t))
-        (do (pprint/pprint (prs/unparse-filter-set (:fl t) opts))
+      (if (fl/PropositionSet? (:fl t))
+        (do (pprint/pprint (prs/unparse-proposition-set (:fl t) opts))
             (flush))
         (prn (:fl t)))
       (prn (prs/unparse-object (:o t) opts)))
@@ -1078,7 +1078,7 @@
           (-> expr
               (update :fn check-expr nil opts)
               (assoc u/expr-type (below/maybe-check-below
-                                   (r/ret r (fo/-true-filter))
+                                   (r/ret r (fo/-true-proposition))
                                    expected
                                    opts))))))))
 
@@ -1180,7 +1180,7 @@
                     (r/Intersection? t) (when-let [ts (seq (keep ftype (:types t)))]
                                           #_ ;; what is this?
                                           (apply c/intersect-Results ts))
-                    (r/Nil? t) (r/make-Result r/-nil (fo/-false-filter))
+                    (r/Nil? t) (r/make-Result r/-nil (fo/-false-proposition))
                     (r/HSequential? t) (cond
                                          (seq (:types t))
                                          (r/make-Result (first (:types t))
@@ -1190,7 +1190,7 @@
                                          (:rest t) (r/make-Result (c/Un [r/-nil (:rest t)] opts))
                                          (:drest t) (r/make-Result r/-any)
 
-                                         (empty? (:types t)) (r/make-Result (r/ret r/-nil (fo/-false-filter)))))))]
+                                         (empty? (:types t)) (r/make-Result (r/ret r/-nil (fo/-false-proposition)))))))]
     (ftype (nthnext/seq-type t opts))))
 
 ;first
@@ -1230,7 +1230,7 @@
           :args cargs
           u/expr-type (below/maybe-check-below
                         (r/ret new-hmaps
-                               (fo/-true-filter)) ;assoc never returns nil
+                               (fo/-true-proposition)) ;assoc never returns nil
                         expected
                         opts)))
       
@@ -1297,7 +1297,7 @@
           (assoc :args cargs
                  u/expr-type (below/maybe-check-below
                                (r/ret conjed
-                                      (fo/-true-filter) ; conj never returns nil
+                                      (fo/-true-proposition) ; conj never returns nil
                                       obj/-empty)
                                expected
                                opts))))))
@@ -1521,8 +1521,8 @@
       (assoc expr
              u/expr-type (below/maybe-check-below
                            (r/ret (c/Un [r/-true r/-false] opts)
-                                  (fo/-FS (fo/-filter-at inst-of (r/ret-o expr-tr))
-                                          (fo/-not-filter-at inst-of (r/ret-o expr-tr))))
+                                  (fo/-FS (fo/-proposition-at inst-of (r/ret-o expr-tr))
+                                          (fo/-not-proposition-at inst-of (r/ret-o expr-tr))))
                            expected
                            opts)))))
 
@@ -1550,10 +1550,10 @@
       (assoc expr
              u/expr-type (below/maybe-check-below
                            (r/ret (c/Un [r/-true r/-false] opts)
-                                  (fo/-FS (fo/-filter-at inst-of (r/ret-o expr-tr))
+                                  (fo/-FS (fo/-proposition-at inst-of (r/ret-o expr-tr))
                                           (if (:extend-via-metadata @v)
                                             fl/-top ;; satisfies? does not rule out metadata extension https://clojure.atlassian.net/browse/CLJ-2426
-                                            (fo/-not-filter-at inst-of (r/ret-o expr-tr)))))
+                                            (fo/-not-proposition-at inst-of (r/ret-o expr-tr)))))
                            expected
                            opts)))))
 
@@ -1568,8 +1568,8 @@
            :target cexpr
            u/expr-type (below/maybe-check-below
                          (r/ret (c/Un [r/-true r/-false] opts)
-                                (fo/-FS (fo/-filter-at inst-of (r/ret-o expr-tr))
-                                        (fo/-not-filter-at inst-of (r/ret-o expr-tr))))
+                                (fo/-FS (fo/-proposition-at inst-of (r/ret-o expr-tr))
+                                        (fo/-not-proposition-at inst-of (r/ret-o expr-tr))))
                          expected
                          opts))))
 
@@ -1776,7 +1776,7 @@
         cdefault (let [flag+ (volatile! true)
                        neg-tst-fl (let [val-ts (map (comp #(c/fully-resolve-type % opts) r/ret-t) tests-rets)]
                                     (if (every? r/Value? val-ts)
-                                      (fo/-not-filter-at (c/Un val-ts opts)
+                                      (fo/-not-proposition-at (c/Un val-ts opts)
                                                          (r/ret-o target-ret))
                                       fl/-top))
                        env-default (update/env+ (lex/lexical-env opts) [neg-tst-fl] flag+ opts)

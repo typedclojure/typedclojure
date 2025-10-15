@@ -8,7 +8,7 @@
 
 (ns ^:typed.clojure typed.cljc.checker.check.multi
   (:require [typed.cljc.checker.fold-rep :as fold]
-            [typed.cljc.checker.filter-rep :as fl]
+            [typed.cljc.checker.proposition-rep :as fl]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.object-rep :as obj])
   (:import (typed.cljc.checker.type_rep Function)))

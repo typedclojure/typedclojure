@@ -20,8 +20,8 @@
             [typed.clj.checker.subtype :as sub] ; use subtype? utility defined in this namespace
             [typed.cljc.checker.check :as check]
             [typed.cljc.checker.cs-rep :as cr]
-            [typed.cljc.checker.filter-ops :as fo]
-            [typed.cljc.checker.filter-rep :as fr]
+            [typed.cljc.checker.proposition-ops :as fo]
+            [typed.cljc.checker.proposition-rep :as fr]
             [typed.cljc.checker.fold-rep :as f]
             [typed.cljc.checker.free-ops :as free-ops]
             [typed.cljc.checker.frees :as frees]
@@ -326,7 +326,7 @@
 ;; the index variables from the TOPLAS paper
 
 (declare cs-gen-right-F cs-gen-left-F cs-gen-datatypes-or-records cs-gen-list
-         cs-gen-filter-set cs-gen-object cs-gen-HSequential cs-gen-TApp
+         cs-gen-proposition-set cs-gen-object cs-gen-HSequential cs-gen-TApp
          cs-gen-Function cs-gen-FnIntersection cs-gen-Result cs-gen-RClass
          cs-gen-Protocol get-c-from-cmap cs-gen)
 
@@ -1014,37 +1014,37 @@
                   ;TODO cases
                   :else (err/nyi-error (pr-str "NYI HSequential inference " S T) opts))
                 (map (fn [fs1 fs2]
-                       (cs-gen-filter-set V X Y fs1 fs2 opts))
+                       (cs-gen-proposition-set V X Y fs1 fs2 opts))
                      (:fs S) (:fs T))
                 (map (fn [o1 o2]
                        (cs-gen-object V X Y o1 o2))
                      (:objects S) (:objects T)))
               opts))
 
-;; FIXME - anything else to say about And and OrFilters?
-(t/ann cs-gen-filter [NoMentions ConstrainVars ConstrainDVars fr/Filter fr/Filter t/Any
+;; FIXME - anything else to say about And and OrPropositions?
+(t/ann cs-gen-proposition [NoMentions ConstrainVars ConstrainDVars fr/Proposition fr/Proposition t/Any
                       -> cset])
-(defn cs-gen-filter [V X Y s t opts]
+(defn cs-gen-proposition [V X Y s t opts]
   {:pre [((con/set-c? symbol?) V)
          (X? X)
          (Y? Y)
-         (fr/Filter? s)
-         (fr/Filter? t)]
+         (fr/Proposition? s)
+         (fr/Proposition? t)]
    :post [(cr/cset? %)]}
   (cond
     (= s t) (cr/empty-cset X Y)
-    (fr/TopFilter? t) (cr/empty-cset X Y)
+    (fr/TopProposition? t) (cr/empty-cset X Y)
 
-    (and (fr/TypeFilter? s)
-         (fr/TypeFilter? t)
+    (and (fr/TypeProposition? s)
+         (fr/TypeProposition? t)
          (and (= (:path s) (:path t))
               (= (:id s) (:id t))))
     (cset-meet (cs-gen V X Y (:type s) (:type t) opts)
                (cs-gen V X Y (:type t) (:type s) opts)
                opts)
 
-    (and (fr/NotTypeFilter? s)
-         (fr/NotTypeFilter? t)
+    (and (fr/NotTypeProposition? s)
+         (fr/NotTypeProposition? t)
          (and (= (:path s) (:path t))
               (= (:id s) (:id t))))
     (cset-meet (cs-gen V X Y (:type s) (:type t) opts)
@@ -1052,31 +1052,31 @@
                opts)
 
     ; simple case for unifying x and y in (& (is x sym) ...) (is y sym)
-;    (and (fr/AndFilter? s)
-;         (fr/TypeFilter? t)
-;         (every? fo/atomic-filter? (:fs s))
-;         (= 1 (count (filter fr/TypeFilter? (:fs s)))))
-;    (let [tf (first (filter fr/TypeFilter? (:fs s)))]
-;      (cs-gen-filter V X Y tf t opts))
+;    (and (fr/AndProposition? s)
+;         (fr/TypeProposition? t)
+;         (every? fo/atomic-proposition? (:fs s))
+;         (= 1 (count (filter fr/TypeProposition? (:fs s)))))
+;    (let [tf (first (filter fr/TypeProposition? (:fs s)))]
+;      (cs-gen-proposition V X Y tf t opts))
     :else (fail! s t)))
 
-;must be *latent* filter sets
-(t/ann cs-gen-filter-set [NoMentions ConstrainVars ConstrainDVars fr/Filter fr/Filter t/Any
+;must be *latent* proposition sets
+(t/ann cs-gen-proposition-set [NoMentions ConstrainVars ConstrainDVars fr/PropositionSet fr/PropositionSet t/Any
                           -> cset])
-(defn cs-gen-filter-set [V X Y s t opts]
+(defn cs-gen-proposition-set [V X Y s t opts]
   {:pre [((con/set-c? symbol?) V)
          (X? X)
          (Y? Y)
-         (fr/FilterSet? s)
-         (fr/FilterSet? t)]
+         (fr/PropositionSet? s)
+         (fr/PropositionSet? t)]
    :post [(cr/cset? %)]}
   (cond
     (= s t) (cr/empty-cset X Y)
     :else
     (let [{s+ :then s- :else} s
           {t+ :then t- :else} t]
-      (cset-meet (cs-gen-filter V X Y s+ t+ opts)
-                 (cs-gen-filter V X Y s- t- opts)
+      (cset-meet (cs-gen-proposition V X Y s+ t+ opts)
+                 (cs-gen-proposition V X Y s- t- opts)
                  opts))))
 
 (t/ann cs-gen-object [NoMentions ConstrainVars ConstrainDVars
@@ -1138,7 +1138,7 @@
   {:pre [(r/Result? S)
          (r/Result? T)]}
   (cset-meet* [(cs-gen V X Y (r/Result-type* S) (r/Result-type* T) opts)
-               (cs-gen-filter-set V X Y (r/Result-filter* S) (r/Result-filter* T) opts)
+               (cs-gen-proposition-set V X Y (r/Result-proposition* S) (r/Result-proposition* T) opts)
                (cs-gen-object V X Y (r/Result-object* S) (r/Result-object* T))]
               opts))
 
@@ -2745,7 +2745,7 @@
         _ (assert (r/Function? arity))
         _ (assert (= 1 (count (:dom arity))))
         _ (assert (= :fixed (:kind arity)))
-        _ (assert (= (fo/-simple-filter) (:fl (:rng arity))))
+        _ (assert (= (fo/-simple-proposition) (:fl (:rng arity))))
         _ (assert (= or/-empty (:o (:rng arity))))
 
         lhs (:t t)

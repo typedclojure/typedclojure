@@ -18,8 +18,8 @@
             [typed.cljc.checker.utils :as u]
             [clojure.core.typed.errors :as err]
             [typed.clj.checker.parse-unparse :as prs]
-            [typed.cljc.checker.filter-ops :as fo]
-            [typed.cljc.checker.filter-rep :as fl]
+            [typed.cljc.checker.proposition-ops :as fo]
+            [typed.cljc.checker.proposition-rep :as fl]
             [typed.cljc.checker.path-rep :as pe]
             [typed.cljc.checker.object-rep :as obj]
             [clojure.core.typed.current-impl :as impl]
@@ -70,59 +70,59 @@
                                     opts))))
         opts))
 
-(defn ^:private nth-positive-filter-default-truthy [target-o default-o opts]
+(defn ^:private nth-positive-proposition-default-truthy [target-o default-o opts]
   {:pre [(obj/RObject? target-o)
          (obj/RObject? default-o)]
-   :post [(fl/Filter? %)]}
-  (fo/-and [(fo/-filter-at (c/Un [r/-nil (c/RClass-of ISeq [r/-any] opts)] opts)
+   :post [(fl/Proposition? %)]}
+  (fo/-and [(fo/-proposition-at (c/Un [r/-nil (c/RClass-of ISeq [r/-any] opts)] opts)
                            target-o)
-            (fo/-not-filter-at r/-falsy
+            (fo/-not-proposition-at r/-falsy
                                default-o)]
            opts))
 
-(defn ^:private nth-positive-filter-default-falsy [target-o default-o idx opts]
+(defn ^:private nth-positive-proposition-default-falsy [target-o default-o idx opts]
   {:pre [(obj/RObject? target-o)
          (obj/RObject? default-o)
          (nat-int? idx)]
-   :post [(fl/Filter? %)]}
-  (fo/-and [(fo/-filter-at (c/In [(c/-name `t/Seqable r/-any)
+   :post [(fl/Proposition? %)]}
+  (fo/-and [(fo/-proposition-at (c/In [(c/-name `t/Seqable r/-any)
                                   (r/make-CountRange (inc idx))]
                                  opts)
                            target-o)
-            (fo/-filter-at r/-falsy
+            (fo/-proposition-at r/-falsy
                            default-o)]
            opts))
 
-(defn ^:private nth-positive-filter-default [target-o default-o idx opts]
+(defn ^:private nth-positive-proposition-default [target-o default-o idx opts]
   {:pre [(obj/RObject? target-o)
          (obj/RObject? default-o)
          (nat-int? idx)]
-   :post [(fl/Filter? %)]}
-  (fo/-or [(nth-positive-filter-default-truthy target-o default-o opts)
-           (nth-positive-filter-default-falsy target-o default-o idx opts)]
+   :post [(fl/Proposition? %)]}
+  (fo/-or [(nth-positive-proposition-default-truthy target-o default-o opts)
+           (nth-positive-proposition-default-falsy target-o default-o idx opts)]
           opts))
 
-(defn ^:private nth-positive-filter-no-default [target-o idx opts]
+(defn ^:private nth-positive-proposition-no-default [target-o idx opts]
   {:pre [(obj/RObject? target-o)
          (nat-int? idx)]
-   :post [(fl/Filter? %)]}
-  (fo/-filter-at (c/In [(c/-name `t/Seqable r/-any)
+   :post [(fl/Proposition? %)]}
+  (fo/-proposition-at (c/In [(c/-name `t/Seqable r/-any)
                         (r/make-CountRange (inc idx))]
                        opts)
                  target-o))
 
-(defn ^:private nth-filter [target-expr default-expr idx default-t opts]
+(defn ^:private nth-proposition [target-expr default-expr idx default-t opts]
   {:pre [(expression? target-expr)
          ((some-fn nil? expression?) default-expr)
          (nat-int? idx)
          ((some-fn nil? r/Type?) default-t)]
-   :post [(fl/Filter? %)]}
+   :post [(fl/Proposition? %)]}
   (let [target-o (expr->object target-expr)
         default-o (expr->object default-expr)
 
         filter+ (if default-t
-                  (nth-positive-filter-default target-o default-o idx opts)
-                  (nth-positive-filter-no-default target-o idx opts))]
+                  (nth-positive-proposition-default target-o default-o idx opts)
+                  (nth-positive-proposition-no-default target-o idx opts))]
     (fo/-FS filter+
             ;; not sure if there's anything worth encoding here
             fl/-top)))
@@ -202,7 +202,7 @@
               (assoc
                 u/expr-type (below/maybe-check-below
                               (r/ret (nth-type types idx default-t opts)
-                                     (nth-filter te de idx default-t opts)
+                                     (nth-proposition te de idx default-t opts)
                                      (nth-object te idx))
                               expected
                               opts))))

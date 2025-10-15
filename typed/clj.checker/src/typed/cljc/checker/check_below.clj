@@ -9,8 +9,8 @@
 (ns ^:typed.clojure typed.cljc.checker.check-below
   (:require [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.type-ctors :as c]
-            [typed.cljc.checker.filter-rep :as fl]
-            [typed.cljc.checker.filter-ops :as fo]
+            [typed.cljc.checker.proposition-rep :as fl]
+            [typed.cljc.checker.proposition-ops :as fo]
             [typed.cljc.checker.object-rep :as obj]
             [typed.clj.checker.subtype :as sub]
             [typed.cljc.checker.cs-gen :as cgen]
@@ -19,28 +19,28 @@
             [clojure.core.typed.errors :as err]))
 
 ;; returns true when f1 <: f2
-(defn simple-filter-better? [f1 f2 opts]
-  {:pre [(fl/Filter? f1)
-         (fl/Filter? f2)]}
-  (cond (fl/NoFilter? f2) true
-        (fl/NoFilter? f1) false
-        :else (sub/subtype-filter? f1 f2 opts)))
+(defn simple-proposition-better? [f1 f2 opts]
+  {:pre [(fl/Proposition? f1)
+         (fl/Proposition? f2)]}
+  (cond (fl/NoProposition? f2) true
+        (fl/NoProposition? f1) false
+        :else (sub/subtype-proposition? f1 f2 opts)))
 
 ;; returns true when f1 <: f2
 (defn filter-better? [{f1+ :then f1- :else :as f1}
                       {f2+ :then f2- :else :as f2}
                       opts]
-  {:pre [(fl/FilterSet? f1)
-         (fl/FilterSet? f2)]
+  {:pre [(fl/PropositionSet? f1)
+         (fl/PropositionSet? f2)]
    :post [(boolean? %)]}
   (cond
     (= f1 f2) true
     :else
-    (let [f+-better? (simple-filter-better? f1+ f2+ opts)
-          f--better? (simple-filter-better? f1- f2- opts)] 
+    (let [f+-better? (simple-proposition-better? f1+ f2+ opts)
+          f--better? (simple-proposition-better? f1- f2- opts)] 
       (and f+-better? f--better?))))
 
-(defn bad-filter-delayed-error [{f1 :fl :as actual} {f2 :fl :as expected} opts]
+(defn bad-proposition-delayed-error [{f1 :fl :as actual} {f2 :fl :as expected} opts]
   {:pre [(r/TCResult? actual)
          (r/TCResult? expected)]}
   (err/tc-delayed-error (str "Expected result with filter " (pr-str f2) ", got filter "  (pr-str f1))
@@ -65,17 +65,17 @@
               (= o1 o2) true
               ((some-fn obj/NoObject? obj/EmptyObject?) o2) true
               :else false))
-          (choose-result-filter [f1 f2]
-            {:pre [(fl/Filter? f1)
-                   (fl/Filter? f2)]
-             :post [(fl/Filter? %)]}
-            ;(prn "check-below choose-result-filter"
+          (choose-result-proposition [f1 f2]
+            {:pre [(fl/Proposition? f1)
+                   (fl/Proposition? f2)]
+             :post [(fl/Proposition? %)]}
+            ;(prn "check-below choose-result-proposition"
             ;     f1 f2
             ;     (fl/infer-top? f1)
             ;     (fl/infer-top? f2))
             (cond
               (and (fl/infer-top? f2)
-                   (not (fl/NoFilter? f1)))
+                   (not (fl/NoProposition? f1)))
               f1
               :else f2))
           (construct-ret [tres tr1 expected]
@@ -87,10 +87,10 @@
                          tr-f (r/ret-f tr1)]
                      ;(prn "check-below exp-f" exp-f)
                      ;(prn "check-below tr-f" tr-f)
-                     (fo/-FS (choose-result-filter
+                     (fo/-FS (choose-result-proposition
                                (:then tr-f)
                                (:then exp-f))
-                             (choose-result-filter
+                             (choose-result-proposition
                                (:else tr-f)
                                (:else exp-f))))
                    (let [exp-o (r/ret-o expected)
@@ -114,7 +114,7 @@
           _ (cond
               (and (not better-fs?)
                    better-obj?)
-              (bad-filter-delayed-error tr1 expected opts)
+              (bad-proposition-delayed-error tr1 expected opts)
 
               (and better-fs? 
                    (not better-obj?))

@@ -12,7 +12,7 @@
             [typed.clojure :as t]
             [clojure.core.typed.current-impl :as impl]
             [typed.cljc.checker.hset-utils :as hset]
-            [typed.cljc.checker.filter-ops :as fo])
+            [typed.cljc.checker.proposition-ops :as fo])
   (:import (clojure.lang IPersistentList IPersistentVector Symbol Cons ISeq
                          IFn IPersistentStack IPersistentSet IPersistentMap IMapEntry
                          Keyword Atom PersistentList IMeta PersistentArrayMap Compiler Named

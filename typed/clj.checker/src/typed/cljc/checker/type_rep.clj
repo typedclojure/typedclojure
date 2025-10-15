@@ -710,7 +710,7 @@
 (t/defalias HSequentialKind (t/U ':list ':seq ':vector ':sequential))
 
 (u/def-type HSequential [types :- (t/Seqable Type)
-                         fs :- (t/Vec p/IFilterSet)
+                         fs :- (t/Vec p/IPropositionSet)
                          objects :- (t/Vec p/IRObject)
                          ;variable members to the right of fixed
                          rest :- (t/U nil Type)
@@ -721,7 +721,7 @@
   [(sequential? types)
    (every? (some-fn Type? Result?) types)
    (vector? fs)
-   (every? p/IFilterSet? fs)
+   (every? p/IPropositionSet? fs)
    (vector? objects)
    (every? p/IRObject? objects)
    (apply = (map count [types fs objects]))
@@ -746,7 +746,7 @@
 
 (t/ann ^:no-check -hsequential
        [(t/Seqable Type)
-        (t/HMap :optional {:filters (t/Seqable p/IFilterSet) :objects (t/Seqable p/IRObject)
+        (t/HMap :optional {:filters (t/Seqable p/IPropositionSet) :objects (t/Seqable p/IRObject)
                            :rest (t/U nil Type) :drest (t/U nil DottedPretype) :repeat t/Bool
                            :kind HSequentialKind})
         t/Any
@@ -791,7 +791,7 @@
 
 (t/ann ^:no-check -hseq
        [(t/Seqable Type)
-        (t/HMap :optional {:filters (t/Seqable p/IFilterSet) :objects (t/Seqable p/IRObject)
+        (t/HMap :optional {:filters (t/Seqable p/IPropositionSet) :objects (t/Seqable p/IRObject)
                            :rest (t/Nilable Type) :drest (t/Nilable DottedPretype) :repeat t/Bool})
         t/Any
         -> Type])
@@ -805,7 +805,7 @@
        (= :vector (:kind t))))
 
 (t/ann ^:no-check -hvec
-       [(t/Vec Type) (t/HMap :optional {:filters (t/Seqable p/IFilterSet) :objects (t/Seqable p/IRObject)
+       [(t/Vec Type) (t/HMap :optional {:filters (t/Seqable p/IPropositionSet) :objects (t/Seqable p/IRObject)
                                         :rest (t/Nilable Type) :drest (t/Nilable DottedPretype) :repeat t/Bool})
         t/Any
         -> Type])
@@ -882,20 +882,20 @@
 (u/def-type GetType [target :- Type,
                      key :- Type
                      not-found :- Type
-                     target-fs :- p/IFilterSet
+                     target-fs :- p/IPropositionSet
                      target-object :- p/IRObject]
   "get on the type level"
   [(Type? target)
    (Type? key)
    (Type? not-found)
-   (p/IFilterSet? target-fs)
+   (p/IPropositionSet? target-fs)
    (p/IRObject? target-object)]
   :methods
   [p/TCType])
 
 (t/ann -get
        [Type Type & :optional {:not-found (t/U nil Type)
-                               :target-fs (t/U nil p/IFilterSet)
+                               :target-fs (t/U nil p/IPropositionSet)
                                :target-object (t/U nil p/IRObject)}
         -> GetType])
 (defn -get
@@ -1121,11 +1121,11 @@
   [p/TCType])
 
 (u/def-type Result [t :- Type,
-                    fl :- p/IFilterSet
+                    fl :- p/IPropositionSet
                     o :- p/IRObject]
   "A result type with filter f and object o. NOT a type."
   [(Type? t)
-   (p/IFilterSet? fl)
+   (p/IPropositionSet? fl)
    (p/IRObject? o)]
   :methods
   [p/TCAnyType])
@@ -1150,10 +1150,10 @@
    :post [(Type? %)]}
   (:t r))
 
-(t/ann ^:no-check Result-filter* [Result -> p/IFilterSet])
-(defn Result-filter* [r]
+(t/ann ^:no-check Result-proposition* [Result -> p/IPropositionSet])
+(defn Result-proposition* [r]
   {:pre [(Result? r)]
-   :post [(p/IFilterSet? %)]}
+   :post [(p/IPropositionSet? %)]}
   (:fl r))
 
 (t/ann ^:no-check Result-object* [Result -> p/IRObject])
@@ -1175,12 +1175,12 @@
 (def dotted-no-bounds (regex [no-bounds] :*))
 
 (u/def-type TCResult [t :- Type
-                      fl :- p/IFilterSet
+                      fl :- p/IPropositionSet
                       o :- p/IRObject
                       opts :- (t/Map t/Any t/Any)]
   "This record represents the result of type-checking an expression"
   [(Type? t)
-   (p/IFilterSet? fl)
+   (p/IPropositionSet? fl)
    (p/IRObject? o)
    (map? opts)]
   ;:methods
@@ -1190,7 +1190,7 @@
 
 (t/ann ret
        (t/IFn [Type -> TCResult]
-              [Type p/IFilterSet p/IRObject :? -> TCResult]))
+              [Type p/IPropositionSet p/IRObject :? -> TCResult]))
 (defn ret
   "Convenience function for returning the type of an expression"
   ([t] 
@@ -1199,7 +1199,7 @@
    (ret t f (ind/-empty-fn)))
   ([t f o]
    {:pre [(AnyType? t)
-          (p/IFilterSet? f)
+          (p/IPropositionSet? f)
           (p/IRObject? o)]
     :post [(TCResult? %)]}
    (TCResult-maker t f o {})))
@@ -1210,10 +1210,10 @@
    :post [(AnyType? %)]}
   (:t r))
 
-(t/ann ^:no-check ret-f [TCResult -> p/IFilterSet])
+(t/ann ^:no-check ret-f [TCResult -> p/IPropositionSet])
 (defn ret-f [r]
   {:pre [(TCResult? r)]
-   :post [(p/IFilterSet? %)]}
+   :post [(p/IPropositionSet? %)]}
   (:fl r))
 
 (t/ann ^:no-check ret-o [TCResult -> p/IRObject])
@@ -1224,14 +1224,14 @@
 
 (t/ann make-Result
        (t/IFn [Type -> Result]
-              [Type (t/Nilable p/IFilterSet) (t/Nilable p/IRObject) :? -> Result]))
+              [Type (t/Nilable p/IPropositionSet) (t/Nilable p/IRObject) :? -> Result]))
 (defn make-Result
   "Make a result. ie. the range of a Function"
   ([t] (make-Result t nil nil))
   ([t f] (make-Result t f nil))
   ([t f o]
    (Result-maker t 
-                 (or f (ind/-FS (ind/-top-fn) (ind/-top-fn))) ;;TODO use (fo/-simple-filter)
+                 (or f (ind/-FS (ind/-top-fn) (ind/-top-fn))) ;;TODO use (fo/-simple-proposition)
                  (or o (ind/-empty-fn)))))
 
 (t/ann ^:no-check make-Function
@@ -1240,7 +1240,7 @@
         & :optional
         {:rest (t/Nilable Type) :drest (t/Nilable Type) :prest (t/Nilable Type)
          :pdot (t/Nilable DottedPretype)
-         :filter (t/Nilable p/IFilterSet) :object (t/Nilable p/IRObject)
+         :filter (t/Nilable p/IPropositionSet) :object (t/Nilable p/IRObject)
          :mandatory-kws (t/Nilable (t/Map Type Type))
          :optional-kws (t/Nilable (t/Map Type Type))
          :kws (t/Nilable KwArgs)}

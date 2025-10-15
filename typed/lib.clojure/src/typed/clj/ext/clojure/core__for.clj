@@ -19,7 +19,7 @@
             [typed.cljc.checker.check.let :as let]
             [typed.cljc.checker.check-below :as below]
             [typed.cljc.checker.check.if :as if]
-            [typed.cljc.checker.filter-ops :as fo]
+            [typed.cljc.checker.proposition-ops :as fo]
             [typed.cljc.checker.lex-env :as lex]
             [typed.cljc.checker.var-env :as var-env]
             [typed.cljc.runtime.env :as env]
@@ -164,7 +164,7 @@
           (assoc expr
                  u/expr-type (below/maybe-check-below
                                (r/ret (c/-name `t/ASeq r/-nothing)
-                                      (fo/-true-filter))
+                                      (fo/-true-proposition))
                                expected
                                opts))
           (let [body-expected (some-> expected
@@ -184,6 +184,6 @@
             (assoc expr
                    u/expr-type (below/maybe-check-below
                                  (r/ret (c/-name `t/ASeq (r/ret-t unshadowed-ret))
-                                        (fo/-true-filter))
+                                        (fo/-true-proposition))
                                  expected
                                  opts))))))
