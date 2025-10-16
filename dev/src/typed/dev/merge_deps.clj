@@ -56,8 +56,8 @@
         'nrepl/nrepl {:mvn/version (:nrepl-mvn-version h/selmer-input-map)}
         'cider/cider-nrepl {:mvn/version (:cider-nrepl-mvn-version h/selmer-input-map)}
         'cider/piggieback {:mvn/version (:piggieback-mvn-version h/selmer-input-map)}))
-    :build {:replace-deps {'io.github.clojure/tools.build {:git/tag "v0.10.9"
-                                                           :git/sha "e405aac49c67310f88ceeca7839881692abdde95"}}
+    :build {:replace-deps {'io.github.clojure/tools.build {:git/tag "v0.10.10"
+                                                           :git/sha "deedd623574e3712687a657691c6b79f5026b3a1"}}
             :extra-paths ["dev/src"]
             :ns-default 'build}))
 
