@@ -147,13 +147,9 @@
   )
 
 (defn- deploy-maven [{:keys [jar-file pom-file]}]
-  (println "Deploying with Maven:" jar-file pom-file)
-  (println "Pom file content:" (slurp pom-file))
-  (println "Jar file exists?" (.exists (io/file jar-file)))
-  (println "Pom file exists?" (.exists (io/file pom-file)))
   ;; Uses process/start with options map as first argument, then command and args.
   (let [proc (process/start {:out :inherit :err :inherit}
-                            "mvn" "-X" "deploy:deploy-file"
+                            "mvn" "deploy:deploy-file"
                             (str "-Dfile=" jar-file)
                             (str "-DpomFile=" pom-file)
                             "-DrepositoryId=clojars"
