@@ -153,7 +153,7 @@
   (println "Pom file exists?" (.exists (io/file pom-file)))
   ;; Uses process/start with options map as first argument, then command and args.
   (let [proc (process/start {:out :inherit :err :inherit}
-                            "mvn" "deploy:deploy-file"
+                            "mvn" "-X" "deploy:deploy-file"
                             (str "-Dfile=" jar-file)
                             (str "-DpomFile=" pom-file)
                             "-DrepositoryId=clojars"
