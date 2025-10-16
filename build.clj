@@ -14,6 +14,7 @@
 (defn jar [{:keys [version lib basis dir class-dir] :as params}]
   {:pre [version lib basis dir]}
   (clean nil)
+  (prn "saving pom to to" class-dir)
   (b/write-pom {:class-dir class-dir
                 :lib lib
                 :version version
@@ -147,6 +148,9 @@
 
 (defn- deploy-maven [{:keys [jar-file pom-file]}]
   (println "Deploying with Maven:" jar-file pom-file)
+  (println "Pom file content:" (slurp pom-file))
+  (println "Jar file exists?" (.exists (io/file jar-file)))
+  (println "Pom file exists?" (.exists (io/file pom-file)))
   ;; Uses process/start with options map as first argument, then command and args.
   (let [proc (process/start {:out :inherit :err :inherit}
                             "mvn" "deploy:deploy-file"
