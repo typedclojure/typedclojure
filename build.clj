@@ -20,11 +20,11 @@
                 :version version
                 :basis basis
                 :packaging "jar"
-                :pom-data [:licenses
-                           [:license
-                            [:name "Eclipse Public License 1.0"]
-                            [:url "https://opensource.org/licenses/epl-1-0"]
-                            [:distribution "repo"]]] 
+                :pom-data [[:licenses
+                            [:license
+                             [:name "Eclipse Public License 1.0"]
+                             [:url "https://opensource.org/licenses/epl-1-0"]
+                             [:distribution "repo"]]]] 
                 :scm {:url (:typedclojure-git-https-url h/selmer-input-map)
                       :connection (:typedclojure-scm-connection h/selmer-input-map)
                       :developerConnection (:typedclojure-scm-developerConnection h/selmer-input-map)
