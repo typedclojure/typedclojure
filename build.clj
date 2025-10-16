@@ -149,6 +149,7 @@
 
 (defn- deploy-maven [{:keys [jar-file pom-file]}]
   ;; Uses process/start with options map as first argument, then command and args.
+  (prn "pom-file" (slurp pom-file))
   (let [proc (process/start {:out :inherit :err :inherit}
                             "mvn" "deploy:deploy-file"
                             (str "-Dfile=" jar-file)
@@ -165,8 +166,7 @@
                       {:jar-file jar-file :pom-file pom-file :exit exit})))))
 
 (defn deploy* [params]
-  (doseq [{:keys [jar-file pom-file]} (:deployments params)]
-    (deploy-maven {:jar-file jar-file :pom-file pom-file}))
+  (run! deploy-maven (:deployments params))
   params)
 
 (defn deploy-snapshot [params]
