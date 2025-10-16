@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+set -e
+clojure -T:build build-release "$@"
