@@ -19,6 +19,7 @@
                 :lib lib
                 :version version
                 :basis basis
+                :packaging "jar"
                 :scm {:url (:typedclojure-git-https-url h/selmer-input-map)
                       :connection (:typedclojure-scm-connection h/selmer-input-map)
                       :developerConnection (:typedclojure-scm-developerConnection h/selmer-input-map)
