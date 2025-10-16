@@ -133,9 +133,6 @@ See [wiki](https://github.com/clojure/core.typed/wiki).
 <!---
 ## Future work
 
-* Equality filters for occurrence typing
-* Unify AST with ClojureScript
-* Namespace dependency management
 * Track changes to Typed Racket
   * https://github.com/plt/racket/compare/6105ce8b2087...71d6189132ce
 -->

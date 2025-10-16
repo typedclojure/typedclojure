@@ -57,12 +57,7 @@
         'cider/cider-nrepl {:mvn/version (:cider-nrepl-mvn-version h/selmer-input-map)}
         'cider/piggieback {:mvn/version (:piggieback-mvn-version h/selmer-input-map)}))
     :build {:replace-deps {'io.github.clojure/tools.build {:git/tag "v0.10.9"
-                                                           :git/sha "e405aac49c67310f88ceeca7839881692abdde95"}
-                           'org.clj-commons/digest {:git/url "https://github.com/clj-commons/digest.git"
-                                                    :git/tag "Release-1.4.100"
-                                                    :git/sha "bec1e0e6b887bdb408674f0025357cc49b02b434"}
-                           'slipset/deps-deploy {:git/url "https://github.com/slipset/deps-deploy.git"
-                                                  :git/sha "07022b92d768590ab25b9ceb619ef17d2922da9a"}}
+                                                           :git/sha "e405aac49c67310f88ceeca7839881692abdde95"}}
             :extra-paths ["dev/src"]
             :ns-default 'build}))
 

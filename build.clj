@@ -1,15 +1,10 @@
 (ns build
   (:require [clojure.edn :as edn]
+            [clojure.java.io :as io]
+            [clojure.java.process :as process]
             [clojure.string :as str]
             [clojure.tools.build.api :as b]
-            [clojure.pprint :as pp]
-            [clojure.java.io :as io]
-            [clojure.walk :as walk]
-            [clojure.java.shell :as sh]
-            [clj-commons.digest :as digest]
-            [typed.dev.helpers :as h]
-            [deps-deploy.deps-deploy :as deploy])
-  (:import (java.util.regex Pattern)))
+            [typed.dev.helpers :as h]))
 
 (def group-id (:typedclojure-group-id h/selmer-input-map))
 
@@ -150,13 +145,27 @@
   (build-release {:version "1.4.00"})
   )
 
-(defn- deploy* [params]
+(defn- deploy-maven [{:keys [jar-file pom-file]}]
+  (println "Deploying with Maven:" jar-file pom-file)
+  ;; Uses process/start with options map as first argument, then command and args.
+  (let [proc (process/start {:out :inherit :err :inherit}
+                            "mvn" "deploy:deploy-file"
+                            (str "-Dfile=" jar-file)
+                            (str "-DpomFile=" pom-file)
+                            "-DrepositoryId=clojars"
+                            "-Durl=https://repo.clojars.org"
+                            "-B"
+                            "-q")
+        exit (.waitFor proc)]
+    (when-not (zero? exit)
+      (binding [*out* *err*]
+        (println "Maven deploy failed with exit code" exit))
+      (throw (ex-info "Maven deploy failed"
+                      {:jar-file jar-file :pom-file pom-file :exit exit})))))
+
+(defn deploy* [params]
   (doseq [{:keys [jar-file pom-file]} (:deployments params)]
-    (deploy/deploy
-      {:installer :remote
-       :sign-releases? false
-       :artifact jar-file
-       :pom-file pom-file}))
+    (deploy-maven {:jar-file jar-file :pom-file pom-file}))
   params)
 
 (defn deploy-snapshot [params]
