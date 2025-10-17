@@ -1,0 +1,143 @@
+# Test ClojureCLR
+#
+# This workflow tests ClojureCLR support in Typed Clojure as a first step towards
+# full CLR platform compatibility. Currently, the user-facing macros from
+# typed.clj.runtime are tested on ClojureCLR.
+#
+# Workflow Steps:
+# 1. Sets up .NET 8.0 runtime on Ubuntu
+# 2. Installs ClojureCLR 1.12.2 as a dotnet global tool
+# 3. Creates a compatibility shim for the io.github.frenchy64.fully-satisfies.requiring-resolve library
+# 4. Runs a test suite that verifies typed.clojure/ann-form works correctly
+#
+# Test Coverage:
+# - Basic ClojureCLR functionality test
+# - Namespace loading test for typed.clojure
+# - Functional test asserting that (typed.clojure/ann-form 1 t/Any) equals 1
+#
+# Implementation Details:
+#
+# Compatibility Shim:
+# Since the io.github.frenchy64.fully-satisfies.requiring-resolve library is not
+# available for ClojureCLR, a shim is created that uses ClojureCLR's built-in
+# requiring-resolve function:
+#
+#   (ns io.github.frenchy64.fully-satisfies.requiring-resolve)
+#   (def requiring-resolve clojure.core/requiring-resolve)
+#
+# This shim is added to the classpath during testing.
+#
+# Classpath Configuration:
+# The workflow uses the CLOJURE_LOAD_PATH environment variable to configure the classpath:
+#
+#   export CLOJURE_LOAD_PATH="$(pwd)/test-clr:$(pwd)/typed/clj.runtime/src"
+#
+# This ensures both the runtime sources and the compatibility shim are available to ClojureCLR.
+#
+# Future Work:
+# - Test additional typed.clojure macros on ClojureCLR
+# - Test the full type checker on ClojureCLR
+# - Add support for CLR-specific type annotations
+# - Integrate ClojureCLR testing into the main CI pipeline
+
+name: Test ClojureCLR
+
+on:
+  push:
+
+jobs:
+  test-clojureclr:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      
+      - name: Install ClojureCLR
+        run: |
+          # Install ClojureCLR as a dotnet tool
+          dotnet tool install --global Clojure.Main --version 1.12.2
+          echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
+      
+      - name: Verify ClojureCLR installation
+        run: |
+          which Clojure.Main || echo "Clojure.Main not in PATH"
+          ls -la ~/.dotnet/tools/
+      
+      - name: Create test directory
+        run: |
+          mkdir -p test-clr
+      
+      - name: Test ClojureCLR basic functionality
+        run: |
+          cat > test-clr/hello.clj << 'EOF'
+          (println "Hello from ClojureCLR!")
+          EOF
+          Clojure.Main test-clr/hello.clj
+      
+      - name: Create shim for fully-satisfies library
+        run: |
+          mkdir -p test-clr/io/github/frenchy64/fully_satisfies
+          cat > test-clr/io/github/frenchy64/fully_satisfies/requiring_resolve.clj << 'EOF'
+          (ns io.github.frenchy64.fully-satisfies.requiring-resolve)
+          
+          ;; Shim for ClojureCLR - use built-in requiring-resolve
+          (def requiring-resolve clojure.core/requiring-resolve)
+          EOF
+      
+      - name: Create test file (first try requiring namespace)
+        run: |
+          cat > test-clr/test_require.clj << 'EOF'
+          (println "Testing require of typed.clojure...")
+          (try
+            (require 'typed.clojure)
+            (println "SUCCESS: typed.clojure namespace loaded")
+            (catch Exception e
+              (println "ERROR loading typed.clojure:" (.Message e))
+              (when-let [st (.StackTrace e)]
+                (println "Stack trace:" st))
+              (System.Environment/Exit 1)))
+          EOF
+      
+      - name: Run require test
+        run: |
+          cd $GITHUB_WORKSPACE
+          export CLOJURE_LOAD_PATH="$(pwd)/test-clr:$(pwd)/typed/clj.runtime/src"
+          Clojure.Main test-clr/test_require.clj || echo "Require test failed, continuing..."
+      
+      - name: Create main test file
+        run: |
+          cat > test-clr/test_ann_form.clj << 'EOF'
+          (ns test-ann-form
+            (:require [typed.clojure :as t]
+                      [clojure.test :refer [deftest is run-tests]]))
+          
+          (println "Running test-ann-form...")
+          
+          (deftest test-ann-form-equals-value
+            (println "Testing (typed.clojure/ann-form 1 t/Any)...")
+            (let [result (t/ann-form 1 t/Any)]
+              (println "Result:" result)
+              (is (= result 1)
+                  "ann-form should return 1")))
+          
+          (println "Executing tests...")
+          (let [result (run-tests)]
+            (println "Test results:" result)
+            (if (zero? (+ (:fail result) (:error result)))
+              (println "SUCCESS: (typed.clojure/ann-form 1 t/Any) equals 1")
+              (do
+                (println "FAILURE: Tests failed")
+                (System.Environment/Exit 1))))
+          EOF
+      
+      - name: Run test
+        run: |
+          cd $GITHUB_WORKSPACE
+          export CLOJURE_LOAD_PATH="$(pwd)/test-clr:$(pwd)/typed/clj.runtime/src"
+          echo "CLOJURE_LOAD_PATH=$CLOJURE_LOAD_PATH"
+          echo "Running main test..."
+          Clojure.Main test-clr/test_ann_form.clj
