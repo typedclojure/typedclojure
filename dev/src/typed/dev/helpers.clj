@@ -67,4 +67,5 @@
    :fs-mvn-version "0.5.24"
    :fully-satisfies-mvn-version "1.12.0"
    :clj-async-profiler-mvn-version "1.6.1"
+   :instaparse-mvn-version "1.5.0"
    })

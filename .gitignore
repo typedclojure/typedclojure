@@ -33,3 +33,4 @@ package.json
 .flattened-pom.xml
 release.properties
 *.releaseBackup
+linux-install.sh

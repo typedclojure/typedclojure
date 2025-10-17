@@ -9,7 +9,8 @@
                                              :deps/manifest :deps}
         {◊typedclojure-group-id◊}/typed.cljs.analyzer {:local/root "../cljs.analyzer"
                                             :deps/manifest :deps}
-        org.clojure/clojurescript {:mvn/version "{◊clojurescript-mvn-version◊}"}}
+        org.clojure/clojurescript {:mvn/version "{◊clojurescript-mvn-version◊}"}
+        instaparse/instaparse {:mvn/version "{◊instaparse-mvn-version◊}"}}
  :aliases {:nREPL
            {:extra-paths ["script"]
             :extra-deps

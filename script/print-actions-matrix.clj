@@ -1,7 +1,7 @@
 #!/usr/bin/env bb
 
-;; GITHUB_EVENT_NAME=schedule ./script/print-actions-matrix.clj
-;; GITHUB_EVENT_NAME=push ./script/print-actions-matrix.clj
+;; GITHUB_OUTPUT=tmp.txt GITHUB_EVENT_NAME=schedule ./script/print-actions-matrix.clj
+;; GITHUB_OUTPUT=tmp.txt GITHUB_EVENT_NAME=push ./script/print-actions-matrix.clj
 
 (require '[cheshire.core :as json]
          '[clojure.core.typed.contract-utils :as con]
