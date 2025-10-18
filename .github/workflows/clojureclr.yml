@@ -44,7 +44,8 @@ name: Test ClojureCLR
 
 on:
   push:
-    - 'main'
+    branches:
+      - 'main'
 
 jobs:
   test-clojureclr:
