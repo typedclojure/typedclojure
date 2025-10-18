@@ -9,6 +9,8 @@ on:
 jobs:
   setup:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -18,7 +20,7 @@ jobs:
           curl -O https://download.clojure.org/install/linux-install.sh
           chmod +x linux-install.sh
           sudo ./linux-install.sh
-          clojure -Sversion
+          clojure --version
 
       - name: Install babashka
         run: |
