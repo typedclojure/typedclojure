@@ -1,0 +1,28 @@
+name: Copilot Setup Steps
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/copilot-setup-steps.yml'
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Clojure CLI (latest official installer)
+        run: |
+          curl -O https://download.clojure.org/install/linux-install.sh
+          chmod +x linux-install.sh
+          sudo ./linux-install.sh
+          clojure -Sversion
+
+      - name: Install babashka
+        run: |
+          curl -sLO https://github.com/babashka/babashka/releases/latest/download/bb
+          chmod +x bb
+          sudo mv bb /usr/local/bin/bb
+          bb --version
