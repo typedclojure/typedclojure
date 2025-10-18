@@ -34,3 +34,4 @@ package.json
 release.properties
 *.releaseBackup
 linux-install.sh
+/install

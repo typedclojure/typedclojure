@@ -1,6 +1,9 @@
 (ns typed-test.cljs.checker.ts-declaration-parser-test
   "Tests for TypeScript declaration parser"
   (:require [clojure.test :refer [deftest is testing]]
+            [clojure.java.io :as io]
+            [clojure.java.shell :as shell]
+            [clojure.string :as str]
             [typed.cljs.checker.ts-declaration-parser :as parser]))
 
 ;; ========== Type Parsing Tests ==========
@@ -426,3 +429,98 @@
                 :optional false,
                 :readonly true}]}]}
            (parser/parse-declaration "interface Config { readonly apiKey: string; }")))))
+
+;; ========== DefinitelyTyped Full Test ==========
+
+#_
+(deftest ^:integration definitely-typed-clone-and-parse-test
+  (testing "Clone DefinitelyTyped and parse all type declarations"
+    (let [tmp-dir (java.io.File/createTempFile "definitely-typed-" "-clone")
+          _ (.delete tmp-dir)
+          _ (.mkdirs tmp-dir)
+          dt-dir (io/file tmp-dir "DefinitelyTyped")
+          types-dir (io/file dt-dir "types")]
+      (try
+        ;; Clone the DefinitelyTyped repository
+        (println "\nCloning DefinitelyTyped repository...")
+        (let [clone-result (shell/sh "git" "clone" "--depth=1" 
+                                     "https://github.com/DefinitelyTyped/DefinitelyTyped.git"
+                                     (.getPath dt-dir))]
+          (when (not= 0 (:exit clone-result))
+            (throw (ex-info "Failed to clone DefinitelyTyped" 
+                           {:exit (:exit clone-result)
+                            :err (:err clone-result)}))))
+        
+        (println "Finding .d.ts files...")
+        (let [d-ts-files (->> (file-seq types-dir)
+                             (filter #(.isFile %))
+                             (filter #(.endsWith (.getName %) ".d.ts"))
+                             (take 100)) ;; Test first 100 files for quick validation
+              total (count d-ts-files)]
+          (println (format "Testing with %d .d.ts files..." total))
+          
+          (let [results (atom {:total 0 :success 0 :failed 0 :errors [] :error-types {}})
+                update-result! (fn [file result]
+                                 (swap! results update :total inc)
+                                 (if (:success? result)
+                                   (swap! results update :success inc)
+                                   (do
+                                     (swap! results update :failed inc)
+                                     ;; Only keep first 20 error examples
+                                     (when (< (count (:errors @results)) 20)
+                                       (swap! results update :errors conj 
+                                             {:file (.getName file) 
+                                              :error (:error result)}))
+                                     ;; Track error types for statistics
+                                     (let [error-type (or (:error result) "Unknown")]
+                                       (swap! results update-in [:error-types error-type] 
+                                             (fnil inc 0))))))]
+            
+            ;; Parse each file
+            (doseq [file d-ts-files]
+              (try
+                (let [content (slurp file)]
+                  ;; Skip empty files
+                  (when-not (str/blank? content)
+                    (try
+                      (parser/parse-declaration content)
+                      (update-result! file {:success? true})
+                      (catch Exception e
+                        (update-result! file {:success? false 
+                                             :error (ex-message e)})))))
+                (catch Exception e
+                  (update-result! file {:success? false 
+                                       :error (ex-message e)}))))
+            
+            ;; Print summary
+            (let [{:keys [total success failed errors error-types]} @results]
+              (println (format "\n=== Parse Results ==="))
+              (println (format "Total files: %d" total))
+              (println (format "Successfully parsed: %d (%.1f%%)" 
+                             success (* 100.0 (/ success (max 1 total)))))
+              (println (format "Failed to parse: %d (%.1f%%)" 
+                             failed (* 100.0 (/ failed (max 1 total)))))
+              
+              (when (seq errors)
+                (println (format "\nFirst 20 error examples:"))
+                (doseq [{:keys [file error]} errors]
+                  (println (format "  %s: %s" file (or error "Unknown error")))))
+              
+              (when (seq error-types)
+                (println (format "\nError type distribution (top 10):"))
+                (doseq [[error-type count] (take 10 (sort-by val > error-types))]
+                  (println (format "  %dx: %s" count error-type))))
+              
+              ;; The test passes if we successfully parsed at least some files
+              ;; This is an integration test to identify what needs fixing
+              (is (> success 0) 
+                  "Should successfully parse at least some DefinitelyTyped declarations")
+              
+              ;; Report the success rate - we expect it to improve over time
+              (println (format "\nSuccess rate: %.1f%% (%d/%d)" 
+                             (* 100.0 (/ success (max 1 total))) success total)))))
+        
+        (finally
+          ;; Clean up
+          (println "Cleaning up temporary directory...")
+          (shell/sh "rm" "-rf" (.getPath tmp-dir)))))))
