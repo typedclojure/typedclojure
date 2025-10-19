@@ -1,0 +1,4 @@
+;; TODO run test suite using this
+{:paths ["src" "resources"]
+ :aliases {:test
+           {:extra-paths ["test"]}}}

@@ -1,0 +1,32 @@
+#!/bin/bash
+# Start a ClojureCLR REPL for typed.clj.runtime
+#
+# This script sets up the ClojureCLR environment and starts a basic REPL.
+# It uses CLOJURE_LOAD_PATH to configure the classpath with:
+# - src: Source code
+# - resources: Resource files
+#
+# Prerequisites:
+# - ClojureCLR (Clojure.Main) must be installed as a dotnet tool
+# - .NET 8.0 or later must be installed
+#
+# Usage:
+#   ./script/repl-clr
+
+set -e
+
+# Get the directory where this script is located
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." && pwd )"
+
+# Set up the load path for ClojureCLR
+export CLOJURE_LOAD_PATH="${PROJECT_ROOT}/src:${PROJECT_ROOT}/resources"
+
+echo "Starting ClojureCLR REPL for typed.clj.runtime..."
+echo "CLOJURE_LOAD_PATH=$CLOJURE_LOAD_PATH"
+echo ""
+echo "Load typed.clojure with: (require '[typed.clojure :as t])"
+echo ""
+
+# Start the REPL
+Clojure.Main

@@ -13,7 +13,8 @@
             [typed.cljc.analyzer :as ana2]
             [clojure.reflect :as reflect]
             [clojure.string :as s]
-            [clojure.core.memoize :refer [lru]]
+            #?@(:cljr []
+                :default [[clojure.core.memoize :refer [lru]]])
             #?(:cljr [clojure.clr.io]
                :default [clojure.java.io :as io])
             #?(:clj [io.github.frenchy64.fully-satisfies.safe-locals-clearing :refer [delay]]))
@@ -418,18 +419,19 @@
   (:members (type-reflect Object)))
 
 (def members*
-  (lru (fn members*
-         ([class]
-          (into object-members
-                (remove (fn [{:keys [flags]}]
-                          (not-any? #{:public :protected} flags))
-                        (-> class
-                            maybe-class
-                            box
-                            #?(:cljr .FullName :default .getName)
-                            symbol
-                            (type-reflect :ancestors true)
-                            :members)))))))
+  (#?(:cljr identity :default lru) 
+   (fn members*
+     ([class]
+      (into object-members
+            (remove (fn [{:keys [flags]}]
+                      (not-any? #{:public :protected} flags))
+                    (-> class
+                        maybe-class
+                        box
+                        #?(:cljr .FullName :default .getName)
+                        symbol
+                        (type-reflect :ancestors true)
+                        :members)))))))
 
 (defn members
   ([class] (members* class))

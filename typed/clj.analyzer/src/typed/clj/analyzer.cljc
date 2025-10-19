@@ -357,10 +357,13 @@
 ;; HACK
 (defn -deftype [cname class-name args interfaces]
 
-  (let [memo-clear! @(requiring-resolve 'clojure.core.memoize/memo-clear!)]
-    (doseq [arg [class-name cname]]
-      (memo-clear! ju/members* [arg])
-      (memo-clear! ju/members* [(str arg)])))
+  #?(:cljr 
+     nil  ; no memoization to clear on CLR
+     :default
+     (let [memo-clear! @(requiring-resolve 'clojure.core.memoize/memo-clear!)]
+       (doseq [arg [class-name cname]]
+         (memo-clear! ju/members* [arg])
+         (memo-clear! ju/members* [(str arg)]))))
 
   (let [interfaces (mapv #(symbol #?(:cljr (.FullName ^Type %) :default (.getName ^Class %))) interfaces)]
     (eval (list 'let []

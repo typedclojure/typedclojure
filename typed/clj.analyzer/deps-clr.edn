@@ -1,0 +1,5 @@
+;;TODO run test suite using this
+{:paths ["src"]
+ :deps {org.typedclojure/typed.cljc.analyzer {:local/root "../cljc.analyzer"
+                                              :deps/manifest :deps}}
+ :aliases {:test {:extra-paths ["test"]}}}

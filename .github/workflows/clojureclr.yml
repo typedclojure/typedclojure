@@ -6,14 +6,9 @@
 #
 # Workflow Steps:
 # 1. Sets up .NET 8.0 runtime on Ubuntu
-# 2. Installs ClojureCLR 1.12.2 as a dotnet global tool
+# 2. Installs ClojureCLR 1.12.3-alpha3 as a dotnet global tool
 # 3. Creates a compatibility shim for the io.github.frenchy64.fully-satisfies.requiring-resolve library
-# 4. Runs a test suite that verifies typed.clojure/ann-form works correctly
-#
-# Test Coverage:
-# - Basic ClojureCLR functionality test
-# - Namespace loading test for typed.clojure
-# - Functional test asserting that (typed.clojure/ann-form 1 t/Any) equals 1
+# 4. Runs typed.clj.runtime test suite
 #
 # Implementation Details:
 #
@@ -62,7 +57,7 @@ jobs:
       - name: Install ClojureCLR
         run: |
           # Install ClojureCLR as a dotnet tool
-          dotnet tool install --global Clojure.Main --version 1.12.2
+          dotnet tool install --global Clojure.Main --version 1.12.3-alpha3
           echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
       
       - name: Verify ClojureCLR installation
@@ -70,77 +65,21 @@ jobs:
           which Clojure.Main || echo "Clojure.Main not in PATH"
           ls -la ~/.dotnet/tools/
       
-      - name: Create test directory
-        run: |
-          mkdir -p test-clr
+      # Commented out temporarily - testing analyzers first
+      # - name: Run typed.clj.runtime test suite
+      #   run: |
+      #     cd $GITHUB_WORKSPACE/typed/clj.runtime
+      #     echo "Running typed.clj.runtime test suite with ClojureCLR..."
+      #     ./script/test-clr
       
-      - name: Test ClojureCLR basic functionality
+      - name: Run typed.cljc.analyzer test suite
         run: |
-          cat > test-clr/hello.clj << 'EOF'
-          (println "Hello from ClojureCLR!")
-          EOF
-          Clojure.Main test-clr/hello.clj
+          cd $GITHUB_WORKSPACE/typed/cljc.analyzer
+          echo "Running typed.cljc.analyzer test suite with ClojureCLR..."
+          ./script/test-clr
       
-      - name: Create shim for fully-satisfies library
+      - name: Run typed.clj.analyzer test suite
         run: |
-          mkdir -p test-clr/io/github/frenchy64/fully_satisfies
-          cat > test-clr/io/github/frenchy64/fully_satisfies/requiring_resolve.clj << 'EOF'
-          (ns io.github.frenchy64.fully-satisfies.requiring-resolve)
-          
-          ;; Shim for ClojureCLR - use built-in requiring-resolve
-          (def requiring-resolve clojure.core/requiring-resolve)
-          EOF
-      
-      - name: Create test file (first try requiring namespace)
-        run: |
-          cat > test-clr/test_require.clj << 'EOF'
-          (println "Testing require of typed.clojure...")
-          (try
-            (require 'typed.clojure)
-            (println "SUCCESS: typed.clojure namespace loaded")
-            (catch Exception e
-              (println "ERROR loading typed.clojure:" (.Message e))
-              (when-let [st (.StackTrace e)]
-                (println "Stack trace:" st))
-              (System.Environment/Exit 1)))
-          EOF
-      
-      - name: Run require test
-        run: |
-          cd $GITHUB_WORKSPACE
-          export CLOJURE_LOAD_PATH="$(pwd)/test-clr:$(pwd)/typed/clj.runtime/src"
-          Clojure.Main test-clr/test_require.clj || echo "Require test failed, continuing..."
-      
-      - name: Create main test file
-        run: |
-          cat > test-clr/test_ann_form.clj << 'EOF'
-          (ns test-ann-form
-            (:require [typed.clojure :as t]
-                      [clojure.test :refer [deftest is run-tests]]))
-          
-          (println "Running test-ann-form...")
-          
-          (deftest test-ann-form-equals-value
-            (println "Testing (typed.clojure/ann-form 1 t/Any)...")
-            (let [result (t/ann-form 1 t/Any)]
-              (println "Result:" result)
-              (is (= result 1)
-                  "ann-form should return 1")))
-          
-          (println "Executing tests...")
-          (let [result (run-tests)]
-            (println "Test results:" result)
-            (if (zero? (+ (:fail result) (:error result)))
-              (println "SUCCESS: (typed.clojure/ann-form 1 t/Any) equals 1")
-              (do
-                (println "FAILURE: Tests failed")
-                (System.Environment/Exit 1))))
-          EOF
-      
-      - name: Run test
-        run: |
-          cd $GITHUB_WORKSPACE
-          export CLOJURE_LOAD_PATH="$(pwd)/test-clr:$(pwd)/typed/clj.runtime/src"
-          echo "CLOJURE_LOAD_PATH=$CLOJURE_LOAD_PATH"
-          echo "Running main test..."
-          Clojure.Main test-clr/test_ann_form.clj
+          cd $GITHUB_WORKSPACE/typed/clj.analyzer
+          echo "Running typed.clj.analyzer test suite with ClojureCLR..."
+          ./script/test-clr

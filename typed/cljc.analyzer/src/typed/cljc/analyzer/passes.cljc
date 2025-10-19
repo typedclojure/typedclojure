@@ -33,7 +33,8 @@
 
 ;; performance optimization
 ;; set to false to develop/debug passes while avoiding recompilation
-(def direct-link (case (System/getProperty "typed.cljc.analyzer.passes/direct-link")
+(def direct-link (case #?(:cljr (System.Environment/GetEnvironmentVariable "typed.cljc.analyzer.passes/direct-link")
+                          :default (System/getProperty "typed.cljc.analyzer.passes/direct-link"))
                    "true" true
                    "false" false
                    nil true))
