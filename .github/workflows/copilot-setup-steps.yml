@@ -6,6 +6,9 @@ on:
     paths:
       - '.github/workflows/copilot-setup-steps.yml'
 
+env:
+  ACTIONS_CACHE_VERSION: 0
+
 jobs:
   copilot-setup-steps:
     runs-on: ubuntu-latest
@@ -27,3 +30,31 @@ jobs:
         run: |
           bash < <(curl -s https://raw.githubusercontent.com/babashka/babashka/master/install)
           bb --version
+
+      - name: Restore dependency cache
+        id: cache-deps
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.m2/repository
+            ~/.gitlibs
+          key: ${{ env.ACTIONS_CACHE_VERSION }}-deps-${{ hashFiles('**/deps.edn', '**/bb.edn') }}
+
+      - name: Download dependencies
+        if: steps.cache-deps.outputs.cache-hit != 'true'
+        run: clojure -A:kaocha:test:deps -Stree
+
+      - name: Run bb prepare
+        if: steps.cache-deps.outputs.cache-hit != 'true'
+        run: |
+          cd dev
+          bb prepare
+
+      - name: Save dependency cache
+        if: steps.cache-deps.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.m2/repository
+            ~/.gitlibs
+          key: ${{ env.ACTIONS_CACHE_VERSION }}-deps-${{ hashFiles('**/deps.edn', '**/bb.edn') }}
