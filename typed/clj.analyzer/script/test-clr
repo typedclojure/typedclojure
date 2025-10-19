@@ -43,12 +43,10 @@ cat > /tmp/run-clj-analyzer-clr-tests.clj << 'EOF'
   (println (format "  Passed: %d assertions" (:pass results)))
   (println (format "  Failed: %d assertions" (:fail results)))
   (println (format "  Errors: %d assertions" (:error results)))
-  (when (pos? (:error results))
-    (println "\nNote: Some errors are expected on ClojureCLR due to platform differences")
-    (println "      (e.g., missing Java reflection APIs, different exception types)."))
-  (if (pos? (:fail results))
+  (if (or (pos? (:fail results))
+          (pos? (:error results)))
     (do
-      (println "\nFAILURE: Tests failed")
+      (println "\nFAILURE: Tests failed or had errors")
       (System.Environment/Exit 1))
     (do
       (println "\nSUCCESS: All tests passed!")
