@@ -43,6 +43,7 @@
 name: Test ClojureCLR
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - 'main'
