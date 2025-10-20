@@ -46,6 +46,11 @@ on:
 jobs:
   test-clojureclr:
     runs-on: ubuntu-latest
+    # only test main if in typedclojure/typedclojure repo
+    if: ${{ !(github.ref == 'refs/heads/main'
+              && github.repository != 'typedclojure/typedclojure'
+              && github.event_name == 'push')
+         }}
     steps:
       - uses: actions/checkout@v4
       
