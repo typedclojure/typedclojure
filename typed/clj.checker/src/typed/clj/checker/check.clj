@@ -360,12 +360,22 @@
         :clojure (= :any (:unannotated-var check-config))
         :cljs nil)
       (do
-        (println (str "Inferring " vsym " dereference as Any"))
-        (assoc expr
-               u/expr-type (below/maybe-check-below
-                             (r/ret r/-any)
-                             expected
-                             opts)))
+        (let [var-value (try @var (catch Exception _ nil))
+              inferred-type (if (fn? var-value)
+                              ;; If it's a function, assign [Any * -> Any] type
+                              (do
+                                (println (str "Inferring " vsym " dereference as [Any * -> Any] (function)"))
+                                (r/make-FnIntersection 
+                                  (r/make-Function [] r/-any :rest r/-any)))
+                              ;; Otherwise, assign Any type
+                              (do
+                                (println (str "Inferring " vsym " dereference as Any"))
+                                r/-any))]
+          (assoc expr
+                 u/expr-type (below/maybe-check-below
+                              (r/ret inferred-type)
+                              expected
+                              opts))))
 
 
       :else
