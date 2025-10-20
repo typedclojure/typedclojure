@@ -1,9 +1,11 @@
 name: Test and deploy
 
 on:
-  #FIXME double builds on self pull requests
+  workflow_dispatch:
   pull_request:
   push:
+    branches:
+      - 'main'
   schedule:
     # Every Monday and Friday at 1PM UTC (9AM EST)
     - cron: "0 13 * * 1,5"
@@ -14,13 +16,10 @@ env:
 
 jobs:
   setup:
-    # delegate self-pull-requests to push jobs and run cron only in main repo
-    if: ${{ !((github.event.pull_request.head.repo.owner.login == 'typedclojure' ||
-               github.event.pull_request.head.repo.owner.login == 'frenchy64')
-              && github.event_name == 'pull_request')
-            &&
-            (github.repository == 'typedclojure/typedclojure' ||
-             github.event_name != 'schedule')
+    # only test main if in typedclojure/typedclojure repo
+    if: ${{ !(github.ref == 'refs/heads/main'
+              && github.repository != 'typedclojure/typedclojure'
+              && github.event_name == 'push')
          }}
     runs-on: ubuntu-24.04
     outputs:
