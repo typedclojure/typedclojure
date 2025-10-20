@@ -39,6 +39,11 @@ jobs:
             ~/.m2/repository
             ~/.gitlibs
           key: ${{ env.ACTIONS_CACHE_VERSION }}-deps-${{ hashFiles('**/deps.edn', '**/bb.edn') }}
+     
+      - name: Debug cache outputs
+        run: |
+          echo "cache-hit: ${{ steps.cache-deps.outputs.cache-hit }}"
+          echo "cache-matched-key: ${{ steps.cache-deps.outputs.cache-matched-key }}"
 
       - name: Download dependencies
         if: steps.cache-deps.outputs.cache-hit != 'true'
