@@ -88,13 +88,29 @@
                                   ([m opts] (gen-inner m opts)))]
                   (case (m/type m)
                     (:any any?) `t/Any
-                    some? #?(:clj `Object :cljs `t/Any)
+                    some? `(t/Not nil)
                     (:> :< :>= :<= number?) `t/Num
                     integer? `t/AnyInteger
                     ;;FIXME unify cljs/clj
                     (int? pos-int? neg-int?) `t/Num
+                    nat-int? #?(:clj `(t/U Long Integer Short Byte)
+                                :cljs `(t/U t/CLJSInteger goog.math.Integer goog.math.Long)
+                                :default (throw (ex-info "Unsupported platform for nat-int? predicate" {})))
+                    (pos? neg?) `t/Num
+                    zero? `(t/Val 0)
+                    ratio? #?(:clj `(t/U t/Int clojure.lang.Ratio BigDecimal)
+                              :cljs `t/Num
+                              :default (throw (ex-info "Unsupported platform for ratio? predicate" {})))
+                    rational? #?(:clj `(t/U t/Int clojure.lang.Ratio BigDecimal)
+                                 :cljs `t/Num
+                                 :default (throw (ex-info "Unsupported platform for rational? predicate" {})))
+                    decimal? #?(:clj `BigDecimal
+                                :cljs `t/Num
+                                :default (throw (ex-info "Unsupported platform for decimal? predicate" {})))
                     (:nil nil?) `(t/Val nil)
                     (:boolean boolean?) `t/Bool
+                    true? `(t/Val true)
+                    false? `(t/Val false)
                     ;; TODO :min/max
                     (:string string?) `t/Str
                     ;; TODO :min/max (?)
@@ -133,10 +149,35 @@
                     :vector `(t/Vec ~(gen-inner (first (m/children m))))
                     vector? `(t/Vec t/Any)
                     :set `(t/Set ~(gen-inner (first (m/children m))))
+                    set? `(t/Set t/Any)
+                    list? `(t/List t/Any)
+                    seq? `(t/Seq t/Any)
+                    map? `(t/Map t/Any t/Any)
+                    coll? `(t/Coll t/Any)
+                    seqable? `t/AnySeqable
+                    indexed? `(t/Indexed t/Any)
+                    associative? `(t/Associative t/Any t/Any)
+                    empty? `t/EmptySeqable
+                    char? #?(:clj `Character
+                             :cljs `t/Str
+                             :default (throw (ex-info "Unsupported platform for char? predicate" {})))
+                    bytes? #?(:clj `~'(Array byte)
+                              :default (throw (ex-info "Unsupported platform for bytes? predicate" {})))
+                    (ident? simple-ident? qualified-ident?) `(t/U t/Kw t/Sym) ;; Idents can be keywords or symbols
                     :sequential `(t/SequentialColl ~(gen-inner (first (m/children m))))
-                    ;;TODO :tuple
+                    :tuple `'~(mapv gen-inner (m/children m))
                     :enum `(t/U ~@(map (fn [v] (list `t/Val v)) (m/children m)))
-                    ;;TODO :multi
+                    ;; :multi is complex multimethod dispatch with branches
+                    ;; This is an underapproximation - we should improve by simulating dispatch key/val
+                    ;; and adding the result to the output type
+                    :multi (case mode
+                             :validator-type (let [branches (m/children m)
+                                                   branch-schemas (map #(nth % 2) branches)
+                                                   branch-types (mapv gen-inner branch-schemas)]
+                                               (if (= 1 (count branch-types))
+                                                 (first branch-types)
+                                                 `(t/U ~@branch-types)))
+                             :parser-type (throw (ex-info ":multi not supported in parser-type mode" {:schema m})))
                     :fn `t/Any
                     :maybe `(t/Nilable ~(gen-inner (first (m/children m))))
                     :re `t/Str
@@ -155,6 +196,31 @@
                          (case mode
                            :validator-type `(t/Seqable ~inner-t)
                            :parser-type `(t/Vec ~inner-t)))
+                    :+ (let [inner-t (gen-inner (m/-get m 0 nil))]
+                         (case mode
+                           ;; We can't easily express non-empty constraint in Typed Clojure
+                           ;; so we use Seqable like :*
+                           :validator-type `(t/Seqable ~inner-t)
+                           :parser-type `(t/Vec ~inner-t)))
+                    ;; :alt and :altn are regex operators used in sequences
+                    ;; For validator-type, we treat them as unions of the alternatives
+                    (:alt :altn) (let [children (m/children m)
+                                       ;; :altn has [name props schema] tuples, :alt has just schemas
+                                       schemas (if (= :altn (m/type m))
+                                                 (map #(nth % 2) children)
+                                                 children)
+                                       inners (mapv gen-inner schemas)]
+                                   (if (= 1 (count inners))
+                                     (first inners)
+                                     `(t/U ~@inners)))
+                    ;; :repeat is like :* but with min/max constraints
+                    ;; For typing purposes, we can't express the constraints, so treat like :*
+                    :repeat (let [inner-t (gen-inner (m/-get m 0 nil))]
+                              (case mode
+                                :validator-type `(t/Seqable ~inner-t)
+                                :parser-type `(t/Vec ~inner-t)))
+                    ;; :seqable and :every are collection schemas that validate elements
+                    (:seqable :every) `(t/Seqable ~(gen-inner (first (m/children m))))
                     :ref (let [n (m/-ref m)
                                gn (-> (cond
                                         ((some-fn keyword? symbol?) n) (gensym (name n))
@@ -165,8 +231,15 @@
                            `(t/Rec [~gn] ~(gen-inner (m/-deref m) (assoc-in opts [::schema-form->free (m/form m)] gn))))
                     ;; TODO :min/max
                     :int `t/AnyInteger
+                    (:double double?) #?(:clj `Double 
+                                         :cljs `t/Num
+                                         :default (throw (ex-info "Unsupported platform for double? predicate" {})))
+                    (:float float?) #?(:clj `(t/U Double Float) 
+                                       :cljs `t/Num
+                                       :default (throw (ex-info "Unsupported platform for float? predicate" {})))
                     (keyword? :keyword simple-keyword? #_:simple-keyword qualified-keyword? :qualified-keyword) `t/Kw
                     (symbol? :symbol simple-symbol? #_:simple-symbol qualified-symbol? :qualified-symbol) `t/Sym
+                    :cat `'~(mapv gen-inner (m/children m))
                     :catn `'~(into (case mode :validator-type [] :parser-type {})
                                    (map (fn [[cat-k _props cat-schema :as c]]
                                           (assert (= 3 (count c)) c)
@@ -188,6 +261,7 @@
                                        (m/children m)))
                     (:schema ::m/schema) (gen-inner (m/deref m))
                     :not= `(t/Not (t/Val ~(first (m/children m))))
+                    :not `(t/Not ~(gen-inner (first (m/children m))))
                     := `(t/Val ~(first (m/children m)))
                     :uuid `t/UUID
                     (:merge :union :select-keys) (gen-inner (m/deref m))

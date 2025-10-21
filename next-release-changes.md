@@ -36,3 +36,4 @@
   - `typed.cljc.checker.filter_rep.AndFilter` → `typed.cljc.checker.proposition_rep.AndProposition`
   - `typed.cljc.checker.filter_rep.OrFilter` → `typed.cljc.checker.proposition_rep.OrProposition`
   - `typed.cljc.checker.filter_rep.ImpFilter` → `typed.cljc.checker.proposition_rep.ImpProposition`
+- Implement most of the remaining Malli => Typed Clojure translations

@@ -78,7 +78,48 @@
   (self-validate-parser-type false t/Str nil)
   (self-validate-parser-type false (t/Val nil) 1)
   (self-validate-parser-type true (t/Val nil) nil)
-  (self-validate-parser-type true (t/Val nil) nil))
+  (self-validate-parser-type true (t/Val nil) nil)
+
+  ;; Test new schemas for parser-type mode
+  ;; :tuple - should return tuple with ::m/invalid union
+  (is (= `(t/U (t/Val ::m/invalid)
+               '[t/AnyInteger t/Str])
+         (sut/malli-syntax->parser-type [:tuple :int :string])))
+  
+  ;; :double and :float - should return platform-specific types
+  #?(:clj (is (= `(t/U (t/Val ::m/invalid) Double)
+                 (sut/malli-syntax->parser-type :double))))
+  #?(:cljs (is (= `(t/U (t/Val ::m/invalid) t/Num)
+                  (sut/malli-syntax->parser-type :double))))
+  
+  #?(:clj (is (= `(t/U (t/Val ::m/invalid) (t/U Double Float))
+                 (sut/malli-syntax->parser-type :float))))
+  #?(:cljs (is (= `(t/U (t/Val ::m/invalid) t/Num)
+                  (sut/malli-syntax->parser-type :float))))
+  
+  ;; :not - should return negation type
+  (is (= `(t/U (t/Val ::m/invalid)
+               (t/Not t/AnyInteger))
+         (sut/malli-syntax->parser-type [:not :int])))
+  
+  ;; :+ - should return vector (same as :*)
+  (is (= `(t/U (t/Val ::m/invalid)
+               (t/Vec t/AnyInteger))
+         (sut/malli-syntax->parser-type [:+ :int])))
+  
+  ;; :cat - should return quoted vector
+  (is (= `(t/U (t/Val ::m/invalid)
+               '[t/AnyInteger t/Str])
+         (sut/malli-syntax->parser-type [:cat :int :string])))
+  
+  ;; :seqable and :every - should return seqable
+  (is (= `(t/U (t/Val ::m/invalid)
+               (t/Seqable t/AnyInteger))
+         (sut/malli-syntax->parser-type [:seqable :int])))
+  
+  (is (= `(t/U (t/Val ::m/invalid)
+               (t/Seqable t/AnyInteger))
+         (sut/malli-syntax->parser-type [:every :int]))))
 
 (deftest malli-syntax->validator-type
   (is (= `t/AnyInteger
@@ -252,7 +293,185 @@
   (self-validate-validator-type false t/Str nil)
   (self-validate-validator-type false (t/Val nil) 1)
   (self-validate-validator-type true (t/Val nil) nil)
-  (self-validate-validator-type true (t/Val nil) nil))
+  (self-validate-validator-type true (t/Val nil) nil)
+
+  ;; Test :tuple - heterogeneous vector type
+  (is (= `'[t/AnyInteger t/Str]
+         (sut/malli-syntax->validator-type [:tuple :int :string])))
+  (is (= `'[t/AnyInteger t/Str t/Bool]
+         (sut/malli-syntax->validator-type [:tuple :int :string :boolean])))
+  (is (m/validate [:tuple :int :string] [1 "a"]))
+  (is (m/explain [:tuple :int :string] [1]))
+  (is (m/explain [:tuple :int :string] [1 "a" :extra]))
+
+  ;; Test :double - double precision floating point
+  #?(:clj (is (= `Double (sut/malli-syntax->validator-type :double))))
+  #?(:cljs (is (= `t/Num (sut/malli-syntax->validator-type :double))))
+  (is (m/validate :double 1.5))
+  (is (m/validate :double (double 1.5)))
+  (is (m/explain :double "not-a-double"))
+
+  ;; Test :float - single precision floating point  
+  #?(:clj (is (= `(t/U Double Float) (sut/malli-syntax->validator-type :float))))
+  #?(:cljs (is (= `t/Num (sut/malli-syntax->validator-type :float))))
+  (is (m/validate :float 1.5))
+  (is (m/validate :float (float 1.5)))
+  (is (m/explain :float "not-a-float"))
+
+  ;; Test :not - negation type
+  (is (= `(t/Not t/AnyInteger)
+         (sut/malli-syntax->validator-type [:not :int])))
+  (is (= `(t/Not t/Str)
+         (sut/malli-syntax->validator-type [:not :string])))
+  (is (m/validate [:not :int] "string"))
+  (is (m/explain [:not :int] 42))
+
+  ;; Test :+ - one or more (like :* but at least one element)
+  (is (= `(t/Seqable t/AnyInteger)
+         (sut/malli-syntax->validator-type [:+ :int])))
+  (is (m/validate [:+ :int] [1]))
+  (is (m/validate [:+ :int] [1 2 3]))
+  (is (m/explain [:+ :int] []))
+
+  ;; Test :alt - alternation in regex (similar to :or but for sequences)
+  (is (= `(t/U t/AnyInteger t/Str)
+         (sut/malli-syntax->validator-type [:alt :int :string])))
+  (is (m/validate [:cat [:alt :int :string]] [1]))
+  (is (m/validate [:cat [:alt :int :string]] ["a"]))
+
+  ;; Test :altn - named alternation (like :alt but with names)
+  (is (= `(t/U t/AnyInteger t/Str)
+         (sut/malli-syntax->validator-type [:altn [:int :int] [:str :string]])))
+  (is (m/validate [:cat [:altn [:int :int] [:str :string]]] [1]))
+  (is (m/validate [:cat [:altn [:int :int] [:str :string]]] ["a"]))
+
+  ;; Test :repeat - repeat with min/max constraints
+  (is (= `(t/Seqable t/AnyInteger)
+         (sut/malli-syntax->validator-type [:repeat {:min 1 :max 3} :int])))
+  (is (m/validate [:repeat {:min 1 :max 3} :int] [1]))
+  (is (m/validate [:repeat {:min 1 :max 3} :int] [1 2 3]))
+  (is (m/explain [:repeat {:min 1 :max 3} :int] []))
+  (is (m/explain [:repeat {:min 1 :max 3} :int] [1 2 3 4]))
+
+  ;; Test :seqable - seqable collection type (like :sequential but validates with seqable?)
+  (is (= `(t/Seqable t/AnyInteger)
+         (sut/malli-syntax->validator-type [:seqable :int])))
+  (is (m/validate [:seqable :int] [1 2 3]))
+  (is (m/validate [:seqable :int] '(1 2 3)))
+  (is (m/explain [:seqable :int] 42))
+
+  ;; Test :every - like :vector but validates all seqables
+  (is (= `(t/Seqable t/AnyInteger)
+         (sut/malli-syntax->validator-type [:every :int])))
+  (is (m/validate [:every :int] [1 2 3]))
+  (is (m/validate [:every :int] '(1 2 3)))
+  (is (m/explain [:every :int] [1 "not-int"]))
+
+  ;; Test :multi - multimethod/dispatch type
+  ;; Now converts to union of branch types for validator-type mode
+  (is (= `(t/U '{:type (t/Val :int) :value t/AnyInteger}
+               '{:type (t/Val :str) :value t/Str})
+         (sut/malli-syntax->validator-type [:multi {:dispatch :type}
+                                            [:int [:map [:type [:= :int]] [:value :int]]]
+                                            [:str [:map [:type [:= :str]] [:value :string]]]])))
+  (is (m/validate [:multi {:dispatch :type}
+                   [:int [:map [:type [:= :int]] [:value :int]]]
+                   [:str [:map [:type [:= :str]] [:value :string]]]]
+                  {:type :int :value 42}))
+
+  ;; Test extensive regex operator semantics with validation and parsing
+  ;; Test nested regex contexts
+  
+  ;; Top-level regex in :cat
+  (is (= `'[t/AnyInteger] 
+         (sut/malli-syntax->validator-type [:cat :int])))
+  (is (m/validate [:cat :int] [42]))
+  (is (m/explain [:cat :int] [42 "extra"]))
+  
+  ;; Nested :* in :cat - :* matches zero or more elements in the sequence
+  (is (= `'[(t/Seqable t/AnyInteger)]
+         (sut/malli-syntax->validator-type [:cat [:* :int]])))
+  (is (m/validate [:cat [:* :int]] [1 2 3]))  ;; :* consumes all ints in the sequence
+  (is (m/validate [:cat [:* :int]] []))       ;; :* can match zero elements
+  
+  ;; Nested :+ in :cat - :+ matches one or more elements
+  (is (= `'[(t/Seqable t/AnyInteger)]
+         (sut/malli-syntax->validator-type [:cat [:+ :int]])))
+  (is (m/validate [:cat [:+ :int]] [1 2 3]))  ;; :+ matches one or more ints
+  (is (m/explain [:cat [:+ :int]] []))        ;; :+ requires at least one element
+  
+  ;; Nested :alt in :cat - :alt matches one element that satisfies any alternative
+  (is (= `'[(t/U t/AnyInteger t/Str)]
+         (sut/malli-syntax->validator-type [:cat [:alt :int :string]])))
+  (is (m/validate [:cat [:alt :int :string]] [42]))       ;; matches int alternative
+  (is (m/validate [:cat [:alt :int :string]] ["hello"]))  ;; matches string alternative
+  
+  ;; Complex nested regex: cat with alt containing repeats
+  ;; This is invalid - :alt with :* inside :cat doesn't work as expected
+  ;; Let's use a simpler valid example
+  (is (= `'[t/AnyInteger t/Str]
+         (sut/malli-syntax->validator-type [:cat :int :string])))
+  (is (m/validate [:cat :int :string] [42 "hello"]))
+  (is (m/explain [:cat :int :string] [42]))  ;; missing string
+
+  ;; Test some additional edge cases
+  ;; Nested vectors
+  (is (= `(t/Vec (t/Vec t/AnyInteger))
+         (sut/malli-syntax->validator-type [:vector [:vector :int]])))
+  
+  ;; Map with enum
+  (is (= `'{:type (t/U (t/Val :a) (t/Val :b) (t/Val :c))}
+         (sut/malli-syntax->validator-type [:map [:type [:enum :a :b :c]]])))
+  
+  ;; Union with maybe
+  (is (= `(t/U (t/Nilable t/AnyInteger) t/Str)
+         (sut/malli-syntax->validator-type [:or [:maybe :int] :string])))
+  
+  ;; Tuple with different types
+  (is (= `'[t/Kw t/Str t/AnyInteger]
+         (sut/malli-syntax->validator-type [:tuple :keyword :string :int])))
+  
+  ;; Set of tuples
+  (is (= `(t/Set '[t/AnyInteger t/Str])
+         (sut/malli-syntax->validator-type [:set [:tuple :int :string]])))
+
+  ;; Numeric comparison operators
+  (is (= `t/Num (sut/malli-syntax->validator-type [:> 5])))
+  (is (= `t/Num (sut/malli-syntax->validator-type [:< 10])))
+  (is (= `t/Num (sut/malli-syntax->validator-type [:>= 0])))
+  (is (= `t/Num (sut/malli-syntax->validator-type [:<= 100])))
+
+  ;; Additional predicates
+  (is (= `(t/List t/Any) (sut/malli-syntax->validator-type 'list?)))
+  (is (= `(t/Coll t/Any) (sut/malli-syntax->validator-type 'coll?)))
+  (is (= `(t/Indexed t/Any) (sut/malli-syntax->validator-type 'indexed?)))
+  (is (= `(t/Associative t/Any t/Any) (sut/malli-syntax->validator-type 'associative?)))
+  (is (= `(t/Val true) (sut/malli-syntax->validator-type 'true?)))
+  (is (= `(t/Val false) (sut/malli-syntax->validator-type 'false?)))
+  (is (= `t/EmptySeqable (sut/malli-syntax->validator-type 'empty?)))
+  (is (= `(t/U t/Kw t/Sym) (sut/malli-syntax->validator-type 'ident?)))
+  (is (= `(t/U t/Kw t/Sym) (sut/malli-syntax->validator-type 'simple-ident?)))
+  (is (= `(t/U t/Kw t/Sym) (sut/malli-syntax->validator-type 'qualified-ident?)))
+  ;; Platform-specific tests 
+  ;; bytes? - only available on JVM  
+  #?(:clj (is (= '(Array byte) (sut/malli-syntax->validator-type 'bytes?))))
+  ;; char? - different on JVM vs CLJS
+  #?(:clj (is (= 'java.lang.Character (sut/malli-syntax->validator-type 'char?))))
+  #?(:cljs (is (= 'typed.clojure/Str (sut/malli-syntax->validator-type 'char?))))
+  #?(:clj (is (= `(t/U t/Int clojure.lang.Ratio BigDecimal) (sut/malli-syntax->validator-type 'ratio?))))
+  #?(:cljs (is (= `t/Num (sut/malli-syntax->validator-type 'ratio?))))
+  #?(:clj (is (= `(t/U t/Int clojure.lang.Ratio BigDecimal) (sut/malli-syntax->validator-type 'rational?))))
+  #?(:cljs (is (= `t/Num (sut/malli-syntax->validator-type 'rational?))))
+  #?(:clj (is (= `BigDecimal (sut/malli-syntax->validator-type 'decimal?))))
+  #?(:cljs (is (= `t/Num (sut/malli-syntax->validator-type 'decimal?))))
+  
+  ;; Test new specific numeric predicates
+  #?(:clj (is (= `(t/U Long Integer Short Byte) (sut/malli-syntax->validator-type 'nat-int?))))
+  #?(:cljs (is (= `(t/U t/CLJSInteger goog.math.Integer goog.math.Long) (sut/malli-syntax->validator-type 'nat-int?))))
+  (is (= `(t/Val 0) (sut/malli-syntax->validator-type 'zero?)))
+  
+  ;; Test seqable? predicate
+  (is (= `t/AnySeqable (sut/malli-syntax->validator-type 'seqable?))))
 
 (def Over
   (m/-simple-schema
