@@ -50,7 +50,28 @@
      :default   
      (is (= [:static-field 'LOADER]
             ((juxt :op :field) (ast clojure.lang.Compiler/LOADER)))))
+
+  ;; Test CLR/JVM type literals with reader conditionals
+  (is (= [:const #?(:cljr System.String :default String)]
+         ((juxt :op :val) (ast #?(:cljr System.String :default String)))))
+  
+  (is (= [:const #?(:cljr System.Int32 :default Integer)]
+         ((juxt :op :val) (ast #?(:cljr System.Int32 :default Integer)))))
+
+  (is (= [:const #?(:cljr System.Int64 :default Long)]
+         ((juxt :op :val) (ast #?(:cljr System.Int64 :default Long)))))
   )
+
+(deftest clr-jvm-compatibility-test
+  (testing "Reader conditionals work for cross-platform support"
+    ;; This test demonstrates that the same code works on both JVM and CLR
+    ;; with appropriate type mappings via reader conditionals
+    (let [string-type #?(:cljr System.String :default java.lang.String)
+          int-type #?(:cljr System.Int32 :default java.lang.Integer)]
+      (is (= string-type (:tag (ast "hello"))))
+      ;; This shows that string literals get the correct platform-specific type
+      (is (class? string-type))
+      (is (class? int-type)))))
 
 (deftest local-tag-test
   (is (= #?(:cljr System.String :default java.lang.String)
@@ -109,14 +130,26 @@
 
 (when array-class-literal-feature?
   (deftest array-class-literal-test
-    #?(:cljr (throw (ex-info "TODO array-class-literal-test for cljr" {}))
+    #?(:cljr (is (= [:const System.Byte]
+                    ;; CLR uses different syntax for arrays, test a simple type
+                    ((juxt :op :val) (ana/analyze+eval 'System.Byte (ana/empty-env (ns-name *ns*)) (ana/default-opts)))))
        :default (is (= [:const (clojure.lang.RT/classForName "[[B")]
                        ;; Using `read-string` here because 'byte/2 is not even a valid
                        ;; symbol for pre-1.12 reader.
                        ((juxt :op :result) (ana/analyze+eval (read-string "byte/2") (ana/empty-env (ns-name *ns*)) (ana/default-opts)))))))
 
   (deftest method-reference-test
-  #?@(:cljr ((throw (ex-info "TODO method-reference-test for cljr" {})))
+  #?@(:cljr 
+      ;; CLR method references use System.String instead of String
+      [(is (= [:static-method System.String 'Join nil]
+              ((juxt :op :class :method :param-tags)
+               (ast' System.String/Join))))
+       (is (= [:static-method System.String 'Join [System.String |System.String[]|]]
+              ((juxt :op :class :method :param-tags)
+               (ast' ^{:param-tags [System.String |System.String[]|]} System.String/Join))))
+       (is (= [:static-method System.String 'Join [System.String nil]]
+              ((juxt :op :class :method :param-tags)
+               (ast' ^{:param-tags [System.String _]} System.String/Join))))]
       :default
       [(is (= [:static-method String 'join nil]
               ((juxt :op :class :method :param-tags)

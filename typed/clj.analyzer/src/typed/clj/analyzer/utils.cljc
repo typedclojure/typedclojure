@@ -206,7 +206,13 @@
    (class? x) x
    (symbol? x) (or (maybe-array-class-sym x)
                    (and (not (namespace x))
-                        (maybe-class-from-string (name x))))
+                        (maybe-class-from-string (name x)))
+                   #?(:cljr
+                      ;; Try to resolve CLR System.* types
+                      (when (and (not (namespace x))
+                                 (s/starts-with? (name x) "System."))
+                        (try (RT/classForName (name x))
+                             (catch Exception _)))))
    (string? x) (maybe-class-from-string x)))
 
 (def primitive?
@@ -585,3 +591,42 @@
         (io/resource (str f "c")))))
 		
 )
+
+;; CLR Property support functions
+#?(:cljr
+   (defn static-property
+     "Get static property info for class and property name"
+     [class prop]
+     (when-let [c (maybe-class class)]
+       (when-let [prop-info (first (filter #(and (= (str prop) (str (:name %)))
+                                                 (:static (:flags %)))
+                                           (filter #(instance? clojure.reflect.Property %)
+                                                   (:members (type-reflect c)))))]
+         {:name (str (:name prop-info))
+          :type (:type prop-info)
+          :property prop-info}))))
+
+#?(:cljr
+   (defn instance-property
+     "Get instance property info for class and property name"
+     [class prop]
+     (when-let [c (maybe-class class)]
+       (when-let [prop-info (first (filter #(and (= (str prop) (str (:name %)))
+                                                 (not (:static (:flags %))))
+                                           (filter #(instance? clojure.reflect.Property %)
+                                                   (:members (type-reflect c)))))]
+         {:name (str (:name prop-info))
+          :type (:type prop-info)
+          :property prop-info}))))
+
+#?(:cljr
+   (defn maybe-static-property
+     "Returns property info if the given form represents a static property access"
+     [[_ class prop]]
+     (static-property class prop)))
+
+#?(:cljr
+   (defn maybe-instance-property
+     "Returns property info if the given form represents an instance property access"
+     [class prop]
+     (instance-property class prop)))

@@ -31,12 +31,14 @@ cat > /tmp/run-clj-analyzer-clr-tests.clj << 'EOF'
 ;; Load all test namespaces
 (require 'typed-test.clj.analyzer)
 (require 'typed-test.clj.analyzer.gilardi-test)
+(require 'typed-test.clj.analyzer.property-test)
 ;; Skip perf test on CLR as it requires tools.analyzer.jvm
 ;; (require 'typed-test.clj.analyzer.perf)
 
 (println "Running tests...")
 (let [results (test/run-tests 'typed-test.clj.analyzer
-                               'typed-test.clj.analyzer.gilardi-test)]
+                               'typed-test.clj.analyzer.gilardi-test
+                               'typed-test.clj.analyzer.property-test)]
   (println "\nTest Results:" results)
   (println "\nSummary:")
   (println (format "  Tests: %d" (:test results)))

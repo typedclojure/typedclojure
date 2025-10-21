@@ -15,13 +15,16 @@
             [typed.cljc.analyzer.utils :refer [ctx source-info merge']]
             [typed.clj.analyzer.utils :as u]))
 
-(create-ns 'typed.clj.analyzer)
-(alias 'jvm 'typed.clj.analyzer)
+#?(:clj (do (create-ns 'typed.clj.analyzer)
+            (alias 'host 'typed.clj.analyzer))
+   :cljr (do (create-ns 'typed.cljr.analyzer)
+             (alias 'host 'typed.cljr.analyzer))
+   :default (throw (ex-info "Unsupported platform" {})))
 
 (defn maybe-static-field [[_ class sym]]
   (when-let [{:keys [flags type name]} (u/static-field class sym)]
     {:op          :static-field
-     ::common/op  ::jvm/static-field
+     ::common/op  ::host/static-field
      :assignable? (not (:final flags))
      :class       class
      :field       name
@@ -31,7 +34,7 @@
 (defn maybe-static-method-call [[_ class sym]]
   (when-let [{:keys [name return-type]} (u/static-method class sym)]
     {:op      :static-call
-     ::common/op  ::jvm/static-call
+     ::common/op  ::host/static-call
      :tag     return-type
      :o-tag   return-type
      :class   class
@@ -40,7 +43,7 @@
 (defn maybe-static-method [class sym form]
   (when (seq (u/all-static-methods class sym))
     {:op      :static-method
-     ::common/op  ::jvm/static-method
+     ::common/op  ::host/static-method
      :param-tags (some-> form meta :param-tags u/resolve-param-tags)
      :class   class
      :method  sym}))
@@ -48,7 +51,7 @@
 (defn maybe-instance-method-call [target-expr class sym]
   (when-let [{:keys [return-type]} (u/instance-method class sym)]
     {:op       :instance-call
-     ::common/op  ::jvm/instance-call
+     ::common/op  ::host/instance-call
      :tag      return-type
      :o-tag    return-type
      :instance target-expr
@@ -61,7 +64,7 @@
         sym (and (str/starts-with? sym-str ".") (symbol (subs sym-str 1)))]
     (when (seq (u/all-instance-methods class sym))
       {:op       :instance-method
-       ::common/op  ::jvm/instance-method
+       ::common/op  ::host/instance-method
        :param-tags (some-> form meta :param-tags u/resolve-param-tags)
        :class    class
        :method   sym})))
@@ -69,7 +72,7 @@
 (defn maybe-instance-field [target-expr class sym]
   (when-let [{:keys [flags name type]} (u/instance-field class sym)]
     {:op          :instance-field
-     ::common/op  ::jvm/instance-field
+     ::common/op  ::host/instance-field
      :assignable? (not (:final flags))
      :class       class
      :instance    target-expr
@@ -78,11 +81,36 @@
      :o-tag       type
      :children    [:instance]}))
 
+;; CLR Property support - property detection functions with runtime CLR check
+#?(:cljr
+   (defn maybe-static-property [[_ class prop]]
+     (when-some [{:keys [name type property]} (u/static-property class prop)]
+       {:op          :static-property
+        ::common/op  ::host/static-property
+        :assignable? true  ; CLR properties are generally assignable
+        :class       class
+        :property    name
+        :tag         type
+        :o-tag       type})))
+
+#?(:cljr
+   (defn maybe-instance-property [target-expr class prop]
+     (when-some [{:keys [name type property]} (u/instance-property class prop)]
+       {:op          :instance-property
+        ::common/op  ::host/instance-property
+        :assignable? true  ; CLR properties are generally assignable
+        :class       class
+        :instance    target-expr
+        :property    name
+        :tag         type
+        :o-tag       type
+        :children    [:instance]})))
+
 (defn analyze-host-call
   [target-type method args target-expr class env]
   (let [[op common-op] (case target-type
-                         :static   [:static-call ::jvm/static-call]
-                         :instance [:instance-call ::jvm/instance-call])]
+                         :static   [:static-call ::host/static-call]
+                         :instance [:instance-call ::host/instance-call])]
     (into
      {:op     op
       ::common/op common-op
@@ -100,14 +128,16 @@
   (if class
     (case target-type
       :static (or (maybe-static-field (list '. class field))
+                  #?(:cljr (maybe-static-property (list '. class field)))
                   (throw (ex-info (str "Cannot find field "
                                        field " for class " class)
                                   (merge {:class class
                                           :field field}
                                          (source-info env)))))
       :instance (or (maybe-instance-field target-expr class field)
+                    #?(:cljr (maybe-instance-property target-expr class field))
                     {:op          :host-interop
-                     ::common/op  ::jvm/host-interop
+                     ::common/op  ::host/host-interop
                      :target      (dissoc target-expr :tag :validated?)
                      :m-or-f      field
                      :assignable? true
@@ -119,7 +149,7 @@
                                               :field    field}
                                              (source-info env)))))))
     {:op          :host-interop
-     ::common/op  ::jvm/host-interop
+     ::common/op  ::host/host-interop
      :target      target-expr
      :m-or-f      field
      :assignable? true
@@ -127,18 +157,22 @@
 
 (defn -analyze-host-expr
   [target-type m-or-f target-expr class env]
-  (let [target-class (-> target-expr :tag)
-        [field method] (if class
-                         [(maybe-static-field (list '. class m-or-f))
-                          (maybe-static-method-call (list '. class m-or-f))]
-                         (when target-class
-                           [(maybe-instance-field target-expr target-class m-or-f)
-                            (maybe-instance-method-call target-expr target-class m-or-f)]))]
+  (let [target-class (or (-> target-expr :tag) (-> target-expr :o-tag))
+        [field method property] (if class
+                                  [(maybe-static-field (list '. class m-or-f))
+                                   (maybe-static-method-call (list '. class m-or-f))
+                                   #?(:cljr (maybe-static-property (list '. class m-or-f))
+                                      :default nil)]
+                                  (when target-class
+                                    [(maybe-instance-field target-expr target-class m-or-f)
+                                     (maybe-instance-method-call target-expr target-class m-or-f)
+                                     #?(:cljr (maybe-instance-property target-expr target-class m-or-f)
+                                        :default nil)]))]
     (cond
 
      (not (or class target-class))
      {:op          :host-interop
-      ::common/op  ::jvm/host-interop
+      ::common/op  ::host/host-interop
       :target      target-expr
       :m-or-f      m-or-f
       :assignable? true
@@ -146,6 +180,8 @@
 
      method
      method
+
+     #?@(:cljr [property property])
 
      field
      field
@@ -159,7 +195,7 @@
 
      target-class
      {:op          :host-interop
-      ::common/op  ::jvm/host-interop
+      ::common/op  ::host/host-interop
       :target      (dissoc target-expr :tag :validated?)
       :m-or-f      m-or-f
       :assignable? true
@@ -230,6 +266,7 @@
       (if-let [the-class (u/maybe-class-literal (:class ast))]
         (or (maybe-static-method the-class (:field ast) form)
             (maybe-instance-method the-class (:field ast) form)
+            #?(:cljr (maybe-static-property (list '. the-class (:field ast))))
             ast)
         ast))
 
