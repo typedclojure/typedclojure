@@ -1,14 +1,10 @@
 #!/bin/bash
-# TODO use deps-clr.edn
 # Run tests for typed.clj.runtime under ClojureCLR
 #
-# This script sets up the ClojureCLR environment and runs the test suite.
-# It uses CLOJURE_LOAD_PATH to configure the classpath with:
-# - src: Source code
-# - test: Test code
+# This script uses the cljr CLI tool with deps-clr.edn to run the test suite.
 #
 # Prerequisites:
-# - ClojureCLR (Clojure.Main) must be installed as a dotnet tool
+# - cljr (ClojureCLR CLI tool) must be installed as a dotnet tool
 # - .NET 8.0 or later must be installed
 
 set -e
@@ -17,43 +13,8 @@ set -e
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." && pwd )"
 
-# Set up the load path for ClojureCLR
-export CLOJURE_LOAD_PATH="${PROJECT_ROOT}/src:${PROJECT_ROOT}/test"
-
 echo "Running typed.clj.runtime tests under ClojureCLR..."
-echo "CLOJURE_LOAD_PATH=$CLOJURE_LOAD_PATH"
 
-# Create a test runner script
-cat > /tmp/run-clr-tests.clj << 'EOF'
-(ns run-clr-tests
-  (:require [clojure.test :as test]))
-
-(println "Loading test namespaces...")
-
-;; Load all test namespaces
-(require 'clojure.core.typed.test-contract)
-(require 'clojure.core.typed.test-rt)
-
-(println "Running tests...")
-(let [results (test/run-tests 'clojure.core.typed.test-contract
-                               'clojure.core.typed.test-rt)]
-  (println "\nTest Results:" results)
-  (println "\nSummary:")
-  (println (format "  Tests: %d" (:test results)))
-  (println (format "  Passed: %d assertions" (:pass results)))
-  (println (format "  Failed: %d assertions" (:fail results)))
-  (println (format "  Errors: %d assertions" (:error results)))
-  (if (or (pos? (:fail results))
-          (pos? (:error results)))
-    (do
-      (println "\nFAILURE: Tests failed or had errors")
-      (System.Environment/Exit 1))
-    (do
-      (println "\nSUCCESS: All contract tests passed!")
-      (System.Environment/Exit 0))))
-EOF
-
-# Run the test script with ClojureCLR
-# Exit with the same code as Clojure.Main to propagate test failures
-Clojure.Main /tmp/run-clr-tests.clj "$@"
-exit $?
+# Run tests using cljr with deps-clr.edn and cognitect test-runner
+cd "$PROJECT_ROOT"
+cljr -M:test "$@"

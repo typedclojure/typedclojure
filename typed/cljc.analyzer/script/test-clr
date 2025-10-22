@@ -1,9 +1,8 @@
 #!/bin/bash
-# TODO use deps-clr.edn
 # Run tests for typed.cljc.analyzer under ClojureCLR
 #
 # Prerequisites:
-# - ClojureCLR (Clojure.Main) must be installed as a dotnet tool
+# - cljr (ClojureCLR CLI tool) must be installed as a dotnet tool
 # - .NET 8.0 or later must be installed
 
 set -e
@@ -14,41 +13,6 @@ PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." && pwd )"
 
 echo "Running typed.cljc.analyzer tests under ClojureCLR..."
 
-# Set up classpath using deps-clr.edn
-# For now, manually construct CLOJURE_LOAD_PATH based on deps-clr.edn
-# since clr.tools.deps may not be fully functional yet
-export CLOJURE_LOAD_PATH="${PROJECT_ROOT}/src:${PROJECT_ROOT}/test"
-echo "CLOJURE_LOAD_PATH=$CLOJURE_LOAD_PATH"
-
-# Create a test runner script
-cat > /tmp/run-cljc-analyzer-clr-tests.clj << 'EOF'
-(ns run-clr-tests
-  (:require [clojure.test :as test]))
-
-(println "Loading test namespaces...")
-
-;; Load all test namespaces
-(require 'typed-test.cljc.analyzer)
-
-(println "Running tests...")
-(let [results (test/run-tests 'typed-test.cljc.analyzer)]
-  (println "\nTest Results:" results)
-  (println "\nSummary:")
-  (println (format "  Tests: %d" (:test results)))
-  (println (format "  Passed: %d assertions" (:pass results)))
-  (println (format "  Failed: %d assertions" (:fail results)))
-  (println (format "  Errors: %d assertions" (:error results)))
-  (if (or (pos? (:fail results))
-          (pos? (:error results)))
-    (do
-      (println "\nFAILURE: Tests failed or had errors")
-      (System.Environment/Exit 1))
-    (do
-      (println "\nSUCCESS: All tests passed!")
-      (System.Environment/Exit 0))))
-EOF
-
-# Run the test script with ClojureCLR
-# Exit with the same code as Clojure.Main to propagate test failures
-Clojure.Main /tmp/run-cljc-analyzer-clr-tests.clj "$@"
-exit $?
+# Run tests using cljr with deps-clr.edn and cognitect test-runner
+cd "$PROJECT_ROOT"
+cljr -M:test "$@"

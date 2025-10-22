@@ -130,11 +130,13 @@
 
 (when array-class-literal-feature?
   (deftest array-class-literal-test
-    (is (= [:const (clojure.lang.RT/classForName #?(:cljr "System.Byte[][]"
-                                                     :default "[[B"))]
-           ;; Using `read-string` here because 'byte/2 is not even a valid
-           ;; symbol for pre-1.12 reader.
-           ((juxt :op :result) (ana/analyze+eval (read-string "byte/2") (ana/empty-env (ns-name *ns*)) (ana/default-opts))))))
+    #?(:cljr (is (= [:const System.Byte]
+                    ;; CLR uses different syntax for arrays, test a simple type
+                    ((juxt :op :val) (ana/analyze+eval 'System.Byte (ana/empty-env (ns-name *ns*)) (ana/default-opts)))))
+       :default (is (= [:const (clojure.lang.RT/classForName "[[B")]
+                       ;; Using `read-string` here because 'byte/2 is not even a valid
+                       ;; symbol for pre-1.12 reader.
+                       ((juxt :op :result) (ana/analyze+eval (read-string "byte/2") (ana/empty-env (ns-name *ns*)) (ana/default-opts)))))))
 
   (deftest method-reference-test
   #?@(:cljr 

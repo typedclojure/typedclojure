@@ -59,15 +59,18 @@ jobs:
         with:
           dotnet-version: '8.0.x'
       
-      - name: Install ClojureCLR
+      - name: Install ClojureCLR and cljr
         run: |
           # Install ClojureCLR as a dotnet tool
           dotnet tool install --global Clojure.Main --version 1.12.3-alpha3
+          # Install cljr CLI tool
+          dotnet tool install --global Clojure.Cljr --version 0.1.0-alpha8
           echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
       
-      - name: Verify ClojureCLR installation
+      - name: Verify ClojureCLR and cljr installation
         run: |
           which Clojure.Main || echo "Clojure.Main not in PATH"
+          which cljr || echo "cljr not in PATH"
           ls -la ~/.dotnet/tools/
       
       # Commented out temporarily - testing analyzers first
