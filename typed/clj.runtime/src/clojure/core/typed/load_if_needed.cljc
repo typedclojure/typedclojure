@@ -9,8 +9,8 @@
 (ns ^:typed.clojure ^:no-doc clojure.core.typed.load-if-needed
   #?(:clj (:refer-clojure :exclude [requiring-resolve]))
   (:require [clojure.core.typed.errors :as err]
-            #?(:clj [clojure.java.io :as io])
-            [clojure.java.io :as io]
+            #?(:cljr [clojure.clr.io :as io]
+               :clj [clojure.java.io :as io])
             [clojure.core.typed.util-vars :as vs]
             #?(:clj [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]])))
 

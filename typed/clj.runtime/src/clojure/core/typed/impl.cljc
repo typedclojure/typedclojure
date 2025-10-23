@@ -55,20 +55,22 @@
   Intended for use at the REPL."
   [mname]
   (load-if-needed)
-  (core/let [ms (->> (#?(:cljr clojure.lang.RT/classForNameE :default Class/forName) (namespace mname))
-                     ((requiring-resolve 'clojure.reflect/type-reflect))
-                     :members
-                     (core/filter #(and (instance? clojure.reflect.Method %)
-                                        (= (str (:name %)) (name mname))))
-                     set)
-             _ (assert (seq ms) (str "Method " mname " not found"))]
-    (println "Method name:" mname)
-    (core/doseq [m ms]
-      (println ((requiring-resolve 'typed.clj.checker.parse-unparse/unparse-type)
-                ((requiring-resolve 'typed.clj.checker.check/Method->Type)
-                 m
-                 ((requiring-resolve 'typed.clj.runtime.env/clj-opts)))
-                ((requiring-resolve 'typed.clj.runtime.env/clj-opts)))))))
+  #?(:cljr (throw (ex-info "method-type is not yet supported on ClojureCLR" {}))
+     :default
+     (core/let [ms (->> (Class/forName (namespace mname))
+                        ((requiring-resolve 'clojure.reflect/type-reflect))
+                        :members
+                        (core/filter #(and (instance? clojure.reflect.Method %)
+                                           (= (str (:name %)) (name mname))))
+                        set)
+                _ (assert (seq ms) (str "Method " mname " not found"))]
+       (println "Method name:" mname)
+       (core/doseq [m ms]
+         (println ((requiring-resolve 'typed.clj.checker.parse-unparse/unparse-type)
+                   ((requiring-resolve 'typed.clj.checker.check/Method->Type)
+                    m
+                    ((requiring-resolve 'typed.clj.runtime.env/clj-opts)))
+                   ((requiring-resolve 'typed.clj.runtime.env/clj-opts))))))))
 
 ;=============================================================
 ; Special functions

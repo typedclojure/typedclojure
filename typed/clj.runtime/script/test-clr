@@ -16,5 +16,6 @@ PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." && pwd )"
 echo "Running typed.clj.runtime tests under ClojureCLR..."
 
 # Run tests using cljr with deps-clr.edn and cognitect test-runner
+# Use -r to match test namespaces (default only matches namespaces ending in -test)
 cd "$PROJECT_ROOT"
-cljr -M:test "$@"
+cljr -M:test -r ".*test.*" "$@"

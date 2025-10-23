@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - 'main'
+      - 'copilot/update-clojure-clr-tests'
 
 jobs:
   test-clojureclr:
@@ -36,12 +37,11 @@ jobs:
           which cljr || echo "cljr not in PATH"
           ls -la ~/.dotnet/tools/
       
-      # Commented out temporarily - testing analyzers first
-      # - name: Run typed.clj.runtime test suite
-      #   run: |
-      #     cd $GITHUB_WORKSPACE/typed/clj.runtime
-      #     echo "Running typed.clj.runtime test suite with ClojureCLR..."
-      #     ./script/test-clr
+      - name: Run typed.clj.runtime test suite
+        run: |
+          cd $GITHUB_WORKSPACE/typed/clj.runtime
+          echo "Running typed.clj.runtime test suite with ClojureCLR..."
+          ./script/test-clr
       
       - name: Run typed.cljc.analyzer test suite
         run: |
