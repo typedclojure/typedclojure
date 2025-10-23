@@ -107,10 +107,3 @@
         (mapcat :malli-extensions configs)))
 (defn register-clj-malli-extensions [] (register-malli-extensions @*clj-configs))
 (defn register-cljs-malli-extensions [] (register-malli-extensions @*cljs-configs))
-
-(defn register-spec1-extensions [configs]
-  (run! #(do (println (format "Registering Spec1 extensions from %s..." %))
-             (clj-require %))
-        (mapcat :spec1-extensions configs)))
-(defn register-clj-spec1-extensions [] (register-spec1-extensions @*clj-configs))
-(defn register-cljs-spec1-extensions [] (register-spec1-extensions @*cljs-configs))

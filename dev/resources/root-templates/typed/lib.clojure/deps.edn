@@ -18,9 +18,6 @@
                                {◊typedclojure-group-id◊}/typed.cljs.checker
                                {:local/root "../cljs.checker"
                                 :deps/manifest :deps}
-                               {◊typedclojure-group-id◊}/typed.clj.spec
-                               {:local/root "../clj.spec"
-                                :deps/manifest :deps}
                                org.clojure/test.check {:mvn/version "{◊test-check-mvn-version◊}"}
                                {◊typedclojure-group-id◊}/typed.clj.runtime
                                {:local/root "../clj.runtime"

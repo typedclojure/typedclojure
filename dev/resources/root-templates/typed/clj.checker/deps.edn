@@ -47,9 +47,7 @@
     com.clojure-goes-fast/clj-async-profiler {:mvn/version "{◊clj-async-profiler-mvn-version◊}"}
     babashka/fs {:mvn/version "{◊fs-mvn-version◊}"}
     ;; for shared tests
-    {◊typedclojure-group-id◊}/typed.cljs.checker {:local/root "../cljs.checker" :deps/manifest :deps}
-    ;; optional typed.lib.clojure dep
-    {◊typedclojure-group-id◊}/typed.clj.spec {:local/root "../clj.spec" :deps/manifest :deps}}},
+    {◊typedclojure-group-id◊}/typed.cljs.checker {:local/root "../cljs.checker" :deps/manifest :deps}}},
   :kaocha
   {:extra-deps {lambdaisland/kaocha {:git/url "{◊kaocha-git-url◊}"
                                      ;; https://github.com/lambdaisland/kaocha/issues/208#issuecomment-822844384

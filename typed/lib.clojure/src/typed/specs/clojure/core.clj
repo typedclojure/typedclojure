@@ -10,5 +10,4 @@
   "Public API
 
   Spec definitions for clojure.core"
-  (:require [clojure.alpha.spec :as s]
-            [typed.clj.spec :as t]))
+  (:require [clojure.alpha.spec :as s]))

@@ -85,7 +85,6 @@
     org.typedclojure/typed.clj.checker
     org.typedclojure/typed.lib.core.async
     org.typedclojure/typed.malli
-    org.typedclojure/typed.clj.spec
     org.typedclojure/typed.cljs.analyzer
     org.typedclojure/typed.cljs.runtime
     org.typedclojure/typed.cljs.checker])
