@@ -30,6 +30,19 @@ jobs:
         run: |
           bash < <(curl -s https://raw.githubusercontent.com/babashka/babashka/master/install)
           bb --version
+      
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '8.0.x'
+      
+      - name: Install ClojureCLR and cljr
+        run: |
+          # Install ClojureCLR as a dotnet tool
+          dotnet tool install --global Clojure.Main --version 1.12.3-alpha3
+          # Install cljr CLI tool
+          dotnet tool install --global Clojure.Cljr --version 0.1.0-alpha8
+          echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
 
       - name: Restore dependency cache
         id: cache-deps
