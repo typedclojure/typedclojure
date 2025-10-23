@@ -51,7 +51,7 @@
   :kaocha
   {:extra-deps {lambdaisland/kaocha {:git/url "https://github.com/lambdaisland/kaocha.git"
                                      ;; https://github.com/lambdaisland/kaocha/issues/208#issuecomment-822844384
-                                     :git/sha "fcef91c365caa0f6fed6761b3deb80e800ccb617"}}}
+                                     :git/sha "8846f91c9bf4338c561ffb866b5a8890e22889cd"}}}
   :codox
   {:extra-deps {codox/codox {:mvn/version "0.10.8"}}
    :extra-paths ["script"]

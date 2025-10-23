@@ -1,0 +1,214 @@
+#!/usr/bin/env bash
+# This script runs Clojure JVM tests for a namespace, test var, file, or directory (including '.').
+# - For a directory or '.', it finds all Clojure files under classpath roots whose classpath-relative path includes "test"
+#   and that are not in "resources" or "test-resources" path segments, loads them, and runs all their test namespaces in a single JVM.
+# - Prints a single test result summary.
+#
+# examples:
+# ./bin/smart-test .   # run all tests in the entire project
+# ./bin/smart-test typed/clj.checker # run all tests in the typed.clj.checker module (by directory)
+# ./bin/smart-test typed-test.clj.checker.subtype   # load and run tests for a specific namespace
+# ./bin/smart-test typed/clj.checker/test/typed_test/clj/checker/subtype.clj # load and run tests for a repo-relative file
+# ./bin/smart-test typed_test/clj/checker/subtype.clj # load and run tests for a classpath-relative file
+# ./bin/smart-test typed-test.clj.checker.subtype/subtype-test # load namespace and run single test for var
+
+# TODO support multiple arguments, with shared jvm + results
+# TODO fallback to finding most likely file/s or ns by name if not found
+# TODO support platforms, e.g., :clr, :cljs, or infer from args
+
+set -euo pipefail
+
+if [ "$#" -ne 1 ]; then
+  echo "Usage: $0 <namespace>, <namespace/test-var>, <file-path>, <directory> or ."
+  exit 2
+fi
+
+export RUN_ARG="$1"
+
+CLJ_CODE=$(cat <<'EOF'
+(do ;;prevent bb printing intermediate results
+(require '[clojure.java.io :as io])
+(require '[clojure.string :as str])
+(require 'clojure.set)
+(require 'clojure.test)
+(import '[java.io File])
+
+(def known-exts #{"clj" "cljc" #_"cljr"})
+(def clj-file-re #"(?i).*\.(clj|cljc)$")
+
+(defn file-ns [file]
+  (with-open [r (clojure.lang.LineNumberingPushbackReader. (io/reader file))]
+    (let [form (try (read r) (catch Exception _ nil))]
+      (when (and (list? form) (= 'ns (first form)))
+        (second form)))))
+
+(defn all-classpath-roots []
+  (->> (str/split (System/getProperty "java.class.path")
+                  (re-pattern (System/getProperty "path.separator")))
+       (map #(-> % io/file .getCanonicalPath))
+       distinct
+       vec))
+
+(defn classpath-relative-path [f]
+  (let [abs-path (.getCanonicalPath (io/file f))]
+    (some (fn [root]
+            (let [root (if (.endsWith root File/separator) root (str root File/separator))]
+              (when (.startsWith abs-path root)
+                (.substring abs-path (count root)))))
+          (all-classpath-roots))))
+
+(defn on-classpath? [path]
+  (boolean (io/resource path)))
+
+(defn find-clj-files [dir]
+  (->> (file-seq (io/file dir))
+       (filter #(and (.isFile %) (re-matches clj-file-re (.getName %))))))
+
+(defn repo-relative-path [root file]
+  (let [root-path (.getCanonicalPath (io/file root))
+        file-path (.getCanonicalPath (io/file file))]
+    (let [rel (subs file-path (inc (count root-path)))] ; +1 to skip the separator
+      (filter (complement str/blank?) (str/split rel (re-pattern (java.util.regex.Pattern/quote File/separator)))))))
+
+(def forbidden-dirs #{"resources" "test-resources"})
+
+(let [arg (System/getenv "RUN_ARG")
+      file (io/file arg)]
+  (cond
+    (.isDirectory file)
+    (let [root (.getCanonicalPath file)
+          clj-files (find-clj-files file)
+          classpath-files
+          (->> clj-files
+               (map (fn [f]
+                      (let [relpath (classpath-relative-path f)
+                            repo-rel-path (repo-relative-path root f)
+                            path-segments (set repo-rel-path)]
+                        (when (and
+                                relpath
+                                (on-classpath? relpath)
+                                (str/includes? relpath "test")
+                                (empty? (clojure.set/intersection path-segments forbidden-dirs)))
+                          {:file f :ns (file-ns f) :relpath relpath :repo-rel-path repo-rel-path}))))
+               (remove nil?)
+               (filter :ns))
+          namespaces (->> classpath-files (map :ns) distinct)
+          focus-args (->> namespaces (map name) (map #(str "--focus " %)) (str/join " "))]
+      (if (empty? namespaces)
+        (do (println "No suitable Clojure test namespaces found in directory" arg) (System/exit 2))
+        (do
+          (println "------------------------------------------------------------")
+          (println "You can run these tests with Kaocha:")
+          (println)
+          (println (str "./bin/kaocha " focus-args))
+          (println)
+          (println "------------------------------------------------------------")
+          (doseq [{:keys [file ns]} classpath-files]
+            (println "Loading file" (.getPath file) "with namespace" ns)
+            (load-file (.getPath file))
+            (require ns))
+          (let [{:keys [fail error]} (apply clojure.test/run-tests namespaces)]
+            (println "Total failed:" fail "Total error:" error)
+            (System/exit (if (zero? (+ fail error)) 0 1))))))
+
+    :else
+    ;; old logic for namespace, test-var, or file
+    (let [file-ext   (some->> arg (re-find #"\.([^.]+)$") second)
+          is-clj-ext (and file-ext (contains? known-exts file-ext))]
+      (try
+        (cond
+          (or (.startsWith arg "/") (.startsWith arg "./") (.startsWith arg "../"))
+          ;; Absolute or cwd-relative file path
+          (let [file (io/file arg)
+                ns   (file-ns file)]
+            (if-not ns
+              (do (println "Could not find ns form in file" arg) (System/exit 2))
+              (do
+                (println "Found namespace:" ns "in file" arg)
+                (try
+                  (println "------------------------------------------------------------")
+                  (println "You can run this test with Kaocha:")
+                  (println)
+                  (println (str "./bin/kaocha --focus " ns))
+                  (println)
+                  (println "------------------------------------------------------------")
+                  (load-file (.getPath file))
+                  (require ns)
+                  (let [{:keys [fail error]} (clojure.test/run-tests ns)]
+                    (println "Total failed:" fail "Total error:" error)
+                    (System/exit (if (zero? (+ fail error)) 0 1)))
+                  (catch Exception e
+                    (println "Error loading or running tests for namespace:" ns)
+                    (.printStackTrace e)
+                    (System/exit 2))))))
+
+          (and is-clj-ext (.endsWith arg file-ext))
+          ;; Classpath-relative or repo-relative file (handle multimodule classpath)
+          (let [relpath (classpath-relative-path arg)
+                res (or (and relpath (io/resource relpath)) (io/resource arg))]
+            (if-not res
+              (do (println "File" arg "not found on classpath") (System/exit 2))
+              (let [file (io/file res)
+                    ns   (file-ns file)]
+                (if-not ns
+                  (do (println "Could not find ns form in file" arg) (System/exit 2))
+                  (do
+                    (println "Found namespace:" ns "in file" arg)
+                    (try
+                      (println "------------------------------------------------------------")
+                      (println "You can run this test with Kaocha:")
+                      (println)
+                      (println (str "./bin/kaocha --focus " ns))
+                      (println)
+                      (println "------------------------------------------------------------")
+                      (load-file (.getPath file))
+                      (require ns)
+                      (let [{:keys [fail error]} (clojure.test/run-tests ns)]
+                        (println "Total failed:" fail "Total error:" error)
+                        (System/exit (if (zero? (+ fail error)) 0 1)))
+                      (catch Exception e
+                        (println "Error loading or running tests for namespace:" ns)
+                        (.printStackTrace e)
+                        (System/exit 2))))))))
+
+          (re-find #"/" arg)
+          ;; namespace-qualified var
+          (let [sym (symbol arg)
+                ns (namespace sym)]
+            (require (symbol ns))
+            (let [test-var (resolve sym)]
+              (if (nil? test-var)
+                (do (println "Test var" sym "not found") (System/exit 2))
+                (do
+                  (println "------------------------------------------------------------")
+                  (println "You can run this test with Kaocha:")
+                  (println)
+                  (println (str "./bin/kaocha --focus " ns))
+                  (println)
+                  (println "------------------------------------------------------------")
+                  (let [{:keys [fail error]} (clojure.test/test-vars [test-var])]
+                    (println "Total failed:" fail "Total error:" error)
+                    (System/exit (if (zero? (+ fail error)) 0 1))))))
+
+          :else
+          ;; Namespace
+          (let [ns (symbol arg)]
+            (require ns)
+            (println "------------------------------------------------------------")
+            (println)
+            (println "You can run this test with Kaocha:")
+            (println (str "./bin/kaocha --focus " ns))
+            (println)
+            (println "------------------------------------------------------------")
+            (let [{:keys [fail error]} (clojure.test/run-tests ns)]
+              (println "Total failed:" fail "Total error:" error)
+              (System/exit (if (zero? (+ fail error)) 0 1))))))
+        (catch Exception e
+          (println "Unexpected error:" (.getMessage e))
+          (.printStackTrace e)
+          (System/exit 2))))))
+) ; <-- closes the (do
+EOF
+)
+
+clojure -M:test -e "$CLJ_CODE"

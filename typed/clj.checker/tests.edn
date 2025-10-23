@@ -4,7 +4,7 @@
                  :kaocha/ns-patterns   [".*"]
                  :kaocha/source-paths  ["src"]
                  :kaocha/test-paths    ["test"]}]
- :kaocha/fail-fast? true
+ :kaocha/fail-fast? false
  :kaocha/color? false
  :kaocha/reporter [kaocha.report/dots]
  :kaocha/plugins [:kaocha.plugin/randomize

@@ -8,6 +8,66 @@
      :git/sha "deedd623574e3712687a657691c6b79f5026b3a1"}},
    :extra-paths ["dev/src"],
    :ns-default build},
+  :cognitect-test-runner
+  {:jvm-opts ["-Dclojure.spec.skip-macros=true"],
+   :extra-paths
+   ["typed/clj.analyzer/test"
+    "typed/clj.checker/test"
+    "typed/clj.checker/test-resources"
+    "typed/clj.runtime/test"
+    "typed/cljc.analyzer/test"
+    "typed/cljs.analyzer/test"
+    "typed/cljs.checker/test"
+    "typed/cljs.runtime/test"
+    "typed/lib.clojure/test"
+    "typed/lib.core.async/test"
+    "typed/lib.spec.alpha/test"
+    "typed/malli/test"],
+   :extra-deps
+   {babashka/fs {:mvn/version "0.5.24"},
+    com.clojure-goes-fast/clj-async-profiler {:mvn/version "1.6.1"},
+    com.clojure-goes-fast/clj-java-decompiler {:mvn/version "0.3.0"},
+    com.gfredericks/test.chuck {:mvn/version "0.2.12"},
+    criterium/criterium {:mvn/version "0.4.5"},
+    io.github.cognitect-labs/test-runner
+    {:git/tag "v0.5.1",
+     :git/sha "dfb30dd6605cb6c0efc275e1df1736f6e90d4d73"},
+    org.clojure/clojurescript {:mvn/version "1.11.132"},
+    org.clojure/test.check {:mvn/version "1.1.1"},
+    org.clojure/tools.analyzer.jvm {:mvn/version "1.3.2"}},
+   :main-opts
+   ["-m"
+    "cognitect.test-runner"
+    "--namespace-regex"
+    ".*test.*"
+    "--dir"
+    "typed/clj.analyzer/test"
+    "--dir"
+    "typed/clj.checker/test"
+    "--dir"
+    "typed/clj.runtime/test"
+    "--dir"
+    "typed/cljc.analyzer/test"
+    "--dir"
+    "typed/cljs.analyzer/test"
+    "--dir"
+    "typed/cljs.checker/test"
+    "--dir"
+    "typed/cljs.runtime/test"
+    "--dir"
+    "typed/lib.clojure/test"
+    "--dir"
+    "typed/lib.core.async/test"
+    "--dir"
+    "typed/lib.spec.alpha/test"
+    "--dir"
+    "typed/malli/test"],
+   :exec-fn cognitect.test-runner.api/test,
+   :exec-args
+   [":patterns"
+    "[\".*test.*\"]"
+    ":dirs"
+    "[\"typed/clj.analyzer/test\" \"typed/clj.checker/test\" \"typed/clj.runtime/test\" \"typed/cljc.analyzer/test\" \"typed/cljs.analyzer/test\" \"typed/cljs.checker/test\" \"typed/cljs.runtime/test\" \"typed/lib.clojure/test\" \"typed/lib.core.async/test\" \"typed/lib.spec.alpha/test\" \"typed/malli/test\"]"]},
   :eastwood
   {:extra-deps
    {jonase/eastwood
@@ -19,10 +79,33 @@
     "eastwood.lint"
     {:exclude-linters #{:def-in-def :unlimited-use}}]},
   :kaocha
-  {:extra-deps
-   {lambdaisland/kaocha
-    {:git/sha "fcef91c365caa0f6fed6761b3deb80e800ccb617",
-     :git/url "https://github.com/lambdaisland/kaocha.git"}}},
+  {:jvm-opts ["-Dclojure.spec.skip-macros=true"],
+   :extra-paths
+   ["typed/clj.analyzer/test"
+    "typed/clj.checker/test"
+    "typed/clj.checker/test-resources"
+    "typed/clj.runtime/test"
+    "typed/cljc.analyzer/test"
+    "typed/cljs.analyzer/test"
+    "typed/cljs.checker/test"
+    "typed/cljs.runtime/test"
+    "typed/lib.clojure/test"
+    "typed/lib.core.async/test"
+    "typed/lib.spec.alpha/test"
+    "typed/malli/test"],
+   :extra-deps
+   {babashka/fs {:mvn/version "0.5.24"},
+    com.clojure-goes-fast/clj-async-profiler {:mvn/version "1.6.1"},
+    com.clojure-goes-fast/clj-java-decompiler {:mvn/version "0.3.0"},
+    com.gfredericks/test.chuck {:mvn/version "0.2.12"},
+    criterium/criterium {:mvn/version "0.4.5"},
+    lambdaisland/kaocha
+    {:git/sha "8846f91c9bf4338c561ffb866b5a8890e22889cd",
+     :git/url "https://github.com/lambdaisland/kaocha.git"},
+    org.clojure/clojurescript {:mvn/version "1.11.132"},
+    org.clojure/test.check {:mvn/version "1.1.1"},
+    org.clojure/tools.analyzer.jvm {:mvn/version "1.3.2"}},
+   :main-opts ["-m" "kaocha.runner"]},
   :nREPL
   {:extra-deps
    {cider/cider-nrepl {:mvn/version "0.52.1"},
@@ -68,7 +151,8 @@
     "typed/lib.spec.alpha/test"
     "typed/malli/test"],
    :jvm-opts
-   ["-Djdk.attach.allowAttachSelf"
+   ["-Dclojure.spec.skip-macros=true"
+    "-Djdk.attach.allowAttachSelf"
     "-Dtyped.cljc.checker.utils.trace=true"
     "-Dtyped.cljc.analyzer.passes/direct-link=false"
     "-Dtyped.clojure.preserve-check-ns-after-opt-in=true"]},

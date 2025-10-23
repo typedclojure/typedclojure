@@ -1,0 +1,45 @@
+(ns ^:typed.clojure typed-test.clj.analyzer.property-test
+  (:require [clojure.test :refer :all]
+            [typed.clj.analyzer :as ana]))
+
+(defmacro ast' [form]
+  `(ana/analyze '~form (ana/empty-env (ns-name *ns*)) (ana/default-opts)))
+
+(defmacro ast [form]
+  `(ana/analyze+eval '~form (ana/empty-env (ns-name *ns*)) (ana/default-opts)))
+
+(deftest clr-static-property-test
+  (testing "System.DateTime/Now static property"
+    (let [ast-result (ast' System.DateTime/Now)]
+      (is (= :static-property (:op ast-result)))
+      (is (= "Now" (:property ast-result)))
+      (is (= System.DateTime (:class ast-result)))))
+ 
+  (testing "System.Console/Out static property"
+    (let [ast-result (ast' System.Console/Out)]
+      (is (= :static-property (:op ast-result)))
+      (is (= "Out" (:property ast-result)))
+      (is (= System.Console (:class ast-result))))))
+
+(deftest clr-instance-property-test
+  (testing "String.Length instance property"
+    (let [ast-result (ast' (.-Length "hello"))]
+      (is (= :instance-property (:op ast-result)))
+      (is (= "Length" (:property ast-result)))
+      (is (= System.String (:class ast-result))))))
+
+(deftest clr-property-vs-field-test
+  (testing "Properties are distinct from fields in AST"
+    ;; This test ensures that properties get :static-property/:instance-property ops
+    ;; rather than :static-field/:instance-field ops
+    (let [prop-ast (ast' System.DateTime/Now)]
+      (is (= :static-property (:op prop-ast)))
+      (is (not= :static-field (:op prop-ast))))))
+
+(deftest clr-property-type-test
+  (testing "Property types are correctly inferred"
+    (let [now-ast (ast' System.DateTime/Now)]
+      (is (= System.DateTime (:tag now-ast))))
+    
+    (let [length-ast (ast' (.-Length "test"))]
+      (is (= System.Int32 (:tag length-ast)))))))

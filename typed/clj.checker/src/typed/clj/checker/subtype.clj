@@ -350,11 +350,242 @@
               ;; to the problem? symbolic closure will be blamed
               (assoc opts ::vs/lexical-env lexical-env)))
 
-(defn subtype-regex [A s t]
+(declare subtype-regex-cat)
+
+(defn flatten-alt-types
+  "Recursively flatten nested alt types into a single list of alternatives.
+  (alt Int) => [Int]
+  (alt Int (alt Str Bool)) => [Int Str Bool]"
+  [types]
+  (mapcat (fn [t]
+            (if (and (r/Regex? t) (= :alt (:kind t)))
+              (flatten-alt-types (:types t))
+              [t]))
+          types))
+
+(defn subtype-regex [A s t opts]
   {:pre [(r/Regex? s)
          (r/Regex? t)]}
-  ;;TODO
-  (report-not-subtypes s t))
+  (let [subtypeA* #(subtypeA* A %1 %2 opts)]
+    (letfn [(subtype-type-or-regex [s t]
+              (cond
+                (and (r/Regex? s) (r/Regex? t))
+                (subtype-regex A s t opts)
+                
+                (and (r/Type? s) (r/Type? t))
+                (subtypeA* s t)
+                
+                (and (r/Type? s) (r/Regex? t))
+                ;; Type can be subtype of alt if it matches one alternative
+                ;; Don't flatten here - check against direct alternatives
+                ;; Handle both Type and Regex alternatives recursively
+                (when (= :alt (:kind t))
+                  (some (fn [t-alt]
+                          (subtype-type-or-regex s t-alt))
+                        (:types t)))
+                
+                :else nil))]
+      (let [s-kind (:kind s)
+            t-kind (:kind t)
+            s-types (:types s)
+            t-types (:types t)]
+    (cond
+      ;; alt on left: s is a union, each alternative must be subtype of t
+      (= :alt s-kind)
+      ;; Flatten when comparing alt-to-alt or alt-to-anything at top level
+      (let [flattened-s-types (flatten-alt-types s-types)]
+        (if (every? (fn [s-alt] (subtype-type-or-regex s-alt t)) flattened-s-types)
+          A
+          (report-not-subtypes s t)))
+      
+      ;; alt on right (but not on left): s must be subtype of at least one alternative
+      (and (= :alt t-kind) (not= :alt s-kind))
+      ;; Flatten the right side for proper nested alt handling
+      (let [flattened-t-types (flatten-alt-types t-types)]
+        (if (some (fn [t-alt] (subtype-type-or-regex s t-alt)) flattened-t-types)
+          A
+          (report-not-subtypes s t)))
+      
+      ;; * on left and right: check inner types match
+      (and (= :* s-kind) (= :* t-kind))
+      (let [inner-s (first s-types)
+            inner-t (first t-types)]
+        (if (subtype-type-or-regex inner-s inner-t)
+          A
+          (report-not-subtypes s t)))
+      
+      ;; + on left and right: check inner types match
+      (and (= :+ s-kind) (= :+ t-kind))
+      (let [inner-s (first s-types)
+            inner-t (first t-types)]
+        (if (subtype-type-or-regex inner-s inner-t)
+          A
+          (report-not-subtypes s t)))
+      
+      ;; ? on left and right: check inner types match
+      (and (= :? s-kind) (= :? t-kind))
+      (let [inner-s (first s-types)
+            inner-t (first t-types)]
+        (if (subtype-type-or-regex inner-s inner-t)
+          A
+          (report-not-subtypes s t)))
+      
+      ;; Cross-kind subtyping: + <: * (one-or-more is subtype of zero-or-more)
+      (and (= :+ s-kind) (= :* t-kind))
+      (let [inner-s (first s-types)
+            inner-t (first t-types)]
+        (if (subtype-type-or-regex inner-s inner-t)
+          A
+          (report-not-subtypes s t)))
+      
+      ;; Cross-kind subtyping: ? <: * (zero-or-one is subtype of zero-or-more)
+      (and (= :? s-kind) (= :* t-kind))
+      (let [inner-s (first s-types)
+            inner-t (first t-types)]
+        (if (subtype-type-or-regex inner-s inner-t)
+          A
+          (report-not-subtypes s t)))
+      
+      ;; Cross-kind: cat that looks like + <: *
+      ;; (cat T (* T)) <: (* T) when + expands to cat
+      (and (= :cat s-kind) (= :* t-kind) (= 2 (count s-types)))
+      (let [[s-first s-second] s-types
+            inner-t (first t-types)]
+        (if (and (r/Regex? s-second)
+                 (= :* (:kind s-second))
+                 (subtype-type-or-regex s-first inner-t)
+                 (subtype-type-or-regex (first (:types s-second)) inner-t))
+          A
+          (report-not-subtypes s t)))
+      
+      ;; cat-cat: pattern matching with potential regex operators in t
+      (and (= :cat s-kind) (= :cat t-kind))
+      (subtype-regex-cat A s-types t-types opts subtype-type-or-regex)
+      
+      ;; Other cases not yet implemented
+      :else (report-not-subtypes s t))))))
+
+(defn subtype-regex-cat [A s-types t-types opts subtype-type-or-regex]
+  "Match s-types (concrete sequence) against t-types (pattern that may contain regex operators)."
+  ;; Helper to consume matching elements greedily
+  (letfn [(consume-matching [s-idx inner-t]
+            ;; Returns the index after consuming all matching elements
+            (loop [idx s-idx]
+              (if (>= idx (count s-types))
+                idx
+                (let [s-e (nth s-types idx)
+                      matches? (subtype-type-or-regex s-e inner-t)]
+                  (if matches?
+                    (recur (inc idx))
+                    idx)))))]
+    ;; Try to match s-types against the pattern in t-types
+    (loop [s-idx 0
+           t-idx 0]
+      (cond
+        ;; Both exhausted - success
+        (and (>= s-idx (count s-types))
+             (>= t-idx (count t-types)))
+        A
+        
+        ;; t exhausted but s has more - fail
+        (>= t-idx (count t-types))
+        (report-not-subtypes {:cat s-types} {:cat t-types})
+        
+        ;; s exhausted but t has more - check if remaining t elements are optional
+        (>= s-idx (count s-types))
+        (let [t-elem (nth t-types t-idx)]
+          (if (and (r/Regex? t-elem)
+                   (#{:* :?} (:kind t-elem)))
+            ;; Optional element, skip it
+            (recur s-idx (inc t-idx))
+            ;; Required element but no more s - fail
+            (report-not-subtypes {:cat s-types} {:cat t-types})))
+        
+        ;; Both have elements - try to match
+        :else
+        (let [t-elem (nth t-types t-idx)
+              s-elem (when (< s-idx (count s-types)) (nth s-types s-idx))]
+          (cond
+            ;; t-elem is a * regex - match zero or more (but only if s-elem is not also a * regex)
+            (and (r/Regex? t-elem) 
+                 (= :* (:kind t-elem))
+                 (not (and (r/Regex? s-elem) (= :* (:kind s-elem)))))
+            (let [inner-t (first (:types t-elem))
+                  new-s-idx (consume-matching s-idx inner-t)]
+              (recur new-s-idx (inc t-idx)))
+            
+            ;; t-elem is a + regex - match one or more (but only if s-elem is not also a + regex)
+            (and (r/Regex? t-elem) 
+                 (= :+ (:kind t-elem))
+                 (not (and (r/Regex? s-elem) (= :+ (:kind s-elem)))))
+            (let [inner-t (first (:types t-elem))]
+              (if (>= s-idx (count s-types))
+                ;; Need at least one element
+                (report-not-subtypes {:cat s-types} {:cat t-types})
+                (let [s-e (nth s-types s-idx)
+                      matches? (subtype-type-or-regex s-e inner-t)]
+                  (if-not matches?
+                    (report-not-subtypes {:cat s-types} {:cat t-types})
+                    ;; Matched one, now consume greedily like *
+                    (let [new-s-idx (consume-matching (inc s-idx) inner-t)]
+                      (recur new-s-idx (inc t-idx)))))))
+            
+            ;; t-elem is a ? regex - match zero or one (but only if s-elem is not also a ? regex)
+            (and (r/Regex? t-elem) 
+                 (= :? (:kind t-elem))
+                 (not (and (r/Regex? s-elem) (= :? (:kind s-elem)))))
+            (let [inner-t (first (:types t-elem))]
+              (if (>= s-idx (count s-types))
+                ;; No element to match, skip t-elem
+                (recur s-idx (inc t-idx))
+                (let [s-e (nth s-types s-idx)
+                      matches? (subtype-type-or-regex s-e inner-t)]
+                  (if matches?
+                    ;; Matched, consume both
+                    (recur (inc s-idx) (inc t-idx))
+                    ;; Doesn't match, skip t-elem
+                    (recur s-idx (inc t-idx))))))
+            
+            ;; t-elem is an alt regex - try each alternative
+            (and (r/Regex? t-elem) 
+                 (= :alt (:kind t-elem)))
+            ;; Alt can contain Types or Regexes (including cats)
+            ;; If alt contains cat regexes, we need to try matching remaining s against each
+            (let [remaining-s (vec (drop s-idx s-types))
+                  remaining-t (vec (drop (inc t-idx) t-types))
+                  matched (some (fn [alt-option]
+                                  (if (and (r/Regex? alt-option) (= :cat (:kind alt-option)))
+                                    ;; Alt option is a cat - try matching remaining s against it + remaining t
+                                    (let [alt-cat-types (:types alt-option)
+                                          combined-t (vec (concat alt-cat-types remaining-t))
+                                          result (subtype-regex-cat A remaining-s combined-t opts subtype-type-or-regex)]
+                                      (when (= result A)  ; Check if subtyping succeeded
+                                        :cat-matched))  ; Return marker for cat match
+                                    ;; Alt option is a Type or other Regex - check if first element matches
+                                    (when (< s-idx (count s-types))
+                                      (let [s-e (nth s-types s-idx)]
+                                        (when (subtype-type-or-regex s-e alt-option)
+                                          :type-matched)))))  ; Return marker for type match
+                                (:types t-elem))]
+              (cond
+                (= matched :cat-matched)
+                A  ; Cat alternative matched, done
+                
+                (= matched :type-matched)
+                (recur (inc s-idx) (inc t-idx))  ; Type alternative matched, continue
+                
+                :else
+                (report-not-subtypes {:cat s-types} {:cat t-types})))
+            
+            ;; Both are regular types or non-matching regexes
+            :else
+            (if (>= s-idx (count s-types))
+              (report-not-subtypes {:cat s-types} {:cat t-types})
+              (let [s-elem (nth s-types s-idx)
+                    matches? (subtype-type-or-regex s-elem t-elem)]
+                (if matches?
+                  (recur (inc s-idx) (inc t-idx))
+                  (report-not-subtypes {:cat s-types} {:cat t-types}))))))))))
 
 (defn subtype-heterogeneous-map [A s t opts]
   (let [; convention: prefix things on left with l, right with r
@@ -542,7 +773,7 @@
         unknown-result)
       unknown-result))
 
-  Regex (subtypeA*-same [s t A opts] (subtype-regex A s t))
+  Regex (subtypeA*-same [s t A opts] (subtype-regex A s t opts))
   CountRange (subtypeA*-same [s t A opts] (subtype-CountRange A s t))
   RClass (subtypeA*-same [s t A opts] (subtype-RClass A s t opts))
   Instance (subtypeA*-same [s t A opts] (subtype-RClass A s t opts))

@@ -11,9 +11,12 @@
 
 (set! *warn-on-reflection* true)
 
+(def spec-skip-macros "-Dclojure.spec.skip-macros=true")
+
 (def ^String subprojects-dir "typed")
 (def ^String everything-root (str (File. h/repo-root subprojects-dir)))
 (def ^String relative-projects-root ".")
+(declare non-resource-test-paths test-deps test-paths)
 (defn aliases []
   (sorted-map
     :perf
@@ -21,11 +24,28 @@
       :extra-paths ["/Applications/YourKit-Java-Profiler-2019.8.app/Contents/Resources/lib/yjp-controller-api-redist.jar"]
       :jvm-opts ["-agentpath:/Applications/YourKit-Java-Profiler-2019.8.app/Contents/Resources/bin/mac/libyjpagent.dylib"])
     :spec-skip-macros
-    {:jvm-opts ["-Dclojure.spec.skip-macros=true"]}
+    {:jvm-opts [spec-skip-macros]}
+    :cognitect-test-runner
+    {:jvm-opts [spec-skip-macros]
+     :extra-paths (test-paths)
+     :extra-deps (into test-deps
+                       {'io.github.cognitect-labs/test-runner 
+                        {:git/tag "v0.5.1" :git/sha "dfb30dd6605cb6c0efc275e1df1736f6e90d4d73"}})
+     :main-opts (into ["-m" "cognitect.test-runner"
+                       "--namespace-regex" ".*test.*"]
+                      (mapcat #(list "--dir" %))
+                      (non-resource-test-paths))
+     :exec-fn 'cognitect.test-runner.api/test
+     :exec-args [":patterns" "[\".*test.*\"]"
+                 ":dirs" (pr-str (non-resource-test-paths))]}
     :kaocha
-    {:extra-deps {'lambdaisland/kaocha (sorted-map
-                                         :git/url (:kaocha-git-url h/selmer-input-map)
-                                         :git/sha (:kaocha-sha h/selmer-input-map))}}
+    {:jvm-opts ["-Dclojure.spec.skip-macros=true"]
+     :extra-paths (test-paths)
+     :extra-deps (into test-deps
+                       {'lambdaisland/kaocha (sorted-map
+                                               :git/url (:kaocha-git-url h/selmer-input-map)
+                                               :git/sha (:kaocha-sha h/selmer-input-map))})
+     :main-opts ["-m" "kaocha.runner"]}
     :eastwood
     (sorted-map
       :main-opts ["-m" "eastwood.lint" {:exclude-linters (sorted-set
@@ -212,7 +232,8 @@
                                                                :refresh-dirs (concat (src-paths)
                                                                                      (non-resource-test-paths))})
                                           :test (sorted-map
-                                                  :jvm-opts ["-Djdk.attach.allowAttachSelf"
+                                                  :jvm-opts [spec-skip-macros
+                                                             "-Djdk.attach.allowAttachSelf"
                                                              "-Dtyped.cljc.checker.utils.trace=true"
                                                              "-Dtyped.cljc.analyzer.passes/direct-link=false"
                                                              "-Dtyped.clojure.preserve-check-ns-after-opt-in=true"]

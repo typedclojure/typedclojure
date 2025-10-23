@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+set -e
+clojure -M:cognitect-test-runner "$@"
