@@ -1,5 +1,5 @@
 (ns ^:typed.clojure typed.clj.checker.test-utils
-  (:require [babashka.fs :as fs]
+  (:require #?(:clj [babashka.fs :as fs])
             [clojure.core.typed :as t]
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.errors :as err]
@@ -124,7 +124,7 @@
                                  file (-> m :env :file)
                                  file-name (if (= file "NO_SOURCE_FILE")
                                              file
-                                             (some-> file fs/file-name))]
+                                             (some-> file #?(:clj fs/file-name :default str)))]
                              (cond-> m
                                (contains? m :env) (-> (update-in [:env :line] #(when (integer? %) "REMOVED_LINE"))
                                                       (assoc-in [:env :file] file-name))

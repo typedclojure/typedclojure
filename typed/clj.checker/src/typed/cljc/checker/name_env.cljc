@@ -7,13 +7,13 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:typed.clojure ^:no-doc typed.cljc.checker.name-env
-  (:refer-clojure :exclude [requiring-resolve])
+  (:refer-clojure :exclude [#?(:clj requiring-resolve)])
   (:require [typed.clojure :as t]
             [typed.cljc.runtime.env-utils :refer [force-type]]
             [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.errors :as err]
-            [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]
+            #?(:clj [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]])
             [typed.clj.checker.rclass-env :as rcls]
             [typed.cljc.checker.datatype-env :as dtenv]
             [typed.cljc.checker.declared-kind-env :as kinds]

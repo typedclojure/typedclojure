@@ -7,8 +7,8 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:typed.clojure typed.cljc.checker.indirect-ops
-  (:refer-clojure :exclude [requiring-resolve])
-  (:require [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]
+  (:refer-clojure :exclude [#?(:clj requiring-resolve)])
+  (:require #?(:clj [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]])
             [typed.clojure :as t]))
 
 (defmacro ^:private make-indirection [& vs]

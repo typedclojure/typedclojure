@@ -21,6 +21,8 @@
   {:pre [(symbol? sym)]
    :post [(class? %)]}
   (case sym
+    #?@(:cljr []
+        :default [
     byte Byte/TYPE
     short Short/TYPE
     int Integer/TYPE
@@ -29,12 +31,21 @@
     double Double/TYPE
     boolean Boolean/TYPE
     char Character/TYPE
+        ])
     #?@(:cljr [
+    byte Byte
     sbyte SByte
+    short Int16
     ushort UInt16
+    int Int32
     uint UInt32
+    long Int64
     ulong UInt64
+    float Single
+    double Double
     decimal Decimal
+    boolean Boolean
+    char Char
     ])
     (RT/classForName (str sym))))
 

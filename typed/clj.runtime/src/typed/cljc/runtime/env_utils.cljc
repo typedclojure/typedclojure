@@ -17,6 +17,7 @@
 
 (defn random-uuid []
   #?(:clj (java.util.UUID/randomUUID) ;;clojure 1.10 support
+     :cljr (System.Guid/NewGuid)
      :default (throw (ex-info "TODO random-uuid" {}))))
 
 (defonce ^{:doc "Internal use only"} ^:no-doc parsed-types-invalidation-id (atom (str (random-uuid))))

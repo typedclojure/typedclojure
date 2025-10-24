@@ -81,37 +81,38 @@
                                   [`(identical? ~k ~(keyword fld))
                                    (this->field this fld)])
                                 fields)
-                      :else (throw (UnsupportedOperationException. (str "lookup on " '~name-sym " " ~k))))]
+                      :else (throw (#?(:cljr NotSupportedException. :default UnsupportedOperationException.) (str "lookup on " '~name-sym " " ~k))))]
     `(deftype ~name-sym [~@fields ~(with-meta hash-field {:unsynchronized-mutable true}) ~meta-field]
-       clojure.lang.IHashEq
-       (equals [~this ~that]
-         (AND (instance? ~name-sym ~that)
-              ~@(let [that (with-meta that {:tag name-sym})]
-                  (for [f fields
-                        :let [f (symbol (str "-" f))]]
-                    `(= (. ~that ~f)
-                        (. ~this ~f))))))
-       (hasheq [~this] (or (. ~this ~(symbol (str "-" hash-field)))
-                           (let [h# ~(if-let [ts (seq (map (fn [f] `(hash (. ~this ~(symbol (str "-" f))))) fields))]
-                                       `(bit-xor ~type-hash ~@ts)
-                                       `(bit-xor ~type-hash ~default-xor))]
-                             (set! (. ~this ~(symbol (str "-" hash-field))) h#)
-                             h#)))
-       (hashCode [~this] (or (. ~this ~(symbol (str "-" hash-field)))
-                             (let [h# ~(if-let [ts (seq (map (fn [f] `(hash (. ~this ~(symbol (str "-" f))))) fields))]
-                                         `(bit-xor ~type-hash ~@ts)
-                                         `(bit-xor ~type-hash ~default-xor))]
-                               (set! (. ~this ~(symbol (str "-" hash-field))) h#)
-                               h#)))
+       #?@(:clj
+           [clojure.lang.IHashEq
+            (equals [~this ~that]
+              (AND (instance? ~name-sym ~that)
+                   ~@(let [that (with-meta that {:tag name-sym})]
+                       (for [f fields
+                             :let [f (symbol (str "-" f))]]
+                         `(= (. ~that ~f)
+                             (. ~this ~f))))))
+            (hasheq [~this] (or (. ~this ~(symbol (str "-" hash-field)))
+                                (let [h# ~(if-let [ts (seq (map (fn [f] `(hash (. ~this ~(symbol (str "-" f))))) fields))]
+                                            `(bit-xor ~type-hash ~@ts)
+                                            `(bit-xor ~type-hash ~default-xor))]
+                                  (set! (. ~this ~(symbol (str "-" hash-field))) h#)
+                                  h#)))
+            (hashCode [~this] (or (. ~this ~(symbol (str "-" hash-field)))
+                                  (let [h# ~(if-let [ts (seq (map (fn [f] `(hash (. ~this ~(symbol (str "-" f))))) fields))]
+                                              `(bit-xor ~type-hash ~@ts)
+                                              `(bit-xor ~type-hash ~default-xor))]
+                                    (set! (. ~this ~(symbol (str "-" hash-field))) h#)
+                                    h#)))])
 
-       clojure.lang.IObj
-       (meta [~this] (. ~this ~(symbol (str "-" meta-field))))
-       ;; can use unchecked ctor
-       (withMeta [~this ~gs] (new ~name-sym
-                                  ~@(map #(do `(. ~this ~(symbol (str "-" %)))) fields)
-                                  (. ~this ~(symbol (str "-" hash-field)))
-                                  ~gs))
-
+       #?@(:clj
+           [clojure.lang.IObj
+            (meta [~this] (. ~this ~(symbol (str "-" meta-field))))
+            ;; can use unchecked ctor
+            (withMeta [~this ~gs] (new ~name-sym
+                                       ~@(map #(do `(. ~this ~(symbol (str "-" %)))) fields)
+                                       (. ~this ~(symbol (str "-" hash-field)))
+                                       ~gs))])
        clojure.lang.ILookup
        (valAt [~this ~k else#] ~valAt-body)
        (valAt [~this ~k] ~valAt-body)
@@ -133,10 +134,10 @@
                                ~(this->field hinted-target fld)
                                ~thunk)))]))
                    fields))
-             :else (throw (UnsupportedOperationException. (str "lookup on " '~name-sym " " ~k))))))
+             :else (throw (#?(:cljr NotSupportedException. :default UnsupportedOperationException.) (str "lookup on " '~name-sym " " ~k))))))
 
        clojure.lang.IPersistentMap
-       (assoc [~this ~k ~gs]
+       (~(with-meta 'assoc #?(:cljr {:tag 'clojure.lang.IPersistentMap} :default {})) [~this ~k ~gs]
          (cond
            ~@(mapcat (fn [fld]
                        [`(identical? ~k ~(keyword fld))
@@ -149,15 +150,15 @@
                                           fields)
                                    (. ~this ~(symbol (str "-" meta-field)))))])
                      fields)
-           :else (throw (UnsupportedOperationException. (str "assoc on " '~name-sym " " ~k)))))
+           :else (throw (#?(:cljr NotSupportedException. :default UnsupportedOperationException.) (str "assoc on " '~name-sym " " ~k)))))
        (entryAt [this# k#]
          (let [v# (.valAt this# k# this#)]
            (when-not (identical? this# v#)
              (clojure.lang.MapEntry/create k# v#))))
-       (count [this#] (throw (UnsupportedOperationException. ~(str "count on " name-sym))))
+       (count [this#] (throw (#?(:cljr NotSupportedException. :default UnsupportedOperationException.) ~(str "count on " name-sym))))
        ;; hack for pr-on, don't use empty
        (empty [this#] this#)
-       (cons [this# e#] (throw (UnsupportedOperationException. ~(str "cons on " name-sym))))
+       (~(with-meta (quote cons) #?(:cljr {:tag (quote clojure.lang.IPersistentCollection)} :default {}))  [this# e#] (throw (#?(:cljr NotSupportedException. :default UnsupportedOperationException.) ~(str "cons on " name-sym))))
        (equiv [~this ~that]
          (AND (instance? ~name-sym ~that)
               ~@(let [that (with-meta that {:tag name-sym})]
@@ -165,25 +166,26 @@
                         :let [f (symbol (str "-" f))]]
                     `(= (. ~that ~f)
                         (. ~this ~f))))))
-       (containsKey [this# k#] (throw (UnsupportedOperationException. ~(str "containsKey on " name-sym))))
+       (containsKey [this# k#] (throw (#?(:cljr NotSupportedException. :default UnsupportedOperationException.) ~(str "containsKey on " name-sym))))
        (seq [~this] (seq [~@(map #(list `new `clojure.lang.MapEntry (keyword %) `(. ~this ~(symbol (str "-" %))))
                                  fields)]))
 
-       (iterator [this#] (throw (UnsupportedOperationException. ~(str "iterator on " name-sym))))
-       (without [this# k#] (throw (UnsupportedOperationException. ~(str "without on " name-sym))))
+       #?(:clj (iterator [this#] (throw (#?(:cljr NotSupportedException. :default UnsupportedOperationException.) ~(str "iterator on " name-sym)))))
+       #?(:clj (without [this# k#] (throw (#?(:cljr NotSupportedException. :default UnsupportedOperationException.) ~(str "without on " name-sym)))))
 
-       Comparable
-       (compareTo [~this ~that]
-         (if (= ~this ~that)
-           0
-           (if (instance? ~name-sym ~that)
-             (or-non-zero
-               ~@(map (fn [field]
-                        (let [coerce (get compare-self field `identity)]
-                          `(compare (~coerce ~(this->field this field))
-                                    (~coerce ~(this->field that field)))))
-                      fields))
-             (compare (.getName (class ~this)) (.getName (class ~that))))))
+       #?@(:clj
+           [Comparable
+            (compareTo [~this ~that]
+              (if (= ~this ~that)
+                0
+                (if (instance? ~name-sym ~that)
+                  (or-non-zero
+                    ~@(map (fn [field]
+                             (let [coerce (get compare-self field `identity)]
+                               `(compare (~coerce ~(this->field this field))
+                                         (~coerce ~(this->field that field)))))
+                           fields))
+                  (compare (.getName (class ~this)) (.getName (class ~that))))))])
 
        ~@methods*)))
 
@@ -359,7 +361,7 @@
              "): " msg))
       (flush))))
 
-(defn- trace? [] (= "true" (System/getProperty "typed.cljc.checker.utils.trace")))
+(defn- trace? [] (= "true" (#?(:cljr Environment/GetEnvironmentVariable :default System/getProperty) "typed.cljc.checker.utils.trace")))
 
 (defmacro trace [ss opts]
   (when (trace?)

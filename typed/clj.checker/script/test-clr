@@ -1,0 +1,18 @@
+#!/bin/bash
+# Run tests for typed.clj.checker under ClojureCLR
+#
+# Prerequisites:
+# - cljr (ClojureCLR CLI tool) must be installed as a dotnet tool
+# - .NET 8.0 or later must be installed
+
+set -e
+
+# Get the directory where this script is located
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." && pwd )"
+
+echo "Running typed.clj.checker tests under ClojureCLR..."
+
+# Run tests using cljr with deps-clr.edn and cognitect test-runner
+cd "$PROJECT_ROOT"
+cljr -M:test "$@"

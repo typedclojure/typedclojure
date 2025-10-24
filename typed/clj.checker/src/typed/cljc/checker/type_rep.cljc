@@ -328,8 +328,8 @@
   :compare-self
   {poly? vec})
 
-(t/ann RClass->Class [(t/U RClass Instance) -> Class])
-(defn ^Class RClass->Class [rcls]
+#?(:clj (t/ann RClass->Class [(t/U RClass Instance) -> Class]))
+(defn ^#?(:cljr Type :default Class) RClass->Class [rcls]
   {:pre [((some-fn RClass? Instance?) rcls)]}
   (coerce/symbol->Class (:the-class rcls)))
 
@@ -380,8 +380,8 @@
   :methods
   [p/TCType])
 
-(t/ann DataType->Class [DataType -> Class])
-(defn ^Class DataType->Class [dt]
+(t/ann DataType->Class [DataType -> #?(:cljr Type :default Class)])
+(defn ^#?(:cljr Type :default Class) DataType->Class [dt]
   (coerce/symbol->Class (:the-class dt)))
 
 (t/ann Record? [t/Any -> t/Bool])
@@ -828,7 +828,7 @@
 (defn -hset [fixed & {:keys [complete?] :or {complete? true}}]
   (HSet-maker fixed complete?))
 
-(u/def-type PrimitiveArray [jtype :- Class,
+(u/def-type PrimitiveArray [jtype :- #?(:cljr Type :default Class),
                             input-type :- Type
                             output-type :- Type]
   "A Java Primitive array"
@@ -838,7 +838,7 @@
   :methods
   [p/TCType]
   :compare-self
-  {jtype #(.getName ^Class %)})
+  {jtype #(.getName ^#?(:cljr Type :default Class) %)})
 
 ;; Heterogeneous ops
 

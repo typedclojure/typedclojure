@@ -5,7 +5,7 @@ on:
   push:
     branches:
       - 'main'
-      - 'copilot/update-clojure-clr-tests'
+      - 'copilot/add-test-cljr-file'
 
 jobs:
   test-clojureclr:
@@ -53,4 +53,10 @@ jobs:
         run: |
           cd $GITHUB_WORKSPACE/typed/clj.analyzer
           echo "Running typed.clj.analyzer test suite with ClojureCLR..."
+          ./script/test-clr
+      
+      - name: Run typed.clj.checker test suite
+        run: |
+          cd $GITHUB_WORKSPACE/typed/clj.checker
+          echo "Running typed.clj.checker test suite with ClojureCLR..."
           ./script/test-clr

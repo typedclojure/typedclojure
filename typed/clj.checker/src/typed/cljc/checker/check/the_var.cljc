@@ -6,13 +6,13 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-(ns ^:typed.clojure typed.cljc.checker.check.new
-  (:refer-clojure :exclude [requiring-resolve])
+(ns ^:typed.clojure typed.cljc.checker.check.the-var
+  (:refer-clojure :exclude [#?(:clj requiring-resolve)])
   (:require [clojure.core.typed.current-impl :as impl]
-            [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]))
+            #?(:clj [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]])))
 
-(defn check-new [expr expected opts]
+(defn check-the-var [expr expected opts]
   ((impl/impl-case opts
-      :clojure (requiring-resolve 'typed.clj.checker.check/check-new)
-      :cljs (requiring-resolve 'typed.cljs.checker.check/check-new))
+      :clojure (requiring-resolve 'typed.clj.checker.check/check-the-var)
+      :cljs (requiring-resolve 'typed.cljs.checker.check/check-the-var))
      expr expected opts))

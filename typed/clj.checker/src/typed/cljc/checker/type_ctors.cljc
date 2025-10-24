@@ -7,13 +7,13 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:typed.clojure ^:no-doc typed.cljc.checker.type-ctors
-  (:refer-clojure :exclude [defrecord replace type requiring-resolve repeatedly])
+  (:refer-clojure :exclude [defrecord replace type #?(:clj requiring-resolve) repeatedly])
   (:require [clojure.core.cache :as cache]
             [typed.clojure :as t]
             [clojure.string :as str]
             [typed.cljc.runtime.env-utils :as env-utils]
             [typed.cljc.runtime.env :as env]
-            [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]
+            #?(:clj [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]])
             [clojure.core.typed.coerce-utils :as coerce]
             [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.contract-utils-platform-specific :as plat-con]

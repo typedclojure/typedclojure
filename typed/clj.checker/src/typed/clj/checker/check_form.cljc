@@ -7,10 +7,10 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:typed.clojure ^:no-doc typed.clj.checker.check-form
-  (:refer-clojure :exclude [requiring-resolve])
+  (:refer-clojure :exclude [#?(:clj requiring-resolve)])
   (:require [clojure.core.typed.ast-utils :as ast-u]
             [clojure.core.typed.current-impl :as impl]
-            [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]
+            #?(:clj [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]])
             [typed.clj.runtime.env :as clj-env]
             [typed.clj.checker.analyze-clj :as ana-clj]
             [typed.clj.checker.check :as chk-clj]

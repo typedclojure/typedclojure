@@ -7,14 +7,14 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:typed.clojure ^:no-doc typed.cljc.checker.var-env
-  (:refer-clojure :exclude [requiring-resolve delay])
+  (:refer-clojure :exclude [#?(:clj requiring-resolve) #?(:clj delay)])
   (:require [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.errors :as err]
             [clojure.core.typed.util-vars :as vs]
             [clojure.set :as set]
-            [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]
-            [io.github.frenchy64.fully-satisfies.safe-locals-clearing :refer [delay]]
+            #?(:clj [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]])
+            #?(:clj [io.github.frenchy64.fully-satisfies.safe-locals-clearing :refer [delay]])
             [typed.cljc.checker.lex-env :as lex]
             [typed.cljc.checker.name-env :as name-env]
             [typed.cljc.checker.type-rep :as r]

@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:typed.clojure ^:no-doc typed.cljc.checker.check.funapp
-  (:refer-clojure :exclude [requiring-resolve])
+  (:refer-clojure :exclude [#?(:cljr requiring-resolve)])
   (:require [typed.clojure :as t]
             [clojure.core.typed.coerce-utils :as coerce]
             [clojure.core.typed.contract-utils :as con]
@@ -15,7 +15,7 @@
             [clojure.core.typed.errors :as err]
             [clojure.core.typed.util-vars :as vs]
             [clojure.set :as set]
-            [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]
+            #?(:clj [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]])
             [typed.cljc.checker.open-result :as open-result]
             [typed.clj.checker.experimental.infer-vars :as infer-vars]
             [typed.clj.checker.parse-unparse :as prs]

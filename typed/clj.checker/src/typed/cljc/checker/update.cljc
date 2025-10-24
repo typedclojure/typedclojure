@@ -7,12 +7,12 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:typed.clojure typed.cljc.checker.update
-  (:refer-clojure :exclude [requiring-resolve])
+  (:refer-clojure :exclude [#?(:clj requiring-resolve)])
   (:require [typed.clojure :as t]
             [typed.cljc.checker.proposition-rep :as fl]
             [typed.cljc.checker.path-rep :as pe]
             [typed.cljc.checker.utils :as u]
-            [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]
+            #?(:clj [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]])
             [clojure.core.typed.errors :as err]
             [typed.cljc.checker.check.utils :as cu]
             [typed.cljc.checker.proposition-ops :as fo]

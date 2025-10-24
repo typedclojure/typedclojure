@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:typed.clojure ^:no-doc typed.clj.checker.check
-  (:refer-clojure :exclude [requiring-resolve])
+  (:refer-clojure :exclude [#?(:clj requiring-resolve)])
   (:require [typed.clojure :as t]
             [typed.cljc.checker.check.cache :as cache]
             [typed.cljc.checker.proposition-ops :as fo]
@@ -25,7 +25,7 @@
             [clojure.string :as str]
             [clojure.tools.reader :as reader]
             [clojure.tools.reader.reader-types :as readers]
-            [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]
+            #?(:clj [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]])
             [typed.clj.analyzer :as jana2]
             [typed.clj.analyzer.passes.emit-form :as emit-form]
             [typed.clj.analyzer.utils :as jtau]
@@ -1043,7 +1043,7 @@
                   nil)))))))
 
 (defmethod -invoke-special 'clojure.core/requiring-resolve [expr expected opts] (check-requiring-resolve expr expected opts))
-(defmethod -invoke-special 'io.github.frenchy64.fully-satisfies.requiring-resolve/requiring-resolve [expr expected opts] (check-requiring-resolve expr expected opts))
+#?(:clj (defmethod -invoke-special 'io.github.frenchy64.fully-satisfies.requiring-resolve/requiring-resolve [expr expected opts] (check-requiring-resolve expr expected opts)))
 
 ;make vector
 (defmethod -invoke-special 'clojure.core/vector

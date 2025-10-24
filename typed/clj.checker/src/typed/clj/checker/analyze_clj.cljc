@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:typed.clojure ^:no-doc typed.clj.checker.analyze-clj
-  (:refer-clojure :exclude [macroexpand-1 get-method eval delay])
+  (:refer-clojure :exclude [macroexpand-1 get-method eval #?(:clj delay)])
   (:require [clojure.core :as core]
             [typed.clojure :as t]
             [clojure.core.typed.coerce-utils :as coerce]
@@ -30,13 +30,13 @@
             [typed.cljc.analyzer.passes :as passes]
             [typed.cljc.analyzer.utils :as ta-utils]
             [typed.cljc.checker.utils :as u]
-            [io.github.frenchy64.fully-satisfies.safe-locals-clearing :refer [delay]])
-  (:import [clojure.lang Compiler$LocalBinding]))
+            #?(:clj [io.github.frenchy64.fully-satisfies.safe-locals-clearing :refer [delay]]))
+  (:import #?(:clj [clojure.lang Compiler$LocalBinding])))
 
 ; Updated for Clojure 1.8
 ;  https://github.com/clojure/clojure/commit/7f79ac9ee85fe305e4d9cbb76badf3a8bad24ea0
 (t/ann ^:no-check typed-macros (t/Map t/Any t/Any))
-(def typed-macros
+(def ^:private typed-macros
   {;; add positional information for destructured bindings
    #'clojure.core/loop
    (fn [&form &env bindings & body]
@@ -101,21 +101,23 @@
                (let [locals (cond->> (:locals env)
                               ;; fake Compiler.java's locals so tools.analyzer doesn't think there's a recursive go macro,
                               ;; and because typed.clj.analyzer AST's are incompatible with tools.analyzer's.
-                              ('#{clojure.core.async/go
-                                  typed.lib.clojure.core.async/go}
-                                (symbol v))
-                              (into {}
-                                    (map (fn [[sym e]]
-                                           {:pre [(symbol? sym)]}
-                                           (let [tag (-> e :tag)]
-                                             [sym (Compiler$LocalBinding.
-                                                    0
-                                                    sym
-                                                    tag
-                                                    nil ;; init
-                                                    false ;; isArg
-                                                    nil ;; clearPathRoot
-                                                    )])))))
+                              #?(:clj
+                                 ('#{clojure.core.async/go
+                                     typed.lib.clojure.core.async/go}
+                                   (symbol v)))
+                              #?(:clj
+                                 (into {}
+                                       (map (fn [[sym e]]
+                                              {:pre [(symbol? sym)]}
+                                              (let [tag (-> e :tag)]
+                                                [sym (Compiler$LocalBinding.
+                                                       0
+                                                       sym
+                                                       tag
+                                                       nil ;; init
+                                                       false ;; isArg
+                                                       nil ;; clearPathRoot
+                                                       )]))))))
                      res (apply (typed-macro-lookup v env opts) form locals (rest form))] ; (m &form &env & args)
                  (if (ta-utils/obj? res)
                    (vary-meta res merge (meta form))
@@ -153,62 +155,75 @@
   {:pass-info {:walk :any :depends #{#'validate/validate}}}
   :op)
 
-(t/ann ^:no-check arg-type-str [(t/Seqable (t/U nil Class)) :-> t/Str])
+(t/ann ^:no-check arg-type-str [(t/Seqable (t/U nil #?(:cljr Type :default Class))) :-> t/Str])
 (defn arg-type-str [arg-types]
   (str/join ", "
-            (map #(if (nil? %) "nil" (.getName ^Class %)) arg-types)))
+            (map #(if (nil? %) "nil" (#?(:cljr .FullName :default .getName) ^#?(:cljr Type :default Class) %)) arg-types)))
 
 (defn get-ctor [ast]
   (let [cls (:val (:class ast))
         arg-type-vec (mapv :tag (:args ast))
-        arg-type-arr (into-array Class arg-type-vec)]
+        arg-type-arr (into-array #?(:cljr Type :default Class) arg-type-vec)]
 ;;    (println (format "dbgx: get-ctor cls=%s arg-types=%s"
 ;;                     cls (arg-type-str arg-type-vec)))
     (try
-      (.getConstructor ^Class cls arg-type-arr)
-      (catch NoSuchMethodException e
-        (try
-          (.getDeclaredConstructor ^Class cls arg-type-arr)
-          (catch NoSuchMethodException e
-            {:class cls, :arg-types arg-type-vec}))))))
+      (#?(:cljr .GetConstructor :default .getConstructor) ^#?(:cljr Type :default Class) cls arg-type-arr)
+      #?(:clj
+         (catch NoSuchMethodException e
+           (try
+             (.getDeclaredConstructor ^Class cls arg-type-arr)
+             (catch NoSuchMethodException e
+               {:class cls, :arg-types arg-type-vec})))
+         :cljr
+         (catch Exception e
+           {:class cls, :arg-types arg-type-vec})))))
 
 (defn get-field [ast]
   (let [cls (:class ast)
         fld-name (name (:field ast))]
     (try
-      (.getField ^Class cls fld-name)
-      (catch NoSuchFieldException e
-        (try
-          (.getDeclaredField ^Class cls fld-name)
-          (catch NoSuchFieldException e
-            {:class cls, :field-name fld-name}))))))
+      (#?(:cljr .GetField :default .getField) ^#?(:cljr Type :default Class) cls fld-name)
+      #?(:clj
+         (catch NoSuchFieldException e
+           (try
+             (.getDeclaredField ^Class cls fld-name)
+             (catch NoSuchFieldException e
+               {:class cls, :field-name fld-name})))
+         :cljr
+         (catch Exception e
+           {:class cls, :field-name fld-name})))))
 
 (defn get-method [ast]
   (let [cls (:class ast)
         method-name (name (:method ast))
         arg-type-vec (mapv :tag (:args ast))
-        arg-type-arr (into-array Class arg-type-vec)]
+        arg-type-arr (into-array #?(:cljr Type :default Class) arg-type-vec)]
 ;;    (println (format "dbgx: get-method cls=%s method=%s arg-types=%s"
 ;;                     cls method-name (arg-type-str arg-type-vec)))
     (when (some nil? arg-type-vec)
       (println (format "Error: Bad arg-type nil for method named %s for class %s, full arg type list (%s).  ast pprinted below for debugging tools.analyzer:"
                        method-name
-                       (.getName ^Class cls)
+                       (#?(:cljr .FullName :default .getName) ^#?(:cljr Type :default Class) cls)
                        (arg-type-str arg-type-vec)))
       #_(util/pprint-ast-node ast))
     (try
-      (.getMethod ^Class cls method-name arg-type-arr)
-      (catch NoSuchMethodException e
-        (try
-          (.getDeclaredMethod ^Class cls method-name arg-type-arr)
-          (catch NoSuchMethodException e
-            {:class cls, :method-name method-name,
-             :arg-types arg-type-vec}))))))
+      (#?(:cljr .GetMethod :default .getMethod) ^#?(:cljr Type :default Class) cls method-name arg-type-arr)
+      #?(:clj
+         (catch NoSuchMethodException e
+           (try
+             (.getDeclaredMethod ^Class cls method-name arg-type-arr)
+             (catch NoSuchMethodException e
+               {:class cls, :method-name method-name,
+                :arg-types arg-type-vec})))
+         :cljr
+         (catch Exception e
+           {:class cls, :method-name method-name,
+            :arg-types arg-type-vec})))))
 
 
-(defn void-method? [^java.lang.reflect.Method m]
-  (let [ret-val (.getGenericReturnType m)]
-    (= ret-val Void/TYPE)))
+(defn void-method? [^#?(:cljr System.Reflection.MethodInfo :default java.lang.reflect.Method) m]
+  (let [ret-val (#?(:cljr .ReturnType :default .getGenericReturnType) m)]
+    (= ret-val #?(:cljr System.Void :default Void/TYPE))))
 
 (defmethod reflect-validated :default [ast] ast)
 
