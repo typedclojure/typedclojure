@@ -40,7 +40,7 @@
             [typed.cljc.checker.utils :as u :refer [OR AND]]
             typed.cljc.checker.coerce-ann)
   (:import (clojure.lang ASeq)
-           java.lang.reflect.Modifier
+           #?(:clj java.lang.reflect.Modifier)
            (typed.cljc.checker.type_rep HeterogeneousMap Poly TypeFn TApp Value
                                         Union Intersection F Function Mu B KwArgs KwArgsSeq KwArgsArray
                                         RClass Bounds Name Scope CountRange Intersection DataType
@@ -80,8 +80,10 @@
    (with-meta
      (clojure.lang.Symbol/intern
        nil
-       (-> (name s)
-           (.concat (Integer/toString (clojure.lang.RT/nextID)))))
+       #?(:cljr (str (name s) (.ToString (clojure.lang.RT/nextID)))
+          :default (-> (clojure.lang.RT/nextID)
+                       (Integer/toString)
+                       (->> (str (name s))))))
      {:original-name s}))
   ([s hint]
    {:pre [(or (simple-symbol? s)
@@ -91,9 +93,10 @@
    (with-meta
      (clojure.lang.Symbol/intern
        nil
-       (-> (name s)
-           (.concat hint)
-           (.concat (Integer/toString (clojure.lang.RT/nextID)))))
+       #?(:cljr (str (name s) hint (.ToString (clojure.lang.RT/nextID)))
+          :default (-> (clojure.lang.RT/nextID)
+                       (Integer/toString)
+                       (->> (str (name s) hint)))))
      {:original-name s})))
 
 (declare Un make-Union make-Intersection fully-resolve-type fully-resolve-non-rec-type flatten-unions)
@@ -848,7 +851,7 @@
                   sym-or-cls))]
     (if (identical? cls clojure.lang.IType)
       false
-      (.isAssignableFrom clojure.lang.IType cls))))
+      (#?(:cljr .IsAssignableFrom :default .isAssignableFrom) clojure.lang.IType cls))))
 
 (t/ann ^:no-check isa-Record? [(t/U t/Sym Class) -> t/Any])
 (defn isa-Record? [sym-or-cls]
@@ -859,7 +862,8 @@
                   sym-or-cls))]
     (if (identical? cls clojure.lang.IRecord)
       false
-      (.isAssignableFrom clojure.lang.IRecord cls))))
+      #?(:cljr (.IsAssignableFrom clojure.lang.IRecord cls)
+         :default (.isAssignableFrom clojure.lang.IRecord cls)))))
 
 (t/ann ^:no-check Record->HMap [DataType t/Any -> r/Type])
 (defn Record->HMap [r opts]
@@ -1167,7 +1171,7 @@
                                  {})
                   java-bases (into #{} (map coerce/Class->symbol) (bases cls))
                   warn-msg-opts {:warn-msg (when rclass?
-                                             (when (.contains (str the-class) "clojure.lang")
+                                             (when (str/includes? (str the-class) "clojure.lang")
                                                (str "RClass ancestor for " (pr-str rcls) " defaulting "
                                                     "to most general parameters")))} 
                   res (as-> (sorted-set) res
@@ -1680,14 +1684,13 @@
 
 ;; Utils
 
-(t/ann Value->Class [Value -> (t/Option Class)])
-(defn ^Class Value->Class [tval]
+(t/ann ^:no-check Value->Class [Value -> (t/Option #?(:cljr Type :default Class))])
+(defn Value->Class ^#?(:cljr Type :default Class) [tval]
   {:post [(t/tc-ignore
             (or (class? %)
                 (nil? %)))]}
   ;; workaround bug with paths
-  ((-> class (t/ann-form [t/Any :-> (t/Option Class)]))
-   (:val tval)))
+  (class (:val tval)))
 
 (t/ann keyword-value? [t/Any -> t/Any])
 (defn keyword-value? [val]
@@ -1881,20 +1884,30 @@
            (let [_ (impl/assert-clojure opts)
                  c1 (r/RClass->Class t1)
                  c2 (r/RClass->Class t2)
-                 c1-mods (.getModifiers c1)
-                 c2-mods (.getModifiers c2)
-                 c1-final? (Modifier/isFinal c1-mods)
-                 c2-final? (Modifier/isFinal c2-mods)]
+                 #?@(:clj
+                     [c1-mods (.getModifiers c1)
+                      c2-mods (.getModifiers c2)
+                      c1-final? (Modifier/isFinal c1-mods)
+                      c2-final? (Modifier/isFinal c2-mods)
+                      c1-interface? (Modifier/isInterface c1-mods)
+                      c2-interface? (Modifier/isInterface c2-mods)]
+                     :cljr
+                     [c1-final? (.IsSealed c1)
+                      c2-final? (.IsSealed c2)
+                      c1-interface? (.IsInterface c1)
+                      c2-interface? (.IsInterface c2)])]
              ; there is only an overlap if a class could have both classes as parents
              ;(prn t1-flags t2-flags)
              (cond
-               (or (.isAssignableFrom c1 c2)
-                   (.isAssignableFrom c2 c1)) true
+               (or #?(:cljr (.IsAssignableFrom c1 c2)
+                      :default (.isAssignableFrom c1 c2))
+                   #?(:cljr (.IsAssignableFrom c2 c1)
+                      :default (.isAssignableFrom c2 c1))) true
                ; no potential ancestors
-               (or (Modifier/isFinal c1-mods) (Modifier/isFinal c2-mods)) false
+               (or c1-final? c2-final?) false
                ; if we have two things that are not interfaces, ie. abstract, normal
                ; classes, there is no possibility of overlap
-               (not (or (Modifier/isInterface c1-mods) (Modifier/isInterface c2-mods))) false
+               (not (or c1-interface? c2-interface?)) false
                :else true)))
 
          (and (impl/checking-clojurescript? opts)
@@ -2759,10 +2772,13 @@
 
 (defn- mapv!= [coll f]
   (when-not (nil? coll)
-    (let [it (.iterator ^Iterable coll)]
+    (let [it #?(:cljr (.GetEnumerator ^System.Collections.IEnumerable coll)
+                :default (.iterator ^Iterable coll))]
       (loop [i 0, acc nil]
-        (if (.hasNext it)
-          (let [old (.next it)
+        (if #?(:cljr (.MoveNext it)
+               :default (.hasNext it))
+          (let [old #?(:cljr (.Current it)
+                       :default (.next it))
                 new (f old)]
             (recur (inc i)
                    (if (nil? acc)

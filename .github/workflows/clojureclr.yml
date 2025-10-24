@@ -5,7 +5,7 @@ on:
   push:
     branches:
       - 'main'
-      - 'copilot/add-test-cljr-file'
+      - 'copilot/add-clojure-clr-support'
 
 jobs:
   test-clojureclr:

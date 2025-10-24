@@ -4,7 +4,13 @@
         org.typedclojure/typed.clj.analyzer {:local/root "../clj.analyzer"
                                              :deps/manifest :deps}
         org.clojure/math.combinatorics {:git/url "https://github.com/frenchy64/math.combinatorics"
-                                        :git/sha "e4a4f82e74ce750e8a45dee2f8e306b53971fe4f"}}
+                                        :git/sha "e4a4f82e74ce750e8a45dee2f8e306b53971fe4f"}
+        org.clojure/core.cache {:git/url "https://github.com/clojure/clr.core.cache.git"
+                                :git/sha "ee7fa0f618ebd1ea00130a1b648778bdefcf059b"}
+        org.clojure/tools.namespace {:git/url "https://github.com/clojure/clr.tools.namespace.git"
+                                     :git/sha "46d81cba650eaf7bc9d9aa79700d0d7e496e987f"}
+        org.clojure/tools.reader {:git/url "https://github.com/clojure/clr.tools.reader.git"
+                                  :git/sha "46ce896e51f1707b45afd128fe634f0735ad477b"}}
  :aliases
  {:test
   {:extra-paths ["test"]

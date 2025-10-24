@@ -215,7 +215,7 @@
                                                                         :top-level-form-string sform
                                                                         :ns-form-string ns-form-str}
                                                               opts)
-                                             (catch Throwable e (vreset! ex e))))
+                                             (catch #?(:cljr System.Exception :default Throwable) e (vreset! ex e))))
                                   out (with-bindings bndings
                                         (if check-threadpool
                                           (with-out-str

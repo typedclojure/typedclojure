@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:typed.clojure ^:no-doc typed.cljc.checker.proposition-ops
-  (:refer-clojure :exclude [delay])
+  (:refer-clojure :exclude [#?(:clj delay)])
   (:require [clojure.set :as set]
             [clojure.core.typed.util-vars :as vs]
             [typed.clojure :as t]
@@ -17,7 +17,7 @@
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.type-rep :as r] 
             [typed.cljc.checker.utils :as u]
-            [io.github.frenchy64.fully-satisfies.safe-locals-clearing :refer [delay]])
+            #?(:clj [io.github.frenchy64.fully-satisfies.safe-locals-clearing :refer [delay]]))
   (:import (typed.cljc.checker.proposition_rep BotProposition TopProposition NoProposition AndProposition 
                                           OrProposition TypeProposition NotTypeProposition ImpProposition
                                           PropositionSet)))

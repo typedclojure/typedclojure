@@ -26,7 +26,7 @@
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.errors :as err]
             [clojure.core.typed.util-vars :as vs]
-            [clojure.java.io :as io])
+            #?(:clj [clojure.java.io :as io]))
   (:import (clojure.lang ExceptionInfo)))
 
 ;; TODO move into callers of check-ns-info
@@ -115,7 +115,7 @@
                                  #(let [type-errors (err/-init-type-errors)
                                         ex (volatile! nil)
                                         chk (fn [] (try (check-ns % (assoc opts ::vs/type-errors type-errors))
-                                                        (catch Throwable e (vreset! ex e))))
+                                                        (catch #?(:cljr System.Exception :default Throwable) e (vreset! ex e))))
                                         out (if threadpool
                                               (with-out-str (chk))
                                               (do (chk) nil))]

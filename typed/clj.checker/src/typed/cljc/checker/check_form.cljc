@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:typed.clojure ^:no-doc typed.cljc.checker.check-form
-  (:refer-clojure :exclude [delay])
+  (:refer-clojure :exclude [#?(:clj delay)])
   (:require [clojure.core.cache :as cache]
             [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.contract-utils-platform-specific :as plat-con]
@@ -22,7 +22,7 @@
             [typed.cljc.checker.lex-env :as lex-env]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.checker.utils :as u]
-            [io.github.frenchy64.fully-satisfies.safe-locals-clearing :refer [delay]])
+            #?(:clj [io.github.frenchy64.fully-satisfies.safe-locals-clearing :refer [delay]]))
   (:import (clojure.lang ExceptionInfo)))
 
 (def *register-clj-anns (delay (configs/register-clj-config-anns)))

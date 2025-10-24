@@ -40,12 +40,12 @@
 ; (All [x]
 ;   [CliSpec -> (U nil '[Value Type])])
 (defn parse-cli-spec [spec-expr {::check/keys [check-expr] :as opts}]
-  (letfn [(opt? [^String x]
-            (.startsWith x "-"))
+  (letfn [(opt? [x]
+            (str/starts-with? x "-"))
           (name-for [k]
             (str/replace k #"^--no-|^--\[no-\]|^--|^-" "")) 
-          (flag? [^String x]
-              (.startsWith x "--[no-]"))]
+          (flag? [x]
+            (str/starts-with? x "--[no-]"))]
 
   (let [; (U nil (Seqable '[Form (U nil Expr)]))
         raw-spec (vector-args spec-expr opts)]

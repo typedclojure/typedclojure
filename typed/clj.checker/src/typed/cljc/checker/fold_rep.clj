@@ -7,7 +7,8 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:typed.clojure typed.cljc.checker.fold-rep
-  (:require [clojure.set :as set]))
+  (:require [clojure.set :as set]
+            [clojure.string :as str]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Type Folding
@@ -122,7 +123,7 @@
   (assert (resolve f) f)
   ;; expects a macro call created by def-derived-fold to inline
   ;; map arg into positional
-  (assert (.startsWith (name f) "call-") f)
+  (assert (str/starts-with? (name f) "call-") f)
   (let [{:syms [sub-pe sub-f sub-o] :as m}
         (into {}
               (map (juxt identity gensym))

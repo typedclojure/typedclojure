@@ -511,7 +511,7 @@
                  (= :* (:kind t-elem))
                  (not (and (r/Regex? s-elem) (= :* (:kind s-elem)))))
             (let [inner-t (first (:types t-elem))
-                  new-s-idx (consume-matching s-idx inner-t)]
+                  ^long new-s-idx (consume-matching s-idx inner-t)]
               (recur new-s-idx (inc t-idx)))
             
             ;; t-elem is a + regex - match one or more (but only if s-elem is not also a + regex)
@@ -527,7 +527,7 @@
                   (if-not matches?
                     (report-not-subtypes {:cat s-types} {:cat t-types})
                     ;; Matched one, now consume greedily like *
-                    (let [new-s-idx (consume-matching (inc s-idx) inner-t)]
+                    (let [^long new-s-idx (consume-matching (inc s-idx) inner-t)]
                       (recur new-s-idx (inc t-idx)))))))
             
             ;; t-elem is a ? regex - match zero or one (but only if s-elem is not also a ? regex)
@@ -655,9 +655,10 @@
                 (let [fs (mapv (fn [s] (fn [] (subtypeA* A s t opts))) types)
                       bs (get-thread-bindings)]
                   (reduce (fn [acc ^java.util.concurrent.Future future]
+
                             (let [{:keys [ex res out]} (try (.get future)
-                                                            (catch java.util.concurrent.ExecutionException e
-                                                              (throw (or (.getCause e) e))))]
+                                                            (catch #?(:cljr System.Exception :default java.util.concurrent.ExecutionException) e
+                                                              (throw (or #?(:cljr e :default (.getCause e)) e))))]
                               (some-> out str/trim not-empty println)
                               (some-> ex throw)
                               (and acc res)))
@@ -668,7 +669,7 @@
                                                                              res (volatile! nil)
                                                                              out (with-out-str
                                                                                    (try (vreset! res (f))
-                                                                                        (catch Throwable e (vreset! ex e))))]
+                                                                                        (catch #?(:cljr System.Exception :default Throwable) e (vreset! ex e))))]
                                                                          {:ex @ex
                                                                           :res @res
                                                                           :out out}))))

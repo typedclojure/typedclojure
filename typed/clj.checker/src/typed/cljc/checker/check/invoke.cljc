@@ -65,7 +65,7 @@
                                                                             res (volatile! nil)
                                                                             out (with-out-str
                                                                                   (try (vreset! res (f))
-                                                                                       (catch Throwable e (vreset! ex e))))]
+                                                                                       (catch #?(:cljr System.Exception :default Throwable) e (vreset! ex e))))]
                                                                         {:out out
                                                                          :res @res
                                                                          :ex @ex}))))

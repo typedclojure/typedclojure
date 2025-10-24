@@ -134,16 +134,17 @@
         res (pprint-types x)]
     (if @contains-special-print? res x)))
 
-(when (= "true" (System/getProperty "typed.clj.checker.parse-unparse.fipp-override"))
-  (when (try (require 'fipp.ednize 'fipp.edn 'cider.nrepl.pprint)
-             true
-             (catch java.io.FileNotFoundException _))
-    (alter-var-root (resolve 'cider.nrepl.pprint/fipp-pprint)
-                    (fn [fipp-pretty]
-                      (fn
-                        ([x writer] (-> x ((resolve `massage-before-fipp-pprint)) (fipp-pretty writer)))
-                        ([x writer options] (-> x ((resolve `massage-before-fipp-pprint)) (fipp-pretty writer options)))))))
-  (System/setProperty "typed.clj.checker.parse-unparse.fipp-override" "false"))
+#?(:clj
+   (when (= "true" (System/getProperty "typed.clj.checker.parse-unparse.fipp-override"))
+     (when (try (require 'fipp.ednize 'fipp.edn 'cider.nrepl.pprint)
+                true
+                (catch java.io.FileNotFoundException _))
+       (alter-var-root (resolve 'cider.nrepl.pprint/fipp-pprint)
+                       (fn [fipp-pretty]
+                         (fn
+                           ([x writer] (-> x ((resolve `massage-before-fipp-pprint)) (fipp-pretty writer)))
+                           ([x writer options] (-> x ((resolve `massage-before-fipp-pprint)) (fipp-pretty writer options)))))))
+     (System/setProperty "typed.clj.checker.parse-unparse.fipp-override" "false")))
 
 (declare parse-type* resolve-type-clj->sym resolve-type-clj resolve-type-cljs)
 
@@ -170,7 +171,7 @@
                  (assoc ::vs/current-env env)
                  (assoc ::parsing-tsyn s))]
     (try (parse-type* s opts)
-         (catch Throwable e
+         (catch #?(:cljr System.Exception :default Throwable) e
            ;(prn (err/any-tc-error? (ex-data e)))
            (if (err/any-tc-error? (ex-data e))
              (throw e)
@@ -456,10 +457,10 @@
     (prs-error (str "Wrong arguments to t/Instance: " (pr-str all)) opts))
   (when-not (simple-symbol? tsyn)
     (prs-error (str "t/Instance must be passed a simple symbol, given: " (pr-str tsyn)) opts))
-  (let [^Class cls (resolve-type-clj tsyn opts)]
+  (let [^#?(:cljr Type :default Class) cls (resolve-type-clj tsyn opts)]
     (when-not (class? cls)
       (prs-error (str "t/Instance must resolve to a class: " (pr-str tsyn)) opts))
-    (-> cls .getName symbol r/Instance-maker)))
+    (-> cls #?(:cljr .FullName :default .getName) symbol r/Instance-maker)))
 
 (defmethod parse-type-list 'typed.clojure/Instance [t opts] (parse-Instance t opts))
 
@@ -1849,8 +1850,10 @@
 (defn core-lang-Class-sym [clsym]
   {:pre [(symbol? clsym)]
    :post [((some-fn nil? symbol?) %)]}
-  (when (.startsWith (str clsym) "clojure.lang.")
-    (symbol (.getSimpleName (Class/forName (str clsym))))))
+  (when #?(:cljr (.StartsWith (str clsym) "clojure.lang.")
+           :default (.startsWith (str clsym) "clojure.lang."))
+    (symbol #?(:cljr (.Name (Type/GetType (str clsym)))
+               :default (.getSimpleName (Class/forName (str clsym)))))))
 
 (defn Class-symbol-intern
   "If symbol named by class is interned in ns by its
@@ -1864,8 +1867,8 @@
       (when (<= 0 last-dot (- (count clstr) 2))
         (let [short-name (symbol (subs clstr (inc last-dot)))]
           (when-some [mapping (ns-map ns)]
-            (when-some [^Class cls (mapping short-name)]
-              (when (= clstr (.getName cls))
+            (when-some [^#?(:cljr Type :default Class) cls (mapping short-name)]
+              (when (= clstr #?(:cljr (.FullName cls) :default (.getName cls)))
                 short-name))))))))
 
 (defn protocol-var-symbol-intern

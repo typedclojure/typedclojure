@@ -7,7 +7,7 @@ on:
       - '.github/workflows/copilot-setup-steps.yml'
 
 env:
-  ACTIONS_CACHE_VERSION: 0
+  ACTIONS_CACHE_VERSION: 1
 
 jobs:
   copilot-setup-steps:

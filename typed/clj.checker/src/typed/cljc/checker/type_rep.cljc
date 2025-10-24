@@ -638,7 +638,7 @@
   :methods
   [p/TCType]
   :compare-self
-  {val (fn [v] [(some-> (class v) .getName) v])})
+  {val (fn [v] [(some-> (class v) #?(:cljr .FullName :default .getName)) v])})
 
 (t/ann -val [t/Any -> Type])
 (def -val Value-maker)

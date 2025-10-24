@@ -105,14 +105,13 @@
                                     (set! (. ~this ~(symbol (str "-" hash-field))) h#)
                                     h#)))])
 
-       #?@(:clj
-           [clojure.lang.IObj
-            (meta [~this] (. ~this ~(symbol (str "-" meta-field))))
-            ;; can use unchecked ctor
-            (withMeta [~this ~gs] (new ~name-sym
-                                       ~@(map #(do `(. ~this ~(symbol (str "-" %)))) fields)
-                                       (. ~this ~(symbol (str "-" hash-field)))
-                                       ~gs))])
+       clojure.lang.IObj
+       (meta [~this] (. ~this ~(symbol (str "-" meta-field))))
+       ;; can use unchecked ctor
+       (withMeta [~this ~gs] (new ~name-sym
+                                  ~@(map #(do `(. ~this ~(symbol (str "-" %)))) fields)
+                                  (. ~this ~(symbol (str "-" hash-field)))
+                                  ~gs))
        clojure.lang.ILookup
        (valAt [~this ~k else#] ~valAt-body)
        (valAt [~this ~k] ~valAt-body)
@@ -173,19 +172,20 @@
        #?(:clj (iterator [this#] (throw (#?(:cljr NotSupportedException. :default UnsupportedOperationException.) ~(str "iterator on " name-sym)))))
        #?(:clj (without [this# k#] (throw (#?(:cljr NotSupportedException. :default UnsupportedOperationException.) ~(str "without on " name-sym)))))
 
-       #?@(:clj
-           [Comparable
-            (compareTo [~this ~that]
-              (if (= ~this ~that)
-                0
-                (if (instance? ~name-sym ~that)
-                  (or-non-zero
-                    ~@(map (fn [field]
-                             (let [coerce (get compare-self field `identity)]
-                               `(compare (~coerce ~(this->field this field))
-                                         (~coerce ~(this->field that field)))))
-                           fields))
-                  (compare (.getName (class ~this)) (.getName (class ~that))))))])
+       #?(:cljr System.IComparable
+          :default Comparable)
+       (compareTo [~this ~that]
+         (if (= ~this ~that)
+           0
+           (if (instance? ~name-sym ~that)
+             (or-non-zero
+               ~@(map (fn [field]
+                        (let [coerce (get compare-self field `identity)]
+                          `(compare (~coerce ~(this->field this field))
+                                    (~coerce ~(this->field that field)))))
+                      fields))
+             (compare (#?(:cljr .FullName :default .getName) (class ~this))
+                      (#?(:cljr .FullName :default .getName) (class ~that))))))
 
        ~@methods*)))
 

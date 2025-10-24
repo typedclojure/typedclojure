@@ -133,7 +133,7 @@
         (cond
           (= impl/protocol-name-type t) (prenv/resolve-protocol checker sym opts)
           (= impl/datatype-name-type t) (dtenv/resolve-datatype checker sym opts)
-          (= impl/declared-name-type t) (throw (IllegalArgumentException. (str "Reference to declared but undefined name " sym)))
+          (= impl/declared-name-type t) (throw (#?(:cljr System.ArgumentException :default IllegalArgumentException.) (str "Reference to declared but undefined name " sym)))
           (r/Type? t) (with-meta t (assoc (meta t) :source-Name sym))
           :else (err/int-error (str "Cannot resolve name " (pr-str sym)
                                     (when t

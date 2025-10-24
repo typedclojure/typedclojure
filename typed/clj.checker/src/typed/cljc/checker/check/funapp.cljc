@@ -7,7 +7,7 @@
 ;;   You must not remove this notice, or any other, from this software.
 
 (ns ^:typed.clojure ^:no-doc typed.cljc.checker.check.funapp
-  (:refer-clojure :exclude [#?(:cljr requiring-resolve)])
+  (:refer-clojure :exclude [#?(:clj requiring-resolve)])
   (:require [typed.clojure :as t]
             [clojure.core.typed.coerce-utils :as coerce]
             [clojure.core.typed.contract-utils :as con]
