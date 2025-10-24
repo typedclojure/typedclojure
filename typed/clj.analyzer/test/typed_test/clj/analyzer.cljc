@@ -107,6 +107,35 @@
               Object
               (#?(:cljr ToString :default toString) [_] (A.) "a")))))))
 
+(deftest special-forms-as-symbols-test
+  (testing "Special forms should not be usable as unbound symbols"
+    (testing "do as a symbol should fail"
+      (is (thrown-with-msg?
+            clojure.lang.ExceptionInfo
+            #"Could not resolve var: do"
+            (ast' do))))
+    (testing "do in function body should fail"
+      (is (thrown-with-msg?
+            clojure.lang.ExceptionInfo
+            #"Could not resolve var: do"
+            (ast' (fn [] do)))))
+    (testing "calling function with do in body should fail"
+      (is (thrown-with-msg?
+            clojure.lang.ExceptionInfo
+            #"Could not resolve var: do"
+            (ast' ((fn [] do))))))
+    (testing "other special forms should also fail"
+      (is (thrown-with-msg?
+            clojure.lang.ExceptionInfo
+            #"Could not resolve var: if"
+            (ast' if)))
+      (is (thrown-with-msg?
+            clojure.lang.ExceptionInfo
+            #"Could not resolve var: let\\*"
+            (ast' let*))))
+    (testing "do as proper special form should work"
+      (is (= :do (:op (ast' (do 1 2))))))))
+
 (deftest uniquify-test
   (let [ret (ast' (let [a 1]
                     (let [a 2]
