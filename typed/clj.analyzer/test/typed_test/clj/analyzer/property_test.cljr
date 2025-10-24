@@ -42,4 +42,4 @@
       (is (= System.DateTime (:tag now-ast))))
     
     (let [length-ast (ast' (.-Length "test"))]
-      (is (= System.Int32 (:tag length-ast)))))))
+      (is (= System.Int32 (:tag length-ast))))))
