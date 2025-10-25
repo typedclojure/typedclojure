@@ -7,7 +7,7 @@ on:
       - '.github/workflows/copilot-setup-steps.yml'
 
 env:
-  ACTIONS_CACHE_VERSION: 1
+  ACTIONS_CACHE_VERSION: 2
 
 jobs:
   copilot-setup-steps:
@@ -60,7 +60,9 @@ jobs:
 
       - name: Download dependencies
         if: steps.cache-deps.outputs.cache-hit != 'true'
-        run: clojure -A:kaocha:test:deps -Stree
+        run: |
+          clojure -A:kaocha:test:deps -Stree
+          cljr -A:test -Stree
 
       - name: Run bb prepare
         if: steps.cache-deps.outputs.cache-hit != 'true'
