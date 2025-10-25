@@ -36,6 +36,27 @@ jobs:
           which Clojure.Main || echo "Clojure.Main not in PATH"
           which cljr || echo "cljr not in PATH"
           ls -la ~/.dotnet/tools/
+
+      - name: Restore dependency cache
+        id: cache-deps
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.gitlibs
+          key: ${{ env.ACTIONS_CACHE_VERSION }}-deps-${{ hashFiles('**/deps-clr.edn') }}
+
+      - name: Download dependencies
+        if: steps.cache-deps.outputs.cache-hit != 'true'
+        run: cljr -A:test -Stree
+
+      - name: Save dependency cache
+        if: steps.cache-deps.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.m2/repository
+            ~/.gitlibs
+          key: ${{ env.ACTIONS_CACHE_VERSION }}-deps-${{ hashFiles('**/deps-clr.edn') }}
       
       - name: Run typed.clj.runtime test suite
         run: |
