@@ -51,7 +51,7 @@ jobs:
           path: |
             ~/.m2/repository
             ~/.gitlibs
-          key: ${{ env.ACTIONS_CACHE_VERSION }}-deps-${{ hashFiles('**/deps.edn', '**/bb.edn') }}
+          key: ${{ env.ACTIONS_CACHE_VERSION }}-deps-${{ hashFiles('**/deps.edn', '**/bb.edn', '**/deps-clr.edn') }}
      
       - name: Debug cache outputs
         run: |
@@ -77,4 +77,4 @@ jobs:
           path: |
             ~/.m2/repository
             ~/.gitlibs
-          key: ${{ env.ACTIONS_CACHE_VERSION }}-deps-${{ hashFiles('**/deps.edn', '**/bb.edn') }}
+          key: ${{ env.ACTIONS_CACHE_VERSION }}-deps-${{ hashFiles('**/deps.edn', '**/bb.edn', '**/deps-clr.edn') }}
