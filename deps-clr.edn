@@ -1,7 +1,6 @@
 ;; just for deps resolution for now
 {:deps
- {selmer/selmer {:mvn/version "1.12.62"},
-  org.typedclojure/typed.clj.checker
+ {org.typedclojure/typed.clj.checker
   {:deps/manifest :deps, :local/root "typed/clj.checker"},
   org.typedclojure/typed.clj.analyzer
   {:deps/manifest :deps, :local/root "typed/clj.analyzer"},
