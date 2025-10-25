@@ -54,7 +54,6 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: |
-            ~/.m2/repository
             ~/.gitlibs
           key: ${{ env.ACTIONS_CACHE_VERSION }}-deps-${{ hashFiles('**/deps-clr.edn') }}
       
