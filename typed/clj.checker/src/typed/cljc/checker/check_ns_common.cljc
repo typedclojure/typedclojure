@@ -44,24 +44,32 @@
   (assert (not (:opts opt)))
   (assert opts)
   (when trace
-    (assert (= "true" (System/getProperty "typed.cljc.checker.utils.trace"))
+    (assert (= "true" (#?(:cljr System.Environment/GetEnvironmentVariable
+                          :default System/getProperty) "typed.cljc.checker.utils.trace"))
             "To enable tracing set system property -Dtyped.cljc.checker.utils.trace=true on startup"))
   (let [start (. System (nanoTime))
         threadpool (::vs/check-threadpool opts)
         shutdown-threadpool? (not threadpool)
         max-parallelism (or (when (= :available-processors max-parallelism)
-                              (.. Runtime getRuntime availableProcessors))
+                              #?(:cljr (.. Environment ProcessorCount)
+                                 :default (.. Runtime getRuntime availableProcessors)))
                             max-parallelism
-                            (when-some [max-parallelism (System/getProperty "typed.clojure.max-parallelism")]
+                            (when-some [max-parallelism (#?(:cljr System.Environment/GetEnvironmentVariable
+                                                            :default System/getProperty) "typed.clojure.max-parallelism")]
                               (if (= ":available-processors")
-                                (.. Runtime getRuntime availableProcessors)
-                                (Integer/parseInt max-parallelism)))
-                            (.. Runtime getRuntime availableProcessors))
+                                #?(:cljr (.. Environment ProcessorCount)
+                                   :default (.. Runtime getRuntime availableProcessors))
+                                (#?(:cljr Int32/Parse
+                                    :default Integer/parseInt) max-parallelism)))
+                            #?(:cljr (.. Environment ProcessorCount)
+                               :default (.. Runtime getRuntime availableProcessors)))
         _ (when max-parallelism (assert (pos? max-parallelism) max-parallelism))
-        ^java.util.concurrent.ExecutorService
-        threadpool (or threadpool
-                       (when (some-> max-parallelism (> 1))
-                         (java.util.concurrent.Executors/newWorkStealingPool max-parallelism)))]
+        #?(:cljr threadpool
+           :default ^java.util.concurrent.ExecutorService threadpool)
+        (or threadpool
+            (when (some-> max-parallelism (> 1))
+              #?(:cljr (err/nyi-error "TODO CLR parallelism" opts)
+                 :default (java.util.concurrent.Executors/newWorkStealingPool max-parallelism))))]
     (try
       (let [nsym-coll (mapv #(if (symbol? %)
                                ; namespace might not exist yet, so ns-name is not appropriate
@@ -128,14 +136,18 @@
                       check-ns-group (fn [nsym-coll]
                                        (if-not threadpool
                                          (mapv check-ns nsym-coll)
-                                         (mapv (fn [^java.util.concurrent.Future future]
-                                                 (try (.get future)
-                                                      (catch java.util.concurrent.ExecutionException e
-                                                        (throw (or (.getCause e) e)))))
-                                               (.invokeAll threadpool
-                                                           (map (fn [nsym]
-                                                                  #(check-ns nsym))
-                                                                nsym-coll)))))
+                                         #?(:cljr (err/nyi-error "TODO CLR parallelism" opts)
+                                            :default
+                                            (mapv (fn [#?(:cljr future
+                                                          :default ^java.util.concurrent.Future future)]
+                                                    (try (.get future)
+                                                         (catch #?(:cljr System.Exception
+                                                                   :default java.util.concurrent.ExecutionException) e
+                                                           (throw (or (.getCause e) e)))))
+                                                  (.invokeAll threadpool
+                                                              (map (fn [nsym]
+                                                                     #(check-ns nsym))
+                                                                   nsym-coll))))))
                       results (into [] (comp (partition-all (if false #_(and threadpool
                                                                      (< 3 max-parallelism))
                                                               2

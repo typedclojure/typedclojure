@@ -174,7 +174,7 @@
 
        #?(:cljr System.IComparable
           :default Comparable)
-       (compareTo [~this ~that]
+       (#?(:cljr CompareTo :default compareTo) [~this ~that]
          (if (= ~this ~that)
            0
            (if (instance? ~name-sym ~that)
@@ -361,7 +361,7 @@
              "): " msg))
       (flush))))
 
-(defn- trace? [] (= "true" (#?(:cljr Environment/GetEnvironmentVariable :default System/getProperty) "typed.cljc.checker.utils.trace")))
+(defn- trace? [] (= "true" (#?(:cljr System.Environment/GetEnvironmentVariable :default System/getProperty) "typed.cljc.checker.utils.trace")))
 
 (defmacro trace [ss opts]
   (when (trace?)

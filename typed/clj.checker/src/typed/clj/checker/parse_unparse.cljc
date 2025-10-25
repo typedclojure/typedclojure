@@ -70,18 +70,18 @@
 (do (defmethod print-method typed.cljc.checker.impl_protocols.TCType [s writer]
       (print-method (unparse-type s (->unparse-opts)) writer))
     (prefer-method print-method typed.cljc.checker.impl_protocols.TCType clojure.lang.IRecord)
-    (prefer-method print-method typed.cljc.checker.impl_protocols.TCType java.util.Map)
+    #?(:clj (prefer-method print-method typed.cljc.checker.impl_protocols.TCType java.util.Map))
     (prefer-method print-method typed.cljc.checker.impl_protocols.TCType clojure.lang.IPersistentMap)
 
     (defmethod print-method typed.cljc.checker.impl_protocols.TCAnyType [s writer]
       (print-method (unparse-type s (->unparse-opts)) writer))
     (prefer-method print-method typed.cljc.checker.impl_protocols.TCAnyType clojure.lang.IRecord)
-    (prefer-method print-method typed.cljc.checker.impl_protocols.TCAnyType java.util.Map)
+    #?(:clj (prefer-method print-method typed.cljc.checker.impl_protocols.TCAnyType java.util.Map))
     (prefer-method print-method typed.cljc.checker.impl_protocols.TCAnyType clojure.lang.IPersistentMap)
 
     (defmethod print-method TCResult [s writer]
       (print-method (unparse-TCResult s (->unparse-opts)) writer))
-    (prefer-method print-method TCResult java.util.Map)
+    #?(:clj (prefer-method print-method TCResult java.util.Map))
     (prefer-method print-method TCResult clojure.lang.IPersistentMap)
 
     (defmethod print-method typed.cljc.checker.impl_protocols.IProposition [s writer]
@@ -89,19 +89,19 @@
         (f/PropositionSet? s) (print-method (unparse-proposition-set s (->unparse-opts)) writer)
         :else (print-method (unparse-proposition s (->unparse-opts)) writer)))
     (prefer-method print-method typed.cljc.checker.impl_protocols.IProposition clojure.lang.IRecord)
-    (prefer-method print-method typed.cljc.checker.impl_protocols.IProposition java.util.Map)
+    #?(:clj (prefer-method print-method typed.cljc.checker.impl_protocols.IProposition java.util.Map))
     (prefer-method print-method typed.cljc.checker.impl_protocols.IProposition clojure.lang.IPersistentMap)
 
     (defmethod print-method typed.cljc.checker.impl_protocols.IRObject [s writer]
       (print-method (unparse-object s (->unparse-opts)) writer))
     (prefer-method print-method typed.cljc.checker.impl_protocols.IRObject clojure.lang.IRecord)
-    (prefer-method print-method typed.cljc.checker.impl_protocols.IRObject java.util.Map)
+    #?(:clj (prefer-method print-method typed.cljc.checker.impl_protocols.IRObject java.util.Map))
     (prefer-method print-method typed.cljc.checker.impl_protocols.IRObject clojure.lang.IPersistentMap)
 
     (defmethod print-method typed.cljc.checker.path_rep.IPathElem [s writer]
       (print-method (unparse-path-elem s (->unparse-opts)) writer))
     (prefer-method print-method typed.cljc.checker.path_rep.IPathElem clojure.lang.IRecord)
-    (prefer-method print-method typed.cljc.checker.path_rep.IPathElem java.util.Map)
+    #?(:clj (prefer-method print-method typed.cljc.checker.path_rep.IPathElem java.util.Map))
     (prefer-method print-method typed.cljc.checker.path_rep.IPathElem clojure.lang.IPersistentMap)
     )
 

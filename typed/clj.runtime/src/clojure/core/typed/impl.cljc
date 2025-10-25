@@ -313,7 +313,7 @@
               m))))))
 
 (defmacro ^:private defspecial [& body]
-  (when (= "true" (#?(:cljr Environment/GetEnvironmentVariable :default System/getProperty) "clojure.core.typed.special-vars"))
+  (when (= "true" (#?(:cljr System.Environment/GetEnvironmentVariable :default System/getProperty) "clojure.core.typed.special-vars"))
     `(def ~@body)))
 
 (defspecial

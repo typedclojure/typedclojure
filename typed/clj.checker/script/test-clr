@@ -4,6 +4,7 @@
 # Prerequisites:
 # - cljr (ClojureCLR CLI tool) must be installed as a dotnet tool
 # - .NET 8.0 or later must be installed
+# - babashka must be installed for git serialization
 
 set -e
 
@@ -13,6 +14,17 @@ PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." && pwd )"
 
 echo "Running typed.clj.checker tests under ClojureCLR..."
 
-# Run tests using cljr with deps-clr.edn and cognitect test-runner
+# Clean up any stale lock file
+rm -f /tmp/git-coordinator.lock
+
+# Create a wrapper directory and git script
+WRAPPER_DIR="$(mktemp -d)"
+trap "rm -rf '$WRAPPER_DIR'" EXIT
+
+# Make the git wrapper executable and add to PATH
+chmod +x "$SCRIPT_DIR/git-wrapper.bb"
+ln -s "$SCRIPT_DIR/git-wrapper.bb" "$WRAPPER_DIR/git"
+
+# Run tests with git wrapper in PATH to serialize git operations
 cd "$PROJECT_ROOT"
-cljr -M:test "$@"
+PATH="$WRAPPER_DIR:$PATH" cljr -M:test "$@"

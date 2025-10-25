@@ -32,7 +32,20 @@
               (= 2 (count s)))
        (r/ret-t (constant-ret (second s)
                               (assoc opts ::quoted? true)))
-       (r/ret-t (constant-ret s opts))))))
+       #?(:cljr
+          ;; CLR can't extend protocols to value types except long/double
+          ;; so we handle them explicitly here
+          (r/ret-t
+            (cond
+              (instance? System.Int64 s) (ret (r/-val s))
+              (instance? System.Int32 s) (ret (r/-val s))
+              (instance? System.Double s) (ret (r/-val s))
+              (instance? System.Boolean s) (ret (r/-val s))
+              (instance? System.Char s) (ret (r/-val s))
+              (instance? System.Decimal s) (ret (r/-val s))
+              :else (constant-ret s opts)))
+          :default
+          (r/ret-t (constant-ret s opts)))))))
 
 ;[Any -> Type]
 
@@ -43,9 +56,9 @@
        ~@(apply concat (zipmap cls (repeat method))))))
 
 (constant-type->val
-  Class Symbol Long Double Integer java.math.BigDecimal
-  clojure.lang.BigInt String Character clojure.lang.Keyword
-  Boolean clojure.lang.Namespace)
+  #?(:cljr System.Type :default Class) Symbol #?@(:cljr [] :default [Long Double Integer java.math.BigDecimal Boolean Character])
+  clojure.lang.BigInt String clojure.lang.Keyword
+  clojure.lang.Namespace)
 
 (extend-protocol ConstantType
   nil
@@ -54,10 +67,12 @@
       :clojure (ret (r/-val nil))
       :cljs (ret (r/JSNull-maker))))
 
-  java.util.regex.Pattern
+  #?(:cljr System.Text.RegularExpressions.Regex
+     :default java.util.regex.Pattern)
   (constant-ret [v opts]
     (impl/impl-case opts
-      :clojure (ret (c/RClass-of java.util.regex.Pattern opts))
+      :clojure (ret (c/RClass-of #?(:cljr System.Text.RegularExpressions.Regex
+                                     :default java.util.regex.Pattern) opts))
       :cljs (assert nil "TODO: CLJS pattern in ConstantType")))
 
   IPersistentSet

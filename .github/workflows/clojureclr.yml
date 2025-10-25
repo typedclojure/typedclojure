@@ -5,7 +5,7 @@ on:
   push:
     branches:
       - 'main'
-      - 'copilot/add-clojure-clr-support'
+      - 'copilot/improve-clojure-clr-support'
 
 jobs:
   test-clojureclr:
@@ -36,6 +36,11 @@ jobs:
           which Clojure.Main || echo "Clojure.Main not in PATH"
           which cljr || echo "cljr not in PATH"
           ls -la ~/.dotnet/tools/
+
+      - name: Install babashka
+        run: |
+          bash < <(curl -s https://raw.githubusercontent.com/babashka/babashka/master/install)
+          bb --version
 
       - name: Restore dependency cache
         id: cache-deps

@@ -16,13 +16,14 @@
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.internal :as internal]
             [clojure.string :as str]
-            [clojure.java.io :as io]))
+            #?(:clj [clojure.java.io :as io])))
 
 (defn ns-form-for-file
   "Returns the namespace declaration for the file, or
   nil if not found"
   [file opts]
-  (some-> (io/resource file)
+  (some-> #?(:cljr (err/nyi-error "TODO CLR resource loading" opts)
+             :default (io/resource file))
           (ns-file/read-file-ns-decl
             (impl/impl-case opts
               :clojure ns-parse/clj-read-opts
@@ -78,19 +79,22 @@
     (or (true? (:typed.clojure/ignore nmeta))
         (-> nmeta :typed.clojure :ignore true?))))
 
-(def fixup? (= "true" (System/getProperty "typed.clojure.preserve-check-ns-after-opt-in")))
+(def fixup? (= "true" (#?(:cljr System.Environment/GetEnvironmentVariable
+                             :default System/getProperty) "typed.clojure.preserve-check-ns-after-opt-in")))
 
 (defn fixup-ns [nsym opts]
-  (if-some [f (-> nsym (coerce/ns->URL opts))]
-    (let [s (slurp f)]
-      (spit f
-            (cond
-              (str/includes? s "(ns ") (str/replace-first s "(ns " "(ns ^:typed.clojure ")
-              (str/includes? s "(ns\n") (str/replace-first s "(ns\n" "(ns\n  ^:typed.clojure\n")
-              :else (throw (ex-info (str "Could not fix :typed.clojure meta for " nsym " (could not find ns form)") {}))))
-      true)
-    (do (println (str "WARNING: Could not fix :typed.clojure meta for " nsym " (could not find file)"))
-        false)))
+  #?(:cljr (err/nyi-error "TODO CLR resource loading for fixup-ns")
+     :default
+     (if-some [f (-> nsym (coerce/ns->URL opts))]
+       (let [s (slurp f)]
+         (spit f
+               (cond
+                 (str/includes? s "(ns ") (str/replace-first s "(ns " "(ns ^:typed.clojure ")
+                 (str/includes? s "(ns\n") (str/replace-first s "(ns\n" "(ns\n  ^:typed.clojure\n")
+                 :else (throw (ex-info (str "Could not fix :typed.clojure meta for " nsym " (could not find ns form)") {}))))
+         true)
+       (do (println (str "WARNING: Could not fix :typed.clojure meta for " nsym " (could not find file)"))
+           false))))
 
 (defn check-ns? [ns-form opts]
   (let [nmeta (ns-meta ns-form opts)]

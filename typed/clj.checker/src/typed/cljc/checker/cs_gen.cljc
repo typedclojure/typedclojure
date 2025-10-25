@@ -810,7 +810,8 @@
                                   [r/-any]))
                               opts)
               vec-any (r/-hvec [] {:rest r/-any} opts)
-              num-type (c/RClass-of 'java.lang.Number opts)
+              num-type (c/RClass-of #?(:cljr 'System.IConvertible
+                                       :default 'java.lang.Number) opts)
               target-cset (cs-gen V X Y (:target S) vec-any opts)
               entries-key (map first (:entries S))
               entries-val (map second (:entries S))

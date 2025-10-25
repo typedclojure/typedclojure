@@ -512,7 +512,7 @@
                  (not (and (r/Regex? s-elem) (= :* (:kind s-elem)))))
             (let [inner-t (first (:types t-elem))
                   ^long new-s-idx (consume-matching s-idx inner-t)]
-              (recur new-s-idx (inc t-idx)))
+              (recur (long new-s-idx) (inc t-idx)))
             
             ;; t-elem is a + regex - match one or more (but only if s-elem is not also a + regex)
             (and (r/Regex? t-elem) 
@@ -528,7 +528,7 @@
                     (report-not-subtypes {:cat s-types} {:cat t-types})
                     ;; Matched one, now consume greedily like *
                     (let [^long new-s-idx (consume-matching (inc s-idx) inner-t)]
-                      (recur new-s-idx (inc t-idx)))))))
+                      (recur (long new-s-idx) (inc t-idx)))))))
             
             ;; t-elem is a ? regex - match zero or one (but only if s-elem is not also a ? regex)
             (and (r/Regex? t-elem) 
@@ -649,31 +649,33 @@
       (report-not-subtypes s t))))
 
 (defn subtype-Union-left [A {:keys [types] :as s} t
-                          {::vs/keys [^java.util.concurrent.ExecutorService check-threadpool] :as opts}]
+                          {::vs/keys [#?(:cljr check-threadpool :default ^java.util.concurrent.ExecutorService check-threadpool)] :as opts}]
   {:pre [(r/Union? s)]}
   (let [good? (if false #_(and check-threadpool (< 1 (count types)))
-                (let [fs (mapv (fn [s] (fn [] (subtypeA* A s t opts))) types)
-                      bs (get-thread-bindings)]
-                  (reduce (fn [acc ^java.util.concurrent.Future future]
+                #?(:cljr (err/nyi-error "TODO CLR parallelism")
+                   :default
+                   (let [fs (mapv (fn [s] (fn [] (subtypeA* A s t opts))) types)
+                         bs (get-thread-bindings)]
+                     (reduce (fn [acc ^java.util.concurrent.Future future]
 
-                            (let [{:keys [ex res out]} (try (.get future)
-                                                            (catch #?(:cljr System.Exception :default java.util.concurrent.ExecutionException) e
-                                                              (throw (or #?(:cljr e :default (.getCause e)) e))))]
-                              (some-> out str/trim not-empty println)
-                              (some-> ex throw)
-                              (and acc res)))
-                          true (.invokeAll check-threadpool (map (fn [f]
-                                                                   (fn []
-                                                                     (with-bindings bs
-                                                                       (let [ex (volatile! nil)
-                                                                             res (volatile! nil)
+                               (let [{:keys [ex res out]} (try (.get future)
+                                                               (catch java.util.concurrent.ExecutionException e
+                                                                 (throw (or (.getCause e) e))))]
+                                 (some-> out str/trim not-empty println)
+                                 (some-> ex throw)
+                                 (and acc res)))
+                             true (.invokeAll check-threadpool (map (fn [f]
+                                                                      (fn []
+                                                                        (with-bindings bs
+                                                                          (let [ex (volatile! nil)
+                                                                                res (volatile! nil)
                                                                              out (with-out-str
                                                                                    (try (vreset! res (f))
-                                                                                        (catch #?(:cljr System.Exception :default Throwable) e (vreset! ex e))))]
+                                                                                        (catch Throwable e (vreset! ex e))))]
                                                                          {:ex @ex
                                                                           :res @res
                                                                           :out out}))))
-                                                                 fs))))
+                                                                 fs)))))
                 (every? (fn [s] (subtypeA* A s t opts)) types))]
     (if good?
       A
@@ -1233,7 +1235,7 @@
           (contains? A [s t]))
     A
     (let [A (conj A [s t])
-          short-circuit-same (if (identical? (.getClass ^Object s) (.getClass ^Object t))
+          short-circuit-same (if (identical? (#?(:cljr .GetType :default .getClass) ^Object s) (#?(:cljr .GetType :default .getClass) ^Object t))
                                (subtypeA*-same s t A opts)
                                unknown-result)]
       ;(prn "short-circuit-same" short-circuit-same)
@@ -1955,8 +1957,8 @@
 ; does this really help?
 (defn class-isa?
   "A faster version of isa?, both parameters must be classes"
-  [s ^Class t]
-  (.isAssignableFrom t s))
+  [s t]
+  (#?(:cljr Type/.IsAssignableFrom :default Class/.isAssignableFrom) t s))
 
 ; (Cons Integer) <: (Seqable Integer)
 ; (ancestors (Seqable Integer)

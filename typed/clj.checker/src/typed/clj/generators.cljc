@@ -110,7 +110,7 @@
                                   args# (:args-gen cg#)]
                                  (try ((:ret-pred cg#)
                                        (apply f# args#))
-                                      (catch ThreadDeath e# (throw e#))
+                                      (catch #?(:cljr System.Threading.ThreadAbortException :default ThreadDeath) e# (throw e#))
                                       ;; FIXME hmm, to mirror type checking's handling of t/Nothing, I think we need to catch some exceptions here.
                                       ;; that's a big departure from spec. we should allow t/Nothing fail in :input position, but not :output.
                                       ;; idea: catch all exceptions but detect whether a t/Nothing was triggered, and fail when
