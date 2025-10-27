@@ -83,7 +83,8 @@
                     (var-env/with-lexical-env lex-env)))))
 
 (defn check-if [{:keys [test then else] :as expr} expected
-                {::vs/keys [^java.util.concurrent.ExecutorService check-threadpool]
+                {::vs/keys [#?(:cljr check-threadpool
+                               :default ^java.util.concurrent.ExecutorService check-threadpool)]
                  ::check/keys [check-expr] :as opts}]
   {:pre [((some-fn r/TCResult? nil?) expected)]
    :post [(-> % u/expr-type r/TCResult?)]}
@@ -98,19 +99,19 @@
                    {:env-els env-els
                     :celse (check-if-reachable else env-els reachable- expected opts)})
         [{:keys [cthen env-thn]} {:keys [celse env-els]}] (if check-threadpool
-                                                            (let [^java.util.concurrent.Callable f (bound-fn []
+                                                            (let [#?@(:cljr [f] :default [^java.util.concurrent.Callable f]) (bound-fn []
                                                                                                      (let [res (volatile! nil)
                                                                                                            ex (volatile! nil)
                                                                                                            out (with-out-str
                                                                                                                  (try (vreset! res (chk-els))
-                                                                                                                      (catch Throwable e (vreset! ex e))))]
+                                                                                                                      (catch #?(:cljr System.Exception :default Throwable) e (vreset! ex e))))]
                                                                                                        {:out out
                                                                                                         :ex @ex
                                                                                                         :els @res}))
                                                                   fut (.submit check-threadpool f)
                                                                   thn (chk-thn)
                                                                   {:keys [ex out els]} (try (.get fut)
-                                                                                            (catch java.util.concurrent.ExecutionException e
+                                                                                            (catch #?(:cljr System.Exception :default java.util.concurrent.ExecutionException) e
                                                                                               (throw (or (.getCause e) e))))]
                                                               (some-> out str/trim not-empty println)
                                                               (some-> ex throw)

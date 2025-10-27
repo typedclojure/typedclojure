@@ -19,6 +19,7 @@
   (:require [clojure.tools.reader :as rdr]
             #?(:cljr [clojure.clr.io :as io]
                :default [clojure.java.io :as io])
+            [clojure.string :as str]
             #?(:clj [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]])
             #?(:clj [io.github.frenchy64.fully-satisfies.safe-locals-clearing :refer [delay]]))
   #?(:clj
@@ -52,12 +53,11 @@
     (binding [*file* #?(:cljr (.ToString url)
                         :default (.getFile url))]
       (let [read-opts (cond-> {:eof nil}
-                        #?(:cljr (.EndsWith (.ToString url) "cljc")
-                           :default (.endsWith (.getPath url) "cljc"))
+                        (str/ends-with? (#?(:cljr .ToString :default .getPath) url) "cljc")
                         (assoc :read-cond :allow
                                :features features))
             new-config (try (rdr/read read-opts rdr)
-                            (catch Throwable e
+                            (catch #?(:cljr System.Exception :default Throwable) e
                               (println e)
                               (throw (ex-info (str "Error while reading " url)
                                               {:url url}))))]

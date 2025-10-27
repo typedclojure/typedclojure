@@ -156,7 +156,8 @@
 (defn check-ns1
   "Type checks an entire namespace."
   ([ns env {::vs/keys [type-errors check-config
-                       ^java.util.concurrent.ExecutorService check-threadpool
+                       #?(:cljr check-threadpool
+                          :default ^java.util.concurrent.ExecutorService check-threadpool)
                        check-threadpool-parallelism]
             ::cenv/keys [checker] :as opts}]
    (let [opts (-> opts

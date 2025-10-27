@@ -29,10 +29,15 @@
                          res))
     clojure.lang.IFn
     (invoke [this k] (.valAt this k))
-    (iterator [_] (let [res (.iterator ^java.util.Iterator m)]
-                    ;;TODO
-                    (callback (conj path ::ALL) nil)
-                    res))
+    #?(:cljr System.Collections.IEnumerable
+       :default Iterable)
+    (#?(:cljr GetEnumerator :default iterator) [_]
+      (let [res (#?(:cljr System.Collections.IEnumerable/.GetEnumerator
+                    :default Iterable/.iterator)
+                 m)]
+        ;;TODO
+        (callback (conj path ::ALL) nil)
+        res))
     clojure.lang.ILookup
     (entryAt [_ k] (let [r (find m k)
                          path (conj path k)]
