@@ -5,7 +5,7 @@
   "Like `clojure.core/some`, but uses an iterator over `lst`."
   [f lst]
   (when (some? lst)
-    (let [it #?(:cljr (.GetEnumerator lst)
+    (let [it #?(:cljr (.GetEnumerator ^System.Collections.IEnumerable lst)
                 :default (.iterator ^Iterable lst))]
       (loop []
         (when #?(:cljr (.MoveNext it)
@@ -18,7 +18,7 @@
   "Like `clojure.core/every?`, but uses an iterator over `lst`."
   [f lst]
   (if (some? lst)
-    (let [it #?(:cljr (.GetEnumerator lst)
+    (let [it #?(:cljr (.GetEnumerator ^System.Collections.IEnumerable lst)
                 :default (.iterator ^Iterable lst))]
       (loop []
         (if #?(:cljr (.MoveNext it)
@@ -46,9 +46,9 @@
   ([f init coll1 coll2]
    (if (or (nil? coll1) (nil? coll2))
      init
-     (let [it1 #?(:cljr (.GetEnumerator coll1)
+     (let [it1 #?(:cljr (.GetEnumerator ^System.Collections.IEnumerable coll1)
                   :default (.iterator ^Iterable coll1))
-           it2 #?(:cljr (.GetEnumerator coll2)
+           it2 #?(:cljr (.GetEnumerator ^System.Collections.IEnumerable coll2)
                   :default (.iterator ^Iterable coll2))]
        (loop [res init]
          (if (and #?(:cljr (.MoveNext it1)
@@ -67,11 +67,11 @@
   ([f init coll1 coll2 coll3]
    (if (or (nil? coll1) (nil? coll2) (nil? coll3))
      init
-     (let [it1 #?(:cljr (.GetEnumerator coll1)
+     (let [it1 #?(:cljr (.GetEnumerator ^System.Collections.IEnumerable coll1)
                   :default (.iterator ^Iterable coll1))
-           it2 #?(:cljr (.GetEnumerator coll2)
+           it2 #?(:cljr (.GetEnumerator ^System.Collections.IEnumerable coll2)
                   :default (.iterator ^Iterable coll2))
-           it3 #?(:cljr (.GetEnumerator coll3)
+           it3 #?(:cljr (.GetEnumerator ^System.Collections.IEnumerable coll3)
                   :default (.iterator ^Iterable coll3))]
        (loop [res init]
          (if (and #?(:cljr (.MoveNext it1)
@@ -94,13 +94,13 @@
   ([f init coll1 coll2 coll3 coll4]
    (if (or (nil? coll1) (nil? coll2) (nil? coll3) (nil? coll4))
      init
-     (let [it1 #?(:cljr (.GetEnumerator coll1)
+     (let [it1 #?(:cljr (.GetEnumerator ^System.Collections.IEnumerable coll1)
                   :default (.iterator ^Iterable coll1))
-           it2 #?(:cljr (.GetEnumerator coll2)
+           it2 #?(:cljr (.GetEnumerator ^System.Collections.IEnumerable coll2)
                   :default (.iterator ^Iterable coll2))
-           it3 #?(:cljr (.GetEnumerator coll3)
+           it3 #?(:cljr (.GetEnumerator ^System.Collections.IEnumerable coll3)
                   :default (.iterator ^Iterable coll3))
-           it4 #?(:cljr (.GetEnumerator coll4)
+           it4 #?(:cljr (.GetEnumerator ^System.Collections.IEnumerable coll4)
                   :default (.iterator ^Iterable coll4))]
        (loop [res init]
          (if (and #?(:cljr (.MoveNext it1)

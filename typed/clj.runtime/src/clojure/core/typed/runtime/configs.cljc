@@ -32,17 +32,20 @@
               [System Uri])))
 
 (defn- config-urls [features]
-  (let [cl #?(:cljr (throw (ex-info "FIXME config-urls clr" {}))
-              :default (.. Thread currentThread getContextClassLoader))]
+  (let [#?@(:cljr []
+            :default [cl (.. Thread currentThread getContextClassLoader)])
+        ->enumeration #?(:cljr #(System.Collections.IEnumerable/.GetEnumerator (clojure.lang.RT/FindFiles %))
+                         :default #(ClassLoader/.getResources cl %))]
     (concat
       (when (:clj features)
-        (enumeration-seq (.getResources cl "typedclojure_config.clj")))
+        (enumeration-seq (->enumeration "typedclojure_config.clj")))
       #?(:cljr
          (when (:cljr features)
-           (enumeration-seq (.getResources cl "typedclojure_config.cljr"))))
-      (when (:cljs features)
-        (enumeration-seq (.getResources cl "typedclojure_config.cljs")))
-      (enumeration-seq (.getResources cl "typedclojure_config.cljc")))))
+           (enumeration-seq (->enumeration "typedclojure_config.cljr"))))
+      #?(:clj
+         (when (:cljs features)
+           (enumeration-seq (->enumeration "typedclojure_config.cljs"))))
+      (enumeration-seq (->enumeration "typedclojure_config.cljc")))))
 
 (defn- load-config-file [features ^#?(:cljr System.Uri :default java.net.URL) url]
   (with-open [rdr #?(:cljr (LineNumberingTextReader.
