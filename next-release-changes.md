@@ -37,3 +37,12 @@
   - `typed.cljc.checker.filter_rep.OrFilter` → `typed.cljc.checker.proposition_rep.OrProposition`
   - `typed.cljc.checker.filter_rep.ImpFilter` → `typed.cljc.checker.proposition_rep.ImpProposition`
 - Implement most of the remaining Malli => Typed Clojure translations
+- Add named function parameter syntax for improved readability and nesting
+  - Syntax: `[name :- Type :-> ...]`
+  - Example: `[x :- t/Int :-> t/Int :object x]`
+  - Supports nested functions: `[x :- t/Any :-> [y :- t/Any :-> t/Any :object x]]`
+  - Can mix named and unnamed parameters in the same function type
+- DEPRECATED: Using integer object identifiers (e.g., `:object 0`)
+  - Use named parameters instead: `[x :- T :-> ... :object x]`
+  - Integer indices still work for backward compatibility but emit deprecation warnings
+  - Named parameters provide better readability and support for nested scopes

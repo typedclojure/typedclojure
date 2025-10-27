@@ -69,6 +69,7 @@
         [alias-path alias-id] (cond
                                 (obj/Path? obj) [(:path obj) (:id obj)]
                                 (obj/EmptyObject? obj) [nil sym]
+                                (obj/Lexical? obj) [nil obj]  ;; Lexical objects are direct references
                                 :else (err/int-error (str "what is this? " (pr-str obj)) opts))
         _ (assert (pr/path-elems? alias-path))
         _ (assert (fr/name-ref? alias-id))
@@ -106,4 +107,9 @@
         ; type environment. Not sure why this is needed, Andrew K added
         ; it to TR because tests were failing.
         (cond-> (empty? (:path o)) (assoc-in [:l (:id o)] t)))
+    
+    (obj/Lexical? o)
+    (-> env
+        (assoc-in [:aliases id] o))
+    
     :else (err/int-error (str "what is this? " (pr-str o)) opts)))

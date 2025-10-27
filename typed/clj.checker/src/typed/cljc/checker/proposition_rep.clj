@@ -25,12 +25,18 @@
 ;; Propositions
 
 (t/defalias NameRef
-  "A name for a type variable, either a symbol or a number."
-  (t/U t/Sym Number))
+  "A name for a type variable.
+  - Symbol: free variable name  
+  - Int: legacy parameter index (backward compatibility, interpreted as depth=0)
+  - Lexical: lexical object identifier with depth and index (from object-rep)"
+  (t/U t/Sym Number p/IRObject))
 
 (t/ann ^:no-check name-ref? (t/Pred NameRef))
-(def name-ref? (some-fn symbol? (every-pred integer?
-                                            (complement neg?))))
+(def name-ref? (some-fn symbol? 
+                        (every-pred integer? (complement neg?))
+                        ;; Check for Lexical without importing (avoid circular dep)
+                        (fn [x] (and (p/IRObject? x)
+                                     (= "Lexical" (.getSimpleName (class x)))))))
 
 (t/ann ^:no-check Proposition? (t/Pred Proposition))
 (defn Proposition? [a]

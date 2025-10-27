@@ -45,6 +45,30 @@
     (and (= v -infer-obj)
          (::infer (meta v)))))
 
+;; Lexical object identifier for nested scopes
+(u/def-object Lexical [depth :- t/Int
+                       index :- t/Int]
+  "A lexical object identifier using depth and index.
+  - depth: number of binding forms to skip (0 = current scope)
+  - index: parameter position within that scope (0-based)"
+  [(nat-int? depth)
+   (nat-int? index)]
+  :methods
+  [p/IRObject])
+
+(defn Lexical? [x]
+  (instance? typed.cljc.checker.object_rep.Lexical x))
+
+(t/ann ^:no-check make-Lexical [t/Int t/Int -> Lexical])
+(defn make-Lexical
+  "Create a Lexical object identifier. Currently depth must be 0."
+  [depth index]
+  {:pre [(integer? depth)
+         (not (neg? depth))
+         (integer? index)
+         (not (neg? index))]}
+  (Lexical-maker depth index))
+
 (u/def-object Path [path :- (t/Seqable p/IRObject)
                     id :- fr/NameRef]
   "A path to a variable. Paths grow to the right, with leftmost

@@ -5,7 +5,7 @@ on:
   push:
     branches:
       - 'main'
-      - 'copilot/*'
+      - 'copilot/port-typed-checker-to-clr'
 
 jobs:
   test-clojureclr:

@@ -39,7 +39,7 @@
       (let [{path-hm :path id-hm :id :as o} (when (obj/Path? (r/ret-o target-ret))
                                               (r/ret-o target-ret))
             o (or o (r/ret-o target-ret))
-            _ (assert ((some-fn obj/Path? obj/EmptyObject?) o))
+            _ (assert ((some-fn obj/Path? obj/EmptyObject? obj/Lexical?) o))
             this-pelem (pe/-kpe (:val kwt))
             val-type (c/find-val-type targett kwt defaultt #{} opts)]
         (let [opts (update opts ::vs/current-env #(or expr %))]

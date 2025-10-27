@@ -296,9 +296,43 @@
   (when-not (map? syn)
     (err/int-error (str "Object must be a map") opts))
   (let [id (:id syn)
-        path (:path syn)]
-    (when-not (name-ref? id)
-      (err/int-error (str "Must pass natural number or symbol as id: " (pr-str id)) opts))
+        path (:path syn)
+        current-depth (::lexical-depth opts 0)
+        ;; Check if this symbol has an object alias (e.g., from function parameter)
+        ;; The alias now contains {:gensym <sym> :depth <int>}
+        alias-info (when (symbol? id) (get (::object-aliases opts) id))
+        resolved-id (cond
+                      ;; If we have alias info, use the gensym for simple cases
+                      (map? alias-info)
+                      (let [var-gensym (:gensym alias-info)
+                            var-depth (:depth alias-info)
+                            ;; Calculate relative depth: how many scopes to skip from current position
+                            relative-depth (- current-depth var-depth 1)]
+                        ;; For simple case (same scope), use gensym directly
+                        ;; For nested scopes, use Lexical object
+                        (if (= relative-depth 0)  ;; Same scope
+                          var-gensym
+                          {:op :Lexical
+                           :depth relative-depth
+                           :index (:index alias-info)}))
+                      
+                      ;; Legacy: symbol without alias info
+                      (symbol? id)
+                      id
+                      
+                      ;; Integer: deprecated, keep as integer for now
+                      ;; Conversion to Lexical happens in parse_unparse
+                      (integer? id)
+                      (do
+                        (err/deprecated-warn (str "DEPRECATED: Using integer " id " for object id. Use named variables instead.") opts)
+                        id)
+                      
+                      ;; Already a Lexical object map
+                      :else
+                      id)]
+    (when-not (or (name-ref? resolved-id)
+                  (and (map? resolved-id) (= :Lexical (:op resolved-id))))
+      (err/int-error (str "Must pass natural number, symbol, or Lexical as id: " (pr-str id)) opts))
     (when-not ((some-fn nil? vector?) path)
       (err/int-error "Path must be a vector" opts))
     (when (contains? syn :path)
@@ -306,14 +340,23 @@
         (err/int-error "Path must be a vector" opts)))
     (merge
       {:op :object
-       :id id}
+       :id resolved-id}
       (when path
         {:path-elems (mapv #(parse-path-elem % opts) path)}))))
 
 (defn parse-object [syn opts]
-  (case syn
-    empty {:op :empty-object}
-    (parse-object-path syn opts)))
+  (cond
+    ;; Handle empty object
+    (= 'empty syn) {:op :empty-object}
+    
+    ;; Handle symbol syntax: :object x -> {:id x}
+    (symbol? syn) (parse-object-path {:id syn} opts)
+    
+    ;; Handle map syntax: :object {:id x, :path [...]}
+    (map? syn) (parse-object-path syn opts)
+    
+    ;; Invalid object syntax
+    :else (err/int-error (str "Invalid object syntax: " (pr-str syn)) opts)))
 
 (t/defalias RestDrest
   (HMap :mandatory {:types (t/U nil (t/Coll Type))}
@@ -605,7 +648,8 @@
         [bnds type] args
         _ (when-not (vector? bnds)
             (err/int-error "Wrong arguments to All" opts))
-        [bnds kwargs] (split-with (complement keyword?) bnds)
+        [bnds kwargs] (let [[b k] (split-with (complement keyword?) bnds)]
+                         [(vec b) k])
         _ (when-not (even? (count kwargs))
             (err/int-error "Wrong arguments to All" opts))
         {:keys [named] :as kwargs} kwargs
@@ -914,7 +958,7 @@
            :drest DottedPretype}))
 
 (t/ann parse-function [t/Any t/Any -> Function])
-(defn parse-function [f {::keys [dotted-scope] :as opts}]
+(defn parse-function [f {::keys [dotted-scope lexical-depth] :as opts}]
   (when-not (vector? f) 
     (err/int-error "Function arity must be a vector" opts))
   (let [is-arrow '#{-> :->}
@@ -943,20 +987,68 @@
 
         _ (when-let [ks (seq (remove #{:filters :object} (keys fopts)))]
             (err/int-error (str "Invalid function keyword option/s: " ks) opts))
+        
+        ;; Process domain parameters: extract names and types, build alias map
+        current-depth (or lexical-depth 0)
+        raw-dom (cond 
+                  asterix-pos (take (dec asterix-pos) all-dom)
+                  ellipsis-pos (take (dec ellipsis-pos) all-dom)
+                  ampersand-pos (take ampersand-pos all-dom)
+                  push-rest-pos (take (dec push-rest-pos) all-dom)
+                  push-dot-pos (take (dec push-dot-pos) all-dom)
+                  :else all-dom)
+        
+        ;; Group named parameters:
+        ;; This converts flat syntax like [x :- Int, Bool, y :- Str] to
+        ;; [{:param-name x :type-syntax Int} {:type-syntax Bool} {:param-name y :type-syntax Str}]
+        fixed-dom-grouped (loop [remaining (vec raw-dom)
+                                 result []]
+                            (cond
+                              (empty? remaining) result
 
+                              ;; Named parameter pattern: symbol :- type
+                              (and (<= 3 (count remaining))
+                                   (= :- (remaining 1)))
+                              (let [nme (remaining 0)]
+                                (when-not (simple-symbol? nme)
+                                  (err/int-error (str "Function parameter names must be simple symbols: "
+                                                      (pr-str nme))
+                                                 opts))
+                                (recur (subvec remaining 3)
+                                       (conj result {:param-name nme
+                                                     :type-syntax (remaining 2)
+                                                     :nth-param (count result)})))
+
+                              ;; Unnamed parameter type
+                              :else (recur (subvec remaining 1) (conj result {:type-syntax (remaining 0)
+                                                                              :nth-param (count result)}))))
+        
+        ;; Build object aliases from named parameters
+        param-aliases (reduce
+                        (fn [acc {:keys [nth-param param-name type-syntax]}]
+                          (if param-name
+                            (let [;;FIXME why gensym??
+                                  param-gensym (gensym param-name)]
+                              (assoc acc param-name {:gensym param-gensym
+                                                     :depth current-depth
+                                                     :index nth-param}))
+                            acc))
+                        (or (::object-aliases opts) {})
+                        fixed-dom-grouped)
+        
+        ;; Extract just the types from domain (strip names if present)
+        fixed-dom (mapv :type-syntax fixed-dom-grouped)
+        
+        ;; Increment depth for parsing function body
+        body-opts (assoc opts
+                         ::lexical-depth (inc current-depth)
+                         ::object-aliases param-aliases)
+        
         filters (when-let [[_ fsyn] (find fopts :filters)]
-                  (parse-proposition-set fsyn opts))
+                  (parse-proposition-set fsyn body-opts))
 
         object (when-let [[_ obj] (find fopts :object)]
-                 (parse-object obj opts))
-
-        fixed-dom (cond 
-                    asterix-pos (take (dec asterix-pos) all-dom)
-                    ellipsis-pos (take (dec ellipsis-pos) all-dom)
-                    ampersand-pos (take ampersand-pos all-dom)
-                    push-rest-pos (take (dec push-rest-pos) all-dom)
-                    push-dot-pos (take (dec push-dot-pos) all-dom)
-                    :else all-dom)
+                 (parse-object obj body-opts))
 
         rest-type (when asterix-pos
                     (nth all-dom (dec asterix-pos)))
@@ -995,8 +1087,9 @@
             (err/int-error (str "Trailing syntax after push-rest parameter: " (pr-str (drop (inc push-rest-pos) all-dom))) opts))]
     (merge
       {:op :Fn-method
+       ;;FIXME does this put previous param names into scope?
        :dom (mapv #(parse % opts) fixed-dom)
-       :rng (parse rng opts)
+       :rng (parse rng body-opts)  ;; Parse range with incremented depth and aliases
        :filter filters
        :object object
        :children (vec (concat [:dom :rng :filter :object]

@@ -45,7 +45,7 @@
                                         JSObj Bounds MatchType Instance Satisfies)
            (typed.cljc.checker.proposition_rep TopProposition BotProposition TypeProposition NotTypeProposition AndProposition
                                                OrProposition ImpProposition NoProposition)
-           (typed.cljc.checker.object_rep NoObject EmptyObject Path)
+           (typed.cljc.checker.object_rep NoObject EmptyObject Path Lexical)
            (typed.cljc.checker.path_rep KeyPE CountPE ClassPE KeysPE ValsPE NthPE KeywordPE SeqPE)
            (clojure.lang Cons IPersistentList Symbol IPersistentVector)))
 
@@ -1407,7 +1407,13 @@
 (defn parse-object-path [{:keys [id path]} opts]
   (when-not (f/name-ref? id)
     (prs-error (str "Must pass natural number or symbol as id: " (pr-str id)) opts))
-  (orep/-path (when path (mapv #(parse-path-elem % opts) path)) id))
+  (let [;; Emit deprecation warning for integer IDs but keep them as integers
+        _ (when (integer? id)
+            (when-not (and (not (neg? id)) (integer? id))
+              (prs-error (str "Integer object id must be non-negative: " (pr-str id)) opts))
+            ;; DEPRECATED: using raw int for object id
+            (err/deprecated-warn (str "DEPRECATED: Using integer " id " for object id. Use named variables instead.") opts))]
+    (orep/-path (when path (mapv #(parse-path-elem % opts) path)) id)))
 
 (defn parse-object [obj opts]
   (case obj
@@ -2416,7 +2422,19 @@
   NoObject 
   (unparse-object [_ opts] 'no-object)
   Path 
-  (unparse-object [{:keys [path id]} opts] (conj {:id id} (when (seq path) [:path (mapv #(unparse-path-elem % opts) path)]))))
+  (unparse-object [{:keys [path id]} opts] 
+    (let [;; Unparse Lexical objects to their structure
+          id* (if (instance? Lexical id)
+                ;; For now, just show as map with depth and index
+                ;; In future, might have better syntax
+                {:lexical {:depth (:depth id) :index (:index id)}}
+                ;; Symbol passes through
+                id)]
+      (conj {:id id*} (when (seq path) [:path (mapv #(unparse-path-elem % opts) path)]))))
+  
+  Lexical
+  (unparse-object [{:keys [depth index]} opts]
+    {:lexical {:depth depth :index index}}))
 
 ; Path elems
 
