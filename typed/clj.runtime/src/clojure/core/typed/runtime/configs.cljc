@@ -35,17 +35,20 @@
   (let [#?@(:cljr []
             :default [cl (.. Thread currentThread getContextClassLoader)])
         ->enumeration #?(:cljr #(System.Collections.IEnumerable/.GetEnumerator (clojure.lang.RT/FindFiles %))
-                         :default #(ClassLoader/.getResources cl %))]
+                         :default #(ClassLoader/.getResources cl %))
+        ;; On CLR, FindFiles returns FileInfo objects that need to be converted to Uri objects
+        file-info->uri #?(:cljr #(Uri. (.FullName ^System.IO.FileInfo %))
+                          :default identity)]
     (concat
       (when (:clj features)
-        (enumeration-seq (->enumeration "typedclojure_config.clj")))
+        (map file-info->uri (enumeration-seq (->enumeration "typedclojure_config.clj"))))
       #?(:cljr
          (when (:cljr features)
-           (enumeration-seq (->enumeration "typedclojure_config.cljr"))))
+           (map file-info->uri (enumeration-seq (->enumeration "typedclojure_config.cljr")))))
       #?(:clj
          (when (:cljs features)
-           (enumeration-seq (->enumeration "typedclojure_config.cljs"))))
-      (enumeration-seq (->enumeration "typedclojure_config.cljc")))))
+           (map file-info->uri (enumeration-seq (->enumeration "typedclojure_config.cljs")))))
+      (map file-info->uri (enumeration-seq (->enumeration "typedclojure_config.cljc"))))))
 
 (defn- load-config-file [features ^#?(:cljr System.Uri :default java.net.URL) url]
   (with-open [rdr #?(:cljr (LineNumberingTextReader.
