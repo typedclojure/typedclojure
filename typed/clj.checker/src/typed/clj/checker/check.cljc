@@ -19,7 +19,8 @@
             [clojure.core.typed.runtime.configs :as configs]
             [clojure.core.typed.special-form :as spec]
             [clojure.core.typed.util-vars :as vs]
-            [clojure.java.io :as io]
+            #?(:cljr [clojure.clr.io :as io]
+               :default [clojure.java.io :as io])
             [clojure.pprint :as pprint]
             [clojure.set :as cljset]
             [clojure.string :as str]
@@ -164,7 +165,7 @@
          env (or env (jana2/empty-env ns))
          ^java.net.URL res (jtau/ns-url ns)
          _ (assert res (str "Can't find " ns " in classpath"))
-         slurped (slurp (io/reader res))]
+         slurped #?(:cljr (slurp res) :default (slurp (io/reader res)))]
      (when-not (cache/ns-check-cached? checker ns slurped)
        (let [filename (str res)
              {:keys [check-form-eval]} check-config]
@@ -1514,7 +1515,7 @@
           (-> expr
               (update :args #(mapv (fn [e t] (check-expr e t opts))
                                    %
-                                   [(r/ret (c/RClass-of Class opts))
+                                   [(r/ret (c/RClass-of #?(:cljr Type :default Class) opts))
                                     nil])))
           inst-of (c/RClass-of-with-unknown-params cls opts)
           expr-tr (u/expr-type cexpr)]

@@ -3,6 +3,8 @@
                                             :deps/manifest :deps}
         org.typedclojure/typed.clj.analyzer {:local/root "../clj.analyzer"
                                              :deps/manifest :deps}
+        org.typedclojure/typed.lib.clojure {:local/root "../lib.clojure"
+                                            :deps/manifest :deps}
         org.clojure/math.combinatorics {:git/url "https://github.com/frenchy64/math.combinatorics"
                                         :git/sha "e4a4f82e74ce750e8a45dee2f8e306b53971fe4f"}
         org.clojure/core.cache {:git/url "https://github.com/clojure/clr.core.cache.git"

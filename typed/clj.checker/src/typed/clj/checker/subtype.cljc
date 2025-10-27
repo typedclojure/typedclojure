@@ -1986,14 +1986,16 @@
 
 ;(IPersistentMap Class Class)
 (def boxed-primitives
-  {Byte/TYPE Byte
-   Short/TYPE Short
-   Integer/TYPE Integer
-   Long/TYPE Long
-   Float/TYPE Float
-   Double/TYPE Double
-   Character/TYPE Character
-   Boolean/TYPE Boolean})
+  #?(:cljr {} ;; TODO anything to say here?
+     :default
+     {Byte/TYPE Byte
+      Short/TYPE Short
+      Integer/TYPE Integer
+      Long/TYPE Long
+      Float/TYPE Float
+      Double/TYPE Double
+      Character/TYPE Character
+      Boolean/TYPE Boolean}))
 
 ;[RClass RClass -> Boolean]
 (defn coerce-RClass-primitive

@@ -1,1 +1,7 @@
-{:paths ["src"]}
+{:paths ["src"]
+ :deps {org.typedclojure/typed.clj.checker {:local/root "../clj.checker"
+                                            :deps/manifest :deps}
+        org.typedclojure/typed.cljc.analyzer {:local/root "../cljc.analyzer"
+                                              :deps/manifest :deps}
+        org.typedclojure/typed.clj.analyzer {:local/root "../clj.analyzer"
+                                             :deps/manifest :deps}}}
