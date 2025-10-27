@@ -11,7 +11,7 @@
   (:refer-clojure :exclude [requiring-resolve delay])
   (:require [typed.malli.schema-to-type :as-alias s->t]
             [typed.cljs.provider.malli-cljs :as-alias provider-cljs]
-            [clojure.core.typed.runtime.jvm.configs :as configs]
+            [clojure.core.typed.runtime.configs :as configs]
             [malli.core :as m]
             [cljs.core.server]
             [cljs.repl.node]

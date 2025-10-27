@@ -18,7 +18,7 @@
             [clojure.core.typed.coerce-utils :as coerce]
             [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.errors :as err]
-            [clojure.core.typed.runtime.jvm.configs :as configs]
+            [clojure.core.typed.runtime.configs :as configs]
             [clojure.core.typed.util-vars :as vs]
             [clojure.java.io :as io]
             [clojure.string :as c-str]

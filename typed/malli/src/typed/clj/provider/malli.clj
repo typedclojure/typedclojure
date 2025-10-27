@@ -10,7 +10,7 @@
   "Automatically convert malli annotations into types."
   (:refer-clojure :exclude [requiring-resolve delay])
   (:require [typed.malli.schema-to-type :as s->t]
-            [clojure.core.typed.runtime.jvm.configs :as configs]
+            [clojure.core.typed.runtime.configs :as configs]
             [malli.core :as m]
             [typed.clj.runtime.env :as clj-env]
             [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]

@@ -20,7 +20,7 @@
             [typed.cljc.checker.utils :as u]
             [typed.cljc.checker.var-env :as var-env]
             [typed.cljc.runtime.env :as env]
-            [clojure.core.typed.runtime.jvm.configs :as configs]
+            [clojure.core.typed.runtime.configs :as configs]
             [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.contract-utils-platform-specific :as plat-con]
             [clojure.core.typed.current-impl :as impl]

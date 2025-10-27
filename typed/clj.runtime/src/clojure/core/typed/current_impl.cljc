@@ -54,8 +54,8 @@
             `(assert nil (str "No case matched for impl-case: " ~gimpl
                               " " ^:typed.clojure/ignore (-> ~gopts keys vec)
                               )))))))
-)		
-		
+)
+
 
 ;; copied to typed.clj{s}.runtime.env
 (def current-impl-kw ::current-impl)
@@ -65,10 +65,10 @@
   (get opts current-impl-kw unknown))
 
 (def register-clj!
-  (let [d (delay ((requiring-resolve 'clojure.core.typed.runtime.jvm.configs/register-clj-config-anns)))]
+  (let [d (delay ((requiring-resolve 'clojure.core.typed.runtime.configs/register-clj-config-anns)))]
     (fn [] @d)))
 (def register-cljs!
-  (let [d (delay ((requiring-resolve 'clojure.core.typed.runtime.jvm.configs/register-cljs-config-anns)))]
+  (let [d (delay ((requiring-resolve 'clojure.core.typed.runtime.configs/register-cljs-config-anns)))]
     (fn [] @d)))
 
 (def current-var-annotations-kw ::current-var-annotations)

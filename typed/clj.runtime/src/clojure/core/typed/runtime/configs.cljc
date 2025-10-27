@@ -7,21 +7,36 @@
 ;   You must not remove this notice, or any other, from this software.
 
 ; mostly copied from clojure.core's data-reader discovery impl
-(ns ^:typed.clojure ^:no-doc clojure.core.typed.runtime.jvm.configs
-  "Alpha - wip, subject to change"
-  (:refer-clojure :exclude [requiring-resolve delay])
+(ns ^:typed.clojure ^:no-doc clojure.core.typed.runtime.configs
+  "Alpha - wip, subject to change
+  
+  Note that 'clj' usually refers to the clojure on the current platform:
+  - clojure on jvm
+  - clojure-clr on clr
+  
+  cljs and malli do not run on clr so we only track configs on jvm."
+  (:refer-clojure :exclude [#?(:clj requiring-resolve) #?(:clj delay)])
   (:require [clojure.tools.reader :as rdr]
-            [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]]
-            [io.github.frenchy64.fully-satisfies.safe-locals-clearing :refer [delay]])
-  (:import [clojure.lang LineNumberingPushbackReader]
-           [java.io InputStreamReader]
-           [java.net URL]))
+            #?(:clj [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]])
+            #?(:clj [io.github.frenchy64.fully-satisfies.safe-locals-clearing :refer [delay]]))
+  #?(:clj
+     (:import [clojure.lang LineNumberingPushbackReader]
+              [java.io InputStreamReader]
+              [java.net URL])
+     :cljr
+     (:import [clojure.lang LineNumberingTextReader]
+              [System.IO StreamReader]
+              [System.Net WebClient])))
 
 (defn- config-urls [features]
-  (let [cl (.. Thread currentThread getContextClassLoader)]
+  (let [cl #?(:cljr (throw (ex-info "FIXME config-urls clr" {}))
+              :default (.. Thread currentThread getContextClassLoader))]
     (concat
       (when (:clj features)
         (enumeration-seq (.getResources cl "typedclojure_config.clj")))
+      #?(:cljr
+         (when (:cljr features)
+           (enumeration-seq (.getResources cl "typedclojure_config.cljr"))))
       (when (:cljs features)
         (enumeration-seq (.getResources cl "typedclojure_config.cljs")))
       (enumeration-seq (.getResources cl "typedclojure_config.cljc")))))
@@ -50,11 +65,13 @@
             (conj configs (load-config-file features url)))
           #{} (config-urls features)))
 
+;; serves as cljr configs in clr and clj configs in jvm
 (def *clj-configs
-  (delay (load-configs #{:clj})))
+  (delay (load-configs #{#?(:cljr :cljr :default :clj)})))
 
-(def *cljs-configs
-  (delay (load-configs #{:cljs})))
+#?(:clj
+   (def *cljs-configs
+     (delay (load-configs #{:cljs}))))
 
 (defn- register-config-anns [configs require-fn]
   (run! (fn [{:keys [ann]}]
@@ -77,33 +94,37 @@
 (defn register-clj-config-anns [] (register-config-anns @*clj-configs clj-require))
 (defn register-clj-config-exts [] (register-config-exts @*clj-configs clj-require))
 
-(defn- cljs-require [nsym]
-  ;; enough to macroexpand the file to force macros side effects
-  ((requiring-resolve 'cljs.analyzer.api/analyze-file)
-   ((requiring-resolve 'cljs.util/ns->source) nsym))
-  #_
-  ((requiring-resolve 'typed.cljs.checker.util/with-analyzer-bindings*)
-   (fn []
-     ((requiring-resolve 'typed.cljs.checker.util/with-cljs-typed-env*)
-      #(do
-         (requiring-resolve 'typed.cljs.checker.util/with-core-cljs*)
-         ((requiring-resolve 'cljs.analyzer.api/analyze)
-          ((requiring-resolve 'cljs.analyzer.api/empty-env))
-          `(cljs.core/require '~nsym))))))
-  nil)
 
-(defn register-cljs-config-anns [] (register-config-anns @*cljs-configs cljs-require))
-(defn register-cljs-config-exts [] (register-config-exts @*cljs-configs clj-require))
+#?(:clj
+   (do
+     (defn- cljs-require [nsym]
+       ;; enough to macroexpand the file to force macros side effects
+       ((requiring-resolve 'cljs.analyzer.api/analyze-file)
+        ((requiring-resolve 'cljs.util/ns->source) nsym))
+       #_
+       ((requiring-resolve 'typed.cljs.checker.util/with-analyzer-bindings*)
+        (fn []
+          ((requiring-resolve 'typed.cljs.checker.util/with-cljs-typed-env*)
+           #(do
+              (requiring-resolve 'typed.cljs.checker.util/with-core-cljs*)
+              ((requiring-resolve 'cljs.analyzer.api/analyze)
+               ((requiring-resolve 'cljs.analyzer.api/empty-env))
+               `(cljs.core/require '~nsym))))))
+       nil)
+
+     (defn register-cljs-config-anns [] (register-config-anns @*cljs-configs cljs-require))
+     (defn register-cljs-config-exts [] (register-config-exts @*cljs-configs clj-require))))
 
 (defn- config-var-providers [configs]
   (println "Registering :var-type-providers from typedclojure_config's...")
   (mapcat :var-type-providers configs))
 (defn clj-config-var-providers [] (config-var-providers @*clj-configs))
-(defn cljs-config-var-providers [] (config-var-providers @*cljs-configs))
+#?(:clj
+   (defn cljs-config-var-providers [] (config-var-providers @*cljs-configs)))
 
 (defn register-malli-extensions [configs]
   (run! #(do (println (format "Registering Malli extensions from %s..." %))
              (clj-require %))
         (mapcat :malli-extensions configs)))
-(defn register-clj-malli-extensions [] (register-malli-extensions @*clj-configs))
-(defn register-cljs-malli-extensions [] (register-malli-extensions @*cljs-configs))
+#?(:clj (defn register-clj-malli-extensions [] (register-malli-extensions @*clj-configs)))
+#?(:clj (defn register-cljs-malli-extensions [] (register-malli-extensions @*cljs-configs)))

@@ -15,7 +15,7 @@
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.ast-ops :as ops]
             [clojure.core.typed.errors :as err]
-            [clojure.core.typed.runtime.jvm.configs :as configs]
+            [clojure.core.typed.runtime.configs :as configs]
             [malli.core :as m]
             [typed.malli :as tm]))
 

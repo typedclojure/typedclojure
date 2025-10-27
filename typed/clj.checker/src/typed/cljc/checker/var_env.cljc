@@ -20,7 +20,7 @@
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.runtime.env :as env]
             [typed.cljc.runtime.env-utils :refer [force-type]]
-            [clojure.core.typed.runtime.jvm.configs :as configs]))
+            [clojure.core.typed.runtime.configs :as configs]))
 
 (defn clj-var-annotations []
   (get @(impl/clj-checker) impl/current-var-annotations-kw {}))

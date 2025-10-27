@@ -16,7 +16,7 @@
             [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.errors :as err]
-            [clojure.core.typed.runtime.jvm.configs :as configs]
+            [clojure.core.typed.runtime.configs :as configs]
             [clojure.core.typed.special-form :as spec]
             [clojure.core.typed.util-vars :as vs]
             [clojure.java.io :as io]

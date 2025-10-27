@@ -55,7 +55,7 @@
                       #?(:cljr (err/nyi-error "TODO CLR parallelism" opts)
                          :default
                          (let [bs (get-thread-bindings)]
-                           (mapv (fn ^java.util.concurrent.Future future]
+                           (mapv (fn [^java.util.concurrent.Future future]
                                    (try (let [{:keys [out res ex]} (.get future)]
                                           (some-> out str/trim not-empty println)
                                           (some-> ex throw)

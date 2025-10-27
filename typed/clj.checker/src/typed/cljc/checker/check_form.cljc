@@ -13,7 +13,7 @@
             [clojure.core.typed.contract-utils-platform-specific :as plat-con]
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.errors :as err]
-            [clojure.core.typed.runtime.jvm.configs :as configs]
+            [clojure.core.typed.runtime.configs :as configs]
             [clojure.core.typed.util-vars :as vs]
             [clojure.repl :as repl]
             [typed.clj.checker.check :as chk]
