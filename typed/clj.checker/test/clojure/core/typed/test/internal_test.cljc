@@ -86,7 +86,7 @@
 
 (deftest parse-defprotocol-test
   ;cannot shadow tvars
-  (is (thrown? AssertionError
+  (is (thrown? #?(:cljr System.Exception :default AssertionError)
                (internal/parse-defprotocol*
                  '([[x :variance :covariant]] Name ([x] m1 [this t])))))
   ;unannotated

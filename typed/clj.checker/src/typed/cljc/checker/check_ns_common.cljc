@@ -31,7 +31,7 @@
 
 ;; TODO move into callers of check-ns-info
 (def *register-clj-anns (delay (configs/register-clj-config-anns)))
-(def *register-cljs-anns (delay (configs/register-cljs-config-anns)))
+#?(:clj (def *register-cljs-anns (delay (configs/register-cljs-config-anns))))
 
 ;; returns a map with keys
 ;; - :delayed errors    a vector of ExceptionInfo instances representing type errors
@@ -47,7 +47,8 @@
     (assert (= "true" (#?(:cljr System.Environment/GetEnvironmentVariable
                           :default System/getProperty) "typed.cljc.checker.utils.trace"))
             "To enable tracing set system property -Dtyped.cljc.checker.utils.trace=true on startup"))
-  (let [start (. System (nanoTime))
+  (let [start #?(:cljr (* (. System.DateTime/UtcNow Ticks) 100)
+                 :default (. System (nanoTime)))
         threadpool (::vs/check-threadpool opts)
         shutdown-threadpool? (not threadpool)
         max-parallelism (or (when (= :available-processors max-parallelism)
@@ -104,7 +105,7 @@
             ;-------------------------
             (impl/impl-case opts
               :clojure @*register-clj-anns
-              :cljs @*register-cljs-anns)
+              #?@(:clj [:cljs @*register-cljs-anns]))
             (case (:check-ns-load check-config)
               :require-before-check (impl/impl-case opts
                                       :clojure (locking clojure.lang.RT/REQUIRE_LOCK

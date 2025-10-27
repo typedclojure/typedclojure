@@ -26,7 +26,7 @@
   (:import (clojure.lang ExceptionInfo)))
 
 (def *register-clj-anns (delay (configs/register-clj-config-anns)))
-(def *register-cljs-anns (delay (configs/register-cljs-config-anns)))
+#?(:clj (def *register-cljs-anns (delay (configs/register-cljs-config-anns))))
 
 ;; (check-form-info config-map form & kw-args)
 ;; 
@@ -99,7 +99,7 @@
   (do
     (impl/impl-case opts
       :clojure @*register-clj-anns
-      :cljs @*register-cljs-anns)
+      #?@(:clj [:cljs @*register-cljs-anns]))
     (let [type-errors (err/-init-type-errors)
           opts (-> opts
                    (assoc ::vs/can-rewrite true)
@@ -123,7 +123,7 @@
           ;_ (prn "before c-ast")
           c-ast (try
                   (check-top-level form expected {} opts)
-                  (catch Throwable e
+                  (catch #?(:cljr Exception :default Throwable) e
                     (let [e e]
                       ;(prn "reset terminal-error")
                       (reset! terminal-error e)

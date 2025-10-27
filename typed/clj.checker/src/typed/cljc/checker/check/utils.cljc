@@ -506,10 +506,12 @@
           ns-form (ns-depsu/ns-form-for-ns nsym opts)
           check? (some-> ns-form (ns-depsu/should-check-ns-form? opts))]
       (when check?
-        (let [start (. System (nanoTime))]
+        (let [start #?(:cljr (* (. System.DateTime/UtcNow Ticks) 100)
+                       :default (. System (nanoTime)))]
           (println "Start checking" nsym)
           (check-ns1 nsym nil opts)
-          (println "Checked" nsym "in" (/ (double (- (. System (nanoTime)) start)) 1000000.0) "msecs"))))))
+          (println "Checked" nsym "in" (/ (double (- #?(:cljr (* (. System.DateTime/UtcNow Ticks) 100)
+                                                         :default (. System (nanoTime))) start)) 1000000.0) "msecs"))))))
 
 (defn find-updated-locals [env1 env2 opts]
   {:pre [(map? env1)
