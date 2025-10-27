@@ -173,9 +173,10 @@
                             (the-ns ns) ;; assumes ns == clojure.core/ns and ns is the same throughout file
                             *ns*)
                    *file* filename]
-           (let [[forms-info groups] (with-open [rdr (io/reader res)]
+           (let [[forms-info groups] (with-open [rdr #?(:cljr (io/text-reader res) :default (io/reader res))]
                                        (let [pbr (readers/source-logging-push-back-reader
-                                                   (java.io.PushbackReader. rdr) 1 filename)
+                                                   #?(:cljr (readers/push-back-reader rdr 1)
+                                                     :default (java.io.PushbackReader. rdr)) 1 filename)
                                              eof (Object.)
                                              read-opts (cond-> {:eof eof :features #{:clj}}
                                                          (.endsWith filename "cljc") (assoc :read-cond :allow))]
@@ -231,9 +232,9 @@
                  _ (assert (= #{:fan :serial :skip} (set (keys groups))))
                  check-group (fn [g]
                                (if check-threadpool
-                                 (mapv (fn [^java.util.concurrent.Future future]
+                                 (mapv (fn [#?(:cljr future :default ^java.util.concurrent.Future future)]
                                          (try (.get future)
-                                              (catch java.util.concurrent.ExecutionException e
+                                              (catch #?(:cljr System.AggregateException :default java.util.concurrent.ExecutionException) e
                                                 (throw (or (.getCause e) e)))))
                                        (.invokeAll check-threadpool g))
                                  (mapv #(%) g)))
@@ -1029,7 +1030,7 @@
                             v)))]
           ;; assumes there are never namespace aliases that shadow namespaces
           (when (var? (try (requiring-resolve sym)
-                           (catch java.io.FileNotFoundException _)))
+                           (catch #?(:cljr System.IO.FileNotFoundException :default java.io.FileNotFoundException) _)))
             (if (var-env/lookup-Var-nofail sym opts)
               (-> expr
                   (update :fn check-expr nil opts)

@@ -2004,7 +2004,7 @@
   (cond
     ; (U Integer Long) <: (U int long)
     (and 
-      (#{(c/RClass-of Integer opts) (c/RClass-of Long opts)} s)
+      (#{(c/RClass-of #?(:cljr Int32 :default Integer) opts) (c/RClass-of #?(:cljr Int64 :default Long) opts)} s)
       (#{(c/RClass-of 'int opts) (c/RClass-of 'long opts)} t))
     true
 
