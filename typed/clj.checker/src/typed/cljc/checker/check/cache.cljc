@@ -31,7 +31,7 @@
     (invoke [this k] (.valAt this k))
     #?(:cljr System.Collections.IEnumerable
        :default Iterable)
-    (#?(:cljr GetEnumerator :default iterator) [_]
+    (#?(:cljr ^System.Collections.IEnumerator GetEnumerator :default iterator) [_]
       (let [res (#?(:cljr System.Collections.IEnumerable/.GetEnumerator
                     :default Iterable/.iterator)
                  m)]
