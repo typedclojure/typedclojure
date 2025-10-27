@@ -50,17 +50,10 @@ jobs:
             ~/.gitlibs
           key: ${{ env.ACTIONS_CACHE_VERSION }}-deps-${{ hashFiles('**/deps-clr.edn') }}
 
-      - name: Download dependencies
-        if: steps.cache-deps.outputs.cache-hit != 'true'
-        run: cljr -A:test -Stree
-
-      - name: Save dependency cache
-        if: steps.cache-deps.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
-        with:
-          path: |
-            ~/.gitlibs
-          key: ${{ env.ACTIONS_CACHE_VERSION }}-deps-${{ hashFiles('**/deps-clr.edn') }}
+      # TODO reenable when race conditions fixed in cljr
+      #- name: Download dependencies
+      #  if: steps.cache-deps.outputs.cache-hit != 'true'
+      #  run: cljr -A:test -Stree
       
       - name: Run typed.clj.runtime test suite
         run: |
@@ -85,3 +78,11 @@ jobs:
           cd $GITHUB_WORKSPACE/typed/clj.checker
           echo "Running typed.clj.checker test suite with ClojureCLR..."
           ./script/test-clr
+
+      - name: Save dependency cache
+        if: steps.cache-deps.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.gitlibs
+          key: ${{ env.ACTIONS_CACHE_VERSION }}-deps-${{ hashFiles('**/deps-clr.edn') }}
