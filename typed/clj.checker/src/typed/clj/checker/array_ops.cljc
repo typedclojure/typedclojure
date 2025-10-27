@@ -32,7 +32,7 @@
      ;; handles most common case of (U nil Type)
      (r/Union? ty) (let [clss (map #(Type->array-member-Class % true opts) (:types ty))
                          prim-and-nil? (and (some nil? clss)
-                                            (some #(when % (.isPrimitive ^Class %)) clss))
+                                            (some #(some-> % #?(:cljr Type/.IsPrimitive :default Class/.isPrimitive)) clss))
                          nonil-clss (remove nil? clss)]
                      (if (and (= 1 (count nonil-clss))
                               (not prim-and-nil?))

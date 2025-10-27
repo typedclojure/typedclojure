@@ -103,7 +103,7 @@
         expected-field-syms (vec (keys expected-fields))
         ret-expr (assoc expr
                         u/expr-type (below/maybe-check-below
-                                      (r/ret (c/RClass-of Class opts))
+                                      (r/ret (c/RClass-of #?(:cljr Type :default Class) opts))
                                       expected
                                       opts))]
     (cond

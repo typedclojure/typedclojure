@@ -109,11 +109,11 @@
 
            ;; if t cannot be nil (no overlap with nil), class returns non-nil Class
            (not (c/overlap t r/-nil opts))
-           (c/RClass-of Class opts)
+           (c/RClass-of #?(:cljr Type :default Class) opts)
 
            ;; otherwise, t might be nil, so class returns (U nil Class)
            :else
-           (c/Un [r/-nil (c/RClass-of Class opts)] opts))
+           (c/Un [r/-nil (c/RClass-of #?(:cljr Type :default Class) opts)] opts))
          (next ps)
          opts)
 

@@ -117,7 +117,7 @@
                               (when res
                                 (let [res (cond
                                             (var? res) (symbol res)
-                                            (class? res) (-> ^Class res .getName symbol)
+                                            (class? res) (-> ^#?(:cljr Type :default Class) res .getName symbol)
                                             :else (assert nil (str "WIP prs/resolve-type-clj to sym: " sym " " res)))]
                                   (assert (symbol? res))
                                   (when (not= res sym)

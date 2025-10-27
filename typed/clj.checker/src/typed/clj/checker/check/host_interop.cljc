@@ -34,7 +34,7 @@
 (defn- class->sym [class]
   (if (symbol? class)
     class
-    (symbol (.getName ^Class class))))
+    (symbol (#?(:cljr Type/.FullName :default Class/.getName) class))))
 
 (defn add-type-hints
   "Add type hints to an expression, only if it can
