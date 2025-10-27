@@ -17,6 +17,8 @@
   cljs and malli do not run on clr so we only track configs on jvm."
   (:refer-clojure :exclude [#?(:clj requiring-resolve) #?(:clj delay)])
   (:require [clojure.tools.reader :as rdr]
+            #?(:cljr [clojure.clr.io :as io]
+               :default [clojure.java.io :as io])
             #?(:clj [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]])
             #?(:clj [io.github.frenchy64.fully-satisfies.safe-locals-clearing :refer [delay]]))
   #?(:clj
@@ -26,7 +28,7 @@
      :cljr
      (:import [clojure.lang LineNumberingTextReader]
               [System.IO StreamReader]
-              [System.Net WebClient])))
+              [System Uri])))
 
 (defn- config-urls [features]
   (let [cl #?(:cljr (throw (ex-info "FIXME config-urls clr" {}))
@@ -41,13 +43,17 @@
         (enumeration-seq (.getResources cl "typedclojure_config.cljs")))
       (enumeration-seq (.getResources cl "typedclojure_config.cljc")))))
 
-(defn- load-config-file [features ^URL url]
-  (with-open [rdr (LineNumberingPushbackReader.
-                    (InputStreamReader.
-                      (.openStream url) "UTF-8"))]
-    (binding [*file* (.getFile url)]
+(defn- load-config-file [features ^#?(:cljr System.Uri :default java.net.URL) url]
+  (with-open [rdr #?(:cljr (LineNumberingTextReader.
+                             (io/text-reader url))
+                     :default (LineNumberingPushbackReader.
+                                (InputStreamReader.
+                                  (.openStream url) "UTF-8")))]
+    (binding [*file* #?(:cljr (.ToString url)
+                        :default (.getFile url))]
       (let [read-opts (cond-> {:eof nil}
-                        (.endsWith (.getPath url) "cljc")
+                        #?(:cljr (.EndsWith (.ToString url) "cljc")
+                           :default (.endsWith (.getPath url) "cljc"))
                         (assoc :read-cond :allow
                                :features features))
             new-config (try (rdr/read read-opts rdr)

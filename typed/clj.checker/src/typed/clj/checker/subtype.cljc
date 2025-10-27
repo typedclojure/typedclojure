@@ -2054,8 +2054,8 @@
                    (subtype-RClass-common-base A s t opts))
 
               ;one is a primitive, coerce
-              (and (or (.isPrimitive scls)
-                       (.isPrimitive tcls))
+              (and (or (#?(:cljr .IsPrimitive :default .isPrimitive) scls)
+                       (#?(:cljr .IsPrimitive :default .isPrimitive) tcls))
                    (coerce-RClass-primitive s t opts))
 
               ;find a supertype of s that is the same base as t, and subtype of it
