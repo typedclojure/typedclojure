@@ -34,6 +34,9 @@
               (System.Collections ICollection))
      :default nil))
 
+;; CLR platform needs Comparable to resolve
+#?(:cljr (def Comparable System.IComparable))
+
 ;; ==========================================
 ;; Base Class annotations (JVM and CLR)
 
