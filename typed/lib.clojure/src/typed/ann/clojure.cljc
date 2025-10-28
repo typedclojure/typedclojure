@@ -12,7 +12,7 @@
   (:require [clojure.core :as cc]
             [typed.clojure :as t]
             #?@(:cljs [] :default [[typed.ann-macros.clojure :as macros]])
-            #?(:clj typed.ann.clojure.jvm) ;; jvm annotations
+            #?@(:cljs [] :default [typed.ann.clojure.base]) ;; base annotations
             #?(:clj clojure.core.typed))
   #?(:clj
      (:import (clojure.lang PersistentHashSet PersistentList
