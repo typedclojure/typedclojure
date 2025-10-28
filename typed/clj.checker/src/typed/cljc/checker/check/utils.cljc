@@ -32,7 +32,8 @@
             [typed.clj.checker.subtype :as sub]
             [typed.cljc.runtime.env :as env]
             [clojure.core.typed.ast-utils :as ast-u]
-            [clojure.set :as set])
+            [clojure.set :as set]
+            [clojure.string :as str])
   (:import (clojure.lang MultiFn)))
 
 ;(t/ann expr-ns [Any t/Any -> t/Sym])
@@ -200,7 +201,7 @@
          (boolean? nilable?)]
    :post [((some-fn nil? r/PrimitiveArray?) %)]}
   (let [s (str sym)]
-    (when (.endsWith s "<>")
+    (when (str/ends-with? s "<>")
       (let [^String s-nosuffix (apply str (drop-last 2 s))]
         (assert (not (.contains s-nosuffix "<>")))
         ;Nullable elements

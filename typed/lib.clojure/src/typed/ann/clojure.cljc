@@ -11,7 +11,7 @@
   #?(:cljs (:require-macros [typed.ann-macros.clojure :as macros]))
   (:require [clojure.core :as cc]
             [typed.clojure :as t]
-            #?(:clj [typed.ann-macros.clojure :as macros])
+            #?@(:cljs [] :default [[typed.ann-macros.clojure :as macros]])
             #?(:clj typed.ann.clojure.jvm) ;; jvm annotations
             #?(:clj clojure.core.typed))
   #?(:clj
@@ -234,6 +234,7 @@
   t/Symbol
   #?(:clj clojure.lang.Symbol
      :cljs cljs.core/Symbol
+     :cljr clojure.lang.Symbol
      :default t/UnsupportedPlatform))
 
 (t/defalias

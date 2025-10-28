@@ -180,7 +180,7 @@
                                                      :default (java.io.PushbackReader. rdr)) 1 filename)
                                              eof (Object.)
                                              read-opts (cond-> {:eof eof :features #{:clj}}
-                                                         (.endsWith filename "cljc") (assoc :read-cond :allow))]
+                                                         (str/ends-with? filename "cljc") (assoc :read-cond :allow))]
                                          (loop [ns-form-str nil
                                                 pos 0
                                                 forms-info []

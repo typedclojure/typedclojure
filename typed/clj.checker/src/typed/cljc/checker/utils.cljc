@@ -135,8 +135,8 @@
                    fields))
              :else (throw (#?(:cljr NotSupportedException. :default UnsupportedOperationException.) (str "lookup on " '~name-sym " " ~k))))))
 
-       clojure.lang.IPersistentMap
-       (~(with-meta 'assoc #?(:cljr {:tag 'clojure.lang.IPersistentMap} :default {})) [~this ~k ~gs]
+       #?(:cljr clojure.lang.Associative :default clojure.lang.IPersistentMap)
+       (~(with-meta 'assoc {:tag #?(:cljr clojure.lang.Associative :default 'clojure.lang.IPersistentMap)}) [~this ~k ~gs]
          (cond
            ~@(mapcat (fn [fld]
                        [`(identical? ~k ~(keyword fld))
