@@ -17,10 +17,13 @@
             [typed.cljc.checker.indirect-ops :as ind]
             [typed.cljc.checker.utils :as u :refer [AND OR]]
             [clojure.core.typed.util-vars :as vs]
+            [typed.clj.runtime.hmap-utils :as hmap-utils]
             clojure.core.typed.contract-ann))
 
 (t/defalias SeqNumber Long)
 
+(t/defalias ValidHMapKey
+  t/Kw)
 ;;; Type rep predicates
 
 (t/defalias Type
@@ -632,13 +635,42 @@
           (not (p/IScope? %))]}
   (-> mu :scope :body))
 
-(u/def-type Value [val :- t/Any]
+(defn- classify-val [v]
+  (cond
+    (nil? v) [0 :nil]
+    (keyword? v) [1 :keyword]
+    (string? v) [2 :string]
+    (symbol? v) [3 :symbol]
+    (boolean? v) [4 :boolean]
+    (number? v) [5 :number]
+    (char? v) [6 :char]
+    (class? v) [7 :class]
+    (map? v) [8 :map]
+    (vector? v) [9 :vector]
+    (seq? v) [10 :seq]
+    (set? v) [11 :set]
+    :else (throw (ex-info (str "unclassifiable clojure value " (pr-str v)) {:v v}))))
+
+(defn sortable-clojure-value [v]
+  {:pre [(not (Type? v))]}
+  (let [vcl (classify-val v)]
+    [vcl (case (peek vcl)
+           :class #?(:cljr (.FullName ^System.Type v) :default (.getName ^Class v))
+           :map (let [ks (mapv sortable-clojure-value (keys v))
+                      vs (mapv sortable-clojure-value (vals v))]
+                  (vec (sort-by first (mapv vector ks vs))))
+           (:vector :seq :set) (vec (sort (mapv sortable-clojure-value v)))
+           v)]))
+
+(u/def-type Value [val :- t/Any #_ValidHMapKey]
   "A Clojure value"
-  []
+  [(sortable-clojure-value val)]
   :methods
   [p/TCType]
   :compare-self
-  {val (fn [v] [(some-> (class v) #?(:cljr .FullName :default .getName)) v])})
+  {val sortable-clojure-value})
+
+(defn valid-hmap-key-Type? [k] (and (Value? k) (keyword? (:val k))))
 
 (t/ann -val [t/Any -> Type])
 (def -val Value-maker)
@@ -659,16 +691,16 @@
 
 (declare Result?)
 
-(u/def-type HeterogeneousMap [types :- (t/Map Type Type),
-                              optional :- (t/Map Type Type),
-                              absent-keys :- (t/Set Type),
+(u/def-type HeterogeneousMap [types :- (t/Map Value Type),
+                              optional :- (t/Map Value Type),
+                              absent-keys :- (t/Set Value),
                               other-keys? :- t/Bool]
   "A constant map, clojure.lang.IPersistentMap"
-  [((con/hash-c? Value? (some-fn Type? Result?))
+  [((con/hash-c? valid-hmap-key-Type? (some-fn Type? Result?))
      types)
-   ((con/hash-c? Value? (some-fn Type? Result?))
+   ((con/hash-c? valid-hmap-key-Type? (some-fn Type? Result?))
      optional)
-   ((con/set-c? Value?) absent-keys)
+   ((con/set-c? valid-hmap-key-Type?) absent-keys)
    (empty? (set/intersection
              (set (keys types))
              (set (keys optional))

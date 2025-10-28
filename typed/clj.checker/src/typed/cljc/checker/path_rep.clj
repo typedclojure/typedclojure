@@ -45,11 +45,12 @@
   "A path calling clojure.core/count"
   [])
 
-(u/def-object KeyPE [val :- t/Kw]
+(u/def-object KeyPE [val :- t/Any]
   "A key in a hash-map"
-  [(keyword? val)])
+  [;; TODO: Add precondition for valid-hmap-key-value? once circular dependency is resolved
+   ])
 
-(t/ann ^:no-check -kpe [t/Kw -> KeyPE])
+(t/ann ^:no-check -kpe [t/Any -> KeyPE])
 (def -kpe KeyPE-maker)
 
 (u/def-object KeysPE []

@@ -50,3 +50,7 @@
   - throws a type parsing error instructing the user to add support for the current platform
   - use in `:default` branch of reader conditionals for specific directions when introducing new platforms
     - e.g., (defalias PlatformDependent #?(:clj Foo :cljs Bar :cljr Baz :default t/UnsupportedPlatform))
+- Improve Value type (singleton types) validation
+  - NaN values and regexes are rejected (not suitable as singleton types due to equality semantics)
+  - Proper sorting for Value types including collections, symbols, strings, numbers
+  - abstract out coercing to valid HeterogeneousMap keys to prepare for future extensions

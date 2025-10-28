@@ -12,6 +12,7 @@
             [typed.clojure :as t]
             [clojure.core.typed.current-impl :as impl]
             [typed.cljc.checker.hset-utils :as hset]
+            [typed.clj.runtime.hmap-utils :as hmap-utils]
             [typed.cljc.checker.proposition-ops :as fo])
   (:import (clojure.lang IPersistentList IPersistentVector Symbol Cons ISeq
                          IFn IPersistentStack IPersistentSet IPersistentMap IMapEntry
@@ -21,6 +22,13 @@
 
 (defprotocol ConstantType 
   (constant-ret [this opts]))
+
+(defn- Double->Type [^Double v opts]
+  (ret
+     (if (Double/isNaN v)
+       ;; since different instances of ##NaN are not equal it's not suitable as a singleton type
+       (c/RClass-of Double opts)
+       (r/-val v))))
 
 (defn constant-type
   ([s opts] (constant-type s false opts))
@@ -39,7 +47,7 @@
             (cond
               (instance? System.Int64 s) (ret (r/-val s))
               (instance? System.Int32 s) (ret (r/-val s))
-              (instance? System.Double s) (ret (r/-val s))
+              (instance? System.Double s) (Double->Type s opts)
               (instance? System.Boolean s) (ret (r/-val s))
               (instance? System.Char s) (ret (r/-val s))
               (instance? System.Decimal s) (ret (r/-val s))
@@ -56,7 +64,7 @@
        ~@(apply concat (zipmap cls (repeat method))))))
 
 (constant-type->val
-  #?(:cljr System.Type :default Class) Symbol #?@(:cljr [] :default [Long Double Integer java.math.BigDecimal Boolean Character])
+  #?(:cljr System.Type :default Class) Symbol #?@(:cljr [] :default [Long Integer java.math.BigDecimal Boolean Character])
   clojure.lang.BigInt String clojure.lang.Keyword
   clojure.lang.Namespace)
 
@@ -66,6 +74,9 @@
     (impl/impl-case opts
       :clojure (ret (r/-val nil))
       :cljs (ret (r/JSNull-maker))))
+
+  Double
+  (constant-ret [v opts] (Double->Type v opts))
 
   #?(:cljr System.Text.RegularExpressions.Regex
      :default java.util.regex.Pattern)
@@ -79,8 +90,8 @@
   (constant-ret [v opts]
     (ret
       (if (every? hset/valid-fixed? v)
-        (r/-hset (r/sorted-type-set (map r/-val v)))
-        (c/-name `t/Set (c/Un (map #(constant-type % opts) v) opts)))))
+        (r/-hset (r/sorted-type-set (mapv r/-val v)))
+        (c/-name `t/Set (c/Un (mapv #(constant-type % opts) v) opts)))))
 
   ;default for ISeqs
   ISeq
@@ -98,10 +109,11 @@
 
   IPersistentMap
   (constant-ret [cmap opts]
-    (let [kts (map #(constant-type % opts) (keys cmap))
-          vts (map #(constant-type % opts) (vals cmap))]
-      (if (every? r/Value? kts)
-        (ret (c/-complete-hmap (zipmap kts vts) opts))
+    (let [kts (mapv #(constant-type % opts) (keys cmap))
+          vts (mapv #(constant-type % opts) (vals cmap))
+          kts' (mapv #(c/coerce-to-valid-hmap-key %) kts)]
+      (if (not-any? nil? kts')
+        (ret (c/-complete-hmap (zipmap kts' vts) opts))
         (ret (c/In
                [(c/-name `t/Map
                          (c/Un kts opts)

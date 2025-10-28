@@ -15,6 +15,7 @@
             [clojure.core.typed.util-vars :as vs]
             [clojure.core.typed.coerce-utils :as coerce]
             [clojure.set :as set]
+            [typed.clj.runtime.hmap-utils :as hmap-utils]
             #?(:clj [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]])
             #?(:clj [io.github.frenchy64.fully-satisfies.safe-locals-clearing :refer [delay]])))
 
@@ -465,8 +466,10 @@
       (err/int-error (str "Optional entries to HMap must be a map: " optional) opts)))
   (letfn [(mapt [m]
             (into {} (for [[k v] m]
-                       [{:op :singleton :val k}
-                        (parse v opts)])))]
+                       (do
+                         (when-not (hmap-utils/valid-hmap-key-value? k)
+                           (err/int-error (str "Invalid key for HMap: " (pr-str k)) opts))
+                         [{:op :singleton :val k} (parse v opts)]))))]
     (let [_ (when-not (every? empty? [(set/intersection (set (keys mandatory))
                                                         (set (keys optional)))
                                       (set/intersection (set (keys mandatory))
@@ -474,12 +477,13 @@
                                       (set/intersection (set (keys optional))
                                                         (set absent-keys))])
               (err/int-error (str "HMap options contain duplicate key entries: ") opts))
-          _ (when-not (every? keyword? (keys mandatory)) (err/int-error "HMap's mandatory keys must be keywords" opts))
           mandatory (mapt mandatory)
-          _ (when-not (every? keyword? (keys optional)) (err/int-error "HMap's optional keys must be keywords" opts))
           optional (mapt optional)
-          _ (when-not (every? keyword? absent-keys) (err/int-error "HMap's absent keys must be keywords" opts))
-          absent-keys (set (map (fn [a] {:op :singleton :val a}) absent-keys))]
+          absent-keys (into #{} (map (fn [k]
+                                       (when-not (hmap-utils/valid-hmap-key-value? k)
+                                         (err/int-error (str "Invalid key for HMap: " (pr-str k)) opts))
+                                       {:op :singleton :val k}))
+                            absent-keys)]
       {:op :HMap
        :mandatory (vec (apply concat mandatory))
        :optional (vec (apply concat optional))

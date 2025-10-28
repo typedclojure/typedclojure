@@ -33,6 +33,7 @@
             [typed.cljc.checker.type-ctors :as c]
             [typed.cljc.checker.type-rep :as r]
             [typed.cljc.runtime.env-utils :as env-utils]
+            [typed.clj.runtime.hmap-utils :as hmap-utils]
             [typed.cljc.runtime.env :as env])
   (:import (typed.cljc.checker.type_rep NotType Intersection Union FnIntersection
                                         DottedPretype Function Regex RClass TApp
@@ -987,6 +988,8 @@
       (prs-error (str "Optional entries to HMap must be a map: " optional) opts)))
   (letfn [(mapt [m]
             (reduce-kv (fn [m k v]
+                         (when-not (hmap-utils/valid-hmap-key-value? k)
+                           (prs-error (str "Invalid key for HMap: " (pr-str k)) opts))
                          (assoc m (r/-val k) (parse-type v opts)))
                        {} m))]
     (let [_ (when-not (every? empty? [(set/intersection (set (keys mandatory))
@@ -998,11 +1001,11 @@
               (prs-error (str "HMap options contain duplicate key entries: "
                               "Mandatory: " (into {} mandatory) ", Optional: " (into {} optional) 
                               ", Absent: " (set absent-keys)) opts))
-          _ (when-not (every? keyword? (keys mandatory)) (prs-error "HMap's mandatory keys must be keywords" opts))
           mandatory (mapt mandatory)
-          _ (when-not (every? keyword? (keys optional)) (prs-error "HMap's optional keys must be keywords" opts))
           optional (mapt optional)
-          _ (when-not (every? keyword? absent-keys) (prs-error "HMap's absent keys must be keywords" opts))
+          _ (doseq [k absent-keys]
+              (when-not (hmap-utils/valid-hmap-key-value? k)
+                (prs-error (str "Invalid key for HMap: " (pr-str k)) opts)))
           absent-keys (into #{} (map r/-val) absent-keys)]
       (c/make-HMap opts {:mandatory mandatory :optional optional 
                          :complete? complete? :absent-keys absent-keys}))))

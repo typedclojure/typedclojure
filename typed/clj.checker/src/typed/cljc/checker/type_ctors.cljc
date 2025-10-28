@@ -38,6 +38,7 @@
             [typed.cljc.checker.tvar-bnds :as bnds]
             [typed.cljc.checker.type-rep :as r :refer [ret-t]]
             [typed.cljc.checker.utils :as u :refer [OR AND]]
+            [typed.clj.runtime.hmap-utils :as hmap-utils]
             typed.cljc.checker.coerce-ann)
   (:import (clojure.lang ASeq)
            #?(:clj java.lang.reflect.Modifier)
@@ -137,10 +138,19 @@
 
 (declare In keyword-value? RClass-of Protocol-of complete-hmap? -name)
 
-(t/ann ^:no-check allowed-hmap-key? [r/Type -> t/Bool])
-(defn allowed-hmap-key? [k]
+(t/ann ^:no-check valid-hmap-key? [r/Type -> t/Bool])
+(defn valid-hmap-key?
+  [k]
   (keyword-value? k))
 
+(t/ann ^:no-check coerce-to-valid-hmap-key [r/Type -> (t/Nilable r/Type)])
+(defn coerce-to-valid-hmap-key
+  "Convert a heterogeneous collection type to a Value type if it represents a valid HMap key.
+  Returns the Value type if conversion is possible, nil otherwise."
+  [t]
+  (cond
+    (r/Value? t) (when (hmap-utils/valid-hmap-key-value? (:val t)) t)
+  ))
 (defn upcast-PrimitiveArray [^PrimitiveArray t opts]
   (RClass-of clojure.lang.Seqable [(-name 'typed.clojure/NilableNonEmptySeq (.output-type t))] opts))
 
@@ -233,8 +243,9 @@
   (assert (boolean? complete?)
           (pr-str complete?))
   ; simplifies to bottom with contradictory keys
-  (cond 
-    (not-every? allowed-hmap-key?
+  (cond
+    ;; we assume inputs to make-HMap have already been passed to coerce-to-valid-hmap-key
+    (not-every? valid-hmap-key?
                 (concat (keys mandatory)
                         (keys optional)
                         absent-keys))
