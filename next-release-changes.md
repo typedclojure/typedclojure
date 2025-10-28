@@ -46,3 +46,7 @@
   - Use named parameters instead: `[x :- T :-> ... :object x]`
   - Integer indices still work for backward compatibility but emit deprecation warnings
   - Named parameters provide better readability and support for nested scopes
+- add new special type `t/UnsupportedPlatform`
+  - throws a type parsing error instructing the user to add support for the current platform
+  - use in `:default` branch of reader conditionals for specific directions when introducing new platforms
+    - e.g., (defalias PlatformDependent #?(:clj Foo :cljs Bar :cljr Baz :default t/UnsupportedPlatform))

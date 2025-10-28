@@ -181,6 +181,15 @@ for checking namespaces, cf for checking individual forms."}
   TCError)
 
 (defspecial
+  ^{:doc "UnsupportedPlatform is a placeholder type for use in reader conditional :default branches.
+         When encountered during type checking, it produces a clear error message indicating that
+         the type alias does not support the current platform. Use in type aliases like:
+         (defalias Foo #?(:clj X :cljs Y :default UnsupportedPlatform))"
+    :forms '[UnsupportedPlatform]
+    ::special-type true}
+  UnsupportedPlatform)
+
+(defspecial
   ^{:doc "U represents a union of types"
     :forms '[(U type*)]
     ::special-type true}

@@ -1207,6 +1207,18 @@
 
 (defmethod parse-symbol* 'typed.clojure/Nothing [s opts] (parse-Nothing s opts))
 
+(defmethod parse-symbol* 'typed.clojure/UnsupportedPlatform [s opts] 
+  (let [platform (impl/current-impl opts)
+        platform-name (impl/platform-name opts)
+        platform-feature (impl/platform-feature-keyword opts)
+        suggestion (if platform-feature
+                     (str "\n  Suggestion: Extend the reader conditional to support " platform-name " by adding a " platform-feature " branch.")
+                     (str "\n  Suggestion: Implement support for " platform-name " platform."))]
+    (err/int-error (str "Type alias does not support " platform-name " platform."
+                        suggestion)
+                   {:use-current-env true}
+                   opts)))
+
 (defn parse-AnyFunction [s]
   {:op :AnyFunction :form s})
 

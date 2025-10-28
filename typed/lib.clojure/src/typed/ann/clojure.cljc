@@ -197,7 +197,8 @@
                BigInteger
                Short
                Byte)
-     :cljs t/CLJSInteger))
+     :cljs t/CLJSInteger
+     :default t/UnsupportedPlatform))
 
 (t/defalias
   ^{:doc "A type that returns true for clojure.core/integer?"
@@ -210,14 +211,16 @@
     :forms '[Num]}
   t/Num
   #?(:clj Number
-     :cljs t/JSnumber))
+     :cljs t/JSnumber
+     :default t/UnsupportedPlatform))
 
 (t/defalias
   ^{:doc "A keyword"
     :forms '[Keyword]}
   t/Keyword
   #?(:clj clojure.lang.Keyword
-     :cljs cljs.core/Keyword))
+     :cljs cljs.core/Keyword
+     :default t/UnsupportedPlatform))
 
 (t/defalias
   ^{:doc "A keyword"
@@ -230,7 +233,8 @@
     :forms '[Symbol]}
   t/Symbol
   #?(:clj clojure.lang.Symbol
-     :cljs cljs.core/Symbol))
+     :cljs cljs.core/Symbol
+     :default t/UnsupportedPlatform))
 
 (t/defalias
   ^{:doc "A symbol"
@@ -247,25 +251,29 @@
     :forms '[Str]}
   t/Str
   #?(:clj java.lang.String
-     :cljs t/JSstring))
+     :cljs t/JSstring
+     :default t/UnsupportedPlatform))
 
 (t/defalias
   t/Named
   #?(:clj clojure.lang.Named
-     :cljs cljs.core/INamed))
+     :cljs cljs.core/INamed
+     :default t/UnsupportedPlatform))
 
 (t/defalias
   t/Indexed
   (t/TFn [[x :variance :covariant]]
          #?(:clj (clojure.lang.Indexed x)
-            :cljs (cljs.core/IIndexed x))))
+            :cljs (cljs.core/IIndexed x)
+            :default t/UnsupportedPlatform)))
 
 (t/defalias
   ^{:doc "A boolean"
     :forms '[Bool]}
   t/Bool
   #?(:clj java.lang.Boolean
-     :cljs t/JSboolean))
+     :cljs t/JSboolean
+     :default t/UnsupportedPlatform))
 
 (t/defalias
   ^{:doc "A namespace"
@@ -273,12 +281,14 @@
   t/Namespace
   #?(:clj clojure.lang.Namespace
      ;; nilable?
-     :cljs cljs.core/Namespace))
+     :cljs cljs.core/Namespace
+     :default t/UnsupportedPlatform))
 
 (t/defalias
   t/UUID
   #?(:clj java.util.UUID
-     :cljs cljs.core/UUID))
+     :cljs cljs.core/UUID
+     :default t/UnsupportedPlatform))
 
 (t/defalias
   ^{:doc "Supertype of all atoms."
@@ -286,14 +296,17 @@
   t/AnyAtom
   (t/Instance
     #?(:clj clojure.lang.Atom
-       :cljs cljs.core/Atom)))
+       :cljs cljs.core/Atom
+       :default t/UnsupportedPlatform)))
 
 (t/defalias
   ^{:doc "An atom that can read and write type x."
     :forms '[(Atom x)]}
   t/Atom
   (t/TFn [[x :variance :invariant]]
-         (#?(:clj clojure.lang.Atom :cljs cljs.core/Atom) x)))
+         (#?(:clj clojure.lang.Atom 
+             :cljs cljs.core/Atom
+             :default t/UnsupportedPlatform) x)))
 
 (t/defalias
   ^{:doc "An atom that can read and write type x.
@@ -313,7 +326,8 @@
      :cljs (t/I (cljs.core/IDeref t/Any)
                 (t/Instance cljs.core/IVolatile)
                 ;;FIXME should just be Volatile
-                (t/Instance cljs.core/Volatile))))
+                (t/Instance cljs.core/Volatile))
+     :default t/UnsupportedPlatform))
 
 (t/defalias
   ^{:doc "A volatile that can read and write type x."
@@ -324,7 +338,8 @@
             :cljs (t/I (cljs.core/IDeref x)
                        (cljs.core/IVolatile x)
                        ;;FIXME should just be Volatile
-                       (cljs.core/Volatile x)))))
+                       (cljs.core/Volatile x))
+            :default t/UnsupportedPlatform)))
 
 (t/defalias
   ^{:doc "Supertype of all vars."
@@ -332,7 +347,8 @@
   t/AnyVar
   (t/Instance
     #?(:clj clojure.lang.Var
-       :cljs cljs.core/Var)))
+       :cljs cljs.core/Var
+       :default t/UnsupportedPlatform)))
 
 (t/defalias
   ^{:doc "A var that can read and write type x."
@@ -340,7 +356,8 @@
   t/Var
   (t/TFn [[x :variance :invariant]] 
          #?(:clj (clojure.lang.Var x)
-            :cljs (cljs.core/Var x))))
+            :cljs (cljs.core/Var x)
+            :default t/UnsupportedPlatform)))
 
 (t/defalias
   ^{:doc "An var that can read and write type x."
@@ -415,7 +432,8 @@
     :forms '[t/Regex]}
   t/Regex
   #?(:clj java.util.regex.Pattern
-     :cljs js/Regexp))
+     :cljs js/Regexp
+     :default t/UnsupportedPlatform))
 
 (t/defalias
   ^{:doc "The identity function at the type level."
@@ -431,11 +449,13 @@
          (t/Match x
                   [[Seq :< (t/NilableNonEmptySeq t/Any)]]
                   #?(:clj (clojure.lang.Seqable Seq)
-                     :cljs (cljs.core/ISeqable Seq))
+                     :cljs (cljs.core/ISeqable Seq)
+                     :default t/UnsupportedPlatform)
                   :-> Seq
                   [[Seq :< (t/NilableNonEmptySeq t/Any)]]
                   (t/Nilable #?(:clj (clojure.lang.Seqable Seq)
-                                :cljs (cljs.core/ISeqable Seq)))
+                                :cljs (cljs.core/ISeqable Seq)
+                                :default t/UnsupportedPlatform))
                   :-> (t/Nilable Seq))))
 
 (t/defalias
@@ -445,7 +465,8 @@
   (t/TFn [[x :variance :covariant]]
          (t/Nilable
            #?(:clj (clojure.lang.Seqable (t/NilableNonEmptySeq x))
-              :cljs (cljs.core/ISeqable (t/NilableNonEmptySeq x))))))
+              :cljs (cljs.core/ISeqable (t/NilableNonEmptySeq x))
+              :default t/UnsupportedPlatform))))
 
 (t/defalias
   ^{:doc "A type that returns true for clojure.core/seqable?."
@@ -456,12 +477,14 @@
 (t/defalias
   t/Counted
   #?(:clj clojure.lang.Counted
-     :cljs cljs.core/ICounted))
+     :cljs cljs.core/ICounted
+     :default t/UnsupportedPlatform))
 
 (t/defalias
   t/URI
   #?(:clj java.net.URI
-     :cljs goog.Uri))
+     :cljs goog.Uri
+     :default t/UnsupportedPlatform))
 
 (t/defalias
   ^{:doc "A type that returns true for clojure.core/coll?, with members x."
@@ -474,7 +497,8 @@
                        ;;cljs.core/ICounted
                        cljs.core/IEmptyableCollection
                        ;;cljs.core/IEquiv
-                       ))))
+                       )
+            :default t/UnsupportedPlatform)))
 
 (t/defalias
   ^{:doc "The type of all things with count 0. Use as part of an intersection.
@@ -510,7 +534,8 @@
             :cljs (t/I (cljs.core/IAssociative k v)
                        ;; emulate clojure.lang.Associative's ancestors
                        (t/Coll t/Any)
-                       (cljs.core/ILookup v)))))
+                       (cljs.core/ILookup v))
+            :default t/UnsupportedPlatform)))
 
 (t/defalias
   ^{:doc "A Clojure reversible collection."
@@ -518,7 +543,8 @@
   t/Reversible
   (t/TFn [[x :variance :covariant]]
          #?(:clj (clojure.lang.Reversible x)
-            :cljs (cljs.core/IReversible x))))
+            :cljs (cljs.core/IReversible x)
+            :default t/UnsupportedPlatform)))
 
 (t/defalias
   ^{:doc "A persistent vector with member type x."
@@ -533,7 +559,8 @@
                        cljs.core/ISequential
                        (cljs.core/IStack x)
                        (t/Reversible x)
-                       (t/Indexed x)))))
+                       (t/Indexed x))
+            :default t/UnsupportedPlatform)))
 
 (t/defalias
   ^{:doc "A persistent vector with member type x and count greater than 0."
@@ -556,7 +583,8 @@
                       clojure.lang.IObj)
             :cljs (t/I (t/Vec x)
                        ; TODO cljs equivalent
-                       ))))
+                       )
+            :default t/UnsupportedPlatform)))
 
 (t/defalias
   ^{:doc "A persistent vector returned from clojure.core/vector (and others) and count greater than 0."
@@ -571,14 +599,16 @@
   (t/TFn [[k :variance :covariant]
           [v :variance :covariant]]
          #?(:clj (clojure.lang.IMapEntry k v)
-            :cljs (cc/IMapEntry k v))))
+            :cljs (cc/IMapEntry k v)
+            :default t/UnsupportedPlatform)))
 
 (t/defalias
   t/AMapEntry
   (t/TFn [[k :variance :covariant]
           [v :variance :covariant]]
          #?(:clj (clojure.lang.AMapEntry k v)
-            :cljs (cc/IMapEntry k v))))
+            :cljs (cc/IMapEntry k v)
+            :default t/UnsupportedPlatform)))
 
 (t/defalias
   ^{:doc "A persistent map with keys k and vals v."
@@ -604,7 +634,8 @@
                        cljs.core/IKVReduce
                        ;; TODO IFn
                        ;; TODO cljs.core/IEditableCollection
-                       ))))
+                       )
+            :default t/UnsupportedPlatform)))
 
 (t/defalias 
   ^{:doc "Values that can be conj'ed to a t/Map, adding keys of type k
@@ -636,7 +667,8 @@
                        cljs.core/ISet
                        ;; TODO IFn
                        ;; TODO cljs.core/IEditableCollection
-                       ))))
+                       )
+            :default t/UnsupportedPlatform)))
 
 (t/defalias
   ^{:doc "A sorted collection."
@@ -644,7 +676,8 @@
   t/Sorted
   (t/TFn [[x :variance :invariant]]
          #?(:clj (clojure.lang.Sorted x)
-            :cljs (cljs.core/ISorted x))))
+            :cljs (cljs.core/ISorted x)
+            :default t/UnsupportedPlatform)))
 
 (t/defalias
   ^{:doc "A sorted persistent set with member type x"
@@ -696,7 +729,8 @@
                        cljs.core/ICollection
                        cljs.core/IEmptyableCollection
                        cljs.core/ISequential
-                       cljs.core/IEquiv))))
+                       cljs.core/IEquiv)
+            :default t/UnsupportedPlatform)))
 
 (t/defalias
   ^{:doc "A persistent sequence of member type x with count greater than 0."
@@ -735,7 +769,8 @@
   (t/TFn [[x :variance :covariant]]
          #?(:clj (clojure.lang.IDeref x)
             ;; note: IDerefWithTimeout not used in cljs
-            :cljs (cljs.core/IDeref x))))
+            :cljs (cljs.core/IDeref x)
+            :default t/UnsupportedPlatform)))
 
 #?(:clj
 (t/defalias
@@ -766,7 +801,8 @@
   t/Delay
   (t/TFn [[x :variance :covariant]]
          #?(:clj (clojure.lang.Delay x)
-            :cljs (cljs.core/Delay x))))
+            :cljs (cljs.core/Delay x)
+            :default t/UnsupportedPlatform)))
 
 (t/defalias
   ^{:doc "A Clojure blocking derefable (see clojure.core/deref)."
@@ -774,7 +810,8 @@
   t/BlockingDeref
   (t/TFn [[x :variance :covariant]]
          #?(:clj (clojure.lang.IBlockingDeref x)
-            :cljs (cljs.core/IDerefWithTimeout x))))
+            :cljs (cljs.core/IDerefWithTimeout x)
+            :default t/UnsupportedPlatform)))
 
 (t/defalias
   ^{:doc "A Clojure persistent list."
@@ -791,14 +828,16 @@
                        (cljs.core/ISeq x)
                        cljs.core/ICollection
                        cljs.core/IEmptyableCollection
-                       cljs.core/ISequential))))
+                       cljs.core/ISequential)
+            :default t/UnsupportedPlatform)))
 (t/defalias
   ^{:doc "A Clojure custom exception type."
     :forms '[ExInfo]}
   t/ExInfo
   #?(:clj (t/I clojure.lang.IExceptionInfo
                RuntimeException)
-     :cljs cljs.core/ExceptionInfo))
+     :cljs cljs.core/ExceptionInfo
+     :default t/UnsupportedPlatform))
 
 (t/defalias
   ^{:doc "A Clojure proxy."
@@ -812,14 +851,16 @@
   t/Stack
   (t/TFn [[x :variance :covariant]]
          #?(:clj (clojure.lang.IPersistentStack x)
-            :cljs (cljs.core/IStack x))))
+            :cljs (cljs.core/IStack x)
+            :default t/UnsupportedPlatform)))
 
 (t/defalias
   ^{:doc "A sequential collection."
     :forms '[Sequential]}
   t/Sequential
   #?(:clj clojure.lang.Sequential
-     :cljs cljs.core/ISequential))
+     :cljs cljs.core/ISequential
+     :default t/UnsupportedPlatform))
 
 (t/defalias
   ^{:doc "A sequential, seqable collection. Seq's aren't always Sequential."
@@ -879,7 +920,8 @@
   #?(:clj clojure.lang.Fn
      :cljs (t/U cljs.core/Fn
                 ;;TODO 
-                #_js/Function)))
+                #_js/Function)
+     :default t/UnsupportedPlatform))
 
 (t/defalias
   ^{:doc "A Clojure multimethod."
@@ -893,7 +935,8 @@
   t/Reduced
   (t/TFn [[x :variance :covariant]]
          #?(:clj (clojure.lang.Reduced x)
-            :cljs (cljs.core/Reduced x))))
+            :cljs (cljs.core/Reduced x)
+            :default t/UnsupportedPlatform)))
 
 (t/defalias
   ^{:doc "A reducer function with accumulator a and reduces over collections of b"
@@ -923,7 +966,8 @@
   t/Comparable
   (t/TFn [[x :variance :invariant]]
          #?(:clj (Comparable x)
-            :cljs (cljs.core/IComparable x))))
+            :cljs (cljs.core/IComparable x)
+            :default t/UnsupportedPlatform)))
 
 ;; ==========================================
 ;; Var annotations
@@ -985,7 +1029,9 @@ cc/add-classpath [(t/U t/Str java.net.URL) :-> nil]
 cc/*1 t/Any
 cc/*2 t/Any
 cc/*3 t/Any
-cc/*e #?(:cljs t/Any :default (t/U nil Throwable))
+cc/*e #?(:clj (t/U nil Throwable)
+         :cljs t/Any
+         :default t/UnsupportedPlatform)
 #?@(:cljs [] :default [
 cc/*agent* (t/U nil (t/Deref t/Any) #_(t/Agent t/Any))
 cc/*allow-unresolved-vars* t/Any
@@ -1221,10 +1267,10 @@ cc/every-pred
 
 cc/concat (t/All [x] [(t/Seqable x) :* :-> (t/ASeq x)])
 
-cc/set (t/All [x] [(t/Seqable x) :-> #?(:cljs (t/Set x)
-                                        :default (PersistentHashSet x))])
-cc/hash-set (t/All [x] [x :* :-> #?(:cljs (t/Set x)
-                                    :default (PersistentHashSet x))])
+cc/set (t/All [x] [(t/Seqable x) :-> #?(:clj (PersistentHashSet x)
+                                        :default (t/Set x))])
+cc/hash-set (t/All [x] [x :* :-> #?(:clj (PersistentHashSet x)
+                                    :default (t/Set x))])
 ;TODO
 ;cc/hash-map (t/All [x y z :..]
 ;                   (t/IFn [(t/cat z z) :.. z :-> (t/Assoc '{} z :.. z)]
@@ -1236,7 +1282,8 @@ cc/sorted-map-by (t/All [x y] [[x x :-> t/Int] (t/cat x y) :* :-> (t/SortedMap x
 cc/sorted-set (t/All [x] [x :* :-> (t/SortedSet x)])
 ;;FIXME use t/Comparator for first arg
 cc/sorted-set-by (t/All [x] [[x x :-> t/Int] x :* :-> (t/SortedSet x)])
-cc/list (t/All [x] [x :* :-> (#?(:clj PersistentList :cljs t/List) x)])
+cc/list (t/All [x] [x :* :-> (#?(:clj PersistentList :default t/List)
+                              x)])
 ;cc/list* (t/All [x] [x :* (t/Seqable x) :-> (t/NilableNonEmptyASeq x)])
 cc/list* (t/All [x] (t/IFn [(t/Seqable x) :-> (t/NilableNonEmptyASeq x)]
                            [x (t/Seqable x) :-> (t/NonEmptyASeq x)]
@@ -1312,8 +1359,8 @@ cc/update (t/All [[m :< (t/Option (t/Associative t/Any t/Any))]
 cc/dissoc (t/All [k v] (t/IFn [(t/Map k v) t/Any :* :-> (t/Map k v)]
                               [(t/Nilable (t/Map k v)) t/Any :* :-> (t/Nilable (t/Map k v))]))
 
-cc/zipmap (t/All [k v] [(t/Seqable k) (t/Seqable v) :-> #?(:cljs (t/Map k v)
-                                                          :default (APersistentMap k v))])
+cc/zipmap (t/All [k v] [(t/Seqable k) (t/Seqable v) :-> #?(:clj (APersistentMap k v)
+                                                           :default (t/Map k v))])
 
 cc/keys (t/All [k] (t/IFn [(t/Map k t/Any) :-> (t/ASeq k) :object {:id 0 :path [Keys]}]
                           [(t/Seqable (t/MapEntry k t/Any)) :-> (t/Nilable (t/ASeq k))]))
@@ -1478,7 +1525,8 @@ cc/force (t/All [x] (t/IFn [(t/Delay x) :-> x]
                            [t/Any :-> t/Any]))
 
 cc/realized? [#?(:clj clojure.lang.IPending
-                 :cljs cljs.core/IPending) :-> t/Bool]
+                 :cljs cljs.core/IPending
+                 :default t/UnsupportedPlatform) :-> t/Bool]
 
 cc/select-keys (t/All [k v] [(t/Map k v) t/AnySeqable :-> (t/Map k v)])
 
@@ -1497,10 +1545,12 @@ cc/volatile? (t/Pred t/AnyVolatile)
 cc/compare-and-set! (t/All [x] [(t/Atom x) t/Any x :-> t/Bool])
 
 cc/set-validator! (t/All [x] [#?(:clj (clojure.lang.IRef x)
-                                 :cljs (cljs.core/Atom x))
+                                 :cljs (cljs.core/Atom x)
+                                 :default t/UnsupportedPlatform)
                               (t/Nilable [x :-> t/Any]) :-> t/Any])
 cc/get-validator (t/All [x] [#?(:clj (clojure.lang.IRef x)
-                                :cljs (cljs.core/Atom x))
+                                :cljs (cljs.core/Atom x)
+                                :default t/UnsupportedPlatform)
                              :-> (t/Nilable [x :-> t/Any])])
 
 #?@(:cljs [] :default [
@@ -1580,7 +1630,8 @@ cc/map? (t/Pred (t/Map t/Any t/Any))
 cc/boolean? (t/Pred t/Bool)
 cc/any? [t/Any :-> true]
 cc/record? (t/Pred #?(:clj clojure.lang.IRecord
-                      :cljs cljs.core/IRecord))
+                      :cljs cljs.core/IRecord
+                      :default t/UnsupportedPlatform))
 
 ; would be nice
 ; (t/Pred (t/Not nil))
@@ -1599,10 +1650,12 @@ cc/sorted? (t/Pred (t/Sorted t/Any))
 cc/meta [t/Any :-> (t/Nilable (t/Map t/Any t/Any))]
 ;; FIXME IObj annotations are a hack. doesn't literally return the same reference.
 cc/with-meta (t/All [[x :< #?(:clj clojure.lang.IObj
-                              :cljs cljs.core/IWithMeta)]]
+                              :cljs cljs.core/IWithMeta
+                              :default t/UnsupportedPlatform)]]
                     [x (t/Nilable (t/Map t/Any t/Any)) :-> x])
 cc/vary-meta (t/All [[x :< #?(:clj clojure.lang.IObj
-                              :cljs cljs.core/IWithMeta)] b :..]
+                              :cljs cljs.core/IWithMeta
+                              :default t/UnsupportedPlatform)] b :..]
                     [x [(t/Nilable (t/Map t/Any t/Any)) b :.. b :-> (t/Nilable (t/Map t/Any t/Any))] b :.. b :-> x])
 
 cc/reset-meta! [clojure.lang.IReference (t/Nilable (t/Map t/Any t/Any)) :-> (t/Nilable (t/Map t/Any t/Any))]
@@ -1638,7 +1691,8 @@ cc/distinct (t/All [x] (t/IFn [:-> (t/Transducer x x)]
 
 cc/string? (t/Pred t/Str)
 cc/char? #?(:clj (t/Pred Character)
-            :cljs [t/Any :-> t/Bool :filters {:then (is t/Str 0)}])
+            :cljs [t/Any :-> t/Bool :filters {:then (is t/Str 0)}]
+            :default t/UnsupportedPlatform)
 
 clojure.string/split
 [t/Str t/Regex (t/? t/AnyInteger) :-> (t/AVec t/Str)]
@@ -2200,7 +2254,8 @@ cc/take-nth (t/All [x] [t/AnyInteger (t/Seqable x) :-> (t/ASeq x)])
 cc/shuffle (t/All [x] 
                   #?(:clj (t/IFn [(t/I (Collection x) (t/Seqable x)) :-> (t/Vec x)]
                                  [(Collection x) :-> (t/Vec x)])
-                     :cljs [(t/Seqable x) :-> (t/Vec x)]))
+                     :cljs [(t/Seqable x) :-> (t/Vec x)]
+                     :default t/UnsupportedPlatform))
 
 cc/special-symbol? [t/Any :-> t/Bool]
 
@@ -2211,7 +2266,8 @@ cc/int? (t/Pred #?(:clj (t/U Long
                              Byte)
                    :cljs (t/U t/CLJSInteger
                               goog.math.Integer
-                              goog.math.Long)))
+                              goog.math.Long)
+                   :default t/UnsupportedPlatform))
 cc/pos-int? [t/Any :-> t/Bool
              :filters {:then (is #?(:clj (t/U Long
                                               Integer
@@ -2219,7 +2275,8 @@ cc/pos-int? [t/Any :-> t/Bool
                                               Byte)
                                     :cljs (t/U t/CLJSInteger
                                                goog.math.Integer
-                                               goog.math.Long)) 0)}]
+                                               goog.math.Long)
+                                    :default t/UnsupportedPlatform) 0)}]
 cc/neg-int? [t/Any :-> t/Bool
              :filters {:then (is #?(:clj (t/U Long
                                               Integer
@@ -2227,7 +2284,8 @@ cc/neg-int? [t/Any :-> t/Bool
                                               Byte)
                                     :cljs (t/U t/CLJSInteger
                                                goog.math.Integer
-                                               goog.math.Long)) 0)}]
+                                               goog.math.Long)
+                                    :default t/UnsupportedPlatform) 0)}]
 cc/nat-int? [t/Any :-> t/Bool
              :filters {:then (is #?(:clj (t/U Long
                                               Integer
@@ -2235,12 +2293,15 @@ cc/nat-int? [t/Any :-> t/Bool
                                               Byte)
                                     :cljs (t/U t/CLJSInteger
                                                goog.math.Integer
-                                               goog.math.Long)) 0)}]
+                                               goog.math.Long)
+                                    :default t/UnsupportedPlatform) 0)}]
 cc/number? (t/Pred t/Num)
 cc/double? (t/Pred #?(:clj Double
-                      :cljs t/Num))
+                      :cljs t/Num
+                      :default t/UnsupportedPlatform))
 cc/float? (t/Pred #?(:clj (t/U Double Float)
-                     :cljs t/Num))
+                     :cljs t/Num
+                     :default t/UnsupportedPlatform))
 cc/ident? (t/Pred t/Ident)
 cc/simple-ident? [t/Any :-> t/Bool :filters {:then (is t/Ident 0)}]
 cc/qualified-ident? [t/Any :-> t/Bool :filters {:then (is t/Ident 0)}]
@@ -2331,8 +2392,8 @@ cc/abs (t/IFn #?(:clj [Long :-> Long])
               #?(:clj [Double :-> Double])
               [t/Num :-> t/Num])
 
-cc/NaN? [#?(:cljs t/Num :default Double) :-> t/Bool]
-cc/infinite? [#?(:cljs t/Num :default Double) :-> t/Bool]
+cc/NaN? [#?(:clj Double :cljs t/Num :default t/UnsupportedPlatform) :-> t/Bool]
+cc/infinite? [#?(:clj Double :cljs t/Num :default t/UnsupportedPlatform) :-> t/Bool]
 
 cc/bit-not [t/AnyInteger :-> t/AnyInteger]
 cc/bit-and [t/AnyInteger (t/+ t/AnyInteger) :-> t/AnyInteger]
@@ -2347,8 +2408,8 @@ cc/bit-shift-left [t/AnyInteger t/AnyInteger :-> t/AnyInteger]
 cc/bit-shift-right [t/AnyInteger t/AnyInteger :-> t/AnyInteger]
 cc/unsigned-bit-shift-right [t/AnyInteger t/AnyInteger :-> t/AnyInteger]
 
-clojure.math/E #?(:cljs t/Num :default Double)
-clojure.math/PI #?(:cljs t/Num :default Double)
+clojure.math/E #?(:clj Double :cljs t/Num :default t/UnsupportedPlatform)
+clojure.math/PI #?(:clj Double :cljs t/Num :default t/UnsupportedPlatform)
 ;TODO rest of clojure.math
 
 cc/even? [t/AnyInteger :-> t/Bool]
@@ -2384,13 +2445,31 @@ cc/await1 (t/All [[a :< t/AnyAgent]] [a :-> (t/Nilable a)])
 cc/release-pending-sends [:-> t/AnyInteger]
 ])
 
-cc/add-watch (t/All [x [a :< (#?(:clj IRef :cljs t/Atom) x)]]
+cc/add-watch (t/All [x [a :< (#?(:clj IRef 
+                                 :cljs t/Atom
+                                 :default t/UnsupportedPlatform)
+                              x)]]
                     (t/IFn
                       ; this arity remembers the type of reference we pass to the function
                       [a t/Any [t/Any a x x :-> t/Any] :-> t/Any]
                       ; if the above cannot be inferred, 
-                      [(#?(:clj IRef :cljs t/Atom) x) t/Any [t/Any (#?(:clj IRef :cljs t/Atom) x) x x :-> t/Any] :-> t/Any]))
-cc/remove-watch (t/All [x] [(#?(:clj IRef :cljs t/Atom) x) t/Any :-> t/Any])
+                      [(#?(:clj IRef 
+                           :cljs t/Atom
+                           :default t/UnsupportedPlatform)
+                       x)
+                       t/Any
+                       [t/Any
+                        (#?(:clj IRef 
+                            :cljs t/Atom
+                            :default t/UnsupportedPlatform)
+                         x)
+                        x x :-> t/Any]
+                       :-> t/Any]))
+cc/remove-watch (t/All [x] [(#?(:clj IRef 
+                                :cljs t/Atom
+                                :default t/UnsupportedPlatform)
+                             x)
+                            t/Any :-> t/Any])
 
 #?@(:cljs [] :default [
 cc/agent-error [t/AnyAgent :-> (t/Nilable Throwable)]
@@ -2415,10 +2494,13 @@ cc/hash [t/Any :-> t/AnyInteger]
 cc/hash-combine [t/AnyInteger t/Any :-> t/AnyInteger]
 
 cc/ifn? (t/Pred #?(:clj clojure.lang.IFn
-                   :cljs cljs.core/IFn))
+                   :cljs cljs.core/IFn
+                   :default t/UnsupportedPlatform))
 cc/fn? (t/Pred t/Fn)
 
-cc/instance? [#?(:clj Class :cljs js/Object) t/Any :-> t/Bool]
+cc/instance? [#?(:clj Class 
+                 :cljs js/Object
+                 :default t/UnsupportedPlatform) t/Any :-> t/Bool]
 cc/cons (t/All [x] [x (t/Seqable x) :-> (t/ASeq x)])
 cc/reverse (t/All [x] [(t/Seqable x) :-> (t/ASeq x)])
 cc/rseq (t/All [x] [(t/Reversible x) :-> (t/NilableNonEmptyASeq x)])
@@ -2439,14 +2521,15 @@ cc/char [(t/U t/Str t/Num) :-> t/Str]
 ] :default [
 cc/char [(t/U Character t/Num) :-> Character]
 ])
-cc/double [t/Num :-> #?(:cljs t/Num :default Double)]
-cc/parse-double [t/Str :-> (t/Option #?(:cljs t/Num :default Double))]
+cc/double [t/Num :-> #?(:clj Double :cljs t/Num :default t/UnsupportedPlatform)]
+cc/parse-double [t/Str :-> (t/Option #?(:clj Double :cljs t/Num :default t/UnsupportedPlatform))]
 
-cc/float [t/Num :-> #?(:cljs t/Num :default Float)]
-cc/int [#?(:cljs t/Num :default (t/U Character t/Num)) :-> #?(:cljs t/AnyInteger :default Integer)]
+cc/float [t/Num :-> #?(:clj Float :cljs t/Num :default t/UnsupportedPlatform)]
+cc/int [#?(:clj (t/U Character t/Num) :cljs t/Num :default t/UnsupportedPlatform)
+        :-> #?(:clj Integer :default t/AnyInteger)]
 
-cc/long [#?(:cljs t/Num :default (t/U Character t/Num)) :-> #?(:cljs t/AnyInteger :default Long)]
-cc/parse-long [t/Str :-> (t/Option #?(:cljs t/AnyInteger :default Long))]
+cc/long [#?(:clj (t/U Character t/Num) :cljs t/Num :default t/UnsupportedPlatform) :-> #?(:clj Long :default t/AnyInteger)]
+cc/parse-long [t/Str :-> (t/Option #?(:clj Long :cljs t/AnyInteger :default t/UnsupportedPlatform))]
 #?@(:cljs [] :default [
 cc/num [t/Num :-> t/Num]
 ])
@@ -2516,11 +2599,16 @@ cc/ref (t/All [x] [x & :optional {:validator (t/U nil [x :-> t/Any]) :meta (t/U 
 cc/rand [(t/? t/Num) :-> t/Num]
 cc/rand-int [t/Int :-> t/Int]
 cc/ex-info (t/IFn [(t/Nilable t/Str) (t/Map t/Any t/Any) :-> t/ExInfo]
-                  [(t/Nilable t/Str) (t/Map t/Any t/Any) (t/? #?(:clj (t/Nilable Throwable) :cljs t/Any)) :-> t/ExInfo])
+                  [(t/Nilable t/Str) (t/Map t/Any t/Any) (t/? #?(:clj (t/Nilable Throwable) 
+                                                                 :cljs t/Any
+                                                                 :default t/UnsupportedPlatform))
+                   :-> t/ExInfo])
 cc/ex-data (t/IFn [t/ExInfo :-> (t/Map t/Any t/Any)]
                   [t/Any :-> (t/Nilable (t/Map t/Any t/Any))])
 cc/ex-message [t/Any :-> (t/Nilable t/Str)]
-cc/ex-cause [t/Any :-> #?(:clj (t/Nilable Throwable) :cljs t/Any)]
+cc/ex-cause [t/Any :-> #?(:clj (t/Nilable Throwable) 
+                          :cljs t/Any
+                          :default t/UnsupportedPlatform)]
 
 
 ;; START CHUNK HACKS

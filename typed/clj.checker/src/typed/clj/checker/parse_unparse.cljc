@@ -1290,6 +1290,28 @@
 (defmethod parse-type-symbol 'typed.clojure/Nothing [_ opts] (r/Bottom))
 (defmethod parse-type-symbol 'typed.clojure/AnyFunction [_ opts] (r/TopFunction-maker))
 
+(defmethod parse-type-symbol 'typed.clojure/UnsupportedPlatform [_ opts]
+  (let [platform (impl/current-impl opts)
+        platform-name (impl/platform-name opts)
+        platform-feature (impl/platform-feature-keyword opts)
+        [_ tsyn] (find opts ::parsing-tsyn)
+        nsym (parse-in-ns opts)
+        env (tsyn->env tsyn)
+        file (:file env)
+        line (:line env)
+        column (:column env)
+        suggestion (if platform-feature
+                     (str "\n  Suggestion: Extend the reader conditional to support " platform-name " by adding a " platform-feature " branch.")
+                     (str "\n  Suggestion: Implement support for " platform-name " platform."))]
+    (prs-error (str "Type alias does not support " platform-name " platform."
+                    (when nsym (str "\n  Namespace: " nsym))
+                    (when file (str "\n  File: " file))
+                    (when line (str "\n  Line: " line))
+                    (when column (str "\n  Column: " column))
+                    (when tsyn (str "\n  Type expression: " (pr-str tsyn)))
+                    suggestion)
+               opts)))
+
 ;; hmmm...a psuedo primitive?
 (defmethod parse-type-symbol 'typed.clojure/CLJSInteger [_ opts]
   (impl/assert-cljs 'typed.clojure/CLJSInteger opts)

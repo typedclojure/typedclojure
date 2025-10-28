@@ -371,3 +371,10 @@
              (prs/unparse-type
                (prs/parse-clj `(t/Satisfies InvariantProtocol))
                (unparse-in-opts)))))
+
+(deftest parse-UnsupportedPlatform-test
+  (testing "UnsupportedPlatform throws an error with platform information"
+    (is-clj (thrown-with-msg? 
+              Throwable
+              #"Type alias does not support.*platform"
+              (prs/parse-type 'typed.clojure/UnsupportedPlatform (clj-opts))))))

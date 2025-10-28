@@ -325,6 +325,25 @@
   (ensure-impl-specified opts)
   (= clojurescript (current-impl opts)))
 
+(defn platform-name
+  "Returns a human-readable name for the current platform."
+  [opts]
+  #?(:cljr "ClojureCLR"
+     :default (impl-case opts
+                :clojure "Clojure JVM"
+                :cljs "ClojureScript"
+                :unknown (str (current-impl opts)))))
+
+(defn platform-feature-keyword
+  "Returns the reader conditional feature keyword for the current platform.
+  Returns nil if the platform is unknown."
+  [opts]
+  #?(:cljr :cljr
+     :default (impl-case opts
+                :clojure :clj
+                :cljs :cljs
+                :unknown nil)))
+
 (defmacro assert-clojure
   ([opts] `(assert-clojure nil ~opts))
   ([msg opts] `(assert (= clojure (current-impl ~opts))
