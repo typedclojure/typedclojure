@@ -31,13 +31,17 @@
     (let [result (p/shell {:out :string
                           :err :string
                           :continue true}
-                         "clojure -M:test -e"
+                         "clojure" 
+                         "-M:test" 
+                         "-e"
                          (str "(require 'typed.clojure)"
-                              "(typed.clojure/check-ns-info '"
+                              "(typed.clojure/check-ns-clj '"
                               ;; Extract namespace from file
                               (let [content (slurp file-path)
-                                    ns-match (re-find #"\(ns\s+([^\s)]+)" content)]
+                                    ;; Match namespace, skipping metadata
+                                    ns-match (re-find #"\(ns\s+(?:\^[^\s]+\s+)?([^\s)]+)" content)]
                                 (when ns-match (second ns-match)))
+                              " :max-parallelism 1" 
                               ")"))]
       {:success (zero? (:exit result))
        :output (str (:out result) "\n" (:err result))})

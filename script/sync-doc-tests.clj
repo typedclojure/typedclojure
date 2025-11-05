@@ -288,27 +288,23 @@
               (let [block (get updates (inc i))
                     metadata-str (format-metadata (:metadata block) :markdown)]
                 (recur (inc i)
-                       (conj result metadata-str)
+                       (-> result
+                           (conj metadata-str)
+                           (conj line))
                        block))
               
-              ;; Inside updated block - at code block start
+              ;; Inside updated block - at first code line, replace all code
               (and in-update (= i (:line-start in-update)))
-              (recur (inc i)
-                     (conj result line) ; ```clojure
-                     in-update)
+              ;; Insert new code and jump to closing ``` line
+              (recur (:line-end in-update)
+                     (into result (str/split-lines (:code in-update)))
+                     nil)
               
-              ;; Inside updated block - replace code
+              ;; Inside updated block - skip old code lines
               (and in-update
                    (> i (:line-start in-update))
                    (< i (:line-end in-update)))
-              (if (= i (inc (:line-start in-update)))
-                ;; First line after ```clojure - insert new code
-                (recur (:line-end in-update)
-                       (into result (concat (str/split-lines (:code in-update))
-                                           [(nth lines (dec (:line-end in-update)))]))
-                       nil)
-                ;; Skip old code lines
-                (recur (inc i) result in-update))
+              (recur (inc i) result in-update)
               
               ;; Normal line
               :else
