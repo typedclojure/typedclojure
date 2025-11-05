@@ -235,10 +235,10 @@ APersistentVector [[[a :variance :covariant]]
                    :replace
                    {;IPersistentCollection (IPersistentCollection a)
                     ;Seqable (Seqable (t/NilableNonEmptySeq a))
-                    Iterable (Iterable a)
+                    #?@(:clj [Iterable (Iterable a)])
                     ;Collection (Collection a)
                     java.util.List (java.util.List a)
-                    RandomAccess (RandomAccess a)
+                    #?@(:clj [RandomAccess (RandomAccess a)])
                     IPersistentVector (IPersistentVector a)
                     ;Reversible (Reversible a)
                     ;IPersistentStack (IPersistentStack a)
@@ -327,7 +327,7 @@ IPersistentMap [[[a :variance :covariant]
                  [b :variance :covariant]]
                 :replace
                 {;IPersistentCollection (IPersistentCollection (AMapEntry a b))
-                 Iterable (Iterable (AMapEntry a b))
+                 #?@(:clj [Iterable (Iterable (AMapEntry a b))])
                  ;Seqable (Seqable (t/NilableNonEmptySeq (AMapEntry a b)))
                  ;ILookup (ILookup a b)
                  Associative (Associative a b (AMapEntry a b))}]
@@ -346,7 +346,7 @@ APersistentMap [[[a :variance :covariant]
                  [b :variance :covariant]]
                 :replace
                 {;IPersistentCollection (IPersistentCollection (AMapEntry a b))
-                 Iterable (Iterable (AMapEntry a b))
+                 #?@(:clj [Iterable (Iterable (AMapEntry a b))])
                  IPersistentMap (IPersistentMap a b)
                  ;Seqable (Seqable (t/NilableNonEmptySeq (AMapEntry a b)))
                  ;ILookup (ILookup a b)
