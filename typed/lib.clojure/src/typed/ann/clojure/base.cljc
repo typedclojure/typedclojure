@@ -12,30 +12,16 @@
             #?(:clj [typed.clojure.jvm :refer [override-classes]]
                :cljr [typed.clojure.jvm :refer [override-classes]])
             clojure.core.typed)
-  #?(:clj
-     (:import (clojure.lang Named IMapEntry AMapEntry Seqable
-                            LazySeq PersistentHashSet PersistentTreeSet PersistentTreeMap PersistentList APersistentVector
-                            APersistentSet IPersistentSet IPersistentMap IPersistentVector
-                            APersistentMap IDeref ISeq IPersistentCollection
-                            ILookup Indexed Associative IPersistentStack PersistentVector Cons
-                            IPersistentList IRef ARef Reversible
-                            ITransientCollection ITransientSet ITransientAssociative ITransientMap
-                            ITransientVector PersistentHashMap Reduced MultiFn Sorted)
-              (java.util Collection RandomAccess))
-     :cljr
-     (:import (clojure.lang Named IMapEntry AMapEntry Seqable
-                            LazySeq PersistentHashSet PersistentTreeSet PersistentTreeMap PersistentList APersistentVector
-                            APersistentSet IPersistentSet IPersistentMap IPersistentVector
-                            APersistentMap IDeref ISeq IPersistentCollection
-                            ILookup Indexed Associative IPersistentStack PersistentVector Cons
-                            IPersistentList IRef ARef Reversible
-                            ITransientCollection ITransientSet ITransientAssociative ITransientMap
-                            ITransientVector PersistentHashMap Reduced MultiFn Sorted)
-              (System.Collections ICollection))
-     :default nil))
-
-;; CLR platform needs Comparable to resolve
-#?(:cljr (def Comparable System.IComparable))
+  (:import (clojure.lang Named IMapEntry AMapEntry Seqable
+                         LazySeq PersistentHashSet PersistentTreeSet PersistentTreeMap PersistentList APersistentVector
+                         APersistentSet IPersistentSet IPersistentMap IPersistentVector
+                         APersistentMap IDeref ISeq IPersistentCollection
+                         ILookup Indexed Associative IPersistentStack PersistentVector Cons
+                         IPersistentList IRef ARef Reversible
+                         ITransientCollection ITransientSet ITransientAssociative ITransientMap
+                         ITransientVector PersistentHashMap Reduced MultiFn Sorted)
+           #?(:clj (java.util Collection RandomAccess)
+              :cljr (System.Collections ICollection))))
 
 ;; ==========================================
 ;; Base Class annotations (JVM and CLR)
@@ -44,7 +30,7 @@
 
 (override-classes
 
-Comparable [[[a :variance :invariant]]]
+#?(:clj Comparable :cljr System.IComparable) [[[a :variance :invariant]]]
 ;java.util.Comparator [[[a :variance :invariant]]
 ;                      :replace
 ;                      {Comparable (Comparable a)}]
@@ -259,7 +245,7 @@ APersistentVector [[[a :variance :covariant]]
                     ;ILookup (ILookup Number a)
                     ;Associative (Associative Number a a)
                     ;Indexed (Indexed a)
-                    Comparable (Comparable (IPersistentVector a))}
+                    #?(:clj Comparable :cljr System.IComparable) (#?(:clj Comparable :cljr System.IComparable) (IPersistentVector a))}
                    :unchecked-ancestors
                    [[Number -> a]]]
 
@@ -439,7 +425,7 @@ PersistentList [[[a :variance :covariant]]
 
 clojure.lang.Keyword [[]
                       :replace
-                      {Comparable (Comparable clojure.lang.Keyword)}
+                      {#?(:clj Comparable :cljr System.IComparable) (#?(:clj Comparable :cljr System.IComparable) clojure.lang.Keyword)}
                       :unchecked-ancestors
                       [(t/All [x] 
                               (t/IFn [(t/U nil (IPersistentMap t/Any x)) -> (t/U nil x)]
@@ -447,7 +433,7 @@ clojure.lang.Keyword [[]
 
 clojure.lang.Symbol [[]
                      :replace
-                     {Comparable (Comparable clojure.lang.Symbol)}]
+                     {#?(:clj Comparable :cljr System.IComparable) (#?(:clj Comparable :cljr System.IComparable) clojure.lang.Symbol)}]
 
 IDeref [[[r :variance :covariant]]]
 clojure.lang.IBlockingDeref [[[r :variance :covariant]]]
@@ -470,7 +456,7 @@ clojure.lang.Ref
        IRef (IRef x)
        ARef (ARef x)
        ;IDeref (IDeref x)
-       Comparable (Comparable (t/Instance clojure.lang.Ref))}]
+       #?(:clj Comparable :cljr System.IComparable) (#?(:clj Comparable :cljr System.IComparable) (t/Instance clojure.lang.Ref))}]
 
 clojure.lang.Agent
       [[[x :variance :invariant]]
@@ -574,23 +560,23 @@ MultiFn [[[f :variance :covariant :> EveryIFn :< AnyIFn]
 
 ; Hack for Seqable things. Not needed if Seqable was a protocol.
 
-java.lang.CharSequence [[]
+#?@(:clj [java.lang.CharSequence [[]
                         :unchecked-ancestors
                         [(Seqable (t/NilableNonEmptySeq Character))
-                         (Indexed Character)]]
+                         (Indexed Character)]]])
 
 ;FIXME Need to correctly check ancestors, this shouldn't be necessary because String is a CharSequence
 ; CTYP-15
-java.lang.String [[]
+#?@(:clj [java.lang.String [[]
                   :replace
                   {Comparable (Comparable String)}
                   :unchecked-ancestors
                   [(Seqable (t/NilableNonEmptySeq Character))
-                   (Indexed Character)]]
+                   (Indexed Character)]]])
 
-java.lang.Iterable [[[a :variance :covariant]]
+#?@(:clj [java.lang.Iterable [[[a :variance :covariant]]
                     :unchecked-ancestors
-                    [(Seqable (t/NilableNonEmptySeq a))]]
+                    [(Seqable (t/NilableNonEmptySeq a))]]])
 
 ;; the following Java collections should really have :invariant type params.
 ;; Scala deals with this via implicit conversions from their own
@@ -598,32 +584,33 @@ java.lang.Iterable [[[a :variance :covariant]]
 ;; https://docs.scala-lang.org/overviews/collections/conversions-between-java-and-scala-collections.html
 ;; We could do something similar by introducing similarly named covariant types that could
 ;; coexist with the invariant versions. eg., (typed.clojure.java.immutable/Set x)
-java.util.Set [[[a :variance :covariant]]
+#?@(:clj [java.util.Set [[[a :variance :covariant]]
                :replace
                {;Iterable (Iterable a)
                 Collection (Collection a)}
                :unchecked-ancestors
-               [(Seqable (t/NilableNonEmptySeq a))]]
+               [(Seqable (t/NilableNonEmptySeq a))]]])
 
 ;; FIXME should invariant
-java.util.Collection [[[a :variance :covariant]]
+#?@(:clj [java.util.Collection [[[a :variance :covariant]]
                       :replace
                       {Iterable (Iterable a)}
                       :unchecked-ancestors
-                      [(Seqable (t/NilableNonEmptySeq a))]]
+                      [(Seqable (t/NilableNonEmptySeq a))]]])
 
-java.lang.ref.Reference [[[a :variance :invariant]]]
-java.lang.ref.SoftReference [[[a :variance :invariant]]
+#?@(:clj [java.lang.ref.Reference [[[a :variance :invariant]]]])
+#?@(:clj [java.lang.ref.SoftReference [[[a :variance :invariant]]
                              :replace
-                             {java.lang.ref.Reference (java.lang.ref.Reference a)}]
+                             {java.lang.ref.Reference (java.lang.ref.Reference a)}]])
 
 ;;TODO delete this type param. Reconsider using fake Indexed ancestors. This was originally
 ;; probably a misunderstanding of the RandomAccess + List case of nth.
-java.util.RandomAccess [[[a :variance :covariant]]
+#?@(:clj [java.util.RandomAccess [[[a :variance :covariant]]
                         :unchecked-ancestors
-                        [(Indexed a)]]
+                        [(Indexed a)]]])
 )
 
+#?(:clj
 (cond
   (resolve 'java.util.SequencedCollection)
   (override-classes
@@ -643,7 +630,7 @@ java.util.RandomAccess [[[a :variance :covariant]]
     java.util.List [[[a :variance :covariant]]
                     :replace
                     {;Iterable (Iterable a)
-                     Collection (Collection a)}]))
+                     Collection (Collection a)}])))
 
 ;; ==========================================
 ;; Predicate support for common base classes
