@@ -42,7 +42,8 @@
     (entryAt [_ k] (let [r (find m k)
                          path (conj path k)]
                      (if r
-                       (if (map? (nth r 1))
+                       (if (and (map? (nth r 1))
+                                (not (r/Type? (nth r 1))))
                          (update r 1 monitored-checker-map callback path)
                          (do (callback path (val r))
                              r))
@@ -50,7 +51,8 @@
                            r))))
     (valAt [_ k] (let [r (get m k)
                        path (conj path k)]
-                   (if (map? r)
+                   (if (and (map? r)
+                            (not (r/Type? r)))
                      (monitored-checker-map r callback path)
                      (do (when (some? r) (callback path r))
                          r))))
@@ -59,7 +61,8 @@
                              (if (identical? r unique)
                                not-found
                                (let [path (conj path k)]
-                                 (if (map? r)
+                                 (if (and (map? r)
+                                          (not (r/Type? r)))
                                    (monitored-checker-map r callback path)
                                    (do (when (some? r) (callback path r))
                                        r))))))))

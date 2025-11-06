@@ -94,6 +94,7 @@
 (def ns-opts-kw ::ns-options)
 (def unanalyzed-special-kw ::unanalyzed-special)
 (def current-rclass-env-kw ::current-rclass-env)
+(def multimethod-dispatch-env-kw ::multimethod-dispatch-env)
 
 (defn add-tc-var-type [checker sym type]
   (env/swap-checker! checker assoc-in [current-var-annotations-kw sym] type)

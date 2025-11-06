@@ -6,29 +6,23 @@
 ;;   the terms of this license.
 ;;   You must not remove this notice, or any other, from this software.
 
-;; FIXME make implementation-agnostic (use typed.cljc.runtime.env)
 (ns ^:typed.clojure ^:no-doc typed.clj.checker.mm-env
   (:require [clojure.core.typed.contract-utils :as con]
             [clojure.core.typed.errors :as err]
             [clojure.core.typed.current-impl :as impl]
-            [typed.cljc.checker.type-rep :as r]))
+            [typed.cljc.checker.type-rep :as r]
+            [typed.cljc.runtime.env :as env]))
 
 ;; Environment for storing multimethod types and inferred filters
 
-(def initial-mm-dispatch-env {})
+(defn multimethod-dispatch-env [checker]
+  (get (env/deref-checker checker) impl/multimethod-dispatch-env-kw {}))
 
-; (Atom (Seqable (IPersistentMap Symbol '{:fn-type Type, :dispatch-result (U nil Type)})))
-(defonce MULTIMETHOD-DISPATCH-ENV (atom initial-mm-dispatch-env
-                                        #_#_
-                                        :validator (con/hash-c?
-                                                     (every-pred symbol? namespace)
-                                                     r/Type?)))
-
-(defn reset-mm-dispatch-env! []
-  (reset! MULTIMETHOD-DISPATCH-ENV initial-mm-dispatch-env)
+(defn reset-mm-dispatch-env! [checker]
+  (env/swap-checker! checker assoc impl/multimethod-dispatch-env-kw {})
   nil)
 
-; [Symbol Proposition -> nil]
+; [Symbol Type -> nil]
 (defn add-multimethod-dispatch-type
   "Add the type of the dispatch function of the multimethod named by mmsym
   to the environment. If already exists, must be identical."
@@ -36,16 +30,15 @@
   {:pre [(symbol? mmsym)
          (r/Type? dtype)]}
   (impl/assert-clojure opts)
-  ;(prn `add-multimethod-dispatch-type mmsym dtype)
-  (swap! MULTIMETHOD-DISPATCH-ENV
-         update mmsym
-         (fn [old]
-           (when (and old (not= old dtype))
-             (err/int-error 
-               (str "Inconsistent dispatch type inferred for multimethod: " mmsym
-                    ".  JVM process restart probably necessary.")
-               opts))
-           dtype))
+  (let [checker (env/checker opts)
+        old (get (multimethod-dispatch-env checker) mmsym)]
+    ;(prn `add-multimethod-dispatch-type mmsym dtype)
+    (when (and old (not= old dtype))
+      (err/int-error 
+        (str "Inconsistent dispatch type inferred for multimethod: " mmsym
+             ".  JVM process restart probably necessary.")
+        opts))
+    (env/swap-checker! checker assoc-in [impl/multimethod-dispatch-env-kw mmsym] dtype))
   nil)
 
 (defn multimethod-dispatch-type
@@ -54,14 +47,16 @@
   {:pre [(symbol? mmsym)]
    :post [((some-fn nil? r/Type?) %)]}
   (impl/assert-clojure opts)
-  (@MULTIMETHOD-DISPATCH-ENV mmsym))
+  (let [checker (env/checker opts)]
+    (get (multimethod-dispatch-env checker) mmsym)))
 
 #_
 (defn get-multimethod-dispatch-type [mmsym opts]
   {:pre [(symbol? mmsym)]
    :post [(r/Type? %)]}
   (impl/assert-clojure opts)
-  (let [t (@MULTIMETHOD-DISPATCH-ENV mmsym)]
+  (let [checker (env/checker opts)
+        t (get (multimethod-dispatch-env checker) mmsym)]
     (when-not t 
       (err/int-error (str "Multimethod requires dispatch type: " mmsym) opts))
     t))

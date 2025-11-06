@@ -24,7 +24,7 @@
     (impl/impl-case opts
       :clojure
       (do (bse-clj/reset-clojure-envs!)
-          (mmenv/reset-mm-dispatch-env!)
+          (mmenv/reset-mm-dispatch-env! (impl/clj-checker))
           (ns-opts/reset-ns-opts! (impl/clj-checker)))
       :cljs
       (do
