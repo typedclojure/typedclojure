@@ -30,15 +30,17 @@
   {:pre [(symbol? mmsym)
          (r/Type? dtype)]}
   (impl/assert-clojure opts)
-  (let [checker (env/checker opts)
-        old (get (multimethod-dispatch-env checker) mmsym)]
+  (let [checker (env/checker opts)]
     ;(prn `add-multimethod-dispatch-type mmsym dtype)
-    (when (and old (not= old dtype))
-      (err/int-error 
-        (str "Inconsistent dispatch type inferred for multimethod: " mmsym
-             ".  JVM process restart probably necessary.")
-        opts))
-    (env/swap-checker! checker assoc-in [impl/multimethod-dispatch-env-kw mmsym] dtype))
+    (env/swap-checker! checker 
+      (fn [state]
+        (let [old (get-in state [impl/multimethod-dispatch-env-kw mmsym])]
+          (when (and old (not= old dtype))
+            (err/int-error 
+              (str "Inconsistent dispatch type inferred for multimethod: " mmsym
+                   ".  JVM process restart probably necessary.")
+              opts))
+          (assoc-in state [impl/multimethod-dispatch-env-kw mmsym] dtype)))))
   nil)
 
 (defn multimethod-dispatch-type
