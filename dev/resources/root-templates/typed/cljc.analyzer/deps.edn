@@ -1,9 +1,6 @@
 {% do-not-edit-edn-comment %}
 {:paths ["src"]
  :deps {org.clojure/clojure {:mvn/version "{◊analyzer-clojure-mvn-version◊}"}}
- :mvn/repos
- {"sonatype-oss-public"
-  {:url "{◊sonatype-oss-public-url◊}"}},
  :aliases {:nREPL
            {:extra-deps
             {nrepl/nrepl {:mvn/version "{◊nrepl-mvn-version◊}"}

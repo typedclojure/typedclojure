@@ -99,7 +99,8 @@
   (do
     (impl/impl-case opts
       :clojure @*register-clj-anns
-      #?@(:clj [:cljs @*register-cljs-anns]))
+      #?@(:clj [:cljs @*register-cljs-anns
+                :fnl (println "TODO register Typed Fennel annotations")]))
     (let [type-errors (err/-init-type-errors)
           opts (-> opts
                    (assoc ::vs/can-rewrite true)

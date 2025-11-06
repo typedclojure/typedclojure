@@ -10,11 +10,15 @@
          '[clojure.string :as str])
 (import '[java.util UUID])
 
+(def excluded-submodules
+  #{"typed/fnl.runtime"}) ;; Fennel runtime tested separately in fennel-ci.yml
+
 (def all-testable-submodules
   (into (sorted-set)
         (keep (fn [^java.io.File f]
                 (when (.isDirectory f)
-                  (when-not (str/starts-with? (.getName f) ".") ;; remove hidden dirs
+                  (when-not (or (str/starts-with? (.getName f) ".") ;; remove hidden dirs
+                                (excluded-submodules (.getPath f)))
                     (.getPath f)))))
         (concat (.listFiles (io/file "typed"))
                 (.listFiles (io/file "example-projects")))))

@@ -6,9 +6,6 @@
         org.ow2.asm/asm {:mvn/version "9.2"}
         org.typedclojure/typed.cljc.analyzer {:local/root "../cljc.analyzer"
                                               :deps/manifest :deps}}
- :mvn/repos
- {"sonatype-oss-public"
-  {:url "https://oss.sonatype.org/content/groups/public/"}},
  :aliases {:nREPL
            {:extra-deps
             {nrepl/nrepl {:mvn/version "1.3.1"}

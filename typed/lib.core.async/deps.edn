@@ -5,7 +5,6 @@
         org.typedclojure/typed.clj.runtime
         {:local/root "../clj.runtime"
          :deps/manifest :deps}}
- :mvn/repos {"sonatype-oss-public" {:url "https://oss.sonatype.org/content/groups/public/"}}
  :aliases {:nREPL
            {:extra-paths ["script"]
             :extra-deps

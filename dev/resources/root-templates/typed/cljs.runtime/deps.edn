@@ -4,8 +4,6 @@
         org.clojure/clojurescript {:mvn/version "{◊clojurescript-mvn-version◊}"}
         io.github.frenchy64/fully-satisfies {:mvn/version "{◊fully-satisfies-mvn-version◊}"}
         {◊typedclojure-group-id◊}/typed.clj.runtime {:local/root "../clj.runtime" :deps/manifest :deps}}
- :mvn/repos {"sonatype-oss-public"
-             {:url "{◊sonatype-oss-public-url◊}"}}
  :aliases {:test
            {:jvm-opts ["-Dtyped.clojure.preserve-check-ns-after-opt-in=true"]
             :extra-paths ["test"]}

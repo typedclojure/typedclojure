@@ -5,9 +5,6 @@
         org.clojure/tools.reader {:mvn/version "{◊tools-reader-mvn-version◊}"}
         {◊typedclojure-group-id◊}/typed.cljc.analyzer {:local/root "../cljc.analyzer"
                                               :deps/manifest :deps}}
- :mvn/repos
- {"sonatype-oss-public"
-  {:url "{◊sonatype-oss-public-url◊}"}},
  :aliases {:nREPL
            {:extra-deps
             {nrepl/nrepl {:mvn/version "{◊nrepl-mvn-version◊}"}

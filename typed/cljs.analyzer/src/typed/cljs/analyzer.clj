@@ -382,7 +382,7 @@
 (defn default-opts []
   {::ana/resolve-ns (fn [sym env opts]
                       (throw (ex-info "TODO typed.cljs.analyzer/resolve-ns" {})))
-   ::ana/current-ns-name (fn [sym env opts]
+   ::ana/current-ns-name (fn [env opts]
                            (throw (ex-info "TODO typed.cljs.analyzer/current-ns-name" {})))
    ::ana/parse (fn [form env opts] (parse (first form) env form nil opts))
    ::ana/eval-ast (fn [ast opts]

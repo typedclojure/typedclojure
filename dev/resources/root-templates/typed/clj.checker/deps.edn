@@ -13,9 +13,6 @@
   com.nextjournal/beholder {:mvn/version "{◊beholder-mvn-version◊}"}
   babashka/process {:mvn/version "{◊process-mvn-version◊}"}
   io.github.frenchy64/fully-satisfies {:mvn/version "{◊fully-satisfies-mvn-version◊}"}},
- :mvn/repos
- {"sonatype-oss-public"
-  {:url "{◊sonatype-oss-public-url◊}"}},
  :aliases
  {:script {:extra-paths ["script"]},
   :nREPL

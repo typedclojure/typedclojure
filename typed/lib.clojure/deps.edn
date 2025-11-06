@@ -2,7 +2,6 @@
 {:paths ["src"]
  :deps {org.clojure/clojure {:mvn/version "1.12.1"}
         io.github.frenchy64/fully-satisfies {:mvn/version "1.12.0"}}
- :mvn/repos {"sonatype-oss-public" {:url "https://oss.sonatype.org/content/groups/public/"}}
  :aliases {:nREPL
            {:extra-paths ["script"]
             :extra-deps

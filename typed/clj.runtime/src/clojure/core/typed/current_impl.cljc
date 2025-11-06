@@ -27,20 +27,25 @@
 ;; We don't have a typed.cljr.runtime.env to copy to -- is this a problem?  What does this even mean?
 (def cljr ::cljr)
 
+;; Fennel implementation
+(def fnl ::fnl)
+
 (def unknown ::unknown)
 
 (derive clojure unknown)
 (derive clojurescript unknown)
 (derive cljr unknown)
+(derive fnl unknown)
 
 ;; :clojure = ::clojure
 ;; :cljs = ::clojurescript
 ;; :cljr = ::cljr
+;; :fnl = ::fnl
 ;; :unknown = ::unknown
 #?(:cljs :ignore
 :default
-(defmacro impl-case [opts & {clj-case :clojure cljs-case :cljs unknown :unknown :as opt}]
-  (let [bad (set/difference (set (keys opt)) #{:clojure :cljs :cljr :unknown})
+(defmacro impl-case [opts & {clj-case :clojure cljs-case :cljs cljr-case :cljr fnl-case :fnl unknown :unknown :as opt}]
+  (let [bad (set/difference (set (keys opt)) #{:clojure :cljs :cljr :fnl :unknown})
         _ (assert (empty? bad) (str "Incorrect cases to impl-case: " (pr-str bad)))
         gopts (gensym 'opts)
         gimpl (gensym 'impl)]
@@ -49,11 +54,15 @@
        (case ~gimpl
          ~clojure ~clj-case
          ~clojurescript ~cljs-case
+         ~@(when (contains? opt :cljr)
+             [cljr cljr-case])
+         ~@(when (contains? opt :fnl)
+             [fnl fnl-case])
          ~(if (contains? opt :unknown)
             unknown
-            `(assert nil (str "No case matched for impl-case: " ~gimpl
-                              " " ^:typed.clojure/ignore (-> ~gopts keys vec)
-                              )))))))
+            `(throw (ex-info (str "No case matched for impl-case: " ~gimpl
+                                  " " ^:typed.clojure/ignore (-> ~gopts keys vec))
+                             {})))))))
 )
 
 
@@ -326,6 +335,10 @@
   (ensure-impl-specified opts)
   (= clojurescript (current-impl opts)))
 
+(defn checking-fennel? [opts]
+  (ensure-impl-specified opts)
+  (= fnl (current-impl opts)))
+
 (defn platform-name
   "Returns a human-readable name for the current platform."
   [opts]
@@ -333,6 +346,7 @@
      :default (impl-case opts
                 :clojure "Clojure JVM"
                 :cljs "ClojureScript"
+                :fnl "Fennel"
                 :unknown (str (current-impl opts)))))
 
 (defn platform-feature-keyword
@@ -343,6 +357,7 @@
      :default (impl-case opts
                 :clojure :clj
                 :cljs :cljs
+                :fnl :fnl
                 :unknown nil)))
 
 (defmacro assert-clojure

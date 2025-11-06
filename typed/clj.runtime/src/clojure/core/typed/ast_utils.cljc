@@ -21,7 +21,9 @@
 (defn emit-form-fn [expr opts]
   (impl/impl-case opts
     :clojure ((requiring-resolve 'typed.clj.analyzer.passes.emit-form/emit-form) expr opts)
-    :cljs ((requiring-resolve 'typed.cljs.checker.util/emit-form) expr)))
+    :cljs ((requiring-resolve 'typed.cljs.checker.util/emit-form) expr)
+    :fnl (do (println (str "TODO fennel support for " `emit-form-fn))
+             (:form expr))))
 
 (defn constant-expr [expr]
   {:pre [(#{:quote} (:op expr))

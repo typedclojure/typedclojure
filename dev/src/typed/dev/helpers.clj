@@ -27,7 +27,6 @@
    :analyzer-clojure-mvn-version "1.9.0"
    :clojars-cdn-url "https://repo.clojars.org"
    :clojars-url "https://clojars.org/repo"
-   :sonatype-oss-public-url "https://oss.sonatype.org/content/groups/public/"
    :clojurescript-mvn-version "1.11.132"
    :typedclojure-scm-connection "scm:git:https://github.com/typedclojure/typedclojure.git"
    ;:typedclojure-scm-developerConnection "scm:git:git@github.com:typedclojure/typedclojure.git"

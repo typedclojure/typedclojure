@@ -3998,7 +3998,7 @@
            :cljs 2
            :unknown 3)
          3))
-  (is (thrown? AssertionError
+  (is (thrown? Exception
                (impl/impl-case {}
                  :clojure 1
                  :cljs 2))))
