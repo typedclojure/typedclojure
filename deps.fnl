@@ -1,1 +1,1 @@
-{:paths {:fennel ["typed/fnl.runtime/src/?.fnl" "typed/fnl.runtime/src/?/init.fnl"]}}
+{:paths {:macro ["typed/fnl.runtime/src/?.fnl" "typed/fnl.runtime/src/?/init.fnl"]}}

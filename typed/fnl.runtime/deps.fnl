@@ -1,1 +1,1 @@
-{:paths {:fennel ["src/?.fnl" "src/?/init.fnl"]}}
+{:paths {:macro ["src/?.fnl" "src/?/init.fnl"]}}
