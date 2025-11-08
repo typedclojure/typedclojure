@@ -37,3 +37,6 @@ jobs:
 
       - name: Run tests
         run: cd typed/fnl.runtime && ./script/test
+
+      - name: Test example project tests
+        run: cd example-projects/fennel && ./script/test

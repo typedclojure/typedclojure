@@ -11,7 +11,9 @@
 (import '[java.util UUID])
 
 (def excluded-submodules
-  #{"typed/fnl.runtime"}) ;; Fennel runtime tested separately in fennel-ci.yml
+  ;; tested separately in fennel-ci.yml due to lua dependency
+  #{"typed/fnl.runtime"
+    "example-projects/fennel"})
 
 (def all-testable-submodules
   (into (sorted-set)

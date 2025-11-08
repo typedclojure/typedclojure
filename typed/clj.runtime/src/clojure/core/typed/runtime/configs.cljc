@@ -139,4 +139,3 @@
              (clj-require %))
         (mapcat :malli-extensions configs)))
 #?(:clj (defn register-clj-malli-extensions [] (register-malli-extensions @*clj-configs)))
-#?(:clj (defn register-cljs-malli-extensions [] (register-malli-extensions @*cljs-configs)))
