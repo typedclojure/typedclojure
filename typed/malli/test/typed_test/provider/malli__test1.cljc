@@ -24,6 +24,5 @@
 
 (comment
   (t/check-ns-clj)
-  (t/check-ns-cljs)
   (m/function-schemas)
   )
