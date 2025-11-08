@@ -8,7 +8,15 @@ This subproject provides runtime files for annotating Fennel code with types. It
 
 - **Macro module** (`src/typed/fennel.fnl`): Provides the `ann` macro for annotating variables with types
 - **Type constructors**: Basic type constructors like `Str` for defining types
-- **Vendored Fennel**: Includes Fennel interpreter for development and testing
+
+## Installation
+
+Via [deps.fnl](https://gitlab.com/andreyorst/deps.fnl):
+
+```clojure
+{:deps {"https://github.com/typedclojure/typedclojure"
+        {:type :git :sha "..."}}}
+```
 
 ## Usage
 
@@ -36,6 +44,10 @@ Import the macro module in your Fennel code:
 This will run the demo file in `test/demo.fnl` using the vendored Fennel interpreter.
 
 ## License
+
+typed.fnl.reader is copyright © 2016-2025 Calvin Rose and contributors, released under the MIT license.
+
+All other code is:
 
 Copyright © Ambrose Bonnaire-Sergeant, Rich Hickey & contributors.
 
