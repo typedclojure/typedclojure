@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+set -e
+
+# add fennel to PATH for deps
+export PATH="$(pwd)/fennel-bootstrap:$PATH"
+deps "$@"

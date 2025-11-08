@@ -1,0 +1,1694 @@
+#!/usr/bin/env fennel
+(local deps {:_VERSION "0.2.6-dev"})   ; public module for runtime use
+
+;;; Imports
+
+(local {: view &as fennel}
+  (require :fennel))
+
+(local {:concat t/concat
+        :insert t/insert
+        :remove t/remove}
+  table)
+
+(local t/unpack
+  (or _G.unpack table.unpack))
+
+;;; Defaults
+
+(local backends
+  {})
+
+(local log-levels
+  {:info 1
+   :warn 2
+   :error 3
+   :debug 0
+   :silent math.huge})
+
+(local options
+  {:deps-dir "./.deps"
+   :deps-file "./deps.fnl"
+   :print-path? false
+   :merge []
+   :merge-profiles []
+   :lua-version "5.4"
+   :log-level :info})
+
+(local supported-paths
+  {:fennel ["FENNEL_PATH" [fennel :path]]
+   :macro ["FENNEL_MACRO_PATH" [fennel :macro-path]]
+   :lua ["LUA_PATH" [package :path]]
+   :clua ["LUA_CPATH" [package :cpath]]})
+
+(local path-separator
+  (package.config:sub 1 1))
+
+(local (workdir os-type)
+  ;; Current working directory of the project
+  (case path-separator
+    "/" (values (os.getenv "PWD") "linux")
+    "\\" (values (with-open [p (io.popen "cd")] (p:read)) "windows")
+    _ (error "unknown OS type" 2)))
+
+;;; Helper functions
+
+(fn file-exists? [filename]
+  "Check if `filename` exists on the file system."
+  (case (and filename (io.open filename :r))
+    f (do (f:close) true)
+    _ false))
+
+(fn spit [file data]
+  "Write `data` to the `file`."
+  (with-open [f (io.open file :w)]
+    (f:write data)))
+
+(local exec-arg
+  (. arg 0))
+
+(local fennel-arg
+  ((fn loop [n]
+     (case (- (or n 1) 1)
+       (where n (. arg n)) (loop n)
+       _ (. arg (+ n 1))))))
+
+(fn function? [f]
+  "Check if `f` is a callable function."
+  (or (= :function (type f))
+      (case (getmetatable f)
+        {:__call f} (function? f))
+      false))
+
+(fn table? [x]
+  "Check if `x` is a table."
+  (= :table (type x)))
+
+(fn vector? [x]
+  "Check if `x` is a sequential table specifically."
+  (and (table? x)
+       (let [len (length x)
+             (next x* k) (pairs x)]
+         (if (not= nil (next x* (if (= len 0) k len)))
+             false
+             (> len 0)
+             true
+             nil))))
+
+(fn map? [x]
+  "Check if `x` is an associative table specifically."
+  (and (table? x)
+       (not (vector? x))))
+
+(fn empty? [x]
+  "Check if `x` is either an empty string or an empty table."
+  (case (type x)
+    :string (= x "")
+    :table (= nil (next x))
+    _ false))
+
+(fn into [to from]
+  "Collect items from sequential table `from` into sequential table `to`."
+  (icollect [_ v (ipairs from)
+             :into (icollect [_ v (ipairs to)] v)]
+    v))
+
+(fn merge [t1 t2]
+  "Returns a new table containing items from `t1` and `t2`, overriding
+values from `t1` if same keys are present."
+  (let [res {}]
+    (collect [k v (pairs (or t1 {})) :into res] k v)
+    (collect [k v (pairs (or t2 {})) :into res] k v)))
+
+(fn merge-with [f t1 t2]
+  "Returns a new table containing items from `t1` and `t2`, if the same
+keys are present merge is done by calling `f` with both values."
+  (let [res (collect [k v (pairs (or t1 {}))] k v)]
+    (collect [k v (pairs (or t2 {})) :into res]
+      (case (. res k)
+	e (values k (f e v))
+	nil (values k v)))))
+
+(fn update-vals [map f]
+  "Update values of the `map` by invoking `f` on each value.
+Returns a new `map`."
+  (collect [k v (pairs (or map {}))]
+    k (f v)))
+
+(fn breadth-first-iter [tree branch? children]
+  "Stateful breadth-first iterator.
+Accepts `tree` and two functions to traverse the tree.  The `branch?`
+function must take one argument, and determine if the argument is a
+node that may or may not have children.  The `children` function must
+accept one argument and return a, possibly empty, sequential table of
+branch children.  The `children` function is only called on a node if
+the `branch?` function returns `true` with this node passed as an
+argument."
+  (let [queue [[0 tree]]]
+    (fn []
+      (when (next queue)
+        (let [[level node] (t/remove queue 1)]
+          (when (branch? node)
+            (each [_ v (ipairs (children node))]
+              (t/insert queue [(+ level 1) v])))
+          [level node])))))
+
+(fn breadth-first-search [tree test branch? children]
+  "Breadth-first search over a given `tree`.
+The `test` function must take a single argument and return `true`
+if (test node) matches the search criteria.  The `branch?` function
+must take one argument, and determine if the argument is a node that
+may or may not have children.  The `children` function must accept one
+argument and return a, possibly empty, sequential table of branch
+children.  The `children` function is only called on a node if the
+`branch?` function returns `true` with this node passed as an
+argument.  Returns the full path up to the searched item."
+  ((fn loop [expanding]
+     (when (not= nil (next expanding))
+       (let [{: node : path} (t/remove expanding 1)
+             children (if (branch? node)
+                          (children node)
+                          [])
+             curr-path (into path [node])]
+         (if (test node)
+             curr-path
+             (loop
+              (icollect [_ v (ipairs children) :into expanding]
+                {:node v
+                 :path curr-path}))))))
+   [{:node tree :path []}]))
+
+(fn branch? [node]
+  "Determine if `node` is a branch by checking for non-empty
+`dependencies` field."
+  (case node
+    {: dependencies}
+    (vector? dependencies)))
+
+(fn children [{: dependencies}]
+  "Obtain node `dependencies` sequence."
+  (or dependencies []))
+
+(fn string? [x]
+  "Check if `x` is a string."
+  (= :string (type x)))
+
+(fn sha? [x]
+  "Check if `x` is a full 40-character Git SHA."
+  (and (string? x)
+       (= x (x:match "^[a-fA-F0-9]+$"))
+       (= 40 (length x))))
+
+(fn deepcopy [x]
+  "Create a deep copy of a given table `x`, producing immutable tables
+for nested tables."
+  (fn deepcopy* [x seen]
+    (case (type x)
+      :table (case (. seen x)
+               true x
+               _ (do (tset seen x true)
+                     (collect [k v (pairs x)]
+                       (values (deepcopy* k seen)
+                               (deepcopy* v seen)))))
+      _ x))
+  (deepcopy* x {}))
+
+(fn merge-deps [...]
+  "Merge multiple deps tables into a single one.
+The merging rules are as follows:
+
+The dependencies under the `deps` key are appended into the first deps argument:
+
+```fennel :skip-tests
+(merge-deps {:deps {a {...}}} {:deps {b {...}}})
+;; => {:deps {a {...} b {...}}}
+(merge-deps {:deps {a {...} b {...}}} {:deps {}} {:deps {c {...} d {...}}})
+;; => {:deps {a {...} b {...} c {...} d {...}}}
+```
+
+The paths under the `paths` key are appended for each path type
+separately.  Missing path types are created:
+
+```fennel :skip-tests
+(merge-deps {:paths {:fennel [a]}} {:paths {:fennel [b] :lua [c]}})
+;; => {:paths {:fennel [a b] :macro [] :lua [c] :clua []}}
+```
+
+Other keys are not merged from the subsequent deps."
+  (case (values (select :# ...) ...)
+    (0) {}
+    (1 ?deps-a) (if (= ?deps-a nil) {} ?deps-a)
+    (2 ?deps-a ?deps-b)
+    (let [deps-a (deepcopy (if (= ?deps-a nil) {} ?deps-a))
+          {: deps : paths} (if (= ?deps-b nil) {} ?deps-b)]
+      (when (and deps (next deps))
+        (set deps-a.deps (or deps-a.deps {}))
+        (collect [dep spec (pairs deps)
+                  :into deps-a.deps]
+          (when (not (. deps-a.deps dep))
+            (values dep spec))))
+      (when (and paths (next paths))
+        (each [path-type (pairs supported-paths)]
+          (set deps-a.paths (or deps-a.paths {}))
+          (set (. deps-a.paths path-type)
+            (or (. deps-a.paths path-type) [])))
+        (each [path-type (pairs supported-paths)]
+          (let [index (collect [_ p (pairs (or (. deps-a.paths path-type) {}))] p true)]
+            (icollect [_ path (ipairs (or (. paths path-type) {}))
+                       :into (. deps-a.paths path-type)]
+              (when (not (. index path))
+                (tset index path true)
+                path)))))
+      deps-a)
+    (_ ?deps-a ?deps-b) (merge-deps (merge-deps ?deps-a ?deps-b) (select 3 ...))))
+
+(fn merge-profiles [deps profiles]
+  "Merge the specified `profiles` with `deps` map."
+  (merge-deps (accumulate [res {} _ profile (ipairs profiles)]
+                (case (?. deps :profiles profile)
+                  profile (merge-deps res profile)
+                  _ res))
+              deps))
+
+(fn read-deps [deps-file]
+  "Read the `deps-file` in a sandbox.
+The `table` and `string` modules are provided for manipulation of the
+`deps.fnl` contents upon loading it."
+  (fennel.dofile
+   deps-file
+   {:env {:table table
+          :string string}}))
+
+(fn path [...]
+  "Construct file path from arguments.
+All `nil` arguments are ignored."
+  (t/concat (fcollect [i 1 (select :# ...)]
+              (case (select i ...)
+                p (tostring p)))
+            path-separator))
+
+(fn Error [format-string ...]
+  "An error wrapper to prevent stack trace from appearing in the message.
+Accepts a `format-string` and its arguments.  Stack traces are
+meaningless, as these are user-level errors, there's no need to link
+to the `deps` internal implementation."
+  (let [message (string.format format-string ...)]
+    (-> {: message}
+        (setmetatable
+         {:__tostring #message
+          :__fennelview #message}))))
+
+(fn log [out ...]
+  "Write arguments into the `out` as a log message."
+  (for [i 1 (select :# ...)]
+    (out:write (tostring (select i ...))))
+  (out:write "\n"))
+
+(fn logf [out fmt ...]
+  "Write arguments into the `out` as a log message by applying them to
+format string `fmt`."
+  (out:write (string.format fmt ...))
+  (out:write "\n"))
+
+(macro log/info [...]
+  "Macro for logging at the INFO level."
+  `(when (<= (or (. log-levels options.log-level)
+                 (error (Error "unknown logging level: %s" options.log-level)))
+             log-levels.info)
+     (log io.stderr "-- INFO: " ,...)))
+
+(macro log/infof [fmt ...]
+  "Macro for logging at the INFO level.
+Accepts a format string `fmt`, and arguments to pass to
+`string.format`."
+  `(when (<= (or (. log-levels options.log-level)
+                 (error (Error "unknown logging level: %s" options.log-level)))
+             log-levels.info)
+     (logf io.stderr ,(.. "-- INFO: " fmt) ,...)))
+
+(macro log/warn [...]
+  "Macro for logging at the WARN level."
+  `(when (<= (or (. log-levels options.log-level)
+                 (error (Error "unknown logging level: %s" options.log-level)))
+             log-levels.warn)
+     (log io.stderr "-- WARNING: " ,...)))
+
+(macro log/warnf [fmt ...]
+  "Macro for logging at the WARN level.
+Accepts a format string `fmt`, and arguments to pass to
+`string.format`."
+  `(when (<= (or (. log-levels options.log-level)
+                 (error (Error "unknown logging level: %s" options.log-level)))
+             log-levels.warn)
+     (logf io.stderr ,(.. "-- WARNING: " fmt) ,...)))
+
+(macro log/error [...]
+  "Macro for logging at the ERROR level."
+  `(when (<= (or (. log-levels options.log-level)
+                 (error (Error "unknown logging level: %s" options.log-level)))
+             log-levels.error)
+     (log io.stderr "-- ERROR: " ,...)))
+
+(macro log/errorf [fmt ...]
+  "Macro for logging at the ERROR level.
+Accepts a format string `fmt`, and arguments to pass to
+`string.format`."
+  `(when (<= (or (. log-levels options.log-level)
+                 (error (Error "unknown logging level: %s" options.log-level)))
+             log-levels.error)
+     (logf io.stderr ,(.. "-- ERROR: " fmt) ,...)))
+
+(macro log/debug [...]
+  "Macro for logging at the DEBUG level."
+  `(when (<= (or (. log-levels options.log-level)
+                 (error (Error "unknown logging level: %s" options.log-level)))
+             log-levels.debug)
+     (log io.stderr "-- DEBUG: " ,...)))
+
+(macro log/debugf [fmt ...]
+  "Macro for logging at the DEBUG level.
+Accepts a format string `fmt`, and arguments to pass to
+`string.format`."
+  `(when (<= (or (. log-levels options.log-level)
+                 (error (Error "unknown logging level: %s" options.log-level)))
+             log-levels.debug)
+     (logf io.stderr ,(.. "-- DEBUG: " fmt) ,...)))
+
+(fn run [program ...]
+  "Run a `program` and capture its output, exit code, success status, and
+optional error message."
+  (let [command (-> (fcollect [i 1 (select :# ...) :into [program]]
+                      (-?> (select i ...) view))
+                    (t/concat " ")
+                    (.. " 2>&1"))
+        _ (log/debug command)
+        proc (io.popen command)
+        out (proc:read :*a)
+        (ok? message code) (proc:close)]
+    {: command : ok? : out : message : code}))
+
+(fn prun [...]
+  "Like `run` but the result is formatted as per `pcall`."
+  (case (run ...)
+    {:ok? true : out} (values true out)
+    {: out : message : code} (values nil out message code)))
+
+(fn fatal-error [message code]
+  "If the deps script is running in the REPL context, throws an ordinary
+error with a `message`.  Otherwise logs the error `message` to
+`stderr` and exits with the specified `code`."
+  (if _G.___repl___
+      (error message 2)
+      (do (when message
+            (log/error message))
+          (os.exit code))))
+
+(fn dirname [path]
+  "Return a base directory of the given `path`."
+  (assert (string? path) (Error "expected string path"))
+  (if (= path path-separator) path
+      (let [path (path:gsub (.. "." path-separator "$") "")]
+        (or (path:match (.. "^(.+)" path-separator ".*$"))
+            (path:match (.. "^(" path-separator ")[^" path-separator "]+$"))))))
+
+(fn basename [path]
+  "Return a filename part of the given file `path`."
+  (let [dir (dirname path)]
+    (pick-values 1 (path:gsub (.. dir path-separator) ""))))
+
+(fn pat-escape [s]
+  "Escape string `s` to be safely used as a part of a pattern."
+  (s:gsub "([().%+-*?[^$])" "%%%1"))
+
+(fn interactive? []
+  "Check if interactive prompts are allowed."
+  (and (not options.no-prompt) (not (os.getenv "DEPS_NO_PROMPT"))))
+
+(fn padded-string [string]
+  "Transforms a `string`:
+
+\"[foo
+| bar
+| baz]\"
+
+Into:
+
+\"[foo
+ bar
+ baz]\"
+
+Preserves any whitespace after `|`, but removes any whitespace
+before this symbol, so the printed representation looks correct:
+
+[foo
+ bar
+ baz]"
+  (-> (icollect [line (string:gmatch "([^\n]+)")]
+        (line:gsub "^%s*|" ""))
+      (t/concat "\n")))
+
+(fn compare-versions [a b]
+  "Compare two version objects"
+  (let [major-diff (- a.major b.major)
+        minor-diff (- a.minor b.minor)
+        patch-diff (- a.patch b.patch)]
+    (if (not= major-diff 0) major-diff
+        (not= minor-diff 0) minor-diff
+        :else patch-diff)))
+
+(λ Version [major minor patch]
+  "Construct a version object such that it can be compared with other versions."
+  (let [major (tonumber major)
+        minor (tonumber minor)
+        patch (tonumber patch)]
+    (assert (and major minor patch) "version arguments must coerse to integers")
+    (->> {:__lt (fn [a b]
+                  (< (compare-versions a b) 0))
+          :__le (fn [a b]
+                  (<= (compare-versions a b) 0))
+          :__eq (fn [a b]
+                  (= 0 (compare-versions a b)))
+          :__tostring #(: "version: %s.%s.%s" :format $.major $.minor $.patch)
+          :__fennelview #(.. "#<" (tostring $) ">")}
+         (setmetatable {: major : minor : patch}))))
+
+(fn mkdir [path]
+  "Create a directory using `path`."
+  (let [{: ok? : out : code}
+        (case os-type
+          :linux (run "mkdir" "-p" path)
+          :windows (run "md" path))]
+    (if ok?
+        true
+        (values nil out code))))
+
+(fn rmdir [path]
+  "Remove a directory `path`."
+  (let [{: ok? : out : code}
+        (case os-type
+          :linux (run "rm -rf" path)
+          :windows (run "rmdir" path "/s" "/q"))]
+    (if ok?
+        true
+        (values nil out code))))
+
+(fn write-file [path contents]
+  "Write the `contents` to the file at `path`."
+  (case (mkdir (dirname path))
+    (nil msg code)
+    (do (io.stderr:write msg)
+        (os.exit code)))
+  (with-open [f (io.open path :w)]
+    (f:write (or contents ""))))
+
+;;; Handling dependencies
+
+(fn build-paths [deps-tree]
+  "Build path table from `deps-tree`."
+  (let [accumulated-paths
+        (accumulate [paths {}
+                     [_ dep] (breadth-first-iter deps-tree branch? children)]
+          (merge-with into paths dep.paths))]
+    (collect [path-type paths (pairs accumulated-paths)]
+      path-type (icollect [_ path (ipairs paths)]
+                  (path:gsub (.. "^" (pat-escape workdir) path-separator) "")))))
+
+(fn view-path [dep deps-tree]
+  "Provide string representation of a path from the root to the `dep` on
+the `deps-tree`."
+  (fn target? [dep*]
+    (and (= dep.version dep*.version)
+         (= dep.lib dep*.lib)))
+  (let [path (breadth-first-search deps-tree target? branch? children)]
+    (t/concat
+     (icollect [i dep (ipairs path)]
+       (when (> i 1)
+         (string.format "[%s:%s]" dep.lib dep.version)))
+     "->")))
+
+(fn check-conflicts [deps-tree]
+  "Check if `deps-tree` is free of conflicts."
+  (local seen {})
+  (each [[level dep] (breadth-first-iter deps-tree branch? children)]
+    (when dep.modules
+      (each [module (pairs dep.modules)]
+        (case (. seen module)
+          {:dep dep* :level level*}
+          (if (and (= level level*)
+                   (not= dep.version dep*.version))
+              (let [path-a (view-path dep* deps-tree)
+                    path-b (view-path dep deps-tree)]
+                (error (Error "%s conflicts with %s on module: %s"
+                              path-a path-b (tostring module))
+                       2)))
+          nil (tset seen module {: dep : level}))))))
+
+(fn valid-deps? [deps deps-file valid?]
+  "Validate the `deps` field of the given `deps-file`.  Passes the
+`valid?` callback into backends that wish to validate dependencies."
+  (assert (or (= nil deps) (map? deps))
+          (Error "%s did not conform to spec: 'deps' field is not an associative table" deps-file))
+  (when deps
+    (each [dep spec (pairs deps)]
+      (assert (string? dep)
+              (Error "%s did not conform to spec: dependency %s must be a string" deps-file (view dep)))
+      (assert (map? spec)
+              (Error "%s did not conform to spec: dependency %s coordinate spec must be a map: %s" deps-file (view dep) (view spec)))
+      (assert (not= nil spec.type)
+              (Error "%s did not conform to spec: dependency %s coordinate spec is missing a 'type' key: %s" deps-file (view dep) (view spec)))
+      (case (. backends spec.type)
+        nil (Error "%s did not conform to spec: dependency %s coordinate spec requires unknown backend" deps-file (view dep) (view spec.type {:prefer-colon? true}))
+        {: validate} (let [(valid? reason) (pcall validate dep spec valid?)]
+                       (assert valid? (Error "%s did not conform to spec: %s" deps-file (or reason "unknown reason"))))))))
+
+(fn valid-paths? [paths deps-file]
+  "Validate the `paths` field of the given `deps-file`."
+  (assert (or (= nil paths) (map? paths))
+          (Error "%s did not conform to spec: 'paths' field is not an associative table" deps-file))
+  (when paths
+    (each [path-type paths (pairs paths)]
+      (assert (string? path-type)
+              (Error "%s did not conform to spec: path type %s is not a string" deps-file (view path-type)))
+      (assert (. supported-paths path-type)
+              (Error "%s did not conform to spec: unsupported path type: %s" deps-file (view path-type {:prefer-colon? true})))
+      (assert (or (empty? paths) (vector? paths))
+              (Error "%s did not conform to spec: path type %s must contain a sequential table of paths: %s" deps-file (view path-type {:prefer-colon? true}) (view paths)))
+      (each [_ path (ipairs paths)]
+        (assert (string? path)
+                (Error "%s did not conform to spec: path type %s contains non string path: %s" deps-file (view path-type {:prefer-colon? true}) (view path)))))))
+
+(fn valid? [deps-map deps-file]
+  "Validate the `deps-file`.
+Analyze the `paths` and `deps` keys from the given `deps-map`."
+  (assert (map? deps-map)
+          (Error "%s did not conform to spec: deps is not an associative table" deps-file))
+  (let [{: deps : paths} deps-map]
+    (valid-deps? deps deps-file #(valid? $ deps-file))
+    (valid-paths? paths deps-file)))
+
+;;; Backends
+
+;; TODO: expose in some way so backends can be registered
+(fn register-backend [backend]
+  "Register `backend` for processing dependencies.
+
+The `backend` argument must be a table with keys `type`, `process`,
+and `validate`.
+
+The `type` key is a string name for the backend that appears in
+dependency description under the `type` key.
+
+The `process` field must be a function that accepts the dependency name,
+its description map, and a callback to process nested
+dependencies.  The `process` function must return a map with the
+following keys:
+
+- `lib` - a meaningful library name
+- `version` - library's version tag.
+- `modules` - an associative table of library modules
+- `paths` - an associative table of paths for each module type:
+  `fennel`, `macro`, `lua`, `clua`.
+  Each field is a sequential table of string paths, for example:
+- `dependencies` - a sequential table of any transient dependencies.
+  The elements of this table are the same as the outer map.
+
+For example:
+
+```fennel :skip-tests
+{:lib \"andreyorst/json.fnl\"
+ :version \"0acd16a5b0b2b9bc97f591c0fde17c52278d0bc5\"
+ :modules {:io.gitlab.andreyorst.json true}
+ :paths {:fennel [\"git/andreyorst/json.fnl/0acd16a5b0b2b9bc97f591c0fde17c52278d0bc5/src/?.fnl\"]}
+ :dependencies [{:lib \"andreyorst/reader.fnl\"
+                 :version \"c630afe4255cdc60145df32825d2ff3be687f169\"
+                 :modules {:io.gitlab.andreyorst.reader true}
+                 :paths {:fennel [\"git/andreyorst/reader.fnl/c630afe4255cdc60145df32825d2ff3be687f169/src/?.fnl\"]}
+                 :dependencies []}]}
+```
+
+The `validate` field must be a function that accepts the dependency
+name, its description map, and the validation callback to validate any
+nested dependencies.  The `validate` function must throw an error,
+indicating the reason why the dependency is invalid.
+"
+  (case backend
+    (where {:type t} (. backends t))
+    (error (Error "backend %s already registered" (view t {:prefer-colon? true})))
+    (where {:type t :process p :validate v}
+           (and (string? t) (not (empty? t)) (function? p) (function? v)))
+    (tset backends backend.type backend)
+    _
+    (do (assert (not= nil backend.type)
+                (Error "backend does not specify the dependency 'type'" (view backend)))
+        (assert (string? backend.type)
+                (Error "backend 'type' is not a string: %s" (view backend.type {:one-line? true})))
+        (assert (not (empty? backend.type))
+                (Error "backend 'type' is an empty string"))
+        (assert (function? backend.process)
+                (Error "backend %s 'process' method is not a function" (view backend.type {:prefer-colon? true})))
+        (assert (function? backend.validate)
+                (Error "backend %s 'validate' method is not a function" (view backend.type {:prefer-colon? true})))
+        (assert (not= nil backend.process)
+                (Error "backend %s does not implement the 'process' method" (view backend.type {:prefer-colon? true})))
+        (assert (not= nil backend.validate)
+                (Error "backend %s does not implement the 'validate' method" (view backend.type {:prefer-colon? true})))
+        (assert false
+                (Error "backend %s didn't match the spec" (view backend {:one-line? true}))))))
+
+;;;; Luarocks
+
+(local luarocks
+  {:type :rock})
+
+(fn luarocks/tree [name version]
+  "Construct a Luarocks-specific root for dependency `name` of the given `version`."
+  (path options.deps-dir "rocks" name version))
+
+(fn luarocks/available? []
+  "A portable way to check if Luarocks is installed."
+  (. (run "luarocks --help") :ok?))
+
+(fn luarocks/rock-installed? [rock version]
+  "Check if the specified `rock` of the given `version` is already
+installed."
+  (case (run "luarocks"
+             "--lua-version" options.lua-version
+             "--tree" (luarocks/tree rock version)
+             "show" "--mversion" rock)
+    {:ok? true : out}
+    (out:find version 1 true)
+    _ false))
+
+(fn luarocks/modules [rock version]
+  "Get a table of modules exported by the given `rock` of the given
+`version` stored in the `tree`."
+  (case (run "luarocks"
+             "--lua-version" options.lua-version
+             "--tree" (luarocks/tree rock version)
+             "show" "--porcelain" "--modules" rock version)
+    {:ok? true : out}
+    (collect [module (out:gmatch "([^\n]+)")]
+      module true)
+    {: out} (error (Error "error listing rock %s modules:\n%s" rock out) 2)
+    _ (error (Error "error listing rock %s modules" rock) 2)))
+
+(fn luarocks/dependencies [rock version]
+  "Get a table of dependencies required by the given `rock` of the given
+`version` stored in the `tree`."
+  (let [tree (luarocks/tree rock version)]
+    (if (luarocks/rock-installed? rock version)
+        (case (run "luarocks"
+                   "--lua-version" options.lua-version
+                   "--tree" tree
+                   "show" "--porcelain" "--deps" rock version)
+          {:ok? true : out}
+          (collect [dep (out:gmatch "([^\n]+)")]
+            (let [name (or (dep:match "([^ ]+)") dep)]
+              (when (not= name :lua)    ; lua is a special dep
+                (values name dep))))
+          {: out} (error (Error "error listing rock %s dependencies:\n%s" rock out) 2)
+          _ (error (Error "error listing rock %s dependencies" rock) 2))
+        [])))
+
+(fn luarocks/path [rock version]
+  "Obtain PATH information for the given `rock` of the given `version` from Luarocks."
+  (assert (luarocks/available?) (Error "luarocks package not found in this system"))
+  (let [tree (luarocks/tree rock version)]
+    (if (luarocks/rock-installed? rock version)
+        (collect [path-type flag (pairs {:lua "--lr-path" :clua "--lr-cpath"})]
+          path-type (case (run "luarocks"
+                               "--lua-version" options.lua-version
+                               "--tree" tree
+                               "path" flag)
+                      {:ok? true : out}
+                      (icollect [path (out:gmatch (.. "(" (pat-escape (luarocks/tree rock version)) "[^;\n]+)"))]
+                        path)
+                      {:ok? false :out ?out}
+                      (error (Error "error when obtaining path data from luarocks: %s" (or ?out "unknown error")) 2)
+                      _
+                      (error (Error "error when obtaining path data from luarocks") 2)))
+        [])))
+
+(fn luarocks.validate [name {: version : dependencies} valid?]
+  "Validate the dependency `name`, its `version`, and any possible
+`dependencies`.  The `dependencies` are validated with the `valid?`
+callback."
+  (assert (luarocks/available?) (Error "luarocks package not found in this system"))
+  (assert version (Error "missing version tag for dependency: %s" (view name)))
+  (assert (string? version) (Error "version tag for dependency %s is not a string" (view name)))
+  (assert (not= "" version) (Error "version tag for dependency %s is empty" (view name)))
+  (when (not= nil dependencies)
+    (assert (map? dependencies) (Error "'dependencies' key is not an associative map" (view name)))
+    (valid? {:deps dependencies})))
+
+(fn luarocks/resolve-dependency [luarocks-spec]
+  "Given a `luarocks-spec` resolve the dependency and return a
+table of unique available versions for the library `name` in the order
+returned by luarocks.  `luarocks-spec` is a string with a dependency
+name, and optional version constraints: `\"libname >= 1.2 < 1.3\"`
+returned by luarocks when a transient dependency is missing."
+  (let [(name) (luarocks-spec:match "^([^%s]+)%s?.*")]
+    (case (run "luarocks"
+               "--lua-version" options.lua-version
+               "search" "--porcelain" name)
+      {:ok? true : out}
+      (let [seen {}]
+        (icollect [line (out:gmatch "([^\n]+)")]
+          (when (line:match (.. "^" (pat-escape name) "\t"))
+            (let [[_ version]
+                  (icollect [part (line:gmatch "([^\t]+)")]
+                    part)]
+              (when (not (. seen version))
+                (tset seen version true)
+                version)))))
+      {: out} (error (Error "error listing rock %s dependencies:\n%s" name out) 2)
+      _ (error (Error "error listing rock %s dependencies" name) 2))))
+
+(fn luarocks/choose-version [luarocks-spec]
+  "Interactive version chooser.
+Accepts a `luarocks-spec`, which is a string with the dependency name,
+followed by an optional constraint.  Prompts the user to choose what
+version of the library to download.  `luarocks-spec` is a string with
+a dependency name, and optional version constraints: `\"libname >= 1.2
+< 1.3\"` returned by luarocks when a transient dependency is missing."
+  (when (not (interactive?))
+    (error (Error "prompt disabled")))
+  (let [versions (luarocks/resolve-dependency luarocks-spec)
+        pad (->> versions length tostring length (string.format "%%%ds"))
+        fmt (.. "[" pad "]: %s\n")]
+    (io.stderr:write "Available versions:\n")
+    (each [i version (ipairs versions)]
+      (io.stderr:write (string.format fmt i version)))
+    (var vers nil)
+    (while (not vers)
+      (io.stderr:write "Select a version to use: ")
+      (io.flush)
+      (let [n (io.read :*l)]
+        (case n
+          (where n (not= nil (tonumber n)))
+          (case (. versions (tonumber n))
+            version (set vers version)
+            _ (io.stderr:write (string.format "choice out of range [%s:%s]\n" 1 (length versions))))
+          nil (fatal-error (Error "declined") 1)
+          _ (io.stderr:write "please enter a number\n"))))
+    vers))
+
+(fn luarocks/update-deps [target name spec deps]
+  "Writes the transient dependency `name` to the `target` dependency
+spec.  Accepts `deps` map, and the `spec` to write."
+  (var done? false)
+  (each [k v (pairs deps) :until done?]
+    (if (= k target)
+        (do (set v.dependencies (or (. v :dependencies) {}))
+            (set (. v :dependencies name) spec)
+            (set done? true))
+        (table? v)
+        (luarocks/update-deps target name spec v)))
+  deps)
+
+(fn luarocks/update-deps-file [target name spec]
+  "Write the given dependency `name` and its `spec` to the current deps
+file under the `target` dependency."
+  (let [deps (read-deps options.deps-file)
+        deps* (luarocks/update-deps target name spec deps)]
+    (with-open [f (io.open options.deps-file :w)]
+      (f:write (view deps*)))
+    (log/info "Added dependency " name " " spec.version " to " options.deps-file)))
+
+(fn luarocks.process [name {: version : dependencies} process-deps]
+  "Install a rock of the given `name` and `version`.
+If the rock has a `dependencies` field, process only the explicitly
+required dependencies specified by the rock manifest via the
+`process-deps` callback.  If any of the requested dependencies are
+missing in the `dependencies` table an error is raised."
+  (when (not (luarocks/rock-installed? name version))
+    (log/info "processing rock: " name " " version)
+    (let [{: out : ok?}
+          (run "luarocks"
+               "--lua-version" options.lua-version
+               "--tree" (luarocks/tree name version)
+               "install" "--deps-mode" "none" name version)]
+      (when (not ok?)
+        (fatal-error (Error (.. "can't process " (view name) ". Log:\n" out)) 1))))
+  (let [dependencies (or dependencies {})
+        rock {:lib name
+              :version version
+              :modules (luarocks/modules name version)
+              :paths (luarocks/path name version)}
+        transient-deps (luarocks/dependencies name version)]
+    (doto rock
+      (tset :dependencies
+        (accumulate [res []
+                     transient spec (pairs transient-deps)]
+          (case (. dependencies transient)
+            spec (into res (. (process-deps {:deps {transient spec}}) :dependencies))
+            nil (let [_ (log/warnf "missing transient dependency for %s rock: %s" name spec)
+                      spec {:type :rock :version (luarocks/choose-version spec)}]
+                  (luarocks/update-deps-file name transient spec)
+                  (into res (. (process-deps {:deps {transient spec}}) :dependencies)))))))))
+
+(register-backend luarocks)
+
+;;;; Git
+
+(local git
+  {:type :git})
+
+(fn git/tree []
+  "Git-specific root for dependencies."
+  (path options.deps-dir "git"))
+
+(fn git/parse-url [url]
+  "Parses a Git `url` string.
+Supports HTTP and SSH protocols.  Returns a table with `scheme`,
+`host`, `port`, `userinfo`, and `path` fields from the URL."
+  (let [scheme (assert (or (url:match "^([^:]+)://")
+                           (url:match "^([^@]+)@"))
+                       (Error "git dependency name didn't match URL pattern: %s" (view url)))
+        authority (or (url:match "//([^/]+)/?")
+                      (url:match "@([^:]+):?"))
+        userinfo (authority:match "([^@]+)@")
+        port (authority:match ":(%d+)")
+        host (authority:match (.. (if userinfo "@([^:?#]+)" "([^:?#]+)") (if port ":" "")))
+        path (or (url:match "//[^/]+(/[^?#]*)")
+                 (url:match "@[^:]+(:[^?#]*)"))]
+    {: scheme : host : port : userinfo : path}))
+
+(fn git/url? [s]
+  "Check if `s` is a valid URL."
+  (pick-values 1 (pcall git/parse-url s)))
+
+(fn git/build-dep [name lib-path]
+  "Ask whether it is OK to build a dependency `name` and execute the
+script in the `lib-path` directory."
+  (let [deps-file (path lib-path "deps.fnl")
+        build-file (path lib-path "deps.fnl.build")]
+    (when (file-exists? deps-file)
+      (let [basedir (dirname deps-file)
+            {: build} (read-deps deps-file)]
+        (when (and build (not (file-exists? build-file)))
+          (log/warn "depenency " (view name) " requires executing a build script:")
+          (log/warn build)
+          (when (not (interactive?))
+            (error (Error "interactive mode disabled.")))
+          (io.stderr:write "Proceed? [y/n]: ")
+          (io.flush)
+          (case (io.read 1)
+            :y (let [(success message code)
+                     (case os-type
+                       :linux (os.execute (.. "(cd " basedir " && " build "&& touch deps.fnl.build)"))
+                       ;; TODO: test on windows
+                       :windows (os.execute (.. "pushd " basedir " && " build "&& echo.> deps.fnl.build && popd")))]
+                 (when (not success)
+                   (fatal-error (Error (or message "unknown error")) code)))
+            :n (fatal-error (Error "declined") 1)))))))
+
+(fn git/modules [lib-path all-paths]
+  "List modules of a Git library at `lib-path` based on `all-paths`
+collected from the `deps.fnl` file."
+  (let [patterns
+        (accumulate [patterns {}
+                     _ paths (pairs (or all-paths {}))]
+          (collect [_ path (ipairs paths)
+                    :into patterns]
+            (-> path
+                (: :gsub "([().%+-*[^$])" "%%%1")
+                (: :gsub "%?" "(.*)")
+                (.. "$"))
+            true))]
+    (if (next patterns)
+        (case (run "GIT_TERMINAL_PROMPT=0 git -C" lib-path "ls-tree" "--full-tree" "-r" "--name-only" "HEAD")
+          {:ok? true : out}
+          (let [modules (collect [line (out:gmatch "([^\n]+)")]
+                          (accumulate [match? nil
+                                       pat (pairs patterns)
+                                       :until match?]
+                            (case-try (line:match pat)
+                              p (p:gsub path-separator ".")
+                              (where p (p:match "%.init$")) (p:gsub "%.init" "")))
+                          true)]
+            (assert (next modules)
+                    (Error "error listing git %s modules: no modules found, probably a typo in the paths field in %s"
+                           lib-path (path lib-path "deps.fnl")))
+            modules)
+          {: out} (error (Error "error listing git %s modules:\n%s" lib-path out) 2)
+          _ (error (Error "error listing git %s modules: %s" lib-path (view _)) 2))
+        (error (Error "error listing git %s modules: no paths provided" lib-path) 2))))
+
+(fn git/available? []
+  "A portable way to check if Luarocks is installed."
+  (. (run "GIT_TERMINAL_PROMPT=0 git --version") :ok?))
+
+(local git/services
+  ;; Patches for other forges are welcome.
+  {:github {:service ["^com.github.([^/]+)/(.+)$"
+                      "^io.github.([^/]+)/(.+)$"]
+            :url "https://github.com/%s/%s.git"}
+   :gitlab {:service ["^com.gitlab.([^/]+)/(.+)$"
+                      "^io.gitlab.([^/]+)/(.+)$"]
+            :url "https://gitlab.com/%s/%s.git"}
+   :bitbucket {:service ["^org.bitbucket.([^/]+)/(.+)$"
+                         "^io.bitbucket.([^/]+)/(.+)$"]
+               :url "https://bitbucket.org/%s/%s.git"}
+   :beanstalk {:service ["^com.beanstalkapp.([^/]+)/(.+)$"
+                         "^io.beanstalkapp.([^/]+)/(.+)$"]
+               :url "https://%s.git.beanstalkapp.com/%s.git"}
+   :sourcehut {:service ["^ht.sr.([^/]+)/(.+)$"]
+               :url "https://git.sr.ht/~%s/%s"}
+   :codeberg {:service ["^com.codeberg.([^/]+)/(.+)$"]
+              :url "https://codeberg.org/%s/%s.git"}})
+
+(fn git/url-from-dep [name]
+  "Construct URL from `name` which is a reverse-domain identifier.
+Supported forges are listed in `git/services`."
+  (accumulate [res nil
+               _ {: service : url} (pairs git/services)
+               :until res]
+    (case (accumulate [(username repo) nil
+                       _ re (ipairs service)
+                       :until username]
+            (string.match name re))
+      (username repo) (string.format url username repo))))
+
+(fn git/url-to-project-name [url]
+  "If the `url` is a plain URL, try to parse it and extract the project
+name from it off the path component.  If the `url` argument is a
+reverse-domain identifier tries to convert it to the appropriate URL,
+and uses the original `url` argument as the project name."
+  (if (git/url? url)
+      (case (git/parse-url url)
+        {:path project-path}
+        (values url
+                ;; remove the leading slash and `.git` suffix
+                (: (project-path:sub 2) :gsub "%.git$" ""))
+        _ (error (Error "couldn't parse %s as an URL" url)))
+      (case (git/url-from-dep url)
+        repo-url (values repo-url url)
+        _ (error (Error "couldn't parse %s as Git forge URL" url)))))
+
+(fn git/version []
+  (case-try (prun "GIT_TERMINAL_PROMPT=0 git" "--version")
+    (true out) (string.match out "^git%sversion%s(%d+)%.(%d+)%.(%d+)")
+    (major minor patch) (Version major minor patch)
+    (catch _
+      (fatal-error "can't check Git version" 1))))
+
+(fn git.validate [url {: sha : paths} valid?]
+  "Validate the dependency `url`, its `sha` and `paths` field.
+The `paths` field is validated with the `valid?` callback."
+  (assert (git/available?) (Error "git package not found in this system"))
+  (assert (string? url) (Error "url for the git dependency is not a string: %s" (view url)))
+  (assert sha (Error "missing a sha for git dependency: %s" (view url)))
+  (assert (string? sha) (Error "sha for git dependency %s is not a string" (view url)))
+  (assert (not= "" sha) (Error "sha for git dependency %s is epmty" (view url)))
+  (assert (sha? sha) (Error "sha for git dependency %s did not conform to spec: %s" (view url) (view sha)))
+  (when (not= nil paths)
+    (valid? {:paths paths})))
+
+(fn git/full-clone [url sha lib-path]
+  (log/debug "doing full clone of " url)
+  (case (run "GIT_TERMINAL_PROMPT=0 git clone" url lib-path)
+    {:ok? true} (run "GIT_TERMINAL_PROMPT=0 git -C" lib-path "checkout" sha)
+    {: out} (fatal-error (Error (.. "can't process " (view url) ". Log:\n" out)) 1)))
+
+(fn git/shallow-fetch [url sha lib-path]
+  (log/debug "doing shallow fetch of " url)
+  (mkdir lib-path)
+  (case-try (prun "GIT_TERMINAL_PROMPT=0 git -C" lib-path "init")
+    ;; true (prun "GIT_TERMINAL_PROMPT=0 git -C" lib-path "remote" "add" "origin" url)
+    true (prun "GIT_TERMINAL_PROMPT=0 git -C" lib-path "fetch" "--depth=1" "origin" sha)
+    true (prun "GIT_TERMINAL_PROMPT=0 git -C" lib-path "checkout" "FETCH_HEAD")
+    (catch _
+      (do (log/warn "falling back to full git clone of " url)
+          (rmdir lib-path)
+          (git/full-clone url sha lib-path)))))
+
+(fn git/shallow-clone [url sha lib-path]
+  (log/debug "doing shallow git clone of " url)
+  (when (not (prun "GIT_TERMINAL_PROMPT=0 git clone" "--depth=1" (.. "--revision=" sha) url lib-path))
+    (log/warn "falling back to full git clone of " url)
+    (rmdir lib-path)
+    (git/full-clone url sha lib-path)))
+
+(fn git.process [url {: sha : paths} process-deps]
+  "Process a Git dependency by cloning the given `url`.
+The `sha` key specifies the checkout target.  If the repository
+contains its own `deps.fnl` file, process it recursively.  If the
+dependency spec contains the `paths` key, prepend its value to the
+resulting `paths` field.  Uses `process-deps` to recursively process
+any specified dependencies."
+  (let [(url name) (git/url-to-project-name url)
+        lib-path (path (git/tree) (name:gsub "/" path-separator) sha)]
+    (when (not (file-exists? lib-path))
+      (log/info "processing git repo: " url)
+      (if options.full-clone
+          (git/full-clone url sha lib-path)
+          (< (git/version) {:major 2 :minor 49 :patch 0})
+          (git/shallow-fetch url sha lib-path)
+          :else
+          (git/shallow-clone url sha lib-path)))
+    (git/build-dep name lib-path)
+    (let [library-deps-file (path lib-path "deps.fnl")
+          library-paths (update-vals paths #(update-vals $ #(path lib-path $)))]
+      (if (file-exists? library-deps-file)
+          (let [deps (read-deps library-deps-file)
+                _ (set deps.paths (merge-with into paths deps.paths))
+                deps-tree (process-deps deps library-deps-file)]
+            (doto deps-tree
+              (tset :lib name)
+              (tset :version sha)
+              (tset :paths (merge-with into library-paths deps-tree.paths))
+              (tset :modules (git/modules lib-path (merge-with into paths deps.paths)))))
+          {:lib name
+           :version sha
+           :paths library-paths
+           :dependencies []
+           :modules (git/modules lib-path (or paths {}))}))))
+
+(register-backend git)
+
+;;; Deps processing
+
+(fn process-deps [deps file]
+  "Process the given `deps` map.  The optional `file` argument indicates
+the file from which the `deps` map originated.
+
+This function loops over all dependencies under the `:deps` key and
+downloads each dependency based on its `type` key."
+  (valid? deps (or file "deps"))
+  (let [{: deps : paths} deps]
+    {:dependencies (icollect [name descr (pairs (or deps {}))]
+                     (let [{: process} (. backends descr.type)]
+                       (process name descr process-deps)))
+     :paths (update-vals
+             paths
+             #(update-vals
+               $ #(path (when file (dirname file)) $)))}))
+
+(fn path->env-storage [path]
+  "Convert the `path` key into the environment variable or runtime
+storage."
+  (or (. supported-paths path)
+      (error (Error "unsupported path type: %s" (view path)) 2)))
+
+(fn setup-paths [paths]
+  "Assign runtime values for paths based on `paths`
+obtained from `build-paths`.
+
+All paths are reset before setup, to exclude any external paths that
+may come from the environment."
+  (each [path-type paths (pairs paths)]
+    (let [[_ [storage field]] (path->env-storage path-type)]
+      (set (. storage field) "")
+      (var current-path "")
+      (each [_ path (ipairs paths)]
+        (when (not (current-path:find path 1 true)) ; avoid setting the same path over and over again
+          (set (. storage field)
+            (.. (or (. storage field) "") ";" path))
+          (set current-path (. storage field)))))))
+
+(fn generate-env-variables [paths ?opts]
+  "Generate appropriate environment variables for the shell based on
+`paths` obtained from `build-paths`.
+
+Optional argument `?opts` is a table with `noexport` and `one-line?`
+keys to avoid exporting environment variables and formatting the
+result as a single line."
+  (t/concat
+   (icollect [path-type paths (pairs paths)]
+     (when (next paths)
+       (let [[env] (path->env-storage path-type)
+             cmd (.. env "=" (view (t/concat paths ";") {:one-line? true}))]
+         (case os-type
+           "windows" (.. "set " cmd)
+           _ (if (and ?opts ?opts.noexport)
+                 cmd
+                 (.. "export " cmd))))))
+   (if (and ?opts ?opts.one-line?) " " "\n")))
+
+;;; Runtime
+
+(fn deps.add-libs [coords]
+  "Add multiple libraries to the main deps file specified as `coords`.
+`coords` is a sequential table of library coordinates.  A library
+coordinate is a sequential table, with the dependency name, and its
+description map."
+  (assert (map? coords)
+          (Error "Expected an associative table as library coordinates: %s" (view coords {:one-line? true})))
+  (let [deps {:deps coords}
+        deps-tree (process-deps deps)
+        _ (check-conflicts deps-tree)
+        paths (build-paths deps-tree)]
+    (setup-paths paths)
+    (accumulate [modules []
+                 [_ dep] (breadth-first-iter deps-tree branch? children)]
+      (icollect [mod (pairs (or dep.modules []))
+                 :into modules]
+        mod))))
+
+(fn deps.add-lib [name dep-spec]
+  "Add a single library `name` to the main deps file and its `dep-spec`.
+`dep-spec` is an associative table with the dependency type and
+version."
+  (assert (string? name)
+          (Error "Expected library name as a string: %s" (view name {:one-line? true})))
+  (assert (map? dep-spec)
+   (Error "Expected an associative table as library coordinate: %s" (view dep-spec {:one-line? true})))
+  (deps.add-libs {name dep-spec}))
+
+(fn deps.sync-deps []
+  "Calls `add-libs` with any libraries present in `deps.fnl` but not yet
+present on the path."
+  (let [{:deps coords} (merge-deps (read-deps options.deps-file)
+                                   (t/unpack options.merge))]
+    (deps.add-libs coords)))
+
+(set (. package.preload :deps) #deps)
+
+;;; Project creation and templates
+
+(local deps-template
+  (padded-string
+   "{:project-name %q
+   | :project-version \"0.1.0\"
+   |
+   | :deps {}
+   |
+   | :paths {:fennel [\"src/?.fnl\"]
+   |         :macro [\"src/?.fnlm\"]
+   |         :lua [\"src/?.lua\"]}
+   |
+   | :profiles
+   | {:dev
+   |  {:deps {:ht.sr.technomancy/faith
+   |          {:type :git :sha \"89f7a6677821cfd6a0702cf22725dccbde1eb08c\"
+   |           :paths {:fennel [\"?.fnl\"]}}}
+   |   :paths {:fennel [\"test/?.fnl\"]
+   |           :macro [\"test/?.fnlm\"]
+   |           :lua [\"test/?.lua\"]}}
+   |  :aot
+   |  {:deps {\"fennel\" {:type :rock :version \"1.5.3\"}}}}}"))
+
+(local test-runner-template
+  (padded-string
+   ";; -*- mode: fennel; -*- vi:ft=fennel
+   |(local t (require :faith))
+   |
+   |(local test-modules
+   |  [:%s])
+   |
+   |(t.run
+   | (if (= 0 (length arg))
+   |     test-modules
+   |     arg))"))
+
+(local test-template
+  (padded-string
+   "(local t (require :faith))
+   |%s
+   |(fn test-%s []
+   |  \"FIXME: I fail\"
+   |  (t.is nil))
+   |
+   |{: test-%s}"))
+
+(local default-gitignore
+  "/.deps")
+
+(local default-doc
+  (padded-string
+   "# Introduction to %s
+   |
+   |TODO: write [great documentation](http://jacobian.org/writing/what-to-write/)"))
+
+(local default-lib-readme
+  (padded-string
+   "# %s 0.1.0
+   |
+   |<!-- TODO: describe the library -->
+   |
+   |## Usage
+   |
+   |<!-- TODO: describe how to use the library -->
+   |
+   |## Contributing
+   |
+   |<!-- TODO: add contribution guide -->
+   |
+   |### Running tests
+   |
+   |Tests can be run with the `deps` script:
+   |
+   |    deps --profiles dev tasks/run-tests
+   |
+   |## License
+   |
+   |<!-- FIXME: provide license information -->"))
+
+(local default-app-readme
+  (padded-string
+   "# %s
+   |
+   |<!-- TODO: add description -->
+   |
+   |## Installation
+   |
+   |<!-- TODO: add installation instructions -->
+   |
+   |## Usage
+   |
+   |<!-- TODO: add usage examples -->
+   |
+   |## Options
+   |
+   |<!-- FIXME: listing of options this app accepts -->
+   |
+   |## Examples
+   |
+   |<!-- TODO: add more examples -->
+   |
+   |## Contributing
+   |
+   |<!-- TODO: add contribution guide -->
+   |
+   |### Running tests
+   |
+   |Tests can be run with the `deps` script:
+   |
+   |    deps --profiles dev tasks/run-tests
+   |
+   |## License
+   |
+   |<!-- FIXME: provide license information -->"))
+
+(fn new-project-help []
+  "Display a help message specific to the deps --new script."
+  (let [deps-name (basename exec-arg)
+        help (padded-string
+              (.. "usage: " deps-name " --new TEMPLATE-NAME PROJECT-NAME [FLAGS]
+                  |
+                  |Generate scaffolding for a new project based on a template.
+                  |Supported flags for '" deps-name " --new':
+                  |
+                  |  --force    : Force project creation even if the target directory
+                  |               already present.
+                  |  --dir PATH : Generate the project in the specified directory.
+                  |  --help     : Display this text.
+                  |
+                  |Available templates:
+                  |
+                  |app : A basic template for an application.  Includes a base directory
+                  |      structure, an src/main.fnl file with the basic main function.
+                  |lib : A basic template for a library.  Includes a base directory
+                  |      structure, a src/PROJECT-NAME.fnl file with a namespace set up."))]
+    (io.stderr:write help "\n")
+    (os.exit 0)))
+
+(fn process-new-project-args [name args]
+  "Process command-line arguments `args`, and populate an options table
+for `deps --new` script.  Uses `name` as the default `target-dir`
+option."
+  (var i 1)
+  (let [opts {:target-dir name}]
+    (while (. args i)
+      (case (. args i)
+        :--help (new-project-help)
+        :--force (do (t/remove args i)
+                     (set opts.force true))
+        :--dir (do (t/remove args i)
+                   (set opts.target-dir (t/remove args i)))
+        _ (set i (+ i 1))))
+    opts))
+
+(fn create-new-project [name args]
+  "Create project directory `name`.
+`args` are all of the args to the `--new` flag after the template
+name.  See `process-new-project-args`."
+  (let [{: target-dir &as opts} (process-new-project-args name args)]
+    (assert (not (string.match "%s" name))
+            (string.format "Project name should not contain spaces: %q" name))
+    (assert (not (string.match path-separator name))
+            (string.format "Project name should not contain path separators: %q" path-separator))
+    (when (and (file-exists? target-dir)
+               (not opts.force))
+      (io.stderr:write (string.format "Could not create directory %q. Maybe it already exists?" (path workdir target-dir)))
+      (os.exit 1))
+    (case (mkdir target-dir)
+      (nil msg code)
+      (do (io.stderr:write msg)
+          (os.exit code)))
+    opts))
+
+(fn new-lib [[name &as args]]
+  "Create a new project `name` with the lib template.
+`args` are all of the args to the `--new` flag after the template
+name.  See `create-new-project`."
+  (let [{: target-dir} (create-new-project name args)
+        name* (name:match "([^.]+)")]
+    (write-file (path target-dir "deps.fnl")
+                (string.format deps-template name))
+    (write-file (path target-dir "README.md")
+                (string.format default-lib-readme name))
+    (write-file (path target-dir "doc" "intro.md")
+                (string.format default-doc name))
+    (write-file (path target-dir ".gitignore")
+                default-gitignore)
+    (write-file (path target-dir "src" (.. name* ".fnl"))
+                (string.format "(local %s {})\n\n%s" name* name*))
+    (write-file (path target-dir "test" (.. name* "-test.fnl"))
+                (string.format test-template (string.format "(local suit (require :%s))\n" name*) name* name*))
+    (write-file (path target-dir "tasks" "run-tests")
+                (string.format test-runner-template (.. name* "-test")))
+    (io.stderr:write (string.format "Created project %q " (path workdir target-dir)))))
+
+(fn new-app [[name &as args]]
+  "Create a new project `name` with the app template.
+`args` are all of the args to the `--new` flag after the template
+name.  See `create-new-project`."
+  (let [{: target-dir} (create-new-project name args)]
+    (write-file (path target-dir "deps.fnl") (string.format deps-template name))
+    (write-file (path target-dir "README.md") (string.format default-app-readme name))
+    (write-file (path target-dir "doc" "intro.md") (string.format default-doc name))
+    (write-file (path target-dir ".gitignore") default-gitignore)
+    (write-file (path target-dir "src" "main.fnl")
+                "(fn main []\n  \"I don't do much, yet.\"\n  (print \"Hello from Fennel!\"))\n\n(main)")
+    (write-file (path target-dir "test" "main-test.fnl")
+                (string.format test-template "" "main" "main"))
+    (write-file (path target-dir "tasks" "run-tests")
+                (string.format test-runner-template "main-test"))
+    (io.stderr:write (string.format "Created project %q " (path workdir target-dir)))))
+
+(fn new-git-template [url [name &as args]]
+  "Create a new project `name` based on a git repository `url`.
+`args` are all of the args to the `--new` flag after the template
+name.  See `create-new-project`."
+  (let [{: target-dir} (create-new-project name args)]
+    (case-try (prun "mktemp -d")
+      (true tmp) (pick-values 1 (tmp:gsub "\n+$" ""))
+      tmp (prun "GIT_TERMINAL_PROMPT=0 git clone --depth=1" url tmp)
+      true (prun "rm -rf" (path tmp ".git"))
+      true (prun "cp -a" (path tmp ".") (path workdir target-dir ""))
+      true (prun "rm -rf" tmp)
+      true (io.stderr:write (string.format "Created project %q " (path workdir target-dir)))
+      (catch (_ out)
+        (fatal-error (Error (.. "can't process " (view url) ". Log:\n" out)) 1)))))
+
+(fn new [[_ template & args]]
+  "Create a new project based on `template` and `args`."
+  (case template
+    :lib (new-lib args)
+    :app (new-app args)
+    :--help (new-project-help)
+    (where template (git/url? template))
+    (new-git-template template args)
+    _ (case (git/url-from-dep template)
+        url (new-git-template url args)
+        _ (do (io.stderr:write "Unknown template: " (tostring template) "\n")
+              (os.exit 1))))
+  (io.stderr:write "using the '" template "' template\n")
+  (os.exit 0))
+
+;;; CLI
+
+(fn show-deps [deps]
+  "Show the resulting `deps` map after processing all of the options."
+  (-> (doto deps
+        (tset :profiles nil))
+      view
+      print)
+  (os.exit 0))
+
+(fn show-tree* [deps-tree]
+  "Collect the resulting dependency tree.
+Accepts the `deps-tree`, generated by the `process-deps` function."
+  (icollect [_ dep (ipairs deps-tree.dependencies)]
+    (let [deps (show-tree* dep)]
+      (if (next deps)
+          [dep.lib dep.version deps]
+          [dep.lib dep.version]))))
+
+(fn show-tree [deps-tree]
+  "Display the resulting dependency tree after processing all of the options.
+Accepts the `deps-tree`, generated by the `process-deps` function."
+  (-> deps-tree
+      show-tree*
+      (view {:one-line? false :line-length 0})
+      print)
+  (os.exit 0))
+
+(fn configure-fennel-ls [paths]
+  "Create or update the configuration of fennel-ls based on `paths` information."
+  (let [flsproject (path workdir "flsproject.fnl")
+        config {:fennel-path (t/concat (or paths.fennel []) ";")
+                :macro-path (t/concat (or paths.macro []) ";")
+                :lua-version (.. "lua" (options.lua-version:gsub "%." ""))}]
+    (spit flsproject
+          (if (file-exists? flsproject)
+              (-> (fennel.dofile flsproject)
+                  (merge config)
+                  view)
+              (-> config
+                  view)))))
+
+(local flags
+  [{:flag "--deps-file"
+    :descr (.. "Path to a specific deps file.\n"
+               "Default: deps.fnl")
+    :handler
+    (fn [arg i]
+      (t/remove arg i)
+      (set options.deps-file (t/remove arg i)))}
+
+   {:flag "--deps-dir"
+    :descr (.. "Path to an alternative deps storage.\n"
+               "Default: .deps")
+    :arguments ["PATH"]
+    :handler
+    (fn [arg i]
+      (t/remove arg i)
+      (set options.deps-dir (t/remove arg i)))}
+
+   {:flag "--profiles"
+    :descr "Use additional profiles specified in the deps file."
+    :arguments ["profile1,profile2,..."]
+    :handler
+    (fn [arg i]
+      (let [_ (t/remove arg i)
+            profiles (t/remove arg i)]
+        (set options.merge-profiles
+          (icollect [profile (profiles:gmatch "([^,]+)")]
+            profile))))}
+
+   {:flag "--merge"
+    :descr "Merge the given deps file with the main deps file"
+    :arguments ["DEPS-FILE"]
+    :deprecated "0.2.1"
+    :handler
+    (fn [arg i]
+      (let [_ (t/remove arg i)
+            file (t/remove arg i)]
+        (log/warn "--merge flag is deprecated, use profiles instead")
+        (if (file-exists? file)
+            (t/insert options.merge (read-deps file))
+            (error (Error "%s: %s: No such file" (basename exec-arg) file) 2))))}
+
+   {:flag "--no-prompt"
+    :descr (.. "Don't prompt the user for anything.\n"
+               "Fail instead.\n"
+               "Can also be set with DEPS_NO_PROMPT environment variable.")
+    :handler
+    (fn [arg i]
+      (t/remove arg i)
+      (set options.no-prompt true))}
+
+   {:flag "--show"
+    :descr "Print resulting deps.fnl after processing all arguments."
+    :handler
+    (fn [arg i]
+      (set options.show-deps true)
+      (t/remove arg i))}
+
+   {:flag "--tree"
+    :descr "Print a full dependency tree"
+    :handler
+    (fn [arg i]
+      (set options.print-tree? true)
+      (t/remove arg i))}
+
+   {:flag "--path"
+    :descr (.. "Construct LUA_PATH, LUA_CPATH, FENNEL_PATH,\n"
+               "and FENNEL_MACRO_PATH environment variables.")
+    :handler
+    (fn [arg i]
+      (set options.print-path? :full)
+      (t/remove arg i))}
+
+   {:flag "--fennel-path"
+    :descr "Construct only the FENNEL_PATH and FENNEL_MACRO_PATH environment variables."
+    :handler
+    (fn [arg i]
+      (set options.print-path? :fennel)
+      (t/remove arg i))}
+
+   {:flag "--lua-version"
+    :descr (.. "Specify alternative Lua version for Luarocks commands.\n"
+               "Version is detected automatically, but can be overridden with this flag.\n"
+               "On some systems, the Luarocks package defaults to lua5.1\n"
+               "(or another version of Lua), which can cause errors when using a\n"
+               "different Lua runtime version.")
+    :arguments ["LUA-VERSION"]
+    :handler
+    (fn [arg i]
+      (t/remove arg i)
+      (set options.lua-version (t/remove arg i)))}
+
+   {:flag "--new"
+    :descr (.. "Create a new project with a given template.\n"
+               "Available templates are 'lib' and 'app'.\n"
+               "Project is created in the current working directory.\n"
+               "The resulting directory contains a template deps.fnl file,\n"
+               "and a basic directory")
+    :arguments ["TEMPLATE" "PROJECT-NAME"]
+    :handler
+    (fn [arg]
+      (new arg))}
+
+   {:flag "--fennel-ls"
+    :descr (.. "Generate a minimal flsproject.fnl file.\n"
+               "Updates the existing one with path information from the deps file")
+    :handler
+    (fn [arg i]
+      (set options.generate-fennel-ls-paths true)
+      (t/remove arg i))}
+
+   {:flag "--verbosity"
+    :descr (.. "Changes the logging level.\n"
+               "Available levels: \"info\", \"warn\", \"error\", \"silent\", and \"debug\".\n"
+               "Default: \"info\"")
+    :arguments ["LEVEL"]
+    :handler
+    (fn [arg i]
+      (t/remove arg i)
+      (set options.log-level (t/remove arg i)))}
+
+   {:flag "--git-full-clone"
+    :descr "Do a full clone of git dependencies"
+    :handler
+    (fn [arg i]
+      (t/remove arg i)
+      (set options.full-clone true))}
+
+   {:flag "--shell"
+    :descr "Start a new interactive shell with path variables set up."
+    :arguments ["SHELL"]
+    :handler
+    (fn [arg i]
+      (t/remove arg i)
+      (set options.start-shell (t/remove arg i)))}
+
+   {:flag "--version"
+    :descr "Print deps version and exit"
+    :handler
+    (fn []
+      (print deps._VERSION)
+      (os.exit 0))}])
+
+(fn gen-help [flags]
+  "Generate a formatted help message for `flags`."
+  (let [flags-w-args (collect [_ {: flag : arguments} (ipairs flags)]
+                       flag (string.format "  %s %s" flag (table.concat (or arguments []) " ")))
+        padding (accumulate [longest "" _ msg (pairs flags-w-args)]
+                  (if (> (length msg) (length longest))
+                      (string.rep " " (+ (length msg) 2))
+                      longest))]
+    (-> (accumulate [flag-descrs [] _ {: flag : descr : deprecated} (ipairs flags)]
+          (let [flag-info (. flags-w-args flag)
+                lines (icollect [line (descr:gmatch "[^\r\n]+")
+                                 :into [(when deprecated (.. "Deprecated in " deprecated))]]
+                        line)]
+            (table.insert flag-descrs (string.format "%s%s: %s" flag-info (string.rep " " (- (length padding) (length flag-info))) (. lines 1)))
+            (each [i line (ipairs lines)]
+              (when (not= i 1)
+                (table.insert flag-descrs (string.format "%s  %s" padding line))))
+            flag-descrs))
+        (table.concat "\n"))))
+
+(fn help []
+  "Display a help message specific to the deps script."
+  (let [fennel-name (basename fennel-arg)
+        deps-name (basename exec-arg)
+        help (padded-string
+              (.. "usage: " deps-name " [" deps-name "-flags] [" fennel-name "-args]
+                  |
+                  |Available " deps-name " flags:
+                  |
+                  |" (gen-help flags) "
+                  |
+                  |Run '" fennel-name " --help' to see Fennel help."))]
+    (io.stderr:write help "\n")
+    (os.exit 0)))
+
+(table.insert
+ flags
+ {:flag "--help"
+  :descr "Display this text"
+  :handler #(help)})
+
+(fn process-command-line-args []
+  "Process command-line arguments, and populate an options table for deps
+script."
+  (var i 1)
+  (let [flags (collect [_ {: flag : handler} (ipairs flags)] flag handler)]
+    (while (. arg i)
+      (case (. flags (. arg i))
+        handler (handler arg i)
+        _ (set i (+ i 1))))))
+
+(fn main []
+  "The main entry point.
+
+Populates the `options` by processing the command line arguments and,
+depending on the options table either shows help, paths or passes the
+arguments unaffected by the `process-command-line-args` to the
+`fennel` executable."
+  (doto options
+    ;; defaults
+    (tset :deps-dir (path workdir ".deps"))
+    (tset :deps-file (path workdir "deps.fnl"))
+    (tset :lua-version (_G._VERSION:match "^Lua *(.+)")))
+
+  (process-command-line-args)
+
+  (assert options.lua-version (Error "couldn't detect Lua runtime version automatically: use the --lua-version flag"))
+  (assert (tonumber options.lua-version) (Error "lua version is not a number: %s" (view options.lua-version)))
+
+  (let [{: deps-file} options
+        deps (if (file-exists? deps-file)
+                 (-> (read-deps deps-file)
+                     (merge-deps (t/unpack options.merge))
+                     (merge-profiles options.merge-profiles))
+                 ;; if thre's no deps.fnl act as plain fennel
+                 (= deps-file (path workdir "deps.fnl"))
+                 (do (log/warn deps-file " file not found")
+                     {})
+                 ;; if --deps-file flag was used and there's no such file raise an error
+                 (error (Error "%s: %s: No such file" (basename exec-arg) deps-file) 2))
+        deps-tree (case (pcall process-deps deps deps-file)
+                    (false msg)
+                    (do (log/error msg)
+                        (os.exit 1))
+                    (true deps-tree) deps-tree)
+        _ (check-conflicts deps-tree)
+        paths (build-paths deps-tree)]
+    (case options
+      {:show-deps true} (show-deps deps)
+      {:print-tree? true} (show-tree deps-tree)
+      {:print-path? :full} (print (generate-env-variables paths))
+      {:print-path? :fennel} (print (generate-env-variables {:fennel paths.fennel :macro paths.macro}))
+      {:start-shell shell} (os.execute (.. (generate-env-variables paths {:noexport true :one-line? true}) " " shell))
+      {:generate-fennel-ls-paths true} (configure-fennel-ls paths)
+      _ (do (set options.log-level :error) ; we want errors to be visible in the REPL
+            (setup-paths paths)
+            (dofile fennel-arg)))))
+
+(main)

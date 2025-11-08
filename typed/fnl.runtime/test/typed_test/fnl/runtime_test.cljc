@@ -9,7 +9,7 @@
                          .getCanonicalPath
                          io/file)
         demo-file (io/file project-root "test-resources/typed_test/fnl/runtime/demo.fnl")
-        fennel-bin (io/file project-root "fennel/fennel")
+        fennel-bin (io/file project-root "fennel-bootstrap/fennel")
         src-path (str (.getCanonicalPath (io/file project-root "src")) "/?.fnl")]
     (is (.exists demo-file) "demo.fnl should exist in test-resources")
     (is (.exists fennel-bin) "Fennel binary should exist")
