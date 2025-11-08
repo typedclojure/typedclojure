@@ -2,5 +2,7 @@
 
 set -e
 
-export PATH="$(pwd)/fennel-bootstrap:$PATH"
+script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+export PATH="$script_dir/fennel-bootstrap:$PATH"
 fennel "$@"

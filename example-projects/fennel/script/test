@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+set -e
+
+./deps src/typed-fennel-demo.fnl | grep "Hello from Typed Fennel!"
