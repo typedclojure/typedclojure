@@ -19,6 +19,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Update package list
+        run: sudo apt-get update
+
+      - name: Install Lua
+        run: sudo apt-get install -y lua5.4
+
       - name: Install Clojure CLI (latest official installer)
         run: |
           curl -O https://download.clojure.org/install/linux-install.sh

@@ -26,7 +26,7 @@ jobs:
         run: sudo apt-get update
 
       - name: Install Lua
-        run: sudo apt-get install -y lua5.3
+        run: sudo apt-get install -y lua5.4
 
       - uses: DeLaGuardo/setup-clojure@13.4
         with:
