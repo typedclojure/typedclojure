@@ -12,6 +12,7 @@
 (set! *warn-on-reflection* true)
 
 (def spec-skip-macros "-Dclojure.spec.skip-macros=true")
+(def fennel-deps-command "-Dtyped.fnl.analyzer.deps-command=example-projects/fennel/deps")
 
 (def ^String subprojects-dir "typed")
 (def ^String everything-root (str (File. h/repo-root subprojects-dir)))
@@ -26,7 +27,8 @@
     :spec-skip-macros
     {:jvm-opts [spec-skip-macros]}
     :cognitect-test-runner
-    {:jvm-opts [spec-skip-macros]
+    {:jvm-opts [spec-skip-macros
+                fennel-deps-command]
      :extra-paths (test-paths)
      :extra-deps (into test-deps
                        {'io.github.cognitect-labs/test-runner 
@@ -39,7 +41,8 @@
      :exec-args [":patterns" "[\".*test.*\"]"
                  ":dirs" (pr-str (non-resource-test-paths))]}
     :kaocha
-    {:jvm-opts ["-Dclojure.spec.skip-macros=true"]
+    {:jvm-opts [spec-skip-macros
+                fennel-deps-command]
      :extra-paths (test-paths)
      :extra-deps (into test-deps
                        {'lambdaisland/kaocha (sorted-map
@@ -233,6 +236,7 @@
                                                                                      (non-resource-test-paths))})
                                           :test (sorted-map
                                                   :jvm-opts [spec-skip-macros
+                                                             fennel-deps-command
                                                              "-Djdk.attach.allowAttachSelf"
                                                              "-Dtyped.cljc.checker.utils.trace=true"
                                                              "-Dtyped.cljc.analyzer.passes/direct-link=false"

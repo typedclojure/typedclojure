@@ -12,7 +12,10 @@
   (:require [typed.cljc.analyzer :as ana]
             [typed.cljc.analyzer.utils :as u]
             [typed.clj.analyzer :as clj-ana]
-            [typed.fnl.reader :as fnl-reader]))
+            [typed.fnl.reader :as fnl-reader]
+            [clojure.java.shell :as shell]
+            [clojure.java.io :as io]
+            [clojure.string :as str]))
 
 (defn empty-env
   "Returns an empty env map for Fennel analysis.
@@ -191,8 +194,69 @@
      #_:else         ana/parse-invoke)
    form env opts))
 
-;;TODO
-(defn macroexpand-1 [form env opts] form)
+
+(defn- call-deps-script
+  "Call a deps script in the fennel example-projects directory.
+  Returns the stdout output."
+  [script-name & args]
+  (let [deps-command-prop (or (System/getProperty "typed.fnl.analyzer.deps-command")
+                              (throw (ex-info "JVM property 'typed.fnl.analyzer.deps-command' not set" {})))
+        deps-command (.getCanonicalPath (io/file deps-command-prop))
+        fennel-dir (.getParent (io/file deps-command))
+        all-args (concat [deps-command script-name] args [:dir fennel-dir])
+        result (apply shell/sh all-args)]
+    (when-not (zero? (:exit result))
+      (throw (ex-info (str "Fennel script failed: " script-name)
+                      {:exit (:exit result)
+                       :stderr (:err result)
+                       :stdout (:out result)
+                       :script script-name
+                       :args args})))
+    (:out result)))
+
+(defn compile-fennel-file
+  "Compile a Fennel file and return information about forms and macros.
+  Returns a map with :forms (vector of Clojure forms) and :macros (set of macro names)."
+  [fennel-file-path]
+  (let [output (call-deps-script "compile_file_with_scope.fnl" fennel-file-path)
+        ;; Use Clojure's read-string, not fnl-reader, since the output is EDN
+        {:keys [forms macros]} (read-string output)]
+    {:forms forms
+     :macros (set macros)}))
+
+(defn opts-with-file
+  "Create analyzer options for a Fennel file.
+  Compiles the file to extract macro information and returns opts with
+  ::fennel-macros and ::fennel-file populated."
+  [fennel-file-path base-opts]
+  (let [{:keys [macros]} (compile-fennel-file fennel-file-path)]
+    (assoc base-opts
+           ::fennel-macros macros
+           ::fennel-file fennel-file-path)))
+
+(defn macroexpand-1
+  "Expand a Fennel macro form one level.
+  
+  Attempts to expand any form that looks like a macro call (seq starting with symbol).
+  Uses the ::fennel-file path in opts to provide the compilation context.
+  If expansion doesn't change the form, it's not a macro and the original is returned.
+  
+  This handles both file-local macros and core Fennel macros (like icollect)."
+  [form env opts]
+  (if (and (seq? form)
+           (symbol? (first form))
+           (::fennel-file opts))
+    ;; This might be a macro call - try to expand it
+    (let [fennel-file (::fennel-file opts)
+          form-str (fnl-reader/fennel-form->string form)
+          output (call-deps-script "macroexpand1_from_file.fnl" fennel-file form-str)
+          expanded (fnl-reader/read-string (str/trim output))]
+      ;; If expansion didn't change the form, it's not a macro
+      (if (= form expanded)
+        form
+        expanded))
+    ;; Not expandable, return unchanged
+    form))
 
 (declare -analyze-outer)
 
@@ -282,14 +346,19 @@
   [form env opts]
   (ana/run-passes (unanalyzed form env opts) opts))
 
-(defn read-fennel
-  "Read Fennel source code and return Clojure data structures.
+(defn analyze-fennel-file
+  "Analyze a Fennel file and return analyzed forms with macro information.
   
-  Uses typed.fnl.reader to parse Fennel syntax into Clojure-friendly forms."
-  ([source] (fnl-reader/read-string source))
-  ([source opts] (fnl-reader/read-string source opts)))
-
-(defn read-fennel-file
-  "Read a Fennel file and return all forms as Clojure data structures."
-  [filename]
-  (fnl-reader/read-file filename))
+  Returns a map with:
+  - :forms - vector of analyzed AST nodes
+  - :macros - set of macro names available in the file
+  - :opts - updated opts with macro information"
+  [fennel-file-path env base-opts]
+  (let [{:keys [forms macros]} (compile-fennel-file fennel-file-path)
+        opts (assoc base-opts 
+                    ::fennel-macros macros
+                    ::fennel-file fennel-file-path)
+        analyzed-forms (mapv #(analyze % env opts) forms)]
+    {:forms analyzed-forms
+     :macros macros
+     :opts opts}))

@@ -2,10 +2,7 @@ name: Test and deploy
 
 on:
   workflow_dispatch:
-  pull_request:
   push:
-    branches:
-      - 'main'
   schedule:
     # Every Monday and Friday at 1PM UTC (9AM EST)
     - cron: "0 13 * * 1,5"
@@ -16,11 +13,6 @@ env:
 
 jobs:
   setup:
-    # only test main if in typedclojure/typedclojure repo
-    if: ${{ !(github.ref == 'refs/heads/main'
-              && github.repository != 'typedclojure/typedclojure'
-              && github.event_name == 'push')
-         }}
     runs-on: ubuntu-24.04
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
@@ -41,6 +33,7 @@ jobs:
       matrix: ${{ fromJson(needs.setup.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
+      - uses: leafo/gh-actions-lua@8c9e175e7a3d77e21f809eefbee34a19b858641b
       - uses: actions/cache@v4
         id: test-deps-cache
         with:

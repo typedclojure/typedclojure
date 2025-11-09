@@ -1,6 +1,7 @@
 (ns typed.fnl.analyzer-test
   "Test suite for Fennel analyzer following typed.clj.analyzer patterns."
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [clojure.java.io :as io]
+            [clojure.test :refer [deftest is testing]]
             [typed.fnl.analyzer :as fnl-ana]
             [typed.fnl.reader :as fnl-reader]
             [typed.cljc.analyzer :as ana]
@@ -111,3 +112,43 @@
     (let [ast (analyze-str ",x")]
       (is (= :unquote (:op ast)))
       (is (symbol? (:expr ast))))))
+
+(deftest test-macroexpand-1
+  (testing "macroexpand-1 expands ann-forwarded macro using file scope"
+    (let [fennel-file-repo-root-relative "example-projects/fennel/src/typed-fennel-demo.fnl"
+          fennel-file (-> (let [f (io/file fennel-file-repo-root-relative)]
+                            (if (.exists f)
+                              f
+                              ;; via subproject tests
+                              (io/file "../.." fennel-file-repo-root-relative)))
+                          .getCanonicalPath)
+          form '(ann-forwarded demo-func t/Str)
+          ;; Use opts-with-file to automatically populate macros from the file
+          opts (env/ensure (fnl-ana/opts-with-file fennel-file (fnl-ana/default-opts))
+                           (atom {}))
+          expanded (fnl-ana/macroexpand-1 form (fnl-ana/empty-env) opts)]
+      ;; Should expand to (t.ann-form demo-func [t/Str :-> t/Str])
+      (is (seq? expanded))
+      (is (= 't.ann-form (first expanded)))
+      (is (= 'demo-func (second expanded)))))
+  
+  (testing "macroexpand-1 returns non-macro forms unchanged"
+    (let [form '(some-func x y)
+          opts (env/ensure (fnl-ana/default-opts) (atom {}))
+          expanded (fnl-ana/macroexpand-1 form (fnl-ana/empty-env) opts)]
+      (is (identical? form expanded))))
+  
+  (testing "macroexpand-1 expands core Fennel macro icollect"
+    (let [;; Create a temp file with icollect
+          temp-file (java.io.File/createTempFile "test_icollect" ".fnl")
+          _ (spit temp-file "(icollect [i x (ipairs [1 2 3])] (* x x))")
+          fennel-file (.getAbsolutePath temp-file)
+          form '(icollect [i x (ipairs [1 2 3])] (* x x))
+          ;; Use opts-with-file to automatically populate macros from the file
+          opts (env/ensure (fnl-ana/opts-with-file fennel-file (fnl-ana/default-opts))
+                           (atom {}))
+          expanded (fnl-ana/macroexpand-1 form (fnl-ana/empty-env) opts)]
+      ;; icollect should expand to a let form
+      (is (seq? expanded))
+      (is (= 'let (first expanded)))
+      (.delete temp-file))))

@@ -533,6 +533,20 @@
          parse-fn (parser-fn getbyte filename options)]
      (parse-fn))))
 
+(defn fennel-form->string
+  "Convert a Clojure data structure to a Fennel string representation.
+  This is similar to pr-str but handles Fennel-specific syntax."
+  [form]
+  (cond
+    (number? form) (cond
+                     (Double/isInfinite form) (if (pos? form) ".inf" "-.inf")
+                     (Double/isNaN form) ".nan"
+                     :else (str form))
+    (map? form) (str "{" (str/join " " (map fennel-form->string (apply concat form))) "}")
+    (vector? form) (str "[" (str/join " " (map fennel-form->string form)) "]")
+    (seq? form) (str "(" (str/join " " (map fennel-form->string form)) ")")
+    :else (pr-str form)))
+
 (defn read-all
   "Read all Fennel forms from a string.
   

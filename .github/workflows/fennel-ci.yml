@@ -3,15 +3,6 @@ name: Fennel CI
 on:
   workflow_dispatch:
   push:
-    paths:
-      - "typed/fnl.runtime/**"
-      - ".github/workflows/fennel-ci.yml"
-      - ".github/actions/setup-lua/**"
-  pull_request:
-    paths:
-      - "typed/fnl.runtime/**"
-      - ".github/workflows/fennel-ci.yml"
-      - ".github/actions/setup-lua/**"
 
 env:
   CLOJURE_CLI_VERSION: "1.12.0.1530"
@@ -30,9 +21,6 @@ jobs:
       - uses: DeLaGuardo/setup-clojure@13.4
         with:
           cli: ${{env.CLOJURE_CLI_VERSION}}
-
-      - name: Make script executable
-        run: chmod +x typed/fnl.runtime/script/test
 
       - name: Run tests
         run: cd typed/fnl.runtime && ./script/test

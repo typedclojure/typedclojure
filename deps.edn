@@ -9,7 +9,9 @@
    :extra-paths ["dev/src"],
    :ns-default build},
   :cognitect-test-runner
-  {:jvm-opts ["-Dclojure.spec.skip-macros=true"],
+  {:jvm-opts
+   ["-Dclojure.spec.skip-macros=true"
+    "-Dtyped.fnl.analyzer.deps-command=example-projects/fennel/deps"],
    :extra-paths
    ["typed/clj.analyzer/test"
     "typed/clj.checker/test"
@@ -83,7 +85,9 @@
     "eastwood.lint"
     {:exclude-linters #{:def-in-def :unlimited-use}}]},
   :kaocha
-  {:jvm-opts ["-Dclojure.spec.skip-macros=true"],
+  {:jvm-opts
+   ["-Dclojure.spec.skip-macros=true"
+    "-Dtyped.fnl.analyzer.deps-command=example-projects/fennel/deps"],
    :extra-paths
    ["typed/clj.analyzer/test"
     "typed/clj.checker/test"
@@ -160,6 +164,7 @@
     "typed/malli/test"],
    :jvm-opts
    ["-Dclojure.spec.skip-macros=true"
+    "-Dtyped.fnl.analyzer.deps-command=example-projects/fennel/deps"
     "-Djdk.attach.allowAttachSelf"
     "-Dtyped.cljc.checker.utils.trace=true"
     "-Dtyped.cljc.analyzer.passes/direct-link=false"
