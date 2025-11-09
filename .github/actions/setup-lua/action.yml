@@ -1,0 +1,49 @@
+name: 'Setup Lua'
+description: 'Download, build, and cache Lua'
+inputs:
+  lua-version:
+    description: 'Lua version to install'
+    required: false
+    default: '5.4.8'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Check if Lua is cached
+      id: cache-lua
+      uses: actions/cache@v4
+      with:
+        path: .lua
+        key: lua-${{ inputs.lua-version }}-${{ runner.os }}-${{ runner.arch }}
+
+    - name: Install build dependencies
+      if: steps.cache-lua.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libreadline-dev libncurses-dev
+
+    - name: Download Lua source
+      if: steps.cache-lua.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        curl -L -o lua.tar.gz \
+          https://www.lua.org/ftp/lua-${{ inputs.lua-version }}.tar.gz
+        tar xzf lua.tar.gz
+
+    - name: Build and install Lua
+      if: steps.cache-lua.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        cd lua-${{ inputs.lua-version }}
+        make -j linux
+        make INSTALL_TOP="${GITHUB_WORKSPACE}/.lua" install
+
+    - name: Add Lua to PATH
+      shell: bash
+      run: echo "${GITHUB_WORKSPACE}/.lua/bin" >> $GITHUB_PATH
+
+    - name: Verify Lua installation
+      shell: bash
+      run: |
+        lua -v
