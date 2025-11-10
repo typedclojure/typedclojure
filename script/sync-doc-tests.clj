@@ -22,6 +22,10 @@
             [clojure.java.io :as io]
             [clojure.edn :as edn]))
 
+;; Load common utilities
+(load-file "script/doc-test-common.clj")
+(require '[doc-test-common :as common])
+
 ;; ============================================================================
 ;; Configuration
 ;; ============================================================================
@@ -41,29 +45,9 @@
     ;; Use first 8 chars for readability
     (subs uuid 0 8)))
 
-(defn parse-metadata
-  "Parse metadata from comment lines.
-   Format: <!-- doc-test: key=value key=value -->
-   or:     ;; doc-test: key=value key=value"
-  [text]
-  (let [patterns [#"<!--\s*doc-test:\s*([^>]+)\s*-->"
-                  #";;\s*doc-test:\s*(.+)"]
-        matches (some #(re-find % text) patterns)]
-    (when matches
-      (let [content (second matches)
-            pairs (re-seq #"(\w+)=([^\s]+)" content)]
-        (into {} (map (fn [[_ k v]] [(keyword k) v]) pairs))))))
-
-(defn format-metadata
-  "Format metadata for insertion into file.
-   target: :markdown or :clojure"
-  [metadata target]
-  (let [pairs (str/join " "
-                       (map (fn [[k v]] (str (name k) "=" v))
-                            (sort-by first metadata)))]
-    (case target
-      :markdown (str "<!-- doc-test: " pairs " -->")
-      :clojure (str ";; doc-test: " pairs))))
+;; Use common metadata functions
+(def parse-metadata common/parse-metadata)
+(def format-metadata common/format-metadata)
 
 ;; ============================================================================
 ;; Code Block Parsing
@@ -138,41 +122,11 @@
         filename (str file-safe-doc-name "_" id ".clj")]
     (str test-dir "/" filename)))
 
-(defn parse-test-file
-  "Parse a test file, extracting metadata and code"
-  [file-path]
-  (when (.exists (io/file file-path))
-    (let [content (slurp file-path)
-          lines (str/split-lines content)
-          ;; Extract metadata from initial comments
-          metadata-lines (take-while #(str/starts-with? % ";;") lines)
-          metadata-text (str/join "\n" metadata-lines)
-          metadata (parse-metadata metadata-text)
-          ;; Everything after metadata is the test code
-          code-start (count metadata-lines)
-          code-lines (drop code-start lines)
-          code (str/join "\n" code-lines)]
-      {:metadata metadata
-       :code (str/trim code)
-       :file-path file-path})))
-
-(defn generate-test-namespace
-  "Generate a namespace name from doc name and id.
-   Namespace uses hyphens (Clojure convention)."
-  [doc-name id]
-  (str "typed-test.doc." doc-name "-" id))
-
-(defn generate-test-file-content
-  "Generate complete test file content"
-  [metadata code doc-name]
-  (let [id (:id metadata)
-        ns-name (generate-test-namespace doc-name id)
-        metadata-str (format-metadata metadata :clojure)]
-    (str metadata-str "\n"
-         "(ns ^:typed.clojure " ns-name "\n"
-         "  (:require [typed.clojure :as t]))\n"
-         "\n"
-         code "\n")))
+;; Use common functions
+(def extract-between common/extract-between)
+(def parse-test-file common/parse-test-file)
+(def generate-test-namespace common/generate-test-namespace)
+(def generate-test-file-content common/generate-test-file-content)
 
 ;; ============================================================================
 ;; Synchronization Logic
@@ -203,7 +157,7 @@
                                :version "1"
                                :type (name default-type))
             test-path (test-file-path new-metadata doc-name)
-            test-content (generate-test-file-content new-metadata (:code block) doc-name)]
+            test-content (generate-test-file-content new-metadata (:code block) {} doc-name)]
         (io/make-parents test-path)
         (spit test-path test-content)
         (println "Created new test file:" test-path)
@@ -216,7 +170,7 @@
         (if-not test-file
           (do
             (println "Warning: Test file not found for id" id "- creating it")
-            (let [test-content (generate-test-file-content metadata (:code block) doc-name)]
+            (let [test-content (generate-test-file-content metadata (:code block) {} doc-name)]
               (io/make-parents test-path)
               (spit test-path test-content)
               (assoc block :updated true)))
@@ -252,7 +206,7 @@
               (= version-cmp :left-newer)
               (do
                 (println "Updating test file" test-path "from markdown (v" test-version "→" doc-version ")")
-                (spit test-path (generate-test-file-content metadata doc-code doc-name))
+                (spit test-path (generate-test-file-content metadata doc-code (:result test-file) doc-name))
                 nil)
               
               ;; Test version is newer - update markdown

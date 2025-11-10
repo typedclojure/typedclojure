@@ -72,3 +72,5 @@ nav:
   - Meta:
     - About: about.md
 theme: readthedocs
+hooks:
+  - typedclojure_blocks.py

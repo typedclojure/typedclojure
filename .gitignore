@@ -36,3 +36,4 @@ release.properties
 linux-install.sh
 ./install
 .deps
+.lua
