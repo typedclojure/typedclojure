@@ -80,6 +80,29 @@
   (is-tc-e (apply merge [{:a 1}])
            (t/Nilable (t/Map t/Any t/Any))))
 
+#?(:clj
+(deftest arithmetic-ops-double-specialization-test
+  (clj/is-tc-err (t/ann-form (+ (t/ann-form 1 (t/U Long Double))) Double))
+  (clj/is-tc-e (t/ann-form (+ 1 2 3) Long))
+  (clj/is-tc-e (t/ann-form (+ 1.0 2.0) Double))
+  (clj/is-tc-e (let [x (t/ann-form 1 (t/U Long Double))] (t/ann-form (+ x) t/Num)))
+  (clj/is-tc-err (t/ann-form (+) Double))
+  (clj/is-tc-e (t/ann-form (+) Long))
+  (clj/is-tc-err ((t/ann-form + [:-> Double])))
+  (clj/is-tc-err (t/ann-form (- (t/ann-form 1 (t/U Long Double))) Double))
+  (clj/is-tc-e (t/ann-form (- 5 2) Long))
+  (clj/is-tc-e (let [x (t/ann-form 1 (t/U Long Double))] (t/ann-form (- x) t/Num)))
+  (clj/is-tc-err (t/ann-form (* (t/ann-form 2 (t/U Long Double))) Double))
+  (clj/is-tc-e (t/ann-form (* 2 3) Long))
+  (clj/is-tc-e (let [x (t/ann-form 2 (t/U Long Double))] (t/ann-form (* x) t/Num)))
+  (clj/is-tc-err (t/ann-form (*) Double))
+  (clj/is-tc-e (t/ann-form (*) Long))
+  (clj/is-tc-err ((t/ann-form * [:-> Double])))
+  (clj/is-tc-err (t/ann-form (quot (t/ann-form 4 (t/U Long Double)) (t/ann-form 2 (t/U Long Double))) Double))
+  (clj/is-tc-e (t/ann-form (quot 10 3) Long))
+  (clj/is-tc-e (let [x (t/ann-form 4 (t/U Long Double)) y (t/ann-form 2 (t/U Long Double))] (t/ann-form (quot x y) t/Num))))
+)
+
 (deftest boolean-test
   (is-tc-e (boolean [])     t/Bool)
   (is-tc-e (boolean "true") t/Bool)

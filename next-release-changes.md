@@ -9,6 +9,11 @@
   - use `clojure.core/requiring-resolve`
 - BREAKING: remove `clojure.core/typed-deps`
   - no longer useful
+- Fix unsound type annotations for arithmetic operations `+`, `-`, `*`, `quot`
+  - Problem 1: `[(t/U Long Double) :* :-> Double]` is unsound since `(+ (ann-form 1 (U Long Double)))` or `(ann-form (+ 1) Double)` would simply upcast the argument to the union type
+    - result inferred as `Double`, but `(class (+ 1))` is `Long`
+  - Problem 2: `:*` should be `:+`, otherwise `(+)` and `(*)` incorrectly get inferred to as Double not Long if `+` itself is upcast to `[(t/U Long Double) :* :-> Double]`
+  - Now: `[Double :+ :-> Double]` requires at least one Double argument to return Double
 - Change how exceptions and type errors are returned from `check-{ns,form}-info`
   - `:type-errors` is a non-empty vector of maps describing type errors
   - `:ex` is a fatal error

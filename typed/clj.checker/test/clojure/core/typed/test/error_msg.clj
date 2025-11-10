@@ -75,7 +75,7 @@
             (is (= '{:fn-type
                      (t/IFn
                        [Long :* :-> Long]
-                       [(t/U Double Long) :* :-> Double]
+                       [Double Double :* :-> Double]
                        [t/AnyInteger :* :-> t/AnyInteger]
                        [t/Num :* :-> t/Num]),
                      :args-results
@@ -94,7 +94,7 @@
           (is (= '{:fn-type
                    (t/IFn
                      [Long :* :-> Long]
-                     [(t/U Double Long) :* :-> Double]
+                     [Double Double :* :-> Double]
                      [t/AnyInteger :* :-> t/AnyInteger]
                      [t/Num :* :-> t/Num]),
                    :args-results

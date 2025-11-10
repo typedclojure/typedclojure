@@ -941,13 +941,13 @@
              :form (+ a v nil),
              :data
              {:fn-type
-              (t/IFn [Long :* :-> Long] [(t/U Double Long) :* :-> Double] [t/AnyInteger :* :-> t/AnyInteger] [t/Num :* :-> t/Num]),
+              (t/IFn [Long :* :-> Long] [Double Double :* :-> Double] [t/AnyInteger :* :-> t/AnyInteger] [t/Num :* :-> t/Num]),
               :args-results [{:type t/Nothing, :proposition-set {:then tt, :else ff}, :object {:id a__#0}}
                              {:type t/Nothing, :proposition-set {:then tt, :else ff}, :object {:id v__#0}}
                              {:type nil, :proposition-set {:then ff, :else tt}}],
               :expected-result {:type t/Infer}},
              :message
-             "Function + could not be applied to arguments:\n\n\nDomains:\n\tLong :*\n\t(t/U Double Long) :*\n\tt/AnyInteger :*\n\tt/Num :*\n\nArguments:\n\tt/Nothing t/Nothing nil\n\nRanges:\n\tLong\n\tDouble\n\tt/AnyInteger\n\tt/Num\n\n"}
+             "Function + could not be applied to arguments:\n\n\nDomains:\n\tLong :*\n\tDouble Double :*\n\tt/AnyInteger :*\n\tt/Num :*\n\nArguments:\n\tt/Nothing t/Nothing nil\n\nRanges:\n\tLong\n\tDouble\n\tt/AnyInteger\n\tt/Num\n\n"}
             {:type-error :typed.clojure/app-type-error,
              :env
              {:line "REMOVED_LINE", :column 31, :file "symbolic_closures.clj"},

@@ -2323,15 +2323,15 @@ cc/extenders [t/Any :-> (t/Seqable (t/Nilable Class))]
 ])
 
 cc/+ (t/IFn #?(:clj [Long :* :-> Long])
-            #?(:clj [(t/U Long Double) :* :-> Double])
+            #?(:clj [Double :+ :-> Double])
             [t/AnyInteger :* :-> t/AnyInteger]
             [t/Num :* :-> t/Num])
 cc/- (t/IFn #?(:clj [(t/+ Long) :-> Long])
-            #?(:clj [(t/+ (t/U Long Double)) :-> Double])
+            #?(:clj [(t/+ Double) :-> Double])
             [(t/+ t/AnyInteger) :-> t/AnyInteger]
             [(t/+ t/Num) :-> t/Num])
 cc/* (t/IFn #?(:clj [Long :* :-> Long])
-            #?(:clj [(t/U Long Double) :* :-> Double])
+            #?(:clj [Double :+ :-> Double])
             [t/AnyInteger :* :-> t/AnyInteger]
             [t/Num :* :-> t/Num])
 cc// (t/IFn #?(:clj [Double (t/+ Double) :-> Double])
@@ -2346,7 +2346,7 @@ cc/*' (t/IFn [t/AnyInteger :* :-> t/AnyInteger]
              [t/Num :* :-> t/Num])
 ])
 cc/quot (t/IFn #?(:clj [Long Long :-> Long])
-               #?(:clj [(t/U Long Double) (t/U Long Double) :-> Double])
+               #?(:clj [Double Double :-> Double])
                [t/AnyInteger t/AnyInteger :-> t/AnyInteger] 
                [t/Num t/Num :-> t/Num])
 
