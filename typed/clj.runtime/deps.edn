@@ -5,7 +5,7 @@
  :aliases {:test
            {:extra-paths ["test"]
             :jvm-opts ["-Dtyped.clojure.preserve-check-ns-after-opt-in=true"]
-            :extra-deps {org.clojure/clojurescript {:mvn/version "1.11.132"}}}
+            :extra-deps {org.clojure/clojurescript {:mvn/version "1.12.42"}}}
            :nREPL
            {:extra-deps
             {nrepl/nrepl {:mvn/version "1.3.1"}

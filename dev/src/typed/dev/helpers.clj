@@ -28,7 +28,7 @@
    :analyzer-clojure-mvn-version "1.9.0"
    :clojars-cdn-url "https://repo.clojars.org"
    :clojars-url "https://clojars.org/repo"
-   :clojurescript-mvn-version "1.11.132"
+   :clojurescript-mvn-version "1.12.42"
    :typedclojure-scm-connection "scm:git:https://github.com/typedclojure/typedclojure.git"
    ;:typedclojure-scm-developerConnection "scm:git:git@github.com:typedclojure/typedclojure.git"
    :typedclojure-scm-developerConnection "scm:git:https://github.com/typedclojure/typedclojure.git"
