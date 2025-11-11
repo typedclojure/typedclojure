@@ -5,8 +5,7 @@
             [typed.fnl.analyzer :as fnl-ana]
             [typed.fnl.reader :as fnl-reader]
             [typed.cljc.analyzer :as ana]
-            [typed.cljc.analyzer.env :as env]
-            [typed.fnl.checker.env :as fnl-env]))
+            [typed.cljc.analyzer.env :as env]))
 
 (defn analyze-str
   "Analyze a Fennel form from a string."

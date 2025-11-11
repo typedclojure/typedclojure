@@ -32,8 +32,7 @@
   :test
   {:jvm-opts ["-Djdk.attach.allowAttachSelf"
               "-Dtyped.clojure.preserve-check-ns-after-opt-in=true"
-              "-Dtyped.cljc.checker.utils.trace=true"
-              "-Dtyped.fnl.analyzer.deps-command=../../example-projects/fennel/deps"]
+              "-Dtyped.cljc.checker.utils.trace=true"]
    :extra-paths ["test" "test-resources"],
    :extra-deps
    {;; for typed.clj.generate

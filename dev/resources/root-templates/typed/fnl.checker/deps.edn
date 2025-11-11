@@ -1,0 +1,28 @@
+{% do-not-edit-edn-comment %}
+{:paths ["src"]
+ :deps {org.clojure/clojure {:mvn/version "{◊clojure-mvn-version◊}"}
+        org.typedclojure/typed.fnl.analyzer {:local/root "../fnl.analyzer"
+                                             :deps/manifest :deps}
+        org.typedclojure/typed.fnl.reader {:local/root "../fnl.reader"
+                                           :deps/manifest :deps}
+        org.typedclojure/typed.clj.runtime {:local/root "../clj.runtime"
+                                            :deps/manifest :deps}
+        org.typedclojure/typed.clj.checker {:local/root "../clj.checker"
+                                            :deps/manifest :deps}
+        io.github.frenchy64/fully-satisfies {:mvn/version "{◊fully-satisfies-mvn-version◊}"}}
+ :aliases {:nREPL
+           {:extra-deps
+            {nrepl/nrepl {:mvn/version "{◊nrepl-mvn-version◊}"}
+             cider/piggieback {:mvn/version "{◊piggieback-mvn-version◊}"}}
+            :main-opts ["-m" "nrepl.cmdline"
+                        "--interactive"]}
+           :test
+           {:extra-paths ["test"]
+            :jvm-opts ["-Dtyped.fnl.analyzer.deps-command=../../example-projects/fennel/deps"]}
+           :runner
+           {:extra-deps {{◊cognitect-test-runner-coordinates◊}
+                         {:git/url "{◊cognitect-test-runner-git-url◊}"
+                          :git/sha "{◊cognitect-test-runner-sha◊}"}}
+            :main-opts ["-m" "cognitect.test-runner"
+                        "-r" ".*"
+                        "-d" "test"]}}}
