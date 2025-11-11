@@ -1,6 +1,6 @@
 ;; DO NOT EDIT! Instead, edit `dev/resources/root-templates/typed/lib.clojure/deps.edn` and run `./script/regen-selmer.sh`
 {:paths ["src"]
- :deps {org.clojure/clojure {:mvn/version "1.12.1"}
+ :deps {org.clojure/clojure {:mvn/version "1.12.3"}
         io.github.frenchy64/fully-satisfies {:mvn/version "1.12.0"}}
  :aliases {:nREPL
            {:extra-paths ["script"]

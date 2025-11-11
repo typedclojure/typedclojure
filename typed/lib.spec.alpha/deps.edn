@@ -1,6 +1,6 @@
 ;; DO NOT EDIT! Instead, edit `dev/resources/root-templates/typed/lib.spec.alpha/deps.edn` and run `./script/regen-selmer.sh`
 {:paths ["src"]
- :deps {org.clojure/clojure {:mvn/version "1.12.1"}}
+ :deps {org.clojure/clojure {:mvn/version "1.12.3"}}
  :aliases {:test
            {:jvm-opts ["-Dtyped.clojure.preserve-check-ns-after-opt-in=true"]
             :extra-deps {org.typedclojure/typed.clj.checker

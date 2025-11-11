@@ -10,6 +10,8 @@
          '[clojure.string :as str])
 (import '[java.util UUID])
 
+(load-file "dev/src/typed/dev/helpers.clj")
+
 (def excluded-submodules
   ;; tested separately in fennel-ci.yml due to lua dependency
   #{"typed/fnl.runtime"
@@ -25,10 +27,9 @@
         (concat (.listFiles (io/file "typed"))
                 (.listFiles (io/file "example-projects")))))
 
-;; TODO grab from typed.dev.helpers
-(def clojure-stable "1.12.1")
-(def clojure-next-release nil #_"1.12.0-alpha1")
-(def clojure-next-snapshot "1.13.0-master-SNAPSHOT")
+(def clojure-stable (:clojure-mvn-version typed.dev.helpers/selmer-input-map))
+(def clojure-next-release (:clojure-next-release-mvn-version typed.dev.helpers/selmer-input-map))
+(def clojure-next-snapshot (:clojure-next-snapshot-mvn-version typed.dev.helpers/selmer-input-map))
 
 (def matrix? (con/hmap-c? :include (con/every-c? (con/hmap-c?
                                                    :submodule_hash string?

@@ -1,6 +1,6 @@
 ;; DO NOT EDIT! Instead, edit `dev/resources/root-templates/typed/fnl.checker/deps.edn` and run `./script/regen-selmer.sh`
 {:paths ["src"]
- :deps {org.clojure/clojure {:mvn/version "1.12.1"}
+ :deps {org.clojure/clojure {:mvn/version "1.12.3"}
         org.typedclojure/typed.fnl.analyzer {:local/root "../fnl.analyzer"
                                              :deps/manifest :deps}
         org.typedclojure/typed.fnl.reader {:local/root "../fnl.reader"

@@ -1,6 +1,6 @@
 ;; DO NOT EDIT! Instead, edit `dev/resources/root-templates/typed/cljs.analyzer/deps.edn` and run `./script/regen-selmer.sh`
 {:paths ["src"]
- :deps {org.clojure/clojure {:mvn/version "1.12.1"}
+ :deps {org.clojure/clojure {:mvn/version "1.12.3"}
         org.clojure/clojurescript {:mvn/version "1.11.132"}
         org.clojure/tools.reader {:mvn/version "1.5.0"}
         org.typedclojure/typed.cljc.analyzer {:local/root "../cljc.analyzer"
