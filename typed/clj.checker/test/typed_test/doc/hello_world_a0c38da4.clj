@@ -19,17 +19,17 @@
     :fn-type
     (t/IFn
      [Long :* :-> Long]
-     [(t/U Double Long) :* :-> Double]
+     [Double Double :* :-> Double]
      [t/AnyInteger :* :-> t/AnyInteger]
      [t/Num :* :-> t/Num])},
    :env
    {:column 3,
     :file
-    "file:/home/runner/work/typedclojure/typedclojure/typed/clj.checker/test/typed_test/doc/hello_world_a0c38da4.clj",
+    "file:typed/clj.checker/test/typed_test/doc/hello_world_a0c38da4.clj",
     :line 8},
    :form (+ "Hello, world!"),
    :message
-   "Function + could not be applied to arguments:\n\n\nDomains:\n\tLong :*\n\t(t/U Double Long) :*\n\tt/AnyInteger :*\n\tt/Num :*\n\nArguments:\n\t(t/Val \"Hello, world!\")\n\nRanges:\n\tLong\n\tDouble\n\tt/AnyInteger\n\tt/Num\n\nwith expected type:\n\tt/Num\n\n",
+   "Function + could not be applied to arguments:\n\n\nDomains:\n\tLong :*\n\tDouble Double :*\n\tt/AnyInteger :*\n\tt/Num :*\n\nArguments:\n\t(t/Val \"Hello, world!\")\n\nRanges:\n\tLong\n\tDouble\n\tt/AnyInteger\n\tt/Num\n\nwith expected type:\n\tt/Num\n\n",
    :type-error :typed.clojure/app-type-error}]}
 )
 ;; end-result:
