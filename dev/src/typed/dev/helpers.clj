@@ -24,7 +24,7 @@
   {:clojure-mvn-version "1.12.3"
    :clojure-next-release-mvn-version nil #_"1.12.0-alpha1"
    :clojure-next-snapshot-mvn-version "1.13.0-master-SNAPSHOT"
-   :min-supported-jdk "1.8"
+   :min-supported-jdk "11"
    :analyzer-clojure-mvn-version "1.9.0"
    :clojars-cdn-url "https://repo.clojars.org"
    :clojars-url "https://clojars.org/repo"

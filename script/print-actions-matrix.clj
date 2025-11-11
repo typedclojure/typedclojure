@@ -93,10 +93,10 @@
                                    clojure-next-snapshot]
                             (str/includes? submodule "analyzer")
                             (conj "1.9.0" "1.10.1"))
-                  jdk ["8"
-                       "11"
+                  jdk ["11"
                        "17"
-                       "21"]]
+                       "21"
+                       "25"]]
               (array-map
                 :submodule submodule
                 :clojure clojure
