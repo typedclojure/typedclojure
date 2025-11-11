@@ -291,21 +291,22 @@
 
 :default
 
-(defn ^Class unbox
-  "If the argument is a Class with a primitive equivalent, returns that,
+(do (def ^:private classes-with-primitives
+      {Integer   Integer/TYPE,
+       Long      Long/TYPE,
+       Float     Float/TYPE,
+       Short     Short/TYPE,
+       Boolean   Boolean/TYPE,
+       Byte      Byte/TYPE,
+       Character Character/TYPE,
+       Double    Double/TYPE,
+       Void      Void/TYPE})
+
+    (defn ^Class unbox
+      "If the argument is a Class with a primitive equivalent, returns that,
    otherwise returns the argument"
-  [c]
-  ({Integer   Integer/TYPE,
-    Long      Long/TYPE,
-    Float     Float/TYPE,
-    Short     Short/TYPE,
-    Boolean   Boolean/TYPE,
-    Byte      Byte/TYPE,
-    Character Character/TYPE,
-    Double    Double/TYPE,
-    Void      Void/TYPE}
-   c c))
-)
+      [c]
+      (classes-with-primitives c c))))
 
 (defn numeric?
   "Returns true if the given class is numeric"
