@@ -4,6 +4,8 @@
             #?(:clj [clojure.java.io :as io])
             #?(:clj [clojure.pprint :as pp])
             #?(:clj [clojure.walk :as walk])
+            #?(:clj [clojure.tools.reader :as reader])
+            #?(:clj [clojure.tools.reader.reader-types :as readers])
             [clojure.core.typed :as t]
             [clojure.core.typed.current-impl :as impl]
             [clojure.core.typed.errors :as err]
@@ -343,31 +345,33 @@
             (str/trim (str/join "\n" result-lines)))))))
 
   (defn parse-doc-test-file
-    "Parse a test file, extracting metadata, code, and expected result"
+    "Parse a test file, extracting metadata, code, and expected result.
+     Returns nil if file doesn't exist."
     [file-path]
-    (let [content (slurp file-path)
-          lines (vec (str/split-lines content))
-          metadata-lines (take-while #(str/starts-with? % ";;") lines)
-          metadata-text (str/join "\n" metadata-lines)
-          metadata (parse-doc-test-metadata metadata-text)
-          code (extract-between lines ";; start-markdown:" ";; end-markdown:")
-          result-text (extract-between lines ";; start-result:" ";; end-result:")]
-      {:metadata metadata
-       :code code
-       :result-text result-text
-       :result (when result-text
-                 (try
-                   (let [trimmed (str/trim result-text)]
-                     (if (str/starts-with? trimmed "(comment")
-                       (let [content (subs trimmed 8)
-                             content (str/trim content)
-                             content (subs content 0 (dec (count content)))]
-                         (edn/read-string content))
-                       (edn/read-string trimmed)))
-                   (catch Exception e
-                     (println "Warning: Could not parse result as EDN:" (.getMessage e))
-                     nil)))
-       :file-path file-path}))
+    (when (.exists (io/file file-path))
+      (let [content (slurp file-path)
+            lines (vec (str/split-lines content))
+            metadata-lines (take-while #(str/starts-with? % ";;") lines)
+            metadata-text (str/join "\n" metadata-lines)
+            metadata (parse-doc-test-metadata metadata-text)
+            code (extract-between lines ";; start-markdown:" ";; end-markdown:")
+            result-text (extract-between lines ";; start-result:" ";; end-result:")]
+        {:metadata metadata
+         :code code
+         :result-text result-text
+         :result (when result-text
+                   (try
+                     (let [trimmed (str/trim result-text)]
+                       (if (str/starts-with? trimmed "(comment")
+                         (let [content (subs trimmed 8)
+                               content (str/trim content)
+                               content (subs content 0 (dec (count content)))]
+                           (edn/read-string content))
+                         (edn/read-string trimmed)))
+                     (catch Exception e
+                       (println "Warning: Could not parse result as EDN:" (.getMessage e))
+                       nil)))
+         :file-path file-path})))
 
   (defn sort-data-structure
     "Recursively sort maps and sets for deterministic output"
@@ -476,172 +480,414 @@
     "Extract namespace from file content"
     [content]
     (let [ns-match (re-find #"\(ns\s+(?:\^[^\s]+\s+)?([^\s)]+)" content)]
-      (when ns-match (second ns-match))))))
+      (when ns-match (second ns-match))))
+
+  ;; Error Enrichment Functions
+  (defn read-form-extent
+    "Read a form from code at the given line and column, using read+string
+     to determine the extent. Returns {:end-line :end-column :form-string} or nil."
+    [code start-line start-column]
+    (try
+      (let [lines (str/split-lines code)
+            ;; Convert to 0-based indexing
+            line-idx (dec start-line)
+            col-idx (dec start-column)]
+        (when (and (>= line-idx 0) (< line-idx (count lines)))
+          (let [;; Get the substring starting from the error position
+                line (nth lines line-idx)
+                suffix (subs line (min col-idx (count line)))
+                ;; Build the code string from the error position onwards
+                remaining-lines (drop line-idx lines)
+                remaining-code (str suffix "\n" (str/join "\n" (rest remaining-lines)))
+                ;; Use source-logging-push-back-reader for read+string
+                rdr (readers/source-logging-push-back-reader remaining-code)
+                [form form-str] (reader/read+string {:read-cond :allow :eof nil} rdr)]
+            (when (and form form-str)
+              ;; Analyze the form string to determine line and column extent
+              (let [form-lines (str/split-lines form-str)
+                    num-lines (count form-lines)
+                    last-line (last form-lines)
+                    ;; End line is relative to start line
+                    end-line (+ start-line (dec num-lines))
+                    ;; End column: position of the last character (not one past)
+                    end-column (if (= num-lines 1)
+                                ;; Single line: start-column + length - 1
+                                (+ start-column (count form-str) -1)
+                                ;; Multi-line: length of last line
+                                (count last-line))]
+                {:end-line end-line
+                 :end-column end-column
+                 :form-string form-str})))))
+      (catch Exception e
+        nil)))
+
+  (defn create-error-marker
+    "Create visual error markers for an error.
+     start-column and end-column are 1-indexed positions in the code line.
+     Returns a map with :start-line-marker and :end-line-marker strings."
+    [start-line start-column end-line end-column]
+    (let [;; Convert 1-indexed columns to 0-indexed positions
+          start-pos (dec start-column)
+          end-pos (dec end-column)
+          single-line? (= start-line end-line)]
+      
+      (if single-line?
+        ;; Single line error: render based on column position
+        ;; Make column 1 implicit if column 2 is used (Clojure indentation is 2 spaces)
+        (if (and (= start-column 1) (= end-column 1))
+          ;; Column 1 only: render top line with solid v block
+          (let [v-block (str/join (repeat (inc (- end-pos start-pos)) "v"))]
+            {:start-line-marker (str "#_\n" v-block)
+             :end-line-marker nil})
+          ;; Column 1 with column 2+ OR other columns: render bottom line with solid ^ block
+          (let [;; Need (start-pos - 1) spaces after ; to align to start-pos
+                spaces (str/join (repeat (dec start-pos) " "))
+                caret-block (str/join (repeat (- end-pos start-pos) "^"))]
+            {:start-line-marker nil
+             :end-line-marker (str ";" spaces caret-block)}))
+        
+        ;; Multi-line error: use traditional v--- / ---^ format
+        (let [;; For columns 0, 1, 2, we need special prefixes since ";; " is 3 chars
+              ;; Column 0: use "#_\n" (discard reader macro on separate line)
+              ;; Column 1: use ";v" (comment with v immediately after)
+              ;; Column 2: use "; v" (comment with one space then v)
+              ;; Columns 3+: use ";; " with spaces
+              [top-prefix top-v-pos]
+              (cond
+                (= start-pos 0) ["#_\n" 0]
+                (= start-pos 1) [";" 1]
+                (= start-pos 2) ["; " 2]
+                :else [";; " start-pos])
+              
+              ;; Calculate spaces needed before v (if using ";; " prefix)
+              top-spaces (if (>= start-pos 3)
+                          (str/join (repeat (- start-pos 3) " "))
+                          "")
+              
+              ;; Dashes extend from after v to some reasonable amount for multi-line
+              dash-length 20
+              top-dashes (str/join (repeat dash-length "-"))
+              start-marker (str top-prefix top-spaces "v" top-dashes)
+              
+              ;; Build the bottom marker line: spaces/dashes, then ^
+              ;; Never use #_ for bottom, use ;; or omit
+              bottom-marker (if (>= start-pos 3)
+                             (let [bottom-spaces (str/join (repeat (- start-pos 2) " "))
+                                   bottom-dashes (str/join (repeat dash-length "-"))]
+                               (str ";; " bottom-spaces bottom-dashes "^"))
+                             ;; For columns 0-2, omit bottom marker
+                             nil)]
+          {:start-line-marker start-marker
+           :end-line-marker bottom-marker}))))
+
+  (defn expand-tabs
+    "Expand tabs to spaces, assuming 8-character tab stops"
+    [s]
+    (let [sb (StringBuilder.)]
+      (loop [pos 0
+             i 0]
+        (if (>= i (count s))
+          (str sb)
+          (let [c (.charAt s i)]
+            (if (= c \tab)
+              (let [spaces-to-next-tab (- 8 (mod pos 8))]
+                (dotimes [_ spaces-to-next-tab]
+                  (.append sb \space))
+                (recur (+ pos spaces-to-next-tab) (inc i)))
+              (do
+                (.append sb c)
+                (recur (inc pos) (inc i)))))))))
+
+  (defn format-error-message
+    "Format the error message as comment lines, expanding tabs to spaces"
+    [message]
+    (->> (str/split-lines message)
+         (map expand-tabs)
+         (map #(str "; " %))
+         (str/join "\n")))
+
+  (defn adjust-error-lines-for-markdown
+    "Adjust error line numbers from test file to markdown code block.
+     The test file has namespace declaration and comments before the markdown code.
+     We need to find where the markdown code starts and adjust accordingly."
+    [test-file-content type-errors]
+    (let [lines (str/split-lines test-file-content)
+          ;; Find the line number where markdown content starts
+          markdown-start-line (some (fn [[idx line]]
+                                     (when (str/includes? line ";; start-markdown:")
+                                       (inc idx)))
+                                   (map-indexed vector lines))]
+      (when markdown-start-line
+        (map (fn [error]
+               (update-in error [:env :line] #(when % (- % markdown-start-line))))
+             type-errors))))
+
+  (defn enrich-code-with-errors
+    "Enrich code with visual error markers and messages.
+     Takes code string and list of type-errors from result.
+     Optionally takes test-file-content to adjust line numbers.
+     Returns enriched code string."
+    ([code type-errors]
+     (enrich-code-with-errors code type-errors nil))
+    ([code type-errors test-file-content]
+     (if (empty? type-errors)
+       code
+       (let [;; Adjust error line numbers if test file content is provided
+             adjusted-errors (if test-file-content
+                              (adjust-error-lines-for-markdown test-file-content type-errors)
+                              type-errors)
+             lines (vec (str/split-lines code))
+             ;; Process each error to get its location and markers
+             enrichments
+             (for [error adjusted-errors
+                   :let [line (get-in error [:env :line])
+                         column (get-in error [:env :column])
+                         message (get error :message)]
+                   :when (and line column (pos? line) (<= line (count lines)))]
+               (let [;; Read the form to get end position
+                     form-extent (read-form-extent code line column)
+                     end-line (or (:end-line form-extent) line)
+                     end-column (or (:end-column form-extent) (inc column))
+                     markers (create-error-marker line column end-line end-column)
+                     formatted-message (when message (format-error-message message))]
+                 {:line line
+                  :column column
+                  :end-line end-line
+                  :end-column end-column
+                  :start-marker (:start-line-marker markers)
+                  :end-marker (:end-line-marker markers)
+                  :message formatted-message}))
+            ;; Sort enrichments by line number (reverse order to insert from bottom up)
+            sorted-enrichments (reverse (sort-by :line enrichments))]
+        ;; Insert markers and messages into the code
+        (loop [lines lines
+               enrichments sorted-enrichments]
+          (if (empty? enrichments)
+            (str/join "\n" lines)
+            (let [{:keys [line end-line start-marker end-marker message]} (first enrichments)
+                  ;; Convert to 0-based indexing
+                  line-idx (dec line)
+                  end-line-idx (dec end-line)
+                  ;; Insert start marker on the line before the error (if present)
+                  lines-with-start (if (and start-marker (pos? line-idx))
+                                    (let [before (subvec lines 0 line-idx)
+                                          after (subvec lines line-idx)]
+                                      (vec (concat before [start-marker] after)))
+                                    lines)
+                  ;; Adjust indices after insertion
+                  new-end-idx (if (and start-marker (pos? line-idx)) 
+                                (inc end-line-idx) 
+                                end-line-idx)
+                  ;; Insert end marker on the line after the error's end (if present)
+                  lines-with-end (if (and end-marker (< new-end-idx (count lines-with-start)))
+                                  (let [before (subvec lines-with-start 0 (inc new-end-idx))
+                                        after (subvec lines-with-start (inc new-end-idx))]
+                                    (vec (concat before [end-marker] after)))
+                                  (if end-marker
+                                    (conj lines-with-start end-marker)
+                                    lines-with-start))
+                  ;; Adjust indices after insertion
+                  message-insert-idx (if end-marker (inc (inc new-end-idx)) (inc new-end-idx))
+                  ;; Insert formatted message after the end marker
+                  lines-final (if message
+                               (if (< message-insert-idx (count lines-with-end))
+                                 (let [before (subvec lines-with-end 0 message-insert-idx)
+                                       after (subvec lines-with-end message-insert-idx)
+                                       message-lines (str/split-lines message)]
+                                   (vec (concat before message-lines after)))
+                                 (into lines-with-end (str/split-lines message)))
+                               lines-with-end)]
+              (recur lines-final (rest enrichments)))))))))
 
   ;; Sync Functions
   (def test-dir "typed/clj.checker/test/typed_test/doc")
   (def default-type :success)
 
-  (defn compare-versions
-    "Compare two version strings. Returns :equal, :left-newer, or :right-newer"
-    [v1 v2]
-    (let [n1 (parse-long (or v1 "1"))
-          n2 (parse-long (or v2 "1"))]
-      (cond
-        (= n1 n2) :equal
-        (> n1 n2) :left-newer
-        :else :right-newer)))
+    (defn compare-versions
+      "Compare two version strings. Returns :equal, :left-newer, or :right-newer"
+      [v1 v2]
+      (let [n1 (parse-long (or v1 "1"))
+            n2 (parse-long (or v2 "1"))]
+        (cond
+          (= n1 n2) :equal
+          (> n1 n2) :left-newer
+          :else :right-newer)))
 
-  (defn sync-code-block
-    "Synchronize a single code block with its test file.
-     Returns updated block or nil if no changes needed."
-    [block doc-name]
-    (let [metadata (:metadata block)
-          id (:id metadata)]
-      (cond
-        ;; New code block - generate UUID and create test file
-        (nil? id)
-        (let [new-id (generate-uuid)
-              new-metadata (assoc metadata
-                                 :id new-id
-                                 :version "1"
-                                 :type (name default-type))
-              test-path (doc-test-file-path new-metadata doc-name)
-              test-content (generate-doc-test-file-content new-metadata (:code block) {} doc-name)]
-          (io/make-parents test-path)
-          (spit test-path test-content)
-          (println "Created new test file:" test-path)
-          (assoc block :metadata new-metadata :updated true))
-        
-        ;; Existing code block - check for sync
-        :else
-        (let [test-path (doc-test-file-path metadata doc-name)
-              test-file (parse-doc-test-file test-path)]
-          (if-not test-file
-            (do
-              (println "Warning: Test file not found for id" id "- creating it")
-              (let [test-content (generate-doc-test-file-content metadata (:code block) {} doc-name)]
-                (io/make-parents test-path)
-                (spit test-path test-content)
-                (assoc block :updated true)))
-            
-            ;; Both exist - check versions and content
-            (let [doc-version (get metadata :version "1")
-                  test-version (get-in test-file [:metadata :version] "1")
-                  doc-code (str/trim (:code block))
-                  test-code (str/trim (:code test-file))
-                  codes-match? (= doc-code test-code)
-                  version-cmp (compare-versions doc-version test-version)]
+    (defn sync-code-block
+      "Synchronize a single code block with its test file.
+       Returns updated block or nil if no changes needed."
+      [block doc-name]
+      (let [metadata (:metadata block)
+            id (:id metadata)]
+        (cond
+          ;; New code block - generate UUID and create test file
+          (nil? id)
+          (let [new-id (generate-uuid)
+                new-metadata (assoc metadata
+                                   :id new-id
+                                   :version "1"
+                                   :type (name default-type))
+                test-path (doc-test-file-path new-metadata doc-name)
+                test-content (generate-doc-test-file-content new-metadata (:code block) {} doc-name)]
+            (io/make-parents test-path)
+            (spit test-path test-content)
+            (println "Created new test file:" test-path)
+            (assoc block :metadata new-metadata :updated true))
+          
+          ;; Existing code block - check for sync
+          :else
+          (let [test-path (doc-test-file-path metadata doc-name)
+                test-file (parse-doc-test-file test-path)]
+            (if-not test-file
+              (do
+                (println "Warning: Test file not found for id" id "- creating it")
+                (let [test-content (generate-doc-test-file-content metadata (:code block) {} doc-name)]
+                  (io/make-parents test-path)
+                  (spit test-path test-content)
+                  (assoc block :updated true)))
               
-              (cond
-                ;; Codes match - no sync needed
-                codes-match?
-                (do
-                  (println "✓ Code block" id "in sync")
-                  nil)
+              ;; Both exist - check versions and content
+              (let [doc-version (get metadata :version "1")
+                    test-version (get-in test-file [:metadata :version] "1")
+                    doc-code (str/trim (:code block))
+                    test-code (str/trim (:code test-file))
+                    ;; Enrich test code with error markers for comparison
+                    type-errors (get-in test-file [:result :type-errors] [])
+                    test-file-content (slurp test-path)
+                    enriched-test-code (str/trim #?(:clj (enrich-code-with-errors test-code type-errors test-file-content)
+                                                    :default test-code))
+                    codes-match? (= doc-code enriched-test-code)
+                    version-cmp (compare-versions doc-version test-version)]
                 
-                ;; Same version but different content - ERROR
-                (= version-cmp :equal)
-                (do
-                  (println "ERROR: Version conflict for code block" id)
-                  (println "  Both have version" doc-version "but different content")
-                  (println "  Update version in either markdown or test file to resolve")
-                  (throw (ex-info "Version conflict"
-                                 {:id id
-                                  :version doc-version
-                                  :doc-file doc-name
-                                  :test-file test-path})))
-                
-                ;; Doc version is newer - update test file
-                (= version-cmp :left-newer)
-                (do
-                  (println "Updating test file" test-path "from markdown (v" test-version "→" doc-version ")")
-                  (spit test-path (generate-doc-test-file-content metadata doc-code (:result test-file) doc-name))
-                  nil)
-                
-                ;; Test version is newer - update markdown
-                (= version-cmp :right-newer)
-                (do
-                  (println "Updating markdown code block" id "from test file (v" doc-version "→" test-version ")")
-                  (assoc block
-                         :metadata (:metadata test-file)
-                         :code (:code test-file)
-                         :updated true)))))))))
+                (cond
+                  ;; Codes match - no sync needed
+                  codes-match?
+                  (do
+                    (println "✓ Code block" id "in sync")
+                    nil)
+                  
+                  ;; Same version but different content - ERROR
+                  (= version-cmp :equal)
+                  (do
+                    (println "ERROR: Version conflict for code block" id)
+                    (println "  Both have version" doc-version "but different content")
+                    (println "  Update version in either markdown or test file to resolve")
+                    (throw (ex-info "Version conflict"
+                                   {:id id
+                                    :version doc-version
+                                    :doc-file doc-name
+                                    :test-file test-path})))
+                  
+                  ;; Doc version is newer - update test file
+                  (= version-cmp :left-newer)
+                  (do
+                    (println "Updating test file" test-path "from markdown (v" test-version "→" doc-version ")")
+                    (spit test-path (generate-doc-test-file-content metadata doc-code (:result test-file) doc-name))
+                    nil)
+                  
+                  ;; Test version is newer - update markdown with enriched code
+                  (= version-cmp :right-newer)
+                  (do
+                    (println "Updating markdown code block" id "from test file (v" doc-version "→" test-version ")")
+                    (assoc block
+                           :metadata (:metadata test-file)
+                           :code enriched-test-code
+                           :updated true)))))))))
 
-  (defn update-markdown
-    "Update markdown content with synchronized code blocks"
-    [original-content blocks]
-    (let [lines (str/split-lines original-content)
-          updates (into {} (map (fn [b] [(:line-start b) b])
-                               (filter :updated blocks)))]
-      (if (empty? updates)
-        original-content
-        (loop [i 0
-               result []
-               in-update nil]
-          (if (>= i (count lines))
-            (str/join "\n" result)
-            (let [line (nth lines i)]
-              (cond
-                ;; Start of updated block
-                (contains? updates (inc i))
-                (let [block (get updates (inc i))
-                      metadata-str (format-doc-test-metadata (:metadata block) :markdown)]
+    (defn update-markdown
+      "Update markdown content with synchronized code blocks"
+      [original-content blocks]
+      (let [lines (str/split-lines original-content)
+            updates (into {} (map (fn [b] [(:line-start b) b])
+                                 (filter :updated blocks)))]
+        (if (empty? updates)
+          original-content
+          (loop [i 0
+                 result []
+                 in-update nil
+                 skip-next? false]
+            (if (>= i (count lines))
+              (str/join "\n" result)
+              (let [line (nth lines i)]
+                (cond
+                  ;; Skip this line if marked by previous iteration
+                  skip-next?
+                  (recur (inc i) result nil false)
+                  
+                  ;; Start of updated block - but first check if previous line was metadata
+                  (contains? updates (inc i))
+                  (let [block (get updates (inc i))
+                        metadata-str (format-doc-test-metadata (:metadata block) :markdown)
+                        prev-line (when (pos? (count result)) (peek result))
+                        has-metadata? (and prev-line (str/starts-with? (str/trim prev-line) "<!-- doc-test:"))]
+                    (if has-metadata?
+                      ;; Replace previous metadata line and continue
+                      (recur (inc i)
+                             (-> (pop result)
+                                 (conj metadata-str)
+                                 (conj line))
+                             block
+                             false)
+                      ;; No metadata, add it
+                      (recur (inc i)
+                             (-> result
+                                 (conj metadata-str)
+                                 (conj line))
+                             block
+                             false)))
+                  
+                  ;; Inside updated block - at first code line, replace all code
+                  (and in-update (= i (:line-start in-update)))
+                  ;; Insert new code and jump to closing ``` line
+                  (recur (:line-end in-update)
+                         (into result (str/split-lines (:code in-update)))
+                         nil
+                         false)
+                  
+                  ;; Inside updated block - skip old code lines
+                  (and in-update
+                       (> i (:line-start in-update))
+                       (< i (:line-end in-update)))
+                  (recur (inc i) result in-update false)
+                  
+                  ;; Normal line
+                  :else
                   (recur (inc i)
-                         (-> result
-                             (conj metadata-str)
-                             (conj line))
-                         block))
-                
-                ;; Inside updated block - at first code line, replace all code
-                (and in-update (= i (:line-start in-update)))
-                ;; Insert new code and jump to closing ``` line
-                (recur (:line-end in-update)
-                       (into result (str/split-lines (:code in-update)))
-                       nil)
-                
-                ;; Inside updated block - skip old code lines
-                (and in-update
-                     (> i (:line-start in-update))
-                     (< i (:line-end in-update)))
-                (recur (inc i) result in-update)
-                
-                ;; Normal line
-                :else
-                (recur (inc i)
-                       (conj result line)
-                       nil))))))))
+                         (conj result line)
+                         nil
+                         false))))))))
 
-  (defn sync-doc-file
-    "Synchronize a single documentation file"
-    [doc-file]
-    (println "\n========================================")
-    (println "Syncing:" doc-file)
-    (println "========================================")
-    (let [content (slurp doc-file)
-          doc-name (-> doc-file
-                      (str/replace #".*/" "")
-                      (str/replace #"\.md$" "")
-                      (str/replace #"[^a-zA-Z0-9_-]" "-"))
-          blocks (parse-code-blocks content)
-          _ (println "Found" (count blocks) "code blocks")
-          synced-blocks (keep #(sync-code-block % doc-name) blocks)]
-      
-      (when (seq synced-blocks)
-        (let [updated-content (update-markdown content synced-blocks)]
-          (spit doc-file updated-content)
-          (println "\nUpdated markdown file:" doc-file)))
-      
-      (println "✓ Sync complete for" doc-file)))
+    (defn sync-doc-file
+      "Synchronize a single documentation file"
+      [doc-file]
+      (println "\n========================================")
+      (println "Syncing:" doc-file)
+      (println "========================================")
+      (let [content (slurp doc-file)
+            doc-name (-> doc-file
+                        (str/replace #".*/" "")
+                        (str/replace #"\.md$" "")
+                        (str/replace #"[^a-zA-Z0-9_-]" "-"))
+            blocks (parse-code-blocks content)
+            _ (println "Found" (count blocks) "code blocks")
+            synced-blocks (keep #(sync-code-block % doc-name) blocks)]
+        
+        (when (seq synced-blocks)
+          (let [updated-content (update-markdown content synced-blocks)]
+            (spit doc-file updated-content)
+            (println "\nUpdated markdown file:" doc-file)))
+        
+        (println "✓ Sync complete for" doc-file)))
 
-  (defn sync-all-docs
-    "Sync all documentation files"
-    []
-    (println "Syncing all documentation files...")
-    (doseq [f (file-seq (io/file "website/docs"))
-            :when (and (.isFile f)
-                      (str/ends-with? (.getName f) ".md"))]
-      (try
-        (sync-doc-file (.getPath f))
-        (catch Exception e
-          (println "Error syncing" (.getPath f) ":" (.getMessage e))))))
+    (defn sync-all-docs
+      "Sync all documentation files"
+      []
+      (println "Syncing all documentation files...")
+      (doseq [f (file-seq (io/file "website/docs"))
+              :when (and (.isFile f)
+                        (str/ends-with? (.getName f) ".md"))]
+        (try
+          (sync-doc-file (.getPath f))
+          (catch Exception e
+            (println "Error syncing" (.getPath f) ":" (.getMessage e))))))
+))
