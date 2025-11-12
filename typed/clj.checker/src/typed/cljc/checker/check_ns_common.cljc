@@ -70,7 +70,7 @@
         (or threadpool
             (when (some-> max-parallelism (> 1))
               #?(:cljr (err/nyi-error "TODO CLR parallelism" opts)
-                 :default (java.util.concurrent.Executors/newWorkStealingPool max-parallelism))))]
+                 :default (java.util.concurrent.Executors/newVirtualThreadPerTaskExecutor))))]
     (try
       (let [nsym-coll (mapv #(if (symbol? %)
                                ; namespace might not exist yet, so ns-name is not appropriate

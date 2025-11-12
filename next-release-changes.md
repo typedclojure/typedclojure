@@ -61,3 +61,4 @@
   - abstract out coercing to valid HeterogeneousMap keys to prepare for future extensions
 - minimum supported JVM changed to 21 for virtual thread support
   - drop JVM 8, 11 support
+- replace work-stealing thread pool with virtual threads
