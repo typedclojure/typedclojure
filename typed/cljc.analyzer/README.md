@@ -45,7 +45,7 @@ Latest stable release is 1.3.0.
 
 ## Compatibility
 
-typed.cljc.analyzer supports Clojure 1.9.0 and JDK 1.8+.
+typed.cljc.analyzer supports Clojure 1.9.0 and JDK 21+.
 
 ## Documentation
 

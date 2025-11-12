@@ -23,11 +23,11 @@ jobs:
       - name: Setup Lua
         uses: ./.github/actions/setup-lua
 
-      - name: Set up JDK 25
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '25'
+          java-version: '21'
 
       - name: Install Clojure CLI (latest official installer)
         run: |

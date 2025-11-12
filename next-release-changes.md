@@ -59,4 +59,5 @@
   - NaN values and regexes are rejected (not suitable as singleton types due to equality semantics)
   - Proper sorting for Value types including collections, symbols, strings, numbers
   - abstract out coercing to valid HeterogeneousMap keys to prepare for future extensions
-- drop Java 8 support
+- minimum supported JVM changed to 21 for virtual thread support
+  - drop JVM 8, 11 support
