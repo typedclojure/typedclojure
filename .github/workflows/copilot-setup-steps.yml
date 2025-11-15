@@ -8,7 +8,7 @@ on:
       - '.github/actions/setup-lua/**'
 
 env:
-  ACTIONS_CACHE_VERSION: 2
+  ACTIONS_CACHE_VERSION: 3
 
 jobs:
   copilot-setup-steps:
@@ -61,6 +61,7 @@ jobs:
           path: |
             ~/.m2/repository
             ~/.gitlibs
+            ~/.deps.clj
           key: ${{ env.ACTIONS_CACHE_VERSION }}-deps-${{ hashFiles('**/deps.edn', '**/bb.edn', '**/deps-clr.edn') }}
      
       - name: Debug cache outputs
@@ -87,4 +88,5 @@ jobs:
           path: |
             ~/.m2/repository
             ~/.gitlibs
+            ~/.deps.clj
           key: ${{ env.ACTIONS_CACHE_VERSION }}-deps-${{ hashFiles('**/deps.edn', '**/bb.edn', '**/deps-clr.edn') }}
