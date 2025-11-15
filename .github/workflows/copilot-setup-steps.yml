@@ -62,7 +62,7 @@ jobs:
             ~/.m2/repository
             ~/.gitlibs
             ~/.deps.clj
-          key: ${{ env.ACTIONS_CACHE_VERSION }}-deps-${{ hashFiles('**/deps.edn', '**/bb.edn', '**/deps-clr.edn') }}
+          key: ${{ env.ACTIONS_CACHE_VERSION }}-deps-${{ hashFiles('**/deps.edn', '**/bb.edn', '**/deps-clr.edn', '.github/workflows/copilot-setup-steps.yml') }}
      
       - name: Debug cache outputs
         run: |
@@ -84,4 +84,4 @@ jobs:
             ~/.m2/repository
             ~/.gitlibs
             ~/.deps.clj
-          key: ${{ env.ACTIONS_CACHE_VERSION }}-deps-${{ hashFiles('**/deps.edn', '**/bb.edn', '**/deps-clr.edn') }}
+          key: ${{ env.ACTIONS_CACHE_VERSION }}-deps-${{ hashFiles('**/deps.edn', '**/bb.edn', '**/deps-clr.edn', '.github/workflows/copilot-setup-steps.yml') }}
