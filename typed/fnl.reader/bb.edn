@@ -1,0 +1,2 @@
+;; DO NOT EDIT! Instead, edit `dev/resources/root-templates/typed/fnl.reader/bb.edn` and run `./script/regen-selmer.sh`
+{:paths ["src"]}

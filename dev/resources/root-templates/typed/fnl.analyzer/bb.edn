@@ -1,0 +1,5 @@
+{% do-not-edit-edn-comment %}
+{:paths ["src"]
+ :deps {org.typedclojure/typed.cljc.analyzer {:local/root "../cljc.analyzer"}
+        org.typedclojure/typed.clj.analyzer {:local/root "../clj.analyzer"}
+        org.typedclojure/typed.fnl.reader {:local/root "../fnl.reader"}}}

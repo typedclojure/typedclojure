@@ -1,0 +1,4 @@
+{% do-not-edit-edn-comment %}
+{:paths ["src" "resources"]
+ :deps {org.clojure/clojure {:mvn/version "{◊clojure-mvn-version◊}"}
+        io.github.frenchy64/fully-satisfies {:mvn/version "{◊fully-satisfies-mvn-version◊}"}}}

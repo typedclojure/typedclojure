@@ -1,0 +1,14 @@
+;; DO NOT EDIT! Instead, edit `dev/resources/root-templates/typed/clj.checker/bb.edn` and run `./script/regen-selmer.sh`
+{:paths ["src"],
+ :deps
+ {org.clojure/core.cache {:mvn/version "1.1.234"},
+  org.typedclojure/typed.clj.analyzer {:local/root "../clj.analyzer"},
+  org.typedclojure/typed.lib.clojure {:local/root "../lib.clojure"},
+  org.typedclojure/typed.lib.spec.alpha {:local/root "../lib.spec.alpha"},
+  org.typedclojure/typed.clj.runtime {:local/root "../clj.runtime"},
+  org.clojure/math.combinatorics {:mvn/version "0.2.0"},
+  org.clojure/tools.namespace {:mvn/version "1.5.0"},
+  org.clojure/tools.reader {:mvn/version "1.5.0"}
+  com.nextjournal/beholder {:mvn/version "1.0.2"}
+  babashka/process {:mvn/version "0.5.22"}
+  io.github.frenchy64/fully-satisfies {:mvn/version "1.12.0"}}}

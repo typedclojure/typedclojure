@@ -1,0 +1,3 @@
+{% do-not-edit-edn-comment %}
+{:paths ["src"]
+ :deps {io.github.frenchy64/fully-satisfies {:mvn/version "{◊fully-satisfies-mvn-version◊}"}}}

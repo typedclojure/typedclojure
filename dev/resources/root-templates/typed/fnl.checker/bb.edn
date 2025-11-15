@@ -1,0 +1,7 @@
+{% do-not-edit-edn-comment %}
+{:paths ["src"]
+ :deps {org.typedclojure/typed.fnl.analyzer {:local/root "../fnl.analyzer"}
+        org.typedclojure/typed.fnl.reader {:local/root "../fnl.reader"}
+        org.typedclojure/typed.clj.runtime {:local/root "../clj.runtime"}
+        org.typedclojure/typed.clj.checker {:local/root "../clj.checker"}
+        io.github.frenchy64/fully-satisfies {:mvn/version "{◊fully-satisfies-mvn-version◊}"}}}
