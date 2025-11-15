@@ -8,7 +8,7 @@ on:
       - '.github/actions/setup-lua/**'
 
 env:
-  ACTIONS_CACHE_VERSION: 3
+  ACTIONS_CACHE_VERSION: 4
 
 jobs:
   copilot-setup-steps:
@@ -78,8 +78,8 @@ jobs:
       - name: Run bb prepare
         if: steps.cache-deps.outputs.cache-hit != 'true'
         run: |
-          cd dev
-          bb prepare
+          cd dev && bb prepare
+          echo "Prepared bb deps"
 
       - name: Save dependency cache
         if: steps.cache-deps.outputs.cache-hit != 'true'
