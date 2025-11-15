@@ -1,5 +1,5 @@
 #!/bin/bash
-# Run tests for typed.clj.checker under ClojureCLR
+# Download deps for cljr. Workaround https://github.com/clojure/clr.core.cli/issues/4
 #
 # Prerequisites:
 # - cljr (ClojureCLR CLI tool) must be installed as a dotnet tool
@@ -12,8 +12,6 @@ set -e
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." && pwd )"
 
-echo "Running typed.clj.checker tests under ClojureCLR..."
-
 # Clean up any stale lock file
 rm -f /tmp/git-coordinator.lock
 
@@ -21,9 +19,9 @@ rm -f /tmp/git-coordinator.lock
 WRAPPER_DIR="$(mktemp -d)"
 trap "rm -rf '$WRAPPER_DIR'" EXIT
 
-# Add git wrapper to PATH
-ln -s "$SCRIPT_DIR/git-wrapper.bb" "$WRAPPER_DIR/git"
+# Make the git wrapper executable and add to PATH
+ln -s "$SCRIPT_DIRtyped/clj.checker/script/git-wrapper.bb" "$WRAPPER_DIR/git"
 
 # Run tests with git wrapper in PATH to serialize git operations
 cd "$PROJECT_ROOT"
-PATH="$WRAPPER_DIR:$PATH" cljr -M:test "$@"
+PATH="$WRAPPER_DIR:$PATH" cljr -A:test -Stree

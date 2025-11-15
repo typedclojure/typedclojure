@@ -73,8 +73,7 @@ jobs:
         if: steps.cache-deps.outputs.cache-hit != 'true'
         run: |
           clojure -A:kaocha:test:deps -Stree
-          #FIXME https://github.com/clojure/clr.core.cli/issues/4
-          #cljr -A:test -Stree
+          ./script/deps-clr
           bb prepare
 
       - name: Save dependency cache
