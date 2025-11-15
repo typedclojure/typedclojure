@@ -1,0 +1,2 @@
+{% do-not-edit-edn-comment %}
+{:paths ["src"]}

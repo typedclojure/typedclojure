@@ -3,4 +3,7 @@
          "script"
          "script-test"
          ;for clojure.core.typed.contract-utils
-         "typed/clj.runtime/src"]}
+         "typed/clj.runtime/src"]
+ :deps {org.typedclojure/typed.internal-dev {:local/root "dev"}
+        org.typedclojure/typed.cljc.analyzer {:local/root "typed/cljc.analyzer"}
+        org.typedclojure/typed.clj.analyzer {:local/root "typed/clj.analyzer"}}}

@@ -1,0 +1,5 @@
+{% do-not-edit-edn-comment %}
+{:paths ["src"]
+ :deps {org.clojure/core.memoize {:mvn/version "{◊core-memoize-mvn-version◊}"}
+        io.github.frenchy64/fully-satisfies {:mvn/version "{◊fully-satisfies-mvn-version◊}"}
+        org.typedclojure/typed.cljc.analyzer {:local/root "../cljc.analyzer"}}}
