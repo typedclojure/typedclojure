@@ -8,7 +8,7 @@ on:
       - '.github/actions/setup-lua/**'
 
 env:
-  ACTIONS_CACHE_VERSION: 4
+  ACTIONS_CACHE_VERSION: 5
 
 jobs:
   copilot-setup-steps:
