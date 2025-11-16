@@ -11,7 +11,8 @@
   (:refer-clojure :exclude [update-vals])
   #?(:cljs (:require [cljs.analyzer :as cljs-ana]))
   #?@(:cljs []
-      ; cljs+cljr
+      :bb []
+      ; clj+cljr
       :default [(:import (clojure.lang IType IObj Var))]))
 
 (defn into!
@@ -60,6 +61,7 @@
 
 (do
   #?@(:cljs []
+      :bb []
       ; clj + cljr
       :default
       [(defn type?
@@ -71,6 +73,7 @@
   "Returns true if x implements IObj"
   [x]
   #?(:cljs (implements? IWithMeta x)
+     :bb (satisfies? clojure.lang.IObj x)
      ; clj + cljr
      :default (instance? IObj x)))
 
@@ -78,6 +81,7 @@
   "Returns true if x is a regex"
   [x]
   (instance? #?(:clj java.util.regex.Pattern
+                :bb java.util.regex.Pattern
                 :cljr System.Text.RegularExpressions.Regex
                 :cljs js/RegExp
                 :default (throw (ex-info "No impl for regex?")))
@@ -94,6 +98,7 @@
    (string? form)  :string
    (number? form)  :number
    #?@(:cljs []
+       :bb []
        ; clj+cljr
        :default [(type? form) :type])
    (record? form)  :record
@@ -104,6 +109,7 @@
    (char? form)    :char
    (regex? form)   :regex
    #?@(:cljs []
+       :bb [(class? form) :class]
        ; clj+cljr
        :default [(class? form) :class])
    (var? form)     :var
@@ -133,6 +139,8 @@
   ([var m]
      (or (:dynamic (or m (meta var)))
          #?@(:cljs []
+             :bb [(when (var? var)
+                    (-> var meta :dynamic))]
              :default
              [(when (var? var) ;; workaround needed since Clojure doesn't always propagate :dynamic
                 (.isDynamic ^Var var))]))))
@@ -259,4 +267,5 @@
                       (transient {}))
                     m))
        (meta m)))
+   :bb (def update-vals clojure.core/update-vals)
    :default (def update-vals clojure.core/update-vals))

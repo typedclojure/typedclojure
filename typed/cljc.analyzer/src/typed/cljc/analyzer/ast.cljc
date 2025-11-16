@@ -71,12 +71,12 @@
   ([ast f reversed?]
      (if (and (not (reduced? ast))
               (:children ast))
-       (if (instance? typed.cljc.analyzer.ast.IASTWalk ast)
+       (if (instance? #?(:bb IASTWalk :default typed.cljc.analyzer.ast.IASTWalk) ast)
          (let [_ (assert (not reversed?) "Reversed? not supported")
-               ret (.update-children* ^typed.cljc.analyzer.ast.IASTWalk ast f)]
+               ret (.update-children* #?(:bb ast :default ^typed.cljc.analyzer.ast.IASTWalk ast) f)]
            (assert (not (reduced? ret)) "Not supported")
            ret)
-         (if (instance? clojure.lang.IEditableCollection ast)
+         (if #?(:bb false :default (instance? clojure.lang.IEditableCollection ast))
            (let [ret (-update-children ast f reversed?)]
              (if (reduced? ret)
                (reduced (persistent! @ret))

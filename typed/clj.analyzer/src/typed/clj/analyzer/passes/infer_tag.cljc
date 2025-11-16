@@ -114,7 +114,10 @@
   (let [tag (:tag body)]
     (-> ast
         (assoc :o-tag tag
-               :tag (if (#?(:cljr #{Void} :default #{Void Void/TYPE}) tag)
+               :tag (if (#?(:bb #{} ;;TODO bb Void
+                            :cljr #{Void}
+                            :default #{Void Void/TYPE})
+                          tag)
                       Object
                       tag))
         (into (select-keys body [:return-tag :arglists])))))
@@ -212,7 +215,10 @@
                           (:tag (meta (:form local))))
         body-tag (:tag body)
         tag (or annotated-tag body-tag)
-        tag (if (#?(:cljr #{Void} :default #{Void Void/TYPE}) tag)
+        tag (if (#?(:bb #{} ;;TODO bb Void
+                    :cljr #{Void}
+                    :default #{Void Void/TYPE})
+                  tag)
               Object
               tag)]
     (-> ast

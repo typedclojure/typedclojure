@@ -11,15 +11,17 @@
   #?(:clj (:refer-clojure :exclude [delay]))
   (:require [typed.cljc.analyzer.utils :as u]
             [typed.cljc.analyzer :as ana2]
+            [clojure.set :as set]
             [clojure.reflect :as reflect]
             [clojure.string :as s]
-            #?@(:cljr []
-                :default [[clojure.core.memoize :refer [lru]]])
+            #?@(:bb []
+                :clj [[clojure.core.memoize :refer [lru]]])
             #?(:cljr [clojure.clr.io]
                :default [clojure.java.io :as io])
             #?(:clj [io.github.frenchy64.fully-satisfies.safe-locals-clearing :refer [delay]]))
   (:import (clojure.lang RT Symbol Var)
-           #?(:clj org.objectweb.asm.Type)))
+           #?@(:bb []
+               :clj [org.objectweb.asm.Type])))
 
 (set! *warn-on-reflection* true)
 
@@ -31,6 +33,12 @@
     (ns-resolve ns locals sym)))
 
 #?(
+:bb 
+
+(defn ^:private type-reflect
+  [typeref & options]
+  (throw (ex-info (str "TODO bb: " `type-reflect) {})))
+
 :cljr 
 
 (defn ^:private type-reflect
@@ -80,11 +88,11 @@
     "short"   Int16        ;;; Short/TYPE
     "void"    System.Void  ;;; Void/TYPE
     "object"  Object       ;;; DM: Added
-	"decimal" Decimal      ;;; DM: Added
-	"sbyte"   SByte        ;;; DM: Added
-	"ushort"  UInt16       ;;; DM: Added
-	"uint"    UInt32       ;;; DM: Added
-	"ulong"   UInt64       ;;; DM: Added
+    "decimal" Decimal      ;;; DM: Added
+    "sbyte"   SByte        ;;; DM: Added
+    "ushort"  UInt16       ;;; DM: Added
+    "uint"    UInt32       ;;; DM: Added
+    "ulong"   UInt64       ;;; DM: Added
     nil))
 
 :default
@@ -99,7 +107,8 @@
     "float" Float/TYPE
     "double" Double/TYPE
     "short" Short/TYPE
-    "void" Void/TYPE
+    "void" #?(:bb (throw (ex-info (str "TODO bb: " `specials " Void/TYPE") {}))
+              :default Void/TYPE)
     "object" Object
     nil))
 )
@@ -150,7 +159,8 @@
   ([element-type] (array-class 1 element-type))
   ([n element-type]
    (RT/classForName
-    #?(:cljr (apply str (-> element-type
+    #?(:bb (throw (ex-info (str "TODO bb: " `array-class) {}))
+       :cljr (apply str (-> element-type
                             maybe-class
                             .FullName
                             (.Replace \/ \.))
@@ -243,15 +253,16 @@
       Decimal #{Decimal}                       
       System.Void    #{System.Void}}
      :default
-     {Integer/TYPE   #{Integer Long/TYPE Long Short/TYPE Byte/TYPE Object Number}
-      Float/TYPE     #{Float Double/TYPE Object Number}
-      Double/TYPE    #{Double Float/TYPE Object Number}
-      Long/TYPE      #{Long Integer/TYPE Short/TYPE Byte/TYPE Object Number}
-      Character/TYPE #{Character Object}
-      Short/TYPE     #{Short Object Number}
-      Byte/TYPE      #{Byte Object Number}
-      Boolean/TYPE   #{Boolean Object}
-      Void/TYPE      #{Void}}))
+     (into {Integer/TYPE   #{Integer Long/TYPE Long Short/TYPE Byte/TYPE Object Number}
+            Float/TYPE     #{Float Double/TYPE Object Number}
+            Double/TYPE    #{Double Float/TYPE Object Number}
+            Long/TYPE      #{Long Integer/TYPE Short/TYPE Byte/TYPE Object Number}
+            Character/TYPE #{Character Object}
+            Short/TYPE     #{Short Object Number}
+            Byte/TYPE      #{Byte Object Number}
+            Boolean/TYPE   #{Boolean Object}}
+           #?(:bb nil
+              :default {Void/TYPE      #{Void}}))))
 
 #?(
 :cljr
@@ -263,20 +274,22 @@
 
 :default
 
-(defn ^Class box
-  "If the argument is a primitive Class, returns its boxed equivalent,
-   otherwise returns the argument"
-  [c]
-  ({Integer/TYPE   Integer
-    Float/TYPE     Float
-    Double/TYPE    Double
-    Long/TYPE      Long
-    Character/TYPE Character
-    Short/TYPE     Short
-    Byte/TYPE      Byte
-    Boolean/TYPE   Boolean
-    Void/TYPE      Void}
-   c c))
+(do (def ^:private unboxed->boxed
+      (into {Integer/TYPE   Integer
+             Float/TYPE     Float
+             Double/TYPE    Double
+             Long/TYPE      Long
+             Character/TYPE Character
+             Short/TYPE     Short
+             Byte/TYPE      Byte
+             Boolean/TYPE   Boolean}
+            #?(:bb {}
+                :default {Void/TYPE      Void})))
+    (defn ^Class box
+      "If the argument is a primitive Class, returns its boxed equivalent,
+      otherwise returns the argument"
+      [c]
+      (unboxed->boxed c c)))
 )
 
 
@@ -291,20 +304,13 @@
 
 :default
 
-(defn ^Class unbox
-  "If the argument is a Class with a primitive equivalent, returns that,
-   otherwise returns the argument"
-  [c]
-  ({Integer   Integer/TYPE,
-    Long      Long/TYPE,
-    Float     Float/TYPE,
-    Short     Short/TYPE,
-    Boolean   Boolean/TYPE,
-    Byte      Byte/TYPE,
-    Character Character/TYPE,
-    Double    Double/TYPE,
-    Void      Void/TYPE}
-   c c))
+(do (def ^:private boxed->unboxed
+      (set/map-invert unboxed->boxed))
+    (defn ^Class unbox
+      "If the argument is a Class with a primitive equivalent, returns that,
+      otherwise returns the argument"
+      [c]
+      (boxed->unboxed c c)))
 )
 
 (defn numeric?
@@ -421,23 +427,24 @@
             (= member-name** name)
             (= @member-name*** name))))))
 
-(def object-members
-  (:members (type-reflect Object)))
+#?(:bb nil
+   :default (def ^:private object-members (:members (type-reflect Object))))
 
 (def members*
-  (#?(:cljr identity :default lru) 
+  (#?(:bb identity :clj lru :default identity) 
    (fn members*
      ([class]
-      (into object-members
-            (remove (fn [{:keys [flags]}]
-                      (not-any? #{:public :protected} flags))
-                    (-> class
-                        maybe-class
-                        box
-                        #?(:cljr .FullName :default .getName)
-                        symbol
-                        (type-reflect :ancestors true)
-                        :members)))))))
+      #?(:bb (throw (ex-info (str "TODO bb: " `members*) {}))
+         :default (into object-members
+                        (remove (fn [{:keys [flags]}]
+                                  (not-any? #{:public :protected} flags))
+                                (-> class
+                                    maybe-class
+                                    box
+                                    #?(:cljr .FullName :default .getName)
+                                    symbol
+                                    (type-reflect :ancestors true)
+                                    :members))))))))
 
 (defn members
   ([class] (members* class))
@@ -458,26 +465,34 @@
 (defn- instance-members [class f]
   (eduction (remove (comp :static :flags)) (members2 class f)))
 
+(defn- Method? [x]
+  #?(:bb (throw (ex-info (str "TODO bb: " `Method?) {}))
+     :default (instance? clojure.reflect.Method x)))
+
+(defn- Field? [x]
+  #?(:bb (throw (ex-info (str "TODO bb: " `Field?) {}))
+     :default (instance? clojure.reflect.Field x)))
+
 (defn static-methods [class method argc]
-  (into [] (filter #(and (instance? clojure.reflect.Method %)
+  (into [] (filter #(and (Method? %)
                          (= argc (count (:parameter-types %)))))
         (static-members class method)))
 
 (defn all-static-methods [class method]
-  (into [] (filter #(instance? clojure.reflect.Method %))
+  (into [] (filter Method?)
         (static-members class method)))
 
 (defn instance-methods [class method argc]
-  (into [] (filter #(and (instance? clojure.reflect.Method %)
+  (into [] (filter #(and (Method? %)
                          (= argc (count (:parameter-types %)))))
         (instance-members class method)))
 
 (defn all-instance-methods [class method]
-  (into [] (filter #(instance? clojure.reflect.Method %))
+  (into [] (filter Method?)
         (instance-members class method)))
 
 (defn- field [member]
-  (when (instance? clojure.reflect.Field member)
+  (when (Field? member)
     member))
 
 (defn static-field [class f]

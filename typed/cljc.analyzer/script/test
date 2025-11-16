@@ -4,3 +4,5 @@ echo "Running analyzer.common tests under Clojure compilation"
 ./script/test-clj
 echo "Running analyzer.common tests under ClojureScript compilation"
 ./script/test-cljs
+echo "Running analyzer.common tests under Babashka"
+./script/test-bb

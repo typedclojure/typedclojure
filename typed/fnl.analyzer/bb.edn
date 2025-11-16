@@ -1,5 +1,12 @@
 ;; DO NOT EDIT! Instead, edit `dev/resources/root-templates/typed/fnl.analyzer/bb.edn` and run `./script/regen-selmer.sh`
 {:paths ["src"]
- :deps {org.typedclojure/typed.cljc.analyzer {:local/root "../cljc.analyzer"}
-        org.typedclojure/typed.clj.analyzer {:local/root "../clj.analyzer"}
-        org.typedclojure/typed.fnl.reader {:local/root "../fnl.reader"}}}
+ :deps {org.typedclojure/typed.cljc.analyzer {:local/root "../cljc.analyzer"
+                                              :deps/manifest :deps}
+        org.typedclojure/typed.clj.analyzer {:local/root "../clj.analyzer"
+                                             :deps/manifest :deps}
+        org.typedclojure/typed.fnl.reader {:local/root "../fnl.reader"
+                                           :deps/manifest :deps}}
+ :tasks
+ {test-bb {:doc "Run Babashka tests"
+           :extra-paths ["test"]
+           :task bb-test-runner/run-tests}}}

@@ -54,7 +54,10 @@
                   (and (= :arg local) variadic? ISeq)
                   o-tag
                   Object)
-        o-tag (if (#?(:cljr #{Void} :default #{Void Void/TYPE}) o-tag)
+        o-tag (if (#?(:bb #{} ;;TODO bb Void
+                      :cljr #{Void}
+                      :default #{Void Void/TYPE})
+                   o-tag)
                 Object
                 o-tag)]
     (if-let [tag (or (:tag (meta form)) tag)]

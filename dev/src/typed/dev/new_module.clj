@@ -43,7 +43,6 @@
                 module-script-dir]} (module-info artifact-id)]
     (-> {"module-template/deps.edn" (str module-templates-dir "/deps.edn")
          "module-template/README.md" (str module-templates-dir "/README.md")
-         "module-template/pom.xml" (str module-templates-dir "/pom.xml")
          "module-template/source.clj" (str module-src-dir "/" (peek splits) ".clj")
          "module-template/test.clj" (str module-test-dir "/" (peek splits) ".clj")}
         (into (map (fn [^java.io.File f]

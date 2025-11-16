@@ -54,6 +54,7 @@ jobs:
       - uses: DeLaGuardo/setup-clojure@13.4
         with:
           cli: ${{ env.CLOJURE_CLI_VERSION }} 
+          bb: ${{env.BABASHKA_VERSION}}
       - name: Run ${{ matrix.submodule }} tests
         run: ./script/run-ci-submodule-tests.sh
         env:

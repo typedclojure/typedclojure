@@ -13,7 +13,9 @@
                 :default [[typed.clojure :as-alias t]])
             [typed.cljc.analyzer.ast :as ast]
             [typed.cljc.analyzer.utils :as u])
-  #?(:clj (:import (clojure.lang IType))))
+  #?@(:bb []
+      :clj [(:import (clojure.lang IType))]
+      :default []))
 
 ;; clojure 1.9 compat
 #?(:clj (do (create-ns 'typed.clojure)
@@ -103,7 +105,9 @@
   [form env opts]
   (cond
     (symbol? form) (analyze-symbol form env opts)
-    #?@(:clj [(instance? IType form) (analyze-const form env :type opts)])
+    #?@(:bb []
+        :clj [(instance? IType form) (analyze-const form env :type opts)]
+        :default [])
     (record? form) (analyze-const form env :record opts)
     (seq? form) (if-let [form (seq form)]
                   (analyze-seq form env opts)
@@ -143,8 +147,10 @@
   {:pre [(symbol? cls)
          (map? m)]}
   (let [^#?(:cljr Type :default Class) rcls (resolve cls)
-        _ (assert (class? rcls) {:cls cls :resolved rcls})
-        rsym (symbol (#?(:cljr .FullName :default .getName) rcls))
+        _ (assert (or #?(:bb true :default false) (class? rcls)) {:cls cls :resolved rcls})
+        rsym (symbol (#?(:bb (fn [r] (str (-> r meta :ns ns-name) "." (-> r meta :name)))
+                         :cljr .FullName 
+                         :default .getName) rcls))
         {:keys [fields] :as info} (get defexpr-info rsym)
         _ (assert info (str "No info for expr " cls))
         fset (into #{} (map keyword) fields)
@@ -159,8 +165,10 @@
   {:pre [(symbol? cls)
          (every? vector? cases)]}
   (let [^#?(:cljr Type :default Class) rcls (resolve cls)
-        _ (assert (class? rcls) {:cls cls :resolved rcls})
-        rsym (symbol (#?(:cljr .FullName :default .getName) rcls))
+        _ (assert (or #?(:bb true :default false) (class? rcls)) {:cls cls :resolved rcls})
+        rsym (symbol (#?(:bb (fn [r] (str (-> r meta :ns ns-name) "." (-> r meta :name)))
+                         :cljr .FullName 
+                         :default .getName) rcls))
         {:keys [fields] :as info} (get defexpr-info rsym)
         _ (assert info (str "No info for expr " cls))
         ks (map first cases)

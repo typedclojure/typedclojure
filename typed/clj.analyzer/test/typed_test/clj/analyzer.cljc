@@ -44,7 +44,8 @@
   (is (= [:const clojure.lang.Compiler]
          ((juxt :op :val) (ast clojure.lang.Compiler))))
 
-  #?(:cljr
+  #?(:bb nil
+     :cljr
      (is (= [:static-field 'specials]
             ((juxt :op :field) (ast clojure.lang.Compiler/specials))))
      :default   

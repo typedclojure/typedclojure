@@ -1,2 +1,6 @@
 {% do-not-edit-edn-comment %}
-{:paths ["src"]}
+{:paths ["src"]
+ :tasks
+ {test-bb {:doc "Run Babashka tests"
+           :extra-paths ["test"]
+           :task bb-test-runner/run-tests}}}

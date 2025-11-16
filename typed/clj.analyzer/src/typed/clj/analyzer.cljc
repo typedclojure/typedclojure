@@ -357,9 +357,8 @@
 ;; HACK
 (defn -deftype [cname class-name args interfaces]
 
-  #?(:cljr 
-     nil  ; no memoization to clear on CLR
-     :default
+  #?(:bb nil
+     :clj
      (let [memo-clear! @(requiring-resolve 'clojure.core.memoize/memo-clear!)]
        (doseq [arg [class-name cname]]
          (memo-clear! ju/members* [arg])
@@ -573,7 +572,9 @@
   ([form env opts]
    (with-bindings (-> {;#'*ns*              (the-ns (:ns env))
                        }
-                      #?@(:cljr [] :default [(assoc Compiler/LOADER (RT/makeClassLoader))])
+                      #?@(:bb []
+                          :cljr []
+                          :default [(assoc Compiler/LOADER (RT/makeClassLoader))])
                       (into (:bindings opts)))
      (let [opts (env/ensure opts (global-env))
            opts (env/with-env opts (u/mmerge (env/deref-env opts) {:passes-opts (get opts :passes-opts default-passes-opts)}))]
@@ -594,7 +595,8 @@
 (defn default-thread-bindings [env]
   (-> {;#'*ns*              (the-ns (:ns env))
        }
-      #?@(:cljr [] :default [(assoc Compiler/LOADER (RT/makeClassLoader))])))
+      #?@(:bb []
+          :clj [(assoc Compiler/LOADER (RT/makeClassLoader))])))
 
 (defmethod emit-form/-emit-form :unanalyzed
   [{:keys [form] :as ast} opts]
@@ -646,9 +648,7 @@
                        (::ana/eval-ast opts)
                        eval-ast)
            env (merge env (u/-source-info form env))
-           [mform raw-forms] (with-bindings (-> {;#'*ns*              (the-ns (:ns env))
-                                                 }
-                                                #?@(:cljr [] :default [(assoc Compiler/LOADER (RT/makeClassLoader))]))
+           [mform raw-forms] (with-bindings (default-thread-bindings env)
                                (loop [form form raw-forms []]
                                  (let [mform (if (stop-gildardi-check form env)
                                                form

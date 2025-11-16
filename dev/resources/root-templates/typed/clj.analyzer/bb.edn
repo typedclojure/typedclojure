@@ -1,5 +1,10 @@
 {% do-not-edit-edn-comment %}
 {:paths ["src"]
  :deps {org.clojure/core.memoize {:mvn/version "{◊core-memoize-mvn-version◊}"}
-        io.github.frenchy64/fully-satisfies {:mvn/version "{◊fully-satisfies-mvn-version◊}"}
-        org.typedclojure/typed.cljc.analyzer {:local/root "../cljc.analyzer"}}}
+        io.github.frenchy64/fully-satisfies {:deps/root "bb"
+                                             :git/sha "{◊fully-satisfies-bb-sha◊}"}
+        org.typedclojure/typed.cljc.analyzer {:local/root "../cljc.analyzer"}}
+ :tasks
+ {test-bb {:doc "Run Babashka tests"
+           :extra-paths ["test"]
+           :task bb-test-runner/run-tests}}}
