@@ -19,6 +19,7 @@
     "typed/fnl.reader/src"
     "typed/fnl.runtime/resources"
     "typed/fnl.runtime/src"
+    "typed/java.analyzer/src"
     "typed/lib.clojure/src"
     "typed/lib.core.async/src"
     "typed/lib.spec.alpha/src"
@@ -36,6 +37,7 @@
     "typed/fnl.checker/test"
     "typed/fnl.reader/test"
     "typed/fnl.runtime/test"
+    "typed/java.analyzer/test"
     "typed/lib.clojure/test"
     "typed/lib.core.async/test"
     "typed/lib.spec.alpha/test"
@@ -57,6 +59,7 @@
     "typed/fnl.reader/src"
     "typed/fnl.runtime/resources"
     "typed/fnl.runtime/src"
+    "typed/java.analyzer/src"
     "typed/lib.clojure/src"
     "typed/lib.core.async/src"
     "typed/lib.spec.alpha/src"
@@ -82,6 +85,7 @@
     "typed/fnl.reader/src"
     "typed/fnl.runtime/resources"
     "typed/fnl.runtime/src"
+    "typed/java.analyzer/src"
     "typed/lib.clojure/src"
     "typed/lib.core.async/src"
     "typed/lib.spec.alpha/src"
@@ -107,6 +111,7 @@
     "typed/fnl.reader/src"
     "typed/fnl.runtime/resources"
     "typed/fnl.runtime/src"
+    "typed/java.analyzer/src"
     "typed/lib.clojure/src"
     "typed/lib.core.async/src"
     "typed/lib.spec.alpha/src"
@@ -115,7 +120,8 @@
    ["typed/clj.analyzer/test"
     "typed/cljc.analyzer/test"
     "typed/cljs.analyzer/test"
-    "typed/fnl.analyzer/test"]}],
+    "typed/fnl.analyzer/test"
+    "typed/java.analyzer/test"]}],
  :kaocha.plugin.profiling/count 3,
  :kaocha.plugin.profiling/profiling? true,
  :kaocha/fail-fast? true,

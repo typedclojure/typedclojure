@@ -26,6 +26,7 @@
     "typed/fnl.reader/test"
     "typed/fnl.runtime/test"
     "typed/fnl.runtime/test-resources"
+    "typed/java.analyzer/test"
     "typed/lib.clojure/test"
     "typed/lib.core.async/test"
     "typed/lib.spec.alpha/test"
@@ -70,6 +71,8 @@
     "--dir"
     "typed/fnl.runtime/test"
     "--dir"
+    "typed/java.analyzer/test"
+    "--dir"
     "typed/lib.clojure/test"
     "--dir"
     "typed/lib.core.async/test"
@@ -82,7 +85,7 @@
    [":patterns"
     "[\".*test.*\"]"
     ":dirs"
-    "[\"typed/clj.analyzer/test\" \"typed/clj.checker/test\" \"typed/clj.runtime/test\" \"typed/cljc.analyzer/test\" \"typed/cljs.analyzer/test\" \"typed/cljs.checker/test\" \"typed/cljs.runtime/test\" \"typed/fnl.analyzer/test\" \"typed/fnl.checker/test\" \"typed/fnl.reader/test\" \"typed/fnl.runtime/test\" \"typed/lib.clojure/test\" \"typed/lib.core.async/test\" \"typed/lib.spec.alpha/test\" \"typed/malli/test\"]"]},
+    "[\"typed/clj.analyzer/test\" \"typed/clj.checker/test\" \"typed/clj.runtime/test\" \"typed/cljc.analyzer/test\" \"typed/cljs.analyzer/test\" \"typed/cljs.checker/test\" \"typed/cljs.runtime/test\" \"typed/fnl.analyzer/test\" \"typed/fnl.checker/test\" \"typed/fnl.reader/test\" \"typed/fnl.runtime/test\" \"typed/java.analyzer/test\" \"typed/lib.clojure/test\" \"typed/lib.core.async/test\" \"typed/lib.spec.alpha/test\" \"typed/malli/test\"]"]},
   :eastwood
   {:extra-deps
    {jonase/eastwood
@@ -111,6 +114,7 @@
     "typed/fnl.reader/test"
     "typed/fnl.runtime/test"
     "typed/fnl.runtime/test-resources"
+    "typed/java.analyzer/test"
     "typed/lib.clojure/test"
     "typed/lib.core.async/test"
     "typed/lib.spec.alpha/test"
@@ -173,6 +177,7 @@
     "typed/fnl.reader/test"
     "typed/fnl.runtime/test"
     "typed/fnl.runtime/test-resources"
+    "typed/java.analyzer/test"
     "typed/lib.clojure/test"
     "typed/lib.core.async/test"
     "typed/lib.spec.alpha/test"
@@ -200,6 +205,7 @@
      "typed/fnl.reader/src"
      "typed/fnl.runtime/resources"
      "typed/fnl.runtime/src"
+     "typed/java.analyzer/src"
      "typed/lib.clojure/src"
      "typed/lib.core.async/src"
      "typed/lib.spec.alpha/src"
@@ -218,6 +224,7 @@
      "typed/fnl.reader/src"
      "typed/fnl.runtime/resources"
      "typed/fnl.runtime/src"
+     "typed/java.analyzer/src"
      "typed/lib.clojure/src"
      "typed/lib.core.async/src"
      "typed/lib.spec.alpha/src"
@@ -235,6 +242,7 @@
      "typed/fnl.reader/test"
      "typed/fnl.runtime/test"
      "typed/fnl.runtime/test-resources"
+     "typed/java.analyzer/test"
      "typed/lib.clojure/test"
      "typed/lib.core.async/test"
      "typed/lib.spec.alpha/test"
@@ -253,6 +261,7 @@
      "typed/fnl.reader/src"
      "typed/fnl.runtime/resources"
      "typed/fnl.runtime/src"
+     "typed/java.analyzer/src"
      "typed/lib.clojure/src"
      "typed/lib.core.async/src"
      "typed/lib.spec.alpha/src"
@@ -268,6 +277,7 @@
      "typed/fnl.checker/test"
      "typed/fnl.reader/test"
      "typed/fnl.runtime/test"
+     "typed/java.analyzer/test"
      "typed/lib.clojure/test"
      "typed/lib.core.async/test"
      "typed/lib.spec.alpha/test"
@@ -282,6 +292,8 @@
   {:deps/manifest :deps, :local/root "typed/fnl.analyzer"},
   org.typedclojure/typed.fnl.reader
   {:deps/manifest :deps, :local/root "typed/fnl.reader"},
+  org.typedclojure/typed.java.analyzer
+  {:deps/manifest :deps, :local/root "typed/java.analyzer"},
   org.typedclojure/typed.clj.checker
   {:deps/manifest :deps, :local/root "typed/clj.checker"},
   org.typedclojure/typed.clj.analyzer

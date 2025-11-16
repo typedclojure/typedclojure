@@ -1,8 +1,13 @@
-{&do-not-edit-edn-comment-template&}
+{% do-not-edit-edn-comment %}
 {:paths ["src"]
- :deps {org.clojure/clojure {:mvn/version "{◊clojure-mvn-version◊}"}}
+ :deps {org.clojure/clojure {:mvn/version "{◊clojure-mvn-version◊}"}
+        org.ow2.asm/asm {:mvn/version "{◊asm-mvn-version◊}"}
+        babashka/fs {:mvn/version "{◊fs-mvn-version◊}"}
+        com.github.javaparser/javaparser-core {:mvn/version "{◊javaparser-mvn-version◊}"}}
  :aliases {:test
            {:extra-paths ["test"]}
+           :graal
+           {:extra-deps {com.github.clj-easy/graal-build-time {:mvn/version "{◊graal-build-time-mvn-version◊}"}}}
            :nREPL
            {:extra-deps
             {nrepl/nrepl {:mvn/version "{◊nrepl-mvn-version◊}"}

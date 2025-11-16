@@ -42,7 +42,7 @@
    :piggieback-mvn-version "0.6.0"
    :tools-namespace-mvn-version "1.5.0"
    :cider-nrepl-mvn-version "0.52.1"
-   :asm-mvn-version "9.2"
+   :asm-mvn-version "9.8"
    :tools-analyzer-mvn-version "1.2.0"
    :tools-analyzer-jvm-mvn-version "1.3.2"
    :math-combinatorics-mvn-version "0.2.0"
@@ -67,4 +67,6 @@
    :fully-satisfies-bb-sha "37149ae490af63071a2d92e730f22324e7835f24"
    :clj-async-profiler-mvn-version "1.6.1"
    :instaparse-mvn-version "1.5.0"
+   :javaparser-mvn-version "3.26.1"
+   :graal-build-time-mvn-version "1.0.5"
    })
