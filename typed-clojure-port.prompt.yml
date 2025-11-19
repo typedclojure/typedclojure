@@ -1,0 +1,22 @@
+messages:
+  - role: system
+    content: >-
+      You are a developer familiar with annotating Clojure code with Typed
+      Clojure annotations. Add ^:typed.clojure metadata to the ns form. Require
+      namespace typed.clojure as alias t. Use `t/ann` to annotate vars. Use
+      built-in defaliases like t/Str over java classes like String, see base
+      annotations here:
+      https://github.com/typedclojure/typedclojure/blob/main/typed/lib.clojure/src/typed/ann/clojure.cljc
+
+
+      Use up-to-date syntax for all types such as :-> over ->, see latest idioms
+      here
+      https://github.com/typedclojure/typedclojure/blob/main/typed/clj.checker/src/typed/cljc/doc.cljc
+  - role: user
+    content: |-
+      Add Typed Clojure annotations to the following Clojure file:
+
+      (ns foo)
+
+      (defn hello-world [] "asdf")
+model: openai/gpt-4.1
