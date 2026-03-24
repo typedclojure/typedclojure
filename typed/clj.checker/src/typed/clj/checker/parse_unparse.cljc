@@ -2140,6 +2140,24 @@
           (conj :->)
           (into (unparse-result rng opts))))))
 
+(defn- unparse-Match-syntax
+  "Unparse a MatchType as (t/Match target pattern :-> result ...) without resolution."
+  [m opts]
+  (list* (unparse-Name-symbol-in-ns `t/Match opts)
+         (unparse-type (:target m) opts)
+         (doall
+           (mapcat (fn [t]
+                     (let [tsyn (unparse-type t opts)]
+                       ;; must be either [pattern :-> result] or (All binder [pattern :-> result])
+                       (if (vector? tsyn)
+                         (do (assert (= 3 (count tsyn)))
+                             tsyn)
+                         (let [_ (assert (= 3 (count tsyn)))
+                               [_All binder tsyn] tsyn]
+                           (assert (and (vector? tsyn) (= 3 (count tsyn))))
+                           (into [binder] tsyn)))))
+                   (:clauses m)))))
+
 (extend-protocol IUnparseType
   Protocol
   (unparse-type* 
@@ -2172,22 +2190,9 @@
       (list (unparse-Name-symbol-in-ns `t/Rec opts) [nme] (unparse-type body opts))))
 
   MatchType
-  (unparse-type* 
+  (unparse-type*
     [m opts]
-    (list* (unparse-Name-symbol-in-ns `t/Match opts)
-           (unparse-type (:target m) opts)
-           (doall
-             (mapcat (fn [t]
-                       (let [tsyn (unparse-type t opts)]
-                         ;; must be either [pattern :-> result] or (All binder [pattern :-> result])
-                         (if (vector? tsyn)
-                           (do (assert (= 3 (count tsyn)))
-                               tsyn)
-                           (let [_ (assert (= 3 (count tsyn)))
-                                 [_All binder tsyn] tsyn]
-                             (assert (and (vector? tsyn) (= 3 (count tsyn))))
-                             (into [binder] tsyn)))))
-                     (:clauses m)))))
+    (unparse-Match-syntax m opts))
   Instance
   (unparse-type*
     [m opts]
