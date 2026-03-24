@@ -1560,6 +1560,43 @@
                            expected
                            opts)))))
 
+;; ==================
+;; Value type propagation for arithmetic
+;;
+;; When all arguments to an arithmetic op are Value types with numeric vals,
+;; compute the result at type-check time and return (Val result).
+;; This enables compile-time size propagation: (* 32 64) => (Val 2048).
+;; Returns nil to fall through to normal checking when args aren't all Values.
+
+(defn- value-propagating-invoke
+  [op-fn {:keys [args] :as expr} expected {::check/keys [check-expr] :as opts}]
+  (when (seq args)
+    (let [cargs (mapv #(check-expr % nil opts) args)
+          types (mapv (comp r/ret-t u/expr-type) cargs)]
+      (when (every? r/Value? types)
+        (let [vals (map :val types)]
+          (when (every? number? vals)
+            (let [result (try (apply op-fn vals)
+                              (catch ArithmeticException _ nil))]
+              (when (some? result)
+                (-> expr
+                    (update :fn check-expr nil opts)
+                    (assoc :args cargs
+                           u/expr-type (below/maybe-check-below
+                                         (r/ret (r/-val result))
+                                         expected opts)))))))))))
+
+(defmethod -invoke-special 'clojure.core/+   [e x o] (value-propagating-invoke + e x o))
+(defmethod -invoke-special 'clojure.core/-   [e x o] (value-propagating-invoke - e x o))
+(defmethod -invoke-special 'clojure.core/*   [e x o] (value-propagating-invoke * e x o))
+(defmethod -invoke-special 'clojure.core/inc [e x o] (value-propagating-invoke inc e x o))
+(defmethod -invoke-special 'clojure.core/dec [e x o] (value-propagating-invoke dec e x o))
+(defmethod -invoke-special 'clojure.core/max [e x o] (value-propagating-invoke max e x o))
+(defmethod -invoke-special 'clojure.core/min [e x o] (value-propagating-invoke min e x o))
+(defmethod -invoke-special 'clojure.core/quot [e x o] (value-propagating-invoke quot e x o))
+(defmethod -invoke-special 'clojure.core/rem [e x o] (value-propagating-invoke rem e x o))
+(defmethod -invoke-special 'clojure.core/mod [e x o] (value-propagating-invoke mod e x o))
+
 (defmethod -check ::jana2/instance?
   [{cls :class the-expr :target :as expr} expected {::check/keys [check-expr] :as opts}]
   ;(assert nil ":instance? node not used")
