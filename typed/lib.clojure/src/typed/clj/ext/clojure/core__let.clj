@@ -294,7 +294,7 @@
           [(pr-str (mapv (fn [[k v]] [k (class v)]) combined-env))
            (pr-str combined-env)])
   (let [res (reduce
-              (fn [{:keys [new-syms prop-env ana-env expanded-bindings reachable]} [lhs rhs]]
+              (fn [{:keys [new-syms prop-env ana-env expanded-bindings reachable binding-types]} [lhs rhs]]
                 {:pre [(boolean? reachable)
                        (set? new-syms)
                        (lex/PropEnv? prop-env)
@@ -312,13 +312,32 @@
                       inferred-tag (let [tag (:tag cexpr)]
                                      (cond-> tag
                                        (class? tag) coerce/Class->symbol))
-                      ; propagate inferred tag when useful
+                      ;; Propagate inferred tag when useful, but NOT for
+                      ;; primitive types — Clojure rejects :tag on let
+                      ;; bindings with primitive initializers.
+                      primitive-tag? (contains? #{'double 'float 'long 'int
+                                                  'boolean 'byte 'short 'char}
+                                               inferred-tag)
                       tagged-lhs (cond-> lhs
                                    (and (simple-symbol? lhs)
-                                        inferred-tag)
+                                        inferred-tag
+                                        (not primitive-tag?))
                                    (vary-meta update :tag #(or % inferred-tag)))
                       is-reachable (volatile! reachable)
+                      ;; Collect TC type for this binding BEFORE update-destructure-env
+                      ;; (which creates a fresh map, discarding accumulated state)
+                      binding-type-entry
+                      (when (simple-symbol? lhs)
+                        (let [tcr (u/expr-type cexpr)]
+                          {lhs tcr}))
                       updated-context (update-destructure-env prop-env ana-env tagged-lhs cexpr (u/expr-type cexpr) is-reachable opts)
+                      ;; Also add uniquified name after destructure-env ran
+                      binding-type-entry
+                      (when binding-type-entry
+                        (let [uname (try (uniquify/normalize lhs (:ana-env updated-context))
+                                         (catch Throwable _ nil))]
+                          (cond-> binding-type-entry
+                            uname (assoc uname (u/expr-type cexpr)))))
                       ;; must go after update-destructure-env
                       reachable @is-reachable
                       maybe-reduced (if reachable identity reduced)]
@@ -326,7 +345,9 @@
                       (assoc :expanded-bindings (conj expanded-bindings
                                                       ;; preserve original lhs
                                                       lhs (emit-form/emit-form cexpr opts))
-                             :reachable reachable)
+                             :reachable reachable
+                             ;; Carry forward accumulated binding types + new entry
+                             :binding-types (merge binding-types binding-type-entry))
                       (update :new-syms #(into new-syms %))
                       maybe-reduced)))
               (assoc combined-env
@@ -353,7 +374,7 @@
                   (str "Expected binding vector as first argument of clojure.core/let:" (pr-str bvec)))
         _ (assert (even? (count bvec))
                   (str "Uneven binding vector passed to clojure.core/let: " bvec))
-        {:keys [prop-env ana-env expanded-bindings new-syms reachable]}
+        {:keys [prop-env ana-env expanded-bindings new-syms reachable binding-types]}
         (check-let-bindings
           {:new-syms #{}
            :prop-env (lex/lexical-env opts)
@@ -361,11 +382,13 @@
           bvec
           opts)]
     (cond
-      (not reachable) (assoc expr 
+      (not reachable) (assoc expr
                              :form (-> (list* (first form)
                                               expanded-bindings
                                               body-syns)
-                                       (with-meta (meta form)))
+                                       (with-meta (merge (meta form)
+                                                         (when (seq binding-types)
+                                                           {::binding-types binding-types}))))
                              u/expr-type (or expected (r/ret (r/Bottom))))
       :else (let [cbody (let [body (-> `(do ~@body-syns)
                                        (ana2/unanalyzed ana-env opts))
@@ -378,5 +401,10 @@
                      :form (-> (list (first form)
                                      expanded-bindings
                                      (emit-form/emit-form cbody opts))
-                               (with-meta (meta form)))
+                               (with-meta (merge (meta form)
+                                                 ;; Per-binding types: {uniquified-name → TCResult}
+                                                 ;; Enables external consumers to extract type info
+                                                 ;; for each let binding from a single check pass.
+                                                 (when (seq binding-types)
+                                                   {::binding-types binding-types}))))
                      u/expr-type unshadowed-ret)))))
