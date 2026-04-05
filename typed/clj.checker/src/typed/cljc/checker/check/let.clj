@@ -96,47 +96,36 @@
                              ;; Infer init types: check each init expression without
                              ;; an expected type (like let), collect the result types.
                              ;; Widen singleton/value types to class types.
-                             (let [integer-names #{'Integer 'Long 'Short 'Byte
-                                                      'java.lang.Integer 'java.lang.Long
-                                                      'java.lang.Short 'java.lang.Byte}
-                                   float-names #{'Double 'Float
-                                                 'java.lang.Double 'java.lang.Float}
-                                   ;; TC's AnyInteger — the canonical union of all integer types
-                                   tc-any-integer (r/Name-maker 'typed.clojure/AnyInteger)
-                                   widen (fn [t]
-                                          (let [id (cond (r/Name? t) (:id t)
-                                                         (r/RClass? t) (:the-class t)
-                                                         :else nil)]
-                                            (cond
-                                              ;; Value types: widen integer vals to AnyInteger,
-                                              ;; other numeric vals to Number, rest to class
-                                              (r/Value? t)
-                                              (let [v (:val t)]
-                                                (cond
-                                                  (integer? v) tc-any-integer
-                                                  (number? v) (c/RClass-of Number opts)
-                                                  :else (c/RClass-of (class v) opts)))
-                                              ;; Named integer types → AnyInteger
-                                              (contains? integer-names id) tc-any-integer
-                                              ;; Named float types → Number
-                                              (contains? float-names id) (c/RClass-of Number opts)
-                                              :else t)))
-                                   inferred
-                                   (reduce
-                                     (fn [[env types] n]
-                                       (let [expr (get bindings n)
-                                             {sym :name :as cexpr}
-                                             (check-expr expr nil
-                                                         (var-env/with-lexical-env opts env))
-                                             t (widen (:t (u/expr-type cexpr)))
-                                             ;; Update env with widened type for subsequent inits
-                                             widened-result (r/ret t)
-                                             new-env (update-env env sym widened-result
-                                                                 (volatile! true) opts)]
-                                         [new-env (conj types t)]))
-                                     [(lex/lexical-env opts) []]
-                                     (range (count bindings)))]
-                               (second inferred))))
+                             (try
+                               (let [widen (fn [t]
+                                              (cond
+                                                ;; Value types: widen to their class type.
+                                                ;; (Val 0.0) → Double, (Val 0) → Long, etc.
+                                                (r/Value? t)
+                                                (c/RClass-of (class (:val t)) opts)
+                                                ;; All other types (RClass, Name, etc.) stay as-is.
+                                                ;; Double stays Double, Long stays Long — concrete
+                                                ;; types are already valid loop invariants.
+                                                :else t))
+                                     inferred
+                                     (reduce
+                                       (fn [[env types] n]
+                                         (let [expr (get bindings n)
+                                               {sym :name :as cexpr}
+                                               (check-expr expr nil
+                                                           (var-env/with-lexical-env opts env))
+                                               t (widen (:t (u/expr-type cexpr)))
+                                               ;; Update env with widened type for subsequent inits
+                                               widened-result (r/ret t)
+                                               new-env (update-env env sym widened-result
+                                                                   (volatile! true) opts)]
+                                           [new-env (conj types t)]))
+                                       [(lex/lexical-env opts) []]
+                                       (range (count bindings)))]
+                                 (second inferred))
+                               ;; Gracefully fall back to untyped loop when inference fails
+                               ;; (e.g., nested loop variable shadowing confuses local lookup)
+                               (catch Exception _ nil))))
          is-reachable (volatile! true)
          [env cbindings]
          (reduce

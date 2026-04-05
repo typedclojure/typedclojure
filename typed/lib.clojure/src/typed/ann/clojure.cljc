@@ -2350,26 +2350,54 @@ cc/quot (t/IFn #?(:clj [Long Long :-> Long])
                [t/AnyInteger t/AnyInteger :-> t/AnyInteger] 
                [t/Num t/Num :-> t/Num])
 
-cc/unchecked-inc (t/IFn [t/AnyInteger :-> t/AnyInteger]
+cc/unchecked-inc (t/IFn [Long :-> Long]
+                        [Integer :-> Integer]
+                        [t/AnyInteger :-> t/AnyInteger]
                         [t/Num :-> t/Num])
-cc/unchecked-inc-int [t/Num :-> t/AnyInteger]
-cc/unchecked-dec (t/IFn [t/AnyInteger :-> t/AnyInteger]
+cc/unchecked-inc-int (t/IFn [Long :-> Long]
+                            [Integer :-> Integer]
+                            [t/Num :-> t/AnyInteger])
+cc/unchecked-dec (t/IFn [Long :-> Long]
+                        [Integer :-> Integer]
+                        [t/AnyInteger :-> t/AnyInteger]
                         [t/Num :-> t/Num])
-cc/unchecked-dec-int [t/Num :-> t/AnyInteger]
-cc/unchecked-subtract (t/IFn [t/AnyInteger t/AnyInteger :-> t/AnyInteger]
+cc/unchecked-dec-int (t/IFn [Long :-> Long]
+                            [Integer :-> Integer]
+                            [t/Num :-> t/AnyInteger])
+cc/unchecked-subtract (t/IFn [Long Long :-> Long]
+                             [Integer Integer :-> Integer]
+                             [t/AnyInteger t/AnyInteger :-> t/AnyInteger]
                              [t/Num t/Num :-> t/Num])
-cc/unchecked-subtract-int [t/Num t/Num :-> t/AnyInteger]
-cc/unchecked-negate (t/IFn [t/AnyInteger :-> t/AnyInteger]
+cc/unchecked-subtract-int (t/IFn [Long Long :-> Long]
+                                 [Integer Integer :-> Integer]
+                                 [t/Num t/Num :-> t/AnyInteger])
+cc/unchecked-negate (t/IFn [Long :-> Long]
+                           [Integer :-> Integer]
+                           [t/AnyInteger :-> t/AnyInteger]
                            [t/Num :-> t/Num])
-cc/unchecked-negate-int [t/Num :-> t/AnyInteger]
-cc/unchecked-add (t/IFn [t/AnyInteger t/AnyInteger :-> t/AnyInteger]
+cc/unchecked-negate-int (t/IFn [Long :-> Long]
+                               [Integer :-> Integer]
+                               [t/Num :-> t/AnyInteger])
+cc/unchecked-add (t/IFn [Long Long :-> Long]
+                        [Integer Integer :-> Integer]
+                        [t/AnyInteger t/AnyInteger :-> t/AnyInteger]
                         [t/Num t/Num :-> t/Num])
-cc/unchecked-add-int [t/Num t/Num :-> t/AnyInteger]
-cc/unchecked-multiply (t/IFn [t/AnyInteger t/AnyInteger :-> t/AnyInteger]
+cc/unchecked-add-int (t/IFn [Long Long :-> Long]
+                            [Integer Integer :-> Integer]
+                            [t/Num t/Num :-> t/AnyInteger])
+cc/unchecked-multiply (t/IFn [Long Long :-> Long]
+                             [Integer Integer :-> Integer]
+                             [t/AnyInteger t/AnyInteger :-> t/AnyInteger]
                              [t/Num t/Num :-> t/Num])
-cc/unchecked-multiply-int [t/Num t/Num :-> t/AnyInteger]
-cc/unchecked-divide-int [t/Num t/Num :-> t/AnyInteger]
-cc/unchecked-remainder-int [t/Num t/Num :-> t/AnyInteger]
+cc/unchecked-multiply-int (t/IFn [Long Long :-> Long]
+                                 [Integer Integer :-> Integer]
+                                 [t/Num t/Num :-> t/AnyInteger])
+cc/unchecked-divide-int (t/IFn [Long Long :-> Long]
+                               [Integer Integer :-> Integer]
+                               [t/Num t/Num :-> t/AnyInteger])
+cc/unchecked-remainder-int (t/IFn [Long Long :-> Long]
+                                  [Integer Integer :-> Integer]
+                                  [t/Num t/Num :-> t/AnyInteger])
 cc/rem (t/IFn [t/AnyInteger t/AnyInteger :-> t/AnyInteger]
               [t/Num t/Num :-> t/Num])
 cc/inc (t/IFn #?(:clj [Long :-> Long])
