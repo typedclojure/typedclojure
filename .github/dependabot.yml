@@ -14,7 +14,9 @@ multi-ecosystem-groups:
 updates:
   - package-ecosystem: "maven"
     directory: "/dependabot"
+    patterns: ["*"]
     multi-ecosystem-group: "everything"
   - package-ecosystem: "github-actions"
     directory: "/"
+    patterns: ["*"]
     multi-ecosystem-group: "everything"
