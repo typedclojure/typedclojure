@@ -65,7 +65,7 @@
       <dependency>
         <groupId>org.clojure</groupId>
         <artifactId>math.combinatorics</artifactId>
-        <version>0.2.0</version>
+        <version>0.3.2</version>
       </dependency>
       <dependency>
         <groupId>org.clojure</groupId>
