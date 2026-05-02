@@ -6,9 +6,6 @@
          "typed/clj.runtime/src"]
  :deps {org.typedclojure/typed.internal-dev {:local/root "dev"},
         selmer/selmer {:mvn/version "1.12.62"},
-        org.typedclojure/typed.fnl.runtime {:local/root "typed/fnl.runtime"},
-        org.typedclojure/typed.fnl.analyzer {:local/root "typed/fnl.analyzer"},
-        org.typedclojure/typed.fnl.reader {:local/root "typed/fnl.reader"},
         org.typedclojure/typed.clj.checker {:local/root "typed/clj.checker"},
         org.typedclojure/typed.clj.analyzer {:local/root "typed/clj.analyzer"},
         org.typedclojure/typed.lib.core.async {:local/root "typed/lib.core.async"},
@@ -19,5 +16,4 @@
         ;org.typedclojure/typed.cljs.analyzer {:local/root "typed/cljs.analyzer"},
         ;org.typedclojure/typed.cljs.checker {:local/root "typed/cljs.checker"},
         ;org.typedclojure/typed.cljs.runtime {:local/root "typed/cljs.runtime"},
-        org.typedclojure/typed.clj.runtime {:local/root "typed/clj.runtime"},
-        org.typedclojure/typed.fnl.checker {:local/root "typed/fnl.checker"}}}
+        org.typedclojure/typed.clj.runtime {:local/root "typed/clj.runtime"}}}

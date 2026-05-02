@@ -12,10 +12,7 @@
 
 (load-file "dev/src/typed/dev/helpers.clj")
 
-(def excluded-submodules
-  ;; tested separately in fennel-ci.yml due to lua dependency
-  #{"typed/fnl.runtime"
-    "example-projects/fennel"})
+(def excluded-submodules #{})
 
 (def all-testable-submodules
   (into (sorted-set)
