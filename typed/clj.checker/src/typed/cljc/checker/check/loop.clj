@@ -28,8 +28,7 @@
    :post [(or (nil? %)
               (and (seq %)
                    (every? r/Type? %)))]}
-  (let [;; cljs.analyzer :binding's don't have forms yet
-        names (map (some-fn :form :name) (:bindings expr))
+  (let [names (map :form (:bindings expr))
         _ (assert (every? symbol? names))
         maybe-anns (map (comp (fn [m]
                                 ;(prn "meta" m)

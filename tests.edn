@@ -11,7 +11,6 @@
     "typed/clj.runtime/resources"
     "typed/clj.runtime/src"
     "typed/cljc.analyzer/src"
-    "typed/cljs.analyzer/src"
     "typed/java.analyzer/src"
     "typed/lib.clojure/src"
     "typed/lib.core.async/src"
@@ -23,7 +22,6 @@
     "typed/clj.checker/test"
     "typed/clj.runtime/test"
     "typed/cljc.analyzer/test"
-    "typed/cljs.analyzer/test"
     "typed/java.analyzer/test"
     "typed/lib.clojure/test"
     "typed/lib.core.async/test"
@@ -38,7 +36,6 @@
     "typed/clj.runtime/resources"
     "typed/clj.runtime/src"
     "typed/cljc.analyzer/src"
-    "typed/cljs.analyzer/src"
     "typed/java.analyzer/src"
     "typed/lib.clojure/src"
     "typed/lib.core.async/src"
@@ -54,7 +51,6 @@
     "typed/clj.runtime/resources"
     "typed/clj.runtime/src"
     "typed/cljc.analyzer/src"
-    "typed/cljs.analyzer/src"
     "typed/java.analyzer/src"
     "typed/lib.clojure/src"
     "typed/lib.core.async/src"
@@ -63,7 +59,6 @@
    :kaocha/test-paths
    ["typed/clj.analyzer/test"
     "typed/cljc.analyzer/test"
-    "typed/cljs.analyzer/test"
     "typed/java.analyzer/test"]}],
  :kaocha.plugin.profiling/count 3,
  :kaocha.plugin.profiling/profiling? true,

@@ -197,46 +197,15 @@
 (defmacro cf-clj
   "Check a Clojure form in the current *ns*."
   [& args]
-  #?(;;TODO check in macros ns?
-     :cljs `(cljs.core.typed/cf ~@args)
-     :default (platform-case
-                :clj `(clojure.core.typed/cf ~@args)
-                :cljs (binding [*ns* (create-ns @(requiring-resolve 'cljs.analyzer/*cljs-ns*))]
-                        (list 'quote
-                              (apply (requiring-resolve 'clojure.core.typed/check-form*)
-                                     (case (count args)
-                                       ;; form | expected expected-provided?
-                                       1 (concat args [nil nil])
-                                       ;; form expected | expected-provided?
-                                       2 (concat args [true]))))))))
-
-(defmacro cf-cljs
-  "Check a ClojureScript form in the same namespace as the current platform."
-  [& args]
-  #?(:cljs `(cljs.core.typed/cf ~@args)
-     :default (platform-case
-                :clj `(with-bindings {(requiring-resolve 'cljs.analyzer/*cljs-ns*) (ns-name *ns*)}
-                        (apply (requiring-resolve 'cljs.core.typed/check-form*)
-                               '~(case (count args)
-                                   ;; form | expected expected-provided?
-                                   1 (concat args [nil nil])
-                                   ;; form expected | expected-provided?
-                                   2 (concat args [true]))))
-                :cljs (list 'quote
-                            (apply (requiring-resolve 'cljs.core.typed/check-form*)
-                                   (case (count args)
-                                     ;; form | expected expected-provided?
-                                     1 (concat args [nil nil])
-                                     ;; form expected | expected-provided?
-                                     2 (concat args [true])))))))
+  #?(:default (platform-case
+                :clj `(clojure.core.typed/cf ~@args))))
 
 ;; TODO add check-form-clj{s} defn's for symmetry
 (defmacro cf
   "In Clojure, expands to (clojure.core.typed/cf ~@args).
   In ClojureScript JVM, expands to (cljs.core.typed/cf ~@args)."
   [& args]
-  #?(:cljs `(cf-cljs ~@args)
-     :default (platform-case
+  #?(:default (platform-case
                 :clj `(cf-clj ~@args)
                 :cljs `(cf-cljs ~@args))))
 

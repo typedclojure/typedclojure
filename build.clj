@@ -84,8 +84,7 @@
     org.typedclojure/typed.clj.runtime
     org.typedclojure/typed.clj.checker
     org.typedclojure/typed.lib.core.async
-    org.typedclojure/typed.malli
-    org.typedclojure/typed.cljs.analyzer])
+    org.typedclojure/typed.malli])
 
 (assert (= (-> all-modules keys set)
            (set sorted-modules)))
