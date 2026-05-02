@@ -41,7 +41,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: ${{ env.DEPLOY_JDK }}
-      - uses: DeLaGuardo/setup-clojure@13.4
+      - uses: DeLaGuardo/setup-clojure@13.5
         with:
           cli: ${{ env.CLOJURE_CLI_VERSION }}
           bb: ${{env.BABASHKA_VERSION}}
@@ -85,7 +85,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: ${{ env.DEPLOY_JDK }}
-      - uses: DeLaGuardo/setup-clojure@13.4
+      - uses: DeLaGuardo/setup-clojure@13.5
         with:
           cli: ${{ env.CLOJURE_CLI_VERSION }}
           bb: ${{ env.BABASHKA_VERSION }}

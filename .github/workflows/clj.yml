@@ -18,7 +18,7 @@ jobs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
       - uses: actions/checkout@v6
-      - uses: DeLaGuardo/setup-clojure@13.4
+      - uses: DeLaGuardo/setup-clojure@13.5
         with:
           bb: ${{env.BABASHKA_VERSION}}
       - run: bb --version
@@ -50,7 +50,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: ${{ matrix.jdk }}
-      - uses: DeLaGuardo/setup-clojure@13.4
+      - uses: DeLaGuardo/setup-clojure@13.5
         with:
           cli: ${{ env.CLOJURE_CLI_VERSION }} 
           bb: ${{env.BABASHKA_VERSION}}
@@ -67,7 +67,7 @@ jobs:
          }}
     steps:
       - uses: actions/checkout@v6
-      - uses: DeLaGuardo/setup-clojure@13.4
+      - uses: DeLaGuardo/setup-clojure@13.5
         with:
           bb: ${{env.BABASHKA_VERSION}}
       - run: bb --version
