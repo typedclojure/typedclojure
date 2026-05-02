@@ -20,6 +20,7 @@
       slurp
       str/trim))
 
+;; add new deps to `dev/resources/root-templates/dependabot/pom.xml` for dependabot support
 (def selmer-input-map
   {:clojure-mvn-version "1.12.3"
    :clojure-next-release-mvn-version nil #_"1.12.0-alpha1"

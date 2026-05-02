@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+{% do-not-edit-xml-comment %}
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>{◊typedclojure-group-id◊}</groupId>
+  <artifactId>pom.typed</artifactId>
+  <version>{◊typedclojure-current-mvn-version◊}</version>
+  <name>pom</name>
+  <description>Dependabot support for Typed Clojure's repo</description>
+  <packaging>pom</packaging>
+
+  <licenses>
+    <license>
+      <name>Eclipse Public License 1.0</name>
+      <url>https://opensource.org/license/epl-1-0/</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <distributionManagement>
+    <snapshotRepository>
+      <id>clojars</id>
+      <name>Clojars repository</name>
+      <url>{◊clojars-url◊}</url>
+    </snapshotRepository>
+    <repository>
+      <id>clojars</id>
+      <name>Clojars repository</name>
+      <url>{◊clojars-url◊}</url>
+    </repository>
+  </distributionManagement>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.clojure</groupId>
+        <artifactId>clojure</artifactId>
+        <version>${clojure.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.clojure</groupId>
+        <artifactId>core.memoize</artifactId>
+        <version>{◊core-memoize-mvn-version◊}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.clojure</groupId>
+        <artifactId>tools.namespace</artifactId>
+        <version>{◊tools-namespace-mvn-version◊}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.ow2.asm</groupId>
+        <artifactId>asm</artifactId>
+        <version>{◊asm-mvn-version◊}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.clojure</groupId>
+        <artifactId>tools.analyzer</artifactId>
+        <version>{◊tools-analyzer-mvn-version◊}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.clojure</groupId>
+        <artifactId>tools.analyzer.jvm</artifactId>
+        <version>{◊tools-analyzer-jvm-mvn-version◊}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.clojure</groupId>
+        <artifactId>math.combinatorics</artifactId>
+        <version>{◊math-combinatorics-mvn-version◊}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.clojure</groupId>
+        <artifactId>tools.reader</artifactId>
+        <version>{◊tools-reader-mvn-version◊}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.clojure</groupId>
+        <artifactId>core.cache</artifactId>
+        <version>{◊core-cache-mvn-version◊}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.clojure</groupId>
+        <artifactId>core.async</artifactId>
+        <version>{◊core-async-mvn-version◊}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.clojure</groupId>
+        <artifactId>test.check</artifactId>
+        <version>{◊test-check-mvn-version◊}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.clojure</groupId>
+        <artifactId>core.logic</artifactId>
+        <version>{◊core-logic-mvn-version◊}</version>
+      </dependency>
+      <dependency>
+        <groupId>metosin</groupId>
+        <artifactId>malli</artifactId>
+        <version>{◊malli-mvn-version◊}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.nextjournal</groupId>
+        <artifactId>beholder</artifactId>
+        <version>{◊beholder-mvn-version◊}</version>
+      </dependency>
+      <dependency>
+        <groupId>babashka</groupId>
+        <artifactId>process</artifactId>
+        <version>{◊process-mvn-version◊}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.github.frenchy64</groupId>
+        <artifactId>fully-satisfies</artifactId>
+        <version>{◊fully-satisfies-mvn-version◊}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <repositories>
+    <repository>
+      <id>clojars</id>
+      <url>{◊clojars-url◊}</url>
+    </repository>
+  </repositories>
+
+  <scm>
+    <connection>scm:git:git://github.com/typedclojure/typedclojure.git</connection>
+    <developerConnection>scm:git:git://github.com/typedclojure/typedclojure.git</developerConnection>
+    <url>{◊typedclojure-git-https-url◊}</url>
+    <tag>HEAD</tag>
+  </scm>
+</project>
