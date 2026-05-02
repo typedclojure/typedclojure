@@ -33,7 +33,6 @@ jobs:
       matrix: ${{ fromJson(needs.setup.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
-      - uses: leafo/gh-actions-lua@8c9e175e7a3d77e21f809eefbee34a19b858641b
       - uses: actions/cache@v4
         id: test-deps-cache
         with:
