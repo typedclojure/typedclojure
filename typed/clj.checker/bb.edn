@@ -6,8 +6,8 @@
   org.typedclojure/typed.lib.clojure {:local/root "../lib.clojure"},
   org.typedclojure/typed.lib.spec.alpha {:local/root "../lib.spec.alpha"},
   org.typedclojure/typed.clj.runtime {:local/root "../clj.runtime"},
-  org.clojure/math.combinatorics {:mvn/version "0.2.0"},
-  org.clojure/tools.namespace {:mvn/version "1.5.0"},
+  org.clojure/math.combinatorics {:mvn/version "0.3.2"},
+  org.clojure/tools.namespace {:mvn/version "1.5.1"},
   org.clojure/tools.reader {:mvn/version "1.5.2"}
   com.nextjournal/beholder {:mvn/version "1.0.2"}
   babashka/process {:mvn/version "0.5.22"}

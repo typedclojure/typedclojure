@@ -4,12 +4,17 @@
 # https://help.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
 
 version: 2
+
+multi-ecosystem-groups:
+  everything:
+    schedule:
+      interval:
+        - "daily"
+
 updates:
   - package-ecosystem: "maven"
     directory: "/dependabot"
-    schedule:
-      interval: "weekly"
+    multi-ecosystem-group: "everything"
   - package-ecosystem: "github-actions"
     directory: "/"
-    schedule:
-      interval: "weekly"
+    multi-ecosystem-group: "everything"
