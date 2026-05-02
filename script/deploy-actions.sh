@@ -21,9 +21,6 @@ if [[ "$COMMIT_MSG" =~ ^\[typedclojure-release\] ]]; then
   #https://stackoverflow.com/a/9294015
   COMMIT_MSG_ARRAY=($COMMIT_MSG)
   ./script/release-and-push.sh "${COMMIT_MSG_ARRAY[1]}" "${COMMIT_MSG_ARRAY[2]}"
-  ./script/build-and-upload-docs.sh
 else
   ./script/deploy-snapshot.sh
-  # temporary
-  ./script/build-and-upload-docs.sh
 fi
