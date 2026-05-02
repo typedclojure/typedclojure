@@ -14,11 +14,6 @@
     "typed/cljs.analyzer/src"
     "typed/cljs.checker/src"
     "typed/cljs.runtime/src"
-    "typed/fnl.analyzer/src"
-    "typed/fnl.checker/src"
-    "typed/fnl.reader/src"
-    "typed/fnl.runtime/resources"
-    "typed/fnl.runtime/src"
     "typed/java.analyzer/src"
     "typed/lib.clojure/src"
     "typed/lib.core.async/src"
@@ -33,10 +28,6 @@
     "typed/cljs.analyzer/test"
     "typed/cljs.checker/test"
     "typed/cljs.runtime/test"
-    "typed/fnl.analyzer/test"
-    "typed/fnl.checker/test"
-    "typed/fnl.reader/test"
-    "typed/fnl.runtime/test"
     "typed/java.analyzer/test"
     "typed/lib.clojure/test"
     "typed/lib.core.async/test"
@@ -54,11 +45,6 @@
     "typed/cljs.analyzer/src"
     "typed/cljs.checker/src"
     "typed/cljs.runtime/src"
-    "typed/fnl.analyzer/src"
-    "typed/fnl.checker/src"
-    "typed/fnl.reader/src"
-    "typed/fnl.runtime/resources"
-    "typed/fnl.runtime/src"
     "typed/java.analyzer/src"
     "typed/lib.clojure/src"
     "typed/lib.core.async/src"
@@ -80,20 +66,13 @@
     "typed/cljs.analyzer/src"
     "typed/cljs.checker/src"
     "typed/cljs.runtime/src"
-    "typed/fnl.analyzer/src"
-    "typed/fnl.checker/src"
-    "typed/fnl.reader/src"
-    "typed/fnl.runtime/resources"
-    "typed/fnl.runtime/src"
     "typed/java.analyzer/src"
     "typed/lib.clojure/src"
     "typed/lib.core.async/src"
     "typed/lib.spec.alpha/src"
     "typed/malli/src"],
    :kaocha/test-paths
-   ["typed/clj.checker/test"
-    "typed/cljs.checker/test"
-    "typed/fnl.checker/test"]}
+   ["typed/clj.checker/test" "typed/cljs.checker/test"]}
   {:kaocha.testable/type :kaocha.type/clojure.test,
    :kaocha.testable/id :analyzer,
    :kaocha/ns-patterns [".*"],
@@ -106,11 +85,6 @@
     "typed/cljs.analyzer/src"
     "typed/cljs.checker/src"
     "typed/cljs.runtime/src"
-    "typed/fnl.analyzer/src"
-    "typed/fnl.checker/src"
-    "typed/fnl.reader/src"
-    "typed/fnl.runtime/resources"
-    "typed/fnl.runtime/src"
     "typed/java.analyzer/src"
     "typed/lib.clojure/src"
     "typed/lib.core.async/src"
@@ -120,7 +94,6 @@
    ["typed/clj.analyzer/test"
     "typed/cljc.analyzer/test"
     "typed/cljs.analyzer/test"
-    "typed/fnl.analyzer/test"
     "typed/java.analyzer/test"]}],
  :kaocha.plugin.profiling/count 3,
  :kaocha.plugin.profiling/profiling? true,

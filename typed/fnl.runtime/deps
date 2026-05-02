@@ -1,9 +1,0 @@
-#!/usr/bin/env bash
-
-set -e
-
-script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-
-# add fennel to PATH for deps
-export PATH="$script_dir/fennel-bootstrap:$PATH"
-deps "$@"
