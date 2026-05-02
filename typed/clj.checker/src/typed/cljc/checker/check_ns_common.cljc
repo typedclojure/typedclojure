@@ -31,7 +31,6 @@
 
 ;; TODO move into callers of check-ns-info
 (def *register-clj-anns (delay (configs/register-clj-config-anns)))
-#?(:clj (def *register-cljs-anns (delay (configs/register-cljs-config-anns))))
 
 ;; returns a map with keys
 ;; - :delayed errors    a vector of ExceptionInfo instances representing type errors
@@ -104,8 +103,7 @@
             ; Collection phase
             ;-------------------------
             (impl/impl-case opts
-              :clojure @*register-clj-anns
-              #?@(:clj [:cljs @*register-cljs-anns]))
+              :clojure @*register-clj-anns)
             (case (:check-ns-load check-config)
               :require-before-check (impl/impl-case opts
                                       :clojure (locking clojure.lang.RT/REQUIRE_LOCK

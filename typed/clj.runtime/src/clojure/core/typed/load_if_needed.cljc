@@ -14,8 +14,6 @@
             [clojure.core.typed.util-vars :as vs]
             #?(:clj [io.github.frenchy64.fully-satisfies.requiring-resolve :refer [requiring-resolve]])))
 
-(defn load-if-needed 
+(defn load-if-needed
   "Load and initialize all of core.typed if not already"
-  ([] (load-if-needed false))
-  ([cljs?]
-   ((requiring-resolve 'typed.cljc.checker.init/load-impl) cljs?)))
+  ([] ((requiring-resolve 'typed.cljc.checker.init/load-impl))))

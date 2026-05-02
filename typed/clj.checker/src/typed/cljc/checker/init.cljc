@@ -15,22 +15,13 @@
                                                   reset-envs!]]))
 
 (defn load-impl
-  ([] (load-impl false))
-  ([cljs?]
+  ([]
    (do
      ;(println "Building core.typed base environments ...")
      ;(flush)
      (impl/register-clj!)
      (ind/collect-indirect-annotations)
      (load-core-envs! ((requiring-resolve 'typed.clj.runtime.env/clj-opts)))
-     #_
-     (when cljs?
-       (impl/register-cljs!)
-       ;; FIXME should be load-core-envs!
-       (reset-envs! cljs?)
-       ;; note: don't do below, need to move the reset-envs! call instead
-       ;(reset! cljs-loaded? true)
-       )
      ;(println "Finished building base environments")
      ;(flush)
      nil)))

@@ -149,7 +149,6 @@
   (get (env/deref-checker checker) impl/cljs-jsvar-annotations-kw {}))
 
 (def clj-var-providers (delay (configs/clj-config-var-providers)))
-#?(:clj (def cljs-var-providers (delay (configs/cljs-config-var-providers))))
 
 (defn lookup-Var-nofail [nsym opts]
   {:pre [(symbol? nsym)]
@@ -166,8 +165,7 @@
                                                      (some->> (f nsym opts)
                                                               (vector fsym)))))
                                (impl/impl-case opts
-                                 :clojure @clj-var-providers
-                                 #?@(:clj [:cljs @cljs-var-providers]))))]
+                                 :clojure @clj-var-providers)))]
           (let [chosen-entry (first ts)
                 _ (when (< 1 (count ts))
                     (println (format "WARNING: multiple type providers for var %s (%s), using %s"

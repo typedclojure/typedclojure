@@ -13,10 +13,6 @@
                   :extra-deps {org.typedclojure/typed.clj.checker
                                {:local/root "../clj.checker"
                                 :deps/manifest :deps}
-                               ;;shared tests
-                               org.typedclojure/typed.cljs.checker
-                               {:local/root "../cljs.checker"
-                                :deps/manifest :deps}
                                org.clojure/test.check {:mvn/version "1.1.1"}
                                org.typedclojure/typed.clj.runtime
                                {:local/root "../clj.runtime"

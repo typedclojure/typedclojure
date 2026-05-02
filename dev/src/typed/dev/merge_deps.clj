@@ -154,16 +154,6 @@
                                          :kaocha.filter/skip-meta [:typed/skip-from-repo-root]
                                          :kaocha/test-paths    (non-resource-test-paths)}
                                         {:kaocha.testable/type :kaocha.type/clojure.test
-                                         :kaocha.testable/id   :cljs
-                                         :kaocha/ns-patterns   [".*"]
-                                         :kaocha/source-paths  (src-paths)
-                                         ;:kaocha.filter/skip-meta [:typed/skip-from-repo-root]
-                                         :kaocha/test-paths    (filterv
-                                                                 (fn [^String p]
-                                                                   ;; FIXME make less hacky
-                                                                   (.startsWith p "typed/cljs."))
-                                                                 (non-resource-test-paths))}
-                                        {:kaocha.testable/type :kaocha.type/clojure.test
                                          :kaocha.testable/id   :checker
                                          :kaocha/ns-patterns   [".*"]
                                          :kaocha/source-paths  (src-paths)

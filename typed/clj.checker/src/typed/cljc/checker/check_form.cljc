@@ -26,17 +26,15 @@
   (:import (clojure.lang ExceptionInfo)))
 
 (def *register-clj-anns (delay (configs/register-clj-config-anns)))
-#?(:clj (def *register-cljs-anns (delay (configs/register-cljs-config-anns))))
 
 ;; (check-form-info config-map form & kw-args)
 ;; 
 ;; Takes a configuration map which different implementations can customize
 ;; (via eg. clojure.core.typed.check-form-{clj,cljs}), a form to type check
-;; and keyword arguments propagated from core.typed users
-;; (via eg. {clojure,cljs}.core.typed/check-form-info).
+;; and keyword arguments propagated from Typed Clojure users
+;; (via eg. clojure.core.typed/check-form-info).
 ;;
-;; Also see docstrings for clojure.core.typed/check-form-info
-;; and cljs.core.typed/check-form-info.
+;; Also see docstring for clojure.core.typed/check-form-info
 ;;
 ;; 
 ;; Takes config-map as first argument:
@@ -98,8 +96,7 @@
   (assert (not (:opts m1)))
   (do
     (impl/impl-case opts
-      :clojure @*register-clj-anns
-      #?@(:clj [:cljs @*register-cljs-anns]))
+      :clojure @*register-clj-anns)
     (let [type-errors (err/-init-type-errors)
           opts (-> opts
                    (assoc ::vs/can-rewrite true)

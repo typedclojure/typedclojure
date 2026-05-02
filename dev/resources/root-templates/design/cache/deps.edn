@@ -1,8 +1,7 @@
 {% do-not-edit-edn-comment %}
 {:paths ["src"]
  :deps {org.clojure/clojure {:mvn/version "{◊clojure-mvn-version◊}"}
-        org.typedclojure/typed.clj.checker {:local/root "../../typed/clj.checker"}
-        org.typedclojure/typed.cljs.checker {:local/root "../../typed/cljs.checker"}}
+        org.typedclojure/typed.clj.checker {:local/root "../../typed/clj.checker"}}
  :resource-paths ["resources"]
  :aliases {:nREPL
            {:extra-deps

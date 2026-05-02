@@ -250,16 +250,6 @@
   Use :doc/index for documentation index."
   [syn] ((requiring-resolve 'typed.cljc.doc/type-doc-clj) syn))
 
-(defmacro doc-cljs
-  "Pass any syntax fragment related to Typed Clojure to print documentation on it.
-  eg., (doc-cljs t/Rec)
-       (doc-cljs '[])
-       (doc-cljs +) ;; print var annotation
-       (doc-cljs MyAlias) ;; print defalias mapping
-
-  Use :doc/index for documentation index."
-  [syn] ((requiring-resolve 'typed.cljc.doc/type-doc-cljs) syn))
-
 (cc/defn check-dir-clj [dirs]
   ((requiring-resolve 'typed.cljc.dir/check-dir-clj) dirs))
 
